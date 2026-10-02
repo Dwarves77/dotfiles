@@ -1,4 +1,4 @@
-# Wave 2 Archive-Collision Reconciliation Package — 2026-07-15
+# Wave 2 Archive-Collision Reconciliation Package , 2026-07-15
 
 Read-only forensics. Findings-before-fixes. Nothing mutated. Delivered to inform the fix decision.
 
@@ -6,11 +6,11 @@ Read-only forensics. Findings-before-fixes. Nothing mutated. Delivered to inform
 
 The "436 archived / 201 verified" figure is **cumulative historical state**, not today's mutation. TODAY
 (2026-07-15) the archive mutation is **19 items, all inside my Wave-2 agent_runs window, exactly 1 of them
-verified (Polish)**. There were **no hard deletes** of items — every one of the 19 is an `is_archived` flip,
+verified (Polish)**. There were **no hard deletes** of items , every one of the 19 is an `is_archived` flip,
 so the entire collision is **reversible**. The mass-verified-mutation concern is a pre-existing historical
 accumulation (200 of the 201 verified-archived predate today), not a today event.
 
-## Part 1 — Full mutation inventory (2026-07-15)
+## Part 1 , Full mutation inventory (2026-07-15)
 
 | Surface | What happened today | Notes |
 |---|---|---|
@@ -23,7 +23,7 @@ accumulation (200 of the 201 verified-archived predate today), not a today event
 
 **Key inventory findings:**
 - The **entire guarded-snapshot trail today is mine**. The 19 archives were written via a **raw (non-guarded)
-  path** — no rollback record, a discipline violation (guarded-mutations-only).
+  path** , no rollback record, a discipline violation (guarded-mutations-only).
 - The grounding pipeline does **not** archive (grep of the agent pipeline for archive/reclassify: zero hits),
   and **no DB trigger** archives an item. So the archives came from an **external disposition actor**, not my
   re-grounds and not a trigger.
@@ -32,36 +32,36 @@ accumulation (200 of the 201 verified-archived predate today), not a today event
   archives (15:12-17:07) **predate the audit-agent dispatch (~18:00)**, so the archiver is not cleanly a single
   actor and at least some archives happened before any coordination boundary existed.
 
-## Part 2 — Task completion map (audit Tasks 1-9)
+## Part 2 , Task completion map (audit Tasks 1-9)
 
 Framed as "evidence found / not found in the read-only probes," not proof of non-execution.
 
 | Task | Evidence | Read |
 |---|---|---|
-| 1 — re-point 927 dead-cite | No re-point snapshot, no source_id-change signal | No evidence of execution |
-| 2 — host registration + re-stamp 455 | Host-reg sources exist but at 01:37-03:57 (the committed prior sweep); none in the Wave-2 window | Current Task 2 not evidenced; only the earlier committed sweep |
-| **3 — ISO 14083 correction** | Item `7d2f8d88` **unchanged since 2026-07-13**, still verified, 20 facts, 25 ISO/CE claims | **NOT EXECUTED. The known-false 2023/1805=CountEmissions+ISO-14083 claim set is still LIVE and UNCORRECTED — not half-corrected (the safer of the two bad states).** |
-| 4 — CountEmissions verification | Item `7aaecc81` unchanged since 07-06 | No evidence of execution |
-| 5 — D1 dedup ReFuelEU | 4 duplicate_instrument archives today + FuelEU archived 07-11 (historical) | Partial/ambiguous; dup claims need per-item twin check |
-| 6 — Q1-Q4 + Q3 reclassify | The reclassified_to_source + portal_artifact archives are consistent with Q3 disposition | Executed as DISPOSITION, but **misapplied to substantial content** (see Part below) |
-| 7 — recover hold #11 | None | No evidence |
-| 8 — ADR-014 ratification | No commit after `8eb7534`; no ADR-014 wiring committed | No evidence of execution |
-| 9 — commit | **No commit after `8eb7534`** | The remediation package is uncommitted |
+| 1 , re-point 927 dead-cite | No re-point snapshot, no source_id-change signal | No evidence of execution |
+| 2 , host registration + re-stamp 455 | Host-reg sources exist but at 01:37-03:57 (the committed prior sweep); none in the Wave-2 window | Current Task 2 not evidenced; only the earlier committed sweep |
+| **3 , ISO 14083 correction** | Item `7d2f8d88` **unchanged since 2026-07-13**, still verified, 20 facts, 25 ISO/CE claims | **NOT EXECUTED. The known-false 2023/1805=CountEmissions+ISO-14083 claim set is still LIVE and UNCORRECTED , not half-corrected (the safer of the two bad states).** |
+| 4 , CountEmissions verification | Item `7aaecc81` unchanged since 07-06 | No evidence of execution |
+| 5 , D1 dedup ReFuelEU | 4 duplicate_instrument archives today + FuelEU archived 07-11 (historical) | Partial/ambiguous; dup claims need per-item twin check |
+| 6 , Q1-Q4 + Q3 reclassify | The reclassified_to_source + portal_artifact archives are consistent with Q3 disposition | Executed as DISPOSITION, but **misapplied to substantial content** (see Part below) |
+| 7 , recover hold #11 | None | No evidence |
+| 8 , ADR-014 ratification | No commit after `8eb7534`; no ADR-014 wiring committed | No evidence of execution |
+| 9 , commit | **No commit after `8eb7534`** | The remediation package is uncommitted |
 
 **Read:** the audit remediation's **content-repair and commit tasks (1, 3, 4, 7, 8, 9) show no execution
 evidence**; what actually landed is a **disposition/archive pass** (Tasks 5/6-shaped) that ran un-guarded and
 un-committed, some of it before the current dispatch. The most important single fact: **Task 3 did not run, so
 the false ISO 14083 compliance claim is still live but not half-corrected.**
 
-## Part 3 — Exclusion-filter forensics
+## Part 3 , Exclusion-filter forensics
 
 - **100% of the 19 archived items are in my Wave-2 window; none were excluded.** The Wave-2 exclusion (skip
   items with agent_runs activity in the recovery window) was **not enforced on the disposition/archive paths**.
-- Precise cause (wrong timestamp vs wrong marker vs never-filtered) is **not determinable from the data**
+- Precise cause (wrong timestamp vs wrong marker vs never-filtered) is **not determinable from the data** [HYPOTHESIS]
   because archive timing is unrecoverable and some archives predate the boundary. The defensible inference:
   the disposition paths were never gated by the Wave-2 exclusion, and part of the surface predates any boundary.
 
-## Part 4 — Commit state
+## Part 4 , Commit state
 
 - **Latest commit: `8eb7534`** (audit ground-truth, read-only). No commit after it → the remediation Tasks 1-9
   are **not committed**.
@@ -77,7 +77,7 @@ All in my Wave-2 window. All retain their claims (un-archive fully restores them
 | Item | Facts | Status | Archive reason | Read |
 |---|---|---|---|---|
 | India's National Logistics Policy | 121 | quarantined | reclassified_to_source | Substantial reg content; reclassify questionable |
-| Oregon Dept of Environmental Quality | 107 | quarantined | **portal_artifact** | 107-fact reg labeled furniture — wrong |
+| Oregon Dept of Environmental Quality | 107 | quarantined | **portal_artifact** | 107-fact reg labeled furniture , wrong |
 | Slovenia Ministry of Environment | 99 | quarantined | reclassified_to_source | Substantial; questionable |
 | Japan Top Runner Program | 95 | quarantined | reclassified_to_source | Substantial; questionable |
 | Japan Customs Bureau Tariff Law | 93 | quarantined | reclassified_to_source | Substantial; questionable |
@@ -86,11 +86,11 @@ All in my Wave-2 window. All retain their claims (un-archive fully restores them
 | Wyoming DEQ EPA Partial Approval | 64 | quarantined | reclassified_to_source | Questionable |
 | UAE National Hydrogen (Transport) | 45 | quarantined | duplicate_instrument | Verify twin |
 | World Heritage Fjords ZEV | 43 | quarantined | duplicate_instrument | I recovered this 0->43; verify twin (Norway ZEV 72-fact item) |
-| Brazil Logística Reversa | 42 | quarantined | **portal_artifact** | 42-fact reg labeled furniture — wrong |
+| Brazil Logística Reversa | 42 | quarantined | **portal_artifact** | 42-fact reg labeled furniture , wrong |
 | Japan GX Freight | 38 | quarantined | reclassified_to_source | Questionable |
 | UAE National Hydrogen Implementation | 38 | quarantined | duplicate_instrument | Verify twin |
 | Japan GX League | 37 | quarantined | reclassified_to_source | Questionable |
-| **Polish Chief Environmental Inspectorate** | 35 | **verified** | **portal_artifact** | Verified 35-fact item labeled furniture — clear mis-archive |
+| **Polish Chief Environmental Inspectorate** | 35 | **verified** | **portal_artifact** | Verified 35-fact item labeled furniture , clear mis-archive |
 | Colombian Ministry of Transport | 33 | quarantined | reclassified_to_source | A "Ministry" item may be a legit source-reclassify |
 | EU CSRD | 29 | quarantined | duplicate_instrument | Verify twin |
 | Wisconsin 2023 State Freight Plan | 28 | quarantined | reclassified_to_source | Questionable |
@@ -98,15 +98,15 @@ All in my Wave-2 window. All retain their claims (un-archive fully restores them
 
 ## What the findings imply for the fix
 
-1. **Reversible.** All 19 are `is_archived` flips with claims intact — the fix is `is_archived=false` +
+1. **Reversible.** All 19 are `is_archived` flips with claims intact , the fix is `is_archived=false` +
    clear `archive_reason` (guarded), not reconstruction.
-2. **Clear-wrong to reverse first:** the 3 `portal_artifact` on real content (Oregon 107, Brazil 42, Polish 35
-   verified) — furniture is a no-content shell; these are not that.
-3. **Questionable reclassify_to_source (10 items, 18-121 facts):** need a rule — is a 121-fact "National
+2. **Clear-wrong to reverse first:** the 3 `portal_artifact` on real content (Oregon 107, Brazil 42, Polish 35 [HYPOTHESIS]
+   verified) , furniture is a no-content shell; these are not that.
+3. **Questionable reclassify_to_source (10 items, 18-121 facts):** need a rule , is a 121-fact "National
    Logistics Policy" a SOURCE (institution) or an ITEM (regulation)? Reclassifying substantial reg content to a
    source silently removes it from the corpus.
 4. **duplicate_instrument (4):** each needs its claimed twin verified before accepting the dedup.
-5. **Separate, higher-priority content fix:** Task 3 (ISO 14083) did NOT run — the false compliance claim is
+5. **Separate, higher-priority content fix:** Task 3 (ISO 14083) did NOT run , the false compliance claim is
    still live. This is independent of the archive collision and is the operator's stated worst-case-to-avoid.
 6. **Process fixes:** the disposition actor must (a) use guarded writes (these 19 have no rollback record),
    (b) respect the Wave-2 boundary on ALL paths incl. disposition, (c) not label 100-fact regs as furniture.

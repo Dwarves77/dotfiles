@@ -102,7 +102,7 @@ Zero references anywhere. (Not loaded.)
 
 ### Anton
 
-- Anton is referenced exclusively via `var(--font-display)` inline style or inside the `.cl-typeset-h` CSS class. The Tailwind class `font-display` is NEVER used (0 occurrences).
+- Anton is referenced exclusively via `var(--font-display)` inline style or inside the `.cl-typeset-h` CSS class. The Tailwind class `font-display` is NEVER used (0 occurrences). [HYPOTHESIS]
 - Approximately 45 inline `fontFamily: "var(--font-display)"` references across 25 files (mastheads, page titles, hero numbers, big numerics, section headers, modal titles).
 - Anton ships as a single weight (400). All references render at that weight.
 - USED. No action.
@@ -160,5 +160,5 @@ If the operator drops 300 and does nothing else: net change is one fewer Plus_Ja
 
 ## Related
 
-- [dashboard-payload-audit-2026-05-11](./dashboard-payload-audit-2026-05-11.md) — This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
-- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — Cleanup rules this doc ACTIVE and cited by layout.tsx as the source-of-truth for which font weights are bundled into the build
+- [dashboard-payload-audit-2026-05-11](./dashboard-payload-audit-2026-05-11.md) , This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) , Cleanup rules this doc ACTIVE and cited by layout.tsx as the source-of-truth for which font weights are bundled into the build

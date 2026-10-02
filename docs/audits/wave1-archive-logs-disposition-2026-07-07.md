@@ -14,28 +14,28 @@ one-way mirror; keep the two-homes drift class from re-forming."
 That rests on a premise that the machine does not support. Verified directly:
 
 - `%APPDATA%\obsidian\obsidian.json` registers **exactly one vault**: `C:\Users\jason\dotfiles\docs`
-  — the repo's own `docs/` folder. `ts` present, `open: true`.
+  , the repo's own `docs/` folder. `ts` present, `open: true`.
 - No Obsidian Sync: `docs/.obsidian/` has no `sync.json` / sync dir; no community plugins.
 - No other `.obsidian` vault anywhere under `C:\Users\jason` (find, depth 3).
 
 **Therefore the Obsidian vault IS the repo's `docs/`.** There is no separate "designated backup
-knowledge space" to mirror into — `docs/archive/logs/` is already inside the vault. Consequences:
+knowledge space" to mirror into , `docs/archive/logs/` is already inside the vault. Consequences:
 
 - "Mirror into the vault" is a no-op: the files are already in the vault by virtue of being in `docs/`.
-- Gitignoring them does NOT make them durable — a `git clean -fdx` or a fresh clone wipes untracked
+- Gitignoring them does NOT make them durable , a `git clean -fdx` or a fresh clone wipes untracked
   files under `docs/` all the same. There is no out-of-band copy.
 - The ONLY mechanism that delivers the rider's actual GOAL (durable evidence surviving clean
   checkouts, readable in Obsidian, repo = SSOT, no two-homes drift) is **git-tracking in place**.
-  Tracking collapses the "two homes" to one — the strongest possible form of "no drift."
+  Tracking collapses the "two homes" to one , the strongest possible form of "no drift."
 
-Surfaced under remediation-discipline §3.5 (stop-and-surface on unstable inputs) rather than
+Surfaced under remediation-discipline section 3.5 (stop-and-surface on unstable inputs) rather than
 executing a mirror to a home that does not exist.
 
 ## The 6 files (now tracked)
 
 All had zero live consumers at the new path; the ADR-010 docs/→archive/logs/ move broke nothing at
 runtime. They were untracked only because the old `.gitignore` patterns (anchored at `docs/` ROOT)
-stopped matching once the files moved to `docs/archive/logs/` — the patterns were already dead
+stopped matching once the files moved to `docs/archive/logs/` , the patterns were already dead
 (`git check-ignore` returned none). They join dozens of sibling evidence logs already tracked in the
 same directory from the taxonomy triage.
 
@@ -50,14 +50,14 @@ same directory from the taxonomy triage.
 
 ## Fixes applied in this change
 
-- **A — tracked + ignore hygiene.** `git add` the 6; removed the dead root-anchored ignore block from
+- **A , tracked + ignore hygiene.** `git add` the 6; removed the dead root-anchored ignore block from
   `.gitignore` (replaced with a pointer comment to this note).
-- **B — DEFERRED to the flagged bucket** (see below). Repointing the producers trips the pre-commit
+- **B , DEFERRED to the flagged bucket** (see below). Repointing the producers trips the pre-commit
   discipline engine on PRE-EXISTING violations unrelated to a log-path change, so it is not bundled
   into this docs-hygiene commit.
-- **C — stale pointer** in `docs/audits/jurisdiction-normalization-audit-2026-05-11.md:7`
+- **C , stale pointer** in `docs/audits/jurisdiction-normalization-audit-2026-05-11.md:7`
   (`docs/_audit-…` → `docs/archive/logs/_audit-…`).
-- **D — this record** + an INDEX line.
+- **D , this record** + an INDEX line.
 
 ## Flagged, NOT silently done (operator's call)
 
@@ -65,40 +65,40 @@ same directory from the taxonomy triage.
 `docs/` ROOT rather than `docs/archive/logs/`. Repointing them is consistency-only (they are
 completed one-shots), and touching them carries a real, disproportionate cost:
 
-- The two TRACKED producers — `wave1-cold-start.mjs` and `wave1-last-scanned-backfill.mjs` — trip the
+- The two TRACKED producers , `wave1-cold-start.mjs` and `wave1-last-scanned-backfill.mjs` , trip the
   pre-commit **discipline engine** the moment they are staged, on PRE-EXISTING violations a log-path
   edit does not introduce: rule **[015]** (raw row-mutation outside the guarded `scripts/lib/db.mjs`
   path) on both, and rule **[016]** (direct Anthropic call outside the canonical path) at
   `wave1-cold-start.mjs:246`. Landing a cosmetic repoint would require either a guarded-path /
   canonical-path refactor of legacy dispatch-bound scripts, a `Write-Guard-Override:` trailer ([015]
-  only — [016] offers no trailer), or `--no-verify` (a hook bypass, avoided). None is worth a
+  only , [016] offers no trailer), or `--no-verify` (a hook bypass, avoided). None is worth a
   log-directory nicety on a completed one-shot; if these scripts are ever revived as maintained code,
   do the guarded refactor THEN.
 - The three `wave1-api-discovery*.mjs` scripts are git-IGNORED and untracked (`.gitignore:40`,
 `fsi-app/scripts/wave1-api-discovery*.mjs`, with the rationale "wave1-* discovery scripts are
 dispatch-bound and not maintained code"). They are completed one-shots, so repointing their output
-is consistency-only, not required for correctness — and because they are untracked, any edit lives
+is consistency-only, not required for correctness , and because they are untracked, any edit lives
 only in the working tree and would NOT commit. So a repoint here is left flagged, not applied
 (force-tracking a deliberately-ignored file is a scope escalation for the operator to authorise).
 Exact edits if a re-run is ever wanted (or the operator elects to `git add -f` them):
 
-- `fsi-app/scripts/wave1-api-discovery-apply-routing.mjs:43-44` — repoint BOTH the input
+- `fsi-app/scripts/wave1-api-discovery-apply-routing.mjs:43-44` , repoint BOTH the input
   `JSONL_PATH` and the output `LOG_PATH` (`docs/…` → `docs/archive/logs/…`); repointing only the
   output would leave a re-run unable to find its input.
-- `fsi-app/scripts/wave1-api-discovery.mjs:77` — writes `wave1-api-discovery-*.jsonl` to old `docs/` root.
-- `fsi-app/scripts/wave1-api-discovery-summarize.mjs:22` — writes `wave1-track1-summary.md` to old
+- `fsi-app/scripts/wave1-api-discovery.mjs:77` , writes `wave1-api-discovery-*.jsonl` to old `docs/` root.
+- `fsi-app/scripts/wave1-api-discovery-summarize.mjs:22` , writes `wave1-track1-summary.md` to old
   `docs/` root, but the SoT summary now lives at `docs/audits/wave1-track1-summary.md`.
 
 Note the ignore comment says "wave1-* discovery scripts" but the pattern only matches
 `wave1-api-discovery*.mjs`; `wave1-cold-start.mjs` and `wave1-last-scanned-backfill.mjs` are `wave1-*`
-yet NOT `api-discovery`, so they are tracked — which is why Fix B could repoint them cleanly.
+yet NOT `api-discovery`, so they are tracked , which is why Fix B could repoint them cleanly.
 
 Also lower-priority: `docs/archive/walk-away-handoff-2026-05-09.md` carries ~10 stale `dotfiles/docs/wave1-*`
 pointers that now resolve to scattered new homes (some → `archive/logs/`, some → `docs/audits/` or
 `docs/plans/`). `docs/archive/` is explicitly not-indexed/not-loaded per the operating manual, so left
 for an archive-hygiene pass if wanted.
 
-## Durability rider — satisfied
+## Durability rider , satisfied
 
 "Durable evidence, readable in Obsidian, repo = SSOT, one-way, no two-homes drift" is met by tracking
 in place: durable (git survives clean checkouts), in Obsidian (docs/ IS the vault), SSOT (the repo),

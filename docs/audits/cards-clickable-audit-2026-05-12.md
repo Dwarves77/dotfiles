@@ -1,4 +1,4 @@
-# Cards Clickable Audit — 2026-05-12
+# Cards Clickable Audit , 2026-05-12
 
 Scope: enumerate every card-style component representing a single
 intelligence_item on `/market`, `/research`, `/operations`, verify the
@@ -12,7 +12,7 @@ type, and surface any dead routes BEFORE wiring.
 `legacy_id || id` (line 473), so every Resource object in the workspace
 carries a value that the detail route can resolve.
 
-DB probe results (active items, non-archived) — every sampled card type
+DB probe results (active items, non-archived) , every sampled card type
 resolves the detail page lookup:
 
 | Card type                          | Sample ui-id                                  | Lookup     |
@@ -28,8 +28,8 @@ resolves the detail page lookup:
 
 The detail page is named `[slug]` but accepts both legacy_id slugs and
 raw uuids (with 307 redirect to slug when legacy_id exists). The detail
-surface (`RegulationDetailSurface`) reads generic Resource fields —
-title, summary, priority, tags, jurisdictions, sources — and renders
+surface (`RegulationDetailSurface`) reads generic Resource fields ,
+title, summary, priority, tags, jurisdictions, sources , and renders
 without errors for non-regulation items. The eyebrow reads "Regulations
 · {jurisdiction}" which is cosmetic, not blocking. Operator's spec
 already names `/regulations/[slug]` as the target.
@@ -44,11 +44,11 @@ Counts (active items only):
 | Page       | Component                                              | File:line                                                                  | Item field | Slug present | Detail renders | Decision | Notes |
 |------------|--------------------------------------------------------|----------------------------------------------------------------------------|------------|--------------|-----------------|----------|-------|
 | Market     | PolicySignals `<li>` per item                          | src/components/market/PolicySignals.tsx:109-219                            | item.id    | Yes          | Yes             | WIRE     | Inner SourceBadge `<a>` to source URL → use button + router.push to avoid nested anchors |
-| Market     | MarketPage TechBody `<div>` per item                   | src/components/pages/MarketPage.tsx:374-391                                | it.id      | Yes          | Yes             | WIRE     | No inner clickables — clean Link wrap |
-| Market     | MarketPage PriceRow                                    | src/components/pages/MarketPage.tsx:407-457                                | item.id    | Yes          | Yes             | WIRE     | No inner clickables — clean Link wrap |
-| Market     | WatchlistSidebar `<li>` per item                       | src/components/market/WatchlistSidebar.tsx:128-166                         | it.id      | Yes          | Yes             | WIRE     | No inner clickables — clean Link wrap |
-| Market     | OwnersContent inner `<li>` per item under owner header | src/components/market/OwnersContent.tsx:145-158                            | it.id      | Yes          | Yes             | WIRE     | Inner items are pure-text; owner header `<li>` is a group container — wrap only the inner item `<li>` |
-| Market     | KeyMetricsRow per-item row                             | src/components/market/KeyMetricsRow.tsx:165-213                            | it.id      | Yes          | Yes             | WIRE     | Header has period-tab buttons; the per-item row has none — clean Link wrap on the row only |
+| Market     | MarketPage TechBody `<div>` per item                   | src/components/pages/MarketPage.tsx:374-391                                | it.id      | Yes          | Yes             | WIRE     | No inner clickables , clean Link wrap |
+| Market     | MarketPage PriceRow                                    | src/components/pages/MarketPage.tsx:407-457                                | item.id    | Yes          | Yes             | WIRE     | No inner clickables , clean Link wrap |
+| Market     | WatchlistSidebar `<li>` per item                       | src/components/market/WatchlistSidebar.tsx:128-166                         | it.id      | Yes          | Yes             | WIRE     | No inner clickables , clean Link wrap |
+| Market     | OwnersContent inner `<li>` per item under owner header | src/components/market/OwnersContent.tsx:145-158                            | it.id      | Yes          | Yes             | WIRE     | Inner items are pure-text; owner header `<li>` is a group container , wrap only the inner item `<li>` |
+| Market     | KeyMetricsRow per-item row                             | src/components/market/KeyMetricsRow.tsx:165-213                            | it.id      | Yes          | Yes             | WIRE     | Header has period-tab buttons; the per-item row has none , clean Link wrap on the row only |
 | Market     | CostTrajectoryChart                                    | src/components/market/CostTrajectoryChart.tsx                              | n/a        | n/a          | n/a             | SKIP     | Aggregate chart, not per-item |
 | Market     | FreightRelevanceCallout                                | src/components/market/FreightRelevanceCallout.tsx                          | n/a        | n/a          | n/a             | SKIP     | Editorial aside, not per-item |
 | Market     | MarketPage category accordions                         | src/components/pages/MarketPage.tsx                                        | n/a        | n/a          | n/a             | SKIP     | Group toggle, not per-item navigation |
@@ -62,19 +62,19 @@ Counts (active items only):
 ## Summary
 
 - WIRE count: **8** card components across 3 pages
-- SKIP count: **6** (aggregate charts, editorial asides, group accordions, filter UI — per design intent, not dead routes)
-- Dead-route count: **0** — no wired card type would link to a non-existent or erroring detail page
+- SKIP count: **6** (aggregate charts, editorial asides, group accordions, filter UI , per design intent, not dead routes)
+- Dead-route count: **0** , no wired card type would link to a non-existent or erroring detail page
 - Halt-and-surface trigger: **None.** All WIRE candidates resolve cleanly. Proceeding to wiring.
 
 ## Implementation notes
 
 1. **PolicySignals** has a nested `<a>` to the source URL inside the `<li>`. Wrapping the `<li>` in `<Link>` would nest anchors (invalid HTML). Resolution: render the `<li>` as a button-styled wrapper using `useRouter().push()` on click, and ensure the inner SourceBadge `<a>` calls `e.stopPropagation()`. Title remains visually a link target.
 2. **PipelineRow** in ResearchView already uses a `<button>` for expand/collapse. Wrapping a `<button>` in `<Link>` is invalid. Resolution: split into a title row (wrapped in `<Link>`) and a chevron button (separate, with `e.stopPropagation()`).
-3. All other components have no internal interactive children — straight `<Link>` wrap is safe.
+3. All other components have no internal interactive children , straight `<Link>` wrap is safe.
 4. Style: `cursor-pointer` + subtle hover (background-color shift to `var(--raised)`) matching the regulations card precedent in `RegulationsSurface.tsx:1751-1757`.
 
 ## Related
 
-- [functional-purpose-audit-2026-05-24](./functional-purpose-audit-2026-05-24.md) — Shares the card→detail navigation flow per surface; the functional audit tracks the same click-through and notes /market/[slug] and…
-- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) — Structural failure S1 (single detail-page route every card hardcodes) is the architectural counterpart to this audit's confirmation that all card…
-- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) — Shares the card/interactive-element click-behavior concern; both check whether clickable-looking surface elements resolve to real navigation/handlers
+- [functional-purpose-audit-2026-05-24](./functional-purpose-audit-2026-05-24.md) , Shares the card→detail navigation flow per surface; the functional audit tracks the same click-through and notes /market/[slug] and…
+- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) , Structural failure S1 (single detail-page route every card hardcodes) is the architectural counterpart to this audit's confirmation that all card…
+- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) , Shares the card/interactive-element click-behavior concern; both check whether clickable-looking surface elements resolve to real navigation/handlers

@@ -107,7 +107,7 @@ The pollution is **highly distributed**. Across the 39 polluted items, no source
 
 The concentration finding is "no concentration." Two distinct patterns:
 
-- **Single-item topic failures** (NYC Council, Latvian Saeima): one item each. The pattern is a missing per-item topic gate, not a misregistered source.
+- **Single-item topic failures** (NYC Council, Latvian Saeima): one item each. The pattern is a missing per-item topic gate, not a misregistered source. [HYPOTHESIS]
 - **Single-item garbage-extraction failures** (everyone else on the table): one item each. The pattern is unprotected scraping against Cloudflare-defended, JavaScript-rendered, or CAPTCHA-walled portals. Cloudflare returned a 403 / interstitial, the agent's HTML-to-text path converted it to "Cloudflare Security Verification - X Website", and Haiku obediently summarized that as the regulation.
 
 The implication is that **no single source is responsible**, and per-source disposition (cull this one source) cannot meaningfully reduce the pollution rate. The fixes are systemic: a per-item topic gate (for the topic-failure subset) and a fetch-quality gate / access-method upgrade (for the garbage-extraction subset).
@@ -206,8 +206,8 @@ A complementary recommendation: independent of the topic gate, the garbage-extra
 
 ## Related
 
-- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) — Co-dated; both independently report agent_runs.intelligence_item_id null (0-of-642 / 0-of-791) as the same unwritten-FK root cause
-- [sources-content-verification-2026-05-11](./sources-content-verification-2026-05-11.md) — The two archived rows verified here (NYC ICE + Latvian Saeima) are the off-topic items that investigation recommended flag-and-hide
-- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) — Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Both mirror the /regulations page filter (domain=1 AND is_archived=false) defining the candidate surface
-- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — Co-extended companion; both trace the empty-source-topic_tags scoping gap and the registry-to-ingestion silent-failure pattern
+- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) , Co-dated; both independently report agent_runs.intelligence_item_id null (0-of-642 / 0-of-791) as the same unwritten-FK root cause
+- [sources-content-verification-2026-05-11](./sources-content-verification-2026-05-11.md) , The two archived rows verified here (NYC ICE + Latvian Saeima) are the off-topic items that investigation recommended flag-and-hide
+- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) , Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , Both mirror the /regulations page filter (domain=1 AND is_archived=false) defining the candidate surface
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) , Co-extended companion; both trace the empty-source-topic_tags scoping gap and the registry-to-ingestion silent-failure pattern

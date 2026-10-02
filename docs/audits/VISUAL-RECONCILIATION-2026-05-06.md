@@ -1,4 +1,4 @@
-# Caro's Ledge — Visual Reconciliation Audit
+# Caro's Ledge , Visual Reconciliation Audit
 
 **Date:** 2026-05-06
 **Scope:** Read-only comparison of design source-of-truth (claude.ai design project 5de59f85-2c21-4711-87ea-ca309f461d5f) versus production (carosledge.com, Dietl/Rockit Enterprise workspace).
@@ -8,7 +8,7 @@
 
 ## 1. Executive summary
 
-The production site and the design previews share a recognizable editorial system — Anton-style condensed display headers, navy `#171e19` base, red/amber/gray/green status palette, Plus Jakarta-style humanist body — but they have diverged in three structural ways.
+The production site and the design previews share a recognizable editorial system , Anton-style condensed display headers, navy `#171e19` base, red/amber/gray/green status palette, Plus Jakarta-style humanist body , but they have diverged in three structural ways.
 
 First, production has a platform-wide CSS regression on the editorial hero band. Design clamps the hero to ~1208px centered within content gutters; production has `max-width: none` and stretches the band edge-to-edge on wide viewports.
 
@@ -270,7 +270,7 @@ Enumerated from the design previews. Each item has a corresponding component or 
 - `/vendors` as a standalone top-level surface (design has no vendors page; vendors are a Community sidebar rail)
 - Community shell that swaps out the platform side-rail entirely on `/community`
 - Side-rail items for Profile, Settings, Admin (design has these as user-footer/badge destinations)
-- Regulation detail tabs: Penalty calculator, Sources, Team notes, Full text, Exposure
+- Regulation detail tabs: Penalty calculator, Sources, Team notes, Full text, Exposure [HYPOTHESIS]
 - Regulation detail header buttons: Add to watchlist, Export brief
 - Issues Queue as default Admin tab
 - "Coming soon, Phase D" placeholder where design shows the Organizations table
@@ -297,6 +297,6 @@ Three things worth flagging from this audit:
 
 ## Related
 
-- [DESIGN-AUDIT-2026-05](./DESIGN-AUDIT-2026-05.md) — Companion preview-vs-production audit — same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
-- [spec-audit-community-2026-05-23](../plans/spec-audit-community-2026-05-23.md) — Community was this audit's single largest delta (shell swap, missing composer/feeds); spec-audit-community governs that surface's rebuild
-- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) — Later whole-site audit revisits the same production-vs-design surface reconciliation
+- [DESIGN-AUDIT-2026-05](./DESIGN-AUDIT-2026-05.md) , Companion preview-vs-production audit , same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
+- [spec-audit-community-2026-05-23](../plans/spec-audit-community-2026-05-23.md) , Community was this audit's single largest delta (shell swap, missing composer/feeds); spec-audit-community governs that surface's rebuild [HYPOTHESIS glyph:verbatim]
+- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) , Later whole-site audit revisits the same production-vs-design surface reconciliation

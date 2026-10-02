@@ -107,4 +107,4 @@ node "$DISCOVERY" --print0 | xargs -0 node --import "./fsi-app/.discipline/lib/n
 # lane's own diff) so this stays a visible signal rather than blocking every push on old debt; pass
 # --strict once the backlog is labeled, per the script's own header. Never previously run by anything,
 # lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md section W7.
-node fsi-app/scripts/verify/audit-finding-status.mjs || true
+node fsi-app/scripts/verify/audit-finding-status.mjs --strict

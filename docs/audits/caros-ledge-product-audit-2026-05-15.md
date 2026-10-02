@@ -1,4 +1,4 @@
-# Caro's Ledge product audit, v2 — 2026-05-15
+# Caro's Ledge product audit, v2 , 2026-05-15
 
 Read-only audit of the live product against the operator brief dated 2026-05-15. Eight investigation areas covered in parallel: data sufficiency per page, cross-reference integrity, source traceability, route-to-data alignment, AI writer quality, FSI Brief framework + integrity non-negotiables, lead time + vertical/mode priority, multi-tenant 3-layer model.
 
@@ -36,9 +36,9 @@ The four-page architecture is the design and is correct. What is missing is the 
 
 **Reality.**
 - "What is binding": the page filter `(r.domain || 1) === 1` (`RegulationsSurface.tsx:382`) plus a default-to-1 adapter at `supabase-server.ts:494` sweeps 586 of 644 active items into the regulations list. 438 of those 586 (75%) have an `item_type` that is not "regulation" (frameworks, guidance, regional_data, market_signals, research_findings, tools, etc). Operators on /regulations see a vendor SaaS (EcoVadis), a learned society (IIC), regional electricity tariffs, market signals, and research findings rendered with the same REGULATION pill as primary legal authority items. The page is a regulation directory in name only.
-- "When": `compliance_deadline` is null on 100% of rows (the column exists, no writer ever populates it). `entry_into_force` is populated on 23/644 rows, and 22 of those are pre-B.2 legacy rows the agent has never regenerated. `item_timelines` table has 107 rows across 30 items (4.7% coverage), all from the migration 010 backfill, none from current code paths. The "Effective" stat tile is hidden on 95% of detail pages because the underlying date is null.
+- "When": `compliance_deadline` is null on 100% of rows (the column exists, no writer ever populates it). `entry_into_force` is populated on 23/644 rows, and 22 of those are pre-B.2 legacy rows the agent has never regenerated. `item_timelines` table has 107 rows across 30 items (4.7% coverage), all from the migration 010 backfill, none from current code paths. The "Effective" stat tile is hidden on 95% of detail pages because the underlying date is null. [HYPOTHESIS]
 - "What does it cost": `penalty_range`, `cost_mechanism`, `enforcement_body`, `legal_instrument` columns referenced by the renderer (`supabase-server.ts:1411-1413`) do not exist in the schema. The PenaltyCalculatorPanel renders "No structured penalty data on file" on 100% of regulation detail pages. The fallback regex scrape of `full_brief` for sentences matching `penalt|fine|surcharge` fires on roughly 10% of rows, returning unstructured prose snippets, not structured tiles.
-- "What do I do": `action_owner` and `last_verified_date` columns referenced by `OwnerTeamCard` do not exist. The card renders "Unassigned" with no last-update date on 100% of detail pages. The four-stat strip's "Lanes affected" and "Your exposure" tiles are hard-coded "—" literals (`RegulationDetailSurface.tsx:219-220`) gated to never render. The AffectedLanesCard renders the honest-empty footnote "Lane-pair, volume, and origin/destination data not yet in schema" on 100% of pages.
+- "What do I do": `action_owner` and `last_verified_date` columns referenced by `OwnerTeamCard` do not exist. The card renders "Unassigned" with no last-update date on 100% of detail pages. The four-stat strip's "Lanes affected" and "Your exposure" tiles are hard-coded "," literals (`RegulationDetailSurface.tsx:219-220`) gated to never render. The AffectedLanesCard renders the honest-empty footnote "Lane-pair, volume, and origin/destination data not yet in schema" on 100% of pages. [HYPOTHESIS glyph:verbatim]
 
 **Verdict.** The page fails to deliver on its stated intent across all four operator questions. It can answer "what" (titles and descriptive text) for ~25% of items where the operator-authored seed fields (`what_is_it`, `why_matters`) are populated, "when" for 0% of items via the structured columns the UI reads, "what does it cost" for 0% via structured tiles, and "what do I do" for 0% via owner attribution. It is structurally a regulation directory, not a binding-action workbench.
 
@@ -49,7 +49,7 @@ The four-page architecture is the design and is correct. What is missing is the 
 **Reality.**
 - "What is emerging": no filter is applied at all. `RESEARCH_SCOPE = {}` (`research/page.tsx:17`) plus `getResearchPipeline()` returns the entire workspace pipeline capped at 100 items. Every item type, every status, every source role is in scope. The "research" framing is a label on a list of everything.
 - "Who is studying it": the page is the only one of the four that surfaces `sourceName` from the joined sources table (95% coverage) at `fetchResearchPipelineRows:713`. This part works. But the source name is text only, the URL is not clickable, the source tier is not shown, the source classification confidence is not shown.
-- "How does it change my planning horizon": the page's two flagship features are broken. The coverage matrix at `ResearchView.tsx:162-167` is a 28-cell hand-coded mock with the disclaimer "Coverage values are placeholders pending the source registry rollup endpoint." The stage-driven workflow narrative builds the entire UI around `pipeline_stage = "active_review"` as the primary CTA tile (`ResearchView.tsx:277`), but zero items in the database have that stage. 71% of items show as "Published" by default because their `pipeline_stage` is null and `normalizeStage()` falls back to "published." The most prominent CTA on the page leads to an empty list.
+- "How does it change my planning horizon": the page's two flagship features are broken. The coverage matrix at `ResearchView.tsx:162-167` is a 28-cell hand-coded mock with the disclaimer "Coverage values are placeholders pending the source registry rollup endpoint." The stage-driven workflow narrative builds the entire UI around `pipeline_stage = "active_review"` as the primary CTA tile (`ResearchView.tsx:277`), but zero items in the database have that stage. 71% of items show as "Published" by default because their `pipeline_stage` is null and `normalizeStage()` falls back to "published." The most prominent CTA on the page leads to an empty list. [HYPOTHESIS]
 
 **Verdict.** Partially delivers the list shape. The pipeline list works on real data; "what's new this week" via `addedDate` works. But the planning-horizon angle the page is built around (active review queue, coverage matrix) is a mock or a zero-result default. The source-credibility tier the brief makes central to research evaluation is not surfaced. The right items are not yet being routed here either: peer-reviewed studies, industry-academic research collaborations, credible white papers are absent, and parliamentary portals and unrelated rentals are present (Section 5 names specific cases). The page is correctly designed; the source registry curation and the routing layer that would feed it correctly are not built.
 
@@ -60,7 +60,7 @@ The four-page architecture is the design and is correct. What is missing is the 
 **Reality.**
 - "What are competitors doing": the page filter pulls `r.type IN (technology, innovation, market_signal) OR r.domain IN (2, 4)` (`MarketPage.tsx:134-145`), yielding ~62-72 items. The filter does not consider source role, so vendor_corporate sources (EcoVadis), trade_press (Lloyd's List, Aviation Week, FreightWaves), industry_data_provider (BloombergNEF), and primary_legal_authority items coexist in the same HIGH-priority POLICY ACCELERATION SIGNALS strip alongside CARB-grade regulations.
 - "What does it cost me to ignore": no penalty/cost field on these items. No severity-tier filter. `severity` (which has dedicated labels COST ALERT 34, COMPETITIVE EDGE 12, WINDOW CLOSING 6) is populated on 612 rows but the page does not surface it. The page reads `priority` (4 generic levels) when the richer `severity` signal is already in the database. The cost-trajectory chart and key-metrics rows would need separate verification but are likely component-level mocks.
-- Source attribution: the PolicySignals SourceBadge fires on every card because `sourceName` and `sourceTier` are never hydrated by the RPC fetchers used by /market. Every card shows the "SOURCE PENDING" or "Unsourced" fallback.
+- Source attribution: the PolicySignals SourceBadge fires on every card because `sourceName` and `sourceTier` are never hydrated by the RPC fetchers used by /market. Every card shows the "SOURCE PENDING" or "Unsourced" fallback. [HYPOTHESIS]
 
 **Verdict.** Partially delivers a list of items the page calls market-relevant. The source-classification machinery that would tell an operator a vendor's sustainability platform card is not the same trust weight as a CARB rule is built but not wired to this surface. The "cost of inaction" framing has no structured representation in the data layer the page reads.
 
@@ -122,7 +122,7 @@ The dashboard surface does not distinguish which writer produced which row. Oper
 
 The Sonnet 4.6 agent at `/api/agent/run` enforces the locked severity-to-priority mapping at parse time via `parse-output.ts:258-263`. Three other writer paths bypass it:
 - The staged_updates materializer writes priority directly without computing severity.
-- Pre-B.2 legacy rows that existed before the locked mapping (164 rows seeded as "medium" per migration 018, 162 of which have never been regenerated).
+- Pre-B.2 legacy rows that existed before the locked mapping (164 rows seeded as "medium" per migration 018, 162 of which have never been regenerated). [HYPOTHESIS]
 - Direct admin SQL (cannot be ruled out).
 
 Result: 209 of 614 rows with severity violate the lock (66% agreement). The dashboard counters that read `urgency_tier` and the kanban that orders by `priority` are running on un-validated data. A MONITORING-severity item can rank as HIGH-priority because the priority column was set independently.
@@ -145,7 +145,7 @@ Migration 063 introduces a 5-axis framework with default tiers per source_role (
 
 ### S11. Multi-tenancy is schema-only
 
-Production has 1 organization (Dietl/Rockit, seeded by hand), 1 user, 1 row in workspace_item_overrides (an archived item), 0 rows in briefings, 0 rows in user_watchlist. No workspace creation flow, no switcher, no member management. UserProfilePage's "Organization," "Members & roles," and "Billing & plan" tabs all render "Coming soon — Phase D." The RLS policies are correctly written; the table partitioning is correct; the runtime is single-tenant. The seven page RPCs are SECURITY DEFINER and accept any `p_org_id` without checking `auth.uid()` membership in the org, which is a soft confidentiality leak (workspace_notes and workspace_tags would leak cross-org via `get_workspace_intelligence`) waiting for a second tenant to exist.
+Production has 1 organization (Dietl/Rockit, seeded by hand), 1 user, 1 row in workspace_item_overrides (an archived item), 0 rows in briefings, 0 rows in user_watchlist. No workspace creation flow, no switcher, no member management. UserProfilePage's "Organization," "Members & roles," and "Billing & plan" tabs all render "Coming soon , Phase D." The RLS policies are correctly written; the table partitioning is correct; the runtime is single-tenant. The seven page RPCs are SECURITY DEFINER and accept any `p_org_id` without checking `auth.uid()` membership in the org, which is a soft confidentiality leak (workspace_notes and workspace_tags would leak cross-org via `get_workspace_intelligence`) waiting for a second tenant to exist.
 
 ### S12. Sector is a concept with four configuration UIs
 
@@ -177,7 +177,7 @@ These are visible bugs that flow from the structural failures above. They are no
 | Empty Timeline tab on regulation detail page | S10 (item_timelines populated only from 2026-04 backfill) |
 | Empty Penalty calculator on every regulation detail page | S3 (penalty columns referenced by renderer do not exist in schema) |
 | "Unassigned" owner on every detail page | S3 (action_owner column does not exist; no writer would populate it if it did) |
-| En-dash in CARB summary (§§2015–2015.6) | S5 (operator-authored seed script with no normalization discipline; writer prompts have no character-normalization rule either) |
+| En-dash in CARB summary (section section 2015-2015.6) | S5 (operator-authored seed script with no normalization discipline; writer prompts have no character-normalization rule either) |
 | Dashboard masthead reads "644 regulations tracked" | S2 (page reads workspace total, not regulation count) |
 | Vendor card detail page reads "Regulations · Global" | S1 (single detail-page route hardcodes regulation framing) |
 | Coverage matrix on /research is hand-coded | S3 (no source registry rollup endpoint; column on Resource never wired) |
@@ -197,9 +197,9 @@ A parallel audit was conducted on 2026-05-15 by an independent agent browsing th
 
 ### 5.1 New findings the code/data audit did not surface
 
-**Counter math is broken on the page itself.** Three different "items tracked" totals on /regulations (header 643, in-page counter 643 tracked, secondary counter 585 of 586 platform). On /market, "WATCH THIS WEEK — 28 alerts" sidebar header contradicts the "0 Watch" card directly above it (the 28 is the Elevated count borrowed without relabeling). On /operations, the bucket cards count to 70 (0+10+7+53) when the page header says 68 in scope; Coverage card says 43 jurisdictions while the page header says 82.
+**Counter math is broken on the page itself.** Three different "items tracked" totals on /regulations (header 643, in-page counter 643 tracked, secondary counter 585 of 586 platform). On /market, "WATCH THIS WEEK , 28 alerts" sidebar header contradicts the "0 Watch" card directly above it (the 28 is the Elevated count borrowed without relabeling). On /operations, the bucket cards count to 70 (0+10+7+53) when the page header says 68 in scope; Coverage card says 43 jurisdictions while the page header says 82.
 
-**Schema field names and pipeline component names leak into operator copy.** PenaltyCalculatorPanel renders "When the ingestion worker populates penalty_range / cost_mechanism / enforcement_body, the schedule will appear here." Market Intel KEY METRICS block renders "once intelligence_items.market_data is populated." Operations renders "Coming soon — Phase D." Affected Lanes renders "Lane-pair, volume, and origin/destination data not yet in schema." This is developer-facing copy reaching the operator surface. The integrity cost compounds: an operator reading these placeholders learns the names of incomplete pipeline components, which is the opposite signal the brief is meant to send.
+**Schema field names and pipeline component names leak into operator copy.** PenaltyCalculatorPanel renders "When the ingestion worker populates penalty_range / cost_mechanism / enforcement_body, the schedule will appear here." Market Intel KEY METRICS block renders "once intelligence_items.market_data is populated." Operations renders "Coming soon , Phase D." Affected Lanes renders "Lane-pair, volume, and origin/destination data not yet in schema." This is developer-facing copy reaching the operator surface. The integrity cost compounds: an operator reading these placeholders learns the names of incomplete pipeline components, which is the opposite signal the brief is meant to send.
 
 **Admin chrome bleeding into operator chrome.** User menu shows "404 admin items need attention" to all users.
 
@@ -216,20 +216,20 @@ In the /regulations Awareness column (should not be there, per brief: "vendor Sa
 - EcoVadis 2025 Purpose Report (vendor report)
 - BREEAM V7 (voluntary certification framework)
 - Gallery Climate Coalition (voluntary industry initiative)
-- EIA Spot Prices for Crude Oil — Monthly Data (price data, belongs in Operations or Market Intel)
+- EIA Spot Prices for Crude Oil , Monthly Data (price data, belongs in Operations or Market Intel)
 - NJEDA Opens Multiple Business Support Programs (a grant program, not a regulation)
 - Active Vehicle Module (AVM) Search Tool (a database tool)
-- International Institute for Conservation — Professional Guidance
-- American Alliance of Museums — Professional Resources
+- International Institute for Conservation , Professional Guidance
+- American Alliance of Museums , Professional Resources
 - ICOM-CC 2026 Conference and Membership Information
-- Financial Conduct Authority – Main Portal and Regulatory Resources (a portal, not a specific instrument)
+- Financial Conduct Authority - Main Portal and Regulatory Resources (a portal, not a specific instrument)
 - The Decarb Hub: Industry Initiative for Sustainable Shipping Decarbonization (industry voluntary)
 - Major Corporate and Institutional Renewable Energy Investments Signal (the title literally calls itself a signal)
 
 In the /research Draft pipeline (should not be there, per brief: "peer-reviewed studies, industry-academic research collaborations, credible white papers"):
 - Czech Chamber of Deputies parliamentary portal
 - VARAM Official Portal (Latvia environment ministry)
-- Matrix Hudson Unit Lottery Opening — 2BR Affordable Rental at 80% AMI in Boston (an affordable-housing lottery)
+- Matrix Hudson Unit Lottery Opening , 2BR Affordable Rental at 80% AMI in Boston (an affordable-housing lottery)
 - Tweede Kamer COVID-19 Rules for Parliamentary Operations
 
 In the dashboard /What changed feed (should be filtered to freight-relevance; tagged "NEW · CRITICAL" with no scoring):
@@ -243,7 +243,7 @@ In the dashboard /What changed feed (should be filtered to freight-relevance; ta
 
 In Market Intel watchlist (should not be there, both are scrape-pipeline exhaust):
 - Naturvårdsverket Cookie and Data Processing Policy (a cookie banner page)
-- SSO AGC Singapore Service Availability — CloudFront 403 Error (an HTTP 403 from a failed scrape, ingested as a tracked object)
+- SSO AGC Singapore Service Availability , CloudFront 403 Error (an HTTP 403 from a failed scrape, ingested as a tracked object)
 
 In /operations under AFRICA jurisdiction (should not be there at all):
 - GEF Leadership and Organizational Structure (staff biographies for the Global Environment Facility, framed as regional operations data)
@@ -252,7 +252,7 @@ These are concrete instances of the structural failures S1, S2, S5, and S6 in op
 
 ### 5.3 Three deep-dive case studies (preserved)
 
-**Norway zero-emission fjords (Immediate, Critical).** Summary correctly states "from January 1, 2025" and "by January 1, 2032." Timeline tab returns "No timeline milestones recorded yet." Penalty calculator returns the schema-field-name placeholder. Sources tab shows a single bare URL to regjeringen.no with no tier label, no fetch date, no document title, no cited section. Affected Lanes shows Mode = "GLOBAL" (wrong, ocean), Jurisdiction = "MINISTRY OF CLIMATE AND ENVIRONMENT" (wrong, Norway). Exposure narrative reads "applies to global freight in MINISTRY OF CLIMATE AND ENVIRONMENT" — a structural data-shape failure leaking into operator-facing prose. This is the cleanest demonstration of how multiple structural failures (S3, S4, S15, plus mode/jurisdiction corruption) compound on a single high-priority item.
+**Norway zero-emission fjords (Immediate, Critical).** Summary correctly states "from January 1, 2025" and "by January 1, 2032." Timeline tab returns "No timeline milestones recorded yet." Penalty calculator returns the schema-field-name placeholder. Sources tab shows a single bare URL to regjeringen.no with no tier label, no fetch date, no document title, no cited section. Affected Lanes shows Mode = "GLOBAL" (wrong, ocean), Jurisdiction = "MINISTRY OF CLIMATE AND ENVIRONMENT" (wrong, Norway). Exposure narrative reads "applies to global freight in MINISTRY OF CLIMATE AND ENVIRONMENT" , a structural data-shape failure leaking into operator-facing prose. This is the cleanest demonstration of how multiple structural failures (S3, S4, S15, plus mode/jurisdiction corruption) compound on a single high-priority item.
 
 **EcoVadis Enterprise Sustainability Intelligence and Ratings Platform Overview.** Lives in /regulations Monitor 6-12 mo column. Detail page badge "TOOL · 6-12 MO," pre-title "REGULATIONS · DE," breadcrumb "← Regulations." Summary is vendor marketing copy ("150,000+ rated companies, €1.7 trillion in business spend"). Cost Impact 0/3, Compliance Obligation 0/3. Internally consistent rendering of an item that should never have entered the regulations registry. This is S2 made concrete on a single item that operator can name.
 
@@ -268,7 +268,7 @@ The Chrome audit observed the same underlying item appearing on multiple pages w
 - California Advanced Clean Fleets Rule (CARB) appears as a market signal on /market under POLICY ACCELERATION SIGNALS and presumably also exists as a regulation; the framing does not change for the audience.
 - Norway fjords and EPA Phase 3 appear on Dashboard top-priority, Dashboard "what changed," and /regulations Immediate.
 
-The same content body is shown with different chrome wrappers depending on entry point. The brief's lead-time competitive frame would be implemented as: "on /regulations, this is `effective Jan 1, 2025; ocean-mode; penalty TBD`; on /market (if it appears there as a signal), this is `Norway moves first on fjord ZE — competitive signal for cruise/luxury maritime peers operating in Nordic waters`; on /operations, this is `shore-power infrastructure requirement at Norwegian heritage-fjord ports`." Today the same summary is rendered with different page chrome but identical content. The four-page architecture exists in navigation; it does not exist in content framing.
+The same content body is shown with different chrome wrappers depending on entry point. The brief's lead-time competitive frame would be implemented as: "on /regulations, this is `effective Jan 1, 2025; ocean-mode; penalty TBD`; on /market (if it appears there as a signal), this is `Norway moves first on fjord ZE , competitive signal for cruise/luxury maritime peers operating in Nordic waters`; on /operations, this is `shore-power infrastructure requirement at Norwegian heritage-fjord ports`." Today the same summary is rendered with different page chrome but identical content. The four-page architecture exists in navigation; it does not exist in content framing.
 
 This single failure (cross-page-framing-doesn't-vary) is what the operator means when they describe the system as "scraping data and writing summaries that don't connect the intent of the site." The data is in there. The page-purpose framing is not applied at render time. This sits inside structural failure S1 (single detail-page route) but is even more visible on the list pages, where the same item literally appears twice with two different lifecycle pills.
 
@@ -292,12 +292,12 @@ This single failure (cross-page-framing-doesn't-vary) is what the operator means
 | "WATCH THIS WEEK 28 alerts" sidebar | S6 (LIFECYCLE label collapses priority semantics) |
 | Single bare source URL with no tier, no date | S4 (5-axis classification not surfaced) |
 | Empty Timeline tab on Norway fjords | S10 (item_timelines populated only by 2026-04 backfill) |
-| "Coming soon — Phase D" placeholders dominate /operations | S3 (chip taxonomy regex on text vs structured tag arrays) |
+| "Coming soon , Phase D" placeholders dominate /operations | S3 (chip taxonomy regex on text vs structured tag arrays) |
 | Cross-page same-item-different-chrome | S1 (single detail-page route) + S5 (no per-page framing layer) |
 
 Every Chrome finding maps cleanly to one or more structural failures in Section 3. No new structural failures were discovered, but the Chrome audit elevates the relative impact of three failures the code audit ranked lower:
 
-- S3 (schema-renderer contract) is more operator-damaging than the code audit conveyed, because the placeholders themselves leak schema field names into operator chrome, which is worse than a blank state.
+- S3 (schema-renderer contract) is more operator-damaging than the code audit conveyed, because the placeholders themselves leak schema field names into operator chrome, which is worse than a blank state. [HYPOTHESIS]
 - S5 (writer collision) is more operator-damaging than the code audit conveyed, because the resulting off-domain items in the registry are visible by name and are the kind of thing an operator notices on first encounter (cookie banners, HTTP errors, parliamentary procedure agendas).
 - S2 (routing) is more operator-damaging than the code audit conveyed, because cross-page same-item-different-chrome is the visible manifestation of the architecture being aspirational. The operator's exact words ("we have a system that's pulling bits of information and not connecting the dots between pages") describe S2 specifically.
 
@@ -352,7 +352,7 @@ This layer alone removes the EcoVadis-class duplication, the IIC-class miscatego
 - One canonical vocabulary per dimension. Pick scope_topics as the canonical topic vocabulary; deprecate topic_tags and intelligence_types or remove them. Same for modes and verticals. Enforce with CHECK constraints or triggers.
 - One canonical tier system. Pick the migration 063 framework as canonical (vendor_corporate T6, intergovernmental_body T2, etc.). Migrate the 794 sources to this system. Remove the legacy 7-tier definition from types/source.ts. Code that reads `tier` reads it under one definition.
 - Source content typology. Each source declares: "this source produces regulations" or "this source produces market signals" or "this source produces vendor announcements." Items typed differently than what the source produces get flagged at write time, not silently accepted (this is the IIC case fixed at the source, not at the item).
-- Source reliability scoring. Track when a source's items are reclassified after ingest, when its content is contradicted by a higher-tier source, when its scrape fails. Surface as a per-source quality score in the source registry. Use it to decide which sources to deprecate.
+- Source reliability scoring. Track when a source's items are reclassified after ingest, when its content is contradicted by a higher-tier source, when its scrape fails. Surface as a per-source quality score in the source registry. Use it to decide which sources to deprecate. [HYPOTHESIS]
 - Source ownership tree. Sources roll up to organizations (the entity from 6.1). The ownership tree makes "all EU institutional sources" a queryable concept, not a regex over scope_jurisdictions.
 
 ### 6.3 Content typology with deterministic + LLM hybrid classification
@@ -372,7 +372,7 @@ This layer alone removes the EcoVadis-class duplication, the IIC-class miscatego
 
 **What major platforms do.** S&P Capital IQ's entity relationship model, Refinitiv's PermID network, and the regulatory-intelligence vendors (Compliance.ai, Westlaw Edge) maintain a knowledge graph: regulations relate to other regulations (supersedes, implements, references, conflicts with), to entities (issuing authority, affected jurisdictions, applicable industries), to events (announcement, publication, effective date, enforcement action). Cross-references are queries against the graph, not redundant writes. The graph is populated by the same writers that populate the items, plus a relationship-extraction pass that pulls cross-references out of full briefs.
 
-**What Caro's Ledge has today.** intelligence_items.related_items UUID array (agent-emitted, not maintained), item_cross_references table (49 rows, all from migration 010 backfill, no current writer), four parallel linked_*_ids columns (linked_regulation_ids, linked_vendor_ids, linked_case_study_ids, linked_forum_thread_ids — written by no current code), `intersection_summary` JSONB column with similar duplication. Five overlapping mechanisms; one populated by a frozen backfill; the others empty. No graph query layer.
+**What Caro's Ledge has today.** intelligence_items.related_items UUID array (agent-emitted, not maintained), item_cross_references table (49 rows, all from migration 010 backfill, no current writer), four parallel linked_*_ids columns (linked_regulation_ids, linked_vendor_ids, linked_case_study_ids, linked_forum_thread_ids , written by no current code), `intersection_summary` JSONB column with similar duplication. Five overlapping mechanisms; one populated by a frozen backfill; the others empty. No graph query layer.
 
 **What Caro's Ledge needs.**
 - One canonical relationship store. `item_relationships` with (source_item_id, target_item_id, relationship_type, confidence, provenance). Relationship types are an enumerated vocabulary: supersedes, implements, references, conflicts_with, depends_on, amends, related_to, sector_competitor.
@@ -388,7 +388,7 @@ This layer alone removes the EcoVadis-class duplication, the IIC-class miscatego
 **What Caro's Ledge has today.** Sonnet 4.6 writes a markdown full_brief with embedded prose dates, prose penalty figures, prose enforcement bodies. The renderer reads typed columns (compliance_deadline, penalty_range, enforcement_body, legal_instrument) that either don't exist (penalty_range, cost_mechanism, enforcement_body, legal_instrument are referenced but not in the schema) or are never populated (compliance_deadline 0/644, entry_into_force 23/644, item_timelines populated only by the migration 010 backfill). The narrative-text columns became the de facto structured store. Operators reading the page see a 3-tile penalty calculator collapsed to "No structured penalty data on file" because the structured layer is missing.
 
 **What Caro's Ledge needs.**
-- A structured-extraction pass after full_brief generation. The LLM is asked to extract: effective_date, compliance_deadline, penalty_range, cost_mechanism, enforcement_body, legal_instrument, jurisdictions, transport_modes, verticals, severity, urgency_tier — each with confidence and a span reference back to the source text.
+- A structured-extraction pass after full_brief generation. The LLM is asked to extract: effective_date, compliance_deadline, penalty_range, cost_mechanism, enforcement_body, legal_instrument, jurisdictions, transport_modes, verticals, severity, urgency_tier , each with confidence and a span reference back to the source text.
 - Schema columns for every extracted fact. The phantom-column problem (penalty_range etc.) is closed by adding the columns. No renderer reads a column the schema does not have.
 - A confidence column per extracted fact. compliance_deadline has compliance_deadline_confidence. Display layer surfaces low-confidence facts with a visible indicator (a faded value, a "tentative" badge, an inline link to the analyst review queue).
 - Span provenance. Every fact has a JSONB pointer to the source: source_document_id, paragraph_index, character_range. The operator clicking on a date can see the exact paragraph it was extracted from. This is the integrity non-negotiable #3 ("source traceability at every claim level") implemented as infrastructure, not as a writer-prompt aspiration.
@@ -434,7 +434,7 @@ This layer alone removes the EcoVadis-class duplication, the IIC-class miscatego
 - Server-side sector relevance scoring. The seven page RPCs take a sector_profile parameter. _workspace_active_items returns items with a `sector_relevance_score` derived from item.verticals × workspace.sector_profile (graded, not boolean: an item tagged live-events scores 1.0 for a live-events workspace, 0.5 for a film-tv workspace that frequently does live broadcasts, 0.1 for a humanitarian workspace, 0 for a workspace with neither vertical declared).
 - Ranking, not filtering. Items with low sector relevance still appear, ranked lower. The operator can scroll past them. Filtering hides items entirely; ranking lets the operator see them when they want to. Bloomberg does ranking; the brief's "should not be drowning" language describes ranking, not filtering.
 - Vertical-tag population at write time. The classification pipeline (6.3) emits verticals[] per item with explicit reasoning, not absence. EcoVadis is tagged with the verticals its content actually addresses (procurement-side vertical-agnostic = `["all"]`); CARB Advanced Clean Fleets is `["road-freight", "automotive"]`; SAF mandate is `["air"]`. The 96% empty rate is closed by the classification pipeline owning vertical assignment.
-- Authorization on workspace-scoped RPCs. The seven SECURITY DEFINER RPCs check auth.uid() membership in p_org_id. Cross-workspace leak is impossible.
+- Authorization on workspace-scoped RPCs. The seven SECURITY DEFINER RPCs check auth.uid() membership in p_org_id. Cross-workspace leak is impossible. [HYPOTHESIS]
 
 ### 6.9 Cross-page framing as a derived view
 
@@ -469,11 +469,11 @@ This layer alone removes the EcoVadis-class duplication, the IIC-class miscatego
 
 A priority order for the data engineering layers in Section 6, ordered by what unlocks what.
 
-1. **Master data and entity resolution (Section 6.1).** Unlocks every other layer. Without canonical entities for regulations, organizations, jurisdictions, and verticals, all downstream classification, cross-reference, and framing work is built on sand. The EcoVadis and IIC miscategorizations are entity-resolution failures; the cross-page same-item-different-chrome is a missing-canonical-entity failure.
+1. **Master data and entity resolution (Section 6.1).** Unlocks every other layer. Without canonical entities for regulations, organizations, jurisdictions, and verticals, all downstream classification, cross-reference, and framing work is built on sand. The EcoVadis and IIC miscategorizations are entity-resolution failures; the cross-page same-item-different-chrome is a missing-canonical-entity failure. [HYPOTHESIS]
 
 2. **Source registry as a curated product (Section 6.2).** Unlocks correct classification. Without a curated source registry with onboarding workflow, content typology, and one canonical vocabulary per dimension, the classification layer (6.3) cannot produce trustworthy item types. This is also the layer that brings in the academic and white-paper sources /research is designed to display, and the regional cost-data sources /operations is designed to display.
 
-3. **Schema-renderer contract (Section 6.5 plus the closing of Section 6.10's phantom-column problem).** Unlocks every operator-visible decision surface. Penalty calculator, owner card, effective date tile, exposure narrative — all currently render placeholders because the columns either don't exist or aren't populated. This is the single most visible operator failure and is the layer most directly under engineering control.
+3. **Schema-renderer contract (Section 6.5 plus the closing of Section 6.10's phantom-column problem).** Unlocks every operator-visible decision surface. Penalty calculator, owner card, effective date tile, exposure narrative , all currently render placeholders because the columns either don't exist or aren't populated. This is the single most visible operator failure and is the layer most directly under engineering control. [HYPOTHESIS glyph:verbatim]
 
 4. **Type-aware routing and per-surface framing (Section 6.9).** Unlocks the four-page architecture's promise. The cross-page same-item-different-chrome failure is the operator's most damning observation about the product. Per-surface routes plus per-surface framing templates plus surface-aware writer passes close it.
 
@@ -499,7 +499,7 @@ The audit found one cross-cutting pattern that does not fit cleanly into the str
 
 The four-page architecture is the product. The pages are the right shape for the operator. The brief's vocabulary is correct, the routing intent is correct, the integrity standards are correct. What is missing is the data engineering infrastructure (Section 6) that proven intelligence platforms have built underneath their similarly-shaped products. The next phase of work is building those layers, not reconsidering the architecture they support.
 
-The Chrome audit independently arrived at the same conclusion from the operator's chair: "the brief's vocabulary is visible in the chrome (FSI Brief Framework hooks like 'Read operational briefing — What to do, when, who's affected — 30-second scan'), but the routing, the templates, and the registry contents do not yet enforce that brief. The visual layer is overcommitted to a uniform regulatory shape; the data layer hasn't completed the typing and tiering work that would justify a more differentiated visual layer." Two independent audit methodologies converging on the same diagnosis is the strongest signal in this document.
+The Chrome audit independently arrived at the same conclusion from the operator's chair: "the brief's vocabulary is visible in the chrome (FSI Brief Framework hooks like 'Read operational briefing , What to do, when, who's affected , 30-second scan'), but the routing, the templates, and the registry contents do not yet enforce that brief. The visual layer is overcommitted to a uniform regulatory shape; the data layer hasn't completed the typing and tiering work that would justify a more differentiated visual layer." Two independent audit methodologies converging on the same diagnosis is the strongest signal in this document.
 
 The work ahead is concrete: master data and entity resolution, source registry as a curated product, structured fact extraction with confidence and provenance, type-aware routing with per-surface framing, knowledge graph, lead time as a first-class column, multi-tenancy with sector ranking, versioning, operator-facing quality affordances. None of these reinvent the wheel. All of them have been proven by intelligence platforms serving global enterprise compliance, finance, and ESG functions. Caro's Ledge can adopt the patterns and build the freight-sustainability product on top.
 
@@ -535,8 +535,8 @@ Synthesis composed by parent agent on 2026-05-15. v2 revisions composed 2026-05-
 
 ## Related
 
-- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — The four-page architecture, domain-1 dominance, and weak market/operations schema this audit specs against were first established by that survey
-- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — The v2 product audit is referenced throughout (Sections 6.1/6.4/6.5/6.8/6.9) as the source of the deferred/uncovered items
-- [cards-clickable-audit-2026-05-12](./cards-clickable-audit-2026-05-12.md) — Structural failure S1 (single detail-page route every card hardcodes) is the architectural counterpart to this audit's confirmation that all card…
-- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) — S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) , Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , The four-page architecture, domain-1 dominance, and weak market/operations schema this audit specs against were first established by that survey
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) , The v2 product audit is referenced throughout (Sections 6.1/6.4/6.5/6.8/6.9) as the source of the deferred/uncovered items
+- [cards-clickable-audit-2026-05-12](./cards-clickable-audit-2026-05-12.md) , Structural failure S1 (single detail-page route every card hardcodes) is the architectural counterpart to this audit's confirmation that all card…
+- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) , S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…

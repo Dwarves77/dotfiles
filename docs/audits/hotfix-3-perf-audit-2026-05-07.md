@@ -1,16 +1,16 @@
-# Hotfix 3 — Performance Audit (Investigation Only)
+# Hotfix 3 , Performance Audit (Investigation Only)
 
 **Date:** 2026-05-07
 **Branch:** `perf/hotfix-3-perf-audit` (worktree off `0a9f681`)
 **Author:** autonomous agent per `docs/FINISHING-DISPATCH-2026-05-06.md` Hotfix 3
-**Phase:** investigation only — no source code modified
+**Phase:** investigation only , no source code modified
 **Baseline:** `docs/perf-snapshot-2026-05-06.txt` (PR #30 measurement foundation)
 **Current snapshot:** `docs/hotfix-3-perf-snapshot-2026-05-07.txt`
 
 This is the measurement-evidence dispatch the perf playbook requires before
 any "perf wave" lever is pulled. Per `docs/PERF-PLAYBOOK.md` and the
 `fsi-app/.claude/CLAUDE.md` "Perf Work Discipline" rule: no perf dispatch
-without evidence. The deliverable below is that evidence — fixes await
+without evidence. The deliverable below is that evidence , fixes await
 explicit Jason auth.
 
 Real-user RUM (Speed Insights / Analytics) is deferred per the playbook's
@@ -47,13 +47,13 @@ Route                  | Entry baseline | Entry now | ΔEntry | Δ%    | Route-o
 /research              |  297.6 kB      | 299.7 kB  | +2.1   | +0.7% |  -0.1        | +2.1
 /settings              |  316.0 kB      | 337.7 kB  | +21.7  | +6.9% | +19.5        | +21.7
 
-Shared layout chunks   |  278.6 kB      | 280.8 kB  | +2.2   | +0.8% |   —          |   —
+Shared layout chunks   |  278.6 kB      | 280.8 kB  | +2.2   | +0.8% |   ,          |   ,
 ```
 
 ### Top 3 routes by absolute Entry delta
 1. **/settings** +21.7 kB (+6.9%)
 2. **/regulations** +21.6 kB (+7.1%)
-3. **/regulations/[slug]** +14.7 kB (+3.2%) — already the biggest route at 471 kB First Load
+3. **/regulations/[slug]** +14.7 kB (+3.2%) , already the biggest route at 471 kB First Load
 4. (tied) **/market** +14.4 kB (+4.8%)
 5. **/profile** +11.8 kB (+4.0%)
 
@@ -63,10 +63,10 @@ universal background growth, not a route-specific regression.
 
 ---
 
-## 2. Bundle composition — why the deltas exist
+## 2. Bundle composition , why the deltas exist
 
 `@next/bundle-analyzer` is wired (`next.config.ts` checks `ANALYZE=true`)
-but does not emit HTML reports under Next 16 + Turbopack on this stack —
+but does not emit HTML reports under Next 16 + Turbopack on this stack ,
 the analyzer is webpack-only and Next 16's default builder is Turbopack.
 So composition is inferred from the source-tree layout of route entries.
 
@@ -88,7 +88,7 @@ import { HelpSection } from "@/components/settings/HelpSection";                
 
 Only the **General** tab renders on first paint. The other six tabs'
 component code sits in the entry chunk doing nothing until the user
-clicks the tab. Wave 3 PR-L (#40) restored four of those sections —
+clicks the tab. Wave 3 PR-L (#40) restored four of those sections ,
 exactly the size of the regression.
 
 ### /regulations (+21.6 kB)
@@ -101,7 +101,7 @@ chip system + facets (#34):
 
 All five components are statically imported and render on initial paint
 (facets are visible by default). The +19.4 kB route-only delta tracks
-roughly with their LOC totals. This is functional payload, not waste —
+roughly with their LOC totals. This is functional payload, not waste ,
 the facets aren't a tab, they're the page chrome.
 
 ### /regulations/[slug] (+14.7 kB on top of an already-471-kB route)
@@ -117,7 +117,7 @@ PR-G (#36) Market Intel content pattern added six new sections:
 KeyMetricsRow (220), CostTrajectoryChart (90, placeholder no chart lib),
 PolicySignals (283), FreightRelevanceCallout (89), OwnersContent (166),
 WatchlistSidebar (186). All six render on the active tab. Two-tab page
-(Tech Readiness / Price Signals) — only one tab paints first.
+(Tech Readiness / Price Signals) , only one tab paints first.
 
 ### /profile (+11.8 kB)
 PR-L (#40) Decision #15: Sector profile, jurisdictions, verifier tabs
@@ -128,7 +128,7 @@ Personal renders on first paint.
 ### Shared layout (+2.2 kB)
 PR `3f5d735` (#35) IA refactor added the user-footer dropdown
 (`UserMenu.tsx`) and Community mid-rail wiring. UserMenu loads in the
-shell on every route — propagates to every route's First Load JS.
+shell on every route , propagates to every route's First Load JS.
 
 ---
 
@@ -136,8 +136,8 @@ shell on every route — propagates to every route's First Load JS.
 
 | # | Bottleneck | Routes | Route-only kB | Fix shape | Effort |
 |---|------------|--------|---------------|-----------|--------|
-| 1 | **Tab-deferred panels statically imported** | /settings, /regulations/[slug], /market, /profile | ~12–20 kB per route | `next/dynamic({ ssr: false })` from inside the client tab shell, keyed on active tab | M |
-| 2 | **lucide-react not in `optimizePackageImports`** | every route (87 import sites) | unknown — needs analyzer | Add `experimental.optimizePackageImports: ["lucide-react"]` to `next.config.ts`; rebuild and remeasure | XS |
+| 1 | **Tab-deferred panels statically imported** | /settings, /regulations/[slug], /market, /profile | ~12-20 kB per route | `next/dynamic({ ssr: false })` from inside the client tab shell, keyed on active tab | M |
+| 2 | **lucide-react not in `optimizePackageImports`** | every route (87 import sites) | unknown , needs analyzer | Add `experimental.optimizePackageImports: ["lucide-react"]` to `next.config.ts`; rebuild and remeasure | XS |
 | 3 | **Uncached supabase count on /regulations** | /regulations | 0 kB (server side) | Wrap the platform-total `select id count exact` in `unstable_cache` keyed by domain or move into the existing `getResourcesOnly` cache | XS |
 | 4 | **`UserMenu` in shared layout, not deferred** | every route (+2.2 kB) | ~2 kB | Audit `UserMenu` imports; defer the dropdown panel to client-only with `dynamic({ ssr: false })` while keeping the trigger SSR'd | S |
 | 5 | **`RegulationsSurface` 1658 LOC monolith on entry** | /regulations | up to 19 kB | Split kanban-vs-table-vs-dense view code into separate chunks loaded on view-toggle change | L |
@@ -159,7 +159,7 @@ tabs) → ~15-18 kB off entry. Similar leverage on /regulations/[slug],
 **Risk**: deferred tabs flash a loading state on first click. Acceptable
 for settings/profile-style pages where tab switching is interactive,
 not on the critical path.
-**Recommendation**: **AWAIT-JASON-AUTH** — proven pattern, but
+**Recommendation**: **AWAIT-JASON-AUTH** , proven pattern, but
 architectural choice (when to defer, accepting the tab-click flash
 trade-off, whether to pre-prefetch on hover).
 
@@ -174,8 +174,8 @@ experimental: { optimizePackageImports: ["lucide-react"] }
 Next 16 rewrites these to deep imports automatically.
 **Estimated win**: unknown without analyzer (which is webpack-only
 on this stack). Likely 2-8 kB shared layout reduction; possibly more.
-**Risk**: low — Next 16 stable feature.
-**Recommendation**: **AWAIT-JASON-AUTH** — XS effort, but per the
+**Risk**: low , Next 16 stable feature.
+**Recommendation**: **AWAIT-JASON-AUTH** , XS effort, but per the
 playbook, pilot ONE config change and remeasure before scaling. Worth
 the round-trip.
 
@@ -184,7 +184,7 @@ the round-trip.
 `createClient(...)` and run `select("id", { count: "exact", head: true })
 .eq("domain", 1).eq("is_archived", false)` on every render to populate a
 tooltip number. Result is the same for every viewer of every workspace
-until items are archived — perfect cache candidate.
+until items are archived , perfect cache candidate.
 **Lever**: wrap in `unstable_cache(..., ["regulations-platform-total"],
 { revalidate: 300 })` or fold into the existing `getResourcesOnly`
 fetcher's cached path. Either drops one Supabase round-trip per
@@ -192,7 +192,7 @@ fetcher's cached path. Either drops one Supabase round-trip per
 **Estimated win**: ~1 round-trip (~50-150ms) off TTFB on /regulations
 cold renders. Doesn't move bundle bytes; moves server timing.
 **Risk**: very low. The number is workspace-agnostic.
-**Recommendation**: **AWAIT-JASON-AUTH** — XS effort but it's a behavior
+**Recommendation**: **AWAIT-JASON-AUTH** , XS effort but it's a behavior
 change to a server query path; worth a one-line review.
 
 #### 4. UserMenu in shared layout (S)
@@ -204,9 +204,9 @@ client-hydrate ONLY on user interaction. Or `dynamic({ ssr: false })`
 the menu panel itself behind a `useState(false)` open guard.
 **Estimated win**: ~1.5-2 kB off the shared layout (counted on every
 route).
-**Risk**: moderate — affects auth-state visibility on every page. Needs
+**Risk**: moderate , affects auth-state visibility on every page. Needs
 care to preserve "logged in / logged out" visual cue without a flash.
-**Recommendation**: **AWAIT-JASON-AUTH** — small-effort but visible to
+**Recommendation**: **AWAIT-JASON-AUTH** , small-effort but visible to
 every user every render.
 
 #### 5. RegulationsSurface 1658-LOC monolith (L, **DEFER**)
@@ -220,7 +220,7 @@ high architectural cost and the file is fresh (PR #34 still warm). Risk
 of introducing rendering bugs in a heavily-trafficked surface.
 **Recommendation**: **DEFER** to a dedicated PR with its own measurement
 step. Per the dispatch's halt clause: "Fix requires architectural change
-(defer to dedicated PR — surface in audit doc)." This one qualifies.
+(defer to dedicated PR , surface in audit doc)." This one qualifies.
 
 ---
 
@@ -259,7 +259,7 @@ playbook). Best-effort signals from the codebase:
 | /market | MarketPage 747 + 6 sections (1781 total) | Med (2-tab shell, all sections eager) |
 | /profile | UserProfilePage 1002 + 5 sections (1853 total) | High (8-tab shell, all tabs eager) |
 | / | HomeSurface (server-shell + client sections) | Med (mixed RSC + client) |
-| /map | MapView (Leaflet, dynamic ssr:false) | Low — already dynamic |
+| /map | MapView (Leaflet, dynamic ssr:false) | Low , already dynamic |
 
 The same root cause produces both bundle waste AND hydration cost:
 **eagerly-imported tab/view panels**. Bottleneck #1's fix (defer
@@ -272,7 +272,7 @@ non-default panels) addresses both.
 No analyzer view available (Turbopack), so this is best-effort from the
 source tree:
 - `public/` is small. No images of consequence land in route entries.
-- No `next/font` calls were found to be missing — fonts are loaded via
+- No `next/font` calls were found to be missing , fonts are loaded via [HYPOTHESIS glyph:verbatim]
   `app/globals.css` declarations consistent with the layout. `font-display`
   semantics are inherited from the CSS, not flagged here.
 
@@ -292,7 +292,7 @@ This dispatch surfaces no image/font bottleneck. **NO ACTION**.
 
 **No items recommended for APPLY-AUTONOMOUSLY.** The Hotfix 3 contract
 is explicit: "perf optimization choices have real architectural
-implications" — every fix here passes through Jason for go/no-go on
+implications" , every fix here passes through Jason for go/no-go on
 which to apply.
 
 ---
@@ -315,10 +315,10 @@ deliverable; writes phase awaits explicit auth.
 If Jason authorizes any subset, the suggested writes dispatch order is:
 
 1. **Pilot ONE change first** (per playbook anti-pattern note). Recommend
-   #2 (lucide-react optimizePackageImports) as the pilot — XS, low risk,
+   #2 (lucide-react optimizePackageImports) as the pilot , XS, low risk,
    measures cleanly via `npm run perf:bundles` before/after.
 2. If pilot moves the metric meaningfully, scale to #1 (tab-deferred
-   dynamics) on /settings only as the next pilot — measure before going
+   dynamics) on /settings only as the next pilot , measure before going
    to /profile, /market, /detail.
 3. #3 (uncached count) and #4 (UserMenu) are independent and can ship in
    parallel; recommend bundling with the tab-defer work.
@@ -326,7 +326,7 @@ If Jason authorizes any subset, the suggested writes dispatch order is:
    measurement step.
 
 If Jason says "skip everything, current bundles are acceptable for the
-pilot phase," that's also a valid outcome — the audit shows the largest
+pilot phase," that's also a valid outcome , the audit shows the largest
 single-route entry is 471 kB on /regulations/[slug], which is in the
 range Next 16 ships from many production apps. The +21.7 kB on /settings
 is the biggest absolute gain and the cheapest to recover, but absolute
@@ -335,7 +335,7 @@ visibly stalling on mid-tier mobile.
 
 ## Related
 
-- [PERF-PLAYBOOK](../runbooks/PERF-PLAYBOOK.md) — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
-- [PAGE-LOAD-PERF-AUDIT-2026-05-06](./PAGE-LOAD-PERF-AUDIT-2026-05-06.md) — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread
-- [PERF-AUDIT](./PERF-AUDIT.md) — Later perf audit in the same cluster acting on this backlog's deferred items
-- [PERF-PROFILING-FINDINGS](./PERF-PROFILING-FINDINGS.md) — Shares the server-timing [perf] log + hydration-weight profiling of the same route surfaces
+- [PERF-PLAYBOOK](../runbooks/PERF-PLAYBOOK.md) , Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
+- [PAGE-LOAD-PERF-AUDIT-2026-05-06](./PAGE-LOAD-PERF-AUDIT-2026-05-06.md) , Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread
+- [PERF-AUDIT](./PERF-AUDIT.md) , Later perf audit in the same cluster acting on this backlog's deferred items
+- [PERF-PROFILING-FINDINGS](./PERF-PROFILING-FINDINGS.md) , Shares the server-timing [perf] log + hydration-weight profiling of the same route surfaces

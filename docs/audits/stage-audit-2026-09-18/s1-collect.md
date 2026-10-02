@@ -77,7 +77,7 @@ figures, and W1.5 in full):
 2. **The feed walker's only-ever attempt failed** (`theloadstar.com/feed`, `ok:false`). Recommendation: one
    bounded dry re-dispatch against a known-good feed URL to determine whether the walker itself is broken or
    the one URL tried was bad, before any ruling on the mechanism's health.
-3. **Research walker has never been dispatched at all** despite being wired into the same workflow.
+3. **Research walker has never been dispatched at all** despite being wired into the same workflow. [HYPOTHESIS]
    Recommendation: decide whether the Research surface's $0 data path (built, tested, zero-cost) is still
    wanted; if yes, one bounded dispatch proves it; if the surface's needs changed, retire it explicitly.
 4. **`fetch-drain` (the mechanism that actually invokes capture-worker) has no automated trigger anywhere in

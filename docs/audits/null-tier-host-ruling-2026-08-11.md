@@ -1,4 +1,4 @@
-# Batched null-tier-host ruling — 2026-08-11
+# Batched null-tier-host ruling , 2026-08-11
 
 **Status: applied, codified, verified.** 57 hosts ruled. 50 registered at their SC-13 class tier and
 activated. 7 ruled PERMANENT WORKLIST and left unregistered by rule, forever.
@@ -17,7 +17,7 @@ some number of FACT spans resolved to NULL tier because the host was not in the 
 The defect is not "these facts are low quality". It is **sub-floor masking**:
 
 - The authority floor walls a FACT whose tier is at or below the item's floor.
-- `null <= 2` is not comparable in SQL. A NULL-tier FACT therefore does not fail the floor — it **escapes**
+- `null <= 2` is not comparable in SQL. A NULL-tier FACT therefore does not fail the floor , it **escapes** [HYPOTHESIS glyph:verbatim]
   it. The span passes silently.
 - Registering the host at its ruled class tier does **not promote** the facts. It makes the floor able to
   *see* them, so a T6/T7 span is honestly **WALLED** instead of invisibly passing.
@@ -29,7 +29,7 @@ content step. This ruling does not pre-empt it.
 
 ## 2. The ruling
 
-Recorded as data in **`fsi-app/scripts/_ruling/null-tier-host-ruling.mjs`** — one row per host, carrying
+Recorded as data in **`fsi-app/scripts/_ruling/null-tier-host-ruling.mjs`** , one row per host, carrying
 `[host, tier, class, reason]`. That file is the single record of the ruling; the code and the CSV are both
 checked against it.
 
@@ -67,28 +67,28 @@ the rows and nothing notices.
 
 So the ruling was written into `fsi-app/src/lib/sources/host-authority.ts` as well:
 
-- **class rules that generalise** — `unesco.org` into `GOV_INTERGOV`; `canada.ca` into `GOV_TLD` (it is the
+- **class rules that generalise** , `unesco.org` into `GOV_INTERGOV`; `canada.ca` into `GOV_TLD` (it is the
   Government of Canada's single official web presence, exactly the standing `.gc.ca` already had);
   `ieta.org` / `goldstandard.org` into `ASSOCIATION_ALLOW`; the ruled analysis / law-firm / news names into
   `ANALYSIS` / `LAWFIRM` / `NEWS`; `mondaq` and `up.codes` into `LEGAL_AGGREGATOR`; a new
   `HOSTING_PLATFORM` constant for Citizen Space.
-- **`RULED_HOST_TIER`** — a closed per-host map for the ruled hosts no rule can derive (an Indian ministry
+- **`RULED_HOST_TIER`** , a closed per-host map for the ruled hosts no rule can derive (an Indian ministry
   programme on a bare `.in`; vendors and carrier corporate sites). Inventing a fuzzy rule for those
   (".com selling software → T7") would be the exact guess SC-13 forbids. A host not in this map and
   matching no class rule still worklists. **The no-guess guarantee is unchanged**; this map only records
   rulings already made.
-- **`permanentlyUnregisteredClass(host)`** — names the never-register classes, and is now checked **before**
+- **`permanentlyUnregisteredClass(host)`** , names the never-register classes, and is now checked **before** [HYPOTHESIS glyph:verbatim]
   `codifiedTierForHost` inside `classTierForHost`. A republisher must not acquire the publisher's authority
   by sitting on a `.gov` tomorrow.
 
 Proven by `src/lib/sources/host-authority-ruling-conformance.test.mjs`: every one of the 57 rows must be
-reproducible from the code, in both directions — a ruled tier the code will not produce, or a
+reproducible from the code, in both directions , a ruled tier the code will not produce, or a
 permanent-worklist host the code would mint a tier for, is a failing test.
 
 ## 4. The flag shape was wrong, and would have stayed wrong
 
 `surfaceNullTierHosts` re-opens its flag on every grounding run. For the 7 permanent-worklist hosts it kept
-re-minting *"register at its canonical institutional tier"* — an instruction the ruling forbids. Resolving
+re-minting *"register at its canonical institutional tier"* , an instruction the ruling forbids. Resolving
 those flags would not have helped: the next grounding run re-opens them with the same wrong text.
 
 `summarizeNullTierAggregate` now has two shapes, selected by `permanentlyUnregisteredClass`:
@@ -99,14 +99,14 @@ those flags would not have helped: the next grounding run re-opens them with the
 | ruled aggregator / platform | `Re-attribution required for … (ruled …, never registerable)` | `reattribute_to_publisher` |
 
 Both shapes are pinned to fit inside the 480-char `integrity_flags.description` budget **by construction**,
-with a 73-char worst-case host — the caller's `slice(0, 480)` would otherwise silently truncate away the
+with a 73-char worst-case host , the caller's `slice(0, 480)` would otherwise silently truncate away the
 instruction that is the entire content of the re-attribution flag. That test failed on the first draft and
 the wording was shortened until it passed.
 
 The 7 live flags were rewritten in place to the new shape, keeping their aggregate and sample spans, with
 the ruling recorded as a second `recommended_actions` element that supersedes the rd28 hold placed earlier
 the same day (that hold named this ruling session as its own reopen condition). They stay **open**, because
-the work is real and unfinished — it is just span work, not registry work.
+the work is real and unfinished , it is just span work, not registry work.
 
 ## 5. A false resolution I had to correct
 
@@ -117,7 +117,7 @@ all**: `1point5.caneurope.org`, `balkangreenenergynews.com`, `blakes.com`, `ccar
 Root cause: the ruling `UPDATE` matched only **existing** rows, and the flag-resolution `UPDATE` keyed on
 the ruled-host list rather than on the registration actually landing. Their flags were closed with a note
 claiming *"its registry row(s) set to that base_tier and activated"*. That claim was false. 67 FACT spans
-went on stamping NULL behind a resolved flag — the exact hollow-close this system exists to prevent.
+went on stamping NULL behind a resolved flag , the exact hollow-close this system exists to prevent.
 
 Corrected: 8 rows inserted at the ruled class tier, `status='active'`, `source_role` taken **verbatim** from
 `classifySourceRole` and left NULL for the three it cannot determine (`1point5.caneurope.org`,
@@ -143,7 +143,7 @@ amended to state plainly that the first resolution was wrong and what was actual
 
 ## 7. Reversibility
 
-`docs/audits/null-tier-host-ruling-2026-08-11.csv` — 60 rows, one per touched `sources` row, carrying
+`docs/audits/null-tier-host-ruling-2026-08-11.csv` , 60 rows, one per touched `sources` row, carrying
 `source_id`, `url`, `host`, the **old** `base_tier` and `status`, the ruled tier and class, the
 `source_role` at birth, and an `action` column (`UPDATE` for the 52 pre-existing rows, `INSERT` for the 8
 new ones). Reversal is a per-id restore for the UPDATEs and a per-id delete for the INSERTs. The INSERT

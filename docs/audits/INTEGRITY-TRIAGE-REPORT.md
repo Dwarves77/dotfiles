@@ -2,7 +2,7 @@
 
 Generated: 2026-05-06T00:47:56.900Z
 
-Source: integrity trigger from migration `035_agent_integrity_flags.sql`. Read-only triage — no DB writes.
+Source: integrity trigger from migration `035_agent_integrity_flags.sql`. Read-only triage , no DB writes.
 
 ## Totals
 
@@ -27,8 +27,8 @@ If every `regenerate`-class item is re-run via Claude API:
 
 ## Patterns detected
 
-- 15 flags identified missing regulations in jurisdiction `EU`.
-- 55 flags share phrase "integrity rule" — review trigger sensitivity for that pattern.
+- 15 flags identified missing regulations in jurisdiction `EU`. [HYPOTHESIS]
+- 55 flags share phrase "integrity rule" , review trigger sensitivity for that pattern.
 
 ## Per-item triage
 
@@ -69,7 +69,7 @@ If every `regenerate`-class item is re-run via Claude API:
 | `r4` | World Resources Institute | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: wri.org, brief len: 6924. |
 | `r8` | Cranfield Sustainable Logistics | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: cranfield.ac.uk, brief len: 15054. |
 | `f6774c49` | Hydrogen & Ammonia as Maritime Fuel | factual-gap | `regenerate` | yes | Verification-class phrase "integrity rule" with canonical host futurefuels.imo.org. Brief needs regen for missing facts. |
-| `f67aabad` | NYC Local Law 97 — Building Carbon Emissions Caps | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: rules.cityofnewyork.us, brief len: 23945. |
+| `f67aabad` | NYC Local Law 97 , Building Carbon Emissions Caps | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: rules.cityofnewyork.us, brief len: 23945. |
 | `a8` | Aviation Week: Sustainability | missing-regulation | `insert_new_item` | no | Brief references "Regulation (EU) 2023/2405" which is not in intelligence_items. (+3 more candidates) |
 | `afc851b1` | Marine Fuel Decarbonisation Pathways | factual-gap | `regenerate` | yes | Verification-class phrase "integrity rule" with canonical host imo.org. Brief needs regen for missing facts. |
 | `r19` | Supply Chain Digital | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: supplychaindigital.com, brief len: 16019. |
@@ -87,273 +87,273 @@ If every `regenerate`-class item is re-run via Claude API:
 | `r18` | Splash247 Green | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: splash247.com, brief len: 20064. |
 | `t4` | UNCTAD Sustainable Transport | missing-regulation | `insert_new_item` | no | Brief references "EU ETS" which is not in intelligence_items.  |
 | `r35` | ICCT | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: theicct.org, brief len: 14418. |
-| `d031e36e` | LA EWEO — Existing Buildings Energy & Water Efficiency | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: cityclerk.lacity.org, brief len: 18722. |
+| `d031e36e` | LA EWEO , Existing Buildings Energy & Water Efficiency | other | `human_review` | no | Phrase "integrity rule" did not match any heuristic conclusively. Host: cityclerk.lacity.org, brief len: 18722. |
 | `r15` | Environmental Finance | missing-regulation | `insert_new_item` | no | Brief references "Regulation (EU) 2023/956" which is not in intelligence_items. (+5 more candidates) |
 | `r14` | Reuters Sustainable Business | missing-regulation | `insert_new_item` | no | Brief references "Regulation (EU) 2023/956" which is not in intelligence_items. (+2 more candidates) |
 | `t3` | OECD Environment | missing-regulation | `insert_new_item` | no | Brief references "EU ETS" which is not in intelligence_items.  |
 
 ## Items requiring human review
 
-### `g14` — Mexico SEMARNAT
+### `g14` , Mexico SEMARNAT
 
 - source_url: https://www.dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: dof.gob.mx, brief len: 30634.
 
-### `g12` — ECLAC (UN Latin America)
+### `g12` , ECLAC (UN Latin America)
 
 - source_url: https://www.cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: cepal.org, brief len: 15337.
 
-### `262ac5f2` — Critical Minerals & EV Supply Chain
+### `262ac5f2` , Critical Minerals & EV Supply Chain
 
 - source_url: https://www.irena.org/Energy-Transition/Technology/Critical-materials
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: irena.org, brief len: 18335.
 
-### `g25` — DP World Sustainability
+### `g25` , DP World Sustainability
 
 - source_url: https://www.dpworld.com/en/sustainability/reporting
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: dpworld.com, brief len: 17428.
 
-### `r10` — Journal of Sustainable Transport
+### `r10` , Journal of Sustainable Transport
 
 - source_url: https://www.tandfonline.com/journals/ujst20
 - phrase: "replace the source URL"
 - reason: no_replacement_url_candidate_in_brief
 - rationale: Source URL host "tandfonline.com" is non-canonical for a "replace the source url" flag, but no replacement URL found in the brief.
 
-### `g24` — ASEAN Transport Strategic Plan
+### `g24` , ASEAN Transport Strategic Plan
 
 - source_url: https://asean.org/our-communities/economic-community/transport/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: asean.org, brief len: 18880.
 
-### `g15` — Colombian Ministry of Transport
+### `g15` , Colombian Ministry of Transport
 
 - source_url: https://mintransporte.gov.co/publicaciones/10754/transporte-sostenible/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: mintransporte.gov.co, brief len: 11461.
 
-### `g17` — MPA Singapore Green Shipping
+### `g17` , MPA Singapore Green Shipping
 
 - source_url: https://www.mpa.gov.sg/media-centre/details/no.-12-of-2024---revisions-to-the-maritime-singapore-green-initiative---green-ship-programme-for-singapore-registered-ships
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: mpa.gov.sg, brief len: 16919.
 
-### `85525e8f` — Battery & Electric Vehicle Technology
+### `85525e8f` , Battery & Electric Vehicle Technology
 
 - source_url: https://www.iea.org/reports/global-ev-outlook-2024/trends-in-electric-vehicle-batteries
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: iea.org, brief len: 16696.
 
-### `g18` — Japan MLIT
+### `g18` , Japan MLIT
 
 - source_url: https://www.mlit.go.jp/en/maritime/index.html
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: mlit.go.jp, brief len: 19491.
 
-### `14fea5cd` — Australia Regional Operations Profile
+### `14fea5cd` , Australia Regional Operations Profile
 
 - source_url: https://www.climatechangeauthority.gov.au/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: climatechangeauthority.gov.au, brief len: 20454.
 
-### `0980d468` — Crude Oil & Jet Fuel Price Intelligence
+### `0980d468` , Crude Oil & Jet Fuel Price Intelligence
 
 - source_url: https://www.eia.gov/todayinenergy/prices.php
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: eia.gov, brief len: 14832.
 
-### `g7` — Germany BMDV
+### `g7` , Germany BMDV
 
 - source_url: https://www.bundesregierung.de/breg-en/federal-government/ministries/federal-ministry-transport
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: bundesregierung.de, brief len: 9269.
 
-### `g21` — ADB Sustainable Transport
+### `g21` , ADB Sustainable Transport
 
 - source_url: https://www.adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: adb.org, brief len: 17216.
 
-### `66835398` — Singapore Regional Operations Profile
+### `66835398` , Singapore Regional Operations Profile
 
 - source_url: https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: mot.gov.sg, brief len: 17609.
 
-### `g10` — NREL Transportation
+### `g10` , NREL Transportation
 
 - source_url: https://www.nrel.gov/transportation/research
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: nrel.gov, brief len: 14889.
 
-### `r5` — Stockholm Environment Institute
+### `r5` , Stockholm Environment Institute
 
 - source_url: https://www.sei.org/about-sei/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: sei.org, brief len: 7896.
 
-### `10f26f54` — India Regional Operations Profile
+### `10f26f54` , India Regional Operations Profile
 
 - source_url: https://www.transportpolicy.net/standard/india-regulatory-background/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: transportpolicy.net, brief len: 22718.
 
-### `r33` — Lloyd's Register Fleet Analytics
+### `r33` , Lloyd's Register Fleet Analytics
 
 - source_url: https://www.lr.org/en/sustainability/decarbonisation/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: lr.org, brief len: 4409.
 
-### `r20` — JOC (Journal of Commerce)
+### `r20` , JOC (Journal of Commerce)
 
 - source_url: https://www.joc.com/about
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: joc.com, brief len: 7581.
 
-### `053123bc` — Brazil Regional Operations Profile
+### `053123bc` , Brazil Regional Operations Profile
 
 - source_url: https://www.antt.gov.br
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: antt.gov.br, brief len: 21924.
 
-### `r7` — Erasmus Smart Port
+### `r7` , Erasmus Smart Port
 
 - source_url: https://www.erim.eur.nl/centres/smartporterasmus/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: erim.eur.nl, brief len: 9054.
 
-### `r29` — NREL Transportation R&D
+### `r29` , NREL Transportation R&D
 
 - source_url: https://www.nrel.gov/transportation/research
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: nrel.gov, brief len: 10728.
 
-### `7169c9ac` — Autonomous & Connected Freight Technology
+### `7169c9ac` , Autonomous & Connected Freight Technology
 
 - source_url: https://www.itf-oecd.org/managing-transition-driverless-road-freight-transport
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: itf-oecd.org, brief len: 16369.
 
-### `r9` — Transportation Research Part E
+### `r9` , Transportation Research Part E
 
 - source_url: https://www.sciencedirect.com/journal/transportation-research-part-e-logistics-and-transportation-review
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: sciencedirect.com, brief len: 4443.
 
-### `r4` — World Resources Institute
+### `r4` , World Resources Institute
 
 - source_url: https://www.wri.org/research
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: wri.org, brief len: 6924.
 
-### `r8` — Cranfield Sustainable Logistics
+### `r8` , Cranfield Sustainable Logistics
 
 - source_url: https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management/research-projects-current-and-past
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: cranfield.ac.uk, brief len: 15054.
 
-### `f67aabad` — NYC Local Law 97 — Building Carbon Emissions Caps
+### `f67aabad` , NYC Local Law 97 , Building Carbon Emissions Caps
 
 - source_url: https://rules.cityofnewyork.us/rule/annual-greenhouse-gas-ghg-emissions-limits-for-buildings/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: rules.cityofnewyork.us, brief len: 23945.
 
-### `r19` — Supply Chain Digital
+### `r19` , Supply Chain Digital
 
 - source_url: https://supplychaindigital.com/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: supplychaindigital.com, brief len: 16019.
 
-### `g26` — IRENA Abu Dhabi
+### `g26` , IRENA Abu Dhabi
 
 - source_url: https://www.irena.org/news/pressreleases/2012/Jun/IRENA-Headquarters-Agreement-signed-with-the-United-Arab-Emirates
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: irena.org, brief len: 9338.
 
-### `t7` — GEF (Global Environment Facility)
+### `t7` , GEF (Global Environment Facility)
 
 - source_url: https://fiftrustee.worldbank.org/en/about/unit/dfi/fiftrustee/fund-detail/gef
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: fiftrustee.worldbank.org, brief len: 8321.
 
-### `5b8f3e8a` — Packaging Material Input Costs
+### `5b8f3e8a` , Packaging Material Input Costs
 
 - source_url: https://fred.stlouisfed.org/series/WPU066
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: fred.stlouisfed.org, brief len: 13113.
 
-### `g30` — World Bank Transport
+### `g30` , World Bank Transport
 
 - source_url: https://ieg.worldbankgroup.org/topic/transport
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: ieg.worldbankgroup.org, brief len: 13491.
 
-### `o11` — Lloyd's Register Decarbonisation Hub
+### `o11` , Lloyd's Register Decarbonisation Hub
 
 - source_url: https://www.lrfoundation.org.uk/programmes/lloyds-register-maritime-decarbonisation-hub
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: lrfoundation.org.uk, brief len: 13897.
 
-### `d2b343b4` — Industrial Electricity Tariff Benchmarks by Jurisdiction
+### `d2b343b4` , Industrial Electricity Tariff Benchmarks by Jurisdiction
 
 - source_url: https://www.iea.org/data-and-statistics/data-product/energy-prices
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: iea.org, brief len: 21997.
 
-### `r18` — Splash247 Green
+### `r18` , Splash247 Green
 
 - source_url: https://splash247.com/category/sector/environment/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: splash247.com, brief len: 20064.
 
-### `r35` — ICCT
+### `r35` , ICCT
 
 - source_url: https://theicct.org/
 - phrase: "integrity rule"
 - reason: no_heuristic_matched
 - rationale: Phrase "integrity rule" did not match any heuristic conclusively. Host: theicct.org, brief len: 14418.
 
-### `d031e36e` — LA EWEO — Existing Buildings Energy & Water Efficiency
+### `d031e36e` , LA EWEO , Existing Buildings Energy & Water Efficiency
 
 - source_url: https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf
 - phrase: "integrity rule"
@@ -387,6 +387,6 @@ Procedure: `docs/INTEGRITY-TRIAGE-PROCEDURE.md`
 
 ## Related
 
-- [INTEGRITY-TRIAGE-PROCEDURE](../runbooks/INTEGRITY-TRIAGE-PROCEDURE.md) — This runbook's script emits docs/INTEGRITY-TRIAGE-REPORT.md as its human-readable artifact; the report is this procedure's output
-- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) — Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue
-- [E2E-VERIFICATION](./E2E-VERIFICATION.md) — Test C1 verifies the migration-044 retune that dropped the 57 unresolved flags this triage report enumerated down to 1
+- [INTEGRITY-TRIAGE-PROCEDURE](../runbooks/INTEGRITY-TRIAGE-PROCEDURE.md) , This runbook's script emits docs/INTEGRITY-TRIAGE-REPORT.md as its human-readable artifact; the report is this procedure's output
+- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) , Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue [HYPOTHESIS glyph:verbatim]
+- [E2E-VERIFICATION](./E2E-VERIFICATION.md) , Test C1 verifies the migration-044 retune that dropped the 57 unresolved flags this triage report enumerated down to 1

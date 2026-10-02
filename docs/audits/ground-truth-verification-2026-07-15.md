@@ -1,6 +1,6 @@
-# Ground-Truth Verification Unit — 2026-07-15
+# Ground-Truth Verification Unit , 2026-07-15
 
-**Dispatch:** operator, 2026-07-15 — ground-truth verification gating the coverage-floor spend.
+**Dispatch:** operator, 2026-07-15 , ground-truth verification gating the coverage-floor spend.
 **Method:** read-only. Per-item Chrome live-read of the cited primary + `section_claim_provenance`
 span-vs-claim adjudication, against live/correct sources (seek-correct-source per operator directive).
 No writes except this findings doc + raw scratch. No corrections executed.
@@ -46,14 +46,14 @@ PASS / DEFECT(class) / UNVERIFIABLE-live.
 
 | Class | Defect |
 |---|---|
-| C1–C5 | capture: truncated / error-body / furniture / stale / wrong-doc |
-| A1 | span-not-found (fabricated span) — **not observed** in 27 items |
+| C1-C5 | capture: truncated / error-body / furniture / stale / wrong-doc |
+| A1 | span-not-found (fabricated span) , **not observed** in 27 items |
 | A2 | span-misquoted (number/date/term changed) |
-| A3 | claim-distorts-span (claim asserts more than the span supports) — **most common accuracy defect** |
+| A3 | claim-distorts-span (claim asserts more than the span supports) , **most common accuracy defect** |
 | A4 | qualification-dropped |
 | A5 | tier-misstamp / null-tier unregistered |
-| A6 | broken/wrong citation-of-record (dead URL, or live-but-wrong doc) — **dominant provenance defect** |
-| A7 | language/charset (translation unlabeled / charset-mangled) — **not observed**; non-EN handled well |
+| A6 | broken/wrong citation-of-record (dead URL, or live-but-wrong doc) , **dominant provenance defect** |
+| A7 | language/charset (translation unlabeled / charset-mangled) , **not observed**; non-EN handled well |
 | H1 | analysis-as-fact (incl. Q4 "tier-methodology-as-fact") |
 | H2 | legal-determination asserted |
 | H3 | invented content |
@@ -79,24 +79,24 @@ The accuracy-defect class splits into two mechanical signatures, used by the rea
 
 ## Systemic findings (quantified corpus-wide, not just the sample)
 
-### S1 — dead / wrong citation-of-record (class-level A6) — DOMINANT
+### S1 , dead / wrong citation-of-record (class-level A6) , DOMINANT
 One generic EUR-Lex "junk-drawer" source row (`url = …/EN/TXT?uri=OJ:L_202500040`, **confirmed 404 live**)
 is the citation-of-record for **927 FACT claims across 26 non-archived items, all stamped T1** (~18% of
 the corpus's 5,090 facts). The spans are *real* (grounded against the correct captured CELEX pages, which
 sit in each item's `agent_run_searches` pool); only the stored citation URL is dead. The class also
-manifests as **live-but-wrong URLs** — e.g. Brazil Alt Fuels (Lei 14.993/2024) cites
+manifests as **live-but-wrong URLs** , e.g. Brazil Alt Fuels (Lei 14.993/2024) cites
 `planalto…/l12305.htm` = **Lei 12.305/2010 (the Solid Waste Policy)**, an unrelated statute.
 **Fix (free):** re-point each claim to the correct instrument URL already in its pool (promote-the-stored-
 URL). **No re-grounding spend.**
 
-### S2 — unregistered host / null-source (class-level) — SECONDARY
+### S2 , unregistered host / null-source (class-level) , SECONDARY
 **455 FACTs (8.9%) across 45 items** have `source_id = NULL` (null tier). 451 trace to a real captured
 search result whose host was never registered (incl. **Korea FSC, a T2 regulator**, grounding 7 facts
-while unstamped). 4 have zero provenance — **all inside one quarantined item** (EPA HDV Phase 3), i.e. the
+while unstamped). 4 have zero provenance , **all inside one quarantined item** (EPA HDV Phase 3), i.e. the
 gate held them. Concentrated in the floor-exempt types (market_signal / initiative / research / regional).
 **Fix (free):** register the recurring hosts + re-stamp.
 
-### D1 — duplicate escaping EP-11 dedup
+### D1 , duplicate escaping EP-11 dedup
 ReFuelEU Aviation 2023/2405 is present **twice, both verified**: #4 (`6f1e6615`, canonical key `32023R2405`)
 and #5 (`f2269121`, **canonical_instrument_key = NULL**). The null key defeated the EP-11 uniqueness index.
 **Fix:** derive #5's key → dedup → archive loser.
@@ -112,7 +112,7 @@ and #5 (`f2269121`, **canonical_instrument_key = NULL**). The null key defeated 
 | Autonomous Freight (#27) | technology | ~2/31 | Q4 tier-methodology-as-fact (idx14/19/23 "…classified as Tier N", idx23 self-inconsistent). |
 | Fit for 55 (#1) | regulation | ~2/39 | idx33 ETS "70% in 2025" vs span "2026"; idx35 "100% in 2026" vs span "2027". |
 | ReFuelEU 2405 (#4), ReFuelEU-twin (#5), Brazil AltFuels (#3), Stockholm SEI (#20), EU 2023/959 (#6) | mixed | ~1 each | minor A2/A3 date or span-mismatch (see raw). |
-| **17 other items** | all types | **0** | K-Tax, Air Cargo, IMO, Iowa, Roadcheck, ASEAN, Mission Innovation, Japan, BloombergNEF, Fraunhofer, JOLT, First Movers, IRENA, Brazil-MT, EIA, Hydrogen, Missouri, Green Building — all accuracy-clean. |
+| **17 other items** | all types | **0** | K-Tax, Air Cargo, IMO, Iowa, Roadcheck, ASEAN, Mission Innovation, Japan, BloombergNEF, Fraunhofer, JOLT, First Movers, IRENA, Brazil-MT, EIA, Hydrogen, Missouri, Green Building , all accuracy-clean. |
 
 **ACTION:** correct ISO 14083's content; run a targeted scan for ISO-class substantive-falsehood siblings
 (same signature: a named instrument's identity/obligation asserted against a mismatched span). Everything
@@ -122,31 +122,31 @@ else is provenance or quality, not wrong facts.
 
 ## Quality patterns (not accuracy defects; cleanup, not spend)
 
-- **Q1 padding** — widespread near-duplicate FACT inflation (Iowa/Missouri ~35% dup restatements; EASA
+- **Q1 padding** , widespread near-duplicate FACT inflation (Iowa/Missouri ~35% dup restatements; EASA
   "page last updated" ×5; CBP/rate lines repeated). Inflates fact counts; strip at cleanup.
-- **Q2 informal-source** — a few null-source items ground to informal digests (ASEAN emoji newsletter).
+- **Q2 informal-source** , a few null-source items ground to informal digests (ASEAN emoji newsletter).
   Distinct from credible-but-unregistered (FSC/IATA). Source-selection quality.
-- **Q3 content-fit** — some `research_finding`/`guidance` items are org *descriptions* (SEI, Fraunhofer,
+- **Q3 content-fit** , some `research_finding`/`guidance` items are org *descriptions* (SEI, Fraunhofer,
   Missouri = "what the institute/agency does"), low freight-decision value; format populated off-intent.
-- **Q4 tier-methodology-as-fact** — briefs occasionally emit FACT claims about their own tier
+- **Q4 tier-methodology-as-fact** , briefs occasionally emit FACT claims about their own tier
   classification (ISO idx20, Autonomous idx14/19/23). Small recurring H1/A3; strip at correction.
 
 ---
 
-## Dispositions (for operator ruling — none executed)
+## Dispositions (for operator ruling , none executed)
 
-1. **Citation re-point sweep (free)** — promote the correct instrument URLs from each item's pool onto the
+1. **Citation re-point sweep (free)** , promote the correct instrument URLs from each item's pool onto the
    927 S1 dead-cite facts (+ the live-but-wrong national URLs). No re-grounding spend.
-2. **Host-registration sweep (free)** — register the recurring S2 hosts (FSC, IATA, ACT Research, korea.net,
+2. **Host-registration sweep (free)** , register the recurring S2 hosts (FSC, IATA, ACT Research, korea.net,
    mlit.go.jp, etc.) + re-stamp the 455 null-source facts.
-3. **ISO 14083 content correction + sibling scan** — the one true accuracy case; correct + scan for the
+3. **ISO 14083 content correction + sibling scan** , the one true accuracy case; correct + scan for the
    signature. Small, targeted.
-4. **Dedup D1** — derive #5 canonical key, dedup the ReFuelEU twins.
-5. **Quality cleanup (Q1–Q4)** — de-pad, re-home content-fit items, strip tier-methodology-as-fact claims.
-6. **Recover hold #11** — register the 1 host, re-fetch the 1 failed capture, relabel/re-attribute the 1
+4. **Dedup D1** , derive #5 canonical key, dedup the ReFuelEU twins.
+5. **Quality cleanup (Q1-Q4)** , de-pad, re-home content-fit items, strip tier-methodology-as-fact claims.
+6. **Recover hold #11** , register the 1 host, re-fetch the 1 failed capture, relabel/re-attribute the 1
    sub-floor fact. Content is good.
 
-**None of (1)–(6) requires the coverage-floor spend.** Recommend holding the spend pending these sweeps.
+**None of (1)-(6) requires the coverage-floor spend.** Recommend holding the spend pending these sweeps.
 
 ---
 

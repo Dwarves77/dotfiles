@@ -25,7 +25,7 @@ to route any of these three sources to a different fetcher.
 
 ### A. Failure mode
 - Flip log: pre-fetch returned an API rate-limit HTML page; Haiku titled the
-  stub "SEC.gov API Rate Threshold Exceeded — Developer Access Guidelines",
+  stub "SEC.gov API Rate Threshold Exceeded , Developer Access Guidelines",
   agent route 412'd, no brief produced.
 - Direct curl from a developer workstation with a custom UA returns HTTP 200,
   text/html, 224 KB body within 220 ms. The failure is specific to
@@ -77,13 +77,13 @@ RSS fetcher's outbound headers, and abandon the homepage scrape entirely.
 
 ### A. Failure mode
 - Flip log: pre-fetch returned a Cloudflare interstitial; Haiku titled the
-  stub "Carbon Pulse Website Access — Security Verification Page", agent
+  stub "Carbon Pulse Website Access , Security Verification Page", agent
   route 412'd, no brief.
 - Direct curl with a generic UA returns 200 / text/html, 179 KB, ~960 ms.
   Cloudflare's bot-fight gating selectively challenges headless browsers (JS
   detection, Chrome DevTools Protocol fingerprints) but lets server-side
   curl through for static page reads.
-- Consistent — Cloudflare's challenge is deterministic given the same
+- Consistent , Cloudflare's challenge is deterministic given the same
   client signature; Browserless's default headless Chrome trips it every time.
 - Time-of-day independent.
 
@@ -97,7 +97,7 @@ RSS fetcher's outbound headers, and abandon the homepage scrape entirely.
   site, full bodies behind a paid subscription
   (`/about/subscriptions/`). No documented public API. The RSS already
   contains the same preview-level body that the homepage exposes, so RSS
-  buys us the same content the scrape was after — full bodies are gated
+  buys us the same content the scrape was after , full bodies are gated
   regardless of fetch path.
 - No authenticated-session shortcut without paying.
 - archive.org has partial coverage; not needed.
@@ -106,7 +106,7 @@ RSS fetcher's outbound headers, and abandon the homepage scrape entirely.
 - Browserless: removes one render per tick, avoids the Cloudflare-challenge
   retry storm.
 - RSS: free, no rate-limit issues at our volume.
-- Paid API tier: not pursued — would only matter if we wanted full bodies,
+- Paid API tier: not pursued , would only matter if we wanted full bodies,
   and that is a product decision, not a fetch-method decision.
 
 ### D. Recommended path
@@ -123,13 +123,13 @@ headline + preview only, which matches the public-site signal anyway.
 
 ---
 
-## 3. Gallery Climate Coalition — research (id `f81c2cd0-2627-4e92-aa07-478ef395c2a2`)
+## 3. Gallery Climate Coalition , research (id `f81c2cd0-2627-4e92-aa07-478ef395c2a2`)
 
 ### A. Failure mode
 - Flip log: pre-fetch failed with `Browserless 500: TimeoutError: Navigation
   timeout of 15000 ms exceeded`.
 - Direct curl returns HTTP 404, text/html, 1559 bytes. With follow-redirects,
-  still 404 — the URL `https://galleryclimatecoalition.org/research/` does
+  still 404 , the URL `https://galleryclimatecoalition.org/research/` does
   not exist on the live site. Browserless hangs because the 404 page likely
   client-side renders error UI past the `waitForSelector('body')` window.
 - This is a URL-split error during classification. The about+resources row
@@ -137,12 +137,12 @@ headline + preview only, which matches the public-site signal anyway.
   but only the former exists. The actual research-style content lives at
   `/resources/` (200, 73 KB) and under `/news/` (commissioned reports,
   11 items in sitemap excluding `/de/` localization).
-- Consistent — it's a 404, not a CDN behavior.
+- Consistent , it's a 404, not a CDN behavior.
 
 ### B. Alternative endpoints evaluated
 - `/resources/`: returns 200, 73 KB; this is the actual "research outputs"
   hub. Lists carbon calculator, commissioned reports, member tools.
-- `/feed/`: returns 200 but is structurally empty (no `<item>` elements —
+- `/feed/`: returns 200 but is structurally empty (no `<item>` elements ,
   site does not publish a posts feed). Not usable.
 - `/sitemap.xml`: 200, 26 KB, lists 11 news/research entries (post
   localization-filter) including commissioned reports. Could power a
@@ -179,7 +179,7 @@ research-output hub, not to change the fetch method.
    will repeat for every high-traffic / Cloudflare-fronted source we add;
    the drain worker should treat "pre-fetch returns interstitial" as a
    strong signal to prefer RSS discovery before retrying.
-2. One of three (GCC research) is a data-quality bug from the URL-split
+2. One of three (GCC research) is a data-quality bug from the URL-split [HYPOTHESIS]
    classification step, not a fetch problem. The URL-split logic should
    validate target URLs return 200 before committing the split, or the
    classifier should emit candidate URLs the operator confirms before they
@@ -196,5 +196,5 @@ research-output hub, not to change the fetch method.
 
 ## Related
 
-- [WORKER-ACTIVATION-AUDIT-2026-05-08](./WORKER-ACTIVATION-AUDIT-2026-05-08.md) — Both diagnose the same source-fetch worker path; triage explains why the drain fetches fail (Browserless UA/Cloudflare) that this audit's ingestion…
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Shares the access_method enum and sources fetch-config columns; the survey documents the enum's distribution and migration 056 extension
+- [WORKER-ACTIVATION-AUDIT-2026-05-08](./WORKER-ACTIVATION-AUDIT-2026-05-08.md) , Both diagnose the same source-fetch worker path; triage explains why the drain fetches fail (Browserless UA/Cloudflare) that this audit's ingestion… [HYPOTHESIS glyph:verbatim]
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , Shares the access_method enum and sources fetch-config columns; the survey documents the enum's distribution and migration 056 extension

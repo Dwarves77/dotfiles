@@ -302,17 +302,17 @@ project's harness-run convention, a `PENDING-RUN.md` marker was written or updat
   fsi-app/.discipline/governance/*.test.mjs`: 691 tests, 0 fail (555 in the first invocation before the
   invariant-coverage meta-gate fix, 136 after fixing the RD-64/PINNED_MANIFEST drift , the final run of
   each file is clean).
-- Every `.test.mjs` beside a file this lane changed (32 test files, 658 tests): 0 fail. Two tests
+- Every `.test.mjs` beside a file this lane changed (32 test files, 658 tests): 0 fail. Two tests [HYPOTHESIS]
   (`scripts/maintenance/derive-obligations.test.mjs`'s dry/apply cases) initially failed on
   `readAllByIds is not a function` because the maintenance wrapper's `buildDeps`/test mock had not been
   threaded through when `scripts/obligations/derive-obligations.mjs` was migrated; fixed by adding
   `readAllByIds` to both.
-- `bash fsi-app/.discipline/run-test-suite.sh`: 5,762 tests, 5,757 pass, 0 fail (5 skipped), exit 0.
+- `bash fsi-app/.discipline/run-test-suite.sh`: 5,762 tests, 5,757 pass, 0 fail (5 skipped), exit 0. [HYPOTHESIS]
   Two failures found on the first run and fixed: `skill-contract-map: PINNED_MANIFEST matches this
   checkout` (stale content hash after the SKILL.md edit , repinned) and the same two
   derive-obligations wrapper tests above.
 - `cd fsi-app && npx tsc --noEmit`: clean, no output.
-- `node fsi-app/.discipline/governance/closure-gate.mjs --report`: NEVER-RUN PASS, STALE-NEXT PASS,
+- `node fsi-app/.discipline/governance/closure-gate.mjs --report`: NEVER-RUN PASS, STALE-NEXT PASS, [HYPOTHESIS]
   WRITER-READER PASS (0 orphans), LANE-CONTRACT PASS. `=== closure gate PASS ===`.
 
 ## What I could not individually prove bounded from first principles

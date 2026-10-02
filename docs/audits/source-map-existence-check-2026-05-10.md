@@ -9,7 +9,7 @@
 - `processing_paused=true`: **3** rows.
 - `auto_run_enabled=true`: **65** rows. `auto_run_enabled=false`: **718** rows.
 - `agent_runs` in last 30 days: **990**. Total `raw_fetches`: **661**.
-- The cold-start kill switch flipped `auto_run_enabled=false` on every active source. Per the task brief, the "PRESENT, unscoped" classification, defined as `processing_paused=true OR auto_run_enabled=false`, would otherwise tag 718 of 718 active sources unscoped, collapsing the distinction. This audit therefore reads "unscoped" only against `processing_paused=true` and treats `auto_run_enabled=false` as background-state-of-the-world, not a per-source signal. Healthy and broken classifications below remain meaningful: they reflect whether each source has produced a successful agent_run, a populated `last_checked`, or a `raw_fetches` row in the snapshot window.
+- The cold-start kill switch flipped `auto_run_enabled=false` on every active source. Per the task brief, the "PRESENT, unscoped" classification, defined as `processing_paused=true OR auto_run_enabled=false`, would otherwise tag 718 of 718 active sources unscoped, collapsing the distinction. This audit therefore reads "unscoped" only against `processing_paused=true` and treats `auto_run_enabled=false` as background-state-of-the-world, not a per-source signal. Healthy and broken classifications below remain meaningful: they reflect whether each source has produced a successful agent_run, a populated `last_checked`, or a `raw_fetches` row in the snapshot window. [HYPOTHESIS]
 - The source map under audit is `dotfiles/docs/source-map-from-esgtoday-2026-05-09.md` (Sections A through F plus G profile). Cross-referenced docs: `four-page-architecture-survey-2026-05-09.md`, `source-coverage-diagnostic-2026-05-09.md`, `classification-rules-audit-2026-05-09.md`.
 - Read-only audit. Three throwaway scripts at `fsi-app/scripts/_existence-check-temp.mjs`, `_existence-check-summary.mjs`, `_existence-check-tabular.mjs`, with intermediate JSON outputs. None are committed.
 
@@ -18,7 +18,7 @@
 286 mapped entries probed across Sections A through G (Section G is the ESG Today profile, included as one row).
 
 - **PRESENT, healthy: 64** entries (22%).
-- **PRESENT, broken ingestion: 13** entries (5%).
+- **PRESENT, broken ingestion: 13** entries (5%). [HYPOTHESIS]
 - **PRESENT, unscoped: 0** entries (because the kill switch reading was excluded; see Snapshot context above).
 - **ABSENT: 209** entries (73%).
 
@@ -28,7 +28,7 @@ The four EU-ESRS-arc sources called out in the coverage diagnostic, snapshot 202
 
 - `finance.ec.europa.eu`: **ABSENT**. Zero rows match by host or URL. Confirms the diagnostic's Mode-A finding.
 - `ec.europa.eu/finance`: **ABSENT** (not in the source map under that exact subpath; treated as folded into finance.ec.europa.eu).
-- `efrag.org`: **PRESENT, broken ingestion**. One row, `71b29085-7625-4f90-8693-946a89377fed`, status `provisional`, tier 2, `last_checked=null`, `last_scanned=null`, `last_intelligence_item_at=null`, zero `raw_fetches`, zero `agent_runs` in the 30-day window.
+- `efrag.org`: **PRESENT, broken ingestion**. One row, `71b29085-7625-4f90-8693-946a89377fed`, status `provisional`, tier 2, `last_checked=null`, `last_scanned=null`, `last_intelligence_item_at=null`, zero `raw_fetches`, zero `agent_runs` in the 30-day window. [HYPOTHESIS]
 - `esgtoday.com`: **PRESENT, healthy** (changed since the diagnostic). Row `6a4fbc59-5412-4541-a9a3-eeb155b15cc6`, status `active`, tier 4, `last_checked=null` but **1 raw_fetch** and **1 successful agent_run** in last 30 days. The cold-start has now touched this source; the diagnostic's Mode-B reading is partially closed for ESG Today specifically.
 
 T1-priority adds (per Suggested addition priority bands below): **6 entries**. These are the named structural EU-ESRS gap closers plus the highest-density sustainability-finance authorities currently absent.
@@ -380,7 +380,7 @@ The classification-rules-audit identified 49 sources whose items 100% Out-of-Sco
 Cross-reference against Section A:
 
 - **None** of the 49 named garbage hosts are in the source map's A1 to A4 named bodies (the source map only lists EU and UK and US federal bodies plus 6 named other-national regulators; none of those are parliamentary scrapes per se).
-- **One** double-flag confirmed: **Federal Register** appears in the OOS-garbage table (1 garbage item, 100% OOS) AND in Section A3 of the source map AND classified PRESENT, healthy here on the basis of 3 raw_fetches. The implication: ingestion is succeeding, but at least 1 of the recent fetches returned interstitial content that was misclassified. This is "in-registry-with-broken-extraction", a fourth state the binary healthy/broken classification does not surface.
+- **One** double-flag confirmed: **Federal Register** appears in the OOS-garbage table (1 garbage item, 100% OOS) AND in Section A3 of the source map AND classified PRESENT, healthy here on the basis of 3 raw_fetches. The implication: ingestion is succeeding, but at least 1 of the recent fetches returned interstitial content that was misclassified. This is "in-registry-with-broken-extraction", a fourth state the binary healthy/broken classification does not surface. [CONFIRMED]
 - **One** secondary multi-ambiguous double-flag worth naming separately (not in the 49 garbage set, but in the same audit's Section D.3 multi-ambiguous concentration): **Lloyd's Register** appears in Section D of the source map AND has 41 multi-ambiguous items (26 of 41, 63%) in the classification audit. PRESENT, healthy here, but content quality in the corpus is mixed for a different reason: Lloyd's Register is a classification society publishing regulation-shaped Class Notices that the rule-based classifier cannot pin to a single role.
 
 Net cross-reference verdict: **the 49 garbage-extraction set is not a Section-A overlap problem**. It is a separate operational issue (parliamentary-scrape Cloudflare gates) that the operator already has a known fix for (30-line title-pattern pre-classify gate, per the classification-rules-audit). Federal Register and Lloyd's Register are the two genuinely-overlapping double-flags surfaced in this audit.
@@ -398,7 +398,7 @@ T1 is reserved for entries that close a documented structural miss, not the enti
 3. **`eba.europa.eu`** (EBA). Banking sustainability disclosure. Adjacency to EU-ESRS arc; ABSENT today.
 4. **`fca.org.uk`** (UK FCA). UK SDS carrier; the UK-side analogue of the EU-ESRS gap. ABSENT today.
 5. **`carbon-pulse.com`** (Carbon Pulse). Primary source for carbon-market and ETS coverage; the source map's Section H specifically calls it out for competitor-intercept telemetry. ABSENT today.
-6. **`sec.gov`** (US SEC). Already PRESENT but provisional and broken-ingestion. Promote-and-fix priority. The SEC climate-disclosure rule is the US-side analogue of the EU-ESRS arc.
+6. **`sec.gov`** (US SEC). Already PRESENT but provisional and broken-ingestion. Promote-and-fix priority. The SEC climate-disclosure rule is the US-side analogue of the EU-ESRS arc. [HYPOTHESIS]
 
 ### T2, closes high-traffic verticals (12 entries)
 
@@ -448,7 +448,7 @@ A `subpathUnmatched` flag is set to true when the source map carries a subpath (
 
 For each registry row matched to a source-map entry:
 - **PRESENT, healthy**: row has a successful agent_run in the last 30 days OR `last_checked` within the last 30 days OR `raw_fetches` count > 0.
-- **PRESENT, broken ingestion**: row has all three (`last_checked`, `last_scanned`, `last_intelligence_item_at`) null AND zero `raw_fetches`, OR all agent_runs in the last 30 days are status=`error`, OR no recent successful run plus no recent last_checked plus zero fetches.
+- **PRESENT, broken ingestion**: row has all three (`last_checked`, `last_scanned`, `last_intelligence_item_at`) null AND zero `raw_fetches`, OR all agent_runs in the last 30 days are status=`error`, OR no recent successful run plus no recent last_checked plus zero fetches. [HYPOTHESIS]
 - **PRESENT, unscoped**: row has `processing_paused=true`. (Per task brief: `auto_run_enabled=false` is excluded from the unscoped definition because all 718 active sources carry it post-cold-start kill switch; including it would make 718 of 718 unscoped, defeating the distinction.)
 - **ABSENT**: no row matches by exact URL or by host.
 
@@ -464,9 +464,9 @@ When an entry matches multiple registry rows, the entry's aggregate status is th
 Misclassification risks:
 - **Subpath reduction**: 14 entries of 286 fall back from subpath to host match. The host-match returns rows about other sub-areas of the same domain. Example: ec.europa.eu/commission/presscorner falls back to two other ec.europa.eu rows (CSDDD growth page + presscorner home), neither of which is the precise newsroom entrypoint the source map had in mind. The aggregate status reported reflects the matched rows, not the missed precise subpath.
 - **Multi-row matches**: 10+ entries match 5 or more registry rows because the host is a major domain (gov.uk has 5 generic UK rows that satisfy any of CMA/DBT/HMT/DfT/DEFRA via host). The aggregate "PRESENT, healthy" obscures that the precise sub-area is not separately registered.
-- **Weak healthy**: 14 entries are classified PRESENT, healthy on the basis of a single row with `last_checked=null` and zero recent runs but where no run has failed yet. These are early-cold-start states and may flip to broken once swept. Examples: France ecologie.gouv.fr (1 row), Reuters Sustainable Switch (1 row), SBTi (1 row).
+- **Weak healthy**: 14 entries are classified PRESENT, healthy on the basis of a single row with `last_checked=null` and zero recent runs but where no run has failed yet. These are early-cold-start states and may flip to broken once swept. Examples: France ecologie.gouv.fr (1 row), Reuters Sustainable Switch (1 row), SBTi (1 row). [HYPOTHESIS]
 - **Trailing-slash drift**: the four-page-survey identified FreightWaves as duplicated by trailing slash (tier 4 + tier 5, www-prefix variant). This audit's normalization treats both as the same entry, but the underlying registry duplicates remain visible (FreightWaves matched 4 rows here).
-- **Broken-extraction not surfaced**: the binary PRESENT-healthy / PRESENT-broken classification does not separately flag rows whose ingestion succeeds but whose extracted content is garbage (the Federal Register case; see classification audit cross-reference). Such rows are PRESENT, healthy here.
+- **Broken-extraction not surfaced**: the binary PRESENT-healthy / PRESENT-broken classification does not separately flag rows whose ingestion succeeds but whose extracted content is garbage (the Federal Register case; see classification audit cross-reference). Such rows are PRESENT, healthy here. [HYPOTHESIS]
 
 ### Read-only constraints
 
@@ -476,8 +476,8 @@ This audit feeds the next architectural decision conversation. It does not execu
 
 ## Related
 
-- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
-- [source-map-from-esgtoday-2026-05-09](./source-map-from-esgtoday-2026-05-09.md) — This is the existence check of that map's Sections A-G entry-by-entry against the registry
-- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) — Cross-references its 49 garbage-extraction sources + Lloyd's Register multi-ambiguous concentration for the two double-flags
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Tests how many of its 185 unknown-bucket sources map into this source map's sections
-- [spec-audit-map-2026-05-23](../plans/spec-audit-map-2026-05-23.md) — Both concern the map/source-registry coverage-by-region surface
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) , That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
+- [source-map-from-esgtoday-2026-05-09](./source-map-from-esgtoday-2026-05-09.md) , This is the existence check of that map's Sections A-G entry-by-entry against the registry
+- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) , Cross-references its 49 garbage-extraction sources + Lloyd's Register multi-ambiguous concentration for the two double-flags
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , Tests how many of its 185 unknown-bucket sources map into this source map's sections
+- [spec-audit-map-2026-05-23](../plans/spec-audit-map-2026-05-23.md) , Both concern the map/source-registry coverage-by-region surface

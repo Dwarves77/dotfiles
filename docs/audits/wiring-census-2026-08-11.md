@@ -1,14 +1,14 @@
-# Wiring census — 2026-08-11 (operator full-wiring ruling)
+# Wiring census , 2026-08-11 (operator full-wiring ruling)
 
 The durable record of the whole-system unwired-code discovery, the dispositions taken, and the items
 deliberately left as operator decisions. Written because the operator asked: "If we have failed to
-navigate items not wired or possibly not wired... Discover them now" — and because the previous audits
+navigate items not wired or possibly not wired... Discover them now" , and because the previous audits
 had each missed a real class (see `docs/ops/session-log.md`, entries of 2026-08-11).
 
 ## Method
 
 Reference-graph fixpoint over `git ls-files`, with generated artifacts (`coverage-report.json`, the
-session ledger, `docs/`) excluded as reference sources — counting a generated report as a "reference"
+session ledger, `docs/`) excluded as reference sources , counting a generated report as a "reference"
 was exactly how the first census undercounted. Execution reachability measured with
 `.discipline/governance/execution-wiring.mjs`, the SAME resolver the invariant meta-gate uses, so this
 census and the meta-gate cannot disagree about what "wired" means.
@@ -24,7 +24,7 @@ bash fsi-app/.discipline/run-test-suite.sh                      # the no-npm pro
 
 ## Findings and dispositions
 
-### 1. 495 dead one-shot scripts — IDENTIFIED AND ENUMERATED; deletion is one operator command
+### 1. 495 dead one-shot scripts , IDENTIFIED AND ENUMERATED; deletion is one operator command
 `fsi-app/scripts/**` held 532 one-shot-style scripts (excluding `lib/`, `verify/`, tests). Fixpoint
 analysis: **495 referenced by nothing** (or only by other dead scripts / generated artifacts / the F22
 allowlist that existed to grandfather them), 38 genuinely referenced. All 495 are listed verbatim in
@@ -46,10 +46,10 @@ git commit -m "Dead-code sweep: remove 495 dead one-shot scripts (manifest in do
 Then, in that same commit, remove the allowlist entries tagged `reviewByPhase: 'dead-code-sweep'` from
 F15 and F22, retire the `ingestion_control_log` entry in `producer-consumer-orphan.mjs`, and set
 `GAP_BASELINE` to 0/0/0/0 in F23. Every one of those is stale-audited, so if the files go and an entry
-stays, the build REDs and tells you exactly which — that RED is the designed handoff signal.
+stays, the build REDs and tells you exactly which , that RED is the designed handoff signal.
 
-### 2. 24 proofs run by NOTHING — WIRED
-177 tracked proof files; 153 executed by a CI surface; **24 executed by nothing** — green, portable,
+### 2. 24 proofs run by NOTHING , WIRED
+177 tracked proof files; 153 executed by a CI surface; **24 executed by nothing** , green, portable,
 and invisible, among them `db-register-source-role.test.mjs` (the red-test for the F22 registerSource
 wiring itself). Root cause: `run-test-suite.sh`'s scripts/lib entries were a drifted hand list (5
 listed, 21 present) and four src directories had no glob. Fixed with directory globs + named entries;
@@ -57,14 +57,14 @@ named exclusions documented in the suite header (`institution.selftest.mjs` and
 `source-growth.selftest.mjs` import jiti and are execution-wired as F10 fitness sentinels in the
 npm-ci job). Suite grew 1065 → 1220 tests, all green.
 
-### 3. ORPHANED-PROOF semantics — REDEFINED
+### 3. ORPHANED-PROOF semantics , REDEFINED
 The old predicate ("no rule cites this test's basename") flagged 113 ordinary unit tests CI already
 ran, while missing all 24 real orphans. Now `isExecutionWired()`. A citation census is not a wiring
 census.
 
-### 4. F15 spend gate blind to scripts/ — SCOPE WIDENED
+### 4. F15 spend gate blind to scripts/ , SCOPE WIDENED
 `enumerate()` covered only `src/**`; 17 scripts made direct Anthropic API calls outside it.
-Disposition: 16 deleted (see §1), `scripts/lib/anthropic.mjs` added to SANCTIONED as the ONE
+Disposition: 16 deleted (see section 1), `scripts/lib/anthropic.mjs` added to SANCTIONED as the ONE
 script-side call site (rule 016's sanctioned wrapper). A new script-side bypass is now RED at PR time.
 
 ### 5. Governed-surface gaps 156 → 24, orphaned proofs to ZERO
@@ -75,27 +75,27 @@ user-account plumbing exempted per-surface with reasons (profile / settings / no
 telemetry / auth-provisioning). `GAP_BASELINE` is now **0 orphaned-proofs, 20 unmapped-writes,
 2 unmapped-model, 2 unmapped-routing**.
 
-**Orphaned proofs are at hard zero and stay there** — that is the half that did not depend on the
+**Orphaned proofs are at hard zero and stay there** , that is the half that did not depend on the
 deletion, and it is the half that matters most: every tracked proof is now executed by a CI surface.
 The remaining 24 gaps are all files on the deletion manifest; they go to zero in the operator's sweep
-commit (§1). The ratchet already bites in both directions, so the moment those files leave, the build
+commit (section 1). The ratchet already bites in both directions, so the moment those files leave, the build
 tells you to lower the ceiling.
 
-### 6. F14 stale allowlist entry — RETIRED
+### 6. F14 stale allowlist entry , RETIRED
 Deleting `wave1-cold-start.mjs` removed `ingestion_control_log`'s only writer; F14's own staleness
 audit caught it within one suite run. Entry retired. **Open DB question (operator):** the table's
-2026-07-03 control-run rows still exist — ratify as historical audit trail or drop the table.
+2026-07-03 control-run rows still exist , ratify as historical audit trail or drop the table.
 
 ## Discovered, deliberately NOT acted on (operator decisions)
 
-### A. src modules imported by nothing — MECHANIZED (F25), same day
+### A. src modules imported by nothing , MECHANIZED (F25), same day
 The list below was the grep's answer. Re-measured with a real import graph (every import / require /
 dynamic-import specifier extracted and resolved through the tsconfig `@/` alias and the real extension
 list, the way the bundler resolves), the true figure is **54 unimported modules of 383 in scope**, A and
 B combined. Now gated by **F25 (module-liveness)** / invariant **RD-54**, with all 54 carried as
 reason-bearing entries that name the ruling each one waits on.
 
-The graph earned its keep twice over the grep. It found `src/lib/verification.ts` — a 1.2 KB helper
+The graph earned its keep twice over the grep. It found `src/lib/verification.ts` , a 1.2 KB helper
 sitting one directory above the 50 KB W2.F pipeline `src/lib/sources/verification.ts`, imported by
 nothing, which basename matching had masked. And it forced the entry-point list to be right, which
 caught a near-miss worth recording: **`src/proxy.ts` has zero importers and looks exactly like dead
@@ -105,14 +105,14 @@ boundary. Framework entry points are invoked by convention, never imported; that
 
 A coupled gap was closed alongside: F15's `SANCTIONED` set was the one list in the suite that was NOT
 stale-audited, so a deleted sanctioned path would have left the spend chokepoint permanently exempting
-a ghost. It now REDs — which matters immediately, because `scripts/lib/anthropic.mjs` (the sole
+a ghost. It now REDs , which matters immediately, because `scripts/lib/anthropic.mjs` (the sole
 sanctioned script-side call site) is imported only by manifest scripts and loses every consumer the
 moment the sweep lands.
 
 The original grep list, kept for the record:
 
 Unmounted UI components + dormant lib modules. Two deserve attention beyond dead-code cleanup:
-`src/lib/llm/spend-regime.mjs` (spend-regime doctrine code with zero importers — the seek-more
+`src/lib/llm/spend-regime.mjs` (spend-regime doctrine code with zero importers , the seek-more
 dormant-capability class) and `src/lib/d3/hooks-reconstruction.mjs`. Full list:
 
 ```
@@ -129,10 +129,10 @@ lib/dashboard/credibility.ts                 lib/dashboard/critical-items.ts
 lib/llm/spend-regime.mjs
 ```
 
-This is the P4 liveness-gate backlog (ts-prune / unmounted-component scan) — mechanize before deleting.
+This is the P4 liveness-gate backlog (ts-prune / unmounted-component scan) , mechanize before deleting.
 
-### B. scripts/lib modules with no non-test consumer — MECHANIZED (F25), same day
-Folded into F25 with §A above (17 of the 54). Original list, kept for the record:
+### B. scripts/lib modules with no non-test consumer , MECHANIZED (F25), same day
+Folded into F25 with section A above (17 of the 54). Original list, kept for the record:
 
 Proven (selftests now wired) but consumed by nothing: block1-reaudit, bootstrap-test1,
 decision-log-audit, drift-check-reconstruction, error-drop-probe, exclusion-audit-reconstruction,
@@ -140,23 +140,23 @@ funded-release-plan, inconclusive-report, liveness-reconstruction, net-agent,
 surface-registry-reconstruction, type-consumer-probe, urgency, verify-reconstruction. Dormant
 capability vs delete-with-tests: per-module operator call.
 
-### C. Scheduled workflows — one STOPPED this session, two left running
+### C. Scheduled workflows , one STOPPED this session, two left running
 | workflow | schedule | state |
 |---|---|---|
-| `source-monitoring.yml` | hourly | **disabled** — acquisition freeze, operator ruling 2026-07-13 |
-| `spot-check-monthly.yml` | monthly | **disabled** — acquisition freeze, operator ruling 2026-07-13 |
-| `data-audit-lane.yml` | nightly 06:00 UTC | **STOPPED 2026-08-11 (operator ruling)** — see below |
-| `uptime-probes.yml` | daily 09:00 UTC | running — spend watch only |
+| `source-monitoring.yml` | hourly | **disabled** , acquisition freeze, operator ruling 2026-07-13 |
+| `spot-check-monthly.yml` | monthly | **disabled** , acquisition freeze, operator ruling 2026-07-13 |
+| `data-audit-lane.yml` | nightly 06:00 UTC | **STOPPED 2026-08-11 (operator ruling)** , see below |
+| `uptime-probes.yml` | daily 09:00 UTC | running , spend watch only |
 | `trust-recompute.yml` | monthly | running |
 
-**The data-audit lane is stopped, not fixed — by explicit instruction.** It had failed on EVERY
+**The data-audit lane is stopped, not fixed , by explicit instruction.** It had failed on EVERY
 nightly run from at least Aug 4 through Aug 11, emailing the operator each morning. **CORRECTED
-2026-08-11: not eight consecutive reds but TWENTY-NINE (#37–#65); the last green run was #36.** The
+2026-08-11: not eight consecutive reds but TWENTY-NINE (#37-#65); the last green run was #36.** The
 eight-run figure came from reading only as far back as the emails in hand. Diagnosed the same day in
 `data-audit-lane-diagnosis-2026-08-11.md`: nine audits report real and GROWING drift (undispositioned
 past-bound crossings 14 → 37 in a week; one source-less LIVE item the mint chokepoint should have
 rejected), and nine fail on lane wiring. The drift half came first. Stopped two ways: disabled in the Actions UI (immediate) AND the `schedule:`
-block commented out in the workflow file (durable — re-enabling in the UI does not resurrect the
+block commented out in the workflow file (durable , re-enabling in the UI does not resurrect the
 cron). Every audit script under `scripts/verify/` remains in the tree and remains runnable on demand
 via `workflow_dispatch`; only the unattended nightly firing is stopped. **OPEN ITEM: the underlying
 failure is undiagnosed.** Eight straight reds on a live-data lane means either the audits are
@@ -168,10 +168,10 @@ removed for exactly this recurring-red-email reason, leaving only the daily **sp
 fails only on a post-freeze paid `agent_runs` row that does not trace to an operator-priced line.
 That one is the untraceable-spend alarm and was deliberately left running.
 
-### D. The database side — SWEPT, same day (was "the one unswept layer")
+### D. The database side , SWEPT, same day (was "the one unswept layer")
 Run, findings recorded in `db-layer-census-2026-08-11.md`, standing gate shipped as **F24
 (db-object-migration-home)** / invariant **RD-53**. Headline: **22 of 181 catalog objects exist in
-production with no committed migration** — the "out-of-repo DDL" class the 2026-07-19 structure audit
+production with no committed migration** , the "out-of-repo DDL" class the 2026-07-19 structure audit
 named and nobody ever counted. Two live defects fell straight out of it:
 
 - **A four-function API left callable after its table was dropped.** Migration 219 dropped
@@ -186,10 +186,10 @@ named and nobody ever counted. Two live defects fell straight out of it:
 
 Also live-verified and worth the record: `cron.job` is **empty** (nothing is scheduled inside the
 database), every trigger function has a trigger, and three apparent orphans were **retracted after
-checking** — `gate_a_health_refresh` (deliberately unscheduled by operator ruling 2026-08-10),
+checking** , `gate_a_health_refresh` (deliberately unscheduled by operator ruling 2026-08-10),
 `capture_worker_fetch` (invoked by hand from the fleet-charter runbooks), and the `d3_runs` write
 (defined-not-applied, skips-with-log, selftest-proven). Open operator items: `pg_net` + `pg_cron` are
-installed, so database-originated egress and scheduling sit outside every repo-side gate — zero active
+installed, so database-originated egress and scheduling sit outside every repo-side gate , zero active
 today, capability ungoverned.
 
 ### E. Docs-tree duplication

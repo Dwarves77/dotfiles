@@ -34,7 +34,7 @@ dispatch, no LLM call, no script executed in apply/write mode.
 
 Re-checking every 2026-09-05 W1-W2 row and findings 1, 4, 5 named for this stage.
 
-1. **Finding 1 (ledger-consume apply half never fired with a real verdict).** Re-checked directly: still
+1. **Finding 1 (ledger-consume apply half never fired with a real verdict).** Re-checked directly: still [HYPOTHESIS]
    true. `[CONFIRMED]`, all 7 `ledger-consume-run-*.json` artifacts read `config.mode:"plan"`, and live
    SQL shows `portal_link_candidates.status='promoted'` is still exactly 3, the same digit the 2026-09-05
    audit reported. No apply-mode dispatch (with a `verdicts_file`, per D26's 2026-09-13 requirement) has

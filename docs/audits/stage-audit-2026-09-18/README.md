@@ -47,8 +47,8 @@ run from its upstream trigger rather than from a person dispatching it.
 
 1. **No head of the loop.** Nothing starts a sweep or a fetch drain; the collect stage is a set of dispatch
    buttons, and one of them (fetch-drain) is not even a workflow. Owner stage S1.
-2. **Ledger-consume apply never enabled.** Candidates never become worklist without a person. Owner S2.
-3. **Corpus-turn has no upstream and downstream-chain has never fired.** Nobody has proven mint to drain with
+2. **Ledger-consume apply never enabled.** Candidates never become worklist without a person. Owner S2. [HYPOTHESIS]
+3. **Corpus-turn has no upstream and downstream-chain has never fired.** Nobody has proven mint to drain with [HYPOTHESIS]
    one real run. Owner S2 with S4.
 4. **The brief chain sits outside the loop.** Mint leaves a stub and nothing upgrades it; W9 has been a hand
    loop of export, author, apply, and every apply fix sent items back through it. Owner S3.
@@ -117,7 +117,7 @@ Finish, delete, or keep with reason, one line each. The owners' recommendations 
   wired to live tables (finish per tab).
 - S6: community promotion A vs B (retire one, zero-cost now); dispatch ledger (resume or retire with reason);
   closure gate wall-clock (finish: make it finish locally again); rooms region binding (finish or keep).
-- D1 (design): eight cases not drawn, in the parts inventory section 4, including artboard 21 missing from the
+- D1 (design): eight cases not drawn, in the parts inventory section 4, including artboard 21 missing from the [HYPOTHESIS]
   bundle, a conflict between brief 2.3 and the 2026-09-07 SectionHeading ruling, the brief reversing the
   2026-09-09 CommandBar ruling, and a `/market/series` destination that does not exist.
 

@@ -91,7 +91,7 @@ was executed queue-wide (session-log 7203), forward-events-run-001's dedupe-key 
 ### 2.4 The flywheel (self-improvement of the corpus)
 
 Scope note (ledger Section C): "the flywheel" names two mechanisms in this repo. This review covers the
-corpus flywheel (connection discovery through anticipation, U0–U9, live, pure computation, no LLM). The
+corpus flywheel (connection discovery through anticipation, U0-U9, live, pure computation, no LLM). The
 second, decision propagation (`docs/specs/08-flywheel-design.md`), is DESIGNED ONLY, has no `entities`
 table, and is not assessed here.
 
@@ -106,7 +106,7 @@ nowhere but a session.
 
 ### 2.5 The discipline engine and memory
 
-`.discipline/`: 23 fitness functions (F2, F6, F8–F28), 9 commit rules, 3 consistency checks, governance
+`.discipline/`: 23 fitness functions (F2, F6, F8-F28), 9 commit rules, 3 consistency checks, governance
 registries (invariants, doctrine, skill-contract map), one test list (`run-test-suite.sh`) shared by CI
 and the pre-push hook, five CI jobs. The memory gate exists (`discipline.yml:133-187`): a PR touching
 code without touching `session-log.md`/`PROGRAM-BOARD.md` fails. Nine repo skills; seven registered in
@@ -140,7 +140,7 @@ Live query, 2026-09-01:
 - Sources: 1,612 active, 927 provisional, 22 suspended.
 - `census_worklist`: 21,609 documents. 16,717 `invariant_reject` (77%), 3,661 `would_mint`, 1,225 `hold`, 5 dedup.
 - `intelligence_items`: 322 verified live; **513 verified archived**; 97 quarantined live; 78 quarantined archived; 56 unverified archived. Live by type: 112 regulation, 58 framework, 36 market_signal, 31 research_finding, 28 directive, 21 regional_data, 20 initiative, 10 guidance, 4 technology, 2 standard.
-- Of the 513 verified archived, **491 were archived on 2026-08-21 with `archive_reason = NULL`.** Session-log Addendum 28 explains them: the WO-26 scope ruling ("freight-sustainability platform, first") archived 632 customs and transport-administration EUR-Lex items reversibly; the operation never stamped a reason. Later work (session-log 7207) already tripped over this: 456 `would_mint` queue rows are blocked by holders in that unstamped wave.
+- Of the 513 verified archived, **491 were archived on 2026-08-21 with `archive_reason = NULL`.** Session-log Addendum 28 explains them: the WO-26 scope ruling ("freight-sustainability platform, first") archived 632 customs and transport-administration EUR-Lex items reversibly; the operation never stamped a reason. Later work (session-log 7207) already tripped over this: 456 `would_mint` queue rows are blocked by holders in that unstamped wave. [CONFIRMED]
 
 Why 322 and not thousands, causally:
 
@@ -164,7 +164,7 @@ least automated path it has.
 
 **Unwired (built, no caller or no runtime):**
 
-- The entire intake chain (§2.2). `POST /api/admin/run-intake`, `/admin/promotion-policy`, `/admin/users`: zero callers.
+- The entire intake chain (section 2.2). `POST /api/admin/run-intake`, `/admin/promotion-policy`, `/admin/users`: zero callers.
 - Every flywheel script and every harness runner: no workflow, route, or cron (`vercel.json` empty; only `trust-recompute.yml` and the spend probe in `uptime-probes.yml` are armed).
 - `POST /api/worker/reconcile`: zero callers, and its input `monitoring_queue.change_detected` is hardcoded `false` at the writer (`content-change.mjs:4`). A doubly dead chain.
 - ~~`community/invitations/[id]/accept` and `/decline`: zero callers~~ **[REFUTED 2026-09-01, corrected in place per CLAUDE.md rule 14]:** lane HYG verified `CommunityShell.tsx:287` calls both from the community group-invitation rows on `/community/browse`; they are a distinct, live feature from the workspace-level `/api/invitations/[token]/…` routes. My grep scope missed the caller. Untouched.
@@ -176,17 +176,17 @@ least automated path it has.
 
 - `fsi-app/.claude/skills/resume/SKILL.md`: superseded by root `ledger`; `/start` names ledger as the one boot sequence.
 - `SectorSynopsis.tsx`: zero importers (F25 allowlisted).
-- 34 modules pinned alive by F25's `LEGACY_ALLOWLIST` (`F25-module-liveness.mjs:96-198`): 15 in `scripts/lib`, 11 proven-but-unwired in `src/lib`, 4 with no proof. This train's sunset lane KEPT four `scripts/lib` modules only because moving them would red F25's allowlist, i.e. the liveness gate is currently preserving dead code.
+- 34 modules pinned alive by F25's `LEGACY_ALLOWLIST` (`F25-module-liveness.mjs:96-198`): 15 in `scripts/lib`, 11 proven-but-unwired in `src/lib`, 4 with no proof. This train's sunset lane KEPT four `scripts/lib` modules only because moving them would red F25's allowlist, i.e. the liveness gate is currently preserving dead code. [HYPOTHESIS]
 - `.claude/skills/analysis-construction-spec/SKILL.md` cites `detect_intersections` (dropped by migration 265) as the live mechanism, three times.
 - `PROTOCOL.md` (forward-events) names the pre-move extractor path first; `DRY-RUN-REPORT.md` too.
-- `PROPOSER-RUNBOOK.md` §5 still says mint emission is prose-only; it has been code since `f3ff3ae7`.
+- `PROPOSER-RUNBOOK.md` section 5 still says mint emission is prose-only; it has been code since `f3ff3ae7`.
 - `.discipline/consistency/manifest.mjs` header says "only C3 + C4 remain"; C5 exists.
 - `PROGRAM-BOARD.md` names `MONTHLY_SPEND_CEILING_USD`, which exists nowhere in code (the real constants are `SPEND_CEILING_USD`=85 per call and `MONTHLY_TOTAL_DISPLAY_USD`=130, explicitly not a limit).
 - Migration 276's own header says "left UNAPPLIED"; it was applied 2026-09-01 (board and this session). Header is now false.
 
 **Tooling blind spots found while auditing the tools:**
 
-- F14 (producer-consumer orphan) cannot see `guardedInsert`/`guardedUpdate` writers and mis-reports `regional_data_facts`, `theme_briefs`, `emission_factors` as write-orphans.
+- F14 (producer-consumer orphan) cannot see `guardedInsert`/`guardedUpdate` writers and mis-reports `regional_data_facts`, `theme_briefs`, `emission_factors` as write-orphans. [HYPOTHESIS]
 - F14 and the writer registry both exclude `supabase/functions/**`, so the one live consumer of `pending_first_fetch` is invisible to every governance scan.
 - The `system-prompt.ts` ↔ SKILL.md "synced" claim is enforced by nothing but a version-string test; the skill lists 14 rules, the prompt 16. The skill's "19-field contract" enumerates 13 fields.
 - The writer registry test is now suite-wired (this train) but was not in CI before today.
@@ -224,7 +224,7 @@ regional facts, and a community with groups and posts. They do not get: an oblig
 beyond the EU-heavy core (US, IMO, ICAO, Asia thin), emissions calculation, or any way to map a
 regulation to their own shipments, lanes or clients. Nothing tells them what changed since last week.
 
-What they need, in the order they would pay for it, based on what the market sells (§8): (1) coverage
+What they need, in the order they would pay for it, based on what the market sells (section 8): (1) coverage
 they trust across the jurisdictions they ship through, (2) "what is due, when, for whom" as a calendar
 with alerts, (3) plain-language obligation mapping to their operations (mode, lane, cargo class), (4)
 change detection with a diff, (5) peer context (Community's actual differentiator, if it fills).
@@ -267,7 +267,7 @@ Structural faults, ranked by damage:
 
 1. **No runtime layer.** Everything operational depends on a human session. This is the cause of the
    population gap, the staleness, and today's blockage. Cost to fix: low; the pattern exists.
-2. **The item economics are wrong for the mission.** "Every item is an LLM-grounded brief" cannot reach
+2. **The item economics are wrong for the mission.** "Every item is an LLM-grounded brief" cannot reach [HYPOTHESIS]
    "all regulations for any freight forwarder" under a $0 regime. The system needs a cheaper item
    tier: a deterministic instrument record (identity, dates, forward events, tags, jurisdiction,
    source) minted at $0 from the document itself, upgradable to a grounded brief when spend is
@@ -330,7 +330,7 @@ jurisdiction/mode, on Regulations list and item detail), a "changed since" strip
 
 **Lane HYG, hygiene.** Delete the two dead invitation routes and `worker/reconcile` (or wire it, ruling
 needed: the change-detection chain is dead at both ends), retire `resume`, fix the stale skill pointer
-to `detect_intersections`, fix PROTOCOL/DRY-RUN paths, PROPOSER-RUNBOOK §5, consistency manifest
+to `detect_intersections`, fix PROTOCOL/DRY-RUN paths, PROPOSER-RUNBOOK section 5, consistency manifest
 header, migration 276 header, board's phantom constant, fix F14's guarded-writer blindness and include
 `supabase/functions/**` in F14 and the writer registry, and convert F25's allowlist into an archive pass
 (move the 15 `scripts/lib` and 4 no-proof modules, shrink the allowlist to what is actually pending a
@@ -347,7 +347,7 @@ master), then dispatch RT and HYG and DOC in parallel (disjoint), then EV/TAG/PO
 Two operator decisions gated the plan and both were ruled 2026-09-01: record-grade items may appear on
 customer surfaces (yes, labeled), and the change-detection chain is wired, not deleted (it is what buyers
 pay for second). All seven lanes plus a ninth (the staged `update_item` consumer the change-detection lane
-found missing) landed on `lane/integration` the same day; migrations 277–280 are applied live. What the
+found missing) landed on `lane/integration` the same day; migrations 277-280 are applied live. What the
 plan did NOT produce yet, honestly: the first corpus turn and the first record-grade batch both wait on
 the GitHub runtime's first execution (the workflows exist, dispatch-gated per the no-schedule ruling), the
 EIA producer waits on an operator-created repository secret, and the EEX EUA price series stays unbuilt

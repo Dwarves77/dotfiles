@@ -2,12 +2,12 @@
 
 **Date:** May 25, 2026
 **Phase:** Pre-Phase-2A gate
-**Scope:** All 21 routes (customer + operator surfaces), every interactive element on rebuilt surfaces (Operations, Market, Community, Research, Map), cross-surface count derivation, mobile responsiveness (320px–767px), Leaflet map rendering.
+**Scope:** All 21 routes (customer + operator surfaces), every interactive element on rebuilt surfaces (Operations, Market, Community, Research, Map), cross-surface count derivation, mobile responsiveness (320px-767px), Leaflet map rendering.
 **Method:** Browser audit + code grep + uncommitted-tree diff inspection. Findings tagged C (Critical) / H (High) / M (Medium) / L (Low). Disposition vocabulary mirrors Phase 1.5: WIRE / STRIP / BUILD / DEFER / VERIFY / INVESTIGATE / STUB-VERIFY.
 
 **Companion document:** [functional-purpose-audit-2026-05-24.md](./functional-purpose-audit-2026-05-24.md). The Phase 1.5 doc is the **required-functionality-vs-present-functionality** lens (does the surface contain the flows its purpose demands?). This doc is the **present-functionality-vs-working-functionality** lens (do the elements that exist on the page actually do anything?). Both lenses, both needed: a flow can be PRESENT in the Phase 1.5 doc and still be a non-functional button here.
 
-**Headline finding:** the May 24 rebuild left the four rebuilt surfaces (Operations, Market, Community, Research) with substantial **non-functional chrome**: stat tiles that look clickable but have no onClick handler, filter chips that toggle visual state but do not filter the underlying list, query-param URLs that the destination route does not read. Additionally, the Map surface renders no basemap on mobile because viewMode defaults to "list" below 768px. Four findings are Critical (hidden-on-mobile content, identical-content tabs, non-functional stat tiles, missing basemap); nine are High; eight are Medium; eight are Low. One original Critical (C1, CommunitySearchResults missing) was RETRACTED on pre-commit verification — the file exists; the claim came from a stale session-summary observation.
+**Headline finding:** the May 24 rebuild left the four rebuilt surfaces (Operations, Market, Community, Research) with substantial **non-functional chrome**: stat tiles that look clickable but have no onClick handler, filter chips that toggle visual state but do not filter the underlying list, query-param URLs that the destination route does not read. Additionally, the Map surface renders no basemap on mobile because viewMode defaults to "list" below 768px. Four findings are Critical (hidden-on-mobile content, identical-content tabs, non-functional stat tiles, missing basemap); nine are High; eight are Medium; eight are Low. One original Critical (C1, CommunitySearchResults missing) was RETRACTED on pre-commit verification , the file exists; the claim came from a stale session-summary observation.
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## Critical findings (4 active + 1 retracted)
 
-### C1, ~~CommunitySearchResults missing component~~ — RETRACTED
+### C1, ~~CommunitySearchResults missing component~~ , RETRACTED
 
 **Original claim:** import-without-file would crash render on Search tab.
 
@@ -390,13 +390,13 @@
 
 ## Cross-cutting patterns surfaced
 
-1. **Non-functional chrome is the dominant defect class.** 9 of 22 fixable findings (C3, C4, H1-H5, H7-H9, M3, M5, M8) are interactive elements that render with click affordance but no handler, or query parameters the destination route ignores. The Phase 1.5 doc's "WIRE" disposition resolves the majority. This is a pattern-level signal that the May 24 rebuild prioritized visual layout over interaction wiring.
+1. **Non-functional chrome is the dominant defect class.** 9 of 22 fixable findings (C3, C4, H1-H5, H7-H9, M3, M5, M8) are interactive elements that render with click affordance but no handler, or query parameters the destination route ignores. The Phase 1.5 doc's "WIRE" disposition resolves the majority. This is a pattern-level signal that the May 24 rebuild prioritized visual layout over interaction wiring. [HYPOTHESIS]
 
 2. **Count derivation is the single largest unresolved architecture decision.** M1 + M2 + M6 + the Phase 1.5 Dashboard reconciliation note all trace to the same root cause: 5 distinct surfaces compute counts locally rather than consuming the aggregates RPC. Phase 2A operator decision (Option B = DB RPC source of truth) blocks resolution of all four findings until Phase 3B agent regeneration populates the severity column.
 
 3. **Mobile responsiveness is uncommitted in working tree.** Globals.css utility classes (cl-stat-grid, cl-coverage-rail, cl-two-col, cl-map-frame) with breakpoints at 1100/960/767/640/480/420 are added; 4 surface refactors applying those classes are uncommitted; C3 + H7 are direct consequences. The uncommitted bundle needs operator-authorized commit before Phase 2A starts.
 
-4. **Component crash risk on /community (C1) is the single Phase-2A blocker.** Every other Critical can be navigated around; a missing import will crash render the moment a user clicks the Search tab.
+4. **Component crash risk on /community (C1) is the single Phase-2A blocker.** Every other Critical can be navigated around; a missing import will crash render the moment a user clicks the Search tab. [HYPOTHESIS]
 
 ---
 
@@ -425,7 +425,7 @@ Total: 29 findings (5 Critical + 9 High + 8 Medium + 7 Low). One Low (L7 cosmeti
    - M1 (Phase 2A operator decision on count derivation, gates M2 + M6)
 
 2. **Phase 4 WIRE sweep (16 findings):**
-   - All H1–H9, C4
+   - All H1-H9, C4
    - M3 (pop stash), M4, M5, M8
 
 3. **Phase 4 STRIP sweep (2 findings):**
@@ -461,7 +461,7 @@ These gaps are flagged for a future audit pass, not addressed here.
 
 ## Related
 
-- [functional-purpose-audit-2026-05-24](./functional-purpose-audit-2026-05-24.md) — Declared companion; the two form a deliberate lens pair — that doc asks whether required flows are present, this asks whether present elements…
-- [DESIGN-AUDIT-2026-05](./DESIGN-AUDIT-2026-05.md) — Later whole-site audit continues this surface-fidelity review after the spec-audit series
-- [VISUAL-RECONCILIATION-2026-05-06](./VISUAL-RECONCILIATION-2026-05-06.md) — Later whole-site audit revisits the same production-vs-design surface reconciliation
-- [cards-clickable-audit-2026-05-12](./cards-clickable-audit-2026-05-12.md) — Shares the card/interactive-element click-behavior concern; both check whether clickable-looking surface elements resolve to real navigation/handlers
+- [functional-purpose-audit-2026-05-24](./functional-purpose-audit-2026-05-24.md) , Declared companion; the two form a deliberate lens pair , that doc asks whether required flows are present, this asks whether present elements…
+- [DESIGN-AUDIT-2026-05](./DESIGN-AUDIT-2026-05.md) , Later whole-site audit continues this surface-fidelity review after the spec-audit series
+- [VISUAL-RECONCILIATION-2026-05-06](./VISUAL-RECONCILIATION-2026-05-06.md) , Later whole-site audit revisits the same production-vs-design surface reconciliation
+- [cards-clickable-audit-2026-05-12](./cards-clickable-audit-2026-05-12.md) , Shares the card/interactive-element click-behavior concern; both check whether clickable-looking surface elements resolve to real navigation/handlers

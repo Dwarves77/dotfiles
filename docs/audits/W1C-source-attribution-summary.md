@@ -1,4 +1,4 @@
-# W1.C — Source attribution audit summary
+# W1.C , Source attribution audit summary
 
 Generated: 2026-05-04T01:18:54.740Z
 
@@ -25,7 +25,7 @@ Pivoted by the source that the items are *currently* linked to. The breakdown sh
 
 Sample (first 5):
 
-- `l7` — CARB Advanced Clean Trucks
+- `l7` , CARB Advanced Clean Trucks
   - linked to: `US EPA Emissions Regulations`
   - actual url: https://ww2.arb.ca.gov/our-work/programs/advanced-clean-trucks
   - suggested action: `create_new_source`
@@ -34,7 +34,7 @@ Sample (first 5):
 
 | Action | Count | Meaning |
 |---|---|---|
-| `manual_review` | 1 | Multiple candidate sources match the host, OR the linked source has an unparseable URL — needs human eyes. |
+| `manual_review` | 1 | Multiple candidate sources match the host, OR the linked source has an unparseable URL , needs human eyes. |
 | `create_new_source` | 1 | No source matches this host; W4 must create a stub source row first, then rewire. |
 
 ## Estimated W4 effort
@@ -47,13 +47,13 @@ Sample (first 5):
 ## Heuristic notes
 
 - Host comparison uses **eTLD+1** matching, not exact host equality. `www.epa.gov` and `epa.gov` are the same; `arb.ca.gov` and `epa.gov` are not.
-- US sub-state agencies (`arb.ca.gov`, `energy.ca.gov`, etc.) are deliberately treated as DISTINCT eTLD+1s — see the multi-part suffix list in `audit-source-attribution.mjs`. CARB and CDPR are not the same publisher just because both end in `.ca.gov`.
+- US sub-state agencies (`arb.ca.gov`, `energy.ca.gov`, etc.) are deliberately treated as DISTINCT eTLD+1s , see the multi-part suffix list in `audit-source-attribution.mjs`. CARB and CDPR are not the same publisher just because both end in `.ca.gov`.
 - Items with NULL `source_id` are tracked separately; they cannot mismatch by definition, but they're an attribution gap W4 should also address.
 
 Full machine-readable mismatch list: `docs/W1C-source-attribution-audit.json`
 
 ## Related
 
-- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Wave-1a sibling audit; both feed the same W4 backfill of source/jurisdiction attribution
-- [W1B-approval-handler-analysis](./W1B-approval-handler-analysis.md) — Wave-1a sibling audit feeding the same W4 recovery pass
-- [W4-backfill-plan](../plans/W4-backfill-plan.md) — The create_new_source / manual_review actions and effort estimate here are the W4 backfill inputs
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) , Wave-1a sibling audit; both feed the same W4 backfill of source/jurisdiction attribution
+- [W1B-approval-handler-analysis](./W1B-approval-handler-analysis.md) , Wave-1a sibling audit feeding the same W4 recovery pass
+- [W4-backfill-plan](../plans/W4-backfill-plan.md) , The create_new_source / manual_review actions and effort estimate here are the W4 backfill inputs

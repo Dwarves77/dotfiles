@@ -1,4 +1,4 @@
-# Blind-CI-Window Audit — 2026-07-08
+# Blind-CI-Window Audit , 2026-07-08
 
 **Trigger.** The branch-protection proof (PR #257) forced the question the hand-maintained test
 list had been hiding: `run-test-suite.sh`'s `src/**` section was an explicit file list that
@@ -36,13 +36,13 @@ a hand list. #256 makes all of them globs.
 
 Ran each dark suite on its own on current master:
 
-- 6 no-npm suites: **52 tests, 52 pass, 0 fail.**
-- 2 `*.npmtest.mjs` suites (with `node_modules`): **10 tests, 10 pass, 0 fail.**
+- 6 no-npm suites: **52 tests, 52 pass, 0 fail.** [HYPOTHESIS]
+- 2 `*.npmtest.mjs` suites (with `node_modules`): **10 tests, 10 pass, 0 fail.** [HYPOTHESIS]
 
 All 62 assertions are real test bodies (not empty/skipped shells). None was passing merely by never
 executing.
 
-## (c) Window-merge walk — nothing a dark guard would have caught shipped
+## (c) Window-merge walk , nothing a dark guard would have caught shipped
 
 Method: a dark suite can only have missed a regression if the code it guards **changed** while it
 was dark. For each guarded module, `git log <window> -- <module>`:
@@ -55,7 +55,7 @@ was dark. For each guarded module, `git log <window> -- <module>`:
   the module has **never been modified since**. Their dark window is the few hours between their
   merge and #256, during which their own code did not change.
 
-A dark guard over code that never changed catches nothing — there was no transient red and no
+A dark guard over code that never changed catches nothing , there was no transient red and no
 shipped-broken state. Confirmed independently by (b): every suite is green on current master, which
 is the accumulation of all 81 window merges.
 
@@ -68,6 +68,6 @@ go dark again).
 ## Verdict
 
 The blind window was **real** (CI coverage gap, up to 46 days for one suite) but **inconsequential**
-(zero regressions possible — guarded modules unchanged in-window; all suites green). The class defect
+(zero regressions possible , guarded modules unchanged in-window; all suites green). The class defect
 (hand-list) is closed by #256's globs; the guarantee is closed by branch protection (proven at #257).
 **This audit clears; flip-readiness is not blocked by unverified merges.**

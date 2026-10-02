@@ -70,35 +70,35 @@ These were probed but fell into the low-confidence bucket. Per dispatch, low-con
 First 30 surfaced for review:
 
 - **Ministry of Ecology and Environment (MEE), People's Republic of China**, https://english.mee.gov.cn/international_cooperation/CCICED/. 
-- **Hrvatski sabor – Croatian Parliament**, https://www.sabor.hr/. 
+- **Hrvatski sabor - Croatian Parliament**, https://www.sabor.hr/. 
 - **Seimas of the Republic of Lithuania**, https://www.lrs.lt/. 
-- **Országgyűlés – National Assembly of Hungary**, https://www.parlament.hu/. 
+- **Országgyűlés - National Assembly of Hungary**, https://www.parlament.hu/. 
 - **Saeima of the Republic of Latvia**, https://www.saeima.lv/. 
 - **Ministry of Environment and Water (MOEW)**, https://www.moew.government.bg/. 
 - **Ministarstvo gospodarstva i održivog razvoja (Ministry of Economy and Sustainable Development)**, https://mingor.gov.hr/. 
-- **Aplinkos apsaugos agentūra (AAA – Environmental Protection Agency)**, https://aaa.lrv.lt/. 
-- **ECLAC / CEPAL – United Nations**, https://www.cepal.org/en. 
+- **Aplinkos apsaugos agentūra (AAA - Environmental Protection Agency)**, https://aaa.lrv.lt/. 
+- **ECLAC / CEPAL - United Nations**, https://www.cepal.org/en. 
 - **Ministrstvo za okolje, podnebje in energijo (MOPE)**, https://www.gov.si/drzavni-organi/ministrstva/ministrstvo-za-okolje-podnebje-in-energijo/. 
 - **New York State Department of Transportation (NYSDOT)**, https://www.dot.ny.gov/divisions/operating/osss/truck/regulations. 
 - **Državni zbor Republike Slovenije**, https://www.dz-rs.si/. 
-- **Camera Deputaților – Chamber of Deputies of Romania**, https://www.cdep.ro/. 
+- **Camera Deputaților - Chamber of Deputies of Romania**, https://www.cdep.ro/. 
 - **Vides aizsardzības un reģionālās attīstības ministrija (VARAM)**, https://www.varam.gov.lv/. 
 - **Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)**, https://www.ecologie.gouv.fr/. 
 - **Brussels Environment / Leefmilieu Brussel (Bruxelles Environnement)**, https://environnement.brussels/. 
-- **ECLAC / CEPAL – United Nations**, https://www.cepal.org/en/about. 
+- **ECLAC / CEPAL - United Nations**, https://www.cepal.org/en/about. 
 - **Singapore Statutes Online**, https://sso.agc.gov.sg. 
 - **Sénat (France)**, https://www.senat.fr/. 
 - **Rijksinstituut voor Volksgezondheid en Milieu (RIVM)**, https://www.rivm.nl/. 
 - **SPF Santé publique, Sécurité de la chaîne alimentaire et Environnement (FPS Health)**, https://www.health.belgium.be/. 
 - **Assemblée nationale**, https://www.assemblee-nationale.fr/. 
 - **La Chambre des représentants de Belgique / Belgische Kamer van volksvertegenwoordigers**, https://www.lachambre.be/. 
-- **Umweltbundesamt (UBA) — German Environment Agency**, https://www.umweltbundesamt.de/. 
-- **New York State Climate Action Council – Scoping Plan**, https://climate.ny.gov. 
-- **Vlaamse Milieumaatschappij (VMM) — Flanders Environment Agency**, https://www.vmm.be/. 
-- **Naturvårdsverket — Swedish Environmental Protection Agency**, https://www.naturvardsverket.se/. 
-- **Ministère de l'Environnement, du Climat et de la Biodiversité (MECDD) — Luxembourg**, https://environnement.public.lu/. 
-- **Umweltbundesamt — Austrian Environment Agency**, https://www.umweltbundesamt.at/. 
-- **North Carolina Department of Environmental Quality (NC DEQ) – Division of Air Quality**, https://www.deq.nc.gov/about/divisions/air-quality. 
+- **Umweltbundesamt (UBA) , German Environment Agency**, https://www.umweltbundesamt.de/. 
+- **New York State Climate Action Council - Scoping Plan**, https://climate.ny.gov. 
+- **Vlaamse Milieumaatschappij (VMM) , Flanders Environment Agency**, https://www.vmm.be/. 
+- **Naturvårdsverket , Swedish Environmental Protection Agency**, https://www.naturvardsverket.se/. 
+- **Ministère de l'Environnement, du Climat et de la Biodiversité (MECDD) , Luxembourg**, https://environnement.public.lu/. 
+- **Umweltbundesamt , Austrian Environment Agency**, https://www.umweltbundesamt.at/. 
+- **North Carolina Department of Environmental Quality (NC DEQ) - Division of Air Quality**, https://www.deq.nc.gov/about/divisions/air-quality. 
 - ... and 408 more.
 
 ## Divergences (1)
@@ -109,7 +109,7 @@ Existing rss_feed_url does not match the URL we detected on the home page.
 
 ## Related
 
-- [wave1-step1-verification](./wave1-step1-verification.md) — Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
-- [W2B-discovery-agent-spec](../plans/W2B-discovery-agent-spec.md) — This access-method probing (JSON-at-/api detection, rss/sitemap discovery) is the discovery-agent capability that spec defines
-- [W5-cost-projection](../plans/W5-cost-projection.md) — The Browserless cycle recalibration (470 scrape sources, render-hour budget, Lean-tier cadence tiers) is direct input to that cost projection
-- [wave1-track5-widget-implementation-plan](../plans/wave1-track5-widget-implementation-plan.md) — Plan is explicitly staged to implement after the Wave 1a foundation (migrations 052-059) this summary covers
+- [wave1-step1-verification](./wave1-step1-verification.md) , Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
+- [W2B-discovery-agent-spec](../plans/W2B-discovery-agent-spec.md) , This access-method probing (JSON-at-/api detection, rss/sitemap discovery) is the discovery-agent capability that spec defines
+- [W5-cost-projection](../plans/W5-cost-projection.md) , The Browserless cycle recalibration (470 scrape sources, render-hour budget, Lean-tier cadence tiers) is direct input to that cost projection
+- [wave1-track5-widget-implementation-plan](../plans/wave1-track5-widget-implementation-plan.md) , Plan is explicitly staged to implement after the Wave 1a foundation (migrations 052-059) this summary covers

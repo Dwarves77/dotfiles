@@ -7,7 +7,7 @@
 - Snapshot timestamp: `2026-05-10T03:04:35.288Z` (UTC).
 - `intelligence_items` row count at snapshot: 584. Cold-start (`fsi-app/scripts/wave1-cold-start.mjs`) is writing concurrently; counts will continue to climb.
 - `agent_runs` row count at snapshot: 791. Of those, 0 carry an `intelligence_item_id` FK link, 474 carry a `raw_fetch_id` link, 0 carry an `intelligence_item_version_id`.
-- `raw_fetches` row count: 478. `intelligence_item_versions` row count: 0 (table exists, trigger never fired in production yet because no UPDATE has touched any of the seven distinct-clause columns; the cold-start path is INSERT-only).
+- `raw_fetches` row count: 478. `intelligence_item_versions` row count: 0 (table exists, trigger never fired in production yet because no UPDATE has touched any of the seven distinct-clause columns; the cold-start path is INSERT-only). [HYPOTHESIS]
 - `ingestion_control_log` row count at snapshot: 0. The cold-start kill switch path that writes `auto_run_disabled` rows runs at end of cold-start, not yet reached.
 - `taxonomy_nodes` row count: 38 (defined in migration 007; see Primitive 1 (c) for category-membership note).
 - A fetch-quality filter is in flight at `src/lib/sources/fetch-quality.ts`. The TypeScript file is not yet present in the working tree at this audit; only the .mjs port at `scripts/lib/fetch-quality.mjs` consumed by `wave1-cold-start.mjs`. Treated as in-flight noise per dispatch.
@@ -41,7 +41,7 @@ There is no formal category enum or CHECK constraint on `intelligence_items` tha
 
 - `intelligence_items.item_type` CHECK constraint (`004_source_trust_framework.sql:138-143`) with 12 values: `regulation`, `directive`, `standard`, `guidance`, `technology`, `market_signal`, `regional_data`, `research_finding`, `innovation`, `framework`, `tool`, `initiative`. None of the 12 values is named `out_of_scope` or `industry_watch`. None of them is named `regulations`, `research`, `market_intel`, or `operations` either; the operator's page names are not category labels in the schema.
 - `intelligence_items.domain` CHECK constraint (`004_source_trust_framework.sql:135`) with values 1..7: `regulations and policy`, `technology and innovation`, `operations and infrastructure`, `markets and economics`, `humanitarian and resilience`, `energy and facilities`, `other / horizon`. The seven domains overlap the four operator pages but do not partition them: `domain=1` is loaded onto `/regulations` only, while `/operations` reads `domain=3` plus `domain=6` plus `item_type='regional_data'`, and `/market` reads `domain=2` plus `domain=4` plus `item_type IN ('technology', 'innovation', 'market_signal')`. Per-page filtering rules are listed in the four-page survey, sections 4.3 and 4.4.
-- The Haiku classifier prompt (`src/lib/llm/haiku-classify.ts:79-121`) emits a value for `item_type` from the same 12-value vocabulary plus a `severity`, `priority`, `urgency_tier` triple. The prompt never asks the model to assign one of `Regulations / Research / Market Intel / Operations / Out of Scope / Industry Watch`; those concepts do not appear in the prompt at all.
+- The Haiku classifier prompt (`src/lib/llm/haiku-classify.ts:79-121`) emits a value for `item_type` from the same 12-value vocabulary plus a `severity`, `priority`, `urgency_tier` triple. The prompt never asks the model to assign one of `Regulations / Research / Market Intel / Operations / Out of Scope / Industry Watch`; those concepts do not appear in the prompt at all. [HYPOTHESIS]
 - The verification prompt (`src/lib/llm/haiku-classify.ts:37-73`, mirrored at `src/lib/sources/verification.ts:204-240`) emits `ai_relevance_score`, `ai_freight_score`, `ai_trust_tier`. These are source-level eligibility scores, not item-level category assignments.
 - The route-level filters that reconstruct the four pages live in `src/components/pages/MarketPage.tsx` and `OperationsPage.tsx` (per the four-page survey, section 4) as TypeScript predicates. These predicates are inclusion rules in the procedural sense but are not visible in the schema, are not exhaustive (an item with `item_type='guidance'` and `domain=5` matches none of the four pages and does not get an explicit `Out of Scope` placement), and overlap each other in places (e.g., `regional_data` is read by both `/operations` and the legacy "regional" tab).
 
@@ -245,7 +245,7 @@ Gap-closing summary: either a single `curation_log` append-only table covering a
 
 ## Cross-cutting observations
 
-1. The schema is rich enough to hold most of the primitives, but the data is sparse enough that the primitives are not in operational use. Three of the foundation Wave-1a tables (`intelligence_item_versions`, `ingestion_control_log`) are at zero rows because the producing code paths are either dormant (versions: cold-start INSERT only, never UPDATE) or queued (ingestion_control_log: cold-start kill switch fires at the end). Primitive verdicts therefore reflect both schema shape and effective use.
+1. The schema is rich enough to hold most of the primitives, but the data is sparse enough that the primitives are not in operational use. Three of the foundation Wave-1a tables (`intelligence_item_versions`, `ingestion_control_log`) are at zero rows because the producing code paths are either dormant (versions: cold-start INSERT only, never UPDATE) or queued (ingestion_control_log: cold-start kill switch fires at the end). Primitive verdicts therefore reflect both schema shape and effective use. [HYPOTHESIS]
 
 2. The primitive 6 gap (per-item cost attribution) and the primitive 2 gap (item-to-fetch trace) collapse to the same single root cause: `agent_runs.intelligence_item_id` is unwritten. One in-flight fix closes both partial verdicts.
 
@@ -279,8 +279,8 @@ What this audit did not do: did not modify any DB row, did not modify any schema
 
 ## Related
 
-- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
-- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) — shares migration 058
-- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Wave 1a is the in-flight fix that writes the agent_runs FK this audit names as the collapsing root cause
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Explicitly cites and extends it; both find the source-role/six-category taxonomy absent and reconstruct pages from item_type/domain TypeScript filters
-- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — shares migration 053
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) , Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
+- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) , shares migration 058
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) , Wave 1a is the in-flight fix that writes the agent_runs FK this audit names as the collapsing root cause
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , Explicitly cites and extends it; both find the source-role/six-category taxonomy absent and reconstruct pages from item_type/domain TypeScript filters
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) , shares migration 053

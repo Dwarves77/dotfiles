@@ -122,7 +122,7 @@ D. Region buckets that are NOT jurisdictions: `asia`, `latam`,
 not legal jurisdictions.
 
 E. Country name in English title case: `United States`, `Canada`,
-`China`, `Japan`, `Italy`, `Spain`, `India`, `Iowa` (sic — Iowa is
+`China`, `Japan`, `Italy`, `Spain`, `India`, `Iowa` (sic , Iowa is
 not a country, see pattern G), `Iran`, `Kenya`, `Chile`, `European
 Union`. So `EU` and `European Union` and `eu` all coexist as three
 different distinct values for the same jurisdiction.
@@ -401,7 +401,7 @@ If any of those three are blockers, fall back to Option B as a
 holding pattern; the dashboard headline becomes truthful while the
 column-of-truth question is unresolved.
 
-## 2026-05-12 — US-AR row correction (item 0bbd757c)
+## 2026-05-12 , US-AR row correction (item 0bbd757c)
 
 - Target: `intelligence_items.id = '0bbd757c-112f-4d1f-ace8-c8fe73857ae1'`
   ("Major Corporate and Institutional Renewable Energy Investments
@@ -428,13 +428,13 @@ column-of-truth question is unresolved.
   was not exercised on this row).
 - Flag: This row is a confirmed legitimate `US-AR` (Arkansas) usage
   and should be treated as a true-positive US-state token by any
-  future normalization pass — do not collapse to `US` or rewrite to
+  future normalization pass , do not collapse to `US` or rewrite to
   `AR`.
 
 ## Related
 
-- [us-state-code-audit-2026-05-12](./us-state-code-audit-2026-05-12.md) — Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
-- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Depends on the locked legacy→ISO mapping (lib/jurisdictions/iso.ts) that jurisdiction normalization defines
-- [W2D-coverage-matrix-spec](../plans/W2D-coverage-matrix-spec.md) — Coverage matrix is a named read surface that filters/counts on the raw jurisdictions column this audit shows is fragmented
-- [W4-backfill-plan](../plans/W4-backfill-plan.md) — The W4 ISO backfill (deriveJurisdictionISO) populates jurisdiction_iso only and never touches the legacy column — the gap this audit centers on
-- [spec-audit-map-2026-05-23](../plans/spec-audit-map-2026-05-23.md) — Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs
+- [us-state-code-audit-2026-05-12](./us-state-code-audit-2026-05-12.md) , Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) , Depends on the locked legacy→ISO mapping (lib/jurisdictions/iso.ts) that jurisdiction normalization defines
+- [W2D-coverage-matrix-spec](../plans/W2D-coverage-matrix-spec.md) , Coverage matrix is a named read surface that filters/counts on the raw jurisdictions column this audit shows is fragmented
+- [W4-backfill-plan](../plans/W4-backfill-plan.md) , The W4 ISO backfill (deriveJurisdictionISO) populates jurisdiction_iso only and never touches the legacy column , the gap this audit centers on [HYPOTHESIS glyph:verbatim]
+- [spec-audit-map-2026-05-23](../plans/spec-audit-map-2026-05-23.md) , Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs
