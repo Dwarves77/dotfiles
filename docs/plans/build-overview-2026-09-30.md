@@ -141,8 +141,9 @@ branches.
 - RLS/admin-gate class lint.
 - Consistency-backstop required-check promotion.
 - Rule-14 backlog relabel (123 files) and hard-gate flip.
-- Clock-fragility and exit(0) standing checks; the `scripts/verify/**` coverage gap A4b names as its own
-  top finding (159 of 235 files not read at full depth this audit wave).
+- Clock-fragility standing check and CLI-test coverage for the mint chokepoint (the `scripts/verify/**`
+  coverage gap A4b originally named as its own top finding was closed by A4bc's completion pass, 235/235;
+  EXIT0-1 is refuted, CLI-TEST-1 resolved per file, see remediation Lane 11).
 - Duplication class fixes (5 pairs).
 - Mechanical docs corrections batch, corrected WS/wave status tables, the 4-month-old followups
   reconciliation.

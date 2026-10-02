@@ -87,6 +87,16 @@ closed concurrency defect), CF-GATE-10 (C5's consistency check has no test), CF-
 baseline's 792 grandfathered findings expire 2026-10-15, unverified mechanism). All three are assigned to
 new remediation Lane 23 (lane R23, which owns the pre-push range).
 
+**Correction, 2026-10-02 (coordinator message, this document's ninth amendment, same branch).** Section
+(e)'s "one remaining partial-coverage slice" claim (a 61-of-313 gap in `scripts/**` outside
+`turns/`+`maintenance/`) was wrong. There is no such gap: A4+A4d (turns+maintenance, 80/80), A4b+A4bc
+(mint/lib/verify/producers/connections, 235/235), and A4c+A4cc (every other `scripts/**` directory,
+157/157) between them cover the entire `fsi-app/scripts/**` tree. Corrected in place; the only genuine
+data exceptions across the whole audit wave are harness-run JSON artifacts and `_snapshots/**` data,
+counted and characterized rather than read line by line, by the dispatch's own disclosed design, not a
+gap. `build-overview-2026-09-30.md`'s Wave D bullet (which repeated the stale "159 of 235 unread" figure,
+itself already closed by A4bc before this document's eighth amendment) is corrected in the same pass.
+
 ## (a) Summary table: lane, slice, files, findings by severity
 
 | Lane | Slice | Files in slice | Files read in full | P0 | P1 | P2 | P3 | Status |
@@ -362,32 +372,38 @@ of 80 code files, read in full; A4 read 58 maintenance files plus 19 of 22 turns
 the remaining 3 turns files), A4b (corrected 2026-09-30: 235 of 235 files across
 `scripts/{mint,lib,verify,producers,connections}/**`, read in full; A4b read 76, A4bc, PR #862, read the
 remaining 159, including all 87 `scripts/verify/**` files and both mega-files A4b could previously only
-structurally scan), A4c (corrected 2026-09-30: 157 of 157 files across the scripts remainder scope, read
-in full; A4c read 90 at full depth, A4cc, PR #861, read the remaining 67 files its own appendix marked
-`full (spot)`), A6b (601 of 601 files under `fsi-app/.discipline/**`, +8 font/LICENSE binaries excluded:
-597 read in full, 4 JSON fixtures over 500 lines shape-sampled per the brief's own carve-out, including
-the single largest file in the whole scope, `F25-module-liveness.mjs` at 1,350 lines, and the largest file
-in the whole `.discipline/` tree, `rendering/mounts.mjs` at 3,547 lines; commit `1e300c10` on
-`audit/a6b-discipline`, not yet pushed).
+structurally scan), A4c (corrected 2026-09-30: 157 of 157 files across every other `scripts/**` directory,
+read in full; A4c read 90 at full depth, A4cc, PR #861, read the remaining 67 files its own appendix
+marked `full (spot)`), A6b (601 of 601 files under `fsi-app/.discipline/**`, +8 font/LICENSE binaries
+excluded: 597 read in full, 4 JSON fixtures over 500 lines shape-sampled per the brief's own carve-out,
+including the single largest file in the whole scope, `F25-module-liveness.mjs` at 1,350 lines, and the
+largest file in the whole `.discipline/` tree, `rendering/mounts.mjs` at 3,547 lines; commit `1e300c10`
+on `audit/a6b-discipline`, not yet pushed). Together, A4+A4d (turns+maintenance, 80/80), A4b+A4bc
+(mint/lib/verify/producers/connections, 235/235), and A4c+A4cc (every other `scripts/**` directory,
+157/157) cover the entire `fsi-app/scripts/**` tree; **corrected 2026-10-01**: this document's earlier
+versions wrongly stated a residual 61-of-313 gap in `scripts/**` outside turns/+maintenance, that
+characterization was wrong, the three completion-lane pairs above already cover every scripts directory
+between them, with no remainder.
 
-**Disclosed partial coverage, method stated per file group:** A4's `scripts/**` slice outside
-`turns/`+`maintenance/` (61 of 313 scripts narratively read, 19.5%; all 22 workflow files read in full;
-every file mechanically swept for the named defect-class patterns; not addressed by any completion lane
-in this wave, the one remaining partial-coverage slice in the entire audit wave). A8 (~180 of 367 INDEX.md
-lines spot-checked; the audit itself samples rather than claims full coverage of `docs/` broadly, since
-A8b, A8c, and A8d took the dedicated depth passes on `docs/ops/`, `docs/plans/`+`docs/dispatches/`, and
+**Disclosed partial coverage, method stated per file group:** A8 (~180 of 367 INDEX.md lines
+spot-checked; the audit itself samples rather than claims full coverage of `docs/` broadly, since A8b,
+A8c, and A8d took the dedicated depth passes on `docs/ops/`, `docs/plans/`+`docs/dispatches/`, and
 `docs/PROGRAM-BOARD.md`+`docs/INDEX.md`+`docs/design/`+`docs/sprint-1/`+`docs/sprint-2/`+`docs/census/`+
 `docs/tech-debt-log.md` respectively). A8c (249 of 268 files read in full, 93%; 19 image screenshots
 deliberately unread per the PDF/image cost-model rule, with the narrating README read in full instead).
 
-**Final coverage statement, 2026-10-01.** Every code and docs slice this audit wave was dispatched against
-is now read line by line, with the disclosed exceptions named throughout this section: binary assets
-(fonts, `favicon.ico`, capture/screen images), mock design-tool HTML/JS exports explicitly marked
-never-shippable by their own source docs, and JSON fixtures over each lane's own disclosed size threshold
-(shape-sampled, not read start to finish). The one slice that remains genuinely partial is A4's
-`scripts/**` outside `turns/`+`maintenance/` (61 of 313 files narratively read; the rest mechanically
-swept, not individually opened), which no completion lane in this wave addressed; it is the one honest
-gap this document carries forward rather than rounding up.
+**Final coverage statement, 2026-10-02 (corrected).** Every code and docs slice this audit wave was
+dispatched against is now read line by line, with two data exceptions only, both by the dispatch's own
+disclosed design, not a gap: harness-run JSON artifacts under `scripts/harness-runs/**` and the data
+files under `scripts/_snapshots/**` were counted and characterized (file counts, sizes, the gitignore-
+tracking mismatch CF-DEAD-4 names) rather than read line by line, matching the brief's own treatment of
+machine-generated run evidence. Every binary asset (fonts, `favicon.ico`, capture/screen images), the
+mock design-tool HTML/JS exports explicitly marked never-shippable by their own source docs, and the
+handful of JSON fixtures over each lane's own disclosed size threshold were shape-sampled rather than
+read start to finish, per each lane's own disclosed carve-out; none of these is a scope the dispatch
+asked to be read as code. There is no remaining `scripts/**`, `src/`, or `.discipline/**` gap: A1+A1c,
+A2+A2b+A2bc, A3+A3b+A3c, A4+A4d, A4b+A4bc, A4c+A4cc, and A6b between them cover every file in their
+respective trees.
 
 **Superseded-by-full-read relationships, as specified by the dispatch:**
 
