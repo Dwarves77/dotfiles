@@ -266,6 +266,10 @@ export function RegionDimensionMatrix({
    *  dimension rows and two empty region columns are both skipped and the scan lands on the first
    *  cell that actually carries a fact. A grid with no sourced cell anywhere yields null, and the
    *  panel slot renders empty rather than selecting a cell with nothing to say. */
+  // The nested-loop early-return scan below is a shape the React Compiler cannot preserve the
+  // manual memoization of (it reports "memoized in source but not in compilation output" with no
+  // dependency mismatch to fix); the dependency array is already correct and complete.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const defaultSelection: Selection | null = useMemo(() => {
     for (const d of dimensions) {
       for (const r of regions) {

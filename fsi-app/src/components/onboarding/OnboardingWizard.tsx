@@ -8,7 +8,7 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Button } from "@/components/ui/Button";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
-import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
+import { BAND_ORDER } from "@/lib/urgency/bands";
 import type { WorkspaceAggregates } from "@/lib/supabase-server";
 import { AuthFrame } from "@/components/auth/AuthFrame";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
@@ -79,7 +79,7 @@ interface Props {
   aggregates: WorkspaceAggregates;
 }
 
-export function OnboardingWizard({ userId, userEmail, orgId, aggregates }: Props) {
+export function OnboardingWizard({ userId, orgId, aggregates }: Props) {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const setSectorProfile = useWorkspaceStore((s) => s.setSectorProfile);

@@ -87,7 +87,7 @@ const SETTINGS_SECTIONS: SectionIndexEntry[] = [
  *  artboard's own label is its mock corpus; the live list is `ALL_SECTORS`. */
 const COLLAPSED_SECTOR_COUNT = 12;
 
-export function SettingsPage({ initialResources, initialArchived, supersessions, userId, userEmail = "", nowIso }: Props) {
+export function SettingsPage({ initialResources, initialArchived, supersessions, userId, nowIso }: Props) {
 
   const resourceMap = useMemo(() => {
     const map = new Map<string, Resource>();
@@ -617,9 +617,12 @@ function FreightSectorsCard() {
 function useSavedSearchCount(): number | null {
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
+    // Reading an external system (localStorage, unavailable during SSR) into React state at
+    // mount; there is nothing to subscribe to, this is a one-time read, not a cascading update.
     try {
       const raw = window.localStorage.getItem("fsi-saved-searches");
       const parsed = raw ? JSON.parse(raw) : [];
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCount(Array.isArray(parsed) ? parsed.length : 0);
     } catch {
       setCount(0);

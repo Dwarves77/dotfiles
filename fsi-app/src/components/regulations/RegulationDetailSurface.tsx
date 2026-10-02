@@ -147,7 +147,6 @@ export function RegulationDetailSurface({
   dispute,
   supersessions,
   connections,
-  relevance,
   resourceLookup,
   sections = [],
   claimTiers,

@@ -59,6 +59,9 @@ export function UpcomingObligationsStrip({ variant = "list", itemId, limit }: Pr
 
   useEffect(() => {
     if (variant === "detail" && !itemId) {
+      // Resolving to the empty result for a detail variant with no itemId yet, before the fetch
+      // below can run; this early-return guard and the fetch are one synchronization.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState({ loading: false, result: { events: [], hasJurisdictionFilter: false } });
       return;
     }
