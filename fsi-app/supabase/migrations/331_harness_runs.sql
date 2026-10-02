@@ -1,4 +1,5 @@
--- subject: Migration 331 (lane HARNESS-LANDING, 2026-09-27). DRAFT / NOT APPLIED -- sketch approved by
+-- subject: Migration 331 (lane HARNESS-LANDING, 2026-09-27). APPLIED (confirmed live, 38 rows,
+-- 2026-09-30) -- sketch approved by
 -- coordinator review with one required amendment: per SEC-1 (migration 330, derivation_edges), every new
 -- table ships locked down at creation (RLS enabled, anon/authenticated grants revoked, no policies,
 -- service-role only) rather than closing the gap in a later fix lane.
