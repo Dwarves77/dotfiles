@@ -148,7 +148,7 @@ export default async function ResearchFindingDetailPage({
       // Item-scoped, org-independent: connections lookup, theme/source-matched
       // related findings, the theme-brief card, and the peers-strip entity.
       // Cached - shared across every org that views this item.
-      loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
+      loadItemScoped: async ({ supabase, connections, supersessions }) => {
         const relatedIds = Array.from(
           new Set<string>([
             ...connections.map((c) => c.id),
