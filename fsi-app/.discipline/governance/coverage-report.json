@@ -482,17 +482,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/community/groups/[id]/star/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/community/invitations/[id]/accept/route.ts",
       "kinds": [
         "WRITES"
@@ -2430,6 +2419,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/aggregate/anonymity-floor.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/api/auth.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -2668,6 +2666,24 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/community/entity-binding.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/community/group-member-prefs.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/community/identity.test.mjs",
       "kinds": [
         "PROOF"
@@ -2692,6 +2708,17 @@
       ],
       "skills": [],
       "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/community/member-pref-route.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": null,
       "status": "COVERED"
     },
     {
@@ -11802,6 +11829,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/supabase/migrations/336_community_anonymity_opt_in.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/supabase/migrations/338_inference_records.sql",
       "kinds": [
         "WRITES"
@@ -11883,8 +11921,8 @@
     }
   ],
   "summary": {
-    "governed_files": 1113,
-    "covered": 1068,
+    "governed_files": 1117,
+    "covered": 1072,
     "exempt": 45,
     "gaps": 0,
     "orphaned_proofs": 0,
