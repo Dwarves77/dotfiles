@@ -1,7 +1,10 @@
-// SSOT reachability classification — the ONE implementation that verification.ts AND the
-// .mjs corpus runners (tier1-population-runner, california-pilot) CALL, so the
-// non-answer-as-negative bug cannot live again in three aligned copies. Mirrors the
-// canonical-fetch.mjs SSOT pattern that D1 established.
+// SSOT reachability classification, the ONE implementation that verification.ts and the
+// other sources decision modules (check-sources-decision.mjs, fetch-now-decision.mjs,
+// verification-decision.mjs) CALL, so the non-answer-as-negative bug cannot live again in
+// aligned copies. Mirrors the canonical-fetch.mjs SSOT pattern that D1 established.
+// (The two .mjs corpus runners this comment used to name, tier1-population-runner.mjs and
+// california-pilot.mjs, were May-era one-shot population scripts superseded by the
+// canonical pipeline; removed 2026-10-02, see docs/tech-debt-log.md.)
 //
 // THE PRINCIPLE (fetchOk): a fetch that FAILED TO ANSWER — 429 (rate-limited / refused),
 // 5xx (server couldn't serve), timeout / abort / dns / network, 403 (refused), or a
