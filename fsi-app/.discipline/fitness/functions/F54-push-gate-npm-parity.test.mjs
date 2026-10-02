@@ -262,7 +262,7 @@ const GOOD_SUITE = [
   'CREDENTIAL_VARS="$(node -e "...env-file.mjs...")"',
   'for v in $CREDENTIAL_VARS; do unset "$v"; done',
   'export FSI_NO_ENV_FILE=1',
-  'node "$DISCOVERY" --print0 | xargs -0 node --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs" --test',
+  'node "$DISCOVERY" --print0 | node "./fsi-app/.discipline/lib/run-explicit-tests.mjs" -- --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs"',
 ].join('\n');
 
 test('listJobKeys derives every job from the file, stopping at the next top-level key', () => {

@@ -99,7 +99,15 @@ export FSI_NO_ENV_FILE=1
 # name, and an absolute Windows path (C:\...) as an unsupported URL scheme rather than a file path.
 # run-test-suite.sh has already `cd`ed to $ROOT above, so a `./`-relative path is unambiguous and
 # portable across POSIX and Windows (Git Bash / MSYS) alike.
-node "$DISCOVERY" --print0 | xargs -0 node --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs" --test
+#
+# RUNNER (lane R6-8, 2026-10-01, CF-SEC-11's runner half -- see F65-no-bracket-path-tests.mjs's header
+# for the full defect and reproduction): a bare `xargs -0 node --test` invocation re-parses every
+# already-resolved file path through Node's own CLI glob matcher, which silently drops any path
+# carrying a literal "["/"]" segment (an app-router [param]/ directory, most commonly) -- "tests 0", no
+# error. `run-explicit-tests.mjs` uses node:test's PROGRAMMATIC `run({ files })` API instead, whose
+# `files` option is a literal array, never re-parsed as a glob; the same `--import` sandbox flag is
+# passed through via `execArgv` (after the `--` separator), same per-file process isolation as before.
+node "$DISCOVERY" --print0 | node "./fsi-app/.discipline/lib/run-explicit-tests.mjs" -- --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs"
 
 # Standing rule 14 (docs/CLAUDE.md): every finding in docs/audits/ carries an explicit verification-status
 # token. Report-only here (the script's own designed default - a historical backlog of unlabeled findings
