@@ -25,6 +25,21 @@ with no module-scope guard, one actively read-side-effecting on test import. No 
 MISSING state changes as a result; this is a code-quality finding on an already-Built stage, not a change
 to what is built.
 
+**Amended 2026-10-01 (coordinator message, on branch `audit/consolidation-2` after PR #857 merged):**
+CF-BROKEN-1 (the `officialness.mjs` anti-fabrication moat finding) was refuted by lane R2; Table 2's
+Mint row, Wave A/B's lane list, and the closing "three things" paragraph are corrected accordingly. The
+moat was never broken; no fix was needed.
+
+**Amended 2026-10-01 (second correction, same branch):** A9's "ESLint 0 errors" claim was wrong; lane R7
+wired the CI/pre-push step as remediation Lane 7 specified, then found 614 pre-existing problems (315
+errors, 299 warnings) on unmodified master. Wave B's ESLint bullet is corrected: wired, but not yet
+passing.
+
+**Amended 2026-10-01 (third correction, same branch):** A6b is complete (601/601 files under
+`fsi-app/.discipline/**`, commit `1e300c10`); no table in this document changes as a result, the
+discipline engine's own internal coverage is not one of the surfaces or data-machine stages this document
+tracks. Its 3 findings are folded into the audit register and remediation Lane 23.
+
 ## Table 1: by customer surface
 
 | Surface | State | Proving artifact |
@@ -44,7 +59,7 @@ to what is built.
 |---|---|---|
 | Collect (source-sweep to fetch-drain) | Built and wired | A7 section 1; hop `sweep-to-fetch-drain` wired in `fetch-drain.yml`; not independently re-verified fired this pass beyond the hop-01 staleness fix already landed 2026-09-25 |
 | Consume (ledger-consume, corpus-turn) | Built and wired, proven fired | A4 CHECK 3: `sweep-to-ledger-consume` is the one hop with live `gh run list` evidence of a real `workflow_run`-triggered firing (36611354387, 2026-09-29); the same evidence includes the cancelled chained-apply incident on the same hop (36568656803), see CF-BROKEN-7 |
-| Mint (canonical-pipeline.ts, mint-item.ts) | Built and proven, one moat defect | A7: `canonical-pipeline.ts` (2,256 lines) read in full, judged sound with load-bearing coupling in its grounding stage; A3b: `officialness.mjs`'s STEP 2 anti-fabrication check is a structural no-op (CF-BROKEN-1, P1, unfixed as of this document) |
+| Mint (canonical-pipeline.ts, mint-item.ts) | Built and proven | A7: `canonical-pipeline.ts` (2,256 lines) read in full, judged sound with load-bearing coupling in its grounding stage; A3b's original finding on `officialness.mjs`'s STEP 2 anti-fabrication check (CF-BROKEN-1) was refuted 2026-10-01 by lane R2 (byte-level re-read found the delimiter is a real, non-printing `\u0001` control character, not an empty string; confirmed by an adversarial attack proving the audited shape would break the moat if it existed, and that the tracked file does not have it); 2 new regression fixtures landed, no production fix was needed |
 | Analyse and connect (propagation, entity spine, connections) | Built; autonomous firing proven once, under an incident | Entity spine sound (`entities=2880` live, A7 section 3); `propagation/drain.ts` (306 lines) read in full, sound; Loop B (decision propagation) populated only by hand-dispatch through 2026-09-28; first genuine autonomous chained fire attempt on 2026-09-29 was caught mid-flight by the operator, not by an automated gate (CF-BROKEN-7); the class fix (chained-dry-guard) landed same day, merged #831 |
 | Produce (brief-export/apply, structured actions) | Built, one process gap | Structured-action extraction shipped 2026-09-29, merged #832; mint chokepoint's single write site (`writeSynthesizedBrief`) read in full by A7, sound. 5 producer scripts (3 market/regional data producers, 2 emission-factor seeders) run their entry point unconditionally at module scope with no guard, CF-BROKEN-9, `[CONFIRMED]`, one actively triggers a live Supabase read as a side effect of its own test running; not yet fixed |
 | Publish (surface rendering) | Built for 3 of 5 surfaces (see Table 1) | See Table 1 rows Regulations/Operations (built) vs Market Intel/Community (partial) vs Research (design only) |
@@ -96,15 +111,20 @@ branches.
 **Wave A, land what already exists (smallest, highest-value; nothing here needs new design work):**
 - Merge W2-B, W2-C, W2-D, W2-E, W2-F, W2-G (6 branches, finished-or-partial commits, CI-parity already
   proven for the wave-1 lanes that used the same pipeline).
-- Execute the chained-apply reversal (`--apply --archive` under operator approval, Lane 1 of the
+- Execute the chained-apply reversal: a guarded hard delete via the `#829` script's `--apply` mode
+  (`guardedDelete` snapshots first), then `--verify`, per the operator's 2026-10-01 ruling (Lane 1 of the
   remediation plan).
 - PROGRAM-BOARD resync (Lane 15 of the remediation plan).
 
-**Wave B, close the confirmed P1 defects (remediation-plan Lanes 2, 3, 4, 7, 8):**
-- Fix the `officialness.mjs` anti-fabrication moat no-op.
+**Wave B, close the confirmed P1 defects (remediation-plan Lanes 3, 4, 7, 8, 20):**
 - Add `guardedUpsert` and migrate the 2 known bypass sites.
 - Migration header truth pass (4 confirmed, 7 to verify) plus a standing check.
-- Wire ESLint into CI/pre-push; add the bracket-path test guard.
+- ESLint wired into CI/pre-push (done, lane R7); the gate does not pass yet, 614 pre-existing problems
+  (315 errors, 299 warnings) on unmodified master need fixing before it can block merges. Add the
+  bracket-path test guard.
+- Guard the 5 unguarded producer scripts (CF-BROKEN-9), one of which triggers a live Supabase read as a
+  side effect of its own test running. (CF-BROKEN-1, the `officialness.mjs` moat finding originally
+  listed here, was refuted 2026-10-01; no fix needed, see Table 2's Mint row.)
 
 **Wave C, finish Wave 2's remaining scope plus Wave 3:**
 - WS10 (generalise the 5 hard-coded examples): 3 of 5 classes still need their coverage test.
@@ -121,8 +141,9 @@ branches.
 - RLS/admin-gate class lint.
 - Consistency-backstop required-check promotion.
 - Rule-14 backlog relabel (123 files) and hard-gate flip.
-- Clock-fragility and exit(0) standing checks; the `scripts/verify/**` coverage gap A4b names as its own
-  top finding (159 of 235 files not read at full depth this audit wave).
+- Clock-fragility standing check and CLI-test coverage for the mint chokepoint (the `scripts/verify/**`
+  coverage gap A4b originally named as its own top finding was closed by A4bc's completion pass, 235/235;
+  EXIT0-1 is refuted, CLI-TEST-1 resolved per file, see remediation Lane 11).
 - Duplication class fixes (5 pairs).
 - Mechanical docs corrections batch, corrected WS/wave status tables, the 4-month-old followups
   reconciliation.
@@ -153,8 +174,9 @@ sitting in production awaiting the approved reversal.
 The three things that would most change what a customer sees, in order of leverage: first, landing the 6
 already-finished Wave-2 branches, which alone closes the Community anonymity gap, the Market Intel label
 and raw-dump bug, and the profile/applicability build, all of which are done and waiting on a merge, not
-on more work. Second, fixing the `officialness.mjs` anti-fabrication moat gap, because it is the one
-confirmed defect in this audit wave that sits directly on the promise the whole platform makes about facts
-never being fabricated, even though no customer-visible symptom has been traced to it yet. Third, proving
-the autonomous loop end to end on a fixture or branch database rather than live, so the next mint the site
-performs is provably self-propagating rather than another hand-dispatched, individually-watched run.
+on more work. Second, executing the approved chained-apply reversal, so the 33 quarantined rows from the
+2026-09-29 incident stop sitting in production as a landmine for every count-based audit that runs before
+them. Third, proving the autonomous loop end to end on a fixture or branch database rather than live, so
+the next mint the site performs is provably self-propagating rather than another hand-dispatched,
+individually-watched run. (The `officialness.mjs` anti-fabrication moat gap previously listed here was
+refuted 2026-10-01, see Table 2's Mint row; the moat was never broken and needed no fix.)

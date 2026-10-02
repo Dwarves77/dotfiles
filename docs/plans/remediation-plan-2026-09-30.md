@@ -76,6 +76,29 @@ of CF-BROKEN-2 (A2bc's finding, live on customer-facing surfaces). Lane 11 is re
 `scripts/verify/**` files, no fix needed; CF-GATE-4 (CLI-TEST-1) is narrowed to the 2 files A4bc confirmed
 still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
 
+**Amended 2026-10-01 (sixth amendment, coordinator message, on branch `audit/consolidation-2` off
+`origin/master` after PR #857 merged):** CF-BROKEN-1 (Lane 2, the `officialness.mjs` anti-fabrication
+moat finding) is refuted; lane R2 found the real delimiter is a non-printing `\u0001` control character,
+not an empty string, and confirmed by adversarial attack that the tracked file does not have the audited
+defect. Lane 2 is marked CLOSED by the 2 regression fixtures R2 added; no production fix needed, no lane
+withdrawn from the count (Lane 2 stays numbered, now closed rather than open). This correction lands
+together with the A6b fold-in as a single commit per the coordinator's instruction.
+
+**Amended 2026-10-01 (seventh amendment, coordinator message, same branch):** Lane 7 (ESLint wired into
+CI and pre-push) is revised. A9's premise that the lint command already exits 0 was wrong; lane R7 wired
+the step as specified, then found the gate does not pass (304 errors/101 warnings on `src`, 614
+problems/315 errors/299 warnings on the literal command's actual whole-tree scope), none of it caused by
+R7's own edits. CF-SEC-10 is not closed by wiring alone; Lane 7's scope now explicitly includes fixing
+all 614 problems before the gate blocks merges. The eslint-disable census is corrected to 33 found (not
+32), 7 removed as stale, 26 remain. This correction lands together with the A6b fold-in and the CF-
+BROKEN-1 correction above, as a single commit per the coordinator's instruction; still holding.
+
+**Amended 2026-10-01 (eighth amendment, coordinator message, same branch).** A6b is complete (601/601,
+commit `1e300c10` on `audit/a6b-discipline`, not yet pushed) and folded in: new Lane 23 takes all 3 of
+its findings (pre-push step 2b's log path, C5's missing test, the layout-guard baseline's 2026-10-15
+expiry), since all three share lane R23's write set (the pre-push range). No other lane is revised by
+this fold-in. This is the final commit for the 2026-09-30 audit wave's remediation plan.
+
 ## Lane ordering (R14)
 
 1. Data machine and integrity (Lanes 1-6)
@@ -106,20 +129,22 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
 - **Ordering:** first. Zero build risk, blocks every count-based audit downstream from reading a
   quarantined-but-present row as real (A7's own recommendation 1 makes the same case).
 
-## 2. Fix the anti-fabrication moat no-op
+## 2. CLOSED (2026-10-01): the anti-fabrication moat was never broken
 
-- **Closes:** CF-BROKEN-1 (P1, `lib/sources/officialness.mjs` `splitBlocks()`).
-- **Write set:** `fsi-app/src/lib/sources/officialness.mjs`, `officialness.test.mjs`.
-- **Acceptance test:** `splitBlocks()` inserts a delimiter before the closing-tag replace (or splits on
-  block-opening tags) so STEP 2's link/text-density drop can fire on multi-character content; a new
-  regression fixture (an un-wrapped, non-keyword-classed link list, e.g. class `"quick-links"`) is added
-  alongside the existing RED-1/RED-2/GREEN cases and asserts the drop now fires. `node --test
-  officialness.test.mjs` green.
-- **Size:** S for the fix, M once the new fixture is added (recommended in the same change, per A3b's own
-  finding).
-- **Model:** Sonnet (anti-fabrication logic, judgment on the correct delimiter choice).
-- **Ordering:** second. This is the corpus's own anti-fabrication moat; a live gap here outranks every
-  surface-visible bug.
+- **Closed, no production fix needed.** CF-BROKEN-1 (`lib/sources/officialness.mjs`'s `splitBlocks()`)
+  is `[REFUTED]` as of 2026-10-01. Lane R2 found the original finding misread the function's real
+  delimiter, `\u0001` (a non-printing control character present since commit `8c8d4c1a`, 2026-07-06), as
+  an empty string, an artifact of terminal/Read-tool rendering dropping the invisible byte, not a defect
+  in the code. R2 verified this with a byte-level git-blob read, direct execution against a crafted
+  un-wrapped link-list block, and an adversarial attack (a throwaway, never-committed copy reverted to
+  the literal `.split("")` the audit described, which did fail 5 of 8 tests, proving the audited shape is
+  real and would break the moat if it existed, and that the tracked file does not have it). See
+  `docs/audits/audit-consolidated-2026-09-30.md` section (d) for the full evidence.
+- **What was built instead:** 2 new regression fixtures in `officialness.test.mjs` (an un-wrapped,
+  non-keyword-classed `<ul class="quick-links">` block, and a legitimate single-inline-link paragraph
+  that must survive the density gate), closing the real, independently-valid coverage gap the original
+  finding also named. `fsi-app/src/lib/sources/officialness.mjs` itself was not changed.
+- **Ordering:** none needed; this lane is closed, not deferred.
 
 ## 3. Guarded upsert for `estimated_values` and `portal_link_candidates`
 
@@ -197,20 +222,36 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
 - **Model:** Sonnet.
 - **Ordering:** sixth, closes the data-integrity block of lanes.
 
-## 7. ESLint wired into CI and pre-push
+## 7. ESLint wired into CI and pre-push, and the 614-problem debt it exposes
 
-- **Closes:** CF-SEC-10 (A6 D3, A10 A10-4).
-- **Write set:** `.github/workflows/discipline.yml` (`fitness-check` job).
-- **Files:** `.github/workflows/discipline.yml` (one new `run: cd fsi-app && npm run lint` step after the
-  existing `npm ci`).
-- **Acceptance test:** the step runs on the next PR and fails on a deliberately-introduced lint violation
-  in a throwaway branch, then is reverted; on the real PR it passes clean (A9 already confirmed `npx eslint
-  src --max-warnings=0` exits 0 today, so this lands green).
-- **Size:** S.
-- **Model:** Haiku (mechanical, no new install cost, exact YAML line already drafted by A6).
-- **Ordering:** seventh, first of the gate lanes; unblocks the staleness audit on the 32 existing
-  `eslint-disable` comments (CF-DATA/A6 D5) as a natural follow-up, not separately lane'd here since it is
-  instance-review, not a class fix.
+- **Closes:** CF-SEC-10 (A6 D3, A10 A10-4), CF-GATE-9 (A9's refuted "0 errors" claim).
+- **Correction (2026-10-01):** A9's premise that `npx eslint src --max-warnings=0` already exits 0 was
+  wrong. Lane R7 wired the step (CI + pre-push) as this lane originally specified, then ran it against
+  unmodified `master` and found the gate does not pass today: 304 errors / 101 warnings on `src` alone,
+  315 errors / 299 warnings (614 total) on the literal wired command's actual scope (`npm run lint
+  -- --max-warnings=0`, the whole `fsi-app/` tree, not `src/` alone, per `eslint.config.mjs`'s ignore
+  list). Neither count is caused by R7's own edits (verified: `--report-unused-disable-directives` found
+  exactly 7 unused directives, all in R7's own write set and removed; the 304/614 baseline is unchanged
+  before and after). CF-SEC-10 is **not closed** by wiring the step alone; this lane's scope now
+  explicitly includes fixing all 614 problems before the gate is allowed to block merges.
+- **Write set:** `.github/workflows/discipline.yml` (`fitness-check` job, already wired by R7),
+  `fsi-app/.discipline/hooks/pre-push` (already wired by R7), then every file carrying one of the 614
+  lint problems (not yet enumerated per-file by this plan; the fix lane's first step is running `npm run
+  lint -- --max-warnings=0 -f json` to get the per-file breakdown).
+- **Acceptance test:** `.github/workflows/discipline.yml` and `pre-push` both run the lint step (done,
+  R7). `npm run lint -- --max-warnings=0` exits 0 on the whole `fsi-app/` tree (not done; 614 problems
+  remain). Until it does, the gate R7 wired will fail on the next real PR; the coordinator should decide
+  whether to merge R7's wiring now with the gate expected-red (visible debt, not hidden) or hold the merge
+  until the 614 are cleared.
+- **Size:** S (already done: wiring). L (not yet done: 614 problems is real, multi-file work; likely
+  splits into several Haiku-sized per-rule or per-directory batches once the JSON breakdown exists).
+- **Model:** Haiku for the wiring (done) and for any mechanical `--fix`-eligible subset of the 614; Sonnet
+  for the judgment-requiring remainder (a real `@typescript-eslint/no-explicit-any` or
+  `react-hooks/exhaustive-deps` violation needs a human-equivalent read, not a blind autofix).
+- **Ordering:** seventh, first of the gate lanes; the eslint-disable staleness audit (CF-DATA/A6 D5,
+  originally named "32" comments) is done, by lane R7: 33 found (not 32), 7 stale removed, 5 already
+  justified, 21 given a reason this pass, 26 remain, all audited against the live, authoritative
+  `--report-unused-disable-directives` output, not a grep count alone.
 
 ## 8. Bracket-path test guard
 
@@ -563,6 +604,36 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
   contain).
 - **Ordering:** a gates-class lane (CI/infra hygiene), sequenced with Lanes 7-11.
 
+## 23. Pre-push range: log-path fix, C5 test, layout-guard baseline expiry
+
+- **Closes:** CF-BROKEN-10 (F-A6b-01, pre-push step 2b's fixed log path), CF-GATE-10 (F-A6b-02, C5 has no
+  test), CF-GATE-11 (F-A6b-03, layout-guard baseline expires 2026-10-15). Lane R23 owns the pre-push
+  range end to end; all three A6b findings in that range go to this one lane rather than three separate
+  ones, since they share a write set (`fsi-app/.discipline/hooks/pre-push` and its immediate siblings).
+- **Write set:** `fsi-app/.discipline/hooks/pre-push` (lines 187-196), new
+  `fsi-app/.discipline/consistency/checks/C5-program-anchors-reality.test.mjs`,
+  `fsi-app/.discipline/rendering/layout-guard/baseline.mjs` and `run-layout-guard.mjs` (read-only, to
+  confirm the expiry mechanism before deciding the fix).
+- **Acceptance test:** (1) pre-push step 2b's log path reads `"$PRE_PUSH_LOG_DIR/mem.log"`, matching
+  every sibling step in the same file (e.g. line 167's `"$PRE_PUSH_LOG_DIR/c.log"`); a concurrent-push
+  test (two pre-push invocations started together) no longer clobbers one shared `/tmp` path. (2) a new
+  `C5-program-anchors-reality.test.mjs` exists, shaped like `C3-migrations-reality.test.mjs` (76 lines) or
+  `C4-worktrees-reality.test.mjs` (44 lines): a GREEN-on-live-tree assertion plus negative cases (a
+  malformed `ACTIVE_PHASE` line, a missing anchors fence, a present-substring-gone case, an
+  absent-substring-present case); `run-test-suite.sh` now discovers and runs it. (3) `layout-guard/
+  baseline.mjs` and `run-layout-guard.mjs` are read to confirm what happens mechanically at the
+  2026-10-15 expiry; the lane then either works the 792 grandfathered findings down before that date or
+  extends the deadline with a dated reason in the baseline file itself, whichever the read-through shows
+  is correct, before 2026-10-15.
+- **Size:** S for (1) (5-line change, already-proven pattern to copy in the same file); S-M for (2)
+  (template exists in the same directory); S to read, size-unknown for the (3) fix depending on what the
+  read finds (a dated-extension edit is S; working down 792 findings is L).
+- **Model:** Haiku for (1) (mechanical) and the mechanical half of (2) (copying C3/C4's shape); Sonnet
+  for (2)'s negative-case authoring and all of (3) (needs to read the consuming code and judge the right
+  disposition before 2026-10-15).
+- **Ordering:** a gates-class lane, sequenced with Lanes 7-11 and 22; (3) is time-boxed, it should not
+  sit behind Lanes 7-21 if those would push past 2026-10-15.
+
 ---
 
 ## What will NOT be fixed, and why
@@ -652,17 +723,25 @@ pass first, Haiku transcription second, same PR.
 
 ---
 
-*Lanes proposed: 22 (amended four times: 2026-09-30, fold in A8d PR #856, +1 lane Lane 19, Lane 15 revised
+*Lanes proposed: 23 (amended six times: 2026-09-30, fold in A8d PR #856, +1 lane Lane 19, Lane 15 revised
 with the 38-PR reconstruction; 2026-09-30, the CF-PROC-2/A3/CF-BROKEN-6 corrections touched no lane count;
 2026-09-30, fold in A1c/A2bc/A4d/A4bc/A4cc PRs #858-#862, +2 lanes Lanes 20-21, Lane 11 revised; 2026-10-01,
 **plan approved by the operator under the delegation recorded at the top of this document**, every
 "needs an operator ruling" block resolved into a firm decision (Lanes 1, 5, 12, 13, 16, 18, 19 revised
-accordingly), +1 lane Lane 22 for GitHub Actions artifact retention). Every CONFIRMED finding in the audit
-register is mapped to a lane above or the "will not fix" list, with a reason in both cases. Write sets
-checked disjoint by file path across all 22 lanes (no two lanes above name an overlapping file); Lane 15
-(PROGRAM-BOARD) and Lane 17 (wave-status tables) both touch planning docs but not the same file; Lane 19
-(design docs) and Lane 16 (mechanical docs batch) both touch `docs/` but not the same files. Lanes 20-22
-are numbered at the end for continuity but belong earlier in R14 order (noted in each lane's own Ordering
-field). **The plan is approved; lanes may begin.** Lane 1's `--apply` step is the one write action in this
-plan touching live customer-facing data; it is covered by the same 2026-10-01 approval (decision 1) and
-needs no further separate go-ahead. A6b will be folded in as a further commit when it lands.*
+accordingly), +1 lane Lane 22 for GitHub Actions artifact retention; 2026-10-01, CF-BROKEN-1 refuted,
+Lane 2 closed by fixtures only, no lane count change; 2026-10-01, Lane 7 revised for the 614-problem lint
+debt lane R7 found; 2026-10-01, A6b folded in, +1 lane Lane 23 for the 3 pre-push-range findings, no
+other lane revised). Every CONFIRMED finding in the audit register is mapped to a lane above or the
+"will not fix" list, with a reason in both cases. Write sets checked disjoint by file path across all 23
+lanes, with one disclosed exception: Lane 7 and Lane 23 both touch `fsi-app/.discipline/hooks/pre-push`
+(Lane 7 adds the lint step; Lane 23 fixes step 2b's log path, lines 187-196, a disjoint range in the same
+file). Sequence Lane 7 before Lane 23 (or vice versa, either order is safe) and rebase the second onto
+the first, per this plan's own "generated files, whichever lane merges second rebases" convention; no
+other pair of lanes shares a file. Lane 15 (PROGRAM-BOARD) and Lane 17 (wave-status tables) both touch
+planning docs but not the same file; Lane 19 (design docs) and Lane 16 (mechanical docs batch) both
+touch `docs/` but not the same files. Lanes 20-23 are numbered at the end for continuity but belong
+earlier in R14
+order (noted in each lane's own Ordering field). **The plan is approved; lanes may begin.** Lane 1's
+`--apply` step is the one write action in this plan touching live customer-facing data; it is covered by
+the same 2026-10-01 approval (decision 1) and needs no further separate go-ahead. This is the final
+amendment for the 2026-09-30 audit wave; A6b (the last pending register) is folded in above.*
