@@ -28,6 +28,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
 import { readAllByIds } from '../lib/db.mjs';
 import { EUR_LEX_KNOWN_DEAD_OJ_TXT_URL } from '../../src/lib/sources/identifier-variants.mjs'; // F46: eur-lex.europa.eu's one home (lane L35)
+import { isMainModule } from '../lib/is-main.mjs';
 
 const N_PCT = Number(process.env.WAVE_ACCEPTANCE_N ?? 10); // ADR-014 proposed default
 const FLOOR = 3;
@@ -134,4 +135,6 @@ async function main() {
     `Wave HOLDS if accuracy-defect > 10% OR any substantive-falsehood item (ADR-014 §4).`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

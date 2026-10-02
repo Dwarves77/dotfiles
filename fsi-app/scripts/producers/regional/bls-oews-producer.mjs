@@ -39,6 +39,7 @@ import {
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import { writeProducerSummary } from "../lib/producer-summary.mjs";
+import { isMainModule } from "../../lib/is-main.mjs";
 
 const PRODUCER_NAME = "bls-oews";
 
@@ -68,31 +69,38 @@ async function fetchAndParse() {
   return parseOewsResponse(js, { regionCode: "US", dimension: "labor_markets" });
 }
 
-if (!ENABLED) {
-  console.log("bls-oews-producer: DISABLED by kill switch (ENABLED=false) — no-op, exit 0.");
-  process.exit(0);
-}
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("bls-oews-producer: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
+// Guarded (F44/F67, F44-2c): the whole run body moves inside isMainModule so merely importing this file
+// triggers nothing. Previously `runEnvelopeProducer` ran unconditionally at module load (F44-2c,
+// [CONFIRMED], app-audit-a4bc-scripts-completion-2026-09-30.md).
+async function main() {
+  if (!ENABLED) {
+    console.log("bls-oews-producer: DISABLED by kill switch (ENABLED=false) — no-op, exit 0."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(0);
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("bls-oews-producer: no DB creds — cannot run here (exit 2)."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(2);
+  }
+
+  const result = await runEnvelopeProducer({
+    producerName: "bls-oews-producer",
+    enabled: ENABLED,
+    sourceKey: "bls",
+    fetchAndParse,
+    cite: {
+      skill: "wo-17-operations-facts-eu-us",
+      reason: "$0 BLS OEWS freight/logistics occupation wage producer, envelope-first, per docs/plans/master-execution-plan-2026-08-17.md WO-17.",
+    },
+  });
+
+  // See eurostat-nrg-pc-205-producer.mjs's own copy of this note (lane M9d, brief-m9d Amendment 1 item C.2).
+  writeProducerSummary({
+    producer: PRODUCER_NAME,
+    status: "ok",
+    rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
+    edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+    counts: result,
+  });
 }
 
-const result = await runEnvelopeProducer({
-  producerName: "bls-oews-producer",
-  enabled: ENABLED,
-  sourceKey: "bls",
-  fetchAndParse,
-  cite: {
-    skill: "wo-17-operations-facts-eu-us",
-    reason: "$0 BLS OEWS freight/logistics occupation wage producer, envelope-first, per docs/plans/master-execution-plan-2026-08-17.md WO-17.",
-  },
-});
-
-// See eurostat-nrg-pc-205-producer.mjs's own copy of this note (lane M9d, brief-m9d Amendment 1 item C.2).
-writeProducerSummary({
-  producer: PRODUCER_NAME,
-  status: "ok",
-  rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
-  edges_authored: result.authorCounts ? result.authorCounts.authored : null,
-  counts: result,
-});
+if (isMainModule(import.meta.url)) await main();

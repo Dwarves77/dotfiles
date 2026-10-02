@@ -41,6 +41,7 @@ import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
 import { EUROSTAT_DISSEMINATION_API_BASE } from "./eurostat-lc-lci-lev-producer.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import { writeProducerSummary } from "../lib/producer-summary.mjs";
+import { isMainModule } from "../../lib/is-main.mjs";
 
 const PRODUCER_NAME = "eurostat-nrg-pc-205";
 
@@ -53,34 +54,42 @@ async function fetchAndParse() {
   return parseNrgPc205(js, { geo: "EU27_2020", regionCode: "EU" });
 }
 
-if (!ENABLED) {
-  console.log("eurostat-nrg-pc-205-producer: DISABLED by kill switch (ENABLED=false) — no-op, exit 0.");
-  process.exit(0);
-}
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("eurostat-nrg-pc-205-producer: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
+// Guarded (F44/F67, F44-2b): the whole run body (the kill-switch check, the DB-creds check, the live
+// fetch/write) moves inside isMainModule so merely importing this file (fetchAndParse, ENABLED, etc.)
+// triggers nothing. Previously `runEnvelopeProducer` ran unconditionally at module load (F44-2b,
+// [CONFIRMED], app-audit-a4bc-scripts-completion-2026-09-30.md).
+async function main() {
+  if (!ENABLED) {
+    console.log("eurostat-nrg-pc-205-producer: DISABLED by kill switch (ENABLED=false) — no-op, exit 0."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(0);
+  }
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("eurostat-nrg-pc-205-producer: no DB creds — cannot run here (exit 2)."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(2);
+  }
+
+  const result = await runEnvelopeProducer({
+    producerName: "eurostat-nrg-pc-205-producer",
+    enabled: ENABLED,
+    sourceKey: "eurostat",
+    fetchAndParse,
+    cite: {
+      skill: "wo-17-operations-facts-eu-us",
+      reason: "$0 Eurostat nrg_pc_205 electricity-price producer, envelope-first, per docs/plans/master-execution-plan-2026-08-17.md WO-17.",
+    },
+  });
+
+  // Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). No assertion of
+  // this producer's own analogous to assertEdgesAuthored exists (that gate is market_series-only, lane M5),
+  // so edges_authored is whatever authorAutomateVsHireForRegions actually authored this run, null when the
+  // producer never reached that step (disabled, or a dry run with candidates:0, both real "ok" outcomes).
+  writeProducerSummary({
+    producer: PRODUCER_NAME,
+    status: "ok",
+    rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
+    edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+    counts: result,
+  });
 }
 
-const result = await runEnvelopeProducer({
-  producerName: "eurostat-nrg-pc-205-producer",
-  enabled: ENABLED,
-  sourceKey: "eurostat",
-  fetchAndParse,
-  cite: {
-    skill: "wo-17-operations-facts-eu-us",
-    reason: "$0 Eurostat nrg_pc_205 electricity-price producer, envelope-first, per docs/plans/master-execution-plan-2026-08-17.md WO-17.",
-  },
-});
-
-// Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). No assertion of
-// this producer's own analogous to assertEdgesAuthored exists (that gate is market_series-only, lane M5),
-// so edges_authored is whatever authorAutomateVsHireForRegions actually authored this run, null when the
-// producer never reached that step (disabled, or a dry run with candidates:0, both real "ok" outcomes).
-writeProducerSummary({
-  producer: PRODUCER_NAME,
-  status: "ok",
-  rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
-  edges_authored: result.authorCounts ? result.authorCounts.authored : null,
-  counts: result,
-});
+if (isMainModule(import.meta.url)) await main();

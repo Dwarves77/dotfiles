@@ -37,16 +37,16 @@ import { createClient } from "@supabase/supabase-js";
 import { acquireRunLock, heartbeatRunLock, releaseRunLock } from "../lib/funded-pass-lock.mjs";
 import { guardedUpdate, guardedDelete, guardedInsert } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 // Guarded: absent .env.local must SELF-SKIP (exit 2, "cannot verify here"), never a stack-trace crash the
 // goldens runner reads as a real FAIL. This is a LIVE-DB golden (funded_pass_runlock writes); it runs for
 // real only in the secrets lane. (2026-08-09: was an unguarded loadEnvFile — ENOENT crash.)
 loadLocalEnvFile();
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("funded-pass-lock-golden: no DB creds — cannot verify here (exit 2).");
-  process.exit(2);
-}
-const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+// `sb` is assigned inside the isMainModule guard below (F44/F67): createClient() throws immediately on a
+// missing URL/key, so it must never run at plain import time, only once the no-creds self-skip above it
+// has already passed.
+let sb;
 
 const KEY_PREFIX = "funded-pass-golden-test";
 const KEY = `${KEY_PREFIX}-${randomUUID().slice(0, 8)}`; // per-run key: never shared with a concurrent run
@@ -139,4 +139,11 @@ async function main() {
   console.log(`\n=== GOLDEN ${pass ? "PASS" : "FAIL"} ===`);
   process.exit(pass ? 0 : 1);
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+if (isMainModule(import.meta.url)) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("funded-pass-lock-golden: no DB creds — cannot verify here (exit 2)."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(2);
+  }
+  sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

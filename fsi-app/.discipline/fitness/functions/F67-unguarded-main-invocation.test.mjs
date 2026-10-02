@@ -1,0 +1,77 @@
+// Red-then-green for F67 (unguarded-main-invocation). A NEW instance of a CLI script calling its own
+// main() unconditionally at module scope, with no isMainModule guard, is RED. See this function's own
+// header for the defect class (F44-2a/2b/2c, F-10/F-11).
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { fitnessFunction, findUnguardedMainInvocations } from './F67-unguarded-main-invocation.mjs';
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
+
+test('RED: a bare `main().catch(...)` at module scope with no guard anywhere above it is flagged', () => {
+  const src = `import x from "y";\n\nasync function main() {}\n\nmain().catch((e) => { console.error(e); process.exit(1); });\n`;
+  const v = fitnessFunction.check('fsi-app/scripts/new-script.mjs', src);
+  assert.equal(v.length, 1);
+  assert.equal(v[0].line, 5);
+  assert.match(v[0].message, /isMainModule/);
+});
+
+test('RED: a bare `await main();` at module scope is flagged', () => {
+  const src = `async function main() {}\nawait main();\n`;
+  const v = fitnessFunction.check('fsi-app/scripts/new-script.mjs', src);
+  assert.equal(v.length, 1);
+  assert.equal(v[0].line, 2);
+});
+
+test('GREEN: the multi-line `if (isMainModule(import.meta.url)) { main()... }` form is never flagged', () => {
+  const src = [
+    'async function main() {}',
+    'if (isMainModule(import.meta.url)) {',
+    '  main().catch((e) => { console.error(e); process.exit(1); });',
+    '}',
+  ].join('\n');
+  assert.deepEqual(fitnessFunction.check('fsi-app/scripts/new-script.mjs', src), []);
+});
+
+test('GREEN: the one-line `if (isMainModule(import.meta.url)) await main();` form is never flagged', () => {
+  const src = 'async function main() {}\nif (isMainModule(import.meta.url)) await main();\n';
+  assert.deepEqual(fitnessFunction.check('fsi-app/scripts/new-script.mjs', src), []);
+});
+
+test('a comment mentioning `main().catch(` (documenting history) is never flagged, only live code', () => {
+  const src = '// the old code used to call main().catch((e) => {}) here unguarded\nconst x = 1;\n';
+  assert.deepEqual(fitnessFunction.check('fsi-app/scripts/new-script.mjs', src), []);
+});
+
+test('test files are excluded from enumeration (a fixture constructing the unguarded shape as a literal string is not a live call site)', () => {
+  for (const f of fitnessFunction.enumerate()) {
+    assert.doesNotMatch(f, /\.(?:test|selftest|npmtest)\.mjs$/);
+  }
+});
+
+test('ATTACK: a guard line referencing isMainModule for an unrelated reason (e.g. a comment above an otherwise-bare call) does NOT suppress the finding unless the guard token is on the call line itself or the immediately preceding code line', () => {
+  const src = [
+    '// isMainModule is used elsewhere in this file',
+    '',
+    'main().catch((e) => { process.exit(1); });',
+  ].join('\n');
+  const v = fitnessFunction.check('fsi-app/scripts/new-script.mjs', src);
+  assert.equal(v.length, 1, 'a comment-only mention of isMainModule must not suppress the finding');
+});
+
+test('findUnguardedMainInvocations: multiple unguarded instances in one file are each reported', () => {
+  const src = 'main().catch(() => {});\nawait main();\n';
+  assert.deepEqual(findUnguardedMainInvocations(src), [1, 2]);
+});
+
+test('LIVE: the whole scoped tree (fsi-app/scripts + fsi-app/.discipline) passes F67 clean as of lane R20', () => {
+  const problems = [];
+  for (const f of fitnessFunction.enumerate()) {
+    const content = readFileSync(resolve(REPO_ROOT, f), 'utf8');
+    const v = fitnessFunction.check(f, content);
+    if (v.length) problems.push(`${f}: ${v.map((x) => `${x.line}: ${x.message}`).join(' | ')}`);
+  }
+  assert.deepEqual(problems, []);
+});

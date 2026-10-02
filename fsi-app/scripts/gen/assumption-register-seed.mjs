@@ -21,6 +21,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadFixtureRows, seedAssumptions } from "./assumption-register-common.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 loadLocalEnvFile();
@@ -39,4 +40,6 @@ async function main() {
   if (summary.mode === "apply" && !summary.written && summary.toWrite > 0) process.exit(1);
 }
 
-main().catch((e) => { console.error("[assumption-register-seed] fatal:", e.message); process.exit(1); });
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => { console.error("[assumption-register-seed] fatal:", e.message); process.exit(1); });
+}

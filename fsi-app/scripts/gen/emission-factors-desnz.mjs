@@ -18,6 +18,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadFixtureRows, seedFactors, recordSeedFactorsSummary } from "./emission-factors-common.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const PRODUCER_NAME = "emission-factors-desnz";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -60,4 +61,9 @@ async function main() {
   if (recordSeedFactorsSummary({ producer: PRODUCER_NAME, summary })) process.exit(1);
 }
 
-main().catch((e) => { console.error("[desnz-seed] fatal:", e.message); process.exit(1); });
+// Guarded (F44/F67): the test suite imports splitPending from this module; without this guard every
+// `node --test` run of that test also ran main() unconditionally, which performs a live Supabase read
+// via seedFactors' default readAllFn (F-10, app-audit-a4cc-scripts-completion-2026-09-30.md).
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => { console.error("[desnz-seed] fatal:", e.message); process.exit(1); });
+}
