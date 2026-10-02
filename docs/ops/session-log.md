@@ -24313,3 +24313,27 @@ Fresh session order: (1) live regulation page check; (2) README to 780; (3) rest
 **New rule: read before you build.** `docs/dispatches/lane-common-contract.md` gains a binding "Read before you build" section (operator ruling 2026-10-02, verbatim: "look at all existing code before you build anything"): every build lane reads, before writing anything, its own write set in full, everything that imports or is imported by it (grep, not assumption), the migrations and generated inventories its change moves, and the governing ADRs/docs; the lane report must carry a "read and reused" line naming what it read and reused, or the report is not accepted.
 
 **Files changed this pass:** `docs/INDEX.md` (no change ,  verified no new living doc is owed by the 2026-10-01/02 addenda; `docs/runbooks/layout-guard-baseline-renewal.md` named in the dispatch does not exist yet, so no line was added for it), `docs/dispatches/lane-common-contract.md` (new section), `docs/PROGRAM-BOARD.md` (remediation thread table resync against `gh pr list`, resume pointer updated), `docs/ops/session-log.md` (this entry).
+
+## 2026-10-02, coordinator (COORD-DOCS lane, follow-up resync): R22/R23 merged, Wave-2 lanes all landed, W2-R pushed CI-red
+
+Rebased `coord/docs-2026-10-02` onto `origin/master` on coordinator instruction. Per coordinator-supplied
+PR numbers and a fresh `gh pr list --state merged --limit 40`:
+
+- **Lane 22** merged as PR 885 ("R22: Actions artifact storage budget, docs-only push fast path, DB-shape
+  the brief-export queue and dispatch ledger"); landed scope is broader than decision 8's 7-day/13-workflow
+  description, flagged for re-read at next audit rather than re-stated here from the PR title alone.
+- **Lane 23** merged as PR 886 ("Lane R23: route commit-validation ranges through resolveRange's
+  merge-base"). Verified `docs/runbooks/layout-guard-baseline-renewal.md` exists on master before adding
+  its `docs/INDEX.md` line (runbooks section, alphabetical before `live-source-anti-fabrication-audit`).
+- **All 8 Wave-2 lanes now merged**: W2-B PR 879, W2-C PR 878, W2-D PR 882, W2-E PR 883, W2-F PR 880, W2-G
+  PR 863 (W2-A/H were already merged 2026-09-29). Wave-2 sub-table in `docs/PROGRAM-BOARD.md` updated row
+  by row against the merged PR titles/bodies.
+- **W2-R** (not W2-R2, which is PR 877's per-tenant assumption register, already merged) is pushed as PR
+  887; coordinator reports CI red on the rendering guard, fix pending. Row added/kept as "pushed, PR 887,
+  CI red", explicitly not marked DONE and no INDEX line added for its doc(s) ,  held for the coordinator's
+  separate merge message per instruction.
+- PROGRAM-BOARD resume pointer updated: Lanes 7, 10, 21 still OPEN; everything else in the remediation
+  queue and both in-flight Wave batches are now on master.
+
+Files changed this pass: `docs/INDEX.md` (new runbooks line for `layout-guard-baseline-renewal`),
+`docs/PROGRAM-BOARD.md` (Lane 22/23 rows, Wave-2 sub-table, W2-R row, resume pointer).

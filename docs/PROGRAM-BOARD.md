@@ -14,10 +14,12 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-10-02):** audit cleanup queue draining ,  PRs 869 to 884 landed the bulk of the
-> 22-lane remediation plan's own backlog (see "Remediation lanes" thread table above for the per-lane
-> state against `gh pr list`); Lanes 7, 10 and 21 are still OPEN, Lanes 22 and 23 are ready to push and
-> held for a landing slot. Next, the Research build lanes (L3, L5 to L9 of
+> **Resume from (2026-10-02):** audit cleanup queue draining ,  PRs 869 to 886 landed the bulk of the
+> 23-lane remediation plan's own backlog, plus all 8 Wave-2 lanes (W2-B through W2-G, PRs 863/878/879/
+> 880/882/883) now merged (see "Remediation lanes" thread table and the Wave-2 sub-table above for the
+> per-lane state against `gh pr list`); Lanes 7, 10 and 21 are still OPEN; Lane 22 (PR 885) and Lane 23
+> (PR 886) are now merged. W2-R (not W2-R2) is pushed as PR 887, CI red on the rendering guard, fix
+> pending from that lane. Next, the Research build lanes (L3, L5 to L9 of
 > [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md)) from migration
 > 346 (the `signposts` table, L6), once the remediation queue's remaining OPEN lanes are dispositioned or
 > explicitly deferred. Prior pointer (2026-10-01): [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
@@ -2148,17 +2150,18 @@ dispatch must name every downstream's mode, read from the workflow files, before
 | Wave-2 lane | Scope (build-overview WS#) | State | Evidence |
 |---|---|---|---|
 | W2-A | Audit-triage WIRE items | DONE | #834 "`source_bias_tags` pipeline wired at candidate approval", merged 2026-09-29. |
-| W2-B | Community identity-by-default (WS2) | BUILT, NOT MERGED | `lane/w2b-community-identity`, 5 commits ahead of master; migration 336 (anonymity opt-in columns) and the composer-400 fix live on that branch only. |
-| W2-C | Absence wording + Market Intel label (WS3, WS5) | BUILT, NOT MERGED | `lane/w2c-absence-wording`, 3 commits ahead; nav label still wrong at `Sidebar.tsx:76` / `DashboardBrief.tsx:361` on master. |
-| W2-D | Market detail raw-dump bug (WS16) | BUILT, NOT MERGED | `lane/w2d-market-detail-dump`, 4 commits (repro, rendering-guard record, fix, 2 rule-13 flag closures); bug `[CONFIRMED]` (coordinator-run live SELECT, not `[HYPOTHESIS]`): 631 sections double-render under Full-brief depth, CF-BROKEN-6. |
-| W2-E | Profile + applicability (WS7) | BUILT, NOT MERGED | `lane/w2e-profile-applicability`, 3 commits ahead. |
-| W2-F | Generalise the five hard-coded examples (WS10, rule 19) | PARTIAL, NOT MERGED | `lane/w2f-generalise-examples`, 4 commits; only 2 of 5 example classes have a coverage-gate commit per audit A8c. |
-| W2-G | Learning loop S->M->L (WS12, ADR-036) | PARTIAL, NOT MERGED | `lane/w2g-learning-loop`, 3 commits; S+M tiers built (`trigger_question`, `inference_records` via migration 338, `InferenceReview` mounted); L tier (`source_reliability_ledger`) not started, matching ADR-036's own sequencing. `inference_records` disposition: KEEP per 2026-10-01 ruling item 2 (DROP SQL withdrawn). |
+| W2-B | Community identity-by-default (WS2) | DONE, merged PR 879 | migration 336 (anonymity opt-in columns), composer-400 fix, ADR-035 benchmark floor, mute WIRE; merged 2026-10-02. |
+| W2-C | Absence wording + Market Intel label (WS3, WS5) | DONE, merged PR 878 | nav label fixed at `Sidebar.tsx`/`DashboardBrief.tsx`/`Spec09CsvUpload.tsx` with a client/server drift-guard test; absence wording converted across 5 components; NULL-severity sites fixed; merged 2026-10-02. |
+| W2-D | Market detail raw-dump bug (WS16) | DONE, merged PR 882 | merged 2026-10-02 as "Lane W2-D: market detail dump". |
+| W2-E | Profile + applicability (WS7) | DONE, merged PR 883 | "Lane W2-E: profile role/size dimensions + applicability gate (WS7)", merged 2026-10-02. |
+| W2-F | Generalise the five hard-coded examples (WS10, rule 19) | DONE, merged PR 880 | "generalise-examples coverage gates (WS10, classes 1-2)", merged 2026-10-02; verify at next audit whether both named classes closed the full 5-class scope rule 19 requires (examples-are-not-scope), or whether classes 3-5 remain a follow-on. |
+| W2-G | Learning loop S->M->L (WS12, ADR-036) | DONE, merged PR 863 | "learning loop S and M (trigger questions, inference_records, drain dispatch, admin inferences)", merged 2026-10-02; L tier (`source_reliability_ledger`) still not started per ADR-036's own sequencing, not claimed by this PR. `inference_records` disposition: KEEP per 2026-10-01 ruling item 2 (DROP SQL withdrawn). |
 | W2-H | ADR-034 naming phase + Operations matrix (WS14, WS4) | DONE | #833, merged 2026-09-29. |
 
-**Net:** of the 8 Wave-2 lanes, only W2-A and W2-H have landed on master; W2-B through W2-G are
-finished-or-partial commits sitting on unmerged branches, all scoped as "Wave A, land what already exists"
-in `docs/plans/remediation-plan-2026-09-30.md` - a merge/landing backlog, not unfinished work.
+**Net:** all 8 Wave-2 lanes are now merged to master (W2-A/H since 2026-09-29; W2-B through W2-G landed
+2026-10-02 via PRs 878-880/882/883/863). The separate W2-R (Research surface components) and W2-R2
+(per-tenant planning-assumption register, PR 877, merged) lanes are tracked in the "Remediation lanes"
+table's W2-R row below, not here ,  W2-R is not one of the original 8 Wave-2 lanes.
 
 ---
 
@@ -2267,10 +2270,10 @@ Write sets checked disjoint by file path across all 22. All OPEN below pending t
 | Lane 19: design conflicts (DES-3) + WatchButton text (AUD-1) | DONE 2026-10-01 | ADR-037 + BUILD, per decisions 5 and 6 above; not in the PR 863-884 range. |
 | Lane 20: guard 5 unguarded producer scripts (from A1c/A2bc/A4d/A4bc/A4cc fold) | DONE, pushed PR 873 | merged 2026-10-02 ("R20"); 38 files wrapped in `isMainModule()` across 3 widening rounds, new fitness function F67. |
 | Lane 21: fix PostgREST `.or()` filter-injection pattern (from A1c/A2bc/A4d/A4bc/A4cc fold) | OPEN | remediation-plan-2026-09-30.md Lane 21; not covered by PR 863-884. |
-| Lane 22: GitHub Actions artifact retention | ready to push, held for slot | decision 8 above; 7-day retention, 13 workflows, 6.2 GB measured 2026-10-01; no PR exists for it as of this check (`gh pr list` 2026-10-02, merged and open). |
-| Lane 23: pre-push range (log-path fix, C5 test, layout-guard baseline expiry) | ready to push, held for slot | remediation-plan-2026-09-30.md section 23 ("lane R23"); owns the pre-push range per the A6b fold below; no PR exists for it as of this check. `docs/runbooks/layout-guard-baseline-renewal.md` is NOT yet created (verified absent 2026-10-02) ,  do not add an INDEX line for it until this lane lands. |
+| Lane 22: GitHub Actions artifact retention | DONE, merged PR 885 | merged 2026-10-02 ("R22: Actions artifact storage budget, docs-only push fast path, DB-shape the brief-export queue and dispatch ledger"); scope landed is broader than decision 8's 7-day/13-workflow description above ,  re-read PR 885 against decision 8 at next audit to confirm full closure, not re-stated here from the PR title alone. |
+| Lane 23: pre-push range (log-path fix, C5 test, layout-guard baseline expiry) | DONE, merged PR 886 | merged 2026-10-02 ("Lane R23: route commit-validation ranges through resolveRange's merge-base"); `docs/runbooks/layout-guard-baseline-renewal.md` confirmed to exist on master (verified 2026-10-02), INDEX line added same pass. |
 | A6b (discipline/tests follow-on) | DONE, folded into Lane 23 | PR 871 (register) + PR 872 (consolidation's ninth amendment) merged 2026-10-02: all 3 A6b findings (CF-BROKEN-10, CF-GATE-10, CF-GATE-11) reassigned to Lane 23's write set. |
-| W2-R: Research surface dissent panel / signposts list / assessment history ledger (complete-build-plan L5) | not yet pushed | depends on `lane/w2r-research-assessment` (L1) and L6 (signposts, migration 346); no PR titled "W2-R" exists as of this check (`lane W2-R2`'s own PR 877 is the per-tenant assumption register, a different lane that merely names W2-R as a future consumer of its reader). |
+| W2-R: Research surface dissent panel / signposts list / assessment history ledger (complete-build-plan L5) | pushed, PR 887, CI red on the rendering guard | coordinator-reported 2026-10-02: PR 887 is open, CI is red on the rendering guard, fix coming from the lane. Not merged ,  do not add the INDEX line for its doc(s) or mark this row DONE until the coordinator reports the merge. |
 
 ---
 
