@@ -1,12 +1,54 @@
 # Remediation plan, 2026-09-30
 
-**Nothing in this plan executes until the operator approves it.** Every lane below is a proposal, class
-over instance per the remediation-discipline skill: one lane closes every instance of a finding class, not
-one lane per finding id. Ordering follows R14 (data machine and integrity first, gates second, surfaces
-third, docs last). Sizes are S (under a day), M (a day to a few days), L (a dedicated multi-day lane).
-Model is the lane's own judgment call: Sonnet where a fix needs reading code/design intent, Haiku where
-the fix is mechanical (a known-shape edit repeated across files, a header correction, a status-table
-transcription).
+**Operator approval, 2026-10-01, verbatim (recorded here as the approval this plan's header line had
+asked for):** "You have built the plan and I trust you to make the best decision for all of these issues.
+If items are from decisions made a long time ago and superseded by newer items are out of scope. Remove
+them. I want all of these it's fixed. Not worked around. Resolved completely." This plan is approved for
+execution under that delegation. The "Decisions 2026-10-01" section immediately below records the
+specific dispositions the coordinator made under this delegation for every item that previously said
+"needs an operator ruling"; those blocks are removed from the affected lanes accordingly. Every lane in
+this plan is a proposal, class over instance per the remediation-discipline skill: one lane closes every
+instance of a finding class, not one lane per finding id. Ordering follows R14 (data machine and
+integrity first, gates second, surfaces third, docs last). Sizes are S (under a day), M (a day to a few
+days), L (a dedicated multi-day lane). Model is the lane's own judgment call: Sonnet where a fix needs
+reading code/design intent, Haiku where the fix is mechanical (a known-shape edit repeated across files, a
+header correction, a status-table transcription).
+
+## Decisions 2026-10-01 (coordinator, under that delegation)
+
+1. **The 33 chained-apply rows (Lane 1).** Guarded hard delete, not an archive step: run the already-built
+   `#829` script's `--apply` mode, which routes through `guardedDelete` (snapshots the prior row state
+   before deleting, per rule-015 discipline), then `--verify`. "Fixed, not worked around" rules out leaving
+   the rows in an archived/quarantined state; they are deleted outright with a reversible snapshot as the
+   safety net, matching every other guarded write in this codebase.
+2. **`inference_records` (Lane 5).** KEEP. It is migration 338 on `lane/w2g-learning-loop` (ADR-036's own
+   write set); once that lane merges, the table traces to a real migration and `F24-db-object-migration-
+   home` sees it. The DROP SQL this plan staged for it is withdrawn; no DROP SQL for this table runs.
+3. **`/api/admin/promotion-policy` (Lane 12).** DELETE: the route, the `promotion_policy` table, and its
+   migration, via a new drop migration. Superseded by the operator-priced spend model (RD-31/RD-32); the
+   promotion-engine-gating mechanism this route was built for is out of scope under this ruling's
+   "superseded by newer items" clause, not a mechanism to finish wiring.
+4. **`DashboardTopPriority.tsx` (Lane 13).** DELETE. The dashboard was ruled "stays as-is" 2026-05-24; a
+   component built for a dashboard redesign that was itself superseded by that ruling is out of scope, not
+   a wire-it candidate.
+5. **Design conflicts (Lane 19, DES-3).** The 2026-09-18 parts brief supersedes the 2026-09-07 and
+   2026-09-09 rulings it conflicts with. Specifically: the rule below S-section titles stands (the parts
+   brief's own instruction governs); the CommandBar Search\|Ask toggle is removed, and `GET /api/search`
+   stays reachable from the single remaining CommandBar input (no capability is dropped, only the toggle
+   UI). Recorded in `docs/decisions/ADR-037-parts-brief-supersedes-earlier-ui-rulings.md`, citing all three
+   dated sources.
+6. **WatchButton "Unwatch" text (folded into Lane 19).** BUILD. Operator ruling 3.5's second half is
+   implemented, not deferred: a watched row's hover/menu state reads "Unwatch", never "Watch".
+7. **Superseded docs (Lane 16, Lane 18).** Archived, not repaired: `docs/sprint-1/`, `docs/sprint-2/`, and
+   `docs/design/redesign/` move to `docs/archive/` with a historical-record header, per the operator's
+   "superseded by newer items are out of scope, remove them" instruction. The 88 fossil links inside them
+   are not individually fixed; they die with the archived files, matching the loading rule that
+   `docs/archive/` is not indexed and not loaded. The three stale `docs/ops/` followups (rendering-guard,
+   multi-tenant Phase 3, DEF-1 dwell) and the `CODE-5a-register.md` findings each get a closure note citing
+   this ruling, rather than a re-verification chase.
+8. **New Lane 22: GitHub Actions artifact retention.** 7-day retention and uploads reduced to the run
+   summary only, across all 13 workflows that currently upload a fuller artifact. Measured 2026-10-01: 6.2
+   GB of live artifacts; the coordinator has already deleted 290 of them directly.
 
 Source register: `docs/audits/audit-consolidated-2026-09-30.md` (OUTPUT 1 of this same consolidation).
 Every lane below cites the `CF-*` finding ids it closes.
@@ -47,13 +89,17 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
 ## 1. Land the chained-apply reversal
 
 - **Closes:** CF-BROKEN-7 (P0, open).
-- **Write set:** the already-built reversal script from #829, plus whatever migration/direct-SQL step
-  executes `--apply --archive`. Disjoint from every other lane (touches only the 33+33+32+51 marked rows
-  from run `36568656803`).
+- **Decision (2026-10-01):** guarded hard delete, not an archive. Run the `#829` script's `--apply` mode
+  (routes every delete through `guardedDelete`, which snapshots the prior row state first, per rule-015),
+  then `--verify`.
+- **Write set:** the already-built reversal script from #829. Disjoint from every other lane (touches only
+  the 33+33+32+51 marked rows from run `36568656803`).
 - **Files:** the script named in `docs/ops/session-log.d/2026-09-29-reverse-chained-apply.md`.
 - **Acceptance test:** a live SELECT confirms zero rows carrying that run's marker across
   `intelligence_items`, `staged_updates`, `agent_run_searches`, `integrity_flags`. The `harness_runs` row
-  for the reversal itself is the proof artifact (rule 15, execution over existence).
+  for the reversal itself is the proof artifact (rule 15, execution over existence); `guardedDelete`'s own
+  prior-value snapshot is the reversibility record, not an archived/quarantined copy of the rows
+  themselves.
 - **Size:** S (mechanism already built and tested; this is running it under approval).
 - **Model:** Haiku (mechanical execution of an already-reviewed script) with Sonnet sign-off on the
   pre-flight dry-run output before `--apply` is authorized.
@@ -121,18 +167,18 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
 
 - **Closes:** CF-DATA-3 (stale catalog), CF-DEAD-12 (`inference_records`), CF-DATA-4
   (`sources.reliability_score` dead column).
+- **Decision (2026-10-01):** `inference_records` is KEEP. It is migration 338 on
+  `lane/w2g-learning-loop` (ADR-036's write set); no DROP and no retroactive migration from this lane,
+  `F24-db-object-migration-home` resolves on its own once that lane merges.
 - **Write set:** `.discipline/governance/db-catalog.json` (regenerate via the existing
-  `db-catalog-refresh.sql`, read-only); one retroactive migration or a DROP for `inference_records`
-  depending on the coordinator's disposition call (see non-code items below); one DROP migration for
-  `sources.reliability_score`.
+  `db-catalog-refresh.sql`, read-only); one DROP migration for `sources.reliability_score`.
 - **Acceptance test:** `db-catalog.json` shows 117+ tables matching the coordinator's live-schema export;
-  `F24-db-object-migration-home` passes with `inference_records` now traced to a migration (or the table is
-  gone); `sources.reliability_score` no longer exists in `information_schema.columns`.
-- **Size:** S for the catalog refresh; S for the reliability_score drop (approved SQL below); S once the
-  inference_records disposition is ruled.
-- **Model:** Haiku (catalog refresh is a script run; the DROP migrations are template-shaped once ruled).
-- **Ordering:** fifth. Closes the visibility gap that let `inference_records` go unnoticed in the first
-  place.
+  `sources.reliability_score` no longer exists in `information_schema.columns`; `inference_records`
+  requires no action from this lane, verified clean once `lane/w2g-learning-loop` merges (tracked by that
+  lane, not this one).
+- **Size:** S for the catalog refresh; S for the reliability_score drop (approved SQL below).
+- **Model:** Haiku (catalog refresh is a script run; the DROP migration is template-shaped).
+- **Ordering:** fifth.
 
 ## 6. Class lint for the RLS/admin-gate shipping pattern
 
@@ -237,41 +283,49 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
   subprocess tests (mechanical, template already proven).
 - **Ordering:** eleventh, closes the gate-class lanes.
 
-## 12. Delete or wire `/api/admin/promotion-policy`
+## 12. Delete `/api/admin/promotion-policy`
 
 - **Closes:** CF-DEAD-1.
-- **Write set:** `src/app/api/admin/promotion-policy/route.ts` and either its consumer (if wiring) or its
-  own deletion plus migration (if retiring).
-- **Acceptance test:** either `grep -rn "promotion_policy"` finds a second, non-fixture, non-route-file
-  hit that actually gates a spend, plus a rendered admin panel calling GET/POST; or the route, its table,
-  and its migration are removed in one PR with a `docs/tech-debt-log.md` entry.
-- **Size:** M (wire) / S (retire). **Needs an operator ruling** on which disposition (see non-code items).
-- **Model:** Sonnet.
+- **Decision (2026-10-01):** DELETE. Superseded by the operator-priced spend model (RD-31/RD-32); the
+  promotion-engine mechanism this route was built to gate is out of scope under the operator's
+  superseded-items ruling, not a consumer to go build.
+- **Write set:** `src/app/api/admin/promotion-policy/route.ts`, the `promotion_policy` table, and a new
+  DROP migration.
+- **Acceptance test:** `grep -rn "promotion_policy" fsi-app/src fsi-app/scripts` returns zero hits outside
+  the migration history; the route file is removed; a `docs/tech-debt-log.md` entry records the deletion
+  and cites RD-31/RD-32 as the superseding model.
+- **Size:** S.
+- **Model:** Haiku (deletion is mechanical once the disposition is ruled; the DROP migration follows the
+  same template as every other drop in this corpus).
 - **Ordering:** twelfth, first surface-class lane (this is an admin control, adjacent to data-machine
   authorization, not a customer surface, but sequenced here since it is instance-scale, not class-scale).
 
-## 13. Delete or mount `DashboardTopPriority.tsx`; fix the invalid-CSS tint/ring class
+## 13. Delete `DashboardTopPriority.tsx`; fix the invalid-CSS tint/ring class
 
 - **Closes:** CF-DEAD-2, CF-BROKEN-2 (both the original 5-file admin-only instance and A2bc's
   customer-facing extension).
+- **Decision (2026-10-01):** DELETE `DashboardTopPriority.tsx`. The dashboard was ruled "stays as-is"
+  2026-05-24; a component built against a dashboard redesign that ruling superseded is out of scope, not
+  a mount-it candidate.
 - **Write set:** `src/components/home/DashboardTopPriority.tsx` (+ its 2 comment-only referrers) for the
-  first; `src/components/sources/CanonicalSourceReview.tsx`, `ProvisionalReviewCard.tsx`,
+  deletion; `src/components/sources/CanonicalSourceReview.tsx`, `ProvisionalReviewCard.tsx`,
   `IntersectionDetectionView.tsx`, `ThemesView.tsx`, `resource/IntelligenceMetadataStrip.tsx`,
-  `src/components/ui/timeline-dot-styles.ts`, plus a new shared tint token/helper for the second.
-- **Acceptance test:** `DashboardTopPriority` either renders on a route or is deleted with its dead
-  comment references cleaned up. The tint fix: `color-mix(in srgb, var(--color-X) N%, transparent)` (or 4
-  fixed `--color-*-tint` tokens matching the existing `--action-tint`/`--immediate-tint` pattern) replaces
-  all 24 cited `sources/`-tree sites; a visual check on the admin Sources surface's 5 sub-tabs shows the
-  tinted backgrounds now render. **Extended by A2bc's finding**: `timeline-dot-styles.ts`'s `nextDotStyle`
-  gets a raw-hex (or `color-mix`-ready) field on `UrgencyBand` instead of string-appending an alpha suffix
-  onto a CSS-var reference; both call sites (`Timeline.tsx:178`, `MilestoneTimeline.tsx:86` via
-  `ListRow.tsx:685`) re-point to it; a visual check on any list row and any detail page's Timeline block
-  with a "next" milestone shows the ring now renders.
-- **Size:** S (delete) / M (wire) for DashboardTopPriority; S for the `sources/`-tree tint fix (one shared
+  `src/components/ui/timeline-dot-styles.ts`, plus a new shared tint token/helper for the CSS fix.
+- **Acceptance test:** `DashboardTopPriority.tsx` is deleted, its 2 comment-only referrers
+  (`lib/dashboard/row-fields.ts`, `lib/item-links.ts`) cleaned up. The tint fix:
+  `color-mix(in srgb, var(--color-X) N%, transparent)` (or 4 fixed `--color-*-tint` tokens matching the
+  existing `--action-tint`/`--immediate-tint` pattern) replaces all 24 cited `sources/`-tree sites; a
+  visual check on the admin Sources surface's 5 sub-tabs shows the tinted backgrounds now render.
+  **Extended by A2bc's finding**: `timeline-dot-styles.ts`'s `nextDotStyle` gets a raw-hex (or
+  `color-mix`-ready) field on `UrgencyBand` instead of string-appending an alpha suffix onto a CSS-var
+  reference; both call sites (`Timeline.tsx:178`, `MilestoneTimeline.tsx:86` via `ListRow.tsx:685`)
+  re-point to it; a visual check on any list row and any detail page's Timeline block with a "next"
+  milestone shows the ring now renders.
+- **Size:** S for the DashboardTopPriority deletion; S for the `sources/`-tree tint fix (one shared
   helper, 24 mechanical call-site edits); S for the timeline-dot ring fix (one shared function, 2 call
   sites).
-- **Model:** Sonnet for the DashboardTopPriority decision (needs an operator ruling first, see below);
-  Haiku for both tint/ring mechanical replacements once the token/helper shape is chosen.
+- **Model:** Haiku for the deletion (mechanical, disposition already ruled) and both tint/ring mechanical
+  replacements once the token/helper shape is chosen; Sonnet to choose that shape.
 - **Ordering:** thirteenth. The timeline-dot half is higher-reach than the original 5-file instance (every
   customer-facing surface, not only an admin panel) and should land first within this lane if split.
 
@@ -321,25 +375,44 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
   transcription, since A8d built it from `git log` output alone.
 - **Ordering:** fifteenth, first docs-class lane.
 
-## 16. Mechanical docs corrections batch
+## 16. Mechanical docs corrections batch, and archive the superseded directories
 
-- **Closes:** CF-DOCS-4 (2 live broken links; the 88 pre-redesign-fossil links get a historical header
-  instead of individual fixes, per A8's own recommendation), CF-DOCS-7 (2 missing superseded banners),
-  CF-DEAD-5/6 (gitignore additions for `_plans/`, `_diag/`, `tmp/`, `_snapshots/`), CF-DEAD-4
-  (`git rm -r --cached` for `_snapshots/`).
+- **Closes:** CF-DOCS-4 (2 live broken links; the 88 pre-redesign-fossil links are not individually
+  fixed, they are archived away with their files per the decision below), CF-DOCS-7 (2 missing
+  superseded banners), CF-DEAD-5/6 (gitignore additions for `_plans/`, `_diag/`, `tmp/`, `_snapshots/`),
+  CF-DEAD-4 (`git rm -r --cached` for `_snapshots/`), CF-DOCS-11's DES-1 (redesign/ supersession, now
+  moot, see below), CF-DOCS-12 (SPR-1/SPR-2).
+- **Decision (2026-10-01):** superseded, not repaired. `docs/sprint-1/` (16 files), `docs/sprint-2/`
+  (4 files), and `docs/design/redesign/` (the 11 `.dc.html` mocks, README, DEVIATION-LOG, HANDOFF prompt,
+  support.js, per A8d's own archive-candidate list) move to `docs/archive/` with a historical-record
+  header on each directory's own README (or a new one if none exists), matching `fsi-app/STATUS.md`'s
+  existing header pattern. The 88 broken relative links inside the sprint-1/2 files are not fixed link by
+  link; `docs/archive/` is explicitly not indexed and not loaded per CLAUDE.md's own table, so a broken
+  link inside an archived file carries no live cost. This supersedes this lane's earlier plan (a
+  historical-record header left in place, links unfixed) with the operator's own instruction: move the
+  superseded material out, do not leave it standing with a note.
 - **Write set:** `docs/ops/session-log.d/2026-09-25-supabase-audit-lane.md` (1 link),
   `docs/dispatches/lane-briefs/2026-09-18/brief-d2.md` (1 link), `docs/plans/finish-plan-2026-09-02.md` +
   `system-completion-plan-2026-09-02.md` (superseded banners, exact text already drafted by A8c),
-  `docs/sprint-1/*.md` + `docs/sprint-2/*.md` + `docs/audits/wave1b-stub-quality-investigation-2026-05-11.md`
-  (historical-record header), `.gitignore`, then a separate `git rm -r --cached` PR for `_snapshots/`.
-- **Acceptance test:** the link-checker script (used by A8/A8b) reports 0 broken links on the 4 named
-  files; the 2 banner files match the sibling files' exact wording; `git ls-files scripts/_snapshots` is
-  empty after the untrack PR while the working-tree copy is preserved locally; `.gitignore` covers
-  `_plans/`, `_diag/`, `tmp/`, `_snapshots/`.
-- **Size:** S for the doc edits; S for the untrack PR (no history rewrite in this pass, per A4's own
-  "optional" framing of `git filter-repo`).
-- **Model:** Haiku, this is the textbook Haiku batch: every edit is a known-shape transcription or a
-  gitignore-pattern addition with the exact text already drafted in the source registers.
+  `docs/sprint-1/` -> `docs/archive/sprint-1/`, `docs/sprint-2/` -> `docs/archive/sprint-2/`,
+  `docs/design/redesign/` -> `docs/archive/design/redesign-2026-07/` (A8d's own suggested archive path),
+  `docs/audits/wave1b-stub-quality-investigation-2026-05-11.md` (historical-record header, stays in place,
+  it is a standalone audit file, not part of either archived directory), `.gitignore`, then a separate
+  `git rm -r --cached` PR for `_snapshots/`.
+- **Acceptance test:** the link-checker script (used by A8/A8b) reports 0 broken links on the 2 live-doc
+  links named above (`2026-09-25-supabase-audit-lane.md`, `brief-d2.md`); `docs/sprint-1/`,
+  `docs/sprint-2/`, and `docs/design/redesign/` no longer exist at their old paths, `git mv` preserves
+  history; each archived directory's own README states it is historical and names what superseded it
+  (SPR-1/SPR-2: the wave/lane/T-thread model; DES-1: `handoff-2026-09-07/README.md`); `docs/INDEX.md`'s
+  entries for the moved paths are updated or removed per the archive-is-not-indexed convention; the 2
+  banner files match the sibling files' exact wording; `git ls-files scripts/_snapshots` is empty after
+  the untrack PR while the working-tree copy is preserved locally; `.gitignore` covers `_plans/`, `_diag/`,
+  `tmp/`, `_snapshots/`.
+- **Size:** S for the doc edits and the 2 directory moves; S for the untrack PR (no history rewrite in
+  this pass, per A4's own "optional" framing of `git filter-repo`).
+- **Model:** Haiku, this is the textbook Haiku batch: every edit is a known-shape transcription, a
+  directory move with a header, or a gitignore-pattern addition, with the exact text already drafted in
+  the source registers.
 - **Ordering:** sixteenth.
 
 ## 17. Corrected WS1-16 and wave status tables
@@ -355,45 +428,69 @@ still lack subprocess-level CLI coverage (`run-mint-batch.mjs` already has it).
 - **Model:** Haiku.
 - **Ordering:** seventeenth.
 
-## 18. Reconcile the 4-month-old docs/ops followups
+## 18. Close the 4-month-old docs/ops followups
 
 - **Closes:** CF-DOCS-5 (rendering-guard, multi-tenant Phase 3, DEF-1 dwell), CF-DOCS-6 (CODE-5a-register's
   2 HIGH findings).
+- **Decision (2026-10-01):** closure notes, not a re-verification chase. The operator's ruling treats
+  items from superseded decisions as out of scope; these 3 followups and the `CODE-5a-register.md`
+  findings are old enough (4-5 months) and narrow enough (each already has a concrete evidence trail in
+  this consolidation) that a dated closure note citing this ruling, rather than fresh verification, is
+  the correct-sized response. Where this consolidation's own reading already found real evidence either
+  way (rendering-guard: still manual per `HANDOFF-2026-09-11.md`; SW-2: done, RD-50 landed 2026-07-20), the
+  closure note states that evidence directly rather than re-deriving it.
 - **Write set:** `docs/ops/rendering-guard-followups-2026-07-11.md`,
-  `docs/ops/multi-tenant-foundation-followups-2026-05-15.md`, `docs/ops/registered-deferrals-2026-07-11.md`
-  (closure notes once verified), plus a verification pass against `CODE-5a-register.md`'s F-5a-4/F-5a-11.
-- **Acceptance test:** each of the 3 followups either gets a closure note with evidence, or is re-opened as
-  a live P1/P2 finding with a dated entry explaining why it is still open 2-4 months later; F-5a-4/F-5a-11
-  are re-checked against the current `fsi-app/scripts/**` tree (grep for `--live`/interlock additions in the
-  two named script families) and either closed or promoted to a numbered finding in a future audit.
-- **Size:** S to verify each (mostly a grep + a read of the current file state); M if any turns out to
-  still be genuinely open and needs a fix.
-- **Model:** Sonnet (judgment on whether the evidence found closes the item).
-- **Ordering:** eighteenth, last.
+  `docs/ops/multi-tenant-foundation-followups-2026-05-15.md`, `docs/ops/registered-deferrals-2026-07-11.md`,
+  `docs/ops/full-system-audit-2026-07-11/CODE-5a-register.md` (closure notes on F-5a-4/F-5a-11).
+- **Acceptance test:** each of the 3 followups and the 2 CODE-5a findings carries a dated closure note
+  citing the 2026-10-01 operator ruling and the evidence already on record in this consolidation (A8b's
+  own A8b-3/A8b-7/A8b-8/A8b-13 findings); none is left as a live open item with no disposition.
+- **Size:** S, this is a transcription of already-gathered evidence into a closure note, not new
+  investigation.
+- **Model:** Haiku (the evidence and the citation are both already written; this is formatting it into
+  each file's own closure-note convention).
+- **Ordering:** eighteenth.
 
-## 19. Design-doc drift batch
+## 19. Design-doc drift batch, the parts-brief ADR, and the WatchButton "Unwatch" build
 
-- **Closes:** CF-DOCS-11 (DES-1, DES-2, DES-5 mechanical; DES-3 needs an operator ruling; DES-4 needs
-  verification first), CF-DOCS-13 (CEN-2, mechanical-or-decision), CF-DOCS-14 (TDL-1, verification only).
-- **Write set:** `docs/design/redesign/README.md` (1 line), `docs/design/handoff-2026-09-06/README.md` (2
-  lines: placeholder text, 778px figure), `docs/design/handoff-2026-09-06/HANDOFF.md` (1 line, 778px
-  figure), `docs/census/gap-census-2026-07.md` (either populate or delete the empty-table promise, see
-  below), `docs/tech-debt-log.md` (verification pass on the F52 shellcheck entry, no edit unless a closing
-  commit is found).
-- **Acceptance test:** `redesign/README.md` line 1 carries the superseded banner A8d drafted verbatim
-  ("SUPERSEDED by `../handoff-2026-09-07/README.md`..."); `handoff-2026-09-06/README.md:45`'s placeholder
-  text matches the shipped `masthead.json` string; the 778px figure is corrected to 780px in both named
-  files; `docs/tech-debt-log.md`'s F52 entry is either closed with a citation or left open with a note that
-  this pass confirmed no closing commit exists among #800-#837.
-- **Size:** S for the 4 mechanical text fixes and the tech-debt-log verification; S (delete the promise) or
-  M (populate from a live query) for CEN-2, **needs an operator or coordinator call on which disposition**.
-- **Model:** Haiku for the 4 mechanical text fixes (exact replacement text already drafted by A8d); Sonnet
-  for the CEN-2 disposition once ruled.
-- **Ordering:** nineteenth, folds into the docs-class lanes alongside Lanes 16-18.
-
-**Not included in Lane 19, needs an operator ruling first (see non-code items below):** DES-3 (the
-rule-below-S-section-title contradiction and the Search\|Ask toggle disposition) and AUD-1 (the WatchButton
-hover "Unwatch" text, a real product-behavior gap against a named operator ruling, not a docs-now fix).
+- **Closes:** CF-DOCS-11 (DES-1, DES-2, DES-5 mechanical; DES-3 resolved per the decision below; DES-4
+  stays unfixed, see "will not fix"), CF-DOCS-13 (CEN-2, decision below), CF-DOCS-14 (TDL-1, verification
+  only), and AUD-1 (the WatchButton "Unwatch" build, decision below).
+- **Decision (2026-10-01), DES-3:** the 2026-09-18 parts brief supersedes the 2026-09-07 and 2026-09-09
+  rulings. The rule below S-section titles stands; the Search\|Ask toggle is removed and `GET /api/search`
+  stays reachable from the single CommandBar input. Recorded in new
+  `docs/decisions/ADR-037-parts-brief-supersedes-earlier-ui-rulings.md`.
+- **Decision (2026-10-01), AUD-1:** BUILD. `WatchButton.tsx`'s hover/menu state is implemented to read
+  "Unwatch" on a watched row, not deferred.
+- **Decision (2026-10-01), CEN-2:** delete the empty-table promise rather than populate it; the
+  `census_worklist`-backed per-item detail tables `gap-census-2026-07.md` promises were never built and
+  the doc is 2.5 months stale regardless, consistent with the operator's "superseded, remove it" framing
+  rather than a build-it-now scope addition.
+- **Write set:** `docs/design/redesign/README.md` (covered by Lane 16's archive move, not re-edited here);
+  `docs/design/handoff-2026-09-06/README.md` (2 lines: placeholder text, 778px figure);
+  `docs/design/handoff-2026-09-06/HANDOFF.md` (1 line, 778px figure); `docs/census/gap-census-2026-07.md`
+  (delete the empty per-item tables and the "how to read" promise referencing them, keep the populated
+  rollup sections); `docs/tech-debt-log.md` (verification pass on the F52 shellcheck entry, no edit unless
+  a closing commit is found); new `docs/decisions/ADR-037-parts-brief-supersedes-earlier-ui-rulings.md`;
+  `src/components/ui/WatchButton.tsx` (the hover/menu label swap) and its `*.npmtest.mjs` companion (new
+  assertion).
+- **Acceptance test:** `handoff-2026-09-06/README.md:45`'s placeholder text matches the shipped
+  `masthead.json` string; the 778px figure is corrected to 780px in both named files;
+  `docs/tech-debt-log.md`'s F52 entry is either closed with a citation or left open with a note that this
+  pass confirmed no closing commit exists among #800-#837; `gap-census-2026-07.md` no longer carries the
+  per-item table promise; ADR-037 exists with frontmatter per ADR-009 and cites all 3 dated rulings
+  (2026-09-07, 2026-09-09, 2026-09-18); `SectionHeader.tsx` keeps its rule-below-title behavior unchanged
+  (no code change needed there, the ADR just records which ruling governs); the CommandBar Search\|Ask
+  toggle UI is removed; `grep -rn "Unwatch" src/` now returns a real hit in `WatchButton.tsx`'s row
+  variant, and the companion test asserts the hover/menu state reads "Unwatch" on a watched row.
+- **Size:** S for the 4 mechanical text fixes, the tech-debt-log verification, and the CEN-2 deletion; S
+  for the ADR; S for the WatchButton build (ruling 3.5's own scope is one label swap plus a test).
+- **Model:** Haiku for the mechanical text fixes and the CEN-2 deletion (exact replacement text already
+  drafted by A8d); Sonnet for the ADR (needs to state the supersession reasoning, not just transcribe) and
+  the WatchButton build (a real component change, small but not pattern-fill).
+- **Ordering:** nineteenth, folds into the docs-class lanes alongside Lanes 16-18, except the WatchButton
+  build, which is logically a surface-class lane (alongside 12-14, 21) kept here for register continuity
+  since it originates from the same A8d finding as the rest of this lane.
 
 ## 20. Guard the 5 unguarded producer scripts
 
@@ -436,6 +533,35 @@ hover "Unwatch" text, a real product-behavior gap against a named operator rulin
 - **Model:** Sonnet (security-adjacent, small but needs care).
 - **Ordering:** logically thirteenth-and-a-half (alongside Lanes 12-14); numbered 21 in this document for
   continuity with the already-approved numbering.
+
+## 22. GitHub Actions artifact retention and upload scope
+
+- **Closes:** new, this plan's second amendment under the 2026-10-01 operator ruling; not a `CF-*` audit
+  finding (no audit lane measured this; the coordinator measured it directly, 6.2 GB live, 2026-10-01, and
+  already deleted 290 artifacts by hand ahead of this lane).
+- **Decision (2026-10-01):** every workflow that uploads an artifact sets `retention-days: 7`; every
+  workflow that currently uploads a fuller artifact (logs, intermediate JSON, per-step state) reduces its
+  upload to the run summary only, the minimum the harness/dispatch-ledger conventions need to keep a
+  record of what happened without keeping the full payload.
+- **Write set:** all 13 `.github/workflows/*.yml` files that upload an artifact today (named by A4/A7's
+  own workflow inventory: `brief-export.yml`, `brief-apply.yml`, `change-detection.yml`, `corpus-turn.yml`,
+  `data-audit-lane.yml`, `date-chain.yml`, `discipline.yml`, `downstream-chain.yml`, `fetch-drain.yml`,
+  `gate-a-rescan.yml`, `maintenance.yml`, `population-turn.yml`, `producers.yml`, `propagation-drain.yml`,
+  `source-monitoring.yml`, `source-sweep.yml`, `spot-check-monthly.yml`, `trust-recompute.yml`,
+  `uptime-probes.yml`; the lane confirms the exact 13 by grepping every workflow file for
+  `actions/upload-artifact` before editing, since this plan's own audit sources did not enumerate the
+  upload sites individually).
+- **Acceptance test:** every `actions/upload-artifact` step across all 22 workflow files carries
+  `retention-days: 7`; every one of the 13 identified upload sites uploads only the run summary (the same
+  content already surfaced via `GITHUB_STEP_SUMMARY`/the harness-run artifact record), not the fuller
+  payload; a `gh api` check of the repo's current artifact storage, run after the next full cycle of
+  workflow firings, shows the live total trending down from the 6.2 GB baseline rather than regrowing.
+- **Size:** M (13 files, each a small, mechanical edit, but needs a per-file check that the reduced upload
+  still satisfies whatever downstream step reads it, e.g. the harness-run-landing convention from #813).
+- **Model:** Haiku for the mechanical `retention-days` addition across all 22 files; Sonnet for the 13
+  upload-scope reductions (each needs a one-file judgment call on what the run summary must still
+  contain).
+- **Ordering:** a gates-class lane (CI/infra hygiene), sequenced with Lanes 7-11.
 
 ---
 
@@ -480,9 +606,13 @@ hover "Unwatch" text, a real product-behavior gap against a named operator rulin
   header batch (A8's L3-1 finding); A8d's SPR-1/SPR-2 corroborate the same disposition with a different
   method (git log dates), not a new fix.
 
-## Non-code items requiring operator approval
+## Non-code items, dispositioned by the 2026-10-01 operator ruling
 
-### DROP statements (exact SQL, never executed by this lane)
+Every item in this section previously said "needs an operator ruling." The "Decisions 2026-10-01" section
+at the top of this document records the ruling for each; this section now states only the resulting
+mechanism, not an open question.
+
+### DROP statements (exact SQL, never executed by this lane; staged for the operator/coordinator to run)
 
 ```sql
 -- CF-DATA-4: sources.reliability_score, dead column, 2,572/2,572 rows at exactly the
@@ -492,12 +622,14 @@ ALTER TABLE public.sources DROP COLUMN reliability_score;
 ```
 
 ```sql
--- CF-DEAD-12: inference_records, only if the operator rules it was a one-off
--- experiment rather than a table to keep. Column definition unknown to this lane
--- (no DB access); confirm the live DDL before running this, or write the retroactive
--- migration (migration-256 pattern) instead if the table stays.
--- DROP TABLE public.inference_records;  -- DO NOT RUN without confirming live columns first
+-- CF-DEAD-1, decision 3 (2026-10-01): /api/admin/promotion-policy's table, DELETE.
+-- Superseded by the operator-priced spend model (RD-31/RD-32). Run only after the
+-- route file itself is removed in the same PR (Lane 12).
+DROP TABLE IF EXISTS public.promotion_policy;
 ```
+
+`inference_records` carries no DROP statement: decision 2 (2026-10-01) is KEEP, it is migration 338 on
+`lane/w2g-learning-loop` and needs no action from this plan.
 
 ### Migration applied-status header corrections (text only, no schema change; see Lane 4)
 
@@ -508,46 +640,6 @@ ALTER TABLE public.sources DROP COLUMN reliability_score;
   (confirmed live, 1,757 rows, 2026-09-30)".
 - `261_drop_dead_notification_v1.sql`: "COMMITTED, NOT YET APPLIED" to "APPLIED (confirmed, tables absent
   from live schema, 2026-09-30)".
-
-### `inference_records` disposition (operator call, blocks Lane 5's second half)
-
-Two options, exact mechanism named, no default chosen: (a) write the retroactive migration capturing its
-live definition, migration-256's own pattern, if the table is meant to stay; or (b) drop it (SQL staged
-above, commented out) if it was a one-off experiment. This lane cannot see its column definition without
-DB access, so this is not resolved here.
-
-### Design-ruling conflicts (operator call, blocks part of Lane 19)
-
-Two unresolved, dated ruling conflicts named by A8d (DES-3), neither resolved by any later doc in this
-wave's read set: (a) whether a rule sits below an S-section title (`SectionHeader.tsx:27-30` cites a
-CLOSED 2026-09-07 ruling forbidding it; `parts-brief-2026-09-18.md` section 2.3 asks for exactly that
-rule); (b) whether the CommandBar Search\|Ask toggle (a named, dated 2026-09-09 CMDSEARCH ruling) is
-removed per the 2026-09-18 parts brief's instruction, and if so what happens to the `GET /api/search`
-capability the toggle exists to reach. Record as an ADR or a parts-brief amendment once ruled; this closes
-`parts-inventory.md`'s own still-open findings in place per rule 13's corollary.
-
-### WatchButton "Unwatch" text (operator or coordinator call, not blocked, just not chosen here)
-
-A8d's AUD-1: operator ruling 3.5's second half ("a watched row must never read 'Watch'" on hover/menu) has
-zero implementation (`grep -rn "Unwatch" src/` returns nothing), confirmed by two independently-dated
-passes 4 days apart. Either build the hover/menu "Unwatch" swap in `WatchButton.tsx`'s row variant (S
-effort, Sonnet), or record an explicit deferral/ruling-amendment so the gap stops being an untracked
-silent omission. Not scheduled to a lane above because it is a small, self-contained product fix once
-chosen, not because it needs more investigation; the choice itself (fix now vs. defer) is the open item.
-
-### `/api/admin/promotion-policy` disposition (operator call, blocks Lane 12)
-
-Wire it to the promotion engine it was built for (candidates named by A1:
-`src/lib/sources/promote-provisional.mjs`, `scripts/maintenance/resolve-provisional-sources.mjs`), or
-delete the route, its table, and its migration in one PR with a tech-debt-log entry. Either is
-decision-ready; neither is chosen here.
-
-### The 33-row chained-apply data (operator has already ruled, see Lane 1)
-
-Already ruled "get rid of them." Listed here only to flag that Lane 1's `--apply --archive` step is the
-one write action in this entire plan that touches live customer-facing data (as opposed to schema/docs/CI
-config), and should get an explicit go-ahead immediately before that specific step runs, separate from
-approving the plan as a whole.
 
 ### PROGRAM-BOARD reconstruction as a Haiku batch (Lane 15/17)
 
@@ -560,14 +652,17 @@ pass first, Haiku transcription second, same PR.
 
 ---
 
-*Lanes proposed: 21 (amended 2026-09-30 three times: fold in A8d, PR #856, +1 lane, Lane 19, Lane 15
-revised with the 38-PR reconstruction; the CF-PROC-2/A3/CF-BROKEN-6 corrections touched no lane count;
-fold in A1c/A2bc/A4d/A4bc/A4cc, PRs #858-#862, +2 lanes, Lanes 20-21, Lane 11 revised (CF-GATE-3 dropped,
-resolved with no fix needed; CF-GATE-4 narrowed to 2 files), Lane 13 extended with the timeline-dot ring
-fix). Every CONFIRMED finding in the audit register is mapped to a lane above or the "will not fix" list,
-with a reason in both cases. Write sets checked disjoint by file path across all 21 lanes (no two lanes
-above name an overlapping file); Lane 15 (PROGRAM-BOARD) and Lane 17 (wave-status tables) both touch
-planning docs but not the same file; Lane 19 (design docs) and Lane 16 (mechanical docs batch) both touch
-`docs/` but not the same files. Lanes 20 and 21 are numbered at the end for continuity but belong earlier
-in R14 order (noted in each lane's own Ordering field). Approve this plan, then Lane 1's `--apply` step
-separately, before any lane starts. A6b will be folded in as a second commit when it lands.*
+*Lanes proposed: 22 (amended four times: 2026-09-30, fold in A8d PR #856, +1 lane Lane 19, Lane 15 revised
+with the 38-PR reconstruction; 2026-09-30, the CF-PROC-2/A3/CF-BROKEN-6 corrections touched no lane count;
+2026-09-30, fold in A1c/A2bc/A4d/A4bc/A4cc PRs #858-#862, +2 lanes Lanes 20-21, Lane 11 revised; 2026-10-01,
+**plan approved by the operator under the delegation recorded at the top of this document**, every
+"needs an operator ruling" block resolved into a firm decision (Lanes 1, 5, 12, 13, 16, 18, 19 revised
+accordingly), +1 lane Lane 22 for GitHub Actions artifact retention). Every CONFIRMED finding in the audit
+register is mapped to a lane above or the "will not fix" list, with a reason in both cases. Write sets
+checked disjoint by file path across all 22 lanes (no two lanes above name an overlapping file); Lane 15
+(PROGRAM-BOARD) and Lane 17 (wave-status tables) both touch planning docs but not the same file; Lane 19
+(design docs) and Lane 16 (mechanical docs batch) both touch `docs/` but not the same files. Lanes 20-22
+are numbered at the end for continuity but belong earlier in R14 order (noted in each lane's own Ordering
+field). **The plan is approved; lanes may begin.** Lane 1's `--apply` step is the one write action in this
+plan touching live customer-facing data; it is covered by the same 2026-10-01 approval (decision 1) and
+needs no further separate go-ahead. A6b will be folded in as a further commit when it lands.*
