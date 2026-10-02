@@ -8,7 +8,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fitnessFunction } from './F61-chained-dry-guard-wired.mjs';
 import { readFile } from '../lib/file-content.mjs';
@@ -107,6 +107,26 @@ test('LIVE: every real .github/workflows/*.yml file reports zero violations', ()
     violations,
     [],
     `expected 0 violations, got: ${JSON.stringify(violations, null, 2)}`,
+  );
+});
+
+// ── ATTACK (lane CHAINED-DRY-GUARD-2, 2026-09-29, coordinator-directed): a machine dispatch requesting
+// apply under cadence off must resolve dry -- the live proof run found propagation-drain.yml's guard
+// call reachable via downstream-chain.yml's OWN machine-fired workflow_dispatch (the F60 explicit-
+// dispatch fallback) without a --chained marker, so the force-dry branch never fired for that path;
+// the workflow ran dry only because the caller's own -f mode input happened to say so. This is the
+// runtime proof (pure resolveChainedRunMode, in scripts/lib/chained-dry-guard.test.mjs) mirrored here
+// as a static content check on the one file known to be reachable that way today.
+
+test('ATTACK: propagation-drain.yml, the one workflow reachable via a machine-fired workflow_dispatch (downstream-chain.yml\'s F60 fallback), wires --chained into its own guard call', () => {
+  const dir = join(getRepoRoot(), '.github', 'workflows');
+  const text = readFileSync(join(dir, 'propagation-drain.yml'), 'utf8');
+  assert.match(
+    text,
+    /chained-dry-guard\.mjs --event "\$\{\{ github\.event_name \}\}" --requested-mode apply --chained/,
+    'expected the guard call to pass --chained (derived from inputs.chain_upstream_run_id being ' +
+      'non-empty), so a machine-fired workflow_dispatch is treated like workflow_run for the force-dry ' +
+      'decision, not merely trusted to have arrived already-dry from its caller.'
   );
 });
 
