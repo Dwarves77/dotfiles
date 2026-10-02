@@ -33,11 +33,30 @@ export const dynamic = "force-dynamic";
  * Membership-state derivation: TWO bulk queries (memberships +
  * pending invitations), then an in-memory join. NOT N+1.
  */
-export default async function CommunityBrowsePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ region?: string; privacy?: string }>;
-}) {
+// Row shape of the public-groups select below (community_groups, migration-current columns).
+interface PublicGroupRow {
+  id: string;
+  name: string;
+  slug: string;
+  region: string;
+  privacy: "public" | "private";
+  description: string | null;
+  member_count: number | null;
+  weekly_post_count: number | null;
+  last_active_at: string;
+}
+
+/**
+ * The whole page's data read, with its own timing(s).
+ *
+ * DELIBERATELY NOT INLINE IN THE COMPONENT. `react-hooks/purity` flags `Date.now()` called
+ * inside a component body (watchlist/page.tsx's header is the canonical rationale this repo
+ * carries for the pattern). Hosting every timer in a plain async function keeps the
+ * observability and drops the violation instead of suppressing it. `redirect()` still works
+ * from here: it throws a special Next error that propagates up through the awaited call in the
+ * component exactly as it would from inline code.
+ */
+async function loadBrowsePageData(searchParams: Promise<{ region?: string; privacy?: string }>) {
   const t0 = Date.now();
   const supabase = await createSupabaseServerClient();
   const {
@@ -75,14 +94,13 @@ export default async function CommunityBrowsePage({
       .order("member_count", { ascending: false }),
     loadCommunityShellContext(supabase, user, { regionCountsArgs: { p_privacy: "public" } }),
   ]);
-  const { memberships, invitations, topics } = shell;
   console.log(
     `[perf] /community/browse phase1 ${Date.now() - t0Phase1}ms`
   );
 
   // ── Reshape public groups ───────────────────────────────────────
   const publicGroups: (CommunityGroupSummary & { description?: string | null })[] =
-    (groupsRaw || []).map((g: any) => ({
+    ((groupsRaw || []) as PublicGroupRow[]).map((g) => ({
       id: g.id,
       name: g.name,
       slug: g.slug,
@@ -162,6 +180,17 @@ export default async function CommunityBrowsePage({
     COMMUNITY_REGIONS.find((r) => r.code === requestedRegion)?.label ?? requestedRegion;
 
   console.log(`[perf] /community/browse data ${Date.now() - t0}ms`);
+
+  return { shell, requestedRegion, privacyFilter, activeRegionLabel, browseRows };
+}
+
+export default async function CommunityBrowsePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string; privacy?: string }>;
+}) {
+  const { shell, requestedRegion, privacyFilter, activeRegionLabel, browseRows } =
+    await loadBrowsePageData(searchParams);
 
   return (
     <CommunityShell
