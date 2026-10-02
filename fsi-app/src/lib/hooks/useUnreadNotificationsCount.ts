@@ -70,8 +70,10 @@ export function useUnreadNotificationsCount() {
     };
   }, [fetchUnreadCount]);
 
+  const setClampedUnreadCount = useCallback((next: number) => setUnreadCount(Math.max(0, next)), []);
+
   return {
     unreadCount,
-    setUnreadCount: (next: number) => setUnreadCount(Math.max(0, next)),
+    setUnreadCount: setClampedUnreadCount,
   };
 }
