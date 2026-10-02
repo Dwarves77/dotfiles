@@ -184,10 +184,6 @@ export async function collect(sb, { harnessRoot = DEFAULT_HARNESS_RUNS_ROOT } = 
   };
 }
 
-function pad(s, n) {
-  return String(s).padEnd(n);
-}
-
 /** Pure renderer: the assembled report object -> Markdown lines. Injectable/testable without a
  *  database (population-report.mjs's `renderReport` posture). */
 export function renderMarkdown(report) {

@@ -8,10 +8,7 @@
 // grounding-is-non-destructive. No DB (the DB UNIQUE index + no-delete are the enforcement; this proves the
 // key-derivation that the index keys on). Run: node scripts/verify/primary-text-permanent.golden.mjs
 import { createJiti } from "jiti";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true });
 const { sha256Hex } = await jiti.import("../../src/lib/sources/snapshot-store.mjs");
 

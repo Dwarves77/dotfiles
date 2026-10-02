@@ -15,7 +15,6 @@
  *  Exit 0 = guard proven (red-then-green). Exit 1 = a leg failed. Env: a Postgres connection string in
  *  SUPABASE_DB_URL or DATABASE_URL. Runs in the CI-with-secrets / ops lane (post-apply); pre-push validates
  *  wiring via the meta-gate (RD-23 audit token). */
-import { resolve } from "node:path";
 import { connectPg } from "../lib/pg-conn.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 loadLocalEnvFile();

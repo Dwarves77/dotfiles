@@ -18,12 +18,11 @@ import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 loadLocalEnvFile();
 
-let rows, hasStoredColumn = true;
+let rows;
 try {
   rows = await readAll("intelligence_items", "id, title, instrument_identifier, source_url, canonical_instrument_key, provenance_status, is_archived");
 } catch (e) {
   if (/canonical_instrument_key.*does not exist/i.test(e.message)) {
-    hasStoredColumn = false;
     console.warn("[canonical-key-uniqueness] canonical_instrument_key column absent (migration 200 not yet applied) — checking DERIVED keys only.");
     try {
       rows = (await readAll("intelligence_items", "id, title, instrument_identifier, source_url, provenance_status, is_archived")).map((r) => ({ ...r, canonical_instrument_key: null }));

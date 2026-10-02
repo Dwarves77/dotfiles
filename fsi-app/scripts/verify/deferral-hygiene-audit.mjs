@@ -13,7 +13,6 @@
  *  READ-ONLY, REPORT-ONLY: it NEVER writes (does not resolve/re-open — that is a later disposition
  *  dispatch's job). It NAMES the rot so the resolver can act. Exit 0 = clean; exit 1 = rot found; exit 2 =
  *  read error. Env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. */
-import { resolve } from "node:path";
 import { readAll } from "../lib/db.mjs";
 import { sameBlockerReason } from "../lib/deferral.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";

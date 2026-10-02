@@ -152,7 +152,6 @@ export async function countBriefsPendingStale(sb, {
 // column"): item_grade='record' is the same stored-column stub predicate countBriefsPendingStale above
 // already uses (ADR-028: record grade IS the stub state, until a brief-apply run upgrades it in place),
 // never a text-length or content scan of full_brief itself.
-const BRIEFS_OWED_AGE_BUCKETS = Object.freeze(["under_7d", "d7_to_30", "over_30d"]);
 
 /** Pure: bucket a set of record-grade items by item_type and age-since-created_at, relative to `nowMs`.
  *  An item whose created_at cannot be parsed is not counted in any bucket (never guessed) but is still

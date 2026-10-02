@@ -3,10 +3,7 @@
 // No DB. Locks the four gates' would-have-held logic that the report-only calibration + report-only pipeline
 // wiring share. Invariant RD-41. Run: node scripts/verify/mint-gates.golden.mjs — exits 0 PASS, 1 FAIL.
 import { createJiti } from "jiti";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true });
 const { perFactGates, perFactWouldHold, identityCongruenceHolds } = await jiti.import("../../src/lib/agent/mint-gates.mjs");
 

@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true });
-const { verifyTargetMatch, targetMatchHolds, scanInstrumentIds, expectedInstrumentIds, subjectOverlap, SUBJECT_MATCH_THRESHOLD, identifierInUrl, verifyPoolTargetMatch } =
+const { verifyTargetMatch, targetMatchHolds, scanInstrumentIds, expectedInstrumentIds, SUBJECT_MATCH_THRESHOLD, identifierInUrl, verifyPoolTargetMatch } =
   await jiti.import("../../src/lib/sources/target-match.mjs");
 
 let failed = 0;

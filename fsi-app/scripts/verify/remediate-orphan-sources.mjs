@@ -13,7 +13,7 @@
  *  base_tier is by institutional TYPE (content-authority, not role) and is OPERATOR-OVERRIDABLE; the
  *  honest default for an ambiguous host is T4. DRY-RUN default; --apply to write; --limit=N to bound.
  *  Requires env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. Zero Browserless. */
-import { readClient, readAll, registerSource, reclassifyToSource, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
+import { readClient, readAll, registerSource, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 loadLocalEnvFile();
