@@ -59,6 +59,14 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
   'src/components/regulations/EudrCustodyPanelView.tsx': 'spec09 §1.8 EUDR/custody blocking-alert row',
+  // Lane L5 (2026-10-02, coordinator-directed registration, extended scope). AssessmentHistoryLedger
+  // renders ONE ROW PER history entry (migration 344's supersedes chain, walked for real by
+  // read-signposts.mjs's fetchAssessmentHistoryChain) -- structurally a row list, not a single-panel
+  // card like its sibling ResearchAssessmentCard (lane W2-R's own precedent, NOT registered here) or
+  // this lane's own DissentPanel/SignpostList (also single-panel, also not registered). Measured at
+  // 375 px by detail-surfaces-smoke.mjs, which mounts the real ResearchFindingDetailSurface.tsx this
+  // component is rendered inside (see that spec file's own comment for the literal coverage string).
+  'src/components/research/AssessmentHistoryLedger.tsx': 'spec-03 section 7 component 11, append-only assessment-history rows (lane L5, 2026-10-02)',
   // Detail surfaces (lane MOBILE-2, second phone round): screenshot 09, breadcrumb off page and doubling the H1.
   // lane uidetails (2026-09-06): RegulationDetailSurface.tsx was rebuilt onto the shared ONE detail
   // architecture (DetailShell.tsx, README §0.5) — the H1/data-guard-title element it used to carry

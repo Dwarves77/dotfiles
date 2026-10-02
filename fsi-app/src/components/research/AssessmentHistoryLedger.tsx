@@ -8,43 +8,32 @@
  * Migration 344's `supersedes` self-FK plus `is_current` flip is the append-only mechanism this
  * ledger renders: a prior row is never updated in place, only superseded.
  *
- * DEPENDENCY, NAMED HONESTLY (CLAUDE.md rule 2). `read-assessments.mjs`'s only read path is
- * `research_assessments_current` (migration 344's own view, `WHERE is_current`) -- it never returns
- * a row's `supersedes` ancestors. Walking that chain needs a NEW read (a recursive or repeated
- * lookup against the raw `research_assessments` table, which RLS denies to anon/authenticated by
- * design -- only a server-side service-role or a new SECURITY DEFINER view could do it). That read
- * module is outside this lane's exact write set (three components only, see the brief) and is not
- * built here. What this component CAN do with data already in hand at the mount site -- the single
- * `AssessmentView` (the current row) `ResearchFindingDetailSurface.tsx` already receives as a prop
- * -- is render that one row as the ledger's first (current) entry, and say plainly that no prior
- * version has been fetched yet, rather than fabricate a history the page cannot see. The `history`
- * prop below accepts the full chain for the day a future lane wires that read; until then the mount
- * passes only `current`.
+ * WALKS THE REAL CHAIN (lane L5, extended scope, 2026-10-02, after lane L6/PR #890 merged before this
+ * lane branched). `src/lib/research/read-signposts.mjs`'s `fetchAssessmentHistoryChain` (beside
+ * read-assessments.mjs) walks `research_assessments.supersedes` backward from the current row, using
+ * the SAME service-role client `src/app/research/[slug]/page.tsx` already holds. NAMED LIMIT (CLAUDE.md
+ * rule 14, stated plainly, not hidden): that client is service-role and bypasses RLS (see
+ * read-signposts.mjs's own header), so the walk genuinely reaches prior rows in production; a client
+ * without that privilege would see the chain stop at the current row (migration 344's raw-table RLS is
+ * deliberately closed to anon/authenticated) -- the walk function soft-fails to a shorter-than-real
+ * chain in that case, never a thrown error.
+ *
+ * `history` is the real (possibly single-entry) chain fetched server-side. `current` remains as a
+ * fallback for a caller that has not wired the chain fetch at all (never both at once in practice).
  */
 
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { RailAbsenceNote } from "@/components/research/RailAbsenceNote";
 import { formatDate } from "@/lib/format";
+import type { selectAssessmentHistoryEntry } from "@/lib/research/read-signposts.mjs";
 
-/** One entry in the append-only chain -- the current row, or a row it supersedes. */
-export interface AssessmentHistoryEntry {
-  id: string;
-  computedAt: string;
-  isCurrent: boolean;
-  statusToken: "CONFIRMED" | "HYPOTHESIS";
-  technicalMaturityLabel?: string | null;
-  commercialMaturityLabel?: string | null;
-  horizonBandLabel?: string | null;
-  /** Why this entry was superseded, when recorded. Null/absent is an honest "not recorded", never
-   *  invented copy. */
-  cause?: string | null;
-}
+export type AssessmentHistoryEntry = NonNullable<ReturnType<typeof selectAssessmentHistoryEntry>>;
 
 export interface AssessmentHistoryLedgerProps {
-  /** The full supersedes chain, newest first, when a future lane wires the walk. */
+  /** The real supersedes chain, newest first (`fetchAssessmentHistoryChain`'s own return shape). */
   history?: AssessmentHistoryEntry[] | null;
-  /** The one row already available at the mount site (the current assessment) -- used to render a
-   *  single live entry when `history` has not been wired yet. */
+  /** Fallback: the one row already available at a mount site that has not wired the chain fetch. */
   current?: {
     computedAt: string;
     statusToken: "CONFIRMED" | "HYPOTHESIS";
@@ -66,12 +55,14 @@ export function AssessmentHistoryLedger({ history, current }: AssessmentHistoryL
         ? [
             {
               id: "current",
-              computedAt: current.computedAt,
+              supersedes: null,
               isCurrent: true,
               statusToken: current.statusToken,
-              technicalMaturityLabel: current.technicalMaturityLabel,
-              commercialMaturityLabel: current.commercialMaturityLabel,
-              horizonBandLabel: current.horizonBandLabel,
+              lifecycleState: null,
+              computedAt: current.computedAt,
+              technicalMaturityLabel: current.technicalMaturityLabel ?? null,
+              commercialMaturityLabel: current.commercialMaturityLabel ?? null,
+              horizonBandLabel: current.horizonBandLabel ?? null,
               cause: null,
             },
           ]
@@ -83,9 +74,9 @@ export function AssessmentHistoryLedger({ history, current }: AssessmentHistoryL
     <SectionCard padding="12px 16px 14px">
       <SectionHeading title="Assessment history" />
       {entries.length === 0 ? (
-        <p style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.5, margin: 0 }}>
+        <RailAbsenceNote>
           No assessment history yet -- the research-assessment producer has not run over this item.
-        </p>
+        </RailAbsenceNote>
       ) : (
         <>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -96,6 +87,7 @@ export function AssessmentHistoryLedger({ history, current }: AssessmentHistoryL
                     {e.isCurrent ? "Current" : "Superseded"}
                   </span>
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>{formatDate(e.computedAt)}</span>
+                  {e.lifecycleState && <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>· {e.lifecycleState}</span>}
                 </div>
                 <span style={{ fontSize: 11, color: "var(--ink)" }}>{entryLine(e)}</span>
                 {e.cause && <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>cause: {e.cause}</span>}

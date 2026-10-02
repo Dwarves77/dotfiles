@@ -31,6 +31,7 @@
 import type { CSSProperties } from "react";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { RailAbsenceNote } from "@/components/research/RailAbsenceNote";
 import { TagChip } from "@/components/ui/Chips";
 
 /** A real, content-level dissenting account -- one source's differing conclusion. No reader produces
@@ -113,10 +114,10 @@ export function DissentPanel({ dissentingSources, authorityDistribution }: Disse
           </ul>
         </>
       ) : (
-        <p style={ROW_STYLE}>
+        <RailAbsenceNote>
           No dissent recorded for this finding -- either no source disagreement has been classified
           yet, or only one source&apos;s standing is resolved for this assessment.
-        </p>
+        </RailAbsenceNote>
       )}
     </SectionCard>
   );

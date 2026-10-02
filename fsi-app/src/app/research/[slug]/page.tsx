@@ -50,6 +50,7 @@ import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
+import { fetchSignpostsForAssessment, fetchAssessmentHistoryChain } from "@/lib/research/read-signposts.mjs";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
@@ -101,6 +102,15 @@ interface ItemScoped {
    *  absence - the producer has not run over this item, or the migration has not been applied) - the
    *  surface renders what it produces (R14); it never fabricates a reading. */
   assessment: ReturnType<typeof selectAssessmentView>;
+  /** Lane L5 (2026-10-02, extended scope after lane L6/PR #890 merged): migration 346's `signposts`
+   *  rows watching this item's current assessment, shaped by read-signposts.mjs. [] when no
+   *  assessment exists yet or no signpost has been registered - honest absence, never fabricated. */
+  signposts: Awaited<ReturnType<typeof fetchSignpostsForAssessment>>;
+  /** Lane L5 (2026-10-02, extended scope): the real `supersedes` chain for this item's assessment,
+   *  newest first, walked by read-signposts.mjs's fetchAssessmentHistoryChain using this SAME
+   *  service-role client. One entry (the current row) when no prior version exists, or when the
+   *  client cannot see priors (see that module's own header for the named RLS/privilege limit). */
+  assessmentHistory: Awaited<ReturnType<typeof fetchAssessmentHistoryChain>>;
 }
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the remaining reason this route still
@@ -168,6 +178,8 @@ export default async function ResearchFindingDetailPage({
           peersEntityId: string | null;
           claimTiers: ClaimTierMap;
           assessment: ItemScoped["assessment"];
+          signposts: ItemScoped["signposts"];
+          assessmentHistory: ItemScoped["assessmentHistory"];
         }> = (async () => {
           let related: ReturnType<typeof pickRelated>[] = [];
           let relatedReason: ItemScoped["relatedReason"] = "none";
@@ -175,6 +187,8 @@ export default async function ResearchFindingDetailPage({
           let peersEntityId: string | null = null;
           let claimTiers: ClaimTierMap = {};
           let assessment: ItemScoped["assessment"] = null;
+          let signposts: ItemScoped["signposts"] = [];
+          let assessmentHistory: ItemScoped["assessmentHistory"] = [];
           try {
             const isUuid = isItemUuid(id);
             const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
@@ -262,10 +276,16 @@ export default async function ResearchFindingDetailPage({
               // assessment yet) rather than tripping this block's shared catch - a missing/not-yet-
               // applied migration must not break the rest of the detail page's item-scoped bundle.
               try {
+                // Lane L5 (2026-10-02, extended scope): `id`, `supersedes`, `is_current`, `lifecycle_state`
+                // added to this existing select (migration 346's own columns on the same view) so the
+                // SAME lookup also seeds the signposts fetch (needs the row's real uuid, not item_id) and
+                // the history-chain walk (needs id/supersedes) - no second redundant query against this
+                // view. Soft-fails together with the assessment read below (same try/catch, same
+                // "missing/not-yet-applied migration must not break the rest of the page" posture).
                 const { data: assessmentRow } = await supabase
                   .from("research_assessments_current")
                   .select(
-                    "item_id, technical_maturity_low, technical_maturity_high, technical_maturity_method, " +
+                    "id, supersedes, is_current, lifecycle_state, item_id, technical_maturity_low, technical_maturity_high, technical_maturity_method, " +
                       "commercial_maturity_low, commercial_maturity_high, commercial_maturity_method, " +
                       "horizon_kind, horizon_band, horizon_rule, horizon_confidence, horizon_trigger_note, " +
                       "refusal_reason, credibility_evidence_score, credibility_authority_score, status_token, computed_at",
@@ -275,14 +295,23 @@ export default async function ResearchFindingDetailPage({
                 assessment = selectAssessmentView(
                   assessmentRow as unknown as Parameters<typeof selectAssessmentView>[0],
                 );
+                if (assessmentRow) {
+                  const row = assessmentRow as unknown as { id: string; supersedes: string | null };
+                  [signposts, assessmentHistory] = await Promise.all([
+                    fetchSignpostsForAssessment(supabase, row.id),
+                    fetchAssessmentHistoryChain(supabase, row as Parameters<typeof fetchAssessmentHistoryChain>[1]),
+                  ]);
+                }
               } catch {
                 assessment = null;
+                signposts = [];
+                assessmentHistory = [];
               }
             }
           } catch {
             // Soft-fail - surface renders the empty state (no related findings, no theme-brief card).
           }
-          return { related, relatedReason, themeBrief, peersEntityId, claimTiers, assessment };
+          return { related, relatedReason, themeBrief, peersEntityId, claimTiers, assessment, signposts, assessmentHistory };
         })();
 
         const [resourceLookup, relatedAndBrief] = await Promise.all([
@@ -298,6 +327,8 @@ export default async function ResearchFindingDetailPage({
           themeBrief: relatedAndBrief.themeBrief,
           claimTiers: relatedAndBrief.claimTiers,
           assessment: relatedAndBrief.assessment,
+          signposts: relatedAndBrief.signposts,
+          assessmentHistory: relatedAndBrief.assessmentHistory,
         };
       },
     });
@@ -316,6 +347,8 @@ export default async function ResearchFindingDetailPage({
   const themeBrief = result.itemScoped?.themeBrief ?? null;
   const claimTiers = result.itemScoped?.claimTiers ?? {};
   const assessment = result.itemScoped?.assessment ?? null;
+  const signposts = result.itemScoped?.signposts ?? [];
+  const assessmentHistory = result.itemScoped?.assessmentHistory ?? [];
 
   console.log(`[perf] /research/${id} data ${result.elapsedMs}ms`);
 
@@ -338,6 +371,8 @@ export default async function ResearchFindingDetailPage({
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
         assessment={assessment}
+        signposts={signposts}
+        assessmentHistory={assessmentHistory}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see

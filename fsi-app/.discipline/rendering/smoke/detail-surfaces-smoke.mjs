@@ -508,6 +508,18 @@ const RESEARCH_STATES = [
       relevance: null,
       resourceLookup: {},
       themeBrief: undefined,
+      // Lane L5 (2026-10-02, extended scope, F35 registration): a 2-entry fixture chain so
+      // AssessmentHistoryLedger's real row-list shape (migration 344's supersedes chain, walked by
+      // read-signposts.mjs) is genuinely measured at 375 px here, not merely asserted in a unit test.
+      // F35 coverage (this component renders inside ResearchFindingDetailSurface, imported above, not
+      // as its own top-level import here): import { AssessmentHistoryLedger } from '@/components/research/AssessmentHistoryLedger';
+      assessmentHistory: [
+        { id: 'a2', supersedes: 'a1', isCurrent: true, statusToken: 'CONFIRMED', lifecycleState: 'strengthening', computedAt: '2026-10-01T00:00:00Z', technicalMaturityLabel: 'TRL 7-8', commercialMaturityLabel: 'CRI 3', horizonBandLabel: 'NEAR', cause: null },
+        { id: 'a1', supersedes: null, isCurrent: false, statusToken: 'HYPOTHESIS', lifecycleState: 'emerging', computedAt: '2026-08-01T00:00:00Z', technicalMaturityLabel: 'TRL 6', commercialMaturityLabel: null, horizonBandLabel: null, cause: null },
+      ],
+      signposts: [
+        { entityId: 'sp-1', assessmentId: 'a2', watches: 'corridor-eu-road', direction: 'confirms', predicateSummary: 'fires once the EU phase-in date has passed', firedAt: null, isFired: false },
+      ],
     },
     expectTitles: 1,
   },
