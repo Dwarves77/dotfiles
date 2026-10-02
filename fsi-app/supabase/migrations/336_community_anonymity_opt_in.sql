@@ -1,6 +1,8 @@
--- subject: Migration 336 (Lane W2-B COMMUNITY-IDENTITY, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides
--- coordinator DDL approval (migration two-track policy: schema DDL applies before the dependent code
--- commits). Additive only, reversible: drop the two columns.
+-- subject: Migration 336 (Lane W2-B COMMUNITY-IDENTITY, 2026-09-29). APPLIED 2026-09-30 by the
+-- coordinator (confirmed by lane R4-5 MIGRATION-TRUTH-CATALOG-DROPS, 2026-10-01,
+-- remediation-plan-2026-09-30.md Lane 4/5), ahead of this lane's own dependent code landing on master
+-- (migration two-track policy: schema DDL applies before the dependent code commits). Additive only,
+-- reversible: drop the two columns.
 --
 -- R8.7 amendment (spec 07 Community section, 2026-09-25; ADR-035's sibling identity ruling, operator
 -- verbatim): "a room can and should know who you are when you talking. unless you choose to be
