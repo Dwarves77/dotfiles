@@ -18,7 +18,7 @@ let pass = 0, fail = 0;
 const eq = (name, got, want) => {
   const ok = got === want;
   console.log(`  ${ok ? "PASS" : "FAIL"}  ${name} (got ${got}, want ${want})`);
-  ok ? pass++ : fail++;
+  if (ok) pass++; else fail++;
 };
 const URL1 = "https://eur-lex.europa.eu/legal/x";
 

@@ -60,7 +60,7 @@ test("a populated valueNumeric requires a unit (a malformed envelope, not a vali
 });
 
 test("valueNumeric and unit are both optional when the assumption carries no bare number", () => {
-  const { valueNumeric, unit, ...rest } = VALID;
+  const { valueNumeric: _valueNumeric, unit: _unit, ...rest } = VALID;
   const result = validateAssumptionInput(rest);
   assert.equal(result.valid, true);
   assert.equal(result.value.valueNumeric, null);
@@ -89,7 +89,7 @@ test("over-length fields are rejected (name, boundTo, unit, sourceNote)", () => 
 });
 
 test("sourceNote is optional", () => {
-  const { sourceNote, ...rest } = VALID;
+  const { sourceNote: _sourceNote, ...rest } = VALID;
   const result = validateAssumptionInput(rest);
   assert.equal(result.valid, true);
   assert.equal(result.value.sourceNote, null);

@@ -40,8 +40,8 @@ async function persistJson(
       return { ok: false, error: message };
     }
     return { ok: true, error: null };
-  } catch (e: any) {
-    console.error(`[resourceStore] ${path} request failed:`, e?.message || e);
+  } catch (e: unknown) {
+    console.error(`[resourceStore] ${path} request failed:`, e instanceof Error ? e.message : e);
     return { ok: false, error: "Network error. Your change was not saved." };
   }
 }

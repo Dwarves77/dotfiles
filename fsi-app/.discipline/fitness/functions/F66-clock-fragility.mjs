@@ -50,11 +50,6 @@ const LIVE_CLOCK_RE = /\bnew\s+Date\s*\(\s*\)|\bDate\s*\.\s*now\s*\(\s*\)/;
 const ASSERT_RE = /\bassert(?:\.\w+)?\s*\.\s*(?:equal|strictEqual)\s*\(/;
 const COMPUTED_RE = /`[^`]*\$\{[^}]*\}[^`]*`|(?:"[^"\n]*"|'[^'\n]*')\s*\+|\+\s*(?:"[^"\n]*"|'[^'\n]*')/;
 
-function isComment(line) {
-  const t = line.trim();
-  return t.startsWith('//') || t.startsWith('*') || t.startsWith('/*');
-}
-
 /** Blank out `//` and `/* *\/` comment text so a hazard token merely NAMED in prose (this repo's
  *  headers quote `Date.now()` constantly when explaining defects) is never mistaken for a live call.
  *  PURE. */

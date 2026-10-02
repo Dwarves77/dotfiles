@@ -5,7 +5,6 @@
 // Proves on real infrastructure: (a) a FINDING routes a real flag to integrity_flags;
 // (b) the heartbeat to d3_runs (DEFINED-not-applied) gracefully skips-with-log, no
 // throw; (c) a guard given a broken client fails OPEN (passthrough), never throws.
-import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";

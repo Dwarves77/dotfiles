@@ -2,7 +2,17 @@ import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
 import type { Resource, ChangeLogEntry, Dispute, Supersession, ItemConnection } from "@/types/resource";
-import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
+import type {
+  Source,
+  ProvisionalSource,
+  TrustMetrics,
+  TrustScore,
+  SourceTier,
+  SourceStatus,
+  IntelligenceType,
+  IntelligenceDomain,
+  TierHistoryEntry,
+} from "@/types/source";
 import { scoreResource } from "@/lib/scoring";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 import { surfaceOf } from "@/lib/surface-of.mjs";
@@ -108,6 +118,30 @@ function embeddedSurface(ii: EmbeddedItemWithSurface | EmbeddedItemWithSurface[]
   return surfaceOf(obj.item_type ?? undefined, obj.domain ?? undefined);
 }
 
+// Row shapes for the explicit `.select(...)` column lists below, so each callback reading a raw
+// Supabase row has a real type instead of `any`. Lane R7-LINT-CI (2026-10-02), read against each
+// select()'s own column list and the fields each consumer actually reads.
+interface ChangelogQueryRow {
+  change_date: string;
+  change_type: "NEW" | "UPDATED";
+  field: string | null;
+  previous_value: string | null;
+  new_value: string | null;
+  impact: string | null;
+  intelligence_items: EmbeddedItem | EmbeddedItem[] | null;
+}
+
+// item_disputes.disputing_sources is a jsonb column that carries either bare source-name strings
+// (legacy rows) or {name, url} objects (current writer); both shapes are normalized to
+// Dispute["sources"] at the read site below.
+type DisputingSourceEntry = string | { name: string; url: string };
+
+interface DisputeQueryRow {
+  note: string;
+  disputing_sources: DisputingSourceEntry[] | string | null;
+  intelligence_items: EmbeddedItem | EmbeddedItem[] | null;
+}
+
 async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
   const supabase = getSupabase();
   // Bound: only the most recent ~100 entries; WhatChanged renders only the
@@ -119,7 +153,7 @@ async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
     .limit(100);
 
   const result: Record<string, ChangeLogEntry[]> = {};
-  (rows || []).forEach((row: any) => {
+  (rows || []).forEach((row: ChangelogQueryRow) => {
     const id = uiId(row.intelligence_items);
     if (!id) return;
     const entry: ChangeLogEntry = {
@@ -149,10 +183,10 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
     .limit(100);
 
   const result: Record<string, Dispute> = {};
-  (rows || []).forEach((row: any) => {
+  (rows || []).forEach((row: DisputeQueryRow) => {
     const id = uiId(row.intelligence_items);
     if (!id) return;
-    const sources = Array.isArray(row.disputing_sources)
+    const sources: DisputingSourceEntry[] = Array.isArray(row.disputing_sources)
       ? row.disputing_sources
       : typeof row.disputing_sources === "string"
         ? JSON.parse(row.disputing_sources)
@@ -161,7 +195,7 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
     result[id] = {
       resource: id,
       note: row.note,
-      sources: sources.map((s: any) =>
+      sources: sources.map((s: DisputingSourceEntry) =>
         typeof s === "string" ? { name: s, url: "" } : s
       ),
     };
@@ -216,32 +250,90 @@ async function fetchSupersessions(): Promise<Supersession[]> {
 
 // ── Source Fetch Functions ───────────────────────────────────
 
-function mapSourceRow(row: any): Source {
+// Row shape for SOURCE_COLUMNS' exact projection (defined below). Every field mapSourceRow reads,
+// typed nullable/optional per the sources table's own columns (migrations 004 Q2 tier split, Phase 7
+// tier_override). No generated Database types exist in this codebase (checked: no database.types.ts,
+// no Database-typed createClient call); this interface is the hand-rolled equivalent, scoped to
+// exactly the columns SOURCE_COLUMNS lists, so it can't silently drift from the select() beside it.
+interface SourceQueryRow {
+  id: string;
+  name: string;
+  url: string;
+  description: string | null;
+  base_tier: number;
+  effective_tier: number | null;
+  tier_override: unknown;
+  tier_at_creation: number | null;
+  intelligence_types: string[] | null;
+  domains: number[] | null;
+  jurisdictions: string[] | null;
+  transport_modes: string[] | null;
+  update_frequency: string | null;
+  last_checked: string | null;
+  last_substantive_change: string | null;
+  next_scheduled_check: string | null;
+  status: string | null;
+  paywalled: boolean | null;
+  access_method: string | null;
+  api_endpoint: string | null;
+  rss_feed_url: string | null;
+  confirmation_count: number | null;
+  conflict_count: number | null;
+  conflict_total: number | null;
+  // PostgREST serializes Postgres `numeric` columns as strings (not JSON numbers), which is exactly
+  // why the mapper below runs these through parseFloat rather than reading them directly.
+  accuracy_rate: string | null;
+  avg_lead_time_days: string | null;
+  lead_time_samples: number | null;
+  consecutive_accessible: number | null;
+  total_checks: number | null;
+  successful_checks: number | null;
+  accessibility_rate: string | null;
+  last_accessible: string | null;
+  last_inaccessible: string | null;
+  independent_citers: number | null;
+  total_citations: number | null;
+  highest_citing_tier: number | null;
+  self_citation_count: number | null;
+  trust_score_overall: number | null;
+  trust_score_accuracy: string | null;
+  trust_score_timeliness: string | null;
+  trust_score_reliability: string | null;
+  trust_score_citation: string | null;
+  trust_score_computed_at: string | null;
+  tier_history: unknown[] | null;
+  cited_by: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function mapSourceRow(row: SourceQueryRow): Source {
   const metrics: TrustMetrics = {
     confirmation_count: row.confirmation_count || 0,
     conflict_count: row.conflict_count || 0,
     conflict_total: row.conflict_total || 0,
-    accuracy_rate: parseFloat(row.accuracy_rate) || 0.5,
-    avg_lead_time_days: parseFloat(row.avg_lead_time_days) || 0,
+    accuracy_rate: parseFloat(row.accuracy_rate ?? "") || 0.5,
+    avg_lead_time_days: parseFloat(row.avg_lead_time_days ?? "") || 0,
     lead_time_samples: row.lead_time_samples || 0,
     consecutive_accessible: row.consecutive_accessible || 0,
     total_checks: row.total_checks || 0,
     successful_checks: row.successful_checks || 0,
-    accessibility_rate: parseFloat(row.accessibility_rate) || 1.0,
+    accessibility_rate: parseFloat(row.accessibility_rate ?? "") || 1.0,
     last_accessible: row.last_accessible || null,
     last_inaccessible: row.last_inaccessible || null,
     independent_citers: row.independent_citers || 0,
     total_citations: row.total_citations || 0,
-    highest_citing_tier: row.highest_citing_tier || null,
+    highest_citing_tier: (row.highest_citing_tier as SourceTier | null) || null,
     self_citation_count: row.self_citation_count || 0,
   };
 
   const score: TrustScore = {
     overall: row.trust_score_overall || 50,
-    accuracy_component: parseFloat(row.trust_score_accuracy) || 20,
-    timeliness_component: parseFloat(row.trust_score_timeliness) || 10,
-    reliability_component: parseFloat(row.trust_score_reliability) || 10,
-    citation_component: parseFloat(row.trust_score_citation) || 10,
+    accuracy_component: parseFloat(row.trust_score_accuracy ?? "") || 20,
+    timeliness_component: parseFloat(row.trust_score_timeliness ?? "") || 10,
+    reliability_component: parseFloat(row.trust_score_reliability ?? "") || 10,
+    citation_component: parseFloat(row.trust_score_citation ?? "") || 10,
     computed_at: row.trust_score_computed_at || new Date().toISOString(),
   };
 
@@ -250,26 +342,29 @@ function mapSourceRow(row: any): Source {
     name: row.name,
     url: row.url,
     description: row.description || "",
-    // Phase 1.5: Q2 base_tier + effective_tier (replaces single tier).
-    base_tier: row.base_tier,
-    effective_tier: row.effective_tier ?? null,
-    tier_at_creation: row.tier_at_creation,
-    intelligence_types: row.intelligence_types || [],
-    domains: row.domains || [],
+    // Phase 1.5: Q2 base_tier + effective_tier (replaces single tier). Tier/status/access_method are
+    // cast to their narrow literal types below. The DB CHECK constraint is the thing that actually
+    // guarantees the value is in range, same trust boundary the file's other DB-constrained-value
+    // casts already rely on (e.g. severity "major"|"minor"|"replacement" in fetchSupersessions).
+    base_tier: row.base_tier as SourceTier,
+    effective_tier: (row.effective_tier as SourceTier | null) ?? null,
+    tier_at_creation: row.tier_at_creation as SourceTier,
+    intelligence_types: (row.intelligence_types as IntelligenceType[] | null) || [],
+    domains: (row.domains as IntelligenceDomain[] | null) || [],
     jurisdictions: row.jurisdictions || [],
     transport_modes: row.transport_modes || [],
     update_frequency: row.update_frequency || "weekly",
     last_checked: row.last_checked || null,
     last_substantive_change: row.last_substantive_change || null,
     next_scheduled_check: row.next_scheduled_check || null,
-    status: row.status || "active",
+    status: (row.status as SourceStatus | null) || "active",
     paywalled: row.paywalled || false,
-    access_method: row.access_method || "manual",
+    access_method: (row.access_method as Source["access_method"] | null) || "manual",
     api_endpoint: row.api_endpoint || undefined,
     rss_feed_url: row.rss_feed_url || undefined,
     trust_metrics: metrics,
     trust_score: score,
-    tier_history: row.tier_history || [],
+    tier_history: (row.tier_history as TierHistoryEntry[] | null) || [],
     cited_by: row.cited_by || null,
     notes: row.notes || "",
     created_at: row.created_at,
@@ -352,7 +447,38 @@ async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
     query = query.eq("admin_only", false);
   }
   const { data: rows } = await query;
-  return (rows || []).map(mapSourceRow);
+  // SOURCE_COLUMNS is a dynamically-built string, not a literal, so supabase-js's `.select()`
+  // overload can't infer a row shape from it and falls back to `GenericStringError[]`, a known
+  // supabase-js limitation, not a real type mismatch (the column list is static and reviewed above).
+  // SourceQueryRow is the honest row shape; the double-cast through unknown documents that this is
+  // bypassing the SDK's fallback-error typing, not a genuine 'any' hole.
+  return ((rows || []) as unknown as SourceQueryRow[]).map(mapSourceRow);
+}
+
+// Raw provisional_sources row (select("*")), pre-default. Every field the mapper below applies a
+// `|| <default>` fallback to is typed nullable here, matching what the column can actually hold.
+interface ProvisionalSourceQueryRow {
+  id: string;
+  name: string;
+  url: string;
+  domain: ProvisionalSource["domain"];
+  description: string | null;
+  discovered_via: ProvisionalSource["discovered_via"];
+  cited_by_source_id: string;
+  cited_by_source_tier: ProvisionalSource["cited_by_source_tier"];
+  citation_count: number | null;
+  independent_citers: number | null;
+  citing_source_ids: string[] | null;
+  highest_citing_tier: ProvisionalSource["highest_citing_tier"];
+  provisional_tier: ProvisionalSource["provisional_tier"] | null;
+  recommended_tier: ProvisionalSource["recommended_tier"];
+  accessibility_verified: boolean | null;
+  publishes_structured_content: boolean | null;
+  entity_identified: boolean | null;
+  status: ProvisionalSource["status"];
+  reviewer_notes: string | null;
+  created_at: string;
+  reviewed_at: string | null;
 }
 
 async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
@@ -381,7 +507,7 @@ async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
     return [];
   }
 
-  return (rows || []).map((row: any) => ({
+  return (rows || []).map((row: ProvisionalSourceQueryRow) => ({
     id: row.id,
     name: row.name,
     url: row.url,
@@ -838,6 +964,71 @@ async function fetchPublicWorkspaceResources(
   return mapWorkspaceItemRows(items);
 }
 
+// Row shape for every workspace-intelligence RPC this module calls (get_workspace_intelligence /
+// _slim / _dashboard / _listings and their _public siblings, plus the category RPCs reusing the same
+// projection via rpcRowToResource below). Fields the file's own comments mark "dormant" (jurisdiction_iso,
+// item_grade, last_regenerated_at, origin_class, and the Phase 3C/task 2.3 columns) are optional
+// because not every RPC variant projects them yet; the mapper already treats an absent value as
+// "unknown", never as a default, so `?:` here matches that existing contract rather than widening it.
+interface WorkspaceItemRpcRow {
+  id: string;
+  legacy_id: string | null;
+  transport_modes?: string[] | null;
+  category?: string | null;
+  title: string;
+  source_url?: string | null;
+  summary?: string | null;
+  item_type?: string | null;
+  effective_priority?: string | null;
+  priority?: string | null;
+  added_date: string | null;
+  reasoning?: string | null;
+  tags?: string[] | null;
+  what_is_it?: string | null;
+  why_matters?: string | null;
+  key_data?: string[] | null;
+  full_brief?: string | null;
+  domain?: number | null;
+  jurisdictions?: string[] | null;
+  jurisdiction_iso?: string | null;
+  item_grade?: string | null;
+  last_regenerated_at?: string | null;
+  origin_class?: string | null;
+  source_id?: string | null;
+  effective_archived?: boolean | null;
+  compliance_deadline?: string | null;
+  // Category-RPC-only fields (rpcRowToResource's superset, undefined on the four workspace-
+  // intelligence RPCs above, present on get_market_intel_items / get_research_items /
+  // get_operations_items / get_technology_items per migration 316's task 2.3 widening).
+  severity?: string | null;
+  signal_band?: "price" | "corporate" | "corridor" | null;
+  theme?: string | null;
+  trajectory_points?: {
+    points: Array<{ date: string; value: number }>;
+    base_date: string;
+    base_label: string;
+  } | null;
+  what_it_changes?: string | null;
+  does_not_resolve?: string | null;
+  conversion_trigger?: string | null;
+  cross_references?: string | null;
+  cost_mechanism?: string | null;
+  penalty_range?: string | null;
+  enforcement_body?: string | null;
+  requirement_trajectory?: {
+    steps: Array<{ date: string; value: string; label?: string }>;
+    note?: string;
+  } | null;
+}
+
+interface TimelineQueryRow {
+  item_id: string;
+  milestone_date: string | null;
+  label: string | null;
+  is_completed: boolean | null;
+  sort_order: number | null;
+}
+
 /**
  * Shared row→Resource mapping for both fetchWorkspaceResources (org-scoped) and
  * fetchPublicWorkspaceResources (PERF-10, org-independent) — extracted, not duplicated, so the two
@@ -847,7 +1038,7 @@ async function fetchPublicWorkspaceResources(
  * columns (both RPC families project them — the public variant simply sets them equal to the item's
  * own priority/is_archived, see migration 306).
  */
-async function mapWorkspaceItemRows(items: any[]): Promise<{
+async function mapWorkspaceItemRows(items: WorkspaceItemRpcRow[]): Promise<{
   active: Resource[];
   archived: Resource[];
   uuidToUiId: Map<string, string>;
@@ -885,7 +1076,7 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
   // doesn't discard rows already fetched by its siblings — matches the original "warn and keep
   // what we have" behavior, just no longer order-dependent on which chunk failed.
   const ITEM_TIMELINE_CHUNK_SIZE = 150;
-  const itemUuids = items.map((i: any) => i.id);
+  const itemUuids = items.map((i) => i.id);
   const timelineChunks: string[][] = [];
   for (let i = 0; i < itemUuids.length; i += ITEM_TIMELINE_CHUNK_SIZE) {
     timelineChunks.push(itemUuids.slice(i, i + ITEM_TIMELINE_CHUNK_SIZE));
@@ -899,7 +1090,7 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
         .in("item_id", chunk)
     )
   );
-  const timelineRows: any[] = [];
+  const timelineRows: TimelineQueryRow[] = [];
   for (const result of timelineChunkResults) {
     if (result.status === "rejected") {
       console.warn(
@@ -920,8 +1111,8 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
   // `.order("sort_order")` PostgREST would otherwise apply per-request.
   timelineRows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-  const timelineMap = new Map<string, any[]>();
-  (timelineRows || []).forEach((t: any) => {
+  const timelineMap = new Map<string, TimelineQueryRow[]>();
+  (timelineRows || []).forEach((t: TimelineQueryRow) => {
     const uiId = uuidToUiId.get(t.item_id) || t.item_id;
     const arr = timelineMap.get(uiId) || [];
     arr.push(t);
@@ -943,7 +1134,7 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       note: row.summary || "",
       type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
       priority: (row.effective_priority || row.priority) as Resource["priority"],
-      added: row.added_date,
+      added: row.added_date ?? "",
       reasoning: row.reasoning || "",
       tags: row.tags || [],
       whatIsIt: row.what_is_it || "",
@@ -958,9 +1149,9 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
       // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
       domain: row.domain ?? undefined,
-      timeline: (timelines || []).map((t: any) => ({
-        date: t.milestone_date,
-        label: t.label,
+      timeline: (timelines || []).map((t: TimelineQueryRow) => ({
+        date: t.milestone_date ?? "",
+        label: t.label ?? "",
         // is_completed BOOLEAN ↔ legacy status TEXT. The 010 migration set
         // is_completed=true for legacy "past"|"completed" rows, so map back
         // to "past" (the only completion-state value the TimelineEntry
@@ -1058,6 +1249,36 @@ const BRIEF_ITEM_COLUMNS =
   "entry_into_force, compliance_deadline, next_review_date, added_date, last_verified, " +
   "is_archived, jurisdiction_iso";
 
+// Row shape for BRIEF_ITEM_COLUMNS' exact projection, read directly off the base table (not an RPC),
+// so every field is present and nullable per the intelligence_items column, not "dormant" the way the
+// RPC-sourced WorkspaceItemRpcRow fields above can be.
+interface BriefItemQueryRow {
+  id: string;
+  legacy_id: string | null;
+  title: string;
+  summary: string | null;
+  tags: string[] | null;
+  domain: number | null;
+  category: string | null;
+  item_type: string | null;
+  source_id: string | null;
+  source_url: string | null;
+  jurisdictions: string[] | null;
+  transport_modes: string[] | null;
+  verticals: string[] | null;
+  status: string | null;
+  severity: string | null;
+  confidence: string | null;
+  priority: string | null;
+  entry_into_force: string | null;
+  compliance_deadline: string | null;
+  next_review_date: string | null;
+  added_date: string | null;
+  last_verified: string | null;
+  is_archived: boolean | null;
+  jurisdiction_iso: string | null;
+}
+
 /**
  * Hard ceiling on every read in this section. The two cards render at most 11 rows between them
  * (DUE_NEXT_CAP 5 + CHANGED_CAP 6); this is deliberately larger so candidates dropped by the
@@ -1095,19 +1316,29 @@ export function splitBriefIdsByShape(ids: string[]): {
  * the override rows this request already read — no second overrides query, and no second definition
  * of "effective". Rows the merge resolves as archived are DROPPED, which is that function's
  * `WHERE NOT COALESCE(wo.is_archived, ii.is_archived)` clause. Pure; proven directly.
+ *
+ * Generic over the row shape (not fixed to BriefItemQueryRow) because
+ * `supabase-server-brief-backfill.npmtest.mjs` exercises it directly with bare `{id, priority,
+ * is_archived}` fixtures that don't carry every BRIEF_ITEM_COLUMNS field; the function only ever
+ * reads `id`/`priority`/`is_archived` off a row and spreads the rest through untouched, so it has no
+ * reason to require the full shape. The real call site below passes `BriefItemQueryRow[]`, and the
+ * return type's intersection is what makes `mapWorkspaceItemRows` (expecting `WorkspaceItemRpcRow[]`)
+ * accept the result without a cast.
  */
-export function mergeBriefOverrides(
-  rows: Array<Record<string, unknown>>,
+export function mergeBriefOverrides<
+  T extends { id: unknown; priority?: string | null; is_archived?: boolean | null }
+>(
+  rows: T[],
   overrides: OverrideRowsRaw
-): Array<Record<string, unknown>> {
+): Array<T & { effective_priority: string | null; effective_archived: boolean }> {
   const overrideByItemId = new Map(overrides.rows.map((o) => [o.item_id, o]));
   return rows
     .map((row) => {
       const o = overrideByItemId.get(String(row.id));
       return {
         ...row,
-        effective_priority: o?.priority_override ?? row.priority,
-        effective_archived: o?.is_archived ?? row.is_archived ?? false,
+        effective_priority: o?.priority_override ?? row.priority ?? null,
+        effective_archived: Boolean(o?.is_archived ?? row.is_archived ?? false),
       };
     })
     .filter((row) => !row.effective_archived);
@@ -1142,7 +1373,7 @@ async function fetchBriefResourcesByIds(
     );
   }
   const responses = await Promise.all(reads);
-  const rows: Array<Record<string, unknown>> = [];
+  const rows: BriefItemQueryRow[] = [];
   for (const resp of responses) {
     if (resp.error) {
       console.warn(
@@ -1152,7 +1383,7 @@ async function fetchBriefResourcesByIds(
       );
       continue;
     }
-    rows.push(...((resp.data || []) as Array<Record<string, unknown>>));
+    rows.push(...((resp.data || []) as BriefItemQueryRow[]));
   }
   if (rows.length === 0) return [];
   const { active } = await mapWorkspaceItemRows(mergeBriefOverrides(rows, overrides));
@@ -1452,6 +1683,35 @@ export interface ResearchPipelineRow {
   doesNotResolve: string | null;
 }
 
+// Row shape for the item_type/domain-only count query below, just enough for surfaceOf()'s admission
+// check, nothing else is read off these rows.
+interface SurfaceAdmissionCountRow {
+  item_type: string | null;
+  domain: number | null;
+}
+
+// Row shape for this function's row-page select(), the explicit column list plus the `sources` FK
+// embed (single object or single-element array, per PostgREST's embed-shape convention, same as
+// EmbeddedItem elsewhere in this file).
+interface ResearchItemQueryRow {
+  id: string;
+  legacy_id: string | null;
+  title: string | null;
+  summary: string | null;
+  pipeline_stage: string | null;
+  transport_modes: string[] | null;
+  jurisdictions: string[] | null;
+  added_date: string | null;
+  what_it_changes: string | null;
+  does_not_resolve: string | null;
+  item_type: string | null;
+  domain: number | null;
+  source:
+    | { id: string; name: string | null; url: string | null; base_tier: number | null; effective_tier: number | null }
+    | Array<{ id: string; name: string | null; url: string | null; base_tier: number | null; effective_tier: number | null }>
+    | null;
+}
+
 export async function fetchResearchPipelineRows(
   orgId: string,
   cap: number
@@ -1482,7 +1742,7 @@ export async function fetchResearchPipelineRows(
       console.error("[research] fetchResearchPipelineRows count error:", countError);
     }
     const total = Array.isArray(countRows)
-      ? countRows.filter((r: any) => surfaceOf(r.item_type, r.domain) === "research").length
+      ? (countRows as SurfaceAdmissionCountRow[]).filter((r) => surfaceOf(r.item_type, r.domain) === "research").length
       : 0;
 
     // First page of rows. Same shape as the prior /research fetcher so
@@ -1515,11 +1775,13 @@ export async function fetchResearchPipelineRows(
       return { rows: [], total, cap };
     }
 
-    const admitted = data.filter((row: any) => surfaceOf(row.item_type, row.domain) === "research");
+    const admitted = (data as ResearchItemQueryRow[]).filter(
+      (row) => surfaceOf(row.item_type, row.domain) === "research"
+    );
 
     // Shape rows first (without citation stats); next step fans out a
     // single RPC call for all unique source_ids in this page.
-    const baseRows: ResearchPipelineRow[] = admitted.map((row: any) => {
+    const baseRows: ResearchPipelineRow[] = admitted.map((row) => {
       const src = Array.isArray(row.source) ? row.source[0] : row.source;
       return {
         id: row.legacy_id || row.id,
@@ -1734,7 +1996,7 @@ export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCover
 // Translate one RPC row (slim+ shape returned by get_*_items RPCs) into a
 // Resource. Mirrors fetchWorkspaceResources's mapper, minus the timeline join
 // (the category-routed surfaces render row-level metadata, not timelines).
-function rpcRowToResource(row: any): Resource {
+function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
   return {
     id: row.legacy_id || row.id,
     cat: row.transport_modes?.[0] || "global",
@@ -1744,7 +2006,7 @@ function rpcRowToResource(row: any): Resource {
     note: row.summary || "",
     type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
     priority: (row.effective_priority || row.priority) as Resource["priority"],
-    added: row.added_date,
+    added: row.added_date ?? "",
     reasoning: row.reasoning || "",
     tags: row.tags || [],
     whatIsIt: row.what_is_it || "",
@@ -1837,6 +2099,26 @@ export interface CategoryRoutedResult {
 // runCategoryRpcPublic below can reuse it byte-for-byte instead of duplicating ~70 lines. Pure
 // mutation-in-place over `resources` (Resource[] already projected via rpcRowToResource) — no
 // behavior change from the pre-split inline version, verified by keeping every query/field identical.
+interface SourceChipQueryRow {
+  id: string;
+  name: string | null;
+  base_tier: number | null;
+  effective_tier: number | null;
+}
+
+interface CitationStatsQueryRow {
+  source_id: string;
+  citation_count: number | null;
+  recency: string | null;
+}
+
+interface BiasTagQueryRow {
+  source_id: string;
+  dimension: string;
+  tag: string;
+  confidence: number | null;
+}
+
 async function enrichCategoryRows(
   serviceClient: ReturnType<typeof getServiceSupabase>,
   resources: Resource[],
@@ -1861,7 +2143,7 @@ async function enrichCategoryRows(
       console.error(`[category-routing] source chip enrichment for ${rpcLabel} error:`, describeSupabaseError(srcErr));
     } else if (Array.isArray(srcRows)) {
       const byId = new Map<string, { name: string | null; base_tier: number | null; effective_tier: number | null }>();
-      for (const s of srcRows as any[]) if (s?.id) byId.set(s.id, s);
+      for (const s of srcRows as SourceChipQueryRow[]) if (s?.id) byId.set(s.id, s);
       for (const r of resources) {
         const s = r.sourceId ? byId.get(r.sourceId) : undefined;
         if (s) {
@@ -1897,7 +2179,7 @@ async function enrichCategoryRows(
         );
       } else if (Array.isArray(statsRows)) {
         const statsBySourceId = new Map<string, { count: number; recency: string | null }>();
-        for (const s of statsRows as any[]) {
+        for (const s of statsRows as CitationStatsQueryRow[]) {
           if (s && typeof s.source_id === "string") {
             statsBySourceId.set(s.source_id, {
               count: typeof s.citation_count === "number" ? s.citation_count : 0,
@@ -1932,7 +2214,7 @@ async function enrichCategoryRows(
       console.error(`[category-routing] source_bias_tags enrichment for ${rpcLabel} error:`, describeSupabaseError(biasErr));
     } else if (Array.isArray(biasRows)) {
       const biasBySourceId = new Map<string, NonNullable<Resource["biasTags"]>>();
-      for (const b of biasRows as any[]) {
+      for (const b of biasRows as BiasTagQueryRow[]) {
         if (!b || typeof b.source_id !== "string") continue;
         const dim = b.dimension as "funding" | "methodology" | "stakeholder";
         if (dim !== "funding" && dim !== "methodology" && dim !== "stakeholder") continue;
@@ -1969,11 +2251,14 @@ async function fetchAllCategoryRows(
   serviceClient: ReturnType<typeof getServiceSupabase>,
   rpcName: string,
   rpcArgs: Record<string, unknown>
-): Promise<any[]> {
+): Promise<WorkspaceItemRpcRow[]> {
+  // supabase-server-category-rpc-paging.test.mjs source-text-matches the literal `fetchAllRows(`
+  // call (no generic argument) to prove this delegates to the shared helper, so the row type is
+  // asserted on the return, not passed as fetchAllRows<T>(...), to keep that proof text-stable.
   return fetchAllRows(
     (from, to) => serviceClient.rpc(rpcName, rpcArgs).range(from, to),
     { pageSize: CATEGORY_RPC_PAGE_SIZE }
-  );
+  ) as Promise<WorkspaceItemRpcRow[]>;
 }
 
 // Prior art (lane L36, 2026-09-17): runCategoryRpc and runCategoryRpcPublic below were two near-identical
@@ -2731,7 +3016,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     // (legacy_id || uuid) the resource list is keyed by.
 
     // Map synopses using the UUID→UI_ID lookup
-    const synopses: SectorSynopsis[] = allSynopses.map((r: any) => ({
+    const synopses: SectorSynopsis[] = allSynopses.map((r) => ({
       itemId: uuidToUiId.get(r.item_id) || r.item_id,
       sector: r.sector,
       summary: r.summary,
@@ -2754,7 +3039,9 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       }
     }
 
-    const sectorDisplayNames: SectorDisplayName[] = (sectorsResult.data || []).map((s: any) => ({
+    const sectorDisplayNames: SectorDisplayName[] = (
+      (sectorsResult.data || []) as Array<{ sector: string; display_name: string }>
+    ).map((s) => ({
       sector: s.sector,
       displayName: s.display_name,
     }));
@@ -3922,9 +4209,15 @@ async function fetchIntelligenceItemUncached(
       fullBrief: row.full_brief || undefined,
       // WO-4 (2026-08-18): never coalesce domain - see the note at the first mapper site.
       domain: row.domain ?? undefined,
-      timeline: (timelineRows || []).map((t: any) => ({
-        date: t.milestone_date,
-        label: t.label,
+      timeline: (
+        (timelineRows || []) as Array<{
+          milestone_date: string | null;
+          label: string | null;
+          is_completed: boolean | null;
+        }>
+      ).map((t) => ({
+        date: t.milestone_date ?? "",
+        label: t.label ?? "",
         status: t.is_completed ? ("past" as const) : undefined,
       })),
       modes: row.transport_modes || [],
@@ -3985,7 +4278,16 @@ async function fetchIntelligenceItemUncached(
     };
 
     // Changelog for this item (data fetched in the Promise.all above)
-    const changelog: ChangeLogEntry[] = (changeRows || []).map((c: any) => ({
+    const changelog: ChangeLogEntry[] = (
+      (changeRows || []) as Array<{
+        change_date: string;
+        change_type: "NEW" | "UPDATED";
+        field: string | null;
+        previous_value: string | null;
+        new_value: string | null;
+        impact: string | null;
+      }>
+    ).map((c) => ({
       id: resourceId,
       date: c.change_date,
       type: c.change_type,
@@ -3998,7 +4300,7 @@ async function fetchIntelligenceItemUncached(
     // Active dispute for this item (fetched in the Promise.all above)
     let dispute: Dispute | null = null;
     if (disputeRow) {
-      const sources = Array.isArray(disputeRow.disputing_sources)
+      const sources: DisputingSourceEntry[] = Array.isArray(disputeRow.disputing_sources)
         ? disputeRow.disputing_sources
         : typeof disputeRow.disputing_sources === "string"
           ? JSON.parse(disputeRow.disputing_sources)
@@ -4006,7 +4308,7 @@ async function fetchIntelligenceItemUncached(
       dispute = {
         resource: resourceId,
         note: disputeRow.note,
-        sources: sources.map((s: any) =>
+        sources: sources.map((s: DisputingSourceEntry) =>
           typeof s === "string" ? { name: s, url: "" } : s
         ),
       };
@@ -4048,8 +4350,16 @@ async function fetchIntelligenceItemUncached(
     // sequential scan on item_supersessions because no index existed on
     // old_item_id or new_item_id. Migration 049 adds those indexes; the
     // .or() here resolves index-driven once 049 is applied.
-    const supersessions: Supersession[] = (supRows || [])
-      .map((r: any) => {
+    const supersessions: Supersession[] = (
+      (supRows || []) as Array<{
+        supersession_date: string;
+        severity: string;
+        note: string | null;
+        old: EmbeddedItem | EmbeddedItem[] | null;
+        new: EmbeddedItem | EmbeddedItem[] | null;
+      }>
+    )
+      .map((r) => {
         const oldId = uiId(r.old);
         const newId = uiId(r.new);
         if (!oldId || !newId) return null;
