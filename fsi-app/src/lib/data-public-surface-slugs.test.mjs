@@ -61,7 +61,7 @@ const CODE = readFileSync(join(SRC, "data.ts"), "utf8");
  *  more — mirrors PostgREST's real db-max-rows cap), short-changing only the final page, out of a fixed
  *  `total`. Row ids are `"id-<n>"`, 0-indexed, so the test can assert both the COUNT and that every id in
  *  [0, total) was actually returned (no page skipped/duplicated at a boundary). */
-function fakeSurfaceReader(total, pageSize = 1000) {
+function fakeSurfaceReader(total, _pageSize = 1000) {
   let calls = 0;
   return {
     calls: () => calls,

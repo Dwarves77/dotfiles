@@ -87,7 +87,7 @@ test("GREEN end-to-end on the real pool (mock judge): judge-confirmed jurisdicti
   // judge confirms ONLY a span that genuinely mentions the territorial extent; fails everything else.
   const judge = async (slotKey, nom) =>
     ({ supports: slotKey === "jurisdictional_scope" && /England and Wales, Scotland and Northern Ireland/.test(nom.span) });
-  const { facts, gaps, relabels, audit, judgeCalls } = await forceSlotCoverage(uncovered, FLOOR_POOL, judge);
+  const { facts, gaps, relabels, audit: _audit, judgeCalls } = await forceSlotCoverage(uncovered, FLOOR_POOL, judge);
   assert.equal(facts.length, 1, "exactly one judge-confirmed FACT");
   assert.equal(facts[0].slot_key, "jurisdictional_scope");
   assert.ok(LEG_TEXT.includes(facts[0].source_span), "the FACT span is verbatim in the floor source (grounds at T1)");

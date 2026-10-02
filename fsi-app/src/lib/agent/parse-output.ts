@@ -414,16 +414,16 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   }
 
   // Validate enums
-  if (!SEVERITY_VALUES.includes(fields.severity as any)) {
+  if (!(SEVERITY_VALUES as readonly string[]).includes(fields.severity)) {
     throw new AgentOutputParseError(`Invalid severity: "${fields.severity}". Allowed: ${SEVERITY_VALUES.join(", ")}`);
   }
-  if (!PRIORITY_VALUES.includes(fields.priority as any)) {
+  if (!(PRIORITY_VALUES as readonly string[]).includes(fields.priority)) {
     throw new AgentOutputParseError(`Invalid priority: "${fields.priority}". Allowed: ${PRIORITY_VALUES.join(", ")}`);
   }
-  if (!URGENCY_TIER_VALUES.includes(fields.urgency_tier as any)) {
+  if (!(URGENCY_TIER_VALUES as readonly string[]).includes(fields.urgency_tier)) {
     throw new AgentOutputParseError(`Invalid urgency_tier: "${fields.urgency_tier}". Allowed: ${URGENCY_TIER_VALUES.join(", ")}`);
   }
-  if (!FORMAT_TYPE_VALUES.includes(fields.format_type as any)) {
+  if (!(FORMAT_TYPE_VALUES as readonly string[]).includes(fields.format_type)) {
     throw new AgentOutputParseError(`Invalid format_type: "${fields.format_type}". Allowed: ${FORMAT_TYPE_VALUES.join(", ")}`);
   }
 
@@ -448,7 +448,7 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     throw new AgentOutputParseError(`topic_tags exceeds 3 values: ${topicTags.join(", ")}`);
   }
   for (const tag of topicTags) {
-    if (!TOPIC_TAG_VALUES.includes(tag as any)) {
+    if (!(TOPIC_TAG_VALUES as readonly string[]).includes(tag)) {
       throw new AgentOutputParseError(
         `topic_tags contains an out-of-vocabulary value: "${tag}". Allowed: ${TOPIC_TAG_VALUES.join(", ")}`
       );
@@ -459,9 +459,9 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   // non-null when format_type is market_signal_brief.
   const signalBandRawValue = fields.signal_band.trim().toLowerCase();
   const signalBand: typeof SIGNAL_BAND_VALUES[number] | null =
-    signalBandRawValue === "null" || signalBandRawValue === "" ? null : (signalBandRawValue as any);
+    signalBandRawValue === "null" || signalBandRawValue === "" ? null : (signalBandRawValue as typeof SIGNAL_BAND_VALUES[number]);
   if (signalBand !== null) {
-    if (!SIGNAL_BAND_VALUES.includes(signalBand as any)) {
+    if (!(SIGNAL_BAND_VALUES as readonly string[]).includes(signalBand)) {
       throw new AgentOutputParseError(
         `Invalid signal_band: "${signalBand}". Allowed: ${SIGNAL_BAND_VALUES.join(", ")} or null`
       );
@@ -477,9 +477,9 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   // when format_type is research_summary.
   const themeRawValue = fields.theme.trim().toLowerCase();
   const theme: typeof THEME_VALUES[number] | null =
-    themeRawValue === "null" || themeRawValue === "" ? null : (themeRawValue as any);
+    themeRawValue === "null" || themeRawValue === "" ? null : (themeRawValue as typeof THEME_VALUES[number]);
   if (theme !== null) {
-    if (!THEME_VALUES.includes(theme as any)) {
+    if (!(THEME_VALUES as readonly string[]).includes(theme)) {
       throw new AgentOutputParseError(
         `Invalid theme: "${theme}". Allowed: ${THEME_VALUES.join(", ")} or null`
       );
@@ -526,7 +526,7 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   // bad tag costs an intersection hint; the prior throw cost the whole item (the out-of-vocab "building in
   // context of owner-..." flagship failure). Keep only vocabulary values, cap at 4.
   const compObjTags: string[] = compObjRawTags
-    .filter((tag) => COMPLIANCE_OBJECT_VALUES.includes(tag as any))
+    .filter((tag) => (COMPLIANCE_OBJECT_VALUES as readonly string[]).includes(tag))
     .slice(0, 4);
 
   // Parse related_items (UUID array, may be empty)

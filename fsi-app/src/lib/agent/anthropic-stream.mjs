@@ -151,7 +151,7 @@ export async function streamMessagesText({ apiKey, body, betaHeaders, idleMs = 9
       }
     }
   } finally {
-    try { reader.releaseLock && reader.releaseLock(); } catch { /* noop */ }
+    try { reader.releaseLock?.(); } catch { /* noop */ }
   }
   const st = acc.state;
   if (st.error) throw streamErrorToAnthropic(st.error);

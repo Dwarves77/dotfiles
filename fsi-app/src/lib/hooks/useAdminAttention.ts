@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useSyncExternalStore, useCallback } from "react";
 import { authHeaders } from "@/lib/api/authed-fetch";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { shouldShowAdminNav } from "@/components/shell/bootstrap-seed";
@@ -69,7 +69,7 @@ interface SingletonState {
 const singleton: {
   state: SingletonState;
   inFlight: Promise<void> | null;
-  subscribers: Set<(s: SingletonState) => void>;
+  subscribers: Set<() => void>;
   intervalId: ReturnType<typeof setInterval> | null;
   visibilityHandler: (() => void) | null;
   // True once at least one component has registered as enabled (admin user
@@ -86,7 +86,7 @@ const singleton: {
 };
 
 function publish() {
-  for (const sub of singleton.subscribers) sub(singleton.state);
+  for (const sub of singleton.subscribers) sub();
 }
 
 async function performFetch(): Promise<void> {
@@ -182,13 +182,18 @@ function teardownPollingIfIdle() {
   singleton.state = { counts: null, loading: false, error: null };
 }
 
-function subscribe(cb: (s: SingletonState) => void): () => void {
+function subscribe(cb: () => void): () => void {
   singleton.subscribers.add(cb);
   return () => {
     singleton.subscribers.delete(cb);
     teardownPollingIfIdle();
   };
 }
+
+// Stable (never-recreated) object identity for the disabled-hook snapshot. useSyncExternalStore's
+// getSnapshot must return a referentially stable value when nothing has changed, so this is a module
+// constant rather than a fresh `{ counts: null, ... }` literal on every call.
+const DISABLED_SNAPSHOT: SingletonState = { counts: null, loading: false, error: null };
 
 /**
  * Hook: useAdminAttention.
@@ -219,11 +224,25 @@ export function useAdminAttention(): UseAdminAttention {
   const enabled =
     !authLoading && !!user && shouldShowAdminNav({ status: identityStatus, isPlatformAdmin });
 
-  const [snapshot, setSnapshot] = useState<SingletonState>(() =>
-    enabled ? singleton.state : { counts: null, loading: false, error: null }
+  // Disabled (non-admin) instances must never touch the singleton at all. `subscribeForEnabled`
+  // short-circuits to a no-op subscription instead of calling the real `subscribe`, so a non-admin
+  // hook instance is invisible to `singleton.subscribers` / `teardownPollingIfIdle`, same as before
+  // this was a useSyncExternalStore (replacing the former subscribe-then-setState-in-effect dance; the
+  // "sync immediately" catch-up write is now simply what getSnapshotForEnabled() returns on first read).
+  const subscribeForEnabled = useCallback(
+    (cb: () => void) => (enabled ? subscribe(cb) : () => {}),
+    [enabled]
   );
+  const getSnapshotForEnabled = useCallback(
+    () => (enabled ? singleton.state : DISABLED_SNAPSHOT),
+    [enabled]
+  );
+  const snapshot = useSyncExternalStore(subscribeForEnabled, getSnapshotForEnabled);
+
   const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
 
   const refresh = useCallback(() => {
     if (!enabledRef.current) return;
@@ -231,22 +250,7 @@ export function useAdminAttention(): UseAdminAttention {
   }, []);
 
   useEffect(() => {
-    if (!enabled) {
-      // Reset local snapshot so a stale count doesn't leak across role
-      // transitions (e.g., admin signs out, hook re-renders for the
-      // anonymous request that might follow).
-      setSnapshot({ counts: null, loading: false, error: null });
-      return;
-    }
-
-    // Subscribe BEFORE bootstrapping so we receive the publish() that
-    // performFetch issues during its initial loading -> resolved cycle.
-    const unsubscribe = subscribe(setSnapshot);
-
-    // Sync the snapshot to the singleton's current state — if another
-    // hook instance already populated counts, we render them immediately
-    // without waiting for our own subscribe-then-fetch cycle to land.
-    setSnapshot(singleton.state);
+    if (!enabled) return;
 
     if (!singleton.bootstrapped) {
       singleton.bootstrapped = true;
@@ -260,15 +264,13 @@ export function useAdminAttention(): UseAdminAttention {
     // Polling and visibility-change handler live at module scope; ensure
     // they exist for the lifetime of any subscribed hook instance.
     ensurePolling();
-
-    return unsubscribe;
   }, [enabled]);
 
   return {
-    counts: enabled ? snapshot.counts : null,
-    total: enabled ? snapshot.counts?.total ?? 0 : 0,
-    loading: enabled ? snapshot.loading : false,
-    error: enabled ? snapshot.error : null,
+    counts: snapshot.counts,
+    total: snapshot.counts?.total ?? 0,
+    loading: snapshot.loading,
+    error: snapshot.error,
     refresh,
   };
 }

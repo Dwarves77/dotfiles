@@ -45,11 +45,14 @@ const TIMELINE_SECTION_LOOKUP: Record<string, { key: string; heading: string; he
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
-import { scanBrief } from "@/lib/agent/gate-a-scan.mjs";
 // HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): judgeSlotSpan's inline
 // "claude-haiku-4-5-20251001" literal was this file's own hand-typed copy, named as known drift in
 // model-ids.mjs's own header comment.
 import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
+// scanBrief (gate-a-scan.mjs) is NOT imported here (lane R7-LINT-CI, 2026-10-02): the only call site
+// this file ever had moved into write-item.ts's buildGateARow (the shared write sequence, Lane WSEQ).
+// See the two remaining comments below that still name scanBrief, both pointing at that moved call,
+// not a live import. Re-importing it here would be a dead, unused import.
 // THE shared write sequence (Lane WSEQ, 2026-09-02) — src/lib/intake/write-item.ts is the ONE module both
 // mint tiers (this brief tier's groundBrief and the record tier's apply-mint-batch.mjs) depend on for the
 // item_gate_a_state row shape and the intelligence_item_citations edge shape, so those cannot drift

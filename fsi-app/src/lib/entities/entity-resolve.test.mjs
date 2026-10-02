@@ -5,7 +5,7 @@
 // standard-shaped → surfaced, not dropped.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectMentions, resolve, classifyBucket, classifyRelationship, planLinks, planLinkWrites, assertMoatBoundary, LINK_ALLOWED_TABLES, matchExistingSubject } from "./entity-resolve.mjs";
+import { detectMentions, classifyBucket, classifyRelationship, planLinks, planLinkWrites, assertMoatBoundary, LINK_ALLOWED_TABLES, matchExistingSubject } from "./entity-resolve.mjs";
 import { NAMED_ENTITIES, NAMED_ENTITIES_COUNT } from "./canonical-entities.mjs";
 
 // fixture corpus mirroring the live shape (id, title, instrument_identifier)

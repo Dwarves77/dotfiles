@@ -155,7 +155,7 @@ test("D29 GREEN: replaceLedger archives a not-reproduced prior claim (supersede_
 
 test("D29: replaceLedger leaves a REPRODUCED (unchanged) prior claim untouched -- only notReproduced is ever archived", async () => {
   const claim = { id: "keep-1", claim_text: "the operator must register with the agency", claim_kind: "FACT", source_span: "must register with the agency", source_id: "s1", source_tier_at_grounding: 1, section_row_id: "sec1" };
-  const { id, ...incomingShape } = claim;
+  const { id: _id, ...incomingShape } = claim;
   const sb = makeReplaceLedgerSb();
   const diff = diffLedger([claim], [incomingShape]);
   assert.equal(diff.unchanged.length, 1, "setup sanity: identical attribution classifies as unchanged, not notReproduced");
