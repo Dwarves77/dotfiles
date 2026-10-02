@@ -122,13 +122,15 @@ read-only), the post-cleanup live state, 21 artifacts, 411.8 MB total:
 | `gate-a-rescan` | 4 | ~2 KB | 9.3 KB |
 | `maintenance-plan-quarantine-disposition` | 6 | ~0.5 KB | 2.9 KB |
 
-Every `*-snapshots` artifact lands within half a percent of the same ~47.8 MB regardless of which
-family's workflow uploaded it. That is itself a finding: `fsi-app/scripts/_snapshots/` is one flat,
-shared directory (`db.mjs`'s `snapDir()`), not scoped per family, so five different workflows uploading
-"their own" snapshots in the same CI window were each uploading a near-duplicate of the same
-whole-directory contents. The two "heaviest workflows" for this measurement (`ledger-consume` and
-`population-turn`, tied with `source-sweep`/`fetch-drain` at 91.16 MB live each) are not meaningfully
-heavier than the other three; the whole class was the defect, not an outlier workflow.
+**The ~47.8 MB figure is not five workflows each producing 47.8 MB of their own data. It is one
+shared, flat directory (`fsi-app/scripts/_snapshots/`, `db.mjs`'s `snapDir()`, not scoped per family)
+uploaded whole by five different workflows in the same CI window, so each upload is a near-duplicate of
+the same contents, not five independent 47.8 MB payloads.** Every `*-snapshots` artifact lands within
+half a percent of the same ~47.8 MB regardless of which family's workflow uploaded it, which is the
+evidence for that reading, not five coincidentally-equal measurements. The two "heaviest workflows" for
+this measurement (`ledger-consume` and `population-turn`, tied with `source-sweep`/`fetch-drain` at
+91.16 MB live each) are not meaningfully heavier than the other three; the whole class, uploading a
+shared directory instead of a scoped one, was the defect, not an outlier workflow.
 
 Only 2 runs per family survive the coordinator's 3-day cleanup (deleted artifacts are not retrievable via
 the Artifacts API), so "last 3 runs" above is the full surviving set, not a truncation.

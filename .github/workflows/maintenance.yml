@@ -1254,12 +1254,6 @@ jobs:
             --artifact "$ARTIFACT_REL" \
             --ledger ../docs/ops/dispatch-ledger.jsonl
 
-      # Commit the family's own harness-run artifact plus the dispatch-ledger row (scripts/harness-runs/
-      # maintenance/** and ../docs/ops/dispatch-ledger.jsonl) so this run survives past the Actions log --
-      # same posture corpus-turn.yml/source-sweep.yml apply to their own artifacts. A dispatch normally
-      # runs against master, which is typically branch-protected, so this lands on its own branch and opens
-      # a PR (source-sweep.yml's own pattern, copied) rather than pushing straight to whatever ref
-      # triggered the run.
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
         run: |
@@ -1281,6 +1275,14 @@ jobs:
         # the "Hydrate unmerged ... sibling artifacts" step above is retained only for any artifacts a
         # still-unmerged branch from before this rewrite may carry, same posture the other families
         # already landed.
+        #
+        # R22 (2026-10-02): this lane's own commit eb7ba6dc made the identical fix independently (a
+        # different lane, MAINTENANCE-HARNESS, landed on master first) -- resolved as a duplicate, this
+        # file's own already-landed version kept verbatim, not hand-merged. The commit's OTHER flagged
+        # risk (../docs/ops/dispatch-ledger.jsonl no longer reaching origin) is closed outright by this
+        # lane's later commit, which removes the "Append this run's dispatch-ledger row" step below and
+        # replaces closure-gate.mjs's NEVER-RUN read with a committed harness_runs export instead -- see
+        # that commit and docs/runbooks/fleet-budget-control.md.
         if: always()
         run: |
           bash scripts/turns/deliver-artifact-branch.sh "Maintenance: ${RUN_STEP} (mode=${RUN_MODE}, run ${{ github.run_id }})"

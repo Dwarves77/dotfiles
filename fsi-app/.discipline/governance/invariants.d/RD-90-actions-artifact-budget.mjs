@@ -1,12 +1,10 @@
-// RD-86-actions-artifact-budget: registered by lane R22 (ACTIONS-STORAGE-AND-DOCS-ONLY-PUSH, 2026-10-01).
-// Self-assigned id (next free RD number at the time this lane ran; invariants.d/README.md states "the
-// coordinator assigns the id" -- this lane's dispatch did not anticipate the invariant-coverage meta-gate
-// would orphan-flag F68 on registration, so no id was pre-assigned. Named here for the coordinator to
-// re-number on landing if a collision or a different convention is preferred; see this lane's own
-// session-log entry, docs/ops/session-log.d/2026-10-01-r22-actions-storage.md).
+// RD-90-actions-artifact-budget: registered by lane R22 (ACTIONS-STORAGE-AND-DOCS-ONLY-PUSH, 2026-10-01).
+// Renumbered from a self-assigned RD-86 to RD-90 per coordinator correction, 2026-10-02: RD-86 was
+// already taken (workflow-run-chain-depth, lane LOOP-B-FIRING) and invariants on master already run to
+// RD-87, with lane R6-8 holding RD-88 and RD-89. RD-90 is the coordinator-assigned id.
 
 export const invariant = {
-  id: 'RD-86-actions-artifact-budget',
+  id: 'RD-90-actions-artifact-budget',
   skill: 'remediation-discipline',
   section:
     "Section 4 — category 37: A perf number in CI carries a ratchet, a target, and dated evidence (a number with no citation is a guess wearing a measurement's clothes)",  // glyph:verbatim (must match the skill heading's own em dash byte-for-byte, same convention invariants.d/README.md documents for every carried-over anchor/section field)

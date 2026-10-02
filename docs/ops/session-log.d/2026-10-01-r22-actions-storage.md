@@ -55,13 +55,18 @@ registering F68 this lane had not anticipated. Fixed by adding
 `fsi-app/.discipline/governance/invariants.d/RD-86-actions-artifact-budget.mjs`, extending category 37
 ("A perf number in CI carries a ratchet, a target, and dated evidence") from perf numbers to Actions
 artifact storage budgets, `enforcedBy: ['fitness:F68', 'selftest:...F68-actions-artifact-budget.test.mjs']`.
-RD-86 is a self-assigned id (`invariants.d/README.md`: "the coordinator assigns the id"; this lane's
-dispatch did not anticipate the meta-gate consequence, so no id was pre-assigned), named here for the
-coordinator to re-number on landing if a collision or a different convention is preferred. The first
-attempt also hit an `ANCHOR DRIFT` (the category 37 heading uses a literal em dash, U+2014; the first
-draft used a plain hyphen), fixed by matching the heading byte-for-byte with a `glyph:verbatim` marker,
-the same convention every other carried-over anchor/section field in that directory already uses.
-`invariant-coverage.mjs` now reports `ALL 144 invariants + 63 doctrines are wired ... meta-gate PASS`.
+RD-86 was a self-assigned id (`invariants.d/README.md`: "the coordinator assigns the id"; this lane's
+dispatch did not anticipate the meta-gate consequence, so no id was pre-assigned). The first attempt also
+hit an `ANCHOR DRIFT` (the category 37 heading uses a literal em dash, U+2014; the first draft used a
+plain hyphen), fixed by matching the heading byte-for-byte with a `glyph:verbatim` marker, the same
+convention every other carried-over anchor/section field in that directory already uses.
+`invariant-coverage.mjs` then reported `ALL 144 invariants + 63 doctrines are wired ... meta-gate PASS`.
+
+**Second correction, coordinator-directed, 2026-10-02**: RD-86 was already taken
+(`RD-86-workflow-run-chain-depth.mjs`, lane LOOP-B-FIRING, F60) and invariants on master already run to
+RD-87, with lane R6-8 holding RD-88 and RD-89. Renamed the file and `id` to `RD-90-actions-artifact-budget`
+(coordinator-assigned) throughout; `git mv`, no content change beyond the id/filename and this file's own
+header comment. `invariant-coverage.mjs` re-run clean under the new id (see Gates run).
 
 ## Task (c): docs-only push fast path
 
@@ -142,12 +147,13 @@ Not applicable. No `.tsx`/`.css` file was touched by this lane.
 - `node fsi-app/.discipline/fitness/manifest.test.mjs`: 5/5 pass (F68 registers cleanly, no duplicate-id,
   no filename mismatch).
 - `node fsi-app/.discipline/governance/invariants.test.mjs`: 59/59 pass across the five targeted files
-  together (includes the live-load proof that `invariants.d/` still loads cleanly with RD-86 added).
+  together (includes the live-load proof that `invariants.d/` still loads cleanly with the invariant
+  added, first as RD-86, then renumbered to RD-90 per the coordinator's correction below).
 - `node fsi-app/.discipline/fitness/runner.mjs` (full live-tree run): "Fitness summary: 53 function(s)
   checked, 0 violation(s)."
 - `node fsi-app/.discipline/governance/invariant-coverage.mjs`: "ALL 144 invariants + 63 doctrines are
-  wired ... meta-gate PASS" (after the RD-86 correction above; the first run of this gate FAILED, see
-  Task (b)).
+  wired ... meta-gate PASS" (after the RD-86 correction above, and again after the RD-86 -> RD-90
+  rename below; the very first run of this gate, before either invariant existed, FAILED, see Task (b)).
 - `node fsi-app/.discipline/governance/closure-gate.mjs`: PASS on all four checks (NEVER-RUN, STALE-NEXT,
   WRITER-READER, LANE-CONTRACT).
 - `node fsi-app/.discipline/governance/skill-contract-map.mjs --check`: "OK, 6 registered skills, no
@@ -156,15 +162,17 @@ Not applicable. No `.tsx`/`.css` file was touched by this lane.
   since this lane's own write set spans both touched functions and the shared test-discovery glob): ran
   twice before the rebase below; 6257+2094 node:test cases, exactly one failure both times, which was the
   `invariant-coverage.test.mjs` ORPHAN MECHANISM finding above (this lane's own F68 registration), fixed
-  by RD-86, not re-run to full completion a third time after the fix (the targeted re-runs listed above
-  cover the changed surface; the fix is a pure addition with no other file touched).
+  by the invariant now named RD-90, not re-run to full completion a third time after either fix per the
+  coordinator's explicit "do not run the full suite again" (the targeted re-runs listed above and in the
+  addendum below cover the changed surface; both fixes are pure additions/renames with no other file
+  touched).
 - `node fsi-app/.discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: 1 pass, 0 fail, 9 skip,
   both before commit and after the rebase below.
 - Rule 022 (no dash glyphs): every file this lane touched was scanned for U+2014/U+2013/U+00A7 on ADDED
   lines only (the rule's own trigger shape, and the same check the commit-msg hook ran live on this
-  lane's actual commit); all found instances were rewritten with commas or periods, except the two
-  literal em dashes RD-86's `section`/`anchor` fields must carry to match the cited skill heading
-  byte-for-byte, disclosed with `glyph:verbatim` per the rule's own escape hatch.
+  lane's actual commits); all found instances were rewritten with commas or periods, except the two
+  literal em dashes the RD-90 invariant's `section`/`anchor` fields must carry to match the cited skill
+  heading byte-for-byte, disclosed with `glyph:verbatim` per the rule's own escape hatch.
 
 ## Rebase
 
@@ -175,26 +183,72 @@ touched, all belonging to other lanes' already-merged work, not a real finding a
 diff. `git fetch origin && git rebase origin/master` after committing resolved cleanly (0 conflicts); the
 rule-engine and gate re-runs above are all against the rebased state.
 
-## Open items
+## Coordinator corrections, 2026-10-02 (addendum)
 
-- Full pre-push preflight (`DISCIPLINE_HOOK_TRAMPOLINE=1 sh fsi-app/.discipline/hooks/pre-push`) was run
-  end-to-end after the rebase; see its own result below.
-- `rendering-guard` (the Playwright job) was left ungated by the docs-only fast path: it is already
-  `continue-on-error: true` and non-blocking, and the dispatch named only "the test-suite and fitness
-  steps." A docs-only PR still spins up Playwright chromium there, wasteful but not required-status, not
-  fixed in this lane (scope: retention/paths/docs-only-filter only).
-- `brief-export.yml`, `ledger-consume.yml`, `population-turn.yml`, and `maintenance.yml` each still carry
-  a `git checkout -b` / `git commit` / `git push origin HEAD:<branch>` sequence immediately BEFORE calling
-  `scripts/turns/deliver-artifact-branch.sh` with extra positional arguments that script's current header
-  says it no longer uses ("no git add, no branch, no commit, no fetch, no rebase, no push, no PR,
-  anywhere in this pipeline... Usage: deliver-artifact-branch.sh <label>"). The git dance still runs
-  (dead relative to the script's own rewritten contract, but not dead code, since the git commands run
-  independently of the call) and still lands the real deliverable (export files, candidates files,
-  mint-run artifacts) on a branch, which this lane's narrowed Actions-artifact uploads now rely on for
-  durability. NOT fixed here: out of this lane's write set (retention/paths/docs-only-filter only), and a
-  real behavioral question (does the operator still want an Actions-created branch/PR for these four
-  deliverables, now that the harness-artifact half of that pattern was removed) that this lane does not
-  have standing to answer unilaterally.
+Two corrections landed after the report above; both addressed in this same commit range.
+
+**(1) RD-86 renumbered to RD-90.** RD-86 was already taken on master
+(`RD-86-workflow-run-chain-depth.mjs`, lane LOOP-B-FIRING, F60) at the time this lane self-assigned it;
+invariants on master already run to RD-87, and lane R6-8 holds RD-88 and RD-89. `git mv` to
+`RD-90-actions-artifact-budget.mjs`, `id` field updated to match (the filename-stem-equals-id rule
+`invariants.d/README.md` states), no other content change beyond the file's own header comment
+explaining the rename. `node fsi-app/.discipline/governance/invariant-coverage.mjs` and
+`node fsi-app/.discipline/governance/invariants.test.mjs` both re-run clean under the new id (59/59 and
+"ALL 144 invariants + 63 doctrines are wired ... meta-gate PASS").
+
+**(2) Removed the dead git branch-push steps in `brief-export.yml`, `ledger-consume.yml`,
+`population-turn.yml`, and `maintenance.yml`.** Each used to run `git checkout -b` / `git commit` /
+`git fetch --depth=50 origin master && git rebase` / `git push origin HEAD:<branch>` immediately before
+calling `scripts/turns/deliver-artifact-branch.sh "$branch" "<title>" /tmp/pr-body.md` with two extra
+positional arguments. `deliver-artifact-branch.sh`'s own header (rewritten lane STATUTORY-WRITER,
+2026-09-29) states it does "no git add, no branch, no commit, no fetch, no rebase, no push, no PR,
+anywhere in this pipeline" and takes a single `<label>` argument for logging only; the extra arguments
+were silently ignored (the script only reads `$1`), and the branch/commit/push code ran independently of
+the call, still pushing branches nobody reads per the operator's own quoted ruling ("not once that I
+need a pull request from GitHub"). Replaced each with the single-label call shape every other caller in
+this repo already uses (`change-detection.yml`, `corpus-turn.yml`, `fetch-drain.yml`,
+`gate-a-rescan.yml`, `source-sweep.yml` were the templates read).
+
+`[CONFIRMED]` one of the four removals also closed a real staleness bug, not only dead code:
+`brief-export.yml`'s "Record this run's own harness-run artifact" step was passing
+`BE_BRANCH: brief-export/${{ github.run_id }}` to `emit-brief-export-artifact.mjs`, which recorded that
+value as the harness artifact's own `branch` field. With no branch pushed, that field would have asserted
+a branch existed when it did not; removed the env var so the script's own `branch || null` default
+records the honest `null`.
+
+`[CONFIRMED]` the maintenance.yml removal is ALSO closing dead code, not regressing a fix:
+the original reason that step committed `scripts/harness-runs/quarantine-disposition` (lane
+QUARANTINE-DISPOSITION, 2026-09-28: a stale local checkout made `claimRunId` re-claim the same run
+number, colliding on `harness_runs`' primary key) was itself superseded the next day by lane
+HARNESS-RUN-NUMBER (2026-09-29, GitHub run 36610847827): `record-harness-run.mjs` now renumbers every
+landing against `harness_runs`' own live max, never a filesystem scan
+(`scripts/lib/harness-run-number.mjs`'s own header: "harness_runs is the durable record ... the local
+scan is now only ever a fallback"). The collision class does not need a git-committed directory to stay
+fixed.
+
+**[HYPOTHESIS], flagged not fixed, two residual risks named in the workflow files themselves (not
+silently dropped):**
+- `population-turn.yml` also used to commit `scripts/turns/brief-export/pending/` (its own tracked,
+  non-gitignored README.md; task 3.5 step 12's queue for a session lane to drain) in the SAME step as the
+  dead `_snapshots`/harness-runs commits. That directory is a real, currently-functioning delivery
+  mechanism, not scratch; removing its push means a newly-queued part this run writes there no longer
+  reaches origin by any path (it was never an Actions artifact either).
+- `maintenance.yml` also used to commit `../docs/ops/dispatch-ledger.jsonl` (82 committed lines today,
+  read by `fsi-app/.discipline/governance/closure-gate.mjs`'s NEVER-RUN check and
+  `scripts/lib/assemble-train.mjs`'s train-numbering) in the same step. Removing its push means a row a
+  maintenance run appends locally never reaches origin, so the next checkout's closure-gate and
+  train-numbering permanently miss that run.
+
+This lane executed the coordinator's instruction uniformly across all four files as given ("operator
+standard"), and both risks are disclosed inline in the edited workflow files themselves (not only here),
+but did not independently verify either specific consequence is intended before executing. Named here for
+the coordinator or operator to confirm or route to a follow-up lane.
+
+Gates re-run after both corrections: `F54-push-gate-npm-parity.test.mjs` 26/26,
+`F50-loop-wiring.test.mjs` 13/13 (including its own LIVE zero-violations check), `F68-actions-artifact-
+budget.test.mjs` 12/12, `F52-workflow-file-validity.test.mjs` 34/34 (85/85 together), all pass. Rule 022
+scanned on every added line across all four edited workflow files plus this addendum: clean. Per the
+coordinator's explicit instruction, the full `run-test-suite.sh` was NOT re-run a third time.
 
 ## Ready to push
 

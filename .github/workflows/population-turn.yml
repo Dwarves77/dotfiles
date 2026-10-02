@@ -688,82 +688,39 @@ jobs:
       # staged here — a green run means minted AND connected AND recorded, and "recorded" covers both
       # families' artifacts, not just mint's. On a RUN_SKIP=true (no-op) dispatch nothing was ever written,
       # so `git diff --cached --quiet` is true below and this step is a harmless no-op too.
-      - name: Commit the mint + forward-events harness-run artifacts and this run's snapshot dir, and open a PR
+      # R22 (2026-10-02, coordinator correction): removed the git add / checkout -b / commit / fetch+
+      # rebase / push / PR-body sequence that used to precede this call. deliver-artifact-branch.sh's own
+      # header has said since lane STATUTORY-WRITER (2026-09-29) that it does "no git add, no branch, no
+      # commit, no fetch, no rebase, no push, no PR, anywhere in this pipeline" -- the branch/commit/push
+      # code above was dead relative to that rewrite (the operator's own ruling, "not once that I need a
+      # pull request from GitHub", quoted in that script's header). Same single-label call shape every
+      # other caller in this repo now uses.
+      #
+      # FLAGGED, NOT FIXED (CLAUDE.md rule 13): this removal is NOT uniform across what the dead step used
+      # to commit. scripts/harness-runs/mint, scripts/harness-runs/forward-events, and $EXPORT_DIR
+      # (scripts/_snapshots/population-<run_id>/) are all the same regenerable-scratch-or-harness-artifact
+      # class the other three corrected workflows carry, and losing their branch delivery matches this
+      # lane's posture there. scripts/turns/brief-export/pending is DIFFERENT IN KIND: it is a genuinely
+      # tracked, non-gitignored queue directory (its own committed README.md) that task 3.5 step 12 relies
+      # on reaching origin for a session lane to drain -- not scratch, not a harness artifact, a real
+      # mechanism. Removing its git add/commit/push here means a newly-queued brief-export part this run
+      # writes under that path no longer reaches origin at all (it was never uploaded as an Actions
+      # artifact either). This lane executed the coordinator's instruction as given, uniformly across all
+      # four files, but did not independently verify this specific consequence is intended; see this
+      # lane's session-log addendum.
+      - name: Land this run's harness-run artifact(s) into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/harness-runs/mint
-          git add scripts/harness-runs/forward-events
-          # scripts/turns/brief-export/pending (task 3.5, step 12 of run-population-flywheel.mjs): the
-          # brief-export queue for a session lane. Always exists (its own tracked README.md), so this add
-          # is safe even on a run that skipped step 12 (RUN_SKIP=true, or a batch that minted nothing).
-          git add scripts/turns/brief-export/pending
-          # EXPORT_DIR is empty on a flywheel_backlog dispatch or a RUN_SKIP=true no-op (export/mint never
-          # ran, so nothing was ever written there) — guard the add so it never fails a step git runs with -e.
-          if [ -n "$EXPORT_DIR" ] && [ -d "$EXPORT_DIR" ]; then git add -f "$EXPORT_DIR"; fi
-          if git diff --cached --quiet; then
-            echo "No new population-turn artifacts to commit."
-            exit 0
-          fi
-          branch="population/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "population-turn $RUN_MODE: run ${{ github.run_id }}"
-          # BRANCH-BASE (2026-09-04): GitHub refuses a GITHUB_TOKEN push that creates a branch whose
-          # workflow files differ from the default branch ("refusing to allow a GitHub App to create or
-          # update workflow ... without `workflows` permission"). Backlog applies #26 and #29 lost their
-          # artifact commits exactly this way: a train that touched .github/workflows/*.yml landed on
-          # master while the run was executing, so the branch based on the run's checkout carried an
-          # older workflow file. Re-base the single artifact commit onto the CURRENT master tip before
-          # pushing; artifact JSON never conflicts with code, and if it ever did the rebase aborts and the
-          # push below still fails loudly instead of silently pushing a stale base. The checkout is shallow
-          # (fetch-depth 1); --depth=50 brings in master's recent commits so the merge-base (this run's own
-          # checkout commit, master at dispatch time) is known to the rebase. --autostash: the run's working
-          # tree carries modified tracked files it never stages (backlog #30 failed the rebase with "You have
-          # unstaged changes" and lost six stamps); they are stashed around the rebase and restored after.
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          trigger_line="Trigger: workflow_dispatch (hand)"
-          if [ -n "$RUN_TRIGGER_CONTEXT" ]; then
-            trigger_line="Trigger: workflow_run — $(printf '%s' "$RUN_TRIGGER_CONTEXT" | jq -r '"\(.name) run \(.run_id), conclusion=\(.conclusion)"')"
-          fi
-          if [ "$RUN_FLYWHEEL_BACKLOG" = "true" ]; then
-            {
-              echo "Automated population turn — BACKLOG (run ${{ github.run_id }})."
-              echo
-              echo "$trigger_line"
-              echo "Mode: $RUN_MODE"
-              echo "backlog_max_artifacts: ${RUN_BACKLOG_MAX_ARTIFACTS:-(script default)}"
-              echo
-              echo "Minted NOTHING new — export/mint were skipped entirely. Ran run-population-flywheel.mjs --backlog over the mint-run artifacts THE GATE currently refuses (oldest first), enriching each in place with its own §9 outcomes (edges_discovered/forward_events_extracted/isolated_items). See that step's own log for exactly which artifacts this dispatch processed and how many remain."
-            } > /tmp/pr-body.md
-          else
-            {
-              echo "Automated population turn (run ${{ github.run_id }})."
-              echo
-              echo "$trigger_line"
-              echo "Mode: $RUN_MODE"
-              echo "Limit: $RUN_LIMIT"
-              echo "Source id: $RUN_SOURCE_ID"
-              echo "CELEX prefix: $RUN_CELEX_PREFIX"
-              echo "Capture: $RUN_CAPTURE"
-              echo "Rows file: ${RUN_ROWS_FILE:-(none — live export)}"
-              echo
-              echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items/trigger_context), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
-              echo "Also lands (task 3.5, step 12) any newly-queued brief-export part(s) under scripts/turns/brief-export/pending/ for a session lane to drain."
-            } > /tmp/pr-body.md
-          fi
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${RUN_MODE})" /tmp/pr-body.md
+        run: bash scripts/turns/deliver-artifact-branch.sh "Population turn: run ${{ github.run_id }} (mode=${RUN_MODE})"
 
       # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
       # tree (guarded-write snapshots, regenerable per CLAUDE.md rule 5) to this run's own harness
       # artifacts across the three families this dispatch can touch (mint, forward-events,
-      # ledger-consume). The export/apply-ready/report files and the mint-run artifact are already
-      # durable via the git branch/PR committed above. Retention 7 days, down from 90. See
-      # docs/runbooks/fleet-budget-control.md.
+      # ledger-consume), at a 7-day retention (down from 90). The export/apply-ready/report files, the
+      # mint-run artifact, and the brief-export/pending queue entries this run may have written no longer
+      # ride a git branch (R22, 2026-10-02, coordinator correction, see the removed commit step above) OR
+      # this artifact (F68 forbids any upload path containing _snapshots; brief-export/pending was never
+      # part of this upload at all). See docs/runbooks/fleet-budget-control.md and this lane's session-log
+      # addendum for the open question this leaves.
       - name: Upload this run's harness artifacts as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
