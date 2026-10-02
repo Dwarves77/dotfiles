@@ -367,9 +367,11 @@ export function runGateSet(repoRoot) {
     runOne(fsiApp, "suite", "bash", [".discipline/run-test-suite.sh"]),
     runOne(repoRoot, "fitness", "node", ["fsi-app/.discipline/fitness/runner.mjs"]),
     runOne(repoRoot, "closure-gate", "node", ["fsi-app/.discipline/governance/closure-gate.mjs"]),
+    // LANE R23 item 1 (2026-10-02): dropped the hand-built --range=origin/master..HEAD (tip-vs-tip);
+    // override-check.mjs resolves its own range via change-range.mjs's resolveRange() (local merge-base
+    // against origin/master here, since no BASE_REF/PR_HEAD env vars exist in this local invocation).
     runOne(repoRoot, "override-check", "node", [
       "fsi-app/.discipline/consistency/override-check.mjs",
-      "--range=origin/master..HEAD",
     ]),
   ];
 }

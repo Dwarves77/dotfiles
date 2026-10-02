@@ -131,3 +131,22 @@ test("pre-push hook source: step 3d runs the SAME fitness-runner command the CI 
   const i4 = hook.indexOf("step 4 (tsc --noEmit): OK");
   assert.ok(i3 > 0 && i3d > i3 && i4 > i3d, "step 3d must sit between step 3 and step 4");
 });
+
+// Lane R23 item 2 (2026-10-02): step 2b (the memory gate) used to redirect to the FIXED path
+// /tmp/discipline-prepush-mem.log and `rm -f` it, the exact D11 concurrent-run collision class this file
+// otherwise tests for every other step. Proven by attack: the fixed-path literal must be ABSENT from the
+// tracked hook, and step 2b's own command must redirect into $PRE_PUSH_LOG_DIR like every sibling step.
+test("pre-push step 2b: no fixed /tmp log path (the D11 class); redirects into $PRE_PUSH_LOG_DIR like every sibling step", () => {
+  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+  assert.doesNotMatch(
+    hook,
+    /\/tmp\/discipline-prepush-mem\.log/,
+    "step 2b must not reintroduce the fixed /tmp path two concurrent pushes could clobber"
+  );
+  assert.match(
+    hook,
+    /node fsi-app\/\.discipline\/governance\/memory-gate\.mjs >"\$PRE_PUSH_LOG_DIR\/mem\.log" 2>&1/,
+    "step 2b must redirect to $PRE_PUSH_LOG_DIR/mem.log, the same per-run directory every other step uses"
+  );
+  assert.match(hook, /step 2b \(memory gate, CI parity\): OK/);
+});

@@ -20,6 +20,7 @@
 import { spawnSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveRange } from '../lib/change-range.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RUNNER = resolve(HERE, 'runner.mjs');
@@ -116,12 +117,21 @@ if (invokedDirectly) {
     messages = messagesFromPrepushStdin(stdin, cwd);
     // Fallback: if git gave us nothing (e.g. manual run), consider HEAD so a HEAD-trailer override still counts.
     if (!messages.length) messages = messageForCommit('HEAD', cwd);
-  } else if (get('--range')) {
-    messages = messagesForRange(get('--range'), cwd);
   } else if (get('--commit')) {
     messages = messageForCommit(get('--commit'), cwd);
   } else {
-    messages = messageForCommit('HEAD', cwd);
+    // Range resolution via change-range.mjs's resolveRange() (lane R23 item 1, 2026-10-02): an explicit
+    // --range is honored verbatim (manual diagnosis); otherwise BASE_REF+PR_HEAD resolve to an ACTUAL
+    // merge-base commit (not the base ref's tip), or the local merge-base against origin/master fires --
+    // the SAME function runner.mjs and F51 already resolve through, so this caller cannot build its own
+    // drifted range string. Before this fix, every caller passed a literal --range= string by hand (the
+    // CI consistency-backstop job, assemble-train.mjs's runGateSet()); this flag's own hand-built two-dot
+    // shape was never exposed to the tree-diff defect rule 022 hit (this file only reads commit MESSAGES
+    // via `git log`, never diffs file content), but leaving it hand-built meant one more caller free to
+    // drift from the others. No --range, no CI env, no --commit falls back to messageForCommit('HEAD')
+    // exactly as before (a bare local run with nothing to resolve against).
+    const resolved = resolveRange({ explicit: get('--range'), env: process.env, cwd });
+    messages = resolved.range ? messagesForRange(resolved.range, cwd) : messageForCommit('HEAD', cwd);
   }
 
   const runner = runConsistencyRunner({ cwd });

@@ -53,15 +53,110 @@ test('resolveRange: an explicit range wins, "..." form', () => {
   assert.deepEqual(r, { range: 'origin/master...HEAD', base: 'origin/master', head: 'HEAD', source: 'explicit' });
 });
 
-test('resolveRange: the CI env shape (BASE_REF + PR_HEAD) builds origin/${BASE_REF}...${PR_HEAD}, ' +
-  'matching .github/workflows/discipline.yml\'s pull_request RANGE build', () => {
-  const r = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: 'abc123def' } });
-  assert.deepEqual(r, { range: 'origin/master...abc123def', base: 'origin/master', head: 'abc123def', source: 'ci-pr' });
+test('resolveRange: the CI env shape (BASE_REF + PR_HEAD) resolves base = merge-base(origin/${BASE_REF}, ' +
+  'PR_HEAD) and returns base..PR_HEAD (lane R23, 2026-10-02: NOT origin/${BASE_REF}...${PR_HEAD} against ' +
+  'the base ref\'s tip -- that shape left every OTHER caller free to build its own un-corrected two-dot ' +
+  'range, which is exactly what PRs #866/#869 hit)', () => {
+  const { dir, git } = makeRepo();
+  try {
+    writeFileSync(join(dir, 'a.txt'), 'base\n');
+    git(['add', 'a.txt']);
+    const baseSha = commit(git, 'base');
+    git(['update-ref', 'refs/remotes/origin/master', baseSha]);
+
+    writeFileSync(join(dir, 'b.txt'), 'second\n');
+    git(['add', 'b.txt']);
+    const headSha = commit(git, 'second');
+
+    const r = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: headSha }, cwd: dir });
+    assert.deepEqual(r, { range: `${baseSha}..${headSha}`, base: baseSha, head: headSha, source: 'ci-pr' });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('resolveRange: BASE_REF without PR_HEAD does not trigger the ci-pr shape', () => {
   const r = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: '' } });
   assert.notEqual(r.source, 'ci-pr');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Lane R23 defect proof (rule 15: a guard is proven by attack, not by presence). Reproduces the PRs
+// #866/#869 shape directly: origin/master gains a fix AFTER a branch's fork point, touching a file the
+// branch itself never touches. The OLD range (origin/<base tip>..<head>, two dots against the tip) must
+// flag the inherited lines as "added" on the branch; resolveRange's merge-base-derived range must not.
+// A second fixture proves the fix doesn't also swallow a REAL violation the branch itself introduces.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('DEFECT PROOF: old tip-vs-tip range flags lines master fixed AFTER the branch forked; the ' +
+  'merge-base range (resolveRange ci-pr shape) does not', () => {
+  const { dir, git } = makeRepo();
+  try {
+    // Shared history: a file with the defect already present (mirrors BRIEF-STRUCTURE-AUDIT.md
+    // carrying em dashes before anyone's branch was cut).
+    writeFileSync(join(dir, 'untouched.md'), 'line one -- with the old glyph\n');
+    git(['add', 'untouched.md']);
+    const forkSha = commit(git, 'shared history');
+    git(['update-ref', 'refs/remotes/origin/master', forkSha]);
+    const trunk = git(['symbolic-ref', '--short', 'HEAD']).trim();
+
+    // The branch forks HERE (a REAL divergent branch, not the next commit on the same line -- otherwise
+    // merge-base would trivially be the branch's own tip) and does its own, unrelated work. It never
+    // touches untouched.md.
+    git(['checkout', '-q', '-b', 'feature']);
+    writeFileSync(join(dir, 'branch-own-file.md'), 'the branch\'s own unrelated change\n');
+    git(['add', 'branch-own-file.md']);
+    const headSha = commit(git, 'branch: unrelated work');
+
+    // Master keeps moving ON ITS OWN LINE: AFTER the fork point, master fixes the glyph in the file the
+    // branch never touched. This is the exact PRs #866/#869 shape.
+    git(['checkout', '-q', trunk]);
+    writeFileSync(join(dir, 'untouched.md'), 'line one, with the glyph fixed\n');
+    git(['add', 'untouched.md']);
+    const masterTipSha = commit(git, 'master: fix the glyph, after the branch forked');
+    git(['update-ref', 'refs/remotes/origin/master', masterTipSha]);
+
+    // OLD behaviour: a hand-built two-dot range against the (now-advanced) base tip.
+    const oldRange = `${masterTipSha}..${headSha}`;
+    const oldDiff = gitDiffLinesForPath(oldRange, 'untouched.md', { cwd: dir });
+    assert.ok(
+      oldDiff.some((l) => l.startsWith('+') && l.includes('old glyph')),
+      'old tip-vs-tip range must (defectively) show the branch "re-adding" the line master already fixed'
+    );
+
+    // NEW behaviour: resolveRange's ci-pr shape, base = merge-base(origin/master, headSha) = forkSha.
+    const resolved = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: headSha }, cwd: dir });
+    assert.equal(resolved.base, forkSha);
+    const newDiff = gitDiffLinesForPath(resolved.range, 'untouched.md', { cwd: dir });
+    assert.deepEqual(newDiff.filter((l) => l.startsWith('+')), [], 'the merge-base range must show NO added lines in a file the branch never touched');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('CONTROL: the merge-base range still flags a real violation the branch itself introduces', () => {
+  const { dir, git } = makeRepo();
+  try {
+    writeFileSync(join(dir, 'other.md'), 'nothing interesting\n');
+    git(['add', 'other.md']);
+    const forkSha = commit(git, 'shared history');
+    git(['update-ref', 'refs/remotes/origin/master', forkSha]);
+
+    // The branch itself adds the glyph this time.
+    writeFileSync(join(dir, 'own.md'), 'the branch adds a glyph -- right here\n');
+    git(['add', 'own.md']);
+    const headSha = commit(git, 'branch: introduces the glyph itself');
+
+    const resolved = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: headSha }, cwd: dir });
+    assert.equal(resolved.base, forkSha);
+    const diff = gitDiffLinesForPath(resolved.range, 'own.md', { cwd: dir });
+    assert.ok(
+      diff.some((l) => l.startsWith('+') && l.includes('right here')),
+      'a real violation the branch itself adds must still be flagged -- the fix must not become a blanket escape hatch'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('resolveRange: local merge-base against origin/master when neither explicit nor CI env is given', () => {

@@ -117,6 +117,7 @@ jobs:
           # validates the actual commits the PR proposes to add.
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -u
           # Make sure origin/<base> is resolvable from the checkout. The
@@ -124,11 +125,19 @@ jobs:
           # target branch on pull_request events, but we re-fetch defensively
           # in case of a force-push between checkout and run.
           git fetch --no-tags origin "$BASE_REF" || true
-          RANGE="origin/${BASE_REF}..${HEAD_SHA}"
-          echo "Validating commit range $RANGE"
+          # LANE R23 (2026-10-02) [CONFIRMED twice, PRs #866 and #869]: this step used to build
+          # RANGE="origin/${BASE_REF}..${HEAD_SHA}" by hand -- two dots against the base ref's TIP, not
+          # its merge-base with HEAD_SHA. `git diff` does not merge-base-correct a two-dot range, so once
+          # origin/master picked up a fix AFTER this branch's fork point, that fix's lines read as
+          # "added" on this branch's own whole-range diff (rule 022 flagged 111 inherited em dashes in a
+          # file this branch never touched). Fix: do not build the range here at all. BASE_REF + PR_HEAD
+          # are passed as env vars; runner.mjs resolves the range itself via change-range.mjs's
+          # resolveRange() (base = git merge-base origin/${BASE_REF} ${PR_HEAD}, range = base..PR_HEAD),
+          # the SAME function the pre-push hook and F51 resolve through, so this step cannot drift from
+          # either.
+          echo "Validating PR range: base=origin/${BASE_REF} head=${PR_HEAD} (range resolved by runner.mjs via change-range.mjs)"
           node fsi-app/.discipline/runner.mjs \
-            --mode=ci \
-            --range="$RANGE"
+            --mode=ci
 
       # ── Memory gate (2026-08-13) ─────────────────────────────────────────
       # WHY. docs/ is the project memory, and memory that is not committed does
@@ -299,10 +308,14 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -u
           git fetch --no-tags origin "$BASE_REF" || true
-          node fsi-app/.discipline/consistency/override-check.mjs --range="origin/${BASE_REF}..${HEAD_SHA}"
+          # LANE R23 item 1 (2026-10-02): dropped the hand-built --range="origin/${BASE_REF}..${HEAD_SHA}"
+          # (tip-vs-tip). BASE_REF + PR_HEAD are env vars; override-check.mjs resolves the range itself via
+          # change-range.mjs's resolveRange(), the same function the validate-commits job and F51 use.
+          node fsi-app/.discipline/consistency/override-check.mjs
 
   fitness-check:
     name: Fitness functions (application-layer enforcement)

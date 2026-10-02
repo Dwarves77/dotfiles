@@ -184,26 +184,42 @@ echo "[discipline pre-push] step 2 (consistency runner, override-aware): OK"
 # session-log.md`]. fsi-app/.discipline/governance/memory-gate.mjs is the SAME script the CI workflow now
 # calls (discipline.yml's memory-gate step), so the two surfaces cannot drift again. Blocking here (no
 # --warn-only): the range being pushed is the whole logical unit, unlike CI's per-push-event partial view.
-if ! node fsi-app/.discipline/governance/memory-gate.mjs --range=origin/master..HEAD >/tmp/discipline-prepush-mem.log 2>&1; then
+#
+# LANE R23 item 2 (2026-10-02) [CONFIRMED by inspection, the D11 class]: this step used to redirect to a
+# fixed path under /tmp (discipline-prepush-mem log, "mem" + ".log") and `rm -f` it on exit, the exact
+# concurrent-run collision
+# D11 (docs/plans/defect-fix-plan-2026-09-12.md) fixed for every sibling step via $PRE_PUSH_LOG_DIR
+# (mktemp -d, one directory per invocation). This hook runs concurrently by design (one push per lane,
+# lane preflights, the coordinator's own gate runs), so two runs sharing the fixed path could clobber
+# each other's log exactly the way D11's own header describes. Moved to $PRE_PUSH_LOG_DIR/mem.log, the
+# same per-run directory every other step already uses (also drops --range=origin/master..HEAD: lane R23
+# item 1 made memory-gate.mjs resolve its own range via change-range.mjs's resolveRange()).
+if ! node fsi-app/.discipline/governance/memory-gate.mjs >"$PRE_PUSH_LOG_DIR/mem.log" 2>&1; then
   echo "[discipline pre-push] STEP 2b FAIL: memory gate (code must not outrun the vault):" >&2
-  cat /tmp/discipline-prepush-mem.log >&2
+  cat "$PRE_PUSH_LOG_DIR/mem.log" >&2
   echo "[discipline pre-push] append a session-log addendum (your own docs/ops/session-log.d/YYYY-MM-DD-<lane>.md file, or docs/ops/session-log.md, or update docs/PROGRAM-BOARD.md), with a UX compliance block in that same addendum if a .tsx/.css was touched, then re-push." >&2
-  rm -f /tmp/discipline-prepush-mem.log
   exit 1
 fi
-cat /tmp/discipline-prepush-mem.log
-rm -f /tmp/discipline-prepush-mem.log
+cat "$PRE_PUSH_LOG_DIR/mem.log"
 echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
 
 # ---------------------------------------------------------------------------
 # Step 2c: the discipline rules in CI mode over the range being pushed (lane CI-PARITY, 2026-09-28)
 # ---------------------------------------------------------------------------
-# CI's "Validate commits against discipline rules" job runs runner.mjs --mode=ci over
-# origin/<base>..<head>; the commit-msg hook runs the same runner in --mode=commit-msg, a different rule
-# mode, so the CI-mode rules had never run before a push. Found when F54 was widened to every job of
-# discipline.yml. Same command, same range shape as CI's pull_request leg.
-if ! node fsi-app/.discipline/runner.mjs --mode=ci --range=origin/master..HEAD >"$PRE_PUSH_LOG_DIR/rules.log" 2>&1; then
-  echo "[discipline pre-push] STEP 2c FAIL: discipline rules (CI mode) over origin/master..HEAD:" >&2
+# CI's "Validate commits against discipline rules" job runs runner.mjs --mode=ci; the commit-msg hook
+# runs the same runner in --mode=commit-msg, a different rule mode, so the CI-mode rules had never run
+# before a push. Found when F54 was widened to every job of discipline.yml.
+#
+# LANE R23 (2026-10-02) [CONFIRMED twice, PRs #866 and #869]: this line used to pass
+# --range=origin/master..HEAD literally -- two dots against the base ref's TIP. `git diff` does not
+# merge-base-correct a two-dot range, so a fix origin/master picked up after this lane's own branch
+# forked read as "added" here (rule 022: 111 inherited em dashes in a file never touched locally
+# either). No --range flag now: runner.mjs resolves the range itself via change-range.mjs's
+# resolveRange() (no BASE_REF/PR_HEAD locally, so the local-merge-base branch fires: base = git
+# merge-base origin/master HEAD, range = base..HEAD) -- the SAME function the CI job and F51 resolve
+# through, so this step cannot drift from either.
+if ! node fsi-app/.discipline/runner.mjs --mode=ci >"$PRE_PUSH_LOG_DIR/rules.log" 2>&1; then
+  echo "[discipline pre-push] STEP 2c FAIL: discipline rules (CI mode) over the local merge-base range:" >&2
   tail -40 "$PRE_PUSH_LOG_DIR/rules.log" >&2
   exit 1
 fi
