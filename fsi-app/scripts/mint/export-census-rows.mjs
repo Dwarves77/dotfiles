@@ -221,7 +221,7 @@ import { UK_TYPES } from "../../src/lib/coverage/identity.mjs";
 // THE M4 same-URL identity rule's ONE body (RD-M4b, 2026-09-04 — see this file's own "UPDATE 2026-09-04"
 // note near partitionExcludeHeld below, and lib/instrument-identity.mjs's own header): apply-mint-batch.mjs's
 // checkM4 already imports the SAME two functions from here — never a local re-derivation in either file.
-import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
+import { sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 import { celexTxtHtmlUrl } from "../../src/lib/sources/identifier-variants.mjs"; // F46: eur-lex.europa.eu's one home (lane L35)
 import { FEDERAL_REGISTER_API_BASE } from "../../src/lib/sources/transport-escalation.mjs"; // F46: www.federalregister.gov's one home (lane L35)

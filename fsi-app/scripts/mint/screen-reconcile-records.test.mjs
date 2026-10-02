@@ -24,7 +24,7 @@ test("classifyLiveRecords: verdict per live item, reviewed verdicts keyed by the
 function deps(calls, reviewed = REVIEWED) {
   return {
     reviewed,
-    readAll: async (table, cols, opts) => { calls.push(["readAll", table]); return ITEMS; },
+    readAll: async (table, _cols, _opts) => { calls.push(["readAll", table]); return ITEMS; },
     readAllByIds: async (table, cols, ids) => { calls.push(["readAllByIds", table, ids]); return [{ id: "i1", is_archived: true, archive_reason: "off_vertical" }]; },
     fetchRowsIn: async () => [...CENSUS.values()],
     readClient: () => ({}),
