@@ -1,0 +1,61 @@
+[
+  {
+    "item_id": "025e6570-584f-4124-8b69-b69cc534e050",
+    "section_id": "synthetic-plain-slot-1",
+    "section_key": "record_facts",
+    "content_md": "[effective_date] No verbatim effective date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[jurisdictional_scope] The captured source states, verbatim: «Member States” substitute “the United Kingdom”»\n[penalty_summary] No verbatim penalty summary statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[primary_deadline] The captured source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»\n[binding_position] No verbatim applicability language naming a duty-holder class was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[due_date] The captured source states a due date (date_precision: day), verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»",
+    "residue_rows": [
+      {
+        "id": "synthetic-residue-1",
+        "event_date": "2022-04-30",
+        "event_kind": "compliance_deadline",
+        "obligation_text": "[primary_deadline] The captured source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»",
+        "confidence": "medium",
+        "source_span": "30 April 2022"
+      }
+    ],
+    "claim_rows": []
+  },
+  {
+    "item_id": "128b6a2e-cf78-4c9f-b03d-9256a3df5222",
+    "section_id": "synthetic-due-date-precision-1",
+    "section_key": "record_facts",
+    "content_md": "[effective_date] The captured source states, verbatim: «shall enter into force on the twentieth day following that of its publication in the Official Journal of the Eur»\n[jurisdictional_scope] The captured source states, verbatim: «Member States, and subsequently to the ICAO Secretariat, it is appropriate to establish a preliminary e»\n[penalty_summary] The captured source states, verbatim: «penalties to be imposed in the event of fraud which are commensurate with their purpose and which have an adequate dete»\n[primary_deadline] The captured source states, verbatim: «by 30 June 2026 on the practical application and levels of uncertainty of the method»\n[binding_position] The captured source's own applicability language places this item at «direct_duty» (Your duty), from the passage: «the operator shall provide to the competent authority data on the biomass fraction of the carbon content of»\n[due_date] The captured source states a due date (date_precision: day), verbatim: «by 30 June 2026 on the practical application and levels of uncertainty of the method»",
+    "residue_rows": [
+      {
+        "id": "synthetic-residue-2",
+        "event_date": "2026-06-30",
+        "event_kind": "compliance_deadline",
+        "obligation_text": "[due_date] The captured source states a due date (date_precision: day), verbatim: «by 30 June 2026 on the practical application and levels of uncertainty of the method»",
+        "confidence": "medium",
+        "source_span": "30 June 2026"
+      }
+    ],
+    "claim_rows": []
+  },
+  {
+    "item_id": "10cf4da4-9363-4365-90df-a1dceace1b66",
+    "section_id": "synthetic-binding-position-1",
+    "section_key": "record_facts",
+    "content_md": "[effective_date] The captured source states, verbatim: \"shall enter into force on the day of its publication in the Official Journal of the European Union\"\n[jurisdictional_scope] The captured source states, verbatim: \"addressed to the Member States\"\n[penalty_summary] No verbatim penalty summary statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[primary_deadline] The captured source states, verbatim: \"No later than 14 February 2004, the Commission shall forward to the Member States a guidance document s\"",
+    "residue_rows": [
+      {
+        "id": "synthetic-residue-3",
+        "event_date": "2004-02-14",
+        "event_kind": "compliance_deadline",
+        "obligation_text": "[binding_position] The captured source's own applicability language places this item at «direct_duty» (Your duty), from the passage: «No later than 14 February 2004, the Commission shall forward to the Member States a guidance document s»",
+        "confidence": "medium",
+        "source_span": "14 February 2004"
+      }
+    ],
+    "claim_rows": []
+  },
+  {
+    "item_id": "synthetic-clean-item-1",
+    "section_id": "synthetic-clean-1",
+    "section_key": "record_facts",
+    "content_md": "[due_date] No verbatim due-date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+    "residue_rows": [],
+    "claim_rows": []
+  }
+]

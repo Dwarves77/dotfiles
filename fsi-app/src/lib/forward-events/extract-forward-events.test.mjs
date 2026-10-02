@@ -1152,38 +1152,31 @@ describe('selectDateCell (pure helper)', () => {
 // OBLIGATION-TEXT REBUILD — corpus-wide idempotence + property tests, lane FWD-TEXT-2, 2026-09-04.
 //
 // The coordinator's own dry-run summary of Maintenance #32 (`forward-events-retext` dry, master 2f110fea
-// = FWD-TEXT's landed fe1-2026-09-04.1 code, run 33856356721) is `scripts/_snapshots/retext32.json` — 654
-// `retext_targets[]`, each `{ id, intelligence_item_id, event_date, event_kind, source_kind, before, after,
-// defect_classes }`. `_snapshots/` is gitignored scratch (CLAUDE.md standing rule 5) and is NOT part of
-// this repo's tracked tree, so these two tests self-skip (never fail) when the file is absent — e.g. a
-// fresh clone, or CI without this lane's working directory — same "diagnosable, never a false red"
-// convention CLAUDE.md standing rule 15 states for a verifier missing its credentials. Run inside THIS
-// lane's worktree (where the coordinator placed the file as evidence), both run for real against the full
-// 654 rows and print the measured counts the dispatch asked for.
+// = FWD-TEXT's landed fe1-2026-09-04.1 code, run 33856356721) was originally captured as gitignored
+// scratch at `scripts/_snapshots/retext32.json`, 654 `retext_targets[]`, each `{ id, intelligence_item_id,
+// event_date, event_kind, source_kind, before, after, defect_classes }`. Lane R16-19 (PR 870) committed a
+// 3-row excerpt of that shape at `fixtures/retext32.json` so these tests are no longer dependent on
+// gitignored scratch surviving in the working tree. Lane R16b (2026-10-02, this fix) verified the
+// committed excerpt's three `before` rows genuinely exercise every property this test checks (idempotence,
+// leading-char, star/pipe/url stripping, honest-ellipsis trailing edge), confirmed by running
+// normalizeObligationText over them directly, and removed the two tests' self-skip branches so they run
+// unconditionally, every environment, per CLAUDE.md rule 15 ("a proof that does not execute is not a
+// proof"). They now assert over the 3 committed rows, not the original 654; a real regression in any of
+// these properties would still be caught the moment it reaches this fixture's content.
 // ---------------------------------------------------------------------------
 
-const RETEXT32_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'retext32.json');
+const RETEXT32_PATH = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'retext32.json');
 
 function loadRetext32Before() {
-  let raw;
-  try {
-    raw = readFileSync(RETEXT32_PATH, 'utf8');
-  } catch {
-    return null;
-  }
+  const raw = readFileSync(RETEXT32_PATH, 'utf8');
   const parsed = JSON.parse(raw);
-  const before = (parsed.retext_targets ?? []).map((t) => t.before);
-  return before.length ? before : null;
+  return (parsed.retext_targets ?? []).map((t) => t.before);
 }
 
-describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (retext32.json, 654 rows)', () => {
+describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (fixtures/retext32.json, 3 rows)', () => {
   const beforeTexts = loadRetext32Before();
 
-  test('normalizeObligationText is idempotent over every row (skips if retext32.json is not present in this checkout)', (t) => {
-    if (!beforeTexts) {
-      t.skip('scripts/_snapshots/retext32.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
+  test('normalizeObligationText is idempotent over every fixture row', () => {
     let failures = 0;
     const examples = [];
     for (const raw of beforeTexts) {
@@ -1198,11 +1191,7 @@ describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (ret
     assert.equal(failures, 0, `normalizeObligationText(normalizeObligationText(x)) !== normalizeObligationText(x) for ${failures}/${beforeTexts.length} rows`);
   });
 
-  test('property set over every row: no bad leading char, no *, no pipe-cell, no bare URL, proper trailing punctuation or an honest ellipsis (skips if retext32.json is not present)', (t) => {
-    if (!beforeTexts) {
-      t.skip('scripts/_snapshots/retext32.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
+  test('property set over every fixture row: no bad leading char, no *, no pipe-cell, no bare URL, proper trailing punctuation or an honest ellipsis', () => {
     let badLeading = 0;
     let rawLowercaseStart = 0;
     let ellipsisPrefixed = 0;
@@ -1550,10 +1539,9 @@ describe('extractForwardEvents: FWD-TEXT-4 residue fix (marker beyond DEFAULT_MA
 // ---------------------------------------------------------------------------
 // RECORD-FACTS TEMPLATE UNWRAP — corpus-wide property test, lane FWD-TEXT-3, 2026-09-04.
 //
-// Fixture: `scripts/_snapshots/fwdtext3-live-58.json` — read via read-only SQL, project kwrsbpiseruzbfwjpvsp,
-// this lane, 2026-09-04:
+// Fixture history: the original SQL (run once, 2026-09-04, project kwrsbpiseruzbfwjpvsp):
 //   select json_agg(row_to_json(t)) from (
-//     select s.item_id as intelligence_item_id, s.id as section_id, s.section_key, s.content_md,
+//     select s.item_id, s.id as section_id, s.section_key, s.content_md,
 //       (select json_agg(json_build_object('id',e.id,'event_date',e.event_date,'event_kind',e.event_kind,
 //          'obligation_text',e.obligation_text,'confidence',e.confidence,'source_span',e.source_span))
 //        from item_forward_events e where e.source_section_id = s.id
@@ -1568,40 +1556,47 @@ describe('extractForwardEvents: FWD-TEXT-4 residue fix (marker beyond DEFAULT_MA
 //       select distinct source_section_id from item_forward_events
 //       where source_section_id is not null and extractor_version = 'fe1-2026-09-04.2'
 //         and obligation_text ~ '\[[a-z0-9_]+\]') ) t;
+// (field name corrected to `item_id`, matching what the loader below actually reads -- the original
+// comment aliased it `as intelligence_item_id`, which is what caused lane R16-19's committed stand-in to
+// carry the wrong key in the first place.)
 //
 // NAMED "-live-58" after the coordinator's dispatch evidence snapshot (58 rows / 41 items, taken right
-// after Maintenance #38's forward-events-retext APPLY); by the time this lane ran the query above, the
-// backlog flywheel had minted more record-grade items in between (item_forward_events grew 926/173 ->
-// 1071/228 over that window, live-measured) and the SAME residue class was 122 rows / 90 items -- a
-// superset, not a different defect, and the larger number this test actually asserts over. `_snapshots/`
-// is gitignored scratch (CLAUDE.md standing rule 5), so this test self-skips (never fails) when the file is
-// absent, same convention as the OBLIGATION-TEXT REBUILD block above.
+// after Maintenance #38's forward-events-retext APPLY); the SAME residue class later grew to 122 rows /
+// 90 items as the backlog flywheel minted more record-grade items, a superset, not a different defect.
+//
+// RE-RUN, 2026-10-02 (lane R16b, operator-directed, do-not-work-around): a DB executor re-ran the live
+// count `obligation_text ~ '\[[a-z0-9_]+\]'` for `extractor_version = 'fe1-2026-09-04.2'` and got 0 of
+// 1336 -- the residue class this test locked no longer exists in the corpus (lane R16-19's own
+// `forward-events-retext` maintenance evidently cleaned up the remaining instances between 2026-09-04
+// and now). A real re-export is therefore impossible: there is nothing live to export. Per the operator's
+// ruling, this fixture is accordingly SYNTHETIC, not a placeholder passed off as corpus data --
+// `fixtures/fwdtext3-synthetic-residue.json`, hand-authored in the loader's exact row shape, covering the
+// three obligation_text variants the `byVariant` classifier below distinguishes (plain_slot,
+// due_date_with_precision, binding_position) plus one row with no residue at all. Three of its four rows
+// reuse `content_md` already verified elsewhere in THIS file as real, live corpus text (the "extractForwardEvents:
+// end-to-end over real record-facts section content_md" describe block above, items 025e6570-...,
+// 128b6a2e-..., 10cf4da4-...) -- the `residue_rows[].obligation_text` values are nonetheless invented,
+// standing in for the (no-longer-observable) pre-fix defect text, which is why the fixture is labelled
+// synthetic rather than live. Every row was run through `extractForwardEvents` directly before being
+// committed to confirm it reproduces the stated `event_date`/`event_kind` (see this lane's session-log
+// entry for the exact command). The hard assertion below (`noFresh.length === 0`) is restored.
 // ---------------------------------------------------------------------------
 
-const LIVE58_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'fwdtext3-live-58.json');
+const SYNTHETIC_RESIDUE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fwdtext3-synthetic-residue.json');
 const RECORD_FACTS_FORBIDDEN = ['captured source', 'verbatim:', 'date_precision', 'from the passage', 'full-brief regrounding'];
 
-function loadLive58() {
-  let raw;
-  try {
-    raw = readFileSync(LIVE58_PATH, 'utf8');
-  } catch {
-    return null;
-  }
+function loadSyntheticResidue() {
+  const raw = readFileSync(SYNTHETIC_RESIDUE_PATH, 'utf8');
   const parsed = JSON.parse(raw);
-  return Array.isArray(parsed) && parsed.length ? parsed : null;
+  if (!Array.isArray(parsed)) throw new Error(`${SYNTHETIC_RESIDUE_PATH} must parse to an array`);
+  return parsed;
 }
 
-describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live-58.json)', () => {
-  const fixture = loadLive58();
-  const residueCount = fixture ? fixture.reduce((n, r) => n + (r.residue_rows?.length ?? 0), 0) : 0;
+describe('RECORD-FACTS TEMPLATE UNWRAP: property test over fixtures/fwdtext3-synthetic-residue.json (SYNTHETIC: the live residue population was 0/1336 as of 2026-10-02, see header note)', () => {
+  const fixture = loadSyntheticResidue();
+  const residueCount = fixture.reduce((n, r) => n + (r.residue_rows?.length ?? 0), 0);
 
-  test('every live residue row, re-extracted from its item\'s current record_facts section, no longer carries any record-facts wrapper token (skips if fwdtext3-live-58.json is not present in this checkout)', (t) => {
-    if (!fixture) {
-      t.skip('scripts/_snapshots/fwdtext3-live-58.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
-
+  test('every residue row, re-extracted from its item\'s record_facts section, no longer carries any record-facts wrapper token', () => {
     let tested = 0;
     let clean = 0;
     let matchedTwin = 0;
@@ -1618,14 +1613,14 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
         tested++;
         const fresh = events.find((e) => e.event_date === residue.event_date && e.event_kind === residue.event_kind);
         if (!fresh) {
-          noFresh.push({ item: row.intelligence_item_id, id: residue.id });
+          noFresh.push({ item: row.item_id, id: residue.id });
           continue;
         }
         const text = fresh.obligation_text;
         const hasForbidden =
           RECORD_FACTS_FORBIDDEN.some((f) => text.toLowerCase().includes(f.toLowerCase())) || /\[[a-z][a-z0-9_]*\]/i.test(text);
         if (hasForbidden) {
-          failures.push({ item: row.intelligence_item_id, id: residue.id, text });
+          failures.push({ item: row.item_id, id: residue.id, text });
         } else {
           clean++;
         }
@@ -1644,7 +1639,7 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
     }
 
     console.log(
-      `fwdtext3-live-58.json property test: ${tested} residue rows, ${clean} clean, ${failures.length} still bad, ` +
+      `fixtures/fwdtext3-synthetic-residue.json property test: ${tested} residue rows, ${clean} clean, ${failures.length} still bad, ` +
         `${noFresh.length} with no fresh match, ${matchedTwin} exact-matched a claim-sourced twin.`,
       JSON.stringify(byVariant)
     );
@@ -1687,41 +1682,48 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
 //       for 240) else null end as context_after
 //   from due_date_claims dc left join first_match fm on fm.claim_id = dc.claim_id order by dc.claim_id;
 //
-// MEASURED [CONFIRMED, this fixture, via extractForwardEvents itself — not a SQL heuristic]: baseline
-// (span alone, no context) emits an event for 61/118 rows; WITH context attached, 90/118 (79
+// MEASURED [CONFIRMED, original 118-row fixture, via extractForwardEvents itself, not a SQL heuristic]:
+// baseline (span alone, no context) emits an event for 61/118 rows; WITH context attached, 90/118 (79
 // compliance_deadline, 6 review_or_report, 3 other, 2 phase_step); 29 of those 90 are events the span
-// alone never produced (27 compliance_deadline, 2 other) — the rescue's own net contribution. The
-// remaining 28 stay honestly skipped: 15 `calendar_date_no_deontic_in_context` (context checked, genuinely
-// no deontic/aim nearby), 13 `relative_deadline_no_calendar_date` (no rule's trigger+date pattern matched
-// the span at all — a bare year or relative phrasing this grammar cannot anchor). 0/118 hit
-// `calendar_date_deontic_context_unavailable` in this fixture (every row's span was found in a capture) —
-// asserted below only as "possible, never a crash", since a future re-capture could change that.
-// `scripts/_snapshots/` is gitignored scratch (CLAUDE.md standing rule 5), so this test self-skips (never
-// fails) when the file is absent, same convention as the two corpus-wide tests above it.
+// alone never produced (27 compliance_deadline, 2 other), the rescue's own net contribution. The
+// remaining 28 stayed honestly skipped: 15 `calendar_date_no_deontic_in_context`, 13
+// `relative_deadline_no_calendar_date`. That original gitignored `scripts/_snapshots/feslot2-live-118.json`
+// snapshot is not part of this repo's tracked tree.
+//
+// Lane R16b (2026-10-02, this fix): lane R16-19 (PR 870) first committed `fixtures/feslot2-live-118.json`
+// as a stand-in, but that committed file was a 3-row PLACEHOLDER in the WRONG shape for this test (an
+// `item_forward_events` row shape, not the `section_claim_provenance` + `agent_run_searches` join shape
+// above) -- every field this test reads was `undefined`, so no count could be reproduced. Per the
+// operator's "fixed, not worked around" ruling, a DB executor re-ran the live-SQL export above
+// (read-only) and dropped the real result into this worktree: 124 rows, all with a non-null `search_id`,
+// renamed to `fixtures/feslot2-live-124-2026-10-02.json` (124, not 118: the live `section_claim_provenance`
+// population grew between the original 2026-09-04 capture and this re-export, same kind of growth already
+// documented for the fwdtext3 fixture above). Checked for credential-like strings (`eyJ`, `sk-`,
+// `service_role`) before committing: zero matches. Re-measured the four locked properties against these
+// REAL 124 rows directly (same command as the original measurement, see this lane's session-log entry):
+// baseline 65/124, with-context 95/124, rescued 30/124, byKind
+// `{review_or_report:6, compliance_deadline:84, phase_step:2, other:3}`, rescuedByKind
+// `{compliance_deadline:28, other:2}`. The hard assertions below are restored against these re-measured
+// figures (old 61/90/29 over 118 rows vs new 65/95/30 over 124 rows, both recorded in the session-log
+// entry per the coordinator's instruction -- the difference is corpus growth between captures, not a
+// regression, consistent with this file's own "a future re-capture that changes these numbers is itself
+// the finding, not a reason to loosen the assertion" rule).
 // ---------------------------------------------------------------------------
 
-const LIVE118_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'feslot2-live-118.json');
+const LIVE124_PATH = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'feslot2-live-124-2026-10-02.json');
 
-function loadLive118() {
-  let raw;
-  try {
-    raw = readFileSync(LIVE118_PATH, 'utf8');
-  } catch {
-    return null;
-  }
+function loadLive124() {
+  const raw = readFileSync(LIVE124_PATH, 'utf8');
   const parsed = JSON.parse(raw);
-  return Array.isArray(parsed) && parsed.length ? parsed : null;
+  if (!Array.isArray(parsed)) throw new Error(`${LIVE124_PATH} must parse to an array`);
+  return parsed;
 }
 
-describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-118.json)', () => {
-  const fixture = loadLive118();
+describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (fixtures/feslot2-live-124-2026-10-02.json, 124 real rows, see header note)', () => {
+  const fixture = loadLive124();
 
-  test('measured event/skip counts hold, no crash, every rescued event is honest (skips if feslot2-live-118.json is not present in this checkout)', (t) => {
-    if (!fixture) {
-      t.skip('scripts/_snapshots/feslot2-live-118.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
-
+  test('measured event/skip counts hold, no crash, every rescued event is honest', () => {
+    let rowsProcessed = 0;
     let baselineEvents = 0;
     let withContextEvents = 0;
     let rescued = 0;
@@ -1738,6 +1740,7 @@ describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-
 
       const base = extractForwardEvents({ claims: [claimNoCtx], sections: [] });
       const withCtx = extractForwardEvents({ claims: [claimWithCtx], sections: [] });
+      rowsProcessed++;
 
       if (base.events.length > 0) baselineEvents++;
       if (withCtx.events.length > 0) withContextEvents++;
@@ -1751,28 +1754,31 @@ describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-
         // every event's context text (when one exists) genuinely contains the matched date substring --
         // re-checked here independently of assertVerbatim's own internal throw, so a regression there
         // shows up as a normal test failure with the offending row named, not a bare thrown error.
-        const haystack = context ? context.before + row.source_span + context.after : row.source_span;
+        const haystack = context ? context.before + (row.source_span ?? '') + context.after : (row.source_span ?? '');
         if (!haystack.includes(e.source_span)) notVerbatim.push({ claim_id: row.claim_id, source_span: e.source_span });
       }
       for (const s of withCtx.skipped) bySkipReason[s.reason] = (bySkipReason[s.reason] ?? 0) + 1;
     }
 
     console.log(
-      `feslot2-live-118.json property test: ${fixture.length} rows; baseline ${baselineEvents} events, ` +
+      `fixtures/feslot2-live-124-2026-10-02.json property test: ${fixture.length} rows; baseline ${baselineEvents} events, ` +
         `with-context ${withContextEvents} events, ${rescued} rescued.`,
       'by_kind:', JSON.stringify(byKind),
       'rescued_by_kind:', JSON.stringify(rescuedByKind),
       'by_skip_reason:', JSON.stringify(bySkipReason)
     );
 
+    assert.equal(rowsProcessed, fixture.length);
     assert.equal(nonIdempotent.length, 0, `${nonIdempotent.length} rescued obligation_text(s) not idempotent: ${JSON.stringify(nonIdempotent.slice(0, 3))}`);
     assert.equal(notVerbatim.length, 0, `${notVerbatim.length} event source_span(s) not found verbatim in their own context: ${JSON.stringify(notVerbatim.slice(0, 3))}`);
-    // measured, exact counts against this fixture — a regression lock, not a tolerance band; a future
-    // re-capture that changes these numbers is itself the finding, not a reason to loosen the assertion.
-    assert.equal(baselineEvents, 61);
-    assert.equal(withContextEvents, 90);
-    assert.equal(rescued, 29);
-    assert.deepEqual(byKind, { review_or_report: 6, compliance_deadline: 79, phase_step: 2, other: 3 });
-    assert.deepEqual(rescuedByKind, { compliance_deadline: 27, other: 2 });
+    // measured, exact counts against this fixture (124 real rows, re-exported 2026-10-02): a regression
+    // lock, not a tolerance band; a future re-capture that changes these numbers is itself the finding,
+    // not a reason to loosen the assertion. The prior lock (61/90/29 over the original 118-row capture)
+    // is recorded in this lane's session-log entry alongside these re-measured figures.
+    assert.equal(baselineEvents, 65);
+    assert.equal(withContextEvents, 95);
+    assert.equal(rescued, 30);
+    assert.deepEqual(byKind, { review_or_report: 6, compliance_deadline: 84, phase_step: 2, other: 3 });
+    assert.deepEqual(rescuedByKind, { compliance_deadline: 28, other: 2 });
   });
 });
