@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   detectPublisherShape, extractCleanText, structuralTruncation,
-  classifyCompleteness, classifySufficiency, looksLikeFurniture, STUB_MAX_BYTES,
+  classifyCompleteness, classifySufficiency, looksLikeFurniture,
 } from "./holdings-audit.mjs";
 
 test("looksLikeFurniture: nav shell → true; real thin legal text → false (never false-rejects)", () => {

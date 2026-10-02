@@ -18,9 +18,6 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { mintIntelligenceItem } = await jiti.import("./mint-item.ts");
 
-const CONNECTION_SIGNATURE_COLUMNS =
-  "id, item_type, canonical_instrument_key, source_id, operational_scenario_tags, compliance_object_tags, jurisdictions, jurisdiction_iso, topic_tags";
-
 /** Minimal full-chain fake covering every query a successful mint reaches (same query set as
  *  mint-forward-participation.npmtest.mjs's fakeClient), plus capturing the exact row passed to
  *  intelligence_items.insert() so this file can assert on item_grade directly. */
@@ -147,7 +144,6 @@ test("task 1.2: an 'initiative' seed with no format_type -> INSERTed row carries
 
 test("rule 16 still runs post-insert for a record-grade mint (discovery + forward-event extraction unaffected by grade)", async () => {
   const span = "This Regulation shall enter into force on 1 January 2027.";
-  const sb = fakeClient();
   // Route claim rows through the same emptyReadChain override isn't enough for this one test — build a
   // dedicated client so section_claim_provenance returns one obligation-bound FACT claim.
   const inserted = [];

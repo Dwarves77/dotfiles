@@ -20,7 +20,7 @@ import {
   sitemapRootKind, parseUrlsetEntries, parseSitemapIndexEntries, parseSitemapXml, dedupeByLoc, diffUrlSet,
   mergeSnapshotEntries, sourceContentPath, isUrlWithinSourcePath, filterEntriesForSource,
   checkResponseBytes, DEFAULT_MAX_SITEMAP_RESPONSE_BYTES, DEFAULT_MAX_FEED_RESPONSE_BYTES,
-  walkSitemap, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES,
+  walkSitemap, DEFAULT_MAX_SITEMAP_FETCHES,
   probeIsFeed, discoverFeed, walkSource,
 } from "./sitemap-walk.mjs";
 
@@ -288,7 +288,7 @@ test("walkSitemap: no sitemap discoverable at all -> ok:false, never throws", as
 });
 
 test("walkSitemap: robots.txt ITSELF bot-walled (401/403/429) -> ok:false, discoverySource 'bot_wall', never throws (regression, lane SITEMAP-3 2026-09-04: a same-name-typo'd sitemapsFallbackCandidates reference meant this exact branch — robots.txt answering a bot-wall status — threw a ReferenceError instead of ever returning)", async () => {
-  const pages = {}; // robots.txt AND every fallback candidate all answer non-200 -> every fetch throws
+  // robots.txt AND every fallback candidate all answer non-200 -> every fetch throws
   async function fetchBytes(url) {
     if (url.endsWith("/robots.txt")) throw new Error(`HTTP 403 for ${url}`);
     throw new Error(`HTTP 401 for ${url}`); // the three fallback candidates
@@ -493,7 +493,7 @@ test("walkSitemap: dry-mode contract — an injected persist/saveSnapshot/record
     },
     async getPreviousSnapshot() { return previous; },
     async saveSnapshot() { saveSnapshotCalls++; /* dry: counts, writes nothing */ },
-    async persist(links) { persistCalls++; return { upserted: 0, failed: 0 }; /* dry: counts the plan */ },
+    async persist(_links) { persistCalls++; return { upserted: 0, failed: 0 }; /* dry: counts the plan */ },
     async recordChange() { recordChangeCalls++; /* dry: counts, writes nothing */ },
   };
   const r = await walkSitemap(deps, { baseUrl: "https://reg.example/" });

@@ -156,7 +156,7 @@ async function boundedFetch(fetchFn, url, ms) {
  *   alternatives: [{ url, len, langRatio, reason, role: 'declared_primary'|'alternative' }]
  * }
  */
-export async function fetchPrimaryWithFallback({ title, primaryUrl, itemType }, deps) {
+export async function fetchPrimaryWithFallback({ title: _title, primaryUrl, itemType: _itemType }, deps) {
   const { browserlessFetch, discoverCandidates, perFetchMs = 20000, maxAlts = 3, maxCandidates = 6 } = deps;
   // Normalise the declared primary to its fetchable rendering form BEFORE the first fetch (EUR-Lex /TXT
   // -> /TXT/HTML/), so the enacted text — not a soft-404 — is what we try first.

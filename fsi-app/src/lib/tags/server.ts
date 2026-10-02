@@ -6,6 +6,7 @@
  * src/app/api/watchlist/logic.ts and src/app/api/admin/sources/bulk-import/
  * logic.ts already use — route.ts files export only route handlers).
  */
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -32,7 +33,7 @@ export interface TagsSupabaseClient {
  *  copying a 6-line lookup is the existing codebase convention here, see
  *  overrides/route.ts's own copy of this same function). */
 export async function resolveItemUuid(
-  supabase: { from: (table: string) => any },
+  supabase: SupabaseClient,
   itemId: string
 ): Promise<string | null> {
   if (UUID_RE.test(itemId)) return itemId;

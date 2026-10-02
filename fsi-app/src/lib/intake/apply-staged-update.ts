@@ -28,6 +28,16 @@ import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-d
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
 import { runDiscoveryStep, runForwardEventsStep } from "@/lib/intake/flywheel-steps.mjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** The staged_updates row shape this materializer reads (only the four columns it actually touches;
+ *  proposed_changes is intentionally untyped record data, shaped differently per update_type). */
+export interface StagedUpdateRow {
+  id: string;
+  item_id: string;
+  update_type: string;
+  proposed_changes: Record<string, unknown> | null;
+}
 
 export interface ApplyUpdateResult {
   success: boolean;
@@ -112,7 +122,7 @@ export function isSubstantiveUpdate(proposedChanges: Record<string, unknown> | n
  * stale-events detection. This function keeps the try/catch, the `flags` string convention, and the
  * recordFlywheelDefect calls, the caller-specific bookkeeping that stays here, per that module's own header.
  */
-async function participateInFlywheel(supabase: any, itemId: string, flags: string[], proposedChanges: Record<string, unknown> = {}): Promise<void> {
+async function participateInFlywheel(supabase: SupabaseClient, itemId: string, flags: string[], proposedChanges: Record<string, unknown> = {}): Promise<void> {
   // ── rule 16(a): re-run connection discovery against the item's CURRENT (post-update) signature. A
   // fresh re-read (rather than merging proposed_changes over the pre-update row in memory) is the only way
   // to get an authoritative full signature when proposed_changes may have touched only SOME of the
@@ -193,8 +203,8 @@ async function participateInFlywheel(supabase: any, itemId: string, flags: strin
 }
 
 export async function applyStagedUpdate(
-  supabase: any,
-  update: any,
+  supabase: SupabaseClient,
+  update: StagedUpdateRow,
   opts: { dryRun?: boolean } = {}
 ): Promise<ApplyUpdateResult> {
   try {
@@ -339,7 +349,7 @@ export async function applyStagedUpdate(
       default:
         return { success: false, error: `Unknown update type: ${update.update_type}` };
     }
-  } catch (e: any) {
-    return { success: false, error: e?.message || String(e) };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -13,7 +13,7 @@ import { createJiti } from "jiti";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 
-const { spendMessage, setSpendTicket, resetSpendTicket, unloggedCallCount, assertLedgerDrained } =
+const { spendMessage, resetSpendTicket, unloggedCallCount, assertLedgerDrained } =
   await jiti.import("./spend-client.ts");
 const { __resetSpendForTest } = await jiti.import("./spend-guard.mjs");
 

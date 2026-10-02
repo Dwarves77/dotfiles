@@ -53,7 +53,7 @@ function fakeClient({ tables = {}, rpcHandlers = {} } = {}) {
   };
 }
 
-const OK_METHOD = ({ inputs }) => ({
+const OK_METHOD = ({ inputs: _inputs }) => ({
   ok: true,
   value: 42,
   unit: "g/tkm",

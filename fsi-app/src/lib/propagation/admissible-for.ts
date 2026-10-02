@@ -15,14 +15,13 @@
 // (DP-SPINE's own header note for decisions.mjs: "importable from a fitness function, a script, or a
 // Next.js component with no npm install and no bundler"). Imported here, never re-implemented.
 
-// @ts-ignore — decisions.mjs/envelope.mjs/vocabularies.mjs are plain .mjs with JSDoc types, not .d.ts;
-// tsc's `checkJs`/`allowJs` posture for this repo does not type-check .mjs imports from a .ts file by
-// default. The VALUES imported are used only at runtime (FLOOR as a lookup table, the two predicates as
-// plain functions), so this does not weaken any compile-time guarantee this file itself provides.
+// decisions.mjs/envelope.mjs/vocabularies.mjs are plain .mjs with JSDoc types, not .d.ts. No type
+// suppression comment is needed on these imports (this repo's tsconfig does not type-check .mjs
+// imports from a .ts file in a way that flags these; a suppression directive here reports as
+// unused). The VALUES imported are used only at runtime (FLOOR as a lookup table, the two
+// predicates as plain functions).
 import { FLOOR } from "../entities/decisions.mjs";
-// @ts-ignore — see note above.
 import { isContractable } from "../contracts/envelope.mjs";
-// @ts-ignore — see note above.
 import { isMissing } from "../contracts/vocabularies.mjs";
 import { effectiveConfidence } from "./effective-confidence.mjs";
 import type { Value, Use, Verdict, OriginClass } from "./types.ts";

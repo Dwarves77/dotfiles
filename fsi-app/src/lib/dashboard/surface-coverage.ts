@@ -202,8 +202,8 @@ async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfa
           .order("id", { ascending: true })
           .range(from, to)
       )) as ScopeItem[];
-    } catch (e: any) {
-      console.error("[dashboard/surface-coverage] intelligence_items fetch error:", e?.message ?? e);
+    } catch (e: unknown) {
+      console.error("[dashboard/surface-coverage] intelligence_items fetch error:", e instanceof Error ? e.message : e);
       return EMPTY_INTEL;
     }
 
