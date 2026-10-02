@@ -62,6 +62,50 @@ export function isExpired(date = today()) {
   return date >= BASELINE_EXPIRY_DATE;
 }
 
+/**
+ * RENEWAL WARNING GATE (lane R23 item 4, 2026-10-02, coordinator-directed: "add a check that fails 7
+ * days before expiry unless the baseline was re-measured"). The hard cliff above (isExpired) is a
+ * deliberate all-or-nothing cutoff: it is correct, but it gives zero advance notice -- a baseline can
+ * sit untouched for weeks and then every one of its findings blocks on the exact expiry date, with no
+ * warning beforehand that a renewal decision is due. This function is a SEPARATE, earlier-firing check:
+ * once `date` is within WARNING_WINDOW_DAYS of BASELINE_EXPIRY_DATE (and the baseline has not already
+ * expired -- that is isExpired's own failure mode, not this one's), it fails UNLESS the baseline file's
+ * own `writtenAt` falls on or after the window's start, i.e. someone re-ran
+ * `run-layout-guard.mjs --write-baseline` (which rewrites `writtenAt` to that run's date) DURING the
+ * window -- the mechanical definition of "re-measured" here, deliberately: re-running the guard and
+ * recommitting whatever it still finds is the renewal act, whether or not that run also shrank the
+ * baseline or moved the expiry date. A missing/unparseable `writtenAt` fails closed (cannot prove a
+ * renewal happened, so none is credited).
+ */
+export const WARNING_WINDOW_DAYS = 7;
+
+/** `dateStr` minus `days`, both YYYY-MM-DD, so the two can compare as strings. */
+function daysBefore(dateStr, days) {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The first date (YYYY-MM-DD) the renewal warning can fire: `windowDays` before `expiryDate`. */
+export function warningWindowStart(expiryDate = BASELINE_EXPIRY_DATE, windowDays = WARNING_WINDOW_DAYS) {
+  return daysBefore(expiryDate, windowDays);
+}
+
+/**
+ * True when the baseline is due for renewal RIGHT NOW and nobody has renewed it: `date` is inside the
+ * warning window, the baseline is not yet expired (isExpired covers that separately), and `writtenAt`
+ * predates the window's own start. Pure and fully injectable (`date`, `expiryDate`, `writtenAt`) so the
+ * window boundaries can be proven by attack without waiting on the real clock; the CLI/test default
+ * reads the real date and the real baseline.json's `writtenAt`.
+ */
+export function needsRenewal({ date = today(), expiryDate = BASELINE_EXPIRY_DATE, writtenAt = loadBaseline().meta?.writtenAt } = {}) {
+  if (isExpired(date)) return false; // the hard cliff is the failure mode past expiry, not this one
+  const windowStart = warningWindowStart(expiryDate);
+  if (date < windowStart) return false; // not yet in the warning window: nothing due yet
+  if (typeof writtenAt !== 'string' || !writtenAt) return true; // no provable renewal: fail closed
+  return writtenAt < windowStart; // renewed DURING the window if writtenAt >= windowStart
+}
+
 /** One finding's identity, stable across runs: rule + route + width + the element it named. */
 export function findingKey(f) {
   return `${f.rule}|${f.route}|${f.width}|${f.element}`;

@@ -30,7 +30,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { applyBaseline, isExpired, today, BASELINE_EXPIRY_DATE } from './layout-guard/baseline.mjs';
+import {
+  applyBaseline,
+  isExpired,
+  today,
+  BASELINE_EXPIRY_DATE,
+  needsRenewal,
+  warningWindowStart,
+  WARNING_WINDOW_DAYS,
+} from './layout-guard/baseline.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -85,4 +93,66 @@ test('the baseline FILE and the module name the same expiry, and the file still 
   // The baseline may only SHRINK (baseline.mjs header). This lane changed the expiry mechanism and
   // nothing about the findings, so the count is the one it landed with on 2026-09-08.
   assert.equal(b.count, 792, 'this lane touched no finding: clearing them is scheduled after the UI round');
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Lane R23 item 4 (2026-10-02, coordinator-directed): a renewal WARNING gate, firing WARNING_WINDOW_DAYS
+// before BASELINE_EXPIRY_DATE, separate from the hard cliff proven above. Proven by attack, both the
+// pure boundary logic (injectable date/writtenAt) and a REAL standing gate below that reads the actual
+// clock and the actual baseline.json, so it mechanically fails for real once the window opens, unless
+// someone has re-run run-layout-guard.mjs --write-baseline since the window started.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('warningWindowStart is exactly WARNING_WINDOW_DAYS before the expiry date', () => {
+  assert.equal(WARNING_WINDOW_DAYS, 7);
+  assert.equal(warningWindowStart('2026-10-15'), '2026-10-08');
+  assert.equal(warningWindowStart('2026-01-01'), '2025-12-25', 'crosses a year boundary correctly');
+});
+
+test('ATTACK, before the window opens: needsRenewal is false even with no writtenAt at all', () => {
+  assert.equal(needsRenewal({ date: '2026-10-07', expiryDate: '2026-10-15', writtenAt: undefined }), false);
+});
+
+test('ATTACK, inside the window, baseline untouched since before the window opened: needsRenewal is TRUE', () => {
+  assert.equal(
+    needsRenewal({ date: '2026-10-08', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }),
+    true,
+    'writtenAt predates the window start (2026-10-08): nobody has renewed, the warning must fire',
+  );
+  assert.equal(needsRenewal({ date: '2026-10-14', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }), true);
+});
+
+test('ATTACK, inside the window, baseline WAS re-measured during the window: needsRenewal is false', () => {
+  assert.equal(
+    needsRenewal({ date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-10-08' }),
+    false,
+    'writtenAt on-or-after the window start counts as renewed',
+  );
+  assert.equal(needsRenewal({ date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-10-10' }), false);
+});
+
+test('ATTACK, missing writtenAt inside the window: fails CLOSED (cannot prove a renewal happened)', () => {
+  assert.equal(needsRenewal({ date: '2026-10-09', expiryDate: '2026-10-15', writtenAt: undefined }), true);
+  assert.equal(needsRenewal({ date: '2026-10-09', expiryDate: '2026-10-15', writtenAt: null }), true);
+});
+
+test('ATTACK, past expiry: needsRenewal is false -- isExpired is the failure mode there, not this one (no double fire)', () => {
+  assert.equal(needsRenewal({ date: '2026-10-15', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }), false);
+  assert.equal(needsRenewal({ date: '2026-12-01', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }), false);
+});
+
+test('STANDING GATE, real clock, real baseline.json: the renewal warning is not due yet, OR the ' +
+  'baseline has been re-measured since the warning window opened', () => {
+  const due = needsRenewal();
+  assert.equal(
+    due,
+    false,
+    `renewal due: today (${today()}) is within ${WARNING_WINDOW_DAYS} days of the layout-guard baseline's ` +
+      `expiry (${BASELINE_EXPIRY_DATE}, warning window opened ${warningWindowStart()}) and baseline.json's ` +
+      `writtenAt has not moved since. RENEW: run ` +
+      `"node .discipline/rendering/layout-guard/run-layout-guard.mjs --write-baseline" and commit the ` +
+      `result (it rewrites writtenAt even if the finding count does not change), OR get a new operator ` +
+      `ruling extending BASELINE_EXPIRY_DATE in baseline.mjs and baseline.json's expiryDate together ` +
+      `(docs/runbooks/layout-guard-baseline-renewal.md has the full procedure).`,
+  );
 });

@@ -4,12 +4,18 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   parseDriftCheckIds,
   parseValidOverrides,
   evaluate,
   messagesFromPrepushStdin,
+  messagesForRange,
 } from './override-check.mjs';
+import { resolveRange } from '../lib/change-range.mjs';
 
 const NOW = new Date('2026-07-11T12:00:00Z');
 
@@ -78,4 +84,83 @@ test('evaluate: runner ERROR (status 2) is not passable', () => {
 test('messagesFromPrepushStdin: deleting a ref (zero local sha) yields nothing', () => {
   const stdin = 'refs/heads/x 0000000000000000000000000000000000000000 refs/heads/x abc123\n';
   assert.deepEqual(messagesFromPrepushStdin(stdin, process.cwd()), []);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Lane R23 item 1 (2026-10-02): the CLI's default branch now resolves its range via change-range.mjs's
+// resolveRange() instead of trusting a caller-built --range string, so a CI-PR caller (BASE_REF+PR_HEAD
+// env, no --range flag) reads only ITS OWN branch's commit messages, never messages from commits master
+// gained after the fork (proven directly here, not by presence).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+function makeRepo() {
+  const dir = mkdtempSync(join(tmpdir(), 'override-check-'));
+  const git = (args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+  git(['init', '-q']);
+  git(['config', '--local', 'user.name', 'override-check-test']);
+  git(['config', '--local', 'user.email', 'override-check-test@example.com']);
+  return { dir, git };
+}
+
+function commit(git, message) {
+  git(['commit', '-q', '-m', message]);
+  return git(['rev-parse', 'HEAD']).trim();
+}
+
+test('CLI default branch (BASE_REF+PR_HEAD, no --range): resolveRange + messagesForRange reads only ' +
+  "the branch's own commit messages, not a commit master gained after the fork", () => {
+  const { dir, git } = makeRepo();
+  try {
+    writeFileSync(join(dir, 'a.txt'), 'base\n');
+    git(['add', 'a.txt']);
+    const forkSha = commit(git, 'shared history');
+    git(['update-ref', 'refs/remotes/origin/master', forkSha]);
+    const trunk = git(['symbolic-ref', '--short', 'HEAD']).trim();
+
+    git(['checkout', '-q', '-b', 'feature']);
+    writeFileSync(join(dir, 'b.txt'), 'branch work\n');
+    git(['add', 'b.txt']);
+    const headSha = commit(
+      git,
+      'branch: own work\n\nConsistency-Override: C3 (rationale: known gap; remediation-deadline: 2099-01-01)'
+    );
+
+    // Master advances on its own line AFTER the fork, with a commit that must NOT be visible to the PR.
+    git(['checkout', '-q', trunk]);
+    writeFileSync(join(dir, 'a.txt'), 'fixed on master\n');
+    git(['add', 'a.txt']);
+    const masterTipSha = commit(git, 'master: unrelated fix, must not leak into the PR range');
+    git(['update-ref', 'refs/remotes/origin/master', masterTipSha]);
+
+    const resolved = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: headSha }, cwd: dir });
+    assert.equal(resolved.base, forkSha);
+    const messages = messagesForRange(resolved.range, dir);
+    assert.equal(messages.length, 1, 'exactly one commit message: the branch\'s own, not master\'s post-fork commit');
+    assert.ok(messages[0].includes('Consistency-Override: C3'));
+    assert.ok(!messages.some((m) => m.includes('must not leak')));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('CLI default branch, no BASE_REF/PR_HEAD, no --range: falls back to the local merge-base range ' +
+  '(same shape runner.mjs/F51 use)', () => {
+  const { dir, git } = makeRepo();
+  try {
+    writeFileSync(join(dir, 'a.txt'), 'base\n');
+    git(['add', 'a.txt']);
+    const baseSha = commit(git, 'base');
+    git(['update-ref', 'refs/remotes/origin/master', baseSha]);
+    writeFileSync(join(dir, 'b.txt'), 'second\n');
+    git(['add', 'b.txt']);
+    commit(git, 'second: local work, no trailer');
+
+    const resolved = resolveRange({ env: {}, cwd: dir });
+    assert.equal(resolved.source, 'local-merge-base');
+    assert.equal(resolved.base, baseSha);
+    const messages = messagesForRange(resolved.range, dir);
+    assert.deepEqual(messages, ['second: local work, no trailer']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

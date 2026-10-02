@@ -60,7 +60,7 @@
 // this changes nothing about what CI enforces, only how much of the failure a lane sees at once.
 
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
-import { gitChangedFiles, gitDiffLinesForPath } from '../lib/change-range.mjs';
+import { gitChangedFiles, gitDiffLinesForPath, resolveRange } from '../lib/change-range.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // PURE CORE
@@ -202,11 +202,19 @@ if (isMainModule(import.meta.url)) {
   const rangeArg = args.find((a) => a.startsWith('--range='));
   const warnOnly = args.includes('--warn-only');
 
-  if (!rangeArg) {
-    console.error('[memory-gate] --range=<a>..<b> (or <a>...<b>) is required.');
+  // Range resolution via change-range.mjs's resolveRange() (lane R23 item 1, 2026-10-02): an explicit
+  // --range is honored verbatim (both of discipline.yml's push-event shapes pass an exact before/after
+  // SHA pair here, not a branch-tip-relative range, so they are not exposed to the tip-vs-merge-base
+  // defect and keep passing --range explicitly); omitted, BASE_REF+PR_HEAD resolve to an ACTUAL
+  // merge-base commit, or the local merge-base against origin/master fires -- the SAME function
+  // runner.mjs, override-check.mjs, and F51 resolve through. Before this fix, pre-push step 2b passed
+  // the literal `--range=origin/master..HEAD` (tip-vs-tip) by hand.
+  const resolved = resolveRange({ explicit: rangeArg ? rangeArg.slice('--range='.length) : undefined, env: process.env });
+  if (resolved.source === 'unavailable' || !resolved.range) {
+    console.error(`[memory-gate] could not resolve a range${resolved.reason ? ` (${resolved.reason})` : ''}. Pass --range=<a>..<b> (or <a>...<b>) explicitly.`);
     process.exit(2);
   }
-  const range = rangeArg.slice('--range='.length);
+  const range = resolved.range;
 
   let files;
   let sessionLogDiffLines;

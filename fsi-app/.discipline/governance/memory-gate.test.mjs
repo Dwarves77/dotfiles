@@ -265,3 +265,54 @@ test('uxGateVerdict PASSES when the only added "UX compliance" line comes from a
   assert.equal(v.ok, true);
   assert.equal(v.message, 'UX compliance gate OK');
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// Lane R23 item 1 (2026-10-02): the CLI's range argument is now resolved via change-range.mjs's
+// resolveRange() when --range is omitted, instead of erroring. Proven directly against resolveRange +
+// gitChangedFiles (the same functions the CLI main uses), not by presence.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('resolveRange (as the memory-gate CLI now calls it): BASE_REF+PR_HEAD resolves to the real ' +
+  "merge-base, not the branch's own commit sha", async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { resolveRange, gitChangedFiles } = await import('../lib/change-range.mjs');
+
+  const dir = mkdtempSync(join(tmpdir(), 'memory-gate-cli-'));
+  const git = (args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+  try {
+    git(['init', '-q']);
+    git(['config', '--local', 'user.name', 'memory-gate-test']);
+    git(['config', '--local', 'user.email', 'memory-gate-test@example.com']);
+
+    writeFileSync(join(dir, 'untouched.ts'), 'v1\n');
+    git(['add', 'untouched.ts']);
+    git(['commit', '-q', '-m', 'shared history']);
+    const forkSha = git(['rev-parse', 'HEAD']).trim();
+    git(['update-ref', 'refs/remotes/origin/master', forkSha]);
+    const trunk = git(['symbolic-ref', '--short', 'HEAD']).trim();
+
+    git(['checkout', '-q', '-b', 'feature']);
+    writeFileSync(join(dir, 'docs-ops-session-log.md'), 'lane note\n');
+    git(['add', 'docs-ops-session-log.md']);
+    git(['commit', '-q', '-m', 'branch: own vault note']);
+    const headSha = git(['rev-parse', 'HEAD']).trim();
+
+    // Master advances AFTER the fork, touching a file the branch never touches.
+    git(['checkout', '-q', trunk]);
+    writeFileSync(join(dir, 'untouched.ts'), 'v2 -- master fix\n');
+    git(['add', 'untouched.ts']);
+    git(['commit', '-q', '-m', 'master: unrelated change after fork']);
+    const masterTipSha = git(['rev-parse', 'HEAD']).trim();
+    git(['update-ref', 'refs/remotes/origin/master', masterTipSha]);
+
+    const resolved = resolveRange({ env: { BASE_REF: 'master', PR_HEAD: headSha }, cwd: dir });
+    assert.equal(resolved.base, forkSha);
+    const changed = gitChangedFiles(resolved.range, { cwd: dir });
+    assert.deepEqual(changed, ['docs-ops-session-log.md'], 'only the branch\'s own file, never untouched.ts');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

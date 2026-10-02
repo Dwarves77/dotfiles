@@ -1,0 +1,86 @@
+# Layout-guard baseline renewal runbook
+
+Procedure for renewing `fsi-app/.discipline/rendering/layout-guard/baseline.json`, the site-wide layout
+guard's dated, per-entry exemption list (`fsi-app/.discipline/rendering/layout-guard/baseline.mjs`). Not
+dated itself: this is a repeatable procedure, re-used every time the baseline approaches its expiry.
+
+## Why there are two gates, not one
+
+The baseline carries `BASELINE_EXPIRY_DATE` (currently `2026-10-15`; read the constant live, not this
+line). Two separate mechanisms key off that date:
+
+1. **The hard cliff** (`isExpired`): on or after the expiry date, the baseline stops applying and every
+ baselined finding blocks the build, with no warning beforehand. Proven in
+ `fsi-app/.discipline/rendering/layout-guard-expiry.test.mjs`.
+2. **The renewal warning gate** (`needsRenewal`, lane R23 item 4, 2026-10-02): fires starting
+ `WARNING_WINDOW_DAYS` (7) before the expiry date and FAILS the standing test `STANDING GATE, real
+ clock, real baseline.json` in the same file, unless the baseline has been re-measured (its
+ `writtenAt` field moved to on-or-after the window's own start) since the window opened. This gate
+ exists so a renewal decision is forced ahead of the cliff, not discovered on the day everything goes
+ red at once.
+
+Both gates run in the existing `node --test` glob `run-test-suite.sh` already covers
+(`.discipline/rendering/*.test.mjs`), so both fire in CI and in pre-push step 3 with no separate wiring.
+
+## When the renewal warning fires (you are here)
+
+`node --test fsi-app/.discipline/rendering/layout-guard-expiry.test.mjs` fails on the "STANDING GATE"
+test, naming today's date, the expiry date, and the window's own start date. Pick ONE of the two paths
+below.
+
+### Path A -- re-run the guard and commit whatever it still finds (the usual path)
+
+The mechanical act of renewal: re-measure, don't just wait.
+
+```
+node fsi-app/.discipline/rendering/layout-guard/run-layout-guard.mjs --write-baseline
+```
+
+This overwrites `baseline.json`, including its `writtenAt` field (set to the run's own date) -- the
+field `needsRenewal` reads to decide whether a renewal happened. Commit the result:
+
+- If the finding count SHRANK (parts were fixed since the last baseline), the shrink is the proof; the
+ baseline may only shrink, never grow (`baseline.mjs`'s own header) -- a GROWN count means something new
+ regressed and must be fixed before writing the baseline, not baselined away.
+- If the finding count is UNCHANGED, committing the refreshed `writtenAt` alone is still a valid
+ renewal: it re-affirms the debt is known and still owned, which is the act this gate exists to force.
+
+The renewal warning gate goes green immediately (today's `writtenAt` is on-or-after any window start
+for the foreseeable future) and stays green until the warning window opens again before whatever expiry
+date is now in force.
+
+### Path B -- get a new operator ruling extending the expiry date
+
+When the findings are not yet ready to clear and no fresh measurement is warranted, get an operator
+ruling naming a new expiry date (the same way the 2026-09-09 ruling extended it to 2026-10-15 -- see
+`baseline.mjs`'s own header comment, which quotes that ruling verbatim and must be updated to quote the
+new one). Then, in the SAME change:
+
+1. Update `BASELINE_EXPIRY_DATE` in `fsi-app/.discipline/rendering/layout-guard/baseline.mjs`.
+2. Update `expiryDate` in `fsi-app/.discipline/rendering/layout-guard/baseline.json` to the SAME value
+ (`layout-guard-expiry.test.mjs`'s own test asserts the file and the module agree).
+3. Quote the new ruling, dated and attributed, in `baseline.mjs`'s own doc comment, the same way the
+ existing one is quoted -- never silently replace the old ruling's text, since CLAUDE.md rule 10 makes
+ an undated change here a landmine for the next renewal.
+
+A ruling that only pushes the expiry date out does NOT, by itself, move `writtenAt` -- `needsRenewal`'s
+renewal signal is specifically "the guard was re-run," not "the deadline moved." If the new expiry date
+is itself more than `WARNING_WINDOW_DAYS` away, the warning gate goes green on the date-comparison alone
+(the window has not opened relative to the new date); if a ruling is granted WHILE already inside the
+old window, also run Path A's `--write-baseline` in the same change so `writtenAt` is current against
+the new date too -- the two paths are not mutually exclusive.
+
+## Owning part list
+
+The baseline's dated routing table -- which part owns each surviving finding -- lives at
+`docs/audits/layout-guard-2026-09-08.md`. A renewal that clears findings should also narrow or retire
+that table's entries for the parts just fixed, in the same change (memory conventions: an owning
+doc is kept honest at the moment the thing it tracks changes, not swept later).
+
+## Cross-references
+
+- [layout-guard-2026-09-08](../audits/layout-guard-2026-09-08.md) -- the guard's first full run and the
+ owning-part routing table this renewal procedure keeps current.
+- [rendering-guard-local-vs-ci-2026-09-12](../audits/rendering-guard-local-vs-ci-2026-09-12.md) -- a
+ separate, already-investigated local-vs-CI divergence in the same guard; not a renewal concern, cited
+ here only so the two "layout guard went red" causes are not conflated.

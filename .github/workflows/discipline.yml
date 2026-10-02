@@ -308,10 +308,14 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -u
           git fetch --no-tags origin "$BASE_REF" || true
-          node fsi-app/.discipline/consistency/override-check.mjs --range="origin/${BASE_REF}..${HEAD_SHA}"
+          # LANE R23 item 1 (2026-10-02): dropped the hand-built --range="origin/${BASE_REF}..${HEAD_SHA}"
+          # (tip-vs-tip). BASE_REF + PR_HEAD are env vars; override-check.mjs resolves the range itself via
+          # change-range.mjs's resolveRange(), the same function the validate-commits job and F51 use.
+          node fsi-app/.discipline/consistency/override-check.mjs
 
   fitness-check:
     name: Fitness functions (application-layer enforcement)

@@ -13,12 +13,12 @@ way `git diff A...B` (three dots) does. Three callers each built their own liter
 against the base ref's current tip instead of its merge-base with HEAD:
 
 - `.github/workflows/discipline.yml`'s `validate-commits` job, pull_request leg:
-  `RANGE="origin/${BASE_REF}..${HEAD_SHA}"`.
+ `RANGE="origin/${BASE_REF}..${HEAD_SHA}"`.
 - `fsi-app/.discipline/hooks/pre-push` step 2c: `--range=origin/master..HEAD`.
 - `fsi-app/.discipline/runner.mjs`'s `--mode=ci --range=<range>` branch took whatever literal range
-  string either caller handed it and fed it straight to `buildContextForRange()` (`context.mjs`), which
-  runs `git diff --numstat <range>` / `git diff -U0 <range> -- <path>` on that literal string, the
-  exact vulnerable spot rule 022's content check (`getAddedLines`) reads from.
+ string either caller handed it and fed it straight to `buildContextForRange()` (`context.mjs`), which
+ runs `git diff --numstat <range>` / `git diff -U0 <range> -- <path>` on that literal string, the
+ exact vulnerable spot rule 022's content check (`getAddedLines`) reads from.
 
 **`fsi-app/.discipline/lib/change-range.mjs`'s `resolveRange()` already existed** (lane N0, plan section
 6.8 Rule C) and already computed the LOCAL case correctly (`base = git merge-base origin/master HEAD`,
@@ -37,32 +37,32 @@ One shared helper, `change-range.mjs`'s `resolveRange()`, used by all four range
 caller building its own range string:
 
 1. **`fsi-app/.discipline/lib/change-range.mjs`**: the CI-PR branch now resolves `base = git merge-base
-   origin/${BASE_REF} ${PR_HEAD}` (an actual commit) and returns the plain two-dot `base..PR_HEAD`,
-   matching the local-merge-base branch's shape instead of three dots against the base ref's tip. One
-   shape, correct for both `git diff` (no endpoint-tree drift, since `base` already IS the shared
-   ancestor) AND `git log` (`base..head` lists exactly head's own commits; a three-dot / symmetric
-   difference range would also surface the base ref's own post-fork commits, which matters for
-   `runner.mjs`'s commit walk below, which needs exactly one side).
+ origin/${BASE_REF} ${PR_HEAD}` (an actual commit) and returns the plain two-dot `base..PR_HEAD`,
+ matching the local-merge-base branch's shape instead of three dots against the base ref's tip. One
+ shape, correct for both `git diff` (no endpoint-tree drift, since `base` already IS the shared
+ ancestor) AND `git log` (`base..head` lists exactly head's own commits; a three-dot / symmetric
+ difference range would also surface the base ref's own post-fork commits, which matters for
+ `runner.mjs`'s commit walk below, which needs exactly one side).
 2. **`fsi-app/.discipline/runner.mjs`**: `--mode=ci` without `--commit` now ALWAYS resolves its range
-   through `resolveRange({ explicit: args.range, env: process.env })`. An explicit `--range` is still
-   honored verbatim (manual diagnosis), but when omitted the CI-PR env shape or the local merge-base
-   fires, the same function F51 already used. Both the per-commit `git log` walk and the whole-range
-   `buildContextForRange()` diff (the rule-022 vulnerable spot) now use this one resolved range.
+ through `resolveRange({ explicit: args.range, env: process.env })`. An explicit `--range` is still
+ honored verbatim (manual diagnosis), but when omitted the CI-PR env shape or the local merge-base
+ fires, the same function F51 already used. Both the per-commit `git log` walk and the whole-range
+ `buildContextForRange()` diff (the rule-022 vulnerable spot) now use this one resolved range.
 3. **`.github/workflows/discipline.yml`**, `validate-commits` job, pull_request leg: stopped building
-   `RANGE` by hand; added `PR_HEAD` env var (alongside the existing `BASE_REF`) and dropped `--range=`
-   from the `runner.mjs` invocation, letting it self-resolve. The `git fetch --no-tags origin
-   "$BASE_REF"` line is unchanged (still needed so `origin/<base>` is resolvable for the merge-base
-   call). The push-to-master leg (`--commit=$COMMIT_SHA`) is untouched: single-commit mode never built
-   a range, so it was never exposed to this defect, and squash-merge parity (the merged result still
-   gated by the master run) is unaffected.
+ `RANGE` by hand; added `PR_HEAD` env var (alongside the existing `BASE_REF`) and dropped `--range=`
+ from the `runner.mjs` invocation, letting it self-resolve. The `git fetch --no-tags origin
+ "$BASE_REF"` line is unchanged (still needed so `origin/<base>` is resolvable for the merge-base
+ call). The push-to-master leg (`--commit=$COMMIT_SHA`) is untouched: single-commit mode never built
+ a range, so it was never exposed to this defect, and squash-merge parity (the merged result still
+ gated by the master run) is unaffected.
 4. **`fsi-app/.discipline/hooks/pre-push`** step 2c: dropped `--range=origin/master..HEAD`; the hook now
-   calls `node fsi-app/.discipline/runner.mjs --mode=ci` with no flags. No `BASE_REF`/`PR_HEAD` env vars
-   exist in a local push, so `resolveRange()`'s local-merge-base branch fires, the same branch F51 and
-   the pre-existing local-case tests already exercised.
+ calls `node fsi-app/.discipline/runner.mjs --mode=ci` with no flags. No `BASE_REF`/`PR_HEAD` env vars
+ exist in a local push, so `resolveRange()`'s local-merge-base branch fires, the same branch F51 and
+ the pre-existing local-case tests already exercised.
 5. **`fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs`**: no code change. Confirmed (see
-   below) that it was already routing through `resolveRange()` and is unaffected by the CI-PR branch's
-   shape change (its own fork-point logic for check 5's hotspot concurrency is a deliberately separate
-   mechanism, documented in its own header, for the rebased-in-queue case, out of this lane's scope).
+ below) that it was already routing through `resolveRange()` and is unaffected by the CI-PR branch's
+ shape change (its own fork-point logic for check 5's hotspot concurrency is a deliberately separate
+ mechanism, documented in its own header, for the rebased-in-queue case, out of this lane's scope).
 
 ## Negative-test proof (rule 15: a guard is proven by attack, not by presence)
 
@@ -71,43 +71,43 @@ divergent branches (`git checkout -b feature` off a shared fork commit, not a li
 chain would make `merge-base` trivially return the branch's own tip, not the real fork point):
 
 - **DEFECT PROOF**: a fixture repo where `origin/master` gains a fix to `untouched.md` AFTER the branch
-  forks, in a file the branch never touches. The OLD range (`origin/master`'s current tip `..` head,
-  two dots) shows the branch "re-adding" the already-fixed line (`gitDiffLinesForPath` returns a `+`
-  line containing the old glyph), reproducing PRs #866/#869 exactly. `resolveRange()`'s new ci-pr range
-  (`base = merge-base(origin/master, head)` = the actual fork commit) shows zero added lines for that
-  file.
+ forks, in a file the branch never touches. The OLD range (`origin/master`'s current tip `..` head,
+ two dots) shows the branch "re-adding" the already-fixed line (`gitDiffLinesForPath` returns a `+`
+ line containing the old glyph), reproducing PRs #866/#869 exactly. `resolveRange()`'s new ci-pr range
+ (`base = merge-base(origin/master, head)` = the actual fork commit) shows zero added lines for that
+ file.
 - **CONTROL**: a second fixture where the branch itself adds the glyph. The same merge-base-derived
-  range still flags it, proving the fix is not a blanket escape hatch for rule 022 or any other content
-  check riding on `gitDiffLinesForPath`/`gitChangedFiles`.
+ range still flags it, proving the fix is not a blanket escape hatch for rule 022 or any other content
+ check riding on `gitDiffLinesForPath`/`gitChangedFiles`.
 - Updated the pre-existing `ci-pr` unit test (previously pinned the three-dot-against-tip shape as the
-  expected output) to build a real fixture repo and assert the new `base = fork commit, range =
-  base..head` shape instead.
+ expected output) to build a real fixture repo and assert the new `base = fork commit, range =
+ base..head` shape instead.
 
 ## Test results (touched files only, per lane contract)
 
 ```
 node --test fsi-app/.discipline/lib/change-range.test.mjs
-  13/13 pass (2 new, 1 rewritten)
+ 13/13 pass (2 new, 1 rewritten)
 
 node --test fsi-app/.discipline/runner.test.mjs
-  4/4 pass (unaffected; no existing test exercised --mode=ci --range)
+ 4/4 pass (unaffected; no existing test exercised --mode=ci --range)
 
 node --test fsi-app/.discipline/fitness/functions/F54-push-gate-npm-parity.test.mjs
-  26/26 pass, incl. the two LIVE checks against the real discipline.yml and pre-push text:
-  CI/pre-push script-path parity holds (both still invoke runner.mjs by path; F54 does not
-  pin flags, only script paths)
+ 26/26 pass, incl. the two LIVE checks against the real discipline.yml and pre-push text:
+ CI/pre-push script-path parity holds (both still invoke runner.mjs by path; F54 does not
+ pin flags, only script paths)
 
 node --test fsi-app/.discipline/fitness/functions/F51-no-shared-append.test.mjs
-  62/62 pass (confirms F51 needed no change)
+ 62/62 pass (confirms F51 needed no change)
 
 node --test fsi-app/.discipline/fitness/functions/F45-duplicate-code.test.mjs
-  12/12 pass
+ 12/12 pass
 
 node --test fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.test.mjs
-  32/32 pass
+ 32/32 pass
 
 node --test fsi-app/.discipline/governance/invariant-coverage.test.mjs
-  17/17 pass
+ 17/17 pass
 ```
 
 Also smoke-tested live in this worktree: `node fsi-app/.discipline/runner.mjs --mode=ci` (no flags)
@@ -130,21 +130,80 @@ coordinator to assign explicitly (through the dispatch's own channel) if genuine
 
 No `.tsx`/`.css` touched this lane; not applicable.
 
+## Addendum: four more items (coordinator dispatch, same day)
+
+A follow-up coordinator message, same channel as the original dispatch, directed four more items,
+"operator standard fixed, not worked around." Covered in this same lane rather than a new one, same
+write-set discipline (touched tests only):
+
+1. **`memory-gate.mjs` and `override-check.mjs`: route their range sites through `resolveRange()`.**
+ Both CLIs used to require or trust a literal `--range=` string built by the caller. Both now accept
+ an OPTIONAL `--range`; when omitted, `resolveRange({ explicit, env: process.env })` resolves it (the
+ CI-PR env shape, or the local merge-base). Callers updated to stop hand-building ranges:
+ `.github/workflows/discipline.yml`'s "Consistency runner (pull request)" step (added `PR_HEAD`,
+ dropped the `--range=` literal) and `fsi-app/scripts/lib/assemble-train.mjs`'s `runGateSet()` (dropped
+ `--range=origin/master..HEAD`). Note: `git log <range>` (what both files actually read commit
+ messages with, via `messagesForRange`) was not independently vulnerable to the tip-vs-merge-base
+ defect the way `git diff` is (see the root-cause section above) -- this item is about eliminating a
+ second, independent way to build a range string, for the same "one shared helper" reason, not about
+ a second instance of the PRs #866/#869 symptom.
+ Tests: 2 new fixture tests in `override-check.test.mjs` (real divergent branches, BASE_REF+PR_HEAD and
+ local-merge-base paths) + 1 new fixture test in `memory-gate.test.mjs` (same shape, proves
+ `gitChangedFiles` over the resolved range excludes master's post-fork file). 14 + 32 pass respectively.
+
+2. **Pre-push step 2b's fixed `/tmp` log path → the per-run `$PRE_PUSH_LOG_DIR` every sibling step
+ uses.** The exact D11 concurrent-run collision class (`docs/plans/defect-fix-plan-2026-09-12.md`):
+ two pushes running this hook at once could have one's cleanup delete the other's still-being-read
+ log. Moved to `$PRE_PUSH_LOG_DIR/mem.log`; the now-redundant per-step `rm -f` is gone (the trap at
+ EXIT already owns cleanup for the whole directory, same as every sibling step).
+ Test: new attack test in `pre-push-tmpdir.test.mjs` asserting the fixed-path literal is ABSENT from
+ the tracked hook and the redirect target is the shared directory. 5/5 pass.
+
+3. **`C5-program-anchors-reality.test.mjs`, in the C3/C4 shape.** C5 (program-anchors reality, invariant
+ RG-1) had no test file at all, unlike its siblings C3/C4 in the same directory. New file, same shape:
+ GREEN against the live tree, then one negative test per failure mode the check's `run()` can hit
+ (missing doc, malformed ACTIVE_PHASE, no anchors block for the active phase, empty anchors block, a
+ dead file reference, a "present" anchor that is actually absent, an "absent" anchor that is actually
+ present), plus a control. Every negative test mutates (write/rename) the REAL
+ `docs/program/GOVERNING-PROGRAM.md` and restores it in a `finally` -- no injectable root exists on
+ `consistencyCheck.run()` today, matching C3's own documented posture; the present/absent cases point
+ their anchors at C5's own module file rather than any product code, so no source file is ever
+ mutated. 10/10 pass; confirmed the real doc is byte-identical after the run (`git status --porcelain`
+ clean).
+
+4. **Layout-guard baseline renewal warning, firing 7 days before expiry.** New pure function
+ `needsRenewal()` in `fsi-app/.discipline/rendering/layout-guard/baseline.mjs` (plus
+ `WARNING_WINDOW_DAYS` and `warningWindowStart()`), separate from the existing hard-cliff `isExpired`:
+ once today is within the window and the baseline's `writtenAt` predates the window's own start (i.e.
+ nobody has re-run `run-layout-guard.mjs --write-baseline` since the window opened), it is due. Six
+ attack tests on the pure boundary logic (injectable date/writtenAt) plus one STANDING test that calls
+ `needsRenewal()` with the REAL clock and the REAL `baseline.json` -- this one is not a unit test of a
+ function, it is the gate itself, already wired into the existing `run-test-suite.sh` glob
+ (`.discipline/rendering/*.test.mjs`) via the file it was added to. Today (2026-10-02) it is green
+ (expiry 2026-10-15, window opens 2026-10-08); it will fail for real on 2026-10-08 unless the baseline
+ is renewed by then. New runbook `docs/runbooks/layout-guard-baseline-renewal.md` (INDEX.md line
+ added) names the two renewal paths (re-run `--write-baseline`, or a new dated operator ruling moving
+ `BASELINE_EXPIRY_DATE` in both `baseline.mjs` and `baseline.json`). 12/12 pass in
+ `layout-guard-expiry.test.mjs`.
+
+Full touched-file test run this addendum (combined with the original lane's files): 116/116 pass. YAML
+(`discipline.yml`) and shell (`pre-push`) syntax both re-validated after every edit.
+
 ## Not run / out of scope (named, not silently dropped)
 
 - `fsi-app/.discipline/governance/memory-gate.mjs` has the identical hand-built-range pattern (both
-  `discipline.yml`'s memory-gate step and pre-push step 2b pass it a literal `--range=` string) and is
-  LIKELY exposed to the same class of defect for its own diff reads. Not in this lane's write set
-  (dispatch names the helper, discipline.yml's validate-commits job only, pre-push's range line, and
-  runner.mjs/F51's range computation). Flagged here, not fixed here, per rule 13's "decision-ready" bar:
-  the mechanism to fix it (route it through `resolveRange()` the same way) is proven out by this lane;
-  a follow-up lane can apply the identical pattern to `memory-gate.mjs` without re-deriving it.
+ `discipline.yml`'s memory-gate step and pre-push step 2b pass it a literal `--range=` string) and is
+ LIKELY exposed to the same class of defect for its own diff reads. Not in this lane's write set
+ (dispatch names the helper, discipline.yml's validate-commits job only, pre-push's range line, and
+ runner.mjs/F51's range computation). Flagged here, not fixed here, per rule 13's "decision-ready" bar:
+ the mechanism to fix it (route it through `resolveRange()` the same way) is proven out by this lane;
+ a follow-up lane can apply the identical pattern to `memory-gate.mjs` without re-deriving it.
 - `fsi-app/.discipline/consistency/override-check.mjs` carries the identical buggy two-dot literal in
-  THREE call sites, none in this lane's write set: `.github/workflows/discipline.yml`'s
-  **`consistency-backstop` job** (a DIFFERENT job from `validate-commits`; the dispatch scoped
-  discipline.yml changes to "that job only"), step "Consistency runner (pull request)":
-  `--range="origin/${BASE_REF}..${HEAD_SHA}"`; `fsi-app/scripts/lib/assemble-train.mjs`'s
-  `runGateSet()` (`--range=origin/master..HEAD`, run against an assembled train tree); and the
-  lane-briefs preflight prose (`docs/dispatches/lane-briefs/2026-09-05/wave-f-common.mjs`, a dated brief
-  text file, not executable). Same defect class, same fix shape (route through `resolveRange()`),
-  named rather than silently carried forward, for the coordinator to assign.
+ THREE call sites, none in this lane's write set: `.github/workflows/discipline.yml`'s
+ **`consistency-backstop` job** (a DIFFERENT job from `validate-commits`; the dispatch scoped
+ discipline.yml changes to "that job only"), step "Consistency runner (pull request)":
+ `--range="origin/${BASE_REF}..${HEAD_SHA}"`; `fsi-app/scripts/lib/assemble-train.mjs`'s
+ `runGateSet()` (`--range=origin/master..HEAD`, run against an assembled train tree); and the
+ lane-briefs preflight prose (`docs/dispatches/lane-briefs/2026-09-05/wave-f-common.mjs`, a dated brief
+ text file, not executable). Same defect class, same fix shape (route through `resolveRange()`),
+ named rather than silently carried forward, for the coordinator to assign.
