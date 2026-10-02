@@ -8,8 +8,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+import { withoutCredentials } from "../lib/env-file.mjs";
 import {
   buildItemsIndex,
   checkM4,
@@ -837,4 +840,52 @@ test("run(): --apply is a no-op flag without --dry cleared — `dry: true` alway
   );
   assert.equal(result.applied, false);
   assert.equal(db.calls.length, 0);
+}));
+
+// ── CLI subprocess integration (lane R11, 2026-10-01: A4bc confirmed this file's own unit tests never
+// spawn the real CLI, so its argv-parsing/exit-code layer -- main(), process.argv --help/required-flag
+// checks, the pre-DB creds gate -- was never exercised. Modelled on run-mint-batch.test.mjs's own
+// execFileSync pattern (its header, "subprocess integration tests driving the real CLI end to end").
+// Every spawn below builds its environment with withoutCredentials() (F48): this is the one worktree
+// with no .env.local, but the CLI test class has already been defeated twice by an ambient-environment
+// assumption that held everywhere except one checkout -- building the env explicitly makes the exit-2
+// creds-gate test deterministic rather than "happens to pass here." ────────────────────────────────
+
+const RUNNER_PATH = join(dirname(fileURLToPath(import.meta.url)), "apply-mint-batch.mjs");
+
+function runCli(args) {
+  try {
+    const stdout = execFileSync(process.execPath, [RUNNER_PATH, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      env: withoutCredentials(),
+    });
+    return { status: 0, stdout };
+  } catch (err) {
+    return { status: err.status, stdout: err.stdout, stderr: err.stderr };
+  }
+}
+
+test("CLI --help: prints usage and exits 0 without touching the DB-creds gate", () => {
+  const res = runCli(["--help"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /Usage: node scripts\/mint\/apply-mint-batch\.mjs/);
+});
+
+test("CLI: no flags at all -> exit 1, stderr names the three required flags (never reaches the creds gate)", () => {
+  const res = runCli([]);
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /--apply-ready, --census-rows, and --mint-run are all required/);
+});
+
+test("CLI: all three required flags present but the spawned environment carries no DB credentials -> exit 2, the dedicated creds-gate message", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json");
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-902.json");
+  writeJson(applyReadyPath, [PAYLOAD]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }]);
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-902" }));
+  const res = runCli(["--apply-ready", applyReadyPath, "--census-rows", censusRowsPath, "--mint-run", mintRunPath]);
+  assert.equal(res.status, 2, res.stderr);
+  assert.match(res.stderr, /no DB creds/);
 }));

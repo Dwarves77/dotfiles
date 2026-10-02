@@ -7,7 +7,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { validateMintPayload } from "./validate-mint-payload.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
 
@@ -816,4 +819,60 @@ test("grade='record': the screen check never fires for grade='brief'/absent -- i
   // Deliberately NOT setting item.grade or p.screen.
   const r = validateMintPayload(p);
   assert.deepEqual(r.failures, [], "a brief-grade (default) payload with no screen field must still be GREEN — the screen gates the record tier's exporter only");
+});
+
+// ── CLI subprocess integration (lane R11, 2026-10-01: A4bc confirmed this file's own unit tests call
+// validateMintPayload() directly and never spawn the real CLI, so main()'s own argv/exit-code layer
+// (process.argv[2], the missing-arg usage message, process.exit(2)/(0)/(1)) was never exercised).
+// No DB creds needed -- this CLI's only inputs are the payload file and its own directory.
+
+const RUNNER_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "validate-mint-payload.mjs");
+
+function runCli(args) {
+  try {
+    const stdout = execFileSync(process.execPath, [RUNNER_PATH, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return { status: 0, stdout };
+  } catch (err) {
+    return { status: err.status, stdout: err.stdout, stderr: err.stderr };
+  }
+}
+
+test("CLI: no argv at all -> usage on stderr, exit 2", () => {
+  const res = runCli([]);
+  assert.equal(res.status, 2);
+  assert.match(res.stderr, /usage: node validate-mint-payload\.mjs <payload\.json>/);
+});
+
+test("CLI: a payload file that passes every criterion -> exit 0, stdout is JSON with valid:true", () => {
+  const dir = mkdtempSync(join(tmpdir(), "validate-mint-payload-cli-"));
+  try {
+    const path = join(dir, "payload.json");
+    writeFileSync(path, JSON.stringify(basePayload()));
+    const res = runCli([path]);
+    assert.equal(res.status, 0, res.stderr);
+    const parsed = JSON.parse(res.stdout);
+    assert.equal(parsed.valid, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI: a payload file missing a required field -> exit 1, stdout is JSON with valid:false and a failure", () => {
+  const dir = mkdtempSync(join(tmpdir(), "validate-mint-payload-cli-"));
+  try {
+    const bad = basePayload();
+    bad.source.id = ""; // C1: missing_source_id, same mutation as the "C1 RED: missing source.id" unit test above
+    const path = join(dir, "payload.json");
+    writeFileSync(path, JSON.stringify(bad));
+    const res = runCli([path]);
+    assert.equal(res.status, 1, res.stderr);
+    const parsed = JSON.parse(res.stdout);
+    assert.equal(parsed.valid, false);
+    assert.ok(parsed.failures.length > 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
