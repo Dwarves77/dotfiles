@@ -50,3 +50,14 @@ Generated files (`coverage-report.json`, migrations inventory, INDEX.md lines): 
 ## Pre-push sequencing (rule 10)
 
 Lanes iterate on touched tests, then STOP and report "ready for pre-push" with the size estimate. The coordinator releases one lane at a time to run the full pre-push and push once.
+
+## Landing status, 2026-10-01
+
+| W2-A | Audit-triage WIRE items | DONE (folded pre-wave-2b) | #834 "source_bias_tags pipeline wired at candidate approval" merged |
+| W2-B | Community identity-by-default (WS2) | BUILT, NOT MERGED | see WS2 above |
+| W2-C | Absence wording + Market Intel label (WS3, WS5) | BUILT, NOT MERGED | see WS3/WS5 above |
+| W2-D | Market detail raw dump (WS16) | BUILT, NOT MERGED | see WS16 above |
+| W2-E | Profile + applicability (WS7) | BUILT, NOT MERGED | see WS7 above |
+| W2-F | Generalise examples (WS10) | PARTIAL, NOT MERGED | see WS10 above |
+| W2-G | Learning loop S-M-L (WS12) | PARTIAL, NOT MERGED | see WS12 above |
+| W2-H | ADR-034 naming + Operations matrix (WS14, WS4) | DONE | #833 merged |

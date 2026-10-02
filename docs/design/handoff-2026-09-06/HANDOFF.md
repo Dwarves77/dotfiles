@@ -24,7 +24,7 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
 4. **The nav footer has no section heading.** Two unlabelled rows below a divider: Account
    (workspace name right-aligned) and Admin (OWNER badge). "Operator" in the README names the
    group, not a rendered label.
-5. **Desktop only in this package.** 1440px frame, nav 252px, content 778px, rail 300px.
+5. **Desktop only in this package.** 1440px frame, nav 252px, content 780px, rail 300px.
    Mobile 390 and tablet 1024 artboards are not in this bundle.
 6. **Do not read** `docs/design/redesign/` or `design_handoff_2026-04/DESIGN_SYSTEM.md`. Both
    are superseded; the first instructs agents that "the mock wins" and it does not.

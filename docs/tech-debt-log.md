@@ -28,6 +28,8 @@ integrations, keeping the pin, the sha256 verification, and the failing exit cod
 **Owner lane:** W-shell (unassigned). **Exit condition:** fix the 29 notes above, then remove
 `-shellcheck=` from the actionlint step in `.github/workflows/discipline.yml`.
 
+**Verification (2026-10-01):** Verified open. No closing commit among #800-#862.
+
 ## 2026-09-11: F23's coverage-scan never enumerates fsi-app/.discipline, so its own test suite can carry orphaned proofs undetected
 
 **Defect (enumeration gap, [CONFIRMED]):** `coverage-scan.mjs`'s `ROOTS` constant is

@@ -765,3 +765,7 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `verify/unregistered-span-host-audit.mjs` | 52 | --- | - | DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: source-credibility-model + remediat |
 | `verify/vocab-sync-audit.mjs` | 60 | --- | db_password | DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILLS: environmental-policy-and-innovation |
 | `workflows/all-surfaces-deepdive-build.mjs` | 149 | --- | - | export const meta = { |
+
+## Closure note (2026-10-01)
+
+Closed 2026-10-01 by operator ruling: superseded by the 2026-09-30 audit wave (docs/audits/audit-consolidated-2026-09-30.md); any still-live item is tracked there. Findings F-5a-4 and F-5a-11 (the HIGH-severity bare-invocation production writes and double-apply hazard classes) are carried in the wave plan for remediation in Lanes 3 and 20.

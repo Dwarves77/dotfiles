@@ -61,3 +61,7 @@ make the HARD assertions structural (pixels informational).
 Owner: orchestrator (folds into the layout/chrome lane, after the disposition engine per the standing
 sequence). Related: [ADR-012-intake-cadence-and-launch-exit-test](../decisions/ADR-012-intake-cadence-and-launch-exit-test.md) (the launch exit test's
 "overflow/hydration guard green including mobile tiers" clause depends on NA-1..NA-3 closing).
+
+## Closure note (2026-10-01)
+
+Closed 2026-10-01 by operator ruling: superseded by the 2026-09-30 audit wave (docs/audits/audit-consolidated-2026-09-30.md); any still-live item is tracked there. As of the wave's close, the rendering-guard job remains non-blocking per the 2026-07-11 policy (NA-0..NA-3 items remain open but are not actively tracked in production memory after 2026-09-30).

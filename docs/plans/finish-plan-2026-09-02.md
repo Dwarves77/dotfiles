@@ -1,3 +1,5 @@
+**SUPERSEDED** (operator ruling 2026-10-01: superseded by the 2026-09-30 audit wave; see docs/audits/audit-consolidated-2026-09-30.md). Historical record only.
+
 # Finish plan — the site and the data, to done (2026-09-02, evening)
 
 Written after the reconciliation of the 2026-08-31 build plan and the 2026-09-01 system review §10
