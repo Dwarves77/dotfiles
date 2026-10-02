@@ -35,7 +35,8 @@
 
 import { resolve as resolvePath, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assessItem } from "../../../src/lib/research/assess.mjs";
+import { assessItem, extractDoiCandidate } from "../../../src/lib/research/assess.mjs";
+import { fetchWorkByDoi } from "../../research/openalex-client.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import {
@@ -45,7 +46,12 @@ import {
   hashHarnessVersion,
 } from "../../lib/run-artifact.mjs";
 import { writeProducerSummary } from "../lib/producer-summary.mjs";
-import { FIXTURE_CANDIDATES, FIXTURE_NOW } from "./fixtures/research-assessment-fixtures.mjs";
+import {
+  FIXTURE_CANDIDATES,
+  FIXTURE_NOW,
+  FIXTURE_OPENALEX_CANDIDATE,
+  fixtureOpenAlexFetchStub,
+} from "./fixtures/research-assessment-fixtures.mjs";
 
 loadLocalEnvFile();
 
@@ -154,16 +160,65 @@ export function toRow(computed, { supersedes = null } = {}) {
 }
 
 /**
+ * Lane L3 (2026-10-02), coordinator ruling: W2-R merged, wire the authority-score client in. Attempts
+ * REAL OpenAlex resolution for one candidate, using only identity evidence already present in the item's
+ * own text (a DOI it cites) -- never a network call when no DOI-shaped string exists (CLAUDE.md rule 2:
+ * no identity, no fabricated resolution; `extractDoiCandidate` is the same syntax match assess.mjs's own
+ * tests cover, reused here rather than re-matched). `deps.fetch` is injected so the fixture/dry CLI run
+ * and every test stay fully offline; a `--live` run leaves it unset and `openalex-client.mjs` falls back
+ * to the real global `fetch`.
+ *
+ * MAPS raw OpenAlex snake_case fields onto `authority-score.mjs`'s documented camelCase "resolved input"
+ * shape. One mapping note, confirmed against a live fire during this lane's build (not assumed from
+ * docs): `citation_normalized_percentile` is an OBJECT on the raw API response
+ * (`{value, is_in_top_1_percent, is_in_top_10_percent}`), not a bare number -- `.value` is extracted
+ * here, once, at this exact boundary, so `authority-score.mjs`'s own contract (a plain number or null)
+ * never has to special-case it.
+ * @param {import("../../../src/lib/research/assess.mjs").AssessmentInput} input
+ * @param {{ fetch?: Function }} [deps]
+ * @returns {Promise<Array<object>>} sourceRecords to attach to the input before `assessItem`, `[]` when nothing resolves
+ */
+export async function resolveOpenAlexSourceRecords(input, deps = {}) {
+  const doi = extractDoiCandidate(input.text);
+  if (!doi) return [];
+  const work = await fetchWorkByDoi(doi, deps);
+  if (!work) return [];
+  const firstInstitution = work.authorships?.[0]?.institutions?.[0] ?? null;
+  return [
+    {
+      sourceId: `doi:${doi}`,
+      kind: "openalex",
+      institution: firstInstitution
+        ? { displayName: firstInstitution.display_name ?? null, type: firstInstitution.type ?? null }
+        : null,
+      work: {
+        publicationDate: work.publication_date ?? null,
+        citedByCount: typeof work.cited_by_count === "number" ? work.cited_by_count : null,
+        fwci: typeof work.fwci === "number" ? work.fwci : null,
+        citationNormalizedPercentile:
+          typeof work.citation_normalized_percentile?.value === "number" ? work.citation_normalized_percentile.value : null,
+        isRetracted: work.is_retracted === true,
+      },
+      // Funding/grants parsing (OpenAlex grants[]) is a documented future extension -- not resolved
+      // here, so fundingIndependence reads 'unknown' for every DOI-resolved source, never a guessed
+      // 'independent' (CLAUDE.md rule 2).
+      funding: null,
+    },
+  ];
+}
+
+/**
  * Run the producer over an explicit set of candidate AssessmentInputs and their current rows (never a
- * hidden corpus scan -- every candidate is named by the caller). Pure orchestration: `mode` controls only
- * whether the caller's `deps.writeFn` is invoked for real; this function itself performs no I/O.
+ * hidden corpus scan -- every candidate is named by the caller). Pure orchestration apart from the one
+ * real, deps-injected I/O step below (`resolveOpenAlexSourceRecords`): `mode` controls only whether the
+ * caller's `deps.writeFn` is invoked for real.
  *
  * @param {{
  *   candidates: Array<import("../../../src/lib/research/assess.mjs").AssessmentInput>,
  *   currentByItemId: Map<string, object>,
  *   mode: "dry" | "apply",
  *   now?: Date,
- *   deps?: { writeFn?: (row: object, currentId: string|null) => Promise<void> },
+ *   deps?: { writeFn?: (row: object, currentId: string|null) => Promise<void>, openAlexDeps?: { fetch?: Function } },
  * }} config
  */
 export async function runResearchAssessmentProducer({ candidates, currentByItemId, mode, now, deps = {} }) {
@@ -173,7 +228,9 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
   const plan = [];
 
   for (const input of candidates) {
-    const computed = assessItem(input, { now });
+    const sourceRecords = await resolveOpenAlexSourceRecords(input, deps.openAlexDeps ?? {});
+    const enrichedInput = sourceRecords.length ? { ...input, sourceRecords } : input;
+    const computed = assessItem(enrichedInput, { now });
     const current = currentByItemId.get(input.id) ?? null;
     if (!hasChanged(current, computed)) {
       unchanged += 1;
@@ -319,15 +376,21 @@ async function main() {
   let candidates;
   let currentByItemId;
   let now;
+  let openAlexDeps;
   if (live) {
     candidates = await fetchLiveCandidates();
     currentByItemId = await fetchLiveCurrentByItemId(candidates.map((c) => c.id));
     now = new Date();
+    openAlexDeps = {}; // real global fetch (Node 24 native), no key, polite-pool email per openalex-client.mjs
   } else {
     console.log(`${PRODUCER_NAME}: --live not passed -- running against committed fixtures, no DB credential of any kind.`);
-    candidates = FIXTURE_CANDIDATES;
+    // Lane L3 (2026-10-02): FIXTURE_OPENALEX_CANDIDATE exercises the real OpenAlex-resolution path (a
+    // DOI in the item's own text, mapped through to assessAuthorityScore's real multi-component read)
+    // against a RECORDED response via fixtureOpenAlexFetchStub -- zero real network from this default run.
+    candidates = [...FIXTURE_CANDIDATES, FIXTURE_OPENALEX_CANDIDATE];
     currentByItemId = new Map();
     now = FIXTURE_NOW;
+    openAlexDeps = { fetch: fixtureOpenAlexFetchStub() };
   }
 
   let writeFn;
@@ -346,7 +409,7 @@ async function main() {
     currentByItemId,
     mode: decision.canWrite ? "apply" : "dry",
     now,
-    deps: { writeFn },
+    deps: { writeFn, openAlexDeps },
   });
 
   console.log(`${PRODUCER_NAME}: ${live ? "live" : "fixture"} run, mode=${decision.canWrite ? "apply" : "dry"}`);

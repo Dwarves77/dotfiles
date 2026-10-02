@@ -1,8 +1,54 @@
 # Last proposer pass - research-assessment
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `research-assessment` now has **two**
-artifacts (`research-assessment-run-001` through `-002`); F28's rule (d) requires this file to name the
-latest verbatim: **research-assessment-run-002**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `research-assessment` now has **three**
+artifacts (`research-assessment-run-001` through `-003`); F28's rule (d) requires this file to name the
+latest verbatim: **research-assessment-run-003**.
+
+## Proposer pass for research-assessment-run-003 (2026-10-02, lane L3, push-time gate)
+
+**Artifacts read:** research-assessment-run-001.json, research-assessment-run-002.json, and
+research-assessment-run-003.json, all in full.
+
+**Full traces read:** `scripts/producers/research/research-assessment-producer.mjs` (the diff --
+`resolveOpenAlexSourceRecords` and its wiring into the main loop), `src/lib/research/assess.mjs` (the
+diff -- `extractDoiCandidate`, `resolveAuthoritySources`, and `assessAuthorityScore`'s rewrite),
+`scripts/producers/research/fixtures/research-assessment-fixtures.mjs` (the new
+`FIXTURE_OPENALEX_CANDIDATE`/`FIXTURE_OPENALEX_WORK_RESPONSE`/`fixtureOpenAlexFetchStub` this run's
+fifth candidate exercises), and this run's own console output (five per-item outcomes, the fifth being
+`fixture-research-openalex-doi`).
+
+**Why this run superseded run-002.** Coordinator ruling (2026-10-02, lane L3): `lane/w2r-research-
+assessment` (PR #887) merged, so the half-slice prohibition that had kept lane L3's OpenAlex client and
+authority-score scorer unwired no longer applies -- F25 (module-liveness) flagged both as built-and-
+unimported, and the ruling was to wire them in, not allowlist them. `assessAuthorityScore` now computes
+the real spec-03 section 4 multi-component distribution (via `scripts/research/authority-score.mjs`)
+whenever it can resolve ANY source identity -- a producer-resolved OpenAlex record (real network DOI
+lookup) or a named roadmap body already present in a forward event -- and falls back to the original
+degenerate tier-based read, byte-identical to before, when neither resolves. Both governing files of
+this family changed, so `harness_version` changed, requiring this new artifact.
+
+**What changed, mechanically.** `candidates` metric moved from 4 to 5: `FIXTURE_OPENALEX_CANDIDATE` was
+added specifically to exercise the new path end to end, offline (`fixtureOpenAlexFetchStub` serves a
+response recorded from this lane's own live OpenAlex fire during the build, see
+`docs/ops/session-log.d/2026-10-02-l3.md`). The four original fixtures carry no DOI in their text and no
+roadmap-body citation beyond what run-001/002 already exercised, so their outcomes are unchanged:
+fixture-research-r1 -> R1/NOW/CONFIRMED, fixture-research-r3 -> R3/NEAR/CONFIRMED, fixture-research-r4
+-> R4/FAR/HYPOTHESIS, fixture-research-refusal -> refused/HYPOTHESIS. The fifth,
+fixture-research-openalex-doi, resolves R4/FAR/HYPOTHESIS on the horizon axis (unrelated to this lane's
+change -- its text names no dated instrument) while its `credibility_authority_score` (not surfaced in
+this family's per-item `outcome` string, which only reports the horizon rule/band/status-token; verified
+instead by `research-assessment-producer.test.mjs`'s own direct assertion on `result.plan[0]`) reflects
+the real, resolved University-role, funding-unknown distribution -- capped at `medium`, never the
+vendor-flagged shape the item's own `sourceTier: 7` stamp would have produced under the old degenerate
+path. That the real signal overrides the item's own (deliberately mismatched) tier stamp is the proof
+this wiring did something, not merely imported something.
+
+**Proposal: none warranted.** The fix is the wiring itself, authorized and scoped exactly by the
+coordinator's ruling; no further defect surfaced in these traces. The producer's `--live` network path
+(real DOI resolution against the live OpenAlex API, for whichever live items' own text happens to name
+one) is unexercised by this dry run by construction -- same posture run-002's own note records for the
+corrected live-query column names, and the same honest limitation: a `--live --apply` pass after
+migration 344 applies is the first real exercise of it.
 
 ## Proposer pass for research-assessment-run-002 (2026-10-02, lane W2-R, push-time gate)
 
