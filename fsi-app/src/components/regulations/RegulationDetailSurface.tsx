@@ -382,7 +382,17 @@ export function RegulationDetailSurface({
             ) : (
               <BriefSummary r={r} changelog={changelog} dispute={dispute} trajectory={trajectoryNode} />
             )}
-            {depth === "full" && r.fullBrief && (
+            {/* Workstream 16 fix, applied here too (lane W2-D, 2026-09-30, coordinator rule 13
+                flag): the same unguarded pattern Market's MarketSignalDetailSurface.tsx carried
+                (fixed 2026-09-29, see docs/ops/session-log.d/2026-09-29-w2d.md). A record-grade
+                item's `r.fullBrief` is buildRecordFullBrief's (src/lib/intake/record-facts.mjs) own
+                re-serialization of the SAME claim rows RecordGradeSections already renders above as
+                labelled fields, one bare `- [slot_key] ...` bullet per FACT/GAP. Unconditionally
+                routing it through GfmSection here would render the raw bracket-prefixed lines
+                RecordGradeSections already shows correctly, duplicated and unlabelled. Record-grade
+                items therefore never open this raw path; RecordGradeSections (this file's own local
+                one, above) is already their complete Full brief view, nothing is lost. */}
+            {depth === "full" && !isRecord && r.fullBrief && (
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                 <GfmSection markdown={r.fullBrief} />
               </div>
