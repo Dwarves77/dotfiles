@@ -58,7 +58,6 @@ import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
-import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard } from "@/components/ui/RailCard";
 import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
@@ -67,7 +66,6 @@ import {
   liveFacetCounts,
   filterRows,
   withListPosition,
-  type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 
@@ -272,7 +270,7 @@ export function OperationsLedger({
 
   const filtered = useMemo(
     () => filterRows(initialResources, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)),
-    [initialResources, filter, tagsFacet.matchesSelectedTag]
+    [initialResources, filter, tagsFacet]
   );
 
   // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so every
@@ -376,7 +374,7 @@ export function OperationsLedger({
         }),
       };
     });
-  }, [filtered, filter.band, tagsFacet.tagsForItem]);
+  }, [filtered, filter.band, tagsFacet]);
 
   // COUNTS-61: the same figure the facets are counted against — the corpus at rest, the
   // current selection under a filter. It was the corpus total unconditionally, which is how a
@@ -390,7 +388,7 @@ export function OperationsLedger({
   const jurisdictionCount = useMemo(() => {
     if (aggregates?.totalJurisdictions) return aggregates.totalJurisdictions;
     return new Set(initialResources.map((r) => r.jurisdiction).filter(Boolean)).size;
-  }, [aggregates?.totalJurisdictions, initialResources]);
+  }, [aggregates, initialResources]);
 
   // The DIMENSION facet narrows the matrix, which is the only thing a dimension addresses.
   const matrixDimensions = useMemo(

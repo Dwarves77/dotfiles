@@ -78,5 +78,14 @@ export function useWorkspaceTagsFacet(): WorkspaceTagsFacet {
     [itemTags, tagsById]
   );
 
-  return { tags, selectedTagId, setSelectedTagId, matchesSelectedTag, tagsForItem };
+  // Memoized so the returned object is referentially stable across renders when its parts are
+  // unchanged (tags/selectedTagId are plain state; matchesSelectedTag/tagsForItem/setSelectedTagId
+  // are already useCallback-stable) -- every one of the five list ledgers' own useMemo calls lists
+  // `tagsFacet.<member>` in its deps array, which only protects that ledger's memoization if this
+  // hook does not hand back a brand-new object on every render regardless of whether anything in it
+  // changed.
+  return useMemo(
+    () => ({ tags, selectedTagId, setSelectedTagId, matchesSelectedTag, tagsForItem }),
+    [tags, selectedTagId, setSelectedTagId, matchesSelectedTag, tagsForItem]
+  );
 }

@@ -154,7 +154,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
 
   const filtered = useMemo(
     () => sortResourceRows(filterRows(allRows, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey),
-    [allRows, filter, tagsFacet.matchesSelectedTag, sortKey]
+    [allRows, filter, tagsFacet, sortKey]
   );
 
   // COUNTS-61: ONE derivation for every facet count and the surface total, so every count in the
@@ -257,7 +257,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
         }),
       };
     });
-  }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem, now]);
+  }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet, now]);
 
   // COUNTS-61: the surface total is the same figure the facets are counted against — the corpus at
   // rest, the current selection under a filter. It used to be `aggregates.totalItems` unconditionally,

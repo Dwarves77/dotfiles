@@ -38,7 +38,6 @@ import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
-import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard } from "@/components/ui/RailCard";
 import {
@@ -56,7 +55,6 @@ import {
   filterRows,
   withListPosition,
   sortResourceRows,
-  type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 
@@ -151,7 +149,7 @@ export function MarketIntelLedger({
     const base = filterRows(initialResources, filter);
     const kinded = kindFilter ? base.filter((r) => signalKindLabel(r) === kindFilter) : base;
     return sortResourceRows(kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey);
-  }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag, sortKey]);
+  }, [initialResources, filter, kindFilter, tagsFacet, sortKey]);
 
   // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so every
   // count in the rail moves with the selection here too. (The Filters card's caption that first
@@ -248,7 +246,7 @@ export function MarketIntelLedger({
         }),
       };
     });
-  }, [filtered, filter.band, tagsFacet.tagsForItem]);
+  }, [filtered, filter.band, tagsFacet]);
 
   // COUNTS-61: the same figure the facets are counted against — the corpus at rest, the
   // current selection under a filter. It was the corpus total unconditionally, which is how a
