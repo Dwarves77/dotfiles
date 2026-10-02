@@ -1,5 +1,0 @@
-[
-  {"event_id": "evt-1", "intelligence_item_id": "item-1", "event_date": "2026-02-15", "event_kind": "deadline", "source_section_id": "sec-1", "source_kind": "record_facts", "obligation_text": "Deadline: 2026-03-31", "confidence": 0.92},
-  {"event_id": "evt-2", "intelligence_item_id": "item-2", "event_date": "2026-02-16", "event_kind": "review_date", "source_section_id": "sec-2", "source_kind": "record_facts", "obligation_text": "Review by: 2026-04-30", "confidence": 0.88},
-  {"event_id": "evt-3", "intelligence_item_id": "item-3", "event_date": "2026-02-17", "event_kind": "submission_deadline", "source_section_id": "sec-3", "source_kind": "record_facts", "obligation_text": "Submit by: 2026-05-31", "confidence": 0.91}
-]
