@@ -1,4 +1,4 @@
-# Ingest Pipeline — COMPLETE Behavioral Audit + Merge Re-Verification (2026-07-18, Session E recovery)
+# Ingest Pipeline , COMPLETE Behavioral Audit + Merge Re-Verification (2026-07-18, Session E recovery)
 
 **Mandate.** Read the actual code of the whole ingest system (not the wiring map, not summaries), establish
 what it really does, re-verify every merge today against that read, restore anything the live path touches,
@@ -28,15 +28,15 @@ The system is item-centric and document-centric end to end. An `intelligence_ite
 
 - `generateBrief` (canonical-pipeline.ts:839) fetches the item's ONE `source_url` via `fetchPrimaryDeep`
   (:863), "Fetched ONCE here (never re-fetched)" (:862). `fetchPrimaryWithFallback` (primary-fallback.mjs:155)
-  tries the declared primary; on a roadblock it tries discovered ALTERNATIVE URLs — replacements for a
+  tries the declared primary; on a roadblock it tries discovered ALTERNATIVE URLs , replacements for a
   broken primary, not additional coverage. Then `discoverCorroborators` (:871) adds web-search corroborator
   PAGES (up to 6, real URLs only, char-capped). The pool = primary + corroborators, stored in
   `agent_run_searches`, DELETE-then-INSERT replaced each generate (:922).
 - `run-intake-cycle` (run-intake-cycle.ts:80-127) mints ONE item per caller-supplied candidate
-  `{title, source_url, item_type}` — the candidate IS one document.
+  `{title, source_url, item_type}` , the candidate IS one document.
 - Even Session A's acquire script (`acquire-primaries-batch.mjs`) picks the ONE correct enacted instrument
   per existing item via `extractPortalLinks` + `officialnessOf` (accept the first path-'a' candidate) and
-  repoints — it does not sweep the source for its other documents.
+  repoints , it does not sweep the source for its other documents.
 
 **Answer:** we extract the one document the item points at (plus web-search corroborator pages / the one
 enacted instrument behind a portal). No component sweeps a source's document tree.
@@ -60,23 +60,23 @@ adjusts a claim, brief, or analysis. The scan→compare→ADJUST design has the 
 ### (3) Is save-all-data true, and where does it stop?
 
 Two capture stores; which fills depends on the path:
-- `agent_run_searches` (the working pool) — written by the live workflow's `generateBrief`, per-item and
+- `agent_run_searches` (the working pool) , written by the live workflow's `generateBrief`, per-item and
   REPLACED each generate (DELETE-then-INSERT, canonical-pipeline.ts:922; same in refresh, :1026). Content
   excerpt (`result_content_excerpt`) is char-capped; truncation is flagged, not stored in full.
-- `raw_fetches` (the permanent, content-addressed, append-only snapshot) — written by `writeSnapshot`
+- `raw_fetches` (the permanent, content-addressed, append-only snapshot) , written by `writeSnapshot`
   (snapshot-store.mjs:95). **`writeSnapshot` is called ONLY from operator-fired scripts**
   (`acquire-primaries-batch.mjs:130`, `_reground/acquire-*.mjs`). It is NOT called by the live
   `/api/agent/run` workflow, by `groundBrief`, or by `verify-item` (verified: verify-item.mjs imports only
-  `assertAcquireAllowed`; its `needs_acquire` branch terminates at the lock and hands off to a caller —
+  `assertAcquireAllowed`; its `needs_acquire` branch terminates at the lock and hands off to a caller ,
   verify-item.mjs:152-156). The workflow only READS `raw_fetches` (holdingsForItem:832).
 
 **Answer:** "save everything permanently" (raw_fetches, append-only) is TRUE for the operator-fired
 acquire-script path (Session A's work). It is NOT true for the live workflow, which persists only the
 replaceable pool. The snapshot-first invariant I3 ("an acquiring run must write raw_fetches") has NO live
-writer on the workflow path — the writer exists (`writeSnapshot`) but the acquire pipeline that would call
+writer on the workflow path , the writer exists (`writeSnapshot`) but the acquire pipeline that would call
 it is the frozen/unbuilt PR-2 path. **CRITICAL DOWNSTREAM COUPLING:** `validate_item_provenance` criterion 3
 (the customer-visibility gate) checks each FACT's `source_span` against `agent_run_searches.result_content_excerpt`
-— the char-capped, per-generate-replaced pool. Grounding validity therefore rides the char-capped pool, not
+, the char-capped, per-generate-replaced pool. Grounding validity therefore rides the char-capped pool, not
 the permanent snapshot.
 
 ### (4) Pointed at a full source sweep today, unmodified, where does it stop short?
@@ -84,7 +84,7 @@ the permanent snapshot.
 At step one: there is no source-document enumeration. `fetchPrimaryDeep` fetches one document;
 `discoverCorroborators` searches for THIS item's corroborators; `extractPortalLinks` (check-sources:115 +
 the acquire script) DOES list a portal's deep links, but nothing turns that list into an item-per-document
-mint — `portal_link_candidates` is written (check-sources:117), has 0 rows live, and has no consumer that
+mint , `portal_link_candidates` is written (check-sources:117), has 0 rows live, and has no consumer that
 feeds intake. `run-intake-cycle` consumes a caller-supplied candidate list; nothing produces a complete
 per-source candidate set.
 
@@ -103,7 +103,7 @@ is written but never fed into intake.
   verify; the full gate stack.
 - **Ignored (the two real gaps):** complete extraction of a HELD source (the one-document-per-item limit)
   and the OPEN change-to-analysis loop. The spec's "106 missing" diffed a candidate list against a corpus of
-  one-document-per-item sources — a false denominator.
+  one-document-per-item sources , a false denominator.
 
 **The crawl spec is superseded as a build basis** (marked in the board + its own header).
 
@@ -127,7 +127,7 @@ source blocks (floor source in full = the truncation moat; buildSourceBlocks sou
 enforcement + one corrective retry, format determinism, writes the 19-field contract to `intelligence_items`.
 
 **section** (`sectionBrief`, :1040): skip-if-verified; ledger-preserving reconcile by `section_key` (not
-delete-cascade); §14 timeline harvest.
+delete-cascade); section 14 timeline harvest.
 
 **ground** (`groundBriefImpl`, :1140): acquire-lock gate (unless injectedLedger) → skip-if-verified →
 read prior ledger (NON-DESTRUCTIVE, no delete) → cited-host gate (stub only known hosts;
@@ -154,14 +154,14 @@ quarantined.
 **intake** (`run-intake-cycle` → `applyStagedUpdate` → `mintIntelligenceItem`): stage a `staged_updates`
 row → the mint chokepoint (mint-item.ts:103): idempotency (fail-closed), congruence 1a/1b, subject-existence
 dedup (fail-closed; news → market_signal + link, non-news dup → hard reject), relevance flag (surface-only),
-domain canonicalization, **source-link invariant** (`sourceLinkDecision`:79 — preset trusted, no-url
+domain canonicalization, **source-link invariant** (`sourceLinkDecision`:79 , preset trusted, no-url
 reject, unregistered-url reject, else link), the single INSERT → ground via the same workflow.
 
 **discovery** (already built, unwired for a sweep): `discoverCorroborators` (web_search), `generateCandidates`
 (identifier-derived, seek-more.mjs), `extractPortalLinks` (portal deep links), `growSourcesFromBrief`
 (surfaces New Sources from every brief into the registry). `/api/admin/scan` (admin/scan/route.ts): web_search
 → dedup (fail-closed) → portal-vs-reg heuristic → stages to `staged_updates` + `provisional_sources`;
-**cannot auto-insert `intelligence_items`** (verified: no such insert exists) — conforms to doctrine.
+**cannot auto-insert `intelligence_items`** (verified: no such insert exists) , conforms to doctrine.
 
 **source registration:** two paths with DIFFERENT tier discipline (see finding F4). `institution.ts
 tierOfSource` = `base_tier ?? null` (the moat: reputation `effective_tier` never confers grounding
@@ -171,34 +171,34 @@ eligibility). `buildResolver` skips `status='suspended'` sources (institution.ts
 
 ## 3. Findings, ranked by severity (all verified against the code)
 
-**Behavioral (what the system does — the operator's core questions):**
+**Behavioral (what the system does , the operator's core questions):**
 
-- **F1 — one-document-per-item; no source sweep** (section 1.1). The whole system extracts one document per
+- **F1 , one-document-per-item; no source sweep** (section 1.1). The whole system extracts one document per
   item. Complete per-source extraction does not exist. VERIFIED.
-- **F2 — the change-to-analysis loop terminates** (section 1.2). `intelligence_changes` has no re-ground
+- **F2 , the change-to-analysis loop terminates** (section 1.2). `intelligence_changes` has no re-ground
   consumer (only the dashboard digest reads it), 0 rows live, auto-action "deliberately NOT wired." VERIFIED.
-- **F3 — the live workflow never writes the permanent snapshot** (section 1.3). `writeSnapshot` is called
+- **F3 , the live workflow never writes the permanent snapshot** (section 1.3). `writeSnapshot` is called [HYPOTHESIS glyph:verbatim]
   only by operator acquire scripts; the I3 invariant has no live writer on the `/api/agent/run` path.
   Grounding validity (criterion 3) rides the char-capped, per-generate-replaced `agent_run_searches` pool.
   VERIFIED (my read + transport deep-read).
 
 **Integrity cracks (real defects, verified):**
 
-- **F4 — base_tier stamped from a Haiku guess on a LIVE path (moat crack).** `verification.ts executeAction`
+- **F4 , base_tier stamped from a Haiku guess on a LIVE path (moat crack).** `verification.ts executeAction`
   (verification.ts:634-645) stamps `base_tier` from the Haiku-guessed `ai_trust_tier` (T1→1/T2→2/T3→4) when
   auto-approving a source to `status='active'`. `source-growth.ts registerCitedSources` (source-growth.ts:108-129)
-  EXPLICITLY forbids a guessed base_tier — deterministic-only via `classTierForHost`, ambiguous hosts
+  EXPLICITLY forbids a guessed base_tier , deterministic-only via `classTierForHost`, ambiguous hosts
   worklisted not minted. Both write `base_tier`, both feed the same `tierOfSource` moat resolver. `verifyCandidate`
   is LIVE (called by `/api/admin/sources/bulk-import/route.ts:517,586`). So one live registration path mints a
   grounding-eligible tier off a model guess while the sibling path forbids exactly that. Mitigations: the host
   must already be in verification.ts's hardcoded HIGH allow-list to reach the H path, and a D3 guard can divert
-  to provisional — but the tier VALUE is still a guess. VERIFIED (citation + liveness confirmed).
-- **F5 — `applyLedgerDiff` CHANGE path is not fail-closed.** On the CHANGE branch, if the `claim_versions`
+  to provisional , but the tier VALUE is still a guess. VERIFIED (citation + liveness confirmed).
+- **F5 , `applyLedgerDiff` CHANGE path is not fail-closed.** On the CHANGE branch, if the `claim_versions` [HYPOTHESIS glyph:verbatim]
   archive insert fails, ledger-apply.mjs:127 only `console.warn`s, then :129 STILL overwrites the current
-  claim row — losing the prior attribution with no archived version. The module header claims fail-closed
+  claim row , losing the prior attribution with no archived version. The module header claims fail-closed
   "version preserved BEFORE the current row is changed"; that guarantee holds only on the erase path (throws,
   :152), not on version-change. A data-history-loss window. VERIFIED.
-- **F6 — plan-intake fails OPEN and drifts from the real mint.** `planIntakeCycle` (plan-intake.ts:46)
+- **F6 , plan-intake fails OPEN and drifts from the real mint.** `planIntakeCycle` (plan-intake.ts:46) [HYPOTHESIS glyph:verbatim]
   destructures `data` without `error` (the exact post-mortem code-smell) → on a corpus read error the live
   set is empty → every candidate reports `would_mint`, whereas the real mint fails CLOSED (mint-item.ts:144).
   Plan also does NOT model the source-link invariant, so an unsourced candidate reports `would_mint` while
@@ -207,28 +207,28 @@ eligibility). `buildResolver` skips `status='suspended'` sources (institution.ts
 
 **Dead/dormant code + naming (verified):**
 
-- **F7 — the inline claim-ledger parser is dead code for conformant output.** `system-prompt.ts` (the
+- **F7 , the inline claim-ledger parser is dead code for conformant output.** `system-prompt.ts` (the
   GENERATE contract) explicitly forbids emitting a Claim Provenance Ledger (:498 "Do NOT emit a Claim
   Provenance Ledger block", :387, :477). So `parse-output.ts`'s STRICT `locateClaimLedger`/`extractClaimLedger`
   path is dormant for generate output (parseAgentOutput wraps it in try/catch → null). The LIVE ledger is the
   GROUND step's OWN separate extraction call (canonical-pipeline.ts:1349, using the lenient extractor).
-  Not a break — provenance moved from generate-inline to ground-extraction — but the strict inline parser
+  Not a break , provenance moved from generate-inline to ground-extraction , but the strict inline parser
   is now dead-on-arrival. VERIFIED.
-- **F8 — `maxAlts` is a no-op floor.** primary-fallback.mjs:182 iterates `altUrls.slice(0, Math.max(maxAlts,
+- **F8 , `maxAlts` is a no-op floor.** primary-fallback.mjs:182 iterates `altUrls.slice(0, Math.max(maxAlts,
   altUrls.length))`; since `altUrls` is already capped at `maxCandidates=6` (:180), `Math.max(3, len) ≥ len`
   never truncates. The alternative search tries up to 6, not the documented 3. Behavioral cap = maxCandidates.
   VERIFIED.
 
 **Lower-risk (verified, bounded):**
 
-- **F9 — error-swallow shapes** (`data` without `error`): `link-items.ts` reads (:24/29/30, bounded by the
+- **F9 , error-swallow shapes** (`data` without `error`): `link-items.ts` reads (:24/29/30, bounded by the
   <20-char skip), `verification.ts checkDuplicate` (:412). The post-mortem class, bounded here.
-- **F10 — suspend-gate asymmetry.** `buildResolver` skips suspended sources for the stamp
+- **F10 , suspend-gate asymmetry.** `buildResolver` skips suspended sources for the stamp
   (institution.ts:87), but `compoundSourceCredibility` (source-growth.ts:196) reads citer tiers without a
-  suspend filter — a suspended source can still influence convergence scoring (not eligibility).
-- **F11 — silent classifier cap.** `verification.ts` truncates classifier input to `CONTENT_MAX_CHARS=6000`
-  (:336) with no truncated-flag — a silent cap at the classification layer (not the grounding layer).
-- **F12 — `captureForStorage` classifies body-only** (transport-escalation.mjs:264, no status) — a 403 with
+  suspend filter , a suspended source can still influence convergence scoring (not eligibility).
+- **F11 , silent classifier cap.** `verification.ts` truncates classifier input to `CONTENT_MAX_CHARS=6000`
+  (:336) with no truncated-flag , a silent cap at the classification layer (not the grounding layer).
+- **F12 , `captureForStorage` classifies body-only** (transport-escalation.mjs:264, no status) , a 403 with
   a plausible-length non-error body could be stored; upstream status filtering mitigates in practice.
 
 **What is genuinely strong (verified, so the build plan does not "fix" it):** the non-destructive apply
@@ -239,13 +239,13 @@ single mint chokepoint. These are real and correct.
 
 ---
 
-## 4. Merge re-verification (behavioral) — all purges SAFE, zero restorations
+## 4. Merge re-verification (behavioral) , all purges SAFE, zero restorations
 
 Re-checked against the full behavioral read + dynamic dispatch + string routes + config + DB objects:
 
 - **P-1** sources/discover + discovery.ts: on no path in generate/ground/mint/run-intake. `admin/scan`
   (the live discovery path) does NOT import it. SAFE.
-- **P-2/P-8** /api/staged-updates route: the ROUTE went, NOT the `staged_updates` TABLE (live, 35 rows) —
+- **P-2/P-8** /api/staged-updates route: the ROUTE went, NOT the `staged_updates` TABLE (live, 35 rows) ,
   `run-intake-cycle` (:85) + `applyStagedUpdate` + `admin/scan` all use the table. No code fetches the route.
   SAFE.
 - **P-3/P-4** notifications/preferences + regulations-defaults: zero callers, unrelated to ingest. SAFE.
@@ -272,7 +272,7 @@ Re-checked against the full behavioral read + dynamic dispatch + string routes +
   were fully read); their internals were not line-audited this pass. None contradicted the flow; flagged as a
   next-pass ring, not a blocker.
 - `probeFreshness` (verify-item's freshness input) was read at the interface; it does NOT consume the
-  check-sources `change_detected` signal — the two change-detection mechanisms are independent (part of F2).
+  check-sources `change_detected` signal , the two change-detection mechanisms are independent (part of F2).
 
 ---
 
@@ -282,12 +282,12 @@ these findings and is a separate document, produced only on operator go.*
 
 ---
 
-# PART II — Exhaustive coverage: every intake / sorting / saving path, every data type, every page
+# PART II , Exhaustive coverage: every intake / sorting / saving path, every data type, every page
 
 The operator's completeness bar: every code path that intakes, sorts, or saves data of ANY type for ANY
 page. Method: a multi-line-aware mechanical enumeration of EVERY write site (`.insert/.upsert/.update/.delete`
 on every table, src + scripts, plus storage uploads, plus RPC write-functions, plus the guarded helper
-layer whose table names are variables and therefore invisible to a regex over `.from("literal")`) — then a
+layer whose table names are variables and therefore invisible to a regex over `.from("literal")`) , then a
 complete read of every writer not already covered in Part I. Nothing below is inferred from a wiring map;
 every finding was read in the file and the load-bearing ones spot-verified (nine citations checked against
 source this pass, all exact; one verified empirically, D3 below).

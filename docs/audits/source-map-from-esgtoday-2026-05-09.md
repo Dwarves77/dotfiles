@@ -321,11 +321,11 @@ ESG Today does not cover these. Required for the Operations rule.
 
 Three distinct workstreams flow from this map:
 
-1. **Source registry expansion against existing 718-source registry**. Every body in Sections A through F should be checked against the existing registry. Bodies absent get added with appropriate role and tier. Bodies present with broken ingestion get flagged for fix. The 185 unknowns from the four-page survey may resolve once classified against this map.
+1. **Source registry expansion against existing 718-source registry**. Every body in Sections A through F should be checked against the existing registry. Bodies absent get added with appropriate role and tier. Bodies present with broken ingestion get flagged for fix. The 185 unknowns from the four-page survey may resolve once classified against this map. [HYPOTHESIS]
 
 2. **Coverage gap closure (Sections E and F)**. The freight-and-vertical-specific sources in Sections E and F are what makes Caro's Ledge defensible against ESG Today and similar general-purpose sustainability publications. They cannot be replaced by aggregator coverage because aggregators don't cover them either. Filling these is differentiation work, not parity work.
 
-3. **Competitor-intercept telemetry**. ESG Today, Reuters Sustainable Switch, Bloomberg Green, Carbon Pulse, S&P Global Sustainable1, FT Moral Money should be in the registry with a specific monitoring role: when they publish on a primary-source development we have not surfaced, our intercept latency on the underlying primary source is broken. This is operational telemetry, not content sourcing.
+3. **Competitor-intercept telemetry**. ESG Today, Reuters Sustainable Switch, Bloomberg Green, Carbon Pulse, S&P Global Sustainable1, FT Moral Money should be in the registry with a specific monitoring role: when they publish on a primary-source development we have not surfaced, our intercept latency on the underlying primary source is broken. This is operational telemetry, not content sourcing. [HYPOTHESIS]
 
 ## What this map does NOT do
 
@@ -336,7 +336,7 @@ Three distinct workstreams flow from this map:
 
 ## Related
 
-- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
-- [source-map-existence-check-2026-05-10](./source-map-existence-check-2026-05-10.md) — This is the existence check of that map's Sections A-G entry-by-entry against the registry
-- [SOURCE-TYPE-TAXONOMY-PROPOSAL](../plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — This map organizes every body by the proposed source_role taxonomy (market_news, vendor-claim T6, primary legal authority)
-- [W2B-discovery-agent-spec](../plans/W2B-discovery-agent-spec.md) — Feeds the source-discovery/expansion workstream — Section H's 'check every body against the existing 718-source registry' is that agent's job
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) , This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies [HYPOTHESIS glyph:verbatim]
+- [source-map-existence-check-2026-05-10](./source-map-existence-check-2026-05-10.md) , This is the existence check of that map's Sections A-G entry-by-entry against the registry
+- [SOURCE-TYPE-TAXONOMY-PROPOSAL](../plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md) , This map organizes every body by the proposed source_role taxonomy (market_news, vendor-claim T6, primary legal authority)
+- [W2B-discovery-agent-spec](../plans/W2B-discovery-agent-spec.md) , Feeds the source-discovery/expansion workstream , Section H's 'check every body against the existing 718-source registry' is that agent's job

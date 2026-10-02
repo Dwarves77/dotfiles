@@ -1,4 +1,4 @@
-# Wave 1a Step 1 — Post-merge verification checklist
+# Wave 1a Step 1 , Post-merge verification checklist
 
 Run after these prerequisites are complete:
 1. Migration 051 applied to production (`cd fsi-app && npx supabase db push`)
@@ -6,7 +6,7 @@ Run after these prerequisites are complete:
 3. Backfill executed (`cd fsi-app && node scripts/wave1-last-scanned-backfill.mjs`)
 4. agent/run error-capture fix deployed to Vercel
 
-Each check restores one of the four behaviors that were silently disabled before migration 051. See [fsi-app/.claude/CLAUDE.md § agent/run error-swallow post-mortem](../fsi-app/.claude/CLAUDE.md) for context.
+Each check restores one of the four behaviors that were silently disabled before migration 051. See [fsi-app/.claude/CLAUDE.md section  agent/run error-swallow post-mortem](../fsi-app/.claude/CLAUDE.md) for context.
 
 ## ✅ 1. Provisional gate active
 
@@ -67,11 +67,11 @@ Steps:
 
 All four checks pass → step 1 ships. Surface results back to the dispatch thread for gate-3 recovery acknowledgment.
 
-If any fails: capture the failure mode (HTTP code, body, log line) and halt — do not proceed to gate 5 Wave 1a code dispatch until step 1's recovered behaviors are confirmed working in production.
+If any fails: capture the failure mode (HTTP code, body, log line) and halt , do not proceed to gate 5 Wave 1a code dispatch until step 1's recovered behaviors are confirmed working in production.
 
 ## Related
 
-- [wave1-track1-summary](./wave1-track1-summary.md) — Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
-- [wave1b-stub-quality-investigation-2026-05-11](./wave1b-stub-quality-investigation-2026-05-11.md) — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
-- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Same Wave 1a foundation work (agent_runs telemetry + error capture); both restore the agent/run write path the error-swallow post-mortem exposed
-- [wave1-track5-widget-implementation-plan](../plans/wave1-track5-widget-implementation-plan.md) — Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination
+- [wave1-track1-summary](./wave1-track1-summary.md) , Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
+- [wave1b-stub-quality-investigation-2026-05-11](./wave1b-stub-quality-investigation-2026-05-11.md) , Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) , Same Wave 1a foundation work (agent_runs telemetry + error capture); both restore the agent/run write path the error-swallow post-mortem exposed
+- [wave1-track5-widget-implementation-plan](../plans/wave1-track5-widget-implementation-plan.md) , Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination

@@ -215,13 +215,13 @@ coordinator route it instead of two lanes editing one file.
 | `/community` | 1440 | button[UK210Transport · Research · Em] "UK" | 3px top rule (measured none) |
 | `/community` | 1440 | button[APAC2Reportingno discussions y] "APAC" | 3px top rule (measured none) |
 | `/community` | 1440 | button[LATAM1Emissionsno discussions ] "LATAM" | 3px top rule (measured none) |
-| `/community` | 1440 | button[MEAF0—no discussions yet] "MEAF" | 3px top rule (measured none) |
+| `/community` | 1440 | button[MEAF0,no discussions yet] "MEAF" | 3px top rule (measured none) |
 | `/community` | 1024 | button[EU753Emissions · Reporting · P] "EU" | 3px top rule (measured none) |
 | `/community` | 1024 | button[US24Reporting · Emissions · Tr] "US" | 3px top rule (measured none) |
 | `/community` | 1024 | button[UK210Transport · Research · Em] "UK" | 3px top rule (measured none) |
 | `/community` | 1024 | button[APAC2Reportingno discussions y] "APAC" | 3px top rule (measured none) |
 | `/community` | 1024 | button[LATAM1Emissionsno discussions ] "LATAM" | 3px top rule (measured none) |
-| `/community` | 1024 | button[MEAF0—no discussions yet] "MEAF" | 3px top rule (measured none) |
+| `/community` | 1024 | button[MEAF0,no discussions yet] "MEAF" | 3px top rule (measured none) |
 
 ### L7 - 124 finding(s)
 

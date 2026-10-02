@@ -81,9 +81,9 @@ A fifth row visible via the supersession ledger: `8ef75b0c-...` (`CSRD 250+ empl
 **Mode E: wrong channel monitored.** The 7 `ec.europa.eu` sources flagged as `access_method=rss` all share a SINGLE rss_feed_url: the press-corner aggregate feed, not per-DG feeds. A draft published at `finance.ec.europa.eu/news` may not appear in the press-corner aggregate; even if it does, attribution to the finance directorate is lost. EFRAG has scrape access pointed at `/sustainability-reporting`, not at the announcements channel `efrag.org/news` (which has its own RSS at `efrag.org/news/rss`, not in the registry). Verdict: **E applies for the ec.europa.eu cluster and for EFRAG**.
 
 **Ranking**:
-1. **B (ingestion silently failing)** dominant. EFRAG and ESG Today are registered, configured, and have zero fetch attempts.
+1. **B (ingestion silently failing)** dominant. EFRAG and ESG Today are registered, configured, and have zero fetch attempts. [HYPOTHESIS]
 2. **A (not in registry)** for `finance.ec.europa.eu` specifically.
-3. **E (wrong channel monitored)** as a structural co-factor across the 7 press-corner-aggregate sources and EFRAG's wrong scrape path.
+3. **E (wrong channel monitored)** as a structural co-factor across the 7 press-corner-aggregate sources and EFRAG's wrong scrape path. [HYPOTHESIS]
 4. **C (selection logic excluded)** as a contributing factor for EFRAG (provisional status).
 5. **D** does not apply.
 
@@ -267,7 +267,7 @@ Verdict: **PARTIAL**. The brief structure (full_brief, why_matters, open_questio
 - `EU CSDDD` source URL is a stale Growth-DG path (current canonical is on `commission.europa.eu`). Registry-data-quality issue separate from the ESRS miss.
 - Whether `provisional` status excludes rows from cold-start sweep is a question for the in-flight classification-rules audit.
 - `last_intelligence_item_at` null on all 783 sources is the strongest single signal in this audit. Indicates a trigger or write-path gap in cold-start INSERT. Primitives audit traced parallel issue with `agent_runs.intelligence_item_id` null on 791 of 791; likely same root cause.
-- 718 active-sources-never-produced-an-item is a starting-state snapshot during cold-start, not a steady-state pattern.
+- 718 active-sources-never-produced-an-item is a starting-state snapshot during cold-start, not a steady-state pattern. [HYPOTHESIS]
 - Mode-A determination for `finance.ec.europa.eu` is robust (zero URL matches). Mode-B for EFRAG and ESG Today is robust (direct row reads confirm all timestamp fields null, zero agent_runs and raw_fetches).
 - Phase 2.3 candidate list is illustrative; highest-leverage gaps (EU sustainability-reporting + the six operator verticals) prioritised.
 
@@ -285,8 +285,8 @@ Doc location: `C:/Users/jason/dotfiles/docs/source-coverage-diagnostic-2026-05-0
 
 ## Related
 
-- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
-- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
-- [source-map-existence-check-2026-05-10](./source-map-existence-check-2026-05-10.md) — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
-- [source-map-from-esgtoday-2026-05-09](./source-map-from-esgtoday-2026-05-09.md) — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
-- [REGIONAL-DATA-COLLECTION-AUDIT](./REGIONAL-DATA-COLLECTION-AUDIT.md) — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy
+- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) , Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
+- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) , Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
+- [source-map-existence-check-2026-05-10](./source-map-existence-check-2026-05-10.md) , That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
+- [source-map-from-esgtoday-2026-05-09](./source-map-from-esgtoday-2026-05-09.md) , This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies [HYPOTHESIS glyph:verbatim]
+- [REGIONAL-DATA-COLLECTION-AUDIT](./REGIONAL-DATA-COLLECTION-AUDIT.md) , Both diagnose jurisdictional source-coverage gaps against the tier taxonomy

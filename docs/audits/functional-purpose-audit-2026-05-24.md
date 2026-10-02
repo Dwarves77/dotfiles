@@ -127,7 +127,7 @@
 
 **User goals**
 1. Understand what the regulation requires
-2. Assess my workspace's exposure
+2. Assess my workspace's exposure [HYPOTHESIS]
 3. See the timeline (effective dates, deadlines)
 4. Review sources (tier, citation, recency)
 5. Track changes over time (changelog)
@@ -144,7 +144,7 @@
 | 1 | Hero block shows priority, title, deck, source tags | Goals 1, 4 |
 | 2 | Short/Full summary switcher | Goal 1 |
 | 3 | Impact Assessment bars (Cost / Compliance / Client / Operational) | Goal 2 |
-| 4 | Section-numbered structured sections (§3 immediate action, §8 substantive requirements, §14 timeline) | Goals 1, 3 |
+| 4 | Section-numbered structured sections (section 3 immediate action, section 8 substantive requirements, section 14 timeline) | Goals 1, 3 |
 | 5 | Sources tab with tier legend | Goal 4 |
 | 6 | Changelog visible | Goal 5 |
 | 7 | Related items panel (xrefs, supersessions) | Goal 6 |
@@ -173,7 +173,7 @@
 | 12 | MISSING | No reminder UI |
 | 13 | PARTIAL | Penalty calculator tab is static narrative, not a calculator |
 
-**Identification rail Topic: research issue** (operator-flagged) — see Section 12.
+**Identification rail Topic: research issue** (operator-flagged) , see Section 12.
 
 **Dispositions**
 
@@ -585,9 +585,9 @@ The browser audit found `/regulations/g4` IDENTIFICATION rail displays `Topic: r
 
 1. **Regression risk on every rebuild.** The Community case proves UI rebuilds can lose existing functionality if the rebuilder doesn't enumerate the pre-rebuild flows first. **Recommendation: every Phase 4 commit lists the flows it preserves vs. removes vs. adds.** Soft commitment; no new fitness function.
 
-2. **Several MISSING flows (watchlist, share, export-PDF, alerts, bookmark, follow-theme, region compare, action assignment, reminder, citation) recur across surfaces.** These are platform-level capabilities, not per-surface features. **Recommendation: a future cross-cutting capability dispatch addresses them once rather than 5 times.** No commitment in this dispatch.
+2. **Several MISSING flows (watchlist, share, export-PDF, alerts, bookmark, follow-theme, region compare, action assignment, reminder, citation) recur across surfaces.** These are platform-level capabilities, not per-surface features. **Recommendation: a future cross-cutting capability dispatch addresses them once rather than 5 times.** No commitment in this dispatch. [HYPOTHESIS]
 
-3. **VERIFY items in Section 7 (flows 10, 11, 12, 16, 17 on /community) need a follow-up sub-audit before Phase 4 Community commit.** Some may be PRESENT, just not exposed; treating them as BUILD would be wrong.
+3. **VERIFY items in Section 7 (flows 10, 11, 12, 16, 17 on /community) need a follow-up sub-audit before Phase 4 Community commit.** Some may be PRESENT, just not exposed; treating them as BUILD would be wrong. [HYPOTHESIS]
 
 ---
 
@@ -595,17 +595,17 @@ The browser audit found `/regulations/g4` IDENTIFICATION rail displays `Topic: r
 
 The following capabilities recurred as MISSING/DEFER across multiple surfaces during this audit. They are platform-level, not per-surface, and form the scope envelope for **Decision 7** (cross-cutting capability dispatch):
 
-- **Watchlist** (Regulations index, Regulations detail, Market, Research, Operations) — depends on a `watchlists` table with user_id + intelligence_item_id; add-from-any-surface UX.
-- **Share** (Regulations detail, Market, Research, Community thread) — copy-link button + post-to-community option; share-URL pattern standardization.
-- **Export** (Regulations index bulk, Regulations detail brief, Operations facts) — PDF / Markdown / CSV; existing TSV bulk export is the only present surface.
-- **Alerts** (Regulations index, Market signals, Operations changes) — threshold or change-event alerts; depends on alert infrastructure (email/in_app channel + per-item subscription table).
-- **Bookmark** (Research findings) — lighter weight than watchlist; per-user save without monitoring.
-- **Follow-theme** (Research) — subscribe to a theme grouping for updates; depends on theme column (migration 102 lands this).
-- **Citation generator** (Research) — copy citation block in standard format.
-- **Action assignment** (Regulations detail) — assign workspace member to a regulation's required action; depends on `team_assignments` table.
-- **Reminders** (Regulations detail deadline, Operations alert) — personal deadline reminders; depends on reminder infrastructure.
-- **Compare** (Operations region-vs-region, Market signal-vs-signal) — side-by-side compare UX; product decision DEFER.
-- **Cross-surface linking** (Market → Regulations, Community → any intelligence item) — depends on intersection schema (Q5 deferred); referenced_intelligence_item_ids column lands in migration 104.
+- **Watchlist** (Regulations index, Regulations detail, Market, Research, Operations) , depends on a `watchlists` table with user_id + intelligence_item_id; add-from-any-surface UX.
+- **Share** (Regulations detail, Market, Research, Community thread) , copy-link button + post-to-community option; share-URL pattern standardization.
+- **Export** (Regulations index bulk, Regulations detail brief, Operations facts) , PDF / Markdown / CSV; existing TSV bulk export is the only present surface.
+- **Alerts** (Regulations index, Market signals, Operations changes) , threshold or change-event alerts; depends on alert infrastructure (email/in_app channel + per-item subscription table).
+- **Bookmark** (Research findings) , lighter weight than watchlist; per-user save without monitoring.
+- **Follow-theme** (Research) , subscribe to a theme grouping for updates; depends on theme column (migration 102 lands this).
+- **Citation generator** (Research) , copy citation block in standard format.
+- **Action assignment** (Regulations detail) , assign workspace member to a regulation's required action; depends on `team_assignments` table.
+- **Reminders** (Regulations detail deadline, Operations alert) , personal deadline reminders; depends on reminder infrastructure.
+- **Compare** (Operations region-vs-region, Market signal-vs-signal) , side-by-side compare UX; product decision DEFER.
+- **Cross-surface linking** (Market → Regulations, Community → any intelligence item) , depends on intersection schema (Q5 deferred); referenced_intelligence_item_ids column lands in migration 104.
 
 This inventory is the scope envelope for a cross-cutting capability dispatch. Resolving each capability once at the platform level avoids implementing the same UX 5 times across surfaces.
 
@@ -615,6 +615,6 @@ This inventory is the scope envelope for a cross-cutting capability dispatch. Re
 
 ## Related
 
-- [cards-clickable-audit-2026-05-12](./cards-clickable-audit-2026-05-12.md) — Shares the card→detail navigation flow per surface; the functional audit tracks the same click-through and notes /market/[slug] and…
-- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) — Declared companion; the two form a deliberate lens pair — that doc asks whether required flows are present, this asks whether present elements…
-- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) — Shares the per-surface intent framing and the same schema-gap symptoms (static penalty calculator, missing 'Your exposure', phantom columns) as…
+- [cards-clickable-audit-2026-05-12](./cards-clickable-audit-2026-05-12.md) , Shares the card→detail navigation flow per surface; the functional audit tracks the same click-through and notes /market/[slug] and…
+- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) , Declared companion; the two form a deliberate lens pair , that doc asks whether required flows are present, this asks whether present elements…
+- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) , Shares the per-surface intent framing and the same schema-gap symptoms (static penalty calculator, missing 'Your exposure', phantom columns) as… [HYPOTHESIS glyph:verbatim]

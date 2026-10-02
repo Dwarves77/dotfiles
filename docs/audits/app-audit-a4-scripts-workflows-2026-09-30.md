@@ -49,7 +49,7 @@ named in "Decision-ready build items" below).
 
 `node fsi-app/.discipline/fitness/runner.mjs` (this worktree, full output captured):
 **52 functions checked, 0 violations.** Notable per-function output, quoted verbatim:
-- `[F44] broken-main-guard`, PASS (653 files scanned; the broken `file://${process.argv[1]}` CLI-guard
+- `[F44] broken-main-guard`, PASS (653 files scanned; the broken `file://${process.argv[1]}` CLI-guard [HYPOTHESIS]
   idiom, 36 instances historically, is fully remediated and gated, confirmed independently by my own
   grep, below).
 - `[F45] duplicate-code`, PASS at a **baseline of 5,867 duplicated lines** (the gate is a ratchet
@@ -194,7 +194,7 @@ evidence found for `sweep-to-ledger-consume`, A4-L1).
    F51-flagged hotspot independently.
 3. **A4-B2, `estimated_values` written via a raw, uncited, unsnapshotted upsert**, bypassing rule 015's
    guarded path on a table that feeds customer-visible NPV figures (automate-vs-hire).
-4. **A4-B3, same bypass class on `portal_link_candidates`**, lower stakes but the same root cause: no
+4. **A4-B3, same bypass class on `portal_link_candidates`**, lower stakes but the same root cause: no [HYPOTHESIS]
    `guardedUpsert` exists in `lib/db.mjs`, so every caller needing an upsert-with-conflict-target either
    reimplements it raw or avoids upserts altogether.
 5. **A4-L1, a loop-manifest hop's `enforceFired` flag is stale against live `gh run list` evidence.**

@@ -1,4 +1,4 @@
-# Regional Data Collection — Ground Truth Audit
+# Regional Data Collection , Ground Truth Audit
 
 Generated: 2026-05-05
 Scope: 8 dimensions of regional / jurisdictional data state
@@ -11,11 +11,11 @@ Method: Read-only SELECTs against live Supabase via service role; cross-referenc
 | # | Dimension | State | Severity |
 |---|-----------|-------|----------|
 | 1 | Sub-national jurisdiction taxonomy completeness | **DONE** | low |
-| 2 | Tier 1 source coverage by jurisdiction | **PARTIAL — severe sub-national gaps** | high |
-| 3 | Operations surface intelligence (regional_data) | **PARTIAL — 11/118 Tier 1 covered** | high |
+| 2 | Tier 1 source coverage by jurisdiction | **PARTIAL , severe sub-national gaps** | high |
+| 3 | Operations surface intelligence (regional_data) | **PARTIAL , 11/118 Tier 1 covered** | high |
 | 4 | Auto-approved sources awaiting spot-check | **GAP** | high |
-| 5 | Tier 2 expansion status | **GAP — confirmed deferred (43 of 44 zero)** | medium |
-| 6 | Non-English sources / `scan_enabled` schema | **GAP — schema column never added** | medium |
+| 5 | Tier 2 expansion status | **GAP , confirmed deferred (43 of 44 zero)** | medium |
+| 6 | Non-English sources / `scan_enabled` schema | **GAP , schema column never added** | medium |
 | 7 | 3 missing EU regulations status | **DONE** | low |
 | 8 | Coverage matrix RPC populated | **DONE** | low |
 
@@ -35,8 +35,8 @@ Defaulted to GLOBAL:                 86 (44.3%)
 ### Findings
 
 - W4.1 ISO backfill landed cleanly. Zero rows with empty `jurisdiction_iso`.
-- 44.3% of items (86/194) carry `jurisdiction_iso = ['GLOBAL']`. This is the legitimate fallback for IMO / ICAO / framework / cross-jurisdictional content (e.g., GHG Protocol, ISO 14083, IFRS S2). Cross-checked against `coverage_matrix()` which shows GLOBAL covering frameworks, technology, research_finding, market_signal, regulation, standard, regional_data, tool — consistent with supranational scope.
-- The single largest non-GLOBAL bucket is EU (42 items), then US (20). Coverage is concentrated on the supranational/federal level, not subnational — see Dimension 2.
+- 44.3% of items (86/194) carry `jurisdiction_iso = ['GLOBAL']`. This is the legitimate fallback for IMO / ICAO / framework / cross-jurisdictional content (e.g., GHG Protocol, ISO 14083, IFRS S2). Cross-checked against `coverage_matrix()` which shows GLOBAL covering frameworks, technology, research_finding, market_signal, regulation, standard, regional_data, tool , consistent with supranational scope.
+- The single largest non-GLOBAL bucket is EU (42 items), then US (20). Coverage is concentrated on the supranational/federal level, not subnational , see Dimension 2.
 
 ### Outstanding
 
@@ -89,12 +89,12 @@ US-AL, US-ID, US-NE, US-NH, US-OK, US-PR, US-GU, US-MP, US-AS, AT, BE, BG, HR, C
 
 ### Findings
 
-- The W3 narrative ("563 net-new sources across 125 Tier 1 ISO codes") matches the totals (563 sources, 63 distinct active jurisdictions visible) — but the distribution is very skewed:
+- The W3 narrative ("563 net-new sources across 125 Tier 1 ISO codes") matches the totals (563 sources, 63 distinct active jurisdictions visible) , but the distribution is very skewed:
   - ~91% of sources concentrate in 4 buckets (GLOBAL, EU, US, GB).
-  - Sub-national US states are mostly 1–2 sources (a single legislative archive or DOT page each).
+  - Sub-national US states are mostly 1-2 sources (a single legislative archive or DOT page each).
   - **Every single EU 27 member state (AT, BE, BG, …, SE) has ZERO active sources.** Coverage hits "EU" the supranational bucket (69 sources) but does not reach member-state regulators.
   - **Every Canadian province + territory (CA-ON through CA-NU) has ZERO active sources.**
-  - **Every UK devolved nation (GB-ENG, GB-SCT, GB-WLS) has ZERO active sources** — only GB-NIR has 2.
+  - **Every UK devolved nation (GB-ENG, GB-SCT, GB-WLS) has ZERO active sources** , only GB-NIR has 2.
   - 4 of 5 anchor APAC singletons (HK, JP, KR, plus AU-VIC, AU-SA) are at zero.
   - 9 US states/territories at zero (AL, ID, NE, NH, OK plus 4 territories PR, GU, MP, AS).
 - Tier 1 spot-check spec (`docs/SPOT-CHECK-RESULTS.md`) sampled 20 H-tier sources; 16 confirmed-H, 3 should-be-M (15% false-positive), 1 unreachable. The thresholds need lifting (rel ≥ 75, frt ≥ 55) per recalibration note.
@@ -148,15 +148,15 @@ TOTAL                194
 ### Findings
 
 - Operations page tab "By Jurisdiction" expects items where `item_type = 'regional_data'`. There are 12. Coverage is 11 distinct jurisdictions: AU, BR, CN, EU, GB, GLOBAL, IN, JP, KR (shared row with JP), SG, US.
-- **Dubai/UAE profile is mis-tagged as `[GLOBAL]` instead of `[AE]`.** This is a data-quality bug that hides the row from any AE-keyed UI lookup.
-- The JP profile carries `[JP, KR]` — KR is a co-mention, not a separate KR profile. So KR effectively has no dedicated regional_data row, just a tag-along.
-- Operations page sub-categories (Solar / Electricity / Labor / EV Charging / Green Building) are inferred at runtime from `tags` and brief text via regex on the client (see `OperationsPage.tsx` lines 55–62). With every `regional_data` row showing `tags: []`, the sub-category chips fall back to whatever the client regex picks up from the brief markdown.
-- 2 of the 12 are non-jurisdictional benchmark rows (electricity tariffs, labor benchmarks) typed as regional_data — these will display in the "Unspecified" / "GLOBAL" group.
+- **Dubai/UAE profile is mis-tagged as `[GLOBAL]` instead of `[AE]`.** This is a data-quality bug that hides the row from any AE-keyed UI lookup. [HYPOTHESIS]
+- The JP profile carries `[JP, KR]` , KR is a co-mention, not a separate KR profile. So KR effectively has no dedicated regional_data row, just a tag-along.
+- Operations page sub-categories (Solar / Electricity / Labor / EV Charging / Green Building) are inferred at runtime from `tags` and brief text via regex on the client (see `OperationsPage.tsx` lines 55-62). With every `regional_data` row showing `tags: []`, the sub-category chips fall back to whatever the client regex picks up from the brief markdown.
+- 2 of the 12 are non-jurisdictional benchmark rows (electricity tariffs, labor benchmarks) typed as regional_data , these will display in the "Unspecified" / "GLOBAL" group.
 
 ### Outstanding
 
 - **107 of 118 Tier 1 jurisdictions have no `regional_data` profile** (any US state, any EU member state, any CA province, etc.). Operations "By Jurisdiction" surface effectively shows 11 cells, not 118.
-- **Mis-tagged Dubai profile** — known data-quality flag.
+- **Mis-tagged Dubai profile** , known data-quality flag.
 - `tags` empty on every regional_data row means client-side sub-category routing is fragile.
 
 ---
@@ -184,18 +184,18 @@ sources resulting from H verifications:  64
 ### Findings
 
 - **Zero sources have been spot-checked.** `spotchecked = true` count is 0 across the entire `sources` table. The `spotchecked` column exists (verified in schema dump) but no row has been flipped.
-- Despite the W2.E "299–387 awaiting spot-check" narrative, the actual queue is **404 created in the last 14 days** — none reviewed. All 404 are still on the unaudited side.
+- Despite the W2.E "299-387 awaiting spot-check" narrative, the actual queue is **404 created in the last 14 days** , none reviewed. All 404 are still on the unaudited side.
 - The 1,000-row `source_verifications` table breaks down 64 H / 280 M / 656 L, consistent with the W2.F design (only H produces a `sources` row; L is forensic-only).
-- 64 H-tier verifications match the 64 sources that received `resulting_source_id` — the H pipeline wired correctly. But the spot-check loop closing it is not running.
-- The audit-tier-h-spot-check.mjs pilot run (20 H-tier sources, 2026-05-06) found 3 of 20 should-be-M (15% false-positive). That pilot did NOT update `spotchecked`/`spotchecked_at` on any of the 20 — it was a pure read-only QA pass.
+- 64 H-tier verifications match the 64 sources that received `resulting_source_id` , the H pipeline wired correctly. But the spot-check loop closing it is not running.
+- The audit-tier-h-spot-check.mjs pilot run (20 H-tier sources, 2026-05-06) found 3 of 20 should-be-M (15% false-positive). That pilot did NOT update `spotchecked`/`spotchecked_at` on any of the 20 , it was a pure read-only QA pass.
 
 ### Outstanding
 
 - **Spot-check workflow is dormant.** No source has its `spotchecked_by`/`spotchecked_at` set.
-- **15% false-positive rate exceeds the 5% target.** SPOT-CHECK-RESULTS.md recommends raising H thresholds to rel ≥ 75, frt ≥ 55 — not yet applied.
+- **15% false-positive rate exceeds the 5% target.** SPOT-CHECK-RESULTS.md recommends raising H thresholds to rel ≥ 75, frt ≥ 55 , not yet applied.
 - **3 known should-be-M sources surfaced by the pilot run still classified as H** in the live DB:
-  - DPNR – USVI Division of Environmental Protection
-  - Maryland MDE – Air & Climate Change Program
+  - DPNR - USVI Division of Environmental Protection
+  - Maryland MDE - Air & Climate Change Program
   - Virginia VDOT (freight)
   These weren't demoted; they're actionable.
 
@@ -218,7 +218,7 @@ provisional_sources with discovered_for_jurisdiction populated:   0
 
 - W3 explicitly deferred Tier 2. Confirmed: 43 of 44 Tier 2 jurisdictions have zero active source coverage.
 - **Only Tier 2 jurisdiction with ANY coverage is China (CN), and it has exactly 1 source.**
-- Provisional sources (12 rows) all have `discovered_for_jurisdiction = NULL`. This means W3's discovery agents never tagged provenance — the schema column was added (per migration 040 `discovery_provenance.sql`) but no populated rows exist.
+- Provisional sources (12 rows) all have `discovered_for_jurisdiction = NULL`. This means W3's discovery agents never tagged provenance , the schema column was added (per migration 040 `discovery_provenance.sql`) but no populated rows exist. [HYPOTHESIS glyph:verbatim]
 - Specifically zero coverage:
   - Switzerland / Norway / Iceland (CH, NO, IS)
   - UAE / Saudi Arabia / Israel / Turkey (AE, AE-DU, AE-AZ, SA, IL, TR)
@@ -234,7 +234,7 @@ provisional_sources with discovered_for_jurisdiction populated:   0
 ### Outstanding
 
 - **All 43 of 43 Tier 2 ZERO-coverage jurisdictions are genuine gaps.** This is the W3 explicit-deferral list, but it now needs sequencing.
-- `provisional_sources.discovered_for_jurisdiction` is unpopulated for the 12 provisional rows — discovery agents either ran before the column was added or aren't writing to it.
+- `provisional_sources.discovered_for_jurisdiction` is unpopulated for the 12 provisional rows , discovery agents either ran before the column was added or aren't writing to it.
 
 ---
 
@@ -263,7 +263,7 @@ sources schema columns (sampled):
 ### Outstanding
 
 - **Schema column `scan_enabled` (or `language`) needs adding before any non-English ingestion can be registered safely.**
-- All non-English jurisdictions (China provinces, Brazil/Mexico states, India states, ASEAN) are blocked by this absence — there's no way to add a candidate row in a "registered but not scanned" state.
+- All non-English jurisdictions (China provinces, Brazil/Mexico states, India states, ASEAN) are blocked by this absence , there's no way to add a candidate row in a "registered but not scanned" state.
 
 ---
 
@@ -289,16 +289,16 @@ Total brief generation cost (per EU-BRIEFS-RUNLOG.txt): $0.215 + $0.199 + $0.227
   - `ac349a70-606d-4eb3-ac19-5a4a0facd07c` (battery)
   - `b7736a1a-2c81-4d58-87b4-ee09330eaff2` (HDV CO2)
   - `859faf76-08a3-4587-a675-c181e19f227a` (net-zero industry)
-- All 3 have substantial briefs (24k–36k chars), all under the 14-section regulatory_fact_document contract.
+- All 3 have substantial briefs (24k-36k chars), all under the 14-section regulatory_fact_document contract.
 - Severity assignments look reasonable (HDV CO2 → COST ALERT for fleet-impact regs).
-- All 3 carry `agent_integrity_flag = false` — no integrity issues raised.
-- Runlog confirms parsing extracted citation tables (HDV: 5 sources, Net-Zero: 6 sources, Battery: 0 — battery may need source extraction follow-up).
-- The "5 cross-ref opportunities" mentioned in the brief — items that reference EU regulation IDs without a link — were not enumerated in the runlog or audit data and would require a separate text-scan pass to identify. Not yet documented.
+- All 3 carry `agent_integrity_flag = false` , no integrity issues raised.
+- Runlog confirms parsing extracted citation tables (HDV: 5 sources, Net-Zero: 6 sources, Battery: 0 , battery may need source extraction follow-up).
+- The "5 cross-ref opportunities" mentioned in the brief , items that reference EU regulation IDs without a link , were not enumerated in the runlog or audit data and would require a separate text-scan pass to identify. Not yet documented.
 
 ### Outstanding
 
-- **5 cross-reference opportunities not catalogued.** Earlier session notes reference 5 existing items that mention these EU regs by ID without a hard link. No log file documents which 5 — needs a dedicated full-text scan of `intelligence_items.full_brief`.
-- Battery regulation brief showed `src=0` in parse step — citation table either missing or unparsed. Worth sanity-checking the brief's "## New Sources Identified" section.
+- **5 cross-reference opportunities not catalogued.** Earlier session notes reference 5 existing items that mention these EU regs by ID without a hard link. No log file documents which 5 , needs a dedicated full-text scan of `intelligence_items.full_brief`.
+- Battery regulation brief showed `src=0` in parse step , citation table either missing or unparsed. Worth sanity-checking the brief's "## New Sources Identified" section. [HYPOTHESIS glyph:verbatim]
 
 ---
 
@@ -336,15 +336,15 @@ Distinct item_type:                      11
 
 - **RPC works and returns real data.** 113 (jurisdiction × item_type) pivot rows.
 - 77 distinct jurisdictions and 11 item_types covered (slightly more than the 10 currently surfacing in `intelligence_items`, suggesting the RPC includes IMO as a bucket).
-- The mismatch between source_count (66 for US) and item_count (20 for US) is correct — sources don't map 1:1 to items; they're the portals.
+- The mismatch between source_count (66 for US) and item_count (20 for US) is correct , sources don't map 1:1 to items; they're the portals.
 - Visible asymmetries:
-  - **JP, AE, KR, BR, IN, IMO, CL all show items with 0 sources.** Items exist (with briefs and ISO tagging) but no source registry row backs them. The Operations and Regulations surfaces will render the items but "Source: —" will appear.
-  - **US-CA has 4 regulation items vs. 9 sources** — the only sub-national US ISO showing items in the matrix.
+  - **JP, AE, KR, BR, IN, IMO, CL all show items with 0 sources.** Items exist (with briefs and ISO tagging) but no source registry row backs them. The Operations and Regulations surfaces will render the items but "Source: ," will appear.
+  - **US-CA has 4 regulation items vs. 9 sources** , the only sub-national US ISO showing items in the matrix.
 - Coverage matrix rows reflect the gap pattern in Dimension 2: most weight on GLOBAL/EU/US/GB.
 
 ### Outstanding
 
-- 6 jurisdictions (JP, AE, KR, BR, IN, IMO, CL) have items but zero sources — they'll display item content with no provenance pin in the UI.
+- 6 jurisdictions (JP, AE, KR, BR, IN, IMO, CL) have items but zero sources , they'll display item content with no provenance pin in the UI.
 - The 113-row matrix is much smaller than the 118 Tier 1 + 44 Tier 2 = 162 jurisdictions defined; ~50 Tier 1/2 jurisdictions don't appear in the pivot at all (no items, no sources).
 
 ---
@@ -353,11 +353,11 @@ Distinct item_type:                      11
 
 1. **Sub-national coverage cliff.** The data structure (taxonomy in `tiers.ts`, ISO column on `sources` and `intelligence_items`) is fully built, but at the supranational (EU) and federal (US/GB) level coverage is dense, while at the sub-national level (US states, EU members, CA provinces, UK devolved nations) it's mostly empty or 1-source-deep. This is the same gap from three angles: Dim 2 (sources), Dim 3 (regional_data items), Dim 8 (matrix).
 
-2. **"Active" doesn't mean "audited."** 563 sources, 501 active, but 0 spot-checked. The W2.F H/M/L pipeline auto-approved 64 sources straight to `sources.status='active'`, and the spot-check post-condition has never run. This is a process gap, not a data gap.
+2. **"Active" doesn't mean "audited."** 563 sources, 501 active, but 0 spot-checked. The W2.F H/M/L pipeline auto-approved 64 sources straight to `sources.status='active'`, and the spot-check post-condition has never run. This is a process gap, not a data gap. [HYPOTHESIS]
 
-3. **Provenance tagging on provisional discoveries was stubbed but never populated.** Migration 040 added `discovered_for_jurisdiction`, but all 12 provisional rows have it NULL. Discovery flows aren't writing to it.
+3. **Provenance tagging on provisional discoveries was stubbed but never populated.** Migration 040 added `discovered_for_jurisdiction`, but all 12 provisional rows have it NULL. Discovery flows aren't writing to it. [HYPOTHESIS]
 
-4. **Schema gaps for Phase D foundations (non-English).** `scan_enabled` / `language` were never added to `sources`. Any Tier 2 jurisdiction in a non-English market (CN provinces, BR states, JP, KR, MX states, ASEAN, LATAM) is schema-blocked, not just discovery-blocked.
+4. **Schema gaps for Phase D foundations (non-English).** `scan_enabled` / `language` were never added to `sources`. Any Tier 2 jurisdiction in a non-English market (CN provinces, BR states, JP, KR, MX states, ASEAN, LATAM) is schema-blocked, not just discovery-blocked. [HYPOTHESIS]
 
 5. **Dubai/UAE regional_data row is mis-tagged `[GLOBAL]`.** Cosmetic in isolation but reveals a class of data-entry bugs in regional_data ISO tagging that the validation pipeline didn't catch.
 
@@ -374,7 +374,7 @@ Distinct item_type:                      11
 | 3 | **Recalibrate H thresholds to rel ≥ 75 / frt ≥ 55** per SPOT-CHECK-RESULTS recommendation | Small (config change in W2.F pipeline + retroactive re-classification of borderline Hs) | high | Reduces false-positive flow into the registry going forward. |
 | 4 | **Canadian provinces + UK devolved nations** (CA-ON, CA-QC, CA-BC, CA-AB, GB-ENG, GB-SCT, GB-WLS) | Medium | high | 16 of 17 zero. High-traffic freight jurisdictions for the platform. |
 | 5 | **Add `scan_enabled` and `language` columns to `sources`** | Small (migration) | medium | Unblocks all non-English Tier 2 work. Blocks nothing currently active. |
-| 6 | **Tier 2 expansion sequenced** (start CH/NO/IS — English-friendly Tier 2 — then UAE, IN states, BR states, MX states) | Large (Phase D scope) | medium | 43 of 44 zero. Sequence: English-Latin-script first, non-English after schema gating ships. |
+| 6 | **Tier 2 expansion sequenced** (start CH/NO/IS , English-friendly Tier 2 , then UAE, IN states, BR states, MX states) | Large (Phase D scope) | medium | 43 of 44 zero. Sequence: English-Latin-script first, non-English after schema gating ships. |
 | 7 | **Backfill regional_data profiles for Tier 1 sub-nationals** | Large (107 of 118 missing) | medium | Operations "By Jurisdiction" surface is effectively 11 cells today. |
 | 8 | **Fix Dubai/UAE regional_data jurisdiction_iso** from `[GLOBAL]` → `[AE]` | Trivial (1-row UPDATE) | low | Visible bug; representative of a tagging-validation gap. |
 | 9 | **Catalogue the 5 EU cross-ref opportunities** (items mentioning the 3 newly-inserted EU regs without a hard link) | Small (full-text scan + link insert) | low | Polish; increases intersection-detection density. |
@@ -383,8 +383,8 @@ Distinct item_type:                      11
 
 ## Related
 
-- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
-- [W2D-coverage-matrix-spec](../plans/W2D-coverage-matrix-spec.md) — Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
-- [W2F-verification-pipeline](../plans/W2F-verification-pipeline.md) — Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies
-- [SPOT-CHECK-PROCEDURE](../runbooks/SPOT-CHECK-PROCEDURE.md) — Dimension 4's dormant H-tier spot-check loop (0 of 64 checked) is the process this runbook defines
-- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy
+- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) , Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory [HYPOTHESIS glyph:verbatim]
+- [W2D-coverage-matrix-spec](../plans/W2D-coverage-matrix-spec.md) , Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
+- [W2F-verification-pipeline](../plans/W2F-verification-pipeline.md) , Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies
+- [SPOT-CHECK-PROCEDURE](../runbooks/SPOT-CHECK-PROCEDURE.md) , Dimension 4's dormant H-tier spot-check loop (0 of 64 checked) is the process this runbook defines
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) , Both diagnose jurisdictional source-coverage gaps against the tier taxonomy

@@ -137,7 +137,7 @@ A service-role script can call `supabase.auth.admin.generateLink({ type: 'magicl
    ```
    Use a `sourceUrl` known to be present in `sources` and to have an `intelligence_items` row, otherwise the route returns 404 from the inner gate at `targetItem` resolution rather than from `requireAuth`.
 
-4. Interpret the result. 200 with the job summary means auth, fetch, Claude call, and DB update all succeeded. 401 means the bearer is wrong, expired, or rejected by `supabase.auth.getUser`, refresh by repeating step 2. 403, 404, 409, 412, 429, 502 are downstream business-logic outcomes, not auth, and `statusToTelemetry` in the route maps each to a terminal `agent_runs.status`.
+4. Interpret the result. 200 with the job summary means auth, fetch, Claude call, and DB update all succeeded. 401 means the bearer is wrong, expired, or rejected by `supabase.auth.getUser`, refresh by repeating step 2. 403, 404, 409, 412, 429, 502 are downstream business-logic outcomes, not auth, and `statusToTelemetry` in the route maps each to a terminal `agent_runs.status`. [HYPOTHESIS]
 
 5. After the smoke, optionally call `POST $NEXT_PUBLIC_SUPABASE_URL/auth/v1/logout` with the same bearer to invalidate the token. This is cosmetic, the token expires in an hour anyway, but it keeps the GoTrue session table tidy.
 
@@ -145,6 +145,6 @@ The orchestrator should run steps 2 through 4 in the same process, never persist
 
 ## Related
 
-- [ADR-004-auth-pattern-split](../decisions/ADR-004-auth-pattern-split.md) — same auth subsystem; audit of the admin-route auth architecture this ADR formalizes
-- [WORKER-ACTIVATION-AUDIT-2026-05-08](./WORKER-ACTIVATION-AUDIT-2026-05-08.md) — Contrasts the worker-secret auth on /api/worker/* against the bearer gate on /api/agent/run — the exact reason the cron worker cannot invoke the…
-- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — Both cover the authorization model; the schema audit's headline is the SECURITY DEFINER page RPCs accepting p_org_id with no auth.uid() membership…
+- [ADR-004-auth-pattern-split](../decisions/ADR-004-auth-pattern-split.md) , same auth subsystem; audit of the admin-route auth architecture this ADR formalizes
+- [WORKER-ACTIVATION-AUDIT-2026-05-08](./WORKER-ACTIVATION-AUDIT-2026-05-08.md) , Contrasts the worker-secret auth on /api/worker/* against the bearer gate on /api/agent/run , the exact reason the cron worker cannot invoke the…
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) , Both cover the authorization model; the schema audit's headline is the SECURITY DEFINER page RPCs accepting p_org_id with no auth.uid() membership…

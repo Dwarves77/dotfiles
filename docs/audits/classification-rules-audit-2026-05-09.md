@@ -69,19 +69,19 @@ Quoted Regulatory pass samples (5 of 55):
 
 Quoted Regulatory ambiguous samples (5 of 428):
 
-1. **Alternative Fuels Insight (IRENA/IMO)**, host `irena.org`. Reason: passes 2 of 4. C1 satisfied (item type framework), C3 satisfied (item carries jurisdictions). C2 fails (no effective date, status = monitoring). C4 fails (irena.org is not in the regulator host pattern list).
-2. **Lloyd's Register Fleet Analytics**, host `lr.org`. Reason: passes 2 of 4. The Lloyd's Register block of 41 items is dominated by regulatory-shaped briefs whose source is a classification society, not a regulator; C4 fails for every one of them.
-3. **Germany BMDV**, host `bmdv.bund.de` (or similar). Reason: passes 2 of 4. C1 + C3 satisfied. C2 fails on the snapshot's `status='monitoring'` default; the item describes hydrogen corridors and LNG/NH3 shipping but carries no `entry_into_force`. C4 satisfied for the host but the heuristic missed it because the URL is a `.bund.de` host not in the regulator pattern set, a false negative discussed in the methodology section.
+1. **Alternative Fuels Insight (IRENA/IMO)**, host `irena.org`. Reason: passes 2 of 4. C1 satisfied (item type framework), C3 satisfied (item carries jurisdictions). C2 fails (no effective date, status = monitoring). C4 fails (irena.org is not in the regulator host pattern list). [HYPOTHESIS]
+2. **Lloyd's Register Fleet Analytics**, host `lr.org`. Reason: passes 2 of 4. The Lloyd's Register block of 41 items is dominated by regulatory-shaped briefs whose source is a classification society, not a regulator; C4 fails for every one of them. [HYPOTHESIS]
+3. **Germany BMDV**, host `bmdv.bund.de` (or similar). Reason: passes 2 of 4. C1 + C3 satisfied. C2 fails on the snapshot's `status='monitoring'` default; the item describes hydrogen corridors and LNG/NH3 shipping but carries no `entry_into_force`. C4 satisfied for the host but the heuristic missed it because the URL is a `.bund.de` host not in the regulator pattern set, a false negative discussed in the methodology section. [HYPOTHESIS]
 4. **Getting to Zero: Green Corridors**, IGO consortium. Reason: passes 2 of 4. Looks like a directory of established corridors; not a regulation, not enforced.
 5. **Sustainable Packaging Coalition**, industry body. Reason: passes 2 of 4. Reads like guidance but the source is `.org` not a regulator.
 
 Quoted Regulatory fail samples (5 of 130):
 
-1. The 49 garbage-extraction items mostly fail Regulatory: titles like "Cloudflare Security Verification, Danish Parliament Website" or "ESPO Website Security Verification Page" carry no obligation language and no effective date. They satisfy C4 (the underlying host is `.gov` or `.eu`) but fail C1, C2, C3.
-2. Trade-press market-signal items: `International Roadcheck 2026 ELD and Cargo Securement Focus`, host `freightwaves.com`. Fails C4 (not a regulator host) plus typically fails C2.
-3. Pure research summaries on academic hosts: `MIT Center for Transportation and Logistics`, host `ctl.mit.edu`. Fails C1 and C4.
-4. Vendor PR: `Hydrogen Insight: Industry Intelligence on Clean Hydrogen Market Developments`, host `hydrogeninsight.com`. Fails C1, C2, C4.
-5. Industry coalition position papers: `European Clean Trucking Alliance`, host `clean-trucking.eu`. Fails C1, C4.
+1. The 49 garbage-extraction items mostly fail Regulatory: titles like "Cloudflare Security Verification, Danish Parliament Website" or "ESPO Website Security Verification Page" carry no obligation language and no effective date. They satisfy C4 (the underlying host is `.gov` or `.eu`) but fail C1, C2, C3. [HYPOTHESIS]
+2. Trade-press market-signal items: `International Roadcheck 2026 ELD and Cargo Securement Focus`, host `freightwaves.com`. Fails C4 (not a regulator host) plus typically fails C2. [HYPOTHESIS]
+3. Pure research summaries on academic hosts: `MIT Center for Transportation and Logistics`, host `ctl.mit.edu`. Fails C1 and C4. [HYPOTHESIS]
+4. Vendor PR: `Hydrogen Insight: Industry Intelligence on Clean Hydrogen Market Developments`, host `hydrogeninsight.com`. Fails C1, C2, C4. [HYPOTHESIS]
+5. Industry coalition position papers: `European Clean Trucking Alliance`, host `clean-trucking.eu`. Fails C1, C4. [HYPOTHESIS]
 
 ### A.2 Research rule
 
@@ -106,8 +106,8 @@ Quoted Research pass samples (5 of 59):
 
 Quoted Research ambiguous samples (5 of 522):
 
-1. **Germany BMDV**, item describes hydrogen corridor planning but the source is the Federal Ministry of Transport, not a research institution. Passes C1, C3, C4; fails C2.
-2. **CDP Supply Chain**, an annual disclosure programme. Forward-looking pass, named provenance, freight-relevant; fails C2 because CDP is a coalition rather than an academic body.
+1. **Germany BMDV**, item describes hydrogen corridor planning but the source is the Federal Ministry of Transport, not a research institution. Passes C1, C3, C4; fails C2. [HYPOTHESIS]
+2. **CDP Supply Chain**, an annual disclosure programme. Forward-looking pass, named provenance, freight-relevant; fails C2 because CDP is a coalition rather than an academic body. [HYPOTHESIS]
 3. **Getting to Zero: Green Corridors**, an industry-coalition directory. Same pattern.
 4. **Sustainable Packaging Coalition**, industry body guidance.
 5. **European Clean Trucking Alliance**, advocacy body for ZEV truck adoption.
@@ -140,9 +140,9 @@ The 8-pass count is structural: the registry has only 38 trade-press / market-ne
 
 Quoted Market Intel ambiguous samples (3 of 162):
 
-1. **CDP Supply Chain**, passes 3 of 5: C1 (forward signal), C3 (named provider), C5 (freight-relevant). Fails C2 (no quantitative content in summary) and C4 (not strictly forward, also is an "active programme").
+1. **CDP Supply Chain**, passes 3 of 5: C1 (forward signal), C3 (named provider), C5 (freight-relevant). Fails C2 (no quantitative content in summary) and C4 (not strictly forward, also is an "active programme"). [HYPOTHESIS]
 2. **World Bank Carbon Pricing Dashboard**, passes 3 of 5: similar pattern.
-3. **Splash247 Green**, passes 4 of 5 (C1, C3, C4, C5). Fails C2 only because the snapshot summary is generic ("Maritime green tech news; alternative fuels, vessel technology") with no specific quantitative content. The full item text would likely satisfy C2 if the heuristic could read past the summary.
+3. **Splash247 Green**, passes 4 of 5 (C1, C3, C4, C5). Fails C2 only because the snapshot summary is generic ("Maritime green tech news; alternative fuels, vessel technology") with no specific quantitative content. The full item text would likely satisfy C2 if the heuristic could read past the summary. [HYPOTHESIS]
 
 ### A.4 Operations rule
 
@@ -167,8 +167,8 @@ Quoted Operations pass samples (5 of 38):
 
 Quoted Operations ambiguous samples (5 of 551):
 
-1. **Alternative Fuels Insight (IRENA/IMO)**: passes 2 of 4. C1 + C3 satisfied; C2 fails (no tariff/wage/permit content); C4 fails (jurisdictions empty).
-2. **Lloyd's Register Fleet Analytics**: passes 2 of 4. Same pattern; the LR block of 41 items uniformly fails C2.
+1. **Alternative Fuels Insight (IRENA/IMO)**: passes 2 of 4. C1 + C3 satisfied; C2 fails (no tariff/wage/permit content); C4 fails (jurisdictions empty). [HYPOTHESIS]
+2. **Lloyd's Register Fleet Analytics**: passes 2 of 4. Same pattern; the LR block of 41 items uniformly fails C2. [HYPOTHESIS]
 3. **Germany BMDV**: passes 2 of 4.
 4. **CDP Supply Chain**: passes 2 of 4.
 5. **Getting to Zero: Green Corridors**: passes 2 of 4.
@@ -254,7 +254,7 @@ The pipeline_stage column splits cleanly into legacy-backfilled `published` (186
 
 ### B.4 Where rule-based classification diverges from existing classification
 
-- The existing `item_type` field assigns `regulation` to 145 items but the Regulatory rule only passes 46 of them. **Divergence rate: 68 percent of regulation-typed items do not satisfy the strict four-condition Regulatory rule.** The most common reason is the missing C2 evidence (no `entry_into_force`, no `compliance_deadline`, status defaulted to monitoring) and not a real-world violation of the rule, just a schema gap.
+- The existing `item_type` field assigns `regulation` to 145 items but the Regulatory rule only passes 46 of them. **Divergence rate: 68 percent of regulation-typed items do not satisfy the strict four-condition Regulatory rule.** The most common reason is the missing C2 evidence (no `entry_into_force`, no `compliance_deadline`, status defaulted to monitoring) and not a real-world violation of the rule, just a schema gap. [HYPOTHESIS]
 - The existing `domain` 1 (regulations and policy) carries 549 of 613 items, but only 53 are clean Regulatory passes. **Divergence rate: 90 percent of domain-1 items are not clean Regulatory passes under the new rules.** The dominance of domain 1 shows that domain is being used as a catch-all rather than a rule-aligned category.
 - The existing `pipeline_stage` field has no relationship to the five-category taxonomy. It is an editorial-state field (draft / active_review / published / archived) rather than a category field.
 - The existing `severity` field (CRITICAL / HIGH / MODERATE / LOW) and `urgency_tier` field (watch / elevated / stable / informational) are orthogonal to category. They are decision-pressure fields, not classifier output.
@@ -436,8 +436,8 @@ For each item, the classifier evaluates the four (or five) conditions of each ru
 
 ## Related
 
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Explicitly extends this survey; both find the missing sources.source_role column and domain-1 acting as a catch-all are the root of unclassifiability
-- [topic-relevance-investigation-2026-05-09](./topic-relevance-investigation-2026-05-09.md) — Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
-- [ADR-007-bias-tag-threshold-per-dimension](../decisions/ADR-007-bias-tag-threshold-per-dimension.md) — shared classification-rules subsystem; audit of the classifier whose bias-tag confidence cutoffs this ADR retunes
-- [california-pilot-summary](./california-pilot-summary.md) — Shares the Haiku relevance/freight scoring and tier logic; the rules audit examines what those same classifier signals do and do not encode
-- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) — S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , Explicitly extends this survey; both find the missing sources.source_role column and domain-1 acting as a catch-all are the root of unclassifiability [HYPOTHESIS glyph:verbatim]
+- [topic-relevance-investigation-2026-05-09](./topic-relevance-investigation-2026-05-09.md) , Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
+- [ADR-007-bias-tag-threshold-per-dimension](../decisions/ADR-007-bias-tag-threshold-per-dimension.md) , shared classification-rules subsystem; audit of the classifier whose bias-tag confidence cutoffs this ADR retunes
+- [california-pilot-summary](./california-pilot-summary.md) , Shares the Haiku relevance/freight scoring and tier logic; the rules audit examines what those same classifier signals do and do not encode
+- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) , S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…

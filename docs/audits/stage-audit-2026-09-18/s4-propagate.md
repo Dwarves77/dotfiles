@@ -49,7 +49,7 @@ changes) at master `3da30b22` plus one docs commit, per the common brief.
    (`validate-statutory-rows-file.mjs`) that would refuse a placeholder file rather than silently apply it --
    a safety improvement, not progress toward the 0-row count.
 
-3. **Finding 11, spec-09 CSV upload route would error live (missing `org_id` on `surcharge_audits`).**
+3. **Finding 11, spec-09 CSV upload route would error live (missing `org_id` on `surcharge_audits`).** [HYPOTHESIS]
    `[REFUTED]`, confirmed via live SQL this session that `surcharge_audits.org_id` exists (migration 311
    applied), matching what the 2026-09-05 README already flagged as fixed. This audit adds independent
    confirmation the schema fix is live, not merely claimed.

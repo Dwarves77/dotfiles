@@ -1,4 +1,4 @@
-# Session Audit — 2026-05-05
+# Session Audit , 2026-05-05
 
 Generated: 2026-05-06 03:15Z (post PR #25 + #26 merge, PR #24 still open).
 Scope: comprehensive read-only ground truth on Caro's Ledge platform state.
@@ -12,7 +12,7 @@ Session window defined as **2026-05-01 → present** (PR #5 merge → now). 21 P
 
 | Metric | Start of session (≈ PR #5 merge) | Now |
 |---|---:|---:|
-| PRs merged in session | 0 | 21 (#6–#23, #25, #26) |
+| PRs merged in session | 0 | 21 (#6-#23, #25, #26) |
 | PRs open | 0 | 1 (#24, polish/intelligence-depth) |
 | Migrations applied | 025 | **047** (22 new) |
 | Active sources | ~73 (legacy seed) | **501** (563 total; 62 suspended/non-active) |
@@ -37,9 +37,9 @@ Listed reverse-chronological. Per PR: scope summary, headline files. (Counts in 
 |---|---|---|---|---|
 | #26 | 2026-05-06 02:51 | Verification pipeline integrity backfill | 381 buried provisionals → provisional_sources, threshold 70/50 → 75/55, 3 named demotions (DPNR/MDE/VDOT) | verification/integrity-fixes-and-backfill |
 | #25 | 2026-05-06 02:40 | perf: full_brief slim RPC + sidebar prefetch=false | Migration 047 sibling RPC `get_workspace_intelligence_slim`; sidebar 8 nav links → `prefetch={false}`; ~3.33 MB/render saved on 4 surfaces | perf/full-brief-slim-and-prefetch |
-| #23 | 2026-05-06 01:32 | Polish wave audit fixes + EU regulation inserts | A1–A9 audit-driven fixes (jurisdiction display, editorial priority labels, isolate filter chips, count tooltip, hide-empty stat cards, UUID→slug redirect, member name embed, past-event styling); migration 045 (orphan slugs + ACF dedup + r10 archive); 3 EU regulation inserts (Battery 1542, HDV CO2 1242, NZIA 2024/1735) | polish/audit-fixes |
+| #23 | 2026-05-06 01:32 | Polish wave audit fixes + EU regulation inserts | A1-A9 audit-driven fixes (jurisdiction display, editorial priority labels, isolate filter chips, count tooltip, hide-empty stat cards, UUID→slug redirect, member name embed, past-event styling); migration 045 (orphan slugs + ACF dedup + r10 archive); 3 EU regulation inserts (Battery 1542, HDV CO2 1242, NZIA 2024/1735) | polish/audit-fixes |
 | #22 | 2026-05-06 01:31 | Community parallelization + integrity trigger retune + ops scripts | 6 sequential awaits → 1 parallel batch on /community; 8 → 2 batches on /community/[slug] + /community/browse; migration 044 retunes integrity-flag trigger sensitivity (57 unresolved → 1) | post-merge-fixes |
-| #21 | 2026-05-06 00:40 | Block C C5–C9 community feed/promote/notifications/moderation/realtime | Posts feed + post→staged-update promote + notifications schema + preferences UI + moderation reports + realtime hooks (browser-only); 4 quick-win perf fixes (id-map dedup, detail page slim fetch, region-count RPC migration 042, AdminDashboard server hydration) | phase-c/community-extensions |
+| #21 | 2026-05-06 00:40 | Block C C5-C9 community feed/promote/notifications/moderation/realtime | Posts feed + post→staged-update promote + notifications schema + preferences UI + moderation reports + realtime hooks (browser-only); 4 quick-win perf fixes (id-map dedup, detail page slim fetch, region-count RPC migration 042, AdminDashboard server hydration) | phase-c/community-extensions |
 | #20 | 2026-05-06 00:38 | Phase C foundation: jurisdiction_iso + materialization fix + admin tooling | Migration 033 jurisdiction_iso column + 100% backfill across 194 items; mig 034 staged_updates materialization error capture; mig 035 agent_integrity_flags + trigger; mig 036 admin notifications RPC; mig 037 source_verification (W2.F pipeline); mig 038 bulk import audit; mig 039 coverage_matrix RPC; mig 040 discovery provenance; admin UIs for all of the above | phase-c/foundation-and-admin-tooling |
 | #19 | 2026-05-04 00:26 | hotfix: research empty + Market/Operations stat-tile interactivity | Defensive research fetch; clickable stat tiles on Operations & Market | phase-c/hotfix-surfaces |
 | #18 | 2026-05-05 16:45 | community: shell + C4 functional | CommunityShell + sidebar swap + region tabs + masthead search; group detail page; community/browse; invitation API | phase-c/community-shell |
@@ -63,7 +63,7 @@ Listed reverse-chronological. Per PR: scope summary, headline files. (Counts in 
 | 026 | research_pipeline_stage | `intelligence_items.pipeline_stage` text + btree index |
 | 027 | user_profiles | New table for non-auth profile data (name, headshot) |
 | 028 | community_groups | New table + region partial index |
-| 029 | community_group_members | New table — RLS LATER FIXED in 046 (recursion bug) |
+| 029 | community_group_members | New table , RLS LATER FIXED in 046 (recursion bug) |
 | 030 | community_posts | New table for posts/replies + promotion FK to staged_updates |
 | 031 | community_topics | New table + community_topic_groups |
 | 032 | community_notifications_moderation | Notifications + moderation reports + preferences |
@@ -74,7 +74,7 @@ Listed reverse-chronological. Per PR: scope summary, headline files. (Counts in 
 | 037 | source_verification | `source_verifications` audit table + `verification_tier` enum (H/M/L) |
 | 038 | bulk_import_audit | Bulk-import operation history |
 | 039 | coverage_matrix_rpc | RPC `coverage_matrix()` returning (jurisdiction × item_type) pivot |
-| 040 | discovery_provenance | `provisional_sources.discovered_for_jurisdiction` (UNPOPULATED — see partial) |
+| 040 | discovery_provenance | `provisional_sources.discovered_for_jurisdiction` (UNPOPULATED , see partial) |
 | 041 | post_promotions | Community post → staged_update promotion ledger |
 | 042 | community_region_counts_rpc | Replaces 8 region-count queries with single RPC |
 | 043 | security_advisor_fixes | Function search_path hardening + several SECURITY DEFINER tightenings |
@@ -83,7 +83,7 @@ Listed reverse-chronological. Per PR: scope summary, headline files. (Counts in 
 | 046 | community_rls_recursion_fix | SECURITY DEFINER helpers (user_is_group_member / _admin / owner) replacing self-referencing RLS in 029 |
 | 047 | workspace_intelligence_slim_rpc | Sibling RPC drops `full_brief` + 3 other wide TEXT cols on list-view path |
 
-### Database state — start vs now
+### Database state , start vs now
 
 | Table | Start of session | Now | Δ |
 |---|---:|---:|---|
@@ -103,7 +103,7 @@ Listed reverse-chronological. Per PR: scope summary, headline files. (Counts in 
 | Community posts | 0 | 2 (test seed) |
 | `staged_updates` pending | 0 | **0** |
 
-### Feature delta — start vs now (user-visible)
+### Feature delta , start vs now (user-visible)
 
 **At session start** the platform had: Phase C kickoff complete, 119-item legacy regulation explorer, Phase B agent runtime, 73-source registry seed, single-user auth, no community, no admin tooling beyond manual SQL, no jurisdiction_iso column, no source verification pipeline.
 
@@ -127,7 +127,7 @@ Listed reverse-chronological. Per PR: scope summary, headline files. (Counts in 
 
 | # | Title | Branch | State | Blocked on |
 |---|---|---|---|---|
-| **#24** | Item 2 — intelligence-depth layering on regulation detail Summary tab | `polish/intelligence-depth` | OPEN, master merged in | (a) PR #25 production deploy verification (smoke /regulations, /operations, /market with slim payload); (b) optional bundle additions |
+| **#24** | Item 2 , intelligence-depth layering on regulation detail Summary tab | `polish/intelligence-depth` | OPEN, master merged in | (a) PR #25 production deploy verification (smoke /regulations, /operations, /market with slim payload); (b) optional bundle additions |
 
 PR #24 work shipped on the branch (parser at `lib/agent/extract-sections.ts`, Tier-2 expander on Summary tab, severity callout, Tier-2→Tier-3 deep-link). 7/7 brief parser tests pass.
 
@@ -137,13 +137,13 @@ PR #24 work shipped on the branch (parser at `lib/agent/extract-sections.ts`, Ti
 
 ### Items pending user decisions
 
-None outstanding — last decisions ("Bundle + Gap 1 dry-run: approve dispatch in parallel"; "PR #24 merge after PR #25 deploy verification") have been received but action paused for this audit.
+None outstanding , last decisions ("Bundle + Gap 1 dry-run: approve dispatch in parallel"; "PR #24 merge after PR #25 deploy verification") have been received but action paused for this audit.
 
 ### Items approved but not yet dispatched
 
-1. **Bundle agent** extending PR #24 with: Timeline parser + backfill, tab rename ("Full text" → "Intelligence Brief") + reorder (Summary → Intelligence Brief → Timeline → Sources → Exposure → Penalty Calc), hide Team Notes, Coming-soon tile for Exposure + Penalty Calc, restore Verification status badge, restore Archive flow with reason picker (platform-admin only).
+1. **Bundle agent** extending PR #24 with: Timeline parser + backfill, tab rename ("Full text" → "Intelligence Brief") + reorder (Summary → Intelligence Brief → Timeline → Sources → Exposure → Penalty Calc), hide Team Notes, Coming-soon tile for Exposure + Penalty Calc, restore Verification status badge, restore Archive flow with reason picker (platform-admin only). [HYPOTHESIS]
 2. **Gap 1 dry-run agent** running `fsi-app/supabase/seed/spot-check-all-h-tier.mjs` against 64 H-tier auto-approved sources at the new 75/55 thresholds in classify-only mode. Surface category-level results before mass-execution.
-3. **PR #25 production deploy verification** — walk through /regulations, /operations, /market on `https://carosledge.com` after Vercel deploy completes; confirm slim payload renders correctly.
+3. **PR #25 production deploy verification** , walk through /regulations, /operations, /market on `https://carosledge.com` after Vercel deploy completes; confirm slim payload renders correctly.
 4. **PR #24 merge** after step 3 verifies and (optionally) bundle agent lands.
 
 ---
@@ -154,7 +154,7 @@ None outstanding — last decisions ("Bundle + Gap 1 dry-run: approve dispatch i
 
 | Feature | Code state | Data state |
 |---|---|---|
-| Operations "By Jurisdiction" tab | Built, renders `regional_data` items | **11 of 118 Tier 1** jurisdictions covered. Effectively shows 11 cells. Dubai/UAE profile mis-tagged `[GLOBAL]` instead of `[AE]` — bug |
+| Operations "By Jurisdiction" tab | Built, renders `regional_data` items | **11 of 118 Tier 1** jurisdictions covered. Effectively shows 11 cells. Dubai/UAE profile mis-tagged `[GLOBAL]` instead of `[AE]` , bug |
 | Tier 2 jurisdictions | Schema + 44 codes defined | **43 of 44 zero coverage** (only CN has 1 source) |
 | Tier 1 sub-national | 118 codes defined; ISO taxonomy + JOIN paths live | **105 of 118 under-covered** (89%); EU 27 member states, 13 CA provinces, 3 UK devolved nations all at 0 |
 | Non-English ingestion | None; `scan_enabled` / `language` columns NEVER ADDED to `sources` | All non-English Tier 2 (CN provinces, BR/MX states, IN states, ASEAN, LATAM) is schema-blocked |
@@ -163,7 +163,7 @@ None outstanding — last decisions ("Bundle + Gap 1 dry-run: approve dispatch i
 | Vendors | /vendors page renders 10 curated vendors | No verification backend; static |
 | Events | /events page with calendar | No backend; static |
 | Multi-tenant workspace switcher | Schema in place (overrides + memberships) | No user-facing switcher; admin sees one workspace |
-| AI query bar | AskAssistant component exists; Stream-C fix mounts in AppShell | **E2E A10 FAIL** — "Ask AI" control text absent in DOM; component may render hidden by default |
+| AI query bar | AskAssistant component exists; Stream-C fix mounts in AppShell | **E2E A10 FAIL** , "Ask AI" control text absent in DOM; component may render hidden by default |
 | Real time hooks | `useCommunityPostsRealtime` + `useCommunityNotificationsRealtime` exist | Not exercised yet (browser-only; E2E B14 SKIP) |
 | Embedding-based source quality (pgvector) | Foundation laid earlier | Not investigated this audit |
 
@@ -173,10 +173,10 @@ Surface migration regressions on `RegulationDetailSurface` from greenfield Phase
 
 | Feature | Status |
 |---|---|
-| Timeline parser + visual bar | NOT YET RESTORED — in approved bundle, not dispatched |
-| Tab labels: "Full text" → "Intelligence Brief"; reorder | NOT YET RESTORED — in approved bundle |
-| Verification status badge (verified / partial / unverified / disputed) | NOT YET RESTORED — in approved bundle |
-| Archive flow with reason picker (platform admin only) | NOT YET RESTORED — in approved bundle |
+| Timeline parser + visual bar | NOT YET RESTORED , in approved bundle, not dispatched |
+| Tab labels: "Full text" → "Intelligence Brief"; reorder | NOT YET RESTORED , in approved bundle |
+| Verification status badge (verified / partial / unverified / disputed) | NOT YET RESTORED , in approved bundle |
+| Archive flow with reason picker (platform admin only) | NOT YET RESTORED , in approved bundle |
 | Team Notes section visibility | "Hide" decision in approved bundle |
 | Exposure + Penalty Calculator | "Coming-soon tile" decision in approved bundle |
 | **Share menu** (3 detail levels × 2 formats) | DEFERRED per user decision |
@@ -184,18 +184,18 @@ Surface migration regressions on `RegulationDetailSurface` from greenfield Phase
 | Gradient bars on impact assessment | RESTORED earlier (PR #23) |
 | Editorial priority labels | RESTORED earlier (PR #23) |
 | ISO jurisdiction display | RESTORED earlier (PR #23) |
-| UUID → slug redirect on detail page | **E2E A4 FAIL** — implementation lands but redirect returns 200 not 307 |
+| UUID → slug redirect on detail page | **E2E A4 FAIL** , implementation lands but redirect returns 200 not 307 |
 
 ### Integrity flags currently in queue
 
 Per `docs/INTEGRITY-TRIAGE-REPORT.md` (2026-05-06T00:47Z, 57 flagged), then mig 044 retune (PR #22), E2E C1 verifies **1 unresolved** post-retune.
 
 The 57-flag triage breakdown (frozen pre-retune, useful for cataloguing):
-- 15 missing-regulation flags pointing at 8 distinct EU regulation IDs that don't exist in `intelligence_items`. PR #23 inserted **3 of 8** (Battery 1542, HDV 1242, NZIA 2024/1735). Still missing: 2023/2405 (ReFuelEU SAF), 2024/1610 (Clean Trucking), 2023/1804 (AFIR alt-fuels infra), 2023/959 (EU ETS Directive amendment), 2023/956 (CBAM), generic "EU ETS". The trigger retune may have suppressed these as not surfacing the absence — re-validate.
-- 3 factual-gap flags (regenerate): r16 Carbon Trust, f6774c49 Hydrogen/Ammonia Marine Fuel, afc851b1 Marine Fuel Decarbonisation Pathways — ~$0.45 worst-case to regen
+- 15 missing-regulation flags pointing at 8 distinct EU regulation IDs that don't exist in `intelligence_items`. PR #23 inserted **3 of 8** (Battery 1542, HDV 1242, NZIA 2024/1735). Still missing: 2023/2405 (ReFuelEU SAF), 2024/1610 (Clean Trucking), 2023/1804 (AFIR alt-fuels infra), 2023/959 (EU ETS Directive amendment), 2023/956 (CBAM), generic "EU ETS". The trigger retune may have suppressed these as not surfacing the absence , re-validate. [HYPOTHESIS glyph:verbatim]
+- 3 factual-gap flags (regenerate): r16 Carbon Trust, f6774c49 Hydrogen/Ammonia Marine Fuel, afc851b1 Marine Fuel Decarbonisation Pathways , ~$0.45 worst-case to regen
 - 37 "other" flags (rationale: phrase "integrity rule" in legitimate prose). Most resolved by mig 044
-- 1 source-url-broken (r10) — fixed by mig 045 archive
-- 1 over-flag (r13 GreenBiz) — clear_flag
+- 1 source-url-broken (r10) , fixed by mig 045 archive [HYPOTHESIS glyph:verbatim]
+- 1 over-flag (r13 GreenBiz) , clear_flag
 
 ### Provisional sources awaiting review
 
@@ -203,7 +203,7 @@ The 57-flag triage breakdown (frozen pre-retune, useful for cataloguing):
 
 Composition (from Gap 2 audit + cost-projection):
 - 108 promotable now at 75/55 thresholds (53 EU member-state, 24 US state, 8 CA province + DC + 2 territory, etc.)
-- 140 needing human review (60–75 relevance, 30–55 freight band; many language_non_english or domain_unknown gates)
+- 140 needing human review (60-75 relevance, 30-55 freight band; many language_non_english or domain_unknown gates)
 - 8 reject candidates
 - 10 NULL AI scores (the 12 orphans that pre-date W2.F)
 
@@ -219,9 +219,9 @@ From `docs/REGIONAL-DATA-COLLECTION-AUDIT.md`:
 - 57 Tier-1 jurisdictions at 0 active sources (EU 27 member states, 13 CA provinces, 3 UK devolved nations, 4 US territories, JP/KR/HK + 9 US states)
 - 19 of those have 0 candidates anywhere (need discovery wave)
 - 38 have ≥1 promotable candidate from W2.F log (Gap 2 promotion target)
-- 6 jurisdictions render items with "Source: —" pin: JP, AE, KR, BR, IN, IMO (CL is single-item)
-- Battery brief (eu-battery-regulation-2023-1542): citation parse showed `src=0` — table missing or unparsed; not yet sanity-checked
-- 5 EU cross-ref opportunities (other items mention the 3 newly-inserted EU regs without hard link) — not catalogued
+- 6 jurisdictions render items with "Source: ," pin: JP, AE, KR, BR, IN, IMO (CL is single-item)
+- Battery brief (eu-battery-regulation-2023-1542): citation parse showed `src=0` , table missing or unparsed; not yet sanity-checked [HYPOTHESIS glyph:verbatim]
+- 5 EU cross-ref opportunities (other items mention the 3 newly-inserted EU regs without hard link) , not catalogued
 
 ### E2E test failures (5 of 27 fail; 18.5%)
 
@@ -229,9 +229,9 @@ Per `docs/E2E-VERIFICATION.md` (2026-05-06T01:49Z):
 
 | Test | Verdict | Notes |
 |---|---|---|
-| A4 UUID → slug redirect | **FAIL** | Returns 200 not 307. Real bug — A7 implementation logic doesn't fire on this row |
+| A4 UUID → slug redirect | **FAIL** | Returns 200 not 307. Real bug , A7 implementation logic doesn't fire on this row |
 | A10 AI Ask bar mounted | **FAIL** | "Ask AI" control text absent. Could be hidden-by-default state, but worth confirming |
-| B2 / B5 / B10 community POSTs | "FAIL" | 201/200 returned with valid IDs — these are test-shape errors (test expected only 201, got 200), not real bugs |
+| B2 / B5 / B10 community POSTs | "FAIL" | 201/200 returned with valid IDs , these are test-shape errors (test expected only 201, got 200), not real bugs |
 
 **Real failing surface area**: A4 + A10. Two regressions newly introduced this session.
 
@@ -245,7 +245,7 @@ Per `docs/E2E-VERIFICATION.md` (2026-05-06T01:49Z):
 | Vendor verification backend | Stub page with curated list (PR #9); verification: NOT BUILT |
 | Events backend | Stub page with editorial calendar (PR #8); backend: NOT BUILT |
 | LinkedIn OAuth | Button hidden (PR #6); API approval pending |
-| AI query bar proper implementation | AskAssistant component exists; Stream-C fix mounts in AppShell. **E2E A10 says it's not visible — needs investigation** |
+| AI query bar proper implementation | AskAssistant component exists; Stream-C fix mounts in AppShell. **E2E A10 says it's not visible , needs investigation** |
 | Real email notification delivery | Schema + preferences UI built; SMTP/send pipeline: NOT BUILT |
 | Tier 2 jurisdictional expansion | 43/44 zero coverage. Sequence proposed: CH/NO/IS first (English-Latin-script), then UAE/IN/BR/MX after schema gating |
 | Multi-language scan support | `scan_enabled` / `language` columns NEVER ADDED. Blocks all non-English Tier 2 |
@@ -261,37 +261,37 @@ Per `docs/E2E-VERIFICATION.md` (2026-05-06T01:49Z):
 
 Pattern: **silent failures that look like success in audit logs**. Caught only by user observation or careful reconciliation. All four covered below.
 
-### Pattern 1 — SB 253 integrity flag in brief content, never routed (pre-session backstory)
+### Pattern 1 , SB 253 integrity flag in brief content, never routed (pre-session backstory)
 
-**Root cause**: Earlier-session agents emitted "integrity rule" phrasing inside `full_brief` markdown (e.g. SB 253 brief noted that a fact couldn't be verified). The platform had no DB-level extraction or routing — the warning lived in markdown only, invisible unless a human read the brief.
+**Root cause**: Earlier-session agents emitted "integrity rule" phrasing inside `full_brief` markdown (e.g. SB 253 brief noted that a fact couldn't be verified). The platform had no DB-level extraction or routing , the warning lived in markdown only, invisible unless a human read the brief.
 
 **Fix shipped this session**: Migration 035 (PR #20) added `agent_integrity_flag BOOLEAN` + a trigger that scans incoming briefs for the flag-phrase, sets the column, and surfaces flagged items in the admin queue. Migration 044 (PR #22) retuned trigger sensitivity to suppress legitimate-prose false-positives. `INTEGRITY-TRIAGE-REPORT.md` was generated against the pre-retune 57-flag set; post-retune state is 1 flag unresolved.
 
 **Prevention measure**: All integrity flags now route to admin queue automatically. Trigger sensitivity is calibrated. Triage procedure documented at `docs/INTEGRITY-TRIAGE-PROCEDURE.md`.
 
-### Pattern 2 — RLS recursion in `community_group_members` (mig 029, fixed in mig 046)
+### Pattern 2 , RLS recursion in `community_group_members` (mig 029, fixed in mig 046)
 
 **Root cause**: Original RLS policies in migration 029 included rules like "user can read members if they are an admin of the same group", checked via subquery against the same `community_group_members` table. This created infinite recursion when any read fired.
 
-**Fix shipped**: Migration 046 (in PR #20 set) introduced 3 SECURITY DEFINER helper functions — `user_is_group_member`, `user_is_group_admin`, `user_owns_group` — that bypass RLS internally. Policies rewritten to call those helpers instead of self-referencing.
+**Fix shipped**: Migration 046 (in PR #20 set) introduced 3 SECURITY DEFINER helper functions , `user_is_group_member`, `user_is_group_admin`, `user_owns_group` , that bypass RLS internally. Policies rewritten to call those helpers instead of self-referencing.
 
 **Prevention measure**: SECURITY DEFINER pattern documented in CLAUDE.md. Open question: would benefit from a static check / lint rule that flags self-referencing RLS subqueries before they merge. Not yet implemented.
 
-### Pattern 3 — W2.F provisional_sources silent drop (PR #26 fix + 381 backfill)
+### Pattern 3 , W2.F provisional_sources silent drop (PR #26 fix + 381 backfill)
 
 **Root cause**: `fsi-app/supabase/seed/tier1-population-runner.mjs:1151` referenced a non-existent `jurisdictions` column on `provisional_sources` (the actual column is `discovered_for_jurisdiction TEXT`, added by migration 040). Every tier-M insert errored with PostgREST schema-cache message; the runner caught the error, recorded `action_taken='rejected'` in `source_verifications`, and continued. **385 candidates dropped silently**, with audit-log noise that read as "rejected" rather than "failed".
 
 **Fix shipped (PR #26)**: 
 - Removed the bad column reference from `tier1-population-runner.mjs` + comment block explaining root cause
-- Wrote `fsi-app/supabase/seed/backfill-missing-provisionals.mjs` (idempotent) that selected orphan tier-M audit rows, inserted to `provisional_sources` with their cached AI scores, updated audit row to `action_taken='queued-provisional'` + `resulting_provisional_id` pointer
+- Wrote `fsi-app/supabase/seed/backfill-missing-provisionals.mjs` (idempotent) that selected orphan tier-M audit rows, inserted to `provisional_sources` with their cached AI scores, updated audit row to `action_taken='queued-provisional'` + `resulting_provisional_id` pointer [HYPOTHESIS]
 - Backfill executed: **381 inserted, 4 dedupe skips, 0 failed**. Provisional queue went 12 → 393.
 - Commit message keywords: "post-write verification", "buried signal" (per user request, future agents can grep)
 
-**Prevention measure (Phase D)**: Post-write verification on queue/table writes — every code path that records "I queued X for review" should verify the write landed before declaring success. Concretely: any insert that produces a downstream pointer (e.g. `resulting_provisional_id`, `staged_update_id`, `materialized_item_id`) should set the pointer in the same transaction or assert the row exists before recording the audit-log decision.
+**Prevention measure (Phase D)**: Post-write verification on queue/table writes , every code path that records "I queued X for review" should verify the write landed before declaring success. Concretely: any insert that produces a downstream pointer (e.g. `resulting_provisional_id`, `staged_update_id`, `materialized_item_id`) should set the pointer in the same transaction or assert the row exists before recording the audit-log decision.
 
-### Pattern 4 — Phase C surface migration regressions caught only by user observation
+### Pattern 4 , Phase C surface migration regressions caught only by user observation
 
-**Root cause**: Phase C Block B (PRs #12–14) rebuilt 7 surfaces as greenfield component rewrites under the editorial design language. Feature parity with the pre-Block-B legacy components was not enforced via tests, audit checklist, or programmatic comparison. Specific regressions:
+**Root cause**: Phase C Block B (PRs #12-14) rebuilt 7 surfaces as greenfield component rewrites under the editorial design language. Feature parity with the pre-Block-B legacy components was not enforced via tests, audit checklist, or programmatic comparison. Specific regressions:
 
 - Timeline parser + visual bar (was in `ResourceDetail`; not ported to `RegulationDetailSurface`)
 - Gradient bars on impact assessment (regressed; restored in PR #23)
@@ -317,9 +317,9 @@ Per `docs/BRIEF-STRUCTURE-AUDIT.md`:
 - **Operative source of truth: `fsi-app/src/lib/agent/system-prompt.ts`** (what the model receives at runtime)
 - **Reference + contract: `fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md`**
 - Both content-aligned at section level (verbatim names + order)
-- Prompt header still says `canonical, 2026-04-28`; emitted YAML uses `2026-04-29` — **comment-revision drift**
+- Prompt header still says `canonical, 2026-04-28`; emitted YAML uses `2026-04-29` , **comment-revision drift**
 - Parser (`parse-output.ts`) does NOT enforce section names or order, only the 12-field YAML frontmatter. Agent can drift sections freely without runtime check.
-- Order drift in real briefs: 4 of 7 audited briefs misplace conditional sections 6 (Anticipated Guidance) and 7 (Threshold Questions). ACF uses numbered H2 (`## N. Section Name`) — outlier. EU HDV CO2 omits doc-title H1.
+- Order drift in real briefs: 4 of 7 audited briefs misplace conditional sections 6 (Anticipated Guidance) and 7 (Threshold Questions). ACF uses numbered H2 (`## N. Section Name`) , outlier. EU HDV CO2 omits doc-title H1.
 - Undocumented conventions: `## Regulatory Fact Document` preamble (5/7 briefs); `# New Sources Identified` H1 after `# Sources` (7/7 briefs); doc-title H1 (6/7 briefs).
 
 ### Migration ledger
@@ -332,7 +332,7 @@ Notable: 021 was renamed to 023 in cleanup-pass-2026-04-30. Migration 014 was de
 
 | Tier | Definition | Active sources | Coverage |
 |---|---|---:|---|
-| Tier 1 (institutional) | Official gazettes, primary regulators | ~67% of active set | 63 distinct ISO codes covered in active set; 13 well-covered (≥3 sources), 48 under-covered (1–2 sources), 38 gap with provisionals, 19 gap no provisionals |
+| Tier 1 (institutional) | Official gazettes, primary regulators | ~67% of active set | 63 distinct ISO codes covered in active set; 13 well-covered (≥3 sources), 48 under-covered (1-2 sources), 38 gap with provisionals, 19 gap no provisionals |
 | Tier 2 (industry / standards) | Industry interpretation, standards bodies | ~25% | Distributions across DNV, BV, ABS, ClassNK, GLEC, GHG Protocol, etc. |
 | Tier 3 (analysis / press) | ICCT, ITF, FreightWaves, Loadstar, etc. | ~7% | Mostly trade press + thinktanks |
 | Provisional | Pending review | 393 rows | 108 promotable / 140 review / 8 reject / 10 unscored |
@@ -365,7 +365,7 @@ Pilot false-positive rate at 70/50: 15% (3 of 20). Target: ≤5%.
 |---|---:|
 | 3 EU brief inserts (Battery + HDV + NZIA) | $0.641 |
 | Spot-check pilot 20 sources (Haiku) | $0.019 |
-| Earlier-session brief regenerations + agent calls | unmeasured this audit (no per-call telemetry — see W5 recommendation 6) |
+| Earlier-session brief regenerations + agent calls | unmeasured this audit (no per-call telemetry , see W5 recommendation 6) |
 | Backfill 381 provisionals | $0 (DB-only, AI scores reused from cached audit rows) |
 | 3 demotions (DPNR/MDE/VDOT) | $0 (DB-only) |
 | **Confirmed session spend (LLM only)** | **~$0.66** |
@@ -380,7 +380,7 @@ Per `docs/W5-cost-projection.md` (live DB inputs as of 2026-05-05T16:44):
 | **Mid (expected)** | **$4,031.84** | **$336** |
 | High (full activation) | $9,750.81 | $812 |
 
-The dominant line in every scenario is **source scan worker** (97% of low, 97% of mid, 94% of high). W5 recommendation 1 (tiered cadence: T1 weekly, T2 monthly, T3 quarterly) cuts this ~40% with no recall loss. W5 recommendations 2 (hash-based regen) + 3 (Haiku triage) + 4 (prompt cache) compound to ~60–75% off the brief-regen line and ~30–50% off admin scan. Net steady-state target after the cost-optimization wave: ~**$2,000–2,500/yr at Mid**.
+The dominant line in every scenario is **source scan worker** (97% of low, 97% of mid, 94% of high). W5 recommendation 1 (tiered cadence: T1 weekly, T2 monthly, T3 quarterly) cuts this ~40% with no recall loss. W5 recommendations 2 (hash-based regen) + 3 (Haiku triage) + 4 (prompt cache) compound to ~60-75% off the brief-regen line and ~30-50% off admin scan. Net steady-state target after the cost-optimization wave: ~**$2,000-2,500/yr at Mid**.
 
 ### Database storage state
 
@@ -402,30 +402,30 @@ Not investigated this audit. The agent runtime (`/api/agent/run`) uses `browserl
 
 ## 8. WORK QUEUED FOR NEXT WAVES
 
-### Cost optimization wave (~3h, ~$3,500–3,800 saved annually)
+### Cost optimization wave (~3h, ~$3,500-3,800 saved annually)
 
-Per W5 recommendations 1–4:
+Per W5 recommendations 1-4:
 - Tiered scan cadence (T1 weekly, T2 monthly, T3 quarterly)
 - Hash-based brief regeneration (gate regen on source content hash / Last-Modified)
 - Anthropic prompt caching on system-prompt prefix (~90% input-token cost reduction)
-- Two-stage Haiku→Sonnet pattern on admin scan + discovery agent (~30–50%)
+- Two-stage Haiku→Sonnet pattern on admin scan + discovery agent (~30-50%)
 
-(Threshold tightening landed in PR #26 — already shipped.)
+(Threshold tightening landed in PR #26 , already shipped.)
 
-### Tier 2 expansion wave (separate, est $30–50)
+### Tier 2 expansion wave (separate, est $30-50)
 
 Per Gap 2 + Regional Audit:
 - Phase 1: re-run 12 stale provisional rows through W2.F (~$0.012)
 - Phase 2: surface the 393 provisional queue for admin promotion (no LLM cost)
 - Phase 3: promote the 108 ready candidates (no LLM cost)
 - Phase 4: admin triage on 140 borderline (human time)
-- Phase 5: discovery wave for 19 empty Tier 1 jurisdictions (~$1–3)
-- Phase 6: source registration for 7 asymmetry jurisdictions (~$0–0.012)
-- Phase 7+: T2 expansion sequenced — CH/NO/IS first (English-Latin-script), then UAE/IN/BR/MX after `scan_enabled`/`language` schema lands
+- Phase 5: discovery wave for 19 empty Tier 1 jurisdictions (~$1-3)
+- Phase 6: source registration for 7 asymmetry jurisdictions (~$0-0.012)
+- Phase 7+: T2 expansion sequenced , CH/NO/IS first (English-Latin-script), then UAE/IN/BR/MX after `scan_enabled`/`language` schema lands
 
 ### Auth-state audit follow-up
 
-Logged-out signup/login/onboarding flow integrity. Specifics not captured in current docs — surface the audit before triaging.
+Logged-out signup/login/onboarding flow integrity. Specifics not captured in current docs , surface the audit before triaging.
 
 ### Phase D items in priority order
 
@@ -433,11 +433,11 @@ Logged-out signup/login/onboarding flow integrity. Specifics not captured in cur
 2. Bundle agent (PR #24 extension, dispatch already approved)
 3. Triage 393 provisional sources (Gap 2 promotion + review buckets)
 4. EU 27 member-state regulator promotions (53 candidates ready)
-5. CA provinces + UK devolved nations discovery (16 of 17 zero — major freight jurisdictions)
+5. CA provinces + UK devolved nations discovery (16 of 17 zero , major freight jurisdictions)
 6. Add `scan_enabled` + `language` columns to `sources` (small migration; unblocks all non-English work)
-7. Backfill regional_data profiles for Tier 1 sub-nationals (107/118 missing)
+7. Backfill regional_data profiles for Tier 1 sub-nationals (107/118 missing) [HYPOTHESIS]
 8. Fix Dubai/UAE jurisdiction_iso (`[GLOBAL]` → `[AE]`)
-9. Apply remaining EU regulation inserts (5 IDs still missing — ReFuelEU 2023/2405, Clean Trucking 2024/1610, AFIR 2023/1804, EU ETS Directive 2023/959, CBAM 2023/956)
+9. Apply remaining EU regulation inserts (5 IDs still missing , ReFuelEU 2023/2405, Clean Trucking 2024/1610, AFIR 2023/1804, EU ETS Directive 2023/959, CBAM 2023/956) [HYPOTHESIS glyph:verbatim]
 10. Catalogue the 5 EU cross-ref opportunities (full-text scan against `intelligence_items.full_brief`)
 11. Sanity-check Battery brief citation table (parse showed src=0)
 12. Backfill `provisional_sources.discovered_for_jurisdiction` for 12 stale rows
@@ -453,11 +453,11 @@ Logged-out signup/login/onboarding flow integrity. Specifics not captured in cur
 
 Things I (Claude Code) said I would do during this session but haven't yet:
 
-1. **Bundle agent dispatch** — approved by user, not dispatched. Agent would extend PR #24 with Timeline parser + tab rename/reorder + Coming-soon for Exposure/Penalty + hide Team Notes + Verification badge + Archive flow. **Status: paused for this audit at user direction**.
-2. **Gap 1 dry-run agent dispatch** — approved by user, not dispatched. Would run `spot-check-all-h-tier.mjs` against 64 H-tier sources at 75/55. **Status: paused**.
-3. **PR #25 production deploy verification** — `https://carosledge.com` smoke walk through /regulations, /operations, /market with slim payload. **Status: PR #25 is MERGED and Vercel previews show SUCCESS, but post-merge production smoke not yet executed**.
-4. **PR #24 merge** — gated on (3). **Status: pending**.
-5. **Surface Gap 1 dry-run results before mass-execution** — depends on (2).
+1. **Bundle agent dispatch** , approved by user, not dispatched. Agent would extend PR #24 with Timeline parser + tab rename/reorder + Coming-soon for Exposure/Penalty + hide Team Notes + Verification badge + Archive flow. **Status: paused for this audit at user direction**. [HYPOTHESIS glyph:verbatim]
+2. **Gap 1 dry-run agent dispatch** , approved by user, not dispatched. Would run `spot-check-all-h-tier.mjs` against 64 H-tier sources at 75/55. **Status: paused**.
+3. **PR #25 production deploy verification** , `https://carosledge.com` smoke walk through /regulations, /operations, /market with slim payload. **Status: PR #25 is MERGED and Vercel previews show SUCCESS, but post-merge production smoke not yet executed**.
+4. **PR #24 merge** , gated on (3). **Status: pending**.
+5. **Surface Gap 1 dry-run results before mass-execution** , depends on (2).
 
 ---
 
@@ -475,20 +475,20 @@ Things I (Claude Code) said I would do during this session but haven't yet:
 
 - **Operations By Jurisdiction tab**: 11/118 cells. The "By Jurisdiction" promise is structurally false until Gap 2 promotions land + `regional_data` profiles are backfilled.
 - **AI Ask bar**: E2E A10 says it's not visible. If launch flow includes "ask the assistant", this is a P0.
-- **A4 UUID→slug redirect**: regression. Detail-page URLs from earlier UUIDs still 200 — search-engine canonicalisation will be confused.
+- **A4 UUID→slug redirect**: regression. Detail-page URLs from earlier UUIDs still 200 , search-engine canonicalisation will be confused.
 - **393 provisional sources**: queue is now visible (good) but untriaged. Without Phase 3 promotion of the 108 ready candidates, the surface looks like "huge backlog, no progress".
-- **0 of 64 H-tier sources spot-checked**: the verification post-condition has never closed. 15% false-positive rate is in the live registry.
+- **0 of 64 H-tier sources spot-checked**: the verification post-condition has never closed. 15% false-positive rate is in the live registry. [HYPOTHESIS]
 - **Phase C regression backlog**: 6 items need bundle-agent dispatch before detail-page parity matches the legacy artifact.
-- **6 EU regulation IDs still referenced but missing** in `intelligence_items` — when those briefs are next read, they'll reference regs that don't exist in the platform.
+- **6 EU regulation IDs still referenced but missing** in `intelligence_items` , when those briefs are next read, they'll reference regs that don't exist in the platform. [HYPOTHESIS glyph:verbatim]
 
 ### Next priority
 
 In order of leverage × dependency:
 
-1. **Smoke-test PR #25 production deploy** (5–10 min) — confirms slim RPC didn't break /regulations, /operations, /market.
+1. **Smoke-test PR #25 production deploy** (5-10 min) , confirms slim RPC didn't break /regulations, /operations, /market.
 2. **Dispatch bundle agent + Gap 1 dry-run in parallel** (per user's previous approval). Bundle landing on PR #24 unblocks merge of detail-page parity. Gap 1 dry-run produces the FP-rate evidence needed to spot-check the rest of the H-tier registry.
-3. **After PR #24 + bundle merge**: triage the 393 provisional sources (Phase 3 — promote the 108 high-confidence; Phase 4 — admin triage on 140 borderline). This is the largest concrete coverage delta available right now.
-4. **Apply 5 missing EU regulation inserts** before any further brief regen (so cross-ref relationships materialise).
+3. **After PR #24 + bundle merge**: triage the 393 provisional sources (Phase 3 , promote the 108 high-confidence; Phase 4 , admin triage on 140 borderline). This is the largest concrete coverage delta available right now.
+4. **Apply 5 missing EU regulation inserts** before any further brief regen (so cross-ref relationships materialise). [HYPOTHESIS]
 5. **Cost optimization wave** once shipped state is stable.
 
 ### What can wait
@@ -496,26 +496,26 @@ In order of leverage × dependency:
 - Tier 2 expansion (separate wave, schema-blocked anyway)
 - Multi-tenant workspace switcher UI (single-workspace works fine today)
 - Real email notification delivery (in-app notifications work; email is additive)
-- Comprehensive perf wave fixes #6–15 (current state is operationally fine; revisit when bundle weight matters)
+- Comprehensive perf wave fixes #6-15 (current state is operationally fine; revisit when bundle weight matters)
 - vitest setup (ad-hoc node test runners do the job for now)
 - Embedding-based source quality (pgvector foundation laid; not blocking)
 
 ### What got missed or under-scoped
 
-- **AI Ask bar visibility verification**: Stream-C fix landed in PR #23, but E2E A10 says the control isn't in the DOM. Either the panel is closed by default and the test looks for the open-button text (in which case the test is wrong), or the mounting is hidden behind a condition that isn't satisfied on the dashboard. Worth a 10-minute investigation before considering AskAssistant "live".
-- **A4 UUID→slug redirect**: regression introduced this session. The implementation logic in PR #23 doesn't fire for `42b8bfee-…/sb253`. Investigate whether the UUID detection regex is wrong or the legacy_id lookup path is bypassed.
+- **AI Ask bar visibility verification**: Stream-C fix landed in PR #23, but E2E A10 says the control isn't in the DOM. Either the panel is closed by default and the test looks for the open-button text (in which case the test is wrong), or the mounting is hidden behind a condition that isn't satisfied on the dashboard. Worth a 10-minute investigation before considering AskAssistant "live". [HYPOTHESIS]
+- **A4 UUID→slug redirect**: regression introduced this session. The implementation logic in PR #23 doesn't fire for `42b8bfee-…/sb253`. Investigate whether the UUID detection regex is wrong or the legacy_id lookup path is bypassed. [HYPOTHESIS]
 - **Battery regulation brief citation table**: `src=0` in parse means either the agent didn't emit a `# New Sources Identified` table, or the parser missed it. This affects citation extraction and provisional discovery for that one regulation.
 - **Dubai/UAE regional_data jurisdiction_iso**: `[GLOBAL]` instead of `[AE]`. Cosmetic in isolation but reveals a class of regional_data tagging-validation gaps that the W4 backfill didn't catch.
-- **5 EU cross-ref opportunities**: items mentioning the 3 newly-inserted EU regs without hard link. Not catalogued — the inserts succeeded but the "intersection" half of the value didn't fully land.
+- **5 EU cross-ref opportunities**: items mentioning the 3 newly-inserted EU regs without hard link. Not catalogued , the inserts succeeded but the "intersection" half of the value didn't fully land.
 
 ### Architectural debt user might not be aware of
 
-- **`revalidate = 60` is silently broken** on every page that uses cookies. The 9–11 query data path runs on every single request; the ISR hint is a lie. PERF-AUDIT recommendation 4 is the highest-leverage perf fix in the audit and has not been scheduled.
+- **`revalidate = 60` is silently broken** on every page that uses cookies. The 9-11 query data path runs on every single request; the ISR hint is a lie. PERF-AUDIT recommendation 4 is the highest-leverage perf fix in the audit and has not been scheduled. [HYPOTHESIS glyph:verbatim]
 - **AuthProvider duplicates `org_memberships` lookup** on the client at mount, even though the server already resolved it in proxy + getAppData. 3× same query per page render. PERF-AUDIT item 8.
-- **Brief structure parser doesn't validate section names or order**. Agent drift is invisible to the parser — it only enforces YAML frontmatter. 4 of 7 real briefs are out of spec order without anyone noticing.
+- **Brief structure parser doesn't validate section names or order**. Agent drift is invisible to the parser , it only enforces YAML frontmatter. 4 of 7 real briefs are out of spec order without anyone noticing.
 - **Migrations 008 + 012 + 014 not on disk**. The numbering has gaps. Whether that's harmless or whether the supabase ledger needs `migration repair` was not investigated this audit.
 - **Per-call AI cost not logged** on `staged_updates` rows. W5 cost projections are model-derived, not actuals. The high-scenario delta (~$5,719/yr) is invisible until the bill arrives. W5 recommendation 6.
-- **The 12 stale provisional_sources rows pre-date W2.F entirely** (2026-04-05). They're orphan candidates with NULL AI scores, NULL discovered_for_jurisdiction. Re-running W2.F on those 12 closes 4 of the 7 asymmetry jurisdictions — a 1-line orchestration fix that hasn't been queued.
+- **The 12 stale provisional_sources rows pre-date W2.F entirely** (2026-04-05). They're orphan candidates with NULL AI scores, NULL discovered_for_jurisdiction. Re-running W2.F on those 12 closes 4 of the 7 asymmetry jurisdictions , a 1-line orchestration fix that hasn't been queued. [HYPOTHESIS glyph:verbatim]
 
 ---
 
@@ -527,34 +527,34 @@ Repo:
 - `fsi-app/src/lib/sources/verification.ts` (W2.F thresholds, post-tighten)
 
 Session docs:
-- `docs/GAP-1-RESOLUTION.md` — H-tier spot-check audit + threshold tightening
-- `docs/GAP-2-PROMOTION-CANDIDATES.md` — sub-national coverage + 393 provisional triage
-- `docs/REGIONAL-DATA-COLLECTION-AUDIT.md` — 8-dimension regional state
-- `docs/BRIEF-STRUCTURE-AUDIT.md` — agent prompt vs SKILL.md vs real briefs
-- `docs/PERF-PROFILING-FINDINGS.md` — fresh perf claim verification
-- `docs/PERF-AUDIT.md` — 15-item perf backlog (11 deferred)
-- `docs/PERF-WAVE-2.md` — wave-2 perf changes (slim per-page fetchers etc.)
-- `docs/COMMUNITY-PERF-FIX.md` — community parallelisation
-- `docs/INTEGRITY-TRIAGE-REPORT.md` — 57-flag triage (pre-mig 044 retune)
-- `docs/INTEGRITY-TRIAGE-PLAN.json` — machine-readable triage
-- `docs/SPOT-CHECK-RESULTS.md` — 20-source pilot, 15% FP at 70/50
-- `docs/STREAM-AB-POLISH.md` — A1–A9 polish wave
-- `docs/STREAM-C-FIXES.md` — 3 production bugs + fixes
-- `docs/INTELLIGENCE-DEPTH-IMPL.md` — Tier-1/2/3 layering implementation
-- `docs/E2E-VERIFICATION.md` + `.json` — 27-test verification matrix (5 fail)
-- `docs/W5-cost-projection.md` — annual operating cost projection (low/mid/high)
-- `docs/EU-INSERTS-LOG.json` + `docs/EU-BRIEFS-RUNLOG.txt` — 3 EU regulation insert logs
-- `docs/BACKFILL-MISSING-PROVISIONALS-RESULTS.json` — 381 inserted, 0 failed
-- `docs/W3-tier1-{US,EU,UK,CA,AU,APAC}-results.json` — W3 ingestion logs
-- `docs/W4-{1,2,3,4}-*.json` — W4 backfill logs
-- `docs/EXTRACT-SECTIONS-TEST.md` — 7/7 brief parser pass
+- `docs/GAP-1-RESOLUTION.md` , H-tier spot-check audit + threshold tightening
+- `docs/GAP-2-PROMOTION-CANDIDATES.md` , sub-national coverage + 393 provisional triage
+- `docs/REGIONAL-DATA-COLLECTION-AUDIT.md` , 8-dimension regional state
+- `docs/BRIEF-STRUCTURE-AUDIT.md` , agent prompt vs SKILL.md vs real briefs
+- `docs/PERF-PROFILING-FINDINGS.md` , fresh perf claim verification
+- `docs/PERF-AUDIT.md` , 15-item perf backlog (11 deferred)
+- `docs/PERF-WAVE-2.md` , wave-2 perf changes (slim per-page fetchers etc.)
+- `docs/COMMUNITY-PERF-FIX.md` , community parallelisation
+- `docs/INTEGRITY-TRIAGE-REPORT.md` , 57-flag triage (pre-mig 044 retune)
+- `docs/INTEGRITY-TRIAGE-PLAN.json` , machine-readable triage
+- `docs/SPOT-CHECK-RESULTS.md` , 20-source pilot, 15% FP at 70/50
+- `docs/STREAM-AB-POLISH.md` , A1-A9 polish wave
+- `docs/STREAM-C-FIXES.md` , 3 production bugs + fixes
+- `docs/INTELLIGENCE-DEPTH-IMPL.md` , Tier-1/2/3 layering implementation
+- `docs/E2E-VERIFICATION.md` + `.json` , 27-test verification matrix (5 fail) [HYPOTHESIS glyph:verbatim]
+- `docs/W5-cost-projection.md` , annual operating cost projection (low/mid/high)
+- `docs/EU-INSERTS-LOG.json` + `docs/EU-BRIEFS-RUNLOG.txt` , 3 EU regulation insert logs
+- `docs/BACKFILL-MISSING-PROVISIONALS-RESULTS.json` , 381 inserted, 0 failed [HYPOTHESIS glyph:verbatim]
+- `docs/W3-tier1-{US,EU,UK,CA,AU,APAC}-results.json` , W3 ingestion logs
+- `docs/W4-{1,2,3,4}-*.json` , W4 backfill logs
+- `docs/EXTRACT-SECTIONS-TEST.md` , 7/7 brief parser pass
 
 No DB rows were created, modified, or deleted as part of this audit. No migrations applied. No agents dispatched.
 
 ## Related
 
-- [E2E-VERIFICATION](./E2E-VERIFICATION.md) — Session audit catalogs these 5 E2E failures and isolates A4+A10 as the two real newly-introduced regressions
-- [BRIEF-STRUCTURE-AUDIT](./BRIEF-STRUCTURE-AUDIT.md) — Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
-- [INTEGRITY-TRIAGE-REPORT](./INTEGRITY-TRIAGE-REPORT.md) — Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue
-- [REGIONAL-DATA-COLLECTION-AUDIT](./REGIONAL-DATA-COLLECTION-AUDIT.md) — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
-- [W5-cost-projection](../plans/W5-cost-projection.md) — The cost-and-capacity section's low/mid/high steady-state figures come straight from W5-cost-projection
+- [E2E-VERIFICATION](./E2E-VERIFICATION.md) , Session audit catalogs these 5 E2E failures and isolates A4+A10 as the two real newly-introduced regressions
+- [BRIEF-STRUCTURE-AUDIT](./BRIEF-STRUCTURE-AUDIT.md) , Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
+- [INTEGRITY-TRIAGE-REPORT](./INTEGRITY-TRIAGE-REPORT.md) , Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue [HYPOTHESIS glyph:verbatim]
+- [REGIONAL-DATA-COLLECTION-AUDIT](./REGIONAL-DATA-COLLECTION-AUDIT.md) , Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory [HYPOTHESIS glyph:verbatim]
+- [W5-cost-projection](../plans/W5-cost-projection.md) , The cost-and-capacity section's low/mid/high steady-state figures come straight from W5-cost-projection

@@ -30,7 +30,7 @@
 - F11 trust-tier-weights: PASS
 - F12 moat-base-tier: PASS
 - F13 single-mint-chokepoint: PASS
-- F14 producer-consumer-orphan: PASS
+- F14 producer-consumer-orphan: PASS [HYPOTHESIS]
 - F15 spend-chokepoint: PASS
 - F16 transport-hold-gate: PASS
 - F17 size-cap-doctrine: PASS
@@ -59,7 +59,7 @@
 - F41 dead-media-query-class: PASS
 - F42 card-shell-outside-SectionCard: PASS
 - F43 default-open-disclosure: PASS
-- F44 broken-main-guard: PASS
+- F44 broken-main-guard: PASS [HYPOTHESIS]
 - F45 duplicate-code: PASS (5867 duplicated lines at baseline)
 - F46 external-host-home: PASS
 - F47 db-object-reference: PASS
@@ -167,7 +167,7 @@ Finding examples (unlabeled):
 
 1. **Duplicate code (F45, jscpd)**: Available via `npx jscpd` without install. F45 runner reports 5867 baseline duplicated lines; full jscpd run not executed (fitness runner passes F45 as-is).
 2. **Dead exports (ts-prune, knip)**: Neither available in `node_modules/.bin/`. Skipped cleanly.
-3. **Consistency gates (C3/C4/C5)**: Exit with code 2 if credentials missing; audit run is non-interactive. Skipped.
+3. **Consistency gates (C3/C4/C5)**: Exit with code 2 if credentials missing; audit run is non-interactive. Skipped. [HYPOTHESIS]
 4. **Workflow file validity (F52, actionlint)**: Tool not on PATH; CI runs it. Reported as "skipped locally" by fitness runner.
 
 ---

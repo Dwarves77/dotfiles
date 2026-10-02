@@ -25,7 +25,7 @@ below for what to run once one of those is present, and for the fallback that wo
 
 ## Method
 
-1. Read `docs/plans/defect-fix-plan-2026-09-12.md` section D8, `.superpowers/sdd/brief-chain-build-plan-2026-09-11/review-7.5.md`
+1. Read `docs/plans/defect-fix-plan-2026-09-12.md` section D8, `.superpowers/sdd/brief-chain-build-plan-2026-09-11/review-7.5.md` [HYPOTHESIS]
    (finding 6, the reviewer's own reproduction and breakdown), and `.github/workflows/discipline.yml`'s
    `rendering-guard` job (the exact command, browser install, and the job's own header notes on a
    related prior cross-OS font finding).

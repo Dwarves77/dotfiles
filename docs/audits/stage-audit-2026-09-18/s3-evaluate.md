@@ -49,7 +49,7 @@ commit the common brief names.
   Research + Operations only. The finding-3 correction that Research's `RecordGradeBadge` row-mount gap
   had closed is **[CONFIRMED]** (`ResearchFindingDetailSurface.tsx` now mounts it); Market's absence
   (both components) is **[CONFIRMED still true]**.
-- **W3-W4 file, "Gate A orphan worklists (386/443)" row** (prior: "NOT BUILT (as closed work)", the exact
+- **W3-W4 file, "Gate A orphan worklists (386/443)" row** (prior: "NOT BUILT (as closed work)", the exact [HYPOTHESIS]
   count flagged `[HYPOTHESIS]`, not recomputed); **could not be reproduced at the same scope this
   session** (the corpus has changed since 2026-09-04: more items minted, more quarantined, one real
   attach-found-sources apply landed). The live proxy available read-only, `item_gate_a_state.orphan_count`,

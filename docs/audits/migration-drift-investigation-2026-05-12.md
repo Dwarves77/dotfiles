@@ -15,10 +15,10 @@ Scope: PR #100 (`feat/phase1-routing-restructure`) migration `070_phase1_routing
 | Artifact | Path | `summary` column present? |
 |---|---|---|
 | Live DB (`pg_get_functiondef`) | dumped to `fsi-app/scripts/tmp/072-live-get_*.sql` | yes (column 4, all 3 RPCs) |
-| Backup file (prior agent) | `fsi-app/scripts/tmp/070_old.sql` | yes (lines 59, 146, 234 — column decl; lines 89, 176, 264 — SELECT-list) |
-| PR #100 branch file | `fsi-app/supabase/migrations/070_phase1_routing_rpcs.sql` @ `feat/phase1-routing-restructure` | yes (lines 59, 146, 234 — column decl; lines 89, 176, 264 — SELECT-list) |
+| Backup file (prior agent) | `fsi-app/scripts/tmp/070_old.sql` | yes (lines 59, 146, 234 , column decl; lines 89, 176, 264 , SELECT-list) |
+| PR #100 branch file | `fsi-app/supabase/migrations/070_phase1_routing_rpcs.sql` @ `feat/phase1-routing-restructure` | yes (lines 59, 146, 234 , column decl; lines 89, 176, 264 , SELECT-list) |
 
-`diff scripts/tmp/070_old.sql scripts/tmp/branch_070.sql` returns **byte-identical** — the backup IS the branch file.
+`diff scripts/tmp/070_old.sql scripts/tmp/branch_070.sql` returns **byte-identical** , the backup IS the branch file.
 
 ### Step 2: Semantic equivalence check (live DB vs branch file)
 
@@ -72,11 +72,11 @@ These are the *only* differences between branch file and live DB output. They ar
 
 Same pattern repeats for `get_market_intel_items` and `get_operations_items`.
 
-Postgres' `pg_get_functiondef` always re-emits in canonical form (lowercase types, schema-qualified name, `$function$` dollar-quote, RETURNS TABLE column list on one line). None of these is real drift — Postgres applied them at `CREATE OR REPLACE FUNCTION` time.
+Postgres' `pg_get_functiondef` always re-emits in canonical form (lowercase types, schema-qualified name, `$function$` dollar-quote, RETURNS TABLE column list on one line). None of these is real drift , Postgres applied them at `CREATE OR REPLACE FUNCTION` time.
 
 ### Step 3: Prior agent's evidence reproduced
 
-The prior agent's own captured live defs (`fsi-app/scripts/tmp/071-live-defs.json`) contain `summary text` in column 4 of all three routing RPCs. The same JSON file is the source of "live has summary" — so the second half of the claim is correct. What is wrong is the assertion that `070_old.sql` omits it. Direct read of `070_old.sql`:
+The prior agent's own captured live defs (`fsi-app/scripts/tmp/071-live-defs.json`) contain `summary text` in column 4 of all three routing RPCs. The same JSON file is the source of "live has summary" , so the second half of the claim is correct. What is wrong is the assertion that `070_old.sql` omits it. Direct read of `070_old.sql`:
 
 ```
 $ grep -n "summary" scripts/tmp/070_old.sql
@@ -116,27 +116,27 @@ Migration 068 IS a real instance of the missing-file defect: commit `70bb558` or
 
 For 070-class concerns (file vs live drift, where neither is missing), the open question is: how do we *automatically* know when a file and a live function definition diverge semantically (not just textually, since `pg_get_functiondef` always reformats)?
 
-Recommendation: **hybrid — apply-time fingerprinting + lint rule, no in-DB-only changes by convention.**
+Recommendation: **hybrid , apply-time fingerprinting + lint rule, no in-DB-only changes by convention.**
 
 1. **Fingerprinting (technical).** Extend `apply-pending.mjs` to compute SHA256 of each migration file's content and store it in `schema_migrations` alongside the version. Add a `verify-drift.mjs` script that re-parses each `CREATE OR REPLACE FUNCTION` block from each applied migration, runs it through the same Postgres canonical-form rendering (or compares via a SQL-level `pg_get_functiondef` query), and reports semantic drift. Run in CI on every PR that touches `supabase/migrations/`. This catches the real drift case (live got changed without a file update).
 
-2. **No in-DB-only changes (process).** Operator discipline backed by the CI check above: if `verify-drift.mjs` flags a function whose canonical form differs from any migration file's canonical form, the PR fails. This makes the "I edited it in the Supabase studio and forgot to write a migration" path detectable rather than relying on convention.
+2. **No in-DB-only changes (process).** Operator discipline backed by the CI check above: if `verify-drift.mjs` flags a function whose canonical form differs from any migration file's canonical form, the PR fails. This makes the "I edited it in the Supabase studio and forgot to write a migration" path detectable rather than relying on convention. [HYPOTHESIS]
 
 Why hybrid: pure fingerprinting catches file-vs-DB drift but not whether *all* in-DB changes routed through a file. Pure convention catches the routing question but can't catch silent drift. The pair closes both gaps and reuses the same Postgres canonical-form normalizer this investigation just authored.
 
 ## Artifacts
 
-- `fsi-app/scripts/tmp/072-dump-routing-defs.mjs` — live def dumper
-- `fsi-app/scripts/tmp/072-live-get_research_items.sql` — live `get_research_items` def
-- `fsi-app/scripts/tmp/072-live-get_market_intel_items.sql` — live `get_market_intel_items` def
-- `fsi-app/scripts/tmp/072-live-get_operations_items.sql` — live `get_operations_items` def
-- `fsi-app/scripts/tmp/072-live-routing.json` — combined live def JSON
-- `fsi-app/scripts/tmp/072-normalize-and-diff.mjs` — semantic equivalence checker
-- `fsi-app/scripts/tmp/072-diff-report.json` — normalized diff output
-- `fsi-app/scripts/tmp/branch_070.sql` — PR branch file extract for comparison
+- `fsi-app/scripts/tmp/072-dump-routing-defs.mjs` , live def dumper
+- `fsi-app/scripts/tmp/072-live-get_research_items.sql` , live `get_research_items` def
+- `fsi-app/scripts/tmp/072-live-get_market_intel_items.sql` , live `get_market_intel_items` def
+- `fsi-app/scripts/tmp/072-live-get_operations_items.sql` , live `get_operations_items` def
+- `fsi-app/scripts/tmp/072-live-routing.json` , combined live def JSON
+- `fsi-app/scripts/tmp/072-normalize-and-diff.mjs` , semantic equivalence checker
+- `fsi-app/scripts/tmp/072-diff-report.json` , normalized diff output
+- `fsi-app/scripts/tmp/branch_070.sql` , PR branch file extract for comparison
 
 ## Related
 
-- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — Both audit live Supabase RPC/function definitions (get_*_items routing RPCs) against the on-disk schema
-- [migrations](../inventories/migrations.md) — The migration 068 missing-tracked-file gap this doc surfaces is a defect in the migrations inventory's file-vs-applied ledger
-- [jurisdiction-normalization-audit-2026-05-11](./jurisdiction-normalization-audit-2026-05-11.md) — shares migration 068
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) , Both audit live Supabase RPC/function definitions (get_*_items routing RPCs) against the on-disk schema
+- [migrations](../inventories/migrations.md) , The migration 068 missing-tracked-file gap this doc surfaces is a defect in the migrations inventory's file-vs-applied ledger [HYPOTHESIS glyph:verbatim]
+- [jurisdiction-normalization-audit-2026-05-11](./jurisdiction-normalization-audit-2026-05-11.md) , shares migration 068

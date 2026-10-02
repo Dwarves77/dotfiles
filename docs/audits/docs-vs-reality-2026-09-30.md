@@ -38,18 +38,18 @@ Method: node script resolving every `[text](path)` non-URL, non-anchor link in e
 `docs/` excluding `docs/archive/`, relative to the linking file. 1,072 links checked, **88 broken**.
 
 By file:
-- `docs/sprint-1/alignment-audit-2026-05-18.md` , 22 broken (all root-relative code paths written as `fsi-app/...` / `docs/...` instead of `../fsi-app/...` / `./...`)
-- `docs/sprint-1/system-audit-2026-05-18.md` , 20 broken (same pattern)
-- `docs/sprint-2/sprint-2-planning-2026-05-18.md` , 12 broken (same pattern)
-- `docs/sprint-1/critical-investigations-2026-05-18.md` , 4 broken
-- `docs/audits/wave1b-stub-quality-investigation-2026-05-11.md` , 17 broken (code-path links, same root-relative-vs-file-relative bug)
-- `docs/audits/functional-purpose-audit-2026-05-24.md` , 1 broken (code path)
-- `docs/decisions/ADR-010-docs-taxonomy-and-brain-conventions.md` , 2 broken, but these are the doc's own **worked examples** of the link convention (`relative/path.md`, and a doc-relative `decisions/ADR-002-tier-model.md` written without its `./` , illustrating the syntax, not a real citation)
+- `docs/sprint-1/alignment-audit-2026-05-18.md` , 22 broken (all root-relative code paths written as `fsi-app/...` / `docs/...` instead of `../fsi-app/...` / `./...`) [HYPOTHESIS]
+- `docs/sprint-1/system-audit-2026-05-18.md` , 20 broken (same pattern) [HYPOTHESIS]
+- `docs/sprint-2/sprint-2-planning-2026-05-18.md` , 12 broken (same pattern) [HYPOTHESIS]
+- `docs/sprint-1/critical-investigations-2026-05-18.md` , 4 broken [HYPOTHESIS]
+- `docs/audits/wave1b-stub-quality-investigation-2026-05-11.md` , 17 broken (code-path links, same root-relative-vs-file-relative bug) [HYPOTHESIS]
+- `docs/audits/functional-purpose-audit-2026-05-24.md` , 1 broken (code path) [HYPOTHESIS]
+- `docs/decisions/ADR-010-docs-taxonomy-and-brain-conventions.md` , 2 broken, but these are the doc's own **worked examples** of the link convention (`relative/path.md`, and a doc-relative `decisions/ADR-002-tier-model.md` written without its `./` , illustrating the syntax, not a real citation) [HYPOTHESIS]
 - `docs/ops/session-log.d/2026-09-20-t3.md`, `2026-09-20-w10-factcard.md` (×2) , regex/placeholder text captured as a link (`[^"']+`, `url`) by code fences, not real markdown links , script false positive
-- `docs\ops\session-log.d\2026-09-25-supabase-audit-lane.md` → `audits/supabase-integrity-and-wiring-audit-2026-09-25.md` , real broken link, missing `../` prefix (should be `../audits/...`)
+- `docs\ops\session-log.d\2026-09-25-supabase-audit-lane.md` → `audits/supabase-integrity-and-wiring-audit-2026-09-25.md` , real broken link, missing `../` prefix (should be `../audits/...`) [HYPOTHESIS]
 - `docs\INDEX.md` → `./design/redesign/HANDOFF%20-%20Claude%20Code%20Prompt.md` , file most likely exists with literal spaces (URL-encoded); script does not decode `%20`, needs manual confirmation
-- `docs\ops\gate-a-execution-state-2026-07-14.md` → `../../fsi-app/scripts/tmp/coverage-universe-input.txt` , real target: a gitignored scratch file (`fsi-app/scripts/tmp/`), expected to be absent per CLAUDE.md rule 5; not a doc defect
-- `docs\dispatches\lane-briefs\2026-09-18\brief-d2.md` → `./audits/data-duplicate-census-2026-09-18.md` , real broken link, missing `../../../` (brief is 3 dirs deep under `dispatches/lane-briefs/2026-09-18/`)
+- `docs\ops\gate-a-execution-state-2026-07-14.md` → `../../fsi-app/scripts/tmp/coverage-universe-input.txt` , real target: a gitignored scratch file (`fsi-app/scripts/tmp/`), expected to be absent per CLAUDE.md rule 5; not a doc defect [HYPOTHESIS]
+- `docs\dispatches\lane-briefs\2026-09-18\brief-d2.md` → `./audits/data-duplicate-census-2026-09-18.md` , real broken link, missing `../../../` (brief is 3 dirs deep under `dispatches/lane-briefs/2026-09-18/`) [HYPOTHESIS]
 - `docs\dispatches\lane-briefs\2026-09-20\brief-w10-factcard.md` → `url` (×2) , code-fence false positive, same as above
 
 Findings:
@@ -86,12 +86,12 @@ Findings:
 1. `docs/ops/session-log.d/2026-09-25-supabase-audit-lane.md` , fix link `audits/supabase-integrity-and-wiring-audit-2026-09-25.md` → `../audits/supabase-integrity-and-wiring-audit-2026-09-25.md`.
 2. `docs/dispatches/lane-briefs/2026-09-18/brief-d2.md` , fix link `./audits/data-duplicate-census-2026-09-18.md` → `../../../audits/data-duplicate-census-2026-09-18.md`.
 3. Apply the PROGRAM-BOARD row replacement in the table above verbatim (section 1a "Operations matrix shows values" row) , the exact text is already staged and reviewed, only needs to land.
-4. Add a one-line historical-record header (matching the STATUS.md pattern already in CLAUDE.md) to `docs/sprint-1/alignment-audit-2026-05-18.md`, `docs/sprint-1/system-audit-2026-05-18.md`, `docs/sprint-2/sprint-2-planning-2026-05-18.md`, `docs/audits/wave1b-stub-quality-investigation-2026-05-11.md`: e.g. "**HISTORICAL** (2026-05, pre-redesign). Code paths cited below predate the redesign and many no longer resolve; retained as a record only." , cheaper and more honest than chasing 58+17 individually-broken relative links to files that mostly no longer exist.
+4. Add a one-line historical-record header (matching the STATUS.md pattern already in CLAUDE.md) to `docs/sprint-1/alignment-audit-2026-05-18.md`, `docs/sprint-1/system-audit-2026-05-18.md`, `docs/sprint-2/sprint-2-planning-2026-05-18.md`, `docs/audits/wave1b-stub-quality-investigation-2026-05-11.md`: e.g. "**HISTORICAL** (2026-05, pre-redesign). Code paths cited below predate the redesign and many no longer resolve; retained as a record only." , cheaper and more honest than chasing 58+17 individually-broken relative links to files that mostly no longer exist. [HYPOTHESIS]
 
 ## Judgment corrections (needs the coordinator)
 
 1. **A8-1 / S2-1 / S2-2**: The PROGRAM-BOARD resync itself. This requires reading `docs/ops/session-log.md` from the 2026-09-11 W9 entry forward (roughly 200+ KB of log) and the Wave-2 `session-log.d/2026-09-29-*.md` closes, and deciding which of the 1a sub-table's 16 rows are actually closed vs still open , a judgment call this read-only audit lane is not positioned to make definitively (rule 14: several are `[HYPOTHESIS]` here, not `[CONFIRMED]`). Recommend a dedicated coordinator pass, not a mechanical patch.
-2. **A8-3 / L3-1, L3-2**: Whether to fix the ~75 sprint-1/2 + wave1b-stub broken links link-by-link or simply mark the three-plus files historical. This audit recommends the historical-header approach (mechanical batch item 4) but the coordinator may want the links fixed instead if those docs are still referenced for their code citations.
+2. **A8-3 / L3-1, L3-2**: Whether to fix the ~75 sprint-1/2 + wave1b-stub broken links link-by-link or simply mark the three-plus files historical. This audit recommends the historical-header approach (mechanical batch item 4) but the coordinator may want the links fixed instead if those docs are still referenced for their code citations. [HYPOTHESIS]
 3. **L3-5**: `docs/INDEX.md`'s `%20`-encoded HANDOFF link needs a human/agent with filesystem access to confirm the real filename before any edit.
 4. Full re-verification of the remaining ~187 INDEX.md lines (audits/census/doctrine/sprint/archive sections) against the filesystem, which this audit sampled but did not exhaustively check given the context-metering constraint (CLAUDE.md rule 11).
 

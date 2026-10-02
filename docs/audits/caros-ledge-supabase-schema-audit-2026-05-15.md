@@ -10,7 +10,7 @@ The multi-tenant foundation dispatch (PRs #114, #115, #116; migrations 075, 076,
 
 1. **RPC count was 7 in the audit; live introspection found 10.** This audit names "the seven page DEFINER RPCs" at multiple points (lines 66, 793, 1038, 1145, 1225). The actual count is 10. The three additional `SECURITY DEFINER` RPCs taking `p_org_id` are: `_workspace_active_items` (PR #113 shared scope helper), `get_workspace_intelligence_aggregates_scoped`, `get_workspace_intelligence_slim`. Migration 077 hardened all 10, not 7. Wherever this doc says "seven" or "7", read "ten" or "10".
 
-2. **The `profiles` vs `user_profiles` consolidation direction in this audit is wrong.** Lines 43, 556, 1080 frame `profiles` as superseded by `user_profiles` and recommend consolidating into `user_profiles`. The opposite is correct. All seven community FKs (`forum_threads.author_id`, `forum_replies.author_id`, `case_studies.submitter_id`, `case_study_endorsements.endorser_id`, `vendor_endorsements.endorser_id`, `notification_deliveries.user_id`, `notification_subscriptions.user_id`) target `profiles.id`, not `user_profiles`. Migration 075 went the right direction: kept `profiles` as canonical, set up dual-write triggers, and stages `user_profiles` for drop in Phase 3 (separate PR after one stable deploy cycle of 075). The "FK rewrite is non-trivial" claim at line 556 is wrong by construction; no FK repointing is needed because the FKs already target `profiles.id`. Phase 3 also needs to redistribute the OnboardingWizard's previously-phantom data capture (`pronouns`, `role`, `employer`, `region`, `work_email`) to the correct three-layer destinations (profiles / org_memberships / organizations / workspace_settings).
+2. **The `profiles` vs `user_profiles` consolidation direction in this audit is wrong.** Lines 43, 556, 1080 frame `profiles` as superseded by `user_profiles` and recommend consolidating into `user_profiles`. The opposite is correct. All seven community FKs (`forum_threads.author_id`, `forum_replies.author_id`, `case_studies.submitter_id`, `case_study_endorsements.endorser_id`, `vendor_endorsements.endorser_id`, `notification_deliveries.user_id`, `notification_subscriptions.user_id`) target `profiles.id`, not `user_profiles`. Migration 075 went the right direction: kept `profiles` as canonical, set up dual-write triggers, and stages `user_profiles` for drop in Phase 3 (separate PR after one stable deploy cycle of 075). The "FK rewrite is non-trivial" claim at line 556 is wrong by construction; no FK repointing is needed because the FKs already target `profiles.id`. Phase 3 also needs to redistribute the OnboardingWizard's previously-phantom data capture (`pronouns`, `role`, `employer`, `region`, `work_email`) to the correct three-layer destinations (profiles / org_memberships / organizations / workspace_settings). [HYPOTHESIS]
 
 These corrections do NOT invalidate the rest of the audit. The structural findings (S1-S15 in v2 product audit, the per-table inventory, the migration registry corruption, the dead community layer, the frozen relational tables, the three storage shapes for change tracking) all stand. Only the two specific factual claims above were wrong. Future readers should weigh recommendations in this audit against these corrections, especially anything that derives from "seven RPCs" counting or that prescribes the wrong consolidation direction for `profiles`/`user_profiles`.
 
@@ -39,7 +39,7 @@ Document has six sections plus an appendix:
 - **236 indexes** total.
 - **76 foreign keys** total.
 - **78 CHECK constraints**, **18 UNIQUE constraints**.
-- **74 migration files** on disk (`001` through `074`, with `008`, `012`, `014`, `070` missing from the numbering on disk; live `schema_migrations` has gaps for `026-050` even though those tables exist; see Section 6 below).
+- **74 migration files** on disk (`001` through `074`, with `008`, `012`, `014`, `070` missing from the numbering on disk; live `schema_migrations` has gaps for `026-050` even though those tables exist; see Section 6 below). [HYPOTHESIS]
 
 ### Tables by lifecycle
 
@@ -62,23 +62,23 @@ Document has six sections plus an appendix:
 - 794 rows in `sources`. **0/794 ever recorded a lead-time sample**; 0/794 have `avg_lead_time_days > 0`.
 - 161/794 sources still classified by bulk default rationale (`tier N default`); 39/794 have null `classification_rationale`. 219/794 are LOW classification confidence, 122 MEDIUM, 414 HIGH, 39 NULL.
 - `source_role` populated on 755/794 (95%), but only 11 distinct values used; vendor_corporate has 7 sources (the EcoVadis cluster), industry_data_provider 3.
-- `intelligence_items` regenerated under B.2 contract: 162/655 (`last_regenerated_at IS NOT NULL`). `full_brief` non-null on 171/655 (26%). Phantom columns missing entirely; `compliance_deadline` 0/655, `next_review_date` 0/655, `entry_into_force` 23/655.
+- `intelligence_items` regenerated under B.2 contract: 162/655 (`last_regenerated_at IS NOT NULL`). `full_brief` non-null on 171/655 (26%). Phantom columns missing entirely; `compliance_deadline` 0/655, `next_review_date` 0/655, `entry_into_force` 23/655. [HYPOTHESIS]
 - Phantom-column verdict confirmed at the schema level: `SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='intelligence_items' AND column_name IN ('penalty_range','cost_mechanism','enforcement_body','legal_instrument','last_verified_date','action_owner','authority_level','source_publication_date','first_observed_at')` returns **zero rows**.
 - Frozen tables confirmed: `item_changelog` last write 2026-04-05, `item_timelines` last write 2026-04-05, `item_disputes` last write 2026-04-05, `item_supersessions` last write 2026-03-02. `intelligence_item_versions` is current (last write 2026-05-11; trigger-driven, working).
 - Multi-tenant tables effectively single-tenant: `organizations` 1, `org_memberships` 1, `user_profiles` 1, `workspace_settings` 1, `workspace_item_overrides` 1.
 
 ### Headline findings
 
-1. **Two phantom failures**, not one. The product audit identified phantom columns (`penalty_range`, etc.) on `intelligence_items`. This audit additionally identifies a **phantom table**: `integrity_flags`. Defined in migrations 048 and 050, read by `supabase-server.ts:1743` (in the admin attention summary), absent from the live DB. The query silently returns zero rows because the table doesn't exist (PostgREST returns an error which the caller swallows or the count returns null). The admin "404 items need attention" leak the Chrome audit observed cannot reflect integrity flags because they have no place to live.
-2. **`schema_migrations` registry is corrupt for migrations 026-050.** Live registry contains 001-007, 009-025, then jumps to 051. Migrations 027 (user_profiles), 028 (community_groups), 029 (community_group_members), 030 (community_posts), 031 (community_topics), 032 (notifications), 033 (jurisdiction_iso), 035 (agent_integrity_flags), 036 (admin_notifications_rpc), 037 (source_verification), 038 (bulk_import_audit), 039 (coverage_matrix_rpc), 040 (discovery_provenance), 041 (post_promotions), 042 (community_region_counts), 043 (security_advisor_fixes), 044 (integrity_flag_trigger), 045 (orphan_slugs), 046 (community_rls_recursion), 047 (workspace_intelligence_slim), 049 (perf_v2_indexes) all have their effects in the live DB (tables, columns, indexes exist) but no registry row. Migration 048 (integrity_flags table) and 050 (workflow_gap CHECK widening) appear NOT to have been applied. This means a future `supabase db push` from a fresh checkout will attempt to re-apply 026-050 against a DB that already has them, will fail on the `CREATE TABLE` statements (most are not idempotent), and will leave the DB in a half-rolled state. This is a deployment-blocking risk that lives upstream of any new schema work.
+1. **Two phantom failures**, not one. The product audit identified phantom columns (`penalty_range`, etc.) on `intelligence_items`. This audit additionally identifies a **phantom table**: `integrity_flags`. Defined in migrations 048 and 050, read by `supabase-server.ts:1743` (in the admin attention summary), absent from the live DB. The query silently returns zero rows because the table doesn't exist (PostgREST returns an error which the caller swallows or the count returns null). The admin "404 items need attention" leak the Chrome audit observed cannot reflect integrity flags because they have no place to live. [HYPOTHESIS]
+2. **`schema_migrations` registry is corrupt for migrations 026-050.** Live registry contains 001-007, 009-025, then jumps to 051. Migrations 027 (user_profiles), 028 (community_groups), 029 (community_group_members), 030 (community_posts), 031 (community_topics), 032 (notifications), 033 (jurisdiction_iso), 035 (agent_integrity_flags), 036 (admin_notifications_rpc), 037 (source_verification), 038 (bulk_import_audit), 039 (coverage_matrix_rpc), 040 (discovery_provenance), 041 (post_promotions), 042 (community_region_counts), 043 (security_advisor_fixes), 044 (integrity_flag_trigger), 045 (orphan_slugs), 046 (community_rls_recursion), 047 (workspace_intelligence_slim), 049 (perf_v2_indexes) all have their effects in the live DB (tables, columns, indexes exist) but no registry row. Migration 048 (integrity_flags table) and 050 (workflow_gap CHECK widening) appear NOT to have been applied. This means a future `supabase db push` from a fresh checkout will attempt to re-apply 026-050 against a DB that already has them, will fail on the `CREATE TABLE` statements (most are not idempotent), and will leave the DB in a half-rolled state. This is a deployment-blocking risk that lives upstream of any new schema work. [HYPOTHESIS]
 3. **Three storage shapes for the same change-tracking concern.** `intelligence_item_versions` is current (trigger-driven, 8 rows, 7 unique items, max v2). `item_changelog` is frozen at 2026-04-05 backfill (9 rows). `intelligence_items.version_history JSONB` column exists, NOT NULL, default `[]`, and is populated by zero current code path. The audit trail layer the Section 6.6 spec calls for has three competing implementations, two of which are inert.
 4. **Five overlapping link mechanisms collapse to one canonical store needed.** `intelligence_items.related_items uuid[]` (74 items populated, agent-emitted), `item_cross_references` (49 rows, frozen at 2026-04-05), `intelligence_items.linked_regulation_ids/linked_vendor_ids/linked_case_study_ids/linked_forum_thread_ids` (all 0/655 populated, columns added by 007 community layer, written by no current code), `intelligence_items.intersection_summary text` + `related_items` covered by 074 row. Section 6.4 calls for one canonical `item_relationships` table.
 5. **Three vocabularies for sources confirmed at the schema level.** `sources.scope_topics` (755/794 populated, framework 063), `sources.topic_tags` (310/794, community 007), `sources.intelligence_types` (783/794 NOT NULL, original 004). `scope_modes` (755) vs `transport_modes` (362). `scope_verticals` (755) vs `vertical_tags` (10). The schema preserves all three vocabularies; the v2 audit's 0% agreement finding is a direct consequence of three writer paths, three column families, no enforcement.
 6. **Two competing tier semantics confirmed in the source registry.** Tier distribution: T1=378, T2=164, T3=116, T4=78, T5=37, T6=1, T7=20. Migration 063 framework expects vendor_corporate=T6 (we have only 1 row at T6 vs 7 vendor_corporate sources at T3-T5). Legacy 7-tier definition from `types/source.ts` describes the actual distribution. The schema column `tier` carries one number with two contradictory definitions, exactly as v2 S8 reports.
-7. **Authorization gap on the seven page RPCs is in the schema.** `get_workspace_intelligence`, `get_workspace_intelligence_dashboard`, `get_workspace_intelligence_listings`, `get_workspace_intelligence_slim`, `get_workspace_intelligence_aggregates`, `get_workspace_intelligence_aggregates_scoped`, `get_market_intel_items`, `get_research_items`, `get_operations_items` are all `SECURITY DEFINER` and accept `p_org_id uuid` with **no `auth.uid()` membership check**. Anyone with anon-key access can call these RPCs with any UUID and read another tenant's items, workspace_notes, and workspace_tags. Single-tenant prod hides the leak; second tenant exposes it on day one.
+7. **Authorization gap on the seven page RPCs is in the schema.** `get_workspace_intelligence`, `get_workspace_intelligence_dashboard`, `get_workspace_intelligence_listings`, `get_workspace_intelligence_slim`, `get_workspace_intelligence_aggregates`, `get_workspace_intelligence_aggregates_scoped`, `get_market_intel_items`, `get_research_items`, `get_operations_items` are all `SECURITY DEFINER` and accept `p_org_id uuid` with **no `auth.uid()` membership check**. Anyone with anon-key access can call these RPCs with any UUID and read another tenant's items, workspace_notes, and workspace_tags. Single-tenant prod hides the leak; second tenant exposes it on day one. [HYPOTHESIS]
 8. **The `intelligence_items` table carries 61 columns**, several of which are mutually exclusive vocabularies, several of which are written by no path, several of which the renderer ignores. The table is the system's central artifact and also its largest source of vocabulary drift. Section 6.1 entity tables would split it into a canonical entity (regulation/organization/event) plus per-surface frames.
 9. **Six tables exist for vendors/case-studies/forum that the entire UI ignores.** `vendors` (0 rows), `case_studies` (6 rows), `forum_threads` (0), `forum_replies` (0), `vendor_endorsements` (0), `vendor_regulations` (0), `vendor_technologies` (0), `case_study_endorsements` (0). Migration 007's "community layer" was scaffolded, then the four-page architecture was built without it, and the tables remain. They are not load-bearing for any current product surface.
-10. **The notification stack (5 tables) is built and unused.** `notifications` (0), `notification_events` (0), `notification_preferences` (0), `notification_subscriptions` (0), `notification_deliveries` (0). The code that would write to them exists in `src/app/api/community/...` paths that the renderer never invokes. RLS policies are correctly scoped to `auth.uid()`; the chain is just not wired.
+10. **The notification stack (5 tables) is built and unused.** `notifications` (0), `notification_events` (0), `notification_preferences` (0), `notification_subscriptions` (0), `notification_deliveries` (0). The code that would write to them exists in `src/app/api/community/...` paths that the renderer never invokes. RLS policies are correctly scoped to `auth.uid()`; the chain is just not wired. [HYPOTHESIS]
 
 ---
 
@@ -120,7 +120,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Migration introduced:** `001_schema.sql` (altered by 006, 007, 010)
 - **Row count (live):** 0
 - **Columns (11):** `id`, `week_date`, `title`, `summary`, `content`, `format`, `created_at`, `source_count`, `item_count`, `domains_covered`, `org_id` (FK→organizations)
-- **Population pattern:** None. The "weekly briefing" product never shipped.
+- **Population pattern:** None. The "weekly briefing" product never shipped. [HYPOTHESIS]
 - **Read pattern:** Zero src refs, zero api refs. Migration-only.
 - **RLS:** 2 policies (org-scoped read, service-role write).
 - **Indexes:** 2.
@@ -148,7 +148,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Migration introduced:** `021_canonical_source_candidates.sql` (altered by 022, 040, 045)
 - **Row count (live):** 370
 - **Columns (22):** `id`, `intelligence_item_id` (FK), `current_source_id` (FK→sources), `current_source_url`, `issue_classification`, `candidate_url`, `candidate_title`, `candidate_publisher`, `confidence`, `rationale`, `verified bool`, `verified_status_code int`, `verified_content_excerpt text`, `reviewed bool`, `decision`, `reviewer_id uuid`, `reviewed_at`, `reviewer_notes`, `promoted_to_source_id` (FK→sources), `created_at`, `updated_at`, `recommended_classification jsonb` (added by 022 cache)
-- **Population pattern:** `scripts/canonical-source-discover.mjs` + agent runs identify candidate replacement sources for thin/wrong source attributions.
+- **Population pattern:** `scripts/canonical-source-discover.mjs` + agent runs identify candidate replacement sources for thin/wrong source attributions. [HYPOTHESIS]
 - **Read pattern:** `/admin/source-quality/candidates` reviews. 5 src refs, 5 api refs.
 - **RLS:** 2 policies.
 - **Indexes:** 4 (PK, intelligence_item_id, status partial, reviewed partial).
@@ -299,7 +299,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Migration introduced:** `059_ingestion_state.sql`
 - **Row count (live):** 783
 - **Columns (5):** source_id (FK PK), auto_run_enabled, processing_paused, last_state_change_at, last_state_change_reason
-- **Population pattern:** Mirror of `sources.auto_run_enabled` + `sources.processing_paused` with state-change history. 783/794 sources have an ingestion_state row (11 missing, presumably newly added).
+- **Population pattern:** Mirror of `sources.auto_run_enabled` + `sources.processing_paused` with state-change history. 783/794 sources have an ingestion_state row (11 missing, presumably newly added). [HYPOTHESIS]
 - **Read pattern:** Zero src refs (used by ingestion worker via service role).
 - **RLS:** 1 policy.
 - **Indexes:** 2.
@@ -312,7 +312,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Migration introduced:** `009_capture_undeclared_tables.sql` (no documented purpose; "capture undeclared tables" suggests it was discovered late and standardized)
 - **Row count (live):** 0
 - **Columns (9):** id, item_id (FK), detected_at, change_type, change_severity, previous_value, new_value, change_summary, raw_diff
-- **Population pattern:** None. Intended for change detection, never wired.
+- **Population pattern:** None. Intended for change detection, never wired. [HYPOTHESIS]
 - **Read pattern:** `supabase-server.ts:887` reads. Returns 0 rows on every call.
 - **RLS:** 2 policies.
 - **Section 6 mapping:** 6.6 (versioning and audit trail). The intent of this table overlaps with `item_changelog` (the migration 010 backfill) and `intelligence_item_versions` (the trigger-driven snapshot). Three storage shapes for the same concern.
@@ -352,8 +352,8 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **RLS:** 4 policies. Anon read is OPEN (no policy gating); authenticated read OPEN; service-role write. RLS is permissive because the product is single-tenant with read-anywhere semantics.
 - **Indexes:** 25 (highest of any table).
 - **Cross-references:** Out: `sources.id` via source_id, `intelligence_items.id` via replaced_by (self). Inbound: 21 distinct FKs from `agent_runs`, `canonical_source_candidates`, `community_posts.promoted_to_item_id`, `intelligence_changes`, `intelligence_item_versions`, `item_changelog`, `item_cross_references` (×2: source + target), `item_disputes`, `item_supersessions` (×2), `item_timelines`, `monitoring_queue`, `post_promotions`, `source_conflicts`, `staged_updates` (×2), `vendor_regulations`, `workspace_item_overrides`, `intelligence_summaries`.
-- **Section 6 mapping:** This is the table Section 6.1 calls to split. 6.1 entity tables (`regulations`, `organizations`, `jurisdictions`, `transport_modes`, `verticals`, `events`) take over the canonical-entity role. `intelligence_items` becomes the per-surface frame store (Section 6.9) plus the structured-extraction store (Section 6.5). 6.7 (lead time) requires adding `source_publication_date` and `first_observed_at`. 6.5 requires adding `penalty_range`, `cost_mechanism`, `enforcement_body`, `legal_instrument`, `action_owner`, `authority_level`, `last_verified_date` — plus per-fact confidence columns and span-provenance JSONB columns.
-- **Recommendation:** KEEP_AND_EXTEND with major surgery. Add the seven phantom columns (with confidence + span-provenance siblings). Deprecate `linked_*_ids[]` quartet (move to 6.4 canonical relationship store). Deprecate one of `verticals[]` / `vertical_tags[]` (pick verticals as canonical). Deprecate one of `region_tags[]` / `jurisdiction_iso[]` (jurisdiction_iso is canonical, region_tags 0/655 is dead). Add `source_publication_date`, `first_observed_at`. Add `quarantine_state` (Section 6.3). Tighten NOT NULL constraints on the empty-string-default columns (or drop NOT NULL and treat NULL as missing).
+- **Section 6 mapping:** This is the table Section 6.1 calls to split. 6.1 entity tables (`regulations`, `organizations`, `jurisdictions`, `transport_modes`, `verticals`, `events`) take over the canonical-entity role. `intelligence_items` becomes the per-surface frame store (Section 6.9) plus the structured-extraction store (Section 6.5). 6.7 (lead time) requires adding `source_publication_date` and `first_observed_at`. 6.5 requires adding `penalty_range`, `cost_mechanism`, `enforcement_body`, `legal_instrument`, `action_owner`, `authority_level`, `last_verified_date` , plus per-fact confidence columns and span-provenance JSONB columns.
+- **Recommendation:** KEEP_AND_EXTEND with major surgery. Add the seven phantom columns (with confidence + span-provenance siblings). Deprecate `linked_*_ids[]` quartet (move to 6.4 canonical relationship store). Deprecate one of `verticals[]` / `vertical_tags[]` (pick verticals as canonical). Deprecate one of `region_tags[]` / `jurisdiction_iso[]` (jurisdiction_iso is canonical, region_tags 0/655 is dead). Add `source_publication_date`, `first_observed_at`. Add `quarantine_state` (Section 6.3). Tighten NOT NULL constraints on the empty-string-default columns (or drop NOT NULL and treat NULL as missing). [HYPOTHESIS]
 
 ### public.intelligence_summaries
 
@@ -416,8 +416,8 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Population pattern:** Migration 010+011 backfill. No current writer.
 - **Read pattern:** `supabase-server.ts:150, 1368` reads. 1 src ref.
 - **RLS:** 2 policies.
-- **Indexes:** 1 (PK only — performance gap; supersession lookup requires seq scan).
-- **Section 6 mapping:** 6.4 (relationship graph) — `supersedes` is one of the canonical relationship types.
+- **Indexes:** 1 (PK only , performance gap; supersession lookup requires seq scan).
+- **Section 6 mapping:** 6.4 (relationship graph) , `supersedes` is one of the canonical relationship types.
 - **Recommendation:** MERGE_INTO_OTHER. Deprecate, fold into `item_relationships` (the renamed `item_cross_references`).
 
 ### public.item_timelines
@@ -431,7 +431,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **RLS:** 3 policies.
 - **Indexes:** 3.
 - **Section 6 mapping:** 6.5 (structured fact extraction; milestones are dated facts) + 6.4 (event edges from items to events).
-- **Recommendation:** KEEP_AND_EXTEND. The schema is right; the writer is missing. Section 6.5's structured-extraction pass should emit timeline rows. Add `confidence numeric`, `provenance jsonb`, `event_type text` (announcement, publication, effective, enforcement, revision, supersession). Once 6.5 lights up, this populates current.
+- **Recommendation:** KEEP_AND_EXTEND. The schema is right; the writer is missing. Section 6.5's structured-extraction pass should emit timeline rows. Add `confidence numeric`, `provenance jsonb`, `event_type text` (announcement, publication, effective, enforcement, revision, supersession). Once 6.5 lights up, this populates current. [HYPOTHESIS]
 
 ### public.moderation_reports
 
@@ -527,7 +527,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Read pattern:** 2 src refs.
 - **RLS:** 3 policies.
 - **Indexes:** 3.
-- **Section 6 mapping:** 6.8 (multi-tenancy). 6.1 (master data — `organizations` should also be the canonical entity table for source-owning organizations like EcoVadis-the-company).
+- **Section 6 mapping:** 6.8 (multi-tenancy). 6.1 (master data , `organizations` should also be the canonical entity table for source-owning organizations like EcoVadis-the-company).
 - **Recommendation:** KEEP_AND_EXTEND. Today serves only as the workspace tenant; should also be the entity table for source ownership (Section 6.1). Add `entity_type text` (workspace_tenant | source_owner | regulator | other) and the source-ownership tree the source registry needs.
 
 ### public.pending_first_fetch
@@ -618,7 +618,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Migration introduced:** `004_source_trust_framework.sql`
 - **Row count (live):** 0
 - **Columns (5):** id, citing_source_id (FK), cited_source_id (FK), context, detected_at
-- **Population pattern:** None. Intended for citation graph; never wired.
+- **Population pattern:** None. Intended for citation graph; never wired. [HYPOTHESIS]
 - **Read pattern:** Defined for the trust framework citation count. `sources.total_citations` is read instead.
 - **RLS:** 2 policies.
 - **Indexes:** 4.
@@ -713,7 +713,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Columns (3):** id (PK), global_processing_paused bool, updated_at
 - **Population pattern:** Updated by admin to pause all ingestion globally.
 - **Read pattern:** 2 src refs.
-- **RLS:** 0 policies (RLS enabled, service-role only — no policy means no access for non-service callers).
+- **RLS:** 0 policies (RLS enabled, service-role only , no policy means no access for non-service callers).
 - **Indexes:** 1.
 - **Section 6 mapping:** Operational; not directly Section 6 but supports the ingestion control plane.
 - **Recommendation:** KEEP_AS_IS.
@@ -819,7 +819,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **RLS:** 3 policies.
 - **Indexes:** 3.
 - **Section 6 mapping:** 6.8 (per-workspace sector profile).
-- **Recommendation:** KEEP_AND_EXTEND. Server-side sector ranking (Section 6.8) reads from here; the wiring is the missing piece.
+- **Recommendation:** KEEP_AND_EXTEND. Server-side sector ranking (Section 6.8) reads from here; the wiring is the missing piece. [HYPOTHESIS]
 
 ### Phantom: integrity_flags (NOT IN DB)
 
@@ -827,7 +827,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 - **Migration introduced:** `048_integrity_flags_platform.sql` (then widened in `050_integrity_flags_workflow_gap.sql`); neither in `schema_migrations`.
 - **Row count (live):** N/A (table does not exist)
 - **Columns (intended, 11):** id, category (CHECK constraint with 7 enum values), subject_type, subject_ref, description, recommended_actions jsonb, status, created_at, created_by, resolved_at, resolved_by, resolution_note
-- **Read pattern:** `getAdminAttentionCounts()` in `supabase-server.ts:1743` reads `from('integrity_flags').select('*', {count, head}).eq('status','open')`. This silently returns null/error and the count drops out. The "404 admin items need attention" leak observed in the Chrome audit cannot include integrity flags because they don't exist.
+- **Read pattern:** `getAdminAttentionCounts()` in `supabase-server.ts:1743` reads `from('integrity_flags').select('*', {count, head}).eq('status','open')`. This silently returns null/error and the count drops out. The "404 admin items need attention" leak observed in the Chrome audit cannot include integrity flags because they don't exist. [HYPOTHESIS]
 - **Section 6 mapping:** 6.10 (operator-facing data quality affordances).
 - **Recommendation:** RECREATE. Apply migrations 048 + 050. Without it the agent contract documented in `.claude/CLAUDE.md` for design_drift / data_quality / source_issue / coverage_gap / data_integrity / surface_concern / workflow_gap flags has no place to land. The agent has been emitting flags for weeks with nowhere to write them.
 
@@ -1017,7 +1017,7 @@ For each Section 6 sub-layer in the v2 audit, the tables that serve it today, th
 
 | Today | Needed | Remove/merge | Notes |
 |---|---|---|---|
-| `intelligence_items.item_type` (LLM-set, no confidence), `intelligence_items.classification_*` columns (none — confidence lives only on sources), `staged_updates.confidence text` | New: `intelligence_items.item_type_confidence numeric`, `item_type_classifier text` (deterministic|llm_high|llm_low|human), `quarantine_state text` (active|quarantined|review_pending). New table or columns for deterministic-rule audit log (which rules fired, what won). | None | Quarantine state + admin queue is the structural change; without it, low-confidence classifications keep reaching operators. |
+| `intelligence_items.item_type` (LLM-set, no confidence), `intelligence_items.classification_*` columns (none , confidence lives only on sources), `staged_updates.confidence text` | New: `intelligence_items.item_type_confidence numeric`, `item_type_classifier text` (deterministic|llm_high|llm_low|human), `quarantine_state text` (active|quarantined|review_pending). New table or columns for deterministic-rule audit log (which rules fired, what won). | None | Quarantine state + admin queue is the structural change; without it, low-confidence classifications keep reaching operators. |
 
 ### 6.4 Knowledge graph layer
 
@@ -1053,7 +1053,7 @@ For each Section 6 sub-layer in the v2 audit, the tables that serve it today, th
 
 | Today | Needed | Remove/merge | Notes |
 |---|---|---|---|
-| `intelligence_items` (single shared body), `intelligence_summaries` (2310 rows of per-sector summaries — closest to a frame store, currently no reader), single `/regulations/[slug]` route | New: per-surface frame store (could repurpose `intelligence_summaries` or new `item_surface_frames` table) with (item_id, surface ∈ {regulations, market, research, operations}, frame_summary, frame_what_is_it, frame_why_matters, frame_action_recommendation, generated_at, model_version, confidence). Plus per-surface detail-page routes. Plus a writer pass that emits all four frames (when applicable) per regeneration. | Decide whether `intelligence_summaries` can be repurposed (per-sector vs per-surface is a different axis). | If `intelligence_summaries` repurposes, the 2310 rows become legacy per-sector frames; new frame writer takes over. |
+| `intelligence_items` (single shared body), `intelligence_summaries` (2310 rows of per-sector summaries , closest to a frame store, currently no reader), single `/regulations/[slug]` route | New: per-surface frame store (could repurpose `intelligence_summaries` or new `item_surface_frames` table) with (item_id, surface ∈ {regulations, market, research, operations}, frame_summary, frame_what_is_it, frame_why_matters, frame_action_recommendation, generated_at, model_version, confidence). Plus per-surface detail-page routes. Plus a writer pass that emits all four frames (when applicable) per regeneration. | Decide whether `intelligence_summaries` can be repurposed (per-sector vs per-surface is a different axis). | If `intelligence_summaries` repurposes, the 2310 rows become legacy per-sector frames; new frame writer takes over. |
 
 ### 6.10 Operator-facing data quality affordances
 
@@ -1154,9 +1154,9 @@ For each Section 6 sub-layer in the v2 audit, the tables that serve it today, th
 
 ### 5.5 RLS / authorization gaps
 
-1. **The seven page DEFINER RPCs do not check membership.** `get_workspace_intelligence(p_org_id uuid)`, `get_workspace_intelligence_dashboard`, `get_workspace_intelligence_listings`, `get_workspace_intelligence_slim`, `get_workspace_intelligence_aggregates`, `get_workspace_intelligence_aggregates_scoped`, `get_market_intel_items`, `get_research_items`, `get_operations_items` — every one accepts `p_org_id` and returns rows including `workspace_item_overrides.notes` and `workspace_tags`. Add an `EXISTS (SELECT 1 FROM org_memberships WHERE user_id=auth.uid() AND org_id=p_org_id)` guard at the top of each. Without it, any anon-key holder can call these RPCs against any UUID. v2 audit Section 3 S11 names this; the schema audit confirms it at the function-definition level.
+1. **The seven page DEFINER RPCs do not check membership.** `get_workspace_intelligence(p_org_id uuid)`, `get_workspace_intelligence_dashboard`, `get_workspace_intelligence_listings`, `get_workspace_intelligence_slim`, `get_workspace_intelligence_aggregates`, `get_workspace_intelligence_aggregates_scoped`, `get_market_intel_items`, `get_research_items`, `get_operations_items` , every one accepts `p_org_id` and returns rows including `workspace_item_overrides.notes` and `workspace_tags`. Add an `EXISTS (SELECT 1 FROM org_memberships WHERE user_id=auth.uid() AND org_id=p_org_id)` guard at the top of each. Without it, any anon-key holder can call these RPCs against any UUID. v2 audit Section 3 S11 names this; the schema audit confirms it at the function-definition level.
 2. **`intelligence_items` RLS allows anon SELECT.** Acceptable for the marketing-style read-anywhere model, but should be documented and confirmed against the brief.
-3. **`workspace_item_overrides` RLS** is correctly scoped to `org_memberships`. The leak is that the RPCs bypass RLS via DEFINER and don't replicate the membership check.
+3. **`workspace_item_overrides` RLS** is correctly scoped to `org_memberships`. The leak is that the RPCs bypass RLS via DEFINER and don't replicate the membership check. [HYPOTHESIS]
 4. **`integrity_flags`** (when recreated) needs the policies migration 048 specifies (admin-only read; service-role write).
 5. **`profiles` vs `user_profiles`** RLS divergence: 1 policy on `profiles`, 4 on `user_profiles`. Consolidate.
 
@@ -1209,14 +1209,14 @@ This is a deployment-blocking risk that lives upstream of any new schema work. *
 
 - **Source classification framework**: 063 introduces 5-axis columns; 067 adds metadata (rationale, confidence, observed-correctness). 074 reclassifies EcoVadis specifically. **All three are necessary**; 067 extends 063, 074 is a one-off data fix.
 - **Routing RPCs**: 064 introduces `get_workspace_intelligence_dashboard`, 066 introduces `get_workspace_intelligence_listings`, 047 introduces `get_workspace_intelligence_slim`, 068+069 introduce aggregates and scoped aggregates, 070 (file present, unclear if applied) introduces `phase1_routing_rpcs`, 071 adds deterministic tiebreaker, 073 adds shared workspace scope (`_workspace_active_items`). **Five RPCs do mostly-overlapping work** with different column projections. The Section 6.9 per-surface framing layer would consolidate to one parameterized RPC per surface.
-- **Jurisdiction normalization**: 033 adds `jurisdiction_iso[]`, 045 fixes orphan slugs, 072 adds normalizer trigger. **Three steps for one concept**; 072's trigger is the canonical normalizer. Sources of jurisdiction text that bypass the trigger (direct admin SQL, seed scripts) can drift; verify 072 catches all paths.
+- **Jurisdiction normalization**: 033 adds `jurisdiction_iso[]`, 045 fixes orphan slugs, 072 adds normalizer trigger. **Three steps for one concept**; 072's trigger is the canonical normalizer. Sources of jurisdiction text that bypass the trigger (direct admin SQL, seed scripts) can drift; verify 072 catches all paths. [HYPOTHESIS]
 - **Source classification cache**: 022 adds `recommended_classification` cache; 040 adds discovery_provenance (writer for the cache). Both load-bearing.
 - **Integrity flags**: 035 adds per-item flag columns on intelligence_items; 048 adds platform-level `integrity_flags` table; 050 widens its CHECK. **048 + 050 not applied**. 044 tunes the trigger but the trigger may target the not-yet-existing table.
 - **Performance indexes**: 003 (initial), 049 (perf_v2). 049 may not be in the registry; verify indexes from 049 actually exist in `pg_indexes`.
 
 ### 6.3 Migrations that introduced columns no writer ever touched
 
-- 020 `intersection_readiness`: introduced `intelligence_items.intersection_summary` (74/655 populated by 023's `detect_intersections()` function — partial wiring).
+- 020 `intersection_readiness`: introduced `intelligence_items.intersection_summary` (74/655 populated by 023's `detect_intersections()` function , partial wiring).
 - 062 `intelligence_items_hidden_reason`: introduced `hidden_reason` (3/655 populated).
 - 015 `provisional_recommended_classification`: extended `provisional_sources` with `recommended_classification`.
 - 018 `b2_brief_schema`: introduced `full_brief`, `urgency_tier`, `format_type`, `last_regenerated_at`, `regeneration_skill_version`, `sources_used[]`. Active (171/655 full_brief, 162/655 regenerated).
@@ -1364,8 +1364,8 @@ This document plus `caros-ledge-product-audit-2026-05-15.md` (v2) is the spec fo
 
 ## Related
 
-- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) — Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
-- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — Cited companion whose Corrections section and Section 6 recommendations drive the deferred integrity_flags and jurisdictions dispatches here
-- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Shares the sources-table column inventory and the three-vocabulary (scope_topics/topic_tags/intelligence_types) drift and two-tier-semantics finding
-- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) — shares migration 053
-- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…
+- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) , Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) , Cited companion whose Corrections section and Section 6 recommendations drive the deferred integrity_flags and jurisdictions dispatches here
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) , Shares the sources-table column inventory and the three-vocabulary (scope_topics/topic_tags/intelligence_types) drift and two-tier-semantics finding
+- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) , shares migration 053
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) , Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…

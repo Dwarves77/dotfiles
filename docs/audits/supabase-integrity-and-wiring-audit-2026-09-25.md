@@ -88,7 +88,7 @@ that name or any name found by `git grep -il redirect` across `fsi-app/scripts` 
   The 4 genuinely undispositioned items are `scripts/plan-quarantine-disposition.mjs`'s live output
   (PR #819) - wire (dispatch that planner, then `scripts/maintenance/apply-deferrals.mjs`) - a
   remediation lane, coordinator-scoped, not this discovery pass.
-- **RW-4** `[HYPOTHESIS - approximated orphan-source-audit.mjs's invariant via a `source_id` FK
+- **RW-4** `[HYPOTHESIS - approximated orphan-source-audit.mjs's invariant via a `source_id` FK [HYPOTHESIS]
   join (archived + source-y `archive_reason` + no active `sources` row for that `source_id`), NOT the
   script's own per-row URL-host-extraction method; the two methods can disagree on edge cases]` P2. 6
   candidate rows found, of which 1 (`79541d36-…`, `archive_reason='reclassified_to_source'`) has
@@ -256,7 +256,7 @@ that name or any name found by `git grep -il redirect` across `fsi-app/scripts` 
    the Operations-matrix envelope-reader gap is open; PROGRAM-BOARD's own later entry (line 1632) and live
    code say it closed 2026-08-30. Which document gets corrected, and by whom (out of this lane's write
    set)?
-4. SEC-1: `derivation_edges` RLS-disabled, P0, live exposure. Does this get its own remediation lane ahead
+4. SEC-1: `derivation_edges` RLS-disabled, P0, live exposure. Does this get its own remediation lane ahead [HYPOTHESIS]
    of the rest of workstream 1's sequence, given the six named checks all gate on this register being
    reviewed first?
 5. This lane's own `docs/INDEX.md` line for this document was drafted then reverted: `lane-common-contract.md`

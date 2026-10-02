@@ -1,7 +1,7 @@
-# Database-layer census — 2026-08-11
+# Database-layer census , 2026-08-11
 
 The last unswept layer. The wiring census of the same morning
-(`wiring-census-2026-08-11.md` §D) named the database as the one surface no audit had ever covered:
+(`wiring-census-2026-08-11.md` section D) named the database as the one surface no audit had ever covered:
 "a dead SQL subgraph can hide orphans." This is that sweep, its findings, and the standing gate that
 now holds them.
 
@@ -9,7 +9,7 @@ Everything below is measured, not inferred. Where a thing is uncertain it says s
 
 ## Method
 
-Read-only. `pg_catalog` + `pg_get_*def()` only — no application row was read, nothing was written, no
+Read-only. `pg_catalog` + `pg_get_*def()` only , no application row was read, nothing was written, no
 DDL was run, no network call was made, nothing was scheduled. Three passes:
 
 1. **Catalog → repo.** Every object in the live `public` schema, checked against `git ls-files` for a
@@ -35,7 +35,7 @@ surface. Docs were added back and the finding retracted before it was written do
 |---|---|
 | tables | 88 |
 | views | 2 |
-| functions (non-extension) | 91 — 71 callable, 20 trigger functions |
+| functions (non-extension) | 91 , 71 callable, 20 trigger functions |
 | triggers | 30 |
 | RLS policies | 179 |
 | indexes | 339 |
@@ -53,7 +53,7 @@ functions, and no trigger points at a missing function. That half of the layer i
 > the broken-reference allowlist to EMPTY by repair rather than exemption. What follows is the census as
 > measured; the RESOLUTION section at the end records what changed.
 
-## Finding 1 — 22 of 181 objects exist in production with no committed migration
+## Finding 1 , 22 of 181 objects exist in production with no committed migration
 
 Two tables and twenty functions are created by no migration in the repo. They exist only in the live
 database.
@@ -67,7 +67,7 @@ only in the database is doctrine nobody can read and duplication nobody can dete
 Now gated by **F24 (`db-object-migration-home`)** with a reason-bearing entry per object. Every one of
 the 22 says why it has no migration and what phase retires it.
 
-## Finding 2 — a four-function API left callable after its table was dropped
+## Finding 2 , a four-function API left callable after its table was dropped
 
 `hrq_enqueue`, `hrq_escalate`, `hrq_exit`, `hrq_record_attempt` all read and write
 `public.hold_resolution_queue`. That table was **dropped by migration 219**, applied 2026-07-19, as a
@@ -75,14 +75,14 @@ deliberate and well-evidenced cleanup (superseded by `drain_worklist`; 32 of 39 
 there, 6 verified, 1 gone, 0 needing migration).
 
 The table went. The four functions stayed. Each is still grantable, still callable, and throws on a
-missing relation the moment it runs. `CONFIRMED` — 0 relations matching `hrq%` exist, and
+missing relation the moment it runs. `CONFIRMED` , 0 relations matching `hrq%` exist, and
 `hold_resolution_queue` is absent from the catalog.
 
 Why no review caught it: the reviewer reads migration 219, sees a clean content-gated `DROP TABLE`,
 and **cannot see the callers, because the callers are not in the repo.** This is what finding 1 costs
 in practice.
 
-## Finding 3 — Gate A is implemented twice, and the second copy is invisible
+## Finding 3 , Gate A is implemented twice, and the second copy is invisible
 
 Fifteen `gate_a_*` SQL functions (`gate_a_scan`, `gate_a_scan_and_store`, `gate_a_norm`,
 `gate_a_ws_class`, `gate_a_extract_tokens`, `gate_a_deadline_tokens`, `gate_a_figure_tokens`,
@@ -91,26 +91,26 @@ Fifteen `gate_a_*` SQL functions (`gate_a_scan`, `gate_a_scan_and_store`, `gate_
 `fsi-app/src/lib/agent/gate-a-scan.mjs` already implements in TypeScript.
 
 - Both carry the version literal **`2026-07-30.1`**. They agree today. Nothing enforces that they
-  agree tomorrow — it is a hand-copy across two languages, one of which is not in the repo.
+  agree tomorrow , it is a hand-copy across two languages, one of which is not in the repo.
 - The SQL copy writes `item_gate_a_state`. So does `canonical-pipeline.ts`, **directly**, and that is
   the path that actually runs (984 rows, newest 2026-08-09, matching the newest `intelligence_items`
   update).
-- Nothing calls the SQL copy. `gate_a_scan_and_store` and `gate_a_extract_tokens` — the two entry
-  points — have zero callers in code, docs, migrations, other database objects, or pg_cron.
+- Nothing calls the SQL copy. `gate_a_scan_and_store` and `gate_a_extract_tokens` , the two entry
+  points , have zero callers in code, docs, migrations, other database objects, or pg_cron.
 
 This is the **shadow-capability** class the remediation-discipline skill already forbids in words:
 *when the real mechanism is wired, the inferior duplicate folds into it or dies, never both left
 standing.* Both were left standing for exactly one reason: one of them was not in the repo to be read.
 
-Proposed for deletion as one unit. Deleting them is not a behaviour change — the live path is
+Proposed for deletion as one unit. Deleting them is not a behaviour change , the live path is
 TypeScript. The 430-row `gate_a_route_b_baseline` table, referenced by **nothing anywhere** (no code,
 no migration, no doc, no other database object), goes with it, subject to an operator ruling on whether
 the 430 rows are a record worth keeping.
 
-## Finding 4 — two capabilities that sit outside every repo-side gate
+## Finding 4 , two capabilities that sit outside every repo-side gate
 
 `pg_net` and `pg_cron` are installed. The database can therefore make outbound HTTP calls and schedule
-its own work, neither of which any repo-side gate can see — not F15 (spend chokepoint), not F16
+its own work, neither of which any repo-side gate can see , not F15 (spend chokepoint), not F16
 (transport hold), not the fitness runner.
 
 Today this is a capability, not an incident, and both halves are live-verified:
@@ -123,16 +123,16 @@ Today this is a capability, not an incident, and both halves are live-verified:
 Two things about it still need an operator decision, and neither is urgent:
 
 1. It carries a **hardcoded anon-role JWT literal in the function body**. The anon key is public by
-   design, so this is not a secret leak — but a credential literal inside a `SECURITY DEFINER` body
+   design, so this is not a secret leak , but a credential literal inside a `SECURITY DEFINER` body
    means a key rotation breaks the function silently, and it is invisible to any repo-side secret scan.
 2. Database-originated egress is ungoverned in principle. Nothing prevents a future function from
    calling `net.http_post` to anywhere.
 
 Recorded as an open item. Not fixed here: fixing it means either a migration home plus a vault
-reference, or a policy that database-side egress must route through one audited wrapper — both are
+reference, or a policy that database-side egress must route through one audited wrapper , both are
 operator calls, not hygiene.
 
-## Findings retracted after checking — three things that looked broken and are not
+## Findings retracted after checking , three things that looked broken and are not
 
 Written down because the checking is the point. Each of these would have been a false alarm in the
 report if the census had stopped at "no caller found".
@@ -145,31 +145,31 @@ report if the census had stopped at "no caller found".
 
 ## Dormant and dead data, named not swept
 
-Left as operator decisions — none of it is breaking anything today.
+Left as operator decisions , none of it is breaking anything today.
 
 | object | rows | state |
 |---|---|---|
 | `gate_a_route_b_baseline` | 430 | Referenced by nothing anywhere. Out-of-repo DDL. Proposed for deletion. |
-| `drain_worklist` | 66 | Referenced **only** by scripts on the dead-code manifest. Goes fully orphan the moment the sweep lands — it is a real hold-tracking record, so it needs a ruling, not a reflex. |
+| `drain_worklist` | 66 | Referenced **only** by scripts on the dead-code manifest. Goes fully orphan the moment the sweep lands , it is a real hold-tracking record, so it needs a ruling, not a reflex. |
 | `taxonomy_nodes` | 38 | Migration-defined, zero live code readers. Pre-adoption. |
 | `case_studies` + `case_study_endorsements` | 6 / 0 | Reachable only through their own count trigger. A community feature that was built and never wired to a surface. |
 | `notification_subscriptions` | 0 | Empty, migration-defined, no live reader. Part of a notification family whose other tables are live. |
-| `next_uncensused_portal_candidates` | — | Portal-census pagination RPC, zero callers anywhere. Dormant capability, not breakage: adopt or drop. |
+| `next_uncensused_portal_candidates` | , | Portal-census pagination RPC, zero callers anywhere. Dormant capability, not breakage: adopt or drop. |
 
 ## What now holds this layer
 
-**F24 — `db-object-migration-home`**, registered as invariant **RD-53**, proven by
+**F24 , `db-object-migration-home`**, registered as invariant **RD-53**, proven by
 `F24-db-object-migration-home.test.mjs` (16 behavioural tests against constructed catalogs, not against
 the live tree).
 
 It holds a committed catalog snapshot (`governance/db-catalog.json`) against the migration tree using
-**filesystem reads only** — no credential, no network, no schedule, no model call. It fails when:
+**filesystem reads only** , no credential, no network, no schedule, no model call. It fails when:
 
 - an object in the snapshot has no defining migration and no reason-bearing entry;
 - an allowlist entry's object has *since gained* a migration (stale entry, delete it);
 - an allowlist entry names an object no longer in the snapshot (stale entry, delete it);
-- the snapshot records a broken DB-internal reference nobody has explained;
-- any entry is missing its `reason` or `reviewByPhase`.
+- the snapshot records a broken DB-internal reference nobody has explained; [HYPOTHESIS]
+- any entry is missing its `reason` or `reviewByPhase`. [HYPOTHESIS]
 
 The allowlist is the ceiling and it shrinks by construction. There is no number to nudge upward.
 
@@ -177,12 +177,12 @@ The credentialed step is **refreshing** the snapshot, never checking it. That is
 always-on lanes hold no database secret, because a gate that needs a secret cannot run on a fork PR and
 stops running silently the day the secret expires.
 
-## Residuals — named, not implied away
+## Residuals , named, not implied away
 
 1. **Snapshot staleness is a real hole and F24 does not close it.** DDL applied out-of-repo *after* the
    last refresh is invisible until someone re-runs the refresh. F24 makes out-of-repo DDL impossible to
    keep **silently**; it does not make it impossible to create. Live detection requires a credentialed
-   lane — a separate decision with a separate cost, deliberately not taken here.
+   lane , a separate decision with a separate cost, deliberately not taken here.
 2. **Database-side egress and scheduling are ungoverned in principle** (finding 4). Zero active today,
    live-verified; the capability stands.
 3. **Column-level and row-level dead space were not censused.** This pass covers objects, not columns.
@@ -194,7 +194,7 @@ stops running silently the day the secret expires.
 
 ## RESOLUTION (same day)
 
-### Migration 254 — 16 functions and 1 table dropped, content-gated
+### Migration 254 , 16 functions and 1 table dropped, content-gated
 
 Applied and post-verified. Four gates ran before any drop and would have aborted the migration:
 `hold_resolution_queue` must still be absent (if something re-created it, the hrq_* functions are not broken
@@ -211,7 +211,7 @@ Post-drop assertions then refuse to let the migration succeed if it removed anyt
 | broken DB-internal references | 1 class (4 functions) | **0** |
 
 Verified after apply: the three live `gate_a_health*` functions survive, `item_gate_a_state` holds its 984
-rows untouched, `gate_a_health()` still returns its designed staleness error (unchanged — that dormancy is
+rows untouched, `gate_a_health()` still returns its designed staleness error (unchanged , that dormancy is
 the 2026-08-10 ruling, not a defect), and `gate_a_route_b_baseline` is gone.
 
 **The 430 rows were not destroyed.** They are committed at `gate-a-route-b-baseline-2026-08-11.csv` with full
@@ -221,26 +221,26 @@ nobody reads.
 
 ### The five that remain, and why each is kept
 
-All are legitimate live objects that never got a migration home — none is dead:
+All are legitimate live objects that never got a migration home , none is dead:
 
-- `gate_a_health_cache`, `gate_a_health_compute`, `gate_a_health_refresh` — the health surface
+- `gate_a_health_cache`, `gate_a_health_compute`, `gate_a_health_refresh` , the health surface
   `/api/health/surfaces` reads. Dormant **by operator ruling**, which is not the same as dead.
-- `capture_worker_fetch` — the runbook-sanctioned, no-metered-spend capture path.
-- `next_uncensused_portal_candidates` — dormant capability that duplicates nothing and breaks nothing.
+- `capture_worker_fetch` , the runbook-sanctioned, no-metered-spend capture path.
+- `next_uncensused_portal_candidates` , dormant capability that duplicates nothing and breaks nothing.
   Kept deliberately: deleting it would be a product decision, not hygiene.
 
 ### Finding 4 is now gated, not just recorded
 
 The catalog snapshot carries two new facts, and F24 holds both:
 
-- **`netCallers`** — every function whose body calls `net.http_*`. One entry (`capture_worker_fetch`),
+- **`netCallers`** , every function whose body calls `net.http_*`. One entry (`capture_worker_fetch`),
   sanctioned with a reason. A new database-side egress caller is RED.
-- **`cronJobs`** — every pg_cron job. **Empty, live-verified.** A schedule appearing inside the database is RED.
+- **`cronJobs`** , every pg_cron job. **Empty, live-verified.** A schedule appearing inside the database is RED.
 
 Both audit in both directions, so a sanction cannot outlive what it sanctions. This closes the capability gap:
 F15 (spend chokepoint) and F16 (transport hold) are blind to database-originated network calls by
 construction, because those calls never pass through application code. Now something is watching.
 
 **Still open, recorded not fixed:** `capture_worker_fetch` carries a hardcoded anon-role JWT literal in a
-`SECURITY DEFINER` body rather than a vault reference. Not a secret leak — the anon key is public by design —
+`SECURITY DEFINER` body rather than a vault reference. Not a secret leak , the anon key is public by design ,
 but a key rotation breaks it silently and no repo-side secret scan can see it.

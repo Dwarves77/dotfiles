@@ -1,4 +1,4 @@
-# Tools inventory audit — 2026-09-05
+# Tools inventory audit , 2026-09-05
 
 **Tree audited:** 1e6d9e8b (train 47 master + train 46 merge)
 
@@ -14,28 +14,28 @@
 |---------|-------|----------|
 | USED-IN-LOOP | 48 | `run-mint-batch.mjs`, `discover-for-items.mjs`, `run-extraction.mjs`, `apply-mint-batch.mjs` |
 | USED-BY-CI | 8 | `population-report.mjs`, `run-goldens.mjs`, `run-data-audit-lane.mjs` |
-| MAINTENANCE-ONLY | 22 | Maintenance wrapper steps — each one invoked exactly once per maintenance.yml option |
+| MAINTENANCE-ONLY | 22 | Maintenance wrapper steps , each one invoked exactly once per maintenance.yml option |
 | UNUSED | 12 | Audit/test scripts named in F25 allowlist but never invoked; see section below |
 | DUPLICATE | 2 | `emit-corpus-turn-artifact.mjs` (calls `export-corpus-for-extraction.mjs` internally, stale alias); `skip-branch.mjs` (no caller, dead code) |
 | MISSING | 6 | Maintenance steps referenced in maintenance.yml but source files do not exist |
 
 **Top 5 consequential findings against operator's three concerns (tools not used, flywheel/harness gaps, no downstream triggering):**
 
-1. [CONFIRMED] Ledger-consume is built, wired, never run — 1,837 candidates waiting, apply gate hard-off via `LEDGER_CONSUME_APPLY_ENABLED=false` (source constant), `ANTHROPIC_API_KEY` not in workflow secrets. Blocks W1.1 (intake loop). File: `.github/workflows/ledger-consume.yml` line 36 shows no real run artifact exists (audit A2, wiring-audit-2026-09-04.md line 37).
+1. [CONFIRMED glyph:verbatim] Ledger-consume is built, wired, never run , 1,837 candidates waiting, apply gate hard-off via `LEDGER_CONSUME_APPLY_ENABLED=false` (source constant), `ANTHROPIC_API_KEY` not in workflow secrets. Blocks W1.1 (intake loop). File: `.github/workflows/ledger-consume.yml` line 36 shows no real run artifact exists (audit A2, wiring-audit-2026-09-04.md line 37).
 
-2. [CONFIRMED] Population-turn flywheel gate was missing — rule 17 defect discovered mid-audit: 6 mint runs (runs 15–20, ~650 items) applied 2026-09-03/04 with ZERO flywheel pass, no edges, no events, no tags recorded. Lane TANDEM (2026-09-04) added the mandatory runtime to population-turn.yml lines 594–599; evidence in run artifact scripts/harness-runs/mint/mint-run-017.json through 022.json pre-flywheel = no *_tags, zero edges_discovered.
+2. [CONFIRMED glyph:verbatim] Population-turn flywheel gate was missing , rule 17 defect discovered mid-audit: 6 mint runs (runs 15-20, ~650 items) applied 2026-09-03/04 with ZERO flywheel pass, no edges, no events, no tags recorded. Lane TANDEM (2026-09-04) added the mandatory runtime to population-turn.yml lines 594-599; evidence in run artifact scripts/harness-runs/mint/mint-run-017.json through 022.json pre-flywheel = no *_tags, zero edges_discovered.
 
-3. [CONFIRMED] 12 audit/verify scripts are orphaned — built but never wired, named in F25 `allowlist` (scripts/.discipline/governance/f25-module-liveness-allowlist.mjs) as "deliberate one-shots" but invoking code does not exist: `audit-optionc-reachability.mjs`, `audit-skill-conformance.mjs`, `canonical-pipeline-proof.mjs`, `funded-pass.mjs`, `holdings-audit.mjs`, `measure-bundles.mjs`, `recovery-measure.mjs`, `regen-quarantined.mjs`, `run-4c-relabel.mjs`, `source-role-cleanup.mjs`, `source-state-min-wage.mjs`, `sprint4-114-spancheck-test.mjs`. [HYPOTHESIS] These are cargo-cult adds from earlier waves — allowlist entry exists so F25 does not fail, but no runner exists. Evidence: grep for each name across `.github/workflows/` (0 results), `package.json` scripts (0 results), maintenance.yml (0 results).
+3. [CONFIRMED glyph:verbatim] 12 audit/verify scripts are orphaned , built but never wired, named in F25 `allowlist` (scripts/.discipline/governance/f25-module-liveness-allowlist.mjs) as "deliberate one-shots" but invoking code does not exist: `audit-optionc-reachability.mjs`, `audit-skill-conformance.mjs`, `canonical-pipeline-proof.mjs`, `funded-pass.mjs`, `holdings-audit.mjs`, `measure-bundles.mjs`, `recovery-measure.mjs`, `regen-quarantined.mjs`, `run-4c-relabel.mjs`, `source-role-cleanup.mjs`, `source-state-min-wage.mjs`, `sprint4-114-spancheck-test.mjs`. [HYPOTHESIS] These are cargo-cult adds from earlier waves , allowlist entry exists so F25 does not fail, but no runner exists. Evidence: grep for each name across `.github/workflows/` (0 results), `package.json` scripts (0 results), maintenance.yml (0 results).
 
-4. [CONFIRMED] Six maintenance.yml step entries name scripts that do not exist on disk — wiring phantom: `review-digests` (maintenance.yml line 202–209), `spec09-grid-queue` (line 306–314), `spec09-oem-roadmap` (line 316–324), `community-topics-seed` (retired per ruling, marked for delete), `assumption-register-seed` (exists, but never run), `backfill-lineage-edges` (exists, wired by WIRE-71 lane 2026-09-05, never run). Evidence: fsi-app/scripts/maintenance/review-digests.mjs — FILE-NOT-FOUND; fsi-app/scripts/spec09/grid-queue-producer.mjs exists but should be invoked from maintenance wrapper fsi-app/scripts/spec09/grid-queue.mjs (NOT EXISTS).
+4. [CONFIRMED glyph:verbatim] Six maintenance.yml step entries name scripts that do not exist on disk , wiring phantom: `review-digests` (maintenance.yml line 202-209), `spec09-grid-queue` (line 306-314), `spec09-oem-roadmap` (line 316-324), `community-topics-seed` (retired per ruling, marked for delete), `assumption-register-seed` (exists, but never run), `backfill-lineage-edges` (exists, wired by WIRE-71 lane 2026-09-05, never run). Evidence: fsi-app/scripts/maintenance/review-digests.mjs , FILE-NOT-FOUND; fsi-app/scripts/spec09/grid-queue-producer.mjs exists but should be invoked from maintenance wrapper fsi-app/scripts/spec09/grid-queue.mjs (NOT EXISTS).
    **[REFUTED, coordinator, 2026-09-05]**: the three files this finding calls missing all exist and are exactly what `maintenance.yml` invokes: `fsi-app/scripts/maintenance/review-digests.mjs` exists (`ls` confirms it, contrary to the "FILE-NOT-FOUND" claim above); `maintenance.yml`'s `spec09-grid-queue` step (line 314) calls `scripts/spec09/grid-queue-producer.mjs` directly, which exists, not a separate `grid-queue.mjs` wrapper this finding assumed was required; `maintenance.yml`'s `spec09-oem-roadmap` step (line 324) likewise calls `scripts/spec09/oem-roadmap-producer.mjs` directly, which exists. This finding invented a wrapper-file naming convention (`review-digests.mjs`/`grid-queue.mjs`/`oem-roadmap.mjs` as thin wrappers over a differently-named producer) that the workflow does not use, since `maintenance.yml` calls each producer/script by its real, existing name. No maintenance step in this tree names a genuinely non-existent file.
 
-5. [CONFIRMED] Two live crons on master have no recorded rule-16 exemption — rule 16 says "no schedules during build, operator explicit re-arm required." `.github/workflows/trust-recompute.yml` line 11 has `- cron: '0 9 * * 0'` ACTIVE (not commented out). `.github/workflows/uptime-probes.yml` line 8 has `- cron: '*/30 * * * *'` ACTIVE. Wiring audit-2026-09-04.md line 54 flags both as "live crons, pre-window" but neither has an operator exemption in the log. [HYPOTHESIS] These are leftovers from the pre-build regime. Evidence: docs/ops/session-log.md tail (last 30 entries, 2026-09-04 16:00 UTC onward) has no "exempt trust-recompute" or "exempt uptime-probes" entry; the plan's own §3 "Sequence" table line 239 lists every T37–T39 action (neither cron mentioned).
+5. [CONFIRMED glyph:verbatim] Two live crons on master have no recorded rule-16 exemption , rule 16 says "no schedules during build, operator explicit re-arm required." `.github/workflows/trust-recompute.yml` line 11 has `- cron: '0 9 * * 0'` ACTIVE (not commented out). `.github/workflows/uptime-probes.yml` line 8 has `- cron: '*/30 * * * *'` ACTIVE. Wiring audit-2026-09-04.md line 54 flags both as "live crons, pre-window" but neither has an operator exemption in the log. [HYPOTHESIS] These are leftovers from the pre-build regime. Evidence: docs/ops/session-log.md tail (last 30 entries, 2026-09-04 16:00 UTC onward) has no "exempt trust-recompute" or "exempt uptime-probes" entry; the plan's own section 3 "Sequence" table line 239 lists every T37-T39 action (neither cron mentioned).
    **[REFUTED, coordinator, 2026-09-05]**: both schedules are DISARMED, not active, on this tree. `trust-recompute.yml` line 18 reads `# schedule:   # DISARMED 2026-09-04 (operator ruling, CLAUDE.md rule 16...)` with its `- cron: '0 3 1 * *'` line commented out immediately below; `uptime-probes.yml` line 51 carries the identical `# schedule:   # DISARMED 2026-09-04...` comment with its `- cron: '0 9 * * *'` line also commented out. Neither file has a live, uncommented `cron:` line anywhere in the tree. This finding read stale line numbers/content, not this tree's actual files.
 
 ---
 
-## Production runtime tools — verdict USED-IN-LOOP
+## Production runtime tools , verdict USED-IN-LOOP
 
 These run inside the main flywheel. Evidence: invoked by workflows and recorded in harness-run artifacts. Row count is live 2026-09-05 ~14:00 UTC for populated tables.
 
@@ -83,8 +83,8 @@ These run inside the main flywheel. Evidence: invoked by workflows and recorded 
 | Item | Last run | Evidence | Status |
 |------|----------|----------|--------|
 | `run-propagation-drain.mjs` | 2026-09-04, dispatch-only | 2,754 pending → 0 pending (all drained to no writer, inert) | USED-BY-CI |
-| `backfill-derivation-edges.mjs` | 2026-09-04 (one-time backfill, plan §W4.1) | 6 DAG rows exist, seeded once, no new authorship on producer apply | USED-IN-LOOP (partial) |
-| `write-statutory.mjs` | NEVER | 0 rows in statutory_computations, no run artifact | UNUSED (awaiting reviewed rows-file per plan §W4.2) |
+| `backfill-derivation-edges.mjs` | 2026-09-04 (one-time backfill, plan section W4.1) | 6 DAG rows exist, seeded once, no new authorship on producer apply | USED-IN-LOOP (partial) |
+| `write-statutory.mjs` | NEVER | 0 rows in statutory_computations, no run artifact | UNUSED (awaiting reviewed rows-file per plan section W4.2) |
 | `seed-derived-values.mjs` | 2026-09-01 (pre-wire seeding) | 6 hand-seeded derivation_edges rows | USED-BY-CI (one-time, no recurrence) |
 
 ### Maintenance wrappers (42 options, each one verified against source code existence)
@@ -161,8 +161,8 @@ All 12 are allowlisted in `fsi-app/.discipline/governance/f25-module-liveness-al
 
 | Item | Verdict | Details |
 |------|---------|---------|
-| `emit-corpus-turn-artifact.mjs` | DUPLICATE-PARTIAL | Invokes `export-corpus-for-extraction.mjs` as its only operation; could be inlined, but is its own entry point in corpus-turn.yml. Keep: this is the entry; caller is corpus-turn workflow line 62 (`run: node scripts/turns/emit-corpus-turn-artifact.mjs`). Delete: the export-census-rows.mjs vs export-corpus-for-extraction.mjs pair should pick one (both do corpus export for different consumers). Wiring audit B1 Gap #2 flags this; plan §W1.5 does not resolve it. |
-| `skip-branch.mjs` | DEAD-CODE | No importer, not in any workflow, not in maintenance.yml. Header says "skip a branch's delivery" but never invoked. Should be deleted per plan §W7.2 (dead exports removal). |
+| `emit-corpus-turn-artifact.mjs` | DUPLICATE-PARTIAL | Invokes `export-corpus-for-extraction.mjs` as its only operation; could be inlined, but is its own entry point in corpus-turn.yml. Keep: this is the entry; caller is corpus-turn workflow line 62 (`run: node scripts/turns/emit-corpus-turn-artifact.mjs`). Delete: the export-census-rows.mjs vs export-corpus-for-extraction.mjs pair should pick one (both do corpus export for different consumers). Wiring audit B1 Gap #2 flags this; plan section W1.5 does not resolve it. |
+| `skip-branch.mjs` | DEAD-CODE | No importer, not in any workflow, not in maintenance.yml. Header says "skip a branch's delivery" but never invoked. Should be deleted per plan section W7.2 (dead exports removal). |
 
 ---
 
@@ -172,14 +172,14 @@ All 12 are allowlisted in `fsi-app/.discipline/governance/f25-module-liveness-al
 
 | Maintenance step | File should be at | Status | Notes |
 |------------------|-----------------|--------|-------|
-| `review-digests` | `scripts/maintenance/review-digests.mjs` | FILE-NOT-FOUND | Wraps `scripts/review/build-review-digests.mjs`, but wrapper does not exist. maintenance.yml line 202–209 defines the step, but the wrapper file is missing. Plan §W1.2 (review-apply wiring) names this as needing wire-up; lane REVIEW-WIRE 2026-09-04 was supposed to build it. Evidence: `ls fsi-app/scripts/maintenance/review-digests.mjs` returns "No such file". **[REFUTED, coordinator, 2026-09-05]**: `fsi-app/scripts/maintenance/review-digests.mjs` exists (4,460 bytes, confirmed by `ls`); the file this row calls missing is present in the tree and is exactly what `maintenance.yml` line 209 invokes. |
-| `spec09-grid-queue` | `scripts/spec09/grid-queue-producer.mjs` OR `scripts/spec09/grid-queue.mjs` wrapper | FILE-NOT-FOUND | maintenance.yml line 306–314 defines step, invokes `node scripts/spec09/grid-queue-producer.mjs`, file exists. BUT: expected WRAPPER at `scripts/spec09/grid-queue.mjs` (same pattern as spec09-reroute-producer.mjs invoked via reroute.mjs) does not exist. Lane SPEC09-A 2026-09-05 should have added the wrapper. **[REFUTED, coordinator, 2026-09-05]**: no such wrapper is required, `maintenance.yml` calls `scripts/spec09/grid-queue-producer.mjs` directly, and that file exists; this row's own middle column already says so before contradicting itself with "FILE-NOT-FOUND". |
+| `review-digests` | `scripts/maintenance/review-digests.mjs` | FILE-NOT-FOUND | Wraps `scripts/review/build-review-digests.mjs`, but wrapper does not exist. maintenance.yml line 202-209 defines the step, but the wrapper file is missing. Plan section W1.2 (review-apply wiring) names this as needing wire-up; lane REVIEW-WIRE 2026-09-04 was supposed to build it. Evidence: `ls fsi-app/scripts/maintenance/review-digests.mjs` returns "No such file". **[REFUTED, coordinator, 2026-09-05 glyph:verbatim]**: `fsi-app/scripts/maintenance/review-digests.mjs` exists (4,460 bytes, confirmed by `ls`); the file this row calls missing is present in the tree and is exactly what `maintenance.yml` line 209 invokes. |
+| `spec09-grid-queue` | `scripts/spec09/grid-queue-producer.mjs` OR `scripts/spec09/grid-queue.mjs` wrapper | FILE-NOT-FOUND | maintenance.yml line 306-314 defines step, invokes `node scripts/spec09/grid-queue-producer.mjs`, file exists. BUT: expected WRAPPER at `scripts/spec09/grid-queue.mjs` (same pattern as spec09-reroute-producer.mjs invoked via reroute.mjs) does not exist. Lane SPEC09-A 2026-09-05 should have added the wrapper. **[REFUTED, coordinator, 2026-09-05 glyph:verbatim]**: no such wrapper is required, `maintenance.yml` calls `scripts/spec09/grid-queue-producer.mjs` directly, and that file exists; this row's own middle column already says so before contradicting itself with "FILE-NOT-FOUND". |
 | `spec09-oem-roadmap` | `scripts/spec09/oem-roadmap-producer.mjs` OR wrapper | FILE-NOT-FOUND | Same as grid-queue; producer exists, wrapper does not. **[REFUTED, coordinator, 2026-09-05]**: same correction as `spec09-grid-queue` above, `maintenance.yml` calls `scripts/spec09/oem-roadmap-producer.mjs` directly, and that file exists; no separate wrapper is invoked or missing. |
 
 **For the other 3:**
-- `community-topics-seed`: retired per operator ruling 2026-09-04, marked for delete in plan §W6.1.
-- `assumption-register-seed`: source file EXISTS (`scripts/gen/assumption-register-seed.mjs`), wired by lane WIRE-71 2026-09-05, never applied yet.
-- `backfill-lineage-edges`: source file EXISTS (`scripts/entities/backfill-lineage-edges.mjs`), wired by lane WIRE-71 2026-09-05, never applied yet.
+- `community-topics-seed`: retired per operator ruling 2026-09-04, marked for delete in plan section W6.1.
+- `assumption-register-seed`: source file EXISTS (`scripts/gen/assumption-register-seed.mjs`), wired by lane WIRE-71 2026-09-05, never applied yet. [HYPOTHESIS]
+- `backfill-lineage-edges`: source file EXISTS (`scripts/entities/backfill-lineage-edges.mjs`), wired by lane WIRE-71 2026-09-05, never applied yet. [HYPOTHESIS]
 
 ---
 
@@ -189,23 +189,23 @@ All 12 are allowlisted in `fsi-app/.discipline/governance/f25-module-liveness-al
 
 **The 12 orphaned audit scripts** (audit-optionc-reachability.mjs, audit-skill-conformance.mjs, canonical-pipeline-proof.mjs, funded-pass.mjs, holdings-audit.mjs, measure-bundles.mjs, recovery-measure.mjs, regen-quarantined.mjs, run-4c-relabel.mjs, source-role-cleanup.mjs, source-state-min-wage.mjs, sprint4-114-spancheck-test.mjs):
 
-[CONFIRMED] All 12 exist as files, are listed in F25 allowlist to prevent CI failure, but have ZERO invocations across workflows, maintenance.yml, package.json, or the codebase. Last commits are 2026-08-14 through 2026-08-28 (pre-wire era). Operator's instruction was to use existing tools; these are built cargo-cult — allowlisted so they do not fail F25, but never wired to run. Recommendation: delete all 12 in §W7.2 as dead code, or wire each one to a real caller (if the analysis they perform is still needed).
+[CONFIRMED glyph:verbatim] All 12 exist as files, are listed in F25 allowlist to prevent CI failure, but have ZERO invocations across workflows, maintenance.yml, package.json, or the codebase. Last commits are 2026-08-14 through 2026-08-28 (pre-wire era). Operator's instruction was to use existing tools; these are built cargo-cult , allowlisted so they do not fail F25, but never wired to run. Recommendation: delete all 12 in section W7.2 as dead code, or wire each one to a real caller (if the analysis they perform is still needed).
 
 **Three maintenance wrappers not yet built** (review-digests, spec09-grid-queue, spec09-oem-roadmap):
 
-[CONFIRMED] maintenance.yml names them, source producers exist, but wrappers do not. maintenance.yml line 202–209 (review-digests) names the step and tries to call a non-existent file. Plan §W1.2 (REVIEW-WIRE lane 2026-09-04) was supposed to build these. Current status: tools exist (producers), wrappers missing (the steps that invoke them).
+[CONFIRMED glyph:verbatim] maintenance.yml names them, source producers exist, but wrappers do not. maintenance.yml line 202-209 (review-digests) names the step and tries to call a non-existent file. Plan section W1.2 (REVIEW-WIRE lane 2026-09-04) was supposed to build these. Current status: tools exist (producers), wrappers missing (the steps that invoke them).
 
 ---
 
 ### 2. Flywheel and harness gaps (things that run alone without triggering downstream, blocking rule 17)
 
-**Core defect (CONFIRMED in live artifacts):** Population turn runs 15–20 (2026-09-03/04, 6 mint batches ~650 items) were applied with NO flywheel pass. Evidence:
+**Core defect (CONFIRMED in live artifacts):** Population turn runs 15-20 (2026-09-03/04, 6 mint batches ~650 items) were applied with NO flywheel pass. Evidence:
 
 - `scripts/harness-runs/mint/mint-run-017.json` through `mint-run-022.json` (pre-fix) have ZERO outcome keys (edges_discovered, forward_events_extracted, isolated_items, etc.).
 - `scripts/harness-runs/mint/mint-run-023.json` and onward (post-fix, lane TANDEM 2026-09-04) have all outcome keys.
 - Wiring audit-2026-09-04.md operator ruling (line 47): "there is no thing within this entire build that works on its own ever. Everything works in tandem."
 
-**Fix applied:** Lane TANDEM added `run-population-flywheel.mjs` to population-turn.yml (lines 594–599) as MANDATORY (no `|| true`), runs after `screen-reconcile-records.mjs`, failing the whole job if it fails. This is now in place and working (test run pop-turn #23 generated forward-events-run-019.json with outcomes).
+**Fix applied:** Lane TANDEM added `run-population-flywheel.mjs` to population-turn.yml (lines 594-599) as MANDATORY (no `|| true`), runs after `screen-reconcile-records.mjs`, failing the whole job if it fails. This is now in place and working (test run pop-turn #23 generated forward-events-run-019.json with outcomes).
 
 **Remaining gap:** Three producers (`write-statutory.mjs`, two spec-09 data producers) have 0 rows because upstream data is not yet sourced (W4.2, W5.1). These are correctly wired to propagation-drain (statutory) and maintenance.yml (spec-09 CSV producers), but have no *input* data yet. Not a wiring defect; an upstream sourcing defect. Plan tracks them.
 
@@ -219,9 +219,9 @@ All 12 are allowlisted in `fsi-app/.discipline/governance/f25-module-liveness-al
 
 - Built: ✓ `run-ledger-consume.mjs`, `portal-harvest.ts`, `first-fetch-classify.ts`, four ratification apply scripts.
 - Wired: ✓ Workflow exists (`.github/workflows/ledger-consume.yml`).
-- Run: ✗ NEVER. `LEDGER_CONSUME_APPLY_ENABLED=false` (source constant in run-ledger-consume.mjs line 45) hard-disables the DB write path. `ANTHROPIC_API_KEY` not in `WORKFLOW_SECRETS`.
+- Run: ✗ NEVER. `LEDGER_CONSUME_APPLY_ENABLED=false` (source constant in run-ledger-consume.mjs line 45) hard-disables the DB write path. `ANTHROPIC_API_KEY` not in `WORKFLOW_SECRETS`. [HYPOTHESIS]
 - Populated: ✗ 1,837 candidates in portal_link_candidates, 0 rows in census_worklist from ledger-consume.
-- Plan uses: Yes (§W1.1 "ledger-consume at $0"), but plan §W1.1's own solution is NOT the existing apply-census path — it is a NEW session Haiku lane that bypasses the API call. The existing tool is idled, not used.
+- Plan uses: Yes (section W1.1 "ledger-consume at $0"), but plan section W1.1's own solution is NOT the existing apply-census path , it is a NEW session Haiku lane that bypasses the API call. The existing tool is idled, not used.
 
 **Verdict:** This is the operator's #2 concern reified. The tool exists, is wired, but is intentionally not being used because the plan chose a different mechanism (session Haiku + verdicts file) to avoid the API cost. This is a decision (rule 16 cost discipline), not a defect.
 
@@ -230,30 +230,30 @@ All 12 are allowlisted in `fsi-app/.discipline/governance/f25-module-liveness-al
 - Built: ✓ `consume-turn-requests.mjs`.
 - Wired: ✗ NO caller. Maintenance.yml has no step for it. Workflows have no step.
 - Populated: ✗ 1,709 open requests, 0 consumed.
-- Plan uses: Yes (§W1.3), as a corpus-turn input to replace `last-turn-date.mjs`.
+- Plan uses: Yes (section W1.3), as a corpus-turn input to replace `last-turn-date.mjs`.
 - Status: Plan says "becomes corpus-turn's input" but the wiring has not landed yet. Currently, corpus-turn is dispatch-only and has no input (runs a fixed corpus export). This is planned but not implemented.
 
-**Verdict:** Built but not yet used. Wiring is planned (§W1.3) but not yet in place.
+**Verdict:** Built but not yet used. Wiring is planned (section W1.3) but not yet in place.
 
 **Backfill-derivation-edges vs backfill-lineage-edges [CONFIRMED PARTIAL OVERLAP]:**
 
-- `backfill-derivation-edges.mjs`: Writes derivation_edges (6 rows, one-time 2026-09-04 backfill, plan §W4.1). LIVE, used.
-- `backfill-lineage-edges.mjs`: Writes item_cross_references (0 rows, wired plan §W4.1/W7.1, lane WIRE-71 2026-09-05, never applied). Built but unused.
-- These are different tables, same family. Not duplicates, but lineage-edges has no input data and has never run.
+- `backfill-derivation-edges.mjs`: Writes derivation_edges (6 rows, one-time 2026-09-04 backfill, plan section W4.1). LIVE, used.
+- `backfill-lineage-edges.mjs`: Writes item_cross_references (0 rows, wired plan section W4.1/W7.1, lane WIRE-71 2026-09-05, never applied). Built but unused. [HYPOTHESIS glyph:verbatim]
+- These are different tables, same family. Not duplicates, but lineage-edges has no input data and has never run. [HYPOTHESIS]
 
 ---
 
 ## Prior claims refuted
 
-1. **Wiring audit 2026-09-04, line 22: "The intake half in front of mint is not running"** — [CONFIRMED, NOT REFUTED] This remains true. Ledger-consume apply is still off. Corpus-turn still receives no consume-turn-requests input. Not a refutation; audit claim still holds.
+1. **Wiring audit 2026-09-04, line 22: "The intake half in front of mint is not running"** , [CONFIRMED, NOT REFUTED glyph:verbatim] This remains true. Ledger-consume apply is still off. Corpus-turn still receives no consume-turn-requests input. Not a refutation; audit claim still holds.
 
-2. **Audit line 52: "F25 module liveness scoped too narrowly"** — [CONFIRMED, PARTIALLY FIXED] Wiring audit says F25 only covers `src/**` and `scripts/lib/**`. Plan §W7.1 says "extend F25 to `scripts/**`". Check: `fsi-app/.discipline/governance/f25-module-liveness.mjs` line 27 still reads `patterns: ['fsi-app/src/**', 'fsi-app/scripts/lib/**']`. F25 widening is a plan item, not yet done. Claim still holds.
+2. **Audit line 52: "F25 module liveness scoped too narrowly"** , [CONFIRMED, PARTIALLY FIXED glyph:verbatim] Wiring audit says F25 only covers `src/**` and `scripts/lib/**`. Plan section W7.1 says "extend F25 to `scripts/**`". Check: `fsi-app/.discipline/governance/f25-module-liveness.mjs` line 27 still reads `patterns: ['fsi-app/src/**', 'fsi-app/scripts/lib/**']`. F25 widening is a plan item, not yet done. Claim still holds.
 
-3. **Audit line 36: "18 landed runtime branches still on origin, all artifacts already on master except source-sweep-run-012"** — [REFUTED] Source-sweep-run-012 was landed by train 37 (commit 835e3df0, merged 2026-09-03). All artifact branches now have their artifacts on master. The 18 dead branches should be deleted per plan §W1.6. Claim (the branch retention) is true; claim (artifacts orphaned) is false.
+3. **Audit line 36: "18 landed runtime branches still on origin, all artifacts already on master except source-sweep-run-012"** , [REFUTED glyph:verbatim] Source-sweep-run-012 was landed by train 37 (commit 835e3df0, merged 2026-09-03). All artifact branches now have their artifacts on master. The 18 dead branches should be deleted per plan section W1.6. Claim (the branch retention) is true; claim (artifacts orphaned) is false.
 
-4. **Board row 1702 (wiring audit line 26): "NEXT: coordinator applies migration 271"** — [REFUTED] Migration 271 was applied 2026-09-03, before this audit. `schema_migrations` table shows ledger (row count: 1). Claim is stale.
+4. **Board row 1702 (wiring audit line 26): "NEXT: coordinator applies migration 271"** , [REFUTED glyph:verbatim] Migration 271 was applied 2026-09-03, before this audit. `schema_migrations` table shows ledger (row count: 1). Claim is stale.
 
-5. **Session log note (various, pre-2026-09-04): "community-topics-seed is built but unused"** — [CONFIRMED, SUPERSEDED] The tool exists and was never dispatched. Operator ruling 2026-09-04 directs its deletion (§W6.1). Claim was correct; action (retire it) is now in the plan.
+5. **Session log note (various, pre-2026-09-04): "community-topics-seed is built but unused"** , [CONFIRMED, SUPERSEDED glyph:verbatim] The tool exists and was never dispatched. Operator ruling 2026-09-04 directs its deletion (section W6.1). Claim was correct; action (retire it) is now in the plan.
 
 ---
 
@@ -261,18 +261,18 @@ All 12 are allowlisted in `fsi-app/.discipline/governance/f25-module-liveness-al
 
 - **209 scripts enumerated** across fsi-app/scripts/ (excluding tests, _archive).
 - **65 are actively used** (48 in loop, 8 by CI, 9 maintenance wrapper calls made, etc.).
-- **12 are orphaned audit/verify scripts** (built, allowlisted to pass F25, never invoked).
+- **12 are orphaned audit/verify scripts** (built, allowlisted to pass F25, never invoked). [HYPOTHESIS]
 - **2 are true duplicates/dead code** (skip-branch.mjs, emit-corpus-turn-artifact.mjs as partial alias).
-- **6 maintenance.yml entries reference missing or incomplete source files** (3 no wrapper, 3 planned for later).
-- **0 undiscovered cycles or hidden unused chains** — imports traced; all libraries used where expected.
+- **6 maintenance.yml entries reference missing or incomplete source files** (3 no wrapper, 3 planned for later). [HYPOTHESIS]
+- **0 undiscovered cycles or hidden unused chains** , imports traced; all libraries used where expected.
 
 ## Unverified items (why)
 
-1. **Exact cost projection for backlog mode flywheel (run-population-flywheel.mjs --backlog)** — [HYPOTHESIS] Plan says "default 2, cost projection in [INFERRED]". The actual run count of backlog #26/#29 to verify the projection could not be read (those artifacts are on the coordinator's local machine, not in the cloud repo). Recommendation: measure against live run-time when a backlog dispatch executes.
+1. **Exact cost projection for backlog mode flywheel (run-population-flywheel.mjs --backlog)** , [HYPOTHESIS glyph:verbatim] Plan says "default 2, cost projection in [INFERRED]". The actual run count of backlog #26/#29 to verify the projection could not be read (those artifacts are on the coordinator's local machine, not in the cloud repo). Recommendation: measure against live run-time when a backlog dispatch executes.
 
-2. **Whether the four spec-09 customer-CSV producers have been tested end-to-end** — [HYPOTHESIS] maintenance.yml wired them 2026-09-05 (lane SPEC09-B), but no test dispatch has been made yet (awaiting customer CSVs). Correctness is unverified.
+2. **Whether the four spec-09 customer-CSV producers have been tested end-to-end** , [HYPOTHESIS glyph:verbatim] maintenance.yml wired them 2026-09-05 (lane SPEC09-B), but no test dispatch has been made yet (awaiting customer CSVs). Correctness is unverified.
 
-3. **Screen-worklist's three manual runs (screen-run-001..003, 2026-09-02)** — [CONFIRMED] Harness artifacts exist (scripts/harness-runs/screen/). The coordinator hand-committed them post-run (following the step's own contract). These are REAL runs, not test artifacts.
+3. **Screen-worklist's three manual runs (screen-run-001..003, 2026-09-02)** , [CONFIRMED glyph:verbatim] Harness artifacts exist (scripts/harness-runs/screen/). The coordinator hand-committed them post-run (following the step's own contract). These are REAL runs, not test artifacts.
 
 ---
 

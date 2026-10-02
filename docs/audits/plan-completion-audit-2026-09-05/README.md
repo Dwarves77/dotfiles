@@ -22,7 +22,7 @@ take `supabase-env.ts`, drop the `supabase-service-config.mjs` duplicate"). This
 named in every lane's dispatch as the one T46 validation runs against, and the most complete
 tree that existed at audit time. It predates this folder's own landing (train 47 has since
 landed as PR #594 = master `c3003233`, and migrations 308-311 have since been applied live;
-see `docs/ops/handoff-2026-09-05.md` §6's "Landing state" note and `docs/inventories/
+see `docs/ops/handoff-2026-09-05.md` section 6's "Landing state" note and `docs/inventories/
 migrations.md`); the six files below describe `1e6d9e8b` as it stood, not the tree this
 audit folder is committed on top of.
 
@@ -33,7 +33,7 @@ audit folder is committed on top of.
 | [W1-W2-intake-population.md](./W1-W2-intake-population.md) | AUDIT-W1-W2 (Sonnet) | W1 (intake, close the loop in front of mint) and W2 (population to record grade) | 12 scored rows: COMPLETE 1 (corpus-turn-requests consumption, mechanism only), PARTIAL 6, NOT BUILT 4, COULD NOT VERIFY 1 |
 | [W3-W4-sourcing-propagation.md](./W3-W4-sourcing-propagation.md) | AUDIT-W3-W4 (Sonnet) | W3 (every figure sourced, every source rated) and W4 (decision propagation, spec 08) | 13 scored rows: COMPLETE 2, PARTIAL 6, BUILT-DORMANT 3, NOT BUILT 2 |
 | [W5-W6-W7-surfaces-community-discipline.md](./W5-W6-W7-surfaces-community-discipline.md) | AUDIT-W5-W6-W7 (Sonnet) | W5 (surfaces), W6 (community as ruled), W7 (discipline/closure-gate) | mixed verdicts across ~16 scored rows: COMPLETE (mechanically) 5, PARTIAL 7, BUILT-DORMANT 2, NOT BUILT/NOT VERIFIED 2; plus the standalone finding that master's closure gate is one train-landing away from flipping 7 STALE-NEXT entries red |
-| [loop-harness-flywheel-one-unit.md](./loop-harness-flywheel-one-unit.md) | AUDIT-LOOP (Sonnet) | Plan §1 (the loop, both sub-loops), W0/W8 (speed, harness, memory), the full 17-workflow dispatch graph, rule 17 | 12 scored rows: COMPLETE 4, PARTIAL 3, BUILT-DORMANT 2, NOT BUILT 3 |
+| [loop-harness-flywheel-one-unit.md](./loop-harness-flywheel-one-unit.md) | AUDIT-LOOP (Sonnet) | Plan section 1 (the loop, both sub-loops), W0/W8 (speed, harness, memory), the full 17-workflow dispatch graph, rule 17 | 12 scored rows: COMPLETE 4, PARTIAL 3, BUILT-DORMANT 2, NOT BUILT 3 |
 | [skills-rules-doctrine.md](./skills-rules-doctrine.md) | AUDIT-SKILLS-RULES (Haiku) | CLAUDE.md's 18 standing rules, 8 skills, 3 hooks, 2 doctrine seeds, 6 governance files, all 27 ADRs, 13 operator rulings from the handoff | self-reported: 26 items COMPLETE, 20 PARTIAL, 0 NOT BUILT, 0 BUILT-DORMANT, 0 DUPLICATE, **shallow pass, see Haiku-lane caveat below** |
 | [tools-inventory-unused-duplicates.md](./tools-inventory-unused-duplicates.md) | AUDIT-TOOLS (Haiku) | Every script/module under `fsi-app/scripts/` and `fsi-app/src/lib/`, all maintenance.yml steps, all fitness functions | self-reported: 209 scripts enumerated, 65 USED, 12 UNUSED (orphaned audit scripts), 2 DUPLICATE, 6 flagged MISSING-SOURCE, **2 of the MISSING-SOURCE-adjacent findings are REFUTED, see below** |
 
@@ -73,27 +73,27 @@ Consolidated from the four Sonnet files' `[CONFIRMED]` findings, deduplicated ac
 where the same underlying gap was independently found by more than one lane. Each cites the
 file:section it came from and the plan workstream it belongs to.
 
-1. **Ledger-consume's apply half has never fired with a real verdict.** `LEDGER_CONSUME_APPLY_ENABLED`
+1. **Ledger-consume's apply half has never fired with a real verdict.** `LEDGER_CONSUME_APPLY_ENABLED` [HYPOTHESIS]
    is `true`, the code path exists, but every recorded run (chained or manual) is `mode:"plan"`
    or `mode:"export"`, zero `mode:"apply"` runs ever. Live: 57,469 `portal_link_candidates`
    rows `status='candidate'`, only 3 `status='promoted'`, ever. See *W1-W2-intake-population.md
-   §"ledger-consume $0 verdict path"*; *loop-harness-flywheel-one-unit.md §3, §"Summary table"
+   section "ledger-consume $0 verdict path"*; *loop-harness-flywheel-one-unit.md section 3, section "Summary table"
    row "ledger-consume APPLY"*. **Workstream: W1.1.**
 
 2. **`attach-found-sources.mjs` and `tier-opinions.mjs` are built, wired, unit-tested, and have
    never been dispatched in apply mode.** `source_tier_opinions` = 0 rows; no
    `attach-found-sources` run artifact anywhere in the tree; the 443-orphan-figure heal rule 18
-   exists to force has not happened. See *W3-W4-sourcing-propagation.md §"W3, every figure
-   sourced", rows 1-2*; *loop-harness-flywheel-one-unit.md §2, §"Findings" bullet 1*.
+   exists to force has not happened. See *W3-W4-sourcing-propagation.md section "W3, every figure
+   sourced", rows 1-2*; *loop-harness-flywheel-one-unit.md section 2, section "Findings" bullet 1*.
    **Workstream: W3.1, W3.3.**
 
 3. **Migration 310 (item_grade into the 11 listing RPCs) was unapplied at audit time, so
    `RecordGradeBadge` rendered nothing on any ledger row anywhere in the product**, even where
    mounted (Regulations, Operations); Market and Research had no row-level mount of the
-   component at all. See *W5-W6-W7-surfaces-community-discipline.md §W5, rows "RecordGradeBadge"
+   component at all. See *W5-W6-W7-surfaces-community-discipline.md section W5, rows "RecordGradeBadge"
    and "item_grade in the listing RPCs"*. **Note for the next reader**: this audit's own tree
    (`1e6d9e8b`) predates this folder's landing, migration 310 has since been applied live
-   (`docs/inventories/migrations.md`, `docs/ops/handoff-2026-09-05.md` §6) via the MIG310-FIX
+   (`docs/inventories/migrations.md`, `docs/ops/handoff-2026-09-05.md` section 6) via the MIG310-FIX
    rewrite, closing the RPC half of this finding; the Market/Research row-mount gap is
    independent of the migration and was not addressed by that fix. **Workstream: W5, W3.4.**
 
@@ -102,31 +102,31 @@ file:section it came from and the plan workstream it belongs to.
    deferred to "a different turn" this audit found no evidence was ever dispatched for those
    batches; the single-item chokepoint (`mint-item.ts`) does this correctly. Hundreds of
    record-grade items (dispatch-ledger: 416 on 2026-09-04 alone) were minted with neither. See
-   *W3-W4-sourcing-propagation.md §"Findings against the operator's three concerns", bullet
+   *W3-W4-sourcing-propagation.md section "Findings against the operator's three concerns", bullet
    3.1*. **Workstream: rule 17, W1.4.**
 
 5. **`population-turn.yml`'s completion triggers nothing downstream, and `corpus-turn.yml` is
-   wired to nothing on either side**, the plan's own §1 loop diagram implies a closed circle;
+   wired to nothing on either side**, the plan's own section 1 loop diagram implies a closed circle;
    the live workflow graph is a chain with two dead ends and one isolated island. Unlike
    `change-detection.yml` (which has a documented rule-16 ruling for its isolation),
-   `corpus-turn.yml` has no equivalent ruling. See *loop-harness-flywheel-one-unit.md §4, items
-   1-2*; *W1-W2-intake-population.md §"Event chaining without schedules"*. **Workstream: W1.4,
-   plan §1.**
+   `corpus-turn.yml` has no equivalent ruling. See *loop-harness-flywheel-one-unit.md section 4, items
+   1-2*; *W1-W2-intake-population.md section "Event chaining without schedules"*. **Workstream: W1.4,
+   plan section 1.**
 
 6. **DAG authorship (`derivation_edges`) reaches only 2 of the 9 producer families**, zero
    edges exist from `market_series` (the highest-volume producer table: `eia-v2-petroleum-spot`,
    `ecb-fx`, `eu-weekly-oil-bulletin`). The producers→propagation-drain chain fires and drains
    correctly, but for the majority of what producers write there is no edge to invalidate
-   against, so the drain reports a false-clean "0 invalidated", spec 08 §2.2's own named
-   failure mode. See *loop-harness-flywheel-one-unit.md §4 item 4*; *W3-W4-sourcing-propagation.md
-   §"Corridor seeding" table*. **Workstream: W4.1.**
+   against, so the drain reports a false-clean "0 invalidated", spec 08 section 2.2's own named
+   failure mode. See *loop-harness-flywheel-one-unit.md section 4 item 4*; *W3-W4-sourcing-propagation.md
+   section "Corridor seeding" table*. **Workstream: W4.1.**
 
 7. **`statutory_computations` and `estimated_values` remain at 0 rows**, months after the
    plan's own sequence table claimed a first live FuelEU Annex IV writer would land by T38/T42;
    the one rows-file present in the tree is explicitly self-labeled a non-production fixture,
    at a different path than the one `propagation-drain.yml` looks for. See *W3-W4-sourcing-
-   propagation.md §"Spec-08 clause-by-clause" row "§4, FuelEU Annex IV"*;
-   *loop-harness-flywheel-one-unit.md §"Prior claims refuted" item 8*. **Workstream: W4.2.**
+   propagation.md section "Spec-08 clause-by-clause" row "section 4, FuelEU Annex IV"*;
+   *loop-harness-flywheel-one-unit.md section "Prior claims refuted" item 8*. **Workstream: W4.2.**
 
 8. **Two live promotion mechanisms coexist in the community schema; only one is wired.**
    `community_promotion_transitions`'s 5-gate machine (migration 295, `promotion.mjs`) has
@@ -134,15 +134,15 @@ file:section it came from and the plan workstream it belongs to.
    (migration 041), wired into `POST /api/community/posts/[id]/promote`. Building the newer
    machine without retiring or superseding the older one risks the "two writers for one
    concept" pattern the closure gate's WRITER-READER check exists to catch. See *W5-W6-W7-
-   surfaces-community-discipline.md §W6, row "`community_promotion_transitions` writer"*.
+   surfaces-community-discipline.md section W6, row "`community_promotion_transitions` writer"*.
    **Workstream: W6.2.** Needs an explicit ADR on which is canonical.
 
-9. **User-started community rooms exist but are not region/entity-bound as §W6.2 specifies.**
+9. **User-started community rooms exist but are not region/entity-bound as section W6.2 specifies.**
    `POST /api/community/groups` creates a real, wired, member-owned group, but every live
    group is a vertical, cross-regional room (`region: 'GLOBAL'` hardcoded); no region-scoped or
    entity-bound room-creation path exists anywhere in `src/app/api/community/**`. This also
    **refutes** a narrower first-pass grep this same lane ran that would have concluded no
-   creation flow exists at all. See *W5-W6-W7-surfaces-community-discipline.md §W6, row
+   creation flow exists at all. See *W5-W6-W7-surfaces-community-discipline.md section W6, row
    "User-started room / group creation flow"*. **Workstream: W6.2.**
 
 10. **The closure gate is genuinely green today, but seven STALE-NEXT allowlist entries are one
@@ -153,7 +153,7 @@ file:section it came from and the plan workstream it belongs to.
     re-granted ~49 F25/F38 entries (whose `expiry:46` all tripped simultaneously the moment
     train 46 landed) to wave52 rather than resolving them, "the exact anti-pattern the build
     plan's own root-cause section describes." See *W5-W6-W7-surfaces-community-discipline.md
-    §"Gate runs, pasted verbatim" and §W7*; *loop-harness-flywheel-one-unit.md §6*.
+    section "Gate runs, pasted verbatim" and section W7*; *loop-harness-flywheel-one-unit.md section 6*.
     **Workstream: W7.1, W7.5.** **Note for the next reader**: this is exactly the state lane
     W7.1-CLOSE is now running against (see `docs/PROGRAM-BOARD.md` and the session-log
     postscript this folder's own INDEX line neighbors).
@@ -162,7 +162,7 @@ file:section it came from and the plan workstream it belongs to.
     `org_id`, depending on migration 311's org-scoped SELECT policies, but at audit time
     migration 311 was not applied and `surcharge_audits` had zero `org_id` columns live. A
     two-track-policy violation (code shipped ahead of its DDL) at audit time. See *W5-W6-W7-
-    surfaces-community-discipline.md §W5, row "Spec-09 CSV upload flow"*. **Note for the next
+    surfaces-community-discipline.md section W5, row "Spec-09 CSV upload flow"*. **Note for the next
     reader**: migration 311 has since been applied live (via the MIG311-FIX rewrite, see
     `docs/inventories/migrations.md`), closing the schema half of this finding; the route's own
     live end-to-end behavior was not re-tested by this audit folder. **Workstream: W5.**

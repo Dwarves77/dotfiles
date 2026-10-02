@@ -8,12 +8,12 @@ Does the Wave 1b drain worker leave a permanent NULL-summary `intelligence_items
 
 ### Files read
 
-- [`src/app/api/worker/drain-first-fetch/route.ts`](../fsi-app/src/app/api/worker/drain-first-fetch/route.ts) — the Wave 1b drain worker.
-- [`src/app/api/agent/run/route.ts`](../fsi-app/src/app/api/agent/run/route.ts) — the ingestion route the worker forwards to.
-- [`scripts/wave1-cold-start.mjs`](../fsi-app/scripts/wave1-cold-start.mjs) — Wave 1a backfill, for INSERT-pattern comparison.
-- [`supabase/migrations/065_pending_first_fetch_queue.sql`](../fsi-app/supabase/migrations/065_pending_first_fetch_queue.sql) — queue table + enqueue trigger.
-- [`supabase/migrations/004_source_trust_framework.sql`](../fsi-app/supabase/migrations/004_source_trust_framework.sql) line 126 — `summary TEXT NOT NULL DEFAULT ''` column constraint.
-- [`src/app/research/page.tsx`](../fsi-app/src/app/research/page.tsx) and [`src/components/research/ResearchView.tsx`](../fsi-app/src/components/research/ResearchView.tsx) — downstream renderers that read `summary` and `pipeline_stage`.
+- [`src/app/api/worker/drain-first-fetch/route.ts`](../fsi-app/src/app/api/worker/drain-first-fetch/route.ts) , the Wave 1b drain worker.
+- [`src/app/api/agent/run/route.ts`](../fsi-app/src/app/api/agent/run/route.ts) , the ingestion route the worker forwards to.
+- [`scripts/wave1-cold-start.mjs`](../fsi-app/scripts/wave1-cold-start.mjs) , Wave 1a backfill, for INSERT-pattern comparison.
+- [`supabase/migrations/065_pending_first_fetch_queue.sql`](../fsi-app/supabase/migrations/065_pending_first_fetch_queue.sql) , queue table + enqueue trigger.
+- [`supabase/migrations/004_source_trust_framework.sql`](../fsi-app/supabase/migrations/004_source_trust_framework.sql) line 126 , `summary TEXT NOT NULL DEFAULT ''` column constraint.
+- [`src/app/research/page.tsx`](../fsi-app/src/app/research/page.tsx) and [`src/components/research/ResearchView.tsx`](../fsi-app/src/components/research/ResearchView.tsx) , downstream renderers that read `summary` and `pipeline_stage`.
 
 ### Queries run (live DB via service role, `.env.local`)
 
@@ -29,14 +29,14 @@ Does the Wave 1b drain worker leave a permanent NULL-summary `intelligence_items
 
 ## 3. Findings
 
-### 3.1 Stub permanence — overwrite vs orphan
+### 3.1 Stub permanence , overwrite vs orphan
 
 **The drain worker does NOT leave an orphan row. The stub is overwritten in place by the first agent run.** Mechanism:
 
 - The drain worker [seeds the stub](../fsi-app/src/app/api/worker/drain-first-fetch/route.ts#L130-L164) with `INSERT … (source_id, source_url, title=source.name, domain=1, status='monitoring', pipeline_stage='draft')`. It does NOT set `summary` (so the column defaults to empty string per migration 004) and it captures the inserted `id`.
 - The drain worker then forwards to `/api/agent/run` with `{ sourceUrl: source.url }`.
 - `/api/agent/run` [Step 4](../fsi-app/src/app/api/agent/run/route.ts#L374-L406) does a `SELECT … FROM intelligence_items WHERE source_url = $1` and picks the matching row by `source_url`. Because the stub already has that `source_url`, the route locks onto the stub's `id` (no new INSERT path).
-- [Step 10](../fsi-app/src/app/api/agent/run/route.ts#L622-L647) does an `UPDATE … WHERE id = targetItem.id`. Same row. No new row is created. No orphan.
+- [Step 10](../fsi-app/src/app/api/agent/run/route.ts#L622-L647) does an `UPDATE … WHERE id = targetItem.id`. Same row. No new row is created. No orphan. [HYPOTHESIS]
 
 **Live evidence.** Smoke-test source `1d0265c2-38ce-463e-befb-f623146ee517` (`finance.ec.europa.eu`):
 
@@ -56,14 +56,14 @@ The seed-only fields that persist forever are:
 
 | Column | Seed value (drain) | After 1st agent run |
 |---|---|---|
-| `title` | `source.name` (e.g. `"European Commission DG FISMA (finance)"`) | unchanged — institution name, not document title |
-| `summary` | `''` (column default) | unchanged — empty string |
-| `pipeline_stage` | `'draft'` | unchanged — stays in Draft column of Research view |
+| `title` | `source.name` (e.g. `"European Commission DG FISMA (finance)"`) | unchanged , institution name, not document title |
+| `summary` | `''` (column default) | unchanged , empty string |
+| `pipeline_stage` | `'draft'` | unchanged , stays in Draft column of Research view |
 | `status` | `'monitoring'` | unchanged |
 
-**Cold-start script comparison.** [`wave1-cold-start.mjs` line 453-471](../fsi-app/scripts/wave1-cold-start.mjs#L453-L471) does a single richer INSERT that calls Haiku first and writes `title` (LLM `title_candidate`), `summary` (LLM `summary`), `severity`, `priority`, `urgency_tier`, `item_type`, `topic_tags`, `jurisdictions` upfront — so cold-start rows do not have this defect. Only drain-worker rows do.
+**Cold-start script comparison.** [`wave1-cold-start.mjs` line 453-471](../fsi-app/scripts/wave1-cold-start.mjs#L453-L471) does a single richer INSERT that calls Haiku first and writes `title` (LLM `title_candidate`), `summary` (LLM `summary`), `severity`, `priority`, `urgency_tier`, `item_type`, `topic_tags`, `jurisdictions` upfront , so cold-start rows do not have this defect. Only drain-worker rows do.
 
-### 3.3 Enrichment trigger — automated or manual?
+### 3.3 Enrichment trigger , automated or manual?
 
 **Enrichment is automatic but partial, in a single hop.** The drain worker `await`s the `/api/agent/run` POST inline (`agentResp = await fetch(…)` then checks `agentResp.ok`). So within a single drain invocation:
 
@@ -74,11 +74,11 @@ The seed-only fields that persist forever are:
 
 There is **no second pass** that re-fetches `summary` / `title` / `pipeline_stage`. To fix those a stub keeps forever, an operator must edit the row by hand in admin tooling, or a separate code path needs to update them.
 
-### 3.4 Schema state — referential safety
+### 3.4 Schema state , referential safety
 
-- `intelligence_items.id` is referenced by `intelligence_item_versions.intelligence_item_id` (migration 053) and `agent_runs.intelligence_item_id` (migration 057). The stub's `id` stays stable through the UPDATE — no orphan FKs.
+- `intelligence_items.id` is referenced by `intelligence_item_versions.intelligence_item_id` (migration 053) and `agent_runs.intelligence_item_id` (migration 057). The stub's `id` stays stable through the UPDATE , no orphan FKs. [HYPOTHESIS glyph:verbatim]
 - `intelligence_item_versions` for the smoke-test row: **null** (no rows). Either the version trigger from migration 053 is not deployed on remote, or `full_brief`-only updates do not generate a version. Worth a separate check, but tangential to this question.
-- `summary` column: `TEXT NOT NULL DEFAULT ''` — the schema cannot hold a true NULL, so any RPC reading `summary` will always get a string.
+- `summary` column: `TEXT NOT NULL DEFAULT ''` , the schema cannot hold a true NULL, so any RPC reading `summary` will always get a string.
 
 ### 3.5 Downstream visibility of the seed-default state
 
@@ -93,13 +93,13 @@ If the 10 remaining Task 6 sources are flipped to `auto_run_enabled=true` today:
 - Each will enqueue → drain in serial (limit 5/hour) → one agent run each → one `intelligence_items` row each.
 - Each row will have a fully populated `full_brief` (so the brief content is fine).
 - Each row will have **`title=source.name`, `summary=''`, `pipeline_stage='draft'`** forever, until a separate code path or manual edit fixes them.
-- Each row will appear in Research → Draft column with a blank summary, and in WeeklyBriefing / WhatChanged with a blank note. That is 11 visible degraded rows (1 existing + 10 new), versus 185 published rows — visually noticeable on the dashboard.
+- Each row will appear in Research → Draft column with a blank summary, and in WeeklyBriefing / WhatChanged with a blank note. That is 11 visible degraded rows (1 existing + 10 new), versus 185 published rows , visually noticeable on the dashboard.
 
 This is a **quality regression**, not a data-corruption regression. There are no orphan rows and no broken FKs. The brief itself is correct.
 
 ## 4. Risk to Task 6 flips, go/no-go
 
-**Recommendation: NO-GO until the seed-vs-update mismatch is reconciled.** The blocker is small and well-scoped — see proposed fix below — but flipping 10 more sources without it will create 10 cards that show up in Draft with the institution name as a title and no summary, persisting until a follow-up cleanup pass. Operator-facing degradation is non-trivial.
+**Recommendation: NO-GO until the seed-vs-update mismatch is reconciled.** The blocker is small and well-scoped , see proposed fix below , but flipping 10 more sources without it will create 10 cards that show up in Draft with the institution name as a title and no summary, persisting until a follow-up cleanup pass. Operator-facing degradation is non-trivial.
 
 If the operator wants to ship Task 6 today anyway, the acceptable middle path is to flip 1-2 sources and immediately backfill `title`, `summary`, `pipeline_stage` on those rows manually (admin SQL update), document the exact pattern, then ship the fix below before flipping the remaining 8.
 
@@ -107,10 +107,10 @@ If the operator wants to ship Task 6 today anyway, the acceptable middle path is
 
 The minimal, contained fix is to harmonize the agent route's UPDATE with what the cold-start script's INSERT provides. Two equivalent options:
 
-**Option A — Drain worker stops setting `pipeline_stage`, agent route fills it.**
-Change the seed insert to omit `pipeline_stage` (let it default to NULL), then in `/api/agent/run` Step 10 set `pipeline_stage='active_review'` (or whatever stage is correct for a freshly briefed item) on the UPDATE. Also have the agent route derive a `summary` from the first 1-2 paragraphs of `parsedBody`, or from a YAML frontmatter `summary` field if the agent emits one (currently it does not — would require a small system-prompt addition). Title likewise derived from the brief's first H1.
+**Option A , Drain worker stops setting `pipeline_stage`, agent route fills it.**
+Change the seed insert to omit `pipeline_stage` (let it default to NULL), then in `/api/agent/run` Step 10 set `pipeline_stage='active_review'` (or whatever stage is correct for a freshly briefed item) on the UPDATE. Also have the agent route derive a `summary` from the first 1-2 paragraphs of `parsedBody`, or from a YAML frontmatter `summary` field if the agent emits one (currently it does not , would require a small system-prompt addition). Title likewise derived from the brief's first H1.
 
-**Option B — Drain worker calls Haiku for a Wave-1a-style classify before forwarding.**
+**Option B , Drain worker calls Haiku for a Wave-1a-style classify before forwarding.**
 Mirror cold-start's pattern: drain worker calls Haiku to get `title_candidate`, `summary`, `priority`, `severity`, `urgency_tier`, then INSERTs the stub with those values, then forwards to `/api/agent/run` for the full brief. Agent route already updates the heavy metadata and `full_brief`. This eliminates the seed-vs-update gap entirely. Cost overhead: ~$0.001 per source per first fetch (Haiku is cheap at 6KB excerpts).
 
 Option B is preferred because (a) it reuses an already-validated code path, (b) it does not require adding a `summary` field to the agent's YAML contract, and (c) it leaves `pipeline_stage` decisions to whatever editorial workflow operators settle on, instead of hardcoding a stage in the agent route.
@@ -129,14 +129,14 @@ The drain worker now mirrors the Wave 1a cold-start pattern. Before forwarding t
 
 The shared classifier helper duplicates the Haiku prompt + JSON shape used by [`scripts/wave1-cold-start.mjs`](../fsi-app/scripts/wave1-cold-start.mjs) (TypeScript module cannot be imported from .mjs); both paths must produce the same field set for the same input. Cost overhead: ~$0.001 per first fetch.
 
-**Failure mode terminology, for follow-up quality checks.** The defect is "empty-string summary + stuck Draft pipeline_stage", NOT "NULL summary". The `summary` column is `TEXT NOT NULL DEFAULT ''` per migration 004 — it can never hold a true NULL. Any future quality check that wants to detect under-enriched stubs should test for BOTH `summary = ''` AND `pipeline_stage = 'draft'`, not `summary IS NULL`. The original `summary IS NULL OR title IS NULL` query in this investigation returned 0 rows and nearly masked the bug.
+**Failure mode terminology, for follow-up quality checks.** The defect is "empty-string summary + stuck Draft pipeline_stage", NOT "NULL summary". The `summary` column is `TEXT NOT NULL DEFAULT ''` per migration 004 , it can never hold a true NULL. Any future quality check that wants to detect under-enriched stubs should test for BOTH `summary = ''` AND `pipeline_stage = 'draft'`, not `summary IS NULL`. The original `summary IS NULL OR title IS NULL` query in this investigation returned 0 rows and nearly masked the bug.
 
 The 2026-05-09 smoke-test row (`finance.ec.europa.eu`, `id=53c3fcd5-…`) was backfilled in place via `scripts/tmp/backfill-finance-ec-europa.mjs` using the same Haiku call the patched drain worker now uses. After backfill the row carries a populated `title`, `summary`, `priority`, `severity`, `urgency_tier`, `item_type`, `topic_tags`, and `jurisdictions`.
 
 ## Related
 
-- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
-- [sources-content-verification-2026-05-11](./sources-content-verification-2026-05-11.md) — Anomaly 2 (finance.ec.europa.eu stub 53c3fcd5 at pipeline_stage=draft) is the exact drain-worker stub that investigation dissects
-- [wave1-step1-verification](./wave1-step1-verification.md) — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
-- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — shares migration 064
-- [ingest-pipeline-investigation-2026-05-22](../plans/ingest-pipeline-investigation-2026-05-22.md) — shares migration 065
+- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) , The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
+- [sources-content-verification-2026-05-11](./sources-content-verification-2026-05-11.md) , Anomaly 2 (finance.ec.europa.eu stub 53c3fcd5 at pipeline_stage=draft) is the exact drain-worker stub that investigation dissects
+- [wave1-step1-verification](./wave1-step1-verification.md) , Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) , shares migration 064
+- [ingest-pipeline-investigation-2026-05-22](../plans/ingest-pipeline-investigation-2026-05-22.md) , shares migration 065
