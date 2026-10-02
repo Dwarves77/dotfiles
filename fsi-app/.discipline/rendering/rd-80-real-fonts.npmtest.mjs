@@ -55,7 +55,7 @@ const PROBE_WIDTH_PX = 239.515625;
 test("RD-80: the harness's assertFontsReady resolves every declared face and pins a real glyph width", async (t) => {
   if (skipIfNoPlaywright(t)) return;
   const { chromium } = require("playwright");
-  const { assertFontsReady, REQUIRED_FONT_CHECKS } = await import("./smoke/smoke-fixtures.mjs");
+  const { assertFontsReady, REQUIRED_FONT_CHECKS: _REQUIRED_FONT_CHECKS } = await import("./smoke/smoke-fixtures.mjs");
 
   const browser = await chromium.launch();
   try {

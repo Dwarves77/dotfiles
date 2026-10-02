@@ -55,7 +55,6 @@
 //      (if it ever did, the sandbox would be stricter than CI and the two would disagree the other way).
 
 import { violation } from '../lib/result.mjs';
-import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile } from '../lib/file-content.mjs';
 
 const KEYWORD_TRIGGERS = ['test', 'golden', 'lint'];

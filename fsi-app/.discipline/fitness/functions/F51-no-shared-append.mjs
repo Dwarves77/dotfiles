@@ -70,7 +70,7 @@
 // node: builtins plus the repo's own fitness/governance/harness-runs helpers only (loaded by the no-npm
 // discipline test glob via run-test-suite.sh's existing `fitness/functions/*.test.mjs` line).
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, basename } from 'node:path';
 import { violation } from '../lib/result.mjs';

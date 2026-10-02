@@ -6,13 +6,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   commitMessageLines,
-  filesMatching,
-  hasFileMatching,
   isApplicableDispatchType,
-  isInvestigationOnly,
-  isHotfix,
-  isResearchOnly,
-  isConversationOnly,
   _matchesPattern,
 } from './predicates.mjs';
 import { buildContextFromFixture, getRepoRoot, _clearRepoRootCache } from './context.mjs';

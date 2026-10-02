@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { fitnessFunction, rawBrowserlessLines, PRIMITIVE, HOLD_GATE_CORE, SANCTIONED, TRANSPORT_MODULES } from './F16-transport-hold-gate.mjs';
+import { fitnessFunction, PRIMITIVE, HOLD_GATE_CORE, SANCTIONED, TRANSPORT_MODULES } from './F16-transport-hold-gate.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 

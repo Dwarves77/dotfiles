@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { fitnessFunction, findPauseFlagWrite } from './F20-pause-flag-one-writer.mjs';
+import { fitnessFunction } from './F20-pause-flag-one-writer.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 

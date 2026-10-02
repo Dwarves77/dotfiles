@@ -5,6 +5,6 @@
 // prop with no DOM equivalent) and every other prop passes through untouched.
 import React from 'react';
 
-export default function Link({ href, children, prefetch, ...rest }) {
+export default function Link({ href, children, prefetch: _prefetch, ...rest }) {
   return React.createElement('a', { href, ...rest }, children);
 }

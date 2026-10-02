@@ -17,7 +17,7 @@
 //          trimming it) is allowed — only NEW content is rejected. Numstat additions are
 //          sufficient here: any addition to a frozen file is the violation, no hunk text needed.
 
-import { pass, fail, skip } from '../lib/result.mjs';
+import { pass, fail } from '../lib/result.mjs';
 
 // The deprecated fork, repo-relative, forward-slash normalized.
 const FORK_PATH = 'fsi-app/docs/ops/session-log.md';

@@ -36,7 +36,7 @@
  *
  * COST: filesystem only. No network, no database, no model call, no schedule.
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { globFiles } from '../fitness/lib/glob.mjs';

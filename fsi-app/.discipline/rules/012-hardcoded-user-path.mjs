@@ -16,7 +16,7 @@
 //          The literal patterns are intentionally not enumerated in this comment
 //          block so the rule does not flag its own documentation.
 
-import { pass, fail, skip } from '../lib/result.mjs';
+import { pass, fail } from '../lib/result.mjs';
 
 // Regex matches operator's specified pattern set per Sprint Foundation
 // incident response. Asymmetric by design: Windows variants match any user

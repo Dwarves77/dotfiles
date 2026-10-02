@@ -10,7 +10,7 @@
 // run the consistency runner before committing AND that the resulting state is clean.
 // Implementation: invoke the consistency runner in a subprocess; pass if exit 0.
 
-import { pass, fail, skip } from '../lib/result.mjs';
+import { pass, fail } from '../lib/result.mjs';
 import { isApplicableDispatchType, hasFileMatching } from '../lib/predicates.mjs';
 import { runConsistencyRunner, evaluate } from '../consistency/override-check.mjs';
 
