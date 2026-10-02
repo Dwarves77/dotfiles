@@ -61,6 +61,7 @@ import { readFile } from '../lib/file-content.mjs';
 const KEYWORD_TRIGGERS = ['test', 'golden', 'lint'];
 const NO_NPM_SUITE = 'fsi-app/.discipline/run-test-suite.sh';
 const NO_NPM_SANDBOX = 'fsi-app/.discipline/lib/no-npm-sandbox.mjs';
+const RUN_EXPLICIT_TESTS_BASENAME = 'run-explicit-tests.mjs';
 
 /**
  * Every top-level job key under `jobs:` (2-space-indented `<key>:` lines after the `jobs:` line).
@@ -98,16 +99,27 @@ export function evaluateNoNpmSuiteParity(suiteText, ymlText) {
     .split(/\r?\n/)
     .filter((l) => !/^\s*#/.test(l))
     .join('\n');
-  const testLines = code.split('\n').filter((l) => /\bnode\b[^\n]*\s--test\b/.test(l));
+  // RUNNER SHAPE (lane R6-8, 2026-10-01, closes CF-SEC-11's runner half): run-test-suite.sh no longer
+  // invokes `node --test` directly -- a bare CLI `node --test <path>` re-parses every explicit file
+  // argument through Node's own glob matcher, silently dropping any path with a literal "["/"]"
+  // segment (see F65-no-bracket-path-tests.mjs). It now pipes its discovery list through
+  // RUN_EXPLICIT_TESTS (node:test's programmatic run({ files }) API, whose files option is a literal
+  // array, never re-parsed as a glob), passing the sandbox via `execArgv` after a `--` separator. Both
+  // invocation shapes are recognized here so an OLDER suite still carrying the literal `--test` form
+  // (a hand revert, or a future rewrite) is still checked correctly.
+  const testLines = code
+    .split('\n')
+    .filter((l) => /\bnode\b[^\n]*\s--test\b/.test(l) || new RegExp(`\\b${RUN_EXPLICIT_TESTS_BASENAME}\\b`).test(l));
   if (testLines.length === 0) {
-    out.push(`${NO_NPM_SUITE} has no \`node ... --test\` invocation to check.`);
+    out.push(`${NO_NPM_SUITE} has no \`node --test\` or \`${RUN_EXPLICIT_TESTS_BASENAME}\` invocation to check.`);
   }
   for (const l of testLines) {
     const m = l.match(/--import\s+["']?(\.\/)?([^\s"']+)["']?/);
     if (!m || m[2] !== NO_NPM_SANDBOX) {
       out.push(
-        `${NO_NPM_SUITE} runs \`node --test\` without \`--import ./${NO_NPM_SANDBOX}\`: locally the suite ` +
-          `could resolve npm packages CI's job cannot (the lane/quarantine-disposition class, six red runs).`,
+        `${NO_NPM_SUITE} runs its test invocation without \`--import ./${NO_NPM_SANDBOX}\`: locally the ` +
+          `suite could resolve npm packages CI's job cannot (the lane/quarantine-disposition class, six ` +
+          `red runs).`,
       );
     }
   }

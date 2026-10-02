@@ -218,10 +218,14 @@ echo "[discipline pre-push] step 2c (discipline rules, CI mode, CI parity): OK"
 # red in CI (glob-portability was in CI's list but not pre-push's).
 if ! sh fsi-app/.discipline/run-test-suite.sh >"$PRE_PUSH_LOG_DIR/t.log" 2>&1; then
   echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
-  # xargs runs the suite as SEVERAL `node --test` batches, each ending in its own summary, so a plain
-  # `tail` showed the LAST batch's summary, all green when the failure sat in an earlier batch (lane
-  # CI-PARITY, 2026-09-28, seen replaying the lane/quarantine-disposition runs). Print every batch's
-  # failing-test blocks first, then the tail.
+  # Historically xargs ran the suite as SEVERAL `node --test` batches, each ending in its own summary,
+  # so a plain `tail` showed the LAST batch's summary, all green when the failure sat in an earlier
+  # batch (lane CI-PARITY, 2026-09-28, seen replaying the lane/quarantine-disposition runs). Lane R6-8
+  # (2026-10-01) replaced the xargs/`node --test` invocation with run-explicit-tests.mjs's single
+  # programmatic run (closes CF-SEC-11's runner half; see F65-no-bracket-path-tests.mjs), which reports
+  # one unified summary instead of several batches -- the multi-batch failure mode this awk/grep guards
+  # against can no longer occur, but the same parsing still finds the one real summary correctly, so it
+  # is left in place rather than narrowed.
   awk '/failing tests:/ {on=1} on && /^(✔|ℹ) / {on=0} on && !/^[[:space:]]+at / {print}' "$PRE_PUSH_LOG_DIR/t.log" | head -80 >&2
   grep -E '^ℹ (tests|pass|fail) ' "$PRE_PUSH_LOG_DIR/t.log" >&2
   echo "[discipline pre-push] full log: $PRE_PUSH_LOG_DIR/t.log" >&2

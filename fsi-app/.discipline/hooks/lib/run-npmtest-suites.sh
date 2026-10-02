@@ -8,10 +8,19 @@
 # Discipline engine / Fitness functions" (operator ruling, 2026-09-21) requires the two surfaces to
 # agree about what "green" means.
 #
-# Discovery and command are IDENTICAL to discipline.yml's own step (git ls-files, so a new
-# *.npmtest.mjs anywhere under fsi-app/ joins both surfaces automatically, no edit needed here):
-#   files=$(git ls-files 'fsi-app/**/*.npmtest.mjs' | tr -s ' \n' ' ')
-#   if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
+# Discovery is git ls-files with NO pathspec glob argument (a plain full listing, filtered by a literal
+# JS suffix match below), so a new *.npmtest.mjs anywhere under fsi-app/ joins both surfaces
+# automatically, no edit needed here. CORRECTED (lane R6-8, 2026-10-01, closes CF-SEC-11): this used to
+# discover via `git ls-files 'fsi-app/**/*.npmtest.mjs'` -- a PATHSPEC GLOB passed to git, which treats
+# a literal `[`/`]` in a path as a bracket-expression glob token, same class of bug as Node's own CLI
+# test-file matching. It then invoked `node --test $files` on the CLI, which has its OWN, separate
+# instance of the bug: Node's test runner re-parses every explicit file argument through its own glob
+# matcher, so a bracket-path file silently drops out even when discovery DID find it. Both are gone now:
+# discovery is a plain `git ls-files -z` (no pattern argument, so nothing is re-interpreted as a glob)
+# filtered by a literal `*.npmtest.mjs` string-suffix test, same shape test-discovery.mjs already uses
+# for the no-npm suite; execution goes through `run-explicit-tests.mjs`'s programmatic `run({ files })`
+# API (see that file's header and F65-no-bracket-path-tests.mjs for the full defect + reproduction),
+# whose `files` option is a literal array, never re-parsed as a glob.
 #
 # Requires: fsi-app's npm deps RESOLVABLE from fsi-app/ (npm ci in CI; in a linked worktree, the
 # shared install reached through the link beside the worktrees, RD-85). The check asks Node, never
@@ -30,9 +39,12 @@ if ! node -e "require.resolve('next/package.json', { paths: [process.argv[1]] })
   exit 1
 fi
 
-files=$(git ls-files 'fsi-app/**/*.npmtest.mjs' | tr -s ' \n' ' ')
-if [ -n "$files" ]; then
-  node --test $files
+# NOTE: the NUL-separated list is piped directly into run-explicit-tests.mjs, never staged through a
+# shell variable via $(...) -- command substitution cannot hold a NUL byte (it silently truncates/
+# mangles there), so the list has to stay in the pipe the whole way.
+have_files=$(git ls-files -- fsi-app | grep -c -E '\.npmtest\.mjs$' || true)
+if [ "${have_files:-0}" -gt 0 ]; then
+  git ls-files -z -- fsi-app | tr '\0' '\n' | grep -E '\.npmtest\.mjs$' | tr '\n' '\0' | node "$(dirname "$0")/../../lib/run-explicit-tests.mjs"
 else
   echo "[run-npmtest-suites] no npm-dep test files"
 fi
