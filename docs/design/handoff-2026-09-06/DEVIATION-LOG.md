@@ -741,6 +741,7 @@ regions rather than deleted.
 | 2026-09-08 | /settings | card "UPLOAD OPERATIONAL DATA CSV" is not in artboard p15 | R7, same placement and reason. The CSV upload is a live operator path with no artboard region. | Ruling R7, restated at FOLD 62 for L10 |
 | 2026-09-08 | /settings | card "SUPERSESSION HISTORY" is not in artboard p15 | R7, same placement and reason. | Ruling R7, restated at FOLD 62 for L10 |
 | 2026-09-08 | /settings | card "ARCHIVE" is not in artboard p15 | R7, same placement and reason. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-10-01 | /settings | card "ASSUMPTION REGISTER" is not in artboard p15 | R7: the per-tenant planning-assumption register (docs/specs/03-research.md section 5) is an app feature the artboard does not draw (it did not exist when p15 was drawn), kept and placed full width below the artboard's two columns, same placement as SAVED SEARCHES / DATA SUMMARY / ARCHIVE above. | Ruling R7, lane W2-R2, 2026-10-01 |
 | 2026-09-08 | /community | card "VERTICAL GROUPS" is not in artboard p12 | R7: the vertical-groups rail card is an app feature p12 does not draw; train 60 placed it LAST in the rail, after every card the artboard does draw. | Ruling R7, restated at FOLD 62 for L10 |
 | 2026-09-08 | /community | card "GLOBAL REGION" is not in artboard p12 | R7: the room header card, placed below the artboard's own regions (train 60, postscript 16). | Ruling R7, restated at FOLD 62 for L10 |
 
