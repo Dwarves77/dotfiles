@@ -10,9 +10,17 @@
  * - Right column: tier badge + severity pill + "What it changes" callout
  * - Entire card wrapped in <Link href="/operations/[id]">
  *
- * Severity derivation is identical to OperationsPage's
- * deriveRegulationSeverity (reuses the same column-first + regex
- * fallback against Resource.severity + priority).
+ * Severity derivation reads the live DB column first (via
+ * SEVERITY_TO_OPERATIONS_BUCKET). Coordinator check (2026-10-01, 1,757 live
+ * items with NULL severity, backfill migration retired, severity now set
+ * only by regeneration): a null `item.severity` no longer falls through to
+ * the regex/priority heuristic below, which would GUESS a bucket (and
+ * silently default to "low") for a value that simply has not been
+ * regenerated yet. `deriveSeverity` returns `null` in that case and
+ * `SeverityPill` renders the absence convention ("needs regeneration for
+ * severity") instead of a coloured pill. The regex/priority heuristic still
+ * runs for the (separate, pre-existing, out-of-scope-for-this-check) case of
+ * a non-null severity value that fails to match SEVERITY_TO_OPERATIONS_BUCKET.
  *
  * Items grouped by jurisdiction (flat list fallback when jurisdiction
  * is absent). Empty state ("No active operations items yet") when
@@ -28,6 +36,7 @@ import type { Resource } from "@/types/resource";
 import { SEVERITY_TO_OPERATIONS_BUCKET } from "@/lib/agent/metadata-vocab";
 import { GradeChip } from "@/components/ui/Chips";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
+import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
@@ -48,13 +57,22 @@ const SEVERITY_LABEL: Record<Severity, string> = {
   low: "Low",
 };
 
-function deriveSeverity(r: Resource): Severity {
+function deriveSeverity(r: Resource): Severity | null {
   // Addendum 63 (2026-08-30): the DB-value -> bucket-key mapping is shared with
   // OperationsLedger.tsx via SEVERITY_TO_OPERATIONS_BUCKET (metadata-vocab.ts) — it used to be
   // a byte-identical copy hand-typed independently in both files.
   if (r.severity && SEVERITY_TO_OPERATIONS_BUCKET[r.severity]) {
     return SEVERITY_TO_OPERATIONS_BUCKET[r.severity];
   }
+  // Coordinator check (2026-10-01): severity is NULL on 1,757 live items (the backfill
+  // migration is retired; severity is set only by regeneration). A null column is an honest
+  // "not yet regenerated" fact, not a text/priority classification problem; guessing a bucket
+  // from title/note language for a column that will be populated by regeneration would render a
+  // confident-looking WRONG DEFAULT for every one of those items. Absent column -> absent pill.
+  if (r.severity == null) return null;
+  // A NON-null severity value that still fails to match SEVERITY_TO_OPERATIONS_BUCKET (a
+  // genuinely out-of-vocabulary value) is the separate, pre-existing heuristic path below;
+  // unchanged by this check.
   const text = `${r.title} ${r.note || ""}`.toLowerCase();
   if (/\b(action required|immediate|deadline|effective \d|in force)\b/.test(text)) return "critical";
   if (/\b(window|q\d|by 20|consultation|phase-in)\b/.test(text)) return "moderate";
@@ -77,7 +95,14 @@ function formatShortDate(iso: string | null | undefined): string {
 
 // ── Severity pill ──
 
-function SeverityPill({ severity }: { severity: Severity }) {
+function SeverityPill({ severity }: { severity: Severity | null }) {
+  if (severity == null) {
+    // Absence rule (2026-09-25 close): a value that cannot exist yet names the data it needs.
+    // Same type treatment as ui/Absence.tsx's `reason` variant; this call site's need is more
+    // specific than the closed NEEDS_PHRASE vocabulary, per that component's own documented
+    // allowance for a caller-supplied needs-phrase.
+    return <span style={ABSENCE_TEXT_STYLE}>needs regeneration for severity</span>;
+  }
   const tone = SEVERITY_PILL_TONE[severity];
   return (
     <span

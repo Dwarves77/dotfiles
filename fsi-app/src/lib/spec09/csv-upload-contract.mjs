@@ -186,7 +186,7 @@ function cell(cells, idx, name) {
 
 export const TABLE_CONTRACTS = Object.freeze({
   surcharge_audits: {
-    label: "Surcharge audits (Market)",
+    label: "Surcharge audits (Market Intel)",
     requiredHeaders: ["corridor_id", "carrier_id", "invoice_line", "billed_eur", "statutory_eur", "statutory_basis"],
     optionalHeaders: ["statutory_derivation"],
     entityRefs: [
@@ -372,7 +372,7 @@ export const TABLE_CONTRACTS = Object.freeze({
   },
 
   indexation_clauses: {
-    label: "Indexation clauses (Market)",
+    label: "Indexation clauses (Market Intel)",
     requiredHeaders: ["index_id", "base_value", "base_date", "passthrough_pct", "review_cadence", "rounding_rule"],
     optionalHeaders: ["contract_ref", "corridor_id", "cap_pct", "floor_pct"],
     entityRefs: [

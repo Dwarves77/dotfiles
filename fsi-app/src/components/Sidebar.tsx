@@ -74,7 +74,7 @@ const SECTIONS: NavSection[] = [
     label: "Intelligence",
     items: [
       { href: "/regulations", label: "Regulations", countKey: "regulations" },
-      { href: "/market", label: "Market", countKey: "market" },
+      { href: "/market", label: "Market Intel", countKey: "market" },
       { href: "/research", label: "Research", countKey: "research" },
       { href: "/operations", label: "Operations", countKey: "operations" },
       { href: "/map", label: "Map" },

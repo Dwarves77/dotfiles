@@ -30,11 +30,29 @@ const SOURCE = readFileSync(
 // severity still comes from the shared classifier and still reaches the row as a chip; what moved
 // is where the chip is built. The rendered chip is measured by listrow.json and by compose-06.
 test("the severity chip reaches the row through ListRow's own `kind` prop, never composed here", () => {
-  assert.match(SOURCE, /const severityLabel = \(SEVERITY_LABELS as Record<string, string>\)\[/);
+  assert.match(SOURCE, /\(SEVERITY_LABELS as Record<string, string>\)\[/);
   assert.match(SOURCE, /deriveSeverity\(/);
   assert.match(SOURCE, /kind: severityLabel \|\| undefined,/);
   // The page-local composition and its wrapper span are gone, not merely unused.
   assert.doesNotMatch(SOURCE, /<TagChip>\{severityLabel\}<\/TagChip>/);
+});
+
+// Coordinator check (2026-10-01): 1,757 live items have NULL severity (the backfill migration is
+// retired; severity is set only by regeneration). `deriveSeverity`'s own doc comment says its
+// severityColumn short-circuit never actually matches the real migration-102 enum, so it ALWAYS
+// fell through to the text/date heuristic, which defaults to "background" ("Background" chip) -
+// a confident-looking WRONG DEFAULT for a column that simply has not been regenerated yet. Fixture
+// test: an item shaped like a real null-severity row (`{ severity: null, title: "...", added: null }`,
+// matching the 1,757 live rows) must read "needs regeneration for severity" per the coordinator's
+// exact phrase, checked BEFORE the classifier runs (so a null severity never reaches the heuristic
+// and never gets classified as "Background").
+test("a null-severity item (fixture: severity: null) shows the coordinator's exact needs-phrase, never a guessed 'Background' chip", () => {
+  assert.match(SOURCE, /const severityLabel = r\.severity == null\s*\n\s*\? "needs regeneration for severity"\s*\n\s*: \(SEVERITY_LABELS as Record<string, string>\)\[/);
+  // The null check runs BEFORE deriveSeverity is ever called for that row; a null-severity
+  // fixture item never reaches the text/date heuristic that would otherwise guess "Background".
+  const nullCheckIndex = SOURCE.indexOf("r.severity == null");
+  const deriveCallIndex = SOURCE.indexOf("deriveSeverity([r.title");
+  assert.ok(nullCheckIndex > -1 && deriveCallIndex > -1 && nullCheckIndex < deriveCallIndex);
 });
 
 test("the theme sits in the row's meta text, in the artboard's own order (type · theme · kind)", () => {

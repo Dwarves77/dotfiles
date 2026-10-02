@@ -205,9 +205,20 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
           // MarketIntelLedger's signal-kind tag already uses, with the artboard's own strings.
           // Severity comes from the shared classifier (src/lib/research/taxonomy.mjs), never a
           // page-local vocabulary.
-          const severityLabel = (SEVERITY_LABELS as Record<string, string>)[
-            deriveSeverity([r.title, r.whatIsIt, r.whyMatters].filter(Boolean).join(" "), r.added, r.severity) as string
-          ];
+          //
+          // Coordinator check (2026-10-01, 1,757 live items with NULL severity, backfill
+          // migration retired, severity now set only by regeneration): `deriveSeverity`'s
+          // text/date heuristic runs unconditionally when `r.severity` does not literally match
+          // its 4-value vocabulary (a separate, pre-existing, out-of-scope-for-this-check
+          // mismatch against the real migration-102 enum, see that function's own doc comment),
+          // so a null severity rendered a confident-looking "Background" chip, a WRONG DEFAULT.
+          // Checking `r.severity == null` before calling the classifier, specifically, replaces
+          // that one case with the absence convention.
+          const severityLabel = r.severity == null
+            ? "needs regeneration for severity"
+            : (SEVERITY_LABELS as Record<string, string>)[
+                deriveSeverity([r.title, r.whatIsIt, r.whyMatters].filter(Boolean).join(" "), r.added, r.severity) as string
+              ];
           const metaText = [r.type, themeLabel, r.sub || (r.modes ?? []).join(", ")].filter(Boolean).join(" · ");
           // ITEM B1 (operator, 2026-09-08): the severity chip is no longer composed here. `ListRow`
           // renders it from the `kind` prop with the artboard's row-size neutral tag, so this page
