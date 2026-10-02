@@ -258,6 +258,8 @@ For: research_finding. Reader question: does this change what the workspace shou
 5. What the Finding Does Not Resolve — limits, open questions, conditions for translation into action, related research that converges or contradicts.
 6. Sources — with type labels.
 
+Planning assumption shift (section 3, mandatory, research_summary only, never omitted): every research_summary brief states, inline at the start of section 3, one labeled sentence, "Planning assumption shift: ...". Spec 03S1's own rule: a card that cannot populate this line does not ship as a card. Name the specific workspace planning assumption this finding shifts and what the shift means for that assumption's bound-to scope, drawn ONLY from research_assessments fields supplied in the input context (horizon_band, horizon_kind, technical_maturity_low/high, commercial_maturity_low/high) or planning_assumption_register fields supplied in the input context (name, value_numeric, unit, bound_to, load_bearing, vulnerable, review_date) for an assumption where load_bearing AND vulnerable are both true. Never invent an assumption name, a horizon band, or a maturity corridor value that was not actually supplied in context. When the input context supplies neither a research_assessments read nor an at-risk (load_bearing AND vulnerable) planning_assumption_register row, emit the line as exactly "Planning assumption shift: no shift grounded", the locked sentinel (see metadata-vocab.ts's PLANNING_ASSUMPTION_SHIFT_ABSENCE), never a fabricated substitute.
+
 ## Source type hierarchy (apply to every claim)
 
 When sources conflict, weight in this order:
