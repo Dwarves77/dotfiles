@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { readClient, readAll, guardedUpdate, guardedInsert } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 // Guarded (lane L41, 2026-09-17): the maintenance.yml dispatch injects the env and carries no .env.local, and
@@ -222,4 +223,6 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

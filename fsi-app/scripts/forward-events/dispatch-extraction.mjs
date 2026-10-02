@@ -42,6 +42,7 @@ import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { readAll, readClient, guardedInsertMany, guardedUpdate } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 loadLocalEnvFile();
@@ -146,4 +147,6 @@ async function main() {
   if (items.length) console.log(`last id processed this run (for --after-id resume): ${items[items.length - 1].id}`);
 }
 
-main().catch((err) => { console.error(err); process.exit(1); });
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => { console.error(err); process.exit(1); });
+}

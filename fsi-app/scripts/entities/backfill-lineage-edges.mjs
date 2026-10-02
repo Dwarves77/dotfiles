@@ -78,12 +78,9 @@ import { readAll, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib
 import { planLinkWrites } from "../../src/lib/entities/entity-resolve.mjs";
 import { partitionLineageWrites } from "../../src/lib/entities/lineage-backfill.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 loadLocalEnvFile();
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("backfill-lineage-edges: no DB creds — cannot run here (exit 2).");
-  process.exit(2);
-}
 
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
@@ -96,7 +93,9 @@ const CITE = {
   reason: "WO-28 phase D: feed the typed-lineage-edge capability (PR #481, classifyRelationship/planLinkWrites) that shipped with 0 live typed edges — $0 backfill over intelligence_item_sections content, no metered fetch, no LLM.",
 };
 
-const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+// Assigned inside the isMainModule guard at the bottom of this file (F44/F67): createClient() throws
+// immediately on a missing URL/key, so it must never run at plain import time.
+let sb;
 
 // ── loads ────────────────────────────────────────────────────────────────
 
@@ -254,7 +253,16 @@ async function main() {
   process.exit(upgradeFail ? 1 : 0);
 }
 
-main().catch((e) => {
-  console.error(`[lineage-backfill] FATAL: ${e.message}`);
-  process.exit(1);
-});
+// Guarded (F44/F67): the no-creds self-skip exit, the `sb` client, and main() all move inside
+// isMainModule, so importing this module never exits the process or runs the backfill.
+if (isMainModule(import.meta.url)) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("backfill-lineage-edges: no DB creds — cannot run here (exit 2)."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(2);
+  }
+  sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  main().catch((e) => {
+    console.error(`[lineage-backfill] FATAL: ${e.message}`);
+    process.exit(1);
+  });
+}

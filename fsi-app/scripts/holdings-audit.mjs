@@ -29,13 +29,10 @@ import { readAll, readClient, guardedInsertMany } from "./lib/db.mjs";
 import { readSnapshotBody } from "../src/lib/sources/snapshot-store.mjs";
 import { classifyCompleteness, classifySufficiency, detectPublisherShape } from "../src/lib/sources/holdings-audit.mjs";
 import { loadLocalEnvFile } from "./lib/env-file.mjs";
+import { isMainModule } from "./lib/is-main.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 loadLocalEnvFile();
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("holdings-audit: no DB creds — cannot verify here (exit 2).");
-  process.exit(2);
-}
 
 const WRITE = process.argv.includes("--write");
 const AUDIT_VERSION = "hq-v1-2026-07-14";
@@ -254,4 +251,13 @@ async function main() {
   console.log(`[holdings-audit] inserted ${res.inserted} rows. snapshot: ${res.snapshot}`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Guarded (F44/F67): the no-creds self-skip exit AND main() both move inside isMainModule, so importing
+// this module (e.g. a future test on groundingTier/mapWithConcurrency) never exits the process or runs
+// the audit.
+if (isMainModule(import.meta.url)) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("holdings-audit: no DB creds — cannot verify here (exit 2)."); // glyph:verbatim (pre-existing message text, relocated unchanged)
+    process.exit(2);
+  }
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

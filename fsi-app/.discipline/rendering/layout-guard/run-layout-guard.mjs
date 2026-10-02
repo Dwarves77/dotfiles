@@ -28,6 +28,7 @@ import { checkAll, RULE_IDS, RULE_PROVENANCE } from './rules.mjs';
 import { ROUTES, LAYOUT_WIDTHS, ROUTING } from './routes.mjs';
 import { manifestFor, loadManifests, deviationsForRoute } from './manifests.mjs';
 import { applyBaseline, findingKey, BASELINE_EXPIRY_DATE } from './baseline.mjs';
+import { isMainModule } from '../../../scripts/lib/is-main.mjs';
 
 const AUDIT_DATE = '2026-09-08';
 
@@ -285,6 +286,9 @@ async function main() {
   process.exit(0);
 }
 
-if (process.argv[1] && process.argv[1].endsWith('run-layout-guard.mjs')) {
+// F67 (lane R20, 2026-10-01): standardized on isMainModule from scripts/lib/is-main.mjs, replacing the
+// filename-suffix check this file used before (fragile: any other file ending in the same suffix would
+// also match it; isMainModule compares the actual resolved path).
+if (isMainModule(import.meta.url)) {
   main().catch((e) => { console.error('layout guard ERROR:', e); process.exit(2); });
 }

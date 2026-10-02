@@ -49,6 +49,7 @@ import { parseEuWeeklyOilBulletinCsv } from "../../../src/lib/market/parsers/eu-
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
+import { isMainModule } from "../../lib/is-main.mjs";
 // DAG authorship at write time (lane W4-DAG, 2026-09-06: "market_series has no edges" — the W3-W4
 // plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
 // contract; this producer is the wiring, not a second implementation.
@@ -165,7 +166,11 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Guarded (F44/F67): importing this module (e.g. a future test on its exports) must never trigger a
+// live run. Only a direct `node eu-weekly-oil-bulletin.mjs` invocation reaches main().
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

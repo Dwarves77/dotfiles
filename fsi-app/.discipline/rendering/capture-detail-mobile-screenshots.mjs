@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { REGULATION_ENTRY, REGULATION_STATES, ALIAS } from './smoke/detail-surfaces-smoke.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 // Same createRequire pattern run-rendering-guard.mjs uses (see that file's own header): a plain ESM
 // `import "playwright"` fails under a hoisted npm install this package's own node_modules symlink can
@@ -46,7 +47,9 @@ async function main() {
   await browser.close();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

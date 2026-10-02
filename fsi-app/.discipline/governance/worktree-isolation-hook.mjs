@@ -15,6 +15,7 @@
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -63,4 +64,5 @@ async function main() {
   process.exit(1);
 }
 
-main();
+// Guarded (F67, lane R20, 2026-10-01): importing this module must never run the hook.
+if (isMainModule(import.meta.url)) main();

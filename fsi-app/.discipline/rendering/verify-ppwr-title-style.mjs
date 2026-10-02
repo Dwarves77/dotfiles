@@ -12,6 +12,7 @@
 import { createRequire } from 'node:module';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { REGULATION_ENTRY, REGULATION_STATES, ALIAS } from './smoke/detail-surfaces-smoke.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -66,7 +67,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exitCode = 1;
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  });
+}

@@ -29,6 +29,7 @@
 //   node scripts/turns/import-stranded-harness-branches.mjs --apply
 
 import { execFileSync } from "node:child_process";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const FAMILY_PREFIXES = [
   "gate-a-rescan", "maintenance-artifact", "brief-export", "corpus-turn", "downstream-chain",
@@ -163,7 +164,9 @@ async function main() {
   console.log(`\nAPPLY DONE: inserted ${inserted}, failed ${failed}, of ${rows.length} candidate row(s) across ${byFamily.size} family(ies).`);
 }
 
-main().catch((e) => {
-  console.error("import-stranded-harness-branches: fatal:", e);
-  process.exitCode = 1;
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => {
+    console.error("import-stranded-harness-branches: fatal:", e);
+    process.exitCode = 1;
+  });
+}

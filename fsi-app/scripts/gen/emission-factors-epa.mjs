@@ -17,6 +17,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadFixtureRows, seedFactors, recordSeedFactorsSummary } from "./emission-factors-common.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const PRODUCER_NAME = "emission-factors-epa";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -39,4 +40,7 @@ async function main() {
   if (recordSeedFactorsSummary({ producer: PRODUCER_NAME, summary })) process.exit(1);
 }
 
-main().catch((e) => { console.error("[epa-seed] fatal:", e.message); process.exit(1); });
+// Guarded (F44/F67), matching the DESNZ sibling's fix: importing this module must have no side effect.
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => { console.error("[epa-seed] fatal:", e.message); process.exit(1); });
+}

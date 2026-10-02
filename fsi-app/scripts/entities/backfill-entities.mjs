@@ -69,6 +69,7 @@ import { identifierRow, VALIDATORS } from "../../src/lib/entities/crosswalk.mjs"
 export { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "../../src/lib/entities/entity-plan.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs, planInstrumentEntities, planInstrumentFkUpdates } from "../../src/lib/entities/entity-plan.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 const ASSERTED_BY = "scripts/entities/backfill-entities.mjs";
 const CITE = {
@@ -270,8 +271,11 @@ async function main() {
   process.exit(0);
 }
 
-// Only run when invoked directly (not when imported by the test file).
-if (process.argv[1] && process.argv[1].endsWith("backfill-entities.mjs")) {
+// Only run when invoked directly (not when imported by the test file). F67 (lane R20, 2026-10-01):
+// standardized on isMainModule from scripts/lib/is-main.mjs, replacing the filename-suffix check this
+// file used before (that idiom works but is fragile: any other file ending in the same suffix would
+// also match it; isMainModule compares the actual resolved path).
+if (isMainModule(import.meta.url)) {
   main().catch((e) => {
     console.error(`[backfill-entities] FATAL: ${e.message}`);
     process.exit(1);

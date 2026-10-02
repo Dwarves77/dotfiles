@@ -55,13 +55,12 @@
 // construction live ONLY inside `main()`, gated by the IS_MAIN check at the bottom (mirrors
 // seed-derived-values.mjs), so importing this module for tests never touches the environment.
 
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { readAll, readClient } from "../lib/db.mjs";
 import { authorCarbonIntensityEdges } from "../gen/emission-factors-common.mjs";
 import { authorAutomateVsHireForRegions } from "../producers/regional/run-envelope-producer.mjs";
 import { authorMarketSeriesDeltaEdges } from "../producers/market/author-market-series-delta.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 
 /** Every live (non-superseded) emission_factors row, the same shape authorCarbonIntensityEdges wants for
  *  BOTH its `writtenRows` and `insertRes.rows` arguments — each live row already carries both
@@ -142,8 +141,6 @@ export async function runBackfill({ apply, limit = null }, deps = {}) {
 // ── CLI entrypoint — never reached on import (proved by backfill-derivation-edges.test.mjs importing the
 // exports above with no DB creds present) ──────────────────────────────────────────────────────────────
 
-const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-
 async function main() {
   loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -191,7 +188,10 @@ async function main() {
   process.exit(0);
 }
 
-if (IS_MAIN) {
+// F67 (lane R20, 2026-10-01): standardized on isMainModule from scripts/lib/is-main.mjs, replacing the
+// inlined fileURLToPath/resolve comparison this file used before (same correct semantics, now consistent
+// with the repo-wide convention rather than a locally reinvented one).
+if (isMainModule(import.meta.url)) {
   main().catch((e) => {
     console.error(`[backfill-derivation-edges] FATAL: ${e.message}`);
     process.exit(1);
