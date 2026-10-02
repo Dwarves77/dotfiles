@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { parseArgs, seedCarbonIntensity, seedAutomateVsHire, resolveRegionEntityId } from "./seed-derived-values.mjs";
 import { entityId } from "../../src/lib/entities/entity-id.mjs";
 
-function fakeClient(tables, { rpcHandler, upsertHandler } = {}) {
+function fakeClient(tables, { rpcHandler } = {}) {
   return {
     calls: [],
     from(table) {
@@ -25,10 +25,6 @@ function fakeClient(tables, { rpcHandler, upsertHandler } = {}) {
           const matched = rows.filter((r) => builder._filters.every((f) => f(r)));
           return { data: matched[0] ?? null, error: null };
         },
-        upsert: async (payload, opts) => {
-          this.calls.push({ table, payload, opts });
-          return upsertHandler ? upsertHandler(table, payload) : { data: payload, error: null };
-        },
         then(onfulfilled) {
           const data = rows.filter((r) => this._filters.every((f) => f(r)));
           return Promise.resolve(onfulfilled({ data, error: null }));
@@ -40,6 +36,18 @@ function fakeClient(tables, { rpcHandler, upsertHandler } = {}) {
       this.calls.push({ fn, args });
       return Promise.resolve(rpcHandler ? rpcHandler(fn, args) : { data: "11111111-1111-1111-1111-111111111111", error: null });
     },
+  };
+}
+
+// Fake for seedAutomateVsHire's injected `deps.upsertEstimatedValue` (default: the real guardedUpsert,
+// scripts/lib/db.mjs, rule-015 guarded path, lane R3, GUARDED-UPSERT remediation, 2026-10-01). Mirrors
+// guardedUpsert's own contract: resolves { upserted, snapshot, rows } on success, THROWS on failure
+// (never returns an {error} shape), same as the real helper.
+function fakeUpsertEstimatedValue(calls, { fail } = {}) {
+  return async (table, row, opts) => {
+    calls.push({ table, payload: row, opts });
+    if (fail) throw new Error(fail);
+    return { upserted: 1, snapshot: null, rows: [row] };
   };
 }
 
@@ -147,7 +155,10 @@ test("seedAutomateVsHire: a region with an ANNUAL-only labor_markets fact and an
 
 test("seedAutomateVsHire: a region with BOTH an annual and an hourly labor_markets fact picks the hourly one, never the annual one, for the wage input", async () => {
   const sb = fakeClient({ regional_data_facts: [ANNUAL_WAGE, WAGE, ENERGY] });
-  const r = await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z");
+  const r = await seedAutomateVsHire(
+    sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z",
+    { upsertEstimatedValue: fakeUpsertEstimatedValue([]) },
+  );
   assert.equal(r.skippedNoHourlyWage, 0);
   assert.equal(r.created, 1);
   const rpcCall = sb.calls.find((c) => c.fn === "register_derived_value");
@@ -172,9 +183,13 @@ test("seedAutomateVsHire: a region with both dimensions but no resolvable entity
   assert.equal(r.wouldCreate, 0);
 });
 
-test("seedAutomateVsHire apply: writes a derived_values RPC row AND an estimated_values upsert with the range triple", async () => {
+test("seedAutomateVsHire apply: writes a derived_values RPC row AND routes the estimated_values write through the guarded upsert path (deps.upsertEstimatedValue) with the range triple", async () => {
   const sb = fakeClient({ regional_data_facts: [WAGE, ENERGY] });
-  const r = await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z");
+  const upsertCalls = [];
+  const r = await seedAutomateVsHire(
+    sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z",
+    { upsertEstimatedValue: fakeUpsertEstimatedValue(upsertCalls) },
+  );
   assert.equal(r.created, 1);
 
   const rpcCall = sb.calls.find((c) => c.fn === "register_derived_value");
@@ -183,27 +198,37 @@ test("seedAutomateVsHire apply: writes a derived_values RPC row AND an estimated
   assert.equal(rpcCall.args.p_entity_id, "cl:jurisdiction:0000000000000001");
   assert.equal(rpcCall.args.p_inputs.length, 2);
 
-  const upsertCall = sb.calls.find((c) => c.table === "estimated_values");
-  assert.ok(upsertCall);
+  assert.equal(upsertCalls.length, 1, "estimated_values must go through the guarded upsert, never a raw sb.upsert()");
+  const upsertCall = upsertCalls[0];
+  assert.equal(upsertCall.table, "estimated_values");
   assert.equal(upsertCall.payload.entity_id, "cl:jurisdiction:0000000000000001");
   assert.equal(upsertCall.payload.model_id, "automate_vs_hire");
   assert.ok(upsertCall.payload.low <= upsertCall.payload.point && upsertCall.payload.point <= upsertCall.payload.high);
   assert.ok("paybackYears" in upsertCall.payload.distribution);
   assert.ok("breakEvenWagePerHour" in upsertCall.payload.distribution);
+  assert.ok(upsertCall.opts.cite?.skill, "guardedUpsert requires a cite -- the call must carry one");
 });
 
-test("seedAutomateVsHire apply: the estimated_values upsert carries scenario_key='default' and conflicts on the entity/model/scenario unique constraint (migration 286's 2026-09-02 amendment — entity_id alone is no longer unique)", async () => {
+test("seedAutomateVsHire apply: the estimated_values guarded upsert carries scenario_key='default' and conflicts on the entity/model/scenario unique constraint (migration 286's 2026-09-02 amendment, entity_id alone is no longer unique)", async () => {
   const sb = fakeClient({ regional_data_facts: [WAGE, ENERGY] });
-  await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z");
-  const upsertCall = sb.calls.find((c) => c.table === "estimated_values");
+  const upsertCalls = [];
+  await seedAutomateVsHire(
+    sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z",
+    { upsertEstimatedValue: fakeUpsertEstimatedValue(upsertCalls) },
+  );
+  const upsertCall = upsertCalls[0];
   assert.ok(upsertCall);
   assert.equal(upsertCall.payload.scenario_key, "default");
   assert.equal(upsertCall.opts.onConflict, "entity_id,model_id,model_version,scenario_key");
 });
 
-test("seedAutomateVsHire apply: an estimated_values upsert failure is counted as failed, not thrown", async () => {
-  const sb = fakeClient({ regional_data_facts: [WAGE, ENERGY] }, { upsertHandler: () => ({ data: null, error: { message: "conflict" } }) });
-  const r = await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001");
+test("seedAutomateVsHire apply: an estimated_values guarded-upsert failure is counted as failed, not thrown", async () => {
+  const sb = fakeClient({ regional_data_facts: [WAGE, ENERGY] });
+  const upsertCalls = [];
+  const r = await seedAutomateVsHire(
+    sb, "apply", async () => "cl:jurisdiction:0000000000000001", undefined,
+    { upsertEstimatedValue: fakeUpsertEstimatedValue(upsertCalls, { fail: "conflict" }) },
+  );
   assert.equal(r.failed, 1);
   assert.match(r.errors[0], /conflict/);
 });
@@ -211,7 +236,10 @@ test("seedAutomateVsHire apply: an estimated_values upsert failure is counted as
 test("seedAutomateVsHire: picks the most recently updated fact per dimension when a region has more than one", async () => {
   const older = { ...WAGE, id: "wage-old", value_numeric: 10, last_updated: "2020-01-01T00:00:00Z" };
   const sb = fakeClient({ regional_data_facts: [older, WAGE, ENERGY] });
-  await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z");
+  await seedAutomateVsHire(
+    sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z",
+    { upsertEstimatedValue: fakeUpsertEstimatedValue([]) },
+  );
   const rpcCall = sb.calls.find((c) => c.fn === "register_derived_value");
   const wageInput = rpcCall.args.p_inputs.find((i) => i.pk === "wage-1" || i.pk === "wage-old");
   assert.equal(wageInput.pk, "wage-1", "the more recently updated wage fact (28.5) should be used, not the older one (10)");

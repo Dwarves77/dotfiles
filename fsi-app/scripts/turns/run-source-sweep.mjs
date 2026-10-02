@@ -66,7 +66,7 @@ import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
 import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } from "../../src/lib/sources/sitemap-walk.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory, validateModeArg, baseArtifactFields } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
-import { readAllByIds } from "../lib/db.mjs";
+import { readAllByIds, guardedUpsert } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -350,19 +350,48 @@ export function portalFor({ walker, feedUrl, sourceName }) {
   return { url: feedUrl, name: sourceName || new URL(feedUrl).host };
 }
 
+// Cite for the portal_link_candidates guarded upsert below (lane R3, GUARDED-UPSERT remediation,
+// remediation-plan-2026-09-30.md item 3, 2026-10-01): closes the rule-015 bypass found by audits
+// A4/A4b/A4c, this write used a raw sb.from("portal_link_candidates").upsert(...) outside
+// scripts/lib/db.mjs's guarded path because that module had no guardedUpsert.
+const PORTAL_LINK_CANDIDATES_CITE = {
+  skill: "remediation-discipline",
+  reason:
+    "Lane R3 (GUARDED-UPSERT, remediation-plan-2026-09-30.md item 3, 2026-10-01): run-source-sweep.mjs's " +
+    "upsertPortalLinkCandidates was a raw .upsert() outside scripts/lib/db.mjs's guarded write path (rule " +
+    "015 bypass). Migrated to the new guardedUpsert helper, which snapshots the prior row at the " +
+    "onConflict key before mutating, mirroring guardedUpdate's reversibility contract.",
+};
+
 /** Mirrors `persistPortalCandidates` (`src/lib/intake/portal-harvest.ts`) EXACTLY: upsert on the ledger's
  *  UNIQUE `url`, refreshing only `last_seen_at`/`anchor_text` — `status`/`first_seen_at`/disposition
  *  columns are never touched by a re-crawl. See this file's header for why it is mirrored, not imported.
- *  Non-fatal per link (a failed upsert is counted, never thrown), matching that function's own contract. */
-export async function upsertPortalLinkCandidates(sb, sourceId, links) {
+ *  Non-fatal per link (a failed upsert is counted, never thrown), matching that function's own contract.
+ *
+ *  Routed through the guarded path (rule 015, lane R3 GUARDED-UPSERT remediation, 2026-10-01) rather than
+ *  a raw `sb.from(...).upsert(...)`. `upsertRow` defaults to the real `guardedUpsert` (scripts/lib/db.mjs)
+ *  and is injectable so a test can capture the call against a fake instead of needing real DB creds, the
+ *  same deps-injection posture `resolveRegionEntityId` already uses in seed-derived-values.mjs. `sb` is
+ *  kept as the first parameter for call-site stability even though the write itself no longer uses it
+ *  (guardedUpsert manages its own write client); every OTHER call in this family still reads through `sb`.
+ *  @param {object} sb
+ *  @param {string} sourceId
+ *  @param {Array<{url:string, anchorText?:string|null}>} links
+ *  @param {{upsertRow?: typeof guardedUpsert}} [deps] */
+export async function upsertPortalLinkCandidates(sb, sourceId, links, deps = {}) {
+  const upsertRow = deps.upsertRow ?? guardedUpsert;
   let upserted = 0, failed = 0;
   for (const l of links) {
-    const { error } = await sb.from("portal_link_candidates").upsert(
-      { source_id: sourceId, url: l.url, anchor_text: l.anchorText ?? null, last_seen_at: new Date().toISOString() },
-      { onConflict: "url" }
-    );
-    if (error) { failed++; continue; }
-    upserted++;
+    try {
+      await upsertRow(
+        "portal_link_candidates",
+        { source_id: sourceId, url: l.url, anchor_text: l.anchorText ?? null, last_seen_at: new Date().toISOString() },
+        { onConflict: "url", cite: PORTAL_LINK_CANDIDATES_CITE },
+      );
+      upserted++;
+    } catch {
+      failed++;
+    }
   }
   return { upserted, failed };
 }

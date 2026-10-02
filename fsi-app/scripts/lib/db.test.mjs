@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, readAllByIds, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest, withTransientRetry } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, readAllByIds, guardedDelete, guardedUpdateByIds, guardedUpsert, readClient, institutionKey, archivePatch, __setWriteClientForTest, withTransientRetry } = await import('./db.mjs');
 
 // GOLDEN (operator ruling 2026-07-13, Part A root-cause): archiving an intelligence_item resets its
 // provenance_status off 'verified' (the stale-verified cache class -- 168 archived rows read 'verified'
@@ -32,9 +32,10 @@ function makeClient(handler, calls) {
     const state = { table, verb: 'select', ops: [] };
     const settle = () => { calls.push({ table: state.table, verb: state.verb, ops: state.ops.slice() }); return Promise.resolve(handler(state)); };
     const b = {
-      select(c) { if (state.verb !== 'insert' && state.verb !== 'update' && state.verb !== 'delete') state.verb = 'select'; state.ops.push(['select', c]); return b; },
+      select(c) { if (state.verb !== 'insert' && state.verb !== 'update' && state.verb !== 'delete' && state.verb !== 'upsert') state.verb = 'select'; state.ops.push(['select', c]); return b; },
       insert(r) { state.verb = 'insert'; state.ops.push(['insert', r]); return b; },
       update(p) { state.verb = 'update'; state.ops.push(['update', p]); return b; },
+      upsert(r, opts) { state.verb = 'upsert'; state.ops.push(['upsert', r, opts]); return b; },
       delete() { state.verb = 'delete'; state.ops.push(['delete']); return b; },
       eq(c, v) { state.ops.push(['eq', c, v]); return b; },
       in(c, v) { state.ops.push(['in', c, v]); return b; },
@@ -216,6 +217,106 @@ test('guardedUpdateByIds: a chunk cancelled by the API statement timeout is halv
   await assert.rejects(() => guardedUpdateByIds('intelligence_items', ids, { a: 1 }, { cite }), /permission denied/);
   __setWriteClientForTest(() => makeClient(() => ({ data: null, error: { message: 'canceling statement due to statement timeout' } }), []));
   await assert.rejects(() => guardedUpdateByIds('intelligence_items', ['one'], { a: 1 }, { cite }), /statement timeout/);
+});
+
+// ---------------------------------------------------------------------------
+// guardedUpsert (rule-015 lane R3, 2026-10-01): the insert-or-update twin of guardedUpdate/guardedInsert
+// for a unique-key-conflict write (estimated_values' entity/model/scenario key,
+// portal_link_candidates' url). Snapshots whatever currently matches the onConflict key BEFORE the
+// upsert mutates it (empty when the row is new), same posture as guardedUpdate's prior-state snapshot.
+// ---------------------------------------------------------------------------
+
+test('guardedUpsert: snapshots the prior row (by onConflict key) BEFORE upserting, requires cite', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [{ url: 'https://x.gov/a', anchor_text: 'old' }], error: null };
+    if (s.verb === 'upsert') return { data: [{ url: 'https://x.gov/a', anchor_text: 'new' }], error: null };
+    return { data: null, error: null };
+  }, calls));
+  const r = await guardedUpsert(
+    'portal_link_candidates',
+    { url: 'https://x.gov/a', anchor_text: 'new' },
+    { onConflict: 'url', cite },
+  );
+  assert.equal(r.upserted, 1);
+  assert.equal(r.rows[0].anchor_text, 'new');
+  assert.ok(r.snapshot, 'must return a snapshot path');
+  const selectIdx = calls.findIndex((c) => c.verb === 'select');
+  const upsertIdx = calls.findIndex((c) => c.verb === 'upsert');
+  assert.ok(selectIdx >= 0 && upsertIdx >= 0 && selectIdx < upsertIdx, 'snapshot read must precede the upsert');
+  assert.deepEqual(calls[selectIdx].ops.find((o) => o[0] === 'eq'), ['eq', 'url', 'https://x.gov/a']);
+  assert.deepEqual(calls[upsertIdx].ops.find((o) => o[0] === 'upsert')[2], { onConflict: 'url' });
+
+  await assert.rejects(
+    () => guardedUpsert('portal_link_candidates', { url: 'https://x.gov/b' }, { onConflict: 'url' }),
+    /requires \{ cite/,
+  );
+});
+
+test('guardedUpsert: a key with no existing row snapshots empty (insert-shaped half of upsert)', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [], error: null }; // nothing exists yet at this key
+    if (s.verb === 'upsert') return { data: [{ entity_id: 'e1', point: 100 }], error: null };
+    return { data: null, error: null };
+  }, calls));
+  const r = await guardedUpsert(
+    'estimated_values',
+    { entity_id: 'e1', model_id: 'automate_vs_hire', model_version: '1.0.0', scenario_key: 'default', point: 100 },
+    { onConflict: 'entity_id,model_id,model_version,scenario_key', cite },
+  );
+  assert.equal(r.upserted, 1);
+  const selectCall = calls.find((c) => c.verb === 'select');
+  const eqOps = selectCall.ops.filter((o) => o[0] === 'eq');
+  assert.deepEqual(eqOps, [
+    ['eq', 'entity_id', 'e1'],
+    ['eq', 'model_id', 'automate_vs_hire'],
+    ['eq', 'model_version', '1.0.0'],
+    ['eq', 'scenario_key', 'default'],
+  ], 'every onConflict column must gate the snapshot read, composite key');
+});
+
+test('guardedUpsert: accepts an array of rows (one snapshot read per row, one upsert call)', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [], error: null };
+    if (s.verb === 'upsert') return { data: [{ url: 'a' }, { url: 'b' }], error: null };
+    return { data: null, error: null };
+  }, calls));
+  const r = await guardedUpsert(
+    'portal_link_candidates',
+    [{ url: 'a' }, { url: 'b' }],
+    { onConflict: 'url', cite },
+  );
+  assert.equal(r.upserted, 2);
+  assert.equal(calls.filter((c) => c.verb === 'select').length, 2, 'one snapshot read per incoming row');
+  assert.equal(calls.filter((c) => c.verb === 'upsert').length, 1, 'rows go out as one upsert call, not N');
+});
+
+test('guardedUpsert: requires onConflict', async () => {
+  await assert.rejects(
+    () => guardedUpsert('portal_link_candidates', { url: 'a' }, { cite }),
+    /onConflict is required/,
+  );
+});
+
+test('guardedUpsert: an empty rows array is a no-op, no client call', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient(() => { throw new Error('must not be called'); }, calls));
+  const r = await guardedUpsert('portal_link_candidates', [], { onConflict: 'url', cite });
+  assert.deepEqual(r, { upserted: 0, snapshot: null, rows: [] });
+  assert.equal(calls.length, 0);
+});
+
+test('guardedUpsert: propagates a PostgREST upsert error', async () => {
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [], error: null };
+    return { data: null, error: { message: 'duplicate key value violates unique constraint' } };
+  }, []));
+  await assert.rejects(
+    () => guardedUpsert('portal_link_candidates', { url: 'a' }, { onConflict: 'url', cite }),
+    /duplicate key/,
+  );
 });
 
 test('institutionKey: shared-portal hosts key by path prefix; other hosts by bare host', () => {
