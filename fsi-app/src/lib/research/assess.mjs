@@ -11,13 +11,30 @@
 // fabricates one), a horizon read (band + kind + rule + confidence, or a first-class refusal), and a
 // split credibility read (evidence score, authority score). NO LLM CALL, EVER (lane-common-contract section 0:
 // "$0: no LLM calls"). Every number this module returns traces to a field the caller handed it; nothing
-// is invented (CLAUDE.md rule 2).
+// is invented (CLAUDE.md rule 2). This module never performs its own network fetch either -- it stays
+// I/O-free; see "AUTHORITY SCORE WIRING" below for how a resolved OpenAlex record reaches it.
 //
 // WHY A SEPARATE PURE MODULE, NOT INLINE IN THE PRODUCER. Same reasoning as taxonomy.mjs and
 // credibility-grade-modifiers.mjs in this same directory: plain ESM, zero dependencies, so `node --test`
 // covers the entire rule ladder without a database, a fetch, or a DOM, and so a future reader (the
 // detail-surface component, a different producer, a unit test) can import the SAME decision logic the
 // producer uses rather than a second hand-copy of the R1-R4 ladder.
+//
+// AUTHORITY SCORE WIRING (lane L3, 2026-10-02, coordinator ruling: W2-R merged, the half-slice
+// prohibition on wiring no longer applies). `assessAuthorityScore` now computes the REAL spec-03
+// section 4 distribution via `scripts/research/authority-score.mjs`'s `scoreSource`/
+// `aggregateAuthorityDistribution` whenever it can resolve ANY source identity for the item:
+//   (a) `input.sourceRecords` -- pre-resolved OpenAlex records the PRODUCER attaches after a real,
+//       network, DOI-keyed lookup (`research-assessment-producer.mjs`'s `resolveOpenAlexSourceRecords`,
+//       using `extractDoiCandidate` below and `scripts/research/openalex-client.mjs`). That network call
+//       does NOT happen here -- this module stays pure/sync; the producer is where I/O already lives.
+//   (b) a forward event naming a recognized roadmap body (IEA/ICCT/IMO/a national plan -- the SAME
+//       `ROADMAP_BODIES` match the R3 horizon rule already uses, reused rather than re-matched), routed
+//       through authority-score.mjs's grey-literature path, zero network.
+// When NEITHER resolves (no DOI found in the item's text, no named roadmap body in its forward events),
+// `assessAuthorityScore` falls back to the ORIGINAL degenerate one-source-from-tier read -- the exact
+// same output shape and values every existing caller (the producer, the two page routes, read-
+// assessments.mjs) already depends on, unchanged for an item with no resolvable identity.
 //
 // INPUT SHAPE (never a raw DB row -- the producer's job is to narrow a `intelligence_items` + joined
 // rows into this shape; this module never touches Supabase).
@@ -37,6 +54,11 @@
 //     obligation_text: string | null,
 //     source_citation: string | null,            // a named institutional roadmap ("IEA", "ICCT", "IMO"), for R3
 //   }>,
+//   sourceRecords: Array<object> | undefined,   // OPTIONAL (lane L3): pre-resolved authority-score.mjs
+//                                                // records (kind 'openalex'|'grey_literature'), attached
+//                                                // by the producer's real OpenAlex-resolution step.
+//                                                // Absent/empty is the honest default -- most items
+//                                                // resolve nothing and fall back to the tier-based read.
 // }} AssessmentInput
 //
 // OUTPUT SHAPE maps 1:1 onto migration 336's research_assessments columns (see that file for the exact
@@ -49,6 +71,10 @@
 /** @typedef {"NOW"|"NEAR"|"MID"|"FAR"} HorizonBand */
 /** @typedef {"R1"|"R2"|"R3"|"R4"} HorizonRule */
 /** @typedef {"availability"|"economic"|"obligation"} HorizonKind */
+
+// Lane L3 wiring (2026-10-02): the real, multi-component spec-03 section 4 scorer. Reused, not
+// reimplemented -- see "AUTHORITY SCORE WIRING" above.
+import { scoreSource, aggregateAuthorityDistribution } from "../../../scripts/research/authority-score.mjs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -274,14 +300,64 @@ export function assessEvidenceScore(input) {
 }
 
 /**
- * Credibility, source-authority half (spec-03 section 4 Score 2). Returns a DISTRIBUTION-shaped object,
- * never a mean (acceptance criterion 4) -- here, necessarily a degenerate one-source distribution, since
- * this lane's input carries one source tier per item, not a multi-source bibliography. `null` when no
- * tier is on record (honest absence, never a guessed tier).
+ * DOI-shaped substring in free text, syntax-only (conservative: `10.NNNN/suffix`, trailing punctuation
+ * stripped). Exported so the producer's real OpenAlex-resolution step
+ * (`research-assessment-producer.mjs`'s `resolveOpenAlexSourceRecords`) reuses the SAME extraction this
+ * file's own tests cover, rather than a second hand-copy (lane-common-contract "Prior art"). A match is
+ * pure syntax, never itself a network call or a claim that the DOI resolves to anything -- the producer's
+ * actual `fetchWorkByDoi` call is what finds out.
+ * @param {string} text
+ * @returns {string | null}
+ */
+const DOI_RE = /\b10\.\d{4,9}\/[^\s"'<>)\]]+/;
+export function extractDoiCandidate(text) {
+  const m = (text || "").match(DOI_RE);
+  return m ? m[0].replace(/[.,;]+$/, "") : null;
+}
+
+/**
+ * Resolve every per-source authority record this item can support, with ZERO network (this module stays
+ * I/O-free; see "AUTHORITY SCORE WIRING" in the file header). Two sources, combined:
+ *   1. `input.sourceRecords` -- already-resolved OpenAlex records the PRODUCER attached after its own
+ *      real, network DOI lookup. Passed straight through, filtered to well-formed entries only.
+ *   2. Any forward event naming a recognized roadmap body (the SAME `ROADMAP_BODIES` match the R3
+ *      horizon rule already uses above), routed through authority-score.mjs's grey-literature path.
+ *      `institutionalMandate` is deliberately left unset here (defaults to false downstream): a forward
+ *      event CITING a body's roadmap is weaker evidence than that body being the actual, mandated
+ *      standard-setter for this item's domain, and this function has no basis for the stronger claim
+ *      (CLAUDE.md rule 2 -- never fabricate a signal stronger than what the data supports).
  * @param {import("./assess.mjs").AssessmentInput} input
- * @returns {{highAuthorityIndependent:number, medium:number, vendorFlagged:number} | null}
+ * @returns {Array<object>}
+ */
+export function resolveAuthoritySources(input) {
+  const records = [];
+  if (Array.isArray(input.sourceRecords)) {
+    for (const r of input.sourceRecords) if (r && r.sourceId) records.push(r);
+  }
+  for (const ev of input.forwardEvents ?? []) {
+    const haystack = `${ev.source_citation ?? ""} ${ev.obligation_text ?? ""}`;
+    const m = haystack.match(ROADMAP_BODIES);
+    if (m) records.push({ sourceId: `forward-event:${ev.id}`, kind: "grey_literature", displayName: m[0] });
+  }
+  return records;
+}
+
+/**
+ * Credibility, source-authority half (spec-03 section 4 Score 2). Returns a DISTRIBUTION-shaped object,
+ * never a mean (acceptance criterion 4). Lane L3 (2026-10-02): computes the REAL multi-component
+ * distribution via `scripts/research/authority-score.mjs` whenever `resolveAuthoritySources` finds ANY
+ * source identity (a producer-resolved OpenAlex record, or a named roadmap body in a forward event).
+ * Falls back to the ORIGINAL degenerate one-source-from-tier read -- identical output to every prior
+ * caller -- when NEITHER resolves: `null` when no tier is on record either (honest absence, never a
+ * guessed tier).
+ * @param {import("./assess.mjs").AssessmentInput} input
+ * @returns {{highAuthorityIndependent:number, medium:number, vendorFlagged:number, unknown?:number, integrityFlagged?:number, sources?:Array<object>} | null}
  */
 export function assessAuthorityScore(input) {
+  const resolved = resolveAuthoritySources(input);
+  if (resolved.length > 0) {
+    return aggregateAuthorityDistribution(resolved.map((r) => scoreSource(r)));
+  }
   const tier = input.sourceTier;
   if (typeof tier !== "number") return null;
   // Lower tier number = stronger institution (institution.ts convention). T1-T2 reads as high-authority,

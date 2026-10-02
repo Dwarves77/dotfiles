@@ -11,10 +11,17 @@ import {
   hasChanged,
   toRow,
   runResearchAssessmentProducer,
+  resolveOpenAlexSourceRecords,
   decideApply,
   PRODUCER_NAME,
 } from "./research-assessment-producer.mjs";
-import { FIXTURE_CANDIDATES, FIXTURE_NOW } from "./fixtures/research-assessment-fixtures.mjs";
+import {
+  FIXTURE_CANDIDATES,
+  FIXTURE_NOW,
+  FIXTURE_OPENALEX_CANDIDATE,
+  FIXTURE_OPENALEX_DOI,
+  fixtureOpenAlexFetchStub,
+} from "./fixtures/research-assessment-fixtures.mjs";
 // F27 (producer-seam-proof): this file is the ONE proof that imports every first-party seam this
 // producer composes TOGETHER -- the module graph alone (research-assessment-producer.mjs's own
 // top-level import of assess.mjs) is not enough per that gate's own header ("a proof per module is
@@ -194,6 +201,65 @@ test("runResearchAssessmentProducer skips unchanged candidates and writes nothin
   });
   assert.equal(calls, 3); // the other 3 fixtures still write; the r4 one (matching current exactly) does not
   assert.equal(result.metrics.unchanged, 1);
+});
+
+// ── Lane L3 (2026-10-02): the real OpenAlex-resolution step, offline via injected deps ─────────────
+
+test("resolveOpenAlexSourceRecords makes NO network call when the item's text carries no DOI", async () => {
+  let fetchCalled = false;
+  const result = await resolveOpenAlexSourceRecords(
+    { id: "x", text: "no identifier anywhere in this text" },
+    { fetch: async () => { fetchCalled = true; } },
+  );
+  assert.deepEqual(result, []);
+  assert.equal(fetchCalled, false);
+});
+
+test("resolveOpenAlexSourceRecords resolves a real-shaped record from the recorded fixture response, mapping raw snake_case onto the resolved-input shape", async () => {
+  const [record] = await resolveOpenAlexSourceRecords(FIXTURE_OPENALEX_CANDIDATE, { fetch: fixtureOpenAlexFetchStub() });
+  assert.equal(record.sourceId, `doi:${FIXTURE_OPENALEX_DOI}`);
+  assert.equal(record.kind, "openalex");
+  assert.equal(record.institution.displayName, "Harvard University");
+  assert.equal(record.work.fwci, 48.9515);
+  // The mapping-boundary finding this lane confirmed against a live fire: citation_normalized_percentile
+  // is an OBJECT on the raw API, {value, ...} -- the mapped record must carry the extracted number, not
+  // the raw object and not undefined.
+  assert.equal(record.work.citationNormalizedPercentile, 0.99967102);
+  assert.equal(record.work.isRetracted, false);
+  assert.equal(record.funding, null); // grants parsing not resolved here -- honestly null, never guessed
+});
+
+test("resolveOpenAlexSourceRecords returns [] (never throws) when the resolved DOI 404s against the injected fetch", async () => {
+  const input = { id: "x", text: "cites DOI 10.9999/does-not-exist for background." };
+  const result = await resolveOpenAlexSourceRecords(input, { fetch: fixtureOpenAlexFetchStub() });
+  assert.deepEqual(result, []);
+});
+
+test("runResearchAssessmentProducer wires the real OpenAlex record all the way into the planned row's credibility_authority_score, overriding the item's own vendor-tier stamp", async () => {
+  const result = await runResearchAssessmentProducer({
+    candidates: [FIXTURE_OPENALEX_CANDIDATE],
+    currentByItemId: new Map(),
+    mode: "dry",
+    now: FIXTURE_NOW,
+    deps: { openAlexDeps: { fetch: fixtureOpenAlexFetchStub() } },
+  });
+  assert.equal(result.plan.length, 1);
+  const score = result.plan[0].credibility_authority_score;
+  assert.ok(score, "credibility_authority_score must be populated");
+  assert.equal(score.sources[0].roleClass, "university");
+  // sourceTier 7 on FIXTURE_OPENALEX_CANDIDATE is a vendor-tier stamp on the ITEM; the real resolved
+  // record must drive the result, never the degenerate tier fallback this lane replaced.
+  assert.notEqual(score.vendorFlagged, 1);
+});
+
+test("runResearchAssessmentProducer with no openAlexDeps injected still runs the existing fixtures unchanged (default-safe, no network attempted)", async () => {
+  const result = await runResearchAssessmentProducer({
+    candidates: FIXTURE_CANDIDATES,
+    currentByItemId: new Map(),
+    mode: "dry",
+    now: FIXTURE_NOW,
+  });
+  assert.equal(result.metrics.planned, 4); // unchanged from the pre-wiring count -- no DOI in any of these four
 });
 
 // ── decideApply: the three-gate decision (ADR-023 shape) ────────────────────────────────────────────

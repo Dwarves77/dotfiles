@@ -12,6 +12,8 @@ import {
   assessEvidenceScore,
   assessAuthorityScore,
   assessItem,
+  extractDoiCandidate,
+  resolveAuthoritySources,
 } from "./assess.mjs";
 
 function baseInput(overrides = {}) {
@@ -199,6 +201,72 @@ test("assessAuthorityScore: tier 1-2 -> high-authority, 3-5 -> medium, 6-7 -> ve
   assert.deepEqual(assessAuthorityScore(baseInput({ sourceTier: 1 })), { highAuthorityIndependent: 1, medium: 0, vendorFlagged: 0 });
   assert.deepEqual(assessAuthorityScore(baseInput({ sourceTier: 4 })), { highAuthorityIndependent: 0, medium: 1, vendorFlagged: 0 });
   assert.deepEqual(assessAuthorityScore(baseInput({ sourceTier: 7 })), { highAuthorityIndependent: 0, medium: 0, vendorFlagged: 1 });
+});
+
+// ── Credibility: authority score, the REAL wiring (lane L3, 2026-10-02) ─────────────────────────────
+
+test("extractDoiCandidate finds a DOI-shaped substring in free text and strips trailing punctuation", () => {
+  assert.equal(extractDoiCandidate("see DOI 10.1038/nature12373 for primary evidence."), "10.1038/nature12373");
+  assert.equal(extractDoiCandidate("no identifier here at all"), null);
+  assert.equal(extractDoiCandidate(""), null);
+  assert.equal(extractDoiCandidate(null), null);
+});
+
+test("resolveAuthoritySources passes through well-formed input.sourceRecords and drops malformed entries", () => {
+  const input = baseInput({ sourceRecords: [{ sourceId: "doi:x", kind: "openalex" }, { kind: "openalex" }, null] });
+  const resolved = resolveAuthoritySources(input);
+  assert.equal(resolved.length, 1);
+  assert.equal(resolved[0].sourceId, "doi:x");
+});
+
+test("resolveAuthoritySources builds a grey-literature record from a forward event naming a roadmap body (reuses R3's own match, zero network)", () => {
+  const input = baseInput({
+    forwardEvents: [{ id: "fe-1", kind: "milestone", event_date: "2030-01-01", obligation_text: null, source_citation: "IEA World Energy Outlook" }],
+  });
+  const resolved = resolveAuthoritySources(input);
+  assert.equal(resolved.length, 1);
+  assert.equal(resolved[0].kind, "grey_literature");
+  assert.match(resolved[0].displayName, /IEA/);
+  assert.equal(resolved[0].institutionalMandate, undefined, "never asserts the stronger institutional-mandate claim from a bare citation");
+});
+
+test("assessAuthorityScore computes the REAL multi-component distribution from a producer-resolved OpenAlex record, not the degenerate tier fallback", () => {
+  const input = baseInput({
+    sourceTier: 7, // a vendor-tier source on the item itself -- must NOT be what drives the result once a real record resolves
+    sourceRecords: [
+      {
+        sourceId: "doi:10.1038/nature12373",
+        kind: "openalex",
+        institution: { displayName: "Harvard University", type: "education" },
+        work: { publicationDate: "2013-07-30", fwci: 48.9515, citedByCount: 1983, isRetracted: false },
+        funding: null,
+      },
+    ],
+  });
+  const result = assessAuthorityScore(input);
+  // funding is null/unresolved -> 'unknown', which caps a university-role source at 'medium', never
+  // 'highAuthorityIndependent' on an unverified funding state (the three-state rule, never collapsed).
+  assert.deepEqual(result, { highAuthorityIndependent: 0, medium: 1, vendorFlagged: 0, unknown: 0, integrityFlagged: 0, sources: result.sources });
+  assert.equal(result.sources[0].roleClass, "university");
+  // Never a mean, and never equal to the degenerate tier-7 vendor-flagged shape that would have fired
+  // had this lane not wired the real computation in.
+  assert.notEqual(result.vendorFlagged, 1);
+});
+
+test("assessAuthorityScore falls back to the ORIGINAL degenerate tier read when nothing resolves (no DOI record, no named roadmap body) -- unchanged for every existing caller", () => {
+  const input = baseInput({ sourceTier: 2, text: "No DOI and no roadmap body named anywhere in this text." });
+  assert.deepEqual(assessAuthorityScore(input), { highAuthorityIndependent: 1, medium: 0, vendorFlagged: 0 });
+});
+
+test("assessAuthorityScore combines a resolved OpenAlex record AND a named-roadmap grey-literature record into one distribution, never a mean", () => {
+  const input = baseInput({
+    sourceRecords: [{ sourceId: "doi:x", kind: "openalex", institution: { displayName: "Acme Corp", type: "company" }, work: null, funding: null }],
+    forwardEvents: [{ id: "fe-1", kind: "milestone", event_date: "2030-01-01", obligation_text: null, source_citation: "IMO" }],
+  });
+  const result = assessAuthorityScore(input);
+  assert.equal(result.vendorFlagged, 1); // the OpenAlex vendor record
+  assert.equal(result.medium, 1); // the IMO grey-literature record (intergovernmental role, funding unknown -> capped at medium)
+  assert.equal(result.sources.length, 2);
 });
 
 // ── assessItem: full assembly, status-token discipline (CLAUDE.md rule 14) ──────────────────────────
