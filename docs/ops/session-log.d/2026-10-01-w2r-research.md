@@ -28,8 +28,36 @@ first (R14):
   soft-fails to nothing) and `/research/[slug]` (new "Horizon assessment" rail card: maturity corridors,
   horizon kind/band/rule/confidence, the refusal state, and the planning-assumption-shift absence
   wording).
-- `docs/decisions/ADR-038-research-built-now.md` + INDEX line. `docs/specs/03-research.md` "Built
-  2026-10-01" note + section 10 gap-table update for the two closed rows.
+- `docs/decisions/ADR-038-research-built-now.md`. `docs/specs/03-research.md` "Built 2026-10-01" note
+  + section 10 gap-table update for the two closed rows.
+- Migration renumbered 336 -> 344 (coordinator-caught collision with lane W2-B) and its self-check
+  column count corrected 20 -> 24 (coordinator-caught: CREATE TABLE declares 24, self-check said 20 -
+  an apply would have aborted at its own RAISE EXCEPTION). Added
+  `344_research_assessments.test.mjs`, a text-parsing proof that the self-check's literal and the
+  CREATE TABLE's real column count can never drift apart again; verified red-then-green against the
+  file.
+- **Planning-assumption shift wired to the real reader** (lane W2-R2 merged, PR 877,
+  `planning_assumption_register`, migration 345). `ResearchAssessmentCard` now fetches
+  `GET /api/workspace/assumptions` client-side via `authedFetch` (F40's sanctioned path) and narrows to
+  the at-risk subset with `isAtRisk` (imported directly from `src/lib/assumptions/contract.mjs`, never
+  re-implemented) - that route already calls read.ts's own `readWorkspaceAssumptions` (see
+  `logic.ts`'s `listAssumptions`), so the real reader is reached with zero new query logic. The absence
+  copy renders only when the resolved list is genuinely empty; a distinct "checking..." state renders
+  while the fetch is in flight (DP-2). `formatAssumptionShift` (pure, `read-assessments.mjs`) renders
+  name/boundTo/quantified-value/review-date; 4 new unit tests including the coordinator-requested
+  fixture for one load-bearing, vulnerable assumption.
+  **Named finding, not followed literally:** the coordinator's instruction described wiring via a
+  server-side import; this lane used a CLIENT-SIDE fetch instead and is flagging why rather than
+  silently picking one. [CONFIRMED by reading the tree]: `loadDetail`'s `loadViewerScoped` hook
+  resolves `orgId` via `resolveOrgIdFromCookies`, a Dynamic API that forces the WHOLE route dynamic
+  under this app's classical (non-PPR) rendering. Every `[slug]` detail page in this codebase has
+  deliberately avoided that hook for exactly this reason (regulations and market each removed their
+  own prior usage under PERF-10, 2026-09-04; operations and research never adopted it) - zero live
+  call sites remained before this change. Using it here would have been the first reintroduction of a
+  regression class closed twice already, for a feature this lane was not asked to perf-tune. The
+  client-side fetch reaches the identical real reader (read.ts, via the already-wired route) with zero
+  cost to the cached item-scoped render - same posture `RelevanceBadgeClient.tsx` already uses on this
+  exact page. Full reasoning in `read-assessments.mjs`'s own header.
 
 ## Finding, corrected in place (not worked around, not silently dropped - CLAUDE.md rule 14)
 
@@ -94,19 +122,26 @@ the import now would break this branch's own build). ADR-038 corrected in place 
 ## Open items / needs operator attention
 
 - **NEEDS WRITE-SET EXPANSION (none actually hit):** no file outside the declared write set was needed.
-- **Pending, mechanical, blocked on a sibling lane's merge:** once `lane/w2r2-assumption-register`
-  merges, rebase this branch and wire `readAtRiskAssumptions` (`@/lib/assumptions/read.ts`) into
-  `ResearchAssessmentCard`, replacing the unconditional absence render with the real at-risk-assumption
-  list when non-empty. Named precisely in `ResearchFindingDetailSurface.tsx`'s own comment and in
-  ADR-038's corrected finding.
+- **COORDINATOR ACTION NEEDED - docs/INDEX.md line** (lane-common-contract forbids a lane editing this
+  file directly; F51 caught a draft commit that did, reverted in this session). Please add:
+  `- [ADR-038-research-built-now](./decisions/ADR-038-research-built-now.md) - operator ruling
+  2026-10-01 overrides build-plan-2026-09-25's decision 4 (design-only gate); Research's assessment
+  model (maturity triple, horizon R1-R4 ladder, split credibility) is built now via assess.mjs +
+  migration 344 (research_assessments) + the research-assessment producer; names the
+  assumption_register mismatch (migration 271 is internal modelling constants, not a per-tenant
+  planning-assumption store) rather than wiring a query against the wrong table (accepted 2026-10-01)`
+- **COORDINATOR ACTION NEEDED - meta-harness pending file** (F28: registering the `research-assessment`
+  harness family changed `scripts/harness-runs/research-assessment/family.json`, which is itself one of
+  the meta-harness family's own governing files per family-registry.mjs's "the loop applies to itself"
+  design). This lane added
+  `fsi-app/scripts/harness-runs/meta-harness/pending/2026-10-02-w2r-research.md` naming the change; it
+  discharges when a meta-harness run lands, or the coordinator may judge it already covered.
 - Migration 344 is DDL-sketch-only; the coordinator applies it via the Supabase CLI before `--live`
   reads will resolve. The producer's fixture/dry CLI run requires no migration and was run and verified
   (`scripts/harness-runs/research-assessment/research-assessment-run-001.json`).
-- `tsc --noEmit` is clean. `node fsi-app/.discipline/fitness/runner.mjs`: 52 functions checked, 0
-  violations (F23/F27/F39 each found and fixed this session: F23 orphaned-proof was a staging artifact
-  (new test files not yet `git add`ed - resolved); F27 needed one composition proof importing
-  assess.mjs + surface-candidate.mjs + producer-summary.mjs + the orchestrator together (added to
-  `research-assessment-producer.test.mjs`); F39 needed the producer's three `.in()` reads routed
-  through `readAllByIds`, not a raw `.in()` on a runtime-sized list). The rendering guard (Playwright)
-  was NOT run in this session (no new row component needing F35 registration - `ResearchAssessmentCard`
-  is a rail card, `ThemeBriefCard`'s own shape, not a list row).
+- `tsc --noEmit` is clean throughout. `node fsi-app/.discipline/fitness/runner.mjs` final state: 58
+  functions checked, 0 violations (every violation found during this session was fixed in the same
+  session: F23 staging artifact, F27 composition proof, F39 chunked reads, F51 the INDEX.md edit
+  reverted, F28 the meta-harness pending file added). The rendering guard (Playwright) was NOT run in
+  this session (no new row component needing F35 registration - `ResearchAssessmentCard` is a rail
+  card, `ThemeBriefCard`'s own shape, not a list row).
