@@ -1,0 +1,75 @@
+[
+  {
+    "row_id": "0221bea2-fe3b-488e-a4eb-c7f6cbf7bb09",
+    "document_url": "https://sdir.no/siteassets/engelske-forskrifter-pdf/30-may-2012-no.-488-environmental-safety-for-ships-and-mobile-offshore-units.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "sdir.no",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0485e000-b40c-428b-b7a3-1d7bf0b2621f",
+    "document_url": "https://climate.ec.europa.eu/document/download/a564c02f-1c94-497c-8154-7e1d8e718ba5_en?filename=policy_transport_shipping_gd3_accreditation_and_verification_en.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "climate.ec.europa.eu",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0a8fcb61-4787-458e-a5dd-acdb07adc02c",
+    "document_url": "https://www.federalregister.gov/documents/2026/07/07/2026-13667/minor-new-source-review-program-air-permitting-public-participation-requirements-for-state",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "0b4ec47a-0e9a-44f0-bf49-daac875f6b6b",
+    "document_url": "https://climate.ec.europa.eu/document/download/fd75992b-e2ad-4126-be63-75a9adb71e95_en?filename=com_2013_480_en.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "climate.ec.europa.eu",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0b66cad5-4c17-41af-915b-93ea322100b3",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:E2012C0522",
+    "instrument_identifier": "E2012C0522",
+    "canonical_instrument_key": null,
+    "scheme": "celex",
+    "host": "eur-lex.europa.eu",
+    "reason": "canonical_key_unresolved"
+  },
+  {
+    "row_id": "0b697692-68cf-49d7-83cb-a26f610c8b32",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22004A0806(01)",
+    "instrument_identifier": "22004A0806(01)",
+    "canonical_instrument_key": "22004A0806(01)",
+    "scheme": "celex",
+    "host": "eur-lex.europa.eu",
+    "reason": "canonical_key_unresolved"
+  },
+  {
+    "row_id": "0df7e908-bcd5-4eca-827e-5d7c6b2721c5",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21998A0912(01)",
+    "instrument_identifier": "21998A0912(01)",
+    "canonical_instrument_key": "21998A0912(01)",
+    "scheme": "celex",
+    "host": "eur-lex.europa.eu",
+    "reason": "canonical_key_unresolved"
+  },
+  {
+    "row_id": "114d17e6-6e5e-4b4a-94f1-d54533177848",
+    "document_url": "https://rules.cityofnewyork.us/wp-content/uploads/2023/09/Rewiring-America-LL97-proposed-rule-comments.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "rules.cityofnewyork.us",
+    "reason": "identity_unmapped_source"
+  }
+]
