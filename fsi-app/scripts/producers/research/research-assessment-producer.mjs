@@ -253,19 +253,25 @@ async function fetchLiveCandidates() {
     : [];
   const tierBySource = new Map((sources ?? []).map((s) => [s.id, s.base_tier]));
 
+  // Coordinator-caught at push time (pagination-order-key-audit.test.mjs, the GATE-A-RESCAN crash
+  // class): item_forward_events has no "item_id" or "kind" or "source_citation" column. The real
+  // schema (migration 274) is intelligence_item_id / event_kind / obligation_text; there is no
+  // citation-text column at all, so source_citation is honestly null here (the R3 roadmap-body regex
+  // in assess.mjs already falls back to obligation_text alone, which is still exercised).
   const itemIds = admitted.map((r) => r.id);
-  const events = itemIds.length
+  const rawEvents = itemIds.length
     ? await readAllByIds(
         "item_forward_events",
-        "id,item_id,kind,event_date,obligation_text,source_citation",
+        "id,intelligence_item_id,event_date,event_kind,obligation_text",
         itemIds,
-        { idColumn: "item_id", client: sb },
+        { idColumn: "intelligence_item_id", client: sb },
       )
     : [];
   const eventsByItem = new Map();
-  for (const ev of events ?? []) {
-    if (!eventsByItem.has(ev.item_id)) eventsByItem.set(ev.item_id, []);
-    eventsByItem.get(ev.item_id).push(ev);
+  for (const raw of rawEvents ?? []) {
+    const ev = { id: raw.id, kind: raw.event_kind, event_date: raw.event_date, obligation_text: raw.obligation_text, source_citation: null };
+    if (!eventsByItem.has(raw.intelligence_item_id)) eventsByItem.set(raw.intelligence_item_id, []);
+    eventsByItem.get(raw.intelligence_item_id).push(ev);
   }
 
   return admitted.map((row) =>
