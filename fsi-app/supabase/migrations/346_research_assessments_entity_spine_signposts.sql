@@ -97,8 +97,8 @@ COMMENT ON COLUMN public.research_assessments.lifecycle_state IS
   'only by src/lib/propagation/methods/signpost-watch.ts''s fireSignpost() on a signpost firing, per the '
   'transitions that file documents (direction=refutes -> falsified per spec 08''s own table; '
   'direction=confirms advances one step toward corroborated, never auto-promoting to verified, which spec '
-  '08''s table reserves for an editor+PROV action; direction=delays -> stalled, a named extension of the '
-  'diagram''s own stalled branch, not literally in spec 08''s table -- see signpost-watch.ts header). Added '
+  '08''s table reserves for an editor+PROV action; direction=delays -> stalled, [RULED 2026-10-02, '
+  'coordinator, under ADR-039] -- see signpost-watch.ts header). Added '
   'by migration 346, not migration 344 -- that table shipped before this lifecycle concept existed on it.';
 
 -- ── (b) signposts: the signpost entity kind's attribute table (spec 08 section 1.2, amended by ruling) ──

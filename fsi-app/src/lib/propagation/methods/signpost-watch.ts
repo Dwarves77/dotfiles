@@ -149,8 +149,8 @@ export function evaluateSignpostPredicate(
  *     without becoming exactly the editorial-approval gate the no-editorial-queue doctrine forbids.
  *   - `delays` has no literal row in spec 08's table, but the table's own ASCII diagram draws `stalled`
  *     as a branch off any main-chain state (the same shape as its `falsified`/`obsolete` branches) with
- *     no named trigger -- `delays` fills exactly that gap. [HYPOTHESIS: this mapping is a reasonable,
- *     named extension, not independently ratified by an ADR; flagged in the lane report.]
+ *     no named trigger -- `delays` fills exactly that gap. [RULED 2026-10-02, coordinator, under
+ *     ADR-039] this mapping is ratified, not left as an unverified extension.
  *   - `falsified`/`obsolete`/`superseded` are terminal for THIS function: once there, a further signpost
  *     firing is still recorded (fired_at, propagation_events) but does not move lifecycle_state again --
  *     spec 08's table gives no path back out of any of the three, and this watcher must never invent one.
