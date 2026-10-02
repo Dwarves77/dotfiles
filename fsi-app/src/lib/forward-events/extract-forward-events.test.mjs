@@ -1152,38 +1152,31 @@ describe('selectDateCell (pure helper)', () => {
 // OBLIGATION-TEXT REBUILD — corpus-wide idempotence + property tests, lane FWD-TEXT-2, 2026-09-04.
 //
 // The coordinator's own dry-run summary of Maintenance #32 (`forward-events-retext` dry, master 2f110fea
-// = FWD-TEXT's landed fe1-2026-09-04.1 code, run 33856356721) is `scripts/_snapshots/retext32.json` — 654
-// `retext_targets[]`, each `{ id, intelligence_item_id, event_date, event_kind, source_kind, before, after,
-// defect_classes }`. `_snapshots/` is gitignored scratch (CLAUDE.md standing rule 5) and is NOT part of
-// this repo's tracked tree, so these two tests self-skip (never fail) when the file is absent — e.g. a
-// fresh clone, or CI without this lane's working directory — same "diagnosable, never a false red"
-// convention CLAUDE.md standing rule 15 states for a verifier missing its credentials. Run inside THIS
-// lane's worktree (where the coordinator placed the file as evidence), both run for real against the full
-// 654 rows and print the measured counts the dispatch asked for.
+// = FWD-TEXT's landed fe1-2026-09-04.1 code, run 33856356721) was originally captured as gitignored
+// scratch at `scripts/_snapshots/retext32.json`, 654 `retext_targets[]`, each `{ id, intelligence_item_id,
+// event_date, event_kind, source_kind, before, after, defect_classes }`. Lane R16-19 (PR 870) committed a
+// 3-row excerpt of that shape at `fixtures/retext32.json` so these tests are no longer dependent on
+// gitignored scratch surviving in the working tree. Lane R16b (2026-10-02, this fix) verified the
+// committed excerpt's three `before` rows genuinely exercise every property this test checks (idempotence,
+// leading-char, star/pipe/url stripping, honest-ellipsis trailing edge), confirmed by running
+// normalizeObligationText over them directly, and removed the two tests' self-skip branches so they run
+// unconditionally, every environment, per CLAUDE.md rule 15 ("a proof that does not execute is not a
+// proof"). They now assert over the 3 committed rows, not the original 654; a real regression in any of
+// these properties would still be caught the moment it reaches this fixture's content.
 // ---------------------------------------------------------------------------
 
-const RETEXT32_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'retext32.json');
+const RETEXT32_PATH = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'retext32.json');
 
 function loadRetext32Before() {
-  let raw;
-  try {
-    raw = readFileSync(RETEXT32_PATH, 'utf8');
-  } catch {
-    return null;
-  }
+  const raw = readFileSync(RETEXT32_PATH, 'utf8');
   const parsed = JSON.parse(raw);
-  const before = (parsed.retext_targets ?? []).map((t) => t.before);
-  return before.length ? before : null;
+  return (parsed.retext_targets ?? []).map((t) => t.before);
 }
 
-describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (retext32.json, 654 rows)', () => {
+describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (fixtures/retext32.json, 3 rows)', () => {
   const beforeTexts = loadRetext32Before();
 
-  test('normalizeObligationText is idempotent over every row (skips if retext32.json is not present in this checkout)', (t) => {
-    if (!beforeTexts) {
-      t.skip('scripts/_snapshots/retext32.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
+  test('normalizeObligationText is idempotent over every fixture row', () => {
     let failures = 0;
     const examples = [];
     for (const raw of beforeTexts) {
@@ -1198,11 +1191,7 @@ describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (ret
     assert.equal(failures, 0, `normalizeObligationText(normalizeObligationText(x)) !== normalizeObligationText(x) for ${failures}/${beforeTexts.length} rows`);
   });
 
-  test('property set over every row: no bad leading char, no *, no pipe-cell, no bare URL, proper trailing punctuation or an honest ellipsis (skips if retext32.json is not present)', (t) => {
-    if (!beforeTexts) {
-      t.skip('scripts/_snapshots/retext32.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
+  test('property set over every fixture row: no bad leading char, no *, no pipe-cell, no bare URL, proper trailing punctuation or an honest ellipsis', () => {
     let badLeading = 0;
     let rawLowercaseStart = 0;
     let ellipsisPrefixed = 0;
@@ -1573,35 +1562,42 @@ describe('extractForwardEvents: FWD-TEXT-4 residue fix (marker beyond DEFAULT_MA
 // after Maintenance #38's forward-events-retext APPLY); by the time this lane ran the query above, the
 // backlog flywheel had minted more record-grade items in between (item_forward_events grew 926/173 ->
 // 1071/228 over that window, live-measured) and the SAME residue class was 122 rows / 90 items -- a
-// superset, not a different defect, and the larger number this test actually asserts over. `_snapshots/`
-// is gitignored scratch (CLAUDE.md standing rule 5), so this test self-skips (never fails) when the file is
-// absent, same convention as the OBLIGATION-TEXT REBUILD block above.
+// superset, not a different defect. That original gitignored `scripts/_snapshots/fwdtext3-live-58.json`
+// snapshot is not part of this repo's tracked tree.
+//
+// Lane R16b (2026-10-02, this fix): lane R16-19 (PR 870) committed `fixtures/fwdtext3-live-58.json` as a
+// stand-in so this test would not depend on gitignored scratch -- but the committed file is a 2-row
+// PLACEHOLDER whose `content_md` ("Record facts here.", "More facts.") carries no date and no
+// record-facts wrapper token at all, so it cannot reproduce the real live-SQL shape above: re-extraction
+// never finds a fresh event matching either `residue_rows` entry, by construction of the stub data, not
+// because of any defect in the module under test (confirmed directly: see commit history for this file).
+// No real snapshot exists on disk in this worktree to copy rows from (checked: no `scripts/_snapshots/`
+// directory here at all), and regenerating the genuine 58/122-row snapshot requires DB credentials this
+// worktree does not have (SUPABASE_* unset per dispatch). Per the dispatch's own instruction, the
+// assertion below is TRIMMED to what this placeholder actually proves rather than left pointed at
+// unreachable 58/122-row counts: every fixture row is accounted for exactly once, the function runs over
+// this committed shape without throwing, and the forbidden-wrapper-token check still holds over however
+// many rows produce a fresh match (zero, for this fixture); a real regression would still fail the
+// moment a non-placeholder fixture lands. Regenerating `fixtures/fwdtext3-live-58.json` from the live SQL
+// above is tracked follow-up (CLAUDE.md rule 13/14, flagged, not silently dropped), filed in this lane's
+// session-log entry rather than left as an unexplained thin test.
 // ---------------------------------------------------------------------------
 
-const LIVE58_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'fwdtext3-live-58.json');
+const LIVE58_PATH = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fwdtext3-live-58.json');
 const RECORD_FACTS_FORBIDDEN = ['captured source', 'verbatim:', 'date_precision', 'from the passage', 'full-brief regrounding'];
 
 function loadLive58() {
-  let raw;
-  try {
-    raw = readFileSync(LIVE58_PATH, 'utf8');
-  } catch {
-    return null;
-  }
+  const raw = readFileSync(LIVE58_PATH, 'utf8');
   const parsed = JSON.parse(raw);
-  return Array.isArray(parsed) && parsed.length ? parsed : null;
+  if (!Array.isArray(parsed)) throw new Error(`${LIVE58_PATH} must parse to an array`);
+  return parsed;
 }
 
-describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live-58.json)', () => {
+describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fixtures/fwdtext3-live-58.json, 2-row placeholder, see header note)', () => {
   const fixture = loadLive58();
-  const residueCount = fixture ? fixture.reduce((n, r) => n + (r.residue_rows?.length ?? 0), 0) : 0;
+  const residueCount = fixture.reduce((n, r) => n + (r.residue_rows?.length ?? 0), 0);
 
-  test('every live residue row, re-extracted from its item\'s current record_facts section, no longer carries any record-facts wrapper token (skips if fwdtext3-live-58.json is not present in this checkout)', (t) => {
-    if (!fixture) {
-      t.skip('scripts/_snapshots/fwdtext3-live-58.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
-
+  test('every fixture row re-extracts deterministically without throwing; any residue row that DOES re-match a fresh event carries no record-facts wrapper token', () => {
     let tested = 0;
     let clean = 0;
     let matchedTwin = 0;
@@ -1618,14 +1614,16 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
         tested++;
         const fresh = events.find((e) => e.event_date === residue.event_date && e.event_kind === residue.event_kind);
         if (!fresh) {
-          noFresh.push({ item: row.intelligence_item_id, id: residue.id });
+          // see this describe block's header note: the committed fixture's content_md carries no date, so
+          // this is expected for every row of THIS placeholder, not a production regression.
+          noFresh.push({ item: row.item_id, id: residue.id });
           continue;
         }
         const text = fresh.obligation_text;
         const hasForbidden =
           RECORD_FACTS_FORBIDDEN.some((f) => text.toLowerCase().includes(f.toLowerCase())) || /\[[a-z][a-z0-9_]*\]/i.test(text);
         if (hasForbidden) {
-          failures.push({ item: row.intelligence_item_id, id: residue.id, text });
+          failures.push({ item: row.item_id, id: residue.id, text });
         } else {
           clean++;
         }
@@ -1644,16 +1642,19 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
     }
 
     console.log(
-      `fwdtext3-live-58.json property test: ${tested} residue rows, ${clean} clean, ${failures.length} still bad, ` +
+      `fixtures/fwdtext3-live-58.json property test: ${tested} residue rows, ${clean} clean, ${failures.length} still bad, ` +
         `${noFresh.length} with no fresh match, ${matchedTwin} exact-matched a claim-sourced twin.`,
       JSON.stringify(byVariant)
     );
     if (failures.length) console.log('still-bad examples:', JSON.stringify(failures.slice(0, 5), null, 2));
-    if (noFresh.length) console.log('no-fresh-match examples:', JSON.stringify(noFresh.slice(0, 5), null, 2));
+    if (noFresh.length) console.log('no-fresh-match examples (expected for this placeholder fixture, see header note):', JSON.stringify(noFresh.slice(0, 5), null, 2));
 
     assert.equal(tested, residueCount);
-    assert.equal(noFresh.length, 0, 'every residue row must still produce a fresh event at its own (date, kind)');
     assert.equal(failures.length, 0, `${failures.length}/${tested} rows still carry a record-facts wrapper token after re-extraction`);
+    // NOT asserted here: noFresh.length === 0. The original design required every residue row to
+    // re-match a fresh event; this committed placeholder fixture cannot satisfy that (see header note),
+    // trimmed per the dispatch's explicit instruction rather than left as a permanently-red assertion
+    // against data that was never meant to prove it.
   });
 });
 
@@ -1695,33 +1696,44 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
 // no deontic/aim nearby), 13 `relative_deadline_no_calendar_date` (no rule's trigger+date pattern matched
 // the span at all — a bare year or relative phrasing this grammar cannot anchor). 0/118 hit
 // `calendar_date_deontic_context_unavailable` in this fixture (every row's span was found in a capture) —
-// asserted below only as "possible, never a crash", since a future re-capture could change that.
-// `scripts/_snapshots/` is gitignored scratch (CLAUDE.md standing rule 5), so this test self-skips (never
-// fails) when the file is absent, same convention as the two corpus-wide tests above it.
+// asserted below only as "possible, never a crash", since a future re-capture could change that. That
+// original gitignored `scripts/_snapshots/feslot2-live-118.json` snapshot is not part of this repo's
+// tracked tree.
+//
+// Lane R16b (2026-10-02, this fix): lane R16-19 (PR 870) committed `fixtures/feslot2-live-118.json` as a
+// stand-in, but the committed file is a 3-row PLACEHOLDER in the WRONG shape for this test: it carries
+// `{event_id, event_date, event_kind, source_section_id, source_kind, obligation_text, confidence}` (an
+// `item_forward_events` row shape), not the `{claim_id, intelligence_item_id, claim_text, source_span,
+// search_id, context_before, context_after}` shape the live-SQL query above produces from
+// `section_claim_provenance` + `agent_run_searches`. Every field this test reads from a row (`claim_text`,
+// `source_span`, `search_id`, `context_before`/`after`) is `undefined` for all 3 rows, so each becomes a
+// claim with no span, confirmed directly that `extractForwardEvents` skips this wholesale, same documented
+// behaviour as the "empty and degenerate input" describe block far above, never a crash. The measured
+// exact counts this test was designed to lock (baseline 61, with-context 90, rescued 29, the by_kind /
+// rescued_by_kind breakdowns) cannot be reproduced from this fixture: not a module defect, a fixture-shape
+// mismatch. No real snapshot exists on disk in this worktree to copy rows from, and regenerating the
+// genuine 118-row snapshot requires DB credentials this worktree does not have (SUPABASE_* unset per
+// dispatch). Per the dispatch's own instruction, the assertion below is TRIMMED to what this placeholder
+// actually proves: every row is processed exactly once without throwing, and whatever events DO come out
+// (none, for this fixture) are idempotent and verbatim in their own context. Regenerating
+// `fixtures/feslot2-live-118.json` from the live SQL above is tracked follow-up (CLAUDE.md rule 13/14),
+// filed in this lane's session-log entry.
 // ---------------------------------------------------------------------------
 
-const LIVE118_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'feslot2-live-118.json');
+const LIVE118_PATH = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'feslot2-live-118.json');
 
 function loadLive118() {
-  let raw;
-  try {
-    raw = readFileSync(LIVE118_PATH, 'utf8');
-  } catch {
-    return null;
-  }
+  const raw = readFileSync(LIVE118_PATH, 'utf8');
   const parsed = JSON.parse(raw);
-  return Array.isArray(parsed) && parsed.length ? parsed : null;
+  if (!Array.isArray(parsed)) throw new Error(`${LIVE118_PATH} must parse to an array`);
+  return parsed;
 }
 
-describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-118.json)', () => {
+describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (fixtures/feslot2-live-118.json, 3-row placeholder, see header note)', () => {
   const fixture = loadLive118();
 
-  test('measured event/skip counts hold, no crash, every rescued event is honest (skips if feslot2-live-118.json is not present in this checkout)', (t) => {
-    if (!fixture) {
-      t.skip('scripts/_snapshots/feslot2-live-118.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
-      return;
-    }
-
+  test('every fixture row is processed exactly once without throwing; any event produced is idempotent and verbatim in its own context', () => {
+    let rowsProcessed = 0;
     let baselineEvents = 0;
     let withContextEvents = 0;
     let rescued = 0;
@@ -1738,6 +1750,7 @@ describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-
 
       const base = extractForwardEvents({ claims: [claimNoCtx], sections: [] });
       const withCtx = extractForwardEvents({ claims: [claimWithCtx], sections: [] });
+      rowsProcessed++;
 
       if (base.events.length > 0) baselineEvents++;
       if (withCtx.events.length > 0) withContextEvents++;
@@ -1751,28 +1764,29 @@ describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-
         // every event's context text (when one exists) genuinely contains the matched date substring --
         // re-checked here independently of assertVerbatim's own internal throw, so a regression there
         // shows up as a normal test failure with the offending row named, not a bare thrown error.
-        const haystack = context ? context.before + row.source_span + context.after : row.source_span;
+        const haystack = context ? context.before + (row.source_span ?? '') + context.after : (row.source_span ?? '');
         if (!haystack.includes(e.source_span)) notVerbatim.push({ claim_id: row.claim_id, source_span: e.source_span });
       }
       for (const s of withCtx.skipped) bySkipReason[s.reason] = (bySkipReason[s.reason] ?? 0) + 1;
     }
 
     console.log(
-      `feslot2-live-118.json property test: ${fixture.length} rows; baseline ${baselineEvents} events, ` +
+      `fixtures/feslot2-live-118.json property test: ${fixture.length} rows; baseline ${baselineEvents} events, ` +
         `with-context ${withContextEvents} events, ${rescued} rescued.`,
       'by_kind:', JSON.stringify(byKind),
       'rescued_by_kind:', JSON.stringify(rescuedByKind),
       'by_skip_reason:', JSON.stringify(bySkipReason)
     );
 
+    assert.equal(rowsProcessed, fixture.length);
     assert.equal(nonIdempotent.length, 0, `${nonIdempotent.length} rescued obligation_text(s) not idempotent: ${JSON.stringify(nonIdempotent.slice(0, 3))}`);
     assert.equal(notVerbatim.length, 0, `${notVerbatim.length} event source_span(s) not found verbatim in their own context: ${JSON.stringify(notVerbatim.slice(0, 3))}`);
-    // measured, exact counts against this fixture — a regression lock, not a tolerance band; a future
-    // re-capture that changes these numbers is itself the finding, not a reason to loosen the assertion.
-    assert.equal(baselineEvents, 61);
-    assert.equal(withContextEvents, 90);
-    assert.equal(rescued, 29);
-    assert.deepEqual(byKind, { review_or_report: 6, compliance_deadline: 79, phase_step: 2, other: 3 });
-    assert.deepEqual(rescuedByKind, { compliance_deadline: 27, other: 2 });
+    // NOT asserted here: the original measured-exact-count regression lock (baseline 61 / with-context 90
+    // / rescued 29 / the by_kind and rescued_by_kind breakdowns). This committed placeholder fixture's
+    // rows carry no claim_text/source_span at all (see header note), so every one of those counts is
+    // trivially 0 against it and asserting the original numbers would be a permanently-red check against
+    // data that was never meant to prove them -- trimmed per the dispatch's explicit instruction. The real
+    // regression lock is restored the moment `fixtures/feslot2-live-118.json` is regenerated from the live
+    // SQL in this describe block's header.
   });
 });
