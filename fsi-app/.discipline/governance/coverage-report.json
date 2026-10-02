@@ -11839,18 +11839,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/supabase/migrations/336_research_assessments.sql",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "sprint-followups-discipline",
-        "environmental-policy-and-innovation"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/supabase/migrations/338_inference_records.sql",
       "kinds": [
         "WRITES"
@@ -11920,6 +11908,29 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/supabase/migrations/344_research_assessments.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/344_research_assessments.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/supabase/migrations/345_planning_assumption_register.sql",
       "kinds": [
         "WRITES"
@@ -11932,8 +11943,8 @@
     }
   ],
   "summary": {
-    "governed_files": 1118,
-    "covered": 1073,
+    "governed_files": 1119,
+    "covered": 1074,
     "exempt": 45,
     "gaps": 0,
     "orphaned_proofs": 0,
