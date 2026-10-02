@@ -1,0 +1,4 @@
+[
+  {"item_id": "item-1", "section_id": "sec-1", "section_key": "record_facts", "content_md": "Record facts here.", "residue_rows": [{"id": "evt-1", "event_date": "2026-01-01", "event_kind": "obligation", "obligation_text": "Text with [no_wrapper]", "confidence": 0.95, "source_span": "some span"}], "claim_rows": []},
+  {"item_id": "item-2", "section_id": "sec-2", "section_key": "record_facts", "content_md": "More facts.", "residue_rows": [{"id": "evt-2", "event_date": "2026-01-02", "event_kind": "requirement", "obligation_text": "Requirement [format_error]", "confidence": 0.90, "source_span": "other span"}], "claim_rows": []}
+]
