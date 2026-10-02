@@ -11,7 +11,6 @@ import { assertGuardClean, assertBoundsClean } from './guard-assert.mjs';
 import {
   watchlistFixtures,
   archiveFixtures,
-  listOrderFixtures,
   notificationsFixtures,
 } from './smoke-fixtures.mjs';
 
@@ -65,7 +64,6 @@ test('assertGuardClean: a leaflet-container overflow is excluded (known false po
 const BUILDERS = {
   watchlistFixtures,
   archiveFixtures,
-  listOrderFixtures,
   notificationsFixtures,
 };
 
@@ -100,15 +98,6 @@ test('archiveFixtures: empty has no rows anywhere, oneRow has exactly one person
   assert.equal(oneRow.personalState.size, 1);
   assert.ok(extreme.archived.length > 5, 'extreme-data state should carry many team rows');
   assert.ok(extreme.personalState.size > 5, 'extreme-data state should carry many personal rows');
-});
-
-test('listOrderFixtures: empty has zero resources, oneRow has exactly one CRITICAL row, extreme exceeds SHOWN_CAP (5)', () => {
-  const { empty, oneRow, extreme } = listOrderFixtures();
-  assert.equal(empty.resources.length, 0);
-  assert.equal(oneRow.resources.length, 1);
-  assert.equal(oneRow.resources[0].priority, 'CRITICAL');
-  assert.ok(extreme.resources.length > 5, 'extreme-data state must exceed DashboardTopPriority\'s SHOWN_CAP so the footer/truncation path is exercised');
-  assert.ok(extreme.resources.every((r) => r.priority === 'CRITICAL'), 'extreme fixture should stay in one band so the drag test has stable neighbours');
 });
 
 test('notificationsFixtures: unread volume escalates empty -> oneRow -> extreme, extreme exceeds the ">99" bell threshold', () => {

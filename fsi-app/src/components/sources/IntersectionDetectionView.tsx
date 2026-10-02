@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { Loader2, ArrowLeftRight, Link2 } from "lucide-react";
+import { tint } from "@/lib/tint";
 
 interface BasisEntry {
   signal: string;
@@ -110,7 +111,7 @@ export function IntersectionDetectionView() {
   }
   if (error) {
     return (
-      <div className="p-3 rounded text-sm" style={{ backgroundColor: "var(--color-error)15", color: "var(--color-error)" }}>
+      <div className="p-3 rounded text-sm" style={{ backgroundColor: tint("var(--color-error)", 15), color: "var(--color-error)" }}>
         {error}
       </div>
     );
@@ -159,7 +160,7 @@ export function IntersectionDetectionView() {
             className="px-2 py-0.5 rounded border tabular-nums"
             style={{
               borderColor: minScore === s ? "var(--color-primary)" : "var(--color-border)",
-              backgroundColor: minScore === s ? "var(--color-primary)20" : "var(--color-surface)",
+              backgroundColor: minScore === s ? tint("var(--color-primary)", 20) : "var(--color-surface)",
               color: "var(--color-text-primary)",
             }}
           >

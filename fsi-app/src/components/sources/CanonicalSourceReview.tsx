@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { ChevronDown, ChevronUp, Loader2, ExternalLink, AlertTriangle, CheckCircle2, XCircle, Filter, Layers } from "lucide-react";
 import { formatLocaleDateTime } from "@/lib/format";
+import { tint } from "@/lib/tint";
 
 interface Candidate {
   id: string;
@@ -263,7 +264,7 @@ export function CanonicalSourceReview() {
   }
   if (error) {
     return (
-      <div className="p-3 rounded text-sm" style={{ backgroundColor: "var(--color-error)15", color: "var(--color-error)" }}>
+      <div className="p-3 rounded text-sm" style={{ backgroundColor: tint("var(--color-error)", 15), color: "var(--color-error)" }}>
         {error}
       </div>
     );
@@ -302,8 +303,8 @@ export function CanonicalSourceReview() {
         <div
           className="p-3 rounded-lg border flex items-center justify-between gap-3"
           style={{
-            borderColor: "var(--color-warning)50",
-            backgroundColor: "var(--color-warning)10",
+            borderColor: tint("var(--color-warning)", 50),
+            backgroundColor: tint("var(--color-warning)", 10),
           }}
         >
           <div className="text-sm">
@@ -341,8 +342,8 @@ export function CanonicalSourceReview() {
         <div
           className="p-3 rounded-lg border flex items-center justify-between gap-3"
           style={{
-            borderColor: "var(--color-primary)50",
-            backgroundColor: "var(--color-primary)10",
+            borderColor: tint("var(--color-primary)", 50),
+            backgroundColor: tint("var(--color-primary)", 10),
           }}
         >
           <div className="text-sm">
@@ -519,7 +520,7 @@ function FilterPills({
           className="px-2 py-0.5 rounded border"
           style={{
             borderColor: value === o.v ? "var(--color-primary)" : "var(--color-border)",
-            backgroundColor: value === o.v ? "var(--color-primary)20" : "var(--color-surface)",
+            backgroundColor: value === o.v ? tint("var(--color-primary)", 20) : "var(--color-surface)",
             color: "var(--color-text-primary)",
           }}
         >
@@ -736,7 +737,7 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
               </span>
             )}
             {cand.existing_source_id && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "var(--color-primary)20", color: "var(--color-primary)" }}>
+              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: tint("var(--color-primary)", 20), color: "var(--color-primary)" }}>
                 already in registry
               </span>
             )}
@@ -875,7 +876,7 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
           </label>
 
           {errMsg && (
-            <div className="text-xs mt-2 p-2 rounded" style={{ backgroundColor: "var(--color-error)15", color: "var(--color-error)" }}>
+            <div className="text-xs mt-2 p-2 rounded" style={{ backgroundColor: tint("var(--color-error)", 15), color: "var(--color-error)" }}>
               {errMsg}
             </div>
           )}
@@ -936,7 +937,7 @@ function PillPicker<T extends string | number>({
             className="px-2 py-0.5 text-[11px] rounded border"
             style={{
               borderColor: selected.includes(o.v) ? "var(--color-primary)" : "var(--color-border)",
-              backgroundColor: selected.includes(o.v) ? "var(--color-primary)20" : "var(--color-surface)",
+              backgroundColor: selected.includes(o.v) ? tint("var(--color-primary)", 20) : "var(--color-surface)",
               color: "var(--color-text-primary)",
             }}
           >

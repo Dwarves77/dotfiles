@@ -49,7 +49,6 @@ import { latestTrainWave } from "../fitness/functions/F25-module-liveness.mjs";
 import { getRepoRoot } from "../lib/context.mjs";
 import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
 import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
-import { runSmoke as runListOrderSmoke } from "./smoke/list-order-smoke.mjs";
 import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
 import { runSmoke as runSettingsSectionIndexSmoke } from "./smoke/settings-section-index-smoke.mjs";
 // lane uiauth, 2026-09-06: mounts the real AuthFrame/AuthTabs/OnboardingStepper
@@ -249,7 +248,6 @@ async function main() {
   const SMOKE_SPECS = [
     { name: "watchlist-team", run: runWatchlistTeamSmoke },
     { name: "personal-archive", run: runPersonalArchiveSmoke },
-    { name: "list-order", run: runListOrderSmoke },
     { name: "notifications", run: runNotificationsSmoke },
     // lane UIADMIN2, 2026-09-07, ruling R9: mounts the real SettingsPage and proves the sticky
     // SectionIndex (S1..S5) it now uses in place of the retired second-level tab row.

@@ -355,47 +355,6 @@ export function archiveFixtures() {
   return { empty, oneRow, extreme };
 }
 
-// ── List order — DashboardTopPriority({ resources, jurisdictionsCount }) ───────────────────────
-export function listOrderFixtures() {
-  const empty = { resources: [], jurisdictionsCount: 0 };
-
-  const oneRow = {
-    resources: [
-      {
-        id: "r1",
-        title: "Corporate Sustainability Reporting Directive",
-        priority: "CRITICAL",
-        urgencyScore: 95,
-        jurisdiction: "EU",
-        jurisdictionIso: ["EU"],
-        sourceTier: 1,
-        whyMatters: "Binding disclosure obligations begin next fiscal year.",
-        actionOwner: "Jane Doe",
-        complianceDeadline: "2027-01-01",
-      },
-    ],
-    jurisdictionsCount: 1,
-  };
-
-  const extreme = {
-    resources: Array.from({ length: 12 }, (_, i) => ({
-      id: `r${i}`,
-      title: `${LONG(7, "Extremely long regulation title token")} #${i}`,
-      priority: "CRITICAL",
-      urgencyScore: 100 - i,
-      jurisdiction: i % 2 === 0 ? "EU" : "US-CA",
-      jurisdictionIso: [i % 2 === 0 ? "EU" : "US"],
-      sourceTier: (i % 7) + 1,
-      whyMatters: LONG(30, "long-analysis-word"),
-      actionOwner: `${LONG(3, "Very-Long-Owner-Name-Segment")}`,
-      complianceDeadline: i % 3 === 0 ? undefined : `2027-0${(i % 9) + 1}-01`,
-    })),
-    jurisdictionsCount: 6,
-  };
-
-  return { empty, oneRow, extreme };
-}
-
 // ── Notifications — bell unread badge + NotificationsList body, keyed by unread volume. ────────
 function notification(i, { long = false } = {}) {
   return {

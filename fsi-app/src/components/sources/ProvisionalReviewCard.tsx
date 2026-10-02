@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 import type { ProvisionalSource } from "@/types/source";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
 import { formatLocaleDateTime } from "@/lib/format";
+import { tint } from "@/lib/tint";
 
 interface BiasTagEntry {
   tag: string;
@@ -223,7 +224,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
             </div>
           )}
           {recError && (
-            <div className="text-xs mb-3 p-2 rounded" style={{ backgroundColor: "var(--color-error)15", color: "var(--color-error)" }}>
+            <div className="text-xs mb-3 p-2 rounded" style={{ backgroundColor: tint("var(--color-error)", 15), color: "var(--color-error)" }}>
               {recError}
             </div>
           )}
@@ -257,9 +258,9 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
                           className="px-1.5 py-0.5 rounded text-[11px]"
                           style={{
                             backgroundColor: willApply
-                              ? "var(--color-success)20"
+                              ? tint("var(--color-success)", 20)
                               : pendingConfirm
-                              ? "var(--color-warning)20"
+                              ? tint("var(--color-warning)", 20)
                               : "var(--color-border)",
                             color: willApply
                               ? "var(--color-success)"
@@ -311,7 +312,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
                     className="px-2 py-0.5 text-[11px] rounded border"
                     style={{
                       borderColor: domains.includes(d.v) ? "var(--color-primary)" : "var(--color-border)",
-                      backgroundColor: domains.includes(d.v) ? "var(--color-primary)20" : "var(--color-surface)",
+                      backgroundColor: domains.includes(d.v) ? tint("var(--color-primary)", 20) : "var(--color-surface)",
                       color: "var(--color-text-primary)",
                     }}
                   >
@@ -330,7 +331,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
                     className="px-2 py-0.5 text-[11px] rounded border"
                     style={{
                       borderColor: jurisdictions.includes(j) ? "var(--color-primary)" : "var(--color-border)",
-                      backgroundColor: jurisdictions.includes(j) ? "var(--color-primary)20" : "var(--color-surface)",
+                      backgroundColor: jurisdictions.includes(j) ? tint("var(--color-primary)", 20) : "var(--color-surface)",
                       color: "var(--color-text-primary)",
                     }}
                   >
@@ -349,7 +350,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
                     className="px-2 py-0.5 text-[11px] rounded border"
                     style={{
                       borderColor: modes.includes(m) ? "var(--color-primary)" : "var(--color-border)",
-                      backgroundColor: modes.includes(m) ? "var(--color-primary)20" : "var(--color-surface)",
+                      backgroundColor: modes.includes(m) ? tint("var(--color-primary)", 20) : "var(--color-surface)",
                       color: "var(--color-text-primary)",
                     }}
                   >
@@ -368,7 +369,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
                     className="px-2 py-0.5 text-[11px] rounded border"
                     style={{
                       borderColor: topics.includes(t) ? "var(--color-primary)" : "var(--color-border)",
-                      backgroundColor: topics.includes(t) ? "var(--color-primary)20" : "var(--color-surface)",
+                      backgroundColor: topics.includes(t) ? tint("var(--color-primary)", 20) : "var(--color-surface)",
                       color: "var(--color-text-primary)",
                     }}
                   >

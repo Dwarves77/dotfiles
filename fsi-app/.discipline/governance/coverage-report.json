@@ -134,17 +134,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/admin/promotion-policy/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/admin/recompute-trust/route.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -178,6 +167,17 @@
         "environmental-policy-and-innovation"
       ],
       "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/sources/bias-tags-confirm-logic.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent"
+      ],
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -247,6 +247,18 @@
       "skills": [
         "caros-ledge-platform-intent",
         "source-credibility-model"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/app/api/admin/sources/[id]/bias-tags/route.ts",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent",
+        "remediation-discipline"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -4236,6 +4248,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/sources/bias-tag-pipeline.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/sources/canonical-fetch-caller-thread.test.mjs",
       "kinds": [
         "PROOF"
@@ -5164,6 +5187,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/tint.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/trust-evaluators.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -5935,6 +5967,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/chained-dry-guard.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/changelog.mjs",
       "kinds": [
         "WRITES"
@@ -6094,6 +6135,15 @@
     },
     {
       "path": "fsi-app/scripts/lib/gate-a-state-writer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/harness-run-number.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -11583,8 +11633,8 @@
     }
   ],
   "summary": {
-    "governed_files": 1083,
-    "covered": 1041,
+    "governed_files": 1088,
+    "covered": 1046,
     "exempt": 42,
     "gaps": 0,
     "orphaned_proofs": 0,

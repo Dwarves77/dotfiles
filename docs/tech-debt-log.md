@@ -6,6 +6,48 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-10-01 (lane R12-13): `useListOrder.ts` newly orphaned by the DashboardTopPriority deletion, needs a wire-or-delete ruling
+
+`src/lib/hooks/useListOrder.ts` lost its only production importer when lane R12-13 deleted
+`DashboardTopPriority.tsx` (CF-DEAD-2, operator ruling 2026-10-01). Unlike DashboardTopPriority
+itself (dead code for a superseded dashboard redesign), this hook is general personal-drag-order
+infrastructure: its `ListOrderKey` type already names `"regulations"`/`"market"`/`"research"`/
+`"operations"` alongside `"watchlist"` (the one key with a live consumer today, via the separate
+`watchlist-order.ts`, which talks to `/api/user/list-order` directly and does not use this hook),
+mirroring `LIST_KEYS` in `src/app/api/user/list-order/logic.ts`.
+
+Whether to wire `useListOrder` into one of the four ledger ("regulations"/"market"/"research"/
+"operations") surfaces, or delete it, is a feature-scope decision outside lane R12-13's write set
+(DEAD-ROUTE-DEAD-COMPONENT-CSS-TINT), the lane fixed what it was dispatched to fix and is flagging
+this one, decision-ready, rather than silently dropping it (rule 13). `.discipline/fitness/functions/
+F25-module-liveness.mjs`'s `LEGACY_ALLOWLIST` carries a dated, reason-bearing entry for it so CI
+stays green while the ruling is pending; the entry is removed the same commit that wires or deletes
+the hook.
+
+Safety net: the hook has zero runtime callers right now, so it cannot regress anything live; CI (F25)
+is the tripwire that will re-flag it if a future lane wires it back in without updating this entry.
+
+## 2026-10-01 (lane R12-13): `/api/admin/promotion-policy` deleted, CF-DEAD-1 CLOSED
+
+Closed, not deferred. `src/app/api/admin/promotion-policy/route.ts` (GET/POST for the P2 promotion
+policy engine) is removed. Operator ruling 2026-10-01, remediation plan Lane 12 decision 3: superseded
+by the operator-priced spend model (RD-31/RD-32); the promotion-engine-gating mechanism this route was
+built to authorize is out of scope under the operator's "superseded by newer items" clause, not a
+consumer to go build.
+
+`grep -rn "promotion_policy" fsi-app/src fsi-app/scripts` returns zero hits outside migration history
+(`supabase/migrations/231_promotion_policy.sql`, kept as migration history) and the generated,
+DB-sourced snapshots (`docs/inventories/db-check-constraints.json`,
+`.discipline/governance/db-catalog.json`, `scripts/verify/lib/fixtures/duplicate-table-schema-snapshot.json`)
+which still show the live `promotion_policy` table because it has not been dropped yet. One comment-only
+mention in `src/app/api/coverage/entries/route.ts` (an analogous-gating citation) was updated to stop
+naming the deleted route. `.discipline/governance/coverage-report.json` regenerated (filesystem-only,
+no DB access) to drop the dead path entry.
+
+The `promotion_policy` table drop itself (migration 341) is lane R4-5's write set, not this lane's; the
+DROP SQL is staged in `docs/plans/remediation-plan-2026-09-30.md`'s DROP statements section, to run only
+after this route deletion has landed.
+
 ## 2026-09-20 (lane F52): 29 shellcheck notes in workflow run scripts
 
 **Debt (pre-existing shell style, not a workflow-validity defect).** CI run 35538991257 on PR #762

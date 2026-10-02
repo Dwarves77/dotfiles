@@ -18,7 +18,12 @@ export function aheadDotStyle(size: number): CSSProperties {
   return { width: size, height: size, borderRadius: "50%", background: "var(--card)", border: "1px solid rgba(0,0,0,.28)" };
 }
 
-/** Larger dot in the item's band colour with a ring: the next milestone. */
+/** Larger dot in the item's band colour with a ring: the next milestone.
+ *  `bandHex` MUST be a raw hex literal (`UrgencyBand.hex`, e.g. "#DC2626"), never a `var(--token)`
+ *  reference (`UrgencyBand.cssVar`): the ring appends a two-digit alpha suffix directly onto this
+ *  string, which only produces a valid 8-digit hex color when the base is a hex literal. A
+ *  CSS custom-property reference followed by a bare digit run is not a color in any CSS grammar;
+ *  this was CF-BROKEN-2 / A2bc, fixed at both call sites in lane R12-13, 2026-10-01. */
 export function nextDotStyle(bandHex: string, size: number, ringWidthPx: number): CSSProperties {
   return { width: size, height: size, borderRadius: "50%", background: bandHex, boxShadow: `0 0 0 ${ringWidthPx}px ${bandHex}33` };
 }

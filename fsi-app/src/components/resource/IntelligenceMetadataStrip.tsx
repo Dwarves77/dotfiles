@@ -16,6 +16,7 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import { Tag, Building, Layers, Clock, Link as LinkIcon } from "lucide-react";
 import { toDisplaySeverity } from "@/lib/agent/metadata-vocab";
 import { formatLocaleDate } from "@/lib/format";
+import { tint } from "@/lib/tint";
 
 interface ItemMetadata {
   id: string;
@@ -152,7 +153,7 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
       {hasIntersection && (
         <div
           className="p-3 rounded"
-          style={{ backgroundColor: "var(--color-primary)10", borderLeft: "3px solid var(--color-primary)" }}
+          style={{ backgroundColor: tint("var(--color-primary)", 10), borderLeft: "3px solid var(--color-primary)" }}
         >
           <div className="flex items-center gap-2 mb-1.5">
             <LinkIcon size={11} style={{ color: "var(--color-primary)" }} />
