@@ -123,6 +123,7 @@ export function extractSubjectLine(content) {
 // APPLIED\" status this row previously carried" - quoting the OLD label by name, not declaring it) via a
 // lookbehind/lookahead on `"`.
 const STATUS_PATTERNS = [
+  { status: 'retired', re: /\bNEVER\s+APPLIED\b/ },
   { status: 'not_applied', re: /(?<!")\bNOT\s+YET\s+APPLIED\b(?!")/ },
   { status: 'not_applied', re: /(?<!")\bNOT\s+APPLIED\b(?!")/ },
   { status: 'draft', re: /\bAUTHOR-ONLY\b/ },
@@ -219,6 +220,11 @@ export function auditStatusAgainstLiveSchema(status, created, dropped, exactRows
   }
   // 'draft' and 'applied_pending' intentionally carry no live check: both are the coordinator's own
   // explicit "not real yet, and I know it" declaration, not a claim F63 is in a position to dispute.
+  // 'retired' (lane R4-5, 2026-10-01, operator ruling on migration 149) is the fourth and strongest form
+  // of the same thing: an explicit "will NEVER run" declaration, never a claim about current live state
+  // for F63 to check against. 149 itself has no table ops (a data-only backfill), so this never actually
+  // reaches a live check either way; the status exists so a FUTURE retired-with-table-ops migration is
+  // handled the same deliberate way, not by accident of having nothing to compare.
   return problems;
 }
 

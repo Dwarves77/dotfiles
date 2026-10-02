@@ -159,6 +159,14 @@ test('CONTROL: draft status never produces a live-schema problem even on a stark
   assert.deepEqual(auditStatusAgainstLiveSchema('draft', ['harness_runs'], [], {}), []);
 });
 
+test('parseHeaderStatus: NEVER APPLIED reads as retired (migration 149, operator ruling 2026-10-01)', () => {
+  assert.equal(parseHeaderStatus('-- subject: foo. NEVER APPLIED, retired 2026-10-01: severity is written only by regeneration.'), 'retired');
+});
+
+test('CONTROL: retired status never produces a live-schema problem even on a stark mismatch', () => {
+  assert.deepEqual(auditStatusAgainstLiveSchema('retired', ['some_table_that_was_never_built'], [], {}), []);
+});
+
 test('CONTROL: applied_pending status never produces a live-schema problem', () => {
   assert.deepEqual(auditStatusAgainstLiveSchema('applied_pending', [], ['sources_reliability_score_holder'], { sources_reliability_score_holder: 1 }), []);
 });

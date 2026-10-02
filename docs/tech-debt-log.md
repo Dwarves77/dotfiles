@@ -366,3 +366,34 @@ to close or there needs to be a way to click it shut... On mobile you can't hit 
   row at the top of the portaled results panel, on every viewport including desktop, so the reader
   never has to guess where to click. See `docs/ops/session-log.md`'s SEARCHKEYS-B entry for the full
   build.
+
+## 2026-10-01 - severity vocabulary mixes two incompatible shapes
+
+severity vocabulary: the CHECK admits 13 values of two shapes; a vocabulary consolidation migration
+is owed when regeneration next touches severity.
+
+**Context.** Lane R4-5 (MIGRATION-TRUTH-CATALOG-DROPS) investigated migration 149 (a severity
+backfill deriving `severity = lower(priority)` for null-severity ops/reg items) as a candidate to
+run. A DB-executor read of the live `intelligence_items.severity` CHECK constraint
+(`fsi-app/scripts/tmp/db-executor-2026-10-01-severity.md`) found it admits 13 values across two
+incompatible shapes: the brief-contract label set (`action_required`, `cost_alert`,
+`window_closing`, `competitive_edge`, `monitoring`) and a priority-shaped lowercase set (`critical`,
+`high`, `moderate`, `low`, plus `immediate`, `watch`, `reference`, `background`, present in the
+constraint but of unclear current origin). Live non-null rows use the label set (`monitoring` 505,
+`reference` 332, `action_required` 58, `cost_alert` 49, `background` 44, `competitive_edge` 8,
+`window_closing` 7, plus a residual 6 rows on the other shape). The two shapes are not a bijection
+(`HIGH` priority maps to both `window_closing` and `cost_alert` depending on context; migration 149's
+`lower(priority)` statement would have written the WRONG shape entirely).
+
+**Ruling (operator, 2026-10-01, via the coordinator):** migration 149 is retired, not run, now or
+later. Severity is an editorial judgement the brief contract derives from content; priority is
+derived FROM severity, not the reverse. Inverting that relationship to backfill severity from
+priority would have stamped 1,615 items `competitive_edge` from a bare MODERATE priority value with
+no content behind the label - fabrication under CLAUDE.md rule 2. Null severity renders as absence
+on the customer surfaces, which is the honest state until a real regeneration writes a real label.
+
+**What's owed, concretely:** a vocabulary consolidation migration, when regeneration next touches
+severity, that either collapses the live CHECK constraint to the brief-contract's 5-label set (if the
+8 other values genuinely have no surviving writer) or documents why a second shape still needs to
+coexist. Until then, the live CHECK stays permissive of a shape the current write path (regeneration
+only, per `environmental-policy-and-innovation`'s field-emission contract) no longer emits.

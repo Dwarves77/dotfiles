@@ -1,4 +1,4 @@
--- subject: Migration 149 (count-integrity: severity backfill enabling the leak #3 card swap). Deterministic, idempotent, ZERO re-classification. Read-only diagnosis 2026-07-03: 254/259 verified items already carry severity; the 5 nulls are ALL regulations-surface + carry priority (HIGH/MODERATE), and the ops/reg severity vocab IS lower(priority) (mapPriorityToSeverity) → fills from data on the row. Touches ONLY ops/reg surfaces (surface_of guard); never invents a market/research (semantic-vocab) severity. After it lands, verified severity is 100% so by_severity can back the cards. signal_band left as an HONEST PARTIAL (band is market-only; 35 null-band market items have no deterministic source; cards render classified + honest "N unclassified", operator ruling, no spend). DEPENDS ON surface_of() (148); orders after it; applies in the SAME db push (146+147+148+149). Idempotent (WHERE severity IS NULL). Forward-only. NOT YET APPLIED.
+-- subject: Migration 149 (count-integrity: severity backfill enabling the leak #3 card swap). Deterministic, idempotent, ZERO re-classification. Read-only diagnosis 2026-07-03: 254/259 verified items already carry severity; the 5 nulls are ALL regulations-surface + carry priority (HIGH/MODERATE), and the ops/reg severity vocab IS lower(priority) (mapPriorityToSeverity) → fills from data on the row. Touches ONLY ops/reg surfaces (surface_of guard); never invents a market/research (semantic-vocab) severity. After it lands, verified severity is 100% so by_severity can back the cards. signal_band left as an HONEST PARTIAL (band is market-only; 35 null-band market items have no deterministic source; cards render classified + honest "N unclassified", operator ruling, no spend). DEPENDS ON surface_of() (148); orders after it; applies in the SAME db push (146+147+148+149). Idempotent (WHERE severity IS NULL). Forward-only. NEVER APPLIED, retired 2026-10-01: severity is written only by regeneration (brief contract); null severity renders as absence on the surfaces.
 -- Migration 149 (count-integrity: severity backfill enabling the leak #3 card swap). Deterministic,
 -- idempotent, zero re-classification.
 --
@@ -19,7 +19,12 @@
 --
 -- DEPENDS ON surface_of() (migration 148) — orders after it; applies in the SAME supabase db push
 -- (146 + 147 + 148 + 149). Idempotent: the WHERE severity IS NULL guard makes a re-run a no-op. Forward-
--- only data backfill (no down-migration). NOT YET APPLIED.
+-- only data backfill (no down-migration). NEVER APPLIED, retired 2026-10-01 (operator ruling): severity
+-- is an editorial judgement the brief contract derives from content; priority is derived FROM severity,
+-- not the reverse. Inverting the mapping here would stamp items a label from a priority value, which is
+-- fabrication under CLAUDE.md rule 2 (the live severity vocabulary mixes two incompatible shapes -- see
+-- docs/tech-debt-log.md). Null severity renders as absence on the customer surfaces; it is written only
+-- by regeneration.
 
 UPDATE intelligence_items
 SET severity = lower(priority)

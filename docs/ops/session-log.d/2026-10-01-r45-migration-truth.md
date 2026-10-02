@@ -1,8 +1,9 @@
 # Lane R4-5 (MIGRATION-TRUTH-CATALOG-DROPS), 2026-10-01
 
-Size estimate: 4 migration header edits (round 1) + 10 more (round 2, 146-150/240/258 family/260/340/341),
-2 new migrations, 1 new fitness function plus test (2 rounds of fixes), 1 regenerated governance catalog,
-1 regenerated inventory doc, this log. No src/ code touched.
+Size estimate: 4 migration header edits (round 1) + 10 more (round 2, 146-150/240/258 family/260/340/341)
++ 1 more (round 3, 149's retirement), 2 new migrations, 1 new fitness function plus test (3 rounds of
+fixes), 1 regenerated governance catalog, 1 regenerated inventory doc, 1 tech-debt-log.md entry, this
+log. No src/ code touched.
 
 ## ROUND 1: CF-DATA-1 header truth (part a)
 
@@ -225,5 +226,52 @@ also 0 of 624).
 `fsi-app/.discipline/fitness/functions/F63-migration-applied-status.{mjs,test.mjs}` (new, then fixed
 twice), `fsi-app/.discipline/governance/db-catalog.json`, `docs/inventories/migrations.md`, this file.
 No `F24-db-object-migration-home.mjs` edit (considered, reverted -- out of this lane's write set). 149's
-header is UNCHANGED (genuinely not yet applied; its backfill statement is reported, not run, since this
-lane has no DDL-capable connection).
+header (round 1/2) stayed UNCHANGED pending verification; round 3 retires it permanently -- see below.
+
+## ROUND 3: 149 retired, not applied -- the severity-vocabulary ruling
+
+`lower(priority)` (149's own statement) does not land in the live severity vocabulary. A second
+DB-executor read (`fsi-app/scripts/tmp/db-executor-2026-10-01-severity.md`) of the live
+`intelligence_items.severity` CHECK constraint found it admits 13 values across two incompatible
+shapes: the brief-contract label set (`action_required`/`cost_alert`/`window_closing`/
+`competitive_edge`/`monitoring`) and a priority-shaped lowercase set (`critical`/`high`/`moderate`/
+`low`, plus `immediate`/`watch`/`reference`/`background` of unclear current origin). Live non-null
+rows (929 total) overwhelmingly use the LABEL set (`monitoring` 505, `reference` 332,
+`action_required` 58, `cost_alert` 49, `background` 44, `competitive_edge` 8, `window_closing` 7); the
+1,757 null rows split by priority MODERATE 1,615 / LOW 138 / HIGH 3 / CRITICAL 1. The two shapes are
+NOT a bijection -- HIGH priority maps to either `window_closing` or `cost_alert` depending on content
+the priority value alone cannot tell apart, which is exactly why 149's `lower(priority)` statement
+would have written the wrong shape AND fabricated a specific label from a value that cannot determine
+it.
+
+**Operator ruling (via the coordinator, 2026-10-01): migration 149 is retired, NOT run, now or
+later.** Severity is an editorial judgement the brief contract derives from content
+(`environmental-policy-and-innovation`'s field-emission contract: severity reflects "the urgency of
+action implied by the brief's content as it actually exists"); priority is derived FROM severity via
+the locked mapping (ACTION REQUIRED to CRITICAL, COST ALERT/WINDOW CLOSING to HIGH, COMPETITIVE EDGE
+to MODERATE, MONITORING to LOW), never the reverse. Inverting that relationship to backfill severity
+FROM priority would have stamped 1,615 items `competitive_edge` purely from a MODERATE priority
+value with no content behind the label -- fabrication under CLAUDE.md rule 2. Null severity renders
+as absence on the customer surfaces, the honest state until a real regeneration writes a real label.
+
+**149's header** (both the `-- subject:` line and the restated body paragraph, which this lane DID
+edit since 149 was never applied and so carries no immutability concern) now reads "NEVER APPLIED,
+retired 2026-10-01: severity is written only by regeneration (brief contract); null severity renders
+as absence on the surfaces," plus the body paragraph's fuller reasoning (the fabrication argument
+above, in full).
+
+**F63 taught the retired status**: `STATUS_PATTERNS` gained a `NEVER APPLIED` -> `retired` entry
+(checked first, no overlap risk with the NOT-APPLIED patterns), and `auditStatusAgainstLiveSchema`'s
+no-live-check branch now documents `retired` alongside `draft`/`applied_pending` as the same class of
+explicit non-claim. 149 itself has no table ops (a pure data backfill) so this never actually reaches
+a live comparison either way -- the status exists so a FUTURE retired-with-table-ops migration is
+handled deliberately, not by the accident of having nothing to compare against. Test suite grew from
+28 to 30 (one `parseHeaderStatus` test, one `auditStatusAgainstLiveSchema` control test).
+
+**`docs/tech-debt-log.md`** gained a dated entry ("severity vocabulary mixes two incompatible
+shapes") naming the owed follow-on: a vocabulary consolidation migration, when regeneration next
+touches severity, that either collapses the live CHECK to the 5-label set or documents why a second
+shape still needs to coexist.
+
+Re-ran, same touched-only set: F63 test (30/30), migrations-inventory generator (regenerated 149's row
+from its own corrected file header, 304 rows), F6 (PASS), C3 (4/4, 0 drift).
