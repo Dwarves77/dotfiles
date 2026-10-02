@@ -354,6 +354,18 @@ export const EXEMPT_STEPS = [
       '("We do not need to install extra software use GitHub", brief-g2.md item 2) in case this checker ' +
       'is ever widened to scan that job too.',
   },
+  {
+    nameContains: 'ESLint (max-warnings 0)',
+    decidedOn: '2026-10-01',
+    reason:
+      'lane R7-LINT-CI (remediation plan Lane 7, CF-SEC-10). The step\'s run: is `npm run lint -- ' +
+      '--max-warnings=0`, an npm-script invocation, not a `node`/`sh`/`bash <path>.(mjs|sh)` call, so ' +
+      'extractScriptInvocations() finds nothing to match even though real parity exists: pre-push\'s own ' +
+      'step 3d runs the byte-for-byte identical command (fsi-app/.discipline/hooks/pre-push, "Step 3d: ' +
+      'ESLint"). Widening the script-invocation regex to also parse npm-script commands is a separate, ' +
+      'larger change to this checker\'s detection surface than this lane\'s write set covers; filed here ' +
+      'as a dated, reason-bearing exemption per this file\'s own rule rather than left unexplained.',
+  },
 ];
 
 export const fitnessFunction = {

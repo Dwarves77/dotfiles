@@ -44,6 +44,8 @@ export function DetailTagRow({
 
   useEffect(() => {
     void reload();
+    // reload is a plain function re-created every render that closes over itemId; re-run only when
+    // itemId itself changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 

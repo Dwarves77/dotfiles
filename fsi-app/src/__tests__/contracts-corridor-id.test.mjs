@@ -157,6 +157,5 @@ test("the generated SQL uses the same sentinel, scheme and truncation as the JS"
 test("the generated SQL contains no control characters", () => {
   // A NUL sentinel would agree across languages and still be wrong: it makes the file binary to
   // grep and diff and does not survive text transport. This assertion is why the sentinel is 'N#'.
-  // eslint-disable-next-line no-control-regex
   assert.equal(/[\x00-\x08\x0e-\x1f]/.test(renderCorridorIdSql()), false);
 });

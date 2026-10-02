@@ -262,6 +262,8 @@ export function AskAssistant() {
     };
     window.addEventListener("open-ask-assistant", handler);
     return () => window.removeEventListener("open-ask-assistant", handler);
+    // Mount-once global listener; the handler closure reads handleAskWithQuestion by reference each
+    // call, so it does not need to be a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

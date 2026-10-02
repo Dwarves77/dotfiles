@@ -420,6 +420,18 @@ jobs:
         working-directory: fsi-app
         run: npm ci --prefer-offline --no-audit
 
+      - name: ESLint (max-warnings 0)
+        # Lane R7-LINT-CI, 2026-10-01 (remediation plan Lane 7, closes CF-SEC-10: eslint.config.mjs and
+        # package.json's lint script existed with no CI or pre-push step ever invoking them, so a lint
+        # violation could land on master unnoticed). Runs after npm ci (ESLint and eslint-config-next are
+        # fsi-app devDeps, same ordering requirement as the tsc step below). max-warnings=0 so a warning
+        # (e.g. react-hooks/exhaustive-deps, @next/next/no-img-element) fails the build the same as an
+        # error; npm run lint's own "lint": "eslint" script takes no args by default, so the flag is
+        # passed through the npm-run-script `--` separator here rather than changed in package.json,
+        # keeping that file outside this lane's write set.
+        working-directory: fsi-app
+        run: npm run lint -- --max-warnings=0
+
       - name: Run fitness functions
         # Whole-repo glob + read + check across the F1-F9 function suite.
         # Exit 0 = no violations; exit 1 = at least one violation; exit 2 = engine error.

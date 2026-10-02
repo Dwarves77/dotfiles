@@ -68,6 +68,9 @@ function useEndReachedEffect(lastIndex: number, rowsLength: number, endThreshold
   useEffect(() => {
     if (!onEndReached || rowsLength === 0) return;
     if (lastIndex >= rowsLength - 1 - endThreshold) onEndReached();
+    // onEndReached is an optional caller-supplied callback whose identity can change every render;
+    // tracking the index/length/threshold values it depends on is the real trigger, not the callback's
+    // own identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastIndex, rowsLength, endThreshold]);
 }
