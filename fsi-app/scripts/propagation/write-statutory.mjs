@@ -72,6 +72,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { readAll, guardedInsert, readClient } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { isMainModule } from "../lib/is-main.mjs";
 import {
   FORMULA_ID, DEFAULT_OBLIGATION_SEED, FUELEU_REFERENCE_GCO2E_PER_MJ, SUPPORTED_TARGET_YEARS,
   ARTICLE_4_2_CITATION, parseRow as parseRowPure, writeOneRow as writeOneRowPure,
@@ -256,8 +257,6 @@ export async function runWriter({ mode, rawRows }, deps) {
 
 // ── CLI entrypoint, never reached on import ────────────────────────────────────────────────────────────
 
-const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-
 async function main() {
   loadLocalEnvFile();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -291,7 +290,9 @@ async function main() {
   process.exit(r.counts.errored ? 1 : 0);
 }
 
-if (IS_MAIN) {
+// F67 (lane R20, 2026-10-01): standardized on isMainModule from scripts/lib/is-main.mjs, replacing the
+// inlined fileURLToPath/resolve comparison this file used before (same correct semantics).
+if (isMainModule(import.meta.url)) {
   main().catch((e) => {
     console.error(`[write-statutory] FATAL: ${e.message}`);
     process.exit(1);

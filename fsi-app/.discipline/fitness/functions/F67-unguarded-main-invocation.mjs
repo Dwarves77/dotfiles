@@ -13,11 +13,18 @@
 //
 // WHAT THIS CHECKS. A line (trimmed) that starts with `main(`, `await main(`, or `main().catch(` is a
 // VIOLATION unless either:
-//   (a) the SAME line also contains `isMainModule(import.meta.url)` before the call (the one-line
+//   (a) the SAME line also contains a recognized guard token before the call (the one-line
 //       `if (isMainModule(import.meta.url)) await main();` form), or
-//   (b) the immediately preceding non-blank, non-comment-only line contains
-//       `isMainModule(import.meta.url)` (the multi-line `if (isMainModule(...)) {` / indented `main()...`
-//       form every fixed file in this repo uses).
+//   (b) the call sits inside a block opened by a line that carries a recognized guard token and ends
+//       with `{` (the multi-line `if (isMainModule(...)) { ... main()... }` form), tracked by
+//       INDENTATION, not brace counting: once a guard-opening line is seen, every subsequent line
+//       indented strictly deeper than that opening line is "inside the guard", regardless of how many
+//       statements (a creds check, a `createClient()` call, the `main()` call itself) sit between the
+//       opening line and the call. This is necessary, not cosmetic: several real fixes in this repo put
+//       more than one statement inside the guarded block before reaching `main()` (e.g.
+//       backfill-lineage-edges.mjs, funded-pass-lock-golden.mjs), so a check that only looks at the ONE
+//       immediately preceding line would false-positive on exactly the files this function exists to
+//       let pass.
 // This is intentionally narrow: it only recognizes the one guard idiom this repo standardizes on
 // (isMainModule from scripts/lib/is-main.mjs), matching F44's own posture of flagging a known-broken
 // shape rather than attempting a general call-graph analysis no static regex check can do reliably.
@@ -25,15 +32,13 @@ import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { isTestFile } from './F25-module-liveness.mjs';
 
-// SCOPED to the producer/seeder domain this lane (R20) owns, NOT the whole scripts/** + .discipline/**
-// tree. A first full-tree run (lane R20, 2026-10-01) found ~40 pre-existing instances of this exact
-// shape outside this domain (core discipline runners: .discipline/runner.mjs, fitness/runner.mjs,
-// consistency/runner.mjs, plus a long tail of entities/, propagation/, rendering/ and other producer
-// scripts). That is a real, separate, much larger remediation than this lane's write set (flagged for a
-// dedicated follow-up lane, docs/ops/session-log.d/2026-10-01-r20-producers.md), not something this
-// fitness function should fail CI on today: a gate that goes red for ~40 pre-existing files the moment
-// it lands would be reverted, not fixed. Widen SCOPE_GLOBS only when that remediation lands.
-const SCOPE_GLOBS = ['fsi-app/scripts/producers/**/*.mjs', 'fsi-app/scripts/gen/*.mjs'];
+// Operator ruling, 2026-10-01: fixed, not flagged. A first pass scoped this to just
+// scripts/producers/** + scripts/gen/* and flagged the rest for a follow-up lane; the operator
+// overruled that deferral, every pre-existing instance was fixed in this same lane, and the scope below
+// now covers the full fsi-app/scripts/** tree. _archive/ is excluded (filtered in enumerate() below,
+// not here): those files are confirmed dead (0 live importers, matches the audit's own disposition) and
+// stay untracked by this gate, same posture F44 and F60 already take toward dead code.
+const SCOPE_GLOBS = ['fsi-app/scripts/**/*.mjs'];
 
 const CALL_RE = /^(?:await\s+)?main\(\)/;
 // Recognizes every WORKING main-guard idiom live in this repo, not only isMainModule(): the shared
@@ -44,25 +49,42 @@ const CALL_RE = /^(?:await\s+)?main\(\)/;
 // which idiom is broken vs working.
 const GUARD_TOKEN_RE = /isMainModule\(|fileURLToPath\(\s*import\.meta\.url\s*\)|pathToFileURL\(/;
 
+const leadingWhitespace = (line) => line.match(/^[ \t]*/)[0].length;
+
 /** Find every line in `content` carrying an unguarded top-level `main()` invocation. PURE, no
  *  filesystem, no git. @param {string} content @returns {number[]} 1-based line numbers */
 export function findUnguardedMainInvocations(content) {
   const lines = content.split(/\r?\n/);
   const out = [];
-  let lastCodeLine = '';
+  // Stack of indentation levels at which a recognized guard block was opened. "Inside a guard" means
+  // this stack is non-empty. A line whose own indentation is <= the top of the stack has exited that
+  // guard block (popped) before this line is evaluated.
+  const guardIndentStack = [];
   lines.forEach((line, i) => {
     const trimmed = line.trim();
     const isCommentOnly = trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*');
-    if (trimmed === '' || isCommentOnly) return;
+    if (trimmed === '') return;
 
-    if (CALL_RE.test(trimmed)) {
+    const indent = leadingWhitespace(line);
+    if (!isCommentOnly) {
+      while (guardIndentStack.length && indent <= guardIndentStack[guardIndentStack.length - 1]) {
+        guardIndentStack.pop();
+      }
+    }
+
+    if (!isCommentOnly && CALL_RE.test(trimmed)) {
       const guardIdx = line.search(GUARD_TOKEN_RE);
       const callIdx = line.indexOf('main(');
       const sameLineGuarded = guardIdx !== -1 && callIdx !== -1 && guardIdx < callIdx;
-      const precedingLineGuarded = GUARD_TOKEN_RE.test(lastCodeLine);
-      if (!sameLineGuarded && !precedingLineGuarded) out.push(i + 1);
+      const insideGuardBlock = guardIndentStack.length > 0;
+      if (!sameLineGuarded && !insideGuardBlock) out.push(i + 1);
     }
-    lastCodeLine = trimmed;
+
+    // A guard-opening line: carries a recognized guard token AND ends with `{` (opens a block). Every
+    // subsequent line indented deeper than THIS line is inside the guard, however many statements away.
+    if (!isCommentOnly && GUARD_TOKEN_RE.test(line) && trimmed.endsWith('{')) {
+      guardIndentStack.push(indent);
+    }
   });
   return out;
 }
@@ -83,7 +105,10 @@ export const fitnessFunction = {
   enumerate() {
     // Test files excluded: a fixture that constructs the unguarded shape as a literal string to feed
     // fitnessFunction.check() (see this function's own test file) is not a live call site.
-    return globFiles(SCOPE_GLOBS).filter((f) => !isTestFile(f));
+    // _archive/ excluded: confirmed-dead files (0 live importers) stay out of this gate's scope.
+    return globFiles(SCOPE_GLOBS).filter(
+      (f) => !isTestFile(f) && !f.startsWith('fsi-app/scripts/_archive/')
+    );
   },
 
   check(filepath, content) {

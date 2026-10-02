@@ -40,6 +40,35 @@ test('GREEN: the one-line `if (isMainModule(import.meta.url)) await main();` for
   assert.deepEqual(fitnessFunction.check('fsi-app/scripts/new-script.mjs', src), []);
 });
 
+test('GREEN: a guarded block with statements BETWEEN the guard-open line and main() (a creds check, a createClient() call) is never flagged, only the indentation nesting matters, not adjacency', () => {
+  const src = [
+    'let sb;',
+    'async function main() {}',
+    'if (isMainModule(import.meta.url)) {',
+    '  if (!process.env.FOO) {',
+    '    console.error("no creds");',
+    '    process.exit(2);',
+    '  }',
+    '  sb = createClient(process.env.FOO, process.env.BAR);',
+    '  main().catch((e) => { process.exit(1); });',
+    '}',
+  ].join('\n');
+  assert.deepEqual(fitnessFunction.check('fsi-app/scripts/new-script.mjs', src), []);
+});
+
+test('RED: a call AFTER the guarded block has closed (same or lesser indentation than the guard-open line) is still flagged, proving the guard scope ends at its own closing brace', () => {
+  const src = [
+    'async function main() {}',
+    'if (isMainModule(import.meta.url)) {',
+    '  doSomethingElse();',
+    '}',
+    'main().catch((e) => { process.exit(1); });',
+  ].join('\n');
+  const v = fitnessFunction.check('fsi-app/scripts/new-script.mjs', src);
+  assert.equal(v.length, 1);
+  assert.equal(v[0].line, 5);
+});
+
 test('a comment mentioning `main().catch(` (documenting history) is never flagged, only live code', () => {
   const src = '// the old code used to call main().catch((e) => {}) here unguarded\nconst x = 1;\n';
   assert.deepEqual(fitnessFunction.check('fsi-app/scripts/new-script.mjs', src), []);
@@ -66,7 +95,7 @@ test('findUnguardedMainInvocations: multiple unguarded instances in one file are
   assert.deepEqual(findUnguardedMainInvocations(src), [1, 2]);
 });
 
-test('LIVE: the whole scoped tree (fsi-app/scripts + fsi-app/.discipline) passes F67 clean as of lane R20', () => {
+test('LIVE: the whole scoped tree (fsi-app/scripts, excluding _archive) passes F67 clean as of lane R20', () => {
   const problems = [];
   for (const f of fitnessFunction.enumerate()) {
     const content = readFileSync(resolve(REPO_ROOT, f), 'utf8');
