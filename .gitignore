@@ -65,6 +65,8 @@ fsi-app/scripts/_snapshots/
 
 fsi-app/scripts/_plans/
 
+fsi-app/scripts/_diag/
+
 .obsidian/
 
 # PreCompact state snapshot: written by .claude/hooks/pre-compact-snapshot.mjs,
