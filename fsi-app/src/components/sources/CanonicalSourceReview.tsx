@@ -101,7 +101,14 @@ export function CanonicalSourceReview() {
   // Bulk approve
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkRunning, setBulkRunning] = useState(false);
-  const [bulkResult, setBulkResult] = useState<any>(null);
+  const [bulkResult, setBulkResult] = useState<{
+    error?: string;
+    approved?: number;
+    total?: number;
+    created_sources?: number;
+    failed?: number;
+    requires_individual_review?: number;
+  } | null>(null);
 
   // Pre-cache classifications (server-side batch Haiku calls)
   const [precacheRunning, setPrecacheRunning] = useState(false);
@@ -120,8 +127,8 @@ export function CanonicalSourceReview() {
         setGroups(payload.groups);
         setStats(payload.stats);
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -223,8 +230,8 @@ export function CanonicalSourceReview() {
       // Reload candidates so the now-cached classifications appear in
       // bulkEligible and the precache button disappears.
       await load();
-    } catch (e: any) {
-      setPrecacheError(e.message);
+    } catch (e) {
+      setPrecacheError(e instanceof Error ? e.message : String(e));
     } finally {
       setPrecacheRunning(false);
     }
@@ -248,8 +255,8 @@ export function CanonicalSourceReview() {
       setBulkResult(payload);
       // Reload to reflect server state
       await load();
-    } catch (e: any) {
-      setBulkResult({ error: e.message });
+    } catch (e) {
+      setBulkResult({ error: e instanceof Error ? e.message : String(e) });
     } finally {
       setBulkRunning(false);
     }
@@ -377,7 +384,7 @@ export function CanonicalSourceReview() {
             { v: "low", label: `low (${stats.by_confidence.low || 0})` },
           ]}
           value={confFilter}
-          onChange={(v) => setConfFilter(v as any)}
+          onChange={(v) => setConfFilter(v)}
         />
         <FilterPills
           label="Verified"
@@ -387,7 +394,7 @@ export function CanonicalSourceReview() {
             { v: "unverified", label: "unverified" },
           ]}
           value={verifiedFilter}
-          onChange={(v) => setVerifiedFilter(v as any)}
+          onChange={(v) => setVerifiedFilter(v)}
         />
         <FilterPills
           label="Issue"
@@ -398,7 +405,7 @@ export function CanonicalSourceReview() {
             { v: "missing_source", label: `missing source (${stats.by_issue.missing_source || 0})` },
           ]}
           value={issueFilter}
-          onChange={(v) => setIssueFilter(v as any)}
+          onChange={(v) => setIssueFilter(v)}
         />
       </div>
 
@@ -502,13 +509,13 @@ function StatBox({ label, value, accent }: { label: string; value: number; accen
   );
 }
 
-function FilterPills({
+function FilterPills<T extends string>({
   label, options, value, onChange,
 }: {
   label: string;
-  options: { v: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
+  options: { v: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
 }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -646,8 +653,8 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
           setModes(r.transport_modes);
           setTopics(r.topic_tags);
         }
-      } catch (e: any) {
-        if (!cancelled) setErrMsg(e.message);
+      } catch (e) {
+        if (!cancelled) setErrMsg(e instanceof Error ? e.message : String(e));
       } finally {
         if (!cancelled) setRecLoading(false);
       }
@@ -663,7 +670,18 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
     setSubmitting(decision);
     setErrMsg(null);
     try {
-      const body: any = { candidateId: cand.id, decision, reviewerNotes: notes };
+      const body: {
+        candidateId: string;
+        decision: "approve" | "reject" | "defer";
+        reviewerNotes: string;
+        editedFields?: { candidate_url: string; candidate_title: string; candidate_publisher: string };
+        existingSourceId?: string;
+        assignedTier?: number;
+        domains?: number[];
+        jurisdictions?: string[];
+        transport_modes?: string[];
+        topic_tags?: string[];
+      } = { candidateId: cand.id, decision, reviewerNotes: notes };
       if (editing) {
         body.editedFields = {
           candidate_url: editUrl,
@@ -702,8 +720,8 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
         return;
       }
       onActionDone();
-    } catch (e: any) {
-      setErrMsg(e.message);
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : String(e));
       setSubmitting(null);
     }
   }
@@ -851,7 +869,7 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
                       {[1, 2, 3, 4, 5, 6, 7].map((t) => <option key={t} value={t}>T{t}</option>)}
                     </select>
                   </label>
-                  <PillPicker label="Domains" options={ALL_DOMAINS.map((d) => ({ v: d.v as any, label: String(d.v) }))} selected={domains} onToggle={(v) => toggle(v as number, domains, setDomains)} />
+                  <PillPicker label="Domains" options={ALL_DOMAINS.map((d) => ({ v: d.v, label: String(d.v) }))} selected={domains} onToggle={(v) => toggle(v, domains, setDomains)} />
                   <PillPicker label="Jurisdictions" options={ALL_JURISDICTIONS.map((j) => ({ v: j, label: j }))} selected={jurisdictions} onToggle={(v) => toggle(v as string, jurisdictions, setJurisdictions)} />
                   <PillPicker label="Transport modes" options={ALL_MODES.map((m) => ({ v: m, label: m }))} selected={modes} onToggle={(v) => toggle(v as string, modes, setModes)} />
                   <div className="sm:col-span-2">

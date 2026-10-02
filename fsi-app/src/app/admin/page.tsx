@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { AdminDashboard, type AdminMemberRow } from "@/components/admin/AdminDashboard";
 import { fetchSourceData } from "@/lib/supabase-server";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import { formatLocaleDate } from "@/lib/format";
@@ -222,7 +222,7 @@ export default async function AdminPage() {
       initialSources={sourceData.sources}
       initialProvisionalSources={sourceData.provisionalSources}
       initialOrgs={orgsRes.data || []}
-      initialMembers={membersRes.data || []}
+      initialMembers={(membersRes.data as unknown as AdminMemberRow[]) || []}
       initialStagedUpdates={stagedRes.data || []}
       initialMtdSpendUsd={mtdSpend.usd}
       initialMtdRuns={mtdSpend.runs}

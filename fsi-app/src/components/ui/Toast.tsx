@@ -23,6 +23,9 @@ export function Toast({
 
   useEffect(() => {
     if (visible) {
+      // Triggers the enter animation and arms the auto-dismiss timer together; `show` and the
+      // timer are one synchronization keyed on `visible`, not a subscription to an external system.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShow(true);
       const timer = setTimeout(() => {
         setShow(false);

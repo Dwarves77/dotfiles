@@ -74,7 +74,7 @@ export function createIdentityLoader(deps: IdentityLoaderDeps): IdentityLoader {
   };
 
   const apply = (seed: AuthSeed) => {
-    if (!shouldApplySeed(status, seed.status)) return;
+    if (!shouldApplySeed(status)) return;
     status = seed.status;
     deps.onSeed(seed);
   };

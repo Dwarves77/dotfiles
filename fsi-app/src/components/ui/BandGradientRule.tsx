@@ -28,14 +28,16 @@ export function BandGradientRule({ counts, height = 3 }: BandGradientRuleProps) 
       ? BAND_ORDER.map((b) => ({ hex: b.hex, pct: ((counts[b.key] ?? 0) / total) * 100 }))
       : BAND_ORDER.map((b) => ({ hex: b.hex, pct: 25 }));
 
-  let acc = 0;
   const stops = segments
-    .map((s) => {
-      const from = acc;
-      acc += s.pct;
-      return `${s.hex} ${from}%, ${s.hex} ${acc}%`;
-    })
-    .join(", ");
+    .reduce<{ acc: number; parts: string[] }>(
+      (state, s) => {
+        const from = state.acc;
+        const acc = from + s.pct;
+        return { acc, parts: [...state.parts, `${s.hex} ${from}%, ${s.hex} ${acc}%`] };
+      },
+      { acc: 0, parts: [] }
+    )
+    .parts.join(", ");
 
   return (
     <div

@@ -110,8 +110,8 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
           setModes(r.transport_modes);
           setTopics(r.topic_tags);
         }
-      } catch (e: any) {
-        if (!cancelled) setRecError(e.message);
+      } catch (e) {
+        if (!cancelled) setRecError(e instanceof Error ? e.message : String(e));
       } finally {
         if (!cancelled) setRecLoading(false);
       }
@@ -123,7 +123,16 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
     if (decision !== "defer" && decision === "approve" && !tier) return;
     setSubmitting(decision);
     try {
-      const body: any = { provisionalSourceId: ps.id, decision, reviewerNotes: notes };
+      const body: {
+        provisionalSourceId: string;
+        decision: "approve" | "reject" | "defer";
+        reviewerNotes: string;
+        assignedTier?: number;
+        domains?: number[];
+        jurisdictions?: string[];
+        transport_modes?: string[];
+        topic_tags?: string[];
+      } = { provisionalSourceId: ps.id, decision, reviewerNotes: notes };
       if (decision === "approve") {
         // Phase 1.5 + F8 (Sprint Architecture): client must not write
         // tier-shaped fields directly. Send operator-chosen tier value
@@ -151,8 +160,8 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
         return;
       }
       onActionDone(ps.id, decision);
-    } catch (e: any) {
-      setRecError(e.message);
+    } catch (e) {
+      setRecError(e instanceof Error ? e.message : String(e));
       setSubmitting(null);
     }
   }

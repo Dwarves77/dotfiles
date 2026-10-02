@@ -31,7 +31,13 @@ import { UpcomingObligationsPanel } from "@/components/admin/UpcomingObligations
 
 // ── Source Row ──
 
-function SourceRow({ source }: { source: Source }) {
+/** `processing_paused` / `admin_only` are live DB columns this row reads and
+ *  SourceRowControls/SourceAdminControls already type as optional booleans,
+ *  but they are missing from the canonical `Source` type in types/source.ts
+ *  (type drift, not this lane's scope to backfill the shared type). */
+type SourceWithAdminFields = Source & { processing_paused?: boolean; admin_only?: boolean };
+
+function SourceRow({ source }: { source: SourceWithAdminFields }) {
   const { expandedSourceId, setExpandedSource } = useSourceStore();
   const isExpanded = expandedSourceId === source.id;
 
@@ -181,7 +187,7 @@ function SourceRow({ source }: { source: Source }) {
                 Paywalled
               </span>
             )}
-            {(source as any).processing_paused && (
+            {source.processing_paused && (
               <span className="flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
                 <Clock size={11} />
                 Paused (admin)
@@ -193,8 +199,8 @@ function SourceRow({ source }: { source: Source }) {
           <div className="pt-3 border-t" style={{ borderColor: "var(--color-border-subtle)" }}>
             <SourceRowControls
               sourceId={source.id}
-              initialPaused={!!(source as any).processing_paused}
-              initialAdminOnly={!!(source as any).admin_only}
+              initialPaused={!!source.processing_paused}
+              initialAdminOnly={!!source.admin_only}
             />
           </div>
 

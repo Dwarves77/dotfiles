@@ -84,8 +84,8 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
         }
         const payload = await res.json();
         setMeta(payload.item);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
     })();
     return () => { cancelled = true; };

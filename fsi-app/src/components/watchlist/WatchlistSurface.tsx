@@ -61,7 +61,8 @@
  * NO DRAG HERE, unchanged from the previous version.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Masthead } from "@/components/ui/Masthead";
 import { LIST_SURFACE_MOBILE_CSS } from "@/components/list-surface/ListSurfaceShell";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
@@ -191,7 +192,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
         (!q || i.title.toLowerCase().includes(q) || (i.jurisdiction ?? "").toLowerCase().includes(q)) &&
         tagsFacet.matchesSelectedTag(i.id),
     );
-  }, [items, scope, type, query, tagsFacet.matchesSelectedTag]);
+  }, [items, scope, type, query, tagsFacet]);
 
   const atCap = items.length >= limit;
 
@@ -240,7 +241,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
       });
     }
     return groups;
-  }, [items, presentTypes, scope, type, tagsFacet.tags, tagsFacet.selectedTagId, tagsFacet.setSelectedTagId]);
+  }, [items, presentTypes, scope, type, tagsFacet]);
 
   return (
     <>
@@ -392,7 +393,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
                 // where watched rows carry a star and no ⋯ menu. The menu is on the list pages.
                 left="Watch an item from its ⋯ menu on any list page, or the Watch button on a detail page."
                 right={
-                  <a
+                  <Link
                     href="/regulations"
                     style={{
                       color: "var(--ink)",
@@ -404,7 +405,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
                     }}
                   >
                     Browse regulations →
-                  </a>
+                  </Link>
                 }
               />
 

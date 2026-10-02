@@ -210,6 +210,9 @@ export function ObligationRegisterFilterBar({
       return;
     }
     const myId = ++requestIdRef.current;
+    // Signalling fetch-start before the async call below resolves; the loading/error flags and
+    // the fetch they bracket are one synchronization with the filter params, not two effects.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
     fetchRegisterPage({ jurisdiction, mode, bindingPosition, dueWindow }, 0)
@@ -225,7 +228,6 @@ export function ObligationRegisterFilterBar({
       .finally(() => {
         if (requestIdRef.current === myId) setLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jurisdiction, mode, bindingPosition, dueWindow, variant]);
 
   const loadMore = useCallback(() => {
@@ -257,7 +259,7 @@ export function ObligationRegisterFilterBar({
               No obligations classified into the register yet. It is derived from{" "}
               <strong>{formatNumber(sourceEventCount)}</strong> dated forward event
               {sourceEventCount === 1 ? "" : "s"} already on file (migration 274); the register fills in
-              as they are matched to their parent regulation's jurisdiction, mode and binding position.
+              as they are matched to their parent regulation&apos;s jurisdiction, mode and binding position.
             </>
           ) : (
             "No obligations on file yet. This register is derived from forward-events extraction landing "

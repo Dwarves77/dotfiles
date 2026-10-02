@@ -51,7 +51,7 @@ export function NotificationsBell() {
   // calls back so the badge stays in sync without a roundtrip poll.
   const handleCountChange = useCallback((next: number) => {
     setUnreadCount(Math.max(0, next));
-  }, []);
+  }, [setUnreadCount]);
 
   const showBadge = unreadCount > 0;
   const badgeText = unreadCount > 99 ? "99+" : String(unreadCount);

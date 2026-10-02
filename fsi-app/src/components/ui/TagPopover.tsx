@@ -17,7 +17,7 @@
  * Backspace) is tagPopoverKeyboard.ts, unit tested there.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WorkspaceTagPill } from "@/components/ui/Chips";
 import {
   visibleRows,
@@ -61,11 +61,14 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
   const [openState, setOpenState] = useState(false);
   const controlled = openProp !== undefined;
   const open = controlled ? (openProp as boolean) : openState;
-  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
-    const resolved = typeof next === "function" ? (next as (prev: boolean) => boolean)(open) : next;
-    if (controlled) onOpenChange?.(resolved);
-    else setOpenState(resolved);
-  };
+  const setOpen = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      const resolved = typeof next === "function" ? (next as (prev: boolean) => boolean)(open) : next;
+      if (controlled) onOpenChange?.(resolved);
+      else setOpenState(resolved);
+    },
+    [controlled, onOpenChange, open]
+  );
   const [tags, setTags] = useState<TagOption[]>([]);
   const [appliedOrder, setAppliedOrder] = useState<string[]>([]); // oldest -> newest
   const [query, setQuery] = useState("");
@@ -108,7 +111,7 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
+  }, [open, setOpen]);
 
   useEffect(() => {
     if (open) {

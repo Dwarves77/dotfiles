@@ -178,7 +178,7 @@ export function OrganisationProfileSection() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: 0, lineHeight: 1.5 }}>
-              Which roles you hold and your organisation's size, used to show whether a regulation
+              Which roles you hold and your organisation&apos;s size, used to show whether a regulation
               applies to you.
             </p>
             <div>

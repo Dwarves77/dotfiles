@@ -40,6 +40,22 @@ interface RequestsResponse {
   last_consumed_at: string | null;
 }
 
+/** POST /api/admin/corpus-turn-requests response, rendered inline above. */
+interface TurnResult {
+  ok: boolean;
+  error?: string;
+  inserted?: number;
+  already_open?: number;
+  total_live?: number;
+  [key: string]: unknown;
+}
+
+/** POST /api/admin/run-intake response, dumped verbatim via JSON.stringify below. */
+interface IntakeResult {
+  ok: boolean;
+  [key: string]: unknown;
+}
+
 function fieldStyle(): React.CSSProperties {
   return {
     fontFamily: "inherit",
@@ -71,8 +87,8 @@ export function CorpusTurnPanel() {
       } else {
         setData(payload as RequestsResponse);
       }
-    } catch (e: any) {
-      setQueueError(e.message || "Network error");
+    } catch (e) {
+      setQueueError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -85,7 +101,7 @@ export function CorpusTurnPanel() {
   // ── "Request corpus turn" ─────────────────────────────────────────────────────────────────────────
   const [turnItemId, setTurnItemId] = useState("");
   const [turnBusy, setTurnBusy] = useState<"item" | "all" | null>(null);
-  const [turnResult, setTurnResult] = useState<any>(null);
+  const [turnResult, setTurnResult] = useState<TurnResult | null>(null);
 
   async function requestTurn(body: { itemId: string } | { all: true }) {
     setTurnBusy("itemId" in body ? "item" : "all");
@@ -103,8 +119,8 @@ export function CorpusTurnPanel() {
         if ("itemId" in body) setTurnItemId("");
         loadQueue();
       }
-    } catch (e: any) {
-      setTurnResult({ ok: false, error: e.message || "Network error" });
+    } catch (e) {
+      setTurnResult({ ok: false, error: e instanceof Error ? e.message : "Network error" });
     } finally {
       setTurnBusy(null);
     }
@@ -116,7 +132,7 @@ export function CorpusTurnPanel() {
   const [itemType, setItemType] = useState("");
   const [mode, setMode] = useState<"plan" | "apply">("plan");
   const [intakeBusy, setIntakeBusy] = useState(false);
-  const [intakeResult, setIntakeResult] = useState<any>(null);
+  const [intakeResult, setIntakeResult] = useState<IntakeResult | null>(null);
 
   async function runIntake() {
     if (!title.trim() || !sourceUrl.trim() || !itemType.trim()) return;
@@ -134,8 +150,8 @@ export function CorpusTurnPanel() {
       });
       const payload = await res.json();
       setIntakeResult({ ok: res.ok, ...payload });
-    } catch (e: any) {
-      setIntakeResult({ ok: false, error: e.message || "Network error" });
+    } catch (e) {
+      setIntakeResult({ ok: false, error: e instanceof Error ? e.message : "Network error" });
     } finally {
       setIntakeBusy(false);
     }

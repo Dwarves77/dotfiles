@@ -141,6 +141,9 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
   // field).
   useEffect(() => {
     if (!orgId) {
+      // Clearing stale state for the prior orgId before this effect's own fetch below can run for
+      // the new one; the early-return guard and the fetch are one synchronization, not two effects.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOrgPlan(null);
       return;
     }
@@ -160,6 +163,9 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
   // with what that panel shows once it loads.
   useEffect(() => {
     if (!orgId) {
+      // Same shape as the orgPlan effect above: clearing stale state for the prior orgId before
+      // this effect's own fetch below can run for the new one.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMemberCount(null);
       return;
     }

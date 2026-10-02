@@ -236,6 +236,10 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // (ruling 2, 2026-09-20): search runs unconditionally, never gated on a mode.
   useEffect(() => {
     if (value.trim().length < MIN_QUERY_LEN) {
+      // Clearing stale results/searching state below the minimum query length, before this
+      // effect's own debounced fetch below can run; the guard and the fetch are one
+      // synchronization with `value`, not two effects.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults(null);
       setSearching(false);
       return;
@@ -295,13 +299,17 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // than carry an index that may now point at a different row or past the new end. Not reset on
   // `dismissed`/`showDropdown` changes: a re-opened (not re-fetched) dropdown may reasonably keep
   // its prior active row.
+  // Resetting the active row to "none" whenever a new result set invalidates the prior index (see
+  // comment above); there is no external system here, just a derived reset keyed on `results`.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveIndex(-1);
   }, [results]);
 
   // `document.body` is not defined during SSR; set it once mounted (matches every other
-  // client-only DOM read in this file — the ⌘K listener above does the same window-only pattern).
+  // client-only DOM read in this file; the Cmd-K listener above does the same window-only pattern).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPortalTarget(document.body);
   }, []);
 
@@ -313,6 +321,9 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
   // already has a rect — no one-frame flash at (0,0).
   useLayoutEffect(() => {
     if (!showDropdown) {
+      // Clearing the measured rect when the dropdown closes, before this effect's own
+      // measure-and-subscribe body below can run for the open case.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBarRect(null);
       return;
     }

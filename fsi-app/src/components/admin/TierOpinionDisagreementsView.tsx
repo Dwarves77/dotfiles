@@ -88,8 +88,8 @@ export function TierOpinionDisagreementsView() {
       } else {
         setItems((payload as DisagreementsResponse).items);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -144,8 +144,8 @@ export function TierOpinionDisagreementsView() {
         flash("ok", `Accepted: T${row.base_tier} -> T${row.analyst_tier}`);
         setItems((prev) => prev.filter((r) => r.source_id !== row.source_id));
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setPendingId(null);
     }
@@ -173,8 +173,8 @@ export function TierOpinionDisagreementsView() {
         flash("ok", `Dismissed ${payload.dismissed_count} opinion(s)`);
         setItems((prev) => prev.filter((r) => r.source_id !== row.source_id));
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setPendingId(null);
     }

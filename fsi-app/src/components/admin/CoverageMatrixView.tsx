@@ -190,8 +190,8 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
       } else {
         setData(payload);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -203,8 +203,8 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
 
   // ── Derive filtered jurisdictions ─────────────────────────────────────────
 
-  const jurisdictionsAll = data?.jurisdictions ?? [];
-  const matrixAll = data?.matrix ?? [];
+  const jurisdictionsAll = useMemo(() => data?.jurisdictions ?? [], [data]);
+  const matrixAll = useMemo(() => data?.matrix ?? [], [data]);
   const itemTypes = data?.item_types ?? [];
 
   const visibleJurisdictions = useMemo<JurisdictionSummary[]>(() => {

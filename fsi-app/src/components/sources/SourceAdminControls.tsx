@@ -66,7 +66,7 @@ export function GlobalPauseToggle() {
         setState(p); setCadence(p.cadence); setStartDate(p.start_date ?? "");
         flash("ok", p.cadence === "off" ? "Scraping set to OFF — nothing will scrape." : `Scraping ${p.cadence} from ${p.start_date} — next run ${p.next_scrape}.`);
       } else flash("err", p.error || "Save failed");
-    } catch (e: any) { flash("err", e.message); }
+    } catch (e) { flash("err", e instanceof Error ? e.message : String(e)); }
     finally { setSubmitting(false); }
   }
 
@@ -79,7 +79,7 @@ export function GlobalPauseToggle() {
       const p = await res.json();
       if (res.ok) { setState(p); flash("ok", next ? "EMERGENCY STOP engaged — saved schedule preserved." : "Emergency stop released."); }
       else flash("err", p.error || "Toggle failed");
-    } catch (e: any) { flash("err", e.message); }
+    } catch (e) { flash("err", e instanceof Error ? e.message : String(e)); }
     finally { setSubmitting(false); }
   }
 
@@ -255,8 +255,8 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
         const payload = await res.json();
         flash("err", payload.error || "Pause toggle failed");
       }
-    } catch (e: any) {
-      flash("err", e.message);
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : String(e));
     } finally {
       setPausing(false);
     }
@@ -278,8 +278,8 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
       } else {
         flash("err", payload.error || `HTTP ${res.status}`);
       }
-    } catch (e: any) {
-      flash("err", e.message);
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : String(e));
     } finally {
       setFetching(false);
     }
@@ -310,8 +310,8 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
       } else {
         flash("err", payload.error || `HTTP ${res.status}`);
       }
-    } catch (e: any) {
-      flash("err", e.message);
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : String(e));
     } finally {
       setRegenerating(false);
     }
@@ -335,8 +335,8 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
         const payload = await res.json();
         flash("err", payload.error || "Visibility toggle failed");
       }
-    } catch (e: any) {
-      flash("err", e.message);
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : String(e));
     } finally {
       setTogglingVisibility(false);
     }
@@ -530,8 +530,8 @@ export function SourceTierOverrideControl({
         flash("ok", `Override saved: T${payload.before_tier} -> T${payload.after_tier}`);
         await load();
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setSubmitting(false);
     }
@@ -565,8 +565,8 @@ export function SourceTierOverrideControl({
         flash("ok", `Reverted to base T${payload.after_tier}`);
         await load();
       }
-    } catch (e: any) {
-      flash("err", e.message || "Network error");
+    } catch (e) {
+      flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setReverting(false);
     }

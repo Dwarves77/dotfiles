@@ -43,11 +43,8 @@ import { RailCard } from "@/components/ui/RailCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { BandProvider } from "@/components/ui/band-context";
-import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
-import { buildAllConnectionRows } from "@/lib/connections/connection-view-model.mjs";
-import { classifyMilestones } from "@/lib/detail/timeline-math";
 import type { UrgencyBand } from "@/lib/urgency/bands";
-import type { ImpactScores, TimelineEntry, ItemConnection, Supersession, Resource } from "@/types/resource";
+import type { ImpactScores, Resource } from "@/types/resource";
 
 // ── Masthead: page-level VOL/breadcrumb/title/dek/CommandBar for detail
 // routes ─────────────────────────────────────────────────────────────────

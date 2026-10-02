@@ -87,8 +87,8 @@ export function IntegrityFlagsView() {
       } else {
         setData(payload);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -143,8 +143,8 @@ export function IntegrityFlagsView() {
         showToast("Flag marked resolved.");
       }
       await load();
-    } catch (e: any) {
-      showToast(`Error: ${e.message || "Network error"}`);
+    } catch (e) {
+      showToast(`Error: ${e instanceof Error ? e.message : "Network error"}`);
     } finally {
       setPendingId(null);
     }
