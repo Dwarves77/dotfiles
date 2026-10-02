@@ -31,10 +31,22 @@ import { runDiscoveryStep, runForwardEventsStep } from "@/lib/intake/flywheel-st
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** The staged_updates row shape this materializer reads (only the four columns it actually touches;
- *  proposed_changes is intentionally untyped record data, shaped differently per update_type). */
+ *  proposed_changes is intentionally untyped record data, shaped differently per update_type).
+ *
+ * `id` and `item_id` are OPTIONAL, matching both the real column (migration 004:
+ * `item_id UUID REFERENCES intelligence_items(id)`, nullable; a `new_item` row has no item yet) and
+ * this function's two call shapes: a REAL staged_updates row read with `.select("*")` (has `id`
+ * always; `item_id` null for `new_item`) from drainChangeSweepUpdates/the materialization loop, vs.
+ * the dry-run PLAN-mode probe in portal-harvest.ts/run-intake-cycle.ts, which constructs a synthetic
+ * `{ update_type: "new_item", proposed_changes }` literal BEFORE any INSERT, so it has neither `id`
+ * nor `item_id`. Read against every branch below (2026-10-02, lane R7-LINT-CI, rule 13): the
+ * `update_item`/`status_change`/`archive_item` branches already runtime-guard
+ * `if (!update.item_id) return { success: false, ... }` before using it, and `update.id` is read only
+ * inside a log message (`staged_update_id=${update.id}`) in the `new_item` branch, never for control
+ * flow, so narrowing both to optional changes no runtime behavior, only the type to match it. */
 export interface StagedUpdateRow {
-  id: string;
-  item_id: string;
+  id?: string;
+  item_id?: string | null;
   update_type: string;
   proposed_changes: Record<string, unknown> | null;
 }
