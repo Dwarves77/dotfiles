@@ -118,3 +118,7 @@ For the record, so future dispatches can scope around them:
 - [multi-tenant-foundation-prework-2026-05-15](../plans/multi-tenant-foundation-prework-2026-05-15.md) — Explicitly named companion — the prework doc holds the decisions made before code that this followups doc continues
 - [migrations](../inventories/migrations.md) — Migrations 075/076/077 (multi-tenant) plus the unapplied 048/050 flagged in the followups doc are the same migration set
 - [caros-ledge-product-audit-2026-05-15](../audits/caros-ledge-product-audit-2026-05-15.md) — The v2 product audit is referenced throughout (Sections 6.1/6.4/6.5/6.8/6.9) as the source of the deferred/uncovered items
+
+## Closure note (2026-10-01)
+
+Closed 2026-10-01 by operator ruling: superseded by the 2026-09-30 audit wave (docs/audits/audit-consolidated-2026-09-30.md); any still-live item is tracked there. Phase 3 (Section 1) remains an open work item tracked in the wave plan; the invitation polish (Section 3), jurisdictions entity layer (Section 4), and open items (Section 5) remain eligible for future dispatch scoping.

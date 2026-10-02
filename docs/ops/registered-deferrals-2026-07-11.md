@@ -17,3 +17,7 @@ session (or the disposition closeout) sees the assignment, not a dropped thread.
 Related: [ADR-012-intake-cadence-and-launch-exit-test](../decisions/ADR-012-intake-cadence-and-launch-exit-test.md); the doctrine register
 (`fsi-app/.discipline/governance/doctrine-register.mjs`) entries `dwell-time-max-age-on-every-transitional-state`
 and `deferral-ceiling-30d-non-renewable-without-state-change`.
+
+## Closure note (2026-10-01)
+
+Closed 2026-10-01 by operator ruling: superseded by the 2026-09-30 audit wave (docs/audits/audit-consolidated-2026-09-30.md); any still-live item is tracked there. DEF-1 dwell (redesign-remnants diff-audit, 51 days overdue as of the audit) and DEF-2 stash ruling are carried in the wave plan under their respective work tracks.

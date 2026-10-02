@@ -1,5 +1,7 @@
 > **Superseded as a tracker on 2026-09-04** by `docs/plans/complete-system-build-plan-2026-09-04.md` (definition of done §0; the board is the only tracker). Kept as history.
 
+**SUPERSEDED** (operator ruling 2026-10-01: superseded by the 2026-09-30 audit wave; see docs/audits/audit-consolidated-2026-09-30.md). Historical record only.
+
 # System completion plan — 2026-09-02
 
 Base: `origin/master` `822c675` (#515). Operator request (2026-09-02): "build the remaining parts of the

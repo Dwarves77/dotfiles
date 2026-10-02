@@ -41,7 +41,7 @@ import { assembleTagInput } from "./tag-input.mjs";
 import { deriveAliasTags, mergeTagProposals } from "./tag-aliases.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const SNAPSHOT_PATH = resolve(HERE, "..", "..", "..", "scripts", "_snapshots", "population-33749140151", "census-rows.apply-ready.json");
+const SNAPSHOT_PATH = resolve(HERE, "fixtures", "census-rows.apply-ready.json");
 
 /** @type {Array<any>} */
 const POPULATION = JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8"));

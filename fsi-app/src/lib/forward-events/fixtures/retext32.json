@@ -1,0 +1,5 @@
+{"retext_targets": [
+  {"id": "test-1", "intelligence_item_id": "item-1", "event_date": "2026-01-01", "event_kind": "obligation", "source_kind": "regulation", "before": "Vessel operator shall ensure equipment is maintained.", "after": "Vessel operator shall ensure equipment is maintained.", "defect_classes": []},
+  {"id": "test-2", "intelligence_item_id": "item-2", "event_date": "2026-01-02", "event_kind": "prohibition", "source_kind": "rule", "before": "Must not: - bad format\n- multiple bullets", "after": "Must not: bad format. Multiple bullets.", "defect_classes": []},
+  {"id": "test-3", "intelligence_item_id": "item-3", "event_date": "2026-01-03", "event_kind": "requirement", "source_kind": "guidance", "before": "Compliance must be achieved within 30 days from the effective date | See reference [1]", "after": "Compliance must be achieved within 30 days from the effective date. See reference [1].", "defect_classes": []}
+]}

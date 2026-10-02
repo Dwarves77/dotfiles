@@ -328,7 +328,7 @@ test("resolveIdentity: a shared-government-portal host institution-matches only 
 // institution-key.mjs's own documented evidence that every one of these seven hosts (this fixture's four)
 // is a single-institution host with no SHARED_PORTAL_KEYDEPTH collision.
 const HELD_RUN_012_FIXTURE = JSON.parse(
-  readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "..", "_snapshots", "population-33678399902", "census-rows.held.json"), "utf8"),
+  readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "fixtures", "census-rows.held.json"), "utf8"),
 );
 
 test("mint-run-012 fixture: exactly 8 held rows, the three classes this lane closed", () => {
