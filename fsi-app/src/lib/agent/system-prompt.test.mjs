@@ -23,6 +23,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { SYSTEM_PROMPT } from "./system-prompt.ts";
 import {
   PLANNING_ASSUMPTION_SHIFT_ABSENCE,
@@ -142,22 +145,23 @@ test("assertPlanningAssumptionShifted: null, undefined, and blank all fail the n
   assert.throws(() => assertPlanningAssumptionShifted("   "), /required but null\/blank/);
 });
 
-// ── open item, stated plainly per the brief's own report format ──
+// ── coordinator ruling (2026-10-02): canonical-pipeline.ts IS this lane's territory, not L7's ──
 //
-// [HYPOTHESIS, not exercised by this suite] Whether a LIVE regeneration's actual model output populates
-// this line from REAL research_assessments/planning_assumption_register data depends on whether
-// src/lib/agent/canonical-pipeline.ts's context assembly passes either table's rows into the model's
-// input at all. [CONFIRMED by grep, 2026-10-02]: as of this run, canonical-pipeline.ts and
-// generate-brief.ts contain NO reference to research_assessments, read-assessments.mjs,
-// planning_assumption_register, or assumptions/read.ts -- neither data source reaches the model's
-// input context yet. That wiring is explicitly OUT of this lane's write set (canonical-pipeline.ts is
-// the mint chokepoint, named off-limits in the brief); today, a live regeneration would fall through to
-// the sentinel path (the prompt instructs the model to emit the absence sentinel whenever its input
-// context supplies neither source), which is itself spec-03S1-compliant (never blank, never invented)
-// but not yet "wired to the assessment model" in the data-flow sense. See the lane's session-log
-// addendum for the open item this leaves for the coordinator.
-test("open item documented: canonical-pipeline.ts does not yet pass either table into model context (grep-confirmed)", () => {
-  // This assertion exists so the open item is CI-visible, not just prose: it fails loudly if a future
-  // change silently starts wiring the data without updating this test's framing above.
-  assert.ok(true, "see comment block above; tracked in docs/ops/session-log.d/2026-10-02-l9.md");
+// [CONFIRMED by grep, 2026-10-02] canonical-pipeline.ts now imports selectAssessmentView /
+// formatAssumptionShift from read-assessments.mjs and readAtRiskAssumptions from assumptions/read.ts,
+// and names the exact block header this prompt instructs the model to look for. The prompt and the
+// pipeline must therefore agree on that literal header string -- this test is the drift guard.
+test("the prompt names the exact context block header canonical-pipeline.ts emits", () => {
+  assert.match(researchSummarySection, /"RESEARCH ASSESSMENT CONTEXT"/);
+  const pipelineText = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "canonical-pipeline.ts"), "utf8");
+  assert.match(
+    pipelineText,
+    /RESEARCH ASSESSMENT CONTEXT \(planning-assumption-shift source data/,
+    "canonical-pipeline.ts must emit the SAME block header text the prompt names, or the model is told to look for a block that never arrives",
+  );
+  assert.match(
+    pipelineText,
+    /it\.item_type === "research_finding" \? await buildPlanningAssumptionContext/,
+    "the context block must be gated to research_finding items only -- every other item_type is untouched",
+  );
 });
