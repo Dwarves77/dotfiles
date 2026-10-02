@@ -309,6 +309,8 @@
 | 333 | 333_derivation_edges_allow_state_cost_facts.sql | Migration 333 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A", second |
 | 334 | 334_intelligence_items_recommended_actions.sql | Migration 334 (Lane STRUCTURED-ACTIONS, 2026-09-28): adds intelligence_items.recommended_actions, |
 | 335 | 335_drop_placeholder_community_layer.sql | Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). AUTHOR-ONLY, NOT APPLIED, rides |
+| 338 | 338_inference_records.sql | Migration 338 (Lane W2-G, wave2b, 2026-09-29). ADR-036 decision 2: `inference_records`, the |
+| 339 | 339_derivation_edges_admit_inference_records.sql | Migration 339 (Lane W2-G, wave2b, 2026-09-29, coordinator ruling same day). Widens |
 
 ## Maintenance trigger
 
