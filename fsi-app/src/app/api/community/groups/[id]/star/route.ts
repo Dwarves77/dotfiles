@@ -6,64 +6,20 @@
 //
 // RLS on community_group_members.UPDATE allows a user to update their
 // own row (with role/joined_at unchanged). Updating just `starred` is
-// within that policy — we use the caller's RLS-aware client so the
-// row guard is enforced server-side, not just in our query.
+// within that policy, the shared handler (below) uses the caller's
+// RLS-aware client so the row guard is enforced server-side, not just
+// in our query.
 //
 // Auth: cookie session.
 // Rate limit: standard 60/min/user.
+//
+// The handler body is shared with the sibling /mute route (same table, same
+// self-only RLS-scoped write, same response shape) via
+// createMemberPrefTogglePatchHandler (src/lib/community/member-pref-route.mjs) -
+// F45 (duplicate-code) caught the two routes as a near-verbatim clone when they
+// were each written out in full; this file now exports only the one-line
+// handler (F34: route files export only handlers).
 
-import { NextRequest, NextResponse } from "next/server";
-import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
-import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { createMemberPrefTogglePatchHandler } from "@/lib/community/member-pref-route.mjs";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await requireCommunityRoute(request);
-  if (isRefusal(auth)) return auth;
-
-  const { id: groupId } = await params;
-  if (!groupId || !UUID_RE.test(groupId)) {
-    return NextResponse.json({ error: "Valid group id required" }, { status: 400 });
-  }
-
-  let body: { starred?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  if (typeof body.starred !== "boolean") {
-    return NextResponse.json(
-      { error: "starred (boolean) is required" },
-      { status: 400 }
-    );
-  }
-
-  const { data, error } = await auth.supabase
-    .from("community_group_members")
-    .update({ starred: body.starred })
-    .eq("group_id", groupId)
-    .eq("user_id", auth.userId)
-    .select("group_id")
-    .maybeSingle();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  if (!data) {
-    return NextResponse.json(
-      { error: "You are not a member of this group" },
-      { status: 404 }
-    );
-  }
-
-  return NextResponse.json(
-    { ok: true, starred: body.starred },
-    { headers: rateLimitHeaders(auth.userId) }
-  );
-}
+export const PATCH = createMemberPrefTogglePatchHandler("starred");

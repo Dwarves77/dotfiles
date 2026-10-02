@@ -49,10 +49,10 @@ test("createCommunityPost posts entity_ids and returns the created post on 2xx",
     return jsonResponse(200, { post: { id: "p1" } });
   };
   const result = await createCommunityPost(
-    { group_id: "g1", body: "hello", entity_ids: ["cl:corridor:abc"] },
+    { group_id: "g1", body: "hello", entity_ids: ["cl:corridor:0123456789abcdef"] },
     fetchImpl
   );
-  assert.deepEqual(sentBody.entity_ids, ["cl:corridor:abc"]);
+  assert.deepEqual(sentBody.entity_ids, ["cl:corridor:0123456789abcdef"]);
   assert.equal(result.ok, true);
   if (result.ok) assert.deepEqual(result.post, { id: "p1" });
 });
@@ -60,7 +60,7 @@ test("createCommunityPost posts entity_ids and returns the created post on 2xx",
 test("createCommunityPost surfaces the guard's aggregate_route on a 403 refusal", async () => {
   const fetchImpl = async () => jsonResponse(403, fixtures.guardRefusal);
   const result = await createCommunityPost(
-    { group_id: "g1", body: "SAF premium is $2.10/kg", entity_ids: ["cl:corridor:abc"] },
+    { group_id: "g1", body: "SAF premium is $2.10/kg", entity_ids: ["cl:corridor:0123456789abcdef"] },
     fetchImpl
   );
   assert.equal(result.ok, false);
@@ -74,7 +74,7 @@ test("createCommunityPost surfaces the guard's aggregate_route on a 403 refusal"
 test("createCommunityPost does not surface aggregate_route on a non-403 4xx", async () => {
   const fetchImpl = async () => jsonResponse(400, { error: "body is required" });
   const result = await createCommunityPost(
-    { group_id: "g1", body: "", entity_ids: ["cl:corridor:abc"] },
+    { group_id: "g1", body: "", entity_ids: ["cl:corridor:0123456789abcdef"] },
     fetchImpl
   );
   assert.equal(result.ok, false);
@@ -89,7 +89,7 @@ test("createCommunityPost fails soft (status 0) on a network error", async () =>
     throw new Error("fetch failed");
   };
   const result = await createCommunityPost(
-    { group_id: "g1", body: "hi", entity_ids: ["cl:corridor:abc"] },
+    { group_id: "g1", body: "hi", entity_ids: ["cl:corridor:0123456789abcdef"] },
     fetchImpl
   );
   assert.equal(result.ok, false);
@@ -147,5 +147,5 @@ test("getCurrentBenchmarks passes through an unpublishable aggregate's reason, n
   const result = await getCurrentBenchmarks(fetchImpl);
   assert.equal(result[0].aggregate.publishable, false);
   assert.equal(result[0].aggregate.value, null);
-  assert.match(result[0].aggregate.reason, /5 distinct/);
+  assert.match(result[0].aggregate.reason, /needs 7 more organisations/);
 });

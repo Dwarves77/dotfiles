@@ -309,7 +309,7 @@
 | 333 | 333_derivation_edges_allow_state_cost_facts.sql | Migration 333 (lane STATE-COST-DAG, coordinator ruling 2026-09-26/27, "build option A", second |
 | 334 | 334_intelligence_items_recommended_actions.sql | Migration 334 (Lane STRUCTURED-ACTIONS, 2026-09-28): adds intelligence_items.recommended_actions, |
 | 335 | 335_drop_placeholder_community_layer.sql | Migration 335 (Lane DROP-PLACEHOLDERS, 2026-09-29). APPLIED (confirmed, tables absent from |
-| - | (number 336 claimed by 336_community_anonymity_opt_in.sql, branch lane/w2b-community-identity, not yet merged to master as of this lane's base) | Migration 336 (Lane W2-B COMMUNITY-IDENTITY, 2026-09-29). R8.7 amendment (spec 07 Community section; ADR-035's sibling identity ruling): additive, reversible anonymity-opt-in columns. **APPLIED 2026-09-30** by the coordinator (confirmed by lane R4-5 MIGRATION-TRUTH-CATALOG-DROPS, 2026-10-01, remediation-plan-2026-09-30.md Lane 4/5). No file at this path on master yet - this row is a gap annotation (generate-migrations-inventory.mjs's extractGapRows), not a real-file row; it is replaced automatically once lane/w2b-community-identity's migration file merges. |
+| 336 | 336_community_anonymity_opt_in.sql | Migration 336 (Lane W2-B COMMUNITY-IDENTITY, 2026-09-29). APPLIED 2026-09-30 by the |
 | - | (number 337 never claimed by any migration file on any branch, confirmed by \`git log --all --diff-filter=A -- "*/337_*"\`, zero hits) | Unused - number skipped, not a gap to backfill. |
 | 338 | 338_inference_records.sql | Migration 338 (Lane W2-G, wave2b, 2026-09-29). ADR-036 decision 2: `inference_records`, the |
 | 339 | 339_derivation_edges_admit_inference_records.sql | Migration 339 (Lane W2-G, wave2b, 2026-09-29, coordinator ruling same day). Widens |

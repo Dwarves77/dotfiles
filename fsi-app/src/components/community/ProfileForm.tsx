@@ -91,6 +91,7 @@ export function ProfileForm() {
   const [role, setRole] = useState("");
   const [sector, setSector] = useState("");
   const [region, setRegion] = useState("");
+  const [defaultAnonymous, setDefaultAnonymous] = useState(false);
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -112,6 +113,7 @@ export function ProfileForm() {
       setRole(result.profile.role ?? "");
       setSector(result.profile.sector ?? "");
       setRegion(result.profile.region ?? "");
+      setDefaultAnonymous(result.profile.defaultAnonymous ?? false);
       setLoadStatus("loaded");
     })();
     return () => {
@@ -134,6 +136,7 @@ export function ProfileForm() {
       role: role.trim() || null,
       sector: sector.trim() || null,
       region: region || null,
+      default_anonymous: defaultAnonymous,
     });
 
     if (!result.ok) {
@@ -184,8 +187,9 @@ export function ProfileForm() {
           lineHeight: 1.6,
         }}
       >
-        Other members see your role, sector and region — never your name, email or company. The
-        platform knows exactly who you are; the room does not.
+        Other members see your name, company, role, sector and region by default (R8.7). Post
+        anonymously per post below, or set your account-wide default here, an anonymous post still
+        keeps your verified-member mark, so the room can trust it without knowing who posted it.
       </p>
 
       {/* ── Section 1: declare (primary action: Save profile) ──────────────────────────────── */}
@@ -266,6 +270,23 @@ export function ProfileForm() {
             ))}
           </select>
         </div>
+
+        {/* R8.7 (spec 07 Community, 2026-09-25, migration 336): the per-user default for a new
+            post's anonymity, the composer's own per-post checkbox initialises from this and can
+            still override it. >=44px target (law 2). */}
+        <label
+          htmlFor="profile-default-anonymous"
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 44, fontSize: 12.5, color: "var(--color-text-secondary)", cursor: "pointer" }}
+        >
+          <input
+            id="profile-default-anonymous"
+            type="checkbox"
+            checked={defaultAnonymous}
+            onChange={(e) => setDefaultAnonymous(e.target.checked)}
+            style={{ width: 18, height: 18, cursor: "pointer" }}
+          />
+          Post anonymously by default
+        </label>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <button type="submit" disabled={saveStatus === "pending"} style={primaryButtonStyle(saveStatus === "pending")}>

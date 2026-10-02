@@ -31,6 +31,10 @@ interface PostListProps {
   /** Candidate spine entities for the composer's EntityPicker — fetched server-side by
    * community/[slug]/page.tsx and threaded down. See EntityPicker.tsx's header. */
   candidateEntities?: CommunityEntityRef[];
+  /** R8.7 (spec 07 Community, 2026-09-25, migration 336): the caller's own
+   * community_member_profiles.default_anonymous, fetched server-side and threaded to the composer.
+   * See PostComposer.tsx's own doc comment. */
+  defaultAnonymous?: boolean;
 }
 
 const PAGE_SIZE = 20;
@@ -41,6 +45,7 @@ export function PostList({
   isGroupMember,
   isGroupAdmin,
   candidateEntities = [],
+  defaultAnonymous = false,
 }: PostListProps) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -167,6 +172,7 @@ export function PostList({
           onPosted={handlePosted}
           onError={handleError}
           candidateEntities={candidateEntities}
+          defaultAnonymous={defaultAnonymous}
         />
       ) : (
         <div

@@ -54,6 +54,12 @@ import {
 } from "./harness.mjs";
 import { runUxSpec, MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from "./ux-harness.mjs";
 import { measureUx, assertUxClean } from "../ux-assert.mjs";
+// ADR-035 (2026-09-25, "One aggregate anonymity floor"): the benchmark fixtures below use the SAME
+// shared FLOOR the real benchmark reader enforces (src/lib/aggregate/anonymity-floor.mjs), not a
+// literal number hand-copied here, so this spec can never drift from the live floor the way its own
+// min_contributors:5 fixtures had (fixed 2026-09-29, lane W2-B, coordinator-directed write-set
+// extension).
+import { FLOOR } from "../../../src/lib/aggregate/anonymity-floor.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ALIAS = {
@@ -120,11 +126,17 @@ function extremePosts(n) {
   });
 }
 
+// Well-formed cl:<kind>:<16 lowercase hex> ids (entity-id-shape.mjs's own ID_RE), fixed 2026-10-02,
+// lane W2-B, after PR #879's rendering-guard CI caught that the OLD short-form ids below
+// ("cl:corridor:1", "cl:jurisdiction:eu") fail the shared validateEntityIds() malformed-id check
+// (entity-binding.mjs) that identity-format.ts's validateEntityBinding now runs client-side, which
+// permanently disabled PostComposer's Post button in this fixture (the composer never saw a
+// well-formed id to accept) and timed out refusalAndDraftPreservationProof's click.
 const CANDIDATE_ENTITIES = [
-  { entity_id: "cl:corridor:1", kind: "corridor", canonical_name: "Shanghai to Rotterdam, ocean" },
-  { entity_id: "cl:jurisdiction:eu", kind: "jurisdiction", canonical_name: "European Union" },
+  { entity_id: "cl:corridor:0123456789abcdef", kind: "corridor", canonical_name: "Shanghai to Rotterdam, ocean" },
+  { entity_id: "cl:jurisdiction:fedcba9876543210", kind: "jurisdiction", canonical_name: "European Union" },
   {
-    entity_id: "cl:corridor:2",
+    entity_id: "cl:corridor:1122334455667788",
     kind: "corridor",
     canonical_name: `${LONG_UNBROKEN} to Rotterdam via Suez, ocean`,
   },
@@ -502,9 +514,9 @@ function openBenchmark(overrides = {}) {
       publishable: false,
       value: null,
       distinct_organisations: 3,
-      min_contributors: 5,
+      min_contributors: FLOOR.minOrgs,
       response_count: 4,
-      reason: "not yet publishable: k-anonymity (3/5 organisations)",
+      reason: `not yet publishable: k-anonymity (3/${FLOOR.minOrgs} organisations)`,
     },
     ...overrides,
   };
@@ -625,9 +637,9 @@ async function benchmarkResponseAcceptedProof(browser, bundleJs) {
               publishable: false,
               value: null,
               distinct_organisations: 4,
-              min_contributors: 5,
+              min_contributors: FLOOR.minOrgs,
               response_count: 5,
-              reason: "not yet publishable: k-anonymity (4/5 organisations)",
+              reason: `not yet publishable: k-anonymity (4/${FLOOR.minOrgs} organisations)`,
             },
           },
         }),
@@ -648,7 +660,7 @@ async function benchmarkResponseAcceptedProof(browser, bundleJs) {
 
     const status = await page.textContent('[role="status"]');
     checks++;
-    if (!status || !status.includes("counted") || !status.includes("4 of 5")) {
+    if (!status || !status.includes("counted") || !status.includes(`4 of ${FLOOR.minOrgs}`)) {
       failures.push(`accepted-proof: success message did not render the organisation count (got ${JSON.stringify(status)}).`);
     }
     checks++;

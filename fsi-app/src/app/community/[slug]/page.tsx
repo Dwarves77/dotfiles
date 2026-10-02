@@ -52,7 +52,7 @@ export default async function GroupDetailPage({
   //   1) groupRow        — group lookup by slug (RLS-gated)
   //   2) the shell context (memberships, invitations, topics, region counts, the sidebar footer): loadCommunityShellContext, lane L33
   const t0Phase1 = Date.now();
-  const [{ data: groupRow }, shell] = await Promise.all([
+  const [{ data: groupRow }, shell, { data: ownMemberProfile }] = await Promise.all([
     supabase
       .from("community_groups")
       .select(
@@ -64,10 +64,19 @@ export default async function GroupDetailPage({
       .eq("slug", slug)
       .maybeSingle(),
     loadCommunityShellContext(supabase, user),
+    // R8.7 (spec 07 Community, 2026-09-25, migration 336): the caller's own account-wide anonymity
+    // default, threaded to the composer so its per-post checkbox initialises correctly. Keyed by
+    // user, not group, so it belongs in this group-independent phase-1 batch.
+    supabase
+      .from("community_member_profiles")
+      .select("default_anonymous")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
   console.log(
     `[perf] /community/${slug} phase1 ${Date.now() - t0Phase1}ms`
   );
+  const defaultAnonymous = (ownMemberProfile as { default_anonymous?: boolean } | null)?.default_anonymous ?? false;
 
   // RLS will not return a private group the caller cannot read, so a
   // null result here is indistinguishable (by design) from a bad slug.
@@ -143,6 +152,9 @@ export default async function GroupDetailPage({
     ? {
         role: myMembership.role as "admin" | "moderator" | "member",
         starred: !!myMembership.starred,
+        // WIRE item (2026-09-29): myMembership.muted was already selected above but previously
+        // dropped here without reaching GroupHeader's mute toggle. Now threaded through.
+        muted: !!myMembership.muted,
       }
     : null;
 
@@ -197,6 +209,7 @@ export default async function GroupDetailPage({
               myMembership?.role === "moderator"
             }
             candidateEntities={candidateEntities}
+            defaultAnonymous={defaultAnonymous}
           />
         </div>
         <div

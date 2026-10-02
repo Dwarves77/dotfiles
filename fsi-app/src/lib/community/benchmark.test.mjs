@@ -21,15 +21,26 @@ test("aggregateBenchmarkResponses: refuses below k-anonymity floor", () => {
   assert.equal(r.value, null);
 });
 
-test("aggregateBenchmarkResponses: publishes a mean once all three gates clear", () => {
+test("aggregateBenchmarkResponses: publishes a mean once all three gates clear (ADR-035: needs >= 10 orgs)", () => {
   const instrument = { key: "saf-premium-eu-us-air-2026-q2", periodEnd: "2026-05-01" };
-  const responses = ["a", "b", "c", "d", "e"].map((organisationKey, i) => ({
+  const responses = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map((organisationKey, i) => ({
     organisationKey, valueNumeric: 10 + i, submittedAt: "2026-06-15",
   }));
   const r = aggregateBenchmarkResponses(instrument, responses, NOW);
   assert.equal(r.publishable, true);
-  assert.equal(r.value, (10 + 11 + 12 + 13 + 14) / 5);
+  assert.equal(r.value, (10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19) / 10);
   assert.equal(r.reason, null);
+});
+
+test("aggregateBenchmarkResponses: 5 distinct organisations is below the ADR-035 floor (10), not the old spec-07 floor (5)", () => {
+  const instrument = { key: "x", periodEnd: "2026-05-01" };
+  const responses = ["a", "b", "c", "d", "e"].map((organisationKey, i) => ({
+    organisationKey, valueNumeric: 10 + i, submittedAt: "2026-06-15",
+  }));
+  const r = aggregateBenchmarkResponses(instrument, responses, NOW);
+  assert.equal(r.publishable, false);
+  assert.equal(r.minContributors, 10);
+  assert.match(r.reason, /needs 5 more organisations/);
 });
 
 test("aggregateBenchmarkResponses: dedupes repeat submissions from the same organisation, keeping the latest", () => {
@@ -45,13 +56,15 @@ test("aggregateBenchmarkResponses: dedupes repeat submissions from the same orga
   const r = aggregateBenchmarkResponses(instrument, responses, NOW);
   assert.equal(r.distinctOrganisations, 5);
   assert.equal(r.responseCount, 5);
-  assert.equal(r.value, (5 + 4 + 4 + 4 + 4) / 5);
+  // below the ADR-035 floor (10 orgs), no value shown even though the mean is computable.
+  assert.equal(r.publishable, false);
+  assert.equal(r.value, null);
 });
 
 test("aggregateBenchmarkResponses: refuses when the period is too recent (not yet historical)", () => {
   const instrument = { key: "x", periodEnd: "2026-08-25" };
-  const responses = ["a", "b", "c", "d", "e"].map((organisationKey) => ({
-    organisationKey, valueNumeric: 10, submittedAt: "2026-08-20",
+  const responses = Array.from({ length: 10 }, (_, i) => ({
+    organisationKey: `org-${i}`, valueNumeric: 10, submittedAt: "2026-08-20",
   }));
   const r = aggregateBenchmarkResponses(instrument, responses, NOW);
   assert.equal(r.publishable, false);
@@ -62,10 +75,9 @@ test("aggregateBenchmarkResponses: refuses when one organisation dominates the p
   const instrument = { key: "x", periodEnd: "2026-01-01" };
   const responses = [
     { organisationKey: "dominant", valueNumeric: 1000, submittedAt: "2025-12-01" },
-    { organisationKey: "b", valueNumeric: 10, submittedAt: "2025-12-01" },
-    { organisationKey: "c", valueNumeric: 10, submittedAt: "2025-12-01" },
-    { organisationKey: "d", valueNumeric: 10, submittedAt: "2025-12-01" },
-    { organisationKey: "e", valueNumeric: 10, submittedAt: "2025-12-01" },
+    ...Array.from({ length: 9 }, (_, i) => ({
+      organisationKey: `org-${i}`, valueNumeric: 10, submittedAt: "2025-12-01",
+    })),
   ];
   const r = aggregateBenchmarkResponses(instrument, responses, NOW);
   assert.equal(r.publishable, false);
@@ -133,8 +145,13 @@ test("distinctOrganisationKeys: a response with no organisationKey is dropped, s
 });
 
 // ── applyPublishAggregateGate (lane NOTICES, publish_aggregate() wiring, 2026-09-05) ────────────────
-const PUBLISHABLE = { publishable: true, value: 42, reason: null, distinctOrganisations: 6, minContributors: 5, responseCount: 6 };
-const UNPUBLISHABLE = { ...PUBLISHABLE, publishable: false, value: null, reason: "not yet publishable: k-anonymity (3/5 organisations)" };
+const PUBLISHABLE = { publishable: true, value: 42, reason: null, distinctOrganisations: 12, minContributors: 10, responseCount: 12 };
+const UNPUBLISHABLE = {
+  ...PUBLISHABLE,
+  publishable: false,
+  value: null,
+  reason: "not yet publishable: k-anonymity: needs 7 more organisations (3/10 contributing organisations)",
+};
 
 test("applyPublishAggregateGate: a DB refusal overrides an otherwise-publishable JS aggregate", () => {
   const out = applyPublishAggregateGate(PUBLISHABLE, { refused: true, reason: "frozen: identical cohort granted at request ..." });

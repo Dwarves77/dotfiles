@@ -86,14 +86,21 @@ export interface CommunityEntityRef {
   canonical_name: string;
 }
 
-/** Verified-backing, pseudonymous-display identity (spec 05 §2): org type + role + sector + region,
- * plus a verification mark. Never a name or company — that is the whole point of the projection. */
+/** Verified author identity (spec 05 section 2, amended by R8.7 2026-09-25, migration 336): org type + role +
+ * sector + region + a verification mark, PLUS name/company shown by default and withheld only when
+ * the post or the author opted into anonymity (see `anonymous` below). An anonymous post still keeps
+ * the verified-member marker (`verified` is never withheld by anonymity, only name/company are). */
 export interface CommunityAuthorIdentity {
   orgType?: string | null;
   role?: string | null;
   sector?: string | null;
   region?: string | null;
   verified?: boolean;
+  name?: string | null;
+  company?: string | null;
+  /** True when this identity has been withheld (per-post `community_posts.anonymous`, or the
+   * author's `community_member_profiles.default_anonymous` when the post did not override it). */
+  anonymous?: boolean;
 }
 
 /** The five promotion-machine states (spec 05 §4), kept as a plain string union rather than an enum
