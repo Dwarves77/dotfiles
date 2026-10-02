@@ -49,6 +49,20 @@ block-scalar) contains `_snapshots` or `scripts/tmp`. Negative-tested: a 90-day-
 fails, the clean matching pair passes, and a live-tree proof (`fitnessFunction.check()` against the real
 `.github/workflows/`) returns zero violations post-remediation.
 
+Correction, same session: the first `node fsi-app/.discipline/governance/invariant-coverage.mjs` run
+FAILED with `ORPHAN MECHANISM: fitness F68 exists but no invariant references it`, a consequence of
+registering F68 this lane had not anticipated. Fixed by adding
+`fsi-app/.discipline/governance/invariants.d/RD-86-actions-artifact-budget.mjs`, extending category 37
+("A perf number in CI carries a ratchet, a target, and dated evidence") from perf numbers to Actions
+artifact storage budgets, `enforcedBy: ['fitness:F68', 'selftest:...F68-actions-artifact-budget.test.mjs']`.
+RD-86 is a self-assigned id (`invariants.d/README.md`: "the coordinator assigns the id"; this lane's
+dispatch did not anticipate the meta-gate consequence, so no id was pre-assigned), named here for the
+coordinator to re-number on landing if a collision or a different convention is preferred. The first
+attempt also hit an `ANCHOR DRIFT` (the category 37 heading uses a literal em dash, U+2014; the first
+draft used a plain hyphen), fixed by matching the heading byte-for-byte with a `glyph:verbatim` marker,
+the same convention every other carried-over anchor/section field in that directory already uses.
+`invariant-coverage.mjs` now reports `ALL 144 invariants + 63 doctrines are wired ... meta-gate PASS`.
+
 ## Task (c): docs-only push fast path
 
 Read `docs/dispatches/lane-common-contract.md` and discipline.yml's own 2026-08-12 header in full before
@@ -127,21 +141,44 @@ Not applicable. No `.tsx`/`.css` file was touched by this lane.
 - `node fsi-app/.discipline/governance/docs-only-range.test.mjs`: 9/9 pass.
 - `node fsi-app/.discipline/fitness/manifest.test.mjs`: 5/5 pass (F68 registers cleanly, no duplicate-id,
   no filename mismatch).
+- `node fsi-app/.discipline/governance/invariants.test.mjs`: 59/59 pass across the five targeted files
+  together (includes the live-load proof that `invariants.d/` still loads cleanly with RD-86 added).
 - `node fsi-app/.discipline/fitness/runner.mjs` (full live-tree run): "Fitness summary: 53 function(s)
   checked, 0 violation(s)."
+- `node fsi-app/.discipline/governance/invariant-coverage.mjs`: "ALL 144 invariants + 63 doctrines are
+  wired ... meta-gate PASS" (after the RD-86 correction above; the first run of this gate FAILED, see
+  Task (b)).
+- `node fsi-app/.discipline/governance/closure-gate.mjs`: PASS on all four checks (NEVER-RUN, STALE-NEXT,
+  WRITER-READER, LANE-CONTRACT).
+- `node fsi-app/.discipline/governance/skill-contract-map.mjs --check`: "OK, 6 registered skills, no
+  drift."
 - `bash fsi-app/.discipline/run-test-suite.sh` (full canonical suite, touched-tests-only was not possible
   since this lane's own write set spans both touched functions and the shared test-discovery glob): ran
-  twice; see "Open items" below for the one pre-existing failure this lane investigated and ruled out as
-  unrelated to its own write set.
+  twice before the rebase below; 6257+2094 node:test cases, exactly one failure both times, which was the
+  `invariant-coverage.test.mjs` ORPHAN MECHANISM finding above (this lane's own F68 registration), fixed
+  by RD-86, not re-run to full completion a third time after the fix (the targeted re-runs listed above
+  cover the changed surface; the fix is a pure addition with no other file touched).
+- `node fsi-app/.discipline/runner.mjs --mode=ci --range=origin/master..HEAD`: 1 pass, 0 fail, 9 skip,
+  both before commit and after the rebase below.
 - Rule 022 (no dash glyphs): every file this lane touched was scanned for U+2014/U+2013/U+00A7 on ADDED
-  lines only (the rule's own trigger shape); all found instances were rewritten with commas or periods
-  before this entry was written.
+  lines only (the rule's own trigger shape, and the same check the commit-msg hook ran live on this
+  lane's actual commit); all found instances were rewritten with commas or periods, except the two
+  literal em dashes RD-86's `section`/`anchor` fields must carry to match the cited skill heading
+  byte-for-byte, disclosed with `glyph:verbatim` per the rule's own escape hatch.
+
+## Rebase
+
+This worktree's local `origin/master` ref was stale at dispatch time (4 commits behind the real remote,
+other lanes' merges this session never fetched): a first `runner.mjs --mode=ci` run over
+`origin/master..HEAD` showed 5066 added-line glyph violations and 128 changed files this lane never
+touched, all belonging to other lanes' already-merged work, not a real finding against this lane's own
+diff. `git fetch origin && git rebase origin/master` after committing resolved cleanly (0 conflicts); the
+rule-engine and gate re-runs above are all against the rebased state.
 
 ## Open items
 
-- Full pre-push preflight (`DISCIPLINE_HOOK_TRAMPOLINE=1 sh fsi-app/.discipline/hooks/pre-push`) was NOT
-  run end-to-end as this report was written, pending the test-suite rerun's result; run it before the
-  push this lane waits on ("ready to push", not pushed).
+- Full pre-push preflight (`DISCIPLINE_HOOK_TRAMPOLINE=1 sh fsi-app/.discipline/hooks/pre-push`) was run
+  end-to-end after the rebase; see its own result below.
 - `rendering-guard` (the Playwright job) was left ungated by the docs-only fast path: it is already
   `continue-on-error: true` and non-blocking, and the dispatch named only "the test-suite and fitness
   steps." A docs-only PR still spins up Playwright chromium there, wasteful but not required-status, not
