@@ -85,17 +85,21 @@
 //                                  only" marker-write rule)
 //  12. brief-export              task 3.5 (W9 brief-chain plan Part 3, "every new item is queued for a
 //                                  brief automatically"): export-corpus-for-extraction.mjs --ids <this
-//                                  batch's minted item ids> --with-pool-text --char-budget, landing the
-//                                  numbered parts under a TRACKED repo path,
-//                                  scripts/turns/brief-export/pending/<mint-run-id>.json (never
-//                                  scripts/_snapshots/, which is gitignored), so a session lane can
-//                                  author a brief from stored source text (task 3.2, then 3.4) without
-//                                  re-fetching. A local file write only, both dry and apply, never a DB
-//                                  write, the same "local file only" posture as corpus-export above; this
-//                                  driver runs no git command of its own, ever. The parts land where the
-//                                  SAME artifact-branch commit step that already commits the mint and
-//                                  forward-events harness-run artifacts picks them up: no second
-//                                  transport (see buildBriefExportArgs below).
+//                                  batch's minted item ids> --with-pool-text --char-budget, writing its
+//                                  numbered parts to a GITIGNORED scratch path (R22, 2026-10-02,
+//                                  coordinator-directed: no tracked file, no artifact branch, per PR #824
+//                                  / rule 17 -- "harness_runs is the durable record"). This step reads
+//                                  those parts straight back and lands them, full content included, in
+//                                  the `brief-export` family's own harness_runs row (queue.mjs's
+//                                  buildQueueArtifact) via the SAME local writeRunArtifact every sibling
+//                                  family step already uses; population-turn.yml's existing harness-run
+//                                  landing step picks this row up automatically (it already globs every
+//                                  family under scripts/harness-runs/*/*-run-*.json), no second transport,
+//                                  no workflow change needed. A session lane drains the queue via
+//                                  scripts/turns/read-brief-export-queue.mjs (reads harness_runs, never a
+//                                  file), authors a brief (task 3.2), then applies it (task 3.4); runs in
+//                                  both dry and apply mode, same as every other record-only step in this
+//                                  file -- this driver still runs no git command of its own, ever.
 //
 // SCOPING HONESTY. Steps 1-4 and 7 are scoped to EXACTLY this batch's minted item ids (extracted from the
 // mint-run artifact's own per_item, see extractMintedItemIds below) and are cleanly SKIPPED — never
@@ -229,9 +233,14 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readRunHistory } from "../lib/run-artifact.mjs";
+import { readRunHistory, writeRunArtifact } from "../lib/run-artifact.mjs";
 import { buildCorpusItems, chunk } from "./export-corpus-for-extraction.mjs";
 import { writeLastTurnDate } from "./last-turn-date.mjs";
+// R22 (2026-10-02, coordinator-directed): step 12's queue landing, DB-shaped per PR #824 / rule 17 (no
+// artifact branches; harness_runs is the durable record). See queue.mjs's own header for the full story.
+import { FAMILY as BRIEF_EXPORT_FAMILY, readExportedParts, buildQueueArtifact } from "./brief-export/queue.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { resolveHarnessRunContext } from "../lib/loop-run-id.mjs";
 import { main as deriveObligationsMain } from "../maintenance/derive-obligations.mjs";
 import { main as tagProposalsMain, CITE as TAG_PROPOSALS_CITE } from "../maintenance/tag-proposals.mjs";
 import { NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
@@ -247,10 +256,14 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_MINT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "mint");
 const SNAPSHOTS_ROOT = resolve(FSI_ROOT, "scripts", "_snapshots");
 
-// Task 3.5 (W9 brief-chain plan Part 3): the TRACKED (never gitignored, unlike SNAPSHOTS_ROOT above) queue
-// directory a session lane drains via record-briefs (task 3.2) then apply-record-briefs.mjs (task 3.4).
-// See buildBriefExportArgs below and this module header's step 12 for why a tracked path, not a snapshot.
-const BRIEF_EXPORT_PENDING_DIR = resolve(FSI_ROOT, "scripts", "turns", "brief-export", "pending");
+// R22 (2026-10-02, coordinator-directed): no longer a TRACKED path. Under SNAPSHOTS_ROOT (gitignored
+// scratch, CLAUDE.md rule 5) -- export-corpus-for-extraction.mjs still needs a real --out path on disk to
+// write its numbered parts to, but nothing commits this directory or anything under it any more. The
+// content these parts carry is read back (readExportedParts, queue.mjs) and landed into the `brief-export`
+// family's own harness_runs row (buildQueueArtifact) in the SAME step, which is the durable copy; this
+// on-disk file dies with the runner, same as every other step's own scratch.
+const BRIEF_EXPORT_QUEUE_SCRATCH_DIR = resolve(SNAPSHOTS_ROOT, "brief-export-queue");
+const BRIEF_EXPORT_FAMILY_DIR = resolve(HERE, "..", "harness-runs", BRIEF_EXPORT_FAMILY);
 
 // Mirrors export-corpus-for-extraction.mjs's own DEFAULT_CHAR_BUDGET (3,000,000) so this step's own
 // char-budget choice is visible here without opening that file; not imported directly (that file exports
@@ -262,14 +275,12 @@ export const DEFAULT_BACKLOG_MAX_ARTIFACTS = 2;
 
 /**
  * Task 3.5, PURE: the exact export-corpus-for-extraction.mjs invocation the brief-export step (12) runs
- * for one batch, and the repo-tracked path its numbered parts land under
- * (scripts/turns/brief-export/pending/<mintRunId>.json, exported as <mintRunId>-part<N>.json by that
- * script's own --with-pool-text numbering; see its header, "WITH-POOL-TEXT + CHAR-BUDGET"). Landing under
- * a TRACKED path (never scripts/_snapshots/, which root .gitignore excludes) is deliberate: the SAME
- * artifact-branch commit step population-turn.yml already runs for the mint + forward-events harness-run
- * families can pick this directory up too, once that workflow's own commit step names it. This function
- * only decides WHAT to write and WHERE; it runs no git command itself, exactly like every other step in
- * this file (runChild below spawns export-corpus-for-extraction.mjs, never `git`).
+ * for one batch, and the scratch path its numbered parts land under (BRIEF_EXPORT_QUEUE_SCRATCH_DIR, R22
+ * 2026-10-02: gitignored, exported as <mintRunId>-part<N>.json by that script's own --with-pool-text
+ * numbering; see its header, "WITH-POOL-TEXT + CHAR-BUDGET"). stepBriefExport below reads these parts
+ * back and lands them in the `brief-export` family's own harness_runs row; this function only decides
+ * WHAT to write and WHERE on disk, and runs no git command itself, exactly like every other step in this
+ * file (runChild below spawns export-corpus-for-extraction.mjs, never `git`).
  * @param {string|null} mintRunId
  * @param {string[]} batchIds
  * @param {number} [charBudget]
@@ -277,7 +288,7 @@ export const DEFAULT_BACKLOG_MAX_ARTIFACTS = 2;
  */
 export function buildBriefExportArgs(mintRunId, batchIds, charBudget = DEFAULT_BRIEF_EXPORT_CHAR_BUDGET) {
   const ids = Array.isArray(batchIds) ? batchIds : [];
-  const outPath = join(BRIEF_EXPORT_PENDING_DIR, `${mintRunId ?? "unknown"}.json`);
+  const outPath = join(BRIEF_EXPORT_QUEUE_SCRATCH_DIR, `${mintRunId ?? "unknown"}.json`);
   const args = ["--out", outPath, "--ids", ids.join(","), "--with-pool-text", "--char-budget", String(charBudget)];
   return { outPath, args };
 }
@@ -1468,11 +1479,41 @@ async function stepRecordLastTurn(ctx) {
   return { since: ctx.startedAt };
 }
 
+// R22 (2026-10-02, coordinator-directed): step 12 now lands its own `brief-export` family harness_runs
+// row in the SAME step that runs the export, instead of leaving a tracked file for a later commit step
+// to push. readExportedParts/buildQueueArtifact (queue.mjs) build the row; writeRunArtifact (same helper
+// every sibling family step already uses) writes it LOCALLY under BRIEF_EXPORT_FAMILY_DIR, where
+// population-turn.yml's existing "Land this run's harness-run artifact(s) into harness_runs" step already
+// picks up EVERY family under scripts/harness-runs/*/*-run-*.json (deliver-artifact-branch.sh's own
+// glob), so no workflow change was needed for this row to reach the database.
 async function stepBriefExport(ctx) {
   const { outPath, args } = buildBriefExportArgs(ctx.mintRunId, ctx.batchIds);
   mkdirSync(dirname(outPath), { recursive: true });
   runChild("scripts/turns/export-corpus-for-extraction.mjs", args);
-  return { outPath, ids: ctx.batchIds.length };
+
+  const parts = readExportedParts(outPath);
+  const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
+    family: BRIEF_EXPORT_FAMILY,
+    familyDir: BRIEF_EXPORT_FAMILY_DIR,
+    governingFiles: GOVERNING_FILES[BRIEF_EXPORT_FAMILY],
+    fsiRoot: FSI_ROOT,
+    upstreamName: ctx.triggerContext?.name ?? null,
+    upstreamRunId: ctx.triggerContext?.run_id ?? null,
+  });
+  const artifact = buildQueueArtifact({
+    runId,
+    harnessVersion,
+    startedAt: ctx.startedAt,
+    mintRunId: ctx.mintRunId,
+    ids: ctx.batchIds,
+    parts,
+    upstreamName: ctx.triggerContext?.name ?? null,
+    upstreamRunId: ctx.triggerContext?.run_id ?? null,
+    loopRunId,
+  });
+  const queueArtifactPath = writeRunArtifact(BRIEF_EXPORT_FAMILY_DIR, artifact);
+
+  return { outPath, ids: ctx.batchIds.length, parts: parts.length, queueArtifactPath };
 }
 
 const STEP_HANDLERS = Object.freeze({

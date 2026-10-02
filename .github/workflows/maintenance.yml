@@ -1226,33 +1226,15 @@ jobs:
           echo "run_id=$(printf '%s' "$RAW" | jq -r '.run_id')" >> "$GITHUB_OUTPUT"
           echo "artifact_path=$(printf '%s' "$RAW" | jq -r '.artifact_path')" >> "$GITHUB_OUTPUT"
 
-      - name: Append this run's dispatch-ledger row
-        if: always()
-        run: |
-          JOB_STATUS="${{ job.status }}"
-          if [ "$JOB_STATUS" = "cancelled" ]; then
-            OUTCOME="cancelled"
-          elif [ "$JOB_STATUS" = "failure" ]; then
-            OUTCOME="error"
-          elif [ "$RUN_MODE" = "apply" ]; then
-            OUTCOME="applied"
-          else
-            OUTCOME="reported"
-          fi
-          ARTIFACT_REL=""
-          RAW_PATH="${{ steps.write_artifact.outputs.artifact_path }}"
-          if [ -n "$RAW_PATH" ] && [ "$RAW_PATH" != "null" ]; then
-            ARTIFACT_REL="scripts/harness-runs/maintenance/$(basename "$RAW_PATH")"
-          fi
-          node scripts/harness-runs/append-dispatch-ledger.mjs \
-            --workflow maintenance \
-            --step "$RUN_STEP" \
-            --mode "$RUN_MODE" \
-            --run-id "${{ github.run_id }}" \
-            --date "$(date -u +%Y-%m-%d)" \
-            --outcome "$OUTCOME" \
-            --artifact "$ARTIFACT_REL" \
-            --ledger ../docs/ops/dispatch-ledger.jsonl
+      # R22 (2026-10-02, coordinator-directed): the "Append this run's dispatch-ledger row" step that used
+      # to run here (node scripts/harness-runs/append-dispatch-ledger.mjs ... --ledger
+      # ../docs/ops/dispatch-ledger.jsonl) is REMOVED. A8b found that file 11 days stale: this was its
+      # ONLY writer, and it had nowhere to commit a new row once the artifact-branch-push step above was
+      # removed (R22, same date). closure-gate.mjs's NEVER-RUN check now reads a committed export of
+      # harness_runs itself (fsi-app/.discipline/governance/harness-ledger-export.json,
+      # scripts/lib/export-harness-ledger.mjs) instead -- this run's own harness-run artifact, landed into
+      # harness_runs by the step below, IS the dispatch evidence; no second, file-based record is needed.
+      # See docs/runbooks/fleet-budget-control.md for the export's regeneration rule.
 
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()

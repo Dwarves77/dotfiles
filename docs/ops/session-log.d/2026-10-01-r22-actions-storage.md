@@ -250,6 +250,113 @@ budget.test.mjs` 12/12, `F52-workflow-file-validity.test.mjs` 34/34 (85/85 toget
 scanned on every added line across all four edited workflow files plus this addendum: clean. Per the
 coordinator's explicit instruction, the full `run-test-suite.sh` was NOT re-run a third time.
 
+## Coordinator corrections round 2, 2026-10-02: closing both flagged consequences
+
+The coordinator directed this lane to close both consequences flagged above, under the standing PR #824
+/ rule 17 ruling (no artifact branches or Actions PRs; `harness_runs` is the durable record), rather than
+leave them open for a follow-up lane.
+
+**(1) `population-turn.yml`'s `scripts/turns/brief-export/pending/` queue.** Read
+`scripts/turns/run-population-flywheel.mjs` (step 12, `stepBriefExport`/`buildBriefExportArgs`) and
+`scripts/turns/apply-record-briefs.mjs` end to end, plus `scripts/turns/brief-export/pending/README.md`
+and `scripts/harness-runs/brief-export/family.json`. What the queue carried between the two runtimes
+(export-corpus-for-extraction.mjs's numbered parts: each minted item's stored claims/sections + full
+captured `agent_run_searches` pool text) now rides a `brief-export` family `harness_runs` row's own
+`inputs_ref` column (migration 331), never a tracked file:
+
+- New `fsi-app/scripts/turns/brief-export/queue.mjs`: `readExportedParts` (reads the numbered parts back
+  off disk after `export-corpus-for-extraction.mjs` writes them), `buildQueueArtifact` (the row, pure),
+  `isPendingQueueRow`/`pendingQueueRows` (the consumer-side correlation: a row is pending until every id
+  it queued appears in some later `brief-apply` family row's own `per_item`, success or failure --
+  `[HYPOTHESIS]`, named in that function's own header, labeled id-coverage not outcome-correctness).
+- `run-population-flywheel.mjs`'s `stepBriefExport` (producer end): writes its export parts to a NEW
+  gitignored scratch path (`scripts/_snapshots/brief-export-queue/`, was the tracked `scripts/turns/
+  brief-export/pending/`), reads them back, and lands the `brief-export` family row LOCALLY via the SAME
+  `writeRunArtifact` every sibling family step already uses -- `population-turn.yml`'s existing harness-
+  landing step already globs every family under `scripts/harness-runs/*/*-run-*.json`, so no workflow
+  change was needed for this row to reach `harness_runs`.
+- New `fsi-app/scripts/turns/read-brief-export-queue.mjs` (consumer end): `--list` (every still-pending
+  row) / `--run-id <id>` (one row's queued content as JSON) against `harness_runs`, read-only by
+  construction (no write path exists at all -- "drained" is the pure correlation above, never a
+  mutation). Deps-injected, self-skips exit 2 without credentials.
+- `scripts/verify/population-report.mjs`'s "briefs pending" entry: corrected the now-stale hint text
+  (pointed a reader at the retired file path) to name the new CLI, and [REFUTED, corrected in place per
+  rule 13's corollary] the entry's own prior `[HYPOTHESIS]` visibility caveat, whose premise (an unmerged
+  `population/<run_id>` artifact branch) no longer exists after this and the prior round's commits.
+
+`[CONFIRMED]` by REAL (non-mocked) proof, not only unit tests: built a fixture export batch on real disk,
+ran `readExportedParts` + `buildQueueArtifact` + the real `writeRunArtifact`/`validateRunArtifact` from
+`run-artifact.mjs` against it. First attempt THREW inside `writeRunArtifact`: `full_trace_refs must be
+non-empty`, a real defect the proof caught (`buildQueueArtifact` was passing `[]`); fixed by pointing
+`full_trace_refs` at `queue.mjs` itself (the file that explains why there is no separate trace file any
+more), the same self-referential shape emit-brief-export-artifact.mjs's own batch-less fallback already
+uses. Re-ran clean; added a regression test (`validateRunArtifact(artifact)` returns `[]`) so this cannot
+silently regress. Also ran the real consumer CLI with no credentials present (`node scripts/turns/
+read-brief-export-queue.mjs --list`): self-skipped exit 2, the real wiring, not a mock.
+
+**(2) `maintenance.yml`'s `docs/ops/dispatch-ledger.jsonl`.** Read `closure-gate.mjs`'s NEVER-RUN check
+(`gatherNeverRunTargets`, `readDispatchLedger`) and `db-catalog.json`/`db-catalog-refresh.sql` (the
+"committed snapshot, credentialed refresh, secret-less check" precedent this now follows) end to end.
+
+- New `fsi-app/scripts/lib/export-harness-ledger.mjs`: one read-only SELECT against `harness_runs`
+  (family, run_id, started_at, finished_at, trigger, config only -- never `per_item`/`inputs_ref`/
+  `metrics`/`defects_found`/`full_trace_refs`, keeping the export small), writes a committed JSON
+  snapshot (`fsi-app/.discipline/governance/harness-ledger-export.json`). Deps-injected, self-skips exit
+  2 without credentials -- proved for real: `node scripts/lib/export-harness-ledger.mjs --out ...`
+  self-skipped exit 2 in this worktree (no DB credentials here by design).
+- `closure-gate.mjs`: `readDispatchLedger()` (read `docs/ops/dispatch-ledger.jsonl`) replaced with
+  `readHarnessLedgerExport()` (reads the new committed export; an absent or malformed file is zero
+  evidence from this source, never a hard failure, the SAME graceful-absence posture the retired reader
+  had). Both call sites in `gatherNeverRunTargets()` updated: the maintenance per-step correlation now
+  matches `row.family === 'maintenance' && (row.config?.step === step || row.config?.step === 'all') &&
+  row.finished_at` (named simplification: the old `outcome !== 'error'` distinction is not reproduced,
+  since a `write-run-artifact.mjs` row lands `if: always()` regardless of a sub-step's exit code --
+  "landed" is weaker evidence than "landed with no error", accepted in exchange for a live, never-stale
+  source); the other-dispatchable-workflows correlation now joins on `family` (the SAME key
+  `harnessArtifactExists` already resolves two lines above) instead of a `workflow` name field that
+  never existed on a `harness_runs` row.
+- `maintenance.yml`: removed the "Append this run's dispatch-ledger row" step entirely (the
+  `node scripts/harness-runs/append-dispatch-ledger.mjs ... --ledger ../docs/ops/dispatch-ledger.jsonl`
+  call). The file itself is left in place, untouched, as a historical record (not deleted), matching
+  CLAUDE.md's own `fsi-app/STATUS.md` "retain, mark historical" precedent -- nothing here marks it
+  historical in text since the coordinator's instruction did not ask for that, only that maintenance.yml
+  stop writing it; named as a residual below.
+- `docs/runbooks/fleet-budget-control.md`: new "Harness-run dispatch-evidence export" section records
+  the standing rule verbatim as directed -- the coordinator's DB executor regenerates
+  `harness-ledger-export.json` each session.
+
+`[CONFIRMED]` by running the LIVE `closure-gate.test.mjs` suite before and after: the swap immediately
+red-flagged two REAL, pre-existing gaps neither this lane nor any prior one had caught --
+`downstream-chain.yml` and `producers.yml` each register their own harness family (confirmed by reading
+each workflow's own header/deliver-artifact-branch.sh call) but were missing from `closure-gate.mjs`'s
+`HARNESS_FAMILY_BY_WORKFLOW` map, so `harnessArtifactExists` could never see either one; the retired
+jsonl's own stale, hand-written `workflow:` rows happened to carry evidence by workflow name, masking the
+gap for as long as those 11-day-old rows existed. Fixed both mappings in the same commit. Since neither
+family has a historical git-tracked artifact AND the new export does not exist yet (no DB credentials in
+this worktree to generate a real one -- CLAUDE.md rule 2, never fabricate rows), added two dated
+`NEVER_RUN_ALLOWLIST` entries (expiry train 80, current train 71) naming exactly this bridging reason,
+removed automatically by the gate's own allowlist-staleness audit once a real export lands and either
+workflow's own dispatch evidence resolves for real.
+
+`node fsi-app/.discipline/governance/closure-gate.test.mjs`: 34/34 pass, including all 5 LIVE checks
+(NEVER-RUN, STALE-NEXT, WRITER-READER, LANE-CONTRACT, the combined gate) and the allowlist-shape audit.
+
+**Residuals, named not silently dropped:**
+- `fsi-app/scripts/harness-runs/append-dispatch-ledger.mjs` has no caller left anywhere in this repo
+  (only `maintenance.yml`'s own removed step ever called it). It was NOT deleted, and NOT added to
+  F25's `LEGACY_ALLOWLIST` -- genuinely dead code this lane leaves named rather than silently dropped or
+  silently exempted; its own `append-dispatch-ledger.test.mjs` still passes (proves the row-builder
+  works, proves nothing about whether anything calls it), which is exactly the class rule 15 warns
+  against if left unaddressed long. A follow-up lane's call: delete both files, or find a genuine second
+  caller.
+- `fsi-app/.discipline/governance/harness-ledger-export.json` does not exist yet in this commit. Every
+  consumer (`closure-gate.mjs`) treats its absence as zero evidence, never a crash (proved by the LIVE
+  test suite passing against the real, file-less tree); the two `NEVER_RUN_ALLOWLIST` entries above are
+  the named, dated bridge until the coordinator's DB executor runs the first real regeneration.
+- `fsi-app/scripts/turns/read-brief-export-queue.mjs` carries a new, dated `F25` `LEGACY_ALLOWLIST`
+  entry (genuinely operator/session-lane-invoked, no workflow caller by design, no write path to wire
+  into one either).
+
 ## Ready to push
 
 Awaiting "Released."

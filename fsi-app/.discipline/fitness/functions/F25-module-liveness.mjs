@@ -493,6 +493,20 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'lane REVERSE-CHAINED-APPLY, 2026-09-29',
   },
   {
+    file: 'fsi-app/scripts/turns/read-brief-export-queue.mjs',
+    reason:
+      'Genuinely operator/session-lane-invoked, out-of-workflow, read-only CLI (lane R22, 2026-10-02, ' +
+      'the same "hand-run, no schedule, no workflow line" Operator-CLI shape this list already ' +
+      'recognizes above) -- the CONSUMER end of the brief-export auto-queue ' +
+      '(scripts/turns/brief-export/queue.mjs): a session lane drains the queue by running --list / ' +
+      '--run-id directly, never from a workflow step (the PRODUCER end, run-population-flywheel.mjs\'s ' +
+      'stepBriefExport, imports queue.mjs directly and IS wired; this file is the human-facing reader ' +
+      'half, by design never imported). No write path exists ("drained" is a derived read, never a ' +
+      'mutation -- see queue.mjs\'s own header), so there is no apply/dry split to wire into a workflow ' +
+      'either.',
+    reviewByPhase: 'lane R22, 2026-10-02',
+  },
+  {
     file: 'fsi-app/scripts/turns/dry-run-structured-actions.mjs',
     reason:
       'Genuinely operator-invoked, out-of-workflow, read-only exploratory CLI (lane STRUCTURED-ACTIONS, ' +

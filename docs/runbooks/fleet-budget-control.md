@@ -185,4 +185,42 @@ section after that. This entry is the setup for that measurement, not a substitu
   fitness runner (pre-push step 3d and CI's "Fitness functions" job) by the manifest-directory
   convention, no separate registration step to forget.
 
+## Harness-run dispatch-evidence export (lane R22, 2026-10-02)
+
+A second defect in the same family, closed the same lane: `docs/ops/dispatch-ledger.jsonl`, the file
+`fsi-app/.discipline/governance/closure-gate.mjs`'s NEVER-RUN check read for dispatch evidence, was found
+11 days stale (audit A8b). Its only writer was `maintenance.yml`'s own "Append this run's dispatch-ledger
+row" step, which had nowhere to commit a new row once the artifact-branch-push path every family (not
+only maintenance) used to land its harness artifact closed, earlier this same lane and in lane
+STATUTORY-WRITER before it (deliver-artifact-branch.sh lands straight into `harness_runs` now, migration
+331, no branch, no commit, no push).
+
+**The fix follows the SAME pattern `db-catalog.json` / `db-catalog-refresh.sql` already established for
+the schema side of this exact problem: "the credentialed step is the REFRESH, not the CHECK."**
+`closure-gate.mjs` holds no database credential, by design, same as every other always-on gate this
+runbook already covers; the database enters the repo as a plain, committed JSON snapshot instead.
+
+- **The refresh**: `node fsi-app/scripts/lib/export-harness-ledger.mjs --out
+  fsi-app/.discipline/governance/harness-ledger-export.json`. One read-only SELECT against `harness_runs`
+  (family, run_id, started_at, finished_at, trigger, config only, never the large per-run fields); never
+  scheduled, never run by a secret-less lane. Self-skips exit 2 without credentials.
+- **The check**: `closure-gate.mjs`'s NEVER-RUN reads the committed export with a plain filesystem read,
+  gracefully treating an absent or malformed file as zero evidence from this source (never a hard
+  failure), same posture the retired jsonl always had.
+- **The standing rule**: the coordinator's DB executor regenerates `harness-ledger-export.json` each
+  session (the credentialed half this repo's own secret-less lanes cannot do), and commits the diff, the
+  same cadence `db-catalog.json` already gets refreshed on. A session that finds the export more than a
+  few days stale treats that the same way A8b treated the jsonl: a defect to close, not a fact to work
+  around.
+- `maintenance.yml` no longer writes `docs/ops/dispatch-ledger.jsonl` at all (the step is removed); the
+  file itself is left in place as a historical record, not deleted, per the same "retain, mark historical"
+  posture this repo already uses for superseded state files (CLAUDE.md's own `fsi-app/STATUS.md`
+  precedent).
+- Two real, pre-existing gaps this swap surfaced and fixed in the same motion: `downstream-chain.yml` and
+  `producers.yml` each register their own harness family but were missing from `closure-gate.mjs`'s own
+  `HARNESS_FAMILY_BY_WORKFLOW` map, so neither workflow's `harnessArtifactExists` check could ever see its
+  real family; the stale jsonl's own hand-written rows happened to carry evidence by workflow name,
+  masking the gap. Both are now mapped; each also carries a dated `NEVER_RUN_ALLOWLIST` entry (expiry
+  train 80) bridging the gap until the first real `harness-ledger-export.json` regeneration lands.
+
 Related: [ADR index](../decisions/), [INDEX](../INDEX.md).
