@@ -47,6 +47,9 @@ import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { DissentPanel } from "@/components/research/DissentPanel";
+import { SignpostList } from "@/components/research/SignpostList";
+import { AssessmentHistoryLedger } from "@/components/research/AssessmentHistoryLedger";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
@@ -295,6 +298,29 @@ export function ResearchFindingDetailSurface({
               designed={
                 <>
                   <ResearchAssessmentCard assessment={assessment} />
+                  {/* Lane L5 (2026-10-02): spec-03 section 7 components 6, 8, 11 - mounted beside
+                      #887's own rail card, never replacing it. DissentPanel and AssessmentHistoryLedger
+                      render against assessment/the authority-score placeholder already on this page;
+                      SignpostList renders its absence state until lane L6's signposts table lands. */}
+                  <DissentPanel authorityDistribution={assessment?.credibilityAuthorityScore ?? null} />
+                  <SignpostList />
+                  <AssessmentHistoryLedger
+                    current={
+                      assessment
+                        ? {
+                            computedAt: assessment.computedAt,
+                            statusToken: assessment.statusToken,
+                            technicalMaturityLabel: assessment.technicalMaturity
+                              ? `TRL ${assessment.technicalMaturity.low}-${assessment.technicalMaturity.high}`
+                              : null,
+                            commercialMaturityLabel: assessment.commercialMaturity
+                              ? `CRI ${assessment.commercialMaturity.low}-${assessment.commercialMaturity.high}`
+                              : null,
+                            horizonBandLabel: assessment.horizon?.band ?? null,
+                          }
+                        : null
+                    }
+                  />
                   {themeBrief ? <ThemeBriefCard brief={themeBrief} /> : null}
                 </>
               }
