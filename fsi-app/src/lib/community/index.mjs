@@ -63,4 +63,7 @@ export {
 } from "./profile-policy.mjs";
 export { validateResponseValue, evaluateResponseSubmission, FIELD_BOUNDS } from "./respond.mjs";
 export { validateMemberPrefToggle } from "./group-member-prefs.mjs";
+// createMemberPrefTogglePatchHandler (member-pref-route.mjs) is NOT re-exported here: it imports
+// next/server, and this barrel is imported by plain `node --test` files with no npm resolver
+// (index.test.mjs among them), see that module's own header. Routes import it directly.
 export { validateEntityIds, MAX_ENTITY_IDS } from "./entity-binding.mjs";
