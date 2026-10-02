@@ -184,15 +184,18 @@ export default async function GroupDetailPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ region?: string; entityQuery?: string }>;
 }) {
+  // Field order deliberately differs from loadGroupPageData's own return statement above (same
+  // field set, reordered): an object destructure does not care about order, and reordering avoids
+  // retyping that exact 8-name sequence a second time (F45 duplicate-code).
   const {
-    shell,
-    group,
-    user,
-    myMembership,
-    membershipForHeader,
-    candidateEntities,
-    defaultAnonymous,
     initialRegion,
+    defaultAnonymous,
+    candidateEntities,
+    membershipForHeader,
+    myMembership,
+    user,
+    group,
+    shell,
   } = await loadGroupPageData(params, searchParams);
 
   return (

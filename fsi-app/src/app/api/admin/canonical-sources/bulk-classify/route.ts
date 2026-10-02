@@ -26,6 +26,7 @@ import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import Anthropic from "@anthropic-ai/sdk";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { extractTextFromContent } from "@/lib/llm/anthropic-text";
 
 export const maxDuration = 60;
 
@@ -129,10 +130,7 @@ Output the JSON object only.`;
     system: CLASSIFICATION_SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
   });
-  const text = resp.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("");
+  const text = extractTextFromContent(resp.content);
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) throw new Error("No JSON object in model output");
   const rec = JSON.parse(m[0]) as Record<string, unknown>;

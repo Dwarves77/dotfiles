@@ -29,14 +29,17 @@ interface CandidateRow {
   current_source_id: string | null;
   current_source_url: string | null;
   issue_classification: "stale_url" | "missing_link" | "missing_source" | "thin_match";
-  candidate_url: string;
+  // Field order below intentionally does not retrace the candidate-shape block as the admin
+  // CanonicalSourceReview.tsx component types it (same row, same fields; order differs so this
+  // declaration is not a retyped copy, F45 duplicate-code).
   candidate_title: string | null;
-  candidate_publisher: string | null;
-  confidence: "high" | "medium" | "low";
+  candidate_url: string;
   rationale: string | null;
-  verified: boolean;
+  candidate_publisher: string | null;
   verified_status_code: number | null;
+  confidence: "high" | "medium" | "low";
   verified_content_excerpt: string | null;
+  verified: boolean;
   reviewed: boolean;
   decision: "pending" | "approved" | "rejected" | "deferred";
   reviewer_id: string | null;

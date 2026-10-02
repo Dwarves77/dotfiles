@@ -156,19 +156,7 @@ async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupab
     }
   };
 
-  const [
-    sourceData,
-    orgsRes,
-    membersRes,
-    stagedRes,
-    mtdSpend,
-    errorGroups,
-    assumptionRegister,
-    researchPipelineCount,
-    communityPickupsCount,
-    emissionFactorsLiveCount,
-    tierDisagreementCount,
-  ] = await Promise.all([
+  const result = await Promise.all([
     fetchSourceData(true),
     supabase
       .from("organizations")
@@ -208,19 +196,7 @@ async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupab
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
 
-  return {
-    sourceData,
-    orgsRes,
-    membersRes,
-    stagedRes,
-    mtdSpend,
-    errorGroups,
-    assumptionRegister,
-    researchPipelineCount,
-    communityPickupsCount,
-    emissionFactorsLiveCount,
-    tierDisagreementCount,
-  };
+  return result;
 }
 
 export default async function AdminPage() {
@@ -233,7 +209,7 @@ export default async function AdminPage() {
 
   const supabase = await createSupabaseServerClient();
 
-  const {
+  const [
     sourceData,
     orgsRes,
     membersRes,
@@ -245,7 +221,7 @@ export default async function AdminPage() {
     communityPickupsCount,
     emissionFactorsLiveCount,
     tierDisagreementCount,
-  } = await loadAdminPageData(supabase);
+  ] = await loadAdminPageData(supabase);
 
   const dateLabel = formatLocaleDate(new Date(), {
     weekday: "long",

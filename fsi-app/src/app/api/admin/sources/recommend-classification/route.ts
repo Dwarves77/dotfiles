@@ -14,6 +14,7 @@ import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 
 import Anthropic from "@anthropic-ai/sdk";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { extractTextFromContent } from "@/lib/llm/anthropic-text";
 
 
 // Per Q4 bias tag vocabulary (Section 6 of source-credibility-model SKILL.md).
@@ -196,10 +197,7 @@ Output the JSON object only.`;
       system: CLASSIFICATION_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("");
+    const text = extractTextFromContent(resp.content);
     // Extract JSON — be permissive about leading/trailing text just in case.
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("No JSON object found in model output");
