@@ -1506,6 +1506,15 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/src/components/settings/OrganisationProfileSection.tsx",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [],
+      "proofWired": null,
+      "status": "EXEMPT"
+    },
+    {
       "path": "fsi-app/src/components/settings/Spec09CsvUpload.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -2494,6 +2503,15 @@
     },
     {
       "path": "fsi-app/src/lib/api/server-bootstrap.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/applicability/compute-applicability.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -4137,6 +4155,15 @@
     },
     {
       "path": "fsi-app/src/lib/perf/static-params-fallback.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/profile/profile-contract.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6289,6 +6316,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/export-harness-ledger.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/fetch-now-decision.selftest.mjs",
       "kinds": [
         "PROOF"
@@ -7823,6 +7859,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/turns/brief-export/queue.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/turns/commit-brief-apply-artifact.test.mjs",
       "kinds": [
         "PROOF"
@@ -7958,6 +8005,17 @@
     },
     {
       "path": "fsi-app/scripts/turns/last-turn-date.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/read-brief-export-queue.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -11943,9 +12001,9 @@
     }
   ],
   "summary": {
-    "governed_files": 1119,
-    "covered": 1074,
-    "exempt": 45,
+    "governed_files": 1125,
+    "covered": 1079,
+    "exempt": 46,
     "gaps": 0,
     "orphaned_proofs": 0,
     "unmapped_writes": 0,
