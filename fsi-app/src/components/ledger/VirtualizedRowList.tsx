@@ -84,6 +84,11 @@ function ElementVirtualized<T>({
   containerRef,
   scrollElement,
 }: InnerProps<T> & { scrollElement: HTMLElement }) {
+  // TanStack Virtual's useVirtualizer returns functions (measureElement, getVirtualItems, etc.)
+  // that the React Compiler cannot prove stable; this is the library's documented API shape (ADR-027
+  // section 2's mandated shared primitive, see this file's header), not a bug this component can fix
+  // by changing how it calls the hook.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollElement,
@@ -133,6 +138,11 @@ function WindowVirtualized<T>({
   // lands before the browser paints the first virtualized frame, avoiding a visible jump.
   const [scrollMargin, setScrollMargin] = useState(0);
   useLayoutEffect(() => {
+    // This IS the canonical useLayoutEffect pattern (measure a DOM layout value, then sync it
+    // into state before the browser paints): there is no external-system subscription to move it
+    // into, the measurement is only available after the container ref is attached to the DOM. See
+    // the comment above this effect for why the corrected value must itself trigger a re-render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScrollMargin(containerRef.current?.offsetTop ?? 0);
   }, [containerRef]);
 

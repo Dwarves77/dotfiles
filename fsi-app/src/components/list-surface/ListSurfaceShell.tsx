@@ -519,6 +519,10 @@ export function ListSurfaceShell({
                       rowHeight={56}
                       getRowId={(row) => row.key}
                       renderRow={(row) => {
+                        // Rest-sibling exclusion: `key` must be pulled off row before spreading
+                        // into ListRow (it is not a ListRow prop, only this list's own row id),
+                        // the binding itself is never read.
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
                         const { key, ...rowProps } = row;
                         return <ListRow {...rowProps} />;
                       }}
@@ -555,6 +559,9 @@ export function ListSurfaceShell({
                         rowHeight={56}
                         getRowId={(row) => row.key}
                         renderRow={(row) => {
+                          // Rest-sibling exclusion, same as the flatRows renderRow above: `key`
+                          // is not a ListRow prop, the binding is never read.
+                          // eslint-disable-next-line @typescript-eslint/no-unused-vars
                           const { key, ...rowProps } = row;
                           return <ListRow {...rowProps} />;
                         }}
@@ -697,7 +704,6 @@ export function useRemainderFetch<T extends { id: string }>(
     if (rest === null) return firstPage;
     const seen = new Set(firstPage.map((r) => r.id));
     return [...firstPage, ...rest.filter((r) => !seen.has(r.id))];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstPage, rest]);
 
   return { rows, loadingMore: enabled && rest === null };
