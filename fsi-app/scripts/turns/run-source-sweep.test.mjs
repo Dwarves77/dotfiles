@@ -190,45 +190,42 @@ test("shapeRunOutput: feed ok:false — reports the error, zeroed counts", () =>
   assert.equal(shaped.metrics.entries, 0);
 });
 
-// ── upsertPortalLinkCandidates (mirrors persistPortalCandidates against a fake client) ─────────────
+// ── upsertPortalLinkCandidates (mirrors persistPortalCandidates, routed through the guarded upsert
+// path, rule 015, lane R3 GUARDED-UPSERT remediation, 2026-10-01) ─────────────────────────────────
 
-function fakeSb(errorForUrl = null) {
-  const calls = [];
-  return {
-    calls,
-    from(table) {
-      return {
-        upsert(row, opts) {
-          calls.push({ table, row, opts });
-          if (errorForUrl && row.url === errorForUrl) return Promise.resolve({ error: { message: "boom" } });
-          return Promise.resolve({ error: null });
-        },
-      };
-    },
+// Fake for the injected `deps.upsertRow` (default: the real `guardedUpsert`, scripts/lib/db.mjs,
+// rule-015 guarded path). Mirrors guardedUpsert's own contract: resolves { upserted, snapshot, rows }
+// on success, THROWS on failure (never returns an {error} shape), same as the real helper.
+function fakeUpsertRow(calls, { failForUrl } = {}) {
+  return async (table, row, opts) => {
+    calls.push({ table, row, opts });
+    if (failForUrl && row.url === failForUrl) throw new Error("boom");
+    return { upserted: 1, snapshot: null, rows: [row] };
   };
 }
 
-test("upsertPortalLinkCandidates: upserts every link with onConflict:url, source_id + anchor_text set", async () => {
-  const sb = fakeSb();
-  const res = await upsertPortalLinkCandidates(sb, "source-1", [
+test("upsertPortalLinkCandidates: upserts every link through the guarded path with onConflict:url, source_id + anchor_text set, cited", async () => {
+  const calls = [];
+  const res = await upsertPortalLinkCandidates({}, "source-1", [
     { url: "https://x/a", anchorText: "A" },
     { url: "https://x/b", anchorText: null },
-  ]);
+  ], { upsertRow: fakeUpsertRow(calls) });
   assert.deepEqual(res, { upserted: 2, failed: 0 });
-  assert.equal(sb.calls.length, 2);
-  assert.equal(sb.calls[0].table, "portal_link_candidates");
-  assert.equal(sb.calls[0].row.source_id, "source-1");
-  assert.equal(sb.calls[0].row.anchor_text, "A");
-  assert.equal(sb.calls[1].row.anchor_text, null); // never invents an anchor text
-  assert.deepEqual(sb.calls[0].opts, { onConflict: "url" });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].table, "portal_link_candidates");
+  assert.equal(calls[0].row.source_id, "source-1");
+  assert.equal(calls[0].row.anchor_text, "A");
+  assert.equal(calls[1].row.anchor_text, null); // never invents an anchor text
+  assert.equal(calls[0].opts.onConflict, "url");
+  assert.ok(calls[0].opts.cite?.skill, "guardedUpsert requires a cite -- the call must carry one");
 });
 
-test("upsertPortalLinkCandidates: a single failed upsert is counted, not thrown, and the walk continues", async () => {
-  const sb = fakeSb("https://x/bad");
-  const res = await upsertPortalLinkCandidates(sb, "source-1", [
+test("upsertPortalLinkCandidates: a single failed guarded upsert is counted, not thrown, and the walk continues", async () => {
+  const calls = [];
+  const res = await upsertPortalLinkCandidates({}, "source-1", [
     { url: "https://x/bad" },
     { url: "https://x/good" },
-  ]);
+  ], { upsertRow: fakeUpsertRow(calls, { failForUrl: "https://x/bad" }) });
   assert.deepEqual(res, { upserted: 1, failed: 1 });
 });
 

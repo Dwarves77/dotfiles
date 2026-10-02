@@ -503,6 +503,52 @@ export async function guardedInsertMany(table, rows, { cite, select = "id", chun
   return { inserted: out.length, snapshot: snapFile, rows: out };
 }
 
+/**
+ * Guarded UPSERT -- the insert-or-update twin of guardedUpdate/guardedInsert, for a table whose write
+ * is naturally keyed by a unique constraint rather than an explicit id (e.g. estimated_values' entity/
+ * model/scenario key, portal_link_candidates' url). Mirrors guardedUpdate's snapshot-BEFORE-mutate
+ * posture (rule 015, discipline rule 015-row-mutation-guarded-path.mjs): the rows currently matching
+ * each incoming row's onConflict key are read and snapshotted FIRST (empty when the row is new -- the
+ * same "nothing to snapshot" case guardedInsert's post-insert record covers for a pure insert), THEN
+ * the upsert runs. Requires a cite like every other write here.
+ *
+ * `rows` is an array of row objects (every row shares the same onConflict key set); a single row object
+ * is accepted and wrapped for callers upserting one row at a time (seed-derived-values.mjs's
+ * estimated_values write, run-source-sweep.mjs's per-link portal_link_candidates write).
+ * @param {string} table
+ * @param {object|object[]} rows
+ * @param {{onConflict:string, cite:{skill:string,reason:string}, select?:string, stampIso?:string}} opts
+ *   `onConflict` is REQUIRED -- a comma-separated list of the conflict-target column(s), same shape
+ *   Supabase's own `.upsert(rows, { onConflict })` takes.
+ */
+export async function guardedUpsert(table, rows, { onConflict, cite, select = "*", stampIso } = {}) {
+  requireCite(cite);
+  if (!onConflict) throw new Error("db.mjs guardedUpsert: onConflict is required (the upsert conflict target column(s)).");
+  const list = Array.isArray(rows) ? rows : [rows];
+  if (!list.length) return { upserted: 0, snapshot: null, rows: [] };
+  const sb = writeClient();
+
+  // Snapshot every row CURRENTLY matching an incoming row's onConflict key, BEFORE the upsert mutates
+  // anything -- a key with no existing row snapshots as absent (nothing to revert, the same posture
+  // guardedInsert's post-insert "reversal = delete the new row" covers for the insert half of upsert).
+  const conflictCols = onConflict.split(",").map((c) => c.trim()).filter(Boolean);
+  const priorRows = [];
+  for (const row of list) {
+    const match = conflictCols.reduce((q, col) => q.eq(col, row[col]), sb.from(table).select(select));
+    const prior = await withTransientRetry(() => match, { label: `guardedUpsert(${table}) snapshot read` });
+    if (prior.error) throw new Error(`db.mjs guardedUpsert snapshot read failed: ${prior.error.message}`);
+    priorRows.push(...(prior.data || []));
+  }
+  const snapFile = snapshot(table, priorRows, cite, stampIso);
+
+  const res = await withTransientRetry(
+    () => sb.from(table).upsert(list, { onConflict }).select(select),
+    { label: `guardedUpsert(${table}) upsert` }
+  );
+  if (res.error) throw new Error(`db.mjs guardedUpsert failed: ${res.error.message}`);
+  return { upserted: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
+}
+
 /** The archive patch for a table. Extracted pure so the status-reset invariant is unit-testable.
  *  ROOT-CAUSE FIX (operator ruling 2026-07-13, Part A): an ARCHIVED intelligence_item is terminal and
  *  sits OUTSIDE the customer read gate (is_archived=false AND provenance_status='verified'); it must NOT

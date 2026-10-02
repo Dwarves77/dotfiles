@@ -66,7 +66,7 @@ import { automateVsHire, DEFAULT_SCENARIO, isHourlyWageUnit } from "../../src/li
 import { mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
 import { entityId } from "../../src/lib/entities/entity-id.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs, distinctNormalized } from "../entities/backfill-entities.mjs";
-import { guardedInsertMany } from "../lib/db.mjs";
+import { guardedInsertMany, guardedUpsert } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 
@@ -89,6 +89,22 @@ const SEED_ENTITY_CITE = {
     "entity_refs role='jurisdiction', via its own exported planJurisdictionEntities/planJurisdictionRefs) — " +
     "regions were never in DP-SPINE's original progressive-re-keying scope, so estimated_values.entity_id / " +
     "derived_values.entity_id had no FK target for any region until this on-demand mint.",
+};
+
+// Cite for the estimated_values upsert in seedAutomateVsHire (lane R3, GUARDED-UPSERT remediation,
+// 2026-10-01): remediation-plan-2026-09-30.md item 3 closes the rule-015 (guarded-write) bypass finding
+// from A4/A4b/A4c -- this write used a raw sb.from("estimated_values").upsert(...) outside the guarded
+// path because scripts/lib/db.mjs had no guardedUpsert. Now routed through the guarded helper so the
+// write is reversible (prior-value snapshot) and skill-cited, same posture as every other write in
+// this file.
+const ESTIMATED_VALUES_CITE = {
+  skill: "remediation-discipline",
+  reason:
+    "Lane R3 (GUARDED-UPSERT, remediation-plan-2026-09-30.md item 3, 2026-10-01): seed-derived-values.mjs's " +
+    "automate_vs_hire estimated_values upsert was a raw .upsert() outside scripts/lib/db.mjs's guarded " +
+    "write path (rule 015 bypass, found by audits A4/A4b/A4c). Migrated to the new guardedUpsert helper, " +
+    "which snapshots the prior row at the onConflict key before mutating, mirroring guardedUpdate's " +
+    "reversibility contract.",
 };
 
 function usage() {
@@ -197,8 +213,13 @@ export async function seedCarbonIntensity(sb, mode, nowIso = () => new Date().to
  *   main()) resolves through `entity_refs` (ref_table='regions', role='jurisdiction') and MINTS on demand
  *   when absent (apply mode only — dry mode previews the id without writing; see file header).
  * @param {() => string} nowIso
+ * @param {{upsertEstimatedValue?: typeof guardedUpsert}} [deps] `upsertEstimatedValue` defaults to the
+ *   real `guardedUpsert` (rule-015 guarded path, scripts/lib/db.mjs); injectable so a test can capture
+ *   the call against a fake instead of needing real DB creds, same posture `resolveRegionEntityId`'s
+ *   own `deps.insertMany` already has in this file.
  */
-export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () => new Date().toISOString()) {
+export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () => new Date().toISOString(), deps = {}) {
+  const upsertEstimatedValue = deps.upsertEstimatedValue ?? guardedUpsert;
   const { data, error } = await sb
     .from("regional_data_facts")
     .select("id,region_id,dimension,value_numeric,unit,last_updated")
@@ -283,7 +304,12 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
       // mirror the derived_values row's own NPV triple (estimate_brackets_point/estimate_range_ordered
       // CHECKs both require it); payback/break-even ride in `distribution`, the documented use of that
       // jsonb column this lane's write set commits to (methods/automate-vs-hire.ts's header).
-      const { error: upsertErr } = await sb.from("estimated_values").upsert(
+      //
+      // Routed through guardedUpsert (lane R3, GUARDED-UPSERT remediation, 2026-10-01) rather than a raw
+      // sb.from(...).upsert(...): rule 015 requires every row-mutating write in scripts/ to go through
+      // the guarded path (scripts/lib/db.mjs) so it is cited and snapshot-reversible.
+      await upsertEstimatedValue(
+        "estimated_values",
         {
           entity_id: resolvedEntityId,
           scenario_key: SCENARIO_KEY,
@@ -300,12 +326,14 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
           },
           pedigree: { reliability: 2, completeness: 3, temporal_correlation: 2, geographical_correlation: 2, technological_correlation: 3 },
         },
-        // migration 286's 2026-09-02 amendment: entity_id is no longer estimated_values' PK — the
-        // unique constraint (and therefore the upsert conflict target) is
-        // estimated_values_entity_model_scenario_uniq (entity_id, model_id, model_version, scenario_key).
-        { onConflict: "entity_id,model_id,model_version,scenario_key" }
+        {
+          // migration 286's 2026-09-02 amendment: entity_id is no longer estimated_values' PK, the
+          // unique constraint (and therefore the upsert conflict target) is
+          // estimated_values_entity_model_scenario_uniq (entity_id, model_id, model_version, scenario_key).
+          onConflict: "entity_id,model_id,model_version,scenario_key",
+          cite: ESTIMATED_VALUES_CITE,
+        },
       );
-      if (upsertErr) throw new Error(`estimated_values upsert failed: ${upsertErr.message}`);
 
       result.created += 1;
     } catch (err) {
