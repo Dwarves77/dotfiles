@@ -31,38 +31,51 @@
 /**
  * One entry per spec-01 §1 instrument row. `test` matches against the combined haystack (title +
  * legalInstrument + shortName, lower-cased). `position` is the exact BINDING_POSITION code.
- * `citation` names the spec-01 §1 table row this entry reproduces, for audit.
+ * `citation` names the spec-01 S1 table row this entry reproduces, for audit. `label` is the
+ * instrument's own name verbatim from that citation, the SAME string the table's coverage test
+ * (classify-binding-position.test.mjs, "every RULES entry classifies its own label") feeds back
+ * through `test` to prove the rule actually fires, not just that it exists in the table. Added
+ * 2026-09-29 (lane W2-F, WS10): previously only about 8 of these 16 rules had ANY test exercising them
+ * (rule 15, "a proof that does not execute is not a proof"); a rule's regex could silently stop
+ * matching its own instrument and nothing would fail. `label` makes every entry in the class
+ * self-verifying without hand-copying a second literal instrument-name list into the test file.
  */
 const RULES = Object.freeze([
   // ── "Directly binding on the forwarder" (spec-01 §1, table 1) ──────────────────────────────────
   {
     position: "direct_duty",
     citation: "spec-01 §1 table 1 — CountEmissions EU, Regulation (EU) 2026/1030",
+    label: "CountEmissions EU",
     test: /countemissions|2026\/1030|32026r1030/,
   },
   {
     position: "direct_duty",
     citation: "spec-01 §1 table 1 — CBAM, when acting as indirect customs representative",
+    label: "CBAM",
     test: /\bcbam\b|carbon border adjustment/,
   },
   {
     position: "direct_duty",
     citation: "spec-01 §1 table 1 — Empowering Consumers Directive (EU) 2024/825",
+    label: "Empowering Consumers Directive",
     test: /empowering consumers|2024\/825|32024l0825/,
   },
   {
     position: "direct_duty",
     citation: "spec-01 §1 table 1 — PPWR, Regulation (EU) 2025/40",
+    label: "PPWR",
     test: /\bppwr\b|packaging and packaging waste|2025\/40\b|32025r0040/,
   },
   {
     position: "direct_duty",
     citation: "spec-01 §1 table 1 — SOLAS VGM (binds the named shipper; forwarders routinely assume it as agent)",
+    label: "SOLAS VGM",
     test: /solas\b.*\bvgm\b|verified gross mass/,
   },
   {
     position: "direct_duty",
     citation: "spec-01 §1 table 1 — CSRD (largest forwarding groups only, but the instrument itself is a direct duty)",
+    label: "CSRD",
     test: /\bcsrd\b|corporate sustainability reporting directive/,
   },
 
@@ -70,36 +83,43 @@ const RULES = Object.freeze([
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — EU ETS maritime",
+    label: "EU ETS maritime",
     test: /eu ets\b.*maritime|maritime.*\beu ets\b|emissions trading.*maritime/,
   },
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — FuelEU Maritime",
+    label: "FuelEU Maritime",
     test: /fueleu maritime/,
   },
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — ReFuelEU Aviation",
+    label: "ReFuelEU Aviation",
     test: /refueleu aviation/,
   },
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — CORSIA",
+    label: "CORSIA",
     test: /\bcorsia\b/,
   },
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — EU ETS2 (from 2028)",
+    label: "EU ETS2",
     test: /eu ets\s*2\b|ets2\b/,
   },
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — IMO CII/EEXI",
+    label: "IMO CII carbon intensity indicator",
     test: /\bcii\b.*carbon intensity|carbon intensity indicator|\beexi\b/,
   },
   {
     position: "carrier_passthrough",
     citation: "spec-01 §1 table 2 — IMO Net-Zero Framework (adopted 2026, not yet law)",
+    label: "IMO Net-Zero Framework",
     test: /imo net-zero framework|net-zero framework.*\bimo\b/,
   },
 
@@ -107,16 +127,19 @@ const RULES = Object.freeze([
   {
     position: "customer_contract",
     citation: "spec-01 §1 table 3 — CSDDD supplier codes",
+    label: "CSDDD",
     test: /\bcsddd\b|corporate sustainability due diligence directive/,
   },
   {
     position: "customer_contract",
     citation: "spec-01 §1 table 3 — EUDR due-diligence statement references",
+    label: "EUDR",
     test: /\beudr\b|eu deforestation regulation/,
   },
   {
     position: "customer_contract",
     citation: "spec-01 §1 table 3 — SBTi customer targets",
+    label: "SBTi",
     test: /\bsbti\b|science based targets initiative/,
   },
 ]);
