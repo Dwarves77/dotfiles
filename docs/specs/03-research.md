@@ -2,6 +2,18 @@
 
 Status: DRAFT for operator review, 2026-08-12.
 
+**Built 2026-10-01 (ADR-038, lane W2-R).** Operator ruling 2026-10-01 ("Why is research have a design
+but not a build? Fix this.") overrides build-plan-2026-09-25's decision 4 (design-only gate) for this
+surface. Section 10's gap table below is updated for the two rows this lane closes; the rest of the gap
+table is unchanged and still accurate. The built pieces: `src/lib/research/assess.mjs` (the pure R1-R4
+horizon ladder + the two non-conditional maturity axes, no LLM), migration 336 (`research_assessments`,
+DDL-sketch-only pending coordinator apply), `scripts/producers/research/research-assessment-producer.mjs`
+(dry/apply, harness family `research-assessment`), and the reader + rendering wiring in
+`src/lib/research/read-assessments.mjs` plus `/research` and `/research/[slug]`. See ADR-038 for what is
+explicitly NOT modeled (the adoption-barrier/MRL axes, the R2 diffusion-model rule, and a genuine
+per-tenant assumption register - `assumption_register`, migration 271, is a different concept and is not
+wired as if it answered section 5's question).
+
 **Contract (RULED 2026-07-12, `research-is-horizon-scan`).** Research answers: what is emerging, who is
 studying it, how does it change my planning horizon. Reads are STRUCTURED HORIZON ASSESSMENTS, being
 horizon distance, maturity, credibility of who is studying it, and the planning-assumption shift. NOT
@@ -134,23 +146,23 @@ and brand-name substitution for topic competence.
 
 The artifact that actually changes a decision, five slots, machine-generated:
 
-> **ASSUMPTION AT RISK** — "We assume Frankfurt–Milan express road linehaul stays diesel-costed through
+> **ASSUMPTION AT RISK** - "We assume Frankfurt-Milan express road linehaul stays diesel-costed through
 > 2030 and that our per-shipment carbon figure is a reporting line, not a price."
 >
-> **SHIFT** — "Becomes: linehaul on this lane carries a compliance-linked fuel-cost component from
+> **SHIFT** - "Becomes: linehaul on this lane carries a compliance-linked fuel-cost component from
 > [DATE], and the carbon figure becomes a contracted number your automotive client audits."
 >
-> **LOAD-BEARING? VULNERABLE?** — Load-bearing: yes, this assumption sits under 34% of quoted margin on
+> **LOAD-BEARING? VULNERABLE?** - Load-bearing: yes, this assumption sits under 34% of quoted margin on
 > EU road. Vulnerable: yes, dependent on a single unresolved legislative outcome.
 >
-> **SIGNPOSTS (watch these, not the news)** — committee publishes implementing act (confirms); second
+> **SIGNPOSTS (watch these, not the news)** - committee publishes implementing act (confirms); second
 > OEM announces production slot allocation (confirms); TEN-T charging build rate falls below X
 > sites/quarter (refutes or delays).
 >
-> **ACTIONS** — Shaping: open the pass-through clause conversation at the next two renewals. Hedging:
+> **ACTIONS** - Shaping: open the pass-through clause conversation at the next two renewals. Hedging:
 > price one lane both ways in the next tender. Wind-tunnel verdict on current plan: needs modification.
 >
-> **DECISION DEADLINE** — the last responsible moment is [DATE], set by [contract cycle / asset order
+> **DECISION DEADLINE** - the last responsible moment is [DATE], set by [contract cycle / asset order
 > lead time / regulatory notice period].
 
 **Two structural rules.**
@@ -236,9 +248,9 @@ university transport institutes.
 
 | Spec element | Now |
 |---|---|
-| Assessment as atomic unit | **Absent.** Atom is a finding/paper |
-| Maturity triple | **Absent.** No TRL, CRI or ARL anywhere |
-| Horizon band and trigger | **Absent.** No horizon axis at all, which is the contract's first clause |
+| Assessment as atomic unit | **Partial.** `research_assessments` (migration 336) is the atomic row keyed to the item; the surface still renders the finding as the primary card with the assessment as a rail addition, not yet the other way around |
+| Maturity triple | **Two of three axes built (ADR-038).** Technical TRL 1-11 and commercial CRI 1-6, corridor + method + evidence ids, via `assess.mjs`. Adoption barrier (ARL) and the conditional MRL axis remain Absent - no data path |
+| Horizon band and trigger | **Built (ADR-038).** Band (NOW/NEAR/MID/FAR) + kind + the R1/R3/R4 cascade + confidence + trigger note, via `assess.mjs`; the mandatory refusal state (section 6) is first-class. R2 (diffusion/cost-curve modeling) remains Absent - no `market_series` time-series join wired into this input shape |
 | Split credibility | **Partial and pathological.** Citation-count chips exist, which is the raw metric the literature warns against; no FWCI, no topic scoping, no funder independence |
 | Who-is-studying-it | **Absent** as a structured panel |
 | Dissent | **Absent** |
