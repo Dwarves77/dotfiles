@@ -1,9 +1,10 @@
-// flag-namespaces.test.mjs — proves the SoT contract: disjoint namespaces, createdBy/buildSubjectRef
+// flag-namespaces.test.mjs, proves the SoT contract: disjoint namespaces, createdBy/buildSubjectRef
 // shape, and the isInNamespace predicate analyze-corpus.mjs's dedup scan relies on.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE, ALL_NAMESPACES,
+  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE,
+  QUESTION_NAMESPACE, ALL_NAMESPACES,
   createdBy, buildSubjectRef, isInNamespace,
 } from "./flag-namespaces.mjs";
 
@@ -34,6 +35,15 @@ test("TAG_NAMESPACE: registered in ALL_NAMESPACES, disjoint from the other four,
   assert.ok(!isInNamespace(createdBy(TAG_NAMESPACE, "empty-signature"), FLYWHEEL_DEFECT_NAMESPACE));
 });
 
+test("QUESTION_NAMESPACE: registered in ALL_NAMESPACES, disjoint from the other five, deliberately not 'flywheel-'-prefixed", () => {
+  assert.equal(QUESTION_NAMESPACE, "question:");
+  assert.ok(ALL_NAMESPACES.includes(QUESTION_NAMESPACE));
+  assert.equal(createdBy(QUESTION_NAMESPACE, "what"), "question:what");
+  assert.ok(isInNamespace(createdBy(QUESTION_NAMESPACE, "affects_me"), QUESTION_NAMESPACE));
+  assert.ok(!isInNamespace(createdBy(QUESTION_NAMESPACE, "affects_me"), TAG_NAMESPACE));
+  assert.ok(!isInNamespace(createdBy(TAG_NAMESPACE, "empty-signature"), QUESTION_NAMESPACE));
+});
+
 test("createdBy: refuses a namespace not ending in ':' and an empty subtype", () => {
   assert.throws(() => createdBy("flywheel-gap", "x"), /must end in ':'/);
   assert.throws(() => createdBy(GAP_NAMESPACE, ""), /subtype is required/);
@@ -50,7 +60,7 @@ test("buildSubjectRef: multi-part joins with ':', drops empty/null/undefined par
   assert.equal(buildSubjectRef(), "");
 });
 
-test("buildSubjectRef: deterministic — same inputs, same output, order-sensitive", () => {
+test("buildSubjectRef: deterministic, same inputs, same output, order-sensitive", () => {
   assert.equal(buildSubjectRef("x", "y"), buildSubjectRef("x", "y"));
   assert.notEqual(buildSubjectRef("x", "y"), buildSubjectRef("y", "x"));
 });

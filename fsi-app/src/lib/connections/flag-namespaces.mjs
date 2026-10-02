@@ -41,8 +41,22 @@ export const FLYWHEEL_DEFECT_NAMESPACE = "flywheel-defect:";
 // (buildSubjectRef(itemId) degrades to itemId unchanged, per that helper's own contract below).
 export const TAG_NAMESPACE = "flywheel-tag:";
 
+// QUESTION_NAMESPACE, the sixth namespace, born with trigger-questions.mjs (lane W2-G, wave2b,
+// 2026-09-29, learning-loop-design-2026-09-25.md section 3/6, ADR-036). Deliberately NOT prefixed
+// "flywheel-" like its five siblings above: the learning-loop design (section 3) names the namespace
+// literally as "a new `question:` namespace in flag-namespaces.mjs's SoT", a `trigger_question` is a
+// generated QUESTION about an item/event, not a flywheel-internal finding about corpus structure (gap,
+// anticipate, signal, defect, tag all describe something the flywheel noticed about the CORPUS; a
+// trigger_question describes something a READER would ask). subject_type is "item" (the subject the
+// question is about, mirrors FLYWHEEL_DEFECT_NAMESPACE/TAG_NAMESPACE's own subject_type); subject_ref
+// is buildSubjectRef(itemId, surface, productQuestion) so one item can carry up to
+// SURFACES.length x PRODUCT_QUESTIONS.length open question rows without subject_ref collisions across
+// different (surface, product_question) pairs for the same item.
+export const QUESTION_NAMESPACE = "question:";
+
 export const ALL_NAMESPACES = Object.freeze([
   GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE,
+  QUESTION_NAMESPACE,
 ]);
 
 /**

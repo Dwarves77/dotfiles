@@ -385,6 +385,7 @@ const STEP_ORDER = [
   "derive-obligations",
   "tag-proposals",
   "tag-ratification",
+  "trigger-questions",
   "compute-outcomes",
   "write-outcomes",
   "record-last-turn",
@@ -407,7 +408,7 @@ test("buildFlywheelPlan: apply mode with items — every scoped step runs and wr
   const plan = buildFlywheelPlan("apply", ["item-1", "item-2"]);
   const byName = Object.fromEntries(plan.map((s) => [s.name, s]));
 
-  for (const name of ["discovery", "forward-event-extraction", "forward-event-apply", "tag-proposals", "tag-ratification"]) {
+  for (const name of ["discovery", "forward-event-extraction", "forward-event-apply", "tag-proposals", "tag-ratification", "trigger-questions"]) {
     assert.equal(byName[name].skip, false, `${name} should not be skipped`);
     assert.equal(byName[name].willWrite, true, `${name} should write in apply mode with items`);
   }
@@ -444,6 +445,8 @@ test("buildFlywheelPlan: dry mode with items — scoped steps run previews, noth
   assert.equal(byName["tag-proposals"].willWrite, false);
   assert.equal(byName["tag-ratification"].skip, false);
   assert.equal(byName["tag-ratification"].willWrite, false);
+  assert.equal(byName["trigger-questions"].skip, false);
+  assert.equal(byName["trigger-questions"].willWrite, false);
 
   assert.equal(byName["analyze-corpus"].skip, false);
   assert.equal(byName["analyze-corpus"].willWrite, false);
@@ -470,7 +473,7 @@ test("buildFlywheelPlan: apply mode with ZERO items — item-scoped steps skip c
   const plan = buildFlywheelPlan("apply", []);
   const byName = Object.fromEntries(plan.map((s) => [s.name, s]));
 
-  for (const name of ["discovery", "corpus-export", "forward-event-extraction", "forward-event-apply", "tag-proposals", "tag-ratification", "brief-export"]) {
+  for (const name of ["discovery", "corpus-export", "forward-event-extraction", "forward-event-apply", "tag-proposals", "tag-ratification", "trigger-questions", "brief-export"]) {
     assert.equal(byName[name].skip, true, `${name} should skip with 0 items`);
     assert.match(byName[name].skipReason, /0 minted item/);
   }

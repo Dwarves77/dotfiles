@@ -236,7 +236,10 @@ import { main as deriveObligationsMain } from "../maintenance/derive-obligations
 import { main as tagProposalsMain, CITE as TAG_PROPOSALS_CITE } from "../maintenance/tag-proposals.mjs";
 import { NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
 import { main as tagRatificationMain, CITE as TAG_RATIFICATION_CITE } from "../maintenance/tag-ratification.mjs";
-import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { TAG_NAMESPACE, QUESTION_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+// S1, learning-loop-design-2026-09-25.md section 6 / ADR-036 decision 1 (lane W2-G, wave2b, 2026-09-29):
+// the trigger_question generator, wired as the next step of this file's own section 8/9 tandem sequence.
+import { main as triggerQuestionsMain, CITE as TRIGGER_QUESTIONS_CITE } from "../../src/lib/learning/trigger-questions.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -818,6 +821,21 @@ export function buildFlywheelPlan(mode, batchIds) {
       willWrite: apply && hasItems,
     },
     {
+      // S1 (learning-loop-design-2026-09-25.md section 6, ADR-036 decision 1): pure, $0 template
+      // expansion over (event_type x surface x the 4 product questions) for this batch's own items,
+      // scoped the same way tag-proposals/tag-ratification are, run AFTER discovery/forward-events/
+      // obligations/tags have all had their chance to enrich this batch (the generator reads domain/
+      // title only, so ordering relative to them is not load-bearing, but running last in the
+      // per-item chain keeps every question generated against this batch's FINAL state, not a
+      // mid-chain snapshot). Writes integrity_flags rows under flag-namespaces.mjs's QUESTION_NAMESPACE
+      // ("question:"), never auto-answered, never auto-priced (ADR-036 decision 1).
+      name: "trigger-questions",
+      scoped: true,
+      skip: !hasItems,
+      skipReason: hasItems ? null : noItemsReason,
+      willWrite: apply && hasItems,
+    },
+    {
       // Always computed and reported, even at zero (MINT-RUNBOOK.md §9: "record it every batch, even
       // when the number is zero") — a read-only DB query either way, never a write.
       name: "compute-outcomes",
@@ -1341,6 +1359,30 @@ async function stepTagRatification(ctx) {
   return summary;
 }
 
+/** Mirrors buildTagProposalsDeps' shape: wiring only, no logic duplicated (trigger-questions.mjs's own
+ *  main() does the dedup-before-insert and template expansion). */
+function buildTriggerQuestionsDeps(db) {
+  return {
+    readExistingOpen: () =>
+      db.readAll("integrity_flags", "id, subject_ref, created_by", {
+        match: (q) => q.eq("status", "open").like("created_by", `${QUESTION_NAMESPACE}%`),
+      }),
+    insertMany: (rows) => db.guardedInsertMany("integrity_flags", rows, { cite: TRIGGER_QUESTIONS_CITE, select: "id" }),
+  };
+}
+
+async function stepTriggerQuestions(ctx) {
+  const items = await ctx.db.readAll("intelligence_items", "id, title, domain, item_type", {
+    // fitness-allow: F39 (ctx.batchIds is this dispatch's own minted batch, not corpus-scale)
+    match: (q) => q.in("id", ctx.batchIds),
+  });
+  const summary = await triggerQuestionsMain({ mode: ctx.mode, items }, buildTriggerQuestionsDeps(ctx.db));
+  if (typeof summary?.exitCode === "number" && summary.exitCode !== 0) {
+    throw new Error(`trigger-questions: ${summary.note ?? JSON.stringify(summary)}`);
+  }
+  return summary;
+}
+
 /** Chunked, deduplicated read of every item_cross_references row (any origin) touching `batchIds` on
  *  either endpoint — two chunked .in() reads (source side, target side), merged by row id since
  *  PostgREST's query builder has no single-call "col_a IN (...) OR col_b IN (...)" across two different
@@ -1442,6 +1484,7 @@ const STEP_HANDLERS = Object.freeze({
   "derive-obligations": stepDeriveObligations,
   "tag-proposals": stepTagProposals,
   "tag-ratification": stepTagRatification,
+  "trigger-questions": stepTriggerQuestions,
   "compute-outcomes": stepComputeOutcomes,
   "write-outcomes": stepWriteOutcomes,
   "record-last-turn": stepRecordLastTurn,
