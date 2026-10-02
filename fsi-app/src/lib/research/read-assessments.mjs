@@ -1,4 +1,4 @@
-// read-assessments.mjs -- the ONE home for turning a migration-336 `research_assessments_current` row
+// read-assessments.mjs -- the ONE home for turning a migration-344 `research_assessments_current` row
 // into the render-ready view model Research's surfaces consume. Lane W2-R, 2026-10-01.
 //
 // PLAIN ESM, ZERO DEPENDENCIES, NO I/O -- same constraint as theme-brief.mjs and taxonomy.mjs in this

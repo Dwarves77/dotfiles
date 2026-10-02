@@ -3,7 +3,7 @@ id: ADR-038
 title: Research is built now; the data machine (producer + assessment model) is the deliverable, ahead of the four-question design structure
 status: accepted
 date: 2026-10-01
-scope: docs/specs/03-research.md's assessment model; src/lib/research/assess.mjs; scripts/producers/research/research-assessment-producer.mjs; migration 336 (research_assessments); the Research surface's rendering of a maturity triple, horizon band and the planning-assumption-shift absence state
+scope: docs/specs/03-research.md's assessment model; src/lib/research/assess.mjs; scripts/producers/research/research-assessment-producer.mjs; migration 344 (research_assessments); the Research surface's rendering of a maturity triple, horizon band and the planning-assumption-shift absence state
 supersedes: build-plan-2026-09-25.md's decision 4 ("Research model design: DESIGN now, BUILD after the four-question structure (section 4 sequence) lands. Do not build ahead of this gate.") and the corresponding workstream 13 row ("DESIGN ONLY - a lane that starts building before the four-question structure lands has skipped decision 4's gate; stop.")
 related: docs/specs/03-research.md (the design this builds against), docs/doctrine research-is-horizon-scan, docs/plans/build-8-research-surface.md, ADR-023 (producer execution model), CLAUDE.md rules 1, 2, 13-17, 19, 20
 ---
@@ -40,7 +40,7 @@ deliverable; the surface renders what it produces, never the reverse). Lane W2-R
    horizon prior), and a split credibility read (evidence score from citation count, authority score as a
    degenerate one-source distribution from source tier). No LLM call, anywhere in this module or its
    caller.
-2. **Migration 336 (`research_assessments`)** - one current row per item, `supersedes`-chained for
+2. **Migration 344 (`research_assessments`)** - one current row per item, `supersedes`-chained for
    append-only history (spec section 7 row 11), RLS mirroring `derived_values` (migration 285): raw table
    denied, `research_assessments_current` view granted.
 3. **`scripts/producers/research/research-assessment-producer.mjs`** - dry by default, `--apply` gated

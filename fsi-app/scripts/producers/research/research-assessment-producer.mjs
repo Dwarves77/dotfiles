@@ -8,7 +8,7 @@
 // 'research': research_finding, plus technology/innovation items under the domain=7 rule -- see
 // src/lib/research/surface-candidate.mjs), narrows each into an AssessmentInput
 // (src/lib/research/assess.mjs), runs the PURE assess.mjs ladder (no LLM, no fetch, $0), and plans a
-// migration-336 research_assessments row per item: INSERT when the item has no current row yet, or
+// migration-344 research_assessments row per item: INSERT when the item has no current row yet, or
 // SUPERSEDE (flip the old row's is_current to false, insert a new row with `supersedes` pointing at it)
 // when the newly-computed row differs from the current one. An unchanged read writes nothing -- this
 // producer is idempotent on a re-run over the same corpus state, matching every other producer's own
@@ -17,9 +17,9 @@
 // DRY BY DEFAULT, --apply GATED (lane-common-contract section 0: "every script you build is DRY BY DEFAULT and
 // takes --apply"). Three gates, ADR-023's own shape: (1) ENABLED below -- the reviewed-code-change gate;
 // armed true at authorship because the operator's own 2026-10-01 ruling IS that review (same posture
-// eurostat-lc-lci-lev-producer.mjs records for its own arming) -- the underlying migration 336 is itself
+// eurostat-lc-lci-lev-producer.mjs records for its own arming) -- the underlying migration 344 is itself
 // gated on the coordinator applying its DDL first (two-track policy), so an --apply run against a
-// database that has not yet run migration 336 fails closed at the guarded write (relation does not
+// database that has not yet run migration 344 fails closed at the guarded write (relation does not
 // exist), never silently. (2) the runtime env kill switch RESEARCH_ASSESSMENT_PRODUCER_ENABLED, default
 // OFF. (3) --apply on the command line. Writes go through scripts/lib/db.mjs's guardedInsert (never a
 // bare INSERT) -- rule 015.
@@ -31,7 +31,7 @@
 // (fixtures/research-assessment-fixtures.mjs) -- never the network, never a DB credential -- runs the
 // real ladder, prints the plan, and writes this family's own harness-run artifact
 // (scripts/harness-runs/research-assessment/). The coordinator runs the live --live --apply pass after
-// migration 336 is applied and this file merges.
+// migration 344 is applied and this file merges.
 
 import { resolve as resolvePath, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,7 +54,7 @@ export const HARNESS_FAMILY = "research-assessment";
 export const COMPUTED_BY = `${PRODUCER_NAME}@1`;
 
 // Gate 1 (ADR-023 section 4). Armed true at authorship -- the operator's 2026-10-01 ruling ("Research is built
-// now") IS the review. The dependent migration 336 is still DDL-sketch-only (two-track policy); an
+// now") IS the review. The dependent migration 344 is still DDL-sketch-only (two-track policy); an
 // --apply run against a database where it has not landed fails closed at the guarded INSERT.
 export const ENABLED = true;
 const KILL_SWITCH_ENV = "RESEARCH_ASSESSMENT_PRODUCER_ENABLED"; // Gate 2, default OFF.
@@ -123,7 +123,7 @@ export function hasChanged(current, computed) {
   );
 }
 
-/** Build the migration-336 row shape (DB column names) from assess.mjs's output. */
+/** Build the migration-344 row shape (DB column names) from assess.mjs's output. */
 export function toRow(computed, { supersedes = null } = {}) {
   const tm = computed.technicalMaturity;
   const cm = computed.commercialMaturity;
@@ -283,7 +283,7 @@ async function fetchLiveCurrentByItemId(itemIds) {
   if (!itemIds.length) return new Map();
   // F39: readAllByIds chunks the id list (never a raw .in() sized to a runtime list) -- same reasoning
   // as fetchLiveCandidates above. One row per item_id (the view's own unique-current-row guarantee,
-  // migration 336's partial unique index), so manyPerId:false.
+  // migration 344's partial unique index), so manyPerId:false.
   const { readAllByIds } = await import("../../lib/db.mjs");
   const rows = await readAllByIds("research_assessments_current", "*", itemIds, {
     idColumn: "item_id",
@@ -364,7 +364,7 @@ async function main() {
     fullTraceRefs: [live ? "intelligence_items (research candidates)" : "scripts/producers/research/fixtures/research-assessment-fixtures.mjs"],
     proposerNotes:
       "research-assessment-producer's first run artifact (lane W2-R, 2026-10-01). Fixture/dry runs prove " +
-      "the ladder end to end offline; the coordinator runs --live --apply after migration 336 lands.",
+      "the ladder end to end offline; the coordinator runs --live --apply after migration 344 lands.",
   });
   const artifactPath = writeRunArtifact(DEFAULT_HARNESS_RUNS_DIR, artifact);
   console.log(`${PRODUCER_NAME}: wrote harness artifact ${artifactPath}`);

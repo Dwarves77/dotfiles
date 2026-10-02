@@ -103,7 +103,7 @@ interface Props {
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
   themeBrief?: ThemeBriefView;
-  /** Lane W2-R (2026-10-01): migration 336's assessment row for this item, shaped by
+  /** Lane W2-R (2026-10-01): migration 344's assessment row for this item, shaped by
    *  src/lib/research/read-assessments.mjs. undefined/null renders the honest "no assessment yet" state
    *  (R14: the surface renders what the producer has produced, never a fabricated reading). */
   assessment?: AssessmentView;
@@ -422,7 +422,7 @@ function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: Intelli
 // row, or a read that did not select it) the segment is omitted rather than
 // rendered as 0 - Absence-by-omission, the same convention AtAGlanceCard uses.
 // ── Horizon assessment card (lane W2-R, 2026-10-01) ───────────────────────
-// Renders migration 336's research_assessments row: the maturity triple's non-conditional two axes
+// Renders migration 344's research_assessments row: the maturity triple's non-conditional two axes
 // (technical TRL 1-11, commercial CRI 1-6; the adoption-barrier/MRL axes have no data path in this
 // lane, per assess.mjs's own header, and are never rendered as if scored), the horizon read (kind +
 // band + rule + confidence, or the first-class refusal state spec-03 section 6 requires), and the

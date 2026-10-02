@@ -6,7 +6,7 @@ Status: DRAFT for operator review, 2026-08-12.
 but not a build? Fix this.") overrides build-plan-2026-09-25's decision 4 (design-only gate) for this
 surface. Section 10's gap table below is updated for the two rows this lane closes; the rest of the gap
 table is unchanged and still accurate. The built pieces: `src/lib/research/assess.mjs` (the pure R1-R4
-horizon ladder + the two non-conditional maturity axes, no LLM), migration 336 (`research_assessments`,
+horizon ladder + the two non-conditional maturity axes, no LLM), migration 344 (`research_assessments`,
 DDL-sketch-only pending coordinator apply), `scripts/producers/research/research-assessment-producer.mjs`
 (dry/apply, harness family `research-assessment`), and the reader + rendering wiring in
 `src/lib/research/read-assessments.mjs` plus `/research` and `/research/[slug]`. See ADR-038 for what is
@@ -248,7 +248,7 @@ university transport institutes.
 
 | Spec element | Now |
 |---|---|
-| Assessment as atomic unit | **Partial.** `research_assessments` (migration 336) is the atomic row keyed to the item; the surface still renders the finding as the primary card with the assessment as a rail addition, not yet the other way around |
+| Assessment as atomic unit | **Partial.** `research_assessments` (migration 344) is the atomic row keyed to the item; the surface still renders the finding as the primary card with the assessment as a rail addition, not yet the other way around |
 | Maturity triple | **Two of three axes built (ADR-038).** Technical TRL 1-11 and commercial CRI 1-6, corridor + method + evidence ids, via `assess.mjs`. Adoption barrier (ARL) and the conditional MRL axis remain Absent - no data path |
 | Horizon band and trigger | **Built (ADR-038).** Band (NOW/NEAR/MID/FAR) + kind + the R1/R3/R4 cascade + confidence + trigger note, via `assess.mjs`; the mandatory refusal state (section 6) is first-class. R2 (diffusion/cost-curve modeling) remains Absent - no `market_series` time-series join wired into this input shape |
 | Split credibility | **Partial and pathological.** Citation-count chips exist, which is the raw metric the literature warns against; no FWCI, no topic scoping, no funder independence |

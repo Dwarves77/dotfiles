@@ -1,4 +1,4 @@
--- subject: Migration 336 (Lane W2-R RESEARCH-ASSESSMENT-MODEL, 2026-10-01). Adds research_assessments,
+-- subject: Migration 344 (Lane W2-R RESEARCH-ASSESSMENT-MODEL, 2026-10-01). Adds research_assessments,
 -- the new table docs/specs/03-research.md section 1 names as the surface's atomic unit ("the assessment,
 -- not the paper"). DDL SKETCH ONLY -- AUTHORED, NOT APPLIED (two-track policy, CLAUDE.md standing rule
 -- 3). The coordinator applies this via the Supabase CLI before the dependent producer/reader commit
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS public.research_assessments (
 );
 
 COMMENT ON TABLE public.research_assessments IS
-  'Lane W2-R, migration 336. Spec 03''s atomic unit for /research: one current row per item_id (research_finding, '
+  'Lane W2-R, migration 344. Spec 03''s atomic unit for /research: one current row per item_id (research_finding, '
   'plus technology/innovation items surfaceOf() routes to research), superseded chain carried via `supersedes` '
   '(spec section 7 row 11, append-only history). Never hand-edited; written only by '
   'scripts/producers/research/research-assessment-producer.mjs through the guarded path.';
@@ -147,13 +147,13 @@ BEGIN
   SELECT count(*) INTO n_cols FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'research_assessments';
   IF n_cols <> 20 THEN
-    RAISE EXCEPTION 'migration 336 self-check failed: research_assessments has % columns, expected 20', n_cols;
+    RAISE EXCEPTION 'migration 344 self-check failed: research_assessments has % columns, expected 20', n_cols;
   END IF;
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_views WHERE schemaname = 'public' AND viewname = 'research_assessments_current'
   ) THEN
-    RAISE EXCEPTION 'migration 336 self-check failed: research_assessments_current view was not created';
+    RAISE EXCEPTION 'migration 344 self-check failed: research_assessments_current view was not created';
   END IF;
 END $$;
 

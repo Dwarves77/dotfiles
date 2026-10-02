@@ -11,7 +11,7 @@ first (R14):
   (dated statutory instrument / institutional roadmap / maturity-to-horizon prior); split credibility
   (evidence score from citation count, authority distribution from source tier); the mandatory refusal
   state when nothing on the ladder can fire. 22 unit tests, one fixture per rule plus the refusal state.
-- `supabase/migrations/336_research_assessments.sql` - DDL sketch only, not applied (two-track policy).
+- `supabase/migrations/344_research_assessments.sql` - DDL sketch only, not applied (two-track policy).
   `research_assessments` (20 columns, supersede-chained, RLS mirrors `derived_values`) +
   `research_assessments_current` view.
 - `scripts/producers/research/research-assessment-producer.mjs` - dry by default, `--apply` gated
@@ -99,7 +99,7 @@ the import now would break this branch's own build). ADR-038 corrected in place 
   `ResearchAssessmentCard`, replacing the unconditional absence render with the real at-risk-assumption
   list when non-empty. Named precisely in `ResearchFindingDetailSurface.tsx`'s own comment and in
   ADR-038's corrected finding.
-- Migration 336 is DDL-sketch-only; the coordinator applies it via the Supabase CLI before `--live`
+- Migration 344 is DDL-sketch-only; the coordinator applies it via the Supabase CLI before `--live`
   reads will resolve. The producer's fixture/dry CLI run requires no migration and was run and verified
   (`scripts/harness-runs/research-assessment/research-assessment-run-001.json`).
 - `tsc --noEmit` is clean. `node fsi-app/.discipline/fitness/runner.mjs`: 52 functions checked, 0

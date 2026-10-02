@@ -1,8 +1,8 @@
 {
   "harness_family": "research-assessment",
-  "harness_version": "sha256:39cbc7c691678b7b",
+  "harness_version": "sha256:120558f9961ae0e8",
   "run_id": "research-assessment-run-001",
-  "started_at": "2026-10-02T03:38:01.302Z",
+  "started_at": "2026-10-02T04:37:33.352Z",
   "config": {
     "mode": "dry",
     "source": "fixtures/research-assessment-fixtures.mjs",
@@ -47,6 +47,6 @@
   "full_trace_refs": [
     "scripts/producers/research/fixtures/research-assessment-fixtures.mjs"
   ],
-  "proposer_notes": "research-assessment-producer's first run artifact (lane W2-R, 2026-10-01). Fixture/dry runs prove the ladder end to end offline; the coordinator runs --live --apply after migration 336 lands.",
+  "proposer_notes": "research-assessment-producer's first run artifact (lane W2-R, 2026-10-01). Fixture/dry runs prove the ladder end to end offline; the coordinator runs --live --apply after migration 344 lands.",
   "trigger": "manual"
 }
