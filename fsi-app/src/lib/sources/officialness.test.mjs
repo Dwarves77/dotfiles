@@ -133,3 +133,61 @@ test("flattened text (no tags) degrades gracefully: cleanBody ~= text, path from
   assert.equal(r.path, "a", "markers + host survive flattening -> path a");
   assert.ok(r.cleanBody.includes("Article 1"), "flattened text passes through as the clean body");
 });
+
+// ── A3B-07 regression: un-wrapped, non-keyword-classed link list, audit-named fixture ───────────────────
+// structuralStrip()'s keyword regex only catches menu|breadcrumb|cookie|banner|sidebar|footer|skip-link
+// container classes. class="quick-links" deliberately does NOT match, so this block survives STEP 1 (the
+// container-level strip) and reaches STEP 2 (cleanBodyOf's per-block link/text-density drop) unstripped.
+// If splitBlocks() ever regresses to a per-character split (the audited defect shape, A3B-07: a
+// delimiter-less split after the boundary tags are replaced with "" instead of a marker), no block can
+// ever contain a full <a>...</a> pair, STEP 2's density conditions can never evaluate true, and this
+// list's anchor text leaks into cleanBody verbatim, exactly the failure this fixture exists to catch.
+const QUICKLINKS_HTML = `<!doctype html><html><body>
+  <main>
+    <p>Article 1. Subject matter. This Directive lays down rules concerning corporate sustainability
+    reporting. Undertakings shall disclose information necessary to understand impacts on sustainability
+    matters across operations, products and the broader value chain of each affected entity in scope.</p>
+    <ul class="quick-links">
+      <li><a href="/a">Related guidance</a></li>
+      <li><a href="/b">See also</a></li>
+      <li><a href="/c">Browse topics</a></li>
+      <li><a href="/d">More resources</a></li>
+    </ul>
+    <p>Article 2. Scope. This Directive shall apply to large undertakings and to small and medium-sized
+    undertakings which are public-interest entities across the single market and beyond its borders.</p>
+  </main>
+</body></html>`;
+
+test("A3B-07 regression: un-wrapped quick-links list (non-keyword class) dropped by STEP 2 density gate", () => {
+  const r = officialnessOf(QUICKLINKS_HTML, "eur-lex.europa.eu", { hostTier: T1, floorTier: REG_FLOOR });
+  assert.ok(
+    !r.cleanBody.toLowerCase().includes("related guidance"),
+    `link-list anchor text must be dropped by STEP 2, not leaked into cleanBody (got: ${r.cleanBody})`,
+  );
+  assert.ok(!r.cleanBody.toLowerCase().includes("browse topics"), "link-list anchor text must be dropped");
+  assert.ok(!r.cleanBody.toLowerCase().includes("see also"), "link-list anchor text must be dropped");
+  assert.ok(r.cleanBody.includes("Article 1"), "surrounding prose before the list survives");
+  assert.ok(r.cleanBody.includes("Article 2"), "surrounding prose after the list survives");
+  assert.equal(r.path, "a", "real instrument body still qualifies despite the unwrapped link list");
+});
+
+// ── Companion fixture: a legitimate inline link inside prose must NOT be dropped ───────────────────────────
+// STEP 2's drop is for link-LIST blocks (mostly-anchor ink), not for ordinary prose that happens to carry
+// one inline citation link. A single <a> inside a long paragraph keeps linkDensity far below
+// LINK_DENSITY_MAX and the paragraph's ink is nowhere near the ink<30 short-fragment case, so the block
+// must be kept whole, link text included.
+const INLINE_LINK_HTML = `<!doctype html><html><body>
+  <main>
+    <p>Article 4. Transposition. Member States shall bring into force the laws, regulations and
+    administrative provisions necessary to comply with this Directive by the date set out in
+    <a href="/annex">Annex I</a> of this instrument, and shall immediately inform the Commission thereof
+    pursuant to the obligations set out in paragraph 1 of this Article.</p>
+  </main>
+</body></html>`;
+
+test("legitimate paragraph with one inline link is NOT dropped by STEP 2 (ink-heavy, low link density)", () => {
+  const r = officialnessOf(INLINE_LINK_HTML, "eur-lex.europa.eu", { hostTier: T1, floorTier: REG_FLOOR });
+  assert.ok(r.cleanBody.includes("Annex I"), "inline link text must survive; this is prose, not a link list");
+  assert.ok(r.cleanBody.toLowerCase().includes("transposition"), "surrounding paragraph text must survive");
+  assert.ok(r.cleanBody.toLowerCase().includes("member states shall bring"), "the obligation sentence survives whole");
+});
