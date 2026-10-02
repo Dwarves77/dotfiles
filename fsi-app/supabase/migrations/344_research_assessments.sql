@@ -146,8 +146,8 @@ DECLARE
 BEGIN
   SELECT count(*) INTO n_cols FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'research_assessments';
-  IF n_cols <> 20 THEN
-    RAISE EXCEPTION 'migration 344 self-check failed: research_assessments has % columns, expected 20', n_cols;
+  IF n_cols <> 24 THEN
+    RAISE EXCEPTION 'migration 344 self-check failed: research_assessments has % columns, expected 24', n_cols;
   END IF;
 
   IF NOT EXISTS (

@@ -12,7 +12,7 @@ first (R14):
   (evidence score from citation count, authority distribution from source tier); the mandatory refusal
   state when nothing on the ladder can fire. 22 unit tests, one fixture per rule plus the refusal state.
 - `supabase/migrations/344_research_assessments.sql` - DDL sketch only, not applied (two-track policy).
-  `research_assessments` (20 columns, supersede-chained, RLS mirrors `derived_values`) +
+  `research_assessments` (24 columns, supersede-chained, RLS mirrors `derived_values`) +
   `research_assessments_current` view.
 - `scripts/producers/research/research-assessment-producer.mjs` - dry by default, `--apply` gated
   (ENABLED const + `RESEARCH_ASSESSMENT_PRODUCER_ENABLED` env + `--apply`), writes through
