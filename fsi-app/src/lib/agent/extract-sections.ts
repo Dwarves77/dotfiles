@@ -163,7 +163,7 @@ export function extractSectionByHeading(
   const lines = fullBrief.split(/\r?\n/);
   let inFence = false;
   let capturing = false;
-  let captured: string[] = [];
+  const captured: string[] = [];
   let foundHeading = "";
   let matchedLevel: 1 | 2 = 1;
 
@@ -298,7 +298,7 @@ export function extractSeverityLabel(paragraph: string): {
   if (!paragraph) return { label: null, rest: paragraph };
   // Strip a leading bold marker so "**ACTION REQUIRED**: ..." is
   // recognised the same as "ACTION REQUIRED: ...".
-  let stripped = paragraph.replace(/^\*+\s*/, "");
+  const stripped = paragraph.replace(/^\*+\s*/, "");
   for (const label of SEVERITY_LABELS) {
     const re = new RegExp(`^${label}\\b\\*?\\*?\\s*[-—:]?\\s*`, "i");
     if (re.test(stripped)) {
