@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   extractHeaderBlock,
+  extractSubjectLine,
   parseHeaderStatus,
   extractTableOps,
   stripSqlComments,
@@ -22,15 +23,34 @@ import {
   findLatestLiveSchemaFile,
   fitnessFunction,
   _resetLiveSchemaCache,
+  _resetDroppedElsewhereCache,
 } from './F63-migration-applied-status.mjs';
 
-// -- extractHeaderBlock / parseHeaderStatus ----------------------------------------------------------
+// -- extractHeaderBlock / extractSubjectLine / parseHeaderStatus ------------------------------------
 
 test('extractHeaderBlock stops at the first non-comment, non-blank line', () => {
   const content = '-- subject: migration X. NOT YET APPLIED.\n-- more header prose\n\nCREATE TABLE foo (id int);\n';
   const header = extractHeaderBlock(content);
   assert.match(header, /NOT YET APPLIED/);
   assert.doesNotMatch(header, /CREATE TABLE/);
+});
+
+test('extractSubjectLine returns only line 1, ignoring a later restated paragraph', () => {
+  const content = '-- subject: migration X. APPLIED 2026-07-11.\n-- STATUS: AUTHOR-ONLY - NOT APPLIED. Rides a DDL window.\n\nCREATE TABLE foo (id int);\n';
+  assert.equal(extractSubjectLine(content), '-- subject: migration X. APPLIED 2026-07-11.');
+});
+
+test('ATTACK: a stale restated paragraph below a CORRECTED subject line must not flip the read status (the live 181/183/184/195/271/311 shape)', () => {
+  const content =
+    '-- subject: migration Y. APPLIED 2026-07-11 (wave-alpha).\n' +
+    '-- STATUS: AUTHOR-ONLY - NOT APPLIED. Rides an operator DDL window. Do not apply inline.\n' +
+    'DROP TABLE IF EXISTS public.some_old_table;\n';
+  const status = parseHeaderStatus(extractSubjectLine(content));
+  assert.equal(status, 'applied', 'reading the whole block instead of line 1 would wrongly return not_applied');
+});
+
+test('extractSubjectLine returns empty string for a file with no well-formed subject line', () => {
+  assert.equal(extractSubjectLine('-- just a comment, no subject: prefix\nCREATE TABLE x (id int);\n'), '');
 });
 
 test('parseHeaderStatus: "NOT YET APPLIED" wins over a bare APPLIED substring match', () => {
@@ -100,6 +120,31 @@ test('ATTACK: status not_applied + dropped table already absent live = mismatch 
   assert.match(problems[0], /HEADER SAYS NOT APPLIED \(DROP\), LIVE SAYS ALREADY ABSENT/);
 });
 
+// -- the dropped-later exemption (211/216/295/296 live shape) ---------------------------------------
+
+test('ATTACK: without the exemption, status applied + created table absent live is still a mismatch (no droppedElsewhere arg)', () => {
+  const problems = auditStatusAgainstLiveSchema('applied', ['drain_worklist'], [], {});
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /HEADER SAYS APPLIED, LIVE SAYS ABSENT/);
+});
+
+test('CONTROL: the dropped-later exemption clears the same mismatch when the table is in droppedElsewhere (211 drain_worklist dropped by 324)', () => {
+  const problems = auditStatusAgainstLiveSchema('applied', ['drain_worklist'], [], {}, new Set(['drain_worklist']));
+  assert.deepEqual(problems, []);
+});
+
+test('CONTROL: the exemption is per-table, not blanket - an unrelated created table still mismatches', () => {
+  const problems = auditStatusAgainstLiveSchema('applied', ['drain_worklist', 'some_other_table'], [], {}, new Set(['drain_worklist']));
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /"some_other_table"/);
+});
+
+test('CONTROL: the exemption never touches the APPLIED-drop-still-present check (a different problem shape)', () => {
+  const problems = auditStatusAgainstLiveSchema('applied', [], ['case_studies'], { case_studies: 6 }, new Set(['case_studies']));
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /HEADER SAYS APPLIED \(DROP\), LIVE SAYS STILL PRESENT/);
+});
+
 // -- CONTROL: consistent header/live pairs report nothing -------------------------------------------
 
 test('CONTROL: status applied + created table present live = consistent, no problems', () => {
@@ -152,6 +197,7 @@ test('findLatestLiveSchemaFile picks the newest-dated export when several are pr
 
 test('CONTROL: fitnessFunction.check() never throws on a real migration-shaped fixture, self-skip or not', () => {
   _resetLiveSchemaCache();
+  _resetDroppedElsewhereCache();
   const fixture =
     '-- subject: Migration 999 (fixture). NOT YET APPLIED.\n' +
     'CREATE TABLE IF NOT EXISTS public.fixture_only_table (id uuid primary key);\n';
@@ -161,6 +207,7 @@ test('CONTROL: fitnessFunction.check() never throws on a real migration-shaped f
 
 test('CONTROL: a migration with no self-declared status and no table ops passes cleanly', () => {
   _resetLiveSchemaCache();
+  _resetDroppedElsewhereCache();
   const fixture = '-- subject: Migration 998 (fixture). Adds a column, no status marker.\nALTER TABLE public.sources ADD COLUMN x text;\n';
   assert.deepEqual(fitnessFunction.check('fsi-app/supabase/migrations/998_fixture.sql', fixture), []);
   _resetLiveSchemaCache();
