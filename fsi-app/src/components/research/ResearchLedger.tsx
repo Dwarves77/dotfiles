@@ -5,7 +5,7 @@
  * data-guard-title attribute on src/components/ui/ListRow.tsx's title span
  * (added additively this lane), not re-declared per surface.
  *
- * ResearchLedger — /research's list surface (UI system handoff 2026-09-06,
+ * ResearchLedger - /research's list surface (UI system handoff 2026-09-06,
  * artboard 06 "Research list": themes are a second facet row, not a second
  * tile system; same bands, same rows; "NOT SCORED" chips gone).
  *
@@ -15,7 +15,7 @@
  * a `ResearchPipelineItem` shape that carries no priority/impact/timeline
  * fields at all. This version consumes `getPublicResearchItems()`'s full
  * `Resource[]` (the SAME category-routed, verified-gated read the old page
- * already fetched in parallel to intersect against — see research/page.tsx)
+ * already fetched in parallel to intersect against - see research/page.tsx)
  * instead, so the row gets the one real urgency band (src/lib/urgency/
  * bands.ts), the real ImpactMeter/MilestoneTimeline/TierChip every other
  * surface's row carries, and Themes become a facet (THEME_KEYS, the shared
@@ -65,6 +65,9 @@ import {
   assignTheme,
   deriveSeverity,
 } from "@/lib/research/taxonomy.mjs";
+import { horizonMetaLabel, selectAssessmentView } from "@/lib/research/read-assessments.mjs";
+
+type AssessmentView = ReturnType<typeof selectAssessmentView>;
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "research";
@@ -73,7 +76,7 @@ const LIST_KEY = "research";
  *  rather than buried, and logged in DEVIATION-LOG.md). */
 const NEW_WINDOW_DAYS = 7;
 /** The masthead command-bar prompt, artboard 06/id="p6", verbatim. */
-const SEARCH_PLACEHOLDER = 'Search findings and themes — or ask "what affects my FY26 Scope 3 baseline?"';
+const SEARCH_PLACEHOLDER = 'Search findings and themes - or ask "what affects my FY26 Scope 3 baseline?"';
 
 function themeKeyOf(r: Resource): string | null {
   const column = r.theme && (THEME_COLUMN_TO_KEY as Record<string, string>)[r.theme] ? r.theme : undefined;
@@ -90,12 +93,16 @@ export interface ResearchSourceCoverageCellProp {
 export interface ResearchLedgerProps {
   /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
    *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
-   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  chose - the SSR pass and the hydration pass then produce identical text by construction
    *  (React #418 class, see render-now.ts). */
   nowIso?: string;
   resources: Resource[];
   aggregates: WorkspaceAggregates;
   sourceCoverage?: ResearchSourceCoverageCellProp[];
+  /** Lane W2-R (2026-10-01): migration 336's assessment view per item id, batched server-side
+   *  (page.tsx's readAssessmentsByItemId). Absent entries render no horizon badge - honest absence,
+   *  never a fabricated band. */
+  assessmentsByItemId?: Map<string, AssessmentView>;
   /** Page content the artboard does not draw, rendered at the FOOT of the content column rather
    *  than above the masthead where it used to sit (operator ruling R7: an app feature the artboard
    *  has no region for stays live, moved out of the region an artboard region must occupy).
@@ -105,9 +112,9 @@ export interface ResearchLedgerProps {
   belowRows?: ReactNode;
 }
 
-export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, belowRows }: ResearchLedgerProps) {
+export function ResearchLedger({ resources, aggregates, sourceCoverage, assessmentsByItemId, nowIso, belowRows }: ResearchLedgerProps) {
   // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
-  // bookmarked and reloaded. One contract for every facet — see useListSurfaceFilter.
+  // bookmarked and reloaded. One contract for every facet - see useListSurfaceFilter.
   const { filter, setFacet, toggleFacet } = useListSurfaceFilter();
   const [theme, setTheme] = useState<string | null>(null);
   const [windowKey, setWindowKey] = useState<ListSurfaceWindowKey>("all");
@@ -219,7 +226,11 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
             : (SEVERITY_LABELS as Record<string, string>)[
                 deriveSeverity([r.title, r.whatIsIt, r.whyMatters].filter(Boolean).join(" "), r.added, r.severity) as string
               ];
-          const metaText = [r.type, themeLabel, r.sub || (r.modes ?? []).join(", ")].filter(Boolean).join(" · ");
+          // Lane W2-R (2026-10-01): horizon band joins the meta line when an assessment exists for
+          // this row (spec-03's horizon axis, "goes in the list view" per spec section 2's product
+          // rules). Absent for an unassessed item - no fabricated band, no placeholder text.
+          const horizonLabel = horizonMetaLabel(assessmentsByItemId?.get(r.id) ?? null);
+          const metaText = [r.type, themeLabel, r.sub || (r.modes ?? []).join(", "), horizonLabel].filter(Boolean).join(" · ");
           // ITEM B1 (operator, 2026-09-08): the severity chip is no longer composed here. `ListRow`
           // renders it from the `kind` prop with the artboard's row-size neutral tag, so this page
           // cannot drift from the chip family; the wrapper span that held chip and text together is
@@ -261,7 +272,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
     return Array.from(map.entries());
   }, [sourceCoverage]);
 
-  // COUNTS-61: the same figure the facets are counted against — the corpus at rest, the
+  // COUNTS-61: the same figure the facets are counted against - the corpus at rest, the
   // current selection under a filter. It was the corpus total unconditionally, which is how a
   // narrowed list came to sit under a header stating the whole corpus.
   const total = counts.total;

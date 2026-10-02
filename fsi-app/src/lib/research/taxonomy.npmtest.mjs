@@ -1,8 +1,8 @@
-// taxonomy.npmtest.mjs — proof for the extracted Research theme/severity classifiers.
+// taxonomy.npmtest.mjs - proof for the extracted Research theme/severity classifiers.
 //
 // Named *.npmtest.mjs (not *.test.mjs) deliberately, same reasoning as theme-brief.npmtest.mjs:
 // fsi-app/src/lib/research/ matches no glob in .discipline/run-test-suite.sh (that list is
-// explicit, not a directory scan), so a *.test.mjs here would be an ORPHANED PROOF — green
+// explicit, not a directory scan), so a *.test.mjs here would be an ORPHANED PROOF - green
 // locally, executed by nothing in CI. `git ls-files 'fsi-app/src/**/*.npmtest.mjs'` is the
 // directory-agnostic glob discipline.yml's "App unit tests requiring npm deps" job actually
 // wires up (execution-wiring.mjs surface 2), so this naming is what makes the proof run.
@@ -10,7 +10,7 @@
 // WHAT THIS PINS. The table below is a representative-input contract for assignTheme() and
 // deriveSeverity(): a future edit to the one home (taxonomy.mjs) that silently changes what a
 // row like these classifies as will fail here first. It also specifically encodes the
-// last-mile HYBRID decision made during extraction (taxonomy.mjs header, item 1) — the two
+// last-mile HYBRID decision made during extraction (taxonomy.mjs header, item 1) - the two
 // live "false positive" texts that ResearchLedger.tsx's pre-extraction bare-EV/battery
 // keywords would have caught and this module deliberately does not, plus the two live
 // eHGV texts both former copies (in Detail's case, only after this extraction) correctly
@@ -27,6 +27,7 @@ import {
   assignTheme,
   SEVERITY_KEYS,
   SEVERITY_LABELS,
+  SEVERITY_COLUMN_TO_KEY,
   deriveSeverity,
 } from "./taxonomy.mjs";
 
@@ -111,19 +112,46 @@ test("assignTheme: a generic battery/energy-storage mention is NOT last-mile (dr
   assert.equal(assignTheme(text), null);
 });
 
-// ── deriveSeverity: DB column short-circuit (preserved from ResearchFindingDetailSurface.tsx) ──
+// ── deriveSeverity: DB column mapping (FIX, lane W2-R, 2026-10-01, lane W2-C's live-corpus finding) ──
+//
+// The PRIOR short-circuit compared severityColumn against the literal strings "action"/"cost"/
+// "monitor"/"background" - none of which is a value migration 102's real CHECK constraint ever
+// stores except "background" by coincidence - so every live row with a populated severity column
+// (any of the other 12 real values: action_required, cost_alert, window_closing, competitive_edge,
+// monitoring, critical, high, moderate, low, immediate, watch, reference) fell through to the
+// text/recency heuristic and typically landed on "background" regardless of what was actually
+// stored. SEVERITY_COLUMN_TO_KEY (taxonomy.mjs) is now the one mapping from the real 13-value enum
+// to this module's 4-key display band; the table below pins all 13 plus the null/absence case.
 
-test("deriveSeverity: a literal severityColumn value short-circuits the text/date heuristics", () => {
-  assert.equal(deriveSeverity("routine monitoring update", null, "action"), "action");
-  assert.equal(deriveSeverity("nothing alarming here", null, "cost"), "cost");
+test("deriveSeverity: every real migration-102 severity value maps directly to its display band, never the heuristic", () => {
+  const oldIso = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(); // 60 days ago
+  for (const [stored, expectedKey] of Object.entries(SEVERITY_COLUMN_TO_KEY)) {
+    // Text/date deliberately chosen to contradict the heuristic (old text, no action/cost language),
+    // so a pass here proves the STORED VALUE won, not that the heuristic happened to agree with it.
+    assert.equal(
+      deriveSeverity("Routine commentary with no action or cost language.", oldIso, stored),
+      expectedKey,
+      `severity column "${stored}" should map to "${expectedKey}"`,
+    );
+  }
 });
 
-test("deriveSeverity: an unrecognized severityColumn (the real migration-102 enum, e.g. 'monitoring') falls through to the heuristic, exactly as it always has live", () => {
-  // Confirmed live (2026-08-30, project kwrsbpiseruzbfwjpvsp): real `severity` values on the
-  // research candidate population are competitive_edge / cost_alert / monitoring / NULL — never
-  // the literal "action"/"cost"/"monitor"/"background" this short-circuit checks for. So this
-  // case is what actually happens on every live row that has a severity column value.
-  assert.equal(deriveSeverity("Routine background coverage.", null, "monitoring"), "background");
+test("deriveSeverity: SEVERITY_COLUMN_TO_KEY covers exactly migration 102's 13-value CHECK constraint", () => {
+  const LIVE_ENUM = [
+    "action_required", "cost_alert", "window_closing", "competitive_edge", "monitoring",
+    "critical", "high", "moderate", "low",
+    "immediate", "watch", "reference", "background",
+  ];
+  assert.deepEqual(Object.keys(SEVERITY_COLUMN_TO_KEY).sort(), LIVE_ENUM.sort());
+  for (const key of Object.values(SEVERITY_COLUMN_TO_KEY)) {
+    assert.ok(SEVERITY_KEYS.includes(key), `${key} is not a real Severity display key`);
+  }
+});
+
+test("deriveSeverity: null/undefined/unrecognized severityColumn is the honest absence case - falls through to the text/recency heuristic, never a guessed real-enum value", () => {
+  assert.equal(deriveSeverity("action required immediate deadline", null, null), "action");
+  assert.equal(deriveSeverity("Routine commentary.", null, undefined), "background");
+  assert.equal(deriveSeverity("Routine commentary.", null, "some_retired_value"), "background");
 });
 
 // ── deriveSeverity: representative table ──
@@ -142,7 +170,7 @@ test("deriveSeverity: cost/pricing language wins over plain recency", () => {
 
 test("deriveSeverity: the /kwh and tco additions (Ledger's superset, adopted) classify as cost", () => {
   // Drawn from the live "Project JOLT" row: "capital costs, payload, range, TCO, and battery
-  // performance" — the one live text where the two former copies actually disagreed.
+  // performance" - the one live text where the two former copies actually disagreed.
   assert.equal(deriveSeverity("Data collection on capital costs, payload, range, TCO, and battery performance", OLD_ISO), "cost");
   assert.equal(deriveSeverity("Utility-scale solar LCOE $30-50/MWh, evaluate at $0.04/kWh", OLD_ISO), "cost");
 });

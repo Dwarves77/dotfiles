@@ -1,5 +1,5 @@
 /**
- * Research finding detail (`/research/[slug]`) — server component.
+ * Research finding detail (`/research/[slug]`) - server component.
  *
  * Mirrors `/regulations/[slug]/page.tsx`:
  *   - Slug resolves item by `legacy_id || id` via loadDetail.
@@ -11,12 +11,12 @@
  *     `theme` column when populated, falling back to items from the same
  *     source when theme is NULL. Capped at 5. CORRECTED 2026-08-30 (WO-25):
  *     `theme` is NULL on ALL 38 live Research-surface rows today, not "the
- *     majority" — the theme-match step is currently dead in practice, and
+ *     majority" - the theme-match step is currently dead in practice, and
  *     the fallback is what every populated panel is actually running. See
  *     the inline comment above the related-items block below.
  *   - Theme-brief card (WO-25, flywheel U6 surfacing, 2026-08-30): a
  *     read-only, $0 join from this item's id into `connection_themes` /
- *     `theme_briefs` — an already-synthesized editorial brief for the
+ *     `theme_briefs` - an already-synthesized editorial brief for the
  *     graph-derived cluster this item belongs to, when one exists.
  *     Renders nothing when the item is in no cluster or the cluster has no
  *     brief yet (honest omission). See src/lib/research/theme-brief.mjs.
@@ -28,11 +28,11 @@
  * read this page issues (connections lookup, related-items, theme brief,
  * peers-strip entity) is item-scoped and org-independent, so the whole
  * bundle runs inside ONE cached, parallel load via loadDetail
- * (src/lib/detail/load-detail.ts) — no loadViewerScoped: research has
+ * (src/lib/detail/load-detail.ts) - no loadViewerScoped: research has
  * nothing org-scoped beyond the always-on relevance lens.
  *
  * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the ONE remaining cookie read on this
- * route was watchMembershipPromise's resolveViewerIdentityFromCookies() — a Dynamic API call forcing
+ * route was watchMembershipPromise's resolveViewerIdentityFromCookies() - a Dynamic API call forcing
  * `ƒ` regardless of the item-scoped bundle above already being fully cacheable. Removed:
  * initialWatched/initialTeamWatched/initialTeamAvailable are no longer passed to
  * ResearchFindingDetailSurface → WatchButton, which already falls back to a client-side
@@ -49,6 +49,7 @@ import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
+import { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
@@ -90,15 +91,20 @@ interface ItemScoped {
   related: ReturnType<typeof pickRelated>[];
   relatedReason: "theme" | "source" | "none";
   themeBrief: ReturnType<typeof selectThemeBriefForItem>;
-  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings — see
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings - see
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
    *  finding's query legitimately returns no rows, resolving to {} at zero extra cost). Reuses `self.id`
-   *  (already resolved below, inside relatedAndBriefPromise) as the item uuid — no second uuid lookup. */
+   *  (already resolved below, inside relatedAndBriefPromise) as the item uuid - no second uuid lookup. */
   claimTiers: ClaimTierMap;
+  /** Lane W2-R (2026-10-01): migration 336's `research_assessments_current` row for this item, shaped by
+   *  src/lib/research/read-assessments.mjs. null when no assessment has been computed yet (honest
+   *  absence - the producer has not run over this item, or the migration has not been applied) - the
+   *  surface renders what it produces (R14); it never fabricates a reading. */
+  assessment: ReturnType<typeof selectAssessmentView>;
 }
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the remaining reason this route still
-// built `ƒ` after every Dynamic API call was removed from its render tree — a dynamic segment
+// built `ƒ` after every Dynamic API call was removed from its render tree - a dynamic segment
 // (`[slug]`) with no `generateStaticParams` is unconditionally server-rendered per request under
 // classical (non-PPR) rendering, independent of Dynamic API usage. See
 // regulations/[slug]/page.tsx's identical-shape comment for the full explanation of why `[]` (not a
@@ -107,10 +113,10 @@ interface ItemScoped {
 // from the Full Route Cache thereafter.
 //
 // PERF-13 (2026-09-04, ADR-027 §1): SUPERSEDES the decision above (kept verbatim, not deleted, per
-// CLAUDE.md rule 14) — see regulations/[slug]/page.tsx's own generateStaticParams comment for the
+// CLAUDE.md rule 14) - see regulations/[slug]/page.tsx's own generateStaticParams comment for the
 // full measurement this correction is based on. This surface's own corpus is 39 verified,
-// non-archived items (Supabase MCP, `get_research_items_public()` row count, 2026-09-04) — small,
-// not "unbounded" — enumerated at build time via `getPublicSurfaceSlugs("research")`
+// non-archived items (Supabase MCP, `get_research_items_public()` row count, 2026-09-04) - small,
+// not "unbounded" - enumerated at build time via `getPublicSurfaceSlugs("research")`
 // (src/lib/data.ts, the SAME function every `[slug]` route now calls). `dynamicParams` stays `true`
 // for an item minted after the last build; the deploy-time warm step
 // (docs/runbooks/warm-static-detail-routes.md) closes that gap before a real viewer's first click.
@@ -141,7 +147,7 @@ export default async function ResearchFindingDetailPage({
       id,
       // Item-scoped, org-independent: connections lookup, theme/source-matched
       // related findings, the theme-brief card, and the peers-strip entity.
-      // Cached — shared across every org that views this item.
+      // Cached - shared across every org that views this item.
       loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
         const relatedIds = Array.from(
           new Set<string>([
@@ -150,8 +156,8 @@ export default async function ResearchFindingDetailPage({
           ])
         ).filter(Boolean);
 
-        // Related findings + theme brief — strategy:
-        //   1. theme match (STEP 1 IS DEAD IN PRACTICE today, WO-25, 2026-08-30 —
+        // Related findings + theme brief - strategy:
+        //   1. theme match (STEP 1 IS DEAD IN PRACTICE today, WO-25, 2026-08-30  - 
         //      0 of 38 live rows populate `theme`; kept for when it's backfilled).
         //   2. same-source fallback when (1) yields nothing.
         //   3. [] when neither yields anything.
@@ -161,12 +167,14 @@ export default async function ResearchFindingDetailPage({
           themeBrief: ItemScoped["themeBrief"];
           peersEntityId: string | null;
           claimTiers: ClaimTierMap;
+          assessment: ItemScoped["assessment"];
         }> = (async () => {
           let related: ReturnType<typeof pickRelated>[] = [];
           let relatedReason: ItemScoped["relatedReason"] = "none";
           let themeBrief: ItemScoped["themeBrief"] = null;
           let peersEntityId: string | null = null;
           let claimTiers: ClaimTierMap = {};
+          let assessment: ItemScoped["assessment"] = null;
           try {
             const isUuid = isItemUuid(id);
             const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
@@ -179,7 +187,7 @@ export default async function ResearchFindingDetailPage({
             if (self) {
               peersEntityId = self.instrument_entity_id ?? null;
 
-              // TIER-CHIP lane (2026-09-04): kicked off here (self.id is the item uuid — no separate
+              // TIER-CHIP lane (2026-09-04): kicked off here (self.id is the item uuid - no separate
               // resolveItemUuid call needed) and awaited just before the return below, so it runs
               // alongside the theme/source-fallback queries below rather than adding a fully serial
               // extra round trip.
@@ -222,7 +230,7 @@ export default async function ResearchFindingDetailPage({
               }
 
               // Theme brief (WO-25, flywheel U6): connection_themes is small
-              // (9 rows live) and public-read — read it all and match
+              // (9 rows live) and public-read - read it all and match
               // in-process (same shape api/admin/themes/route.ts uses). A
               // second query for the theme_briefs row only runs when self.id
               // is actually a member of a live theme.
@@ -244,14 +252,37 @@ export default async function ResearchFindingDetailPage({
                 themeBrief = selectThemeBriefForItem(self.id, [matchedTheme], briefRows || []);
               }
 
-              // fetchClaimTierMap never throws (soft-fails internally to {} — see its own header), so
+              // fetchClaimTierMap never throws (soft-fails internally to {} - see its own header), so
               // awaiting it here cannot trip this block's own catch below.
               claimTiers = await claimTiersPromise;
+
+              // Research assessment (lane W2-R, 2026-10-01, migration 336): the one current row for
+              // this item, read through research_assessments_current (the RLS-granted view - see that
+              // migration's own header for why the raw table is denied). Soft-fails to null (no
+              // assessment yet) rather than tripping this block's shared catch - a missing/not-yet-
+              // applied migration must not break the rest of the detail page's item-scoped bundle.
+              try {
+                const { data: assessmentRow } = await supabase
+                  .from("research_assessments_current")
+                  .select(
+                    "item_id, technical_maturity_low, technical_maturity_high, technical_maturity_method, " +
+                      "commercial_maturity_low, commercial_maturity_high, commercial_maturity_method, " +
+                      "horizon_kind, horizon_band, horizon_rule, horizon_confidence, horizon_trigger_note, " +
+                      "refusal_reason, credibility_evidence_score, credibility_authority_score, status_token, computed_at",
+                  )
+                  .eq("item_id", self.id)
+                  .maybeSingle();
+                assessment = selectAssessmentView(
+                  assessmentRow as unknown as Parameters<typeof selectAssessmentView>[0],
+                );
+              } catch {
+                assessment = null;
+              }
             }
           } catch {
-            // Soft-fail — surface renders the empty state (no related findings, no theme-brief card).
+            // Soft-fail - surface renders the empty state (no related findings, no theme-brief card).
           }
-          return { related, relatedReason, themeBrief, peersEntityId, claimTiers };
+          return { related, relatedReason, themeBrief, peersEntityId, claimTiers, assessment };
         })();
 
         const [resourceLookup, relatedAndBrief] = await Promise.all([
@@ -266,11 +297,12 @@ export default async function ResearchFindingDetailPage({
           relatedReason: relatedAndBrief.relatedReason,
           themeBrief: relatedAndBrief.themeBrief,
           claimTiers: relatedAndBrief.claimTiers,
+          assessment: relatedAndBrief.assessment,
         };
       },
     });
 
-  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
+  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) - see regulations/[slug]
   // for the full rationale; checked inside loadDetail via canonicalSurface.
   if (result.notFound) {
     notFound();
@@ -283,11 +315,12 @@ export default async function ResearchFindingDetailPage({
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
   const themeBrief = result.itemScoped?.themeBrief ?? null;
   const claimTiers = result.itemScoped?.claimTiers ?? {};
+  const assessment = result.itemScoped?.assessment ?? null;
 
   console.log(`[perf] /research/${id} data ${result.elapsedMs}ms`);
 
   // UI SYSTEM HANDOFF (lane uidetails2, 2026-09-07): the back-link +
-  // EditorialMasthead pair is REMOVED — the ONE detail architecture's
+  // EditorialMasthead pair is REMOVED - the ONE detail architecture's
   // DetailHeader (inside ResearchFindingDetailSurface) now owns the
   // title/meta/breadcrumb-equivalent for this route, matching the
   // regulations/market/operations detail surfaces.
@@ -304,6 +337,7 @@ export default async function ResearchFindingDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
+        assessment={assessment}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see

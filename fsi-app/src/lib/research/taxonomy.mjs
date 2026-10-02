@@ -1,15 +1,15 @@
-// taxonomy.mjs — the ONE home for the Research theme + severity classifiers.
+// taxonomy.mjs - the ONE home for the Research theme + severity classifiers.
 //
 // WHY THIS FILE EXISTS. `THEMES` / `THEME_KEYWORDS` / `THEME_COLUMN_TO_KEY` / `assignTheme` /
 // `deriveSeverity` existed, separately typed and separately maintained, in BOTH
 // ResearchLedger.tsx (the /research index) and ResearchFindingDetailSurface.tsx (the
 // /research/[slug] detail page). In Wave 6, WO-15 and WO-25 each touched one of those files in
-// parallel and both were correctly told not to extract the taxonomy — a shared extraction
+// parallel and both were correctly told not to extract the taxonomy - a shared extraction
 // attempted by two parallel lanes produces two extractions, which is worse than one duplication.
 // It was deferred to a single lane (this file) that owns both consumers. See
 // docs/ops/session-log.md's "Owed, and named rather than quietly skipped" note, 2026-08-30.
 //
-// THE COPIES HAD DRIFTED — this was not a mechanical extraction. Read side-by-side (2026-08-30),
+// THE COPIES HAD DRIFTED - this was not a mechanical extraction. Read side-by-side (2026-08-30),
 // against the LIVE corpus (project kwrsbpiseruzbfwjpvsp, `intelligence_items` where
 // domain=7 or item_type='research_finding', is_archived=false, provenance_status='verified',
 // 39 rows), the two copies disagreed in three ways:
@@ -18,8 +18,8 @@
 //      WO-15 this same wave) carried keyword additions ResearchFindingDetailSurface.tsx did not:
 //      emissions +mtco2e, fuels +ammonia/+lng, cold-chain +vip|vacuum insulated, disclosure
 //      +verifier. ResearchFindingDetailSurface.tsx's own header says its vocab "mirrors
-//      ResearchView.tsx" — a filename that no longer exists anywhere in this repo (grep confirms;
-//      it predates the redesign that produced ResearchLedger.tsx) — direct evidence its copy is
+//      ResearchView.tsx" - a filename that no longer exists anywhere in this repo (grep confirms;
+//      it predates the redesign that produced ResearchLedger.tsx) - direct evidence its copy is
 //      the one that stopped being updated, not the one that drifted by design.
 //
 //      last-mile was the one category where Ledger's version was NOT a safe superset: it matched
@@ -30,20 +30,20 @@
 //      Analysis" (a warehouse energy-storage ROI piece, not last-mile freight at all) picked up
 //      last-mile purely via the generic /battery/i hit, and both "Global EV Outlook 2024" items
 //      (general EV-market analysis, not last-mile-freight-specific) picked up last-mile purely via
-//      bare "EV". Meanwhile Ledger's OTHER last-mile additions — /ehgv/i and /electric truck/i —
+//      bare "EV". Meanwhile Ledger's OTHER last-mile additions - /ehgv/i and /electric truck/i  - 
 //      hit ONLY the two live "Project JOLT" eHGV-freight-trial items, correctly, with zero false
 //      positives. So last-mile is a HYBRID below, not a straight pick of either file: Detail's
 //      qualified EV pattern (kept, for precision) plus Ledger's /ehgv/i and /electric truck/i
 //      (kept, evidence-clean) minus Ledger's bare /\bev\b/i and generic /battery/i (dropped,
 //      evidence of live false positives). This is a disclosed, evidence-based fix bundled into the
-//      extraction, not a silent pick of "the newer file" — see the session/handoff report for the
+//      extraction, not a silent pick of "the newer file" - see the session/handoff report for the
 //      before/after live-corpus diff (8 theme reclassifications under Ledger's raw keywords, 0
 //      questionable ones under this hybrid).
 //
 //   2. deriveSeverity's "cost" bucket: Ledger's regex carried two extra alternatives Detail's did
-//      not — `\/kwh` and `tco`. Both are legitimate cost-economics abbreviations and neither
+//      not - `\/kwh` and `tco`. Both are legitimate cost-economics abbreviations and neither
 //      produced a live false positive on the same 39-row corpus (the one live diff, "Project JOLT"
-//      matching on "TCO", is a genuinely cost/economics-bearing sentence — "capital costs,
+//      matching on "TCO", is a genuinely cost/economics-bearing sentence - "capital costs,
 //      payload, range, TCO, and battery performance"). Kept as Ledger's superset, below.
 //
 //   3. deriveSeverity's DB-column short-circuit: ONLY ResearchFindingDetailSurface.tsx checked a
@@ -52,9 +52,9 @@
 //      "background". ResearchLedger.tsx never did this. This is NOT actually a live behavioral
 //      difference today: (a) migration 102's own CHECK constraint
 //      (supabase/migrations/102_severity_band_theme_columns.sql) never allows those four literal
-//      values — the real enum is action_required/cost_alert/window_closing/competitive_edge/
+//      values - the real enum is action_required/cost_alert/window_closing/competitive_edge/
 //      monitoring (Market Intel vocab) or critical/high/moderate/low (Operations/Regulations) or
-//      immediate/watch/reference/background (other) — so Detail's check has never matched a real
+//      immediate/watch/reference/background (other) - so Detail's check has never matched a real
 //      row (confirmed live: `severity` values seen on the research candidate population are
 //      competitive_edge / cost_alert / monitoring / NULL only; none is "action", "cost", or
 //      "monitor"). (b) ResearchPipelineRow (src/lib/supabase-server.ts fetchResearchPipelineRows)
@@ -79,7 +79,7 @@
 // "cost"; the emissions/fuels/cold-chain/disclosure additions matched zero rows in the live
 // corpus at extraction time, so they change nothing today but are available going forward).
 //
-// PLAIN ESM, ZERO DEPENDENCIES — same constraint as surface-of.mjs and surface-candidate.mjs, so
+// PLAIN ESM, ZERO DEPENDENCIES - same constraint as surface-of.mjs and surface-candidate.mjs, so
 // the drift/discipline test suite (no tsc, no bundler) can import this directly, and so a
 // consuming .tsx can `import ... from ".../taxonomy.mjs"` under this project's allowJs tsconfig
 // without a build step.
@@ -98,7 +98,7 @@ export const THEME_KEYS = [
   "disclosure",
 ];
 
-/** Display label per theme — identical text in both former copies. @type {Record<ThemeKey, string>} */
+/** Display label per theme - identical text in both former copies. @type {Record<ThemeKey, string>} */
 export const THEME_LABELS = {
   emissions: "Emissions accounting",
   fuels: "Fuels & SAF",
@@ -142,7 +142,7 @@ export const THEME_COLUMN_TO_KEY = {
 
 /**
  * Regex fallback used when a row has no `theme` column value. See the file header for the
- * per-category provenance of every entry below — packaging and carbon were already identical
+ * per-category provenance of every entry below - packaging and carbon were already identical
  * between the two former copies; emissions/fuels/cold-chain/disclosure adopt the superset that
  * had zero false positives on the live corpus; last-mile is the one hybrid (see header item 1).
  * @type {Record<ThemeKey, RegExp[]>}
@@ -155,7 +155,7 @@ export const THEME_KEYWORDS = {
   "cold-chain": [/cold[- ]?chain/i, /climate[- ]?control/i, /refrigerant/i, /art handling/i, /fine art/i, /conservation/i, /vip|vacuum insulated/i],
   // HYBRID (header item 1): qualified EV pattern kept for precision; ehgv + electric truck kept
   // (evidence-clean on the live corpus); bare `\bev\b` and generic `battery` dropped (both
-  // produced live false positives — a warehouse solar/battery-storage piece and two general
+  // produced live false positives - a warehouse solar/battery-storage piece and two general
   // EV-market-outlook pieces, none of them last-mile-freight content).
   "last-mile": [/last[- ]?mile/i, /\bev\b.*(fleet|charging|cargo)/i, /ehgv/i, /electric truck/i, /urban delivery/i, /zero[- ]?emission/i, /\bzev\b/i],
   disclosure: [/\bcsrd\b/i, /\bissb\b/i, /\bsfdr\b/i, /\btcfd\b/i, /disclosure/i, /reporting standard/i, /\bs2\b/i, /verifier/i],
@@ -165,7 +165,7 @@ export const THEME_KEYWORDS = {
  * Classify one item's research theme. `themeColumn` (the migration-102 `theme` DB value, when the
  * caller's row shape carries it) wins when present and recognized; otherwise falls back to a
  * keyword scan of `text` in THEME_KEYS order, first match wins. Returns null when nothing matches
- * (honest "no theme" — never a guessed default).
+ * (honest "no theme" - never a guessed default).
  * @param {string} text
  * @param {string | null | undefined} [themeColumn]
  * @returns {ThemeKey | null}
@@ -184,7 +184,7 @@ export function assignTheme(text, themeColumn) {
 /** Canonical severity order. @type {ReadonlyArray<Severity>} */
 export const SEVERITY_KEYS = ["action", "cost", "monitor", "background"];
 
-/** Display label per severity — identical text in both former copies. @type {Record<Severity, string>} */
+/** Display label per severity - identical text in both former copies. @type {Record<Severity, string>} */
 export const SEVERITY_LABELS = {
   action: "Action required",
   cost: "Cost alert",
@@ -193,13 +193,55 @@ export const SEVERITY_LABELS = {
 };
 
 /**
- * Classify one item's research severity. `severityColumn` (the migration-102 `severity` DB value,
- * when the caller's row shape carries it) short-circuits when it is literally "action" | "cost" |
- * "monitor" | "background" — preserved exactly as ResearchFindingDetailSurface.tsx had it; see the
- * file header (item 3) for why this never actually fires against the live enum today, and why
- * fixing that mapping is out of this extraction's scope. Otherwise: an action-required phrase in
- * `text` wins, then a cost/pricing phrase, then recency (< 14 days old counts as "monitor"), else
- * "background".
+ * FIX (lane W2-R, 2026-10-01, per lane W2-C's live-corpus finding): the item-3 defect this file's own
+ * header named ("the column check is preserved EXACTLY ... dead-on-live-data and all") is fixed here,
+ * not deferred again. Migration 102's REAL CHECK constraint admits 13 values of two shapes
+ * (`supabase/migrations/102_severity_band_theme_columns.sql`): the Market Intel vocabulary
+ * (`action_required`, `cost_alert`, `window_closing`, `competitive_edge`, `monitoring`), the
+ * Operations/Regulations priority vocabulary (`critical`, `high`, `moderate`, `low`), and the
+ * catch-all "other" vocabulary (`immediate`, `watch`, `reference`, `background`) Research's own rows
+ * draw from. The PRIOR short-circuit compared against the literal strings "action"/"cost"/"monitor"/
+ * "background" - none of which is a real stored value except "background" - so every live row with a
+ * populated severity column (any of the other 12 real values) fell through to the text/recency
+ * heuristic below and typically landed on "background" by default, independent of what was actually
+ * stored. This map is the ONE place the 13-value live enum is translated to this module's 4-key
+ * display band; every value maps to exactly one key, documented per mapping below.
+ * @type {Record<string, Severity>}
+ */
+export const SEVERITY_COLUMN_TO_KEY = {
+  // Market Intel vocabulary - identical-name pairs map directly; the other three are judgment calls
+  // stated here rather than left implicit: a closing window is time-pressured ("action"); a
+  // competitive edge is an opportunity to track, not an open task or a cost line ("monitor").
+  action_required: "action",
+  cost_alert: "cost",
+  window_closing: "action",
+  competitive_edge: "monitor",
+  monitoring: "monitor",
+  // Operations/Regulations priority vocabulary - a priority tier, not this module's own severity
+  // shape, but still a real value this shared column can carry. critical/high both read as
+  // action-pressure; moderate/low read as background-tier, matching the four-tier urgency mapping
+  // environmental-policy-and-innovation's own severity->priority table uses elsewhere in this codebase
+  // (ACTION REQUIRED/COST ALERT -> CRITICAL/HIGH, MONITORING -> LOW) as the closest sanctioned analogy.
+  critical: "action",
+  high: "cost",
+  moderate: "monitor",
+  low: "background",
+  // Catch-all "other" vocabulary - Research's own likely real values.
+  immediate: "action",
+  watch: "monitor",
+  reference: "background",
+  background: "background",
+};
+
+/**
+ * Classify one item's research severity. `severityColumn` (the migration-102 `severity` DB value, when
+ * the caller's row shape carries it) wins when it is any of the 13 real CHECK-constrained values
+ * (`SEVERITY_COLUMN_TO_KEY`), mapped to this module's own 4-key display band - the fix for the item-3
+ * defect this file's header previously documented and deferred (see `SEVERITY_COLUMN_TO_KEY`'s own
+ * comment). Only when `severityColumn` is null/undefined/unrecognized (the honest "nothing stored"
+ * case - the absence state) does this fall through to the text/recency heuristic: an action-required
+ * phrase in `text` wins, then a cost/pricing phrase, then recency (< 14 days old counts as "monitor"),
+ * else "background".
  * @param {string} text
  * @param {string | null | undefined} [addedDate] ISO date string
  * @param {string | null | undefined} [severityColumn]
@@ -207,8 +249,8 @@ export const SEVERITY_LABELS = {
  */
 export function deriveSeverity(text, addedDate, severityColumn) {
   const sev = typeof severityColumn === "string" ? severityColumn.toLowerCase() : null;
-  if (sev === "action" || sev === "cost" || sev === "monitor" || sev === "background") {
-    return /** @type {Severity} */ (sev);
+  if (sev && SEVERITY_COLUMN_TO_KEY[sev]) {
+    return SEVERITY_COLUMN_TO_KEY[sev];
   }
   const t = (text || "").toLowerCase();
   if (/\b(action required|immediate|deadline|must file|cease)\b/.test(t)) return "action";

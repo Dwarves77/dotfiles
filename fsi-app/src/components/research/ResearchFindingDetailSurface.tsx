@@ -1,24 +1,24 @@
 "use client";
 
 /**
- * ResearchFindingDetailSurface — client subcomponent for `/research/[slug]`.
+ * ResearchFindingDetailSurface - client subcomponent for `/research/[slug]`.
  *
  * UI SYSTEM HANDOFF (lane uidetails2, 2026-09-07, docs/design/handoff-2026-09-06,
  * README §0.5 + 07-research-detail.png "the eleven-frame document becomes
  * six anchored sections behind one index; every FACT paragraph a card"):
  * rebuilt onto the ONE detail architecture (DetailShell.tsx). The prior
  * six numbered ResearchSectionCards (each a GfmSection-rendered raw-markdown
- * block) map exactly onto the artboard's S1-S6 without renumbering — this
+ * block) map exactly onto the artboard's S1-S6 without renumbering - this
  * surface already had six sections, not eleven; the "eleven frames" in the
  * artboard subtitle describes the pre-Sprint-4 raw-brief layout this repo
  * had already replaced. Every FACT/ANALYSIS/LEGAL paragraph inside each
  * section's content_md now renders as a FactCard via FactBlocks.tsx
  * (already extended, see that file's own header, to route non-claim prose
- * — including a GFM table or list — through GfmSection rather than a
+ * - including a GFM table or list - through GfmSection rather than a
  * plain <p>, so nothing this surface used to render is lost).
  *
  * REMOVED this lane: the per-page AiPromptBar, the raw full_brief short/full
- * toggle (superseded by section-aware rendering — record-grade items still
+ * toggle (superseded by section-aware rendering - record-grade items still
  * use the legacy verbatim-facts view since their sections carry different
  * keys, same as before).
  *
@@ -72,11 +72,11 @@ import {
   type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
 import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
+import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
+import { ASSUMPTION_SHIFT_ABSENCE, refusalDisplayText } from "@/lib/research/read-assessments.mjs";
 import {
   THEME_LABELS,
-  SEVERITY_LABELS,
   assignTheme as classifyTheme,
-  deriveSeverity as classifySeverity,
 } from "@/lib/research/taxonomy.mjs";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
@@ -90,6 +90,7 @@ interface RelatedFinding {
 }
 
 type ThemeBriefView = ReturnType<typeof selectThemeBriefForItem>;
+type AssessmentView = ReturnType<typeof selectAssessmentView>;
 
 interface Props {
   resource: Resource;
@@ -102,6 +103,10 @@ interface Props {
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
   themeBrief?: ThemeBriefView;
+  /** Lane W2-R (2026-10-01): migration 336's assessment row for this item, shaped by
+   *  src/lib/research/read-assessments.mjs. undefined/null renders the honest "no assessment yet" state
+   *  (R14: the surface renders what the producer has produced, never a fabricated reading). */
+  assessment?: AssessmentView;
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
@@ -117,7 +122,7 @@ const RESEARCH_SECTION_HEADINGS: Record<string, string> = {
 };
 const KNOWN_RESEARCH_KEYS = new Set(["1", "2", "3", "4", "5", "6"]);
 
-/** "research_finding" -> "Research finding" — the At a glance "Type" row (artboard 07 shows
+/** "research_finding" -> "Research finding" - the At a glance "Type" row (artboard 07 shows
  *  "Initiative", never a raw snake_case enum) needs the same humanization the header chip
  *  already applies (r.type.replace(/_/g, " ")), just capitalized for a standalone label. */
 function capitalize(s: string): string {
@@ -128,10 +133,12 @@ function assignTheme(r: Resource) {
   const text = `${r.title} ${r.note || ""} ${r.whyMatters || ""}`;
   return classifyTheme(text, r.theme);
 }
-function deriveSeverity(r: Resource) {
-  const text = `${r.title} ${r.note || ""}`;
-  return classifySeverity(text, r.added, r.severity);
-}
+// deriveSeverity/classifySeverity REMOVED (lane W2-R, 2026-10-01, lane W2-C finding): computed here
+// but never rendered anywhere on this surface - a dead computation. docs/specs/03-research.md (the
+// governing spec for this surface) names no severity field among its required components (section 7);
+// severity stays a list-row concept (ResearchLedger's own "kind" chip, per artboard 06), not a detail-
+// masthead one. Removing the dead read rather than inventing a masthead render the spec does not ask
+// for.
 
 export function ResearchFindingDetailSurface({
   resource: r,
@@ -143,13 +150,13 @@ export function ResearchFindingDetailSurface({
   connections = [],
   resourceLookup = {},
   themeBrief = null,
+  assessment = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
 }: Props) {
   const band = bandFromPriority(r.priority);
   const impact = r.impactScores ?? scoreResource(r);
-  const severity = useMemo(() => deriveSeverity(r), [r]);
   const themeKey = useMemo(() => assignTheme(r), [r]);
   const isRecord = r.itemGrade === "record";
 
@@ -278,10 +285,18 @@ export function ResearchFindingDetailSurface({
               relevance={<RelevanceBadgeClient itemId={r.id} />}
               /* Operator check 8 (lane PARITY-PARTS, 2026-09-24): Connections is not a rail card,
                  moved into the "Related" section in main content (ruling 2 S-order, 06 Related),
-                 below. Cluster synthesis (the artboard's other page-specific rail card) is unaffected. */
-              designed={themeBrief ? <ThemeBriefCard brief={themeBrief} /> : null}
+                 below. Cluster synthesis (the artboard's other page-specific rail card) is unaffected.
+                 Lane W2-R (2026-10-01): the horizon-assessment card (spec-03's atomic unit) stacks
+                 above Cluster synthesis in the same `designed` slot - both are page-specific rail
+                 content the artboard has no region for (operator ruling R7). */
+              designed={
+                <>
+                  <ResearchAssessmentCard assessment={assessment} />
+                  {themeBrief ? <ThemeBriefCard brief={themeBrief} /> : null}
+                </>
+              }
               legend={<RailLegend />}
-              /* R7 — artboard 07 draws no place-keeping card. */
+              /* R7 - artboard 07 draws no place-keeping card. */
               undesigned={<InThisListStat backHref="/research" backLabel="Back to list" band={band} />}
             />
           }
@@ -385,7 +400,7 @@ function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: Intelli
 // header): renders a pre-generated theme_briefs row for the graph-derived
 // cluster this item belongs to. No LLM call, no generation, ever, from
 // this component.
-// CLUSTER SYNTHESIS — artboard 07's page-specific rail card (dc.html #p7, char 402759).
+// CLUSTER SYNTHESIS - artboard 07's page-specific rail card (dc.html #p7, char 402759).
 //
 // Rebuilt to the artboard's own measures, lane details60 (2026-09-08). The
 // artboard draws exactly three things: the 3px dark-grey section rule cap over
@@ -396,7 +411,7 @@ function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: Intelli
 // that line, not a badge in the head.
 //
 // Deleted with the rewrite: the STALE pill in the head, the italic "Synthesis
-// across N items" sentence, and the scrolling `brief_md` body — none is drawn
+// across N items" sentence, and the scrolling `brief_md` body - none is drawn
 // on artboard 07, and the rail is 300px wide, so the full brief was a
 // 220px-tall scroller in a card the design gives three lines. The brief text
 // itself is not lost to the reader: it is the theme's own content, reachable
@@ -405,7 +420,108 @@ function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: Intelli
 // `density` is the cluster's intra-theme edge density (src/lib/connections/
 // cluster.mjs F3, stored on connection_themes.density). Absent (an older theme
 // row, or a read that did not select it) the segment is omitted rather than
-// rendered as 0 — Absence-by-omission, the same convention AtAGlanceCard uses.
+// rendered as 0 - Absence-by-omission, the same convention AtAGlanceCard uses.
+// ── Horizon assessment card (lane W2-R, 2026-10-01) ───────────────────────
+// Renders migration 336's research_assessments row: the maturity triple's non-conditional two axes
+// (technical TRL 1-11, commercial CRI 1-6; the adoption-barrier/MRL axes have no data path in this
+// lane, per assess.mjs's own header, and are never rendered as if scored), the horizon read (kind +
+// band + rule + confidence, or the first-class refusal state spec-03 section 6 requires), and the
+// planning-assumption-shift section's absence wording (spec-03 section 5). CORRECTED (lane W2-R2
+// cross-dispatch, 2026-10-02): the real per-tenant store is `planning_assumption_register` (migration
+// 345), NOT `assumption_register` (migration 271, a different concept, internal modelling constants
+// - see ADR-038's corrected finding). Lane W2-R2 owns src/lib/assumptions/** and exposes the reader as
+// `readAtRiskAssumptions`/`readWorkspaceAssumptions` in src/lib/assumptions/read.ts, on branch
+// lane/w2r2-assumption-register - not yet merged into this worktree. PENDING FOLLOW-UP (one import,
+// trivial once that lane merges and this branch rebases): replace the unconditional
+// ASSUMPTION_SHIFT_ABSENCE render below with `readAtRiskAssumptions(supabase, orgId)` threaded down
+// from the detail page (same pattern as `assessment` itself), rendering each at-risk assumption's
+// name/value/boundTo when the list is non-empty and the absence copy only when it is genuinely empty.
+// Until then this card renders the absence state unconditionally - honest (no per-tenant store was
+// reachable from this tree at authoring time), never a query against the wrong table.
+// "A value that exists is shown; one that cannot exist yet names the data it needs" - every branch
+// below either renders a real field or an explicit, worded absence, never a blank.
+function ResearchAssessmentCard({ assessment }: { assessment: AssessmentView | null | undefined }) {
+  const row = (label: string, value: React.ReactNode) => (
+    <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+      <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", minWidth: 92, flexShrink: 0, color: "var(--color-text-muted)" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.45 }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <SectionCard>
+      <div style={{ padding: "12px 16px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <span data-guard-title style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
+            Horizon assessment
+          </span>
+          {assessment && (
+            <span
+              title={
+                assessment.statusToken === "CONFIRMED"
+                  ? "Anchored to a dated, named instrument or roadmap"
+                  : "Inferred or unconfirmed - spoken as a hypothesis, not a settled fact"
+              }
+              style={{
+                fontSize: 9,
+                fontWeight: 800,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                padding: "1px 6px",
+                borderRadius: 4,
+                border: "1px solid var(--color-border-medium)",
+                color: assessment.statusToken === "CONFIRMED" ? "var(--color-primary)" : "var(--color-text-muted)",
+              }}
+            >
+              {assessment.statusToken}
+            </span>
+          )}
+        </div>
+
+        {!assessment ? (
+          <p style={{ fontSize: 11, color: "var(--color-text-secondary)", lineHeight: 1.5, margin: 0 }}>
+            No assessment computed yet for this finding - the research-assessment producer has not run over
+            it. Needs a producer pass (research-assessment-producer.mjs) before a maturity or horizon read
+            can show here.
+          </p>
+        ) : (
+          <>
+            {row(
+              "Technical",
+              assessment.technicalMaturity
+                ? `TRL ${assessment.technicalMaturity.low}-${assessment.technicalMaturity.high}${
+                    assessment.technicalMaturity.method ? ` (${assessment.technicalMaturity.method})` : ""
+                  }`
+                : "no TRL corridor read from this item's recorded text",
+            )}
+            {row(
+              "Commercial",
+              assessment.commercialMaturity
+                ? `CRI ${assessment.commercialMaturity.low}-${assessment.commercialMaturity.high}${
+                    assessment.commercialMaturity.method ? ` (${assessment.commercialMaturity.method})` : ""
+                  }`
+                : "no CRI corridor read from this item's recorded text",
+            )}
+            {assessment.horizon ? (
+              <>
+                {row("Horizon", `${assessment.horizon.band} · ${assessment.horizon.kind} horizon · rule ${assessment.horizon.rule} · confidence ${assessment.horizon.confidence}`)}
+                {assessment.horizon.triggerNote && row("Basis", assessment.horizon.triggerNote)}
+              </>
+            ) : (
+              row("Horizon", `Not forecastable - ${refusalDisplayText(assessment.refusalReason)}`)
+            )}
+            <div style={{ borderTop: "1px solid var(--color-border-subtle)", paddingTop: 6, marginTop: 2 }}>
+              {row("Assumption shift", ASSUMPTION_SHIFT_ABSENCE)}
+            </div>
+          </>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
 function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
   if (!brief) return null;
   return (
