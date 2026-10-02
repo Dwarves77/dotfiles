@@ -86,8 +86,8 @@ export function IntersectionDetectionView() {
         setData(payload.intersections || []);
         setStats(payload.stats || null);
       }
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }

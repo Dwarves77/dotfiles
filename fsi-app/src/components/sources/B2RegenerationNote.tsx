@@ -55,6 +55,9 @@ export function B2RegenerationNote({ onOpenQueue }: { onOpenQueue?: () => void }
   }, []);
 
   useEffect(() => {
+    // Fetch immediately on mount, then poll every 30s; `load` itself updates state from the fetch
+    // response (an external system), there is no external subscription to move this into.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const t = setInterval(load, 30000);
     return () => clearInterval(t);
