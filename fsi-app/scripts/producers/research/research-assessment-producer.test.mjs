@@ -107,7 +107,7 @@ test("hasChanged is true when any scored field diverges from the current row", (
   assert.equal(hasChanged(current, computed), true);
 });
 
-test("toRow maps assessItem's output onto migration-336 column names, honest nulls preserved", () => {
+test("toRow maps assessItem's output onto migration-344 column names, honest nulls preserved", () => {
   const row = toRow(
     {
       itemId: "it-1",
