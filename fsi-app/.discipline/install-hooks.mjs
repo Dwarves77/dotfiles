@@ -46,6 +46,7 @@ import {
 } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isMainModule } from '../scripts/lib/is-main.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SOURCE_HOOKS_DIR = join(__dirname, 'hooks');
@@ -240,15 +241,8 @@ function main() {
   console.log('(future Phase 6 will surface bypass usage in audit reports.)');
 }
 
-// Run only when invoked directly (not when imported by tests).
-const invokedDirectly = (() => {
-  try {
-    return resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
-  } catch {
-    return false;
-  }
-})();
-
-if (invokedDirectly) {
+// Run only when invoked directly (not when imported by tests). F67 (lane R20, 2026-10-01): standardized
+// on isMainModule from scripts/lib/is-main.mjs, replacing the locally-reinvented IIFE comparison.
+if (isMainModule(import.meta.url)) {
   main();
 }

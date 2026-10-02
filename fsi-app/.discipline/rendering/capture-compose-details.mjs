@@ -14,6 +14,7 @@ import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { fullAppCssCompiled } from './smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS } from './audit/mounts.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -77,7 +78,9 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

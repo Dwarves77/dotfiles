@@ -19,6 +19,7 @@ import { createRequire } from 'node:module';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 import { bundleEntry, mountBundle, newSmokePage } from '../smoke/harness.mjs';
+import { isMainModule } from '../../../scripts/lib/is-main.mjs';
 
 const args = process.argv.slice(2);
 const flag = (n) => {
@@ -136,7 +137,9 @@ async function main() {
   process.exit(anyPageOverflow ? 1 : 0);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

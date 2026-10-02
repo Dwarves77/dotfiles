@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { fullAppCss } from './smoke/smoke-fixtures.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 const OUT_DIR = join(getRepoRoot(), 'docs/design/handoff-2026-09-06/built');
@@ -126,7 +127,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

@@ -12,6 +12,7 @@
 //   2 = engine error
 
 import { consistencyChecks } from './manifest.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 function parseArgs(argv) {
   const out = {};
@@ -88,7 +89,10 @@ function listChecks() {
   }
 }
 
-main().then((code) => process.exit(code)).catch((err) => {
-  console.error('Consistency runner error:', err);
-  process.exit(2);
-});
+// Guarded (F67, lane R20, 2026-10-01): importing this module must never run the consistency suite.
+if (isMainModule(import.meta.url)) {
+  main().then((code) => process.exit(code)).catch((err) => {
+    console.error('Consistency runner error:', err);
+    process.exit(2);
+  });
+}

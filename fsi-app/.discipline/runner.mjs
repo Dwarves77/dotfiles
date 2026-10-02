@@ -27,6 +27,7 @@ import {
   getRepoRoot,
 } from './lib/context.mjs';
 import { STATUS } from './lib/result.mjs';
+import { isMainModule } from '../scripts/lib/is-main.mjs';
 
 function parseArgs(argv) {
   const out = { mode: null };
@@ -192,7 +193,11 @@ function listRules() {
   }
 }
 
-main().then((code) => process.exit(code)).catch((err) => {
-  console.error('Engine error:', err);
-  process.exit(2);
-});
+// Guarded (F67, lane R20, 2026-10-01): importing this module (no exports exist today, but an unguarded
+// main() at module scope is the same defect class regardless) must never run the discipline engine.
+if (isMainModule(import.meta.url)) {
+  main().then((code) => process.exit(code)).catch((err) => {
+    console.error('Engine error:', err);
+    process.exit(2);
+  });
+}

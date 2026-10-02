@@ -80,6 +80,21 @@ test('test files are excluded from enumeration (a fixture constructing the ungua
   }
 });
 
+test('_archive/ and /fixtures/ (/fixtures-dash/) paths are excluded from enumeration', () => {
+  for (const f of fitnessFunction.enumerate()) {
+    assert.doesNotMatch(f, /^fsi-app\/scripts\/_archive\//);
+    assert.doesNotMatch(f, /\/fixtures(?:-dash)?\//);
+  }
+});
+
+test('enumerate() reaches into fsi-app/.discipline/** too (round 3 widening), not only fsi-app/scripts/**', () => {
+  const files = fitnessFunction.enumerate();
+  assert.ok(
+    files.some((f) => f.startsWith('fsi-app/.discipline/')),
+    'expected at least one fsi-app/.discipline/ file in scope'
+  );
+});
+
 test('ATTACK: a guard line referencing isMainModule for an unrelated reason (e.g. a comment above an otherwise-bare call) does NOT suppress the finding unless the guard token is on the call line itself or the immediately preceding code line', () => {
   const src = [
     '// isMainModule is used elsewhere in this file',

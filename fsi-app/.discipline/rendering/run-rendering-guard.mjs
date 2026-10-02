@@ -103,6 +103,7 @@ import { UX_SMOKE_SPECS } from "./smoke/ux-smoke-specs.mjs";
 // instance, so the whole guard costs no extra process. See layout-guard/rules.mjs for the rule
 // set and its per-rule provenance, and layout-guard/allowlists.mjs for the exceptions as data.
 import { runLayoutGuard } from "./layout-guard/run-layout-guard.mjs";
+import { isMainModule } from "../../scripts/lib/is-main.mjs";
 
 // playwright is a hoisted/global install in some environments (this repo's own container included)
 // that a plain ESM `import "playwright"` cannot see — Node's ESM resolver, unlike CJS `require`,
@@ -371,7 +372,9 @@ async function main() {
   process.exit(1);
 }
 
-main().catch((e) => {
-  console.error("rendering guard ERROR:", e);
-  process.exit(2);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => {
+    console.error("rendering guard ERROR:", e);
+    process.exit(2);
+  });
+}

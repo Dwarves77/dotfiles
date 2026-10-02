@@ -36,6 +36,7 @@ import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
+import { isMainModule } from '../../../scripts/lib/is-main.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -569,7 +570,9 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((e) => {
-  console.error('design audit ERROR:', e);
-  process.exit(2);
-});
+if (isMainModule(import.meta.url)) {
+  main().catch((e) => {
+    console.error('design audit ERROR:', e);
+    process.exit(2);
+  });
+}

@@ -32,13 +32,15 @@ import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { isTestFile } from './F25-module-liveness.mjs';
 
-// Operator ruling, 2026-10-01: fixed, not flagged. A first pass scoped this to just
-// scripts/producers/** + scripts/gen/* and flagged the rest for a follow-up lane; the operator
-// overruled that deferral, every pre-existing instance was fixed in this same lane, and the scope below
-// now covers the full fsi-app/scripts/** tree. _archive/ is excluded (filtered in enumerate() below,
-// not here): those files are confirmed dead (0 live importers, matches the audit's own disposition) and
-// stay untracked by this gate, same posture F44 and F60 already take toward dead code.
-const SCOPE_GLOBS = ['fsi-app/scripts/**/*.mjs'];
+// Operator ruling, 2026-10-01 (two rounds): fixed, not flagged, both times. Round 1 scoped this to just
+// scripts/producers/** + scripts/gen/* and flagged the rest for a follow-up lane; round 2 widened to
+// the full fsi-app/scripts/** tree and fixed the 3 real violations that surfaced. Round 3 (this change)
+// widens again to fsi-app/.discipline/**/*.mjs, covering the discipline engine's own three top-level
+// runners (.discipline/runner.mjs, fitness/runner.mjs, consistency/runner.mjs), which carried the
+// identical unguarded shape and are now fixed the same way. _archive/ stays excluded (filtered in
+// enumerate() below): those files are confirmed dead (0 live importers, matches the audit's own
+// disposition) and stay untracked by this gate, same posture F44 and F60 already take toward dead code.
+const SCOPE_GLOBS = ['fsi-app/scripts/**/*.mjs', 'fsi-app/.discipline/**/*.mjs'];
 
 const CALL_RE = /^(?:await\s+)?main\(\)/;
 // Recognizes every WORKING main-guard idiom live in this repo, not only isMainModule(): the shared
@@ -106,8 +108,14 @@ export const fitnessFunction = {
     // Test files excluded: a fixture that constructs the unguarded shape as a literal string to feed
     // fitnessFunction.check() (see this function's own test file) is not a live call site.
     // _archive/ excluded: confirmed-dead files (0 live importers) stay out of this gate's scope.
+    // /fixtures/ and /fixtures-dash/ excluded (operator instruction, round 3): fixture modules feed test
+    // input and are never a CLI entrypoint, so a literal `main().catch(` inside one is not a live call
+    // site either, same posture as isTestFile() above.
     return globFiles(SCOPE_GLOBS).filter(
-      (f) => !isTestFile(f) && !f.startsWith('fsi-app/scripts/_archive/')
+      (f) =>
+        !isTestFile(f) &&
+        !f.startsWith('fsi-app/scripts/_archive/') &&
+        !/\/fixtures(?:-dash)?\//.test(f)
     );
   },
 

@@ -17,6 +17,7 @@ import { createRequire } from 'node:module';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { join, isAbsolute } from 'node:path';
 import { getRepoRoot } from '../lib/context.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 const HANDOFF = join(getRepoRoot(), 'docs/design/handoff-2026-09-06');
 export const SCREENS_DIR = join(HANDOFF, 'screens');
@@ -64,7 +65,10 @@ async function main() {
   console.log(`wrote ${outPath}`);
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop())) {
+// F67 (lane R20, 2026-10-01): standardized on isMainModule from scripts/lib/is-main.mjs, replacing the
+// basename-suffix check this file used before (that idiom works but is fragile: any other file ending
+// in the same basename would also match it).
+if (isMainModule(import.meta.url)) {
   main().catch((e) => {
     console.error(e);
     process.exit(1);

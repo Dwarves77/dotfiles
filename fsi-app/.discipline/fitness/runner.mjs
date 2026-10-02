@@ -16,6 +16,7 @@
 
 import { fitnessFunctions } from './manifest.mjs';
 import { readFile, _clearCache } from './lib/file-content.mjs';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 function parseArgs(argv) {
   const out = {};
@@ -114,7 +115,10 @@ function listFunctions() {
   }
 }
 
-main().then((code) => process.exit(code)).catch((err) => {
-  console.error('Fitness runner error:', err);
-  process.exit(2);
-});
+// Guarded (F67, lane R20, 2026-10-01): importing this module must never run the fitness suite.
+if (isMainModule(import.meta.url)) {
+  main().then((code) => process.exit(code)).catch((err) => {
+    console.error('Fitness runner error:', err);
+    process.exit(2);
+  });
+}
