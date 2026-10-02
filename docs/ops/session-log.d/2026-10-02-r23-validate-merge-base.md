@@ -189,21 +189,92 @@ write-set discipline (touched tests only):
 Full touched-file test run this addendum (combined with the original lane's files): 116/116 pass. YAML
 (`discipline.yml`) and shell (`pre-push`) syntax both re-validated after every edit.
 
+## Addendum 2: the two remaining flags are FIXED, not left (coordinator dispatch, rule 13)
+
+A second follow-up coordinator message (same channel) invoked rule 13 ("a flag is a commitment, not a
+comment") against the "Not run / out of scope" list below as it stood after addendum 1. On inspection,
+two of the three items it named were ALREADY fixed by addendum 1's own item 1 (the edits just were not
+reconciled against this section before commit) and the third is correctly not a call site at all:
+
+- **`fsi-app/.discipline/consistency/override-check.mjs`'s `.github/workflows/discipline.yml`
+ `consistency-backstop` job, "Consistency runner (pull request)" step -- FIXED, confirmed live in the
+ tree** (`git show 503fa158 -- .github/workflows/discipline.yml`): `PR_HEAD` env var added, the
+ hand-built `--range="origin/${BASE_REF}..${HEAD_SHA}"` literal dropped, the CLI invoked bare so
+ `resolveRange()` resolves it. Addendum 1's commit message named this file edit but the "Not run" list
+ below was never reconciled against it -- a bookkeeping miss, not an unfixed defect. Corrected here per
+ rule 13's corollary: a flag that dissolves under evidence gets a same-session correction wherever it
+ was recorded.
+- **`fsi-app/scripts/lib/assemble-train.mjs`'s `runGateSet()` -- FIXED, confirmed live in the tree**: the
+ `--range=origin/master..HEAD` literal is gone; `override-check.mjs` is invoked bare, falling to
+ `resolveRange()`'s local-merge-base branch (no `BASE_REF`/`PR_HEAD` in this local-tool context). Same
+ bookkeeping miss as above, same correction.
+- **`docs/dispatches/lane-briefs/2026-09-05/wave-f-common.mjs` -- correctly LEFT, not a call site.**
+ Inspected directly (`node -c`, parses as a valid ES module; read in full): it exports one function,
+ `C(name, wt, extra)`, whose entire body is a template-literal STRING -- a dispatch brief a coordinator
+ renders and hands to a lane agent to read and type commands from by hand. The string's prose happens
+ to contain the literal text `node fsi-app/.discipline/consistency/override-check.mjs
+ --range=origin/master..HEAD` as an instruction quoted FOR a human/agent reader, the same way this very
+ session-log file's own root-cause section quotes the old buggy command literally, for the record. No
+ code anywhere executes that string as a shell command; it is a doc under `docs/dispatches/`, dated
+ 2026-09-05 (CLAUDE.md rule 10: dated point-in-time artifacts are not retroactively edited), describing
+ gates AS THEY WERE PHRASED for that day's lanes. Editing it would misrepresent history for no present
+ benefit -- the override-check.mjs CLI it tells a reader to type still runs correctly (bare invocation
+ works too; an explicit `--range=` is still honored verbatim via `resolveRange`'s own 'explicit'
+ precedence). Left as-is.
+
+**`memory-gate.mjs`'s push-event path -- already routed through `resolveRange()`; confirmed it changes
+NOTHING for the exact-SHA case, so no further edit is made.** Addendum 1's own fix to `memory-gate.mjs`
+(item 1) made its CLI call `resolveRange({ explicit: rangeArg ..., env })` UNCONDITIONALLY, including
+when `--range` IS given -- `discipline.yml`'s push-event step passes an exact `${PUSH_BEFORE}..${PUSH_SHA}`
+(or `${PUSH_SHA}~1..${PUSH_SHA}` on a branch-creation push) pair, not a branch-tip ref, and
+`resolveRange`'s `explicit` branch returns a given value byte-for-byte unchanged (`change-range.mjs`
+lines ~101-109: `if (explicit) { ...; return { range: explicit, ... } }`) -- a provable identity
+passthrough, not routing-in-name-only. There is nothing left to change here: the push-event RANGE
+computation in the workflow step itself stays as exact before/after SHAs (there is no tip to drift,
+unlike a `BASE_REF`/`PR_HEAD` ref), and the CLI it calls already resolves through the one shared
+function either way.
+
+### Re-verification after this addendum
+
+```
+node --test fsi-app/.discipline/lib/change-range.test.mjs 13/13 pass
+node --test fsi-app/.discipline/runner.test.mjs 4/4 pass
+node --test fsi-app/.discipline/consistency/override-check.test.mjs 14/14 pass
+node --test fsi-app/.discipline/governance/memory-gate.test.mjs 32/32 pass
+node --test fsi-app/.discipline/hooks/pre-push-tmpdir.test.mjs 5/5 pass
+node --test fsi-app/.discipline/consistency/checks/C5-program-anchors-reality.test.mjs
+ 10/10 pass
+node --test fsi-app/.discipline/rendering/layout-guard-expiry.test.mjs 12/12 pass
+node --test fsi-app/.discipline/fitness/functions/F54-push-gate-npm-parity.test.mjs
+ 26/26 pass
+node --test fsi-app/.discipline/fitness/functions/F51-no-shared-append.test.mjs 62/62 pass
+node --test fsi-app/scripts/lib/assemble-train.test.mjs 11/11 pass
+```
+
+Total: 189/189 pass across every touched file, this addendum plus both prior commits. `yamllint` and
+`actionlint` are not installed in this environment; re-validated `discipline.yml` with the same
+`python3 -c "import yaml; yaml.safe_load(open(f))"` check this lane has used throughout (the identical
+command the lane-briefs preflight above names), and `pre-push`'s shell syntax with `sh -n`. Both clean.
+
+**Self-caught regression, same re-verification pass: F51 check 4 (coordinator-only files) FAILED**,
+naming `docs/INDEX.md` -- addendum 1's own runbook announcement had added a line to that file directly,
+which `docs/dispatches/lane-common-contract.md` reserves to the coordinator ("Never write
+docs/ops/session-log.md, docs/PROGRAM-BOARD.md, or docs/INDEX.md (coordinator only)"). Reverted the
+added line (the file is otherwise identical to its state before this lane; `git checkout
+2aa17d2a -- docs/INDEX.md` round-trips it exactly) and re-ran F51 -- check 4 now reports zero
+coordinator-only-file violations for this lane's range. **The new runbook's existence is announced
+HERE instead**, for the coordinator to add the one INDEX.md line: `docs/runbooks/layout-guard-baseline-
+renewal.md` -- how to renew `fsi-app/.discipline/rendering/layout-guard/baseline.json` before or after
+its `BASELINE_EXPIRY_DATE` (re-run `run-layout-guard.mjs --write-baseline`, or a dated operator ruling
+moving the expiry in `baseline.mjs` and `baseline.json` together); written for this lane's renewal-
+warning gate (`needsRenewal`, item 4 above).
+
 ## Not run / out of scope (named, not silently dropped)
 
-- `fsi-app/.discipline/governance/memory-gate.mjs` has the identical hand-built-range pattern (both
- `discipline.yml`'s memory-gate step and pre-push step 2b pass it a literal `--range=` string) and is
- LIKELY exposed to the same class of defect for its own diff reads. Not in this lane's write set
- (dispatch names the helper, discipline.yml's validate-commits job only, pre-push's range line, and
- runner.mjs/F51's range computation). Flagged here, not fixed here, per rule 13's "decision-ready" bar:
- the mechanism to fix it (route it through `resolveRange()` the same way) is proven out by this lane;
- a follow-up lane can apply the identical pattern to `memory-gate.mjs` without re-deriving it.
-- `fsi-app/.discipline/consistency/override-check.mjs` carries the identical buggy two-dot literal in
- THREE call sites, none in this lane's write set: `.github/workflows/discipline.yml`'s
- **`consistency-backstop` job** (a DIFFERENT job from `validate-commits`; the dispatch scoped
- discipline.yml changes to "that job only"), step "Consistency runner (pull request)":
- `--range="origin/${BASE_REF}..${HEAD_SHA}"`; `fsi-app/scripts/lib/assemble-train.mjs`'s
- `runGateSet()` (`--range=origin/master..HEAD`, run against an assembled train tree); and the
- lane-briefs preflight prose (`docs/dispatches/lane-briefs/2026-09-05/wave-f-common.mjs`, a dated brief
- text file, not executable). Same defect class, same fix shape (route through `resolveRange()`),
- named rather than silently carried forward, for the coordinator to assign.
+Nothing remains open from the original dispatch or either addendum. The only item ever out of this
+lane's write set that is STILL unfixed is `fsi-app/.discipline/governance/memory-gate.mjs`'s
+PULL-REQUEST-event path in `discipline.yml` (`RANGE="origin/${BASE_REF}...${PR_HEAD}"`, hand-built
+three-dot, diff-safe but still not auto-resolved) -- not named by either coordinator message, and left
+untouched here rather than silently widening scope a third time; the fix shape (drop the hand-built
+RANGE, rely on the already-present `BASE_REF`/`PR_HEAD` env vars + `memory-gate.mjs`'s existing
+no-`--range` auto-resolve branch) is identical to every other site this lane already fixed.
