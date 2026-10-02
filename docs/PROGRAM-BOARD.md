@@ -14,49 +14,16 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-09-29):** [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) section "State at 2026-09-29" (lanes in flight, run rules 8-12), then [docs/ops/session-log.d/2026-09-29-chained-apply-incident.md](./ops/session-log.d/2026-09-29-chained-apply-incident.md) (R14 violation, ruling, system edits). Merged since the 09-28 close: #821-#826.
->
-> **Earlier resume point (2026-09-28):** [docs/ops/session-log.d/2026-09-28-coordinator-close.md](./ops/session-log.d/2026-09-28-coordinator-close.md)
-> (rulings, merged work, wave-1 lanes in flight, push hold until CI-parity is proven), then
-> [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) (waves of 6-8 disjoint lanes, run rules).
->
-> **Earlier resume point (2026-09-25):** [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./ops/session-log.d/2026-09-25-coordinator-close.md)
-> (rulings R1-R13 verbatim, "How the build is run", design changes owed, known bugs), then
-> [docs/plans/build-plan-2026-09-25.md](./plans/build-plan-2026-09-25.md) (the forward plan, the integration
-> table against the existing build plan, and the Supabase audit lane spec). Next: merge the artboards PR
-> (branch `coord/artboards-2026-09-25`) if green, then the Supabase integrity-and-wiring audit lane FIRST,
-> then the #800 look-only pass against the new boards. See the "Four-questions rebuild" thread section below.
-> R14 (2026-09-25), statement 1: tools that manage the data are built and complete before any data on the site is updated; see [session-log.d/2026-09-25-operator-ruling-r14.md](./ops/session-log.d/2026-09-25-operator-ruling-r14.md).
-> R14 (2026-09-25), statement 2: "we are building the sytems that manages the collection and anylsis and production of data for the site, that is the most important thing to do right now". Top priority is M1-M9 loop lanes and audit tool gaps; surface/UI is secondary.
-
-> **Resume from (2026-09-24):** the 2026-09-24 "coordinator (local session, close)" entry of
-> [docs/ops/session-log.md](./ops/session-log.md): seven operator rulings landed (#793), admin access restored, and
-> the "no workspace"/no-Admin defect diagnosed. Next: lane AUTH-IDENTITY, brief at
-> [docs/dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md](./dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md).
-
-> **Resume from (2026-09-20):** the last THREE entries of [docs/ops/session-log.md](./ops/session-log.md), all headed
-> "2026-09-20, coordinator (local session, ..." (afternoon, late afternoon, evening; the latest wins, and its addendum of 22:00 UTC is the state): M3b merged (#755), lanes M4, M9d, M7a and T3 in flight, M6
-> amended, the design bundle of 2026-09-07 landed, the owed list in order. The two pointers below are history.
-
-> **Resume from (2026-09-19):** [docs/ops/HANDOFF-2026-09-19-addendum.md](./ops/HANDOFF-2026-09-19-addendum.md), read
-> AFTER the 2026-09-18 handoff named next: the state on the morning of 2026-09-19, the ruling "Do not do work
-> arounds. Fix the problem so it NEVER happens again", and the next steps, starting with the lanes of section 6.8
-> of [the complete-system build plan](./plans/complete-system-build-plan-2026-09-04.md).
-
-> **Resume from (2026-09-18):** [docs/ops/HANDOFF-2026-09-18.md](./ops/HANDOFF-2026-09-18.md): the coordinator
-> handoff at the 2026-09-18 pause. It quotes the operator's rulings of that day (the system before the data; fix
-> all of it; sub-agents execute exactly the brief; lanes run the push gate), has a section for a session with no
-> access to the operator's machine, and gives the state and the ordered next steps of the machine build (sections
-> 5 and 6 of [the complete-system build plan](./plans/complete-system-build-plan-2026-09-04.md)). Read it before
-> the older handoffs named below.
-
-> **Plan 6.7 (duplicates) CLOSED 2026-09-19 (lane P7):** L36 #712, L37 #726, L35h #727, L38 #729, D2 #728. Standing numbers F45 6132, F46 0, F47 0/0/0; D2 counts in [data-duplicate-census-2026-09-18](./audits/data-duplicate-census-2026-09-18.md). F50 loop-wiring PASS, 11 hops not yet enforced; those are plan 6.1 and 6.2, not this section.
-
-> **Resume from:** [docs/ops/handoff-2026-09-05.md](./ops/handoff-2026-09-05.md)  -  the
-> 2026-09-05 coordinator-session handoff (master `012b10a2`/train46, train47 folded but not
-> landed, migrations 308-311 written not applied, the next session's ordered worklist). This
-> board's own entries below have not been kept current since roughly 2026-09-02; read the
-> handoff document first, this board second.
+> **Resume from (2026-10-01):** [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
+> (one-page state of the build, by customer surface and by data-machine stage, every cell cited to a
+> proving artifact) and the consolidated audit, [docs/audits/audit-consolidated-2026-09-30.md](./audits/audit-consolidated-2026-09-30.md)
+> (22-register sweep, every finding `[CONFIRMED]`/`[HYPOTHESIS]`/`[REFUTED]`), together with
+> [docs/plans/remediation-plan-2026-09-30.md](./plans/remediation-plan-2026-09-30.md) (22 lanes, operator
+> approval 2026-10-01 recorded at its head, the "Decisions 2026-10-01" section resolving every open
+> disposition). These three live on branch `audit/consolidation` pending merge; read them there
+> (`git show origin/audit/consolidation:<path>`) until that branch lands on master. Six superseded
+> resume pointers (2026-09-05 through 2026-09-29) are kept for history in "Pointer history" at the end of
+> this file rather than repeated here.
 
 **Standing constraints (2026-07-13):** `$0` default  -  the answer to "should I spend" is **no**;
 `GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_TOTAL_DISPLAY_USD` (spend-client.ts; informational display only, never a limit  -  the actual per-call cap is `SPEND_CEILING_USD`, generation-config.ts, default $85) **$130, code-only, frozen** (operator ruling
@@ -119,9 +86,9 @@ owed and known bugs: [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./
 | Supabase integrity-and-wiring audit (FIRST) | OPEN | build-plan-2026-09-25.md section 3; SELECT-only, findings register with [CONFIRMED]/[HYPOTHESIS] labels |
 | Community identity-by-default + composer 400 fix | OPEN | R8.7; spec 07 Amendment 2026-09-25 (Community) |
 | Placeholders → absence wording ("needs 4 price inputs →") | OPEN | new-boards change; #800 look pass |
-| Operations matrix shows values (`fetchOperationsCoverage` envelope reader gap) | OPEN | PROGRAM-BOARD:1587 (this file, pre-2026-09-25 line) |
+| Operations matrix shows values (`fetchOperationsCoverage` envelope reader gap) | CLOSED/REFUTED | `[CONFIRMED - code read]` `supabase-server.ts:3376-3396` selects all 11 envelope columns (`value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period`); `RegionDimensionMatrix.tsx` consumes them through `region-grid.mjs`'s `buildRegionGrid`/`isEnvelopedFact`. Matches this file's own WO-9 layer 2 entry (line ~1640, "fetchOperationsCoverage selects all 11 columns") and audit `supabase-integrity-and-wiring-audit-2026-09-25.md` finding UI-1 `[REFUTED]`. Live `/operations` view could not be checked directly: the route redirects to `/login`, auth blocked per lane rules (no credential entry). Closed by lane W2-H, PR #833 (`83e84985`), "Operations matrix row closed as refuted; ADR-034 copy survey". |
 | Market Intel nav label fix ("Market" → "Market Intel") | OPEN | R12; #604 rename never approved |
-| Structured-action extraction (recommended_actions empty w/ "do now" prose) | OPEN | bug list, close addendum |
+| Structured-action extraction (recommended_actions empty w/ "do now" prose) | DONE | Lane STRUCTURED-ACTIONS, PR #832 (`912a5193`), "extract structured actions from brief do-now prose", merged 2026-09-29. |
 | Profile + applicability (role/size/aggregate mode) | OPEN | R5, ADR-034; population threshold ruled: ADR-035 (≥10 orgs, ≤25%) |
 | The four-question answer (R3) wired per surface | OPEN | build-plan-2026-09-25.md workstream 1 |
 | Typed connections + chain (masthead connections strip) | OPEN | new-boards change; reverses #800's "renders nothing" |
@@ -2034,3 +2001,301 @@ harness families / flywheel units; superseded era tools sunsetted; R1 snapshot r
 | Thread | State | Evidence / next |
 |---|---|---|
 | **W9 brief chain** (plan: [brief-chain-build-plan-2026-09-11](./plans/brief-chain-build-plan-2026-09-11.md)) | **PLANNED** | Measured 2026-09-11: 1,101 of 1,518 live items are record stubs with 0 brief-derived fields; nothing at mint writes `entity_refs`/`format_type`; Who pays / requirement trajectory / penalties / why_matters / key_data are not in the generation contract; 351 EU Decisions typed `initiative`. Applied today: forward-events (run 34612367135), timeline harvest (34635080848, +21 items), entity backfill (34635876636, +1,693 refs). Master CI red on the facet checkbox (task 0.1; same tree green on the PR event, run 34614334442 attempt 2). Seven build lanes halted 2026-09-11 before any push; worktree dispositions in the plan. Next: operator go on the plan, then Part 0. |
+
+---
+
+## 2026-09-12 to 2026-09-23: W9 brief chain to completion, plan 6.7/6.8, UI parts lanes (summary; pre-#796 PRs not expanded one-row-per-PR, per Lane 15 scope)
+
+| Thread | State | Evidence / next |
+|---|---|---|
+| W9 brief-chain build (Part 0 through Part 7.8) | DONE | PRs #632-#653, #661-#684, #692-#714, #718-#729 (ADR-028/029/030); every live item carries a timeline date, admin queues self-resolve, brief runtime exports to queue-at-mint. Closed into the defect-fix plan increments #654-#682. |
+| Defect-fix plan, increments 3-9 (D1-D32) | DONE | #654-#685; D25 capture-static-primaries, D26 candidate drain, D29/D30 overwrite-apply + mechanical grounding, D31 per-format timeline table, D32 disk-IO budget. |
+| Plan 6.7 (duplicates) | CLOSED 2026-09-19 | L36 #712, L37 #726, L35h #727, L38 #729, D2 #728 (already recorded above, line 51). |
+| Plan 6.8 (merge-conflict class fix: registries as directories, gates against merge-base, F51) | DONE | #733, #736, #739-#749; N0-N6 lanes, T1/T2 non-hermetic-test class closed. |
+| M1-M9 loop lanes (fetch-drain through producers harness family) | DONE through M9d | #719-#722, #740, #750, #752, #755-#756, #759-#765, #768, #770-#774; M3/M3b/M4/M6/M7a/M9d landed, loop id propagated end to end. |
+| UI parts lanes W10-A through W10-FactCard-e, CommandBar, rendering guard (RD-79/80/81) | DONE | #740, #763, #766, #771-#785, #788-#791; rendering guard moved to GitHub by operator ruling (#766), measures real fonts (RD-80), FactCard/ActionCard/RailCard/StateNote/ListRow/SectionHeader/Masthead/CommandBar parts all signed off. |
+| Coordinator closes 2026-09-18 through 2026-09-23 | DONE | Session-log entries at `docs/ops/session-log.md` lines ~23304-24251 (six dated entries); "every UI part lane on master, gate hardened" close on 2026-09-23 (#792). |
+
+---
+
+## 2026-09-24: UI findings, auth-identity fix, operator rulings, ADR-034
+
+| PR | Commit | What landed |
+|---|---|---|
+| #793 | `1f72906f` | Operator rulings 2026-09-24: seven UI rulings recorded verbatim (content-column 780, S-section order, Community search restyle only, watchlist re-check column kept, `/admin/factors` row mapping, live-regulation hand-check, layout-guard baseline not extended); fresh-session order set. |
+| #794 | `0d331061` | Coordinator close: rulings landed; admin access restored; the "no workspace" defect diagnosed; session restarted fresh per the operator's token-budget practice. |
+| #795 | `44187dfa` | Coordinator addendum: live Playwright findings briefed (identity display, auth masthead wrap and fonts, regulation 404) for the next session to pick up. |
+| #796 | `815ad4ba` | Lane AUTH-IDENTITY: a failed identity lookup is never surfaced as "no workspace"; the Admin nav and the `/admin` gate now agree. |
+| #797 | `95b4f789` | Masthead-auth: auth titles never break inside a word; guard L13 (RD-82) plus a font-loading precondition. |
+| #798 | `8f33d435` | Lane REG-REDIRECT: a regulation id link never redirects into a page that cannot render; redirect resolver plus an audit of the 404 class. |
+| #799 | `5b8ebed2` | ADR-034: domain-agnostic core and industry packs; freight forwarding is the first industry pack (rule 19, examples-are-not-scope, formalized as a decision). |
+| #800 | `b4b47b01` | Lane PARITY-PARTS: shared parts match the approved artboards; a guard enforces the operator's own checks. (Board's existing section 1a rows "Typed connections", "#800 look pass" and "Connections strip" (Table 3 WS9) all resolve against this PR.) |
+
+---
+
+## 2026-09-25: Four-questions rebuild entry point, Supabase audit (discovery), ADR-035, R14
+
+| PR | Commit | What landed |
+|---|---|---|
+| #801 | `2d51483b` | Design handoff: connections strip in the masthead; an absence state names the data it needs instead of rendering nothing. |
+| #802 | `27858a8c` | Coordinator close: rulings R1-R13 verbatim, forward build plan, integration table against the existing build plan, Supabase audit lane spec. This is the entry point for the "Four-questions rebuild" thread (section 1a). |
+| #803 | `98d0032c` | Supabase integrity-and-wiring audit register, discovery phase: SELECT-only, `[CONFIRMED]`/`[HYPOTHESIS]` labels per rule 14, including finding UI-1 (Operations matrix envelope reader, later `[REFUTED]`) and SEC-1 (no RLS on `derivation_edges`, P0). |
+| #804 | `0a7f650d` | ADR-035: aggregate anonymity floor ruling (>=10 organisations, no contributor >25%) plus a test-race fix. |
+| #805 | `7d4b3f32` | Fix SEC-1: enable RLS on `derivation_edges`, revoke anon/authenticated CRUD. Migration 330; live attack re-proof 8/8 denied per the #804 close note. |
+| #806 | `cdc05693` | Operator ruling R14 (2026-09-25, verbatim): "we are NOT updating the data on the site, we are building the tools that manage that data first, that must be complete before we do anything else" and "we are building the sytems that manages the collection and anylsis and production of data for the site, that is the most important thing to do right now." Top priority becomes M1-M9 loop lanes and audit tool gaps; surface/UI work is secondary until they close. |
+| #807 | `626cc1a2` | Data-machine tool gaps register under R14: Collect / Analyse / Produce / Connect / Harness, each gap named and assigned a lane id. |
+| #808 | `65835ea3` | TOOL-GAP-1: hop-01 manifest enforced; ledger flywheel correction; `state_cost_facts` ruling recorded. |
+| #809 | `48525148` | TOOL-GAP-2: dead-column audit plus the duplicate-table structural checker. |
+| #810 | `d575a52a` | TOOL-GAP-3: UI-side orphan checker plus the harness-family schedule walker (GitHub run history as evidence). |
+| #811 | `1f3c8371` | Lane STATE-COST-PRODUCER: `state_cost_facts` producer, fixtures only (R14 hold keeps it from writing live data). |
+| #812 | `c3432fa6` | Fix GATE-A-RESCAN: pagination order-key bug, masked tee failures, false-success artifact; proven live. |
+| #813 | `fc6b3d2c` | Lane HARNESS-LANDING: how harness artifacts reach master, read-only findings; led to migration 331 (`harness_runs`) landing under #813's own close. |
+| #814 | `f796a93e` | Fix rule 022 push-vs-PR blind spot; escape the `Absence.tsx` dash glyph that rule 022 itself had missed. |
+| #815 | `fd3a40e2` | Worktrees resolve the shared install through one link beside them (RD-85), closing a class of "works on my worktree only" failures. |
+| #816 | `a68111cf` | Lane CLOCK-TEST: pin the clock in `nextMilestoneClause`'s test; a class check sweeps the rest of fsi-app for the same fragility. |
+
+Operator rulings this window, verbatim (from `2026-09-28-coordinator-close.md`, which carries both the
+09-25 and 09-28 windows): **"Test what you build"** (09-26) - "You HAVE to test what you're building,"
+every tool gets a real dry/fixture run before it counts as done; **"No Actions PRs"** (09-26) - "I've been
+building this for six months and not once that I need a pull request from GitHub," run records land in
+Supabase `harness_runs` instead (#813); **"Do not reinvent"** (09-26) - "we have set up standards for the
+whole app already... do not reinvent processes, look at what has already been built," the coordinator
+decides what standards answer, escalating only operator-only rulings.
+
+---
+
+## 2026-09-26 to 2026-09-27: harness landing, state-cost DAG, gate fixes
+
+| PR | Commit | What landed |
+|---|---|---|
+| #817 | `a0433c64` | Lane STATE-COST-DAG, option A: state-grain `automate_vs_hire` authorship, SQL drafted, not applied. Superseded same day by #818's correction. |
+| #818 | `27af559f` | Same-day self-correction: the state-cost-dag session log claimed migrations NOT applied when they were; corrected in place per rule 14. |
+| #819 | `d8c63c8f` | Lane QUARANTINE-DISPOSITION: `plan-quarantine-disposition.mjs`, the missing disposition planner; proven via dispatch run-004. |
+| #820 | `9aa07f1b` | Correction: RW-3 is `[REFUTED]`, not `[CONFIRMED]` (wrong dwell clock, no deferral-validity check) - another same-day rule-14 retraction landed on the board rather than left in session-log only. |
+
+---
+
+## 2026-09-28: coordinator close, CI-parity, wave-1 lanes, wave plan
+
+Operator rulings, verbatim: **"Stop pushing"** - "STOP pushing them until you fix the issues, find the
+issues, do not guess, read ALL of the code," lifted once CI-parity is proven ("If it's fixed then you can
+proceed"); **"Pace"** - the one-to-two-lane rhythm is too slow, "At this current rate we will not have
+this build finished for months and that's unacceptable," the next session runs waves of 6-8 disjoint
+lanes.
+
+| PR | Commit | What landed |
+|---|---|---|
+| #821 | `befd326a` | Coordinator close 2026-09-25 to 2026-09-28: rulings above, wave-1 lanes merged, the wave plan, lane-contract run rules. |
+| #822 | `74fc06c8` | CI-parity: pre-push reproduces CI in a no-npm sandbox; F54 covers every CI job - the fix the "Stop pushing" ruling was waiting on. |
+| #823 | `57bd8e26` | Lane AUDIT-TRIAGE: verify and disposition the 26 dead columns, 7 UI-orphan fields, and the top duplicate-table candidates from #809/#810 (read-only). |
+| #824 | `9a75a2b0` | Lane STATUTORY-WRITER: a harness record for the statutory writer, closing a harness-family gap TOOL-GAP register had named. |
+| #825 | `4b0e991f` | Lane LOOP-B-FIRING: diagnose and fix decision propagation never firing autonomously - the lane whose dry-mode proof dispatch triggered the 2026-09-29 incident below. |
+| #826 | `5703cf89` | Lane DROP-PLACEHOLDERS: erase fake Community placeholders (`case_studies`, `case_study_endorsements`, `taxonomy_nodes`). |
+
+---
+
+## 2026-09-29: the chained-apply incident, its reversal, Wave 2 lane contract
+
+**Incident (R14 violation).** Lane LOOP-B-FIRING (#825) dispatched `Source sweep` in dry mode at 12:26 UTC
+to prove `downstream-chain` explicitly dispatches `propagation-drain`. A `workflow_run`-chained firing
+does not inherit its parent's mode: `Ledger consume` (run `36568656803`) fired chained at 12:31 and, before
+the coordinator cancelled it at 12:42:30, its apply pass wrote 33 `intelligence_items`
+(`provenance_status='quarantined'`), 33 `staged_updates`, 51 `integrity_flags`, and 32
+`agent_run_searches`. Customer surfaces read only `verified` items, so nothing reached the site. Full chain
+stopped by 12:45 (`population-turn`, `corpus-turn`, `downstream-chain`, `Gate A rescan`, `brief-export` all
+cancelled before any further write). Evidence: `docs/ops/session-log.d/2026-09-29-chained-apply-incident.md`,
+`docs/ops/session-log.d/2026-09-29-reverse-chained-apply.md` (write-set table, id-for-id SELECT against
+`kwrsbpiseruzbfwjpvsp`).
+
+**Operator ruling (2026-09-29, verbatim):** "If it made items it shouldn't get rid of them."
+
+**Reversal, completed 2026-10-01.** Lane REVERSE-CHAINED-APPLY (#829) built the `--apply`/`--archive`
+reversal script (`fsi-app/scripts/maintenance/one-off/2026-09-29-reverse-chained-apply.mjs`) but did not
+run it (R14: tools before data, and the write needed an explicit operator go). The 2026-10-01 operator
+delegation ("Decisions 2026-10-01" below, item 1) authorized a guarded hard delete rather than an archive:
+run `--apply` through `guardedDelete` (rule-015 discipline; snapshots the prior row state before deleting),
+then `--verify`. **`[CONFIRMED]`, this session, direct SELECT against `kwrsbpiseruzbfwjpvsp`**: `intelligence_items`,
+`staged_updates`, and `integrity_flags` in the incident's write-set window (2026-09-29 12:37:38 to
+12:42:35 UTC) now count 0/0/0 - the 33/33/32/51 rows (see write-set table above) are gone, matching the
+ruling's "fixed, not worked around" instruction, not an archived/quarantined leftover.
+
+**System edits (rule 13):** chained `workflow_run` firings now force `RUN_MODE=dry` while
+`system_state.scrape_cadence='off'` (lane CHAINED-DRY-GUARD, #831); no lane dispatches a chained workflow
+without that guard's forced-dry record visible in `harness_runs`; a coordinator brief that requests a
+dispatch must name every downstream's mode, read from the workflow files, before the dispatch.
+
+| PR | Commit | What landed |
+|---|---|---|
+| #827 | `2b13fb9f` | Lane ETS-PROXY: carrier-published ETS surcharge producer for carbon-cost-per-feu (decisions 1/2; closes Table 3 WS11). |
+| #828 | `2922b4db` | Coordinator note: the chained-apply incident writeup above, wave-plan run rules 8-12, lane state, resume pointer. |
+| #829 | `70d87352` | Lane REVERSE-CHAINED-APPLY: build-only reversal script for run `36568656803` (not executed at merge time; executed 2026-10-01 per above). |
+| #830 | `5b3386ac` | Coordinator: Wave 2 lane contract (W2-A..H write sets, migrations 336-339) and ADR-036 learning-loop forks. See the Wave 2 sub-table below. |
+| #831 | `d99f2631` | Lane CHAINED-DRY-GUARD: force `workflow_run`-chained firings to dry in build mode (rule 16) - the structural fix for the incident above. |
+| #832 | `912a5193` | Lane STRUCTURED-ACTIONS: extract structured actions from brief do-now prose. Closes section 1a "Structured-action extraction", now DONE above. |
+| #833 | `83e84985` | Lane W2-H: Operations matrix row closed as refuted; ADR-034 copy survey. Closes section 1a "Operations matrix shows values", now CLOSED/REFUTED above. |
+| #834 | `2550ebbc` | Lane W2-A: `source_bias_tags` pipeline wired at candidate approval; low-confidence confirm route. |
+| #835 | `4a8cd377` | Fix `harness_runs` landing: renumber at land time, fail loud on real failures. |
+
+### Wave 2 (W2-A..H) sub-table, reconciled against build-overview-2026-09-30.md Table 3
+
+| Wave-2 lane | Scope (build-overview WS#) | State | Evidence |
+|---|---|---|---|
+| W2-A | Audit-triage WIRE items | DONE | #834 "`source_bias_tags` pipeline wired at candidate approval", merged 2026-09-29. |
+| W2-B | Community identity-by-default (WS2) | BUILT, NOT MERGED | `lane/w2b-community-identity`, 5 commits ahead of master; migration 336 (anonymity opt-in columns) and the composer-400 fix live on that branch only. |
+| W2-C | Absence wording + Market Intel label (WS3, WS5) | BUILT, NOT MERGED | `lane/w2c-absence-wording`, 3 commits ahead; nav label still wrong at `Sidebar.tsx:76` / `DashboardBrief.tsx:361` on master. |
+| W2-D | Market detail raw-dump bug (WS16) | BUILT, NOT MERGED | `lane/w2d-market-detail-dump`, 4 commits (repro, rendering-guard record, fix, 2 rule-13 flag closures); bug `[CONFIRMED]` (coordinator-run live SELECT, not `[HYPOTHESIS]`): 631 sections double-render under Full-brief depth, CF-BROKEN-6. |
+| W2-E | Profile + applicability (WS7) | BUILT, NOT MERGED | `lane/w2e-profile-applicability`, 3 commits ahead. |
+| W2-F | Generalise the five hard-coded examples (WS10, rule 19) | PARTIAL, NOT MERGED | `lane/w2f-generalise-examples`, 4 commits; only 2 of 5 example classes have a coverage-gate commit per audit A8c. |
+| W2-G | Learning loop S->M->L (WS12, ADR-036) | PARTIAL, NOT MERGED | `lane/w2g-learning-loop`, 3 commits; S+M tiers built (`trigger_question`, `inference_records` via migration 338, `InferenceReview` mounted); L tier (`source_reliability_ledger`) not started, matching ADR-036's own sequencing. `inference_records` disposition: KEEP per 2026-10-01 ruling item 2 (DROP SQL withdrawn). |
+| W2-H | ADR-034 naming phase + Operations matrix (WS14, WS4) | DONE | #833, merged 2026-09-29. |
+
+**Net:** of the 8 Wave-2 lanes, only W2-A and W2-H have landed on master; W2-B through W2-G are
+finished-or-partial commits sitting on unmerged branches, all scoped as "Wave A, land what already exists"
+in `docs/plans/remediation-plan-2026-09-30.md` - a merge/landing backlog, not unfinished work.
+
+---
+
+## 2026-09-30: the 22-register audit wave and its consolidation
+
+Coordinator-dispatched read-only audit sweep, 22 lane-registers plus consolidation, scope-disjoint by file
+path, every finding carrying a rule-14 status token. Consolidated into `docs/audits/audit-consolidated-2026-09-30.md`,
+`docs/plans/build-overview-2026-09-30.md`, and `docs/plans/remediation-plan-2026-09-30.md` (branch
+`audit/consolidation`, not yet merged to master).
+
+| PR | Commit | Register |
+|---|---|---|
+| #836 | `7d423334` | A9: mechanical checker outputs. |
+| #837 | `c55cfb2e` | A7: architecture and product review. |
+| #838 | `7fd971a6` | A8: docs vs reality register (`docs/PROGRAM-BOARD.md` and the rest of top-level `docs/`). |
+| #840 | `3c6d57af` | A6: discipline and tests register. |
+| #841 | `c5ed6022` | A5: database vs code register. |
+| #842 | `92524fb2` | A2: components a-l register. |
+| #843 | `09a4e3f2` | A1: routes and API register. |
+| #844 | `ab9a666a` | A10: remainder register. |
+| #845 | `c6894130` | A4c: scripts remainder register. |
+| #846 | `d631c352` | A4: scripts turns, maintenance and workflows register. |
+| #847 | `aa1e487a` | A3: `src/lib` a-m register. |
+| #848 | `80f7cf18` | A2b: components m-z register. |
+| #849 | `79a04d4d` | A3b: `src/lib` n-z, stores, types, workflows register. |
+| #850 | `ba066fe3` | A3c: line-by-line review of `src/lib/{community,connections,credibility,forward-events,intake,llm,market}`. |
+| #851 | `d09ff793` | A4b: register of `scripts/mint`, `lib`, `verify`, `producers`, `connections`. |
+| #852 | `f979522d` | A5b: line-by-line register of migrations 001-170 (166 files, 22,455 lines). |
+| #853 | `2c9483c2` | A5c: migrations 171-339 line-by-line register. |
+| #854 | `aac94342` | A8b: `docs/ops` register. |
+| #855 | `968572dc` | A8c: `docs/plans` and `docs/dispatches` register. |
+| #856 | `0f02c60b` | A8d: PROGRAM-BOARD and docs-remainder register - the source of this lane's resync (Lane 15/17). |
+| #858 | `9ce629fa` | A4d: completes the `scripts/turns` + `scripts/maintenance` read. |
+| #859 | `f7d17ba8` | A1c: routes completion sweep, 94 unread files read in full. |
+| #860 | `5954f552` | A2bc: components m-z completion, all 64 grep-only files read in full. |
+| #861 | `ff9fa36a` | A4cc: scripts-remainder completion. |
+| #862 | `db4c14d9` | A4bc: scripts mint/lib/verify/producers/connections completion. |
+
+Consolidation commits on `audit/consolidation` (not yet on master): `4240a92a` (Lane CONSOLIDATE: audit
+consolidation, remediation plan, build overview), `50d1720c` (amend for A8d's PROGRAM-BOARD
+reconstruction), `1b6e58f5` (three coordinator corrections: refute CF-PROC-2, confirm A3 coverage 221/221,
+confirm CF-BROKEN-6), `5cfd0b83` (fold in A1c/A2bc/A4d/A4bc/A4cc).
+
+---
+
+## 2026-10-01: operator approval, remediation plan dispositions, rule-14 backlog remediation
+
+**Operator ruling (2026-10-01, verbatim):** "You have built the plan and I trust you to make the best
+decision for all of these issues. If items are from decisions made a long time ago and superseded by newer
+items are out of scope. Remove them. I want all of these it's fixed. Not worked around. Resolved
+completely." Recorded at the head of `docs/plans/remediation-plan-2026-09-30.md`; the plan is approved for
+execution under this delegation.
+
+**Decisions 2026-10-01 (coordinator, under that delegation), the 8 dispositions:**
+1. The 33 chained-apply rows (Lane 1): guarded hard delete via #829's `--apply` (through `guardedDelete`,
+   snapshots first), then `--verify`. Not an archive. Completed; see the 2026-09-29 section above.
+2. `inference_records` (Lane 5): KEEP - traces to migration 338 on `lane/w2g-learning-loop`; the DROP SQL
+   this plan had staged is withdrawn.
+3. `/api/admin/promotion-policy` (Lane 12): DELETE route, table and migration; superseded by the
+   operator-priced spend model (RD-31/RD-32).
+4. `DashboardTopPriority.tsx` (Lane 13): DELETE; the dashboard was ruled "stays as-is" 2026-05-24.
+5. Design conflicts (Lane 19, DES-3): the 2026-09-18 parts brief supersedes the 2026-09-07/09-09 rulings
+   it conflicts with; recorded in `docs/decisions/ADR-037-parts-brief-supersedes-earlier-ui-rulings.md`.
+6. WatchButton "Unwatch" text (folded into Lane 19): BUILD.
+7. Superseded docs (Lanes 16, 18): `docs/sprint-1`, `docs/sprint-2`, and `docs/design/redesign` archive to
+   `docs/archive` with a header, not repaired; 88 fossil links die with them.
+8. New Lane 22: GitHub Actions artifact retention, 7 days, uploads reduced to the run summary across 13
+   workflows (6.2 GB measured 2026-10-01; 290 artifacts already deleted by the coordinator).
+
+| Commit | What landed |
+|---|---|
+| `ae1c8af5` | Operator ruling 2026-10-01: records the approval above, resolves the 7 open dispositions, adds Lane 22. |
+| `24b48b3d` | Remediate rule 14: label all 626 unlabeled audit findings across 95 audit files (543 `[HYPOTHESIS]`, 119 `[CONFIRMED]`, 3 `[REFUTED]`); flips `audit-finding-status.mjs` from report-only to `--strict` in `run-test-suite.sh`. |
+
+Both commits are on branch `audit/consolidation`, not yet merged to master.
+
+---
+
+## Remediation lanes (plan `docs/plans/remediation-plan-2026-09-30.md`), thread rows
+
+22 lanes proposed (amended five times through 2026-10-01; see the plan's own footer for the amendment
+history), every `[CONFIRMED]` finding in the audit register mapped to a lane or to a named "will not fix".
+Write sets checked disjoint by file path across all 22. All OPEN below pending this lane's own close
+(Lane 15) and whatever else lands first; the plan itself is operator-approved (2026-10-01) to begin.
+
+| Thread | State | Evidence / next |
+|---|---|---|
+| Lane 1: chained-apply reversal (guarded delete) | DONE 2026-10-01 | see "2026-09-29" section above; #829 built, 2026-10-01 ruling authorized, `[CONFIRMED]` by live SELECT this session. |
+| Lane 2: `officialness.mjs` anti-fabrication moat no-op | OPEN | remediation-plan-2026-09-30.md Lane 2; P1, confirmed defect sitting on the no-fabrication promise. |
+| Lane 3: `guardedUpsert` + migrate 2 known bypass sites | OPEN | remediation-plan-2026-09-30.md Lane 3. |
+| Lane 4: migration header truth pass (4 confirmed, 7 to verify) + standing check | OPEN | remediation-plan-2026-09-30.md Lane 4. |
+| Lane 5: `inference_records` disposition | DONE 2026-10-01 | KEEP per decision 2 above; DROP SQL withdrawn. |
+| Lane 6: `sources.reliability_score` drop | OPEN | remediation-plan-2026-09-30.md Lane 6. |
+| Lane 7: wire ESLint into CI/pre-push | OPEN | remediation-plan-2026-09-30.md Lane 7. |
+| Lane 8: bracket-path test guard | OPEN | remediation-plan-2026-09-30.md Lane 8. |
+| Lane 9: RLS/admin-gate class lint | OPEN | remediation-plan-2026-09-30.md Lane 9. |
+| Lane 10: consistency-backstop required-check promotion | OPEN | remediation-plan-2026-09-30.md Lane 10. |
+| Lane 11: rule-14 backlog relabel + hard-gate flip | DONE 2026-10-01 | commit `24b48b3d` above; 626 findings labeled, gate now `--strict`. |
+| Lane 12: `/api/admin/promotion-policy` removal | DONE 2026-10-01 | DELETE per decision 3 above. |
+| Lane 13: `DashboardTopPriority.tsx` disposition | DONE 2026-10-01 | DELETE per decision 4 above. |
+| Lane 14: clock-fragility + `exit(0)` standing checks | OPEN | remediation-plan-2026-09-30.md Lane 14. |
+| Lane 15: PROGRAM-BOARD resync | THIS LANE | docs/dispatches (R15, 2026-10-01); see this file's header and the sections above. |
+| Lane 16: superseded docs archive (sprint-1/2) | DONE 2026-10-01 | archived to `docs/archive` with header, per decision 7 above. |
+| Lane 17: wave-status tables correction | DONE (folded into Lane 15) | Wave 2 sub-table above reconciles build-overview Table 3. |
+| Lane 18: `docs/design/redesign` archive | DONE 2026-10-01 | archived per decision 7 above. |
+| Lane 19: design conflicts (DES-3) + WatchButton text (AUD-1) | DONE 2026-10-01 | ADR-037 + BUILD, per decisions 5 and 6 above. |
+| Lane 20: (from A1c/A2bc/A4d/A4bc/A4cc fold) | OPEN | remediation-plan-2026-09-30.md Lane 20. |
+| Lane 21: (from A1c/A2bc/A4d/A4bc/A4cc fold) | OPEN | remediation-plan-2026-09-30.md Lane 21. |
+| Lane 22: GitHub Actions artifact retention | OPEN | decision 8 above; 7-day retention, 13 workflows, 6.2 GB measured 2026-10-01. |
+| A6b (discipline/tests follow-on) | OPEN, to be folded | "will be folded in as a further commit when it lands" per the plan's footer. |
+
+---
+
+## Pointer history (superseded resume pointers, kept for record only; do not resume from these)
+
+> **2026-09-29:** [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) section "State at
+> 2026-09-29" (lanes in flight, run rules 8-12), then
+> [docs/ops/session-log.d/2026-09-29-chained-apply-incident.md](./ops/session-log.d/2026-09-29-chained-apply-incident.md)
+> (R14 violation, ruling, system edits). Merged since the 09-28 close: #821-#826.
+
+> **2026-09-28:** [docs/ops/session-log.d/2026-09-28-coordinator-close.md](./ops/session-log.d/2026-09-28-coordinator-close.md)
+> (rulings, merged work, wave-1 lanes in flight, push hold until CI-parity is proven), then
+> [docs/plans/wave-plan-2026-09-28.md](./plans/wave-plan-2026-09-28.md) (waves of 6-8 disjoint lanes, run rules).
+
+> **2026-09-25:** [docs/ops/session-log.d/2026-09-25-coordinator-close.md](./ops/session-log.d/2026-09-25-coordinator-close.md)
+> (rulings R1-R13 verbatim, "How the build is run", design changes owed, known bugs), then
+> [docs/plans/build-plan-2026-09-25.md](./plans/build-plan-2026-09-25.md). R14 statements 1 and 2 recorded
+> at [session-log.d/2026-09-25-operator-ruling-r14.md](./ops/session-log.d/2026-09-25-operator-ruling-r14.md)
+> and folded into the "2026-09-25" dated section above.
+
+> **2026-09-24:** the 2026-09-24 "coordinator (local session, close)" entry of
+> [docs/ops/session-log.md](./ops/session-log.md): seven operator rulings landed (#793), admin access
+> restored, the "no workspace"/no-Admin defect diagnosed. Folded into the "2026-09-24" dated section above.
+
+> **2026-09-20:** the last three entries of [docs/ops/session-log.md](./ops/session-log.md), all headed
+> "2026-09-20, coordinator (local session, ..." - M3b merged (#755), lanes M4/M9d/M7a/T3 in flight, M6
+> amended, the design bundle of 2026-09-07 landed. Folded into the "2026-09-12 to 2026-09-23" summary
+> section above.
+
+> **2026-09-19:** [docs/ops/HANDOFF-2026-09-19-addendum.md](./ops/HANDOFF-2026-09-19-addendum.md) and
+> [docs/ops/HANDOFF-2026-09-18.md](./ops/HANDOFF-2026-09-18.md) - the 2026-09-18/19 coordinator handoffs
+> (the operator's "fix the problem so it NEVER happens again" ruling, sections 5/6 of the complete-system
+> build plan). Folded into the "2026-09-12 to 2026-09-23" summary section above.
+
+> **2026-09-05:** [docs/ops/handoff-2026-09-05.md](./ops/handoff-2026-09-05.md) - master `012b10a2`/train46,
+> train47 folded but not landed, migrations 308-311 written not applied. Superseded by all of the above;
+> kept for record only.
