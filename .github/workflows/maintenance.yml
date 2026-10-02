@@ -1226,40 +1226,16 @@ jobs:
           echo "run_id=$(printf '%s' "$RAW" | jq -r '.run_id')" >> "$GITHUB_OUTPUT"
           echo "artifact_path=$(printf '%s' "$RAW" | jq -r '.artifact_path')" >> "$GITHUB_OUTPUT"
 
-      - name: Append this run's dispatch-ledger row
-        if: always()
-        run: |
-          JOB_STATUS="${{ job.status }}"
-          if [ "$JOB_STATUS" = "cancelled" ]; then
-            OUTCOME="cancelled"
-          elif [ "$JOB_STATUS" = "failure" ]; then
-            OUTCOME="error"
-          elif [ "$RUN_MODE" = "apply" ]; then
-            OUTCOME="applied"
-          else
-            OUTCOME="reported"
-          fi
-          ARTIFACT_REL=""
-          RAW_PATH="${{ steps.write_artifact.outputs.artifact_path }}"
-          if [ -n "$RAW_PATH" ] && [ "$RAW_PATH" != "null" ]; then
-            ARTIFACT_REL="scripts/harness-runs/maintenance/$(basename "$RAW_PATH")"
-          fi
-          node scripts/harness-runs/append-dispatch-ledger.mjs \
-            --workflow maintenance \
-            --step "$RUN_STEP" \
-            --mode "$RUN_MODE" \
-            --run-id "${{ github.run_id }}" \
-            --date "$(date -u +%Y-%m-%d)" \
-            --outcome "$OUTCOME" \
-            --artifact "$ARTIFACT_REL" \
-            --ledger ../docs/ops/dispatch-ledger.jsonl
+      # R22 (2026-10-02, coordinator-directed): the "Append this run's dispatch-ledger row" step that used
+      # to run here (node scripts/harness-runs/append-dispatch-ledger.mjs ... --ledger
+      # ../docs/ops/dispatch-ledger.jsonl) is REMOVED. A8b found that file 11 days stale: this was its
+      # ONLY writer, and it had nowhere to commit a new row once the artifact-branch-push step above was
+      # removed (R22, same date). closure-gate.mjs's NEVER-RUN check now reads a committed export of
+      # harness_runs itself (fsi-app/.discipline/governance/harness-ledger-export.json,
+      # scripts/lib/export-harness-ledger.mjs) instead -- this run's own harness-run artifact, landed into
+      # harness_runs by the step below, IS the dispatch evidence; no second, file-based record is needed.
+      # See docs/runbooks/fleet-budget-control.md for the export's regeneration rule.
 
-      # Commit the family's own harness-run artifact plus the dispatch-ledger row (scripts/harness-runs/
-      # maintenance/** and ../docs/ops/dispatch-ledger.jsonl) so this run survives past the Actions log --
-      # same posture corpus-turn.yml/source-sweep.yml apply to their own artifacts. A dispatch normally
-      # runs against master, which is typically branch-protected, so this lands on its own branch and opens
-      # a PR (source-sweep.yml's own pattern, copied) rather than pushing straight to whatever ref
-      # triggered the run.
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
         run: |
@@ -1281,10 +1257,21 @@ jobs:
         # the "Hydrate unmerged ... sibling artifacts" step above is retained only for any artifacts a
         # still-unmerged branch from before this rewrite may carry, same posture the other families
         # already landed.
+        #
+        # R22 (2026-10-02): this lane's own commit eb7ba6dc made the identical fix independently (a
+        # different lane, MAINTENANCE-HARNESS, landed on master first) -- resolved as a duplicate, this
+        # file's own already-landed version kept verbatim, not hand-merged. The commit's OTHER flagged
+        # risk (../docs/ops/dispatch-ledger.jsonl no longer reaching origin) is closed outright by this
+        # lane's later commit, which removes the "Append this run's dispatch-ledger row" step below and
+        # replaces closure-gate.mjs's NEVER-RUN read with a committed harness_runs export instead -- see
+        # that commit and docs/runbooks/fleet-budget-control.md.
         if: always()
         run: |
           bash scripts/turns/deliver-artifact-branch.sh "Maintenance: ${RUN_STEP} (mode=${RUN_MODE}, run ${{ github.run_id }})"
 
+      # R22 (2026-10-01, Actions-storage remediation): retention 7 days, down from 90 (the path was
+      # already scoped to this run's own temp output root, not the whole _snapshots tree). See
+      # docs/runbooks/fleet-budget-control.md.
       - name: Upload this run's step artifact(s)
         if: always()
         uses: actions/upload-artifact@v4
@@ -1292,4 +1279,4 @@ jobs:
           name: maintenance-${{ inputs.step }}-${{ github.run_id }}
           path: ${{ runner.temp }}/maintenance-${{ github.run_id }}/
           if-no-files-found: warn
-          retention-days: 90
+          retention-days: 7

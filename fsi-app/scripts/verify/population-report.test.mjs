@@ -544,7 +544,7 @@ test("renderReport: an entry with describeState uses its own wording, not the ge
     },
   ]).join("\n");
   assert.match(lines, /3 record item\(s\) minted before the latest population turn have no brief-apply outcome/);
-  assert.match(lines, /drain the queue: export parts in scripts\/turns\/brief-export\/pending\//);
+  assert.match(lines, /drain the queue: list it \(scripts\/turns\/read-brief-export-queue\.mjs --list/);
   assert.match(lines, /apply via brief-apply\.yml/);
   assert.doesNotMatch(lines, /nothing to show/);
   assert.doesNotMatch(lines, /fill it with:/);
@@ -582,11 +582,14 @@ test("describeBriefsPendingState: EMPTY reads as a caught-up queue, not a broken
   assert.ok(lines.every((l) => !/nothing to show/.test(l)));
 });
 
-test("describeBriefsPendingState: both footnotes (ADR-028 provenance, unmerged-branch visibility) are always present", () => {
+test("describeBriefsPendingState: both footnotes (ADR-028 provenance, local-scratch visibility) are always present", () => {
+  // R22 (2026-10-02, coordinator-directed): the visibility caveat's own premise (an unmerged
+  // population/<run_id> artifact branch) is [REFUTED] now that no family pushes one; this asserts the
+  // CORRECTED footnote, not the retired [HYPOTHESIS] wording.
   for (const state of ["EMPTY", "ROWS_NO_VALUES"]) {
     const lines = describeBriefsPendingState(state, { rows: 2, filled: 0 });
     assert.ok(lines.some((l) => /ADR-028/.test(l)), `${state}: missing the ADR-028 provenance footnote`);
-    assert.ok(lines.some((l) => /\[HYPOTHESIS\]/.test(l) && /population\/<run_id>/.test(l)), `${state}: missing the unmerged-branch visibility caveat`);
+    assert.ok(lines.some((l) => /\[REFUTED/.test(l) && /harness_runs is the durable record/.test(l)), `${state}: missing the corrected local-scratch visibility footnote`);
   }
 });
 

@@ -517,7 +517,9 @@ test("buildFlywheelPlan: a batch with zero minted ids yields NO real export step
 
 test("buildBriefExportArgs: the right ids and out path for a minted batch", () => {
   const { outPath, args } = buildBriefExportArgs("mint-run-042", ["item-1", "item-2"]);
-  assert.ok(outPath.endsWith(join("scripts", "turns", "brief-export", "pending", "mint-run-042.json")));
+  // R22 (2026-10-02, coordinator-directed): gitignored scratch, not the tracked pending/ dir -- the
+  // queue now rides the brief-export family's own harness_runs row (queue.mjs), never a committed file.
+  assert.ok(outPath.endsWith(join("scripts", "_snapshots", "brief-export-queue", "mint-run-042.json")));
   assert.deepEqual(args, [
     "--out",
     outPath,

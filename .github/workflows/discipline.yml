@@ -228,16 +228,55 @@ jobs:
         with:
           node-version: '24'
 
+      # R22 (2026-10-01, docs-only fast path). Computes the SAME docs-only verdict
+      # fsi-app/.discipline/hooks/pre-push's own fast path computes, through the ONE shared primitive
+      # (fsi-app/.discipline/governance/docs-only-range.mjs) both surfaces call, so the two cannot drift.
+      # This is NOT the path-trigger filtering this file's own 2026-08-12 header rejected ("a skipped
+      # required check reports neither success nor failure"): this job still RUNS (Checkout, Setup Node,
+      # this step, and the Memory gate's sibling validate-commits job are untouched) and reports a real
+      # pass/fail; only the heavy steps below (the test suite, the meta-gates, the orphan census) are
+      # skipped on a provably docs-only diff. The rule checks this file runs on EVERY diff regardless
+      # (rule 022 + rule 014 in validate-commits, the consistency-backstop job's C3/C4/C5 reality checks)
+      # are untouched by this gate.
+      - name: Resolve docs-only fast path
+        id: docs_only
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          if [ "$EVENT_NAME" = "push" ]; then
+            case "$PUSH_BEFORE" in
+              0000000000000000000000000000000000000000|"")
+                RANGE="${PUSH_SHA}~1..${PUSH_SHA}" ;;
+              *)
+                RANGE="${PUSH_BEFORE}..${PUSH_SHA}" ;;
+            esac
+          else
+            git fetch --no-tags origin "$BASE_REF" || true
+            RANGE="origin/${BASE_REF}...${PR_HEAD}"
+          fi
+          if node fsi-app/.discipline/governance/docs-only-range.mjs --range="$RANGE"; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run discipline test suite
         # PARITY BY CONSTRUCTION (operator ruling 2026-07-04): the test list lives in ONE place —
         # fsi-app/.discipline/run-test-suite.sh — invoked by BOTH this CI job AND the pre-push hook (step 3),
         # so they can never drift. (Previously the two lists were maintained separately and a test present in
         # CI but missing from pre-push let a non-portable import pass locally and only red in CI.)
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: bash fsi-app/.discipline/run-test-suite.sh
 
       - name: Invariant-coverage meta-gate (per-invariant wiring of all 6 skills)
         # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)
         # nor exempt-with-reason, or if any anchor/baseline drifted. Makes "wired" non-optional.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/governance/invariant-coverage.mjs
 
       - name: Closure gate (never-run steps, stale NEXT rows, writer/reader orphans, lane-contract drift)
@@ -246,10 +285,12 @@ jobs:
         # never run, when a PROGRAM-BOARD.md row stays NEXT with no owning train, when a table created by a
         # recent migration has a writer and no reader (or the reverse), or when the lane-common-contract lacks
         # the plan's §0 done-conditions. Placed in THIS job (not fitness-check) because it needs the
-        # fetch-depth:0 checkout above for its git-log/blame/merge-base train-numbering — fitness-check's
-        # checkout is shallow (F9's tsc invocation is its only need). Every failure is ratchet-only: an
+        # fetch-depth:0 checkout above for its git-log/blame/merge-base train-numbering (fitness-check's
+        # own checkout also gained fetch-depth:0 under R22, 2026-10-01, but only for its docs-only fast
+        # path's git diff; this closure gate itself stays here, not duplicated there). Every failure is ratchet-only: an
         # allowlisted item fails once its own committed expiry train passes — see
         # fsi-app/.discipline/governance/closure-gate.mjs's header.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/governance/closure-gate.mjs
 
       - name: "Skill-contract drift (U8: skill/code citation pin, F25 W7.1)"
@@ -259,6 +300,7 @@ jobs:
         # before the orphan-module census, matching that census's own precedent: this `run:` line is also
         # how F25's findDispatchRoots() sees this file as wired (a workflow bare-path mention), so it does
         # not itself become an F25 UNWIRED MODULE violation once its W7.1 allowlist entry is removed.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/governance/skill-contract-map.mjs --check
 
       - name: Orphan-module + dead-export census (B1 Appendix A/B method — reports, never fails)
@@ -272,6 +314,7 @@ jobs:
         # whole-word scan can false-positive on a dynamic access pattern). This `run:` line is also how F25's
         # own findDispatchRoots() sees orphan-modules.mjs as wired (a workflow bare-path mention), so this
         # governance module does not itself become an F25 UNWIRED MODULE violation.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/governance/orphan-modules.mjs --all
 
   consistency-backstop:
@@ -323,9 +366,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
+        # R22 (2026-10-01): fetch-depth: 0 (was the implicit depth-1 default) -- the docs-only fast-path
+        # step below needs real history to diff origin/<base>..HEAD / <before>..<sha> against. Fitness
+        # functions themselves still only scan the checked-out working tree, not git history.
         uses: actions/checkout@v5
-        # Fitness functions scan the working tree at the checked-out SHA;
-        # a shallow checkout is sufficient since they do not consult git history.
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -334,10 +380,43 @@ jobs:
           cache: 'npm'
           cache-dependency-path: fsi-app/package-lock.json
 
+      # R22 (2026-10-01, docs-only fast path). Same shared primitive and same posture as the sibling gate
+      # in test-discipline-engine above: this job still runs (Checkout, Setup Node, this step) and reports
+      # a real pass/fail; only the heavy npm-install-dependent steps below are skipped on a provably
+      # docs-only diff. See that job's own "Resolve docs-only fast path" step for the full rationale
+      # (including why this is not the trigger-level path filtering this file's 2026-08-12 header rejected).
+      - name: Resolve docs-only fast path
+        id: docs_only
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          if [ "$EVENT_NAME" = "push" ]; then
+            case "$PUSH_BEFORE" in
+              0000000000000000000000000000000000000000|"")
+                RANGE="${PUSH_SHA}~1..${PUSH_SHA}" ;;
+              *)
+                RANGE="${PUSH_BEFORE}..${PUSH_SHA}" ;;
+            esac
+          else
+            git fetch --no-tags origin "$BASE_REF" || true
+            RANGE="origin/${BASE_REF}...${PR_HEAD}"
+          fi
+          if node fsi-app/.discipline/governance/docs-only-range.mjs --range="$RANGE"; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install fsi-app deps (required for F9 tsc invocation)
         # F9 (build-compiles) runs tsc --noEmit; tsc is the fsi-app local devDep.
         # Without npm install, F9 fails to invoke tsc on a fresh CI checkout.
         # Surfaced 2026-05-21 via failed CI on commit cf03400.
+        if: steps.docs_only.outputs.docs_only != 'true'
         working-directory: fsi-app
         run: npm ci --prefer-offline --no-audit
 
@@ -345,6 +424,7 @@ jobs:
         # Whole-repo glob + read + check across the F1-F9 function suite.
         # Exit 0 = no violations; exit 1 = at least one violation; exit 2 = engine error.
         # Violations print file:line with the function id, message, and source skill section.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/fitness/runner.mjs
 
       - name: actionlint (pinned, checksum-verified) over .github/workflows
@@ -363,6 +443,7 @@ jobs:
         # below, keeping the exit code, the pin, and the checksum verification. The 29 notes are recorded
         # in docs/tech-debt-log.md under "2026-09-20 (lane F52): workflow run-script shellcheck notes",
         # owner lane "W-shell" (unassigned); that lane switches -shellcheck= back on once fixed.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: |
           set -euo pipefail
           curl -sSL -o /tmp/actionlint.tar.gz \
@@ -392,6 +473,7 @@ jobs:
         # fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh, which this step and the pre-push hook's
         # step 3e both call, so the two surfaces cannot drift the way they did on PR #769 (CI failed
         # this step; the push gate never ran it at all). Do not inline the command back here.
+        if: steps.docs_only.outputs.docs_only != 'true'
         run: sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh
 
       - name: Behavioral goldens (scripts/verify/*.golden.mjs)
@@ -400,6 +482,7 @@ jobs:
         # step runs every golden (glob-by-construction in run-goldens.mjs) after npm ci (some goldens
         # import jiti). Pure goldens pass here; LIVE-DB goldens self-skip (exit 2) for want of secrets and
         # run for real in the data-audit lane. A real golden FAIL fails this job.
+        if: steps.docs_only.outputs.docs_only != 'true'
         working-directory: fsi-app
         run: node scripts/verify/run-goldens.mjs
 

@@ -168,6 +168,9 @@ jobs:
           # shellcheck disable=SC2086  # intentional word-split of the built argument list
           node $args
 
+      # R22 (2026-10-01, Actions-storage remediation): retention 7 days, down from 90 (the path was
+      # already scoped to this run's own dossiers output, not _snapshots). See
+      # docs/runbooks/fleet-budget-control.md.
       - name: Upload dossiers
         if: always()
         uses: actions/upload-artifact@v4
@@ -175,4 +178,4 @@ jobs:
           name: inaccessible-source-dossiers-${{ github.run_id }}
           path: fsi-app/dossiers/
           if-no-files-found: warn
-          retention-days: 90
+          retention-days: 7

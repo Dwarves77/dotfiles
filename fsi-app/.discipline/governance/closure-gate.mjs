@@ -428,6 +428,16 @@ const HARNESS_FAMILY_BY_WORKFLOW = {
   'ledger-consume.yml': 'ledger-consume',
   'change-detection.yml': 'change-detection',
   'propagation-drain.yml': 'propagation',
+  // R22 (2026-10-02): two real, pre-existing gaps this lane's ledger-source swap surfaced ([CONFIRMED]
+  // by the LIVE NEVER-RUN test going red on exactly these two workflows and no others): both already
+  // register their own harness family (downstream-chain.yml's own header, "THIS WORKFLOW itself is now
+  // a registered family (downstream-chain, scripts/harness-runs/downstream-chain)"; producers.yml calls
+  // `deliver-artifact-branch.sh "Producers (mode=..., producer=...)"` against
+  // scripts/harness-runs/producers/family.json), but neither was ever added here, so harnessArtifactExists
+  // always evaluated them against `family=undefined` and the retired dispatch-ledger.jsonl's own stale,
+  // hand-written `workflow:` rows were the ONLY evidence masking the gap.
+  'downstream-chain.yml': 'downstream-chain',
+  'producers.yml': 'producers',
 };
 
 function harnessArtifactExists(family) {
@@ -436,17 +446,22 @@ function harnessArtifactExists(family) {
   return trackedFiles().some((f) => f.startsWith(prefix) && /-run-\d+\.json$/.test(f));
 }
 
-/** Machine-readable dispatch ledger, seeded and appended by the coordinator. See ledger doc header. */
-function readDispatchLedger() {
-  const text = readRepo('docs/ops/dispatch-ledger.jsonl');
+// R22 (2026-10-02, coordinator-directed): docs/ops/dispatch-ledger.jsonl RETIRED as this gate's dispatch-
+// evidence source. A8b found it 11 days stale -- its only writer (maintenance.yml's own append step,
+// removed this same lane) had nowhere to land a new row once every family's artifact-branch-push path
+// closed (deliver-artifact-branch.sh lands straight into harness_runs since lane STATUTORY-WRITER,
+// 2026-09-29). The replacement is a COMMITTED SNAPSHOT of harness_runs itself
+// (fsi-app/.discipline/governance/harness-ledger-export.json), the SAME "credentialed refresh, secret-
+// less check" pattern db-catalog.json already uses -- see scripts/lib/export-harness-ledger.mjs's own
+// header and docs/runbooks/fleet-budget-control.md for the regeneration rule (the coordinator's DB
+// executor regenerates it each session). An absent or malformed export file is zero evidence from this
+// source, exactly like the retired jsonl's own missing-file posture -- never a hard failure.
+function readHarnessLedgerExport() {
+  const text = readRepo('fsi-app/.discipline/governance/harness-ledger-export.json');
   if (!text) return [];
-  const out = [];
-  for (const line of text.split('\n')) {
-    const t = line.trim();
-    if (!t) continue;
-    try { out.push(JSON.parse(t)); } catch { /* malformed line — ignored, not fatal to the gate */ }
-  }
-  return out;
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { return []; }
+  return Array.isArray(parsed?.rows) ? parsed.rows : [];
 }
 
 function runbookHasRecord(runbookText, stepId) {
@@ -465,7 +480,7 @@ function runbookHasRecord(runbookText, stepId) {
 function gatherNeverRunTargets() {
   const maintYaml = readRepo('.github/workflows/maintenance.yml') || '';
   const runbookText = readRepo('docs/runbooks/MAINTENANCE-RUNBOOK.md') || '';
-  const ledger = readDispatchLedger();
+  const ledger = readHarnessLedgerExport();
   const targets = [];
 
   const maintSteps = parseMaintenanceSteps(maintYaml);
@@ -476,13 +491,20 @@ function gatherNeverRunTargets() {
   for (const step of maintSteps) {
     const id = `maintenance:${step}`;
     const intro = maintIntroIndex.get(step) ?? null;
-    // A ledger row for step:"all" is a single dispatch that ran maintenance.yml's own `all` option —
-    // "every step dry in one dispatch" (docs/runbooks/MAINTENANCE-RUNBOOK.md) — so it is real dispatch
-    // evidence for every individual step it covered, not only for the literal step id. Fixed train 48
-    // (ASSEMBLE-48): before this, a maintenance:all dry run left every individual maintenance:* step
-    // still reading NEVER-RUN despite the dispatch having genuinely exercised it, forcing a re-grant the
-    // ratchet exists to prevent instead of recognizing evidence that already existed.
-    const ledgerEntry = ledger.some((e) => e.workflow === 'maintenance' && (e.step === step || e.step === 'all') && e.outcome && e.outcome !== 'error');
+    // A ledger row for config.step:"all" is a single dispatch that ran maintenance.yml's own `all`
+    // option ("every step dry in one dispatch", docs/runbooks/MAINTENANCE-RUNBOOK.md), so it is real
+    // dispatch evidence for every individual step it covered, not only for the literal step id. Fixed
+    // train 48 (ASSEMBLE-48): before this, a maintenance:all dry run left every individual
+    // maintenance:* step still reading NEVER-RUN despite the dispatch having genuinely exercised it,
+    // forcing a re-grant the ratchet exists to prevent instead of recognizing evidence that already
+    // existed. R22 (2026-10-02): reads the harness-ledger-export's own `config.step` (every maintenance
+    // row carries it, write-run-artifact.mjs's own `config: {step, mode, arg}`) rather than the retired
+    // jsonl's `step` field; `finished_at` present is this source's own "ran" signal, an outcome/error
+    // distinction the old ledger made that is NOT reproduced here (named, not silently dropped: a
+    // write-run-artifact.mjs row lands `if: always()` regardless of a sub-step's own exit code, so
+    // "landed" is weaker evidence than the old "outcome !== error", a deliberate simplification this
+    // lane accepts in exchange for a live, never-stale source).
+    const ledgerEntry = ledger.some((e) => e.family === 'maintenance' && (e.config?.step === step || e.config?.step === 'all') && e.finished_at);
     targets.push({
       id,
       introducedTrain: trainOf(intro),
@@ -508,7 +530,13 @@ function gatherNeverRunTargets() {
     const id = `workflow:${name}`;
     const intro = fileIntroIndex.get(f) ?? null;
     const family = HARNESS_FAMILY_BY_WORKFLOW[name];
-    const ledgerEntry = ledger.some((e) => e.workflow === name.replace(/\.ya?ml$/, '') && e.outcome && e.outcome !== 'error');
+    // R22 (2026-10-02): the retired jsonl's `workflow` field (the dispatching workflow's own name, e.g.
+    // "population-turn") never existed on a harness_runs row; the equivalent join key is this SAME
+    // `family` this function already resolves for the harnessArtifact check two lines below (both
+    // evidence sources now key on the harness family, never the workflow filename). A workflow with no
+    // family mapping (HARNESS_FAMILY_BY_WORKFLOW has no entry) gets no ledger evidence from this source
+    // either, unchanged from before this lane.
+    const ledgerEntry = family != null && ledger.some((e) => e.family === family && e.finished_at);
     targets.push({
       id,
       introducedTrain: trainOf(intro),
@@ -592,7 +620,22 @@ function gatherCodeFiles() {
 // match now recognizes a maintenance:all dispatch row as evidence for every individual step it dry-ran
 // (see that function's own comment) — the mechanism that actually let all nine of the above resolve on
 // real dispatch evidence rather than a tenth re-grant.
-export const NEVER_RUN_ALLOWLIST = {};
+export const NEVER_RUN_ALLOWLIST = {
+  // R22 (2026-10-02): both targets are real, registered harness families (downstream-chain.yml's own
+  // header; producers.yml's deliver-artifact-branch.sh call against scripts/harness-runs/producers/
+  // family.json) that this lane's ledger-source swap correctly stopped crediting with the retired
+  // dispatch-ledger.jsonl's stale, hand-written `workflow:` rows (A8b: 11 days stale). Neither ever had
+  // a historical git-tracked harness-run file (harnessArtifactExists is false for both), and the
+  // replacement export (fsi-app/.discipline/governance/harness-ledger-export.json) does not exist yet --
+  // this lane has no DB credentials to generate it for real (CLAUDE.md rule 2: never fabricate rows).
+  // Expires at train 80 (currentTrain is 71 as of this entry): the coordinator's DB executor regenerates
+  // the export (docs/runbooks/fleet-budget-control.md) well before then, at which point either workflow
+  // having actually dispatched since its own introduction lands real evidence and this entry goes stale
+  // (removed per the allowlistIssues audit above), or it genuinely has not dispatched and NEVER-RUN is
+  // right to flag it for real.
+  'workflow:downstream-chain.yml': { expiryTrain: 80, disposition: 'awaiting first harness-ledger-export.json regeneration (R22, 2026-10-02); real family, no historical tracked artifact.' },
+  'workflow:producers.yml': { expiryTrain: 80, disposition: 'awaiting first harness-ledger-export.json regeneration (R22, 2026-10-02); real family, no historical tracked artifact.' },
+};
 
 // Seeded 2026-09-04 from a LIVE run over docs/PROGRAM-BOARD.md (10 rows found — the plan's own §"Why
 // the previous plans stopped short" cites "12 NEXT rows" system-wide; this gate scopes strictly to rows

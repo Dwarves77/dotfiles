@@ -128,7 +128,30 @@ pre_push_cleanup() {
 }
 trap pre_push_cleanup EXIT
 
-echo "[discipline pre-push] running 4-step CI-parity check..."
+# ---------------------------------------------------------------------------
+# Step 0c: docs-only fast path (R22, 2026-10-01, ACTIONS-STORAGE-AND-DOCS-ONLY-PUSH)
+# ---------------------------------------------------------------------------
+# When the push's diff against origin/master touches ONLY docs/** and *.md files, the heavy steps below
+# (3, 3b-3g, 4: the test suite, the meta-gates, npm-dependent tests, goldens, tsc) add nothing a docs-only
+# change could break, and cost real minutes on every such push. The rule checks that DO apply to a
+# docs-only diff -- steps 1, 2, 2b, 2c (untracked-critical, the consistency runner, the memory gate, the
+# discipline rules in CI mode, which includes rule 022's no-dash-glyphs check and rule 014's inventory
+# consistency) -- still run unconditionally below; only steps 3 onward are skipped. The SAME filter
+# .github/workflows/discipline.yml's own "Resolve docs-only fast path" steps compute, through the ONE
+# shared primitive both surfaces call (fsi-app/.discipline/governance/docs-only-range.mjs), so pre-push
+# and CI can never silently disagree about what counts as docs-only.
+DOCS_ONLY=false
+if node fsi-app/.discipline/governance/docs-only-range.mjs --range=origin/master..HEAD >"$PRE_PUSH_LOG_DIR/docs-only.log" 2>&1; then
+  DOCS_ONLY=true
+fi
+cat "$PRE_PUSH_LOG_DIR/docs-only.log"
+if [ "$DOCS_ONLY" = "true" ]; then
+  echo "[discipline pre-push] step 0c (docs-only fast path): every changed file is docs/** or *.md -- skipping steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc); steps 1/2/2b/2c (rule checks: consistency, memory gate, rule 022 + rule 014) still run."
+else
+  echo "[discipline pre-push] step 0c (docs-only fast path): not docs-only (code/workflow files changed) -- running the full 4-step CI-parity check."
+fi
+
+echo "[discipline pre-push] running CI-parity check..."
 
 # ---------------------------------------------------------------------------
 # Step 1: untracked-file gate for critical surfaces
@@ -224,6 +247,17 @@ if ! node fsi-app/.discipline/runner.mjs --mode=ci >"$PRE_PUSH_LOG_DIR/rules.log
   exit 1
 fi
 echo "[discipline pre-push] step 2c (discipline rules, CI mode, CI parity): OK"
+
+# ---------------------------------------------------------------------------
+# Steps 3 through 4: skipped entirely on the docs-only fast path (step 0c above). Everything from here
+# to "Step 4" is the heavy, code-shaped half of this hook (the test suite, the meta-gates, npm-dependent
+# tests, goldens, tsc) -- none of it can fail on a diff that touched only docs/** and *.md files, and all
+# of it costs real wall-clock time on every push. Wrapped in ONE guard rather than restructuring each
+# step individually, so the step bodies below are byte-for-byte what they were before R22.
+# ---------------------------------------------------------------------------
+if [ "$DOCS_ONLY" = "true" ]; then
+  echo "[discipline pre-push] steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc): SKIPPED (docs-only fast path, step 0c)."
+else
 
 # ---------------------------------------------------------------------------
 # Step 3: discipline + fitness tests — the SAME canonical suite CI runs
@@ -371,5 +405,8 @@ if ! (cd fsi-app && npx --no-install tsc --noEmit) >"$PRE_PUSH_LOG_DIR/tsc.log" 
 fi
 echo "[discipline pre-push] step 4 (tsc --noEmit): OK"
 
-echo "[discipline pre-push] all 4 checks pass; push proceeding."
+fi
+# end of the docs-only guard opened before Step 3 above
+
+echo "[discipline pre-push] all checks pass; push proceeding."
 exit 0

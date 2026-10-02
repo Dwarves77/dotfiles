@@ -4015,6 +4015,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/market/headline-series-select.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/market/market-rail-select.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -6262,6 +6271,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/export-harness-ledger.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/fetch-now-decision.selftest.mjs",
       "kinds": [
         "PROOF"
@@ -7784,6 +7802,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/turns/brief-export/queue.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/turns/commit-brief-apply-artifact.test.mjs",
       "kinds": [
         "PROOF"
@@ -7919,6 +7948,17 @@
     },
     {
       "path": "fsi-app/scripts/turns/last-turn-date.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/turns/read-brief-export-queue.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -11881,8 +11921,8 @@
     }
   ],
   "summary": {
-    "governed_files": 1113,
-    "covered": 1068,
+    "governed_files": 1117,
+    "covered": 1072,
     "exempt": 45,
     "gaps": 0,
     "orphaned_proofs": 0,

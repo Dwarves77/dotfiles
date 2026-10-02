@@ -327,24 +327,28 @@ jobs:
           fi
 
       # The corpus file and run-extraction.mjs's events/skipped outputs are this turn's FULL TRACES (the
-      # forward-events artifact's full_trace_refs point at them). They live under scripts/_snapshots/
-      # (gitignored) so the upload-artifact step below retains them for 90 days — forward-events-run-002's
-      # refs pointed at /tmp on a runner that no longer exists, so its 276 skip reasons were unreadable.
+      # forward-events artifact's full_trace_refs point at them). R22 (2026-10-01, Actions-storage
+      # remediation): moved from scripts/_snapshots/turn-<run_id>/ (gitignored scratch, regenerable per
+      # CLAUDE.md rule 5, and now a forbidden path substring per F68) to
+      # scripts/harness-runs/corpus-turn/traces/turn-<run_id>/, the same family directory the harness
+      # artifact itself lives in, so the upload-artifact step below retains them for 7 days (down from
+      # 90) without re-introducing the _snapshots class. forward-events-run-002's refs pointed at /tmp on
+      # a runner that no longer exists, so its 276 skip reasons were unreadable; this still fixes that.
       - name: run-extraction.mjs (forward-events)
         if: steps.scope.outputs.has_scope == 'true'
         run: |
-          mkdir -p "scripts/_snapshots/turn-${{ github.run_id }}"
-          cp /tmp/turn-corpus.json "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
+          mkdir -p "scripts/harness-runs/corpus-turn/traces/turn-${{ github.run_id }}"
+          cp /tmp/turn-corpus.json "scripts/harness-runs/corpus-turn/traces/turn-${{ github.run_id }}/turn-corpus.json"
           if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
-            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json" --execute
+            node scripts/forward-events/run-extraction.mjs --input "scripts/harness-runs/corpus-turn/traces/turn-${{ github.run_id }}/turn-corpus.json" --execute
           else
-            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
+            node scripts/forward-events/run-extraction.mjs --input "scripts/harness-runs/corpus-turn/traces/turn-${{ github.run_id }}/turn-corpus.json"
           fi
 
       # ── 5. load the extracted events — apply mode only (dry mode's run-extraction.mjs wrote no events file) ──
       - name: apply-extraction-output.mjs
         if: steps.turn.outputs.mode == 'apply' && steps.scope.outputs.has_scope == 'true'
-        run: node scripts/turns/apply-extraction-output.mjs --events "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.events.json" --execute
+        run: node scripts/turns/apply-extraction-output.mjs --events "scripts/harness-runs/corpus-turn/traces/turn-${{ github.run_id }}/turn-corpus.events.json" --execute
 
       - name: Resolve --signals flag
         id: signals
@@ -404,29 +408,37 @@ jobs:
           CT_HAS_SCOPE: ${{ steps.scope.outputs.has_scope }}
           CT_STARTED_AT: ${{ steps.turn.outputs.started_at }}
           CT_TICKETS_PATH: ${{ steps.scope.outputs.tickets_path }}
-          CT_CORPUS_PATH: scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json
+          CT_CORPUS_PATH: scripts/harness-runs/corpus-turn/traces/turn-${{ github.run_id }}/turn-corpus.json
           CT_CONSUMED: ${{ steps.turn.outputs.mode == 'apply' && steps.scope.outputs.selection == 'tickets' && steps.scope.outputs.has_scope == 'true' }}
           CT_SIGNALS: ${{ steps.signals.outputs.flag != '' }}
         run: node scripts/turns/emit-corpus-turn-artifact.mjs
 
       # ── commit the harness-run artifacts to the turn branch ─────────────────────────────────────────
-      # scripts/_snapshots/** is gitignored (fsi-app/scripts/_snapshots/ in the repo-root .gitignore) — the
-      # ruling is to keep it ignored rather than fight the rule, so its contents ride a workflow artifact
-      # instead (next step), never a commit.
+      # scripts/harness-runs/** is NOT gitignored, but this family's own posture (every sibling family) is
+      # to land via deliver-artifact-branch.sh (a DB write, no branch/commit/push) and let a workflow
+      # artifact carry the raw files for short-lived human inspection instead.
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
         run: |
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
-      - name: Upload scripts/_snapshots as a workflow artifact
+      # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/
+      # tree to this run's own harness artifacts (corpus-turn, forward-events); the forward-events
+      # artifact's full_trace_refs now point under scripts/harness-runs/corpus-turn/traces/ (moved out of
+      # _snapshots/ above), so they stay resolvable from this same upload without re-introducing the
+      # _snapshots class or re-uploading every other family's guarded-write snapshots. Retention 7 days,
+      # down from 90. See docs/runbooks/fleet-budget-control.md.
+      - name: Upload this turn's harness artifacts and traces as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: corpus-turn-snapshots-${{ github.run_id }}
-          path: fsi-app/scripts/_snapshots/
+          name: corpus-turn-${{ github.run_id }}
+          path: |
+            fsi-app/scripts/harness-runs/corpus-turn/
+            fsi-app/scripts/harness-runs/forward-events/
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7
 
       - name: Land this turn's harness-run artifact(s) into harness_runs
         if: always()

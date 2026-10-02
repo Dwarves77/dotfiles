@@ -226,14 +226,25 @@ export function renderBriefsOwedLines(result) {
 const BRIEFS_PENDING_PROVENANCE_NOTE =
   "outcomes are read from scripts/harness-runs/brief-apply/*.json run artifacts, per ADR-028: " +
   "item_grade is a CACHE of the brief-runtime state, never the signal this entry itself reads.";
-// [HYPOTHESIS] (reviewer, task 3.5 fix round 1, not yet independently verified against a real unmerged
-// branch): population-turn.yml pushes each run's own mint-run/brief-apply artifacts to a
-// population/<run_id> branch before opening a PR (deliver-artifact-branch.sh); a checkout that has not
-// merged that branch yet cannot see the artifacts sitting on it, so this entry can only under-count
-// staleness on a fresh checkout, never over-count it -- a delayed red, not a fabricated one.
+// [REFUTED] (R22, 2026-10-02, coordinator-directed correction of the task 3.5 fix round 1 hypothesis
+// above, per CLAUDE.md rule 13's corollary -- corrected in place, not silently dropped): the premise this
+// caveat rested on (population-turn.yml pushes each run's own mint-run/brief-apply artifacts to a
+// population/<run_id> branch before a checkout can see them) no longer holds. deliver-artifact-branch.sh
+// has landed straight into harness_runs with no branch/commit/push since lane STATUTORY-WRITER
+// (2026-09-29), and this lane removed the LAST git-branch-push code still calling it (population-turn.yml,
+// ledger-consume.yml, brief-export.yml, maintenance.yml, same date). A fresh checkout now reads
+// scripts/harness-runs/mint/ and brief-apply/ artifacts that are themselves local-disk-only on the
+// RUNNER, never committed at all; the live, durable copy of every row is harness_runs itself (migration
+// 331), so a session reading THIS REPORT off a checkout, rather than the database, is working from local
+// scratch that may be absent entirely, not merely delayed. Left here, refuted-in-place, as the paper
+// trail; no replacement caveat is needed because the predicate's own two inputs (readRunHistory of
+// scripts/harness-runs/mint and brief-apply) are the SAME local-scratch shape either way -- this report
+// has never been a database-backed read of those two run histories, before or after this correction.
 const BRIEFS_PENDING_VISIBILITY_CAVEAT =
-  "[HYPOTHESIS] on a fresh checkout, artifacts still sitting on an unmerged population/<run_id> branch " +
-  "are not visible to this read, which can only DELAY a red past its true onset; it never fabricates one.";
+  "[REFUTED, 2026-10-02] the prior 'unmerged branch' caveat no longer applies: no family pushes an " +
+  "artifact branch any more (harness_runs is the durable record). This read is still LOCAL-SCRATCH " +
+  "(scripts/harness-runs/mint + brief-apply on whatever checkout runs it), which can be absent on a " +
+  "fresh checkout, not merely delayed.";
 
 /**
  * Task 3.5 fix round 1 (coordinator review): the "briefs pending" entry's own `describeState`. The
@@ -252,8 +263,8 @@ export function describeBriefsPendingState(state, counts) {
   } else {
     lines.push(
       `${counts.rows} record item(s) minted before the latest population turn have no brief-apply outcome; ` +
-        "drain the queue: export parts in scripts/turns/brief-export/pending/, author (record-briefs, task 3.2), " +
-        "apply via brief-apply.yml (task 3.4).",
+        "drain the queue: list it (scripts/turns/read-brief-export-queue.mjs --list, R22 2026-10-02 -- " +
+        "harness_runs, never a file), author (record-briefs, task 3.2), apply via brief-apply.yml (task 3.4).",
     );
   }
   lines.push(BRIEFS_PENDING_PROVENANCE_NOTE);

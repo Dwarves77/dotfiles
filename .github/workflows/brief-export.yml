@@ -334,12 +334,10 @@ jobs:
         run: |
           echo "brief-export: no ids (explicit or auto-selected), nothing exported this run."
 
-      # Record this run's own harness-run artifact (brief-export family, lane M4, 2026-09-20), BEFORE the
-      # commit step below so the SAME commit/PR carries both the export part-file (if any) and this run's
-      # harness artifact -- one commit/PR per run, matching this workflow's own long-standing posture,
-      # never two competing branches for one run's output. Always, even a fully-skipped/zero-id run --
-      # "record it every batch, even when zero" (MINT-RUNBOOK.md section 5), the same posture
-      # emit-downstream-chain-artifact.mjs's own caller (downstream-chain.yml) already holds.
+      # Record this run's own harness-run artifact (brief-export family, lane M4, 2026-09-20). Always,
+      # even a fully-skipped/zero-id run -- "record it every batch, even when zero" (MINT-RUNBOOK.md
+      # section 5), the same posture emit-downstream-chain-artifact.mjs's own caller (downstream-chain.yml)
+      # already holds.
       - name: Record this run's own harness-run artifact (brief-export family)
         if: always()
         env:
@@ -349,56 +347,46 @@ jobs:
           BE_UPSTREAM_NAME: ${{ env.RUN_UPSTREAM_NAME }}
           BE_UPSTREAM_RUN_ID: ${{ env.RUN_UPSTREAM_RUN_ID }}
           BE_IDS: ${{ steps.resolve.outputs.ids }}
-          # batch_path/branch record what THIS run actually produced (the existing part-file export and
-          # its PR branch, set below) -- never the record-briefs batch-skeleton shape named in this
-          # file's own header "NOT BUILT BY THIS LANE" note, which this lane does not build.
+          # batch_path records what THIS run actually produced (the existing part-file export, written to
+          # the runner's own disk) -- never the record-briefs batch-skeleton shape named in this file's own
+          # header "NOT BUILT BY THIS LANE" note, which this lane does not build. BE_BRANCH removed (R22,
+          # 2026-10-02, coordinator correction): this run no longer pushes a branch (see the removed
+          # commit step below), so recording one here would make the harness artifact claim a branch that
+          # does not exist; emit-brief-export-artifact.mjs's own `branch || null` default now honestly
+          # records null.
           BE_BATCH_PATH: ${{ steps.resolve.outputs.out_base }}
-          BE_BRANCH: brief-export/${{ github.run_id }}
         run: node scripts/turns/emit-brief-export-artifact.mjs
 
-      # ONE commit/PR for whatever this run produced (the export part file, when any, AND this run's own
-      # harness artifact, always), same shape as ledger-consume.yml's own step of the same name (see that
-      # workflow's own comment for exactly why: `git add -f` for a scripts/_snapshots/ path,
-      # rebase-onto-master-before-push, deliver-artifact-branch.sh's PR-or-tracked-issue fallback).
-      - name: Commit this run's exported part(s) and harness artifact, and open a PR
+      # R22 (2026-10-02, coordinator correction): removed the git checkout -b / commit / fetch+rebase /
+      # push / PR-body sequence that used to precede this call. deliver-artifact-branch.sh's own header
+      # has said since lane STATUTORY-WRITER (2026-09-29) that it does "no git add, no branch, no commit,
+      # no fetch, no rebase, no push, no PR, anywhere in this pipeline" -- the branch/commit/push code
+      # above was dead relative to that rewrite (it still ran, and still pushed a branch nobody reads per
+      # the operator's own ruling, "not once that I need a pull request from GitHub", quoted in that
+      # script's header; but the script's OWN delivery is the DB write this call makes, not anything the
+      # branch push produced). Same single-label call shape every other caller in this repo now uses
+      # (change-detection.yml, corpus-turn.yml, fetch-drain.yml, gate-a-rescan.yml, source-sweep.yml).
+      - name: Land this run's harness-run artifact into harness_runs
         if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ls scripts/_snapshots/brief-export/export-${{ github.run_id }}-part*.json >/dev/null 2>&1; then
-            git add -f scripts/_snapshots/brief-export/export-${{ github.run_id }}-part*.json
-          fi
-          git add scripts/harness-runs/brief-export
-          if git diff --cached --quiet; then
-            echo "No exported part file or harness artifact to commit this run."
-            exit 0
-          fi
-          branch="brief-export/${{ github.run_id }}"
-          git checkout -b "$branch"
-          git commit -m "brief-export: run ${{ github.run_id }}, ids=${{ steps.resolve.outputs.ids }}"
-          # Same BRANCH-BASE rebase every other runtime workflow in this repo does before pushing its
-          # artifact branch (see population-turn.yml / ledger-consume.yml's own comment for the failure
-          # this avoids: a workflow-file change landing on master mid-run).
-          git fetch --no-tags --depth=50 origin master
-          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
-          git push origin HEAD:"$branch"
-          {
-            printf 'Automated brief export (run %s, trigger %s).\n\n' "${{ github.run_id }}" "${{ github.event_name }}"
-            printf 'ids: %s\nlimit: %s\nchar_budget: %s\n\n' "${{ steps.resolve.outputs.ids }}" "$RUN_LIMIT" "$RUN_CHAR_BUDGET"
-            printf 'Lands: numbered, char-budgeted export part(s) under `scripts/_snapshots/brief-export/` (when ids resolved), and this run'"'"'s own harness-run artifact under `scripts/harness-runs/brief-export/` (every run, per MINT-RUNBOOK.md section 5). Each item carries its stored claims/sections plus its FULL captured agent_run_searches pool text (`pool: [{url, text}]`), for a session lane to author a brief from stored source material (Part 3 task 3.1 of the W9 brief-chain plan). A part flagged `oversize: true` carries exactly one item whose own size exceeds --char-budget, exported whole rather than truncated.\n'
-          } > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Brief export: run ${{ github.run_id }}" /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "Brief export: run ${{ github.run_id }}"
 
-      - name: Upload exported part(s) and run log as a workflow artifact
+      # R22 (2026-10-01, Actions-storage remediation): this run's own harness artifact plus logs, not the
+      # whole fsi-app/scripts/_snapshots/brief-export/ tree, at a 7-day retention (down from 90). The
+      # export part file this run may have written (scripts/_snapshots/brief-export/export-<run_id>-
+      # part*.json) no longer rides a git branch (R22, 2026-10-02, coordinator correction, see the removed
+      # commit step above) OR this artifact (F68 forbids any upload path containing _snapshots); it
+      # survives only on the runner's own disk for the duration of this job. See
+      # docs/runbooks/fleet-budget-control.md and this lane's session-log addendum for the open question
+      # this leaves (does the operator want that part file delivered some other way).
+      - name: Upload run artifact and run log as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: brief-export-${{ github.run_id }}
           path: |
-            fsi-app/scripts/_snapshots/brief-export/
+            fsi-app/scripts/harness-runs/brief-export/
             /tmp/brief-export.log
             /tmp/select.log
           if-no-files-found: ignore
-          retention-days: 90
+          retention-days: 7
