@@ -39,7 +39,14 @@ export async function GET(request: NextRequest) {
 
   // 1. Load the full edge set (any origin — curated edges mark explicit linkage), paged past the
   // 1000-row client cap.
-  const edgeRows: any[] = [];
+  interface EdgeRow {
+    source_item_id: string;
+    target_item_id: string;
+    origin: string;
+    basis: unknown;
+    score: number | null;
+  }
+  const edgeRows: EdgeRow[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data, error } = await supabase
       .from("item_cross_references")
@@ -56,7 +63,15 @@ export async function GET(request: NextRequest) {
   // 2. Fetch metadata for only the items the edges touch (live corpus — archived items drop out and
   // pair-view drops their pairs), chunked to keep the .in() list bounded.
   const ids = [...new Set(edgeRows.flatMap((e) => [e.source_item_id, e.target_item_id]))];
-  const itemsById = new Map<string, any>();
+  interface ItemRow {
+    id: string;
+    title?: string;
+    legacy_id?: string | null;
+    priority?: string;
+    intersection_summary?: string | null;
+    item_type?: string;
+  }
+  const itemsById = new Map<string, ItemRow>();
   for (let i = 0; i < ids.length; i += 200) {
     const { data, error } = await supabase
       .from("intelligence_items")

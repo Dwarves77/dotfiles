@@ -233,8 +233,8 @@ export async function POST(request: NextRequest) {
           inserted.id,
           biasTags
         );
-      } catch (e: any) {
-        console.warn("Bias-tag write failed after source insert:", e.message);
+      } catch (e) {
+        console.warn("Bias-tag write failed after source insert:", e instanceof Error ? e.message : String(e));
       }
     }
 

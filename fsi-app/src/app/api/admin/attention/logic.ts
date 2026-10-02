@@ -44,6 +44,8 @@ export type AttentionFetchResult = { row: AttentionCounts; rpcError: string | nu
 // positive cache; APP_DATA_TAG aligns with existing mutation revalidation.
 export const fetchAttentionCounts = unstable_cache(
   async (_userId: string): Promise<AttentionFetchResult> => {
+    void _userId; // unused in the body by design: unstable_cache keys the cache entry off this
+    // argument's value (see the per-admin cache-key comment above), the callback never reads it.
     const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc("admin_attention_counts");
     if (error) return { row: EMPTY_COUNTS, rpcError: error.message };

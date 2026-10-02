@@ -58,9 +58,9 @@ export async function POST(
       },
       body: JSON.stringify({ sourceUrl: source.url }),
     });
-  } catch (e: any) {
+  } catch (e) {
     return NextResponse.json(
-      { success: false, error: `Agent fetch failed: ${e.message}` },
+      { success: false, error: `Agent fetch failed: ${e instanceof Error ? e.message : String(e)}` },
       { status: 502, headers: rateLimitHeaders(auth.userId) }
     );
   }

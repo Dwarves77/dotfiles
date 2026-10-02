@@ -25,7 +25,6 @@ import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 async function handlePOST(request: NextRequest) {
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return auth;
-  const { supabase: gateClient } = auth;
 
   let itemId: string | undefined;
   let sourceUrl: string | undefined;

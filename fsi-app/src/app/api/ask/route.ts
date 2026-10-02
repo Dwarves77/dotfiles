@@ -285,7 +285,10 @@ async function handlePOST(request: NextRequest) {
 
     // Supabase returns the joined `source` as `{...} | {...}[]` in the
     // generated types. Normalize to a single object for downstream use.
-    const items: FetchedItem[] = (itemsRaw ?? []).map((row: any) => ({
+    type RawFetchedRow = Omit<FetchedItem, "source"> & {
+      source: FetchedItem["source"] | NonNullable<FetchedItem["source"]>[];
+    };
+    const items: FetchedItem[] = ((itemsRaw ?? []) as RawFetchedRow[]).map((row) => ({
       ...row,
       source: Array.isArray(row.source) ? row.source[0] ?? null : row.source ?? null,
     }));
@@ -617,12 +620,12 @@ ${operationsContext}`;
       },
       { headers: rateLimitHeaders(auth.userId) }
     );
-  } catch (e: any) {
+  } catch (e) {
     // R0.2: this catch converts the failure to a 500 for the caller, so the
     // withErrorCapture wrapper below never sees it — record it here before
     // responding. captureError is fail-open (never throws).
     await captureError({ side: "server", route: "/api/ask", error: e });
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
 

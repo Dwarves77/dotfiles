@@ -60,14 +60,26 @@ async function requireAdmin(request: NextRequest) {
  *  the prior comment here claiming otherwise was wrong). `column` is the value collected per row (e.g. "id"
  *  for intelligence_items, "intelligence_item_id" for corpus_turn_requests: the two tables' own row identity
  *  is not the value this route needs from them). */
+// The minimal chainable shape every `applyFilter` callback below actually uses: a Postgrest
+// select query that supports .eq/.is (the two filters this route's two call sites chain) and is
+// paged with .range().
+type FilterableQuery = {
+  eq(column: string, value: unknown): FilterableQuery;
+  is(column: string, value: unknown): FilterableQuery;
+  range(from: number, to: number): PromiseLike<{ data: Record<string, string>[] | null; error: { message: string } | null }>;
+};
+
 async function readAllValues(
   supabase: ServiceSupabase,
   table: string,
   column: string,
-  applyFilter: (q: any) => any
+  applyFilter: (q: FilterableQuery) => FilterableQuery
 ): Promise<string[]> {
   const rows = await fetchAllRows<Record<string, string>>(
-    (from, to) => applyFilter(supabase.from(table).select(column).order(column, { ascending: true })).range(from, to),
+    (from, to) =>
+      applyFilter(
+        supabase.from(table).select(column).order(column, { ascending: true }) as unknown as FilterableQuery
+      ).range(from, to),
     { pageSize: PAGE_SIZE }
   );
   return rows.map((row) => row[column]);

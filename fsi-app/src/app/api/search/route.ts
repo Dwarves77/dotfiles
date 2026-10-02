@@ -52,8 +52,8 @@ async function handleGET(request: NextRequest) {
     // the four methods SearchSupabaseClient declares.
     const results = await runSearch(supabase as unknown as SearchSupabaseClient, q);
     return NextResponse.json({ query: q, results }, { headers: rateLimitHeaders(auth.userId) });
-  } catch (e: any) {
-    console.warn(`[search] unexpected error: ${e?.message ?? e}`);
+  } catch (e) {
+    console.warn(`[search] unexpected error: ${e instanceof Error ? e.message : String(e)}`);
     return NextResponse.json({ query: q, results: [] }, { headers: rateLimitHeaders(auth.userId) });
   }
 }

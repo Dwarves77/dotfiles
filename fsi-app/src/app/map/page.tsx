@@ -20,6 +20,30 @@ import { countNoun, formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
 import type { CommunityActivityRow } from "@/components/map/MapView";
 
+/**
+ * The page's data read, with its own timing.
+ *
+ * DELIBERATELY NOT INLINE IN THE COMPONENT. `react-hooks/purity` flags `Date.now()` called
+ * inside a component body (watchlist/page.tsx's header is the canonical rationale this repo
+ * carries for the pattern). Hosting the timer in a plain async function keeps the observability
+ * and drops the violation instead of suppressing it.
+ */
+async function loadMapPageData(searchParamsPromise: Promise<{ region?: string }>) {
+  const t0 = Date.now();
+  // Phase 6 (2026-05-25): community activity by region, aggregated
+  // top-level community_posts by community_groups.region; powers the
+  // community-activity dot overlay on the map.
+  const supabase = await createSupabaseServerClient();
+  const [{ region: regionParam }, data, coverageGaps, communityActivity] = await Promise.all([
+    searchParamsPromise,
+    getListingsMapData(),
+    getCoverageGaps(),
+    fetchCommunityActivityByRegion(supabase),
+  ]);
+  console.log(`[perf] /map data ${Date.now() - t0}ms`);
+  return { regionParam, data, coverageGaps, communityActivity };
+}
+
 export default async function MapRoute({
   searchParams,
 }: {
@@ -30,18 +54,7 @@ export default async function MapRoute({
   // group id, resolved client-side in MapPageView) and is untouched.
   searchParams: Promise<{ region?: string }>;
 }) {
-  const t0 = Date.now();
-  // Phase 6 (2026-05-25): community activity by region, aggregated
-  // top-level community_posts by community_groups.region; powers the
-  // community-activity dot overlay on the map.
-  const supabase = await createSupabaseServerClient();
-  const [{ region: regionParam }, data, coverageGaps, communityActivity] = await Promise.all([
-    searchParams,
-    getListingsMapData(),
-    getCoverageGaps(),
-    fetchCommunityActivityByRegion(supabase),
-  ]);
-  console.log(`[perf] /map data ${Date.now() - t0}ms`);
+  const { regionParam, data, coverageGaps, communityActivity } = await loadMapPageData(searchParams);
 
   // COUNTS-61 (production defect, click-through audit 2026-09-08): both jurisdiction figures below
   // come from src/lib/map/jurisdiction-rollup.ts, the SAME module <MapPageView/> rolls its register

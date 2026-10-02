@@ -6,17 +6,18 @@ import { formatLocaleDate } from "@/lib/format";
 import type { ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
 import type { AssumptionRegisterRow } from "@/components/admin/AssumptionRegisterPanel";
 
-export default async function AdminPage() {
+/**
+ * The whole page's data read, with its own timing.
+ *
+ * DELIBERATELY NOT INLINE IN THE COMPONENT. `react-hooks/purity` flags `Date.now()` (and any
+ * nested helper that calls it) inside a component body, and it is right to: a value read from
+ * the clock during render is not idempotent. Same fix watchlist/page.tsx documents and
+ * map/community/operations pages carry: host the timer (and every per-tile fetch helper that
+ * also touches `Date.now()`, e.g. the community-pickups 30-day cutoff below) in a plain async
+ * function outside the component, so the component itself never calls an impure function.
+ */
+async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
   const t0 = Date.now();
-
-  // Platform-admin gate (OBS-17, Sprint 2 Build 6). /admin is a
-  // platform-layer surface per the three-layer tenant model in
-  // caros-ledge-platform-intent Section 4. Gating on workspace-membership
-  // role was a cross-tenant exposure risk; helper now reads
-  // profiles.is_platform_admin (migration 075).
-  const { userId, email } = await requirePlatformAdmin("/admin");
-
-  const supabase = await createSupabaseServerClient();
 
   // Hydrate the source store with the unfiltered admin view (includeAdminOnly=true)
   // so SourceHealthDashboard sees every source, including ones flagged admin_only.
@@ -155,19 +156,7 @@ export default async function AdminPage() {
     }
   };
 
-  const [
-    sourceData,
-    orgsRes,
-    membersRes,
-    stagedRes,
-    mtdSpend,
-    errorGroups,
-    assumptionRegister,
-    researchPipelineCount,
-    communityPickupsCount,
-    emissionFactorsLiveCount,
-    tierDisagreementCount,
-  ] = await Promise.all([
+  const result = await Promise.all([
     fetchSourceData(true),
     supabase
       .from("organizations")
@@ -206,6 +195,33 @@ export default async function AdminPage() {
   ]);
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
+
+  return result;
+}
+
+export default async function AdminPage() {
+  // Platform-admin gate (OBS-17, Sprint 2 Build 6). /admin is a
+  // platform-layer surface per the three-layer tenant model in
+  // caros-ledge-platform-intent Section 4. Gating on workspace-membership
+  // role was a cross-tenant exposure risk; helper now reads
+  // profiles.is_platform_admin (migration 075).
+  const { userId, email } = await requirePlatformAdmin("/admin");
+
+  const supabase = await createSupabaseServerClient();
+
+  const [
+    sourceData,
+    orgsRes,
+    membersRes,
+    stagedRes,
+    mtdSpend,
+    errorGroups,
+    assumptionRegister,
+    researchPipelineCount,
+    communityPickupsCount,
+    emissionFactorsLiveCount,
+    tierDisagreementCount,
+  ] = await loadAdminPageData(supabase);
 
   const dateLabel = formatLocaleDate(new Date(), {
     weekday: "long",

@@ -23,7 +23,6 @@ import { NAV_COUNTS_FIXTURE } from "@/components/ui/__fixtures__/nav-counts-fixt
 const BOOTSTRAP_URL_MARKER = "/api/workspace/bootstrap";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __clNavCardPartsFetchPatched: boolean | undefined;
 }
 

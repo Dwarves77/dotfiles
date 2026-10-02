@@ -68,7 +68,29 @@ export async function POST(request: NextRequest) {
   // to the structural classification, not the dynamic credibility signal).
   // PAGINATED (case-file 9): the active source registry can exceed 1000 rows; a truncated read would skip
   // trust recompute for every source past row 1000 (the per-source UPDATE loop below) and under-report totals.
-  let sources: any[];
+  interface TrustSourceRow {
+    id: string;
+    name: string;
+    base_tier: SourceTier;
+    confirmation_count: number | null;
+    conflict_count: number | null;
+    accuracy_rate: number | null;
+    accessibility_rate: number | null;
+    total_checks: number | null;
+    lead_time_samples: number | null;
+    avg_lead_time_days: number | null;
+    independent_citers: number | null;
+    highest_citing_tier: SourceTier | null;
+    total_citations: number | null;
+    self_citation_count: number | null;
+    conflict_total: number | null;
+    last_checked: string | null;
+    last_accessible: string | null;
+    created_at: string;
+    last_substantive_change: string | null;
+    update_frequency: string | null;
+  }
+  let sources: TrustSourceRow[];
   try {
     sources = await fetchAllRows((from, to) =>
       supabase
@@ -80,8 +102,8 @@ export async function POST(request: NextRequest) {
         .order("id", { ascending: true })
         .range(from, to)
     );
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "sources read failed" }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "sources read failed" }, { status: 500 });
   }
   if (!sources?.length) {
     return NextResponse.json({ message: "No sources to recompute", updated: 0 });
@@ -183,9 +205,9 @@ export async function POST(request: NextRequest) {
           demotionFailures.push(`${s.name}: source_trust_events insert failed: ${evErr.message}`);
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       demotionEvalFailed++;
-      demotionFailures.push(`${s.name}: demotion evaluation threw: ${e?.message ?? String(e)}`);
+      demotionFailures.push(`${s.name}: demotion evaluation threw: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     if (overall <= 20) distribution["0-20"]++;

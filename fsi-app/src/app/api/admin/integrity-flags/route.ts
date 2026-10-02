@@ -22,25 +22,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
 
-
-// Platform-admin gate via profiles.is_platform_admin (OBS-17, Sprint 2 Build 6).
-// Was: inline org_memberships.role check — wrong layer per the three-layer
-// tenant model. /admin/integrity-flags is a platform-layer surface.
-async function requireAdminRole(
-  supabase: ReturnType<typeof getServiceSupabase>,
-  userId: string
-): Promise<NextResponse | null> {
-  const admin = await isPlatformAdmin(userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403 }
-    );
-  }
-  return null;
-}
+// The platform-admin gate used to be a local `requireAdminRole` re-implementing the
+// profiles.is_platform_admin check per route; `requireAdminRoute` (route-guard.ts) now does
+// this once for every admin route (lane L31, 2026-09-17) and is the gate actually called below.
 
 // ─────────────────────────────────────────────────────────────────────────
 // Per-brief surface (migration 035)
@@ -83,20 +68,36 @@ async function getPerBriefFlags(
     .select("id", { count: "exact", head: true })
     .eq("agent_integrity_flag", true);
 
-  const items = (flagged || []).map((row: any) => ({
+  type FlaggedItemRow = {
+    id: string;
+    legacy_id: string | null;
+    title: string | null;
+    source_url: string | null;
+    source_id: string | null;
+    agent_integrity_phrase: string | null;
+    agent_integrity_flagged_at: string | null;
+    updated_at: string | null;
+    source: { id: string; name: string; base_tier: number; url: string } | { id: string; name: string; base_tier: number; url: string }[] | null;
+  };
+
+  const items = (flagged || []).map((raw) => {
+    const row = raw as FlaggedItemRow;
+    const source = Array.isArray(row.source) ? row.source[0] : row.source;
+    return {
     id: row.id,
     legacyId: row.legacy_id,
     title: row.title,
     sourceUrl: row.source_url,
     sourceId: row.source_id,
-    sourceName: row.source?.name || null,
+    sourceName: source?.name || null,
     // Phase 1.5: base_tier per admin/audit default rule (integrity-flags
     // is admin-facing operator review of source-emitted item content).
-    sourceTier: row.source?.base_tier || null,
+    sourceTier: source?.base_tier || null,
     phrase: row.agent_integrity_phrase,
     flaggedAt: row.agent_integrity_flagged_at,
     updatedAt: row.updated_at,
-  }));
+    };
+  });
 
   let oldestAgeDays: number | null = null;
   if (items.length > 0 && items[0].flaggedAt) {
@@ -139,6 +140,29 @@ const PLATFORM_STATUSES = [
 ] as const;
 type PlatformStatus = (typeof PLATFORM_STATUSES)[number];
 
+// Shape of a row in public.integrity_flags (migration 048).
+interface IntegrityFlagRow {
+  id: string;
+  category: PlatformCategory;
+  subject_type: "surface" | "item" | "source" | "jurisdiction" | "system";
+  subject_ref: string;
+  description: string;
+  recommended_actions: unknown;
+  status: PlatformStatus;
+  created_at: string;
+  created_by: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolution_note: string | null;
+}
+
+// Minimal shape every Postgrest query builder used with fetchAll below satisfies: paged with
+// .range(), awaited for { data, error }. Typed narrowly (not the full PostgrestFilterBuilder
+// generic) because fetchAll only ever calls .range() on what buildQuery returns.
+interface RangePageable<T> {
+  range(from: number, to: number): PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+}
+
 async function getPlatformFlags(
   supabase: ReturnType<typeof getServiceSupabase>,
   url: URL,
@@ -168,7 +192,7 @@ async function getPlatformFlags(
   // hundreds — relabel/reground + the skill-conformance redo push it up). Page through with .range()
   // until a short page. buildQuery yields a FRESH builder per page (a Postgrest builder is single-use).
   async function fetchAll<T>(
-    buildQuery: () => any,
+    buildQuery: () => RangePageable<T>,
     label: string
   ): Promise<{ rows: T[]; error: string | null }> {
     const PAGE = 1000;
@@ -183,7 +207,7 @@ async function getPlatformFlags(
     return { rows: out, error: null };
   }
 
-  const { rows, error } = await fetchAll<any>(() => {
+  const { rows, error } = await fetchAll<IntegrityFlagRow>(() => {
     let q = supabase.from("integrity_flags").select("*").order("created_at", { ascending: false });
     if (category) q = q.eq("category", category);
     if (status) q = q.eq("status", status);
@@ -243,14 +267,14 @@ async function patchPlatformFlag(
   supabase: ReturnType<typeof getServiceSupabase>,
   userId: string
 ): Promise<NextResponse> {
-  let body: any;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { id, status, resolution_note } = body || {};
+  const { id, status, resolution_note } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof id !== "string" || id.length === 0) {
     return NextResponse.json(
@@ -274,7 +298,7 @@ async function patchPlatformFlag(
   // "still active." resolution_note is preserved across status changes if
   // the caller doesn't explicitly clear it.
   const isTerminal = status === "resolved" || status === "archived";
-  const update: Record<string, any> = { status };
+  const update: Record<string, unknown> = { status };
   if (isTerminal) {
     update.resolved_at = new Date().toISOString();
     update.resolved_by = userId;

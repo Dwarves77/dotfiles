@@ -19,6 +19,7 @@ import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 
 import Anthropic from "@anthropic-ai/sdk";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { extractTextFromContent } from "@/lib/llm/anthropic-text";
 
 
 // Per Q4 bias tag vocabulary (Section 6 of source-credibility-model SKILL.md).
@@ -204,7 +205,7 @@ PARENT INTELLIGENCE ITEM (grounding context):
 Output the JSON object only.`;
 
   const client = new Anthropic({ apiKey });
-  let recommendation: any;
+  let recommendation: Record<string, unknown>;
   try {
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -217,18 +218,15 @@ Output the JSON object only.`;
       system: CLASSIFICATION_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
-    const text = resp.content
-      .filter((b: any) => b.type === "text")
-      .map((b: any) => b.text)
-      .join("");
+    const text = extractTextFromContent(resp.content);
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("No JSON object found in model output");
-    recommendation = JSON.parse(m[0]);
+    recommendation = JSON.parse(m[0]) as Record<string, unknown>;
     recommendation.model = "claude-haiku-4-5-20251001";
     recommendation.computed_at = new Date().toISOString();
-  } catch (e: any) {
+  } catch (e) {
     return NextResponse.json(
-      { error: `Model call failed: ${e.message}` },
+      { error: `Model call failed: ${e instanceof Error ? e.message : String(e)}` },
       { status: 502 }
     );
   }

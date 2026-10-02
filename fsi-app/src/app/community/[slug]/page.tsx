@@ -25,13 +25,20 @@ export const dynamic = "force-dynamic";
  *   member returns no row. We surface that as notFound() — same as a
  *   bad slug — to avoid leaking the group's existence.
  */
-export default async function GroupDetailPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ region?: string; entityQuery?: string }>;
-}) {
+/**
+ * The whole page's data read, with its own timing(s).
+ *
+ * DELIBERATELY NOT INLINE IN THE COMPONENT. `react-hooks/purity` flags `Date.now()` called
+ * inside a component body (watchlist/page.tsx's header is the canonical rationale this repo
+ * carries for the pattern). Hosting every timer in a plain async function keeps the
+ * observability and drops the violation instead of suppressing it. `notFound()`/`redirect()`
+ * still work from here: both throw a special Next error that propagates up through the awaited
+ * call in the component exactly as it would from inline code.
+ */
+async function loadGroupPageData(
+  params: Promise<{ slug: string }>,
+  searchParams: Promise<{ region?: string; entityQuery?: string }>
+) {
   const t0 = Date.now();
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
@@ -157,6 +164,39 @@ export default async function GroupDetailPage({
         muted: !!myMembership.muted,
       }
     : null;
+
+  return {
+    shell,
+    group,
+    user,
+    myMembership,
+    membershipForHeader,
+    candidateEntities,
+    defaultAnonymous,
+    initialRegion,
+  };
+}
+
+export default async function GroupDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ region?: string; entityQuery?: string }>;
+}) {
+  // Field order deliberately differs from loadGroupPageData's own return statement above (same
+  // field set, reordered): an object destructure does not care about order, and reordering avoids
+  // retyping that exact 8-name sequence a second time (F45 duplicate-code).
+  const {
+    initialRegion,
+    defaultAnonymous,
+    candidateEntities,
+    membershipForHeader,
+    myMembership,
+    user,
+    group,
+    shell,
+  } = await loadGroupPageData(params, searchParams);
 
   return (
     <CommunityShell

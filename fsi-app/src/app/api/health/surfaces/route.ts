@@ -27,20 +27,30 @@ export const dynamic = "force-dynamic";
 
 type Counts = Record<string, { rows: number | null; error: string | null }>;
 
+// The minimal chainable shape every `build` callback below actually uses: a Postgrest count-head
+// query that is itself awaitable ({ count, error }) and supports the three filter methods this
+// route's builders chain (.eq / .not / .in). The real PostgrestFilterBuilder satisfies this
+// structurally, so `supabase.from(table).select(...)` passes without a cast.
+type CountQuery = PromiseLike<{ count: number | null; error: { message: string } | null }> & {
+  eq(column: string, value: unknown): CountQuery;
+  not(column: string, operator: string, value: unknown): CountQuery;
+  in(column: string, values: unknown[]): CountQuery;
+};
+
 /** Cheap COUNT(*) with a filter, head-only (no rows transferred). */
 async function countRows(
   supabase: ReturnType<typeof getServiceSupabase>,
   table: string,
-  build: (q: any) => any
+  build: (q: CountQuery) => CountQuery
 ): Promise<{ rows: number | null; error: string | null }> {
   try {
     const { count, error } = await build(
-      supabase.from(table).select("*", { count: "exact", head: true })
+      supabase.from(table).select("*", { count: "exact", head: true }) as unknown as CountQuery
     );
     if (error) return { rows: null, error: error.message };
     return { rows: count ?? 0, error: null };
-  } catch (e: any) {
-    return { rows: null, error: e?.message ?? "count threw" };
+  } catch (e) {
+    return { rows: null, error: e instanceof Error ? e.message : "count threw" };
   }
 }
 
@@ -51,9 +61,9 @@ export async function GET(request: NextRequest) {
   let supabase: ReturnType<typeof getServiceSupabase>;
   try {
     supabase = getServiceSupabase();
-  } catch (e: any) {
+  } catch (e) {
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "service client unavailable", surfaces: {}, rpcs: {} },
+      { ok: false, error: e instanceof Error ? e.message : "service client unavailable", surfaces: {}, rpcs: {} },
       { status: 500 }
     );
   }
@@ -70,8 +80,8 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
     if (error) orgError = error.message;
     orgId = data?.id ?? null;
-  } catch (e: any) {
-    orgError = e?.message ?? "org lookup threw";
+  } catch (e) {
+    orgError = e instanceof Error ? e.message : "org lookup threw";
   }
 
   // ── Per-surface backing counts ─────────────────────────────────────────
@@ -79,7 +89,7 @@ export async function GET(request: NextRequest) {
   // to their item_type family (the same gate customer reads use). Zero-legal
   // surfaces read their own backing tables; zero there is an honest empty
   // state, not an outage.
-  const verified = (q: any) =>
+  const verified = (q: CountQuery): CountQuery =>
     q.eq("provenance_status", "verified").not("is_archived", "is", true);
 
   const REG_TYPES = ["regulation", "directive", "standard", "guidance", "framework"];
@@ -130,8 +140,8 @@ export async function GET(request: NextRequest) {
     try {
       const { error } = await supabase.rpc("get_market_intel_items", { p_org_id: orgId });
       rpcs["market_intel"] = { ok: !error, error: error?.message ?? null };
-    } catch (e: any) {
-      rpcs["market_intel"] = { ok: false, error: e?.message ?? "rpc threw" };
+    } catch (e) {
+      rpcs["market_intel"] = { ok: false, error: e instanceof Error ? e.message : "rpc threw" };
     }
   }
 
@@ -145,8 +155,8 @@ export async function GET(request: NextRequest) {
     try {
       const { error } = await supabase.rpc("get_all_surface_counts", { p_org_id: orgId });
       rpcs["surface_counts"] = { ok: !error, error: error?.message ?? null };
-    } catch (e: any) {
-      rpcs["surface_counts"] = { ok: false, error: e?.message ?? "rpc threw" };
+    } catch (e) {
+      rpcs["surface_counts"] = { ok: false, error: e instanceof Error ? e.message : "rpc threw" };
     }
   }
 
@@ -172,9 +182,9 @@ export async function GET(request: NextRequest) {
   try {
     const { data, error } = await supabase.rpc("gate_a_health");
     if (error) gate_a.error = error.message;
-    else gate_a = { ...(data as any), error: null };
-  } catch (e: any) {
-    gate_a.error = e?.message ?? "gate_a_health threw";
+    else gate_a = { ...(data as Omit<typeof gate_a, "error">), error: null };
+  } catch (e) {
+    gate_a.error = e instanceof Error ? e.message : "gate_a_health threw";
   }
 
   // ── Customer-visible forward obligations (lane SURF, 2026-09-01) ─────────────────────────────────
@@ -190,7 +200,7 @@ export async function GET(request: NextRequest) {
   // has a customer render path. Reported alongside gate_a rather than folded into `ok`/`overallOk` (not
   // in this lane's write set) — same posture gate_a itself already takes: informational, not a gate on
   // HTTP status, but a regression a human or dashboard watching this endpoint over time will notice.
-  let forward_events_visible_on_regulations: { count: number | null; error: string | null } = {
+  const forward_events_visible_on_regulations: { count: number | null; error: string | null } = {
     count: null,
     error: null,
   };
@@ -205,8 +215,9 @@ export async function GET(request: NextRequest) {
       .eq("intelligence_items.is_archived", false);
     if (error) forward_events_visible_on_regulations.error = error.message;
     else forward_events_visible_on_regulations.count = count ?? 0;
-  } catch (e: any) {
-    forward_events_visible_on_regulations.error = e?.message ?? "forward_events_visible_on_regulations count threw";
+  } catch (e) {
+    forward_events_visible_on_regulations.error =
+      e instanceof Error ? e.message : "forward_events_visible_on_regulations count threw";
   }
 
   const ok = overallOk(surfaces, rpcs);

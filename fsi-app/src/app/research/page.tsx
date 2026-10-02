@@ -78,7 +78,16 @@ async function readAssessmentsByItemId(itemIds: string[]) {
   }
 }
 
-export default async function Research() {
+/**
+ * The page's data read, with its own timing.
+ *
+ * DELIBERATELY NOT INLINE IN THE COMPONENT. `react-hooks/purity` flags `Date.now()` called
+ * inside a component body (watchlist/page.tsx's header is the canonical rationale this repo
+ * carries for the pattern, and names this file as one of the two pre-existing instances of the
+ * violation). Hosting the timer in a plain async function keeps the observability and drops the
+ * violation instead of suppressing it.
+ */
+async function loadResearchPageData() {
   const t0 = Date.now();
   const [research, aggregates, sourceCoverage] = await Promise.all([
     getPublicResearchItems(),
@@ -87,6 +96,11 @@ export default async function Research() {
   ]);
   const assessmentsByItemId = await readAssessmentsByItemId(research.resources.map((r) => r.id));
   console.log(`[perf] /research data ${Date.now() - t0}ms (category-routed=${research.total}, coverage_cells=${sourceCoverage.length}, assessed=${assessmentsByItemId.size})`);
+  return { research, aggregates, sourceCoverage, assessmentsByItemId };
+}
+
+export default async function Research() {
+  const { research, aggregates, sourceCoverage, assessmentsByItemId } = await loadResearchPageData();
 
   // COUNTS-61: useSearchParams() inside the ledger (the facet URL contract) needs a Suspense
   // boundary, Next's own rule, so the surface streams rather than opting the whole route into

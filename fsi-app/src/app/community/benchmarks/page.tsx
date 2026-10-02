@@ -44,7 +44,7 @@ export default async function CommunityBenchmarksPage() {
             }}
           >
             House-run, aggregate-only surveys (spec 05 §3). Cleared for k-anonymity, dominance and
-            lag by construction — every value shown here is a distribution, never one member's
+            lag by construction, every value shown here is a distribution, never one member&apos;s
             answer.
           </p>
         </header>

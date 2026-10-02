@@ -15,6 +15,21 @@ import { CURRENT_SKILL_CONTRACT_VERSION } from "@/lib/agent/contract-version.mjs
 // SSOT (flag-system item 2): was a stale hand-pinned "2026-04-29" while the generator stamped "2026-05-27".
 const CURRENT_SKILL_VERSION = CURRENT_SKILL_CONTRACT_VERSION;
 
+// Shape of the select() below: the columns this progress read actually uses from intelligence_items.
+interface ProgressRow {
+  id: string;
+  legacy_id: string | null;
+  item_type: string | null;
+  priority: string | null;
+  regeneration_skill_version: string | null;
+  source_url: string | null;
+  is_archived: boolean;
+  last_regenerated_at: string | null;
+  operational_scenario_tags: string[] | null;
+  compliance_object_tags: string[] | null;
+  intersection_summary: string | null;
+  related_items: string[] | null;
+}
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminRoute(request);
@@ -23,7 +38,7 @@ export async function GET(request: NextRequest) {
 
   // PAGINATED (case-file 9): the whole non-archived corpus can exceed PostgREST's 1000-row cap (Track B pushes
   // it past 1000), and a truncated read would bias every progress % / by-format / by-priority count below.
-  let all: any[];
+  let all: ProgressRow[];
   try {
     all = await fetchAllRows((from, to) =>
       supabase
@@ -33,8 +48,8 @@ export async function GET(request: NextRequest) {
         .order("id", { ascending: true })
         .range(from, to)
     );
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "progress read failed" }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "progress read failed" }, { status: 500 });
   }
   const withSource = all.filter((r) => r.source_url);
   const eligible = withSource.filter((r) => r.legacy_id ? !r.legacy_id.startsWith("ss") && !r.legacy_id.startsWith("arc") : true);
@@ -47,7 +62,7 @@ export async function GET(request: NextRequest) {
   const byFormat: Record<string, number> = {};
   const byPriority: Record<string, number> = {};
   for (const r of atCurrent) {
-    const ft = (r as any).item_type || "(unknown)";
+    const ft = r.item_type || "(unknown)";
     byFormat[ft] = (byFormat[ft] || 0) + 1;
     const p = r.priority || "(none)";
     byPriority[p] = (byPriority[p] || 0) + 1;
@@ -68,7 +83,7 @@ export async function GET(request: NextRequest) {
     .slice(0, 10)
     .map((r) => ({
       legacy_id: r.legacy_id,
-      item_type: (r as any).item_type,
+      item_type: r.item_type,
       priority: r.priority,
       last_regenerated_at: r.last_regenerated_at,
     }));

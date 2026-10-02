@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       },
       { headers: rateLimitHeaders(auth.userId) }
     );
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
 
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       { members: data },
       { headers: rateLimitHeaders(auth.userId) }
     );
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
