@@ -89,11 +89,28 @@ function parseRangeString(range) {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 /**
- * Decide which range this gate run should use. Order: (a) an explicit range wins; (b) the CI PR shape
- * (`BASE_REF` + `PR_HEAD` both set) reproduces exactly what .github/workflows/discipline.yml's
- * pull_request branch builds today (`origin/${BASE_REF}...${PR_HEAD}`); (c) otherwise the local
- * merge-base against origin/master. Never throws: when the merge-base cannot be computed (no
- * origin/master reachable from the resolved top level), returns `source: 'unavailable'` with a `reason`.
+ * Decide which range this gate run should use. Order: (a) an explicit range wins (passed through
+ * verbatim -- manual diagnosis / a caller that already resolved its own range); (b) the CI PR shape
+ * (`BASE_REF` + `PR_HEAD` both set) resolves `base = git merge-base origin/${BASE_REF} ${PR_HEAD}` and
+ * returns `${base}..${PR_HEAD}`; (c) otherwise the local merge-base against origin/master, same shape.
+ * Never throws: when the merge-base cannot be computed (no origin/${BASE_REF} or origin/master reachable
+ * from the resolved top level), returns `source: 'unavailable'` with a `reason`.
+ *
+ * LANE R23 FIX (2026-10-02) [CONFIRMED twice, PRs #866 and #869]: the CI-PR branch used to build
+ * `origin/${BASE_REF}...${PR_HEAD}` -- three dots against the BASE REF'S TIP, not its merge-base with
+ * PR_HEAD. `git diff A...B` itself resolves to merge-base(A,B)..B internally, so that shape happened to
+ * be diff-safe on its own, but nothing _enforced_ that every caller used `git diff` specifically: the
+ * discipline CI job (.github/workflows/discipline.yml) and the pre-push hook each built their OWN
+ * **two-dot** literal range (`origin/<base>..<head>`, tip-vs-head) by hand instead of calling this
+ * function, and `git diff A..B` has no merge-base correction -- it diffs the two endpoint TREES
+ * directly. Once `origin/master`'s tip picked up a fix after a branch's fork point, that fix's lines
+ * read as "added" on the unrelated branch (rule 022's content check flagged 111 inherited em dashes in
+ * docs/audits/BRIEF-STRUCTURE-AUDIT.md, a file lane 866's branch never touched). The fix here is to make
+ * the base an ACTUAL merge-base commit (computed by this ONE function, not re-derived per caller) and
+ * always return a plain two-dot range against it: `base..head` is diff-safe (no endpoint-tree drift,
+ * since `base` already IS the shared ancestor) AND log-safe (`git log base..head` lists exactly head's
+ * own commits, which a three-dot/symmetric-difference range would NOT -- it would also surface base's
+ * own post-fork commits). One shape, correct for both operations, used by every caller.
  * @param {{ explicit?: string, env?: NodeJS.ProcessEnv, cwd?: string }} [opts]
  * @returns {{ range: string|null, base: string|null, head: string|null, source: string, reason?: string }}
  */
@@ -111,8 +128,23 @@ export function resolveRange({ explicit, env = process.env, cwd } = {}) {
   const baseRef = String(env.BASE_REF || '').trim();
   const prHead = String(env.PR_HEAD || '').trim();
   if (baseRef && prHead) {
-    const base = `origin/${baseRef}`;
-    return { range: `${base}...${prHead}`, base, head: prHead, source: 'ci-pr' };
+    const baseTip = `origin/${baseRef}`;
+    let mergeBase;
+    try {
+      mergeBase = runGit(['merge-base', baseTip, prHead], { cwd }).trim();
+    } catch (e) {
+      return { range: null, base: null, head: null, source: 'unavailable', reason: String(e.message || e) };
+    }
+    if (!mergeBase) {
+      return {
+        range: null,
+        base: null,
+        head: null,
+        source: 'unavailable',
+        reason: `git merge-base ${baseTip} ${prHead} returned no output`,
+      };
+    }
+    return { range: `${mergeBase}..${prHead}`, base: mergeBase, head: prHead, source: 'ci-pr' };
   }
 
   let mergeBase;

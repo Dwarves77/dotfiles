@@ -5,8 +5,14 @@
 //     Validate the proposed commit message + currently staged files.
 //   --mode=ci --commit=<sha>
 //     Validate an existing commit.
-//   --mode=ci --range=<range>
-//     Validate every commit in a range (e.g., origin/master..HEAD).
+//   --mode=ci [--range=<range>]
+//     Validate every commit in a range. An explicit --range is honored verbatim (manual diagnosis).
+//     Omitted, the range is RESOLVED via change-range.mjs's resolveRange() -- the CI-PR env shape
+//     (BASE_REF + PR_HEAD) or the local merge-base against origin/master -- so this caller, the CI
+//     workflow step, and the pre-push hook cannot each build their own range and drift apart (lane
+//     R23, 2026-10-02; see change-range.mjs's resolveRange() header for the PRs #866/#869 defect this
+//     replaces: a hand-built two-dot range against the base ref's TIP flags lines master fixed after
+//     the branch's fork point as "added" on the branch).
 //   --mode=fixture --message-file=<path> --files-file=<path>
 //     Validate from in-memory fixture (testing).
 //   --list
@@ -26,6 +32,7 @@ import {
   buildContextFromFixture,
   getRepoRoot,
 } from './lib/context.mjs';
+import { resolveRange } from './lib/change-range.mjs';
 import { STATUS } from './lib/result.mjs';
 import { isMainModule } from '../scripts/lib/is-main.mjs';
 
@@ -71,40 +78,62 @@ async function main() {
       const ctx = buildContextForExistingCommit({ commit: args.commit });
       return runOnContext(ctx, args);
     }
-    if (args.range) {
-      const shas = execFileSync('git', ['-C', getRepoRoot(), 'log', '--format=%H', args.range], { encoding: 'utf-8' })
-        .trim()
-        .split(/\r?\n/)
-        .filter(Boolean)
-        .reverse();
-      let worstExit = 0;
-      for (const sha of shas) {
-        const ctx = buildContextForExistingCommit({ commit: sha });
-        console.log(`\n=== Commit ${sha.slice(0, 8)}: ${ctx.commitSubject} ===`);
-        const code = runOnContext(ctx, args);
-        if (code > worstExit) worstExit = code;
-      }
 
-      // ONE cumulative diff over the whole range, in addition to the per-commit walk above.
-      // Why both (lane MASTER-022, 2026-09-26): a per-commit union of "added lines" and a single
-      // whole-range diff over the identical net change can disagree on CONTENT rules (022 today)
-      // when a literal value occurs more than once in the file -- git's diff pairing is a
-      // heuristic, not a strict provenance oracle, and a per-commit walk and a single accumulated
-      // diff are free to choose different, equally minimal pairings (see buildContextForRange's
-      // header in lib/context.mjs for the full mechanism and a reproduced example). The push-to-
-      // master check runs exactly ONE diff, the squash commit vs its real parent, so a PR check
-      // that skips this pass can go green on a range whose squash will fail on master. Shas is
-      // already empty-checked implicitly: an empty range makes `git diff` a no-op (no changed
-      // files), so this is safe to run unconditionally, including on a range with zero commits.
-      const rangeCtx = buildContextForRange({ range: args.range });
-      console.log(`\n=== Whole-range diff (${args.range}), squash-merge parity ===`);
-      const rangeCode = runOnContext(rangeCtx, args);
-      if (rangeCode > worstExit) worstExit = rangeCode;
-
-      return worstExit;
+    // Range resolution -- ONE path, change-range.mjs's resolveRange() (lane R23, 2026-10-02). An
+    // explicit --range is passed through verbatim (resolveRange's own 'explicit' precedence); omitted,
+    // it resolves the CI-PR env shape (BASE_REF+PR_HEAD -> merge-base(origin/BASE_REF, PR_HEAD)..PR_HEAD)
+    // or the local merge-base against origin/master. Before this fix, this branch trusted whatever
+    // literal --range string the caller built; the CI workflow and the pre-push hook each built their
+    // OWN two-dot range against the base ref's TIP (origin/<base>..<head>), which `git diff` does not
+    // merge-base-correct the way `git diff A...B` does -- a fix origin/master picked up AFTER a
+    // branch's fork point read as "added" on that branch's whole-range diff below (rule 022,
+    // [CONFIRMED] PRs #866 and #869). Resolving here means the CI job and pre-push can both stop
+    // building their own range and simply omit --range, so the three callers (this one, the CI job,
+    // pre-push) cannot drift from each other or from F51's own range checks, which already resolved
+    // through this same function.
+    const resolved = resolveRange({ explicit: args.range, env: process.env });
+    if (resolved.source === 'unavailable' || !resolved.range) {
+      console.error(
+        `Error: --mode=ci could not resolve a range${resolved.reason ? ` (${resolved.reason})` : ''}. ` +
+        'Pass --commit=<sha> or --range=<range> explicitly.'
+      );
+      return 2;
     }
-    console.error('Error: --mode=ci requires --commit=<sha> or --range=<range>');
-    return 2;
+    const range = resolved.range;
+    if (resolved.source !== 'explicit') {
+      console.log(`Resolved range via change-range.mjs (${resolved.source}): ${range}`);
+    }
+
+    const shas = execFileSync('git', ['-C', getRepoRoot(), 'log', '--format=%H', range], { encoding: 'utf-8' })
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .reverse();
+    let worstExit = 0;
+    for (const sha of shas) {
+      const ctx = buildContextForExistingCommit({ commit: sha });
+      console.log(`\n=== Commit ${sha.slice(0, 8)}: ${ctx.commitSubject} ===`);
+      const code = runOnContext(ctx, args);
+      if (code > worstExit) worstExit = code;
+    }
+
+    // ONE cumulative diff over the whole range, in addition to the per-commit walk above.
+    // Why both (lane MASTER-022, 2026-09-26): a per-commit union of "added lines" and a single
+    // whole-range diff over the identical net change can disagree on CONTENT rules (022 today)
+    // when a literal value occurs more than once in the file -- git's diff pairing is a
+    // heuristic, not a strict provenance oracle, and a per-commit walk and a single accumulated
+    // diff are free to choose different, equally minimal pairings (see buildContextForRange's
+    // header in lib/context.mjs for the full mechanism and a reproduced example). The push-to-
+    // master check runs exactly ONE diff, the squash commit vs its real parent, so a PR check
+    // that skips this pass can go green on a range whose squash will fail on master. Shas is
+    // already empty-checked implicitly: an empty range makes `git diff` a no-op (no changed
+    // files), so this is safe to run unconditionally, including on a range with zero commits.
+    const rangeCtx = buildContextForRange({ range });
+    console.log(`\n=== Whole-range diff (${range}), squash-merge parity ===`);
+    const rangeCode = runOnContext(rangeCtx, args);
+    if (rangeCode > worstExit) worstExit = rangeCode;
+
+    return worstExit;
   }
 
   if (args.mode === 'fixture') {
