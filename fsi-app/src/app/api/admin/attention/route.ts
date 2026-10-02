@@ -48,8 +48,6 @@ export async function GET(request: NextRequest) {
   // browser doesn't keep refetching on every navigation.
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return withCacheHeader(auth, NEGATIVE_CACHE);
-  const { supabase } = auth;
-
   const { row, rpcError } = await fetchAttentionCounts(auth.userId);
 
   if (rpcError) {

@@ -101,7 +101,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     request.headers.get("origin") ||
     "";
   const inviteUrl = `${baseUrl}/invitations/${data.token}`;
-  // eslint-disable-next-line no-console
   console.log(
     `[invitation] org=${org_id} email=${email} role=${role} url=${inviteUrl}`
   );

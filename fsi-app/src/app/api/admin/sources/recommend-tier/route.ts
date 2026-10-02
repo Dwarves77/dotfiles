@@ -16,7 +16,6 @@ import { recommendSourceTier } from "@/lib/sources/recommend-source-tier";
 export async function POST(request: NextRequest) {
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return auth;
-  const { supabase } = auth;
 
   let body: { source_id?: string };
   try {

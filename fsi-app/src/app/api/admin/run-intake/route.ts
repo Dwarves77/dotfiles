@@ -24,7 +24,6 @@ const MAX_CANDIDATES = 5;
 async function handlePOST(request: NextRequest) {
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return auth;
-  const { supabase: gate } = auth;
 
   let candidates: IntakeCandidate[];
   let mode: "plan" | "apply";

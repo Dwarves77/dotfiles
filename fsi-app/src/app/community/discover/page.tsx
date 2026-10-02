@@ -31,7 +31,6 @@ export default async function CommunityDiscoverPage({
   const entityQuery = sp?.entityQuery?.trim();
 
   const shell = await loadCommunityShellContext(supabase, user);
-  const { topics } = shell;
 
   let entityQueryBuilder = supabase
     .from("entities")

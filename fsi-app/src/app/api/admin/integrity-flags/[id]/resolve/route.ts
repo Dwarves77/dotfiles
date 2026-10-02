@@ -29,10 +29,8 @@
 // Auth: requireAuth + admin role check. Rate-limited.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { isPlatformAdmin } from "@/lib/auth/admin";
 
 type ResolveAction = "replace_url" | "regenerate" | "mark_resolved";
 
@@ -42,21 +40,9 @@ interface ResolveBody {
   newSourceUrl?: string;
 }
 
-
-// Platform-admin gate via profiles.is_platform_admin (OBS-17, Sprint 2 Build 6).
-async function requireAdminRole(
-  supabase: ReturnType<typeof getServiceSupabase>,
-  userId: string
-): Promise<NextResponse | null> {
-  const admin = await isPlatformAdmin(userId, supabase);
-  if (!admin) {
-    return NextResponse.json(
-      { error: "Platform admin access required" },
-      { status: 403 }
-    );
-  }
-  return null;
-}
+// The platform-admin gate used to be a local `requireAdminRole` re-implementing the
+// profiles.is_platform_admin check; `requireAdminRoute` (route-guard.ts) now does this once for
+// every admin route (lane L31, 2026-09-17) and is the gate actually called below.
 
 export async function POST(
   request: NextRequest,
