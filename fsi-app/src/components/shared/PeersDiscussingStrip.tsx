@@ -42,6 +42,9 @@ export function PeersDiscussingStrip({ entityId, limit = 3 }: PeersDiscussingStr
 
   useEffect(() => {
     if (!entityId) {
+      // Clearing stale state for the prior entityId before this effect's own fetch below can run
+      // for the new one; the early-return guard and the fetch are one synchronization.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThreads(null);
       return;
     }

@@ -118,7 +118,7 @@ export function resolveAuthSeed(bootstrap: BootstrapLike | null): AuthSeed {
  * and a later SUCCESS over an earlier `error` (that is what makes a retry able to recover the tab,
  * which the old once-only guard would have refused).
  */
-export function shouldApplySeed(current: IdentityStatus, _incoming: AuthSeed["status"]): boolean {
+export function shouldApplySeed(current: IdentityStatus): boolean {
   return current !== "resolved";
 }
 

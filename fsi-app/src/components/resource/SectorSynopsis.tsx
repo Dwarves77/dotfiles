@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useId } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useResourceStore, type StoredSynopsis } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -21,11 +21,11 @@ function urgencyBadge(score: number | null): { label: string; bg: string; text: 
 
 // ── Markdown components shared across all synopsis renderers ──
 
-const mdComponents = {
-  p: ({ children }: any) => (
+const mdComponents: Components = {
+  p: ({ children }) => (
     <p className="mb-3 text-[13px] leading-[22px]" style={{ color: "var(--color-text-primary)", opacity: 0.85 }}>{children}</p>
   ),
-  strong: ({ children }: any) => {
+  strong: ({ children }) => {
     const text = String(children);
     if (text.startsWith("Action Required") || text.startsWith("Confirm for Your Business")) {
       const body = text.replace(/^(Action Required|Confirm for Your Business)\s*[-—:]\s*/i, "");
@@ -40,26 +40,26 @@ const mdComponents = {
     }
     return <strong className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{children}</strong>;
   },
-  ol: ({ children }: any) => <ol className="space-y-2 mb-3 list-decimal list-inside">{children}</ol>,
-  ul: ({ children }: any) => <ul className="space-y-1.5 mb-3 ml-1">{children}</ul>,
-  li: ({ children }: any) => <li className="text-[13px] leading-[20px]" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>{children}</li>,
-  h2: ({ children }: any) => (
+  ol: ({ children }) => <ol className="space-y-2 mb-3 list-decimal list-inside">{children}</ol>,
+  ul: ({ children }) => <ul className="space-y-1.5 mb-3 ml-1">{children}</ul>,
+  li: ({ children }) => <li className="text-[13px] leading-[20px]" style={{ color: "var(--color-text-primary)", opacity: 0.8 }}>{children}</li>,
+  h2: ({ children }) => (
     <h2 className="text-[13px] font-bold uppercase tracking-widest mt-5 mb-2 px-3 py-2 rounded-md -mx-1" style={{ backgroundColor: "#F0EDE8", borderLeft: "3px solid var(--color-primary)", color: "var(--color-text-primary)" }}>
       {children}
     </h2>
   ),
-  h3: ({ children }: any) => (
+  h3: ({ children }) => (
     <h3 className="text-[13px] font-semibold mt-4 mb-1.5 pl-2 border-l-2" style={{ borderColor: "var(--color-border-strong)", color: "var(--color-text-secondary)" }}>
       {children}
     </h3>
   ),
-  blockquote: ({ children }: any) => (
+  blockquote: ({ children }) => (
     <blockquote className="pl-3 py-1 my-2 border-l-2" style={{ borderColor: "var(--color-text-accent)", color: "var(--color-text-secondary)" }}>
       {children}
     </blockquote>
   ),
-  a: ({ href, children }: any) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline" style={{ color: "var(--color-primary)" }} onClick={(e: any) => e.stopPropagation()}>
+  a: ({ href, children }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline" style={{ color: "var(--color-primary)" }} onClick={(e) => e.stopPropagation()}>
       {children}
     </a>
   ),
