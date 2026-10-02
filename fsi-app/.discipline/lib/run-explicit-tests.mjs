@@ -37,6 +37,7 @@
 
 import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
+import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 function readStdinNulList() {
   return new Promise((resolvePromise, reject) => {
@@ -76,7 +77,12 @@ async function main() {
   process.exitCode = failed ? 1 : 0;
 }
 
-main().catch((err) => {
-  console.error(`run-explicit-tests: fatal error: ${err.stack || err.message}`);
-  process.exitCode = 1;
-});
+// F67 (unguarded-main-invocation): main() must never run merely from importing this file (e.g. a
+// future test that imports a helper from this module). Guarded the same way every CLI entry point in
+// this tree is (F44 / RD-68), via scripts/lib/is-main.mjs's isMainModule().
+if (isMainModule(import.meta.url)) {
+  main().catch((err) => {
+    console.error(`run-explicit-tests: fatal error: ${err.stack || err.message}`);
+    process.exitCode = 1;
+  });
+}
