@@ -3988,6 +3988,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/market/headline-series-select.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/market/market-rail-select.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -11874,8 +11883,8 @@
     }
   ],
   "summary": {
-    "governed_files": 1112,
-    "covered": 1067,
+    "governed_files": 1113,
+    "covered": 1068,
     "exempt": 45,
     "gaps": 0,
     "orphaned_proofs": 0,
