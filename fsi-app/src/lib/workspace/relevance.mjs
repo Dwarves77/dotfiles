@@ -1,21 +1,42 @@
-// relevance.mjs — READ-TIME contextualization core (Option B, mig 251). PURE, no DB, no LLM.
+// relevance.mjs, READ-TIME contextualization core (Option B, mig 251). PURE, no DB, no LLM.
 //
 // The shared brief is role-generic (correct for shared canonical analysis). This computes, per VIEWER,
-// how a given item relates to THEIR workspace profile — "relevance to your operation" — by joining the
+// how a given item relates to THEIR workspace profile, "relevance to your operation", by joining the
 // item's own tags (transport_modes, jurisdictions, topics/scenarios) against the profile. Deterministic,
 // $0, runs on every read. Level 2 (a cached authored paragraph) layers on top; this is Level 1.
 //
-// It is a LENS, not a filter: a broad global forwarder matches most items, and that is correct — the value
+// It is a LENS, not a filter: a broad global forwarder matches most items, and that is correct, the value
 // is HIGHLIGHTING which of the reader's dimensions each item touches, not narrowing the corpus.
+//
+// APPLICABILITY (coordinator ruling 2026-09-29, rule 17 "nothing runs alone" + the lane contract's
+// Reachable condition): the relevance result also carries `applicability`, computed by
+// compute-applicability.mjs's computeApplicability against an obligation derived from whatever
+// scope/threshold field the item already carries. Checked first (src/lib/obligations/read-register.mjs,
+// migration 290): no role or size-threshold column exists anywhere on the obligation register or
+// intelligence_items today, EXCEPT `compliance_object_tags` (the item's own locked 18-value
+// role/entity vocabulary, already read above for the vertical-match hay), that is the one real
+// field mapped to a roleScope (profile/profile-contract.mjs's COMPLIANCE_OBJECT_TO_ORG_ROLE). No
+// size-threshold field exists on any live row, so `applicability` never derives one from real data
+// today; `obligation.sizeThreshold` is read defensively from `item.size_threshold` ONLY if a caller
+// (or a future producer) sets it, no schema change, no live writer sets it, but the gate's own
+// needs_profile_input naming stays exercised end to end (see relevance.test.mjs) the moment one
+// does. compliance_object_tags with zero ORG_ROLES-mapped entries yields an empty roleScope, which
+// compute-applicability.mjs's evaluateRoleScope reads as "no role named" (applies to every role),
+// never a false does_not_apply.
 //
 // Inputs (all optional-safe):
 //   item:    { transport_modes?, jurisdictions?, jurisdiction_iso?, topic_tags?, operational_scenario_tags?,
-//              compliance_object_tags?, title?, full_brief? }
+//              compliance_object_tags?, title?, full_brief?, size_threshold? }
 //   profile: { verticals?: string[] (sector ids), jurisdictions?: Record<string,number> (weights),
-//              transport_modes?: string[], roles?: string[] }
+//              transport_modes?: string[], roles?: string[], orgRoles?: string[],
+//              orgSize?: { headcount_band?, revenue_band?, shipment_volume_band? } }
 //   sectorDefs: Array<{ id, label, keywords: string[] }>  (from constants ALL_SECTORS; injected to keep pure)
 // Output: { band: 'high'|'medium'|'low', matchedModes, matchedVerticals: [{id,label}], matchedJurisdictions,
-//           roleSignals: string[], summary: string }
+//           roleSignals: string[], summary: string,
+//           applicability: { status, reasons, missingDimensions } }
+
+import { computeApplicability } from "../applicability/compute-applicability.mjs";
+import { deriveRoleScopeFromComplianceObjectTags } from "../profile/profile-contract.mjs";
 
 const arr = (x) => (Array.isArray(x) ? x.filter((v) => typeof v === "string" && v.trim()) : []);
 const lc = (s) => String(s || "").toLowerCase();
@@ -83,5 +104,23 @@ export function computeItemRelevance(item = {}, profile = {}, sectorDefs = []) {
     ? `Relevance to your operation: affects ${parts.join(", ")}${geo}.`
     : "Relevance to your operation: general applicability to a freight operator.";
 
-  return { band, matchedModes, matchedVerticals, matchedJurisdictions, roleSignals, summary };
+  // Applicability: derive an obligation from the item's own compliance_object_tags (roleScope) plus
+  // an optional item.size_threshold (defensive read; no live field sets this today, see header),
+  // then gate it against the profile's org_roles/org_size (profile-contract.mjs's parseOrgProfile
+  // shape). roleScope is undefined, not [], when nothing mapped, so an empty mapping never reads as
+  // "applies to zero roles".
+  const derivedRoleScope = deriveRoleScopeFromComplianceObjectTags(item.compliance_object_tags);
+  const obligation = {
+    ...(derivedRoleScope.length ? { roleScope: derivedRoleScope } : {}),
+    ...(item.size_threshold && typeof item.size_threshold === "object"
+      ? { sizeThreshold: item.size_threshold }
+      : {}),
+  };
+  const orgProfile = {
+    orgRoles: arr(profile.orgRoles),
+    orgSize: profile.orgSize && typeof profile.orgSize === "object" ? profile.orgSize : {},
+  };
+  const applicability = computeApplicability(obligation, orgProfile);
+
+  return { band, matchedModes, matchedVerticals, matchedJurisdictions, roleSignals, summary, applicability };
 }

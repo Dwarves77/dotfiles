@@ -1,4 +1,4 @@
-// Test for the read-time relevance lens (Option B, mig 251). Pure — runs in the no-npm discipline suite
+// Test for the read-time relevance lens (Option B, mig 251). Pure, runs in the no-npm discipline suite
 // (wired via the src/lib/workspace/*.test.mjs glob in run-test-suite.sh).
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -51,4 +51,55 @@ test("empty/degenerate inputs never throw and yield a safe low/general result", 
   const r = computeItemRelevance({}, {}, []);
   assert.equal(typeof r.summary, "string");
   assert.ok(["high", "medium", "low"].includes(r.band));
+});
+
+// ── applicability wiring (coordinator ruling 2026-09-29, workstream 7 / ADR-034) ──────────────────
+// roleScope is derived from the item's own compliance_object_tags (the only role-shaped field any
+// item or obligations row carries live, see relevance.mjs header); org_roles/org_size come from
+// the profile's new ADR-034 keys, distinct from PROFILE.roles (free text) above.
+
+test("applicability: item's compliance_object_tags maps to a role the profile holds → applies", () => {
+  const item = { title: "Freight forwarder customs liability rule", compliance_object_tags: ["freight-forwarder"] };
+  const profile = { ...PROFILE, orgRoles: ["forwarder"], orgSize: {} };
+  const r = computeItemRelevance(item, profile, SECTORS);
+  assert.equal(r.applicability.status, "applies");
+});
+
+test("applicability: item's role scope excludes every role the profile holds → does_not_apply", () => {
+  const item = { title: "Warehouse operator storage rule", compliance_object_tags: ["warehouse-operator"] };
+  const profile = { ...PROFILE, orgRoles: ["carrier"], orgSize: {} };
+  const r = computeItemRelevance(item, profile, SECTORS);
+  assert.equal(r.applicability.status, "does_not_apply");
+});
+
+test("applicability: item's role scope set, profile has no org_roles → needs_profile_input naming 'role'", () => {
+  const item = { title: "Carrier emissions rule", compliance_object_tags: ["carrier-ocean"] };
+  const profile = { ...PROFILE, orgRoles: [], orgSize: {} };
+  const r = computeItemRelevance(item, profile, SECTORS);
+  assert.equal(r.applicability.status, "needs_profile_input");
+  assert.deepEqual(r.applicability.missingDimensions, ["role"]);
+});
+
+test("applicability: a size threshold with no org_size → needs_profile_input naming org_size", () => {
+  // No live field sets item.size_threshold today (checked: src/lib/obligations/read-register.mjs's
+  // REGISTER_SELECT and migration 290 carry no size column), this proves the defensive read wires
+  // computeApplicability's size gate correctly for the day a producer starts setting it, without any
+  // schema change here.
+  const item = {
+    title: "Large-forwarder-only reporting duty",
+    size_threshold: { dimension: "headcount", band: "medium", comparison: "at_least" },
+  };
+  const profile = { ...PROFILE, orgRoles: [], orgSize: {} };
+  const r = computeItemRelevance(item, profile, SECTORS);
+  assert.equal(r.applicability.status, "needs_profile_input");
+  assert.deepEqual(r.applicability.missingDimensions, ["headcount"]);
+});
+
+test("applicability: unmapped compliance_object_tags (no ORG_ROLES counterpart) never blocks as does_not_apply", () => {
+  const item = { title: "Port operator infrastructure rule", compliance_object_tags: ["port-operator"] };
+  const profile = { ...PROFILE, orgRoles: ["forwarder"], orgSize: {} };
+  const r = computeItemRelevance(item, profile, SECTORS);
+  // "port-operator" has no ORG_ROLES mapping, so roleScope derives empty and applicability is
+  // "applies to every role" (no scope named), never a false does_not_apply from a silent drop.
+  assert.equal(r.applicability.status, "applies");
 });

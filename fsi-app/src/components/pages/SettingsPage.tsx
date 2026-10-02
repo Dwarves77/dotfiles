@@ -25,6 +25,7 @@ import {
 } from "@/components/account/AccountPrimitives";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
 import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
+import { OrganisationProfileSection } from "@/components/settings/OrganisationProfileSection";
 import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
 import type { ListSurfaceSortKey } from "@/components/list-surface/list-surface-helpers";
 
@@ -234,6 +235,9 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
           </div>
           <div data-audit="settings-sectors">
             <FreightSectorsCard />
+          </div>
+          <div data-audit="settings-organisation-profile">
+            <OrganisationProfileSection />
           </div>
           <div id="notifications" data-audit="settings-notifications" style={{ scrollMarginTop: 56 }}>
             <AccountCard title="Notifications" meta="In-app now · email and push coming" bodyPadding="4px 16px 10px">
