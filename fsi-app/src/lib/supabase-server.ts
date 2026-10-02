@@ -3,7 +3,6 @@ import { unstable_cache } from "next/cache";
 import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
 import type { Resource, ChangeLogEntry, Dispute, Supersession, ItemConnection } from "@/types/resource";
 import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
-import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import { scoreResource } from "@/lib/scoring";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 import { surfaceOf } from "@/lib/surface-of.mjs";
