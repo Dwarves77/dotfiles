@@ -100,6 +100,7 @@ import { fileURLToPath } from "node:url";
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
+import { slugify } from "./slugify.mjs";
 // DAG authorship at write time (lane W4-DAG, 2026-09-06: "market_series has no edges" — the W3-W4
 // plan-completion audit's own finding, propagation-run-005's own "0 recomputed on 500 drained" measurement
 // for this exact producer's own output). See author-market-series-delta.mjs's own header for the full
@@ -141,13 +142,8 @@ export const PRODUCTS = Object.freeze({
 
 loadLocalEnvFile();
 
-function slugify(raw) {
-  return String(raw ?? "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
-}
+// slugify (lane L11, 2026-10-03): extracted to slugify.mjs, reused by sbti-target-dashboard-producer.mjs
+// rather than a second hand-written copy (F45/prior-art). Behaviour unchanged.
 
 const PERIOD_RE = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
