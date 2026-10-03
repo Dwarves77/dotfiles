@@ -24,7 +24,6 @@ import { LAW2_DESKTOP_EXEMPTIONS, activeLaw2Exemptions } from '../exemptions-law
 import { latestTrainWave } from '../../fitness/functions/F25-module-liveness.mjs';
 import {
   FRAME_SPEC,
-  POSITION_ALLOWLIST,
   ANTON_ALLOWLIST,
   ABSENCE_ANYWHERE,
   ABSENCE_WHOLE_RUN_ONLY,

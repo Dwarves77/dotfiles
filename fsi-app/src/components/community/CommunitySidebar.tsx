@@ -706,6 +706,8 @@ function Avatar({
 }) {
   if (headshotUrl) {
     return (
+      // Arbitrary external avatar URL; next/image would require configuring every possible remote
+      // host, not worth it for a small headshot.
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={headshotUrl}

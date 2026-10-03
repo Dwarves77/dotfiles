@@ -12,7 +12,7 @@ const LIVE_ROWS = [
 
 function fakeDeps(calls, { rows = LIVE_ROWS } = {}) {
   return {
-    readAll: async (table, cols, opts) => { calls.push(["readAll", table]); return rows; },
+    readAll: async (table, _cols, _opts) => { calls.push(["readAll", table]); return rows; },
     guardedUpdateByIds: async (table, ids, patch, opts) => {
       calls.push(["guardedUpdateByIds", table, ids, patch, opts]);
       return { updated: ids.length, chunks: 1, halvings: 0, rows: ids.map((id) => ({ id })) };

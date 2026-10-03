@@ -16,7 +16,7 @@
 #   2. Layer 4 consistency runner (catches C1-C10 drift).
 #   3. Discipline + fitness tests (catches rule + fitness function regressions).
 #   4. TypeScript compile (catches the F9 / Vercel build-break class).
-# (Sub-steps 2b-2c and 3b-3g each mirror one CI step; F54 fails the build when any CI step that can
+# (Sub-steps 2b-2c and 3b-3h each mirror one CI step; F54 fails the build when any CI step that can
 # fail the workflow has no counterpart here, and when the no-npm suite's environment differs from CI's.)
 #
 # Emergency bypass: git push --no-verify
@@ -317,7 +317,22 @@ cat "$PRE_PUSH_LOG_DIR/gate.log"
 echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
 
 # ---------------------------------------------------------------------------
-# Step 3d: the fitness runner over the live tree, the SAME command the CI "Fitness functions" job runs
+# Step 3d: ESLint (max-warnings 0), the SAME command as CI's "ESLint (max-warnings 0)" step
+# ---------------------------------------------------------------------------
+# Lane R7-LINT-CI, 2026-10-01 (remediation plan Lane 7, closes CF-SEC-10). Matches discipline.yml's
+# fitness-check job ordering: that step runs right after npm ci and right before "Run fitness
+# functions"; here the deps-equivalent is step 0b above (worktree node_modules already resolved), so
+# this runs right before step 3e (the fitness runner, CI parity), the position's matching anchor.
+if ! (cd fsi-app && npm run lint -- --max-warnings=0) >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1; then
+  echo "[discipline pre-push] STEP 3d FAIL: ESLint reported violation(s) (max-warnings 0):" >&2
+  tail -60 "$PRE_PUSH_LOG_DIR/lint.log" >&2
+  echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/lint.log" >&2
+  exit 1
+fi
+echo "[discipline pre-push] step 3d (eslint, max-warnings 0, CI parity): OK"
+
+# ---------------------------------------------------------------------------
+# Step 3e: the fitness runner over the live tree, the SAME command the CI "Fitness functions" job runs
 # ---------------------------------------------------------------------------
 # CLASS FIX (2026-09-16, lane L22): five lanes in a row went red on their FIRST CI run and green on the
 # second, every time on a fitness function that scans the live tree (F23 orphaned proofs twice, F20, F25,
@@ -326,15 +341,15 @@ echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
 # does (node fsi-app/.discipline/fitness/runner.mjs, from the repo root; pre-push-tmpdir.test.mjs pins the
 # two commands to each other), so a live-tree violation is refused here, before the push. About 60s locally.
 if ! node fsi-app/.discipline/fitness/runner.mjs >"$PRE_PUSH_LOG_DIR/fit.log" 2>&1; then
-  echo "[discipline pre-push] STEP 3d FAIL: fitness runner reported violation(s) on the live tree:" >&2
+  echo "[discipline pre-push] STEP 3e FAIL: fitness runner reported violation(s) on the live tree:" >&2
   grep -E 'FAIL  \[F|^  \[F[0-9]+\]|^        ' "$PRE_PUSH_LOG_DIR/fit.log" | head -60 >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/fit.log" >&2
   exit 1
 fi
-echo "[discipline pre-push] step 3d (fitness runner, live tree, CI parity): OK"
+echo "[discipline pre-push] step 3e (fitness runner, live tree, CI parity): OK"
 
 # ---------------------------------------------------------------------------
-# Step 3e: npm-dependent test suites, the SAME discovery + command as CI's "App unit tests
+# Step 3f: npm-dependent test suites, the SAME discovery + command as CI's "App unit tests
 # requiring npm deps (*.npmtest.mjs)" step (invariant RD-79, lane G2, 2026-09-21)
 # ---------------------------------------------------------------------------
 # CLASS FIX for the gap PR #769 exposed: PR #769 passed this hook locally and FAILED CI's Fitness
@@ -346,16 +361,16 @@ echo "[discipline pre-push] step 3d (fitness runner, live tree, CI parity): OK"
 # deps installed in THIS worktree; the shared script fails loud (never silently skips, never installs
 # by itself) when fsi-app/node_modules is absent or empty.
 if ! sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh >"$PRE_PUSH_LOG_DIR/npmtest.log" 2>&1; then
-  echo "[discipline pre-push] STEP 3e FAIL: npm-dependent test suites (*.npmtest.mjs):" >&2
+  echo "[discipline pre-push] STEP 3f FAIL: npm-dependent test suites (*.npmtest.mjs):" >&2
   tail -60 "$PRE_PUSH_LOG_DIR/npmtest.log" >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/npmtest.log" >&2
   exit 1
 fi
 tail -10 "$PRE_PUSH_LOG_DIR/npmtest.log"
-echo "[discipline pre-push] step 3e (npm-dependent test suites, CI parity): OK"
+echo "[discipline pre-push] step 3f (npm-dependent test suites, CI parity): OK"
 
 # ---------------------------------------------------------------------------
-# Step 3f: behavioral goldens, the SAME command as CI's "Behavioral goldens (scripts/verify/
+# Step 3g: behavioral goldens, the SAME command as CI's "Behavioral goldens (scripts/verify/
 # *.golden.mjs)" step (invariant RD-79, lane G2, 2026-09-21)
 # ---------------------------------------------------------------------------
 # The RD-79 parity check (F54) reads every test-running step of discipline.yml's "Fitness functions"
@@ -366,32 +381,32 @@ echo "[discipline pre-push] step 3e (npm-dependent test suites, CI parity): OK"
 # called with the same repo-root-relative path CI's working-directory: fsi-app + run: node
 # scripts/verify/run-goldens.mjs resolves to, byte-for-byte, which is what F54 checks for.
 if ! node fsi-app/scripts/verify/run-goldens.mjs >"$PRE_PUSH_LOG_DIR/goldens.log" 2>&1; then
-  echo "[discipline pre-push] STEP 3f FAIL: behavioral goldens (scripts/verify/*.golden.mjs):" >&2
+  echo "[discipline pre-push] STEP 3g FAIL: behavioral goldens (scripts/verify/*.golden.mjs):" >&2
   tail -60 "$PRE_PUSH_LOG_DIR/goldens.log" >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/goldens.log" >&2
   exit 1
 fi
 tail -5 "$PRE_PUSH_LOG_DIR/goldens.log"
-echo "[discipline pre-push] step 3f (behavioral goldens, CI parity): OK"
+echo "[discipline pre-push] step 3g (behavioral goldens, CI parity): OK"
 
 # ---------------------------------------------------------------------------
-# Step 3g: the two blocking governance gates of CI's "Discipline engine unit tests" job that this hook
+# Step 3h: the two blocking governance gates of CI's "Discipline engine unit tests" job that this hook
 # never ran (lane CI-PARITY, 2026-09-28, found by widening F54 to every job)
 # ---------------------------------------------------------------------------
 # Same commands as discipline.yml's "Closure gate" and "Skill-contract drift" steps. (That job's third
 # governance step, orphan-modules.mjs --all, is a report that never fails, so it owes no parity here;
 # see F54's EXEMPT_STEPS.)
 if ! node fsi-app/.discipline/governance/closure-gate.mjs >"$PRE_PUSH_LOG_DIR/closure.log" 2>&1; then
-  echo "[discipline pre-push] STEP 3g FAIL: closure gate:" >&2
+  echo "[discipline pre-push] STEP 3h FAIL: closure gate:" >&2
   tail -40 "$PRE_PUSH_LOG_DIR/closure.log" >&2
   exit 1
 fi
 if ! node fsi-app/.discipline/governance/skill-contract-map.mjs --check >"$PRE_PUSH_LOG_DIR/skillmap.log" 2>&1; then
-  echo "[discipline pre-push] STEP 3g FAIL: skill-contract drift:" >&2
+  echo "[discipline pre-push] STEP 3h FAIL: skill-contract drift:" >&2
   tail -40 "$PRE_PUSH_LOG_DIR/skillmap.log" >&2
   exit 1
 fi
-echo "[discipline pre-push] step 3g (closure gate + skill-contract drift, CI parity): OK"
+echo "[discipline pre-push] step 3h (closure gate + skill-contract drift, CI parity): OK"
 
 # ---------------------------------------------------------------------------
 # Step 4: TypeScript compile parity (matches F9 / Vercel build path)

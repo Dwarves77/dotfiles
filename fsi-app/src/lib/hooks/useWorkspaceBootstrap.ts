@@ -23,7 +23,7 @@
 // immediately; consumers apply bootstrap data when (if) it arrives, same fail-soft
 // contract each hook already had (signed out / offline / non-200 → empty defaults).
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { authHeaders } from "@/lib/api/authed-fetch";
 import type { NavCounts } from "@/lib/nav/nav-counts";
 
@@ -116,7 +116,7 @@ interface SingletonState {
 const singleton: {
   state: SingletonState;
   inFlight: Promise<void> | null;
-  subscribers: Set<(s: SingletonState) => void>;
+  subscribers: Set<() => void>;
   attempted: boolean;
 } = {
   state: { data: null, loading: false, error: null, settled: false },
@@ -126,7 +126,7 @@ const singleton: {
 };
 
 function publish() {
-  for (const sub of singleton.subscribers) sub(singleton.state);
+  for (const sub of singleton.subscribers) sub();
 }
 
 async function performFetch(): Promise<void> {
@@ -180,11 +180,22 @@ async function performFetch(): Promise<void> {
   }
 }
 
-function subscribe(cb: (s: SingletonState) => void): () => void {
+function subscribe(cb: () => void): () => void {
   singleton.subscribers.add(cb);
   return () => {
     singleton.subscribers.delete(cb);
   };
+}
+
+function getSnapshot(): SingletonState {
+  return singleton.state;
+}
+
+// Server render has no singleton data: a stable initial-state constant (React requires a
+// getServerSnapshot for server-rendered content; its absence failed the /_not-found prerender).
+const SERVER_SNAPSHOT: SingletonState = { data: null, loading: false, error: null, settled: false };
+function getServerSnapshot(): SingletonState {
+  return SERVER_SNAPSHOT;
 }
 
 export interface UseWorkspaceBootstrap extends SingletonState {
@@ -194,13 +205,13 @@ export interface UseWorkspaceBootstrap extends SingletonState {
 }
 
 export function useWorkspaceBootstrap(): UseWorkspaceBootstrap {
-  const [snapshot, setSnapshot] = useState<SingletonState>(singleton.state);
+  // useSyncExternalStore reads the module-level singleton directly at render time (and re-renders on
+  // every publish()), replacing the former subscribe-then-setState-in-effect dance. The "another
+  // mounted consumer may already hold data" sync is now simply what getSnapshot() returns on first
+  // render, with no separate effect-driven catch-up write needed.
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
-    const unsubscribe = subscribe(setSnapshot);
-    // Sync immediately — another mounted consumer may already hold data.
-    setSnapshot(singleton.state);
-
     if (!singleton.attempted) {
       singleton.attempted = true;
       void performFetch();
@@ -213,8 +224,6 @@ export function useWorkspaceBootstrap(): UseWorkspaceBootstrap {
       // A later mount (post sign-in) retries rather than staying empty forever.
       void performFetch();
     }
-
-    return unsubscribe;
   }, []);
 
   const refresh = useCallback(() => {

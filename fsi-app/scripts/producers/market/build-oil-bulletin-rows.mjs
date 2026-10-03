@@ -65,7 +65,6 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { parseArgs } from "node:util";
-import { fileURLToPath } from "node:url";
 import { SERIES_ITEM_MAP } from "../../../src/lib/market/refresh-published-price-statistics.mjs";
 import { CAPTURED_BULLETIN_PAGE_TEXT } from "./refresh-published-price-statistics.mjs";
 import { isMainModule } from '../../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard

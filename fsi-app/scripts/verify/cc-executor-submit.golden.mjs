@@ -5,10 +5,7 @@
 // the SAME mint gates as a metered-model ledger — the seam adds no judgment and bypasses nothing. No DB.
 // Run: node scripts/verify/cc-executor-submit.golden.mjs — exits 0 PASS, 1 FAIL.
 import { createJiti } from "jiti";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true });
 const { perFactGates, perFactWouldHold, identityCongruenceHolds } = await jiti.import("../../src/lib/agent/mint-gates.mjs");
 

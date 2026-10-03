@@ -12,7 +12,7 @@
 //     reports them so operator can decide to backfill)
 //   - No duplicates of the same number
 
-import { violation, PASS } from '../lib/result.mjs';
+import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { isOverridden } from '../lib/file-content.mjs';
 

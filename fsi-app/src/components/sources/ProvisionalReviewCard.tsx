@@ -121,7 +121,10 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
       }
     })();
     return () => { cancelled = true; };
-  }, [expanded]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Re-fetch only when expanded toggles; the recommendation fetch itself is the body above, not a
+    // dependency to re-track.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
 
   async function submit(decision: "approve" | "reject" | "defer") {
     if (decision !== "defer" && decision === "approve" && !tier) return;

@@ -15,13 +15,13 @@ function deps() {
   const store = { obligations: [] };
   return {
     inserted,
-    readAll: async (table, cols, opts) => {
+    readAll: async (table, _cols, _opts) => {
       if (table === "item_forward_events") return EVENTS;
       if (table === "intelligence_items") return ITEMS;
       if (table === "obligations") return store.obligations;
       throw new Error(`unexpected table ${table}`);
     },
-    readAllByIds: async (table, cols, ids, opts) => {
+    readAllByIds: async (table, _cols, ids, _opts) => {
       if (table === "intelligence_items") return ITEMS.filter((i) => ids.includes(i.id));
       throw new Error(`unexpected table ${table}`);
     },

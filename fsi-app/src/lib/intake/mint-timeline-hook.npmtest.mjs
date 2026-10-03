@@ -103,7 +103,7 @@ function fakeClient({
       if (table === "section_claim_provenance") return emptyReadChain();
       if (table === "intelligence_item_sections") return emptyReadChain();
       if (table === "item_forward_events") {
-        return { insert(rows) { return { then(res) { return Promise.resolve({ data: null, error: null }).then(res); } }; } };
+        return { insert(_rows) { return { then(res) { return Promise.resolve({ data: null, error: null }).then(res); } }; } };
       }
       if (table === "integrity_flags") return integrityFlagsChain();
       if (table === "item_timelines") return itemTimelinesChain();

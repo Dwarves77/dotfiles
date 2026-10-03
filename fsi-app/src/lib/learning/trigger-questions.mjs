@@ -29,7 +29,7 @@
 // coverage test below deliberately does NOT special-case.
 
 import { QUESTION_NAMESPACE, createdBy, buildSubjectRef, isInNamespace } from "../connections/flag-namespaces.mjs";
-import { PRODUCT_QUESTIONS, SURFACES } from "./constants.mjs";
+import { PRODUCT_QUESTIONS } from "./constants.mjs";
 import {
   REGULATIONS_DOMAIN, MARKET_TECH_DOMAIN, OPERATIONS_REGIONAL_DOMAIN, MARKET_SIGNALS_DOMAIN,
   OPERATIONS_FACILITY_DOMAIN, RESEARCH_DOMAIN,

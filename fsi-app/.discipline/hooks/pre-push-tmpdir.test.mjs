@@ -112,9 +112,16 @@ test("pre-push step 0: the tracked hook, run with DISCIPLINE_HOOK_TRAMPOLINE uns
 // Lane L22 (2026-09-16), class fix for the first-push-red pattern: five lanes in a row went red on their
 // FIRST CI run on a fitness function that scans the live tree (F23 twice, F20, F25, the skill-drift gate)
 // because the hook ran the fitness functions' unit tests (step 3) but never the runner itself, which is
-// what the CI "Fitness functions" job runs. Step 3d now runs it; this test pins the hook's command to the
-// exact command discipline.yml runs, read from the workflow file, so the two cannot drift apart silently.
-test("pre-push hook source: step 3d runs the SAME fitness-runner command the CI Fitness functions job runs (parity by construction)", () => {
+// what the CI "Fitness functions" job runs. This test pins the hook's command to the exact command
+// discipline.yml runs, read from the workflow file, so the two cannot drift apart silently.
+//
+// Step label updated (lane R7-LINT-CI, 2026-10-01/03): the runner's own step moved from 3d to 3e when
+// a new "ESLint (max-warnings 0)" step was inserted as 3d (matching CI's fitness-check job ordering,
+// right before the fitness-runner step), renumbering every step after it (3d->3e, 3e->3f, 3f->3g,
+// 3g->3h). This test still asserted the pre-renumbering "3d" label and was red on master itself
+// (CLAUDE.md rule 15: a proof that does not execute, or asserts stale wording, is not a proof) -- fixed
+// to match the hook's current wording, not the other way around.
+test("pre-push hook source: step 3e runs the SAME fitness-runner command the CI Fitness functions job runs (parity by construction)", () => {
   const hook = readFileSync(PRE_PUSH_PATH, "utf8");
   const workflow = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "discipline.yml"), "utf8");
   const m = workflow.match(/run:\s*(node fsi-app\/\.discipline\/fitness\/runner\.mjs)\s*$/m);
@@ -122,14 +129,14 @@ test("pre-push hook source: step 3d runs the SAME fitness-runner command the CI 
   const ciCommand = m[1];
   assert.ok(
     hook.includes("if ! " + ciCommand + " >"),
-    "pre-push step 3d must run exactly the CI fitness-runner command: " + ciCommand,
+    "pre-push step 3e must run exactly the CI fitness-runner command: " + ciCommand,
   );
-  assert.match(hook, /step 3d \(fitness runner, live tree, CI parity\): OK/);
+  assert.match(hook, /step 3e \(fitness runner, live tree, CI parity\): OK/);
   // Ordering: the runner runs after the canonical suite (step 3) and before tsc (step 4).
   const i3 = hook.indexOf("step 3 (discipline + fitness tests, canonical suite): OK");
-  const i3d = hook.indexOf("step 3d (fitness runner, live tree, CI parity): OK");
+  const i3e = hook.indexOf("step 3e (fitness runner, live tree, CI parity): OK");
   const i4 = hook.indexOf("step 4 (tsc --noEmit): OK");
-  assert.ok(i3 > 0 && i3d > i3 && i4 > i3d, "step 3d must sit between step 3 and step 4");
+  assert.ok(i3 > 0 && i3e > i3 && i4 > i3e, "step 3e must sit between step 3 and step 4");
 });
 
 // Lane R23 item 2 (2026-10-02): step 2b (the memory gate) used to redirect to the FIXED path

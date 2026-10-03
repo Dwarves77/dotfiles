@@ -6,7 +6,7 @@
 // named to match the brief: "the component in its empty, one-row, extreme-data states."
 
 import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const LONG = (n, word = "extremely-long-token") =>

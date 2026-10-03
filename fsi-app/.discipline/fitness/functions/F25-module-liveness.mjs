@@ -720,27 +720,11 @@ export const LEGACY_ALLOWLIST = [
   // `expiry`, forcing a real wire-or-delete instead of a permanent exemption wearing a temporary label.
   // ══════════════════════════════════════════════════════════════════════════════════════════════════
   ...(() => {
-    const w = (file, plan, expiry, reason) => ({
-      file: `fsi-app/${file}`,
-      reason,
-      reviewByPhase: `W7.1 ratchet (operator/coordinator: wire per ${plan}, or delete with its test, before wave${expiry})`,
-      disposition: { kind: 'wire', detail: plan },
-      expiry,
-    });
-    const d = (file, plan, expiry, reason) => ({
-      file: `fsi-app/${file}`,
-      reason,
-      reviewByPhase: `W7.1 ratchet (operator/coordinator: delete per ${plan} before wave${expiry})`,
-      disposition: { kind: 'delete', detail: plan },
-      expiry,
-    });
-    const o = (file, reasonDetail, expiry, reason) => ({
-      file: `fsi-app/${file}`,
-      reason,
-      reviewByPhase: `W7.1 ratchet (one-shot: ${reasonDetail}; re-review before wave${expiry})`,
-      disposition: { kind: 'one-shot', detail: reasonDetail },
-      expiry,
-    });
+    // The w/d/o entry-builder helpers this IIFE used to populate are gone: every allowlist entry
+    // that called them has been wired or deleted (see the history comments below), leaving the
+    // returned array empty. The helpers themselves are dead with no remaining caller; removed
+    // rather than kept around for a future entry that does not exist yet (reuse-before-construction
+    // cuts the other way once there is nothing left to reuse).
     return [
       // NOTE (lane W71-WIRE, 2026-09-05): skill-contract-map.mjs, propose-classifications.mjs,
       // generate-theme-brief.mjs, ratify-flag-to-census.mjs, the migration-267/268/271 generators,

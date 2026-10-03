@@ -124,7 +124,7 @@ function fakeDeps({ events, items, existingObligations = [] }) {
   return {
     inserted,
     deps: {
-      readAll: async (table, columns, opts) => {
+      readAll: async (table, _columns, _opts) => {
         if (table === "item_forward_events") return events;
         if (table === "obligations") return existingObligations;
         throw new Error(`unexpected readAll(${table})`);

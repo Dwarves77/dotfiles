@@ -178,7 +178,6 @@ async function main() {
     };
 
     // The four required slots for item_type='regulation' (seeded in 113).
-    const SLOTS = ["effective_date", "primary_deadline", "jurisdictional_scope", "penalty_summary"];
     const SRC_URL = "https://selftest.example.gov/source-114";
     // The excerpt contains each FACT source_span VERBATIM as a substring, so the
     // criterion-3 span-check (case-insensitive substring of result_content)

@@ -68,7 +68,7 @@ for (const r of rows || []) {
   const isRejected = status === "rejected";
   if (isMaterialized) { materialized.push(r); continue; }
   if (isRejected) {
-    (nonEmpty(r.reason) || nonEmpty(r.reviewer_notes)) ? rejectedWithReason.push(r) : rejectedNoReason.push(r);
+    if (nonEmpty(r.reason) || nonEmpty(r.reviewer_notes)) { rejectedWithReason.push(r); } else { rejectedNoReason.push(r); }
     continue;
   }
   // TRANSIT: pending, or approved-unmaterialized (P1#5 species).

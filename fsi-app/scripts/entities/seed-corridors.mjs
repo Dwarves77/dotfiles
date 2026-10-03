@@ -389,8 +389,6 @@ export async function main({ apply = false } = {}, deps) {
 }
 
 async function loadEnv() {
-  const { resolve, dirname } = await import("node:path");
-  const { fileURLToPath } = await import("node:url");
   loadLocalEnvFile();
 }
 

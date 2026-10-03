@@ -62,7 +62,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { readAll, guardedDelete, guardedInsertMany, guardedInsert, guardedUpdate, guardedUpdateByIds } from "../lib/db.mjs";
+import { readAll, guardedDelete, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
 import { clusterGraph } from "../../src/lib/connections/cluster.mjs";
 import { detectGaps } from "../../src/lib/connections/gaps.mjs";
 import { computeAnticipatedTargets } from "../../src/lib/connections/anticipate.mjs";

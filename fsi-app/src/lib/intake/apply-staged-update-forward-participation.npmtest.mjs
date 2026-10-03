@@ -22,7 +22,6 @@
 // pattern, @/ alias resolution).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
@@ -33,7 +32,6 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { applyStagedUpdate, isSubstantiveUpdate } = await jiti.import("./apply-staged-update.ts");
 
-const md5 = (s) => createHash("md5").update(String(s ?? ""), "utf8").digest("hex");
 
 /**
  * A full chainable fake of the supabase client, covering every query the update_item path issues on a

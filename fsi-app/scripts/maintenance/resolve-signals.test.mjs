@@ -55,7 +55,7 @@ test("dry: reports the full disposition split, writes nothing", async () => {
 
 test("apply: resolves BOTH open flags (decisive and undecided) -- no residue stays open", async () => {
   const d = baseDeps();
-  const r = await main({ mode: "apply" }, d);
+  await main({ mode: "apply" }, d);
   assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-decisive"));
   assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-undecided"));
   const decisiveCall = d.calls.find((c) => c[1] === "flag-decisive");

@@ -739,13 +739,16 @@ test('underEntryDir: recognizes the five derived directories and docs/ops/sessio
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
+test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries plus the two dated R7-LINT-CI approvals -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
       'docs/INDEX.md', 'docs/PROGRAM-BOARD.md', 'docs/audits/system-health-audit-2026-09-17.md',
       'docs/ops/HANDOFF-2026-09-19-addendum.md', 'docs/ops/session-log.md',
       'docs/plans/complete-system-build-plan-2026-09-04.md',
+      // Two dated, coordinator-approved (2026-10-03) concurrency exemptions for lane R7-LINT-CI, a
+      // whole-tree lint remediation merged clean against #907 and #908 (see HOTSPOT_ALLOWLIST).
+      'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs', 'fsi-app/src/lib/supabase-server.ts',
     ].sort(),
   );
 });

@@ -268,7 +268,7 @@ export async function runEnvelopeProducer({ producerName, enabled, sourceKey, fe
   const touchedRegionIds = new Set();
   for (const row of plan.toInsert) {
     const region_id = codeToId.get(row.region_code);
-    const { region_code, ...rest } = row; // region_code is the caller-facing key; the table stores region_id
+    const { region_code: _region_code, ...rest } = row; // region_code is the caller-facing key; the table stores region_id
     const res = await guardedInsert("regional_data_facts", { ...rest, region_id }, { cite });
     if (res.inserted) { inserted++; touchedRegionIds.add(region_id); }
   }

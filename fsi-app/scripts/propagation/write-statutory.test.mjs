@@ -60,7 +60,7 @@ test("parseRow: normalizes defaults (scenarioKey, obligationSeed) and passes thr
   assert.deepEqual(parsed.ghgIntensityActual, ADMISSIBLE_INPUT);
 });
 
-function fakeSb({ entities = [], statutory = [] } = {}) {
+function fakeSb({ entities = [], statutory: _statutory = [] } = {}) {
   return {
     entitiesInserted: [],
     from(table) {
@@ -147,7 +147,7 @@ test("writeOneRow: a surplus (target above actual) computes a ZERO penalty, stil
     now: () => new Date("2026-09-04"),
     resolveEntityFn: async () => "cl:asset:x",
     readAllFn: async () => [],
-    insertFn: async (table, row) => ({ inserted: { computation_id: "c1" } }),
+    insertFn: async (_table, _row) => ({ inserted: { computation_id: "c1" } }),
   });
   assert.equal(out.action, "written");
 });
@@ -168,7 +168,7 @@ test("resolveOrMintEntity: an existing entity is returned as-is, never re-minted
   // Seed the fake to report the deterministic id as already present.
   const { entityId } = await import("../../src/lib/entities/entity-id.mjs");
   const id = entityId("asset", "IMO1234567");
-  sb.from = (table) => ({
+  sb.from = (_table) => ({
     select() { return this; },
     eq() { return this; },
     async maybeSingle() { return { data: { entity_id: id }, error: null }; },
@@ -205,7 +205,7 @@ test("resolveOrMintEntity: apply mode mints a NEW entity when absent, via the gu
 
 // -- runWriter integration (fake sb/readAllFn/familyDir, no real DB, no real repo writes) --------------
 
-function fakeSbForRun({ entities = [], statutory = [] } = {}) {
+function fakeSbForRun({ entities = [], statutory: _statutory = [] } = {}) {
   return {
     from(table) {
       if (table === "entities") {

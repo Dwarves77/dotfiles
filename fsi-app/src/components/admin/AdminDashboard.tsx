@@ -230,6 +230,9 @@ export function AdminDashboard({
   useEffect(() => {
     if (initialSources.length > 0) setSources(initialSources);
     if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
+    // Hydrate store from server props once on mount only; initialSources/initialProvisionalSources are
+    // the server-rendered seed, not a value this effect should re-run on, and setSources/
+    // setProvisionalSources are stable store actions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -251,6 +254,8 @@ export function AdminDashboard({
     const view =
       sub === "Provisional review" ? "provisional" : sub === "Spot-check" ? "provisional" : "registry";
     setActiveView(view);
+    // Re-run only when the nav selection (section, sub) changes; setActiveView is a stable store
+    // action, not a dependency to track.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, sub]);
 

@@ -68,7 +68,7 @@ function fakeClient({ itemId = "new-item-1" } = {}) {
     in() { return this; },
     like() { return this; },
     order() { return this; },
-    limit(n) { return Promise.resolve({ data: [], error: null }); },
+    limit(_n) { return Promise.resolve({ data: [], error: null }); },
     then(res, rej) { return Promise.resolve({ data: [], error: null }).then(res, rej); },
   });
 

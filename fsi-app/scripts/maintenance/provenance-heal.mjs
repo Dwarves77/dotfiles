@@ -78,7 +78,7 @@
 //
 // REAL-DEPS GAP (D22 lane L9c, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-13): buildHealDeps builds a
 // raw supabase-js client outside db.mjs's seam; no test exercises it -- apply arm untested against real deps.
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { main as healMain, parseSelection, loadRequiredSlots, computeItemTimeBudgetSeconds } from "../mint/heal-provenance.mjs";
 import { makePoliteFetch } from "../mint/export-census-rows.mjs";
@@ -118,7 +118,7 @@ const ITEM_COLUMNS =
 // pre-pass inline version for every existing `provenance-heal` dispatch below.
 export async function buildHealDeps() {
   const {
-    readAll, readAllByIds, readClient, guardedInsert, guardedInsertMany, guardedUpdate, guardedUpdateByIds,
+    readAll, readAllByIds, readClient, guardedInsert, guardedUpdate, guardedUpdateByIds,
     registerSource, institutionKey,
   } = await import("../lib/db.mjs");
   const { createClient } = await import("@supabase/supabase-js");

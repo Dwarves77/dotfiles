@@ -98,7 +98,7 @@ test("RED: descriptor is not a plain object", () => {
 });
 
 test("RED: missing required field is named", () => {
-  const { rationale, ...rest } = validDescriptor();
+  const { rationale: _rationale, ...rest } = validDescriptor();
   const errors = validateFamilyDescriptor("widget", rest);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /missing required field: rationale/);

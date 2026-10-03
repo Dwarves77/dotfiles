@@ -118,7 +118,7 @@ export function resolveHarnessRunContext({ family, familyDir, governingFiles, fs
   return { harnessVersion, runId, loopRunId };
 }
 
-export function resolveLoopRunId({ explicit, upstreamFamily, upstreamRunId, harnessRunsDir }) {
+export function resolveLoopRunId({ explicit, upstreamFamily: _upstreamFamily, upstreamRunId, harnessRunsDir }) {
   if (explicit != null && String(explicit).trim() !== "") {
     return String(explicit).trim();
   }

@@ -12,7 +12,7 @@ import {
   isStaticTextHost, htmlToText, deriveCelexTxtHtmlUrl, classifyCaptureOutcome, maxPoolLenByItem,
   deriveCellarUrl, headersFor, CELLAR_CELEX_PREFIX,
   partitionByPoolState, buildRow, buildRoadblockSummaryFlag, computeHostWaitMs, paceHost, parseIdsArg,
-  makeDirectFetch, main, buildDeps, CITE, STATIC_TEXT_HOSTS, REG_FAMILY_ITEM_TYPES,
+  makeDirectFetch, main, buildDeps, CITE, REG_FAMILY_ITEM_TYPES,
 } from "./capture-static-primaries.mjs";
 import { __setWriteClientForTest } from "../lib/db.mjs";
 
@@ -537,7 +537,7 @@ function makeClient(handler, calls) {
 
 test("buildDeps(): every dep is present and callable (no ReferenceError)", async () => {
   const calls = [];
-  __setWriteClientForTest(() => makeClient((s) => ({ data: [], error: null }), calls));
+  __setWriteClientForTest(() => makeClient((_s) => ({ data: [], error: null }), calls));
   const deps = await buildDeps();
   assert.equal(typeof deps.holdEngaged, "function");
   assert.equal(typeof deps.readUnscopedCandidates, "function");

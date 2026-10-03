@@ -34,7 +34,7 @@
 //   Neither path re-runs connection discovery (apply-tags.mjs's own optional step 6): this wrapper
 //   orchestrates the guarded write only; the note in each summary carries the documented fallback
 //   command apply-tags.mjs itself prints for a skipped discovery re-run.
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   applyTags, evaluateApplication,

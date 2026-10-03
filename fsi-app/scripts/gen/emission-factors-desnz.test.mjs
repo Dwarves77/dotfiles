@@ -100,7 +100,7 @@ test("ATTACK: a row with ttw_co2e null but no needs_runner_fetch marker is rejec
   const [pendingSample] = splitPending(loadFixtureRows(DESNZ_FIXTURE)).pending;
   // Strip the marker off an otherwise-identical shell. If validateFactor still passed this, a null
   // figure could sneak into the seed batch unmarked — this is the case the guard exists to prevent.
-  const { needs_runner_fetch, ...unmarked } = pendingSample;
+  const { needs_runner_fetch: _needs_runner_fetch, ...unmarked } = pendingSample;
   const errors = validateFactor(unmarked);
   assert.ok(errors.length > 0, "a null-valued row with no marker must fail validateFactor");
 });

@@ -25,7 +25,7 @@
 //
 // Override: trailing `// fitness-allow: F8 (reason)` on the matching line.
 
-import { violation, PASS } from '../lib/result.mjs';
+import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { isOverridden } from '../lib/file-content.mjs';
 

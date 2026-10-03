@@ -164,7 +164,9 @@ function FlyToSelected({ lat, lng, nonce }: { lat: number; lng: number; nonce: n
   const map = useMap();
   useEffect(() => {
     map.flyTo([lat, lng], 5, { duration: 0.8 });
-    // nonce in deps so re-selecting same coords still re-fires.
+    // nonce in deps so re-selecting same coords still re-fires. map (from useMap()) is a stable
+    // Leaflet instance reference for this component's lifetime, not a value this effect should re-run
+    // on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng, nonce]);
   return null;

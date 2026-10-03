@@ -30,7 +30,7 @@
  *  disposition throughput is known. Default 14 (two weeks to research-or-dispose an item). Now owned by
  *  scripts/lib/quarantine-dwell.mjs (lane QUARANTINE-DISPOSITION, 2026-09-28) so the planner reads the
  *  SAME constant, never a second copy that can drift. */
-import { readClient, readAll } from "../lib/db.mjs";
+import { readAll } from "../lib/db.mjs";
 import { computeQuarantineDwell, DWELL_BOUND_DAYS } from "../lib/quarantine-dwell.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 

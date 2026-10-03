@@ -31,7 +31,7 @@ test("GREEN: a well-formed row validates", () => {
 });
 
 test("RED: missing item_id is refused, not thrown", () => {
-  const { item_id, ...rest } = validRow();
+  const { item_id: _item_id, ...rest } = validRow();
   const v = validateDeferralRow(rest, NOW);
   assert.equal(v.ok, false);
   assert.match(v.error, /item_id is required/);
@@ -62,7 +62,7 @@ test("RED: a placeholder owner is refused", () => {
 });
 
 test("RED: a missing resolution_event is refused", () => {
-  const { resolution_event, ...rest } = validRow();
+  const { resolution_event: _resolution_event, ...rest } = validRow();
   const v = validateDeferralRow(rest, NOW);
   assert.equal(v.ok, false);
   assert.match(v.error, /resolution_event is required/);

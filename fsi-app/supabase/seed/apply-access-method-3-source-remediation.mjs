@@ -68,7 +68,7 @@ async function applyOne({ label, id, patch }) {
 
 const results = [];
 for (const u of UPDATES) {
-  // eslint-disable-next-line no-await-in-loop -- run serially so log is ordered
+   
   const r = await applyOne(u);
   results.push(r);
 }

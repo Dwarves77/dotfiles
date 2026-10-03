@@ -203,7 +203,6 @@ function seedTables() {
   };
 }
 
-const cite = { skill: "remediation-discipline", reason: "test" };
 
 test("runJurisdiction: dry mode reports counts and writes NOTHING", async () => {
   const tables = seedTables();

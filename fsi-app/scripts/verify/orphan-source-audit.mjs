@@ -10,7 +10,7 @@
  *
  *  Exit 0 = invariant holds (no orphans). Exit 1 = orphans found (gates in CI-with-secrets / ops run).
  *  Reads only. Requires env: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. */
-import { readClient, readAll, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
+import { readAll, SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 loadLocalEnvFile();

@@ -311,7 +311,7 @@ test("proposeTags: apply: an item that now DOES derive proposals opens a normal 
     operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [],
   };
   const deps = fakeDeps({ corpus: [itemNowDerivable], existingNoDerivable: [priorNoDerivableRow] });
-  const r = await proposeTags(deps, { mode: "untagged", execute: true });
+  await proposeTags(deps, { mode: "untagged", execute: true });
   const inserted = deps.calls.find((c) => c[0] === "insertMany")[1];
   assert.equal(inserted.length, 1);
   assert.equal(inserted[0].status, "open");

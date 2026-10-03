@@ -141,7 +141,7 @@ export async function runSmoke(browser) {
 
     const m = await page.evaluate(
       ({ fnSrc, args }) => {
-        // eslint-disable-next-line no-eval
+         
         const measure = eval(fnSrc);
         return measure(args);
       },

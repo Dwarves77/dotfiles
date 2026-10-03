@@ -86,7 +86,6 @@ export function diffThemes(priorThemes, newThemes, opts = {}) {
   const threshold = typeof opts.overlapThreshold === "number" ? opts.overlapThreshold : OVERLAP_THRESHOLD;
   const priors = normalize(priorThemes);
   const news = normalize(newThemes);
-  const priorById = new Map(priors.map((t) => [t.id, t]));
   const newById = new Map(news.map((t) => [t.id, t]));
 
   // For every (prior, new) pair sharing >= threshold overlap, record it — bidirectional candidate map.

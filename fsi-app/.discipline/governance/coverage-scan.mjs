@@ -36,7 +36,7 @@
  *
  * Output: pure runCoverageScan() for F23; console summary + durable JSON report when run as a CLI.
  */
-import { readdirSync, readFileSync, writeFileSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { skillsForFile, skillsForOp } from './skill-map.mjs';

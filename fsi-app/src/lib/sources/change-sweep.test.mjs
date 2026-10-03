@@ -35,7 +35,7 @@ const depsFor = (byId) => ({
   loadClaims: async () => [{ source_span: "span" }],
   getSnapshot: async () => ({ found: true, content: "body", fetchedAt: "2026-07-01T00:00:00Z" }),
   probeFreshness: async (url) => ({ status: byId[url.split("/").pop()]?.fresh ?? "fresh" }),
-  cheapVerifyClaims: (claims, _html) => byId.cheap ?? { pass: true, reason: "spans present in stored text" },
+  cheapVerifyClaims: (_claims, _html) => byId.cheap ?? { pass: true, reason: "spans present in stored text" },
 });
 
 test("sweep routes per item through verifyItem; bounded with notSwept reported; act:false writes nothing", async () => {

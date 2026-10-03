@@ -7,7 +7,7 @@
 // IF EXISTS) and re-ALTERs the reconciler login. Read-then-verify; no corpus mutation.
 import pg from "pg";
 import { randomBytes } from "node:crypto";
-import { readFileSync, writeFileSync, appendFileSync } from "node:fs";
+import { readFileSync, appendFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { assertExecutedDataOp } from "./_dataops/interlock.mjs";

@@ -15,7 +15,7 @@
 // ArchiveViewer; notifications-smoke.mjs mounts NotificationPreferences; spec09-panels covers the CSV
 // upload) — this spec does not re-prove those bodies, only the new section-index navigation.
 
-import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
+import { bundleEntry, newSmokePage, measureGuard, assertGuardClean } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
 
 const KNOWN_SAFE_PLACEHOLDER_LITERALS = ['Action'];

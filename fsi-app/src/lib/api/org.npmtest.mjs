@@ -40,7 +40,7 @@ function fakeSupabase({ claimsData = null, claimsError = null, membershipData = 
         select(cols) {
           assert.match(cols, /org_id/);
           return {
-            eq(col, userId) {
+            eq(col, _userId) {
               assert.equal(col, "user_id");
               return {
                 order() {

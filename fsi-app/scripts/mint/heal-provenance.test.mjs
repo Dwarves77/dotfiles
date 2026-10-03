@@ -2,8 +2,7 @@
 // I/O-touching function here is exercised with injected deps/fetchImpl stubs, per the lane contract.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { writeFileSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -101,13 +100,6 @@ import {
   classifyHopLink,
   hopLinksForToken,
   extractSentenceContext,
-  // tenth pass (HEAL-10, 2026-09-04) — Tasks 1-4
-  buildCaptureIndex,
-  getCaptureIndex,
-  containsCaseInsensitiveCached,
-  locateSpanInTextIndexed,
-  locateSpanInTextCached,
-  computeItemTimeBudgetSeconds,
   sentenceSpans,
   findSentenceSpanForToken,
   removeSentenceSpan,
@@ -117,8 +109,6 @@ import {
   planRelabelFromFullBrief,
 } from "./heal-provenance.mjs";
 import { norm } from "../../src/lib/agent/gate-a-match.mjs";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
   assert.match(HEAL_VERSION, /^hp11-/);
@@ -951,7 +941,7 @@ test("main: apply, out given — writes a checkpoint after EVERY item, not only 
     // read the file back inside a per-item hook that always runs (touchItem, called once per item late in
     // its own five-step sequence, by which point THAT item's own checkpoint has not yet been written —
     // this snapshot instead reads whatever the PREVIOUS item's checkpoint left, proving it exists mid-run).
-    touchItem: async (id) => {
+    touchItem: async (_id) => {
       try { seen.push(JSON.parse(readFileSync(resolve(dir, "summary.json"), "utf8")).per_item.length); }
       catch { seen.push(-1); } // no checkpoint written yet before the first item's own writes
       return { updated: 1 };

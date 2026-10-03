@@ -31,7 +31,7 @@ function deps({ outcomeFor = () => "verified_cheap" } = {}) {
       return { data: null };
     },
   };
-  const readAll = async (table, cols, opts) => {
+  const readAll = async (table, _cols, _opts) => {
     assert.equal(table, "intelligence_items");
     return ITEMS;
   };

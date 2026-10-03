@@ -15,7 +15,7 @@ import { nextRunNumberFromHarnessRuns, formatRunId } from './harness-run-number.
 
 /** A fake `harness_runs` table, keyed by family, standing in for a real readAllFn's rows. */
 function fakeReadAllFn(rowsByFamily) {
-  return async (table, columns, { match } = {}) => {
+  return async (table, columns, { match: _match } = {}) => {
     assert.equal(table, 'harness_runs');
     assert.equal(columns, 'run_id');
     // The real readAllFn applies `match` as a Supabase query-builder filter; this fake just returns the

@@ -183,6 +183,32 @@ export const UPDATE_DRAIN_LIMIT = 5;
  * idempotent posture, same one write chokepoint (applyStagedUpdate) — nothing about what this function
  * does changes by being reachable from a second caller.
  */
+/** staged_updates' full column set (`.select("*")`), per migration 004's CREATE TABLE (as rebuilt from
+ *  the original 001 schema) plus 034's three materialization-observability columns and 167's
+ *  reviewer_notes. `item_id`/`source_id` are genuinely nullable at the DB level (migration 004:
+ *  `item_id UUID REFERENCES intelligence_items(id)`, no NOT NULL; a `new_item` row has no item yet).
+ *  Read in full (2026-10-02, lane R7-LINT-CI, rule 13) rather than re-widened to Record<string,
+ *  unknown>, so `row` below structurally satisfies applyStagedUpdate's StagedUpdateRow parameter. */
+interface StagedUpdatesTableRow {
+  id: string;
+  item_id: string | null;
+  source_id: string | null;
+  update_type: string;
+  proposed_changes: Record<string, unknown> | null;
+  reason: string;
+  source_url: string | null;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  status: "pending" | "approved" | "rejected";
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  batch_id: string | null;
+  created_at: string;
+  materialization_error: string | null;
+  materialized_at: string | null;
+  materialized_item_id: string | null;
+  reviewer_notes: string | null;
+}
+
 export async function drainChangeSweepUpdates(
   sb: SupabaseClient,
   caller: string,
@@ -207,13 +233,13 @@ export async function drainChangeSweepUpdates(
   const items: CycleItemOutcome[] = [];
   let approved = 0, rejected = 0;
 
-  for (const row of take as Array<Record<string, unknown>>) {
+  for (const row of take as unknown as StagedUpdatesTableRow[]) {
     const now = new Date().toISOString();
-    const rowId = row.id as string | number;
-    const itemId = (row.item_id as string | null) ?? null;
+    const rowId = row.id;
+    const itemId = row.item_id ?? null;
     const base: CycleItemOutcome = {
       title: itemId ? `update_item:${itemId}` : `update_item:${rowId}`,
-      source_url: (row.source_url as string | null) ?? "",
+      source_url: row.source_url ?? "",
       stagedId: String(rowId),
       disposition: "update_rejected",
       itemId,

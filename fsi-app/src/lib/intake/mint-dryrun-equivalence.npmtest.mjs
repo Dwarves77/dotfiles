@@ -22,7 +22,6 @@ function fakeClient({ sourcesRows = [], corpus = [] } = {}) {
   return {
     insertedSeed: () => insertedSeed,
     from(table) {
-      const st = { table };
       const q = {
         select() { return this; },
         eq() { return this; },

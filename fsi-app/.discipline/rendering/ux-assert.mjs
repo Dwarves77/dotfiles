@@ -302,7 +302,7 @@ export function assertUxClean(label, { targets = [], titles = [], clipped = [], 
 export async function measureUx(page) {
   return page.evaluate(
     ({ selector, titleWordsSrc, titleWordsSelector }) => {
-      // eslint-disable-next-line no-new-func
+       
       const titleWordsOf = new Function(`return (${titleWordsSrc})`)();
       const visible = (el) => {
         const cs = getComputedStyle(el);

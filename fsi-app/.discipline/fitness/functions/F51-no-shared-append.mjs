@@ -70,7 +70,7 @@
 // node: builtins plus the repo's own fitness/governance/harness-runs helpers only (loaded by the no-npm
 // discipline test glob via run-test-suite.sh's existing `fitness/functions/*.test.mjs` line).
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, basename } from 'node:path';
 import { violation } from '../lib/result.mjs';
@@ -470,6 +470,8 @@ export const HOTSPOT_ALLOWLIST = {
   'docs/plans/complete-system-build-plan-2026-09-04.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/ops/HANDOFF-2026-09-19-addendum.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/audits/system-health-audit-2026-09-17.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
+  'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs': { decidedOn: '2026-10-03', reason: 'R7-LINT-CI whole-tree lint remediation, merged clean concurrent with #907 (one-line unused-param rename); coordinator approval 2026-10-03' },
+  'fsi-app/src/lib/supabase-server.ts': { decidedOn: '2026-10-03', reason: 'R7-LINT-CI whole-tree lint remediation, merged clean concurrent with #908 (typed-row edits, no overlapping hunks); coordinator approval 2026-10-03' },
 };
 
 /** Pure core of check 5: given the ordered list of changed-file-lists (one per first-parent commit,

@@ -15,7 +15,7 @@ import { TITLE_WORDS_SRC, TITLE_WORDS_SELECTOR } from '../ux-assert.mjs';
 import { POSITION_ALLOWLIST, SCROLLER_ALLOWLIST, ANTON_ALLOWLIST, ABSENCE_HOST, NOT_A_CARD } from './allowlists.mjs';
 
 const COLLECT = ({ renderedTextSrc, titleWordsSrc, titleWordsSelector, positionAllowlist, scrollerAllowlist, antonAllowlist, absenceHost, notACard }) => {
-  // eslint-disable-next-line no-new-func
+   
   const renderedText = new Function(`return (${renderedTextSrc})`)();
 
   const cs = (el) => getComputedStyle(el);
@@ -495,7 +495,7 @@ const COLLECT = ({ renderedTextSrc, titleWordsSrc, titleWordsSelector, positionA
     textRuns,
     // L13 (RD-82): every heading/title's content box against its longest word, measured by the ONE
     // in-page implementation ux-assert.mjs also injects into measureUx.
-    // eslint-disable-next-line no-new-func
+     
     titleWords: new Function(`return (${titleWordsSrc})`)()(titleWordsSelector),
   };
 };

@@ -11,7 +11,7 @@ const ROOT = resolve(__dirname, "../../src/data");
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function esc(s: string): string {
+function esc(s: string | null): string {
   if (s == null) return "NULL";
   return "'" + String(s).replace(/'/g, "''") + "'";
 }
@@ -21,13 +21,32 @@ function arrLit(arr: string[]): string {
   return "ARRAY[" + arr.map(esc).join(",") + "]";
 }
 
-function jsonLit(obj: unknown): string {
-  return esc(JSON.stringify(obj));
-}
-
 // ── Load seed data ───────────────────────────────────────────
 
-const resources: any[] = JSON.parse(
+/** Shape of each entry in seed-resources.json, matching exactly the fields the Resources insert
+ *  loop below reads off `r`. */
+interface SeedResource {
+  id: string;
+  cat: string;
+  sub: string;
+  title: string;
+  url: string;
+  note: string;
+  type: string;
+  priority: string;
+  reasoning: string;
+  tags: string[];
+  whatIsIt: string;
+  whyMatters: string;
+  keyData: string[];
+  modes?: string[];
+  topic?: string | null;
+  jurisdiction?: string | null;
+  added: string;
+  timeline?: { date: string; label: string; status?: string | null }[];
+}
+
+const resources: SeedResource[] = JSON.parse(
   readFileSync(resolve(ROOT, "seed-resources.json"), "utf-8")
 );
 

@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { fitnessFunction, modelIdLiteralLines, CANONICAL_HOME, SECURITY_ALLOWLIST_FILES } from './F69-model-id-literal.mjs';
+import { fitnessFunction, CANONICAL_HOME, SECURITY_ALLOWLIST_FILES } from './F69-model-id-literal.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../'); // functions->fitness->.discipline->fsi-app->repo
 

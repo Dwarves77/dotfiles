@@ -34,6 +34,48 @@ import { FUELEU_UNIT_PRICE_EUR_PER_T_VLSFOE } from "../statutory/fueleu-annex-iv
 import { admissibleFor } from "./admissible-for.ts";
 import { classTierForHost } from "../sources/host-authority.ts";
 import { hostFromUrl } from "../entities/host-from-url.mjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { StatutoryInput, OriginClass, Lifecycle, Admissibility, Value } from "./types.ts";
+
+// The real shape a rows-file's `source` block must have (validated by validateSourceBlock below, never
+// assumed). An `AnyRecord` alias for the handful of spots that genuinely read untrusted external JSON
+// (file/request input) before it has been validated into one of these shapes.
+type AnyRecord = Record<string, unknown>;
+
+interface SourceBlock {
+  url: string;
+  article: string;
+  quote: string;
+  verified_at: string;
+}
+
+/** One rows-file input block, post-parse: StatutoryInput's five required fields (derivation, value,
+ *  unit, citation, asOf) plus the Value-only fields toValueShape() also reads off it so admissibleFor()
+ *  (which takes a `Value`, not a `StatutoryInput`) can gate it. */
+interface RowInputBlock extends StatutoryInput {
+  originClass: OriginClass;
+  lifecycle: Lifecycle;
+  admissibility: Admissibility;
+  baseConfidence: number;
+  halfLifeDays?: number | null;
+  obsStatus?: string | null;
+  source?: SourceBlock;
+}
+
+interface ParsedStatutoryRow {
+  shipKey: string;
+  scenarioKey: string;
+  obligationSeed: string;
+  targetYear: number;
+  ghgIntensityActual: RowInputBlock;
+  energyUsedMJ: RowInputBlock;
+  consecutiveDeficitYears: RowInputBlock;
+}
+
+/** The subset of a Supabase PostgREST query builder this module's injected `match` callbacks chain
+ *  against (`.eq()` only); derived from the real client type rather than hand-rolled, so a future
+ *  Supabase SDK upgrade that changes the builder's shape surfaces here as a type error, not silently. */
+type SelectBuilder = ReturnType<ReturnType<SupabaseClient["from"]>["select"]>;
 
 // ── Constants (Article 4(2), verified live against EUR-Lex CELEX:32023R1805, see write-statutory.mjs's
 // original header for the full verification note) ──────────────────────────────────────────────────────
@@ -56,23 +98,25 @@ const REQUIRED_SOURCE_FIELDS = ["url", "article", "quote", "verified_at"];
 const REQUIRED_INPUT_KEYS = ["ghgIntensityActual", "energyUsedMJ", "consecutiveDeficitYears"];
 
 /** Validate one StatutoryInput's `source` block. Returns a list of violation strings (empty = passes). */
-export function validateSourceBlock(source: any, where: string): string[] {
+export function validateSourceBlock(source: unknown, where: string): string[] {
   const violations: string[] = [];
   if (!source || typeof source !== "object") {
     violations.push(`${where}: missing a \`source\` block ({url, article, quote, verified_at}), refused, not guessed (rule 18).`);
     return violations;
   }
+  const block = source as AnyRecord;
   for (const field of REQUIRED_SOURCE_FIELDS) {
-    if (typeof source[field] !== "string" || !source[field].trim()) {
+    const v = block[field];
+    if (typeof v !== "string" || !v.trim()) {
       violations.push(`${where}.source.${field} is required and must be a non-empty string.`);
     }
   }
-  if (typeof source.url === "string" && source.url.trim()) {
+  if (typeof block.url === "string" && block.url.trim()) {
     // hostFromUrl (the entity spine's ONE host normalizer, F30 url_host_derivation) returns "" for
     // anything it can't parse, rather than throwing. An empty host here means the URL was invalid.
-    const host = hostFromUrl(source.url);
+    const host = hostFromUrl(block.url);
     if (!host) {
-      violations.push(`${where}.source.url is not a valid absolute URL: "${source.url}"`);
+      violations.push(`${where}.source.url is not a valid absolute URL: "${block.url}"`);
     }
     if (host) {
       const tier = classTierForHost(host);
@@ -90,54 +134,58 @@ export function validateSourceBlock(source: any, where: string): string[] {
 }
 
 /** Validate one rows-file row (already write-statutory.mjs parseRow()-shaped or raw). Returns violations. */
-export function validateRow(row: any, index: number): string[] {
+export function validateRow(row: unknown, index: number): string[] {
   const violations: string[] = [];
-  const shipKey = String(row?.shipKey ?? `row[${index}]`);
+  const r = (row ?? {}) as AnyRecord;
+  const shipKey = String(r.shipKey ?? `row[${index}]`);
   if (PLACEHOLDER_MARKERS.test(shipKey)) {
     violations.push(`row[${index}] (${shipKey}): shipKey itself carries a placeholder marker, not a real ship key.`);
   }
   for (const key of REQUIRED_INPUT_KEYS) {
-    const input = row?.[key];
+    const input = r[key];
     const where = `row[${index}] (${shipKey}).${key}`;
     if (!input || typeof input !== "object") {
       violations.push(`${where}: missing.`);
       continue;
     }
-    if (typeof input.citation === "string" && PLACEHOLDER_MARKERS.test(input.citation)) {
-      violations.push(`${where}.citation carries a placeholder marker ("${input.citation.slice(0, 80)}..."), a real filing's citation names the real source, never a fixture disclaimer.`);
+    const inputBlock = input as AnyRecord;
+    if (typeof inputBlock.citation === "string" && PLACEHOLDER_MARKERS.test(inputBlock.citation)) {
+      violations.push(`${where}.citation carries a placeholder marker ("${inputBlock.citation.slice(0, 80)}..."), a real filing's citation names the real source, never a fixture disclaimer.`);
     }
-    violations.push(...validateSourceBlock(input.source, where));
+    violations.push(...validateSourceBlock(inputBlock.source, where));
   }
   return violations;
 }
 
 /** Validate a whole loaded rows-file object ({_file_status?, rows: [...]}). Returns violations. */
-export function validateRowsFile(parsed: any): string[] {
+export function validateRowsFile(parsed: unknown): string[] {
   const violations: string[] = [];
-  if (typeof parsed?._file_status === "string" && PLACEHOLDER_MARKERS.test(parsed._file_status)) {
-    violations.push(`_file_status carries a placeholder marker, this file self-identifies as non-production ("${parsed._file_status.slice(0, 120)}...").`);
+  const p = (parsed ?? {}) as AnyRecord;
+  if (typeof p._file_status === "string" && PLACEHOLDER_MARKERS.test(p._file_status)) {
+    violations.push(`_file_status carries a placeholder marker, this file self-identifies as non-production ("${p._file_status.slice(0, 120)}...").`);
   }
-  const rows = Array.isArray(parsed) ? parsed : parsed?.rows;
+  const rows = Array.isArray(parsed) ? parsed : p.rows;
   if (!Array.isArray(rows) || !rows.length) {
     violations.push("no rows[] array (or empty), refusing to validate an empty file as apply-ready.");
     return violations;
   }
-  rows.forEach((row: any, i: number) => violations.push(...validateRow(row, i)));
+  rows.forEach((row: unknown, i: number) => violations.push(...validateRow(row, i)));
   return violations;
 }
 
 // ── Row parsing + single-row write (moved from write-statutory.mjs) ──────────────────────────────────────
 
-function requireFields(row: any, fields: string[], where: string) {
-  const missing = fields.filter((f) => row?.[f] === undefined || row?.[f] === null);
+function requireFields(row: unknown, fields: string[], where: string) {
+  const r = (row ?? {}) as AnyRecord;
+  const missing = fields.filter((f) => r[f] === undefined || r[f] === null);
   if (missing.length) throw new Error(`${where}: missing required field(s): ${missing.join(", ")}`);
 }
 
 /** Build a types.ts `Value`-shaped object from a rows-file input block, for admissibleFor() to check ,
  *  the ONLY reason this shape exists: admissibleFor() takes a `Value`, and a reader-asserted number with
  *  no backing `derived_values` row still needs one to be gated the same way a computed one would be. */
-function toValueShape(input: any, { methodId }: { methodId: string }) {
-  return {
+function toValueShape(input: RowInputBlock, { methodId }: { methodId: string }): Value {
+  return ({
     valueId: null,
     entityId: null,
     methodId,
@@ -159,38 +207,38 @@ function toValueShape(input: any, { methodId }: { methodId: string }) {
     computedAt: input.asOf.eventDate,
     computedBy: "rows-file",
     obsStatus: input.obsStatus ?? null,
-  };
+  } as unknown as Value);
 }
 
 /** Plain, fs-free insert used as the DEFAULT for resolveOrMintEntity/writeOneRow below, a caller that
  *  wants the guarded/snapshot/cite discipline (a real `--apply` CLI run) injects
  *  `scripts/lib/db.mjs`'s `guardedInsert` via `deps.insertFn` instead. Same calling convention
  *  (`table, row, opts`) as guardedInsert, so swapping the default in or out never changes call sites. */
-function plainInsert(sb: any) {
-  return async (table: string, row: any, opts: { select?: string } = {}) => {
+function plainInsert(sb: SupabaseClient) {
+  return async (table: string, row: AnyRecord, opts: { select?: string } = {}): Promise<{ inserted: AnyRecord }> => {
     const res = await sb.from(table).insert(row).select(opts.select ?? "*").single();
     if (res.error) throw new Error(`statutory-rows plainInsert(${table}) failed: ${res.error.message}`);
-    return { inserted: res.data };
+    return { inserted: res.data as unknown as AnyRecord };
   };
 }
 
 /** Plain, fs-free full-table read used as the DEFAULT readAllFn below, a caller that wants the paginated/
  *  retried `scripts/lib/db.mjs` readAll (needed once the row set can exceed ~1000) injects it explicitly. */
-async function plainReadAll(sb: any, table: string, columns: string, match: (qb: any) => any) {
+async function plainReadAll(sb: SupabaseClient, table: string, columns: string, match: (qb: SelectBuilder) => SelectBuilder): Promise<AnyRecord[]> {
   const q = match(sb.from(table).select(columns));
   const res = await q;
   if (res.error) throw new Error(`statutory-rows plainReadAll(${table}) failed: ${res.error.message}`);
-  return res.data || [];
+  return (res.data || []) as AnyRecord[];
 }
 
 /** Resolve (or, in apply mode, mint) an entity id for (kind, seed). Mirrors resolveRegionEntityId's
  *  mint-on-demand posture but generalized to any kind. --dry never mints, a pure preview of the id apply
  *  WOULD mint. */
 export async function resolveOrMintEntity(
-  sb: any,
+  sb: SupabaseClient,
   { kind, seed, canonicalName }: { kind: string; seed: string; canonicalName?: string },
   mode: "dry" | "apply",
-  deps: { insertFn?: (table: string, row: any, opts?: any) => Promise<any> } = {}
+  deps: { insertFn?: (table: string, row: AnyRecord, opts?: { select?: string }) => Promise<{ inserted: AnyRecord }> } = {}
 ): Promise<string> {
   const insertFn = deps.insertFn ?? plainInsert(sb);
   const id = entityId(kind, seed);
@@ -204,27 +252,28 @@ export async function resolveOrMintEntity(
 
 /** Validate + normalize one rows-file row into everything writeOneRow needs, throwing (never guessing) on
  *  a structural problem. PURE. */
-export function parseRow(row: any, index: number) {
+export function parseRow(row: unknown, index: number): ParsedStatutoryRow {
   requireFields(row, ["shipKey", "targetYear", "ghgIntensityActual", "energyUsedMJ", "consecutiveDeficitYears"], `write-statutory: row[${index}]`);
-  if (!Object.prototype.hasOwnProperty.call(SUPPORTED_TARGET_YEARS, String(row.targetYear))) {
+  const r = row as AnyRecord;
+  if (!Object.prototype.hasOwnProperty.call(SUPPORTED_TARGET_YEARS, String(r.targetYear))) {
     throw new Error(
-      `write-statutory: row[${index}] (ship ${row.shipKey}) targetYear=${row.targetYear} is not implemented, ` +
+      `write-statutory: row[${index}] (ship ${r.shipKey}) targetYear=${r.targetYear} is not implemented, ` +
       `only ${Object.keys(SUPPORTED_TARGET_YEARS).join(", ")} confirmed against EUR-Lex this session (see file header). Refused, not guessed.`
     );
   }
   for (const key of ["ghgIntensityActual", "energyUsedMJ", "consecutiveDeficitYears"]) {
-    const v = row[key];
+    const v = r[key] as AnyRecord | undefined;
     requireFields(v, ["value", "unit", "citation", "asOf", "derivation", "originClass", "lifecycle", "admissibility", "baseConfidence"], `write-statutory: row[${index}].${key}`);
-    requireFields(v.asOf, ["eventDate"], `write-statutory: row[${index}].${key}.asOf`);
+    requireFields(v?.asOf, ["eventDate"], `write-statutory: row[${index}].${key}.asOf`);
   }
   return {
-    shipKey: String(row.shipKey),
-    scenarioKey: row.scenarioKey ? String(row.scenarioKey) : "default",
-    obligationSeed: row.obligationSeed ? String(row.obligationSeed) : DEFAULT_OBLIGATION_SEED,
-    targetYear: row.targetYear,
-    ghgIntensityActual: row.ghgIntensityActual,
-    energyUsedMJ: row.energyUsedMJ,
-    consecutiveDeficitYears: row.consecutiveDeficitYears,
+    shipKey: String(r.shipKey),
+    scenarioKey: r.scenarioKey ? String(r.scenarioKey) : "default",
+    obligationSeed: r.obligationSeed ? String(r.obligationSeed) : DEFAULT_OBLIGATION_SEED,
+    targetYear: r.targetYear as number,
+    ghgIntensityActual: r.ghgIntensityActual as RowInputBlock,
+    energyUsedMJ: r.energyUsedMJ as RowInputBlock,
+    consecutiveDeficitYears: r.consecutiveDeficitYears as RowInputBlock,
   };
 }
 
@@ -233,24 +282,42 @@ export function parseRow(row: any, index: number) {
  * refusal (unadmissible input, already-computed, purity-trigger rejection), every outcome is returned by
  * name; only a structural/DB error not anticipated by any of those paths propagates.
  */
+export type WriteOneRowResult =
+  | { action: "refused-inadmissible"; field: string; reason: string; shipKey: string }
+  | { action: "skipped-already-computed"; shipKey: string; computationId: unknown }
+  | { action: "would-write"; shipKey: string; entity_id: string; obligation_id: string; resultEur: number }
+  | { action: "written"; shipKey: string; computationId: unknown; resultEur: number }
+  | { action: "errored"; shipKey: string; reason: string };
+
 export async function writeOneRow(
-  sb: any,
-  parsed: ReturnType<typeof parseRow>,
+  sb: SupabaseClient,
+  parsed: ParsedStatutoryRow,
   mode: "dry" | "apply",
   deps: {
     now?: () => Date;
-    insertFn?: (table: string, row: any, opts?: any) => Promise<any>;
+    insertFn?: (table: string, row: AnyRecord, opts?: { select?: string }) => Promise<{ inserted: AnyRecord }>;
     resolveEntityFn?: typeof resolveOrMintEntity;
-    readAllFn?: (table: string, columns: string, opts?: any) => Promise<any[]>;
+    readAllFn?: (table: string, columns: string, opts?: { match?: (qb: SelectBuilder) => SelectBuilder; orderBy?: string }) => Promise<AnyRecord[]>;
   } = {}
-): Promise<any> {
+): Promise<WriteOneRowResult> {
   const now = (deps.now ?? (() => new Date()))();
   const insertFn = deps.insertFn ?? plainInsert(sb);
   const resolveEntityFn = deps.resolveEntityFn ?? resolveOrMintEntity;
-  const readAllFn = deps.readAllFn ?? ((table: string, columns: string, opts: any = {}) => plainReadAll(sb, table, columns, opts.match ?? ((q: any) => q)));
+  const readAllFn = deps.readAllFn ?? ((table: string, columns: string, opts: { match?: (qb: SelectBuilder) => SelectBuilder } = {}) => plainReadAll(sb, table, columns, opts.match ?? ((q) => q)));
 
   const targetValue = toValueShape(
-    { value: (SUPPORTED_TARGET_YEARS as any)[String(parsed.targetYear)], unit: "gCO2eq/MJ", derivation: "statutory_fixed", originClass: "official", lifecycle: "verified", admissibility: "filing_ok", baseConfidence: 1, halfLifeDays: null, asOf: { eventDate: "2023-09-22" } },
+    {
+      value: (SUPPORTED_TARGET_YEARS as Record<string, number>)[String(parsed.targetYear)],
+      unit: "gCO2eq/MJ",
+      derivation: "statutory_fixed",
+      originClass: "official",
+      lifecycle: "verified",
+      admissibility: "filing_ok",
+      baseConfidence: 1,
+      halfLifeDays: null,
+      citation: ARTICLE_4_2_CITATION,
+      asOf: { eventDate: "2023-09-22" },
+    },
     { methodId: FORMULA_ID }
   );
   const actualValue = toValueShape(parsed.ghgIntensityActual, { methodId: FORMULA_ID });
@@ -258,22 +325,22 @@ export async function writeOneRow(
   const yearsValue = toValueShape(parsed.consecutiveDeficitYears, { methodId: FORMULA_ID });
 
   for (const [label, v] of [["ghgIntensityTarget", targetValue], ["ghgIntensityActual", actualValue], ["energyUsedMJ", energyValue], ["consecutiveDeficitYears", yearsValue]] as const) {
-    const verdict = admissibleFor(v as any, "filing", now);
-    if (!verdict.ok) return { action: "refused-inadmissible", field: label, reason: (verdict as any).reason, shipKey: parsed.shipKey };
+    const verdict = admissibleFor(v, "filing", now);
+    if (!verdict.ok) return { action: "refused-inadmissible", field: label, reason: verdict.reason, shipKey: parsed.shipKey };
   }
 
   const result = computeStatutory(FORMULA_ID, {
-    ghgIntensityTarget: { derivation: "statutory_fixed" as any, value: targetValue.value, unit: targetValue.unit, citation: ARTICLE_4_2_CITATION, asOf: { eventDate: "2023-09-22" } },
+    ghgIntensityTarget: { derivation: "statutory_fixed", value: targetValue.value as number, unit: targetValue.unit as string, citation: ARTICLE_4_2_CITATION, asOf: { eventDate: "2023-09-22" } },
     ghgIntensityActual: { derivation: parsed.ghgIntensityActual.derivation, value: parsed.ghgIntensityActual.value, unit: parsed.ghgIntensityActual.unit, citation: parsed.ghgIntensityActual.citation, asOf: parsed.ghgIntensityActual.asOf },
     energyUsed: { derivation: parsed.energyUsedMJ.derivation, value: parsed.energyUsedMJ.value, unit: parsed.energyUsedMJ.unit, citation: parsed.energyUsedMJ.citation, asOf: parsed.energyUsedMJ.asOf },
     consecutiveYears: { derivation: parsed.consecutiveDeficitYears.derivation, value: parsed.consecutiveDeficitYears.value, unit: parsed.consecutiveDeficitYears.unit, citation: parsed.consecutiveDeficitYears.citation, asOf: parsed.consecutiveDeficitYears.asOf },
-  } as any);
+  });
 
   const entity_id = await resolveEntityFn(sb, { kind: "asset", seed: parsed.shipKey, canonicalName: parsed.shipKey }, mode, { insertFn });
   const obligation_id = await resolveEntityFn(sb, { kind: "obligation", seed: parsed.obligationSeed, canonicalName: "FuelEU Maritime Annex IV penalty obligation" }, mode, { insertFn });
 
   const existing = await readAllFn("statutory_computations", "computation_id", {
-    match: (qb: any) => qb.eq("entity_id", entity_id).eq("formula_id", FORMULA_ID).eq("formula_version", FUELEU_FORMULA_VERSION).eq("scenario_key", parsed.scenarioKey),
+    match: (qb: SelectBuilder) => qb.eq("entity_id", entity_id).eq("formula_id", FORMULA_ID).eq("formula_version", FUELEU_FORMULA_VERSION).eq("scenario_key", parsed.scenarioKey),
     orderBy: "computation_id",
   });
   if (existing.length) return { action: "skipped-already-computed", shipKey: parsed.shipKey, computationId: existing[0].computation_id };
@@ -301,7 +368,7 @@ export async function writeOneRow(
   try {
     const res = await insertFn("statutory_computations", row, { select: "computation_id" });
     return { action: "written", shipKey: parsed.shipKey, computationId: res.inserted.computation_id, resultEur: result.result };
-  } catch (e: any) {
-    return { action: "errored", shipKey: parsed.shipKey, reason: e.message };
+  } catch (e: unknown) {
+    return { action: "errored", shipKey: parsed.shipKey, reason: e instanceof Error ? e.message : String(e) };
   }
 }

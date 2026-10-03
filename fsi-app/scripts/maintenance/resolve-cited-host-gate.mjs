@@ -57,7 +57,7 @@ import { classTierForHost, permanentlyUnregisteredClass } from "../../src/lib/so
 // per-host worklist mechanism instead of building a second one. Re-exported below so every existing
 // caller of THIS file (and this file's own test) is unaffected.
 import { planHostDecision, buildNullTierHostWrite, NULL_TIER_CREATED_BY } from "../../src/lib/sources/null-tier-host-worklist.mjs";
-import { extractFlagUrls, trimUrlPunctuation } from "./lib/flag-url-extract.mjs";
+import { extractFlagUrls } from "./lib/flag-url-extract.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 

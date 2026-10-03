@@ -652,7 +652,7 @@ test("main: summary.verdicts already carries the per-row reason next to the id (
 // BROWSERLESS_API_KEY not configured") ──────────────────────────────────────────────────────────────────
 
 test("makeCanonicalFetchCandidate: a 200 response reduces to {status,text,host,path}, no error, no Browserless import needed", async () => {
-  const fetchImpl = async (url) => ({
+  const fetchImpl = async (_url) => ({
     ok: true, status: 200, redirected: false,
     text: async () => "<html><body><h1>Alternative Fuels Insight</h1></body></html>",
   });
@@ -688,7 +688,7 @@ test("makeCanonicalFetchCandidate: a network failure (fetchImpl throws / capture
 
 test("makeCanonicalFetchCandidate: follows a redirect by hand via followUpgradingRedirects (an http Location upgraded to https)", async () => {
   const calls = [];
-  const fetchImpl = async (url, opts) => {
+  const fetchImpl = async (url, _opts) => {
     calls.push(url);
     if (url === "https://example.org/old") {
       return {

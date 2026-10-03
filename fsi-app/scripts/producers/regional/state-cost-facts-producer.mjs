@@ -477,7 +477,7 @@ async function main() {
 
   console.log(`${PRODUCER_NAME}: fixture/dry run (kill switch ${ENABLED ? "ON" : "OFF"}, irrelevant here, it only gates a --apply path that does not exist yet)`);
 
-  const { result, runError, artifactPath, fixturesPath } = await runR14HeldFixtureCli({
+  const { result, runError, artifactPath, fixturesPath: _fixturesPath } = await runR14HeldFixtureCli({
     args,
     here: HERE,
     defaultFixturesRelPath: "fixtures/state-cost-facts-fixtures.mjs",

@@ -92,15 +92,13 @@
 // IDEMPOTENT: only decision='pending' rows are ever read or matched on write (readAll's own match +
 // guardedUpdateByIds's applyMatch), so a re-run only ever touches rows still pending (which, after a clean
 // apply, is only ever the 'deferred' rows from a transient fetch failure).
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./lib/cli.mjs";
 import { detectAccessWall } from "../../src/lib/sources/access-wall.mjs";
 import { locateSpanInText } from "../mint/heal-provenance.mjs";
 import { hostOf, institutionKey } from "../lib/institution-key.mjs";
 import { captureDocument, followUpgradingRedirects, makePoliteFetch } from "../mint/export-census-rows.mjs";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // $0 FETCH ADAPTER — lane CANONICAL-AUTOVERIFY-3, 2026-09-07. See the header's REACHABILITY section for
@@ -420,7 +418,7 @@ export function proveContent({ text, institutionName, subjectTitle, factTokens =
  *  fallback, mirroring scripts/mint/heal-provenance.mjs's classifyCitedUrlForOrphan. Pure given `sources`.
  *  @param {string} host @param {Array<{url:string,status:string,base_tier:number,tier_override?:number}>} sources
  *  @returns {{ sourceId: string, tier: number } | null} */
-export function existingTierForHost(host, sources, sourcesById) {
+export function existingTierForHost(host, sources) {
   if (!host) return null;
   const key = institutionKey(`https://${host}/`);
   for (const s of sources ?? []) {

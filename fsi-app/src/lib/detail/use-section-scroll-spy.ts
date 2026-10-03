@@ -31,6 +31,9 @@ export function useSectionScrollSpy(ids: string[]): number {
     );
     els.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
+    // Re-run only when the joined id set actually changes value, not on every new `ids` array
+    // identity; `ids` itself is read via `.join` above (synchronously, within this same closure), so
+    // it is not a stale-value risk.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids.join("|")]);
   return active;

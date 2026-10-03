@@ -365,7 +365,7 @@ export async function runSmoke(browser) {
   // ── EU PPWR 2025/40 is the first row (search worked end to end, only rendering was broken) ──
   const firstRowText = await page.evaluate(() => {
     const list = document.querySelector('[role="listbox"]');
-    const first = list.querySelector("a, [role], div");
+    const _first = list.querySelector("a, [role], div");
     return list.textContent || "";
   });
   checks++;

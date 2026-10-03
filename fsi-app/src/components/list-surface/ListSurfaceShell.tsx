@@ -697,6 +697,8 @@ export function useRemainderFetch<T extends { id: string }>(
     return () => {
       cancelled = true;
     };
+    // Re-fetch only on `enabled` toggling; fetchRest is re-derived from closed-over props each render
+    // and is not meant to retrigger this effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 

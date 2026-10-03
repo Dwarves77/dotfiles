@@ -62,7 +62,7 @@ test("evaluateCorridorReadiness: non-array input treated as empty, never throws"
 
 test("main: dry run reads corridor entities via deps.readAll and reports the live count", async () => {
   const deps = {
-    readAll: async (table, cols, opts) => {
+    readAll: async (table, _cols, _opts) => {
       assert.equal(table, "entities");
       return [{ entity_id: "cl:corridor:only-one", canonical_name: "CNSHA-NLRTM:ocean" }];
     },

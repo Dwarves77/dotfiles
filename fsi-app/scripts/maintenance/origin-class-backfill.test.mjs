@@ -23,7 +23,7 @@ function deps(overrides = {}) {
   return {
     calls,
     updateCalls,
-    readAll: async (table, cols, opts) => {
+    readAll: async (table, _cols, _opts) => {
       calls.push(["readAll", table]);
       if (table === "intelligence_items") {
         itemsReadCount += 1;

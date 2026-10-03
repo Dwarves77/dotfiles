@@ -19,7 +19,7 @@ test("selectStale: only rows the derivation says are valid NOW are stale; a stil
 test("main dry-run: reads record-grade non-verified rows, calls the rpc per row, touches nothing", async () => {
   const calls = [];
   const deps = {
-    readAll: async (table, cols, opts) => { calls.push(["readAll", table]); return ROWS; },
+    readAll: async (table, _cols, _opts) => { calls.push(["readAll", table]); return ROWS; },
     readAllByIds: async () => { throw new Error("must not read back in dry-run"); },
     rpc: async (id) => { calls.push(["rpc", id]); return { valid: id !== "b" }; },
     guardedUpdateByIds: async () => { throw new Error("must not write in dry-run"); },
@@ -34,7 +34,7 @@ test("main apply: touches ONLY the stale ids through guardedUpdateByIds with the
   let reads = 0;
   let readBackIds;
   const deps = {
-    readAll: async (table, cols, opts) => { reads += 1; return ROWS; }, // the candidate scan
+    readAll: async (_table, _cols, _opts) => { reads += 1; return ROWS; }, // the candidate scan
     readAllByIds: async (table, cols, ids) => {
       readBackIds = ids;
       // the post-touch re-read: the derivation has flipped them by now

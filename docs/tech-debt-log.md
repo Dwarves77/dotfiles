@@ -397,3 +397,20 @@ severity, that either collapses the live CHECK constraint to the brief-contract'
 8 other values genuinely have no surviving writer) or documents why a second shape still needs to
 coexist. Until then, the live CHECK stays permissive of a shape the current write path (regeneration
 only, per `environmental-policy-and-innovation`'s field-emission contract) no longer emits.
+
+## 2026-10-02, removed 4 May-era one-shot population scripts calling Anthropic directly
+
+Lane R7-LINT-CI's full-tree lint cleanup surfaced dead-var warnings in `supabase/seed/california-
+pilot.mjs`, `generate-ca-briefs.mjs`, `generate-eu-missing-briefs.mjs`, and `tier1-population-
+runner.mjs`; all four call the Anthropic API directly (`api.anthropic.com` / the Anthropic SDK), which
+CLAUDE.md's AGENT ARCHITECTURE section names as forbidden outside the sanctioned routes
+(`/api/agent/run`, `/api/ask`, `/api/admin/scan`, the two canonical-sources recommend-classification
+routes, `/api/admin/spot-check/recurring`). Operator ruling (2026-10-02): these four are superseded by
+the canonical pipeline; superseded items are removed, not patched around. Grepped for a live reference
+to each (src, scripts outside `_archive/`, docs, workflows, package.json) before removing: every hit
+was either a historical doc/audit mention, an already-archived `scripts/_archive/` script's string-
+literal list, or the four files citing each other in comments; no functional import anywhere. One
+comment in `src/lib/sources/reachability.mjs` named two of the four as example callers of its SSOT
+reachability classifier; corrected in place to name the module's other real callers and note the
+removal, rather than left to mislead a future reader. Removed via `git rm`; no replacement needed since
+nothing calls them.

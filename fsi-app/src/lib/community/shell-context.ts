@@ -16,7 +16,7 @@
 // The reads are the same four parallel reads plus the two profile reads the pages ran; the mapping to
 // the typed arrays is the same. Server-only (a cookie-bound server client is the RLS boundary).
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import type { CommunityMembership, CommunityInvitation, CommunityTopicSummary } from "@/components/community/types";
+import type { CommunityMembership, CommunityInvitation, CommunityTopicSummary, CommunityGroupSummary } from "@/components/community/types";
 
 export const COMMUNITY_REGIONS = [
   { code: "EU", label: "EU / Europe" },
@@ -79,31 +79,38 @@ export async function loadCommunityShellContext(
       opts.regionCountsArgs ? supabase.rpc("community_region_counts", opts.regionCountsArgs) : supabase.rpc("community_region_counts"),
     ]);
 
-  const memberships: CommunityMembership[] = (membershipsRaw || []).flatMap((m: any) => {
-    if (!m.community_groups) return [];
+  // community_groups is a to-one embed (join on group_id), but the Supabase client's generated type
+  // infers every embed as an array without an explicit FK hint; the one-cast-per-embed pattern below
+  // matches the existing `orgRow?.organizations as { name?: string } | null` cast further down this
+  // same file, for the same reason. Cast to the real CommunityGroupSummary shape (not a hand-rolled
+  // duplicate) so a future field change to that type surfaces here too.
+  const memberships: CommunityMembership[] = (membershipsRaw || []).flatMap((m: NonNullable<typeof membershipsRaw>[number]) => {
+    const group = m.community_groups as unknown as CommunityGroupSummary | null;
+    if (!group) return [];
     return [
       {
         group_id: m.group_id,
-        role: m.role,
+        role: m.role as CommunityMembership["role"],
         starred: !!m.starred,
         muted: !!m.muted,
         joined_at: m.joined_at,
         group: {
-          id: m.community_groups.id,
-          name: m.community_groups.name,
-          slug: m.community_groups.slug,
-          region: m.community_groups.region,
-          privacy: m.community_groups.privacy,
-          member_count: m.community_groups.member_count ?? 0,
-          weekly_post_count: m.community_groups.weekly_post_count ?? 0,
-          last_active_at: m.community_groups.last_active_at,
+          id: group.id,
+          name: group.name,
+          slug: group.slug,
+          region: group.region,
+          privacy: group.privacy,
+          member_count: group.member_count ?? 0,
+          weekly_post_count: group.weekly_post_count ?? 0,
+          last_active_at: group.last_active_at,
         },
       },
     ];
   });
 
-  const invitations: CommunityInvitation[] = (invitationsRaw || []).flatMap((inv: any) => {
-    if (!inv.community_groups) return [];
+  const invitations: CommunityInvitation[] = (invitationsRaw || []).flatMap((inv: NonNullable<typeof invitationsRaw>[number]) => {
+    const group = inv.community_groups as unknown as CommunityGroupSummary | null;
+    if (!group) return [];
     return [
       {
         id: inv.id,
@@ -111,17 +118,17 @@ export async function loadCommunityShellContext(
         inviter_user_id: inv.inviter_user_id,
         created_at: inv.created_at,
         group: {
-          id: inv.community_groups.id,
-          name: inv.community_groups.name,
-          slug: inv.community_groups.slug,
-          region: inv.community_groups.region,
-          privacy: inv.community_groups.privacy,
+          id: group.id,
+          name: group.name,
+          slug: group.slug,
+          region: group.region,
+          privacy: group.privacy,
         },
       },
     ];
   });
 
-  const topics: CommunityTopicSummary[] = (topicsRaw || []).map((t: any) => ({
+  const topics: CommunityTopicSummary[] = (topicsRaw || []).map((t: NonNullable<typeof topicsRaw>[number]) => ({
     id: t.id,
     label: t.label,
     group_count: Array.isArray(t.community_topic_groups) ? t.community_topic_groups.length : 0,

@@ -145,7 +145,7 @@ export function selectStaleItems({ items, stateByItemId, gateAVersion, touchedFi
  * @param {{ mode?: "dry"|"apply", arg?: string, out?: string|null }} opts
  * @param {object} deps -- see buildDeps below for the real-DB wiring; tests inject a fake.
  */
-export async function main({ mode = "dry", arg = "" } = {}, deps) {
+export async function main({ mode = "dry", arg: _arg = "" } = {}, deps) {
   const trigger = deps.trigger === "workflow_run" ? "workflow_run" : "workflow_dispatch";
   const limitResult = resolveLimit({ trigger, requested: deps.requestedLimit });
   if (limitResult.refused) {

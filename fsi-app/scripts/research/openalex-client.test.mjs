@@ -101,7 +101,6 @@ test("openAlexGet throws a clear error when no fetch is injected and none is glo
   // Node 24 ships a global fetch, so this simulates its absence rather than relying on the real
   // network ever being reachable from a test run (zero network, per the brief's fire-once section).
   const originalFetch = globalThis.fetch;
-  // eslint-disable-next-line no-undef
   delete globalThis.fetch;
   try {
     await assert.rejects(() => openAlexGet("/works/W1", {}, {}), /no fetch implementation/);

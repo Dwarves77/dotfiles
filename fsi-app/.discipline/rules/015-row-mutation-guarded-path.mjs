@@ -13,7 +13,7 @@
 // Check:   FAIL unless the file imports the guarded helper, or a documented override trailer is present.
 // Override: `Write-Guard-Override: <reason>` trailer (for legacy-script edits not introducing new writes).
 
-import { pass, fail, skip } from '../lib/result.mjs';
+import { pass, fail } from '../lib/result.mjs';
 import { commitMessageLines } from '../lib/predicates.mjs';
 import { skillsForOp } from '../governance/skill-map.mjs';
 

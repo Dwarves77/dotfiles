@@ -79,6 +79,8 @@ function DetailMastheadBreadcrumb({
     const known = pos != null && of != null && Number.isFinite(Number(pos)) && Number.isFinite(Number(of));
     const base = [surface, jurisdiction].filter(Boolean).join(" / ");
     onLabel(known ? `${base} / ${pos} of ${of} in ${band.label}` : base);
+    // onLabel is a stable setter passed by the caller; including it would retrigger this effect on
+    // every parent render for no reason.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, surface, jurisdiction, band.label]);
   return null;
@@ -458,6 +460,8 @@ function InThisListBridge({
   const searchParams = useSearchParams();
   useEffect(() => {
     onParams(searchParams.get("pos"), searchParams.get("of"), searchParams.get("list"));
+    // onParams is a stable setter passed by the caller; including it would retrigger this effect on
+    // every parent render for no reason.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   return null;
@@ -475,6 +479,8 @@ function InThisListNeighborsBridge({
   const searchParams = useSearchParams();
   useEffect(() => {
     onParams(searchParams.get("prev"), searchParams.get("next"));
+    // onParams is a stable setter passed by the caller; including it would retrigger this effect on
+    // every parent render for no reason.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   return null;

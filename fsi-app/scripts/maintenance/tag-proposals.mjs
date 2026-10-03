@@ -39,7 +39,7 @@
 // propose-tags.mjs's own --execute (with no selector) runs; this mirrors propose-tags.mjs's own CLI
 // contract rather than tag-ratification.mjs's per-id-required gate, because writing a PROPOSAL (never
 // an item tag) is not the irreversible/high-blast-radius action a blanket apply-and-ratify would be.
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { proposeTags, NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";

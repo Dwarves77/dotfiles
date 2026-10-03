@@ -420,7 +420,6 @@ export function buildRunArtifact({
 // ── --outcomes enrichment (Interface-3 metrics: edges_discovered, forward_events_extracted,
 //    isolated_items) — a follow-up invocation against an ALREADY-WRITTEN run artifact, not a new run. ──
 
-const KNOWN_OUTCOME_KEYS = Object.freeze(["edges_discovered", "forward_events_extracted", "isolated_items"]);
 
 /**
  * Merge a metrics patch into an existing run artifact, returning a NEW artifact object (never mutates

@@ -6,9 +6,6 @@
 // pattern (span-absent, same subject, NO foreign id, wrong declared primary) MUST NOT. Pure. No DB.
 // Run: node scripts/verify/drain-clear-two-condition.golden.mjs — exits 0 PASS, 1 FAIL.
 import { createJiti } from "jiti";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true });
 const { foreignInstrumentTokens, ownInstrumentTokens, scanImoTokens, verifyTargetMatch } =
   await jiti.import("../../src/lib/sources/target-match.mjs");

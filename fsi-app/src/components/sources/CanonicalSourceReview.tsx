@@ -664,7 +664,10 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
       }
     })();
     return () => { cancelled = true; };
-  }, [expanded]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Re-fetch only when expanded toggles; the recommendation fetch itself is the body above, not a
+    // dependency to re-track.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
 
   function toggle<T>(value: T, list: T[], setter: (l: T[]) => void) {
     setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);

@@ -723,6 +723,9 @@ function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?
       setNote(overrideNote);
       setStatus("saved");
     }
+    // Apply the override once, guarded by appliedOverrideRef; status/setStatus/setNote are
+    // read/written inside but intentionally excluded so this effect does not re-fire on the state it
+    // itself sets.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [override]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

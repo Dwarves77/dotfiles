@@ -386,7 +386,7 @@ function fakeAppliedDb() {
     },
     guardedInsertMany: async (table, rows, opts) => {
       calls.push({ fn: "guardedInsertMany", table, rows, opts });
-      const out = rows.map((r, i) => ({ id: `${table}-${nextId++}`, ...r }));
+      const out = rows.map((r, _i) => ({ id: `${table}-${nextId++}`, ...r }));
       return { inserted: out.length, snapshot: "snap.jsonl", rows: out };
     },
     guardedUpdate: async (table, applyMatch, patch, opts) => {
@@ -699,7 +699,7 @@ test("run(): APPLY mode with minted>0 flushes PUBLIC_ITEMS_TAG alongside APP_DAT
       registerSource: db.registerSource,
       readItemProvenance: db.readItemProvenance,
       rpc: async () => ({ valid: true, recommended_status: "verified" }),
-      revalidateTags: async (tags, opts) => {
+      revalidateTags: async (tags, _opts) => {
         capturedTags = tags;
         return { applied: true, tags, status: 200 };
       },

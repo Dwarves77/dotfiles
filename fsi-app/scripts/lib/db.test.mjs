@@ -656,7 +656,7 @@ test('readAllByIds: orders each page by idColumn, not a hardcoded "id" -- the ta
 
 test('readAllByIds: an explicit orderBy still overrides the idColumn default', async () => {
   const calls = [];
-  __setWriteClientForTest(() => makeClient((s) => ({ data: [], error: null }), calls));
+  __setWriteClientForTest(() => makeClient((_s) => ({ data: [], error: null }), calls));
   await readAllByIds('sources', 'id,status', ['a'], { orderBy: 'status' });
   const orderCols = calls.map((c) => c.ops.find((o) => o[0] === 'order')?.[1]);
   assert.ok(orderCols.every((c) => c === 'status'));

@@ -196,7 +196,7 @@ test("FALLBACK_CORRIDOR_SEEDS: the ADR example plus every named corridor, no dup
 
 function deps(calls, { marketSeries = [], regionalFacts = [], items = [], existingCorridors = [] } = {}) {
   return {
-    readAll: async (table, cols, opts) => {
+    readAll: async (table, _cols, _opts) => {
       calls.push(["readAll", table]);
       if (table === "market_series") return marketSeries;
       if (table === "regional_data_facts") return regionalFacts;

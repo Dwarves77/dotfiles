@@ -89,8 +89,8 @@ async function fetchActiveSourceRows(): Promise<SourceRow[]> {
         .order("id", { ascending: true }) // UNIQUE order key (PK) — url is not guaranteed unique
         .range(from, to)
     )) as SourceRow[];
-  } catch (e: any) {
-    console.error("[coverage-gaps] fetchActiveSourceRows failed:", e?.message ?? e);
+  } catch (e: unknown) {
+    console.error("[coverage-gaps] fetchActiveSourceRows failed:", e instanceof Error ? e.message : e);
     return [];
   }
 }

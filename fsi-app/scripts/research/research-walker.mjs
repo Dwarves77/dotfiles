@@ -65,7 +65,6 @@ import { writeProducerSummary } from "../producers/lib/producer-summary.mjs";
 import {
   FIXTURE_GREY_LIT_SOURCES,
   FIXTURE_OPENALEX_WORKS_RESPONSE,
-  FIXTURE_NOW,
 } from "./fixtures/research-walker-fixtures.mjs";
 
 loadLocalEnvFile();

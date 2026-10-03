@@ -209,9 +209,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         .single();
 
       if (data) {
-        const hs = data.home_sections as any;
-        const ac = data.alert_config as any;
-        const df = data.default_filters as any;
+        // workspace_settings' three jsonb columns, typed to exactly the shape this function reads
+        // off each (readSection's own Record<string, unknown> contract for home_sections; the two
+        // field names actually read off alert_config/default_filters below), not widened to `any`.
+        const hs = data.home_sections as Record<string, unknown> | null;
+        const ac = data.alert_config as {
+          priorities?: string[];
+          briefingDay?: SettingsState["briefingDay"];
+        } | null;
+        const df = data.default_filters as { defaultSort?: unknown } | null;
 
         set({
           orgId,

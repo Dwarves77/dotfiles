@@ -73,7 +73,7 @@ const WORDS_PER_LAST_LINE_FN = `
 async function measureVerticalsLastLine(page) {
   return page.evaluate(
     ({ fnSrc }) => {
-      // eslint-disable-next-line no-eval
+       
       const wordsPerLastLine = eval(fnSrc);
       const lines = Array.from(document.querySelectorAll('.cl-masthead-dek > div'));
       const verticalsLine = lines.find((d) => (d.textContent || '').startsWith('Verticals:'));

@@ -75,15 +75,6 @@ export const CALENDAR_TEMPLATES = Object.freeze([
   },
 ]);
 
-/** Full elapsed calendar months — mirrors src/lib/community/antitrust.mjs's own local copy; kept
- * independent per that module's own stated reasoning (single-purpose, two lines, not worth a shared
- * dependency). Used here only for annual/monthly period math below. */
-function monthsBetween(from, to) {
-  let months = (to.getUTCFullYear() - from.getUTCFullYear()) * 12 + (to.getUTCMonth() - from.getUTCMonth());
-  if (to.getUTCDate() < from.getUTCDate()) months -= 1;
-  return months;
-}
-
 /**
  * The current fixed calendar period for a cadence, as of `now` (UTC). PURE.
  *

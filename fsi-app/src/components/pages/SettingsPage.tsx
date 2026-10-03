@@ -114,6 +114,8 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
   useEffect(() => {
     setResources(initialResources);
     setArchived(initialArchived);
+    // setResources/setArchived are stable Zustand store actions; hydrate from server props when they
+    // change, not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialResources, initialArchived]);
 

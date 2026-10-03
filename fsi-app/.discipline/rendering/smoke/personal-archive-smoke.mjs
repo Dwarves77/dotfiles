@@ -11,7 +11,7 @@
 // filter, no button. Asserting a primary action here would mean inventing one; the honest check is
 // that the empty-state message renders cleanly and nothing else does.
 
-import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
+import { bundleEntry, newSmokePage, measureGuard, assertGuardClean } from './harness.mjs';
 import { archiveFixtures } from './smoke-fixtures.mjs';
 
 const ENTRY = `

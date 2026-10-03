@@ -158,7 +158,7 @@ async function main() {
     existingByItem.get(r.item_id).push(r.id);
   }
 
-  let replaced = 0, filled = 0, empty = 0, held = 0, totalRows = 0, totalSkipped = 0;
+  let replaced = 0, filled = 0, empty = 0, totalRows = 0, totalSkipped = 0;
   const heldItems = [];
 
   for (const it of items) {
@@ -184,7 +184,6 @@ async function main() {
     if (!rows.length) {
       if (prior.length) {
         // Parse can't reproduce the stored rows — HOLD (never destroy unverifiable data), report.
-        held += 1;
         heldItems.push(`${it.id} (${(it.title || "").slice(0, 60)}) — ${prior.length} stored rows, fresh parse 0${skipped.length ? `, ${skipped.length} unparseable` : ""}`);
       } else {
         empty += 1; // legitimately date-free (advisory/institutional briefs per the audit)

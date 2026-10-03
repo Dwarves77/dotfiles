@@ -61,7 +61,7 @@
 
 import { readAll, guardedInsertMany, guardedUpdate } from "../lib/db.mjs";
 import { entityId, hostFromUrl } from "../../src/lib/entities/entity-id.mjs";
-import { identifierRow, VALIDATORS } from "../../src/lib/entities/crosswalk.mjs";
+import { identifierRow } from "../../src/lib/entities/crosswalk.mjs";
 // The jurisdiction/instrument planners MOVED to src/lib/entities/entity-plan.mjs (lane W9 part 1, task
 // 1.1, 2026-09-11) so mint-item.ts's rule-16(e) writer (link-item-entities.mjs) and this backfill share
 // ONE planner instead of two hand-copied implementations. Re-exported here, verbatim names, so every

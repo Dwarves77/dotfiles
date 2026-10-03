@@ -36,7 +36,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 // Load .env.local
-const envPath = path.resolve("C:/Users/jason/dotfiles/fsi-app/.env.local");
+const envPath = path.resolve(import.meta.dirname, "../../.env.local");
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
     if (!line.includes("=") || line.startsWith("#")) continue;
@@ -109,7 +109,6 @@ const existingUrls = new Set();
 
 let inserted = 0;
 let skippedDupe = 0;
-let skippedAlreadyDone = 0;
 let failed = 0;
 
 for (let i = 0; i < orphans.length; i++) {
@@ -197,7 +196,7 @@ console.log(`Skipped (URL already exists):   ${skippedDupe}`);
 console.log(`Failed (other error):           ${failed}`);
 console.log("=".repeat(70));
 
-const reportPath = path.resolve("C:/Users/jason/dotfiles/docs/BACKFILL-MISSING-PROVISIONALS-RESULTS.json");
+const reportPath = path.resolve(import.meta.dirname, "../../../docs/BACKFILL-MISSING-PROVISIONALS-RESULTS.json");
 fs.writeFileSync(
   reportPath,
   JSON.stringify({

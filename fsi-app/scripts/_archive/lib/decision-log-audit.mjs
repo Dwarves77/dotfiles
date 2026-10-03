@@ -14,7 +14,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { VERDICT, LOUD, ANCHORS, loadContext, evaluateAll, evaluateAnchor, resolveVerdict } from "./decision-anchors.mjs";
+import { VERDICT, LOUD, ANCHORS, loadContext, evaluateAll, resolveVerdict } from "./decision-anchors.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));

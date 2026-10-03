@@ -91,7 +91,7 @@ test("the full envelope survives the conversion — nothing the parser measured 
 });
 
 test("an observation missing a required envelope field throws rather than writing a partial row", () => {
-  const { unit, ...noUnit } = OBSERVATION;
+  const { unit: _unit, ...noUnit } = OBSERVATION;
   assert.throws(() => toCandidateRows([noUnit]), /unit/);
 });
 
@@ -260,7 +260,7 @@ test("authorAutomateVsHireForRegions: duplicate region ids are deduped before an
 test("authorAutomateVsHireForRegions: a thrown error for one region is caught, counted, and does not abort the others", async () => {
   const counts = await authorAutomateVsHireForRegions(["bad", "good"], "apply", {
     sb: {},
-    readAllFn: async (table, cols, opts) => { throw new Error("simulated read failure"); },
+    readAllFn: async (_table, _cols, _opts) => { throw new Error("simulated read failure"); },
     resolveRegionEntityIdFn: async () => "cl:jurisdiction:x",
     authorEdgesFn: async () => ({ ok: true, action: "authored", valueId: "v1" }),
   });

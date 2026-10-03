@@ -33,7 +33,7 @@ async function check(url) {
     let res;
     try {
       res = await fetch(url, { method: "HEAD", redirect: "follow", signal: ctrl.signal, headers: { "User-Agent": "CarosLedge-HealthCheck/1.0" } });
-    } catch (e) {
+    } catch (_e) {
       // Some servers reject HEAD; fall back to GET with abort after first byte
       try {
         res = await fetch(url, { method: "GET", redirect: "follow", signal: ctrl.signal, headers: { "User-Agent": "CarosLedge-HealthCheck/1.0" } });
@@ -64,15 +64,12 @@ const counts = {};
 
 // 4-at-a-time concurrency to keep the run under a few minutes
 const CONCURRENCY = 4;
-let inFlight = 0;
 let nextIdx = 0;
 async function worker() {
   while (nextIdx < items.length) {
     const i = nextIdx++;
     const it = items[i];
-    inFlight++;
     const r = await check(it.source_url);
-    inFlight--;
     counts[r.category] = (counts[r.category] || 0) + 1;
     results.push({
       idx: i + 1,

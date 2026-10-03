@@ -147,7 +147,7 @@ const READ_CLIENT_WRITE_METHODS = new Set(["insert", "update", "delete", "upsert
 
 function readOnlyBuilder(builder) {
   return new Proxy(builder, {
-    get(target, prop, receiver) {
+    get(target, prop, _receiver) {
       if (typeof prop === "string" && READ_CLIENT_WRITE_METHODS.has(prop)) {
         return () => {
           throw new Error(
@@ -172,7 +172,7 @@ function readOnlyBuilder(builder) {
 export function readClient() {
   const real = writeClient();
   return new Proxy(real, {
-    get(target, prop, receiver) {
+    get(target, prop, _receiver) {
       if (prop === "from") {
         return (table) => readOnlyBuilder(target.from(table));
       }
@@ -185,7 +185,7 @@ export function readClient() {
         return (name) => {
           const handle = target.schema(name);
           return new Proxy(handle, {
-            get(h, hp, hr) {
+            get(h, hp, _hr) {
               if (hp === "from") return (table) => readOnlyBuilder(h.from(table));
               const hv = Reflect.get(h, hp, h);
               return typeof hv === "function" ? hv.bind(h) : hv;
