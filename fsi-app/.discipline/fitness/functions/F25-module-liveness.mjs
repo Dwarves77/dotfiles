@@ -1169,6 +1169,26 @@ export const LEGACY_ALLOWLIST = [
       'while the tools-before-data hold is in force.',
     reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
   },
+
+  // Lane L8 (2026-10-02, brief docs/dispatches/lane-briefs/2026-10-02/brief-l8.md): same R14/no-workflow
+  // posture as state-cost-facts-producer.mjs and carrier-ets-surcharge-producer.mjs above. This is a
+  // one-time (re-runnable) data-correction CLI for research_finding rows with theme IS NULL, not a
+  // standing producer -- its own ENABLED=false kill switch and its CLI's `--apply` refusal
+  // (r14ApplyRefusalMessage) are the R14 enforcement, not a workflow-dispatch gate. Real callable proof:
+  // `node scripts/research/backfill-themes.mjs --fire-harness` runs the fixture/dry path end to end (47
+  // fixture rows classified, 0 errors) and writes a real harness artifact
+  // (scripts/harness-runs/theme-backfill/theme-backfill-run-001.json). Its only non-test importer would
+  // be a future coordinator-authorized --apply dispatch, which does not exist yet by design.
+  {
+    file: 'fsi-app/scripts/research/backfill-themes.mjs',
+    reason:
+      'R14 hold: Haiku classification backfill for intelligence_items.theme (research_finding rows, ' +
+      'theme IS NULL), built and proven on fixtures (backfill-themes.test.mjs, 18 tests, incl. a real ' +
+      '--fire-harness CLI run), deliberately not wired into any workflow dispatch root -- the live ' +
+      '--apply pass (real Haiku calls + guardedUpdateByIds writes) is a separate, explicitly-authorized ' +
+      'coordinator dispatch this lane does not perform.',
+    reviewByPhase: 'coordinator-authorized live --apply dispatch: once run, either wire a dispatch root that calls this script or archive it as a one-time pass that already completed',
+  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));
