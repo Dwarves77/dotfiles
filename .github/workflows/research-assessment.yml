@@ -6,15 +6,22 @@ name: Research assessment
 #
 # WHAT THIS RUNS. scripts/producers/research/research-assessment-producer.mjs: the pure assess.mjs ladder
 # (no LLM, $0) narrowed from live intelligence_items + sources + item_forward_events, writing migration
-# 336's research_assessments table through the guarded path. Default dispatch runs against the committed
-# fixtures (no DB read at all); --live switches to the real candidate population. Mirrors producers.yml's
-# own two-gate shape (ADR-023 section 4): the producer's own ENABLED const is the reviewed-code-change gate, this
-# workflow's `mode` input is "is THIS run allowed to write."
+# 344's research_assessments table through the guarded path (corrected 2026-10-02, lane RA-WF -- this
+# comment said "336" from before the W2-R rename; the table and producer code have said 344 since
+# 2026-10-01). Default dispatch runs against the committed fixtures (no DB read at all); --live switches
+# to the real candidate population, scoped to items lacking a current row, optionally bounded by `limit`.
+# Mirrors producers.yml's own two-gate shape (ADR-023 section 4): the producer's own ENABLED const is the
+# reviewed-code-change gate, this workflow's `mode` input is "is THIS run allowed to write."
 #
 # CHAINED DRY-RUN GUARD (rule 16, same as corpus-turn.yml / downstream-chain.yml / brief-export.yml):
 # this workflow carries no workflow_run trigger today (research_assessments has no upstream hop yet in
 # the loop manifest), so the guard step is included for parity with every other producer workflow and so
 # a future workflow_run edge can be added without a second pass through this file's gates.
+#
+# LIMIT INPUT (lane RA-WF, 2026-10-02, closing rule 17's half-slice finding: this producer had a
+# workflow but it had never been fired against live candidates, so it never landed a harness_runs row).
+# The producer's own --live scope is now "items lacking a current research_assessments row" (never a
+# corpus-wide re-score); `limit` bounds that further for a first dispatch -- empty means unbounded.
 
 on:
   workflow_dispatch:
@@ -26,10 +33,15 @@ on:
         type: choice
         options: [dry, apply]
       live:
-        description: 'Read the real research-surface candidate population instead of the committed fixtures. Requires migration 336 to already be applied.'
+        description: 'Read the real research-surface candidate population (items lacking a current research_assessments row) instead of the committed fixtures. Requires migration 344 to already be applied.'
         required: true
         default: false
         type: boolean
+      limit:
+        description: 'Optional cap on how many live candidates to assess this run. Empty = unbounded. Ignored in fixture mode.'
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: research-assessment
@@ -41,6 +53,7 @@ permissions:
 env:
   RUN_MODE: ${{ inputs.mode }}
   RUN_LIVE: ${{ inputs.live }}
+  RUN_LIMIT: ${{ inputs.limit }}
 
 jobs:
   assess:
@@ -84,6 +97,7 @@ jobs:
           echo "trigger = ${{ github.event_name }}"
           echo "mode    = $RUN_MODE (forced dry if CHAINED_FORCED_DRY=true: ${CHAINED_FORCED_DRY:-false})"
           echo "live    = $RUN_LIVE"
+          echo "limit   = ${RUN_LIMIT:-(none -- unbounded)}"
           echo "A producer whose own ENABLED flag is false no-ops regardless of mode."
 
       - name: research-assessment-producer.mjs
@@ -92,6 +106,7 @@ jobs:
           if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then resolved_mode="dry"; fi
           args=""
           if [ "$RUN_LIVE" = "true" ]; then args="$args --live"; fi
+          if [ -n "$RUN_LIMIT" ]; then args="$args --limit $RUN_LIMIT"; fi
           if [ "$resolved_mode" = "apply" ]; then args="$args --apply"; fi
           node scripts/producers/research/research-assessment-producer.mjs $args
 

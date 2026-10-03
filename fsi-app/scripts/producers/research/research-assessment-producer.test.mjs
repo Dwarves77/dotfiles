@@ -13,6 +13,9 @@ import {
   runResearchAssessmentProducer,
   resolveOpenAlexSourceRecords,
   decideApply,
+  selectNeedingAssessment,
+  fetchLiveCandidates,
+  parseLimitArg,
   PRODUCER_NAME,
 } from "./research-assessment-producer.mjs";
 import {
@@ -290,6 +293,118 @@ test("decideApply: --apply with no creds refuses", () => {
 test("decideApply: all three gates satisfied allows the write", () => {
   const d = decideApply({ apply: true, enabled: true, killSwitchOn: true, hasCreds: true });
   assert.equal(d.canWrite, true);
+});
+
+// ── Lane RA-WF (2026-10-02): live candidate selection, closing rule 17's half-slice finding ──────────
+// (this producer had a workflow but had never run against live candidates or landed a harness_runs row).
+
+test("selectNeedingAssessment: excludes items that already have a current row", () => {
+  const admitted = [{ id: "a1" }, { id: "a2" }, { id: "a3" }];
+  const current = new Set(["a2"]);
+  const result = selectNeedingAssessment(admitted, current, undefined);
+  assert.deepEqual(result.map((r) => r.id), ["a1", "a3"]);
+});
+
+test("selectNeedingAssessment: bounds by limit after excluding current rows", () => {
+  const admitted = [{ id: "a1" }, { id: "a2" }, { id: "a3" }];
+  const result = selectNeedingAssessment(admitted, new Set(), 2);
+  assert.deepEqual(result.map((r) => r.id), ["a1", "a2"]);
+});
+
+test("selectNeedingAssessment: no limit (undefined, 0, negative, NaN) is unbounded", () => {
+  const admitted = [{ id: "a1" }, { id: "a2" }];
+  for (const limit of [undefined, 0, -1, NaN]) {
+    assert.equal(selectNeedingAssessment(admitted, new Set(), limit).length, 2, `limit=${limit}`);
+  }
+});
+
+test("parseLimitArg: reads --limit N, ignores absence/garbage/non-positive", () => {
+  assert.equal(parseLimitArg(["--live", "--limit", "5"]), 5);
+  assert.equal(parseLimitArg(["--live"]), undefined);
+  assert.equal(parseLimitArg(["--limit"]), undefined); // no value after the flag
+  assert.equal(parseLimitArg(["--limit", "0"]), undefined);
+  assert.equal(parseLimitArg(["--limit", "-3"]), undefined);
+  assert.equal(parseLimitArg(["--limit", "abc"]), undefined);
+});
+
+/**
+ * Minimal chainable Supabase mock for fetchLiveCandidates, same shape as db.test.mjs's own makeClient
+ * (reused convention, not re-invented) but filtering on `eq`/`in` ops against an in-memory table map so
+ * readAllByIds' chunked `.in()` reads resolve correctly without a database. `or`/`order`/`range`/`select`
+ * are recorded but not used to filter -- this fake proves the SELECTION logic (which rows come back),
+ * not PostgREST's own filter semantics.
+ */
+function makeFakeLiveClient(tables) {
+  function matches(row, ops) {
+    for (const op of ops) {
+      if (op[0] === "eq" && row[op[1]] !== op[2]) return false;
+      if (op[0] === "in" && !op[2].includes(row[op[1]])) return false;
+    }
+    return true;
+  }
+  function from(table) {
+    const ops = [];
+    const builder = {
+      select(c) { ops.push(["select", c]); return builder; },
+      or(c) { ops.push(["or", c]); return builder; },
+      eq(c, v) { ops.push(["eq", c, v]); return builder; },
+      in(c, v) { ops.push(["in", c, v]); return builder; },
+      order(c) { ops.push(["order", c]); return builder; },
+      range(a, z) { ops.push(["range", a, z]); return builder; },
+      then(res, rej) {
+        const all = tables[table] ?? [];
+        const data = all.filter((row) => matches(row, ops));
+        return Promise.resolve({ data, error: null }).then(res, rej);
+      },
+    };
+    return builder;
+  }
+  return { from };
+}
+
+test("fetchLiveCandidates: with an injected client, scopes to admitted items lacking a current row", async () => {
+  const client = makeFakeLiveClient({
+    intelligence_items: [
+      { id: "i1", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "One", source_id: "s1" },
+      { id: "i2", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "Two", source_id: null },
+      { id: "i3", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "Three", source_id: null },
+    ],
+    research_assessments_current: [{ item_id: "i2" }], // i2 already has a current row
+    sources: [{ id: "s1", base_tier: 2 }],
+    item_forward_events: [],
+  });
+  const candidates = await fetchLiveCandidates({ client });
+  assert.deepEqual(candidates.map((c) => c.id).sort(), ["i1", "i3"]); // i2 excluded
+  const one = candidates.find((c) => c.id === "i1");
+  assert.equal(one.sourceTier, 2); // joined from the sources table via source_id
+});
+
+test("fetchLiveCandidates: --limit bounds the live-candidate population lacking a current row", async () => {
+  const client = makeFakeLiveClient({
+    intelligence_items: [
+      { id: "i1", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "One", source_id: null },
+      { id: "i2", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "Two", source_id: null },
+      { id: "i3", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "Three", source_id: null },
+    ],
+    research_assessments_current: [],
+    sources: [],
+    item_forward_events: [],
+  });
+  const candidates = await fetchLiveCandidates({ client, limit: 1 });
+  assert.equal(candidates.length, 1);
+});
+
+test("fetchLiveCandidates: a non-admitted item_type never reaches the output, even with no current row", async () => {
+  const client = makeFakeLiveClient({
+    intelligence_items: [
+      { id: "i1", item_type: "regulation", domain: 2, is_archived: false, provenance_status: "verified", title: "Not research", source_id: null },
+    ],
+    research_assessments_current: [],
+    sources: [],
+    item_forward_events: [],
+  });
+  const candidates = await fetchLiveCandidates({ client });
+  assert.deepEqual(candidates, []);
 });
 
 // ── F27 composition proof: assess.mjs + surface-candidate.mjs + producer-summary.mjs + the ──────────
