@@ -67,7 +67,12 @@ test("every script producers.yml runs with --apply, under scripts/producers/ or 
   const ymlText = readFileSync(WORKFLOW_PATH, "utf8");
   const scripts = findApplyInvokedProducerScripts(ymlText);
 
-  // Not a vacuous pass: prove the extractor actually found the eleven scripts this lane wired, by name.
+  // Not a vacuous pass: prove the extractor actually found the twelve scripts this lane wired, by name.
+  // Updated 2026-10-03 (lane L11): added sbti-target-dashboard-producer.mjs's own --apply invocation
+  // (producers.yml's new 'sbti-target-dashboard' step). That producer's own --apply path is always
+  // refused (a licence gate, see its own header) but the step's `run:` block still shells out with
+  // --apply when mode=apply, so this static scanner correctly finds it; it is wired indirectly via
+  // assertEdgesAuthoredAndRecordSummary, same as ecb-fx/eia-v2 (see scriptImportsProducerSummary below).
   assert.deepEqual(scripts, [
     "scripts/gen/emission-factors-desnz.mjs",
     "scripts/gen/emission-factors-epa.mjs",
@@ -77,6 +82,7 @@ test("every script producers.yml runs with --apply, under scripts/producers/ or 
     "scripts/producers/market/eu-weekly-oil-bulletin.mjs",
     "scripts/producers/market/ratify-series-items.mjs",
     "scripts/producers/market/refresh-published-price-statistics.mjs",
+    "scripts/producers/market/sbti-target-dashboard-producer.mjs",
     "scripts/producers/regional/bls-oews-producer.mjs",
     "scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs",
     "scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs",
