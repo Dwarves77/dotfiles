@@ -27,6 +27,7 @@ import { runSmoke as runItemGroupCoverageSmoke } from './item-group-coverage-smo
 import { runSmoke as runParityChecksSmoke } from './parity-checks-smoke.mjs';
 import { runSmoke as runMarketDetailRawDumpSmoke } from './market-detail-raw-dump-smoke.mjs';
 import { runSmoke as runLeadTimeChartSmoke } from './lead-time-chart-smoke.mjs';
+import { runSmoke as runLabourChainSmoke } from './labour-chain-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -93,4 +94,5 @@ export const UX_SMOKE_SPECS = [
   // red-then-green text check proving neither state is a silent no-op render. F35 ROW_COMPONENTS
   // line reported for the coordinator to add (lane common contract's UX contract).
   { name: "lead-time-chart", run: runLeadTimeChartSmoke },
+  { name: "labour-chain", run: runLabourChainSmoke }, // lane L13, 2026-10-03, spec 04 S5/S6#5 fully-loaded labour chain
 ];
