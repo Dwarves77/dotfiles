@@ -4,7 +4,14 @@
 // operator token + a positive hard cap; everything else default-denies.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertMeteredCallAllowed, isMeteredCallAllowed, MeteredCallForbiddenError, METERED_ELIGIBLE_CLASS } from "./metered-gate.mjs";
+import { assertMeteredCallAllowed, isMeteredCallAllowed, MeteredCallForbiddenError, METERED_ELIGIBLE_CLASS, METERED_MODEL_ALLOWLIST, SCOPED_MODEL_AMENDMENTS } from "./metered-gate.mjs";
+// SHARED-CONSTANTS AGREEMENT (lane MODEL-IDS, 2026-10-02). metered-gate.mjs deliberately keeps its OWN
+// literal copies of the model ids in METERED_MODEL_ALLOWLIST / SCOPED_MODEL_AMENDMENTS (a security
+// allowlist names its own values so it cannot silently widen if model-ids.mjs's constants ever changed,
+// see that file's own header comment) rather than importing HAIKU_MODEL/SONNET_MODEL. This test is the
+// agreement check that keeps the two from drifting apart: a value this module trusts as "the sanctioned
+// Haiku/Sonnet id" must be the SAME value model-ids.mjs exports as canonical.
+import { HAIKU_MODEL, SONNET_MODEL } from "./model-ids.mjs";
 
 const HAIKU = "claude-haiku-4-5-20251001";
 const TOKEN_ENV = { METERED_BATCH_TOKEN: "op-authorized-2026-08-01-census" };
@@ -83,4 +90,16 @@ test("class-amendment: no token still refuses (RULE 2b unchanged)", () => {
 test("class-amendment: an UNlisted class with no amendment still refuses (default-deny preserved)", () => {
   assert.throws(() => assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: HAIKU, capUsd: 6, task: "", env: TOKEN_ENV }), MeteredCallForbiddenError);
   assert.throws(() => assertMeteredCallAllowed({ callClass: "made-up-class", model: HAIKU, capUsd: 6, task: P2_TASK, env: TOKEN_ENV }), MeteredCallForbiddenError);
+});
+
+// ── Shared-constants agreement (lane MODEL-IDS, 2026-10-02) ──
+test("AGREEMENT: model-ids.mjs's HAIKU_MODEL is the base metered allowlist's Haiku id", () => {
+  assert.equal(HAIKU_MODEL, HAIKU, "this file's own HAIKU fixture must match model-ids.mjs's canonical value");
+  assert.ok(METERED_MODEL_ALLOWLIST.has(HAIKU_MODEL), "METERED_MODEL_ALLOWLIST must still admit the canonical Haiku id");
+});
+test("AGREEMENT: model-ids.mjs's SONNET_MODEL is the scoped Sonnet amendment's id", () => {
+  assert.equal(SONNET_MODEL, SONNET, "this file's own SONNET fixture must match model-ids.mjs's canonical value");
+  const sonnetAmendment = SCOPED_MODEL_AMENDMENTS.find((a) => a.task === "index-relevance-second-pass");
+  assert.ok(sonnetAmendment, "the scoped Sonnet amendment must still exist");
+  assert.ok(sonnetAmendment.models.has(SONNET_MODEL), "the scoped amendment's model set must still admit the canonical Sonnet id");
 });
