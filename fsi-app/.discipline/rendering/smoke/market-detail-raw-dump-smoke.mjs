@@ -16,6 +16,16 @@
 //
 // Registered in ux-smoke-specs.mjs (coordinator ruling, 2026-09-29: write set extended to that one
 // file for this registration line, rule 15, an unregistered spec is run by nothing).
+//
+// Legs 7-8 added (lane L12, 2026-10-03, coordinator ruling): a DIFFERENT, adjacent defect found by
+// this lane's own executed render while verifying the carbon-cost-per-FEU dispatch - the whole
+// "Substantive findings" section (id="findings", MarketSignalDetailSurface.tsx) was wrapped in a bare
+// `!isRecord` check, so a record-grade item never showed its carbon-intensity figure even when the
+// SAME factors/jurisdictionIso resolved cleanly for a non-record item, and the section-index nav kept
+// advertising "S2 Findings" with nothing behind it. Fixed via `showFindings = !isRecord ||
+// carbonOverlayResolved`. Reuses this file's mounting infrastructure (MARKET_ENTRY, bundleEntry,
+// newSmokePage, mountBundle) rather than building a second one - same component, same harness,
+// different assertion.
 
 import { fileURLToPath } from 'node:url';
 import { bundleEntry, newSmokePage, mountBundle } from './harness.mjs';
@@ -443,6 +453,116 @@ export async function runSmoke(browser) {
       failures.push(
         `market-detail-raw-dump:regulation-fixture-full-depth, raw slot-label text node(s) found: ${JSON.stringify(regFullDumps)}`
       );
+    }
+  }
+
+  // Leg 7 (lane L12, 2026-10-03): a record-grade, corridor-band item carrying a genuinely resolvable
+  // emission-factor row (the same shape select-modal-factor.mjs documents as the live EPA road row)
+  // MUST render the Findings section with the carbon-intensity figure, and the section-index nav MUST
+  // list "S2 Findings". Proves the positive side of `showFindings`.
+  {
+    checks += 1;
+    const resolvableFactors = [
+      {
+        factor_id: 'epa-road-l12',
+        mode: 'road',
+        vehicle_class: 'medium_heavy_duty_truck',
+        jurisdiction: 'US',
+        quantity_basis: 'tonne_km',
+        ttw_co2e: 0.161,
+        wtt_co2e: null,
+        wtw_co2e: null,
+        source_key: 'EPA-2024',
+        tier: 'modal_default',
+        scope_kind: 'modal',
+      },
+    ];
+    const bundleJs = await bundleEntry(MARKET_ENTRY, { alias: ALIAS });
+    const page = await newSmokePage(browser);
+    try {
+      await mountBundle(page, bundleJs, '__mount', {
+        resource: baseResource({
+          id: 'l12-findings-record-resolved',
+          itemGrade: 'record',
+          signalBand: 'corridor',
+          jurisdictionIso: ['US'],
+          fullBrief: recordDumpFullBrief(),
+        }),
+        relatedPool: [],
+        sections: recordDumpSections(),
+        claimTiers: {},
+        convergence: null,
+        priceBoard: [],
+        carbonFactors: resolvableFactors,
+        groupLabel: 'Market / EPA',
+        deck: 'EPA · catalogue record',
+        initialNote: '',
+        supersessions: [],
+        connections: [],
+        relevance: null,
+        resourceLookup: {},
+      });
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+      const findingsPresent = await page.evaluate(() => !!document.getElementById('findings'));
+      const navHasFindings = await page.evaluate(() => document.body.innerText.includes('S2 Findings'));
+      const hasIntensityText = await page.evaluate(() => document.body.innerText.includes('kg CO2e'));
+      if (!findingsPresent) {
+        failures.push('market-detail-raw-dump:l12-findings-record-resolved, expected the Findings section to render for a record-grade item with a resolvable carbon-intensity figure, found none');
+      }
+      if (!navHasFindings) {
+        failures.push('market-detail-raw-dump:l12-findings-record-resolved, expected "S2 Findings" in the section-index nav, found none');
+      }
+      if (!hasIntensityText) {
+        failures.push('market-detail-raw-dump:l12-findings-record-resolved, expected the carbon-intensity figure text ("kg CO2e") to render, found none');
+      }
+    } finally {
+      await page.close();
+    }
+  }
+
+  // Leg 8 (lane L12, 2026-10-03): a record-grade, corridor-band item whose jurisdiction is ambiguous
+  // (two countries, select-modal-factor.mjs's documented `ambiguous` state, never resolves) MUST NOT
+  // render the Findings section at all, and "S2 Findings" MUST NOT appear in the nav - proves
+  // `showFindings` stays false when there is genuinely nothing to show, not merely when carbonFactors
+  // happens to be empty.
+  {
+    checks += 1;
+    const bundleJs = await bundleEntry(MARKET_ENTRY, { alias: ALIAS });
+    const page = await newSmokePage(browser);
+    try {
+      await mountBundle(page, bundleJs, '__mount', {
+        resource: baseResource({
+          id: 'l12-findings-record-unresolved',
+          itemGrade: 'record',
+          signalBand: 'corridor',
+          jurisdictionIso: ['CN', 'US'],
+          fullBrief: recordDumpFullBrief(),
+        }),
+        relatedPool: [],
+        sections: recordDumpSections(),
+        claimTiers: {},
+        convergence: null,
+        priceBoard: [],
+        carbonFactors: [],
+        groupLabel: 'Market / EPA',
+        deck: 'EPA · catalogue record',
+        initialNote: '',
+        supersessions: [],
+        connections: [],
+        relevance: null,
+        resourceLookup: {},
+      });
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+      const findingsPresent = await page.evaluate(() => !!document.getElementById('findings'));
+      const navHasFindings = await page.evaluate(() => document.body.innerText.includes('S2 Findings'));
+      if (findingsPresent) {
+        failures.push('market-detail-raw-dump:l12-findings-record-unresolved, expected the Findings section to stay absent for a record-grade item with no resolvable figure, found it present');
+      }
+      if (navHasFindings) {
+        failures.push('market-detail-raw-dump:l12-findings-record-unresolved, expected no "S2 Findings" nav entry, found one');
+      }
+    } finally {
+      await page.close();
     }
   }
 
