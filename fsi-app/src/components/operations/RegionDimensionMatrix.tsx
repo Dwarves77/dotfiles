@@ -126,6 +126,8 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { FactCard } from "@/components/ui/FactCard";
 import { buildRegionGrid, isEnvelopedFact } from "@/lib/operations/region-grid.mjs";
 import { LabourChain } from "@/components/operations/LabourChain";
+import { FeasibilityGateStrip, MaterialsPpwrRows } from "@/components/operations/FeasibilityGateStrip";
+import { joinMaterialsToPpwr, PPWR_PLASTIC_MATERIAL_KEYS } from "@/lib/operations/materials-ppwr-join.ts";
 import type { LabourFactLike } from "@/lib/operations/labour-chain.ts";
 
 /** The dimension whose selected-cell panel gets the fully-loaded labour chain drill-down instead of
@@ -168,6 +170,8 @@ const PANEL_FACT_CAP = 3;
  * the artboard's own three fact cards without scrolling, which is what the artboard shows.
  */
 const PANEL_SLOT_HEIGHT = 300;
+/** The feasibility block above the panel slot: fixed so the card height never depends on selection. */
+const FEASIBILITY_BLOCK_HEIGHT = 168;
 
 // `sixWordHeadline` and `claimAfterHeadline` moved to src/components/ui/FactCard.tsx with the
 // MatrixFactCard anatomy they served (lane w10-factcard-b, 2026-09-20; Amendment 1 section B.1).
@@ -649,6 +653,43 @@ export function RegionDimensionMatrix({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Feasibility gates, ahead of any cost figure and with no extra click (spec 04 S1: gates are
+          evaluated before cost). Lane L14; coordinator ruling Option B, 2026-10-03: its OWN block
+          above the fixed-height slot below, so the slot's contents and PANEL_SLOT_HEIGHT (operator
+          criterion A) are untouched. Single-region selection only. NO live gate source exists yet,
+          so no gates are passed and every class renders its absence token: never a derived or
+          default "clear". The materials <-> PPWR join beneath it has no materials_sourcing producer
+          or structured material key yet, so it passes no facts and every row is a threshold-only gap. */}
+      {/* FIXED HEIGHT, always rendered (coordinator ruling Option F, 2026-10-03): the card's height is
+          constant regardless of selection (operator criterion A), so with nothing selected or in
+          compare mode this block holds one muted line instead of disappearing. Content that overflows
+          (narrow widths, an opened <details>) scrolls inside the block; the card never grows. */}
+      <div
+        data-audit="ops-feasibility-block"
+        style={{
+          background: "var(--page)",
+          borderTop: "1px solid var(--line-1)",
+          padding: "12px 16px 0",
+          height: FEASIBILITY_BLOCK_HEIGHT,
+          boxSizing: "border-box",
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+      >
+        {selectedRegion ? (
+          <>
+            <FeasibilityGateStrip gates={[]} regionLabel={selectedRegion.label} />
+            <MaterialsPpwrRows
+              rows={joinMaterialsToPpwr([], { regionKeys: [selectedRegion.key], materials: PPWR_PLASTIC_MATERIAL_KEYS })}
+            />
+          </>
+        ) : (
+          <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-3)", margin: 0 }}>
+            Select a region to see its feasibility gates
+          </p>
+        )}
       </div>
 
       {/* ── The panel ──────────────────────────────────────────────────────────────────────────
