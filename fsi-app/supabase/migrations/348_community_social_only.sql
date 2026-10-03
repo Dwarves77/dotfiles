@@ -1,4 +1,4 @@
--- subject: Migration 348 (lane C-SOCIAL, 2026-10-03, ADR-041 "Community is social only"). Drops the Community-to-corpus promotion schema: post_promotions and the five promotion/provenance columns on community_posts. AUTHORED, NOT APPLIED; applied AFTER the C-SOCIAL PR merges.
+-- subject: Migration 348 (lane C-SOCIAL, 2026-10-03, ADR-041 "Community is social only"). Drops the Community-to-corpus promotion schema: post_promotions and the five promotion/provenance columns on community_posts. APPLIED 2026-10-03 (operator window, ADR-011; read-back: table and five columns absent).
 -- Migration 348: Community is social only (ADR-041).
 --
 -- Operator ruling, 2026-10-03, verbatim: "Community is a resource for people to discuss what they're
