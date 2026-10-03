@@ -56,6 +56,19 @@ import { producerFor } from "../lib/market/series-registry.mjs";
 // single proof for all three producers' full seam sets (parser+write+registry+author, or write+
 // registry+author for the two producers whose own parser is inline, not a separate src/lib module).
 import { authorMarketSeriesDeltaEdges } from "../../scripts/producers/market/author-market-series-delta.mjs";
+// Lane L11, 2026-10-03: slugify.mjs was extracted from eia-v2-petroleum-spot-producer.mjs's own prior
+// local copy (dedup, F45/prior-art) and is now a FIFTH seam that producer imports. This file is already
+// eia-v2's own F27 composition proof (see the comment above); importing slugify here too, and exercising
+// it against a real product label below, keeps that coverage true rather than letting the extraction
+// silently widen eia-v2's seam set past what this file proves.
+import { slugify } from "../../scripts/producers/market/slugify.mjs";
+// sbti-target-dashboard-producer.mjs (lane L11, 2026-10-03) imports its OWN 4-seam set (author-market-
+// series-delta.mjs, slugify.mjs, series-registry.mjs, write-market-series.mjs) distinct from the three
+// producers above (its own aggregation logic, not the shared EU-oil-bulletin parser), so F27 requires a
+// SEPARATE composition proof for it, added below in this same file rather than a fourth near-duplicate
+// file, same reasoning the comment on the author-market-series-delta.mjs import above gives.
+import { extractSbtiTargetRows, aggregateSbtiTargetRows, resolveHeaderColumns } from "../../scripts/producers/market/sbti-target-dashboard-producer.mjs";
+import { parseSheetRows, parseSharedStrings } from "../../scripts/gen/fetch-desnz-factors.mjs";
 // Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
 // deleted — zero production importers, only test-only re-exports of these two — per its own header's
 // "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
@@ -191,6 +204,11 @@ test("the FOURTH seam: real parser -> planner output IS consumable by authorMark
   assert.equal(authorCalls[0].method.id, "market_series_delta");
 });
 
+test("the FIFTH seam (eia-v2 only): slugify composes into a series_key segment exactly the way eia-v2-petroleum-spot-producer.mjs derives one from a bare EIA series id", () => {
+  assert.equal(slugify("RWTC"), "rwtc");
+  assert.equal(slugify("PET.RWTC.W"), "pet-rwtc-w");
+});
+
 test("a row with no reference_period lands in skippedNoReferencePeriod, never a duplicate under the UNIQUE key", () => {
   const { rows } = parseEuWeeklyOilBulletinCsv(PRODUCTION_CSV);
   // The parser itself never emits a row like this (a malformed week_ending is a parse-time warning +
@@ -202,4 +220,78 @@ test("a row with no reference_period lands in skippedNoReferencePeriod, never a 
   assert.equal(toCreate.length, 6, "the malformed row must not be planned as a create");
   assert.equal(skippedNoReferencePeriod.length, 1);
   assert.equal(skippedNoReferencePeriod[0].series_key, "eu-oil-bulletin:eurosuper-95-malformed");
+});
+
+// ── sbti-target-dashboard-producer.mjs's own full composition (F27's separate seam set) ────────────────
+// Real sheet XML + sharedStrings -> extractSbtiTargetRows -> aggregateSbtiTargetRows -> planner ->
+// author-market-series-delta.mjs, the exact chain the producer performs minus the licence-blocked
+// guarded write itself. A tiny fixture sheet (3 rows: one countable near-term target, one Removed
+// survivorship row, one Commitment placeholder with no years), structurally identical to the shape the
+// producer's own test file builds at CLI level, kept small here because this proof's job is the SEAM
+// between modules, not a second parser fixture suite.
+const SBTI_SHARED = [
+  "company_name", "sector", "status", "action", "target", "base_year", "target_year", "date_published",
+  "Co A", "Freight", "Other", "Target", "Near-term", "2021", "2030",
+  "Co B", "Removed",
+];
+const sIdx = (label) => SBTI_SHARED.indexOf(label);
+const sbtiStr = (col, row, label) => `<c r="${col}${row}" t="s"><v>${sIdx(label)}</v></c>`;
+const sbtiNum = (col, row, n) => `<c r="${col}${row}"><v>${n}</v></c>`;
+const SBTI_SHARED_STRINGS_XML = `<?xml version="1.0" encoding="UTF-8"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${SBTI_SHARED.map((s) => `<si><t>${s}</t></si>`).join("")}</sst>`;
+const SBTI_SHEET_XML =
+  `<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>` +
+  `<row r="1">${sbtiStr("A", 1, "company_name")}${sbtiStr("B", 1, "sector")}${sbtiStr("C", 1, "status")}${sbtiStr("D", 1, "action")}${sbtiStr("E", 1, "target")}${sbtiStr("F", 1, "base_year")}${sbtiStr("G", 1, "target_year")}${sbtiStr("H", 1, "date_published")}</row>` +
+  `<row r="2">${sbtiStr("A", 2, "Co A")}${sbtiStr("B", 2, "Freight")}${sbtiStr("C", 2, "Other")}${sbtiStr("D", 2, "Target")}${sbtiStr("E", 2, "Near-term")}${sbtiStr("F", 2, "2021")}${sbtiStr("G", 2, "2030")}${sbtiNum("H", 2, 44500)}</row>` +
+  `<row r="3">${sbtiStr("A", 3, "Co B")}${sbtiStr("B", 3, "Freight")}${sbtiStr("C", 3, "Removed")}${sbtiStr("D", 3, "Target")}${sbtiStr("E", 3, "Near-term")}${sbtiNum("H", 3, 44600)}</row>` +
+  `</sheetData></worksheet>`;
+
+test("sbti composition: real sheet rows -> extract -> aggregate -> planner, 2 creates (near-term lead time + commitment-removed), live-constraint shaped", () => {
+  const rows = parseSheetRows(SBTI_SHEET_XML);
+  const shared = parseSharedStrings(SBTI_SHARED_STRINGS_XML);
+  const columns = resolveHeaderColumns(rows, shared);
+  const dataRows = extractSbtiTargetRows(rows, shared, columns);
+  const { seriesRows } = aggregateSbtiTargetRows(dataRows);
+
+  const { toCreate, toUpdate, skippedNoReferencePeriod } = planMarketSeriesUpsert([], seriesRows);
+  assert.equal(toCreate.length, 2);
+  assert.equal(toUpdate.length, 0);
+  assert.equal(skippedNoReferencePeriod.length, 0);
+
+  for (const r of toCreate) {
+    assert.match(r.series_key, SERIES_KEY_FORMAT_RE, `series_key "${r.series_key}" fails the live format CHECK`);
+    assert.equal(typeof r.label, "string");
+    assert.ok(r.label.length > 0);
+    assert.equal(typeof r.value_numeric, "number");
+    assert.ok(Number.isFinite(r.value_numeric));
+    assert.ok(DERIVATION_VALUES.includes(r.derivation), `illegal derivation "${r.derivation}"`);
+    assert.ok(ORIGIN_CLASS_VALUES.includes(r.origin_class), `illegal origin_class "${r.origin_class}"`);
+    assert.ok(r.n_observations === null || (Number.isInteger(r.n_observations) && r.n_observations > 0));
+    assert.equal(r.source_key, "sbti_dashboard");
+  }
+});
+
+test("sbti composition, the FOURTH seam: aggregated near-term-lead-time output IS consumable by authorMarketSeriesDeltaEdges, the same composition every market_series producer performs after its (here, licence-blocked) guarded write", async () => {
+  const rows = parseSheetRows(SBTI_SHEET_XML);
+  const shared = parseSharedStrings(SBTI_SHARED_STRINGS_XML);
+  const columns = resolveHeaderColumns(rows, shared);
+  const dataRows = extractSbtiTargetRows(rows, shared, columns);
+  const { seriesRows } = aggregateSbtiTargetRows(dataRows);
+  const { toCreate } = planMarketSeriesUpsert([], seriesRows);
+  assert.equal(toCreate.length, 2);
+
+  const nearTerm = toCreate.find((r) => r.series_key.startsWith("sbti:near-term-lead-time-"));
+  const latest = { ...nearTerm, id: "row-latest" };
+  const prior = { ...nearTerm, id: "row-prior", reference_period: "2021-09-01", value_numeric: nearTerm.value_numeric - 1 };
+
+  const authorCalls = [];
+  const counts = await authorMarketSeriesDeltaEdges([latest.series_key], "apply", {
+    readAllFn: async () => [latest, prior],
+    authorEdgesFn: async (sb, figure) => { authorCalls.push(figure); return { ok: true, action: "authored", valueId: "v-sbti-composition" }; },
+    sb: {},
+    now: () => new Date("2026-10-03T00:00:00Z"),
+  });
+
+  assert.equal(counts.authored, 1, "the real sbti aggregate row shape must be authorable, not refused by an unexpected field mismatch");
+  assert.equal(authorCalls.length, 1);
+  assert.equal(authorCalls[0].table, "market_series");
 });
