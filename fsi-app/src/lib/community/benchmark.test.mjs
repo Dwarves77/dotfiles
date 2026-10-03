@@ -43,6 +43,17 @@ test("aggregateBenchmarkResponses: 5 distinct organisations is below the ADR-035
   assert.match(r.reason, /needs 5 more organisations/);
 });
 
+test("aggregateBenchmarkResponses: 9 distinct organisations is below the ADR-035 floor (10)", () => {
+  const instrument = { key: "x", periodEnd: "2026-05-01" };
+  const responses = ["a", "b", "c", "d", "e", "f", "g", "h", "i"].map((organisationKey, i) => ({
+    organisationKey, valueNumeric: 10 + i, submittedAt: "2026-06-15",
+  }));
+  const r = aggregateBenchmarkResponses(instrument, responses, NOW);
+  assert.equal(r.publishable, false);
+  assert.equal(r.minContributors, 10);
+  assert.match(r.reason, /needs 1 more organisation/);
+});
+
 test("aggregateBenchmarkResponses: dedupes repeat submissions from the same organisation, keeping the latest", () => {
   const instrument = { key: "x", periodEnd: "2026-05-01" };
   const responses = [

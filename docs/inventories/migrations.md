@@ -320,6 +320,7 @@
 | 344 | 344_research_assessments.sql | Migration 344 (Lane W2-R RESEARCH-ASSESSMENT-MODEL, 2026-10-01). Adds research_assessments, |
 | 345 | 345_planning_assumption_register.sql | Migration 345 (lane W2-R2, 2026-10-01): `planning_assumption_register`, the per-tenant |
 | 346 | 346_research_assessments_entity_spine_signposts.sql | Migration 346 (Lane L6, coordinator dispatch 2026-10-02, docs/dispatches/lane-briefs/2026-10-02/ |
+| 347 | 347_aggregate_floor_adr035.sql | Migration 347 (Lane L15, coordinator brief docs/dispatches/lane-briefs/2026-10-03/brief-l15.md; ADR-035 |
 
 ## Maintenance trigger
 
