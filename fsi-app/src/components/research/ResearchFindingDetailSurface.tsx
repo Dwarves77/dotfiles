@@ -47,6 +47,9 @@ import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { DissentPanel } from "@/components/research/DissentPanel";
+import { SignpostList, type SignpostView } from "@/components/research/SignpostList";
+import { AssessmentHistoryLedger, type AssessmentHistoryEntry } from "@/components/research/AssessmentHistoryLedger";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
@@ -110,6 +113,12 @@ interface Props {
    *  src/lib/research/read-assessments.mjs. undefined/null renders the honest "no assessment yet" state
    *  (R14: the surface renders what the producer has produced, never a fabricated reading). */
   assessment?: AssessmentView;
+  /** Lane L5 (2026-10-02, extended scope): migration 346's real `signposts` rows for this item's
+   *  assessment, shaped by read-signposts.mjs. [] renders the honest "no signposts watched yet" state. */
+  signposts?: SignpostView[];
+  /** Lane L5 (2026-10-02, extended scope): the real supersedes chain, newest first, shaped by
+   *  read-signposts.mjs. [] (no assessment) or a single entry (no prior version) both render honestly. */
+  assessmentHistory?: AssessmentHistoryEntry[];
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
@@ -154,6 +163,8 @@ export function ResearchFindingDetailSurface({
   resourceLookup = {},
   themeBrief = null,
   assessment = null,
+  signposts = [],
+  assessmentHistory = [],
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -295,6 +306,18 @@ export function ResearchFindingDetailSurface({
               designed={
                 <>
                   <ResearchAssessmentCard assessment={assessment} />
+                  {/* Lane L5 (2026-10-02, extended scope after lane L6/PR #890 merged before this lane
+                      branched): spec-03 section 7 components 6, 8, 11 - mounted beside #887's own rail
+                      card, never replacing it. DissentPanel renders against the real (if still
+                      largely degenerate-fallback until a later wiring lane) authority-score distribution.
+                      SignpostList and AssessmentHistoryLedger render the REAL signposts/supersedes-chain
+                      data fetched server-side in page.tsx (read-signposts.mjs) - [] / a single entry both
+                      render their own honest absence state, never a fabricated reading. The `current`
+                      fallback stays as a defensive default for a future caller that has not wired the
+                      chain fetch at all; this page always passes a real (possibly single-entry) array. */}
+                  <DissentPanel authorityDistribution={assessment?.credibilityAuthorityScore ?? null} />
+                  <SignpostList signposts={signposts} />
+                  <AssessmentHistoryLedger history={assessmentHistory} />
                   {themeBrief ? <ThemeBriefCard brief={themeBrief} /> : null}
                 </>
               }
