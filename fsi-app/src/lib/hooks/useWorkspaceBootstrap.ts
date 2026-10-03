@@ -191,6 +191,13 @@ function getSnapshot(): SingletonState {
   return singleton.state;
 }
 
+// Server render has no singleton data: a stable initial-state constant (React requires a
+// getServerSnapshot for server-rendered content; its absence failed the /_not-found prerender).
+const SERVER_SNAPSHOT: SingletonState = { data: null, loading: false, error: null, settled: false };
+function getServerSnapshot(): SingletonState {
+  return SERVER_SNAPSHOT;
+}
+
 export interface UseWorkspaceBootstrap extends SingletonState {
   /** Manually re-fetch, e.g. after sign-in when the singleton's first attempt
    *  ran signed-out and cached an empty result. */
@@ -202,7 +209,7 @@ export function useWorkspaceBootstrap(): UseWorkspaceBootstrap {
   // every publish()), replacing the former subscribe-then-setState-in-effect dance. The "another
   // mounted consumer may already hold data" sync is now simply what getSnapshot() returns on first
   // render, with no separate effect-driven catch-up write needed.
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
     if (!singleton.attempted) {

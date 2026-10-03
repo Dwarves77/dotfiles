@@ -194,6 +194,8 @@ function subscribe(cb: () => void): () => void {
 // getSnapshot must return a referentially stable value when nothing has changed, so this is a module
 // constant rather than a fresh `{ counts: null, ... }` literal on every call.
 const DISABLED_SNAPSHOT: SingletonState = { counts: null, loading: false, error: null };
+// Server render never has admin counts; React requires getServerSnapshot for server-rendered content.
+const getServerSnapshot = (): SingletonState => DISABLED_SNAPSHOT;
 
 /**
  * Hook: useAdminAttention.
@@ -237,7 +239,7 @@ export function useAdminAttention(): UseAdminAttention {
     () => (enabled ? singleton.state : DISABLED_SNAPSHOT),
     [enabled]
   );
-  const snapshot = useSyncExternalStore(subscribeForEnabled, getSnapshotForEnabled);
+  const snapshot = useSyncExternalStore(subscribeForEnabled, getSnapshotForEnabled, getServerSnapshot);
 
   const enabledRef = useRef(enabled);
   useEffect(() => {
