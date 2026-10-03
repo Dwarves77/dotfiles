@@ -202,15 +202,19 @@ test("extractSbtiTargetRows + aggregateSbtiTargetRows: the full happy path over 
 
   const byKey = new Map(seriesRows.map((r) => [r.series_key, r]));
   assert.ok(byKey.has("sbti:near-term-lead-time-ocean-freight"), "near-term lead time for Ocean Freight");
-  assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").value_numeric, 10);
+  // 10 years = 120 months (unit="months", not "years", to match lane L10's monthsValue() gate exactly,
+  // spec 02 section 6 item 5's "months axis"; fixed in this same session after merging L10's own
+  // lead-time-position.mjs, see the producer's own MONTHS note at its call site).
+  assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").value_numeric, 120);
   assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").n_observations, 1);
-  assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").unit, "years");
+  assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").unit, "months");
   assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").derivation, "calculated");
   assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").origin_class, "derived");
   assert.equal(byKey.get("sbti:near-term-lead-time-ocean-freight").source_key, "sbti_dashboard");
 
   assert.ok(byKey.has("sbti:net-zero-lead-time-air-freight"), "net-zero lead time for Air Freight");
-  assert.equal(byKey.get("sbti:net-zero-lead-time-air-freight").value_numeric, 28);
+  // 28 years = 336 months.
+  assert.equal(byKey.get("sbti:net-zero-lead-time-air-freight").value_numeric, 336);
 
   // SURVIVORSHIP, the removed row must be counted, never dropped.
   assert.ok(byKey.has("sbti:commitment-removed-ocean-freight"), "a 'Removed' status row must produce a commitment-removed series, never be silently dropped");
@@ -252,7 +256,7 @@ test("CLI dry run via --input: parses the fixture workbook, reports the plan, su
     assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr: ${res.stderr}`);
     assert.match(res.stdout, /parsed 4 per-target row\(s\) across 2 sector\(s\), computed 3 series row\(s\)/);
     assert.match(res.stdout, /DRY RUN/);
-    assert.match(res.stdout, /would create {2}sbti:near-term-lead-time-ocean-freight.*10 years \(n=1\)/);
+    assert.match(res.stdout, /would create {2}sbti:near-term-lead-time-ocean-freight.*120 months \(n=1\)/);
     assert.match(res.stdout, /would create {2}sbti:commitment-removed-ocean-freight.*1 companies \(n=n\/a\)/);
     assert.match(res.stderr, /status not Other\/Removed \("Active"\)/);
   });

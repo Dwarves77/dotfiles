@@ -264,12 +264,14 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
     notes:
       "Per-sector aggregates ONLY, never the ~40,000 raw per-company rows (which would itself be the " +
       "exact redistribution the licence blocks): sbti:near-term-lead-time-<sector> and " +
-      "sbti:net-zero-lead-time-<sector> (mean target_year-base_year in years, among status=\"Other\" rows, " +
-      "the live-confirmed status a per-target row with a present base_year/target_year carries, NOT " +
-      "\"Active\"/\"Validated Targets\" as first guessed and refuted by a direct count, see the " +
-      "producer's own header; n_observations = the sample count, the figure a lead-time chart (lane L10, " +
-      "src/components/market/LeadTimeChart.tsx) must gate a minimum sample on, per the build plan's own " +
-      "acceptance test, 'not forecastable' under too few), and sbti:commitment-removed-<sector> (a direct " +
+      "sbti:net-zero-lead-time-<sector> (mean (target_year-base_year)*12 in MONTHS, unit=\"months\" " +
+      "exactly, per lane L10's own lead-time-position.mjs/LeadTimeChart.tsx (spec 02 section 6 item 5's " +
+      "\"months axis\") which this registry entry's producer was corrected to match the same session " +
+      "both landed; among status=\"Other\" rows, the live-confirmed status a per-target row with a " +
+      "present base_year/target_year carries, NOT \"Active\"/\"Validated Targets\" as first guessed and " +
+      "refuted by a direct count, see the producer's own header; n_observations = the sample count, the " +
+      "figure the chart gates a minimum sample on, per the build plan's own acceptance test, 'not " +
+      "forecastable' under too few), and sbti:commitment-removed-<sector> (a direct " +
       "count of status=Removed rows per sector, survivorship, never silently dropped, spec 02 section " +
       "7's own warning). reference_period/as_at_date = the maximum date_published among each aggregate's " +
       "own contributing rows (a fact read from the data, never a clock read). See the producer's own " +

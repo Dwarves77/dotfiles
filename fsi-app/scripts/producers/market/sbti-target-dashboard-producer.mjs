@@ -73,7 +73,9 @@
 //      function's own call site: this lane tried "Active" then "Validated Targets" first, both
 //      [REFUTED] by a direct count over all 40,883 live rows; "Other" is the status that actually
 //      carries a present base_year/target_year, empirically, not by name) AND target == "Near-term" AND
-//      both years are valid 4-digit integers with target_year > base_year. unit "years", n_observations = the sample
+//      both years are valid 4-digit integers with target_year > base_year. unit "months" (leadYears *
+//      12, see the MONTHS note at this function's own call site: lane L10's chart gates on exactly this
+//      unit, per spec 02 section 6 item 5's own "months axis"). n_observations = the sample
 //      count feeding the mean (never omitted, this is exactly what lets the eventual chart (lane L10)
 //      render "not forecastable" under a minimum sample, per the build plan's own acceptance test,
 //      instead of a fabricated position from n=1).
@@ -340,7 +342,14 @@ export function aggregateSbtiTargetRows(dataRows) {
     if (!(leadYears > 0)) { bump("target_year not after base_year"); continue; }
 
     const target = r.target.toLowerCase();
-    const entry = { years: leadYears, date: r.datePublishedIso };
+    // MONTHS, not years (fixed 2026-10-03, same session, after merging lane L10's own
+    // lead-time-position.mjs / LeadTimeChart.tsx, both built against this producer's output in
+    // parallel). Spec 02 section 6 item 5 names the chart's own axis explicitly: "Lead-time position
+    // chart (months axis)". L10's monthsValue() gates on unit === "months" exactly, never coercing a
+    // different unit. This producer's own fields only carry a YEAR granularity (base_year/target_year),
+    // so months is a derived precision this data cannot actually support finer than whole years allow,
+    // computed as leadYears * 12, not a fabricated sub-year precision.
+    const entry = { months: leadYears * 12, date: r.datePublishedIso };
     if (target === "near-term") bucket.nearTerm.push(entry);
     else if (target === "net-zero") bucket.netZero.push(entry);
     else bump(`unrecognised target type ("${r.target || "blank"}")`);
@@ -365,12 +374,12 @@ export function aggregateSbtiTargetRows(dataRows) {
       if (entries.length === 0) continue;
       const refPeriod = maxDate(entries);
       if (!refPeriod) { bump(`sector "${sector}" ${kind}: no parseable date_published across ${entries.length} contributing row(s), aggregate skipped`); continue; }
-      const mean = entries.reduce((s, e) => s + e.years, 0) / entries.length;
+      const mean = entries.reduce((s, e) => s + e.months, 0) / entries.length;
       seriesRows.push({
         series_key: `sbti:${kind}-lead-time-${slug}`,
         label: `${label} target lead time (base year to target year), ${sector}, SBTi Target Dashboard`,
         value_numeric: roundTo1dp(mean),
-        unit: "years",
+        unit: "months",
         currency: null,
         derivation: "calculated",
         origin_class: "derived",
