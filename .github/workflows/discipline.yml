@@ -429,6 +429,7 @@ jobs:
         # error; npm run lint's own "lint": "eslint" script takes no args by default, so the flag is
         # passed through the npm-run-script `--` separator here rather than changed in package.json,
         # keeping that file outside this lane's write set.
+        if: steps.docs_only.outputs.docs_only != 'true'
         working-directory: fsi-app
         run: npm run lint -- --max-warnings=0
 

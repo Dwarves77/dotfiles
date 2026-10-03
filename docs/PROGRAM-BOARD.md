@@ -14,7 +14,7 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-10-03):** Audit remediation plan CLOSED 2026-10-03: every lane done (final: R21 PR 908, R7-LINT-CI PR 909; Lane 10 found already required). Wave 3 (L10 PR 904, L11 PR 907, L12 PR 903) and L13 (PR 906) merged. Next: Wave 4 remainder (L14, L-CORRIDOR; briefs `docs/dispatches/lane-briefs/2026-10-03-w4/`), then waves 5-7 of
+> **Resume from (2026-10-03):** Audit remediation plan CLOSED 2026-10-03 (final: R21 PR 908, R7-LINT-CI PR 909; Lane 10 found already required). Waves 3-4 merged: L10 PR 904, L11 PR 907, L12 PR 903, L13 PR 906, L14 PR 911, L-CORRIDOR PR 912. ADR-040 (PR 913): pre-push skips the heavy suite, CI is the push gate. Next: coordinator-designed producers owed by L14 (materials_sourcing with a structured material key; live gate producers for PPWR, EPR, PFAS, permitting, ETS2), then waves 5-7 of
 > [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md) (Market Intel,
 > Operations, Community, the spine completion, and the 8 spec-09 domain extensions, L15 through L28).
 > 
