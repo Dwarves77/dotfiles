@@ -121,6 +121,55 @@ export function toThemeCandidate(value: string | null | undefined): string | nul
   return DB_THEME_VALUES.has(value) ? null : value;
 }
 
+// ── RESEARCH ASSESSMENT + PLANNING-ASSUMPTION vocabulary (Lane L9, 2026-10-02) ──
+// Mirrors migration 344 (research_assessments) and migration 345 (planning_assumption_register) CHECK
+// constraints verbatim -- the single home system-prompt.ts's Research Summary "Planning assumption
+// shift" instruction cites real column names against, never invented ones (spec 03S1: "a card that
+// cannot populate planning_assumption_shifted does not ship as a card"). Neither table is written by
+// this module or by this lane -- no intelligence_items column exists for this field (no migration was
+// requested; see docs/ops/session-log.d/2026-10-02-l9.md), so these sets are read-only reference
+// vocabulary for the prompt's instruction text, not a write-boundary validator like toDbTheme above.
+export const DB_HORIZON_KIND_VALUES = new Set<string>(["availability", "economic", "obligation"]);
+export const DB_HORIZON_BAND_VALUES = new Set<string>(["NOW", "NEAR", "MID", "FAR"]);
+export const DB_HORIZON_RULE_VALUES = new Set<string>(["R1", "R2", "R3", "R4"]);
+export const DB_HORIZON_CONFIDENCE_VALUES = new Set<string>(["low", "medium", "high"]);
+export const DB_CREDIBILITY_EVIDENCE_SCORE_VALUES = new Set<string>(["limited", "medium", "robust"]);
+// IEA-extended TRL corridor bound (technical_maturity_low/high) and ARENA CRI corridor bound
+// (commercial_maturity_low/high), migration 344's CHECK ranges, verbatim.
+export const TECHNICAL_MATURITY_RANGE = Object.freeze({ min: 1, max: 11 });
+export const COMMERCIAL_MATURITY_RANGE = Object.freeze({ min: 1, max: 6 });
+
+// planning_assumption_register (migration 345) field names the prompt's instruction may cite. These are
+// booleans/free text, not a CHECK-enumerable vocabulary -- listed here only so a future column rename on
+// that table is caught by grepping this one home rather than a drifted copy pasted into the prompt text.
+export const PLANNING_ASSUMPTION_REGISTER_FIELDS = Object.freeze([
+  "name", "value_numeric", "unit", "bound_to", "load_bearing", "vulnerable", "review_date",
+] as const);
+
+// The mandatory non-null sentinel for a research_summary brief's "Planning assumption shift:" line
+// (spec 03S1). Locked, exact string the agent must emit verbatim when the input context supplies
+// neither a research_assessments read nor an at-risk (load_bearing AND vulnerable) planning_assumption_
+// register row -- never invented prose. Distinct from read-assessments.mjs's ASSUMPTION_SHIFT_ABSENCE
+// (that is the Research detail-page CARD's reader-facing sentence, "needs a planning assumption
+// registered for this workspace (Settings)"); this is the brief-GENERATION sentinel token the non-null
+// check below matches against, a different surface with a different reader.
+export const PLANNING_ASSUMPTION_SHIFT_ABSENCE = "no shift grounded";
+
+/** Enforces spec 03S1's own rule in CODE, not prompt convention (the brief's acceptance test: "a
+ *  non-null constraint CHECK in the test, not just a convention comment in the prompt"): a research_
+ *  summary brief's planning-assumption-shift line must never be null or blank. Throws loudly rather than
+ *  let an empty line through silently -- "a card that cannot populate this does not ship as a card." The
+ *  sentinel value (PLANNING_ASSUMPTION_SHIFT_ABSENCE) is itself a VALID non-null value; this function
+ *  only rejects null/undefined/empty-after-trim, it does not require a grounded (non-sentinel) answer. */
+export function assertPlanningAssumptionShifted(value: string | null | undefined): void {
+  if (value == null || value.trim() === "") {
+    throw new Error(
+      `metadata-vocab: planning_assumption_shifted is required but null/blank -- a research_summary ` +
+        `brief must emit either a grounded shift or the sentinel "${PLANNING_ASSUMPTION_SHIFT_ABSENCE}", never omit the line (spec 03S1).`,
+    );
+  }
+}
+
 /** Defensive validator for the pass-through enum fields (priority/urgency_tier/format_type/signal_band).
  *  The parser already validates these against sets identical to the DB, so a violation here means parser/DB
  *  drift — throw loudly with the field named rather than let the DB silently reject the whole row. */

@@ -77,6 +77,20 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 // may DO with it, and the related_items write-back below (~line 840 by the build-plan's own reference)
 // is the enforcement backstop.
 import { selectBriefCandidates, formatCandidateBlock } from "@/lib/connections/brief-candidates.mjs";
+// RESEARCH ASSESSMENT CONTEXT (Lane L9, 2026-10-02; coordinator ruling after this lane's own report
+// named the gap: system-prompt.ts required planning_assumption_shifted from research_assessments
+// (migration 344) and planning_assumption_register (migration 345), but this pipeline never passed
+// either into the model's input context -- "a requirement the generator can never satisfy is half a
+// slice," CLAUDE.md rule 17). research_finding items ONLY (see the item_type gate at the call site
+// below); non-research item types never reach buildPlanningAssumptionContext. Reuses the SAME
+// view-model/formatter read-assessments.mjs already exports (no second query shape; the column list
+// below is copied verbatim from src/app/research/page.tsx's readAssessmentsByItemId) and
+// assumptions/read.ts's readAtRiskAssumptions (which already applies contract.mjs's load_bearing-AND-
+// vulnerable eligibility rule -- isAtRisk is imported here too, defensively re-checked, never trusted
+// as a second, divergent implementation).
+import { selectAssessmentView, formatAssumptionShift } from "@/lib/research/read-assessments.mjs";
+import { readAtRiskAssumptions } from "@/lib/assumptions/read";
+import { isAtRisk } from "@/lib/assumptions/contract.mjs";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock, type AgentMetadata } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
@@ -849,6 +863,72 @@ function buildInjectedRawText(body: string, md: InjectedBriefMetadata): string {
  *  a lane-authored brief is judged EXACTLY like a model-authored one, never a lighter pass -- only the
  *  MODEL CALL is skipped, not the judgment (SKILL.md's integrity rule: the injected body is validated by
  *  the same parser and the same gates, never trusted). See the seam header above. */
+// Bounded, not corpus-scale (F38 only reds a `.limit(` literal above 1000; this is well under it, and
+// the platform is single-tenant pre-pilot scale per CLAUDE.md's Perf Work Discipline section). Exported
+// so the fixture test below (and any future one) can override it; production callers use the default.
+export const RESEARCH_ASSESSMENT_CONTEXT_ORG_SCAN_LIMIT = 50;
+
+/**
+ * Assemble the named "RESEARCH ASSESSMENT CONTEXT" block spliced into a research_finding item's
+ * synthesis prompt (spec 03S1: a research_summary brief's `planning_assumption_shifted` line, section
+ * 3, is grounded ONLY in real values actually offered here). Returns "" when neither source has
+ * anything real to offer -- the honest-empty posture every other optional context source in
+ * synthesiseAndWriteBrief already takes (candidateBlock above is the pattern). Non-gating: either read
+ * failing degrades to that source's half being empty, never blocks generation.
+ */
+/** Shared non-gating warn for buildPlanningAssumptionContext's two independent read halves (F45:
+ *  dedupes what would otherwise be two near-identical catch bodies in the same function). */
+function warnContextReadFailed(itemId: string, label: string, e: unknown): void {
+  console.warn(`[canonical] item ${itemId}: ${label} (non-gating): ${e instanceof Error ? e.message : String(e)}`);
+}
+
+export async function buildPlanningAssumptionContext(sb: SupabaseClient, itemId: string): Promise<string> {
+  const lines: string[] = [];
+
+  try {
+    // Column list copied verbatim from src/app/research/page.tsx's readAssessmentsByItemId (the one
+    // other reader of this view) -- same shape, no second query design.
+    const { data } = await sb
+      .from("research_assessments_current")
+      .select(
+        "item_id, technical_maturity_low, technical_maturity_high, technical_maturity_method, " +
+          "commercial_maturity_low, commercial_maturity_high, commercial_maturity_method, " +
+          "horizon_kind, horizon_band, horizon_rule, horizon_confidence, horizon_trigger_note, " +
+          "refusal_reason, credibility_evidence_score, credibility_authority_score, status_token, computed_at",
+      )
+      .eq("item_id", itemId)
+      .maybeSingle();
+    const view = selectAssessmentView((data ?? null) as Parameters<typeof selectAssessmentView>[0]);
+    if (view?.horizon) {
+      const maturityParts: string[] = [];
+      if (view.technicalMaturity) maturityParts.push(`technical_maturity_low=${view.technicalMaturity.low}, technical_maturity_high=${view.technicalMaturity.high}`);
+      if (view.commercialMaturity) maturityParts.push(`commercial_maturity_low=${view.commercialMaturity.low}, commercial_maturity_high=${view.commercialMaturity.high}`);
+      lines.push(
+        `- Assessment: horizon_band=${view.horizon.band}, horizon_kind=${view.horizon.kind}, horizon_rule=${view.horizon.rule}` +
+          (maturityParts.length ? `, ${maturityParts.join(", ")}` : ""),
+      );
+    }
+  } catch (e) {
+    warnContextReadFailed(itemId, "research_assessments_current read failed, treated as no assessment", e);
+  }
+
+  try {
+    const { data: orgs } = await sb.from("organizations").select("id").limit(RESEARCH_ASSESSMENT_CONTEXT_ORG_SCAN_LIMIT);
+    for (const org of (orgs ?? []) as Array<{ id: string }>) {
+      const atRisk = await readAtRiskAssumptions(sb, org.id);
+      for (const a of atRisk) {
+        if (!isAtRisk(a)) continue; // defensive re-check; never trust a second, divergent implementation
+        lines.push(`- At-risk planning assumption: ${formatAssumptionShift(a)}`);
+      }
+    }
+  } catch (e) {
+    warnContextReadFailed(itemId, "planning_assumption_register read failed, treated as none at risk", e);
+  }
+
+  if (lines.length === 0) return "";
+  return `\n\nRESEARCH ASSESSMENT CONTEXT (planning-assumption-shift source data -- cite ONLY these real values in section 3's "Planning assumption shift:" line; never invent beyond them):\n${lines.join("\n")}`;
+}
+
 async function synthesiseAndWriteBrief(
   sb: SupabaseClient,
   it: { id: string; title: string; item_type: string; source_id: string | null; source_url: string },
@@ -914,6 +994,10 @@ async function synthesiseAndWriteBrief(
     } catch (e) {
       console.warn(`[canonical] item ${it.id}: candidate-connection read failed (non-gating, proceeding with none): ${e instanceof Error ? e.message : String(e)}`);
     }
+    // Lane L9 (2026-10-02): research_finding items ONLY -- every other item_type is untouched by this
+    // block (empty string, never called). See buildPlanningAssumptionContext's own header.
+    const planningAssumptionContext =
+      it.item_type === "research_finding" ? await buildPlanningAssumptionContext(sb, it.id) : "";
     // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
     // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
     // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
@@ -944,6 +1028,7 @@ LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do 
 Synthesise ACROSS ALL the SOURCE blocks in your reference corpus (the SOURCE CONTENT in your system context) — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack. The corpus carries ${fetched.length} sources.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
 Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.${candidateBlock}
+${planningAssumptionContext}
 Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks in the reference corpus; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided in the corpus — never a URL you only saw while searching. A source you know of but that is NOT among the corpus blocks may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
 VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back to quarantine) if violated. Before you finish, RE-READ the WHOLE brief and fix every instance — these two are the dominant rejection causes on long briefs:
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
