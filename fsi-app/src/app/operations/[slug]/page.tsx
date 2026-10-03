@@ -37,7 +37,7 @@
 
 import { notFound } from "next/navigation";
 import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
-import { isItemUuid } from "@/lib/detail/id-redirect";
+import { itemIdColumn } from "@/lib/detail/item-id-filter";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
@@ -165,12 +165,11 @@ export default async function OperationsDetailPage({
           let relatedReason: ItemScoped["relatedReason"] = "none";
           let sourceFetchStatus: string | null = null;
           try {
-            const isUuid = isItemUuid(id);
-            const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
             const { data: self } = await supabase
               .from("intelligence_items")
               .select("id, jurisdictions, source_id")
-              .or(orExpr)
+              .eq(itemIdColumn(id), id)
+              .eq("provenance_status", "verified") // customer read gate (parity with fetchIntelligenceItem)
               .maybeSingle();
 
             if (self) {

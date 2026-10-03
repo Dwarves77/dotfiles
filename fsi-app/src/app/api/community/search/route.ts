@@ -29,6 +29,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { unionByRecency } from "@/lib/community/search-merge";
 
 const SCOPES = new Set(["all", "posts", "groups", "people"]);
 const MIN_QUERY = 2;
@@ -81,24 +82,30 @@ export async function GET(request: NextRequest) {
   const wantGroups = scope === "all" || scope === "groups";
   const wantPeople = scope === "all" || scope === "people";
 
-  const [postsRes, groupsRes, peopleRes] = await Promise.all([
-    wantPosts
-      ? auth.supabase
-          .from("community_posts")
-          .select("id, title, body, group_id, created_at")
-          .is("parent_post_id", null)
-          .or(`title.ilike.${escaped},body.ilike.${escaped}`)
-          .order("created_at", { ascending: false })
-          .limit(MAX_RESULTS_PER_SCOPE)
-      : Promise.resolve({ data: [] as PostRow[], error: null }),
-    wantGroups
-      ? auth.supabase
-          .from("community_groups")
-          .select("id, name, slug, region, privacy, member_count, description")
-          .or(`name.ilike.${escaped},description.ilike.${escaped}`)
-          .order("last_active_at", { ascending: false })
-          .limit(MAX_RESULTS_PER_SCOPE)
-      : Promise.resolve({ data: [] as GroupRow[], error: null }),
+  // One .ilike() per column, unioned in JS (lane R21, CF-SEC-15): a composed OR filter string lets `,` `(` `)`
+  // in the query text change the filter structure. Each pattern below is a single parameter.
+  const postsQuery = (column: "title" | "body") =>
+    auth.supabase
+      .from("community_posts")
+      .select("id, title, body, group_id, created_at")
+      .is("parent_post_id", null)
+      .ilike(column, escaped)
+      .order("created_at", { ascending: false })
+      .limit(MAX_RESULTS_PER_SCOPE);
+  const groupsQuery = (column: "name" | "description") =>
+    auth.supabase
+      .from("community_groups")
+      .select("id, name, slug, region, privacy, member_count, description, last_active_at")
+      .ilike(column, escaped)
+      .order("last_active_at", { ascending: false })
+      .limit(MAX_RESULTS_PER_SCOPE);
+  const none = { data: [], error: null };
+
+  const [postsByTitle, postsByBody, groupsByName, groupsByDescription, peopleRes] = await Promise.all([
+    wantPosts ? postsQuery("title") : Promise.resolve(none),
+    wantPosts ? postsQuery("body") : Promise.resolve(none),
+    wantGroups ? groupsQuery("name") : Promise.resolve(none),
+    wantGroups ? groupsQuery("description") : Promise.resolve(none),
     wantPeople
       ? auth.supabase
           .from("profiles")
@@ -107,6 +114,18 @@ export async function GET(request: NextRequest) {
           .limit(MAX_RESULTS_PER_SCOPE)
       : Promise.resolve({ data: [] as ProfileRow[], error: null }),
   ]);
+  const postsRes = {
+    data: unionByRecency([(postsByTitle.data ?? []) as PostRow[], (postsByBody.data ?? []) as PostRow[]], "created_at", MAX_RESULTS_PER_SCOPE),
+    error: postsByTitle.error ?? postsByBody.error,
+  };
+  const groupsRes = {
+    data: unionByRecency(
+      [(groupsByName.data ?? []) as Array<GroupRow & { last_active_at: string | null }>, (groupsByDescription.data ?? []) as Array<GroupRow & { last_active_at: string | null }>],
+      "last_active_at",
+      MAX_RESULTS_PER_SCOPE
+    ),
+    error: groupsByName.error ?? groupsByDescription.error,
+  };
 
   // Collect errors. Surface the first one; partial results are not
   // helpful when a query failed because the user would have no way

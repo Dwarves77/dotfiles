@@ -10,6 +10,7 @@ import { surfaceOf } from "@/lib/surface-of.mjs";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
 import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
+import { itemIdColumn } from "@/lib/detail/item-id-filter";
 import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
@@ -3826,20 +3827,11 @@ async function fetchIntelligenceItemUncached(
     // (only the org-scoped get_workspace_intelligence RPC bypasses RLS),
     // so this path uses the service-role client. Server-only.
     const supabase = getServiceSupabase();
-    // intelligence_items.id is uuid — only include the id.eq filter when
-    // the input parses as a valid uuid; otherwise PostgREST rejects the OR
-    // expression.
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        itemUiId
-      );
-    const orExpr = isUuid
-      ? `legacy_id.eq.${itemUiId},id.eq.${itemUiId}`
-      : `legacy_id.eq.${itemUiId}`;
+    // Exact single-column filter chosen by shape (lane R21, CF-SEC-15): never a composed .or() string.
     const { data: row, error } = await supabase
       .from("intelligence_items")
       .select("*, source:sources(name, base_tier, effective_tier)")
-      .or(orExpr)
+      .eq(itemIdColumn(itemUiId), itemUiId)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .maybeSingle();
 
