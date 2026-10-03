@@ -125,6 +125,13 @@ import { Absence } from "@/components/ui/Absence";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { FactCard } from "@/components/ui/FactCard";
 import { buildRegionGrid, isEnvelopedFact } from "@/lib/operations/region-grid.mjs";
+import { LabourChain } from "@/components/operations/LabourChain";
+import type { LabourFactLike } from "@/lib/operations/labour-chain.ts";
+
+/** The dimension whose selected-cell panel gets the fully-loaded labour chain drill-down instead of
+ *  the generic fact-card list (spec 04 S5, S6 component 5; this lane's brief). Matches the live
+ *  dimension CHECK vocabulary shared by regional_data_facts/state_cost_facts (migration 106/152). */
+const LABOUR_DIMENSION_DB = "labor_markets";
 
 export interface MatrixRegion { key: string; label: string }
 export interface MatrixDimension {
@@ -901,6 +908,12 @@ function MatrixPanel({
           <Absence reason="not in primary source" />: no producer has written {dimensionLabel(dimension)} for{" "}
           {region!.label}. Nothing is estimated in its place.
         </p>
+      ) : dimension.db === LABOUR_DIMENSION_DB ? (
+        // Fully-loaded labour chain drill-down (spec 04 S5, S6 component 5), this lane's brief. The
+        // FULL cell fact list goes in (never the 3-cap `shown` slice above), because the chain needs
+        // every term it can find, not the panel's generic display cap. labour-chain.ts's
+        // extractLabourChainTerms does the matching; this component renders only what it returns.
+        <LabourChain facts={(cell?.facts ?? []) as unknown as LabourFactLike[]} regionLabel={region!.label} />
       ) : (
         <>
           {shown.map((f, i) => (
