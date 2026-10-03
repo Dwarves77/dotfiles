@@ -180,16 +180,53 @@ test('runCli: an unreadable/unparseable artifact file is a real failure -- exit 
   assert.ok(errors.some((m) => m.includes('could not read/parse nope.json')));
 });
 
-test('runCli: missing credentials is a self-skip -- exit 2, not a failure (rule 15)', async () => {
+test('runCli: missing credentials outside GitHub Actions is a self-skip -- exit 2, not a failure (rule 15)', async () => {
   const errors = [];
   const code = await runCli(['--file', 'x.json'], {
     errorLog: (m) => errors.push(m),
     readFileFn: () => JSON.stringify(SAMPLE_ARTIFACT),
     envUrl: undefined,
     envKey: undefined,
+    isGitHubActions: false, // forced: this test must not flip when it happens to run under real CI
   });
   assert.equal(code, 2);
   assert.ok(errors.some((m) => m.includes('self-skip')));
+});
+
+// ── CI no-cred fail-loud (lane RW-WF, 2026-10-03): the research-walker.yml defect, closed at the module
+// so no future caller can reproduce it by forgetting job-level secrets wiring ────────────────────────
+
+test('runCli: missing credentials IN GitHub Actions is a FAILURE -- exit 1, never silently self-skipped', async () => {
+  const errors = [];
+  const code = await runCli(['--file', 'x.json'], {
+    errorLog: (m) => errors.push(m),
+    readFileFn: () => JSON.stringify(SAMPLE_ARTIFACT),
+    envUrl: undefined,
+    envKey: undefined,
+    isGitHubActions: true,
+  });
+  assert.equal(code, 1);
+  assert.ok(errors.some((m) => m.includes('GitHub Actions') && m.includes('FAILURE')));
+  assert.ok(!errors.some((m) => m.includes('diagnosable, never a false red'))); // the local-only self-skip marker never fires here
+});
+
+test('runCli: isGitHubActions defaults to reading process.env.GITHUB_ACTIONS, not hardcoded', async () => {
+  const prior = process.env.GITHUB_ACTIONS;
+  try {
+    process.env.GITHUB_ACTIONS = 'true';
+    const errors = [];
+    const code = await runCli(['--file', 'x.json'], {
+      errorLog: (m) => errors.push(m),
+      readFileFn: () => JSON.stringify(SAMPLE_ARTIFACT),
+      envUrl: undefined,
+      envKey: undefined,
+      // isGitHubActions deliberately NOT passed -- proving the real default reads process.env
+    });
+    assert.equal(code, 1);
+  } finally {
+    if (prior === undefined) delete process.env.GITHUB_ACTIONS;
+    else process.env.GITHUB_ACTIONS = prior;
+  }
 });
 
 test('runCli: a real insert failure (credentials present, insert rejected) is fail-loud -- exit 1', async () => {

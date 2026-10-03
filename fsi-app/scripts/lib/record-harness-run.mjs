@@ -46,6 +46,21 @@
 // Unlike brief_apply_runs (a two-phase start/finish row keyed to a cooldown gate), a harness-run
 // artifact is fully built before this module ever sees it, so this is a SINGLE insert, not a
 // start-then-update pair.
+//
+// CI NO-CRED FAIL-LOUD (lane RW-WF, 2026-10-03, after research-walker.yml run 37096258352 landed zero
+// rows while every step reported SUCCESS). research-assessment.yml wires NEXT_PUBLIC_SUPABASE_URL /
+// SUPABASE_SERVICE_ROLE_KEY at job-level env: (every step inherits them); research-walker.yml's own
+// landing step had no such secrets reachable (only the earlier "chained dry-run guard" step's own env:
+// carried them, scoped to that one step), so this module's exit-2 self-skip fired every single dispatch
+// and the workflow's `|| echo "best-effort..."` swallowed it -- CLAUDE.md rule 17 ("a runtime is not
+// done until the harness has recorded the outcome in harness_runs") was violated silently. The real
+// job-level secrets wiring fix lives in research-walker.yml; THIS module closes the second half (CLAUDE.md
+// rule 15, "a proof that does not execute is not a proof"): a no-cred run in GitHub Actions is now a
+// FAILURE (exit 1), not a self-skip (exit 2) -- detected via GITHUB_ACTIONS=true, which every real
+// Actions runner sets automatically and which no local developer shell sets. A developer running this
+// script locally without SUPABASE_* creds still gets the clean exit-2 self-skip (rule 15's original
+// intent: diagnosable, never a false red, for the case that was never going to try). `isGitHubActions`
+// is deps-injectable so both branches are proven without depending on the real process environment.
 
 import { formatRunId, nextRunNumberFromHarnessRuns } from "./harness-run-number.mjs";
 
@@ -175,13 +190,16 @@ export async function recordHarnessRun(sb, artifact, { log = () => {}, readAllFn
 // below is unit-testable without spawning a process or reaching a real Supabase host -- see
 // record-harness-run.test.mjs.
 //
-// EXIT CODES (rule 15: fail loud, self-skip only for a missing credential):
+// EXIT CODES (rule 15: fail loud, self-skip only for a missing credential, and only outside CI):
 //   0 -- landed (or renumbered-and-landed).
-//   1 -- a real failure: bad usage (no --file), an unreadable/unparseable artifact file, or the insert
-//        itself failed for any reason other than a missing credential. deliver-artifact-branch.sh (the
-//        only caller) now propagates this into a failed step -- see that script's own header.
-//   2 -- self-skip: NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set. Not evidence the row
-//        didn't land; evidence this invocation was never going to try. Never treated as a failure.
+//   1 -- a real failure: bad usage (no --file), an unreadable/unparseable artifact file, the insert
+//        itself failed for any reason other than a missing credential, OR (lane RW-WF, 2026-10-03)
+//        credentials are missing WHILE running in GitHub Actions (GITHUB_ACTIONS=true) -- see this
+//        file's header. A calling workflow step must check this exit code explicitly (never swallow it
+//        with `|| echo ...`), the same pattern scripts/turns/deliver-artifact-branch.sh already uses.
+//   2 -- self-skip: NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set, AND not running in
+//        GitHub Actions. Not evidence the row didn't land; evidence this invocation was never going to
+//        try (a developer's local shell). Never treated as a failure.
 //
 // USAGE: node scripts/lib/record-harness-run.mjs --file scripts/harness-runs/<family>/<run-id>.json
 import { readFileSync } from "node:fs";
@@ -190,8 +208,12 @@ import { isMainModule } from "./is-main.mjs";
 /**
  * @param {string[]} args CLI args (process.argv.slice(2) shape)
  * @param {{log?: Function, errorLog?: Function, readFileFn?: Function, envUrl?: string, envKey?: string,
- *   createClientFn?: (url: string, key: string) => object}} [deps] every field is optional; the real CLI
- *   invocation below supplies none of them (falls through to process.env / a real Supabase client).
+ *   isGitHubActions?: boolean, createClientFn?: (url: string, key: string) => object}} [deps] every
+ *   field is optional; the real CLI invocation below supplies none of them (falls through to
+ *   process.env / a real Supabase client). `isGitHubActions` defaults to reading GITHUB_ACTIONS from
+ *   process.env (every real Actions runner sets it to "true"; a local developer shell never does) --
+ *   injectable so both the CI-fail-loud and the local-self-skip branches are tested without depending
+ *   on the real process environment (lane RW-WF, 2026-10-03).
  * @returns {Promise<number>} the process exit code to use.
  */
 export async function runCli(args, deps = {}) {
@@ -201,6 +223,7 @@ export async function runCli(args, deps = {}) {
     readFileFn = readFileSync,
     envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
     envKey = process.env.SUPABASE_SERVICE_ROLE_KEY,
+    isGitHubActions = process.env.GITHUB_ACTIONS === "true",
     createClientFn = null,
   } = deps;
 
@@ -220,6 +243,15 @@ export async function runCli(args, deps = {}) {
   }
 
   if (!envUrl || !envKey) {
+    if (isGitHubActions) {
+      errorLog(
+        "record-harness-run: NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set while running " +
+          "in GitHub Actions (GITHUB_ACTIONS=true) -- this is a FAILURE, not a self-skip (CLAUDE.md rule " +
+          "17: a runtime that no-ops cleanly with no creds has not recorded anything in harness_runs). " +
+          "Wire the secrets at job-level env: for this job, the same way research-assessment.yml does.",
+      );
+      return 1;
+    }
     errorLog(
       "record-harness-run: NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set -- self-skip " +
         "(no-cred case, rule 15): diagnosable, never a false red.",

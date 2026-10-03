@@ -42,6 +42,15 @@ jobs:
       run:
         working-directory: fsi-app
     env:
+      # Same job-level secrets wiring as research-assessment.yml's own `assess` job (read in full before
+      # this fix): every step in this job inherits these, including the harness-run landing step below.
+      # Lane RW-WF, 2026-10-03 -- the defect this closes: the first dry dispatch (run 37096258352, PR
+      # 898) had NO job-level secrets, only the earlier "chained dry-run guard" step's own env: carried
+      # them (scoped to that one step), so the landing step below always ran with no credentials and
+      # self-skipped (record-harness-run.mjs exit 2) every single dispatch -- masked by the step's own
+      # `|| echo "best-effort..."`, so no harness_runs row ever landed and every step still read SUCCESS.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       RESEARCH_WALKER_ENABLED: '0' # Gate 2 stays OFF; this lane ships no live/apply path to arm.
     steps:
       - uses: actions/checkout@v4
@@ -78,14 +87,26 @@ jobs:
         run: |
           node scripts/research/research-walker.mjs --dispatch
 
-      # Record this family's own harness-run artifact into harness_runs (CONVENTION.md; best-effort, same
-      # posture as every other producer -- a missing credential self-skips rather than failing the job).
+      # Record this family's own harness-run artifact into harness_runs (CONVENTION.md). The exit code
+      # is checked explicitly (lane RW-WF, 2026-10-03), never swallowed with `|| echo ...` -- that
+      # pattern is exactly what let run 37096258352 report SUCCESS on every step while landing zero
+      # rows. record-harness-run.mjs now fails loud (exit 1) on a missing credential IN GitHub Actions
+      # (this job has the secrets wired above, so that should not fire here) and self-skips (exit 2)
+      # only for a genuine local developer run with no creds -- see that script's own header.
       - name: Land the research-walker harness-run artifact into harness_runs
         if: always()
         run: |
+          set -o pipefail
           latest=$(ls -1 scripts/harness-runs/research-walker/research-walker-run-*.json 2>/dev/null | sort | tail -1)
-          if [ -n "$latest" ]; then
-            node scripts/lib/record-harness-run.mjs --file "$latest" || echo "record-harness-run: best-effort, no-ops cleanly with no SUPABASE_* creds set."
-          else
+          if [ -z "$latest" ]; then
             echo "no research-walker run artifact found to land."
+            exit 0
+          fi
+          node scripts/lib/record-harness-run.mjs --file "$latest"
+          status=$?
+          if [ "$status" -eq 2 ]; then
+            echo "record-harness-run: self-skip (no credentials) -- not landed, not a failure (developer-local case only)."
+          elif [ "$status" -ne 0 ]; then
+            echo "::error::record-harness-run: failed to land $latest (exit $status) -- this run's harness-run artifact was not recorded."
+            exit 1
           fi
