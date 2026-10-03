@@ -21,16 +21,16 @@
 // per the wave1b stub-quality investigation, 2026-05-11.
 //
 // SPEND CHOKEPOINT (system-completion train, Lane SPEND, 2026-09-02). This module used to fetch
-// Anthropic's Messages endpoint directly — a ticketless, unlogged spend call outside spend-client.ts,
+// Anthropic's Messages endpoint directly - a ticketless, unlogged spend call outside spend-client.ts,
 // despite "first-fetch-classify" already being a registered Rule 016 standing ticket class (STANDING_TICKET_CLASSES,
 // spend-guard.mjs) that nothing wired up. Every Haiku call now routes through spend-client.ts's
 // spendMessage (the non-streaming twin of spendStream/spendSearch): ticket-gated, budget-checked, and
 // telemetered with the SAME account()/recordSpendCall()/markCallLogged() sequence every other paid call in
-// the pipeline uses — so a classify call leaves exactly one agent_runs row, same as any other spend. The
-// ticket carries sourceId from the caller's input (never itemId — a first-fetch classify precedes any
+// the pipeline uses - so a classify call leaves exactly one agent_runs row, same as any other spend. The
+// ticket carries sourceId from the caller's input (never itemId - a first-fetch classify precedes any
 // mint, so there is no item yet), satisfying invariant I1 (never item- AND source-anonymous). The apiKey
 // parameter still wins over ANTHROPIC_API_KEY when present (spendMessage takes an explicit apiKey and
-// prefers it) — callers that inject their own key (portal-harvest.ts's consumePortalCandidates) are
+// prefers it) - callers that inject their own key (portal-harvest.ts's consumePortalCandidates) are
 // unaffected. FirstFetchClassifyResult's shape is unchanged for callers; cost_usd_estimated is now the
 // REAL chokepoint-computed cost (costUsdForModel, the same number the agent_runs row records) rather than
 // a locally-duplicated Haiku-rate constant that could silently drift from the ledger's own rates.
@@ -39,13 +39,17 @@ import crypto from "node:crypto";
 import { asDomain, domainForItemType, type Domain, type SourceCategory } from "@/lib/domains";
 import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
 import { spendMessage, setSpendTicket, currentSpendTicket } from "@/lib/llm/spend-client";
-
-const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+// HAIKU_MODEL - imported, not redeclared (coordinator directive, 2026-10-02, lane L8 follow-up): this
+// file previously declared its own hand-typed copy of the model id, and src/lib/llm/haiku-classify.ts
+// independently declared a second copy of the identical value - two drifted copies, not a shared
+// config either file actually read from. Both now import from the single home below. Value is
+// byte-identical; no behavior change.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 // EXPORTED (Lane LEDGER-EXPORT, 2026-09-04): run-ledger-consume.mjs's `--export-candidates --with-text`
 // mode slices each fetched candidate's text to this SAME cap before writing it to the export payload, so
 // the text a classification lane reads is byte-identical to what firstFetchClassify itself would have
 // truncated it to (buildFirstFetchClassifyUserMessage already relies on this constant for the same
-// reason). Exported so that driver imports it (via jiti — see its own header) rather than retyping the
+// reason). Exported so that driver imports it (via jiti - see its own header) rather than retyping the
 // literal 6000 a second time, which could silently drift from this one.
 export const CONTENT_MAX_CHARS = 6_000;
 
@@ -55,25 +59,25 @@ export const CONTENT_MAX_CHARS = 6_000;
 //   - fsi-app/src/lib/domains.ts domainForItemType()
 // Any change to the rule lands in all three places simultaneously.
 //
-// EXPORTED (operator ruling 2026-09-04: "stop offering API when you have a free option with Haiku" —
+// EXPORTED (operator ruling 2026-09-04: "stop offering API when you have a free option with Haiku"  - 
 // the ledger-consume session-verdict flip, run-ledger-consume.mjs / CORPUS-TURN-RUNBOOK.md's "Ledger
 // consume" section). Session lanes producing OFFLINE Haiku classifications for run-ledger-consume.mjs's
-// `--verdicts` file must use this EXACT string — not a re-typed paraphrase — so a session-produced verdict
+// `--verdicts` file must use this EXACT string - not a re-typed paraphrase - so a session-produced verdict
 // and a live spend-chokepoint classify call are provably the same prompt, ONE BODY, never two copies that
 // can drift. `FIRST_FETCH_CLASSIFY_PROMPT_VERSION` below is a content hash of this string; the verdict-file
 // schema (`scripts/turns/ledger-verdicts/schema.json`) requires every entry to carry the version it was
 // produced under, so a drifted prompt is a detectable version mismatch, never a silent divergence.
 export const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"surface_tags":[],"relevance":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
 
-entity_verdict: specific_document | portal | uncertain — THE FIRST DECISION. Is this page a SPECIFIC regulatory document/finding (a particular regulation, directive, rule, ruling, report) that should become one intelligence item, OR a PORTAL / navigational homepage / institution landing / index / "latest news" hub (e.g. a ministry or legislature home page) that is a SOURCE, not an item? Return "portal" for navigational/institution-landing content; "specific_document" only when the excerpt is one specific instrument or finding; "uncertain" when you genuinely cannot tell. NEVER guess "specific_document" to be safe — an honest "uncertain" is correct and required.
+entity_verdict: specific_document | portal | uncertain - THE FIRST DECISION. Is this page a SPECIFIC regulatory document/finding (a particular regulation, directive, rule, ruling, report) that should become one intelligence item, OR a PORTAL / navigational homepage / institution landing / index / "latest news" hub (e.g. a ministry or legislature home page) that is a SOURCE, not an item? Return "portal" for navigational/institution-landing content; "specific_document" only when the excerpt is one specific instrument or finding; "uncertain" when you genuinely cannot tell. NEVER guess "specific_document" to be safe - an honest "uncertain" is correct and required.
 
-item_type: regulation|directive|standard|guidance|technology|market_signal|regional_data|research_finding|innovation|framework|tool|initiative — only meaningful when entity_verdict=specific_document; omit (do not guess) when portal or uncertain.
+item_type: regulation|directive|standard|guidance|technology|market_signal|regional_data|research_finding|innovation|framework|tool|initiative - only meaningful when entity_verdict=specific_document; omit (do not guess) when portal or uncertain.
 
-surface_tags: array of 0 to 4 values from [regulations, operations, market_intel, research] — the customer-facing surfaces this document would inform. Assess it against ALL FOUR contracts INDEPENDENTLY, and include EVERY surface that genuinely applies (multi-tag is expected and correct — do not collapse to a single dominant surface):
-  - regulations: binding compliance content — what is legally required, by when, at what cost, what to do.
+surface_tags: array of 0 to 4 values from [regulations, operations, market_intel, research] - the customer-facing surfaces this document would inform. Assess it against ALL FOUR contracts INDEPENDENTLY, and include EVERY surface that genuinely applies (multi-tag is expected and correct - do not collapse to a single dominant surface):
+  - regulations: binding compliance content - what is legally required, by when, at what cost, what to do.
   - operations: per-region cost / feasibility / labor / materials / infrastructure intelligence for a jurisdictional operating decision (hire-vs-automate, lane choice).
-  - market_intel: a comparative or numerical market signal — a delta, trajectory, capital flow, or competitive/adjacent-industry lead-time signal.
-  - research: a horizon-scan finding — who is studying an emerging topic, its maturity, and how it shifts a planning assumption.
+  - market_intel: a comparative or numerical market signal - a delta, trajectory, capital flow, or competitive/adjacent-industry lead-time signal.
+  - research: a horizon-scan finding - who is studying an emerging topic, its maturity, and how it shifts a planning assumption.
 A carbon-market REGULATION that also moves prices is [regulations, market_intel]. A regional cost dataset is [operations]. An academic emissions study is [research]. Return an EMPTY array only when entity_verdict is portal/uncertain OR the document genuinely fits no customer surface. This is INDEPENDENT of item_type: a document has ONE item_type but may inform SEVERAL surfaces.
 severity: ACTION REQUIRED|COST ALERT|WINDOW CLOSING|COMPETITIVE EDGE|MONITORING
 priority: CRITICAL|HIGH|MODERATE|LOW
@@ -99,14 +103,14 @@ domain: integer 1-7 selecting the customer-facing surface for this item. Use thi
 
 If you cannot confidently assign a domain in 1-7 per this rule, return null. Never default to 1.
 
-relevance: integer 0-100 — how directly this content bears on freight-forwarding sustainability (regulations, emissions, fuels/energy, supply-chain, logistics costs, transport labor, batteries/EV, ports/corridors). 100 = core; 0 = unrelated (e.g. a residential apartment lottery, a generic cookie policy). This is a SURFACE-ONLY honesty signal used to flag off-vertical content for review — it NEVER blocks classification. Be honest; do not inflate.
+relevance: integer 0-100 - how directly this content bears on freight-forwarding sustainability (regulations, emissions, fuels/energy, supply-chain, logistics costs, transport labor, batteries/EV, ports/corridors). 100 = core; 0 = unrelated (e.g. a residential apartment lottery, a generic cookie policy). This is a SURFACE-ONLY honesty signal used to flag off-vertical content for review - it NEVER blocks classification. Be honest; do not inflate.
 
 Output JSON only.`;
 
-// PROMPT_VERSION — a content hash of FIRST_FETCH_HAIKU_SYSTEM_PROMPT, same format as
+// PROMPT_VERSION - a content hash of FIRST_FETCH_HAIKU_SYSTEM_PROMPT, same format as
 // scripts/lib/run-artifact.mjs's hashHarnessVersion ("sha256:" + first 16 hex chars of a sha256 digest),
 // so a reader who already knows that convention recognizes this one on sight. Recomputed at import time
-// from the live string above (never hand-maintained) — editing the prompt moves this hash automatically,
+// from the live string above (never hand-maintained) - editing the prompt moves this hash automatically,
 // exactly the "a change to the source is a change to its own version stamp" property harness_version has.
 // This is what run-ledger-consume.mjs's `--verdicts` file schema pins as each entry's `prompt_version`:
 // a verdict produced under a stale prompt is a version MISMATCH the driver can flag, never silently
@@ -176,13 +180,13 @@ function extractJsonObject(text: string): string | null {
   return m ? m[0] : null;
 }
 
-/** The exact user-message text firstFetchClassify sends alongside FIRST_FETCH_HAIKU_SYSTEM_PROMPT — the
+/** The exact user-message text firstFetchClassify sends alongside FIRST_FETCH_HAIKU_SYSTEM_PROMPT - the
  *  OTHER half of "one body" for a session lane building an offline verdict (see that const's own export
- *  comment). PURE: no fetch, no truncation surprises — takes the caller's already-fetched excerpt and
+ *  comment). PURE: no fetch, no truncation surprises - takes the caller's already-fetched excerpt and
  *  applies the SAME CONTENT_MAX_CHARS truncation and "unknown" fallbacks firstFetchClassify itself uses,
  *  so a session lane's Haiku call and a live spend-chokepoint call are given byte-identical input for the
  *  same (source_url, text). Exported so run-ledger-consume.mjs's `--export-candidates` mode and any
- *  session lane can build it without re-typing the template (REUSE-ONLY — see portal-harvest.ts's header
+ *  session lane can build it without re-typing the template (REUSE-ONLY - see portal-harvest.ts's header
  *  for the discipline this repo already applies at every such seam). */
 export function buildFirstFetchClassifyUserMessage(
   input: Pick<FirstFetchClassifyInput, "source_url" | "source_id" | "source_tier" | "source_category" | "text">
@@ -217,7 +221,7 @@ export async function firstFetchClassify(
   // ENTRY-4 (error-body-as-item leak): reject an error / bot-block RESPONSE BODY
   // DETERMINISTICALLY, before Haiku. The fetchOk principle in ingestion: an unreadable/error
   // fetch is INCONCLUSIVE -> not a document. Do NOT rely on Haiku to call it 'uncertain' (it
-  // may infer a topic from the URL/title and mint an error page — the observed leak). entity_
+  // may infer a topic from the URL/title and mint an error page - the observed leak). entity_
   // verdict='uncertain' here makes the entity gate skip the mint.
   if (isErrorBody(input.text)) {
     return {
@@ -235,7 +239,7 @@ export async function firstFetchClassify(
         jurisdictions: [],
         title_candidate: input.source_name || input.source_url,
         summary: "",
-        rationale: "entity-gate: error / bot-block response body detected — not content; not minted",
+        rationale: "entity-gate: error / bot-block response body detected - not content; not minted",
         cost_usd_estimated: 0,
         render_ms: 0,
         input_tokens: 0,
@@ -249,7 +253,7 @@ export async function firstFetchClassify(
   const start = Date.now();
   // SPEND CHOKEPOINT: set the standing-ticket-class ticket for JUST this call, restoring whatever ticket
   // was active before (a caller mid-way through an already-ticketed pipeline is unaffected). sourceId
-  // (never itemId — no item exists yet at first-fetch) satisfies invariant I1 (never item- AND
+  // (never itemId - no item exists yet at first-fetch) satisfies invariant I1 (never item- AND
   // source-anonymous). precondition records the deterministic gate this call already passed (the
   // error-body pre-gate above), per the no-execution-from-stale-state amendment.
   const previousTicket = currentSpendTicket();
@@ -304,7 +308,7 @@ export async function firstFetchClassify(
 
   // ENTITY VERDICT (source != item) + LINE-191 BUG-CLASS FIX. The old code did
   //   item_type = parsed.item_type ?? "regulation"
-  // — a non-answer (Haiku omitted item_type) mapped to a substantive POSITIVE ("regulation"),
+  // - a non-answer (Haiku omitted item_type) mapped to a substantive POSITIVE ("regulation"),
   // the same shape as fetch-failure->negative, here uncertainty->positive. Now: an omitted
   // item_type, or an explicit 'uncertain'/'portal' entity_verdict, yields item_type=null and a
   // non-document entity verdict, so the caller does NOT mint an item.

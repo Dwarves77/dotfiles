@@ -6,13 +6,14 @@
 //   2. exactly ONE agent_runs row is written per call, carrying model/cost/source_id/purpose.
 //   3. the unlogged-telemetry invariant returns to 0 after the call.
 //   4. an "error response" (a billable Haiku call whose output does not parse) still leaves its
-//      agent_runs row — the classify-level {ok:false} is downstream of, not instead of, the spend write.
+//      agent_runs row - the classify-level {ok:false} is downstream of, not instead of, the spend write.
 //   5. the classify JSON parsing / entity-gate / domain-routing behavior is unchanged.
 //   6. the apiKey parameter still wins over ANTHROPIC_API_KEY.
 //   7. the entity-gate error-body short-circuit makes NO API call and touches NO ticket (unchanged).
 // jiti imports the TS module (@/ alias) + @supabase/supabase-js. Runs in the *.npmtest.mjs job (after npm ci).
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
@@ -107,7 +108,7 @@ test("firstFetchClassify: sets the first-fetch-classify ticket for the call, res
     const row = supabaseInserts[0].row;
     assert.equal(row.model, "claude-haiku-4-5-20251001");
     assert.equal(row.source_id, "src-eur-lex-1", "invariant I1: sourceId reaches agent_runs.source_id");
-    assert.equal(row.intelligence_item_id, null, "no item exists yet at first-fetch — never item-anonymous AND source-anonymous, but itemId is deliberately null here");
+    assert.equal(row.intelligence_item_id, null, "no item exists yet at first-fetch - never item-anonymous AND source-anonymous, but itemId is deliberately null here");
     assert.ok(row.cost_usd_estimated > 0);
     assert.equal(row.errors[0].telemetry.purpose, "first-fetch-classify");
 
@@ -136,7 +137,7 @@ test("firstFetchClassify: unparseable Haiku output is ok:false, but the BILLABLE
     const result = await firstFetchClassify(INPUT, "test-api-key");
     assert.equal(result.ok, false);
     assert.match(result.error, /did not contain a JSON object/);
-    assert.equal(supabaseInserts.length, 1, "the call WAS billed (200 + usage) — it must still be logged even though classify itself judged the output unusable");
+    assert.equal(supabaseInserts.length, 1, "the call WAS billed (200 + usage) - it must still be logged even though classify itself judged the output unusable");
     assert.equal(unloggedCallCount(), 0);
   } finally {
     restore();
@@ -144,7 +145,7 @@ test("firstFetchClassify: unparseable Haiku output is ok:false, but the BILLABLE
 });
 
 // ── 5: classify JSON parsing / entity-gate / domain routing behavior is unchanged ────────────────────────
-test("firstFetchClassify: classify shape unchanged — specific_document maps item_type/domain/surface_tags/etc. verbatim", async () => {
+test("firstFetchClassify: classify shape unchanged - specific_document maps item_type/domain/surface_tags/etc. verbatim", async () => {
   const { restore } = installFakeFetch(haikuJsonResponse(HAIKU_DOC_JSON, { inputTokens: 700, outputTokens: 90 }));
   try {
     const result = await firstFetchClassify(INPUT, "test-api-key");
@@ -204,7 +205,7 @@ test("firstFetchClassify: the apiKey parameter WINS over ANTHROPIC_API_KEY (spen
 });
 
 // ── 7: entity-gate error-body short-circuit makes NO API call and touches NO ticket ──────────────────────
-test("firstFetchClassify: error-body pre-gate short-circuits BEFORE any spend — no fetch, no ticket touched, no agent_runs row", async () => {
+test("firstFetchClassify: error-body pre-gate short-circuits BEFORE any spend - no fetch, no ticket touched, no agent_runs row", async () => {
   const { anthropicCalls, supabaseInserts, restore } = installFakeFetch(haikuJsonResponse(HAIKU_DOC_JSON));
   try {
     setSpendTicket({ purpose: "outer-caller-ticket" });
@@ -223,7 +224,7 @@ test("firstFetchClassify: error-body pre-gate short-circuits BEFORE any spend �
 // ── prompt export (operator ruling 2026-09-04: the ledger-consume session-verdict flip) ──────────────────
 // FIRST_FETCH_HAIKU_SYSTEM_PROMPT / FIRST_FETCH_CLASSIFY_PROMPT_VERSION / buildFirstFetchClassifyUserMessage
 // are what a session lane uses to build the IDENTICAL Haiku call this module makes, offline, for
-// run-ledger-consume.mjs's `--verdicts` file (ONE BODY — see this module's own header comment).
+// run-ledger-consume.mjs's `--verdicts` file (ONE BODY - see this module's own header comment).
 test("FIRST_FETCH_CLASSIFY_PROMPT_VERSION: sha256:<16 hex>, matching the exported prompt's content hash", async () => {
   const { createHash } = await import("node:crypto");
   const expected = `sha256:${createHash("sha256").update(FIRST_FETCH_HAIKU_SYSTEM_PROMPT, "utf8").digest("hex").slice(0, 16)}`;
@@ -266,9 +267,28 @@ test("firstFetchClassify: a non-2xx Haiku response is INCONCLUSIVE (ok:false), n
     const result = await firstFetchClassify(INPUT, "test-api-key");
     assert.equal(result.ok, false);
     assert.match(result.error, /429|rate_limit|slow down/i);
-    assert.equal(supabaseInserts.length, 0, "an HTTP-level failure was never billed — no row expected");
+    assert.equal(supabaseInserts.length, 0, "an HTTP-level failure was never billed - no row expected");
     assert.equal(unloggedCallCount(), 0);
   } finally {
     restore();
+  }
+});
+
+// Coordinator directive, 2026-10-02 (lane L8 follow-up): HAIKU_MODEL must read from the single shared
+// home (src/lib/llm/model-ids.mjs), never a re-typed literal - this file and haiku-classify.ts each
+// carried an independent hand-typed copy of "claude-haiku-4-5-20251001" before this fix. Text-level
+// (same convention other source-text regression tests in this repo use for a .ts file with no runtime
+// hook to assert the import graph directly).
+test("first-fetch-classify.ts and haiku-classify.ts both import HAIKU_MODEL from model-ids.mjs - neither redeclares the literal", () => {
+  const firstFetchSrc = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "first-fetch-classify.ts"), "utf8");
+  const haikuClassifySrc = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "haiku-classify.ts"), "utf8");
+
+  for (const [name, src] of [["first-fetch-classify.ts", firstFetchSrc], ["haiku-classify.ts", haikuClassifySrc]]) {
+    assert.match(src, /import \{ HAIKU_MODEL \} from "@\/lib\/llm\/model-ids\.mjs";/, `${name} must import HAIKU_MODEL from the shared module`);
+    assert.doesNotMatch(
+      src,
+      /const HAIKU_MODEL\s*=\s*"claude-haiku-4-5-20251001"/,
+      `${name} must not redeclare HAIKU_MODEL as its own literal`,
+    );
   }
 });

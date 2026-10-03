@@ -1,5 +1,5 @@
 // Shared Haiku SOURCE-verification module (D1 header fix, 2026-07-19: the
-// former haikuClassify content classifier was removed 2026-05-11 — content
+// former haikuClassify content classifier was removed 2026-05-11 - content
 // classification lives in src/lib/llm/first-fetch-classify.ts).
 //
 // One export:
@@ -9,17 +9,21 @@
 //                           score, trust tier).
 
 import Anthropic from "@anthropic-ai/sdk";
-// htmlToText — THE ONE body (Lane LEDGER-TEXT, 2026-09-04). This module's own copy had zero production
-// callers (haikuClassify, its only caller, was removed 2026-05-11 — see the note near __internals below);
+// htmlToText - THE ONE body (Lane LEDGER-TEXT, 2026-09-04). This module's own copy had zero production
+// callers (haikuClassify, its only caller, was removed 2026-05-11 - see the note near __internals below);
 // it is replaced here with the shared body so a would-be reviver of that dead export gets the canonical
 // behaviour, not a second hand-typed copy. See src/lib/text/html-to-text.mjs's header for the full account.
 import { htmlToText } from "@/lib/text/html-to-text.mjs";
+// HAIKU_MODEL - re-exported, not redeclared (lane L8, 2026-10-02 extraction): the literal moved to
+// model-ids.mjs so a plain-ESM script (scripts/research/backfill-themes.mjs) can import the same model
+// id without this module's own @anthropic-ai/sdk / html-to-text imports. Every existing importer of
+// HAIKU_MODEL from THIS module is unaffected - the exported value is byte-identical.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
+export { HAIKU_MODEL };
 
 // ────────────────────────────────────────────────────────────────────────────
 // Constants
 // ────────────────────────────────────────────────────────────────────────────
-
-export const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 // Token-cost approximations for the Haiku 4.5 pricing page (USD per
 // million tokens). Used by haikuClassify to populate cost_usd_estimated
