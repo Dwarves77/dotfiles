@@ -1162,26 +1162,6 @@ export const LEGACY_ALLOWLIST = [
       'while the tools-before-data hold is in force.',
     reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
   },
-
-  // Lane L-CORRIDOR (2026-10-03, coordinator follow-up). Read-only measurement script, no write path
-  // at all (not even an --apply flag). Built to replace a pasted-SQL instruction with a committed,
-  // deps-injected tool the executor runs directly: `node scripts/market/corridor-state-distribution.
-  // mjs`, documented as the executor instruction in this lane's own session-log addendum (docs/ops/
-  // session-log.d/2026-10-03-l-corridor.md). A human-dispatched, one-off diagnostic CLI is not a
-  // workflow-dispatch root by design (it answers a single coordinator question about live-data state,
-  // not a recurring maintenance step) and this lane's write set does not include .github/workflows/**.
-  {
-    file: 'fsi-app/scripts/market/corridor-state-distribution.mjs',
-    reason:
-      'Lane L-CORRIDOR (2026-10-03): read-only tally of resolveItemCorridor() against live market_signal ' +
-      'items and live seeded corridor entities, built on the coordinator\'s own request in place of a ' +
-      'pasted SQL snippet. No write path exists in this module at all. Its real caller is a human (the ' +
-      'coordinator or the executor) running it directly from the CLI, documented as the executor ' +
-      'instruction in docs/ops/session-log.d/2026-10-03-l-corridor.md, not an app-code or workflow-yml ' +
-      'importer. corridor-state-distribution.test.mjs stays wired via the no-npm run-test-suite.sh glob ' +
-      'regardless.',
-    reviewByPhase: 'coordinator discretion: wire a dry-mode producers.yml-style step if this measurement becomes a recurring need, or delete it with its test once the one-off question is answered',
-  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

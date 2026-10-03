@@ -224,13 +224,16 @@ export default async function MarketSignalDetailPage({
             .eq("status", "active")
         )
           .then(({ data: corridorRows, error: corridorErr }) => {
-            if (corridorErr) console.error("[market/[slug]] corridor-entities fetch failed", corridorErr);
+            if (corridorErr) console.error("[l-corridor] corridor-entities fetch failed, falling back to empty candidate list", corridorErr);
             const { candidates } = candidatesFromCorridorEntities(
               Array.isArray(corridorRows) ? corridorRows : []
             );
             return candidates;
           })
-          .catch(() => [] as CorridorCandidate[]);
+          .catch((err) => {
+            console.error("[l-corridor] corridor-entities fetch threw, falling back to empty candidate list", err);
+            return [] as CorridorCandidate[];
+          });
 
         const relatedIds = Array.from(
           new Set<string>([
