@@ -24441,3 +24441,7 @@ dispatched Research lanes plus RA-WF, LINT-A, LINT-C and MODEL-IDS are now DONE.
 (remediation Lane 7) remains, coordinator-reported "released, pushing" with its PR number to follow in
 the next pass. Files changed this pass: `docs/PROGRAM-BOARD.md` (L5/L7/MODEL-IDS/R7 rows, resume
 pointer), `docs/ops/session-log.md` (this entry).
+
+## 2026-10-03, coordinator (COORD-DOCS lane, fifth pass): audit remediation closed
+
+Final lane states: R7-LINT-CI merged PR 909 (lint 614 → 0 across fsi-app/, ESLint gate in CI + pre-push, F51 allowlist for 2 coordinator-approved files). Lane 21 merged PR 908 (5 `.or()` sites + 6th in lib/supabase-server.ts fixed; operations/research slug pages gain provenance_status='verified'). Lane 10 confirmed DONE (already required; `gh api .../branches/master/protection/required_status_checks` lists "Consistency layer" as required; last 10 master runs green). Lane 13 migration 343 [CONFIRMED] applied live 2026-10-03 (list_migrations shows 343-346; to_regclass('public.user_list_order') is null). Pre-push hook does not run `next build`, so a prerender defect (useSyncExternalStore without getServerSnapshot) passed local gates and failed CI; added to tech-debt log. Files changed this pass: `docs/PROGRAM-BOARD.md`, `fsi-app/supabase/migrations/343_drop_user_list_order.sql`, `docs/ops/session-log.md`, `docs/tech-debt-log.md`.

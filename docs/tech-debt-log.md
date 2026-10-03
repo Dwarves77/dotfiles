@@ -414,3 +414,15 @@ comment in `src/lib/sources/reachability.mjs` named two of the four as example c
 reachability classifier; corrected in place to name the module's other real callers and note the
 removal, rather than left to mislead a future reader. Removed via `git rm`; no replacement needed since
 nothing calls them.
+
+## 2026-10-03, pre-push hook does not run `next build`; prerender defects pass local gates
+
+Pre-push CI gate runs eslint, consistency checks, and tests, but not `next build`. A prerender defect
+(React hook `useSyncExternalStore` without `getServerSnapshot` argument) passed local pre-push gates
+(R7-LINT-CI lane, PR 909) and failed in the GitHub Actions CI run on that PR's commit. The defect is
+a real error in code that shipped, surfaced only at build time in CI, not caught by linting or test
+fixtures. **What's owed, concretely:** add `next build` to the pre-push hook (`.discipline/hooks/pre-
+push`) or re-route its part of the gate to a separate CI check if the build time makes a pre-push hook
+untenable. Currently the pre-push hook runs eslint, then tests, then consistency checks; a build step
+belongs at or near its end, before allowing the push to proceed. Status: OPEN, severity MEDIUM (defects
+currently ship and get caught in CI; users are not affected pre-merge).
