@@ -876,6 +876,12 @@ export const RESEARCH_ASSESSMENT_CONTEXT_ORG_SCAN_LIMIT = 50;
  * synthesiseAndWriteBrief already takes (candidateBlock above is the pattern). Non-gating: either read
  * failing degrades to that source's half being empty, never blocks generation.
  */
+/** Shared non-gating warn for buildPlanningAssumptionContext's two independent read halves (F45:
+ *  dedupes what would otherwise be two near-identical catch bodies in the same function). */
+function warnContextReadFailed(itemId: string, label: string, e: unknown): void {
+  console.warn(`[canonical] item ${itemId}: ${label} (non-gating): ${e instanceof Error ? e.message : String(e)}`);
+}
+
 export async function buildPlanningAssumptionContext(sb: SupabaseClient, itemId: string): Promise<string> {
   const lines: string[] = [];
 
@@ -903,7 +909,7 @@ export async function buildPlanningAssumptionContext(sb: SupabaseClient, itemId:
       );
     }
   } catch (e) {
-    console.warn(`[canonical] item ${itemId}: research_assessments_current read failed (non-gating, treated as no assessment): ${e instanceof Error ? e.message : String(e)}`);
+    warnContextReadFailed(itemId, "research_assessments_current read failed, treated as no assessment", e);
   }
 
   try {
@@ -916,7 +922,7 @@ export async function buildPlanningAssumptionContext(sb: SupabaseClient, itemId:
       }
     }
   } catch (e) {
-    console.warn(`[canonical] item ${itemId}: planning_assumption_register read failed (non-gating, treated as none at risk): ${e instanceof Error ? e.message : String(e)}`);
+    warnContextReadFailed(itemId, "planning_assumption_register read failed, treated as none at risk", e);
   }
 
   if (lines.length === 0) return "";
