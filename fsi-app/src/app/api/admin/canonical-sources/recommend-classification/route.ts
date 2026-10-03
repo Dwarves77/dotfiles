@@ -20,6 +20,10 @@ import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import Anthropic from "@anthropic-ai/sdk";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { extractTextFromContent } from "@/lib/llm/anthropic-text";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the two "claude-haiku-4-5-20251001"
+// literals below were this route's own hand-typed copies, named as known drift in model-ids.mjs's own
+// header comment.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
 
 // Per Q4 bias tag vocabulary (Section 6 of source-credibility-model SKILL.md).
@@ -208,7 +212,7 @@ Output the JSON object only.`;
   let recommendation: Record<string, unknown>;
   try {
     const resp = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: HAIKU_MODEL,
       // 1200 vs original 600: prompt now requires bias_tags as a nested
       // object with up to ~22 tag/confidence pairs across three dimensions,
       // plus the existing classification fields. The original 600-token cap
@@ -222,7 +226,7 @@ Output the JSON object only.`;
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("No JSON object found in model output");
     recommendation = JSON.parse(m[0]) as Record<string, unknown>;
-    recommendation.model = "claude-haiku-4-5-20251001";
+    recommendation.model = HAIKU_MODEL;
     recommendation.computed_at = new Date().toISOString();
   } catch (e) {
     return NextResponse.json(

@@ -50,6 +50,9 @@ import {
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { pausedResponse } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the local const below was this
+// route's own hand-typed copy, named as known drift in model-ids.mjs's own header comment.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -58,7 +61,6 @@ const COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4h, matches /api/admin/scan
 const SAMPLE_SIZE = 20;
 const LOOKBACK_DAYS = 30;
 const FP_RATE_ALERT_THRESHOLD_PCT = 5;
-const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const HEAD_TIMEOUT_MS = 8_000;
 const CONTENT_TIMEOUT_MS = 10_000;
 const CONTENT_MAX_CHARS = 6_000;
