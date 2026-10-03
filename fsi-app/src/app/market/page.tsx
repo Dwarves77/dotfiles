@@ -65,6 +65,17 @@ import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRi
 import { carbonCostPerFeu } from "@/lib/market/carbon-cost-per-feu.mjs";
 import { summariseCarbonCorridors } from "@/lib/market/market-rail-select.mjs";
 import { CarbonCostOverlay, type CarbonCostOverlayEntry } from "@/components/market/CarbonCostOverlay";
+// Lead-time position chart (spec 02 section 6 item 5, lane L10, coordinator ruling 2026-10-03,
+// docs/dispatches/lane-briefs/2026-10-03/brief-l10.md): mounted beside CarbonCostOverlay as the
+// nearest existing precedent, a judgment call named here (the plan does not name an exact mount
+// file for LeadTimeChart.tsx). `rows={[]}` today, on purpose: this page's own `fetchMarketSeriesBoard()`
+// (below) already discards the raw market_series rows it queries, reducing them through
+// buildSeriesBoard before this page ever sees them (src/lib/supabase-server.ts:fetchMarketSeriesBoard,
+// NOT in this lane's write set). Wiring a real raw-row fetch (a new fetcher, or extending that one to
+// also return its pre-reduction rows) is a NEEDS-WRITE-SET-EXPANSION item for a future lane, once L11's
+// SBTi producer has live rows to fetch, see this lane's report. Until then LeadTimeChart renders its
+// own honest "not forecastable" zero-sample state, exactly as the brief's R14 section sanctions.
+import { LeadTimeChart } from "@/components/market/LeadTimeChart";
 import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json";
 // Lane SCOPE-READER (2026-09-06): entity_scope's first real reader (docs/specs/08-flywheel-design.md
 // §1.2) — the entity-spine-backed corridor list + labels + jurisdiction chips this overlay's selector
@@ -204,6 +215,13 @@ export default async function Market() {
           Renders today's honest gap state per corridor until a distance producer, a licence-clear
           payload convention, or the eex-eua market_series producer lands. */}
       <CarbonCostOverlay overlays={carbonOverlays} />
+      {/* Lead-time position chart (spec 02 section 6 item 5): mounted beside CarbonCostOverlay, the
+          nearest existing precedent (no exact mount file is named in the plan; see this page's own
+          import comment above for why this is a judgment call, named explicitly). `rows={[]}` today,
+          no raw-row fetch is wired on this page yet (NEEDS WRITE-SET EXPANSION, see this lane's
+          report), so the chart renders its own honest "not forecastable" zero-sample state, never a
+          fabricated position. */}
+      <LeadTimeChart rows={[]} />
       {/* PERF-11 (2026-09-04): trimmed the same way /regulations' first-paint and remainder rows are —
           see toLedgerRowPayload's own header for the field accounting (confirmed by grep against
           MarketIntelLedger.tsx: it reads none of the fields the trim blanks). NOT a pagination change:
