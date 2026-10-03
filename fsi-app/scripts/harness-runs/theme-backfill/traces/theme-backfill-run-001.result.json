@@ -1,0 +1,378 @@
+[
+  {
+    "id": "fixture-research-finding-01",
+    "title": "Scope 3 GHG accounting methodology revision (#1)",
+    "outcome": "classified",
+    "theme": "emissions_accounting",
+    "confidence": 0.9,
+    "rationale": "Matches emissions_accounting per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-02",
+    "title": "SAF feedstock supply constraint analysis (#2)",
+    "outcome": "classified",
+    "theme": "fuels_saf",
+    "confidence": 0.9,
+    "rationale": "Matches fuels_saf per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-03",
+    "title": "Reusable crate pilot cuts single-use packaging (#3)",
+    "outcome": "classified",
+    "theme": "packaging_circular",
+    "confidence": 0.9,
+    "rationale": "Matches packaging_circular per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-04",
+    "title": "EU ETS maritime allowance price update (#4)",
+    "outcome": "classified",
+    "theme": "carbon_markets",
+    "confidence": 0.9,
+    "rationale": "Matches carbon_markets per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-05",
+    "title": "Vacuum-insulated panel trial for art shipments (#5)",
+    "outcome": "classified",
+    "theme": "cold_chain_art",
+    "confidence": 0.9,
+    "rationale": "Matches cold_chain_art per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-06",
+    "title": "Urban EV delivery fleet charging rollout (#6)",
+    "outcome": "classified",
+    "theme": "last_mile_electrification",
+    "confidence": 0.9,
+    "rationale": "Matches last_mile_electrification per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-07",
+    "title": "ISSB S2 disclosure timeline update (#7)",
+    "outcome": "classified",
+    "theme": "disclosure_regimes",
+    "confidence": 0.9,
+    "rationale": "Matches disclosure_regimes per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-08",
+    "title": "Warehouse labor market survey results (#8)",
+    "outcome": "classified",
+    "theme": "unclassified",
+    "confidence": 0.9,
+    "rationale": "No climate or sustainability theme content in the supplied text."
+  },
+  {
+    "id": "fixture-research-finding-09",
+    "title": "Scope 3 GHG accounting methodology revision (#9)",
+    "outcome": "classified",
+    "theme": "emissions_accounting",
+    "confidence": 0.9,
+    "rationale": "Matches emissions_accounting per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-10",
+    "title": "SAF feedstock supply constraint analysis (#10)",
+    "outcome": "classified",
+    "theme": "fuels_saf",
+    "confidence": 0.9,
+    "rationale": "Matches fuels_saf per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-11",
+    "title": "Reusable crate pilot cuts single-use packaging (#11)",
+    "outcome": "classified",
+    "theme": "packaging_circular",
+    "confidence": 0.9,
+    "rationale": "Matches packaging_circular per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-12",
+    "title": "EU ETS maritime allowance price update (#12)",
+    "outcome": "classified",
+    "theme": "carbon_markets",
+    "confidence": 0.9,
+    "rationale": "Matches carbon_markets per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-13",
+    "title": "Vacuum-insulated panel trial for art shipments (#13)",
+    "outcome": "classified",
+    "theme": "cold_chain_art",
+    "confidence": 0.9,
+    "rationale": "Matches cold_chain_art per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-14",
+    "title": "Urban EV delivery fleet charging rollout (#14)",
+    "outcome": "classified",
+    "theme": "last_mile_electrification",
+    "confidence": 0.9,
+    "rationale": "Matches last_mile_electrification per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-15",
+    "title": "ISSB S2 disclosure timeline update (#15)",
+    "outcome": "classified",
+    "theme": "disclosure_regimes",
+    "confidence": 0.9,
+    "rationale": "Matches disclosure_regimes per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-16",
+    "title": "Warehouse labor market survey results (#16)",
+    "outcome": "classified",
+    "theme": "unclassified",
+    "confidence": 0.9,
+    "rationale": "No climate or sustainability theme content in the supplied text."
+  },
+  {
+    "id": "fixture-research-finding-17",
+    "title": "Scope 3 GHG accounting methodology revision (#17)",
+    "outcome": "classified",
+    "theme": "emissions_accounting",
+    "confidence": 0.9,
+    "rationale": "Matches emissions_accounting per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-18",
+    "title": "SAF feedstock supply constraint analysis (#18)",
+    "outcome": "classified",
+    "theme": "fuels_saf",
+    "confidence": 0.9,
+    "rationale": "Matches fuels_saf per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-19",
+    "title": "Reusable crate pilot cuts single-use packaging (#19)",
+    "outcome": "classified",
+    "theme": "packaging_circular",
+    "confidence": 0.9,
+    "rationale": "Matches packaging_circular per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-20",
+    "title": "EU ETS maritime allowance price update (#20)",
+    "outcome": "classified",
+    "theme": "carbon_markets",
+    "confidence": 0.9,
+    "rationale": "Matches carbon_markets per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-21",
+    "title": "Vacuum-insulated panel trial for art shipments (#21)",
+    "outcome": "classified",
+    "theme": "cold_chain_art",
+    "confidence": 0.9,
+    "rationale": "Matches cold_chain_art per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-22",
+    "title": "Urban EV delivery fleet charging rollout (#22)",
+    "outcome": "classified",
+    "theme": "last_mile_electrification",
+    "confidence": 0.9,
+    "rationale": "Matches last_mile_electrification per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-23",
+    "title": "ISSB S2 disclosure timeline update (#23)",
+    "outcome": "classified",
+    "theme": "disclosure_regimes",
+    "confidence": 0.9,
+    "rationale": "Matches disclosure_regimes per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-24",
+    "title": "Warehouse labor market survey results (#24)",
+    "outcome": "classified",
+    "theme": "unclassified",
+    "confidence": 0.9,
+    "rationale": "No climate or sustainability theme content in the supplied text."
+  },
+  {
+    "id": "fixture-research-finding-25",
+    "title": "Scope 3 GHG accounting methodology revision (#25)",
+    "outcome": "classified",
+    "theme": "emissions_accounting",
+    "confidence": 0.9,
+    "rationale": "Matches emissions_accounting per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-26",
+    "title": "SAF feedstock supply constraint analysis (#26)",
+    "outcome": "classified",
+    "theme": "fuels_saf",
+    "confidence": 0.9,
+    "rationale": "Matches fuels_saf per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-27",
+    "title": "Reusable crate pilot cuts single-use packaging (#27)",
+    "outcome": "classified",
+    "theme": "packaging_circular",
+    "confidence": 0.9,
+    "rationale": "Matches packaging_circular per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-28",
+    "title": "EU ETS maritime allowance price update (#28)",
+    "outcome": "classified",
+    "theme": "carbon_markets",
+    "confidence": 0.9,
+    "rationale": "Matches carbon_markets per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-29",
+    "title": "Vacuum-insulated panel trial for art shipments (#29)",
+    "outcome": "classified",
+    "theme": "cold_chain_art",
+    "confidence": 0.9,
+    "rationale": "Matches cold_chain_art per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-30",
+    "title": "Urban EV delivery fleet charging rollout (#30)",
+    "outcome": "classified",
+    "theme": "last_mile_electrification",
+    "confidence": 0.9,
+    "rationale": "Matches last_mile_electrification per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-31",
+    "title": "ISSB S2 disclosure timeline update (#31)",
+    "outcome": "classified",
+    "theme": "disclosure_regimes",
+    "confidence": 0.9,
+    "rationale": "Matches disclosure_regimes per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-32",
+    "title": "Warehouse labor market survey results (#32)",
+    "outcome": "classified",
+    "theme": "unclassified",
+    "confidence": 0.9,
+    "rationale": "No climate or sustainability theme content in the supplied text."
+  },
+  {
+    "id": "fixture-research-finding-33",
+    "title": "Scope 3 GHG accounting methodology revision (#33)",
+    "outcome": "classified",
+    "theme": "emissions_accounting",
+    "confidence": 0.9,
+    "rationale": "Matches emissions_accounting per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-34",
+    "title": "SAF feedstock supply constraint analysis (#34)",
+    "outcome": "classified",
+    "theme": "fuels_saf",
+    "confidence": 0.9,
+    "rationale": "Matches fuels_saf per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-35",
+    "title": "Reusable crate pilot cuts single-use packaging (#35)",
+    "outcome": "classified",
+    "theme": "packaging_circular",
+    "confidence": 0.9,
+    "rationale": "Matches packaging_circular per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-36",
+    "title": "EU ETS maritime allowance price update (#36)",
+    "outcome": "classified",
+    "theme": "carbon_markets",
+    "confidence": 0.9,
+    "rationale": "Matches carbon_markets per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-37",
+    "title": "Vacuum-insulated panel trial for art shipments (#37)",
+    "outcome": "classified",
+    "theme": "cold_chain_art",
+    "confidence": 0.9,
+    "rationale": "Matches cold_chain_art per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-38",
+    "title": "Urban EV delivery fleet charging rollout (#38)",
+    "outcome": "classified",
+    "theme": "last_mile_electrification",
+    "confidence": 0.9,
+    "rationale": "Matches last_mile_electrification per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-39",
+    "title": "ISSB S2 disclosure timeline update (#39)",
+    "outcome": "classified",
+    "theme": "disclosure_regimes",
+    "confidence": 0.9,
+    "rationale": "Matches disclosure_regimes per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-40",
+    "title": "Warehouse labor market survey results (#40)",
+    "outcome": "classified",
+    "theme": "unclassified",
+    "confidence": 0.9,
+    "rationale": "No climate or sustainability theme content in the supplied text."
+  },
+  {
+    "id": "fixture-research-finding-41",
+    "title": "Scope 3 GHG accounting methodology revision (#41)",
+    "outcome": "classified",
+    "theme": "emissions_accounting",
+    "confidence": 0.9,
+    "rationale": "Matches emissions_accounting per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-42",
+    "title": "SAF feedstock supply constraint analysis (#42)",
+    "outcome": "classified",
+    "theme": "fuels_saf",
+    "confidence": 0.9,
+    "rationale": "Matches fuels_saf per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-43",
+    "title": "Reusable crate pilot cuts single-use packaging (#43)",
+    "outcome": "classified",
+    "theme": "packaging_circular",
+    "confidence": 0.9,
+    "rationale": "Matches packaging_circular per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-44",
+    "title": "EU ETS maritime allowance price update (#44)",
+    "outcome": "classified",
+    "theme": "carbon_markets",
+    "confidence": 0.9,
+    "rationale": "Matches carbon_markets per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-45",
+    "title": "Vacuum-insulated panel trial for art shipments (#45)",
+    "outcome": "classified",
+    "theme": "cold_chain_art",
+    "confidence": 0.9,
+    "rationale": "Matches cold_chain_art per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-46",
+    "title": "Urban EV delivery fleet charging rollout (#46)",
+    "outcome": "classified",
+    "theme": "last_mile_electrification",
+    "confidence": 0.9,
+    "rationale": "Matches last_mile_electrification per the row's own text."
+  },
+  {
+    "id": "fixture-research-finding-47",
+    "title": "ISSB S2 disclosure timeline update (#47)",
+    "outcome": "classified",
+    "theme": "disclosure_regimes",
+    "confidence": 0.9,
+    "rationale": "Matches disclosure_regimes per the row's own text."
+  }
+]
