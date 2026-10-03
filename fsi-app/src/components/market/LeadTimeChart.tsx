@@ -42,21 +42,9 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { formatNumber } from "@/lib/format";
 import { buildLeadTimePosition, DEFAULT_MIN_SAMPLE, type LeadTimePositionEntry } from "@/lib/market/lead-time-position.mjs";
+import type { RawMarketSeriesRow } from "@/lib/supabase-server";
 
-/** The raw market_series row shape this component reads (migration 268's 16-column envelope), the
- *  same shape the page's own `fetchMarketSeriesBoard`/raw query already carries, never reduced to a
- *  formatted display string before it reaches this component (see this file's header). */
-export interface RawMarketSeriesRow {
-  series_key: string;
-  label?: string | null;
-  value_numeric?: number | string | null;
-  unit?: string | null;
-  origin_class?: string | null;
-  source_key?: string | null;
-  n_observations?: number | null;
-  as_at_date?: string | null;
-  reference_period?: string | null;
-}
+export type { RawMarketSeriesRow };
 
 interface LeadTimeChartProps {
   /** Every market_series row the caller has in scope (any mix of prefixes, this component filters to

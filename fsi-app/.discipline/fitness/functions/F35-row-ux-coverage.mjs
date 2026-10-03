@@ -37,6 +37,10 @@ export const REGISTRY = `${FSI}/.discipline/rendering/smoke/ux-smoke-specs.mjs`;
  *  that showed it broken, or the same layout shape read in the file. */
 export const ROW_COMPONENTS = Object.freeze({
   'src/components/market/MarketIntelLedger.tsx': 'screenshot 04-market-signals (one word per line)',
+  // lane L10, 2026-10-03 (coordinator-added, per-lane report): LeadTimeChart.tsx renders a per-company
+  // cohort row (CompanyBar) for each entry in buildLeadTimePosition()'s sorted result, spec 02 section
+  // 6 item 5. Title carries data-guard-title via the shared SectionHeading.
+  'src/components/market/LeadTimeChart.tsx': 'spec 02 section 6 item 5 lead-time position chart, per-company cohort rows',
   'src/components/operations/OperationsLedger.tsx': 'screenshot 02-operations-items (one word per line)',
   'src/components/operations/OperationsItemsView.tsx': 'same row shape as OperationsLedger (read)',
   'src/components/operations/RegionDimensionMatrix.tsx': 'screenshot 01-operations-regions (text off the right edge)',

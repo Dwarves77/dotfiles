@@ -19,7 +19,11 @@ const SOURCE = readFileSync(resolve(here, "LeadTimeChart.tsx"), "utf8");
 
 test("no fetch inside the component, matches CarbonCostOverlay's 'no fetch in the component' contract", () => {
   assert.doesNotMatch(SOURCE, /\bfetch\(/);
-  assert.doesNotMatch(SOURCE, /supabase/i);
+  assert.doesNotMatch(SOURCE, /getServiceSupabase\(/);
+  assert.doesNotMatch(SOURCE, /createClient\(/);
+  // the RawMarketSeriesRow TYPE (import type, erased at build) is expected and reused from the
+  // data layer; only an actual client call would mean this component fetches on its own.
+  assert.match(SOURCE, /import type \{ RawMarketSeriesRow \} from "@\/lib\/supabase-server";/);
 });
 
 test("derives the render state from the pure buildLeadTimePosition(), never computing a position inline", () => {
