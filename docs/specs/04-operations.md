@@ -184,6 +184,8 @@ cell that looks identical to a Eurostat cell.**
 
 ## 8. PPWR, the join that makes decisions 3 and 4 one decision
 
+**Operator ruling 2026-10-03.** PPWR here is an illustration of a class, not the scope (CLAUDE.md rule 19). The L14 page-local build of rows 8 and 9 (PR 911) was reverted (lane L14-REVERT). Regulation-to-operations comparisons are produced by the flywheel for every regulation, never as a named regulation's own section; the design is owed by the coordinator.
+
 Regulation (EU) 2025/40, in force 11 Feb 2025, **applicable from 12 Aug 2026**, with recycled-content and
 recyclability obligations biting **1 Jan 2030**. The forwarder is bound as a user of transport and
 grouped packaging and where it is importer of record.
