@@ -46,7 +46,7 @@ import { Suspense } from "react";
 import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { renderNowIso } from "@/lib/render-now";
-import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
+import { fetchMarketSeriesBoard, fetchSbtiLeadTimeSeries } from "@/lib/supabase-server";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRibbon";
 // Carbon cost per FEU overlay (spec 02 §6 item 3, lane CORR, 2026-09-02): "the single most defensible
@@ -65,6 +65,17 @@ import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRi
 import { carbonCostPerFeu } from "@/lib/market/carbon-cost-per-feu.mjs";
 import { summariseCarbonCorridors } from "@/lib/market/market-rail-select.mjs";
 import { CarbonCostOverlay, type CarbonCostOverlayEntry } from "@/components/market/CarbonCostOverlay";
+// Lead-time position chart (spec 02 section 6 item 5, lane L10, coordinator ruling 2026-10-03,
+// docs/dispatches/lane-briefs/2026-10-03/brief-l10.md; rule 17, nothing in this build runs alone):
+// mounted beside CarbonCostOverlay as the nearest existing precedent, a judgment call named here
+// (the plan does not name an exact mount file for LeadTimeChart.tsx). Fed by `fetchSbtiLeadTimeSeries()`
+// (src/lib/supabase-server.ts), a raw market_series read scoped to the sbti: key prefix, added beside
+// `fetchMarketSeriesBoard()` rather than through it, because that fetcher immediately reduces every
+// row through buildSeriesBoard and discards `value_numeric` (see fetchSbtiLeadTimeSeries's own header).
+// L11's SBTi producer has not landed as of this lane's build (no `sbti` entry in series-registry.mjs),
+// so this read returns real rows, zero today, and LeadTimeChart renders its own honest "not
+// forecastable" zero-sample state against that real empty result, never a fabricated position.
+import { LeadTimeChart } from "@/components/market/LeadTimeChart";
 import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json";
 // Lane SCOPE-READER (2026-09-06): entity_scope's first real reader (docs/specs/08-flywheel-design.md
 // §1.2) — the entity-spine-backed corridor list + labels + jurisdiction chips this overlay's selector
@@ -157,7 +168,7 @@ export default async function Market() {
   // PERF-10 (2026-09-04): no per-viewer read runs here at all — see this file's header. The
   // market_series watch-membership batch read is gone; MarketSeriesBoard renders with
   // watchMembership: null, and each row's WatchButton resolves its own state client-side.
-  const [marketIntel, aggregates, seriesBoard, corridorScopes] = await Promise.all([
+  const [marketIntel, aggregates, seriesBoard, corridorScopes, sbtiLeadTimeRows] = await Promise.all([
     getPublicMarketIntelItems(),
     getPublicSurfaceCounts("market"),
     fetchMarketSeriesBoard(),
@@ -165,6 +176,9 @@ export default async function Market() {
     // fails soft to [] (never throws) when the service client is unavailable, matching this page's
     // other fetches' fail-soft posture (fetchMarketSeriesBoard etc.).
     getCachedCorridorScopes(),
+    // Lane L10 (rule 17): the raw sbti: market_series rows LeadTimeChart.tsx reads, fails soft to []
+    // the same way every other fetch on this page does (fetchSbtiLeadTimeSeries's own header).
+    fetchSbtiLeadTimeSeries(),
   ]);
 
   // Built ONCE and read twice: the rail's compact CARBON COST PER FEU card (artboard 04's own
@@ -204,6 +218,12 @@ export default async function Market() {
           Renders today's honest gap state per corridor until a distance producer, a licence-clear
           payload convention, or the eex-eua market_series producer lands. */}
       <CarbonCostOverlay overlays={carbonOverlays} />
+      {/* Lead-time position chart (spec 02 section 6 item 5): mounted beside CarbonCostOverlay, the
+          nearest existing precedent (no exact mount file is named in the plan; see this page's own
+          import comment above for why this is a judgment call, named explicitly). Fed by the real
+          `fetchSbtiLeadTimeSeries()` read above; renders its own honest "not forecastable" state
+          when that read is empty (L11 has not landed live rows yet), never a fabricated position. */}
+      <LeadTimeChart rows={sbtiLeadTimeRows} />
       {/* PERF-11 (2026-09-04): trimmed the same way /regulations' first-paint and remainder rows are —
           see toLedgerRowPayload's own header for the field accounting (confirmed by grep against
           MarketIntelLedger.tsx: it reads none of the fields the trim blanks). NOT a pagination change:

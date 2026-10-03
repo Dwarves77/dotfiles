@@ -3641,6 +3641,66 @@ export async function fetchMarketSeriesBoard(): Promise<MarketSeriesBoardVM> {
   }
 }
 
+/** The raw market_series row shape LeadTimeChart.tsx (lane L10, spec 02 section 6 item 5) reads:
+ *  migration 268's envelope columns this row actually needs, NOT reduced through buildSeriesBoard's
+ *  SeriesDisplayRow (that reduction discards `value_numeric` in favour of a formatted display
+ *  string, see lead-time-position.mjs's own header for why a raw shape is the correct reuse target
+ *  for a chart that has to sort and average real numbers). */
+export interface RawMarketSeriesRow {
+  series_key: string;
+  label?: string | null;
+  value_numeric?: number | string | null;
+  unit?: string | null;
+  origin_class?: string | null;
+  source_key?: string | null;
+  n_observations?: number | null;
+  as_at_date?: string | null;
+  reference_period?: string | null;
+}
+
+/**
+ * Fetches RAW market_series rows under the sbti: key prefix (lane L11's SBTi Target Dashboard
+ * producer; not yet landed as of this lane's build, confirmed by reading series-registry.mjs) for
+ * LeadTimeChart.tsx. Rule 17 ("nothing in this build runs alone"): a chart mounted with no raw-row
+ * read behind it is a half slice, so this function exists beside fetchMarketSeriesBoard rather than
+ * leaving the chart on a permanent `rows={[]}` prop.
+ *
+ * Reuses this file's SAME client (getServiceSupabase), the SAME isSupabaseConfigured/
+ * describeSupabaseError fail-soft shape, and the SAME SERIES_HISTORY_LIMIT defensive row cap
+ * fetchMarketSeriesBoard already applies two functions above, no second query style. Does NOT run
+ * the rows through buildSeriesBoard (see the RawMarketSeriesRow comment above for why).
+ *
+ * `deps.supabase` is an injection point for tests only (mirrors the deps-injected DB access pattern
+ * fsi-app/scripts/mint/screen-reconcile-records.mjs uses); production callers omit it and get the
+ * real getServiceSupabase() client, gated by the real isSupabaseConfigured() check.
+ */
+export async function fetchSbtiLeadTimeSeries(
+  deps: { supabase?: ReturnType<typeof getServiceSupabase> } = {}
+): Promise<RawMarketSeriesRow[]> {
+  if (!deps.supabase && !isSupabaseConfigured()) return [];
+  try {
+    const supabase = deps.supabase ?? getServiceSupabase();
+    const { data, error } = await supabase
+      .from("market_series")
+      .select(
+        "series_key, label, value_numeric, unit, origin_class, source_key, n_observations, as_at_date, reference_period"
+      )
+      .like("series_key", "sbti:%")
+      .order("reference_period", { ascending: false })
+      .limit(SERIES_HISTORY_LIMIT);
+
+    if (error) {
+      console.warn("fetchSbtiLeadTimeSeries error:", describeSupabaseError(error));
+      return [];
+    }
+
+    return (data ?? []) as RawMarketSeriesRow[];
+  } catch (e) {
+    console.warn("fetchSbtiLeadTimeSeries exception:", e instanceof Error ? e.message : String(e));
+    return [];
+  }
+}
+
 // ── Regulation Sections Fetch (A5.3) ─────────────────────────────
 /**
  * Sprint 3 A5.3 (2026-05-27). Fetches the parsed regulation sections

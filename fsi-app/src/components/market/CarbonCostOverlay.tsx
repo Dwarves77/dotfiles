@@ -25,9 +25,17 @@
  * contractable/statutory input carries an invented band), so the triple degenerates to one honest number
  * without this component needing a second code path.
  *
- * Lead-time chart (spec 02 §6 item 5) stays ruled out — no data source (finish-plan-2026-09-02.md §5).
- * This overlay's own footer names that explicitly, on the same surface, rather than leaving the reader to
- * notice its absence.
+ * CORRECTION (lane L10, coordinator ruling 2026-10-03, docs/dispatches/lane-briefs/2026-10-03/
+ * brief-l10.md, under ADR-039's operator delegation). The paragraph immediately below is SUPERSEDED,
+ * not deleted (CLAUDE.md rule 14, a correction stays visible). It previously stated, in substance,
+ * that the lead-time chart (spec 02 section 6 item 5) stayed ruled out for lack of a data source
+ * (finish-plan-2026-09-02.md section 5), and that this overlay's own footer named that explicitly
+ * rather than leaving the reader to notice its absence (see git history for the prior paragraph's
+ * exact original wording). That hold is superseded: the complete-build-plan (2026-10-01, ADR-039) is
+ * the later decision, and the chart IS built, src/components/market/LeadTimeChart.tsx, fed by lane
+ * L11's SBTi Target Dashboard producer via the existing market_series registry pattern (spec 02
+ * section 7). It mounts on this same page, directly below this overlay. The footer paragraph below is
+ * corrected to match.
  */
 
 import { formatRange } from "@/lib/figures/format-range.mjs";
@@ -185,8 +193,9 @@ export function CarbonCostOverlay({ overlays }: CarbonCostOverlayProps) {
         EUA / ETS2 / CBAM / UKA cost, converted from a per-mode emission factor through the corridor&apos;s
         own routing distance and container payload, to what a shipper actually pays per forty-foot
         equivalent unit. Corridor identity is UN/LOCODE port-pair + mode (ADR-024 §4). The lead-time
-        position chart (spec 02 §6 item 5) is not built here — no data source exists for it, and that stays
-        named rather than silently absent.
+        position chart (spec 02 section 6 item 5) was previously named here as not built, no data
+        source; that was superseded by the coordinator&apos;s 2026-10-03 ruling (lane L10, ADR-039): it
+        is built, fed by the SBTi Target Dashboard producer, and renders directly below as LeadTimeChart.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>

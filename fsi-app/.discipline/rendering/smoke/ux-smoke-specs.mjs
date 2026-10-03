@@ -26,6 +26,7 @@ import { runSmoke as runRecordGradeSmoke } from './record-grade-smoke.mjs';
 import { runSmoke as runItemGroupCoverageSmoke } from './item-group-coverage-smoke.mjs';
 import { runSmoke as runParityChecksSmoke } from './parity-checks-smoke.mjs';
 import { runSmoke as runMarketDetailRawDumpSmoke } from './market-detail-raw-dump-smoke.mjs';
+import { runSmoke as runLeadTimeChartSmoke } from './lead-time-chart-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -87,4 +88,9 @@ export const UX_SMOKE_SPECS = [
   // FACT-paragraph fixture and a deliberately corrupt JSON content_md fixture, red-then-green) and
   // flags any JSON-shaped text node on the page. See market-detail-raw-dump-smoke.mjs's own header.
   { name: "market-detail-raw-dump", run: runMarketDetailRawDumpSmoke },
+  // lane L10, 2026-10-03: mounts the real LeadTimeChart.tsx (spec 02 section 6 item 5) in its two
+  // mutually exclusive states (zero/thin sample, not-forecastable, and a 5-row cohort), plus a
+  // red-then-green text check proving neither state is a silent no-op render. F35 ROW_COMPONENTS
+  // line reported for the coordinator to add (lane common contract's UX contract).
+  { name: "lead-time-chart", run: runLeadTimeChartSmoke },
 ];
