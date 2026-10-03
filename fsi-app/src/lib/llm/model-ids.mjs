@@ -13,9 +13,21 @@
 // ALSO carried its own independent hand-typed copy of this literal (a second drifted copy, found by
 // grep, not assumed) and now imports it from here too - see that file's own import-site comment.
 //
-// REMAINING KNOWN DRIFT (flagged, not fixed here - outside this lane's write set; named in this
-// lane's session-log addendum for the coordinator's named follow-up dispatch): src/lib/sources/
-// verification.ts (its own `const HAIKU_MODEL = "claude-haiku-4-5-20251001";`) and every inline
-// `model: "claude-haiku-4-5-20251001"` / `model: "claude-sonnet-4-6"` literal at a `.messages.create`
-// or `spendMessage`/`spendStream` call site outside this module's two importers above.
+// UPDATE (lane MODEL-IDS, 2026-10-02): the "remaining known drift" named above is now fixed, not just
+// flagged (CLAUDE.md rule 13 - a flag is a commitment). Every one of those sites (src/lib/sources/
+// verification.ts, recommend-source-tier.ts, canonical-pipeline.ts, spend-client.ts, two-pass-generate.mjs,
+// generation-config.ts, the three admin classification routes, spot-check/recurring/route.ts, ask/route.ts,
+// and the two review-card fallback strings) now imports HAIKU_MODEL and/or SONNET_MODEL from here instead
+// of carrying its own copy. SONNET_MODEL is added below for the Sonnet half of that same drift (the
+// "claude-sonnet-4-6" literal repeated across spend-client.ts, ask/route.ts, two-pass-generate.mjs,
+// canonical-pipeline.ts's judgeSlotSpan, and generation-config.ts's GROUND_MODEL default).
+//
+// metered-gate.mjs's METERED_MODEL_ALLOWLIST / SCOPED_MODEL_AMENDMENTS deliberately keep their OWN literal
+// copies (a security allowlist names its own values so it cannot silently widen if this file's constants
+// ever changed) - metered-gate.test.mjs asserts the two stay in agreement instead.
 export const HAIKU_MODEL = "claude-haiku-4-5-20251001";
+
+/** Sonnet generation/grounding/ask model id (MODEL-TIER RULE, operator amendment 2026-07-14; see
+ *  generation-config.ts's GROUND_MODEL doc comment for the full rationale). Same zero-dependency
+ *  guarantee as HAIKU_MODEL above. */
+export const SONNET_MODEL = "claude-sonnet-4-6";

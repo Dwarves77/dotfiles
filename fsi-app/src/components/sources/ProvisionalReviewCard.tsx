@@ -5,6 +5,10 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import { ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 import type { ProvisionalSource } from "@/types/source";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the fallback literal below was
+// this component's own hand-typed copy, named as known drift in model-ids.mjs's own header comment.
+// Display-only fallback text (rec.model is already populated server-side); no behavior change.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 import { formatLocaleDateTime } from "@/lib/format";
 import { tint } from "@/lib/tint";
 
@@ -227,7 +231,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
               {rec.rationale}
               {rec.computed_at && (
                 <span className="block mt-1 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  {rec.model || "claude-haiku-4-5-20251001"} · {formatLocaleDateTime(new Date(rec.computed_at))}
+                  {rec.model || HAIKU_MODEL} · {formatLocaleDateTime(new Date(rec.computed_at))}
                 </span>
               )}
             </div>

@@ -6,6 +6,10 @@ import { ENVIRONMENTAL_POLICY_SKILL_CORE } from "@/lib/llm/skill-loader";
 import { spendStreamRaw, setSpendTicket, resetSpendTicket } from "@/lib/llm/spend-client";
 import { buildOperationsAskContext } from "@/lib/agent/operations-ask-context.mjs";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
+// SONNET_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the two "claude-sonnet-4-6"
+// literals below were this route's own hand-typed copies, named as known drift in model-ids.mjs's own
+// header comment.
+import { SONNET_MODEL } from "@/lib/llm/model-ids.mjs";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -485,7 +489,7 @@ ${operationsContext}`;
       const { text } = await spendStreamRaw({
         apiKey: ANTHROPIC_API_KEY,
         body: {
-          model: "claude-sonnet-4-6",
+          model: SONNET_MODEL,
           max_tokens: 1500,
           system: [
             { type: "text", text: STATIC_ASSISTANT_SYSTEM, cache_control: { type: "ephemeral" } },
@@ -616,7 +620,7 @@ ${operationsContext}`;
         citations: validatedCitations,
         flagged_citations: flaggedCitations,
         disclaimer: ASSISTANT_DISCLAIMER,
-        model: "claude-sonnet-4-6",
+        model: SONNET_MODEL,
       },
       { headers: rateLimitHeaders(auth.userId) }
     );

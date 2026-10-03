@@ -27,6 +27,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { extractTextFromContent } from "@/lib/llm/anthropic-text";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the two "claude-haiku-4-5-20251001"
+// literals below were this route's own hand-typed copies, named as known drift in model-ids.mjs's own
+// header comment.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
 export const maxDuration = 60;
 
@@ -125,7 +129,7 @@ PARENT INTELLIGENCE ITEM (grounding context):
 Output the JSON object only.`;
 
   const resp = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: HAIKU_MODEL,
     max_tokens: 600,
     system: CLASSIFICATION_SYSTEM_PROMPT,
     messages: [{ role: "user", content: userMessage }],
@@ -152,7 +156,7 @@ Output the JSON object only.`;
     transport_modes: rec.transport_modes as string[],
     topic_tags: rec.topic_tags as string[],
     rationale: rec.rationale,
-    model: "claude-haiku-4-5-20251001",
+    model: HAIKU_MODEL,
     computed_at: new Date().toISOString(),
   };
 }
