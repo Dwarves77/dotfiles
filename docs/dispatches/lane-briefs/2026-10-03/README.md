@@ -25,18 +25,31 @@ plan's L-series) - listed below per the coordinator's "any earlier-wave lane the
 DONE" instruction, since Wave 0 precedes Wave 3 in this plan's own ordering even though it is not part of
 the L-series.
 
-**Earlier-wave (Wave 0, remediation plan numbering) lanes the board still shows as not DONE, 2026-10-02
-resume pointer:**
-- Remediation Lane 7 (wire ESLint into CI/pre-push) - IN PROGRESS, coordinator-reported, no PR/branch
-  independently verifiable as of the pointer's own check.
-- Two unnamed lint lanes (coordinator-reported alongside Lane 7) - IN PROGRESS, scope not yet named to
-  the board.
-- Remediation Lane 10 (consistency-backstop required-check promotion) - OPEN, not covered by PR 863-884.
-- Remediation Lane 21 (fix PostgREST `.or()` filter-injection pattern) - OPEN, not covered by PR 863-884.
+**Earlier-wave (Wave 0, remediation plan numbering) lanes - resolved state, per the coordinator's
+2026-10-03 message, superseding the 2026-10-02 board pointer's "IN PROGRESS/OPEN" framing above:**
+- Remediation Lane 7 = **R7**. Coordinator-reported 2026-10-03: pushing now. Not yet merged as of this
+  dispatch's drafting - `gh pr list --search "R7"` found no matching PR at the time of this check, so the
+  push has not yet produced a reviewable PR on this session's own look. Status recorded as the
+  coordinator stated it (pushing), not independently upgraded to DONE.
+- The two unnamed lint lanes = **LINT-A (PR #893)** and **LINT-C (PR #892)**. Both **MERGED**
+  [CONFIRMED, `gh pr view 893`/`892` - `mergedAt` 2026-10-02T20:11:34Z and 2026-10-02T20:09:19Z, state
+  MERGED].
+- Remediation Lane 10 = **R10**. **MERGED as PR #864** [CONFIRMED, `gh pr view 864` - "Lane R10: rule 14
+  relabel of 95 audit files; status checker strict", mergedAt 2026-10-02T03:39:20Z, state MERGED].
+- Remediation Lane 21 (PostgREST `.or()` filter-injection, CF-SEC-15) - **checked, still OPEN**
+  [CONFIRMED by absence: `gh pr list --state merged --search "R21"` and `--search "injection"` both
+  return no PR whose title matches Lane 21's own scope; the one hit for "injection" (PR #872, "injection
+  claim refuted") refutes a DIFFERENT finding, CF-PROC-2 (a mid-session message-provenance question,
+  `docs/audits/audit-consolidated-2026-09-30.md` line 270), not CF-SEC-15. CF-SEC-15 itself is still
+  recorded `[CONFIRMED]` P2, unfixed, at `docs/audits/audit-consolidated-2026-09-30.md` line 198 (5 call
+  sites across `community/search/route.ts` and the `operations`/`research` `[slug]` pages). This lane
+  reports the honest result of the requested check rather than recording a resolved state the check did
+  not produce, per CLAUDE.md rule 2 (never fabricate) and rule 14 (label every finding's verification
+  status) - R21 remains OPEN, not resolved, pending the coordinator's own disposition.
 
 These four are not part of this dispatch's write set (this dispatch is Wave 3 of the complete-build plan,
-not the remediation plan) and are listed here only so the gap is not silently dropped, per rule 13. The
-coordinator should disposition them separately; none of L10/L11/L12 below depends on them.
+not the remediation plan); recorded here per the coordinator's 2026-10-03 message. None of L10/L11/L12
+below depends on them.
 
 ## What is already built - read this before treating any brief below as a from-scratch build
 
@@ -74,27 +87,27 @@ along than the register states:
 None of this makes L10/L11/L12 no-op lanes. Each brief below is scoped to what remains, named precisely,
 not to the plan's original from-scratch framing.
 
-## Open question - read before dispatching L10 or L11 (not invented an answer)
+## Coordinator ruling, 2026-10-03 - the lead-time chart / SBTi conflict is resolved, not open
 
-`docs/plans/finish-plan-2026-09-02.md` (Wave 2, lane CORR) rules, verbatim: **"Lead-time chart stays
-ruled out (no data source) and is named as such on the surface."** `CarbonCostOverlay.tsx`'s own header
-restates the same ruling in its own prose (section 6 item 5 of spec 02, section 5 of the finish-plan -
-paraphrased here, not quoted verbatim, to avoid the section-sign glyph its header uses): the lead-time
-chart stays ruled out for lack of a data source, and the overlay's own footer names that explicitly on
-the same surface. `docs/specs/02-market-intel.md` section 7 names SBTi Target Dashboard as a free,
-no-login weekly source and states
-explicitly "this is the diffusion engine behind the lead-time chart" - SBTi has no other named use in
-spec 02. `docs/plans/complete-build-plan-2026-10-01.md`'s L10 and L11 instruct building the lead-time
-chart and the SBTi producer that feeds it, dated 2026-10-01, one month after the finish-plan ruling, and
-do not cite or mention the finish-plan ruling at all.
+This section originally raised a conflict as an open question (the finish-plan-2026-09-02.md ruling,
+"lead-time chart stays ruled out, no data source," against the complete-build-plan's own L10/L11 text
+instructing it be built). The coordinator has ruled, under ADR-039's operator delegation: **the
+complete-build-plan (2026-10-01) is the later decision and supersedes the finish-plan ruling. The chart
+is built, fed by the SBTi Target Dashboard public dataset** (free, weekly, no login, named in spec 02
+section 7). This is recorded here, and in both brief-l10.md and brief-l11.md directly, as a coordinator
+ruling dated 2026-10-03 under the ADR-039 delegation - not re-litigated on each future read of this
+README.
 
-This is a genuine conflict between two dated standing documents, not a stale note the newer plan silently
-corrects (the newer plan shows no sign of having read the older ruling). The coordinator does not resolve
-this unilaterally. **Both L10's lead-time-chart half and L11's SBTi-producer half are held pending an
-operator ruling: does "no data source" still hold now that a free SBTi weekly source has been named
-explicitly in spec 02 section 7, or does the finish-plan ruling stand and the complete-build-plan's own
-rows were written without re-checking it?** Each brief below states this as its own open item at the top
-and ships only the part of its scope that does not depend on the answer.
+Both halves ship: L10 builds `LeadTimeChart.tsx` and corrects `CarbonCostOverlay.tsx`'s header and
+footer prose in place (rule 14 - the superseded ruling is recorded as corrected, not silently deleted);
+L11 builds the SBTi producer, following the same dispatch-only, dry-default, `ENABLED`-gated pattern as
+every other market producer, with its workflow's secrets wired the same way `research-assessment.yml`
+wires its own (the PATTERN, since SBTi itself needs no new secret - it is a free, no-login .xls).
+
+The EIA_API_KEY secret remains an operator action; per the coordinator's 2026-10-03 message, the
+coordinator requests it from the operator directly rather than this lane preparing an ask for later. L11
+still ships the exact command and runbook as the decision-ready artifact for that request (CLAUDE.md
+rule 13).
 
 ## Migration numbers
 
@@ -109,16 +122,18 @@ coordinator by name before writing one; the next free, unreserved number would b
 
 ## Lane summaries
 
-- **L10 - Market Intel signal/fact chip (verification only) + lead-time chart (held).** The chip-
-  inversion fix is already built and live (see "What is already built" item 1); this lane's work is a
-  verification pass with a live regression check that the exact named defect does not recur, plus a UX
-  smoke registration if one does not already exist. The lead-time-chart half is held on the open question
-  above; the brief states exactly what to build once answered, and builds nothing until then.
+- **L10 - Market Intel signal/fact chip (verification only) + lead-time chart (built).** The chip-
+  inversion fix is already built and live (see "What is already built" item 1); this half is a
+  verification pass with a live regression check, plus a UX smoke registration if one does not already
+  exist. The lead-time-chart half is now built per the coordinator's 2026-10-03 ruling above:
+  `LeadTimeChart.tsx`, fed by L11's SBTi producer, plus an in-place correction of `CarbonCostOverlay.tsx`'s
+  superseded "ruled out" header/footer prose.
 
-- **L11 - EIA v2 unblock (real remaining work) + SBTi producer (held).** The EIA producer is code-
-  complete; this lane's real work is preparing the exact `gh secret set` command and the operator
-  checklist to register `EIA_API_KEY`, then a single dry-run-to-apply verification once the operator
-  confirms the secret is set. The SBTt producer half is held on the same open question as L10.
+- **L11 - SBTi Target Dashboard producer (built) + EIA v2 unblock (real remaining work).** The SBTi
+  producer is now built per the ruling above, following the existing WO-16 registry pattern and the
+  `research-assessment.yml` dispatch-only/secrets-wiring shape. The EIA producer is code-complete; this
+  lane's real work there is the operator runbook and a dry-run-to-apply verification once the secret is
+  set - the coordinator requests the secret from the operator directly, not this lane.
 
 - **L12 - Carbon-cost-per-FEU detail-page rendering (verification only).** Both the ledger-page overlay
   and the detail-page's own `carbon-overlay-view.mjs` render path already exist and the w2d raw-dump fix
@@ -137,9 +152,10 @@ coordinator by name before writing one; the next free, unreserved number would b
   unilaterally.
 - No DB credentials, no live writes without the three-gate R14 shape (reviewed-code ENABLED const,
   runtime kill switch, CLI `--apply` flag); every script is dry by default.
-- No standing cron or schedule armed by any lane (rule 16).
-- No lane builds the lead-time chart or the SBTi producer before the open question above is answered by
-  the operator; a lane that reaches that fork STOPs and reports it, it does not pick a side.
+- No standing cron or schedule armed by any lane (rule 16) - the SBTi producer and the lead-time chart
+  are both built per the coordinator's 2026-10-03 ruling, but dispatch-only, never scheduled.
+- No fabricated lead-time position under any sample size (L10) and no silent drop of an SBTi
+  "commitment removed" company (L11) - both render/report the honest gap explicitly.
 
 ## Touched tests and the push gate
 
