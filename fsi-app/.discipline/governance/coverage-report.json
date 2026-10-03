@@ -4128,6 +4128,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/market/resolve-item-corridor.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/notifications/dispatch.ts",
       "kinds": [
         "WRITES"
@@ -7285,6 +7294,17 @@
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/market/corridor-state-distribution.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
