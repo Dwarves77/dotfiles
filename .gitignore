@@ -72,3 +72,8 @@ fsi-app/scripts/_diag/
 # PreCompact state snapshot: written by .claude/hooks/pre-compact-snapshot.mjs,
 # consumed and deleted by the SessionStart hook. Transient, per-session, never committed.
 .claude/precompact-state.md
+
+# machine-local (2026-10-03)
+.claude/settings.local.json
+.claude/launch.json
+Claude outputs/
