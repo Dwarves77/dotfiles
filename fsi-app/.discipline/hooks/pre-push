@@ -255,8 +255,11 @@ echo "[discipline pre-push] step 2c (discipline rules, CI mode, CI parity): OK"
 # of it costs real wall-clock time on every push. Wrapped in ONE guard rather than restructuring each
 # step individually, so the step bodies below are byte-for-byte what they were before R22.
 # ---------------------------------------------------------------------------
-if [ "$DOCS_ONLY" = "true" ]; then
-  echo "[discipline pre-push] steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc): SKIPPED (docs-only fast path, step 0c)."
+# Operator ruling 2026-10-03 (ADR-040): steps 3-4 duplicate CI's required checks, cost 10-20 minutes per
+# push on Windows, and did not predict CI failures (prerender, F51 fork-point). CI is the authoritative
+# gate; steps 3-4 no longer run locally on any push. Opt back in with DISCIPLINE_PREPUSH_FULL=1.
+if [ "$DOCS_ONLY" = "true" ] || [ "${DISCIPLINE_PREPUSH_FULL:-0}" != "1" ]; then
+  echo "[discipline pre-push] steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc): SKIPPED (CI is the gate, ADR-040; set DISCIPLINE_PREPUSH_FULL=1 to run locally)."
 else
 
 # ---------------------------------------------------------------------------
