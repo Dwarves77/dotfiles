@@ -10,9 +10,18 @@
 // YAML from the COMPLETE body. The body is NEVER split across passes (the section-coherence guarantee);
 // pass 2 NEVER re-emits the body (no duplication). Normal briefs stay 1 (now-smaller) call.
 
+// SONNET_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): MODEL below was this module's own
+// hand-typed copy, named as known drift in model-ids.mjs's own header comment. RELATIVE import, not the
+// "@/" alias: this module is run directly by node under the no-npm discipline glob (via
+// two-pass-generate.test.mjs's own relative "./two-pass-generate.mjs" import), and the portability guard
+// (.discipline/glob-portability.test.mjs) is transitive and flags a bare "@/" import string anywhere in
+// that import graph, which would also just fail to resolve under plain node (the alias is tsconfig/webpack
+// -only, see fsi-app/tsconfig.json's "paths").
+import { SONNET_MODEL } from "../llm/model-ids.mjs";
+
 export const GEN_MAX_TOKENS = 32000;
 export const YAML_MAX_TOKENS = 8000;
-const MODEL = "claude-sonnet-4-6";
+const MODEL = SONNET_MODEL;
 
 const PASS1_SUFFIX = `\n\n=== TWO-PASS MODE (PASS 1 of 2) ===\nOutput ONLY the brief body and the "## New Sources Identified" table. DO NOT emit the YAML frontmatter block in this response — it is requested separately in pass 2. End immediately after the New Sources Identified table (or after the body if there are none).`;
 const pass2Prompt = (body) => `=== TWO-PASS MODE (PASS 2 of 2) ===\nBelow is the COMPLETE, FINAL brief body. Emit ONLY the YAML frontmatter block (the 18 fields, fenced with --- on its own line opening and closing) derived from this body, per your contract. DO NOT re-emit the body. DO NOT emit any Claim Provenance Ledger. Output the --- ... --- block and nothing else.\n\nBRIEF BODY:\n${body}`;

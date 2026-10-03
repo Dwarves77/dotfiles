@@ -46,6 +46,10 @@ import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forc
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
 import { scanBrief } from "@/lib/agent/gate-a-scan.mjs";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): judgeSlotSpan's inline
+// "claude-haiku-4-5-20251001" literal was this file's own hand-typed copy, named as known drift in
+// model-ids.mjs's own header comment.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 // THE shared write sequence (Lane WSEQ, 2026-09-02) — src/lib/intake/write-item.ts is the ONE module both
 // mint tiers (this brief tier's groundBrief and the record tier's apply-mint-batch.mjs) depend on for the
 // item_gate_a_state row shape and the intelligence_item_citations edge shape, so those cannot drift
@@ -1619,7 +1623,7 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
   const system = `You are a strict grounding judge for a regulatory brief. Decide whether a CANDIDATE SPAN from a source SUPPORTS a binding FACT for a required SLOT. Output ONLY JSON: {"supports": true|false, "why": "<=100 chars"}. DEFAULT to supports=false whenever uncertain, when the span concerns a DIFFERENT matter than the slot, or when it reads as analysis/commentary rather than the enacted requirement. A false "true" is unacceptable (fabricated provenance); a false "false" is a recoverable honest GAP.`;
   const user = `SLOT: ${slotKey} — ${description}\nCANDIDATE SPAN (from ${nom.url}):\n"""${nom.span.slice(0, 1200)}"""\nDoes the span support a binding FACT for this slot?`;
   try {
-    const { text } = await spendStream({ system, user, model: "claude-haiku-4-5-20251001", maxTokens: 200 });
+    const { text } = await spendStream({ system, user, model: HAIKU_MODEL, maxTokens: 200 });
     const m = text.match(/\{[\s\S]*?\}/);
     if (!m) return { supports: false, why: "no JSON in judge output" };
     const j = JSON.parse(m[0]) as { supports?: unknown; why?: unknown };

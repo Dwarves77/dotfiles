@@ -16,6 +16,9 @@ import { browserlessRender } from "@/lib/sources/browserless";
 // The prior raw fetch had no ticket and wrote NO agent_runs row (CODE-1 F-05: unledgered spend). Off the
 // F15 legacy allowlist now that it routes.
 import { spendStream } from "@/lib/llm/spend-client";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the literal model id below was its
+// own hand-typed copy, named as known drift in model-ids.mjs's own header comment.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
 export interface SourceTierRecommendation {
   recommended_tier: number;
@@ -119,7 +122,7 @@ Recommend the tier.`;
   // "recommend-classification" is the Rule-016 sanctioned class; it bypasses the necessity gate but is
   // budget-checked and writes an agent_runs row (the missing ledger, F-05).
   const { text } = await spendStream(
-    { system, user, model: "claude-haiku-4-5-20251001", maxTokens: 500 },
+    { system, user, model: HAIKU_MODEL, maxTokens: 500 },
     { purpose: "recommend-source-tier (Haiku tier audit)", standingClass: "recommend-classification" }
   );
   const m = /\{[\s\S]*\}/.exec(text);

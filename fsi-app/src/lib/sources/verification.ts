@@ -37,6 +37,10 @@ import {
   classifyReachability,
 } from "@/lib/sources/reachability.mjs";
 import { decideReachabilityAction } from "@/lib/sources/verification-decision.mjs";
+// HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02 follow-up to lane L8's extraction):
+// this file previously carried its own hand-typed copy, named as known drift in model-ids.mjs's own
+// header comment. Value is byte-identical; no behavior change.
+import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public types
@@ -270,12 +274,6 @@ const THRESHOLDS = {
   AI_FREIGHT_H: 55,          // ai_freight_score >= this → eligible for H (was 50 pre-2026-05-06)
   AI_FREIGHT_M: 25,          // below this → L (not freight relevant)
 } as const;
-
-// ────────────────────────────────────────────────────────────────────────────
-// Models
-// ────────────────────────────────────────────────────────────────────────────
-
-const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Step 1: HEAD reachability + redirect resolution

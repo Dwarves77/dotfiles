@@ -1,3 +1,9 @@
+// SONNET_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): GROUND_MODEL's default below was
+// this file's own hand-typed copy of the literal, named as known drift in model-ids.mjs's own header
+// comment. This file carries no other imports and no .test.mjs reaches it directly by import (only by
+// text-content fitness checks), so the "@/" alias is safe here.
+import { SONNET_MODEL } from "@/lib/llm/model-ids.mjs";
+
 /**
  * Generation knobs — the ONE sanctioned place generation/grounding logic reads `process.env`.
  *
@@ -107,4 +113,4 @@ export const SPEND_CEILING_USD = Number(process.env.SPEND_CEILING_USD || 85);
  *  Sonnet; this is the single knob the Segment-0 Haiku/Sonnet A/B verdict flips. Delta/change-review and
  *  classification default to Haiku (cents) — the fetch-align-diff engine is deterministic $0. A named constant
  *  (not an inline process.env in the pipeline) so a model change is a reviewable G-diff (rule 017). */
-export const GROUND_MODEL: string = process.env.GROUND_MODEL || "claude-sonnet-4-6";
+export const GROUND_MODEL: string = process.env.GROUND_MODEL || SONNET_MODEL;

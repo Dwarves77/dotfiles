@@ -21,6 +21,10 @@ import { anthropicError } from "@/lib/agent/anthropic-error.mjs";
 import { costUsdForModel, inputUsdPerMtokForModel, SPEND_CEILING_USD } from "@/lib/agent/generation-config";
 import { cacheSavingsUsd } from "@/lib/agent/prompt-cache.mjs";
 import { assertTicket, assertBudget, assertPricedSpend, account, markCallLogged, takeItemLedger, resetItemLedger, spentUsd, assertLedgerDrained, unloggedCallCount } from "@/lib/llm/spend-guard.mjs";
+// SONNET_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the three "claude-sonnet-4-6"
+// defaults below were this module's own hand-typed copies, named as known drift in model-ids.mjs's own
+// header comment.
+import { SONNET_MODEL } from "@/lib/llm/model-ids.mjs";
 
 export type SpendTicket = NonNullable<Parameters<typeof assertTicket>[0]>;
 export { STANDING_TICKET_CLASSES } from "@/lib/llm/spend-guard.mjs";
@@ -65,7 +69,7 @@ export async function spendStreamRaw(
   assertBudget(currentTicket, SPEND_CEILING_USD); // unlogged-telemetry invariant + optional per-ticket cap
   guardPricedLine(currentTicket);                 // operator-priced-line authorization (when the ticket carries one)
   const r = await streamMessagesText(streamOpts);
-  const model = String(((streamOpts?.body ?? {}) as { model?: string }).model ?? "claude-sonnet-4-6");
+  const model = String(((streamOpts?.body ?? {}) as { model?: string }).model ?? SONNET_MODEL);
   // PROMPT-CACHE (Phase-3a): cache tokens are billed at 1.25× (write) / 0.1× (read) of the input rate;
   // input_tokens excludes the cached prefix when caching is active. Real cost, not the full-rate fiction.
   const cacheWrite = r.usage.cache_creation_input_tokens ?? 0;
@@ -84,7 +88,7 @@ export async function spendStream(
   assertTicket(ticket);
   assertBudget(ticket, SPEND_CEILING_USD); // unlogged-telemetry invariant + optional per-ticket cap
   guardPricedLine(ticket);                 // operator-priced-line authorization (when the ticket carries one)
-  const model = opts.model ?? "claude-sonnet-4-6";
+  const model = opts.model ?? SONNET_MODEL;
   const { text, stopReason, usage } = await streamMessagesText({
     apiKey: process.env.ANTHROPIC_API_KEY!,
     body: { model, max_tokens: opts.maxTokens ?? 32000, system: opts.system, messages: [{ role: "user", content: opts.user }] },
@@ -145,7 +149,7 @@ export async function spendSearch(
   assertTicket(ticket);
   assertBudget(ticket, SPEND_CEILING_USD); // unlogged-telemetry invariant + optional per-ticket cap
   guardPricedLine(ticket);                 // operator-priced-line authorization (when the ticket carries one)
-  const model = opts.model ?? "claude-sonnet-4-6";
+  const model = opts.model ?? SONNET_MODEL;
   const resp = await fetch(ANTHROPIC_MESSAGES_URL, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01", "anthropic-beta": WEB_SEARCH_BETA },
