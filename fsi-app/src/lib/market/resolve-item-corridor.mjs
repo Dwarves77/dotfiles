@@ -71,9 +71,14 @@
 // which adapter the caller used.
 //
 // PLAIN ESM, ZERO NPM DEPENDENCIES, PURE - no I/O, no clock, no Supabase import, same posture as
-// select-modal-factor.mjs and carbon-cost-per-feu.mjs.
-
-import { entityId, corridorSeed } from "../entities/entity-id.mjs";
+// select-modal-factor.mjs and carbon-cost-per-feu.mjs. Deliberately does NOT import entity-id.mjs
+// (which pulls in node:crypto) - this module is reachable from a "use client" component
+// (MarketSignalDetailSurface.tsx, via carbon-overlay-view.mjs) and must stay esbuild/browser-bundle
+// clean. A caller that wants to mint candidate ids from seed-corridors.mjs's FALLBACK_CORRIDOR_SEEDS
+// objects (never fetched from a live `entities` read, e.g. a test fixture) builds its own
+// {entityId, origin, dest, mode} rows using entity-id.mjs's own entityId()/corridorSeed() directly in
+// that test file - this module only consumes the shape, it does not mint ids itself for either
+// adapter below (candidatesFromCorridorEntities reads an entity_id that already exists on the row).
 
 export const STATES = Object.freeze(["resolved", "ambiguous", "no_corridor_identity"]);
 
@@ -118,20 +123,6 @@ export function candidatesFromCorridorEntities(rows) {
     candidates.push({ entityId: r.entity_id, ...parsed });
   }
   return { candidates, skipped };
-}
-
-/** seed-corridors.mjs FALLBACK_CORRIDOR_SEEDS entries (or any {origin, dest, mode} object) -> this
- *  module's candidate shape, minting entityId via the SAME entityId('corridor', seed) constructor
- *  seed-corridors.mjs itself calls (entity-id.mjs) - never a second, hand-rolled id. Pure. Used for the
- *  dry/fixture case (no DB) where the caller wants to match against the fallback set directly rather
- *  than a live `entities` read. */
-export function candidatesFromSeeds(seeds) {
-  return (seeds ?? []).map((s) => ({
-    entityId: entityId("corridor", corridorSeed(s)),
-    origin: String(s.origin).toUpperCase(),
-    dest: String(s.dest).toUpperCase(),
-    mode: s.mode,
-  }));
 }
 
 /** A candidate corridor's own {origin country, dest country} set, read off the UN/LOCODE prefix - the

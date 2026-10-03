@@ -4,12 +4,25 @@ import assert from "node:assert/strict";
 import {
   resolveItemCorridor,
   candidatesFromCorridorEntities,
-  candidatesFromSeeds,
   parseCorridorCanonicalName,
   STATES,
 } from "./resolve-item-corridor.mjs";
 import { carbonCostPerFeu } from "./carbon-cost-per-feu.mjs";
+import { entityId, corridorSeed } from "../entities/entity-id.mjs";
 import { ADR_EXAMPLE_CORRIDORS, NAMED_CORRIDOR_SEEDS } from "../../../scripts/entities/seed-corridors.mjs";
+
+// Test-only adapter (never imported by resolve-item-corridor.mjs itself - that module stays
+// node:crypto-free so it can be bundled into the "use client" detail-surface chain; see that file's
+// own header). Mints a candidate id the SAME way seed-corridors.mjs mints a live corridor entity id
+// (entityId('corridor', corridorSeed(s))), never a second, hand-rolled id scheme.
+function candidatesFromSeeds(seeds) {
+  return (seeds ?? []).map((s) => ({
+    entityId: entityId("corridor", corridorSeed(s)),
+    origin: String(s.origin).toUpperCase(),
+    dest: String(s.dest).toUpperCase(),
+    mode: s.mode,
+  }));
+}
 
 // The one live seeded example per the 2026-10-03-w4 README/brief: CNSHA-NLRTM, ocean.
 const CNSHA_NLRTM = candidatesFromSeeds(ADR_EXAMPLE_CORRIDORS)[0];

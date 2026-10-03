@@ -464,20 +464,6 @@ const PROVEN_BUT_UNWIRED = [
       'No expiry granted (lane W71-C\'s brief forbids adding one) — wire it into that future loader, or ' +
       'delete it with its test if that loader never materializes.',
   },
-  {
-    file: 'src/lib/market/resolve-item-corridor.mjs',
-    disposition:
-      'Lane L-CORRIDOR (2026-10-03), built by explicit brief scope, not an accident: it closes the gap ' +
-      'docs/ops/session-log.d/2026-10-03-l12.md named (a market_signal item carries jurisdictionIso, ' +
-      'never a corridor object, so carbonCostPerFeu() cannot be called from any item detail page), but ' +
-      'the SAME brief forbids this lane from wiring it into MarketSignalDetailSurface.tsx or any other ' +
-      'UI, because wiring it now, without also resolving the distance/payload/carbon-price gaps that ' +
-      'file already named, would add dead GAP-state UI with no behavioural change. Its real caller is ' +
-      'whichever future lane wires carbonCostPerFeu() onto the detail page, named in this lane\'s own ' +
-      'session-log file as an open item for the coordinator. Its resolve-item-corridor.test.mjs proof ' +
-      'stays wired via the no-npm run-test-suite.sh glob regardless. Wire it into that future UI lane, ' +
-      'or delete it with its test if that lane never materializes.',
-  },
 ];
 
 // SCRIPTS_LIB (the 15 "proven, never consumed" scripts/lib entries) ARCHIVED 2026-09-01 (lane hyg,

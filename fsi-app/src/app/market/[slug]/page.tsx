@@ -56,7 +56,9 @@ import {
   MarketSignalDetailSurface,
   type PriceStat,
   type EmissionFactorRow,
+  type CorridorCandidate,
 } from "@/components/pages/MarketSignalDetailSurface";
+import { candidatesFromCorridorEntities } from "@/lib/market/resolve-item-corridor.mjs";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
 
@@ -66,6 +68,11 @@ interface ItemScoped {
   convergence: { independent_citers: number; confirmation_count: number } | null;
   priceBoard: PriceStat[];
   carbonFactors: EmissionFactorRow[];
+  /** Lane L-CORRIDOR (2026-10-03): EVERY active seeded corridor entity, already parsed to
+   *  {entityId, origin, dest, mode}. Read once per cached bundle (small, platform-wide, not item-
+   *  scoped data, same posture as carbonFactors above) so resolveItemCorridor() never needs a second
+   *  fetch pattern on the detail page. */
+  corridorCandidates: CorridorCandidate[];
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings — see
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
    *  item's query legitimately returns no rows, resolving to {} at zero extra cost). */
@@ -204,6 +211,27 @@ export default async function MarketSignalDetailPage({
           })
           .catch(() => [] as EmissionFactorRow[]);
 
+        // Lane L-CORRIDOR (2026-10-03, coordinator override, rule 17: no half slice). EVERY active
+        // seeded corridor entity (kind='corridor'), read in the SAME cached bundle as carbonFactors
+        // above, no second fetch pattern. resolve-item-corridor.mjs's candidatesFromCorridorEntities()
+        // parses canonical_name ("ORIGIN-DEST:mode") into the {entityId, origin, dest, mode} shape the
+        // resolver takes - never re-derives the convention a second time.
+        const corridorCandidatesPromise: Promise<CorridorCandidate[]> = Promise.resolve(
+          supabase
+            .from("entities")
+            .select("entity_id, canonical_name")
+            .eq("kind", "corridor")
+            .eq("status", "active")
+        )
+          .then(({ data: corridorRows, error: corridorErr }) => {
+            if (corridorErr) console.error("[market/[slug]] corridor-entities fetch failed", corridorErr);
+            const { candidates } = candidatesFromCorridorEntities(
+              Array.isArray(corridorRows) ? corridorRows : []
+            );
+            return candidates;
+          })
+          .catch(() => [] as CorridorCandidate[]);
+
         const relatedIds = Array.from(
           new Set<string>([
             ...connections.map((c) => c.id),
@@ -218,18 +246,19 @@ export default async function MarketSignalDetailPage({
           .then((pub) => pub.resources)
           .catch(() => [] as Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"]);
 
-        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers, relatedPool] =
+        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool] =
           await Promise.all([
             buildResourceLookup(supabase, relatedIds),
             itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
             convergencePromise,
             priceBoardPromise,
             carbonFactorsPromise,
+            corridorCandidatesPromise,
             itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
             relatedPoolPromise,
           ]);
 
-        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers, relatedPool };
+        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool };
       },
     });
 
@@ -245,6 +274,7 @@ export default async function MarketSignalDetailPage({
   const convergence = result.itemScoped?.convergence ?? null;
   const priceBoard = result.itemScoped?.priceBoard ?? [];
   const carbonFactors = result.itemScoped?.carbonFactors ?? [];
+  const corridorCandidates = result.itemScoped?.corridorCandidates ?? [];
   const claimTiers = result.itemScoped?.claimTiers ?? {};
   const relatedPool = result.itemScoped?.relatedPool ?? [];
 
@@ -270,6 +300,7 @@ export default async function MarketSignalDetailPage({
         convergence={convergence}
         priceBoard={priceBoard}
         carbonFactors={carbonFactors}
+        corridorCandidates={corridorCandidates}
         groupLabel={`Market / ${publisher || jurisLabel(r)}`}
         deck={deck}
         supersessions={supersessions}

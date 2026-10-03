@@ -18,6 +18,9 @@
 // PLAIN ESM, ZERO DEPENDENCIES, PURE.
 
 import { selectModalFactor } from "./select-modal-factor.mjs";
+import { resolveItemCorridor } from "./resolve-item-corridor.mjs";
+import { carbonCostPerFeu } from "./carbon-cost-per-feu.mjs";
+import { formatCorridorLabel } from "../entities/unlocode-names.mjs";
 
 /**
  * @typedef {object} CarbonOverlayView
@@ -120,5 +123,92 @@ export function buildCarbonOverlayView({ jurisdictionIso, factors, mode = null }
     header: "Carbon intensity · not yet available",
     body: `${reasonText} Coverage today is limited to US road and rail modal defaults.`,
     figure: null,
+  };
+}
+
+// lane L-CORRIDOR (2026-10-03, coordinator override, rule 17: no half slice). The real per-FEU figure
+// (spec 02S6 row 3, carbonCostPerFeu()) wired onto the item detail page, keyed on resolve-item-corridor.
+// mjs's three-state lookup against EXISTING seeded corridor entities (never a built-here identity, per
+// WO-24 - see that module's own header). This composer is the ONLY thing MarketSignalDetailSurface.tsx
+// calls for this block, same "one composition seam, proven together" posture
+// market-carbon-overlay-composition.test.mjs already established for buildCarbonOverlayView above - no
+// second cost-math implementation, no second corridor-matching implementation.
+
+/** One `emission_factors` row for carbonCostPerFeu()'s `factor` input, selected by MODE ONLY (a
+ *  corridor is intercontinental; no single country's modal-default factor is "the" corridor's factor,
+ *  so this never ties the pick to a jurisdiction). Exactly one mode-matching candidate resolves; zero or
+ *  more than one (today's live state has zero ocean-mode rows at all) is `null` - carbonCostPerFeu()'s
+ *  own GAP.NO_FACTOR renders that honestly, the same never-guess-among-several discipline WO-24 applies
+ *  to jurisdiction and this module's own mode selection. Pure.
+ * @param {Array<{mode?: string}>} factors
+ * @param {string} mode
+ */
+function selectFactorForCorridorMode(factors, mode) {
+  const wanted = String(mode ?? "").trim().toLowerCase();
+  if (!wanted) return null;
+  const matches = (Array.isArray(factors) ? factors : []).filter(
+    (f) => typeof f?.mode === "string" && f.mode.trim().toLowerCase() === wanted,
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+/**
+ * @typedef {object} CarbonCostPerFeuView
+ * @property {"resolved"|"ambiguous"} state  Never "no_corridor_identity" - that state renders as `null`
+ *   below (nothing extra beyond the existing carbon-intensity block), per the coordinator's own ruling.
+ * @property {string|null} label  Human-readable corridor label (formatCorridorLabel()), set only when
+ *   `state === "resolved"`.
+ * @property {ReturnType<typeof import("./carbon-cost-per-feu.mjs").carbonCostPerFeu>|null} result  carbonCostPerFeu()'s own
+ *   `{ok, ...}` shape, untouched, set only when `state === "resolved"`.
+ * @property {string|null} body  Honest, specific copy for the `ambiguous` state. Null when resolved
+ *   (the caller renders `result`'s own figure/gaps instead).
+ */
+
+/**
+ * Compose resolveItemCorridor() + carbonCostPerFeu() into the detail page's per-FEU block. Pure, no I/O.
+ * Never invents a corridor direction or identity (WO-24, honoured by resolveItemCorridor itself) and
+ * never re-implements carbonCostPerFeu's cost math.
+ *
+ * @param {object} input
+ * @param {unknown} input.jurisdictionIso  The item's raw jurisdiction_iso value.
+ * @param {unknown} input.modes  The item's raw modes value.
+ * @param {Array<object>} [input.factors]  The same emission_factors rows buildCarbonOverlayView already
+ *   receives (carbonFactors) - no second fetch.
+ * @param {Array<{entityId: string, origin: string, dest: string, mode: string}>} [input.corridorCandidates]
+ *   The existing seeded corridor entities (injected, not fetched inside this module).
+ * @returns {CarbonCostPerFeuView | null}  `null` exactly when resolveItemCorridor()'s state is
+ *   `no_corridor_identity` - the coordinator's own instruction: that state renders nothing extra.
+ */
+export function buildCarbonCostPerFeuView({ jurisdictionIso, modes, factors, corridorCandidates } = {}) {
+  const match = resolveItemCorridor({ jurisdictionIso, modes, candidates: corridorCandidates });
+
+  if (match.state === "no_corridor_identity") return null;
+
+  if (match.state === "ambiguous") {
+    return {
+      state: "ambiguous",
+      label: null,
+      result: null,
+      body:
+        "This signal's jurisdictions match more than one seeded corridor. Caro's Ledge will not guess " +
+        "which one applies, so no per-FEU figure is shown here.",
+    };
+  }
+
+  // resolved
+  const factor = selectFactorForCorridorMode(factors, match.corridor.mode);
+  const result = carbonCostPerFeu({
+    corridor: match.corridor,
+    factor,
+    distanceKm: null,
+    payloadTonnesPerFeu: null,
+    carbonPrice: null,
+  });
+
+  return {
+    state: "resolved",
+    label: formatCorridorLabel(match.corridor),
+    result,
+    body: null,
   };
 }

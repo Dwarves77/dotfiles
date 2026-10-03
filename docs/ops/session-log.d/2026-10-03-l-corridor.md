@@ -131,9 +131,10 @@ exported function is pure. No network call, no LLM call, $0.
 
 ## UX compliance
 
-Not applicable. This lane touches no `.tsx`/`.css` file.
+Not applicable at first landing. This lane touched no `.tsx`/`.css` file. Superseded below - the
+coordinator overrode the brief's UI-wiring hold the same session; see the addendum.
 
-## Open items / COORDINATOR ACTION NEEDED
+## Open items / COORDINATOR ACTION NEEDED (as first landed - partially superseded below)
 
 1. **Live state-distribution run.** This worktree has no DB credentials; the coordinator (or a lane with
    credentials) should run `resolveItemCorridor()` against every live `market_signal` item's real
@@ -141,11 +142,116 @@ Not applicable. This lane touches no `.tsx`/`.css` file.
    WHERE kind='corridor'` read, to get the actual count. Expected (per this lane's fixture proof against
    the real `FALLBACK_CORRIDOR_SEEDS`): most items resolve `no_corridor_identity`, and any item carrying
    `jurisdictionIso` set exactly `{CN,US}` with a single `ocean` mode resolves `ambiguous` (not
-   `resolved`) because of the finding above.
-2. **UI wiring is a separate, future lane's scope** (named above, per the brief) - not built here.
+   `resolved`) because of the finding above. STILL OPEN - the read-only SQL was sent to the coordinator
+   separately per their own request; this worktree still holds no credentials to run it.
+2. ~~UI wiring is a separate, future lane's scope~~ - SUPERSEDED, see addendum (coordinator overrode this
+   same session, rule 17: no half slice).
 3. No INDEX.md entry needed (this file lives in `session-log.d/`, exempted per that directory's own
    README).
 4. Branch name divergence: the parent dispatch set up this worktree on branch
    `lane/l-corridor-resolver` (the exact command given to this lane), while the brief text itself names
    `lane/l-corridor-item-match-2026-10-03`. Followed the explicit setup instruction given to this lane
    session over the brief's suggested name; flagging the mismatch rather than silently picking one.
+
+## Addendum: UI wiring (coordinator override, 2026-10-03, rule 13 correction in place)
+
+The coordinator overrode the brief's own UI-wiring hold mid-session: "wire the UI now (rule 17, no half
+slice, no F25 allowlist entry)." Write set extended to `MarketSignalDetailSurface.tsx`,
+`carbon-overlay-view.mjs`, `src/app/market/[slug]/page.tsx`, and their tests.
+
+### What was built (this addendum)
+
+- `fsi-app/src/lib/market/carbon-overlay-view.mjs` - new export `buildCarbonCostPerFeuView()`, the
+  composition seam between `resolveItemCorridor()` and `carbonCostPerFeu()`, same posture as the
+  existing `buildCarbonOverlayView()`/`selectModalFactor()` seam. `no_corridor_identity` composes to
+  `null` (nothing extra beyond the carbon-intensity block); `ambiguous` composes to an honest note
+  naming no corridor identity; `resolved` composes a real `carbonCostPerFeu()` call (factor selected by
+  mode only, never tied to a jurisdiction - see `selectFactorForCorridorMode()`'s own header), rendering
+  its own GAP states when distance/payload/carbon-price are absent (today: always).
+- `fsi-app/src/components/pages/MarketSignalDetailSurface.tsx` - new `CorridorCandidate` type, new
+  `corridorCandidates` prop, new `corridorCostView` computation (gated on `hasCarbonOverlay`, same gate
+  as the existing carbon-intensity block), new `CorridorCostPerFeuBlock` render component mounted
+  directly below the existing carbon-intensity figure in BOTH the non-record and record-grade branches.
+  `showFindings` extended with `|| !!corridorCostView`: a resolved corridor match always requires a
+  2-country jurisdiction set, which `selectModalFactor`'s own 3-state design always calls "ambiguous"
+  for the intensity figure - without this OR, a record-grade item with a resolved corridor match would
+  show no Findings section at all, a gap this lane found and fixed in the same motion (rule 13).
+- `fsi-app/src/app/market/[slug]/page.tsx` - new `corridorCandidatesPromise` (reads `entities
+  WHERE kind='corridor' AND status='active'`, parsed via `candidatesFromCorridorEntities()`) added to
+  the SAME `Promise.all` batch as `carbonFactorsPromise` - no second fetch pattern, per the coordinator's
+  own instruction. Passed through `result.itemScoped.corridorCandidates` to the component.
+- Tests: `src/__tests__/market-carbon-overlay-composition.test.mjs` gained 4 new cases for
+  `buildCarbonCostPerFeuView()` (no_corridor_identity -> null, ambiguous -> honest note naming nothing
+  invented, resolved -> real `carbonCostPerFeu()` call with GAP states, and a mode-ambiguous-factor
+  case). 27/27 pass across both touched test files.
+
+### Correction found and fixed while wiring (rule 13)
+
+**[CONFIRMED]** Removing the F25 `PROVEN_BUT_UNWIRED` allowlist entry added at first landing works
+correctly without a new violation: `resolve-item-corridor.mjs` now has a real production importer
+(`carbon-overlay-view.mjs`), confirmed by `node .discipline/fitness/runner.mjs` - `0 violation(s)`.
+
+**[CONFIRMED, caught by the rendering guard, fixed in the same motion]** The first wiring attempt left
+`resolve-item-corridor.mjs` importing `entityId`/`corridorSeed` from `../entities/entity-id.mjs` (for a
+`candidatesFromSeeds()` helper) at module top level. `entity-id.mjs` imports `node:crypto`.
+`MarketSignalDetailSurface.tsx` is a `"use client"` component, so this module is now reachable from an
+esbuild browser bundle (the rendering guard's own smoke harness) - `node:crypto` cannot resolve there,
+and `detail-surfaces`/`market-detail-raw-dump`/two `layout-guard` checks failed with a build error.
+Fixed by removing `candidatesFromSeeds()` and the `entity-id.mjs` import from the production module
+entirely (it was only ever used by two test files, never by `carbon-overlay-view.mjs` or the detail
+surface); each test file now mints its own fixture ids directly via `entity-id.mjs`, which is never
+bundled since test files are not part of the client chain. Re-ran: `npx tsc --noEmit` clean,
+`node .discipline/rendering/run-rendering-guard.mjs` -> `=== rendering guard PASS ===`.
+
+### Gates (full command + result, this addendum's range)
+
+- `node --test src/lib/market/resolve-item-corridor.test.mjs src/__tests__/market-carbon-overlay-composition.test.mjs`
+  - 27/27 pass.
+- `npx tsc --noEmit` - clean, no output, exit 0.
+- `node .discipline/fitness/runner.mjs` - `Fitness summary: 60 function(s) checked, 0 violation(s).`
+- `node .discipline/rendering/run-rendering-guard.mjs` - `=== rendering guard PASS ===`; `fixtures: 14
+  viewports: 380,420,480,560,640,767,768,900,960,1100,1200,1440 checks: 884`; `UX smoke specs: 21 (...
+  detail-surfaces ... market-detail-raw-dump ...) ux checks: 386`; `layout guard: 36 route x width
+  measurement(s), 0 finding(s)`.
+
+### UX compliance (lane-common-contract "UX contract" section; `ux-laws.md` + `design-principles.md`
+DP-2 read in full before this edit)
+
+**Screen**: `/market/[slug]` detail page, "Substantive findings" (S2) section, both the non-record and
+record-grade branches, directly below the existing carbon-intensity sub-block.
+
+- **Reader's primary goal**: see the real per-FEU carbon cost for this signal's corridor when one can be
+  identified, or an honest reason why not, without a second page or a tab switch (law 3, Jakob's Law -
+  the block sits exactly where the related carbon-intensity figure already sits).
+- **Shortest path**: zero clicks - the block renders inline in the already-open Findings section exactly
+  when there is something honest to show (a resolved corridor's GAP states/figure, or an ambiguous
+  note); it renders nothing at all for `no_corridor_identity`, never a dead placeholder (law 14,
+  Postel's Law - never imply work that was never going to complete).
+- **One primary action**: none added - read-only content, no new control, no button, same posture as the
+  existing carbon-intensity block it sits beside.
+- **Feedback state for every asynchronous action**: none added - `corridorCostView` is computed
+  synchronously from props already assembled server-side (`corridorCandidates`, same cached bundle as
+  `carbonFactors`), same as `carbonOverlay`/`intensityFigure` before this lane.
+- **Law 2 (Fitts) / RD-60 floor**: no new interactive target added; confirmed by the rendering guard's
+  UX smoke pass (386 checks green, including `detail-surfaces` and `market-detail-raw-dump` at the
+  guard's full viewport sweep 380px through 1440px) - no overflow, no undersized target introduced.
+- **Law 16 (Similarity) / Law 3 (Jakob)**: the block reuses the SAME typography tokens, badge-free prose
+  style, and `StateNote`/GAP-list idiom the existing carbon-intensity block and `CarbonCostOverlay.tsx`
+  (the `/market` index page's own per-FEU card) already establish - no new visual treatment invented for
+  the same class of figure.
+- **Law 12 (Prägnanz)**: the ambiguous state renders ONE honest sentence, never a list of the matched
+  corridor identities (naming nothing invented, per the coordinator's own instruction) - the simplest
+  structure that is still truthful.
+
+This change touches no row/ledger/card component in `ROW_COMPONENTS` (F35) - `CorridorCostPerFeuBlock`
+is a sub-block inside an existing `DetailSubSection`, not a standalone row/card; the existing
+`detail-surfaces`/`market-detail-raw-dump` UX smoke spec registrations already cover this file per
+RD-60, confirmed by the rendering guard run above (no new registration needed).
+
+### Open items (superseding the earlier list above)
+
+1. **Live state-distribution run** - STILL OPEN, no DB credentials in this worktree. The read-only SQL
+   to measure it was sent to the coordinator separately, per their own request, for the executor to run.
+2. UI wiring - DONE, this addendum. No longer an open item.
+3. No INDEX.md entry needed (unchanged).
+4. Branch-name divergence - unchanged, still flagged.
