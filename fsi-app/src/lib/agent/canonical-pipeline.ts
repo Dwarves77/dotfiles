@@ -95,7 +95,7 @@ import { selectBriefCandidates, formatCandidateBlock } from "@/lib/connections/b
 import { selectAssessmentView, formatAssumptionShift } from "@/lib/research/read-assessments.mjs";
 import { readAtRiskAssumptions } from "@/lib/assumptions/read";
 import { isAtRisk } from "@/lib/assumptions/contract.mjs";
-import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock, type AgentMetadata } from "@/lib/agent/parse-output";
+import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock, type AgentMetadata, type ClaimProvenanceRecord } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
 import { buildResolver, hostOf, hostInstitution, type SourceRow, type Resolver } from "@/lib/sources/institution";
@@ -1635,10 +1635,10 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
 
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
-export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[]; replaceLedger?: boolean; batchId?: string | null }): Promise<StepResult> {
+export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: ClaimProvenanceRecord[]; replaceLedger?: boolean; batchId?: string | null }): Promise<StepResult> {
   return withTelemetry(() => groundBriefImpl(itemId, caller, opts));
 }
-async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[]; replaceLedger?: boolean; batchId?: string | null }): Promise<StepResult> {
+async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: ClaimProvenanceRecord[]; replaceLedger?: boolean; batchId?: string | null }): Promise<StepResult> {
   // MODEL-TIER: the grounding model is opts.model (the Segment-0 A/B override) ?? the GROUND_MODEL knob.
   const groundModel = opts?.model ?? GROUND_MODEL;
   const sb = svc();
