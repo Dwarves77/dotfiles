@@ -321,6 +321,7 @@
 | 345 | 345_planning_assumption_register.sql | Migration 345 (lane W2-R2, 2026-10-01): `planning_assumption_register`, the per-tenant |
 | 346 | 346_research_assessments_entity_spine_signposts.sql | Migration 346 (Lane L6, coordinator dispatch 2026-10-02, docs/dispatches/lane-briefs/2026-10-02/ |
 | 347 | 347_aggregate_floor_adr035.sql | Migration 347 (Lane L15, coordinator brief docs/dispatches/lane-briefs/2026-10-03/brief-l15.md; ADR-035 |
+| 348 | 348_community_social_only.sql | Migration 348 (lane C-SOCIAL, 2026-10-03, ADR-041 "Community is social only"). Drops the Community-to-corpus promotion schema: post_promotions and the five promotion/provenance columns on community_posts. AUTHORED, NOT APPLIED; applied AFTER the C-SOCIAL PR merges. |
 
 ## Maintenance trigger
 
