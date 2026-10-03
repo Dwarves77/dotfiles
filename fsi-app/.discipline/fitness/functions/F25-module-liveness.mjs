@@ -208,6 +208,12 @@ export function findDispatchRoots(
   // quarantine drain (docs/PROGRAM-BOARD.md §2, deferred to 2026-10-31, not closed), not a discharged
   // one-shot. Registering it in the SAME table as install-hooks.mjs/dispatch/*.mjs rather than inventing
   // a parallel mechanism keeps "operator-invoked, out-of-workflow" as ONE recognized shape, not two.
+  // WIDENED AGAIN (lane L8b, 2026-10-02, coordinator ruling): also recognize backticked `research/*.mjs`
+  // rows, same shape - a dry-by-default, R14-held, dispatch-only CLI (`research/backfill-themes.mjs`)
+  // belongs in this registry, not in F25's own LEGACY_ALLOWLIST (a liveness EXEMPTION is for a module
+  // this gate cannot otherwise prove reachable; a human-dispatched CLI with a documented usage line IS
+  // reachability evidence, exactly what this table already exists to record for install-hooks.mjs and
+  // the _reground/ toolkit - so it gets a row here, not an exemption there).
   // parseBoundaryRegistryPaths() is factored out (not inlined) so F25-module-liveness.test.mjs can
   // assert every parsed path resolves against the REAL file, which is what keeps this registry from
   // rotting silently the way a plain doc reference could.
@@ -313,21 +319,24 @@ export function findDispatchRoots(
 }
 
 // Every backticked path under governance/, dispatch/, or consistency/, or the bare `install-hooks.mjs`
-// literal, or (lane F25-WAVE52) under _reground/, appearing anywhere in OUT-OF-REPO-BOUNDARY.md's
-// markdown tables — factored out of findDispatchRoots's Source 7 so its own unit test can assert every
-// parsed path resolves against the real tree (a row naming a deleted or renamed file would otherwise rot
-// silently). _reground/*.mjs rows resolve under fsi-app/scripts/ (their real tree location), every other
-// matched prefix under fsi-app/.discipline/ as before.
+// literal, or (lane F25-WAVE52) under _reground/, or (lane L8b, 2026-10-02, coordinator ruling: no
+// liveness exemption for a dispatch-only CLI - register it in this table instead) under research/,
+// appearing anywhere in OUT-OF-REPO-BOUNDARY.md's markdown tables - factored out of findDispatchRoots's
+// Source 7 so its own unit test can assert every parsed path resolves against the real tree (a row
+// naming a deleted or renamed file would otherwise rot silently). _reground/*.mjs and research/*.mjs
+// rows resolve under fsi-app/scripts/ (their real tree location), every other matched prefix under
+// fsi-app/.discipline/ as before.
 export function parseBoundaryRegistryPaths(text) {
   // Opening backtick required (a real inline-code span, not prose), but NOT a closing one immediately
   // after `.mjs` — the boundary-dependency table's own applier cell is `` `governance/
   // wire-pretooluse-settings.mjs --apply` `` (a CLI invocation with flags inside the same code span), so
   // anchoring to the closing backtick would miss it.
-  const RE = /`((?:governance|dispatch|consistency|_reground)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
+  const SCRIPTS_PREFIXES = ['_reground/', 'research/'];
+  const RE = /`((?:governance|dispatch|consistency|_reground|research)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
   const found = new Set();
   for (const m of text.matchAll(RE)) {
     const p = m[1];
-    found.add(p.startsWith('_reground/') ? `fsi-app/scripts/${p}` : `fsi-app/.discipline/${p}`);
+    found.add(SCRIPTS_PREFIXES.some((pre) => p.startsWith(pre)) ? `fsi-app/scripts/${p}` : `fsi-app/.discipline/${p}`);
   }
   return [...found];
 }

@@ -482,7 +482,8 @@ test('findDispatchRoots Source 7: OUT-OF-REPO-BOUNDARY.md rows become dispatch r
       '| x | `governance/pretooluse-skill-gate.mjs` | `governance/wire-pretooluse-settings.mjs` | check | here |\n' +
       '| `dispatch/start.mjs` | usage | operator | doc |\n' +
       '| `install-hooks.mjs` | usage | operator | doc |\n' +
-      '| `_reground/lease.mjs` | usage | operator | doc |\n',
+      '| `_reground/lease.mjs` | usage | operator | doc |\n' +
+      '| `research/backfill-themes.mjs` | usage | operator | doc |\n',
   };
   const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
   const roots = findDispatchRoots('/repo', (f) => files[f], list);
@@ -491,6 +492,16 @@ test('findDispatchRoots Source 7: OUT-OF-REPO-BOUNDARY.md rows become dispatch r
   assert.ok(roots.has('fsi-app/.discipline/dispatch/start.mjs'));
   assert.ok(roots.has('fsi-app/.discipline/install-hooks.mjs'));
   assert.ok(roots.has('fsi-app/scripts/_reground/lease.mjs'));
+  assert.ok(roots.has('fsi-app/scripts/research/backfill-themes.mjs'));
+});
+
+// Lane L8b (2026-10-02, coordinator ruling): research/*.mjs rows resolve under fsi-app/scripts/, the
+// same shape as _reground/*.mjs above, not fsi-app/.discipline/.
+test('parseBoundaryRegistryPaths: a backticked research/*.mjs path resolves under fsi-app/scripts/', () => {
+  const text = '| `research/backfill-themes.mjs` | usage | operator | doc |\n';
+  const found = parseBoundaryRegistryPaths(text);
+  assert.ok(found.includes('fsi-app/scripts/research/backfill-themes.mjs'));
+  assert.ok(!found.some((p) => p.startsWith('fsi-app/.discipline/research')));
 });
 
 // The registry cannot rot silently: every path OUT-OF-REPO-BOUNDARY.md's tables actually name in THIS

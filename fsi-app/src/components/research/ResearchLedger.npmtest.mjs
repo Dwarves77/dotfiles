@@ -1,7 +1,7 @@
 // Structural regression test for src/components/research/ResearchLedger.tsx's row anatomy and its
 // artboard-06 page composition (lane comp-06, 2026-09-08).
 //
-// README §0.4: "Market and Research rows add a signal-kind tag after the type — a tag, never a
+// README section 0.4: "Market and Research rows add a signal-kind tag after the type - a tag, never a
 // band." MarketIntelLedger.tsx does this with its `signalKindLabel` TagChip; ResearchLedger does
 // it with the row's SEVERITY, which is the string artboard 06/id="p6" actually draws in that chip
 // ("Cost alert", "Background"), with the theme in the meta TEXT beside it ("Finding ·
@@ -63,8 +63,35 @@ test("the theme sits in the row's meta text, in the artboard's own order (type �
 });
 
 test("the theme facet is the theme CARD row (aboveRows), never also a rail facet group, one control per facet", () => {
-  assert.match(SOURCE, /aboveRows=\{<ResearchThemeCards themes=\{themeCards\} selected=\{theme\} onSelect=\{setTheme\} \/>\}/);
+  assert.match(
+    SOURCE,
+    /<ResearchThemeCards themes=\{themeCards\} selected=\{theme\} onSelect=\{setTheme\} unclassifiedCount=\{unclassifiedCount\} \/>/,
+  );
   assert.doesNotMatch(SOURCE, /key: "theme", label: "Theme"/);
+});
+
+// Lane L8 (2026-10-02): the write-set-expansion wiring that makes ResearchThemeCards.tsx's Unclassified
+// band (built same lane) actually live - closing spec 03 section 10's own-finding. Before this lane,
+// ResearchThemeCards had no caller passing it a real unclassified count at all.
+test("unclassifiedCount is derived over the same beforeTheme base the theme cards use, counting exactly the rows themeKeyOf drops from the theme-cards loop", () => {
+  assert.match(
+    SOURCE,
+    /const unclassifiedCount = useMemo\(\(\) => beforeTheme\.filter\(\(r\) => !themeKeyOf\(r\)\)\.length, \[beforeTheme\]\);/,
+  );
+});
+
+test("selecting the Unclassified pill (theme === \"unclassified\") filters the list to exactly the rows with no theme key, not a literal string match against themeKeyOf's real-key-or-null return", () => {
+  assert.match(
+    SOURCE,
+    /theme === "unclassified"\s*\n\s*\? beforeTheme\.filter\(\(r\) => !themeKeyOf\(r\)\)/,
+  );
+});
+
+test("the 'Clear theme'/empty-state label renders 'Unclassified' (capitalized), not the raw selection-key string, when the Unclassified pill is selected", () => {
+  assert.match(
+    SOURCE,
+    /const themeLabelOf = \(key: string\) =>\s*\n\s*key === "unclassified" \? "Unclassified" : \(THEME_LABELS as Record<string, string>\)\[key\] \?\? key;/,
+  );
 });
 
 test("the Window row is the SHARED ListSurfaceSortRow with controlLabel Window, not a research-local row", () => {
@@ -81,5 +108,5 @@ test("the masthead scope line and command-bar placeholder are the artboard's own
 
 test("meta stays a single row cell (one `meta:` field on the row object), the tag augments it rather than forking a new row shape", () => {
   const metaFieldMatches = SOURCE.match(/\n\s*meta,\n/g) || [];
-  assert.equal(metaFieldMatches.length, 1, "exactly one row object carries `meta` — the tag is composed into its value, not a sibling field");
+  assert.equal(metaFieldMatches.length, 1, "exactly one row object carries `meta` - the tag is composed into its value, not a sibling field");
 });

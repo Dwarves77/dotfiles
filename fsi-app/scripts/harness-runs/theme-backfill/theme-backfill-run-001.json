@@ -1,0 +1,273 @@
+{
+  "harness_family": "theme-backfill",
+  "harness_version": "sha256:90da3b4c0b86a368",
+  "run_id": "theme-backfill-run-001",
+  "started_at": "2026-10-03T02:40:39.418Z",
+  "config": {
+    "mode": "dry",
+    "apply": false,
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "scripts/research/fixtures/backfill-themes-fixtures.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "fixture-research-finding-01",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-02",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-03",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-04",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-05",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-06",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-07",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-08",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-09",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-10",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-11",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-12",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-13",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-14",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-15",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-16",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-17",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-18",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-19",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-20",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-21",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-22",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-23",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-24",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-25",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-26",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-27",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-28",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-29",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-30",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-31",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-32",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-33",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-34",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-35",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-36",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-37",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-38",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-39",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-40",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-41",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-42",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-43",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-44",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-45",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-46",
+      "outcome": "classified",
+      "evidence_refs": []
+    },
+    {
+      "id": "fixture-research-finding-47",
+      "outcome": "classified",
+      "evidence_refs": []
+    }
+  ],
+  "metrics": {
+    "classified": 47,
+    "errors": 0,
+    "themed_total": 42,
+    "unclassified": 5,
+    "downstream_theme_cards": {
+      "emissions_accounting": 6,
+      "fuels_saf": 6,
+      "packaging_circular": 6,
+      "carbon_markets": 6,
+      "cold_chain_art": 6,
+      "last_mile_electrification": 6,
+      "disclosure_regimes": 6
+    },
+    "downstream_unclassified_count": 5
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "C:\\Users\\jason\\dotfiles\\.claude\\worktrees\\l8\\fsi-app\\scripts\\research/../harness-runs/theme-backfill/traces/theme-backfill-run-001.result.json"
+  ],
+  "proposer_notes": "Lane L8 dry fire: this run's classifications recomputed through the SAME themeCardsFromResults bucketing ResearchLedger.tsx's live themeCards/unclassifiedCount derivation uses, proving the downstream data path is connected (rule 17), not only that the classification call succeeded.",
+  "trigger": "manual"
+}

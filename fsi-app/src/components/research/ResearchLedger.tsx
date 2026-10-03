@@ -54,7 +54,6 @@ import {
   windowDays,
   withListPosition,
   type ListSurfaceWindowKey,
-  type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 import {
@@ -121,16 +120,29 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
   const tagsFacet = useWorkspaceTagsFacet();
+  // Destructured once (lint fix, 2026-10-02): `matchesSelectedTag`/`tagsForItem` are the two
+  // useWorkspaceTagsFacet members read inside a memo body below. Depending on the destructured
+  // function identity (stable per useCallback's own deps in that hook) rather than on a property
+  // access through the `tagsFacet` object literal is what lets react-hooks/exhaustive-deps and the
+  // React Compiler's preserve-manual-memoization agree on the dependency shape - the object-property
+  // access form (`tagsFacet.matchesSelectedTag` inside a bracketed array) is exactly what the
+  // compiler could not reconcile against the array's own inferred dependency.
+  const { matchesSelectedTag, tagsForItem } = tagsFacet;
 
   /** Everything except the theme facet, the theme cards' own counts are read off this, so
    *  selecting one theme never rewrites the other three cards' numbers to 0. */
   const beforeTheme = useMemo(() => {
     const base = filterByWindow(filterRows(resources, filter), windowKey);
-    return base.filter((r) => tagsFacet.matchesSelectedTag(r.id));
-  }, [resources, filter, windowKey, tagsFacet.matchesSelectedTag]);
+    return base.filter((r) => matchesSelectedTag(r.id));
+  }, [resources, filter, windowKey, matchesSelectedTag]);
 
   const filtered = useMemo(
-    () => (theme ? beforeTheme.filter((r) => themeKeyOf(r) === theme) : beforeTheme),
+    () =>
+      theme === "unclassified"
+        ? beforeTheme.filter((r) => !themeKeyOf(r))
+        : theme
+          ? beforeTheme.filter((r) => themeKeyOf(r) === theme)
+          : beforeTheme,
     [beforeTheme, theme],
   );
 
@@ -179,6 +191,14 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
       .filter((k) => counts.has(k))
       .map((k) => ({ key: k, count: counts.get(k) ?? 0, newCount: fresh.get(k) ?? 0 }));
   }, [beforeTheme, nowIso]);
+
+  /** Lane L8 (2026-10-02), closing spec 03 section 10's own-finding ("a finding matching no theme
+   *  regex is counted in the tiles and rendered in zero bands... verified content is silently
+   *  invisible"): the loop above's `if (!key) continue;` drops a null-theme row before it is ever
+   *  added to `counts`, so it had NO facet-row representation at all. Counted here, separately, over
+   *  the SAME `beforeTheme` base the theme cards use (so selecting one real theme's card never changes
+   *  this count either), and threaded to `ResearchThemeCards`'s new `unclassifiedCount` prop below. */
+  const unclassifiedCount = useMemo(() => beforeTheme.filter((r) => !themeKeyOf(r)).length, [beforeTheme]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
     { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFacet("mode", v) },
@@ -251,7 +271,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
-            tags: tagsFacet.tagsForItem(r.id),
+            tags: tagsForItem(r.id),
             overflow: (
               <PriorityDropdown
                 variant="card"
@@ -264,7 +284,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
         }),
       };
     });
-  }, [filtered, filter.band, tagsFacet.tagsForItem]);
+  }, [filtered, filter.band, tagsForItem, assessmentsByItemId]);
 
   const coverageBySource = useMemo(() => {
     const map = new Map<string, number>();
@@ -277,7 +297,8 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
   // narrowed list came to sit under a header stating the whole corpus.
   const total = counts.total;
   const shown = filtered.length;
-  const themeLabelOf = (key: string) => (THEME_LABELS as Record<string, string>)[key] ?? key;
+  const themeLabelOf = (key: string) =>
+    key === "unclassified" ? "Unclassified" : (THEME_LABELS as Record<string, string>)[key] ?? key;
   const windowLabel = WINDOW_OPTIONS.find((o) => o.key === windowKey)?.label ?? "All";
   const widerWindow = WINDOW_OPTIONS.find((o) => {
     const days = windowDays(windowKey);
@@ -313,7 +334,9 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
       onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
       secondaryFacetGroups={themeFacetGroups}
-      aboveRows={<ResearchThemeCards themes={themeCards} selected={theme} onSelect={setTheme} />}
+      aboveRows={
+        <ResearchThemeCards themes={themeCards} selected={theme} onSelect={setTheme} unclassifiedCount={unclassifiedCount} />
+      }
       sortRow={
         <ListSurfaceSortRow
           countLabel={

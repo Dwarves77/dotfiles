@@ -1,0 +1,10 @@
+{
+  "family": "theme-backfill",
+  "registered": "2026-10-02",
+  "registered_by": "lane L8",
+  "governing_files": [
+    "scripts/research/backfill-themes.mjs",
+    "src/lib/agent/metadata-vocab.ts"
+  ],
+  "rationale": "theme-backfill (lane L8, 2026-10-02, coordinator ruling per CLAUDE.md rule 17 'nothing in this build runs alone'): a one-time/re-runnable data-correction harness over a defined candidate set (research_finding rows with theme IS NULL) rather than a standing producer. Governing files are backfill-themes.mjs (the classification + patch logic) and metadata-vocab.ts (the DB_THEME_VALUE_LIST single home it classifies against) - a change to either changes what a run means, so both move the harness_version hash."
+}
