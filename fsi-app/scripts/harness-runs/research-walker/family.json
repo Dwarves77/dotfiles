@@ -1,0 +1,9 @@
+{
+  "family": "research-walker",
+  "registered": "2026-10-02",
+  "registered_by": "lane L7",
+  "governing_files": [
+    "scripts/research/research-walker.mjs"
+  ],
+  "rationale": "research-walker (registered by lane L7, spec 03 section 8, R14 lift criterion 8): a dispatch-callable free-intake harness, one run is one walk over the 3 named research-role grey-literature sources (IEA, ICCT, a named university transport institute) plus the OpenAlex works feed, producing candidate research_finding mint plans that are run through the existing single mint chokepoint (src/lib/intake/mint-item.ts's mintIntelligenceItem) in dry mode by default. Build mode (CLAUDE.md rule 16) forbids a standing schedule; this family's runs are explicit-dispatch only, same posture as research-assessment and forward-events. Governing file is the walker script itself, which is also the only file whose change should re-stamp this family's harness_version."
+}

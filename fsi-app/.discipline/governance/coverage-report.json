@@ -7582,6 +7582,26 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/research/research-walker.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/research/research-walker.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
+    },
+    {
       "path": "fsi-app/scripts/review/apply-canonical-candidates.test.mjs",
       "kinds": [
         "PROOF"
@@ -12001,11 +12021,11 @@
     }
   ],
   "summary": {
-    "governed_files": 1125,
-    "covered": 1079,
+    "governed_files": 1127,
+    "covered": 1080,
     "exempt": 46,
-    "gaps": 0,
-    "orphaned_proofs": 0,
+    "gaps": 1,
+    "orphaned_proofs": 1,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

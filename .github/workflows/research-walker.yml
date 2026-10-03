@@ -1,0 +1,91 @@
+name: Research walker
+
+# Lane L7 (spec 03 section 8, R14 lift criterion 8). One explicit dispatch workflow, no schedule (rule
+# 16: build mode holds every runtime to explicit dispatch; system_state.scrape_cadence='off'). Copied
+# from research-assessment.yml's own pattern (read in full before this file was written): the chained
+# dry-run guard step, the ENABLED-const-plus-kill-switch-plus-input-mode three-gate shape, and the
+# best-effort harness-run landing step at the end.
+#
+# WHAT THIS RUNS. scripts/research/research-walker.mjs: resolves the 3 named research-role grey-lit
+# sources (IEA, ICCT, a university transport institute) through the institution class table (rule 18),
+# then runs every candidate (grey-lit + OpenAlex) through the existing mint chokepoint
+# (src/lib/intake/mint-item.ts) in dryRun mode. The default dispatch runs against the committed
+# fixtures (zero network, zero DB read); there is no live network/apply path wired by this lane (no DB
+# credentials exist in a lane worktree to prove one, per the lane-common-contract) -- a live dispatch is
+# a separately-authorized coordinator action after this lane merges.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = fixtures, mint-gate dry-run, write nothing. apply is not wired by this lane (no live path exists yet).'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry]
+
+concurrency:
+  group: research-walker
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RUN_MODE: ${{ inputs.mode }}
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      RESEARCH_WALKER_ENABLED: '0' # Gate 2 stays OFF; this lane ships no live/apply path to arm.
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Chained dry-run guard (rule 16), same posture research-assessment.yml documents for its own
+      # copy: this workflow is workflow_dispatch-only today (no workflow_run trigger), so the guard is a
+      # no-op in practice, included for parity so a future upstream hop inherits the gate for free.
+      - name: Chained dry-run guard (build mode, rule 16)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${{ inputs.mode }}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "mode    = $RUN_MODE (forced dry if CHAINED_FORCED_DRY=true: ${CHAINED_FORCED_DRY:-false})"
+          echo "A walker whose own ENABLED flag is false, or RESEARCH_WALKER_ENABLED=0, no-ops any apply path regardless of mode."
+
+      - name: research-walker.mjs
+        run: |
+          node scripts/research/research-walker.mjs --dispatch
+
+      # Record this family's own harness-run artifact into harness_runs (CONVENTION.md; best-effort, same
+      # posture as every other producer -- a missing credential self-skips rather than failing the job).
+      - name: Land the research-walker harness-run artifact into harness_runs
+        if: always()
+        run: |
+          latest=$(ls -1 scripts/harness-runs/research-walker/research-walker-run-*.json 2>/dev/null | sort | tail -1)
+          if [ -n "$latest" ]; then
+            node scripts/lib/record-harness-run.mjs --file "$latest" || echo "record-harness-run: best-effort, no-ops cleanly with no SUPABASE_* creds set."
+          else
+            echo "no research-walker run artifact found to land."
+          fi
