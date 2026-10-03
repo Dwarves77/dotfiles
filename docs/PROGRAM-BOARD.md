@@ -14,16 +14,20 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
-> **Resume from (2026-10-02):** audit cleanup queue draining ,  PRs 869 to 888 landed the bulk of the
-> 23-lane remediation plan's own backlog, all 8 Wave-2 lanes (W2-B through W2-G, PRs 863/878/879/880/882/
-> 883), W2-R (PR 887, the research-assessment data machine, ADR-038), and the L3/L5-L9 dispatch briefs
-> (PR 888) (see "Remediation lanes" thread table and the Wave-2 sub-table above for the per-lane state
-> against `gh pr list`). Lane 7 and two unnamed lint lanes are coordinator-reported IN PROGRESS (not yet
-> independently verifiable, no PR exists); Lanes 10 and 21 are still OPEN with no activity reported. Next,
-> the Research build lanes (L3, L5 to L9 of
-> [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md)) from migration
-> 346 (the `signposts` table, L6), once the remediation queue's remaining OPEN lanes are dispositioned or
-> explicitly deferred. Prior pointer (2026-10-01): [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
+> **Resume from (2026-10-03):** Research lanes landed ,  all six dispatched Research build lanes
+> (`docs/dispatches/lane-briefs/2026-10-02/`, L3/L5/L6/L7/L8/L9) plus RA-WF, LINT-A, LINT-C and MODEL-IDS
+> are merged: L3 891, L6 890, L8 896, L9 894, RA-WF 895, L5 897, L7 898, LINT-A 893, LINT-C 892, MODEL-IDS
+> 899. Only R7-LINT-CI (remediation Lane 7) remains: coordinator-reported "released, pushing" 2026-10-03,
+> PR number pending the next pass. The research-assessment workflow fired its first live dry dispatch
+> (run 37091503805, 10 candidates, 4 assessed, 6 refused, 0 written, `[CONFIRMED]` via `gh run view`); its
+> apply run is explicitly held pending the operator's data-hold release, not a defect. See the "Research
+> build lanes" section above for the full per-lane state. Remediation-plan Lanes 10 and 21 are still OPEN
+> with no activity reported. Next: once R7-LINT-CI lands, waves 3 to 7 of
+> [docs/plans/complete-build-plan-2026-10-01.md](./plans/complete-build-plan-2026-10-01.md) (Market Intel,
+> Operations, Community, the spine completion, and the 8 spec-09 domain extensions ,  L10 through L28).
+> Prior pointer (2026-10-02): audit cleanup queue draining ,  PRs 869 to 888 landed the bulk of the
+> 23-lane remediation plan's own backlog, all 8 Wave-2 lanes (W2-B through W2-G), W2-R (PR 887, the
+> research-assessment data machine, ADR-038), and the L3/L5-L9 dispatch briefs (PR 888). Prior pointer (2026-10-01): [docs/plans/build-overview-2026-09-30.md](./plans/build-overview-2026-09-30.md)
 > (one-page state of the build, by customer surface and by data-machine stage, every cell cited to a
 > proving artifact) and the consolidated audit, [docs/audits/audit-consolidated-2026-09-30.md](./audits/audit-consolidated-2026-09-30.md)
 > (22-register sweep, every finding `[CONFIRMED]`/`[HYPOTHESIS]`/`[REFUTED]`), together with
@@ -2256,8 +2260,9 @@ Write sets checked disjoint by file path across all 22. All OPEN below pending t
 | Lane 4: migration header truth pass (4 confirmed, 7 to verify) + standing check | DONE, pushed PR 876 | merged 2026-10-02 ("Lane R4-5"); 12 migration headers corrected, migration 149 retired NEVER APPLIED, new standing check F63. |
 | Lane 5: `inference_records` disposition | DONE 2026-10-01 | KEEP per decision 2 above; DROP SQL withdrawn. |
 | Lane 6: `sources.reliability_score` drop | DONE, pushed PR 876 | merged 2026-10-02; migration 340 drops the column (CF-DATA-4), coordinator-applied 2026-10-01. |
-| Lane 7: wire ESLint into CI/pre-push | IN PROGRESS | remediation-plan-2026-09-30.md Lane 7; not covered by PR 875 (F64/F65 only) or any other merged PR through 888. Coordinator-reported 2026-10-02 as in progress; no branch/PR exists yet to verify independently (`gh pr list` 2026-10-02, open and merged). |
-| Two lint lanes (unnamed, coordinator-reported 2026-10-02) | IN PROGRESS | Coordinator-reported alongside Lane 7 above; no PR or branch named yet, not independently verifiable via `gh pr list` as of this check. Scope not yet stated to this lane ,  recorded as a placeholder thread so the board does not silently drop it; the coordinator's next report should name scope/branch for each. |
+| Lane 7 / R7-LINT-CI: wire ESLint into CI/pre-push | RELEASED, PUSHING (coordinator-reported 2026-10-03; PR number pending next pass) | remediation-plan-2026-09-30.md Lane 7. Verified live as of last check (local branch, 10 commits ahead of `origin/master`): step wired in `discipline.yml` and `pre-push` (2026-10-01 addendum `2026-10-01-r7-lint.md`), F54 exemption added; this lane's own 2026-10-01 addendum `[REFUTED]`s the brief's premise that `src` lints clean (304 errors/101 warnings pre-existing baseline, unrelated to this lane). Later commits (2026-10-02, titles only, no new addendum read yet) retire 4 superseded population scripts and clean lint across `.discipline/`, `scripts/`, `supabase/`. **Formerly tracked here as two unnamed "lint lanes"** ,  corrected below: those are LINT-A and LINT-C, both separate, both now merged. Coordinator to give the PR number in the next pass. |
+| LINT-A: `fsi-app/src/app/**` lint-clean | DONE, merged PR 893 | merged 2026-10-02; 105 errors/16 warnings -> 0/0 across 41 files; 2 files unblocked mid-lane when PR 887 merged, fixed in the final commit. |
+| LINT-C: `fsi-app/src/components/**` lint-clean | DONE, merged PR 892 | merged 2026-10-02; 109 errors/47 warnings -> 0/0 in scope; `ResearchLedger.tsx`/`ResearchFindingDetailSurface.tsx` explicitly excluded (coordinator ruling: L5/L8 own those files' lint, not this lane). |
 | Lane 8: bracket-path test guard | DONE, pushed PR 875 | merged 2026-10-02 ("Lane R6-8"); F65 (`no-bracket-path-tests`) + `run-explicit-tests.mjs` root-cause fix, proved 1545->1546->1545 with a staged `[param]/` fixture. |
 | Lane 9: RLS/admin-gate class lint | DONE, pushed PR 875 | merged 2026-10-02; F64 (`rls-admin-gate-class`), plus migration 342 fixing the genuine CF-DATA-8 instance it surfaced live (migration 043's admin policies). |
 | Lane 10: consistency-backstop required-check promotion | OPEN | remediation-plan-2026-09-30.md Lane 10; not covered by PR 863-884. |
@@ -2277,6 +2282,43 @@ Write sets checked disjoint by file path across all 22. All OPEN below pending t
 | A6b (discipline/tests follow-on) | DONE, folded into Lane 23 | PR 871 (register) + PR 872 (consolidation's ninth amendment) merged 2026-10-02: all 3 A6b findings (CF-BROKEN-10, CF-GATE-10, CF-GATE-11) reassigned to Lane 23's write set. |
 | W2-R: Research assessment data machine (complete-build-plan L1/L2, ADR-038) | DONE, merged PR 887 | **Correction to this row's own prior entry** (rule 14: corrected in place, not silently dropped): the 2026-10-02 entry above mis-described W2-R as "dissent panel / signposts list / assessment history ledger" (that is complete-build-plan L5, a distinct, still-unbuilt, unnamed lane). Verified against PR 887's actual title ("Lane W2-R: Research assessment data machine (ADR-038)") and body: builds `src/lib/research/assess.mjs` (deterministic TRL/CRI/R1-R4 ladder), migration 344 (`research_assessments`), the dry-by-default producer with two fixture harness runs, and the "Horizon assessment" rail card on `/research` and `/research/[slug]`. Merged 2026-10-02. `docs/decisions/ADR-038-research-built-now.md` INDEX line added same pass (verified present on master first). |
 | Lane BRIEFS-RESEARCH: dispatch briefs for L3, L5 to L9 (complete-build-plan Wave 2) | DONE, merged PR 888 | merged 2026-10-02; `docs/dispatches/lane-briefs/2026-10-02/` (verified present on master: README + briefs L3/L5/L6/L7/L8/L9), gated on PR 887 merging first (satisfied above). INDEX line added to the `## dispatches` section same pass. |
+
+---
+
+## Research build lanes (complete-build-plan-2026-10-01.md L3, L5 to L9; RA-WF; LINT-A/LINT-C/R7; MODEL-IDS), 2026-10-02
+
+All six dispatched briefs (`docs/dispatches/lane-briefs/2026-10-02/`) gated on PR 887 (W2-R, ADR-038)
+merging first; that precondition was satisfied before any of these branched (each lane's own addendum
+confirms the precondition check against `origin/master`).
+
+| Lane | State | Evidence / next |
+|---|---|---|
+| L3: Research source-authority client (narrowed, OpenAlex/ROR/ORCID) | DONE, merged PR 891 | merged 2026-10-02; `scripts/research/openalex-client.mjs`/`authority-score.mjs`, feeding the authority-score column PR 887's schema already reserved. L7's own addendum flags a duplication risk against its own minimal OpenAlex reader, owed a fold-in now that this has landed (not yet done). |
+| L5: Research surface detail panels (Dissent panel, Signposts list, Assessment-history ledger) | DONE, merged PR 897 | merged 2026-10-03. First-pass `SignpostList` invented a 5-value state enum, `[REFUTED]` after reading migration 346's real DDL and rewritten to the real `{watched entity, predicate, direction, fired/unfired}` shape (rule 14 correction recorded in place). Rendering guard initially failed 6 findings (3 new cards not in artboard p7's manifest); resolved via dated `DEVIATION-LOG.md` rows under rule 20, re-run: 0 findings. DESIGN CHANGES OWED (still open): artboard p7 needs rail slots for all 4 new Research cards (Horizon assessment from PR 887, plus this lane's 3). Full discipline suite on that branch pre-merge: 8744/8744, 0 fail, 3 skip. |
+| L6: Research signposts, machine-watchable entities | DONE, merged PR 890 | merged 2026-10-02; migration 346 (`signposts` table, `research_assessments.entity_id`/`lifecycle_state`) **[CONFIRMED] applied live** (`mcp__supabase__list_migrations` on project `kwrsbpiseruzbfwjpvsp`, 2026-10-03, lists version `20261002195345` / `346_research_assessments_entity_spine_signposts`). `lifecycle_state` was a named addition beyond the brief's literal text (rule 13: the brief's own acceptance test was unbuildable without it), reusing spec 08 S3.1's existing 8-value vocabulary, not a second one. |
+| L7: Research-role source registration + dispatch-callable research walker | DONE, merged PR 898 | merged 2026-10-03. 2 self-caught corrections (wrong mint chokepoint named in the brief, `mint-item.ts` not `canonical-pipeline.ts`; a fixture client bug that silently matched every candidate to the first registered source, caught by the real CLI run before any commit). Two required dry-run proof artifacts landed (`research-walker-run-001`/`-002`); `RESEARCH_WALKER_ENABLED` unset, rule 16 compliant, no schedule anywhere. Open item, still unresolved post-merge: its own minimal OpenAlex reader duplicates L3's client (merged PR 891), flagged by this lane itself, not yet folded into one shared reader. |
+| L8: Research theme classification backfill (47 null-theme rows) + `Unclassified` band | DONE, merged PR 896 | merged 2026-10-02. Coordinator-directed write-set expansions landed in the same PR: created `src/lib/llm/model-ids.mjs` (the first single home for `HAIKU_MODEL`, previously independently declared in 4 files) and wired `ResearchLedger.tsx`'s live `unclassifiedCount`; real CLI fire (`--fire-harness`) landed the `theme-backfill` harness family's first run. Rule 016 (banned glyph) and an `@anthropic-ai/sdk` literal-in-comment finding both self-caught and fixed in this lane's own write set. |
+| L9: Research Summary brief generation wired to the assessment model | DONE, merged PR 894 | merged 2026-10-02; `system-prompt.ts`'s Research Summary section (6 sections) gains the "Planning assumption shift" requirement (spec 03S1's own rule: a card that cannot populate the field does not ship), grounded only in real `research_assessments`/`planning_assumption_register` context fields, plus a code-level non-null CHECK. Does not touch the generation call path itself (`canonical-pipeline.ts`'s mint chokepoint), per the brief's own boundary. |
+| RA-WF: research-assessment workflow hardening (limit input, chained-dry-guard) | DONE, merged PR 895 | merged 2026-10-02; the brief's premise ("no explicit-dispatch workflow exists yet") was `[REFUTED]` ,  `research-assessment.yml` already existed (PR 887); this lane added the `limit` input and re-proved the fixture dry path (run-004, 5 candidates, 0 written). **First live dry dispatch, post-merge** (coordinator-run, independently re-verified this session via `gh run view 37091503805` and `gh run view --job=111112642459 --log`): run `37091503805`, landed in `harness_runs` as `research-assessment-run-001` (renumbered from the workflow's own local `-run-005`); metrics `{"candidates":10,"unchanged":0,"planned":10,"written":0}`, 4 assessed (2x R1, 2x R4), 6 refused (spec-03's mandatory refusal state: no dated statutory instrument / institutional roadmap / maturity corridor). `written:0` by design (`RUN_MODE: dry`, `RUN_LIVE: true` only widens the DB read, never the write). **The apply run (`RUN_MODE: live`, actual writes) is explicitly held, waiting on the operator's data-hold release** (build-mode rule 16/R14 population hold) ,  not scheduled, not a defect. |
+| LINT-A: `fsi-app/src/app/**` lint-clean | DONE, merged PR 893 | see Remediation lanes table above (same row, not duplicated in full here). |
+| LINT-C: `fsi-app/src/components/**` lint-clean | DONE, merged PR 892 | see Remediation lanes table above. |
+| R7-LINT-CI (Lane 7): ESLint wired into CI/pre-push, remaining-tree lint cleanup | RELEASED, PUSHING | see Remediation lanes table above (same row); coordinator to give the PR number in the next pass. |
+| MODEL-IDS: centralise `HAIKU_MODEL`/`SONNET_MODEL` into one shared home | DONE, merged PR 899 | merged 2026-10-03. Builds on L8's `model-ids.mjs` (first created there for `HAIKU_MODEL` alone); adds `SONNET_MODEL`, converts the remaining lib-layer, admin-route, and review-card literal declarations (`verification.ts`, `recommend-source-tier.ts`, `spend-client.ts`, `generation-config.ts`, `two-pass-generate.mjs`, 3 admin routes, `ask/route.ts`, 2 review-card components) to import from the shared module. 14 files touched, net -38 lines (duplication removed). |
+
+**Node_modules incident (2026-10-02, mid-day, affecting L5/RA-WF and likely other concurrent worktrees):**
+the shared `fsi-app/node_modules` install went missing from both the main checkout and the worktree
+link targets, root-caused by the coordinator as a detached worktree's shared-install junction being
+force-removed. Fixed by the coordinator: `npm ci` in the main checkout (952 packages), then
+`sh .discipline/hooks/lib/worktree-node-modules.sh --link` re-run per affected worktree. `[CONFIRMED]`
+by L5's and RA-WF's own addenda, both of which independently record re-running every gate after the
+restoration. No lane's committed code is implicated; this was host/worktree infrastructure, not a
+build defect.
+
+**L7 duplicate-dispatch episode (coordinator-reported 2026-10-02, not independently verifiable from
+repo state ,  only one `lane/l7-research-walker` branch exists today):** the coordinator reports L7 was
+briefly dispatched twice in this build day before being caught. Recorded here as coordinator-reported,
+per rule 14, pending any further detail; see the session-log entry below for the standing rule this
+produced.
 
 ---
 

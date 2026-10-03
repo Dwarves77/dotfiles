@@ -24366,3 +24366,78 @@ to verify independently via `gh pr list`, recorded as coordinator-reported, not 
 Resume pointer updated accordingly. Files changed this pass: `docs/INDEX.md` (2 new lines), `docs/
 PROGRAM-BOARD.md` (W2-R row corrected, BRIEFS-RESEARCH row added, Lane 7 + two lint lanes marked IN
 PROGRESS, resume pointer).
+
+## 2026-10-03, coordinator (COORD-DOCS lane, second pass): the Research build day (L3/L5-L9, RA-WF, LINT-A/C, R7, MODEL-IDS)
+
+Fresh worktree/branch (`coord-docs-1003` / `coord/docs-2026-10-03`) from `origin/master`, per coordinator
+instruction; the prior `coord-docs-1002` worktree was removed (clean, already merged as PR 889).
+
+**The Research build day.** The six lane briefs under `docs/dispatches/lane-briefs/2026-10-02/` (L3, L5,
+L6, L7, L8, L9), gated on PR 887 (W2-R, ADR-038) merging first, dispatched together with RA-WF (research-
+assessment workflow hardening) and two lint lanes (LINT-A, LINT-C). Merged today: L3 (PR 891), L6 (PR
+890, migration 346 **[CONFIRMED] applied live** via `mcp__supabase__list_migrations`), L8 (PR 896), L9
+(PR 894), RA-WF (PR 895), LINT-A (PR 893), LINT-C (PR 892). Pushed but not yet merged, read from their
+local branches (not yet on master): L5 (`lane/l5-research-detail-panels-2026-10-02`) and L7
+(`lane/l7-research-walker`). In progress, not yet pushed: R7-LINT-CI (remediation Lane 7's own branch,
+`lane/r7-lint-ci`) and MODEL-IDS (`lane/model-ids`). Full detail in the new "Research build lanes"
+section of `docs/PROGRAM-BOARD.md`, including the independently-reverified first live dry dispatch of
+the research-assessment workflow (run `37091503805`: 10 candidates, 4 assessed, 6 refused, 0 written;
+the apply run is held pending the operator's data-hold release, by design, not a defect).
+
+**The node_modules wipe incident and fix.** Mid-day, the shared `fsi-app/node_modules` install went
+missing from both the main checkout and the lane worktrees' link targets. Root cause per the
+coordinator's own diagnosis (recorded in L5's and RA-WF's session-log.d addenda): a detached worktree's
+shared-install junction was force-removed. Fix: `npm ci` in the main checkout (952 packages), then
+`sh .discipline/hooks/lib/worktree-node-modules.sh --link` re-run per affected worktree. Every lane whose
+addendum was read this pass re-ran its gates after the restoration and reported clean results; no lane's
+own code is implicated.
+
+**Model-id centralisation.** `src/lib/llm/model-ids.mjs` did not exist before today. L8 created it
+(single-constant `HAIKU_MODEL`) as a small, coordinator-directed write-set expansion while wiring
+`backfill-themes.mjs`'s Haiku call, after finding the constant independently declared in four separate
+files (`haiku-classify.ts`, `first-fetch-classify.ts`, `verification.ts`,
+`spot-check/recurring/route.ts`) plus roughly nine further inline literal call sites. The separate
+MODEL-IDS lane (in progress) extends that one home with `SONNET_MODEL` and converts the remaining lib,
+admin-route, and review-card call sites.
+
+**The L7 duplicate-lane episode.** Coordinator-reported: lane L7 was briefly dispatched twice in this
+build day before being caught. This entry is coordinator-reported, not independently re-verifiable from
+repo state (only one `lane/l7-research-walker` branch exists as of this check) ,  recorded per rule 14 as
+coordinator-sourced, pending any further detail the coordinator wants added.
+
+**New standing rule (coordinator-directed, this build day): a lane in a long gate run must answer a
+status request within one round.** When the coordinator asks a lane for status while its own gates
+(the full discipline suite, the rendering guard, a background `npm ci`) are still running, the lane
+replies within its next turn with what it knows so far (which gate is running, elapsed/expected time,
+partial results if any) rather than going silent until the whole run completes. This rule is recorded
+here per the coordinator's instruction; it is not yet encoded into `docs/dispatches/lane-common-
+contract.md` itself ,  that file is coordinator-only and a candidate location for it, flagged here as a
+follow-up rather than added unasked this pass.
+
+**INDEX.md: no new lines this pass.** Checked every 2026-10-02 addendum read above (L3, L5, L6, L7, L8,
+L9, RA-WF, LINT-A, LINT-C) for a new living doc; every `docs/decisions/`, `docs/runbooks/` or
+`docs/inventories/` reference found is to an already-indexed doc (ADR-038, ADR-039, `migrations.md`).
+The research-walker harness family (`scripts/harness-runs/research-walker/`) is a scripts artifact, not
+a doc, per the coordinator's own instruction this round ,  no INDEX line for it.
+
+Files changed this pass: `docs/PROGRAM-BOARD.md` (new "Research build lanes" section; Lane 7/lint rows
+corrected to name LINT-A/LINT-C/R7-LINT-CI; resume pointer updated), `docs/ops/session-log.md` (this
+entry). `docs/INDEX.md` not touched (nothing owed).
+
+## 2026-10-03, coordinator (COORD-DOCS lane, third pass): status-request rule codified in the lane contract
+
+Per the coordinator's follow-up confirmation, the status-within-one-round rule flagged above is now
+binding, not just logged: `docs/dispatches/lane-common-contract.md`'s "Where you work" section gains
+"A lane answers a coordinator status request within one tool round, even mid-gate; a lane that cannot
+be reached for three requests is replaced (added 2026-10-03, binding)." Files changed this pass:
+`docs/dispatches/lane-common-contract.md` (one new bullet), `docs/ops/session-log.md` (this entry).
+
+## 2026-10-03, coordinator (COORD-DOCS lane, fourth pass): Research build day closes out, R7-LINT-CI the only lane left
+
+Final merged PR numbers per coordinator report, verified via `gh pr list --state merged --limit 10`: L5
+897, L7 898, MODEL-IDS 899 (L3 891, L6 890, L8 896, L9 894, RA-WF 895, LINT-A 893, LINT-C 892 already
+recorded). `docs/PROGRAM-BOARD.md`'s "Research build lanes" section and resume pointer updated: all six
+dispatched Research lanes plus RA-WF, LINT-A, LINT-C and MODEL-IDS are now DONE. Only R7-LINT-CI
+(remediation Lane 7) remains, coordinator-reported "released, pushing" with its PR number to follow in
+the next pass. Files changed this pass: `docs/PROGRAM-BOARD.md` (L5/L7/MODEL-IDS/R7 rows, resume
+pointer), `docs/ops/session-log.md` (this entry).
