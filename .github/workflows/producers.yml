@@ -92,7 +92,7 @@ on:
         # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
         # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
         # Bulletin step's dry/apply shape is the remaining wiring.
-        options: [all, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, refresh-published-price-statistics, build-oil-bulletin-rows, ratify-series-items]
+        options: [all, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, sbti-target-dashboard, refresh-published-price-statistics, build-oil-bulletin-rows, ratify-series-items]
       since:
         description: 'Optional backfill start date (YYYY-MM-DD) for the EU Weekly Oil Bulletin history file. Leave empty for the normal latest-week fetch. Ignored by every other producer.'
         required: false
@@ -282,6 +282,27 @@ jobs:
             node scripts/producers/market/eia-v2-petroleum-spot-producer.mjs --apply
           else
             node scripts/producers/market/eia-v2-petroleum-spot-producer.mjs
+          fi
+
+      - name: sbti-target-dashboard (SBTi per-sector lead-time + survivorship; LICENCE-BLOCKED on --apply, dry only)
+        # Lane L11, 2026-10-03. Mirrors the dry/apply shape every other market producer step in this file
+        # uses, EXCEPT it is NOT in 'all' (dispatch it by name only, same posture as
+        # refresh-published-price-statistics/the DESNZ-EPA one-off seeders below), because this
+        # producer's own decideApply REFUSES --apply unconditionally (fsi-app/src/lib/contracts/
+        # source-licence.mjs's registered 'sbti_dashboard' entry: redistribution "prohibited", see the
+        # producer's own header for the full licence rationale). A dispatched mode=apply run against
+        # 'sbti-target-dashboard' by name exits 1 on purpose (the gate firing correctly, not a producer
+        # bug); folding it into 'all' would make every 'all'+apply dispatch fail on this one step for a
+        # reason that has nothing to do with the OTHER producers in that batch, so it stays name-only
+        # until the licence question is resolved (operator/coordinator call).
+        if: env.RUN_PRODUCER == 'sbti-target-dashboard'
+        env:
+          MARKET_PRODUCER_SBTI_ENABLED: '1'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/sbti-target-dashboard-producer.mjs --apply
+          else
+            node scripts/producers/market/sbti-target-dashboard-producer.mjs
           fi
 
       - name: refresh-published-price-statistics (derive published_price_statistics display rows from market_series)
