@@ -116,7 +116,8 @@ export async function GET(request: NextRequest) {
 
   // Zero-legal surfaces.
   counts["community"] = await countRows(supabase, "community_posts", (q) => q);
-  counts["map"] = await countRows(supabase, "community_posts", (q) => q);
+  // map is a view of Regulations content (ADR-041: it carries no Community-derived backing).
+  counts["map"] = counts["regulations"];
   // assistant-config backing = the Ask substrate (verified items it can cite).
   counts["assistant-config"] = await countRows(supabase, "intelligence_items", verified);
   // onboarding-config backing = workspace_settings rows (sector/notification

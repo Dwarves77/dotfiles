@@ -42,11 +42,6 @@ export const dynamic = "force-dynamic";
 
 const PRIO_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 };
 
-/** ISO timestamp 30 days ago — module scope so the render body stays pure. */
-function thirtyDaysAgoIso(): string {
-  return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-}
-
 // Delegates to bandFromPriority (src/lib/urgency/bands.ts), the ONE urgency
 // vocabulary (README §0.2) — this used to hand-roll its own CRITICAL/HIGH/
 // MODERATE/LOW mapping; kept as the same "critical"/"high"/"moderate"/"low"
@@ -210,13 +205,12 @@ export default async function CommunityPage() {
   }));
   const verticalOptions = VERTICALS.map((v) => ({ id: v.id, label: v.label }));
 
-  // ── Parallel reads: verified ledger, memberships, room threads, roster, pickups ──
+  // ── Parallel reads: verified ledger, memberships, room threads, roster ──
   const [
     listings,
     membershipsRes,
     postsRes,
     rosterRes,
-    pickupsRes,
   ] = await Promise.all([
     getListingsOnly(),
     supabase
@@ -243,15 +237,6 @@ export default async function CommunityPage() {
           )
           .eq("org_id", me.org_id)
       : Promise.resolve({ data: [] as unknown[], error: null }),
-    // Admin-pickups pending count — mirrors CommunityPickupsQueueView heuristic
-    // (top-level, unpromoted, reply_count>=3, within 30 days).
-    supabase
-      .from("community_posts")
-      .select("id", { count: "exact", head: true })
-      .is("parent_post_id", null)
-      .is("promoted_at", null)
-      .gte("reply_count", 3)
-      .gte("created_at", thirtyDaysAgoIso()),
   ]);
 
   const resources = (listings.resources ?? []) as Resource[];
@@ -531,7 +516,6 @@ export default async function CommunityPage() {
         currentUserIsOwner={me.workspace_role === "owner"}
         currentUserIsVerifier={me.verifier_status === "active"}
         verifierStatus={me.verifier_status ?? "none"}
-        pendingPickups={pickupsRes.count ?? 0}
         nowIso={nowIso}
         verticalGroups={verticalGroups}
         verticalOptions={verticalOptions}

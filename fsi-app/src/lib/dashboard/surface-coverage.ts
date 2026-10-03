@@ -16,21 +16,14 @@
 //                   OR domain IN (2, 4)
 //   - Research: item_type IN (research_finding)
 //   - Operations: item_type = regional_data OR domain IN (3, 6)
-//   - Community: not a category-routed intelligence_items query; per
-//                source-credibility-model Section 8 Community uses a
-//                different data model (groups + memberships + threads).
-//                Counted from public.community_groups (active count) +
-//                community_memberships (member of) when the workspace
-//                has a community footprint. Falls back to zeros when
-//                community schema unavailable.
+//   - Community: carries NO count here (ADR-041, 2026-10-03). Community is a
+//                social place, not a source of information, so no
+//                Community-derived count, state or aggregate feeds the
+//                Dashboard or the nav rail.
 //
-// The five subtotals + "uncategorized" are derived so they always sum to
-// the workspace-wide totalItems for intelligence content; Community is
-// reported alongside as a co-equal surface with its own data shape (the
-// count is "active groups in your workspace" + "unread mentions"). The
-// dashboard headline shows both the intelligence total and the Community
-// activity, transparently labelled so a sharp-eyed user can verify the
-// per-surface tiles add up.
+// The four subtotals + "uncategorized" are derived so they always sum to
+// the workspace-wide totalItems for intelligence content, so a sharp-eyed
+// user can verify the per-surface tiles add up.
 
 import { unstable_cache } from "next/cache";
 import { fetchAllRows, fetchAllByIdChunks } from "@/lib/db/paginate.mjs";
@@ -38,7 +31,6 @@ import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
 import { surfaceOf } from "@/lib/surface-of.mjs";
-import { ROOMS } from "@/lib/community/rooms";
 
 export interface IntelligenceSurfaceCounts {
   regulations: number;
@@ -54,30 +46,8 @@ export interface IntelligenceSurfaceCounts {
   totalIntelligence: number;
 }
 
-export interface CommunitySurfaceCounts {
-  /** COUNTS-61 (production defect, click-through audit 2026-09-08): the number of REGIONAL ROOMS,
-   *  which is what both consumers of this field label it — the nav rail's "Community" badge and the
-   *  dashboard rail's "N regional rooms" note. It is the roster the /community page itself renders
-   *  (src/lib/community/rooms.ts's ROOMS, a fixed vocabulary of seven), so the badge and the page
-   *  cannot disagree. It used to be `activeGroups`, the count of distinct groups the workspace's
-   *  members had JOINED, which is a different quantity entirely: the rail read "Community 1 / 1
-   *  regional rooms" against a page reading "7 regional rooms".
-   *
-   *  The membership figure is not lost — it is `joinedGroups` below, and the /community page states
-   *  it in its own sentence ("you are in N"), which is the only place it was ever meant to appear. */
-  regionalRooms: number;
-  /** Distinct active groups (private + public) the workspace's members belong to. A membership
-   *  tally, never a room roster — see `regionalRooms` above for why the two are now separate. */
-  joinedGroups: number;
-  /** Unread notifications for the current user (cross-group). */
-  unreadNotifications: number;
-  /** Mention-kind unread count (subset of unreadNotifications). */
-  unreadMentions: number;
-}
-
 export interface SurfaceCoverageSnapshot {
   intelligence: IntelligenceSurfaceCounts;
-  community: CommunitySurfaceCounts;
 }
 
 const EMPTY_INTEL: IntelligenceSurfaceCounts = {
@@ -89,16 +59,8 @@ const EMPTY_INTEL: IntelligenceSurfaceCounts = {
   totalIntelligence: 0,
 };
 
-const EMPTY_COMMUNITY: CommunitySurfaceCounts = {
-  regionalRooms: ROOMS.length,
-  joinedGroups: 0,
-  unreadNotifications: 0,
-  unreadMentions: 0,
-};
-
 const EMPTY_SNAPSHOT: SurfaceCoverageSnapshot = {
   intelligence: EMPTY_INTEL,
-  community: EMPTY_COMMUNITY,
 };
 
 interface ScopeItem {
@@ -248,100 +210,11 @@ async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfa
   }
 }
 
-async function fetchCommunityCounts(orgId: string): Promise<CommunitySurfaceCounts> {
-  if (!isSupabaseConfigured()) return EMPTY_COMMUNITY;
-  try {
-    const supabase = getServiceSupabase();
-
-    // Resolve org users first (one round-trip), then fan out to
-    // community_group_members + notifications. Avoiding embedded selects
-    // here because the org_memberships → community_group_members → groups
-    // chain isn't a clean PostgREST FK alias and per OBS-50 sweep
-    // discipline we prefer enumerate-first patterns over join-string
-    // guesses.
-    const { data: orgUserRowsRaw, error: orgUserErr } = await supabase
-      .from("org_memberships")
-      .select("user_id")
-      .eq("org_id", orgId);
-    if (orgUserErr) {
-      console.error(
-        "[dashboard/surface-coverage] org member lookup error:",
-        orgUserErr.message
-      );
-      return EMPTY_COMMUNITY;
-    }
-    const userIds = ((orgUserRowsRaw ?? []) as Array<{ user_id: string }>).map(
-      (r) => r.user_id
-    );
-
-    let joinedGroups = 0;
-    let unreadNotifications = 0;
-    let unreadMentions = 0;
-
-    if (userIds.length === 0) {
-      return EMPTY_COMMUNITY;
-    }
-
-    // Active groups the workspace's members belong to. Counted as the
-    // distinct group_id set in community_group_members whose user_id is
-    // one of the org's members. Schema reference: migration 029.
-    const { data: cgmRowsRaw, error: cgmErr } = await supabase
-      .from("community_group_members")
-      .select("group_id")
-      // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
-      .in("user_id", userIds);
-    if (cgmErr) {
-      console.error(
-        "[dashboard/surface-coverage] community_group_members fetch error:",
-        cgmErr.message
-      );
-    } else {
-      const groupSet = new Set<string>();
-      for (const row of (cgmRowsRaw ?? []) as Array<{ group_id: string }>) {
-        if (row.group_id) groupSet.add(row.group_id);
-      }
-      joinedGroups = groupSet.size;
-    }
-
-    // Unread + mention counts: aggregate across all org members. This is
-    // the workspace-level signal ("X unread across your team") versus the
-    // per-user signal that /api/community/notifications/counts powers in
-    // the Community sidebar. The dashboard wants the org rollup.
-    const { data: notifRowsRaw, error: notifErr } = await supabase
-      .from("notifications")
-      .select("kind")
-      // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
-      .in("user_id", userIds)
-      .is("read_at", null);
-    if (notifErr) {
-      console.error(
-        "[dashboard/surface-coverage] notifications aggregate error:",
-        notifErr.message
-      );
-    } else {
-      for (const row of (notifRowsRaw ?? []) as Array<{ kind: string }>) {
-        unreadNotifications += 1;
-        if (row.kind === "mention") unreadMentions += 1;
-      }
-    }
-
-    // regionalRooms is the room ROSTER, not a query result: the /community page renders one tile per
-    // ROOMS entry whether or not the seed has run, so the nav badge must read the same vocabulary.
-    return { regionalRooms: ROOMS.length, joinedGroups, unreadNotifications, unreadMentions };
-  } catch (e) {
-    console.error("[dashboard/surface-coverage] fetchCommunityCounts failed:", e);
-    return EMPTY_COMMUNITY;
-  }
-}
-
 const cachedSurfaceCoverage = unstable_cache(
   async (orgId: string | null): Promise<SurfaceCoverageSnapshot> => {
     if (!orgId) return EMPTY_SNAPSHOT;
-    const [intelligence, community] = await Promise.all([
-      fetchIntelligenceCounts(orgId),
-      fetchCommunityCounts(orgId),
-    ]);
-    return { intelligence, community };
+    const intelligence = await fetchIntelligenceCounts(orgId);
+    return { intelligence };
   },
   ["dashboard-surface-coverage-v1"],
   { revalidate: 60, tags: [APP_DATA_TAG] }

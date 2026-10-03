@@ -187,8 +187,8 @@ item lives on.
   cost data; surfaces on Operations. Includes regional_data item type.
 
 The fifth platform surface, Community, does not map to this taxonomy
-because Community content is user-generated peer discussion plus
-editorial pickups, not classifier output.
+because Community content is user-generated peer discussion, not
+classifier output, and it feeds no other surface.
 
 ## 7 Topic Categories (closed vocabulary)
 

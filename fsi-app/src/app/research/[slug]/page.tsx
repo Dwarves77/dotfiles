@@ -25,8 +25,8 @@
  * shape) + ResearchFindingDetailSurface below.
  *
  * PERF lane (2026-09-03, docs/audits/perf-load-times-2026-09-03.md): every
- * read this page issues (connections lookup, related-items, theme brief,
- * peers-strip entity) is item-scoped and org-independent, so the whole
+ * read this page issues (connections lookup, related-items, theme brief)
+ * is item-scoped and org-independent, so the whole
  * bundle runs inside ONE cached, parallel load via loadDetail
  * (src/lib/detail/load-detail.ts) - no loadViewerScoped: research has
  * nothing org-scoped beyond the always-on relevance lens.
@@ -52,7 +52,6 @@ import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { fetchSignpostsForAssessment, fetchAssessmentHistoryChain } from "@/lib/research/read-signposts.mjs";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
-import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
 
 // Related-findings cap. Matches the dispatch spec ("up to 5").
@@ -88,7 +87,6 @@ function pickRelated(row: RelatedRow): {
 
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
-  peersEntityId: string | null;
   related: ReturnType<typeof pickRelated>[];
   relatedReason: "theme" | "source" | "none";
   themeBrief: ReturnType<typeof selectThemeBriefForItem>;
@@ -156,7 +154,7 @@ export default async function ResearchFindingDetailPage({
       surface: "research",
       id,
       // Item-scoped, org-independent: connections lookup, theme/source-matched
-      // related findings, the theme-brief card, and the peers-strip entity.
+      // related findings, and the theme-brief card.
       // Cached - shared across every org that views this item.
       loadItemScoped: async ({ supabase, connections, supersessions }) => {
         const relatedIds = Array.from(
@@ -175,7 +173,6 @@ export default async function ResearchFindingDetailPage({
           related: ReturnType<typeof pickRelated>[];
           relatedReason: ItemScoped["relatedReason"];
           themeBrief: ItemScoped["themeBrief"];
-          peersEntityId: string | null;
           claimTiers: ClaimTierMap;
           assessment: ItemScoped["assessment"];
           signposts: ItemScoped["signposts"];
@@ -184,7 +181,6 @@ export default async function ResearchFindingDetailPage({
           let related: ReturnType<typeof pickRelated>[] = [];
           let relatedReason: ItemScoped["relatedReason"] = "none";
           let themeBrief: ItemScoped["themeBrief"] = null;
-          let peersEntityId: string | null = null;
           let claimTiers: ClaimTierMap = {};
           let assessment: ItemScoped["assessment"] = null;
           let signposts: ItemScoped["signposts"] = [];
@@ -192,14 +188,12 @@ export default async function ResearchFindingDetailPage({
           try {
             const { data: self } = await supabase
               .from("intelligence_items")
-              .select("id, theme, source_id, instrument_entity_id")
+              .select("id, theme, source_id")
               .eq(itemIdColumn(id), id)
               .eq("provenance_status", "verified") // customer read gate (parity with fetchIntelligenceItem)
               .maybeSingle();
 
             if (self) {
-              peersEntityId = self.instrument_entity_id ?? null;
-
               // TIER-CHIP lane (2026-09-04): kicked off here (self.id is the item uuid - no separate
               // resolveItemUuid call needed) and awaited just before the return below, so it runs
               // alongside the theme/source-fallback queries below rather than adding a fully serial
@@ -310,7 +304,7 @@ export default async function ResearchFindingDetailPage({
           } catch {
             // Soft-fail - surface renders the empty state (no related findings, no theme-brief card).
           }
-          return { related, relatedReason, themeBrief, peersEntityId, claimTiers, assessment, signposts, assessmentHistory };
+          return { related, relatedReason, themeBrief, claimTiers, assessment, signposts, assessmentHistory };
         })();
 
         const [resourceLookup, relatedAndBrief] = await Promise.all([
@@ -320,7 +314,6 @@ export default async function ResearchFindingDetailPage({
 
         return {
           resourceLookup,
-          peersEntityId: relatedAndBrief.peersEntityId,
           related: relatedAndBrief.related,
           relatedReason: relatedAndBrief.relatedReason,
           themeBrief: relatedAndBrief.themeBrief,
@@ -340,7 +333,6 @@ export default async function ResearchFindingDetailPage({
 
   const { resource: r, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
-  const peersEntityId = result.itemScoped?.peersEntityId ?? null;
   const related = result.itemScoped?.related ?? [];
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
   const themeBrief = result.itemScoped?.themeBrief ?? null;
@@ -373,7 +365,6 @@ export default async function ResearchFindingDetailPage({
         signposts={signposts}
         assessmentHistory={assessmentHistory}
       />
-      <PeersDiscussingStrip entityId={peersEntityId} />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
           NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>

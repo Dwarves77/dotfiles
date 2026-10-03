@@ -9,8 +9,6 @@
  *     band scale (src/lib/urgency/bands.ts — never a page-local palette;
  *     this file previously kept its own TONE_COLOR table with different
  *     hex values than bands.ts, a defect fixed this lane).
- *   - Community activity dots overlay (7px black) on regions with
- *     active community threads.
  *   - flyTo() on marker click AND on externalSelectJurId change (the
  *     register/rail click triggers the same animation).
  *
@@ -40,14 +38,8 @@ export interface MapJurisdiction {
   tone: JurisdictionTone;
 }
 
-export interface CommunityActivityRow {
-  regionCode: string;
-  count: number;
-}
-
 interface MapViewProps {
   jurisdictions: MapJurisdiction[];
-  communityActivity?: CommunityActivityRow[];
   /** When this id changes (along with nonce bump), flyTo that jurisdiction. */
   externalSelectJurId?: string | null;
   externalSelectNonce?: number;
@@ -80,21 +72,6 @@ export function markerSize(count: number): number {
   const n = Math.max(0, count);
   return Math.round(Math.min(MARKER_MAX, MARKER_MIN + Math.sqrt(Math.max(0, n - 2)) * 2.9));
 }
-
-// Region codes used by community_groups → approximate lat/lng for the dot
-// overlay. Subset of JURISDICTION_CENTROIDS keyed to the 8-region community
-// vocabulary. GLOBAL falls back to the mid-Atlantic point shared with
-// jurisdictions; visually overlaps the "global" marker which is acceptable.
-const COMMUNITY_REGION_CENTROIDS: Record<string, [number, number]> = {
-  EU: JURISDICTION_CENTROIDS.eu,
-  UK: JURISDICTION_CENTROIDS.uk,
-  US: JURISDICTION_CENTROIDS.us,
-  LATAM: JURISDICTION_CENTROIDS.latam,
-  APAC: JURISDICTION_CENTROIDS.asia,
-  HK: JURISDICTION_CENTROIDS.hk,
-  MEA: JURISDICTION_CENTROIDS.meaf,
-  GLOBAL: JURISDICTION_CENTROIDS.global,
-};
 
 // ── Marker icon builders ──
 
@@ -142,22 +119,6 @@ function createJurisdictionIcon(tone: JurisdictionTone, count: number): L.DivIco
   });
 }
 
-function createCommunityDotIcon(): L.DivIcon {
-  return L.divIcon({
-    className: "cl-map-community-dot",
-    html: `
-      <div style="
-        width:7px;height:7px;
-        border-radius:999px;
-        background:#1A1A1A;
-        border:1.5px solid #fff;
-      "></div>
-    `,
-    iconSize: [7, 7],
-    iconAnchor: [3.5, 3.5],
-  });
-}
-
 // ── FlyTo helper ──
 
 function FlyToSelected({ lat, lng, nonce }: { lat: number; lng: number; nonce: number }) {
@@ -176,7 +137,6 @@ function FlyToSelected({ lat, lng, nonce }: { lat: number; lng: number; nonce: n
 
 export function MapView({
   jurisdictions,
-  communityActivity = [],
   externalSelectJurId = null,
   externalSelectNonce = 0,
   onMarkerClick,
@@ -196,18 +156,6 @@ export function MapView({
       })
       .filter((m): m is MapJurisdiction & { lat: number; lng: number } => m !== null);
   }, [jurisdictions]);
-
-  // Resolve lat/lng for community activity dots.
-  const communityDots = useMemo(() => {
-    return communityActivity
-      .filter((c) => c.count > 0)
-      .map((c) => {
-        const centroid = COMMUNITY_REGION_CENTROIDS[c.regionCode];
-        if (!centroid) return null;
-        return { regionCode: c.regionCode, count: c.count, lat: centroid[0], lng: centroid[1] };
-      })
-      .filter((d): d is { regionCode: string; count: number; lat: number; lng: number } => d !== null);
-  }, [communityActivity]);
 
   // Resolve flyTo target.
   const selectedCoord = useMemo(() => {
@@ -254,18 +202,6 @@ export function MapView({
             nonce={externalSelectNonce}
           />
         )}
-
-        {/* Community activity dots render BENEATH urgency markers
-            (z-index 1) per mockup layering. */}
-        {communityDots.map((d) => (
-          <Marker
-            key={`comm-${d.regionCode}`}
-            position={[d.lat, d.lng]}
-            icon={createCommunityDotIcon()}
-            interactive={false}
-            zIndexOffset={0}
-          />
-        ))}
 
         {/* Urgency markers on top (z-index 2). */}
         {markers.map((m) => (
@@ -320,10 +256,6 @@ export function MapView({
         {BAND_ORDER.map((b) => (
           <LegendRow key={b.key} size={8} color={b.hex} label={`${b.label} present`} />
         ))}
-        {/* R7 (a feature the artboard does not draw): the community-activity dot overlay is a real
-            map state, MapView renders a 7px black dot per region with live community threads, so
-            it is KEPT and logged rather than deleted, placed after the last designed entry. */}
-        <LegendRow size={7} color="#1A1A1A" label="Community activity" />
       </div>
     </div>
   );

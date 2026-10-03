@@ -286,9 +286,7 @@ export default async function OperationsDetailPage({
         gridQueueSection={<GridQueuePanel />}
       />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
-          NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). This
-          surface has no PeersDiscussingStrip mount (pre-existing, unrelated to this addition — no
-          peersEntityId is computed on this route today). */}
+          NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>
         <NoticesRail />
       </div>

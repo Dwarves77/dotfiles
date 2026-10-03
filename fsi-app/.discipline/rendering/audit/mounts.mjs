@@ -1796,7 +1796,6 @@ window.__mount = () => {
           currentUserIsOwner: true,
           currentUserIsVerifier: false,
           verifierStatus: 'none',
-          pendingPickups: 0,
           nowIso: '2026-09-06T16:00:00Z',
           verticalGroups: [],
           verticalOptions: [],

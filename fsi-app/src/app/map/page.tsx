@@ -13,12 +13,10 @@ import { getCoverageGaps } from "@/lib/coverage-gaps";
 import { MapPageView } from "@/components/map/MapPageView";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { Masthead } from "@/components/ui/Masthead";
-import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { jurisdictionCount, jurisdictionCountInBand } from "@/lib/map/jurisdiction-rollup";
 import { countNoun, formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
-import type { CommunityActivityRow } from "@/components/map/MapView";
 
 /**
  * The page's data read, with its own timing.
@@ -30,18 +28,13 @@ import type { CommunityActivityRow } from "@/components/map/MapView";
  */
 async function loadMapPageData(searchParamsPromise: Promise<{ region?: string }>) {
   const t0 = Date.now();
-  // Phase 6 (2026-05-25): community activity by region, aggregated
-  // top-level community_posts by community_groups.region; powers the
-  // community-activity dot overlay on the map.
-  const supabase = await createSupabaseServerClient();
-  const [{ region: regionParam }, data, coverageGaps, communityActivity] = await Promise.all([
+  const [{ region: regionParam }, data, coverageGaps] = await Promise.all([
     searchParamsPromise,
     getListingsMapData(),
     getCoverageGaps(),
-    fetchCommunityActivityByRegion(supabase),
   ]);
   console.log(`[perf] /map data ${Date.now() - t0}ms`);
-  return { regionParam, data, coverageGaps, communityActivity };
+  return { regionParam, data, coverageGaps };
 }
 
 export default async function MapRoute({
@@ -54,7 +47,7 @@ export default async function MapRoute({
   // group id, resolved client-side in MapPageView) and is untouched.
   searchParams: Promise<{ region?: string }>;
 }) {
-  const { regionParam, data, coverageGaps, communityActivity } = await loadMapPageData(searchParams);
+  const { regionParam, data, coverageGaps } = await loadMapPageData(searchParams);
 
   // COUNTS-61 (production defect, click-through audit 2026-09-08): both jurisdiction figures below
   // come from src/lib/map/jurisdiction-rollup.ts, the SAME module <MapPageView/> rolls its register
@@ -104,36 +97,7 @@ export default async function MapRoute({
         resources={data.resources}
         coverageGaps={coverageGaps}
         initialRegionFilter={regionParam ?? null}
-        communityActivity={communityActivity}
       />
     </>
   );
-}
-
-// Aggregate top-level community posts by their group's region. RLS
-// scopes the visible posts to the caller's workspace; service-role
-// is not used here. Returns empty array on RLS-denied (anon / not
-// signed in) or query failure so the map still renders without dots.
-async function fetchCommunityActivityByRegion(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
-): Promise<CommunityActivityRow[]> {
-  try {
-    const { data, error } = await supabase
-      .from("community_posts")
-      .select("group_id, community_groups!inner(region)")
-      .is("parent_post_id", null)
-      .limit(1000);
-    if (error || !data) return [];
-    const counts = new Map<string, number>();
-    for (const row of data as Array<{ community_groups: { region: string } | { region: string }[] | null }>) {
-      const cg = Array.isArray(row.community_groups)
-        ? row.community_groups[0]
-        : row.community_groups;
-      if (!cg?.region) continue;
-      counts.set(cg.region, (counts.get(cg.region) ?? 0) + 1);
-    }
-    return Array.from(counts.entries()).map(([regionCode, count]) => ({ regionCode, count }));
-  } catch {
-    return [];
-  }
 }

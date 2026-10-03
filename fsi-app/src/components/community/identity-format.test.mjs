@@ -1,4 +1,4 @@
-// identity-format.test.mjs, proves the identity, entity-binding and promotion-state formatting
+// identity-format.test.mjs, proves the identity and entity-binding formatting
 // rules independent of any component render (see identity-format.ts's header for why this split
 // exists). R8.7 (2026-09-25, migration 336) amended the identity rule: name/company are shown by
 // default (identity shown unless anonymous), so the case that matters most here is now the opposite
@@ -11,9 +11,6 @@ import assert from "node:assert/strict";
 import {
   formatAuthorIdentity,
   validateEntityBinding,
-  promotionStateLabel,
-  isUnverifiedContribution,
-  corroborationLabel,
 } from "./identity-format.ts";
 
 test("formatAuthorIdentity joins org type, role, sector, region in order", () => {
@@ -86,34 +83,4 @@ test("validateEntityBinding accepts one or more WELL-FORMED entity ids (cl:<kind
     validateEntityBinding(["cl:corridor:0123456789abcdef", "cl:jurisdiction:fedcba9876543210"]),
     null
   );
-});
-
-test("promotionStateLabel covers all five spec 05 §4 gates and defaults unset to gate 1", () => {
-  assert.match(promotionStateLabel(undefined), /Community —/);
-  assert.match(promotionStateLabel("community"), /Community —/);
-  assert.match(promotionStateLabel("community-corroborated"), /Community-corroborated/);
-  assert.match(promotionStateLabel("under-review"), /Under review/);
-  assert.match(promotionStateLabel("verified"), /Verified/);
-  assert.match(promotionStateLabel("retired"), /Retired/);
-});
-
-test("promotionStateLabel passes an unrecognized state through verbatim rather than mislabeling it", () => {
-  assert.equal(promotionStateLabel("some-future-state"), "some-future-state");
-});
-
-test("isUnverifiedContribution is true only for gates 1-2 (and unset)", () => {
-  assert.equal(isUnverifiedContribution(undefined), true);
-  assert.equal(isUnverifiedContribution("community"), true);
-  assert.equal(isUnverifiedContribution("community-corroborated"), true);
-  assert.equal(isUnverifiedContribution("under-review"), false);
-  assert.equal(isUnverifiedContribution("verified"), false);
-  assert.equal(isUnverifiedContribution("retired"), false);
-});
-
-test("corroborationLabel counts organisations, not posts, per spec 05 §5 component 5", () => {
-  assert.equal(corroborationLabel(0), "No independent corroboration yet");
-  assert.equal(corroborationLabel(1), "1 organisation corroborating");
-  assert.equal(corroborationLabel(3), "3 organisations corroborating");
-  assert.equal(corroborationLabel(-1), "No independent corroboration yet");
-  assert.equal(corroborationLabel(NaN), "No independent corroboration yet");
 });

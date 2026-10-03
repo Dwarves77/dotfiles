@@ -68,13 +68,12 @@ export interface CommunityCurrentUser {
   employer: string;
   /** True when the user is a platform admin — sourced from
    * user_profiles.is_platform_admin (migration 027). Read by
-   * PromotePostButton to allow promoting (staging) a post, and by C8's
-   * ModerationQueue to widen the report set. Optional so older callers
+   * C8's ModerationQueue to widen the report set. Optional so older callers
    * that haven't been updated still type-check. */
   isPlatformAdmin?: boolean;
 }
 
-// ── Wave 3 (2026-09-03) additions — entity binding, pseudonymous identity, promotion, benchmarks ──
+// ── Wave 3 (2026-09-03) additions, entity binding, pseudonymous identity, benchmarks ──
 // Consumed alongside COMMUNITY-A's guard-enforced contract (see api-client.ts for the fetch
 // wrappers). Additive only: nothing above this line changed shape.
 
@@ -103,19 +102,7 @@ export interface CommunityAuthorIdentity {
   anonymous?: boolean;
 }
 
-/** The five promotion-machine states (spec 05 §4), kept as a plain string union rather than an enum
- * so a state this lane doesn't yet know about still type-checks and renders verbatim (see
- * identity-format.ts's promotionStateLabel). */
-export type CommunityPromotionState =
-  | "community"
-  | "community-corroborated"
-  | "under-review"
-  | "verified"
-  | "retired"
-  | (string & {});
-
 export { type EntityThread as CommunityEntityThread } from "./api-client";
-export { type ThreadCorroboration as CommunityThreadCorroboration } from "./api-client";
 export { type Benchmark as CommunityBenchmark } from "./api-client";
 export { type GuardAggregateRoute as CommunityGuardAggregateRoute } from "./api-client";
 

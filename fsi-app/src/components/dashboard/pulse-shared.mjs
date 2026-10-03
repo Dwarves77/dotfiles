@@ -5,10 +5,7 @@
 // Kept separate from the .tsx components so the ranking rule (priority band, then most-recent) has
 // one home instead of being re-typed identically in MarketIntelPulse / ResearchPulse /
 // OperationsPulse — the "no duplication of an existing module" rule applied within this lane's own
-// new files, not just against the rest of the codebase. `mapCommunityPulseThreads` lives here too
-// (imported by src/lib/data.ts's getCommunityPulse) for the same reason: it is pure row-shaping
-// logic that would otherwise be untestable without an npm-dependent harness, since data.ts pulls in
-// next/cache + @supabase/supabase-js at module scope.
+// new files, not just against the rest of the codebase.
 
 export const PRIORITY_RANK = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 };
 
@@ -53,34 +50,4 @@ export function formatShortDate(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]}`;
-}
-
-/**
- * Pure mapper: raw `community_posts` rows + a group-id -> {name, slug} lookup -> the dashboard's
- * CommunityPulseThread shape (title fallback to the body when a thread has no title, last-activity
- * precedence last_reply_at then created_at). Lives here rather than in `src/lib/data.ts` (which
- * calls it) so it gets the SAME portable, DB-free `node --test` proof this file's other two
- * functions already have — `data.ts` transitively imports `next/cache` + `@supabase/supabase-js`
- * and cannot join the no-npm-ci discipline suite (see pulse-shared.test.mjs).
- *
- * @param {Array<{id: string, group_id: string, title: string|null, body: string,
- *   reply_count: number|null, last_reply_at: string|null, created_at: string}>} rows
- * @param {Map<string, {name: string, slug: string|null}>} groupsById
- * @returns {Array<{id: string, groupId: string, groupName: string, groupSlug: string|null,
- *   title: string, replyCount: number, lastActivityAt: string|null}>}
- */
-export function mapCommunityPulseThreads(rows, groupsById) {
-  return (rows || []).map((r) => {
-    const group = groupsById.get(r.group_id);
-    const title = (r.title && r.title.trim()) || r.body.slice(0, 120).trim() || "(untitled thread)";
-    return {
-      id: r.id,
-      groupId: r.group_id,
-      groupName: group?.name ?? "Room",
-      groupSlug: group?.slug ?? null,
-      title,
-      replyCount: r.reply_count ?? 0,
-      lastActivityAt: r.last_reply_at ?? r.created_at ?? null,
-    };
-  });
 }

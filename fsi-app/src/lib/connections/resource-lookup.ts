@@ -14,10 +14,9 @@
 // function too. Signature changed from `(relatedIds)` to `(supabase, relatedIds)` — the four detail pages'
 // item-scoped bundles (load-detail.ts's ItemScopedCtx) already hold ONE service-role client per render
 // (THE canonical one, supabase-service.ts's getServiceSupabase, memoized) instead of each helper opening
-// its own; all 3 prior call sites (market/operations/research) are updated in the same commit. Two more
-// one-line-each helpers added below for the SAME reason — resolveItemUuid (legacy_id-or-uuid → uuid) and
-// fetchInstrumentEntityId (uuid → the peers-strip's bound entity) were each hand-copied 2-3 times across
-// the four detail pages (owner lookup, note lookup, price board, peers strip).
+// its own; all 3 prior call sites (market/operations/research) are updated in the same commit. One more
+// one-line helper added below for the SAME reason, resolveItemUuid (legacy_id-or-uuid → uuid) was
+// hand-copied 2-3 times across the four detail pages (owner lookup, note lookup, price board).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -33,21 +32,6 @@ export async function resolveItemUuid(supabase: SupabaseClient, id: string): Pro
   if (UUID_RE.test(id)) return id;
   const { data } = await supabase.from("intelligence_items").select("id").eq("legacy_id", id).maybeSingle();
   return data?.id ?? null;
-}
-
-/** The peers-strip's bound entity for one item (lane COMMUNITY-B, wave3 2026-09-03) — reads
- *  intelligence_items.instrument_entity_id for the given uuid. Fail-soft to null (PeersDiscussingStrip
- *  renders nothing for a null entityId). */
-export async function fetchInstrumentEntityId(
-  supabase: SupabaseClient,
-  itemUuid: string
-): Promise<string | null> {
-  const { data } = await supabase
-    .from("intelligence_items")
-    .select("instrument_entity_id")
-    .eq("id", itemUuid)
-    .maybeSingle();
-  return data?.instrument_entity_id ?? null;
 }
 
 /** Fetch title + priority for a set of UI-side ids (legacy_id || uuid), verified items only.

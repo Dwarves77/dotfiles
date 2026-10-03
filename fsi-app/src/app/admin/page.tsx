@@ -13,7 +13,7 @@ import type { AssumptionRegisterRow } from "@/components/admin/AssumptionRegiste
  * nested helper that calls it) inside a component body, and it is right to: a value read from
  * the clock during render is not idempotent. Same fix watchlist/page.tsx documents and
  * map/community/operations pages carry: host the timer (and every per-tile fetch helper that
- * also touches `Date.now()`, e.g. the community-pickups 30-day cutoff below) in a plain async
+ * also touches `Date.now()`) in a plain async
  * function outside the component, so the component itself never calls an impure function.
  */
 async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
@@ -88,9 +88,9 @@ async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupab
   };
 
   // UI system handoff 2026-09-06 (README screen 13 "Platform admin"): two of
-  // the eight counter tiles (Research pipeline, Community pickups) had no
-  // server-side count anywhere — ResearchPipelineQueueView/
-  // CommunityPickupsQueueView fetch their own rows client-side. `head:true`
+  // the counter tile (Research pipeline) had no
+  // server-side count anywhere, ResearchPipelineQueueView
+  // fetches its own rows client-side. `head:true`
   // exact counts, same filter each view already applies, so the tile number
   // can never contradict the queue it links to.
   const fetchResearchPipelineCount = async (): Promise<number> => {
@@ -100,22 +100,6 @@ async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupab
         .select("id", { count: "exact", head: true })
         .eq("pipeline_stage", "draft")
         .eq("is_archived", false);
-      return error || count == null ? 0 : count;
-    } catch {
-      return 0;
-    }
-  };
-
-  const fetchCommunityPickupsCount = async (): Promise<number> => {
-    try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { count, error } = await supabase
-        .from("community_posts")
-        .select("id", { count: "exact", head: true })
-        .is("parent_post_id", null)
-        .is("promoted_at", null)
-        .gte("reply_count", 3)
-        .gte("created_at", thirtyDaysAgo);
       return error || count == null ? 0 : count;
     } catch {
       return 0;
@@ -189,7 +173,6 @@ async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupab
     fetchErrorGroups(),
     fetchAssumptionRegister(),
     fetchResearchPipelineCount(),
-    fetchCommunityPickupsCount(),
     fetchEmissionFactorsLiveCount(),
     fetchTierDisagreementCount(),
   ]);
@@ -218,7 +201,6 @@ export default async function AdminPage() {
     errorGroups,
     assumptionRegister,
     researchPipelineCount,
-    communityPickupsCount,
     emissionFactorsLiveCount,
     tierDisagreementCount,
   ] = await loadAdminPageData(supabase);
@@ -246,7 +228,6 @@ export default async function AdminPage() {
       initialErrorGroups={errorGroups}
       initialAssumptionRegister={assumptionRegister}
       initialResearchPipelineCount={researchPipelineCount}
-      initialCommunityPickupsCount={communityPickupsCount}
       initialEmissionFactorsLiveCount={emissionFactorsLiveCount}
       initialTierDisagreementCount={tierDisagreementCount}
     />

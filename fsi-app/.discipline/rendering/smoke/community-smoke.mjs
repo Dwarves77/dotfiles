@@ -1,12 +1,12 @@
 // UX smoke spec: Community surface (Lane COMMUNITY-B, wave3, 2026-09-03). Mounts the REAL
 // `src/components/community/PostList.tsx` (which itself mounts the real `Post.tsx` for every post,
-// `PostComposer.tsx` — with the real `EntityPicker.tsx` — for group members, and `PromotePostButton`
-// / `PromotePostDialog` for a post's own promote control) and the REAL
-// `src/components/shared/PeersDiscussingStrip.tsx`, exactly as the wave3 dispatch requires ("mounting
-// the REAL PostList and Post plus your composer/strip"). Built on `ux-harness.mjs`'s `runUxSpec` for
+// `PostComposer.tsx`, with the real `EntityPicker.tsx`, for group members), as the wave3 dispatch
+// requires ("mounting the REAL PostList and Post plus your composer"). The cross-surface peers strip,
+// the promote control and the corroboration chip were removed under ADR-041 (Community is social
+// only), so they are no longer mounted here. Built on `ux-harness.mjs`'s `runUxSpec` for
 // the standard guard+UX measurement across states (F35 `row-ux-coverage`'s coverage requirement:
 // PostList.tsx and Post.tsx are both in `ROW_COMPONENTS`), plus a handful of custom interaction
-// proofs (guard refusal + draft preservation, pagination, the strip's "renders nothing" contract)
+// proofs (guard refusal + draft preservation, pagination)
 // built directly on `harness.mjs`'s lower-level primitives — the same posture list-order-smoke.mjs and
 // notifications-smoke.mjs use for their own click-fire proofs.
 //
@@ -19,10 +19,10 @@
 // the component it was copied from; a real mount cannot). See EXTREME_* below for the same
 // unbroken-token stress case the deleted fixtures used.
 //
-// TWO ENTRY PAGES, not one. `runUxSpec` hardcodes its mount call to `window.__mount(...)`
-// (ux-harness.mjs), so one spec object can only ever define one entry/mount function; PostList and
-// PeersDiscussingStrip are mounted by two different entry pages accordingly (ENTRY_POSTLIST,
-// ENTRY_PEERS), and this file's exported `runSmoke` sums every call's `{checks, failures}` — one
+// SEVERAL ENTRY PAGES, not one. `runUxSpec` hardcodes its mount call to `window.__mount(...)`
+// (ux-harness.mjs), so one spec object can only ever define one entry/mount function; the components
+// are mounted by different entry pages accordingly (ENTRY_POSTLIST, ENTRY_POST, ...), and this file's
+// exported `runSmoke` sums every call's `{checks, failures}`, one
 // `runUxSpec` call (the async-fetch-in-flight "loading" placeholder measurement) plus several
 // `settledContentProof` calls (the real, loaded-content measurement `runUxSpec` alone can't reach —
 // see that function's own header) plus the custom interaction proofs below it.
@@ -39,7 +39,7 @@
 //   real Next.js app bundles the CSS file natively regardless; only this esbuild-CLI harness needs
 //   the stand-in.
 //   `next/navigation` -> stub-next-navigation.mjs: PostComposer.tsx (EntityPicker's search
-//   round-trip) and PromotePostDialog.tsx (mounted transitively via Post.tsx's PromotePostButton) call
+//   round-trip) calls
 //   `useRouter`/`usePathname`/`useSearchParams`, which throw ("invariant expected app router to be
 //   mounted") outside a real Next App Router tree — same rationale as harness.mjs's own
 //   stub-next-link.mjs/stub-supabase-browser.mjs.
@@ -99,10 +99,7 @@ function post(overrides = {}) {
     reply_count: 4,
     attribution: null,
     promoted_from_post_id: null,
-    promotion_state: "community-corroborated",
-    origin_class: "community-corroborated",
     author_identity: author(),
-    evidence_chip: "3 mo old · 80% weight",
     ...overrides,
   };
 }
@@ -115,12 +112,9 @@ function extremePosts(n) {
       title: `${LONG_UNBROKEN} extreme-data post title #${i}`,
       author: { user_id: `user-${i}`, name: `Member ${i}`, headshot_url: null },
       author_user_id: `user-${i}`,
-      promotion_state: legacy ? undefined : ["community", "community-corroborated", "under-review", "verified"][i % 4],
-      origin_class: legacy ? undefined : ["community", "community-corroborated", "under-review", "verified"][i % 4],
       author_identity: legacy
         ? undefined
         : author({ orgType: LONG_UNBROKEN, sector: "Electronics & apparel logistics" }),
-      evidence_chip: legacy ? undefined : `${i} mo old · ${100 - i}% weight`,
       reply_count: i,
     });
   });
@@ -142,8 +136,8 @@ const CANDIDATE_ENTITIES = [
   },
 ];
 
-// ── /api/community/posts + /api/community/threads/[id]/corroboration route stub ──────────────────
-function postsApiRoutes({ posts, nextCursor = null, onPost, corroboration } = {}) {
+// ── /api/community/posts route stub ──────────────────────────────────────────────────────────────
+function postsApiRoutes({ posts, nextCursor = null, onPost } = {}) {
   return [
     {
       urlGlob: "**/api/community/posts**",
@@ -159,17 +153,10 @@ function postsApiRoutes({ posts, nextCursor = null, onPost, corroboration } = {}
           }
           return route.fulfill({ json: { posts: posts ?? [], next_cursor: nextCursor } });
         }
-        // /replies, /promote, unrecognized — fulfil empty rather than let it fall through to a real
+        // /replies, unrecognized, fulfil empty rather than let it fall through to a real
         // network request against the fake origin (which would hang/error, not "do nothing").
         return route.fulfill({ json: {} });
       },
-    },
-    {
-      urlGlob: "**/api/community/threads/*/corroboration",
-      handler: (route) =>
-        route.fulfill({
-          json: corroboration ?? { thread_id: "any", organisations: 4, posts: 6, consistent: true },
-        }),
     },
   ];
 }
@@ -201,7 +188,7 @@ function postListProps(overrides = {}) {
 
 // ── Post entry (coordinator, integration 2026-09-03): F35's coverage check is a DIRECT import match
 //    (a spec that imports PostList covers PostList; Post is rendered by it but not named), so Post is
-//    mounted standalone here with an explicit corroboration prop (no self-fetch) in one, extreme states. ──
+//    mounted standalone here in one, extreme states. ──
 const ENTRY_POST = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -222,51 +209,6 @@ function postProps(overrides = {}) {
     isGroupAdmin: false,
     isGroupMember: true,
     authorIdentity: author(),
-    promotionState: "community-corroborated",
-    originClass: "community-corroborated",
-    corroboration: { thread_id: "post-1", organisations: 3, posts: 4, consistent: true },
-    ...overrides,
-  };
-}
-
-// ── PeersDiscussingStrip entry ─────────────────────────────────────────────────────────────────
-const ENTRY_PEERS = `
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { PeersDiscussingStrip } from '@/components/shared/PeersDiscussingStrip';
-
-let root = null;
-window.__mount = (props) => {
-  const el = document.getElementById('smoke-root');
-  if (!root) root = createRoot(el);
-  root.render(React.createElement(PeersDiscussingStrip, props));
-};
-`;
-
-function threadsApiRoute(threads) {
-  return {
-    urlGlob: "**/api/community/entities/*/threads**",
-    handler: (route) =>
-      route.fulfill({ json: { entity_id: "cl:corridor:1", threads, next_cursor: null } }),
-  };
-}
-
-function thread(overrides = {}) {
-  return {
-    id: "thread-1",
-    group_id: "group-1",
-    title: `${LONG_UNBROKEN} SAF premium creeping up on this corridor this quarter`,
-    body: "Seeing a step change on bunker pass-through this quarter.",
-    author_user_id: "user-1",
-    created_at: "2026-08-01T00:00:00.000Z",
-    last_reply_at: "2026-08-20T00:00:00.000Z",
-    reply_count: 4,
-    promotion_state: "community-corroborated",
-    origin_class: "community-corroborated",
-    entity_id: "cl:corridor:1",
-    entity_kind: "corridor",
-    author_identity: author(),
-    evidence_chip: "3 mo old · 80% weight",
     ...overrides,
   };
 }
@@ -420,41 +362,6 @@ async function settledContentProof(browser, bundleJs, { apiRoutes, props, expect
         failures.push(
           `${label}@${vp.width}: expected ≥${expectTitles} [data-guard-title] element(s) once settled, found ${titles.length}.`
         );
-      }
-    } finally {
-      await page.close();
-    }
-  }
-  return { checks, failures };
-}
-
-/** PeersDiscussingStrip's "renders nothing" contract (wave3 dispatch: "renders nothing (no empty
- * box) when there are no threads") — proven for both the no-entity and the zero-threads case, since
- * neither is provable by `runUxSpec`'s guard/UX measurement alone (an empty page has nothing to
- * measure either way; this asserts the page really is empty, not merely defect-free). */
-async function stripRendersNothingProof(browser, bundleJs) {
-  const failures = [];
-  let checks = 0;
-
-  for (const [label, props, apiRoutes] of [
-    ["no-entity", { entityId: null }, []],
-    ["zero-threads", { entityId: "cl:corridor:1" }, [threadsApiRoute([])]],
-  ]) {
-    const page = await newSmokePage(browser, { apiRoutes });
-    try {
-      await mountBundle(page, bundleJs, "__mount", props);
-      await page.waitForTimeout(200);
-      const text = (await page.textContent("body"))?.trim() ?? "";
-      checks++;
-      if (text.length > 0) {
-        failures.push(
-          `strip-empty-proof[${label}]: expected no visible text (renders nothing), found ${JSON.stringify(text.slice(0, 80))}.`
-        );
-      }
-      const section = await page.$('section[aria-label="Peers are discussing this"]');
-      checks++;
-      if (section) {
-        failures.push(`strip-empty-proof[${label}]: the strip's section element rendered when it should not have.`);
       }
     } finally {
       await page.close();
@@ -813,9 +720,8 @@ export async function runSmoke(browser) {
   let checks = 0;
 
   const postListBundle = await bundleEntry(ENTRY_POSTLIST, { alias: ALIAS });
-  const peersBundle = await bundleEntry(ENTRY_PEERS, { alias: ALIAS });
 
-  // ── PostList + Post + PostComposer + EntityPicker + PromotePostButton ────────────────────────
+  // ── PostList + Post + PostComposer + EntityPicker ────────────────────────────────────────────
   // `runUxSpec` measures one animation frame after mount (ux-harness.mjs) — right for a purely
   // prop-driven row, but PostList fetches its own data, so its FIRST paint is always the "Loading
   // posts…" placeholder regardless of state; runUxSpec still proves that placeholder itself never
@@ -872,25 +778,6 @@ export async function runSmoke(browser) {
   checks += postStandalone.checks;
   failures.push(...postStandalone.failures);
 
-  // ── PeersDiscussingStrip — same async-first-paint reasoning as PostList above ─────────────────
-  const peers = await settledContentProof(browser, peersBundle, {
-    apiRoutes: [
-      threadsApiRoute([
-        thread(),
-        thread({
-          id: "thread-2",
-          title: null,
-          body: "No title on this one, so the body preview stands in as the row's own title.",
-        }),
-      ]),
-    ],
-    props: { entityId: "cl:corridor:1", limit: 3 },
-    expectTitles: 2,
-    label: "community-peers-strip[with-threads]",
-  });
-  checks += peers.checks;
-  failures.push(...peers.failures);
-
   // ── custom interaction proofs ─────────────────────────────────────────────────────────────────
   const refusal = await refusalAndDraftPreservationProof(browser, postListBundle);
   checks += refusal.checks;
@@ -899,10 +786,6 @@ export async function runSmoke(browser) {
   const pagination = await paginationProof(browser, postListBundle);
   checks += pagination.checks;
   failures.push(...pagination.failures);
-
-  const stripEmpty = await stripRendersNothingProof(browser, peersBundle);
-  checks += stripEmpty.checks;
-  failures.push(...stripEmpty.failures);
 
   // ── lane COMMUNITY-C additions: BenchmarksPanel's response form + the profile page (ProfileForm) ──
   const benchmarksBundle = await bundleEntry(ENTRY_BENCHMARKS, { alias: ALIAS });

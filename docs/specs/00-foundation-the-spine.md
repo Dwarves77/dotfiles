@@ -181,6 +181,12 @@ calculation from stated inputs and a named method) · `modelled` (our estimate w
 · `partner` (licensed third party) · `community` (user-contributed, unverified) ·
 `community-corroborated` (n independent contributors agree, still not verified).
 
+No Community producer assigns `community` or `community-corroborated` (ADR-041): Community is social
+only, so no Community content reaches the intelligence corpus, and Community posts carry no
+`origin_class` of their own. The two values stay in the vocabulary because non-Community producers still
+use them (the origin-class backfill mapper and the OEM roadmap producer default); those uses do not
+come from Community.
+
 **Three hard rules.** It is non-suppressible in every view including exports, PDFs and Assistant
 output. It **propagates to the weakest constituent** in any aggregate. It survives CSV/XLSX/PDF export
 as a column, not merely as screen decoration.

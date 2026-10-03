@@ -146,7 +146,6 @@ interface CommunityRoomsProps {
   currentUserIsOwner: boolean;
   currentUserIsVerifier: boolean;
   verifierStatus: string;
-  pendingPickups: number;
   /** The server-decided instant (src/lib/render-now.ts), so the relative-time cells
    *  render the same string in the SSR pass and in hydration. */
   nowIso?: string;
@@ -202,7 +201,6 @@ export function CommunityRooms({
   currentUserIsOwner,
   currentUserIsVerifier,
   verifierStatus,
-  pendingPickups,
   nowIso,
   verticalGroups,
   verticalOptions,
@@ -786,7 +784,7 @@ export function CommunityRooms({
       )}
 
       {!seeded ? (
-        <NotSeededState pendingPickups={pendingPickups} verifierStatus={verifierStatus} />
+        <NotSeededState verifierStatus={verifierStatus} />
       ) : selected ? (
         <div
           className="cl-community-grid"
@@ -1164,21 +1162,9 @@ export function CommunityRooms({
                 <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>
                   The ledger prints what&rsquo;s verified. The room holds what operators know first
                   — handler capacity, berth behaviour, what a regulator said on a call.
-                  High-engagement posts are picked up by editorial into platform intelligence.
+                  Community is a social place, not a source of information.
                 </p>
               </div>
-              {/* R7: the editorial pickup queue is an app feature artboard 12 does not draw;
-                  it keeps its status at the card foot rather than inside the drawn paragraph.
-                  No admin link here (lane AUTH-IDENTITY, 2026-09-24, operator ruling: "Admin only
-                  needs one access point"; customers never see an /admin path). */}
-              <CardFoot
-                left={
-                  <span style={{ color: "var(--ink-3)", fontWeight: 700 }}>
-                    {formatNumber(pendingPickups)} in editorial review
-                  </span>
-                }
-                right={null}
-              />
             </SectionCard>
 
             {/* R7: Vertical groups — no artboard region, kept and placed last. */}
@@ -1708,13 +1694,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-function NotSeededState({
-  pendingPickups,
-  verifierStatus,
-}: {
-  pendingPickups: number;
-  verifierStatus: string;
-}) {
+function NotSeededState({ verifierStatus }: { verifierStatus: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div
@@ -1757,9 +1737,7 @@ function NotSeededState({
         <SectionCard padding="13px 16px">
           <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Why post here</p>
           <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
-            The ledger prints what&rsquo;s verified. The room holds what operators know first. High-engagement
-            posts are picked up by editorial: post → engagement → editorial review ({pendingPickups} pending)
-            → platform brief.
+            The ledger prints what&rsquo;s verified. The room holds what operators know first.
           </p>
         </SectionCard>
         <SectionCard padding="13px 16px">

@@ -23,7 +23,7 @@
  * page used to run 6 sequential Supabase round trips per render (UUID
  * redirect lookup, fetchIntelligenceItem, relevance, sections, related-items
  * lookup, owner lookup — each opening its own createClient()). It now runs
- * the item-scoped related-items + peers-entity reads behind ONE cached
+ * the item-scoped related-items reads behind ONE cached
  * bundle (shared with every other viewer of this item) and the org-scoped
  * owner lookup uncached, in parallel with sections + relevance, via
  * loadDetail. related-items lookup now calls the shared buildResourceLookup
@@ -93,14 +93,12 @@ import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import {
   buildResourceLookup,
   resolveItemUuid,
-  fetchInstrumentEntityId,
 } from "@/lib/connections/resource-lookup";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
-import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
 // Lane SCOPE-READER (2026-09-06): "Corridors this applies on" — entity_scope's second real reader (the
 // Market Intel carbon-cost overlay is the first). Self-contained server component, own fetch — see its
@@ -157,10 +155,9 @@ export async function generateStaticParams() {
 
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
-  peersEntityId: string | null;
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings — see
    *  load-detail-core.ts's fetchClaimTierMap header for the query/derivation. Item-scoped (no
-   *  org/viewer dependency, so it belongs in the SAME cached bundle as resourceLookup/peersEntityId
+   *  org/viewer dependency, so it belongs in the SAME cached bundle as resourceLookup
    *  above), read unconditionally (never gated on item_grade — a brief-grade item's query legitimately
    *  returns no rows, resolving to {} at zero extra cost since fetchClaimTierMap never throws). */
   claimTiers: ClaimTierMap;
@@ -192,7 +189,7 @@ export default async function RegulationDetailPage({
     surface: "regulations",
     id,
     // Item-scoped, org-independent: related-item titles for the connections/
-    // supersessions rail, and the peers-discussing strip's bound entity.
+    // supersessions rail.
     // Cached — shared across every org that views this item.
     loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
       const relatedIds = Array.from(
@@ -202,12 +199,11 @@ export default async function RegulationDetailPage({
         ])
       ).filter(Boolean);
       const itemUuid = await resolveItemUuid(supabase, resource.id);
-      const [resourceLookup, peersEntityId, claimTiers] = await Promise.all([
+      const [resourceLookup, claimTiers] = await Promise.all([
         buildResourceLookup(supabase, relatedIds),
-        itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
         itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
       ]);
-      return { resourceLookup, peersEntityId, claimTiers };
+      return { resourceLookup, claimTiers };
     },
   });
 
@@ -226,7 +222,6 @@ export default async function RegulationDetailPage({
 
   const { resource: r, changelog, dispute, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
-  const peersEntityId = result.itemScoped?.peersEntityId ?? null;
   const claimTiers = result.itemScoped?.claimTiers ?? {};
 
   console.log(`[perf] /regulations/${id} data ${result.elapsedMs}ms`);
@@ -295,7 +290,6 @@ export default async function RegulationDetailPage({
       {/* Lane SCOPE-READER (2026-09-06, plan §W5): renders only when at least one corridor's scope
           touches this regulation's jurisdiction — nothing renders empty by design. */}
       <CorridorsAppliedStrip jurisdictionIso={r.jurisdictionIso} />
-      <PeersDiscussingStrip entityId={peersEntityId} />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
           NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>

@@ -62,7 +62,7 @@ const TILE_CSS = \`
   .admin-stat-grid { display: grid; gap: 16px; }
 \`;
 
-// The eight tiles AdminDashboard.tsx's admin-t08-sections grid renders (SECTIONS + Emission
+// The seven tiles AdminDashboard.tsx's admin-t08-sections grid renders (SECTIONS + Emission
 // factors): the two REPORTED values (Sources 491, Ingest 4,770) plus a synthetic 5-digit value
 // (Emission factors, 12,345) so the fix is proven against a wider range than only the two counts
 // that were actually reported.
@@ -72,7 +72,6 @@ const TILES = [
   { label: 'Ingest', value: '4,770', note: 'staged + flags open' },
   { label: 'Coverage', value: '6', note: 'critical jurisdiction gaps' },
   { label: 'Research pipeline', value: '38', note: 'items in the queue' },
-  { label: 'Community pickups', value: '3', note: 'promoted threads' },
   { label: 'Runtime', value: '2', note: 'open error groups' },
   { label: 'Emission factors', value: '12,345', note: '12,345 live rows \\u00b7 read-only (WO-18)' },
 ];

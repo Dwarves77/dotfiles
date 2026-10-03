@@ -9,8 +9,6 @@ test("interface contract: every named export exists and is a function", () => {
   for (const name of [
     "evaluateAntitrustGuard",
     "projectAuthorIdentity",
-    "corroborationCount",
-    "evidenceAge",
   ]) {
     assert.equal(typeof community[name], "function", `${name} must be exported as a function`);
   }
@@ -32,14 +30,4 @@ test("interface contract: projectAuthorIdentity(profile) -> { orgType, role, sec
 test("interface contract: resolveEffectiveAnonymous({postAnonymous, profileDefaultAnonymous}) -> boolean (R8.7, migration 336)", () => {
   assert.equal(typeof community.resolveEffectiveAnonymous, "function");
   assert.equal(community.resolveEffectiveAnonymous({ postAnonymous: true, profileDefaultAnonymous: false }), true);
-});
-
-test("interface contract: corroborationCount(thread) -> includes { organisations, posts }", () => {
-  const r = community.corroborationCount({ posts: [] });
-  assert.ok("organisations" in r && "posts" in r);
-});
-
-test("interface contract: evidenceAge(evidence, now) -> { ageDays, weight, chip }", () => {
-  const r = community.evidenceAge({ assertedAt: "2026-01-01" }, new Date("2026-09-03"));
-  assert.ok("ageDays" in r && "weight" in r && "chip" in r);
 });

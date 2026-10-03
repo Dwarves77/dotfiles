@@ -29,8 +29,6 @@ import { Bell, BellOff } from "lucide-react";
 import { getEntityThreads, type EntityThread } from "./api-client";
 import { EntityPicker } from "./EntityPicker";
 import { AuthorIdentityChip } from "./AuthorIdentityChip";
-import { PromotionStateBadge } from "./PromotionStateBadge";
-import { EvidenceAgeChip } from "./EvidenceAgeChip";
 // `@/` form — see Post.tsx's import of the same file for why (esbuild alias constraint in the
 // rendering-guard smoke harness).
 import "@/components/community/community.css";
@@ -249,8 +247,6 @@ function EntityDigestSection({
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 {t.author_identity && <AuthorIdentityChip identity={t.author_identity} />}
-                <PromotionStateBadge state={t.promotion_state} originClass={t.origin_class} />
-                <EvidenceAgeChip chip={t.evidence_chip} />
               </div>
               <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
                 <Bell size={9} aria-hidden="true" style={{ verticalAlign: "-1px", marginRight: 3 }} />

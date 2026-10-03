@@ -8,7 +8,6 @@ import {
   PRIORITY_RANK,
   rankByPriorityThenRecency,
   formatShortDate,
-  mapCommunityPulseThreads,
 } from "./pulse-shared.mjs";
 
 test("PRIORITY_RANK orders CRITICAL first, LOW last", () => {
@@ -74,62 +73,4 @@ test("formatShortDate: empty/invalid/missing input returns empty string, never t
   assert.equal(formatShortDate(null), "");
   assert.equal(formatShortDate(undefined), "");
   assert.equal(formatShortDate("not-a-date"), "");
-});
-
-test("mapCommunityPulseThreads: uses the title when present", () => {
-  const groups = new Map([["g1", { name: "EU Forwarders", slug: "eu-forwarders" }]]);
-  const rows = [
-    {
-      id: "p1",
-      group_id: "g1",
-      title: "SAF premium on EU-US air",
-      body: "body text",
-      reply_count: 4,
-      last_reply_at: "2026-08-20T10:00:00Z",
-      created_at: "2026-08-15T10:00:00Z",
-    },
-  ];
-  const [out] = mapCommunityPulseThreads(rows, groups);
-  assert.equal(out.title, "SAF premium on EU-US air");
-  assert.equal(out.groupName, "EU Forwarders");
-  assert.equal(out.groupSlug, "eu-forwarders");
-  assert.equal(out.replyCount, 4);
-  assert.equal(out.lastActivityAt, "2026-08-20T10:00:00Z");
-});
-
-test("mapCommunityPulseThreads: falls back to the body (truncated to 120 chars) when title is null", () => {
-  const groups = new Map([["g1", { name: "Room", slug: null }]]);
-  const longBody = "x".repeat(200);
-  const rows = [
-    {
-      id: "p2",
-      group_id: "g1",
-      title: null,
-      body: longBody,
-      reply_count: 0,
-      last_reply_at: null,
-      created_at: "2026-08-15T10:00:00Z",
-    },
-  ];
-  const [out] = mapCommunityPulseThreads(rows, groups);
-  assert.equal(out.title, "x".repeat(120));
-  assert.equal(out.replyCount, 0);
-  // No reply yet -> last activity falls back to created_at, never null when created_at exists.
-  assert.equal(out.lastActivityAt, "2026-08-15T10:00:00Z");
-});
-
-test("mapCommunityPulseThreads: falls back to '(untitled thread)' when title and body are both empty", () => {
-  const groups = new Map();
-  const rows = [
-    { id: "p3", group_id: "g-missing", title: null, body: "   ", reply_count: null, last_reply_at: null, created_at: "2026-08-01T00:00:00Z" },
-  ];
-  const [out] = mapCommunityPulseThreads(rows, groups);
-  assert.equal(out.title, "(untitled thread)");
-  assert.equal(out.groupName, "Room"); // honest fallback when the group lookup misses
-  assert.equal(out.groupSlug, null);
-  assert.equal(out.replyCount, 0);
-});
-
-test("mapCommunityPulseThreads: empty rows returns empty array", () => {
-  assert.deepEqual(mapCommunityPulseThreads([], new Map()), []);
 });

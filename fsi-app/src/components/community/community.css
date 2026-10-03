@@ -16,8 +16,7 @@
  * on its own line (at full container width, wrapping normally) before moving a sibling badge down —
  * the same visual outcome as an explicit stack, achieved by the box model itself (BenchmarksPanel's
  * card header, AuthorIdentityChip's verified-badge row). Small self-contained badges/chips (the
- * EntityPicker selected-chip's remove button, the icon+label chips in AuthorIdentityChip /
- * CorroborationChip / EvidenceAgeChip / PromotionStateBadge) are exempt for the same reason chips are
+ * EntityPicker selected-chip's remove button, the icon+label chips in AuthorIdentityChip) are exempt for the same reason chips are
  * exempt from the no-`whiteSpace:nowrap` rule: a chip's own text is short and bounded, not the
  * unbounded row title this rule protects, and chip rows already wrap as a block via their container's
  * `flexWrap: "wrap"`.

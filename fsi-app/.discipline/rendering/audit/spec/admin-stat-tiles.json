@@ -1,12 +1,12 @@
 {
-  "part": "Admin stat tiles (8-tile summary grid)",
+  "part": "Admin stat tiles (7-tile summary grid)",
   "mount": "admin-stat-tiles",
   "viewport": 1440,
   "artboards": ["13-platform-admin"],
   "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
   "notes": [
-    "Train 58, step 2: StatBlock gained an additive `size=\"tile\"` variant (11px label / 16px Anton numeral / 11.5px note) for exactly this grid; AdminDashboard.tsx's 8 tiles (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors) now use it with the artboard's wrapper geometry, a new `.cl-admin-stat-tile` class.",
-    "None of the 8 tiles in this grid carries a separate title line above the label/numeral row (unlike some other admin cards) — no SectionRule is mounted on these tiles, per the artboard's own markup, which shows no top rule inside any tile.",
+    "Train 58, step 2: StatBlock gained an additive `size=\"tile\"` variant (11px label / 16px Anton numeral / 11.5px note) for exactly this grid; AdminDashboard.tsx's 7 tiles (Workspaces/Sources/Ingest/Coverage/Research pipeline/Runtime/Emission factors; Community pickups removed under ADR-041) now use it with the artboard's wrapper geometry, a new `.cl-admin-stat-tile` class.",
+    "None of the 7 tiles in this grid carries a separate title line above the label/numeral row (unlike some other admin cards), no SectionRule is mounted on these tiles, per the artboard's own markup, which shows no top rule inside any tile.",
     "The artboard's 'Sources' tile example carries `border:1px solid #5A5552` with no box-shadow, read here as an active/selected-section illustration (Sources is the artboard's example active tab), not a base style; the product's `on` (aria-pressed) state overrides `borderColor` to `var(--brand)` for the active tile and is not asserted by this spec, which measures the base (inactive) tile only. Lane compose-other (2026-09-08) changed `AdminDashboard`'s default `section` state from 'Workspaces' to 'Sources' (dc.html p13's own default landing state — see DEVIATION-LOG 2026-09-08), which made tile 2 ('Sources') the ACTIVE tile on mount, breaking this spec's prior tile-2 measurement (it started reading the active border colour, `rgb(90,85,82)`, against the base-style expectation). Re-pointed to tile 3 ('Ingest'), inactive on mount both before and after that change, confirmed by a direct debug read this session."
   ],
   "selector": ".cl-admin-stat-tile:nth-of-type(3)",
@@ -23,10 +23,10 @@
   },
   "children": [
     {
-      "name": "tile count (8 tiles: 7 sections + Emission factors)",
+      "name": "tile count (7 tiles: 6 sections + Emission factors)",
       "selector": ".cl-admin-stat-tile",
-      "note": "SECTIONS (7) + the Emission factors Link = 8, dc.html p13's own count.",
-      "expect": { "count": "8" }
+      "note": "SECTIONS (6) + the Emission factors Link = 7 (dc.html p13 draws 8; the Community pickups tile was removed under ADR-041).",
+      "expect": { "count": "7" }
     },
     {
       "name": "tile — label",

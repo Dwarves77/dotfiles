@@ -8,7 +8,7 @@
   "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
   "notes": [
     "Region-composition check for the full page: AppShell + the real AdminDashboard (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-admin'], no live Supabase project reachable in this sandbox (DEVIATION-LOG.md). The mount now seeds dc.html p13's own four provisional rows as real ProvisionalSource records, so the default landing region renders with data rather than its empty state.",
-    "Artboard order, top to bottom: Masthead -> 8-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors), Sources tile SELECTED -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the SOURCES · PROVISIONAL REVIEW card (head, SOURCE/TIER/STATUS/DISCOVERED table with a per-row Approve and the trailing overflow, legend foot, pipeline note) -> Organizations card. Rail, top to bottom: Issues queue, the Companies/Individuals/Newest join/Active-this-month card, Read-only controls.",
+    "Artboard order, top to bottom: Masthead -> 7-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Runtime/Emission factors; the artboard's Community pickups tile was removed under ADR-041), Sources tile SELECTED -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the SOURCES · PROVISIONAL REVIEW card (head, SOURCE/TIER/STATUS/DISCOVERED table with a per-row Approve and the trailing overflow, legend foot, pipeline note) -> Organizations card. Rail, top to bottom: Issues queue, the Companies/Individuals/Newest join/Active-this-month card, Read-only controls.",
     "Lane comp-admin (2026-09-08) closed the region the previous pass logged as NOT FIXED: SourceHealthDashboard's Provisional view rendered a 'Source Intelligence' module (its own header, a B.2 progress bar, a Source Tiers legend, a T1-T7 tile grid, a SECOND tab bar, a source search) where the artboard draws one table card. That view is now the artboard's card, built from the shared parts (SectionRule + the new shared ui/RowTable + TierChip + StateNote + Absence); the module's other views (registry/health/canonical/intersections/themes/obligations), which have no artboard, are untouched. The forbid list below is what stops the old composition coming back.",
     "Actions stay real: Approve/Reject/Re-tier all POST /api/admin/sources/promote, the endpoint the review flow already owned (approve/reject/defer). 'Re-tier = stays provisional' is the artboard's own legend and is exactly what decision 'defer' does, there is no in-place tier write for a provisional row (commit-tier-change returns 409 for kind:\"provisional\").",
     "Two artboard details are deliberately NOT asserted, both logged in DEVIATION-LOG.md 2026-09-08: the foot's 'All 489 provisional' LINK (the built card is the whole queue, so a link to a fuller list would be a dead control, ruling 1.1, and the text renders the live count instead), and the rail's 'Export queue' button (no queue-export endpoint exists anywhere under src/app/api/admin/; not drawn dead, not invented).",
@@ -24,7 +24,7 @@
   },
   "children": [
     {
-      "name": "region 1, 8-tile stat grid present",
+      "name": "region 1, 7-tile stat grid present",
       "selector": "[data-audit=\"admin\"] .cl-admin-stat-tile",
       "expect": {
         "count": "1"

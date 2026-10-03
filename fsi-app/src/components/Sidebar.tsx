@@ -49,7 +49,7 @@ interface NavItem {
   href: string;
   label: string;
   /** Key into NavCounts, when this item carries a live count. */
-  countKey?: "regulations" | "market" | "research" | "operations" | "community" | "watchlist";
+  countKey?: "regulations" | "market" | "research" | "operations" | "watchlist";
 }
 
 interface NavSection {
@@ -82,7 +82,7 @@ const SECTIONS: NavSection[] = [
   },
   {
     label: "Network",
-    items: [{ href: "/community", label: "Community", countKey: "community" }],
+    items: [{ href: "/community", label: "Community" }],
   },
 ];
 

@@ -48,7 +48,7 @@ import type { RegionCoverage } from "@/lib/coverage-gaps";
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { buildRegulationsRegionHref } from "@/lib/url-params/regulations-region-link";
-import type { CommunityActivityRow, JurisdictionTone, MapJurisdiction } from "@/components/map/MapView";
+import type { JurisdictionTone, MapJurisdiction } from "@/components/map/MapView";
 import { BAND_ORDER, bandFromPriority, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
@@ -75,7 +75,6 @@ interface MapPageViewProps {
   resources: Resource[];
   coverageGaps?: RegionCoverage[];
   initialRegionFilter?: string | null;
-  communityActivity?: CommunityActivityRow[];
 }
 
 type RegionChipKey = "EU" | "US" | "UK" | "LATAM" | "APAC" | "MEAF";
@@ -113,7 +112,7 @@ function bandOf(items: Resource[]): UrgencyBand {
 }
 
 export function MapPageView(props: MapPageViewProps) {
-  const { resources, coverageGaps, initialRegionFilter = null, communityActivity = [] } = props;
+  const { resources, coverageGaps, initialRegionFilter = null } = props;
 
   const activeRegionIso = useMemo<string | null>(() => {
     const raw = (initialRegionFilter || "").trim();
@@ -370,7 +369,6 @@ export function MapPageView(props: MapPageViewProps) {
             <div style={{ position: "absolute", inset: 0 }}>
               <MapView
                 jurisdictions={mapMarkers}
-                communityActivity={communityActivity}
                 externalSelectJurId={selectedJurId}
                 externalSelectNonce={selectNonce}
                 onMarkerClick={(id) => focusJurisdiction(id)}
