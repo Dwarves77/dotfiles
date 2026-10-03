@@ -8,13 +8,20 @@ import {
   MARKET_SERIES_PRODUCERS, producerFor, isImplementedSeriesKey, implementedProducers,
 } from "../lib/market/series-registry.mjs";
 
+// Entries that are NOT genuinely code-absent stubs, declared once up top (used by multiple tests below).
+// See the HELD_NOT_UNBUILT-adjacent comment further down for the full "why" per entry.
+const HELD_NOT_UNBUILT = new Set(["carrier-ets", "sbti"]);
+
 // Updated 2026-09-28 (lane ETS-PROXY): the WO-16 four plus the decision-1/2 ETS-proxy entry
 // (carrier-ets), the ruled licence-clear alternative to the eex-eua stub. carrier-ets has no single
 // sourceUrl (per-carrier, resolved at run time), named as the one documented exception below.
-test("the WO-16 four plus the ETS-proxy entry (carrier-ets), in registry order", () => {
+// Updated 2026-10-03 (lane L11): added `sbti`, the SBTi Target Dashboard per-sector lead-time +
+// survivorship aggregator, a SECOND R14/licence-held entry alongside carrier-ets (see
+// HELD_NOT_UNBUILT below), not a fourth fully-implemented producer.
+test("the WO-16 four plus the ETS-proxy entry (carrier-ets) plus sbti, in registry order", () => {
   assert.deepEqual(
     MARKET_SERIES_PRODUCERS.map((p) => p.keyPrefix),
-    ["eu-oil-bulletin", "eex-eua", "carrier-ets", "ecb-fx", "eia-v2"],
+    ["eu-oil-bulletin", "eex-eua", "carrier-ets", "ecb-fx", "eia-v2", "sbti"],
   );
 });
 
@@ -38,10 +45,18 @@ test("every entry names series_key prefix, source and cadence (WO-16 step 5's re
   }
 });
 
-test("the implemented producer's cadenceDays is a positive integer; every stub's is null (not decided)", () => {
+// Updated 2026-10-03 (lane L11): the "every stub's cadenceDays is null" half now excludes
+// HELD_NOT_UNBUILT entries, a stub with NO producer at all genuinely has no cadence to assert, but
+// `sbti` has a real, spec-stated cadence (weekly, Thursdays, spec 02 section 7) despite being
+// licence-held; asserting null there would understate a known fact to satisfy this test's shape rather
+// than the other way around. carrier-ets still asserts null on its own merits (no fixed cadence exists
+// for a per-carrier surcharge revision), unaffected by this exclusion.
+test("the implemented producer's cadenceDays is a positive integer; every genuine (code-absent) stub's is null", () => {
   const eu = producerFor("eu-oil-bulletin");
   assert.equal(eu.cadenceDays, 7);
-  for (const p of MARKET_SERIES_PRODUCERS.filter((p) => !p.implemented)) {
+  const sbti = producerFor("sbti");
+  assert.equal(sbti.cadenceDays, 7, "sbti's cadence is spec-stated (weekly) even though it is licence-held");
+  for (const p of MARKET_SERIES_PRODUCERS.filter((p) => !p.implemented && !HELD_NOT_UNBUILT.has(p.keyPrefix))) {
     assert.equal(p.cadenceDays, null, `${p.name}: a stub must not assert a cadenceDays it hasn't built a producer to honour`);
   }
 });
@@ -62,8 +77,12 @@ test("exactly THREE producers are implemented: EU Weekly Oil Bulletin, ECB FX, E
 // a DIFFERENT kind of not-implemented: its producer script and envelope module exist and are
 // fixture-tested (R14 hold gates the LIVE-WRITE path only, via its own ENABLED=false, not this registry
 // flag), so it is named as a documented exception here, never silently lumped with eex-eua's "nothing
-// built yet" case.
-const HELD_NOT_UNBUILT = new Set(["carrier-ets"]);
+// built yet" case. Updated 2026-10-03 (lane L11): `sbti` joins this set for a THIRD reason, distinct
+// from carrier-ets's ordinary R14 hold, its producer's own `decideApply` refuses --apply
+// UNCONDITIONALLY, citing a registered-prohibited licence entry (source-licence.mjs 'sbti_dashboard'),
+// not an unarmed kill switch. Same registry-flag shape (producerScript/parserModule present,
+// implemented:false), different and stronger reason, see the producer's own header.
+// (HELD_NOT_UNBUILT itself is declared once, near the top of this file.)
 
 test("the one true no-code stub (eex-eua) carries NO producerScript/parserModule, documented, not half-built", () => {
   for (const p of MARKET_SERIES_PRODUCERS.filter((p) => !p.implemented && !HELD_NOT_UNBUILT.has(p.keyPrefix))) {
@@ -77,6 +96,14 @@ test("carrier-ets is R14-held, not unbuilt: it names real producer/parser paths 
   assert.equal(carrierEts.implemented, false);
   assert.equal(carrierEts.producerScript, "scripts/producers/market/carrier-ets-surcharge-producer.mjs");
   assert.equal(carrierEts.parserModule, "src/lib/market/carrier-ets-surcharge-envelope.mjs");
+});
+
+test("sbti is LICENCE-held, not unbuilt: it names a real producer path while implemented stays false", () => {
+  const sbti = producerFor("sbti");
+  assert.equal(sbti.implemented, false);
+  assert.equal(sbti.producerScript, "scripts/producers/market/sbti-target-dashboard-producer.mjs");
+  assert.equal(sbti.sourceKey, "sbti_dashboard");
+  assert.match(sbti.licenceStatus, /PROHIBITED/);
 });
 
 test("every implemented producer names its real producer script and parser module paths", () => {

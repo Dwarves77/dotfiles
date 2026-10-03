@@ -227,6 +227,54 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
       "off AND (independently) no GitHub Actions workflow step exists to run it at all — see " +
       "licenceStatus above for exactly what blocks wiring that step.",
   },
+  {
+    keyPrefix: "sbti",
+    // familyClass values are closed to FAMILY_CLASS_ORDER (series-family.mjs): fuel, carbon, fx, index.
+    // "index" is this registry's own catch-all ("fuels, carbon, FX, other indices", this file's header
+    // comment). SBTi's lead-time/survivorship aggregates are neither a fuel/energy price, a carbon
+    // price, nor an FX rate.
+    familyClass: "index",
+    name: "SBTi Target Dashboard (per-sector lead-time + survivorship)",
+    // implemented: false, SAME POSTURE as carrier-ets above: the producer script, its parser and its
+    // aggregation module all exist (unlike eex-eua's null producerScript) and are fixture-tested, but
+    // "implemented" tracks the LIVE-WRITE gate specifically, and this one cannot open. The producer's own
+    // decideApply refuses --apply UNCONDITIONALLY, citing a licence block, never a kill-switch state (see
+    // the producer's own header). Lane L11, 2026-10-03.
+    implemented: false,
+    cadence: "weekly (SBTi publishes the dashboard export Thursdays, per spec 02 section 7)",
+    cadenceDays: 7,
+    // REGISTERED ALREADY, BEFORE THIS PRODUCER EXISTED. 'sbti_dashboard' is NOT a new source_key; it was
+    // added to src/lib/contracts/source-licence.mjs AND migration 258's data_source_seed (2026-08-12, an
+    // earlier lane) specifically BECAUSE redistribution is prohibited. The FK target already resolves;
+    // no migration is requested or needed by this entry. The licence gate is independent of, and in
+    // addition to, the ordinary source-registration gate ecb-fx's own header describes.
+    sourceKey: "sbti_dashboard",
+    sourceName: "Science Based Targets initiative, Target Dashboard",
+    sourceUrl: "https://sciencebasedtargets.org/target-dashboard",
+    licenceStatus:
+      "registered, PROHIBITED (src/lib/contracts/source-licence.mjs 'sbti_dashboard', migration 258, " +
+      "verifiedOn 2026-08-12): \"This does not represent a license to repackage or resell any of the " +
+      "data\"; express permission required from BOTH SBTi and CDP. 'Free, no login' (spec 02 section 7, " +
+      "this dispatch's own brief) names ACCESS, never REDISTRIBUTION. The producer's own --apply path " +
+      "refuses unconditionally until this is resolved (operator/coordinator call, not this lane's).",
+    derivation: "calculated",
+    originClass: "derived",
+    producerScript: "scripts/producers/market/sbti-target-dashboard-producer.mjs",
+    parserModule: "scripts/producers/market/sbti-target-dashboard-producer.mjs",
+    notes:
+      "Per-sector aggregates ONLY, never the ~40,000 raw per-company rows (which would itself be the " +
+      "exact redistribution the licence blocks): sbti:near-term-lead-time-<sector> and " +
+      "sbti:net-zero-lead-time-<sector> (mean target_year-base_year in years, among status=\"Other\" rows, " +
+      "the live-confirmed status a per-target row with a present base_year/target_year carries, NOT " +
+      "\"Active\"/\"Validated Targets\" as first guessed and refuted by a direct count, see the " +
+      "producer's own header; n_observations = the sample count, the figure a lead-time chart (lane L10, " +
+      "src/components/market/LeadTimeChart.tsx) must gate a minimum sample on, per the build plan's own " +
+      "acceptance test, 'not forecastable' under too few), and sbti:commitment-removed-<sector> (a direct " +
+      "count of status=Removed rows per sector, survivorship, never silently dropped, spec 02 section " +
+      "7's own warning). reference_period/as_at_date = the maximum date_published among each aggregate's " +
+      "own contributing rows (a fact read from the data, never a clock read). See the producer's own " +
+      "header for the full aggregation contract and the licence-gate rationale.",
+  },
 ]);
 
 /** Look up a registry entry by its keyPrefix. Returns undefined if unknown. */
