@@ -25,6 +25,18 @@
  * Values carried over from the artboard where they still apply: card 1px rgba(0,0,0,.12), radius
  * 10px, selected pill's border #5A5552 (var(--brand)); label 10.5px / .1em / uppercase / 800;
  * count Anton 18px with a "+N new" suffix at 10px/800 in the body face.
+ *
+ * UNCLASSIFIED BAND (lane L8, 2026-10-02, spec 03's own-finding/docs/specs/03-research.md section 10
+ * "Theme rendering"): ResearchLedger.tsx's `themeCards` derivation (its own `themeKeyOf` helper) skips
+ * a row entirely - `if (!key) continue` - when `assignTheme` returns null (no DB theme column value and
+ * no keyword match). That row is still counted in the ledger's total/band tiles (it renders as a list
+ * row), but until this fix it had NO facet-row representation at all: "counted in the tiles and
+ * rendered in zero bands... verified content is silently invisible" per the spec's own words. This is
+ * a PERMANENT safety net, not a one-time cleanup artifact (the spec's own design intent) - it renders
+ * whenever `unclassifiedCount` is nonzero at render time, every time, not only immediately after the
+ * one-time backfill script (scripts/research/backfill-themes.mjs) closes today's 47 null rows. A
+ * classification miss after this lane ships stays visible here, never silently re-absorbed into
+ * invisibility.
  */
 
 import { THEME_DESCRIPTIONS, THEME_LABELS } from "@/lib/research/taxonomy.mjs";
@@ -40,12 +52,18 @@ export function ResearchThemeCards({
   themes,
   selected,
   onSelect,
+  unclassifiedCount = 0,
 }: {
   themes: ResearchThemeCard[];
   selected: string | null;
   onSelect: (key: string | null) => void;
+  /** Rows the theme classifier matched to no theme (null key from themeKeyOf). Honest absence state,
+   *  never silently dropped - renders as its own pill, same anatomy as a real theme card, whenever
+   *  nonzero. Optional/defaulted so an existing caller that has not threaded this yet (pre-wiring)
+   *  still renders exactly as before - see this lane's report for the ResearchLedger.tsx wiring note. */
+  unclassifiedCount?: number;
 }) {
-  if (themes.length === 0) return null;
+  if (themes.length === 0 && unclassifiedCount <= 0) return null;
   return (
     <div
       data-audit="theme-cards"
@@ -92,6 +110,42 @@ export function ResearchThemeCards({
           </button>
         );
       })}
+      {unclassifiedCount > 0 && (() => {
+        const isSelected = selected === "unclassified";
+        return (
+          <button
+            key="unclassified"
+            type="button"
+            data-audit="theme-card-unclassified"
+            aria-pressed={isSelected}
+            title="Verified findings whose text matched none of the seven research themes."
+            onClick={() => onSelect(isSelected ? null : "unclassified")}
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 6,
+              minHeight: 36,
+              background: "var(--card)",
+              // Dashed border (never the solid error-red treatment): an honest, expected absence
+              // state, not a fault - same geometry and typography as every other pill, quieter color
+              // only (UX compliance note, this lane's report).
+              border: `1px dashed ${isSelected ? "var(--brand)" : "var(--line-1)"}`,
+              borderRadius: "var(--radius-card)",
+              padding: "6px 12px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              color: "var(--ink-2)",
+            }}
+          >
+            <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 800 }}>
+              Unclassified
+            </span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 18, whiteSpace: "nowrap" }}>
+              {unclassifiedCount}
+            </span>
+          </button>
+        );
+      })()}
     </div>
   );
 }
