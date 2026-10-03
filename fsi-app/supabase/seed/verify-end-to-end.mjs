@@ -11,7 +11,7 @@
 //      community DB has data).
 //
 // Auth strategy:
-//   1. Read access_token from C:/Users/jason/dotfiles/.perftoken (the
+//   1. Read access_token from the repo-root .perftoken file (the
 //      orchestrator pre-mints this with admin email + password).
 //   2. Decode the JWT payload to check `exp`. If expired, refresh by
 //      calling Supabase admin generate_link → action_link → fragment
@@ -30,8 +30,8 @@
 //   blocks the report.
 //
 // Output:
-//   Writes JSON to C:\Users\jason\dotfiles\docs\E2E-VERIFICATION.json and
-//   markdown to C:\Users\jason\dotfiles\docs\E2E-VERIFICATION.md.
+//   Writes JSON to docs/E2E-VERIFICATION.json and
+//   markdown to docs/E2E-VERIFICATION.md.
 //
 // Usage:
 //   PERF_TEST_BASE_URL=http://localhost:3000 \
@@ -453,8 +453,6 @@ let testGroupId = null;
 let testPostId = null;
 let testReplyId = null;
 let testReportId = null;
-let testStagedUpdateId = null;
-let testPromotionId = null;
 
 await runTest(gB, "B1", "Create test community group", async () => {
   // Create the group via service role; immediately add admin as owner so
@@ -651,41 +649,6 @@ await runTest(gB, "B12", "POST /api/community/moderation/reports/{id} — dismis
   };
 });
 
-await runTest(gB, "B13", "POST /api/community/posts/{id}/promote — staged kind", async () => {
-  if (!testPostId) return { expected: "201", actual: "no post", pass: false, details: "B2 failed" };
-  const r = await httpRequest("POST", `/api/community/posts/${testPostId}/promote`, {
-    body: {
-      kind: "staged",
-      intelligence_item: {
-        title: `E2E test promote ${ts}`,
-        source_url: "https://example.com/e2e-test",
-        item_type: "regulation",
-      },
-    },
-  });
-  const ok = r.status === 201 && r.json?.promotion_id && r.json?.staged_update_id;
-  if (ok) {
-    testPromotionId = r.json.promotion_id;
-    testStagedUpdateId = r.json.staged_update_id;
-  }
-  // Verify the staged_updates row exists.
-  let stagedExists = false;
-  if (testStagedUpdateId) {
-    const { data } = await supabaseAdmin
-      .from("staged_updates")
-      .select("id")
-      .eq("id", testStagedUpdateId)
-      .maybeSingle();
-    stagedExists = !!data;
-  }
-  return {
-    expected: "201 + promotion_id + staged_update_id; staged row in DB",
-    actual: `${r.status}; promotion_id=${testPromotionId || "none"}, staged_id=${testStagedUpdateId || "none"}, db_row=${stagedExists}`,
-    pass: ok && stagedExists,
-    details: ok ? "" : `body: ${r.text.slice(0, 240)}`,
-  };
-});
-
 await runTest(gB, "B14", "Realtime hook (browser-only)", async () => {
   return {
     expected: "subscribe to realtime channel",
@@ -776,26 +739,6 @@ await safeDelete("delete moderation_report", async () => {
     .from("moderation_reports")
     .delete({ count: "exact" })
     .eq("id", testReportId);
-  if (error) throw error;
-  return `deleted ${count ?? "?"} row(s)`;
-});
-
-await safeDelete("delete post_promotion", async () => {
-  if (!testPromotionId) return "no promotion id";
-  const { error, count } = await supabaseAdmin
-    .from("post_promotions")
-    .delete({ count: "exact" })
-    .eq("id", testPromotionId);
-  if (error) throw error;
-  return `deleted ${count ?? "?"} row(s)`;
-});
-
-await safeDelete("delete staged_update", async () => {
-  if (!testStagedUpdateId) return "no staged id";
-  const { error, count } = await supabaseAdmin
-    .from("staged_updates")
-    .delete({ count: "exact" })
-    .eq("id", testStagedUpdateId);
   if (error) throw error;
   return `deleted ${count ?? "?"} row(s)`;
 });

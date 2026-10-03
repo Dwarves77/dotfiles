@@ -51,8 +51,8 @@ export default async function AdminPartsNavCardPage() {
             </span>
             <span>
               Regulations {NAV_COUNTS_FIXTURE.regulations} · Market {NAV_COUNTS_FIXTURE.market} · Research{" "}
-              {NAV_COUNTS_FIXTURE.research} · Operations {NAV_COUNTS_FIXTURE.operations} · Community{" "}
-              {NAV_COUNTS_FIXTURE.community} · Watchlist {NAV_COUNTS_FIXTURE.watchlist}
+              {NAV_COUNTS_FIXTURE.research} · Operations {NAV_COUNTS_FIXTURE.operations} · Watchlist{" "}
+              {NAV_COUNTS_FIXTURE.watchlist}
             </span>
             <span>
               byPriority: CRITICAL {NAV_COUNTS_FIXTURE.byPriority.CRITICAL} · HIGH{" "}

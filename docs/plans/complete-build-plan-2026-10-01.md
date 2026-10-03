@@ -112,9 +112,9 @@ exists on an unmerged lane branch named in the setup brief).
 | 05S1 | Antitrust posting guard, k-anonymity + dominance cap + lag, refuse-not-flag | **built-and-proven** `[AUDITED]` | spec 08 S5: migration 287, `publish_aggregate()`, 4 attack mitigations, 37-test pure-JS mirror, live self-check (14 calls, 4 fields); ADR-035 (one aggregate anonymity floor, ≥10 orgs / ≤25% share) | "NO LIVE SUBJECT TODAY" per migration 287's own header ,  the guard exists, nothing routes through it yet |
 | 05S2 | Verified-identity, display rule | **SUPERSEDED, see S5 of this document** | spec 07 amendment 2026-09-25 (R8.7): identity shown by default, not withheld | `lane/w2b-community-identity` built, not merged, implements the amended rule (anonymity opt-in, not default) |
 | 05S3 | House-seeded recurring benchmark | **missing** `[HYPOTHESIS, spec-dated]` | ,  | ,  |
-| 05S4 | 5-gate promotion state machine | **missing** `[HYPOTHESIS, spec-dated]` | "editorial pickup pipeline absent or stubbed" per platform-intent skill's current-state note, consistent with spec's own finding | ,  |
+| 05S4 | 5-gate promotion state machine | **Superseded by ADR-041** (Community is social only) | the promotion path was removed, not built | ,  |
 | 05S5 #9 | Working groups/forums, sector-seeded | **built** `[AUDITED]` | shipped per Workstream B, confirmed by platform-intent skill | ,  |
-| 05S5 #10 | Editorial pickup pipeline | **missing** `[AUDITED]` | platform-intent skill: "absent or stubbed" | ,  |
+| 05S5 #10 | Editorial pickup pipeline | **Superseded by ADR-041** (Community is social only) | removed, not built | ,  |
 | 05S6 | Acceptance criteria (9 items) | **missing**, 1 partial | antitrust write-time refusal (#3) proven by the migration-287 self-check | ,  |
 
 ### 1.6 Flywheel / propagation (spec 08) and domain extensions (spec 09)
@@ -370,7 +370,7 @@ ADR-035's ≥10-org floor) successfully aggregates and publishes; one with 9 org
 gate (negative test, reusing the gate's own 37-test mirror as the pattern). Size: M. Model: Sonnet.
 Migrations requested: 347. Dependencies: none (the antitrust guard is already built).
 
-**L16. Promotion state machine (5 gates) for Community → product content.** Spec refs: 05S4, S5 #6-#7.
+**L16. Superseded by ADR-041 (Community is social only); do not build. The text below is retained as history.** Promotion state machine (5 gates) for Community → product content. Spec refs: 05S4, S5 #6-#7.
 Write set: new state column + transition log, no new storage engine. Files: new migration adding
 `promotion_state` enum column to the existing Community post table (`community`/`community-corroborated`/
 `under-review`/`verified`/`retired`, reusing the `origin_class` vocabulary already shipped in spec 00 S3.6
@@ -586,9 +586,8 @@ cost-per-FEU figure is confirmed rendering end to end on the detail page.
 at least the regions with live producer data (gated honestly behind the existing R14-held EU/US producer
 work, not faked ahead of it), and the materials-PPWR join exists for the confirmed-numeric regulation.
 
-**Wave 5 (Community, M/L).** After this wave: the house-seeded benchmark poll exists and the 5-gate
-promotion machine moves a corroborated post toward verified content with the correct provenance labelling
-on every surface it touches.
+**Wave 5 (Community, M/L).** After this wave: the house-seeded benchmark poll exists. (The 5-gate
+promotion machine named here earlier, L16, is Superseded by ADR-041: Community is social only.)
 
 **Wave 6 (spine, L/L/L/M).** After this wave: Regulations has a real obligation register (at least 4
 instruments deep) with the binding-position distinction live, a portfolio object lets a customer's "my
@@ -634,7 +633,7 @@ above.** Nothing below is open; it is removed from scope, not deferred.
   alone as the differentiator per the same ruling.
 - **Community "not your name, not your company" default (spec 05 S2, spec 07's original item 1).**
   SUPERSEDED by spec 07's own 2026-09-25 amendment (R8.7): identity is shown by default, anonymity is
-  opt-in per-post or per-user. L16 above builds to the amended rule, not the superseded one.
+  opt-in per-post or per-user. L16 above (itself now Superseded by ADR-041) was to build to the amended rule, not the superseded one.
 - **`/api/admin/promotion-policy` and its table.** Out of scope per remediation plan Lane 12's decision:
   superseded by the operator-priced spend model (RD-31/RD-32).
 - **`DashboardTopPriority.tsx`.** Out of scope per remediation plan Lane 13's decision: the dashboard

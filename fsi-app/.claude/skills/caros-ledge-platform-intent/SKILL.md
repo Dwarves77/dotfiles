@@ -34,7 +34,7 @@ Four corrections landed in the design rebuild handoff session and are now codifi
 
 2. **Vendor directory is removed from Community.** The vendor directory sub-feature is no longer part of the platform. References to it have been removed from Section 3.5 COMMUNITY and from the Three-Layer Tenant Model. Any prior dispatch report or follow-up that scoped vendor directory expansion is superseded.
 
-3. **Editorial pickup pipeline status is corrected to in-flight.** Section 3.5 previously listed editorial pickup pipeline as shipped per Workstream B. The 2026-05-23 cross-surface audit confirmed the pipeline is absent or stubbed. Section 3.5 now reflects the actual in-flight state. The customer-facing `/research` surface does NOT consume Community pickups today; that wiring is part of the Community rebuild dispatch.
+3. **Editorial pickup pipeline is retired (ADR-041, operator ruling 2026-10-03).** Community is social only: there is no editorial pickup and no promotion of Community content into any other surface. The customer-facing `/research` surface, like every other page, consumes nothing from Community.
 
 4. **LinkedIn import is in-flight, not a stub.** Section 3 ONBOARDING FLOW previously labeled LinkedIn import as "currently stub". The operator confirmed it is an in-flight feature build. Section 3 ONBOARDING FLOW and Section "Customer-Facing Value Gap" item 5 are updated accordingly.
 
@@ -141,17 +141,15 @@ Examples of decisions Operations supports:
 - Public forums (open discussion threads)
 - Promote-to-public workflow (private content can be promoted to public discussion)
 
-**In-flight, not yet shipped:**
-
-- Editorial pickup pipeline (Caro's Ledge editors surface a public Community thread inside platform intelligence). The 2026-05-23 cross-surface audit confirmed this is absent or stubbed. Wiring is part of the Community rebuild dispatch.
+**Rule (ADR-041, operator ruling 2026-10-03, verbatim in substance):** Community is a social place, not a source of information. System to Community links are allowed (a member may link a regulation or item from the system into a discussion). No Community-derived content, count, state or aggregate may appear on, or feed, any page or pipeline outside `/community` and its own API. There is no editorial pickup and no promotion.
 
 **Removed from scope** (operator-stated correction 2026-05-24):
 
 - Vendor directory. No longer part of the platform. Any prior dispatch report or follow-up that scoped vendor directory expansion is superseded.
 
-**Source category mapping.** Community does NOT map to the four-category source taxonomy. Community content is user-generated peer discussion plus editorial pickups; it is not classifier output from external sources. The two halves of the platform (intelligence and community) are structurally distinct in this respect.
+**Source category mapping.** Community does NOT map to the four-category source taxonomy. Community content is user-generated peer discussion only; it is not classifier output from external sources. The two halves of the platform (intelligence and community) are structurally distinct in this respect.
 
-**Current state.** Partially functional. Working groups, forums, and promote-to-public shipped per Workstream B. Editorial pickup pipeline is in-flight (absent/stubbed per the 2026-05-23 audit). Gaps: author-identity rendering (org + role + sector + region), region/group structure on the index page, AI prompt bar wiring, topic-by-region matrix, sector-taxonomy-driven group seeding for new workspaces.
+**Current state.** Partially functional. Working groups, forums, and promote-to-public (a repost inside Community) shipped per Workstream B. Editorial pickup and promotion into other surfaces are retired (ADR-041). Gaps: author-identity rendering (org + role + sector + region), region/group structure on the index page, AI prompt bar wiring, topic-by-region matrix, sector-taxonomy-driven group seeding for new workspaces.
 
 ## Cross-Cutting Capabilities
 
@@ -205,7 +203,7 @@ Onboarding is a customer-facing capability, but it is cross-cutting rather than 
 
 - **Platform layer.** Shared intelligence, source registry, classifier, internal staff (`profiles.is_platform_admin = true` gates platform-level surfaces).
 - **Workspace layer.** Org-scoped intelligence delivery. `workspace_settings`, `org_memberships`, `sector_profile` drive what each workspace sees and how briefs are anchored.
-- **Community layer.** Cross-org peer information-sharing. Working groups, forums, promote-to-public, editorial pickup (in-flight). Spans organizations. (Vendor directory removed from scope per operator-stated correction 2026-05-24.)
+- **Community layer.** Cross-org peer information-sharing. Working groups, forums, promote-to-public (a repost inside Community). Spans organizations; feeds no other surface (ADR-041). (Vendor directory removed from scope per operator-stated correction 2026-05-24.)
 
 Onboarding is the mechanism by which an expansion-time user joins the Workspace layer and gains Community participation.
 

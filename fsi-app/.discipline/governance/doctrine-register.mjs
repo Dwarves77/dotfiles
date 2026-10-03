@@ -499,7 +499,7 @@ export const DOCTRINES = [
   {
     id: 'community-is-human-space',
     statement:
-      'Community (posts, pickups, promotion, verifier sign-off, moderation) is HUMAN-OPERATED BY DESIGN. It is NOT intake and is NOT subject to no-human-finish-of-intake / machine-gates-are-approval — those doctrines govern the machine INTAKE path only. Human approval / curation / promotion affordances on Community surfaces are legitimate by design, not gates to remove and not retained exceptions. THE ONE DOCTRINAL EDGE (boundary requirement): content promoted from Community INTO the intelligence corpus carries its OWN provenance class — community-originated, human-promoted — and NEVER renders as machine-grounded / verified. Enforcement of that provenance labeling lands with whichever unit touches the promotion path; known gap until then.',
+      'Community (posts, replies, groups, verifier sign-off, moderation) is HUMAN-OPERATED BY DESIGN. It is NOT intake and is NOT subject to no-human-finish-of-intake / machine-gates-are-approval, those doctrines govern the machine INTAKE path only. Human approval / curation / promotion affordances on Community surfaces are legitimate by design, not gates to remove and not retained exceptions. THE ONE DOCTRINAL EDGE (boundary requirement): content promoted from Community INTO the intelligence corpus carries its OWN provenance class, community-originated, human-promoted, and NEVER renders as machine-grounded / verified. Enforcement of that provenance labeling lands with whichever unit touches the promotion path; known gap until then.',
     source: 'census disposition Ruling 1 (operator 2026-07-12)',
     exempt: {
       reason:

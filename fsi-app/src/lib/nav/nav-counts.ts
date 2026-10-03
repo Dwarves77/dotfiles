@@ -16,7 +16,6 @@ export interface NavCounts {
   market: number;
   research: number;
   operations: number;
-  community: number;
   watchlist: number;
   /** Real per-band counts (CRITICAL/HIGH/MODERATE/LOW, the same
    *  WorkspaceAggregates.byPriority the dashboard's own band tiles read) —
@@ -30,7 +29,6 @@ export const EMPTY_NAV_COUNTS: NavCounts = {
   market: 0,
   research: 0,
   operations: 0,
-  community: 0,
   watchlist: 0,
   byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
 };
@@ -47,10 +45,6 @@ export async function getNavCounts(): Promise<NavCounts> {
       market: coverage.intelligence.marketIntel,
       research: coverage.intelligence.research,
       operations: coverage.intelligence.operations,
-      // COUNTS-61: the badge counts regional ROOMS, which is what the /community page's own
-      // header states. It used to count groups the workspace had joined, so the rail said
-      // "Community 1" over a page saying "7 regional rooms".
-      community: coverage.community.regionalRooms,
       watchlist: watchlist.length,
       byPriority: aggregates.byPriority,
     };

@@ -50,8 +50,8 @@ import { fullAppCss } from './smoke-fixtures.mjs';
 // the ?priority=/?region=/?owner= deep-link filters CLIENT-SIDE now that regulations/page.tsx no
 // longer reads the `searchParams` prop server-side (a Dynamic API that alone forced the route `ƒ`).
 // Outside a real Next App Router tree this throws ("invariant expected app router to be mounted"),
-// same failure community-smoke.mjs's own ALIAS note documents for PostComposer.tsx/
-// PromotePostDialog.tsx — reusing that spec's stub-next-navigation.mjs here rather than duplicating it.
+// same failure community-smoke.mjs's own ALIAS note documents for PostComposer.tsx
+// reusing that spec's stub-next-navigation.mjs here rather than duplicating it.
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
 

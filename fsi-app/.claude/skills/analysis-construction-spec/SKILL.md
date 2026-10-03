@@ -368,9 +368,9 @@ The specs above are what to write. This is what to build.
 
 Scope: this contract covers the four BRIEF-DRIVEN surfaces (Regulations, Market, Research,
 Operations) plus Technology. Community is the fifth customer-facing surface but is NOT brief-driven
-— it is peer-generated content (working groups, forums, editorial pickups). Its direction is owned
-by the Community workstream (group/region structure, editorial curation, author identity), not this
-spec.
+it is peer-generated content (working groups, forums). It feeds no brief or surface (ADR-041, no
+editorial pickup, no promotion). Its direction is owned by the Community workstream (group/region
+structure, author identity), not this spec.
 
 Per non-regulatory prose format (Research, Market, Technology), reusing the regulatory code pattern:
 1. A section-extractor keyed to the format's section list, analog of extract-regulation-sections.ts.

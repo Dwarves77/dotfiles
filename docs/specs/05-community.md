@@ -5,17 +5,18 @@ Status: DRAFT for operator review, 2026-08-12.
 **Contract.** Community is a core customer-facing surface, co-equal with the four intelligence pages,
 addressing the freight industry's structural information-isolation problem. It is **human-operated by
 construction and outside machine intake** (`community-is-human-space`, operator ruling 2026-07-12), so
-`no-human-finish-of-intake` and `machine-gates-are-approval` do not apply here. Human approval,
-curation and promotion affordances are legitimate by design.
+`no-human-finish-of-intake` and `machine-gates-are-approval` do not apply here.
 
-**The one doctrinal edge, already registered:** content promoted from Community into the intelligence
-corpus carries its own provenance class, community-originated and human-promoted, and **never renders as
-machine-grounded or verified**. Enforcement of that labelling is a known gap with a named landing point.
+**Community is social only (ADR-041, operator ruling 2026-10-03).** Community is a place for people to
+discuss what they are doing in their own regions. It is not a source of information: nothing posted in
+Community feeds, is counted on, or is promoted into any page or pipeline outside `/community`. A system
+page may link into Community; Community never feeds back out. The promotion path, editorial pickup and
+every outbound count were removed (see "Community is social only" below).
 
 **Current verdict.** Not re-verified in depth this pass. Working groups, forums and promote-to-public
-shipped per Workstream B; the editorial pickup pipeline is absent or stubbed. Community was deliberately
-scoped separately from the four intelligence surfaces because its contract is a different shape, and it
-needs its own read before build. This spec is the target, not an audit.
+(a repost inside Community) shipped per Workstream B. Community was deliberately scoped separately from
+the four intelligence surfaces because its contract is a different shape. This spec is the target, not
+an audit.
 
 ---
 
@@ -89,29 +90,19 @@ Moderation is editorial, not merely policing: submissions assessed for context, 
 with members asked for more information *before* publication. Named removal grounds: plagiarism, generic
 content, impersonation, abuse, PII, confidential or financial data, unproven fraud accusations.
 
-## 4. The promotion path into product content
+## 4. Community is social only (ADR-041)
 
-Five gates. Each changes `origin_class` (`00-foundation` §3.6). None may be skipped.
+Operator ruling, 2026-10-03, verbatim: "Community is a resource for people to discuss what they're doing
+in their own regions and how they're working through things if they wanna link a regulation or something
+that they wanna talk about from the system that's OK, but we should not be using community to feed data
+into the rest of the pages absolutely not." And: "It is a social place. It is not a source of
+information."
 
-1. **`community`** — posted. Visually distinct container, author role chip, "unverified, contributed by
-   a member". **Never enters an Operations calculation, never appears in an export, never cited by the
-   Assistant as fact.**
-2. **`community-corroborated`** — at least 3 independent verified members from at least 3 distinct
-   organisations, no organisation above 25% of respondents, asserting consistent facts. Still labelled
-   unverified. Now eligible to appear as a *signal* on Market Intel **with the distribution shown, never
-   as a point estimate**.
-3. **`under-review`** — an editor has opened a verification task. **Publicly visible state**, which is a
-   trust-builder rather than an embarrassment.
-4. **`verified`** — an editor has traced the claim to a primary source and attached a PROV chain. **The
-   community post becomes a `wasInformedBy` edge, not the source.** The published record cites the
-   primary source; the thread is credited as the lead.
-5. **`retired`** — corroborated-then-contradicted content gets a tombstone with the correction, never
-   deletion, and everyone whose portfolio touched it is notified.
-
-Two firewalls from Gartner, both applicable: individual quotes do not appear in published client-facing
-insight, and peer input is explicitly one input among many for analyst research. And **time decay**:
-Gartner halves review weight every 12 months (100% at 0-12 months, 50% at 12-24, 25% at 24-36). This
-transfers directly. **A corroborated 2024 SAF premium is not evidence about 2026.**
+The rule: system to Community links are allowed. No Community-derived content, count, state or aggregate
+may appear on, or feed, any page or pipeline outside `/community` (and its own API). The five-gate
+promotion path, the editorial pickup pipeline, the cross-surface "peers are discussing this" strip, the
+Map community dots, the Dashboard Community counts and the admin pickups queue are removed. See
+`docs/decisions/ADR-041-community-is-social-only.md`.
 
 ## 5. Required components
 
@@ -121,34 +112,33 @@ transfers directly. **A corroborated 2024 SAF premium is not evidence about 2026
 | 2 | **Entity-bound posting**: every thread binds to spine entities (corridor, jurisdiction, instrument, technology, organisation) | Makes Community reachable from the other four surfaces and from the portfolio, rather than a walled forum |
 | 3 | **Structured aggregate-only instruments** (polls, benchmark surveys) with write-time k-anonymity and dominance enforcement | §1. Also the highest-value proprietary data the product can generate |
 | 4 | **House-seeded recurring benchmark on a fixed calendar**, scoped to the reader's portfolio | §3. The anti-empty-room mechanism |
-| 5 | **Corroboration counter** showing independent organisations, not post count | Feeds gate 2 and mirrors Market Intel's corroboration rule |
-| 6 | **Promotion state machine**, states publicly visible, transitions logged | §4 |
-| 7 | **Time-decay on contributed evidence**, visible as an age chip | §4 |
+| 5 | **Corroboration counter** showing independent organisations, not post count | Superseded by ADR-041 (it fed the removed gate 2) |
+| 6 | **Promotion state machine**, states publicly visible, transitions logged | Superseded by ADR-041 |
+| 7 | **Time-decay on contributed evidence**, visible as an age chip | Superseded by ADR-041 (it belonged to the removed promotion path) |
 | 8 | **No direct messaging** | §2. Explicit anti-solicitation and anti-collusion control |
 | 9 | **Working groups and forums** with region and sector structure, seeded from `sector_profile` on workspace creation | The shipped Workstream B components, plus the seeding gap named in platform-intent |
-| 10 | **Editorial pickup pipeline** (an editor surfaces a public thread inside platform intelligence) with the gate-4 provenance treatment | The in-flight component; the provenance treatment is what makes it safe |
+| 10 | **Editorial pickup pipeline** (an editor surfaces a public thread inside platform intelligence) with the gate-4 provenance treatment | Superseded by ADR-041 |
 | 11 | **Author identity rendering**: org type + role + sector + region, from the pseudonymity-safe subset | Named as a gap in platform-intent §COMMUNITY |
 | 12 | **Antitrust posting guard with a refusal explanation** | §1. Refuse, explain, offer the aggregate-only route |
 
 ## 6. Acceptance criteria
 
-1. Zero `community` records reachable from any Operations figure or verified aggregate (lineage check).
-2. No path from `community` to `verified` without an editor action and a primary-source PROV chain.
+1. Superseded by ADR-041. (Was: zero `community` records reachable from any Operations figure or verified aggregate; the rule is now stronger, no Community content reaches any page outside `/community`.)
+2. Superseded by ADR-041. (There is no path from Community to `verified` at all.)
 3. Posts to commercially sensitive fields violating k-anonymity, the 25% dominance cap or the three-month
    lag are **refused at write time**, not flagged.
-4. Community items surfaced on other surfaces carry the unverified label **in that context too**.
+4. Superseded by ADR-041. (Community items are not surfaced on other surfaces.)
 5. Direct messaging does not exist.
 6. Every thread binds to at least one spine entity.
-7. Corroboration counts distinct organisations, not posts.
-8. Contributed evidence displays its age and decayed weight.
-9. The Assistant never cites a `community` record as fact.
+7. Superseded by ADR-041 (the corroboration counter was removed).
+8. Superseded by ADR-041 (the evidence age chip was removed).
+9. Superseded by ADR-041. (The Assistant does not read Community at all.)
 
 ## 7. Gap: current state vs this spec
 
-Working groups, forums and promote-to-public are shipped. Editorial pickup is absent or stubbed.
-Everything in §1 (antitrust guard), §2 (verified-pseudonymous identity), §3 (house seeding), §4 (the
-five-gate promotion machine) and the `origin_class` propagation is **absent**, and `origin_class` itself
-does not exist as a vocabulary anywhere in the product. Author-identity rendering, region and group
+Working groups, forums and promote-to-public (a repost inside Community) are shipped. Editorial pickup
+and the promotion machine are removed (ADR-041). Everything in section 1 (antitrust guard), section 2
+(verified-pseudonymous identity) and section 3 (house seeding) is **absent** at this spec date unless built since. Author-identity rendering, region and group
 structure on the index, AI prompt bar wiring, the topic-by-region matrix and sector-driven group seeding
 are the gaps already named in platform-intent and remain open.
 

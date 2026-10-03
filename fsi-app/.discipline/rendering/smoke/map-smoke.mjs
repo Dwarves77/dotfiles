@@ -79,7 +79,7 @@ function MapSmokeRoot(props) {
     // describes the product. See MapPageView.tsx and ux-assert.mjs's measureUx for why a tile inside a
     // declared clipping viewport is carried and a text run never is.
     React.createElement('div', { 'data-guard-clip': '', style: { height: 460, width: '100%', position: 'relative', overflow: 'hidden' } },
-      React.createElement(MapView, { jurisdictions: props.markers, communityActivity: [] }),
+      React.createElement(MapView, { jurisdictions: props.markers }),
     ),
     React.createElement('div', { 'data-testid': 'jurisdiction-register-rows' },
       props.registerRows.length > 0

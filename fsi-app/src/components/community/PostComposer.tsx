@@ -49,16 +49,8 @@ export interface CommunityPost {
   reply_count: number;
   attribution: string | null;
   promoted_from_post_id: string | null;
-  // ── Wave 3 (2026-09-03) additions, all optional — [INFERRED]: the legacy
-  // GET /api/community/posts?group_id=… list route (COMMUNITY-A's, not present in this worktree at
-  // write time) is not one of the four endpoints the wave3 contract names explicitly, so whether it
-  // echoes these fields on each post is unconfirmed here. Kept optional and additive so a post from
-  // that route with none of them still type-checks and Post.tsx falls back to its legacy rendering
-  // (see Post.tsx's own header); a caller that DOES receive them (once A's route carries the 5-gate
-  // promotion machine and identity projection through to this feed) gets them rendered for free via
-  // PostList.tsx's pass-through below, no further wiring needed.
-  promotion_state?: string | null;
-  origin_class?: string | null;
+  // Optional identity projection: kept optional so a post from the list route with none of it still
+  // type-checks and Post.tsx falls back to its legacy rendering (see Post.tsx's own header).
   author_identity?: {
     orgType?: string | null;
     role?: string | null;
@@ -66,7 +58,6 @@ export interface CommunityPost {
     region?: string | null;
     verified?: boolean;
   } | null;
-  evidence_chip?: string | null;
 }
 
 interface PostComposerProps {

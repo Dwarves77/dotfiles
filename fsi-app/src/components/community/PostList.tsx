@@ -275,12 +275,9 @@ export function PostList({
               currentUserId={currentUserId}
               isGroupAdmin={isGroupAdmin}
               isGroupMember={isGroupMember}
-              // Wave 3 (2026-09-03) pass-through — see CommunityPost's own doc comment
-              // (PostComposer.tsx) for why these are optional/[INFERRED] on this feed's route.
-              promotionState={p.promotion_state}
-              originClass={p.origin_class}
+              // Pass-through of the optional identity projection, see CommunityPost's own doc
+              // comment (PostComposer.tsx).
               authorIdentity={p.author_identity}
-              evidenceChip={p.evidence_chip}
               onDeleted={handleDeleted}
               onError={handleError}
             />

@@ -38,20 +38,3 @@ test("the count keeps its thousands separators", () => {
 test("minus one is still singular", () => {
   assert.equal(countNoun(-1, "day"), "-1 day");
 });
-
-test("the rail note and the nav badge read one field, so they cannot disagree", () => {
-  // The shape of the live defect: two labels for one quantity, sourced from two different fields.
-  const { readFileSync } = jiti("node:fs");
-  const brief = readFileSync(resolve(APP, "components/dashboard/DashboardBrief.tsx"), "utf8");
-  const nav = readFileSync(resolve(APP, "lib/nav/nav-counts.ts"), "utf8");
-  const railLine = brief.split("\n").find((l) => l.includes('label="Community"'));
-  assert.ok(railLine, "the Community rail stat exists");
-  assert.ok(
-    railLine.includes("community.regionalRooms") && railLine.includes("countNoun("),
-    "the rail note reads the room roster through countNoun, not a hand-written plural"
-  );
-  assert.ok(
-    nav.includes("coverage.community.regionalRooms"),
-    "the nav badge reads the same field as the rail note"
-  );
-});

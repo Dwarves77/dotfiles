@@ -107,7 +107,6 @@ export const TABLE_PRIMARY_KEY = Object.freeze({
   pending_first_fetch: 'id',
   pending_jurisdiction_review: 'id',
   portal_link_candidates: 'id',
-  post_promotions: 'id',
   profiles: 'id',
   promotion_policy: 'id',
   propagation_events: 'event_id',

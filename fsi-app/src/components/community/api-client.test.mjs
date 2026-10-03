@@ -7,7 +7,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createCommunityPost,
-  getThreadCorroboration,
   getEntityThreads,
   getCurrentBenchmarks,
   fixtures,
@@ -94,22 +93,6 @@ test("createCommunityPost fails soft (status 0) on a network error", async () =>
   );
   assert.equal(result.ok, false);
   if (!result.ok) assert.equal(result.status, 0);
-});
-
-test("getThreadCorroboration returns null on a non-2xx instead of throwing", async () => {
-  const fetchImpl = async () => jsonResponse(404, { error: "not found" });
-  const result = await getThreadCorroboration("t1", fetchImpl);
-  assert.equal(result, null);
-});
-
-test("getThreadCorroboration returns the parsed body on success", async () => {
-  const body = { thread_id: "t1", organisations: 4, posts: 6, consistent: true };
-  const fetchImpl = async (url) => {
-    assert.equal(url, "/api/community/threads/t1/corroboration");
-    return jsonResponse(200, body);
-  };
-  const result = await getThreadCorroboration("t1", fetchImpl);
-  assert.deepEqual(result, body);
 });
 
 test("getEntityThreads encodes the entity id and forwards limit/before", async () => {

@@ -8,8 +8,8 @@
  * PERF lane (2026-09-03, docs/audits/perf-load-times-2026-09-03.md): this
  * page used to run 8 sequential Supabase-touching stages per render, most
  * opening their own createClient(). It now runs one cached, item-scoped
- * bundle (resourceLookup, convergence, price board, carbon factors, peers
- * entity, related-signals pool — none of it org-dependent as of PERF-10, see
+ * bundle (resourceLookup, convergence, price board, carbon factors,
+ * related-signals pool, none of it org-dependent as of PERF-10, see
  * below).
  *
  * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): three more cookie reads used to run
@@ -50,7 +50,6 @@ import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import {
   buildResourceLookup,
   resolveItemUuid,
-  fetchInstrumentEntityId,
 } from "@/lib/connections/resource-lookup";
 import {
   MarketSignalDetailSurface,
@@ -59,12 +58,10 @@ import {
   type CorridorCandidate,
 } from "@/components/pages/MarketSignalDetailSurface";
 import { candidatesFromCorridorEntities } from "@/lib/market/resolve-item-corridor.mjs";
-import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
 
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
-  peersEntityId: string | null;
   convergence: { independent_citers: number; confirmation_count: number } | null;
   priceBoard: PriceStat[];
   carbonFactors: EmissionFactorRow[];
@@ -131,7 +128,7 @@ export default async function MarketSignalDetailPage({
     id,
       // Item-scoped, org-independent: connections/supersessions titles, the
       // source-growth convergence stats, the published price board, the
-      // carbon-overlay modal-default factors, and the peers-strip entity.
+      // carbon-overlay modal-default factors.
       // Cached — shared across every org that views this item.
       loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
         const itemUuid = await resolveItemUuid(supabase, resource.id);
@@ -249,10 +246,9 @@ export default async function MarketSignalDetailPage({
           .then((pub) => pub.resources)
           .catch(() => [] as Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"]);
 
-        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool] =
+        const [resourceLookup, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool] =
           await Promise.all([
             buildResourceLookup(supabase, relatedIds),
-            itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
             convergencePromise,
             priceBoardPromise,
             carbonFactorsPromise,
@@ -261,7 +257,7 @@ export default async function MarketSignalDetailPage({
             relatedPoolPromise,
           ]);
 
-        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool };
+        return { resourceLookup, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool };
       },
     });
 
@@ -273,7 +269,6 @@ export default async function MarketSignalDetailPage({
 
   const { resource: r, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
-  const peersEntityId = result.itemScoped?.peersEntityId ?? null;
   const convergence = result.itemScoped?.convergence ?? null;
   const priceBoard = result.itemScoped?.priceBoard ?? [];
   const carbonFactors = result.itemScoped?.carbonFactors ?? [];
@@ -311,7 +306,6 @@ export default async function MarketSignalDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
       />
-      <PeersDiscussingStrip entityId={peersEntityId} />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
           NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>

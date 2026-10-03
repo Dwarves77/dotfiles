@@ -54,7 +54,7 @@ export async function GET(
     .from("community_thread_entities")
     .select(
       `thread_id, entity_id, entity_kind, created_at,
-       community_posts!inner ( id, group_id, title, body, author_user_id, created_at, last_reply_at, reply_count, promotion_state, origin_class )`
+       community_posts!inner ( id, group_id, title, body, author_user_id, created_at, last_reply_at, reply_count )`
     )
     .eq("entity_id", entityId)
     .is("community_posts.parent_post_id", null)
@@ -87,8 +87,6 @@ export async function GET(
       created_at: string;
       last_reply_at: string | null;
       reply_count: number;
-      promotion_state: string;
-      origin_class: string;
     } | null;
   };
 
@@ -103,8 +101,6 @@ export async function GET(
       created_at: row.community_posts!.created_at,
       last_reply_at: row.community_posts!.last_reply_at,
       reply_count: row.community_posts!.reply_count,
-      promotion_state: row.community_posts!.promotion_state,
-      origin_class: row.community_posts!.origin_class,
       entity_id: row.entity_id,
       entity_kind: row.entity_kind,
     }));

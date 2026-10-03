@@ -5,8 +5,7 @@
 // ("invariant expected app router to be mounted") the moment a mounted component calls them.
 // PostComposer.tsx (mounted transitively via PostList.tsx, this lane's community-smoke.mjs) calls
 // `useRouter`/`usePathname`/`useSearchParams` for its EntityPicker search round-trip
-// (`router.push` to widen the candidate list); PromotePostDialog.tsx (mounted transitively via
-// Post.tsx) calls `useRouter` on promotion success.
+// (`router.push` to widen the candidate list).
 //
 // The stub is a no-op: `useRouter().push` records nothing and does nothing observable (a live
 // round-trip on that path needs a real App Router, out of scope for a smoke mount — this lane's

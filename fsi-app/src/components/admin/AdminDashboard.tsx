@@ -8,7 +8,7 @@
  *   → status strip (platform-wide controls + read-only MTD spend)
  *   → two-column grid:
  *        LEFT  · "Sections" plate grid (Workspaces / Sources / Ingest /
- *                Coverage / Research pipeline / Community pickups) + a
+ *                Coverage / Research pipeline / Runtime) + a
  *                per-section sub-nav + the active section body
  *        RIGHT · <AdminIssuesRail> — computed total = sum(rows)
  *
@@ -47,7 +47,6 @@ import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
 import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
 import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
-import { CommunityPickupsQueueView } from "@/components/admin/CommunityPickupsQueueView";
 import { ErrorGroupsView, type ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
 import { AssumptionRegisterPanel, type AssumptionRegisterRow } from "@/components/admin/AssumptionRegisterPanel";
 import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
@@ -128,7 +127,6 @@ interface AdminDashboardProps {
   initialMtdErrors?: number;
   initialAssumptionRegister?: AssumptionRegisterRow[];
   initialResearchPipelineCount?: number;
-  initialCommunityPickupsCount?: number;
   initialEmissionFactorsLiveCount?: number;
   /** Tier-opinion disagreements in the 90-day window (item 6's "Tier disagreements · 12"). */
   initialTierDisagreementCount?: number;
@@ -144,7 +142,6 @@ type SectionName =
   | "Ingest"
   | "Coverage"
   | "Research pipeline"
-  | "Community pickups"
   | "Runtime";
 
 interface SectionDef {
@@ -189,11 +186,6 @@ const SECTIONS: SectionDef[] = [
     tabs: ["Pipeline"],
   },
   {
-    name: "Community pickups",
-    sub: "High-engagement posts pending promotion.",
-    tabs: ["Pending pickups"],
-  },
-  {
     name: "Runtime",
     sub: "First-party error tracking, assumption register.",
     tabs: ["Errors", "Assumptions"],
@@ -213,7 +205,6 @@ export function AdminDashboard({
   initialErrorGroups = [],
   initialAssumptionRegister = [],
   initialResearchPipelineCount = 0,
-  initialCommunityPickupsCount = 0,
   initialEmissionFactorsLiveCount = 0,
   initialTierDisagreementCount = 0,
 }: AdminDashboardProps) {
@@ -384,7 +375,7 @@ export function AdminDashboard({
   };
 
   // Counter-tile values (README screen 13: eight stat blocks — Workspaces,
-  // Sources, Ingest, Coverage, Research pipeline, Community pickups, Runtime,
+  // Sources, Ingest, Coverage, Research pipeline, Runtime,
   // Emission factors). Every number here is a real read already available to
   // this component (useAdminAttention's polled counts, the server-hydrated
   // props, or a state array's own length) — never a fabricated figure. Ingest
@@ -403,7 +394,6 @@ export function AdminDashboard({
     if (name === "Ingest") return ingestTotal;
     if (name === "Coverage") return coverageGapsCount;
     if (name === "Research pipeline") return initialResearchPipelineCount;
-    if (name === "Community pickups") return initialCommunityPickupsCount;
     if (name === "Runtime") return initialErrorGroups.length;
     return 0;
   };
@@ -470,7 +460,7 @@ export function AdminDashboard({
         /* Operator addendum, item 4 (2026-09-12, verbatim): "all spacing in those boxes across
            admin need adjustment", widened from the two clipped counts (Sources/Ingest) to a
            spacing pass over every summary tile on /admin: the top row (Workspaces / Sources /
-           Ingest / Coverage / Research pipeline / Community pickups / Runtime / Emission factors,
+           Ingest / Coverage / Research pipeline / Runtime / Emission factors,
            all ONE grid, admin-t08-sections, that wraps to two rows of four at desktop width) plus
            the right-rail Issues queue / Companies-Individuals / Read-only-controls cards. The gap
            is one 8pt-grid token (16px) so both the row-gap and the column-gap of this single grid
@@ -724,9 +714,6 @@ export function AdminDashboard({
 
     // Research pipeline
     if (sec === "Research pipeline") return <ResearchPipelineQueueView />;
-
-    // Community pickups
-    if (sec === "Community pickups") return <CommunityPickupsQueueView />;
 
     // Runtime (R0.2 first-party error tracking; WO-20 assumption register, spec §4's reader)
     if (sec === "Runtime") {

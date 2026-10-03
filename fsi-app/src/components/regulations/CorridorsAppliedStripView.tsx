@@ -8,7 +8,7 @@
  * smoke harness can mount it directly.
  *
  * NOTHING RENDERS EMPTY BY DESIGN (plan §W5): `corridors.length === 0` returns `null` — no card, no
- * "no corridors" line, exactly the honest-omission contract PeersDiscussingStrip/NoticesRail already use
+ * "no corridors" line, exactly the honest-omission contract NoticesRail already uses
  * elsewhere on this same route.
  *
  * Each corridor links to `/market#corridor-<entityId>` — an anchor onto its exact card in the carbon-cost

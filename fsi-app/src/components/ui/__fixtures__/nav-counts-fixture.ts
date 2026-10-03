@@ -10,8 +10,6 @@
  *     item_type='regional_data' then 'operations' else 'other' end as surface, count(*) from
  *     intelligence_items where is_archived=false and provenance_status='verified' group by 1`,
  *     regulations 1319, market 62, research 32, operations 23.
- *   - community rooms: `select count(*) from community_groups`, 7 (matches nav-counts.ts's own
- *     comment, "COUNTS-61 ... the /community page's own header states" regional rooms).
  *   - byPriority: `select priority, count(*) from intelligence_items where is_archived=false and
  *     provenance_status='verified' group by 1`, CRITICAL 22, HIGH 41, MODERATE 1018, LOW 359.
  *   - watchlist: `select count(*) from org_watchlist`, 0, genuinely empty at capture time; an
@@ -34,7 +32,6 @@ export const NAV_COUNTS_FIXTURE: NavCounts = {
   market: 62,
   research: 32,
   operations: 23,
-  community: 7,
   watchlist: 0,
   byPriority: { CRITICAL: 22, HIGH: 41, MODERATE: 1018, LOW: 359 },
 };

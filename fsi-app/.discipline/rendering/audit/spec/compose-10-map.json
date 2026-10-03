@@ -121,7 +121,7 @@
       "selector": "[data-audit=\"map\"] [data-map-legend]",
       "expect": {},
       "textMatch": "re:Immediate present.*Action present.*Monitor present.*Awareness present",
-      "note": "p10's four entries verbatim and in band order. The fifth entry (Community activity) is a real map state the artboard does not draw and is KEPT under R7, see DEVIATION-LOG."
+      "note": "p10's four entries verbatim and in band order. The Community activity entry was removed (ADR-041: Community feeds no other page)."
     },
     {
       "name": "region 4a, register column header row, p10's own grid and labels",

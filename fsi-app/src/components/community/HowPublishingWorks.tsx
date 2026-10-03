@@ -1,11 +1,12 @@
 /**
- * HowPublishingWorks — static side-card explaining the three-stage
- * publishing flow:
+ * HowPublishingWorks, static side-card explaining the two-stage
+ * publishing flow inside Community:
  *
  *   1. Draft inside a private group
  *   2. Group admin promotes the post to the public forum
- *   3. (Optional) Caro's Ledge editorial promotes it into platform
- *      intelligence
+ *
+ * Community is social only (ADR-041): nothing posted here is promoted
+ * into platform intelligence.
  *
  * Pure presentational. No data dependency. Lives in the right rail of
  * /community/[slug] and on the default /community body to set
@@ -15,7 +16,7 @@
  * "HOW PUBLISHING WORKS" rail (per VISUAL-RECONCILIATION § 3.8).
  */
 
-import { FileText, ArrowUpRight, Globe } from "lucide-react";
+import { FileText, ArrowUpRight } from "lucide-react";
 
 export function HowPublishingWorks() {
   const steps: { n: string; icon: React.ReactNode; title: string; body: string }[] = [
@@ -30,12 +31,6 @@ export function HowPublishingWorks() {
       icon: <ArrowUpRight size={12} aria-hidden="true" />,
       title: "Promote to public",
       body: "A group admin uses PROMOTE TO PUBLIC to copy the post to the open forum.",
-    },
-    {
-      n: "3",
-      icon: <Globe size={12} aria-hidden="true" />,
-      title: "Editorial pickup (optional)",
-      body: "Caro's Ledge editors may surface a public thread inside platform intelligence.",
     },
   ];
 

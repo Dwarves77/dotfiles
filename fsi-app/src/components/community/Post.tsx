@@ -15,20 +15,15 @@
  * border, 6px radius, 8pt grid spacing.
  */
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatRelativeCompact } from "@/lib/relative-time";
 import { MessageSquare, Trash2 } from "lucide-react";
 import type { CommunityPost } from "./PostComposer";
 import { ReplyComposer } from "./ReplyComposer";
-import { PromotePostButton } from "./PromotePostButton";
 import { ReportPostMenu } from "./ReportPostMenu";
 import { VerifierBadge } from "./VerifierBadge";
 import { RoleBadge } from "./RoleBadge";
 import { AuthorIdentityChip } from "./AuthorIdentityChip";
-import { PromotionStateBadge } from "./PromotionStateBadge";
-import { CorroborationChip } from "./CorroborationChip";
-import { EvidenceAgeChip } from "./EvidenceAgeChip";
-import { getThreadCorroboration } from "./api-client";
 import { formatLocaleDateTime } from "@/lib/format";
 // `@/` form (not relative) so the rendering-guard smoke harness can alias it to a no-op stub —
 // esbuild's `alias` option only accepts bare/`@/`-style specifiers, not relative `./...` paths (a
@@ -37,39 +32,17 @@ import { formatLocaleDateTime } from "@/lib/format";
 // not in this lane's write set to fix at the source). Resolves identically in the real Next.js app
 // (tsconfig `@/*` -> `src/*`, the same mapping every other `@/components/...` import in this app uses).
 import "@/components/community/community.css";
-import type {
-  CommunityAuthorIdentity,
-  CommunityPromotionState,
-  CommunityThreadCorroboration,
-} from "./types";
+import type { CommunityAuthorIdentity } from "./types";
 
 interface PostProps {
   post: CommunityPost;
   currentUserId: string | null;
   isGroupAdmin: boolean;
   isGroupMember: boolean;
-  /** Optional — platform admins can promote (stage) a post even when not a
-   * group admin/moderator. Defaults to false so callers that haven't been
-   * widened to thread the platform-admin flag through (e.g. C5's PostList)
-   * still type-check; group admins/moderators see the button regardless. */
-  isPlatformAdmin?: boolean;
-  /** Wave 3 (2026-09-03) additions — all optional so every existing caller (the legacy
-   * community_posts feed, which does not carry these fields) still type-checks and renders exactly
-   * as before. Supplied once a post flows through the entity-bound, guard-enforced posting path
-   * (spec 05 §5 components 1, 5, 6, 7, 11): when `authorIdentity` is present it REPLACES the legacy
+  /** Optional (the legacy community_posts feed does not carry it), so every existing caller still
+   * type-checks and renders exactly as before. When `authorIdentity` is present it REPLACES the legacy
    * name/headshot header (pseudonymity, spec 05 §2 — never both). */
   authorIdentity?: CommunityAuthorIdentity | null;
-  promotionState?: CommunityPromotionState | null;
-  originClass?: string | null;
-  /** Corroboration counter (spec 05 §5 component 5). Omit entirely to let this component fetch its
-   * own thread's corroboration on mount (GET /api/community/threads/[id]/corroboration) — the
-   * feed's normal path, since the legacy `GET /api/community/posts` list route this feed reads has
-   * no reason to embed a per-thread corroboration read inline. Pass an explicit value (or `null`) to
-   * override that self-fetch, e.g. from a caller that already has the corroboration data (see
-   * EntityDiscoveryPanel.tsx / PeersDiscussingStrip.tsx, which render their own row markup instead
-   * of this component and pass corroboration data directly where they have it). */
-  corroboration?: CommunityThreadCorroboration | null;
-  evidenceChip?: string | null;
   onDeleted?: (postId: string) => void;
   onError?: (message: string) => void;
 }
@@ -79,12 +52,7 @@ export function Post({
   currentUserId,
   isGroupAdmin,
   isGroupMember,
-  isPlatformAdmin = false,
   authorIdentity = null,
-  promotionState = null,
-  originClass = null,
-  corroboration,
-  evidenceChip = null,
   onDeleted,
   onError,
 }: PostProps) {
@@ -96,33 +64,12 @@ export function Post({
   const [replyCount, setReplyCount] = useState(post.reply_count ?? 0);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [selfCorroboration, setSelfCorroboration] =
-    useState<CommunityThreadCorroboration | null>(null);
 
   const isAuthor =
     !!currentUserId && post.author_user_id === currentUserId;
   const canDelete = isAuthor || isGroupAdmin;
   const authorName = post.author?.name ?? "Member";
   const initials = makeInitials(authorName);
-
-  // Corroboration counter (spec 05 §5 component 5, acceptance 7: "corroboration counts distinct
-  // organisations, not posts"). Self-fetched once per top-level post when the caller did not supply
-  // an explicit value — see the `corroboration` prop's own doc comment above.
-  useEffect(() => {
-    if (corroboration !== undefined) return;
-    if (post.parent_post_id) return; // replies are not their own thread
-    let cancelled = false;
-    (async () => {
-      const result = await getThreadCorroboration(post.id);
-      if (!cancelled) setSelfCorroboration(result);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [post.id, post.parent_post_id, corroboration]);
-
-  const effectiveCorroboration =
-    corroboration !== undefined ? corroboration : selfCorroboration;
 
   const loadReplies = async () => {
     setRepliesLoading(true);
@@ -284,23 +231,6 @@ export function Post({
               {formatRelativeCompact(post.created_at)}
             </time>
           </div>
-          {(promotionState || effectiveCorroboration || evidenceChip) && (
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                alignItems: "center",
-                flexWrap: "wrap",
-                marginTop: 4,
-              }}
-            >
-              {promotionState && (
-                <PromotionStateBadge state={promotionState} originClass={originClass} />
-              )}
-              <CorroborationChip corroboration={effectiveCorroboration} />
-              <EvidenceAgeChip chip={evidenceChip} />
-            </div>
-          )}
           {post.title && (
             <h3
               data-guard-title
@@ -432,27 +362,6 @@ export function Post({
           >
             {showReplyBox ? "Cancel" : "Reply"}
           </button>
-        )}
-
-        {/* Promote-to-intelligence — top-level posts only. The button
-            self-hides when post is a reply OR caller is neither group
-            admin/moderator nor platform admin (see PromotePostButton). */}
-        {!post.parent_post_id && currentUserId && (
-          <PromotePostButton
-            post={{
-              id: post.id,
-              group_id: post.group_id,
-              body: post.body,
-              parent_post_id: post.parent_post_id,
-              promoted_at:
-                ((post as unknown as { promoted_at?: string | null }).promoted_at) ?? null,
-            }}
-            currentUser={{
-              id: currentUserId,
-              isGroupAdmin,
-              isPlatformAdmin,
-            }}
-          />
         )}
 
         {/* Report — visible to any group member. The API gates on

@@ -583,7 +583,6 @@ VISIBILITY with no live consumer that applies it.
 |---|---|---|
 | `src/lib/intake/run-intake-cycle.ts` | `new_item` (INSERT), then self-updates `status`/`materialized_at` (UPDATE x2) after machine-gated apply (no human step) | lines ~328 (insert), ~351/365 (update) |
 | `src/lib/intake/run-intake-cycle.ts` (`drainChangeSweepUpdates`) | **NEW, lane INTAKE (2026-09-01)** — `update_item` (UPDATE only, `status`/`materialized_at`/`reviewer_notes`) — the consumer for change-sweep's bridge rows below. Selects pending rows whose `reason` carries `CHANGE_SWEEP_STAGED_MARKER` (`change-sweep.mjs`'s own exported marker — a hand-staged/other-origin `update_item` row is never selected), applies each through the SAME `applyStagedUpdate` chokepoint the row above uses, then calls `verifyItem` (the $0 snapshot-first entry, `src/lib/sources/verify-item.mjs`) EXPLICITLY, bounded by `UPDATE_DRAIN_LIMIT` | `drainChangeSweepUpdates`, called from `runIntakeCycle` every apply-mode invocation |
-| `src/app/api/community/posts/[id]/promote/route.ts` | `new_item` (INSERT) — a promoted community post, staged for admin review | line 315; comment there ("the admin queue materializes it on approval") is **STALE** against the retirement above — no live materializer reads a pending `new_item` row from this path today |
 | `src/app/api/admin/scan/route.ts` | `new_item` (INSERT) — an admin-triggered Sonnet scan's findings, staged for visibility-only review | line 418 |
 | `src/lib/sources/change-sweep.mjs` (`bridgeChangedSourceToStagedUpdates`) | `update_item`, the type's first production writer (lane CD, 2026-09-01). `proposed_changes` is always `{}` (no autonomous rewrite of item content — an explicit operator constraint); the amendment-diff summary (or a fingerprint-changed fallback note when fewer than two `raw_fetches` captures exist to diff) rides in `reason`, prefixed with the exported `CHANGE_SWEEP_STAGED_MARKER` — the identifying marker `run-intake-cycle.ts`'s drain matches on | called from `src/lib/sources/reconcile.ts`'s `runReconcilePass`, once per changed source's live items |
 
@@ -599,7 +598,7 @@ still has no live consumer; the drain is deliberately scoped to the change-detec
 `update_item` auto-applier, so such a row still sits `status='pending'` indefinitely.
 
 Replace policy: append-only INSERT per staged proposal (three of the writers above: `run-intake-cycle.ts`
-for `new_item`, `.../promote/route.ts`, `.../scan/route.ts`, `change-sweep.mjs` for `update_item`);
+for `new_item`, `.../scan/route.ts`, `change-sweep.mjs` for `update_item`);
 `status`/`materialized_at`/`materialization_error`/`reviewer_notes` UPDATE is scoped to rows the SAME
 apply-mode `runIntakeCycle` invocation is actively dispositioning — for `new_item` that is always a row it
 just inserted in the same pass; for `update_item` it is a row a DIFFERENT writer (`change-sweep.mjs`)

@@ -8,8 +8,8 @@
  * call at module scope under src/**), safe to import from a client OR server component. Each accepts
  * an optional `fetchImpl` so tests can inject a stub instead of touching the network — the `fixtures`
  * export below is the canned data those stubs return, and it doubles as the shape reference for the
- * REAL-component UX smoke spec `.discipline/rendering/smoke/community-smoke.mjs` (mounts PostList,
- * Post, and PeersDiscussingStrip against fixture data shaped from this same contract).
+ * REAL-component UX smoke spec `.discipline/rendering/smoke/community-smoke.mjs` (mounts PostList
+ * and Post against fixture data shaped from this same contract).
  *
  * A's routes did not exist in this worktree at write time (sibling lane, separate worktree) — these
  * wrappers are built strictly from the contract text in the wave3 plan, never from reading A's code.
@@ -108,30 +108,6 @@ export async function createCommunityPost(
   return { ok: true, post: json?.post ?? {} };
 }
 
-// ── GET /api/community/threads/[id]/corroboration ────────────────────────────────────────────
-
-export interface ThreadCorroboration {
-  thread_id: string;
-  organisations: number;
-  posts: number;
-  consistent: boolean;
-}
-
-export async function getThreadCorroboration(
-  threadId: string,
-  fetchImpl: typeof fetch = fetch
-): Promise<ThreadCorroboration | null> {
-  try {
-    const res = await fetchImpl(
-      `/api/community/threads/${encodeURIComponent(threadId)}/corroboration`
-    );
-    if (!res.ok) return null;
-    return (await res.json()) as ThreadCorroboration;
-  } catch {
-    return null;
-  }
-}
-
 // ── GET /api/community/entities/[entityId]/threads ───────────────────────────────────────────
 
 /** Author identity projection (spec 05 section 2, section 5 component 1/11; amended by R8.7, 2026-09-25, migration
@@ -161,15 +137,9 @@ export interface EntityThread {
   created_at: string;
   last_reply_at: string | null;
   reply_count: number;
-  promotion_state: string;
-  origin_class: string;
   entity_id: string;
   entity_kind: string;
   author_identity?: AuthorIdentityProjection | null;
-  /** Time-decay chip text, given verbatim (spec 05 §4: "100% at 0-12mo, 50% at 12-24, 25% at
-   * 24-36"), e.g. "this month" / "3 mo old · 80% weight". [INFERRED] optional — the contract's
-   * corroboration/benchmark shapes name this field on evidence generally, not explicitly per-thread. */
-  evidence_chip?: string | null;
 }
 
 export interface EntityThreadsResult {
@@ -421,8 +391,6 @@ export const fixtures = {
         created_at: "2026-08-01T00:00:00.000Z",
         last_reply_at: "2026-08-20T00:00:00.000Z",
         reply_count: 4,
-        promotion_state: "community-corroborated",
-        origin_class: "community-corroborated",
         entity_id: "cl:corridor:7f3a9c21b1044d6e",
         entity_kind: "corridor",
         author_identity: {
@@ -432,7 +400,6 @@ export const fixtures = {
           region: "EU",
           verified: true,
         },
-        evidence_chip: "3 mo old · 80% weight",
       },
     ] as EntityThread[],
     next_cursor: null,
