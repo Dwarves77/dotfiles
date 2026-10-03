@@ -54,6 +54,7 @@ import { hostOf } from "../../src/lib/sources/institution.ts";
 import { isMainModule } from "../lib/is-main.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { rateSourceByInstitutionClass } from "../lib/rate-source-by-class.mjs";
+import { openAlexGet } from "./openalex-client.mjs";
 import {
   claimRunId,
   writeRunArtifact,
@@ -63,7 +64,7 @@ import {
 import { writeProducerSummary } from "../producers/lib/producer-summary.mjs";
 import {
   FIXTURE_GREY_LIT_SOURCES,
-  FIXTURE_OPENALEX_CANDIDATES,
+  FIXTURE_OPENALEX_WORKS_RESPONSE,
   FIXTURE_NOW,
 } from "./fixtures/research-walker-fixtures.mjs";
 
@@ -108,21 +109,17 @@ export function normalizeOpenAlexWork(work) {
   };
 }
 
-const OPENALEX_WORKS_URL = "https://api.openalex.org/works";
-
-/** Minimal free OpenAlex works client (no key; polite-pool by `mailto`). Deliberately thin: this lane
- *  needs only a works-search read, not the full OpenAlex surface (authors/institutions/topics are L3's
- *  authority-score job, not this one) -- per the brief, built fresh because L3's openalex-client.mjs had
- *  not landed when this lane started; NAMED DUPLICATION RISK for the coordinator to reconcile: if L3
- *  lands its own OpenAlex works reader, this function and that one should be reconciled to one shared
- *  client rather than carried as two. `fetchFn` is injected so no caller of this file's exported
- *  functions ever reaches the real network by accident -- the default CLI run never calls this. */
-export async function fetchOpenAlexWorks({ query, perPage = 10, mailto } = {}, { fetchFn = fetch } = {}) {
-  const params = new URLSearchParams({ search: query, per_page: String(perPage) });
-  if (mailto) params.set("mailto", mailto);
-  const res = await fetchFn(`${OPENALEX_WORKS_URL}?${params.toString()}`);
-  if (!res.ok) throw new Error(`OpenAlex works fetch failed: ${res.status} ${res.statusText}`);
-  const body = await res.json();
+/** Reconciliation (coordinator, 2026-10-02): lane L3 (PR #891) landed `openalex-client.mjs` with its
+ *  own retry/backoff/polite-pool GET (`openAlexGet`) in this SAME directory. This walker's own
+ *  hand-written HTTP client (the prior `fetchOpenAlexWorks`, named as a duplication risk at authoring
+ *  time per the brief) is deleted; this is now the ONLY works-search entry point this file uses,
+ *  reusing L3's client exactly the way its own test file injects `deps.fetch` -- no second
+ *  implementation remains. A works-search read is not one of L3's own exported convenience functions
+ *  (those are single-record lookups by DOI/id/ORCID/ROR plus the topic-standing group-by), so this
+ *  wrapper calls L3's exported low-level `openAlexGet("/works", {search, per_page}, deps)` directly --
+ *  reusing the retry/backoff/mailto machinery, never reimplementing it. */
+export async function searchOpenAlexWorks({ query, perPage = 10 } = {}, deps = {}) {
+  const body = await openAlexGet("/works", { search: query, per_page: perPage }, deps);
   return (body?.results ?? []).map(normalizeOpenAlexWork).filter(Boolean);
 }
 
@@ -232,7 +229,8 @@ export function decideApply({ dispatch, enabled, killSwitchOn, hasCreds }) {
 
 // ── CLI orchestration ────────────────────────────────────────────────────────────────────────────────
 
-async function runWalk({ greyLitSources, openAlexCandidates, mode }) {
+async function runWalk({ greyLitSources, openAlexQuery, openAlexDeps = {}, mode }) {
+  const openAlexCandidates = await searchOpenAlexWorks({ query: openAlexQuery, perPage: 10 }, openAlexDeps);
   const perItem = [];
   const greyLitResults = [];
   const registeredSources = [];
@@ -323,9 +321,20 @@ async function main() {
   }
 
   console.log(`${WALKER_NAME}: fixture run (no --live), mode=dry -- zero network, zero DB credential.`);
+  // The committed fixture response, served through a deps.fetch stub -- so this run exercises L3's
+  // real openAlexGet (mailto, retry/backoff, JSON parse) end to end, never a shortcut that skips the
+  // client it reuses.
+  const fixtureFetch = async () => ({
+    status: 200,
+    statusText: "OK",
+    ok: true,
+    headers: { get: () => null },
+    json: async () => FIXTURE_OPENALEX_WORKS_RESPONSE,
+  });
   const result = await runWalk({
     greyLitSources: FIXTURE_GREY_LIT_SOURCES,
-    openAlexCandidates: FIXTURE_OPENALEX_CANDIDATES.map(normalizeOpenAlexWork).filter(Boolean),
+    openAlexQuery: "freight decarbonisation",
+    openAlexDeps: { fetch: fixtureFetch },
     mode: "dry",
   });
 

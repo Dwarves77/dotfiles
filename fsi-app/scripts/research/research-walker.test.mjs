@@ -1,19 +1,26 @@
 // research-walker.test.mjs -- dry-run fixture tests for lane L7. Zero network, zero DB credential, zero
 // npm dependency (no-npm discipline glob: run-test-suite.sh discovers this file directly). Tests the
-// PURE exports (normalizeOpenAlexWork, buildMintSeed, buildFixtureSbClient, decideApply) and the
-// institution-class resolution for the 3 named grey-lit sources. The actual mint-chokepoint pass-through
-// proof (which needs jiti to resolve mint-item.ts's `@/` imports) lives in research-walker.npmtest.mjs,
-// per the lane-common-contract's own rule for this exact shape.
+// PURE exports (normalizeOpenAlexWork, buildMintSeed, buildFixtureSbClient, decideApply), the
+// institution-class resolution for the 3 named grey-lit sources, and searchOpenAlexWorks's reuse of
+// lane L3's openalex-client.mjs (openAlexGet) via an injected deps.fetch stub -- openalex-client.mjs
+// itself carries no npm import, so this stays safe on the no-npm glob. The actual mint-chokepoint
+// pass-through proof (which needs jiti to resolve mint-item.ts's `@/` imports) lives in
+// research-walker.npmtest.mjs, per the lane-common-contract's own rule for this exact shape.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeOpenAlexWork,
+  searchOpenAlexWorks,
   buildMintSeed,
   buildFixtureSbClient,
   decideApply,
   resolveGreyLitSource,
 } from "./research-walker.mjs";
-import { FIXTURE_GREY_LIT_SOURCES, FIXTURE_OPENALEX_CANDIDATES } from "./fixtures/research-walker-fixtures.mjs";
+import {
+  FIXTURE_GREY_LIT_SOURCES,
+  FIXTURE_OPENALEX_CANDIDATES,
+  FIXTURE_OPENALEX_WORKS_RESPONSE,
+} from "./fixtures/research-walker-fixtures.mjs";
 
 test("normalizeOpenAlexWork: a work with a landing page URL and a title normalizes", () => {
   const c = normalizeOpenAlexWork(FIXTURE_OPENALEX_CANDIDATES[0]);
@@ -36,6 +43,28 @@ test("normalizeOpenAlexWork: a work with neither a landing page nor a DOI return
 
 test("normalizeOpenAlexWork: a work with no title returns null", () => {
   assert.equal(normalizeOpenAlexWork({ doi: "https://doi.org/x", primary_location: {} }), null);
+});
+
+test("searchOpenAlexWorks: reuses lane L3's openAlexGet (deps.fetch injected, zero network) and normalizes the results, dropping the no-URL fixture", async () => {
+  let capturedUrl = null;
+  const fetchStub = async (url) => {
+    capturedUrl = url;
+    return {
+      status: 200,
+      statusText: "OK",
+      ok: true,
+      headers: { get: () => null },
+      json: async () => FIXTURE_OPENALEX_WORKS_RESPONSE,
+    };
+  };
+  const candidates = await searchOpenAlexWorks({ query: "freight decarbonisation", perPage: 10 }, { fetch: fetchStub });
+  assert.equal(candidates.length, 2, "the fixture's 3rd work (no landing page, no doi) is dropped");
+  assert.equal(candidates[0].sourceUrl, "https://doi.org/10.1000/example-freight-decarb");
+  // L3's openAlexGet (reused, not reimplemented) is what appends mailto + search params -- confirms
+  // this wrapper really called through it rather than hand-rolling its own URL.
+  assert.match(capturedUrl, /\/works\?/);
+  assert.match(capturedUrl, /search=freight/);
+  assert.match(capturedUrl, /mailto=/);
 });
 
 test("buildMintSeed: item_type/domain are fixed for research_finding; no source_id when none resolved", () => {

@@ -1,8 +1,8 @@
 {
   "harness_family": "research-walker",
-  "harness_version": "sha256:dafa152aa64df34a",
+  "harness_version": "sha256:e5a65ebd6cfeaad2",
   "run_id": "research-walker-run-002",
-  "started_at": "2026-10-03T02:24:38.612Z",
+  "started_at": "2026-10-03T03:38:05.641Z",
   "config": {
     "mode": "dry",
     "source": "fixtures/research-walker-fixtures.mjs",
