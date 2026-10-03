@@ -58,7 +58,7 @@ export function tallyCorridorStates(items, candidates) {
  * @param {{}} opts  Unused - this script has no mode flags, it only ever reads.
  * @param {{ readAll: Function }} deps
  */
-export async function main(opts = {}, deps) {
+export async function main(_opts = {}, deps) {
   const { readAll } = deps;
 
   const [items, corridorRows] = await Promise.all([
