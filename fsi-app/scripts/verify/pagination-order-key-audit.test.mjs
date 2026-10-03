@@ -174,7 +174,7 @@ test('pagination order-key audit: every literal-table readAllByIds/readAll call 
 
   const files = [];
   for (const d of SCAN_DIRS) walkFiles(join(ROOT, d), CODE_EXT, SKIP_DIR, files);
-  const { resolved, unresolved: _unresolved } = scanOrderKeyCallSites(files);
+  const { resolved, unresolved } = scanOrderKeyCallSites(files);
 
   assert.ok(resolved.length > 0, 'sanity: the scan should find at least the known call sites in the live tree');
 

@@ -59,9 +59,9 @@ test("apply-mint-batch.mjs imports normalizeInstrumentIdentifier/sameInstrumentI
   assert.doesNotMatch(src, /function\s+sameInstrumentIdentity\s*\(/);
 });
 
-test("export-census-rows.mjs imports normalizeInstrumentIdentifier/sameInstrumentIdentity from lib/instrument-identity.mjs, never defines its own", () => {
+test("export-census-rows.mjs imports sameInstrumentIdentity (the only one it uses; the unused normalizeInstrumentIdentifier import was dropped by the R7 lint pass) from lib/instrument-identity.mjs, never defines its own", () => {
   const src = readFileSync(`${MINT_DIR}export-census-rows.mjs`, "utf8");
-  assert.match(src, /import\s*\{\s*normalizeInstrumentIdentifier,\s*sameInstrumentIdentity\s*\}\s*from\s*"\.\/lib\/instrument-identity\.mjs"/);
+  assert.match(src, /import\s*\{\s*sameInstrumentIdentity\s*\}\s*from\s*"\.\/lib\/instrument-identity\.mjs"/);
   assert.doesNotMatch(src, /function\s+normalizeInstrumentIdentifier\s*\(/);
   assert.doesNotMatch(src, /function\s+sameInstrumentIdentity\s*\(/);
 });
