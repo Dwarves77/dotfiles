@@ -56,7 +56,8 @@ import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { useResourceStore } from "@/stores/resourceStore";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
-import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
+import { buildCarbonOverlayView, buildCarbonCostPerFeuView } from "@/lib/market/carbon-overlay-view.mjs";
+import { formatRange } from "@/lib/figures/format-range.mjs";
 import { derivePromotionState } from "@/lib/market/signal-promotion.mjs";
 import { selectModalFactor } from "@/lib/market/select-modal-factor.mjs";
 import { carbonIntensity } from "@/lib/market/carbon-intensity.mjs";
@@ -111,6 +112,20 @@ export interface EmissionFactorRow {
   scope_kind: string;
 }
 
+// -- Corridor candidates (lane L-CORRIDOR, 2026-10-03) --
+/** An EXISTING seeded corridor entity, already parsed to {entityId, origin, dest, mode} - the exact
+ *  shape resolve-item-corridor.mjs's resolveItemCorridor() takes as its `candidates` input. Read
+ *  server-side from `entities WHERE kind='corridor'` in the SAME cached item-scoped bundle as
+ *  `carbonFactors` (src/app/market/[slug]/page.tsx), no second fetch pattern. This resolver never
+ *  assigns a direction; a candidate's own origin/dest/mode is read verbatim from the already-minted
+ *  entity (WO-24). */
+export interface CorridorCandidate {
+  entityId: string;
+  origin: string;
+  dest: string;
+  mode: string;
+}
+
 // ── Price-board record (migration 151 backing store) ─────────────────────
 export interface PriceStat {
   label: string;
@@ -132,6 +147,7 @@ interface Props {
   convergence?: { independent_citers: number; confirmation_count: number } | null;
   priceBoard?: PriceStat[];
   carbonFactors?: EmissionFactorRow[];
+  corridorCandidates?: CorridorCandidate[];
   groupLabel?: string;
   deck?: string;
   initialNote?: string;
@@ -202,6 +218,53 @@ const BAND_KEYWORDS: Record<BandKey, RegExp[]> = {
   ],
 };
 
+// Lane L-CORRIDOR (2026-10-03, coordinator override). Renders buildCarbonCostPerFeuView()'s composed
+// result, right below the carbon-intensity figure. `view === null` (no_corridor_identity) renders
+// nothing extra, handled by the caller never mounting this with a meaningful view in that case; this
+// component itself still guards defensively (law 14, Postel's Law, never assume a caller's gate holds).
+function CorridorCostPerFeuBlock({ view }: { view: ReturnType<typeof buildCarbonCostPerFeuView> }) {
+  if (!view) return null;
+
+  if (view.state === "ambiguous") {
+    return (
+      <div style={{ marginTop: 12 }}>
+        <p style={{ fontSize: "var(--fs-10)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 4px" }}>
+          Carbon cost per FEU
+        </p>
+        <StateNote>{view.body}</StateNote>
+      </div>
+    );
+  }
+
+  // resolved
+  const { label, result } = view;
+  if (!result) return null;
+  return (
+    <div style={{ marginTop: 12 }}>
+      <p style={{ fontSize: "var(--fs-10)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 4px" }}>
+        Carbon cost per FEU · {label}
+      </p>
+      {result.ok ? (
+        <>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 26, lineHeight: 1, color: "var(--ink)", margin: "0 0 4px" }}>
+            {formatRange(result.low, result.point, result.high, null, result.currency)}
+            <span style={{ fontSize: "var(--fs-13)", fontWeight: 600, color: "var(--ink-2)" }}> / FEU</span>
+          </p>
+          <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: 0, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {result.classification}
+          </p>
+        </>
+      ) : (
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: "var(--fs-12)", lineHeight: 1.6, color: "var(--ink-2)" }}>
+          {result.gaps.map((g: string) => (
+            <li key={g}>{g}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function assignBand(r: Resource): BandKey {
   if (r.signalBand === "price" || r.signalBand === "corporate" || r.signalBand === "corridor") return r.signalBand;
   const text = `${r.title} ${r.note || ""}`;
@@ -219,6 +282,7 @@ export function MarketSignalDetailSurface({
   convergence = null,
   priceBoard = [],
   carbonFactors = [],
+  corridorCandidates = [],
   groupLabel,
   deck,
   initialNote = "",
@@ -325,6 +389,21 @@ export function MarketSignalDetailSurface({
   // synthesized signal brief can.
   const carbonOverlayResolved = hasCarbonOverlay && carbonOverlay?.state === "resolved" && !!carbonOverlay.figure;
 
+  // Lane L-CORRIDOR (2026-10-03, coordinator override, rule 17: no half slice). The real per-FEU
+  // figure (spec 02S6 row 3), keyed on an EXISTING seeded corridor entity match (never a built-here
+  // corridor, WO-24). `corridorCandidates` is read server-side in the SAME cached bundle as
+  // `carbonFactors` (src/app/market/[slug]/page.tsx), no second fetch. `null` exactly when the item's
+  // jurisdictions match no seeded corridor (no_corridor_identity), renders nothing extra beyond the
+  // carbon-intensity block above, per the coordinator's own instruction.
+  const corridorCostView = hasCarbonOverlay
+    ? buildCarbonCostPerFeuView({
+        jurisdictionIso: r.jurisdictionIso ?? [],
+        modes: r.modes ?? [],
+        factors: carbonFactors,
+        corridorCandidates,
+      })
+    : null;
+
   const hasDrivers = !!(sectionMap["2"] || sectionMap["3"] || sectionMap["5"] || hasTrajectory || hasCarbonOverlay || r.conversionTrigger);
   const actions = [...(r.recommendedActions || [])].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
   const [depth, setDepth] = useState<SectionIndexDepth>("summary");
@@ -344,7 +423,13 @@ export function MarketSignalDetailSurface({
   // lane). A record-grade item shows Findings ONLY when there is a genuinely resolved finding to show
   // (today: the carbon-intensity figure), never a "pending brief" placeholder on a catalogue record
   // that was never meant to carry one.
-  const showFindings = !isRecord || carbonOverlayResolved;
+  // Lane L-CORRIDOR (2026-10-03): a resolved/ambiguous corridor-cost view is ALSO a genuine finding to
+  // show on a record-grade item, same as the carbon-intensity figure above, and it can fire exactly
+  // when the intensity figure structurally cannot (a resolved corridor match requires a 2-country
+  // jurisdiction set, which selectModalFactor's own 3-state design always calls "ambiguous" for the
+  // intensity figure's purposes; without this OR, a record-grade item with a resolved corridor match
+  // would show no Findings section at all).
+  const showFindings = !isRecord || carbonOverlayResolved || !!corridorCostView;
   const indexEntries: SectionIndexEntry[] = [
     { id: "summary", shortName: "Summary", ord: 1 },
     ...(showFindings ? [{ id: "findings", shortName: "Findings", ord: 2 }] : []),
@@ -535,6 +620,7 @@ export function MarketSignalDetailSurface({
                   <DerivedFigure figure={intensityFigure} label="Carbon intensity" sourceNote="Same factor row as the carbon-intensity figure above, converted per unit rather than per shipment." use="display" />
                 </div>
               )}
+              {hasCarbonOverlay && <CorridorCostPerFeuBlock view={corridorCostView} />}
               {sectionMap["5"] && <FactBlocks markdown={sectionMap["5"]} />}
               {!hasDrivers && <StateNote>Drivers and trajectory pending, appears once the signal brief is generated.</StateNote>}
             </DetailSubSection>
@@ -594,6 +680,7 @@ export function MarketSignalDetailSurface({
                     <DerivedFigure figure={intensityFigure} label="Carbon intensity" sourceNote="Same factor row as the carbon-intensity figure above, converted per unit rather than per shipment." use="display" />
                   </div>
                 )}
+                <CorridorCostPerFeuBlock view={corridorCostView} />
               </DetailSubSection>
             )}
             </DetailSection>

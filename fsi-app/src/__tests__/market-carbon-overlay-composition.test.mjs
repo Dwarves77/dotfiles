@@ -32,7 +32,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { selectModalFactor } from "../lib/market/select-modal-factor.mjs";
-import { buildCarbonOverlayView } from "../lib/market/carbon-overlay-view.mjs";
+import { buildCarbonOverlayView, buildCarbonCostPerFeuView } from "../lib/market/carbon-overlay-view.mjs";
+import { entityId, corridorSeed } from "../lib/entities/entity-id.mjs";
+import { ADR_EXAMPLE_CORRIDORS, NAMED_CORRIDOR_SEEDS } from "../../scripts/entities/seed-corridors.mjs";
+
+// Test-only adapter (never imported by resolve-item-corridor.mjs itself, see that file's own header -
+// it stays node:crypto-free so it can be bundled into the "use client" detail-surface chain). Mints a
+// candidate id the SAME way seed-corridors.mjs mints a live corridor entity id, never a second,
+// hand-rolled id scheme.
+function candidatesFromSeeds(seeds) {
+  return (seeds ?? []).map((s) => ({
+    entityId: entityId("corridor", corridorSeed(s)),
+    origin: String(s.origin).toUpperCase(),
+    dest: String(s.dest).toUpperCase(),
+    mode: s.mode,
+  }));
+}
 
 // The two LIVE emission_factors rows, 2026-08-30 — the exact shape the server-side fetch in
 // src/app/market/[slug]/page.tsx selects (see EmissionFactorRow in MarketSignalDetailSurface.tsx).
@@ -138,4 +153,73 @@ test("composition: every state's `figure` is populated if and only if `state ===
       assert.equal(view.figure, null, `non-resolved state "${view.state}" for ${JSON.stringify(c)} must never carry a figure`);
     }
   }
+});
+
+// -- buildCarbonCostPerFeuView (lane L-CORRIDOR, 2026-10-03, coordinator override) --------------------
+// Same seam-proof posture as the tests above: resolveItemCorridor() and carbonCostPerFeu() each have
+// their own unit coverage; this is the join, exercised against the REAL live seed-corridors.mjs exports
+// (never a mock), same discipline resolve-item-corridor.test.mjs's own live-ambiguous case established.
+
+const ALL_SEEDED_CANDIDATES = candidatesFromSeeds([...ADR_EXAMPLE_CORRIDORS, ...NAMED_CORRIDOR_SEEDS]);
+
+test("buildCarbonCostPerFeuView: no_corridor_identity composes to null (nothing extra beyond the carbon-intensity block)", () => {
+  const view = buildCarbonCostPerFeuView({
+    jurisdictionIso: ["CN"],
+    modes: ["ocean"],
+    factors: LIVE_FACTORS,
+    corridorCandidates: ALL_SEEDED_CANDIDATES,
+  });
+  assert.equal(view, null);
+});
+
+test("buildCarbonCostPerFeuView: ambiguous composes to an honest note naming nothing invented (no corridor identity disclosed)", () => {
+  const view = buildCarbonCostPerFeuView({
+    jurisdictionIso: ["CN", "US"],
+    modes: ["ocean"],
+    factors: LIVE_FACTORS,
+    corridorCandidates: ALL_SEEDED_CANDIDATES,
+  });
+  assert.equal(view.state, "ambiguous");
+  assert.equal(view.label, null);
+  assert.equal(view.result, null);
+  assert.match(view.body, /more than one/i);
+  // Never names which corridors, never a cl:corridor:* id, never a country code pair presented as THE
+  // corridor - the whole point of the ambiguous state.
+  assert.doesNotMatch(view.body, /cl:corridor:/);
+  assert.doesNotMatch(view.body, /CNSHA|NLRTM|USNYC|USLAX/);
+});
+
+test("buildCarbonCostPerFeuView: resolved composes a real carbonCostPerFeu() call, with its own GAP states (today's live state: no ocean factor exists)", () => {
+  const view = buildCarbonCostPerFeuView({
+    jurisdictionIso: ["NL", "CN"],
+    modes: ["ocean"],
+    factors: LIVE_FACTORS, // road + rail only, no ocean row - see file header's live-factor fixture
+    corridorCandidates: ALL_SEEDED_CANDIDATES,
+  });
+  assert.equal(view.state, "resolved");
+  assert.match(view.label, /Shanghai/);
+  assert.match(view.label, /Rotterdam/);
+  assert.equal(view.result.ok, false);
+  assert.deepEqual(view.result.corridor, { origin: "CNSHA", dest: "NLRTM", mode: "ocean" });
+  // Every one of carbonCostPerFeu's own named gaps renders, verbatim, not collapsed to this module's
+  // own prose - no second GAP vocabulary.
+  assert.ok(view.result.gaps.length === 4, "factor, distance, payload and carbon-price are all gaps today");
+});
+
+test("buildCarbonCostPerFeuView: never picks a factor by jurisdiction when two candidates share the corridor's own mode (no basis to choose between them)", () => {
+  const twoOceanRows = [
+    { ...LIVE_FACTORS[0], factor_id: "f-ocean-x", mode: "ocean", jurisdiction: "US" },
+    { ...LIVE_FACTORS[0], factor_id: "f-ocean-y", mode: "ocean", jurisdiction: "GB" },
+  ];
+  const view = buildCarbonCostPerFeuView({
+    jurisdictionIso: ["NL", "CN"],
+    modes: ["ocean"],
+    factors: twoOceanRows,
+    corridorCandidates: ALL_SEEDED_CANDIDATES,
+  });
+  assert.equal(view.state, "resolved");
+  // Two mode-matching rows, no single basis to pick one - carbonCostPerFeu() receives factor=null and
+  // reports GAP.NO_FACTOR, never an arbitrary jurisdiction's number presented as the corridor's own.
+  assert.equal(view.result.ok, false);
+  assert.ok(view.result.gaps.some((g) => /no emission factor/i.test(g)));
 });
