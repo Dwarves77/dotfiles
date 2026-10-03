@@ -208,6 +208,12 @@ export function findDispatchRoots(
   // quarantine drain (docs/PROGRAM-BOARD.md §2, deferred to 2026-10-31, not closed), not a discharged
   // one-shot. Registering it in the SAME table as install-hooks.mjs/dispatch/*.mjs rather than inventing
   // a parallel mechanism keeps "operator-invoked, out-of-workflow" as ONE recognized shape, not two.
+  // WIDENED AGAIN (lane L8b, 2026-10-02, coordinator ruling): also recognize backticked `research/*.mjs`
+  // rows, same shape - a dry-by-default, R14-held, dispatch-only CLI (`research/backfill-themes.mjs`)
+  // belongs in this registry, not in F25's own LEGACY_ALLOWLIST (a liveness EXEMPTION is for a module
+  // this gate cannot otherwise prove reachable; a human-dispatched CLI with a documented usage line IS
+  // reachability evidence, exactly what this table already exists to record for install-hooks.mjs and
+  // the _reground/ toolkit - so it gets a row here, not an exemption there).
   // parseBoundaryRegistryPaths() is factored out (not inlined) so F25-module-liveness.test.mjs can
   // assert every parsed path resolves against the REAL file, which is what keeps this registry from
   // rotting silently the way a plain doc reference could.
@@ -313,21 +319,24 @@ export function findDispatchRoots(
 }
 
 // Every backticked path under governance/, dispatch/, or consistency/, or the bare `install-hooks.mjs`
-// literal, or (lane F25-WAVE52) under _reground/, appearing anywhere in OUT-OF-REPO-BOUNDARY.md's
-// markdown tables — factored out of findDispatchRoots's Source 7 so its own unit test can assert every
-// parsed path resolves against the real tree (a row naming a deleted or renamed file would otherwise rot
-// silently). _reground/*.mjs rows resolve under fsi-app/scripts/ (their real tree location), every other
-// matched prefix under fsi-app/.discipline/ as before.
+// literal, or (lane F25-WAVE52) under _reground/, or (lane L8b, 2026-10-02, coordinator ruling: no
+// liveness exemption for a dispatch-only CLI - register it in this table instead) under research/,
+// appearing anywhere in OUT-OF-REPO-BOUNDARY.md's markdown tables - factored out of findDispatchRoots's
+// Source 7 so its own unit test can assert every parsed path resolves against the real tree (a row
+// naming a deleted or renamed file would otherwise rot silently). _reground/*.mjs and research/*.mjs
+// rows resolve under fsi-app/scripts/ (their real tree location), every other matched prefix under
+// fsi-app/.discipline/ as before.
 export function parseBoundaryRegistryPaths(text) {
   // Opening backtick required (a real inline-code span, not prose), but NOT a closing one immediately
   // after `.mjs` — the boundary-dependency table's own applier cell is `` `governance/
   // wire-pretooluse-settings.mjs --apply` `` (a CLI invocation with flags inside the same code span), so
   // anchoring to the closing backtick would miss it.
-  const RE = /`((?:governance|dispatch|consistency|_reground)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
+  const SCRIPTS_PREFIXES = ['_reground/', 'research/'];
+  const RE = /`((?:governance|dispatch|consistency|_reground|research)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
   const found = new Set();
   for (const m of text.matchAll(RE)) {
     const p = m[1];
-    found.add(p.startsWith('_reground/') ? `fsi-app/scripts/${p}` : `fsi-app/.discipline/${p}`);
+    found.add(SCRIPTS_PREFIXES.some((pre) => p.startsWith(pre)) ? `fsi-app/scripts/${p}` : `fsi-app/.discipline/${p}`);
   }
   return [...found];
 }
@@ -1168,26 +1177,6 @@ export const LEGACY_ALLOWLIST = [
       'carbon-cost-per-feu.mjs integration proof), deliberately not wired into any workflow dispatch root ' +
       'while the tools-before-data hold is in force.',
     reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
-  },
-
-  // Lane L8 (2026-10-02, brief docs/dispatches/lane-briefs/2026-10-02/brief-l8.md): same R14/no-workflow
-  // posture as state-cost-facts-producer.mjs and carrier-ets-surcharge-producer.mjs above. This is a
-  // one-time (re-runnable) data-correction CLI for research_finding rows with theme IS NULL, not a
-  // standing producer -- its own ENABLED=false kill switch and its CLI's `--apply` refusal
-  // (r14ApplyRefusalMessage) are the R14 enforcement, not a workflow-dispatch gate. Real callable proof:
-  // `node scripts/research/backfill-themes.mjs --fire-harness` runs the fixture/dry path end to end (47
-  // fixture rows classified, 0 errors) and writes a real harness artifact
-  // (scripts/harness-runs/theme-backfill/theme-backfill-run-001.json). Its only non-test importer would
-  // be a future coordinator-authorized --apply dispatch, which does not exist yet by design.
-  {
-    file: 'fsi-app/scripts/research/backfill-themes.mjs',
-    reason:
-      'R14 hold: Haiku classification backfill for intelligence_items.theme (research_finding rows, ' +
-      'theme IS NULL), built and proven on fixtures (backfill-themes.test.mjs, 18 tests, incl. a real ' +
-      '--fire-harness CLI run), deliberately not wired into any workflow dispatch root -- the live ' +
-      '--apply pass (real Haiku calls + guardedUpdateByIds writes) is a separate, explicitly-authorized ' +
-      'coordinator dispatch this lane does not perform.',
-    reviewByPhase: 'coordinator-authorized live --apply dispatch: once run, either wire a dispatch root that calls this script or archive it as a one-time pass that already completed',
   },
 ];
 

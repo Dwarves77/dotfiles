@@ -1,8 +1,8 @@
 {
   "harness_family": "theme-backfill",
-  "harness_version": "sha256:f186ed5f945a7a48",
+  "harness_version": "sha256:b383789b98703f88",
   "run_id": "theme-backfill-run-001",
-  "started_at": "2026-10-03T01:53:09.055Z",
+  "started_at": "2026-10-03T02:20:45.270Z",
   "config": {
     "mode": "dry",
     "apply": false,
