@@ -32,6 +32,14 @@
 // real ladder, prints the plan, and writes this family's own harness-run artifact
 // (scripts/harness-runs/research-assessment/). The coordinator runs the live --live --apply pass after
 // migration 344 is applied and this file merges.
+//
+// --live SCOPE (lane RA-WF, 2026-10-02, closing rule 17's half-slice finding: this producer had no
+// workflow dispatching it, so it had never run against live candidates or landed a harness_runs row).
+// --live reads the real research-surface candidate population, scoped to items with NO current
+// research_assessments row yet (selectNeedingAssessment/fetchLiveCandidates below) -- never a corpus-
+// wide re-score on the first dispatch. --limit N bounds that population further (unbounded if omitted).
+// The dedicated dispatch workflow is .github/workflows/research-assessment.yml (`mode`, `live`, `limit`
+// inputs), wired to this family's own harness-landing step already.
 
 import { resolve as resolvePath, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -282,12 +290,41 @@ function decideApply({ apply, enabled, killSwitchOn, hasCreds }) {
 
 export { decideApply };
 
-/** Live narrowing: fetch candidate items + their joined signals from Supabase. Only called under --live;
- *  the default CLI run never reaches this function, so it carries no test obligation of its own beyond
- *  the pure toAssessmentInput() narrowing above, which IS tested. */
-async function fetchLiveCandidates() {
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+/**
+ * Pure. Narrows the admitted research-surface population down to the ones this live run must actually
+ * score: items with NO current `research_assessments` row (`currentItemIdSet`, read from
+ * `research_assessments_current` -- migration 344's own expression of "current", mirrored from
+ * `read-assessments.mjs`'s `is_current`-scoped view), bounded by `limit`. Lane RA-WF (2026-10-02),
+ * closing rule 17's half-slice finding: the first live dispatch deliberately scopes to NEW candidates
+ * only, never a corpus-wide re-score, so cost and blast radius on the first real run are bounded and
+ * named, not implicit in whatever the corpus happens to contain that day. An item that already has a
+ * current row is re-assessed by a LATER pass once this scope is proven -- not silently skipped forever;
+ * `hasChanged` already makes a re-score of an unchanged item a no-write no-op when that later pass runs.
+ * Exported so this selection is tested without a database (CLAUDE.md B1 -- consumers next: `main()`'s
+ * `--live` branch below is the only call site).
+ * @param {Array<{id: string}>} admittedRows
+ * @param {Set<string>} currentItemIdSet
+ * @param {number|undefined} limit
+ * @returns {Array<{id: string}>}
+ */
+export function selectNeedingAssessment(admittedRows, currentItemIdSet, limit) {
+  const needing = admittedRows.filter((r) => !currentItemIdSet.has(r.id));
+  return typeof limit === "number" && limit > 0 ? needing.slice(0, limit) : needing;
+}
+
+/** Live narrowing: fetch candidate items + their joined signals from Supabase, scoped to the ones
+ *  `selectNeedingAssessment` says actually need a row (lacking a current one), bounded by `limit`. Only
+ *  called under --live; the default CLI run never reaches this function. `deps.client` is the injection
+ *  seam a test uses to run this against a fake Supabase client with no network or credential (lane
+ *  RA-WF, 2026-10-02) -- `deps.client` omitted (the real CLI path) constructs the real client exactly as
+ *  before.
+ *  @param {{ limit?: number, client?: object }} [deps]
+ */
+export async function fetchLiveCandidates({ limit, client } = {}) {
+  const sb = client ?? (await (async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  })());
   const { isResearchCandidate, RESEARCH_CANDIDATE_OR } = await import("../../../src/lib/research/surface-candidate.mjs");
 
   const { data: items, error } = await sb
@@ -297,12 +334,25 @@ async function fetchLiveCandidates() {
     .eq("is_archived", false)
     .eq("provenance_status", "verified");
   if (error) throw new Error(`fetchLiveCandidates: ${error.message}`);
-  const admitted = (items ?? []).filter((r) => isResearchCandidate(r.item_type, r.domain));
+  const allAdmitted = (items ?? []).filter((r) => isResearchCandidate(r.item_type, r.domain));
 
-  // F39 (IN-CHUNK, 2026-09-06): both reads below route through readAllByIds (scripts/lib/db.mjs),
+  // F39 (IN-CHUNK, 2026-09-06): every read below routes through readAllByIds (scripts/lib/db.mjs),
   // which chunks any id list before it ever reaches a single .in() call -- never a raw .in() sized to
   // a runtime list, regardless of how large the research-candidate population grows.
   const { readAllByIds } = await import("../../lib/db.mjs");
+
+  // "Lacking a current row" (see this function's own docstring above): read research_assessments_current
+  // for exactly the admitted ids, scoped to this run's candidate set only -- never the whole table.
+  const allAdmittedIds = allAdmitted.map((r) => r.id);
+  const currentRows = allAdmittedIds.length
+    ? await readAllByIds("research_assessments_current", "item_id", allAdmittedIds, {
+        idColumn: "item_id",
+        manyPerId: false,
+        client: sb,
+      })
+    : [];
+  const currentItemIdSet = new Set((currentRows ?? []).map((r) => r.item_id));
+  const admitted = selectNeedingAssessment(allAdmitted, currentItemIdSet, limit);
 
   const sourceIds = [...new Set(admitted.map((r) => r.source_id).filter(Boolean))];
   const sources = sourceIds.length
@@ -340,26 +390,20 @@ async function fetchLiveCandidates() {
   );
 }
 
-async function fetchLiveCurrentByItemId(itemIds) {
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-  if (!itemIds.length) return new Map();
-  // F39: readAllByIds chunks the id list (never a raw .in() sized to a runtime list) -- same reasoning
-  // as fetchLiveCandidates above. One row per item_id (the view's own unique-current-row guarantee,
-  // migration 344's partial unique index), so manyPerId:false.
-  const { readAllByIds } = await import("../../lib/db.mjs");
-  const rows = await readAllByIds("research_assessments_current", "*", itemIds, {
-    idColumn: "item_id",
-    manyPerId: false,
-    client: sb,
-  });
-  return new Map((rows ?? []).map((r) => [r.item_id, r]));
+/** Parses `--limit N` off argv. Returns undefined (unbounded) when absent, NaN, or <= 0. Exported for a
+ *  direct unit test; also exercised indirectly through `main()`'s CLI parsing. */
+export function parseLimitArg(args) {
+  const idx = args.indexOf("--limit");
+  if (idx === -1 || idx === args.length - 1) return undefined;
+  const n = Number(args[idx + 1]);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const apply = args.includes("--apply");
   const live = args.includes("--live");
+  const limit = parseLimitArg(args);
 
   const decision = decideApply({
     apply,
@@ -378,8 +422,15 @@ async function main() {
   let now;
   let openAlexDeps;
   if (live) {
-    candidates = await fetchLiveCandidates();
-    currentByItemId = await fetchLiveCurrentByItemId(candidates.map((c) => c.id));
+    candidates = await fetchLiveCandidates({ limit });
+    // fetchLiveCandidates() already excludes every item that has a current row (selectNeedingAssessment
+    // above) -- the set it returns is BY CONSTRUCTION the "no current row yet" population, so a second
+    // live query to re-derive the same exclusion (the old fetchLiveCurrentByItemId call) would be dead
+    // work. currentByItemId stays the empty map, which is exactly what hasChanged(null, computed) wants
+    // for a first assessment. A LATER pass that re-scores already-assessed items for drift is a separate,
+    // not-yet-built scope (see selectNeedingAssessment's own docstring) and will need its own current-row
+    // read when it exists.
+    currentByItemId = new Map();
     now = new Date();
     openAlexDeps = {}; // real global fetch (Node 24 native), no key, polite-pool email per openalex-client.mjs
   } else {
@@ -425,7 +476,11 @@ async function main() {
     harnessVersion,
     runId,
     startedAt,
-    config: { mode: decision.canWrite ? "apply" : "dry", source: live ? "live" : "fixtures/research-assessment-fixtures.mjs" },
+    config: {
+      mode: decision.canWrite ? "apply" : "dry",
+      source: live ? "live" : "fixtures/research-assessment-fixtures.mjs",
+      limit: limit ?? null,
+    },
     inputsRef: [live ? "intelligence_items (research candidates)" : "scripts/producers/research/fixtures/research-assessment-fixtures.mjs"],
     perItem: result.perItem,
     metrics: result.metrics,

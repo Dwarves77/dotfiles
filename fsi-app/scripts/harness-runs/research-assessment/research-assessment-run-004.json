@@ -1,0 +1,59 @@
+{
+  "harness_family": "research-assessment",
+  "harness_version": "sha256:7864156bbe761f98",
+  "run_id": "research-assessment-run-004",
+  "started_at": "2026-10-02T20:59:44.284Z",
+  "config": {
+    "mode": "dry",
+    "source": "fixtures/research-assessment-fixtures.mjs",
+    "limit": null,
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "scripts/producers/research/fixtures/research-assessment-fixtures.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "fixture-research-r1",
+      "outcome": "assessed (R1, NOW, CONFIRMED)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "fixture-research-r3",
+      "outcome": "assessed (R3, NEAR, CONFIRMED)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "fixture-research-r4",
+      "outcome": "assessed (R4, FAR, HYPOTHESIS)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "fixture-research-refusal",
+      "outcome": "refused (HYPOTHESIS)",
+      "verdict": "not forecastable: no dated statutory instrument, no named institutional roadmap date, and no technical-maturity corridor to prior from (spec-03 section 6's mandatory refusal state).",
+      "error": null
+    },
+    {
+      "id": "fixture-research-openalex-doi",
+      "outcome": "assessed (R4, FAR, HYPOTHESIS)",
+      "verdict": null,
+      "error": null
+    }
+  ],
+  "metrics": {
+    "candidates": 5,
+    "unchanged": 0,
+    "planned": 5,
+    "written": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/producers/research/fixtures/research-assessment-fixtures.mjs"
+  ],
+  "proposer_notes": "research-assessment-producer's first run artifact (lane W2-R, 2026-10-01). Fixture/dry runs prove the ladder end to end offline; the coordinator runs --live --apply after migration 344 lands.",
+  "trigger": "manual"
+}

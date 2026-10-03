@@ -1,8 +1,46 @@
 # Last proposer pass - research-assessment
 
-Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `research-assessment` now has **three**
-artifacts (`research-assessment-run-001` through `-003`); F28's rule (d) requires this file to name the
-latest verbatim: **research-assessment-run-003**.
+Per `PROPOSER-RUNBOOK.md` section 2's attestation format. `research-assessment` now has **four**
+artifacts (`research-assessment-run-001` through `-004`); F28's rule (d) requires this file to name the
+latest verbatim: **research-assessment-run-004**.
+
+## Proposer pass for research-assessment-run-004 (2026-10-02, lane RA-WF, push-time gate)
+
+**Artifacts read:** research-assessment-run-001.json through research-assessment-run-004.json, all in
+full.
+
+**Full traces read:** `scripts/producers/research/research-assessment-producer.mjs` (the diff -- new
+`selectNeedingAssessment`, the `fetchLiveCandidates` DI + current-row-exclusion rewrite, `parseLimitArg`,
+the deletion of `fetchLiveCurrentByItemId`), `.github/workflows/research-assessment.yml` (the new `limit`
+input and its run-step wiring), and this run's own console output (five per-item outcomes, byte-identical
+to run-003's -- see below).
+
+**Why this run superseded run-003.** Lane RA-WF (2026-10-02), closing rule 17's half-slice finding on
+this producer (dedicated workflow existed but had never been fired `--live`, and the live path had no
+bound and no test coverage). `research-assessment-producer.mjs` -- one of this family's two governing
+files -- changed (the `--live` candidate-selection rewrite), so `harness_version` changed, requiring this
+new artifact. `assess.mjs` (the other governing file) is unchanged.
+
+**What changed, mechanically.** Only the fixture/dry CLI path's OWN behaviour is provably unaffected:
+`fetchLiveCandidates` (the function this lane rewrote) is never called outside `--live`, which this
+worktree cannot exercise (no DB credential, by lane-common-contract design). The fixture run's metrics
+and all five per-item outcomes are therefore byte-identical to run-003:
+`{"candidates":5,"unchanged":0,"planned":5,"written":0}`, fixture-research-r1 -> R1/NOW/CONFIRMED,
+fixture-research-r3 -> R3/NEAR/CONFIRMED, fixture-research-r4 -> R4/FAR/HYPOTHESIS,
+fixture-research-refusal -> refused/HYPOTHESIS, fixture-research-openalex-doi -> R4/FAR/HYPOTHESIS. The
+new `config.limit: null` field is the one visible artifact-shape change (recording that this dry run was
+unbounded, the honest default when `--limit` is not passed).
+
+**What this run does NOT prove, named rather than implied.** The rewritten `--live` path itself
+(`fetchLiveCandidates`'s current-row exclusion, the `research_assessments_current` query, the `--limit`
+bound) is exercised by `research-assessment-producer.test.mjs`'s new tests against an injected fake
+Supabase client (27/27 passing), never by this fixture/dry artifact -- the fixture path by construction
+never reaches that code. The first REAL exercise of it is the coordinator's staged `--live` dispatch
+(command recorded in `docs/ops/session-log.d/2026-10-02-ra-wf.md`) after confirming migration 344 is
+applied.
+
+**Proposal: none warranted.** The fix is the scoping + bound + test coverage itself, authorized by this
+lane's own dispatch; no further defect surfaced in these traces.
 
 ## Proposer pass for research-assessment-run-003 (2026-10-02, lane L3, push-time gate)
 
