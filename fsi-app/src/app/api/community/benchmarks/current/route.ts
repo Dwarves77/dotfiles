@@ -35,13 +35,12 @@
 //
 // ADR-035 (2026-09-25, "One aggregate anonymity floor"): the JS gate's floor is now >=10 distinct
 // organisations / <=25% max share (src/lib/aggregate/anonymity-floor.mjs FLOOR), tightened from the
-// >=5/25% spec 07 originally named. Migration 294's own publish_aggregate() registration still reads
-// k_min=5/max_share_pct=25/min_lag_days=90 at the DB layer, a separate, narrower defence (durable audit
+// >=5/25% spec 07 originally named. Migration 294's publish_aggregate() registration reads
+// k_min=10/max_share_pct=25/min_lag_days=90 at the DB layer (k_min raised from 5 to 10 by migration 347,
+// ADR-035), so the DB gate and the JS floor now agree; the DB gate is still a separate defence (durable audit
 // log, freeze, tracker-attack resistance) this route consults only for its REFUSAL, never for
 // permission (see applyPublishAggregateGate's own header): a DB "not refused" never overrides a JS "not
-// publishable", so the tighter JS floor above still governs what a reader is shown. The DB registration
-// itself is out of this lane's write set; flagged for the coordinator to align in a later migration if
-// the two should read the same number.
+// publishable".
 
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
