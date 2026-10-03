@@ -44,6 +44,7 @@ ode_modules ...``): `git worktree remove` empties the shared install through a j
 - Do the work yourself. Never use the Agent tool or hand the task to another agent (operator, 2026-09-28: a three-deep relay was "a complete waste of time and tokens"). One lane, one agent, one writer in its worktree.
 - Before any push, run every test file you touched the way CI does (no-npm resolver for `*.test.mjs`, `SUPABASE_*` unset). Push once. If CI is red, stop and report the local-vs-CI difference; never iterate by pushing (operator, 2026-09-28: "STOP pushing them until you fix the issues").
 - Test what you build: a tool is not done until it has run for real (dry dispatch or dry CLI) and its `harness_runs` row has been read back (operator, 2026-09-26: "You HAVE to test what you're building").
+- A lane answers a coordinator status request within one tool round, even mid-gate; a lane that cannot be reached for three requests is replaced (added 2026-10-03, binding).
 
 ## Read before you write
 1. `CLAUDE.md` at repo root, in full.

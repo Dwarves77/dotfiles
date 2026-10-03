@@ -24423,3 +24423,11 @@ a doc, per the coordinator's own instruction this round ,  no INDEX line for it.
 Files changed this pass: `docs/PROGRAM-BOARD.md` (new "Research build lanes" section; Lane 7/lint rows
 corrected to name LINT-A/LINT-C/R7-LINT-CI; resume pointer updated), `docs/ops/session-log.md` (this
 entry). `docs/INDEX.md` not touched (nothing owed).
+
+## 2026-10-03, coordinator (COORD-DOCS lane, third pass): status-request rule codified in the lane contract
+
+Per the coordinator's follow-up confirmation, the status-within-one-round rule flagged above is now
+binding, not just logged: `docs/dispatches/lane-common-contract.md`'s "Where you work" section gains
+"A lane answers a coordinator status request within one tool round, even mid-gate; a lane that cannot
+be reached for three requests is replaced (added 2026-10-03, binding)." Files changed this pass:
+`docs/dispatches/lane-common-contract.md` (one new bullet), `docs/ops/session-log.md` (this entry).
