@@ -6,8 +6,7 @@
 // by a portable `node --test` run (Node's built-in TS type-stripping covers plain .ts, not JSX in
 // .tsx; confirmed empirically against this repo's jiti helper too, which chokes on this file's mixed
 // TS-type + JSX content). Splitting the pure logic out mirrors the established pattern in this exact
-// directory's sibling (research reuses the pattern src/components/dashboard/pulse-shared.mjs already
-// established for the same reason) and in src/lib/surface-of.mjs. CredibilityChipShared.tsx imports
+// directory's sibling (the same split-out-pure-logic pattern used for the same reason) and in src/lib/surface-of.mjs. CredibilityChipShared.tsx imports
 // buildGradeModifiers from here and adds only the JSX rendering + style-object helpers around it.
 //
 // DELIBERATELY NOT named CredibilityChipShared.mjs (which this file was originally called): webpack's
