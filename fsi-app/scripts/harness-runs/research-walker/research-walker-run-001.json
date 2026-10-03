@@ -1,0 +1,79 @@
+{
+  "harness_family": "research-walker",
+  "harness_version": "sha256:e5a65ebd6cfeaad2",
+  "run_id": "research-walker-run-001",
+  "started_at": "2026-10-03T03:37:55.610Z",
+  "config": {
+    "mode": "dry",
+    "source": "fixtures/research-walker-fixtures.mjs",
+    "dispatch": false,
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "scripts/research/fixtures/research-walker-fixtures.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "https://www.iea.org/reports/example-transport-outlook",
+      "outcome": "source-resolved (tier 2)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://theicct.org/publication/example-freight-study",
+      "outcome": "source-resolved (tier 6)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://tti.tamu.edu/research/example-freight-corridor-study",
+      "outcome": "source-resolved (tier 4)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://www.iea.org/reports/example-transport-outlook",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://theicct.org/publication/example-freight-study",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://tti.tamu.edu/research/example-freight-corridor-study",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://doi.org/10.1000/example-freight-decarb",
+      "outcome": "rejected:unsourced",
+      "verdict": "no registered source for https://doi.org/10.1000/example-freight-decarb , register the source first (source-link invariant: a live item cannot mint without a source)",
+      "error": "no registered source for https://doi.org/10.1000/example-freight-decarb , register the source first (source-link invariant: a live item cannot mint without a source)"
+    },
+    {
+      "id": "https://doi.org/10.1000/example-marine-fuels",
+      "outcome": "rejected:unsourced",
+      "verdict": "no registered source for https://doi.org/10.1000/example-marine-fuels , register the source first (source-link invariant: a live item cannot mint without a source)",
+      "error": "no registered source for https://doi.org/10.1000/example-marine-fuels , register the source first (source-link invariant: a live item cannot mint without a source)"
+    }
+  ],
+  "metrics": {
+    "grey_lit_sources": 3,
+    "grey_lit_resolved": 3,
+    "candidates": 5,
+    "would_mint": 3,
+    "rejected_unsourced": 2,
+    "mode": "dry"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/research/fixtures/research-walker-fixtures.mjs"
+  ],
+  "proposer_notes": "research-walker's run artifact (lane L7, 2026-10-02, R14 lift criterion 8). Dry/fixture run: resolves the 3 named grey-lit sources through the institution class table (rule 18), then runs every candidate (grey-lit + OpenAlex-fixture) through the real mint chokepoint (mint-item.ts's mintIntelligenceItem) in dryRun mode. An OpenAlex candidate whose publisher host is not one of the 3 named registered sources is correctly rejected `unsourced` by the chokepoint's own source-link invariant -- this lane registers only the 3 named sources, not every OpenAlex publisher host (out of scope; that is an L3/authority-score-scale concern, not this lane's). Zero flywheel post-insert hops fire in dry mode (mint-item.ts returns before its single INSERT); a live --dispatch apply run (not exercised here, no DB credentials in this worktree) would run every one of them unconditionally inside the same chokepoint.",
+  "trigger": "manual"
+}
