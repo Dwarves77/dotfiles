@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// SHARED-WRITER: intelligence_items
 // backfill-themes.mjs - Haiku classification backfill for research_finding rows with theme IS NULL
 // (Lane L8, 2026-10-02). Spec 03's own-finding (docs/specs/03-research.md section 10, "Theme
 // rendering"): a finding matching no theme regex is counted in the ledger's tiles (total/band counts,
