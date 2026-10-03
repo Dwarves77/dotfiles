@@ -318,6 +318,13 @@ export function MarketSignalDetailSurface({
         }
       : null;
 
+  // Lane L12 (2026-10-03, coordinator ruling): whether the carbon-intensity figure actually resolved
+  // to a real number, independent of isRecord. selectModalFactor/buildCarbonOverlayView run off
+  // r.jurisdictionIso + carbonFactors, both assembled server-side for every item regardless of
+  // itemGrade. A record-grade (catalogue) item can carry a resolvable factor row the same as a
+  // synthesized signal brief can.
+  const carbonOverlayResolved = hasCarbonOverlay && carbonOverlay?.state === "resolved" && !!carbonOverlay.figure;
+
   const hasDrivers = !!(sectionMap["2"] || sectionMap["3"] || sectionMap["5"] || hasTrajectory || hasCarbonOverlay || r.conversionTrigger);
   const actions = [...(r.recommendedActions || [])].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
   const [depth, setDepth] = useState<SectionIndexDepth>("summary");
@@ -329,9 +336,18 @@ export function MarketSignalDetailSurface({
   // Related. Exposure/Timeline (03/04) live inside the masthead ActionCard, never a tab, so this
   // index is S1/S2/S5/S6, a real gap at S3/S4, never renumbered.
   const hasRelated = connections.length > 0 || supersessions.length > 0 || related.length > 0;
+  // Lane L12 (2026-10-03, coordinator ruling, fixing a confirmed defect: the Findings section used to
+  // be hidden outright for every record-grade item via a bare `!isRecord` gate, even when a real
+  // carbon-intensity figure had resolved, and the section index still advertised "S2 Findings" with
+  // nothing behind it). A non-record item keeps its unconditional Findings section (its sub-sections
+  // fall back to honest "pending" StateNotes when sectionMap/actions are empty, same as before this
+  // lane). A record-grade item shows Findings ONLY when there is a genuinely resolved finding to show
+  // (today: the carbon-intensity figure), never a "pending brief" placeholder on a catalogue record
+  // that was never meant to carry one.
+  const showFindings = !isRecord || carbonOverlayResolved;
   const indexEntries: SectionIndexEntry[] = [
     { id: "summary", shortName: "Summary", ord: 1 },
-    { id: "findings", shortName: "Findings", ord: 2 },
+    ...(showFindings ? [{ id: "findings", shortName: "Findings", ord: 2 }] : []),
     { id: "sources", shortName: "Sources", ord: 5 },
     ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
   ];
@@ -470,9 +486,21 @@ export function MarketSignalDetailSurface({
               masthead ActionCard (check 2), never a standalone tab, so this surface's real index is
               S1/S2/S5/S6. S2 "Substantive findings" is ONE section now, holding what used to be four
               separate top-level tabs (Drivers & trajectory / Cost impact / Do now / Talking points)
-              as sub-headings, content and data paths unchanged. */}
-          {!isRecord && (
+              as sub-headings, content and data paths unchanged.
+
+              Lane L12 (2026-10-03, coordinator ruling): a record-grade item used to skip this whole
+              section (`!isRecord` wrapped all four sub-sections). Confirmed by an executed render
+              (docs/ops/session-log.d/2026-10-03-l12.md) that a resolved carbon-intensity figure never
+              reached the page for a record-grade item even when the same factor data resolved cleanly
+              for a non-record item, and the section index still listed "S2 Findings" with nothing
+              behind it. Fixed per `showFindings` above: a record-grade item now renders this section,
+              carbon-intensity content only, exactly when that figure has genuinely resolved; it never
+              shows the sectionMap/actions-driven sub-sections below, which stay "pending" placeholders
+              a catalogue record was never meant to carry. */}
+          {showFindings && (
             <DetailSection id="findings" title="Substantive findings" index={2}>
+            {!isRecord ? (
+              <>
             <DetailSubSection title="Drivers & trajectory" subtitle="4 forces · compounding" first>
               {sectionMap["2"] && <FactBlocks markdown={sectionMap["2"]} />}
               {sectionMap["3"] && <FactBlocks markdown={sectionMap["3"]} />}
@@ -504,11 +532,11 @@ export function MarketSignalDetailSurface({
               )}
               {hasCarbonOverlay && intensityFigure && (
                 <div style={{ marginTop: 12 }}>
-                  <DerivedFigure figure={intensityFigure} label="Carbon intensity" sourceNote="Same factor row as the carbon cost overlay above, converted per unit rather than per shipment." use="display" />
+                  <DerivedFigure figure={intensityFigure} label="Carbon intensity" sourceNote="Same factor row as the carbon-intensity figure above, converted per unit rather than per shipment." use="display" />
                 </div>
               )}
               {sectionMap["5"] && <FactBlocks markdown={sectionMap["5"]} />}
-              {!hasDrivers && <StateNote>Drivers and trajectory pending — appears once the signal brief is generated.</StateNote>}
+              {!hasDrivers && <StateNote>Drivers and trajectory pending, appears once the signal brief is generated.</StateNote>}
             </DetailSubSection>
 
             <DetailSubSection title="Cost impact by mode" subtitle="Air · Ocean · Road">
@@ -548,6 +576,26 @@ export function MarketSignalDetailSurface({
                 <StateNote>What the workspace can credibly say appears here once the signal brief is generated.</StateNote>
               )}
             </DetailSubSection>
+              </>
+            ) : (
+              <DetailSubSection title="Carbon intensity" subtitle="National modal default" first>
+                {carbonOverlay && carbonOverlay.figure && (
+                  <>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: 26, lineHeight: 1, color: "var(--ink)", margin: "0 0 4px" }}>
+                      {carbonOverlay.figure.value}
+                      <span style={{ fontSize: "var(--fs-13)", fontWeight: 600, color: "var(--ink-2)" }}> {carbonOverlay.figure.unit}</span>
+                    </p>
+                    <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: "0 0 6px" }}>National modal default · not corridor-specific</p>
+                    <p style={{ fontSize: "var(--fs-12)", lineHeight: 1.6, color: "var(--ink-2)", margin: 0 }}>{carbonOverlay.body}</p>
+                  </>
+                )}
+                {intensityFigure && (
+                  <div style={{ marginTop: 12 }}>
+                    <DerivedFigure figure={intensityFigure} label="Carbon intensity" sourceNote="Same factor row as the carbon-intensity figure above, converted per unit rather than per shipment." use="display" />
+                  </div>
+                )}
+              </DetailSubSection>
+            )}
             </DetailSection>
           )}
 

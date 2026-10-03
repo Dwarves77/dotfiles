@@ -67,7 +67,14 @@ export function buildCarbonOverlayView({ jurisdictionIso, factors, mode = null }
     const unit = BASIS_UNIT[result.factor.quantity_basis] || `per ${result.factor.quantity_basis || "unit"}`;
     return {
       state: "resolved",
-      header: "Carbon cost overlay · national modal default",
+      // Lane L12 (2026-10-03, coordinator ruling, rule 13 flag correction): this header previously
+      // read "Carbon cost overlay", but the figure below is a kg-CO2e-per-tonne-km INTENSITY, never a
+      // dollar cost - no currency, no FEU unit, no distance/payload/carbon-price envelope. The real
+      // carbon-cost-per-FEU figure (spec 02 section 6 item 3) lives only in carbon-cost-per-feu.mjs /
+      // CarbonCostOverlay.tsx on /market, keyed on corridor identity (origin+dest+mode) that a bare
+      // market_signal item never carries (select-modal-factor.mjs's own WO-24 ruling: this module
+      // intentionally does not invent one). Renamed to say what it actually is.
+      header: "Carbon intensity · national modal default",
       body:
         `This is a national ${result.factor.jurisdiction} modal-default factor` +
         (result.factor.vehicle_class ? ` for ${String(result.factor.vehicle_class).replace(/_/g, " ")}` : "") +
@@ -89,7 +96,7 @@ export function buildCarbonOverlayView({ jurisdictionIso, factors, mode = null }
   if (result.state === "ambiguous") {
     return {
       state: "ambiguous",
-      header: "Carbon cost overlay · jurisdiction spans multiple countries",
+      header: "Carbon intensity · jurisdiction spans multiple countries",
       body:
         `This signal spans multiple jurisdictions (${result.jurisdictions.join(", ")}) — no single ` +
         `national emission factor applies. Picking one would mean fabricating a corridor this signal ` +
@@ -110,7 +117,7 @@ export function buildCarbonOverlayView({ jurisdictionIso, factors, mode = null }
 
   return {
     state: "no_factor",
-    header: "Carbon cost overlay · not yet available",
+    header: "Carbon intensity · not yet available",
     body: `${reasonText} Coverage today is limited to US road and rail modal defaults.`,
     figure: null,
   };
