@@ -39,15 +39,27 @@ test("absent pair -> INSERT (nothing in the live edge set for this source/target
   assert.deepEqual(unchanged, []);
 });
 
-test("OURS (entity_extraction) but stale relationship -> UPGRADE, relationship+basis both replaced", () => {
-  const existing = new Map([[pairKey("child", "parent"), { id: "edge-1", origin: "entity_extraction", relationship: "related", basis: null }]]);
+test("OURS (entity_extraction) but stale relationship -> UPGRADE; relationship changes, basis is APPENDED (ADR-022 clause 2), origin kept", () => {
+  const old = [{ signal: "lineage", detail: "supplements parent", weight: 0 }];
+  const existing = new Map([[pairKey("child", "parent"), { id: "edge-1", origin: "entity_extraction", relationship: "depends_on", basis: old }]]);
   const writes = [edgeWrite("child", "parent", "amends", [{ signal: "lineage", detail: "amends parent", weight: 0 }])];
-  const { inserts, upgrades, skippedForeign, unchanged } = partitionLineageWrites(writes, existing);
+  const { inserts, upgrades, skippedForeign, conflicts, unchanged } = partitionLineageWrites(writes, existing);
   assert.deepEqual(inserts, []);
   assert.equal(upgrades.length, 1);
-  assert.deepEqual(upgrades[0], { id: "edge-1", source_item_id: "child", target_item_id: "parent", relationship: "amends", basis: [{ signal: "lineage", detail: "amends parent", weight: 0 }] });
+  assert.equal(upgrades[0].id, "edge-1");
+  assert.equal(upgrades[0].relationship, "amends");
+  assert.deepEqual(upgrades[0].basis, [...old, { signal: "lineage", detail: "amends parent", weight: 0 }], "prior basis kept, new appended, nothing replaced");
+  assert.equal(upgrades[0].origin, "entity_extraction");
   assert.deepEqual(skippedForeign, []);
+  assert.deepEqual(conflicts, []);
   assert.deepEqual(unchanged, []);
+});
+
+test("OURS untyped 'related' (no basis) -> typed UPGRADE carrying the lineage basis", () => {
+  const existing = new Map([[pairKey("child", "parent"), { id: "edge-0", origin: "entity_extraction", relationship: "related", basis: null }]]);
+  const { upgrades } = partitionLineageWrites([edgeWrite("child", "parent", "amends", [{ signal: "lineage", detail: "amends parent", weight: 0 }])], existing);
+  assert.equal(upgrades[0].relationship, "amends");
+  assert.deepEqual(upgrades[0].basis, [{ signal: "lineage", detail: "amends parent", weight: 0 }]);
 });
 
 test("OURS (entity_extraction) and ALREADY the target relationship+basis -> UNCHANGED, no write (idempotent re-run)", () => {
@@ -70,17 +82,68 @@ test("undefined basis on the incoming row === stored null basis (relationship 'r
   assert.equal(unchanged.length, 1);
 });
 
-test("FOREIGN origin (manual/agent_semantic/provenance_discovery) -> SKIPPED, NEVER clobbered, even though planLinkWrites proposes a typed edge for the same pair", () => {
-  for (const foreignOrigin of ["manual", "agent_semantic", "provenance_discovery"]) {
-    const existing = new Map([[pairKey("child", "parent"), { id: "edge-x", origin: foreignOrigin, relationship: "related", basis: null }]]);
-    const writes = [edgeWrite("child", "parent", "implements", [{ signal: "lineage", detail: "implements parent", weight: 0 }])];
-    const { inserts, upgrades, skippedForeign, unchanged } = partitionLineageWrites(writes, existing);
-    assert.deepEqual(inserts, [], `${foreignOrigin}: must not insert`);
-    assert.deepEqual(upgrades, [], `${foreignOrigin}: must not upgrade — this is the clobber this module exists to prevent`);
-    assert.deepEqual(unchanged, [], `${foreignOrigin}: not "unchanged" either — it was never ours to judge`);
-    assert.equal(skippedForeign.length, 1);
-    assert.equal(skippedForeign[0].foreignOrigin, foreignOrigin);
+const DISC_BASIS = [{ signal: "shared_scenario", detail: "both touch emissions-reporting-Scope3", weight: 0.3 }];
+const LINEAGE = [{ signal: "lineage", detail: "amends parent", weight: 0 }];
+
+test("ADR-022 clause 1+2: a MACHINE-origin generic 'related' row (provenance_discovery / agent_semantic) is UPGRADED additively: typed relationship, both basis entries, origin and score untouched", () => {
+  for (const origin of ["provenance_discovery", "agent_semantic"]) {
+    const existing = new Map([[pairKey("child", "parent"), { id: "e-d", origin, relationship: "related", basis: DISC_BASIS, score: 0.3 }]]);
+    const { inserts, upgrades, skippedForeign, conflicts } = partitionLineageWrites([edgeWrite("child", "parent", "amends", LINEAGE)], existing);
+    assert.deepEqual(inserts, [], origin);
+    assert.deepEqual(skippedForeign, [], origin);
+    assert.deepEqual(conflicts, [], origin);
+    assert.equal(upgrades.length, 1, origin);
+    assert.equal(upgrades[0].relationship, "amends", origin);
+    assert.deepEqual(upgrades[0].basis, [...DISC_BASIS, ...LINEAGE], `${origin}: discovery basis kept, lineage appended`);
+    assert.equal(upgrades[0].origin, origin, "origin preserved");
+    assert.ok(!("score" in upgrades[0]) && !("origin_patch" in upgrades[0]), "score is not in the patch");
   }
+});
+
+test("operator ruling: a MANUAL row is never changed, whatever the incoming claim (typed or generic), and is counted", () => {
+  for (const incoming of ["amends", "related"]) {
+    const existing = new Map([[pairKey("child", "parent"), { id: "e-m", origin: "manual", relationship: "related", basis: null }]]);
+    const { inserts, upgrades, skippedForeign, conflicts, unchanged } = partitionLineageWrites([edgeWrite("child", "parent", incoming, incoming === "amends" ? LINEAGE : null)], existing);
+    assert.deepEqual([inserts, upgrades, conflicts, unchanged], [[], [], [], []], incoming);
+    assert.equal(skippedForeign.length, 1, incoming);
+    assert.equal(skippedForeign[0].foreignOrigin, "manual");
+  }
+});
+
+test("a foreign row that already carries a DIFFERENT typed relationship is not retyped: reported as a conflict, never written", () => {
+  const existing = new Map([[pairKey("child", "parent"), { id: "e-t", origin: "agent_semantic", relationship: "supersedes", basis: null }]]);
+  const { upgrades, conflicts, skippedForeign, unchanged } = partitionLineageWrites([edgeWrite("child", "parent", "amends", LINEAGE)], existing);
+  assert.deepEqual([upgrades, skippedForeign, unchanged], [[], [], []]);
+  assert.deepEqual(conflicts, [{ source_item_id: "child", target_item_id: "parent", foreignOrigin: "agent_semantic", existingRelationship: "supersedes", claimedRelationship: "amends" }]);
+});
+
+test("a foreign row that already carries the SAME typed relationship is unchanged (nothing to add on a row we do not own)", () => {
+  const existing = new Map([[pairKey("child", "parent"), { id: "e-s", origin: "agent_semantic", relationship: "amends", basis: null }]]);
+  const { upgrades, unchanged, conflicts } = partitionLineageWrites([edgeWrite("child", "parent", "amends", LINEAGE)], existing);
+  assert.deepEqual([upgrades, conflicts], [[], []]);
+  assert.equal(unchanged.length, 1);
+});
+
+test("ADR-022 clause 3: a generic claim never downgrades a typed row (own: unchanged, foreign: counted skipped)", () => {
+  const own = new Map([[pairKey("c", "p"), { id: "o", origin: "entity_extraction", relationship: "amends", basis: LINEAGE }]]);
+  const r1 = partitionLineageWrites([edgeWrite("c", "p", "related", null)], own);
+  assert.deepEqual(r1.upgrades, []);
+  assert.equal(r1.unchanged.length, 1);
+  const foreign = new Map([[pairKey("c", "p"), { id: "f", origin: "provenance_discovery", relationship: "related", basis: DISC_BASIS }]]);
+  const r2 = partitionLineageWrites([edgeWrite("c", "p", "related", null)], foreign);
+  assert.deepEqual(r2.upgrades, []);
+  assert.equal(r2.skippedForeign.length, 1);
+});
+
+test("an own-origin row of the SAME type gains only missing basis entries (idempotent: a second run is unchanged)", () => {
+  const e1 = new Map([[pairKey("c", "p"), { id: "o", origin: "entity_extraction", relationship: "amends", basis: [{ signal: "lineage", detail: "older wording", weight: 0 }] }]]);
+  const first = partitionLineageWrites([edgeWrite("c", "p", "amends", LINEAGE)], e1);
+  assert.equal(first.upgrades.length, 1);
+  assert.equal(first.upgrades[0].basis.length, 2);
+  const e2 = new Map([[pairKey("c", "p"), { id: "o", origin: "entity_extraction", relationship: "amends", basis: first.upgrades[0].basis }]]);
+  const second = partitionLineageWrites([edgeWrite("c", "p", "amends", LINEAGE)], e2);
+  assert.deepEqual(second.upgrades, []);
+  assert.equal(second.unchanged.length, 1);
 });
 
 test("integrity_flags rows in the write plan are ignored by the edge partitioner (flags have their own dedup rule)", () => {

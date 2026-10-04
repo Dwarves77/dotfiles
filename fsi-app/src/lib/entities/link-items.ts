@@ -22,6 +22,8 @@ export interface LinkResult {
   inserted: number;
   upgraded: number;
   skippedForeign: number;
+  /** a foreign-origin row already holds a DIFFERENT typed relationship: reported, never written (ADR-022). */
+  conflicts: number;
   unchanged: number;
   /** of inserted + upgraded, how many carry a lineage type (a relationship other than 'related'). */
   typed: number;
@@ -39,18 +41,19 @@ export interface LinkOptions {
   corpus?: CorpusRow[];
 }
 
-const NOTHING: LinkResult = { edges: 0, surfaced: 0, skipped: true, inserted: 0, upgraded: 0, skippedForeign: 0, unchanged: 0, typed: 0, dry: false };
+const NOTHING: LinkResult = { edges: 0, surfaced: 0, skipped: true, inserted: 0, upgraded: 0, skippedForeign: 0, conflicts: 0, unchanged: 0, typed: 0, dry: false };
 
 /**
  * Wire an item's content-mentioned entities into item_cross_references (origin='entity_extraction',
  * relationship TYPED per classifyRelationship — WO-28/ADR-021) and surface ambiguous/unknown-standard
  * candidates + absent-parent lineage gaps to integrity_flags. Read-then-write, idempotent:
  *  - edges are partitioned against the item's EXISTING edges by partitionLineageWrites, the one reference
- *    implementation (never reimplemented here): an absent pair is inserted; a pair already owned by
- *    entity_extraction is upgraded when its typed relationship or basis differs; a pair owned by ANY other
- *    origin (manual, agent_semantic, provenance_discovery) is never touched and is counted; an identical
- *    pair is a no-op. (Before lane s2a-typed-edges this was an ignore-duplicates upsert, so a later, more
- *    specific classification could never replace an earlier untyped 'related' edge of our own.)
+ *    implementation (never reimplemented here), which follows ADR-022: an absent pair is inserted; a generic
+ *    'related' row of any machine origin is upgraded to the typed relationship ADDITIVELY (basis appended,
+ *    origin and score kept); a 'manual' row is never changed; a foreign row already holding a different
+ *    typed relationship is reported as a conflict and not written; an identical pair is a no-op. (Before
+ *    lane s2a-typed-edges this was an ignore-duplicates upsert, so a later, more specific classification
+ *    could never replace an earlier untyped 'related' edge.)
  *  - each aggregated flag is created only when there is none open for this item IN ITS OWN created_by
  *    namespace ("intake-entity-link" for ambiguous/unknown mentions, "lineage-gap:absent-parent" for
  *    lineage-shaped mentions resolving to zero items) — no re-run spam, and the two flag kinds never
@@ -105,10 +108,11 @@ export async function linkItems(sb: SupabaseClient, itemId: string, opts: LinkOp
     )) as ExistingEdge[];
     for (const r of rows) existing.set(pairKey(r.source_item_id, r.target_item_id), r);
   }
-  const { inserts, upgrades, skippedForeign, unchanged } = partitionLineageWrites(edgeWrites, existing) as {
+  const { inserts, upgrades, skippedForeign, conflicts, unchanged } = partitionLineageWrites(edgeWrites, existing) as {
     inserts: Array<Record<string, unknown> & { relationship: string }>;
     upgrades: Array<{ id: string; relationship: string; basis: unknown }>;
     skippedForeign: unknown[];
+    conflicts: unknown[];
     unchanged: unknown[];
   };
   const typed = [...inserts, ...upgrades].filter((r) => r.relationship !== "related").length;
@@ -125,7 +129,7 @@ export async function linkItems(sb: SupabaseClient, itemId: string, opts: LinkOp
       else console.warn(`[linkStep] edge insert failed for ${itemId}: ${error.message}`);
     }
     for (const u of upgrades) {
-      // ADR-022 scope: only OUR OWN (entity_extraction) row is upgraded, relationship + lineage basis, nothing else
+      // ADR-022 clause 2: the patch is relationship + the ADDITIVELY merged basis; origin and score are never in it
       const { error } = await sb.from("item_cross_references").update({ relationship: u.relationship, basis: u.basis }).eq("id", u.id);
       if (!error) edges++;
       else console.warn(`[linkStep] edge upgrade failed for ${itemId}: ${error.message}`);
@@ -145,5 +149,5 @@ export async function linkItems(sb: SupabaseClient, itemId: string, opts: LinkOp
     if (!error) surfaced++;
   }
 
-  return { edges, surfaced, skipped: false, inserted: inserts.length, upgraded: upgrades.length, skippedForeign: skippedForeign.length, unchanged: unchanged.length, typed, dry };
+  return { edges, surfaced, skipped: false, inserted: inserts.length, upgraded: upgrades.length, skippedForeign: skippedForeign.length, conflicts: conflicts.length, unchanged: unchanged.length, typed, dry };
 }

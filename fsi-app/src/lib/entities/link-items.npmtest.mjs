@@ -87,18 +87,45 @@ test("free path: stored text that amends a held instrument writes a TYPED amends
   assert.equal(edge.basis[0].signal, "lineage");
 });
 
-test("a pair already owned by a MANUAL (or any foreign) origin is untouched and counted", async () => {
-  for (const origin of ["manual", "agent_semantic", "provenance_discovery"]) {
-    const sb = fakeSb(seed({
-      intelligence_items: [PARENT, { ...CHILD, full_brief: AMENDING }],
-      item_cross_references: [{ id: "x1", source_item_id: "child", target_item_id: "parent", relationship: "related", origin, basis: null }],
-    }));
-    const r = await linkItems(sb, "child");
-    assert.equal(r.skippedForeign, 1, origin);
-    assert.equal(r.edges, 0, origin);
-    assert.deepEqual(sb.writes.filter((w) => w.table === "item_cross_references"), [], `${origin}: no edge write at all`);
-    assert.equal(sb.tables.item_cross_references[0].relationship, "related", origin);
-  }
+test("a pair already owned by a MANUAL origin is untouched and counted", async () => {
+  const sb = fakeSb(seed({
+    intelligence_items: [PARENT, { ...CHILD, full_brief: AMENDING }],
+    item_cross_references: [{ id: "x1", source_item_id: "child", target_item_id: "parent", relationship: "related", origin: "manual", basis: null }],
+  }));
+  const r = await linkItems(sb, "child");
+  assert.equal(r.skippedForeign, 1);
+  assert.equal(r.edges, 0);
+  assert.deepEqual(sb.writes.filter((w) => w.table === "item_cross_references"), []);
+  assert.equal(sb.tables.item_cross_references[0].relationship, "related");
+});
+
+test("ADR-022: a discovery 'related' row plus an amends mention becomes 'amends' with BOTH basis entries; origin and score kept", async () => {
+  const disc = [{ signal: "shared_scenario", detail: "both touch x", weight: 0.3 }];
+  const sb = fakeSb(seed({
+    intelligence_items: [PARENT, { ...CHILD, full_brief: AMENDING }],
+    item_cross_references: [{ id: "x1", source_item_id: "child", target_item_id: "parent", relationship: "related", origin: "provenance_discovery", basis: disc, score: 0.3 }],
+  }));
+  const r = await linkItems(sb, "child");
+  assert.equal(r.upgraded, 1);
+  assert.equal(r.typed, 1);
+  const row = sb.tables.item_cross_references[0];
+  assert.equal(row.relationship, "amends");
+  assert.equal(row.origin, "provenance_discovery");
+  assert.equal(row.score, 0.3);
+  assert.deepEqual(row.basis.map((b) => b.signal), ["shared_scenario", "lineage"]);
+  const upd = sb.writes.find((w) => w.op === "update");
+  assert.deepEqual(Object.keys(upd.patch).sort(), ["basis", "relationship"], "the patch touches only relationship and basis");
+});
+
+test("a foreign row already typed differently is a CONFLICT: counted, not written", async () => {
+  const sb = fakeSb(seed({
+    intelligence_items: [PARENT, { ...CHILD, full_brief: AMENDING }],
+    item_cross_references: [{ id: "x1", source_item_id: "child", target_item_id: "parent", relationship: "supersedes", origin: "agent_semantic", basis: null }],
+  }));
+  const r = await linkItems(sb, "child");
+  assert.equal(r.conflicts, 1);
+  assert.equal(r.edges, 0);
+  assert.deepEqual(sb.writes.filter((w) => w.table === "item_cross_references"), []);
 });
 
 test("an own (entity_extraction) untyped 'related' edge is UPGRADED to the typed relationship; re-run is a no-op", async () => {

@@ -41,13 +41,30 @@ not reimplemented), `planLinkWrites` / `resolve` (entity-resolve), `fetchAllRows
   before discovery's writer, which skips pairs another origin owns.
 - Dry-aware on the free path = a read-only preview, because `applyOneEntry` never runs in dry mode.
 
+## Coordinator rulings applied (same day)
+
+- Merged origin/master (PR 932 runbook split) into the branch. Registered `lineage-gap-targets` in
+  `.github/workflows/maintenance.yml` (choice list plus an inline dry-by-default step, no arg), added
+  `docs/runbooks/maintenance.d/59-lineage-gap-targets.md` and its index line, and the maintenance family F28
+  pending marker. No F25 allowlist entry.
+- `partitionLineageWrites` now implements ADR-022 as written: absent -> insert; `manual` row never changed
+  (operator overlay); generic claim never downgrades; typed claim on a generic machine-origin row (any of
+  provenance_discovery, agent_semantic, entity_extraction) upgrades ADDITIVELY (relationship typed, existing
+  basis kept, lineage basis appended via `appendBasis`; origin and score are not in the patch, which is what
+  the ADR prescribes, so no `upgraded_by` marker was added); a foreign row already typed differently is
+  returned in the new `conflicts` list and not written; an own-origin retype or same-type basis top-up appends.
+  ADR-021 has no clause on edge upgrades. The ADR text does not contradict the ruling: its clause 1 says
+  "whatever origin owns it", and the operator's manual-origin exemption is a narrowing layered on top.
+- Readers of the old `skippedForeign` count checked: `link-items.ts` (mine, now also reports `conflicts`),
+  `backfill-lineage-edges.mjs` (counter retitled, `conflicts` counter added; its upgrade write
+  `{relationship, basis}` already carries the merged basis), `apply-record-briefs.mjs` (outcome string gains
+  `conflicts=`). The `skippedForeign` hits in `analyze-corpus.mjs`, `apply-tags.mjs`,
+  `discover-for-items.mjs` and `write-edges.mjs` are write-edges' own `skippedForeignOrigin`, a different
+  function, unchanged.
+
 ## Open items (not done, not blocking)
 
-- ADR-022 text vs `partitionLineageWrites`: the ADR says a specific writer may upgrade a generic incumbent
-  of ANY origin, additively (append basis, keep origin and score). The function, and its test, skip every
-  foreign origin (including a `provenance_discovery` 'related' row) and, for an own-origin upgrade, replace
-  basis. The brief said to reuse the function, so it is unchanged. Consequence: a lineage pair already
-  occupied by a discovery 'related' row stays untyped. Needs a ruling.
+- `docs/runbooks/maintenance.d/26-backfill-lineage-edges.md` still says foreign-origin pairs are never touched;
+  that is now stale (NEEDS WRITE-SET EXPANSION to correct it).
 - Record-grade text: of the 2 fixture excerpts in `scripts/mint/testdata`, record-facts `full_brief` alone
   yields 0 typed edges; title + full_brief yields 1 (the amending act 2019/1242 to a held 2018/956).
-- `lineage-gap-targets.mjs` has no workflow reference; fitness F25 may flag it until it is registered.

@@ -559,7 +559,7 @@ function loadLinkItems() {
 /** Outcome string for one linkItems result (execute and dry share the vocabulary). */
 export function lineageOutcome(r, { dry = false } = {}) {
   if (r.skipped) return dry ? "lineage:would (nothing to read) (dry, nothing written)" : "lineage:0";
-  const detail = `edges=${r.edges} typed=${r.typed} inserted=${r.inserted} upgraded=${r.upgraded} foreign=${r.skippedForeign} unchanged=${r.unchanged}`;
+  const detail = `edges=${r.edges} typed=${r.typed} inserted=${r.inserted} upgraded=${r.upgraded} foreign=${r.skippedForeign} conflicts=${r.conflicts ?? 0} unchanged=${r.unchanged}`;
   return dry ? `lineage:would (${detail}) (dry, nothing written)` : r.edges > 0 ? `lineage:${r.edges}(typed:${r.typed})` : `lineage:0 (${detail})`;
 }
 

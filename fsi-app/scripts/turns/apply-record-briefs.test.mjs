@@ -1260,9 +1260,9 @@ test("applyOneEntry: a linkItems failure is recorded as a flywheel defect, the s
 test("lineageOutcome: execute and dry vocabularies", () => {
   const r = { edges: 1, typed: 1, inserted: 0, upgraded: 1, skippedForeign: 2, unchanged: 3, skipped: false };
   assert.equal(lineageOutcome(r), "lineage:1(typed:1)");
-  assert.equal(lineageOutcome({ ...r, edges: 0, typed: 0 }), "lineage:0 (edges=0 typed=0 inserted=0 upgraded=1 foreign=2 unchanged=3)");
+  assert.equal(lineageOutcome({ ...r, edges: 0, typed: 0 }), "lineage:0 (edges=0 typed=0 inserted=0 upgraded=1 foreign=2 conflicts=0 unchanged=3)");
   assert.equal(lineageOutcome({ skipped: true }), "lineage:0");
-  assert.equal(lineageOutcome(r, { dry: true }), "lineage:would (edges=1 typed=1 inserted=0 upgraded=1 foreign=2 unchanged=3) (dry, nothing written)");
+  assert.equal(lineageOutcome(r, { dry: true }), "lineage:would (edges=1 typed=1 inserted=0 upgraded=1 foreign=2 conflicts=0 unchanged=3) (dry, nothing written)");
   assert.equal(lineageOutcome({ skipped: true }, { dry: true }), "lineage:would (nothing to read) (dry, nothing written)");
 });
 
