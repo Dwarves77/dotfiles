@@ -92,6 +92,8 @@ test("buildDeps().checkVerticalFitGate: through the REAL import graph (real jiti
       assert.ok(hasNotesIlike, "expected the negative-list query's own ilike(notes, %off_vertical_suspended%)");
       return { data: negativeListRows, error: null };
     }
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb}`);
   });
   __setWriteClientForTest(() => client);
@@ -145,6 +147,8 @@ test("main({mode:'apply'}) with the REAL buildDeps(): a class-table promote reac
     if (s.table === "sources" && s.verb === "insert") {
       return { data: { id: "new-source-id" }, error: null };
     }
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb} ops=${JSON.stringify(s.ops)}`);
   });
   __setWriteClientForTest(() => client);
@@ -184,6 +188,8 @@ test("REAL buildDeps(): a sources row with tier_override keeps base_tier/effecti
     }
     if (s.table === "provisional_sources" && s.verb === "select") return { data: [], error: null };
     if (s.table === "sources" && s.verb === "update") return { data: [{ id: row.id }], error: null };
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb}`);
   });
   __setWriteClientForTest(() => client);
@@ -216,6 +222,8 @@ test("REAL buildDeps(): a machine promote writes 2 of 3 recommended bias tags th
       const rows = s.ops.find((o) => o[0] === "insert")[1];
       return { data: rows.map((_, i) => ({ id: `bt-${i}` })), error: null };
     }
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb}`);
   });
   __setWriteClientForTest(() => client);

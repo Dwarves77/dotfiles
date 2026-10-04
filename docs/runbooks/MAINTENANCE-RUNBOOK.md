@@ -3486,9 +3486,9 @@ on a person any more.
   loader rejects an unknown class or a `tier` field per entry (reported in `summary.host_verdicts.rejected`,
   never a block). `permanentlyUnregisteredClass` hosts still never register. The built-in rules run first, so a
   verdict only places what they decline. A host still unplaced after the batches stays recorded as residue,
-  reason "awaiting host verdict batch", and the run exits 0. When a verdict resolves a host, its open
-  `null-tier-host` flag is resolved by this step with a note naming the batch (apply only; counted in
-  `summary.host_verdicts.flags_resolved`).
+  reason "awaiting host verdict batch", and the run exits 0. When a host now resolves (rule a, rule b or a
+  verdict), its open `null-tier-host` flag is resolved by this step with a note naming the rule or the
+  verdict batch (apply only; counted in `summary.host_verdicts.flags_resolved`).
 - **Export mode (read-only).** `node scripts/maintenance/resolve-provisional-sources.mjs --arg export-unplaced
   --out <dir>` writes `<dir>/unplaced-hosts.json` (host, stored names, discovered_via) and writes nothing to
   the database whatever `--mode` says; a session lane classifies from that file into the next batch. The

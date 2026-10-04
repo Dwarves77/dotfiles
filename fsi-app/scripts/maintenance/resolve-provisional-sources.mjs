@@ -571,18 +571,24 @@ async function writeMachineBiasTags(row, promoted, deps, summary) {
 }
 
 /**
- * A host a committed verdict batch now places: close its open null-tier-host flag with a note naming the
- * batch (once per host per run). Only rule b2 has a flag to close; rules a and b never queued a question.
+ * A host that now resolves (rule a, b or b2): close its open null-tier-host flag with a note naming the rule
+ * or the verdict batch (once per host per run). A host that never had a flag costs one read and no write.
  */
 async function resolveVerdictFlag(plan, deps, summary, resolvedFlagHosts) {
   const { decision, host } = plan;
-  if (decision.rule !== "b2" || !host || resolvedFlagHosts.has(host) || typeof deps.resolveNullTierFlag !== "function") return;
+  if (decision.action !== "promote" || !host || resolvedFlagHosts.has(host) || typeof deps.resolveNullTierFlag !== "function") return;
   resolvedFlagHosts.add(host);
   const existing = await deps.readNullTierFlag(host);
   if (!existing?.id) return;
   await deps.resolveNullTierFlag(
     existing.id,
-    buildNullTierHostResolution(host, { batch: decision.verdict.batch, class: decision.verdict.class, tier: decision.tier }, new Date().toISOString()),
+    buildNullTierHostResolution(
+      host,
+      decision.rule === "b2"
+        ? { rule: "b2", batch: decision.verdict.batch, class: decision.verdict.class, tier: decision.tier }
+        : { rule: decision.rule, tier: decision.tier },
+      new Date().toISOString(),
+    ),
   );
   summary.host_verdicts.flags_resolved += 1;
 }

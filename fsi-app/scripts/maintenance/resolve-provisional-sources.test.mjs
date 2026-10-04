@@ -479,6 +479,19 @@ test("main apply: an open null-tier-host flag for a verdict-resolved host is res
   assert.equal(summary.host_verdicts.flags_resolved, 1);
 });
 
+test("main apply: an open null-tier-host flag for a host that now resolves by rule a or rule b is resolved with a note naming the rule", async () => {
+  const pending = [{ id: "p1", url: "https://epa.gov/page" }, { id: "p2", url: "https://some.edu/page" }];
+  const active = [{ id: "s0", url: "https://epa.gov", status: "active", base_tier: 2 }];
+  const deps = fakeDeps({ pending, active, nullTierFlags: { "epa.gov": { id: "fa" }, "some.edu": { id: "fb" } } });
+  const resolved = [];
+  deps.resolveNullTierFlag = async (id, patch) => resolved.push({ id, note: patch.resolution_note });
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(resolved.length, 2);
+  assert.match(resolved.find((r) => r.id === "fa").note, /rule a/);
+  assert.match(resolved.find((r) => r.id === "fb").note, /rule b/);
+  assert.equal(summary.host_verdicts.flags_resolved, 2);
+});
+
 test("main apply: a promoted provisional row with 3 recommended bias tags (0.9, 0.7, 0.5) writes 2 tags, none waiting on a confirm", async () => {
   const pending = [{
     id: "p1", url: "https://some.edu/page",

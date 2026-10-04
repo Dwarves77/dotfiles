@@ -78,7 +78,8 @@ export const NULL_TIER_RESOLVED_BY = "resolve-provisional-sources";
  * (lane S1-B, 2026-10-04): the flag asked "which class is this host?" and the verdict answered it, so the
  * machine closes it with a note naming the batch, class and tier. Pure; the caller performs the write.
  * @param {string} host
- * @param {{ batch: string|null, class: string, tier: number }} placement
+ * @param {{ rule?: "a"|"b"|"b2", batch?: string|null, class?: string, tier: number }} placement
+ *   rule b2 (default, a verdict) names batch and class; rules a and b name the rule that now resolves the host.
  * @param {string} nowIso
  */
 export function buildNullTierHostResolution(host, placement, nowIso) {
@@ -86,6 +87,8 @@ export function buildNullTierHostResolution(host, placement, nowIso) {
     status: "resolved",
     resolved_at: nowIso,
     resolved_by: NULL_TIER_RESOLVED_BY,
-    resolution_note: `host verdict batch ${placement.batch ?? "unknown"} places ${host} in class ${placement.class} (tier ${placement.tier}); registered by the class table, no operator action needed.`,
+    resolution_note: placement.rule === "a" || placement.rule === "b"
+      ? `rule ${placement.rule} (${placement.rule === "a" ? "existing active institution" : "SC-13 class table"}) now places ${host} at tier ${placement.tier}; no operator action needed.`
+      : `host verdict batch ${placement.batch ?? "unknown"} places ${host} in class ${placement.class} (tier ${placement.tier}); registered by the class table, no operator action needed.`,
   };
 }

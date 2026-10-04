@@ -17,11 +17,13 @@ Read in full: source-credibility-model SKILL, host-authority.ts, null-tier-host-
 - Bias tags are not written when the promote reused an existing source (unique key; admin route behaves the same).
 - Export mode rides `--arg export-unplaced` (cli.mjs already passes `arg` and `out`); the workflow-dispatchable producer of the same file is the `enumerate-unclassified-hosts` step.
 
+### Coordinator-approved additions (after F51 red on PR 928)
+- Merged origin/master into the branch (no rebase; clean merge). Open null-tier-host flags are now also resolved for hosts resolving by rule a or b (note names the rule). Header comment of bias-tags/route.ts corrected. ProvisionalReviewCard.tsx left for a later UI lane.
+
 ### NOT done
-- `ProvisionalReviewCard.tsx` still describes the 0.65 to 0.79 band as proposed on approval, and the header comment of `bias-tags/route.ts` still says only pending rows are actionable; both are outside this lane's write set (stale wording, behaviour is correct).
+- `ProvisionalReviewCard.tsx` still describes the 0.65 to 0.79 band as proposed on approval (coordinator will fold it into a later UI lane).
 - No real verdict batch authored; no live run; no workflow edit (resolve-provisional-sources has no `--arg` in maintenance.yml, so export mode is CLI-only there).
-- Open `null-tier-host` flags for hosts resolved by rules a or b are not closed by this step (only verdict-resolved hosts are).
 - Local run limited to the touched test files; CI is the gate.
 
 ### Open items
-- Coordinator: decide whether to pass `--arg export-unplaced` from maintenance.yml.
+- None (coordinator ruled: do not pass --arg export-unplaced from the workflow).
