@@ -495,6 +495,73 @@ export async function importLinkItemEntities(specifier = ENTITIES_MODULE_SPECIFI
   }
 }
 
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * PURE (S1-A). The sources one record-briefs entry cites: distinct `claims[].source_url` values and
+ * `claims[].source_id` plus `metadata.sources_used`, where an http(s) value is a url to register and a UUID
+ * is an already-registered source id (sources_used holds source UUIDs per the metadata contract). The
+ * item's own source is excluded later, inside registerEntryCitations (this function has no DB).
+ * @param {object} entry @returns {{cited: Array<{url:string}>, citedSourceIds: string[]}}
+ */
+export function collectEntryCitations(entry) {
+  const urls = new Set();
+  const ids = new Set();
+  const take = (v) => {
+    if (typeof v !== "string") return;
+    const t = v.trim();
+    if (/^https?:\/\//i.test(t)) urls.add(t);
+    else if (UUID_SHAPE.test(t)) ids.add(t.toLowerCase());
+  };
+  for (const c of Array.isArray(entry?.claims) ? entry.claims : []) {
+    take(c?.source_url);
+    take(c?.source_id);
+  }
+  for (const s of Array.isArray(entry?.metadata?.sources_used) ? entry.metadata.sources_used : []) take(s);
+  return { cited: [...urls].map((url) => ({ url })), citedSourceIds: [...ids] };
+}
+
+let _sourceGrowthPromise = null;
+function loadSourceGrowth() {
+  if (!_sourceGrowthPromise) {
+    _sourceGrowthPromise = (async () => {
+      const { createJiti } = await import("jiti");
+      const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(FSI_ROOT, "src") } });
+      return jiti.import("../../src/lib/sources/source-growth.ts");
+    })();
+  }
+  return _sourceGrowthPromise;
+}
+
+/**
+ * DRY preview (S1-A): what registerEntryCitations WOULD decide for one planned entry. Read-only lookups
+ * only (registerEntryCitations with dry:true never writes). Never throws; a failure is returned as an
+ * outcome string so a dry run reports it. `deps.registerEntryCitations` is injectable for tests.
+ * @returns {Promise<{id:string, outcome:string, error:string|null}>}
+ */
+export async function previewEntryCitations({ itemId, entry }, { sb, deps = {} }) {
+  try {
+    const { cited, citedSourceIds } = collectEntryCitations(entry);
+    const reg = deps.registerEntryCitations ?? (await loadSourceGrowth()).registerEntryCitations;
+    const { data: it, error } = await sb.from("intelligence_items").select("source_id").eq("id", itemId).single();
+    if (error || !it?.source_id) throw new Error(`item source_id read failed${error ? `: ${error.message}` : ""}`);
+    const res = await reg(sb, it.source_id, cited, { dry: true, citedSourceIds, intelligenceItemId: itemId });
+    const kinds = { existing: 0, new_source: 0, candidate: 0 };
+    let opinions = 0;
+    for (const d of res.decisions) {
+      kinds[d.registered] += 1;
+      if (d.opinion_tier != null) opinions += 1;
+    }
+    return {
+      id: `${itemId}#register-sources`,
+      outcome: `register-sources:would (decisions=${res.decisions.length} existing=${kinds.existing} new=${kinds.new_source} candidate=${kinds.candidate} edges=${res.edges} opinions=${opinions}) (dry, nothing written)`,
+      error: null,
+    };
+  } catch (e) {
+    return { id: `${itemId}#register-sources`, outcome: "register-sources_preview_failed", error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /**
  * Run every per-item step, in order, each its own try/catch, over one plan entry that was NOT skipped.
  * Returns one result per step (`{id: "<itemId>#<step>", outcome, error}`, CONVENTION.md's own per_item
@@ -646,7 +713,10 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
 
   // 4. grow ─────────────────────────────────────────────────────────────────────────────────────────────
   try {
-    const r = await growSources(itemId);
+    // S1-A (2026-10-04): this free path has no "New Sources Identified" table, so the entry's own cited
+    // sources (claim urls/ids + metadata.sources_used) are registered and rated here; the item's own
+    // source is excluded inside registerEntryCitations. Tier opinions are recorded (host_class_table).
+    const r = await growSources(itemId, collectEntryCitations(entry));
     record("grow", r.ok ? "grown" : "grow_failed", r.ok ? null : r.detail);
   } catch (e) {
     record("grow", "grow_failed", e instanceof Error ? e.message : String(e));
@@ -765,7 +835,7 @@ export const IO_BUDGET_STOP_REASON = "io_budget";
  *   log: (msg: string) => void}} args
  * @returns {Promise<{perItem: Array, metrics: object, appliedItemIds: string[], stopped: boolean}>}
  */
-export async function runApplyLoop({ plan, execute, ioBudgetBytes, poolBytesByItemId, applyEntry, log }) {
+export async function runApplyLoop({ plan, execute, ioBudgetBytes, poolBytesByItemId, applyEntry, log, previewEntry = null }) {
   const list = Array.isArray(plan) ? plan : [];
   const bytesOf = (itemId) => {
     const v = poolBytesByItemId?.[itemId];
@@ -815,6 +885,11 @@ export async function runApplyLoop({ plan, execute, ioBudgetBytes, poolBytesByIt
       }
       perItem.push({ id: planned.itemId, outcome: "would_apply", error: null });
       log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
+      if (previewEntry) {
+        const p = await previewEntry(planned);
+        perItem.push(p);
+        log(`  ${planned.itemId}: ${p.outcome}${p.error ? ` (${p.error})` : ""}`);
+      }
     }
     return { perItem, metrics, appliedItemIds, stopped: false };
   }
@@ -1050,6 +1125,8 @@ async function main() {
         applyEntry: (planned) =>
           applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch, batchId: raw.batch ?? null }),
         log: (msg) => console.log(msg),
+        // S1-A: dry mode reports what the grow step would register and writes nothing.
+        previewEntry: sb ? (planned) => previewEntryCitations(planned, { sb }) : null,
       });
       perItem = loopResult.perItem;
       appliedItemIds = loopResult.appliedItemIds;

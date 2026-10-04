@@ -28,6 +28,8 @@ import {
   PIPELINE_POOL_REREADS,
   IO_BUDGET_STOP_REASON,
   buildRequiredSlotMaps,
+  collectEntryCitations,
+  previewEntryCitations,
 } from "./apply-record-briefs.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
 
@@ -1156,4 +1158,68 @@ test("buildRequiredSlotMaps (lane L25): groups slot rows by item_type with their
   assert.deepEqual(requiredSlotsByItemType.regulation.map((s) => s.slot_key), ["penalty_summary", "effective_date"]);
   assert.equal(requiredSlotsByItemType.regulation[1].description, "");
   assert.deepEqual(itemTypeByItemId, { "item-1": "regulation", "item-2": "standard" });
+});
+
+// ── S1-A (lane s1a-source-register, 2026-10-04): the grow step registers the entry's cited sources ───
+
+const SRC_A = "00000000-0000-4000-8000-0000000000aa";
+
+test("collectEntryCitations: distinct claim source_urls + claim source_id + sources_used (urls vs uuids split)", () => {
+  const entry = {
+    claims: [
+      { source_url: "https://eur-lex.europa.eu/a" },
+      { source_url: "https://eur-lex.europa.eu/a" },
+      { source_url: "https://www.epa.gov/b", source_id: SRC_A },
+      { source_url: null },
+    ],
+    metadata: { sources_used: [SRC_A, "https://example.org/c", "not-a-source", 7] },
+  };
+  const r = collectEntryCitations(entry);
+  assert.deepEqual(r.cited.map((c) => c.url).sort(), ["https://eur-lex.europa.eu/a", "https://example.org/c", "https://www.epa.gov/b"]);
+  assert.deepEqual(r.citedSourceIds, [SRC_A]);
+  assert.deepEqual(collectEntryCitations({}), { cited: [], citedSourceIds: [] });
+});
+
+test("applyOneEntry: the grow step receives the entry's cited sources", async () => {
+  let got = null;
+  const deps = successfulDeps({ growSources: async (id, extra) => { got = { id, extra }; return { ok: true, detail: "grown" }; } });
+  const entry = { ...baseEntry("item-1"), claims: [{ source_url: "https://www.epa.gov/b" }], metadata: { sources_used: [SRC_A] } };
+  await applyOneEntry({ itemId: "item-1", entry }, { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps });
+  assert.equal(got.id, "item-1");
+  assert.deepEqual(got.extra, { cited: [{ url: "https://www.epa.gov/b" }], citedSourceIds: [SRC_A] });
+});
+
+test("previewEntryCitations: dry call, reports decisions, never throws", async () => {
+  const calls = [];
+  const sb = { from: () => ({ select() { return this; }, eq() { return this; }, single: async () => ({ data: { source_id: "own" }, error: null }) }) };
+  const reg = async (_sb, own, cited, opts) => {
+    calls.push({ own, cited, opts });
+    return { dry: true, edges: 2, skipped_own_source: 0, decisions: [{ registered: "existing", opinion_tier: 1 }, { registered: "new_source", opinion_tier: null }] };
+  };
+  const entry = { ...baseEntry("item-1"), claims: [{ source_url: "https://www.epa.gov/b" }] };
+  const out = await previewEntryCitations({ itemId: "item-1", entry }, { sb, deps: { registerEntryCitations: reg } });
+  assert.equal(calls[0].opts.dry, true);
+  assert.equal(calls[0].own, "own");
+  assert.match(out.outcome, /^register-sources:would \(decisions=2 existing=1 new=1 candidate=0 edges=2 opinions=1\)/);
+  const bad = await previewEntryCitations({ itemId: "item-1", entry }, { sb, deps: { registerEntryCitations: async () => { throw new Error("boom"); } } });
+  assert.equal(bad.outcome, "register-sources_preview_failed");
+  assert.equal(bad.error, "boom");
+});
+
+test("runApplyLoop dry mode: previewEntry runs per non-skipped entry and applyEntry is never called", async () => {
+  let applied = 0;
+  const previewed = [];
+  const plan = [
+    { itemId: "a", entry: {}, skip: false, steps: [] },
+    { itemId: "b", entry: {}, skip: true, skipReason: "stale", steps: [] },
+  ];
+  const r = await runApplyLoop({
+    plan, execute: false, ioBudgetBytes: 0, poolBytesByItemId: {},
+    applyEntry: async () => { applied += 1; },
+    previewEntry: async (p) => { previewed.push(p.itemId); return { id: `${p.itemId}#register-sources`, outcome: "register-sources:would", error: null }; },
+    log: () => {},
+  });
+  assert.equal(applied, 0);
+  assert.deepEqual(previewed, ["a"]);
+  assert.ok(r.perItem.some((x) => x.id === "a#register-sources"));
 });
