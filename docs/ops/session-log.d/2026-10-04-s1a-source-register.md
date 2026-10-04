@@ -22,3 +22,6 @@ source-credibility-model SKILL, source-growth.ts (+ selftest, tier-opinion-dedup
 
 ## Open items
 - Repeat applies of the same batch record repeat class-table opinions (same as the maintenance tier-opinions step; the table is append-only by design).
+
+## Write-set expansion (coordinator approved)
+- Removed the `source_trust_events.created_by=reputation-cycle` entry from `KNOWN_DRIFT_ALLOWLIST` in `fsi-app/.discipline/check-vocabulary.test.mjs` (the only file holding it). The 2026-09-12 follow-up is closed by this lane: the write now uses `created_by: "worker"`. The test pins no allowlist length. `node --test fsi-app/.discipline/check-vocabulary.test.mjs` passes.
