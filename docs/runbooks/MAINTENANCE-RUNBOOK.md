@@ -1,6 +1,6 @@
 # Maintenance runtime runbook
 
-To add a maintenance step, add ONE new file under `maintenance.d/` (named `NN-<step-name>.md`, starting with its own numbered step heading) and ONE line to the step index below; do not append to this file or to another step's file.
+To add a maintenance step, add ONE new file under `maintenance.d/` (named `NN-<step-name>.md`, starting with its own numbered step heading). Lanes never edit this file: the coordinator adds the index line below at merge.
 
 The dispatch-only runtime for the coordinator-only applies `docs/plans/finish-plan-2026-09-02.md`'s
 MAINT paragraph names, one section per step below, in dispatch order, added as each was built
@@ -183,6 +183,7 @@ One line per step, in dispatch order. The step text lives in its own file.
 - [56. `capture-static-primaries`](maintenance.d/56-capture-static-primaries.md)
 - [57. Disk IO budget: apply ceiling, cooldown, restart](maintenance.d/57-disk-io-budget.md)
 - [58. `recompute-tiers`](maintenance.d/58-recompute-tiers.md)
+- [59. `lineage-gap-targets`](maintenance.d/59-lineage-gap-targets.md)
 - [Appendix: `holdings-audit`, wired via the data-audit lane, not this runtime](maintenance.d/A1-holdings-audit.md)
 - [Appendix: three more scripts/verify/ checks wired via the data-audit lane (lane F25-WAVE52, 2026-09-07)](maintenance.d/A2-verify-checks-wired-via-data-audit-lane.md)
 - [Appendix: `check-vocabulary-drift`, wired via the data-audit lane (lane w9-d5-d7, D7 part 3, 2026-09-12)](maintenance.d/A3-check-vocabulary-drift.md)
