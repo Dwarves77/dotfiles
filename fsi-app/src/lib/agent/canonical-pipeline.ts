@@ -2312,11 +2312,18 @@ export async function registerBriefSources(itemId: string): Promise<StepResult> 
 
 /** STEP grow: register the brief's surfaced sources, record citations, compound credibility
  *  (the proven growSourcesFromBrief). */
-export async function growSources(itemId: string): Promise<StepResult> {
+export async function growSources(
+  itemId: string,
+  /** S1-A: cited sources of the free brief path (no "New Sources" table); omitted = unchanged behaviour. */
+  extra?: { cited?: Array<{ url: string; name?: string }>; citedSourceIds?: string[] }
+): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("source_id, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id || !it.full_brief) return { ok: false, detail: `no source_id/full_brief${itErr ? `: ${itErr.message}` : ""}` };
-  const res = await growSourcesFromBrief(sb, it.source_id, it.full_brief);
+  const res = await growSourcesFromBrief(sb, it.source_id, it.full_brief, extra
+    ? { cited: (extra.cited ?? []).map((c) => ({ name: c.name ?? c.url, url: c.url })), citedSourceIds: extra.citedSourceIds, intelligenceItemId: itemId }
+    : undefined);
   const rep = res.reputation ? `${res.reputation.before}->${res.reputation.after}${res.reputation.changed ? "*" : ""}` : "n/a";
-  return { ok: true, detail: `registered=${res.registered.length} citations+${res.citationsRecorded} trust_citation=${res.compound.after.trust_score_citation.toFixed(2)} reputation=${rep}` };
+  const ec = res.entryCitations ? ` entry-cited=${res.entryCitations.decisions.length} edges+${res.entryCitations.edges}` : "";
+  return { ok: true, detail: `registered=${res.registered.length} citations+${res.citationsRecorded} trust_citation=${res.compound.after.trust_score_citation.toFixed(2)} reputation=${rep}${ec}` };
 }
