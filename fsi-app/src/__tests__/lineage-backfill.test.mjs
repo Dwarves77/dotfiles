@@ -13,7 +13,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { partitionLineageWrites, pairKey, LINEAGE_BACKFILL_ORIGIN } from "../lib/entities/lineage-backfill.mjs";
+import { partitionLineageWrites, pairKey, LINEAGE_BACKFILL_ORIGIN, planLineageGapTargets, parseLineageGapFlag, LINEAGE_GAP_CREATED_BY } from "../lib/entities/lineage-backfill.mjs";
+import { planLinkWrites } from "../lib/entities/entity-resolve.mjs";
 
 // Build a planLinkWrites()-shaped write list from a small set of edge intents, mirroring the real function's
 // row shape (entity-resolve.mjs's planLinkWrites) closely enough to drive the partitioner under test.
@@ -125,4 +126,76 @@ test("DETERMINISTIC ORDERING: output is sorted by source|target pair regardless 
 test("pairKey is the same join used to key the existing-edge Map (a|b, literal, order-sensitive)", () => {
   assert.equal(pairKey("A", "B"), "A|B");
   assert.notEqual(pairKey("A", "B"), pairKey("B", "A"), "directionality matters — child->parent must not collide with parent->child");
+});
+
+// ── absent-parent gap flags -> discovery targets (lane s2a-typed-edges) ─────────────────────────────────
+// The flag rows come from the REAL planLinkWrites so the parser can never drift from the writer's format.
+const CHILD_TEXT = "Commission Implementing Regulation (EU) 2026/394 laying down rules for the application of Regulation (EU) 2023/1805. " + "Background recitals follow. ".repeat(20) + "Separately, this act is amending Regulation (EU) 2015/757.";
+function gapFlagFor(itemId, corpus) {
+  const w = planLinkWrites(CHILD_TEXT, corpus, itemId).find((x) => x.table === "integrity_flags" && x.row.created_by === LINEAGE_GAP_CREATED_BY);
+  return w ? { id: `flag-${itemId}`, subject_ref: itemId, status: "open", ...w.row } : null;
+}
+const CHILD = { id: "child", title: "Implementing Regulation 2026/394", instrument_identifier: "2026/394" };
+
+test("gap planner: a parent that is NOT held becomes a discovery target (identifier, citing item, relationship)", () => {
+  const flag = gapFlagFor("child", [CHILD]);
+  assert.ok(flag, "planLinkWrites raised the absent-parent flag");
+  const { targets, resolvable, residue } = planLineageGapTargets([flag], [CHILD]);
+  assert.deepEqual(resolvable, []);
+  assert.deepEqual(residue, []);
+  assert.ok(targets.length >= 1);
+  const t = targets.find((x) => x.identifier === "2023/1805");
+  assert.deepEqual(t, { identifier: "2023/1805", relationship: "implements", citing_item_id: "child", flag_id: "flag-child" });
+});
+
+test("gap planner: a flag whose every parent is now held is RESOLVABLE, naming the held parent ids; nothing is a target", () => {
+  const flag = gapFlagFor("child", [CHILD]);
+  const parents = [
+    { id: "p1", title: "FuelEU Maritime", instrument_identifier: "2023/1805" },
+    { id: "p2", title: "EU MRV", instrument_identifier: "2015/757" },
+  ];
+  const { targets, resolvable } = planLineageGapTargets([flag], [CHILD, ...parents]);
+  assert.deepEqual(targets, []);
+  assert.equal(resolvable.length, 1);
+  assert.equal(resolvable[0].flag_id, "flag-child");
+  assert.deepEqual(resolvable[0].parents.map((p) => p.parent_item_ids).flat().sort(), ["p1", "p2"]);
+});
+
+test("gap planner: partially held flag stays open, only the still-absent parent is a target", () => {
+  const flag = gapFlagFor("child", [CHILD]);
+  const { targets, resolvable } = planLineageGapTargets([flag], [CHILD, { id: "p1", title: "FuelEU Maritime", instrument_identifier: "2023/1805" }]);
+  assert.deepEqual(resolvable, []);
+  assert.ok(targets.length >= 1 && targets.every((t) => t.identifier !== "2023/1805"));
+});
+
+test("gap planner: the citing item itself never counts as its own parent", () => {
+  const flag = { id: "f", subject_ref: "child", created_by: LINEAGE_GAP_CREATED_BY, recommended_actions: [{ action: "acquire_parent_instrument", rationale: "item implements 2026/394, which does not resolve to any item in the corpus" }] };
+  const { targets, resolvable } = planLineageGapTargets([flag], [CHILD]);
+  assert.equal(resolvable.length, 0);
+  assert.equal(targets.length, 1);
+});
+
+test("gap planner: an unparseable or subject-less flag is residue with a reason, never dropped, never a throw", () => {
+  const { residue, targets } = planLineageGapTargets([
+    { id: "a", subject_ref: "x", created_by: LINEAGE_GAP_CREATED_BY, description: "nothing useful", recommended_actions: [] },
+    { id: "b", subject_ref: null, created_by: LINEAGE_GAP_CREATED_BY, description: "x: 2023/1805 (implements)" },
+  ], []);
+  assert.deepEqual(targets, []);
+  assert.deepEqual(residue.map((r) => r.flag_id), ["a", "b"]);
+  assert.ok(residue.every((r) => r.reason));
+});
+
+test("gap planner: description fallback parses when recommended_actions is absent; other namespaces are ignored", () => {
+  assert.deepEqual(parseLineageGapFlag({ description: "Enabling/parent instrument(s) named but absent from the corpus: 2003/96 (depends_on), 2023/1805 (implements)" }),
+    [{ identifier: "2003/96", relationship: "depends_on" }, { identifier: "2023/1805", relationship: "implements" }]);
+  const { targets } = planLineageGapTargets([{ id: "z", subject_ref: "x", created_by: "intake-entity-link", description: "y: 2003/96 (depends_on)" }], []);
+  assert.deepEqual(targets, []);
+});
+
+test("gap planner: output is deterministic regardless of input order", () => {
+  const mk = (id) => ({ id, subject_ref: id, created_by: LINEAGE_GAP_CREATED_BY, recommended_actions: [{ rationale: "item amends 2001/1, which does not resolve to any item in the corpus" }] });
+  const a = planLineageGapTargets([mk("b"), mk("a")], []);
+  const b = planLineageGapTargets([mk("a"), mk("b")], []);
+  assert.deepEqual(a, b);
+  assert.deepEqual(a.targets.map((t) => t.citing_item_id), ["a", "b"]);
 });
