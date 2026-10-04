@@ -26,12 +26,6 @@ export function pairKey(source, target) {
   return `${source}|${target}`;
 }
 
-// undefined and null both mean "no basis" (planLinkWrites omits the `basis` key entirely for an untyped
-// 'related' edge — see its `...(e.basis ? { basis: e.basis } : {})` spread) — normalize before comparing.
-function basisEqual(a, b) {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-}
-
 const byPair = (a, b) => pairKey(a.source_item_id, a.target_item_id).localeCompare(pairKey(b.source_item_id, b.target_item_id));
 
 // The generic floor of the relationship vocabulary (ADR-022 clause 1): 'related'. Every other CHECK-legal
