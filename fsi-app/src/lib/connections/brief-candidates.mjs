@@ -47,6 +47,8 @@
 // carrying the edge's relationship/score AND its basis merged with the theme's dominant signals — never
 // two competing rows for the same real item.
 
+import { basisEntryKey, basisDetailText } from "./intersections.mjs";
+
 import { isBriefStale } from "./brief-staleness.mjs";
 
 /** Cap on the candidate list handed to the synthesis prompt (~10, per the U7 build-plan lane). */
@@ -80,7 +82,7 @@ const isFiniteScore = (n) => typeof n === "number" && Number.isFinite(n);
 function mergeBasis(acc, incoming) {
   for (const b of Array.isArray(incoming) ? incoming : []) {
     if (!b || !b.signal) continue;
-    if (!acc.some((x) => x.signal === b.signal && x.detail === b.detail)) acc.push(b);
+    if (!acc.some((x) => basisEntryKey(x) === basisEntryKey(b))) acc.push(b);
   }
 }
 
@@ -162,7 +164,7 @@ export function selectCandidates(itemId, { crossRefRows, theme = null, themeBrie
     relationship: pickRelationship(c.relationships),
     basis: c.basis
       .slice()
-      .sort((x, y) => (y.weight ?? 0) - (x.weight ?? 0) || String(x.signal).localeCompare(String(y.signal)) || String(x.detail ?? "").localeCompare(String(y.detail ?? ""))),
+      .sort((x, y) => (y.weight ?? 0) - (x.weight ?? 0) || String(x.signal).localeCompare(String(y.signal)) || basisDetailText(x).localeCompare(basisDetailText(y))),
     score: c.score,
     sources: [...c.sources].sort(),
   }));
@@ -218,7 +220,7 @@ export function formatCandidateBlock(selection) {
   if (!candidates.length) return "";
   const lines = candidates.map((c) => {
     const basisTxt = c.basis.length
-      ? c.basis.slice(0, 3).map((b) => (b.detail ? `${b.signal} (${b.detail})` : b.signal)).join(", ")
+      ? c.basis.slice(0, 3).map((b) => (basisDetailText(b) ? `${b.signal} (${basisDetailText(b)})` : b.signal)).join(", ")
       : "no basis recorded";
     const scoreTxt = isFiniteScore(c.score) ? ` — score ${c.score.toFixed(2)}` : "";
     return `- ${c.id} — relationship: ${c.relationship}${scoreTxt} — basis: ${basisTxt}`;

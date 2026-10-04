@@ -19,8 +19,8 @@ One run = `stamp-wo26-archive-reason.mjs` (apply only in apply mode) → `export
 `apply-mint-batch.mjs` (apply only in apply mode; the guarded write, M4 pre-check, `census_worklist`
 reconcile stamp) → `rederive-record-provenance.mjs` / `screen-reconcile-records.mjs` (post-apply
 reconciliation, apply only in apply mode) → `scripts/turns/run-population-flywheel.mjs` (MANDATORY,
-MINT-RUNBOOK.md §8/§9 — discovery, forward-event extraction, recluster, derive-obligations,
-tag-proposals + tag-ratification, and the §9 corpus-outcome metrics written back into this run's own
+MINT-RUNBOOK.md section 8/section 9, tag-proposals + tag-ratification first, then discovery, forward-event
+extraction, recluster (with intersections), derive-obligations, and the section 9 corpus-outcome metrics written back into this run's own
 `mint-run-NNN.json`, all scoped to exactly the items this batch minted; a failed flywheel step fails the
 whole job). This flywheel step is run BY THE WORKFLOW ITSELF, not a separate hand-run coordinator
 pass — see "THE FLYWHEEL" below. Before any of this, in `apply` mode (and never on a `flywheel_backlog`
@@ -34,7 +34,7 @@ cross-referencing that governing file.
 ### THE FLYWHEEL (lane TANDEM, 2026-09-04)
 
 THE DEFECT [CONFIRMED]: this workflow used to end after `apply-mint-batch.mjs` plus an unconditional
-`propose-tags.mjs --dry` preview — MINT-RUNBOOK.md §8 (discovery, forward-event extraction, recluster,
+`propose-tags.mjs --dry` preview, MINT-RUNBOOK.md section 8 (tag steps first, then discovery, forward-event extraction, recluster,
 IN ORDER) and §9 (`--outcomes` enrichment) were documented as a separate, hand-run coordinator pass that
 nothing in this runtime ever triggered. Population runs #15-#20 (2026-09-03/04, 934 items measured
 [CONFIRMED] — 177+168+156+152+141+140, mint-run-017..022) were applied with no flywheel pass and no

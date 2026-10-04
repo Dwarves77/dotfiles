@@ -43,47 +43,54 @@
 // scripts/harness-runs/ has no directory for any of the five) — they are plain guarded-write DB scripts,
 // same as when corpus-turn.yml / maintenance.yml call them directly.
 //
-// STEP ORDER (MINT-RUNBOOK.md §8, reproduced here as code, not prose to forget):
-//   1. discovery                — discover-for-items.mjs --ids <this batch's minted item ids>
-//   2. corpus-export            — build the {items:[...]} corpus file run-extraction.mjs consumes,
+// STEP ORDER (MINT-RUNBOOK.md section 8, reproduced here as code, not prose to forget). Lane S3-A (2026-10-04)
+//   moved the two tag steps to the FRONT: discovery and analyze-corpus score edges and intersections from the
+//   operational_scenario_tags / compliance_object_tags an item carries, so a tag adopted in this pass must
+//   already be on the item when they run (run after them, as before, an adopted tag stayed invisible to
+//   this pass's edges until the next pass).
+//   1. tag-proposals: --arg "ids:<this batch's minted item ids>" (the ids: selector
+//                                  tag-proposals.mjs already documents and tests)
+//   2. tag-ratification: --arg "auto" (its own auto-adoption sweep has no id-scoped variant,
+//                                  see the step's own comment below for why this is run as-is, not faked
+//                                  into a false scope)
+//   3. discovery: discover-for-items.mjs --ids <this batch's minted item ids>
+//   4. corpus-export: build the {items:[...]} corpus file run-extraction.mjs consumes,
 //                                  scoped to EXACTLY this batch's ids (export-corpus-for-extraction.mjs's
 //                                  own CLI only scopes by --since/default, not --ids, and that file is
 //                                  out of this lane's write set — so this step reuses its EXPORTED
 //                                  buildCorpusItems()/chunk() pure helpers directly over an id-scoped
 //                                  read, never re-implementing that shaping logic).
-//   3. forward-event-extraction — run-extraction.mjs --input <that corpus file> [--execute]
-//   4. forward-event-apply      — apply-extraction-output.mjs --events <run-extraction's own output>
+//   5. forward-event-extraction, run-extraction.mjs --input <that corpus file> [--execute]
+//   6. forward-event-apply: apply-extraction-output.mjs --events <run-extraction's own output>
 //                                  --execute (apply mode only — there is no events file to apply in dry
 //                                  mode, since run-extraction.mjs writes nothing without --execute)
-//   5. analyze-corpus           — recluster + gap/anticipate/signal detection, scoped the way
-//                                  corpus-turn.yml scopes it: UNSCOPED (analyze-corpus.mjs takes no
+//   7. analyze-corpus: intersections + recluster + gap/anticipate/signal detection, scoped the
+//                                  way corpus-turn.yml scopes it: UNSCOPED (analyze-corpus.mjs takes no
 //                                  --ids/--since of its own — it always reads the whole live corpus,
 //                                  the same shape corpus-turn.yml already runs it in every turn)
-//   6. derive-obligations       — also unscoped (its own wrapper takes no id/date selector either);
+//   8. derive-obligations: also unscoped (its own wrapper takes no id/date selector either);
 //                                  run every population-turn pass regardless of batch size, same posture
-//   7. tag-proposals            — --arg "ids:<this batch's minted item ids>" (the ids: selector
-//                                  tag-proposals.mjs already documents and tests)
-//   8. tag-ratification         — --arg "auto" (its own auto-adoption sweep has no id-scoped variant —
-//                                  see the step's own comment below for why this is run as-is, not faked
-//                                  into a false scope)
-//   9. compute-outcomes         — the §9 metrics (edges_discovered, forward_events_extracted,
+//   9. trigger-questions: the S1 learning-loop generator (ADR-036 decision 1), scoped to this
+//                                  batch's ids and run after every enrichment above so its questions are
+//                                  generated against the batch's FINAL state
+//  10. compute-outcomes: the section 9 metrics (edges_discovered, forward_events_extracted,
 //                                  isolated_items), computed from the live tables per
 //                                  scripts/harness-runs/PROPOSER-RUNBOOK.md §7's own SQL shape,
 //                                  reproduced here as guarded reads (this environment has no raw-SQL
 //                                  execution path — only the PostgREST query builder db.mjs already
 //                                  wraps) — recorded even when every number is zero (MINT-RUNBOOK.md §9:
 //                                  "record it every batch, even when the number is zero")
-//  10. write-outcomes           — run-mint-batch.mjs --outcomes <computed metrics> --run-id <this
+//  11. write-outcomes: run-mint-batch.mjs --outcomes <computed metrics> --run-id <this
 //                                  batch's own mint-run-NNN> (apply mode only — see that CLI mode's own
 //                                  header: it has NO dry/preview path of its own, so this script never
 //                                  invokes it in dry mode, only prints what it would write)
-//  11. record-last-turn         — writeLastTurnDate(this run's own start time) — last-turn-date.mjs's
+//  12. record-last-turn: writeLastTurnDate(this run's own start time), last-turn-date.mjs's
 //                                  OWN exported writer, the exact mechanism corpus-turn.yml uses, so a
 //                                  later corpus-turn dispatch's blank --since does not re-cover (and
 //                                  re-spend fetch/discovery effort on) items this flywheel already
 //                                  covered (apply mode only, same as corpus-turn.yml's own "apply mode
 //                                  only" marker-write rule)
-//  12. brief-export              task 3.5 (W9 brief-chain plan Part 3, "every new item is queued for a
+//  13. brief-export              task 3.5 (W9 brief-chain plan Part 3, "every new item is queued for a
 //                                  brief automatically"): export-corpus-for-extraction.mjs --ids <this
 //                                  batch's minted item ids> --with-pool-text --char-budget, writing its
 //                                  numbered parts to a GITIGNORED scratch path (R22, 2026-10-02,
@@ -101,16 +108,16 @@
 //                                  both dry and apply mode, same as every other record-only step in this
 //                                  file -- this driver still runs no git command of its own, ever.
 //
-// SCOPING HONESTY. Steps 1-4 and 7 are scoped to EXACTLY this batch's minted item ids (extracted from the
+// SCOPING HONESTY. Steps 1 and 3-6 (and 9) are scoped to EXACTLY this batch's minted item ids (extracted from the
 // mint-run artifact's own per_item, see extractMintedItemIds below) and are cleanly SKIPPED — never
 // silently no-op'd, never faked with an empty selector that would error — when a run minted zero items
 // (an all-dry population-turn dispatch, or an apply dispatch whose entire batch was M4-blocked/
-// apply_failed/validation_failed). Steps 5-6 are genuinely unscoped by the scripts they call and run
-// every dispatch regardless. Step 8 (tag-ratification --arg auto) is MECHANICALLY unscoped — its own
+// apply_failed/validation_failed). Steps 7-8 are genuinely unscoped by the scripts they call and run
+// every dispatch regardless. Step 2 (tag-ratification --arg auto) is MECHANICALLY unscoped, its own
 // "auto" mode sweeps every OPEN flywheel-tag: flag system-wide, not only this batch's — but this driver
 // still SKIPS it when this batch minted zero items, rather than running a batch-independent global sweep
 // under a step whose whole purpose is "connect what this batch just minted"; see buildFlywheelPlan's own
-// comment on step 8 for why mixing tag-ratification's ratify-marker id-path with its auto-adoption
+// comment on step 2 for why mixing tag-ratification's ratify-marker id-path with its auto-adoption
 // evaluation would be WRONG, not merely inconvenient.
 //
 // EVERY STEP IS DRY-ABLE. --mode dry runs each step's own dry/preview path (discover-for-items.mjs
@@ -236,7 +243,7 @@ import { fileURLToPath } from "node:url";
 import { readRunHistory, writeRunArtifact } from "../lib/run-artifact.mjs";
 import { buildCorpusItems, chunk } from "./export-corpus-for-extraction.mjs";
 import { writeLastTurnDate } from "./last-turn-date.mjs";
-// R22 (2026-10-02, coordinator-directed): step 12's queue landing, DB-shaped per PR #824 / rule 17 (no
+// R22 (2026-10-02, coordinator-directed): step 13's queue landing, DB-shaped per PR #824 / rule 17 (no
 // artifact branches; harness_runs is the durable record). See queue.mjs's own header for the full story.
 import { FAMILY as BRIEF_EXPORT_FAMILY, readExportedParts, buildQueueArtifact } from "./brief-export/queue.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
@@ -751,6 +758,34 @@ export function buildFlywheelPlan(mode, batchIds) {
   const noItemsReason = "0 minted item(s) this run — nothing to connect (see this script's own header on why a dry-mode mint-run artifact always lands here empty).";
 
   return [
+    // TAG ORDER (lane S3-A, 2026-10-04): the two tag steps run FIRST. discovery and analyze-corpus score
+    // edges and intersections from operational_scenario_tags / compliance_object_tags, so a tag adopted in
+    // this pass must already be on the item when they run; run after them (the earlier order) a tag adopted
+    // here stayed invisible to this pass's edges until the next one.
+    {
+      // tag-proposals.mjs's own "ids:<uuid,uuid,...>" selector, exactly this batch, nothing wider.
+      name: "tag-proposals",
+      scoped: true,
+      skip: !hasItems,
+      skipReason: hasItems ? null : noItemsReason,
+      willWrite: apply && hasItems,
+    },
+    {
+      // tag-ratification.mjs's "auto" arg has NO id-scoped variant, its own evaluateAutoAdoption/
+      // autoAdoptTags path sweeps every OPEN flywheel-tag: flag system-wide by confidence, not by an
+      // operator-curated id list (that is the OTHER, ratify-marker arg path, which needs a
+      // pre-resolved/RESOLVED flag id list this driver has no way to derive without duplicating
+      // apply-tags.mjs's own confidence evaluation into a second, DIFFERENT write path, the id path
+      // expects a resolved+ratify:tags flag, the auto path an open+confidence-eligible one; mixing them
+      // would silently apply the wrong criterion, not merely widen scope). Run as documented, own scope
+      // and all, but still SKIPPED when this batch minted zero items, so a step whose whole reason for
+      // being on this batch's chain does not fire a global sweep under an empty batch's name.
+      name: "tag-ratification",
+      scoped: true,
+      skip: !hasItems,
+      skipReason: hasItems ? null : noItemsReason,
+      willWrite: apply && hasItems,
+    },
     {
       name: "discovery",
       scoped: true,
@@ -803,30 +838,6 @@ export function buildFlywheelPlan(mode, batchIds) {
       willWrite: apply,
     },
     {
-      // tag-proposals.mjs's own "ids:<uuid,uuid,...>" selector — exactly this batch, nothing wider.
-      name: "tag-proposals",
-      scoped: true,
-      skip: !hasItems,
-      skipReason: hasItems ? null : noItemsReason,
-      willWrite: apply && hasItems,
-    },
-    {
-      // tag-ratification.mjs's "auto" arg has NO id-scoped variant — its own evaluateAutoAdoption/
-      // autoAdoptTags path sweeps every OPEN flywheel-tag: flag system-wide by confidence, not by an
-      // operator-curated id list (that is the OTHER, ratify-marker arg path, which needs a
-      // pre-resolved/RESOLVED flag id list this driver has no way to derive without duplicating
-      // apply-tags.mjs's own confidence evaluation into a second, DIFFERENT write path — the id path
-      // expects a resolved+ratify:tags flag, the auto path an open+confidence-eligible one; mixing them
-      // would silently apply the wrong criterion, not merely widen scope). Run as documented, own scope
-      // and all — but still SKIPPED when this batch minted zero items, so a step whose whole reason for
-      // being on this batch's chain does not fire a global sweep under an empty batch's name.
-      name: "tag-ratification",
-      scoped: true,
-      skip: !hasItems,
-      skipReason: hasItems ? null : noItemsReason,
-      willWrite: apply && hasItems,
-    },
-    {
       // S1 (learning-loop-design-2026-09-25.md section 6, ADR-036 decision 1): pure, $0 template
       // expansion over (event_type x surface x the 4 product questions) for this batch's own items,
       // scoped the same way tag-proposals/tag-ratification are, run AFTER discovery/forward-events/
@@ -869,7 +880,7 @@ export function buildFlywheelPlan(mode, batchIds) {
       willWrite: apply,
     },
     {
-      // Task 3.5, step 12 (module header). A local file write only (export-corpus-for-extraction.mjs is
+      // Task 3.5, step 13 (module header). A local file write only (export-corpus-for-extraction.mjs is
       // read-only by construction, see that script's own header): runs in EITHER mode whenever this
       // batch minted anything, the same "local file only, both dry and apply" posture corpus-export
       // already has above (skip only gates on batch size, never on mode).
@@ -1474,7 +1485,7 @@ async function stepRecordLastTurn(ctx) {
   return { since: ctx.startedAt };
 }
 
-// R22 (2026-10-02, coordinator-directed): step 12 now lands its own `brief-export` family harness_runs
+// R22 (2026-10-02, coordinator-directed): step 13 now lands its own `brief-export` family harness_runs
 // row in the SAME step that runs the export, instead of leaving a tracked file for a later commit step
 // to push. readExportedParts/buildQueueArtifact (queue.mjs) build the row; writeRunArtifact (same helper
 // every sibling family step already uses) writes it LOCALLY under BRIEF_EXPORT_FAMILY_DIR, where
@@ -1544,7 +1555,21 @@ const STEP_HANDLERS = Object.freeze({
 // never re-implemented a second time for this caller. buildFlywheelPlan's own skip/skipReason decisions
 // (tag-proposals and tag-ratification skip when `batchIds` is empty; analyze-corpus and derive-obligations
 // never skip) are honored here too, so this entry point and the mint-run path can never disagree about
-// which of the four actually runs for a given batch.
+// which of the four actually runs for a given batch. ORDER (lane S3-A, 2026-10-04): the four run in
+// buildFlywheelPlan's own order, derived from it (unscopedStepOrder below), never a second hand-typed list,
+// so the tag steps run before analyze-corpus here exactly as they do on the mint-run path.
+const UNSCOPED_STEP_NAMES = ["tag-proposals", "tag-ratification", "analyze-corpus", "derive-obligations"];
+
+/**
+ * The names runUnscopedFlywheelSteps runs, in buildFlywheelPlan's order. PURE.
+ * @param {"dry"|"apply"} mode
+ * @param {string[]} batchIds
+ * @returns {string[]}
+ */
+export function unscopedStepOrder(mode, batchIds) {
+  return buildFlywheelPlan(mode, batchIds).map((s) => s.name).filter((n) => UNSCOPED_STEP_NAMES.includes(n));
+}
+
 /**
  * @param {"dry"|"apply"} mode
  * @param {string[]} batchIds
@@ -1563,7 +1588,7 @@ export async function runUnscopedFlywheelSteps(mode, batchIds, db) {
     "tag-ratification": stepTagRatification,
   };
   const results = {};
-  for (const name of ["analyze-corpus", "derive-obligations", "tag-proposals", "tag-ratification"]) {
+  for (const name of unscopedStepOrder(mode, ids)) {
     const step = byName.get(name);
     if (step?.skip) {
       results[toCamel(name)] = { skipped: true, reason: step.skipReason };

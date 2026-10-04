@@ -149,3 +149,171 @@ test("snapshot: no refreshes occurred -> no file is written even when opted in",
   assert.equal(r.snapshot, null);
   assert.ok(!existsSync(dir), "snapDir is never created when there is nothing to snapshot");
 });
+
+// ── lane S3-A: intersection basis entries on the pair's existing edge ──────────────────────────────
+import { planIntersectionEdges, writeIntersectionEdges } from "./write-edges.mjs";
+import { detectIntersections, buildIntersectionEntry } from "./intersections.mjs";
+
+const xitem = (id, extra = {}) => ({
+  id, item_type: "regulation", domain: 1, priority: "MODERATE",
+  operational_scenario_tags: ["s1"], compliance_object_tags: ["customs-broker"], related_items: [], ...extra,
+});
+const row = (id, s, t, extra = {}) => ({
+  id, source_item_id: s, target_item_id: t, relationship: "related", origin: "provenance_discovery",
+  basis: [{ signal: "shared_source", detail: "grounded in the same source", weight: 0.4 }], score: 0.4, ...extra,
+});
+const xpairs = (...items) => detectIntersections(items);
+
+// Fake client with select pages, upsert capture and delete().in() capture.
+function xClient(existing, cap) {
+  return {
+    from() {
+      return {
+        select() { return this; },
+        order() { return this; },
+        range(from) { return Promise.resolve({ data: from === 0 ? existing : [], error: null }); },
+        upsert(batch, opts) { cap.upserts.push({ batch, opts }); return Promise.resolve({ error: null }); },
+        delete() { return { in(col, ids) { cap.deletes.push({ col, ids }); return Promise.resolve({ error: null }); } }; },
+      };
+    },
+  };
+}
+
+test("intersection: the pair edge gains the intersection entry and KEEPS its other basis, score, origin", async () => {
+  const pairs = xpairs(xitem("a"), xitem("b", { item_type: "market_signal", domain: 4 }));
+  const existing = [row("r1", "a", "b"), row("r2", "b", "a")];
+  const cap = { upserts: [], deletes: [] };
+  const r = await writeIntersectionEdges(xClient(existing, cap), pairs);
+  assert.equal(r.updated, 2);
+  assert.equal(r.inserted, 0);
+  const rows = cap.upserts.flatMap((u) => u.batch);
+  assert.equal(rows.length, 2);
+  for (const w of rows) {
+    assert.equal(w.origin, "provenance_discovery");
+    assert.equal(w.score, 0.4, "existing score untouched (ADR-022: additive)");
+    assert.equal(w.relationship, "related");
+    assert.deepEqual(w.basis[0], existing[0].basis[0], "prior basis entry kept first");
+    const ix = w.basis.find((b) => b.signal === "intersection");
+    assert.deepEqual(ix.detail, { scenarios: ["s1"], objects: ["customs-broker"], strength: 5, tier: "weak" });
+  }
+});
+
+test("intersection: a pair with no row gets both directed rows, related/provenance_discovery, score from strength", async () => {
+  const pairs = xpairs(xitem("a"), xitem("b"));
+  const cap = { upserts: [], deletes: [] };
+  const r = await writeIntersectionEdges(xClient([], cap), pairs);
+  assert.equal(r.inserted, 2);
+  const rows = cap.upserts.flatMap((u) => u.batch);
+  assert.deepEqual(rows.map((w) => `${w.source_item_id}>${w.target_item_id}`).sort(), ["a>b", "b>a"]);
+  for (const w of rows) {
+    assert.equal(w.relationship, "related");
+    assert.equal(w.origin, "provenance_discovery");
+    assert.equal(w.score, 0.3); // strength 5 -> floor
+    assert.equal(w.basis.length, 1);
+    assert.equal(w.basis[0].signal, "intersection");
+  }
+});
+
+test("intersection: a manual-origin row is never changed", async () => {
+  const pairs = xpairs(xitem("a"), xitem("b"));
+  const existing = [row("r1", "a", "b", { origin: "manual", basis: null, score: null })];
+  const cap = { upserts: [], deletes: [] };
+  const r = await writeIntersectionEdges(xClient(existing, cap), pairs);
+  assert.equal(r.skippedManual, 1);
+  const rows = cap.upserts.flatMap((u) => u.batch);
+  assert.ok(!rows.some((w) => w.source_item_id === "a" && w.target_item_id === "b"), "manual row not in any write");
+});
+
+test("intersection: an entity_extraction row keeps origin, relationship and score; only basis gains the entry", async () => {
+  const pairs = xpairs(xitem("a"), xitem("b"));
+  const existing = [row("r1", "a", "b", { origin: "entity_extraction", relationship: "amends", basis: null, score: null })];
+  const cap = { upserts: [], deletes: [] };
+  await writeIntersectionEdges(xClient(existing, cap), pairs);
+  const w = cap.upserts.flatMap((u) => u.batch).find((x) => x.source_item_id === "a");
+  assert.equal(w.origin, "entity_extraction");
+  assert.equal(w.relationship, "amends");
+  assert.equal(w.score, null);
+  assert.deepEqual(w.basis.map((b) => b.signal), ["intersection"]);
+});
+
+test("intersection: a pair that stops intersecting loses ONLY the intersection entry", async () => {
+  const stale = buildIntersectionEntry(xpairs(xitem("a"), xitem("b"))[0]);
+  const keep = { signal: "shared_source", detail: "grounded in the same source", weight: 0.4 };
+  const existing = [row("r1", "a", "b", { basis: [keep, stale] }), row("r2", "b", "a", { basis: [keep, stale] })];
+  const cap = { upserts: [], deletes: [] };
+  const pairs = xpairs(xitem("a"), xitem("b", { operational_scenario_tags: ["other"] }));
+  assert.deepEqual(pairs, []);
+  const r = await writeIntersectionEdges(xClient(existing, cap), pairs);
+  assert.equal(r.removed, 2);
+  const rows = cap.upserts.flatMap((u) => u.batch);
+  for (const w of rows) {
+    assert.deepEqual(w.basis, [keep]);
+    assert.equal(w.score, 0.4);
+    assert.equal(w.origin, "provenance_discovery");
+  }
+  assert.equal(cap.deletes.length, 0);
+});
+
+test("intersection: a manual row carrying a stale intersection entry is left alone on removal too", async () => {
+  const stale = buildIntersectionEntry(xpairs(xitem("a"), xitem("b"))[0]);
+  const existing = [row("r1", "a", "b", { origin: "manual", basis: [stale], score: null })];
+  const cap = { upserts: [], deletes: [] };
+  const r = await writeIntersectionEdges(xClient(existing, cap), []);
+  assert.equal(r.removed, 0);
+  assert.equal(cap.upserts.length, 0);
+});
+
+test("intersection: an intersection-only discovery row that stops holding is deleted (no ungrounded edge), snapshotted", async () => {
+  const stale = buildIntersectionEntry(xpairs(xitem("a"), xitem("b"))[0]);
+  const existing = [row("r1", "a", "b", { basis: [stale], score: 0.3 })];
+  const cap = { upserts: [], deletes: [] };
+  const dir = join(tmpdir(), `ix-snap-${randomUUID()}`);
+  const r = await writeIntersectionEdges(xClient(existing, cap), [], { snapshot: { dir, cite: { skill: "x", reason: "y" }, stampIso: "2026-10-04T00:00:00.000Z" } });
+  assert.equal(r.deleted, 1);
+  assert.deepEqual(cap.deletes, [{ col: "id", ids: ["r1"] }]);
+  assert.ok(r.snapshot && existsSync(r.snapshot));
+  assert.equal(JSON.parse(readFileSync(r.snapshot, "utf8").trim()).prior.id, "r1");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("intersection: an unchanged entry is not rewritten (idempotent re-run)", async () => {
+  const pairs = xpairs(xitem("a"), xitem("b"));
+  const entry = buildIntersectionEntry(pairs[0]);
+  const existing = [row("r1", "a", "b", { basis: [entry] }), row("r2", "b", "a", { basis: [entry] })];
+  const cap = { upserts: [], deletes: [] };
+  const r = await writeIntersectionEdges(xClient(existing, cap), pairs);
+  assert.equal(r.unchanged, 2);
+  assert.equal(r.written, 0);
+  assert.equal(cap.upserts.length, 0);
+});
+
+test("intersection: dry mode writes nothing and needs no client, but reports the plan and a projection", async () => {
+  const pairs = xpairs(xitem("a"), xitem("b"));
+  const existing = [row("r1", "a", "b")];
+  const r = await writeIntersectionEdges(null, pairs, { dry: true, existing });
+  assert.equal(r.written, 0);
+  assert.equal(r.inserted, 1);
+  assert.equal(r.updated, 1);
+  assert.equal(r.projected.length, 2);
+  assert.ok(r.projected.every((x) => x.basis.some((b) => b.signal === "intersection")));
+  assert.equal(existing[0].basis.length, 1, "input rows are not mutated");
+});
+
+test("intersection: planIntersectionEdges is pure and counts every disposition", () => {
+  const pairs = xpairs(xitem("a"), xitem("b"));
+  const plan = planIntersectionEdges([row("r1", "a", "b", { origin: "manual" })], pairs);
+  assert.equal(plan.skippedManual, 1);
+  assert.equal(plan.inserts.length, 1);
+  assert.equal(plan.inserts[0].source_item_id, "b");
+});
+
+test("discovery refresh of an own-origin row CARRIES its intersection entry instead of erasing it", async () => {
+  const entry = buildIntersectionEntry(xpairs(xitem("a"), xitem("b"))[0]);
+  const existing = [{ source_item_id: "E", target_item_id: "F", origin: "provenance_discovery", basis: [{ signal: "shared_source" }, entry], score: 0.4 }];
+  const captured = [];
+  await writeDiscoveredEdges(fakeClient(existing, captured), [edge("E", "F", 0.9)]);
+  const w = captured.flatMap((c) => c.batch)[0];
+  assert.equal(w.score, 0.9);
+  assert.ok(w.basis.some((b) => b.signal === "intersection"), "intersection entry survives the discovery refresh");
+  assert.ok(w.basis.some((b) => b.signal === "shared_source"));
+});

@@ -133,3 +133,20 @@ test("empty and degenerate inputs never throw, never invent themes", () => {
   // malformed edge objects are ignored
   assert.doesNotThrow(() => clusterGraph([node("k1")], [null, {}, { source: 1, target: 2 }]));
 });
+
+// ── lane S3-A: an object-valued basis detail (the intersection entry) dedupes by canonical serialisation ──
+test("intersection basis entry from both directed rows is counted ONCE per pair in dominantSignals", () => {
+  const entry = () => ({ signal: "intersection", detail: { tier: "weak", strength: 7, scenarios: ["s"], objects: ["o"] }, weight: 0.5 });
+  // same detail, different key order and different object identity on the reverse row
+  const rev = () => ({ signal: "intersection", detail: { objects: ["o"], scenarios: ["s"], strength: 7, tier: "weak" }, weight: 0.5 });
+  const out = clusterGraph(
+    [node("a"), node("b")],
+    [
+      { source: "a", target: "b", score: 0.5, basis: [entry()] },
+      { source: "b", target: "a", score: 0.5, basis: [rev()] },
+      { source: "b", target: "a", score: 0.5, basis: [entry()] },
+    ],
+  );
+  const sig = out.themes[0].dominantSignals.find((s) => s.signal === "intersection");
+  assert.equal(sig.weight, 0.5, "one pair, one entry, weight counted once");
+});

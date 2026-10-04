@@ -5,8 +5,8 @@
 // (task 3.2's schema.mjs) into a fully connected item: the injected-synthesis seam (task 3.3), THEN
 // section/ground/grow (the same three pipeline steps a model-driven brief runs), THEN the exact same
 // per-item flywheel participation apply-staged-update.ts's own substantive path runs, THEN the batch-level
-// unscoped population-flywheel steps (analyze-corpus / derive-obligations / tag-proposals /
-// tag-ratification). Nothing here is a new judgment: every step is an EXISTING pipeline entry point,
+// unscoped population-flywheel steps, run in buildFlywheelPlan's order (tag-proposals / tag-ratification
+// first, then analyze-corpus / derive-obligations; see unscopedStepOrder in run-population-flywheel.mjs). Nothing here is a new judgment: every step is an EXISTING pipeline entry point,
 // called in the documented order, each wrapped in its own try/catch so a quarantine or a step failure is
 // REPORTED (per_item + defects_found in the run artifact), never hidden and never allowed to mask a
 // different step's own outcome (the same independent-step posture mint-item.ts / apply-staged-update.ts
@@ -58,7 +58,7 @@
 //
 // THEN, FOR THE WHOLE BATCH (not per item): the four steps buildFlywheelPlan
 // (scripts/turns/run-population-flywheel.mjs) calls "the unscoped steps" in this task's own brief - 
-// analyze-corpus, derive-obligations, tag-proposals, tag-ratification - via that module's own
+// tag-proposals, tag-ratification, analyze-corpus, derive-obligations (the plan's own order) - via that module's own
 // runUnscopedFlywheelSteps(mode, batchIds, db) entry point (added by this task: buildFlywheelPlan itself
 // already took a bare `batchIds` array rather than a mint-run artifact, so the missing piece was an ids-
 // only EXECUTOR - runFlywheelForOneArtifact is mint-run-shaped and does not fit a brief-apply batch, which
@@ -1200,8 +1200,8 @@ async function main() {
         ...loopResult.metrics,
       };
 
-      // Batch-level unscoped flywheel steps (analyze-corpus / derive-obligations / tag-proposals /
-      // tag-ratification), scoped to exactly the items this run actually applied - never in dry mode (there
+      // Batch-level unscoped flywheel steps (tag-proposals / tag-ratification, then analyze-corpus /
+      // derive-obligations, in the plan's own order), scoped to exactly the items this run actually applied - never in dry mode (there
       // is nothing new to connect; the same "nothing was minted, nothing to connect" posture
       // run-population-flywheel.mjs's own buildFlywheelPlan already documents for its own dry path).
       if (parsed.execute) {

@@ -17,6 +17,7 @@ import {
   isUuidShaped,
   disambiguateByArtifactTime,
   buildFlywheelPlan,
+  unscopedStepOrder,
   computeCorpusOutcomes,
   checkPriorSliceConnected,
   checkAllSlicesConnected,
@@ -377,14 +378,14 @@ test("resolveMintedItemIds: zero resolution (no items match) — reported unreso
 // ── buildFlywheelPlan: step ordering ─────────────────────────────────────────────────────────────────
 
 const STEP_ORDER = [
+  "tag-proposals",
+  "tag-ratification",
   "discovery",
   "corpus-export",
   "forward-event-extraction",
   "forward-event-apply",
   "analyze-corpus",
   "derive-obligations",
-  "tag-proposals",
-  "tag-ratification",
   "trigger-questions",
   "compute-outcomes",
   "write-outcomes",
@@ -400,6 +401,18 @@ test("buildFlywheelPlan: step order is fixed and MINT-RUNBOOK §8-shaped, in app
 test("buildFlywheelPlan: step order is identical in dry mode (same steps, different skip/write)", () => {
   const plan = buildFlywheelPlan("dry", ["item-1"]);
   assert.deepEqual(plan.map((s) => s.name), STEP_ORDER);
+});
+
+test("buildFlywheelPlan: tags are adopted BEFORE discovery and analyze-corpus (lane S3-A), so this pass edges see them", () => {
+  const names = buildFlywheelPlan("apply", ["item-1"]).map((s) => s.name);
+  const at = (n) => names.indexOf(n);
+  assert.ok(at("tag-proposals") < at("tag-ratification"));
+  assert.ok(at("tag-ratification") < at("discovery"));
+  assert.ok(at("tag-ratification") < at("analyze-corpus"));
+});
+
+test("unscopedStepOrder: the brief-apply entry point derives its order from the plan, tags first", () => {
+  assert.deepEqual(unscopedStepOrder("apply", ["x"]), ["tag-proposals", "tag-ratification", "analyze-corpus", "derive-obligations"]);
 });
 
 // ── buildFlywheelPlan: dry vs apply, with items ─────────────────────────────────────────────────────

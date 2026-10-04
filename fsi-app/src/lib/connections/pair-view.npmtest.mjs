@@ -74,3 +74,38 @@ test("a pair with neither score nor curation is not emitted (nothing grounds it)
   const { pairs } = assemblePairs(rows, items("a", "b"), {});
   assert.equal(pairs.length, 0);
 });
+
+// ── lane S3-A: the intersection basis entry is exposed, not rendered as a basis chip ───────────────
+import { buildIntersectionEntry, detectIntersections } from "./intersections.mjs";
+
+const ixItem = (id, extra = {}) => ({
+  id, item_type: "regulation", domain: 1, priority: "MODERATE",
+  operational_scenario_tags: ["s1"], compliance_object_tags: ["customs-broker"], related_items: [], ...extra,
+});
+const ixEntry = buildIntersectionEntry(detectIntersections([ixItem("a"), ixItem("b", { item_type: "market_signal", domain: 4 })])[0]);
+const ixRow = (s, t) => ({ source_item_id: s, target_item_id: t, origin: "provenance_discovery", score: 0.3, basis: [JSON.parse(JSON.stringify(ixEntry))] });
+
+test("intersection entry from both directed rows collapses to ONE exposed intersection, kept out of basis", () => {
+  const pairs = collapsePairs([ixRow("a", "b"), ixRow("b", "a")]);
+  const p = pairs.get("a|b");
+  assert.deepEqual(p.basis, [], "no object-valued detail ever reaches a basis chip renderer");
+  assert.deepEqual(p.intersection, { scenarios: ["s1"], objects: ["customs-broker"], strength: 5, tier: "weak" });
+});
+
+test("assemblePairs: a pair with an intersection exposes scenarios, objects, strength, tier, cross_surface", () => {
+  const itemsMap = new Map([
+    ["a", { id: "a", title: "A", item_type: "regulation", domain: 1 }],
+    ["b", { id: "b", title: "B", item_type: "market_signal", domain: 4 }],
+  ]);
+  const { pairs } = assemblePairs([ixRow("a", "b"), ixRow("b", "a")], itemsMap, {});
+  assert.equal(pairs.length, 1);
+  assert.deepEqual(pairs[0].intersection, { scenarios: ["s1"], objects: ["customs-broker"], strength: 5, tier: "weak", cross_surface: true });
+});
+
+test("assemblePairs: a pair without an intersection carries null; missing item_type gives cross_surface null", () => {
+  const plain = { source_item_id: "a", target_item_id: "b", origin: "provenance_discovery", score: 0.6, basis: [{ signal: "shared_source", detail: "x", weight: 0.4 }] };
+  const { pairs } = assemblePairs([plain], items("a", "b"), {});
+  assert.equal(pairs[0].intersection, null);
+  const noType = assemblePairs([ixRow("a", "b")], items("a", "b"), {}).pairs[0];
+  assert.equal(noType.intersection.cross_surface, null);
+});

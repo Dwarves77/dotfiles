@@ -88,7 +88,7 @@ const PER_TAG_CAP = 3; // cap repeated-tag contributions so one noisy tag can't 
 // item is tagged freight-forwarder/shipper/carrier-*. Overlap on these is noise, so they are EXCLUDED from
 // the compliance-object signal (confirmed against the live corpus: compliance_object_tags are dominated by
 // these). A genuine non-role compliance object still counts.
-const ROLE_TAGS = new Set([
+export const ROLE_TAGS = new Set([
   "freight-forwarder", "shipper", "importer", "exporter", "manufacturer-producer", "consignee", "consignor",
   "carrier-road", "carrier-ocean", "carrier-air", "carrier-rail", "carrier-inland-waterway",
   "vessel-operator", "road-fleet-operator", "carrier",

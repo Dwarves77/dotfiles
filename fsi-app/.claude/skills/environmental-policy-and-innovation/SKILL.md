@@ -583,8 +583,10 @@ The agent's job in the brief contract is to populate the four fields with ground
 Two items A and B intersect when:
 
 1. They share at least one `operational_scenario_tag`, AND
-2. They share at least one `compliance_object_tag`, AND
+2. They share at least one NON-ROLE `compliance_object_tag` (role tags such as `freight-forwarder`, `shipper` and `carrier-*` are near-universal identity, not grouping, and never count toward this side or its strength, per ADR-021), AND
 3. Both items are not archived
+
+The result is stored on the pair's edge in the persisted connection graph (`item_cross_references`) as an `intersection` basis entry carrying the shared scenarios, shared objects, strength and tier, computed by `src/lib/connections/intersections.mjs` in the analyze-corpus pass and read back through `src/lib/connections/pair-view.mjs`; it is not recomputed at read time.
 
 Sharing only a topic_tag does not constitute an intersection. The platform deliberately requires both axes — operational scenario AND compliance object — because real intersections involve the same physical operation imposing duties on the same supply-chain entity. A regulation about ocean fueling and a regulation about supplier ESG reporting both touch "freight-forwarder" but if their operational scenarios don't overlap, they aren't structurally coupled.
 
