@@ -9,6 +9,8 @@ import {
   parseMaintenanceSteps,
   isDispatchable,
   hasRunEvidence,
+  assembleRunbookCorpus,
+  runbookHasRecord,
   checkNeverRun,
   findNextRows,
   hasOwningTrain,
@@ -26,6 +28,34 @@ import {
   runWriterReaderLive,
   runLaneContractLive,
 } from './closure-gate.mjs';
+
+// ── runbook corpus (RB-SPLIT, 2026-10-04): index plus one file per step ─────────────────────────────
+
+const STEP_FILES = [
+  { name: '08-provenance-heal.md', text: '## 8. `provenance-heal`\n\nDispatched, run #41 landed.\n\n' },
+  { name: '04a-source-type-backfill.md', text: '## 4a. `source-type-backfill`\n\nNever dispatched yet.\n\n' },
+  { name: '04-origin-class-backfill.md', text: '## 4. `origin-class-backfill`\n\nDispatched, landed live.\n\n' },
+  { name: 'A1-holdings-audit.md', text: '## Appendix: `holdings-audit`\n\nrun 123456789\n' },
+];
+
+test('assembleRunbookCorpus: index first, then step files in filename order (04 before 04a before 08 before A1)', () => {
+  const corpus = assembleRunbookCorpus('# Index\n', STEP_FILES);
+  const at = (needle) => corpus.indexOf(needle);
+  assert.ok(at('# Index') < at('`origin-class-backfill`'));
+  assert.ok(at('`origin-class-backfill`') < at('`source-type-backfill`'));
+  assert.ok(at('`source-type-backfill`') < at('`provenance-heal`'));
+  assert.ok(at('`provenance-heal`') < at('`holdings-audit`'));
+});
+
+test("runbookHasRecord over the assembled corpus: evidence is read from the step's OWN file only", () => {
+  const corpus = assembleRunbookCorpus('# Index\n\n- [8. `provenance-heal`](maintenance.d/08-provenance-heal.md)\n', STEP_FILES);
+  assert.equal(runbookHasRecord(corpus, 'provenance-heal'), true);
+  assert.equal(runbookHasRecord(corpus, 'origin-class-backfill'), true);
+  // a neighbour's run number must not count for a step whose own file has none
+  assert.equal(runbookHasRecord(corpus, 'source-type-backfill'), false);
+  // an index list line is not a section heading, so it never stands in for a step's section
+  assert.equal(runbookHasRecord(assembleRunbookCorpus('- [8. `provenance-heal`](x.md) run #5\n', []), 'provenance-heal'), false);
+});
 
 // ── shared parsers ──────────────────────────────────────────────────────────────────────────────────
 
