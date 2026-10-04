@@ -62,12 +62,46 @@ export const FIXTURE_OPENALEX_CANDIDATES = Object.freeze([
   },
 ]);
 
+// Publisher-host fixtures (lane S1-D, 2026-10-04, rule 18): one work per placement outcome, each with a
+// landing page on the publisher's own host (never a DOI resolver, which is an aggregator and never places).
+//   - eprints.soton.ac.uk -> ACADEMIC_TLD (.ac.uk), a BUILT-IN rule -> class academic -> tier 4
+//   - unplaced-example.test -> no built-in rule; placed ONLY by the fixture host verdict batch
+//     (scripts/maintenance/host-verdicts/host-verdicts-000.fixture.json, class association -> tier 4)
+//   - unlisted-journal.example -> no built-in rule and no verdict: unplaced, so residue, never a rejection
+export const FIXTURE_OPENALEX_PUBLISHER_CANDIDATES = Object.freeze([
+  {
+    id: "https://openalex.org/W4401234570",
+    title: "Port-hinterland rail modal shift: a corridor study (built-in placed publisher)",
+    doi: null,
+    publication_date: "2026-09-10",
+    primary_location: { landing_page_url: "https://eprints.soton.ac.uk/example-rail-modal-shift" },
+    is_retracted: false,
+  },
+  {
+    id: "https://openalex.org/W4401234571",
+    title: "Shipper-side scope 3 reporting practice survey (verdict-placed publisher)",
+    doi: null,
+    publication_date: "2026-09-12",
+    primary_location: { landing_page_url: "https://unplaced-example.test/papers/scope3-survey" },
+    is_retracted: false,
+  },
+  {
+    id: "https://openalex.org/W4401234572",
+    title: "Drayage electrification cost review (unplaced publisher)",
+    doi: null,
+    publication_date: "2026-09-14",
+    primary_location: { landing_page_url: "https://unlisted-journal.example/articles/42" },
+    is_retracted: false,
+  },
+]);
+
 // The exact JSON body shape openAlexGet's `res.json()` returns for a `/works` search -- `{ results, meta }`,
 // never the bare array -- so `deps.fetch` stubs in tests and the default CLI run exercise the SAME
 // response envelope a live OpenAlex call would hand back, never a convenient shortcut.
+const ALL_OPENALEX_FIXTURE_WORKS = [...FIXTURE_OPENALEX_CANDIDATES, ...FIXTURE_OPENALEX_PUBLISHER_CANDIDATES];
 export const FIXTURE_OPENALEX_WORKS_RESPONSE = Object.freeze({
-  meta: { count: FIXTURE_OPENALEX_CANDIDATES.length, page: 1, per_page: 10 },
-  results: FIXTURE_OPENALEX_CANDIDATES,
+  meta: { count: ALL_OPENALEX_FIXTURE_WORKS.length, page: 1, per_page: 10 },
+  results: ALL_OPENALEX_FIXTURE_WORKS,
 });
 
 export const FIXTURE_NOW = new Date("2026-10-02T12:00:00Z");

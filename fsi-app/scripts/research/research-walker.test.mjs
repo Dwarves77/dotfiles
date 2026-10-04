@@ -15,10 +15,14 @@ import {
   buildFixtureSbClient,
   decideApply,
   resolveGreyLitSource,
+  resolveOpenAlexPublisher,
 } from "./research-walker.mjs";
+import { loadHostVerdicts, HOST_VERDICTS_DIR } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
+import { join } from "node:path";
 import {
   FIXTURE_GREY_LIT_SOURCES,
   FIXTURE_OPENALEX_CANDIDATES,
+  FIXTURE_OPENALEX_PUBLISHER_CANDIDATES,
   FIXTURE_OPENALEX_WORKS_RESPONSE,
 } from "./fixtures/research-walker-fixtures.mjs";
 
@@ -58,7 +62,7 @@ test("searchOpenAlexWorks: reuses lane L3's openAlexGet (deps.fetch injected, ze
     };
   };
   const candidates = await searchOpenAlexWorks({ query: "freight decarbonisation", perPage: 10 }, { fetch: fetchStub });
-  assert.equal(candidates.length, 2, "the fixture's 3rd work (no landing page, no doi) is dropped");
+  assert.equal(candidates.length, 5, "the 3 publisher-host fixtures plus the 2 DOI fixtures; the no-URL work is dropped");
   assert.equal(candidates[0].sourceUrl, "https://doi.org/10.1000/example-freight-decarb");
   // L3's openAlexGet (reused, not reimplemented) is what appends mailto + search params -- confirms
   // this wrapper really called through it rather than hand-rolling its own URL.
@@ -128,4 +132,58 @@ test("decideApply: --dispatch with every gate open but no DB creds refuses (this
 test("decideApply: every gate open and creds present can write", () => {
   const d = decideApply({ dispatch: true, enabled: true, killSwitchOn: true, hasCreds: true });
   assert.equal(d.canWrite, true);
+});
+
+// ── lane S1-D: the walker registers and rates an OpenAlex publisher host (rule 18) ───────────────────────
+
+const FIXTURE_VERDICTS = loadHostVerdicts({ files: [join(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts;
+const [BUILTIN_WORK, VERDICT_WORK, UNPLACED_WORK] = FIXTURE_OPENALEX_PUBLISHER_CANDIDATES.map(normalizeOpenAlexWork);
+
+test("resolveOpenAlexPublisher (dry): a built-in-placed publisher host places at its class tier", async () => {
+  const r = await resolveOpenAlexPublisher(BUILTIN_WORK, { mode: "dry", hostVerdicts: FIXTURE_VERDICTS });
+  assert.equal(r.placed, true);
+  assert.equal(r.placedBy, "built-in rule");
+  assert.equal(r.tier, 4);
+  assert.equal(r.verdictBatch, null);
+  assert.equal(r.sourceId, "preview:eprints.soton.ac.uk");
+});
+
+test("resolveOpenAlexPublisher (dry): a host placed only by a fixture verdict names the batch and reads the tier from the class table", async () => {
+  const r = await resolveOpenAlexPublisher(VERDICT_WORK, { mode: "dry", hostVerdicts: FIXTURE_VERDICTS });
+  assert.equal(r.placed, true);
+  assert.equal(r.placedBy, "host verdict");
+  assert.equal(r.verdictBatch, "host-verdicts-000.fixture");
+  assert.equal(r.tier, 4);
+});
+
+test("resolveOpenAlexPublisher: without the verdict batch the same host does not place", async () => {
+  const r = await resolveOpenAlexPublisher(VERDICT_WORK, { mode: "dry", hostVerdicts: new Map() });
+  assert.equal(r.placed, false);
+});
+
+test("resolveOpenAlexPublisher (dry): an unplaced publisher is residue 'awaiting host verdict batch' with its host named", async () => {
+  const r = await resolveOpenAlexPublisher(UNPLACED_WORK, { mode: "dry", hostVerdicts: FIXTURE_VERDICTS });
+  assert.equal(r.placed, false);
+  assert.equal(r.reason, "awaiting host verdict batch");
+  assert.equal(r.host, "unlisted-journal.example");
+});
+
+test("resolveOpenAlexPublisher (apply): registers through registerSourceFn at the class tier with provisional status, built-in and verdict paths", async () => {
+  const calls = [];
+  const registerSourceFn = async (src, opts) => {
+    calls.push({ src, opts });
+    return { source_id: `src-${calls.length}` };
+  };
+  const a = await resolveOpenAlexPublisher(BUILTIN_WORK, { mode: "apply", registerSourceFn, hostVerdicts: FIXTURE_VERDICTS });
+  const b = await resolveOpenAlexPublisher(VERDICT_WORK, { mode: "apply", registerSourceFn, hostVerdicts: FIXTURE_VERDICTS });
+  const c = await resolveOpenAlexPublisher(UNPLACED_WORK, { mode: "apply", registerSourceFn, hostVerdicts: FIXTURE_VERDICTS });
+  assert.equal(a.sourceId, "src-1");
+  assert.equal(b.sourceId, "src-2");
+  assert.equal(c.placed, false);
+  assert.equal(calls.length, 2, "an unplaced host is never registered");
+  for (const { src, opts } of calls) {
+    assert.equal(src.base_tier, 4);
+    assert.deepEqual(src.extra, { status: "provisional" });
+    assert.ok(opts.cite, "registerSource requires a cite");
+  }
 });

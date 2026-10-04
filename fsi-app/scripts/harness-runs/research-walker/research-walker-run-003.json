@@ -1,0 +1,125 @@
+{
+  "harness_family": "research-walker",
+  "harness_version": "sha256:0aa180ee8d2a71a7",
+  "run_id": "research-walker-run-003",
+  "started_at": "2026-10-04T12:43:04.795Z",
+  "config": {
+    "mode": "dry",
+    "source": "fixtures/research-walker-fixtures.mjs",
+    "dispatch": false,
+    "github_run_id": null
+  },
+  "inputs_ref": [
+    "scripts/research/fixtures/research-walker-fixtures.mjs"
+  ],
+  "per_item": [
+    {
+      "id": "https://www.iea.org/reports/example-transport-outlook",
+      "outcome": "source-resolved (tier 2)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://theicct.org/publication/example-freight-study",
+      "outcome": "source-resolved (tier 6)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://tti.tamu.edu/research/example-freight-corridor-study",
+      "outcome": "source-resolved (tier 4)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://doi.org/10.1000/example-freight-decarb",
+      "outcome": "residue:awaiting host verdict batch",
+      "verdict": "host doi.org",
+      "error": null
+    },
+    {
+      "id": "https://doi.org/10.1000/example-marine-fuels",
+      "outcome": "residue:awaiting host verdict batch",
+      "verdict": "host doi.org",
+      "error": null
+    },
+    {
+      "id": "https://eprints.soton.ac.uk/example-rail-modal-shift",
+      "outcome": "would_register (tier 4, built-in rule)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://unplaced-example.test/papers/scope3-survey",
+      "outcome": "would_register (tier 4, host verdict host-verdicts-000.fixture)",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://unlisted-journal.example/articles/42",
+      "outcome": "residue:awaiting host verdict batch",
+      "verdict": "host unlisted-journal.example",
+      "error": null
+    },
+    {
+      "id": "https://www.iea.org/reports/example-transport-outlook",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://theicct.org/publication/example-freight-study",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://tti.tamu.edu/research/example-freight-corridor-study",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://eprints.soton.ac.uk/example-rail-modal-shift",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
+      "id": "https://unplaced-example.test/papers/scope3-survey",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    }
+  ],
+  "metrics": {
+    "grey_lit_sources": 3,
+    "grey_lit_resolved": 3,
+    "candidates": 5,
+    "would_register": 2,
+    "would_mint": 5,
+    "rejected_unsourced": 0,
+    "residue_awaiting_host_verdict": 3,
+    "unplaced_hosts": [
+      {
+        "host": "doi.org",
+        "name": null,
+        "discovered_via": "research-walker",
+        "sample_url": "https://doi.org/10.1000/example-freight-decarb"
+      },
+      {
+        "host": "unlisted-journal.example",
+        "name": null,
+        "discovered_via": "research-walker",
+        "sample_url": "https://unlisted-journal.example/articles/42"
+      }
+    ],
+    "mode": "dry"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "scripts/research/fixtures/research-walker-fixtures.mjs"
+  ],
+  "proposer_notes": "research-walker's run artifact (lane L7, 2026-10-02, R14 lift criterion 8). Dry/fixture run: resolves the 3 named grey-lit sources through the institution class table (rule 18), then runs every candidate (grey-lit + OpenAlex-fixture) through the real mint chokepoint (mint-item.ts's mintIntelligenceItem) in dryRun mode. An OpenAlex candidate whose publisher host is resolved through the institution class table plus committed host verdicts (lane S1-D, rule 18): a host that places is registered (previewed as would_register in dry mode) and minted; a host that does not place is residue (awaiting host verdict batch), listed in metrics.unplaced_hosts, never a rejection. Zero flywheel post-insert hops fire in dry mode (mint-item.ts returns before its single INSERT); a live --dispatch apply run (not exercised here, no DB credentials in this worktree) would run every one of them unconditionally inside the same chokepoint.",
+  "trigger": "manual"
+}
