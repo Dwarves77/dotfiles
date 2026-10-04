@@ -1,7 +1,7 @@
 // format-range.mjs — how an estimated figure's low – point – high triple is rendered as text.
 //
 // Pure, no React, so the rule is testable on its own. Pulled out of EstimatedFigure.tsx on 2026-09-02
-// after a browser read of /operations showed the automate-vs-hire calculator rendering
+// after a browser read of /operations showed a since-retired calculator rendering
 // "Payback period USD 2.08 – USD 1.83 – USD 1.64": the component applied the PRIMARY figure's currency
 // (the NPV's USD) to every companion metric and dropped the companion's own unit ("years"), and the
 // sensitivity bands were printed in band order (pessimistic → optimistic), which for a payback period is
@@ -20,7 +20,7 @@
  * `undefined` resolves to the HOST's default locale — the container's on the server, the VIEWER's
  * in the browser. /operations rendered `USD 375,545 – USD 460,670 – USD 545,794` in the SSR HTML
  * and `USD 375.545 – USD 460.670 – USD 545.794` in a de-DE browser, reproduced verbatim this lane
- * from React's own text-mismatch diff (EstimatedFigure, via AutomateVsHireCalculator). That is
+ * from React's own text-mismatch diff (EstimatedFigure on the since-retired Operations calculator). That is
  * React error #418 on EVERY load for EVERY non-en-US viewer — deterministic, not a race — and the
  * same defect ObligationRegisterFilterBar's header documents for its own call site, in the second
  * of the "~30 more places repo-wide" that lane named. `CarbonCostOverlay` (/market) is this

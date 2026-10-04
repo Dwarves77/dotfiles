@@ -22,7 +22,7 @@ Enforcement (Caro's Ledge repo): doctrine `every-decline-names-the-five-contract
 ## The five contracts (what each surface would DO with the candidate)
 
 - **Regulations** — a compliance-action text brief: what is binding, when, what it costs, what to do. Not comparative/numerical.
-- **Operations** — structured jurisdictional cost / feasibility intelligence: per-region cost, labor, materials, infrastructure, and feasibility for hire-vs-automate and lane decisions.
+- **Operations**: structured jurisdictional cost / feasibility intelligence: per-region cost, labor, materials, infrastructure, and feasibility evidence for the reader's own decisions and lane decisions.
 - **Market Intel** — comparative and numerical signal: deltas, trajectories, lead-time against competitors and adjacent industries.
 - **Research** — a structured horizon assessment: horizon distance, maturity, credibility of who is studying it, and the planning-assumption shift.
 - **Community** — human-operated peer surface, OUTSIDE machine intake by construction. A candidate never "routes to Community" as machine content; Community's verdict is essentially always out-for-machine-intake, recorded so the reasoning is explicit, not skipped.

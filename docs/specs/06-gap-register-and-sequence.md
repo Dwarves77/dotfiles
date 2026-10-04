@@ -66,7 +66,7 @@ rendering silently hides verified content that matches no regex.
 
 **Operations** (`04`): no cross-region comparison anywhere, and the one control that promises it draws a
 border; **EU and US have zero data on all five sourced dimensions** with no live producer; no labour
-chain; no TCO or break-even, so decision 1 has no home; feasibility is scored rather than gated;
+chain; no TCO or break-even, so decision 1 has no home (ADR-043, 2026-10-03: TCO and break-even are retired by operator ruling, not owed); feasibility is scored rather than gated;
 materials and PPWR are adjacent but unjoined; D1 reports two contradictory coverage truths; the Assistant
 cannot see any of the operations tables it is invited to answer questions about.
 

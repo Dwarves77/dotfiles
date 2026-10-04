@@ -218,14 +218,14 @@ the surface shows, rolling up to region severity and cross-region implications.
 - S1 Operational Cost Baseline. INGEST utility and regulator tariff schedules, fuel reporting,
   labor surveys, port-authority tariffs, freight indices. TRANSFORM each line as figure + trend +
   same-unit anchor against other active regions + mode relevance. OUTPUT a cost table to price the
-  region into quotes and feed make-versus-buy. COST ALERT on a rising baseline. INTEGRITY no
+  region into quotes and feed the reader's own cost comparisons. COST ALERT on a rising baseline. INTEGRITY no
   unsourced figure; missing baseline omitted with a dated note.
 - S2 Feasibility of Operational Choices. INGEST interconnection and permit regimes, utility-
   monopoly status, equipment rules, supplier base. TRANSFORM each choice to possible / restricted /
   prohibited with reason and source. OUTPUT where capital deployment is possible. INTEGRITY verdict
   sourced; unknown as "unconfirmed, requires [check]."
 - S3 Cost Comparison Against Alternatives. INGEST S1 plus the alternative's costs. TRANSFORM
-  breakeven and payback with the conditions that flip the answer. OUTPUT the make-versus-buy call.
+  breakeven and payback with the conditions that flip the answer. OUTPUT the owned-versus-leased, grid-versus-solar or sourcing comparison.
   INTEGRITY sourced numbers, assumptions stated, missing as a labeled directional range. (MATRIX.)
 - S4 Cross-Regional Strategic Implications. INGEST this region's S1 to S3 plus other active
   regions'. TRANSFORM the cross-footprint comparison into allocation logic. OUTPUT footprint

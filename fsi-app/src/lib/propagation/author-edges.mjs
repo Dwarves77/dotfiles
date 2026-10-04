@@ -1,7 +1,7 @@
 // author-edges.mjs — THE ONE DAG-authoring module every producer imports (docs/specs/
 // 08-flywheel-design.md §2.2 Part 2; docs/audits/wiring-audit-2026-09-04/C1-loop-map.md §3, the
 // "new producer/mint data -> derivation_edges" row, verbatim: "the two registered methods (carbon-
-// intensity.ts, automate-vs-hire.ts) or their producers need to register a derivation_edges row... at
+// intensity.ts and the other registered methods) or their producers need to register a derivation_edges row... at
 // write time -- the SAME call seed-derived-values.mjs already makes, just triggered by ingestion instead
 // of a one-off script"). Lane DAG-AUTHOR, 2026-09-04.
 //
@@ -22,10 +22,10 @@
 // OWNS NO FORMULA LOGIC OF ITS OWN. This module is a thin orchestration shell around three already-shipped,
 // already-tested modules (`resolveInputs` from drain.ts, `getMethod` from methods/index.ts,
 // `registerDerivedValue` from register-derivation.ts) -- exactly the "no copies of logic" rule (CLAUDE.md):
-// before this lane, `seed-derived-values.mjs` computed carbon-intensity/automate-vs-hire INLINE (calling
-// `carbonIntensity()`/`automateVsHire()` directly, re-deriving lifecycle/confidence by hand) rather than
+// before this lane, `seed-derived-values.mjs` computed carbon-intensity INLINE (calling
+// `carbonIntensity()` directly, re-deriving lifecycle/confidence by hand) rather than
 // through the registered MethodFn wrappers -- a real, working, but duplicated computation path next to the
-// one methods/carbon-intensity.ts and methods/automate-vs-hire.ts already declare for the drain's own
+// one methods/carbon-intensity.ts already declares for the drain's own
 // recompute pass. This module is the ONE place "landed figure -> registered method -> derived_values row"
 // happens; seed-derived-values.mjs's own inline computation is a separate, historical (2026-09-02, pre-
 // this-lane) writer this lane does not rewrite (out of this lane's write set -- see the accompanying REPORT
@@ -34,8 +34,8 @@
 // re-implements the resolve/call/register sequence a second time.
 //
 // A METHOD IS RESOLVED BY (methodId, methodVersion) ONLY -- never invented here. A producer names an
-// EXISTING registered method (methods/index.ts's `registerMethod` calls, today `carbon_intensity_tkm`/
-// `automate_vs_hire`); authorEdges never falls back to computing anything itself when the method is
+// EXISTING registered method (methods/index.ts's `registerMethod` calls, for example
+// `carbon_intensity_tkm`); authorEdges never falls back to computing anything itself when the method is
 // unknown -- it reports `unknown-method` and moves on, exactly like drain.ts's own `skippedUnknownMethod`
 // counting (spec §2.2 Part 3's "no method registered yet" outcome, never a thrown error, never a guess).
 //
@@ -48,7 +48,7 @@
 // drain's OWN recompute/supersede chain, by design, so a blanket DB unique constraint on the natural key
 // would be wrong, not merely redundant). `authorEdges` checks EVERY declared input ref (not only the
 // caller's primary `{table,id}`) against the live derivation_edges/derived_values tables before writing --
-// covering the automate_vs_hire shape, where the SAME (region's) wage or energy fact can be the "landed
+// covering any multi-input method, where the SAME input fact can be the "landed
 // figure" that completes the pair on more than one run (a producer re-run that upserts an unchanged row in
 // place, matching planUpsert's "current-state table" semantics -- see run-envelope-producer.mjs). A
 // producer may therefore call authorEdges every time it writes a candidate row with NO pre-check of its

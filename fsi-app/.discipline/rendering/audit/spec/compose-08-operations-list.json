@@ -16,7 +16,7 @@
     "Placement assertions use sibling-combinator selectors, which match only when the first element's DOM node PRECEDES the second's — 'present but in the wrong place' was the defect, so absence-only checks would not have caught it.",
     "R7 (an app feature the artboard does not draw is kept, listed, and moved out of an artboard region's position): the Mode facet stays but sits after the artboard's own REGION and DIMENSION groups, and is checked below. R7's other case on this page, the US By-state cost sub-list, is SUPERSEDED by operator item D3 (2026-09-08), which names it for removal; a later ruling wins, so the sub-list is gone and the forbid row below is its attack surface. Fold 63 (2026-09-08) rewrote this note, which described the sub-list's moved position as still present.",
     "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
-    "Item D3 (UI fix round 2026-09-08): everything below artboard 08's last card moved or went. The forbid rows below are the attack surface for the removals (the By-state disclosure, the calculator and its Recent recalculations, and the three spec-09 panels), and the calculator-link child row is the attack surface for the one thing that replaced them: a page nothing links to is unreachable, so the link is part of the fix, not decoration."
+    "Item D3 (UI fix round 2026-09-08): everything below artboard 08's last card moved or went. The forbid rows below are the attack surface for the removals (the By-state disclosure, the calculator and its Recent recalculations, and the three spec-09 panels). The calculator page and its one link were then retired by ADR-043 (operator ruling 2026-10-03: no reader-typed input produces a result anywhere), so the calculator forbid rows now assert it is gone for good."
   ],
   "selector": "[data-audit=\"ops-matrix-card\"]",
   "expect": {
@@ -186,17 +186,6 @@
       }
     },
     {
-      "name": "the single link to the calculator's own page sits at the foot of the content column (item D3)",
-      "selector": "[data-audit=\"calculator-link\"]",
-      "note": "Artboard 08 draws no such row; /operations/calculator would otherwise be unreachable, which is the dead-page defect class. Geometry is the band-card foot link's own (12px/600), with ONE value changed. UPDATED BY FOLD 63 (2026-09-08), spec written 2026-09-08 by lane regopscope: the minimum box was 24px, copied from the band-card foot link, and the site-wide layout guard measured this NEW link at 217x26 on /operations at 1440 and at 1024, under its L9 floor of \">= 44px in one dimension and >= 28px in the other\". The row is UPDATED, not weakened: the asserted value rises to the floor the guard enforces, so a regression back to 24px now turns this row MISMATCH as well as adding two layout-guard findings.",
-      "expect": {
-        "count": "1",
-        "font-size": "12px",
-        "font-weight": "600",
-        "min-height": "28px"
-      }
-    },
-    {
       "name": "EXACTLY TWO declared open elements, and both belong to this matrix: the panel and the cell whose tint reports aria-selected. Two rather than one because the sweep allows an element only if it or an ancestor carries the declaration, and the tinted cell is not inside the panel. One exception, one component, not a category, and this count is what keeps the site-wide rule from leaking.",
       "selector": "[data-open-on-mount]",
       "expect": {
@@ -255,13 +244,13 @@
     {
       "name": "no calculator input fields on the list page (item D3)",
       "selector": "input[type=\"number\"]",
-      "reason": "The capacity-investment calculator moved to /operations/calculator. Its ten number inputs are the unambiguous marker of it; the foot LINK to that page carries the same words as the calculator's heading, so the inputs are what this forbid tests, not the text."
+      "reason": "The capacity-investment calculator was retired by ADR-043. Its ten number inputs are the unambiguous marker of it, so no number input may reappear on the list page."
     },
     {
       "name": "no 'Recent recalculations' list on the list page (item D3)",
       "selector": "body",
       "textMatch": "Recent recalculations",
-      "reason": "That list is the calculator's own foot and moved with it; compose-operations-calculator.json asserts it arrived there."
+      "reason": "That list was the calculator's own foot and was retired with it (ADR-043)."
     },
     {
       "name": "no spec-09 DQI / auxiliary-energy / grid-queue panel on the list page (item D3)",

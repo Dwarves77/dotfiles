@@ -7,13 +7,14 @@
  * different component, with a visibly different badge and a range that never collapses to a bare point.
  *
  * ADR-024 (docs/decisions/ADR-024-decision-propagation.md), ESTIMATE_DISPLAY="range": "never a bare
- * point... break-even wage gets equal billing." Two rules enforced here, not left to the caller:
+ * point." (The break-even equal-billing clause was superseded by ADR-043.)
+ * Two rules enforced here, not left to the caller:
  *   1. `figure.value` alone is never rendered — low/point/high always render together, even when
  *      low === point === high (a degenerate but honest range).
- *   2. A `companions` entry (e.g. automate-vs-hire's break-even wage, riding alongside NPV in the same
- *      estimated_values row's `distribution` jsonb — see methods/automate-vs-hire.ts's header) renders
- *      with the SAME card treatment as the primary figure, not a smaller secondary line — "equal billing"
- *      means equal visual weight, not an afterthought footnote.
+ *   2. A `companions` entry (a second metric riding alongside the primary figure in the same
+ *      estimated_values row's `distribution` jsonb) renders
+ *      with the SAME card treatment as the primary figure, not a smaller secondary line (equal visual
+ *      weight, not an afterthought footnote).
  *
  * THE ONE GATE — same as StatutoryFigure: every render passes through admissibleFor() first.
  *
@@ -39,8 +40,8 @@ export interface EstimatedFigureCompanion {
   /** The companion's OWN currency, when it is a money figure. A companion never inherits the primary
    *  figure's currency (a payback period is years even when the NPV is USD — /operations, 2026-09-02). */
   currency?: string | null;
-  /** Named refusal reason when this companion metric has no value at this input point (e.g.
-   *  automate-vs-hire.mjs's REFUSAL.NO_HOUR_SAVINGS / REFUSAL.NEVER_PAYS_BACK) — rendered instead of a
+  /** Named refusal reason when this companion metric has no value at this input point (a
+   *  named reason string from the computing method) rendered instead of a
    *  blank or a fabricated zero. */
   refusal?: string | null;
 }
@@ -51,7 +52,7 @@ export interface EstimatedFigureProps {
   /** Rendered with the same visual weight as the primary figure — see header. */
   companions?: EstimatedFigureCompanion[];
   /** A short note on how this figure was derived (e.g. a pedigree score's meaning, or the ±10% sensitivity
-   *  convention automate-vs-hire.mjs documents) shown as a hover tooltip, never as invented precision. */
+   *  convention in src/lib/figures/uncertainty.mjs) shown as a hover tooltip, never as invented precision. */
   pedigreeNote?: string | null;
   use?: Use;
   now?: Date;

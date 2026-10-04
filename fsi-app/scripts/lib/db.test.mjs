@@ -262,7 +262,7 @@ test('guardedUpsert: a key with no existing row snapshots empty (insert-shaped h
   }, calls));
   const r = await guardedUpsert(
     'estimated_values',
-    { entity_id: 'e1', model_id: 'automate_vs_hire', model_version: '1.0.0', scenario_key: 'default', point: 100 },
+    { entity_id: 'e1', model_id: 'example_model', model_version: '1.0.0', scenario_key: 'default', point: 100 },
     { onConflict: 'entity_id,model_id,model_version,scenario_key', cite },
   );
   assert.equal(r.upserted, 1);
@@ -270,7 +270,7 @@ test('guardedUpsert: a key with no existing row snapshots empty (insert-shaped h
   const eqOps = selectCall.ops.filter((o) => o[0] === 'eq');
   assert.deepEqual(eqOps, [
     ['eq', 'entity_id', 'e1'],
-    ['eq', 'model_id', 'automate_vs_hire'],
+    ['eq', 'model_id', 'example_model'],
     ['eq', 'model_version', '1.0.0'],
     ['eq', 'scenario_key', 'default'],
   ], 'every onConflict column must gate the snapshot read, composite key');

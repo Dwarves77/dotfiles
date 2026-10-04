@@ -35,17 +35,14 @@
 //                 ADR-024 decision 2 (ESTIMATE_DISPLAY="range", src/lib/entities/decisions.mjs): never a
 //                 bare point once any input is an estimate — the whole result renders low/point/high.
 //
-// UNCERTAINTY BAND. `UNCERTAINTY_PCT` is imported from ../operations/automate-vs-hire.mjs, NOT redefined
-// here — that file's own header names it "an EXPLICIT, DOCUMENTED convention... the generic 'a national
-// wage/price series moved since it was published' margin nowhere else more precisely quantified in the
-// corpus today," and re-typing 0.10 a third time in this codebase is exactly the drifting-copy defect
-// that file itself was written to avoid for the automate-vs-hire case. Applied ONLY to an input whose
-// derivation is not contractable (a genuine assumption this module cannot itself verify) — a
-// contractable input (observed, calculated, a published rate) is held FIXED at its own value for low and
-// high, never second-guessed with an invented band on top of a real number. Because distance, payload and
-// price all increase cost MONOTONICALLY in the SAME direction (unlike automate-vs-hire's wage/energy,
-// which pull net cash flow in opposite directions), low pairs every input's low value and high pairs
-// every input's high value — no cross-pairing is needed here.
+// UNCERTAINTY BAND. `UNCERTAINTY_PCT` is imported from ../figures/uncertainty.mjs, NOT redefined here:
+// an EXPLICIT, DOCUMENTED convention (the generic "a published series moved since it was published"
+// margin), and re-typing 0.10 in a second place is the drifting-copy defect that module exists to avoid.
+// Applied ONLY to an input whose derivation is not contractable (a genuine assumption this module cannot
+// itself verify) - a contractable input (observed, calculated, a published rate) is held FIXED at its own
+// value for low and high, never second-guessed with an invented band on top of a real number. Because
+// distance, payload and price all increase cost MONOTONICALLY in the SAME direction, low pairs every
+// input's low value and high pairs every input's high value - no cross-pairing is needed here.
 //
 // WHAT THIS MODULE DELIBERATELY DOES NOT SUPPLY, AND WHY (never fabricated, always a named GAP):
 //   - Corridor routing distance. No licence-clear distance-by-UN/LOCODE-pair dataset exists in this
@@ -67,12 +64,11 @@
 // job is to be READY the moment any one of them lands (a distance producer, a licence-clear payload
 // convention, or the eex-eua producer), computing a real number with no further code change here.
 //
-// PLAIN ESM, ZERO NPM DEPENDENCIES. No I/O, no clock — same posture as carbon-intensity.mjs and
-// automate-vs-hire.mjs.
+// PLAIN ESM, ZERO NPM DEPENDENCIES. No I/O, no clock; same posture as carbon-intensity.mjs.
 
 import { carbonIntensity } from "./carbon-intensity.mjs";
 import { isContractable, isStatutory, DERIVATIONS } from "../contracts/envelope.mjs";
-import { UNCERTAINTY_PCT } from "../operations/automate-vs-hire.mjs";
+import { UNCERTAINTY_PCT } from "../figures/uncertainty.mjs";
 
 export { UNCERTAINTY_PCT };
 

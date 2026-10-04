@@ -1,7 +1,6 @@
 // author-market-series-delta.test.mjs — proves authorMarketSeriesDeltaEdges()'s orchestration (which
 // series_keys get a candidate pair, which outcome each is counted under) against injected fakes, mirroring
-// run-envelope-producer.mjs's own authorAutomateVsHireForRegions test shape and author-edges.test.mjs's
-// fakeClient. No real database, no real computeSeriesDeltas fake needed (the real one is pure and cheap —
+// author-edges.test.mjs's fakeClient. No real database, no real computeSeriesDeltas fake needed (the real one is pure and cheap ,
 // exercised directly so this test also proves the real wiring, not just a mock of it).
 import { test } from "node:test";
 import assert from "node:assert/strict";

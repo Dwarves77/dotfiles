@@ -122,7 +122,7 @@ test("the scanner actually fires (red control)", () => {
 // VIEWER's in the browser. That is a DETERMINISTIC text mismatch on every load for every viewer
 // whose browser language is not the server's, not a race: /operations rendered
 // `USD 375,545` server-side and `USD 375.545` in a de-DE browser, reproduced verbatim this lane
-// (src/lib/figures/format-range.mjs, via EstimatedFigure / AutomateVsHireCalculator).
+// (src/lib/figures/format-range.mjs, via EstimatedFigure on the since-retired Operations calculator).
 // The one home for pinned formatting is src/lib/format.ts (`FIXED_LOCALE`, `formatNumber`,
 // `formatLocaleDate`); src/lib/figures/format-range.mjs carries the same constant because it is
 // `.mjs` and cannot import the `.ts` module.

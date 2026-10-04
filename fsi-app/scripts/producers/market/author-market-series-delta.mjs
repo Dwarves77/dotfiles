@@ -1,16 +1,15 @@
 // author-market-series-delta.mjs — DAG authorship at producer write time for `market_series` (spec 08
 // §2.2 Part 2; lane W4-DAG, 2026-09-06: "market_series has no edges" — the plan-completion audit's own
 // W3-W4 finding, propagation-run-005's own "0 recomputed on 500 drained" measurement). Mirrors
-// `authorAutomateVsHireForRegions` (run-envelope-producer.mjs) and `authorCarbonIntensityEdges`
-// (emission-factors-common.mjs) exactly: a thin per-key orchestration shell around `authorEdges()`
+// `authorCarbonIntensityEdges` (emission-factors-common.mjs) exactly: a thin per-key orchestration shell around `authorEdges()`
 // (src/lib/propagation/author-edges.mjs, THE ONE shared authoring module — see that file's own header),
 // owning NO formula logic of its own. Every market_series producer that writes real, multi-observation
 // history for a series_key imports and calls this AFTER its own guarded write, over the series_key(s)
 // that write touched — the SAME "DAG authorship in the same guarded write" shape plan §W4.1 asks for,
 // generalised from "one producer's own rows" to "one producer's own series_key set" because a
 // market_series delta's second input (the PRIOR observation) is very often a row a PAST run wrote, not
-// this run's own candidate — exactly the reason authorAutomateVsHireForRegions re-reads CURRENT state
-// rather than trusting only this run's own rows.
+// this run's own candidate, a producer that completes a multi-input figure must re-read CURRENT state
+// rather than trust only this run's own rows.
 //
 // WHICH TWO ROWS. `computeSeriesDeltas` (../../../src/lib/market/series-deltas.mjs, imported unmodified —
 // the SAME function the registered method (market-series-delta.ts) and the live Market surface

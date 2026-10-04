@@ -157,14 +157,14 @@ test("authorEdges: a DIFFERENT method over the same input is NOT blocked by an e
   assert.equal(result.action, "authored");
 });
 
-test("authorEdges: idempotency checks EVERY declared input, not only the primary {table,id} (automate_vs_hire shape)", async () => {
-  registerMethod("automate_vs_hire", "1.0.0", OK_METHOD);
+test("authorEdges: idempotency checks EVERY declared input, not only the primary {table,id} (two-input method shape)", async () => {
+  registerMethod("two_input_method", "1.0.0", OK_METHOD);
   const sb = fakeClient({
     tables: {
       // the ENERGY input (not the wage input named as the landed figure) already carries an edge for
       // this method — a producer re-run that lands the wage row again must still no-op.
       derivation_edges: [{ from_table: "regional_data_facts", from_pk: "energy-1", to_value_id: "v1", edge_kind: "input" }],
-      derived_values: [{ value_id: "v1", method_id: "automate_vs_hire", method_version: "1.0.0" }],
+      derived_values: [{ value_id: "v1", method_id: "two_input_method", method_version: "1.0.0" }],
       regional_data_facts: [{ id: "wage-1" }, { id: "energy-1" }],
     },
     rpcHandlers: { register_derived_value: () => { throw new Error("must not be called"); } },
@@ -173,7 +173,7 @@ test("authorEdges: idempotency checks EVERY declared input, not only the primary
     table: "regional_data_facts",
     id: "wage-1",
     entity: "cl:jurisdiction:abc",
-    method: { id: "automate_vs_hire", version: "1.0.0" },
+    method: { id: "two_input_method", version: "1.0.0" },
     inputs: [
       { table: "regional_data_facts", pk: "wage-1" },
       { table: "regional_data_facts", pk: "energy-1" },

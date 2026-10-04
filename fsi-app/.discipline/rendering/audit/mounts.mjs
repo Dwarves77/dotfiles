@@ -1271,8 +1271,7 @@ const COMPOSE_REGULATIONS_API = [
 // ── Item D2/D3 (UI fix round 2026-09-08): the two routes this round created ────────────────────────
 // Neither has an artboard (coordinator note N4), so these specs measure the STANDARD FRAME the pages
 // were required to be built in, and the structural facts the operator's items state: the register's
-// four page-local dropdowns are gone and its facets are the shared rail Filters card; the calculator
-// is on its own page with the frame around it.
+// four page-local dropdowns are gone and its facets are the shared rail Filters card.
 
 function composeRegisterRow(i) {
   const dues = ['2026-10-01', '2026-11-14', '2027-01-09', '2026-03-02', null];
@@ -1328,30 +1327,6 @@ window.__mount = () => {
           initialResult: F,
           dateLabel: 'Tuesday, September 8, 2026',
           nowIso: '2026-09-08T00:00:00.000Z',
-        })),
-    ),
-  );
-};
-`;
-
-const COMPOSE_CALCULATOR_ENTRY = `
-${STYLE_INJECT}
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { AppShell } from '@/components/AppShell';
-import { OperationsCalculatorPageView } from '@/components/operations/OperationsCalculatorPageView';
-
-let root = null;
-window.__mount = () => {
-  const el = document.getElementById('smoke-root');
-  if (!root) root = createRoot(el);
-  root.render(
-    React.createElement(AppShell, null,
-      React.createElement('div', { 'data-audit': 'calculator-page' },
-        React.createElement(OperationsCalculatorPageView, {
-          dateLabel: 'Tuesday, September 8, 2026',
-          nowIso: '2026-09-08T00:00:00.000Z',
-          itemCount: 25,
         })),
     ),
   );
@@ -3335,18 +3310,6 @@ export const AUDIT_MOUNTS = {
     },
     needsCompiledCss: true,
     apiRoutes: COMPOSE_REGULATIONS_API,
-  },
-  'compose-operations-calculator': {
-    id: 'compose-operations-calculator',
-    description: 'The real /operations/calculator page body (OperationsCalculatorPageView): masthead, the capacity-investment calculator, rail Legend — item D3, no artboard yet.',
-    viewport: 1440,
-    entry: COMPOSE_CALCULATOR_ENTRY,
-    alias: {
-      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
-      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
-    },
-    needsCompiledCss: true,
-    apiRoutes: EMPTY_API,
   },
   'compose-06-research': {
     id: 'compose-06-research',

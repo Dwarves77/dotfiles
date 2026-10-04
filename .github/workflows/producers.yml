@@ -200,7 +200,7 @@ jobs:
           fi
 
       # eurostat-lc-lci-lev (lane DP-SURF, system-completion train, 2026-09-02): hourly labour cost levels
-      # (EUR/hour, lc_lci_lev) so an EU region carries the wage fact automate-vs-hire reads alongside the
+      # (EUR/hour, lc_lci_lev) so an EU region carries the wage fact alongside the
       # nrg_pc_205 energy fact. Same two gates as its siblings (ENABLED const + this workflow's mode); the
       # runtime kill switch is set here exactly as the oil-bulletin and ecb-fx steps set theirs, so the
       # Actions tab remains the fast disarm.

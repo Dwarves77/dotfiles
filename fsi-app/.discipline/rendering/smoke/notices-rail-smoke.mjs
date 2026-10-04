@@ -1,9 +1,10 @@
 // UX smoke spec: RecalculationNotice (lane NOTICES, complete-system build plan W4.3, 2026-09-05).
 // F35 ROW_COMPONENTS candidate: src/components/figures/RecalculationNotice.tsx — a customer-facing row
 // component (one `<li className="cl-row-card">` per notice, an entity-label title beside a timestamp
-// aside — the exact "title beside an aside" shape F35's own header names) newly mounted on 5 surfaces
-// this lane (Operations' AutomateVsHireCalculator, the Market index page, and all four item detail
-// pages, via the shared `NoticesRail` fetch wrapper — see that module's own header). Built on
+// aside, the exact "title beside an aside" shape F35's own header names) mounted on 5
+// surfaces (the Market index page and all four item detail pages;
+// the Operations calculator mount was retired by ADR-043), via the shared `NoticesRail` fetch wrapper
+// (see that module's own header). Built on
 // `ux-harness.mjs`'s `runUxSpec`, fixture data only, per the UX contract
 // (docs/dispatches/lane-common-contract.md).
 //

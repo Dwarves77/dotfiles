@@ -46,14 +46,12 @@ const PRODUCER_NAME = "bls-oews";
 loadLocalEnvFile();
 
 // Requests BOTH the annual-median and hourly-median series per occupation (2026-09-02 coordinator
-// follow-up: "BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire reads" — automate-
-// vs-hire.mjs's own `labourCostPerHour` input has always documented itself as USD/hour; this producer
-// previously supplied only the annual figure. See bls-oews-parser.mjs's header for the datatype-code
+// follow-up: "BLS OEWS wage fact is hourly" (an hourly wage is the unit regional wage evidence is
+// read in; this producer previously supplied only the annual figure). See bls-oews-parser.mjs's header for the datatype-code
 // confirmation and why HOURLY MEDIAN (08), not hourly MEAN (03), was chosen to match the annual figure's
 // own measure family). Both are kept, not one swapped for the other — the annual fact still backs whatever
 // already reads a `dimension:'labor_markets'` row without caring about its unit (the /operations matrix
-// coverage view, region-grid fact counts); only automate-vs-hire's wage input is unit-sensitive, and it now
-// refuses rather than misreading the annual row (see automate-vs-hire.ts).
+// coverage view, region-grid fact counts); a reader of the hourly figure must never mistake the annual row for it.
 async function fetchAndParse() {
   const seriesid = OEWS_OCCUPATIONS.flatMap((o) => [
     buildOewsSeriesId(o.socCode, ANNUAL_MEDIAN_WAGE_DATATYPE),
@@ -98,7 +96,7 @@ async function main() {
     producer: PRODUCER_NAME,
     status: "ok",
     rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
-    edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+    edges_authored: null, // regional_data_facts rows carry no derivation edges (ADR-043)
     counts: result,
   });
 }

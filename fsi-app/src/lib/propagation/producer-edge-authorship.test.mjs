@@ -15,7 +15,7 @@
 // WHAT COUNTS AS "AUTHORS ITS OWN EDGES": the scanned file's source text references `authorEdges` (the
 // ONE shared authoring module, src/lib/propagation/author-edges.mjs — see that file's own header) either
 // directly or through one of the shared per-table helpers built on top of it
-// (`authorCarbonIntensityEdges`, `authorAutomateVsHireForRegions`, `authorMarketSeriesDeltaEdges`) — a
+// (`authorCarbonIntensityEdges`, `authorMarketSeriesDeltaEdges`), a
 // producer imports exactly one of these, never re-implements the resolve/call/register sequence itself
 // (author-edges.mjs's own "no copies of logic" rule). A file that writes a DAG source table and contains
 // NONE of these names is a rule-17 violation: a landed figure with no path to ever entering the DAG.
@@ -27,7 +27,7 @@
 // predates this lane) or `scripts/entities/backfill-derivation-edges.mjs` itself (the one-time historical
 // BRIDGE, not a producer — it exists precisely because producer-time authorship was NOT wired for rows
 // written before each chokepoint landed; scanning it for the same rule would be checking the patch for the
-// hole it patches). A future producer OUTSIDE `scripts/producers/` that writes one of these three tables
+// hole it patches). A future producer OUTSIDE `scripts/producers/` that writes one of these tables
 // is not caught by this test — named here as this check's own honest boundary, same posture F38's header
 // states for its own scope limits.
 
@@ -40,11 +40,12 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PRODUCERS_ROOT = resolve(HERE, "..", "..", "..", "scripts", "producers");
 
-const DAG_SOURCE_TABLES = Object.freeze(["emission_factors", "market_series", "regional_data_facts"]);
+// regional_data_facts left this list with ADR-043 (2026-10-03): the only registered method that read it
+// (the wage-versus-automation derived value) was retired, so no method consumes those rows into the DAG.
+const DAG_SOURCE_TABLES = Object.freeze(["emission_factors", "market_series"]);
 const AUTHOR_MARKERS = Object.freeze([
   "authorEdges", // the one shared module, imported directly
   "authorCarbonIntensityEdges", // emission_factors' shared per-table helper
-  "authorAutomateVsHireForRegions", // regional_data_facts' shared per-table helper
   "authorMarketSeriesDeltaEdges", // market_series' shared per-table helper
 ]);
 

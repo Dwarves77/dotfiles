@@ -107,7 +107,7 @@ on:
         default: false
         type: boolean
       seed_derived_values:
-        description: 'Run scripts/propagation/seed-derived-values.mjs before the drain (carbon intensity per embeddable factor, automate-vs-hire per region with both facts). Honours mode.'
+        description: 'Run scripts/propagation/seed-derived-values.mjs before the drain (carbon intensity per embeddable factor). Honours mode.'
         required: false
         default: false
         type: boolean

@@ -38,7 +38,9 @@ Four corrections landed in the design rebuild handoff session and are now codifi
 
 4. **LinkedIn import is in-flight, not a stub.** Section 3 ONBOARDING FLOW previously labeled LinkedIn import as "currently stub". The operator confirmed it is an in-flight feature build. Section 3 ONBOARDING FLOW and Section "Customer-Facing Value Gap" item 5 are updated accordingly.
 
-5. **External data only; no customer data intake (ADR-042, operator ruling 2026-10-03).** The system takes external data and advises what it means. The customer uploads nothing, and no customer-entered data is stored for analysis: the workspace CSV upload, the surcharge-audit, DQI and EUDR/custody panels, the per-tenant planning-assumption register and the Community benchmarks are removed (migration 349). The automate-versus-hire calculator stays (typed inputs, computed in the browser, nothing stored). The workspace profile, watchlist, personal archive and priority, tags and briefing schedule are preference and lens state and stay. An operator-dispatched rows file of external public-source data for a kept domain is the ADR-023 ingest path and stays.
+5. **External data only; no customer data intake (ADR-042, operator ruling 2026-10-03).** The system takes external data and advises what it means. The customer uploads nothing, and no customer-entered data is stored for analysis: the workspace CSV upload, the surcharge-audit, DQI and EUDR/custody panels, the per-tenant planning-assumption register and the Community benchmarks are removed (migration 349). The automate-versus-hire calculator, stated here as staying, was retired the same day by item 6. The workspace profile, watchlist, personal archive and priority, tags and briefing schedule are preference and lens state and stay. An operator-dispatched rows file of external public-source data for a kept domain is the ADR-023 ingest path and stays.
+
+6. **No typed input produces a result; no automate-versus-hire framing (ADR-043, operator ruling 2026-10-03, reversing the same-day "calculator stays").** Operator, verbatim: "I've changed my mind. I don't want to input any outside data to get results from anything in the system, including automate or hire. Also automate and hire seems very non-PC; it would look terrible to say we're going to automate jobs or people are so cheap that we'll just hire them and not pay them enough. It's a bad idea, and we can state the evidence of what wages and stuff cost, but we don't need to blatantly say automate or hire." The Operations calculator, its page, its propagation method and the derived values it produced are retired. Wage, labour-cost and energy-cost evidence stays, shown as sourced regional figures with no verdict. The Operations contract is structured jurisdictional cost and feasibility evidence (labour, energy, materials, infrastructure) for the reader's own decisions; "hire-vs-automate" is not the surface's purpose. Workspace assignment, tags and notes stay as workspace preferences.
 
 These corrections must inform all Sequence C surface rebuild dispatches (Research, Operations, Market Intel, Community, Regulations Detail) starting with the Community rebuild which depends directly on corrections 2 and 3.
 
@@ -119,15 +121,15 @@ Research is BROADER than peer-reviewed academic. The discriminator is analytical
 
 Examples of decisions Operations supports:
 
-- HVAC monitoring system versus hiring two people manually (cost and labor)
+- HVAC monitoring system cost, with the regional labour and energy cost evidence shown as sourced figures
 - Cross-regional efficiency and cost comparison
 - Recyclable materials availability by region (materials sourcing)
 - PPWR packaging compliance feasibility by region given material supply (regulatory feasibility integrated with regional resources)
-- Solar versus automation versus hire decisions across regions
+- On-site solar versus grid supply across regions
 
 **Build framing (binding).** Operations surfaces structured content. The customer reads the content and uses the Intelligence Assistant for cross-cutting questions during research. Synthesis happens through structured content plus Assistant plus customer judgment, NOT through a separate decision-engine UI. Operations is a content build, not a synthesis-engine build. Anyone scoping Operations as a separate "cross-functional decision engine UI" build is scoping wrong; this is the framing that the prior version of this skill propagated and that the alignment audit absorbed.
 
-**Analysis contract (RULED 2026-07-12).** Operations reads are STRUCTURED JURISDICTIONAL DATA SURFACES — comparative/numerical regional intelligence (feasibility, cost, labor, materials, infrastructure) for hire-vs-automate and infrastructure decisions — not a text brief. Doctrine register: `analysis-follows-page-intent`.
+**Analysis contract (RULED 2026-07-12).** Operations reads are STRUCTURED JURISDICTIONAL DATA SURFACES: comparative/numerical regional intelligence (feasibility, cost, labor, materials, infrastructure) for the reader's own cost, labour and infrastructure decisions, with no verdict on automating versus hiring (ADR-043); not a text brief. Doctrine register: `analysis-follows-page-intent`.
 
 **Source category mapping.** `regional_data` (Operations Profile format, 8 sections) plus cross-references from `regulatory` and `market_news` items.
 
@@ -373,7 +375,7 @@ Scope verdicts — decisions to DECLINE or PARK a candidate source, data feed, o
 ### The five contracts (verbatim — what each surface would DO with the candidate)
 
 - **Regulations** — a compliance-action text brief: what is binding, when, what it costs, what to do. Not comparative/numerical.
-- **Operations** — structured jurisdictional cost / feasibility intelligence: per-region cost, labor, materials, infrastructure, feasibility for hire-vs-automate and lane decisions.
+- **Operations**: structured jurisdictional cost / feasibility intelligence: per-region cost, labor, materials, infrastructure, feasibility evidence for the reader's own decisions and lane decisions.
 - **Market Intel** — comparative and numerical signal: deltas, trajectories, lead-time against competitors and adjacent industries.
 - **Research** — a structured horizon assessment: horizon distance, maturity, credibility of who is studying it, and the planning-assumption shift.
 - **Community** — human-operated peer surface, OUTSIDE machine intake by construction. A candidate never "routes to Community" as machine content; Community's verdict is essentially always out-for-machine-intake, recorded so the reasoning is explicit, not skipped.

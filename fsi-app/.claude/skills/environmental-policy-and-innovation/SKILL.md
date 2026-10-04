@@ -394,7 +394,7 @@ Each feasibility question: the answer (possible / restricted / prohibited), the 
 
 ### Section 3: Cost Comparison Against Alternatives
 
-Concrete comparisons against alternatives: manual labor for HVAC management versus automated BMS, on-grid versus on-site solar with permit and connection cost included, owned facility versus leased, in-region material sourcing versus import. Each comparison: breakeven analysis, payback period, conditions where the answer flips. Sourced numbers only.
+Concrete comparisons against alternatives: on-grid versus on-site solar with permit and connection cost included, owned facility versus leased, in-region material sourcing versus import. Each comparison: breakeven analysis, payback period, conditions where the answer flips. Sourced numbers only.
 
 ### Section 4: Cross-Regional Strategic Implications
 

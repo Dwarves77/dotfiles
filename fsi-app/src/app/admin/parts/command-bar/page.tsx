@@ -120,11 +120,6 @@ const PLACEHOLDER_VARIANTS: PlaceholderVariant[] = [
     placeholder: 'Search your watchlist — or ask "what changed on my watched items?"',  // glyph:verbatim
   },
   {
-    surface: "Operations calculator",
-    file: "OperationsCalculatorPageView.tsx",
-    placeholder: 'Search or ask about this estimate, e.g. "what drives the payback period?"',
-  },
-  {
     surface: "Obligation register",
     file: "ObligationRegisterPageView.tsx",
     placeholder: 'Search the register — or ask "what is due in the next 30 days?"',  // glyph:verbatim

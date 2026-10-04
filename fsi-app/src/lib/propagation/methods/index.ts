@@ -133,16 +133,11 @@ export function __clearRegistryForTests(): void {
 // shape was tried first and broke on a real TDZ error ("Cannot access 'REGISTRY' before initialization"):
 // ES module linking evaluates an imported module's body BEFORE the importing module's own top-level code,
 // so a method file that both imports registerMethod from here AND calls it at its own top level would run
-// that call before this file's `const REGISTRY = new Map()` (above) has executed — see automate-vs-hire.ts
-// and carbon-intensity.ts's own headers for the same note from the method-file side. Importing here
+// that call before this file's `const REGISTRY = new Map()` (above) has executed. See
+// carbon-intensity.ts's own header for the same note from the method-file side. Importing here
 // (rather than nowhere) is what makes drain.ts's apply-mode recompute pass actually find a method for a
-// stale automate-vs-hire or carbon-intensity value instead of leaving it stale forever with
+// stale carbon-intensity value instead of leaving it stale forever with
 // skippedUnknownMethod incrementing.
-import {
-  computeAutomateVsHire,
-  METHOD_ID as AUTOMATE_VS_HIRE_METHOD_ID,
-  METHOD_VERSION as AUTOMATE_VS_HIRE_METHOD_VERSION,
-} from "./automate-vs-hire.ts";
 import {
   computeCarbonIntensity,
   METHOD_ID as CARBON_INTENSITY_METHOD_ID,
@@ -166,7 +161,6 @@ import {
   METHOD_VERSION as SIGNPOST_WATCH_METHOD_VERSION,
 } from "./signpost-watch.ts";
 
-registerMethod(AUTOMATE_VS_HIRE_METHOD_ID, AUTOMATE_VS_HIRE_METHOD_VERSION, computeAutomateVsHire);
 registerMethod(CARBON_INTENSITY_METHOD_ID, CARBON_INTENSITY_METHOD_VERSION, computeCarbonIntensity);
 registerMethod(MARKET_SERIES_DELTA_METHOD_ID, MARKET_SERIES_DELTA_METHOD_VERSION, computeMarketSeriesDelta);
 registerMethod(SIGNPOST_WATCH_METHOD_ID, SIGNPOST_WATCH_METHOD_VERSION, computeSignpostWatch);

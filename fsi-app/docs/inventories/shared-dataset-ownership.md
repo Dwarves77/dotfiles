@@ -1090,3 +1090,13 @@ maintenance/apply-deferrals.mjs` writes ONE `integrity_flags` row per validated 
 own companion write, item 14 above) already parse/write. No second reader or writer of that shape is
 introduced. This lane builds the applier only; the coordinator runs it, apply mode, against a reviewed
 53-item deferral file.
+
+Note (added by lane NO-TYPED-INPUT, 2026-10-03, ADR-043): the retired Operations calculator removed three writers
+registered in the narrative above. `scripts/propagation/seed-derived-values.mjs` no longer has an
+`automate_vs_hire` seed path, so it no longer writes `estimated_values` (it keeps only the
+`carbon_intensity_tkm` `derived_values` seed, and the on-demand region entity mint, `resolveRegionEntityId`, was
+deleted with its only caller). `run-envelope-producer.mjs` no longer authors derivation edges for
+`regional_data_facts` (it writes only the facts through the guarded path), and `state-cost-facts-producer.mjs`
+no longer authors a state-grain derived value (it keeps the entity-spine step). The `automate_vs_hire` method is
+unregistered; migration 350 deletes its `derived_values` rows and the edges into them. `estimated_values` has no
+registered writer after this change; no row is written or removed by this lane.

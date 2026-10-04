@@ -227,7 +227,7 @@ For: regional_data. Reader question: in this region, what is cheaper, what is po
 
 1. Operational Cost Baseline for the Region — sourced industrial electricity rates, diesel/SAF prices, labor rates, port handling, drayage. Each line item dated and sourced.
 2. Feasibility of Specific Operational Choices — on-site solar, BESS, specific equipment, in-region material sourcing. Each: possible / restricted / prohibited, reason, source.
-3. Cost Comparison Against Alternatives — manual vs automated, on-grid vs on-site solar, owned vs leased, in-region vs imported. Breakeven, payback, conditions where the answer flips. Sourced numbers only.
+3. Cost Comparison Against Alternatives, on-grid vs on-site solar, owned vs leased, in-region vs imported. Breakeven, payback, conditions where the answer flips. Sourced numbers only.
 4. Cross-Regional Strategic Implications — how this region's costs/feasibilities change strategic decisions across the workspace's footprint.
 5. Competitive Positioning in the Region — what competitors are doing operationally. Named competitors, sourced.
 6. Client Conversation Talking Points — how to discuss regional capability with clients.
