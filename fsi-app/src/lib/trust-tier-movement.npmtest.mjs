@@ -284,3 +284,30 @@ test("recomputeEffectiveTier with tier_override set reports changed=false (never
   assert.equal(r.after_tier, 2);
   assert.equal(r.changed, false);
 });
+
+// ── Cadence hold (CLAUDE.md rule 16): no_substantive_update is suppressed while scrape_cadence is 'off' ──
+const stale = () => quiet({ base_tier: 4, update_frequency: "weekly", last_substantive_change: daysAgo(200) });
+test("cadence on: a source with no substantive update inside 3x its frequency demotes", async () => {
+  const plan = await planTierMovements(readers({ sources: [stale()] }), { now: NOW, scrapeCadence: "weekly" });
+  assert.equal(plan.movements.length, 1);
+  assert.equal(plan.movements[0].decision.after_tier, 5);
+  assert.deepEqual(plan.movements[0].decision.rules, ["evaluate_demotion"]);
+  assert.equal(plan.held_cadence_off, 0);
+});
+test("cadence off: the same source does not demote and is counted as held_cadence_off", async () => {
+  const plan = await planTierMovements(readers({ sources: [stale()] }), { now: NOW, scrapeCadence: "off" });
+  assert.equal(plan.movements.length, 0);
+  assert.equal(plan.held_cadence_off, 1);
+});
+test("cadence off holds only the scan-timestamp trigger: a conflict-rate demotion still fires", async () => {
+  const s = stale();
+  s.conflict_count = 3; s.conflict_total = 5;
+  const plan = await planTierMovements(readers({ sources: [s] }), { now: NOW, scrapeCadence: "off" });
+  assert.equal(plan.movements.length, 1);
+  assert.deepEqual(plan.movements[0].decision.inputs.demotion.triggers.map((t) => t.trigger), ["high_conflict_rate"]);
+  assert.equal(plan.held_cadence_off, 1);
+});
+test("no cadence given suppresses nothing (per-source callers keep prior behaviour)", async () => {
+  const plan = await planTierMovements(readers({ sources: [stale()] }), { now: NOW });
+  assert.equal(plan.movements.length, 1);
+});

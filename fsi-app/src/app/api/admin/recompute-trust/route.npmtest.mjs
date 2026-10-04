@@ -76,3 +76,11 @@ test("a failed tier write is counted and named in the response block, and the sw
   assert.equal(summary.applied, 1);
   assert.match(summary.failures[0], /A: effective_tier write failed: db down/);
 });
+
+test("cadence off: held_cadence_off is reported in the response block and the held source is not moved", async () => {
+  const stale = src({ update_frequency: "weekly", last_substantive_change: day(200) });
+  const plan = await planTierMovements(readers([stale]), { now: NOW, scrapeCadence: "off" });
+  const summary = tierMovementSummary(plan, await applyTierMovements(plan.movements, { setEffectiveTier: async () => {}, insertEvent: async () => {} }));
+  assert.equal(summary.held_cadence_off, 1);
+  assert.equal(summary.planned, 0);
+});

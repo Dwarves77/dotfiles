@@ -3,13 +3,13 @@
 // 2026-09-19, build plan section 6.1 row M3). "Emission is CODE" -- the same posture
 // emit-corpus-turn-artifact.mjs / run-mint-batch.mjs / run-extraction.mjs already hold for their own
 // families (PROPOSER-RUNBOOK.md section 5, "forgetting is not possible"):
-// .github/workflows/downstream-chain.yml calls this after its four maintenance-step derivations (its own
+// .github/workflows/downstream-chain.yml calls this after its maintenance-step derivations (its own
 // `if: always() && env.RUN_SKIP != 'true'` step, matching corpus-turn.yml's own placement), dry or apply,
 // so a chained firing that skipped (no real work to derive from) or hit a nonzero-exit step still leaves
 // a record -- "record it every batch, even when zero," the same rule this family's siblings apply.
 //
 // This is NOT a canonical entry point in run-mint-batch.mjs's sense: it runs no derivation itself. Its
-// only job is to read back what THIS run's own four `./.github/actions/maintenance-step` calls already
+// only job is to read back what THIS run's own `./.github/actions/maintenance-step` calls already
 // wrote (each one's own `$OUT_ROOT/<step>/summary.json`, scripts/maintenance/lib/cli.mjs's own contract)
 // and record the outcome as this family's own CONVENTION.md-shaped artifact.
 //
@@ -33,7 +33,7 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const FAMILY = "downstream-chain";
 const FAMILY_DIR = resolve(FSI_ROOT, "scripts/harness-runs", FAMILY);
 
-export const STEPS = Object.freeze(["tier-opinions", "derive-obligations", "tag-proposals", "apply-classifications"]);
+export const STEPS = Object.freeze(["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "apply-classifications"]);
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
@@ -120,7 +120,7 @@ export function buildArtifact({
     full_trace_refs: fullTraceRefs,
     proposer_notes: skip
       ? `This dispatch was a no-op: ${skipReason || "no reason recorded"}. No step ran; recorded anyway so the family's own history shows every firing, not only the ones with real work (MINT-RUNBOOK.md's "record it every batch, even when zero," applied here).`
-      : "Auto-emitted by emit-downstream-chain-artifact.mjs after tier-opinions/derive-obligations/tag-proposals/apply-classifications each wrote their own summary.json via the shared ./.github/actions/maintenance-step composite action.",
+      : "Auto-emitted by emit-downstream-chain-artifact.mjs after tier-opinions/recompute-tiers/derive-obligations/tag-proposals/apply-classifications each wrote their own summary.json via the shared ./.github/actions/maintenance-step composite action.",
   };
 }
 

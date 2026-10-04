@@ -14,6 +14,7 @@ export function tierMovementSummary(plan: TierMovementPlan, applied: TierMovemen
   return {
     scanned: plan.scanned,
     override_held: plan.override_held,
+    held_cadence_off: plan.held_cadence_off,
     skipped: plan.skipped.length,
     planned: plan.movements.length,
     applied: applied.applied,

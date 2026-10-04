@@ -38,7 +38,7 @@ import {
 } from "@/lib/trust";
 import type { TierSourceRow } from "@/lib/trust";
 import type { SourceTier } from "@/types/source";
-import { isGloballyPaused } from "@/lib/api/pause";
+import { isGloballyPaused, getScrapeState } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 // Pure shaping logic lives in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
@@ -143,6 +143,9 @@ export async function POST(request: NextRequest) {
   // Tier movement: decide from the evidence, apply, record. See the header.
   let tierMovement: ReturnType<typeof tierMovementSummary>;
   try {
+    // Cadence hold (CLAUDE.md rule 16): one system_state read; 'off' suppresses the scan-timestamp
+    // demotion trigger. getScrapeState fails closed to 'off'.
+    const { cadence: scrapeCadence } = await getScrapeState(supabase);
     const plan = await planTierMovements({
       // The whole registry, paused rows included: a paused source still weighs as a citer, and the
       // planner itself skips moving a paused row.
@@ -172,7 +175,7 @@ export async function POST(request: NextRequest) {
             .order("id", { ascending: true })
             .range(from, to)
         ),
-    });
+    }, { scrapeCadence });
     const applied = await applyTierMovements(plan.movements, {
       setEffectiveTier: async (sourceId, tier) => {
         // The tier_override guard repeats the planner's own rule at the write: an override set between

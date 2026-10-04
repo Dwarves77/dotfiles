@@ -14,6 +14,9 @@
 //                                  median differs from base_tier: one step toward the median
 //                                  (host_class_table opinions are not evidence; institution-canonicalize
 //                                  owns those)
+// Cadence hold (CLAUDE.md rule 16): while system_state.scrape_cadence is 'off' the no_substantive_update
+// demotion trigger is suppressed (it reads scan timestamps that cannot advance during the hold) and the
+// summary reports the count as held_cadence_off. system_state is read once per run.
 // Net movement is clamped to one tier either side of base_tier. An admin tier_override always wins and
 // is never written over. base_tier is never written. Every applied change writes a source_trust_events
 // row (tier_promotion or tier_demotion, created_by "worker", details.applied true).
@@ -47,13 +50,15 @@ const SAMPLE_LIMIT = 25;
  *   tierMovement: { planTierMovements: Function, applyTierMovements: Function },
  *   readers: { readSources: Function, readOpinions: Function, readCitations: Function },
  *   writers: { setEffectiveTier: Function, insertEvent: Function },
+ *   readCadence: () => Promise<string>,
  *   now?: () => Date,
  * }} deps
  */
 export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
   const now = deps.now ? deps.now() : new Date();
-  const plan = await deps.tierMovement.planTierMovements(deps.readers, { now });
+  const scrapeCadence = await deps.readCadence();
+  const plan = await deps.tierMovement.planTierMovements(deps.readers, { now, scrapeCadence });
 
   const summary = {
     step: "recompute-tiers",
@@ -61,6 +66,8 @@ export async function main({ mode = "dry" } = {}, deps) {
     counts: {
       sources_scanned: plan.scanned,
       override_held: plan.override_held,
+      scrape_cadence: scrapeCadence,
+      held_cadence_off: plan.held_cadence_off,
       skipped: plan.skipped.length,
       movements: plan.movements.length,
       promotions: plan.movements.filter((m) => m.decision.after_tier < m.decision.before_tier).length,
@@ -108,6 +115,12 @@ export async function buildDeps() {
   const tierMovement = await jiti.import("../../src/lib/trust.ts");
   return {
     tierMovement,
+    // One read per run of the system_state singleton. A missing row or value reads as 'off' (fail closed,
+    // the same default src/lib/api/pause.ts uses).
+    readCadence: async () => {
+      const rows = await readAll("system_state", "scrape_cadence");
+      return rows?.[0]?.scrape_cadence ?? "off";
+    },
     readers: {
       // The whole registry, paused rows included: a paused source still weighs as a citer, and the
       // planner itself skips moving a paused row.

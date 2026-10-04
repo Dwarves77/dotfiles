@@ -24,7 +24,7 @@ const row = (over = {}) => ({
 });
 const quiet = (over = {}) => row({ base_tier: 5, confirmation_count: 0, independent_citers: 0, lead_time_samples: 0, total_checks: 3, ...over });
 
-function fakeDeps(store, opinions = []) {
+function fakeDeps(store, opinions = [], cadence = "weekly") {
   const writes = [];
   const events = [];
   return {
@@ -32,6 +32,7 @@ function fakeDeps(store, opinions = []) {
     deps: {
       tierMovement,
       now: () => NOW,
+      readCadence: async () => cadence,
       readers: { readSources: async () => store, readOpinions: async () => opinions, readCitations: async () => [] },
       writers: {
         setEffectiveTier: async (id, tier) => { writes.push({ id, tier }); store.find((r) => r.id === id).effective_tier = tier; },
@@ -145,4 +146,17 @@ test("buildDeps(): the real calculator loads, and the writers go through the gua
   const ins = client.__calls.find((c) => c.verb === "insert");
   assert.equal(ins.table, "source_trust_events");
   assert.equal(CITE.skill, "source-credibility-model");
+});
+
+test("cadence off: no_substantive_update is held and reported as held_cadence_off; cadence on demotes", async () => {
+  const stale = () => quiet({ base_tier: 4, update_frequency: "weekly", last_substantive_change: day(200) });
+  const on = fakeDeps([stale()], [], "weekly");
+  const onSummary = await main({ mode: "apply" }, on.deps);
+  assert.deepEqual(on.writes, [{ id: "s1", tier: 5 }]);
+  assert.equal(onSummary.counts.held_cadence_off, 0);
+  const off = fakeDeps([stale()], [], "off");
+  const offSummary = await main({ mode: "apply" }, off.deps);
+  assert.equal(off.writes.length, 0);
+  assert.equal(offSummary.counts.held_cadence_off, 1);
+  assert.equal(offSummary.counts.scrape_cadence, "off");
 });

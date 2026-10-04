@@ -354,6 +354,8 @@ export interface DemotionEvaluation {
     current_value: string;         // What the actual value is
   }[];
   recommended_tier: SourceTier;
+  /** Triggers that fired but were suppressed by the caller (opts.suppressTriggers); never counted in `triggered`. */
+  held_triggers?: DemotionTrigger["trigger"][];
 }
 
 // Evaluate whether a source is eligible for promotion
@@ -416,9 +418,13 @@ export function evaluatePromotion(source: Source): PromotionEvaluation | null {
 
 // Evaluate whether a source should be demoted
 
-export function evaluateDemotion(source: Source): DemotionEvaluation {
+export function evaluateDemotion(
+  source: Source,
+  opts: { suppressTriggers?: ReadonlyArray<DemotionTrigger["trigger"]> } = {}
+): DemotionEvaluation {
   const m = source.trust_metrics;
   const triggers_fired: DemotionEvaluation["triggers_fired"] = [];
+  const held_triggers: DemotionTrigger["trigger"][] = [];
 
   for (const trigger of DEMOTION_TRIGGERS) {
     // Phase 1.5: base_tier per scoring-internals default rule.
@@ -486,7 +492,11 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
     }
 
     if (fired) {
-      triggers_fired.push({ trigger, current_value: currentValue });
+      if (opts.suppressTriggers?.includes(trigger.trigger)) {
+        held_triggers.push(trigger.trigger);
+      } else {
+        triggers_fired.push({ trigger, current_value: currentValue });
+      }
     }
   }
 
@@ -498,6 +508,7 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
     triggered: triggers_fired.length > 0,
     triggers_fired,
     recommended_tier: triggers_fired.length > 0 ? recommendedTier : source.base_tier,
+    ...(held_triggers.length > 0 ? { held_triggers } : {}),
   };
 }
 
@@ -1082,9 +1093,21 @@ export function trustMetricsFromRow(s: TierSourceRow): TrustMetrics {
   };
 }
 
+/**
+ * Cadence hold (CLAUDE.md rule 16). While system_state.scrape_cadence is 'off', scan timestamps cannot
+ * advance, so a trigger that reads them (no_substantive_update) would fire on every unscanned source.
+ * It contributes no delta during the hold and is counted as held. Any other cadence value, or no value
+ * given, suppresses nothing.
+ */
+export const CADENCE_HELD_TRIGGERS: ReadonlyArray<DemotionTrigger["trigger"]> = ["no_substantive_update"];
+function cadenceHeldTriggers(scrapeCadence?: string | null): ReadonlyArray<DemotionTrigger["trigger"]> {
+  return scrapeCadence === "off" ? CADENCE_HELD_TRIGGERS : [];
+}
+
 /** evaluatePromotion + evaluateDemotion over one sources row. Both read only the narrow object built here. */
 export function evaluateTierEvidenceForRow(
-  s: TierSourceRow
+  s: TierSourceRow,
+  opts: { scrapeCadence?: string | null } = {}
 ): { promotion: PromotionEvaluation | null; demotion: DemotionEvaluation } {
   const metrics = trustMetricsFromRow(s);
   const base = s.base_tier as SourceTier;
@@ -1099,7 +1122,10 @@ export function evaluateTierEvidenceForRow(
     // evaluatePromotion and evaluateDemotion read only the fields above; every other Source field is
     // irrelevant to their verdicts.
   } as unknown as Source;
-  return { promotion: evaluatePromotion(narrow), demotion: evaluateDemotion(narrow) };
+  return {
+    promotion: evaluatePromotion(narrow),
+    demotion: evaluateDemotion(narrow, { suppressTriggers: cadenceHeldTriggers(opts.scrapeCadence) }),
+  };
 }
 
 // Per-source recompute (used by source-growth's end-of-cycle reputation step)
@@ -1127,7 +1153,8 @@ export interface EffectiveTierRecomputeResult {
 export async function recomputeEffectiveTier(
   client: SupabaseLikeClient,
   sourceId: string,
-  halfLifeMonths: number = HALF_LIFE_MONTHS
+  halfLifeMonths: number = HALF_LIFE_MONTHS,
+  opts: { scrapeCadence?: string | null } = {}
 ): Promise<EffectiveTierRecomputeResult> {
   const { data: src, error: srcErr } = await client
     .from("sources")
@@ -1162,7 +1189,7 @@ export async function recomputeEffectiveTier(
     throw new Error(`recomputeEffectiveTier: failed to read source_tier_opinions for ${sourceId}: ${opErr.message}`);
   }
 
-  const { promotion, demotion } = evaluateTierEvidenceForRow(row);
+  const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence: opts.scrapeCadence });
   const decision = decideEffectiveTier({
     base_tier,
     effective_tier: row.effective_tier == null ? null : (row.effective_tier as SourceTier),
@@ -1204,6 +1231,8 @@ export interface TierMovementReaders {
 export interface TierMovementPlan {
   scanned: number;
   override_held: number;
+  /** Sources whose cadence-held demotion trigger was suppressed (scrape cadence off). */
+  held_cadence_off: number;
   skipped: Array<{ source_id: string; reason: string }>;
   /** Only the sources whose effective_tier would change. */
   movements: Array<{ source_id: string; name: string | null; decision: TierMovementDecision }>;
@@ -1212,7 +1241,7 @@ export interface TierMovementPlan {
 /** Pure over its readers: decides every source, returns the ones that move. Never writes. */
 export async function planTierMovements(
   readers: TierMovementReaders,
-  opts: { now?: Date; halfLifeMonths?: number } = {}
+  opts: { now?: Date; halfLifeMonths?: number; scrapeCadence?: string | null } = {}
 ): Promise<TierMovementPlan> {
   const now = opts.now ?? new Date();
   const halfLife = opts.halfLifeMonths ?? HALF_LIFE_MONTHS;
@@ -1236,7 +1265,7 @@ export async function planTierMovements(
   const tierById = new Map<string, number>();
   for (const s of sources) tierById.set(s.id, s.effective_tier ?? s.base_tier);
 
-  const plan: TierMovementPlan = { scanned: sources.length, override_held: 0, skipped: [], movements: [] };
+  const plan: TierMovementPlan = { scanned: sources.length, override_held: 0, held_cadence_off: 0, skipped: [], movements: [] };
   for (const row of sources) {
     if (row.processing_paused === true) {
       plan.skipped.push({ source_id: row.id, reason: "processing_paused" });
@@ -1252,7 +1281,8 @@ export async function planTierMovements(
       edges.length === 0
         ? { should_promote: false, reasoning: "no citations" }
         : scoreCitationEdges(edges, tierById, halfLife, now.getTime());
-    const { promotion, demotion } = evaluateTierEvidenceForRow(row);
+    const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence: opts.scrapeCadence });
+    if (demotion.held_triggers?.length) plan.held_cadence_off += 1;
     const decision = decideEffectiveTier({
       base_tier,
       effective_tier: row.effective_tier == null ? null : (row.effective_tier as SourceTier),

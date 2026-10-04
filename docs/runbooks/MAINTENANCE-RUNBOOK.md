@@ -4123,9 +4123,12 @@ A `workflow_run`-chained firing is forced dry while build mode is live (rule 16,
 **Idempotency**: a second run over unchanged inputs finds every stored `effective_tier` equal to its
 decision and writes nothing.
 
-**Known limit**: staleness triggers (`no_substantive_update`) read scan timestamps, which stop advancing
-while the scrape cadence is off (rule 16). Run apply only once scans are producing fresh timestamps, or
-expect those triggers to fire on unscanned sources.
+**Cadence hold (rule 16)**: while `system_state.scrape_cadence` is `off`, the `no_substantive_update`
+demotion trigger is suppressed, because it reads scan timestamps that cannot advance during the hold. It
+contributes no delta and `summary.json` reports the count as `counts.held_cadence_off` (with
+`counts.scrape_cadence`). The step reads `system_state` once per run through `readAll`; the route reads
+it once through `getScrapeState`. Any value other than `off` suppresses nothing. Other triggers
+(conflict rate, chronic inaccessibility, self-citation) still fire during the hold.
 
 ---
 
