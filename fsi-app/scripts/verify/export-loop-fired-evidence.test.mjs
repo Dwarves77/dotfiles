@@ -119,6 +119,28 @@ test("CLI: --write writes exactly the rendered entries to the injected path", as
   assert.equal(out.written[0][1], renderEvidenceFile(parsed.entries));
 });
 
+test("CLI: --write --out <path> writes to the given path, resolved against the cwd, not the default file", async () => {
+  const { out, deps } = cliDeps();
+  assert.equal(await runCli(["--write", "--out", "rel/dir/evidence.json"], deps), 0);
+  assert.equal(out.written.length, 1);
+  assert.equal(out.written[0][0], resolve(process.cwd(), "rel/dir/evidence.json"));
+  assert.notEqual(out.written[0][0], "/fixture/loop-fired-evidence.json");
+});
+
+test("CLI: --out without --write is refused with a message, nothing is read or written", async () => {
+  const { out, deps } = cliDeps({ readAllFn: async () => { throw new Error("must not read"); } });
+  assert.equal(await runCli(["--out", "x.json"], deps), 1);
+  assert.match(out.errs[0], /--out requires --write/);
+  assert.equal(out.written.length, 0);
+});
+
+test("CLI: --out with no path value is refused", async () => {
+  const { out, deps } = cliDeps();
+  assert.equal(await runCli(["--write", "--out"], deps), 1);
+  assert.match(out.errs[0], /--out needs a path/);
+  assert.equal(out.written.length, 0);
+});
+
 test("CLI: a DB read error is exit 1 and nothing is written", async () => {
   const { out, deps } = cliDeps({ readAllFn: async () => { throw new Error("boom"); } });
   assert.equal(await runCli(["--write"], deps), 1);
