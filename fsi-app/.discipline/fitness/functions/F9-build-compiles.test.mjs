@@ -15,6 +15,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fitnessFunction, _findTsc } from './F9-build-compiles.mjs';
 
+const SENTINEL = 'fsi-app/tsconfig.json';
+
 test('F9: has required metadata fields', () => {
   assert.equal(fitnessFunction.id, 'F9');
   assert.equal(typeof fitnessFunction.name, 'string');
@@ -45,3 +47,30 @@ test('F9: _findTsc returns a path or null', () => {
 // Optional integration smoke (slow; only run if explicitly invoked via the runner).
 // This test is here for documentation purposes; the actual gate is the runner
 // running F9 against the codebase.
+
+// Lane GATES-1 (2026-10-04): tsc not resolving is a SKIP (environment fact), a tsc that runs and fails is
+// still a violation (the attack case), and tsc passing is a PASS. Typecheck is injected, no real compile.
+test('F9: tsc not resolvable is a SKIP line and no violation', () => {
+  const logged = [];
+  const v = fitnessFunction.check(SENTINEL, '', {
+    typecheck: () => ({ ok: false, output: 'typescript does not resolve from fsi-app/.', errCode: 'TSC_NOT_FOUND' }),
+    log: (m) => logged.push(m),
+  });
+  assert.deepEqual(v, []);
+  assert.equal(logged.length, 1);
+  assert.match(logged[0], /\[F9\] SKIP: typescript does not resolve/);
+});
+
+test('F9 ATTACK: a tsc that runs and reports type errors is still a violation', () => {
+  const v = fitnessFunction.check(SENTINEL, '', {
+    typecheck: () => ({ ok: false, output: 'src/a.ts(1,1): error TS2322: bad type', errCode: 2 }),
+    log: () => assert.fail('a real type error must not log a skip'),
+  });
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /TypeScript compilation failed \(tsc --noEmit exit code 2\)/);
+  assert.match(v[0].message, /error TS2322/);
+});
+
+test('F9: tsc passing is a PASS', () => {
+  assert.deepEqual(fitnessFunction.check(SENTINEL, '', { typecheck: () => ({ ok: true, output: '' }) }), []);
+});

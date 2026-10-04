@@ -18,6 +18,7 @@ import {
   extractWorkflowRunNames,
   hasWorkflowRunEdge,
   familyFiredStatus,
+  readFiredEvidence,
   fitnessFunction,
 } from './F50-loop-wiring.mjs';
 
@@ -133,4 +134,70 @@ test('LIVE: fitnessFunction.check() over the real committed tree returns zero vi
 
 test('enumerate() returns exactly one sentinel path (holistic pattern, same as F23/F25/F27/F47)', () => {
   assert.deepEqual(fitnessFunction.enumerate(), ['fsi-app/.discipline/governance/loop-manifest.mjs']);
+});
+
+// ── LANE GATES-1: firing evidence from the committed evidence file (chained runs land in harness_runs) ──
+
+const HOP = {
+  id: 'h-one',
+  producer: { file: '.github/workflows/a.yml', name: 'A' },
+  consumer: { file: '.github/workflows/b.yml', name: 'B' },
+  trigger: 'workflow_run',
+  family: 'fam-b',
+  enforceEdge: false,
+  enforceFired: true,
+  note: 'fixture',
+};
+const NO_ARTIFACT = () => ({ dirExists: true, hasFiredArtifact: false });
+const entry = (over = {}) => ({
+  hop: 'h-one', family: 'fam-b', run_id: 'fam-b-run-001', github_run_id: '1', upstream_run_id: '0',
+  started_at: '2026-10-03T00:00:00Z', trigger: 'workflow_run', ...over,
+});
+const run = (evidenceText, hops = [HOP], familyStatus = NO_ARTIFACT) =>
+  fitnessFunction.check('x', '', { hops, evidenceText, familyStatus, repoRoot: '/none', log: () => {} });
+
+test('GATES-1: an enforceFired hop with no artifact and no evidence entry is a violation (the old rule)', () => {
+  const v = run(JSON.stringify({ entries: [] }));
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /enforceFired is true but no artifact/);
+});
+
+test('GATES-1: an evidence entry for the hop satisfies enforceFired with no committed artifact', () => {
+  assert.deepEqual(run(JSON.stringify({ entries: [entry()] })), []);
+});
+
+test('GATES-1: workflow_run_forced_dry evidence counts as fired', () => {
+  assert.deepEqual(run(JSON.stringify({ entries: [entry({ trigger: 'workflow_run_forced_dry' })] })), []);
+});
+
+test('GATES-1: a committed artifact still satisfies enforceFired with no evidence file at all (today rule kept)', () => {
+  assert.deepEqual(run(null, [HOP], () => ({ dirExists: true, hasFiredArtifact: true })), []);
+});
+
+test('ATTACK: an evidence entry for an unknown hop fails F50', () => {
+  const v = run(JSON.stringify({ entries: [entry({ hop: 'no-such-hop' })] }), [{ ...HOP, enforceFired: false }]);
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /unknown hop "no-such-hop"/);
+});
+
+test('ATTACK: an evidence entry whose family is not the hop family fails F50 and does not count as fired', () => {
+  const v = run(JSON.stringify({ entries: [entry({ family: 'other-family' })] }));
+  assert.ok(v.some((x) => /names family "other-family"/.test(x.message)));
+  assert.ok(v.some((x) => /enforceFired is true but no artifact/.test(x.message)), 'the mismatched entry must not satisfy the hop');
+});
+
+test('ATTACK: an evidence entry with a non-fired trigger fails F50', () => {
+  const v = run(JSON.stringify({ entries: [entry({ trigger: 'manual' })] }));
+  assert.ok(v.some((x) => /carries trigger "manual"/.test(x.message)));
+});
+
+test('ATTACK: a corrupt or shapeless evidence file fails F50', () => {
+  assert.match(run('{ nope')[0].message, /not valid JSON/);
+  assert.ok(run(JSON.stringify({ rows: [] })).some((x) => /no "entries" array/.test(x.message)));
+});
+
+test('readFiredEvidence: absent file yields no fired hops and no problems', () => {
+  const r = readFiredEvidence(null, [HOP]);
+  assert.equal(r.firedHopIds.size, 0);
+  assert.deepEqual(r.problems, []);
 });
