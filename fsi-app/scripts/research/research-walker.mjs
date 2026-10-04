@@ -54,6 +54,9 @@ import { hostOf } from "../../src/lib/sources/institution.ts";
 import { isMainModule } from "../lib/is-main.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { rateSourceByInstitutionClass } from "../lib/rate-source-by-class.mjs";
+import { verdictPlacementForHost, isDoiResolverHost } from "../../src/lib/sources/host-authority.ts";
+import { loadHostVerdicts, HOST_VERDICTS_DIR } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
+import { RESIDUE_REASON } from "../maintenance/resolve-provisional-sources.mjs";
 import { openAlexGet } from "./openalex-client.mjs";
 import {
   claimRunId,
@@ -131,6 +134,47 @@ export async function resolveGreyLitSource({ name, url }, { mode, registerSource
   return rateSourceByInstitutionClass({ url, name }, { mode, registerSourceFn, cite: CITE });
 }
 
+// ── OpenAlex publisher registration (rule 18: find the source, rate it, never refuse) ──────────────────
+
+/** Resolve one OpenAlex candidate's publisher host through the existing rating-by-class path, then, only
+ *  when the host places, register it (apply mode, provisional status, class tier) or preview it (dry mode,
+ *  `would_register`). Placement order is the one every other resolver in this repo uses: the built-in
+ *  class rules first (rateSourceByInstitutionClass, no stored name passed, so an unknown host is never
+ *  silently rated `company`), then a committed host verdict (verdictPlacementForHost, the tier read from
+ *  HOST_CLASS_TIER, never typed). A host neither places is NOT a rejection: it is residue, reason
+ *  "awaiting host verdict batch", and it is returned for the run's unplaced-host list. No human gate. */
+export async function resolveOpenAlexPublisher(candidate, { mode, registerSourceFn, hostVerdicts } = {}) {
+  const host = hostOf(candidate.sourceUrl);
+  if (!host) return { placed: false, host: "", reason: "no resolvable host" };
+  // A DOI / handle resolver is a redirect, never the publisher (never-register class). The candidate's URL
+  // is the record's landing page when it carries one (normalizeOpenAlexWork), so reaching here with a
+  // resolver host means the record offers no publisher page. Residue, and the resolver host is NOT put on
+  // the unplaced-host list (a verdict naming it would be refused anyway).
+  if (isDoiResolverHost(host)) return { placed: false, host: "", reason: "publisher host unresolved from DOI" };
+  const extra = { status: "provisional" };
+  const builtIn = await rateSourceByInstitutionClass(
+    { url: candidate.sourceUrl, name: null },
+    {
+      mode,
+      cite: CITE,
+      registerSourceFn: registerSourceFn && ((src, opts) => registerSourceFn({ ...src, extra }, opts)),
+    },
+  );
+  if (builtIn.ok) {
+    return { placed: true, host, placedBy: "built-in rule", tier: builtIn.tier, sourceId: builtIn.source_id, verdictBatch: null };
+  }
+  const verdict = verdictPlacementForHost(host, hostVerdicts);
+  if (verdict) {
+    let sourceId = `preview:${host}`;
+    if (mode === "apply") {
+      const reg = await registerSourceFn({ url: candidate.sourceUrl, name: host, base_tier: verdict.tier, extra }, { cite: CITE });
+      sourceId = reg.source_id;
+    }
+    return { placed: true, host, placedBy: "host verdict", tier: verdict.tier, sourceId, verdictBatch: verdict.batch };
+  }
+  return { placed: false, host, reason: RESIDUE_REASON };
+}
+
 // ── Candidate -> MintPlan seed ────────────────────────────────────────────────────────────────────────
 
 /** Pure: build the intelligence_items seed (MintPlan.seed shape, mint-item.ts) for one normalized
@@ -138,9 +182,9 @@ export async function resolveGreyLitSource({ name, url }, { mode, registerSource
  *  reading src/lib/domains.ts) -- mint-item.ts's own canonicalDomainOverride would correct a wrong value
  *  anyway (research_finding is in its UNCONDITIONAL_DOMAIN_TYPES set), so this is a courtesy, not a gap
  *  if it drifted. `source_id` is passed through only when the grey-lit resolution step above produced
- *  one; an OpenAlex candidate with no registered publisher host is left without one ON PURPOSE -- the
- *  chokepoint's own source-link invariant then honestly rejects it as `unsourced` rather than this file
- *  guessing a source. */
+ *  one; runWalk resolves an OpenAlex candidate's publisher host through resolveOpenAlexPublisher
+ *  (lane S1-D, rule 18) and passes the registered id here, so the chokepoint's source-link invariant is
+ *  satisfied by a real, rated source, never a guess. */
 export function buildMintSeed(candidate, { sourceId = null } = {}) {
   const seed = {
     title: candidate.title,
@@ -228,8 +272,17 @@ export function decideApply({ dispatch, enabled, killSwitchOn, hasCreds }) {
 
 // ── CLI orchestration ────────────────────────────────────────────────────────────────────────────────
 
-async function runWalk({ greyLitSources, openAlexQuery, openAlexDeps = {}, mode }) {
-  const openAlexCandidates = await searchOpenAlexWorks({ query: openAlexQuery, perPage: 10 }, openAlexDeps);
+export async function runWalk({
+  greyLitSources,
+  openAlexQuery,
+  openAlexDeps = {},
+  mode,
+  hostVerdicts = new Map(),
+  registerSourceFn,
+  openAlexCandidatesOverride,
+}) {
+  const openAlexCandidates =
+    openAlexCandidatesOverride ?? (await searchOpenAlexWorks({ query: openAlexQuery, perPage: 10 }, openAlexDeps));
   const perItem = [];
   const greyLitResults = [];
   const registeredSources = [];
@@ -247,6 +300,32 @@ async function runWalk({ greyLitSources, openAlexQuery, openAlexDeps = {}, mode 
     }
   }
 
+  // OpenAlex candidates: register-and-rate the publisher host (rule 18) BEFORE the chokepoint. A candidate
+  // whose host places is minted with its source_id; one whose host does not place is residue, never a
+  // rejection, and its host goes on the run's unplaced-host list (the host-verdict export input).
+  const unplacedHosts = new Map();
+  const minting = [];
+  let wouldRegister = 0;
+  for (const c of openAlexCandidates) {
+    const pub = await resolveOpenAlexPublisher(c, { mode, registerSourceFn, hostVerdicts });
+    if (!pub.placed) {
+      perItem.push({ id: c.sourceUrl, outcome: `residue:${pub.reason}`, verdict: pub.host ? `host ${pub.host}` : null, error: null });
+      if (pub.host && !unplacedHosts.has(pub.host)) {
+        unplacedHosts.set(pub.host, { host: pub.host, name: null, discovered_via: WALKER_NAME, sample_url: c.sourceUrl });
+      }
+      continue;
+    }
+    wouldRegister += 1;
+    registeredSources.push({ id: pub.sourceId, url: c.sourceUrl });
+    perItem.push({
+      id: c.sourceUrl,
+      outcome: `${mode === "apply" ? "registered" : "would_register"} (tier ${pub.tier}, ${pub.placedBy}${pub.verdictBatch ? ` ${pub.verdictBatch}` : ""})`,
+      verdict: null,
+      error: null,
+    });
+    minting.push(c);
+  }
+
   const candidates = [
     ...greyLitSources.map((src, i) => ({
       title: `Candidate from ${src.name}: ${src.url.split("/").pop()}`,
@@ -255,7 +334,7 @@ async function runWalk({ greyLitSources, openAlexQuery, openAlexDeps = {}, mode 
       sourceHost: hostOf(src.url),
       _greyLitIndex: i,
     })),
-    ...openAlexCandidates,
+    ...minting,
   ];
 
   const sb = buildFixtureSbClient({ registeredSources, corpus: [] });
@@ -287,8 +366,11 @@ async function runWalk({ greyLitSources, openAlexQuery, openAlexDeps = {}, mode 
       grey_lit_sources: greyLitSources.length,
       grey_lit_resolved: greyLitResults.filter((r) => r.ok).length,
       candidates: candidates.length,
+      would_register: wouldRegister,
       would_mint: wouldMint,
       rejected_unsourced: rejected,
+      residue_awaiting_host_verdict: openAlexCandidates.length - minting.length,
+      unplaced_hosts: [...unplacedHosts.values()],
       mode,
     },
     greyLitResults,
@@ -335,6 +417,9 @@ async function main() {
     openAlexQuery: "freight decarbonisation",
     openAlexDeps: { fetch: fixtureFetch },
     mode: "dry",
+    // The fixture run reads the loader's own fixture batch by name (it is never picked up by real
+    // discovery); a live run passes loadHostVerdicts({ dir: HOST_VERDICTS_DIR }) (the committed batches).
+    hostVerdicts: loadHostVerdicts({ files: [resolvePath(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts,
   });
 
   console.log(`${WALKER_NAME}: metrics ${JSON.stringify(result.metrics)}`);
@@ -360,9 +445,10 @@ async function main() {
       "resolves the 3 named grey-lit sources through the institution class table (rule 18), then runs " +
       "every candidate (grey-lit + OpenAlex-fixture) through the real mint chokepoint " +
       "(mint-item.ts's mintIntelligenceItem) in dryRun mode. An OpenAlex candidate whose publisher host " +
-      "is not one of the 3 named registered sources is correctly rejected `unsourced` by the chokepoint's " +
-      "own source-link invariant -- this lane registers only the 3 named sources, not every OpenAlex " +
-      "publisher host (out of scope; that is an L3/authority-score-scale concern, not this lane's). " +
+      "is resolved through the institution class table plus committed host verdicts (lane S1-D, rule 18): " +
+      "a host that places is registered (previewed as would_register in dry mode) and minted; a host that " +
+      "does not place is residue (awaiting host verdict batch), listed in metrics.unplaced_hosts, never a " +
+      "rejection. " +
       "Zero flywheel post-insert hops fire in dry mode (mint-item.ts returns before its single INSERT); " +
       "a live --dispatch apply run (not exercised here, no DB credentials in this worktree) would run " +
       "every one of them unconditionally inside the same chokepoint.",

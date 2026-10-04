@@ -108,8 +108,8 @@ export function codifiedTierForHost(host: string | null | undefined): number | n
   // Defect D14: LEGAL_PUBLISHER_ALLOW is checked in the SAME branch as LEGAL_PRIMARY, before GOV_TLD --
   // several of its hosts (legifrance.gouv.fr, wetten.overheid.nl) also carry a GOV_LABEL_UNDER_CC_TLD
   // label, so T1 must win here, the same "legal beats gov" order legislation.gov.uk already relies on.
-  if (LEGAL_PRIMARY.test(h) || LEGAL_PUBLISHER_ALLOW.has(h)) return 1;
-  if (GOV_INTERGOV.test(h) || GOV_TLD.test(h)) return 2;
+  if (LEGAL_PRIMARY.test(h) || LEGAL_PUBLISHER_ALLOW.has(h)) return HOST_CLASS_TIER.legal;
+  if (GOV_INTERGOV.test(h) || GOV_TLD.test(h)) return HOST_CLASS_TIER.gov;
   return null;
 }
 
@@ -186,11 +186,19 @@ const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|c
  *  ANALYSIS's loose substrings above) because several of these stems (ey, bcg) are too short to risk as
  *  an unanchored substring match. */
 const BIG4_ADVISORY_HOST = /(^|\.)(pwc|deloitte|ey|kpmg|mckinsey|bcg|bain|accenture|guidehouse|rolandberger)\.[a-z.]+$/;
+/** DOI / handle resolvers (doi.org, dx.doi.org, hdl.handle.net): a redirect to the publisher, never the publisher.
+ *  Never-register class (lane S1-D, 2026-10-04); folded into LEGAL_AGGREGATOR below so permanentlyUnregisteredClass
+ *  and verdictPlacementForHost refuse it, a host verdict included. */
+const DOI_RESOLVER = /(^|\.)(doi\.org|handle\.net)$/;
+export function isDoiResolverHost(host: string | null | undefined): boolean {
+  return DOI_RESOLVER.test(String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, ""));
+}
 /** LEGAL AGGREGATORS (operator ruling #3: justia / legiscan / Cornell LII class) → PERMANENT worklist (null).
  *  They republish statutes but are NOT the official publisher — a span is a re-attribution instruction. This
  *  fires BEFORE the academic .edu rule so a legal-info-institute on .edu (law.cornell.edu) is NOT minted T4.
  *  `mondaq` (republishes law-firm commentary) and `up.codes` (republishes building codes) added 2026-08-11. */
-const LEGAL_AGGREGATOR = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity|(^|\.)mondaq\.com$|(^|\.)up\.codes$)/;
+const LEGAL_AGGREGATOR_BASE = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity|(^|\.)mondaq\.com$|(^|\.)up\.codes$)/;
+const LEGAL_AGGREGATOR = new RegExp(DOI_RESOLVER.source + "|" + LEGAL_AGGREGATOR_BASE.source);
 /** HOSTING PLATFORMS (2026-08-11 ruling) → PERMANENT worklist (null). A third-party SaaS that hosts someone
  *  else's publication (Citizen Space hosts UK departmental consultations) is not the publisher either — the
  *  same re-attribution instruction as an aggregator, arrived at from the hosting side rather than the
@@ -347,8 +355,8 @@ const RESIDUE_THINK_TANK_WORDS: readonly string[] = [
 ];
 function residueGovernmentTier(host: string, normName: string): number | null {
   if (nameHasAnyWord(normName, RESIDUE_THINK_TANK_WORDS)) return null;
-  if (residueGovHostLabelMatch(host)) return 2;
-  if (nameHasAnyWord(normName, RESIDUE_GOV_NOUN_WORDS)) return 2;
+  if (residueGovHostLabelMatch(host)) return HOST_CLASS_TIER.gov;
+  if (nameHasAnyWord(normName, RESIDUE_GOV_NOUN_WORDS)) return HOST_CLASS_TIER.gov;
   return null;
 }
 
@@ -361,10 +369,10 @@ function residueGovernmentTier(host: string, normName: string): number | null {
 // association (T4) via the "council" carve-out instead of falling through to analysis (T6), where the
 // SAME "council on" phrase is also listed in RESIDUE_ANALYSIS_WORDS.
 function residueAssociationTier(normName: string, host: string): number | null {
-  if (nameHasAnyWord(normName, RESIDUE_ASSOCIATION_WORDS)) return 4;
+  if (nameHasAnyWord(normName, RESIDUE_ASSOCIATION_WORDS)) return HOST_CLASS_TIER.association;
   if (nameHasWord(normName, "council")) {
     if (nameHasAnyWord(normName, RESIDUE_THINK_TANK_WORDS)) return null;
-    if (residueGovernmentTier(host, normName) == null) return 4;
+    if (residueGovernmentTier(host, normName) == null) return HOST_CLASS_TIER.association;
   }
   return null;
 }
@@ -378,8 +386,8 @@ const RESIDUE_NEWS_WORDS: readonly string[] = [
 const RESIDUE_CORPORATE_PRESSROOM_WORDS: readonly string[] = ["newsroom", "press release", "media information"];
 function residueNewsTier(host: string, normName: string): number | null {
   if (nameHasAnyWord(normName, RESIDUE_CORPORATE_PRESSROOM_WORDS)) return null;
-  if (nameHasAnyWord(normName, RESIDUE_NEWS_WORDS)) return 7;
-  if (/\.news$/.test(host)) return 7;
+  if (nameHasAnyWord(normName, RESIDUE_NEWS_WORDS)) return HOST_CLASS_TIER.news;
+  if (/\.news$/.test(host)) return HOST_CLASS_TIER.news;
   return null;
 }
 
@@ -390,7 +398,7 @@ const RESIDUE_ANALYSIS_WORDS: readonly string[] = [
   "analysis", "consulting", "advisory", "insight",
 ];
 function residueAnalysisTier(normName: string): number | null {
-  return nameHasAnyWord(normName, RESIDUE_ANALYSIS_WORDS) ? 6 : null;
+  return nameHasAnyWord(normName, RESIDUE_ANALYSIS_WORDS) ? HOST_CLASS_TIER.analysis : null;
 }
 
 // Rule 7 (T7, company -- new class): any host with a stored name and no rule 1-6 match. Its own site is
@@ -415,9 +423,9 @@ export function classifyResidueRuling(host: string | null | undefined, name?: st
   const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
   const normName = normalizeRegistryName(name);
   if (h) {
-    if (nameHasAnyWord(normName, RESIDUE_LEGAL_WORDS)) return { tier: 1, rule: "legal" };
+    if (nameHasAnyWord(normName, RESIDUE_LEGAL_WORDS)) return { tier: HOST_CLASS_TIER.legal, rule: "legal" };
     if (nameHasAnyWord(normName, RESIDUE_ACADEMIC_WORDS) || UNIVERSITY_PREFIX.test(normName)) {
-      return { tier: 4, rule: "academic" };
+      return { tier: HOST_CLASS_TIER.academic, rule: "academic" };
     }
     const association = residueAssociationTier(normName, h);
     if (association != null) return { tier: association, rule: "association" };
@@ -428,7 +436,7 @@ export function classifyResidueRuling(host: string | null | undefined, name?: st
     const analysis = residueAnalysisTier(normName);
     if (analysis != null) return { tier: analysis, rule: "analysis" };
   }
-  if (name != null && String(name).trim() !== "") return { tier: 7, rule: "company" };
+  if (name != null && String(name).trim() !== "") return { tier: HOST_CLASS_TIER.company, rule: "company" };
   return { tier: null, rule: "worklist" };
 }
 
@@ -457,12 +465,12 @@ function preResidueTierForHost(host: string | null | undefined): number | null {
   if (!h) return null;
   const ruled = RULED_HOST_TIER.get(h);
   if (ruled != null) return ruled; // a ruling already made, recorded — not a rule inferred
-  if (VERIFIER_CAB.test(h)) return 4;
-  if (ACADEMIC_TLD.test(h)) return 4;
-  if (ASSOCIATION_ALLOW.has(h)) return 4;
-  if (STANDARDS_BODY_ALLOW.has(h)) return 4;
-  if (ANALYSIS.test(h) || BIG4_ADVISORY_HOST.test(h)) return 6;
-  if (LAWFIRM.test(h) || NEWS.test(h)) return 7;
+  if (VERIFIER_CAB.test(h)) return HOST_CLASS_TIER.verifier;
+  if (ACADEMIC_TLD.test(h)) return HOST_CLASS_TIER.academic;
+  if (ASSOCIATION_ALLOW.has(h)) return HOST_CLASS_TIER.association;
+  if (STANDARDS_BODY_ALLOW.has(h)) return HOST_CLASS_TIER.standards_body;
+  if (ANALYSIS.test(h) || BIG4_ADVISORY_HOST.test(h)) return HOST_CLASS_TIER.analysis;
+  if (LAWFIRM.test(h) || NEWS.test(h)) return HOST_CLASS_TIER.lawfirm;
   return null;
 }
 
@@ -541,6 +549,9 @@ export function classTierForHostAcrossNames(
   return bestTier;
 }
 
+// Class tiers: every built-in rule above reads its tier from HOST_CLASS_TIER (lane S1-D, 2026-10-04), so the
+// table below is the ONE place a class's tier is stated for the rules. RULED_HOST_TIER's per-host data stays
+// literal (a recorded ruling per host); host-authority-class-tier.test.mjs pins one host per class to the table.
 // ── HOST VERDICTS (lane S1-B, 2026-10-04) ───────────────────────────────────────────────────────────────────
 // A host the built-in rules above cannot place no longer waits for a code edit to RULED_HOST_TIER: a session
 // lane classifies it into a committed `host-verdicts-NNN.json` batch (scripts/maintenance/host-verdicts/) and
