@@ -6,8 +6,9 @@ import {
   main, CITE, RESTORE_CITE, ARCHIVE_REASON, SWEEP_MARKER, RESTORE_ARG_PREFIX,
   isTitleOnlyFacts, planSelection, groupCounts, chunkList,
   buildArchivePatch, buildSweepNote, appendNote, planCensusReturn,
-  pickLatestPriorStates, buildRestorePatchFromPrior, buildRestoreSql,
+  pickLatestPriorStates, buildRestorePatchFromPrior, buildRestoreSql, isSeriesItem,
 } from "./record-hollow-sweep.mjs";
+import { SERIES_ITEM_MAP_RAW } from "../../src/lib/market/series-item-map.mjs";
 
 // ── isTitleOnlyFacts ─────────────────────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,37 @@ test("planSelection: only title-only-fact items are targets; others excluded", (
   assert.deepEqual(targets.map((t) => t.id).sort(), ["a", "c"]);
   assert.equal(targets.find((t) => t.id === "a").host, "eur-lex.europa.eu");
   assert.equal(targets.find((t) => t.id === "c").host, "legislation.gov.uk");
+});
+
+// ── series exemption (S0, 2026-10-04) ───────────────────────────────────────────────────────────────
+
+const SERIES_KEY = Object.keys(SERIES_ITEM_MAP_RAW)[0]; // an `eu-oil-bulletin:` key, read from the map itself
+const SERIES_ITEM = { id: "s", item_type: "market_signal", source_url: "https://energy.ec.europa.eu/x", instrument_identifier: SERIES_KEY, canonical_instrument_key: null, archive_reason: null };
+const PLAIN_SIGNAL = { id: "m", item_type: "market_signal", source_url: "https://example.org/m", instrument_identifier: "some-other:signal", canonical_instrument_key: null, archive_reason: null };
+
+test("series fixture is an eu-oil-bulletin: key (exemption is driven by the map, not a prefix)", () => {
+  assert.match(SERIES_KEY, /^eu-oil-bulletin:/);
+  assert.equal(isSeriesItem(SERIES_ITEM), true);
+  assert.equal(isSeriesItem(PLAIN_SIGNAL), false);
+  assert.equal(isSeriesItem({ instrument_identifier: null }), false);
+});
+
+test("planSelection: a series item with zero FACT claims is NOT a target; a non-series market_signal still is", () => {
+  const targets = planSelection([SERIES_ITEM, PLAIN_SIGNAL], new Map());
+  assert.deepEqual(targets.map((t) => t.id), ["m"]);
+});
+
+test("planSelection: exemption uses the supplied map (an identifier absent from the map is not exempt)", () => {
+  const targets = planSelection([SERIES_ITEM], new Map(), {});
+  assert.deepEqual(targets.map((t) => t.id), ["s"]);
+});
+
+test("main(): a series item never reaches archiveTargets in apply mode", async () => {
+  const d = deps({ readTargetCandidates: async () => [SERIES_ITEM, ITEMS[0]] });
+  const r = await main({ mode: "apply" }, d);
+  assert.deepEqual(r.target_ids, ["a"]);
+  const archive = d.calls.find((c) => c[0] === "archiveTargets");
+  assert.deepEqual(archive[1], ["a"]);
 });
 
 test("planSelection: an item absent from claimsByItemId (no rows at all) is treated as zero claims -> target", () => {
