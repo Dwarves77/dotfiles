@@ -13,6 +13,8 @@
 // hard data-audit that proves every committed entry against the live table (a forged or stale entry fails).
 //
 // DRY BY DEFAULT: prints the entries and what could not be placed. `--write` writes the file.
+// `--out <path>` (with `--write` only) writes to that path instead, resolved against the current working
+// directory, so a coordinator can produce the file inside a worktree without touching the main checkout.
 // READ-ONLY on the database: one SELECT. Self-skips exit 2 without credentials (rule 15).
 //
 // Command the coordinator's executor runs to produce the file (needs fsi-app/.env.local or SUPABASE_* set):
@@ -22,6 +24,7 @@
 //
 // Exit codes: 0 = printed (or wrote). 1 = DB read or write error. 2 = missing credentials, self-skip.
 import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { readAll } from "../lib/db.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
@@ -52,6 +55,20 @@ export async function runCli(args, deps = {}) {
     outFile = LOOP_FIRED_EVIDENCE_FILE,
   } = deps;
   const write = args.includes("--write");
+  const outIdx = args.indexOf("--out");
+  let target = outFile;
+  if (outIdx !== -1) {
+    if (!write) {
+      errorLog("export-loop-fired-evidence: --out requires --write (a dry run writes nothing).");
+      return 1;
+    }
+    const given = args[outIdx + 1];
+    if (!given || given.startsWith("--")) {
+      errorLog("export-loop-fired-evidence: --out needs a path argument.");
+      return 1;
+    }
+    target = resolve(process.cwd(), given);
+  }
 
   loadEnv();
   if (!hasCreds()) {
@@ -82,7 +99,7 @@ export async function runCli(args, deps = {}) {
     return 0;
   }
   try {
-    writeFileFn(outFile, renderEvidenceFile(entries), "utf8");
+    writeFileFn(target, renderEvidenceFile(entries), "utf8");
   } catch (e) {
     errorLog(`export-loop-fired-evidence: write failed: ${e instanceof Error ? e.message : String(e)}`);
     return 1;
@@ -92,5 +109,7 @@ export async function runCli(args, deps = {}) {
 }
 
 if (isMainModule(import.meta.url)) {
-  runCli(process.argv.slice(2)).then((code) => process.exit(code));
+  // Set exitCode and let the event loop drain; an explicit process.exit here, right after the Supabase
+  // client's async work, can abort while libuv handles are still closing (Windows assertion, exit 127).
+  runCli(process.argv.slice(2)).then((code) => { process.exitCode = code; });
 }
