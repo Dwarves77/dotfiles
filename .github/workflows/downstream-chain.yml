@@ -317,6 +317,17 @@ jobs:
           mode: ${{ env.RUN_MODE }}
           out_root: ${{ env.OUT_ROOT }}
 
+      # recompute-tiers (lane S1-C, 2026-10-04): runs right after tier-opinions so the opinions that step
+      # just recorded are inside the same pass that moves effective_tier from them. Dry/apply follows
+      # this run's own RUN_MODE like its siblings.
+      - name: recompute-tiers
+        if: ${{ env.RUN_SKIP != 'true' }}
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: recompute-tiers
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
       - name: derive-obligations
         if: ${{ env.RUN_SKIP != 'true' }}
         uses: ./.github/actions/maintenance-step

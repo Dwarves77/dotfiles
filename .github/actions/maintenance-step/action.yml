@@ -5,9 +5,9 @@ description: >-
   2026-09-06: factored out of maintenance.yml so its own dispatch-only steps and
   downstream-chain.yml's automatic post-mint/post-turn hop call the EXACT same command line — no
   second copy of a step's `run:` block in a second workflow file (CLAUDE.md: no copies of logic).
-  Only the four steps both callers share (tier-opinions, derive-obligations, tag-proposals,
-  apply-classifications) were moved onto this action; every other maintenance.yml step keeps its own
-  inline `run:` block unchanged, since only those four ever run from a second workflow.
+  Only the steps both callers share (tier-opinions, recompute-tiers, derive-obligations,
+  tag-proposals, apply-classifications) were moved onto this action; every other maintenance.yml step
+  keeps its own inline `run:` block unchanged, since only those ever run from a second workflow.
 
 inputs:
   step:

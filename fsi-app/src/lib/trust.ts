@@ -248,10 +248,11 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
 // Formula: 0.5 ^ (ageMonths / halfLifeMonths)
 export function applyRecencyDecay(
   detectedAt: Date,
-  halfLifeMonths: number = HALF_LIFE_MONTHS
+  halfLifeMonths: number = HALF_LIFE_MONTHS,
+  now: number = Date.now()
 ): number {
   const ageMonths =
-    (Date.now() - detectedAt.getTime()) / (MS_PER_DAY * DAYS_PER_MONTH);
+    (now - detectedAt.getTime()) / (MS_PER_DAY * DAYS_PER_MONTH);
   return Math.pow(0.5, ageMonths / halfLifeMonths);
 }
 
@@ -353,6 +354,8 @@ export interface DemotionEvaluation {
     current_value: string;         // What the actual value is
   }[];
   recommended_tier: SourceTier;
+  /** Triggers that fired but were suppressed by the caller (opts.suppressTriggers); never counted in `triggered`. */
+  held_triggers?: DemotionTrigger["trigger"][];
 }
 
 // Evaluate whether a source is eligible for promotion
@@ -415,9 +418,13 @@ export function evaluatePromotion(source: Source): PromotionEvaluation | null {
 
 // Evaluate whether a source should be demoted
 
-export function evaluateDemotion(source: Source): DemotionEvaluation {
+export function evaluateDemotion(
+  source: Source,
+  opts: { suppressTriggers?: ReadonlyArray<DemotionTrigger["trigger"]> } = {}
+): DemotionEvaluation {
   const m = source.trust_metrics;
   const triggers_fired: DemotionEvaluation["triggers_fired"] = [];
+  const held_triggers: DemotionTrigger["trigger"][] = [];
 
   for (const trigger of DEMOTION_TRIGGERS) {
     // Phase 1.5: base_tier per scoring-internals default rule.
@@ -436,7 +443,11 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
         break;
 
       case "extended_inaccessibility":
-        if (m.last_accessible) {
+        // The declared condition (DEMOTION_TRIGGERS) is "last_accessible older than 30 days AND
+        // status = 'inaccessible'". The status half was never checked, so a source that is simply not
+        // being scanned (stale last_accessible, status still active) would fire. Now that a fired
+        // trigger moves effective_tier, the code matches the declared condition.
+        if (source.status === "inaccessible" && m.last_accessible) {
           const daysSince = Math.floor(
             (Date.now() - new Date(m.last_accessible).getTime()) / 86400000
           );
@@ -481,7 +492,11 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
     }
 
     if (fired) {
-      triggers_fired.push({ trigger, current_value: currentValue });
+      if (opts.suppressTriggers?.includes(trigger.trigger)) {
+        held_triggers.push(trigger.trigger);
+      } else {
+        triggers_fired.push({ trigger, current_value: currentValue });
+      }
     }
   }
 
@@ -493,6 +508,7 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
     triggered: triggers_fired.length > 0,
     triggers_fired,
     recommended_tier: triggers_fired.length > 0 ? recommendedTier : source.base_tier,
+    ...(held_triggers.length > 0 ? { held_triggers } : {}),
   };
 }
 
@@ -732,6 +748,39 @@ export interface PromotionEvaluationResult {
 }
 
 /**
+ * Pure scoring core of evaluateCandidatePromotion: given the raw citation edges into one source and a
+ * citing-source-id to tier map, sum the tier-weighted, decayed contributions and apply the Q7 promotion
+ * thresholds. Split out so the per-source path (evaluateCandidatePromotion) and the batch tier-movement
+ * planner (planTierMovements) share one calculation.
+ */
+export function scoreCitationEdges(
+  rows: CitationEdgeRow[],
+  tierById: Map<string, number>,
+  halfLifeMonths: number = HALF_LIFE_MONTHS,
+  now: number = Date.now()
+): { weighted_sum: number; citation_count: number; should_promote: boolean; reasoning: string } {
+  const citation_count = rows.length;
+  let weighted_sum = 0;
+  for (const row of rows) {
+    const tier = tierById.get(row.citing_source_id);
+    if (tier == null) continue; // Citer source not found (deleted or RLS-filtered); skip.
+    if (tier < 1 || tier > 7) continue; // Defensive: out-of-range tier; skip.
+    const weight = TIER_WEIGHTS[tier as SourceTier];
+    weighted_sum += weight * applyRecencyDecay(new Date(row.detected_at), halfLifeMonths, now);
+  }
+
+  const should_promote =
+    weighted_sum >= Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD &&
+    citation_count >= Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD;
+
+  const reasoning = should_promote
+    ? `weighted_sum=${weighted_sum.toFixed(3)} >= ${Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD} AND citations=${citation_count} >= ${Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD} (promote)`
+    : `weighted_sum=${weighted_sum.toFixed(3)} citations=${citation_count} below thresholds (sum>=${Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD}, citations>=${Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD})`;
+
+  return { weighted_sum, citation_count, should_promote, reasoning };
+}
+
+/**
  * Sum tier-weighted, decayed citation contributions for a single cited source.
  *
  * Reads source_citations rows where cited_source_id = sourceId, joins each
@@ -786,23 +835,8 @@ export async function evaluateCandidatePromotion(
     tierById.set(s.id, s.effective_tier ?? s.base_tier);
   }
 
-  let weighted_sum = 0;
-  for (const row of rows) {
-    const tier = tierById.get(row.citing_source_id);
-    if (tier == null) continue; // Citer source not found (deleted or RLS-filtered); skip.
-    if (tier < 1 || tier > 7) continue; // Defensive: out-of-range tier; skip.
-    const weight = TIER_WEIGHTS[tier as SourceTier];
-    const decay = applyRecencyDecay(new Date(row.detected_at), halfLifeMonths);
-    weighted_sum += weight * decay;
-  }
-
-  const should_promote =
-    weighted_sum >= Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD &&
-    citation_count >= Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD;
-
-  const reasoning = should_promote
-    ? `weighted_sum=${weighted_sum.toFixed(3)} >= ${Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD} AND citations=${citation_count} >= ${Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD} (promote)`
-    : `weighted_sum=${weighted_sum.toFixed(3)} citations=${citation_count} below thresholds (sum>=${Q7_CONFIG.PROMOTION_WEIGHTED_SUM_THRESHOLD}, citations>=${Q7_CONFIG.CITATION_FREQUENCY_PROMOTION_THRESHOLD})`;
+  const scored = scoreCitationEdges(rows, tierById, halfLifeMonths);
+  const { weighted_sum, should_promote, reasoning } = scored;
 
   return {
     source_id: sourceId,
@@ -812,6 +846,289 @@ export async function evaluateCandidatePromotion(
     reasoning,
   };
 }
+
+// ══════════════════════════════════════════════════════════════
+// Tier movement (S1-C, 2026-10-04): the machine moves effective_tier
+// ══════════════════════════════════════════════════════════════
+//
+// base_tier is the institution class tier; it changes only through the class table or an admin and is
+// never written here. effective_tier is the dynamic column the machine moves. The single calculator is
+// decideEffectiveTier (pure): tier_override wins; else base_tier adjusted by evidence; else base_tier.
+//
+// Evidence, each applied automatically and each reversible on the next recompute (the decision is
+// recomputed from base_tier every time, never accumulated on top of the stored effective_tier):
+//   a. citation promotion (scoreCitationEdges / evaluateCandidatePromotion): one tier better
+//   b. evaluatePromotion eligible: one tier better
+//   c. evaluateDemotion triggered: one tier worse
+//   d. tier opinions: 3 or more non-dismissed opinions in the last 90 days from at least 2 distinct
+//      opining sources, whose median differs from base_tier, move one step toward the median.
+//      Class-table opinions (host_class_table) are not evidence here; institution-canonicalize owns them.
+// Net movement is clamped to one tier either side of base_tier. A dismissed opinion never counts.
+
+export const TIER_MOVEMENT = {
+  /** Opinions inside the window needed before opinions move a tier. */
+  OPINION_MIN_COUNT: 3,
+  /** Distinct opining sources needed among those opinions. */
+  OPINION_MIN_DISTINCT_OPINERS: 2,
+  /** Lookback window, days. Shares the Q7 disagreement window. */
+  OPINION_WINDOW_DAYS: Q7_CONFIG.TIER_OPINION_DISAGREEMENT_WINDOW_DAYS,
+  /** Largest net movement either side of base_tier. */
+  MAX_NET_STEP: 1,
+} as const;
+
+/** Opinion sources that are not evidence for tier movement. */
+const NON_EVIDENCE_OPINION_SOURCES: ReadonlyArray<string> = ["host_class_table"];
+
+export interface TierOpinionRow {
+  target_source_id?: string;
+  opined_tier: number;
+  opining_source_id: string | null;
+  opined_at: string;
+  dismissed_at: string | null;
+  opinion_source: string | null;
+}
+
+export interface OpinionMovement {
+  delta: -1 | 0 | 1;
+  counted: number;
+  distinct_opiners: number;
+  median: number | null;
+  reason: string;
+}
+
+/** Pure: the one-step movement the tier opinions argue for, relative to base_tier. */
+export function opinionMovement(
+  baseTier: SourceTier,
+  opinions: TierOpinionRow[],
+  now: Date = new Date()
+): OpinionMovement {
+  const since = now.getTime() - TIER_MOVEMENT.OPINION_WINDOW_DAYS * MS_PER_DAY;
+  const counted = (opinions ?? []).filter(
+    (o) =>
+      o.dismissed_at == null &&
+      !NON_EVIDENCE_OPINION_SOURCES.includes(o.opinion_source ?? "") &&
+      new Date(o.opined_at).getTime() >= since &&
+      o.opined_tier >= 1 &&
+      o.opined_tier <= 7
+  );
+  const distinct = new Set(counted.map((o) => o.opining_source_id).filter((id): id is string => !!id)).size;
+  if (counted.length < TIER_MOVEMENT.OPINION_MIN_COUNT || distinct < TIER_MOVEMENT.OPINION_MIN_DISTINCT_OPINERS) {
+    return {
+      delta: 0,
+      counted: counted.length,
+      distinct_opiners: distinct,
+      median: null,
+      reason: `opinions=${counted.length} distinct_opiners=${distinct} below thresholds (n>=${TIER_MOVEMENT.OPINION_MIN_COUNT}, distinct>=${TIER_MOVEMENT.OPINION_MIN_DISTINCT_OPINERS})`,
+    };
+  }
+  const sorted = counted.map((o) => o.opined_tier).sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  const delta = median < baseTier ? -1 : median > baseTier ? 1 : 0;
+  return {
+    delta,
+    counted: counted.length,
+    distinct_opiners: distinct,
+    median,
+    reason: `opinions=${counted.length} distinct_opiners=${distinct} median=${median} base=${baseTier}`,
+  };
+}
+
+export interface TierEvidence {
+  citation_promote: boolean;
+  citation_reasoning: string;
+  promotion: PromotionEvaluation | null;
+  demotion: DemotionEvaluation | null;
+  opinion: OpinionMovement;
+}
+
+export interface TierMovementDecision {
+  before_tier: SourceTier;
+  after_tier: SourceTier;
+  changed: boolean;
+  base_tier: SourceTier;
+  /** base_tier moved by the clamped net evidence, before the override is considered. */
+  computed_dynamic_tier: SourceTier;
+  tier_override: SourceTier | null;
+  /** True when an admin override is set: the machine writes nothing for this source. */
+  override_held: boolean;
+  deltas: { citation: number; promotion: number; demotion: number; opinion: number };
+  net: number;
+  rules: string[];
+  inputs: Record<string, unknown>;
+  reasoning: string;
+}
+
+const clampTier = (n: number): SourceTier => Math.max(1, Math.min(7, n)) as SourceTier;
+
+/**
+ * THE calculator for effective_tier. Pure.
+ *   effective_tier = tier_override, else clamp(base_tier + clamp(sum of evidence deltas, -1, +1)).
+ * With an override set, after_tier reports the override but changed is false: an automatic writer never
+ * writes over an admin override.
+ */
+export function decideEffectiveTier(input: {
+  base_tier: SourceTier;
+  effective_tier: SourceTier | null;
+  tier_override: SourceTier | null;
+  evidence: TierEvidence;
+}): TierMovementDecision {
+  const { base_tier, effective_tier, tier_override, evidence } = input;
+  const before_tier = (effective_tier ?? base_tier) as SourceTier;
+
+  const deltas = {
+    citation: evidence.citation_promote ? -1 : 0,
+    promotion: evidence.promotion?.eligible ? -1 : 0,
+    demotion: evidence.demotion?.triggered ? 1 : 0,
+    opinion: evidence.opinion.delta as number,
+  };
+  const rules: string[] = [];
+  if (deltas.citation) rules.push("citation_promotion");
+  if (deltas.promotion) rules.push("evaluate_promotion");
+  if (deltas.demotion) rules.push("evaluate_demotion");
+  if (deltas.opinion) rules.push("tier_opinions");
+
+  const sum = deltas.citation + deltas.promotion + deltas.demotion + deltas.opinion;
+  const net = Math.max(-TIER_MOVEMENT.MAX_NET_STEP, Math.min(TIER_MOVEMENT.MAX_NET_STEP, sum));
+  const computed_dynamic_tier = clampTier(base_tier + net);
+
+  const override_held = tier_override != null;
+  const after_tier: SourceTier = override_held ? (tier_override as SourceTier) : computed_dynamic_tier;
+  const changed = !override_held && after_tier !== before_tier;
+
+  const inputs: Record<string, unknown> = {
+    citation: { promote: evidence.citation_promote, reasoning: evidence.citation_reasoning },
+    promotion: evidence.promotion
+      ? { eligible: evidence.promotion.eligible, target_tier: evidence.promotion.target_tier, blocking: evidence.promotion.blocking }
+      : null,
+    demotion: evidence.demotion
+      ? {
+          triggered: evidence.demotion.triggered,
+          triggers: evidence.demotion.triggers_fired.map((t) => ({ trigger: t.trigger.trigger, current_value: t.current_value })),
+        }
+      : null,
+    opinion: {
+      counted: evidence.opinion.counted,
+      distinct_opiners: evidence.opinion.distinct_opiners,
+      median: evidence.opinion.median,
+      window_days: TIER_MOVEMENT.OPINION_WINDOW_DAYS,
+    },
+  };
+
+  const reasoning = override_held
+    ? `effective_tier held at admin override ${tier_override}: base=${base_tier} (no machine write)`
+    : changed
+      ? `effective_tier ${before_tier} -> ${after_tier}: base=${base_tier} net=${net} rules=${rules.join("+") || "none"} (${evidence.citation_reasoning}; ${evidence.opinion.reason})`
+      : `effective_tier unchanged at ${after_tier}: base=${base_tier} net=${net} rules=${rules.join("+") || "none"} (${evidence.citation_reasoning}; ${evidence.opinion.reason})`;
+
+  return {
+    before_tier,
+    after_tier,
+    changed,
+    base_tier,
+    computed_dynamic_tier,
+    tier_override,
+    override_held,
+    deltas,
+    net,
+    rules,
+    inputs,
+    reasoning,
+  };
+}
+
+// Source row to evidence
+
+/** The sources columns the tier calculator reads. */
+export const TIER_SOURCE_COLUMNS =
+  "id, name, base_tier, effective_tier, tier_override, status, processing_paused, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked, last_accessible, created_at, last_substantive_change, update_frequency";
+
+export interface TierSourceRow {
+  id: string;
+  name?: string | null;
+  base_tier: number;
+  effective_tier: number | null;
+  tier_override: number | null;
+  status?: string | null;
+  /** A source intentionally on hold keeps its last-known tier: it is read (it still weighs as a citer) but never moved. */
+  processing_paused?: boolean | null;
+  confirmation_count: number | null;
+  conflict_count: number | null;
+  accuracy_rate: number | null;
+  accessibility_rate: number | null;
+  total_checks: number | null;
+  lead_time_samples: number | null;
+  avg_lead_time_days: number | null;
+  independent_citers: number | null;
+  highest_citing_tier: number | null;
+  total_citations: number | null;
+  self_citation_count: number | null;
+  conflict_total: number | null;
+  last_checked: string | null;
+  last_accessible: string | null;
+  created_at: string;
+  last_substantive_change: string | null;
+  update_frequency: string | null;
+}
+
+/** Build a TrustMetrics shape from the flat sources columns. Fields not on the row default to 0 / null. */
+export function trustMetricsFromRow(s: TierSourceRow): TrustMetrics {
+  return {
+    confirmation_count: s.confirmation_count || 0,
+    conflict_count: s.conflict_count || 0,
+    conflict_total: s.conflict_total || 0,
+    accuracy_rate: s.accuracy_rate ?? 0,
+    total_checks: s.total_checks || 0,
+    successful_checks: 0, // not read; not used by the formula
+    consecutive_accessible: 0,
+    accessibility_rate: s.accessibility_rate ?? 0,
+    last_accessible: s.last_accessible ?? null,
+    last_inaccessible: null,
+    lead_time_samples: s.lead_time_samples || 0,
+    avg_lead_time_days: s.avg_lead_time_days || 0,
+    independent_citers: s.independent_citers || 0,
+    total_citations: s.total_citations || 0,
+    self_citation_count: s.self_citation_count || 0,
+    highest_citing_tier: (s.highest_citing_tier || null) as SourceTier | null,
+  };
+}
+
+/**
+ * Cadence hold (CLAUDE.md rule 16). While system_state.scrape_cadence is 'off', scan timestamps cannot
+ * advance, so a trigger that reads them (no_substantive_update) would fire on every unscanned source.
+ * It contributes no delta during the hold and is counted as held. Any other cadence value, or no value
+ * given, suppresses nothing.
+ */
+export const CADENCE_HELD_TRIGGERS: ReadonlyArray<DemotionTrigger["trigger"]> = ["no_substantive_update"];
+function cadenceHeldTriggers(scrapeCadence?: string | null): ReadonlyArray<DemotionTrigger["trigger"]> {
+  return scrapeCadence === "off" ? CADENCE_HELD_TRIGGERS : [];
+}
+
+/** evaluatePromotion + evaluateDemotion over one sources row. Both read only the narrow object built here. */
+export function evaluateTierEvidenceForRow(
+  s: TierSourceRow,
+  opts: { scrapeCadence?: string | null } = {}
+): { promotion: PromotionEvaluation | null; demotion: DemotionEvaluation } {
+  const metrics = trustMetricsFromRow(s);
+  const base = s.base_tier as SourceTier;
+  const narrow = {
+    base_tier: base,
+    status: s.status ?? undefined,
+    created_at: s.created_at,
+    last_substantive_change: s.last_substantive_change,
+    update_frequency: s.update_frequency ?? "ad-hoc",
+    trust_metrics: metrics,
+    trust_score: { overall: computeOverallScore(metrics, base) },
+    // evaluatePromotion and evaluateDemotion read only the fields above; every other Source field is
+    // irrelevant to their verdicts.
+  } as unknown as Source;
+  return {
+    promotion: evaluatePromotion(narrow),
+    demotion: evaluateDemotion(narrow, { suppressTriggers: cadenceHeldTriggers(opts.scrapeCadence) }),
+  };
+}
+
+// Per-source recompute (used by source-growth's end-of-cycle reputation step)
 
 export interface EffectiveTierRecomputeResult {
   source_id: string;
@@ -824,35 +1141,24 @@ export interface EffectiveTierRecomputeResult {
   weighted_sum: number;
   citation_count: number;
   reasoning: string;
+  rules: string[];
+  decision: TierMovementDecision;
 }
 
 /**
- * Recompute the effective tier for a single source.
- *
- * Formula: effective_tier = COALESCE(tier_override, computed_dynamic_tier, base_tier).
- *
- * computed_dynamic_tier is derived from base_tier plus the network signal:
- *   - if weighted_sum >= PROMOTION_WEIGHTED_SUM_THRESHOLD and base_tier > 1,
- *     promote one tier (lower number = higher tier).
- *   - otherwise computed_dynamic_tier = base_tier.
- *
- * The Q7 promotion logic intentionally promotes by ONE tier per recompute.
- * Multi-tier jumps are deliberate operator decisions, not batch outcomes.
- * Demotion is OUT OF SCOPE for Q7 (owned by the existing evaluateDemotion
- * path in this module, which fires on conflicts/inaccessibility).
- *
- * Phase 1.5 (Q2 + Q5 landed): reads base_tier + tier_override + effective_tier
- * directly. The COALESCE formula is wired through end-to-end.
+ * Recompute the effective tier for a single source from all four evidence kinds (see the block header).
+ * Reads the source row, its citation edges and its non-dismissed tier opinions inside the window, then
+ * defers to decideEffectiveTier. Does not write.
  */
 export async function recomputeEffectiveTier(
   client: SupabaseLikeClient,
   sourceId: string,
-  halfLifeMonths: number = HALF_LIFE_MONTHS
+  halfLifeMonths: number = HALF_LIFE_MONTHS,
+  opts: { scrapeCadence?: string | null } = {}
 ): Promise<EffectiveTierRecomputeResult> {
-  // Phase 1.5: select base_tier + effective_tier + tier_override directly.
   const { data: src, error: srcErr } = await client
     .from("sources")
-    .select("id, base_tier, effective_tier, tier_override")
+    .select(TIER_SOURCE_COLUMNS)
     .eq("id", sourceId)
     .single();
 
@@ -863,46 +1169,218 @@ export async function recomputeEffectiveTier(
     throw new Error(`recomputeEffectiveTier: source ${sourceId} not found`);
   }
 
-  const row = src as { base_tier: number; effective_tier: number | null; tier_override: number | null };
-  const baseTierNum = row.base_tier;
-  if (baseTierNum < 1 || baseTierNum > 7) {
-    throw new Error(`recomputeEffectiveTier: source ${sourceId} has out-of-range base_tier=${baseTierNum}`);
+  const row = src as TierSourceRow;
+  if (row.base_tier < 1 || row.base_tier > 7) {
+    throw new Error(`recomputeEffectiveTier: source ${sourceId} has out-of-range base_tier=${row.base_tier}`);
   }
-  const base_tier = baseTierNum as SourceTier;
-  const tier_override: SourceTier | null =
-    row.tier_override == null ? null : (row.tier_override as SourceTier);
+  const base_tier = row.base_tier as SourceTier;
 
-  // before_tier is the currently-stored effective signal. Q2 column present.
-  const before_tier = (row.effective_tier ?? base_tier) as SourceTier;
-
-  // Sum citation network signal.
+  const now = new Date();
   const promo = await evaluateCandidatePromotion(client, sourceId, halfLifeMonths);
 
-  // Promote by one tier if eligible and not already T1.
-  let computed_dynamic_tier: SourceTier = base_tier;
-  if (promo.should_promote && base_tier > 1) {
-    computed_dynamic_tier = (base_tier - 1) as SourceTier;
+  const { data: opinionRows, error: opErr } = await client
+    .from("source_tier_opinions")
+    .select("opined_tier, opining_source_id, opined_at, dismissed_at, opinion_source")
+    .eq("target_source_id", sourceId);
+  // Dismissed rows and rows outside the window are dropped by opinionMovement itself; the per-source set is small.
+  if (opErr) {
+    throw new Error(`recomputeEffectiveTier: failed to read source_tier_opinions for ${sourceId}: ${opErr.message}`);
   }
 
-  // COALESCE(tier_override, computed_dynamic_tier, base_tier).
-  const after_tier: SourceTier = tier_override ?? computed_dynamic_tier ?? base_tier;
-
-  const changed = after_tier !== before_tier;
-
-  const reasoning = changed
-    ? `effective_tier ${before_tier} -> ${after_tier}: base=${base_tier} override=${tier_override ?? "null"} computed=${computed_dynamic_tier} (${promo.reasoning})`
-    : `effective_tier unchanged at ${after_tier}: base=${base_tier} override=${tier_override ?? "null"} computed=${computed_dynamic_tier} (${promo.reasoning})`;
+  // Cadence hold (rule 16). A caller that already holds the cadence passes it; otherwise it is read once
+  // here, failing closed to 'off' on any read error (the same default src/lib/api/pause.ts uses).
+  let scrapeCadence = opts.scrapeCadence;
+  if (scrapeCadence === undefined) {
+    try {
+      const { data: st, error: stErr } = await client.from("system_state").select("scrape_cadence").eq("id", true).maybeSingle();
+      scrapeCadence = stErr ? "off" : ((st as { scrape_cadence?: string } | null)?.scrape_cadence ?? "off");
+    } catch {
+      scrapeCadence = "off";
+    }
+  }
+  const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence });
+  const decision = decideEffectiveTier({
+    base_tier,
+    effective_tier: row.effective_tier == null ? null : (row.effective_tier as SourceTier),
+    tier_override: row.tier_override == null ? null : (row.tier_override as SourceTier),
+    evidence: {
+      citation_promote: promo.should_promote,
+      citation_reasoning: promo.reasoning,
+      promotion,
+      demotion,
+      opinion: opinionMovement(base_tier, (opinionRows ?? []) as TierOpinionRow[], now),
+    },
+  });
 
   return {
     source_id: sourceId,
-    before_tier,
-    after_tier,
-    changed,
+    before_tier: decision.before_tier,
+    after_tier: decision.after_tier,
+    changed: decision.changed,
     base_tier,
-    computed_dynamic_tier,
-    tier_override,
+    computed_dynamic_tier: decision.computed_dynamic_tier,
+    tier_override: decision.tier_override,
     weighted_sum: promo.weighted_sum,
     citation_count: promo.citation_count,
-    reasoning,
+    reasoning: decision.reasoning,
+    rules: decision.rules,
+    decision,
   };
+}
+
+// Batch plan and apply (used by the recompute-trust route and scripts/maintenance/recompute-tiers.mjs)
+
+export interface TierMovementReaders {
+  readSources(): Promise<TierSourceRow[]>;
+  /** Non-dismissed opinions with opined_at at or after sinceIso, every target. */
+  readOpinions(sinceIso: string): Promise<TierOpinionRow[]>;
+  readCitations(): Promise<CitationEdgeRow[]>;
+}
+
+export interface TierMovementPlan {
+  scanned: number;
+  override_held: number;
+  /** Sources whose cadence-held demotion trigger was suppressed (scrape cadence off). */
+  held_cadence_off: number;
+  skipped: Array<{ source_id: string; reason: string }>;
+  /** Only the sources whose effective_tier would change. */
+  movements: Array<{ source_id: string; name: string | null; decision: TierMovementDecision }>;
+}
+
+/** Pure over its readers: decides every source, returns the ones that move. Never writes. */
+export async function planTierMovements(
+  readers: TierMovementReaders,
+  opts: { now?: Date; halfLifeMonths?: number; scrapeCadence?: string | null } = {}
+): Promise<TierMovementPlan> {
+  const now = opts.now ?? new Date();
+  const halfLife = opts.halfLifeMonths ?? HALF_LIFE_MONTHS;
+  const sources = await readers.readSources();
+  const sinceIso = new Date(now.getTime() - TIER_MOVEMENT.OPINION_WINDOW_DAYS * MS_PER_DAY).toISOString();
+  const [opinions, citations] = await Promise.all([readers.readOpinions(sinceIso), readers.readCitations()]);
+
+  const opinionsByTarget = new Map<string, TierOpinionRow[]>();
+  for (const o of opinions) {
+    if (!o.target_source_id) continue;
+    const list = opinionsByTarget.get(o.target_source_id) ?? [];
+    list.push(o);
+    opinionsByTarget.set(o.target_source_id, list);
+  }
+  const citationsByCited = new Map<string, CitationEdgeRow[]>();
+  for (const c of citations) {
+    const list = citationsByCited.get(c.cited_source_id) ?? [];
+    list.push(c);
+    citationsByCited.set(c.cited_source_id, list);
+  }
+  const tierById = new Map<string, number>();
+  for (const s of sources) tierById.set(s.id, s.effective_tier ?? s.base_tier);
+
+  const plan: TierMovementPlan = { scanned: sources.length, override_held: 0, held_cadence_off: 0, skipped: [], movements: [] };
+  for (const row of sources) {
+    if (row.processing_paused === true) {
+      plan.skipped.push({ source_id: row.id, reason: "processing_paused" });
+      continue;
+    }
+    if (row.base_tier < 1 || row.base_tier > 7) {
+      plan.skipped.push({ source_id: row.id, reason: `out-of-range base_tier=${row.base_tier}` });
+      continue;
+    }
+    const base_tier = row.base_tier as SourceTier;
+    const edges = citationsByCited.get(row.id) ?? [];
+    const cited =
+      edges.length === 0
+        ? { should_promote: false, reasoning: "no citations" }
+        : scoreCitationEdges(edges, tierById, halfLife, now.getTime());
+    const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence: opts.scrapeCadence });
+    if (demotion.held_triggers?.length) plan.held_cadence_off += 1;
+    const decision = decideEffectiveTier({
+      base_tier,
+      effective_tier: row.effective_tier == null ? null : (row.effective_tier as SourceTier),
+      tier_override: row.tier_override == null ? null : (row.tier_override as SourceTier),
+      evidence: {
+        citation_promote: cited.should_promote,
+        citation_reasoning: cited.reasoning,
+        promotion,
+        demotion,
+        opinion: opinionMovement(base_tier, opinionsByTarget.get(row.id) ?? [], now),
+      },
+    });
+    if (decision.override_held) plan.override_held += 1;
+    if (decision.changed) plan.movements.push({ source_id: row.id, name: row.name ?? null, decision });
+  }
+  return plan;
+}
+
+/** The source_trust_events row recorded for one applied movement. */
+export function tierMovementEvent(sourceId: string, decision: TierMovementDecision) {
+  return {
+    source_id: sourceId,
+    event_type: decision.after_tier < decision.before_tier ? ("tier_promotion" as const) : ("tier_demotion" as const),
+    details: {
+      applied: true,
+      rule: decision.rules.join("+"),
+      rules: decision.rules,
+      before_tier: decision.before_tier,
+      after_tier: decision.after_tier,
+      base_tier: decision.base_tier,
+      deltas: decision.deltas,
+      inputs: decision.inputs,
+    },
+    created_by: "worker" as const,
+  };
+}
+
+export interface TierMovementWriters {
+  setEffectiveTier(sourceId: string, tier: SourceTier): Promise<void>;
+  insertEvent(event: ReturnType<typeof tierMovementEvent>): Promise<void>;
+}
+
+export interface TierMovementApplyResult {
+  attempted: number;
+  applied: number;
+  promotions: number;
+  demotions: number;
+  write_failed: number;
+  event_failed: number;
+  failures: string[];
+}
+
+/**
+ * Applies planned movements. Each movement is a tier write followed by its audit event. A failed tier
+ * write records no event (nothing changed); a failed event after a good write is counted separately and
+ * never rolled back (the tier is already correct, the next run reads the same stored value and stays
+ * quiet). Fail-soft per source.
+ */
+export async function applyTierMovements(
+  movements: TierMovementPlan["movements"],
+  writers: TierMovementWriters
+): Promise<TierMovementApplyResult> {
+  const result: TierMovementApplyResult = {
+    attempted: movements.length,
+    applied: 0,
+    promotions: 0,
+    demotions: 0,
+    write_failed: 0,
+    event_failed: 0,
+    failures: [],
+  };
+  for (const m of movements) {
+    const label = m.name ?? m.source_id;
+    try {
+      await writers.setEffectiveTier(m.source_id, m.decision.after_tier);
+    } catch (e) {
+      result.write_failed += 1;
+      result.failures.push(`${label}: effective_tier write failed: ${e instanceof Error ? e.message : String(e)}`);
+      continue;
+    }
+    result.applied += 1;
+    if (m.decision.after_tier < m.decision.before_tier) result.promotions += 1;
+    else result.demotions += 1;
+    try {
+      await writers.insertEvent(tierMovementEvent(m.source_id, m.decision));
+    } catch (e) {
+      result.event_failed += 1;
+      result.failures.push(`${label}: source_trust_events insert failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  return result;
 }

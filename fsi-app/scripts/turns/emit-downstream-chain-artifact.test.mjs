@@ -61,7 +61,7 @@ function fourCleanSteps() {
   return STEPS.map((step) => ({ step, ran: true, exitCode: 0, summary: { exitCode: 0 }, pathRel: `x/${step}/summary.json` }));
 }
 
-test("buildArtifact: all four steps clean -> per_item all 'clean', metrics.steps_nonzero_exit=0, validateRunArtifact-clean", () => {
+test("buildArtifact: all steps clean -> per_item all 'clean', metrics.steps_nonzero_exit=0, validateRunArtifact-clean", () => {
   const artifact = buildArtifact({
     runId: "downstream-chain-run-001",
     harnessVersion: "sha256:0000000000000000",
@@ -73,7 +73,7 @@ test("buildArtifact: all four steps clean -> per_item all 'clean', metrics.steps
     upstreamRunId: "12345",
     stepResults: fourCleanSteps(),
   });
-  assert.equal(artifact.metrics.steps_run, 4);
+  assert.equal(artifact.metrics.steps_run, STEPS.length);
   assert.equal(artifact.metrics.steps_nonzero_exit, 0);
   assert.ok(artifact.per_item.every((p) => p.outcome === "clean"));
   assert.deepEqual(artifact.defects_found, []);
@@ -103,7 +103,7 @@ test("buildArtifact: a skipped (no-op) dispatch -> every step 'skipped', a non-e
 
 test("buildArtifact: one step nonzero exit -> that step 'nonzero_exit', a defect recorded naming it, others unaffected", () => {
   const steps = fourCleanSteps();
-  steps[1] = { step: "derive-obligations", ran: true, exitCode: 1, summary: { exitCode: 1, error: "db timeout" }, pathRel: "x/derive-obligations/summary.json" };
+  steps[STEPS.indexOf("derive-obligations")] = { step: "derive-obligations", ran: true, exitCode: 1, summary: { exitCode: 1, error: "db timeout" }, pathRel: "x/derive-obligations/summary.json" };
   const artifact = buildArtifact({
     runId: "downstream-chain-run-003",
     harnessVersion: "sha256:0000000000000000",
@@ -119,13 +119,13 @@ test("buildArtifact: one step nonzero exit -> that step 'nonzero_exit', a defect
   assert.equal(artifact.per_item.find((p) => p.id === "derive-obligations").outcome, "nonzero_exit");
   assert.equal(artifact.per_item.find((p) => p.id === "tier-opinions").outcome, "clean");
   assert.equal(artifact.defects_found.length, 1);
-  assert.match(artifact.defects_found[0].description, /1 of 4/);
+  assert.match(artifact.defects_found[0].description, new RegExp(`1 of ${STEPS.length}`));
   assert.match(artifact.defects_found[0].root_cause, /derive-obligations: exitCode=1/);
   assert.deepEqual(validateRunArtifact(artifact), []);
 });
 
-test("STEPS: the four maintenance-step names this family always runs, in the workflow's own order", () => {
-  assert.deepEqual(STEPS, ["tier-opinions", "derive-obligations", "tag-proposals", "apply-classifications"]);
+test("STEPS: the maintenance-step names this family always runs, in the workflow's own order", () => {
+  assert.deepEqual(STEPS, ["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "apply-classifications"]);
 });
 
 // ── loop_run_id (lane M3b, 2026-09-20) ──────────────────────────────────────────────────────────────
