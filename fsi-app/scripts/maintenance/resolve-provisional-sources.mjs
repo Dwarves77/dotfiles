@@ -123,22 +123,27 @@
 // re-verified here, no DB credentials in this worktree]. The 489/563 counts are the coordinator's own
 // live read; this script's own dry mode is the mechanism that reconfirms them at dispatch time before
 // any apply.
-import { resolve } from "node:path";
-import { readAll, guardedUpdate, guardedInsert, hostOf, readClient } from "../lib/db.mjs";
-import { classTierForHostAcrossNames } from "../../src/lib/sources/host-authority.ts";
+import { resolve, join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { readAll, guardedUpdate, guardedInsert, guardedInsertMany, hostOf, readClient } from "../lib/db.mjs";
+import { classTierForHostAcrossNames, verdictPlacementForHost } from "../../src/lib/sources/host-authority.ts";
+// Lane S1-B (2026-10-04): committed host verdicts (rule b2) and bias tags on machine promotion, both reused
+// from the modules the admin route and the maintenance family already share, never a second copy.
+import { loadHostVerdicts } from "./host-verdicts/load-host-verdicts.mjs";
+import { writeBiasTags } from "../../src/lib/sources/bias-tag-pipeline.mjs";
 import {
   buildPromotedSourceRow,
   findExistingSourceByCanonicalUrl,
   PROVISIONAL_SOURCES_PROMOTED_STATUS,
   PROVISIONAL_SOURCES_REJECTED_STATUS,
 } from "../../src/lib/sources/promote-provisional.ts";
-import { buildNullTierHostWrite } from "../../src/lib/sources/null-tier-host-worklist.mjs";
+import { buildNullTierHostWrite, buildNullTierHostResolution } from "../../src/lib/sources/null-tier-host-worklist.mjs";
 import { existingTierForHost } from "./canonical-autoverify.mjs";
 // groupUnresolvedHosts (F1 fix, review-l9b.md, fix round 1 for L9b): the SAME per-host name-grouping
 // enumerate-unclassified-hosts.mjs already uses, reused here (never a second copy) so this step's class
 // decision for a host is computed once, over the union of every stored name the run sees for it, rather
 // than per row.
-import { groupUnresolvedHosts } from "./enumerate-unclassified-hosts.mjs";
+import { groupUnresolvedHosts, collectUnresolvedRows, buildUnplacedHostExport } from "./enumerate-unclassified-hosts.mjs";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 // `checkVerticalFitGate` (src/lib/sources/vertical-fit-gate.ts) imports the `@/lib/...` TS path alias
@@ -196,17 +201,39 @@ export const SOURCES_REJECT_STATUS = "suspended";
  * institution is a STATUS, never a rejection, and an unknown host is a QUESTION (the worklist), never a
  * rejection. Pure, no I/O, no DB, no fetch.
  * @param {string} host
- * @param {{ existingTier: number|null, classTier: number|null }} signals
- * @returns {{ action: "promote"|"worklist", tier: number|null, rule: "a"|"b"|"d", reason: string }}
+ * Lane S1-B (2026-10-04) adds rule (b2): a committed host verdict (`verdict`, from verdictPlacementForHost,
+ * consulted only after rule b declined) promotes at the verdict class's table tier. An unplaced host is
+ * residue with the reason "awaiting host verdict batch", never a block.
+ * @param {{ existingTier: number|null, classTier: number|null, verdict?: {tier:number, class:string, batch:string|null}|null }} signals
+ * @returns {{ action: "promote"|"worklist", tier: number|null, rule: "a"|"b"|"b2"|"d", reason: string, verdict?: object }}
  */
-export function decideHost(host, { existingTier, classTier }) {
+export function decideHost(host, { existingTier, classTier, verdict = null }) {
   if (existingTier != null) {
     return { action: "promote", tier: existingTier, rule: "a", reason: `host ${host} matches an existing active institution at tier ${existingTier}` };
   }
   if (classTier != null) {
     return { action: "promote", tier: classTier, rule: "b", reason: `SC-13 class table resolves ${host} to tier ${classTier}` };
   }
-  return { action: "worklist", tier: null, rule: "d", reason: `host ${host} is unclassifiable, no institution match, no class-table rule` };
+  if (verdict != null) {
+    return {
+      action: "promote", tier: verdict.tier, rule: "b2", verdict,
+      reason: `host verdict batch ${verdict.batch ?? "unknown"} places ${host} in class ${verdict.class} (tier ${verdict.tier})`,
+    };
+  }
+  return { action: "worklist", tier: null, rule: "d", reason: `host ${host} is unplaced: no institution match, no class-table rule, no host verdict (${RESIDUE_REASON})` };
+}
+
+/** The residue reason for a host still unplaced after the committed verdict batches. */
+export const RESIDUE_REASON = "awaiting host verdict batch";
+
+/**
+ * The `sources` UPDATE patch for a promote/activate. A row whose `tier_override` is set is an admin's
+ * explicit tier decision: an automatic writer never overwrites it, so base_tier/effective_tier are left
+ * out and only status changes (lane S1-B, 2026-10-04). Pure.
+ * @param {{ status: "active"|"inaccessible", tier: number, tierOverride?: number|null }} p
+ */
+export function sourcesActivationPatch({ status, tier, tierOverride = null }) {
+  return tierOverride != null ? { status } : { status, base_tier: tier, effective_tier: tier };
 }
 
 /**
@@ -261,7 +288,7 @@ export function sourcesStatusForPromote(row) {
 export function planProvisionalSourceRow(row, resolved) {
   const host = hostForRow(row);
   if (!host) return { id: row.id, host: null, decision: { action: "worklist", tier: null, rule: "d", reason: "URL has no parsable host" } };
-  const decision = decideHost(host, { existingTier: resolved.existingTier, classTier: resolved.classTier });
+  const decision = decideHost(host, { existingTier: resolved.existingTier, classTier: resolved.classTier, verdict: resolved.verdict ?? null });
   return { id: row.id, host, decision };
 }
 
@@ -274,7 +301,7 @@ export function planProvisionalSourceRow(row, resolved) {
 export function planSourcesProvisionalRow(row, resolved) {
   const host = hostForRow(row);
   if (!host) return { id: row.id, host: null, decision: { action: "worklist", tier: null, rule: "d", reason: "URL has no parsable host" } };
-  const decision = decideHost(host, { existingTier: resolved.existingTier, classTier: resolved.classTier });
+  const decision = decideHost(host, { existingTier: resolved.existingTier, classTier: resolved.classTier, verdict: resolved.verdict ?? null });
   return { id: row.id, host, decision };
 }
 
@@ -331,7 +358,11 @@ export function syntheticItemIdFor(table, id) {
  * authoritative (lowest rule number) result any single name would produce -- so the outcome is the same
  * regardless of row order.
  */
-export async function main({ mode = "dry" } = {}, deps) {
+export async function main({ mode: modeIn = "dry", arg = "", out = null } = {}, deps) {
+  // `--arg export-unplaced` is the read-only export mode (lane S1-B): it never writes to the database,
+  // whatever `mode` says, and writes the unplaced-host list a session lane classifies from.
+  const exportUnplaced = arg === "export-unplaced";
+  const mode = exportUnplaced ? "dry" : modeIn;
   const apply = mode === "apply";
   const summary = {
     step: "resolve-provisional-sources",
@@ -342,6 +373,15 @@ export async function main({ mode = "dry" } = {}, deps) {
     read_back: {},
     exitCode: 0,
   };
+  const hostVerdicts = deps.hostVerdicts ?? new Map();
+  summary.host_verdicts = {
+    ...(deps.hostVerdictsReport ?? { batches: [], entries: 0, rejected: [] }),
+    promoted_by_verdict: 0,
+    flags_resolved: 0,
+    residue_reason: RESIDUE_REASON,
+  };
+  summary.bias_tags = { written: 0, discarded: 0, failed: 0 };
+  const resolvedFlagHosts = new Set();
 
   const [pendingProvisional, sourcesProvisional, activeSources] = await Promise.all([
     deps.readPendingProvisional(),
@@ -364,22 +404,46 @@ export async function main({ mode = "dry" } = {}, deps) {
     groupUnresolvedHosts(namesByHostRows, new Map(), new Map()).map((g) => [g.host, g.names]),
   );
 
-  for (const row of pendingProvisional) {
-    const host = hostForRow(row);
+  if (exportUnplaced) {
+    // Same loop enumerate-unclassified-hosts uses (collectUnresolvedRows), fed this step's own across-names
+    // class decision, so "unplaced" means exactly what this step's rules a, b and b2 leave over.
+    const unresolved = collectUnresolvedRows(
+      [{ table: "provisional_sources", rows: pendingProvisional }, { table: "sources", rows: sourcesProvisional }],
+      { activeSources, classTierFor: (host) => classTierAcrossNamesFn(host, namesByHost.get(host)), verdicts: hostVerdicts },
+    );
+    const hosts = groupUnresolvedHosts(unresolved, new Map(), new Map());
+    const generatedAt = new Date().toISOString();
+    summary.counts = { unplaced_hosts: hosts.length, unplaced_rows: unresolved.length };
+    summary.note = `EXPORT (read-only): ${hosts.length} unplaced host(s) across ${unresolved.length} row(s). Nothing written to the database.`;
+    if (out) {
+      mkdirSync(out, { recursive: true });
+      const file = join(out, "unplaced-hosts.json");
+      writeFileSync(file, JSON.stringify(buildUnplacedHostExport(hosts, { generatedAt }), null, 2) + "\n");
+      summary.artifacts = { unplaced: file };
+    }
+    return summary;
+  }
+
+  // Rule a, rule b (across names, F1), then rule b2 (a committed host verdict) only when both decline.
+  const resolveSignals = (host) => {
     const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
     // F1 fix: the host's class decision is computed ONCE over the union of every name this run sees for
     // it (namesByHost), not this row's own name alone -- order-independent by construction.
     const classTier = host && existingTier == null ? classTierAcrossNamesFn(host, namesByHost.get(host)) : null;
-    const plan = planProvisionalSourceRow(row, { existingTier, classTier });
-    await applyProvisionalDecision(row, plan, { apply, deps, summary, worklistFlagOps });
+    const verdict = host && existingTier == null && classTier == null ? verdictPlacementForHost(host, hostVerdicts) : null;
+    return { existingTier, classTier, verdict };
+  };
+
+  for (const row of pendingProvisional) {
+    const host = hostForRow(row);
+    const plan = planProvisionalSourceRow(row, resolveSignals(host));
+    await applyProvisionalDecision(row, plan, { apply, deps, summary, worklistFlagOps, resolvedFlagHosts });
   }
 
   for (const row of sourcesProvisional) {
     const host = hostForRow(row);
-    const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
-    const classTier = host && existingTier == null ? classTierAcrossNamesFn(host, namesByHost.get(host)) : null;
-    const plan = planSourcesProvisionalRow(row, { existingTier, classTier });
-    await applySourcesDecision(row, plan, { apply, deps, summary, worklistFlagOps });
+    const plan = planSourcesProvisionalRow(row, resolveSignals(host));
+    await applySourcesDecision(row, plan, { apply, deps, summary, worklistFlagOps, resolvedFlagHosts });
   }
 
   summary.samples.promote = summary.samples.promote.slice(0, 20);
@@ -417,10 +481,11 @@ export async function main({ mode = "dry" } = {}, deps) {
 }
 
 /** Applies one `provisional_sources` row's decision (dry: records the sample only; apply: writes). */
-async function applyProvisionalDecision(row, plan, { apply, deps, summary, worklistFlagOps }) {
+async function applyProvisionalDecision(row, plan, { apply, deps, summary, worklistFlagOps, resolvedFlagHosts }) {
   const { decision } = plan;
   if (decision.action === "promote") {
     summary.counts.promote += 1;
+    if (decision.rule === "b2") summary.host_verdicts.promoted_by_verdict += 1;
     summary.samples.promote.push({ table: "provisional_sources", id: row.id, host: plan.host, tier: decision.tier, rule: decision.rule });
     if (!apply) return;
     // vertical-fit gate reused from the promote route (see this file's header); a host the operator
@@ -435,7 +500,9 @@ async function applyProvisionalDecision(row, plan, { apply, deps, summary, workl
       await deps.rejectProvisional(row.id, `vertical-fit gate: ${gate.reason}`);
       return;
     }
-    await deps.promoteProvisional(row, decision.tier, decision.reason);
+    const promoted = await deps.promoteProvisional(row, decision.tier, decision.reason);
+    await writeMachineBiasTags(row, promoted, deps, summary);
+    await resolveVerdictFlag(plan, deps, summary, resolvedFlagHosts);
     return;
   }
   // worklist (rule d): decideHost's action space is promote|worklist only (defect D13 fix: rule c
@@ -453,16 +520,21 @@ async function applyProvisionalDecision(row, plan, { apply, deps, summary, workl
 }
 
 /** Applies one `sources` (status='provisional') row's decision. */
-async function applySourcesDecision(row, plan, { apply, deps, summary, worklistFlagOps }) {
+async function applySourcesDecision(row, plan, { apply, deps, summary, worklistFlagOps, resolvedFlagHosts }) {
   const { decision } = plan;
   if (decision.action === "promote") {
     summary.counts.promote += 1;
+    if (decision.rule === "b2") summary.host_verdicts.promoted_by_verdict += 1;
     // Defect D13 fix: the status this promote writes carries the accessibility fact already on record
     // (active/inaccessible from fetch_status) rather than letting it decide promote vs. reject -- rule
     // (c) is removed, so this branch is the ONLY outcome for a resolved tier, dead host or not.
     const status = sourcesStatusForPromote(row);
     summary.samples.promote.push({ table: "sources", id: row.id, host: plan.host, tier: decision.tier, rule: decision.rule, status });
-    if (apply) await deps.activateSourcesRow(row.id, decision.tier, status);
+    if (apply) {
+      // A row with tier_override set keeps its tiers (admin override respected); only status may change.
+      await deps.activateSourcesRow(row.id, decision.tier, status, row.tier_override ?? null);
+      await resolveVerdictFlag(plan, deps, summary, resolvedFlagHosts);
+    }
     return;
   }
   // worklist (rule d): decideHost's action space is promote|worklist only (defect D13 fix: rule c
@@ -477,6 +549,42 @@ async function applySourcesDecision(row, plan, { apply, deps, summary, worklistF
     if (plan.host) await applyNullTierWorklist(plan.host, "sources", row.id, deps, worklistFlagOps);
     await deps.worklistSourcesRow(row.id, decision.reason);
   }
+}
+
+/**
+ * Bias tags on machine promotion (lane S1-B): a NEW `sources` row carries the Haiku recommendation cached on
+ * its provisional row, written through `writeBiasTags` exactly as the admin promote route does. A reused
+ * existing source is skipped (it already has its own tags; the table's unique key would refuse a repeat).
+ * Best-effort, like the route: a failure is counted and reported, never fails the promotion.
+ */
+async function writeMachineBiasTags(row, promoted, deps, summary) {
+  const biasTags = row.recommended_classification?.bias_tags;
+  if (!biasTags || !promoted?.sourceId || promoted.reused || typeof deps.insertBiasTagRows !== "function") return;
+  try {
+    const r = await writeBiasTags({ insertRows: deps.insertBiasTagRows }, promoted.sourceId, biasTags);
+    summary.bias_tags.written += r.inserted;
+    summary.bias_tags.discarded += r.discarded.length;
+  } catch (e) {
+    summary.bias_tags.failed += 1;
+    console.warn("resolve-provisional-sources: bias-tag write failed:", e instanceof Error ? e.message : String(e));
+  }
+}
+
+/**
+ * A host a committed verdict batch now places: close its open null-tier-host flag with a note naming the
+ * batch (once per host per run). Only rule b2 has a flag to close; rules a and b never queued a question.
+ */
+async function resolveVerdictFlag(plan, deps, summary, resolvedFlagHosts) {
+  const { decision, host } = plan;
+  if (decision.rule !== "b2" || !host || resolvedFlagHosts.has(host) || typeof deps.resolveNullTierFlag !== "function") return;
+  resolvedFlagHosts.add(host);
+  const existing = await deps.readNullTierFlag(host);
+  if (!existing?.id) return;
+  await deps.resolveNullTierFlag(
+    existing.id,
+    buildNullTierHostResolution(host, { batch: decision.verdict.batch, class: decision.verdict.class, tier: decision.tier }, new Date().toISOString()),
+  );
+  summary.host_verdicts.flags_resolved += 1;
 }
 
 /**
@@ -513,7 +621,11 @@ export async function buildDeps() {
   const { createJiti } = await import("jiti");
   const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
   const { checkVerticalFitGate: realCheckVerticalFitGate } = await jiti.import("../../src/lib/sources/vertical-fit-gate.ts");
+  const hostVerdictLoad = loadHostVerdicts();
   return {
+    // Lane S1-B: the committed host-verdict batches (rule b2), loaded once; rejected entries ride the summary.
+    hostVerdicts: hostVerdictLoad.verdicts,
+    hostVerdictsReport: { batches: hostVerdictLoad.batches, entries: hostVerdictLoad.entries, rejected: hostVerdictLoad.rejected },
     // DEFECT D22 FIX: one argument (the row), the client closed over -- never the raw two-argument
     // function passed straight through (that was the bug: the raw function expects (supabase, source),
     // the call site passes one argument, the row).
@@ -521,11 +633,11 @@ export async function buildDeps() {
     readPendingProvisional: () =>
       readAll(
         "provisional_sources",
-        "id, name, url, description, discovered_via, accessibility_verified, status",
+        "id, name, url, description, discovered_via, accessibility_verified, status, recommended_classification",
         { match: (q) => q.in("status", ["pending_review", PROVISIONAL_WORKLIST_STATUS]) },
       ),
     readProvisionalSourcesRows: () =>
-      readAll("sources", "id, name, url, notes, fetch_status, status", { match: (q) => q.eq("status", "provisional") }),
+      readAll("sources", "id, name, url, notes, fetch_status, status, tier_override", { match: (q) => q.eq("status", "provisional") }),
     // Rule (a)'s registry: EVERY active source (existingTierForHost filters to status='active'
     // itself, but paginating the whole table once here, rather than per-row, is the same
     // "read all pages once, resolve many rows against it" shape registerPoolHostsForGrounding
@@ -581,14 +693,22 @@ export async function buildDeps() {
       guardedUpdate(
         "provisional_sources",
         (q) => q.eq("id", id),
-        { status: PROVISIONAL_WORKLIST_STATUS, reviewed_at: now(), reviewer_notes: `${reason}: awaiting an SC-13 class-table rule; see the null-tier-host integrity_flags queue` },
+        { status: PROVISIONAL_WORKLIST_STATUS, reviewed_at: now(), reviewer_notes: `${reason}; see the null-tier-host integrity_flags queue` },
         { cite: CITE },
       ),
     // Defect D13 fix: `status` is caller-supplied (sourcesStatusForPromote(row), computed from the
     // row's own fetch_status), never hardcoded "active" -- a promoted row that is currently
     // inaccessible says so on the row rather than masquerading as active.
-    activateSourcesRow: (id, tier, status) =>
-      guardedUpdate("sources", (q) => q.eq("id", id), { status, base_tier: tier, effective_tier: tier }, { cite: CITE }),
+    // Lane S1-B: a row with tier_override set keeps its tiers (sourcesActivationPatch); status still changes.
+    activateSourcesRow: (id, tier, status, tierOverride = null) =>
+      guardedUpdate("sources", (q) => q.eq("id", id), sourcesActivationPatch({ status, tier, tierOverride }), { cite: CITE }),
+    // Lane S1-B: bias tags on machine promotion, through the guarded batched insert (rule 015); writeBiasTags
+    // expects { error }, guardedInsertMany throws on failure, which writeMachineBiasTags catches and counts.
+    insertBiasTagRows: async (rows) => {
+      await guardedInsertMany("source_bias_tags", rows, { cite: CITE, select: "id" });
+      return { error: null };
+    },
+    resolveNullTierFlag: (id, patch) => guardedUpdate("integrity_flags", (q) => q.eq("id", id), patch, { cite: CITE }),
     // defect D4 fix (review-7.5.md finding 3): the decline reason is now written INTO `notes`, the
     // same on-row form worklistSourcesRow already uses, not only into guardedUpdate's `cite`
     // (which db.mjs writes to an off-row audit snapshot file, never a column). Defect D13 fix: rule
@@ -608,7 +728,7 @@ export async function buildDeps() {
     worklistSourcesRow: async (id, reason) => {
       const rows = await readAll("sources", "id, notes", { match: (q) => q.eq("id", id) });
       const priorNotes = rows[0]?.notes ?? "";
-      const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] ${reason}: awaiting an SC-13 class-table rule.`;
+      const stamp = `[resolve-provisional-sources ${now().slice(0, 10)}] ${reason}.`;
       await guardedUpdate("sources", (q) => q.eq("id", id), { notes: priorNotes ? `${priorNotes}\n${stamp}` : stamp }, { cite: CITE });
     },
     // defect D3 fix: the SAME null-tier-host read-modify-write resolve-cited-host-gate.mjs's own

@@ -23,11 +23,14 @@
 // mirrored in the recommend-classification system prompt's own guidance,
 // Section 6 of source-credibility-model SKILL.md "Assignment"):
 //   >= 0.80        -> insert, assignment_source = 'haiku_auto_high_confidence'
-//   0.65 - 0.79    -> insert, assignment_source = 'haiku_proposed_low_confidence'
-//                     (surfaced on the candidate-review card for operator
-//                     awareness before/at approval; promotion to
-//                     'operator_confirmed' is a future confirm action, not
-//                     built by this pass)
+//   0.65 - 0.79    -> insert, assignment_source = 'haiku_auto_high_confidence'
+//                     with the real confidence kept in `confidence` (lane
+//                     S1-B, 2026-10-04: no tag waits on a confirm click; the
+//                     admin PATCH route stays as an OPTIONAL override, confirm
+//                     or remove. Migration 092's CHECK admits no other
+//                     automatic value, and migration 097 already set the
+//                     precedent of 0.75+ rows stored under this value, so no
+//                     new vocabulary token and no migration is needed.)
 //   < 0.65         -> discard, never written
 //
 // Vocabulary (dimension -> tag) is copied verbatim from migration 092's
@@ -70,6 +73,8 @@ export const BIAS_TAG_VOCAB = Object.freeze({
 
 export const ASSIGNMENT_SOURCE = Object.freeze({
   HIGH_CONFIDENCE: "haiku_auto_high_confidence",
+  // LEGACY: no writer produces this value any more (S1-B). Rows written before 2026-10-04 may still carry
+  // it; bias-tags/logic.ts still treats it as overridable.
   LOW_CONFIDENCE: "haiku_proposed_low_confidence",
 });
 
@@ -129,7 +134,7 @@ export function splitBiasTagsByConfidence(biasTags) {
       if (confidence >= HIGH_CONFIDENCE_THRESHOLD) {
         insertRows.push({ dimension, tag, confidence, assignment_source: ASSIGNMENT_SOURCE.HIGH_CONFIDENCE });
       } else if (confidence >= LOW_CONFIDENCE_THRESHOLD) {
-        insertRows.push({ dimension, tag, confidence, assignment_source: ASSIGNMENT_SOURCE.LOW_CONFIDENCE });
+        insertRows.push({ dimension, tag, confidence, assignment_source: ASSIGNMENT_SOURCE.HIGH_CONFIDENCE });
       } else {
         discarded.push({ dimension, tag, confidence, reason: "below 0.65 threshold" });
       }

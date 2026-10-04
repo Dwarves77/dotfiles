@@ -74,3 +74,16 @@ test("buildNullTierHostWrite: calling it twice for the same host, threading the 
   // Same item, same contribution: the fact count for item-1 stays 1, not 2.
   assert.deepEqual(second.patch.recommended_actions[0].aggregate.perItemFacts, { "item-1": 1 });
 });
+
+// ── buildNullTierHostResolution (lane S1-B, 2026-10-04) ──────────────────────────────────────────────
+import { buildNullTierHostResolution, NULL_TIER_RESOLVED_BY } from "./null-tier-host-worklist.mjs";
+
+test("buildNullTierHostResolution: resolves the flag with a note naming the verdict batch, class and tier", () => {
+  const p = buildNullTierHostResolution("h.test", { batch: "host-verdicts-003", class: "analysis", tier: 6 }, "2026-10-04T00:00:00Z");
+  assert.equal(p.status, "resolved");
+  assert.equal(p.resolved_by, NULL_TIER_RESOLVED_BY);
+  assert.equal(p.resolved_at, "2026-10-04T00:00:00Z");
+  assert.match(p.resolution_note, /host-verdicts-003/);
+  assert.match(p.resolution_note, /analysis/);
+  assert.match(p.resolution_note, /tier 6/);
+});

@@ -85,10 +85,8 @@ test("checkActionable: haiku_proposed_low_confidence is actionable", () => {
   assert.deepEqual(result, { ok: true });
 });
 
-test("checkActionable: haiku_auto_high_confidence is NOT actionable (never surfaced for confirm)", () => {
-  const result = checkActionable({ assignment_source: "haiku_auto_high_confidence" });
-  assert.equal(result.ok, false);
-  assert.equal(result.status, 409);
+test("checkActionable: haiku_auto_high_confidence (machine-adopted) IS actionable as an optional override", () => {
+  assert.deepEqual(checkActionable({ assignment_source: "haiku_auto_high_confidence" }), { ok: true });
 });
 
 test("checkActionable: already operator_confirmed is NOT actionable (nothing pending)", () => {

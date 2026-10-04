@@ -70,3 +70,22 @@ export function buildNullTierHostWrite(existingFlag, host, itemId, url, permanen
   };
   return existingFlag?.id ? { op: "update", id: existingFlag.id, patch: row } : { op: "insert", row };
 }
+
+export const NULL_TIER_RESOLVED_BY = "resolve-provisional-sources";
+
+/**
+ * The resolve patch for an open null-tier-host flag whose host a committed host-verdict batch now places
+ * (lane S1-B, 2026-10-04): the flag asked "which class is this host?" and the verdict answered it, so the
+ * machine closes it with a note naming the batch, class and tier. Pure; the caller performs the write.
+ * @param {string} host
+ * @param {{ batch: string|null, class: string, tier: number }} placement
+ * @param {string} nowIso
+ */
+export function buildNullTierHostResolution(host, placement, nowIso) {
+  return {
+    status: "resolved",
+    resolved_at: nowIso,
+    resolved_by: NULL_TIER_RESOLVED_BY,
+    resolution_note: `host verdict batch ${placement.batch ?? "unknown"} places ${host} in class ${placement.class} (tier ${placement.tier}); registered by the class table, no operator action needed.`,
+  };
+}

@@ -1,0 +1,20 @@
+{
+  "batch": "host-verdicts-000",
+  "generated_at": "2026-10-04T00:00:00Z",
+  "entries": [
+    {
+      "host": "unplaced-example.test",
+      "class": "association",
+      "evidence": "FIXTURE ONLY: page title 'Example Shippers Council, member association'",
+      "verdict_source": "session-lane",
+      "generated_at": "2026-10-04T00:00:00Z"
+    },
+    {
+      "host": "www.Other-Fixture-Host.test.",
+      "class": "analysis",
+      "evidence": "FIXTURE ONLY: self-description 'an independent research group'",
+      "verdict_source": "session-lane",
+      "generated_at": "2026-10-04T00:00:00Z"
+    }
+  ]
+}

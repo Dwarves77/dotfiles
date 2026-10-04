@@ -195,3 +195,36 @@ test("main(): joins a citing item title through the search log when one exists",
   const summary = await main({ out: null }, deps);
   assert.equal(summary.counts.unresolved_hosts, 1);
 });
+
+// ── S1-B (2026-10-04): committed host verdicts drop a host from the residue; the lane's input file ──
+
+import { buildUnplacedHostExport, collectUnresolvedRows } from "./enumerate-unclassified-hosts.mjs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+test("main(): a host with a committed verdict is no longer unplaced; one without stays", async () => {
+  const pending = [{ id: "p1", url: "https://ruled.test/a" }, { id: "p2", url: "https://unruled.test/a" }];
+  const deps = { ...fakeDeps({ pending }), hostVerdicts: new Map([["ruled.test", { class: "association", batch: "b" }]]) };
+  const summary = await main({ out: null }, deps);
+  assert.equal(summary.counts.unresolved_hosts, 1);
+  assert.equal(summary.counts.unresolved_rows, 1);
+});
+
+test("buildUnplacedHostExport: host, names, discovered_via only", () => {
+  const out = buildUnplacedHostExport(
+    [{ host: "h.test", row_count: 2, tables: ["sources"], names: ["N"], discovered_via: ["worker_search"], citing_item_titles: ["T"] }],
+    { generatedAt: "t" },
+  );
+  assert.deepEqual(out, { generated_at: "t", hosts: [{ host: "h.test", names: ["N"], discovered_via: ["worker_search"] }] });
+});
+
+test("main(): with --out it also writes unplaced-hosts.json", async () => {
+  const out = mkdtempSync(join(tmpdir(), "enum-"));
+  await main({ out }, fakeDeps({ pending: [{ id: "p1", url: "https://unruled.test/a", discovered_via: "x" }] }));
+  assert.equal(JSON.parse(readFileSync(join(out, "unplaced-hosts.json"), "utf8")).hosts[0].host, "unruled.test");
+});
+
+test("collectUnresolvedRows is exported for the resolver's export mode", () => {
+  assert.equal(typeof collectUnresolvedRows, "function");
+});

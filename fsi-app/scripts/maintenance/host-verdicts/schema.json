@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dwarves77.internal/maintenance/host-verdicts.schema.json",
+  "title": "host-verdicts batch",
+  "description": "One committed batch of host class verdicts a session lane wrote for hosts the built-in class table cannot place. Enforced by load-host-verdicts.mjs (pure JS, per-entry rejection); this schema is the readable statement of the same contract. A verdict names a CLASS, never a tier: the tier always comes from HOST_CLASS_TIER in src/lib/sources/host-authority.ts.",
+  "type": "object",
+  "required": ["batch", "generated_at", "entries"],
+  "properties": {
+    "batch": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "entries": { "type": "array", "items": { "$ref": "#/definitions/entry" } }
+  },
+  "definitions": {
+    "entry": {
+      "type": "object",
+      "required": ["host", "class", "evidence", "verdict_source", "generated_at"],
+      "not": { "required": ["tier"] },
+      "properties": {
+        "host": { "type": "string", "minLength": 1, "description": "Bare hostname, as listed in the unplaced-hosts export." },
+        "class": {
+          "type": "string",
+          "enum": ["legal", "gov", "verifier", "academic", "association", "standards_body", "analysis", "lawfirm", "news", "company"],
+          "description": "A key of HOST_CLASS_TIER (host-authority.ts). Keep this enum in agreement with that table; the loader test pins it."
+        },
+        "evidence": { "type": "string", "minLength": 1, "description": "The page title or self-description the lane read for this host." },
+        "verdict_source": { "type": "string", "const": "session-lane" },
+        "generated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": true
+    }
+  }
+}
