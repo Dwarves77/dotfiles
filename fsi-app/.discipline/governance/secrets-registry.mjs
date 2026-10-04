@@ -56,8 +56,8 @@ export const TOPOLOGY = Object.freeze([
   { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', vaults: ['vercel-runtime', 'local-.env'], consumers: ['browser client (RLS-limited reads)'], writeAuthority: 'Vercel / local', note: 'anon JWT — RLS-scoped' },
   { name: 'DATA_GOV_API_KEY', vaults: ['local-.env'], consumers: ['data.gov API fetches (scripts)'], writeAuthority: 'local', note: 'external data source key' },
   { name: 'EIA_API_KEY', vaults: ['github-actions', 'local-.env'], consumers: ['producers.yml eia-v2-petroleum-spot (GH)', 'EIA energy-data fetches (scripts)'], writeAuthority: 'gh (repo scope; operator created it from the GitHub UI 2026-09-03) / local', note: 'external data source key (free eia.gov/opendata registration); mirrored local <-> GitHub 2026-09-03' },
-  // Vercel-runtime only, OPTIONAL (2026-09-03): when unset, the organisation key for community benchmark
-  // responses is derived from WORKER_SECRET via HKDF (src/lib/community/organisation-salt.ts), so one
+  // Vercel-runtime only, OPTIONAL (2026-09-03): when unset, the organisation key for a verified community
+  // profile is derived from WORKER_SECRET via HKDF (src/lib/community/organisation-salt.ts), so one
   // fewer secret to provision; setting it decouples organisation keys from WORKER_SECRET rotation.
   { name: 'COMMUNITY_ORG_SALT', vaults: ['vercel-runtime'], consumers: ['/api/community/profile/verify (organisation_key HMAC salt; optional, see organisation-salt.ts)'], writeAuthority: 'Vercel dashboard', note: 'optional; absent = derived from WORKER_SECRET (rotating WORKER_SECRET then re-keys every organisation)' },
   { name: 'NREL_API_KEY', vaults: ['local-.env'], consumers: ['NLR/NREL fetches (scripts)'], writeAuthority: 'local', note: 'external data source key' },

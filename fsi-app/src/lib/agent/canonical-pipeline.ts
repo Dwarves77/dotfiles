@@ -84,20 +84,13 @@ import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 // may DO with it, and the related_items write-back below (~line 840 by the build-plan's own reference)
 // is the enforcement backstop.
 import { selectBriefCandidates, formatCandidateBlock } from "@/lib/connections/brief-candidates.mjs";
-// RESEARCH ASSESSMENT CONTEXT (Lane L9, 2026-10-02; coordinator ruling after this lane's own report
-// named the gap: system-prompt.ts required planning_assumption_shifted from research_assessments
-// (migration 344) and planning_assumption_register (migration 345), but this pipeline never passed
-// either into the model's input context -- "a requirement the generator can never satisfy is half a
-// slice," CLAUDE.md rule 17). research_finding items ONLY (see the item_type gate at the call site
-// below); non-research item types never reach buildPlanningAssumptionContext. Reuses the SAME
-// view-model/formatter read-assessments.mjs already exports (no second query shape; the column list
-// below is copied verbatim from src/app/research/page.tsx's readAssessmentsByItemId) and
-// assumptions/read.ts's readAtRiskAssumptions (which already applies contract.mjs's load_bearing-AND-
-// vulnerable eligibility rule -- isAtRisk is imported here too, defensively re-checked, never trusted
-// as a second, divergent implementation).
-import { selectAssessmentView, formatAssumptionShift } from "@/lib/research/read-assessments.mjs";
-import { readAtRiskAssumptions } from "@/lib/assumptions/read";
-import { isAtRisk } from "@/lib/assumptions/contract.mjs";
+// RESEARCH ASSESSMENT CONTEXT (Lane L9, 2026-10-02; narrowed by ADR-042, 2026-10-03). research_finding
+// items ONLY (see the item_type gate at the call site below); non-research item types never reach
+// buildPlanningAssumptionContext. The block carries the item's own research_assessments read (external
+// data) and nothing customer-entered: the per-tenant planning-assumption half was removed by ADR-042.
+// Reuses the SAME view-model read-assessments.mjs already exports (no second query shape; the column
+// list below is copied verbatim from src/app/research/page.tsx's readAssessmentsByItemId).
+import { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock, type AgentMetadata, type ClaimProvenanceRecord } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
@@ -870,21 +863,15 @@ function buildInjectedRawText(body: string, md: InjectedBriefMetadata): string {
  *  a lane-authored brief is judged EXACTLY like a model-authored one, never a lighter pass -- only the
  *  MODEL CALL is skipped, not the judgment (SKILL.md's integrity rule: the injected body is validated by
  *  the same parser and the same gates, never trusted). See the seam header above. */
-// Bounded, not corpus-scale (F38 only reds a `.limit(` literal above 1000; this is well under it, and
-// the platform is single-tenant pre-pilot scale per CLAUDE.md's Perf Work Discipline section). Exported
-// so the fixture test below (and any future one) can override it; production callers use the default.
-export const RESEARCH_ASSESSMENT_CONTEXT_ORG_SCAN_LIMIT = 50;
-
 /**
  * Assemble the named "RESEARCH ASSESSMENT CONTEXT" block spliced into a research_finding item's
  * synthesis prompt (spec 03S1: a research_summary brief's `planning_assumption_shifted` line, section
- * 3, is grounded ONLY in real values actually offered here). Returns "" when neither source has
- * anything real to offer -- the honest-empty posture every other optional context source in
- * synthesiseAndWriteBrief already takes (candidateBlock above is the pattern). Non-gating: either read
- * failing degrades to that source's half being empty, never blocks generation.
+ * 3, is grounded ONLY in real values actually offered here). Returns "" when the assessment read has
+ * nothing real to offer -- the honest-empty posture every other optional context source in
+ * synthesiseAndWriteBrief already takes (candidateBlock above is the pattern). Non-gating: a failed
+ * read degrades to an empty block, never blocks generation.
  */
-/** Shared non-gating warn for buildPlanningAssumptionContext's two independent read halves (F45:
- *  dedupes what would otherwise be two near-identical catch bodies in the same function). */
+/** Non-gating warn for buildPlanningAssumptionContext's read failure. */
 function warnContextReadFailed(itemId: string, label: string, e: unknown): void {
   console.warn(`[canonical] item ${itemId}: ${label} (non-gating): ${e instanceof Error ? e.message : String(e)}`);
 }
@@ -917,19 +904,6 @@ export async function buildPlanningAssumptionContext(sb: SupabaseClient, itemId:
     }
   } catch (e) {
     warnContextReadFailed(itemId, "research_assessments_current read failed, treated as no assessment", e);
-  }
-
-  try {
-    const { data: orgs } = await sb.from("organizations").select("id").limit(RESEARCH_ASSESSMENT_CONTEXT_ORG_SCAN_LIMIT);
-    for (const org of (orgs ?? []) as Array<{ id: string }>) {
-      const atRisk = await readAtRiskAssumptions(sb, org.id);
-      for (const a of atRisk) {
-        if (!isAtRisk(a)) continue; // defensive re-check; never trust a second, divergent implementation
-        lines.push(`- At-risk planning assumption: ${formatAssumptionShift(a)}`);
-      }
-    }
-  } catch (e) {
-    warnContextReadFailed(itemId, "planning_assumption_register read failed, treated as none at risk", e);
   }
 
   if (lines.length === 0) return "";

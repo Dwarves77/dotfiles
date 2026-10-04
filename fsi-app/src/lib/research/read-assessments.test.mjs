@@ -7,10 +7,7 @@ import {
   technicalMaturityLabel,
   commercialMaturityLabel,
   refusalDisplayText,
-  ASSUMPTION_SHIFT_ABSENCE,
-  formatAssumptionShift,
 } from "./read-assessments.mjs";
-import { isAtRisk } from "../assumptions/contract.mjs";
 
 function row(overrides = {}) {
   return {
@@ -93,56 +90,4 @@ test("technicalMaturityLabel / commercialMaturityLabel format a corridor, collap
 test("refusalDisplayText prefers the real reason, falls back to a generic honest string", () => {
   assert.equal(refusalDisplayText("not forecastable: no dated evidence"), "not forecastable: no dated evidence");
   assert.match(refusalDisplayText(null), /not forecastable/);
-});
-
-test("ASSUMPTION_SHIFT_ABSENCE names what is needed, never a fabricated assumption", () => {
-  assert.match(ASSUMPTION_SHIFT_ABSENCE, /planning assumption registered/);
-});
-
-// ── planning-assumption shift, wired to lane W2-R2's real reader (2026-10-02) ───────────────────────
-
-/** One load-bearing, vulnerable (= at-risk) assumption, shaped exactly like read.ts's AssumptionRow
- *  (camelCase, the real GET /api/workspace/assumptions response shape) -- the fixture the coordinator
- *  asked for. */
-function atRiskAssumptionFixture(overrides = {}) {
-  return {
-    id: "assumption-1",
-    orgId: "org-1",
-    name: "Frankfurt-Milan express road linehaul stays diesel-costed through 2030",
-    valueNumeric: 34,
-    unit: "% of quoted margin",
-    boundTo: "34% of quoted margin on EU road",
-    loadBearing: true,
-    vulnerable: true,
-    reviewDate: "2026-12-01",
-    sourceNote: "Contract renewal cycle, EU road tender Q4.",
-    status: "active",
-    createdAt: "2026-09-01T00:00:00Z",
-    updatedAt: "2026-09-01T00:00:00Z",
-    ...overrides,
-  };
-}
-
-test("isAtRisk (reused from src/lib/assumptions/contract.mjs, never re-implemented) admits the fixture", () => {
-  const a = atRiskAssumptionFixture();
-  assert.equal(isAtRisk(a), true);
-});
-
-test("formatAssumptionShift renders name, boundTo, the quantified value, and the review date for a real at-risk assumption", () => {
-  const line = formatAssumptionShift(atRiskAssumptionFixture());
-  assert.match(line, /Frankfurt-Milan express road linehaul stays diesel-costed through 2030/);
-  assert.match(line, /34% of quoted margin on EU road/);
-  assert.match(line, /\(34 % of quoted margin\)/);
-  assert.match(line, /review by 2026-12-01/);
-});
-
-test("formatAssumptionShift omits the quantified segment when valueNumeric is null, never inventing a figure", () => {
-  const line = formatAssumptionShift(atRiskAssumptionFixture({ valueNumeric: null, unit: null }));
-  assert.doesNotMatch(line, /\(/);
-  assert.match(line, /review by 2026-12-01/);
-});
-
-test("a load-bearing-but-not-vulnerable assumption is correctly excluded by isAtRisk (the shift needs both)", () => {
-  const a = atRiskAssumptionFixture({ vulnerable: false });
-  assert.equal(isAtRisk(a), false);
 });

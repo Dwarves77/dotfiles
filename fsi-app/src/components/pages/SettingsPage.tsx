@@ -12,8 +12,6 @@ import { Masthead } from "@/components/ui/Masthead";
 import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
 import { SectionIndex, type SectionIndexEntry } from "@/components/ui/SectionIndex";
 import { RailCard } from "@/components/ui/RailCard";
-import { SectionCard } from "@/components/ui/SectionCard";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 import { nowFrom } from "@/lib/render-now";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import {
@@ -40,7 +38,7 @@ import type { ListSurfaceSortKey } from "@/components/list-surface/list-surface-
 //                                   Data & supersessions
 // Ruling R9 keeps the S1..S6 section index directly below the tab row, and
 // the five app features the artboard draws no region for (Saved searches,
-// Data summary, CSV upload, Supersession history, Archive, Help) stay as
+// Data summary, Supersession history, Archive, Help) stay as
 // anchored sections BELOW the two designed columns — ruling R7's "leave it
 // and list it", placed after the last designed region of the column.
 //
@@ -53,8 +51,6 @@ const DataSummary = dynamic(() => import("@/components/settings/DataSummary").th
 const SupersessionHistory = dynamic(() => import("@/components/settings/SupersessionHistory").then((m) => ({ default: m.SupersessionHistory })), { ssr: false });
 const ArchiveViewer = dynamic(() => import("@/components/settings/ArchiveViewer").then((m) => ({ default: m.ArchiveViewer })), { ssr: false });
 const SavedSearchesSection = dynamic(() => import("@/components/settings/SavedSearchesSection").then((m) => ({ default: m.SavedSearchesSection })), { ssr: false });
-const Spec09CsvUpload = dynamic(() => import("@/components/settings/Spec09CsvUpload").then((m) => ({ default: m.Spec09CsvUpload })), { ssr: false });
-const AssumptionRegisterSection = dynamic(() => import("@/components/settings/AssumptionRegisterSection").then((m) => ({ default: m.AssumptionRegisterSection })), { ssr: false });
 
 interface Props {
   initialResources: Resource[];
@@ -77,7 +73,6 @@ const SETTINGS_SECTIONS: SectionIndexEntry[] = [
   { id: "general", shortName: "General" },
   { id: "notifications", shortName: "Notifications" },
   { id: "saved", shortName: "Saved searches" },
-  { id: "assumptions", shortName: "Assumptions" },
   { id: "data", shortName: "Data" },
   { id: "archive", shortName: "Archive" },
   { id: "help", shortName: "Help" },
@@ -270,36 +265,9 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
           </AccountCard>
         </div>
 
-        <div id="assumptions" style={{ scrollMarginTop: 56 }} data-audit="settings-assumptions">
-          {/* SectionCard + SectionHeading, not AccountCard: AccountCard's title renders an inline
-              `<span style={{fontFamily:"var(--font-display)"}}>` with no `data-guard-display`
-              attribute, which is pre-existing, baseline-excused L7 debt on every OTHER settings
-              card (layout-guard/baseline.json "L7|/settings|*|span[Saved searches]" etc., dated,
-              expiring 2026-10-15), and the layout guard forbids adding a NEW card to that baseline.
-              SectionHeading's own `<h2 data-guard-display="card-title">` is the ALREADY-SANCTIONED
-              way to render an Anton card title (ANTON_ALLOWLIST, layout-guard/allowlists.mjs), so
-              this card gets the house look with zero new L7 debt and no edit to AccountPrimitives
-              (shared, out of this lane's write set). L10 ("not in the manifest") still needs its
-              own dated entry: see DEVIATION-LOG.md's new "ASSUMPTION REGISTER" row, same R7
-              precedent as the SAVED SEARCHES / DATA SUMMARY rows beside it. */}
-          <SectionCard dataAudit="settings-assumptions-card">
-            <SectionHeading title="Assumption register" aside="Research so-whats bind to these" />
-            <div style={{ padding: "14px 16px 16px" }}>
-              <AssumptionRegisterSection />
-            </div>
-          </SectionCard>
-        </div>
-
         <div id="data" style={{ scrollMarginTop: 56, display: "grid", gap: 16 }}>
           <AccountCard title="Data summary" bodyPadding="14px 16px 16px">
             <DataSummary resources={initialResources} archived={initialArchived} />
-          </AccountCard>
-          <AccountCard
-            title="Upload operational data (CSV)"
-            meta="Surcharge audits · DQI · auxiliary energy · EUDR claims · custody chains · indexation terms"
-            bodyPadding="14px 16px 16px"
-          >
-            <Spec09CsvUpload />
           </AccountCard>
           <AccountCard title="Supersession history" bodyPadding="14px 16px 16px">
             <SupersessionHistory supersessions={supersessions} resourceMap={resourceMap} />

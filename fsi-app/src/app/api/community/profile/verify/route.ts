@@ -11,9 +11,7 @@
 // entire verification surface this lane builds).
 //
 // Refuses when: the account has no email on file, or the email's domain is free-mail
-// (src/lib/community/organisation-key.mjs isCorporateDomain/FREE_MAIL_DOMAINS). This is the exact
-// refusal BenchmarksPanel points a member at ("verify a corporate email first", linking here) when the
-// response route refuses an unverified submission.
+// (src/lib/community/organisation-key.mjs isCorporateDomain/FREE_MAIL_DOMAINS).
 //
 // On success, writes verified=true, verified_at, verification_method='corporate-email' AND
 // organisation_key IN THE SAME WRITE. Migration 293's own CHECK constraint

@@ -18,8 +18,7 @@
 // representative generator output, real-column-named but not a real model call.
 //
 // GROUNDING. Every column/table name asserted below is read verbatim from migration 344
-// (research_assessments) and migration 345 (planning_assumption_register) via src/lib/research/
-// read-assessments.mjs and src/lib/assumptions/{contract,read}.mjs -- never invented here.
+// (research_assessments) via src/lib/research/read-assessments.mjs -- never invented here.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -29,13 +28,10 @@ import { fileURLToPath } from "node:url";
 import { SYSTEM_PROMPT } from "./system-prompt.ts";
 import {
   PLANNING_ASSUMPTION_SHIFT_ABSENCE,
-  PLANNING_ASSUMPTION_REGISTER_FIELDS,
   DB_HORIZON_BAND_VALUES,
   DB_HORIZON_KIND_VALUES,
   assertPlanningAssumptionShifted,
 } from "./metadata-vocab.ts";
-import { ASSUMPTION_SHIFT_ABSENCE } from "../research/read-assessments.mjs";
-import { isAtRisk } from "../assumptions/contract.mjs";
 
 // Isolate the Research Summary section's own text so assertions about "mandatory, research_summary
 // only" can't accidentally match unrelated prose elsewhere in the (very long) prompt.
@@ -82,39 +78,12 @@ test("the prompt cites real research_assessments column names (migration 344), n
   }
 });
 
-test("the prompt cites real planning_assumption_register field names (migration 345), never invented ones", () => {
-  for (const field of PLANNING_ASSUMPTION_REGISTER_FIELDS) {
-    assert.ok(
-      researchSummarySection.includes(field),
-      `Research Summary section must cite the real planning_assumption_register field "${field}"`,
-    );
-  }
-  // load_bearing AND vulnerable together is the exact eligibility test contract.mjs's isAtRisk applies;
-  // the prompt must require BOTH, not either alone.
-  assert.match(
-    researchSummarySection,
-    /load_bearing AND vulnerable/,
-    "the prompt must require the AT-RISK pairing (load_bearing AND vulnerable), matching contract.mjs's isAtRisk, not a looser condition",
-  );
-  assert.equal(isAtRisk({ loadBearing: true, vulnerable: true }), true);
-  assert.equal(isAtRisk({ loadBearing: true, vulnerable: false }), false);
-});
-
 test("the prompt's absence sentinel matches metadata-vocab.ts's locked constant, no second literal", () => {
   assert.equal(PLANNING_ASSUMPTION_SHIFT_ABSENCE, "no shift grounded");
   assert.ok(
     researchSummarySection.includes(`Planning assumption shift: ${PLANNING_ASSUMPTION_SHIFT_ABSENCE}`),
     "the prompt must emit the exact sentinel string from metadata-vocab.ts's PLANNING_ASSUMPTION_SHIFT_ABSENCE, not a re-typed copy",
   );
-});
-
-test("the brief-generation sentinel is a DIFFERENT string from the detail-page card's reader-facing absence copy", () => {
-  // read-assessments.mjs's ASSUMPTION_SHIFT_ABSENCE is the Research detail page's own reader-facing
-  // sentence (ResearchAssessmentCard); metadata-vocab.ts's PLANNING_ASSUMPTION_SHIFT_ABSENCE is the
-  // brief-generation sentinel token. Different surfaces, different readers -- this test pins that they
-  // are deliberately not the same literal, so a future "helpful" dedup doesn't collapse them silently.
-  assert.notEqual(PLANNING_ASSUMPTION_SHIFT_ABSENCE, ASSUMPTION_SHIFT_ABSENCE);
-  assert.equal(ASSUMPTION_SHIFT_ABSENCE, "needs a planning assumption registered for this workspace (Settings)");
 });
 
 test("the horizon/maturity vocabulary cited exists in metadata-vocab.ts's live mirror of migration 344", () => {
@@ -147,9 +116,8 @@ test("assertPlanningAssumptionShifted: null, undefined, and blank all fail the n
 
 // ── coordinator ruling (2026-10-02): canonical-pipeline.ts IS this lane's territory, not L7's ──
 //
-// [CONFIRMED by grep, 2026-10-02] canonical-pipeline.ts now imports selectAssessmentView /
-// formatAssumptionShift from read-assessments.mjs and readAtRiskAssumptions from assumptions/read.ts,
-// and names the exact block header this prompt instructs the model to look for. The prompt and the
+// [CONFIRMED by grep, 2026-10-02] canonical-pipeline.ts now imports selectAssessmentView
+// from read-assessments.mjs, and names the exact block header this prompt instructs the model to look for. The prompt and the
 // pipeline must therefore agree on that literal header string -- this test is the drift guard.
 test("the prompt names the exact context block header canonical-pipeline.ts emits", () => {
   assert.match(researchSummarySection, /"RESEARCH ASSESSMENT CONTEXT"/);

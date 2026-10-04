@@ -1,7 +1,7 @@
 /**
  * CorridorsAppliedStripView — the pure, sync render half of the "Corridors this applies on" block
  * (regulation detail, lane SCOPE-READER 2026-09-06). Split from CorridorsAppliedStrip.tsx for the SAME
- * reason every spec-09 panel is split (see that lane's SurchargeAuditPanelView.tsx / spec09-smoke.mjs
+ * reason every spec-09 panel is split (see OemRoadmapPanelView.tsx / spec09-smoke.mjs
  * headers): the data-fetch half transitively imports Next's server request-tracing chain
  * (`@opentelemetry/api`), which a plain esbuild browser bundle cannot resolve — this file imports NOTHING
  * from `next/*` or `@/lib/supabase-server`/`@/lib/entities/corridor-scope-cache`, so the rendering guard's

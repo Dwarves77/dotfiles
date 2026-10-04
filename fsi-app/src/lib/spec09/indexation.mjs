@@ -2,8 +2,7 @@
 // Spec 09 §5 open decision 2, taken with its own stated conservative default: "drafted text reads as
 // legal advice however it is captioned" — this module computes an indexed value and returns the inputs
 // that would go into a worked example; it never returns clause TEXT, and draftClauseText() below exists
-// only to throw, the same "refuse loudly, don't silently compose" shape surcharge-audit.mjs's
-// formatAccusationStatement() uses for its own disallowed output.
+// only to throw ("refuse loudly, don't silently compose").
 //
 // Pure functions; no I/O, no fs (F34).
 

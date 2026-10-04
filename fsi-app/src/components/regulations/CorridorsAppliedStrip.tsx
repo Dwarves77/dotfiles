@@ -1,7 +1,7 @@
 /**
  * CorridorsAppliedStrip — "Corridors this applies on" (regulation detail, lane SCOPE-READER 2026-09-06,
  * plan §W5: "nothing renders empty by design"). SELF-CONTAINED SERVER COMPONENT, the same idiom the
- * spec-09 panels already use (SurchargeAuditPanel.tsx's own header) — reads entity_scope (through
+ * spec-09 panels already use (OemRoadmapPanel.tsx's own header), reads entity_scope (through
  * corridor-scope-cache.ts, ADR-026 cached) with no props from the caller's own fetches, no client fetch,
  * no polling.
  *

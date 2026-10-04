@@ -14,9 +14,9 @@ test("interface contract: every named export exists and is a function", () => {
   }
 });
 
-test("interface contract: evaluateAntitrustGuard(post) -> { allowed, reason, aggregateRoute }", () => {
+test("interface contract: evaluateAntitrustGuard(post) -> { allowed, reason }", () => {
   const r = community.evaluateAntitrustGuard({ sensitivityField: null });
-  assert.ok("allowed" in r && "reason" in r && "aggregateRoute" in r);
+  assert.ok("allowed" in r && "reason" in r);
 });
 
 test("interface contract: projectAuthorIdentity(profile) -> { orgType, role, sector, region, verified, name, company, anonymous } (R8.7, migration 336)", () => {

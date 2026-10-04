@@ -4,27 +4,19 @@
 // src/lib/propagation/effective-confidence.mjs and aggregate-safeguards.mjs state for themselves.
 //
 // WHY THIS EXISTS ALONGSIDE migration 287 / src/lib/propagation/aggregate-safeguards.mjs. Migration 287
-// (spec 08 §5, lane DP-ENGINE) already ships a REAL, DB-enforced k-anonymity/dominance/freeze/forward-
-// looking gate (`publish_aggregate()`), seeded against a `community_contributions`-shaped table that did
-// not exist yet. This lane's migration 294 finally gives it a live subject
-// (`community_benchmark_responses`) and registers a `sensitive_field_policy` row so the REAL aggregation
-// gate for the benchmark instrument (component 3/4) runs through THAT function, not a second
-// reimplementation — see scripts/community/seed-benchmark-instruments.mjs and
-// src/app/api/community/benchmarks/current/route.ts.
+// (spec 08 section 5, lane DP-ENGINE) ships a DB-enforced k-anonymity/dominance/freeze/forward-looking
+// gate (`publish_aggregate()`). The Community benchmark that fed it was removed by ADR-042 (2026-10-03),
+// so this module no longer points an author at any aggregate route.
 //
-// This module is the front door for a DIFFERENT, narrower decision than `publish_aggregate()` answers:
-// "is this attempted community POST (a title+body write to community_posts, not an aggregate-instrument
-// response) allowed to assert a commercially sensitive figure at all." A single free-text post can never
-// itself satisfy k >= 5 distinct organisations — k-anonymity is a property of a POOL, not of one post — so
-// the only way an individual post can ever legitimately carry a commercially sensitive field is when it
-// IS the already-cleared aggregate result (the house benchmark's own published summary), never a member's
-// individual data point. `evaluateAntitrustGuard` encodes exactly that: refuse every individual point
-// disclosure of a sensitive field outright and point the author at the aggregate-only route; allow a post
-// that already carries a pool-cleared aggregate (k-anonymity, dominance cap and three-month lag all
-// satisfied) through. `kAnonymity`, `dominanceCap` and `threeMonthLag` are exported standalone so the
-// three named checks (spec 05 §1) are independently unit-tested, mirroring the same POOL shape
-// `publish_aggregate()` consumes (`member_ids` / `member_values` / a period date) so a caller can move
-// between the two gates without reshaping data.
+// This module answers a narrower decision than `publish_aggregate()`:
+// "is this attempted community POST (a title+body write to community_posts) allowed to assert a
+// commercially sensitive figure at all." A single free-text post can never itself satisfy k >= 5
+// distinct organisations (k-anonymity is a property of a POOL, not of one post), so
+// `evaluateAntitrustGuard` refuses every individual point disclosure of a sensitive field outright and
+// allows a post that already carries a pool-cleared aggregate (k-anonymity, dominance cap and
+// three-month lag all satisfied) through. `kAnonymity`, `dominanceCap` and `threeMonthLag` are exported
+// standalone so the three named checks (spec 05 section 1) are independently unit-tested, mirroring the
+// same POOL shape `publish_aggregate()` consumes (`member_ids` / `member_values` / a period date).
 //
 // Dominance-share arithmetic reuses `computeDominanceShare` from aggregate-safeguards.mjs rather than
 // re-deriving it (repo convention: "no duplication of an existing module" — COMMON lane contract §Quality
@@ -158,29 +150,21 @@ export function threeMonthLag(asOfDate, now = new Date(), { lagMonths = 3 } = {}
  *   asOfDate?: string|Date|null,
  *   now?: Date,
  * }} post
- * @returns {{ allowed: boolean, reason: string|null, aggregateRoute: {type: string, field: string, endpoint: string, pending?: boolean}|null }}
+ * @returns {{ allowed: boolean, reason: string|null }}
  */
 export function evaluateAntitrustGuard(post) {
   const field = post?.sensitivityField ?? null;
   if (!field) {
-    return { allowed: true, reason: null, aggregateRoute: null };
+    return { allowed: true, reason: null };
   }
-
-  const aggregateRoute = {
-    type: "benchmark_instrument",
-    field,
-    endpoint: "/api/community/benchmarks/current",
-  };
 
   if (!post.isAggregate) {
     return {
       allowed: false,
       reason:
         `"${field}" is a commercially sensitive field (current/forward-looking pricing, capacity, or ` +
-        "wage data). A single member's individual disclosure of it is never permitted, regardless of " +
-        "anonymity — it can only be shared through the aggregate-only benchmark instrument, where it is " +
-        "pooled with other members' responses and never individually visible.",
-      aggregateRoute,
+        "wage data). A single member's individual disclosure of it is never permitted in a post, " +
+        "regardless of anonymity.",
     };
   }
 
@@ -191,7 +175,7 @@ export function evaluateAntitrustGuard(post) {
   const allowed = k.satisfied && d.satisfied && lag.satisfied;
 
   if (allowed) {
-    return { allowed: true, reason: null, aggregateRoute: { ...aggregateRoute, pending: false } };
+    return { allowed: true, reason: null };
   }
 
   const reasons = [];
@@ -216,7 +200,6 @@ export function evaluateAntitrustGuard(post) {
     reason:
       `Refused: ${reasons.join("; ")}. Historical data only, aggregated across at least five ` +
       "contributors with no single contributor above 25%, is the defensible-exchange standard (spec 05 " +
-      "§1). This submission is recorded and included once the pool clears these thresholds.",
-    aggregateRoute: { ...aggregateRoute, pending: true },
+      "section 1).",
   };
 }

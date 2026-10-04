@@ -2,7 +2,7 @@
 
 /**
  * InlineErrorBanner , shared compact inline error banner (lane M7a, 2026-09-20, F45 dedup fix).
- * Extracted from Spec09CsvUpload.tsx and StatutoryRowsUpload.tsx, which had each grown a byte-near-
+ * Extracted from a former spec-09 upload component and StatutoryRowsUpload.tsx, which had each grown a byte-near-
  * identical `role="alert"` banner (fontSize 12, padding 10px 12px, borderRadius 6, border/background/
  * color tied to `--color-error`) , reuse-before-construction (fsi-app/.claude/CLAUDE.md).
  *

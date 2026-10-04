@@ -1,6 +1,6 @@
 /**
  * IndexationPanelView — the sync, render-only half of IndexationPanel.tsx's VIEW/FETCH split (same
- * rationale as SurchargeAuditPanelView.tsx's header: keeps every server-only import, including
+ * rationale as OemRoadmapPanelView.tsx's header: keeps every server-only import, including
  * `@/lib/supabase-server`, out of this file's module graph so an esbuild-bundled UX smoke spec can still
  * import it without pulling in `@opentelemetry/api`).
  *
@@ -32,7 +32,7 @@ export interface IndexationClauseRow {
 }
 
 export const INDEXATION_CLAUSES_GAP_LINE =
-  "No rows yet for your organization — upload your own contract clause terms from Settings → Data, or via POST /api/workspace/spec09-upload.";
+  "No rows yet. Index-linked contract terms appear here once an external-source rows file has been loaded.";
 
 function formatBand(floorPct: number | null, capPct: number | null): string {
   if (floorPct === null && capPct === null) return "no floor/cap";

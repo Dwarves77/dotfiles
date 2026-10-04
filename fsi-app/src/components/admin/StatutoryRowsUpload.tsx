@@ -20,7 +20,7 @@
  *   - Distinct visible state per async step: idle -> running -> result (never a silent spinner-to-
  *     nothing, law 6, Doherty).
  *   - Per-row outcome feedback, not one folded summary line (law 5, Miller; same precedent
- *     Spec09CsvUpload's per-row rejection list already established for this admin surface).
+ *     the per-row rejection list this admin surface already established).
  *   - Editing the file text after a dry run invalidates the Apply gate immediately (law 14/15 ,
  *     prevents applying a file the operator has since changed).
  *   - All interactive targets (buttons, file picker) are >=44px tall (law 2, Fitts).

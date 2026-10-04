@@ -28,7 +28,7 @@ Future dispatches that treat Community as optional or treat the Intelligence Ass
 
 ## Operator-Stated Corrections, 2026-05-24
 
-Four corrections landed in the design rebuild handoff session and are now codified here. Each is operator-stated with strong emphasis per Section 10 Authority Grant.
+Four corrections landed in the design rebuild handoff session and are now codified here, followed by later dated corrections. Each is operator-stated with strong emphasis per Section 10 Authority Grant.
 
 1. **Dashboard is a canonical cross-cutting capability.** Dashboard was absent from the surface enumeration in earlier revisions of this skill. The operator confirmed it stays as-is and is part of the canonical model. Dashboard is the digest/triage view that surfaces what is new, important, and flagged across the five intelligence surfaces. It is NOT a sixth intelligence surface; it is cross-cutting alongside Map, Intelligence Assistant, and Onboarding. See the Cross-Cutting Capabilities section below.
 
@@ -37,6 +37,8 @@ Four corrections landed in the design rebuild handoff session and are now codifi
 3. **Editorial pickup pipeline is retired (ADR-041, operator ruling 2026-10-03).** Community is social only: there is no editorial pickup and no promotion of Community content into any other surface. The customer-facing `/research` surface, like every other page, consumes nothing from Community.
 
 4. **LinkedIn import is in-flight, not a stub.** Section 3 ONBOARDING FLOW previously labeled LinkedIn import as "currently stub". The operator confirmed it is an in-flight feature build. Section 3 ONBOARDING FLOW and Section "Customer-Facing Value Gap" item 5 are updated accordingly.
+
+5. **External data only; no customer data intake (ADR-042, operator ruling 2026-10-03).** The system takes external data and advises what it means. The customer uploads nothing, and no customer-entered data is stored for analysis: the workspace CSV upload, the surcharge-audit, DQI and EUDR/custody panels, the per-tenant planning-assumption register and the Community benchmarks are removed (migration 349). The automate-versus-hire calculator stays (typed inputs, computed in the browser, nothing stored). The workspace profile, watchlist, personal archive and priority, tags and briefing schedule are preference and lens state and stay. An operator-dispatched rows file of external public-source data for a kept domain is the ADR-023 ingest path and stays.
 
 These corrections must inform all Sequence C surface rebuild dispatches (Research, Operations, Market Intel, Community, Regulations Detail) starting with the Community rebuild which depends directly on corrections 2 and 3.
 

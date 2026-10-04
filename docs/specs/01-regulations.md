@@ -186,6 +186,8 @@ the majority.**
 | 11 | **Export and point-in-time snapshot** (Excel/PDF) | Hand this to procurement, an auditor or an insurer today. Often the most-used feature |
 | 12 | **Customer-obligation ingest** (contracts, tender commitments, permits) alongside law | For a mid-size forwarder the biggest exposure is often a shipper clause, not a statute |
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** Components 8 (evidence and retention slot with an artefact upload) and 12 (customer-obligation ingest of contracts, tender commitments and permits) are superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. No customer artefact upload and no customer contract ingest is built; the Regulations surface stays external law and advice on what it means.
+
 ## 5. Provenance standard
 
 Canonical instrument identifier (CELEX + ELI, and ELI carries point-in-time and version in the URI

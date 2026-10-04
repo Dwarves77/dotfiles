@@ -82,7 +82,6 @@ import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { bandFromPriority } from "@/lib/urgency/bands";
-import { DQI_SECTION_ASIDE } from "@/components/operations/DqiPanelView";
 import { AUXILIARY_ENERGY_SECTION_ASIDE } from "@/components/operations/AuxiliaryEnergyPanelView";
 import { GRID_QUEUE_SECTION_ASIDE } from "@/components/operations/GridQueuePanelView";
 import { scoreResource } from "@/lib/scoring";
@@ -111,19 +110,17 @@ interface Props {
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
-  /** Item D3 (2026-09-08): the three spec-09 panels, rendered by the server route and mounted here as
-   *  S-sections. Omitted by any caller that has no server tree to render them in (the audit mount
-   *  passes its own fixture-fed views), in which case the section is not drawn at all rather than
-   *  drawn empty. */
-  dqiSection?: ReactNode;
+  /** Item D3 (2026-09-08): the two remaining spec-09 panels, rendered by the server route and mounted
+   *  here as S-sections (the DQI panel was removed by ADR-042). Omitted by any caller that has no
+   *  server tree to render them in (the audit mount passes its own fixture-fed views), in which case
+   *  the section is not drawn at all rather than drawn empty. */
   auxiliaryEnergySection?: ReactNode;
   gridQueueSection?: ReactNode;
 }
 
-/** The three spec-09 sections' index labels and anchors, in the order they render. Declared once so
+/** The two spec-09 sections' index labels and anchors, in the order they render. Declared once so
  *  the sticky index and the sections themselves can never disagree about either. */
 const SPEC09_SECTIONS = [
-  { id: "sec-dqi", label: "Data quality", shortName: "Data quality", aside: DQI_SECTION_ASIDE, key: "dqiSection" },
   { id: "sec-auxiliary-energy", label: "Auxiliary energy load", shortName: "Aux. energy", aside: AUXILIARY_ENERGY_SECTION_ASIDE, key: "auxiliaryEnergySection" },
   { id: "sec-grid-queue", label: "Grid connection queue", shortName: "Grid queue", aside: GRID_QUEUE_SECTION_ASIDE, key: "gridQueueSection" },
 ] as const;
@@ -182,11 +179,10 @@ export function OperationsDetailSurface({
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
-  dqiSection,
   auxiliaryEnergySection,
   gridQueueSection,
 }: Props) {
-  const spec09Nodes: Record<string, ReactNode> = { dqiSection, auxiliaryEnergySection, gridQueueSection };
+  const spec09Nodes: Record<string, ReactNode> = { auxiliaryEnergySection, gridQueueSection };
   const spec09Shown = SPEC09_SECTIONS.filter((s) => spec09Nodes[s.key] != null);
   const band = bandFromPriority(r.priority);
   const impact = r.impactScores ?? scoreResource(r);

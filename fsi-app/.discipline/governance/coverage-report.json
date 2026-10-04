@@ -403,28 +403,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/community/benchmarks/current/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/community/benchmarks/[key]/respond/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/community/groups/route.ts",
       "kinds": [
         "WRITES"
@@ -883,29 +861,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/api/workspace/assumptions/logic.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
-      ],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/workspace/assumptions/logic.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent",
-        "remediation-discipline"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/app/api/workspace/bootstrap/logic.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -940,17 +895,6 @@
         "caros-ledge-platform-intent",
         "environmental-policy-and-innovation",
         "remediation-discipline"
-      ],
-      "proofWired": null,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/app/api/workspace/spec09-upload/route.ts",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "caros-ledge-platform-intent"
       ],
       "proofWired": null,
       "status": "COVERED"
@@ -1414,15 +1358,6 @@
       "status": "EXEMPT"
     },
     {
-      "path": "fsi-app/src/components/regulations/EudrCustodyPanelView.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/components/regulations/format-fixed-date.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1513,15 +1448,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/components/settings/AssumptionRegisterSection.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "EXEMPT"
-    },
-    {
       "path": "fsi-app/src/components/settings/BriefingScheduleSection.tsx",
       "kinds": [
         "WRITES"
@@ -1537,15 +1463,6 @@
       ],
       "skills": [],
       "proofWired": null,
-      "status": "EXEMPT"
-    },
-    {
-      "path": "fsi-app/src/components/settings/Spec09CsvUpload.npmtest.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
       "status": "EXEMPT"
     },
     {
@@ -2475,15 +2392,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/aggregate/anonymity-floor.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/lib/api/auth.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -2559,24 +2467,6 @@
     },
     {
       "path": "fsi-app/src/lib/applicability/compute-applicability.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/lib/assumptions/contract.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/lib/assumptions/row.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -2704,15 +2594,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/community/benchmark.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/lib/community/entity-binding.test.mjs",
       "kinds": [
         "PROOF"
@@ -2797,15 +2678,6 @@
     },
     {
       "path": "fsi-app/src/lib/community/profile-policy.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/lib/community/respond.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3137,6 +3009,15 @@
     },
     {
       "path": "fsi-app/src/lib/credibility/chip-selection.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/csv/split.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -5254,33 +5135,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/spec09/csv-upload-contract.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/lib/spec09/dqi.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/lib/spec09/eudr-custody.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/lib/spec09/grid-queue.test.mjs",
       "kinds": [
         "PROOF"
@@ -5318,15 +5172,6 @@
     },
     {
       "path": "fsi-app/src/lib/spec09/reroute.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/src/lib/spec09/surcharge-audit.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6012,15 +5857,6 @@
     },
     {
       "path": "fsi-app/scripts/classification/propose-classifications.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/community/seed-benchmark-instruments.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -7881,24 +7717,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/spec09/dqi-producer.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/spec09/eudr-custody-producer.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/scripts/spec09/grid-queue-producer.test.mjs",
       "kinds": [
         "PROOF"
@@ -7909,6 +7727,15 @@
     },
     {
       "path": "fsi-app/scripts/spec09/indexation-producer.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/spec09/lib/operator-rows-contract.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -7947,15 +7774,6 @@
     },
     {
       "path": "fsi-app/scripts/spec09/run-fixture-import.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/spec09/surcharge-audit-producer.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -12227,12 +12045,36 @@
       ],
       "proofWired": true,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/349_external_data_only.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/349_external_data_only.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "remediation-discipline"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 1148,
-    "covered": 1100,
-    "exempt": 48,
+    "governed_files": 1131,
+    "covered": 1085,
+    "exempt": 46,
     "gaps": 0,
     "orphaned_proofs": 0,
     "unmapped_writes": 0,

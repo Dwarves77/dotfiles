@@ -11,26 +11,6 @@
 // that exists is shown; one that cannot exist yet names the data it needs." Every field below is either
 // a real value or an explicit, worded absence -- never a blank, never a zero, never a guessed default.
 //
-// PLANNING-ASSUMPTION SHIFT (spec-03 section 5/7#7), wired 2026-10-02 after lane W2-R2 merged
-// (`planning_assumption_register`, migration 345; reader at src/lib/assumptions/read.ts, PR 877).
-// NO SECOND IMPLEMENTATION OF THE QUERY: `GET /api/workspace/assumptions` (src/app/api/workspace/
-// assumptions/route.ts) already calls read.ts's own `readWorkspaceAssumptions` (see that route's
-// logic.ts, `listAssumptions`) -- this module's `formatAssumptionShift` below is a pure DISPLAY
-// formatter only, consumed by ResearchFindingDetailSurface.tsx's ResearchAssessmentCard, which fetches
-// that real route client-side (never server-side here) and narrows to the at-risk subset with
-// `isAtRisk` imported directly from src/lib/assumptions/contract.mjs (never re-implemented).
-//
-// WHY CLIENT-SIDE, NOT loadViewerScoped (named finding, not a silent choice). load-detail.ts's
-// `loadViewerScoped` hook resolves orgId via `resolveOrgIdFromCookies` -- a Dynamic API that, under
-// this app's classical (non-PPR) rendering, forces the WHOLE route dynamic (`ƒ`), not just the
-// viewer-scoped slice. [CONFIRMED by reading the tree, 2026-10-02]: EVERY `[slug]` detail page in this
-// codebase has deliberately AVOIDED that hook for exactly this reason -- regulations and market each
-// removed their own prior usage under PERF-10 (2026-09-04), and operations/research never adopted it.
-// Zero live call sites remain. Adding the first one here, for a feature this lane was not asked to
-// perf-tune, would reintroduce the exact regression class PERF-10 closed twice already. The client-side
-// fetch (same posture WatchButton/RelevanceBadgeClient already use on this very page) reaches the SAME
-// real reader (read.ts, via the route) with zero perf cost to the cached item-scoped render.
-
 /**
  * @typedef {{
  *   item_id: string,
@@ -57,31 +37,6 @@
  *   computedAt: string,
  * }} ResearchAssessmentView
  */
-
-/** Shown on the planning-assumption-shift section when the workspace has no at-risk assumption yet
- *  (an empty register, or an unauthenticated/no-org viewer). CLAUDE.md rule 2: never fabricate -- this
- *  is the honest absence state, not a placeholder value. Exact copy per coordinator directive (lane
- *  W2-R2 cross-dispatch, 2026-10-02). The real store is `planning_assumption_register` (migration 345,
- *  lane W2-R2) -- NOT `assumption_register` (migration 271, a different concept; see ADR-038's
- *  corrected finding). */
-export const ASSUMPTION_SHIFT_ABSENCE =
-  "needs a planning assumption registered for this workspace (Settings)";
-
-/**
- * Format one at-risk assumption (status=active, loadBearing=true, vulnerable=true -- the eligibility
- * `isAtRisk` from src/lib/assumptions/contract.mjs already decided) into the planning-assumption-shift
- * line: name, what it binds to, the quantified value when present, and the review date. Pure string
- * formatting only -- never decides eligibility itself, never invents a field the row does not carry.
- * @param {{ name: string, boundTo: string, valueNumeric: number|null, unit: string|null, reviewDate: string }} assumption
- * @returns {string}
- */
-export function formatAssumptionShift(assumption) {
-  const quantified =
-    assumption.valueNumeric != null
-      ? ` (${assumption.valueNumeric}${assumption.unit ? ` ${assumption.unit}` : ""})`
-      : "";
-  return `${assumption.name} -- binds to ${assumption.boundTo}${quantified}, review by ${assumption.reviewDate}`;
-}
 
 /** Shown on the horizon section when the assessment itself is a mandatory refusal (spec-03 section 6). */
 export function refusalDisplayText(reason) {

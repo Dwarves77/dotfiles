@@ -144,6 +144,8 @@ and brand-name substitution for topic competence.
 
 ## 5. The planning-assumption shift
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** This section's per-tenant assumption register, and component 7 below (assumption-register binding), are superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. The register table (planning_assumption_register, migration 345) is dropped by migration 349, and ADR-038's deferred wiring of it is withdrawn. The shift is stated against the assessment's own external evidence, never against a customer-entered plan.
+
 The artifact that actually changes a decision, five slots, machine-generated:
 
 > **ASSUMPTION AT RISK** - "We assume Frankfurt-Milan express road linehaul stays diesel-costed through
@@ -212,6 +214,8 @@ liability.**
 | 10 | **Obligation calendar** joined to the assessments it forces | The obligation horizon precedes the technology horizon |
 | 11 | **Assessment history ledger**: every prior confidence, horizon and maturity value with timestamp and cause | **A horizon assessment must be able to be wrong in public and be seen to have been wrong.** A card that silently rewrites its own history is a marketing artifact |
 | 12 | **Coverage and gap map**: what intake watches, what it does not, where evidence is thin | Prevents absence of signal being read as absence of change |
+
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** Component 7 is superseded (see the note under section 5). No load-bearing or vulnerable flags are stored or evaluated.
 
 Optional 13th: a **wind-tunnel view**, running the customer's plan against 3 to 4 standing scenarios,
 each option classified robust / needs modification / redundant.

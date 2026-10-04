@@ -122,10 +122,10 @@ export function toThemeCandidate(value: string | null | undefined): string | nul
 }
 
 // ── RESEARCH ASSESSMENT + PLANNING-ASSUMPTION vocabulary (Lane L9, 2026-10-02) ──
-// Mirrors migration 344 (research_assessments) and migration 345 (planning_assumption_register) CHECK
+// Mirrors migration 344 (research_assessments) CHECK
 // constraints verbatim -- the single home system-prompt.ts's Research Summary "Planning assumption
 // shift" instruction cites real column names against, never invented ones (spec 03S1: "a card that
-// cannot populate planning_assumption_shifted does not ship as a card"). Neither table is written by
+// cannot populate planning_assumption_shifted does not ship as a card"). The table is not written by
 // this module or by this lane -- no intelligence_items column exists for this field (no migration was
 // requested; see docs/ops/session-log.d/2026-10-02-l9.md), so these sets are read-only reference
 // vocabulary for the prompt's instruction text, not a write-boundary validator like toDbTheme above.
@@ -139,20 +139,10 @@ export const DB_CREDIBILITY_EVIDENCE_SCORE_VALUES = new Set<string>(["limited", 
 export const TECHNICAL_MATURITY_RANGE = Object.freeze({ min: 1, max: 11 });
 export const COMMERCIAL_MATURITY_RANGE = Object.freeze({ min: 1, max: 6 });
 
-// planning_assumption_register (migration 345) field names the prompt's instruction may cite. These are
-// booleans/free text, not a CHECK-enumerable vocabulary -- listed here only so a future column rename on
-// that table is caught by grepping this one home rather than a drifted copy pasted into the prompt text.
-export const PLANNING_ASSUMPTION_REGISTER_FIELDS = Object.freeze([
-  "name", "value_numeric", "unit", "bound_to", "load_bearing", "vulnerable", "review_date",
-] as const);
-
 // The mandatory non-null sentinel for a research_summary brief's "Planning assumption shift:" line
 // (spec 03S1). Locked, exact string the agent must emit verbatim when the input context supplies
-// neither a research_assessments read nor an at-risk (load_bearing AND vulnerable) planning_assumption_
-// register row -- never invented prose. Distinct from read-assessments.mjs's ASSUMPTION_SHIFT_ABSENCE
-// (that is the Research detail-page CARD's reader-facing sentence, "needs a planning assumption
-// registered for this workspace (Settings)"); this is the brief-GENERATION sentinel token the non-null
-// check below matches against, a different surface with a different reader.
+// no research_assessments read -- never invented prose. This is the brief-GENERATION sentinel token
+// the non-null check below matches against.
 export const PLANNING_ASSUMPTION_SHIFT_ABSENCE = "no shift grounded";
 
 /** Enforces spec 03S1's own rule in CODE, not prompt convention (the brief's acceptance test: "a

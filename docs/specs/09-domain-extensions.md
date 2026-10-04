@@ -77,6 +77,8 @@ chart in spec 07 given a real driver rather than a diffusion proxy.
 
 ### 1.2 Carrier surcharge audit and FuelEU pooling arbitrage (Market Intel)
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** Section 1.2 is superseded and removed. It audited a customer's own invoice, which is customer-entered data. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. The surcharge_audits table is dropped by migration 349, with its panel, library and producer. The sequencing note in section 4 that puts the surcharge audit first no longer applies.
+
 **This is the monetisation loop, and it is the sharpest commercial idea in the review.** Carriers bill
 "EU ETS Surcharge" and "SAF Premium" line items. Under FuelEU Maritime a carrier may **pool** compliance
 balances across its fleet, clearing a deficit at the pool's marginal cost, while billing the forwarder a
@@ -144,6 +146,8 @@ the Assistant: the product supplies the obligation, the index and the computatio
 supplies the contract.
 
 ### 1.4 DQI and primary data share (Operations, ISO 14083 / GLEC v3)
+
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** Section 1.4 is superseded and removed. It scored a customer's own shipment evidence. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. The tce_data_quality table is dropped by migration 349, with its panel, library and producer.
 
 The tender-competitiveness metric. Enterprise shippers now score on data quality, not just on a number,
 and **DQI is per transport chain element, not per shipment** — that is the ISO 14083 unit, and averaging
@@ -240,6 +244,8 @@ share the corridor entity. **A single scalar multiplier applied at the end would
 the penalty function is bracketed, not linear.
 
 ### 1.8 EUDR geo-traceability and book-and-claim custody (Regulations)
+
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** Section 1.8 is superseded and removed. It stored a customer's own consignment filings and certificates. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. The eudr_plot_claims and custody_chains tables are dropped by migration 349, with their panel, library and producer.
 
 Two distinct gaps with one theme: **the operational consequence is a border hold, not a later fine**, and
 the product had been modelling fines.

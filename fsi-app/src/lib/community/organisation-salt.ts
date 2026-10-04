@@ -1,7 +1,7 @@
 // organisation-salt.ts — the ONE place the community organisation-key salt is resolved (server-side only).
 //
-// WHY THIS EXISTS (2026-09-03, operator: "this seems overly complicated"): spec 05's benchmark responses
-// are keyed by an anonymous organisation_key = HMAC(salt, verified corporate email domain) so that no
+// WHY THIS EXISTS (2026-09-03, operator: "this seems overly complicated"): a verified member's
+// community profile carries an anonymous organisation_key = HMAC(salt, verified corporate email domain) so that no
 // competitor can turn a stored key back into a company name (organisation-key.mjs owns that derivation and
 // never reads the environment). The salt used to be its own secret, COMMUNITY_ORG_SALT, which nobody had
 // provisioned, so the whole response path refused. This module removes the extra provisioning step:

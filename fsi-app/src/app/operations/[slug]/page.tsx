@@ -42,13 +42,13 @@ import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
-// Item D3 (UI fix round 2026-09-08): the DQI / auxiliary-energy / grid-queue material moved off the
-// /operations LIST (it sat below artboard 08's last card) onto this profile as three S-sections. These
+// Item D3 (UI fix round 2026-09-08): the auxiliary-energy / grid-queue material moved off the
+// /operations LIST (it sat below artboard 08's last card) onto this profile as S-sections (the DQI
+// panel was removed by ADR-042). These
 // are async SERVER components with their own org-scoped reads; they are passed to the "use client"
 // surface as ReactNode props (the same server-component-as-prop shape the detail surfaces already use
 // for <UpcomingObligationsStrip variant="detail"> on /regulations/[slug]), so their data path is
 // untouched and none of it moves into the client bundle.
-import { DqiPanel } from "@/components/operations/DqiPanel";
 import { AuxiliaryEnergyPanel } from "@/components/operations/AuxiliaryEnergyPanel";
 import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
@@ -281,7 +281,6 @@ export default async function OperationsDetailPage({
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
-        dqiSection={<DqiPanel />}
         auxiliaryEnergySection={<AuxiliaryEnergyPanel />}
         gridQueueSection={<GridQueuePanel />}
       />

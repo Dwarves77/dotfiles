@@ -13,8 +13,8 @@
  *   - the "Capacity investment estimate" calculator, and with it the "Recent recalculations" list
  *     that is its own foot, MOVED to /operations/calculator (the operator ruled that move earlier and
  *     restated it this round).
- *   - the DQI, auxiliary-energy and grid-queue panels MOVED onto the Operations PROFILE page as three
- *     S-sections, with their existing data paths — see /operations/[slug]/page.tsx.
+ *   - the auxiliary-energy and grid-queue panels MOVED onto the Operations PROFILE page as
+ *     S-sections (the DQI panel was removed by ADR-042), with their existing data paths, see /operations/[slug]/page.tsx.
  *   - the "By state" sub-list REMOVED. It was restored in the UILISTS2 lane on ruling R7 ("a feature
  *     no artboard draws is left as it is"); item D3 names it for removal, and a later ruling wins.
  *     The state cost facts it read are NOT orphaned: /api/ask still grounds Operations answers on

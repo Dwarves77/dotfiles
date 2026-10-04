@@ -2241,44 +2241,12 @@ single open `flywheel-axis:item-anomaly` row had a detector with no reader that 
 
 ---
 
-## 18. `seed-benchmark-instruments`
+## 18. `seed-benchmark-instruments` (REMOVED, ADR-042)
 
-**Documentation gap closed, Lane REVIEW-WIRE, 2026-09-04** (`docs/audits/wiring-audit-2026-09-04/
-A1-runtimes.md`: `WIRED+USED`, session-log "`seed-benchmark-instruments` dry (run #5) then apply", but
-undocumented here). Written from `scripts/community/seed-benchmark-instruments.mjs`'s own header.
-
-**Purpose**: the house-seeded recurring benchmark (spec 05 §3, required component 4 — "the dominant
-failure is the empty room... Gartner does not wait for organic critical mass"). Instantiates a small,
-FIXED calendar of house-authored benchmark questions (`CALENDAR_TEMPLATES`, each scoped to a
-`sector_profile` or global, and a cadence — monthly/quarterly/annual) as `community_benchmark_instruments`
-rows (migration 294) for the CURRENT period, the first time this step runs after that period begins.
-Re-running for an already-seeded period is a no-op (idempotent — `planSeeding()`, pure, unit-tested).
-
-**What it does NOT do**: never writes `community_posts`, never impersonates a member — this script seeds
-AGGREGATE instrument DEFINITIONS only (the question, window, field). Individual responses arrive later
-through a member-facing submission path this script's own interface contract does not name; the
-published aggregate is served by `GET /api/community/benchmarks/current`
-(`src/lib/community/benchmark.mjs`), never by this script.
-
-**Upstream**: `scripts/community/seed-benchmark-instruments.mjs`'s own `main({apply, now}, deps)` — no
-separate MAINT wrapper; this workflow step invokes the script directly (unlike every other maintenance
-step, which goes through `scripts/maintenance/lib/cli.mjs`'s `runCli`), because this script already ships
-its own dry-by-default CLI matching the same contract (`--apply` for writes).
-
-**Ruling**: none by token — the mechanism itself is the standing ruling (spec 05 §3's own antitrust-safe,
-aggregate-only, no-impersonation posture).
-
-**Dispatch**: no `arg`, no `--mode` (this step is `node ... [--apply]`, not the `cli.mjs` convention).
-`mode=dry` (workflow's `RUN_MODE != apply`) runs the script with no `--apply` flag: lists what would be
-created (`would_create`) and what's already seeded (`skipped`) for the current period; writes nothing.
-`mode=apply` runs it with `--apply`: creates this period's not-yet-seeded instruments through
-`guardedInsertMany` (rule 015).
-
-**Artifact / read back**: this step's own console summary (`{mode, existing, would_create, skipped,
-created}`) — it does NOT go through `cli.mjs`'s `runCli`, so no `summary.json` is written to this run's
-out-dir the way every other step's is (the workflow step has no `mkdir -p "$OUT_ROOT/..."` / `--out`
-line). Confirm against `SELECT key, sector_profile, region, period_start FROM
-community_benchmark_instruments ORDER BY period_start DESC`.
+Removed 2026-10-03 by lane EXTERNAL-ONLY with the Community benchmarks (ADR-042, operator ruling: "I would
+also remove the community benchmarks"). The step option, its workflow step, `scripts/community/
+seed-benchmark-instruments.mjs` and the `community_benchmark_*` tables (dropped by migration 349) no longer
+exist. Section number kept so later references stay stable.
 
 ---
 
@@ -2587,7 +2555,7 @@ one seeding-mechanics home this script and any future re-seed both share.
 the catalogued spec content itself (§2), not an operator ruling requiring a separate citation.
 
 **Dispatch**: no `arg`. Raw-CLI invoked (the script's own `--apply` flag, same shape as
-`seed-benchmark-instruments`/`spec09-reroute` above — no `cli.mjs` wrapper). `mode=dry` reports what
+`spec09-reroute` above, no `cli.mjs` wrapper). `mode=dry` reports what
 would be inserted (idempotent skip on rows already present); writes nothing. `mode=apply` adds `--apply`.
 
 **Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
@@ -2708,69 +2676,56 @@ path) — uploaded as this run's artifact. Confirm the report's own counts again
 
 ---
 
-## 29. `spec09-surcharge-audit-csv`
+## 29. `spec09-surcharge-audit-csv` (REMOVED, ADR-042)
 
-**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1, coordinator follow-up named by lane
-SPEC09-B's own F25-module-liveness.mjs allowlist entry). Written from
-`scripts/spec09/surcharge-audit-producer.mjs`'s own header, same pattern as §22-25's
-`generate-theme-brief`/`ratify-flag-to-census` wiring.
-
-**Purpose**: dispatches the CLI half of the `surcharge_audits` customer-CSV upload flow
-(`scripts/spec09/SOURCES.md`) for a reviewed batch file — e.g. a bulk backfill from a customer's own
-spreadsheet, rather than the interactive `POST /api/workspace/spec09-upload` path.
-
-**Upstream**: `src/lib/spec09/csv-upload-contract.mjs` (`parseCsvUpload`), `scripts/spec09/lib/cli-csv-args.mjs`
-(`readCliCsvArgs` — the one shared `--csv`/`--org-id` argv reader every spec09 CSV producer uses).
-
-**Ruling**: none — the org id is always the dispatcher-supplied `--org-id`, never inferred; a customer
-CSV never carries `org_id` itself (rule: org scope is server/coordinator-asserted, never client-supplied).
-
-**Dispatch**: `arg` IS REQUIRED for a real customer CSV — `<csv-path>,<org-id>` (csv-path a repo-relative
-path to a reviewed customer CSV checked into the repo; org-id the receiving org's uuid). `mode=dry` parses
-and reports accept/reject counts, writing nothing. `mode=apply` calls `guardedInsertMany("surcharge_audits",
-...)` for every accepted row.
-
-**No-arg dry-all fixture proof** (lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md
-§W7): when `mode=dry, step=all` (or this step alone) runs with NO `arg`, this step runs
-`node scripts/spec09/run-fixture-import.mjs` instead of skipping — the deps-injected, DB-less proof that
-all six CSV-upload tables' parse→org-stamp→insert→read-back pipeline works end to end against the checked-in
-fixture CSVs (`scripts/spec09/fixtures/*.csv`), with no live Supabase credentials required. This is what
-makes `run-fixture-import.mjs` a real dispatch root rather than a script only its own test imports. The
-other three spec09-*-csv steps (§30-32) just skip with a note pointing back here on a no-arg run, so the
-fixture proof runs once per dispatch, not four times.
-
-**Artifact / read back**: this step's own console output (`summary.json`'s shape — see the producer's own
-`main()`), or (no-arg dry-all runs) the fixture-proof JSON written to
-`$OUT_ROOT/spec09-csv-upload/fixture-import-<timestamp>.json`. Confirm a real apply against
-`SELECT count(*) FROM surcharge_audits`.
+Removed 2026-10-03 by lane EXTERNAL-ONLY with the customer-only `surcharge_audits` table, its producer, panel
+and library (ADR-042: no customer-data intake). Section number kept so later references stay stable.
 
 ---
 
-## 30. `spec09-dqi-csv`
+## 30. `spec09-dqi-csv` (REMOVED, ADR-042)
 
-**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
-`scripts/spec09/dqi-producer.mjs` / `tce_data_quality`. `arg` IS REQUIRED — `<csv-path>,<org-id>`.
-Confirm against `SELECT count(*) FROM tce_data_quality`.
+Removed 2026-10-03 by lane EXTERNAL-ONLY with the customer-only `tce_data_quality` table, its producer, panel
+and library (ADR-042). The EUDR/custody producer never had a step and was removed the same way.
 
 ---
 
 ## 31. `spec09-auxiliary-energy-csv`
 
-**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
-`scripts/spec09/auxiliary-energy-producer.mjs` / `auxiliary_energy_profiles`. `arg` IS REQUIRED —
-`<csv-path>,<org-id>`. Confirm against `SELECT count(*) FROM auxiliary_energy_profiles`.
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan section W5.1); narrowed by lane EXTERNAL-ONLY,
+2026-10-03 (ADR-042). Targets `scripts/spec09/auxiliary-energy-producer.mjs` / `auxiliary_energy_profiles`.
+
+**Purpose**: dispatches the CLI for an OPERATOR-SUPPLIED rows file of external public-source data (never
+customer data; the app has no upload route). This is the ADR-023 operator-dispatch ingest path.
+
+**Upstream**: `scripts/spec09/lib/operator-rows-contract.mjs` (`parseOperatorRows`) and
+`scripts/spec09/lib/cli-csv-args.mjs` (`readCliCsvArgs`, the shared `--csv`/`--org-id` argv reader).
+
+**Dispatch**: `arg` is `<csv-path>,<org-id>` (csv-path a repo-relative path to a reviewed rows file checked
+into the repo; org-id the receiving org's uuid, dispatcher-supplied, never read from the file). `mode=dry`
+parses and reports accept/reject counts, writing nothing. `mode=apply` calls
+`guardedInsertMany("auxiliary_energy_profiles", ...)` for every accepted row.
+
+**No-arg dry-all fixture proof** (lane W71-A, 2026-09-05): when `mode=dry, step=all` (or this step alone) runs
+with NO `arg`, this step runs `node scripts/spec09/run-fixture-import.mjs` instead of skipping: the
+deps-injected, DB-less proof that both operator-rows tables' parse, org-stamp, insert, read-back pipeline works
+end to end against the checked-in fixture CSVs (`scripts/spec09/fixtures/*.csv`), with no live Supabase
+credentials. This makes `run-fixture-import.mjs` a real dispatch root. The indexation step (section 32) just
+skips with a note pointing back here on a no-arg run, so the proof runs once per dispatch.
+
+**Artifact / read back**: this step's own console output, or (no-arg dry-all runs) the fixture-proof JSON
+written to `$OUT_ROOT/spec09-operator-rows/fixture-import-<timestamp>.json`. Confirm a real apply against
+`SELECT count(*) FROM auxiliary_energy_profiles`.
 
 ---
 
 ## 32. `spec09-indexation-csv`
 
-**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
-`scripts/spec09/indexation-producer.mjs` / `indexation_clauses`. `arg` IS REQUIRED — `<csv-path>,<org-id>`.
-Confirm against `SELECT count(*) FROM indexation_clauses`. Note: `surcharge_audits`, `tce_data_quality`,
-`auxiliary_energy_profiles`, `eudr_plot_claims`/`custody_chains` (the latter two share
-`scripts/spec09/eudr-custody-producer.mjs`, still without a maintenance.yml step) round out the six
-customer-CSV tables `scripts/spec09/SOURCES.md` names; the EUDR/custody pair is left for a future lane
-since it takes a second `--custody-csv` flag `readCliCsvArgs` already supports but no step here uses yet.
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan section W5.1); narrowed by lane EXTERNAL-ONLY,
+2026-10-03 (ADR-042). Same shape as section 31 above, targeting `scripts/spec09/indexation-producer.mjs` /
+`indexation_clauses`. `arg` is `<csv-path>,<org-id>`; a no-arg run skips (the fixture proof ran in section 31).
+Confirm against `SELECT count(*) FROM indexation_clauses`. Public-source intake for both kept tables is owed
+(coordinator design); neither has a confirmed public bulk source today.
 
 ---
 

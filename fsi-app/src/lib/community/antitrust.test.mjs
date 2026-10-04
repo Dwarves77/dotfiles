@@ -108,7 +108,6 @@ test("evaluateAntitrustGuard: an ordinary post with no sensitive field is always
   const r = evaluateAntitrustGuard({ sensitivityField: null });
   assert.equal(r.allowed, true);
   assert.equal(r.reason, null);
-  assert.equal(r.aggregateRoute, null);
 });
 
 test("evaluateAntitrustGuard: an individual disclosure of a sensitive field is refused at write time, always, regardless of pool", () => {
@@ -119,11 +118,7 @@ test("evaluateAntitrustGuard: an individual disclosure of a sensitive field is r
   });
   assert.equal(r.allowed, false);
   assert.match(r.reason, /never permitted/);
-  assert.deepEqual(r.aggregateRoute, {
-    type: "benchmark_instrument",
-    field: "rate_per_feu",
-    endpoint: "/api/community/benchmarks/current",
-  });
+  assert.ok(!("aggregateRoute" in r), "no benchmark route exists to point at (ADR-042)");
 });
 
 test("evaluateAntitrustGuard: an aggregate result refused when k-anonymity is not met", () => {
@@ -137,7 +132,6 @@ test("evaluateAntitrustGuard: an aggregate result refused when k-anonymity is no
   });
   assert.equal(r.allowed, false);
   assert.match(r.reason, /more contributing organisation/);
-  assert.equal(r.aggregateRoute.pending, true);
 });
 
 test("evaluateAntitrustGuard: an aggregate result refused when one org dominates, even with 5+ contributors", () => {
@@ -183,7 +177,6 @@ test("evaluateAntitrustGuard: an aggregate result that clears all three gates is
   });
   assert.equal(r.allowed, true);
   assert.equal(r.reason, null);
-  assert.equal(r.aggregateRoute.pending, false);
 });
 
 test("evaluateAntitrustGuard: reports every failing gate together, not just the first", () => {

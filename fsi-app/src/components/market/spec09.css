@@ -1,5 +1,5 @@
-/* spec09.css — shared header/mobile rules for every spec 09 panel (SurchargeAuditPanel, OemRoadmapPanel,
- * ReroutingPanel, DqiPanel, AuxiliaryEnergyPanel, GridQueuePanel, EudrCustodyPanel). Lane SPEC-09, wave 3,
+/* spec09.css, shared header/mobile rules for every spec 09 panel (OemRoadmapPanel, ReroutingPanel,
+ * IndexationPanel, AuxiliaryEnergyPanel, GridQueuePanel). Lane SPEC-09, wave 3,
  * 2026-09-03 (docs/dispatches/lane-common-contract.md UX contract; docs/design/ux-laws.md law 2/4/12).
  *
  * Lives in market/ per the lane brief's write set ("a new fsi-app/src/components/market/spec09.css

@@ -132,6 +132,8 @@ Commercial and Industrial, 17-2112 Industrial Engineers.
 | 11 | **Missing-data surface** with reasons, per-region coverage %, and the suppression rule | Protects every decision. §3 |
 | 12 | **Assumption register, one versioned object**: discount rate, horizon, energy price path, wage escalation, currency and FX date, productive-hours convention, editable in one place and stamped on every derived output | If the discount rate lives in twelve places, the comparison is not a comparison |
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** Component 12 applies only as the product's own versioned modelling constants (assumption_register, migration 271), not as customer-editable stored assumptions. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. The automate-versus-hire calculator takes typed inputs, computes in the browser and stores nothing; that stays.
+
 ## 7. Free dataset inventory
 
 The most actionable part of this spec. ✅ = real API.
