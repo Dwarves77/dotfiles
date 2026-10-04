@@ -18,7 +18,7 @@
   `classTierForHost`, plus the name-derived residue rules, asserted equal to `HOST_CLASS_TIER`.
 - Fixtures: three OpenAlex works (built-in placed `eprints.soton.ac.uk`, verdict-placed
   `unplaced-example.test` via `host-verdicts-000.fixture.json`, unplaced `unlisted-journal.example`).
-- Harness: `research-walker-run-003.json` (dry fixture run, new metrics shape) and pending marker
+- Harness: `research-walker-run-004.json` (dry fixture run, new metrics shape; run-003 was replaced in this PR after the DOI change made it stale) and pending marker
   `pending/2026-10-04-s1d-walker-registers.md`.
 
 ## Read and reused
@@ -39,13 +39,20 @@ No second rating path built.
 
 ## NOT done
 
-- `doi.org` (a DOI resolver, not a publisher) is unplaced and appears in `metrics.unplaced_hosts`; a host
-  verdict naming it would register the resolver as a source. See open items.
 - Run-001 and run-002 are immutable history and were not rewritten; the new shape lands as run-003.
 - No live run, no DB access, no apply.
 
+## Coordinator rulings applied (same day)
+
+- Write-set expansion: F28 pending markers for `inaccessible-triage`, `state-cost`, `carrier-ets-proxy`
+  (host-authority.ts is their governing file).
+- DOI resolvers (doi.org, dx.doi.org, hdl.handle.net) joined the never-register class in host-authority.ts
+  (`DOI_RESOLVER`, folded into `LEGAL_AGGREGATOR`, exported `isDoiResolverHost`); a host verdict naming one is
+  refused (test red against the prior file, green after). Walker: a candidate whose URL is a resolver link is
+  residue "publisher host unresolved from DOI" and the resolver host is not put on `unplaced_hosts`; a record
+  with a publisher landing page takes its host from it (already how `normalizeOpenAlexWork` picks the URL).
+  The two original DOI fixtures now show both behaviours.
+
 ## Open items
 
-- Whether `doi.org` joins the permanent never-register list in `permanentlyUnregisteredClass` (the class-table
-  comment already names "DOI-resolver" in that list but no pattern implements it). Proposed fix: add it to
-  `HOSTING_PLATFORM`; waiting for the coordinator, not done here.
+- None from this lane.

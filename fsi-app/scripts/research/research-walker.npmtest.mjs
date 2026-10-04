@@ -110,3 +110,17 @@ test("walk: an unplaced publisher is residue, its host is listed, and it counts 
   assert.equal(r.metrics.would_register, 2);
   assert.equal(r.metrics.would_mint, 2);
 });
+
+test("walk: the two original DOI fixtures, landing-page host placed and DOI-only unresolved, never list doi.org as unplaced", async () => {
+  const r = await runWalk({
+    greyLitSources: [],
+    openAlexCandidatesOverride: FIXTURE_OPENALEX_CANDIDATES.map(normalizeOpenAlexWork).filter(Boolean),
+    mode: "dry",
+    hostVerdicts: new Map(),
+  });
+  const byId = (u) => r.perItem.filter((i) => i.id === u).map((i) => i.outcome);
+  assert.deepEqual(byId("https://its.example-univ.edu/freight-decarb-corridors"), ["would_register (tier 4, built-in rule)", "would_mint:minted"]);
+  assert.deepEqual(byId("https://doi.org/10.1000/example-marine-fuels"), ["residue:publisher host unresolved from DOI"]);
+  assert.deepEqual(r.metrics.unplaced_hosts, []);
+  assert.equal(r.metrics.rejected_unsourced, 0);
+});

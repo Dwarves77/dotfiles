@@ -186,11 +186,19 @@ const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|c
  *  ANALYSIS's loose substrings above) because several of these stems (ey, bcg) are too short to risk as
  *  an unanchored substring match. */
 const BIG4_ADVISORY_HOST = /(^|\.)(pwc|deloitte|ey|kpmg|mckinsey|bcg|bain|accenture|guidehouse|rolandberger)\.[a-z.]+$/;
+/** DOI / handle resolvers (doi.org, dx.doi.org, hdl.handle.net): a redirect to the publisher, never the publisher.
+ *  Never-register class (lane S1-D, 2026-10-04); folded into LEGAL_AGGREGATOR below so permanentlyUnregisteredClass
+ *  and verdictPlacementForHost refuse it, a host verdict included. */
+const DOI_RESOLVER = /(^|\.)(doi\.org|handle\.net)$/;
+export function isDoiResolverHost(host: string | null | undefined): boolean {
+  return DOI_RESOLVER.test(String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, ""));
+}
 /** LEGAL AGGREGATORS (operator ruling #3: justia / legiscan / Cornell LII class) → PERMANENT worklist (null).
  *  They republish statutes but are NOT the official publisher — a span is a re-attribution instruction. This
  *  fires BEFORE the academic .edu rule so a legal-info-institute on .edu (law.cornell.edu) is NOT minted T4.
  *  `mondaq` (republishes law-firm commentary) and `up.codes` (republishes building codes) added 2026-08-11. */
-const LEGAL_AGGREGATOR = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity|(^|\.)mondaq\.com$|(^|\.)up\.codes$)/;
+const LEGAL_AGGREGATOR_BASE = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity|(^|\.)mondaq\.com$|(^|\.)up\.codes$)/;
+const LEGAL_AGGREGATOR = new RegExp(DOI_RESOLVER.source + "|" + LEGAL_AGGREGATOR_BASE.source);
 /** HOSTING PLATFORMS (2026-08-11 ruling) → PERMANENT worklist (null). A third-party SaaS that hosts someone
  *  else's publication (Citizen Space hosts UK departmental consultations) is not the publisher either — the
  *  same re-attribution instruction as an aggregator, arrived at from the hosting side rather than the

@@ -54,7 +54,7 @@ import { hostOf } from "../../src/lib/sources/institution.ts";
 import { isMainModule } from "../lib/is-main.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { rateSourceByInstitutionClass } from "../lib/rate-source-by-class.mjs";
-import { verdictPlacementForHost } from "../../src/lib/sources/host-authority.ts";
+import { verdictPlacementForHost, isDoiResolverHost } from "../../src/lib/sources/host-authority.ts";
 import { loadHostVerdicts, HOST_VERDICTS_DIR } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
 import { RESIDUE_REASON } from "../maintenance/resolve-provisional-sources.mjs";
 import { openAlexGet } from "./openalex-client.mjs";
@@ -146,6 +146,11 @@ export async function resolveGreyLitSource({ name, url }, { mode, registerSource
 export async function resolveOpenAlexPublisher(candidate, { mode, registerSourceFn, hostVerdicts } = {}) {
   const host = hostOf(candidate.sourceUrl);
   if (!host) return { placed: false, host: "", reason: "no resolvable host" };
+  // A DOI / handle resolver is a redirect, never the publisher (never-register class). The candidate's URL
+  // is the record's landing page when it carries one (normalizeOpenAlexWork), so reaching here with a
+  // resolver host means the record offers no publisher page. Residue, and the resolver host is NOT put on
+  // the unplaced-host list (a verdict naming it would be refused anyway).
+  if (isDoiResolverHost(host)) return { placed: false, host: "", reason: "publisher host unresolved from DOI" };
   const extra = { status: "provisional" };
   const builtIn = await rateSourceByInstitutionClass(
     { url: candidate.sourceUrl, name: null },

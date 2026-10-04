@@ -1,8 +1,8 @@
 {
   "harness_family": "research-walker",
-  "harness_version": "sha256:0aa180ee8d2a71a7",
-  "run_id": "research-walker-run-003",
-  "started_at": "2026-10-04T12:43:04.795Z",
+  "harness_version": "sha256:8a6886d8d6290e60",
+  "run_id": "research-walker-run-004",
+  "started_at": "2026-10-04T12:50:49.826Z",
   "config": {
     "mode": "dry",
     "source": "fixtures/research-walker-fixtures.mjs",
@@ -32,15 +32,15 @@
       "error": null
     },
     {
-      "id": "https://doi.org/10.1000/example-freight-decarb",
-      "outcome": "residue:awaiting host verdict batch",
-      "verdict": "host doi.org",
+      "id": "https://its.example-univ.edu/freight-decarb-corridors",
+      "outcome": "would_register (tier 4, built-in rule)",
+      "verdict": null,
       "error": null
     },
     {
       "id": "https://doi.org/10.1000/example-marine-fuels",
-      "outcome": "residue:awaiting host verdict batch",
-      "verdict": "host doi.org",
+      "outcome": "residue:publisher host unresolved from DOI",
+      "verdict": null,
       "error": null
     },
     {
@@ -80,6 +80,12 @@
       "error": null
     },
     {
+      "id": "https://its.example-univ.edu/freight-decarb-corridors",
+      "outcome": "would_mint:minted",
+      "verdict": null,
+      "error": null
+    },
+    {
       "id": "https://eprints.soton.ac.uk/example-rail-modal-shift",
       "outcome": "would_mint:minted",
       "verdict": null,
@@ -95,18 +101,12 @@
   "metrics": {
     "grey_lit_sources": 3,
     "grey_lit_resolved": 3,
-    "candidates": 5,
-    "would_register": 2,
-    "would_mint": 5,
+    "candidates": 6,
+    "would_register": 3,
+    "would_mint": 6,
     "rejected_unsourced": 0,
-    "residue_awaiting_host_verdict": 3,
+    "residue_awaiting_host_verdict": 2,
     "unplaced_hosts": [
-      {
-        "host": "doi.org",
-        "name": null,
-        "discovered_via": "research-walker",
-        "sample_url": "https://doi.org/10.1000/example-freight-decarb"
-      },
       {
         "host": "unlisted-journal.example",
         "name": null,

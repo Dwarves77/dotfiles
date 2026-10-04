@@ -30,7 +30,7 @@ test("normalizeOpenAlexWork: a work with a landing page URL and a title normaliz
   const c = normalizeOpenAlexWork(FIXTURE_OPENALEX_CANDIDATES[0]);
   assert.ok(c);
   assert.equal(c.title, FIXTURE_OPENALEX_CANDIDATES[0].title);
-  assert.equal(c.sourceUrl, "https://doi.org/10.1000/example-freight-decarb");
+  assert.equal(c.sourceUrl, "https://its.example-univ.edu/freight-decarb-corridors", "the record's landing page wins over its DOI link");
   assert.equal(c.publishedDate, "2026-08-15");
 });
 
@@ -63,7 +63,7 @@ test("searchOpenAlexWorks: reuses lane L3's openAlexGet (deps.fetch injected, ze
   };
   const candidates = await searchOpenAlexWorks({ query: "freight decarbonisation", perPage: 10 }, { fetch: fetchStub });
   assert.equal(candidates.length, 5, "the 3 publisher-host fixtures plus the 2 DOI fixtures; the no-URL work is dropped");
-  assert.equal(candidates[0].sourceUrl, "https://doi.org/10.1000/example-freight-decarb");
+  assert.equal(candidates[0].sourceUrl, "https://its.example-univ.edu/freight-decarb-corridors");
   // L3's openAlexGet (reused, not reimplemented) is what appends mailto + search params -- confirms
   // this wrapper really called through it rather than hand-rolling its own URL.
   assert.match(capturedUrl, /\/works\?/);
@@ -186,4 +186,21 @@ test("resolveOpenAlexPublisher (apply): registers through registerSourceFn at th
     assert.deepEqual(src.extra, { status: "provisional" });
     assert.ok(opts.cite, "registerSource requires a cite");
   }
+});
+
+test("resolveOpenAlexPublisher: a DOI-resolver-only candidate is residue 'publisher host unresolved from DOI' and names no host", async () => {
+  const doiOnly = normalizeOpenAlexWork(FIXTURE_OPENALEX_CANDIDATES[1]);
+  assert.equal(doiOnly.sourceUrl, "https://doi.org/10.1000/example-marine-fuels");
+  const r = await resolveOpenAlexPublisher(doiOnly, { mode: "dry", hostVerdicts: new Map([["doi.org", { class: "company", batch: "x" }]]) });
+  assert.equal(r.placed, false);
+  assert.equal(r.reason, "publisher host unresolved from DOI");
+  assert.equal(r.host, "", "the resolver host is not reported as an unplaced publisher host");
+});
+
+test("resolveOpenAlexPublisher: a record with a publisher landing page takes its host from it, not from its DOI link", async () => {
+  const c = normalizeOpenAlexWork(FIXTURE_OPENALEX_CANDIDATES[0]);
+  const r = await resolveOpenAlexPublisher(c, { mode: "dry", hostVerdicts: new Map() });
+  assert.equal(r.placed, true);
+  assert.equal(r.host, "its.example-univ.edu");
+  assert.equal(r.tier, 4);
 });

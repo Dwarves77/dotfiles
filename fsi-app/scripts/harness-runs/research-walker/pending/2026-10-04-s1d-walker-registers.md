@@ -8,5 +8,5 @@ batch"), listed in `metrics.unplaced_hosts`, and no longer counted as an `unsour
 
 ## Planned run
 
-`research-walker-run-003.json` (dry, fixture, no network) is committed with this lane and supersedes this
+`research-walker-run-004.json` (dry, fixture, no network) is committed with this lane and supersedes this
 marker; it carries the new metrics shape. Delete this file when the next real `research-walker` run lands.

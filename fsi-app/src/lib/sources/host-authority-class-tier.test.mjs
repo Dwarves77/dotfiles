@@ -40,3 +40,20 @@ test("the residue rules read their tier from the table (name-derived paths)", ()
   assert.equal(classifyResidueRuling("x.example", "Institute for Example Research").tier, HOST_CLASS_TIER.analysis);
   assert.equal(classifyResidueRuling("x.example", "Acme Widgets").tier, HOST_CLASS_TIER.company);
 });
+
+// ── DOI resolvers are never-register (lane S1-D, coordinator ruling 2026-10-04) ──────────────────────────
+import { permanentlyUnregisteredClass, verdictPlacementForHost } from "./host-authority.ts";
+
+for (const host of ["doi.org", "dx.doi.org", "hdl.handle.net"]) {
+  test(`DOI resolver ${host}: never-register, no tier even with a stored name, and a host verdict naming it is refused`, () => {
+    assert.notEqual(permanentlyUnregisteredClass(host), null);
+    assert.equal(classTierForHost(host, "Some Publisher"), null);
+    const verdicts = new Map([[host, { class: "association", batch: "host-verdicts-999" }]]);
+    assert.equal(verdictPlacementForHost(host, verdicts), null);
+  });
+}
+
+test("a real publisher host ending in similar text is not caught by the resolver pattern", () => {
+  assert.equal(permanentlyUnregisteredClass("notdoi.org.example.com"), null);
+  assert.equal(permanentlyUnregisteredClass("mydoi.org"), null);
+});

@@ -33,7 +33,9 @@ export const FIXTURE_OPENALEX_CANDIDATES = Object.freeze([
     title: "Decarbonisation pathways for heavy-duty road freight: a corridor-level assessment",
     doi: "https://doi.org/10.1000/example-freight-decarb",
     publication_date: "2026-08-15",
-    primary_location: { landing_page_url: "https://doi.org/10.1000/example-freight-decarb" },
+    // The record carries its own publisher landing page: the candidate's publisher host comes from it,
+    // never from the DOI resolver link (lane S1-D). .edu host, so it places by a built-in rule.
+    primary_location: { landing_page_url: "https://its.example-univ.edu/freight-decarb-corridors" },
     fwci: 1.8,
     citation_normalized_percentile: { value: 0.91, is_in_top_1_percent: false, is_in_top_10_percent: true },
     is_retracted: false,
@@ -43,7 +45,8 @@ export const FIXTURE_OPENALEX_CANDIDATES = Object.freeze([
     title: "Alternative marine fuels and port-side bunkering infrastructure: a readiness review",
     doi: "https://doi.org/10.1000/example-marine-fuels",
     publication_date: "2026-07-02",
-    primary_location: { landing_page_url: "https://doi.org/10.1000/example-marine-fuels" },
+    // No landing page: the DOI resolver link is the only URL, so the publisher host is unresolved (residue).
+    primary_location: { landing_page_url: null },
     fwci: 0.6,
     citation_normalized_percentile: { value: 0.42, is_in_top_1_percent: false, is_in_top_10_percent: false },
     is_retracted: false,
