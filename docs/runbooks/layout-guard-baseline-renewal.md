@@ -70,6 +70,28 @@ is itself more than `WARNING_WINDOW_DAYS` away, the warning gate goes green on t
 old window, also run Path A's `--write-baseline` in the same change so `writtenAt` is current against
 the new date too -- the two paths are not mutually exclusive.
 
+## Renewal by workflow
+
+Lanes cannot run a browser, so Path A's command is run by a workflow instead:
+`.github/workflows/layout-baseline-renewal.yml` (dispatch only, no schedule, `contents: read`, commits
+nothing). It uses the rendering-guard job's setup on ubuntu, the same oracle the required gate measures
+on, and runs `run-layout-guard.mjs --write-baseline` over the full route and width set.
+
+1. Dispatch it on or after the window start (`warningWindowStart()`, 2026-10-08 for the current expiry)
+ and before the expiry date. A regeneration BEFORE the window start does not satisfy the gate:
+ `needsRenewal` compares the file's `writtenAt` (the UTC date of the run) with the window start as
+ strings, so a baseline written on 2026-10-04 still fails the standing gate from 2026-10-08.
+2. The run fails, and uploads nothing, if any route hit a harness error (the baseline would be partial)
+ or if the finding count grew past the committed baseline's. A grown count is a regression to fix, not
+ to baseline.
+3. Download the artifact `layout-baseline-<run id>` (kept 7 days). It holds three files under their
+ repo paths: `fsi-app/.discipline/rendering/layout-guard/baseline.json`, `.../results.json` and
+ `docs/audits/layout-guard-2026-09-08.md`.
+4. In a coordinator docs lane, commit those three files over the existing ones, with named-file staging.
+ The expiry test now takes a ceiling (the count may be at most 792) and requires the `count` field to
+ equal the number of keys in the file, so a shrunk baseline needs no test edit.
+5. Confirm the standing gate passes: `node --test fsi-app/.discipline/rendering/layout-guard-expiry.test.mjs`.
+
 ## Owning part list
 
 The baseline's dated routing table -- which part owns each surviving finding -- lives at

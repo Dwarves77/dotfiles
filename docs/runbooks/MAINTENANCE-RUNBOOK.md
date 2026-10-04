@@ -1177,20 +1177,13 @@ this is about kit currency, older `RECORD_FACTS_VERSION` mints missing later add
   by-item in this pass beyond the 149 above — dispatch `provenance-heal --arg kit-backfill --mode dry` for
   the current worklist and counts before an apply run.
 
-**[FLAG, out of this lane's write set, decision-ready] `record-hollow-sweep.mjs`'s own selection has no
-series exemption** [CONFIRMED, live SQL, 2026-09-05]: its `readTargetCandidates` filters only
-`is_archived=false, provenance_status='verified', item_grade='record'` — no `item_type` exclusion — and
-`isTitleOnlyFacts` is vacuously `true` for zero FACT claims. All 5 oil-bulletin `market_signal` items above
-ARE `item_grade='record'` and currently have 0 FACT claims, so they **would be selected and archived as
-`record_hollow`** by any future `record-hollow-sweep --apply` run as written today — wrongly, since their
-substance is legitimately in `market_series`. This lane's own authoring-time measurement (this section,
-above) predates these items reaching this state (its own "by item_type" breakdown has no `market_signal`
-row at all), so this is a newly-live exposure, not a previously-known-and-accepted one. **Recommended fix**
-(not made here — `record-hollow-sweep.mjs` is not in this lane's write set and another lane may be
-mid-work on it): exclude `market_signal` items whose `instrument_identifier` matches a
-`SERIES_ITEM_MAP_RAW` entry from `planSelection`'s target set, or exclude `item_type='market_signal'`
-entirely if no `market_signal` item is ever meant to be `record_hollow`-eligible. **Do not dispatch
-`record-hollow-sweep --apply` until this is resolved or explicitly accepted.**
+**Series exemption in `record-hollow-sweep.mjs` (RESOLVED 2026-10-04, lane S0)**: the ratified oil-bulletin
+`market_signal` items are `item_grade='record'` with 0 FACT claims, because their substance is in
+`market_series`. `record-hollow-sweep.mjs`'s `planSelection` now excludes any item whose
+`instrument_identifier` is a key of `SERIES_ITEM_MAP_RAW` (`src/lib/market/series-item-map.mjs`, via
+`isSeriesItem`), so they are never selected or archived as `record_hollow`. The map is read, not a hard-coded
+prefix; a non-series `market_signal` is still selected on the same title-only rule as any other record. See
+section 10.
 
 ---
 
@@ -1460,16 +1453,14 @@ claim at all. They render on every customer surface with an empty Summary. By `i
 SQL: the step's own `SELECTION_SQL` export (identical to what `planSelection` computes from two `readAll`
 reads — no live SQL round trip at apply time).
 
-**[FLAG, 2026-09-05, lane KIT-BACKFILL] This selection has no series exemption, and the live population has
-since grown a false-positive case**: as of 2026-09-05, 5 `market_signal` items (the ratified oil-bulletin
-series, `instrument_identifier` `eu-oil-bulletin:*`) are ALSO `item_grade='record'`, verified, live, and
-carry 0 FACT claims — `planSelection`'s `isTitleOnlyFacts` is vacuously `true` for an empty FACT array, so
-these WOULD be selected and archived as `record_hollow` by the next `--apply` run, wrongly: their substance
-is legitimately in `market_series`, not FACT claims. Not present in the `market_signal`-absent breakdown
-above (minted/finalized after this section's 2026-09-04 measurement). See §8's "`kit-backfill` and
-migration 299" subsection for the full finding and recommended fix (a series/`market_signal` exemption in
-`planSelection`, not made here — out of this lane's write set). **Do not dispatch `--apply` until this is
-resolved or explicitly accepted.**
+**Series exemption (2026-10-04, lane S0)**: `planSelection` excludes any item whose `instrument_identifier`
+is a key of the ratified series item map (`src/lib/market/series-item-map.mjs`, the `eu-oil-bulletin:*`
+series; helper `isSeriesItem`). Those `market_signal` items are `item_grade='record'`, verified and live with
+0 FACT claims by design: their substance is in `market_series`, not FACT claims, so an empty FACT array is
+correct for them, not hollow. They are never selected and never archived. The exemption reads the map, so a
+newly ratified series is exempt with no change to this step; a `market_signal` whose identifier is not in
+the map is still selected under the rule above. The earlier warning against dispatching `--apply` because of
+this exposure is retired. This replaces the 2026-09-05 flag from lane KIT-BACKFILL.
 
 **Which flag hides an item from every customer surface** [CONFIRMED, read this session — not
 `hidden_reason`, not `pipeline_stage`]: `is_archived` (+ `archive_reason`), the SAME gate
