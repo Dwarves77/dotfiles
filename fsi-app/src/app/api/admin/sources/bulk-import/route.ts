@@ -29,7 +29,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { splitCsvLine } from "@/lib/spec09/csv-upload-contract.mjs";
+import { splitCsvLine } from "@/lib/csv/split.mjs";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { pausedResponse } from "@/lib/api/pause";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";

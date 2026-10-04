@@ -2,7 +2,7 @@
 
 /**
  * FilePickRow , shared "choose a file, or paste text below" row (lane M7a, 2026-09-20, F45 dedup
- * fix). Extracted from Spec09CsvUpload.tsx and StatutoryRowsUpload.tsx, which had each grown a
+ * fix). Extracted from a former spec-09 upload component and StatutoryRowsUpload.tsx, which had each grown a
  * byte-near-identical choose-file label + hidden file input + "or paste ... below" caption , reuse-
  * before-construction (fsi-app/.claude/CLAUDE.md), applied once F45's duplicate-code gate flagged the
  * clone rather than left as two copies drifting apart.

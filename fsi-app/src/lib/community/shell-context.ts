@@ -3,7 +3,7 @@
 // ONE home for the context every /community/* page assembles for CommunityShell: the caller's
 // memberships, pending invitations, owned topics, the region list with live counts, and the current
 // user block (profile name, headshot, employer, platform-admin flag). Seven page shells carried this
-// block by hand (benchmarks, profile, directory, discover, moderation, browse, [slug]), the largest
+// block by hand (profile, directory, discover, moderation, browse, [slug]), the largest
 // clone family in the system health audit (docs/audits/system-health-audit-2026-09-17.md section 2:
 // 96, 89, 89, 86 shared windows between pairs). A page now does:
 //

@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 /**
  * /community/profile — verified-pseudonymous identity, self-service (spec 05 §2, §5 component 1;
  * lane COMMUNITY-C, 2026-09-03). Same CommunityShell-context boilerplate as every other /community/*
- * page (see benchmarks/page.tsx); the actual profile fetch/save/verify flow lives client-side in
+ * page; the actual profile fetch/save/verify flow lives client-side in
  * ProfileForm (its own header explains why: three independent async actions with their own pending/
  * success/error states, better owned by one client component than threaded through server props).
  */
@@ -44,7 +44,7 @@ export default async function CommunityProfilePage() {
             }}
           >
             Verified backing, pseudonymous display (spec 05 §2). Declare your organisation type, role,
-            sector and region, then verify a corporate email to contribute to the house benchmark.
+            sector and region, then verify a corporate email to carry the verified badge.
           </p>
         </header>
         <ProfileForm />

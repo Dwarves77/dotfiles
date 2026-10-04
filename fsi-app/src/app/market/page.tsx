@@ -97,7 +97,6 @@ import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingOblig
 // IndexationPanel (§1.3, lane SPEC09-B, 2026-09-05) is the reader this table lacked at wave 3 — mechanics/
 // arithmetic only (see that component's own header for why it never renders a computed "current" figure).
 import { NoticesRail } from "@/components/figures/NoticesRail";
-import { SurchargeAuditPanel } from "@/components/market/SurchargeAuditPanel";
 import { OemRoadmapPanel } from "@/components/market/OemRoadmapPanel";
 import { ReroutingPanel } from "@/components/market/ReroutingPanel";
 import { IndexationPanel } from "@/components/market/IndexationPanel";
@@ -271,11 +270,9 @@ export default async function Market() {
         <NoticesRail />
       </div>
       <UpcomingObligationsStrip variant="list" />
-      {/* Spec 09 §1.2/§1.1/§1.7 (lane SPEC-09, wave 3, 2026-09-03): surcharge audit first per spec §4's
-          own sequencing, then OEM roadmap, then rerouting. Each renders a single short "no rows yet"
-          line when its table is empty rather than an empty card. IndexationPanel (§1.3, lane SPEC09-B,
-          2026-09-05) added last — the CSV-upload customer-data reader this table lacked at wave 3. */}
-      <SurchargeAuditPanel />
+      {/* Spec 09 section 1.1/1.7/1.3: OEM roadmap, then rerouting, then indexation. Each renders a
+          single short "no rows yet" line when its table is empty rather than an empty card. The surcharge
+          audit panel was removed by ADR-042 (it audited a customer's own invoice). */}
       <OemRoadmapPanel />
       <ReroutingPanel />
       <IndexationPanel />

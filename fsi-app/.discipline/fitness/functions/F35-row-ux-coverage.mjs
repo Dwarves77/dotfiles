@@ -56,13 +56,10 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
   // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.
-  'src/components/market/SurchargeAuditPanelView.tsx': 'spec09 §1.2 surcharge audit row',
   'src/components/market/OemRoadmapPanelView.tsx': 'spec09 §1.1 OEM roadmap row',
   'src/components/market/ReroutingPanelView.tsx': 'spec09 §1.7 rerouting-multiplier row',
-  'src/components/operations/DqiPanelView.tsx': 'spec09 §1.4 DQI-per-element row',
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
-  'src/components/regulations/EudrCustodyPanelView.tsx': 'spec09 §1.8 EUDR/custody blocking-alert row',
   // Lane L5 (2026-10-02, coordinator-directed registration, extended scope). AssessmentHistoryLedger
   // renders ONE ROW PER history entry (migration 344's supersedes chain, walked for real by
   // read-signposts.mjs's fetchAssessmentHistoryChain) -- structurally a row list, not a single-panel

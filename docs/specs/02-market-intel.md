@@ -92,6 +92,8 @@ Specific patterns, with their conventions, because "make it comparative" is not 
   Read: "you are 14 months ahead of the forwarding median and 6 months behind the automotive OEM
   cohort." This is the contract's third clause made concrete, and nothing in the product does it today.
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** The "you" marker and the editable cohort definition used a customer's own figures; they are superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. Component 6 (peer cohort benchmark) is not built from customer or Community figures (the Community benchmark was removed by ADR-042); the sentence stands only as background on why cohort definition matters.
+
 ## 4. Freight benchmark patterns
 
 The corridor is the atomic unit, and corridor definitions are proprietary and non-comparable across
@@ -168,6 +170,8 @@ directly, per the ETS-proxy mechanism in decision 2 (carrier-published surcharge
 carrier/period/source, never blended without a range; client override labelled client-supplied). Section
 9's "Corridor rate board: Absent" gap row is closed by retirement, not by building it.
 | 12 | **Watchlist and threshold alerting**, alerting on breach with delta and band context, not level | Tell me when my number moves; I will not open this daily |
+
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** "Client override labelled client-supplied" and "the customer's own rate" wording is superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. There is no client rate or client override input; the carbon cost overlay shows carrier-published figures with their range and source only.
 
 ## 7. Free data sources for a $0 build
 

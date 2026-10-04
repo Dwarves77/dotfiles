@@ -29,7 +29,6 @@ import {
   ListFilter,
   Settings as SettingsIcon,
   Users,
-  BarChart3,
 } from "lucide-react";
 import type {
   CommunityMembership,
@@ -312,8 +311,8 @@ export function CommunitySidebar({
             icon={<ListFilter size={14} />}
             label="All groups"
           />
-          {/* Wave 3 (2026-09-03): entity-bound cross-group discovery, the peer-org directory, and
-              house-seeded benchmarks — spec 05 §5 components 3, 4, 6. */}
+          {/* Wave 3 (2026-09-03): entity-bound cross-group discovery and the peer-org directory
+              (spec 05 section 5 components 4, 6). The benchmarks link was removed by ADR-042. */}
           <SidebarRow
             href="/community/discover"
             icon={<Hash size={14} />}
@@ -323,11 +322,6 @@ export function CommunitySidebar({
             href="/community/directory"
             icon={<Users size={14} />}
             label="Peer-org directory"
-          />
-          <SidebarRow
-            href="/community/benchmarks"
-            icon={<BarChart3 size={14} />}
-            label="Benchmarks"
           />
         </SidebarSection>
       </div>

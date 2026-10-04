@@ -15,9 +15,8 @@
 //       isAggregate:false always refuses an individual point disclosure of a
 //       commercially sensitive field, regardless of k-anonymity/dominance/lag,
 //       because a single free-text post can never itself satisfy those (they are
-//       properties of a POOL). The refusal names the aggregate-only route
-//       (POST .../benchmarks, once open) the author should use instead. A post
-//       with no sensitivity_field is unaffected — this is the common case.
+//       properties of a POOL). A post with no sensitivity_field is unaffected,
+//       which is the common case.
 //   (b) Entity binding (spec 05 §5 component 2, §6 acceptance criterion 6): every
 //       top-level thread must bind to at least one spine entity
 //       (src/lib/entities/entity-id.mjs id shape, `cl:<kind>:<16 hex>`).
@@ -383,7 +382,7 @@ export async function POST(request: NextRequest) {
   const guard = evaluateAntitrustGuard({ sensitivityField, isAggregate: false });
   if (!guard.allowed) {
     return NextResponse.json(
-      { error: guard.reason, aggregate_route: guard.aggregateRoute },
+      { error: guard.reason },
       { status: 403, headers: rateLimitHeaders(auth.userId) }
     );
   }

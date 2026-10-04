@@ -15,13 +15,12 @@
 //
 // NO LOCAL ASSUMPTION CONSTANT (CLAUDE.md rule 2, this lane's brief, spec 04 acceptance criterion 9).
 // Searched for an existing Operations assumption register before writing this (lane common contract's
-// prior-art rule): src/lib/assumptions/{contract.mjs,read.ts,row.mjs} backs
-// `planning_assumption_register` (migration 345), a PER-TENANT, prose-bound register for a reader's
-// own planning assumptions ("we assume Frankfurt-Milan stays diesel-costed..."), not a system default
-// for a fixed engineering constant. `assumption_register` (migration 271) is a drafted, UNAPPLIED
+// prior-art rule): the per-tenant planning-assumption register (migration 345) was removed by
+// ADR-042 (no customer-entered data in the system), so it is not a candidate home either.
+// `assumption_register` (migration 271) is a drafted, UNAPPLIED
 // catalogue of ten existing modelling constants (scripts/gen/assumption-register-common.mjs's own
 // fixture), "productive hours" is not among them, and the table carries no live rows and no runtime
-// reader in src/lib today. Neither is the convention spec 04 S6 #12 means. Rather than invent a THIRD
+// reader in src/lib today. It is not the convention spec 04 S6 #12 means. Rather than invent a THIRD
 // local constant to fill that gap, this module treats `productiveHours` as a REQUIRED CHAIN TERM,
 // supplied by the caller with the same provenance envelope as every other term: when the caller has no
 // sourced productive-hours figure for a region, that is an honest GAP (rendered as one), never a

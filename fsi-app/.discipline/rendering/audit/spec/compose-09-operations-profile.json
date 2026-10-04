@@ -9,7 +9,7 @@
   "notes": [
     "Region-composition check inside [data-audit=\"operations-detail\"] — OperationsDetailSurface mounted with fixture data matching artboard 09's Singapore example (mounts.mjs OPERATIONS_FIXTURE).",
     "Artboard order top to bottom: header (chips incl. the region-group chip and trailing topic chip 'Corridors', TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (At a glance, Impact assessment, Relevance, Related in <region>, Legend).",
-    "Item D3 (UI fix round 2026-09-08): the DQI, auxiliary-energy and grid-queue material moved off the /operations LIST onto this profile as three S-sections, \"in the same shape, with their existing data paths\". The rows below measure that they render through the SAME <DetailSection> every other section uses (the shared card, its 3px rule, its Anton 20px heading, its aside qualifier) and that the sticky section index names them, so a move that dropped one from the index would be caught."
+    "Item D3 (UI fix round 2026-09-08): the auxiliary-energy and grid-queue material (and, until ADR-042, DQI) moved off the /operations LIST onto this profile as S-sections, \"in the same shape, with their existing data paths\". The rows below measure that they render through the SAME <DetailSection> every other section uses (the shared card, its 3px rule, its Anton 20px heading, its aside qualifier) and that the sticky section index names them, so a move that dropped one from the index would be caught."
   ],
   "selector": "[data-audit=\"operations-detail\"]",
   "expect": {
@@ -104,18 +104,18 @@
       "note": "dc.html #p9: Regional profile · Asia · Ocean · Air · Corridors · T2. The build rendered the tier chip straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages."
     },
     {
-      "name": "the three spec-09 sections render, each as a real DetailSection anchor (item D3)",
-      "selector": "#sec-dqi, #sec-auxiliary-energy, #sec-grid-queue",
+      "name": "the two spec-09 sections render, each as a real DetailSection anchor (item D3)",
+      "selector": "#sec-auxiliary-energy, #sec-grid-queue",
       "expect": {
-        "count": "3"
+        "count": "2"
       }
     },
     {
       "name": "each spec-09 section carries the shared section card head, Anton 20px uppercase, not a page-local 15px h2",
-      "selector": "#sec-dqi h2",
+      "selector": "#sec-auxiliary-energy h2",
       "expect": {
         "count": "1",
-        "text": "Data quality",
+        "text": "Auxiliary energy load",
         "font-size": "20px",
         "text-transform": "uppercase"
       }
@@ -129,18 +129,18 @@
       }
     },
     {
-      "name": "the rows themselves moved across (the DQI section renders its per-element rows, not a placeholder)",
-      "selector": "#sec-dqi [data-guard-container=\"dqi\"] > div > div",
+      "name": "the rows themselves moved across (the auxiliary-energy section renders its per-profile rows, not a placeholder)",
+      "selector": "#sec-auxiliary-energy [data-guard-container=\"auxiliary-energy\"] > div > div",
       "expect": {
         "count": "2"
       }
     },
     {
-      "name": "the sticky section index names all three new sections",
-      "selector": "a[href=\"#sec-dqi\"], a[href=\"#sec-auxiliary-energy\"], a[href=\"#sec-grid-queue\"]",
+      "name": "the sticky section index names both spec-09 sections",
+      "selector": "a[href=\"#sec-auxiliary-energy\"], a[href=\"#sec-grid-queue\"]",
       "note": "A section that renders but is missing from the index is the defect this row exists for: the index is how a reader knows the page has it.",
       "expect": {
-        "count": "3"
+        "count": "2"
       }
     }
   ],
@@ -158,7 +158,7 @@
     },
     {
       "name": "no spec-09 panel renders its own page-frame wrapper inside the section",
-      "selector": "#sec-dqi .spec09-panel-header, #sec-auxiliary-energy .spec09-panel-header, #sec-grid-queue .spec09-panel-header",
+      "selector": "#sec-auxiliary-energy .spec09-panel-header, #sec-grid-queue .spec09-panel-header",
       "reason": "Item D3: the section supplies the heading. A view that kept its own spec09-panel-header would render two titles for one section."
     }
   ]

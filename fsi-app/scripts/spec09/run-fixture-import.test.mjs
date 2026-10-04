@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { UPLOAD_TABLES } from "../../src/lib/spec09/csv-upload-contract.mjs";
+import { OPERATOR_ROW_TABLES } from "./lib/operator-rows-contract.mjs";
 import { runFixtureImport, runOneTable, fakeInsertMany, DEFAULT_TEST_ORG_ID } from "./run-fixture-import.mjs";
 
 const FIXTURES_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
 function loadFixtures() {
   const fixtures = {};
-  for (const table of UPLOAD_TABLES) {
+  for (const table of OPERATOR_ROW_TABLES) {
     fixtures[table] = readFileSync(resolve(FIXTURES_DIR, `${table}.csv`), "utf8");
   }
   return fixtures;
@@ -20,17 +20,13 @@ function loadFixtures() {
 // per the lane brief: "tests for accept/reject rows"). Verified by hand against each fixture's own data
 // in this lane's report.
 const EXPECTED = {
-  surcharge_audits: { accepted: 2, rejected: 3 },
-  tce_data_quality: { accepted: 2, rejected: 3 },
   auxiliary_energy_profiles: { accepted: 2, rejected: 3 },
-  eudr_plot_claims: { accepted: 4, rejected: 2 },
-  custody_chains: { accepted: 2, rejected: 3 },
   indexation_clauses: { accepted: 3, rejected: 2 },
 };
 
 test("every fixture file exists and parses (ok:true) for its own table", () => {
   const fixtures = loadFixtures();
-  for (const table of UPLOAD_TABLES) {
+  for (const table of OPERATOR_ROW_TABLES) {
     assert.ok(fixtures[table] && fixtures[table].length > 0, `fixture missing or empty for ${table}`);
   }
 });
@@ -38,7 +34,7 @@ test("every fixture file exists and parses (ok:true) for its own table", () => {
 test("runOneTable: end-to-end parse -> org-stamp -> insert -> read-back, one table at a time", async () => {
   const fixtures = loadFixtures();
   const fake = fakeInsertMany();
-  for (const table of UPLOAD_TABLES) {
+  for (const table of OPERATOR_ROW_TABLES) {
     const res = await runOneTable({ table, csvText: fixtures[table], orgId: DEFAULT_TEST_ORG_ID, insertMany: fake.insertMany });
     assert.equal(res.ok, true, `${table}: ${res.error}`);
     assert.equal(res.accepted, EXPECTED[table].accepted, `${table} accepted count`);
@@ -55,10 +51,10 @@ test("runOneTable: end-to-end parse -> org-stamp -> insert -> read-back, one tab
   assert.equal(fake.inserted.length, Object.values(EXPECTED).reduce((s, e) => s + e.accepted, 0));
 });
 
-test("runFixtureImport: runs all six tables from injected fixture text, totals match the sum of each table", async () => {
+test("runFixtureImport: runs both tables from injected fixture text, totals match the sum of each table", async () => {
   const fixtures = loadFixtures();
   const result = await runFixtureImport({ fixtures, orgId: DEFAULT_TEST_ORG_ID });
-  assert.equal(result.tables.length, UPLOAD_TABLES.length);
+  assert.equal(result.tables.length, OPERATOR_ROW_TABLES.length);
   const expectedAccepted = Object.values(EXPECTED).reduce((s, e) => s + e.accepted, 0);
   const expectedRejected = Object.values(EXPECTED).reduce((s, e) => s + e.rejected, 0);
   assert.equal(result.totals.accepted, expectedAccepted);
@@ -73,8 +69,8 @@ test("runFixtureImport: runs all six tables from injected fixture text, totals m
 test("runOneTable: a table with no accepted rows never calls insertMany (no empty-batch write)", async () => {
   let called = false;
   const res = await runOneTable({
-    table: "surcharge_audits",
-    csvText: "corridor_id,carrier_id\nfoo,bar\n", // missing required headers -> ok:false
+    table: "indexation_clauses",
+    csvText: "index_id,base_value\nfoo,1\n", // missing required headers -> ok:false
     orgId: DEFAULT_TEST_ORG_ID,
     insertMany: async () => { called = true; return { inserted: 0, rows: [] }; },
   });

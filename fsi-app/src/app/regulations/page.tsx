@@ -12,8 +12,7 @@
  *     horizontal card strip was a second rendering of the same thing.
  *   - <ObligationRegister variant="list"> — MOVED to its own page, /regulations/register, reachable
  *     from the rail card's own "Calendar →" link.
- * <EudrCustodyPanel> is NOT named by that ruling and so stays exactly as it is (ruling R7: a feature
- * no artboard draws is left alone and listed) — logged in DEVIATION-LOG.md.
+ * <EudrCustodyPanel> was removed by ADR-042 (it held a customer's own consignment filings).
  *
  * REWRITTEN this lane (UILISTS, 2026-09-06): the old <EditorialMasthead> is
  * gone — RegulationsLedger's own <Masthead> (src/components/ui/Masthead.tsx,
@@ -36,7 +35,6 @@ import { toLedgerRowPayload, LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination"
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
 // self-contained server component covering both tables — see its own header for the shared blocking-
 // severity classification and why they render as one block, not two.
-import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { sortFromSearchParam } from "@/components/list-surface/list-surface-helpers";
 import { renderNowIso } from "@/lib/render-now";
@@ -89,8 +87,6 @@ export default async function RegulationsPage({
           nowIso={renderNowIso()}
         />
       </Suspense>
-      {/* Lane SPEC-09 (wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody (spec 09 §1.8). */}
-      <EudrCustodyPanel />
     </>
   );
 }

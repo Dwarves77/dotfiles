@@ -108,6 +108,8 @@ literal form.
 
 **2. The corridor rate board.** Your lanes, not a global average:
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** "Your rate" and the 87th-percentile marker used the customer's own figure; they are superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. 
+
 ```
 Shanghai → Rotterdam    market low €1,840 ─────●───── high €4,120
                                           your rate €3,650   (87th pctile)
@@ -180,6 +182,8 @@ to the Regulations obligation that drives it. Item 1 (the comparative ribbon) an
 unchanged. See `docs/plans/build-plan-2026-09-25.md` for the carbon-cost-card workstream and the
 Design Changes Owed entry for artboard 04 (a carbon-cost card with no rate slot).
 
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** The "client override labelled client-supplied" wording above is superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. There is no client override input.
+
 ---
 
 # RESEARCH
@@ -224,6 +228,8 @@ first-class field**: where credible sources disagree, that disagreement *is* the
 hedge rather than commit.
 
 **3. The so-what block**, bound to your own plan:
+
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** The "bound to your own plan" so-what, including the assumption-at-risk and load-bearing lines, is superseded. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. The block is stated against the external evidence only; no customer plan or assumption register is stored.
 
 ```
 ASSUMPTION AT RISK  You assume Asia-Europe stays conventionally bunkered to 2030
@@ -365,6 +371,8 @@ is what makes a forwarder willing to say something true.
 instrument or a technology, which is how it becomes reachable from the other four pages.
 
 **3. The house benchmark**, on a fixed calendar, aggregate-only:
+
+> **Operator ruling 2026-10-03 (ADR-042, external data only).** The house benchmark is superseded and removed. Operator, verbatim: "I would also remove the community benchmarks."
 
 ```
 This quarter: what SAF premium are you seeing on EU-US air?

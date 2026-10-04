@@ -1,6 +1,6 @@
 /**
  * AuxiliaryEnergyPanelView — the sync, render-only half of AuxiliaryEnergyPanel.tsx's VIEW/FETCH split.
- * Separate file for the same reason as market/SurchargeAuditPanelView.tsx (see that file's header).
+ * Separate file for the same reason as market/OemRoadmapPanelView.tsx (see that file's header).
  */
 /**
  * SECTION BODY, NOT A PANEL (UI fix round 2026-09-08, item D3). This used to render as a full-width

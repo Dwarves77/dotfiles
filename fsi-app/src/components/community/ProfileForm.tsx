@@ -3,11 +3,10 @@
 /**
  * ProfileForm — self-service verified-pseudonymous identity (spec 05 §2, §5 component 1; lane
  * COMMUNITY-C, 2026-09-03). The gap this component closes: nothing could write org_type/role/sector/
- * region or start corporate-email verification for a member — the benchmark response route (and the
- * whole write path) is gated behind exactly this.
+ * region or start corporate-email verification for a member.
  *
  * ONE PRIMARY GOAL: declare (or update) your community identity and, separately, verify a corporate
- * email — the precondition for contributing to the house benchmark (spec 05 §1, §3). Two dominant
+ * email, which earns the verified badge (spec 05 section 1). Two dominant
  * actions live in two separate sections (declare vs. verify) rather than competing on one screen (law
  * 7); "Save profile" is primary in the first, "Verify" is primary in the second.
  *
@@ -315,8 +314,8 @@ export function ProfileForm() {
         </h3>
         <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-text-secondary)", lineHeight: 1.55 }}>
           Verification uses the email already on your account — a company domain on a confirmed account
-          address is the verification itself, no second email is sent. Required before your submissions
-          to the house benchmark are counted (spec 05 §1).
+          address is the verification itself, no second email is sent. A verified member carries the
+          verified badge on their posts (spec 05 section 1).
         </p>
 
         {profile?.verified ? (

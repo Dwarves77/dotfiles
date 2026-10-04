@@ -31,7 +31,7 @@
  * shared RailLegend + the Sources section's own tier chips).
  */
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
@@ -76,10 +76,7 @@ import {
 } from "@/lib/agent/parse-record-sections";
 import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
-import { ASSUMPTION_SHIFT_ABSENCE, refusalDisplayText, formatAssumptionShift } from "@/lib/research/read-assessments.mjs";
-import { isAtRisk } from "@/lib/assumptions/contract.mjs";
-import { authedFetch } from "@/lib/api/authed-fetch";
-import type { AssumptionRow } from "@/lib/assumptions/read";
+import { refusalDisplayText } from "@/lib/research/read-assessments.mjs";
 import {
   THEME_LABELS,
   assignTheme as classifyTheme,
@@ -447,54 +444,6 @@ function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: Intelli
 // cluster.mjs F3, stored on connection_themes.density). Absent (an older theme
 // row, or a read that did not select it) the segment is omitted rather than
 // rendered as 0 - Absence-by-omission, the same convention AtAGlanceCard uses.
-// ── Planning-assumption shift (spec-03 section 5/7#7), wired to lane W2-R2's real reader ──────────
-// `planning_assumption_register` (migration 345). CORRECTED (lane W2-R2 cross-dispatch, 2026-10-02):
-// the real per-tenant store is NOT `assumption_register` (migration 271, a different concept,
-// internal modelling constants - see ADR-038's corrected finding). GET /api/workspace/assumptions
-// already calls read.ts's own `readWorkspaceAssumptions` (see that route's logic.ts) - this component
-// fetches that real, already-wired route client-side and narrows to the at-risk subset with `isAtRisk`
-// (src/lib/assumptions/contract.mjs, imported directly, never re-implemented). CLIENT-SIDE, not
-// loadDetail's `loadViewerScoped`, deliberately: see read-assessments.mjs's own header for the full
-// finding (every `[slug]` detail page in this codebase removed/never-adopted that hook specifically
-// to avoid forcing the whole route dynamic under classical, non-PPR rendering - PERF-10). Same posture
-// RelevanceBadgeClient.tsx already uses on this exact page.
-function AssumptionShiftRow({ row }: { row: (label: string, value: React.ReactNode) => React.ReactNode }) {
-  // "loading" is distinguished from "resolved, genuinely empty" (DP-2: every async action shows an
-  // honest pending state) - undefined = not yet resolved, [] = resolved empty, an array = resolved
-  // with at-risk rows.
-  const [atRisk, setAtRisk] = useState<AssumptionRow[] | undefined>(undefined);
-
-  useEffect(() => {
-    let cancelled = false;
-    authedFetch("/api/workspace/assumptions", { credentials: "same-origin" })
-      .then((r) => (r.ok ? r.json() : { assumptions: [] }))
-      .then((body: { assumptions?: AssumptionRow[] }) => {
-        if (cancelled) return;
-        setAtRisk((body.assumptions ?? []).filter(isAtRisk));
-      })
-      .catch(() => {
-        if (!cancelled) setAtRisk([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (atRisk === undefined) {
-    return row("Assumption shift", "checking the workspace's planning assumptions...");
-  }
-  if (atRisk.length === 0) {
-    return row("Assumption shift", ASSUMPTION_SHIFT_ABSENCE);
-  }
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {atRisk.map((a) => (
-        <Fragment key={a.id}>{row("Assumption shift", formatAssumptionShift(a))}</Fragment>
-      ))}
-    </div>
-  );
-}
-
 function ResearchAssessmentCard({ assessment }: { assessment: AssessmentView | null | undefined }) {
   const row = (label: string, value: React.ReactNode) => (
     <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
@@ -567,9 +516,6 @@ function ResearchAssessmentCard({ assessment }: { assessment: AssessmentView | n
             ) : (
               row("Horizon", `Not forecastable - ${refusalDisplayText(assessment.refusalReason)}`)
             )}
-            <div style={{ borderTop: "1px solid var(--color-border-subtle)", paddingTop: 6, marginTop: 2 }}>
-              <AssumptionShiftRow row={row} />
-            </div>
           </>
         )}
       </div>

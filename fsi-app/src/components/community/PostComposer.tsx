@@ -5,7 +5,8 @@
  *
  * Wave 3 (2026-09-03): entity-bound posting UI (spec 05 §5 component 2, acceptance 6 — "every
  * thread binds to at least one spine entity") plus the antitrust write-time guard's refusal
- * rendering (spec 05 §1, §5 component 12 — "refuse, explain, offer the aggregate-only route"). Both
+ * rendering (spec 05 section 1, component 12: refuse and explain; the aggregate-only route was removed
+ * by ADR-042). Both
  * go through api-client.createCommunityPost, which posts COMMUNITY-A's contract shape
  * `{ group_id, title?, body, entity_ids, sensitivity_field? }` to POST /api/community/posts. A post
  * with no bound entity is refused CLIENT-SIDE (never reaches the network) — see
@@ -21,13 +22,11 @@
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { createCommunityPost } from "./api-client";
 import { validateEntityBinding } from "./identity-format";
 import { EntityPicker } from "./EntityPicker";
-import { FLOOR } from "@/lib/aggregate/anonymity-floor.mjs";
-import type { CommunityEntityRef, CommunityGuardAggregateRoute } from "./types";
+import type { CommunityEntityRef } from "./types";
 import { formatNumber } from "@/lib/format";
 
 interface CommunityPostAuthor {
@@ -98,10 +97,7 @@ export function PostComposer({
   const [anonymous, setAnonymous] = useState(defaultAnonymous);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [refusal, setRefusal] = useState<{
-    message: string;
-    aggregateRoute?: CommunityGuardAggregateRoute;
-  } | null>(null);
+  const [refusal, setRefusal] = useState<{ message: string } | null>(null);
 
   const entityError = validateEntityBinding(entities.map((e) => e.entity_id));
   const canSubmit =
@@ -128,10 +124,10 @@ export function PostComposer({
         anonymous,
       });
       if (!result.ok) {
-        if (result.status === 403 && result.aggregateRoute) {
-          // Antitrust guard refusal (spec 05 §1) — explain and offer the aggregate route, never
-          // just show a generic error. See the refusal render below the form.
-          setRefusal({ message: result.error, aggregateRoute: result.aggregateRoute });
+        if (result.status === 403) {
+          // Write-time refusal (antitrust guard, spec 05 section 1, or group membership): explain
+          // it, never just show a generic error. See the refusal render below the form.
+          setRefusal({ message: result.error });
         } else {
           setError(result.error);
         }
@@ -301,8 +297,8 @@ export function PostComposer({
           }}
         />
         <p style={{ margin: "3px 0 0", fontSize: 10.5, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
-          Naming the field lets the antitrust guard check it for k-anonymity, dominance, and lag
-          before this post is accepted (spec 05 §1).
+          Naming a commercially sensitive field has the antitrust guard refuse the post, because an
+          individual figure for it is never shared in a post (spec 05 section 1).
         </p>
       </div>
 
@@ -379,23 +375,11 @@ export function PostComposer({
           }}
         >
           <p style={{ margin: 0, fontSize: 12.5, color: "var(--color-high, #b45309)", fontWeight: 700 }}>
-            Post refused — antitrust guard
+            Post refused
           </p>
           <p style={{ margin: 0, fontSize: 12, color: "var(--color-text-primary)", lineHeight: 1.5 }}>
             {refusal.message}
           </p>
-          {refusal.aggregateRoute && (
-            <p style={{ margin: 0, fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-              This field is available as an aggregate-only, house-run benchmark instead
-              {refusal.aggregateRoute.instrumentKey ? ` (${refusal.aggregateRoute.instrumentKey})` : ""}
-              {refusal.aggregateRoute.pending
-                ? `, currently below the ${FLOOR.minOrgs}-contributor floor, so it isn't publishable yet either.`
-                : "."}{" "}
-              <Link href="/community/benchmarks" style={{ color: "inherit", fontWeight: 700 }}>
-                View benchmarks
-              </Link>
-            </p>
-          )}
         </div>
       )}
     </form>

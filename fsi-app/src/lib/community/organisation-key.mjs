@@ -1,6 +1,6 @@
 // organisation-key.mjs — server-only, pseudonymous per-organisation identifier (spec 05 §2, §3;
-// migration 293's community_member_profiles.organisation_key column comment; migration 294's
-// community_benchmark_responses.organisation_key column comment; docs/dispatches lane COMMUNITY-C).
+// migration 293's community_member_profiles.organisation_key column comment; docs/dispatches lane
+// COMMUNITY-C). The benchmark response table that also stored this key was removed by ADR-042.
 // PURE — no I/O, no env read. The caller (a route, running server-side only) supplies the salt from
 // process.env.COMMUNITY_ORG_SALT and the verified corporate email DOMAIN (never the full address)
 // explicitly, so this module is unit-testable without touching the environment and cannot itself be the
@@ -16,9 +16,8 @@
 //
 // NEVER SURFACED TO A CLIENT. identity.mjs's projectAuthorIdentity() allowlist does not carry this
 // column (see that module's header); this module's own output is consumed only by server-side route
-// code, which stores it in community_member_profiles.organisation_key /
-// community_benchmark_responses.organisation_key (both REVOKEd from anon/authenticated SELECT — see
-// migrations 293, 294) and never echoes it back in an HTTP response body.
+// code, which stores it in community_member_profiles.organisation_key (REVOKEd from
+// anon/authenticated SELECT, see migration 293) and never echoes it back in an HTTP response body.
 //
 // REFUSES for two independent reasons, checked explicitly rather than left to fail open:
 //   1. `verified` is not `true` — an org key must never exist for an unverified member. Migration 293's

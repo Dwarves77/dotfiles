@@ -34,15 +34,6 @@ export interface CreatePostInput {
   anonymous?: boolean;
 }
 
-/** The guard's refusal payload shape (spec 05 §1, acceptance 3): "refuse, explain, offer the
- * aggregate-only route" (spec 05 §5 component 12). `instrumentKey`/`pending` are the fields the
- * wave3 contract names explicitly; the route may carry more — surfaced as-is, never dropped. */
-export interface GuardAggregateRoute {
-  instrumentKey?: string;
-  pending?: boolean;
-  [key: string]: unknown;
-}
-
 export interface CreatePostSuccess {
   ok: true;
   post: Record<string, unknown>;
@@ -54,8 +45,6 @@ export interface CreatePostFailure {
    * or a network error) — real HTTP status otherwise. */
   status: number;
   error: string;
-  /** Present only on a 403 antitrust-guard refusal that named an aggregate route. */
-  aggregateRoute?: GuardAggregateRoute;
 }
 
 export type CreatePostResult = CreatePostSuccess | CreatePostFailure;
@@ -93,7 +82,6 @@ export async function createCommunityPost(
   const json = await safeJson<{
     post?: Record<string, unknown>;
     error?: string;
-    aggregate_route?: GuardAggregateRoute;
   }>(res);
 
   if (!res.ok) {
@@ -101,7 +89,6 @@ export async function createCommunityPost(
       ok: false,
       status: res.status,
       error: json?.error || `Could not post (${res.status})`,
-      aggregateRoute: res.status === 403 ? json?.aggregate_route : undefined,
     };
   }
 
@@ -166,104 +153,6 @@ export async function getEntityThreads(
   } catch {
     return null;
   }
-}
-
-// ── GET /api/community/benchmarks/current ─────────────────────────────────────────────────────
-
-export interface BenchmarkAggregate {
-  publishable: boolean;
-  value: number | null;
-  distinct_organisations: number;
-  min_contributors: number;
-  response_count: number;
-  reason: string | null;
-}
-
-export interface Benchmark {
-  key: string;
-  title: string;
-  question: string;
-  field_key: string;
-  unit: string;
-  sector_profile: string[] | string | null;
-  region: string | null;
-  calendar_cycle: string;
-  opens_at: string;
-  closes_at: string;
-  period_end: string;
-  status: string;
-  aggregate: BenchmarkAggregate;
-}
-
-export async function getCurrentBenchmarks(
-  fetchImpl: typeof fetch = fetch
-): Promise<Benchmark[] | null> {
-  try {
-    const res = await fetchImpl("/api/community/benchmarks/current");
-    if (!res.ok) return null;
-    const json = (await res.json()) as { benchmarks?: Benchmark[] };
-    return json.benchmarks ?? [];
-  } catch {
-    return null;
-  }
-}
-
-// ── POST /api/community/benchmarks/[key]/respond ─────────────────────────────────────────────
-// The write path for the house-seeded benchmark (lane COMMUNITY-C, 2026-09-03): submits (or replaces)
-// the caller's own response and returns the SAME aggregate shape as getCurrentBenchmarks — never an
-// individual value, including the caller's own.
-
-export interface SubmitBenchmarkResponseSuccess {
-  ok: true;
-  aggregate: BenchmarkAggregate;
-}
-
-export interface SubmitBenchmarkResponseFailure {
-  ok: false;
-  /** 0 when the request never reached the network. */
-  status: number;
-  error: string;
-  /** Present on a 403 refusal — where to go to fix it (verification today). */
-  verifyUrl?: string;
-}
-
-export type SubmitBenchmarkResponseResult =
-  | SubmitBenchmarkResponseSuccess
-  | SubmitBenchmarkResponseFailure;
-
-export async function submitBenchmarkResponse(
-  instrumentKey: string,
-  valueNumeric: number,
-  fetchImpl: typeof fetch = fetch
-): Promise<SubmitBenchmarkResponseResult> {
-  let res: Response;
-  try {
-    res = await fetchImpl(`/api/community/benchmarks/${encodeURIComponent(instrumentKey)}/respond`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ value_numeric: valueNumeric }),
-    });
-  } catch (err) {
-    return { ok: false, status: 0, error: err instanceof Error ? err.message : "Network error" };
-  }
-
-  const json = await safeJson<{
-    accepted?: boolean;
-    aggregate?: BenchmarkAggregate;
-    error?: string;
-    verify_url?: string;
-  }>(res);
-
-  if (!res.ok || !json?.accepted) {
-    return {
-      ok: false,
-      status: res.status,
-      error: json?.error || `Could not submit (${res.status})`,
-      verifyUrl: res.status === 403 ? json?.verify_url : undefined,
-    };
-  }
-
-  return { ok: true, aggregate: json.aggregate as BenchmarkAggregate };
 }
 
 // ── GET/PUT /api/community/profile, POST /api/community/profile/verify ──────────────────────────
@@ -370,14 +259,11 @@ async function safeJson<T>(res: Response): Promise<T | null> {
 
 export const fixtures = {
   guardRefusal: {
-    // The antitrust WRITE-TIME posting guard (evaluateAntitrustGuard, antitrust.mjs), unchanged by
-    // ADR-035 (coordinator ruling 4: it answers a different question than the benchmark DISPLAY
-    // floor). Its own hardcoded reason text still reads "five" because antitrust.mjs's
-    // minContributors/capRatio defaults were deliberately left at 5/0.25.
+    // The antitrust WRITE-TIME posting guard (evaluateAntitrustGuard, antitrust.mjs). It carries only an
+    // error string: ADR-042 removed the benchmark route it used to point at.
     error:
-      "This field is commercially sensitive and has fewer than five contributors this quarter. Refused at write time.",
-    aggregate_route: { instrumentKey: "saf-premium-eu-us-air-2026q3", pending: true },
-  } satisfies { error: string; aggregate_route: GuardAggregateRoute },
+      "This field is commercially sensitive. A single member's individual disclosure of it is never permitted in a post.",
+  } satisfies { error: string },
 
   entityThreads: {
     entity_id: "cl:corridor:7f3a9c21b1044d6e",
@@ -405,32 +291,7 @@ export const fixtures = {
     next_cursor: null,
   } satisfies EntityThreadsResult,
 
-  benchmarks: [
-    {
-      key: "saf-premium-eu-us-air-2026q3",
-      title: "SAF premium, EU–US air lanes",
-      question: "What SAF premium are you seeing on EU-US air lanes this quarter?",
-      field_key: "saf_premium_usd_per_kg",
-      unit: "USD/kg",
-      sector_profile: ["air-freight"],
-      region: "EU-US",
-      calendar_cycle: "quarterly",
-      opens_at: "2026-07-01T00:00:00.000Z",
-      closes_at: "2026-09-30T00:00:00.000Z",
-      period_end: "2026-09-30T00:00:00.000Z",
-      status: "open",
-      aggregate: {
-        publishable: false,
-        value: null,
-        distinct_organisations: 3,
-        min_contributors: 10,
-        response_count: 4,
-        reason: "needs 7 more organisations (3/10 contributing organisations)",
-      },
-    },
-  ] as Benchmark[],
-
-  // ── lane COMMUNITY-C additions (2026-09-03): profile + response fixtures ────────────────────
+  // ── lane COMMUNITY-C additions (2026-09-03): profile fixtures ────────────────────
   ownProfileUnverified: {
     orgType: null, role: null, sector: null, region: null,
     verified: false, verifiedAt: null, verificationMethod: null, defaultAnonymous: false,
@@ -441,9 +302,4 @@ export const fixtures = {
     verified: true, verifiedAt: "2026-08-01T00:00:00.000Z", verificationMethod: "corporate-email",
     defaultAnonymous: false,
   } satisfies CommunityProfile,
-
-  benchmarkRespondRefusalUnverified: {
-    error: "unverified: verify a corporate email first",
-    verify_url: "/community/profile",
-  },
 };

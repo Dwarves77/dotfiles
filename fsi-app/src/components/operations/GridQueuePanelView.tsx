@@ -1,6 +1,6 @@
 /**
  * GridQueuePanelView — the sync, render-only half of GridQueuePanel.tsx's VIEW/FETCH split. Separate file
- * for the same reason as market/SurchargeAuditPanelView.tsx (see that file's header).
+ * for the same reason as market/OemRoadmapPanelView.tsx (see that file's header).
  *
  * DECISION HORIZON: src/lib/spec09/grid-queue.mjs's evaluateGridQueueGate() takes the CALLER's own
  * decision horizon — it is never invented by the calculator. This view is a read-only status board (no

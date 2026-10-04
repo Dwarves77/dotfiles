@@ -1160,16 +1160,12 @@ window.__mount = () => {
 };
 `;
 
-// Item D3 (2026-09-08): the three spec-09 panels moved off the /operations LIST onto this profile as
-// S-sections. The real route passes the async SERVER components; this mount passes their sync VIEW
+// Item D3 (2026-09-08): the spec-09 panels moved off the /operations LIST onto this profile as
+// S-sections (the DQI panel was removed by ADR-042, 2026-10-03). The real route passes the async SERVER components; this mount passes their sync VIEW
 // halves with populated fixture rows, which is the same subtree the server components render and the
 // only half that can run in a browser bundle (the fetch halves import supabase-server — see
-// DqiPanelView.tsx's own header for that split).
+// market/OemRoadmapPanelView.tsx's own header for that split).
 const SPEC09_SECTION_FIXTURES = {
-  dqi: [
-    { dqi_id: 'd1', tce_id: 'TCE-SIN-001', reliability: 4, completeness: 3, temporal_correlation: 4, geographical_correlation: 5, technological_correlation: 3, primary_data_share: 0.72 },
-    { dqi_id: 'd2', tce_id: 'TCE-SIN-002', reliability: 2, completeness: 2, temporal_correlation: 3, geographical_correlation: 3, technological_correlation: 2, primary_data_share: 0.31 },
-  ],
   aux: [
     { profile_id: 'a1', load_type: 'reefer_plugin', kw_draw: 4.2, duty_cycle: 0.65, hours_typical: 24, setpoint_c: -18, setpoint_rh_pct: null, grid_intensity_source: 'SG EMA' },
     { profile_id: 'a2', load_type: 'warehouse_chiller', kw_draw: 11, duty_cycle: 0.4, hours_typical: 12, setpoint_c: 4, setpoint_rh_pct: 85, grid_intensity_source: null },
@@ -1186,7 +1182,6 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppShell } from '@/components/AppShell';
 import { OperationsDetailSurface } from '@/components/operations/OperationsDetailSurface';
-import { DqiPanelView } from '@/components/operations/DqiPanelView';
 import { AuxiliaryEnergyPanelView } from '@/components/operations/AuxiliaryEnergyPanelView';
 import { GridQueuePanelView } from '@/components/operations/GridQueuePanelView';
 
@@ -1202,7 +1197,6 @@ window.__mount = () => {
       React.createElement('div', { 'data-audit': 'operations-detail' },
         React.createElement(OperationsDetailSurface, {
           ...F,
-          dqiSection: React.createElement(DqiPanelView, { rows: S9.dqi }),
           auxiliaryEnergySection: React.createElement(AuxiliaryEnergyPanelView, { rows: S9.aux }),
           gridQueueSection: React.createElement(GridQueuePanelView, { rows: S9.grid }),
         })),

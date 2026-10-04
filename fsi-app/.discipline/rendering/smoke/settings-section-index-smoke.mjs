@@ -10,10 +10,10 @@
 // row on the page (the merged Account `TabRow`) — no second SubTabBar/tablist survives.
 //
 // Everything else on the page (dashboard settings, freight sectors, notifications, briefing
-// schedule, saved searches, data summary, CSV upload, supersession history, archive, help) is
+// schedule, saved searches, data summary, supersession history, archive, help) is
 // unchanged by this lane and already covered by its own specs (personal-archive-smoke.mjs mounts
-// ArchiveViewer; notifications-smoke.mjs mounts NotificationPreferences; spec09-panels covers the CSV
-// upload) — this spec does not re-prove those bodies, only the new section-index navigation.
+// ArchiveViewer; notifications-smoke.mjs mounts NotificationPreferences), so this spec does not re-prove
+// those bodies, only the new section-index navigation.
 
 import { bundleEntry, newSmokePage, measureGuard, assertGuardClean } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
@@ -63,14 +63,11 @@ const PROPS = {
 // profile page onto Settings as its own anchored section placed right after General, so the index
 // grew from R9's original five entries to six.
 //
-// Lane W2-R2 (2026-10-01): the per-tenant assumption register (docs/specs/03-research.md section 5)
-// is a new R7 "leave it and list it" section (an app feature no artboard draws a region for, same
-// placement precedent as Saved searches / Data summary), placed right after Saved searches and
-// before Data, growing the index from six entries to seven. DEVIATION-LOG.md's "ASSUMPTION
-// REGISTER" row is the L10 card-manifest escape; this spec update is the matching section-index
-// content fixture update, not a loosening of what the spec checks (still asserts an exact, ordered
-// list with no slack).
-const SECTION_IDS = ['general', 'notifications', 'saved', 'assumptions', 'data', 'archive', 'help'];
+// Lane EXTERNAL-ONLY (2026-10-03, ADR-042): the per-tenant assumption register section that lane W2-R2
+// (2026-10-01) had added after Saved searches was removed (no customer-entered data in the system), so
+// the index is back to six entries. This is the matching content fixture update, not a loosening of what
+// the spec checks (still asserts an exact, ordered list with no slack).
+const SECTION_IDS = ['general', 'notifications', 'saved', 'data', 'archive', 'help'];
 
 export async function runSmoke(browser) {
   const failures = [];
@@ -101,7 +98,7 @@ export async function runSmoke(browser) {
       failures.push(`${label}: a second-level tab row still renders (${tabCount} found) — R9 retires it in favour of the section index.`);
     }
 
-    // The section index itself: one nav[aria-label="Section index"] with 7 links, S1..S7.
+    // The section index itself: one nav[aria-label="Section index"] with 6 links, S1..S6.
     const navCount = await page.$$eval('nav[aria-label="Section index"]', (els) => els.length);
     checks++;
     if (navCount !== 1) {
@@ -110,10 +107,10 @@ export async function runSmoke(browser) {
 
     const linkTexts = await page.$$eval('nav[aria-label="Section index"] a', (els) => els.map((el) => el.textContent?.trim() ?? ''));
     checks++;
-    const expectedOrdinals = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7'];
+    const expectedOrdinals = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
     const hasAllOrdinals = expectedOrdinals.every((s, i) => linkTexts[i]?.startsWith(s));
-    if (linkTexts.length !== 7 || !hasAllOrdinals) {
-      failures.push(`${label}: section index links did not read S1..S7 in order, got ${JSON.stringify(linkTexts)}.`);
+    if (linkTexts.length !== 6 || !hasAllOrdinals) {
+      failures.push(`${label}: section index links did not read S1..S6 in order, got ${JSON.stringify(linkTexts)}.`);
     }
 
     // Every href resolves to a real anchor id actually present in the DOM.

@@ -7,7 +7,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   pickTwoOrgsWithMembers,
-  pickFixtureEntities,
   classifyOutcome,
   runAudit,
 } from "./spec09-org-rls-adversarial-audit.mjs";
@@ -46,28 +45,6 @@ test("pickTwoOrgsWithMembers: three orgs — picks the first two encountered, ig
   assert.deepEqual(got.map((o) => o.orgId), ["org-a", "org-b"]);
 });
 
-// ── pickFixtureEntities ──────────────────────────────────────────────────────────────────────────────
-
-test("pickFixtureEntities: a corridor row and an organisation row — picks both", () => {
-  const got = pickFixtureEntities([
-    { entity_id: "cl:corridor:1", kind: "corridor" },
-    { entity_id: "cl:organisation:1", kind: "organisation" },
-  ]);
-  assert.deepEqual(got, { corridorId: "cl:corridor:1", carrierId: "cl:organisation:1" });
-});
-
-test("pickFixtureEntities: missing the organisation kind — self-skip, not a fabricated id", () => {
-  assert.equal(pickFixtureEntities([{ entity_id: "cl:corridor:1", kind: "corridor" }]), null);
-});
-
-test("pickFixtureEntities: missing the corridor kind — self-skip", () => {
-  assert.equal(pickFixtureEntities([{ entity_id: "cl:organisation:1", kind: "organisation" }]), null);
-});
-
-test("pickFixtureEntities: empty spine — self-skip", () => {
-  assert.equal(pickFixtureEntities([]), null);
-});
-
 // ── classifyOutcome — the binding assertion (red then green below) ─────────────────────────────────────
 
 test("classifyOutcome: RED — org B can see org A's row is a cross-org RLS leak, not a pass", () => {
@@ -93,7 +70,7 @@ test("classifyOutcome: GREEN — org A sees exactly its row, org B sees none", (
 /** A minimal fake pg.Client: dispatches by matching a substring in the SQL text, in the order runAudit
  *  actually issues them. `visibility` supplies the count each impersonation call should report, keyed by
  *  the JSON-encoded jwt claims payload the SAME way runAudit builds it. */
-function fakeClient({ orgRows, entityRows, visibility }) {
+function fakeClient({ orgRows, visibility }) {
   let lastClaims = null;
   const calls = [];
   return {
@@ -105,13 +82,12 @@ function fakeClient({ orgRows, entityRows, visibility }) {
       if (/^RESET ROLE$/.test(sql)) return {};
       if (/^SET LOCAL ROLE authenticated$/.test(sql)) return {};
       if (/FROM public\.org_memberships/.test(sql)) return { rows: orgRows };
-      if (/FROM public\.entities/.test(sql)) return { rows: entityRows };
-      if (/INSERT INTO public\.surcharge_audits/.test(sql)) return { rows: [{ audit_id: "audit-fixture-1" }] };
+      if (/INSERT INTO public\.auxiliary_energy_profiles/.test(sql)) return { rows: [{ profile_id: "profile-fixture-1" }] };
       if (/set_config\('request\.jwt\.claims'/.test(sql)) {
         lastClaims = JSON.parse(params[0]);
         return {};
       }
-      if (/SELECT count\(\*\)::int AS n FROM public\.surcharge_audits/.test(sql)) {
+      if (/SELECT count\(\*\)::int AS n FROM public\.auxiliary_energy_profiles/.test(sql)) {
         return { rows: [{ n: visibility(lastClaims.sub) }] };
       }
       throw new Error(`fakeClient: unexpected query: ${sql}`);
@@ -120,7 +96,7 @@ function fakeClient({ orgRows, entityRows, visibility }) {
 }
 
 test("runAudit: self-skip when fewer than two orgs have a member — writes/impersonates nothing", async () => {
-  const client = fakeClient({ orgRows: [{ org_id: "org-a", user_id: "user-a" }], entityRows: [], visibility: () => 0 });
+  const client = fakeClient({ orgRows: [{ org_id: "org-a", user_id: "user-a" }], visibility: () => 0 });
   const result = await runAudit(client);
   assert.equal(result.skip, true);
   assert.match(result.reason, /fewer than two live organizations/);
@@ -128,29 +104,11 @@ test("runAudit: self-skip when fewer than two orgs have a member — writes/impe
   assert.deepEqual(client.calls, ["BEGIN", "SELECT org_id, user_id FROM public.org_m", "ROLLBACK"]);
 });
 
-test("runAudit: self-skip when live entities lacks a corridor/organisation pair", async () => {
-  const client = fakeClient({
-    orgRows: [
-      { org_id: "org-a", user_id: "user-a" },
-      { org_id: "org-b", user_id: "user-b" },
-    ],
-    entityRows: [{ entity_id: "cl:corridor:1", kind: "corridor" }],
-    visibility: () => 0,
-  });
-  const result = await runAudit(client);
-  assert.equal(result.skip, true);
-  assert.match(result.reason, /organisation.*kind/);
-});
-
 test("runAudit: RED — a leaking policy (org B also sees org A's row) fails the proof, not silently", async () => {
   const client = fakeClient({
     orgRows: [
       { org_id: "org-a", user_id: "user-a" },
       { org_id: "org-b", user_id: "user-b" },
-    ],
-    entityRows: [
-      { entity_id: "cl:corridor:1", kind: "corridor" },
-      { entity_id: "cl:organisation:1", kind: "organisation" },
     ],
     visibility: () => 1, // both users see it — the leak
   });
@@ -161,15 +119,11 @@ test("runAudit: RED — a leaking policy (org B also sees org A's row) fails the
   assert.equal(client.calls.at(-1), "ROLLBACK");
 });
 
-test("runAudit: GREEN — org A sees its row, org B is denied, using LIVE-shaped fixture rows", async () => {
+test("runAudit: GREEN, org A sees its row, org B is denied, using a live-shaped fixture row", async () => {
   const client = fakeClient({
     orgRows: [
       { org_id: "org-a", user_id: "user-a" },
       { org_id: "org-b", user_id: "user-b" },
-    ],
-    entityRows: [
-      { entity_id: "cl:corridor:1", kind: "corridor" },
-      { entity_id: "cl:organisation:1", kind: "organisation" },
     ],
     visibility: (sub) => (sub === "user-a" ? 1 : 0),
   });
@@ -177,8 +131,6 @@ test("runAudit: GREEN — org A sees its row, org B is denied, using LIVE-shaped
   assert.equal(result.ok, true);
   assert.equal(result.orgA.orgId, "org-a");
   assert.equal(result.orgB.orgId, "org-b");
-  assert.equal(result.corridorId, "cl:corridor:1");
-  assert.equal(result.carrierId, "cl:organisation:1");
   assert.equal(client.calls.at(-1), "ROLLBACK");
 });
 

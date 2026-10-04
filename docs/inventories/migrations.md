@@ -322,6 +322,7 @@
 | 346 | 346_research_assessments_entity_spine_signposts.sql | Migration 346 (Lane L6, coordinator dispatch 2026-10-02, docs/dispatches/lane-briefs/2026-10-02/ |
 | 347 | 347_aggregate_floor_adr035.sql | Migration 347 (Lane L15, coordinator brief docs/dispatches/lane-briefs/2026-10-03/brief-l15.md; ADR-035 |
 | 348 | 348_community_social_only.sql | Migration 348 (lane C-SOCIAL, 2026-10-03, ADR-041 "Community is social only"). Drops the Community-to-corpus promotion schema: post_promotions and the five promotion/provenance columns on community_posts. APPLIED 2026-10-03 (operator window, ADR-011; read-back: table and five columns absent). |
+| 349 | 349_external_data_only.sql | Migration 349 (lane EXTERNAL-ONLY, 2026-10-03, ADR-042 "External data only: the system takes no customer data and runs no Community benchmark"). BREAK-RISKY class (drops) under ADR-011, applied only in the operator's window AFTER the EXTERNAL-ONLY PR merges. Drops the seven tables whose only purpose was customer-entered data or the Community benchmark: surcharge_audits, tce_data_quality, eudr_plot_claims, custody_chains (migrations 296 to 298, org-scoped by 311), planning_assumption_register (345), community_benchmark_responses and community_benchmark_instruments (294), and deletes the one sensitive_field_policy row that registered community_benchmark_responses. Keeps sensitive_field_policy, aggregate_query_log, publish_aggregate, community_contributions, auxiliary_energy_profiles and indexation_clauses. |
 
 ## Maintenance trigger
 

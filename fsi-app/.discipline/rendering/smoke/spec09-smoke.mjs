@@ -1,8 +1,8 @@
-// UX smoke spec: spec 09 panels (SurchargeAuditPanel, OemRoadmapPanel, ReroutingPanel, DqiPanel,
-// AuxiliaryEnergyPanel, GridQueuePanel, EudrCustodyPanel, IndexationPanel). Lane SPEC-09, wave 3,
-// 2026-09-03; IndexationPanel added by lane SPEC09-B, 2026-09-05 (the reader indexation_clauses lacked at
-// wave 3 — docs/dispatches/lane-common-contract.md UX contract; docs/design/ux-laws.md; RD-60; F35
-// row-ux-coverage).
+// UX smoke spec: spec 09 panels (OemRoadmapPanel, ReroutingPanel, AuxiliaryEnergyPanel,
+// GridQueuePanel, IndexationPanel). Lane SPEC-09, wave 3, 2026-09-03; IndexationPanel added by lane
+// SPEC09-B, 2026-09-05; narrowed by lane EXTERNAL-ONLY, 2026-10-03 (ADR-042 removed the surcharge-audit,
+// DQI and EUDR/custody panels). docs/dispatches/lane-common-contract.md UX contract; docs/design/ux-laws.md;
+// RD-60; F35 row-ux-coverage.
 //
 // WHAT THIS MOUNTS, AND WHY NOT THE ASYNC PANELS THEMSELVES. Every panel is a self-contained async
 // Server Component (`export async function XPanel()`, fetch via `@/lib/supabase-server`). Two
@@ -16,7 +16,7 @@
 // Every panel is therefore split (same commit) into a data-only file (`XPanel.tsx`, unchanged public
 // name/behaviour) and a SEPARATE sync render-only file (`XPanelView.tsx`, no `@/lib/supabase-server`
 // import anywhere in its own graph) — the real production render code, just reachable without the two
-// obstacles above. This spec bundles and mounts the seven `*View` files directly; nothing here is a
+// obstacles above. This spec bundles and mounts the five `*View` files directly; nothing here is a
 // reproduction of the real markup.
 //
 // THE CSS ALIAS. Each View imports `@/components/market/spec09.css` (this lane's shared header/mobile
@@ -29,13 +29,13 @@
 // valid ES module works as the target of a side-effect-only `import "..."`, and reusing an existing file
 // avoids adding a new one purely to be empty).
 //
-// FIXTURE SHAPE. One composite root (`Spec09SmokeRoot`, defined in the entry below) renders all seven
+// FIXTURE SHAPE. One composite root (`Spec09SmokeRoot`, defined in the entry below) renders all five
 // Views stacked, each already carrying its own `data-guard-container` (added this commit, alongside
 // `data-guard-title` on every panel's `<h2>`) so the squeezed-title and overflow detectors measure each
 // panel's own card width, not the full viewport. Two states, per the lane brief ("fixture data incl.
 // empty and extreme states"): `empty` (every table's honest "no rows yet" line, today's live state per
 // scripts/spec09/SOURCES.md) and `extreme` (every table populated, several rows each, deliberately long
-// free-text values — invoice lines, corridor ids, DSO names, consignment refs — the same defect class
+// free-text values (corridor ids, DSO names, contract refs), the same defect class
 // F35/ux-assert.mjs exists to catch).
 
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
@@ -52,24 +52,18 @@ const CSS_ALIAS_TARGET = join(HERE, 'stub-next-link.mjs');
 const ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { SurchargeAuditPanelView } from '@/components/market/SurchargeAuditPanelView';
 import { OemRoadmapPanelView } from '@/components/market/OemRoadmapPanelView';
 import { ReroutingPanelView } from '@/components/market/ReroutingPanelView';
-import { DqiPanelView } from '@/components/operations/DqiPanelView';
 import { AuxiliaryEnergyPanelView } from '@/components/operations/AuxiliaryEnergyPanelView';
 import { GridQueuePanelView } from '@/components/operations/GridQueuePanelView';
-import { EudrCustodyPanelView } from '@/components/regulations/EudrCustodyPanelView';
 import { IndexationPanelView } from '@/components/market/IndexationPanelView';
 
 function Spec09SmokeRoot(props) {
   return React.createElement(React.Fragment, null,
-    React.createElement(SurchargeAuditPanelView, { rows: props.surcharge }),
     React.createElement(OemRoadmapPanelView, { rows: props.oem }),
     React.createElement(ReroutingPanelView, { rows: props.reroute }),
-    React.createElement(DqiPanelView, { rows: props.dqi }),
     React.createElement(AuxiliaryEnergyPanelView, { rows: props.aux }),
     React.createElement(GridQueuePanelView, { rows: props.grid }),
-    React.createElement(EudrCustodyPanelView, { plotClaims: props.eudrPlot, custodyChains: props.eudrCustody }),
     React.createElement(IndexationPanelView, { rows: props.indexation }),
   );
 }
@@ -83,32 +77,24 @@ window.__mount = (props) => {
 `;
 
 const EMPTY_STATE = Object.freeze({
-  surcharge: [], oem: [], reroute: [], dqi: [], aux: [], grid: [], eudrPlot: [], eudrCustody: [], indexation: [],
+  oem: [], reroute: [], aux: [], grid: [], indexation: [],
 });
 
 const LONG = (n, word) => Array.from({ length: n }, (_, i) => `${word}-${i}`).join(' ');
 
 /** Extreme fixture: every table populated, several rows each, deliberately long free-text values to
  *  exercise the squeezed-title/overflow detectors against real card widths. Enum-shaped columns (e.g.
- *  hold_risk, double_count_check, tech_category) use REAL values from their DB CHECK vocabularies (see
- *  migrations 296-298) so the real calculators (classifyHoldRisk, evaluateGridQueueGate, …) exercise
+ *  tech_category, commercial_stage) use REAL values from their DB CHECK vocabularies (see
+ *  migrations 296-298) so the real calculators (evaluateGridQueueGate, tcoCrossoverBand) exercise
  *  their real branches, not a default/unknown path. */
 function extremeState() {
   return {
-    surcharge: [
-      { audit_id: 'a1', invoice_line: `EU ETS Surcharge — ${LONG(8, 'extremely-long-invoice-line-token')}`, billed_eur: 18450.5, statutory_eur: 12100.25, statutory_basis: 'FuelEU Maritime Art. 20(1), EUR 2,400/t VLSFOe', variance_eur: 6350.25, corridor_id: 'cl:corridor:cnsha-nlrtm-ocean-0000000001', carrier_id: 'cl:org:0000000000000103' },
-      { audit_id: 'a2', invoice_line: 'SAF Premium', billed_eur: 900, statutory_eur: 900, statutory_basis: 'RED III Art. 25', variance_eur: 0, corridor_id: 'cl:corridor:0000000000000102', carrier_id: 'cl:org:0000000000000104' },
-    ],
     oem: [
       { roadmap_id: 'o1', tech_category: 'heavy_battery', commercial_stage: 'small_batch_fleet', target_year: 2028, density_basis: 'pack', confidence_admiralty: 'B2', announced_at: '2026-06-01' },
       { roadmap_id: 'o2', tech_category: 'hydrogen_fcell', commercial_stage: 'announced', target_year: null, density_basis: null, confidence_admiralty: null, announced_at: '2026-01-15' },
     ],
     reroute: [
       { reroute_id: 'r1', baseline_corridor_id: `cl:corridor:${LONG(4, 'suez-baseline-long-id-segment')}`, reroute_corridor_id: `cl:corridor:${LONG(4, 'cape-reroute-long-id-segment')}`, cause: 'Red Sea diversion (Houthi attacks, Bab-el-Mandeb strait closure)', fuel_burn_multiplier: 1.35, effective_from: '2025-12-01', effective_to: null },
-    ],
-    dqi: [
-      { dqi_id: 'd1', tce_id: `${LONG(6, 'extremely-long-transport-chain-element-reference-token')}`, reliability: 2, completeness: 3, temporal_correlation: 1, geographical_correlation: 4, technological_correlation: 2, primary_data_share: 0.62 },
-      { dqi_id: 'd2', tce_id: 'leg-2', reliability: 1, completeness: 1, temporal_correlation: 1, geographical_correlation: 1, technological_correlation: 1, primary_data_share: 0.1 },
     ],
     aux: [
       { profile_id: 'x1', load_type: 'museum_spec_hold', kw_draw: 4.2, duty_cycle: 0.9, hours_typical: 72, setpoint_c: 21, setpoint_rh_pct: 50, grid_intensity_source: 'EEA gCO2/kWh, EU grid mix 2026' },
@@ -117,14 +103,6 @@ function extremeState() {
     grid: [
       { queue_id: 'g1', dso_name: `${LONG(5, 'extremely-long-distribution-system-operator-name-segment')}`, capacity_band_mw: '1-5MW', queue_months_p50: 18, queue_months_p90: 40, as_of: '2026-08-01' },
       { queue_id: 'g2', dso_name: 'Small DSO', capacity_band_mw: '<1MW', queue_months_p50: 6, queue_months_p90: 10, as_of: '2026-08-01' },
-    ],
-    eudrPlot: [
-      { claim_id: 'p1', consignment_ref: `${LONG(6, 'extremely-long-consignment-reference-token')}`, validation_state: 'missing', hold_risk: 'border_hold' },
-      { claim_id: 'p2', consignment_ref: 'CNS-002', validation_state: 'valid', hold_risk: 'none' },
-    ],
-    eudrCustody: [
-      { custody_id: 'c1', credit_type: 'saf_bnc', scheme: `${LONG(5, 'extremely-long-certification-scheme-name-segment')}`, double_count_check: 'conflict_detected' },
-      { custody_id: 'c2', credit_type: 'green_methanol', scheme: 'ISCC PLUS', double_count_check: 'single_claim_confirmed' },
     ],
     indexation: [
       { clause_id: 'i1', contract_ref: `${LONG(6, 'extremely-long-contract-reference-token')}`, corridor_id: 'cl:corridor:0000000000000101', index_id: 'cl:instrument:eua-front-dec', base_value: 80, base_date: '2026-01-01', passthrough_pct: 70, cap_pct: 20, floor_pct: -10, review_cadence: 'quarterly', rounding_rule: 'round to nearest cent' },
@@ -135,15 +113,14 @@ function extremeState() {
 
 const STATES = [
   { label: 'empty', props: EMPTY_STATE, expectTitles: 0 },
-  // 8 -> 5 (UI fix round 2026-09-08, item D3): the three OPERATIONS panels (DQI, auxiliary energy,
-  // grid queue) moved off the /operations list onto the Operations profile as S-sections, and a
-  // section body does not carry its own heading — <DetailSection> supplies it, and DetailShell.tsx's
-  // h2 is what carries `data-guard-title` for them now. The five MARKET/REGULATIONS panels still
-  // render their own heading and are still counted here. This is the spec following the product, not
-  // a weakened floor: it is still an exact minimum, and it still fails if any of the five stops
-  // rendering. The three moved sections' titles are measured on the profile instead, by
-  // .discipline/rendering/audit/spec/compose-09-operations-profile.json.
-  { label: 'extreme', props: extremeState(), expectTitles: 5 },
+  // 8 -> 5 (UI fix round 2026-09-08, item D3), then 5 -> 3 (ADR-042, 2026-10-03): the OPERATIONS panels
+  // (auxiliary energy, grid queue) live on the Operations profile as S-sections, and a section body does
+  // not carry its own heading ( <DetailSection> supplies it, and DetailShell.tsx's h2 carries
+  // `data-guard-title` for them). The three MARKET panels (OEM roadmap, rerouting, indexation) still
+  // render their own heading and are counted here. The spec follows the product: it is still an exact
+  // minimum and still fails if any of the three stops rendering. The moved sections' titles are measured
+  // on the profile instead, by .discipline/rendering/audit/spec/compose-09-operations-profile.json.
+  { label: 'extreme', props: extremeState(), expectTitles: 3 },
 ];
 
 export async function runSmoke(browser) {
@@ -171,27 +148,14 @@ export async function runSmoke(browser) {
           failures.push(`${label}: expected >=${state.expectTitles} [data-guard-title] element(s), found ${ux.titles.length} (spec cannot pass by rendering nothing)`);
         }
 
-        // Empty state: every one of the eight "no rows yet" gap lines renders (honest omission, never a
-        // silently blank panel) — law 15's "explain what went wrong" applied to an absent-data state.
+        // Empty state: every one of the five "no rows yet" gap lines renders (honest omission, never a
+        // silently blank panel), law 15's "explain what went wrong" applied to an absent-data state.
         if (state.label === 'empty') {
           checks += 1;
           const text = await page.textContent('body');
           const gapCount = (text.match(/No rows yet/gi) || []).length;
-          if (gapCount < 8) {
-            failures.push(`${label}: expected 8 "no rows yet" gap lines (one per panel), found ${gapCount}.`);
-          }
-        }
-
-        // Extreme state: the two blocking-severity EUDR cards (border_hold, conflict_detected) render in
-        // the blocking visual class (spec 09 §1.8: "a border hold... in a different visual class from a
-        // monetary exposure") — proof, not just presence.
-        if (state.label === 'extreme') {
-          checks += 1;
-          const blockingLabels = await page.$$eval('body *', (els) =>
-            els.filter((e) => /Border hold|Double-claim conflict/.test(e.textContent || '') && e.children.length === 0).length,
-          );
-          if (blockingLabels < 2) {
-            failures.push(`${label}: expected 2 blocking-severity labels (Border hold, Double-claim conflict), found ${blockingLabels}.`);
+          if (gapCount < 5) {
+            failures.push(`${label}: expected 5 "no rows yet" gap lines (one per panel), found ${gapCount}.`);
           }
         }
       } finally {

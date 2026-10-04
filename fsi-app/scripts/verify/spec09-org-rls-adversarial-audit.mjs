@@ -4,6 +4,11 @@
  *
  *  SPEC09 ORG-SCOPE ADVERSARIAL RLS PROOF — lane MIG311-FIX, 2026-09-05.
  *
+ *  RETARGETED (lane EXTERNAL-ONLY, ADR-042, 2026-10-03): migration 349 drops `surcharge_audits` (and the
+ *  other customer-only spec09 tables), which this proof used as its fixture table. It now attacks
+ *  `auxiliary_energy_profiles`, a surviving org-scoped spec09 table (policy `auxiliary_energy_profiles_org_read`,
+ *  migration 311) that needs no `entities` fixture rows. The history below describes the original proof.
+ *
  *  WHY THIS EXISTS. Migration 311 (lane SPEC09-B) org-scoped six spec09 customer-upload tables and, per
  *  rule 15, tried to prove the new `<table>_org_read` policies actually deny a second org's member —
  *  inline, inside the migration's own final DO block — by INSERTing throwaway `organizations`,
@@ -24,20 +29,19 @@
  *  THE FIX (this file): the adversarial cross-org proof moves out of the migration and into this
  *  data-audit script, on the mig-250 / prov-guard-adversarial-audit.mjs template — a proof that runs
  *  against the LIVE database, inside a transaction it ALWAYS rolls back, picking its fixture rows from
- *  data that already exists (two organizations with a member each; two entities of the kinds
- *  `surcharge_audits`'s FKs require) instead of minting rows a live FK would reject. It is re-attacked on
+ *  data that already exists (two organizations with a member each) instead of minting rows a live FK
+ *  would reject. It is re-attacked on
  *  every data-audit-lane run (registered in run-data-audit-lane.mjs's AUDITS below), not just once at
  *  migration-apply time — a stronger proof than the one it replaces, not a weaker one.
  *
  *  WHAT IT PROVES, every case inside `BEGIN ... ROLLBACK` (zero writes persist):
- *    - org A's own member SELECTs the fixture `surcharge_audits` row it just saw inserted for org A: 1 row.
+ *    - org A's own member SELECTs the fixture `auxiliary_energy_profiles` row it just saw inserted for org A: 1 row.
  *    - org B's member, impersonated the same way migration 311 attempted, SELECTs the SAME row: 0 rows.
  *      This is the binding proof — org_id RLS on the six spec09 tables must isolate by org.
  *
  *  SELF-SKIP (exit 2, diagnosable, never a false green): no direct-Postgres connection available
  *  (SUPABASE_DB_URL/DATABASE_URL/local link/CI pooler — see scripts/lib/pg-conn.mjs), OR fewer than two
- *  live organizations each with at least one member, OR live `entities` lacks a `corridor`- and an
- *  `organisation`-kind row to satisfy `surcharge_audits`'s FKs. Every skip names WHICH precondition failed.
+ *  live organizations each with at least one member. Every skip names WHICH precondition failed.
  *
  *  Exit 0 = org B denied org A's row (and org A saw its own); exit 1 = the proof found a leak or a probe
  *  errored; exit 2 = cannot verify (no creds or no live fixture data — see SELF-SKIP above).
@@ -71,16 +75,6 @@ export function pickTwoOrgsWithMembers(rows) {
   ];
 }
 
-/** Picks one live `corridor`-kind and one live `organisation`-kind entity id to satisfy
- *  surcharge_audits.corridor_id / .carrier_id's FK to entities(entity_id) (migration 296). Returns
- *  {corridorId, carrierId} or null if either kind is absent from the live spine. */
-export function pickFixtureEntities(rows) {
-  const corridor = rows.find((r) => r.kind === "corridor");
-  const organisation = rows.find((r) => r.kind === "organisation");
-  if (!corridor || !organisation) return null;
-  return { corridorId: corridor.entity_id, carrierId: organisation.entity_id };
-}
-
 /** The binding assertion, pure: org A must see exactly its own row (1); org B must see none (0). */
 export function classifyOutcome({ selfVisible, otherVisible }) {
   if (selfVisible !== 1) {
@@ -100,8 +94,8 @@ export function classifyOutcome({ selfVisible, otherVisible }) {
  *  BEGIN...ROLLBACK around every probe so no write persists, matching migration 250's adversarial-audit
  *  discipline. Returns one of:
  *    { skip: true, reason }                                        — a precondition was unmet
- *    { ok: true, orgA, orgB, corridorId, carrierId, reason }        — proof passed
- *    { ok: false, orgA, orgB, corridorId, carrierId, reason }       — proof found a leak
+ *    { ok: true, orgA, orgB, reason }                              , proof passed
+ *    { ok: false, orgA, orgB, reason }                             , proof found a leak
  *  Throws only on an unexpected engine error (the CLI guard maps that to exit 1, matching
  *  prov-guard-adversarial-audit.mjs's ERROR verdict). */
 export async function runAudit(client) {
@@ -118,26 +112,15 @@ export async function runAudit(client) {
     }
     const [orgA, orgB] = orgs;
 
-    const entityRows = (
+    const profileId = (
       await client.query(
-        `SELECT entity_id, kind FROM public.entities WHERE kind IN ('corridor','organisation') ORDER BY kind, entity_id LIMIT 200`,
+        `INSERT INTO public.auxiliary_energy_profiles
+           (load_type, kw_draw, duty_cycle, hours_typical, org_id)
+         VALUES ('warehouse_hvac', 1, 0.5, 1, $1)
+         RETURNING profile_id`,
+        [orgA.orgId],
       )
-    ).rows;
-    const entities = pickFixtureEntities(entityRows);
-    if (!entities) {
-      return { skip: true, reason: "live entities lacks a 'corridor'-kind and an 'organisation'-kind row — surcharge_audits.corridor_id/.carrier_id cannot be satisfied" };
-    }
-    const { corridorId, carrierId } = entities;
-
-    const auditId = (
-      await client.query(
-        `INSERT INTO public.surcharge_audits
-           (corridor_id, carrier_id, invoice_line, billed_eur, statutory_eur, statutory_basis, org_id)
-         VALUES ($1, $2, 'spec09-org-rls-adversarial-audit selftest (rolled back)', 100, 80, 'selftest basis', $3)
-         RETURNING audit_id`,
-        [corridorId, carrierId, orgA.orgId],
-      )
-    ).rows[0].audit_id;
+    ).rows[0].profile_id;
 
     const visibleTo = async (userId) => {
       await client.query("SET LOCAL ROLE authenticated");
@@ -145,8 +128,8 @@ export async function runAudit(client) {
         JSON.stringify({ sub: userId }),
       ]);
       const n = (
-        await client.query(`SELECT count(*)::int AS n FROM public.surcharge_audits WHERE audit_id = $1`, [
-          auditId,
+        await client.query(`SELECT count(*)::int AS n FROM public.auxiliary_energy_profiles WHERE profile_id = $1`, [
+          profileId,
         ])
       ).rows[0].n;
       await client.query("RESET ROLE");
@@ -157,7 +140,7 @@ export async function runAudit(client) {
     const otherVisible = await visibleTo(orgB.userId);
 
     const verdict = classifyOutcome({ selfVisible, otherVisible });
-    return { ...verdict, orgA, orgB, corridorId, carrierId };
+    return { ...verdict, orgA, orgB };
   } finally {
     await client.query("ROLLBACK");
   }
