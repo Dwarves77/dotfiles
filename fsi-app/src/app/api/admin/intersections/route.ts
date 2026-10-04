@@ -7,6 +7,10 @@
 // write-edges.mjs / mint-item.ts, and this route only ASSEMBLES what is stored — no compute-at-read,
 // same posture as admin/themes.
 //
+// Intersections (lane S3-A): a pair whose edge carries the "intersection" basis entry (written by
+// analyze-corpus via write-edges.mjs from intersections.mjs) comes back with `intersection`: shared
+// scenarios, shared objects, strength, tier and cross_surface (derived from item_type + domain).
+//
 // Directionality (ADR-018): storage keeps both directed rows; this reader canonicalizes to one
 // undirected pair (pair-view.mjs), merging basis and taking max score.
 //
@@ -70,12 +74,13 @@ export async function GET(request: NextRequest) {
     priority?: string;
     intersection_summary?: string | null;
     item_type?: string;
+    domain?: number | null;
   }
   const itemsById = new Map<string, ItemRow>();
   for (let i = 0; i < ids.length; i += 200) {
     const { data, error } = await supabase
       .from("intelligence_items")
-      .select("id, title, legacy_id, priority, intersection_summary")
+      .select("id, title, legacy_id, priority, intersection_summary, item_type, domain")
       .eq("is_archived", false)
       // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", ids.slice(i, i + 200));

@@ -51,6 +51,12 @@
 // migration 276 gives the digest its own durable column. Clean cutover: no dual-write, no read fallback
 // to args.theme_delta for old rows.)
 //
+// INTERSECTIONS (lane S3-A, 2026-10-04): before clustering, this pass detects intersections (the skill's
+// shared-scenario AND shared-non-role-compliance-object rule, intersections.mjs) and writes each pair's
+// result onto its edge as one `intersection` basis entry (write-edges.mjs writeIntersectionEdges), so the
+// themes below are clustered over a graph that already carries them. Counts land in
+// connection_theme_runs.args.intersections. Dry writes nothing and clusters over the projected rows.
+//
 // Usage: node scripts/connections/analyze-corpus.mjs [--dry] [--signals]
 //   --dry      compute + report (themes, gaps, anticipated targets, signal candidates — including the
 //              would_adopt/would_flag/would_resolve split), write nothing (default is to write)
@@ -70,7 +76,8 @@ import { diffThemes } from "../../src/lib/connections/theme-delta.mjs";
 import { detectSignalCandidates } from "../../src/lib/connections/signal-candidates.mjs";
 import { planSignalAdoption, planSignalFlagResolutions, buildPreResolvedSignalFlagRow } from "../../src/lib/connections/signal-confidence.mjs";
 import { buildResolvedReflectionRow, planResolvedReflectionInserts } from "../../src/lib/connections/coverage-reflection.mjs";
-import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
+import { writeDiscoveredEdges, writeIntersectionEdges } from "../../src/lib/connections/write-edges.mjs";
+import { detectIntersections } from "../../src/lib/connections/intersections.mjs";
 import { GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
@@ -147,14 +154,52 @@ const startedAt = new Date().toISOString();
 // same "no new query" posture anticipate.mjs's own header documents). ----
 const items = await readAll(
   "intelligence_items",
-  "id, item_type, jurisdiction_iso, added_date, title, topic_tags, canonical_instrument_key",
+  "id, item_type, domain, priority, jurisdiction_iso, added_date, title, topic_tags, canonical_instrument_key, operational_scenario_tags, compliance_object_tags, related_items",
   { match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false) },
 );
-const edgeRows = await readAll("item_cross_references", "source_item_id, target_item_id, basis, score");
+const EDGE_COLUMNS = "id, source_item_id, target_item_id, relationship, origin, basis, score";
+let edgeRows = await readAll("item_cross_references", EDGE_COLUMNS);
 
 const nodes = items.map((it) => ({ id: it.id, item_type: it.item_type, dates: it.added_date }));
+console.log(`analyze-corpus: ${nodes.length} live items, ${edgeRows.length} edge rows loaded${DRY ? " (DRY RUN)" : ""}.`);
+
+// ---- 1b. Intersections (lane S3-A). The skill's AND rule as code (intersections.mjs): a pair shares >= 1
+// operational scenario AND >= 1 non-role compliance object. Runs BEFORE clustering so themes see the
+// intersection edges, in dry and apply alike: apply writes the basis entry onto each pair's edge through
+// write-edges.mjs and re-reads the graph; dry writes nothing and clusters over the projected rows. The
+// counts land in connection_theme_runs.args.intersections (the run row exists only in apply mode). ----
+const intersectionPairs = detectIntersections(items);
+const intersections = await writeIntersectionEdges(DRY ? null : writeClient(), intersectionPairs, {
+  dry: DRY, existing: edgeRows, snapshot: { dir: SNAP_DIR, cite: CITE },
+});
+const intersectionCounts = {
+  pairs: intersectionPairs.length,
+  cross_surface: intersectionPairs.filter((p) => p.cross_surface === true).length,
+  by_tier: {
+    strong: intersectionPairs.filter((p) => p.tier === "strong").length,
+    medium: intersectionPairs.filter((p) => p.tier === "medium").length,
+    weak: intersectionPairs.filter((p) => p.tier === "weak").length,
+  },
+  edge_rows: {
+    inserted: intersections.inserted, updated: intersections.updated, removed: intersections.removed,
+    deleted: intersections.deleted, unchanged: intersections.unchanged, skipped_manual: intersections.skippedManual,
+    failed_chunks: intersections.failedChunks,
+  },
+};
+console.log(
+  `INTERSECTIONS: ${intersectionCounts.pairs} pair(s) (${intersectionCounts.cross_surface} cross-surface; strong=${intersectionCounts.by_tier.strong} ` +
+  `medium=${intersectionCounts.by_tier.medium} weak=${intersectionCounts.by_tier.weak}); edge rows ${DRY ? "WOULD be " : ""}inserted=${intersections.inserted} ` +
+  `updated=${intersections.updated} removed=${intersections.removed} deleted=${intersections.deleted} unchanged=${intersections.unchanged} ` +
+  `skipped_manual=${intersections.skippedManual} failed_chunks=${intersections.failedChunks}.`,
+);
+if (!DRY) {
+  if (intersections.failedChunks) throw new Error(`analyze-corpus: ${intersections.failedChunks} intersection write chunk(s) failed; refusing to cluster over a half-written graph.`);
+  edgeRows = await readAll("item_cross_references", EDGE_COLUMNS);
+} else {
+  edgeRows = intersections.projected;
+}
 const edges = edgeRows.map((e) => ({ source: e.source_item_id, target: e.target_item_id, score: e.score, basis: e.basis }));
-console.log(`analyze-corpus: ${nodes.length} live items, ${edges.length} edge rows loaded${DRY ? " (DRY RUN)" : ""}.`);
+console.log(`analyze-corpus: clustering over ${edges.length} edge rows (post-intersection).`);
 
 // ---- 2. Workspace profile jurisdictions — read the field directly (not via workspace/profile.ts,
 // a .ts module with @/ path aliases this plain-ESM script can't resolve without a TS loader; same
@@ -238,7 +283,7 @@ if (DRY) {
 const run = await guardedInsert("connection_theme_runs", {
   started_at: startedAt,
   status: "running",
-  args: { dry: false, signals: RUN_SIGNALS },
+  args: { dry: false, signals: RUN_SIGNALS, intersections: intersectionCounts },
   nodes_read: nodes.length,
   edges_read: edges.length,
 }, { cite: CITE, select: "id" });
@@ -382,7 +427,7 @@ try {
       themes_written: insRes.inserted,
       gaps_flagged: gaps.length,
       rounds: clustered.rounds,
-      args: { dry: false, signals: RUN_SIGNALS },
+      args: { dry: false, signals: RUN_SIGNALS, intersections: intersectionCounts },
       theme_delta: themeDelta,
     },
     { cite: CITE },

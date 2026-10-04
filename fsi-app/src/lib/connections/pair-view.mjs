@@ -19,6 +19,10 @@
 // are always included regardless of minScore — curation outranks a threshold. Scored pairs filter on
 // minScore as usual.
 //
+// INTERSECTION (lane S3-A): a pair whose edge carries the intersection basis entry exposes it as
+// `intersection` {scenarios, objects, strength, tier, cross_surface}; cross_surface is derived here from
+// item_type and domain (surfaceOf), null when an item has no item_type. See intersections.mjs.
+//
 // SCORE BANDS (documented heuristic, not an invented magic number — same posture as theme-stats'
 // convergence bands): discover.mjs weights are shared_source 0.4,
 // shared_scenario 0.3/tag, shared_compliance_object 0.18/tag, shared_jurisdiction_topic 0.2.
@@ -26,6 +30,8 @@
 //   medium  >= 0.5  — multiple substantive signals (e.g. source + scenario)
 //   weak    <  0.5  — a single substantive signal near the 0.3 discovery threshold
 export const BANDS = { strong: 0.9, medium: 0.5 };
+
+import { isIntersectionEntry, isCrossSurface } from "./intersections.mjs";
 
 const canonKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
@@ -40,7 +46,7 @@ export function bandOf(score) {
 /**
  * Collapse directed edge rows into canonical undirected pairs.
  * @param {Array<{source_item_id:string, target_item_id:string, origin?:string, basis?:Array<{signal:string, detail?:string, weight?:number}>, score?:number|null}>} edgeRows
- * @returns {Map<string, {a:string, b:string, score:number|null, basis:Array<{signal:string, detail?:string, weight?:number}>, explicitly_linked:boolean}>}
+ * @returns {Map<string, {a:string, b:string, score:number|null, basis:Array<{signal:string, detail?:string, weight?:number}>, explicitly_linked:boolean, intersection:{scenarios:string[], objects:string[], strength:number, tier:string}|null}>}
  */
 export function collapsePairs(edgeRows) {
   const pairs = new Map();
@@ -50,7 +56,7 @@ export function collapsePairs(edgeRows) {
     const key = canonKey(s, t);
     const [a, b] = s < t ? [s, t] : [t, s];
     let p = pairs.get(key);
-    if (!p) { p = { a, b, score: null, basis: [], explicitly_linked: false }; pairs.set(key, p); }
+    if (!p) { p = { a, b, score: null, basis: [], explicitly_linked: false, intersection: null }; pairs.set(key, p); }
     if (e.origin === "provenance_discovery") {
       const sc = typeof e.score === "number" && Number.isFinite(e.score) ? e.score : null;
       if (sc != null) p.score = p.score == null ? sc : Math.max(p.score, sc);
@@ -58,6 +64,16 @@ export function collapsePairs(edgeRows) {
       p.explicitly_linked = true;
     }
     for (const bs of Array.isArray(e.basis) ? e.basis : []) {
+      // The intersection entry (lane S3-A) has an OBJECT detail, so it is exposed as pair.intersection and
+      // kept out of basis: basis entries render as chips (IntersectionDetectionView) and dedupe by detail
+      // identity, neither of which an object detail survives. Both directed rows carry the same entry.
+      if (isIntersectionEntry(bs)) {
+        const d = bs.detail && typeof bs.detail === "object" ? bs.detail : null;
+        if (d && (!p.intersection || (d.strength ?? 0) > p.intersection.strength)) {
+          p.intersection = { scenarios: d.scenarios ?? [], objects: d.objects ?? [], strength: d.strength ?? 0, tier: d.tier ?? "weak" };
+        }
+        continue;
+      }
       if (bs && bs.signal && !p.basis.some((x) => x.signal === bs.signal && x.detail === bs.detail)) {
         p.basis.push(bs);
       }
@@ -76,7 +92,7 @@ export function collapsePairs(edgeRows) {
  * a pair the reader cannot title is not renderable, and the graph's population is the live verified
  * corpus by construction.
  * @param {Array} edgeRows directed rows from item_cross_references (any origin)
- * @param {Map<string, {id:string, title?:string, legacy_id?:string|null, priority?:string, intersection_summary?:string|null, item_type?:string}>} itemsById
+ * @param {Map<string, {id:string, title?:string, legacy_id?:string|null, priority?:string, intersection_summary?:string|null, item_type?:string, domain?:number|null}>} itemsById
  * @param {{minScore?: number, limit?: number}} [opts]
  * @returns {{pairs: Array, stats: {total:number, explicit_count:number, by_band:{strong:number, medium:number, weak:number, explicit:number}}}}
  */
@@ -101,6 +117,7 @@ export function assemblePairs(edgeRows, itemsById, { minScore = 0.3, limit = 100
       item_b_priority: B.priority ?? null,
       item_b_intersection_summary: B.intersection_summary ?? null,
       basis: p.basis,
+      intersection: p.intersection ? { ...p.intersection, cross_surface: isCrossSurface(A, B) } : null,
       explicitly_linked: p.explicitly_linked,
       score: p.score,
       band: bandOf(p.score),
