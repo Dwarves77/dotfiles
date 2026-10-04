@@ -84,6 +84,16 @@ export interface CitedSourceInput {
   syndication_group?: string | null;
 }
 
+export interface RegisteredCitation {
+  url: string;
+  source_id: string | null;
+  registered: "existing" | "new_source" | "candidate";
+  /** SC-13 class-table tier for the host (classTableOpinions mode only; null = class table unresolved). */
+  class_tier?: number | null;
+  /** The class-table tier recorded (or, in dry mode, that WOULD be recorded) as an opinion; null = none. */
+  opinion_tier?: number | null;
+}
+
 /** Register cited sources: a fetchable source becomes a `sources` row (so it can be cited and
  *  accumulate credibility); a blocked one becomes a `provisional_sources` candidate carrying its
  *  rejection_reason. Returns the resolved source_id per input (null for candidates). Idempotent
@@ -113,15 +123,27 @@ export async function registerCitedSources(
      *  Other callers (registerBriefSources's direct call, registerPoolHostsForGrounding, any
      *  standalone/test invocation) omit this and keep recording, unchanged. */
     skipTierOpinions?: boolean;
+    /** S1-A (2026-10-04): for an EXISTING source whose citation carries NO agent tier_estimate, record
+     *  the SC-13 class-table tier (`classTierForHost`) as a `host_class_table` opinion when it disagrees
+     *  with the source's base_tier. Deterministic, $0; never touches a tier (opinions are evidence only).
+     *  Skipped for a row whose tier_override is set (an admin ruling is not re-litigated by a machine
+     *  opinion) and for a substring-only ilike match whose host differs from the cited host. */
+    classTableOpinions?: boolean;
+    /** The source whose brief produced these citations / the item. Carried onto opinion rows. */
+    opiningSourceId?: string | null;
+    intelligenceItemId?: string | null;
+    /** DRY: resolve every decision (existing / new_source / candidate / opinion) with read-only
+     *  lookups and write NOTHING (no source insert, no provisional upsert, no opinion insert). */
+    dry?: boolean;
   }
-): Promise<Array<{ url: string; source_id: string | null; registered: "existing" | "new_source" | "candidate" }>> {
-  const out: Array<{ url: string; source_id: string | null; registered: "existing" | "new_source" | "candidate" }> = [];
+): Promise<RegisteredCitation[]> {
+  const out: RegisteredCitation[] = [];
   for (const cs of cited) {
     let host = ""; try { host = new URL(cs.url).host; } catch { /* */ }
     // NOTE (defect, not fixed here): `ilike('%host%')` is a SUBSTRING match — a host that is a
     // substring of an unrelated registered URL is a false-duplicate risk. Left as-is per scope;
     // only the swallowed error is hardened here.
-    const { data: existing, error: existingErr } = await supabase.from("sources").select("id").ilike("url", `%${host}%`).limit(1);
+    const { data: existing, error: existingErr } = await supabase.from("sources").select("id, url, base_tier, tier_override").ilike("url", `%${host}%`).limit(1);
     if (existingErr) console.warn(`[source-growth] dup-source check failed for ${cs.url} (host=${host}): ${existingErr.message}`);
     if (existing && existing.length) {
       const targetId = existing[0].id;
@@ -136,16 +158,37 @@ export async function registerCitedSources(
       // (it never throws) — this whole function runs inside brief generation via canonical-pipeline.ts,
       // and opinion recording is observational only; it must never be able to fail a regeneration.
       if (cs.tier_estimate != null && !opts?.skipTierOpinions) {
-        await recordTierOpinion(supabase as unknown as MinimalSupabaseClient, {
-          targetSourceId: targetId,
-          opinedTier: cs.tier_estimate,
-        });
+        if (!opts?.dry) {
+          await recordTierOpinion(supabase as unknown as MinimalSupabaseClient, {
+            targetSourceId: targetId,
+            opinedTier: cs.tier_estimate,
+          });
+        }
+      } else if (opts?.classTableOpinions && cs.tier_estimate == null) {
+        const row = existing[0] as { id: string; url?: string | null; base_tier?: number | null; tier_override?: number | null };
+        const classTier = classTierForHost(host, cs.name);
+        const sameHost = hostOf(row.url) !== "" && hostOf(row.url) === hostOf(cs.url);
+        let opinionTier: number | null = null;
+        if (classTier != null && row.base_tier != null && classTier !== row.base_tier && row.tier_override == null && sameHost) {
+          opinionTier = classTier;
+          if (!opts.dry) {
+            await recordTierOpinion(supabase as unknown as MinimalSupabaseClient, {
+              targetSourceId: targetId,
+              opinedTier: classTier,
+              opinionSource: "host_class_table",
+              opiningSourceId: opts.opiningSourceId ?? null,
+              intelligenceItemId: opts.intelligenceItemId ?? null,
+            });
+          }
+        }
+        out.push({ url: cs.url, source_id: targetId, registered: "existing", class_tier: classTier, opinion_tier: opinionTier });
+        continue;
       }
       out.push({ url: cs.url, source_id: targetId, registered: "existing" });
       continue;
     }
     if (cs.rejection_reason) {
-      await supabase.from("provisional_sources").upsert(
+      if (!opts?.dry) await supabase.from("provisional_sources").upsert(
         // reviewer_notes, not notes — provisional_sources has NO `notes` column, so this upsert was a
         // PostgREST silent whole-row reject (the exact reviewer_notes class); caught by
         // column-existence-parity's first real CI run (lane run #66, 2026-08-11).
@@ -169,14 +212,15 @@ export async function registerCitedSources(
       // too, not the host alone.
       const classTier = classTierForHost(host, cs.name);
       if (classTier == null) {
-        await supabase.from("provisional_sources").upsert(
+        if (!opts?.dry) await supabase.from("provisional_sources").upsert(
           // reviewer_notes, not notes (same silent-reject fix as above — lane run #66).
           { name: cs.name, url: cs.url, status: "pending_review", reviewer_notes: `auto-surfaced citation; host did not classify to a ruled SC-13 tier (host=${host}) — worklist for tier classification` },
           { onConflict: "url" }
         );
-        out.push({ url: cs.url, source_id: null, registered: "candidate" });
+        out.push({ url: cs.url, source_id: null, registered: "candidate", class_tier: null, opinion_tier: null });
         continue;
       }
+      if (opts?.dry) { out.push({ url: cs.url, source_id: null, registered: "new_source", class_tier: classTier, opinion_tier: null }); continue; }
       const { data: ins, error: insErr } = await supabase.from("sources")
         // source_role at BIRTH (2026-08-11) — see classify-source-role.ts's own contract. This path
         // auto-surfaces sources from citations, so it mints unattended; a NULL role here is read
@@ -329,14 +373,160 @@ export async function registerPoolHostsForGrounding(
   return { registered: out.filter((o) => o.registered === "new_source").length, institutions: toRegister.length };
 }
 
+/** PURE. The audit-trail row for a reputation-cycle tier change. `created_by` must satisfy the
+ *  source_trust_events CHECK (migration 004: system | worker | human); the actor identity rides in
+ *  `details.actor`. (Pre-S1-A this wrote created_by "reputation-cycle", which the CHECK rejects, and the
+ *  rejection was swallowed, so no audit row ever landed.) */
+export function buildReputationEventRow(
+  sourceId: string,
+  r: { before_tier: number; after_tier: number; weighted_sum: number; citation_count: number; reasoning: string }
+): Record<string, unknown> {
+  return {
+    source_id: sourceId,
+    event_type: r.after_tier < r.before_tier ? "tier_promotion" : "tier_demotion",
+    details: { actor: "reputation-cycle", reputation_cycle: true, before_tier: r.before_tier, after_tier: r.after_tier, weighted_sum: r.weighted_sum, citation_count: r.citation_count, reasoning: r.reasoning },
+    created_by: "worker",
+  };
+}
+
+/** END-OF-CYCLE REPUTATION RECOMPUTE for ONE source (extracted from growSourcesFromBrief so the cited
+ *  sources of the free brief path recompute through the SAME code). Writes effective_tier ONLY (base_tier
+ *  and the compat `tier` are never touched: the moat). ADMIN OVERRIDE: when tier_override is set the row
+ *  is left entirely alone (no effective_tier write, no event). Best-effort: never throws; a failed
+ *  audit-row insert is logged, not swallowed. */
+export async function applyReputationRecompute(
+  supabase: SupabaseClient,
+  sourceId: string
+): Promise<{ before: number; after: number; changed: boolean } | null> {
+  try {
+    const r = await recomputeEffectiveTier(supabase as unknown as { from: (t: string) => unknown }, sourceId);
+    const rep = { before: r.before_tier, after: r.after_tier, changed: r.changed };
+    if (r.changed && r.tier_override == null) {
+      const { error: upErr } = await supabase.from("sources").update({ effective_tier: r.after_tier }).eq("id", sourceId);
+      if (upErr) console.warn(`[source-growth] effective_tier write failed for ${sourceId}: ${upErr.message}`);
+      else {
+        try {
+          const { error: evErr } = await supabase.from("source_trust_events").insert(buildReputationEventRow(sourceId, r));
+          if (evErr) console.warn(`[source-growth] source_trust_events insert failed for ${sourceId}: ${evErr.message}`);
+        } catch (e) {
+          console.warn(`[source-growth] source_trust_events insert threw for ${sourceId}: ${(e as Error).message}`);
+        }
+      }
+    }
+    return rep;
+  } catch (e) {
+    console.warn(`[source-growth] reputation recompute failed for ${sourceId}: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+export interface EntryCitationDecision {
+  url: string | null;
+  host: string;
+  registered: "existing" | "new_source" | "candidate";
+  source_id: string | null;
+  class_tier: number | null;
+  opinion_tier: number | null;
+}
+
+export interface EntryCitationsResult {
+  dry: boolean;
+  decisions: EntryCitationDecision[];
+  /** Edges written (apply) or that WOULD be written (dry): item source -> each resolved cited source. */
+  edges: number;
+  skipped_own_source: number;
+}
+
+/** PURE. Distinct-by-host cited sources from a url list, dropping unparseable urls and any host in
+ *  `excludeHosts` (the item's own source host). First url/name per host wins; name falls back to host. */
+export function collectCitedSources(
+  urls: Array<string | { url: string; name?: string | null }>,
+  excludeHosts: ReadonlySet<string> = new Set()
+): CitedSourceInput[] {
+  const seen = new Set<string>();
+  const out: CitedSourceInput[] = [];
+  for (const u of urls ?? []) {
+    const url = typeof u === "string" ? u : u?.url;
+    if (typeof url !== "string") continue;
+    const host = hostOf(url);
+    if (!host || excludeHosts.has(host) || seen.has(host)) continue;
+    seen.add(host);
+    const name = typeof u === "string" || !u.name ? host : u.name;
+    out.push({ name, url });
+  }
+  return out;
+}
+
+/** S1-A: THE free-brief-path source registration. For every distinct external host an item cites (and
+ *  every cited source id), run the SAME registration as registerCitedSources (existing: class-table tier
+ *  opinion when it disagrees; unknown classifiable host: provisional at class tier; null class:
+ *  provisional_sources pending), write the source_citations edge item-source -> cited source via
+ *  recordCitations, then compound credibility + recompute reputation for each cited source (rule 17: the
+ *  connection is made in the same call). No model call. `dry` resolves every decision with read-only
+ *  lookups and writes nothing. Never touches a row with tier_override (applyReputationRecompute). */
+export async function registerEntryCitations(
+  supabase: SupabaseClient,
+  itemSourceId: string,
+  cited: Array<string | CitedSourceInput>,
+  opts?: { dry?: boolean; citedSourceIds?: string[]; intelligenceItemId?: string | null; excludeHosts?: ReadonlySet<string> }
+): Promise<EntryCitationsResult> {
+  const dry = opts?.dry === true;
+  const { data: own, error: ownErr } = await supabase.from("sources").select("url").eq("id", itemSourceId).single();
+  if (ownErr) console.warn(`[source-growth] own-source read failed for ${itemSourceId}: ${ownErr.message}`);
+  const exclude = new Set<string>(opts?.excludeHosts ?? []);
+  const ownHost = hostOf((own as { url?: string } | null)?.url);
+  if (ownHost) exclude.add(ownHost);
+  const list = collectCitedSources(cited ?? [], exclude);
+  const skipped = (cited ?? []).length - list.length;
+
+  const decisions: EntryCitationDecision[] = [];
+  const edgeTargets: string[] = [];
+  const regs = list.length
+    ? await registerCitedSources(supabase, list, { classTableOpinions: true, dry, opiningSourceId: itemSourceId, intelligenceItemId: opts?.intelligenceItemId ?? null })
+    : [];
+  for (const r of regs) {
+    decisions.push({ url: r.url, host: hostOf(r.url), registered: r.registered, source_id: r.source_id, class_tier: r.class_tier ?? null, opinion_tier: r.opinion_tier ?? null });
+    if (r.source_id) edgeTargets.push(r.source_id);
+    else if (dry && r.registered === "new_source") edgeTargets.push(`(new:${hostOf(r.url)})`);
+  }
+
+  const ids = Array.from(new Set((opts?.citedSourceIds ?? []).filter((x) => typeof x === "string" && x && x !== itemSourceId)));
+  if (ids.length) {
+    // fitness-allow: F39 (one item's own cited source ids, small by construction)
+    const { data: found, error: foundErr } = await supabase.from("sources").select("id").in("id", ids);
+    if (foundErr) console.warn(`[source-growth] cited-source-id read failed: ${foundErr.message}`);
+    for (const f of (found ?? []) as Array<{ id: string }>) {
+      decisions.push({ url: null, host: "", registered: "existing", source_id: f.id, class_tier: null, opinion_tier: null });
+      edgeTargets.push(f.id);
+    }
+  }
+
+  const targets = Array.from(new Set(edgeTargets));
+  let edges = 0;
+  if (dry) {
+    edges = targets.length;
+  } else {
+    edges = await recordCitations(supabase, targets.map((t) => ({ citing_source_id: itemSourceId, cited_source_id: t })));
+    for (const t of targets) {
+      try { await compoundSourceCredibility(supabase, t); } catch (e) { console.warn(`[source-growth] compound failed for ${t}: ${(e as Error).message}`); }
+      await applyReputationRecompute(supabase, t);
+    }
+  }
+  return { dry, decisions, edges, skipped_own_source: skipped };
+}
+
 /** THE source-growth step end-to-end: parse the brief's surfaced sources, register each as a
  *  corroborating source (or blocked candidate), record citation edges (corroborator -> subject),
  *  and compound the SUBJECT source's credibility. citedSourceId = the brief item's own source. */
 export async function growSourcesFromBrief(
   supabase: SupabaseClient,
   citedSourceId: string,
-  brief: string
-): Promise<{ registered: Array<{ url: string; source_id: string | null; registered: string }>; citationsRecorded: number; compound: Awaited<ReturnType<typeof compoundSourceCredibility>>; reputation: { before: number; after: number; changed: boolean } | null }> {
+  brief: string,
+  /** S1-A (2026-10-04): the free brief path (apply-record-briefs) carries NO "New Sources Identified"
+   *  table, so its cited sources arrive as a list (claim source_urls + source ids). Optional; omitted =
+   *  byte-identical to before. Registered through registerEntryCitations (same registration, one path). */
+  extra?: { cited?: CitedSourceInput[]; citedSourceIds?: string[]; intelligenceItemId?: string | null }
+): Promise<{ registered: Array<{ url: string; source_id: string | null; registered: string }>; citationsRecorded: number; compound: Awaited<ReturnType<typeof compoundSourceCredibility>>; reputation: { before: number; after: number; changed: boolean } | null; entryCitations: EntryCitationsResult | null }> {
   const cited = parseNewSourcesFromBrief(brief);
   // skipTierOpinions: true — see registerCitedSources' `opts` doc. In the ONE live workflow
   // (generate-brief.ts), registerBriefSources already ran registerCitedSources on this exact
@@ -359,22 +549,15 @@ export async function growSourcesFromBrief(
   // Writes effective_tier ONLY (the dynamic column; base_tier + the compat `tier` are never touched — the
   // moat). Best-effort: a reputation-write failure must not fail grow (credibility signal, not the integrity
   // path). A real change also logs a source_trust_events row (audit parity with the old q7 route).
-  let reputation: { before: number; after: number; changed: boolean } | null = null;
-  try {
-    const r = await recomputeEffectiveTier(supabase as unknown as { from: (t: string) => unknown }, citedSourceId);
-    reputation = { before: r.before_tier, after: r.after_tier, changed: r.changed };
-    if (r.changed) {
-      const { error: upErr } = await supabase.from("sources").update({ effective_tier: r.after_tier }).eq("id", citedSourceId);
-      if (upErr) console.warn(`[source-growth] effective_tier write failed for ${citedSourceId}: ${upErr.message}`);
-      else await supabase.from("source_trust_events").insert({
-        source_id: citedSourceId,
-        event_type: r.after_tier < r.before_tier ? "tier_promotion" : "tier_demotion",
-        details: { reputation_cycle: true, before_tier: r.before_tier, after_tier: r.after_tier, weighted_sum: r.weighted_sum, citation_count: r.citation_count, reasoning: r.reasoning },
-        created_by: "reputation-cycle",
-      }).then(() => {}, () => {});
-    }
-  } catch (e) {
-    console.warn(`[source-growth] reputation recompute failed for ${citedSourceId}: ${(e as Error).message}`);
-  }
-  return { registered, citationsRecorded, compound, reputation };
+  const reputation = await applyReputationRecompute(supabase, citedSourceId);
+  // S1-A: the free brief path's cited sources (claim urls + source ids), registered through the same
+  // registration as the table path; hosts the table already registered this pass are not repeated.
+  const entryCitations = extra
+    ? await registerEntryCitations(supabase, citedSourceId, extra.cited ?? [], {
+        citedSourceIds: extra.citedSourceIds,
+        intelligenceItemId: extra.intelligenceItemId ?? null,
+        excludeHosts: new Set(cited.map((c) => hostOf(c.url))),
+      })
+    : null;
+  return { registered, citationsRecorded, compound, reputation, entryCitations };
 }
