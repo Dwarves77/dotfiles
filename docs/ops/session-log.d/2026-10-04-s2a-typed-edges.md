@@ -64,7 +64,7 @@ not reimplemented), `planLinkWrites` / `resolve` (entity-resolve), `fetchAllRows
 
 ## Open items (not done, not blocking)
 
-- `docs/runbooks/maintenance.d/26-backfill-lineage-edges.md` still says foreign-origin pairs are never touched;
-  that is now stale (NEEDS WRITE-SET EXPANSION to correct it).
+- Runbook 26 corrected to the new ownership outcomes (write-set expansion approved).
+- OWED BY THE COORDINATOR: the index line for step 59 in `docs/runbooks/MAINTENANCE-RUNBOOK.md`. The lane's range does not touch that file (F51 check 5 concurrency with RB-SPLIT, ruling 2026-10-04).
 - Record-grade text: of the 2 fixture excerpts in `scripts/mint/testdata`, record-facts `full_brief` alone
   yields 0 typed edges; title + full_brief yields 1 (the amending act 2019/1242 to a held 2018/956).
