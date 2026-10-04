@@ -11,6 +11,8 @@
 -- registered the automate_vs_hire method and the calculator page; the PR removes the method registration, the
 -- seed path, the producer authorship hooks and the page first.
 --
+-- APPLIED 2026-10-04 (operator-approved, coordinator window; version 20261004115520; read-back: derived_values 22 to 20, derivation_edges 24 to 20, zero automate_vs_hire rows or edges remain).
+--
 -- WHAT GOES (object names read from migrations 284, 285 and 286):
 --   * public.derivation_edges rows whose to_value_id is a public.derived_values row with
 --     method_id = 'automate_vs_hire'. to_value_id is a NOT NULL foreign key to derived_values(value_id)
