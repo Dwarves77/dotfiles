@@ -129,6 +129,11 @@
 //       local by-hand run, or a restore issued inside the SAME job before any checkout resets the disk);
 //       refuses (never guesses) any id with no matching snapshot entry, reported in `missing_ids`.
 //
+// SERIES EXEMPTION (S0, 2026-10-04): an item whose `instrument_identifier` is a key of the ratified series
+// item map (src/lib/market/series-item-map.mjs, the eu-oil-bulletin series) is excluded from selection. Its
+// substance lives in `market_series`, so zero FACT claims is correct for it, not hollow. The map is read, no
+// prefix is hard-coded, so a future ratified series is exempt with no change here.
+//
 // $0, deterministic, no LLM: two `readAll` reads + JS aggregation (no SQL executed at apply time beyond
 // the guarded UPDATEs), same shape as every other MAINT step in this directory.
 import { resolve, join } from "node:path";
@@ -136,6 +141,7 @@ import { fileURLToPath } from "node:url";
 import { readdirSync, readFileSync } from "node:fs";
 import { hostOf } from "../lib/institution-key.mjs";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
+import { SERIES_ITEM_MAP_RAW } from "../../src/lib/market/series-item-map.mjs";
 
 export const CITE = Object.freeze({
   skill: "remediation-discipline",
@@ -185,11 +191,22 @@ export function isTitleOnlyFacts(claims) {
   return factClaims.every((c) => typeof c.claim_text === "string" && c.claim_text.startsWith(TITLE_FACT_PREFIX));
 }
 
+/** True when the item's `instrument_identifier` is a key of the ratified series item map. Those items
+ *  (the eu-oil-bulletin series) hold their substance in `market_series`, not in FACT claims, so an empty
+ *  FACT array is correct for them and never a hollow record. The map is the single source (no hard-coded
+ *  prefix). Pure. */
+export function isSeriesItem(item, seriesMap = SERIES_ITEM_MAP_RAW) {
+  const id = item?.instrument_identifier;
+  return typeof id === "string" && id !== "" && Object.prototype.hasOwnProperty.call(seriesMap ?? {}, id);
+}
+
 /** items: [{id, item_type, source_url, instrument_identifier, canonical_instrument_key, archive_reason}].
- *  claimsByItemId: Map(intelligence_item_id -> [{claim_kind, claim_text}]). Pure. */
-export function planSelection(items, claimsByItemId) {
+ *  claimsByItemId: Map(intelligence_item_id -> [{claim_kind, claim_text}]). A ratified series item is never
+ *  a target (see isSeriesItem). Pure. */
+export function planSelection(items, claimsByItemId, seriesMap = SERIES_ITEM_MAP_RAW) {
   const targets = [];
   for (const it of items ?? []) {
+    if (isSeriesItem(it, seriesMap)) continue;
     const claims = claimsByItemId.get(it.id) ?? [];
     if (!isTitleOnlyFacts(claims)) continue;
     const factN = claims.filter((c) => c.claim_kind === "FACT").length;
