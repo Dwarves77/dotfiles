@@ -1,0 +1,92 @@
+name: Layout baseline renewal
+
+# Lane S0-B (2026-10-04). One explicit dispatch workflow, no schedule (rule 16: build mode holds every
+# runtime to explicit dispatch). It exists because nothing else produces a fresh layout-guard baseline:
+# lanes cannot run a browser, and the rendering-guard job in discipline.yml runs the guard WITHOUT
+# --write-baseline and uploads nothing.
+#
+# WHAT THIS RUNS. The rendering-guard job's own setup (checkout, node 24, playwright 1.61.1 + chromium,
+# discipline.yml's rendering-guard job), then
+# `node .discipline/rendering/layout-guard/run-layout-guard.mjs --write-baseline` with NO --route and NO
+# --width flag, so the baseline covers the full route and width set (a flagged run would write a partial
+# baseline). It measures on ubuntu, which is the oracle the required gate runs on.
+#
+# WHAT IT WRITES. baseline.json (its writtenAt is the UTC date of THIS run), results.json and the audit
+# markdown, all uploaded as one artifact. It COMMITS NOTHING and has contents: read only. The coordinator
+# downloads the artifact and commits it in a docs lane (docs/runbooks/layout-guard-baseline-renewal.md,
+# "Renewal by workflow").
+#
+# WINDOW. A regeneration before the renewal window opens does not satisfy the standing gate
+# (baseline.mjs needsRenewal: writtenAt must be on or after the window start). Dispatch on or after the
+# window start and before the expiry date; the runbook names both.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: layout-baseline-renewal
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  renew:
+    name: Regenerate layout-guard baseline (artifact only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Install Playwright + chromium (scoped, not added to package.json)
+        working-directory: fsi-app
+        run: |
+          npm install --no-save playwright@1.61.1 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Regenerate baseline (full route and width set, no flags other than --write-baseline)
+        working-directory: fsi-app
+        run: node .discipline/rendering/layout-guard/run-layout-guard.mjs --write-baseline
+
+      # run-layout-guard.mjs always exits 0, even when a route failed to mount. A baseline written over a
+      # harness error is partial, so this step fails the run on any error and on a grown finding count
+      # (the baseline may only shrink, baseline.mjs header). The committed count is read from HEAD, since
+      # the run above has already overwritten the working copy.
+      - name: Verify the regenerated baseline is complete and did not grow
+        working-directory: fsi-app
+        run: |
+          node -e '
+            const { execFileSync } = require("node:child_process");
+            const fs = require("node:fs");
+            const dir = ".discipline/rendering/layout-guard/";
+            const next = JSON.parse(fs.readFileSync(dir + "baseline.json", "utf8"));
+            const results = JSON.parse(fs.readFileSync(dir + "results.json", "utf8"));
+            const prev = JSON.parse(execFileSync("git", ["show", "HEAD:fsi-app/" + dir + "baseline.json"], { encoding: "utf8" }));
+            console.log("committed count: " + prev.count + " (writtenAt " + prev.writtenAt + ")");
+            console.log("regenerated count: " + next.count + " (writtenAt " + next.writtenAt + ", expiryDate " + next.expiryDate + ")");
+            console.log("harness errors: " + results.errors.length);
+            let bad = false;
+            if (results.errors.length > 0) { console.log("::error::harness errors, the baseline would be partial"); bad = true; }
+            if (next.keys.length !== next.count) { console.log("::error::keys and count disagree"); bad = true; }
+            if (next.count > prev.count) { console.log("::error::baseline grew, a new regression must be fixed, not baselined"); bad = true; }
+            if (bad) process.exit(1);
+          '
+
+      - name: Upload regenerated baseline, results and audit markdown
+        uses: actions/upload-artifact@v4
+        with:
+          name: layout-baseline-${{ github.run_id }}
+          path: |
+            fsi-app/.discipline/rendering/layout-guard/baseline.json
+            fsi-app/.discipline/rendering/layout-guard/results.json
+            docs/audits/layout-guard-2026-09-08.md
+          if-no-files-found: error
+          retention-days: 7

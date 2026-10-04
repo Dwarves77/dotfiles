@@ -85,14 +85,37 @@ test('the wave threshold is REMOVED, not raised, so landing as wave 65 cannot ex
   assert.match(src, /Operator ruling, 2026-09-09/, 'the ruling is dated and attributed at the constant');
 });
 
-test('the baseline FILE and the module name the same expiry, and the file still carries its 792 entries', () => {
+// The baseline may only SHRINK (baseline.mjs header). The ceiling is the count it landed with on
+// 2026-09-08. Lane S0-B (2026-10-04) replaced an exact-equality assertion on that number, which a
+// legitimately shrunk, regenerated baseline would have failed, with a ceiling: the count may go down
+// and may never go up, and the count field must equal the number of keys actually in the file.
+const BASELINE_COUNT_CEILING = 792;
+
+/** The problems with a baseline's count, as strings; empty when it is acceptable. Pure, so it can be attacked. */
+function baselineCountProblems(b, ceiling = BASELINE_COUNT_CEILING) {
+  const problems = [];
+  if (!Array.isArray(b.keys)) return ['keys is not an array'];
+  if (b.keys.length !== b.count) problems.push(`count ${b.count} does not equal the ${b.keys.length} keys in the file`);
+  if (b.keys.length > ceiling) problems.push(`${b.keys.length} keys exceeds the ceiling of ${ceiling}: the baseline may only shrink`);
+  return problems;
+}
+const fixtureBaseline = (n) => ({ count: n, keys: Array.from({ length: n }, (_, i) => `L1|/r|1440|e${i}`) });
+
+test('the baseline FILE and the module name the same expiry, and the file never grows past its 792 ceiling', () => {
   const b = JSON.parse(readFileSync(join(HERE, 'layout-guard/baseline.json'), 'utf8'));
   assert.equal(b.expiryDate, BASELINE_EXPIRY_DATE, 'the file and the module must name the same date');
   assert.equal(b.expiryWave, undefined, 'the wave field is gone from the file too');
-  assert.equal(b.keys.length, b.count, 'the key list and the count must agree');
-  // The baseline may only SHRINK (baseline.mjs header). This lane changed the expiry mechanism and
-  // nothing about the findings, so the count is the one it landed with on 2026-09-08.
-  assert.equal(b.count, 792, 'this lane touched no finding: clearing them is scheduled after the UI round');
+  assert.deepEqual(baselineCountProblems(b), [], 'the committed baseline must agree with itself and may not exceed 792');
+});
+
+test('ATTACK, baseline count: a grown baseline fails, a shrunk one passes, a lying count fails', () => {
+  assert.deepEqual(baselineCountProblems(fixtureBaseline(792)), [], 'unchanged is acceptable');
+  assert.deepEqual(baselineCountProblems(fixtureBaseline(340)), [], 'a shrunk regenerated baseline must pass');
+  assert.equal(baselineCountProblems(fixtureBaseline(793)).length, 1, 'one key over the ceiling must fail');
+  const lying = { ...fixtureBaseline(340), count: 792 };
+  assert.equal(baselineCountProblems(lying).length, 1, 'count must equal the keys actually present, so a shrink cannot hide behind the old count');
+  const growsAndLies = { ...fixtureBaseline(800), count: 790 };
+  assert.equal(baselineCountProblems(growsAndLies).length, 2, 'both defects are reported');
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
