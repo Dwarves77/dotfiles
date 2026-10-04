@@ -185,7 +185,7 @@ async function main() {
   const relationshipCounts = {};
   const allInsertRows = [];
   const allUpgrades = [];
-  let totalSkippedForeign = 0, totalUnchanged = 0;
+  let totalSkippedForeign = 0, totalConflicts = 0, totalUnchanged = 0;
   let flagsOpened = 0, flagsAlreadyOpen = 0;
 
   for (const item of targetItems) {
@@ -197,10 +197,11 @@ async function main() {
     // THE SAME pure planner the runtime calls — no reimplemented typing.
     const writes = planLinkWrites(content, corpus, item.id);
 
-    const { inserts, upgrades, skippedForeign, unchanged } = partitionLineageWrites(writes, existingEdgesByPair);
+    const { inserts, upgrades, skippedForeign, conflicts, unchanged } = partitionLineageWrites(writes, existingEdgesByPair);
     for (const r of inserts) { relationshipCounts[r.relationship] = (relationshipCounts[r.relationship] || 0) + 1; allInsertRows.push(r); }
     for (const u of upgrades) { relationshipCounts[u.relationship] = (relationshipCounts[u.relationship] || 0) + 1; allUpgrades.push(u); }
     totalSkippedForeign += skippedForeign.length;
+    totalConflicts += conflicts.length;
     totalUnchanged += unchanged.length;
 
     for (const w of writes) {
@@ -215,7 +216,7 @@ async function main() {
 
   console.log(`\n[lineage-backfill] items scanned: ${scanned}; with content (>=20 chars): ${withContent}; skipped (short/no content): ${skippedShort}`);
   console.log(`[lineage-backfill] typed edges by relationship (insert+upgrade combined): ${JSON.stringify(relationshipCounts)}`);
-  console.log(`[lineage-backfill] edges: ${allInsertRows.length} to insert, ${allUpgrades.length} to upgrade, ${totalSkippedForeign} skipped (foreign origin, never touched), ${totalUnchanged} already correct (no-op)`);
+  console.log(`[lineage-backfill] edges: ${allInsertRows.length} to insert, ${allUpgrades.length} to upgrade, ${totalSkippedForeign} skipped (manual origin, or generic claim on a foreign row: never touched), ${totalConflicts} conflict(s) (foreign row already typed differently: reported, not written), ${totalUnchanged} already correct (no-op)`);
   console.log(`[lineage-backfill] integrity_flags: ${flagsOpened} to open (surface + lineage-gap combined), ${flagsAlreadyOpen} already open`);
   console.log(`[lineage-backfill] prior-state snapshot: ${snap.count} rows, md5=${snap.md5}`);
 

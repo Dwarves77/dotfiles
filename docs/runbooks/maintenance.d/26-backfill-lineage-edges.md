@@ -13,11 +13,15 @@ own dispatch roots. Do not conflate the two or delete either believing it duplic
 `linkItems` is `generate-brief.ts`'s metered `linkStep`, which never ran at whole-corpus scale. Runs
 every non-archived item through the SAME `planLinkWrites` the runtime calls (zero re-implemented typing
 logic - see `src/lib/entities/lineage-backfill.mjs`'s `partitionLineageWrites` for the pure
-insert/upgrade/skip-foreign/unchanged decision), writing via `guardedInsertMany`/`guardedUpdate`/
+insert/upgrade/skip-foreign/conflict/unchanged decision, ADR-022), writing via `guardedInsertMany`/`guardedUpdate`/
 `guardedInsert` (rule 015), with a prior-state snapshot (row count + md5) printed before any write.
 
-**What it does NOT do**: never touches a pair already owned by a foreign origin (manual/agent_semantic/
-provenance_discovery) - counted as `skippedForeign`, never clobbered.
+**Ownership (ADR-022, lane s2a-typed-edges, 2026-10-04)**: a `manual` row is never changed, whatever the
+claim (counted in `skippedForeign`). A generic `related` row of a machine origin (provenance_discovery,
+agent_semantic, entity_extraction) is upgraded ADDITIVELY by a typed claim: relationship becomes the typed
+value, the existing basis entries are kept and the lineage basis is appended, origin and score are not
+written. A generic claim never downgrades a row. A foreign row that already carries a DIFFERENT typed
+relationship is not retyped: it is counted as a `conflict` in the run output and nothing is written.
 
 **Upstream**: `planLinkWrites` (`src/lib/entities/entity-resolve.mjs`), `partitionLineageWrites`
 (`src/lib/entities/lineage-backfill.mjs`).

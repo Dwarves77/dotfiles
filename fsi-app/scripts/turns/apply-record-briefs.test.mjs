@@ -30,6 +30,8 @@ import {
   buildRequiredSlotMaps,
   collectEntryCitations,
   previewEntryCitations,
+  previewEntryLineage,
+  lineageOutcome,
 } from "./apply-record-briefs.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
 
@@ -215,13 +217,14 @@ test("resolveBriefsInput: CLI end-to-end - a zero-entry --briefs file exits 1 an
 
 // ── APPLY_STEP_ORDER - the per-item outcome vocabulary's own step namespace ─────────────────────────────
 
-test("APPLY_STEP_ORDER: the exact 9-step order the module header documents (structured-actions added lane STRUCTURED-ACTIONS, 2026-09-28)", () => {
+test("APPLY_STEP_ORDER: the exact 10-step order the module header documents (structured-actions added lane STRUCTURED-ACTIONS, 2026-09-28; lineage added lane s2a-typed-edges, 2026-10-04)", () => {
   assert.deepEqual(APPLY_STEP_ORDER, [
     "generate",
     "section",
     "ground",
     "grow",
     "structured-actions",
+    "lineage",
     "discovery",
     "forward-events",
     "compliance-deadline",
@@ -599,6 +602,7 @@ function successfulDeps(overrides = {}) {
     groundBrief: async () => ({ ok: true, detail: "grounded" }),
     growSources: async () => ({ ok: true, detail: "grown" }),
     recordFlywheelDefect: async () => {},
+    linkItems: async () => ({ edges: 1, typed: 1, inserted: 1, upgraded: 0, skippedForeign: 0, unchanged: 0, surfaced: 0, skipped: false, dry: false }),
     runDiscoveryStep: async () => ({ written: 2 }),
     runForwardEventsStep: async () => ({ attempted: 1, insertedCount: 1, collision: false, staleRows: [] }),
     syncComplianceDeadlineForItem: async () => ({ changed: true, value: "2026-01-01" }),
@@ -610,7 +614,7 @@ function successfulDeps(overrides = {}) {
   };
 }
 
-test("applyOneEntry: step order and outcome vocabulary, all 9 steps + provenance-status, all succeeding", async () => {
+test("applyOneEntry: step order and outcome vocabulary, all 10 steps + provenance-status, all succeeding", async () => {
   const itemId = "item-1";
   const result = await applyOneEntry(
     { itemId, entry: baseEntry(itemId) },
@@ -632,6 +636,7 @@ test("applyOneEntry: step order and outcome vocabulary, all 9 steps + provenance
       // this step's own re-read sees item_type/full_brief as undefined and extracts zero actions -- the
       // dedicated structured-actions tests below exercise real extraction with a schema-shaped fake.
       { id: "item-1#structured-actions", outcome: "structured-actions:0 (dry, no write -- recommended_actions column not yet applied)" },
+      { id: "item-1#lineage", outcome: "lineage:1(typed:1)" },
       { id: "item-1#discovery", outcome: "discovery:2" },
       { id: "item-1#forward-events", outcome: "forward-events:1" },
       { id: "item-1#compliance-deadline", outcome: "compliance-deadline:2026-01-01" },
@@ -1222,4 +1227,67 @@ test("runApplyLoop dry mode: previewEntry runs per non-skipped entry and applyEn
   assert.equal(applied, 0);
   assert.deepEqual(previewed, ["a"]);
   assert.ok(r.perItem.some((x) => x.id === "a#register-sources"));
+});
+
+// ── lineage step (lane s2a-typed-edges, 2026-10-04): typed edges on the free path ─────────────────────────
+
+test("applyOneEntry: the lineage step runs linkItems for the applied item (live, not dry) after grow and before discovery", async () => {
+  const calls = [];
+  const deps = successfulDeps({ linkItems: async (_sb, id, opts) => { calls.push({ id, opts }); return { edges: 2, typed: 1, inserted: 2, upgraded: 0, skippedForeign: 0, unchanged: 0, surfaced: 0, skipped: false, dry: false }; } });
+  const res = await applyOneEntry({ itemId: "item-1", entry: baseEntry("item-1") }, { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps });
+  assert.deepEqual(calls, [{ id: "item-1", opts: undefined }], "linkItems(sb, itemId) with no dry flag: the live write path");
+  const order = res.steps.map((x) => x.id.split("#")[1]);
+  assert.ok(order.indexOf("grow") < order.indexOf("lineage") && order.indexOf("lineage") < order.indexOf("discovery"));
+  assert.equal(res.steps.find((x) => x.id === "item-1#lineage").outcome, "lineage:2(typed:1)");
+});
+
+test("applyOneEntry: a linkItems failure is recorded as a flywheel defect, the step reports lineage_failed, and later steps still run", async () => {
+  const defects = [];
+  const deps = successfulDeps({
+    linkItems: async () => { throw new Error("edge read failed"); },
+    recordFlywheelDefect: async (_sb, id, subtype, message, o) => { defects.push({ id, subtype, message, o }); },
+  });
+  const res = await applyOneEntry({ itemId: "item-9", entry: baseEntry("item-9") }, { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps });
+  const byId = Object.fromEntries(res.steps.map((x) => [x.id, x]));
+  assert.equal(byId["item-9#lineage"].outcome, "lineage_failed");
+  assert.equal(byId["item-9#lineage"].error, "edge read failed");
+  assert.equal(byId["item-9#discovery"].outcome, "discovery:2");
+  assert.equal(defects.length, 1);
+  assert.equal(defects[0].subtype, "entities");
+  assert.match(defects[0].message, /^lineage-links: edge read failed/);
+});
+
+test("lineageOutcome: execute and dry vocabularies", () => {
+  const r = { edges: 1, typed: 1, inserted: 0, upgraded: 1, skippedForeign: 2, unchanged: 3, skipped: false };
+  assert.equal(lineageOutcome(r), "lineage:1(typed:1)");
+  assert.equal(lineageOutcome({ ...r, edges: 0, typed: 0 }), "lineage:0 (edges=0 typed=0 inserted=0 upgraded=1 foreign=2 conflicts=0 unchanged=3)");
+  assert.equal(lineageOutcome({ skipped: true }), "lineage:0");
+  assert.equal(lineageOutcome(r, { dry: true }), "lineage:would (edges=1 typed=1 inserted=0 upgraded=1 foreign=2 conflicts=0 unchanged=3) (dry, nothing written)");
+  assert.equal(lineageOutcome({ skipped: true }, { dry: true }), "lineage:would (nothing to read) (dry, nothing written)");
+});
+
+test("previewEntryLineage: DRY call over the entry body, reports the would-be edges, never throws, writes nothing", async () => {
+  const calls = [];
+  const link = async (_sb, id, opts) => { calls.push({ id, opts }); return { edges: 1, typed: 1, inserted: 1, upgraded: 0, skippedForeign: 0, unchanged: 0, skipped: false, dry: true }; };
+  const entry = { ...baseEntry("item-1"), body: "This act is amending Regulation (EU) 2023/1805." };
+  const out = await previewEntryLineage({ itemId: "item-1", entry }, { sb: {}, deps: { linkItems: link } });
+  assert.deepEqual(calls, [{ id: "item-1", opts: { dry: true, content: "This act is amending Regulation (EU) 2023/1805." } }]);
+  assert.equal(out.id, "item-1#lineage");
+  assert.match(out.outcome, /^lineage:would \(edges=1 typed=1/);
+  const bad = await previewEntryLineage({ itemId: "item-1", entry }, { sb: {}, deps: { linkItems: async () => { throw new Error("boom"); } } });
+  assert.equal(bad.outcome, "lineage_preview_failed");
+  assert.equal(bad.error, "boom");
+});
+
+test("runApplyLoop dry mode: a previewEntry may return several results; every one lands in perItem, applyEntry is never called", async () => {
+  let applied = 0;
+  const plan = [{ itemId: "a", entry: {}, skip: false, steps: [] }];
+  const r = await runApplyLoop({
+    plan, execute: false, ioBudgetBytes: 0, poolBytesByItemId: {},
+    applyEntry: async () => { applied += 1; },
+    previewEntry: async () => [{ id: "a#register-sources", outcome: "x", error: null }, { id: "a#lineage", outcome: "y", error: null }],
+    log: () => {},
+  });
+  assert.equal(applied, 0);
+  assert.ok(r.perItem.some((x) => x.id === "a#register-sources") && r.perItem.some((x) => x.id === "a#lineage"));
 });

@@ -33,6 +33,7 @@ import { syncComplianceDeadlineForItem } from "@/lib/forward-events/compliance-d
 import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 import { runMintEnrichment } from "@/lib/intake/mint-enrichment";
 import { linkItemEntities } from "@/lib/entities/link-item-entities.mjs";
+import { linkItems } from "@/lib/entities/link-items";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import {
   extractTitleDate,
@@ -306,6 +307,32 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
         { onConflict: "source_item_id,target_item_id", ignoreDuplicates: true }
       )
       .then(() => {}, () => {});
+  }
+  // ── typed lineage links (lane s2a-typed-edges, 2026-10-04): the SAME linkItems the generate path used,
+  //   run over the text the new item already carries (title + summary + full_brief; a record-grade item has
+  //   record facts, not prose, and its title is where an amending/implementing act names its parent). A
+  //   pair this hop types claims the pair BEFORE connection discovery below, whose writer skips any pair
+  //   another origin already owns, so a generic discovery 'related' edge can never pre-empt a lineage type.
+  //   ADR-022 ownership is partitionLineageWrites's (never clobber a foreign-origin pair). With no text to
+  //   read, or no entity mentioned, this issues no query. Non-fatal: a failure is a recorded flywheel
+  //   defect (existing "entities" subtype, message names the hop), never a failed mint. Dry mode returned
+  //   above the INSERT, so a dry mint never reaches here.
+  try {
+    const lineageText = [seed.title, seed.summary, seed.full_brief]
+      .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      .join(" ");
+    if (lineageText.trim().length >= 20) {
+      const selfRow = {
+        id: itemId,
+        title: typeof seed.title === "string" ? seed.title : null,
+        instrument_identifier: typeof seed.instrument_identifier === "string" ? seed.instrument_identifier : null,
+      };
+      const lr = await linkItems(sb, itemId, { content: lineageText, corpus: [...((corpus as Array<{ id: string; title: string | null; instrument_identifier: string | null }> | null) ?? []), selfRow] });
+      if (lr.edges > 0) flags.push(`lineage:${lr.edges}${lr.typed > 0 ? `(typed:${lr.typed})` : ""}`);
+    }
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "entities", `lineage-links: ${e instanceof Error ? e.message : String(e)}`);
+    flags.push("lineage-failed");
   }
   // ── rule 16(a)/(b): connection discovery + forward-event extraction (flywheel, "the forward-
   //   participation clause"). Lane M3, 2026-09-19: extracted into src/lib/intake/mint-enrichment.ts, the

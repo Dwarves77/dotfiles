@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, recompute-tiers, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition]
+        options: [all, tier-opinions, recompute-tiers, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the two spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -1055,6 +1055,16 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/close-flags-for-verified-items"
           node scripts/maintenance/close-flags-for-verified-items.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/close-flags-for-verified-items"
+
+      - name: lineage-gap-targets
+        # Lane s2a-typed-edges (2026-10-04). Consumer of the 'lineage-gap:absent-parent' integrity_flags
+        # namespace: writes the discovery target list (parents still absent) to summary out-dir, and in
+        # apply mode resolves each flag whose every named parent is now held, through the guarded write
+        # path. Dry by default; no --arg, no ruling gate, no schedule. Runbook section 59.
+        if: env.RUN_STEP == 'lineage-gap-targets' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/lineage-gap-targets"
+          node scripts/maintenance/lineage-gap-targets.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/lineage-gap-targets"
 
       - name: finish-staged-updates
         # Part 7 task 7.5 item 2, brief-chain build plan 2026-09-11 / ADR-030 rider / RD-20: runs every

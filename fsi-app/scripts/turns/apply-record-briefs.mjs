@@ -33,6 +33,14 @@
 //                  count it would write, never calls guardedUpdateByIds - intelligence_items.
 //                  recommended_actions does not exist in the live schema yet (see migration 334, DDL
 //                  sketch, authored/not applied). Flip to a real write once the coordinator applies it.
+//   4c. lineage - lane s2a-typed-edges, 2026-10-04. linkItems (src/lib/entities/link-items.ts, the SAME
+//                  function the retired paid generate path called) over the item's just-written brief +
+//                  grounding pool: a lineage phrase ("amending", "implementing", "application of") beside a
+//                  held instrument's identifier writes the TYPED edge (amends / implements / depends_on),
+//                  ADR-022 ownership through partitionLineageWrites (a pair owned by a manual or other
+//                  foreign origin is never touched). Runs BEFORE discovery so a typed pair is claimed before
+//                  discovery's writer, which skips any pair another origin owns. Dry mode previews it
+//                  (previewEntryLineage) and writes nothing.
 //   5. discovery - rule 16(a), via flywheel-steps.mjs's runDiscoveryStep (the SAME shared function
 //                  apply-staged-update.ts's substantive update_item path now calls, task 3.4's own
 //                  extraction of that logic - see that module's header).
@@ -183,7 +191,7 @@ function usage() {
     "",
     "Dry (default): validate + plan + print, no database writes (a run artifact is still written to disk,",
     "every run gets one). --execute runs the full per-item pipeline for real (generate -> section ->",
-    "ground -> grow -> discovery -> forward-events -> compliance-deadline -> entities), in order, for",
+    "ground -> grow -> lineage -> discovery -> forward-events -> compliance-deadline -> entities), in order, for",
     "every item the plan selected.",
   ].join("\n");
 }
@@ -351,6 +359,7 @@ export const APPLY_STEP_ORDER = Object.freeze([
   "ground",
   "grow",
   "structured-actions",
+  "lineage",
   "discovery",
   "forward-events",
   "compliance-deadline",
@@ -533,6 +542,43 @@ function loadSourceGrowth() {
   return _sourceGrowthPromise;
 }
 
+// linkItems is TypeScript with "@/..." imports: loaded through jiti like the pipeline, lazily and once.
+let _linkItemsPromise = null;
+function loadLinkItems() {
+  if (!_linkItemsPromise) {
+    _linkItemsPromise = (async () => {
+      const { createJiti } = await import("jiti");
+      const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(FSI_ROOT, "src") } });
+      const mod = await jiti.import("../../src/lib/entities/link-items.ts");
+      return mod.linkItems;
+    })();
+  }
+  return _linkItemsPromise;
+}
+
+/** Outcome string for one linkItems result (execute and dry share the vocabulary). */
+export function lineageOutcome(r, { dry = false } = {}) {
+  if (r.skipped) return dry ? "lineage:would (nothing to read) (dry, nothing written)" : "lineage:0";
+  const detail = `edges=${r.edges} typed=${r.typed} inserted=${r.inserted} upgraded=${r.upgraded} foreign=${r.skippedForeign} conflicts=${r.conflicts ?? 0} unchanged=${r.unchanged}`;
+  return dry ? `lineage:would (${detail}) (dry, nothing written)` : r.edges > 0 ? `lineage:${r.edges}(typed:${r.typed})` : `lineage:0 (${detail})`;
+}
+
+/**
+ * DRY preview of the lineage step (s2a-typed-edges): what linkItems WOULD write for one planned entry,
+ * read from the entry's own body (the brief about to be written, not the stale stored one). Read-only
+ * lookups only (linkItems with dry:true never writes). Never throws. `deps.linkItems` is injectable.
+ * @returns {Promise<{id:string, outcome:string, error:string|null}>}
+ */
+export async function previewEntryLineage({ itemId, entry }, { sb, deps = {} }) {
+  try {
+    const link = deps.linkItems ?? (await loadLinkItems());
+    const r = await link(sb, itemId, { dry: true, content: String(entry?.body ?? "") });
+    return { id: `${itemId}#lineage`, outcome: lineageOutcome(r, { dry: true }), error: null };
+  } catch (e) {
+    return { id: `${itemId}#lineage`, outcome: "lineage_preview_failed", error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /**
  * DRY preview (S1-A): what registerEntryCitations WOULD decide for one planned entry. Read-only lookups
  * only (registerEntryCitations with dry:true never writes). Never throws; a failure is returned as an
@@ -579,7 +625,8 @@ export async function previewEntryCitations({ itemId, entry }, { sb, deps = {} }
  * @param {{sb:object, allowBriefOverwrite:boolean, batch?:string, batchId?:string|null, deps?: Partial<{
  *   generateBriefFromInjected:Function, sectionBrief:Function, groundBrief:Function, growSources:Function,
  *   recordFlywheelDefect:Function, runDiscoveryStep:Function, runForwardEventsStep:Function,
- *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function, recordItemChange:Function
+ *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function, recordItemChange:Function,
+ *   linkItems:Function
  * }>}} ctx `batchId` (D29, defect-fix-plan-2026-09-12): the record-briefs file's own `batch` field,
  *   threaded through to groundBrief's `opts.batchId` (recorded on every replace-ledger archive's `note`).
  * @returns {Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array<{id:string,outcome:string,error:string|null}>}>}
@@ -596,6 +643,7 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   const doForwardEventsStep = deps.runForwardEventsStep ?? runForwardEventsStep;
   const doComplianceSync = deps.syncComplianceDeadlineForItem ?? syncComplianceDeadlineForItem;
   const doImportLinkItemEntities = deps.importLinkItemEntities ?? importLinkItemEntities;
+  const getLinkItems = async () => deps.linkItems ?? (await loadLinkItems());
   // D23(a): the real implementation talks to item_changelog through the {findExisting, insert}
   // adapter changelog.mjs's own header explains (not a raw client chain) - built here, lazily, only
   // if a test has not already overridden the whole step via `deps.recordItemChange`.
@@ -738,6 +786,19 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     record("structured-actions", "structured-actions_failed", msg);
+  }
+
+  // 4c. lineage (s2a-typed-edges): typed edges from the brief just written; ADR-022 via partitionLineageWrites
+  //    inside linkItems. Before discovery on purpose (see the module header). Failure is a recorded
+  //    flywheel defect (the existing "entities" subtype) and never stops a later step.
+  try {
+    const link = await getLinkItems();
+    const r = await link(sb, itemId);
+    record("lineage", lineageOutcome(r));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await flywheelDefect("entities", `lineage-links: ${msg}`);
+    record("lineage", "lineage_failed", msg);
   }
 
   // 5. discovery (rule 16(a), flywheel-steps.mjs - the SAME shared function apply-staged-update.ts's own
@@ -886,9 +947,10 @@ export async function runApplyLoop({ plan, execute, ioBudgetBytes, poolBytesByIt
       perItem.push({ id: planned.itemId, outcome: "would_apply", error: null });
       log(`  ${planned.itemId}: would apply (${APPLY_STEP_ORDER.join(" -> ")})`);
       if (previewEntry) {
-        const p = await previewEntry(planned);
-        perItem.push(p);
-        log(`  ${planned.itemId}: ${p.outcome}${p.error ? ` (${p.error})` : ""}`);
+        for (const p of [].concat(await previewEntry(planned))) {
+          perItem.push(p);
+          log(`  ${planned.itemId}: ${p.outcome}${p.error ? ` (${p.error})` : ""}`);
+        }
       }
     }
     return { perItem, metrics, appliedItemIds, stopped: false };
@@ -1126,7 +1188,8 @@ async function main() {
           applyOneEntry(planned, { sb, allowBriefOverwrite: parsed.allowBriefOverwrite, batch, batchId: raw.batch ?? null }),
         log: (msg) => console.log(msg),
         // S1-A: dry mode reports what the grow step would register and writes nothing.
-        previewEntry: sb ? (planned) => previewEntryCitations(planned, { sb }) : null,
+        // s2a-typed-edges: and what the lineage step would type (read-only, nothing written).
+        previewEntry: sb ? async (planned) => [await previewEntryCitations(planned, { sb }), await previewEntryLineage(planned, { sb })] : null,
       });
       perItem = loopResult.perItem;
       appliedItemIds = loopResult.appliedItemIds;
