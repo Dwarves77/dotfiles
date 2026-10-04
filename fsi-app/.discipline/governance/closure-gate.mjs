@@ -43,7 +43,7 @@
 // FS + GIT ONLY. No network, no DB, no model call, no schedule — git log/show/merge-base and file reads
 // against the checked-out tree. Safe to run on every push/PR alongside the other meta-gates.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -464,7 +464,27 @@ function readHarnessLedgerExport() {
   return Array.isArray(parsed?.rows) ? parsed.rows : [];
 }
 
-function runbookHasRecord(runbookText, stepId) {
+// RB-SPLIT (2026-10-04): the maintenance runbook is an index plus one file per step under
+// docs/runbooks/maintenance.d/ (each file keeps its own "## N. `step`" heading verbatim). The evidence
+// scan below reads the assembled corpus: the index first, then every step file in filename order, which
+// is the original section order (zero padded numbers, then a/b/c suffixes, then the A<n> appendices).
+export const RUNBOOK_INDEX_PATH = 'docs/runbooks/MAINTENANCE-RUNBOOK.md';
+export const RUNBOOK_STEP_DIR = 'docs/runbooks/maintenance.d';
+
+/** PURE. indexText: the index file text; stepFiles: [{ name, text }] in any order. */
+export function assembleRunbookCorpus(indexText, stepFiles) {
+  const ordered = [...stepFiles].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return [indexText || '', ...ordered.map((f) => f.text || '')].join('\n');
+}
+
+function readRunbookCorpus() {
+  let names = [];
+  try { names = readdirSync(join(REPO, RUNBOOK_STEP_DIR)).filter((n) => n.endsWith('.md')); } catch { names = []; }
+  const stepFiles = names.map((name) => ({ name, text: readRepo(`${RUNBOOK_STEP_DIR}/${name}`) || '' }));
+  return assembleRunbookCorpus(readRepo(RUNBOOK_INDEX_PATH) || '', stepFiles);
+}
+
+export function runbookHasRecord(runbookText, stepId) {
   if (!runbookText) return false;
   // Each step's own §N section header names the step in backticks; a run-id citation ("run #NN",
   // an Actions run id, or a live-SQL "landed") anywhere in that section is treated as dispatch evidence.
@@ -479,7 +499,7 @@ function runbookHasRecord(runbookText, stepId) {
 
 function gatherNeverRunTargets() {
   const maintYaml = readRepo('.github/workflows/maintenance.yml') || '';
-  const runbookText = readRepo('docs/runbooks/MAINTENANCE-RUNBOOK.md') || '';
+  const runbookText = readRunbookCorpus();
   const ledger = readHarnessLedgerExport();
   const targets = [];
 

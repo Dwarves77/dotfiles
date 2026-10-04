@@ -17,8 +17,15 @@ import {
   mintCandidateDryRun,
   resolveGreyLitSource,
   normalizeOpenAlexWork,
+  runWalk,
 } from "./research-walker.mjs";
-import { FIXTURE_GREY_LIT_SOURCES, FIXTURE_OPENALEX_CANDIDATES } from "./fixtures/research-walker-fixtures.mjs";
+import { loadHostVerdicts, HOST_VERDICTS_DIR } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
+import { join } from "node:path";
+import {
+  FIXTURE_GREY_LIT_SOURCES,
+  FIXTURE_OPENALEX_CANDIDATES,
+  FIXTURE_OPENALEX_PUBLISHER_CANDIDATES,
+} from "./fixtures/research-walker-fixtures.mjs";
 
 test("mint chokepoint: a grey-lit candidate whose source is registered would_mint under dryRun, and the dry run never inserts", async () => {
   const iea = FIXTURE_GREY_LIT_SOURCES[0];
@@ -64,4 +71,56 @@ test("mint chokepoint: a candidate with NO source_url and NO source_id is reject
   const result = await mintCandidateDryRun(sb, seed);
   assert.equal(result.ok, false);
   assert.equal(result.action, "unsourced");
+});
+
+// ── lane S1-D: whole-walk acceptance on the publisher-host fixtures (dry, no network) ────────────────────
+
+async function walkPublisherFixtures() {
+  const verdicts = loadHostVerdicts({ files: [join(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts;
+  return runWalk({
+    greyLitSources: [],
+    openAlexCandidatesOverride: FIXTURE_OPENALEX_PUBLISHER_CANDIDATES.map(normalizeOpenAlexWork),
+    mode: "dry",
+    hostVerdicts: verdicts,
+  });
+}
+
+test("walk: a built-in-placed publisher reports would_register at the class tier and would_mint", async () => {
+  const r = await walkPublisherFixtures();
+  const url = "https://eprints.soton.ac.uk/example-rail-modal-shift";
+  const outcomes = r.perItem.filter((i) => i.id === url).map((i) => i.outcome);
+  assert.deepEqual(outcomes, ["would_register (tier 4, built-in rule)", "would_mint:minted"]);
+});
+
+test("walk: a publisher placed only by a fixture verdict does the same and names the verdict batch", async () => {
+  const r = await walkPublisherFixtures();
+  const url = "https://unplaced-example.test/papers/scope3-survey";
+  const outcomes = r.perItem.filter((i) => i.id === url).map((i) => i.outcome);
+  assert.deepEqual(outcomes, ["would_register (tier 4, host verdict host-verdicts-000.fixture)", "would_mint:minted"]);
+});
+
+test("walk: an unplaced publisher is residue, its host is listed, and it counts as no rejection", async () => {
+  const r = await walkPublisherFixtures();
+  const url = "https://unlisted-journal.example/articles/42";
+  const outcomes = r.perItem.filter((i) => i.id === url).map((i) => i.outcome);
+  assert.deepEqual(outcomes, ["residue:awaiting host verdict batch"]);
+  assert.deepEqual(r.metrics.unplaced_hosts.map((h) => h.host), ["unlisted-journal.example"]);
+  assert.equal(r.metrics.residue_awaiting_host_verdict, 1);
+  assert.equal(r.metrics.rejected_unsourced, 0);
+  assert.equal(r.metrics.would_register, 2);
+  assert.equal(r.metrics.would_mint, 2);
+});
+
+test("walk: the two original DOI fixtures, landing-page host placed and DOI-only unresolved, never list doi.org as unplaced", async () => {
+  const r = await runWalk({
+    greyLitSources: [],
+    openAlexCandidatesOverride: FIXTURE_OPENALEX_CANDIDATES.map(normalizeOpenAlexWork).filter(Boolean),
+    mode: "dry",
+    hostVerdicts: new Map(),
+  });
+  const byId = (u) => r.perItem.filter((i) => i.id === u).map((i) => i.outcome);
+  assert.deepEqual(byId("https://its.example-univ.edu/freight-decarb-corridors"), ["would_register (tier 4, built-in rule)", "would_mint:minted"]);
+  assert.deepEqual(byId("https://doi.org/10.1000/example-marine-fuels"), ["residue:publisher host unresolved from DOI"]);
+  assert.deepEqual(r.metrics.unplaced_hosts, []);
+  assert.equal(r.metrics.rejected_unsourced, 0);
 });

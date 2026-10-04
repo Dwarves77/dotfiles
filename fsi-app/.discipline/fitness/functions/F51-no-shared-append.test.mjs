@@ -729,17 +729,20 @@ test('check 5 SKIP: the anchor commit itself is unreachable (bad anchor) is skip
   }
 });
 
-test('underEntryDir: recognizes the five derived directories and docs/ops/session-log.d/', () => {
+test('underEntryDir: recognizes the five derived directories, docs/ops/session-log.d/ and docs/runbooks/maintenance.d/', () => {
   assert.equal(underEntryDir('fsi-app/.discipline/fitness/functions/F1-x.mjs'), true);
   assert.equal(underEntryDir('fsi-app/.discipline/governance/invariants.d/RD-1.mjs'), true);
   assert.equal(underEntryDir('fsi-app/scripts/harness-runs/mint/family.json'), true);
   assert.equal(underEntryDir('fsi-app/.discipline/governance/skill-acks/2026-09-19-n6.md'), true);
   assert.equal(underEntryDir('fsi-app/.discipline/governance/loop-hops.d/01-sweep-to-fetch-drain.json'), true);
   assert.equal(underEntryDir('docs/ops/session-log.d/2026-09-19-n6.md'), true);
+  // RB-SPLIT (2026-10-04): one file per maintenance step; the index file itself stays a plain hotspot.
+  assert.equal(underEntryDir('docs/runbooks/maintenance.d/59-new-step.md'), true);
+  assert.equal(underEntryDir('docs/runbooks/MAINTENANCE-RUNBOOK.md'), false);
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries plus the two dated R7-LINT-CI approvals and the dated 2026-10-04 MAINTENANCE-RUNBOOK approval -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
+test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries plus the two dated R7-LINT-CI approvals (the dated 2026-10-04 MAINTENANCE-RUNBOOK entry is removed by lane RB-SPLIT, the runbook now being one file per step) -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
@@ -749,8 +752,6 @@ test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only t
       // Two dated, coordinator-approved (2026-10-03) concurrency exemptions for lane R7-LINT-CI, a
       // whole-tree lint remediation merged clean against #907 and #908 (see HOTSPOT_ALLOWLIST).
       'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs', 'fsi-app/src/lib/supabase-server.ts',
-      // Dated coordinator-decided exemption (2026-10-04): S0/S1-B/S1-C parallel lanes, disjoint runbook sections.
-      'docs/runbooks/MAINTENANCE-RUNBOOK.md',
     ].sort(),
   );
 });

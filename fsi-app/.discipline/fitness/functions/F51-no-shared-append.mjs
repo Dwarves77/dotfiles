@@ -94,6 +94,8 @@ export const ENTRY_DIRS = [
 export function underEntryDir(path) {
   const p = String(path).replace(/\\/g, '/');
   if (p.startsWith('docs/ops/session-log.d/')) return true;
+  // RB-SPLIT (2026-10-04): the maintenance runbook is one file per step, like the session log.
+  if (p.startsWith('docs/runbooks/maintenance.d/')) return true;
   return ENTRY_DIRS.some((d) => p === d.slice(0, -1) || p.startsWith(d));
 }
 
@@ -472,7 +474,6 @@ export const HOTSPOT_ALLOWLIST = {
   'docs/audits/system-health-audit-2026-09-17.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs': { decidedOn: '2026-10-03', reason: 'R7-LINT-CI whole-tree lint remediation, merged clean concurrent with #907 (one-line unused-param rename); coordinator approval 2026-10-03' },
   'fsi-app/src/lib/supabase-server.ts': { decidedOn: '2026-10-03', reason: 'R7-LINT-CI whole-tree lint remediation, merged clean concurrent with #908 (typed-row edits, no overlapping hunks); coordinator approval 2026-10-03' },
-  'docs/runbooks/MAINTENANCE-RUNBOOK.md': { decidedOn: '2026-10-04', reason: 'coordinator-decided; three source-loop lanes (S0 PR 925, S1-B PR 928, S1-C PR 929) were dispatched in parallel on 2026-10-04 with disjoint sections of this runbook; entry is removed when the runbook is split into one file per step (lane to be dispatched), or when PRs 928 and 929 have merged, whichever comes first' },
 };
 
 /** Pure core of check 5: given the ordered list of changed-file-lists (one per first-parent commit,
