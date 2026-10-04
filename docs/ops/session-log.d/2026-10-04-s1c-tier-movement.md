@@ -20,8 +20,13 @@
 - The write carries `tier_override IS NULL`, so an override set between read and write is not overwritten.
 - `critical_conflict` stays removed (stub not invented).
 
+## Coordinator rulings applied (after PR 929 opened)
+- Merged origin/master into the branch twice (no rebase); MAINTENANCE-RUNBOOK.md kept both sides.
+- Write-set expansion approved and done: `emit-downstream-chain-artifact.mjs` STEPS (plus its test) and the composite action's description text; the downstream-chain pending marker updated.
+- Cadence hold: while `system_state.scrape_cadence` is `off`, `no_substantive_update` is suppressed (`evaluateDemotion` option `suppressTriggers`, `CADENCE_HELD_TRIGGERS`); `planTierMovements` takes `scrapeCadence` as an injected input and reports `held_cadence_off`. The script reads `system_state` once per run via `readAll`; the route once via `getScrapeState` (fails closed to off). The per-source `recomputeEffectiveTier` (source-growth's path) reads it itself when none is passed, so S1-A's caller is covered without editing `source-growth.ts`. Red-then-green: same source demotes with cadence on, not with off.
+- S1-A (PR 926, merged) calls `recomputeEffectiveTier` through `buildReputationEventRow`/`applyReputationRecompute`; it reads `before_tier`, `after_tier`, `changed`, `tier_override`, `weighted_sum`, `citation_count`, `reasoning`, all still returned. One disagreement found and fixed on my side: its fake client has no `.is()`/`.gte()` on the opinions query, so the per-source opinion read now uses `.eq()` only (opinionMovement filters dismissed and window itself). S1-A's 13 tests pass.
+
 ## NOT done / open
-- NEEDS WRITE-SET EXPANSION: `fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs` lists the downstream-chain steps (`STEPS`) whose summaries the artifact reads; `recompute-tiers` is not in it, so its summary is not yet in `downstream-chain-run-NNN.json`. The composite action's description also still says four steps.
-- `no_substantive_update` reads scan timestamps that stop advancing while the scrape cadence is off (rule 16); apply before scans resume would fire it on unscanned sources. A chained firing is forced dry in build mode (F61), so only an explicit apply dispatch is exposed. Recorded in runbook section 58.
 - No live run, no DB read (brief rule 5). `maintenance:recompute-tiers` shows NEVER-RUN in the closure gate until first dispatched.
 - Citation promotion weights citers by their stored `effective_tier`, so a citer moving between runs can change a cited source's result on the next run (inherent to the skill's section 4 formula, unchanged).
+- The real `readAll("system_state", ...)` in `buildDeps().readCadence` is not exercised by a test (readAll uses the real read client); main() is proven with an injected `readCadence`.

@@ -1178,18 +1178,27 @@ export async function recomputeEffectiveTier(
   const now = new Date();
   const promo = await evaluateCandidatePromotion(client, sourceId, halfLifeMonths);
 
-  const sinceIso = new Date(now.getTime() - TIER_MOVEMENT.OPINION_WINDOW_DAYS * MS_PER_DAY).toISOString();
   const { data: opinionRows, error: opErr } = await client
     .from("source_tier_opinions")
     .select("opined_tier, opining_source_id, opined_at, dismissed_at, opinion_source")
-    .eq("target_source_id", sourceId)
-    .is("dismissed_at", null)
-    .gte("opined_at", sinceIso);
+    .eq("target_source_id", sourceId);
+  // Dismissed rows and rows outside the window are dropped by opinionMovement itself; the per-source set is small.
   if (opErr) {
     throw new Error(`recomputeEffectiveTier: failed to read source_tier_opinions for ${sourceId}: ${opErr.message}`);
   }
 
-  const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence: opts.scrapeCadence });
+  // Cadence hold (rule 16). A caller that already holds the cadence passes it; otherwise it is read once
+  // here, failing closed to 'off' on any read error (the same default src/lib/api/pause.ts uses).
+  let scrapeCadence = opts.scrapeCadence;
+  if (scrapeCadence === undefined) {
+    try {
+      const { data: st, error: stErr } = await client.from("system_state").select("scrape_cadence").eq("id", true).maybeSingle();
+      scrapeCadence = stErr ? "off" : ((st as { scrape_cadence?: string } | null)?.scrape_cadence ?? "off");
+    } catch {
+      scrapeCadence = "off";
+    }
+  }
+  const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence });
   const decision = decideEffectiveTier({
     base_tier,
     effective_tier: row.effective_tier == null ? null : (row.effective_tier as SourceTier),

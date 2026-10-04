@@ -252,7 +252,7 @@ test("a failed tier write records no event and is counted; a failed event is cou
 });
 
 // ── The per-source calculator (source-growth's end-of-cycle path) uses the same evidence ──
-function fakeClient({ source, opinions = [], citations = [] }) {
+function fakeClient({ source, opinions = [], citations = [], cadence = "weekly" }) {
   const mk = (table) => {
     const st = { table, filters: [] };
     const b = {
@@ -262,6 +262,7 @@ function fakeClient({ source, opinions = [], citations = [] }) {
       gte(c, v) { st.filters.push(["gte", c, v]); return b; },
       in() { return b; },
       single() { return Promise.resolve({ data: source, error: null }); },
+      maybeSingle() { return Promise.resolve({ data: table === "system_state" ? { scrape_cadence: cadence } : source, error: null }); },
       then(res, rej) {
         const data = table === "source_citations" ? citations : table === "source_tier_opinions" ? opinions : [];
         return Promise.resolve({ data, error: null }).then(res, rej);
@@ -310,4 +311,20 @@ test("cadence off holds only the scan-timestamp trigger: a conflict-rate demotio
 test("no cadence given suppresses nothing (per-source callers keep prior behaviour)", async () => {
   const plan = await planTierMovements(readers({ sources: [stale()] }), { now: NOW });
   assert.equal(plan.movements.length, 1);
+});
+
+test("recomputeEffectiveTier reads the cadence itself when none is passed: off holds no_substantive_update, on demotes", async () => {
+  const src = quiet({ base_tier: 4, update_frequency: "weekly", last_substantive_change: daysAgo(200) });
+  const on = await recomputeEffectiveTier(fakeClient({ source: src, cadence: "weekly" }), "s1");
+  assert.equal(on.after_tier, 5);
+  const off = await recomputeEffectiveTier(fakeClient({ source: src, cadence: "off" }), "s1");
+  assert.equal(off.changed, false);
+});
+test("recomputeEffectiveTier fails closed to off when system_state cannot be read", async () => {
+  const src = quiet({ base_tier: 4, update_frequency: "weekly", last_substantive_change: daysAgo(200) });
+  const client = fakeClient({ source: src });
+  const inner = client.from;
+  client.from = (t) => { if (t === "system_state") throw new Error("no table"); return inner(t); };
+  const r = await recomputeEffectiveTier(client, "s1");
+  assert.equal(r.changed, false);
 });
