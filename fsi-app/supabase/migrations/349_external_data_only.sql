@@ -13,8 +13,12 @@
 -- the old code's reads and writes. The PR removes every reader and writer first (data migrations commit
 -- with consumer code and run after merge, standing rule 3).
 --
--- Live state verified 2026-10-03 (read-only SELECT, by the coordinator): every table below has 0 rows.
--- Nothing is lost by the drops.
+-- APPLIED 2026-10-03 (operator window, ADR-011; read-back: seven tables absent, kept tables present).
+--
+-- Live state verified 2026-10-03 (read-only SELECT, by the coordinator): six of the seven tables held 0 rows;
+-- community_benchmark_instruments held 3 house-seeded definitions (created_by 'house', no member-entered
+-- content; community_benchmark_responses was 0), recorded verbatim in docs/ops/session-log.d/2026-10-03-adr042-landing.md.
+-- No member data is lost by the drops.
 --
 -- WHAT GOES (real object names read from migrations 294, 296, 297, 298, 311, 345 and 287):
 --   * public.community_benchmark_responses (294), dropped BEFORE its parent because it carries a
