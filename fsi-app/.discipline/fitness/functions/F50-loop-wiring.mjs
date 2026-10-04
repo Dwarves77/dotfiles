@@ -35,7 +35,7 @@ import { join } from 'node:path';
 import { violation } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile } from '../lib/file-content.mjs';
-import { LOOP_HOPS } from '../../governance/loop-manifest.mjs';
+import { LOOP_HOPS, FIRED_TRIGGERS, LOOP_FIRED_EVIDENCE_PATH } from '../../governance/loop-manifest.mjs';
 import { extractWorkflowRunNames, hasWorkflowRunEdge } from '../lib/yml-read.mjs';
 
 export { extractWorkflowRunNames, hasWorkflowRunEdge };
@@ -66,7 +66,7 @@ export function familyFiredStatus(repoRoot, family) {
       // "workflow_run_forced_dry" (lane CHAINED-DRY-GUARD, 2026-09-29) counts too: the real GitHub
       // event WAS workflow_run (proof the hop fired from its upstream), just mode-downgraded to dry by
       // the build-mode gate -- see scripts/harness-runs/CONVENTION.md's own "trigger" section.
-      if (parsed.trigger === 'workflow_run' || parsed.trigger === 'workflow_run_forced_dry') {
+      if (FIRED_TRIGGERS.includes(parsed.trigger)) {
         return { dirExists: true, hasFiredArtifact: true };
       }
     } catch {
@@ -76,13 +76,54 @@ export function familyFiredStatus(repoRoot, family) {
   return { dirExists: true, hasFiredArtifact: false };
 }
 
+/**
+ * Validate the committed firing evidence (lane GATES-1, 2026-10-04) against the manifest. PURE.
+ * Chained runs land in the `harness_runs` table, not as committed artifacts, so
+ * `.discipline/governance/loop-fired-evidence.json` (written by scripts/verify/export-loop-fired-evidence.mjs,
+ * proven against the live table by loop-fired-evidence-audit.mjs) is the second way a hop is shown to have
+ * fired. An entry naming an unknown hop, a family that is not that hop's family, or a trigger that is not a
+ * fired trigger is a violation here; whether the entry matches a real row is the audit's job.
+ * @param {string|null} evidenceText the file text, null when the file is absent
+ * @param {ReadonlyArray<object>} hops
+ * @returns {{firedHopIds: Set<string>, problems: string[]}}
+ */
+export function readFiredEvidence(evidenceText, hops) {
+  const firedHopIds = new Set();
+  const problems = [];
+  if (evidenceText === null) return { firedHopIds, problems };
+  let parsed;
+  try {
+    parsed = JSON.parse(evidenceText);
+  } catch (e) {
+    return { firedHopIds, problems: [`${LOOP_FIRED_EVIDENCE_PATH} is not valid JSON (${e.message}).`] };
+  }
+  if (!Array.isArray(parsed?.entries)) {
+    return { firedHopIds, problems: [`${LOOP_FIRED_EVIDENCE_PATH} has no "entries" array.`] };
+  }
+  const byId = new Map(hops.map((h) => [h.id, h]));
+  for (const e of parsed.entries) {
+    const hop = byId.get(e?.hop);
+    if (!hop) {
+      problems.push(`evidence entry names unknown hop "${e?.hop}" (run ${e?.run_id}).`);
+    } else if (e.family !== hop.family) {
+      problems.push(`evidence entry for hop "${hop.id}" names family "${e.family}" but the hop's family is "${hop.family}" (run ${e.run_id}).`);
+    } else if (!FIRED_TRIGGERS.includes(e.trigger)) {
+      problems.push(`evidence entry for hop "${hop.id}" carries trigger "${e.trigger}", not one of ${FIRED_TRIGGERS.join(', ')} (run ${e.run_id}).`);
+    } else {
+      firedHopIds.add(hop.id);
+    }
+  }
+  return { firedHopIds, problems };
+}
+
 export const fitnessFunction = {
   id: 'F50',
   name: 'loop-wiring',
   description:
     'Every loop hop the build plan states (LOOP_HOPS in loop-manifest.mjs) is checked against the real ' +
     'tree: an enforceEdge hop must have its workflow_run edge in the consumer yml; an enforceFired hop ' +
-    'must have a harness-run artifact whose own trigger field reads "workflow_run". A hop neither flag ' +
+    'must have a harness-run artifact whose own trigger field reads "workflow_run", OR an entry in the ' +
+    'committed loop-fired-evidence.json (chained runs land in harness_runs, not as artifacts). A hop neither flag ' +
     'claims yet is counted, not failed, and the count prints on every run ("hops not yet enforced: N") so ' +
     'the plan\'s own closure criterion is visible whether or not any hop is enforced.',
   source:
@@ -93,13 +134,22 @@ export const fitnessFunction = {
     return ['fsi-app/.discipline/governance/loop-manifest.mjs'];
   },
 
-  check() {
+  check(_filepath, _content, deps = {}) {
     const out = [];
-    const repoRoot = getRepoRoot();
+    const {
+      hops = LOOP_HOPS,
+      repoRoot = getRepoRoot(),
+      evidenceText = readFile(LOOP_FIRED_EVIDENCE_PATH),
+      familyStatus = familyFiredStatus,
+      log = (m) => console.log(m),
+    } = deps;
     const seen = new Set();
     let notEnforced = 0;
 
-    for (const hop of LOOP_HOPS) {
+    const evidence = readFiredEvidence(evidenceText, hops);
+    for (const problem of evidence.problems) out.push(violation(1, problem));
+
+    for (const hop of hops) {
       if (seen.has(hop.id)) {
         out.push(violation(1, `DUPLICATE HOP ID: "${hop.id}" appears more than once in LOOP_HOPS.`));
       }
@@ -134,7 +184,7 @@ export const fitnessFunction = {
             violation(1, `${hop.id}: enforceFired is true but family is null - nowhere to look for a fired artifact.`),
           );
         } else {
-          const status = familyFiredStatus(repoRoot, hop.family);
+          const status = familyStatus(repoRoot, hop.family);
           if (!status.dirExists) {
             out.push(
               violation(
@@ -142,12 +192,12 @@ export const fitnessFunction = {
                 `${hop.id}: enforceFired is true but scripts/harness-runs/${hop.family}/ does not exist.`,
               ),
             );
-          } else if (!status.hasFiredArtifact) {
+          } else if (!status.hasFiredArtifact && !evidence.firedHopIds.has(hop.id)) {
             out.push(
               violation(
                 1,
                 `${hop.id}: enforceFired is true but no artifact in scripts/harness-runs/${hop.family}/ ` +
-                  `carries trigger:"workflow_run" - either nothing has fired from the upstream yet, or ` +
+                  `carries trigger:"workflow_run" and ${LOOP_FIRED_EVIDENCE_PATH} has no entry for it - either nothing has fired from the upstream yet, or ` +
                   `this hop's enforceFired should not yet be true.`,
               ),
             );
@@ -160,7 +210,7 @@ export const fitnessFunction = {
     // separate "informational" output channel (checked: no other fitness function emits one), so this
     // line is the mechanism that makes the acceptance criterion's "hops not yet enforced: N" visible on
     // every run regardless of whether any hop is enforced yet.
-    console.log(`  [F50] hops not yet enforced: ${notEnforced}`);
+    log(`  [F50] hops not yet enforced: ${notEnforced}`);
 
     return out;
   },

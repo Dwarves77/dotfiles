@@ -12,11 +12,7 @@
 // Shape: special (whole-test), mirrors F9 — a sentinel enumerate + one check() that runs the
 // existing self-test subprocess and passes iff it exits 0.
 
-import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { violation, PASS } from '../lib/result.mjs';
-import { getRepoRoot } from '../../lib/context.mjs';
+import { checkSelftest } from '../lib/selftest-spawn.mjs';
 
 const SENTINEL = 'fsi-app/src/lib/sources/source-growth.selftest.mjs';
 
@@ -31,17 +27,13 @@ export const fitnessFunction = {
   },
 
   check(filepath) {
-    if (filepath !== SENTINEL) return PASS;
-    const abs = join(getRepoRoot(), SENTINEL);
-    if (!existsSync(abs)) {
-      return [violation(1, `source-credibility self-test missing at ${SENTINEL}. Governing skill: source-credibility-model.`)];
-    }
-    const result = spawnSync('node', [abs], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
-    if (result.status === 0) return PASS;
-    const tail = ((result.stdout || '') + (result.stderr || '')).split(/\r?\n/).filter(Boolean).slice(-12).map((l) => '    ' + l).join('\n');
-    return [violation(1,
-      `Source-credibility syndication-collapse math FAILED (exit ${result.status}).\n${tail}\n\n` +
-      `Remediation: run \`node ${SENTINEL}\`; fix aggregateConvergence/citationScore in source-growth.ts. Governing skill: source-credibility-model.`,
-    )];
+    if (filepath !== SENTINEL) return [];
+    return checkSelftest({
+      id: 'F10',
+      sentinel: SENTINEL,
+      missingMessage: `source-credibility self-test missing at ${SENTINEL}. Governing skill: source-credibility-model.`,
+      failMessage: (status) => `Source-credibility syndication-collapse math FAILED (exit ${status}).`,
+      remediation: `Remediation: run node ${SENTINEL}; fix aggregateConvergence/citationScore in source-growth.ts. Governing skill: source-credibility-model.`,
+    });
   },
 };

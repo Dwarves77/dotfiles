@@ -113,3 +113,101 @@ export function loadLoopHops(dir) {
 }
 
 export const LOOP_HOPS = loadLoopHops(LOOP_HOPS_DIR);
+
+// ---------------------------------------------------------------------------------------------------------
+// FIRING EVIDENCE (lane GATES-1, 2026-10-04). Chained runs land in the `harness_runs` table (migration 331),
+// not as committed artifacts, so F50 could never see a hop fire. These are the pure pieces both the exporter
+// (scripts/verify/export-loop-fired-evidence.mjs), the audit (scripts/verify/loop-fired-evidence-audit.mjs)
+// and F50 share, kept here so there is one definition of "this row fired this hop".
+// ---------------------------------------------------------------------------------------------------------
+
+/** The two `trigger` values that prove a run started from an upstream workflow's completion, not a person.
+ *  "workflow_run_forced_dry" is a real workflow_run event that build mode downgraded to dry (CONVENTION.md). */
+export const FIRED_TRIGGERS = Object.freeze(['workflow_run', 'workflow_run_forced_dry']);
+
+/** Where the committed firing evidence lives, repo-relative and fsi-app-relative. */
+export const LOOP_FIRED_EVIDENCE_PATH = 'fsi-app/.discipline/governance/loop-fired-evidence.json';
+
+/** The same file as an absolute path derived from this module's own location (never from the caller's cwd). */
+export const LOOP_FIRED_EVIDENCE_FILE = join(HERE, 'loop-fired-evidence.json');
+
+/** Producer workflows that are not the consumer of any hop, so their harness family cannot be read off the
+ *  manifest itself. Used only to tell apart two hops that share one consumer family (05 vs 06, 07 vs 08,
+ *  10 vs 11). Every value is a real directory under scripts/harness-runs/ (pinned by the exporter's test). */
+export const PRODUCER_FAMILY_BY_WORKFLOW_FILE = Object.freeze({
+  '.github/workflows/source-sweep.yml': 'source-sweep',
+  '.github/workflows/producers.yml': 'producers',
+  '.github/workflows/brief-apply.yml': 'brief-apply',
+});
+
+/** Harness family of a hop's PRODUCER workflow: the family of whichever hop consumes that workflow, else the
+ *  table above, else null. @param {object} hop @param {ReadonlyArray<object>} hops @returns {string|null} */
+export function producerFamilyOf(hop, hops = LOOP_HOPS) {
+  const consumerHop = hops.find((h) => h.consumer.file === hop.producer.file && h.family);
+  if (consumerHop) return consumerHop.family;
+  return PRODUCER_FAMILY_BY_WORKFLOW_FILE[hop.producer.file] ?? null;
+}
+
+const asText = (v) => (v === null || v === undefined ? null : String(v));
+
+/**
+ * Map `harness_runs` rows onto loop hops. PURE. A row is fired evidence when its trigger is in FIRED_TRIGGERS
+ * and its family is a hop's family. When one family serves several hops, the hop is the one whose producer
+ * family has a row whose github_run_id equals this row's upstream_run_id; a row that cannot be placed on
+ * exactly one hop is returned in `unmapped` with its reason and is never written as evidence (a hop is not
+ * claimed fired on a guess). One entry per hop: its EARLIEST firing row (stable across regeneration).
+ * @param {object[]} rows @param {ReadonlyArray<object>} [hops]
+ * @returns {{entries: object[], unmapped: {run_id: string, reason: string}[]}}
+ */
+export function mapRowsToHops(rows, hops = LOOP_HOPS) {
+  const list = Array.isArray(rows) ? rows : [];
+  const byHop = new Map();
+  const unmapped = [];
+  for (const row of list) {
+    if (!FIRED_TRIGGERS.includes(row?.trigger)) continue;
+    const candidates = hops.filter((h) => h.family && h.family === row.harness_family);
+    if (candidates.length === 0) continue; // a family no hop names: not a loop firing
+    let hop = null;
+    if (candidates.length === 1) {
+      hop = candidates[0];
+    } else {
+      const upstream = asText(row.upstream_run_id);
+      const placed = upstream === null
+        ? []
+        : candidates.filter((h) => {
+            const pf = producerFamilyOf(h, hops);
+            return pf !== null && list.some((r) => r.harness_family === pf && asText(r.github_run_id) === upstream);
+          });
+      if (placed.length === 1) hop = placed[0];
+      else {
+        unmapped.push({
+          run_id: String(row.run_id),
+          reason: upstream === null
+            ? `family "${row.harness_family}" serves ${candidates.length} hops and the row has no upstream_run_id`
+            : placed.length === 0
+              ? `family "${row.harness_family}" serves ${candidates.length} hops and no producer row has github_run_id ${upstream}`
+              : `upstream_run_id ${upstream} matches ${placed.length} hops`,
+        });
+        continue;
+      }
+    }
+    const entry = {
+      hop: hop.id,
+      family: row.harness_family,
+      run_id: String(row.run_id),
+      github_run_id: asText(row.github_run_id),
+      upstream_run_id: asText(row.upstream_run_id),
+      started_at: String(row.started_at),
+      trigger: row.trigger,
+    };
+    const prior = byHop.get(hop.id);
+    const t = Date.parse(entry.started_at);
+    const pt = prior ? Date.parse(prior.started_at) : 0;
+    if (!prior || t < pt || (t === pt && entry.run_id < prior.run_id)) {
+      byHop.set(hop.id, entry);
+    }
+  }
+  const order = new Map(hops.map((h, i) => [h.id, i]));
+  const entries = [...byHop.values()].sort((a, b) => order.get(a.hop) - order.get(b.hop));
+  return { entries, unmapped };
+}

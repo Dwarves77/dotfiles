@@ -10,11 +10,7 @@
 // exit 0. Defense-in-depth pairs with the grounding pipeline no longer SELECTing effective_tier into
 // the resolver rows (canonical-pipeline.ts) — the value the regression would fall back to is not fetched.
 
-import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { violation, PASS } from '../lib/result.mjs';
-import { getRepoRoot } from '../../lib/context.mjs';
+import { checkSelftest } from '../lib/selftest-spawn.mjs';
 
 const SENTINEL = 'fsi-app/src/lib/sources/institution.selftest.mjs';
 
@@ -29,17 +25,13 @@ export const fitnessFunction = {
   },
 
   check(filepath) {
-    if (filepath !== SENTINEL) return PASS;
-    const abs = join(getRepoRoot(), SENTINEL);
-    if (!existsSync(abs)) {
-      return [violation(1, `moat resolver self-test missing at ${SENTINEL}. Governing skill: source-credibility-model.`)];
-    }
-    const result = spawnSync('node', [abs], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
-    if (result.status === 0) return PASS;
-    const tail = ((result.stdout || '') + (result.stderr || '')).split(/\r?\n/).filter(Boolean).slice(-12).map((l) => '    ' + l).join('\n');
-    return [violation(1,
-      `MOAT BREACH — reg-fact resolver is NOT base_tier-only (exit ${result.status}).\n${tail}\n\n` +
-      `Remediation: run \`node ${SENTINEL}\`; restore tierOfSource to \`s.base_tier ?? null\` in src/lib/sources/institution.ts (no \`?? effective_tier\` fallback). Governing skill: source-credibility-model.`,
-    )];
+    if (filepath !== SENTINEL) return [];
+    return checkSelftest({
+      id: 'F12',
+      sentinel: SENTINEL,
+      missingMessage: `moat resolver self-test missing at ${SENTINEL}. Governing skill: source-credibility-model.`,
+      failMessage: (status) => `MOAT BREACH, reg-fact resolver is NOT base_tier-only (exit ${status}).`,
+      remediation: `Remediation: restore tierOfSource to s.base_tier ?? null in src/lib/sources/institution.ts (no ?? effective_tier fallback), after running node ${SENTINEL}. Governing skill: source-credibility-model.`,
+    });
   },
 };
