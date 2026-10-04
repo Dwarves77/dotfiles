@@ -23,3 +23,10 @@ What is NOT done
 Open items
 - Item 3 needs a coordinator ruling on a mechanism (see report).
 - UX compliance: no `.tsx` or `.css` touched.
+
+Coordinator rulings applied (same day)
+- Skill acknowledgement: read `remediation-discipline/SKILL.md` in full; it governs `loop-fired-evidence-audit.mjs` (categories 46 and 31, Section 3, the attack-not-presence standard), so the citation stays and `fsi-app/.discipline/governance/skill-acks/2026-10-04-gates1-evidence.md` names the skill, the citing file and the applicable sections.
+- Item 3 closed with no change, per ruling: `closure-gate.mjs` untouched. Finding, confirmed by running the gate: `layout-baseline-renewal.yml` was added after the last `train/wave` commit (current train 71), so its introduced train is null and the NEVER-RUN check can never read it as overdue; an allowlist entry for it is itself reported stale ("target is within grace"). `TOOLING_WORKFLOW_EVIDENCE` not built.
+- Item 4 evidence: the last four completed master Discipline runs (37202782648, 37202819664, 37203985998, 37204565510) each logged "=== rendering guard PASS ===" and "layout guard: 36 route x width measurement(s), 0 finding(s)", and the guard step concluded success. The condition of the 2026-07-11 policy (3 consecutive) is met.
+- Item 4 NOT applied: removing `continue-on-error: true` from the rendering-guard job makes F54 (push-gate-npm-parity) fail ("job rendering-guard: step ... runs run-rendering-guard.mjs, which pre-push does not call"; the F54 real-tree test also goes red). F54 skips continue-on-error jobs, so the flag was exempting this job. Fixing it needs a change to `fsi-app/.discipline/hooks/pre-push` (run the guard on every push, a Playwright run) or an F54 exemption, both outside the write set and a design decision. The edit is saved as a patch (scratchpad `gates1-discipline-yml-blocking.patch`, workflow header comments rewritten with the run ids) and reverted from the branch.
+- Standing caveat for whoever makes the guard blocking: the layout-guard baseline expires 2026-10-15; after that every baselined finding blocks.
