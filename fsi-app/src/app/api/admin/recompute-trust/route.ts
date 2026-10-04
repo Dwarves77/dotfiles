@@ -6,28 +6,19 @@
 // to reflect current earned signals. Designed to run on a monthly cron
 // from .github/workflows/trust-recompute.yml.
 //
-// DEMOTION (Wave W2, wire #25 of the unwired-module disposition register,
-// docs/plans/unwired-disposition-2026-08-31.md §J). evaluateDemotion had
-// ZERO production callers before this wave — sources could only ever be
-// promoted or manually tier-overridden; nothing in the live system ever
-// reduced a source's tier from its own degrading accuracy/reliability/
-// accessibility history. This loop now calls it per source, same as the
-// trust-score recompute above, and RECORDS every fired verdict to
-// source_trust_events (event_type='tier_demotion', details.applied=false)
-// — see demotionOutcomeFor below.
+// TIER MOVEMENT (S1-C, 2026-10-04). After the trust-score pass this route moves effective_tier from the
+// evidence, through the one calculator in src/lib/trust.ts (decideEffectiveTier via planTierMovements):
+// citation promotion, evaluatePromotion eligible (one tier better), evaluateDemotion triggered (one tier
+// worse), and tier opinions (3+ in 90 days from 2+ distinct opining sources, one step toward the median).
+// Net movement is clamped to one tier either side of base_tier, an admin tier_override always wins and is
+// never written over, and every applied change writes a source_trust_events row (tier_promotion or
+// tier_demotion, created_by "worker", applied true). This route APPLIES; it no longer only proposes
+// demotions. base_tier is never written here. scripts/maintenance/recompute-tiers.mjs runs the same
+// planner and applier through injected deps.
 //
-// PROPOSE-ONLY, not auto-apply (deliberate, conservative choice — see
-// demotionOutcomeFor's doc comment in ./logic.ts for the full basis). No
-// sources.base_tier or sources.effective_tier write happens here. Every
-// fired verdict is still recorded and surfaced loudly in this route's
-// response summary (demotions_proposed / demotion_record_failed), so
-// nothing is silent — only the tier mutation itself is deferred to an
-// operator/future wave.
-//
-// Fail-soft per source: a thrown demotion evaluation or a failed
-// source_trust_events insert is caught, counted, and named in the
-// response's demotion_failures — it never aborts the sweep and never
-// blocks that source's trust-score update (already written above it).
+// Fail-soft per source inside applyTierMovements: a failed tier write or event insert is counted and named
+// in the response and never aborts the sweep. A thrown plan (a read failure) returns 500 after the
+// trust-score updates already written above it.
 //
 // Auth: x-worker-secret header (same WORKER_SECRET pattern as
 // /api/worker/check-sources). NOT user-facing.
@@ -39,15 +30,20 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   computeTrustScore,
   computeOverallScore,
-  evaluateDemotion,
+  trustMetricsFromRow,
+  planTierMovements,
+  applyTierMovements,
+  tierMovementEvent,
+  TIER_SOURCE_COLUMNS,
 } from "@/lib/trust";
-import type { TrustMetrics, SourceTier, Source } from "@/types/source";
+import type { TierSourceRow } from "@/lib/trust";
+import type { SourceTier } from "@/types/source";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
-// Pure decision logic lives in a sibling module, not here: a route.ts may
+// Pure shaping logic lives in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
 // --webpack` rejects any other export field). See logic.ts's header.
-import { demotionOutcomeFor } from "./logic";
+import { tierMovementSummary } from "./logic";
 
 export async function POST(request: NextRequest) {
   const denied = workerAuthGuard(request);
@@ -68,36 +64,12 @@ export async function POST(request: NextRequest) {
   // to the structural classification, not the dynamic credibility signal).
   // PAGINATED (case-file 9): the active source registry can exceed 1000 rows; a truncated read would skip
   // trust recompute for every source past row 1000 (the per-source UPDATE loop below) and under-report totals.
-  interface TrustSourceRow {
-    id: string;
-    name: string;
-    base_tier: SourceTier;
-    confirmation_count: number | null;
-    conflict_count: number | null;
-    accuracy_rate: number | null;
-    accessibility_rate: number | null;
-    total_checks: number | null;
-    lead_time_samples: number | null;
-    avg_lead_time_days: number | null;
-    independent_citers: number | null;
-    highest_citing_tier: SourceTier | null;
-    total_citations: number | null;
-    self_citation_count: number | null;
-    conflict_total: number | null;
-    last_checked: string | null;
-    last_accessible: string | null;
-    created_at: string;
-    last_substantive_change: string | null;
-    update_frequency: string | null;
-  }
-  let sources: TrustSourceRow[];
+  let sources: TierSourceRow[];
   try {
     sources = await fetchAllRows((from, to) =>
       supabase
         .from("sources")
-        .select(
-          "id, name, base_tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked, last_accessible, created_at, last_substantive_change, update_frequency"
-        )
+        .select(TIER_SOURCE_COLUMNS)
         .eq("processing_paused", false)
         .order("id", { ascending: true })
         .range(from, to)
@@ -114,41 +86,14 @@ export async function POST(request: NextRequest) {
   let failed = 0;
   const failures: string[] = [];
 
-  // Demotion (Wave W2, wire #25) — loud counters, separate from the trust-score
-  // failures above: a demotion evaluation/record failure never blocks or is
-  // blocked by that source's trust-score update.
-  let demotionsProposed = 0;
-  let demotionRecordFailed = 0;
-  let demotionEvalFailed = 0;
-  const demotionFailures: string[] = [];
-  const demotionSamples: Array<{ source: string; recommended_tier: number; triggers: string[] }> = [];
-
   // Distribution buckets reported back to the workflow log so the cron run
   // surfaces meaningful telemetry, not just a count.
   const distribution = { "0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0 };
   const byTier: Record<number, number[]> = {};
 
   for (const s of sources) {
-    // Build a TrustMetrics shape from the flat columns. Fields that don't
-    // exist on the row default to 0 / null per TrustMetrics defaults.
-    const metrics: TrustMetrics = {
-      confirmation_count: s.confirmation_count || 0,
-      conflict_count: s.conflict_count || 0,
-      conflict_total: s.conflict_total || 0,
-      accuracy_rate: s.accuracy_rate ?? 0,
-      total_checks: s.total_checks || 0,
-      successful_checks: 0, // not on this select; not used by the formula
-      consecutive_accessible: 0,
-      accessibility_rate: s.accessibility_rate ?? 0,
-      last_accessible: s.last_accessible ?? null,
-      last_inaccessible: null,
-      lead_time_samples: s.lead_time_samples || 0,
-      avg_lead_time_days: s.avg_lead_time_days || 0,
-      independent_citers: s.independent_citers || 0,
-      total_citations: s.total_citations || 0,
-      self_citation_count: s.self_citation_count || 0,
-      highest_citing_tier: s.highest_citing_tier || null,
-    };
+    // Build a TrustMetrics shape from the flat columns (shared with the tier calculator).
+    const metrics = trustMetricsFromRow(s);
 
     const score = computeTrustScore(metrics);
     // Phase 1.5: base_tier per scoring-internals default rule.
@@ -173,43 +118,6 @@ export async function POST(request: NextRequest) {
       updated++;
     }
 
-    // DEMOTION (Wave W2, wire #25 — evaluateDemotion has never been called from
-    // production before this). Own try/catch: a thrown evaluation or a failed
-    // source_trust_events insert is fail-soft PER SOURCE — it must not abort the
-    // sweep and must not roll back the trust-score update already written above.
-    // See demotionOutcomeFor's doc comment for why this is propose-only.
-    try {
-      const demotionSource = {
-        base_tier: s.base_tier,
-        created_at: s.created_at,
-        last_substantive_change: s.last_substantive_change,
-        update_frequency: s.update_frequency,
-        trust_metrics: metrics,
-        // evaluateDemotion (src/lib/trust.ts) reads ONLY base_tier, trust_metrics,
-        // last_substantive_change, update_frequency, and created_at — every other
-        // Source field is irrelevant to its verdict, so this narrow object stands
-        // in for the full row the admin surfaces read elsewhere.
-      } as unknown as Source;
-      const demotionEval = evaluateDemotion(demotionSource);
-      const outcome = demotionOutcomeFor(s.id, demotionEval);
-      if (outcome.proposed) {
-        demotionsProposed++;
-        demotionSamples.push({
-          source: s.name,
-          recommended_tier: outcome.event.details.recommended_tier,
-          triggers: outcome.event.details.triggers_fired.map((t) => t.trigger.trigger),
-        });
-        const { error: evErr } = await supabase.from("source_trust_events").insert(outcome.event);
-        if (evErr) {
-          demotionRecordFailed++;
-          demotionFailures.push(`${s.name}: source_trust_events insert failed: ${evErr.message}`);
-        }
-      }
-    } catch (e) {
-      demotionEvalFailed++;
-      demotionFailures.push(`${s.name}: demotion evaluation threw: ${e instanceof Error ? e.message : String(e)}`);
-    }
-
     if (overall <= 20) distribution["0-20"]++;
     else if (overall <= 40) distribution["21-40"]++;
     else if (overall <= 60) distribution["41-60"]++;
@@ -232,6 +140,70 @@ export async function POST(request: NextRequest) {
     };
   }
 
+  // Tier movement: decide from the evidence, apply, record. See the header.
+  let tierMovement: ReturnType<typeof tierMovementSummary>;
+  try {
+    const plan = await planTierMovements({
+      // The whole registry, paused rows included: a paused source still weighs as a citer, and the
+      // planner itself skips moving a paused row.
+      readSources: () =>
+        fetchAllRows((from, to) =>
+          supabase
+            .from("sources")
+            .select(TIER_SOURCE_COLUMNS)
+            .order("id", { ascending: true })
+            .range(from, to)
+        ),
+      readOpinions: (sinceIso) =>
+        fetchAllRows((from, to) =>
+          supabase
+            .from("source_tier_opinions")
+            .select("target_source_id, opined_tier, opining_source_id, opined_at, dismissed_at, opinion_source")
+            .is("dismissed_at", null)
+            .gte("opined_at", sinceIso)
+            .order("id", { ascending: true })
+            .range(from, to)
+        ),
+      readCitations: () =>
+        fetchAllRows((from, to) =>
+          supabase
+            .from("source_citations")
+            .select("citing_source_id, cited_source_id, detected_at")
+            .order("id", { ascending: true })
+            .range(from, to)
+        ),
+    });
+    const applied = await applyTierMovements(plan.movements, {
+      setEffectiveTier: async (sourceId, tier) => {
+        // The tier_override guard repeats the planner's own rule at the write: an override set between
+        // the read and this write is never written over.
+        const { error } = await supabase
+          .from("sources")
+          .update({ effective_tier: tier })
+          .eq("id", sourceId)
+          .is("tier_override", null);
+        if (error) throw new Error(error.message);
+      },
+      insertEvent: async (event: ReturnType<typeof tierMovementEvent>) => {
+        const { error } = await supabase.from("source_trust_events").insert(event);
+        if (error) throw new Error(error.message);
+      },
+    });
+    tierMovement = tierMovementSummary(plan, applied);
+  } catch (e) {
+    return NextResponse.json(
+      {
+        updated,
+        failed,
+        failures: failures.slice(0, 10),
+        total_sources: sources.length,
+        tier_movement_error: e instanceof Error ? e.message : String(e),
+        computed_at: now,
+      },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json({
     updated,
     failed,
@@ -239,15 +211,7 @@ export async function POST(request: NextRequest) {
     total_sources: sources.length,
     distribution,
     tier_averages: tierAverages,
-    // DEMOTION (Wave W2, wire #25). PROPOSE-ONLY: demotions_proposed counts sources
-    // with >=1 fired trigger this pass, each recorded to source_trust_events
-    // (event_type='tier_demotion', details.applied=false) — no sources.base_tier or
-    // effective_tier write happens here. See demotionOutcomeFor's doc comment.
-    demotions_proposed: demotionsProposed,
-    demotion_record_failed: demotionRecordFailed,
-    demotion_eval_failed: demotionEvalFailed,
-    demotion_failures: demotionFailures.slice(0, 10), // first 10 only — workflow log is finite
-    demotion_samples: demotionSamples.slice(0, 10), // first 10 only — response body is finite
+    tier_movement: tierMovement,
     computed_at: now,
   });
 }
