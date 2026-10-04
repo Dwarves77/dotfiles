@@ -141,6 +141,19 @@ test('F14: PostgREST embedded-resource reads (`.select("id, child_table ( col )"
   assert.equal(r.ok, true);
 });
 
+test('F14: a table whose only read is the guarded readAll helper is NOT an orphan; with no read at all it still IS (red-then-green)', () => {
+  const schema = [{ file: 'm.sql', content: 'CREATE TABLE sim_readall (id uuid);' }];
+  const writer = { file: 'sim/w.mjs', content: 'await guardedInsertMany("sim_readall", rows, { cite });' };
+  const reader = { file: 'sim/r.mjs', content: 'const rows = await readAll("sim_readall", "id", { orderBy: "id" });' };
+  const mk = (files) => buildOrphanReport({ schema: scanSchema(schema), code: scanCode(files), sql: scanSql(schema), allowlist: {} });
+  const red = mk([writer]);
+  assert.ok(red.gatingOrphans.find((o) => o.table === 'sim_readall'), 'no read anywhere: still a write-orphan');
+  assert.equal(red.ok, false);
+  const green = mk([writer, reader]);
+  assert.equal(green.gatingOrphans.find((o) => o.table === 'sim_readall'), undefined, 'a readAll read counts as a reader');
+  assert.equal(green.ok, true);
+});
+
 test('F14: live tree is GREEN (grandfathered allowlist; no NEW orphan)', () => {
   const v = fitnessFunction.check('sentinel', '');
   assert.deepEqual(v, [], `F14 must be green on the current tree; got: ${JSON.stringify(v)}`);

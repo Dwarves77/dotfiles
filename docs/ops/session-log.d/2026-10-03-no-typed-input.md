@@ -19,6 +19,12 @@ components 9 and 10 were listed in the brief as superseded but are workspace pre
 noted in the ADR. (3) `estimated_values` has no registered writer after this change. (4) Migration 350's DELETE
 fires the outbox trigger, appending delete events to `propagation_events` (left untouched, per the brief).
 
+(5) `regional_data_facts` has an outbox trigger and no registered consuming method after ADR-043; the generic
+requirement-versus-actual method in the buildout plan (Stage 4) is its next consumer; owner: coordinator. Same for
+`estimated_values` having no registered writer. (6) F14 now counts the guarded `readAll("<table>"` helper as a
+reader (class fix in `producer-consumer-orphan.mjs`, red-then-green test in the F14 test file); no allowlist entry
+went stale. F28 pending markers were added for the `producers` and `carrier-ets-proxy` families.
+
 ## UX compliance
 
 Blocks touched: Operations list page (the "Capacity investment estimate" link row removed) and the retired

@@ -104,6 +104,11 @@ import { replaySchema } from './db-object-reference.mjs';
 
 // supabase-js CRUD verb sits immediately after .from("T") (possibly across a newline). Low-false-positive.
 const CODE_OP_RE = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)\s*\.(insert|upsert|update|delete|select)\b/g;
+// GUARDED READ HELPER (scripts/lib/db.mjs): `readAll("T", cols, opts)` and `readAllByIds("T", ...)` take the table
+// name as a string-literal FIRST argument and are the repo's paged read path, so a table read only through them
+// is read (lane NO-TYPED-INPUT, 2026-10-03: backfill-entities.mjs read entity_identifiers this way and the
+// scanner saw no reader once the one `.from(...).select` read was removed).
+const GUARDED_READ_RE = /\b(?:readAll|readAllByIds)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
 const RPC_CALL_RE = /\.rpc\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
 
 // GUARDED-WRITE HELPERS (scripts/lib/db.mjs): guardedInsert/guardedInsertMany/guardedUpdate/
@@ -166,6 +171,9 @@ export function scanCode(codeFiles) {
     }
     for (const m of matchAll(RPC_CALL_RE, content)) {
       add(rpcCalls, m[1], { file, line: lineOf(content, m.index) });
+    }
+    for (const m of matchAll(GUARDED_READ_RE, content)) {
+      add(readers, m[1], { file, line: lineOf(content, m.index) });
     }
     for (const m of matchAll(GUARDED_WRITE_RE, content)) {
       add(writers, m[1], { file, line: lineOf(content, m.index), op: 'guarded' });
