@@ -739,7 +739,7 @@ test('underEntryDir: recognizes the five derived directories and docs/ops/sessio
   assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
 });
 
-test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries plus the two dated R7-LINT-CI approvals -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
+test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries plus the two dated R7-LINT-CI approvals and the dated 2026-10-04 MAINTENANCE-RUNBOOK approval -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
   assert.deepEqual(
     Object.keys(HOTSPOT_ALLOWLIST).sort(),
     [
@@ -749,6 +749,8 @@ test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only t
       // Two dated, coordinator-approved (2026-10-03) concurrency exemptions for lane R7-LINT-CI, a
       // whole-tree lint remediation merged clean against #907 and #908 (see HOTSPOT_ALLOWLIST).
       'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs', 'fsi-app/src/lib/supabase-server.ts',
+      // Dated coordinator-decided exemption (2026-10-04): S0/S1-B/S1-C parallel lanes, disjoint runbook sections.
+      'docs/runbooks/MAINTENANCE-RUNBOOK.md',
     ].sort(),
   );
 });

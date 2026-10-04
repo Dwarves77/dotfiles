@@ -299,7 +299,6 @@ function isTestFile(name) {
 // ---------------------------------------------------------------------------------------------------
 const KNOWN_DRIFT_ALLOWLIST = {
   'monitoring_queue.last_result=change_detected': 'Pre-existing drift found by this check\'s first run (2026-09-12), outside the D5/D7 write set: scripts/turns/run-source-sweep.mjs writes a value monitoring_queue_last_result_check does not list (["no_change","updated","new_item","error","inaccessible"]). Flagged for a follow-up lane; not fixed here.',
-  'source_trust_events.created_by=reputation-cycle': 'Pre-existing drift found by this check\'s first run (2026-09-12), outside the D5/D7 write set: src/lib/sources/source-growth.ts writes a value source_trust_events_created_by_check does not list (["system","worker","human"]). Flagged for a follow-up lane; not fixed here.',
 };
 
 function allowlistKey(v) {
