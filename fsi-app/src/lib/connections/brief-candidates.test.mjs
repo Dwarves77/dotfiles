@@ -246,3 +246,13 @@ test("formatCandidateBlock: a STALE theme brief is labeled STALE in the block, n
   const block = formatCandidateBlock(selection);
   assert.match(block, /STALE/);
 });
+
+// ── lane S3-A: the intersection basis entry renders readably, never as "[object Object]" ──
+test("formatCandidateBlock: an intersection entry names its shared scenarios, objects and tier", () => {
+  const ix = { signal: "intersection", detail: { scenarios: ["ocean-bunkering", "air-fueling"], objects: ["customs-broker"], strength: 11, tier: "medium" }, weight: 0.8 };
+  const selection = selectCandidates("subject", { crossRefRows: [xref("subject", "other", { basis: [ix] }), xref("other", "subject", { basis: [JSON.parse(JSON.stringify(ix))] })] });
+  assert.equal(selection.candidates[0].basis.length, 1, "both directions dedupe to one entry");
+  const block = formatCandidateBlock(selection);
+  assert.doesNotMatch(block, /\[object Object\]/);
+  assert.match(block, /intersection \(scenarios: ocean-bunkering, air-fueling; objects: customs-broker; medium tier, strength 11\)/);
+});

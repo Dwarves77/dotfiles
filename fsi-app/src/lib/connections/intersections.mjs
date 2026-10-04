@@ -164,3 +164,35 @@ export function detectIntersections(items) {
   out.sort((x, y) => y.strength - x.strength || (x.a < y.a ? -1 : x.a > y.a ? 1 : 0) || (x.b < y.b ? -1 : x.b > y.b ? 1 : 0));
   return out;
 }
+
+// ── basis entry helpers (every reader of basis[].detail goes through these) ───────────────────────────
+// A basis detail is a string for every discovery signal but an OBJECT for the intersection entry, so a
+// `x.detail === y.detail` dedupe never matches two copies of the same entry and `${detail}` prints
+// "[object Object]". These two helpers are the one home for comparing and printing a detail.
+
+/** JSON with object keys sorted recursively, so equal values serialise identically. */
+export function canonicalJson(v) {
+  if (Array.isArray(v)) return `[${v.map(canonicalJson).join(",")}]`;
+  if (v && typeof v === "object") {
+    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(v[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(v ?? null);
+}
+
+/** Dedupe key for a basis entry: signal plus its detail (string as-is, anything else canonicalised). */
+export function basisEntryKey(b) {
+  const d = b?.detail;
+  return `${b?.signal ?? ""}|${typeof d === "string" ? d : d == null ? "" : canonicalJson(d)}`;
+}
+
+/** Readable text for a basis entry's detail, "" when there is none. */
+export function basisDetailText(b) {
+  const d = b?.detail;
+  if (d == null || d === "") return "";
+  if (typeof d === "string") return d;
+  if (isIntersectionEntry(b)) {
+    const list = (x) => (Array.isArray(x) ? x.join(", ") : "");
+    return `scenarios: ${list(d.scenarios)}; objects: ${list(d.objects)}; ${d.tier ?? "weak"} tier, strength ${d.strength ?? 0}`;
+  }
+  return canonicalJson(d);
+}

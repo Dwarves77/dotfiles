@@ -18,11 +18,11 @@ Read in full: the register, the skill sections, ADR-018/019/021/022, `discover.m
 - cross_surface is false when either item classifies to `uncategorized`, null when an item has no `item_type`.
 - Counts are in `args.intersections` (no other existing column fits; migration 276 documents `args` as CLI args, so a dedicated column is the coordinator's call).
 
-### NOT done
-- `cluster.mjs` and `brief-candidates.mjs` dedupe basis entries by `detail ===` and `brief-candidates.mjs` prints `${b.detail}`; with an object-valued intersection detail, `dominantSignals` double-counts the entry across the two directed rows and a candidate line would print "[object Object]". NEEDS WRITE-SET EXPANSION (cluster.mjs is S3-C territory).
-- `scripts/mint/MINT-RUNBOOK.md` section 8 and `docs/runbooks/POPULATION-TURN-RUNBOOK.md` state the old step order; not in this write set.
-- `apply-record-briefs.mjs` comment "analyze-corpus first" and its per-item discovery precede tags for the batch; not in this write set.
-- No live run, no migration, no apply.
+### Coordinator rulings applied (round 2)
+- F39 marker added on the delete `.in("id", ids)` (100-element slice). Decisions 1 to 3 confirmed.
+- `basisEntryKey` and `basisDetailText` (intersections.mjs) are the one home for comparing and printing a basis detail; `cluster.mjs`, `brief-candidates.mjs` and `pair-view.mjs` use them, so the intersection entry counts once per undirected pair in `dominantSignals` and prints as "intersection (scenarios: ...; objects: ...; tier, strength N)". Red-then-green tests in cluster.test.mjs and brief-candidates.test.mjs.
+- Other readers of `basis[].detail` (grep): `src/lib/entities/lineage-backfill.mjs:40` keys by `${e?.detail ?? ""}` (outside my files; only lineage entries pass through it, so no live collision, not edited); `src/components/sources/IntersectionDetectionView.tsx:286,291` renders `b.detail` as a child (safe because pair-view keeps the intersection entry out of `basis`; not edited); `ItemConnectionsCard.tsx` and `connection-view-model.mjs` read only `signal` and `weight`.
+- MINT-RUNBOOK.md section 8 and POPULATION-TURN-RUNBOOK.md order statements corrected; MINT-RUNBOOK is a mint governing file, pending marker `scripts/harness-runs/mint/pending/2026-10-04-s3a-intersections.md` added. `apply-record-briefs.mjs` comments corrected only; its per-item order (APPLY_STEP_ORDER) is generate, section, ground, grow, structured-actions, lineage, discovery, forward-events, compliance-deadline, entities, unchanged, and tags still follow per-item discovery there (batch-level tags now run before analyze-corpus).
 
-### Open items
-- Confirm the delete-on-empty decision and the `args.intersections` placement.
+### NOT done
+- No live run, no migration, no apply.

@@ -31,7 +31,7 @@
 //   weak    <  0.5  — a single substantive signal near the 0.3 discovery threshold
 export const BANDS = { strong: 0.9, medium: 0.5 };
 
-import { isIntersectionEntry, isCrossSurface } from "./intersections.mjs";
+import { isIntersectionEntry, isCrossSurface, basisEntryKey, basisDetailText } from "./intersections.mjs";
 
 const canonKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
@@ -74,14 +74,14 @@ export function collapsePairs(edgeRows) {
         }
         continue;
       }
-      if (bs && bs.signal && !p.basis.some((x) => x.signal === bs.signal && x.detail === bs.detail)) {
+      if (bs && bs.signal && !p.basis.some((x) => basisEntryKey(x) === basisEntryKey(bs))) {
         p.basis.push(bs);
       }
     }
   }
   // Deterministic basis order within a pair: weight desc, then signal, then detail.
   for (const p of pairs.values()) {
-    p.basis.sort((x, y) => (y.weight ?? 0) - (x.weight ?? 0) || String(x.signal).localeCompare(String(y.signal)) || String(x.detail ?? "").localeCompare(String(y.detail ?? "")));
+    p.basis.sort((x, y) => (y.weight ?? 0) - (x.weight ?? 0) || String(x.signal).localeCompare(String(y.signal)) || basisDetailText(x).localeCompare(basisDetailText(y)));
   }
   return pairs;
 }

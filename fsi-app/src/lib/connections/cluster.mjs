@@ -39,6 +39,8 @@
 // name), strongest first — the theme-level "why these belong together", grounded in the same
 // basis objects the edges carry. An edge without basis contributes nothing (no invented links).
 
+import { basisEntryKey } from "./intersections.mjs";
+
 const MAX_ROUNDS = 20;
 const PIVOT_K = 3;
 
@@ -86,7 +88,7 @@ export function clusterGraph(nodes, edges, { surfaceOf } = {}) {
     if (existing) {
       existing.score = Math.max(existing.score, score);
       for (const bs of Array.isArray(e.basis) ? e.basis : []) {
-        if (bs && bs.signal && !existing.basis.some((x) => x.signal === bs.signal && x.detail === bs.detail)) existing.basis.push(bs);
+        if (bs && bs.signal && !existing.basis.some((x) => basisEntryKey(x) === basisEntryKey(bs))) existing.basis.push(bs);
       }
     } else {
       pair.set(key, { a, b, score, basis: (Array.isArray(e.basis) ? e.basis : []).filter((x) => x && x.signal) });

@@ -255,7 +255,10 @@ every one of these steps skipped, leaving every minted item with zero `item_cros
 `item_forward_events`, no obligations, no tags, no signals. Per the operator's own ruling that day,
 "there is no thing within this entire build that works on its own ever" — a runtime that ends without
 triggering its downstream is a defect in the runtime, not a note for a coordinator. The coordinator's job
-now is to read the outcomes §9 records, not to run these steps by hand:
+now is to read the outcomes section 9 records, not to run these steps by hand. Order (lane S3-A, 2026-10-04):
+tag proposals and ratification run FIRST, so every edge and intersection the later steps compute sees
+the tags this pass adopted; then discovery, forward events, and the recluster. The list below keeps its
+step names; read it in that order (tags first, see item 2 for their own text):
 
 1. **Discovery** — `scripts/connections/discover-for-items.mjs`, scoped to exactly this batch's minted
    item ids (extracted from the just-applied `mint-run-NNN.json`'s `per_item`), writes real, grounded
@@ -267,10 +270,10 @@ now is to read the outcomes §9 records, not to run these steps by hand:
    `scripts/forward-events/run-extraction.mjs --execute` + `scripts/turns/apply-extraction-output.mjs
    --execute`, scoped to the same batch, turn any dated obligation language the new items carry into
    queryable `item_forward_events` rows rather than dead prose in `full_brief`, and derive obligations
-   (`scripts/maintenance/derive-obligations.mjs`) and tag proposals + ratification
-   (`scripts/maintenance/tag-proposals.mjs` / `tag-ratification.mjs --arg auto`) from what discovery and
-   extraction just found.
-3. **Recluster** — `scripts/connections/analyze-corpus.mjs --signals` (whole-corpus, the same scope
+   (`scripts/maintenance/derive-obligations.mjs`) from what discovery and extraction just found. Tag
+   proposals + ratification (`scripts/maintenance/tag-proposals.mjs` / `tag-ratification.mjs --arg auto`)
+   do NOT follow these: they run before discovery.
+3. **Recluster**, `scripts/connections/analyze-corpus.mjs --signals` (which first detects intersections and writes them onto the pair edges) (whole-corpus, the same scope
    `corpus-turn.yml` uses) so the newly minted items are grouped with their real neighbors rather than
    sitting unclustered until the next scheduled turn.
 4. **Brief queuing** (task 3.5, W9 brief-chain plan Part 3, "every new item is queued for a brief

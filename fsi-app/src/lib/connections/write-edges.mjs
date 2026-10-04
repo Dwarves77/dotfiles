@@ -257,6 +257,7 @@ export async function writeIntersectionEdges(sb, pairs, { chunk = 200, dry = fal
   const delIds = plan.deletes.map((r) => r.id).filter(Boolean);
   for (let i = 0; i < delIds.length; i += 100) {
     const ids = delIds.slice(i, i + 100);
+    // fitness-allow: F39 (ids is a 100-element slice of delIds, bounded per request)
     const { error } = await sb.from("item_cross_references").delete().in("id", ids);
     if (error) { result.failedChunks++; console.warn(`[write-edges] intersection delete chunk ${i} failed: ${error.message}`); }
     else result.written += ids.length;
