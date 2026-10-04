@@ -11,9 +11,9 @@
  * information a reader who trusted the old number needs, independent of whether either value would
  * currently be admissible for some use.
  *
- * UX contract (docs/dispatches/lane-common-contract.md, added 2026-09-03): mounted on 5 surfaces as of
- * lane NOTICES 2026-09-05 (Operations' AutomateVsHireCalculator plus, via NoticesRail below, the Market
- * index page and all four item detail pages) — the entity-label span carries `data-guard-title` and this
+ * UX contract (docs/dispatches/lane-common-contract.md, added 2026-09-03): mounted via NoticesRail below on the Market
+ * index page and all four item detail pages (lane NOTICES 2026-09-05; the Operations calculator mount was
+ * retired by ADR-043), the entity-label span carries `data-guard-title` and this
  * row shape is measured by `.discipline/rendering/smoke/notices-rail-smoke.mjs`.
  */
 

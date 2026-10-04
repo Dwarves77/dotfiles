@@ -81,13 +81,13 @@ async function main() {
 
   // Recorded on this run's normal completion (lane M9d, brief-m9d Amendment 1 item C.2). No assertion of
   // this producer's own analogous to assertEdgesAuthored exists (that gate is market_series-only, lane M5),
-  // so edges_authored is whatever authorAutomateVsHireForRegions actually authored this run, null when the
-  // producer never reached that step (disabled, or a dry run with candidates:0, both real "ok" outcomes).
+  // so edges_authored is null: regional_data_facts rows carry no derivation edges since ADR-043 retired
+  // the only method that read them.
   writeProducerSummary({
     producer: PRODUCER_NAME,
     status: "ok",
     rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
-    edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+    edges_authored: null,
     counts: result,
   });
 }

@@ -11,8 +11,8 @@
 // when carbon-intensity.mjs itself refuses (an unsupported quantity_basis, or no usable ttw/wtw/wtt
 // number) — both are ordinary, expected outcomes, never a thrown drain (spec §2.2 Part 3).
 
-// NOTE: this file does NOT import registerMethod from "./index.ts" — see automate-vs-hire.ts's header in
-// this same directory for why (a circular index.ts <-> method-file import breaks on REGISTRY's TDZ).
+// NOTE: this file does NOT import registerMethod from "./index.ts" ; see the header note in
+// index.ts for why (a circular index.ts <-> method-file import breaks on REGISTRY's TDZ).
 // index.ts imports this file's named exports and calls registerMethod itself.
 import type { MethodFn, MethodContext, MethodResult } from "./index.ts";
 import { carbonIntensity } from "../../market/carbon-intensity.mjs";
@@ -72,7 +72,7 @@ export const computeCarbonIntensity: MethodFn = (ctx: MethodContext): MethodResu
     unit: r.unit,
     // "calculated" IS contractable (src/lib/contracts/envelope.mjs DERIVATION) — a deterministic unit
     // conversion of a published factor is admissible in a calculation once its confidence clears
-    // FLOOR.calculation, unlike the automate-vs-hire estimate (modelled, never contractable).
+    // FLOOR.calculation, unlike a modelled estimate (never contractable).
     derivation: "calculated",
     originClass: "derived",
     lifecycle,

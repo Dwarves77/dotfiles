@@ -266,6 +266,8 @@ independence* in one glance.
 
 **The question:** where should I do this, and is it cheaper to automate or to hire.
 
+> **Operator ruling 2026-10-03 (ADR-043).** The question is now: what do costs, wages, energy, materials and infrastructure look like in each region, sourced, for the reader's own decision. "Automate or hire" is no longer posed by the surface.
+
 **The one thing that makes it different:** you can put two regions on one axis. Today you cannot,
 anywhere in the product.
 
@@ -311,6 +313,8 @@ Decisions here are routinely wrong because somebody used the headline wage. Show
 prevents that.
 
 **4. Automate versus hire, with break-even given equal billing to the answer:**
+
+> **Operator ruling 2026-10-03 (ADR-043).** Item 4 is RETIRED (superseded by ADR-043). Item 3, the labour chain, stays. The panel below is kept as history and is not built; it also read as a typed scenario, which no surface may do.
 
 ```
 HVAC monitoring system vs 2 FTE  -  US-TX

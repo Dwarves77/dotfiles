@@ -29,8 +29,7 @@
  * REUSED, NOT REINVENTED: `Absence` (the one absence vocabulary/treatment, ui/Absence.tsx) for every
  * gap; `SectionHeading` (ui/SectionHeading.tsx) for the Anton title, which is what carries
  * `data-guard-title` for this row component without a second declaration. Read AND NOT reused:
- * `EstimatedFigure`/`AutomateVsHireCalculator.tsx`, that component is a reader-driven what-if
- * calculator over ten free-typed inputs with its own synthetic `Value`/range-admissibility machinery;
+ * `EstimatedFigure`, which carries synthetic `Value`/range-admissibility machinery for a modelled figure;
  * this component is a read-only render of SERVER-SUPPLIED facts with no reader input and no
  * uncertainty band of its own (the facts it reads already carry whatever uncertainty their own
  * producer/envelope states), so building a synthetic `Value` for it would be modelling uncertainty

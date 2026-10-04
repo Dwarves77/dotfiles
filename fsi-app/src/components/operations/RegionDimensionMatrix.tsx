@@ -1045,7 +1045,7 @@ const SELECTED_INSET = "inset 0 0 0 2px var(--monitor)";
  *  controls ("Compare across regions", "Open profile", "N more facts on the profile") and reported
  *  all three at 24px against L9's floor of ">= 44px in one dimension and >= 28px in the other", six
  *  findings across 1440 and 1024. The value RISES to the floor the guard enforces rather than the
- *  guard being relaxed, which is the same resolution fold 63 applied to the calculator foot link. */
+ *  guard being relaxed, which is the same resolution fold 63 applied to a since-removed foot link. */
 const panelLink: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",

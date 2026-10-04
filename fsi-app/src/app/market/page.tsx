@@ -263,8 +263,8 @@ export default async function Market() {
       </div>
       {/* Recalculation notices (docs/specs/08-flywheel-design.md §2.2 Part 3 / §4 Layer 4; complete-system
           build plan W4.3, lane NOTICES 2026-09-05): org-watchlist-scoped, fed by GET /api/notices via
-          NoticesRail (src/components/figures/NoticesRail.tsx) — the same rail Operations' calculator
-          mounts. Renders the honest "no recalculations" empty state today (derived_values carries 0
+          NoticesRail (src/components/figures/NoticesRail.tsx), the same rail the item detail pages
+          mount. Renders the honest "no recalculations" empty state today (derived_values carries 0
           superseded pairs live, per lane NOTICES's own report) rather than nothing at all. */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }}>
         <NoticesRail />

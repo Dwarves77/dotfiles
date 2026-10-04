@@ -7,12 +7,10 @@
 // WHY THIS PRODUCER EXISTS. bls-oews-producer.mjs writes `labor_markets` facts ONLY for region_code='US'
 // (BLS OEWS is a US-only survey). eurostat-nrg-pc-205-producer.mjs writes `operational_cost` facts ONLY
 // for region_code='EU' (an EU-aggregate electricity price). No region has EVER carried both a
-// labor_markets AND an operational_cost fact, so `automate_vs_hire`'s propagation method
-// (src/lib/propagation/methods/automate-vs-hire.ts) and seed-derived-values.mjs's automate-vs-hire seed
-// path have had ZERO regions to compute for, by construction — not a bug in either of those, a genuine
-// coverage gap in the two source producers. This producer closes the 'EU' half of that gap: once it
-// writes a `labor_markets` fact for 'EU', that region carries BOTH facts and automate_vs_hire has real
-// input to compute from. (The 'US' half — an EU-shaped energy-price fact for the US region — is NOT
+// labor_markets AND an operational_cost fact, a genuine coverage gap in the two source producers (the
+// wage-versus-automation derived value that once read the pair was retired by ADR-043, but the wage and
+// energy evidence itself stays). This producer closes the 'EU' half of that gap: once it
+// writes a `labor_markets` fact for 'EU', that region carries BOTH facts. (The 'US' half, an EU-shaped energy-price fact for the US region, is NOT
 // addressed here; it is a separate, symmetric gap this task was not scoped to close. Named, not fixed.)
 //
 // SOURCE + PARSE PATTERN — SAME AS eurostat-nrg-pc-205-producer.mjs, PER COORDINATOR INSTRUCTION. Same
@@ -191,7 +189,7 @@ async function main() {
       reason:
         "Eurostat lc_lci_lev EU labour-cost producer, closing the BLS/Eurostat region disjointness " +
         "(coordinator follow-up, 2026-09-02) so the 'EU' region carries both a labor_markets and an " +
-        "operational_cost fact for automate_vs_hire to compute from. Envelope-first per WO-17/ADR-023.",
+        "operational_cost fact as sourced regional evidence. Envelope-first per WO-17/ADR-023.",
     },
   });
 
@@ -200,7 +198,7 @@ async function main() {
     producer: PRODUCER_NAME,
     status: "ok",
     rows_changed: (result.inserted ?? 0) + (result.updated ?? 0),
-    edges_authored: result.authorCounts ? result.authorCounts.authored : null,
+    edges_authored: null, // regional_data_facts rows carry no derivation edges (ADR-043)
     counts: result,
   });
 }

@@ -91,7 +91,7 @@ function nonPortableSpecifiers(src) {
 }
 
 test("ATTACK: nonPortableSpecifiers does not read English prose as an import (the run-envelope-producer false positive, verbatim)", () => {
-  const src = "test(\"authorAutomateVsHireForRegions: 'skipped-already-authored' is counted separately from 'authored'\", async () => {});";
+  const src = "test(\"authorExampleEdges: 'skipped-already-authored' is counted separately from 'authored'\", async () => {});";
   assert.deepEqual(nonPortableSpecifiers(src), []);
 });
 

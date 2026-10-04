@@ -40,7 +40,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { OperationsCoverageData, OperationsFact, StateCostFactRow } from "@/lib/supabase-server";
@@ -491,38 +490,6 @@ export function OperationsLedger({
          jurisdiction count this line restated are both in the masthead scope line already ("25
          active items · 18 jurisdictions · ..."). Removed with the same line on /regulations and
          /market, which share this shared slot (lane lists60, 2026-09-08). */
-      /* Item D3 (2026-09-08): the capacity-investment calculator moved to its own page, and a page
-         nothing links to is unreachable. This is the one link to it — the same text-link geometry the
-         band cards' own foot row uses (12px/600, underlined at rgba(0,0,0,.3), 24px minimum box), in
-         the slot the removed By-state disclosure vacated. Artboard 08 draws no such row; logged in
-         DEVIATION-LOG.md with the two new routes it belongs to. */
-      belowRows={
-        <div style={{ display: "flex", justifyContent: "flex-start" }}>
-          <Link
-            href="/operations/calculator"
-            data-audit="calculator-link"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              // FOLD 63 (2026-09-08): 28, not 24. This lane took its geometry from the band cards'
-              // own foot link, whose 24px box is below the site-wide layout guard's L9 floor
-              // (">= 44px in one dimension and >= 28px in the other"), and the guard measured this
-              // NEW link at 217x26 on /operations at both 1440 and 1024. An element this fold adds
-              // meets the floor rather than joining a baselined class: 28px of box, same type, same
-              // underline, one row taller by 2px.
-              minHeight: 28,
-              padding: "5px 0",
-              fontSize: "var(--fs-12)",
-              fontWeight: 600,
-              color: "var(--ink)",
-              textDecoration: "underline",
-              textDecorationColor: "rgba(0,0,0,.3)",
-            }}
-          >
-            Capacity investment estimate →
-          </Link>
-        </div>
-      }
       rail={
         <>
           <RailCard title="Coverage gaps" dataAudit="coverage-gaps-rail">

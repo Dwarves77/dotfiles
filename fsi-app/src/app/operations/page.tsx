@@ -11,8 +11,8 @@
  * PAGE SCOPE (UI fix round 2026-09-08, item D3). Artboard 08 defines the WHOLE page, and everything
  * that used to sit below its last card has moved or gone:
  *   - the "Capacity investment estimate" calculator, and with it the "Recent recalculations" list
- *     that is its own foot, MOVED to /operations/calculator (the operator ruled that move earlier and
- *     restated it this round).
+ *     that is its own foot, MOVED to its own page (item D3), then RETIRED with the page by ADR-043
+ *     (operator ruling 2026-10-03: no reader-typed input produces a result anywhere).
  *   - the auxiliary-energy and grid-queue panels MOVED onto the Operations PROFILE page as
  *     S-sections (the DQI panel was removed by ADR-042), with their existing data paths, see /operations/[slug]/page.tsx.
  *   - the "By state" sub-list REMOVED. It was restored in the UILISTS2 lane on ruling R7 ("a feature

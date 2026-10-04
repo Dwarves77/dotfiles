@@ -31,7 +31,7 @@
 // of the hydration-mismatch bug class". That was true of two of the three it names and FALSE of a
 // fourth it did not: `src/lib/figures/format-range.mjs` called `toLocaleString(undefined, …)` and is
 // rendered by `<EstimatedFigure/>` / `<DerivedFigure/>` inside "use client" trees on /operations
-// (AutomateVsHireCalculator) and /market (CarbonCostOverlay). Reproduced verbatim this lane from
+// (the since-retired Operations calculator) and /market (CarbonCostOverlay). Reproduced verbatim this lane from
 // React's own text-mismatch diff in a de-DE Playwright context: SSR `USD 375,545 – USD 460,670 –
 // USD 545,794`, hydration `USD 375.545 – USD 460.670 – USD 545.794` — React #418 on every load for
 // every non-en-US viewer. That module now pins its own `FIXED_LOCALE` (asserted equal to

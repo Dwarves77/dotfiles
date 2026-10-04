@@ -5,7 +5,6 @@ import {
   runStateCostFactsProducer,
   resolveRegionIds,
   authorJurisdictionEntitiesForStates,
-  authorAutomateVsHireForStates,
   buildRunArtifact,
   FSI_ROOT,
   GOVERNING_FILES,
@@ -24,11 +23,6 @@ import { join } from "node:path";
 // here (not only transitively through state-cost-facts-producer.mjs) so F27's textual scan sees both.
 import { buildStateCostFactRow, planUpsert as planStateCostUpsert } from "../../../src/lib/regional/state-cost-facts-envelope.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs } from "../../../src/lib/entities/entity-plan.mjs";
-// The producer's two NEWER first-party seams (lane STATE-COST-DAG 2026-09-27), imported directly here too
-// so F27's textual scan sees all four seams composed in one proof (see the composition test below, which
-// now also exercises authorAutomateVsHireForStates end to end against these two real modules).
-import { authorEdges } from "../../../src/lib/propagation/author-edges.mjs";
-import { isHourlyWageUnit } from "../../../src/lib/operations/automate-vs-hire.mjs";
 
 // ── R14 hold: the kill switch itself ─────────────────────────────────────────────────────────────────
 test("ENABLED is false, R14 hold, no live rows from this lane", () => {
@@ -197,85 +191,6 @@ test("authorJurisdictionEntitiesForStates: dry mode previews without writing", a
   assert.equal(counts.planned_refs, 1);
 });
 
-// ── authorAutomateVsHireForStates (migration 332/333, lane STATE-COST-DAG 2026-09-27): dry mode is a
-// TRUE preview (unlike the region-grain twin, which no-ops for dry), the real registered method runs
-// against fixture rows, no DB is touched, and the caller gets back the computed preview value ─────────
-test("authorAutomateVsHireForStates: dry mode PREVIEWS a real automate_vs_hire computation for a state with a complete wage+energy pair", async () => {
-  const rows = [
-    { id: "preview:US-CA|labor_markets|State minimum wage", state_code: "US-CA", dimension: "labor_markets", value_numeric: 16, unit: "USD/hour" },
-    { id: "preview:US-CA|operational_cost|Industrial electricity rate", state_code: "US-CA", dimension: "operational_cost", value_numeric: 19.3, unit: "cents/kWh" },
-  ];
-  const byCode = new Map([["US-CA", "cl:jurisdiction:deadbeefcafefeed"]]);
-  const result = await authorAutomateVsHireForStates(rows, "dry", byCode);
-  assert.equal(result.pairs_found, 1);
-  assert.equal(result.previewed, 1);
-  assert.equal(result.authored, 0); // dry never authors for real
-  assert.equal(result.edges.length, 1);
-  assert.equal(result.edges[0].state_code, "US-CA");
-  assert.equal(result.edges[0].entity, "cl:jurisdiction:deadbeefcafefeed");
-  assert.equal(result.edges[0].ok, true);
-  assert.equal(typeof result.edges[0].preview_value.value, "number", "the REAL registered method computed a real NPV, not a stub");
-  assert.equal(result.edges[0].preview_value.unit, "USD");
-});
-
-test("authorAutomateVsHireForStates: an incomplete pair (only one dimension) is skipped, never partially authored", async () => {
-  const rows = [
-    { id: "preview:US-TX|operational_cost|x", state_code: "US-TX", dimension: "operational_cost", value_numeric: 8.4, unit: "cents/kWh" },
-  ];
-  const result = await authorAutomateVsHireForStates(rows, "dry", new Map());
-  assert.equal(result.pairs_found, 0);
-  assert.equal(result.skipped_incomplete, 1);
-  assert.equal(result.edges.length, 0);
-});
-
-test("authorAutomateVsHireForStates: an annual (non-hourly) wage fact never resolves as the wage input (never divides by 2080)", async () => {
-  const rows = [
-    { id: "preview:US-CA|labor_markets|annual", state_code: "US-CA", dimension: "labor_markets", value_numeric: 33280, unit: "USD/year" },
-    { id: "preview:US-CA|operational_cost|x", state_code: "US-CA", dimension: "operational_cost", value_numeric: 19.3, unit: "cents/kWh" },
-  ];
-  const result = await authorAutomateVsHireForStates(rows, "dry", new Map());
-  assert.equal(result.pairs_found, 0, "an annual wage fact must not count as a resolvable hourly wage input");
-  assert.equal(result.skipped_incomplete, 1);
-});
-
-test("authorAutomateVsHireForStates: apply mode routes through the injected authorEdgesFn (the real register_derived_value path), never the dry fakes", async () => {
-  const rows = [
-    { id: "row-wage-1", state_code: "US-CA", dimension: "labor_markets", value_numeric: 16, unit: "USD/hour" },
-    { id: "row-energy-1", state_code: "US-CA", dimension: "operational_cost", value_numeric: 19.3, unit: "cents/kWh" },
-  ];
-  const byCode = new Map([["US-CA", "cl:jurisdiction:deadbeefcafefeed"]]);
-  const calls = [];
-  const fakeAuthorEdges = async (sb, figure) => {
-    calls.push({ sb, figure });
-    return { ok: true, action: "authored", valueId: "real-value-id-1" };
-  };
-  const result = await authorAutomateVsHireForStates(rows, "apply", byCode, { sb: "REAL_SB_MARKER", authorEdgesFn: fakeAuthorEdges });
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].sb, "REAL_SB_MARKER", "apply mode must pass the real sb through, never a preview fake");
-  assert.equal(calls[0].figure.table, "state_cost_facts");
-  assert.deepEqual(calls[0].figure.inputs, [
-    { table: "state_cost_facts", pk: "row-wage-1" },
-    { table: "state_cost_facts", pk: "row-energy-1" },
-  ]);
-  assert.equal(result.authored, 1);
-  assert.equal(result.previewed, 0);
-});
-
-test("state-cost-facts-producer.mjs CLI run end to end (dry mode, real fixtures): California's wage+energy pair authors one PREVIEWED edge with a real computed NPV", async () => {
-  const result = await runStateCostFactsProducer({
-    candidates: FIXTURE_CANDIDATES,
-    fetchCapture: fixtureFetchCapture,
-    mode: "dry",
-    deps: fakeDeps(),
-  });
-  assert.equal(result.metrics.dag_pairs_found, 1);
-  assert.equal(result.metrics.dag_previewed, 1);
-  assert.equal(result.metrics.dag_authored, 0);
-  assert.equal(result.dagEdges.length, 1);
-  assert.equal(result.dagEdges[0].state_code, "US-CA");
-  assert.equal(typeof result.dagEdges[0].preview_value.value, "number");
-});
-
 // ── F27 composition proof: state-cost-facts-envelope.mjs's row output fed into entity-plan.mjs's
 // jurisdiction planners, asserted against the LIVE state_cost_facts / entities schema constraints, not
 // just each module's own output shape (the exact seam WO-17's 2026-08-30 incident shipped unproven) ────
@@ -320,44 +235,6 @@ test("composition: buildStateCostFactRow's output composes into planJurisdiction
   assert.equal(refs[0].ref_table, "state_cost_facts");
   assert.equal(refs[0].role, "jurisdiction");
   assert.equal(refs[0].entity_id, entities[0].entity_id, "the ref must point at the SAME entity the row's own state_code minted, proving the composed seam, not two independent computations");
-
-  // Side D (lane STATE-COST-DAG 2026-09-27): the SAME row (an hourly wage fact, isHourlyWageUnit confirms
-  // it) composes into author-edges.mjs's authorEdges, the fourth seam this producer imports, closing the
-  // gap F27 itself measures (a seam proof that stops one import short of every seam it should cover).
-  assert.equal(isHourlyWageUnit(row.unit), true, "the fixture wage row must be hourly for the DAG step to accept it, same gate automate-vs-hire.ts applies");
-  const energyRow = { ...row, dimension: "operational_cost", unit: "cents/kWh" };
-  function fakeChain() {
-    const q = { select: () => q, eq: () => q, in: () => q, limit: () => q, then: (resolve) => resolve({ data: [], error: null }) };
-    return q;
-  }
-  const fakeSb = { from: () => fakeChain() };
-  const edgeResult = authorEdges(
-    fakeSb,
-    {
-      table: "state_cost_facts", // must be a member of migration 333's widened derivation_edges_from_table_allowed
-      id: "wage-1",
-      entity: entities[0].entity_id,
-      method: { id: "automate_vs_hire", version: "1.0.0" },
-      inputs: [
-        { table: "state_cost_facts", pk: "wage-1" },
-        { table: "state_cost_facts", pk: "energy-1" },
-      ],
-    },
-    {
-      resolveInputs: async (_sb, inputs) =>
-        inputs.map((ref) => ({
-          table: ref.table,
-          pk: ref.pk,
-          version: null,
-          row: ref.pk === "wage-1" ? { dimension: row.dimension, value_numeric: row.value_numeric, unit: row.unit } : { dimension: energyRow.dimension, value_numeric: energyRow.value_numeric, unit: energyRow.unit },
-        })),
-      registerDerivedValue: async () => "composed-preview-value-id",
-    },
-  );
-  return edgeResult.then((r) => {
-    assert.equal(r.ok, true, "the composed row must resolve through the real registered automate_vs_hire method");
-    assert.equal(r.action, "authored");
-  });
 });
 
 // ── harness record: a real artifact lands on disk, non-empty full_trace_refs ─────────────────────────

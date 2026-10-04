@@ -26,10 +26,8 @@ export const DRAIN_MODE = "batch";
 
 /**
  * ADR-024 decision 2 (spec §8.2): `estimated_values` NEVER backs a customer-visible point decision —
- * only a customer-visible RANGE. A break-even value inside that range is given EQUAL VISUAL BILLING to
- * the point estimate (co-equal, never a footnote), so the reader decides rather than the model.
- * Consumed by DP-SURF's `<EstimatedFigure>` (always renders low/high; no point-only mode, per spec §4
- * Layer 4) and by the Operations automate-vs-hire break-even wage figure (spec §2.3 worked example).
+ * only a customer-visible RANGE (a bare point is never shown for an estimate).
+ * Consumed by DP-SURF's `<EstimatedFigure>` (always renders low/high; no point-only mode).
  * @type {"range"}
  */
 export const ESTIMATE_DISPLAY = "range";

@@ -4028,15 +4028,6 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/operations/automate-vs-hire.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
-    },
-    {
       "path": "fsi-app/src/lib/operations/labour-chain.test.mjs",
       "kinds": [
         "PROOF"
@@ -4157,15 +4148,6 @@
     },
     {
       "path": "fsi-app/src/lib/propagation/effective-confidence.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "EXEMPT"
-    },
-    {
-      "path": "fsi-app/src/lib/propagation/methods/automate-vs-hire.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -12069,14 +12051,38 @@
       ],
       "proofWired": true,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/350_retire_automate_vs_hire_values.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/350_retire_automate_vs_hire_values.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "remediation-discipline"
+      ],
+      "proofWired": false,
+      "status": "ORPHANED-PROOF"
     }
   ],
   "summary": {
     "governed_files": 1131,
     "covered": 1085,
-    "exempt": 46,
-    "gaps": 0,
-    "orphaned_proofs": 0,
+    "exempt": 45,
+    "gaps": 1,
+    "orphaned_proofs": 1,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

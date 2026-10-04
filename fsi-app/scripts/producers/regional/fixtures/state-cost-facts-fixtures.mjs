@@ -59,8 +59,8 @@ export const FIXTURE_CANDIDATES = [
   },
   {
     // A SECOND California dimension (operational_cost), pairing with the labor_markets candidate above
-    // for the SAME state, so this fixture set proves the DAG-authorship pair-completion path
-    // (lane STATE-COST-DAG 2026-09-27) as well as the two per-dimension producer paths above.
+    // for the SAME state, so this fixture set proves both per-dimension producer paths
+    // for one jurisdiction.
     state_code: "US-CA",
     state_label: "California",
     region_code: "US",

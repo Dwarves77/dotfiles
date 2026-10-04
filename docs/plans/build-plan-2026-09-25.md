@@ -63,7 +63,7 @@ instance.
    15) must implement this, not merely re-skin the old behaviour.
 10. **Generalising the five hard-coded examples** (rule 19, applies retroactively to code, not only new
     specs): the 16-instrument classifier, the single-corridor rate board (now moot  -  see workstream 11),
-    the fuel-only market view, the automate-vs-hire Operations page, the SAF benchmark. Each needs its
+    the fuel-only market view, the automate-vs-hire Operations page (retired by ADR-043, 2026-10-03), the SAF benchmark. Each needs its
     full question stated and a coverage test beyond its one instance.
 11. **ETS-proxy carbon calc.** Decisions 1 and 2: no freight-rate tracking; carbon cost per
     container/tonne from carrier-published ETS surcharges, per carrier/period/source, never blended

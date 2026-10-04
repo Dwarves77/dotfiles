@@ -7,6 +7,8 @@ comparative and numerical regional intelligence (feasibility, cost, labour, mate
 for hire-vs-automate and infrastructure decisions. Not a text brief. It is a **content build, explicitly
 not a decision-engine UI**.
 
+> **Operator ruling 2026-10-03 (ADR-043).** The contract is now: structured jurisdictional cost and feasibility evidence (labour, energy, materials, infrastructure) for the reader's own decisions. "Hire-vs-automate" is no longer the surface's purpose; the surface states what wages and costs are, sourced, and does not say automate or hire.
+
 **Current verdict.** Violates. Two regions cannot be placed on a shared axis anywhere in the UI. The one
 affordance that advertises comparison, a dimension chip whose `aria-label` reads "Spotlight a dimension
 across regions", resolves to drawing a 2px border on cells inside accordions that are closed by default.
@@ -70,11 +72,15 @@ in a point of view. Publish weights. Ship sensitivity as a feature, not an inter
 7. **Sensitivity as a shipped feature.** If the automate-vs-hire answer flips when a missing input moves
    within its plausible range, **the surface must say the answer is indeterminate.**
 
+   > **Operator ruling 2026-10-03 (ADR-043).** Retired with the automate-versus-hire answer it qualified. Sensitivity still applies to any estimate the surface shows: a range, never a bare point (ADR-024 decision 2).
+
 This is also the honest frame for the EU/US hole: making it visible as a row of dashes in one glance is
 better product behaviour than hiding it behind two closed accordions, and it correctly prices the data
 dispatch that follows.
 
 ## 4. The automate-vs-hire model
+
+> **Operator ruling 2026-10-03 (ADR-043).** This whole section is RETIRED (superseded by ADR-043). No automate-versus-hire model, TCO output or break-even field is built or shown. Wage, labour-cost and energy-cost evidence stays as sourced regional figures with no verdict. The solar arm paragraph below is not a calculator and stays only as evidence framing for grid-versus-solar cost facts.
 
 The output shape, because "supports the decision" is not a spec:
 
@@ -124,8 +130,10 @@ Commercial and Industrial, 17-2112 Industrial Engineers.
 | 3 | **Base-region selector**, never hard-coded | §2 |
 | 4 | **Provenance and vintage stamp on every cell**: source, dataset code, reference period, status flag, retrieval date | What makes this intelligence rather than a table, and the only defence against the Handbook's misuse warning |
 | 5 | **Fully-loaded labour chain** (§5) | Decisions 1 and 5 |
-| 6 | **Automate-vs-hire TCO panel per region** (§4), with `breakeven_wage` and `breakeven_utilisation` given equal prominence to the headline | Decisions 1 and 5. The break-even fields convert a point estimate into a defensible decision |
-| 7 | **Sensitivity / break-even strip**, tornado-ordered, utilisation cliff marked | Decisions 1 and 5 |
+| 6 | ~~**Automate-vs-hire TCO panel per region** (section 4), with `breakeven_wage` and `breakeven_utilisation` given equal prominence to the headline~~ | Decisions 1 and 5. The break-even fields convert a point estimate into a defensible decision |
+| 7 | ~~**Sensitivity / break-even strip**, tornado-ordered, utilisation cliff marked~~ | Decisions 1 and 5 |
+
+> **Operator ruling 2026-10-03 (ADR-043).** Components 6 and 7 are RETIRED (struck above; superseded by ADR-043). Component 12's modelling constants were already narrowed by ADR-042.
 | 8 | **Feasibility gate layer, evaluated BEFORE cost**: PPWR thresholds, EPR registration and authorised-representative requirements, PFAS limits, national permitting, ETS2. Rendered as gates (blocked / conditional / clear), **never as points added to a score** | Decisions 3, 4, 5. §1 |
 | 9 | **Materials supply ↔ compliance join**: recyclate availability by material by region placed directly against the PPWR recycled-content threshold for that material and year | Decisions 3 and 4 **are one decision**. "Is recycled PET available in Region R" and "can I meet the rPET threshold in Region R" are the same query. The join is the product |
 | 10 | **Infrastructure read with distance-to-node**: port throughput and CPPI, rail freight, airport cargo tonnage, public HDV charging density, each paired with travel distance and time from the candidate region to the nearest qualifying node | Decision 2. Raw throughput without distance is trivia; distance without capacity is a map. The pair is the operational fact |
@@ -206,7 +214,7 @@ them. These are numeric spec inputs and must be read from the Regulation text di
 5. Derived cells suppress above the imputation threshold and show components instead.
 6. The base region is user-selectable and printed wherever an index is shown.
 7. Feasibility renders as gates, never as score contributions.
-8. `breakeven_wage` and `breakeven_utilisation` render with equal prominence to the headline result.
+8. ~~`breakeven_wage` and `breakeven_utilisation` render with equal prominence to the headline result.~~ **Operator ruling 2026-10-03 (ADR-043): retired (ADR-043).**
 9. One assumption register, one discount rate, stamped on every derived output.
 10. Native units are primary; index is visually subordinate.
 11. Distance-to-node accompanies every infrastructure capacity figure.
@@ -221,7 +229,7 @@ them. These are numeric spec inputs and must be read from the Regulation text di
 | Base-region selector | **Absent** |
 | Cell provenance | **Partial and false.** The masthead claims "every fact carries a source and date", but `OperationsFact` has no date field and all fact rows have `source_id` NULL, so the surface falls through to unlinked free-text |
 | Labour chain | **Absent** |
-| Automate-vs-hire TCO | **Absent.** No breakeven fields, no payback, no NPV. Decision 1 has no home: the dimension enum is fixed at six values with a CHECK constraint, and the only place an HVAC-vs-hire comparison could live is section S3, which is prose-only and gated off for EU and US |
+| Automate-vs-hire TCO (retired by ADR-043, 2026-10-03; row kept as history) | **Absent.** No breakeven fields, no payback, no NPV. Decision 1 has no home: the dimension enum is fixed at six values with a CHECK constraint, and the only place an HVAC-vs-hire comparison could live is section S3, which is prose-only and gated off for EU and US |
 | Sensitivity | **Absent** |
 | Feasibility gates | **Absent.** Regulatory feasibility (D1) is faked from regulation counts by hand-written regex, and reports 5/5 coverage while `region_dimension_coverage` reports 0 rows for the same dimension. **Two contradictory truths for D1 on one surface** |
 | Materials ↔ PPWR join | **Absent.** D1 emits regulation links, D4 emits an unrelated fact list, nothing joins them |

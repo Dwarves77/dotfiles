@@ -90,8 +90,8 @@ export function buildStateCostFactRow(candidate, source, regionId) {
  * Mechanical numeric mirror of `candidate.value` for the `value_numeric` column (migration 332). NEVER a
  * second authored figure: this is a parse of the same string every row's `value` TEXT column already
  * carries, nothing more. Returns null (never NaN, never a guess) when the value is not a plain number,
- * e.g. a value string that already carries a unit or a range, so a downstream reader (automate_vs_hire's
- * findFactByDimension) can tell "not numeric" apart from "zero" cleanly.
+ * e.g. a value string that already carries a unit or a range, so a downstream reader
+ * can tell "not numeric" apart from "zero" cleanly.
  * @param {unknown} value
  * @returns {number|null}
  */

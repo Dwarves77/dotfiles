@@ -72,7 +72,7 @@ const FIXTURE = JSON.parse(
 test("the full composition: real BLS fixture -> parser -> toCandidateRows -> latestPerNaturalKey", () => {
   const observations = parseOewsResponse(FIXTURE);
   // 2 of the 3 catalogued occupations carry BOTH annual + hourly median-wage rows this session's fix added
-  // (2026-09-02 coordinator follow-up: BLS OEWS wage fact is hourly, matching what automate-vs-hire reads);
+  // (2026-09-02 coordinator follow-up: BLS OEWS wage fact is hourly);
   // the third (Supervisors) carries annual only in this fixture (its own honest per-measure gap — see
   // bls-oews-parser.npmtest.mjs's matching test).
   assert.equal(observations.length, OEWS_OCCUPATIONS.length + 2, "annual row per occupation, plus an hourly row for the 2 occupations that have one");

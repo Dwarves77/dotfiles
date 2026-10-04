@@ -23,7 +23,7 @@
 // convention can't silently drift between occupations.
 //
 // DATA-TYPE CODE 08 (HOURLY MEDIAN WAGE) — CONFIRMED this session (coordinator follow-up, 2026-09-02,
-// "BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire reads"), by the same
+// "BLS OEWS wage fact is hourly (H_MEAN)"), by the same
 // no-network-access constraint as above: api.bls.gov and BLS's own flat-file mirror
 // (downloadt.bls.gov/pub/time.series/nw/nw.datatype_id — "nw" is OEWS's own BLS time-series database
 // abbreviation) both refused this sandbox's egress (403 at the agent proxy). Confirmed instead via
@@ -50,10 +50,8 @@ export const OEWS_OCCUPATIONS = Object.freeze([
 // confirmed this session — see file header): 13 = annual median wage, 08 = hourly median wage. We stamp
 // exactly TWO datatypes (annual median, hourly median) per occupation — the annual figure for the
 // cross-occupation display OEWS reports already led with when this producer was first built, and the
-// hourly figure `automate-vs-hire.mjs`'s own `labourCostPerHour` input has always documented itself as
-// requiring (see that module's header: "Point wage (USD/hour)") but this producer never actually supplied
-// until this fix (2026-09-02 coordinator follow-up: "BLS OEWS wage fact is hourly (H_MEAN)... matching
-// what automate-vs-hire reads"). NEVER derived from one another by a fixed hours-per-year divisor (2080) —
+// hourly figure a regional wage reader needs, which this producer never actually supplied
+// until this fix (2026-09-02 coordinator follow-up: "BLS OEWS wage fact is hourly (H_MEAN)"). NEVER derived from one another by a fixed hours-per-year divisor (2080) ,
 // each is requested and parsed as BLS's OWN independently published series; see aggregateLcLciLevForRegion
 // in the sibling Eurostat parser for the same "never invent a number the source itself did not publish"
 // discipline applied to a different measure.

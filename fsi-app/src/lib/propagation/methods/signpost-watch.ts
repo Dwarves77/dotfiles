@@ -10,7 +10,7 @@
 // TWO HALVES, ONE FILE, DIFFERENT CONTRACTS -- read this before touching either.
 //
 // 1. `computeSignpostWatch` (a `MethodFn`, registered in `./index.ts` below exactly like
-//    `carbon-intensity.ts`'s `computeCarbonIntensity` and `automate-vs-hire.ts`'s `computeAutomateVsHire`
+//    `carbon-intensity.ts`'s `computeCarbonIntensity` and `market-series-delta.ts`'s `computeMarketSeriesDelta`
 //    -- "the exact pattern... do not redesign the seam", per the brief). It is PURE: no `sb`, no network,
 //    no `Date.now()` -- `methods/index.ts`'s own contract ("A METHOD IS A PURE FUNCTION OF ITS RESOLVED
 //    INPUTS"). It evaluates a signpost's `predicate` against the watched entity's resolved attribute row
