@@ -7,7 +7,10 @@
 // No DB access here. The route wires this against the real supabase client;
 // tests wire it against nothing at all, since none of it touches a network.
 
+// LEGACY pending value: no writer produces it since lane S1-B (2026-10-04); rows written earlier may carry it.
 export const PENDING_ASSIGNMENT_SOURCE = "haiku_proposed_low_confidence";
+// The value machine promotion now stores for every tag at or above 0.65, confidence kept in its own column.
+export const ADOPTED_ASSIGNMENT_SOURCE = "haiku_auto_high_confidence";
 export const CONFIRMED_ASSIGNMENT_SOURCE = "operator_confirmed";
 
 export type BiasTagDecision = "confirm" | "reject";
@@ -48,15 +51,15 @@ export interface BiasTagRow {
 
 export type ActionableResult = { ok: true } | { ok: false; error: string; status: number };
 
-/** Only a row still in the pending-confirm band is actionable. A row already
- *  resolved (operator_confirmed / operator_set) or that never went through
- *  confirm (haiku_auto_high_confidence) has nothing to confirm or reject. */
+/** The admin PATCH is an OPTIONAL override (lane S1-B): a machine-adopted row (haiku_auto_high_confidence)
+ *  or a legacy pending row can be confirmed or removed. A row already carrying a human decision
+ *  (operator_confirmed / operator_set) has nothing left to confirm or reject. */
 export function checkActionable(row: Pick<BiasTagRow, "assignment_source">): ActionableResult {
-  if (row.assignment_source !== PENDING_ASSIGNMENT_SOURCE) {
+  if (row.assignment_source !== PENDING_ASSIGNMENT_SOURCE && row.assignment_source !== ADOPTED_ASSIGNMENT_SOURCE) {
     return {
       ok: false,
       status: 409,
-      error: `bias tag is not pending confirmation (assignment_source is "${row.assignment_source}")`,
+      error: `bias tag already carries an operator decision (assignment_source is "${row.assignment_source}")`,
     };
   }
   return { ok: true };

@@ -26,21 +26,21 @@ test("splitBiasTagsByConfidence: exactly 0.80 is high confidence (boundary inclu
   assert.equal(insertRows[0].assignment_source, ASSIGNMENT_SOURCE.HIGH_CONFIDENCE);
 });
 
-test("splitBiasTagsByConfidence: 0.65-0.79 inserts as haiku_proposed_low_confidence", () => {
+test("splitBiasTagsByConfidence: 0.65-0.79 is adopted (haiku_auto_high_confidence), confidence kept, never left waiting", () => {
   const { insertRows, discarded } = splitBiasTagsByConfidence({
     stakeholder: [{ tag: "independent-research", confidence: 0.70 }],
   });
   assert.equal(discarded.length, 0);
   assert.deepEqual(insertRows, [
-    { dimension: "stakeholder", tag: "independent-research", confidence: 0.70, assignment_source: ASSIGNMENT_SOURCE.LOW_CONFIDENCE },
+    { dimension: "stakeholder", tag: "independent-research", confidence: 0.70, assignment_source: ASSIGNMENT_SOURCE.HIGH_CONFIDENCE },
   ]);
 });
 
-test("splitBiasTagsByConfidence: exactly 0.65 is low confidence (boundary inclusive)", () => {
+test("splitBiasTagsByConfidence: exactly 0.65 is adopted (boundary inclusive)", () => {
   const { insertRows } = splitBiasTagsByConfidence({
     funding: [{ tag: "mixed-funded", confidence: 0.65 }],
   });
-  assert.equal(insertRows[0].assignment_source, ASSIGNMENT_SOURCE.LOW_CONFIDENCE);
+  assert.equal(insertRows[0].assignment_source, ASSIGNMENT_SOURCE.HIGH_CONFIDENCE);
 });
 
 test("splitBiasTagsByConfidence: <0.65 is discarded, never inserted", () => {
@@ -146,7 +146,7 @@ test("splitBiasTagsByConfidence: ICCT-shaped multi-dimension recommendation spli
   const byTag = Object.fromEntries(insertRows.map((r) => [r.tag, r.assignment_source]));
   assert.equal(byTag["foundation-funded"], ASSIGNMENT_SOURCE.HIGH_CONFIDENCE);
   assert.equal(byTag["methodologically-transparent"], ASSIGNMENT_SOURCE.HIGH_CONFIDENCE);
-  assert.equal(byTag["analytical-synthesis"], ASSIGNMENT_SOURCE.LOW_CONFIDENCE);
+  assert.equal(byTag["analytical-synthesis"], ASSIGNMENT_SOURCE.HIGH_CONFIDENCE);
   assert.equal(byTag["independent-research"], ASSIGNMENT_SOURCE.HIGH_CONFIDENCE);
 });
 

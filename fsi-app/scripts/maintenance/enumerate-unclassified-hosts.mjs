@@ -31,8 +31,9 @@
 // approximation. `hostOf` (scripts/lib/db.mjs) is the same host-extraction helper every maintenance
 // script in this family uses.
 import { readAll, hostOf } from "../lib/db.mjs";
-import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
+import { classTierForHost, verdictPlacementForHost } from "../../src/lib/sources/host-authority.ts";
 import { existingTierForHost } from "./canonical-autoverify.mjs";
+import { loadHostVerdicts } from "./host-verdicts/load-host-verdicts.mjs";
 import { runCli } from "./lib/cli.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -104,6 +105,42 @@ export function groupUnresolvedHosts(rows, searchResultsByHost, itemTitleById) {
   return out.sort((a, b) => b.row_count - a.row_count || a.host.localeCompare(b.host));
 }
 
+/**
+ * The ONE loop that decides which rows are unresolved (shared by this step and by
+ * resolve-provisional-sources.mjs's export-unplaced mode, lane S1-B, so the two can never disagree about
+ * what "unplaced" means). A row is unresolved when rule (a) (existing institution), rule (b) (the class
+ * table, via the caller's `classTierFor`) and rule b2 (a committed host verdict) all decline. Pure.
+ * @param {Array<{ table: string, rows: Array }>} tables
+ * @param {{ activeSources: Array, classTierFor: (host: string, row: object) => number|null,
+ *           hostOfFn?: (url: string) => string|null, verdicts?: Map|null }} ctx
+ */
+export function collectUnresolvedRows(tables, { activeSources, classTierFor, hostOfFn = hostOf, verdicts = null }) {
+  const out = [];
+  for (const { table, rows } of tables) {
+    for (const row of rows) {
+      const host = row.url ? hostOfFn(row.url) : null;
+      if (!host) continue; // no parsable host: a different residue class (resolve-provisional-sources's own worklist), not this list's job
+      const existingTier = existingTierForHost(host, activeSources)?.tier ?? null;
+      let classTier = existingTier == null ? classTierFor(host, row) : null;
+      if (existingTier == null && classTier == null) classTier = verdictPlacementForHost(host, verdicts)?.tier ?? null;
+      if (isUnresolved(host, { existingTier, classTier })) {
+        out.push({ table, id: row.id, host, name: row.name ?? null, discovered_via: row.discovered_via ?? null });
+      }
+    }
+  }
+  return out;
+}
+
+/** The file a session lane classifies hosts from (lane S1-B): host, stored name(s), discovered_via. Pure.
+ *  @param {Array<{host:string, names:string[], discovered_via:string[]}>} hosts grouped residue
+ *  @param {{generatedAt:string}} opts */
+export function buildUnplacedHostExport(hosts, { generatedAt }) {
+  return {
+    generated_at: generatedAt,
+    hosts: hosts.map((h) => ({ host: h.host, names: h.names, discovered_via: h.discovered_via })),
+  };
+}
+
 /** Groups a flat list of `{ result_url, intelligence_item_id }` search-log rows by the URL's host
  *  (via the caller-supplied `hostOfFn`, so this stays pure / dependency-injected). Rows whose URL has
  *  no parsable host are dropped -- they cannot join to any provisional/sources host either. */
@@ -171,24 +208,13 @@ export async function main({ out = null } = {}, deps) {
     deps.readItemTitles(),
   ]);
 
-  const unresolvedRows = [];
-  const collect = (table, rows) => {
-    for (const row of rows) {
-      const host = row.url ? hostOf(row.url) : null;
-      if (!host) continue; // no parsable host: a different residue class (resolve-provisional-sources's own worklist), not this list's job
-      const existingTier = existingTierForHost(host, activeSources)?.tier ?? null;
-      // D14 residue ruling (2026-09-13): thread the row's OWN stored `name` so this step's definition of
-      // "unresolved" stays IDENTICAL to resolve-provisional-sources.mjs's own rule (b) -- this step's own
-      // header says its residue is defined as "whatever that step's own rule a/b would leave unresolved",
-      // so it must call classTierForHost with the SAME arguments, never a narrower approximation.
-      const classTier = existingTier == null ? classTierFn(host, row.name) : null;
-      if (isUnresolved(host, { existingTier, classTier })) {
-        unresolvedRows.push({ table, id: row.id, host, name: row.name ?? null, discovered_via: row.discovered_via ?? null });
-      }
-    }
-  };
-  collect("provisional_sources", pendingProvisional);
-  collect("sources", sourcesProvisional);
+  // D14 residue ruling (2026-09-13): thread the row's OWN stored `name` so this step's definition of
+  // "unresolved" stays IDENTICAL to resolve-provisional-sources.mjs's own rule (b). Lane S1-B: committed
+  // host verdicts (deps.hostVerdicts, rule b2) are consulted last, so a ruled host drops off this list.
+  const unresolvedRows = collectUnresolvedRows(
+    [{ table: "provisional_sources", rows: pendingProvisional }, { table: "sources", rows: sourcesProvisional }],
+    { activeSources, classTierFor: (host, row) => classTierFn(host, row.name), verdicts: deps.hostVerdicts ?? null },
+  );
 
   const searchResultsByHost = indexSearchResultsByHost(searchRows, hostOf);
   const itemTitleById = new Map(itemRows.map((r) => [r.id, r.title ?? null]));
@@ -214,9 +240,11 @@ export async function main({ out = null } = {}, deps) {
     mkdirSync(out, { recursive: true });
     const jsonPath = join(out, "unclassified-hosts.json");
     const mdPath = join(out, "unclassified-hosts.md");
+    const unplacedPath = join(out, "unplaced-hosts.json");
     writeFileSync(jsonPath, JSON.stringify({ generated_at: generatedAt, hosts }, null, 2) + "\n");
     writeFileSync(mdPath, renderMarkdown(hosts, { generatedAt }));
-    summary.artifacts = { json: jsonPath, markdown: mdPath };
+    writeFileSync(unplacedPath, JSON.stringify(buildUnplacedHostExport(hosts, { generatedAt }), null, 2) + "\n");
+    summary.artifacts = { json: jsonPath, markdown: mdPath, unplaced: unplacedPath };
   }
   summary.note =
     `${hosts.length} unclassified host(s) across ${unresolvedRows.length} row(s) ` +
@@ -234,6 +262,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => ({
+      hostVerdicts: loadHostVerdicts().verdicts,
       readPendingProvisional: () =>
         readAll(
           "provisional_sources",

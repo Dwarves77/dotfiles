@@ -92,6 +92,8 @@ test("buildDeps().checkVerticalFitGate: through the REAL import graph (real jiti
       assert.ok(hasNotesIlike, "expected the negative-list query's own ilike(notes, %off_vertical_suspended%)");
       return { data: negativeListRows, error: null };
     }
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb}`);
   });
   __setWriteClientForTest(() => client);
@@ -145,6 +147,8 @@ test("main({mode:'apply'}) with the REAL buildDeps(): a class-table promote reac
     if (s.table === "sources" && s.verb === "insert") {
       return { data: { id: "new-source-id" }, error: null };
     }
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
     throw new Error(`unexpected call: ${s.table}/${s.verb} ops=${JSON.stringify(s.ops)}`);
   });
   __setWriteClientForTest(() => client);
@@ -170,4 +174,63 @@ test("main({mode:'apply'}) with the REAL buildDeps(): a class-table promote reac
   const patch = updateCalls[0].ops.find((o) => o[0] === "update")[1];
   assert.equal(patch.status, "promoted");
   assert.equal(patch.promoted_to_source_id, "new-source-id");
+});
+
+// ── Lane S1-B (2026-10-04): real-wiring proofs for the new apply-only write paths ──────────────────────
+
+test("REAL buildDeps(): a sources row with tier_override keeps base_tier/effective_tier through a promote; status still changes", async () => {
+  const row = { id: "s-ovr", name: null, url: "https://some.edu/page", notes: null, fetch_status: "error", status: "provisional", tier_override: 2 };
+  const client = makeClient((s) => {
+    if (s.table === "sources" && s.verb === "select") {
+      const isProvRead = s.ops.some((o) => o[0] === "eq" && o[1] === "status" && o[2] === "provisional");
+      const isGate = s.ops.some((o) => o[0] === "ilike" && o[1] === "notes");
+      return { data: isProvRead && !isGate ? [row] : isGate ? [] : [{ id: row.id }], error: null };
+    }
+    if (s.table === "provisional_sources" && s.verb === "select") return { data: [], error: null };
+    if (s.table === "sources" && s.verb === "update") return { data: [{ id: row.id }], error: null };
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
+    throw new Error(`unexpected call: ${s.table}/${s.verb}`);
+  });
+  __setWriteClientForTest(() => client);
+  const summary = await main({ mode: "apply" }, await buildDeps());
+  assert.equal(summary.counts.promote, 1);
+  const upd = client.__calls.filter((c) => c.table === "sources" && c.verb === "update");
+  assert.equal(upd.length, 1);
+  const patch = upd[0].ops.find((o) => o[0] === "update")[1];
+  assert.deepEqual(patch, { status: "inaccessible" });
+});
+
+test("REAL buildDeps(): a machine promote writes 2 of 3 recommended bias tags through guardedInsertMany, none pending", async () => {
+  const pendingRow = {
+    id: "p-bias", name: null, url: "https://some.edu/policy-page", status: "pending_review",
+    recommended_classification: { bias_tags: {
+      funding: [{ tag: "foundation-funded", confidence: 0.9 }],
+      methodology: [{ tag: "analytical-synthesis", confidence: 0.7 }],
+      stakeholder: [{ tag: "independent-research", confidence: 0.5 }],
+    } },
+  };
+  const client = makeClient((s) => {
+    if (s.table === "provisional_sources" && s.verb === "select") {
+      const isPendingRead = s.ops.some((o) => o[0] === "in" && o[1] === "status");
+      return { data: isPendingRead ? [pendingRow] : [{ id: pendingRow.id }], error: null };
+    }
+    if (s.table === "provisional_sources" && s.verb === "update") return { data: [{ id: pendingRow.id }], error: null };
+    if (s.table === "sources" && s.verb === "select") return { data: [], error: null };
+    if (s.table === "sources" && s.verb === "insert") return { data: { id: "new-source-id" }, error: null };
+    if (s.table === "source_bias_tags" && s.verb === "insert") {
+      const rows = s.ops.find((o) => o[0] === "insert")[1];
+      return { data: rows.map((_, i) => ({ id: `bt-${i}` })), error: null };
+    }
+    // S1-B: every promoted host now reads its open null-tier-host flag (none here).
+    if (s.table === "integrity_flags" && s.verb === "select") return { data: [], error: null };
+    throw new Error(`unexpected call: ${s.table}/${s.verb}`);
+  });
+  __setWriteClientForTest(() => client);
+  const summary = await main({ mode: "apply" }, await buildDeps());
+  assert.equal(summary.bias_tags.written, 2);
+  const ins = client.__calls.find((c) => c.table === "source_bias_tags" && c.verb === "insert");
+  const rows = ins.ops.find((o) => o[0] === "insert")[1];
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((r) => r.source_id === "new-source-id" && r.assignment_source === "haiku_auto_high_confidence"));
 });

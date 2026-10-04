@@ -541,6 +541,69 @@ export function classTierForHostAcrossNames(
   return bestTier;
 }
 
+// ── HOST VERDICTS (lane S1-B, 2026-10-04) ───────────────────────────────────────────────────────────────────
+// A host the built-in rules above cannot place no longer waits for a code edit to RULED_HOST_TIER: a session
+// lane classifies it into a committed `host-verdicts-NNN.json` batch (scripts/maintenance/host-verdicts/) and
+// the resolver applies the batch by rule. A verdict names a CLASS from this closed table, never a tier number:
+// the tier is ALWAYS read from this table, so a verdict can never mint a tier the class table does not carry.
+// The class names are the ones the SC-13 class-table comment above already uses (legal, gov, verifier,
+// academic, association, standards_body, analysis, lawfirm, news) plus `company`, the D14 residue ruling's
+// rule 7 class. Pure: no filesystem here (this module is imported by Next.js code); the loader that reads the
+// committed batches lives beside the batches.
+export const HOST_CLASS_TIER: Readonly<Record<string, number>> = Object.freeze({
+  legal: 1,
+  gov: 2,
+  verifier: 4,
+  academic: 4,
+  association: 4,
+  standards_body: 4,
+  analysis: 6,
+  lawfirm: 7,
+  news: 7,
+  company: 7,
+});
+
+/** True when `cls` is a class the table carries (own-property check, so "toString" is never a class). */
+export function isKnownHostClass(cls: unknown): cls is string {
+  return typeof cls === "string" && Object.prototype.hasOwnProperty.call(HOST_CLASS_TIER, cls);
+}
+
+export interface HostVerdictRef {
+  /** a key of HOST_CLASS_TIER */
+  class: string;
+  /** the batch the verdict came from (for the resolution note); optional for a hand-built map in a test */
+  batch?: string;
+}
+
+/** The verdict-derived placement for a host, or null. Consulted ONLY after every built-in rule has declined
+ *  (the caller's job, see classTierForHostWithVerdicts); a permanently-unregistered host (aggregator /
+ *  hosting platform) never registers at any tier, a verdict included; an unknown class yields null (the
+ *  loader already rejects those, this is the belt to its braces). */
+export function verdictPlacementForHost(
+  host: string | null | undefined,
+  verdicts: ReadonlyMap<string, HostVerdictRef> | null | undefined,
+): { tier: number; class: string; batch: string | null } | null {
+  if (!verdicts || verdicts.size === 0) return null;
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
+  if (permanentlyUnregisteredClass(h) != null) return null;
+  const v = verdicts.get(h);
+  if (!v || !isKnownHostClass(v.class)) return null;
+  return { tier: HOST_CLASS_TIER[v.class], class: v.class, batch: v.batch ?? null };
+}
+
+/** Thin wrapper over classTierForHostAcrossNames: the built-in rules first, the committed host verdicts
+ *  only when those return null. Tier always comes from HOST_CLASS_TIER for the verdict's class. */
+export function classTierForHostWithVerdicts(
+  host: string | null | undefined,
+  names: ReadonlyArray<string | null | undefined> | null | undefined,
+  verdicts: ReadonlyMap<string, HostVerdictRef> | null | undefined,
+): number | null {
+  const builtIn = classTierForHostAcrossNames(host, names);
+  if (builtIn != null) return builtIn;
+  return verdictPlacementForHost(host, verdicts)?.tier ?? null;
+}
+
 export type PoolHostRegisterAction = "inherit" | "register" | "worklist";
 export interface PoolHostDecision {
   action: PoolHostRegisterAction;

@@ -3403,8 +3403,9 @@ shape -- the route now calls the same module), and `checkVerticalFitGate`
 **The rule, per row** (defect fix D13, docs/plans/defect-fix-plan-2026-09-12.md, 2026-09-12 -- rule (c)
 below is REMOVED): (a) the host's registrable domain matches an existing ACTIVE institution in
 `sources` -> promote/activate at the institution's canonical tier; (b) no institution match, but the
-SC-13 class table resolves a tier -> promote/activate at that tier; (d) otherwise (no institution/class
-match) -> worklist. Accessibility never decides promote vs. worklist. What accessibility DOES do: the
+SC-13 class table resolves a tier -> promote/activate at that tier; (b2) no class-table tier, but a committed host verdict places the host -> promote/activate at the verdict
+class's table tier; (d) otherwise (no institution/class/verdict match) -> worklist as residue, "awaiting host
+verdict batch". Accessibility never decides promote vs. worklist. What accessibility DOES do: the
 PROMOTED `sources` row's own `status` carries the fact already on record -- `active` when
 `sources.fetch_status` is ok or null, `inaccessible` when `fetch_status='error'` (a WALL such as
 `cdn_block`/`blocked` is NOT dead, "a wall is not a dead link", the same posture
@@ -3475,6 +3476,33 @@ intelligence_items row backing a provisional_sources/sources record), so a repea
 SAME row contributes to the aggregate exactly once. Idempotent by construction and proven by test (a
 second `main({mode:"apply"})` run over the same still-unclassifiable input inserts 0 new flag rows and
 updates the existing per-host row's contribution list instead).
+
+**Host verdicts, bias tags and the admin override (lane S1-B, 2026-10-04).** Nothing in this step waits
+on a person any more.
+- **Rule (b2), host verdicts.** A host the built-in rules (a, b) leave unplaced is looked up in the committed
+  verdict batches under `scripts/maintenance/host-verdicts/` (`host-verdicts-NNN.json`, later batch wins per
+  host; README and `schema.json` there). A verdict names a CLASS from the existing class table
+  (`HOST_CLASS_TIER` in `host-authority.ts`), never a tier number; the tier is read from the table, and the
+  loader rejects an unknown class or a `tier` field per entry (reported in `summary.host_verdicts.rejected`,
+  never a block). `permanentlyUnregisteredClass` hosts still never register. The built-in rules run first, so a
+  verdict only places what they decline. A host still unplaced after the batches stays recorded as residue,
+  reason "awaiting host verdict batch", and the run exits 0. When a host now resolves (rule a, rule b or a
+  verdict), its open `null-tier-host` flag is resolved by this step with a note naming the rule or the
+  verdict batch (apply only; counted in `summary.host_verdicts.flags_resolved`).
+- **Export mode (read-only).** `node scripts/maintenance/resolve-provisional-sources.mjs --arg export-unplaced
+  --out <dir>` writes `<dir>/unplaced-hosts.json` (host, stored names, discovered_via) and writes nothing to
+  the database whatever `--mode` says; a session lane classifies from that file into the next batch. The
+  `enumerate-unclassified-hosts` step (46a) writes the same file through the same shared loop
+  (`collectUnresolvedRows`).
+- **Bias tags on machine promotion.** A newly inserted `sources` row carries the Haiku `bias_tags` cached on
+  its `provisional_sources` row, written through `writeBiasTags` and the guarded batched insert (a reused
+  existing source is skipped). Tags at 0.65 and above are stored adopted, as `haiku_auto_high_confidence`,
+  with the real confidence kept; below 0.65 is discarded. No stored state waits for a confirm click (migration
+  092's CHECK admits no other automatic value, so no migration). The admin PATCH
+  `/api/admin/sources/[id]/bias-tags` stays as an optional override (confirm or remove) on adopted and legacy
+  pending rows. `summary.bias_tags` counts written, discarded, failed; a failure never fails the promotion.
+- **Admin override respected.** The `sources`-table activation skips `base_tier` and `effective_tier` on any
+  row whose `tier_override` is set; status may still change (`sourcesActivationPatch`).
 
 **Ruling**: ADR-030 rider / defect-fix-plan-2026-09-12.md D2/D3/D4/D13. Not gated by a separate `arg`
 token. $0, no LLM, no fetch -- every check is the deterministic class table and the live-registry

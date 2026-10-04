@@ -12,11 +12,16 @@ import {
   planProvisionalSourceRow,
   planSourcesProvisionalRow,
   syntheticItemIdFor,
+  sourcesActivationPatch,
   PROVISIONAL_WORKLIST_STATUS,
   SOURCES_REJECT_STATUS,
   main,
 } from "./resolve-provisional-sources.mjs";
 import { PROVISIONAL_SOURCES_STATUS_CHECK } from "../../src/lib/sources/promote-provisional.ts";
+import { loadHostVerdicts, HOST_VERDICTS_DIR } from "./host-verdicts/load-host-verdicts.mjs";
+import { join } from "node:path";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 // ── decideHost: the two-way rule (defect D13 fix: rule c removed) ──────────────────────────────────
 
@@ -182,7 +187,7 @@ function fakeDeps({ pending = [], sourcesProv = [], active = [], gateAllow = tru
     promoteProvisional: async (row, tier, reason) => { calls.promote.push({ id: row.id, tier, reason }); return { sourceId: "new-src", reused: false }; },
     rejectProvisional: async (id, reason) => calls.reject.push({ id, reason }),
     worklistProvisional: async (id, reason) => calls.worklist.push({ id, reason }),
-    activateSourcesRow: async (id, tier, status) => calls.activate.push({ id, tier, status }),
+    activateSourcesRow: async (id, tier, status, tierOverride) => calls.activate.push({ id, tier, status, tierOverride }),
     rejectSourcesRow: async (id, reason) => calls.rejectSources.push({ id, reason }),
     worklistSourcesRow: async (id, reason) => calls.worklistSources.push({ id, reason }),
     // Defect D3 fix: the shared per-host null-tier-host mechanism's own three deps, matching
@@ -415,4 +420,143 @@ test("main(): zero pending rows across both tables is a clean no-op", async () =
   const summary = await main({ mode: "apply" }, deps);
   assert.equal(summary.applied, 0);
   assert.equal(deps.calls.insertNullTierFlag.length, 0);
+});
+
+// ── S1-B: host verdicts, bias tags on machine promotion, tier_override guard (2026-10-04) ───────────
+
+const FIXTURE_VERDICTS = loadHostVerdicts({ files: [join(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts;
+
+test("decideHost rule b2: a host verdict tier promotes, naming the class and batch", () => {
+  const d = decideHost("h.example", { existingTier: null, classTier: null, verdict: { tier: 4, class: "association", batch: "host-verdicts-007" } });
+  assert.equal(d.action, "promote");
+  assert.equal(d.tier, 4);
+  assert.equal(d.rule, "b2");
+  assert.match(d.reason, /host-verdicts-007/);
+});
+
+test("decideHost: built-in class tier still wins over a verdict; residue reason says it awaits a verdict batch", () => {
+  assert.equal(decideHost("h.example", { existingTier: null, classTier: 2, verdict: { tier: 7, class: "news" } }).rule, "b");
+  const d = decideHost("h.example", { existingTier: null, classTier: null });
+  assert.equal(d.action, "worklist");
+  assert.match(d.reason, /awaiting host verdict batch/);
+});
+
+test("main apply: an unplaced host WITH a committed verdict promotes at the class tier; WITHOUT it is residue and the run exits 0", async () => {
+  const pending = [{ id: "p1", url: "https://unplaced-example.test/page" }];
+  const withV = fakeDeps({ pending });
+  withV.hostVerdicts = FIXTURE_VERDICTS;
+  const s1 = await main({ mode: "apply" }, withV);
+  assert.equal(withV.calls.promote.length, 1);
+  assert.equal(withV.calls.promote[0].tier, 4, "association class tier, read from the class table");
+  assert.equal(s1.counts.worklist, 0);
+  assert.equal(s1.exitCode, 0);
+
+  const without = fakeDeps({ pending });
+  const s2 = await main({ mode: "apply" }, without);
+  assert.equal(without.calls.promote.length, 0);
+  assert.equal(s2.counts.worklist, 1);
+  assert.equal(s2.exitCode, 0);
+  assert.match(without.calls.worklist[0].reason, /awaiting host verdict batch/);
+});
+
+test("main apply: an open null-tier-host flag for a verdict-resolved host is resolved with a note naming the batch; dry never resolves it", async () => {
+  const flags = { "unplaced-example.test": { id: "flag-1", recommended_actions: [] } };
+  const pending = [{ id: "p1", url: "https://unplaced-example.test/page" }];
+  const dry = fakeDeps({ pending, nullTierFlags: { ...flags } });
+  dry.hostVerdicts = FIXTURE_VERDICTS;
+  dry.resolveNullTierFlag = async () => { throw new Error("dry must not write"); };
+  await main({ mode: "dry" }, dry);
+
+  const resolved = [];
+  const deps = fakeDeps({ pending, nullTierFlags: { ...flags } });
+  deps.hostVerdicts = FIXTURE_VERDICTS;
+  deps.resolveNullTierFlag = async (id, patch) => resolved.push({ id, note: patch.resolution_note, status: patch.status });
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(resolved.length, 1);
+  assert.equal(resolved[0].id, "flag-1");
+  assert.equal(resolved[0].status, "resolved");
+  assert.match(resolved[0].note, /host-verdicts-000\.fixture/);
+  assert.equal(summary.host_verdicts.flags_resolved, 1);
+});
+
+test("main apply: an open null-tier-host flag for a host that now resolves by rule a or rule b is resolved with a note naming the rule", async () => {
+  const pending = [{ id: "p1", url: "https://epa.gov/page" }, { id: "p2", url: "https://some.edu/page" }];
+  const active = [{ id: "s0", url: "https://epa.gov", status: "active", base_tier: 2 }];
+  const deps = fakeDeps({ pending, active, nullTierFlags: { "epa.gov": { id: "fa" }, "some.edu": { id: "fb" } } });
+  const resolved = [];
+  deps.resolveNullTierFlag = async (id, patch) => resolved.push({ id, note: patch.resolution_note });
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(resolved.length, 2);
+  assert.match(resolved.find((r) => r.id === "fa").note, /rule a/);
+  assert.match(resolved.find((r) => r.id === "fb").note, /rule b/);
+  assert.equal(summary.host_verdicts.flags_resolved, 2);
+});
+
+test("main apply: a promoted provisional row with 3 recommended bias tags (0.9, 0.7, 0.5) writes 2 tags, none waiting on a confirm", async () => {
+  const pending = [{
+    id: "p1", url: "https://some.edu/page",
+    recommended_classification: { bias_tags: {
+      funding: [{ tag: "foundation-funded", confidence: 0.9 }],
+      methodology: [{ tag: "analytical-synthesis", confidence: 0.7 }],
+      stakeholder: [{ tag: "independent-research", confidence: 0.5 }],
+    } },
+  }];
+  const deps = fakeDeps({ pending });
+  const inserted = [];
+  deps.insertBiasTagRows = async (rows) => { inserted.push(...rows); return { error: null }; };
+  const summary = await main({ mode: "apply" }, deps);
+  assert.equal(inserted.length, 2);
+  assert.ok(inserted.every((r) => r.source_id === "new-src"));
+  assert.ok(inserted.every((r) => r.assignment_source !== "haiku_proposed_low_confidence"), "no state that waits for a confirm click");
+  assert.deepEqual(inserted.map((r) => r.confidence).sort(), [0.7, 0.9], "confidence kept");
+  assert.equal(summary.bias_tags.written, 2);
+});
+
+test("main apply: a reused existing source gets no bias-tag write; a bias-tag failure never fails the promotion", async () => {
+  const pending = [{ id: "p1", url: "https://some.edu/page", recommended_classification: { bias_tags: { funding: [{ tag: "foundation-funded", confidence: 0.9 }] } } }];
+  const reused = fakeDeps({ pending });
+  reused.promoteProvisional = async () => ({ sourceId: "old", reused: true });
+  let called = false;
+  reused.insertBiasTagRows = async () => { called = true; return { error: null }; };
+  await main({ mode: "apply" }, reused);
+  assert.equal(called, false);
+
+  const failing = fakeDeps({ pending });
+  failing.insertBiasTagRows = async () => ({ error: { message: "boom" } });
+  const s = await main({ mode: "apply" }, failing);
+  assert.equal(s.counts.promote, 1);
+  assert.equal(s.bias_tags.failed, 1);
+  assert.equal(s.exitCode, 0);
+});
+
+test("dry mode never writes bias tags", async () => {
+  const pending = [{ id: "p1", url: "https://some.edu/page", recommended_classification: { bias_tags: { funding: [{ tag: "foundation-funded", confidence: 0.9 }] } } }];
+  const deps = fakeDeps({ pending });
+  deps.insertBiasTagRows = async () => { throw new Error("dry must not write"); };
+  await main({ mode: "dry" }, deps);
+});
+
+test("sourcesActivationPatch: a tier_override row keeps base_tier/effective_tier, status may still change", () => {
+  assert.deepEqual(sourcesActivationPatch({ status: "inaccessible", tier: 4, tierOverride: 2 }), { status: "inaccessible" });
+  assert.deepEqual(sourcesActivationPatch({ status: "active", tier: 4, tierOverride: null }), { status: "active", base_tier: 4, effective_tier: 4 });
+  assert.deepEqual(sourcesActivationPatch({ status: "active", tier: 4 }), { status: "active", base_tier: 4, effective_tier: 4 });
+});
+
+test("main apply: the sources-table promote passes the row's tier_override to the activation write", async () => {
+  const sourcesProv = [{ id: "s1", url: "https://some.edu/page", tier_override: 2 }];
+  const deps = fakeDeps({ sourcesProv });
+  await main({ mode: "apply" }, deps);
+  assert.equal(deps.calls.activate[0].tierOverride, 2);
+});
+
+test("export-unplaced is read-only even under mode apply, and writes host, names, discovered_via", async () => {
+  const pending = [{ id: "p1", url: "https://nameless-unplaced.test/x", discovered_via: "worker_search" }];
+  const deps = fakeDeps({ pending });
+  const out = mkdtempSync(join(tmpdir(), "unplaced-"));
+  const summary = await main({ mode: "apply", arg: "export-unplaced", out }, deps);
+  assert.equal(deps.calls.promote.length + deps.calls.worklist.length + deps.calls.insertNullTierFlag.length, 0);
+  const file = JSON.parse(readFileSync(join(out, "unplaced-hosts.json"), "utf8"));
+  assert.deepEqual(file.hosts, [{ host: "nameless-unplaced.test", names: [], discovered_via: ["worker_search"] }]);
+  assert.equal(summary.mode, "dry");
+  assert.equal(summary.counts.unplaced_hosts, 1);
 });
