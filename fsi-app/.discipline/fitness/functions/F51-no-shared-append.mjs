@@ -418,7 +418,7 @@ export function currentBranch(root) {
   }
 }
 
-export const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md'];
+export const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
 
 export function runCheck4(root) {
   const branch = currentBranch(root);
@@ -443,7 +443,7 @@ export function runCheck4(root) {
     if (COORDINATOR_ONLY_EXACT.includes(f) || f.startsWith('docs/audits/')) {
       out.push({
         path: f, line: 1,
-        message: `branch "${branch}" (range ${range}) changes coordinator-only file "${f}" (docs/dispatches/lane-common-contract.md: "Never write docs/ops/session-log.md, docs/PROGRAM-BOARD.md, or docs/INDEX.md (coordinator only)" and "A lane never edits a file under docs/audits/"). A lane writes its own docs/ops/session-log.d/ file and records a finding's closure there instead.`,
+        message: `branch "${branch}" (range ${range}) changes coordinator-only file "${f}" (docs/dispatches/lane-common-contract.md: "Never write docs/ops/session-log.md, docs/PROGRAM-BOARD.md, docs/INDEX.md, or docs/runbooks/MAINTENANCE-RUNBOOK.md (coordinator only)" and "A lane never edits a file under docs/audits/"). A lane writes its own docs/ops/session-log.d/ file and records a finding's closure there instead.`,
       });
     }
   }
@@ -468,6 +468,7 @@ export function runCheck4(root) {
 export const HOTSPOT_ALLOWLIST = {
   'docs/ops/session-log.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/INDEX.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
+  'docs/runbooks/MAINTENANCE-RUNBOOK.md': { decidedOn: '2026-10-04', reason: 'coordinator-only by contract: the step index; lanes write their own maintenance.d/ file and the coordinator adds the index line' },
   'docs/PROGRAM-BOARD.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/plans/complete-system-build-plan-2026-09-04.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
   'docs/ops/HANDOFF-2026-09-19-addendum.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },

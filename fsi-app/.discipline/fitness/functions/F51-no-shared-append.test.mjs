@@ -266,6 +266,7 @@ test('check 3 (Amendment 2) wired to the live tree: runCheck3 reports 0 violatio
 function initCheck4Base(tmp, git) {
   writeFile(join(tmp, 'docs/ops/session-log.md'), '# session log\n');
   writeFile(join(tmp, 'docs/PROGRAM-BOARD.md'), '# board\n');
+  writeFile(join(tmp, 'docs/runbooks/MAINTENANCE-RUNBOOK.md'), '# runbook\n');
   writeFile(join(tmp, 'docs/audits/existing-audit.md'), '# audit\n');
   writeFile(join(tmp, 'fsi-app/src/lib/x.mjs'), 'export const x = 1;\n');
   git(['add', '-A']);
@@ -300,6 +301,22 @@ test('check 4 RED: a lane/ branch adding a file under docs/audits/ is caught', (
     const v = runCheck4(tmp);
     assert.equal(v.length, 1);
     assert.ok(v[0].message.includes('docs/audits/new-finding.md'));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 4 RED: a lane/ branch changing docs/runbooks/MAINTENANCE-RUNBOOK.md (the coordinator-owned step index) is caught', () => {
+  const { tmp, git } = tmpRepo('f51-check4-');
+  try {
+    initCheck4Base(tmp, git);
+    git(['checkout', '-q', '-b', 'lane/fixture']);
+    writeFile(join(tmp, 'docs/runbooks/MAINTENANCE-RUNBOOK.md'), '# runbook\n- new index line\n');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'lane adds its own index line']);
+    const v = runCheck4(tmp);
+    assert.equal(v.length, 1);
+    assert.ok(v[0].message.includes('coordinator-only file "docs/runbooks/MAINTENANCE-RUNBOOK.md"'));
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -748,6 +765,8 @@ test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only t
     [
       'docs/INDEX.md', 'docs/PROGRAM-BOARD.md', 'docs/audits/system-health-audit-2026-09-17.md',
       'docs/ops/HANDOFF-2026-09-19-addendum.md', 'docs/ops/session-log.md',
+      // 2026-10-04: the maintenance runbook step index is coordinator-only, same as docs/INDEX.md.
+      'docs/runbooks/MAINTENANCE-RUNBOOK.md',
       'docs/plans/complete-system-build-plan-2026-09-04.md',
       // Two dated, coordinator-approved (2026-10-03) concurrency exemptions for lane R7-LINT-CI, a
       // whole-tree lint remediation merged clean against #907 and #908 (see HOTSPOT_ALLOWLIST).
