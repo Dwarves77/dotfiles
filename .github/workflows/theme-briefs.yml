@@ -1,0 +1,143 @@
+name: Theme briefs
+
+# theme-briefs runtime (lane S3-C, 2026-10-04). The two runtimes of the theme-briefs batch pattern, in one
+# dispatchable workflow, the same shape as brief-export.yml (read only export) and brief-apply.yml (validate
+# and apply a committed batch):
+#
+#   action=export  scripts/turns/export-themes-for-briefs.mjs: READ ONLY. Lists every connection theme with
+#                  no brief or a stale one, writes one bundle file for a session lane to author from, and
+#                  uploads it as the workflow artifact. `mode` is ignored (an export never writes).
+#   action=apply   scripts/turns/apply-theme-briefs.mjs over the committed batch named by `briefs_file`:
+#                  validates every entry against live membership and live claims (whole entry refusals), and
+#                  with mode=apply passes --execute so valid entries are written to theme_briefs through the
+#                  guarded path. mode=dry validates and prints the plan and writes nothing.
+#
+# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, NO schedule block, NO workflow_run trigger. Every
+# run is an explicit dispatch. Where this belongs in the loop (after analyze-corpus changes theme
+# membership, so a re-brief list exists) is a coordinator decision; nothing here is chained.
+#
+# FREE (rule 11 of the common terms): no model call anywhere. Briefs are authored in a session by sub
+# agents from the exported bundle, then committed as scripts/turns/theme-briefs/batches/theme-briefs-NNN.json.
+#
+# DISPATCH RECIPE: `gh workflow run theme-briefs.yml -f action=export`, or
+# `gh workflow run theme-briefs.yml -f action=apply -f mode=dry -f briefs_file=scripts/turns/theme-briefs/batches/theme-briefs-001.json`.
+# briefs_file is fsi-app RELATIVE (this job runs with working-directory: fsi-app), never fsi-app/-prefixed.
+#
+# The run's harness-run artifact (family theme-briefs, scripts/harness-runs/theme-briefs/) is landed into
+# harness_runs by the last step (scripts/turns/deliver-artifact-branch.sh), `if: always()`, the same as
+# brief-export.yml: a run that ends without recording its outcome is a defect in the run (rule 17).
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'export = write the bundle of themes needing a brief (read only). apply = validate briefs_file and, with mode=apply, write the valid entries.'
+        required: true
+        default: 'export'
+        type: choice
+        options: [export, apply]
+      mode:
+        description: 'apply action only: dry = validate and plan, no database writes. apply = pass --execute. Ignored by export.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      briefs_file:
+        description: 'apply action only: fsi-app relative path of the committed batch, e.g. scripts/turns/theme-briefs/batches/theme-briefs-001.json.'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: theme-briefs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RUN_ACTION: ${{ inputs.action }}
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_BRIEFS_FILE: ${{ inputs.briefs_file }}
+
+jobs:
+  theme-briefs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chained dry-run guard (build mode, rule 16)
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${RUN_MODE}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger     = ${{ github.event_name }}"
+          echo "action      = $RUN_ACTION"
+          echo "mode        = ${CHAINED_MODE:-$RUN_MODE} (apply action only)"
+          echo "briefs_file = ${RUN_BRIEFS_FILE:-(none)}"
+          if [ "$RUN_ACTION" = "apply" ] && [ -z "$RUN_BRIEFS_FILE" ]; then
+            echo "::error::action=apply needs briefs_file (an fsi-app relative path to a committed theme-briefs-NNN.json)."
+            exit 1
+          fi
+
+      - name: Export themes needing a brief
+        if: env.RUN_ACTION == 'export'
+        run: |
+          set -o pipefail
+          node scripts/turns/export-themes-for-briefs.mjs --out-dir scripts/_snapshots/theme-briefs | tee /tmp/theme-briefs-export.log
+
+      - name: Apply the theme-briefs batch
+        if: env.RUN_ACTION == 'apply'
+        run: |
+          set -o pipefail
+          FLAGS="--briefs $RUN_BRIEFS_FILE"
+          if [ "${CHAINED_MODE:-$RUN_MODE}" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
+          node scripts/turns/apply-theme-briefs.mjs $FLAGS | tee /tmp/theme-briefs-apply.log
+          echo "### theme-briefs apply" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/theme-briefs-apply.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Land this run's harness-run artifact into harness_runs
+        if: always()
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Theme briefs: run ${{ github.run_id }}"
+
+      # The export bundle is the author's input; it exists only on this runner, so it leaves as a workflow
+      # artifact (seven day retention), the same as brief-export.yml's part files.
+      - name: Upload bundle, run artifact and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: theme-briefs-${{ github.run_id }}
+          path: |
+            fsi-app/scripts/_snapshots/theme-briefs/
+            fsi-app/scripts/harness-runs/theme-briefs/
+            /tmp/theme-briefs-export.log
+            /tmp/theme-briefs-apply.log
+          if-no-files-found: ignore
+          retention-days: 7

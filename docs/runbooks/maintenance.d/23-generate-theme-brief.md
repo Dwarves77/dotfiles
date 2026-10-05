@@ -39,3 +39,38 @@ path a CI home, it does not newly prove it works.
 
 ---
 
+### Batch flow (lane S3-C, 2026-10-04)
+
+**The step above stays as the single-theme dispatch.** Lane S3-C added the batch pattern beside it, the same
+shape as record briefs (export, committed batch with a validator, apply, harness family). Free only: briefs
+are authored in a session by sub-agents from the exported bundle, never by a metered API call. Contract:
+`scripts/turns/theme-briefs/README.md`; workflow: `.github/workflows/theme-briefs.yml`
+(`workflow_dispatch` only, inputs `action` export or apply, `mode` dry or apply, `briefs_file`).
+
+1. **Export** (`action=export`, read only): `scripts/turns/export-themes-for-briefs.mjs` lists every theme
+   with no brief, a stale brief, or only an orphaned brief under a drifted theme id (`superseded`, with
+   `supersedes_theme_id`), and uploads one bundle file as the workflow artifact. Per member it carries the
+   summary, grounded claims and forward events; per theme the gaps `gaps.mjs` computes and the intra-theme
+   edges with their full basis. A per-theme character budget reports what it omitted.
+2. **Author** a batch from the bundle and commit it as
+   `scripts/turns/theme-briefs/batches/theme-briefs-NNN.json` (five sections, a claim list, a title, the
+   echoed `member_hash`).
+3. **Apply** (`action=apply`): `scripts/turns/apply-theme-briefs.mjs` validates every entry against live
+   membership and live claims (whole-entry refusals, listed in the run artifact), and with `mode=apply`
+   writes `theme_briefs` through the guarded path and reads each row back. `generated_by` is the batch name.
+   Migration 351 adds the nullable `sections`, `claims` and `member_ids` columns; until it is applied the
+   writer stores `brief_md` only.
+
+`--theme` and `--write` on `generate-theme-brief.mjs` now run on the same reads, validator and writer (a
+payload carrying `sections` gets the full validator; a legacy `brief_md` payload keeps the member hash check
+and `generated_by='session-executor'`). `apply-theme-briefs.mjs` is the one writer of `theme_briefs`.
+
+**Brief continuity.** A theme id is its smallest member id; `resolveBriefForTheme`
+(`src/lib/connections/brief-staleness.mjs`) finds the brief under the theme's own id, else the best
+overlapping prior brief (stored `member_ids`, `theme-delta.mjs`'s overlap threshold), else a prior id named
+by the latest run's `theme_delta` lineage, and serves anything not under its own id as STALE.
+
+**Artifact / read back**: harness family `theme-briefs` (`scripts/harness-runs/theme-briefs/`), one artifact
+per run, `config.action` export or apply, landed into `harness_runs` by the workflow's last step.
+
+---

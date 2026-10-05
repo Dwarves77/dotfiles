@@ -1,32 +1,31 @@
 #!/usr/bin/env node
-// SHARED-WRITER: theme_briefs
-// generate-theme-brief.mjs -- theme_briefs (migration 266, flywheel U6) has NO WRITER anywhere in the
-// repo (verified: `grep -rl "from(\"theme_briefs\")"` before this file existed matched only
-// api/admin/themes/route.ts's READ). This is that writer, in two steps matching migration 266's own
-// $0/session-executed posture (no LLM call inside this script -- a human or an in-session agent
-// authors the actual brief prose; this script assembles the input and validates/persists the output):
+// generate-theme-brief.mjs -- the single-theme entry to the theme-briefs flow (flywheel U6; reworked by lane
+// S3-C, 2026-10-04). The batch pattern lives in scripts/turns/ (export-themes-for-briefs.mjs lists every theme
+// needing a brief, apply-theme-briefs.mjs validates a committed batch and writes theme_briefs); this script
+// keeps the one-theme dispatch (maintenance.yml step generate-theme-brief) working on the SAME reads, the SAME
+// validator and the SAME writer, never a second copy of any of them. It no longer writes theme_briefs itself:
+// every write goes through writeThemeBriefRow in apply-theme-briefs.mjs, the one writer of the table.
 //
-//   --theme <id>   assembles the BRIEF INPUT BUNDLE (theme row, member items, their intra-theme edges,
-//                  their forward events) and prints it as JSON for in-session authoring. The bundle
-//                  carries member_hash (computeMemberHash over the theme's CURRENT member_ids, see
-//                  brief-staleness.mjs) so the author's payload can later prove it was written against
-//                  THIS exact membership.
-//   --write <file> validates an authored brief payload (JSON or Markdown-with-frontmatter -- see
-//                  parseBriefPayload below) and upserts the theme_briefs row via the guarded path.
-//                  Refuses if the payload's member_hash no longer matches the theme's LIVE
-//                  member_ids (membership drifted between --theme and --write -- the same
-//                  staleness-is-detected-never-silent posture migration 266's own header states,
-//                  applied here at WRITE time instead of read time).
+// $0 and session-executed (migration 266's posture): no LLM call inside this script; a human or an in-session
+// agent authors the brief, this script assembles the input and validates/persists the output.
+//
+//   --theme <id>   prints the BRIEF INPUT BUNDLE for one theme as JSON: the same bundle the export step writes
+//                  (members with summary, grounded claims and forward events; intra-theme edges with their full
+//                  basis; gaps; surfaces; member_hash), built by scripts/turns/theme-briefs/data.mjs. The
+//                  member_hash lets the author's payload prove it was written against THIS membership.
+//   --write <file> persists an authored payload. A .json payload carrying `sections` (the structured form, see
+//                  scripts/turns/theme-briefs/README.md) runs the FULL batch validator and writes sections,
+//                  claims and brief_md. A legacy payload (JSON with brief_md, or Markdown with frontmatter -- see
+//                  parseBriefPayload below) is checked against the theme's LIVE membership (member_hash) and
+//                  written with generated_by 'session-executor', as before. Both refuse on a member_hash that
+//                  no longer matches the live membership (the staleness-is-detected-never-silent posture).
 //
 // THE ONE computeMemberHash SoT: src/lib/connections/brief-staleness.mjs -- "sort member_ids
 // lexicographically, join empty string, md5 hex". This script imports it, never re-implements it (a
 // second implementation would silently diverge from the read path's staleness check).
 //
-// UPSERT VIA THE GUARDED PATH: db.mjs has no guardedUpsert (only guardedInsert/guardedUpdate/
-// guardedDelete/guardedInsertMany). theme_briefs.theme_id is PRIMARY KEY, so "upsert" here is
-// check-then-branch: read the existing row by theme_id; guardedInsert if absent, guardedUpdate if
-// present. This is not a workaround -- an update via guardedUpdate SNAPSHOTS the prior brief before
-// overwriting it (R1's own reversibility posture), which a raw .upsert() would not give for free.
+// WRITE PATH: check-then-branch through the one writer (apply-theme-briefs.mjs writeThemeBriefRow):
+// guardedInsert when no row exists for the theme, guardedUpdate (which SNAPSHOTS the prior brief) when one does.
 //
 // Usage:
 //   node scripts/connections/generate-theme-brief.mjs --theme <connection_themes-id> [--dry]
@@ -46,30 +45,23 @@ import { readFileSync } from "node:fs";
 // section 2 names this script in the clone family).
 import { runCli } from "../maintenance/lib/cli.mjs";
 import { computeMemberHash } from "../../src/lib/connections/brief-staleness.mjs";
+import { loadThemes, loadThemeMaterial, computeThemeGaps, buildThemeBundle } from "../turns/theme-briefs/data.mjs";
+import { applyThemeBriefs, writeThemeBriefRow } from "../turns/apply-theme-briefs.mjs";
+
+/** Default bundle budget for the single-theme print (same default as the export step). */
+const BUNDLE_CHAR_BUDGET = 60000;
 
 /**
- * Assemble the brief input bundle from already-loaded rows. PURE -- no DB, the caller supplies
- * everything already read.
- * @param {{id:string, member_ids:string[], dominant_signals?:any, surfaces?:string[], convergence?:number, pivots?:any}} theme
- * @param {Array<object>} memberItems - intelligence_items rows for theme.member_ids
- * @param {Array<{source_item_id:string,target_item_id:string,relationship:string,origin:string,basis:any,score:number}>} intraEdges
- * @param {Array<object>} forwardEvents - item_forward_events rows for theme.member_ids
- * @returns {object}
+ * Build one theme's brief input bundle over injected reads (the shared builder).
+ * @returns {Promise<{ok:true,bundle:object}|{ok:false,error:string}>}
  */
-export function buildBriefBundle(theme, memberItems, intraEdges, forwardEvents) {
-  const memberHash = computeMemberHash(theme.member_ids);
-  return {
-    theme_id: theme.id,
-    member_hash: memberHash,
-    member_count: theme.member_ids.length,
-    dominant_signals: theme.dominant_signals ?? [],
-    surfaces: theme.surfaces ?? [],
-    convergence: theme.convergence ?? null,
-    pivots: theme.pivots ?? [],
-    members: memberItems,
-    intra_theme_edges: intraEdges,
-    forward_events: forwardEvents,
-  };
+export async function runTheme(themeId, deps) {
+  const themes = await loadThemes(deps, [themeId]);
+  if (!themes.length) return { ok: false, error: `no connection_themes row with id ${themeId}.` };
+  const material = await loadThemeMaterial(deps, themes);
+  const gaps = computeThemeGaps(themes, material).get(themeId) ?? [];
+  const bundle = buildThemeBundle({ theme: themes[0], reason: "requested", prior: null, supersedes_theme_id: null }, material, gaps, { charBudget: BUNDLE_CHAR_BUDGET });
+  return { ok: true, bundle };
 }
 
 const FRONTMATTER_RE = /^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/;
@@ -151,102 +143,94 @@ if (IS_MAIN) {
   await runCli({ step: "generate-theme-brief", main, needsDb: true });
 }
 
+/** True when a .json payload carries the structured `sections` form. */
+export function isStructuredPayload(filePath, fileContent) {
+  if (extname(filePath).toLowerCase() !== ".json") return false;
+  try {
+    const obj = JSON.parse(fileContent);
+    return obj !== null && typeof obj === "object" && obj.sections !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate and (with execute) persist one authored payload, over injected deps. Structured payloads go
+ * through applyThemeBriefs (the batch validator and writer); legacy payloads through the member_hash check and
+ * writeThemeBriefRow (the same writer).
+ * @returns {Promise<{ok:boolean, error?:string, message?:string}>}
+ */
+export async function runWrite({ filePath, content, execute, deps, now = () => new Date().toISOString() }) {
+  if (isStructuredPayload(filePath, content)) {
+    const entry = JSON.parse(content);
+    const stamp = now();
+    const json = {
+      batch: typeof entry.batch === "string" && entry.batch ? entry.batch : `theme-briefs-write-${stamp.slice(0, 10).replaceAll("-", "")}`,
+      generated_at: stamp,
+      authored_by: "session-lane",
+      entries: [{ theme_id: entry.theme_id, member_hash: entry.member_hash, title: entry.title, sections: entry.sections, claims: entry.claims }],
+    };
+    const r = await applyThemeBriefs({ json, execute, deps, now });
+    if (!r.ok) return { ok: false, error: r.fileErrors.join("; ") };
+    if (r.refused.length) return { ok: false, error: r.refused.flatMap((x) => x.errors).join("; ") };
+    if (r.readBackFailures.length) return { ok: false, error: `read-back failed for ${r.readBackFailures.join(", ")}` };
+    return { ok: true, message: execute ? `WROTE (${r.written[0].mode}): theme_briefs row for theme ${entry.theme_id} (batch ${json.batch}).` : `payload valid for theme ${entry.theme_id} (DRY RUN).` };
+  }
+
+  const payload = parseBriefPayload(filePath, content);
+  if (!payload.ok) return { ok: false, error: `payload invalid -- ${payload.error}` };
+  const themes = await loadThemes(deps, [payload.theme_id]);
+  if (!themes.length) return { ok: false, error: `payload's theme_id ${payload.theme_id} does not exist in connection_themes (it may have dissolved since the bundle was fetched).` };
+  const validated = validateAgainstLiveMembers(payload, themes[0].member_ids);
+  if (!validated.ok) return { ok: false, error: validated.error };
+  if (!execute) return { ok: true, message: `payload valid for theme ${payload.theme_id} (member_hash matches live membership, ${validated.row.member_count} members) (DRY RUN).` };
+  const w = await writeThemeBriefRow({ ...validated.row, generated_at: now() }, deps);
+  return { ok: true, message: `WROTE (${w.mode}): theme_briefs row for theme ${payload.theme_id} (prior snapshot: ${w.snapshot}).` };
+}
+
 async function main() {
-const args = process.argv.slice(2);
-const themeIdRaw = args[args.indexOf("--theme") + 1];
-const themeId = args.includes("--theme") && themeIdRaw && !themeIdRaw.startsWith("--") ? themeIdRaw : null;
-const writePathRaw = args[args.indexOf("--write") + 1];
-const writePath = args.includes("--write") && writePathRaw && !writePathRaw.startsWith("--") ? writePathRaw : null;
-const EXECUTE = args.includes("--execute");
+  const args = process.argv.slice(2);
+  const themeIdRaw = args[args.indexOf("--theme") + 1];
+  const themeId = args.includes("--theme") && themeIdRaw && !themeIdRaw.startsWith("--") ? themeIdRaw : null;
+  const writePathRaw = args[args.indexOf("--write") + 1];
+  const writePath = args.includes("--write") && writePathRaw && !writePathRaw.startsWith("--") ? writePathRaw : null;
+  const EXECUTE = args.includes("--execute");
 
-if (!themeId && !writePath) {
-  console.error("generate-theme-brief: one of --theme <id> or --write <file> is required.");
-  process.exit(1);
-}
-if (themeId && writePath) {
-  console.error("generate-theme-brief: pass --theme OR --write, not both.");
-  process.exit(1);
-}
-
-const { readAll, readAllByIds, guardedInsert, guardedUpdate } = await import("../lib/db.mjs");
-const CITE = {
-  skill: "flywheel-build-plan-2026-08-10",
-  reason: "U6 generate-theme-brief: assemble the brief input bundle and persist an authored brief to theme_briefs (guarded path, rule 015).",
-};
-
-if (themeId) {
-  const themes = await readAll("connection_themes", "id, member_ids, dominant_signals, surfaces, convergence, pivots", { match: (q) => q.eq("id", themeId) });
-  const theme = themes[0];
-  if (!theme) {
-    console.error(`generate-theme-brief: no connection_themes row with id ${themeId}.`);
+  if (!themeId && !writePath) {
+    console.error("generate-theme-brief: one of --theme <id> or --write <file> is required.");
     process.exit(1);
   }
-  // theme.member_ids is a runtime, corpus-scaled list (analyze-corpus.mjs's clustering output) with no
-  // declared cap -- chunked via readAllByIds (db.mjs), not readAll's own match-in, so a large theme can
-  // never blow a single PostgREST .in() request line (IN-CHUNK class, 2026-09-06).
-  const allMembers = await readAllByIds("intelligence_items", "id, title, legacy_id, item_type, jurisdiction_iso, added_date, priority", theme.member_ids);
-  const allEdges = await readAllByIds("item_cross_references", "source_item_id, target_item_id, relationship, origin, basis, score", theme.member_ids, { idColumn: "source_item_id" });
-  const intraEdges = allEdges.filter((e) => theme.member_ids.includes(e.target_item_id));
-  const forwardEvents = await readAllByIds(
-    "item_forward_events",
-    "id, intelligence_item_id, event_date, date_precision, event_kind, obligation_text, source_span, confidence",
-    theme.member_ids,
-    { idColumn: "intelligence_item_id" },
-  );
+  if (themeId && writePath) {
+    console.error("generate-theme-brief: pass --theme OR --write, not both.");
+    process.exit(1);
+  }
 
-  const bundle = buildBriefBundle(theme, allMembers, intraEdges, forwardEvents);
-  console.log(JSON.stringify(bundle, null, 2));
+  const db = await import("../lib/db.mjs");
+  const deps = { readAll: db.readAll, readAllByIds: db.readAllByIds, guardedInsert: db.guardedInsert, guardedUpdate: db.guardedUpdate };
+
+  if (themeId) {
+    const r = await runTheme(themeId, deps);
+    if (!r.ok) {
+      console.error(`generate-theme-brief: ${r.error}`);
+      process.exit(1);
+    }
+    console.log(JSON.stringify(r.bundle, null, 2));
+    process.exit(0);
+  }
+
+  let fileContent;
+  try {
+    fileContent = readFileSync(writePath, "utf8");
+  } catch (e) {
+    console.error(`generate-theme-brief: cannot read ${writePath}: ${e.message}`);
+    process.exit(1);
+  }
+  const r = await runWrite({ filePath: writePath, content: fileContent, execute: EXECUTE, deps });
+  if (!r.ok) {
+    console.error(`generate-theme-brief: ${r.error}`);
+    process.exit(1);
+  }
+  console.log(`generate-theme-brief: ${r.message}`);
+  if (!EXECUTE) console.log("DRY RUN -- nothing written. Re-run with --execute to apply.");
   process.exit(0);
-}
-
-// --write path
-let fileContent;
-try {
-  fileContent = readFileSync(writePath, "utf8");
-} catch (e) {
-  console.error(`generate-theme-brief: cannot read ${writePath}: ${e.message}`);
-  process.exit(1);
-}
-const payload = parseBriefPayload(writePath, fileContent);
-if (!payload.ok) {
-  console.error(`generate-theme-brief: payload invalid -- ${payload.error}`);
-  process.exit(1);
-}
-
-const themes = await readAll("connection_themes", "id, member_ids", { match: (q) => q.eq("id", payload.theme_id) });
-const theme = themes[0];
-if (!theme) {
-  console.error(`generate-theme-brief: payload's theme_id ${payload.theme_id} does not exist in connection_themes (it may have dissolved since the bundle was fetched).`);
-  process.exit(1);
-}
-
-const validated = validateAgainstLiveMembers(payload, theme.member_ids);
-if (!validated.ok) {
-  console.error(`generate-theme-brief: ${validated.error}`);
-  process.exit(1);
-}
-
-console.log(
-  `generate-theme-brief: payload valid for theme ${payload.theme_id} (member_hash matches live membership, ` +
-  `${validated.row.member_count} members)${EXECUTE ? "" : " (DRY RUN)"}.`,
-);
-
-if (!EXECUTE) {
-  console.log("DRY RUN -- nothing written. Re-run with --execute to apply.");
-  process.exit(0);
-}
-
-// orderBy: "theme_id" -- theme_briefs (migration 266) has NO "id" column; its PRIMARY KEY is
-// theme_id. readAll's own default orderBy is "id", which would crash this read the same way
-// gate-a-rescan.mjs's item_gate_a_state read crashed (GitHub Actions run 36217491293, 2026-09-26) --
-// found by the class-level pagination-order-key-audit that fix added, fixed alongside it.
-const existing = await readAll("theme_briefs", "theme_id", { orderBy: "theme_id", match: (q) => q.eq("theme_id", payload.theme_id) });
-if (existing.length) {
-  const res = await guardedUpdate("theme_briefs", (qb) => qb.eq("theme_id", payload.theme_id), validated.row, { cite: CITE });
-  console.log(`WROTE (update): theme_briefs row for theme ${payload.theme_id} updated (${res.updated} row, prior snapshot: ${res.snapshot}).`);
-} else {
-  const res = await guardedInsert("theme_briefs", validated.row, { cite: CITE, select: "theme_id" });
-  console.log(`WROTE (insert): theme_briefs row for theme ${payload.theme_id} created (snapshot: ${res.snapshot}).`);
-}
-process.exit(0);
 }

@@ -29,11 +29,11 @@
 // FROM a live connection_themes row (the same direction api/admin/themes/route.ts joins in) â€” a brief row
 // whose theme_id matches no row in the live `themes` array is never visited, exactly like the admin route.
 
-import { isBriefStale } from "../connections/brief-staleness.mjs";
+import { resolveBriefForTheme } from "../connections/brief-staleness.mjs";
 
 /**
  * @typedef {{ id: string, member_ids: string[], density?: number|null }} ConnectionThemeRow
- * @typedef {{ theme_id: string, title: string, brief_md: string, member_hash: string, generated_at: string }} ThemeBriefRow
+ * @typedef {{ theme_id: string, title: string, brief_md: string, member_hash: string, generated_at: string, member_ids?: string[]|null }} ThemeBriefRow
  * @typedef {{
  *   themeId: string,
  *   title: string,
@@ -42,6 +42,7 @@ import { isBriefStale } from "../connections/brief-staleness.mjs";
  *   memberCount: number,
  *   density: number|null,
  *   stale: boolean,
+ *   supersedesThemeId: string|null,
  * }} ThemeBriefView
  */
 
@@ -77,7 +78,13 @@ export function findThemeForItem(itemId, themes) {
 export function selectThemeBriefForItem(itemId, themes, briefs) {
   const theme = findThemeForItem(itemId, themes);
   if (!theme) return null;
-  const brief = (Array.isArray(briefs) ? briefs : []).find((b) => b && b.theme_id === theme.id);
+  // ONE lookup (src/lib/connections/brief-staleness.mjs resolveBriefForTheme, lane S3-C): the brief stored
+  // under this theme's own id, or, when the theme id drifted because its smallest member changed, the best
+  // overlapping prior brief served STALE. A brief that belongs to another live theme is never borrowed.
+  const resolved = resolveBriefForTheme(theme, Array.isArray(briefs) ? briefs : [], {
+    liveThemeIds: new Set((Array.isArray(themes) ? themes : []).map((t) => t && t.id).filter(Boolean)),
+  });
+  const brief = resolved.brief;
   if (!brief) return null;
   return {
     themeId: theme.id,
@@ -85,11 +92,16 @@ export function selectThemeBriefForItem(itemId, themes, briefs) {
     briefMd: brief.brief_md,
     generatedAt: brief.generated_at,
     memberCount: theme.member_ids.length,
-    // Artboard 07's CLUSTER SYNTHESIS meta line reads "85 items Â· density 0.180". `density` is
+    // Artboard 07's CLUSTER SYNTHESIS meta line reads "85 items · density 0.180". `density` is
     // the cluster's intra-theme edge density (src/lib/connections/cluster.mjs F3), stored on
     // connection_themes.density and already selected by api/admin/themes/route.ts. Null when the
-    // caller did not select it or the row predates it â€” the card omits the segment, never renders 0.
+    // caller did not select it or the row predates it — the card omits the segment, never renders 0.
     density: typeof theme.density === "number" ? theme.density : null,
-    stale: isBriefStale(brief.member_hash, theme.member_ids),
+    // Always recomputed against the live member_ids (never trusted from storage); an overlap or lineage
+    // match is stale by construction.
+    stale: resolved.stale,
+    // The prior theme whose brief this view serves (null for an exact-id brief). Present so a surface can
+    // say "this synthesis was written for an earlier cluster".
+    supersedesThemeId: resolved.supersedes_theme_id,
   };
 }

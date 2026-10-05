@@ -1,0 +1,61 @@
+{
+  "batch": "theme-briefs-000",
+  "generated_at": "2026-10-04T00:00:00Z",
+  "authored_by": "session-lane",
+  "entries": [
+    {
+      "theme_id": "11111111-1111-4111-8111-111111111111",
+      "member_hash": "2616d8865fbe20d58cae480848b242bb",
+      "title": "CBAM obligation, cost pass-through and data accuracy",
+      "sections": {
+        "connection": "The regulation EU CBAM Regulation Implementing Act, the market item Carbon border cost signal for steel importers and the research item Embedded emissions reporting accuracy study are connected through one operating scenario, CBAM-declaration, and through the importer role that carries it. Authorised declarants must surrender CBAM certificates annually.",
+        "meaning": "*Analytical inference:* The regulation sets the obligation, the market item shows importers already passing the certificate cost into contracts, and the study questions whether the default values used in declarations are accurate. Together they point to cost pricing and data quality becoming one decision for importers over the coming years.",
+        "ramifications": "### Regulations\nThe definitive period starts on 1 January 2026. *Operational implication:* declarant authorisation needs to be in place before the definitive period begins.\n\n### Market Intel\nSteel importers report cost pass-through of certificates in contracts.\n\n### Research\nDefault values overstate embedded emissions for some installations.",
+        "watch": "2026-12-31: first annual declaration is due, from EU CBAM Regulation Implementing Act. A change to the declaration timetable would change this reading.",
+        "gaps": "The theme has a most connected item but no Operations item among its members, so the operational effect of the connection is not covered."
+      },
+      "claims": [
+        {
+          "section": "connection",
+          "text": "Authorised declarants must surrender CBAM certificates annually.",
+          "member_id": "11111111-1111-4111-8111-111111111111",
+          "claim_ids": [
+            "c0000001-0000-4000-8000-000000000001"
+          ]
+        },
+        {
+          "section": "ramifications",
+          "text": "The definitive period starts on 1 January 2026.",
+          "member_id": "11111111-1111-4111-8111-111111111111",
+          "claim_ids": [
+            "c0000001-0000-4000-8000-000000000002"
+          ]
+        },
+        {
+          "section": "ramifications",
+          "text": "Steel importers report cost pass-through of certificates in contracts.",
+          "member_id": "22222222-2222-4222-8222-222222222222",
+          "claim_ids": [
+            "c0000001-0000-4000-8000-000000000003"
+          ]
+        },
+        {
+          "section": "ramifications",
+          "text": "Default values overstate embedded emissions for some installations.",
+          "member_id": "33333333-3333-4333-8333-333333333333",
+          "claim_ids": [
+            "c0000001-0000-4000-8000-000000000004"
+          ]
+        },
+        {
+          "section": "watch",
+          "text": "2026-12-31: first annual declaration is due, from EU CBAM Regulation Implementing Act.",
+          "member_id": "11111111-1111-4111-8111-111111111111",
+          "claim_ids": [
+            "ee000001-0000-4000-8000-000000000001"
+          ]
+        }
+      ]
+    }
+  ]
+}

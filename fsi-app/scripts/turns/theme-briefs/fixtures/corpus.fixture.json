@@ -1,0 +1,388 @@
+{
+  "_comment": "Fixture corpus for the theme-briefs export and apply tests and the --fixture dry run. Invented rows for tests only; no real corpus data.",
+  "tables": {
+    "connection_themes": [
+      {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "member_ids": [
+          "11111111-1111-4111-8111-111111111111",
+          "22222222-2222-4222-8222-222222222222",
+          "33333333-3333-4333-8333-333333333333"
+        ],
+        "dominant_signals": [
+          {
+            "signal": "shared_scenario",
+            "weight": 0.9
+          }
+        ],
+        "surfaces": [
+          "regulations",
+          "market",
+          "research"
+        ],
+        "density": 1,
+        "convergence": 1.8,
+        "pivots": [
+          {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "centrality": 1.2
+          },
+          {
+            "id": "22222222-2222-4222-8222-222222222222",
+            "centrality": 0.8
+          },
+          {
+            "id": "33333333-3333-4333-8333-333333333333",
+            "centrality": 0.7
+          }
+        ]
+      },
+      {
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "member_ids": [
+          "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+        ],
+        "dominant_signals": [],
+        "surfaces": [
+          "regulations",
+          "operations"
+        ],
+        "density": 1,
+        "convergence": 0.9,
+        "pivots": [
+          {
+            "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "centrality": 0.5
+          }
+        ]
+      },
+      {
+        "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "member_ids": [
+          "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+        ],
+        "dominant_signals": [],
+        "surfaces": [
+          "regulations",
+          "market"
+        ],
+        "density": 1,
+        "convergence": 1.1,
+        "pivots": [
+          {
+            "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            "centrality": 0.5
+          }
+        ]
+      },
+      {
+        "id": "99999999-9999-4999-8999-999999999999",
+        "member_ids": [
+          "99999999-9999-4999-8999-999999999999",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee02",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee03",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee04"
+        ],
+        "dominant_signals": [],
+        "surfaces": [
+          "regulations",
+          "market",
+          "research",
+          "operations"
+        ],
+        "density": 0.5,
+        "convergence": 0.7,
+        "pivots": [
+          {
+            "id": "99999999-9999-4999-8999-999999999999",
+            "centrality": 0.9
+          }
+        ]
+      }
+    ],
+    "connection_theme_runs": [],
+    "theme_briefs": [
+      {
+        "theme_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "member_hash": "a48d8a5e3cecd7a7ce992929f0418501",
+        "member_count": 2,
+        "title": "IMO and port call data",
+        "generated_at": "2026-08-21T00:00:00Z",
+        "generated_by": "session-executor",
+        "member_ids": [
+          "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+        ]
+      },
+      {
+        "theme_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "member_hash": "4964b63b5756d10ae8be9a7ebbecab20",
+        "member_count": 1,
+        "title": "SAF cluster",
+        "generated_at": "2026-08-21T00:00:00Z",
+        "generated_by": "session-executor",
+        "member_ids": [
+          "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+        ]
+      },
+      {
+        "theme_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        "member_hash": "38462c9278fed9f2c398df9f556a7f13",
+        "member_count": 4,
+        "title": "Packaging reuse cluster",
+        "generated_at": "2026-08-21T00:00:00Z",
+        "generated_by": "session-executor",
+        "member_ids": [
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee02",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee03",
+          "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee04"
+        ]
+      }
+    ],
+    "intelligence_items": [
+      {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "title": "EU CBAM Regulation Implementing Act",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": "EU",
+        "priority": "HIGH",
+        "summary": "Sets the declarant authorisation and certificate surrender rules for embedded emissions.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "title": "Carbon border cost signal for steel importers",
+        "item_type": "market_signal",
+        "domain": 2,
+        "jurisdiction_iso": "EU",
+        "priority": "MODERATE",
+        "summary": "Importers of steel products report certificate cost pass-through in contract talks.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "33333333-3333-4333-8333-333333333333",
+        "title": "Embedded emissions reporting accuracy study",
+        "item_type": "research_finding",
+        "domain": 7,
+        "jurisdiction_iso": "GB",
+        "priority": "MODERATE",
+        "summary": "Compares default values with installation level data for covered goods.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "title": "IMO Carbon Intensity Indicator review",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": "IMO",
+        "priority": "HIGH",
+        "summary": "Review of the CII rating scheme.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "title": "Vessel slow steaming port call data",
+        "item_type": "regional_data",
+        "domain": 3,
+        "jurisdiction_iso": "SG",
+        "priority": "LOW",
+        "summary": "Port call dwell times.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        "title": "SAF blending mandate for EU airports",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": "EU",
+        "priority": "HIGH",
+        "summary": "Blending obligations for aviation fuel suppliers.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        "title": "SAF price signal Q3",
+        "item_type": "market_signal",
+        "domain": 2,
+        "jurisdiction_iso": "EU",
+        "priority": "MODERATE",
+        "summary": "SAF premium over fossil jet fuel.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "99999999-9999-4999-8999-999999999999",
+        "title": "Packaging reuse targets summary",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": "EU",
+        "priority": "HIGH",
+        "summary": "Reuse targets for transport packaging.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        "title": "Reusable pallet pooling signal",
+        "item_type": "market_signal",
+        "domain": 2,
+        "jurisdiction_iso": "EU",
+        "priority": "LOW",
+        "summary": "Pooling operators expand.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee02",
+        "title": "Packaging waste study",
+        "item_type": "research_finding",
+        "domain": 7,
+        "jurisdiction_iso": "EU",
+        "priority": "LOW",
+        "summary": "Study of reuse rates.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee03",
+        "title": "Transport packaging operations profile",
+        "item_type": "regional_data",
+        "domain": 3,
+        "jurisdiction_iso": "EU",
+        "priority": "LOW",
+        "summary": "Operational cost baseline.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      },
+      {
+        "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeee04",
+        "title": "Packaging labelling guidance",
+        "item_type": "guidance",
+        "domain": 1,
+        "jurisdiction_iso": "EU",
+        "priority": "LOW",
+        "summary": "Labelling guidance.",
+        "added_date": "2026-09-01",
+        "provenance_status": "verified",
+        "is_archived": false
+      }
+    ],
+    "section_claim_provenance": [
+      {
+        "id": "c0000001-0000-4000-8000-000000000001",
+        "intelligence_item_id": "11111111-1111-4111-8111-111111111111",
+        "claim_kind": "FACT",
+        "claim_text": "Authorised declarants must surrender CBAM certificates annually.",
+        "source_id": "55555555-5555-4555-8555-555555555555"
+      },
+      {
+        "id": "c0000001-0000-4000-8000-000000000002",
+        "intelligence_item_id": "11111111-1111-4111-8111-111111111111",
+        "claim_kind": "FACT",
+        "claim_text": "The definitive period starts on 1 January 2026.",
+        "source_id": "55555555-5555-4555-8555-555555555555"
+      },
+      {
+        "id": "c0000001-0000-4000-8000-000000000003",
+        "intelligence_item_id": "22222222-2222-4222-8222-222222222222",
+        "claim_kind": "FACT",
+        "claim_text": "Steel importers report cost pass-through of certificates in contracts.",
+        "source_id": "55555555-5555-4555-8555-555555555555"
+      },
+      {
+        "id": "c0000001-0000-4000-8000-000000000004",
+        "intelligence_item_id": "33333333-3333-4333-8333-333333333333",
+        "claim_kind": "FACT",
+        "claim_text": "Default values overstate embedded emissions for some installations.",
+        "source_id": "55555555-5555-4555-8555-555555555555"
+      },
+      {
+        "id": "c0000001-0000-4000-8000-000000000005",
+        "intelligence_item_id": "33333333-3333-4333-8333-333333333333",
+        "claim_kind": "ANALYSIS",
+        "claim_text": "An interpretive note, not a fact.",
+        "source_id": "55555555-5555-4555-8555-555555555555"
+      },
+      {
+        "id": "c0000001-0000-4000-8000-000000000006",
+        "intelligence_item_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "claim_kind": "FACT",
+        "claim_text": "The CII review covers rating boundaries.",
+        "source_id": "55555555-5555-4555-8555-555555555555"
+      }
+    ],
+    "item_forward_events": [
+      {
+        "id": "ee000001-0000-4000-8000-000000000001",
+        "intelligence_item_id": "11111111-1111-4111-8111-111111111111",
+        "event_date": "2026-12-31",
+        "date_precision": "day",
+        "event_kind": "compliance_deadline",
+        "obligation_text": "First annual declaration is due.",
+        "source_span": "first annual declaration",
+        "confidence": "high"
+      }
+    ],
+    "item_cross_references": [
+      {
+        "source_item_id": "11111111-1111-4111-8111-111111111111",
+        "target_item_id": "22222222-2222-4222-8222-222222222222",
+        "relationship": "related",
+        "origin": "provenance_discovery",
+        "basis": [
+          {
+            "signal": "shared_scenario",
+            "detail": "CBAM-declaration"
+          },
+          {
+            "signal": "shared_compliance_object",
+            "detail": "importer"
+          }
+        ],
+        "score": 0.9
+      },
+      {
+        "source_item_id": "22222222-2222-4222-8222-222222222222",
+        "target_item_id": "33333333-3333-4333-8333-333333333333",
+        "relationship": "related",
+        "origin": "provenance_discovery",
+        "basis": [
+          {
+            "signal": "shared_scenario",
+            "detail": "emissions-reporting-Scope3"
+          }
+        ],
+        "score": 0.6
+      }
+    ],
+    "workspace_settings": [
+      {
+        "jurisdiction_weights": {
+          "eu": 1
+        }
+      }
+    ]
+  }
+}

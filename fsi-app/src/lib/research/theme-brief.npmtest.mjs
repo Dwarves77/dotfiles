@@ -162,3 +162,37 @@ test("a theme row selected without density yields null, never 0", () => {
   assert.equal(view.density, null);
   assert.notEqual(view.density, 0);
 });
+
+// ── brief continuity (lane S3-C): a theme whose smallest member changed finds its prior brief, as STALE ──
+test("theme-brief: smallest member changed, the prior theme's brief is served stale with supersedesThemeId", () => {
+  // The prior theme was anchored at "b" (b c d e); the corpus gained "a", so the live theme id is "a".
+  const themes = [{ id: "a", member_ids: ["a", "b", "c", "d", "e"], density: 0.4 }];
+  const briefs = [
+    {
+      theme_id: "b",
+      title: "Prior cluster",
+      brief_md: "Prior synthesis.",
+      member_hash: hashOf(["b", "c", "d", "e"]),
+      member_ids: ["b", "c", "d", "e"],
+      generated_at: "2026-08-20T00:00:00Z",
+    },
+  ];
+  const view = selectThemeBriefForItem("c", themes, briefs);
+  assert.ok(view, "the prior brief is found, not orphaned");
+  assert.equal(view.stale, true, "never served as current");
+  assert.equal(view.supersedesThemeId, "b");
+  assert.equal(view.themeId, "a");
+  assert.equal(view.briefMd, "Prior synthesis.");
+});
+
+test("theme-brief: an exact-id brief carries supersedesThemeId null", () => {
+  const themes = [{ id: "a", member_ids: ["a", "b"] }];
+  const briefs = [{ theme_id: "a", title: "T", brief_md: "B", member_hash: hashOf(["a", "b"]), generated_at: "2026-08-20T00:00:00Z" }];
+  assert.equal(selectThemeBriefForItem("a", themes, briefs).supersedesThemeId, null);
+});
+
+test("theme-brief: a brief belonging to a different live theme is not borrowed by this one", () => {
+  const themes = [{ id: "a", member_ids: ["a", "b"] }, { id: "c", member_ids: ["c", "d", "e"] }];
+  const briefs = [{ theme_id: "c", title: "C", brief_md: "C body", member_hash: hashOf(["c", "d", "e"]), member_ids: ["c", "d", "e"], generated_at: "2026-08-20T00:00:00Z" }];
+  assert.equal(selectThemeBriefForItem("a", themes, briefs), null);
+});
