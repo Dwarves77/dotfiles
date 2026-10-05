@@ -1,0 +1,10 @@
+{
+  "family": "source-resolution",
+  "registered": "2026-10-05",
+  "registered_by": "lane S1-E",
+  "governing_files": [
+    "../.github/workflows/source-resolution.yml",
+    "scripts/turns/emit-source-resolution-artifact.mjs"
+  ],
+  "rationale": "source-resolution (lane S1-E, 2026-10-05, CLAUDE.md rule 17): the link that runs source resolution and tier recompute after the two runtimes that register new provisional sources. Before it, resolve-provisional-sources ran only when a person dispatched a maintenance step and no loop hop named any source runtime; tier recompute ran inside Downstream chain, which fires after Population turn and Corpus turn, not after Brief apply or Research walker. The workflow chains off both (depth 1), runs resolve-provisional-sources then recompute-tiers through the shared maintenance-step composite action, and is forced dry by the chained dry guard while build mode holds. Governing files are the workflow and its artifact emitter, the two files that define what a source-resolution run is and records; the two maintenance steps stay out of this list, matching downstream-chain and maintenance, because neither family owns them exclusively. One run is one firing, told apart by trigger and upstream_run_id."
+}

@@ -6,5 +6,5 @@
   "family": "downstream-chain",
   "enforceEdge": true,
   "enforceFired": false,
-  "note": "Edge exists today: downstream-chain.yml carries on.workflow_run.workflows: [\"Population turn\", \"Corpus turn\"]. The downstream-chain harness family is now registered (lane M3, 2026-09-19, by descriptor only, scripts/harness-runs/downstream-chain/family.json) -- familyPending cleared. Fired-from-upstream proof is the coordinator's proof run (build plan section 6.2)."
+  "note": "Edge exists today: downstream-chain.yml carries on.workflow_run.workflows: [\"Population turn\", \"Corpus turn\"]. The downstream-chain harness family is now registered (lane M3, 2026-09-19, by descriptor only, scripts/harness-runs/downstream-chain/family.json) -- familyPending cleared. Fired-from-upstream proof is the coordinator's proof run (build plan section 6.2). Where tier recompute runs (lane S1-E, 2026-10-05): tier-opinions and recompute-tiers are steps inside Downstream chain, in that order, run through the maintenance-step action under this edge (not separate hops); their counts land in the downstream-chain artifact. Source resolution after Brief apply and Research walker is hops 12 and 13."
 }

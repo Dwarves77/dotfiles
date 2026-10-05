@@ -438,6 +438,9 @@ const HARNESS_FAMILY_BY_WORKFLOW = {
   // hand-written `workflow:` rows were the ONLY evidence masking the gap.
   'downstream-chain.yml': 'downstream-chain',
   'producers.yml': 'producers',
+  // Lane S1-E (2026-10-05): the source-resolution workflow records its own harness family, so its dispatch is
+  // evidenced by that family's harness_runs rows once the coordinator fires it.
+  'source-resolution.yml': 'source-resolution',
 };
 
 function harnessArtifactExists(family) {

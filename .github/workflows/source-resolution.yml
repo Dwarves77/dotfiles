@@ -1,0 +1,206 @@
+name: Source resolution
+
+# THE SOURCE CHAIN LINK (lane S1-E, s1e-source-chain, 2026-10-05; CLAUDE.md rule 17 "nothing in this build
+# runs alone"; buildout plan Stage 1 S1-E). THE GAP [CONFIRMED by reading every workflow on: block and the
+# loop-hops.d manifest]: Brief apply and Research walker are the two runtimes that register new provisional
+# sources (S1-A, S1-D), and nothing ran after them. `resolve-provisional-sources` (promotion by the class
+# table and committed host verdicts) ran only when a person dispatched a maintenance step, and no loop hop
+# named any source runtime. Tier recompute already ran as a step inside Downstream chain, but Downstream
+# chain fires after Population turn and Corpus turn, not after the two runtimes that create provisional
+# sources. This workflow is that missing link.
+#
+# WHAT IT RUNS, in order, both through the shared ./.github/actions/maintenance-step composite action (the
+# SAME command line maintenance.yml's dispatch job and downstream-chain.yml already use, never a second
+# copy of a step's run: line):
+#   1. resolve-provisional-sources  promotes or activates every provisional source the class table or a host
+#                                   verdict can place; an unplaceable host stays on the worklist.
+#   2. recompute-tiers              moves effective_tier from the evidence, one tier either side of base_tier,
+#                                   never over an admin tier_override.
+# Both are whole-registry and idempotent, so running them after any producer that completed is honest, cheap
+# and never a duplicate write. Runbook section 61 (docs/runbooks/maintenance.d/61-source-resolution.md).
+#
+# CHAIN DEPTH IS 1 (F60). Brief apply and Research walker are both chain roots (workflow_dispatch only, no
+# workflow_run trigger of their own), so a firing of this workflow is depth 1 and needs no explicit
+# `gh workflow run` fallback step. Nothing is chained off this workflow.
+#
+# BUILD MODE (CLAUDE.md rule 16, system_state.scrape_cadence='off'): a workflow_run firing is not an explicit
+# dispatch, so the chained-dry-guard below forces it dry. In build mode no source row is written by a chained
+# firing; the run records what it WOULD resolve and move, and its harness-run row carries the trigger
+# workflow_run_forced_dry. Apply happens only when the operator dispatches this workflow with mode=apply, or
+# when build mode ends.
+#
+# EVIDENCE. The loop manifest names this workflow as the consumer of two hops, brief-apply-to-source-
+# resolution and research-walker-to-source-resolution (loop-hops.d 12 and 13). Each hop is proven fired by a
+# harness_runs row of family source-resolution with trigger workflow_run or workflow_run_forced_dry and an
+# upstream_run_id equal to that producer's own github run id. The artifact is written by
+# scripts/turns/emit-source-resolution-artifact.mjs on EVERY firing (a green run means both steps ran and
+# their counts are recorded), then landed into harness_runs by deliver-artifact-branch.sh.
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, the same
+# pair maintenance.yml and downstream-chain.yml already inject, plus the best-effort APP_URL and
+# WORKER_SECRET for the post-apply cache flush.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read and plan, write nothing. apply = write through the guarded path (both steps). A hand dispatch honours this verbatim; a firing that carries chain_upstream_run_id is machine-fired and is forced dry in build mode.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      chain_upstream_name:
+        description: 'INTERNAL, never set by hand: the upstream workflow name when another workflow dispatches this one explicitly. Empty on a hand dispatch.'
+        required: false
+        default: ''
+        type: string
+      chain_upstream_run_id:
+        description: 'INTERNAL, paired with chain_upstream_name: the upstream github run id. Non-empty marks the dispatch as machine-fired for the chained dry guard. Empty on a hand dispatch.'
+        required: false
+        default: ''
+        type: string
+  workflow_run:
+    workflows: ["Brief apply", "Research walker"]
+    types: [completed]
+
+concurrency:
+  group: source-resolution
+  cancel-in-progress: false
+
+permissions:
+  contents: read # the artifact lands straight into harness_runs by a database write, no git push
+
+jobs:
+  resolve:
+    # Same gate fetch-drain.yml uses: an explicit dispatch always runs; a chained firing runs only when the
+    # upstream run actually succeeded.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Best-effort, read only by the cache flush step after a real apply (same pair downstream-chain.yml
+      # injects); never required, so not in "Verify required secrets".
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # CHAINED DRY-RUN GUARD (rule 16). Runs before npm ci, exports CHAINED_FORCED_DRY (true/false) and
+      # CHAINED_TRIGGER_LABEL. --chained marks a workflow_dispatch that another workflow fired (a non-empty
+      # chain_upstream_run_id), so it is treated exactly like a raw workflow_run event.
+      - name: Chained dry-run guard (build mode, rule 16)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply --chained "${{ inputs.chain_upstream_run_id != '' }}" >> "$GITHUB_ENV"
+
+      # The one place that resolves inputs.* (workflow_dispatch) against the chained default (workflow_run)
+      # into the RUN_* vocabulary every later step reads. Always logs its decision.
+      - name: Resolve run parameters
+        working-directory: fsi-app
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_UPSTREAM_NAME: ${{ inputs.chain_upstream_name }}
+          INPUT_UPSTREAM_RUN_ID: ${{ inputs.chain_upstream_run_id }}
+          EVENT_UPSTREAM_NAME: ${{ github.event.workflow_run.name }}
+          EVENT_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -u
+          echo "STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          UPSTREAM_NAME=""
+          UPSTREAM_RUN_ID=""
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            RUN_MODE="$INPUT_MODE"
+            UPSTREAM_NAME="$INPUT_UPSTREAM_NAME"
+            UPSTREAM_RUN_ID="$INPUT_UPSTREAM_RUN_ID"
+          else
+            RUN_MODE="apply"
+            UPSTREAM_NAME="$EVENT_UPSTREAM_NAME"
+            UPSTREAM_RUN_ID="$EVENT_UPSTREAM_RUN_ID"
+          fi
+          if [ "${CHAINED_FORCED_DRY:-false}" = "true" ]; then RUN_MODE="dry"; fi
+          echo "trigger  = $EVENT_NAME (${CHAINED_TRIGGER_LABEL:-$EVENT_NAME})"
+          echo "mode     = $RUN_MODE"
+          if [ -n "$UPSTREAM_RUN_ID" ]; then
+            echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID, conclusion ${EVENT_UPSTREAM_CONCLUSION:-n/a})"
+          fi
+          {
+            echo "RUN_MODE=$RUN_MODE"
+            echo "OUT_ROOT=$RUNNER_TEMP/source-resolution-${{ github.run_id }}"
+            echo "SR_UPSTREAM_NAME=$UPSTREAM_NAME"
+            echo "SR_UPSTREAM_RUN_ID=$UPSTREAM_RUN_ID"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        working-directory: fsi-app
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: resolve-provisional-sources
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: resolve-provisional-sources
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
+      # After resolution, so a source the first step just promoted or activated is inside the same pass that
+      # moves effective_tier from the evidence.
+      - name: recompute-tiers
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: recompute-tiers
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
+      # CACHE FLUSH AFTER A REAL APPLY (same step downstream-chain.yml and maintenance.yml carry). Promoted
+      # sources and moved tiers are read by the public ledgers and detail pages.
+      - name: Flush public/detail caches after a real apply
+        if: ${{ success() && env.RUN_MODE == 'apply' }}
+        working-directory: fsi-app
+        run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
+
+      # Record this family's harness-run artifact on EVERY firing, including a failed step, so a firing that
+      # stopped part way still leaves a record of what ran. The trigger (workflow_run_forced_dry when the
+      # guard forced the run dry) and this run's own github run id are stamped by writeRunArtifact; the
+      # upstream name and run id come from the resolve step above (SR_UPSTREAM_NAME, SR_UPSTREAM_RUN_ID in the job env), covering a chained dispatch too.
+      - name: Record this run's harness-run artifact (source-resolution family)
+        if: always()
+        working-directory: fsi-app
+        env:
+          SR_MODE: ${{ env.RUN_MODE }}
+          SR_STARTED_AT: ${{ env.STARTED_AT }}
+          SR_OUT_ROOT: ${{ env.OUT_ROOT }}
+        run: node scripts/turns/emit-source-resolution-artifact.mjs
+
+      - name: Land the source-resolution harness-run artifact into harness_runs
+        if: always()
+        working-directory: fsi-app
+        run: bash scripts/turns/deliver-artifact-branch.sh "Source resolution (mode=${{ env.RUN_MODE }}, run ${{ github.run_id }})"
+
+      # Retention 7 days (docs/runbooks/fleet-budget-control.md). The durable record is harness_runs.
+      - name: Upload this run's step summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-resolution-${{ github.run_id }}
+          path: ${{ runner.temp }}/source-resolution-${{ github.run_id }}/
+          if-no-files-found: warn
+          retention-days: 7

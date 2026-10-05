@@ -1,0 +1,10 @@
+{
+  "id": "research-walker-to-source-resolution",
+  "producer": { "file": ".github/workflows/research-walker.yml", "name": "Research walker" },
+  "consumer": { "file": ".github/workflows/source-resolution.yml", "name": "Source resolution" },
+  "trigger": "workflow_run",
+  "family": "source-resolution",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Lane S1-E (2026-10-05). Research walker registers and rates publishers (S1-D) and nothing ran after it; source-resolution.yml now runs resolve-provisional-sources then recompute-tiers on its completion. Research walker is a chain root, so this hop is depth 1. Same consumer and family as brief-apply-to-source-resolution: a row is placed on this hop only when its upstream_run_id equals a research-walker row's github_run_id, which needs research-walker.yml in PRODUCER_FAMILY_BY_WORKFLOW_FILE (added in this lane). Evidence that will prove it fired: a source-resolution harness_runs row with trigger workflow_run or workflow_run_forced_dry and that upstream_run_id. enforceFired stays false until that row exists in loop-fired-evidence.json."
+}
