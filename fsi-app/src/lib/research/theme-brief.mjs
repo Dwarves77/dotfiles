@@ -92,10 +92,10 @@ export function selectThemeBriefForItem(itemId, themes, briefs) {
     briefMd: brief.brief_md,
     generatedAt: brief.generated_at,
     memberCount: theme.member_ids.length,
-    // Artboard 07's CLUSTER SYNTHESIS meta line reads "85 items · density 0.180". `density` is
+    // Artboard 07's CLUSTER SYNTHESIS meta line reads "85 items Â· density 0.180". `density` is
     // the cluster's intra-theme edge density (src/lib/connections/cluster.mjs F3), stored on
     // connection_themes.density and already selected by api/admin/themes/route.ts. Null when the
-    // caller did not select it or the row predates it — the card omits the segment, never renders 0.
+    // caller did not select it or the row predates it, the card omits the segment, never renders 0.
     density: typeof theme.density === "number" ? theme.density : null,
     // Always recomputed against the live member_ids (never trusted from storage); an overlap or lineage
     // match is stale by construction.
