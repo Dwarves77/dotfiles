@@ -1,0 +1,149 @@
+name: Question answers
+
+# question-answers runtime (lane L4-B, 2026-10-05, ADR-044). The two runtimes of the question-answers batch
+# pattern, in one dispatchable workflow, the same shape as theme-briefs.yml and brief-export.yml:
+#
+#   action=export  scripts/turns/export-questions-for-answers.mjs: READ ONLY. Lists every open question flag
+#                  that held source text could still answer, with the item's and its connected items' claims,
+#                  forward events and held pool text, writes one bundle file for a session lane to author
+#                  answers from, and uploads it as the workflow artifact. `mode` is ignored (an export never
+#                  writes).
+#   action=apply   scripts/turns/apply-question-answers.mjs over the committed batch named by `answers_file`:
+#                  validates every entry against the live held pool (whole entry refusals), and with
+#                  mode=apply passes --execute so an answered question writes its first inference and closes
+#                  its flag, and an unanswerable one records its outcome on the flag. mode=dry validates and
+#                  prints the plan and writes nothing.
+#
+# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, NO schedule block, NO workflow_run trigger. Every run
+# is an explicit dispatch. NOT CHAINED. Where it belongs in the loop is a coordinator decision: after the
+# propagation drain raises or re-opens questions, and after population-turn raises them at mint (the question
+# generator runs as a population-turn flywheel step), so an answer pass follows each.
+#
+# FREE (rule 11 of the common terms): no model call anywhere. Answers are authored in a session by sub agents
+# from the exported bundle, then committed as scripts/turns/question-answers/batches/question-answers-NNN.json.
+#
+# DISPATCH RECIPE: `gh workflow run question-answers.yml -f action=export`, or
+# `gh workflow run question-answers.yml -f action=apply -f mode=dry -f answers_file=scripts/turns/question-answers/batches/question-answers-001.json`.
+# answers_file is fsi-app RELATIVE (this job runs with working-directory: fsi-app), never fsi-app/-prefixed.
+#
+# The run's harness-run artifact (family question-answers, scripts/harness-runs/question-answers/) is landed into
+# harness_runs by the last step (scripts/turns/deliver-artifact-branch.sh), `if: always()`: a run that ends
+# without recording its outcome is a defect in the run (rule 17).
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'export = write the bundle of open questions holdings could answer (read only). apply = validate answers_file and, with mode=apply, write the valid entries.'
+        required: true
+        default: 'export'
+        type: choice
+        options: [export, apply]
+      mode:
+        description: 'apply action only: dry = validate and plan, no database writes. apply = pass --execute. Ignored by export.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      answers_file:
+        description: 'apply action only: fsi-app relative path of the committed batch, e.g. scripts/turns/question-answers/batches/question-answers-001.json.'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: question-answers
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RUN_ACTION: ${{ inputs.action }}
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_ANSWERS_FILE: ${{ inputs.answers_file }}
+
+jobs:
+  question-answers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chained dry-run guard (build mode, rule 16)
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${RUN_MODE}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger     = ${{ github.event_name }}"
+          echo "action      = $RUN_ACTION"
+          echo "mode        = ${CHAINED_MODE:-$RUN_MODE} (apply action only)"
+          echo "answers_file = ${RUN_ANSWERS_FILE:-(none)}"
+          if [ "$RUN_ACTION" = "apply" ] && [ -z "$RUN_ANSWERS_FILE" ]; then
+            echo "::error::action=apply needs answers_file (an fsi-app relative path to a committed question-answers-NNN.json)."
+            exit 1
+          fi
+
+      - name: Export open questions holdings could answer
+        if: env.RUN_ACTION == 'export'
+        run: |
+          set -o pipefail
+          node scripts/turns/export-questions-for-answers.mjs --out-dir "$RUNNER_TEMP/question-answers" | tee /tmp/question-answers-export.log
+
+      - name: Apply the question-answers batch
+        if: env.RUN_ACTION == 'apply'
+        run: |
+          set -o pipefail
+          FLAGS="--answers $RUN_ANSWERS_FILE"
+          if [ "${CHAINED_MODE:-$RUN_MODE}" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
+          node scripts/turns/apply-question-answers.mjs $FLAGS | tee /tmp/question-answers-apply.log
+          echo "### question-answers apply" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/question-answers-apply.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Land this run's harness-run artifact into harness_runs
+        if: always()
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Question answers: run ${{ github.run_id }}"
+
+      # The export bundle is the author's input and carries held source text, so it is NEVER committed to the
+      # repo: it is written under the runner temp directory (outside the checkout, so no git add anywhere can
+      # reach it; this workflow has no git add or commit step, and deliver-artifact-branch.sh lands only
+      # scripts/harness-runs/*/*-run-*.json into harness_runs) and leaves as a workflow artifact (seven day
+      # retention). F68 accepts the path: it names neither _snapshots nor scripts/tmp.
+      - name: Upload bundle, run artifact and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: question-answers-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/question-answers/
+            fsi-app/scripts/harness-runs/question-answers/
+            /tmp/question-answers-export.log
+            /tmp/question-answers-apply.log
+          if-no-files-found: ignore
+          retention-days: 7

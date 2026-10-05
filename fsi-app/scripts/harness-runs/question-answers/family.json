@@ -1,0 +1,15 @@
+{
+  "family": "question-answers",
+  "registered": "2026-10-05",
+  "registered_by": "lane L4-B",
+  "governing_files": [
+    "../.github/workflows/question-answers.yml",
+    "scripts/turns/export-questions-for-answers.mjs",
+    "scripts/turns/apply-question-answers.mjs",
+    "scripts/turns/question-answers/schema.mjs",
+    "scripts/turns/question-answers/data.mjs",
+    "scripts/turns/question-answers/artifact.mjs",
+    "src/lib/propagation/methods/infer-from-question.ts"
+  ],
+  "rationale": "question-answers (lane L4-B, 2026-10-05, ADR-044): the system asks itself what a change means, answers from what it already holds, and writes the answer down as a labelled inference. The flow is the record-briefs and theme-briefs pattern applied to questions: a read-only export lists every open question flag that holdings could still answer and writes a bundle (the item and its connected items with grounded claims, forward events and held pool text, plus a pool_hash) for a session lane to author from; the lane commits a question-answers-NNN.json batch; the apply step validates every entry against the live held pool (whole-entry refusals: verbatim spans, claim ids, citable items, pool_hash) and writes the FIRST inference through register_inference_record and closes the question flag, or records on the flag that holdings cannot answer it. One run is one export or one apply, told apart by config.action. Governing files are the workflow, the two runtimes, the pure validator (schema.mjs), the shared reads and bundle assembly (data.mjs), the artifact writer (artifact.mjs) and the inference first-write function (infer-from-question.ts); the held-pool retrieval (queryHeldPools, heldPoolHash) lives in src/lib/sources/seek-more.mjs, governed by inaccessible-triage, and is not hashed here."
+}

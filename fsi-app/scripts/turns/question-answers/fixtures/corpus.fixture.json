@@ -1,0 +1,291 @@
+{
+  "tables": {
+    "intelligence_items": [
+      {
+        "id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "title": "Bonded warehouse humidity amendment",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "summary": "Bonded warehouse humidity amendment summary.",
+        "provenance_status": "verified",
+        "is_archived": false,
+        "origin_class": "official",
+        "instrument_entity_id": "cl:instr:bonded-humidity"
+      },
+      {
+        "id": "aaaaaaaa-0000-4000-8000-000000000002",
+        "title": "Bonded store humidity implementing guidance",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "summary": "Bonded store humidity implementing guidance summary.",
+        "provenance_status": "verified",
+        "is_archived": false,
+        "origin_class": "official",
+        "instrument_entity_id": null
+      },
+      {
+        "id": "aaaaaaaa-0000-4000-8000-000000000003",
+        "title": "Withdrawn bonded store circular",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "summary": "Withdrawn bonded store circular summary.",
+        "provenance_status": "verified",
+        "is_archived": true,
+        "origin_class": "official",
+        "instrument_entity_id": null
+      },
+      {
+        "id": "aaaaaaaa-0000-4000-8000-000000000004",
+        "title": "Member discussion of bonded stores",
+        "item_type": "regulation",
+        "domain": 1,
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "summary": "Member discussion of bonded stores summary.",
+        "provenance_status": "verified",
+        "is_archived": false,
+        "origin_class": "community",
+        "instrument_entity_id": null
+      },
+      {
+        "id": "aaaaaaaa-0000-4000-8000-000000000005",
+        "title": "Quarterly berth allocation schedule",
+        "item_type": "market_signal",
+        "domain": 3,
+        "jurisdiction_iso": [
+          "EU"
+        ],
+        "summary": "Quarterly berth allocation schedule summary.",
+        "provenance_status": "verified",
+        "is_archived": false,
+        "origin_class": "official",
+        "instrument_entity_id": null
+      }
+    ],
+    "item_cross_references": [
+      {
+        "source_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "target_item_id": "aaaaaaaa-0000-4000-8000-000000000002",
+        "relationship": "amends",
+        "origin": "entity_extraction",
+        "basis": [
+          {
+            "signal": "same_instrument",
+            "detail": "shared instrument",
+            "weight": 1
+          }
+        ],
+        "score": 0.9
+      },
+      {
+        "source_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "target_item_id": "aaaaaaaa-0000-4000-8000-000000000003",
+        "relationship": "related",
+        "origin": "provenance_discovery",
+        "basis": [],
+        "score": 0.5
+      },
+      {
+        "source_item_id": "aaaaaaaa-0000-4000-8000-000000000004",
+        "target_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "relationship": "related",
+        "origin": "provenance_discovery",
+        "basis": [
+          {
+            "signal": "intersection",
+            "detail": {
+              "scenarios": [
+                "customs-declaration-import"
+              ],
+              "objects": [
+                "importer"
+              ],
+              "strength": 8,
+              "tier": "medium"
+            },
+            "weight": 0.5
+          }
+        ],
+        "score": 0.5
+      }
+    ],
+    "section_claim_provenance": [
+      {
+        "id": "c-a1",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "claim_kind": "FACT",
+        "claim_text": "The permitted relative humidity ceiling is 55 percent for stored artwork.",
+        "source_id": "s-1"
+      },
+      {
+        "id": "c-a2",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "claim_kind": "ANALYSIS",
+        "claim_text": "Operators should review storage plans.",
+        "source_id": null
+      },
+      {
+        "id": "c-b1",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000002",
+        "claim_kind": "FACT",
+        "claim_text": "The ceiling applies to climate controlled bonded stores holding fine art.",
+        "source_id": "s-2"
+      }
+    ],
+    "item_forward_events": [
+      {
+        "id": "ev-a1",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "event_date": "2027-03-01",
+        "date_precision": "day",
+        "event_kind": "due_date",
+        "obligation_text": "File the revised storage plan",
+        "source_span": "before 1 March 2027",
+        "confidence": 0.9
+      }
+    ],
+    "agent_run_searches": [
+      {
+        "id": "p-a",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+        "result_content": "The amendment to the bonded warehouse rules lowers the permitted relative humidity ceiling to 55 percent for stored artwork. Operators must file the revised storage plan with the customs authority before 1 March 2027. The amendment does not change the temperature limits that already apply to climate controlled bonded stores.",
+        "result_url": "https://a.example/amendment",
+        "result_index": 0
+      },
+      {
+        "id": "p-b",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000002",
+        "result_content": "Implementing guidance clarifies that the revised humidity ceiling applies to all climate controlled bonded stores holding fine art consignments. Stores holding other cargo categories remain under the earlier ceiling until the review in 2028. Inspectors will verify humidity logs during routine audits of bonded stores.",
+        "result_url": "https://b.example/guidance",
+        "result_index": 0
+      },
+      {
+        "id": "p-e",
+        "intelligence_item_id": "aaaaaaaa-0000-4000-8000-000000000005",
+        "result_content": "The port authority publishes the berth allocation schedule for the quarter and lists the vessels assigned to each terminal. The schedule is reissued whenever a carrier changes its call pattern, and the authority keeps the earlier versions available on request.",
+        "result_url": "https://e.example/schedule",
+        "result_index": 0
+      }
+    ],
+    "inference_records": [],
+    "integrity_flags": [
+      {
+        "id": "f-1",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:what",
+        "created_by": "question:what",
+        "category": "coverage_gap",
+        "status": "open",
+        "description": "What changed: \"Bonded warehouse humidity amendment\"?",
+        "recommended_actions": [
+          {
+            "action": "answer-seeking",
+            "rationale": "product_question=what surface=x event_type=item_minted_or_touched - retrieval first"
+          }
+        ],
+        "created_at": "2026-10-05T00:00:00Z",
+        "resolved_at": null,
+        "resolved_by": null,
+        "resolution_note": null
+      },
+      {
+        "id": "f-2",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:affects_me",
+        "created_by": "question:affects_me",
+        "category": "coverage_gap",
+        "status": "resolved",
+        "description": "Question affects_me for aaaaaaaa?",
+        "recommended_actions": [
+          {
+            "action": "answer-seeking",
+            "rationale": "product_question=affects_me surface=x event_type=item_minted_or_touched - retrieval first"
+          }
+        ],
+        "created_at": "2026-10-05T00:00:00Z",
+        "resolved_at": "2026-10-04T00:00:00Z",
+        "resolved_by": "apply-question-answers",
+        "resolution_note": "answered by inference earlier"
+      },
+      {
+        "id": "f-3",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000005:operations:what",
+        "created_by": "question:what",
+        "category": "coverage_gap",
+        "status": "open",
+        "description": "Question what for aaaaaaaa?",
+        "recommended_actions": [
+          {
+            "action": "answer-seeking",
+            "rationale": "product_question=what surface=operations event_type=item_minted_or_touched - retrieval first"
+          },
+          {
+            "action": "unanswerable_from_holdings",
+            "rationale": "A berth assignment notice naming the vessel.",
+            "pool_hash": "d2a0bdfda9b8fd0129ac570ca15a0af61c84fcb9765f7d5bbcab941b4fb96868",
+            "batch": "question-answers-000",
+            "recorded_at": "2026-10-04T00:00:00Z"
+          }
+        ],
+        "created_at": "2026-10-05T00:00:00Z",
+        "resolved_at": null,
+        "resolved_by": null,
+        "resolution_note": null
+      },
+      {
+        "id": "f-4",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:comply",
+        "created_by": "question:comply",
+        "category": "coverage_gap",
+        "status": "open",
+        "description": "Question comply for aaaaaaaa?",
+        "recommended_actions": [
+          {
+            "action": "answer-seeking",
+            "rationale": "product_question=comply surface=x event_type=item_minted_or_touched - retrieval first"
+          }
+        ],
+        "created_at": "2026-10-05T00:00:00Z",
+        "resolved_at": null,
+        "resolved_by": null,
+        "resolution_note": null
+      },
+      {
+        "id": "f-5",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000003:regulations:what",
+        "created_by": "question:what",
+        "category": "coverage_gap",
+        "status": "open",
+        "description": "Question what for aaaaaaaa?",
+        "recommended_actions": [
+          {
+            "action": "answer-seeking",
+            "rationale": "product_question=what surface=x event_type=item_minted_or_touched - retrieval first"
+          }
+        ],
+        "created_at": "2026-10-05T00:00:00Z",
+        "resolved_at": null,
+        "resolved_by": null,
+        "resolution_note": null
+      },
+      {
+        "id": "f-6",
+        "category": "coverage_gap",
+        "subject_type": "system",
+        "subject_ref": "theme-x",
+        "created_by": "flywheel-gap:no_us_member",
+        "status": "open",
+        "description": "not a question",
+        "recommended_actions": []
+      }
+    ]
+  }
+}

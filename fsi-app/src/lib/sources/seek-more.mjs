@@ -22,6 +22,7 @@
 
 import { apiEndpointFor } from "./transport-escalation.mjs";
 import { discoverCandidateUrls, celexTxtHtmlUrl, eliPathUrl, legislationUkUrl } from "./identifier-variants.mjs"; // F46: eur-lex.europa.eu + www.legislation.gov.uk's one home (lane L35)
+import { hashSourcePool } from "../agent/source-pool-hash.mjs"; // the ONE pool-identity hash (record-briefs / brief-export share it)
 
 /** @param {unknown} u */
 const httpsOnly = (u) => typeof u === "string" && /^https:\/\//i.test(u);
@@ -215,6 +216,56 @@ export function acquisitionRequestRecord(triggerQuestion, { inventoryMiss = null
   };
 }
 
+// ── HELD-POOL RETRIEVAL: the real implementation of seekAnswerForQuestion's step 1 (lane L4-B, ADR-044) ─────
+// seekAnswerForQuestion's `deps.queryHeldPools` was an injected dependency with no implementation anywhere in
+// the repo. This is that implementation, written as a PURE function over injected reads so the question
+// export (scripts/turns/export-questions-for-answers.mjs, through scripts/turns/question-answers/data.mjs)
+// and the apply validator read the SAME held text the SAME way. A "held pool" is the item's usable
+// agent_run_searches captures (the rows `usableCapturesOrdered` keeps, ADR-016: stored whole, never capped);
+// the question's reach is the item itself plus the items connected to it by an edge (the caller owns which
+// edges and how many, `readConnectedItemIds`). Free: no model call, no search, no network.
+
+/** Pool identity of a set of held-pool hits: the shared sha256 recipe over every capture of every hit, each
+ *  url prefixed with its item id so the same capture held by two items stays two rows. Order-independent
+ *  (hashSourcePool sorts). Pure. @param {Array<{item_id:string, pool:Array<{url:string,text:string}>}>} hits
+ *  @returns {string} */
+export function heldPoolHash(hits) {
+  const rows = [];
+  for (const h of Array.isArray(hits) ? hits : []) {
+    for (const c of Array.isArray(h?.pool) ? h.pool : []) rows.push({ url: `${h.item_id}#${c.url}`, text: c.text });
+  }
+  return hashSourcePool(rows);
+}
+
+/**
+ * Retrieve the held pool text a question can be answered from: the question's own item first, then its
+ * connected items in the order the caller supplies. Only an item with at least one usable capture is a hit.
+ * seekAnswerForQuestion calls this with one argument through a closure over the deps below; the question
+ * export calls it with the same deps over its preloaded material.
+ * @param {{itemId:string}} triggerQuestion
+ * @param {{
+ *   readConnectedItemIds?: (itemId:string) => Promise<string[]>|string[],
+ *   readPools: (itemIds:string[]) => Promise<Map<string,Array<{url:string,text:string}>>|Record<string,Array<{url:string,text:string}>>>|Map<string,Array<{url:string,text:string}>>|Record<string,Array<{url:string,text:string}>>,
+ * }} deps
+ * @returns {Promise<Array<{item_id:string, relation:"self"|"connected", pool:Array<{url:string,text:string}>, item_pool_hash:string}>>}
+ */
+export async function queryHeldPools(triggerQuestion, deps) {
+  const itemId = triggerQuestion && triggerQuestion.itemId;
+  if (!itemId || !deps || typeof deps.readPools !== "function") return [];
+  /** @type {string[]} */
+  const connected = typeof deps.readConnectedItemIds === "function" ? (await deps.readConnectedItemIds(itemId)) || [] : [];
+  const ids = [...new Set([itemId, ...connected.filter((id) => typeof id === "string" && id)])];
+  const got = (await deps.readPools(ids)) || new Map();
+  const poolOf = (/** @type {string} */ id) => (got instanceof Map ? got.get(id) : got[id]) || [];
+  /** @type {Array<{item_id:string, relation:"self"|"connected", pool:Array<{url:string,text:string}>, item_pool_hash:string}>} */
+  const hits = [];
+  for (const id of ids) {
+    const pool = poolOf(id).filter((c) => c && typeof c.url === "string" && typeof c.text === "string" && c.text.trim() !== "");
+    if (pool.length) hits.push({ item_id: id, relation: id === itemId ? "self" : "connected", pool, item_pool_hash: hashSourcePool(pool) });
+  }
+  return hits;
+}
+
 /**
  * Answer-seeking for one trigger_question: retrieval-first against held pools (RD-8); a residual with
  * no operator-priced ticket returns a REQUEST record only (never fetches); a residual WITH a
@@ -231,10 +282,10 @@ export function acquisitionRequestRecord(triggerQuestion, { inventoryMiss = null
  * @returns {Promise<{resolved:boolean, source:"held-pool"|"none"|"priced-candidates", candidates:Array<object>|string[], requestRecord:object|null}>}
  */
 export async function seekAnswerForQuestion(triggerQuestion, deps = {}) {
-  const { queryHeldPools, spendTicket, identity } = deps;
+  const { queryHeldPools: queryPools, spendTicket, identity } = deps; // aliased: the module's own queryHeldPools is the implementation callers inject
 
   // RD-8: retrieval against held pools FIRST, before any residual/acquisition logic runs at all.
-  const hits = queryHeldPools ? (await queryHeldPools(triggerQuestion)) || [] : [];
+  const hits = queryPools ? (await queryPools(triggerQuestion)) || [] : [];
   if (hits.length > 0) {
     return { resolved: true, source: "held-pool", candidates: hits, requestRecord: null };
   }

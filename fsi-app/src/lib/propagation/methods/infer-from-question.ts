@@ -23,6 +23,7 @@
 
 import { FLOOR } from "../../entities/decisions.mjs";
 import { STATUS_TOKENS, ORIGIN_CLASSES } from "../../learning/constants.mjs";
+import { generateTriggerQuestions, triggerQuestionFlagRow } from "../../learning/trigger-questions.mjs";
 import type { MethodContext, ResolvedMethodInput } from "./index.ts";
 import type { InputRef } from "../types.ts";
 
@@ -37,6 +38,12 @@ export type InferenceMethodResult =
       confidence: number;
       citedItemIds: string[];
       originClass: (typeof ORIGIN_CLASSES)[number];
+      /** The question a recomputed row answers (its `trigger_question_ref`), when it has one. A recompute only
+       *  happens because a declared input of the row changed (drain.ts Pass 2b reads `admissibility='stale'`,
+       *  which `invalidate_dependents()` sets from a changed input), so the answer was written against holdings
+       *  that have since moved: the caller re-opens this question through `reopenQuestionForRecompute` so the
+       *  next question export re-answers it against current holdings (lane L4-B, ADR-044 decision 2). */
+      reopenQuestionRef?: string | null;
     }
   | { ok: false; reason: string };
 
@@ -85,6 +92,7 @@ export function computeInferFromQuestion(ctx: MethodContext): InferenceMethodRes
     confidence: FLOOR.analysis,
     citedItemIds,
     originClass: "derived",
+    reopenQuestionRef: prior.trigger_question_ref ?? null,
   };
 }
 
@@ -158,6 +166,111 @@ export async function registerInferenceRecord(sb: InferenceRpcClient, input: Reg
   });
   if (error) throw new Error(`registerInferenceRecord: register_inference_record RPC failed: ${error.message}`);
   return data as string;
+}
+
+// ── the FIRST write of an inference: an answered question (lane L4-B, ADR-044 decisions 1 and 3) ──────────
+// A session lane authors an answer batch from held source text (scripts/turns/question-answers/); the apply
+// step (scripts/turns/apply-question-answers.mjs) validates it and calls this. The row is an INFERENCE, never
+// a fact: origin_class 'derived', a status token (HYPOTHESIS, or CONFIRMED only when the validator proved the
+// answer is a quotation of the evidence), its cited items and its confidence.
+//
+// METHOD KEY: `infer-from-question@v1`, not a new version. The key is what drain.ts Pass 2b dispatches a
+// STALE row through (INFERENCE_METHODS above); this row is registered by a session-authored batch rather than
+// computed by a method, and a later recompute of it is exactly what v1 already does, so v1's semantics are
+// unchanged and no second registry entry is needed. `computed_by` carries the batch name instead of
+// `method@version`, the "caller identity" form migration 338's column comment allows.
+//
+// INPUTS (derivation edges): none. `register_inference_record()` writes edges `from_table`/`from_pk` into a
+// closed allowlist (derivation_edges_from_table_allowed, migration 339: emission_factors, market_series,
+// regional_data_facts, derived_values, statutory_computations, estimated_values, state_cost_facts,
+// inference_records). An answer's inputs are intelligence_items and their grounded claims
+// (section_claim_provenance), neither of which the allowlist admits, so the cited item ids travel in
+// `cited_item_ids` alone. Consequence, stated plainly: such a row has no incoming edge, so
+// `invalidate_dependents()` can never mark it stale; widening the allowlist is a migration, outside this lane.
+
+/** `computed_by` for a first-write inference: the answer batch that produced it. */
+export function firstInferenceComputedBy(batch: string): string {
+  return `question-answers:${batch}`;
+}
+
+export interface FirstInferenceArgs {
+  /** intelligence_items.instrument_entity_id of the question's item, or null (not every item has one yet). */
+  subjectId: string | null;
+  claimText: string;
+  statusToken: (typeof STATUS_TOKENS)[number];
+  confidence: number;
+  citedItemIds: string[];
+  /** The trigger question's subject_ref (buildSubjectRef shape). */
+  triggerQuestionRef: string;
+  /** The answer batch name, recorded as `computed_by`. */
+  batch: string;
+  /** The inference this one replaces when a re-opened question is answered again, else null. */
+  supersedes?: string | null;
+}
+
+/** Pure: the register_inference_record input for an answered question. Refuses a REFUTED token (a refuted
+ *  inference is not an answer to a question). */
+export function buildFirstInferenceInput(args: FirstInferenceArgs): RegisterInferenceRecordInput {
+  if (args.statusToken === "REFUTED") throw new Error("buildFirstInferenceInput: a REFUTED inference is not an answer; refused");
+  return {
+    subjectId: args.subjectId ?? null,
+    claimText: args.claimText,
+    statusToken: args.statusToken,
+    confidence: args.confidence,
+    citedItemIds: args.citedItemIds,
+    originClass: "derived",
+    methodId: METHOD_ID,
+    methodVersion: METHOD_VERSION,
+    computedBy: firstInferenceComputedBy(args.batch),
+    triggerQuestionRef: args.triggerQuestionRef,
+    inputs: [],
+    supersedes: args.supersedes ?? null,
+  };
+}
+
+/** Write the first inference row for an answered question, atomically, through registerInferenceRecord.
+ *  @returns the new inference_id */
+export async function registerFirstInference(sb: InferenceRpcClient, args: FirstInferenceArgs): Promise<string> {
+  return registerInferenceRecord(sb, buildFirstInferenceInput(args));
+}
+
+// ── re-open the originating question of a recomputed inference (lane L4-B, ADR-044) ────────────────────────
+// computeInferFromQuestion re-stamps the prior text, so a recomputed row says nothing new: the honest move is
+// to ask the question again against current holdings. This writes the SAME open question flag the trigger
+// generator writes (generateTriggerQuestions + triggerQuestionFlagRow, imported, not copied), under the SAME
+// dedup rule (one open row per subject_ref and created_by), so the next question export lists it again.
+// NOT CALLED BY drain.ts YET: wiring it into Pass 2b is a drain.ts edit, outside this lane (reported for the
+// lane that owns drain.ts next); until then it is reachable from its own test only.
+
+export interface ReopenQuestionDeps {
+  readItem(itemId: string): Promise<{ id: string; title?: string | null; domain?: number | null; item_type?: string | null; jurisdiction_iso?: string[] | string | null } | null>;
+  /** The currently OPEN question flag for (subject_ref, created_by), or null. */
+  readOpenQuestionFlag(subjectRef: string, createdBy: string): Promise<{ id: string } | null>;
+  insertFlag(row: Record<string, unknown>): Promise<void>;
+}
+
+/** Pure: the item id a question subject_ref names (the first of its `<item>:<surface>:<question>` parts). */
+export function itemIdOfQuestionRef(subjectRef: string): string | null {
+  const parts = String(subjectRef ?? "").split(":");
+  return parts.length === 3 && parts[0] ? parts[0] : null;
+}
+
+export async function reopenQuestionForRecompute(
+  subjectRef: string | null | undefined,
+  deps: ReopenQuestionDeps,
+): Promise<{ reopened: boolean; reason: string }> {
+  if (!subjectRef) return { reopened: false, reason: "the inference carries no trigger_question_ref" };
+  const itemId = itemIdOfQuestionRef(subjectRef);
+  if (!itemId) return { reopened: false, reason: `trigger_question_ref ${JSON.stringify(subjectRef)} is not an <item>:<surface>:<question> reference` };
+  const item = await deps.readItem(itemId);
+  if (!item) return { reopened: false, reason: "the question's item no longer exists" };
+  const q = generateTriggerQuestions(item).find((g: { subjectRef: string }) => g.subjectRef === subjectRef);
+  if (!q) return { reopened: false, reason: "the question is no longer generated for this item" };
+  const row = triggerQuestionFlagRow(q) as { subject_ref: string; created_by: string } & Record<string, unknown>;
+  const open = await deps.readOpenQuestionFlag(row.subject_ref, row.created_by);
+  if (open) return { reopened: false, reason: "an open flag for this question already exists" };
+  await deps.insertFlag(row);
+  return { reopened: true, reason: "re-opened: the recomputed answer rests on moved holdings" };
 }
 
 // ── the tiny, narrative-shaped registry parallel to methods/index.ts's numeric REGISTRY (see header) ────
