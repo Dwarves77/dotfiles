@@ -125,6 +125,9 @@ export interface MarketIntelLedgerProps {
    *  summariseCarbonCorridors (src/lib/market/market-rail-select.mjs). Omitted, the card renders
    *  the Absence convention. */
   carbonCorridors?: CarbonCorridorRow[];
+  /** Lane S3-B: extra content at the foot of the content column (the themes strip, server-rendered by the
+   *  page and handed down as an element so this client component never owns that data read). */
+  belowRows?: ReactNode;
 }
 
 export function MarketIntelLedger({
@@ -134,6 +137,7 @@ export function MarketIntelLedger({
   nowIso,
   headlineSeries,
   carbonCorridors,
+  belowRows,
 }: MarketIntelLedgerProps) {
   // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
   // bookmarked and reloaded. One contract for every facet — see useListSurfaceFilter.
@@ -298,6 +302,7 @@ export function MarketIntelLedger({
       selectedBand={filter.band}
       onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
+      belowRows={belowRows}
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={headlineSeries}
       sortRow={

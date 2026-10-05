@@ -101,6 +101,10 @@ export const ROW_COMPONENTS = Object.freeze({
   // the group title) at 1440, measuring the operator's own acceptance list.
   'src/components/ui/FactCard.tsx': 'panel-21c-smoke.mjs, the FactCard sign-off measurement (lane w10-factcard-d)',
   'src/components/ui/ItemGroup.tsx': 'panel-21c-smoke.mjs, the ItemGroup sign-off measurement (lane w10-factcard-d)',
+  // lane S3-B (2026-10-05): the shared cross-page analysis rows (intersection rows, theme member rows) and the
+  // themes strip cards; cross-page-smoke.mjs mounts both real components at 375 and 1280.
+  'src/components/detail/CrossPageSection.tsx': 'cross-page-smoke.mjs, the Across pages section on all four detail pages (lane S3-B)',
+  'src/components/shell/ThemeStripView.tsx': 'cross-page-smoke.mjs, the themes strip cards on all four list pages (lane S3-B)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

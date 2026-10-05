@@ -65,6 +65,7 @@ import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "@/lib/pr
 import { DerivedFigure } from "@/components/figures/EstimatedFigure";
 import type { Value } from "@/lib/propagation/types.ts";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
+import { CrossPageSection, type CrossPageData } from "@/components/detail/CrossPageSection";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
@@ -155,6 +156,8 @@ interface Props {
   connections?: ItemConnection[];
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
+  crossPage?: CrossPageData | null;
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
@@ -289,6 +292,7 @@ export function MarketSignalDetailSurface({
   supersessions = [],
   connections = [],
   resourceLookup = {},
+  crossPage = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -714,6 +718,8 @@ export function MarketSignalDetailSurface({
               )}
             </DetailSection>
           )}
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="market" surfaceLabel="Market Intel" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

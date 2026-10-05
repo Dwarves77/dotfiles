@@ -138,6 +138,23 @@ window.__mount = (props) => {
 };
 `;
 
+// Lane S3-B (2026-10-05): the "Across the platform" card's theme rows (buildThemeChips output, the
+// fields DashboardBrief reads: themeId, href, itemTitle, briefTitle, pages). Mounted in the 'populated'
+// and 'extreme' states so the rows are measured at 375 and 1280 (law-2 target floor, squeezed title);
+// the other states pass none, which is the unchanged card.
+const THEME_PAGES = [
+  { surface: 'regulations', label: 'Regulations' },
+  { surface: 'market', label: 'Market Intel' },
+  { surface: 'research', label: 'Research' },
+];
+const CROSS_PAGE_THEMES = [
+  { themeId: 't1', href: '/market/m1', itemTitle: 'Bunker surcharge signal on the Asia Europe corridor', briefTitle: 'Surcharge theme across the corridor', pages: THEME_PAGES },
+  { themeId: 't2', href: '/regulations/r2', itemTitle: LONG_THEME_TITLE(), briefTitle: null, pages: THEME_PAGES.slice(0, 2) },
+];
+function LONG_THEME_TITLE() {
+  return Array.from({ length: 8 }, (_, i) => `extremely-long-theme-title-token-${i}`).join(' ');
+}
+
 const EMPTY_AGGREGATES = {
   totalItems: 0,
   byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
@@ -244,8 +261,9 @@ const STATES = [
       ),
       aggregates: POPULATED_AGGREGATES,
       bandCounts: POPULATED_BAND_COUNTS,
+      crossPageThemes: CROSS_PAGE_THEMES,
     },
-    expectTitles: 2,
+    expectTitles: 4, // Due next, What changed, and the two theme rows
   },
 ];
 
@@ -273,8 +291,9 @@ STATES.push(
       ),
       aggregates: POPULATED_AGGREGATES,
       bandCounts: POPULATED_BAND_COUNTS,
+      crossPageThemes: CROSS_PAGE_THEMES,
     },
-    expectTitles: 2,
+    expectTitles: 4, // Due next, What changed, and the two theme rows
     bothCardsPopulated: true,
   },
   {

@@ -48,7 +48,7 @@ import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
-import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
+import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
 import { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { fetchSignpostsForAssessment, fetchAssessmentHistoryChain } from "@/lib/research/read-signposts.mjs";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
@@ -89,7 +89,10 @@ interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
   related: ReturnType<typeof pickRelated>[];
   relatedReason: "theme" | "source" | "none";
-  themeBrief: ReturnType<typeof selectThemeBriefForItem>;
+  /** Lane S3-B: stated intersection summary and theme analysis. The theme (read through
+   *  resolveBriefForTheme, so a drifted theme id still finds its prior brief) feeds both the rail's Cluster
+   *  synthesis card and the shared "Across pages" section. */
+  crossPage: CrossPageAnalysis;
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings - see
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
    *  finding's query legitimately returns no rows, resolving to {} at zero extra cost). Reuses `self.id`
@@ -172,7 +175,6 @@ export default async function ResearchFindingDetailPage({
         const relatedAndBriefPromise: Promise<{
           related: ReturnType<typeof pickRelated>[];
           relatedReason: ItemScoped["relatedReason"];
-          themeBrief: ItemScoped["themeBrief"];
           claimTiers: ClaimTierMap;
           assessment: ItemScoped["assessment"];
           signposts: ItemScoped["signposts"];
@@ -180,7 +182,6 @@ export default async function ResearchFindingDetailPage({
         }> = (async () => {
           let related: ReturnType<typeof pickRelated>[] = [];
           let relatedReason: ItemScoped["relatedReason"] = "none";
-          let themeBrief: ItemScoped["themeBrief"] = null;
           let claimTiers: ClaimTierMap = {};
           let assessment: ItemScoped["assessment"] = null;
           let signposts: ItemScoped["signposts"] = [];
@@ -236,29 +237,6 @@ export default async function ResearchFindingDetailPage({
                 }
               }
 
-              // Theme brief (WO-25, flywheel U6): connection_themes is small
-              // (9 rows live) and public-read - read it all and match
-              // in-process (same shape api/admin/themes/route.ts uses). A
-              // second query for the theme_briefs row only runs when self.id
-              // is actually a member of a live theme.
-              const { data: themeRows } = await supabase
-                .from("connection_themes")
-                .select("id, member_ids, density");
-              const matchedTheme =
-                themeRows && themeRows.length > 0
-                  ? (themeRows as { id: string; member_ids: string[]; density: number | null }[]).find(
-                      (t) => Array.isArray(t.member_ids) && t.member_ids.includes(self.id)
-                    )
-                  : null;
-              if (matchedTheme) {
-                const { data: briefRows } = await supabase
-                  .from("theme_briefs")
-                  .select("theme_id, title, brief_md, member_hash, generated_at")
-                  .eq("theme_id", matchedTheme.id)
-                  .limit(1);
-                themeBrief = selectThemeBriefForItem(self.id, [matchedTheme], briefRows || []);
-              }
-
               // fetchClaimTierMap never throws (soft-fails internally to {} - see its own header), so
               // awaiting it here cannot trip this block's own catch below.
               claimTiers = await claimTiersPromise;
@@ -304,11 +282,12 @@ export default async function ResearchFindingDetailPage({
           } catch {
             // Soft-fail - surface renders the empty state (no related findings, no theme-brief card).
           }
-          return { related, relatedReason, themeBrief, claimTiers, assessment, signposts, assessmentHistory };
+          return { related, relatedReason, claimTiers, assessment, signposts, assessmentHistory };
         })();
 
-        const [resourceLookup, relatedAndBrief] = await Promise.all([
+        const [resourceLookup, crossPage, relatedAndBrief] = await Promise.all([
           buildResourceLookup(supabase, relatedIds),
+          fetchCrossPageForItem(supabase, id, "research"),
           relatedAndBriefPromise,
         ]);
 
@@ -316,7 +295,7 @@ export default async function ResearchFindingDetailPage({
           resourceLookup,
           related: relatedAndBrief.related,
           relatedReason: relatedAndBrief.relatedReason,
-          themeBrief: relatedAndBrief.themeBrief,
+          crossPage,
           claimTiers: relatedAndBrief.claimTiers,
           assessment: relatedAndBrief.assessment,
           signposts: relatedAndBrief.signposts,
@@ -335,7 +314,8 @@ export default async function ResearchFindingDetailPage({
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
   const related = result.itemScoped?.related ?? [];
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
-  const themeBrief = result.itemScoped?.themeBrief ?? null;
+  const crossPage = result.itemScoped?.crossPage ?? null;
+  const themeBrief = crossPage?.theme ?? null;
   const claimTiers = result.itemScoped?.claimTiers ?? {};
   const assessment = result.itemScoped?.assessment ?? null;
   const signposts = result.itemScoped?.signposts ?? [];
@@ -361,6 +341,7 @@ export default async function ResearchFindingDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
+        crossPage={crossPage}
         assessment={assessment}
         signposts={signposts}
         assessmentHistory={assessmentHistory}

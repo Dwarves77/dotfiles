@@ -28,6 +28,7 @@ import { runSmoke as runParityChecksSmoke } from './parity-checks-smoke.mjs';
 import { runSmoke as runMarketDetailRawDumpSmoke } from './market-detail-raw-dump-smoke.mjs';
 import { runSmoke as runLeadTimeChartSmoke } from './lead-time-chart-smoke.mjs';
 import { runSmoke as runLabourChainSmoke } from './labour-chain-smoke.mjs';
+import { runSmoke as runCrossPageSmoke } from './cross-page-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -95,4 +96,7 @@ export const UX_SMOKE_SPECS = [
   // line reported for the coordinator to add (lane common contract's UX contract).
   { name: "lead-time-chart", run: runLeadTimeChartSmoke },
   { name: "labour-chain", run: runLabourChainSmoke }, // lane L13, 2026-10-03, spec 04 S5/S6#5 fully-loaded labour chain
+  // lane S3-B, 2026-10-05: the "Across pages" section on the four detail pages (intersections and theme
+  // analysis) and the themes strip on the four list pages. F35 ROW_COMPONENTS carries both components.
+  { name: "cross-page", run: runCrossPageSmoke },
 ];

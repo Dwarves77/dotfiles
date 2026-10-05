@@ -66,6 +66,7 @@ import { renderRequirementTrajectory } from "@/components/detail/RequirementTraj
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
+import { CrossPageSection, type CrossPageData } from "@/components/detail/CrossPageSection";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource } from "@/lib/scoring";
@@ -103,6 +104,8 @@ interface Props {
   /** Flywheel U9 (D1) — the viewer's relevance-to-your-operation lens. Null when no org / soft-fail. */
   relevance: ItemRelevance | null;
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
+  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
+  crossPage?: CrossPageData | null;
   sections?: IntelligenceItemSectionRow[];
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings, keyed by exact claim line. */
   claimTiers?: ClaimTierMap;
@@ -148,6 +151,7 @@ export function RegulationDetailSurface({
   supersessions,
   connections,
   resourceLookup,
+  crossPage = null,
   sections = [],
   claimTiers,
   groupLabel,
@@ -430,6 +434,8 @@ export function RegulationDetailSurface({
             </DetailSection>
           )}
 
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="regulations" surfaceLabel="Regulations" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

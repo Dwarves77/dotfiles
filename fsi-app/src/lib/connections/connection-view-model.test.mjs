@@ -112,3 +112,104 @@ test("buildAllConnectionRows: supersessions render first, ahead of discovered/ot
   assert.deepEqual(rows.map((r) => r.id), ["item-a", "item-b"]);
   assert.equal(rows[0].label, "Superseded by");
 });
+
+// ── lane S3-B: intersections on every detail page ─────────────────────────────────────────────────────
+import { buildIntersectionView, couplingText, SURFACE_LABELS, SURFACE_ORDER } from "./connection-view-model.mjs";
+
+const ix = (scenarios, objects, strength, tier) => ({ signal: "intersection", detail: { scenarios, objects, strength, tier }, weight: 0.9 });
+const conn = (id, surface, basis, extra = {}) => ({ id, direction: "outgoing", relationship: "related", origin: "provenance_discovery", basis, score: 0.9, surface, ...extra });
+const ixLookup = {
+  "mkt-1": { id: "mkt-1", title: "Bunker surcharge signal", priority: "HIGH" },
+  "res-1": { id: "res-1", title: "Methanol engine trial", priority: "MODERATE" },
+  "reg-2": { id: "reg-2", title: "Second regulation", priority: "HIGH" },
+  "ops-1": { id: "ops-1", title: "Port cost profile", priority: "HIGH" },
+};
+
+test("buildIntersectionView: strong goes inline under its page, weak into the collapsed possible group", () => {
+  const v = buildIntersectionView(
+    [
+      conn("mkt-1", "market", [ix(["ocean-bunkering", "ets-allowance-surrender"], ["carrier-ocean", "vessel-operator"], 14, "strong")]),
+      conn("res-1", "research", [ix(["saf-blending"], ["carrier-air"], 5, "weak")]),
+    ],
+    ixLookup,
+    { currentSurface: "regulations" },
+  );
+  assert.equal(v.groups.length, 1);
+  assert.equal(v.groups[0].surface, "market");
+  assert.equal(v.groups[0].label, "Market Intel");
+  assert.equal(v.groups[0].items[0].title, "Bunker surcharge signal");
+  assert.equal(v.groups[0].items[0].href, "/market/mkt-1");
+  assert.equal(v.possible.length, 1);
+  assert.equal(v.possible[0].surface, "research");
+  assert.equal(v.possibleCount, 1);
+});
+
+test("buildIntersectionView: coupling is plain words with human labels, no slug and no score", () => {
+  const v = buildIntersectionView(
+    [conn("mkt-1", "market", [ix(["ocean-bunkering", "ets-allowance-surrender"], ["carrier-ocean", "vessel-operator"], 14, "strong")])],
+    ixLookup,
+    { currentSurface: "regulations" },
+  );
+  const text = v.groups[0].items[0].coupling;
+  assert.match(text, /ocean bunkering and ETS allowance surrender/);
+  assert.match(text, /ocean carrier and vessel operator/);
+  assert.ok(!/carrier-ocean|ocean-bunkering|ets-allowance/.test(text), "no raw slug");
+  assert.ok(!/\b14\b|strength|tier|score/i.test(JSON.stringify(v)), "no score, strength or tier word in the view-model output");
+});
+
+test("buildIntersectionView: cross-page groups in page order, same-page group last", () => {
+  const v = buildIntersectionView(
+    [
+      conn("reg-2", "regulations", [ix(["drayage"], ["shipper"], 9, "medium")]),
+      conn("ops-1", "operations", [ix(["drayage"], ["shipper"], 9, "medium")]),
+      conn("res-1", "research", [ix(["drayage"], ["shipper"], 12, "strong")]),
+    ],
+    ixLookup,
+    { currentSurface: "regulations" },
+  );
+  assert.deepEqual(v.groups.map((g) => g.surface), ["research", "operations", "regulations"]);
+  assert.equal(v.groups[2].samePage, true);
+});
+
+test("buildIntersectionView: both directed rows of one pair collapse to one item", () => {
+  const entry = ix(["drayage"], ["shipper"], 12, "strong");
+  const v = buildIntersectionView(
+    [conn("mkt-1", "market", [entry]), conn("mkt-1", "market", [entry], { direction: "incoming" })],
+    ixLookup,
+    { currentSurface: "regulations" },
+  );
+  assert.equal(v.groups[0].items.length, 1);
+});
+
+test("buildIntersectionView: a connection with no intersection entry, no lookup entry, or no surface is not shown", () => {
+  const v = buildIntersectionView(
+    [
+      conn("mkt-1", "market", [{ signal: "shared_source", detail: "x", weight: 0.4 }]),
+      conn("unknown", "market", [ix(["drayage"], ["shipper"], 12, "strong")]),
+      conn("res-1", "uncategorized", [ix(["drayage"], ["shipper"], 12, "strong")]),
+    ],
+    ixLookup,
+    { currentSurface: "regulations" },
+  );
+  assert.equal(v, null);
+});
+
+test("buildIntersectionView: the item's own stated summary renders even with no pair; empty data gives null", () => {
+  assert.equal(buildIntersectionView([], {}, { currentSurface: "market" }), null);
+  assert.equal(buildIntersectionView(null, null, { currentSurface: "market", summary: "  " }), null);
+  const v = buildIntersectionView([], {}, { currentSurface: "market", summary: "Stated coupling text." });
+  assert.equal(v.summary, "Stated coupling text.");
+  assert.deepEqual(v.groups, []);
+  assert.deepEqual(v.possible, []);
+});
+
+test("couplingText: tolerates a missing side and a missing detail", () => {
+  assert.equal(couplingText(null), "");
+  assert.match(couplingText({ scenarios: ["drayage"], objects: [] }), /^Connected through the operational scenario drayage\.$/);
+  assert.match(couplingText({ scenarios: [], objects: ["shipper"] }), /^Connected through the compliance object shipper\.$/);
+});
+
+test("surface labels and order cover exactly the four pages", () => {
+  assert.deepEqual([...SURFACE_ORDER].sort(), Object.keys(SURFACE_LABELS).sort());
+  assert.equal(SURFACE_LABELS.market, "Market Intel");
+});

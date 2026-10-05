@@ -87,6 +87,7 @@ import { formatDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
 import { notFound } from "next/navigation";
 import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
+import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
@@ -161,6 +162,8 @@ interface ItemScoped {
    *  above), read unconditionally (never gated on item_grade — a brief-grade item's query legitimately
    *  returns no rows, resolving to {} at zero extra cost since fetchClaimTierMap never throws). */
   claimTiers: ClaimTierMap;
+  /** Lane S3-B: stated intersection summary and theme analysis for the shared "Across pages" section. */
+  crossPage: CrossPageAnalysis;
 }
 
 export default async function RegulationDetailPage({
@@ -199,11 +202,12 @@ export default async function RegulationDetailPage({
         ])
       ).filter(Boolean);
       const itemUuid = await resolveItemUuid(supabase, resource.id);
-      const [resourceLookup, claimTiers] = await Promise.all([
+      const [resourceLookup, claimTiers, crossPage] = await Promise.all([
         buildResourceLookup(supabase, relatedIds),
         itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
+        fetchCrossPageForItem(supabase, resource.id, "regulations"),
       ]);
-      return { resourceLookup, claimTiers };
+      return { resourceLookup, claimTiers, crossPage };
     },
   });
 
@@ -223,6 +227,7 @@ export default async function RegulationDetailPage({
   const { resource: r, changelog, dispute, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
   const claimTiers = result.itemScoped?.claimTiers ?? {};
+  const crossPage = result.itemScoped?.crossPage ?? null;
 
   console.log(`[perf] /regulations/${id} data ${result.elapsedMs}ms`);
 
@@ -274,6 +279,7 @@ export default async function RegulationDetailPage({
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
+        crossPage={crossPage}
         sections={sections}
         claimTiers={claimTiers}
         groupLabel={groupLabel}

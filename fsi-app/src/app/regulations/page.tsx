@@ -31,6 +31,7 @@ import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getPublicListingsOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
+import { ThemeStrip } from "@/components/shell/ThemeStrip";
 import { toLedgerRowPayload, LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
 // self-contained server component covering both tables — see its own header for the shared blocking-
@@ -85,6 +86,7 @@ export default async function RegulationsPage({
           hasMore={hasMore}
           initialSort={sortFromSearchParam(sortParam ?? null)}
           nowIso={renderNowIso()}
+          belowRows={<ThemeStrip surface="regulations" />}
         />
       </Suspense>
     </>

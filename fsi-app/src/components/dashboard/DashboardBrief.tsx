@@ -35,6 +35,7 @@ import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
 import { BAND_FACET_PARAM, SORT_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
 import { PageFrame } from "@/components/layout/PageFrame";
+import type { buildThemeChips } from "@/lib/research/theme-brief.mjs";
 
 
 export interface DashboardBriefProps {
@@ -86,6 +87,10 @@ export interface DashboardBriefProps {
    *  `describeFallbackTrigger(data._fallbackTrigger)`, rendered under the sentinel inside the
    *  SAME StateNote. Undefined renders exactly what this card rendered before. */
   fetchErrorReason?: string;
+  /** Lane S3-B: the top themes that span two or more pages (src/lib/research/theme-brief.mjs
+   *  buildThemeChips, read on the server by fetchThemeChips). Omitted or empty renders nothing, so the
+   *  "Across the platform" card is exactly what it was before. */
+  crossPageThemes?: ReturnType<typeof buildThemeChips>;
 }
 
 export function DashboardBrief({
@@ -100,6 +105,7 @@ export function DashboardBrief({
   loadingCounts,
   fetchError,
   fetchErrorReason,
+  crossPageThemes = [],
 }: DashboardBriefProps) {
   const router = useRouter();
   // Lane BRIEFDATA (2026-09-08): each card's state is ONE decision, made in
@@ -362,6 +368,28 @@ export function DashboardBrief({
                 </>
               )}
             </div>
+            {crossPageThemes.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line-3)" }}>
+                <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 4px" }}>
+                  Themes across pages
+                </p>
+                {crossPageThemes.map((t) => (
+                  <Link
+                    key={t.themeId}
+                    href={t.href}
+                    prefetch={false}
+                    style={{ display: "block", minHeight: 44, padding: "8px 0", textDecoration: "none", color: "inherit" }}
+                  >
+                    <span data-guard-title style={{ display: "block", fontSize: "var(--fs-12)", fontWeight: 700, lineHeight: 1.35, color: "var(--ink)", overflowWrap: "anywhere" }}>
+                      {t.briefTitle ?? t.itemTitle}
+                    </span>
+                    <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 2 }}>
+                      {t.pages.map((p) => p.label).join(" · ")}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </SectionCard>
 

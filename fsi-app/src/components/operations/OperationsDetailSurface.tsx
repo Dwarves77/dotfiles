@@ -61,6 +61,7 @@ import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { CrossPageSection, type CrossPageData } from "@/components/detail/CrossPageSection";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
@@ -107,6 +108,8 @@ interface Props {
   connections?: ItemConnection[];
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
+  crossPage?: CrossPageData | null;
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
@@ -176,6 +179,7 @@ export function OperationsDetailSurface({
   supersessions = [],
   connections = [],
   resourceLookup = {},
+  crossPage = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -388,6 +392,8 @@ export function OperationsDetailSurface({
           <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="operations" surfaceLabel="Operations" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>
