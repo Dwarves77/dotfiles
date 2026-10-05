@@ -20,6 +20,13 @@
 // --mode apply runs both passes (invalidate for real, then recompute every value this run just staled
 // through a registered METHODS[method_id] — see drain.ts's own header for the exact two-pass contract).
 //
+// AFTER THE DRAIN PASSES (lane L4-A): the events this call processed are handed to questionsOnChangeStep,
+// which raises the four product questions for the verified items linked to each changed entity (see
+// src/lib/learning/questions-on-change.mjs). Dry mode computes and reports the counts and writes nothing;
+// apply mode writes through the same guarded writer the flywheel's mint-time step uses. The counts land in
+// the run artifact's metrics (qoc_*). NOTE: propagation-drain.yml runs chained firings dry, so a chained
+// firing raises no question (see this lane's session-log entry).
+//
 // ALWAYS records a harness-run artifact, in both modes, from a `finally` block — same crash-safety
 // run-source-sweep.mjs and run-extraction.mjs already apply to their own families.
 //
@@ -44,6 +51,11 @@ import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-art
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+// Lane L4-A (2026-10-05): the questions-on-change step, run after the drain passes (CLAUDE.md rule 17: a
+// runtime that ends without triggering its downstream is a defect). The deps builder is the one shared
+// with run-population-flywheel.mjs's mint-time step.
+import { runQuestionsOnChange, buildEntityItemsReader, CITE as QUESTIONS_ON_CHANGE_CITE } from "../../src/lib/learning/questions-on-change.mjs";
+import { buildTriggerQuestionsDeps } from "../lib/trigger-question-deps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -145,10 +157,40 @@ export function resolveArtifactTrigger(triggerContext, explicitTrigger = null) {
   return triggerContext ? "workflow_run" : "workflow_dispatch";
 }
 
+/** The questions-on-change step (lane L4-A). `sb` reads the entity-to-item link, `db` is the
+ *  scripts/lib/db.mjs module (reads the open question flags, writes through its guarded insert). Pure
+ *  orchestration over injected clients, so it is provable with fakes. @param {{mode:"dry"|"apply", result:object, sb:object, db:object}} args */
+export async function questionsOnChangeStep({ mode, result, sb, db }) {
+  const deps = {
+    readEntityLinks: buildEntityItemsReader(sb),
+    ...buildTriggerQuestionsDeps(db, { cite: QUESTIONS_ON_CHANGE_CITE }),
+  };
+  return runQuestionsOnChange({ mode, events: result?.processedEvents ?? [], deps });
+}
+
+/** The questions-on-change counts as flat run-artifact metrics. PURE. `questions_raised` is what apply
+ *  mode wrote, and in dry mode what it would write (same number by construction). */
+export function questionsOnChangeMetrics(summary) {
+  if (!summary) return {};
+  const c = summary.counts ?? {};
+  return {
+    qoc_events_seen: c.events_seen ?? 0,
+    qoc_events_mapped: c.events_mapped ?? 0,
+    qoc_items_affected: c.items_affected ?? 0,
+    qoc_questions_raised: c.new ?? 0,
+    qoc_questions_deduplicated: (c.already_open ?? 0) + (c.deduped_in_batch ?? 0),
+    qoc_items_capped: c.items_dropped_by_cap ?? 0,
+    qoc_events_no_entity: c.events_no_entity ?? 0,
+    qoc_events_unmapped: c.events_unmapped ?? 0,
+    qoc_read_errors: c.read_errors ?? 0,
+  };
+}
+
 /** Build this run's per_item / metrics from a DrainResult. PURE (no I/O) so the shaping is independently
  *  testable, matching run-source-sweep.mjs's own shapeRunOutput. `reportPath` is where the full DrainResult
- *  was written on disk (the artifact's full_trace_refs pointer). */
-export function shapeRunOutput(result, reportPath) {
+ *  was written on disk (the artifact's full_trace_refs pointer). `questionsOnChange` (optional) is the
+ *  questions-on-change summary, merged into metrics as qoc_* keys. */
+export function shapeRunOutput(result, reportPath, questionsOnChange = null) {
   const perItem = [
     {
       id: `queue-depth-${result.queueDepthBefore}`,
@@ -178,6 +220,7 @@ export function shapeRunOutput(result, reportPath) {
     skipped_unknown_method: result.skippedUnknownMethod,
     skipped_method_refused: result.skippedMethodRefused,
     errors: result.errors.length,
+    ...questionsOnChangeMetrics(questionsOnChange),
   };
   return { perItem, metrics };
 }
@@ -210,6 +253,8 @@ async function main() {
   let result = null;
   let runError = null;
   let reportPath = null;
+  let questionsOnChange = null;
+  let questionsError = null;
   const startedAt = new Date().toISOString();
 
   try {
@@ -222,17 +267,34 @@ async function main() {
     writeFileSync(reportPath, JSON.stringify(result, null, 2) + "\n", "utf8");
     console.log(`Wrote ${reportPath}`);
     console.log(`${mode === "dry" ? "[dry-run] " : ""}${JSON.stringify(result, null, 2)}`);
+
+    // Questions on change, AFTER the drain passes. A failure here never loses the drain's own result: it is
+    // recorded as a defect on the artifact below and fails the run's exit code.
+    try {
+      const db = await import("../lib/db.mjs");
+      questionsOnChange = await questionsOnChangeStep({ mode, result, sb, db });
+      console.log(`${mode === "dry" ? "[dry-run] " : ""}questions-on-change: ${JSON.stringify(questionsOnChange.counts)}`);
+    } catch (err) {
+      questionsError = err;
+    }
   } catch (err) {
     runError = err;
   } finally {
     if (runId) {
       const harnessVersion = hashHarnessVersion(PROPAGATION_GOVERNING_FILES, FSI_ROOT);
-      const shaped = result && reportPath ? shapeRunOutput(result, reportPath) : null;
+      const shaped = result && reportPath ? shapeRunOutput(result, reportPath, questionsOnChange) : null;
       const defectsFound = [];
       if (runError) {
         defectsFound.push({
           description: `run-propagation-drain.mjs threw during a ${mode} run: ${runError.message}`,
           root_cause: runError.stack ?? "",
+          fix_ref: null,
+        });
+      }
+      if (questionsError) {
+        defectsFound.push({
+          description: `questions-on-change threw after the ${mode} drain: ${questionsError.message}`,
+          root_cause: questionsError.stack ?? "",
           fix_ref: null,
         });
       }
@@ -296,6 +358,10 @@ async function main() {
 
   if (runError) {
     console.error(`run-propagation-drain: FAILED — ${runError.message}`);
+    process.exit(1);
+  }
+  if (questionsError) {
+    console.error(`run-propagation-drain: questions-on-change FAILED: ${questionsError.message}`);
     process.exit(1);
   }
   process.exit(0);

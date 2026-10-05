@@ -296,3 +296,92 @@ test("loop_run_id resolution: a trigger context naming Data producers (its own l
     assert.equal(got, null);
   });
 });
+
+// ── questions on change (lane L4-A, 2026-10-05) ─────────────────────────────────────────────────────
+
+import { questionsOnChangeStep, questionsOnChangeMetrics } from "./run-propagation-drain.mjs";
+
+const QOC_ENTITY = "cl:jurisdiction:aaaaaaaaaaaaaaaa";
+
+/** A fake Supabase client for the entity-to-item read (entities, intelligence_items, entity_refs). */
+function qocSb() {
+  const tables = {
+    entities: [{ entity_id: QOC_ENTITY, kind: "jurisdiction", canonical_name: "Fixture jurisdiction" }],
+    intelligence_items: [
+      { id: "a", title: "Reg a", domain: 1, item_type: "regulation", provenance_status: "verified", is_archived: false },
+      { id: "b", title: "Reg b", domain: 1, item_type: "regulation", provenance_status: "verified", is_archived: false },
+      { id: "gone", title: "Reg gone", domain: 1, item_type: "regulation", provenance_status: "verified", is_archived: true },
+    ],
+    entity_refs: ["a", "b", "gone"].map((id) => ({ ref_table: "intelligence_items", ref_id: id, entity_id: QOC_ENTITY, role: "jurisdiction" })),
+  };
+  return {
+    from(table) {
+      const filters = [];
+      let range = null;
+      const b = {
+        select() { return b; },
+        eq(c, v) { filters.push((r) => r[c] === v); return b; },
+        in(c, vs) { filters.push((r) => vs.includes(r[c])); return b; },
+        order() { return b; },
+        range(f, t) { range = [f, t]; return b; },
+        async maybeSingle() { return { data: (tables[table] || []).find((r) => filters.every((fn) => fn(r))) ?? null, error: null }; },
+        then(res, rej) {
+          let rows = (tables[table] || []).filter((r) => filters.every((fn) => fn(r)));
+          if (range) rows = rows.slice(range[0], range[1] + 1);
+          return Promise.resolve({ data: rows, error: null }).then(res, rej);
+        },
+      };
+      return b;
+    },
+  };
+}
+
+function qocDb() {
+  const inserted = [];
+  return {
+    inserted,
+    async readAll() { return []; },
+    async guardedInsertMany(table, rows, opts) { inserted.push({ table, rows, cite: opts.cite }); return { inserted: rows.length, snapshot: "s" }; },
+  };
+}
+
+const QOC_RESULT = {
+  processedEvents: [{ eventId: 5, tableName: "derived_values", rowPk: "dv-1", entityId: QOC_ENTITY, changeKind: "update", occurredAt: "2026-10-05T00:00:00Z" }],
+};
+
+test("questionsOnChangeStep apply: raises the questions for the two verified, non-archived linked items through the guarded writer", async () => {
+  const db = qocDb();
+  const summary = await questionsOnChangeStep({ mode: "apply", result: QOC_RESULT, sb: qocSb(), db });
+  assert.equal(summary.counts.items_affected, 2);
+  assert.equal(summary.applied, 8);
+  assert.equal(db.inserted[0].table, "integrity_flags");
+  assert.match(db.inserted[0].cite.reason, /questions on change/);
+});
+
+test("questionsOnChangeStep dry: same counts, nothing written", async () => {
+  const db = qocDb();
+  const summary = await questionsOnChangeStep({ mode: "dry", result: QOC_RESULT, sb: qocSb(), db });
+  assert.equal(db.inserted.length, 0);
+  assert.equal(summary.counts.new, 8);
+  assert.equal(summary.applied, 0);
+});
+
+test("questionsOnChangeStep: a drain result with no processed events does nothing", async () => {
+  const db = qocDb();
+  const summary = await questionsOnChangeStep({ mode: "apply", result: { processedEvents: [] }, sb: qocSb(), db });
+  assert.equal(summary.counts.events_seen, 0);
+  assert.equal(db.inserted.length, 0);
+});
+
+test("questions-on-change counts land in the run artifact metrics (qoc_*)", async () => {
+  const summary = await questionsOnChangeStep({ mode: "dry", result: QOC_RESULT, sb: qocSb(), db: qocDb() });
+  const { metrics } = shapeRunOutput(baseResult(), "/tmp/report.json", summary);
+  assert.equal(metrics.qoc_events_seen, 1);
+  assert.equal(metrics.qoc_events_mapped, 1);
+  assert.equal(metrics.qoc_items_affected, 2);
+  assert.equal(metrics.qoc_questions_raised, 8);
+  assert.equal(metrics.qoc_questions_deduplicated, 0);
+  assert.equal(metrics.qoc_items_capped, 0);
+  assert.deepEqual(questionsOnChangeMetrics(null), {});
+  assert.equal(shapeRunOutput(baseResult(), "/tmp/report.json").metrics.qoc_events_seen, undefined);
+});

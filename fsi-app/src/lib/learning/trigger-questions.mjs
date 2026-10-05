@@ -1,6 +1,6 @@
 // trigger-questions.mjs, S1, learning-loop-design-2026-09-25.md section 6 ("S - trigger_question
-// generator"), ADR-036 decision 1 (QUESTION_ACQUISITION = "operator-priced-only"). Lane W2-G, wave2b,
-// 2026-09-29.
+// generator"), ADR-044 decision 1 (QUESTION_ACQUISITION = "holdings-session-batch", superseding ADR-036
+// decision 1). Lane W2-G, wave2b, 2026-09-29; change-side wiring added by lane L4-A, 2026-10-05.
 //
 // WHAT THIS IS. Pure, deterministic, $0: template expansion over (event_type x surface x the four
 // product questions), written as `integrity_flags` rows under flag-namespaces.mjs's QUESTION_NAMESPACE
@@ -10,16 +10,15 @@
 // a thin MAINT-step `main({mode,arg}, deps)` doing the dedup-before-insert I/O), reused, not
 // reinvented, per the lane-common-contract's "prior art" rule.
 //
-// WHY "item minted / substantively present in this batch" IS THE TRIGGER HERE, not a literal
-// `propagation_events` row. learning-loop-design-2026-09-25.md section 2 gap 1: "no confirmed event
-// type for 'brand-new item minted with no prior corpus presence' beyond the mint-time discovery path."
-// This module is wired as the next step in run-population-flywheel.mjs's own tandem sequence (section 3:
-// "added as the next step in that same sequence, not a new standalone runner"), which already scopes
-// itself to exactly the batch of items this dispatch minted or substantively touched, so the trigger
-// this generator actually fires on is EVENT_TYPES.MINTED_OR_TOUCHED (a generator-local sentinel, not a
-// `propagation_events.event_type` CHECK value), reserving the six real outbox event types
-// (constants.mjs's TRIGGER_EVENT_TYPES) for a FUTURE wiring where this generator is called from the
-// drain instead of the flywheel (named as an open question in this lane's report, not built here).
+// TWO TRIGGERS, ONE GENERATOR. (1) Mint time: this module is wired as the next step in
+// run-population-flywheel.mjs's own tandem sequence (section 3: "added as the next step in that same
+// sequence, not a new standalone runner"), which scopes itself to the batch of items a dispatch minted
+// or substantively touched, so that trigger is MINTED_OR_TOUCHED (a generator-local sentinel).
+// (2) Change time (lane L4-A, 2026-10-05): run-propagation-drain.mjs calls this generator, through
+// questions-on-change.mjs, for the verified items linked to an entity whose value changed, with one of
+// constants.mjs's TRIGGER_EVENT_TYPES as the eventType and a `change` description (what changed, on which
+// entity) built from the outbox row. Both paths write through the same flag row builder and the same
+// dedup rule (no duplicate while an open row exists for the same subject_ref and created_by).
 //
 // EXAMPLES ARE NOT SCOPE (CLAUDE.md rule 19): the four QUESTION_BUILDERS below are written against the
 // PRODUCT_QUESTIONS axis in the abstract (what changed / does it reach my portfolio / what must I do /
@@ -40,7 +39,8 @@ export const CITE = Object.freeze({
   reason:
     "Lane W2-G (2026-09-29): S1 trigger_question generator, ADR-036 decision 1 (question generation is " +
     "$0-only). Writes one integrity_flags row per (item, surface, product_question) combination under " +
-    "the QUESTION_NAMESPACE ('question:'), for operator review, never auto-answered, never auto-priced.",
+    "the QUESTION_NAMESPACE ('question:'). Answered from holdings by a session batch (ADR-044 decision 1), " +
+    "never auto-priced, never parked for an operator.",
 });
 
 /** Generator-local trigger sentinel, see module header. Not a propagation_events.event_type value. */
@@ -74,12 +74,16 @@ export function surfacesForDomain(domain) {
  *  {item, surface, eventType} -> question text. Generic across every surface and event type by
  *  construction, see module header, "examples are not scope". */
 const QUESTION_BUILDERS = Object.freeze({
-  what: ({ item }) => `What changed: ${item.title ?? "this item"}?`,
-  affects_me: ({ item, surface }) =>
-    `Does "${item.title ?? "this item"}" apply to any portfolio holder scoped to its jurisdiction or corridor on ${surface}?`,
-  comply: ({ item }) => `What must a reader do in response to "${item.title ?? "this item"}", and by when?`,
-  invest_wait_avoid: ({ item }) =>
-    `Given "${item.title ?? "this item"}", should a reader act now, wait for corroboration, or take no action?`,
+  what: ({ item, change }) =>
+    change
+      ? `What changed: ${change}. What does that mean for "${item.title ?? "this item"}"?`
+      : `What changed: ${item.title ?? "this item"}?`,
+  affects_me: ({ item, surface, change }) =>
+    `${change ? `Following this change (${change}), does` : "Does"} "${item.title ?? "this item"}" apply to any portfolio holder scoped to its jurisdiction or corridor on ${surface}?`,
+  comply: ({ item, change }) =>
+    `${change ? `Following this change (${change}), what` : "What"} must a reader do in response to "${item.title ?? "this item"}", and by when?`,
+  invest_wait_avoid: ({ item, change }) =>
+    `Given "${item.title ?? "this item"}"${change ? ` and this change (${change})` : ""}, should a reader act now, wait for corroboration, or take no action?`,
 });
 
 /**
@@ -87,10 +91,12 @@ const QUESTION_BUILDERS = Object.freeze({
  * product questions. PURE, no I/O. Returns [] for an item with no resolvable surface (see
  * surfacesForDomain).
  * @param {{id:string, title?:string|null, domain?:number|null, item_type?:string|null, jurisdiction_iso?:string[]|string|null}} item
- * @param {{eventType?:string}} [opts]
- * @returns {Array<{itemId:string, surface:string, productQuestion:string, eventType:string, questionText:string, subjectRef:string, createdBy:string}>}
+ * @param {{eventType?:string, eventId?:number|string|null, change?:string|null}} [opts] `change` is the
+ *   plain-words description of what changed (change-time only); `eventId` is the originating outbox event
+ *   id, carried to the flag row's structured context.
+ * @returns {Array<{itemId:string, surface:string, productQuestion:string, eventType:string, eventId:number|string|null, questionText:string, subjectRef:string, createdBy:string}>}
  */
-export function generateTriggerQuestions(item, { eventType = MINTED_OR_TOUCHED } = {}) {
+export function generateTriggerQuestions(item, { eventType = MINTED_OR_TOUCHED, eventId = null, change = null } = {}) {
   if (!item || !item.id) return [];
   const surfaces = surfacesForDomain(item.domain);
   const out = [];
@@ -102,7 +108,8 @@ export function generateTriggerQuestions(item, { eventType = MINTED_OR_TOUCHED }
         surface,
         productQuestion: pq,
         eventType,
-        questionText: builder({ item, surface, eventType }),
+        eventId,
+        questionText: builder({ item, surface, eventType, change }),
         subjectRef: buildSubjectRef(item.id, surface, pq),
         createdBy: createdBy(QUESTION_NAMESPACE, pq),
       });
@@ -130,9 +137,11 @@ export function triggerQuestionFlagRow(q) {
       {
         action: "answer-seeking",
         rationale:
-          `product_question=${q.productQuestion} surface=${q.surface} event_type=${q.eventType} - ` +
-          "retrieval-first against held pools (RD-8); a residual is a priced acquisition REQUEST only " +
-          "(ADR-036 decision 1, QUESTION_ACQUISITION=operator-priced-only), never a fetch.",
+          `product_question=${q.productQuestion} surface=${q.surface} event_type=${q.eventType}` +
+          `${q.eventId != null ? ` event_id=${q.eventId}` : ""} - ` +
+          "answered from holdings by a session batch, retrieval-first against held pools (RD-8); a residual " +
+          "becomes a source search target (ADR-044 decisions 1 and 2, QUESTION_ACQUISITION=holdings-session-batch), " +
+          "never a fetch or a priced request.",
       },
     ],
   };
@@ -145,38 +154,51 @@ export function isTriggerQuestionFlag(createdByValue) {
 }
 
 /**
- * The MAINT-step shape (mirrors tag-proposals.mjs's `main({mode,arg}, deps)`): dedup-before-insert over
- * an already-fetched item list. Dry mode computes and reports the plan; apply mode inserts the NEW rows
- * only (an existing open row for the same subject_ref is left alone, the SAME item/surface/question
- * combination is not re-flagged every batch).
- * @param {{ mode?: "dry"|"apply", items: Array<object> }} opts items already resolved by the caller
- *   (the flywheel step passes its own batch's rows, this function does no corpus read of its own)
+ * The shared write half: dedup-before-insert over an already-generated question list. Both the mint-time
+ * `main` below and the change-time questions-on-change.mjs call it, so there is one dedup rule and one
+ * writer shape. Dry mode computes and reports the plan; apply mode inserts the NEW rows only.
+ * Dedup is two-fold: a question whose (subject_ref, created_by) already has an OPEN flag is skipped
+ * (`already_open`), and the same key generated twice in one batch is written once (`deduped_in_batch`).
+ * @param {{ mode?: "dry"|"apply", questions: ReturnType<typeof generateTriggerQuestions>, itemsConsidered?: number, step?: string }} opts
  * @param {{
  *   readExistingOpen: () => Promise<Array<{subject_ref:string, created_by:string}>>,
  *   insertMany: (rows:object[]) => Promise<{inserted:number, snapshot:string|null}>,
  * }} deps
  */
-export async function main({ mode = "dry", items = [] } = {}, deps) {
+export async function mainForQuestions({ mode = "dry", questions = [], itemsConsidered = 0, step = "trigger-questions" } = {}, deps) {
   const apply = mode === "apply";
-  const summary = { step: "trigger-questions", mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
+  const summary = { step, mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
 
-  const generated = items.flatMap((item) => generateTriggerQuestions(item));
-  summary.counts.items_considered = items.length;
-  summary.counts.questions_generated = generated.length;
+  summary.counts.items_considered = itemsConsidered;
+  summary.counts.questions_generated = questions.length;
 
-  if (generated.length === 0) {
+  if (questions.length === 0) {
+    summary.counts.deduped_in_batch = 0;
+    summary.counts.already_open = 0;
+    summary.counts.new = 0;
     summary.note = "0 questions generated (no item routed to a surface this batch), nothing to write.";
     return summary;
   }
 
+  const keyOf = (q) => `${q.subjectRef}\u0000${q.createdBy}`;
+  const seen = new Set();
+  const unique = [];
+  for (const q of questions) {
+    const k = keyOf(q);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    unique.push(q);
+  }
+  summary.counts.deduped_in_batch = questions.length - unique.length;
+
   const existing = await deps.readExistingOpen();
   const existingKeys = new Set(existing.map((r) => `${r.subject_ref}\u0000${r.created_by}`));
-  const fresh = generated.filter((q) => !existingKeys.has(`${q.subjectRef}\u0000${q.createdBy}`));
-  summary.counts.already_open = generated.length - fresh.length;
+  const fresh = unique.filter((q) => !existingKeys.has(keyOf(q)));
+  summary.counts.already_open = unique.length - fresh.length;
   summary.counts.new = fresh.length;
 
   if (!apply) {
-    summary.note = `dry mode, would insert ${fresh.length} new question flag(s), skip ${generated.length - fresh.length} already-open.`;
+    summary.note = `dry mode, would insert ${fresh.length} new question flag(s), skip ${unique.length - fresh.length} already-open.`;
     return summary;
   }
 
@@ -190,4 +212,16 @@ export async function main({ mode = "dry", items = [] } = {}, deps) {
   summary.applied = res.inserted ?? 0;
   summary.read_back = { snapshot: res.snapshot ?? null };
   return summary;
+}
+
+/**
+ * The mint-time MAINT-step shape (mirrors tag-proposals.mjs's `main({mode,arg}, deps)`): generate for an
+ * already-fetched item list, then the shared dedup-before-insert write.
+ * @param {{ mode?: "dry"|"apply", items: Array<object> }} opts items already resolved by the caller
+ *   (the flywheel step passes its own batch's rows, this function does no corpus read of its own)
+ * @param {Parameters<typeof mainForQuestions>[1]} deps
+ */
+export async function main({ mode = "dry", items = [] } = {}, deps) {
+  const generated = items.flatMap((item) => generateTriggerQuestions(item));
+  return mainForQuestions({ mode, questions: generated, itemsConsidered: items.length }, deps);
 }

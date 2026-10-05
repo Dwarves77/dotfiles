@@ -14,6 +14,8 @@ related:
   - "docs/plans/learning-loop-design-2026-09-25.md"
 ---
 
+> **Decisions 1 and 3 SUPERSEDED 2026-10-05 by [ADR-044](./ADR-044-learning-loop-no-gate.md); decision 2 stands.**
+
 # ADR-036: Learning loop forks
 
 ## Context
