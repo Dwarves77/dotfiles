@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import {
   generateCandidates, eurlexCandidates, ukCandidates, lovdataCandidates, gazetteCandidates, apiCandidates,
   exhaustionFlagRow, persistExhaustionRecord,
-  seekAnswerForQuestion, acquisitionRequestRecord,
+  seekAnswerForQuestion, acquisitionRequestRecord, queryHeldPools, heldPoolHash,
 } from "./seek-more.mjs";
 
 // NOTE (no-shadow, 2026-07-14): the runSeekMore orchestrator was retired (zero live callers; the live one home is
@@ -162,4 +162,57 @@ test("seekAnswerForQuestion: no identity injected, priced ticket still never cra
   });
   assert.equal(res.source, "priced-candidates");
   assert.deepEqual(res.candidates, []);
+});
+
+// ── queryHeldPools / heldPoolHash: the real step 1 of seekAnswerForQuestion (lane L4-B, ADR-044) ─────────────
+
+const POOLS = new Map([
+  ["item-42", [{ url: "https://a.example/x", text: "alpha text" }]],
+  ["item-7", [{ url: "https://b.example/y", text: "beta text" }, { url: "https://b.example/z", text: "   " }]],
+  ["item-9", []],
+]);
+const poolDeps = {
+  readConnectedItemIds: async (id) => (id === "item-42" ? ["item-7", "item-9", "item-42"] : []),
+  readPools: async (ids) => new Map(ids.map((id) => [id, POOLS.get(id) ?? []])),
+};
+
+test("queryHeldPools: the question's own item first, then connected items, an item with no usable capture is not a hit", async () => {
+  const hits = await queryHeldPools(TQ, poolDeps);
+  assert.deepEqual(hits.map((h) => [h.item_id, h.relation]), [["item-42", "self"], ["item-7", "connected"]]);
+  assert.equal(hits[1].pool.length, 1, "a blank capture is dropped");
+  assert.match(hits[0].item_pool_hash, /^[0-9a-f]{64}$/);
+});
+
+test("queryHeldPools: no readPools dep or no item id is an empty answer, never a throw", async () => {
+  assert.deepEqual(await queryHeldPools(TQ, {}), []);
+  assert.deepEqual(await queryHeldPools({}, poolDeps), []);
+  assert.deepEqual(await queryHeldPools(TQ, undefined), []);
+});
+
+test("queryHeldPools: a plain-object readPools result works the same as a Map", async () => {
+  const hits = await queryHeldPools(TQ, { readPools: async () => ({ "item-42": [{ url: "https://a.example/x", text: "alpha text" }] }) });
+  assert.equal(hits.length, 1);
+});
+
+test("heldPoolHash: order independent, changes when any capture text or its holder changes", async () => {
+  const hits = await queryHeldPools(TQ, poolDeps);
+  const h1 = heldPoolHash(hits);
+  assert.equal(heldPoolHash([...hits].reverse()), h1);
+  const changed = hits.map((h) => (h.item_id === "item-7" ? { ...h, pool: [{ ...h.pool[0], text: "beta text v2" }] } : h));
+  assert.notEqual(heldPoolHash(changed), h1);
+  const swapped = hits.map((h) => (h.item_id === "item-7" ? { ...h, item_id: "item-8" } : h));
+  assert.notEqual(heldPoolHash(swapped), h1, "the same capture held by another item is a different pool");
+  assert.match(heldPoolHash([]), /^[0-9a-f]{64}$/);
+});
+
+test("seekAnswerForQuestion step 1 resolves through the real queryHeldPools (priced branch untouched, uncalled)", async () => {
+  let webSearchCalled = false;
+  const res = await seekAnswerForQuestion(TQ, {
+    queryHeldPools: (q) => queryHeldPools(q, poolDeps),
+    webSearch: async () => { webSearchCalled = true; return []; },
+  });
+  assert.equal(res.resolved, true);
+  assert.equal(res.source, "held-pool");
+  assert.equal(res.candidates.length, 2);
+  assert.equal(webSearchCalled, false);
 });

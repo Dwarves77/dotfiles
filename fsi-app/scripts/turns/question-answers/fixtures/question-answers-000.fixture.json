@@ -1,0 +1,41 @@
+{
+  "batch": "question-answers-000",
+  "generated_at": "2026-10-05T00:00:00Z",
+  "authored_by": "session-lane",
+  "entries": [
+    {
+      "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:what",
+      "pool_hash": "416c2e0d52601d9afec329908e5cd6f3a0165ef39ed096f4878c21d00af4fd63",
+      "outcome": "answered",
+      "answer": "The amendment lowers the permitted humidity ceiling to 55 percent for stored artwork, and the guidance extends the ceiling to all climate controlled bonded stores holding fine art.",
+      "status_token": "HYPOTHESIS",
+      "confidence": 0.6,
+      "cited_item_ids": [
+        "aaaaaaaa-0000-4000-8000-000000000001",
+        "aaaaaaaa-0000-4000-8000-000000000002"
+      ],
+      "evidence": [
+        {
+          "item_id": "aaaaaaaa-0000-4000-8000-000000000001",
+          "claim_ids": [
+            "c-a1"
+          ],
+          "source_span": "lowers the permitted relative humidity ceiling to 55 percent for stored artwork"
+        },
+        {
+          "item_id": "aaaaaaaa-0000-4000-8000-000000000002",
+          "claim_ids": [
+            "c-b1"
+          ],
+          "source_span": "applies to all climate controlled bonded stores holding fine art consignments"
+        }
+      ]
+    },
+    {
+      "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:comply",
+      "pool_hash": "416c2e0d52601d9afec329908e5cd6f3a0165ef39ed096f4878c21d00af4fd63",
+      "outcome": "unanswerable_from_holdings",
+      "missing": "The customs authority's published filing form or notice that states how the revised storage plan is submitted and what follows from a late filing."
+    }
+  ]
+}

@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   computeInferFromQuestion, registerInferenceRecord, validateRegisterInferenceRecordInput,
   INFERENCE_METHODS, METHOD_ID, METHOD_VERSION,
+  buildFirstInferenceInput, registerFirstInference, firstInferenceComputedBy, reopenQuestionForRecompute, itemIdOfQuestionRef,
 } from "./infer-from-question.ts";
+import { generateTriggerQuestions } from "../../learning/trigger-questions.mjs";
 
 const NOW = new Date("2026-09-29T00:00:00Z");
 const PRIOR = { inference_id: "inf-1", claim_text: "What changed: amendment?", cited_item_ids: ["item-a", "item-b"], trigger_question_ref: "item-1:regulations:what" };
@@ -140,4 +142,90 @@ test("registerInferenceRecord: surfaces the DB error rather than throwing an unr
     }),
     /constraint violated/,
   );
+});
+
+// ── lane L4-B: the first write of an inference from an answered question, and re-opening on recompute ──────
+const ITEM_ID = "11111111-1111-4111-8111-111111111111";
+const FIRST = {
+  subjectId: "cl:instr:abc", claimText: "The amendment applies to bonded warehouses.", statusToken: "HYPOTHESIS", confidence: 0.6,
+  citedItemIds: [ITEM_ID], triggerQuestionRef: `${ITEM_ID}:regulations:what`, batch: "question-answers-001",
+};
+
+test("buildFirstInferenceInput: origin derived, method infer-from-question@v1, computed_by names the batch, no derivation inputs", () => {
+  const input = buildFirstInferenceInput(FIRST);
+  assert.equal(input.originClass, "derived");
+  assert.equal(input.methodId, METHOD_ID);
+  assert.equal(input.methodVersion, METHOD_VERSION);
+  assert.equal(input.computedBy, firstInferenceComputedBy("question-answers-001"));
+  assert.equal(input.computedBy, "question-answers:question-answers-001");
+  assert.equal(input.triggerQuestionRef, FIRST.triggerQuestionRef);
+  assert.deepEqual(input.inputs, [], "intelligence_items and their claims are not in derivation_edges' from_table allowlist (migration 339)");
+  assert.equal(input.supersedes, null);
+  assert.deepEqual(validateRegisterInferenceRecordInput(input), []);
+});
+
+test("buildFirstInferenceInput: a REFUTED token is refused, an answer is never a refutation", () => {
+  assert.throws(() => buildFirstInferenceInput({ ...FIRST, statusToken: "REFUTED" }), /REFUTED/);
+});
+
+test("registerFirstInference: one register_inference_record call carrying trigger_question_ref and supersedes", async () => {
+  const calls = [];
+  const id = await registerFirstInference(fakeRpcClient(calls), { ...FIRST, supersedes: "inf-0" });
+  assert.equal(id, "new-inference-id");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].fn, "register_inference_record");
+  assert.equal(calls[0].args.p_trigger_question_ref, FIRST.triggerQuestionRef);
+  assert.equal(calls[0].args.p_supersedes, "inf-0");
+  assert.equal(calls[0].args.p_origin_class, "derived");
+  assert.deepEqual(calls[0].args.p_inputs, []);
+});
+
+test("computeInferFromQuestion: a recompute names the question to re-open (the prior row's trigger_question_ref)", () => {
+  const res = computeInferFromQuestion({ entityId: null, inputs: [], priorValue: PRIOR, now: NOW });
+  assert.equal(res.ok, true);
+  assert.equal(res.reopenQuestionRef, PRIOR.trigger_question_ref);
+  const none = computeInferFromQuestion({ entityId: null, inputs: [], priorValue: { ...PRIOR, trigger_question_ref: null }, now: NOW });
+  assert.equal(none.reopenQuestionRef, null);
+});
+
+function reopenDeps({ item = { id: ITEM_ID, title: "Amendment", domain: 1, item_type: "regulation" }, open = null } = {}) {
+  const inserted = [];
+  return {
+    inserted,
+    readItem: async () => item,
+    readOpenQuestionFlag: async () => open,
+    insertFlag: async (row) => { inserted.push(row); },
+  };
+}
+
+test("itemIdOfQuestionRef: the first of three parts, null otherwise", () => {
+  assert.equal(itemIdOfQuestionRef(`${ITEM_ID}:regulations:what`), ITEM_ID);
+  assert.equal(itemIdOfQuestionRef("not-a-ref"), null);
+  assert.equal(itemIdOfQuestionRef(""), null);
+});
+
+test("reopenQuestionForRecompute: inserts the generator's own open flag row for the question", async () => {
+  const deps = reopenDeps();
+  const r = await reopenQuestionForRecompute(`${ITEM_ID}:regulations:what`, deps);
+  assert.equal(r.reopened, true);
+  assert.equal(deps.inserted.length, 1);
+  const want = generateTriggerQuestions({ id: ITEM_ID, title: "Amendment", domain: 1, item_type: "regulation" }).find((q) => q.productQuestion === "what");
+  assert.equal(deps.inserted[0].subject_ref, want.subjectRef);
+  assert.equal(deps.inserted[0].created_by, want.createdBy);
+  assert.equal(deps.inserted[0].status, "open");
+});
+
+test("reopenQuestionForRecompute: the same dedup rule, an already-open question is not duplicated", async () => {
+  const deps = reopenDeps({ open: { id: "flag-1" } });
+  const r = await reopenQuestionForRecompute(`${ITEM_ID}:regulations:what`, deps);
+  assert.equal(r.reopened, false);
+  assert.match(r.reason, /already exists/);
+  assert.equal(deps.inserted.length, 0);
+});
+
+test("reopenQuestionForRecompute: no ref, a malformed ref, a missing item and a no-longer-generated question each refuse with a reason", async () => {
+  assert.equal((await reopenQuestionForRecompute(null, reopenDeps())).reopened, false);
+  assert.match((await reopenQuestionForRecompute("junk", reopenDeps())).reason, /not an/);
+  assert.match((await reopenQuestionForRecompute(`${ITEM_ID}:regulations:what`, reopenDeps({ item: null }))).reason, /no longer exists/);
+  assert.match((await reopenQuestionForRecompute(`${ITEM_ID}:community:what`, reopenDeps())).reason, /no longer generated/);
 });
