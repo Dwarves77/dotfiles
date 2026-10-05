@@ -108,8 +108,6 @@ interface Props {
   connections?: ItemConnection[];
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
-  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
-  crossPage?: CrossPageData | null;
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
@@ -119,6 +117,8 @@ interface Props {
    *  the section is not drawn at all rather than drawn empty. */
   auxiliaryEnergySection?: ReactNode;
   gridQueueSection?: ReactNode;
+  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
+  crossPage?: CrossPageData | null;
 }
 
 /** The two spec-09 sections' index labels and anchors, in the order they render. Declared once so
@@ -179,12 +179,12 @@ export function OperationsDetailSurface({
   supersessions = [],
   connections = [],
   resourceLookup = {},
-  crossPage = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
   auxiliaryEnergySection,
   gridQueueSection,
+  crossPage = null,
 }: Props) {
   const spec09Nodes: Record<string, ReactNode> = { auxiliaryEnergySection, gridQueueSection };
   const spec09Shown = SPEC09_SECTIONS.filter((s) => spec09Nodes[s.key] != null);

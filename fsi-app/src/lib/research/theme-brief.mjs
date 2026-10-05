@@ -258,5 +258,8 @@ export function buildThemeChips({ themes, items, briefs = [], lineage = [], surf
     });
   }
   out.sort((a, b) => b.convergence - a.convergence || (a.themeId < b.themeId ? -1 : 1));
-  return out.slice(0, Math.max(0, max)).map(({ convergence, ...chip }) => chip);
+  return out.slice(0, Math.max(0, max)).map((chip) => {
+    const { convergence: _convergence, ...rest } = chip;
+    return rest;
+  });
 }

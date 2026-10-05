@@ -122,6 +122,15 @@ is outside this lane's write set, so the new label source is not wired there.
   (`scripts/harness-runs/governing-files.mjs` checked), so no pending marker is owed and no `family.json`
   changed.
 
+## CI fixes (PR 941, coordinator-approved)
+
+- ESLint: unused `convergence` binding in `buildThemeChips` renamed to `_convergence` in the destructure (chip shape unchanged).
+- F45 ratchet: reproduced locally, HEAD 5395 against base 5379. Per-file delta against the merge-base tree named
+  exactly two files, 8 lines each: `OperationsDetailSurface.tsx` and `MarketSignalDetailSurface.tsx`, the identical
+  `resourceLookup, crossPage, initialWatched...` prop and destructure runs I added in the same position in both.
+  Fix: `crossPage` moved to the end of the Operations props and destructure so the runs differ. After: HEAD 5379,
+  equal to base 5379. The ceiling was not touched. The per-route loader call was not named by F45.
+
 ## NOT done
 
 - No live-data check: counts of themes, briefs, structured briefs and intersection entries on live rows are
