@@ -304,8 +304,9 @@ import { questionsOnChangeStep, questionsOnChangeMetrics } from "./run-propagati
 const QOC_ENTITY = "cl:jurisdiction:aaaaaaaaaaaaaaaa";
 
 /** A fake Supabase client for the entity-to-item read (entities, intelligence_items, entity_refs). */
-function qocSb() {
+function qocSb(extraTables = {}) {
   const tables = {
+    ...extraTables,
     entities: [{ entity_id: QOC_ENTITY, kind: "jurisdiction", canonical_name: "Fixture jurisdiction" }],
     intelligence_items: [
       { id: "a", title: "Reg a", domain: 1, item_type: "regulation", provenance_status: "verified", is_archived: false },
@@ -322,6 +323,8 @@ function qocSb() {
         select() { return b; },
         eq(c, v) { filters.push((r) => r[c] === v); return b; },
         in(c, vs) { filters.push((r) => vs.includes(r[c])); return b; },
+        gte(c, v) { filters.push((r) => r[c] >= v); return b; },
+        lte(c, v) { filters.push((r) => r[c] <= v); return b; },
         order() { return b; },
         range(f, t) { range = [f, t]; return b; },
         async maybeSingle() { return { data: (tables[table] || []).find((r) => filters.every((fn) => fn(r))) ?? null, error: null }; },
@@ -336,12 +339,19 @@ function qocSb() {
   };
 }
 
-function qocDb() {
+function qocDb({ failWrites = false } = {}) {
   const inserted = [];
+  const flags = [];
   return {
     inserted,
-    async readAll() { return []; },
-    async guardedInsertMany(table, rows, opts) { inserted.push({ table, rows, cite: opts.cite }); return { inserted: rows.length, snapshot: "s" }; },
+    flags,
+    async readAll() { return flags.map((r) => ({ subject_ref: r.subject_ref, created_by: r.created_by })); },
+    async guardedInsertMany(table, rows, opts) {
+      if (failWrites) throw new Error("writer down");
+      inserted.push({ table, rows, cite: opts.cite });
+      flags.push(...rows);
+      return { inserted: rows.length, snapshot: "s" };
+    },
   };
 }
 
@@ -384,4 +394,131 @@ test("questions-on-change counts land in the run artifact metrics (qoc_*)", asyn
   assert.equal(metrics.qoc_items_capped, 0);
   assert.deepEqual(questionsOnChangeMetrics(null), {});
   assert.equal(shapeRunOutput(baseResult(), "/tmp/report.json").metrics.qoc_events_seen, undefined);
+});
+
+// no event is lost: record unfinished ids, replay them next run (lane L4-A, coordinator review)
+
+import { orchestrateQuestions, unfinishedMetrics, unfinishedIdsFromHistory, parseEventRange, UNFINISHED_ID_CAP } from "./run-propagation-drain.mjs";
+
+const OUTBOX = [5, 6].map((id) => ({
+  event_id: id, table_name: "derived_values", row_pk: `dv-${id}`, entity_id: QOC_ENTITY, change_kind: "update", occurred_at: "2026-10-05T00:00:00Z",
+}));
+const ev = (id) => ({ eventId: id, tableName: "derived_values", rowPk: `dv-${id}`, entityId: QOC_ENTITY, changeKind: "update", occurredAt: "2026-10-05T00:00:00Z" });
+const noHistory = () => ({ runs: [] });
+const historyWith = (ids) => () => ({ runs: [{ metrics: unfinishedMetrics(ids) }] });
+
+test("a failed question step records the exact event ids it did not finish", async () => {
+  const db = qocDb({ failWrites: true });
+  const out = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => db, harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [ev(5), ev(6)] }),
+  });
+  assert.ok(out.qoc.error);
+  assert.deepEqual(out.unfinishedIds, [5, 6]);
+  const m = unfinishedMetrics(out.unfinishedIds);
+  assert.equal(m.qoc_unfinished_count, 2);
+  assert.deepEqual(m.qoc_unfinished_event_ids, [5, 6]);
+  assert.equal(m.qoc_unfinished_min_id, 5);
+  assert.equal(m.qoc_unfinished_max_id, 6);
+});
+
+test("the next run replays the unfinished ids first and raises the questions once; a second replay raises nothing", async () => {
+  const db = qocDb();
+  const sb = qocSb({ propagation_events: OUTBOX });
+  const run = () => orchestrateQuestions({
+    mode: "apply", sb, getDb: async () => db, harnessRunsDir: "x", readHistory: historyWith([5, 6]),
+    drain: async () => ({ processedEvents: [] }),
+  });
+  const first = await run();
+  assert.equal(first.replay.events.length, 2);
+  assert.equal(first.replay.summary.counts.new, 8);
+  assert.equal(db.inserted.length, 1);
+  assert.deepEqual(first.unfinishedIds, []);
+  assert.equal(questionsOnChangeMetrics(first.replay.summary, "qoc_replayed_").qoc_replayed_questions_raised, 8);
+
+  const second = await run();
+  assert.equal(second.replay.summary.counts.new, 0);
+  assert.equal(second.replay.summary.counts.already_open, 8);
+  assert.equal(db.inserted.length, 1);
+});
+
+test("replay runs before the run's own new events", async () => {
+  const order = [];
+  const db = qocDb();
+  const sb = qocSb({ propagation_events: OUTBOX });
+  const out = await orchestrateQuestions({
+    mode: "apply", sb, getDb: async () => db, harnessRunsDir: "x", readHistory: historyWith([5]),
+    drain: async () => { order.push(`drain:${db.inserted.length}`); return { processedEvents: [] }; },
+  });
+  assert.deepEqual(order, ["drain:1"]);
+  assert.equal(out.replay.events.length, 1);
+});
+
+test("dry mode replays read-only: nothing written, and the ids stay unfinished (carried forward)", async () => {
+  const db = qocDb();
+  const out = await orchestrateQuestions({
+    mode: "dry", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => db, harnessRunsDir: "x", readHistory: historyWith([5, 6]),
+    drain: async () => ({ processedEvents: [ev(7)] }),
+  });
+  assert.equal(db.inserted.length, 0);
+  assert.equal(out.replay.summary.counts.new, 8);
+  assert.deepEqual(out.unfinishedIds, [5, 6]);
+});
+
+test("a replay that fails keeps its ids unfinished and the drain still runs", async () => {
+  const db = qocDb({ failWrites: true });
+  const out = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => db, harnessRunsDir: "x", readHistory: historyWith([5, 6]),
+    drain: async () => ({ processedEvents: [] }),
+  });
+  assert.ok(out.replay.error);
+  assert.deepEqual(out.unfinishedIds, [5, 6]);
+  assert.deepEqual(out.result, { processedEvents: [] });
+});
+
+test("manual --questions-for-events range: dry by default writes nothing, no drain, nothing carried", async () => {
+  const db = qocDb();
+  const out = await orchestrateQuestions({
+    mode: "dry", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => db, harnessRunsDir: "x", range: { from: 5, to: 6 }, drain: null,
+  });
+  assert.equal(out.replay.events.length, 2);
+  assert.equal(out.replay.summary.counts.new, 8);
+  assert.equal(db.inserted.length, 0);
+  assert.deepEqual(out.unfinishedIds, []);
+  assert.equal(out.result, null);
+
+  const applied = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => db, harnessRunsDir: "x", range: { from: 5, to: 6 }, drain: null,
+  });
+  assert.equal(applied.replay.summary.applied, 8);
+});
+
+test("unfinishedMetrics bounds the list, keeps the full count and the min and max id", () => {
+  const ids = Array.from({ length: UNFINISHED_ID_CAP + 100 }, (_, i) => 1000 + i);
+  const m = unfinishedMetrics(ids);
+  assert.equal(m.qoc_unfinished_event_ids.length, UNFINISHED_ID_CAP);
+  assert.equal(m.qoc_unfinished_count, UNFINISHED_ID_CAP + 100);
+  assert.equal(m.qoc_unfinished_capped, true);
+  assert.equal(m.qoc_unfinished_min_id, 1000);
+  assert.equal(m.qoc_unfinished_max_id, 1000 + UNFINISHED_ID_CAP + 99);
+  assert.equal(unfinishedMetrics([]).qoc_unfinished_min_id, null);
+});
+
+test("unfinishedIdsFromHistory reads only the most recent run", () => {
+  assert.deepEqual(unfinishedIdsFromHistory([{ metrics: { qoc_unfinished_event_ids: [1] } }, { metrics: { qoc_unfinished_event_ids: [2, 3] } }]), [2, 3]);
+  assert.deepEqual(unfinishedIdsFromHistory([{ metrics: {} }]), []);
+  assert.deepEqual(unfinishedIdsFromHistory([]), []);
+});
+
+test("parseEventRange and the --questions-for-events argument", () => {
+  assert.deepEqual(parseEventRange("10-20"), { from: 10, to: 20 });
+  assert.equal(parseEventRange("20-10"), null);
+  assert.equal(parseEventRange("abc"), null);
+  assert.equal(parseEventRange("1-9999999"), null);
+  const r = parseArgs(["--questions-for-events", "10-20"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.mode, "dry");
+  assert.deepEqual(r.questionsForEvents, { from: 10, to: 20 });
+  assert.equal(parseArgs(["--questions-for-events", "20-10"]).ok, false);
+  assert.equal(parseArgs(["--questions-for-events", "10-20", "--mode", "apply"]).mode, "apply");
 });

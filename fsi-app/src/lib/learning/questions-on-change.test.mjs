@@ -235,3 +235,40 @@ test("buildEntityItemsReader: links through instrument_entity_id and entity_refs
   assert.equal(out.entityName, "Fixture jurisdiction");
   assert.deepEqual(out.items.map((i) => i.id).sort(), ["a", "b"]);
 });
+
+// replay support (lane L4-A, coordinator review)
+
+import { readOutboxEvents } from "./questions-on-change.mjs";
+
+test("runQuestionsOnChange reports the event ids whose entity read failed", async () => {
+  const { deps } = fixtureDeps({ items: [REG("a")] });
+  const orig = deps.readEntityLinks;
+  deps.readEntityLinks = async (id) => { if (id === "cl:bad") throw new Error("boom"); return orig(id); };
+  const s = await runQuestionsOnChange({ mode: "dry", events: [EVENT({ eventId: 3, entityId: "cl:bad" }), EVENT({ eventId: 4 })], deps });
+  assert.deepEqual(s.failed_event_ids, [3]);
+});
+
+test("readOutboxEvents reads rows back by id list or id range, as processed events", async () => {
+  const rows = [3, 4, 5].map((id) => ({ event_id: id, table_name: "derived_values", row_pk: `dv-${id}`, entity_id: ENTITY, change_kind: "update", occurred_at: "t" }));
+  const sb = {
+    from() {
+      const f = [];
+      const b = {
+        select() { return b; },
+        in(c, v) { f.push((r) => v.includes(r[c])); return b; },
+        gte(c, v) { f.push((r) => r[c] >= v); return b; },
+        lte(c, v) { f.push((r) => r[c] <= v); return b; },
+        order() { return b; },
+        range(a, z) { b.r = [a, z]; return b; },
+        then(res, rej) { let o = rows.filter((x) => f.every((fn) => fn(x))); if (b.r) o = o.slice(b.r[0], b.r[1] + 1); return Promise.resolve({ data: o, error: null }).then(res, rej); },
+      };
+      return b;
+    },
+  };
+  const byIds = await readOutboxEvents(sb, { ids: [5, 3] });
+  assert.deepEqual(byIds.map((e) => e.eventId), [3, 5]);
+  assert.equal(byIds[0].tableName, "derived_values");
+  assert.equal(byIds[0].entityId, ENTITY);
+  const byRange = await readOutboxEvents(sb, { from: 4, to: 5 });
+  assert.deepEqual(byRange.map((e) => e.eventId), [4, 5]);
+});

@@ -25,6 +25,18 @@ Reused: `generateTriggerQuestions`, `triggerQuestionFlagRow`, the dedup rule, `d
 `resolve-watched-entities.ts` reads forward. Built new only what had no home: the table-to-event mapping,
 the entity-to-item reverse read.
 
+## Added after coordinator review (no event is lost)
+
+- A failed or cut-short question step records the exact unfinished event ids on the run artifact
+  (`qoc_unfinished_event_ids`, capped at 500, plus `qoc_unfinished_count`, `_min_id`, `_max_id`, `_capped`).
+- Every run starts by reading the most recent propagation run of record with `readRunHistory` (the reader
+  `loop-run-id.mjs` uses), reads those rows back from `propagation_events` and runs the step over them
+  before its own events (`qoc_replayed_*`). Dry runs carry the ids forward; dedup makes replay idempotent.
+- `--questions-for-events <from>-<to>` runs the step over an id range, dry unless `--mode apply`, no drain.
+- The replay depends on the previous artifact being committed back to the dispatched ref, which
+  propagation-drain.yml already does for `scripts/harness-runs/propagation/**`.
+- The flywheel trigger-questions comment now matches ADR-044 (coordinator-granted comment-only edit).
+
 ## Decisions
 
 - `statutory_computations` maps to `obligation_amended`; `emission_factors` supersede maps to
@@ -39,16 +51,12 @@ the entity-to-item reverse read.
 ## What is NOT done
 
 - No question is answered (lane L4-B). No migration, no live run, nothing applied.
-- A drained event whose questions step then fails is not replayed: events are marked drained in Pass 1
-  before the step runs. The failure is recorded as a defect on the run artifact and fails the exit code.
 - Outbox rows from emission_factors, market_series and regional_data_facts carry no entity_id today, so
   they reach no item (counted as `events_no_entity`).
 - propagation-drain.yml chained firings run dry while `scrape_cadence='off'` (the chained-dry-guard step,
   workflow lines 209 to 211 and the `RUN_MODE="dry"` lines 233 and 272), so a chained firing raises no
   question. At population time (cadence no longer off) the guard leaves the requested mode, the
   `workflow_run` branch requests `apply`, and the step then writes. Nothing to change in the workflow.
-- The flywheel's comment at the `trigger-questions` step descriptor still says "never auto-answered"; it
-  is outside this lane's write set (only the deps extraction was).
 
 ## Open items
 

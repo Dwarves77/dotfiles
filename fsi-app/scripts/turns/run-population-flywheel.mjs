@@ -847,7 +847,7 @@ export function buildFlywheelPlan(mode, batchIds) {
       // title only, so ordering relative to them is not load-bearing, but running last in the
       // per-item chain keeps every question generated against this batch's FINAL state, not a
       // mid-chain snapshot). Writes integrity_flags rows under flag-namespaces.mjs's QUESTION_NAMESPACE
-      // ("question:"), never auto-answered, never auto-priced (ADR-036 decision 1).
+      // ("question:"), answered later from holdings by a session batch, never auto-priced (ADR-044 decision 1).
       name: "trigger-questions",
       scoped: true,
       skip: !hasItems,

@@ -143,6 +143,7 @@ export async function runQuestionsOnChange({ mode = "dry", events = [], deps, ca
   };
   const linkCache = new Map();
   const questions = [];
+  const failedEventIds = [];
 
   for (const ev of events) {
     const eventType = eventTypeForOutboxRow({ table_name: ev.tableName, change_kind: ev.changeKind });
@@ -156,6 +157,7 @@ export async function runQuestionsOnChange({ mode = "dry", events = [], deps, ca
         links = await deps.readEntityLinks(ev.entityId);
       } catch {
         counts.read_errors += 1;
+        failedEventIds.push(ev.eventId);
         continue;
       }
       linkCache.set(ev.entityId, links);
@@ -178,6 +180,34 @@ export async function runQuestionsOnChange({ mode = "dry", events = [], deps, ca
     { mode, questions, itemsConsidered: counts.items_affected, step: "questions-on-change" },
     deps,
   );
-  return { ...written, counts: { ...counts, ...written.counts } };
+  return { ...written, counts: { ...counts, ...written.counts }, failed_event_ids: failedEventIds };
 }
 
+
+const OUTBOX_COLS = "event_id,table_name,row_pk,entity_id,change_kind,occurred_at";
+
+function toProcessedEvent(r) {
+  return { eventId: r.event_id, tableName: r.table_name, rowPk: r.row_pk, entityId: r.entity_id ?? null, changeKind: r.change_kind ?? null, occurredAt: r.occurred_at };
+}
+
+/**
+ * Read outbox rows back as processed events, by id list or by inclusive id range. propagation_events is
+ * append-only (ADR-043), so a drained event is still there to be replayed. Ordered by event_id.
+ * @param {object} sb a Supabase client
+ * @param {{ids?: Array<number|string>, from?: number, to?: number}} sel
+ */
+export async function readOutboxEvents(sb, { ids, from, to } = {}) {
+  let rows;
+  if (Array.isArray(ids)) {
+    rows = await fetchAllByIdChunks(ids, async (slice) => {
+      // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
+      const { data, error } = await sb.from("propagation_events").select(OUTBOX_COLS).in("event_id", slice);
+      if (error) throw new Error(`propagation_events read failed: ${error.message}`);
+      return data ?? [];
+    });
+  } else {
+    rows = await fetchAllRows((a, b) =>
+      sb.from("propagation_events").select(OUTBOX_COLS).gte("event_id", from).lte("event_id", to).order("event_id").range(a, b));
+  }
+  return rows.map(toProcessedEvent).sort((a, b) => Number(a.eventId) - Number(b.eventId));
+}
