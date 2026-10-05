@@ -52,7 +52,7 @@ import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
-import { TagChip } from "@/components/ui/Chips";
+import { GradeChip, TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { useResourceStore } from "@/stores/resourceStore";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
@@ -66,6 +66,7 @@ import { DerivedFigure } from "@/components/figures/EstimatedFigure";
 import type { Value } from "@/lib/propagation/types.ts";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import { InferenceSection } from "@/components/detail/InferenceSection";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
@@ -286,6 +287,7 @@ export function MarketSignalDetailSurface({
   connections = [],
   resourceLookup = {},
   crossPage = null,
+  inferences = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -441,6 +443,7 @@ export function MarketSignalDetailSurface({
       kindLabel="Signal"
       extraChips={
         <>
+          <GradeChip itemGrade={r.itemGrade} />
           <TagChip>{SEVERITY_LABEL[severity]}</TagChip>
           {r.topic && <TagChip>{r.topic}</TagChip>}
           <TagChip>B{BAND_NUM[signalBand]} · {BAND_LABEL[signalBand]}</TagChip>
@@ -715,6 +718,8 @@ export function MarketSignalDetailSurface({
           )}
           {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
           <CrossPageSection surfaceKey="market" surfaceLabel="Market Intel" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
+          {/* Lane P2: the inferences that cite this item, labelled as inferences; renders nothing when there are none. */}
+          <InferenceSection inferences={inferences} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

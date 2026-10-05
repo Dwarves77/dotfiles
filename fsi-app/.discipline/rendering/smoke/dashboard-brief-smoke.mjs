@@ -139,7 +139,9 @@ window.__mount = (props) => {
 `;
 
 // Lane S3-B (2026-10-05): the "Across the platform" card's theme rows (buildThemeChips output, the
-// fields DashboardBrief reads: themeId, href, itemTitle, briefTitle, pages). Mounted in the 'populated'
+// fields DashboardBrief reads: themeId, href, label, itemTitle, briefTitle, pages; lane P2: `label` is what the row
+// shows, the brief's title or a label derived from the theme's own signals, pages and size, and the pivot item's
+// title only ever sits on the link's title attribute). Mounted in the 'populated'
 // and 'extreme' states so the rows are measured at 375 and 1280 (law-2 target floor, squeezed title);
 // the other states pass none, which is the unchanged card.
 const THEME_PAGES = [
@@ -148,8 +150,8 @@ const THEME_PAGES = [
   { surface: 'research', label: 'Research' },
 ];
 const CROSS_PAGE_THEMES = [
-  { themeId: 't1', href: '/market/m1', itemTitle: 'Bunker surcharge signal on the Asia Europe corridor', briefTitle: 'Surcharge theme across the corridor', pages: THEME_PAGES },
-  { themeId: 't2', href: '/regulations/r2', itemTitle: LONG_THEME_TITLE(), briefTitle: null, pages: THEME_PAGES.slice(0, 2) },
+  { themeId: 't1', href: '/market/m1', label: 'Surcharge theme across the corridor', itemTitle: 'Bunker surcharge signal on the Asia Europe corridor', briefTitle: 'Surcharge theme across the corridor', pages: THEME_PAGES },
+  { themeId: 't2', href: '/regulations/r2', label: 'Shared jurisdiction and topic across 3 pages', itemTitle: LONG_THEME_TITLE(), briefTitle: null, pages: THEME_PAGES.slice(0, 2) },
 ];
 function LONG_THEME_TITLE() {
   return Array.from({ length: 8 }, (_, i) => `extremely-long-theme-title-token-${i}`).join(' ');

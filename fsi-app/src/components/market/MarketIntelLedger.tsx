@@ -238,6 +238,7 @@ export function MarketIntelLedger({
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
             biasTags: r.biasTags,
+            itemGrade: r.itemGrade,
             tags: tagsFacet.tagsForItem(r.id),
             overflow: (
               <PriorityDropdown

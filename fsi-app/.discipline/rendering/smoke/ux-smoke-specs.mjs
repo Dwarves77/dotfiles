@@ -29,6 +29,7 @@ import { runSmoke as runMarketDetailRawDumpSmoke } from './market-detail-raw-dum
 import { runSmoke as runLeadTimeChartSmoke } from './lead-time-chart-smoke.mjs';
 import { runSmoke as runLabourChainSmoke } from './labour-chain-smoke.mjs';
 import { runSmoke as runCrossPageSmoke } from './cross-page-smoke.mjs';
+import { runSmoke as runInferenceSectionSmoke } from './inference-section-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -99,4 +100,6 @@ export const UX_SMOKE_SPECS = [
   // lane S3-B, 2026-10-05: the "Across pages" section on the four detail pages (intersections and theme
   // analysis) and the themes strip on the four list pages. F35 ROW_COMPONENTS carries both components.
   { name: "cross-page", run: runCrossPageSmoke },
+  // lane P2, 2026-10-05: the "Inferences" section on the four detail pages (machine-written inferences, labelled).
+  { name: "inference-section", run: runInferenceSectionSmoke },
 ];

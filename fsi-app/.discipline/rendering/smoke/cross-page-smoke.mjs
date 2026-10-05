@@ -130,6 +130,10 @@ const base = { surfaceKey: 'regulations', surfaceLabel: 'Regulations' };
 const CHIP = (i, long = false) => ({
   themeId: `theme-${i}`,
   href: `/market/item-${i}`,
+  // Lane P2: a theme with no brief shows a derived label (theme-brief.mjs deriveThemeLabel), never the pivot's
+  // title; the long unbroken pivot title now only sits on the link's title attribute, and a long BRIEF title
+  // (the squeeze class) is the one that can still be long, so the extreme state carries it on every other chip.
+  label: i % 2 === 0 && long ? `${LONG_UNBROKEN} brief ${i}` : `Shared scenarios across Regulations and Market Intel`,
   itemTitle: long ? `${LONG_UNBROKEN} theme ${i}` : `Bunker surcharge signal ${i}`,
   briefTitle: null,
   memberCount: 10 + i,

@@ -38,7 +38,7 @@
 import { notFound } from "next/navigation";
 import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
 import { itemIdColumn } from "@/lib/detail/item-id-filter";
-import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
+import { fetchCrossPageForItem, fetchInferencesForItem, type CrossPageAnalysis, type ItemInferences } from "@/lib/supabase-server";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { buildResourceLookup, resolveItemUuid } from "@/lib/connections/resource-lookup";
@@ -93,6 +93,8 @@ interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
   /** Lane S3-B: stated intersection summary and theme analysis for the shared "Across pages" section. */
   crossPage: CrossPageAnalysis;
+  /** Lane P2: current, customer-visible inference records citing this item (null when none). */
+  inferences: ItemInferences | null;
   matrixEligibility: MatrixEligibility | undefined;
   related: ReturnType<typeof pickRelated>[];
   relatedReason: "jurisdiction" | "source" | "none";
@@ -243,9 +245,10 @@ export default async function OperationsDetailPage({
         })();
 
         const itemUuid = await resolveItemUuid(supabase, resource.id);
-        const [resourceLookup, crossPage, matrixEligibility, relatedResult, claimTiers] = await Promise.all([
+        const [resourceLookup, crossPage, inferences, matrixEligibility, relatedResult, claimTiers] = await Promise.all([
           buildResourceLookup(supabase, relatedIds),
           fetchCrossPageForItem(supabase, resource.id, "operations"),
+          fetchInferencesForItem(supabase, resource.id),
           matrixPromise,
           relatedPromise,
           itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({} as ClaimTierMap),
@@ -254,6 +257,7 @@ export default async function OperationsDetailPage({
         return {
           resourceLookup,
           crossPage,
+          inferences,
           matrixEligibility,
           related: relatedResult.related,
           relatedReason: relatedResult.relatedReason,
@@ -272,6 +276,7 @@ export default async function OperationsDetailPage({
   const { resource: r, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
   const crossPage = result.itemScoped?.crossPage ?? null;
+  const inferences = result.itemScoped?.inferences ?? null;
   const matrixEligibility = result.itemScoped?.matrixEligibility;
   const related = result.itemScoped?.related ?? [];
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
@@ -299,6 +304,7 @@ export default async function OperationsDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         crossPage={crossPage}
+        inferences={inferences}
         auxiliaryEnergySection={<AuxiliaryEnergyPanel />}
         gridQueueSection={<GridQueuePanel />}
       />

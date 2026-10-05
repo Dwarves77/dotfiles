@@ -44,7 +44,7 @@ import { formatDate } from "@/lib/format";
 import { notFound } from "next/navigation";
 import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
-import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
+import { fetchCrossPageForItem, fetchInferencesForItem, type CrossPageAnalysis, type ItemInferences } from "@/lib/supabase-server";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { getPublicMarketIntelItems, getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
@@ -65,6 +65,8 @@ interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
   /** Lane S3-B: stated intersection summary and theme analysis for the shared "Across pages" section. */
   crossPage: CrossPageAnalysis;
+  /** Lane P2: current, customer-visible inference records citing this item (null when none). */
+  inferences: ItemInferences | null;
   convergence: { independent_citers: number; confirmation_count: number } | null;
   priceBoard: PriceStat[];
   carbonFactors: EmissionFactorRow[];
@@ -249,10 +251,11 @@ export default async function MarketSignalDetailPage({
           .then((pub) => pub.resources)
           .catch(() => [] as Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"]);
 
-        const [resourceLookup, crossPage, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool] =
+        const [resourceLookup, crossPage, inferences, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool] =
           await Promise.all([
             buildResourceLookup(supabase, relatedIds),
             fetchCrossPageForItem(supabase, resource.id, "market"),
+            fetchInferencesForItem(supabase, resource.id),
             convergencePromise,
             priceBoardPromise,
             carbonFactorsPromise,
@@ -261,7 +264,7 @@ export default async function MarketSignalDetailPage({
             relatedPoolPromise,
           ]);
 
-        return { resourceLookup, crossPage, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool };
+        return { resourceLookup, crossPage, inferences, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool };
       },
     });
 
@@ -274,6 +277,7 @@ export default async function MarketSignalDetailPage({
   const { resource: r, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
   const crossPage = result.itemScoped?.crossPage ?? null;
+  const inferences = result.itemScoped?.inferences ?? null;
   const convergence = result.itemScoped?.convergence ?? null;
   const priceBoard = result.itemScoped?.priceBoard ?? [];
   const carbonFactors = result.itemScoped?.carbonFactors ?? [];
@@ -311,6 +315,7 @@ export default async function MarketSignalDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         crossPage={crossPage}
+        inferences={inferences}
       />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
           NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}

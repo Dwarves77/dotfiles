@@ -381,10 +381,11 @@ export function DashboardBrief({
                     key={t.themeId}
                     href={t.href}
                     prefetch={false}
+                    title={t.itemTitle}
                     style={{ display: "block", minHeight: 44, padding: "8px 0", textDecoration: "none", color: "inherit" }}
                   >
                     <span data-guard-title style={{ display: "block", fontSize: "var(--fs-12)", fontWeight: 700, lineHeight: 1.35, color: "var(--ink)", overflowWrap: "anywhere" }}>
-                      {t.briefTitle ?? t.itemTitle}
+                      {t.label}
                     </span>
                     <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 2 }}>
                       {t.pages.map((p) => p.label).join(" · ")}

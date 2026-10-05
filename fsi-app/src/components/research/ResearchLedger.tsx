@@ -272,6 +272,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
             biasTags: r.biasTags,
+            itemGrade: r.itemGrade,
             tags: tagsForItem(r.id),
             overflow: (
               <PriorityDropdown

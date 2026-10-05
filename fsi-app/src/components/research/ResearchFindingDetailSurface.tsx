@@ -44,7 +44,7 @@ import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
-import { TagChip } from "@/components/ui/Chips";
+import { GradeChip, TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { DissentPanel } from "@/components/research/DissentPanel";
 import { SignpostList, type SignpostView } from "@/components/research/SignpostList";
@@ -76,6 +76,7 @@ import {
 } from "@/lib/agent/parse-record-sections";
 import { ThemeBriefCard } from "@/components/detail/ThemeBriefCard";
 import { CrossPageSection, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
+import { InferenceSection } from "@/components/detail/InferenceSection";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
@@ -155,6 +156,7 @@ export function ResearchFindingDetailSurface({
   resourceLookup = {},
   themeBrief = null,
   crossPage = null,
+  inferences = null,
   assessment = null,
   signposts = [],
   assessmentHistory = [],
@@ -214,6 +216,7 @@ export function ResearchFindingDetailSurface({
       kindLabel="Finding"
       extraChips={
         <>
+          <GradeChip itemGrade={r.itemGrade} />
           {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
           {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
           {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped,
@@ -396,6 +399,8 @@ export function ResearchFindingDetailSurface({
 
           {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
           <CrossPageSection surfaceKey="research" surfaceLabel="Research" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
+          {/* Lane P2: the inferences that cite this item, labelled as inferences; renders nothing when there are none. */}
+          <InferenceSection inferences={inferences} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

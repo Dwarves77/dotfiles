@@ -29,6 +29,7 @@ import { computeAuditDate } from "@/lib/dashboard/brief-rows";
 import { recentChangesWindowDays } from "@/lib/dashboard/recent-changes-window.mjs";
 import { readScrapeState } from "@/lib/api/pause";
 import { findThemeForItem, buildThemeAnalysisView, buildThemeChips } from "@/lib/research/theme-brief.mjs";
+import { readCustomerInferences, type selectCurrentInferences } from "@/lib/detail/inference-view.mjs";
 import { lineageFromThemeDelta } from "@/lib/connections/theme-delta.mjs";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
@@ -2145,6 +2146,44 @@ function groupBiasTagsBySource(rows: BiasTagQueryRow[]): Map<string, NonNullable
   return bySource;
 }
 
+/** Most cited sources the item detail read loads for the Sources grid (bounds the join and the bias read). */
+const CITED_SOURCES_CAP = 50;
+
+/**
+ * The registered sources an item cites, for the Sources grid (lane P2, coordinator item 5): ONE bounded read of
+ * intelligence_item_citations joined to sources (url and the three tier columns), then ONE bounded bias read for
+ * those source ids, grouped by the existing groupBiasTagsBySource. The tier is the customer tier
+ * (customerSourceTier: override, else effective, else base). Never throws; undefined when there is nothing, so
+ * the grid renders as it did.
+ */
+async function readCitedSourcesForItem(supabase: SupabaseClient, itemId: string): Promise<Resource["citedSources"]> {
+  try {
+    const { data, error } = await supabase
+      .from("intelligence_item_citations")
+      .select("source:sources(id, url, base_tier, effective_tier, tier_override)")
+      .eq("intelligence_item_id", itemId)
+      .limit(CITED_SOURCES_CAP);
+    if (error || !data?.length) return undefined;
+    type CitedSrc = { id: string; url: string | null; base_tier: number | null; effective_tier: number | null; tier_override: number | null };
+    const byId = new Map<string, CitedSrc>();
+    for (const r of data as Array<{ source: CitedSrc | CitedSrc[] | null }>) {
+      const s = Array.isArray(r.source) ? r.source[0] : r.source;
+      if (s && typeof s.id === "string" && typeof s.url === "string" && s.url) byId.set(s.id, s);
+    }
+    if (byId.size === 0) return undefined;
+    const { data: biasRows } = await supabase
+      .from("source_bias_tags")
+      .select("source_id, dimension, tag, confidence")
+      // fitness-allow: F39 (byId.size <= CITED_SOURCES_CAP, bounded by the .limit() above)
+      .in("source_id", [...byId.keys()]);
+    const bias = groupBiasTagsBySource((biasRows ?? []) as BiasTagQueryRow[]);
+    return [...byId.values()].map((s) => ({ url: s.url as string, tier: customerSourceTier(s), biasTags: bias.get(s.id) ?? [] }));
+  } catch (e) {
+    console.error("readCitedSourcesForItem failed, the Sources grid keeps what the brief says:", e);
+    return undefined;
+  }
+}
+
 async function enrichCategoryRows(
   serviceClient: ReturnType<typeof getServiceSupabase>,
   resources: Resource[],
@@ -4162,6 +4201,7 @@ async function fetchIntelligenceItemUncached(
       xrefResult,
       supResult,
       biasResult,
+      citedSources,
     ] = await Promise.all([
       supabase
         .from("item_timelines")
@@ -4201,6 +4241,9 @@ async function fetchIntelligenceItemUncached(
       row.source_id
         ? supabase.from("source_bias_tags").select("source_id, dimension, tag, confidence").eq("source_id", row.source_id)
         : Promise.resolve({ data: null }),
+      // Lane P2 (coordinator item 5): the registered sources the item cites, so the Sources grid rates every
+      // listed source it can match by canonical url, not only the item's own. Same parallel batch.
+      readCitedSourcesForItem(supabase, row.id),
     ]);
 
     const timelineRows = timelinesResult.data;
@@ -4272,6 +4315,7 @@ async function fetchIntelligenceItemUncached(
       sourceTier: customerSourceTier(detailSrc) ?? undefined,
       // Lane P1: the primary source's bias tags (undefined when it has none, so nothing renders).
       biasTags: itemBiasTags && itemBiasTags.length > 0 ? itemBiasTags : undefined,
+      citedSources: citedSources && citedSources.length > 0 ? citedSources : undefined,
       // P1-3 (DEEP-AUDIT §4): map the classified columns the DB actually has so
       // the detail page stops regex-guessing and disagreeing with the index.
       // select("*") already returns all of these.
@@ -4585,6 +4629,47 @@ export async function fetchThemeChips(opts: {
   } catch (e) {
     console.error("fetchThemeChips failed, showing nothing:", e);
     return [];
+  }
+}
+
+// ── Customer inference read (lane P2, ADR-044 decision 3, ADR-039 section (a)) ───────────────────────
+// `inference_records` has RLS enabled and NO policy for anon or authenticated (migration 338), so a customer
+// read is a server read with the service-role client, the same way every other guarded table is read for a
+// detail page (the connection and theme reads above, section_claim_provenance in load-detail-core.ts). No API
+// route: no customer read of a guarded table in this codebase goes through one, and a route would only add a
+// second public surface over the same read. The detail pages call this inside their cached item-scoped
+// bundle (corpus-wide, org-independent, same 300s window as the cross-page read).
+//
+// Every shape decision (which rows are current, the method allowlist that keeps the pool-position inference
+// internal, the question in words, the citation restriction) is in the pure, tested
+// src/lib/detail/inference-view.mjs; this function only reads, applies it, and soft-fails to nothing.
+// Three bounded reads: the rows citing the item (cap INFERENCE_READ_CAP), the rows that supersede them (a
+// recompute inserts a NEW row that points at the old one), and the cited items' titles through the customer
+// read gate (verified, non-archived), so a citation a customer cannot open is never shown.
+
+export type ItemInferences = {
+  claims: ReturnType<typeof selectCurrentInferences>;
+  /** id to title of the cited items the customer may see (every id in a claim's citedItemIds is a key). */
+  titles: Record<string, string>;
+};
+
+/**
+ * The current, customer-visible inference records that cite this item, newest first, bounded. `itemUiId` is
+ * the page's own id (legacy id or uuid). Never throws; any failed read degrades to "nothing to show".
+ */
+export async function fetchInferencesForItem(supabase: SupabaseClient, itemUiId: string): Promise<ItemInferences | null> {
+  try {
+    const { data: self } = await supabase
+      .from("intelligence_items")
+      .select("id")
+      .eq(itemIdColumn(itemUiId), itemUiId)
+      .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
+      .maybeSingle();
+    if (!self) return null;
+    return await readCustomerInferences(supabase, self.id, (ids) => readVerifiedItemsByIds(supabase, ids));
+  } catch (e) {
+    console.error("fetchInferencesForItem failed, showing nothing:", e);
+    return null;
   }
 }
 

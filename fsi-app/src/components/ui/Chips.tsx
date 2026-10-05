@@ -346,9 +346,10 @@ export function FilterChip({
  * because a grade chip is DATA-DRIVEN (reads `itemGrade` and decides whether to render at all),
  * which the parts brief separates from `kind`, a caller-supplied label `TagChip` renders unconditionally.
  *
- * Wiring the chip into every list row and detail masthead is lane M7b's own scope (per
- * `docs/ops/session-log.md`, 2026-09-20/22: "M7b (grade chip, NoticesRail) waits on the ListRow
- * part lane"); this lane builds the part itself, with `data-part`, so M7b has one home to call.
+ * WIRING (lane P2, 2026-10-05, plan Stage 8): mounted on every list row through ListRow's
+ * `itemGrade` prop (all four ledgers; the dashboard rows once its row field set carries the grade)
+ * and on every detail masthead through ActionCard's `extraChips` pill row (all four detail
+ * surfaces). It is a neutral tag, never a tier: the source's rating is the TierChip, not this.
  */
 export function GradeChip({ itemGrade }: { itemGrade?: "record" | "brief" }) {
   if (itemGrade !== "record") return null;

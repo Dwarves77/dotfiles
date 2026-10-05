@@ -305,7 +305,7 @@ test("S3-B: the surface labels agree with the theme-brief ramifications headings
 });
 
 // ── lane S3-B: theme chips for the four list strips and the dashboard ───────────────────────────────
-import { buildThemeChips } from "./theme-brief.mjs";
+import { buildThemeChips, deriveThemeLabel, MAX_THEME_LABEL_CHARS, THEME_SIGNAL_PHRASES } from "./theme-brief.mjs";
 
 const T1 = { id: "a", member_ids: ["a", "b", "c", "d"], convergence: 2, surfaces: ["regulations", "market", "research"], pivots: [{ id: "d", centrality: 2 }, { id: "a", centrality: 1 }] };
 const T2 = { id: "x", member_ids: ["x", "y"], convergence: 3, surfaces: ["market"], pivots: [{ id: "x", centrality: 1 }] };
@@ -347,4 +347,57 @@ test("S3-B chips: a brief gives its title and a stale flag; none gives hasBrief 
 test("S3-B chips: empty or bad input gives no chips and never throws", () => {
   assert.deepEqual(buildThemeChips({}), []);
   assert.deepEqual(buildThemeChips({ themes: null, items: null, briefs: null, surface: "market" }), []);
+});
+
+// ── lane P2: a chip for a theme with no brief shows a derived label, never the pivot item's title ────────
+const LONG_TITLE = "Regulation (EU) 2023/1805 of the European Parliament and of the Council on the use of renewable and low-carbon fuels in maritime transport";
+
+test("P2 chips: a theme with no brief gets a short derived label that is not the pivot item's title", () => {
+  const items = ITEMS.map((it) => (it.id === "a" ? { ...it, title: LONG_TITLE } : it));
+  const [chip] = buildThemeChips({ themes: [T1], items, briefs: [], surface: "regulations", max: 6 });
+  assert.equal(chip.itemTitle, LONG_TITLE, "the pivot title stays on the chip for the link's title attribute");
+  assert.notEqual(chip.label, chip.itemTitle);
+  assert.ok(chip.label.length <= MAX_THEME_LABEL_CHARS, `label ${chip.label.length} chars`);
+  assert.equal(chip.label, "4 linked items across 3 pages");
+});
+
+test("P2 chips: with the theme's dominant signals the label leads with the strongest one", () => {
+  const themes = [{ ...T1, dominant_signals: [{ signal: "shared_source", weight: 1 }, { signal: "shared_scenario", weight: 3 }] }];
+  const [chip] = buildThemeChips({ themes, items: ITEMS, briefs: [], surface: "market", max: 6 });
+  assert.ok(chip.label.startsWith(THEME_SIGNAL_PHRASES.shared_scenario), chip.label);
+  assert.ok(chip.label.length <= MAX_THEME_LABEL_CHARS);
+  assert.notEqual(chip.label, chip.itemTitle);
+});
+
+test("P2 chips: a theme with a brief keeps the brief's title as its label", () => {
+  const [chip] = buildThemeChips({ themes: [T1], items: ITEMS, briefs: [briefRow()], surface: "market", max: 6 });
+  assert.equal(chip.hasBrief, true);
+  assert.equal(chip.label, "Surcharge theme");
+  assert.equal(chip.label, chip.briefTitle);
+});
+
+test("P2 chips: every chip, with or without a brief, with or without signals, stays under the ceiling", () => {
+  const long = [{ ...T1, dominant_signals: [{ signal: "shared_jurisdiction_topic", weight: 2 }] }, { ...T2, dominant_signals: [{ signal: "some_future_signal_with_a_very_long_name_indeed_yes", weight: 2 }] }];
+  const chips = buildThemeChips({ themes: long, items: ITEMS, briefs: [], surface: null, minPages: 1, max: 6 });
+  assert.equal(chips.length, 2);
+  for (const c of chips) {
+    assert.ok(c.label.length > 0 && c.label.length <= MAX_THEME_LABEL_CHARS, `${c.label} (${c.label.length})`);
+    assert.notEqual(c.label, c.itemTitle);
+  }
+});
+
+test("P2 deriveThemeLabel: lead, pages, collapse and ceiling rules", () => {
+  const pages = (...names) => names.map((label) => ({ label }));
+  assert.equal(deriveThemeLabel({ pages: pages("Market Intel"), memberCount: 1 }), "1 linked item on Market Intel");
+  assert.equal(deriveThemeLabel({ signals: [{ signal: "shared_source", weight: 1 }], pages: pages("Regulations", "Research"), memberCount: 9 }), "Shared source across Regulations and Research");
+  assert.equal(
+    deriveThemeLabel({ signals: [{ signal: "shared_jurisdiction_topic", weight: 1 }], pages: pages("Regulations", "Market Intel", "Research"), memberCount: 9 }),
+    "Shared jurisdiction and topic across 3 pages",
+    "page names collapse to a count when the full label would pass the ceiling"
+  );
+  assert.equal(deriveThemeLabel({ signals: [{ signal: "weird_new_signal" }], pages: pages("Research"), memberCount: 2 }), "Weird new signal on Research", "an unknown signal is humanised, never shown as a slug");
+  assert.equal(deriveThemeLabel({}), "Linked items");
+  assert.equal(deriveThemeLabel(), "Linked items");
+  const huge = deriveThemeLabel({ signals: [{ signal: "x".repeat(200) + " y" }], pages: pages("A", "B") });
+  assert.ok(huge.length <= MAX_THEME_LABEL_CHARS);
 });
