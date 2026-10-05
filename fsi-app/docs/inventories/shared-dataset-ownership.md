@@ -458,7 +458,7 @@ GENERATION... This module never writes, never clusters, never calls an LLM") and
 `.from("theme_briefs")` write call, no `guardedInsert`/`guardedUpdate` — it only mentions the table name in
 comments. It was listed as a "writer" below because the shared-writer-registry scanner's heuristic matched
 those comment mentions, a false positive this lane confirmed by reading the file end to end (zero write
-calls). `scripts/connections/generate-theme-brief.mjs` is the ONLY real writer — its own header says the
+calls). Since PR 939 the sole writer is `scripts/turns/apply-theme-briefs.mjs`; `scripts/connections/generate-theme-brief.mjs --write` routes through it. Before PR 939 the latter was the only writer, and its own header says the
 same thing from the other side ("theme_briefs ... has NO WRITER anywhere in the repo... This is that
 writer"). No supersession question: there was never a second write path to supersede. Now wired as a
 `maintenance.yml` step (dry/apply) — see `docs/runbooks/MAINTENANCE-RUNBOOK.md`. Live evidence (read
