@@ -41,13 +41,15 @@ and the flag with `SELECT status, resolution_note FROM integrity_flags WHERE cre
 written but its flag not closed after a crash only closes the flag; a re-opened question answered again writes a
 new inference that supersedes the prior one.
 
-**Search targets**: ADR-044 decision 2 asks an unanswerable question to become a source search target through
-the existing gap-target mechanism. That mechanism (the `lineage-gap:absent-parent` flag and step 59) cannot
-carry a free-text need, so none is raised; the plain-words need is on the question flag and in the run
-artifact. Where the targets are raised is an open ruling, recorded in the lane's session log.
+**Search targets**: an unanswerable question raises ONE open `holdings-need:<product question>` flag (its own
+namespace, distinct from `lineage-gap:`, one open row per question subject_ref, the need in words and its item,
+surface and product question in the `find-source` action), closed by rule when the question is answered. The free
+runtime that reads them is `scripts/research/research-walker.mjs` (`--holdings-needs`, bounded, dry by default;
+OpenAlex works search). See the README for what it cannot do.
 
-**Not wired**: re-opening a question when its inference is recomputed
-(`reopenQuestionForRecompute`, `src/lib/propagation/methods/infer-from-question.ts`) needs a call from
-`drain.ts` Pass 2b, outside lane L4-B.
+**Invalidation**: the close-out of an answered question records the `pool_hash` it answered against; the export
+lists the question again as a re-answer when the held pool differs, and the apply writes the new inference with
+`supersedes` set to the prior one. `drain.ts` Pass 2b also re-opens the question of a recomputed inference
+(`reopenQuestionForRecompute`).
 
 ---

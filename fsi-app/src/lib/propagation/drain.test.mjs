@@ -18,7 +18,7 @@ test.beforeEach(() => {
  *  enough for this module's own read/write shapes); the builder is itself awaitable (`.then`), matching
  *  supabase-js's own thenable query builder, for the bare select/update calls drain.ts issues with no
  *  terminal row-shape call. `maybeSingle()` returns the first match or null. */
-function fakeClient({ tables = {}, rpcHandlers = {} } = {}) {
+function fakeClient({ tables = {}, rpcHandlers = {}, insertErrors = {} } = {}) {
   const state = structuredClone(tables);
   const rpcCalls = [];
 
@@ -59,6 +59,12 @@ function fakeClient({ tables = {}, rpcHandlers = {} } = {}) {
     const b = {
       select(_cols, opts) { if (opts && opts.count === "exact" && opts.head) countExactHead = true; return b; },
       update(values) { updateValues = values; return b; },
+      // lane L4-B: an INSERT (the re-opened question flag); `insertErrors[table]` makes it fail.
+      async insert(row) {
+        if (insertErrors[table]) return { error: { message: insertErrors[table] } };
+        (state[table] ?? (state[table] = [])).push({ ...row });
+        return { error: null };
+      },
       is(col, val) { filters.push((row) => row[col] === val); return b; },
       eq(col, val) { filters.push((row) => row[col] === val); return b; },
       in(col, vals) { filters.push((row) => vals.includes(row[col])); return b; },
@@ -513,4 +519,71 @@ test("runPropagationDrain: an empty queue has an empty processedEvents list", as
   const sb = fakeClient({ tables: { propagation_events: [] } });
   const result = await runPropagationDrain(sb, { caller: "test", mode: "dry" });
   assert.deepEqual(result.processedEvents, []);
+});
+
+// ── lane L4-B: Pass 2b re-opens the question a recomputed inference answers (ADR-044) ────────────────────
+
+function staleInferenceSeed(extra = {}) {
+  return {
+    tables: {
+      propagation_events: [
+        { event_id: 1, table_name: "derived_values", row_pk: "dv-src-1", occurred_at: "2026-09-01T00:00:00Z", drained_at: null },
+      ],
+      derived_values: [],
+      inference_records: [
+        {
+          inference_id: "inf-1", subject_id: null, claim_text: "What changed: amendment?", cited_item_ids: ["item-a"],
+          trigger_question_ref: "item-1:regulations:what", method_id: INFER_METHOD_ID, method_version: INFER_METHOD_VERSION,
+          admissibility: "stale", invalidated_by_event: 1,
+        },
+      ],
+      derivation_edges: [],
+      intelligence_items: [{ id: "item-1", title: "Bonded amendment", domain: 1, item_type: "regulation", jurisdiction_iso: ["EU"] }],
+      integrity_flags: [],
+      ...extra,
+    },
+    rpcHandlers: { invalidate_dependents: invalidateHandler({ "dv-src-1": 1 }), register_inference_record: () => ({ data: "inf-2", error: null }) },
+  };
+}
+
+test("runPropagationDrain apply mode: a recomputed inference re-opens its originating question (the generator's own open flag)", async () => {
+  const sb = fakeClient(staleInferenceSeed());
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+  assert.equal(result.recomputed, 1);
+  assert.equal(result.questionsReopened, 1);
+  assert.deepEqual(result.errors, []);
+  assert.equal(sb.state.integrity_flags.length, 1);
+  assert.equal(sb.state.integrity_flags[0].subject_ref, "item-1:regulations:what");
+  assert.equal(sb.state.integrity_flags[0].created_by, "question:what");
+  assert.equal(sb.state.integrity_flags[0].status, "open");
+});
+
+test("runPropagationDrain apply mode: an already-open question flag is not duplicated (same dedup rule)", async () => {
+  const sb = fakeClient(staleInferenceSeed({ integrity_flags: [{ id: "f-1", subject_ref: "item-1:regulations:what", created_by: "question:what", status: "open" }] }));
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+  assert.equal(result.recomputed, 1);
+  assert.equal(result.questionsReopened, 0);
+  assert.equal(sb.state.integrity_flags.length, 1);
+});
+
+test("runPropagationDrain apply mode: a failure to re-open is a recorded error and never undoes the recompute", async () => {
+  const sb = fakeClient({ ...staleInferenceSeed(), insertErrors: { integrity_flags: "insert denied" } });
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+  assert.equal(result.recomputed, 1);
+  assert.deepEqual(result.superseded, [{ from: "inf-1", to: "inf-2" }]);
+  assert.equal(result.questionsReopened, 0);
+  assert.equal(result.errors.length, 1);
+  assert.match(result.errors[0].message, /re-opening question item-1:regulations:what .* insert denied/);
+});
+
+test("runPropagationDrain: a recomputed inference with no question ref re-opens nothing, and a dry run never reaches Pass 2b", async () => {
+  const seed = staleInferenceSeed();
+  seed.tables.inference_records[0].trigger_question_ref = null;
+  const sb = fakeClient(seed);
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+  assert.equal(result.recomputed, 1);
+  assert.equal(result.questionsReopened, 0);
+  assert.equal(sb.state.integrity_flags.length, 0);
+  const dry = await runPropagationDrain(fakeClient(staleInferenceSeed()), { caller: "test", mode: "dry" });
+  assert.equal(dry.questionsReopened, 0);
 });

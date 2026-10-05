@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE,
-  QUESTION_NAMESPACE, ALL_NAMESPACES,
+  QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE, HOLDINGS_NEED_ACTION, ALL_NAMESPACES,
   createdBy, buildSubjectRef, isInNamespace,
 } from "./flag-namespaces.mjs";
 
@@ -71,4 +71,14 @@ test("isInNamespace: matches only the correct namespace, never a lookalike prefi
   assert.ok(!isInNamespace("flywheel-gapx:foo", GAP_NAMESPACE));
   assert.ok(!isInNamespace(null, GAP_NAMESPACE));
   assert.ok(!isInNamespace(undefined, GAP_NAMESPACE));
+});
+
+test("HOLDINGS_NEED_NAMESPACE: registered, disjoint from every other namespace and from the lineage-gap flag, subtype is the product question", () => {
+  assert.equal(HOLDINGS_NEED_NAMESPACE, "holdings-need:");
+  assert.ok(ALL_NAMESPACES.includes(HOLDINGS_NEED_NAMESPACE));
+  assert.equal(createdBy(HOLDINGS_NEED_NAMESPACE, "what"), "holdings-need:what");
+  assert.ok(!"lineage-gap:absent-parent".startsWith(HOLDINGS_NEED_NAMESPACE));
+  assert.equal(HOLDINGS_NEED_ACTION, "find-source");
+  const ref = buildSubjectRef("item-1", "regulations", "what");
+  assert.equal(ref, "item-1:regulations:what", "the target's subject_ref is the question's own");
 });

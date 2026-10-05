@@ -37,8 +37,8 @@ import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { emitQuestionAnswersArtifact } from "./question-answers/artifact.mjs";
 import { fixtureDeps } from "./question-answers/fixture-deps.mjs";
 import {
-  loadOpenQuestionFlags, loadQuestionMaterial, parseQuestionRef, buildQuestionContext, buildQuestionBundle,
-  recordedOutcome, MAX_CONNECTED,
+  loadOpenQuestionFlags, loadAnsweredQuestionFlags, loadQuestionMaterial, parseQuestionRef, buildQuestionContext,
+  buildQuestionBundle, recordedOutcome, recordedAnswer, MAX_CONNECTED,
 } from "./question-answers/data.mjs";
 
 export const DEFAULT_CHAR_BUDGET = 60000;
@@ -72,14 +72,18 @@ export function parseArgs(argv) {
  * @param {{charBudget:number, limit?:number, now?:()=>string}} opts
  */
 export async function buildExport(deps, { charBudget, limit = DEFAULT_LIMIT, now = () => new Date().toISOString() }) {
-  const flags = (await loadOpenQuestionFlags(deps)).slice().sort((a, b) => String(a.subject_ref).localeCompare(String(b.subject_ref)));
+  const answered = await loadAnsweredQuestionFlags(deps);
+  const flags = [...(await loadOpenQuestionFlags(deps)), ...answered].sort((a, b) => String(a.subject_ref).localeCompare(String(b.subject_ref)));
   const counts = {
-    open_questions: flags.length,
+    open_questions: flags.length - answered.length,
+    answered_questions_checked: answered.length,
     unparseable: 0,
     skipped_item_unavailable: 0,
     skipped_unanswerable_unchanged: 0,
+    skipped_answered_unchanged: 0,
     listed_unanswered: 0,
     listed_reasked: 0,
+    listed_reanswer: 0,
     not_examined_over_limit: 0,
   };
   const residue = [];
@@ -105,9 +109,15 @@ export async function buildExport(deps, { charBudget, limit = DEFAULT_LIMIT, now
         unavailableByReason[ctx.itemUnusable] = (unavailableByReason[ctx.itemUnusable] ?? 0) + 1;
         continue;
       }
-      const outcome = recordedOutcome(flag);
-      if (outcome && outcome.pool_hash === ctx.pool_hash) { counts.skipped_unanswerable_unchanged++; continue; }
-      if (outcome) counts.listed_reasked++; else counts.listed_unanswered++;
+      const answeredAs = recordedAnswer(flag);
+      if (answeredAs) {
+        if (answeredAs.pool_hash === ctx.pool_hash) { counts.skipped_answered_unchanged++; continue; }
+        counts.listed_reanswer++;
+      } else {
+        const outcome = recordedOutcome(flag);
+        if (outcome && outcome.pool_hash === ctx.pool_hash) { counts.skipped_unanswerable_unchanged++; continue; }
+        if (outcome) counts.listed_reasked++; else counts.listed_unanswered++;
+      }
       bundles.push(buildQuestionBundle(ctx, material, { charBudget }));
     }
   }
@@ -172,7 +182,7 @@ async function main() {
   mkdirSync(resolve(parsed.outDir), { recursive: true });
   const outPath = join(resolve(parsed.outDir), `question-answers-export-${startedAt.replace(/[:.]/g, "-")}.json`);
   writeFileSync(outPath, JSON.stringify(file, null, 2));
-  console.log(`export-questions-for-answers: ${summary.questions_exported} question(s) exported of ${summary.open_questions} open (unanswered ${summary.listed_unanswered}, re-asked after new holdings ${summary.listed_reasked}; skipped: item unavailable ${summary.skipped_item_unavailable}, unanswerable and pool unchanged ${summary.skipped_unanswerable_unchanged}; unparseable ${summary.unparseable}) to ${outPath}`);
+  console.log(`export-questions-for-answers: ${summary.questions_exported} question(s) exported of ${summary.open_questions} open (unanswered ${summary.listed_unanswered}, re-asked after new holdings ${summary.listed_reasked}, re-answer after new holdings ${summary.listed_reanswer}; skipped: item unavailable ${summary.skipped_item_unavailable}, unanswerable and pool unchanged ${summary.skipped_unanswerable_unchanged}, answered and pool unchanged ${summary.skipped_answered_unchanged}; unparseable ${summary.unparseable}) to ${outPath}`);
   console.log(`export-questions-for-answers: truncation under --char-budget ${summary.char_budget} (connected cap ${summary.connected_cap}): items omitted ${summary.items_omitted}, claims omitted ${summary.claims_omitted}, forward events omitted ${summary.forward_events_omitted}, pool characters omitted ${summary.pool_chars_omitted}`);
 
   if (parsed.fixture) {

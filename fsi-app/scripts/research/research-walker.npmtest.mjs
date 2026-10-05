@@ -124,3 +124,45 @@ test("walk: the two original DOI fixtures, landing-page host placed and DOI-only
   assert.deepEqual(r.metrics.unplaced_hosts, []);
   assert.equal(r.metrics.rejected_unsourced, 0);
 });
+
+// ── lane L4-B: whole-walk with open holdings-need targets as search inputs (dry, no network) ─────────────
+
+test("walk: each holdings need is searched in words, its candidates enter the same register-rate-mint dry-run path, and metrics say so", async () => {
+  const queries = [];
+  const fetchStub = async (url) => {
+    queries.push(new URL(String(url)).searchParams.get("search"));
+    return { status: 200, statusText: "OK", ok: true, headers: { get: () => null }, json: async () => ({ results: FIXTURE_OPENALEX_PUBLISHER_CANDIDATES }) };
+  };
+  const verdicts = loadHostVerdicts({ files: [join(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts;
+  const r = await runWalk({
+    greyLitSources: [],
+    openAlexCandidatesOverride: [],
+    openAlexDeps: { fetch: fetchStub },
+    holdingsNeeds: [
+      { subject_ref: "a:regulations:what", need: "customs filing form for storage plans" },
+      { subject_ref: "b:regulations:comply", need: "penalty schedule for late filing" },
+    ],
+    mode: "dry",
+    hostVerdicts: verdicts,
+  });
+  assert.equal(queries.length, 2);
+  assert.equal(queries[0], "customs filing form for storage plans");
+  assert.equal(r.metrics.holdings_needs_searched, 2);
+  assert.equal(r.metrics.holdings_need_candidates, FIXTURE_OPENALEX_PUBLISHER_CANDIDATES.length, "a url found for two needs is one candidate");
+  assert.equal(r.metrics.holdings_needs_without_candidates, 0);
+  assert.ok(r.perItem.some((i) => i.id === "need:a:regulations:what" && /need-searched \(\d+ candidate/.test(i.outcome) && i.verdict === "customs filing form for storage plans"));
+  assert.ok(r.perItem.some((i) => /would_mint/.test(i.outcome)), "found sources run the real mint chokepoint (dry)");
+  assert.equal(r.metrics.mode, "dry");
+});
+
+test("walk: needs are bounded by maxHoldingsNeeds, and no needs leaves the walk exactly as before", async () => {
+  const urls = [];
+  const fetchStub = async (url) => { urls.push(String(url)); return { status: 200, statusText: "OK", ok: true, headers: { get: () => null }, json: async () => ({ results: [] }) }; };
+  const needs = Array.from({ length: 5 }, (_, i) => ({ subject_ref: `r${i}:x:what`, need: `need ${i}` }));
+  const r = await runWalk({ greyLitSources: [], openAlexCandidatesOverride: [], openAlexDeps: { fetch: fetchStub }, holdingsNeeds: needs, maxHoldingsNeeds: 2, mode: "dry", hostVerdicts: new Map() });
+  assert.equal(urls.length, 2);
+  assert.equal(r.metrics.holdings_needs_searched, 2);
+  assert.equal(r.metrics.holdings_needs_without_candidates, 2);
+  const plain = await runWalk({ greyLitSources: [], openAlexCandidatesOverride: [], mode: "dry", hostVerdicts: new Map() });
+  assert.equal(plain.metrics.holdings_needs_searched, 0);
+});

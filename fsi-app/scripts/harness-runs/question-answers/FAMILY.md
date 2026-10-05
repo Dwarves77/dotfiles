@@ -14,7 +14,7 @@ Each run writes one artifact (`scripts/turns/question-answers/artifact.mjs`); `c
 **Standing metric.** Export: open questions, how many were listed, skipped (item not citable, unanswerable with
 the pool unchanged) or unparseable, and what the character budget omitted. Apply: entries applied versus refused
 (every refusal reason in `per_item`), inferences written, questions closed, unanswerable outcomes recorded,
-search targets raised (0 by design, see the apply script header), so a proposer pass sees whether authored
+holdings-need targets raised, refreshed and closed, so a proposer pass sees whether authored
 batches pass the validator and which refusal class recurs.
 
 `pending/2026-10-05-l4b.md` records why the family starts at zero artifacts.

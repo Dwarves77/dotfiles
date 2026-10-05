@@ -49,5 +49,11 @@ export function fixtureDeps(corpus) {
     },
   };
 
-  return { ...base, guardedUpdateByIds, rpcClient: () => client };
+  // The real guardedInsert returns the inserted row with its database id; the in-memory one assigns one.
+  async function guardedInsert(table, row, opts) {
+    seq += 1;
+    return base.guardedInsert(table, { id: `fixture-row-${seq}`, ...row }, opts);
+  }
+
+  return { ...base, guardedUpdateByIds, guardedInsert, rpcClient: () => client };
 }

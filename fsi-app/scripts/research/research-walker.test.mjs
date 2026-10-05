@@ -16,6 +16,10 @@ import {
   decideApply,
   resolveGreyLitSource,
   resolveOpenAlexPublisher,
+  holdingsNeedsFromFlags,
+  readHoldingsNeeds,
+  searchHoldingsNeeds,
+  MAX_HOLDINGS_NEEDS,
 } from "./research-walker.mjs";
 import { loadHostVerdicts, HOST_VERDICTS_DIR } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
 import { join } from "node:path";
@@ -203,4 +207,65 @@ test("resolveOpenAlexPublisher: a record with a publisher landing page takes its
   assert.equal(r.placed, true);
   assert.equal(r.host, "its.example-univ.edu");
   assert.equal(r.tier, 4);
+});
+
+// ── lane L4-B: open holdings-need targets as search inputs (ADR-044 decision 2) ───────────────────────────
+
+const needFlag = (ref, need, extra = {}) => ({
+  id: `f-${ref}`, subject_ref: ref, created_by: "holdings-need:what", status: "open",
+  recommended_actions: [{ action: "find-source", need, item_id: "item-1", surface: "regulations", product_question: "what" }],
+  ...extra,
+});
+const okFetch = (recorder) => async (url) => {
+  recorder.push(String(url));
+  return { status: 200, statusText: "OK", ok: true, headers: { get: () => null }, json: async () => FIXTURE_OPENALEX_WORKS_RESPONSE };
+};
+
+test("holdingsNeedsFromFlags: structured needs only, in subject_ref order, bounded", () => {
+  const flags = [needFlag("b:x:what", "need B"), needFlag("a:x:what", "need A"), { id: "f-bare", subject_ref: "c:x:what", recommended_actions: [] }];
+  assert.deepEqual(holdingsNeedsFromFlags(flags).map((n) => [n.subject_ref, n.need]), [["a:x:what", "need A"], ["b:x:what", "need B"]]);
+  assert.equal(holdingsNeedsFromFlags(flags, 1).length, 1);
+  assert.equal(holdingsNeedsFromFlags(Array.from({ length: 30 }, (_, i) => needFlag(`r${String(i).padStart(2, "0")}:x:what`, `need ${i}`))).length, MAX_HOLDINGS_NEEDS);
+  assert.deepEqual(holdingsNeedsFromFlags(null), []);
+});
+
+test("readHoldingsNeeds reads only OPEN holdings-need flags through the shared reader", async () => {
+  const calls = [];
+  const readAll = async (table, cols, opts) => {
+    calls.push(table);
+    const q = { filters: [], in(c, v) { this.filters.push([c, v]); return this; } };
+    opts.match(q);
+    assert.ok(q.filters.some(([c, v]) => c === "created_by" && v.every((x) => x.startsWith("holdings-need:"))));
+    assert.ok(q.filters.some(([c, v]) => c === "status" && v.includes("open")));
+    return [needFlag("a:x:what", "need A")];
+  };
+  const needs = await readHoldingsNeeds({ readAll });
+  assert.deepEqual(calls, ["integrity_flags"]);
+  assert.equal(needs[0].need, "need A");
+});
+
+test("searchHoldingsNeeds: the need in words is the OpenAlex query; a failed search is recorded on its need and the others still run", async () => {
+  const urls = [];
+  let n = 0;
+  const fetchStub = async (url) => {
+    urls.push(String(url));
+    if (n++ === 0) return { status: 500, statusText: "boom", ok: false, headers: { get: () => null }, json: async () => ({}), text: async () => "boom" };
+    return { status: 200, statusText: "OK", ok: true, headers: { get: () => null }, json: async () => FIXTURE_OPENALEX_WORKS_RESPONSE };
+  };
+  const res = await searchHoldingsNeeds(
+    [{ subject_ref: "a:x:what", need: "customs filing form for revised storage plans" }, { subject_ref: "b:x:what", need: "penalty schedule" }],
+    { perNeed: 3 }, { fetch: fetchStub, maxRetries: 0, sleep: async () => {} },
+  );
+  assert.equal(new URL(urls[0]).searchParams.get("search"), "customs filing form for revised storage plans");
+  assert.match(urls[0], /per_page=3/);
+  assert.ok(res[0].error, "the failed need carries its error");
+  assert.equal(res[0].candidates.length, 0);
+  assert.equal(res[1].error, null);
+  assert.ok(res[1].candidates.length > 0);
+});
+
+test("searchHoldingsNeeds: no needs, no calls", async () => {
+  const urls = [];
+  assert.deepEqual(await searchHoldingsNeeds([], {}, { fetch: okFetch(urls) }), []);
+  assert.equal(urls.length, 0);
 });

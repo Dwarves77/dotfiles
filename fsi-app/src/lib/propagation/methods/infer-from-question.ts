@@ -1,3 +1,4 @@
+// SHARED-WRITER: integrity_flags
 // methods/infer-from-question.ts, M, learning-loop-design-2026-09-25.md section 6 ("M - inference_record
 // object + admissibleFor-gated renderer"), ADR-036 decisions 2/3. Lane W2-G, wave2b, 2026-09-29.
 // Coordinator ruling, same day: drain.ts's Pass 2 dispatches on RECORD KIND (derived_values vs
@@ -253,6 +254,44 @@ export interface ReopenQuestionDeps {
 export function itemIdOfQuestionRef(subjectRef: string): string | null {
   const parts = String(subjectRef ?? "").split(":");
   return parts.length === 3 && parts[0] ? parts[0] : null;
+}
+
+/** The narrow PostgREST query surface `buildReopenDeps` needs (a hand-rolled test double satisfies it). */
+interface ReopenQuery {
+  select(cols: string): ReopenQuery;
+  eq(col: string, value: unknown): ReopenQuery;
+  limit(n: number): ReopenQuery;
+  maybeSingle(): Promise<{ data: unknown; error: { message: string } | null }>;
+  insert(row: Record<string, unknown>): Promise<{ error: { message: string } | null }>;
+  then<T>(onfulfilled: (value: { data: unknown; error: { message: string } | null }) => T): Promise<T>;
+}
+export interface ReopenClient {
+  from(table: string): ReopenQuery;
+}
+
+/**
+ * The database deps `reopenQuestionForRecompute` runs on, over a service-role client (drain.ts Pass 2b passes
+ * its own). The one write is an INSERT of the question generator's own open flag row (additive, never an
+ * update of an existing row), so it needs no snapshot; the dedup read keeps it to one open row per question.
+ */
+export function buildReopenDeps(sb: ReopenClient): ReopenQuestionDeps {
+  return {
+    async readItem(itemId) {
+      const { data, error } = await sb.from("intelligence_items").select("id,title,domain,item_type,jurisdiction_iso").eq("id", itemId).maybeSingle();
+      if (error) throw new Error(`reopen question: reading item ${itemId} failed: ${error.message}`);
+      return (data as Awaited<ReturnType<ReopenQuestionDeps["readItem"]>>) ?? null;
+    },
+    async readOpenQuestionFlag(subjectRef, createdBy) {
+      const { data, error } = await sb.from("integrity_flags").select("id").eq("subject_ref", subjectRef).eq("created_by", createdBy).eq("status", "open").limit(1);
+      if (error) throw new Error(`reopen question: reading open flags failed: ${error.message}`);
+      const rows = Array.isArray(data) ? (data as Array<{ id: string }>) : [];
+      return rows[0] ?? null;
+    },
+    async insertFlag(row) {
+      const { error } = await sb.from("integrity_flags").insert(row);
+      if (error) throw new Error(`reopen question: inserting the flag failed: ${error.message}`);
+    },
+  };
 }
 
 export async function reopenQuestionForRecompute(

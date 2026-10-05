@@ -13,7 +13,7 @@ import { applyQuestionAnswers, applyArtifactInput, buildResolutionNote, withUnan
 import { fixtureDeps } from "./fixture-deps.mjs";
 import { emitQuestionAnswersArtifact } from "./artifact.mjs";
 import { sentencesOf, unquotedSentences, CEILINGS, MIN_SPAN_CHARS, validateQuestionAnswersFile } from "./schema.mjs";
-import { parseQuestionRef, itemUnusableReason, currentInference, eventContextOf, MAX_CONNECTED } from "./data.mjs";
+import { parseQuestionRef, itemUnusableReason, currentInference, eventContextOf, needOfFlag, recordedAnswer, MAX_CONNECTED } from "./data.mjs";
 import { validateRunArtifact } from "../../lib/run-artifact.mjs";
 import { withoutCredentials } from "../../lib/env-file.mjs";
 
@@ -390,7 +390,7 @@ test("a second execute of the same entry is a no-op", async () => {
 test("unanswerable: the outcome is recorded on the question flag, which stays open and is not re-listed until the pool changes", async () => {
   const { r, deps } = await run(batchOf(entryOf(REF_COMPLY)), { execute: true });
   assert.equal(r.report.outcomes_recorded, 1);
-  assert.equal(r.report.search_targets_raised, 0);
+  assert.equal(r.report.search_targets_raised, 1);
   assert.equal(r.report.unanswerable_needs.length, 1);
   const flag = deps.tables.integrity_flags.find((f) => f.subject_ref === REF_COMPLY);
   assert.equal(flag.status, "open");
@@ -459,7 +459,7 @@ test("rule 17: the apply's run artifact reports inferences written, questions cl
   const input = applyArtifactInput({ parsed: { execute: true, answers: "b.json" }, r, answersPath: "b.json", startedAt: NOW() });
   assert.deepEqual(
     [input.metrics.inferences_written, input.metrics.questions_closed, input.metrics.outcomes_recorded, input.metrics.search_targets_raised],
-    [1, 1, 1, 0],
+    [1, 1, 1, 1],
   );
   assert.ok(input.perItem.some((p) => p.outcome === "applied_answered" && /inference /.test(p.verdict)));
   assert.ok(input.perItem.some((p) => p.outcome === "applied_unanswerable_from_holdings" && /needs: /.test(p.verdict)));
@@ -476,6 +476,128 @@ test("a refused entry is recorded as residue with its reason in the artifact", a
   assert.equal(input.perItem[0].outcome, "refused");
   assert.match(input.perItem[0].error, /pool_hash does not match/);
   assert.equal(input.defectsFound.length, 1);
+});
+
+// ── holdings-need targets (ADR-044 decision 2, coordinator ruling 2026-10-05) ──────────────────────────────
+const needsOf = (deps, ref) => deps.tables.integrity_flags.filter((f) => f.created_by.startsWith("holdings-need:") && f.subject_ref === ref);
+
+test("an unanswerable entry raises ONE open holdings-need target carrying the need and the question's structured context", async () => {
+  const { r, deps } = await run(batchOf(entryOf(REF_COMPLY)), { execute: true });
+  assert.equal(r.readBackFailures.length, 0, JSON.stringify(r.readBackFailures));
+  const targets = needsOf(deps, REF_COMPLY);
+  assert.equal(targets.length, 1);
+  const t = targets[0];
+  assert.deepEqual([t.created_by, t.status, t.category, t.subject_type], ["holdings-need:comply", "open", "coverage_gap", "item"]);
+  assert.deepEqual(needOfFlag(t), { subject_ref: REF_COMPLY, need: BATCH.entries[1].missing, item_id: A, surface: "regulations", product_question: "comply" });
+  assert.equal(t.recommended_actions[0].pool_hash, BATCH.entries[1].pool_hash);
+  assert.ok(!t.created_by.startsWith("lineage-gap:"), "its own namespace, never the lineage-gap one");
+});
+
+test("the target is one per question: a second apply is a no-op, a re-ask with a fresh need refreshes it in place", async () => {
+  const deps = fixtureDeps(clone(CORPUS));
+  const json = batchOf(entryOf(REF_COMPLY));
+  await applyQuestionAnswers({ json, execute: true, deps, now: NOW });
+  const again = await applyQuestionAnswers({ json, execute: true, deps, now: NOW });
+  assert.equal(again.alreadyApplied.length, 1);
+  assert.equal(needsOf(deps, REF_COMPLY).length, 1);
+  // new holdings arrive, the lane re-authors with a different need against the new pool hash
+  deps.tables.agent_run_searches.find((p) => p.id === "p-b").result_content += " Additional guidance text arrives for this connected item.";
+  const { file } = await buildExport(deps, { charBudget: 60000, now: NOW });
+  const b = file.bundles.find((x) => x.subject_ref === REF_COMPLY);
+  assert.equal(b.needs, "reasked_after_new_holdings");
+  const e = entryOf(REF_COMPLY);
+  e.pool_hash = b.pool_hash;
+  e.missing = "A published penalty schedule for late filing of the storage plan.";
+  const re = await applyQuestionAnswers({ json: batchOf(e), execute: true, deps, now: NOW });
+  assert.equal(re.readBackFailures.length, 0, JSON.stringify(re));
+  assert.equal(re.report.search_targets_refreshed, 1);
+  assert.equal(re.report.search_targets_raised, 0);
+  const t = needsOf(deps, REF_COMPLY);
+  assert.equal(t.length, 1);
+  assert.equal(needOfFlag(t[0]).need, e.missing);
+});
+
+test("the target is closed by rule when the question is later answered", async () => {
+  const deps = fixtureDeps(clone(CORPUS));
+  await applyQuestionAnswers({ json: batchOf(entryOf(REF_COMPLY)), execute: true, deps, now: NOW });
+  const ans = entryOf(REF_WHAT);
+  ans.subject_ref = REF_COMPLY;
+  const r = await applyQuestionAnswers({ json: batchOf(ans), execute: true, deps, now: NOW });
+  assert.equal(r.readBackFailures.length, 0, JSON.stringify(r));
+  assert.equal(r.report.search_targets_closed, 1);
+  const t = needsOf(deps, REF_COMPLY)[0];
+  assert.equal(t.status, "resolved");
+  assert.match(t.resolution_note, /answered by inference/);
+});
+
+// ── pool-hash drift is the invalidation signal for an answered question ────────────────────────────────────
+test("an answered question records the pool_hash it answered against, and is not re-listed while the pool is unchanged", async () => {
+  const { deps } = await run(batchOf(entryOf(REF_WHAT)), { execute: true });
+  const flag = deps.tables.integrity_flags.find((f) => f.subject_ref === REF_WHAT);
+  const a = recordedAnswer(flag);
+  assert.equal(a.pool_hash, BATCH.entries[0].pool_hash);
+  assert.equal(a.inference_id, deps.tables.inference_records[0].inference_id);
+  const { file, summary } = await buildExport(deps, { charBudget: 60000, now: NOW });
+  assert.ok(!file.bundles.some((b) => b.subject_ref === REF_WHAT));
+  assert.equal(summary.skipped_answered_unchanged, 1);
+});
+
+test("an answered question whose held pool changed is listed as a re-answer carrying the prior inference id", async () => {
+  const { deps } = await run(batchOf(entryOf(REF_WHAT)), { execute: true });
+  const priorId = deps.tables.inference_records[0].inference_id;
+  deps.tables.agent_run_searches.find((p) => p.id === "p-a").result_content += " A further sentence about bonded stores was captured later.";
+  const { file, summary } = await buildExport(deps, { charBudget: 60000, now: NOW });
+  const b = file.bundles.find((x) => x.subject_ref === REF_WHAT);
+  assert.ok(b, "listed again");
+  assert.equal(b.needs, "reanswer_after_new_holdings");
+  assert.equal(b.prior_inference_id, priorId);
+  assert.equal(summary.listed_reanswer, 1);
+});
+
+test("the apply of a re-answer writes the new inference with supersedes set to the prior id and re-closes the flag; a second apply is a no-op", async () => {
+  const deps = fixtureDeps(clone(CORPUS));
+  await applyQuestionAnswers({ json: batchOf(entryOf(REF_WHAT)), execute: true, deps, now: NOW });
+  const priorId = deps.tables.inference_records[0].inference_id;
+  deps.tables.agent_run_searches.find((p) => p.id === "p-a").result_content += " A further sentence about bonded stores was captured later.";
+  const { file } = await buildExport(deps, { charBudget: 60000, now: NOW });
+  const hash = file.bundles.find((x) => x.subject_ref === REF_WHAT).pool_hash;
+  const e = entryOf(REF_WHAT);
+  e.pool_hash = hash;
+  e.answer = "The amendment lowers the permitted humidity ceiling to 55 percent for stored artwork.";
+  e.cited_item_ids = [A];
+  e.evidence = [e.evidence[0]];
+  const r = await applyQuestionAnswers({ json: batchOf(e), execute: true, deps, now: NOW });
+  assert.equal(r.readBackFailures.length, 0, JSON.stringify(r));
+  assert.equal(deps.tables.inference_records.length, 2);
+  assert.equal(deps.tables.inference_records[1].supersedes, priorId);
+  const flag = deps.tables.integrity_flags.find((f) => f.subject_ref === REF_WHAT);
+  assert.equal(flag.status, "resolved");
+  assert.equal(recordedAnswer(flag).pool_hash, hash);
+  assert.equal(recordedAnswer(flag).inference_id, deps.tables.inference_records[1].inference_id);
+  const again = await applyQuestionAnswers({ json: batchOf(e), execute: true, deps, now: NOW });
+  assert.equal(deps.tables.inference_records.length, 2);
+  assert.equal(again.alreadyApplied.length, 1);
+  const out = await buildExport(deps, { charBudget: 60000, now: NOW });
+  assert.ok(!out.file.bundles.some((b) => b.subject_ref === REF_WHAT), "the re-answer's own hash is current");
+});
+
+test("an answered question whose pool has NOT moved cannot be answered again, and one that moved cannot be marked unanswerable", async () => {
+  const deps = fixtureDeps(clone(CORPUS));
+  await applyQuestionAnswers({ json: batchOf(entryOf(REF_WHAT)), execute: true, deps, now: NOW });
+  const other = entryOf(REF_WHAT);
+  other.answer = "The amendment lowers the permitted humidity ceiling to 55 percent for stored artwork.";
+  other.cited_item_ids = [A];
+  other.evidence = [other.evidence[0]];
+  const r = await applyQuestionAnswers({ json: batchOf(other), execute: true, deps, now: NOW });
+  assert.equal(r.valid.length, 0);
+  assert.match(r.refused[0].errors[0], /no longer open/);
+  deps.tables.agent_run_searches.find((p) => p.id === "p-a").result_content += " A further sentence about bonded stores was captured later.";
+  const { file } = await buildExport(deps, { charBudget: 60000, now: NOW });
+  const un = entryOf(REF_COMPLY);
+  un.subject_ref = REF_WHAT;
+  un.pool_hash = file.bundles.find((x) => x.subject_ref === REF_WHAT).pool_hash;
+  const r2 = await applyQuestionAnswers({ json: batchOf(un), execute: false, deps, now: NOW });
+  assert.match(r2.refused[0].errors.join(" "), /re-answered, never marked unanswerable/);
 });
 
 // ── the CLIs, fired end to end over the fixture corpus (no database, no credentials) ──────────────────────
@@ -496,5 +618,5 @@ test("CLIs: without credentials and without --fixture both exit 2; with --fixtur
   assert.match(dry.stdout, /2 valid, 0 refused, 0 already applied \(DRY RUN, nothing written\)/);
   const live = cli(applyCli, ["--answers", BATCH_PATH, "--fixture", CORPUS_PATH, "--execute"]);
   assert.equal(live.status, 0, live.stderr);
-  assert.match(live.stdout, /inferences written 1, questions closed 1, unanswerable outcomes recorded 1, search targets raised 0/);
+  assert.match(live.stdout, /inferences written 1, questions closed 1, unanswerable outcomes recorded 1, search targets raised 1 \(refreshed 0, closed 0\)/);
 });

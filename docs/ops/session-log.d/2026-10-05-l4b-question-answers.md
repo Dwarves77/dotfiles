@@ -47,17 +47,32 @@ Lane l4b-question-answers (ADR-044 decision 1 and 3). Fixtures only, nothing app
 - CONFIRMED only when every sentence of the answer is quoted from an evidence span; limits are in the README.
 - "Sourced only from Community" is `intelligence_items.origin_class` of `community` or `community-corroborated`.
 
+## Coordinator rulings of 2026-10-05, built in the same PR
+
+- Holdings-need targets: `HOLDINGS_NEED_NAMESPACE` (`holdings-need:`) in `flag-namespaces.mjs`. The existing gap-target
+  mechanism could not carry a free-text need (its target is an instrument identifier resolved against the corpus, its
+  flag is one open row per item per namespace so a question flag would suppress the item's real lineage gap, its
+  parser reads a fixed rationale sentence), so the target has its own namespace: one open flag per question
+  subject_ref, the need, item id, surface, product question and pool_hash in the `find-source` action, closed by rule
+  when the question is answered, refreshed in place when re-asked.
+- Consumer: `scripts/research/research-walker.mjs` reads open targets (`readHoldingsNeeds`, at most 10 per run) and
+  searches OpenAlex (free, keyless, free-text `search`) once per need; results enter the walker's existing register,
+  rate and dry-run mint path. It cannot find a regulator form or schedule (research literature only). The other free
+  runtimes (`run-source-sweep.mjs`, `register-walk.mjs`, `feed-walk.mjs`, `seek-more.mjs` `generateCandidates`) take
+  feeds, registers or instrument identifiers, not a need in words. Missing input for non-research needs: a
+  web-search runtime.
+- `drain.ts` Pass 2b calls `reopenQuestionForRecompute` (`buildReopenDeps` in `infer-from-question.ts`, which carries
+  the `SHARED-WRITER: integrity_flags` marker); `DrainResult.questionsReopened`; best effort, a failure is a recorded
+  drain error and never undoes the recompute. The L4-A `processedEvents` return is untouched.
+- Invalidation: no migration. The apply records the `pool_hash` on the question flag's close-out (an
+  `answered_from_holdings` element); the export re-lists an answered question whose hash differs, marked
+  `reanswer_after_new_holdings` with `prior_inference_id`; the apply of a re-answer writes the new inference with
+  `supersedes` and re-closes the flag. Derivation edges to items are not admitted (migration 339).
+- README states what CONFIRMED proves (every sentence quoted verbatim from a source span) and does not (that the
+  quote answers the question; that judgement is the session lane's).
+
 ## NOT done, and open items
 
-- STOP, source search target not raised. The existing gap-target mechanism cannot carry a free-text need: its target
-  is an instrument identifier resolved against the corpus (`planLineageGapTargets`), its flag shape is one open row
-  per item per namespace (`link-items.ts` would let a question flag suppress the item's real lineage gap), and its
-  parser reads a fixed rationale sentence. The apply reports `search_targets_raised: 0`, records the plain-words need
-  on the question flag and lists it in the run artifact. A ruling on where the targets are raised is needed.
-- `reopenQuestionForRecompute` is not wired: `drain.ts` Pass 2b must call it for `computeInferFromQuestion`'s
-  `reopenQuestionRef`. Because a first-write inference has no derivation edges, `invalidate_dependents()` never marks
-  it stale, so Pass 2b never reaches it until the edge allowlist is widened (a migration) or the export re-lists
-  answered questions whose pool hash moved.
 - No workflow chaining. Where it should chain: after the propagation drain raises or re-opens questions, and after
   population-turn raises them at mint (the generator is a population-turn flywheel step).
 - No real answer authored; no batch under `batches/`.

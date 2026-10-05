@@ -24,7 +24,9 @@ its status token, its cited items and its confidence, shown to customers labelle
 ## The bundle (what the author reads)
 
 Per question: `subject_ref`, `pool_hash`, `item_id`, `surface`, `product_question`, `question`,
-`event_context`, `needs` (`unanswered`, or `reasked_after_new_holdings` with `prior_outcome`) and `items`: the
+`event_context`, `needs` (`unanswered`; `reasked_after_new_holdings` with `prior_outcome`, for a question an earlier
+batch recorded as unanswerable; or `reanswer_after_new_holdings` with `prior_inference_id`, for a question answered
+earlier whose held pool has since changed) and `items`: the
 question's own item (`relation: "self"`) then the items connected to it by a cross-reference edge
 (`relation: "connected"`), each with `title`, `item_type`, `surface`, `jurisdictions`, `summary`, its `edge`
 (relationship, origin, score, basis signals), grounded FACT `claims` (`claim_id`, `kind`, `claim_text`,
@@ -83,14 +85,16 @@ and is not a real answer.
   characters at most). No `answer`, `status_token`, `confidence`, `cited_item_ids` or `evidence`.
 - Cite items by title in prose, never by id.
 
-### The CONFIRMED rule, and its limits
+### What CONFIRMED proves, and what it does not
 
 `CONFIRMED` is allowed only when EVERY sentence of the answer is a quotation: after whitespace collapse and
-lower-casing, the sentence is a substring of at least one evidence `source_span`. The spans are already proven
-verbatim in the held pool, so the answer is then the source's own words. Anything else is `HYPOTHESIS`. Limits,
-stated plainly: a quotation proves the words are the source's, not that they answer the question or that the
-source is right; a paraphrase is never `CONFIRMED` however faithful; a model never self-labels `CONFIRMED`
-(CLAUDE.md rule 14), the validator does.
+lower-casing, the sentence is a substring of at least one evidence `source_span`, and every span is verbatim in the
+held pool. **It proves** that every sentence of the answer is quoted verbatim from a source span, so the answer is
+the source's own words. **It does not prove** that the quote answers the question, that it answers it completely,
+or that the source is right. Whether the quoted text actually answers the question is a judgement, and that
+judgement is the session lane's: the validator never makes it, and a lane that is not sure the quote answers the
+question writes `HYPOTHESIS`, or `unanswerable_from_holdings`. A paraphrase is never `CONFIRMED` however faithful.
+The token is derived by the validator from the text, never self-labelled (CLAUDE.md rule 14).
 
 ### The uncited-figure check, and its limits
 
@@ -126,12 +130,49 @@ bundle showed when the budget cut it: a verbatim span from cut text passes. That
 
 Dry by default. With `--execute`: an answered entry writes ONE inference (`register_inference_record`, origin
 `derived`, method `infer-from-question@v1`, `computed_by` = `question-answers:<batch>`,
-`trigger_question_ref` = the subject_ref, cited item ids in `cited_item_ids`; no derivation edges, because
-intelligence items and their claims are not in the edge table's allowlist, migration 339) and closes the
-question flag through the guarded writer (`resolution_note` names the inference id, the batch, the token and
-the pool hash). An unanswerable entry records `unanswerable_from_holdings` on the flag's `recommended_actions`
-(with the `pool_hash`, the batch and the plain-words need); the flag stays open and the export skips it until
-the held pool changes. Each write is read back. A second apply is a no-op. The run artifact reports inferences
-written, questions closed, outcomes recorded and search targets raised. Source search targets for unanswerable
-questions are NOT raised (the existing gap-target mechanism cannot carry a free-text need); see the apply
-script's header and runbook step 60.
+`trigger_question_ref` = the subject_ref, cited item ids in `cited_item_ids`) and closes the question flag through
+the guarded writer (`resolution_note` names the inference id, the batch, the token and the pool hash; the flag's
+`recommended_actions` gains an `answered_from_holdings` element recording the `pool_hash` the answer was written
+against and the inference id). An unanswerable entry records `unanswerable_from_holdings` on the flag's
+`recommended_actions` (with the `pool_hash`, the batch and the plain-words need), leaves the flag open, raises the
+holdings-need target below, and the export skips the question until the held pool changes. Each write is read
+back. A second apply is a no-op. The run artifact reports inferences written, questions closed, outcomes recorded,
+search targets raised, refreshed and closed.
+
+## Invalidation of an answer: pool-hash drift
+
+**Derivation edges to items are not admitted.** `derivation_edges_from_table_allowed` (migration 339) admits only
+`emission_factors`, `market_series`, `regional_data_facts`, `derived_values`, `statutory_computations`,
+`estimated_values`, `state_cost_facts` and `inference_records`; an answer's inputs are intelligence items and
+their grounded claims, so a first-write inference carries its cited ids in `cited_item_ids` alone and
+`invalidate_dependents()` can never mark it stale. **Pool-hash drift is the invalidation signal instead.** The
+close-out records the `pool_hash` the answer was written against; the export lists an answered question again,
+marked `reanswer_after_new_holdings` with `prior_inference_id`, when the question's current held-pool hash
+differs from the recorded one, and lists nothing while it is unchanged. The apply of a re-answer (an entry
+carrying the current `pool_hash`) writes the new inference with `supersedes` set to the prior inference id and
+re-closes the flag with the new hash. A question answered against a pool that has not moved is not answered
+again, and a question whose pool moved is re-answered, never marked unanswerable. (A recomputed inference that
+the drain does reach re-opens its question too: `drain.ts` Pass 2b calls `reopenQuestionForRecompute`.)
+
+## Holdings-need targets: unanswerable questions become search targets
+
+An unanswerable entry raises ONE open flag in its own namespace, `holdings-need:<product question>`
+(`HOLDINGS_NEED_NAMESPACE`, `src/lib/connections/flag-namespaces.mjs`), distinct from the `lineage-gap:` one (an
+instrument identifier, one open flag per item): `subject_ref` is the question's own subject_ref, so there is at
+most one open target per question, and a later unanswerable entry for the same question refreshes it in place.
+The structured fields live in the flag's `find-source` action: `need` (the plain-words `missing`), `item_id`,
+`surface`, `product_question`, `pool_hash`, `batch`. The target is closed by rule (`resolved`, `resolved_by`
+`apply-question-answers`) when the question is later answered.
+
+**The runtime that consumes it:** `scripts/research/research-walker.mjs` (the free OpenAlex works search takes a
+free-text query and no key). `readHoldingsNeeds` reads the open targets (bounded, at most 10 per run);
+`searchHoldingsNeeds` runs one `/works?search=<need>` query per need; what it finds enters the walker's existing
+register, rate and mint (dry-run) path, so a source that answers the need is minted like any research finding and
+lands in the held pools this export reads, which changes the question's `pool_hash` and re-lists it. CLI:
+`node scripts/research/research-walker.mjs --holdings-needs` (reads the database, needs credentials; with `--live`
+the OpenAlex calls are real) or `--holdings-needs-file <flags.json>` (offline fixture); dry by default, nothing is
+written to a target. **What it lacks, decision-ready:** the walker searches research literature (OpenAlex works),
+so a need for a regulator's form, notice or schedule will find nothing it can use. The other free runtimes
+(`run-source-sweep.mjs`, `register-walk.mjs`, `feed-walk.mjs`, `seek-more.mjs` `generateCandidates`) take
+registered feeds, registers or instrument identifiers, not a need in words, so none of them can act on it without a
+metered search. A web-search runtime for needs that are not research would be that missing input.

@@ -14,7 +14,7 @@
 // Held pool text is retrieved by seek-more.mjs queryHeldPools and identified by heldPoolHash; both are the
 // shared implementations, not copies.
 
-import { QUESTION_NAMESPACE, createdBy } from "../../../src/lib/connections/flag-namespaces.mjs";
+import { QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE, HOLDINGS_NEED_ACTION, createdBy } from "../../../src/lib/connections/flag-namespaces.mjs";
 import { PRODUCT_QUESTIONS } from "../../../src/lib/learning/constants.mjs";
 import { usableCapturesOrdered } from "../../../src/lib/forward-events/read-and-extract.mjs";
 import { surfaceOf } from "../../../src/lib/surface-of.mjs";
@@ -28,6 +28,11 @@ export const UNANSWERABLE_ACTION = "unanswerable_from_holdings";
 export const OPEN_STATUSES = Object.freeze(["open", "in_review"]);
 /** The created_by values of every question flag (one per product question). */
 export const QUESTION_CREATED_BY = Object.freeze(PRODUCT_QUESTIONS.map((pq) => createdBy(QUESTION_NAMESPACE, pq)));
+
+/** The recommended_actions action that records an answered question's close-out (the pool it was answered against). */
+export const ANSWERED_ACTION = "answered_from_holdings";
+/** The created_by values of every holdings-need target (one per product question). */
+export const NEED_CREATED_BY = Object.freeze(PRODUCT_QUESTIONS.map((pq) => createdBy(HOLDINGS_NEED_NAMESPACE, pq)));
 
 export const FLAG_COLUMNS = "id, subject_ref, created_by, description, recommended_actions, status, created_at";
 export const ITEM_COLUMNS = "id, title, item_type, domain, jurisdiction_iso, summary, provenance_status, is_archived, origin_class, instrument_entity_id";
@@ -68,6 +73,78 @@ export function itemUnusableReason(item) {
   if (item.provenance_status !== "verified") return `not verified (provenance_status ${item.provenance_status ?? "null"})`;
   if (item.origin_class === "community" || item.origin_class === "community-corroborated") return "sourced only from Community (ADR-041)";
   return null;
+}
+
+/** The answered close-out recorded on a question flag, or null. */
+export function recordedAnswer(flag) {
+  const acts = Array.isArray(flag?.recommended_actions) ? flag.recommended_actions : [];
+  return acts.find((a) => a && a.action === ANSWERED_ACTION && typeof a.pool_hash === "string") ?? null;
+}
+
+/**
+ * The recommended_actions array after recording an answered close-out: an earlier answered or unanswerable
+ * element is replaced, the generator's own element is kept. Pure.
+ */
+export function withAnsweredOutcome(actions, { inferenceId, poolHash, batch, nowIso }) {
+  const kept = (Array.isArray(actions) ? actions : []).filter((a) => !(a && (a.action === ANSWERED_ACTION || a.action === UNANSWERABLE_ACTION)));
+  return [...kept, { action: ANSWERED_ACTION, rationale: `answered by inference ${inferenceId}`, inference_id: inferenceId, pool_hash: poolHash, batch, recorded_at: nowIso }];
+}
+
+/**
+ * The holdings-need target for an unanswerable question: ONE open row per question subject_ref, in the
+ * holdings-need namespace, carrying the need in words and its structured context in the find-source action.
+ * Pure. @param {{subject_ref:string, missing:string, pool_hash:string}} entry
+ * @param {{itemId:string, surface:string, productQuestion:string}} parsed @param {string} batch @param {string} nowIso
+ */
+export function holdingsNeedRow(entry, parsed, batch, nowIso) {
+  return {
+    category: "coverage_gap",
+    subject_type: "item",
+    subject_ref: entry.subject_ref,
+    status: "open",
+    created_by: createdBy(HOLDINGS_NEED_NAMESPACE, parsed.productQuestion),
+    description: `Holdings need: ${entry.missing}`.slice(0, 480),
+    recommended_actions: [needAction(entry, parsed, batch, nowIso)],
+  };
+}
+
+/** The find-source action element of a holdings-need target. Pure. */
+export function needAction(entry, parsed, batch, nowIso) {
+  return {
+    action: HOLDINGS_NEED_ACTION,
+    need: entry.missing,
+    item_id: parsed.itemId,
+    surface: parsed.surface,
+    product_question: parsed.productQuestion,
+    pool_hash: entry.pool_hash,
+    batch,
+    recorded_at: nowIso,
+    rationale: `held source text cannot answer ${entry.subject_ref}; a source stating the need in words is wanted`,
+  };
+}
+
+/** The structured need of a holdings-need target flag, or null when it carries none. Pure. */
+export function needOfFlag(flag) {
+  const acts = Array.isArray(flag?.recommended_actions) ? flag.recommended_actions : [];
+  const a = acts.find((x) => x && x.action === HOLDINGS_NEED_ACTION && typeof x.need === "string" && x.need.trim());
+  return a ? { subject_ref: flag.subject_ref, need: a.need, item_id: a.item_id ?? null, surface: a.surface ?? null, product_question: a.product_question ?? null } : null;
+}
+
+/** Every open holdings-need target. */
+export async function loadOpenNeedTargets({ readAll }) {
+  return readAll("integrity_flags", FLAG_COLUMNS, {
+    orderBy: "id",
+    match: (q) => q.in("created_by", [...NEED_CREATED_BY]).in("status", [...OPEN_STATUSES]),
+  });
+}
+
+/** Resolved question flags that carry an answered close-out (candidates for a re-answer). */
+export async function loadAnsweredQuestionFlags({ readAll }) {
+  const rows = await readAll("integrity_flags", `${FLAG_COLUMNS}, resolution_note`, {
+    orderBy: "id",
+    match: (q) => q.in("created_by", [...QUESTION_CREATED_BY]).in("status", ["resolved"]),
+  });
+  return rows.filter((r) => recordedAnswer(r));
 }
 
 /** Every open question flag. */
@@ -214,8 +291,9 @@ export function buildQuestionBundle(ctx, material, { charBudget }) {
     product_question: parsed.productQuestion,
     question: flag.description ?? "",
     event_context: eventContextOf(flag),
-    needs: recordedOutcome(flag) ? "reasked_after_new_holdings" : "unanswered",
+    needs: recordedAnswer(flag) ? "reanswer_after_new_holdings" : recordedOutcome(flag) ? "reasked_after_new_holdings" : "unanswered",
     prior_outcome: (() => { const o = recordedOutcome(flag); return o ? { outcome: UNANSWERABLE_ACTION, missing: o.rationale ?? null, batch: o.batch ?? null, recorded_at: o.recorded_at ?? null } : null; })(),
+    prior_inference_id: recordedAnswer(flag)?.inference_id ?? null,
   };
   let used = size(head);
   const structureCap = Math.floor(charBudget * STRUCTURE_SHARE);

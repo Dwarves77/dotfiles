@@ -45,7 +45,8 @@
 
 import { registerDerivedValue } from "./register-derivation.ts";
 import { getMethod } from "./methods/index.ts";
-import { INFERENCE_METHODS, registerInferenceRecord } from "./methods/infer-from-question.ts";
+import { INFERENCE_METHODS, registerInferenceRecord, reopenQuestionForRecompute, buildReopenDeps } from "./methods/infer-from-question.ts";
+import type { ReopenClient } from "./methods/infer-from-question.ts";
 import type { InputRef } from "./types.ts";
 import type { ResolvedMethodInput } from "./methods/index.ts";
 import { exactCount } from "../db/paginate.mjs";
@@ -191,6 +192,8 @@ export interface DrainResult {
   superseded: Array<{ from: string; to: string }>;
   errors: DrainEventError[];
   processedEvents: ProcessedEvent[];
+  /** Questions re-opened because a recomputed inference rests on moved holdings (lane L4-B, Pass 2b). */
+  questionsReopened: number;
 }
 
 const DEFAULT_BATCH = 500;
@@ -262,6 +265,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
     superseded: [],
     errors: [],
     processedEvents: [],
+    questionsReopened: 0,
   };
 
   if (eventList.length === 0) return result;
@@ -431,6 +435,19 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
       });
       result.recomputed += 1;
       result.superseded.push({ from: row.inference_id, to: newInferenceId });
+      // The recomputed answer rests on holdings that moved: ask its question again (lane L4-B, ADR-044), so the
+      // next question export re-answers it. Best effort, never undoes the recompute above.
+      if (output.reopenQuestionRef) {
+        try {
+          const reopened = await reopenQuestionForRecompute(output.reopenQuestionRef, buildReopenDeps(sb as unknown as ReopenClient));
+          if (reopened.reopened) result.questionsReopened += 1;
+        } catch (reopenErr) {
+          result.errors.push({
+            eventId: "n/a",
+            message: `re-opening question ${output.reopenQuestionRef} after recomputing inference ${row.inference_id} failed: ${reopenErr instanceof Error ? reopenErr.message : String(reopenErr)}`,
+          });
+        }
+      }
     } catch (err) {
       result.errors.push({
         eventId: "n/a",

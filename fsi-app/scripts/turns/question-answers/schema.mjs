@@ -84,6 +84,7 @@ export function unquotedSentences(answer, spans) {
  *   questions: Map<string, {
  *     open: boolean,
  *     questionText?: string,
+ *     answered?: boolean,
  *     itemUnusable?: string|null,
  *     pool_hash: string,
  *     members: Map<string, {title?:string, claim_ids:Set<string>, poolText:string}>,
@@ -114,6 +115,7 @@ export function validateAnswerEntry(entry, i, ctx) {
   }
 
   if (entry.outcome === "unanswerable_from_holdings") {
+    if (q.answered) errs.push(`${tag}: the question was answered earlier; a changed held pool is re-answered, never marked unanswerable`);
     for (const k of ["answer", "status_token", "confidence", "cited_item_ids", "evidence"]) {
       if (!absent(entry[k])) errs.push(`${tag}: an unanswerable entry carries no ${k} (it says what holding would answer the question, nothing else)`);
     }

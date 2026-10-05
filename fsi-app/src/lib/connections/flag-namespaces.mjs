@@ -54,9 +54,20 @@ export const TAG_NAMESPACE = "flywheel-tag:";
 // different (surface, product_question) pairs for the same item.
 export const QUESTION_NAMESPACE = "question:";
 
+// HOLDINGS_NEED_NAMESPACE, the seventh namespace, born with apply-question-answers.mjs (lane L4-B, 2026-10-05,
+// ADR-044 decision 2). A question the held source text cannot answer becomes ONE open discovery target: a need
+// stated in words (what kind of source, about what) for a free discovery runtime to search for. Distinct from
+// the lineage-gap namespace (an instrument IDENTIFIER, deduplicated one open flag per item): this subject_ref is
+// the QUESTION's own subject_ref (buildSubjectRef(itemId, surface, productQuestion)), so there is at most one
+// open target per question, and the subtype is the product question. subject_type is "item". The structured
+// fields (need, item id, surface, product question, pool_hash) live in the flag's recommended_actions element
+// whose action is HOLDINGS_NEED_ACTION. Closed by rule when the question is later answered.
+export const HOLDINGS_NEED_NAMESPACE = "holdings-need:";
+export const HOLDINGS_NEED_ACTION = "find-source";
+
 export const ALL_NAMESPACES = Object.freeze([
   GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE,
-  QUESTION_NAMESPACE,
+  QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE,
 ]);
 
 /**
