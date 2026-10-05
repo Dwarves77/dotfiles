@@ -34,9 +34,8 @@
 import { useMemo, useState } from "react";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
-import type { Resource, ItemConnection, Supersession } from "@/types/resource";
+import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
-import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
@@ -75,7 +74,9 @@ import {
   type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
 import { ThemeBriefCard } from "@/components/detail/ThemeBriefCard";
-import { CrossPageSection, type CrossPageData, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
+import { CrossPageSection, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
+import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
+
 import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { refusalDisplayText } from "@/lib/research/read-assessments.mjs";
 import {
@@ -95,19 +96,13 @@ interface RelatedFinding {
 
 type AssessmentView = ReturnType<typeof selectAssessmentView>;
 
-interface Props {
+interface Props extends DetailSurfaceSharedProps {
   resource: Resource;
   related: RelatedFinding[];
   relatedReason: "theme" | "source" | "none";
   sections?: IntelligenceItemSectionRow[];
   claimTiers?: ClaimTierMap;
-  supersessions?: Supersession[];
-  connections?: ItemConnection[];
-  relevance?: ItemRelevance | null;
-  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
   themeBrief?: ThemeAnalysisView | null;
-  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
-  crossPage?: CrossPageData | null;
   /** Lane W2-R (2026-10-01): migration 344's assessment row for this item, shaped by
    *  src/lib/research/read-assessments.mjs. undefined/null renders the honest "no assessment yet" state
    *  (R14: the surface renders what the producer has produced, never a fabricated reading). */
@@ -118,9 +113,6 @@ interface Props {
   /** Lane L5 (2026-10-02, extended scope): the real supersedes chain, newest first, shaped by
    *  read-signposts.mjs. [] (no assessment) or a single entry (no prior version) both render honestly. */
   assessmentHistory?: AssessmentHistoryEntry[];
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
 }
 
 const RESEARCH_SECTION_HEADINGS: Record<string, string> = {

@@ -66,7 +66,9 @@ import { renderRequirementTrajectory } from "@/components/detail/RequirementTraj
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
-import { CrossPageSection, type CrossPageData } from "@/components/detail/CrossPageSection";
+import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
+
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource } from "@/lib/scoring";
@@ -95,7 +97,7 @@ import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import { useResourceStore } from "@/stores/resourceStore";
 
-interface Props {
+interface Props extends DetailSurfaceSharedProps {
   resource: Resource;
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
@@ -104,8 +106,6 @@ interface Props {
   /** Flywheel U9 (D1) — the viewer's relevance-to-your-operation lens. Null when no org / soft-fail. */
   relevance: ItemRelevance | null;
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
-  /** Lane S3-B: the shared "Across pages" section data (stated intersection summary and theme analysis). */
-  crossPage?: CrossPageData | null;
   sections?: IntelligenceItemSectionRow[];
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings, keyed by exact claim line. */
   claimTiers?: ClaimTierMap;
@@ -114,9 +114,6 @@ interface Props {
   /** Hero deck sub-line, e.g. "IMO MEPC · adopted 7 July 2023 · in force". */
   deck?: string;
   initialOwner?: { userId: string; name: string } | null;
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
   /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this surface's
    *  page.tsx so the "Brief regenerated <date>" header line (D23 part (d)) comes from ONE instant
    *  the server chose, never `new Date()` in this "use client" component (the #418 class). */

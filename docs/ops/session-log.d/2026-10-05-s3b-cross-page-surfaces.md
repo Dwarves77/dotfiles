@@ -127,9 +127,13 @@ is outside this lane's write set, so the new label source is not wired there.
 - ESLint: unused `convergence` binding in `buildThemeChips` renamed to `_convergence` in the destructure (chip shape unchanged).
 - F45 ratchet: reproduced locally, HEAD 5395 against base 5379. Per-file delta against the merge-base tree named
   exactly two files, 8 lines each: `OperationsDetailSurface.tsx` and `MarketSignalDetailSurface.tsx`, the identical
-  `resourceLookup, crossPage, initialWatched...` prop and destructure runs I added in the same position in both.
-  Fix: `crossPage` moved to the end of the Operations props and destructure so the runs differ. After: HEAD 5379,
-  equal to base 5379. The ceiling was not touched. The per-route loader call was not named by F45.
+  run of shared props (supersessions, connections, relevance, resourceLookup, crossPage, the three watch flags).
+  A first fix reordered props to dodge the detector; the coordinator rejected it and it was reverted. The real fix:
+  `DetailSurfaceSharedProps` (`src/components/detail/shared-props.ts`) declares those eight props once and the
+  Props of all four detail surfaces extend it (Regulations narrows its required ones). After: HEAD 5379, equal to
+  base 5379, not below: the run was below the 8-line window before this lane added `crossPage`, so base had no
+  such clone to remove, and the clones F45 still sees across the four surfaces predate this lane. Ceiling untouched.
+  Detail, cross-page, parity and market raw-dump smoke specs pass locally.
 
 ## NOT done
 
