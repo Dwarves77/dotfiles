@@ -252,10 +252,12 @@ import { main as deriveObligationsMain } from "../maintenance/derive-obligations
 import { main as tagProposalsMain, CITE as TAG_PROPOSALS_CITE } from "../maintenance/tag-proposals.mjs";
 import { NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
 import { main as tagRatificationMain, CITE as TAG_RATIFICATION_CITE } from "../maintenance/tag-ratification.mjs";
-import { TAG_NAMESPACE, QUESTION_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
+import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 // S1, learning-loop-design-2026-09-25.md section 6 / ADR-036 decision 1 (lane W2-G, wave2b, 2026-09-29):
 // the trigger_question generator, wired as the next step of this file's own section 8/9 tandem sequence.
-import { main as triggerQuestionsMain, CITE as TRIGGER_QUESTIONS_CITE } from "../../src/lib/learning/trigger-questions.mjs";
+import { main as triggerQuestionsMain } from "../../src/lib/learning/trigger-questions.mjs";
+// Lane L4-A (2026-10-05): the deps builder is shared with run-propagation-drain.mjs (questions on change).
+import { buildTriggerQuestionsDeps } from "../lib/trigger-question-deps.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -845,7 +847,7 @@ export function buildFlywheelPlan(mode, batchIds) {
       // title only, so ordering relative to them is not load-bearing, but running last in the
       // per-item chain keeps every question generated against this batch's FINAL state, not a
       // mid-chain snapshot). Writes integrity_flags rows under flag-namespaces.mjs's QUESTION_NAMESPACE
-      // ("question:"), never auto-answered, never auto-priced (ADR-036 decision 1).
+      // ("question:"), answered later from holdings by a session batch, never auto-priced (ADR-044 decision 1).
       name: "trigger-questions",
       scoped: true,
       skip: !hasItems,
@@ -1374,18 +1376,6 @@ async function stepTagRatification(ctx) {
     throw new Error(`tag-ratification: ${summary.note ?? JSON.stringify(summary)}`);
   }
   return summary;
-}
-
-/** Mirrors buildTagProposalsDeps' shape: wiring only, no logic duplicated (trigger-questions.mjs's own
- *  main() does the dedup-before-insert and template expansion). */
-function buildTriggerQuestionsDeps(db) {
-  return {
-    readExistingOpen: () =>
-      db.readAll("integrity_flags", "id, subject_ref, created_by", {
-        match: (q) => q.eq("status", "open").like("created_by", `${QUESTION_NAMESPACE}%`),
-      }),
-    insertMany: (rows) => db.guardedInsertMany("integrity_flags", rows, { cite: TRIGGER_QUESTIONS_CITE, select: "id" }),
-  };
 }
 
 async function stepTriggerQuestions(ctx) {

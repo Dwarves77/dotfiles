@@ -20,6 +20,23 @@
 // --mode apply runs both passes (invalidate for real, then recompute every value this run just staled
 // through a registered METHODS[method_id] — see drain.ts's own header for the exact two-pass contract).
 //
+// AFTER THE DRAIN PASSES (lane L4-A): the events this call processed are handed to questionsOnChangeStep,
+// which raises the four product questions for the verified items linked to each changed entity (see
+// src/lib/learning/questions-on-change.mjs). Dry mode computes and reports the counts and writes nothing;
+// apply mode writes through the same guarded writer the flywheel's mint-time step uses. The counts land in
+// the run artifact's metrics (qoc_*). NOTE: propagation-drain.yml runs chained firings dry, so a chained
+// firing raises no question (see this lane's session-log entry).
+//
+// NO EVENT IS LOST (CLAUDE.md rules 13 and 17). The drain marks an event drained before the question step
+// runs, so a failed or cut-short question step would lose those events for questions. Instead the run
+// artifact records the exact event ids the step did not finish (metrics qoc_unfinished_*, bounded list plus
+// count, min and max id), and the NEXT run starts by reading the most recent propagation run of record
+// (readRunHistory, the same reader loop-run-id.mjs uses), reading those rows back from propagation_events
+// (append-only, ADR-043) and running the question step over them BEFORE its own new events (metrics
+// qoc_replayed_*). Dedup makes a replay idempotent. A dry run does not consume an id: nothing was written,
+// so it stays unfinished and is carried forward. `--questions-for-events <from>-<to>` runs the same step
+// over an id range only (dry unless --mode apply is given), with no drain.
+//
 // ALWAYS records a harness-run artifact, in both modes, from a `finally` block — same crash-safety
 // run-source-sweep.mjs and run-extraction.mjs already apply to their own families.
 //
@@ -40,10 +57,15 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runPropagationDrain } from "../../src/lib/propagation/drain.ts";
-import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+// Lane L4-A (2026-10-05): the questions-on-change step, run after the drain passes (CLAUDE.md rule 17: a
+// runtime that ends without triggering its downstream is a defect). The deps builder is the one shared
+// with run-population-flywheel.mjs's mint-time step.
+import { runQuestionsOnChange, buildEntityItemsReader, readOutboxEvents, CITE as QUESTIONS_ON_CHANGE_CITE } from "../../src/lib/learning/questions-on-change.mjs";
+import { buildTriggerQuestionsDeps } from "../lib/trigger-question-deps.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -57,6 +79,7 @@ export const PROPAGATION_GOVERNING_FILES = GOVERNING_FILES.propagation;
 function usage() {
   return (
     "Usage: node scripts/turns/run-propagation-drain.mjs --mode <dry|apply> [--batch N]\n" +
+    "         [--questions-for-events <from>-<to>]   (questions only over that outbox id range; dry by default)\n" +
     "         [--harness-runs-dir dir] [--out-dir dir] [--trigger-context '<json>']\n" +
     "         [--trigger <workflow_run|workflow_dispatch>]"
   );
@@ -75,6 +98,7 @@ export function parseArgs(argv) {
         "out-dir": { type: "string" },
         "trigger-context": { type: "string" },
         trigger: { type: "string" },
+        "questions-for-events": { type: "string" },
       },
       allowPositionals: false,
       strict: true,
@@ -83,6 +107,14 @@ export function parseArgs(argv) {
     return { ok: false, error: err.message };
   }
 
+  let questionsForEvents = null;
+  if (values["questions-for-events"] !== undefined) {
+    questionsForEvents = parseEventRange(values["questions-for-events"]);
+    if (!questionsForEvents) {
+      return { ok: false, error: `--questions-for-events must be <from>-<to>, two event ids with from <= to and at most ${MAX_REPLAY_RANGE} ids (got ${JSON.stringify(values["questions-for-events"])}).` };
+    }
+    if (values.mode === undefined) values.mode = "dry";
+  }
   if (values.mode !== "dry" && values.mode !== "apply") {
     return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(values.mode)}).` };
   }
@@ -126,7 +158,21 @@ export function parseArgs(argv) {
     outDir: values["out-dir"] || null,
     triggerContext,
     trigger,
+    questionsForEvents,
   };
+}
+
+/** Widest outbox id range a manual replay may cover in one run. */
+export const MAX_REPLAY_RANGE = 5000;
+
+/** Parse "<from>-<to>" into {from,to}, or null when malformed or too wide. PURE. @param {string} text */
+export function parseEventRange(text) {
+  const m = /^(\d+)-(\d+)$/.exec(String(text ?? "").trim());
+  if (!m) return null;
+  const from = Number(m[1]);
+  const to = Number(m[2]);
+  if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from > to || to - from + 1 > MAX_REPLAY_RANGE) return null;
+  return { from, to };
 }
 
 /** Resolve this run's top-level artifact `trigger` field (F50). PURE (no I/O), independently testable.
@@ -145,10 +191,133 @@ export function resolveArtifactTrigger(triggerContext, explicitTrigger = null) {
   return triggerContext ? "workflow_run" : "workflow_dispatch";
 }
 
+/** The questions-on-change step (lane L4-A). `sb` reads the entity-to-item link, `db` is the
+ *  scripts/lib/db.mjs module (reads the open question flags, writes through its guarded insert). Pure
+ *  orchestration over injected clients, so it is provable with fakes. @param {{mode:"dry"|"apply", result:object, sb:object, db:object}} args */
+export async function questionsOnChangeStep({ mode, result, sb, db }) {
+  const deps = {
+    readEntityLinks: buildEntityItemsReader(sb),
+    ...buildTriggerQuestionsDeps(db, { cite: QUESTIONS_ON_CHANGE_CITE }),
+  };
+  return runQuestionsOnChange({ mode, events: result?.processedEvents ?? [], deps });
+}
+
+/** The questions-on-change counts as flat run-artifact metrics, under `prefix` (qoc_ for the run's own
+ *  events, qoc_replayed_ for replayed ones). PURE. `questions_raised` is what apply mode wrote, and in dry
+ *  mode what it would write (same number by construction). A null summary yields {}. */
+export function questionsOnChangeMetrics(summary, prefix = "qoc_") {
+  if (!summary) return {};
+  const c = summary.counts ?? {};
+  return {
+    [`${prefix}events_seen`]: c.events_seen ?? 0,
+    [`${prefix}events_mapped`]: c.events_mapped ?? 0,
+    [`${prefix}items_affected`]: c.items_affected ?? 0,
+    [`${prefix}questions_raised`]: c.new ?? 0,
+    [`${prefix}questions_deduplicated`]: (c.already_open ?? 0) + (c.deduped_in_batch ?? 0),
+    [`${prefix}items_capped`]: c.items_dropped_by_cap ?? 0,
+    [`${prefix}events_no_entity`]: c.events_no_entity ?? 0,
+    [`${prefix}events_unmapped`]: c.events_unmapped ?? 0,
+    [`${prefix}read_errors`]: c.read_errors ?? 0,
+  };
+}
+
+/** Longest list of unfinished event ids recorded verbatim on an artifact. */
+export const UNFINISHED_ID_CAP = 500;
+
+/** The unfinished-event-ids metrics: a bounded list, the full count, and min and max id (so a capped list
+ *  is still replayable by range). PURE. @param {Array<number|string>} ids */
+export function unfinishedMetrics(ids) {
+  const sorted = [...new Set((ids ?? []).map(Number))].filter(Number.isFinite).sort((a, b) => a - b);
+  return {
+    qoc_unfinished_count: sorted.length,
+    qoc_unfinished_event_ids: sorted.slice(0, UNFINISHED_ID_CAP),
+    qoc_unfinished_capped: sorted.length > UNFINISHED_ID_CAP,
+    qoc_unfinished_min_id: sorted.length ? sorted[0] : null,
+    qoc_unfinished_max_id: sorted.length ? sorted[sorted.length - 1] : null,
+  };
+}
+
+/** Unfinished event ids recorded by the most recent run in a readRunHistory() result. PURE. */
+export function unfinishedIdsFromHistory(runs) {
+  const last = Array.isArray(runs) && runs.length ? runs[runs.length - 1] : null;
+  const ids = last?.metrics?.qoc_unfinished_event_ids;
+  return Array.isArray(ids) ? ids.map(Number).filter(Number.isFinite) : [];
+}
+
+/**
+ * The whole question phase of a run: replay first (ids the previous run of record left unfinished, or the
+ * manual range), then the drain, then the question step over the drain's own processed events. Returns the
+ * results, any errors (none thrown) and the unfinished event ids to record on this run's artifact.
+ * An id is finished only when apply mode ran its step to completion without a per-event failure for it; a
+ * dry run writes nothing, so replayed ids stay unfinished (carried forward) and the events it just
+ * considered were never drained, so they are not unfinished.
+ * @param {{mode:"dry"|"apply", sb:object, getDb:()=>Promise<object>, harnessRunsDir:string,
+ *   range?:{from:number,to:number}|null, drain?:(()=>Promise<object>)|null, readHistory?:Function}} args
+ */
+export async function orchestrateQuestions({ mode, sb, getDb, harnessRunsDir, range = null, drain = null, readHistory = readRunHistory }) {
+  const apply = mode === "apply";
+  const out = {
+    result: null, drainError: null,
+    replay: { events: [], summary: null, error: null },
+    qoc: { summary: null, error: null },
+    unfinishedIds: [],
+  };
+  const unfinished = new Set();
+
+  // 1. Replay, before the new events.
+  let replayIds = [];
+  try {
+    if (range) {
+      out.replay.events = await readOutboxEvents(sb, range);
+    } else {
+      replayIds = unfinishedIdsFromHistory(readHistory(harnessRunsDir).runs);
+      if (replayIds.length) out.replay.events = await readOutboxEvents(sb, { ids: replayIds });
+    }
+    out.replay.summary = out.replay.events.length
+      ? await questionsOnChangeStep({ mode, result: { processedEvents: out.replay.events }, sb, db: await getDb() })
+      : { counts: {} };
+  } catch (err) {
+    out.replay.error = err;
+  }
+  const replayAll = range ? out.replay.events.map((e) => e.eventId) : replayIds;
+  const replayFailed = out.replay.summary?.failed_event_ids ?? [];
+  if (out.replay.error) {
+    if (apply || !range) replayAll.forEach((id) => unfinished.add(Number(id)));
+  } else if (apply) {
+    replayFailed.forEach((id) => unfinished.add(Number(id)));
+  } else if (!range) {
+    replayAll.forEach((id) => unfinished.add(Number(id)));
+  }
+
+  // 2. The drain and the step over its own events (not in manual range mode).
+  if (drain) {
+    try {
+      out.result = await drain();
+    } catch (err) {
+      out.drainError = err;
+    }
+    if (out.result) {
+      const events = out.result.processedEvents ?? [];
+      try {
+        out.qoc.summary = await questionsOnChangeStep({ mode, result: out.result, sb, db: await getDb() });
+      } catch (err) {
+        out.qoc.error = err;
+      }
+      if (apply) {
+        const failed = out.qoc.error ? events.map((e) => e.eventId) : (out.qoc.summary?.failed_event_ids ?? []);
+        failed.forEach((id) => unfinished.add(Number(id)));
+      }
+    }
+  }
+  out.unfinishedIds = [...unfinished].sort((a, b) => a - b);
+  return out;
+}
+
 /** Build this run's per_item / metrics from a DrainResult. PURE (no I/O) so the shaping is independently
  *  testable, matching run-source-sweep.mjs's own shapeRunOutput. `reportPath` is where the full DrainResult
- *  was written on disk (the artifact's full_trace_refs pointer). */
-export function shapeRunOutput(result, reportPath) {
+ *  was written on disk (the artifact's full_trace_refs pointer). `questionsOnChange` (optional) is the
+ *  questions-on-change summary, merged into metrics as qoc_* keys. */
+export function shapeRunOutput(result, reportPath, questionsOnChange = null, extraMetrics = {}) {
   const perItem = [
     {
       id: `queue-depth-${result.queueDepthBefore}`,
@@ -178,6 +347,8 @@ export function shapeRunOutput(result, reportPath) {
     skipped_unknown_method: result.skippedUnknownMethod,
     skipped_method_refused: result.skippedMethodRefused,
     errors: result.errors.length,
+    ...questionsOnChangeMetrics(questionsOnChange),
+    ...extraMetrics,
   };
   return { perItem, metrics };
 }
@@ -202,7 +373,7 @@ async function main() {
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  const { mode, batch, triggerContext, trigger: explicitTrigger } = parsed;
+  const { mode, batch, triggerContext, trigger: explicitTrigger, questionsForEvents } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   const outDir = resolve(parsed.outDir || join(harnessRunsDir, "traces"));
 
@@ -210,29 +381,67 @@ async function main() {
   let result = null;
   let runError = null;
   let reportPath = null;
+  let questionsOnChange = null;
+  let questionsError = null;
+  let orchestrated = null;
   const startedAt = new Date().toISOString();
 
   try {
     runId = claimRunId(harnessRunsDir, "propagation");
 
-    result = await runPropagationDrain(sb, { caller: `run-propagation-drain:${runId}`, mode, batch });
+    // Replay of unfinished events, the drain, then questions on change over the drain's own events
+    // (orchestrateQuestions). A failure in the question phase never loses the drain's own result: it is
+    // recorded as a defect on the artifact below, its event ids are carried forward, and the exit code fails.
+    orchestrated = await orchestrateQuestions({
+      mode, sb, harnessRunsDir,
+      getDb: () => import("../lib/db.mjs"),
+      range: questionsForEvents,
+      drain: questionsForEvents ? null : () => runPropagationDrain(sb, { caller: `run-propagation-drain:${runId}`, mode, batch }),
+    });
+    if (orchestrated.drainError) throw orchestrated.drainError;
+    result = orchestrated.result;
+    questionsOnChange = orchestrated.qoc.summary;
+    questionsError = orchestrated.qoc.error;
 
     mkdirSync(outDir, { recursive: true });
     reportPath = join(outDir, `${runId}.report.json`);
-    writeFileSync(reportPath, JSON.stringify(result, null, 2) + "\n", "utf8");
+    writeFileSync(reportPath, JSON.stringify(result ?? { mode, questions_for_events: questionsForEvents }, null, 2) + "\n", "utf8");
     console.log(`Wrote ${reportPath}`);
-    console.log(`${mode === "dry" ? "[dry-run] " : ""}${JSON.stringify(result, null, 2)}`);
+    if (result) console.log(`${mode === "dry" ? "[dry-run] " : ""}${JSON.stringify(result, null, 2)}`);
+    if (orchestrated.replay.summary) console.log(`${mode === "dry" ? "[dry-run] " : ""}questions-on-change replay (${orchestrated.replay.events.length} event(s)): ${JSON.stringify(orchestrated.replay.summary.counts)}`);
+    if (questionsOnChange) console.log(`${mode === "dry" ? "[dry-run] " : ""}questions-on-change: ${JSON.stringify(questionsOnChange.counts)}`);
   } catch (err) {
     runError = err;
   } finally {
     if (runId) {
       const harnessVersion = hashHarnessVersion(PROPAGATION_GOVERNING_FILES, FSI_ROOT);
-      const shaped = result && reportPath ? shapeRunOutput(result, reportPath) : null;
+      const qocExtra = orchestrated
+        ? {
+            ...unfinishedMetrics(orchestrated.unfinishedIds),
+            qoc_replayed_events: orchestrated.replay.events.length,
+            ...questionsOnChangeMetrics(orchestrated.replay.summary, "qoc_replayed_"),
+          }
+        : {};
+      const shaped = result && reportPath ? shapeRunOutput(result, reportPath, questionsOnChange, qocExtra) : null;
       const defectsFound = [];
       if (runError) {
         defectsFound.push({
           description: `run-propagation-drain.mjs threw during a ${mode} run: ${runError.message}`,
           root_cause: runError.stack ?? "",
+          fix_ref: null,
+        });
+      }
+      if (orchestrated?.replay.error) {
+        defectsFound.push({
+          description: `questions-on-change replay of unfinished events threw: ${orchestrated.replay.error.message}`,
+          root_cause: orchestrated.replay.error.stack ?? "",
+          fix_ref: null,
+        });
+      }
+      if (questionsError) {
+        defectsFound.push({
+          description: `questions-on-change threw after the ${mode} drain: ${questionsError.message}`,
+          root_cause: questionsError.stack ?? "",
           fix_ref: null,
         });
       }
@@ -282,7 +491,7 @@ async function main() {
         },
         inputs_ref: [`mode=${mode}`, `batch=${batch}`],
         per_item: shaped?.perItem ?? [],
-        metrics: shaped?.metrics ?? {},
+        metrics: shaped?.metrics ?? qocExtra,
         defects_found: defectsFound,
         full_trace_refs: reportPath ? [reportPath] : [harnessRunsDir],
         proposer_notes: runError
@@ -296,6 +505,11 @@ async function main() {
 
   if (runError) {
     console.error(`run-propagation-drain: FAILED — ${runError.message}`);
+    process.exit(1);
+  }
+  const phaseError = questionsError ?? orchestrated?.replay.error;
+  if (phaseError) {
+    console.error(`run-propagation-drain: questions-on-change FAILED: ${phaseError.message}`);
     process.exit(1);
   }
   process.exit(0);

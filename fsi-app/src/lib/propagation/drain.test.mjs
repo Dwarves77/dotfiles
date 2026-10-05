@@ -468,3 +468,49 @@ test("runPropagationDrain: batch caps how many undrained events one call conside
   assert.equal(result.queueDepthBefore, 5); // depth is the FULL queue...
   assert.equal(result.eventsConsidered, 2); // ...but only `batch` are processed this call
 });
+
+// ── processedEvents (lane L4-A, 2026-10-05): the runner raises questions on change from these ────────
+
+test("runPropagationDrain: processedEvents carries event id, table, pk, entity and change_kind in dry mode (nothing drained)", async () => {
+  const sb = fakeClient({
+    tables: {
+      propagation_events: [
+        { event_id: 1, table_name: "derived_values", row_pk: "dv-1", entity_id: "cl:jurisdiction:aaaaaaaaaaaaaaaa", change_kind: "update", occurred_at: "2026-09-01T00:00:00Z", drained_at: null },
+        { event_id: 2, table_name: "emission_factors", row_pk: "ef-1", entity_id: null, change_kind: "supersede", occurred_at: "2026-09-01T00:00:01Z", drained_at: null },
+      ],
+    },
+    rpcHandlers: { invalidate_dependents: invalidateHandler({}) },
+  });
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "dry" });
+  assert.deepEqual(result.processedEvents, [
+    { eventId: 1, tableName: "derived_values", rowPk: "dv-1", entityId: "cl:jurisdiction:aaaaaaaaaaaaaaaa", changeKind: "update", occurredAt: "2026-09-01T00:00:00Z" },
+    { eventId: 2, tableName: "emission_factors", rowPk: "ef-1", entityId: null, changeKind: "supersede", occurredAt: "2026-09-01T00:00:01Z" },
+  ]);
+  assert.equal(result.eventsDrained, 0);
+});
+
+test("runPropagationDrain: in apply mode only an event that was invalidated and marked drained is a processed event", async () => {
+  const sb = fakeClient({
+    tables: {
+      propagation_events: [
+        { event_id: 1, table_name: "derived_values", row_pk: "ok", entity_id: "cl:jurisdiction:aaaaaaaaaaaaaaaa", change_kind: "update", occurred_at: "2026-09-01T00:00:00Z", drained_at: null },
+        { event_id: 2, table_name: "derived_values", row_pk: "bad", entity_id: "cl:jurisdiction:aaaaaaaaaaaaaaaa", change_kind: "update", occurred_at: "2026-09-01T00:00:01Z", drained_at: null },
+      ],
+      derived_values: [],
+      inference_records: [],
+    },
+    rpcHandlers: {
+      invalidate_dependents: ({ p_pk }) => (p_pk === "bad" ? { data: null, error: { message: "boom" } } : { data: 0, error: null }),
+    },
+  });
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "apply" });
+  assert.deepEqual(result.processedEvents.map((e) => e.eventId), [1]);
+  assert.equal(result.eventsDrained, 1);
+  assert.equal(result.errors.length, 1);
+});
+
+test("runPropagationDrain: an empty queue has an empty processedEvents list", async () => {
+  const sb = fakeClient({ tables: { propagation_events: [] } });
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "dry" });
+  assert.deepEqual(result.processedEvents, []);
+});
