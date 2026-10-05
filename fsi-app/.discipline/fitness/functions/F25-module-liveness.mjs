@@ -639,19 +639,6 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)',
   },
 
-  // ── Newly coupled by Wave A4 (2026-08-31), not itself on the audit's dead-code manifest ──
-  {
-    file: 'fsi-app/src/lib/credibility/chip-selection.mjs',
-    reason:
-      'Was WORKING-WIRED at audit time (full-read-2026-08-31/L11-lib-C.md: "confirmed consumed by BiasBadge.tsx") — ' +
-      'its only production importer. BiasBadge.tsx was itself confirmed dead (zero importers of BiasBadge.tsx) and ' +
-      'deleted in the same Wave A4 PR as part of the whole credibility/ subsystem, which orphans this module as a ' +
-      'side effect. Not on the audit\'s §5 manifest, so not deleted here — the well-tested (8 cases, not vacuous per ' +
-      'the same lane report) selectBiasChipsForDisplay implementation is left in place pending a call on whether it ' +
-      'has another home to wire into or should be deleted with its test in a follow-up.',
-    reviewByPhase: 'dormant-capability ruling (operator: wire selectBiasChipsForDisplay elsewhere, or delete module + chip-selection.test.mjs together)',
-  },
-
   // Meta-harness substrate entry (scripts/lib/run-artifact.mjs) REMOVED (Wave MH-2, 2026-09-01): the
   // wiring it was waiting on landed on schedule — screen-worklist.mjs now imports writeRunArtifact/
   // hashHarnessVersion from it directly (its own execution path, per build plan §2's "emission is in the

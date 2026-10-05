@@ -326,3 +326,22 @@ test("the bias legend renders the whole vocabulary with human labels, grouped by
   assert.match(t, /Funding/);
   assert.match(t, /Position/);
 });
+
+// ── Operations matrix fact cards (density="matrix") ───────────────────────────────────────────
+
+const MATRIX_FACT = { label: "Warehouse rent", value: "12.4", sourceName: "Statistics Office", sourceUrl: "https://example.org/s", sourceNote: null };
+
+test("a matrix fact whose source is rated shows that tier, with the override already applied by the loader", () => {
+  const sourceTier = M.customerSourceTier({ tier_override: 2, effective_tier: 4, base_tier: 5 });
+  const markup = html(h(M.FactCard, { density: "matrix", fact: { ...MATRIX_FACT, sourceTier }, baseFact: null }));
+  assert.match(markup, /title="Tier 2 - provenance, never urgency"/);
+  assert.doesNotMatch(markup, /tier-absence/);
+});
+
+test("a matrix fact with an unrated or unsourced source shows the Absence part, never a tier", () => {
+  for (const f of [{ ...MATRIX_FACT, sourceTier: null }, { ...MATRIX_FACT }, { ...MATRIX_FACT, sourceName: null, sourceUrl: null, sourceTier: null }]) {
+    const markup = html(h(M.FactCard, { density: "matrix", fact: f, baseFact: null }));
+    assert.match(markup, /data-part-slot="tier-absence"/);
+    assert.doesNotMatch(markup, /title="Tier \d/);
+  }
+});

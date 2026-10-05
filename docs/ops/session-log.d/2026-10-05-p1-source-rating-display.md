@@ -109,18 +109,10 @@ when it has no data. They cannot sit in a row's meta line and cannot honour "ren
 - Artboard 06 (research list): the credibility legend gains the source bias vocabulary legend.
 
 ### NOT done (each with its reason)
-- NEEDS WRITE-SET EXPANSION, `fsi-app/src/components/list-surface/ListSurfaceRailCards.tsx` line 566: the list
-  pages' Legend rail card still says "T1 binding law -> T6 commentary". The fix is the same one-liner as the other
-  two legends: `{tierScaleSpan("→")}` imported from `@/lib/customer-source-tier`.
-- NEEDS WRITE-SET EXPANSION, `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs` (entry near line 644):
-  `chip-selection.mjs` now has a production importer, so F25 reports "STALE ALLOWLIST" and requires that its
-  `LEGACY_ALLOWLIST` entry be removed (the entry's own reason says the operator ruled "wire
-  selectBiasChipsForDisplay elsewhere"). Run locally: F25 is the one fitness function red on this branch.
+- (Closed after coordinator ruling on PR 944.) `ListSurfaceRailCards.tsx` legend now uses `tierScaleSpan`; a grep of src/components and src/app finds no other customer text naming T6 as the top of the scale. The F25 `LEGACY_ALLOWLIST` entry for `chip-selection.mjs` is deleted: the operator ruling it cited ("wire selectBiasChipsForDisplay elsewhere") is closed by this PR, which wires it through `bias-display.mjs`.
+- Operations matrix fact cards now show the source's customer tier (or the Absence part): the existing `source:sources(...)` join in `fetchOperationsCoverage` selects the three tier columns, `source_tier` is mapped through `customerSourceTier`, `RegionDimensionMatrix` passes `sourceTier`, the matrix `FactCard` draws it. No new query. Tests: a rated and an unrated fact in `source-rating-display.npmtest.mjs`.
 - Sources grid entries other than the item's own registered source carry no bias and keep the tier the brief text
-  was written with: the parsed list has no source id, and no entry-to-registry resolver exists.
-- Operations matrix fact cards (`FactCard density="matrix"`, regional_data_facts) still show no tier: those rows are
-  not grounded claims and the region-grid loader does not select a source tier. Needs a loader change outside this
-  write set.
+  was written with: the parsed list has no source id. What would supply it: a loader read of `intelligence_item_citations` (item to source ids, migration 089) joined to `sources` and matched to each entry by canonical url, in `fetchIntelligenceItemUncached`, plus a typed field on Resource.
 - At 768 to 1023 px the title column is narrow (169 px at 768), so row chips ellipsise heavily; the count stays.
 - Claim matching against live rows is unverified (see Decisions). No live read was possible.
 - `ProvisionalReviewCard.tsx` and the admin parts pages were not touched (no new part had to be shown there).

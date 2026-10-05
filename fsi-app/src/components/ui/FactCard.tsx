@@ -393,6 +393,8 @@ export function claimAfterHeadline(description: string, prose: string | null): s
 function MatrixFactCardBody({ fact: f, baseFact }: { fact: Record<string, unknown>; baseFact: Record<string, unknown> | null }) {
   const url = (f.sourceUrl as string) ?? sourceUrlFromNote(f.sourceNote);
   const name = (f.sourceName as string) ?? sourceNameFromNote(f.sourceNote);
+  // Lane P1: the source's customer tier, or the Absence part in the same slot when it is unrated.
+  const sourceTier = typeof f.sourceTier === "number" ? f.sourceTier : null;
   const { figure, description, prose } = factHeadline(f);
   const idx = baseFact ? indexAgainstBase(f, baseFact) : null;
   // The source line's third element: the provenance word the artboard draws ("official"). It is the
@@ -506,6 +508,9 @@ function MatrixFactCardBody({ fact: f, baseFact }: { fact: Record<string, unknow
           name, the period the figure is FOR, and then the row's provenance word when it carries one
           or the date the row was written when it does not. */}
       <div data-audit="ops-fact-source" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", marginTop: 8, overflowWrap: "anywhere" }}>
+        <span style={{ display: "inline-flex", verticalAlign: "middle", marginRight: 6 }}>
+          {sourceTier != null ? <TierSquare tier={sourceTier} /> : <TierAbsence />}
+        </span>
         {name ? (
           url ? (
             <a

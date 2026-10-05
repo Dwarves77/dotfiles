@@ -2103,6 +2103,15 @@ interface SourceChipQueryRow {
   tier_override: number | null;
 }
 
+/** The embedded `sources` row of a regional_data_facts read (lane P1 adds the three tier columns). */
+interface OperationsFactSourceRow {
+  name: string;
+  url: string;
+  base_tier: number | null;
+  effective_tier: number | null;
+  tier_override: number | null;
+}
+
 interface CitationStatsQueryRow {
   source_id: string;
   citation_count: number | null;
@@ -3601,6 +3610,8 @@ export interface OperationsFact {
   trend: "up" | "down" | "flat" | null;
   source_name: string | null;
   source_url: string | null;
+  /** Lane P1: the customer tier of the fact's registered source (customerSourceTier), null when unrated or unsourced. */
+  source_tier: number | null;
   source_note: string | null;
   /**
    * DATE AND FRESHNESS (2026-08-12). The /operations masthead has claimed "every fact carries a source
@@ -3679,7 +3690,7 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         // called only from src/app/operations/page.tsx, a `force-dynamic` route, and is not wrapped in
         // unstable_cache anywhere in this module — so there is no cached payload shape for this select
         // to rotate a key for.
-        .select("region_id, dimension, fact_label, value, status, trend, source_note, last_updated, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period, source:sources(name, url)")
+        .select("region_id, dimension, fact_label, value, status, trend, source_note, last_updated, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period, source:sources(name, url, base_tier, effective_tier, tier_override)")
         .order("last_updated", { ascending: false }),
     ]);
 
@@ -3714,7 +3725,7 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
     const facts: OperationsFact[] = (factsRes.data || []).map((f: {
       region_id: string; dimension: string; fact_label: string; value: string; status: string | null;
       trend: string | null; source_note: string | null; last_updated: string | null;
-      source: { name: string; url: string } | { name: string; url: string }[] | null;
+      source: OperationsFactSourceRow | OperationsFactSourceRow[] | null;
       value_numeric: number | string | null; unit: string | null; currency: string | null;
       derivation: string | null; origin_class: string | null; source_key: string | null;
       source_ref: string | null; n_observations: number | null; method_version: string | null;
@@ -3739,6 +3750,7 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         trend: ["up", "down", "flat"].includes(f.trend || "") ? (f.trend as OperationsFact["trend"]) : null,
         source_name: src?.name ?? null,
         source_url: src?.url ?? null,
+        source_tier: customerSourceTier(src),
         source_note: f.source_note,
         last_updated: f.last_updated ?? null,
         freshness: freshness as OperationsFact["freshness"],
