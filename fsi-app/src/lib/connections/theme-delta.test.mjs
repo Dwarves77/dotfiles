@@ -122,3 +122,33 @@ test("malformed rows are dropped, not thrown", () => {
   const d = diffThemes([null, { id: 5 }, T("a", ["a", "b"])], [undefined, T("a", ["a", "b"])]);
   assert.equal(d.persisted.length, 1);
 });
+
+// ── lineageFromThemeDelta (lane S3-C): the prior-to-new id pairs a brief lookup can follow ──────────
+import { lineageFromThemeDelta, OVERLAP_THRESHOLD, overlapCoefficient } from "./theme-delta.mjs";
+
+test("lineageFromThemeDelta: renamed, split and merged entries become prior_id/new_id pairs", () => {
+  const delta = {
+    persisted: [{ prior_id: "p", new_id: "p", added: [], removed: [] }],
+    renamed: [{ prior_id: "b", new_id: "a", added: [], removed: [] }],
+    split: [{ prior_id: "s", new_ids: ["s1", "s2"] }],
+    merged: [{ new_id: "m", prior_ids: ["m1", "m2"] }],
+  };
+  const pairs = lineageFromThemeDelta(delta);
+  assert.deepEqual(pairs.sort((x, y) => (x.prior_id + x.new_id).localeCompare(y.prior_id + y.new_id)), [
+    { prior_id: "b", new_id: "a" },
+    { prior_id: "m1", new_id: "m" },
+    { prior_id: "m2", new_id: "m" },
+    { prior_id: "s", new_id: "s1" },
+    { prior_id: "s", new_id: "s2" },
+  ]);
+});
+
+test("lineageFromThemeDelta: null or empty input yields no pairs", () => {
+  assert.deepEqual(lineageFromThemeDelta(null), []);
+  assert.deepEqual(lineageFromThemeDelta({}), []);
+});
+
+test("OVERLAP_THRESHOLD and overlapCoefficient are the one shared definition", () => {
+  assert.equal(OVERLAP_THRESHOLD, 0.5);
+  assert.equal(overlapCoefficient(["a", "b"], ["b", "c", "d"]), 0.5);
+});

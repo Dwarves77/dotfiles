@@ -40,7 +40,7 @@
 // A theme classified split/merged is excluded from persisted/renamed (its "best match" is ambiguous by
 // definition — reported once, under its own bucket, not double-counted).
 
-const OVERLAP_THRESHOLD = 0.5;
+export const OVERLAP_THRESHOLD = 0.5;
 
 function normalize(themes) {
   const out = [];
@@ -52,7 +52,7 @@ function normalize(themes) {
   return out;
 }
 
-function overlapCoefficient(a, b) {
+export function overlapCoefficient(a, b) {
   const setA = new Set(a), setB = new Set(b);
   if (!setA.size || !setB.size) return 0;
   let inter = 0;
@@ -166,4 +166,26 @@ export function diffThemes(priorThemes, newThemes, opts = {}) {
       appeared: appeared.length,
     },
   };
+}
+
+/**
+ * The prior-to-new theme id pairs a brief lookup can follow (lane S3-C): every renamed entry, every split
+ * daughter and every merged parent of a diffThemes digest (the shape connection_theme_runs.theme_delta
+ * stores). A persisted theme keeps its id, so it has no pair. PURE.
+ * @param {object|null|undefined} delta - a diffThemes output, or a stored theme_delta jsonb
+ * @returns {Array<{prior_id:string,new_id:string}>}
+ */
+export function lineageFromThemeDelta(delta) {
+  const out = [];
+  if (!delta || typeof delta !== "object") return out;
+  for (const r of Array.isArray(delta.renamed) ? delta.renamed : []) {
+    if (r && r.prior_id && r.new_id) out.push({ prior_id: r.prior_id, new_id: r.new_id });
+  }
+  for (const s of Array.isArray(delta.split) ? delta.split : []) {
+    for (const n of Array.isArray(s?.new_ids) ? s.new_ids : []) if (s.prior_id && n) out.push({ prior_id: s.prior_id, new_id: n });
+  }
+  for (const m of Array.isArray(delta.merged) ? delta.merged : []) {
+    for (const p of Array.isArray(m?.prior_ids) ? m.prior_ids : []) if (m.new_id && p) out.push({ prior_id: p, new_id: m.new_id });
+  }
+  return out;
 }

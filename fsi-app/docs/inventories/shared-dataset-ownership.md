@@ -470,7 +470,8 @@ a CI dispatch root.
 | Writer | Status | Evidence |
 |---|---|---|
 | `src/lib/research/theme-brief.mjs` | **NOT a writer — read-only** (corrected 2026-09-05; see above) | `grep -n "guardedInsert\|guardedUpdate\|\.from(" src/lib/research/theme-brief.mjs` → 0 matches |
-| `scripts/connections/generate-theme-brief.mjs` | **The sole live writer**, now CI-dispatched | `guardedInsert`/`guardedUpdate` calls (lines 235/238 of that file); 9 live rows, `generated_by='session-executor'` |
+| `scripts/turns/apply-theme-briefs.mjs` | **The sole writer** (lane S3-C, 2026-10-04): `writeThemeBriefRow` calls `guardedInsert`/`guardedUpdate`, after the pure validator in `scripts/turns/theme-briefs/schema.mjs`; dispatched by `.github/workflows/theme-briefs.yml` | `generated_by` is the batch name; `SHARED-WRITER: theme_briefs` header on the file |
+| `scripts/connections/generate-theme-brief.mjs` | **No longer a writer** (S3-C): `--write` routes through `writeThemeBriefRow` in the apply script, same validator and writer; it still serves the `maintenance.yml` single-theme step | no `guardedInsert`/`guardedUpdate` call and no `SHARED-WRITER` header left in the file; legacy payloads still land with `generated_by='session-executor'`; 9 rows from 2026-08-21 carry that value |
 
 ### `section_claim_provenance` — a 9th shared dataset found by evidence, not on the operator's seed list
 

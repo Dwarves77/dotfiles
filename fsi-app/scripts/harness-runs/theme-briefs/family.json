@@ -1,0 +1,14 @@
+{
+  "family": "theme-briefs",
+  "registered": "2026-10-04",
+  "registered_by": "lane S3-C",
+  "governing_files": [
+    "../.github/workflows/theme-briefs.yml",
+    "scripts/turns/export-themes-for-briefs.mjs",
+    "scripts/turns/apply-theme-briefs.mjs",
+    "scripts/turns/theme-briefs/schema.mjs",
+    "scripts/turns/theme-briefs/data.mjs",
+    "scripts/turns/theme-briefs/artifact.mjs"
+  ],
+  "rationale": "theme-briefs (lane S3-C, 2026-10-04): a theme brief is where the system says what a connection between items on several pages means over the long term and what follows from it for a reader of each page. The flow is the record-briefs pattern applied to themes: a read-only export lists every theme with no brief or a stale one and writes a bundle (members, grounded claims, forward events, edges with their basis, gaps) for a session lane to author from; the lane commits a theme-briefs-NNN.json batch; the apply step validates every entry against live membership and live claims (whole-entry refusals) and writes theme_briefs through the guarded path. One run is one export or one apply, told apart by config.action. Governing files are the workflow, the two runtimes, the pure validator (schema.mjs), the shared reads and bundle assembly (data.mjs) and the artifact writer (artifact.mjs); the continuity lookup (resolveBriefForTheme) lives in src/lib/connections/brief-staleness.mjs, shared with the Research reader, and is not hashed here."
+}
