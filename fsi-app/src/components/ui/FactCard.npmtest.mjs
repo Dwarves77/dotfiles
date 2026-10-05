@@ -30,7 +30,9 @@ test("FactCard takes a FactCardModel prop (default density), imported from the o
   // standalone MatrixFactCard). One exported FactCard, two prop shapes, never two components.
   assert.match(SOURCE, /type FactCardProps =\s*\n\s*\| \{ density\?: undefined; model: FactCardModel \}\s*\n\s*\| \{ density: "matrix"; fact: Record<string, unknown>; baseFact: Record<string, unknown> \| null \};/);
   assert.match(SOURCE, /export function FactCard\(props: FactCardProps\)/);
-  assert.match(SOURCE, /const \{ model \} = props;/);
+  // Lane P1 (2026-10-05): the model is now resolved through the surface's claim-tier context before render
+  // (a brief-grade card gets its grounded source's tier); with no provider it is props.model unchanged.
+  assert.match(SOURCE, /const model = claimTiers \? withClaimTiers\(props\.model, claimTiers\) : props\.model;/);
 });
 
 test("kind band: 10.5px/800/.12em uppercase kind word, 10.5px muted qualifier, 6px 14px padding, 1px rgba(0,0,0,.06) rule below", () => {
@@ -91,10 +93,12 @@ test("provenance column: gap 2, no padding-top, 1.45 line-height, tier square in
   assert.doesNotMatch(colBlock, /maxHeight/, "sign-off 2026-09-22 correction 1: the column is not clipped");
   assert.doesNotMatch(colBlock, /overflow:/, "sign-off 2026-09-22 correction 1: the column is not clipped");
   assert.match(SOURCE, /PROVENANCE_TEXT[\s\S]*?lineHeight: 1\.45,/);
-  // Tier square and source name render inside the SAME <p>, not two separate stacked blocks.
+  // Tier square and source name render inside the SAME <p>, not two separate stacked blocks. Lane P1
+  // (2026-10-05): where there is no tier the SAME slot holds the Absence part (the narrow tier slot, dash
+  // form), so the column keeps its four-line budget and never shows a guessed tier.
   assert.match(
     SOURCE,
-    /<p style=\{\{ \.\.\.PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 \}\}>\s*\n\s*\{typeof p\.tier === "number" && <TierSquare tier=\{p\.tier\} \/>\}\s*\n\s*\{p\.source && <span>\{p\.source\}<\/span>\}/
+    /<p style=\{\{ \.\.\.PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 \}\}>\s*\n\s*\{typeof p\.tier === "number" \? <TierSquare tier=\{p\.tier\} \/> : <TierAbsence \/>\}\s*\n\s*\{p\.source && <span>\{p\.source\}<\/span>\}/
   );
 });
 

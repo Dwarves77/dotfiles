@@ -8,6 +8,9 @@ import {
   toClaimNodes,
   countNoLeadCards,
   mergeAdjacentSameKind,
+  withClaimTiers,
+  resolveClaimTier,
+  normalizeClaimText,
 } from "./fact-card-model.ts";
 import { classifyParagraph } from "./fact-paragraphs.ts";
 
@@ -376,4 +379,110 @@ test("parseFactCardModels applies the merge rule end to end: three consecutive S
   assert.equal(models.length, 1);
   assert.equal(models[0].kind, "SCOPE");
   assert.equal(models[0].additionalClaims.length, 2);
+});
+
+// ── Lane P1 (2026-10-05, CLAUDE.md rule 18): brief-grade claim tiers ─────────────────────────────
+
+const BRIEF_FACT =
+  'FACT: "The Regulation applies to all operators placing covered goods on the Union market from 1 January 2026." *Source: Regulation (EU) 2023/956, European Parliament, 2023. https://eur-lex.europa.eu/eli/reg/2023/956/oj.*';
+
+function briefModel() {
+  const [m] = deriveFactCardModels(classifyParagraph(BRIEF_FACT));
+  return m;
+}
+
+test("P1: a brief-grade fact whose claim is grounded gets that source's tier", () => {
+  const map = {
+    "[scope] FACT: The Regulation applies to all operators placing covered goods on the Union market from 1 January 2026.": {
+      tier: 1,
+      sourceName: "EUR-Lex",
+      sourceUrl: "https://eur-lex.europa.eu/eli/reg/2023/956/oj",
+    },
+  };
+  const out = withClaimTiers(briefModel(), map);
+  assert.equal(out.provenance.tier, 1);
+  // the inline citation's own fields are kept, the tier is added
+  assert.equal(out.provenance.source, "Regulation (EU) 2023/956");
+  assert.equal(out.provenance.href, "https://eur-lex.europa.eu/eli/reg/2023/956/oj");
+});
+
+test("P1: a brief-grade fact with no grounded claim keeps tier null (the card renders the Absence part)", () => {
+  const out = withClaimTiers(briefModel(), {
+    "A completely unrelated claim about something else entirely, never a match.": { tier: 2, sourceName: "X", sourceUrl: null },
+  });
+  assert.equal(out.provenance.tier ?? null, null);
+  assert.equal(withClaimTiers(briefModel(), {}).provenance.tier ?? null, null);
+  assert.equal(withClaimTiers(briefModel(), null).provenance.tier ?? null, null);
+});
+
+test("P1: a claim grounded in a source with no tier contributes no tier, and never a guess", () => {
+  const out = withClaimTiers(briefModel(), {
+    "The Regulation applies to all operators placing covered goods on the Union market from 1 January 2026.": { tier: null, sourceName: "Unrated", sourceUrl: null },
+  });
+  assert.equal(out.provenance.tier ?? null, null);
+});
+
+test("P1: matches that disagree on the source give NO tier (ambiguous is absent, never the best or the first)", () => {
+  const text = "The Regulation applies to all operators placing covered goods on the Union market from 1 January 2026.";
+  const map = {
+    [text]: { tier: 1, sourceName: "EUR-Lex", sourceUrl: null },
+    [`[scope] ${text}`]: { tier: 5, sourceName: "A trade site", sourceUrl: null },
+  };
+  assert.equal(withClaimTiers(briefModel(), map).provenance.tier ?? null, null);
+  // the same source twice is not ambiguous
+  const same = { [text]: { tier: 1, sourceName: "EUR-Lex", sourceUrl: null }, [`[scope] ${text}`]: { tier: 1, sourceName: "EUR-Lex", sourceUrl: null } };
+  assert.equal(withClaimTiers(briefModel(), same).provenance.tier, 1);
+});
+
+test("P1: a short phrase never matches by containment", () => {
+  const out = withClaimTiers(briefModel(), { "applies to all": { tier: 1, sourceName: "EUR-Lex", sourceUrl: null } });
+  assert.equal(out.provenance.tier ?? null, null);
+});
+
+test("P1: an inference card is returned untouched, and a record-grade tier is never overwritten", () => {
+  const [inf] = deriveFactCardModels(classifyParagraph("*Analytical inference:* The Regulation will likely extend to downstream goods by 2028."));
+  const map = { "The Regulation will likely extend to downstream goods by 2028.": { tier: 1, sourceName: "EUR-Lex", sourceUrl: null } };
+  assert.equal(withClaimTiers(inf, map), inf);
+  const rated = { ...briefModel(), provenance: { source: "Direct", tier: 3 } };
+  const text = "The Regulation applies to all operators placing covered goods on the Union market from 1 January 2026.";
+  assert.equal(withClaimTiers(rated, { [text]: { tier: 1, sourceName: "EUR-Lex", sourceUrl: null } }).provenance.tier, 3);
+});
+
+test("P1: every stacked claim of a merged card resolves its own tier", () => {
+  const a = "Operators must register before the first shipment of covered goods into the Union.";
+  const b = "The declaration is due annually, by 31 May of the following calendar year, in the registry.";
+  const p = (t) => `FACT: "${t}" *Source: Reg, Body, 2023. https://example.org/x.*`;
+  const merged = mergeAdjacentSameKind([
+    ...deriveFactCardModels(classifyParagraph(p(a))),
+    ...deriveFactCardModels(classifyParagraph(p(b))),
+  ]);
+  assert.equal(merged.length, 1);
+  const out = withClaimTiers(merged[0], {
+    [a]: { tier: 2, sourceName: "Regulator", sourceUrl: null },
+    [b]: { tier: 4, sourceName: "Industry body", sourceUrl: null },
+  });
+  assert.equal(out.provenance.tier, 2);
+  assert.equal(out.additionalClaims[0].provenance.tier, 4);
+  // the input model is not mutated
+  assert.equal(merged[0].provenance.tier ?? null, null);
+});
+
+test("P1: normalizeClaimText strips slot prefix, FACT label, emphasis and edge quotes, and lower-cases", () => {
+  assert.equal(normalizeClaimText('[scope] FACT: "The **Act** applies."'), "the act applies.");
+  assert.equal(normalizeClaimText('**Effective date and jurisdictional scope - FACT:** "It applies."'), "it applies.");
+  assert.equal(resolveClaimTier("", { a: { tier: 1, sourceName: null, sourceUrl: null } }), null);
+});
+
+test("P1: the FACT label with a dash lead-in phrase is stripped (dash built from a code point, no glyph typed)", () => {
+  const dash = String.fromCharCode(0x2014);
+  assert.equal(normalizeClaimText(`**Effective date and scope ${dash} FACT:** "It applies."`), "it applies.");
+});
+
+test("P1: a record-grade card is never re-matched by containment (its exact-line rule stands)", () => {
+  const span = "The captured source states, verbatim: the instrument applies to all operators placing covered goods.";
+  const model = deriveRecordFactCardModel({ slotKey: "jurisdictional_scope", label: "Scope", span, sourceName: null, sourceUrl: null, tier: null });
+  assert.equal(model.recordGrade, true);
+  const out = withClaimTiers(model, { [span]: { tier: 2, sourceName: "Regulator", sourceUrl: null } });
+  assert.equal(out, model, "unmatched by its exact line stays unrated, never a partial match");
+  assert.equal(out.provenance.tier, null);
 });

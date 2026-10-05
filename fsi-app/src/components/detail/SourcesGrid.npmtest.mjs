@@ -24,7 +24,7 @@ test("parses the fullBrief '## Sources' block via the shared extractor, never a 
 
 test("falls back to a single synthetic row from the item's own url/sourceName/sourceTier fields, never fabricates a source", () => {
   const fn = SOURCE.slice(SOURCE.indexOf("export function sourceEntriesOf"), SOURCE.indexOf("export function SourcesGrid"));
-  assert.match(fn, /r\.url\s*\n?\s*\?\s*\[\{ tier:/);
+  assert.match(fn, /r\.url\s*\n?\s*\?\s*\[\s*\{\s*tier: typeof r\.sourceTier === "number" \? r\.sourceTier : null,/);
   assert.match(fn, /:\s*\[\]/); // empty array, never a placeholder row, when there is no url either
 });
 
@@ -33,7 +33,10 @@ test("tier is clamped to the customer-facing 1-7 range (DO-NOT-REVERT)", () => {
   assert.match(SOURCE, /Math\.min\(7, Math\.max\(1, Math\.round\(n\)\)\)/);
 });
 
-test("each row is one 44px-minimum click target, and the whole row (not just a sub-element) is the link when a url is present", () => {
+test("each row's tier-and-name cell is one 44px-minimum click target and the whole cell is the link when a url is present", () => {
   assert.match(SOURCE, /minHeight: 44/);
-  assert.match(SOURCE, /s\.url \? \(\s*<a key=\{i\} href=\{s\.url\}/);
+  // Lane P1 (2026-10-05): the cell is the link; the bias chips sit in the row wrapper OUTSIDE it (a
+  // control must not nest in an anchor), with the wrapper carrying the row divider.
+  assert.match(SOURCE, /const cell = s\.url \? \(\s*<a href=\{s\.url\}/);
+  assert.match(SOURCE, /data-part="source-row"/);
 });

@@ -10,6 +10,9 @@ import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 // literals below were this route's own hand-typed copies, named as known drift in model-ids.mjs's own
 // header comment.
 import { SONNET_MODEL } from "@/lib/llm/model-ids.mjs";
+// The one customer tier rule (admin override, else effective, else base): the tier the Assistant
+// states for a source is the tier the row chips and the Sources grid show.
+import { customerSourceTier } from "@/lib/customer-source-tier";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -122,6 +125,7 @@ type FetchedItem = {
     // render the dynamic credibility signal. Fall back to base_tier.
     base_tier: number | null;
     effective_tier: number | null;
+    tier_override: number | null;
   } | null;
 };
 
@@ -209,7 +213,8 @@ async function handlePOST(request: NextRequest) {
           name,
           url,
           base_tier,
-          effective_tier
+          effective_tier,
+          tier_override
         )
         `;
 
@@ -225,7 +230,7 @@ async function handlePOST(request: NextRequest) {
     // it after the retrieval block instead of paying a third sequential cross-region round trip.
     const sourcesPromise = supabase
       .from("sources")
-      .select("name, base_tier, effective_tier, status, update_frequency")
+      .select("name, base_tier, effective_tier, tier_override, status, update_frequency")
       .eq("status", "active")
       .order("base_tier")
       .limit(20);
@@ -421,8 +426,8 @@ async function handlePOST(request: NextRequest) {
     // for a human to read and easier for server-side validation.
     const itemsContext = items
       .map((i, idx) => {
-        // Phase 1.5: effective_tier per Assistant signal set; fall back to base_tier.
-        const sourceTier = i.source?.effective_tier ?? i.source?.base_tier ?? null;
+        // Customer tier per the Assistant signal set (customerSourceTier).
+        const sourceTier = customerSourceTier(i.source);
         const sourceLabel = i.source?.name
           ? `${i.source.name} (Tier ${sourceTier ?? "?"})`
           : "no canonical source on record";
@@ -452,8 +457,8 @@ async function handlePOST(request: NextRequest) {
 
     const sourcesContext =
       (sources ?? [])
-        // Phase 1.5: effective_tier per Assistant signal set; fall back to base_tier.
-        .map((s) => `- ${s.name} (Tier ${s.effective_tier ?? s.base_tier}, ${s.status}, updates ${s.update_frequency})`)
+        // Customer tier per the Assistant signal set (customerSourceTier).
+        .map((s) => `- ${s.name} (Tier ${customerSourceTier(s) ?? "?"}, ${s.status}, updates ${s.update_frequency})`)
         .join("\n") || "No sources available";
 
     // Request-varying tail (UNCACHED second system block). The static instructions + embedded skill
@@ -534,8 +539,8 @@ ${operationsContext}`;
             source_id: match.source?.id ?? match.source_id ?? null,
             source_url: match.source_url ?? match.source?.url ?? null,
             source_name: match.source?.name ?? null,
-            // Phase 1.5: effective_tier per Assistant signal set; fall back to base_tier.
-            source_tier: match.source?.effective_tier ?? match.source?.base_tier ?? null,
+            // Customer tier per the Assistant signal set (customerSourceTier).
+            source_tier: customerSourceTier(match.source),
             citation_count: null,
             recency: null,
           });

@@ -43,7 +43,7 @@ import {
   measureBoundsSweep,
   assertBoundsClean,
 } from './harness.mjs';
-import { fullAppCss } from './smoke-fixtures.mjs';
+import { fullAppCss, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): RegulationsLedger.tsx now calls
 // useSearchParams() (next/navigation) inside its own SearchParamsFilterBridge sub-component — reading
@@ -157,7 +157,7 @@ function reg(i, { long = false } = {}) {
     added: '2026-08-01',
     jurisdiction: 'EU',
     jurisdictionIso: ['EU'],
-    sourceTier: 3,
+    sourceTier: i % 2 === 0 ? 7 : 3, // lane P1: a T7 source on every other row
     // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): these three fields are what
     // RegulationsLedger's new CredibilityChipEvidence/Authority mounts and RecordGradeBadge
     // actually render from — without them here the smoke spec would still pass (both chips
@@ -167,7 +167,7 @@ function reg(i, { long = false } = {}) {
     // bytesPerScrollPage evidence): most rows record-grade with a citation count, one in
     // three flagged for bias.
     citationCount: i % 4 === 0 ? null : 2,
-    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
+    biasTags: i % 3 === 0 ? SMOKE_BIAS_TAGS_FIVE : [],
     itemGrade: i % 5 === 4 ? undefined : 'record',
     reasoning: '',
     tags: [],

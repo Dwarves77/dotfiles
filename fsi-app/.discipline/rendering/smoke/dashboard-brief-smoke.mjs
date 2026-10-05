@@ -58,7 +58,7 @@ import { fileURLToPath } from 'node:url';
 import { MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, detectOverflows, findPlaceholderLiterals } from './harness.mjs';
-import { fullAppCss } from './smoke-fixtures.mjs';
+import { fullAppCss, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 
 // Lane BRIEFDATA (2026-09-08): <DashboardBrief/> calls `useRouter()` — the failure state's Retry
 // is a real `router.refresh()`, not a sentence telling the reader to refresh. The real hook reads
@@ -216,6 +216,8 @@ function briefRow(i, { long = false, changed = false, unscored = false } = {}) {
     dueDays: 116,
     timeline: [],
     tier: (i % 7) + 1,
+    // Lane P1: the source's bias chips on every other row (worst case: five tags, one lower confidence).
+    ...(i % 2 === 0 ? { biasTags: SMOKE_BIAS_TAGS_FIVE } : {}),
     ...(changed ? { isNew: true } : {}),
   };
 }

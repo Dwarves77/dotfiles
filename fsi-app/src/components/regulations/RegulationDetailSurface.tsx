@@ -76,6 +76,7 @@ import type { SourceEntry } from "@/lib/agent/extract-regulation-sections";
 import { sourceEntriesOf, SourcesGrid, clampTier } from "@/components/detail/SourcesGrid";
 import { jurisLabelOf, RecordFactCard } from "@/components/detail/primitives";
 import { ItemGroup } from "@/components/ui/ItemGroup";
+import { ClaimTierProvider } from "@/components/ui/FactCard";
 import {
   parseRecordSections,
   splitKeyDateFacts,
@@ -283,6 +284,7 @@ export function RegulationDetailSurface({
       band={band}
       kindLabel="Regulation"
       tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+      biasTags={r.biasTags}
       meta={actionCardMeta}
       onExport={() =>
         downloadMarkdownBrief(r, {
@@ -304,6 +306,7 @@ export function RegulationDetailSurface({
   );
 
   return (
+    <ClaimTierProvider claimTiers={claimTiers}>
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         {/* Lane W10-ActionCard-b (2026-09-22) + operator check 2 (lane PARITY-PARTS, 2026-09-24) +
@@ -436,6 +439,7 @@ export function RegulationDetailSurface({
         </DetailLayout>
       </DetailPageWrapper>
     </div>
+    </ClaimTierProvider>
   );
 }
 
