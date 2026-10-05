@@ -65,6 +65,7 @@ import {
   hashHarnessVersion,
 } from "../lib/run-artifact.mjs";
 import { writeProducerSummary } from "../producers/lib/producer-summary.mjs";
+import { loadOpenNeedTargets, needOfFlag } from "../turns/question-answers/data.mjs";
 import {
   FIXTURE_GREY_LIT_SOURCES,
   FIXTURE_OPENALEX_WORKS_RESPONSE,
@@ -123,6 +124,48 @@ export function normalizeOpenAlexWork(work) {
 export async function searchOpenAlexWorks({ query, perPage = 10 } = {}, deps = {}) {
   const body = await openAlexGet("/works", { search: query, per_page: perPage }, deps);
   return (body?.results ?? []).map(normalizeOpenAlexWork).filter(Boolean);
+}
+
+// ── Holdings needs (lane L4-B, 2026-10-05, ADR-044 decision 2) ───────────────────────────────────────────
+// A question the held source text cannot answer becomes ONE open holdings-need target (flag namespace
+// holdings-need:, written by scripts/turns/apply-question-answers.mjs) carrying the need in plain words. The
+// OpenAlex works search takes a free-text query and costs nothing, so this walker is the free discovery runtime
+// that can act on a need stated in words: each need is searched, and what it finds enters the SAME register,
+// rate and mint (dry-run) path as every other OpenAlex candidate, so a source that answers the need is minted
+// like any research finding and lands in the held pools the question export reads. Bounded
+// (MAX_HOLDINGS_NEEDS needs, HOLDINGS_NEED_PER_PAGE results each), dry by default, and it writes nothing to the
+// target: the target is closed by rule when the question is answered, not by being searched.
+
+export const MAX_HOLDINGS_NEEDS = 10;
+export const HOLDINGS_NEED_PER_PAGE = 5;
+
+/** Pure: the needs (subject_ref, need in words, item id, surface, product question) of open holdings-need
+ *  target flags, in subject_ref order, at most `max`. A flag without a structured need is skipped. */
+export function holdingsNeedsFromFlags(flags, max = MAX_HOLDINGS_NEEDS) {
+  return (Array.isArray(flags) ? flags : [])
+    .map(needOfFlag)
+    .filter(Boolean)
+    .sort((a, b) => a.subject_ref.localeCompare(b.subject_ref))
+    .slice(0, max);
+}
+
+/** The open holdings-need targets, bounded. @param {{readAll:Function}} deps */
+export async function readHoldingsNeeds(deps, max = MAX_HOLDINGS_NEEDS) {
+  return holdingsNeedsFromFlags(await loadOpenNeedTargets(deps), max);
+}
+
+/** Search OpenAlex once per need (the need in words is the query). A failed search is recorded on its need,
+ *  never thrown: the other needs still run. */
+export async function searchHoldingsNeeds(needs, { perNeed = HOLDINGS_NEED_PER_PAGE } = {}, deps = {}) {
+  const out = [];
+  for (const n of needs) {
+    try {
+      out.push({ ...n, candidates: await searchOpenAlexWorks({ query: n.need, perPage: perNeed }, deps), error: null });
+    } catch (err) {
+      out.push({ ...n, candidates: [], error: String(err?.message ?? err) });
+    }
+  }
+  return out;
 }
 
 // ── Grey-literature source registration (rule 18) ────────────────────────────────────────────────────
@@ -280,10 +323,31 @@ export async function runWalk({
   hostVerdicts = new Map(),
   registerSourceFn,
   openAlexCandidatesOverride,
+  holdingsNeeds = [],
+  maxHoldingsNeeds = MAX_HOLDINGS_NEEDS,
 }) {
-  const openAlexCandidates =
+  const topicCandidates =
     openAlexCandidatesOverride ?? (await searchOpenAlexWorks({ query: openAlexQuery, perPage: 10 }, openAlexDeps));
+  const needResults = await searchHoldingsNeeds(holdingsNeeds.slice(0, maxHoldingsNeeds), {}, openAlexDeps);
+  const seenUrls = new Set(topicCandidates.map((c) => c.sourceUrl));
+  const needCandidates = [];
+  for (const nr of needResults) {
+    for (const c of nr.candidates) {
+      if (seenUrls.has(c.sourceUrl)) continue;
+      seenUrls.add(c.sourceUrl);
+      needCandidates.push({ ...c, forNeed: nr.subject_ref });
+    }
+  }
+  const openAlexCandidates = [...topicCandidates, ...needCandidates];
   const perItem = [];
+  for (const nr of needResults) {
+    perItem.push({
+      id: `need:${nr.subject_ref}`,
+      outcome: nr.error ? "need-search-failed" : `need-searched (${nr.candidates.length} candidate(s))`,
+      verdict: nr.need,
+      error: nr.error,
+    });
+  }
   const greyLitResults = [];
   const registeredSources = [];
 
@@ -363,6 +427,9 @@ export async function runWalk({
   return {
     perItem,
     metrics: {
+      holdings_needs_searched: needResults.length,
+      holdings_need_candidates: needCandidates.length,
+      holdings_needs_without_candidates: needResults.filter((nr) => nr.candidates.length === 0).length,
       grey_lit_sources: greyLitSources.length,
       grey_lit_resolved: greyLitResults.filter((r) => r.ok).length,
       candidates: candidates.length,
@@ -382,6 +449,9 @@ async function main() {
   const args = process.argv.slice(2);
   const dispatch = args.includes("--dispatch");
   const live = args.includes("--live");
+  const needsFileIdx = args.indexOf("--holdings-needs-file");
+  const needsFile = needsFileIdx >= 0 ? args[needsFileIdx + 1] : null;
+  const readNeedsFromDb = args.includes("--holdings-needs");
 
   const decision = decideApply({
     dispatch,
@@ -401,7 +471,22 @@ async function main() {
       "A live dispatch is a separately-authorized coordinator action after this lane merges.");
   }
 
-  console.log(`${WALKER_NAME}: fixture run (no --live), mode=dry -- zero network, zero DB credential.`);
+  // Open holdings-need targets as search inputs (lane L4-B): from a fixture file (offline) or read from the
+  // database (needs credentials). Reads only; nothing is written to a target.
+  let holdingsNeeds = [];
+  if (needsFile) {
+    const { readFileSync } = await import("node:fs");
+    holdingsNeeds = holdingsNeedsFromFlags(JSON.parse(readFileSync(resolvePath(needsFile), "utf8")));
+  } else if (readNeedsFromDb) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error(`${WALKER_NAME}: --holdings-needs reads open targets from the database and needs credentials (exit 2).`);
+      process.exit(2);
+    }
+    const db = await import("../lib/db.mjs");
+    holdingsNeeds = await readHoldingsNeeds({ readAll: db.readAll });
+  }
+
+  console.log(`${WALKER_NAME}: fixture run (no --live), mode=dry -- zero network, zero DB credential${holdingsNeeds.length ? `; ${holdingsNeeds.length} holdings need(s) as search input` : ""}.`);
   // The committed fixture response, served through a deps.fetch stub -- so this run exercises L3's
   // real openAlexGet (mailto, retry/backoff, JSON parse) end to end, never a shortcut that skips the
   // client it reuses.
@@ -415,7 +500,10 @@ async function main() {
   const result = await runWalk({
     greyLitSources: FIXTURE_GREY_LIT_SOURCES,
     openAlexQuery: "freight decarbonisation",
-    openAlexDeps: { fetch: fixtureFetch },
+    // The OpenAlex API is free and keyless; real calls happen only when the holdings needs are read from the
+    // database AND --live is passed. Every other run is served by the fixture stub.
+    openAlexDeps: readNeedsFromDb && live ? {} : { fetch: fixtureFetch },
+    holdingsNeeds,
     mode: "dry",
     // The fixture run reads the loader's own fixture batch by name (it is never picked up by real
     // discovery); a live run passes loadHostVerdicts({ dir: HOST_VERDICTS_DIR }) (the committed batches).
