@@ -28,7 +28,11 @@
  * artboard 20c) - see the `@media` rule in globals via the `factCardStack` class below.
  */
 
+import { createContext, useContext, type ReactNode } from "react";
 import type { FactCardModel, ClaimNode } from "@/lib/detail/fact-card-model";
+import { withClaimTiers } from "@/lib/detail/fact-card-model";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
+import { Absence } from "@/components/ui/Absence";
 import { hostFromUrl } from "@/lib/entities/host-from-url.mjs";
 import {
   factHeadline,
@@ -40,6 +44,23 @@ import {
 } from "@/lib/operations/region-grid.mjs";
 
 export type { FactCardModel, ClaimNode };
+
+/**
+ * ClaimTierProvider (lane P1, 2026-10-05; CLAUDE.md rule 18, "the surface shows the rating"). A
+ * detail surface wraps its content in this with the item's claim-tier map
+ * (load-detail-core.ts `fetchClaimTierMap`, the SAME map the record-grade cards already read), and
+ * every brief-grade `FactCard` beneath it resolves its own claim's tier from it through
+ * `withClaimTiers` (fact-card-model.ts). Brief-grade facts used to carry `tier: null` always, and
+ * Operations detail never read the map at all. A context rather than a prop through FactBlocks
+ * because FactBlocks mounts these cards from ten call sites across four surfaces; one provider per
+ * surface is the whole wiring, and a card outside any provider is exactly as before. The per-claim
+ * rule itself is unchanged (`tier_override ?? base_tier`, never effective_tier; migration 145).
+ */
+const ClaimTierContext = createContext<ClaimTierMap | null>(null);
+
+export function ClaimTierProvider({ claimTiers, children }: { claimTiers?: ClaimTierMap | null; children: ReactNode }) {
+  return <ClaimTierContext.Provider value={claimTiers ?? null}>{children}</ClaimTierContext.Provider>;
+}
 
 const ORANGE_KINDS = new Set(["ACTION REQUIRED", "LEGAL CONFIRMATION REQUIRED"]);
 const INFERENCE_KIND = "ANALYTICAL INFERENCE";
@@ -202,6 +223,19 @@ function TierSquare({ tier }: { tier: number }) {
   );
 }
 
+/** The tier slot's absence (lane P1): same footprint as the tier square, the dash form of the one
+ *  Absence part, reason "not in primary source" (the reason a row uses for a missing tier). */
+function TierAbsence() {
+  return (
+    <span
+      data-part-slot="tier-absence"
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, fontSize: "var(--fs-10)" }}
+    >
+      <Absence reason="not in primary source" variant="dash" />
+    </span>
+  );
+}
+
 /** Operator sign-off 2026-09-22, correction 1: "If the source name needs two lines, drop the
  *  organisation line, not the accessed date." The provenance column has no live DOM measurement
  *  available at render time (the same value must render identically on server and client), so
@@ -233,19 +267,27 @@ function ProvenanceBlock({ provenance: p, inference }: { provenance?: FactCardMo
   if (inference) {
     return <p style={{ ...PROVENANCE_TEXT, fontStyle: "italic" }}>not citable</p>;
   }
-  if (!p || (!p.source && !p.org && !p.href && !p.accessed && p.tier == null)) return null;
+  // Lane P1: a claim whose source is not rated shows the Absence part in the tier slot (the narrow
+  // slot, so the dash form: it names what is missing on aria-label/title and holds the column to
+  // its four-line budget). It never shows a guessed tier. A card with no provenance at all shows
+  // the slot alone.
+  if (!p || (!p.source && !p.org && !p.href && !p.accessed && p.tier == null)) {
+    return (
+      <p style={{ ...PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 }}>
+        <TierAbsence />
+      </p>
+    );
+  }
   // Sign-off correction 1: a wrapped source name already spends the column's second line, so the
   // organisation row is dropped to hold the column near its four-line budget - the accessed date
   // (the last row) is never the one dropped.
   const dropOrg = sourceNameWrapsToTwoLines(p.source);
   return (
     <>
-      {(typeof p.tier === "number" || p.source) && (
-        <p style={{ ...PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 }}>
-          {typeof p.tier === "number" && <TierSquare tier={p.tier} />}
-          {p.source && <span>{p.source}</span>}
-        </p>
-      )}
+      <p style={{ ...PROVENANCE_TEXT, display: "flex", alignItems: "center", gap: 6 }}>
+        {typeof p.tier === "number" ? <TierSquare tier={p.tier} /> : <TierAbsence />}
+        {p.source && <span>{p.source}</span>}
+      </p>
       {p.org && !dropOrg && <p style={PROVENANCE_TEXT}>{p.org}</p>}
       {p.href && (
         // Panel 21c acceptance regression (lane w10-factcard-d, 2026-09-21). History: this row
@@ -499,10 +541,14 @@ type FactCardProps =
   | { density: "matrix"; fact: Record<string, unknown>; baseFact: Record<string, unknown> | null };
 
 export function FactCard(props: FactCardProps) {
+  // Hook order: read the claim-tier context before the density branch, never conditionally.
+  const claimTiers = useContext(ClaimTierContext);
   if (props.density === "matrix") {
     return <MatrixFactCardBody fact={props.fact} baseFact={props.baseFact} />;
   }
-  const { model } = props;
+  // Lane P1: a brief-grade card resolves its claim's grounded-source tier from the surface's
+  // claim-tier map; a record-grade card already carries its tier and is returned unchanged.
+  const model = claimTiers ? withClaimTiers(props.model, claimTiers) : props.model;
   const form = formFor(model.kind);
 
   const cardShape: React.CSSProperties =

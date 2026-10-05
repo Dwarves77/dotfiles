@@ -3,7 +3,7 @@
 /**
  * Chips — the one chip family (UI system handoff 2026-09-06, README §0.4).
  * Only band chips carry colour (tinted pill, band dot, band-coloured
- * label). Tier is a bordered square T1-T6. Kind/mode/topic are neutral
+ * label). Tier is a bordered square, T1 to the top source tier. Kind/mode/topic are neutral
  * tags on --tag. Filter chips are grouped in labelled sets (Mode / Band /
  * Region) so a wrapped group keeps its label.
  *
@@ -21,6 +21,7 @@
  */
 
 import type { UrgencyBand } from "@/lib/urgency/bands";
+import { SOURCE_TIER_MAX } from "@/lib/customer-source-tier";
 
 /**
  * `withWindow` (lane W10-ActionCard-a, 2026-09-21, artboard 21b's own pill: "IMMEDIATE . <= 90
@@ -68,15 +69,16 @@ const TIER_CHIP_MOBILE_CSS = `
   }
 `;
 
-/** Bordered square tier chip, T1-T6. Clamped so a raw out-of-range source
- *  tier never renders a broken label.
+/** Bordered square tier chip. The ceiling is the source tier vocabulary's own top tier
+ *  (src/lib/tier-labels.ts through `SOURCE_TIER_MAX`, T7 today), so a source rated T7 reads T7 on
+ *  every row and card, the same as in the Sources grid and the fact cards (lane P1, 2026-10-05:
+ *  the old fixed ceiling of 6 rendered a T7 source as T6 on rows and the detail ActionCard while
+ *  the Sources grid showed T7). Clamped so a raw out-of-range source tier never renders a broken
+ *  label.
  *
- *  `max` widens the clamp for the SOURCE tier vocabulary, which runs T1-T7
- *  (src/lib/tier-labels.ts) rather than the item-tier T1-T6 of operator ruling
- *  2.5, the admin provisional-review table (artboard 13) renders source tiers.
- *  Additive: the default is unchanged, so every existing call site and every
- *  spec measuring one keeps the T1-T6 behaviour exactly. */
-export function TierChip({ tier, max = 6 }: { tier: number; max?: number }) {
+ *  `max` still narrows or widens the clamp for a caller that needs another ceiling (the admin
+ *  provisional-review table, artboard 13, renders source tiers and passes its own). */
+export function TierChip({ tier, max = SOURCE_TIER_MAX }: { tier: number; max?: number }) {
   const clamped = Math.max(1, Math.min(max, Math.round(tier)));
   return (
     <>

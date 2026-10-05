@@ -29,7 +29,10 @@ export interface CredibilityChipEvidenceProps {
   evidenceLevel?: "limited" | "medium" | "robust" | null;
   /** Agreement dimension (low/medium/high) — always null today; see file header. */
   agreementLevel?: "low" | "medium" | "high" | null;
-  biasTags: ResearchBiasTag[];
+  /** Source bias tags feeding the GRADE "risk of bias" row. Optional (lane P1, 2026-10-05): the
+   *  Research page legend mounts this chip with no item behind it and now omits the prop instead of
+   *  passing an empty list; an omitted prop is the same "no tags" state as before. */
+  biasTags?: ResearchBiasTag[];
 }
 
 const NOT_SCORED_REASON =
@@ -39,7 +42,7 @@ function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function CredibilityChipEvidence({ evidenceLevel, agreementLevel, biasTags }: CredibilityChipEvidenceProps) {
+export function CredibilityChipEvidence({ evidenceLevel, agreementLevel, biasTags = [] }: CredibilityChipEvidenceProps) {
   const [open, setOpen] = useState(false);
   const scored = evidenceLevel != null && agreementLevel != null;
   const modifiers = buildGradeModifiers(biasTags);

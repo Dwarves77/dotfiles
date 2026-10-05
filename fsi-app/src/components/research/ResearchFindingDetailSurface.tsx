@@ -65,6 +65,7 @@ import {
   topRecommendedAction,
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
+import { ClaimTierProvider } from "@/components/ui/FactCard";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { jurisLabelOf, RecordFactsBody } from "@/components/detail/primitives";
 import {
@@ -227,6 +228,7 @@ export function ResearchFindingDetailSurface({
         </>
       }
       tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+      biasTags={r.biasTags}
       meta={
         sourceRows.length > 0
           ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
@@ -250,6 +252,7 @@ export function ResearchFindingDetailSurface({
   );
 
   return (
+    <ClaimTierProvider claimTiers={claimTiers}>
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
@@ -396,6 +399,7 @@ export function ResearchFindingDetailSurface({
         </DetailLayout>
       </DetailPageWrapper>
     </div>
+    </ClaimTierProvider>
   );
 }
 

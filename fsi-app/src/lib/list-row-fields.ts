@@ -65,6 +65,10 @@ export interface ListRowFields {
   due: { label: string; days: string } | null;
   timeline: TimelineEntry[] | null;
   tier: number | null;
+  /** Lane P1 (CLAUDE.md rule 18): the bias tags of the item's source, when the loader enriched them
+   *  (enrichCategoryRows with enrichBiasTags). Absent, never an empty placeholder, when there are none,
+   *  so a row built from a degraded record stays exactly as it was. */
+  biasTags?: Resource["biasTags"];
   /** ITEM F2: which watchlist vocabulary this row's item belongs to, so the row's `⋯` control can
    *  mount the real Watch toggle rather than being a control with nothing behind it (ruling 1.1). */
   watchType: WatchlistItemType;
@@ -96,6 +100,7 @@ export function toListRowFields(r: Resource, now: Date): ListRowFields {
     due: due ? { label: due.label, days: due.days } : null,
     timeline: r.timeline ?? null,
     tier: r.sourceTier ?? null,
+    ...(r.biasTags && r.biasTags.length > 0 ? { biasTags: r.biasTags } : {}),
     watchType: watchTypeForItem(r),
   };
 }

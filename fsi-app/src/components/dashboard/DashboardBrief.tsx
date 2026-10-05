@@ -26,6 +26,7 @@ import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { formatNumber } from "@/lib/format";
+import { tierScaleSpan } from "@/lib/customer-source-tier";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import { briefCardState, changeRowPrefix, type BriefRow } from "@/lib/dashboard/brief-rows";
@@ -215,6 +216,7 @@ export function DashboardBrief({
                     due={row.due}
                     timeline={row.timeline}
                     tier={row.tier}
+                    biasTags={row.biasTags}
                     overflow={
                       // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
                       // the same row component as the lists (B), including the 56px rows and the
@@ -305,6 +307,7 @@ export function DashboardBrief({
                     due={row.due}
                     timeline={row.timeline}
                     tier={row.tier}
+                    biasTags={row.biasTags}
                     overflow={
                       // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
                       // the same row component as the lists (B), including the 56px rows and the
@@ -425,7 +428,7 @@ export function DashboardBrief({
               <div>
                 <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Source tier</dt>
                 <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-                  T1 binding law → T6 commentary.
+                  {tierScaleSpan("→")}.
                 </dd>
               </div>
             </dl>

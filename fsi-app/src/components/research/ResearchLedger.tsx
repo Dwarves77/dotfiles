@@ -271,6 +271,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
+            biasTags: r.biasTags,
             tags: tagsForItem(r.id),
             overflow: (
               <PriorityDropdown

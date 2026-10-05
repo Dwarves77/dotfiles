@@ -39,7 +39,7 @@ import {
   detectOverflows,
   findPlaceholderLiterals,
 } from './harness.mjs';
-import { fullAppCss } from './smoke-fixtures.mjs';
+import { fullAppCss, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 
 // lane uidetails (2026-09-06): RegulationDetailSurface now mounts the shared DetailShell's
 // InThisListStat rail widget, which calls useSearchParams() (next/navigation) inside its own
@@ -109,7 +109,8 @@ function baseResource(overrides = {}) {
     modes: ['ocean'],
     jurisdiction: 'EU',
     jurisdictionIso: ['EU'],
-    sourceTier: 3,
+    sourceTier: 7, // lane P1: a T7 source (it read T6 on the ActionCard before)
+    biasTags: SMOKE_BIAS_TAGS_FIVE, // lane P1: the primary source's bias, on the ActionCard and the Sources grid
     sourceName: 'EUR-Lex',
     sourceUrl: 'https://example.com/source',
     legalInstrument: LONG_TITLE,

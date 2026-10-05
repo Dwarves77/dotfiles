@@ -16,6 +16,7 @@ import type {
 import { scoreResource } from "@/lib/scoring";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { customerSourceTier } from "@/lib/customer-source-tier";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
 import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
@@ -1679,7 +1680,7 @@ export interface ResearchPipelineRow {
   citationCount: number | null;   // Build 8.1: from get_source_citation_stats RPC
   lastCitedAt: string | null;     // Build 8.1: from get_source_citation_stats RPC
   baseTier: number | null;        // Build 8.2: source.base_tier (provenance)
-  effectiveTier: number | null;   // Build 8.2: source.effective_tier (dynamic; falls back to base_tier in render)
+  effectiveTier: number | null;   // Build 8.2: the customer tier of the source (admin override, else effective, else base; customerSourceTier)
   biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;  // Build 8.3: from source_bias_tags table (mig 092)
   // Sprint 3 R-A (2026-05-27): callout fields from migration 110.
   whatItChanges: string | null;
@@ -1710,8 +1711,8 @@ interface ResearchItemQueryRow {
   item_type: string | null;
   domain: number | null;
   source:
-    | { id: string; name: string | null; url: string | null; base_tier: number | null; effective_tier: number | null }
-    | Array<{ id: string; name: string | null; url: string | null; base_tier: number | null; effective_tier: number | null }>
+    | { id: string; name: string | null; url: string | null; base_tier: number | null; effective_tier: number | null; tier_override: number | null }
+    | Array<{ id: string; name: string | null; url: string | null; base_tier: number | null; effective_tier: number | null; tier_override: number | null }>
     | null;
 }
 
@@ -1765,7 +1766,7 @@ export async function fetchResearchPipelineRows(
     const { data, error } = await supabase
       .from("intelligence_items")
       .select(
-        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, what_it_changes, does_not_resolve, item_type, domain, source:sources(id, name, url, base_tier, effective_tier)"
+        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, what_it_changes, does_not_resolve, item_type, domain, source:sources(id, name, url, base_tier, effective_tier, tier_override)"
       )
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
@@ -1800,7 +1801,7 @@ export async function fetchResearchPipelineRows(
         citationCount: null,
         lastCitedAt: null,
         baseTier: typeof src?.base_tier === "number" ? src.base_tier : null,
-        effectiveTier: typeof src?.effective_tier === "number" ? src.effective_tier : null,
+        effectiveTier: customerSourceTier(src),
         biasTags: [],
         whatItChanges: row.what_it_changes ?? null,
         doesNotResolve: row.does_not_resolve ?? null,
@@ -1836,7 +1837,7 @@ export async function fetchResearchPipelineRows(
     // source_id. Empty array if a source has no bias tags (ADR-007 +
     // BiasBadge contract: render nothing for empty tags). Failure is
     // non-fatal: rows render with biasTags=[] and the UI degrades.
-    const biasBySourceId = new Map<string, ResearchPipelineRow["biasTags"]>();
+    let biasBySourceId = new Map<string, ResearchPipelineRow["biasTags"]>();
     if (distinctSourceIds.length > 0) {
       const { data: biasRows, error: biasErr } = await supabase
         .from("source_bias_tags")
@@ -1846,18 +1847,7 @@ export async function fetchResearchPipelineRows(
       if (biasErr) {
         console.error("[research] source_bias_tags fetch error:", describeSupabaseError(biasErr));
       } else if (Array.isArray(biasRows)) {
-        for (const b of biasRows) {
-          if (!b || typeof b.source_id !== "string") continue;
-          const dim = b.dimension as "funding" | "methodology" | "stakeholder";
-          if (dim !== "funding" && dim !== "methodology" && dim !== "stakeholder") continue;
-          const existing = biasBySourceId.get(b.source_id) ?? [];
-          existing.push({
-            dimension: dim,
-            tag: String(b.tag),
-            confidence: typeof b.confidence === "number" ? b.confidence : null,
-          });
-          biasBySourceId.set(b.source_id, existing);
-        }
+        biasBySourceId = groupBiasTagsBySource(biasRows as BiasTagQueryRow[]);
       }
     }
 
@@ -2082,11 +2072,14 @@ function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
  *
  * Mutates `resources` in place (same contract as enrichCategoryRows). Non-fatal on error.
  */
-export async function enrichRowSourceChips(resources: Resource[]): Promise<void> {
+export async function enrichRowSourceChips(
+  resources: Resource[],
+  opts: { enrichBiasTags?: boolean } = {},
+): Promise<void> {
   if (!resources.length) return;
   if (!isSupabaseConfigured()) return;
   try {
-    await enrichCategoryRows(getServiceSupabase(), resources, "dashboard-brief-rows");
+    await enrichCategoryRows(getServiceSupabase(), resources, "dashboard-brief-rows", opts);
   } catch (e) {
     console.error("enrichRowSourceChips failed (rows render the Absence convention):", e);
   }
@@ -2107,6 +2100,7 @@ interface SourceChipQueryRow {
   name: string | null;
   base_tier: number | null;
   effective_tier: number | null;
+  tier_override: number | null;
 }
 
 interface CitationStatsQueryRow {
@@ -2120,6 +2114,26 @@ interface BiasTagQueryRow {
   dimension: string;
   tag: string;
   confidence: number | null;
+}
+
+// The one grouping of source_bias_tags rows by source id (lane P1, 2026-10-05): the research pipeline
+// read, the category-row enrichment and the item detail read each carried their own copy of this loop.
+// A row outside the three dimensions is dropped; a missing confidence stays null (never invented).
+function groupBiasTagsBySource(rows: BiasTagQueryRow[]): Map<string, NonNullable<Resource["biasTags"]>> {
+  const bySource = new Map<string, NonNullable<Resource["biasTags"]>>();
+  for (const b of rows) {
+    if (!b || typeof b.source_id !== "string") continue;
+    const dim = b.dimension as "funding" | "methodology" | "stakeholder";
+    if (dim !== "funding" && dim !== "methodology" && dim !== "stakeholder") continue;
+    const existing = bySource.get(b.source_id) ?? [];
+    existing.push({
+      dimension: dim,
+      tag: String(b.tag),
+      confidence: typeof b.confidence === "number" ? b.confidence : null,
+    });
+    bySource.set(b.source_id, existing);
+  }
+  return bySource;
 }
 
 async function enrichCategoryRows(
@@ -2139,19 +2153,21 @@ async function enrichCategoryRows(
   if (chipSourceIds.length > 0) {
     const { data: srcRows, error: srcErr } = await serviceClient
       .from("sources")
-      .select("id, name, base_tier, effective_tier")
+      .select("id, name, base_tier, effective_tier, tier_override")
       // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
       .in("id", chipSourceIds);
     if (srcErr) {
       console.error(`[category-routing] source chip enrichment for ${rpcLabel} error:`, describeSupabaseError(srcErr));
     } else if (Array.isArray(srcRows)) {
-      const byId = new Map<string, { name: string | null; base_tier: number | null; effective_tier: number | null }>();
+      const byId = new Map<string, SourceChipQueryRow>();
       for (const s of srcRows as SourceChipQueryRow[]) if (s?.id) byId.set(s.id, s);
       for (const r of resources) {
         const s = r.sourceId ? byId.get(r.sourceId) : undefined;
         if (s) {
           r.sourceName = s.name ?? undefined;
-          r.sourceTier = (s.effective_tier ?? s.base_tier) ?? undefined;
+          // Lane P1: the customer tier is the admin override when set, else effective, else base
+          // (src/lib/customer-source-tier.ts), the same rule on every surface.
+          r.sourceTier = customerSourceTier(s) ?? undefined;
         }
       }
     }
@@ -2216,19 +2232,7 @@ async function enrichCategoryRows(
     if (biasErr) {
       console.error(`[category-routing] source_bias_tags enrichment for ${rpcLabel} error:`, describeSupabaseError(biasErr));
     } else if (Array.isArray(biasRows)) {
-      const biasBySourceId = new Map<string, NonNullable<Resource["biasTags"]>>();
-      for (const b of biasRows as BiasTagQueryRow[]) {
-        if (!b || typeof b.source_id !== "string") continue;
-        const dim = b.dimension as "funding" | "methodology" | "stakeholder";
-        if (dim !== "funding" && dim !== "methodology" && dim !== "stakeholder") continue;
-        const existing = biasBySourceId.get(b.source_id) ?? [];
-        existing.push({
-          dimension: dim,
-          tag: String(b.tag),
-          confidence: typeof b.confidence === "number" ? b.confidence : null,
-        });
-        biasBySourceId.set(b.source_id, existing);
-      }
+      const biasBySourceId = groupBiasTagsBySource(biasRows as BiasTagQueryRow[]);
       for (const r of resources) {
         r.biasTags = r.sourceId ? biasBySourceId.get(r.sourceId) ?? [] : [];
       }
@@ -2344,7 +2348,8 @@ export async function fetchMarketIntelItems(
 export async function fetchResearchItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_research_items");
+  // Lane P1: bias tags on every list row (the Research list is where bias is the headline signal).
+  return runCategoryRpc(orgId, "get_research_items", { enrichBiasTags: true });
 }
 
 // /operations fetcher. RPC filters on sources.category = 'operational_data'.
@@ -2383,7 +2388,7 @@ export async function fetchPublicMarketIntelItems(): Promise<CategoryRoutedResul
 }
 
 export async function fetchPublicResearchItems(): Promise<CategoryRoutedResult> {
-  return runCategoryRpcPublic("get_research_items_public");
+  return runCategoryRpcPublic("get_research_items_public", { enrichBiasTags: true });
 }
 
 export async function fetchPublicOperationsItems(): Promise<CategoryRoutedResult> {
@@ -4118,7 +4123,7 @@ async function fetchIntelligenceItemUncached(
     // Exact single-column filter chosen by shape (lane R21, CF-SEC-15): never a composed .or() string.
     const { data: row, error } = await supabase
       .from("intelligence_items")
-      .select("*, source:sources(name, base_tier, effective_tier)")
+      .select("*, source:sources(name, base_tier, effective_tier, tier_override)")
       .eq(itemIdColumn(itemUiId), itemUiId)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
       .maybeSingle();
@@ -4144,6 +4149,7 @@ async function fetchIntelligenceItemUncached(
       disputeResult,
       xrefResult,
       supResult,
+      biasResult,
     ] = await Promise.all([
       supabase
         .from("item_timelines")
@@ -4177,6 +4183,12 @@ async function fetchIntelligenceItemUncached(
           "supersession_date, severity, note, old:intelligence_items!old_item_id(id, legacy_id), new:intelligence_items!new_item_id(id, legacy_id)"
         )
         .or(`old_item_id.eq.${row.id},new_item_id.eq.${row.id}`),
+      // Lane P1 (CLAUDE.md rule 18): the item's primary source's bias tags, for the ActionCard chips and
+      // the Sources grid. One bounded read keyed by the one source id, inside the same parallel batch (no
+      // added round trip); a failed read renders no chips (rows degrade to nothing, never an error).
+      row.source_id
+        ? supabase.from("source_bias_tags").select("source_id, dimension, tag, confidence").eq("source_id", row.source_id)
+        : Promise.resolve({ data: null }),
     ]);
 
     const timelineRows = timelinesResult.data;
@@ -4184,6 +4196,9 @@ async function fetchIntelligenceItemUncached(
     const disputeRow = disputeResult.data;
     const xrefRows = xrefResult.data;
     const supRows = supResult.data;
+    const itemBiasTags = row.source_id
+      ? groupBiasTagsBySource((biasResult.data ?? []) as BiasTagQueryRow[]).get(row.source_id)
+      : undefined;
 
     const resource: Resource = {
       id: resourceId,
@@ -4239,10 +4254,12 @@ async function fetchIntelligenceItemUncached(
       sourceId: row.source_id || undefined,
       isArchived: row.is_archived || false,
       // P1-2 (DEEP-AUDIT S2): populate the provenance chip (source name + tier)
-      // via the sources FK embed above. Customer surfaces show effective_tier
-      // (the dynamic signal), falling back to base_tier.
+      // via the sources FK embed above. Customer surfaces show the customer tier: the admin
+      // override when set, else the dynamic effective tier, else base (customerSourceTier).
       sourceName: detailSrc?.name ?? undefined,
-      sourceTier: (detailSrc?.effective_tier ?? detailSrc?.base_tier) ?? undefined,
+      sourceTier: customerSourceTier(detailSrc) ?? undefined,
+      // Lane P1: the primary source's bias tags (undefined when it has none, so nothing renders).
+      biasTags: itemBiasTags && itemBiasTags.length > 0 ? itemBiasTags : undefined,
       // P1-3 (DEEP-AUDIT §4): map the classified columns the DB actually has so
       // the detail page stops regex-guessing and disagreeing with the index.
       // select("*") already returns all of these.
@@ -4996,11 +5013,11 @@ export async function fetchWatchlist(
       if (itemSourceIds.length > 0) {
         const { data: tierRows } = await supabase
           .from("sources")
-          .select("id, base_tier, effective_tier")
+          .select("id, base_tier, effective_tier, tier_override")
           // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
           .in("id", itemSourceIds);
-        for (const s of (tierRows || []) as Array<{ id: string; base_tier: number | null; effective_tier: number | null }>) {
-          itemSourceTierById.set(s.id, s.effective_tier ?? s.base_tier ?? null);
+        for (const s of (tierRows || []) as Array<{ id: string; base_tier: number | null; effective_tier: number | null; tier_override: number | null }>) {
+          itemSourceTierById.set(s.id, customerSourceTier(s));
         }
       }
     }
