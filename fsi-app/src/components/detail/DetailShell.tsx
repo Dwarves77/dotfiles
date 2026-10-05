@@ -44,6 +44,7 @@ import { Masthead } from "@/components/ui/Masthead";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { BandProvider } from "@/components/ui/band-context";
 import type { UrgencyBand } from "@/lib/urgency/bands";
+import { tierScaleSpan } from "@/lib/customer-source-tier";
 import type { ImpactScores, Resource } from "@/types/resource";
 
 // ── Masthead: page-level VOL/breadcrumb/title/dek/CommandBar for detail
@@ -425,8 +426,7 @@ export function RailLegend() {
           <strong style={{ color: "var(--ink)" }}>Timeline</strong>, passed · next · ahead.
         </p>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: "var(--ink)" }}>Source tier</strong>, T1 binding law through T6
-          commentary.
+          <strong style={{ color: "var(--ink)" }}>Source tier</strong>, {tierScaleSpan("through")}.
         </p>
       </div>
     </RailCard>

@@ -12,7 +12,7 @@
 
 import { runUxSpec } from './ux-harness.mjs';
 import { fileURLToPath } from 'node:url';
-import { ROW_SYSTEM_CSS } from './smoke-fixtures.mjs';
+import { ROW_SYSTEM_CSS, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 
 // See smoke-fixtures.mjs's ROW_SYSTEM_CSS header: the harness never loads globals.css, so this
 // injects a disclosed verbatim copy of the row-system CSS as a <style> tag at module-eval time,
@@ -78,9 +78,9 @@ function signal(i, { long = false } = {}) {
     // shared CredibilityChipEvidence/Authority pair (fetchMarketIntelItems/fetchPublicMarketIntelItems
     // gained enrichCategoryRows(enrichBiasTags) this lane) — these three fields exercise the
     // populated-data path exactly as for the other three surfaces' fixtures.
-    sourceTier: 3,
+    sourceTier: i % 2 === 0 ? 7 : 3, // lane P1: a T7 source on every other row (it read T6 before)
     citationCount: i % 4 === 0 ? null : 2,
-    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
+    biasTags: i % 3 === 0 ? SMOKE_BIAS_TAGS_FIVE : [],
     // Always a real priceStat (never null) here: MarketIntelLedger's own honest-state design
     // (file header, ~L31) renders an em-dash "—" for `priceStat: null` — legitimate, pre-existing,
     // out of this lane's scope — which the rendering guard's placeholder-literal scan (a strictly

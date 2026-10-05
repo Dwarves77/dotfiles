@@ -6,15 +6,17 @@
 // npm install and no bundler, same constraint decisions.mjs states for itself.
 
 /**
- * ADR-036 decision 1: question generation is $0-only. Template expansion and retrieval against held
- * pools only (RD-8). Every metered acquisition for a `trigger_question` residual needs an
- * operator-priced line (RD-31: operator-priced line, no machine-proposed cost) and a cited
- * inventory-miss (RD-32: no fetch without one), never a machine-picked default price. The ONLY value
- * this constant may hold today; documented as a string (not a boolean) so a later fork, if ever ruled,
- * reads as a new named value here rather than a silently flipped flag.
- * @type {"operator-priced-only"}
+ * ADR-044 decision 1 (supersedes ADR-036 decision 1): a question is answered from holdings first. A
+ * workflow exports open questions with the held source text of the item and its connected items, a
+ * Claude session lane writes a committed answer batch, and an apply step validates and writes by rule.
+ * No metered call, no priced ticket, no operator review step. A question the holdings cannot answer
+ * becomes a source search target through the existing gap-target mechanism (ADR-044 decision 2). The
+ * spend chokepoint and RD-31/RD-32 stay in the code as the guard that no learning-loop path spends
+ * (ADR-044 decision 5). Documented as a string (not a boolean) so a later fork, if ever ruled, reads as
+ * a new named value here rather than a silently flipped flag.
+ * @type {"holdings-session-batch"}
  */
-export const QUESTION_ACQUISITION = "operator-priced-only";
+export const QUESTION_ACQUISITION = "holdings-session-batch";
 
 /**
  * The four product questions every trigger_question is generated against (learning-loop-design
@@ -25,11 +27,11 @@ export const QUESTION_ACQUISITION = "operator-priced-only";
 export const PRODUCT_QUESTIONS = Object.freeze(["what", "affects_me", "comply", "invest_wait_avoid"]);
 
 /**
- * The propagation_events.event_type vocabulary this generator listens for (learning-loop-design
- * section 1, step 1, the trigger). Mirrors the outbox's own CHECK vocabulary (migration 284); kept
- * here as the SUBSET this generator template-expands over, not a re-declaration of the full outbox
- * vocabulary (a generator may not have a template for every outbox event type yet, see
- * trigger-questions.mjs's own TEMPLATES map for which of these are actually wired).
+ * The trigger event vocabulary for a question raised on a CHANGE (learning-loop-design section 1,
+ * step 1). These are NOT a column or a CHECK on propagation_events (migration 284 carries `change_kind`
+ * insert/update/delete/supersede and no event_type); they are this module's own names, derived from an
+ * outbox row's (table_name, change_kind) by questions-on-change.mjs's eventTypeForOutboxRow. Three of the
+ * six (signpost_fired, confidence_decayed, source_frozen) have no emitting table today and stay reserved.
  * @type {readonly string[]}
  */
 export const TRIGGER_EVENT_TYPES = Object.freeze([

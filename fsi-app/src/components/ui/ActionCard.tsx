@@ -30,6 +30,8 @@ import type { TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import type { AbsenceReason } from "@/components/ui/Absence";
 import { BandChip, TierChip, TagChip, WorkspaceTagPill } from "@/components/ui/Chips";
+import { BiasChips, type BiasTagInput } from "@/components/ui/BiasChips";
+import { hasBiasTags } from "@/lib/credibility/bias-display.mjs";
 import { Absence } from "@/components/ui/Absence";
 import { ActionRow } from "@/components/ui/ActionRow";
 import { Timeline } from "@/components/ui/Timeline";
@@ -55,6 +57,14 @@ export interface ActionCardProps {
    */
   extraChips?: ReactNode;
   tier?: number | null;
+  /**
+   * Additive extension (lane P1, 2026-10-05; CLAUDE.md rule 18): the bias tags of the item's primary
+   * source, shown as chips on a row of their own under the pill row (bounded to three plus one
+   * disclosure for the rest, by the one `BiasChips` part). Undefined or empty renders nothing, so
+   * every existing caller is unaffected. The `tier` square above is the customer tier of the same
+   * source (src/lib/customer-source-tier.ts: admin override, else effective, else base).
+   */
+  biasTags?: BiasTagInput[] | null;
   /** "4 sources . T1 primary . regenerated Sep 18". Right-aligned in the pill row. */
   meta?: string | null;
   /** Applied workspace tags. Empty/undefined renders no tags row and no label at all (review 1a). */
@@ -188,6 +198,7 @@ export function ActionCard({
   kindLabel,
   extraChips,
   tier,
+  biasTags,
   meta,
   tags,
   tagPopover,
@@ -224,6 +235,14 @@ export function ActionCard({
           <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap", flexShrink: 0 }}>{meta}</span>
         )}
       </div>
+
+      {/* Lane P1: the primary source's bias chips, on a row of their own so the pill row stays one
+          row (review item 1c). Nothing renders for a source with no tags. */}
+      {hasBiasTags(biasTags) && (
+        <div style={{ marginTop: 10 }}>
+          <BiasChips tags={biasTags} variant="detail" label="Primary source" />
+        </div>
+      )}
 
       {/* Applied tags row: no trigger, no "workspace tags" label; hidden entirely when empty
           (review item 1a). */}

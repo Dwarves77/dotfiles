@@ -41,7 +41,9 @@ import { itemIdColumn } from "@/lib/detail/item-id-filter";
 import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
-import { buildResourceLookup } from "@/lib/connections/resource-lookup";
+import { buildResourceLookup, resolveItemUuid } from "@/lib/connections/resource-lookup";
+import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 // Item D3 (UI fix round 2026-09-08): the auxiliary-energy / grid-queue material moved off the
 // /operations LIST (it sat below artboard 08's last card) onto this profile as S-sections (the DQI
@@ -95,6 +97,10 @@ interface ItemScoped {
   related: ReturnType<typeof pickRelated>[];
   relatedReason: "jurisdiction" | "source" | "none";
   sourceFetchStatus: string | null;
+  /** Lane P1 (2026-10-05, CLAUDE.md rule 18): each brief-grade fact claim's grounded-source tier,
+   *  the same item-scoped read the regulations, market and research detail pages already run
+   *  (load-detail-core.ts fetchClaimTierMap: one query, soft-fails to {}). */
+  claimTiers: ClaimTierMap;
 }
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the remaining reason this route still
@@ -236,11 +242,13 @@ export default async function OperationsDetailPage({
           return { related, relatedReason, sourceFetchStatus };
         })();
 
-        const [resourceLookup, crossPage, matrixEligibility, relatedResult] = await Promise.all([
+        const itemUuid = await resolveItemUuid(supabase, resource.id);
+        const [resourceLookup, crossPage, matrixEligibility, relatedResult, claimTiers] = await Promise.all([
           buildResourceLookup(supabase, relatedIds),
           fetchCrossPageForItem(supabase, resource.id, "operations"),
           matrixPromise,
           relatedPromise,
+          itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({} as ClaimTierMap),
         ]);
 
         return {
@@ -250,6 +258,7 @@ export default async function OperationsDetailPage({
           related: relatedResult.related,
           relatedReason: relatedResult.relatedReason,
           sourceFetchStatus: relatedResult.sourceFetchStatus,
+          claimTiers,
         };
       },
     });
@@ -267,6 +276,7 @@ export default async function OperationsDetailPage({
   const related = result.itemScoped?.related ?? [];
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
   const sourceFetchStatus = result.itemScoped?.sourceFetchStatus ?? null;
+  const claimTiers = result.itemScoped?.claimTiers ?? {};
 
   console.log(`[perf] /operations/${id} data ${result.elapsedMs}ms`);
 
@@ -283,6 +293,7 @@ export default async function OperationsDetailPage({
         sections={sections}
         matrixEligibility={matrixEligibility}
         sourceFetchStatus={sourceFetchStatus}
+        claimTiers={claimTiers}
         supersessions={supersessions}
         connections={connections}
         relevance={relevance}

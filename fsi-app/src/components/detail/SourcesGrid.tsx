@@ -16,6 +16,14 @@
 
 import type { Resource } from "@/types/resource";
 import { extractRegulationSections, type SourceEntry } from "@/lib/agent/extract-regulation-sections";
+import { BiasChips, type BiasTagInput } from "@/components/ui/BiasChips";
+import { Absence } from "@/components/ui/Absence";
+import { hasBiasTags } from "@/lib/credibility/bias-display.mjs";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+
+/** A Sources-grid row: the parsed entry plus, for the item's own registered source only, that
+ *  source's bias tags (lane P1, 2026-10-05). A row never carries a tag it was not given. */
+export type SourceRow = SourceEntry & { biasTags?: BiasTagInput[] | null };
 
 /** Clamp any tier value to the customer-facing 1-7 range (DO-NOT-REVERT).
  *  Exported (lane L34) so RegulationDetailSurface.tsx can drop its own
@@ -27,7 +35,7 @@ export function clampTier(n: number): number {
 /** The item's structured source list: parsed from fullBrief's "## Sources"
  *  block when present, else a single synthetic row from the item's own
  *  url/sourceName/sourceTier fields, else empty (renders Absence). */
-export function sourceEntriesOf(r: Resource): SourceEntry[] {
+export function sourceEntriesOf(r: Resource): SourceRow[] {
   let parsedList: SourceEntry[] = [];
   if (r.fullBrief) {
     const map = extractRegulationSections(r.fullBrief);
@@ -38,14 +46,45 @@ export function sourceEntriesOf(r: Resource): SourceEntry[] {
       }
     }
   }
-  return parsedList.length > 0
-    ? parsedList
-    : r.url
-    ? [{ tier: typeof r.sourceTier === "number" ? r.sourceTier : null, name: r.sourceName || r.url, meta: r.enforcementBody || "", url: r.url }]
-    : [];
+  if (parsedList.length === 0) {
+    return r.url
+      ? [
+          {
+            tier: typeof r.sourceTier === "number" ? r.sourceTier : null,
+            name: r.sourceName || r.url,
+            meta: r.enforcementBody || "",
+            url: r.url,
+            biasTags: r.biasTags,
+          },
+        ]
+      : [];
+  }
+  // The parsed list is read from the brief's own text and carries no source id, so only the entry
+  // that IS the item's registered source can take that source's rating: matched by canonical url
+  // (the item's source url), else by name. It then shows the same customer tier the row chip and
+  // the ActionCard show (admin override included), not the tier the brief text was written with,
+  // and that source's bias tags. Every other entry keeps exactly what the brief says, with no bias
+  // (nothing is invented for a source this page cannot identify).
+  const primary = primaryEntryIndex(parsedList, r);
+  return parsedList.map((e, i): SourceRow =>
+    i === primary
+      ? { ...e, tier: typeof r.sourceTier === "number" ? r.sourceTier : e.tier, biasTags: r.biasTags }
+      : e,
+  );
 }
 
-export function SourcesGrid({ rows }: { rows: SourceEntry[] }) {
+function sameUrl(a: string | null | undefined, b: string | null | undefined): boolean {
+  return !!a && !!b && canonicalizeUrl(a) === canonicalizeUrl(b);
+}
+
+function primaryEntryIndex(entries: SourceEntry[], r: Resource): number {
+  const byUrl = entries.findIndex((e) => sameUrl(e.url, r.url));
+  if (byUrl >= 0) return byUrl;
+  const name = (r.sourceName ?? "").trim().toLowerCase();
+  return name ? entries.findIndex((e) => e.name.trim().toLowerCase() === name) : -1;
+}
+
+export function SourcesGrid({ rows }: { rows: SourceRow[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {rows.map((s, i) => {
@@ -56,7 +95,11 @@ export function SourcesGrid({ rows }: { rows: SourceEntry[] }) {
                 T{clampTier(s.tier)}
               </span>
             ) : (
-              <span aria-hidden style={{ width: 24 }} />
+              // Lane P1: a source whose tier cannot be derived shows the Absence part (dash form,
+              // the narrow tier slot), never a blank. Same slot width as before.
+              <span style={{ width: 24, display: "inline-flex", justifyContent: "center", fontSize: "var(--fs-10)" }}>
+                <Absence reason="not in primary source" variant="dash" />
+              </span>
             )}
             <div style={{ minWidth: 0 }}>
               <p style={{ fontSize: "var(--fs-125)", fontWeight: 700, margin: 0, color: "var(--ink)", overflowWrap: "anywhere" }}>{s.name}</p>
@@ -70,18 +113,28 @@ export function SourcesGrid({ rows }: { rows: SourceEntry[] }) {
           gap: 12,
           alignItems: "baseline",
           padding: "11px 0",
-          borderBottom: i < rows.length - 1 ? "1px solid var(--line-3)" : "none",
           textDecoration: "none",
           color: "inherit",
           minHeight: 44,
         };
-        return s.url ? (
-          <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={cellStyle}>
+        const cell = s.url ? (
+          <a href={s.url} target="_blank" rel="noopener noreferrer" style={cellStyle}>
             {inner}
           </a>
         ) : (
-          <div key={i} style={cellStyle}>
-            {inner}
+          <div style={cellStyle}>{inner}</div>
+        );
+        return (
+          <div key={i} data-part="source-row" style={{ borderBottom: i < rows.length - 1 ? "1px solid var(--line-3)" : "none" }}>
+            {cell}
+            {/* Lane P1: this source's bias tags, outside the link (a control must not nest inside an
+                anchor), with 8px clear of the link above and the next row below so the disclosure
+                button clears the law-2 target floor. Renders nothing when the source has none. */}
+            {hasBiasTags(s.biasTags) && (
+              <div style={{ margin: "8px 0", paddingLeft: 36 }}>
+                <BiasChips tags={s.biasTags} variant="detail" />
+              </div>
+            )}
           </div>
         );
       })}

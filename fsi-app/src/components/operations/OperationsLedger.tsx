@@ -364,6 +364,7 @@ export function OperationsLedger({
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
+            biasTags: r.biasTags,
             tags: tagsFacet.tagsForItem(r.id),
             overflow: (
               <PriorityDropdown

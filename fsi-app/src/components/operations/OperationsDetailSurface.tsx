@@ -81,6 +81,8 @@ import {
 import { SectionCard } from "@/components/ui/SectionCard";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
+import { ClaimTierProvider } from "@/components/ui/FactCard";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { bandFromPriority } from "@/lib/urgency/bands";
@@ -105,6 +107,10 @@ interface Props extends DetailSurfaceSharedProps {
   sections?: IntelligenceItemSectionRow[];
   matrixEligibility?: MatrixEligibility;
   sourceFetchStatus?: string | null;
+  /** Lane P1 (2026-10-05, CLAUDE.md rule 18): the item's claim-tier map (load-detail-core.ts
+   *  fetchClaimTierMap, the same map the other three detail surfaces read), so each brief-grade fact
+   *  card shows its grounded source's tier. Optional: absent renders every card as before. */
+  claimTiers?: ClaimTierMap;
   /** Item D3 (2026-09-08): the two remaining spec-09 panels, rendered by the server route and mounted
    *  here as S-sections (the DQI panel was removed by ADR-042). Omitted by any caller that has no
    *  server tree to render them in (the audit mount passes its own fixture-fed views), in which case
@@ -177,6 +183,7 @@ export function OperationsDetailSurface({
   initialTeamAvailable,
   auxiliaryEnergySection,
   gridQueueSection,
+  claimTiers,
 }: Props) {
   const spec09Nodes: Record<string, ReactNode> = { auxiliaryEnergySection, gridQueueSection };
   const spec09Shown = SPEC09_SECTIONS.filter((s) => spec09Nodes[s.key] != null);
@@ -239,6 +246,7 @@ export function OperationsDetailSurface({
             </>
           }
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
+          biasTags={r.biasTags}
           meta={
             sourceRows.length > 0
               ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
@@ -262,6 +270,7 @@ export function OperationsDetailSurface({
   );
 
   return (
+    <ClaimTierProvider claimTiers={claimTiers}>
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper band={band} action={topRecommendedAction(r)}>
         {/* Operator check 2 (lane PARITY-PARTS, 2026-09-24): ActionCard renders INSIDE the one
@@ -389,6 +398,7 @@ export function OperationsDetailSurface({
         </DetailLayout>
       </DetailPageWrapper>
     </div>
+    </ClaimTierProvider>
   );
 }
 

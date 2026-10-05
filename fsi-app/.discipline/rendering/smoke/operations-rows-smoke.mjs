@@ -28,7 +28,7 @@
 
 import { runUxSpec } from './ux-harness.mjs';
 import { fileURLToPath } from 'node:url';
-import { fullAppCss } from './smoke-fixtures.mjs';
+import { fullAppCss, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 
 // OperationsLedger's own top-level layout depends on a PRE-EXISTING responsive class
 // (`.cl-ops-grid`, globals.css, predates this lane) to collapse content+rail at a phone width —
@@ -124,14 +124,14 @@ function opsItem(i, { long = false } = {}) {
     added: '2026-08-01',
     jurisdiction: 'EU',
     jurisdictionIso: ['EU'],
-    sourceTier: 3,
+    sourceTier: i % 2 === 0 ? 7 : 3, // lane P1: a T7 source on every other row
     // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): OperationsItemsView's card is the one row
     // mount that additionally carries RecordGradeBadge (Operations had no RecordGradeBadge mount
     // anywhere before this lane) alongside the shared CredibilityChipEvidence/Authority pair —
     // these three fields exercise the populated-data path for both. Ratios match the same
     // measurement basis as the Regulations fixture (see perf-budget.mjs evidence).
     citationCount: i % 4 === 0 ? null : 2,
-    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
+    biasTags: i % 3 === 0 ? SMOKE_BIAS_TAGS_FIVE : [],
     itemGrade: i % 5 === 4 ? undefined : 'record',
     reasoning: '',
     tags: [],

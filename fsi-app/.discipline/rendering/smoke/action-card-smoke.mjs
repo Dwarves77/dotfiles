@@ -13,7 +13,7 @@
 //   - no horizontal page overflow
 
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, detectOverflows } from './harness.mjs';
-import { fullAppCss } from './smoke-fixtures.mjs';
+import { fullAppCss, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 import { detectClampedOverflow, detectEmptyDotLabels, detectCardCountViolation } from '../action-card-assert.mjs';
 
 const STYLE_INJECT = `
@@ -69,6 +69,22 @@ const NINE_MILESTONES = Array.from({ length: 9 }, (_, i) => ({
 }));
 
 const STATES = [
+  {
+    // Lane P1 (2026-10-05, CLAUDE.md rule 18): a T7 source (it read T6 on the card before) whose five
+    // bias tags are the worst case for the card's bias row: three chips plus the one disclosure button.
+    label: 'tier-7-with-bias',
+    props: {
+      band: ACTION_BAND, kindLabel: 'Regulation', tier: 7,
+      biasTags: SMOKE_BIAS_TAGS_FIVE,
+      meta: '2 sources · T7 primary · regenerated Sep 18',
+      tags: ['High-value cargo'],
+      watch: null,
+      where: { value: 'Ocean freight · European EEA port call' },
+      whoPays: { value: 'Vessel operator is obligated' },
+      yourLanes: { value: 'Connect shipment data' },
+      timeline: DEFAULT_TIMELINE,
+    },
+  },
   {
     label: 'default',
     props: {

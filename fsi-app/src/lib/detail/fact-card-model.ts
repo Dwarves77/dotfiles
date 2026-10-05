@@ -15,6 +15,7 @@
 import type { FactParagraph } from "./fact-paragraphs.ts";
 import { parseFactParagraphs, parseSourceCitation } from "./fact-paragraphs.ts";
 import { hostFromUrl } from "../entities/host-from-url.mjs";
+import type { ClaimTierMap, ClaimTierInfo } from "../agent/parse-record-sections.ts";
 
 // ── Fixed kind vocabulary (parts-brief-2026-09-18.md section 2.1) ──────────────────────
 
@@ -86,6 +87,10 @@ export interface FactCardModel {
    *  Absent (undefined) on every non-merged card, which is the common case and keeps the
    *  original two-field shape untouched for every existing caller. */
   additionalClaims?: { claim: ClaimNode[]; provenance?: FactCardProvenance | null }[];
+  /** True only on a record-grade card (`deriveRecordFactCardModel`). Its tier is matched by the exact
+   *  claim line in parse-record-sections.ts, which never falls back to a partial match, so
+   *  `withClaimTiers` (the brief-grade containment match) leaves it exactly as it is. */
+  recordGrade?: boolean;
 }
 
 // ── Step 1: bolded lead-in -> kind word (rule: unknown lead-in -> SCOPE) ───────────────
@@ -474,6 +479,109 @@ export function deriveRecordFactCardModel(fact: {
       accessed: null,
       tier: fact.tier ?? null,
     },
+    recordGrade: true,
+  };
+}
+
+// ── Brief-grade claim tiers (lane P1, 2026-10-05; CLAUDE.md rule 18) ───────────────────────────
+//
+// A record-grade fact row matches its claim by the BYTE-IDENTICAL line (parse-record-sections.ts's
+// MATCH RULE). A brief-grade fact card cannot: its `claim_text` in section_claim_provenance is "the
+// verbatim claim as written in the prose" (parse-output.ts ClaimProvenanceRecord), but the card's
+// text has had its FACT label, quotes, markdown and inline citation stripped, a ledger line may
+// carry a `[slot_key]` prefix, and one prose paragraph can hold more than one claim. So this match
+// is by normalised CONTAINMENT, and it is deliberately conservative, because a wrong chip is worse
+// than an absent one:
+//   - both sides are normalised the same way (`normalizeClaimText`);
+//   - a match is equality, or containment of the shorter text in the longer, and only when the
+//     shorter is at least MIN_CONTAINED_CLAIM_CHARS long (a short phrase never matches by accident);
+//   - every matched claim must resolve to the SAME rated source: if the card's text matches claims
+//     grounded in different tiers or sources, the card is ambiguous and gets NO tier (the Absence
+//     part renders), never the first or the best one;
+//   - a claim with no source, or a source with no tier, contributes no tier.
+// The tier itself is whatever the caller's map holds (`tier_override ?? base_tier`, load-detail-core
+// buildClaimTierMap): this module only matches, it never derives and never reads effective_tier.
+
+const MIN_CONTAINED_CLAIM_CHARS = 24;
+
+// FACT label, with the optional lead-in phrase before a dash (fact-paragraphs.ts FACT_TOKEN_RE shape).
+// The dash class is built from code points, never typed, so no dash glyph appears in this source.
+const DASHES = String.fromCharCode(0x2014, 0x2013, 0x2d);
+const FACT_LABEL_RE = new RegExp("^(?:[^:\\n]{0,120}?\\s+[" + DASHES + "]\\s+)?fact:\\s*", "i");
+const SLOT_PREFIX_RE = /^\[[a-z0-9_]+\]\s*/i;
+const QUOTE_EDGE_RE = /^["'“”‘’]+|["'“”‘’]+$/g;
+
+/** Normalise a claim for matching: slot prefix, FACT label, emphasis markers, edge quotes and
+ *  runs of whitespace removed; lower-cased. Pure. */
+export function normalizeClaimText(raw: string): string {
+  return String(raw ?? "")
+    .replace(/\*+/g, "")
+    .trim()
+    .replace(SLOT_PREFIX_RE, "")
+    .replace(FACT_LABEL_RE, "")
+    .replace(QUOTE_EDGE_RE, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function claimsMatch(card: string, entry: string): boolean {
+  if (!card || !entry) return false;
+  if (card === entry) return true;
+  const [short, long] = card.length <= entry.length ? [card, entry] : [entry, card];
+  return short.length >= MIN_CONTAINED_CLAIM_CHARS && long.includes(short);
+}
+
+/** The one rated source a claim's text resolves to in `claimTiers`, or null (no match, a match with
+ *  no rated source, or matches that disagree). Pure. */
+export function resolveClaimTier(claimText: string, claimTiers: ClaimTierMap | null | undefined): ClaimTierInfo | null {
+  if (!claimTiers) return null;
+  const card = normalizeClaimText(claimText);
+  if (!card) return null;
+  let found: ClaimTierInfo | null = null;
+  for (const [key, info] of Object.entries(claimTiers)) {
+    if (!info || typeof info.tier !== "number") continue;
+    if (!claimsMatch(card, normalizeClaimText(key))) continue;
+    if (found && (found.tier !== info.tier || (found.sourceName ?? null) !== (info.sourceName ?? null))) return null;
+    found = info;
+  }
+  return found;
+}
+
+function claimPlainText(nodes: ClaimNode[]): string {
+  return nodes.map((n) => n.text).join(" ");
+}
+
+function withTier(
+  nodes: ClaimNode[],
+  provenance: FactCardProvenance | null | undefined,
+  claimTiers: ClaimTierMap,
+): FactCardProvenance | null | undefined {
+  if (typeof provenance?.tier === "number") return provenance; // record-grade, already rated
+  const info = resolveClaimTier(claimPlainText(nodes), claimTiers);
+  if (!info) return provenance;
+  return {
+    source: provenance?.source ?? info.sourceName ?? null,
+    org: provenance?.org ?? null,
+    href: provenance?.href ?? info.sourceUrl ?? null,
+    accessed: provenance?.accessed ?? null,
+    tier: info.tier,
+  };
+}
+
+/** Attach each claim's grounded-source tier to a card model (the card's own claim and every stacked
+ *  `additionalClaims` entry). Inference cards are returned untouched (an inference is "not citable").
+ *  A claim that does not resolve keeps `tier` null and the card renders the Absence part. Pure,
+ *  never mutates its input. */
+export function withClaimTiers(model: FactCardModel, claimTiers: ClaimTierMap | null | undefined): FactCardModel {
+  if (!claimTiers || model.kind === "ANALYTICAL INFERENCE" || model.recordGrade) return model;
+  return {
+    ...model,
+    provenance: withTier(model.claim, model.provenance, claimTiers),
+    additionalClaims: model.additionalClaims?.map((c) => ({
+      claim: c.claim,
+      provenance: withTier(c.claim, c.provenance, claimTiers),
+    })),
   };
 }
 

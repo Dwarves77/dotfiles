@@ -138,3 +138,41 @@ test("main: zero items generated (empty batch or every item unrouted) writes not
   assert.equal(apply.counts.questions_generated, 0);
   assert.equal(apply.applied, 0);
 });
+
+// ── ADR-044 posture and the change-time generation (lane L4-A, 2026-10-05) ───────────────────────────
+
+import { QUESTION_ACQUISITION } from "./constants.mjs";
+import { mainForQuestions, CITE } from "./trigger-questions.mjs";
+
+test("posture: questions are answered from holdings by a session batch, not operator-priced or parked (ADR-044 decision 1)", () => {
+  assert.equal(QUESTION_ACQUISITION, "holdings-session-batch");
+  const row = triggerQuestionFlagRow(generateTriggerQuestions(REG_ITEM)[0]);
+  const text = `${CITE.reason} ${row.recommended_actions[0].rationale}`;
+  assert.match(text, /session batch/);
+  assert.ok(!/operator-priced-only|for operator review|never auto-answered/.test(text), text);
+});
+
+test("generateTriggerQuestions: a change-time call carries the event type, says what changed in plain words, and keeps the event id", () => {
+  const qs = generateTriggerQuestions(REG_ITEM, {
+    eventType: "value_revised", eventId: 42, change: "a derived value (val-1) was revised on Fixture jurisdiction",
+  });
+  assert.equal(qs.length, 4);
+  for (const q of qs) {
+    assert.equal(q.eventType, "value_revised");
+    assert.equal(q.eventId, 42);
+    assert.match(q.questionText, /a derived value \(val-1\) was revised on Fixture jurisdiction/);
+    assert.match(q.questionText, new RegExp(REG_ITEM.title));
+  }
+  const row = triggerQuestionFlagRow(qs[0]);
+  assert.match(row.recommended_actions[0].rationale, /event_type=value_revised event_id=42/);
+});
+
+test("mainForQuestions: the same key twice in one batch is written once and counted", async () => {
+  const q = generateTriggerQuestions(REG_ITEM);
+  let rows = null;
+  const deps = { readExistingOpen: async () => [], insertMany: async (r) => { rows = r; return { inserted: r.length, snapshot: null }; } };
+  const s = await mainForQuestions({ mode: "apply", questions: [...q, ...q], itemsConsidered: 1 }, deps);
+  assert.equal(rows.length, 4);
+  assert.equal(s.counts.deduped_in_batch, 4);
+  assert.equal(s.counts.new, 4);
+});

@@ -9,6 +9,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// Lane P1 (2026-10-05, CLAUDE.md rule 18): the worst-case source bias set the row/card specs mount, so
+// every spec measures the BiasChips part at its widest: five tags (two chips plus "+3 more" on a row,
+// three plus a disclosure on a card), the longest labels in the vocabulary, one stored below the
+// adopt-as-high line so the "lower confidence" words are in the measured text too.
+export const SMOKE_BIAS_TAGS_FIVE = [
+  { dimension: "funding", tag: "subscription-supported", confidence: 0.95 },
+  { dimension: "methodology", tag: "methodologically-transparent", confidence: 0.9 },
+  { dimension: "methodology", tag: "analytical-synthesis", confidence: 0.85 },
+  { dimension: "stakeholder", tag: "environmental-advocate", confidence: 0.7 },
+  { dimension: "stakeholder", tag: "independent-research", confidence: 0.82 },
+];
+
 const LONG = (n, word = "extremely-long-token") =>
   Array.from({ length: n }, (_, i) => `${word}-${i}`).join(" ");
 

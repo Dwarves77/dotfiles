@@ -27,6 +27,7 @@ import {
 } from "@/lib/forward-events/obligation-rail-select.mjs";
 import type { ListSurfaceFacetGroup } from "./ListSurfaceShell";
 import { nowFrom } from "@/lib/render-now";
+import { tierScaleSpan } from "@/lib/customer-source-tier";
 
 // FILTERS rail card (operator audit 2026-09-07: "the filters were not above the regulations, they
 // were on the right — same on every page"; artboard 02/id="p2" FILTERS card: title + "Clear N" link,
@@ -563,7 +564,7 @@ export function LegendRailCard() {
         <div>
           <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Source tier</dt>
           <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-            T1 binding law → T6 commentary.
+            {tierScaleSpan("→")}.
           </dd>
         </div>
       </dl>

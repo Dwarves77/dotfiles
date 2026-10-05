@@ -44,6 +44,8 @@ import type { UrgencyBand } from "@/lib/urgency/bands";
 import { ImpactMeter, isImpactScored } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
 import { TagChip, TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
+import { BiasChips, type BiasTagInput } from "@/components/ui/BiasChips";
+import { hasBiasTags } from "@/lib/credibility/bias-display.mjs";
 import { Absence, pickAbsenceReason, type AbsenceReason } from "@/components/ui/Absence";
 
 export interface ListRowProps {
@@ -89,6 +91,16 @@ export interface ListRowProps {
    * existing caller is unaffected.
    */
   tags?: { id: string; name: string }[] | null;
+  /**
+   * Additive extension (lane P1, 2026-10-05; CLAUDE.md rule 18): the bias tags of the item's
+   * SOURCE, drawn by the one `BiasChips` part (bounded to two chips plus a "+N more" count, no
+   * interactive element). Desktop: on the meta line beside the kind chip and meta text, in the
+   * flexible title column, never in the fixed 40px tier column. Phone: the meta line is hidden
+   * below 768px, so the same chips render on their own line under the value cells
+   * (`.cl-row-bias-mobile`, a whole-chip wrapping line like the workspace tags). Undefined, null
+   * or empty renders nothing at all, so every existing caller is unaffected.
+   */
+  biasTags?: BiasTagInput[] | null;
   /**
    * Additive extension (design audit B130, 2026-09-07, map-register.json,
    * dc.html p10 'Jurisdiction register' card): register-style rows (a row
@@ -317,6 +329,11 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
     .cl-row-due-days { font-size: 11.5px !important; font-weight: 500 !important; }
     .cl-row-timeline { display: none !important; }
     .cl-row-tags-mobile { display: inline-flex !important; }
+    /* Lane P1 (2026-10-05): the source's bias chips. The meta line above is hidden at this width
+       (and every non-absence child of it with it), so the chips come back on a line of their own at
+       the foot of the row: flex-basis 100% takes the whole line-2 flow's last row, the group wraps
+       whole chips inside it, and padding-right is already reserved by the row for the 44px control. */
+    .cl-row-bias-mobile { display: flex !important; flex: 0 0 100%; min-width: 0; }
     /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 and read off
        docs/design/handoff-2026-09-06/built/mobile-01-dashboard.png]: the overflow control
        was an ordinary item of the wrapping line-2 flow with margin-left: auto, and at 390
@@ -475,7 +492,7 @@ ${LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS}
   }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, due, timeline, tier, overflow, endStat, tags, minHeight = 56, variant = "list" }: ListRowProps) {
+export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, due, timeline, tier, overflow, endStat, tags, biasTags, minHeight = 56, variant = "list" }: ListRowProps) {
   if (variant === "register" && endStat) {
     return (
       <div
@@ -633,6 +650,9 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
   // swaps back to the WORD below 768px, which would put a second token on a mobile row now that
   // the meta line carries the reason at every width. The operations matrix still uses it, which is
   // why it stays in Absence.tsx.
+  // Lane P1: true only when the source carries at least one usable tag, so a source with none
+  // renders no wrapper, no line and no gap (BiasChips itself also returns null for an empty set).
+  const hasBias = hasBiasTags(biasTags);
   const impactScored = isImpactScored(impact);
   const rowAbsence: AbsenceReason | null = pickAbsenceReason([
     tier == null ? "not in primary source" : null,
@@ -786,7 +806,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
                 `tags` re-renders below in .cl-row-line2 (mobile spec's line-2 item order) instead —
                 logged in DEVIATION-LOG.md: the mobile spec is silent on `meta`'s own position, so it
                 is left exactly where it already sat rather than invented a new placement. */}
-            {(meta || kind || metaReason || (tags && tags.length > 0)) && (
+            {(meta || kind || metaReason || hasBias || (tags && tags.length > 0)) && (
               <span
                 className="cl-row-meta-tags"
                 style={{
@@ -835,6 +855,11 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
                     <Absence reason={metaReason} />
                   </span>
                 )}
+                {hasBias && (
+                  <span className="cl-row-bias-desktop" style={{ display: "inline-flex", flexShrink: 1, minWidth: 0 }}>
+                    <BiasChips tags={biasTags} variant="row" />
+                  </span>
+                )}
                 {tags && tags.length > 0 && (
                   <span style={{ display: "flex", gap: 4, flexShrink: 0, position: "relative", zIndex: 1 }}>
                     {tags.map((t) => (
@@ -855,6 +880,13 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
               {tags.map((t) => (
                 <WorkspaceTagPill key={`m-${t.id}`} name={t.name} />
               ))}
+            </span>
+          )}
+          {/* Mobile-only (lane P1): the source's bias chips on their own line, see
+              `.cl-row-bias-mobile` above. Hidden >=768px, where the meta line carries them. */}
+          {hasBias && (
+            <span className="cl-row-bias-mobile" style={{ display: "none" }}>
+              <BiasChips tags={biasTags} variant="row" wrap />
             </span>
           )}
           <span

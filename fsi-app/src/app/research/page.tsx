@@ -24,6 +24,7 @@ import { renderNowIso } from "@/lib/render-now";
 import { ThemeStrip } from "@/components/shell/ThemeStrip";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
+import { BiasLegend } from "@/components/ui/BiasChips";
 import { getPublicResearchItems, getResearchSourceCoverage, getPublicSurfaceCounts } from "@/lib/data";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { selectAssessmentViewsByItemId } from "@/lib/research/read-assessments.mjs";
@@ -137,12 +138,16 @@ export default async function Research() {
               >
                 Credibility model
               </span>
-              <CredibilityChipEvidence biasTags={[]} />
+              <CredibilityChipEvidence />
               <CredibilityChipAuthority />
               <span style={{ fontSize: 11, color: "var(--ink-2)" }}>
                 Two scores, never merged (spec-03 §4). Click a chip for the GRADE modifier ledger.
               </span>
             </div>
+            {/* Lane P1 (2026-10-05, CLAUDE.md rule 18): the source bias vocabulary the rows' chips draw
+                from, one row per dimension, built from the stored vocabulary and its label table. The
+                legend above only ever showed the two score chips with no data behind them. */}
+            <BiasLegend />
           </div>
         }
       />

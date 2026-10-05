@@ -107,7 +107,9 @@ export default async function Home() {
     mergeBriefCorpus(data.resources, data.briefResources),
     data.dueNext ?? [],
   );
-  await enrichRowSourceChips(selectBriefResources(corpus, data.recentChanges, now));
+  // Lane P1 (CLAUDE.md rule 18): the same bias enrichment the four list pages already run, so a
+  // dashboard row shows its source's bias chips beside the tier, over the same bounded row set.
+  await enrichRowSourceChips(selectBriefResources(corpus, data.recentChanges, now), { enrichBiasTags: true });
   const dueNextRows = buildDueNextRows(corpus, now);
   // D23 (migration 319): data.changelog (fetchChangelog's own map, already read for the item
   // detail rail) supplies the "brief regenerated" / "timeline added" field for an UPDATED row's

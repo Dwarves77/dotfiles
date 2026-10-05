@@ -21,7 +21,7 @@
 
 import { runUxSpec } from './ux-harness.mjs';
 import { fileURLToPath } from 'node:url';
-import { ROW_SYSTEM_CSS } from './smoke-fixtures.mjs';
+import { ROW_SYSTEM_CSS, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
 
 // See smoke-fixtures.mjs's ROW_SYSTEM_CSS header: the harness never loads globals.css, so this
 // injects a disclosed verbatim copy of the row-system CSS as a <style> tag at module-eval time.
@@ -80,7 +80,7 @@ function finding(i, { long = false } = {}) {
     jurisdictionIso: ['EU'],
     sourceTier: (i % 7) + 1,
     citationCount: i % 4 === 0 ? null : 2,
-    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
+    biasTags: i % 3 === 0 ? SMOKE_BIAS_TAGS_FIVE : [],
     itemGrade: i % 5 === 4 ? undefined : 'record',
     reasoning: '',
     // `tags` deliberately carries a real cost/client-facing keyword (src/lib/scoring.ts's

@@ -235,6 +235,7 @@ export function RegionDimensionMatrix({
           sourceNote: f.source_note,
           sourceName: f.source_name,
           sourceUrl: f.source_url,
+          sourceTier: f.source_tier,
           lastUpdated: f.last_updated,
           freshness: f.freshness,
           // Layer 2 (WO-12 envelope, migration 267): carried through unchanged so isEnvelopedFact

@@ -166,6 +166,19 @@ export interface DrainEventError {
   message: string;
 }
 
+/** One outbox event this call processed (lane L4-A, 2026-10-05): handed back so the runner can raise
+ *  questions on change for the entity the event names (src/lib/learning/questions-on-change.mjs). In apply
+ *  mode only an event that was invalidated AND marked drained appears; in dry mode, every event whose
+ *  invalidate_dependents count call succeeded. */
+export interface ProcessedEvent {
+  eventId: number | string;
+  tableName: string;
+  rowPk: string;
+  entityId: string | null;
+  changeKind: string | null;
+  occurredAt: string;
+}
+
 export interface DrainResult {
   mode: "dry" | "apply";
   queueDepthBefore: number;
@@ -177,6 +190,7 @@ export interface DrainResult {
   skippedMethodRefused: number;
   superseded: Array<{ from: string; to: string }>;
   errors: DrainEventError[];
+  processedEvents: ProcessedEvent[];
 }
 
 const DEFAULT_BATCH = 500;
@@ -217,7 +231,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
 
   const { data: events, error: eventsErr } = await sb
     .from("propagation_events")
-    .select("event_id,table_name,row_pk,entity_id,occurred_at")
+    .select("event_id,table_name,row_pk,entity_id,change_kind,occurred_at")
     .is("drained_at", null)
     .order("occurred_at", { ascending: true })
     .limit(batch);
@@ -229,6 +243,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
     table_name: string;
     row_pk: string;
     entity_id: string | null;
+    change_kind?: string | null;
     occurred_at: string;
   }>;
   // eventList.length <= batch structurally (the .limit(batch) read above), DEFAULT_BATCH = 500 — well
@@ -246,6 +261,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
     skippedMethodRefused: 0,
     superseded: [],
     errors: [],
+    processedEvents: [],
   };
 
   if (eventList.length === 0) return result;
@@ -265,6 +281,14 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
       continue;
     }
     result.invalidated += typeof count === "number" ? count : 0;
+    const processed: ProcessedEvent = {
+      eventId: ev.event_id,
+      tableName: ev.table_name,
+      rowPk: ev.row_pk,
+      entityId: ev.entity_id ?? null,
+      changeKind: ev.change_kind ?? null,
+      occurredAt: ev.occurred_at,
+    };
 
     if (apply) {
       const { error: markErr } = await sb
@@ -277,6 +301,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
       }
       result.eventsDrained += 1;
     }
+    result.processedEvents.push(processed);
   }
 
   if (!apply) return result; // dry mode stops here — see header
