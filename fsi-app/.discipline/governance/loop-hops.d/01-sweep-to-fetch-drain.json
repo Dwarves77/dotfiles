@@ -5,6 +5,6 @@
   "trigger": "workflow_run",
   "family": "fetch-drain",
   "enforceEdge": true,
-  "enforceFired": false,
-  "note": "Edge exists and is enforced: fetch-drain.yml carries on.workflow_run.workflows: [\"Source sweep\"]. The fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ALLOWED_FAMILIES) with real prior artifacts. No trigger field proven yet (M2 closes the apply half and proves it)."
+  "enforceFired": true,
+  "note": "Edge exists and is enforced: fetch-drain.yml carries on.workflow_run.workflows: [\"Source sweep\"]. The fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ALLOWED_FAMILIES) with real prior artifacts. Fired proof: harness_runs evidence entry fetch-drain-run-006 (trigger workflow_run, 2026-09-29) in loop-fired-evidence.json, so enforceFired is now true."
 }
