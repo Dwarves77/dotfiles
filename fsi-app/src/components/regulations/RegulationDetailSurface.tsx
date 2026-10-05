@@ -66,6 +66,9 @@ import { renderRequirementTrajectory } from "@/components/detail/RequirementTraj
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
+import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
+
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource } from "@/lib/scoring";
@@ -94,7 +97,7 @@ import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import { useResourceStore } from "@/stores/resourceStore";
 
-interface Props {
+interface Props extends DetailSurfaceSharedProps {
   resource: Resource;
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
@@ -111,9 +114,6 @@ interface Props {
   /** Hero deck sub-line, e.g. "IMO MEPC · adopted 7 July 2023 · in force". */
   deck?: string;
   initialOwner?: { userId: string; name: string } | null;
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
   /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this surface's
    *  page.tsx so the "Brief regenerated <date>" header line (D23 part (d)) comes from ONE instant
    *  the server chose, never `new Date()` in this "use client" component (the #418 class). */
@@ -148,6 +148,7 @@ export function RegulationDetailSurface({
   supersessions,
   connections,
   resourceLookup,
+  crossPage = null,
   sections = [],
   claimTiers,
   groupLabel,
@@ -430,6 +431,8 @@ export function RegulationDetailSurface({
             </DetailSection>
           )}
 
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="regulations" surfaceLabel="Regulations" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

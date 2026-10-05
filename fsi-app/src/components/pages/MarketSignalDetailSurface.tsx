@@ -65,6 +65,9 @@ import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "@/lib/pr
 import { DerivedFigure } from "@/components/figures/EstimatedFigure";
 import type { Value } from "@/lib/propagation/types.ts";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
+import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
+
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
@@ -93,8 +96,7 @@ import {
 import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import type { Resource, ItemConnection, Supersession } from "@/types/resource";
-import type { ItemRelevance } from "@/lib/workspace/profile";
+import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 
 // ── Carbon overlay (WO-24) — emission_factors modal_default rows ─────────
@@ -139,7 +141,7 @@ export interface PriceStat {
   nextReleaseLabel?: string | null;
 }
 
-interface Props {
+interface Props extends DetailSurfaceSharedProps {
   resource: Resource;
   relatedPool: Resource[];
   sections?: IntelligenceItemSectionRow[];
@@ -151,13 +153,6 @@ interface Props {
   groupLabel?: string;
   deck?: string;
   initialNote?: string;
-  supersessions?: Supersession[];
-  connections?: ItemConnection[];
-  relevance?: ItemRelevance | null;
-  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
 }
 
 // ── Severity vocabulary (5-label, mirrors MarketPage) ─────────────────────
@@ -289,6 +284,7 @@ export function MarketSignalDetailSurface({
   supersessions = [],
   connections = [],
   resourceLookup = {},
+  crossPage = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -714,6 +710,8 @@ export function MarketSignalDetailSurface({
               )}
             </DetailSection>
           )}
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="market" surfaceLabel="Market Intel" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

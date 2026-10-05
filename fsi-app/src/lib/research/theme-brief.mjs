@@ -30,6 +30,12 @@
 // whose theme_id matches no row in the live `themes` array is never visited, exactly like the admin route.
 
 import { resolveBriefForTheme } from "../connections/brief-staleness.mjs";
+import { SURFACE_LABELS, SURFACE_ORDER } from "../connections/connection-view-model.mjs";
+import { surfaceOf } from "../surface-of.mjs";
+// One parser and one heading map for a brief's `ramifications` section: the validator that admits a brief
+// (scripts/turns/theme-briefs/schema.mjs) and this reader must agree on what a "### <Surface>" subsection
+// is. Same src-imports-scripts precedent as src/lib/research/assess.mjs.
+import { parseRamifications, SURFACE_HEADING } from "../../../scripts/turns/theme-briefs/schema.mjs";
 
 /**
  * @typedef {{ id: string, member_ids: string[], density?: number|null }} ConnectionThemeRow
@@ -73,9 +79,11 @@ export function findThemeForItem(itemId, themes) {
  * @param {string} itemId
  * @param {ConnectionThemeRow[]} themes
  * @param {ThemeBriefRow[]} briefs
+ * @param {{lineage?: Array<{prior_id:string,new_id:string}>}} [opts] lineage from the latest run's theme_delta,
+ *   so a pre-migration-351 brief (no stored members) is still found after its theme id drifted
  * @returns {ThemeBriefView | null}
  */
-export function selectThemeBriefForItem(itemId, themes, briefs) {
+export function selectThemeBriefForItem(itemId, themes, briefs, opts = {}) {
   const theme = findThemeForItem(itemId, themes);
   if (!theme) return null;
   // ONE lookup (src/lib/connections/brief-staleness.mjs resolveBriefForTheme, lane S3-C): the brief stored
@@ -83,6 +91,7 @@ export function selectThemeBriefForItem(itemId, themes, briefs) {
   // overlapping prior brief served STALE. A brief that belongs to another live theme is never borrowed.
   const resolved = resolveBriefForTheme(theme, Array.isArray(briefs) ? briefs : [], {
     liveThemeIds: new Set((Array.isArray(themes) ? themes : []).map((t) => t && t.id).filter(Boolean)),
+    lineage: Array.isArray(opts?.lineage) ? opts.lineage : [],
   });
   const brief = resolved.brief;
   if (!brief) return null;
@@ -103,5 +112,154 @@ export function selectThemeBriefForItem(itemId, themes, briefs) {
     // The prior theme whose brief this view serves (null for an exact-id brief). Present so a surface can
     // say "this synthesis was written for an earlier cluster".
     supersedesThemeId: resolved.supersedes_theme_id,
+    // The structured sections (migration 351), null for a brief written before it or a database without
+    // the column (the read tolerates its absence).
+    sections: brief.sections && typeof brief.sections === "object" && !Array.isArray(brief.sections) ? brief.sections : null,
   };
+}
+
+/** Members shown per page before "and N more". A theme can hold dozens of items. */
+export const MAX_MEMBERS_PER_PAGE = 6;
+
+const trimOrNull = (x) => (typeof x === "string" && x.trim() ? x.trim() : null);
+
+/**
+ * The cross-page theme analysis for one item on one page (lane S3-B), or null when the item is in no theme.
+ * A superset of selectThemeBriefForItem's view (themeId, title, briefMd, generatedAt, memberCount, density,
+ * stale, supersedesThemeId stay), plus:
+ *   hasBrief / absence      a theme with no brief says what is missing instead of vanishing
+ *   sections                {connection, meaning, forThisPage, watch, gaps} when the brief is structured;
+ *                           `forThisPage` is ONLY the ramifications subsection for the viewing page, so
+ *                           another page's ramifications never travel to this page's render
+ *   ramificationsMissing    structured brief with no subsection for this page
+ *   pages                   the pages the theme spans (from its members' own item type and domain)
+ *   membersByPage           the OTHER members grouped by page (other pages first, this page last), capped
+ * `members` are the live, verified, non-archived items of the theme (id, legacy_id, title, item_type, domain).
+ * PURE.
+ * @param {{itemId:string, surface:string, themes:Array, briefs:Array, lineage?:Array, members?:Array}} input
+ */
+export function buildThemeAnalysisView({ itemId, surface, themes, briefs, lineage = [], members = [] } = {}) {
+  const theme = findThemeForItem(itemId, themes);
+  if (!theme) return null;
+  const brief = selectThemeBriefForItem(itemId, [theme, ...(Array.isArray(themes) ? themes.filter((t) => t && t.id !== theme.id) : [])], briefs, { lineage });
+  const pivotRank = new Map((Array.isArray(theme.pivots) ? theme.pivots : []).map((p, i) => [p?.id, i]));
+  const rows = [];
+  for (const m of Array.isArray(members) ? members : []) {
+    if (!m || typeof m.id !== "string" || m.id === itemId || !Array.isArray(theme.member_ids) || !theme.member_ids.includes(m.id)) continue;
+    const s = surfaceOf(m.item_type, m.domain);
+    if (!SURFACE_LABELS[s] || !trimOrNull(m.title)) continue;
+    const uiId = m.legacy_id || m.id;
+    rows.push({ id: m.id, title: m.title.trim(), href: `/${s}/${encodeURIComponent(uiId)}`, surface: s });
+  }
+  const spanned = new Set(rows.map((r) => r.surface));
+  const own = SURFACE_LABELS[surface] ? surface : null;
+  if (own) spanned.add(own);
+  const pages = SURFACE_ORDER.filter((s) => spanned.has(s)).map((s) => ({ surface: s, label: SURFACE_LABELS[s] }));
+  const membersByPage = [...SURFACE_ORDER.filter((s) => s !== own), ...SURFACE_ORDER.filter((s) => s === own)]
+    .filter((s) => rows.some((r) => r.surface === s))
+    .map((s) => {
+      const all = rows
+        .filter((r) => r.surface === s)
+        .sort((a, b) => (pivotRank.get(a.id) ?? 1e9) - (pivotRank.get(b.id) ?? 1e9) || a.title.localeCompare(b.title));
+      return {
+        surface: s,
+        label: SURFACE_LABELS[s],
+        samePage: s === own,
+        total: all.length,
+        items: all.slice(0, MAX_MEMBERS_PER_PAGE).map(({ id, title, href }) => ({ id, title, href })),
+        moreHref: all.length > MAX_MEMBERS_PER_PAGE ? `/${s}` : null,
+      };
+    });
+
+  let sections = null;
+  let ramificationsMissing = false;
+  if (brief?.sections) {
+    const subs = parseRamifications(brief.sections.ramifications).subs;
+    const mine = own ? trimOrNull(subs.get(SURFACE_HEADING[own])) : null;
+    ramificationsMissing = !mine;
+    sections = {
+      connection: trimOrNull(brief.sections.connection),
+      meaning: trimOrNull(brief.sections.meaning),
+      forThisPage: mine,
+      watch: trimOrNull(brief.sections.watch),
+      gaps: trimOrNull(brief.sections.gaps),
+    };
+  }
+  return {
+    themeId: theme.id,
+    title: brief ? brief.title : null,
+    briefMd: brief ? brief.briefMd : null,
+    generatedAt: brief ? brief.generatedAt : null,
+    memberCount: Array.isArray(theme.member_ids) ? theme.member_ids.length : 0,
+    density: typeof theme.density === "number" ? theme.density : null,
+    stale: brief ? brief.stale : false,
+    supersedesThemeId: brief ? brief.supersedesThemeId : null,
+    hasBrief: Boolean(brief),
+    absence: brief ? null : "A brief for this theme has not been written yet, so what this connection means is not stated here.",
+    sections,
+    ramificationsMissing,
+    pages,
+    membersByPage,
+  };
+}
+
+/** Other-member links a chip carries beyond its own link (the Research strip's existing behaviour). */
+export const MAX_CHIP_MEMBER_LINKS = 3;
+
+/**
+ * Theme chips for a list page's strip (surface set) or the dashboard (surface null), lane S3-B. PURE.
+ *   surface set  every theme with at least one item on that page, most convergent first; the chip opens
+ *                the highest-centrality member ON THAT PAGE (pivot rank, then title).
+ *   surface null every theme spanning at least `minPages` pages; the chip opens its top pivot.
+ * Pages are classified from each member's own item type and domain (surfaceOf, the router the pages use),
+ * not from connection_themes.surfaces, which is computed from item type alone.
+ * @param {{themes:Array, items:Array, briefs?:Array, lineage?:Array, surface?:string|null, minPages?:number, max?:number}} input
+ * @returns {Array<{themeId:string, href:string, itemTitle:string, briefTitle:string|null, memberCount:number,
+ *   pages:Array<{surface:string,label:string}>, hasBrief:boolean, stale:boolean,
+ *   links:Array<{title:string, href:string}>}>}
+ */
+export function buildThemeChips({ themes, items, briefs = [], lineage = [], surface = null, minPages = 1, max = 6 } = {}) {
+  const itemsById = new Map();
+  for (const it of Array.isArray(items) ? items : []) {
+    if (it && typeof it.id === "string" && trimOrNull(it.title)) itemsById.set(it.id, it);
+  }
+  const list = (Array.isArray(themes) ? themes : []).filter((t) => t && typeof t.id === "string" && Array.isArray(t.member_ids));
+  const liveThemeIds = new Set(list.map((t) => t.id));
+  const out = [];
+  for (const t of list) {
+    const pivotRank = new Map((Array.isArray(t.pivots) ? t.pivots : []).map((p, i) => [p?.id, i]));
+    const members = [];
+    for (const id of t.member_ids) {
+      const it = itemsById.get(id);
+      if (!it) continue;
+      const s = surfaceOf(it.item_type, it.domain);
+      if (!SURFACE_LABELS[s]) continue;
+      members.push({ id, title: it.title.trim(), href: `/${s}/${encodeURIComponent(it.legacy_id || id)}`, surface: s });
+    }
+    members.sort((a, b) => (pivotRank.get(a.id) ?? 1e9) - (pivotRank.get(b.id) ?? 1e9) || a.title.localeCompare(b.title));
+    const pageSet = new Set(members.map((m) => m.surface));
+    if (pageSet.size < minPages) continue;
+    const target = surface ? members.find((m) => m.surface === surface) : members[0];
+    if (!target) continue;
+    const resolved = resolveBriefForTheme(t, Array.isArray(briefs) ? briefs : [], { liveThemeIds, lineage: Array.isArray(lineage) ? lineage : [] });
+    const others = members.filter((m) => m.id !== target.id);
+    const crossFirst = [...others.filter((m) => m.surface !== target.surface), ...others.filter((m) => m.surface === target.surface)];
+    out.push({
+      themeId: t.id,
+      convergence: typeof t.convergence === "number" ? t.convergence : 0,
+      href: target.href,
+      itemTitle: target.title,
+      briefTitle: resolved.brief ? resolved.brief.title ?? null : null,
+      memberCount: t.member_ids.length,
+      pages: SURFACE_ORDER.filter((s) => pageSet.has(s)).map((s) => ({ surface: s, label: SURFACE_LABELS[s] })),
+      hasBrief: Boolean(resolved.brief),
+      stale: resolved.brief ? resolved.stale : false,
+      links: crossFirst.slice(0, MAX_CHIP_MEMBER_LINKS).map(({ title, href }) => ({ title, href })),
+    });
+  }
+  out.sort((a, b) => b.convergence - a.convergence || (a.themeId < b.themeId ? -1 : 1));
+  return out.slice(0, Math.max(0, max)).map((chip) => {
+    const { convergence: _convergence, ...rest } = chip;
+    return rest;
+  });
 }

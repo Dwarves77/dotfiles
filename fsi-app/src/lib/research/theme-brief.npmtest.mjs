@@ -196,3 +196,155 @@ test("theme-brief: a brief belonging to a different live theme is not borrowed b
   const briefs = [{ theme_id: "c", title: "C", brief_md: "C body", member_hash: hashOf(["c", "d", "e"]), member_ids: ["c", "d", "e"], generated_at: "2026-08-20T00:00:00Z" }];
   assert.equal(selectThemeBriefForItem("a", themes, briefs), null);
 });
+
+// ── lane S3-B: theme analysis on every page ─────────────────────────────────────────────────────────
+import { buildThemeAnalysisView, MAX_MEMBERS_PER_PAGE } from "./theme-brief.mjs";
+import { SURFACE_LABELS } from "../connections/connection-view-model.mjs";
+import { SURFACE_HEADING } from "../../../scripts/turns/theme-briefs/schema.mjs";
+
+const mem = (id, title, item_type, domain = null, legacy_id = null) => ({ id, title, item_type, domain, legacy_id });
+const MEMBERS = [
+  mem("a", "A regulation", "regulation", 1, "reg-a"),
+  mem("b", "A market signal", "market_signal", 4),
+  mem("c", "A research finding", "research_finding", 7),
+  mem("d", "Another market signal", "market_signal", 4),
+];
+const STRUCTURED = {
+  connection: "They share the ETS surrender scenario.",
+  meaning: "Over the long term the surcharge is structural.",
+  ramifications: "### Regulations\nFile the surrender.\n\n### Market Intel\nExpect the surcharge to persist.\n\n### Research\nWatch the trial results.",
+  watch: "A consultation closes later.",
+  gaps: "No operations coverage.",
+};
+const briefRow = (extra = {}) => ({
+  theme_id: "a", title: "Surcharge theme", brief_md: "# Surcharge theme\n\nbody", member_hash: hashOf(["a", "b", "c", "d"]), generated_at: "2026-10-04T00:00:00Z",
+  sections: STRUCTURED, member_ids: ["a", "b", "c", "d"], ...extra,
+});
+const THEMES = [{ id: "a", member_ids: ["a", "b", "c", "d"], density: 0.5, surfaces: ["regulations", "market", "research"], pivots: [{ id: "d", centrality: 2 }, { id: "b", centrality: 1 }] }];
+
+test("S3-B: a Market Intel item gets the Market Intel ramifications subsection, not another page's", () => {
+  const v = buildThemeAnalysisView({ itemId: "b", surface: "market", themes: THEMES, briefs: [briefRow()], members: MEMBERS });
+  assert.equal(v.sections.forThisPage, "Expect the surcharge to persist.");
+  assert.ok(!JSON.stringify(v).includes("File the surrender"), "the Regulations subsection must not travel to a Market item");
+  assert.ok(!JSON.stringify(v).includes("Watch the trial results"));
+  assert.equal(v.sections.meaning, STRUCTURED.meaning);
+  assert.equal(v.sections.watch, STRUCTURED.watch);
+  assert.equal(v.title, "Surcharge theme");
+  assert.equal(v.hasBrief, true);
+  assert.equal(v.stale, false);
+});
+
+test("S3-B: the same theme read from a Regulations item shows the Regulations subsection", () => {
+  const v = buildThemeAnalysisView({ itemId: "a", surface: "regulations", themes: THEMES, briefs: [briefRow()], members: MEMBERS });
+  assert.equal(v.sections.forThisPage, "File the surrender.");
+});
+
+test("S3-B: other members are grouped by page with links, other pages first, the item itself excluded", () => {
+  const v = buildThemeAnalysisView({ itemId: "b", surface: "market", themes: THEMES, briefs: [briefRow()], members: MEMBERS });
+  assert.deepEqual(v.membersByPage.map((g) => g.surface), ["regulations", "research", "market"]);
+  const market = v.membersByPage.find((g) => g.surface === "market");
+  assert.deepEqual(market.items.map((i) => i.title), ["Another market signal"]);
+  assert.equal(market.samePage, true);
+  const reg = v.membersByPage.find((g) => g.surface === "regulations");
+  assert.equal(reg.items[0].href, "/regulations/reg-a", "link uses legacy id when present");
+  assert.equal(v.membersByPage.flatMap((g) => g.items).some((i) => i.id === "b"), false);
+  assert.deepEqual(v.pages.map((p) => p.label), ["Regulations", "Market Intel", "Research"]);
+});
+
+test("S3-B: a theme with no brief shows its members and names what is missing", () => {
+  const v = buildThemeAnalysisView({ itemId: "b", surface: "market", themes: THEMES, briefs: [], members: MEMBERS });
+  assert.equal(v.hasBrief, false);
+  assert.equal(v.sections, null);
+  assert.equal(v.title, null);
+  assert.match(v.absence, /brief for this theme has not been written/i);
+  assert.ok(v.membersByPage.length > 0);
+});
+
+test("S3-B: a drifted theme id still finds its prior brief, shown stale", () => {
+  const themes = [{ id: "a", member_ids: ["a", "b", "c", "d", "e"], density: 0.4, pivots: [] }];
+  const prior = briefRow({ theme_id: "b", member_hash: hashOf(["b", "c", "d", "e"]), member_ids: ["b", "c", "d", "e"] });
+  const v = buildThemeAnalysisView({ itemId: "c", surface: "research", themes, briefs: [prior], members: MEMBERS });
+  assert.equal(v.hasBrief, true);
+  assert.equal(v.stale, true);
+  assert.equal(v.supersedesThemeId, "b");
+  assert.equal(v.sections.forThisPage, "Watch the trial results.");
+});
+
+test("S3-B: a brief written before migration 351 (no sections) carries its brief_md and no sections", () => {
+  const v = buildThemeAnalysisView({ itemId: "b", surface: "market", themes: THEMES, briefs: [briefRow({ sections: undefined, member_ids: undefined })], members: MEMBERS });
+  assert.equal(v.sections, null);
+  assert.equal(v.briefMd, "# Surcharge theme\n\nbody");
+  assert.equal(v.hasBrief, true);
+  assert.equal(v.absence, null);
+});
+
+test("S3-B: a structured brief with no subsection for this page says so instead of showing another page's", () => {
+  const sections = { ...STRUCTURED, ramifications: "### Regulations\nOnly this page." };
+  const v = buildThemeAnalysisView({ itemId: "b", surface: "market", themes: THEMES, briefs: [briefRow({ sections })], members: MEMBERS });
+  assert.equal(v.sections.forThisPage, null);
+  assert.equal(v.ramificationsMissing, true);
+});
+
+test("S3-B: an item in no theme gives null, and bad input never throws", () => {
+  assert.equal(buildThemeAnalysisView({ itemId: "zzz", surface: "market", themes: THEMES, briefs: [], members: [] }), null);
+  assert.equal(buildThemeAnalysisView({ itemId: "a", surface: "market", themes: null, briefs: null, members: null }), null);
+  assert.equal(buildThemeAnalysisView({}), null);
+});
+
+test("S3-B: a page's member list is capped and says how many more there are", () => {
+  const ids = ["a", ...Array.from({ length: MAX_MEMBERS_PER_PAGE + 3 }, (_, i) => `m${i}`)];
+  const members = [mem("a", "Self", "market_signal", 4), ...ids.slice(1).map((id, i) => mem(id, `Signal ${i}`, "regulation", 1))];
+  const v = buildThemeAnalysisView({ itemId: "a", surface: "market", themes: [{ id: "a", member_ids: ids }], briefs: [], members });
+  const reg = v.membersByPage.find((g) => g.surface === "regulations");
+  assert.equal(reg.items.length, MAX_MEMBERS_PER_PAGE);
+  assert.equal(reg.total, MAX_MEMBERS_PER_PAGE + 3);
+});
+
+test("S3-B: the surface labels agree with the theme-brief ramifications headings", () => {
+  assert.deepEqual({ ...SURFACE_HEADING }, { ...SURFACE_LABELS });
+});
+
+// ── lane S3-B: theme chips for the four list strips and the dashboard ───────────────────────────────
+import { buildThemeChips } from "./theme-brief.mjs";
+
+const T1 = { id: "a", member_ids: ["a", "b", "c", "d"], convergence: 2, surfaces: ["regulations", "market", "research"], pivots: [{ id: "d", centrality: 2 }, { id: "a", centrality: 1 }] };
+const T2 = { id: "x", member_ids: ["x", "y"], convergence: 3, surfaces: ["market"], pivots: [{ id: "x", centrality: 1 }] };
+const ITEMS = [...MEMBERS, mem("x", "Only market one", "market_signal", 4), mem("y", "Only market two", "market_signal", 4)];
+
+test("S3-B chips: a page's strip shows the themes with at least one item of that page, most convergent first", () => {
+  const chips = buildThemeChips({ themes: [T1, T2], items: ITEMS, briefs: [], surface: "market", max: 6 });
+  assert.deepEqual(chips.map((c) => c.themeId), ["x", "a"], "convergence 3 before 2");
+  const regChips = buildThemeChips({ themes: [T1, T2], items: ITEMS, briefs: [], surface: "regulations", max: 6 });
+  assert.deepEqual(regChips.map((c) => c.themeId), ["a"], "a market-only theme has nothing on Regulations");
+});
+
+test("S3-B chips: the chip opens the pivot item on THAT page, naming every page the theme spans", () => {
+  const [chip] = buildThemeChips({ themes: [T1], items: ITEMS, briefs: [], surface: "regulations", max: 6 });
+  assert.equal(chip.href, "/regulations/reg-a", "the only Regulations member is the link target");
+  assert.equal(chip.itemTitle, "A regulation");
+  assert.deepEqual(chip.pages.map((p) => p.label), ["Regulations", "Market Intel", "Research"]);
+  const [mchip] = buildThemeChips({ themes: [T1], items: ITEMS, briefs: [], surface: "market", max: 6 });
+  assert.equal(mchip.itemTitle, "Another market signal", "the higher-centrality pivot among the page's members");
+});
+
+test("S3-B chips: dashboard mode keeps only themes spanning two or more pages and links the top pivot", () => {
+  const chips = buildThemeChips({ themes: [T1, T2], items: ITEMS, briefs: [], surface: null, minPages: 2, max: 6 });
+  assert.deepEqual(chips.map((c) => c.themeId), ["a"]);
+  assert.equal(chips[0].href, "/market/d");
+});
+
+test("S3-B chips: a brief gives its title and a stale flag; none gives hasBrief false; the cap holds", () => {
+  const withBrief = buildThemeChips({ themes: [T1], items: ITEMS, briefs: [briefRow()], surface: "market", max: 6 })[0];
+  assert.equal(withBrief.hasBrief, true);
+  assert.equal(withBrief.briefTitle, "Surcharge theme");
+  assert.equal(withBrief.stale, false);
+  const none = buildThemeChips({ themes: [T1], items: ITEMS, briefs: [], surface: "market", max: 6 })[0];
+  assert.equal(none.hasBrief, false);
+  assert.equal(none.briefTitle, null);
+  assert.equal(buildThemeChips({ themes: [T1, T2], items: ITEMS, briefs: [], surface: "market", max: 1 }).length, 1);
+});
+
+test("S3-B chips: empty or bad input gives no chips and never throws", () => {
+  assert.deepEqual(buildThemeChips({}), []);
+  assert.deepEqual(buildThemeChips({ themes: null, items: null, briefs: null, surface: "market" }), []);
+});

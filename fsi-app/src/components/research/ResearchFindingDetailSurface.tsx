@@ -34,9 +34,8 @@
 import { useMemo, useState } from "react";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
-import type { Resource, ItemConnection, Supersession } from "@/types/resource";
+import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
-import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
@@ -74,7 +73,10 @@ import {
   type RecordFactRow,
   type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
-import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
+import { ThemeBriefCard } from "@/components/detail/ThemeBriefCard";
+import { CrossPageSection, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
+import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
+
 import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { refusalDisplayText } from "@/lib/research/read-assessments.mjs";
 import {
@@ -92,20 +94,15 @@ interface RelatedFinding {
   addedDate: string | null;
 }
 
-type ThemeBriefView = ReturnType<typeof selectThemeBriefForItem>;
 type AssessmentView = ReturnType<typeof selectAssessmentView>;
 
-interface Props {
+interface Props extends DetailSurfaceSharedProps {
   resource: Resource;
   related: RelatedFinding[];
   relatedReason: "theme" | "source" | "none";
   sections?: IntelligenceItemSectionRow[];
   claimTiers?: ClaimTierMap;
-  supersessions?: Supersession[];
-  connections?: ItemConnection[];
-  relevance?: ItemRelevance | null;
-  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
-  themeBrief?: ThemeBriefView;
+  themeBrief?: ThemeAnalysisView | null;
   /** Lane W2-R (2026-10-01): migration 344's assessment row for this item, shaped by
    *  src/lib/research/read-assessments.mjs. undefined/null renders the honest "no assessment yet" state
    *  (R14: the surface renders what the producer has produced, never a fabricated reading). */
@@ -116,9 +113,6 @@ interface Props {
   /** Lane L5 (2026-10-02, extended scope): the real supersedes chain, newest first, shaped by
    *  read-signposts.mjs. [] (no assessment) or a single entry (no prior version) both render honestly. */
   assessmentHistory?: AssessmentHistoryEntry[];
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
 }
 
 const RESEARCH_SECTION_HEADINGS: Record<string, string> = {
@@ -159,6 +153,7 @@ export function ResearchFindingDetailSurface({
   connections = [],
   resourceLookup = {},
   themeBrief = null,
+  crossPage = null,
   assessment = null,
   signposts = [],
   assessmentHistory = [],
@@ -395,6 +390,9 @@ export function ResearchFindingDetailSurface({
               </div>
             </DetailSection>
           )}
+
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="research" surfaceLabel="Research" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>
@@ -522,32 +520,3 @@ function ResearchAssessmentCard({ assessment }: { assessment: AssessmentView | n
     </SectionCard>
   );
 }
-
-function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
-  if (!brief) return null;
-  return (
-    <SectionCard>
-      <div style={{ padding: "12px 16px 14px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-          <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
-            Cluster synthesis
-          </span>
-        </div>
-        <div style={{ fontSize: "var(--fs-125)", fontWeight: 600, lineHeight: 1.4, color: "var(--ink)" }}>{brief.title}</div>
-        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 6 }}>
-          {brief.memberCount} item{brief.memberCount === 1 ? "" : "s"}
-          {typeof brief.density === "number" ? ` · density ${brief.density.toFixed(3)}` : ""}
-          {brief.stale && (
-            <>
-              {" · "}
-              <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
-                stale · membership changed
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-    </SectionCard>
-  );
-}
-

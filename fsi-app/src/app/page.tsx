@@ -36,7 +36,7 @@ import {
   dueNextWindowLabel,
   CHANGED_CAP,
 } from "@/lib/dashboard/brief-rows";
-import { enrichRowSourceChips, describeFallbackTrigger } from "@/lib/supabase-server";
+import { enrichRowSourceChips, describeFallbackTrigger, fetchThemeChips } from "@/lib/supabase-server";
 
 export default async function Home() {
   // COUNTS-61 (production defect, click-through audit 2026-09-08): `regulationsCounts` is the
@@ -44,11 +44,13 @@ export default async function Home() {
   // (getPublicSurfaceCounts("regulations")), because every tile here navigates there. See
   // <DashboardBrief/>'s `bandCounts` prop. `aggregates` stays the workspace-wide figure the
   // masthead's "N items across 5 surfaces" line actually describes.
-  const [data, aggregates, regulationsCounts, surfaceCoverage] = await Promise.all([
+  const [data, aggregates, regulationsCounts, surfaceCoverage, crossPageThemes] = await Promise.all([
     getAppData(),
     getWorkspaceAggregates(),
     getPublicSurfaceCounts("regulations"),
     getSurfaceCoverageSnapshot(),
+    // Lane S3-B: the top themes spanning two or more pages, for the "Across the platform" card. Soft-fails to [].
+    fetchThemeChips({ surface: null, minPages: 2, max: 3 }),
   ]);
 
   // Rail's Watchlist card resolves inside its own Suspense boundary so the
@@ -155,6 +157,7 @@ export default async function Home() {
         fetchError={data._error}
         fetchErrorReason={describeFallbackTrigger(data._fallbackTrigger)}
         nowIso={nowIso}
+        crossPageThemes={crossPageThemes}
       />
     </>
   );

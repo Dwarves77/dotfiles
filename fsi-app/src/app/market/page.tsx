@@ -48,6 +48,7 @@ import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { renderNowIso } from "@/lib/render-now";
 import { fetchMarketSeriesBoard, fetchSbtiLeadTimeSeries } from "@/lib/supabase-server";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
+import { ThemeStrip } from "@/components/shell/ThemeStrip";
 import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRibbon";
 // Carbon cost per FEU overlay (spec 02 §6 item 3, lane CORR, 2026-09-02): "the single most defensible
 // 'only we do this' component available to us." No fetch lives in CarbonCostOverlay itself (CORR write
@@ -209,6 +210,7 @@ export default async function Market() {
              overlay entries the <CarbonCostOverlay/> section below already receives, reduced to the
              card's rows — one computation, two views, no second read. */
           carbonCorridors={summariseCarbonCorridors(carbonOverlays)}
+          belowRows={<ThemeStrip surface="market" />}
         />
       </Suspense>
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +

@@ -26,6 +26,7 @@ import { Suspense } from "react";
 import { getPublicOperationsItems, getPublicResourcesOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
+import { ThemeStrip } from "@/components/shell/ThemeStrip";
 import { renderNowIso } from "@/lib/render-now";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE, toLedgerRowPayload } from "@/lib/list-pagination";
@@ -72,6 +73,7 @@ export default async function Operations() {
           operationsCoverage={operationsCoverage}
           stateCosts={stateCosts}
           nowIso={renderNowIso()}
+          belowRows={<ThemeStrip surface="operations" />}
         />
       </Suspense>
     </>

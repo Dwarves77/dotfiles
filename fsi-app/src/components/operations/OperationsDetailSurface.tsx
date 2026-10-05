@@ -50,10 +50,9 @@ import { useMemo, useState, type ReactNode } from "react";
 import { joinMetaSegments } from "@/lib/detail/meta-line";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
-import type { Resource, ItemConnection, Supersession } from "@/types/resource";
+import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
-import type { ItemRelevance } from "@/lib/workspace/profile";
 import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
@@ -61,6 +60,9 @@ import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
+
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { SectionIndex, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
@@ -96,20 +98,13 @@ interface RelatedItem {
   addedDate: string | null;
 }
 
-interface Props {
+interface Props extends DetailSurfaceSharedProps {
   resource: Resource;
   related: RelatedItem[];
   relatedReason: "jurisdiction" | "source" | "none";
   sections?: IntelligenceItemSectionRow[];
   matrixEligibility?: MatrixEligibility;
   sourceFetchStatus?: string | null;
-  supersessions?: Supersession[];
-  connections?: ItemConnection[];
-  relevance?: ItemRelevance | null;
-  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
   /** Item D3 (2026-09-08): the two remaining spec-09 panels, rendered by the server route and mounted
    *  here as S-sections (the DQI panel was removed by ADR-042). Omitted by any caller that has no
    *  server tree to render them in (the audit mount passes its own fixture-fed views), in which case
@@ -176,6 +171,7 @@ export function OperationsDetailSurface({
   supersessions = [],
   connections = [],
   resourceLookup = {},
+  crossPage = null,
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
@@ -388,6 +384,8 @@ export function OperationsDetailSurface({
           <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}
           </DetailSection>
+          {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
+          <CrossPageSection surfaceKey="operations" surfaceLabel="Operations" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

@@ -49,7 +49,7 @@
  * reversal of PERF-12's own architecture choice, not an oversight.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
@@ -121,9 +121,12 @@ export interface RegulationsLedgerProps {
    *  facet, and is the one piece of view state that hook does not own. Undefined keeps the
    *  surface's own default ordering, so every existing caller is unaffected. */
   initialSort?: ListSurfaceSortKey | null;
+  /** Lane S3-B: extra content at the foot of the content column (the themes strip, server-rendered by the
+   *  page and handed down as an element so this client component never owns that data read). */
+  belowRows?: ReactNode;
 }
 
-export function RegulationsLedger({ initialResources, aggregates, hasMore, initialSort = null, nowIso }: RegulationsLedgerProps) {
+export function RegulationsLedger({ initialResources, aggregates, hasMore, initialSort = null, nowIso, belowRows }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
   // D23 part (d) (defect-fix-plan-2026-09-12.md): ONE server instant for the whole row set (the
   // "Updated <date>" chip below, plus the masthead date this file already computed inline) - never
@@ -336,7 +339,12 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
          reports a live loading state the artboard has no sample for, and it disappears the moment
          the fetch lands. */
       stateNote={loadingMore ? <StateNote>Loading the rest of the regulations corpus in the background.</StateNote> : null}
-      belowRows={<DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />}
+      belowRows={
+        <>
+          {belowRows}
+          <DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />
+        </>
+      }
       /* Artboard 02/id="p2" rail order, top to bottom: Filters (mounted by ListSurfaceShell
          itself), then "Obligations · next 30 days", then Legend. */
       rail={

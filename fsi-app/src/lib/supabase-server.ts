@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
 import type { Resource, ChangeLogEntry, Dispute, Supersession, ItemConnection } from "@/types/resource";
@@ -27,6 +27,8 @@ import { normalizeJurisdictionIsoColumn } from "@/lib/jurisdictions/iso";
 import { computeAuditDate } from "@/lib/dashboard/brief-rows";
 import { recentChangesWindowDays } from "@/lib/dashboard/recent-changes-window.mjs";
 import { readScrapeState } from "@/lib/api/pause";
+import { findThemeForItem, buildThemeAnalysisView, buildThemeChips } from "@/lib/research/theme-brief.mjs";
+import { lineageFromThemeDelta } from "@/lib/connections/theme-delta.mjs";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -4426,6 +4428,135 @@ export async function fetchIntelligenceItem(
     ["intel-item-detail", itemUiId],
     { revalidate: 300, tags: [itemTag(itemUiId), INTEL_ITEMS_TAG] }
   )();
+}
+
+// ── Cross-page analysis reads (lane S3-B): themes, theme briefs, intersection summary ─────────────────
+// The reads behind the shared "Across pages" section on the four detail pages, the theme strips on the four
+// list pages and the dashboard's theme list. Every shape decision lives in src/lib/research/theme-brief.mjs
+// (pure, tested); these functions only read, soft-fail to an empty answer, and never throw. All of it is
+// corpus-wide and org-independent, so it is safe inside the cached item-scoped detail bundle.
+
+const THEME_COLUMNS = "id, member_ids, density, convergence, surfaces, pivots";
+const THEME_BRIEF_BASE_COLUMNS = "theme_id, title, brief_md, member_hash, generated_at";
+
+/** Every stored brief. Migration 351 added sections, claims and member_ids; a database without it answers
+ *  the structured read with an error and the base columns are read instead, so this works either side. */
+async function readThemeBriefs(supabase: SupabaseClient): Promise<Array<Record<string, unknown>>> {
+  const structured = await supabase.from("theme_briefs").select(`${THEME_BRIEF_BASE_COLUMNS}, sections, member_ids`);
+  if (!structured.error) return (structured.data ?? []) as Array<Record<string, unknown>>;
+  const base = await supabase.from("theme_briefs").select(THEME_BRIEF_BASE_COLUMNS);
+  return base.error ? [] : ((base.data ?? []) as Array<Record<string, unknown>>);
+}
+
+/** Prior-to-new theme id pairs of the latest finished analysis run (migration 276 theme_delta). */
+async function readThemeLineage(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("connection_theme_runs")
+    .select("theme_delta")
+    .eq("status", "ok")
+    .order("started_at", { ascending: false })
+    .limit(1);
+  if (error || !data?.length) return [];
+  return lineageFromThemeDelta((data[0] as { theme_delta: object | null }).theme_delta);
+}
+
+/** Verified, non-archived items by id, in chunks (the customer read gate, same as the connections lookup). */
+async function readVerifiedItemsByIds(supabase: SupabaseClient, ids: string[]) {
+  const rows: Array<{ id: string; legacy_id: string | null; title: string; item_type: string | null; domain: number | null }> = [];
+  const unique = Array.from(new Set(ids)).filter(Boolean);
+  for (let i = 0; i < unique.length; i += 200) {
+    const { data, error } = await supabase
+      .from("intelligence_items")
+      .select("id, legacy_id, title, item_type, domain")
+      .eq("is_archived", false)
+      .eq("provenance_status", "verified")
+      // fitness-allow: F39 (chunked in 200-id slices, bounded per chunk, not corpus-scale)
+      .in("id", unique.slice(i, i + 200));
+    if (error) continue;
+    rows.push(...((data ?? []) as typeof rows));
+  }
+  return rows;
+}
+
+export type CrossPageAnalysis = {
+  /** The item's own stated intersection coupling (intelligence_items.intersection_summary), or null. */
+  intersectionSummary: string | null;
+  /** The item's theme analysis for the viewing page, or null when the item is in no theme. */
+  theme: ReturnType<typeof buildThemeAnalysisView>;
+};
+
+/**
+ * Everything the "Across pages" section needs beyond the connections already loaded with the item: the
+ * item's stated intersection summary and its theme analysis (theme, brief resolved through
+ * resolveBriefForTheme so a drifted theme id still finds its prior brief, members grouped by page).
+ * Never throws; any failed read degrades to "nothing to show" for that half.
+ */
+export async function fetchCrossPageForItem(
+  supabase: SupabaseClient,
+  itemUiId: string,
+  surface: DetailSurface
+): Promise<CrossPageAnalysis> {
+  const empty: CrossPageAnalysis = { intersectionSummary: null, theme: null };
+  try {
+    const { data: self } = await supabase
+      .from("intelligence_items")
+      .select("id, intersection_summary")
+      .eq(itemIdColumn(itemUiId), itemUiId)
+      .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
+      .maybeSingle();
+    if (!self) return empty;
+    const summary = typeof self.intersection_summary === "string" && self.intersection_summary.trim() ? self.intersection_summary.trim() : null;
+    try {
+      const { data: themes } = await supabase.from("connection_themes").select(THEME_COLUMNS);
+      const theme = findThemeForItem(self.id, themes ?? []);
+      if (!theme) return { intersectionSummary: summary, theme: null };
+      const [briefs, lineage, members] = await Promise.all([
+        readThemeBriefs(supabase),
+        readThemeLineage(supabase).catch(() => []),
+        readVerifiedItemsByIds(supabase, theme.member_ids),
+      ]);
+      return {
+        intersectionSummary: summary,
+        theme: buildThemeAnalysisView({ itemId: self.id, surface, themes: themes ?? [], briefs, lineage, members }),
+      };
+    } catch (e) {
+      console.error("fetchCrossPageForItem theme read failed, showing the summary only:", e);
+      return { intersectionSummary: summary, theme: null };
+    }
+  } catch (e) {
+    console.error("fetchCrossPageForItem failed, showing nothing:", e);
+    return empty;
+  }
+}
+
+/**
+ * Theme chips for a list page's strip (`surface` set) or the dashboard (`surface` null, `minPages` 2): the
+ * live themes, their briefs and the classified members, shaped by buildThemeChips. Soft-fails to [].
+ */
+export async function fetchThemeChips(opts: {
+  surface: DetailSurface | null;
+  minPages?: number;
+  max?: number;
+}): Promise<ReturnType<typeof buildThemeChips>> {
+  try {
+    const supabase = getServiceSupabase();
+    const { data: themes, error } = await supabase.from("connection_themes").select(THEME_COLUMNS).order("convergence", { ascending: false });
+    if (error || !themes?.length) return [];
+    // Cheap pre-filter on the stored page list, then the exact classification from the members' own rows.
+    const candidates = themes
+      .filter((t) => (opts.surface ? (t.surfaces ?? []).includes(opts.surface) : (t.surfaces ?? []).length >= (opts.minPages ?? 1)))
+      .slice(0, 12);
+    if (!candidates.length) return [];
+    const [briefs, lineage, items] = await Promise.all([
+      readThemeBriefs(supabase),
+      readThemeLineage(supabase).catch(() => []),
+      readVerifiedItemsByIds(supabase, candidates.flatMap((t) => t.member_ids ?? [])),
+    ]);
+    return buildThemeChips({ themes: candidates, items, briefs, lineage, surface: opts.surface, minPages: opts.minPages ?? 1, max: opts.max ?? 6 });
+  } catch (e) {
+    console.error("fetchThemeChips failed, showing nothing:", e);
+    return [];
+  }
 }
 
 // ── Phase 3 dashboard sidebar fetchers (Wave 1 / Track 5) ────────

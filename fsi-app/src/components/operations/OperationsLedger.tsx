@@ -39,7 +39,7 @@
  * it, so the prop is live, not a leftover.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { OperationsCoverageData, OperationsFact, StateCostFactRow } from "@/lib/supabase-server";
@@ -148,6 +148,9 @@ export interface OperationsLedgerProps {
   operationsCoverage?: OperationsCoverageData;
   /** Sourced per-state cost facts (US By-state sub-list, restored). Empty until sourced. */
   stateCosts?: StateCostFactRow[];
+  /** Lane S3-B: extra content at the foot of the content column (the themes strip, server-rendered by the
+   *  page and handed down as an element so this client component never owns that data read). */
+  belowRows?: ReactNode;
 }
 
 export function OperationsLedger({
@@ -157,6 +160,7 @@ export function OperationsLedger({
   operationsCoverage,
   stateCosts = [],
   nowIso,
+  belowRows,
 }: OperationsLedgerProps) {
   // Index the sourced per-state facts by state code for the By-state sub-list. One primary
   // figure per state (the first fact — minimum wage today).
@@ -467,6 +471,7 @@ export function OperationsLedger({
       selectedBand={filter.band}
       onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
+      belowRows={belowRows}
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={
         <RegionDimensionMatrix

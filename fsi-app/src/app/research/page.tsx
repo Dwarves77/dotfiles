@@ -21,7 +21,7 @@
 import { Suspense } from "react";
 import { ResearchLedger } from "@/components/research/ResearchLedger";
 import { renderNowIso } from "@/lib/render-now";
-import { ThemeStrip } from "@/components/research/ThemeStrip";
+import { ThemeStrip } from "@/components/shell/ThemeStrip";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import { getPublicResearchItems, getResearchSourceCoverage, getPublicSurfaceCounts } from "@/lib/data";
@@ -121,7 +121,7 @@ export default async function Research() {
                 puts the masthead first and draws no strip, and operator ruling R7 keeps an app
                 feature the artboards have no region for, at the foot of the content column rather
                 than in a region an artboard region must occupy. */}
-            <ThemeStrip />
+            <ThemeStrip surface="research" />
             {/* Split-credibility legend (spec-03 §4 "two scores, never merged"). Same R7 move: it
                 already sat below the ledger, now inside the content column so it shares the page's
                 one geometry instead of its own centred 1180px band. */}
