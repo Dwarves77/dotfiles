@@ -108,7 +108,7 @@ jobs:
         if: env.RUN_ACTION == 'export'
         run: |
           set -o pipefail
-          node scripts/turns/export-themes-for-briefs.mjs --out-dir scripts/_snapshots/theme-briefs | tee /tmp/theme-briefs-export.log
+          node scripts/turns/export-themes-for-briefs.mjs --out-dir "$RUNNER_TEMP/theme-briefs" | tee /tmp/theme-briefs-export.log
 
       - name: Apply the theme-briefs batch
         if: env.RUN_ACTION == 'apply'
@@ -127,15 +127,18 @@ jobs:
         run: |
           bash scripts/turns/deliver-artifact-branch.sh "Theme briefs: run ${{ github.run_id }}"
 
-      # The export bundle is the author's input; it exists only on this runner, so it leaves as a workflow
-      # artifact (seven day retention), the same as brief-export.yml's part files.
+      # The export bundle is the author's input and carries member content, so it is NEVER committed to the
+      # repo: it is written under the runner temp directory (outside the checkout, so no git add anywhere can
+      # reach it; this workflow has no git add or commit step, and deliver-artifact-branch.sh lands only
+      # scripts/harness-runs/*/*-run-*.json into harness_runs) and leaves as a workflow artifact (seven day
+      # retention). F68 accepts the path: it names neither _snapshots nor scripts/tmp.
       - name: Upload bundle, run artifact and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: theme-briefs-${{ github.run_id }}
           path: |
-            fsi-app/scripts/_snapshots/theme-briefs/
+            ${{ runner.temp }}/theme-briefs/
             fsi-app/scripts/harness-runs/theme-briefs/
             /tmp/theme-briefs-export.log
             /tmp/theme-briefs-apply.log

@@ -58,6 +58,18 @@ edited (outside the write set; see open items).
 - A refused entry is residue and never blocks the valid entries; a structurally invalid file writes nothing.
 - No admin override column exists on `theme_briefs`, so there was nothing for the automatic writer to respect.
 
+## Coordinator rulings applied after the first CI run
+
+- Added `fsi-app/scripts/harness-runs/meta-harness/pending/2026-10-04-s3c.md` (F28 range rule: a new family
+  descriptor is a meta-harness governing-file change).
+- F68: the export bundle carries member content and must never reach the repo. The workflow now writes it to
+  `$RUNNER_TEMP/theme-briefs` (outside the checkout) and uploads `${{ runner.temp }}/theme-briefs/`; F68
+  accepts it (it forbids only `_snapshots` and `scripts/tmp`). The workflow has no `git add` or commit step and
+  `deliver-artifact-branch.sh` lands only `scripts/harness-runs/*/*-run-*.json` into `harness_runs`, so the
+  bundle path is excluded from every add. The small run artifact stays on the normal harness path.
+- `fsi-app/docs/inventories/shared-dataset-ownership.md` (hand-written prose, not generated, not pinned by a
+  test) now names `apply-theme-briefs.mjs` as the writer of `theme_briefs`.
+
 ## NOT done
 
 - No real brief authored, nothing applied, no database touched.
@@ -65,8 +77,6 @@ edited (outside the write set; see open items).
   find a drifted brief it must select all `theme_briefs` rows with `member_ids` (not a lane file: .tsx).
 - The workflow is not chained to anything. It should chain after `analyze-corpus` changes theme membership
   (corpus-turn step 6); the coordinator decides.
-- `docs/inventories/shared-dataset-ownership.md` still says `generate-theme-brief.mjs` is the sole writer of
-  `theme_briefs`; the writer is now `apply-theme-briefs.mjs`.
 
 ## Open items
 
