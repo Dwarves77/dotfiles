@@ -23,6 +23,7 @@ export const AUTH_FIELD_LABEL_STYLE: CSSProperties = {
 
 export const AUTH_INPUT_STYLE: CSSProperties = {
   width: "100%",
+  boxSizing: "border-box",
   height: 36,
   border: "1px solid rgba(0,0,0,.25)",
   borderRadius: "var(--radius-control)",

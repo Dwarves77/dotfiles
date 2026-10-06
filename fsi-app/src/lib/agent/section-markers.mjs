@@ -11,6 +11,15 @@
 //   2. scripts/verify/section-marker-audit.mjs                    counts stored bodies that already carry one;
 //   3. .discipline/rendering/live/live-assertions.mjs              fails a live page whose text carries one.
 
+/**
+ * The Claim Provenance Ledger sentinels: the ONE definition. claim-ledger-block.ts (the strip) builds its patterns
+ * from these, and the marker list below names the ledger with the same string, so the strip and the refusal can never
+ * disagree about what a ledger block is. The agent emits `<<<CLAIM_PROVENANCE_LEDGER ... CLAIM_PROVENANCE_LEDGER>>>`.
+ */
+export const LEDGER_NAME = "CLAIM_PROVENANCE_LEDGER";
+export const LEDGER_OPEN = `<<<${LEDGER_NAME}`;
+export const LEDGER_CLOSE = `${LEDGER_NAME}>>>`;
+
 /** Longest JSON object literal that may appear in prose before it counts as a leaked payload. */
 export const JSON_LITERAL_MAX_PROSE_CHARS = 40;
 
@@ -21,7 +30,7 @@ export const JSON_LITERAL_MAX_PROSE_CHARS = 40;
  */
 export const INTERNAL_MARKER_PATTERNS = Object.freeze([
   Object.freeze({ id: "sentinel-open", kind: "regex", re: /<<</g, describe: "an agent sentinel opener (<<<)" }),
-  Object.freeze({ id: "claim-ledger", kind: "regex", re: /CLAIM_PROVENANCE_LEDGER/g, describe: "the claim provenance ledger name" }),
+  Object.freeze({ id: "claim-ledger", kind: "regex", re: new RegExp(LEDGER_NAME, "g"), describe: "the claim provenance ledger name" }),
   Object.freeze({ id: "provenance-token", kind: "regex", re: /_PROVENANCE/g, describe: "an internal *_PROVENANCE token" }),
   Object.freeze({
     id: "json-object-literal",
