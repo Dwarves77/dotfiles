@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true next build",
     "perf:bundles": "node scripts/measure-bundles.mjs",
+    "drain:plan": "node scripts/drain/plan-drain.mjs",
     "assemble-train": "node scripts/lib/assemble-train.mjs",
     "verify:audit-findings": "node scripts/verify/audit-finding-status.mjs",
     "worklist:consolidate-attach": "node scripts/maintenance/lib/consolidate-attach-worklist.mjs",

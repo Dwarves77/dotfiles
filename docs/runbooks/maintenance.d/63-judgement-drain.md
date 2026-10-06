@@ -1,4 +1,4 @@
-## 62. `judgement-drain`
+## 63. `judgement-drain`
 
 **New this runbook, lane G6-DRAIN, 2026-10-06 (build plan Stage 6, third bullet).** Not a `maintenance.yml` step:
 it is a repo command, `.claude/commands/drain.md`, that a scheduled Claude session runs, plus the planner
