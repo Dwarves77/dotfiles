@@ -15,5 +15,10 @@ evidence the closure gate's NEVER-RUN check reads.
 **Standing metric**: `failure_count` per run (target 0) and `pages_visited` (a drop means discovery found fewer
 items than before).
 
+**The smoke account must never be a platform admin** (it is a workspace owner, a normal customer login). The
+`admin-gate` invariant attacks that: as the smoke user, no admin navigation link may render, `GET /admin` must be
+refused, and `GET /api/admin/coverage` and `GET /api/admin/integrity-flags` must answer 401/403/404. It fails
+loudly, naming a possible admin account, if any of that stops being true. Read-only GETs only.
+
 Triggers: production `deployment_status` events and `workflow_dispatch`. Previews are excluded until a Vercel
 protection bypass exists (see `docs/runbooks/maintenance.d/62-live-smoke.md`).

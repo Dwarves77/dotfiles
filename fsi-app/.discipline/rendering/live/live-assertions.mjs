@@ -30,6 +30,7 @@ export const INVARIANTS = Object.freeze({
   LEGEND_BELOW_CEILING: "legend-below-ceiling",
   LIST_EMPTY: "list-has-no-rows",
   DETAIL_NO_MASTHEAD: "detail-has-no-masthead",
+  ADMIN_GATE: "admin-gate",
 });
 
 /** Invariants that are warnings, never failures. */
@@ -158,9 +159,85 @@ export function checkSnapshot(snap) {
   for (const t of findTiersAboveCeiling(snap.tierChips)) add(INVARIANTS.TIER_ABOVE_CEILING, `${t} (ceiling T${SOURCE_TIER_MAX})`);
   for (const t of findLegendsBelowCeiling(snap.scaleTexts)) add(INVARIANTS.LEGEND_BELOW_CEILING, `${t} (scale must reach T${SOURCE_TIER_MAX})`);
 
+  for (const h of findAdminLinks(snap.adminLinks)) add(INVARIANTS.ADMIN_GATE, `the smoke account may have become a platform admin: an admin navigation link renders (${h})`);
+
   if (snap.kind === "list" && !(snap.rowCount > 0)) add(INVARIANTS.LIST_EMPTY, "no list row rendered");
   if (snap.kind === "detail" && !String(snap.mastheadTitle ?? "").trim()) add(INVARIANTS.DETAIL_NO_MASTHEAD, "no masthead title (h1)");
   return out;
+}
+
+// ---------------------------------------------------------------- admin gate (rule 15: proven by attack)
+// The smoke account is a workspace owner and must NEVER be a platform admin. Signed in as that user: no admin
+// navigation link renders anywhere, GET /admin is refused (a redirect away from /admin, or 401/403/404), and two
+// read-only admin API routes answer 401/403/404 to a request carrying the user's own bearer token. Any 200 with admin
+// content, or a link, is a failure named admin-gate and says the account may have become an admin. GET only, never POST.
+
+/** Two read-only GET routes under src/app/api/admin, both behind requireAdminRoute (platform-admin gate). */
+export const ADMIN_GATE_API_PATHS = Object.freeze(["/api/admin/coverage", "/api/admin/integrity-flags"]);
+
+/** Statuses that count as a refusal. */
+export const REFUSAL_STATUSES = Object.freeze([401, 403, 404]);
+
+/** Hrefs on the page that point into /admin. @param {string[]} hrefs pathnames of every same-origin link */
+export function findAdminLinks(hrefs) {
+  return (hrefs ?? []).filter((h) => h === "/admin" || String(h).startsWith("/admin/"));
+}
+
+/**
+ * Judge one admin probe. PURE.
+ * @param {{kind:'page'|'api', path:string, status:number|null, finalPath?:string|null, tokenMissing?:boolean}} probe
+ * @returns {string|null} the failure text, or null when the route refused
+ */
+export function judgeAdminProbe(probe) {
+  const lead = "the smoke account may have become a platform admin: ";
+  if (probe.tokenMissing) return `could not read the session token, so ${probe.path} cannot be verified as refused`;
+  if (probe.kind === "page") {
+    const stayed = String(probe.finalPath ?? "").startsWith("/admin");
+    if (!stayed) return null; // redirected away from /admin
+    if (REFUSAL_STATUSES.includes(Number(probe.status))) return null;
+    return `${lead}GET ${probe.path} stayed on /admin with status ${probe.status}`;
+  }
+  if (REFUSAL_STATUSES.includes(Number(probe.status))) return null;
+  return `${lead}GET ${probe.path} answered ${probe.status}, expected 401/403/404`;
+}
+
+/** Findings for a set of admin probes. @param {object[]} probes @param {string} baseUrl */
+export function checkAdminProbes(probes, baseUrl) {
+  const out = [];
+  for (const p of probes ?? []) {
+    const why = judgeAdminProbe(p);
+    if (why) out.push({ invariant: INVARIANTS.ADMIN_GATE, url: `${baseUrl}${p.path}`, viewport: 0, text: trunc(why), severity: "fail" });
+  }
+  return out;
+}
+
+/**
+ * The Supabase session access token from `document.cookie`. @supabase/ssr stores `sb-<ref>-auth-token`, split into
+ * `.0`, `.1` chunks when large, either raw JSON or `base64-<base64url json>`. Returns null when none parses. The token is
+ * used in memory only and never logged. PURE.
+ */
+export function extractAccessToken(cookieString) {
+  const parts = new Map();
+  for (const raw of String(cookieString ?? "").split(";")) {
+    const i = raw.indexOf("=");
+    if (i < 0) continue;
+    const name = raw.slice(0, i).trim();
+    const m = /^(sb-.+-auth-token)(?:\.(\d+))?$/.exec(name);
+    if (!m) continue;
+    const list = parts.get(m[1]) ?? [];
+    list.push([Number(m[2] ?? 0), raw.slice(i + 1).trim()]);
+    parts.set(m[1], list);
+  }
+  for (const list of parts.values()) {
+    let joined = list.sort((a, b) => a[0] - b[0]).map((x) => x[1]).join("");
+    try { joined = decodeURIComponent(joined); } catch { /* keep as is */ }
+    try {
+      const json = joined.startsWith("base64-") ? Buffer.from(joined.slice(7).replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") : joined;
+      const token = JSON.parse(json)?.access_token;
+      if (typeof token === "string" && token) return token;
+    } catch { /* try the next cookie */ }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- network and console

@@ -69,6 +69,15 @@ export function collectSnapshotInPage() {
     if (scaleTexts.length >= 40) break;
   }
 
+  // Same-origin links into /admin (the admin-gate invariant: a non-admin account must see none).
+  const adminLinks = [];
+  for (const a of document.querySelectorAll("a[href]")) {
+    try {
+      const u = new URL(a.href, location.href);
+      if (u.origin === location.origin && (u.pathname === "/admin" || u.pathname.startsWith("/admin/"))) adminLinks.push(u.pathname);
+    } catch { /* not a URL */ }
+  }
+
   const h1 = document.querySelector("h1[data-guard-title]") || document.querySelector("h1");
   return {
     pathname: location.pathname,
@@ -80,6 +89,7 @@ export function collectSnapshotInPage() {
     scaleTexts,
     rowCount: document.querySelectorAll('[data-part="list-row"]').length,
     mastheadTitle: h1 ? squash(h1.textContent) : null,
+    adminLinks,
   };
 }
 

@@ -27,6 +27,9 @@ import {
   checkSnapshot,
   checkResponses,
   checkConsole,
+  checkAdminProbes,
+  extractAccessToken,
+  ADMIN_GATE_API_PATHS,
   formatSummary,
   buildReport,
 } from "./live-assertions.mjs";
@@ -109,6 +112,41 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport) {
 }
 
 /**
+ * The admin-gate attack (read-only GETs only, never POST). Signed in as the smoke user, GET /admin and two admin API
+ * routes carrying the user's own bearer token must be refused. The token is read from the session cookie in the page,
+ * held in memory and never logged.
+ */
+async function probeAdminGate(ctx, baseUrl) {
+  const probes = [];
+  const page = await ctx.newPage();
+  try {
+    let tokenMissing = false;
+    let token = null;
+    try {
+      await page.goto(`${baseUrl}/`, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
+      token = extractAccessToken(await page.evaluate(() => document.cookie));
+    } catch { /* leaves the token null */ }
+    tokenMissing = !token;
+    try {
+      const resp = await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
+      probes.push({ kind: "page", path: "/admin", status: resp ? resp.status() : null, finalPath: new URL(page.url()).pathname });
+    } catch {
+      probes.push({ kind: "page", path: "/admin", status: null, finalPath: "/admin", error: "navigation failed" });
+    }
+    for (const path of ADMIN_GATE_API_PATHS) {
+      if (tokenMissing) { probes.push({ kind: "api", path, status: null, tokenMissing: true }); continue; }
+      const status = await page.evaluate(async ([p, t]) => {
+        try { return (await fetch(p, { method: "GET", headers: { Authorization: `Bearer ${t}` } })).status; } catch { return 0; }
+      }, [path, token]);
+      probes.push({ kind: "api", path, status });
+    }
+  } finally {
+    await page.close();
+  }
+  return probes;
+}
+
+/**
  * The whole run against `baseUrl`. `browser` is injected so a fixture proof can drive it; credentials come from
  * the caller. Returns { findings, report, lines }.
  */
@@ -164,6 +202,9 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
         const r = await visit(ctx, baseUrl, origin, step.path, step.kind, viewport);
         findings.push(...r.findings);
         pages.push(r.record);
+      }
+      if (viewport.width === VIEWPORTS[0].width) {
+        findings.push(...checkAdminProbes(await probeAdminGate(ctx, baseUrl), baseUrl));
       }
     } finally {
       await ctx.close();

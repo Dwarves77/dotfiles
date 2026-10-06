@@ -16,6 +16,11 @@ import {
   checkConsole,
   formatSummary,
   buildReport,
+  ADMIN_GATE_API_PATHS,
+  findAdminLinks,
+  judgeAdminProbe,
+  checkAdminProbes,
+  extractAccessToken,
 } from "./live-assertions.mjs";
 
 const base = (over = {}) => ({
@@ -164,4 +169,45 @@ test("formatSummary prints one line per finding with url and truncated text; bui
   const r = buildReport({ baseUrl: "https://x.test", pages: [{ url: "https://x.test/", viewport: 1440 }], findings });
   assert.equal(r.failureCount, 1);
   assert.deepEqual(r.byInvariant, { "internal-marker": 1 });
+});
+
+// ---- admin gate (rule 15: the smoke account is never a platform admin)
+test("admin-gate: the two API probes are read-only GET routes under src/app/api/admin", () => {
+  assert.deepEqual([...ADMIN_GATE_API_PATHS], ["/api/admin/coverage", "/api/admin/integrity-flags"]);
+});
+
+test("admin-gate: ATTACK an admin navigation link on any page fails; no admin link passes", () => {
+  assert.deepEqual(findAdminLinks(["/regulations", "/profile", "/community"]), []);
+  assert.deepEqual(findAdminLinks(["/regulations", "/admin", "/admin/factors"]), ["/admin", "/admin/factors"]);
+  assert.deepEqual(findAdminLinks(["/administrators"]), []);
+  assert.deepEqual(ids(base({ adminLinks: [] })), []);
+  assert.ok(ids(base({ adminLinks: ["/admin"] })).includes(INVARIANTS.ADMIN_GATE));
+  assert.ok(ids(base({ kind: "list", rowCount: 3, adminLinks: ["/admin"] })).includes(INVARIANTS.ADMIN_GATE));
+});
+
+test("admin-gate: GET /admin passes on a redirect away or 401/403/404; ATTACK a 200 that stays on /admin fails", () => {
+  assert.equal(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/" }), null);
+  assert.equal(judgeAdminProbe({ kind: "page", path: "/admin", status: 403, finalPath: "/admin" }), null);
+  assert.equal(judgeAdminProbe({ kind: "page", path: "/admin", status: 404, finalPath: "/admin" }), null);
+  assert.match(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/admin" }), /may have become a platform admin: GET \/admin stayed on \/admin with status 200/);
+});
+
+test("admin-gate: admin API routes pass on 401/403/404; ATTACK a 200 or a 500 fails; a missing token is unverifiable, not a pass", () => {
+  for (const status of [401, 403, 404]) assert.equal(judgeAdminProbe({ kind: "api", path: "/api/admin/coverage", status }), null);
+  assert.match(judgeAdminProbe({ kind: "api", path: "/api/admin/coverage", status: 200 }), /answered 200, expected 401\/403\/404/);
+  assert.match(judgeAdminProbe({ kind: "api", path: "/api/admin/integrity-flags", status: 500 }), /answered 500/);
+  assert.match(judgeAdminProbe({ kind: "api", path: "/api/admin/coverage", status: null, tokenMissing: true }), /cannot be verified as refused/);
+  const f = checkAdminProbes([{ kind: "api", path: "/api/admin/coverage", status: 200 }, { kind: "api", path: "/api/admin/integrity-flags", status: 403 }], "https://x.test");
+  assert.deepEqual(f.map((x) => [x.invariant, x.url, x.severity]), [[INVARIANTS.ADMIN_GATE, "https://x.test/api/admin/coverage", "fail"]]);
+});
+
+test("extractAccessToken: raw JSON, base64 and chunked supabase cookies parse; absent or broken ones return null", () => {
+  const json = JSON.stringify({ access_token: "tok-1", refresh_token: "r" });
+  assert.equal(extractAccessToken(`a=b; sb-abc-auth-token=${encodeURIComponent(json)}`), "tok-1");
+  assert.equal(extractAccessToken(`sb-abc-auth-token=base64-${Buffer.from(json).toString("base64url")}`), "tok-1");
+  const b64 = "base64-" + Buffer.from(json).toString("base64url");
+  assert.equal(extractAccessToken(`sb-abc-auth-token.1=${b64.slice(10)}; sb-abc-auth-token.0=${b64.slice(0, 10)}`), "tok-1");
+  assert.equal(extractAccessToken("a=b; other=c"), null);
+  assert.equal(extractAccessToken("sb-abc-auth-token=not-json"), null);
+  assert.equal(extractAccessToken(undefined), null);
 });

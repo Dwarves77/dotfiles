@@ -43,7 +43,7 @@ function sitePages(defective) {
       { script: defective ? 'console.error("fixture boom"); fetch("/api/boom");' : "" },
     );
   const out = {
-    "/": page("Dashboard", `<p>Home.</p>${LEGEND_OK}`),
+    "/": page("Dashboard", `<p>Home.</p>${defective ? '<a href="/admin">Admin</a>' : ""}${LEGEND_OK}`),
     "/regulations": list("regulations", row("regulations")),
     "/market": page("market", `${strip}${row("market")}${defective ? LEGEND_BAD : LEGEND_OK}`),
     "/research": list("research", defective ? "" : row("research")),
@@ -66,7 +66,10 @@ function startServer(defective) {
       req.on("end", () => {
         const f = new URLSearchParams(body);
         if (f.get("email") === FIXTURE_EMAIL && f.get("password") === FIXTURE_PASSWORD) {
-          res.writeHead(302, { "set-cookie": "sid=fixture; Path=/", location: "/" });
+          // Session cookies in the shapes the real app uses: a plain flag and the @supabase/ssr token cookie
+          // (base64url JSON). Both readable by the page, as @supabase/ssr's browser cookies are.
+          const token = "base64-" + Buffer.from(JSON.stringify({ access_token: "fixture-token" })).toString("base64url");
+          res.writeHead(302, { "set-cookie": ["sid=fixture; Path=/", `sb-fixture-auth-token=${token}; Path=/`], location: "/" });
         } else {
           res.writeHead(302, { location: "/login?error=1" });
         }
@@ -84,6 +87,20 @@ function startServer(defective) {
     if (!/sid=fixture/.test(req.headers.cookie || "")) {
       res.writeHead(302, { location: "/login" });
       res.end();
+      return;
+    }
+    // The admin gate: a platform admin gets 200, anyone else is refused. The defective site leaks it to the smoke user.
+    if (url.pathname === "/admin") {
+      if (defective) { res.writeHead(200, { "content-type": "text/html" }); res.end(page("Admin", "<p>Admin content</p>")); return; }
+      res.writeHead(302, { location: "/" });
+      res.end();
+      return;
+    }
+    if (url.pathname === "/api/admin/coverage" || url.pathname === "/api/admin/integrity-flags") {
+      const bearer = /^Bearer fixture-token$/.test(req.headers.authorization || "");
+      if (defective && bearer) { res.writeHead(200, { "content-type": "application/json" }); res.end("{\"rows\":[]}"); return; }
+      res.writeHead(bearer ? 403 : 401, { "content-type": "application/json" });
+      res.end("{\"error\":\"forbidden\"}");
       return;
     }
     if (url.pathname === "/api/boom") {
@@ -114,6 +131,7 @@ const EXPECTED_DEFECTS = [
   INVARIANTS.TIER_ABOVE_CEILING,
   INVARIANTS.LEGEND_BELOW_CEILING,
   INVARIANTS.LIST_EMPTY,
+  INVARIANTS.ADMIN_GATE,
 ];
 
 export async function runFixtureLeg(browser, defective, password) {
