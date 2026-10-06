@@ -171,6 +171,9 @@ function fakeClient({
       if (table === "item_forward_events") return itemForwardEventsChain();
       if (table === "integrity_flags") return integrityFlagsChain();
       if (table === "item_cross_references") return itemCrossReferencesChain();
+      // lane G7-CORR: writeDiscoveredEdges also reads item_corrections (connection tombstones); none here, so the
+      // same empty paginated select is the right stub.
+      if (table === "item_corrections") return itemCrossReferencesChain();
       if (table === "entities" || table === "entity_refs" || table === "entity_identifiers") return entitySpine.from(table);
       throw new Error(`fakeClient: unexpected table ${table}`);
     },

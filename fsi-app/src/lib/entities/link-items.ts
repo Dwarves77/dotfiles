@@ -8,6 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { planLinkWrites, assertMoatBoundary } from "@/lib/entities/entity-resolve.mjs";
 import { partitionLineageWrites, pairKey } from "@/lib/entities/lineage-backfill.mjs";
+// lane G7-CORR: an admin-removed connection (item_corrections tombstone, migration 356) is never re-created.
+import { readConnectionCorrectionsFor, tombstonedPairKeys } from "@/lib/corrections/item-corrections.mjs";
 
 interface CorpusRow { id: string; title: string | null; instrument_identifier: string | null }
 interface LinkWrite { table: string; row: Record<string, unknown> }
@@ -25,6 +27,8 @@ export interface LinkResult {
   /** a foreign-origin row already holds a DIFFERENT typed relationship: reported, never written (ADR-022). */
   conflicts: number;
   unchanged: number;
+  /** pairs an admin removed (item_corrections tombstone): never placed, reported. */
+  skippedTombstoned: number;
   /** of inserted + upgraded, how many carry a lineage type (a relationship other than 'related'). */
   typed: number;
   dry: boolean;
@@ -41,7 +45,7 @@ export interface LinkOptions {
   corpus?: CorpusRow[];
 }
 
-const NOTHING: LinkResult = { edges: 0, surfaced: 0, skipped: true, inserted: 0, upgraded: 0, skippedForeign: 0, conflicts: 0, unchanged: 0, typed: 0, dry: false };
+const NOTHING: LinkResult = { edges: 0, surfaced: 0, skipped: true, inserted: 0, upgraded: 0, skippedForeign: 0, conflicts: 0, unchanged: 0, skippedTombstoned: 0, typed: 0, dry: false };
 
 /**
  * Wire an item's content-mentioned entities into item_cross_references (origin='entity_extraction',
@@ -108,12 +112,16 @@ export async function linkItems(sb: SupabaseClient, itemId: string, opts: LinkOp
     )) as ExistingEdge[];
     for (const r of rows) existing.set(pairKey(r.source_item_id, r.target_item_id), r);
   }
-  const { inserts, upgrades, skippedForeign, conflicts, unchanged } = partitionLineageWrites(edgeWrites, existing) as {
+  // Tombstones are read only when there is an edge to place (same gate as the existing-edge read above). A read
+  // failure throws: a linker that cannot see the tombstones must not place edges as if there were none.
+  const tombstones = edgeWrites.length ? tombstonedPairKeys(await readConnectionCorrectionsFor(sb, itemId)) : new Set<string>();
+  const { inserts, upgrades, skippedForeign, conflicts, unchanged, skippedTombstoned } = partitionLineageWrites(edgeWrites, existing, tombstones) as {
     inserts: Array<Record<string, unknown> & { relationship: string }>;
     upgrades: Array<{ id: string; relationship: string; basis: unknown }>;
     skippedForeign: unknown[];
     conflicts: unknown[];
     unchanged: unknown[];
+    skippedTombstoned: unknown[];
   };
   const typed = [...inserts, ...upgrades].filter((r) => r.relationship !== "related").length;
 
@@ -149,5 +157,5 @@ export async function linkItems(sb: SupabaseClient, itemId: string, opts: LinkOp
     if (!error) surfaced++;
   }
 
-  return { edges, surfaced, skipped: false, inserted: inserts.length, upgraded: upgrades.length, skippedForeign: skippedForeign.length, conflicts: conflicts.length, unchanged: unchanged.length, typed, dry };
+  return { edges, surfaced, skipped: false, inserted: inserts.length, upgraded: upgrades.length, skippedForeign: skippedForeign.length, conflicts: conflicts.length, unchanged: unchanged.length, skippedTombstoned: skippedTombstoned.length, typed, dry };
 }

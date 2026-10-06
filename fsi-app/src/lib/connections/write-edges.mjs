@@ -2,6 +2,9 @@
 import { mkdirSync, appendFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isIntersectionEntry, buildIntersectionEntry } from "./intersections.mjs";
+// lane G7-CORR: admin connection tombstones (item_corrections, migration 356). The database trigger drops a
+// tombstoned machine edge; this writer reads the same tombstones so it plans around them and reports them.
+import { readAllCorrections, tombstonedPairKeys, isPairTombstoned } from "../corrections/item-corrections.mjs";
 
 // write-edges.mjs — the SINGLE write home for provenance-discovery connection edges (Pillar A2).
 //
@@ -92,11 +95,14 @@ async function readExistingEdges(sb) {
  *   own-origin row about to be overwritten) is captured to `${snapshot.dir}/${stamp}_item_cross_references.jsonl`
  *   in db.mjs's exact snapshot format BEFORE the upsert runs. Omit for the pre-retrofit behavior
  *   (mint-item.ts's call site is unchanged: no filesystem write on the serverless mint-time path).
- * @returns {Promise<{inserted:number,refreshed:number,skippedForeignOrigin:number,written:number,failedChunks:number,snapshot:string|null}>}
+ * @returns {Promise<{inserted:number,refreshed:number,skippedForeignOrigin:number,skippedTombstoned:number,written:number,failedChunks:number,snapshot:string|null}>}
  */
 export async function writeDiscoveredEdges(sb, edges, { chunk = 200, snapshot } = {}) {
-  const result = { inserted: 0, refreshed: 0, skippedForeignOrigin: 0, written: 0, failedChunks: 0, snapshot: null };
+  const result = { inserted: 0, refreshed: 0, skippedForeignOrigin: 0, skippedTombstoned: 0, written: 0, failedChunks: 0, snapshot: null };
   if (!Array.isArray(edges) || edges.length === 0) return result;
+
+  // Admin tombstones (a removed connection is never re-created by a machine pass). A read failure throws.
+  const tombstones = tombstonedPairKeys(await readAllCorrections(sb));
 
   // Read the existing edges ONCE (small table; paginate defensively past the 1000-row cap). Full-row
   // select (not just origin) so a `snapshot` caller has the complete prior row to capture, at no extra
@@ -110,6 +116,7 @@ export async function writeDiscoveredEdges(sb, edges, { chunk = 200, snapshot } 
   const writable = [];
   const priorRefreshedRows = [];
   for (const e of edges) {
+    if (isPairTombstoned(tombstones, e.source_item_id, e.target_item_id)) { result.skippedTombstoned++; continue; }
     const existing = owner.get(pairKey(e.source_item_id, e.target_item_id));
     const existingOrigin = existing?.origin;
     if (existingOrigin && existingOrigin !== "provenance_discovery") { result.skippedForeignOrigin++; continue; }
@@ -167,17 +174,19 @@ const canonKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
  * PURE. Plan the intersection writes against the existing edge rows.
  * @param {Array<object>} existingRows full item_cross_references rows (id, source_item_id, target_item_id, relationship, origin, basis, score)
  * @param {Array<{a:string,b:string,shared_scenarios:string[],shared_objects:string[],strength:number,tier:string}>} pairs from detectIntersections
+ * @param {Set<string>} [tombstones] canonical pair keys an admin removed (tombstonedPairKeys); those pairs are skipped
  */
-export function planIntersectionEdges(existingRows, pairs) {
+export function planIntersectionEdges(existingRows, pairs, tombstones) {
   const byKey = new Map();
   for (const r of Array.isArray(existingRows) ? existingRows : []) byKey.set(pairKey(r.source_item_id, r.target_item_id), r);
-  const plan = { inserts: [], updates: [], removals: [], deletes: [], unchanged: 0, skippedManual: 0 };
+  const plan = { inserts: [], updates: [], removals: [], deletes: [], unchanged: 0, skippedManual: 0, skippedTombstoned: 0 };
   const holding = new Set();
 
   for (const p of Array.isArray(pairs) ? pairs : []) {
     holding.add(canonKey(p.a, p.b));
     const entry = buildIntersectionEntry(p);
     for (const [s, t] of [[p.a, p.b], [p.b, p.a]]) {
+      if (isPairTombstoned(tombstones, s, t)) { plan.skippedTombstoned++; continue; }
       const row = byKey.get(pairKey(s, t));
       if (!row) {
         plan.inserts.push({ source_item_id: s, target_item_id: t, relationship: "related", origin: "provenance_discovery", basis: [entry], score: entry.weight });
@@ -223,14 +232,16 @@ export function projectEdgeRows(existingRows, plan) {
  * @param {import('@supabase/supabase-js').SupabaseClient|null} sb
  * @param {Array} pairs from detectIntersections
  * @param {{chunk?:number, dry?:boolean, existing?:Array<object>, snapshot?:{dir:string, cite:{skill:string,reason:string}, stampIso?:string}}} [opts]
- * @returns {Promise<{inserted:number,updated:number,removed:number,deleted:number,unchanged:number,skippedManual:number,written:number,failedChunks:number,snapshot:string|null,projected:Array<object>|null}>}
+ * @returns {Promise<{inserted:number,updated:number,removed:number,deleted:number,unchanged:number,skippedManual:number,skippedTombstoned:number,written:number,failedChunks:number,snapshot:string|null,projected:Array<object>|null}>}
  */
 export async function writeIntersectionEdges(sb, pairs, { chunk = 200, dry = false, existing, snapshot } = {}) {
   const rows = Array.isArray(existing) ? existing : await readExistingEdges(sb);
-  const plan = planIntersectionEdges(rows, pairs);
+  // With no client (the dry preview over a supplied `existing`) there is nothing to read: no tombstones.
+  const tombstones = sb ? tombstonedPairKeys(await readAllCorrections(sb)) : undefined;
+  const plan = planIntersectionEdges(rows, pairs, tombstones);
   const result = {
     inserted: plan.inserts.length, updated: plan.updates.length, removed: plan.removals.length, deleted: plan.deletes.length,
-    unchanged: plan.unchanged, skippedManual: plan.skippedManual, written: 0, failedChunks: 0, snapshot: null, projected: null,
+    unchanged: plan.unchanged, skippedManual: plan.skippedManual, skippedTombstoned: plan.skippedTombstoned, written: 0, failedChunks: 0, snapshot: null, projected: null,
   };
   if (dry) { result.projected = projectEdgeRows(rows, plan); return result; }
 

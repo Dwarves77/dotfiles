@@ -99,6 +99,10 @@ import {
 import { TAG_NAMESPACE, isInNamespace } from "../../src/lib/connections/flag-namespaces.mjs";
 import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
+// lane G7-CORR: an admin tag removal (item_corrections, migration 356) holds against this merge-only writer. The
+// database trigger strips a removed tag from any write; reading the removals here makes the plan, the report and
+// the flag note say what will actually be stored.
+import { removedTagsFor, readItemCorrections } from "../../src/lib/corrections/item-corrections.mjs";
 
 // The one place the auto-adoption confidence cutoff lives — see the file-header "THRESHOLD, JUSTIFIED
 // FROM EVIDENCE" note above for the measured basis. Only "high" and "medium" exist today (derive-tags.mjs
@@ -270,14 +274,19 @@ export function decideTagProposals(proposals, item, threshold = AUTO_ADOPT_THRES
  * from the existing array is appended, up to derive-tags.mjs's FIELD_CAPS ceiling for that field. PURE.
  * @param {{operational_scenario_tags?:unknown, compliance_object_tags?:unknown, topic_tags?:unknown}} currentItem
  * @param {Array<{field:string, tag:string}>} proposals
- * @returns {{patch:Record<string,string[]>, added:Record<string,string[]>, cappedOut:Record<string,string[]>, alreadyPresent:Record<string,string[]>}}
+ * @param {{[field:string]: Set<string>}} [removed] tags an admin removed (item-corrections.mjs removedTagsFor); never added
+ * @returns {{patch:Record<string,string[]>, added:Record<string,string[]>, cappedOut:Record<string,string[]>, alreadyPresent:Record<string,string[]>, blockedByCorrection:Record<string,string[]>}}
  */
-export function buildMergePatch(currentItem, proposals) {
-  const patch = {}, added = {}, cappedOut = {}, alreadyPresent = {};
+export function buildMergePatch(currentItem, proposals, removed) {
+  const patch = {}, added = {}, cappedOut = {}, alreadyPresent = {}, blockedByCorrection = {};
   for (const field of TAG_FIELDS) {
     const existing = Array.isArray(currentItem?.[field]) ? currentItem[field] : [];
     const existingSet = new Set(existing);
-    const candidateTags = proposals.filter((p) => p.field === field).map((p) => p.tag);
+    const gone = removed?.[field] instanceof Set ? removed[field] : null;
+    const allCandidates = proposals.filter((p) => p.field === field).map((p) => p.tag);
+    const blocked = gone ? allCandidates.filter((t) => gone.has(t)) : [];
+    if (blocked.length) blockedByCorrection[field] = [...new Set(blocked)];
+    const candidateTags = gone ? allCandidates.filter((t) => !gone.has(t)) : allCandidates;
 
     const novel = [];
     const dupe = [];
@@ -299,7 +308,16 @@ export function buildMergePatch(currentItem, proposals) {
     if (overCap.length) cappedOut[field] = overCap;
     if (dupe.length) alreadyPresent[field] = dupe;
   }
-  return { patch, added, cappedOut, alreadyPresent };
+  return { patch, added, cappedOut, alreadyPresent, blockedByCorrection };
+}
+
+/**
+ * The tags an admin removed from this item, or undefined when the caller wired no `readCorrections` dep (the
+ * database trigger still strips them; only the plan and report are then less exact). A read failure throws.
+ */
+async function removedFor(deps, itemId) {
+  if (typeof deps.readCorrections !== "function") return undefined;
+  return removedTagsFor(await deps.readCorrections(itemId), itemId);
 }
 
 /**
@@ -421,7 +439,7 @@ async function reDeriveZeroProposalTags(deps, flag, { execute, today = new Date(
   const derived = derive(buildReDeriveInput(item));
   const decisions = decideTagProposals(derived.proposals, item);
   const adopted = decisions.filter((d) => d.decision === "adopt");
-  const merge = buildMergePatch(item, adopted);
+  const merge = buildMergePatch(item, adopted, await removedFor(deps, itemId));
   const hasWrite = Object.keys(merge.patch).length > 0;
   const note = decisions.length
     ? buildDecisionNote("tag-ratification (re-derive, zero-proposal)", decisions)
@@ -488,7 +506,7 @@ export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_AD
   // decideTagProposal, so this partition is always exhaustive.
   const decisions = decideTagProposals(decision.proposals, item, threshold);
   const adopted = decisions.filter((d) => d.decision === "adopt");
-  const merge = buildMergePatch(item, adopted);
+  const merge = buildMergePatch(item, adopted, await removedFor(deps, decision.itemId));
   const hasWrite = Object.keys(merge.patch).length > 0;
   const note = buildDecisionNote(`tag-ratification (auto, threshold=${threshold})`, decisions);
 
@@ -536,6 +554,7 @@ const deps = {
   // evidence against the item's OWN title/what_is_it/summary/full_brief, not just its tag arrays.
   // Widened again 2026-09-12 (D15 part 1): canonical_instrument_key added so reDeriveZeroProposalTags'
   // re-derivation input carries the same "high"-confidence identity field deriveTags() reads.
+  readCorrections: (id) => readItemCorrections(sb, id),
   readItem: (id) => sb.from("intelligence_items").select("id, operational_scenario_tags, compliance_object_tags, topic_tags, title, canonical_instrument_key, what_is_it, summary, full_brief").eq("id", id).maybeSingle(),
   updateItem: async (id, patch) => {
     const res = await guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE });

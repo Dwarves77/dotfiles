@@ -318,3 +318,35 @@ test("proposeTags: apply: an item that now DOES derive proposals opens a normal 
   assert.equal(inserted[0].status, "open");
   assert.equal(inserted[0].created_by, createdBy(TAG_NAMESPACE, "empty-signature"));
 });
+
+// ── lane G7-CORR: an admin tag removal is never re-proposed (item_corrections, migration 356) ────────────────────
+const KEYWORD_ITEM = { id: "item-kw", title: "Carbon emissions reporting for ocean bunkering of marine fuel", full_brief: "Ocean bunkering of marine fuel; GHG emissions reporting.", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+
+test("G7-CORR proposeTags: tags an admin removed are filtered out of the proposals and reported as blocked", async () => {
+  const base = await proposeTags(fakeDeps({ corpus: [KEYWORD_ITEM] }), { mode: "untagged", execute: false });
+  const found = base.fresh[0].proposals;
+  assert.ok(found.length > 0, "fixture item must derive at least one tag for this proof to mean anything");
+
+  const rows = found.map((p) => ({ id: `c-${p.field}-${p.tag}`, item_id: "item-kw", target_kind: "tag", target_ref: `${p.field}:${p.tag}`, op: "remove", created_at: "2026-10-06T00:00:00Z", revoked_at: null }));
+  const deps = fakeDeps({ corpus: [KEYWORD_ITEM] });
+  deps.readTagCorrections = async (ids) => { assert.deepEqual(ids, ["item-kw"]); return rows; };
+  const r = await proposeTags(deps, { mode: "untagged", execute: false });
+  assert.equal(r.fresh[0].proposalCount, 0, "every derived tag was removed by an admin");
+  assert.equal(r.blockedByCorrectionCount, found.length);
+});
+
+test("G7-CORR proposeTags: a removal on ANOTHER item does not block this item's proposals", async () => {
+  const base = await proposeTags(fakeDeps({ corpus: [KEYWORD_ITEM] }), { mode: "untagged", execute: false });
+  const p = base.fresh[0].proposals[0];
+  const deps = fakeDeps({ corpus: [KEYWORD_ITEM] });
+  deps.readTagCorrections = async () => [{ id: "c1", item_id: "someone-else", target_kind: "tag", target_ref: `${p.field}:${p.tag}`, op: "remove", created_at: "2026-10-06T00:00:00Z", revoked_at: null }];
+  const r = await proposeTags(deps, { mode: "untagged", execute: false });
+  assert.equal(r.fresh[0].proposalCount, base.fresh[0].proposalCount);
+  assert.equal(r.blockedByCorrectionCount, 0);
+});
+
+test("G7-CORR proposeTags: a correction read failure propagates (fail closed)", async () => {
+  const deps = fakeDeps({ corpus: [KEYWORD_ITEM] });
+  deps.readTagCorrections = async () => { throw new Error("item_corrections read failed: boom"); };
+  await assert.rejects(() => proposeTags(deps, { mode: "untagged", execute: false }), /item_corrections read failed/);
+});

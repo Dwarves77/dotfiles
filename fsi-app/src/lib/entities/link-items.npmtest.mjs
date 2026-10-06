@@ -17,7 +17,7 @@ const { linkItems } = await jiti.import("./link-items.ts");
 /** Minimal in-memory client: only the chain shapes linkItems issues. Records every write. */
 function fakeSb(seed) {
   const tables = {
-    intelligence_items: [], agent_run_searches: [], item_cross_references: [], integrity_flags: [],
+    intelligence_items: [], agent_run_searches: [], item_cross_references: [], integrity_flags: [], item_corrections: [],
     ...Object.fromEntries(Object.entries(seed).map(([k, v]) => [k, v.map((r) => ({ ...r }))])),
   };
   const writes = [];
@@ -178,4 +178,29 @@ test("text with no entity mention places no edge and reads no existing edges", a
   const r = await linkItems(sb, "child", { content: "A general overview of freight decarbonisation trends and costs.", corpus: [PARENT, CHILD] });
   assert.equal(r.edges, 0);
   assert.deepEqual(sb.writes, []);
+});
+
+// ── lane G7-CORR: an admin-removed connection is never re-created (item_corrections tombstone, migration 356) ──
+const tombRow = (item_id, target_ref, op = "remove", extra = {}) => ({
+  id: `t-${item_id}-${target_ref}-${op}`, item_id, target_kind: "connection", target_ref, op,
+  created_at: "2026-10-06T00:00:00Z", revoked_at: null, ...extra,
+});
+
+test("G7-CORR: a tombstone recorded against the OTHER item blocks the typed edge, which is counted and not written", async () => {
+  const sb = fakeSb(seed({ intelligence_items: [PARENT, { ...CHILD, full_brief: AMENDING }], item_corrections: [tombRow("parent", "child")] }));
+  const r = await linkItems(sb, "child");
+  assert.equal(r.inserted, 0);
+  assert.equal(r.skippedTombstoned, 1);
+  assert.equal(sb.tables.item_cross_references.length, 0);
+  assert.equal(sb.writes.filter((w) => w.table === "item_cross_references").length, 0);
+});
+
+test("G7-CORR: a revoked tombstone lets the edge through again", async () => {
+  const sb = fakeSb(seed({
+    intelligence_items: [PARENT, { ...CHILD, full_brief: AMENDING }],
+    item_corrections: [tombRow("child", "parent", "remove", { revoked_at: "2026-10-07T00:00:00Z" })],
+  }));
+  const r = await linkItems(sb, "child");
+  assert.equal(r.inserted, 1);
+  assert.equal(r.skippedTombstoned, 0);
 });

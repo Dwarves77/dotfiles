@@ -31,6 +31,9 @@
 // proof (perf-lane brief task 6) actually runnable as a plain, portable
 // *.test.mjs — no *.npmtest.mjs / CI-npm-step wiring needed at all.
 import type { SupabaseClient } from "@supabase/supabase-js";
+// lane G7-CORR: a claim an admin suppressed (item_corrections, migration 356) is hidden from this customer read.
+// Relative path with the .mjs extension, like fact-card-model.ts: this file is loaded by plain `node --test`.
+import { readItemCorrections, suppressedClaimMatcher } from "../corrections/item-corrections.mjs";
 import type {
   Resource,
   Supersession,
@@ -173,6 +176,8 @@ export interface ClaimTierSourceRowLike {
 }
 
 export interface ClaimTierRowLike {
+  /** section_claim_provenance.id; read so a suppression can match the claim by id (G7-CORR). */
+  id?: string;
   claim_text: string;
   // PostgREST returns a single embedded resource as an object when the FK is unambiguous (confirmed:
   // section_claim_provenance carries exactly one FK to sources), but this repo's own established
@@ -219,11 +224,15 @@ export async function fetchClaimTierMap(
   try {
     const { data, error } = await supabase
       .from("section_claim_provenance")
-      .select("claim_text, sources(name, url, base_tier, tier_override)")
+      .select("id, claim_text, sources(name, url, base_tier, tier_override)")
       .eq("intelligence_item_id", itemUuid)
       .eq("claim_kind", "FACT");
     if (error || !data) return {};
-    return buildClaimTierMap(data as unknown as ClaimTierRowLike[]);
+    // Suppressed claims never reach a customer. A correction read error throws into the catch below and the
+    // whole map resolves to {} (fail closed): an error must not leak a claim an admin hid.
+    const isSuppressed = suppressedClaimMatcher(await readItemCorrections(supabase, itemUuid), itemUuid);
+    const visible = (data as unknown as ClaimTierRowLike[]).filter((row) => !isSuppressed(row));
+    return buildClaimTierMap(visible);
   } catch {
     return {};
   }
