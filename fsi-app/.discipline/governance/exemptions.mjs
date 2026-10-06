@@ -117,6 +117,18 @@ export const EXEMPTIONS = [
     by: 'wiring census 2026-08-11',
   },
   {
+    match: 'fsi-app/scripts/maintenance/repair-smoke-account.mjs',
+    kinds: ['writes'],
+    reason: "Operator-account repair CLI, run by the coordinator's executor; writes only profiles and org_memberships for one named non-admin account; refuses platform admins.",
+    by: 'lane AUTH-2, 2026-10-06',
+  },
+  {
+    match: 'fsi-app/src/lib/orgs/create-org.mjs',
+    kinds: ['writes'],
+    reason: 'Self-service organisation creation for the signed-in caller: writes only the workspace_settings row of the organisation the create_org_for_self RPC returned for that caller, and the caller own profiles row.',
+    by: 'lane AUTH-2, 2026-10-06 (same exemption class as provision-personal-workspace.ts)',
+  },
+  {
     match: 'fsi-app/src/lib/auth/provision-personal-workspace.ts',
     kinds: ['writes'],
     reason: 'First-login workspace provisioning — per-user org/workspace bootstrap rows.',
