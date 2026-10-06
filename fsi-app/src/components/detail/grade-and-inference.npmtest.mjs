@@ -278,7 +278,9 @@ test("a Sources entry is matched to a cited registered source by canonical url: 
 test("an entry with no matching cited source is unchanged, and so is the primary entry", () => {
   const rows = M.sourceEntriesOf(item({ citedSources: [{ url: "https://other.example.net/doc", tier: 3, biasTags: BIAS }] }));
   const unlisted = byName(rows, "Unlisted Source");
-  assert.equal(unlisted.tier, 4);
+  // Changed 2026-10-05 (rule 18, lane P3): a tier parsed from the brief's own wording is not a rating, so an entry
+  // with no registry match shows no tier chip (the Absence part); it used to keep the parsed T4.
+  assert.equal(unlisted.tier, null);
   assert.equal(unlisted.biasTags, undefined);
   assert.equal(byName(rows, "Primary Source").tier, 2, "the primary entry keeps the item's own customer tier");
 });
@@ -286,7 +288,8 @@ test("an entry with no matching cited source is unchanged, and so is the primary
 test("a matched source with no bias tags shows none, and one with no tier keeps the brief's tier", () => {
   const rows = M.sourceEntriesOf(item({ citedSources: [{ url: "https://other.example.net/doc", tier: null, biasTags: [] }] }));
   const other = byName(rows, "Other Source");
-  assert.equal(other.tier, 5);
+  // Changed 2026-10-05 (rule 18, lane P3): a matched source with no tier is unrated; the brief's T5 is not a rating.
+  assert.equal(other.tier, null);
   assert.equal(other.biasTags, undefined);
 });
 
@@ -294,5 +297,48 @@ test("no citations: the grid is exactly what it was", () => {
   const without = M.sourceEntriesOf(item());
   const empty = M.sourceEntriesOf(item({ citedSources: [] }));
   assert.deepEqual(empty, without);
-  assert.equal(byName(without, "Other Source").tier, 5);
+  // Changed 2026-10-05 (rule 18, lane P3): no citations means no registry rating, so the brief's parsed T5 is not drawn.
+  assert.equal(byName(without, "Other Source").tier, null);
+});
+
+// Lane P3 (2026-10-05, rule 18): one tier per source. The entry's meta text carries the brief's own tier
+// wording; when a registry tier shows as the chip, that wording is gone, and when none exists the entry is as written.
+const BRIEF_P3 = [
+  "## Sources",
+  "",
+  "| # | Title | Type | Issuing Body | URL |",
+  "|---|---|---|---|---|",
+  "| 1 | BLS Major Economic Indicators | Tier 1 - Federal statistical release | BLS | https://www.bls.gov/bls/newsrels.htm |",
+  "| 2 | Other Report | Tier 4 - Industry analysis | Some Body | https://other.example.org/report |",
+].join("\n");
+const p3item = (over = {}) => ({ id: "r1", title: "Item", url: "https://www.bls.gov/bls/newsrels.htm", sourceName: "BLS Major Economic Indicators", sourceTier: 3, fullBrief: BRIEF_P3, ...over });
+
+test("P3: a registry tier is the chip and the brief's parsed tier wording is dropped from the entry", () => {
+  const rows = M.sourceEntriesOf(p3item());
+  const bls = byName(rows, "BLS Major Economic Indicators");
+  assert.equal(bls.tier, 3);
+  assert.doesNotMatch(bls.meta, /tier\s*1/i);
+  assert.match(bls.meta, /Federal statistical release/);
+  const markup = text(html(h(M.SourcesGrid, { rows })));
+  assert.match(markup, /T3/);
+  assert.doesNotMatch(markup, /Tier 1/);
+});
+
+test("P3: a cited registered source gets the same treatment", () => {
+  const rows = M.sourceEntriesOf(p3item({ citedSources: [{ url: "https://other.example.org/report", tier: 5, biasTags: [] }] }));
+  const other = byName(rows, "Other Report");
+  assert.equal(other.tier, 5);
+  assert.doesNotMatch(other.meta, /tier\s*4/i);
+  assert.match(other.meta, /Industry analysis/);
+});
+
+test("P3: with no registry tier the entry keeps its text, and the parsed tier is not a rating so no chip (rule 18)", () => {
+  const rows = M.sourceEntriesOf(p3item({ sourceTier: null }));
+  const bls = byName(rows, "BLS Major Economic Indicators");
+  assert.equal(bls.tier, null);
+  assert.match(bls.meta, /Tier 1 - Federal statistical release/);
+  const other = byName(rows, "Other Report");
+  assert.equal(other.tier, null);
+  assert.match(other.meta, /Tier 4 - Industry analysis/);
+  assert.match(html(h(M.SourcesGrid, { rows })), /data-absence="dash"/);
 });

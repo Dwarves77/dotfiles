@@ -32,6 +32,7 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
+import { stripClaimLedgerBlocks } from "@/lib/agent/claim-ledger-block";
 
 interface GfmSectionProps {
   markdown: string;
@@ -134,7 +135,9 @@ const COMPONENTS: Components = {
   hr: () => <hr style={{ border: 0, borderTop: "1px solid var(--color-border)", margin: "16px 0" }} />,
 };
 
-export function GfmSection({ markdown, source }: GfmSectionProps) {
+export function GfmSection({ markdown: rawMarkdown, source }: GfmSectionProps) {
+  // Lane P3 (2026-10-05): a stored Claim Provenance Ledger block is never drawn, in any section or in a full brief.
+  const markdown = stripClaimLedgerBlocks(rawMarkdown);
   if (!markdown || !markdown.trim()) return null;
 
   return (

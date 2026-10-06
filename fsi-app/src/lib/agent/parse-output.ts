@@ -11,6 +11,7 @@
 // what is a deterministic, documented payload.
 
 import { DB_THEME_VALUE_LIST } from "./metadata-vocab.ts";
+import { stripClaimLedgerBlocks } from "./claim-ledger-block.ts";
 
 const SEVERITY_VALUES = [
   "ACTION REQUIRED",
@@ -989,6 +990,10 @@ export function parseAgentOutput(rawText: string): ParsedAgentOutput {
   if (ledger && ledger.end <= block.start) {
     body = body.slice(0, ledger.start) + body.slice(ledger.end);
   }
+  // Lane P3 (2026-10-05): the splice above only ran for a ledger that PARSED. A block that failed to
+  // parse (invalid JSON, a FACT with no span, an opener that never closed) used to stay in the body and
+  // reach customers as the last section text. The text is removed whether or not the claims were usable.
+  body = stripClaimLedgerBlocks(body);
   body = body.replace(/\s+$/, "");
   return { body, metadata, claims };
 }
