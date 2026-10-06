@@ -32,6 +32,7 @@ import {
   computeOverallScore,
   trustMetricsFromRow,
   planTierMovements,
+  outcomeReaderFor,
   applyTierMovements,
   tierMovementEvent,
   TIER_SOURCE_COLUMNS,
@@ -175,6 +176,8 @@ export async function POST(request: NextRequest) {
             .order("id", { ascending: true })
             .range(from, to)
         ),
+      // Scored prediction outcomes (lane L4-D): the same reader the maintenance step uses.
+      readOutcomes: outcomeReaderFor(supabase),
     }, { scrapeCadence });
     const applied = await applyTierMovements(plan.movements, {
       setEffectiveTier: async (sourceId, tier) => {

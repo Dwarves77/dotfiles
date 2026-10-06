@@ -20,7 +20,7 @@ const jiti = createJiti(import.meta.url, {
   alias: { "@": resolve(ROOT, "src") },
 });
 const { tierMovementSummary } = await jiti.import("./logic.ts");
-const { planTierMovements, applyTierMovements } = await jiti.import("@/lib/trust");
+const { planTierMovements, applyTierMovements, outcomeReaderFor } = await jiti.import("@/lib/trust");
 
 const NOW = new Date("2026-10-04T12:00:00Z");
 const day = (d) => new Date(NOW.getTime() - d * 86400000).toISOString();
@@ -83,4 +83,38 @@ test("cadence off: held_cadence_off is reported in the response block and the he
   const summary = tierMovementSummary(plan, await applyTierMovements(plan.movements, { setEffectiveTier: async () => {}, insertEvent: async () => {} }));
   assert.equal(summary.held_cadence_off, 1);
   assert.equal(summary.planned, 0);
+});
+
+// ── Lane L4-D: the route carries the same outcome evidence as the maintenance step (one shared reader) ──
+function ledgerClient(rows, seen) {
+  return {
+    from(table) {
+      const st = { table, ops: [] };
+      const b = {
+        select() { return b; },
+        gte(c, v) { st.ops.push(["gte", c, v]); return b; },
+        order() { return b; },
+        range() { seen.push({ table, ops: st.ops.slice() }); return Promise.resolve({ data: rows, error: null }); },
+      };
+      return b;
+    },
+  };
+}
+
+test("outcomeReaderFor reads the ledger window through the client; the route's plan then moves a refuted-heavy source and says it was outcome driven", async () => {
+  const rows = [1, 2, 3, 4].map(() => ({ source_id: "s1", outcome: "refuted", scored_at: day(3) })).concat([{ source_id: "s1", outcome: "held", scored_at: day(3) }]);
+  const seen = [];
+  const plan = await planTierMovements({ ...readers([src()]), readOutcomes: outcomeReaderFor(ledgerClient(rows, seen)) }, { now: NOW });
+  assert.equal(seen[0].table, "source_reliability_ledger");
+  assert.ok(seen[0].ops.some((o) => o[0] === "gte" && o[1] === "scored_at"), "bounded by the window");
+  assert.equal(plan.movements[0].decision.after_tier, 5);
+  assert.equal(plan.outcome_driven_movements, 1);
+});
+
+test("the route wires the shared reader (static)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const route = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "route.ts"), "utf8");
+  assert.match(route, /readOutcomes: outcomeReaderFor\(supabase\)/);
+  const step = readFileSync(resolve(ROOT, "scripts/maintenance/recompute-tiers.mjs"), "utf8");
+  assert.match(step, /outcomeReaderFor\(readClient\(\)\)/);
 });

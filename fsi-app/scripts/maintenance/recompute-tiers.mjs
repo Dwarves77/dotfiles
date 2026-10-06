@@ -14,6 +14,10 @@
 //                                  median differs from base_tier: one step toward the median
 //                                  (host_class_table opinions are not evidence; institution-canonicalize
 //                                  owns those)
+//   e. scored prediction outcomes  the source_reliability_ledger (lane L4-D, ADR-044 decision 4): with 5+
+//                                  scored outcomes in 365 days, refuted over held is one step toward demotion,
+//                                  held with no refuted is one step toward promotion. One bounded read of the
+//                                  window per run; reported apart from the other movements (outcome_*)
 // Cadence hold (CLAUDE.md rule 16): while system_state.scrape_cadence is 'off' the no_substantive_update
 // demotion trigger is suppressed (it reads scan timestamps that cannot advance during the hold) and the
 // summary reports the count as held_cadence_off. system_state is read once per run.
@@ -48,7 +52,7 @@ const SAMPLE_LIMIT = 25;
  * @param {{ mode?: "dry"|"apply" }} opts
  * @param {{
  *   tierMovement: { planTierMovements: Function, applyTierMovements: Function },
- *   readers: { readSources: Function, readOpinions: Function, readCitations: Function },
+ *   readers: { readSources: Function, readOpinions: Function, readCitations: Function, readOutcomes?: Function },
  *   writers: { setEffectiveTier: Function, insertEvent: Function },
  *   readCadence: () => Promise<string>,
  *   now?: () => Date,
@@ -70,6 +74,13 @@ export async function main({ mode = "dry" } = {}, deps) {
       held_cadence_off: plan.held_cadence_off,
       skipped: plan.skipped.length,
       movements: plan.movements.length,
+      // Outcome-driven movements (lane L4-D) are reported apart: they exist because of scored prediction
+      // outcomes, the rest because of citations, promotion or demotion evaluation, or opinions.
+      outcome_movements: plan.outcome_driven_movements ?? 0,
+      outcome_promotions: plan.movements.filter((m) => m.decision.outcome_driven && m.decision.after_tier < m.decision.before_tier).length,
+      outcome_demotions: plan.movements.filter((m) => m.decision.outcome_driven && m.decision.after_tier > m.decision.before_tier).length,
+      other_movements: plan.movements.length - (plan.outcome_driven_movements ?? 0),
+      outcome_read_error: plan.outcome_read_error ?? null,
       promotions: plan.movements.filter((m) => m.decision.after_tier < m.decision.before_tier).length,
       demotions: plan.movements.filter((m) => m.decision.after_tier > m.decision.before_tier).length,
       sample: plan.movements.slice(0, SAMPLE_LIMIT).map((m) => ({
@@ -79,6 +90,7 @@ export async function main({ mode = "dry" } = {}, deps) {
         before_tier: m.decision.before_tier,
         after_tier: m.decision.after_tier,
         rules: m.decision.rules,
+        outcome_driven: m.decision.outcome_driven === true,
       })),
     },
     applied: 0,
@@ -109,7 +121,7 @@ export async function main({ mode = "dry" } = {}, deps) {
  * writes through db.mjs's guarded helpers. EXPORTED so the npmtest can drive it with a fake client.
  */
 export async function buildDeps() {
-  const { readAll, guardedUpdateByIds, guardedInsert } = await import("../lib/db.mjs");
+  const { readAll, guardedUpdateByIds, guardedInsert, readClient } = await import("../lib/db.mjs");
   const { createJiti } = await import("jiti");
   const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
   const tierMovement = await jiti.import("../../src/lib/trust.ts");
@@ -132,6 +144,9 @@ export async function buildDeps() {
           { match: (q) => q.is("dismissed_at", null).gte("opined_at", sinceIso) }
         ),
       readCitations: () => readAll("source_citations", "citing_source_id, cited_source_id, detected_at"),
+      // Scored prediction outcomes (lane L4-D): one read of the ledger window, every source. The planner tallies.
+      // The same reader the admin route uses (trust.ts outcomeReaderFor), so both carry one evidence set.
+      readOutcomes: (sinceIso) => tierMovement.outcomeReaderFor(readClient())(sinceIso),
     },
     writers: {
       // applyMatch repeats the planner's own override rule at the write: an override set between the

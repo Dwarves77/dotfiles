@@ -252,7 +252,7 @@ test("a failed tier write records no event and is counted; a failed event is cou
 });
 
 // ── The per-source calculator (source-growth's end-of-cycle path) uses the same evidence ──
-function fakeClient({ source, opinions = [], citations = [], cadence = "weekly" }) {
+function fakeClient({ source, opinions = [], citations = [], cadence = "weekly", ledger = [], ledgerError = false }) {
   const mk = (table) => {
     const st = { table, filters: [] };
     const b = {
@@ -264,7 +264,8 @@ function fakeClient({ source, opinions = [], citations = [], cadence = "weekly" 
       single() { return Promise.resolve({ data: source, error: null }); },
       maybeSingle() { return Promise.resolve({ data: table === "system_state" ? { scrape_cadence: cadence } : source, error: null }); },
       then(res, rej) {
-        const data = table === "source_citations" ? citations : table === "source_tier_opinions" ? opinions : [];
+        if (table === "source_reliability_ledger" && ledgerError) return Promise.resolve({ data: null, error: { message: "relation source_reliability_ledger does not exist" } }).then(res, rej);
+        const data = table === "source_citations" ? citations : table === "source_tier_opinions" ? opinions : table === "source_reliability_ledger" ? ledger : [];
         return Promise.resolve({ data, error: null }).then(res, rej);
       },
     };
@@ -327,4 +328,154 @@ test("recomputeEffectiveTier fails closed to off when system_state cannot be rea
   client.from = (t) => { if (t === "system_state") throw new Error("no table"); return inner(t); };
   const r = await recomputeEffectiveTier(client, "s1");
   assert.equal(r.changed, false);
+});
+
+// ── Lane L4-D (2026-10-05): scored prediction outcomes are one more evidence input (ADR-044 decision 4) ──
+//
+// Thresholds under test (TIER_MOVEMENT.OUTCOME_*): a source needs OUTCOME_MIN_SAMPLE = 5 scored outcomes
+// (held + refuted + partial) inside OUTCOME_WINDOW_DAYS = 365 before outcomes move anything. At or above
+// that: refuted over held moves +1 (toward demotion); held with no refuted moves -1 (toward promotion);
+// anything else, 0. Every expectation below is computed by hand from those two sentences.
+const { outcomeMovement, tallyOutcomes, TIER_MOVEMENT } = T;
+const tally = (held, refuted, partial = 0) => ({ held, refuted, partial });
+const outcomeRow = (source_id, outcome, d = 10) => ({ source_id, outcome, scored_at: daysAgo(d) });
+
+test("outcome thresholds are the stated ones", () => {
+  assert.equal(TIER_MOVEMENT.OUTCOME_MIN_SAMPLE, 5);
+  assert.equal(TIER_MOVEMENT.OUTCOME_WINDOW_DAYS, 365);
+});
+
+test("below the minimum sample nothing moves, however lopsided", () => {
+  assert.equal(outcomeMovement(tally(4, 0)).delta, 0); // 4 < 5
+  assert.equal(outcomeMovement(tally(0, 4)).delta, 0);
+  assert.equal(outcomeMovement(tally(2, 2)).delta, 0);
+  assert.equal(outcomeMovement(tally(2, 2, 0)).sample, 4);
+  assert.equal(outcomeMovement(tally(1, 1, 2)).delta, 0); // sample 4: partial counts toward the sample
+});
+
+test("refuted over held, at the minimum sample, moves +1 toward demotion", () => {
+  assert.equal(outcomeMovement(tally(1, 4)).delta, 1); // sample 5, refuted 4 > held 1
+  assert.equal(outcomeMovement(tally(0, 5)).delta, 1);
+  assert.equal(outcomeMovement(tally(2, 3, 1)).delta, 1); // sample 6
+});
+
+test("held with no refuted, at the minimum sample, moves -1 toward promotion", () => {
+  assert.equal(outcomeMovement(tally(5, 0)).delta, -1);
+  assert.equal(outcomeMovement(tally(3, 0, 2)).delta, -1); // sample 5, held 3, refuted 0
+});
+
+test("a mixed record that is neither refuted-heavy nor clean moves nothing", () => {
+  assert.equal(outcomeMovement(tally(4, 1)).delta, 0); // refuted 1 <= held 4, but refuted > 0
+  assert.equal(outcomeMovement(tally(3, 3)).delta, 0); // tie
+  assert.equal(outcomeMovement(tally(0, 0, 5)).delta, 0); // all partial: held 0
+});
+
+test("tallyOutcomes counts only the window, only the source, only the three outcomes", () => {
+  const rows = [
+    outcomeRow("s1", "held"), outcomeRow("s1", "held"), outcomeRow("s1", "refuted"), outcomeRow("s1", "partial"),
+    outcomeRow("s1", "held", 400), // outside the 365 day window
+    outcomeRow("s2", "held"), // another source
+    outcomeRow("s1", "bogus"),
+  ];
+  assert.deepEqual(tallyOutcomes(rows, NOW).get("s1"), { held: 2, refuted: 1, partial: 1 });
+  assert.deepEqual(tallyOutcomes(rows, NOW).get("s2"), { held: 1, refuted: 0, partial: 0 });
+});
+
+const baseDecision = (over = {}) => ({
+  base_tier: 4, effective_tier: null, tier_override: null,
+  evidence: { citation_promote: false, citation_reasoning: "none", promotion: null, demotion: null, opinion: { delta: 0, counted: 0, distinct_opiners: 0, median: null, reason: "none" } },
+  ...over,
+});
+const withOutcome = (t, evidenceOver = {}, over = {}) => baseDecision({ ...over, evidence: { ...baseDecision().evidence, ...evidenceOver, outcome: outcomeMovement(t) } });
+
+test("a refuted-heavy record demotes one tier and the decision says it was outcome driven", () => {
+  const d = decideEffectiveTier(withOutcome(tally(1, 4)));
+  assert.equal(d.after_tier, 5);
+  assert.deepEqual(d.rules, ["prediction_outcomes"]);
+  assert.equal(d.deltas.outcome, 1);
+  assert.equal(d.outcome_driven, true);
+  assert.equal(d.changed, true);
+});
+
+test("a clean held record promotes one tier", () => {
+  const d = decideEffectiveTier(withOutcome(tally(5, 0)));
+  assert.equal(d.after_tier, 3);
+  assert.equal(d.outcome_driven, true);
+});
+
+test("below the minimum sample the decision is exactly what it was without outcomes", () => {
+  const d = decideEffectiveTier(withOutcome(tally(4, 0)));
+  assert.equal(d.after_tier, 4);
+  assert.equal(d.changed, false);
+  assert.equal(d.outcome_driven, false);
+  assert.deepEqual(d.rules, []);
+});
+
+test("an evidence object with no outcome field (every pre-existing caller) is unchanged", () => {
+  const d = decideEffectiveTier(baseDecision());
+  assert.equal(d.deltas.outcome, 0);
+  assert.equal(d.after_tier, 4);
+});
+
+test("admin tier_override wins unconditionally over any outcome evidence, in both directions", () => {
+  for (const t of [tally(0, 9), tally(9, 0)]) {
+    const d = decideEffectiveTier(withOutcome(t, {}, { tier_override: 2, effective_tier: 2 }));
+    assert.equal(d.after_tier, 2);
+    assert.equal(d.changed, false);
+    assert.equal(d.override_held, true);
+  }
+});
+
+test("the clamp holds with other deltas present: net movement never exceeds one tier either side of base", () => {
+  // citation -1 and outcome -1: sum -2, clamped to -1.
+  const both = decideEffectiveTier(withOutcome(tally(5, 0), { citation_promote: true }));
+  assert.equal(both.net, -1);
+  assert.equal(both.after_tier, 3);
+  assert.equal(both.outcome_driven, false, "the citation alone already reached the clamp, so outcomes did not change the result");
+  // demotion +1 and outcome +1: sum +2, clamped to +1.
+  const dem = decideEffectiveTier(withOutcome(tally(0, 5), { demotion: { triggered: true, triggers_fired: [] } }));
+  assert.equal(dem.net, 1);
+  assert.equal(dem.after_tier, 5);
+  // promotion -1 against outcome +1: they cancel.
+  const cancel = decideEffectiveTier(withOutcome(tally(0, 5), { citation_promote: true }));
+  assert.equal(cancel.net, 0);
+  assert.equal(cancel.after_tier, 4);
+});
+
+test("the planner reads outcome rows with its other evidence and reports the outcome-driven movements", async () => {
+  const s = quiet({ base_tier: 4 });
+  const rows = [outcomeRow("s1", "refuted"), outcomeRow("s1", "refuted"), outcomeRow("s1", "refuted"), outcomeRow("s1", "held"), outcomeRow("s1", "partial")];
+  const seenSince = [];
+  const r = { ...readers({ sources: [s] }), readOutcomes: async (sinceIso) => { seenSince.push(sinceIso); return rows; } };
+  const plan = await planTierMovements(r, { now: NOW });
+  assert.equal(plan.movements.length, 1);
+  assert.equal(plan.movements[0].decision.after_tier, 5);
+  assert.equal(plan.movements[0].decision.outcome_driven, true);
+  assert.equal(plan.outcome_driven_movements, 1);
+  assert.equal(seenSince.length, 1, "one bounded read per run");
+  assert.equal(seenSince[0], new Date(NOW.getTime() - 365 * 86400000).toISOString());
+  const ev = tierMovementEvent("s1", plan.movements[0].decision);
+  assert.equal(ev.event_type, "tier_demotion", "an existing event_type; no CHECK change needed");
+  assert.equal(ev.details.outcome_driven, true);
+  assert.equal(ev.details.deltas.outcome, 1);
+});
+
+test("a planner with no outcome reader behaves exactly as before; an outcome reader that throws does not stop the run", async () => {
+  const plain = await planTierMovements(readers({ sources: [quiet()] }), { now: NOW });
+  assert.equal(plain.movements.length, 0);
+  assert.equal(plain.outcome_driven_movements, 0);
+  const failing = await planTierMovements({ ...readers({ sources: [quiet()] }), readOutcomes: async () => { throw new Error("relation does not exist"); } }, { now: NOW });
+  assert.equal(failing.movements.length, 0);
+  assert.match(failing.outcome_read_error, /does not exist/);
+});
+
+test("recomputeEffectiveTier folds the ledger tally into the same decision (the per-source path source-growth uses)", async () => {
+  const ledger = [outcomeRow("s1", "held"), outcomeRow("s1", "held"), outcomeRow("s1", "held"), outcomeRow("s1", "held"), outcomeRow("s1", "held")];
+  const client = fakeClient({ source: quiet({ base_tier: 5 }), ledger });
+  const r = await recomputeEffectiveTier(client, "s1");
+  assert.equal(r.after_tier, 4);
+  assert.deepEqual(r.rules, ["prediction_outcomes"]);
+  // A client whose ledger read errors (migration 353 not applied) leaves the decision as it was.
+  const absent = fakeClient({ source: quiet({ base_tier: 5 }), ledgerError: true });
+  assert.equal((await recomputeEffectiveTier(absent, "s1")).after_tier, 5);
 });
