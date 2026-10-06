@@ -195,14 +195,13 @@ export async function buildDeps() {
     minItems,
     heldScenarioTags: new Set(SCENARIO_TAG_VALUES),
     readItems: (withCandidates) =>
-      readAll("intelligence_items", withCandidates ? `${ITEM_COLS}, compliance_object_candidates` : ITEM_COLS, { match: live, orderBy: "id" }),
+      readAll("intelligence_items", withCandidates ? `${ITEM_COLS}, compliance_object_candidates` : ITEM_COLS, { match: live }),
     readEntityLinkFlags: () =>
       readAll("integrity_flags", "id, subject_ref, created_by, recommended_actions", {
         match: (q) => q.eq("created_by", ENTITY_LINK_CREATED_BY),
-        orderBy: "id",
       }),
-    readTerms: () => readAll("vocabulary_terms", "*", { orderBy: "id" }),
-    readMentions: () => readAll("vocabulary_mentions", "term_id, item_id, source_id, detector, surface_text", { orderBy: "id" }),
+    readTerms: () => readAll("vocabulary_terms", "*"),
+    readMentions: () => readAll("vocabulary_mentions", "term_id, item_id, source_id, detector, surface_text"),
     writers: {
       insertTerms: (rows) => guardedInsertMany("vocabulary_terms", rows, { cite: CITE, select: "id, kind, term_key" }),
       // One id per call; the patch never carries label or term_key (applyTermPlan strips them).
@@ -210,7 +209,7 @@ export async function buildDeps() {
       insertMentions: (rows) => guardedInsertMany("vocabulary_mentions", rows, { cite: CITE, select: "id" }),
     },
     countTermsByStatus: async () => {
-      const rows = await readAll("vocabulary_terms", "id, status", { orderBy: "id" });
+      const rows = await readAll("vocabulary_terms", "id, status");
       const out = { proposed: 0, adopted: 0, retired: 0 };
       for (const r of rows) out[r.status] = (out[r.status] ?? 0) + 1;
       return out;

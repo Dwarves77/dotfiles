@@ -132,6 +132,8 @@ export const TABLE_PRIMARY_KEY = Object.freeze({
   user_item_state: 'id',
   user_list_order: 'id',
   user_watchlist: 'id',
+  vocabulary_mentions: 'id',
+  vocabulary_terms: 'id',
   workspace_item_overrides: 'id',
   workspace_settings: 'id',
   workspace_tags: 'id',

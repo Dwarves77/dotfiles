@@ -648,7 +648,8 @@ export const TERMS_CITE = Object.freeze({
 export function buildTermWriters() {
   return {
     readTerms: (termKeys) =>
-      readAll("vocabulary_terms", "id, kind, term_key, status", { match: (q) => q.in("term_key", termKeys), orderBy: "id" }),
+      // Chunked by-id read (F39): the keys are filtered through readAllByIds, never one runtime-sized .in().
+      readAllByIds("vocabulary_terms", "id, kind, term_key, status", termKeys, { idColumn: "term_key", orderBy: "id" }),
     insertTerms: (rows) => guardedInsertMany("vocabulary_terms", rows, { cite: TERMS_CITE, select: "id, kind, term_key" }),
     upsertMentions: (rows) => guardedUpsert("vocabulary_mentions", rows, { onConflict: "term_id,item_id,detector", cite: TERMS_CITE }),
   };
