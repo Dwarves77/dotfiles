@@ -51,16 +51,22 @@
 --     every changed full_brief or topic_tags value through its AFTER UPDATE trigger; no later migration drops it
 --     (grep of supabase/migrations: only 053 names it), so it is live as far as the committed chain shows. It records
 --     no actor, which is why item_corrections.created_by exists.
---   * REVOKE does not rewrite data. It stops enforcement. A tag, brief or section keeps its corrected value until the
---     next machine write stands; a suppressed claim reappears at once; a removed connection is not re-created until
---     the next discovery pass; a manual edge stays until a later `remove` correction.
+--   * REVOKE RESTORES (operator ruling 2026-10-06). revoke_item_correction sets revoked_at first, then, in the SAME
+--     transaction and through the normal row write (so every trigger and the version snapshot see it), puts back the
+--     latest machine value recorded in item_correction_evidence, or the machine_value captured at correction time when
+--     the machine never wrote again. tag: the tag's membership is set to what the machine array had (an `add` is taken
+--     out, a `remove` is put back); full_brief and section_text: the machine text; fact replace: the machine claim_text,
+--     source_span, source_id and search_result_id; connection add: the pair's rows are replaced by the rows captured at
+--     correction time (none, normally). A revoked connection `remove` does NOT re-create the edge; the next discovery
+--     pass may. A revoked fact `suppress` needs no write (the read path stops hiding the claim at once). Corrections
+--     still active on the same target are re-applied by the triggers as usual.
 --   * SECURITY. RLS on, one profiles.is_platform_admin SELECT policy, no write policy; INSERT/UPDATE/DELETE revoked from
 --     anon and authenticated. create_item_correction and revoke_item_correction are SECURITY DEFINER, execute granted to
 --     service_role only; created_by is a parameter the admin route fills from the session, never from the request body.
 --
 -- SELF-CHECK. The final DO block attacks the layer on a real item and rolls everything back: each target_kind survives
--- a simulated regeneration write, a revoked correction lets the next machine write stand, a non-verbatim fact span is
--- refused, a tombstoned edge is not re-created by a machine insert, and the table refuses UPDATE of anything but
+-- a simulated regeneration write, a revoked correction RESTORES the machine value at once and lets the next machine
+-- write stand, a non-verbatim fact span is refused, a tombstoned edge is not re-created by a machine insert, and the table refuses UPDATE of anything but
 -- revoked_* and refuses DELETE. It skips (NOTICE) any step whose fixture row is absent.
 --
 -- Reversible: DROP TRIGGER zz_item_corrections_apply_items_trg ON public.intelligence_items; DROP TRIGGER
@@ -671,18 +677,82 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $fn$
+DECLARE
+  c            public.item_corrections;
+  v_has_ev     boolean;
+  v_ev         jsonb;
+  v_mv         jsonb;
+  v_col        text;
+  v_tag        text;
+  v_cur        text[];
+  v_new        text[];
+  v_in_machine boolean;
+  v_target     uuid;
 BEGIN
   IF p_revoked_by IS NULL THEN
     RAISE EXCEPTION 'correction_actor_required: revoked_by is required';
   END IF;
+
   UPDATE public.item_corrections
      SET revoked_at = now(),
          revoked_by = p_revoked_by,
          revoked_reason = NULLIF(btrim(COALESCE(p_reason, '')), '')
-   WHERE id = p_correction_id AND item_id = p_item_id AND revoked_at IS NULL;
+   WHERE id = p_correction_id AND item_id = p_item_id AND revoked_at IS NULL
+  RETURNING * INTO c;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'correction_not_active: no active correction % on item %', p_correction_id, p_item_id;
   END IF;
+
+  -- The value to put back: the latest machine value a writer tried to store, else the value captured at write.
+  SELECT true, e.latest_machine_value INTO v_has_ev, v_ev
+    FROM public.item_correction_evidence e WHERE e.correction_id = c.id;
+  IF COALESCE(v_has_ev, false) THEN v_mv := v_ev; ELSE v_mv := c.machine_value; END IF;
+
+  IF c.target_kind = 'tag' THEN
+    v_col := split_part(c.target_ref, ':', 1);
+    v_tag := substr(c.target_ref, length(v_col) + 2);
+    EXECUTE format('SELECT %I FROM public.intelligence_items WHERE id = $1', v_col) INTO v_cur USING c.item_id;
+    v_cur := COALESCE(v_cur, ARRAY[]::text[]);
+    v_in_machine := v_tag = ANY (ARRAY(
+      SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(v_mv) = 'array' THEN v_mv ELSE '[]'::jsonb END)));
+    v_new := NULL;
+    IF v_in_machine AND NOT (v_tag = ANY (v_cur)) THEN
+      v_new := v_cur || v_tag;
+    ELSIF NOT v_in_machine AND v_tag = ANY (v_cur) THEN
+      v_new := array_remove(v_cur, v_tag);
+    END IF;
+    IF v_new IS NOT NULL THEN
+      EXECUTE format('UPDATE public.intelligence_items SET %I = $1 WHERE id = $2', v_col) USING v_new, c.item_id;
+    END IF;
+
+  ELSIF c.target_kind = 'full_brief' THEN
+    UPDATE public.intelligence_items SET full_brief = (v_mv #>> '{}') WHERE id = c.item_id;
+
+  ELSIF c.target_kind = 'section_text' THEN
+    IF v_mv IS NOT NULL THEN
+      UPDATE public.intelligence_item_sections SET content_md = (v_mv #>> '{}')
+       WHERE item_id = c.item_id AND section_key = c.target_ref;
+    END IF;
+
+  ELSIF c.target_kind = 'fact' AND c.op = 'replace' THEN
+    v_target := c.target_ref::uuid;
+    UPDATE public.section_claim_provenance
+       SET claim_text = COALESCE(v_mv ->> 'claim_text', claim_text),
+           source_span = v_mv ->> 'source_span',
+           source_id = NULLIF(v_mv ->> 'source_id', '')::uuid,
+           search_result_id = NULLIF(v_mv ->> 'search_result_id', '')::uuid
+     WHERE id = v_target AND intelligence_item_id = c.item_id;
+
+  ELSIF c.target_kind = 'connection' AND c.op = 'add' THEN
+    v_target := c.target_ref::uuid;
+    DELETE FROM public.item_cross_references
+     WHERE (source_item_id = c.item_id AND target_item_id = v_target)
+        OR (source_item_id = v_target AND target_item_id = c.item_id);
+    INSERT INTO public.item_cross_references
+    SELECT * FROM jsonb_populate_recordset(NULL::public.item_cross_references, COALESCE(c.machine_value, '[]'::jsonb))
+    ON CONFLICT (source_item_id, target_item_id) DO NOTHING;
+  END IF;
+  -- connection remove: the edge is NOT re-created here; fact suppress: nothing was written, nothing to restore.
 END;
 $fn$;
 
@@ -717,6 +787,7 @@ DECLARE
   v_sec     record;
   v_fact    record;
   v_cid     uuid;
+  v_add_cid uuid;
   v_arr     text[];
   v_txt     text;
   v_n       int;
@@ -731,7 +802,7 @@ BEGIN
     END IF;
 
     -- tag add survives a machine write that omits it
-    v_cid := public.create_item_correction(v_item, 'tag', 'operational_scenario_tags:zz_selfcheck_added', 'add', NULL, 'selfcheck', v_actor);
+    v_add_cid := public.create_item_correction(v_item, 'tag', 'operational_scenario_tags:zz_selfcheck_added', 'add', NULL, 'selfcheck', v_actor);
     SELECT operational_scenario_tags INTO v_arr FROM public.intelligence_items WHERE id = v_item;
     IF NOT ('zz_selfcheck_added' = ANY (COALESCE(v_arr, ARRAY[]::text[]))) THEN
       RAISE EXCEPTION '356 self-check FAILED: a tag add was not applied at create time';
@@ -751,10 +822,20 @@ BEGIN
       RAISE EXCEPTION '356 self-check FAILED: a removed tag survived a machine write that re-added it';
     END IF;
     PERFORM public.revoke_item_correction(v_item, v_cid, v_actor, 'selfcheck');
+    SELECT operational_scenario_tags INTO v_arr FROM public.intelligence_items WHERE id = v_item;
+    IF NOT ('zz_selfcheck_removed' = ANY (COALESCE(v_arr, ARRAY[]::text[]))) THEN
+      RAISE EXCEPTION '356 self-check FAILED: revoking a tag remove did not put the machine tag back';
+    END IF;
     UPDATE public.intelligence_items SET operational_scenario_tags = ARRAY['zz_selfcheck_removed']::text[] WHERE id = v_item;
     SELECT operational_scenario_tags INTO v_arr FROM public.intelligence_items WHERE id = v_item;
     IF NOT ('zz_selfcheck_removed' = ANY (COALESCE(v_arr, ARRAY[]::text[]))) THEN
       RAISE EXCEPTION '356 self-check FAILED: a revoked tag correction still blocked the next machine write';
+    END IF;
+    -- revoking the earlier tag ADD takes the added tag back out (the machine array never had it)
+    PERFORM public.revoke_item_correction(v_item, v_add_cid, v_actor, 'selfcheck');
+    SELECT operational_scenario_tags INTO v_arr FROM public.intelligence_items WHERE id = v_item;
+    IF 'zz_selfcheck_added' = ANY (COALESCE(v_arr, ARRAY[]::text[])) THEN
+      RAISE EXCEPTION '356 self-check FAILED: revoking a tag add did not take the added tag back out';
     END IF;
 
     -- full_brief replace survives a machine write
@@ -765,6 +846,10 @@ BEGIN
       RAISE EXCEPTION '356 self-check FAILED: a full_brief correction did not survive a machine write';
     END IF;
     PERFORM public.revoke_item_correction(v_item, v_cid, v_actor, 'selfcheck');
+    SELECT full_brief INTO v_txt FROM public.intelligence_items WHERE id = v_item;
+    IF v_txt IS DISTINCT FROM 'machine regeneration text' THEN
+      RAISE EXCEPTION '356 self-check FAILED: revoking a full_brief correction did not restore the machine brief';
+    END IF;
     UPDATE public.intelligence_items SET full_brief = 'machine regeneration text' WHERE id = v_item;
     SELECT full_brief INTO v_txt FROM public.intelligence_items WHERE id = v_item;
     IF v_txt IS DISTINCT FROM 'machine regeneration text' THEN
@@ -786,6 +871,11 @@ BEGIN
         RAISE EXCEPTION '356 self-check FAILED: a section_text correction did not survive a machine write';
       END IF;
       PERFORM public.revoke_item_correction(v_sec.item_id, v_cid, v_actor, 'selfcheck');
+      SELECT content_md INTO v_txt FROM public.intelligence_item_sections
+       WHERE item_id = v_sec.item_id AND section_key = v_sec.section_key;
+      IF v_txt IS DISTINCT FROM v_sec.content_md THEN
+        RAISE EXCEPTION '356 self-check FAILED: revoking a section_text correction did not restore the machine text';
+      END IF;
       UPDATE public.intelligence_item_sections SET content_md = v_sec.content_md
        WHERE item_id = v_sec.item_id AND section_key = v_sec.section_key;
       SELECT content_md INTO v_txt FROM public.intelligence_item_sections
@@ -827,6 +917,10 @@ BEGIN
         RAISE EXCEPTION '356 self-check FAILED: a fact replace did not survive a machine rewrite of the claim';
       END IF;
       PERFORM public.revoke_item_correction(v_fact.item_id, v_cid, v_actor, 'selfcheck');
+      SELECT claim_text INTO v_txt FROM public.section_claim_provenance WHERE id = v_fact.id;
+      IF v_txt IS DISTINCT FROM v_fact.claim_text THEN
+        RAISE EXCEPTION '356 self-check FAILED: revoking a fact replace did not restore the machine claim';
+      END IF;
       UPDATE public.section_claim_provenance SET claim_text = v_fact.claim_text WHERE id = v_fact.id;
       SELECT claim_text INTO v_txt FROM public.section_claim_provenance WHERE id = v_fact.id;
       IF v_txt IS DISTINCT FROM v_fact.claim_text THEN
@@ -853,6 +947,13 @@ BEGIN
       IF v_n <> 0 THEN
         RAISE EXCEPTION '356 self-check FAILED: a machine edge insert got past a connection tombstone';
       END IF;
+      -- revoking a tombstone does NOT re-create the edge
+      PERFORM public.revoke_item_correction(v_item, v_cid, v_actor, 'selfcheck');
+      SELECT count(*) INTO v_n FROM public.item_cross_references
+       WHERE (source_item_id = v_item AND target_item_id = v_peer) OR (source_item_id = v_peer AND target_item_id = v_item);
+      IF v_n <> 0 THEN
+        RAISE EXCEPTION '356 self-check FAILED: revoking a connection remove re-created the edge';
+      END IF;
       v_cid := public.create_item_correction(v_item, 'connection', v_peer::text, 'add', NULL, 'selfcheck', v_actor);
       SELECT count(*) INTO v_n FROM public.item_cross_references
        WHERE origin = 'manual'
@@ -878,6 +979,16 @@ BEGIN
     END;
     IF NOT v_refused THEN
       RAISE EXCEPTION '356 self-check FAILED: the append-only guard let a DELETE through';
+    END IF;
+
+    -- revoking a connection add puts the pair back to what the machine had (nothing, here)
+    IF v_peer IS NOT NULL THEN
+      PERFORM public.revoke_item_correction(v_item, v_cid, v_actor, 'selfcheck');
+      SELECT count(*) INTO v_n FROM public.item_cross_references
+       WHERE (source_item_id = v_item AND target_item_id = v_peer) OR (source_item_id = v_peer AND target_item_id = v_item);
+      IF v_n <> 0 THEN
+        RAISE EXCEPTION '356 self-check FAILED: revoking a connection add did not restore the pair to the machine state';
+      END IF;
     END IF;
 
     RAISE EXCEPTION 'c356_selfcheck_rollback';

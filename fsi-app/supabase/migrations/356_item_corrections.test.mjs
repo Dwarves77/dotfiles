@@ -163,3 +163,34 @@ test("runs inside one transaction and is not applied by this file", () => {
 test("rule 022: the migration carries no dash glyph and no section-sign glyph", () => {
   assert.doesNotMatch(RAW, new RegExp("[\u2013\u2014\u00a7]"));
 });
+
+test("revoke RESTORES per target_kind in the same transaction: evidence value else machine_value, through the normal row write", () => {
+  const f = fn("revoke_item_correction");
+  assert.match(f, /SET revoked_at = now\(\)[\s\S]*RETURNING \* INTO c/, "revokes first, so the triggers see the correction as inactive when the restore write runs");
+  assert.match(f, /FROM public\.item_correction_evidence e WHERE e\.correction_id = c\.id/);
+  assert.match(f, /IF COALESCE\(v_has_ev, false\) THEN v_mv := v_ev; ELSE v_mv := c\.machine_value; END IF/, "latest machine value, else the captured one");
+  // tag: membership put back to what the machine had, written through UPDATE of the column
+  assert.match(f, /c\.target_kind = 'tag'[\s\S]*array_remove\(v_cur, v_tag\)[\s\S]*UPDATE public\.intelligence_items SET %I = \$1/);
+  assert.match(f, /v_in_machine AND NOT \(v_tag = ANY \(v_cur\)\)[\s\S]*v_cur \|\| v_tag/, "a removed tag is put back");
+  // full_brief and section_text: the machine text
+  assert.match(f, /c\.target_kind = 'full_brief'[\s\S]*UPDATE public\.intelligence_items SET full_brief = \(v_mv #>> '\{\}'\)/);
+  assert.match(f, /c\.target_kind = 'section_text'[\s\S]*UPDATE public\.intelligence_item_sections SET content_md = \(v_mv #>> '\{\}'\)/);
+  // fact replace: claim fields put back on the claim row
+  assert.match(f, /c\.target_kind = 'fact' AND c\.op = 'replace'[\s\S]*UPDATE public\.section_claim_provenance[\s\S]*source_span = v_mv ->> 'source_span'[\s\S]*search_result_id = NULLIF\(v_mv ->> 'search_result_id', ''\)::uuid/);
+  // connection add: the pair is replaced by the captured rows; connection remove writes nothing
+  assert.match(f, /c\.target_kind = 'connection' AND c\.op = 'add'[\s\S]*DELETE FROM public\.item_cross_references[\s\S]*jsonb_populate_recordset\(NULL::public\.item_cross_references/);
+  assert.doesNotMatch(f, /c\.op = 'remove'[\s\S]{0,200}INSERT INTO public\.item_cross_references/, "a revoked tombstone must not re-create the edge");
+  assert.match(RAW, /REVOKE RESTORES/);
+});
+
+test("the self-check attacks the restore itself for every target_kind, not only that the next machine write stands", () => {
+  for (const msg of [
+    "revoking a tag remove did not put the machine tag back",
+    "revoking a tag add did not take the added tag back out",
+    "revoking a full_brief correction did not restore the machine brief",
+    "revoking a section_text correction did not restore the machine text",
+    "revoking a fact replace did not restore the machine claim",
+    "revoking a connection remove re-created the edge",
+    "revoking a connection add did not restore the pair to the machine state",
+  ]) assert.ok(SQL.includes(msg), `self-check must carry: ${msg}`);
+});

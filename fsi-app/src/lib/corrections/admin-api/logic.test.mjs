@@ -93,7 +93,7 @@ test("revoke: passes the session user as revoked_by and the optional reason; a s
   assert.equal((await revokeCorrection(sb, { itemId: ITEM, correctionId: "bad", userId: USER, body: null })).body.code, "correction_id_invalid");
 });
 
-function listClient({ item = { id: ITEM }, corrections = [], evidence = [] } = {}) {
+function listClient({ item = { id: ITEM }, corrections = [], evidence = [], claims = [] } = {}) {
   return {
     from(table) {
       const b = {
@@ -101,7 +101,7 @@ function listClient({ item = { id: ITEM }, corrections = [], evidence = [] } = {
         eq() { return b; },
         in() { return b; },
         maybeSingle: async () => ({ data: item, error: null }),
-        then(res) { res({ data: table === "item_corrections" ? corrections : evidence, error: null }); },
+        then(res) { res({ data: table === "item_corrections" ? corrections : table === "section_claim_provenance" ? claims : evidence, error: null }); },
       };
       return b;
     },
@@ -119,7 +119,7 @@ test("list: newest first, active and superseded flags, machine evidence attached
   const r = await listCorrections(listClient({ corrections, evidence }), ITEM);
   assert.equal(r.status, 200);
   assert.deepEqual(r.body.corrections.map((c) => c.id), ["c3", "c2", "c1"]);
-  assert.deepEqual(r.body.counts, { active: 2, revoked: 1 });
+  assert.deepEqual(r.body.counts, { active: 2, revoked: 1, orphaned: 0 });
   const byId = Object.fromEntries(r.body.corrections.map((c) => [c.id, c]));
   assert.equal(byId.c1.superseded, true, "the older remove is overridden by the newer add on the same tag");
   assert.equal(byId.c2.superseded, false);
@@ -139,4 +139,15 @@ test("the core never reads created_by from the body (static attack: a rewrite th
   const src = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "logic.mjs"), "utf8");
   const code = src.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
   assert.doesNotMatch(code, /body\??\.created_by|body\??\.revoked_by/);
+});
+
+test("list: an active fact correction that matches no current claim is orphaned, and counted; a matched one is not", async () => {
+  const fact = (id, ref, text, extra = {}) => ({ id, item_id: ITEM, target_kind: "fact", target_ref: ref, op: "suppress", value: null, machine_value: { claim_text: text }, reason: "r", created_by: USER, created_at: "2026-10-01T00:00:00Z", revoked_at: null, revoked_by: null, ...extra });
+  const corrections = [fact("f1", CLAIM, "T1"), fact("f2", "55555555-5555-4555-8555-555555555555", "T2"), fact("f3", "66666666-6666-4666-8666-666666666666", "T3", { revoked_at: "2026-10-02T00:00:00Z", revoked_by: USER })];
+  const r = await listCorrections(listClient({ corrections, claims: [{ id: CLAIM, claim_text: "kept" }] }), ITEM);
+  const byId = Object.fromEntries(r.body.corrections.map((c) => [c.id, c]));
+  assert.equal(byId.f1.orphaned, false);
+  assert.equal(byId.f2.orphaned, true);
+  assert.equal(byId.f3.orphaned, false, "a revoked correction is never an orphan");
+  assert.equal(r.body.counts.orphaned, 1);
 });

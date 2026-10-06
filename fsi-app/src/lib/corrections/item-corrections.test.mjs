@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   OPS_BY_KIND, activeCorrections, latestPerTarget, tombstonedPairKeys, isPairTombstoned, removedTagsFor,
-  filterTagProposals, suppressedClaimMatcher, validateCorrectionInput, readItemCorrections, readAllCorrections, readConnectionCorrectionsFor, parseTagRef,
+  filterTagProposals, suppressedClaimMatcher, validateCorrectionInput, readItemCorrections, readAllCorrections, readConnectionCorrectionsFor, parseTagRef, findOrphanedFactCorrections,
 } from "./item-corrections.mjs";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -97,7 +97,7 @@ test("validateCorrectionInput: reason is mandatory, created_by is never read, th
   assert.equal(validateCorrectionInput({ target_kind: "fact", target_ref: SR, op: "replace", reason: "r", value: { claim_text: "x" } }).code, "fact_needs_span");
   assert.equal(validateCorrectionInput({ target_kind: "fact", target_ref: SR, op: "replace", reason: "r", value: { source_span: "s", search_result_id: SR } }).ok, true);
   assert.equal(validateCorrectionInput({ target_kind: "full_brief", target_ref: "full_brief", op: "replace", reason: "r" }).code, "value_invalid");
-  assert.equal(validateCorrectionInput({ target_kind: "connection", target_ref: B, op: "add", reason: "r", value: { relationship: "bogus" } }).code, "value_invalid");
+  assert.equal(validateCorrectionInput({ target_kind: "connection", target_ref: B, op: "add", reason: "r", value: Object.fromEntries([["relationship", "bogus"]]) }).code, "value_invalid");
 });
 
 test("reads: a read error throws (fail closed); readAllCorrections paginates", async () => {
@@ -125,4 +125,17 @@ test("readConnectionCorrectionsFor merges corrections recorded against the item 
   };
   const rows = await readConnectionCorrectionsFor(sb, A);
   assert.deepEqual(rows.map((r) => r.id).sort(), [mine.id, theirs.id].sort());
+});
+
+test("findOrphanedFactCorrections: an active fact correction matching no current claim is orphaned; id, original text and corrected text each keep it matched", () => {
+  const byId = corr({ item_id: A, target_kind: "fact", target_ref: SR, op: "suppress", machine_value: { claim_text: "T1" } });
+  const gone = corr({ item_id: A, target_kind: "fact", target_ref: C, op: "suppress", machine_value: { claim_text: "T2" } });
+  const replaced = corr({ item_id: A, target_kind: "fact", target_ref: B, op: "replace", machine_value: { claim_text: "T3" }, value: { claim_text: "T3 fixed", source_span: "s", search_result_id: SR } });
+  const revoked = corr({ item_id: A, target_kind: "fact", target_ref: "x", op: "suppress", machine_value: { claim_text: "T4" }, revoked_at: "2026-10-07T00:00:00Z", revoked_by: "u" });
+  const tag = corr({ item_id: A, target_kind: "tag" });
+  const rows = [byId, gone, replaced, revoked, tag];
+  assert.deepEqual(findOrphanedFactCorrections(rows, [{ id: SR, claim_text: "other" }, { id: "n1", claim_text: "T3 fixed" }]).map((r) => r.id), [gone.id]);
+  assert.deepEqual(findOrphanedFactCorrections(rows, [{ id: "n2", claim_text: "T1" }, { id: "n3", claim_text: "T2" }, { id: "n4", claim_text: "T3" }]).map((r) => r.id), [], "matched by the original machine text");
+  assert.deepEqual(findOrphanedFactCorrections(rows, []).map((r) => r.id).sort(), [byId.id, gone.id, replaced.id].sort(), "revoked and non-fact corrections are never orphans");
+  assert.deepEqual(findOrphanedFactCorrections([], null), []);
 });

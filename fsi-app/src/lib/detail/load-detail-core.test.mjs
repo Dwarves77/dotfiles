@@ -455,3 +455,45 @@ test("G7-CORR fetchClaimTierMap: a correction read error fails closed to {} (a s
   const map = await fetchClaimTierMap(claimStub({ claims: [fact("claim-1", "x")], corrections: [], correctionsError: { message: "boom" } }), "item-uuid");
   assert.deepEqual(map, {});
 });
+
+// ── lane G7-CORR: a suppressed claim is removed from sections and the full brief (redactDetail) ─────────────────────
+const redactDeps = (extra) => ({
+  fetchItem: async () => ({ ...baseDetail, resource: { ...baseDetail.resource, fullBrief: "Brief. Claim T. End." } }),
+  fetchSections: async () => [{ id: "s1", section_key: "a", content_md: "Para. Claim T." }],
+  getRelevance: async () => null,
+  createServiceClient: () => ({}),
+  resolveOrgId: async () => null,
+  cacheWrap: makeMemoCache(),
+  ...extra,
+});
+
+test("G7-CORR loadDetailCore: redactDetail runs after the cached reads and its result is what the page gets", async () => {
+  const seen = [];
+  const result = await loadDetailCore(call("regulations", "item-a", {
+    loadItemScoped: async () => ({}),
+    deps: redactDeps({
+      redactDetail: async (input) => {
+        seen.push(input);
+        return { resource: { ...input.resource, fullBrief: "Brief.  End." }, sections: [{ id: "s1", section_key: "a", content_md: "Para. " }] };
+      },
+    }),
+  }));
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].id, "item-a");
+  assert.equal(seen[0].resource.fullBrief, "Brief. Claim T. End.", "it receives the unredacted cached reads");
+  assert.equal(result.resource.fullBrief, "Brief.  End.");
+  assert.equal(result.sections[0].content_md, "Para. ");
+});
+
+test("G7-CORR loadDetailCore: with no redactDetail dep the result is exactly the cached reads (existing stubs unchanged)", async () => {
+  const result = await loadDetailCore(call("regulations", "item-a", { loadItemScoped: async () => ({}), deps: redactDeps({}) }));
+  assert.equal(result.resource.fullBrief, "Brief. Claim T. End.");
+  assert.equal(result.sections[0].content_md, "Para. Claim T.");
+});
+
+test("G7-CORR loadDetailCore: a redactDetail failure propagates (a suppressed claim never leaks through an error)", async () => {
+  await assert.rejects(() => loadDetailCore(call("regulations", "item-a", {
+    loadItemScoped: async () => ({}),
+    deps: redactDeps({ redactDetail: async () => { throw new Error("item_corrections read failed: boom"); } }),
+  })), /item_corrections read failed/);
+});

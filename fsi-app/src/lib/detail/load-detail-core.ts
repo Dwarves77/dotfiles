@@ -108,6 +108,11 @@ export interface DetailDeps {
   fetchItem: (id: string) => Promise<DetailSourceItem | null>;
   fetchSections: (id: string) => Promise<unknown>;
   getRelevance: (relevanceInput: unknown) => Promise<unknown | null>;
+  /** lane G7-CORR: read-time removal of a suppressed claim's text from the item's sections and full brief
+   *  (src/lib/corrections/suppressed-render.mjs). Optional so existing stubs stay valid; production wires it in
+   *  load-detail.ts. Runs per request, after the cached reads, so a suppress takes effect without waiting out the
+   *  cache window; stored text is never touched. */
+  redactDetail?: (input: { id: string; resource: unknown; sections: unknown }) => Promise<{ resource: unknown; sections: unknown }>;
 }
 
 export interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
@@ -307,15 +312,24 @@ export async function loadDetailCore<ItemScoped, ViewerScoped = undefined>(
     return { relevance, viewerScoped };
   };
 
-  const [sections, itemScoped, viewer] = await Promise.all([
+  const [fetchedSections, itemScoped, viewer] = await Promise.all([
     deps.fetchSections(config.id),
     runItemScoped(),
     runViewerScoped(),
   ]);
 
+  // lane G7-CORR: hide a suppressed claim everywhere the item's text renders (sections, full brief).
+  let outResource: unknown = resource;
+  let sections: unknown = fetchedSections;
+  if (deps.redactDetail) {
+    const red = await deps.redactDetail({ id: config.id, resource, sections: fetchedSections });
+    outResource = red.resource;
+    sections = red.sections;
+  }
+
   return {
     notFound: false,
-    resource,
+    resource: outResource as Resource,
     connections,
     supersessions,
     changelog,

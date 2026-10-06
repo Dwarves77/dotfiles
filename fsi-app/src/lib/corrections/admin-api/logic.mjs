@@ -6,11 +6,15 @@
 // 429 rate limited, 403 not a platform admin) and carry the rate-limit headers.
 //
 //   GET  /api/admin/items/{itemId}/corrections
-//     200 { item_id, counts: { active, revoked }, corrections: [ {
+//     200 { item_id, counts: { active, revoked, orphaned }, corrections: [ {
 //             id, item_id, target_kind, target_ref, op, value, machine_value, reason,
 //             created_by, created_at, revoked_at, revoked_by, revoked_reason,
 //             active: boolean,                  // revoked_at is null
 //             superseded: boolean,              // active but not the latest active for its target
+//             orphaned: boolean,                // an ACTIVE fact correction that matches no current claim of the
+//                                               // item (by claim id, original machine text or corrected text);
+//                                               // a regeneration changed or removed the claim. Never re-matched
+//                                               // automatically; the screen shows it for a human to revoke or redo
 //             latest_machine_value: any|null,   // what a writer last tried to store where this correction overrode it
 //             machine_observed_count: number,   // how many times, 0 when never observed
 //             machine_observed_at: string|null
@@ -39,8 +43,14 @@
 //     body { reason?: string }
 //     200 { id, item_id, revoked: true }
 //     400 { error, code: "item_id_invalid" | "correction_id_invalid" }   409 { error, code: "correction_not_active" }
-//     Revoking stops enforcement only; a tag, brief or section keeps its value until the next machine write.
-import { latestPerTarget, validateCorrectionInput } from "../../../../../../lib/corrections/item-corrections.mjs";
+//     Revoking RESTORES the machine value in the same transaction (see the migration header): the latest value a
+//     writer tried to store, else the value captured at correction time, written through the normal row write.
+//     A revoked connection tombstone does not re-create the edge; the next discovery pass may.
+//   Fact `add` is NOT offered (a claim belongs to a section; add a fact by replacing the section text).
+//   Suppress hides the claim from customers everywhere it renders (rating chip, section text, full brief, the
+//   Assistant) at read time; stored text is never touched.
+import { findOrphanedFactCorrections, latestPerTarget, validateCorrectionInput } from "../item-corrections.mjs";
+import { fetchAllByIdChunks } from "../../db/paginate.mjs";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -73,10 +83,23 @@ export async function listCorrections(sb, itemId) {
 
   const evidenceById = new Map();
   if (corrections.length) {
-    const { data: ev, error: evErr } = await sb.from("item_correction_evidence").select("*").in("correction_id", corrections.map((c) => c.id));
-    if (evErr) return fail(500, "database_error", evErr.message);
-    for (const e of ev ?? []) evidenceById.set(e.correction_id, e);
+    try {
+      const ev = await fetchAllByIdChunks(corrections.map((c) => c.id), async (slice) => {
+        // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
+        const { data, error: evErr } = await sb.from("item_correction_evidence").select("*").in("correction_id", slice);
+        if (evErr) throw new Error(evErr.message);
+        return data ?? [];
+      });
+      for (const e of ev) evidenceById.set(e.correction_id, e);
+    } catch (e) {
+      return fail(500, "database_error", e instanceof Error ? e.message : String(e));
+    }
   }
+
+  // Current claims of the item, to find active fact corrections that match no claim any more (orphaned).
+  const { data: claimRows, error: claimErr } = await sb.from("section_claim_provenance").select("id, claim_text").eq("intelligence_item_id", itemId);
+  if (claimErr) return fail(500, "database_error", claimErr.message);
+  const orphanIds = new Set(findOrphanedFactCorrections(corrections, claimRows ?? []).map((c) => c.id));
 
   const latestIds = new Set([...latestPerTarget(corrections).values()].map((r) => r.id));
   const shaped = corrections
@@ -87,6 +110,7 @@ export async function listCorrections(sb, itemId) {
         ...c,
         active,
         superseded: active && !latestIds.has(c.id),
+        orphaned: orphanIds.has(c.id),
         latest_machine_value: e ? e.latest_machine_value ?? null : null,
         machine_observed_count: e ? e.observed_count ?? 0 : 0,
         machine_observed_at: e ? e.observed_at ?? null : null,
@@ -94,7 +118,11 @@ export async function listCorrections(sb, itemId) {
     })
     .sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0));
   const active = shaped.filter((c) => c.active).length;
-  return reply(200, { item_id: itemId, counts: { active, revoked: shaped.length - active }, corrections: shaped });
+  return reply(200, {
+    item_id: itemId,
+    counts: { active, revoked: shaped.length - active, orphaned: orphanIds.size },
+    corrections: shaped,
+  });
 }
 
 /** POST create. `userId` is the authenticated session user; the body's created_by (if any) is ignored. */

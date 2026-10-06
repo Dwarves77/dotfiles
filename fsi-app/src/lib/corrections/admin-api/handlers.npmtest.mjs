@@ -9,7 +9,8 @@ import { readFileSync } from "node:fs";
 import { createJiti } from "jiti";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(HERE, "..", "..", "..", "..", "..", "..", "..");
+const ROOT = resolve(HERE, "..", "..", "..", "..");
+const ROUTE_DIR = resolve(ROOT, "src", "app", "api", "admin", "items", "[id]", "corrections");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { requireAdminRoute } = await jiti.import("@/lib/api/route-guard");
 const { handleList, handleCreate, handleRevoke } = await jiti.import("./handlers.ts");
@@ -106,7 +107,7 @@ test("an admin revoke binds revoked_by to the session user and tolerates an empt
 
 test("both route files call requireAdminRoute (the shape fitness F2 reads) and pass it as the guard", () => {
   for (const rel of ["route.ts", "[correctionId]/revoke/route.ts"]) {
-    const src = readFileSync(resolve(HERE, rel), "utf8");
+    const src = readFileSync(resolve(ROUTE_DIR, rel), "utf8");
     assert.match(src, /requireAdminRoute\(req\)/, `${rel} must call requireAdminRoute`);
     assert.doesNotMatch(src, /createClient|getServiceSupabase|SUPABASE_SERVICE_ROLE_KEY/, `${rel} must not build its own client`);
   }

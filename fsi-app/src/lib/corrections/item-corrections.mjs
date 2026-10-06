@@ -163,6 +163,26 @@ export function suppressedClaimMatcher(rows, itemId) {
   };
 }
 
+/**
+ * Active fact corrections that match no current claim: no claim carries the correction's target id, its original
+ * machine claim_text, or (for a replace) the corrected claim_text. A regeneration that changed or dropped the claim
+ * orphans its correction. Reported only; nothing is re-matched automatically. PURE.
+ * @param {Array<object>} rows item_corrections rows
+ * @param {Array<{id?:string, claim_text?:string}>} claims the CURRENT claims of the item
+ * @returns {Array<object>} the orphaned corrections
+ */
+export function findOrphanedFactCorrections(rows, claims) {
+  const list = Array.isArray(claims) ? claims : [];
+  return activeCorrections(rows).filter((r) => {
+    if (r.target_kind !== "fact") return false;
+    return !list.some((c) => {
+      if (c?.id !== undefined && c.id !== null && String(c.id) === r.target_ref) return true;
+      if (typeof c?.claim_text !== "string") return false;
+      return c.claim_text === r.machine_value?.claim_text || (r.value && c.claim_text === r.value.claim_text);
+    });
+  });
+}
+
 // ---- input validation (shared by the admin API logic; the database re-checks everything) ---------------------
 
 /**
