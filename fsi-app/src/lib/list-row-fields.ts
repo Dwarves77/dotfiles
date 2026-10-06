@@ -69,6 +69,9 @@ export interface ListRowFields {
    *  (enrichCategoryRows with enrichBiasTags). Absent, never an empty placeholder, when there are none,
    *  so a row built from a degraded record stays exactly as it was. */
   biasTags?: Resource["biasTags"];
+  /** Lane P2 (plan Stage 8): the item's grade, so the dashboard rows draw the same grade chip the lists do.
+   *  Absent when unknown, never a placeholder. */
+  itemGrade?: Resource["itemGrade"];
   /** ITEM F2: which watchlist vocabulary this row's item belongs to, so the row's `⋯` control can
    *  mount the real Watch toggle rather than being a control with nothing behind it (ruling 1.1). */
   watchType: WatchlistItemType;
@@ -85,8 +88,27 @@ export function watchTypeForItem(item: { type?: string | null; domain?: number |
   return WATCH_TYPE_FOR_SURFACE[canonicalSurfaceForItem(item)];
 }
 
+/**
+ * The value cells and the source/grade chips of a `<ListRow/>`, from one Resource and its due info: impact,
+ * due, timeline, tier, the source's bias tags and the item's grade. THE one place the four list ledgers and the
+ * dashboard derive them (lane P2: each ledger used to re-type this run, and adding the grade made F45 count the
+ * copies). `biasTags` and `itemGrade` are present only when there is something to show, so a degraded record
+ * stays exactly as it was. Pure.
+ */
+export function rowValueFields(r: Resource, due: { label: string; days: string | number } | null) {
+  return {
+    // The ledger's own fallback, shared rather than re-typed per surface. `scoreResource` is pure and
+    // deterministic over fields the row always carries (type/priority/tags/cat).
+    impact: r.impactScores ?? scoreResource(r),
+    due: due ? { label: due.label, days: `${due.days}` } : null,
+    timeline: r.timeline ?? null,
+    tier: r.sourceTier ?? null,
+    ...(r.biasTags && r.biasTags.length > 0 ? { biasTags: r.biasTags } : {}),
+    ...(r.itemGrade ? { itemGrade: r.itemGrade } : {}),
+  };
+}
+
 export function toListRowFields(r: Resource, now: Date): ListRowFields {
-  const due = dueInfo(r, now);
   return {
     id: r.id,
     href: itemDetailHref(r),
@@ -94,13 +116,7 @@ export function toListRowFields(r: Resource, now: Date): ListRowFields {
     jurisdiction: jurisdictionCode(r),
     title: r.title,
     meta: metaLine(r),
-    // The ledger's own fallback, now shared rather than re-typed per surface. `scoreResource` is
-    // pure and deterministic over fields the row always carries (type/priority/tags/cat).
-    impact: r.impactScores ?? scoreResource(r),
-    due: due ? { label: due.label, days: due.days } : null,
-    timeline: r.timeline ?? null,
-    tier: r.sourceTier ?? null,
-    ...(r.biasTags && r.biasTags.length > 0 ? { biasTags: r.biasTags } : {}),
+    ...rowValueFields(r, dueInfo(r, now)),
     watchType: watchTypeForItem(r),
   };
 }

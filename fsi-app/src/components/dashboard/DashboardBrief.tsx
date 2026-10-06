@@ -217,6 +217,7 @@ export function DashboardBrief({
                     timeline={row.timeline}
                     tier={row.tier}
                     biasTags={row.biasTags}
+                    itemGrade={row.itemGrade}
                     overflow={
                       // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
                       // the same row component as the lists (B), including the 56px rows and the
@@ -308,6 +309,7 @@ export function DashboardBrief({
                     timeline={row.timeline}
                     tier={row.tier}
                     biasTags={row.biasTags}
+                    itemGrade={row.itemGrade}
                     overflow={
                       // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
                       // the same row component as the lists (B), including the 56px rows and the
@@ -381,10 +383,11 @@ export function DashboardBrief({
                     key={t.themeId}
                     href={t.href}
                     prefetch={false}
+                    title={t.itemTitle}
                     style={{ display: "block", minHeight: 44, padding: "8px 0", textDecoration: "none", color: "inherit" }}
                   >
                     <span data-guard-title style={{ display: "block", fontSize: "var(--fs-12)", fontWeight: 700, lineHeight: 1.35, color: "var(--ink)", overflowWrap: "anywhere" }}>
-                      {t.briefTitle ?? t.itemTitle}
+                      {t.label}
                     </span>
                     <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 2 }}>
                       {t.pages.map((p) => p.label).join(" · ")}

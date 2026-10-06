@@ -3,11 +3,11 @@
 // THE RULING (task item 2): the severity vocabulary itself (metadata-vocab.ts) IS single-homed
 // and correct. What was NOT single-homed:
 //
-//   1. [duplication] OperationsItemsView.tsx and OperationsLedger.tsx each hand-copied a
+//   1. [duplication] two operations components (the items view, since deleted, and OperationsLedger) each hand-copied a
 //      byte-identical 13-entry DB-severity -> {critical,high,moderate,low} bucket map
 //      independently — the exact "mapping duplicated in two components" defect class this
 //      codebase has hit before (WatchlistItemType, ITEM_TYPES, surface_of). Consolidated into
-//      SEVERITY_TO_OPERATIONS_BUCKET here; both components now import it.
+//      SEVERITY_TO_OPERATIONS_BUCKET here; both components then imported it.
 //
 //   2. [silent fall-through to a default] IntelligenceMetadataStrip.tsx's SEVERITY_COLORS map was
 //      keyed on the DISPLAY form ("ACTION REQUIRED") but fed the DB form ("action_required")
@@ -57,13 +57,11 @@ test("SEVERITY_TO_OPERATIONS_BUCKET is a pass-through identity for the 4 already
   assert.equal(SEVERITY_TO_OPERATIONS_BUCKET.low, "low");
 });
 
-// ── 2. Regression: OperationsItemsView.tsx imports the shared map, no local copy ──
-
-test("OperationsItemsView.tsx has no local SEVERITY_COLUMN_TO_KEY duplicate; imports the shared bucket map", () => {
-  const code = read("../../components/operations/OperationsItemsView.tsx");
-  assert.doesNotMatch(code, /const SEVERITY_COLUMN_TO_KEY/);
-  assert.match(code, /import\s*\{\s*SEVERITY_TO_OPERATIONS_BUCKET\s*\}\s*from\s*"@\/lib\/agent\/metadata-vocab"/);
-});
+// ── 2. (removed, lane P2, 2026-10-05) ──
+// This case asserted that the operations items view imported the shared bucket map instead of a local copy.
+// That component was mounted by no route and was deleted; no live component renders severity buckets any more
+// (OperationsLedger draws the shared urgency band, see the next case), so there is no live component with the
+// same property to point the case at. The shared map itself is still proven by case 1.
 
 // UILISTS lane (2026-09-06): OperationsLedger.tsx was rewritten to assemble from
 // ListSurfaceShell/BandTile per the UI system handoff's artboard 08 ("Operations list") — the

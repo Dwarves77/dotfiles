@@ -42,7 +42,6 @@ export const ROW_COMPONENTS = Object.freeze({
   // 6 item 5. Title carries data-guard-title via the shared SectionHeading.
   'src/components/market/LeadTimeChart.tsx': 'spec 02 section 6 item 5 lead-time position chart, per-company cohort rows',
   'src/components/operations/OperationsLedger.tsx': 'screenshot 02-operations-items (one word per line)',
-  'src/components/operations/OperationsItemsView.tsx': 'same row shape as OperationsLedger (read)',
   'src/components/operations/RegionDimensionMatrix.tsx': 'screenshot 01-operations-regions (text off the right edge)',
   'src/components/research/ResearchLedger.tsx': 'screenshot 03-research-findings (one word per line, label overlap)',
   'src/components/regulations/RegulationsLedger.tsx': 'same row shape as MarketIntelLedger (read)',
@@ -105,6 +104,8 @@ export const ROW_COMPONENTS = Object.freeze({
   // themes strip cards; cross-page-smoke.mjs mounts both real components at 375 and 1280.
   'src/components/detail/CrossPageSection.tsx': 'cross-page-smoke.mjs, the Across pages section on all four detail pages (lane S3-B)',
   'src/components/shell/ThemeStripView.tsx': 'cross-page-smoke.mjs, the themes strip cards on all four list pages (lane S3-B)',
+  // lane P2 (2026-10-05): the shared Inferences section on all four detail pages; inference-section-smoke.mjs mounts it at 375 and 1280.
+  'src/components/detail/InferenceSection.tsx': 'inference-section-smoke.mjs, the Inferences section on all four detail pages (lane P2)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

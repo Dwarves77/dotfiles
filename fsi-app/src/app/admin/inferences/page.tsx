@@ -22,6 +22,7 @@ import { InferenceReview, type InferenceReviewRow } from "@/components/admin/Inf
 import { formatLocaleDate } from "@/lib/format";
 import { nowFrom, renderNowIso } from "@/lib/render-now";
 import { fetchAllByIdChunks } from "@/lib/db/paginate.mjs";
+import { currentInferenceRows } from "@/lib/detail/inference-view.mjs";
 
 export default async function AdminInferencesPage() {
   await requirePlatformAdmin("/admin/inferences");
@@ -29,11 +30,13 @@ export default async function AdminInferencesPage() {
 
   const { data, error } = await sb
     .from("inference_records")
-    .select("inference_id, subject_id, claim_text, status_token, confidence, cited_item_ids, origin_class, trigger_question_ref, computed_at")
-    .is("supersedes", null) // current rows only, mirrors inference_records_current_idx's own filter
+    .select("inference_id, subject_id, claim_text, status_token, confidence, cited_item_ids, origin_class, trigger_question_ref, computed_at, supersedes")
     .order("computed_at", { ascending: false });
 
-  const rows = (error ? [] : (data as unknown as InferenceReviewRow[]) || []);
+  // Current rows by the ONE rule (inference-view.mjs currentInferenceRows, shared with the customer read): the
+  // row nothing supersedes. The earlier `supersedes IS NULL` filter kept the ORIGINAL of every chain and hid
+  // each recomputed row (a recompute inserts a new row that points at the old one, migration 338).
+  const rows = error ? [] : currentInferenceRows((data as unknown as Array<InferenceReviewRow & { supersedes: string | null }>) || []);
 
   // Batched citation-title resolve (never per-row): every cited item id across every row, one
   // intelligence_items read, mirrors the retrieval-before-generation discipline this codebase applies

@@ -52,7 +52,7 @@ import { downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
-import { TagChip } from "@/components/ui/Chips";
+import { GradeChip, TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { useResourceStore } from "@/stores/resourceStore";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
@@ -441,6 +441,7 @@ export function MarketSignalDetailSurface({
       kindLabel="Signal"
       extraChips={
         <>
+          <GradeChip itemGrade={r.itemGrade} />
           <TagChip>{SEVERITY_LABEL[severity]}</TagChip>
           {r.topic && <TagChip>{r.topic}</TagChip>}
           <TagChip>B{BAND_NUM[signalBand]} · {BAND_LABEL[signalBand]}</TagChip>

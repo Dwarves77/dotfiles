@@ -58,7 +58,7 @@ import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
-import { TagChip } from "@/components/ui/Chips";
+import { GradeChip, TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
 import { CrossPageSection } from "@/components/detail/CrossPageSection";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
@@ -237,6 +237,7 @@ export function OperationsDetailSurface({
       kindLabel="Regional profile"
       extraChips={
             <>
+              <GradeChip itemGrade={r.itemGrade} />
               {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors", the
                   region GROUP chip, not the country (which the At a glance card carries in full). */}
               {(regionGroup || jurisdiction) && <TagChip>{regionGroup || jurisdiction}</TagChip>}

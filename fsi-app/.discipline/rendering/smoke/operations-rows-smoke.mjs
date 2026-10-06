@@ -1,11 +1,11 @@
 // UX smoke spec: Operations rows. Lane MOBILE, 2026-09-03, RD-60/F35. Mounts the REAL
-// `OperationsLedger`, `OperationsItemsView` and `RegionDimensionMatrix`
-// (src/components/operations/{OperationsLedger,OperationsItemsView,RegionDimensionMatrix}.tsx)
+// `OperationsLedger` and `RegionDimensionMatrix`
+// (src/components/operations/{OperationsLedger,RegionDimensionMatrix}.tsx)
 // via ux-harness.mjs's `runUxSpec`, each in its empty / one-row / extreme-length-title states,
 // measured at 375x812 and 1280x800 for law-2 targets and squeezed-title wrap (ux-assert.mjs).
 //
-// ROOT CAUSE FIXED, OperationsLedger / OperationsItemsView (screenshot 02-operations-items, one
-// word per line): OperationsItemsView's item card used a fixed `1fr 220px` grid — at 375px the
+// ROOT CAUSE FIXED, the operations item list (screenshot 02-operations-items, one
+// word per line): its item card (a view since deleted, lane P2, nothing mounted it) used a fixed `1fr 220px` grid; at 375px the
 // title column got ~1fr of a 375px card minus padding/gap/220px, so every word wrapped onto its
 // own line. Fixed with `.cl-ops-item-card` (globals.css): the right column drops below the title,
 // full width, at <=640px. OperationsLedger's own region-card head row already used the shared
@@ -20,10 +20,10 @@
 // and `overflowWrap: anywhere` (it previously carried neither, so the squeezed-title detector had
 // nothing to measure on this component and a very long dimension name had no wrap escape).
 //
-// ONE SPEC FILE, THREE MOUNTS: F35's coverage scan is a text match on each component's `@/components/...`
+// ONE SPEC FILE, TWO MOUNTS: F35's coverage scan is a text match on each component's `@/components/...`
 // import string inside an ACTIVE registry entry's spec file — nothing requires one spec per
-// component, and these three share one shape (Operations row/table components) and one root cause
-// family, so one file registers under one name and covers all three exports (same posture as
+// component, and these two share one shape (Operations row/table components) and one root cause
+// family, so one file registers under one name and covers both exports (same posture as
 // notifications-smoke.mjs mounting two components side by side).
 
 import { runUxSpec } from './ux-harness.mjs';
@@ -62,20 +62,6 @@ window.__mount = (props) => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
   root.render(React.createElement(OperationsLedger, props));
-};
-`;
-
-const ITEMS_ENTRY = `
-${STYLE_INJECT}
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { OperationsItemsView } from '@/components/operations/OperationsItemsView';
-
-let root = null;
-window.__mount = (props) => {
-  const el = document.getElementById('smoke-root');
-  if (!root) root = createRoot(el);
-  root.render(React.createElement(OperationsItemsView, props));
 };
 `;
 
@@ -125,10 +111,8 @@ function opsItem(i, { long = false } = {}) {
     jurisdiction: 'EU',
     jurisdictionIso: ['EU'],
     sourceTier: i % 2 === 0 ? 7 : 3, // lane P1: a T7 source on every other row
-    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): OperationsItemsView's card is the one row
-    // mount that additionally carries RecordGradeBadge (Operations had no RecordGradeBadge mount
-    // anywhere before this lane) alongside the shared CredibilityChipEvidence/Authority pair —
-    // these three fields exercise the populated-data path for both. Ratios match the same
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4; the item view it was written for is deleted, lane P2):
+    // these three fields exercise the populated-data path for the ledger row's source and grade chips. Ratios match the same
     // measurement basis as the Regulations fixture (see perf-budget.mjs evidence).
     citationCount: i % 4 === 0 ? null : 2,
     biasTags: i % 3 === 0 ? SMOKE_BIAS_TAGS_FIVE : [],
@@ -154,13 +138,6 @@ const LEDGER_STATES = [
     props: { initialResources: Array.from({ length: 10 }, (_, i) => opsItem(i, { long: true })), aggregates: EMPTY_AGGREGATES },
     expectTitles: 10,
   },
-];
-
-// ── OperationsItemsView states ──
-const ITEMS_STATES = [
-  { label: 'empty', props: { items: [] } },
-  { label: 'one-row', props: { items: [opsItem(0)] }, expectTitles: 1 },
-  { label: 'extreme', props: { items: Array.from({ length: 10 }, (_, i) => opsItem(i, { long: true })) }, expectTitles: 10 },
 ];
 
 // ── RegionDimensionMatrix states (dimension-name titles render from `dimensions`
@@ -243,7 +220,6 @@ export async function runSmoke(browser) {
       knownSafePlaceholders: KNOWN_SAFE_PLACEHOLDERS,
       alias: ALIAS,
     }),
-    runUxSpec(browser, { name: 'operations-items', entry: ITEMS_ENTRY, states: ITEMS_STATES, alias: ALIAS }),
     runUxSpec(browser, { name: 'operations-matrix', entry: MATRIX_ENTRY, states: MATRIX_STATES, alias: ALIAS }),
   ]);
   return {

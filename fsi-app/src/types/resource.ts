@@ -305,6 +305,17 @@ export interface Resource {
   // an empty array and "no enrichment happened yet" identically (render "not scored"), so this is
   // safe to leave undefined on any Resource path that opts out of the enrichBiasTags pass.
   biasTags?: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;
+  /**
+   * Lane P2 (2026-10-05, coordinator item 5): the registered sources the item cites (intelligence_item_citations,
+   * migration 089), each with its url, customer tier (customerSourceTier) and bias tags, so the Sources grid can
+   * rate a listed source it matches by canonical url. Detail read only; undefined when the item has no citation
+   * edges, so the grid renders exactly as it did.
+   */
+  citedSources?: Array<{
+    url: string;
+    tier: number | null;
+    biasTags: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;
+  }>;
 }
 
 // ── Share Package ──

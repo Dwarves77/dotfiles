@@ -45,8 +45,8 @@ export const DB_SEVERITY_VALUES = new Set<string>([
 // (Addendum 63, 2026-08-30.) This file's own header above says the read/display surfaces are
 // meant to eventually share one definition instead of "the four divergent per-component
 // vocabularies that exist today" — this is that follow-on for one concrete instance:
-// OperationsItemsView.tsx and OperationsLedger.tsx each hand-copied this exact 13-entry map
-// independently (byte-identical). Presentational tone/colour tokens stay local to each
+// two operations components (an items view since deleted, and OperationsLedger) each hand-copied
+// this exact 13-entry map independently (byte-identical). Presentational tone/colour tokens stay local to each
 // component (this module has no CSS knowledge); only the DB-value -> bucket-key mapping is
 // shared, so the two copies cannot silently drift from each other again.
 export const SEVERITY_TO_OPERATIONS_BUCKET: Readonly<Record<string, "critical" | "high" | "moderate" | "low">> = {

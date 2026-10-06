@@ -43,7 +43,7 @@ import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { ImpactMeter, isImpactScored } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
-import { TagChip, TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
+import { GradeChip, TagChip, TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
 import { BiasChips, type BiasTagInput } from "@/components/ui/BiasChips";
 import { hasBiasTags } from "@/lib/credibility/bias-display.mjs";
 import { Absence, pickAbsenceReason, type AbsenceReason } from "@/components/ui/Absence";
@@ -101,6 +101,14 @@ export interface ListRowProps {
    * or empty renders nothing at all, so every existing caller is unaffected.
    */
   biasTags?: BiasTagInput[] | null;
+  /**
+   * Additive extension (lane P2, 2026-10-05; plan Stage 8): the item's grade. "record" draws the one
+   * `GradeChip` ("Catalogue record", a neutral tag, never a tier or a band) on the meta line right
+   * after the kind chip; "brief" or undefined draws nothing, so every existing caller is unaffected.
+   * Desktop: on the meta line. Phone: the meta line is hidden below 768px, so the same chip renders
+   * in the second line ahead of the workspace tags (`.cl-row-grade-mobile`).
+   */
+  itemGrade?: "record" | "brief";
   /**
    * Additive extension (design audit B130, 2026-09-07, map-register.json,
    * dc.html p10 'Jurisdiction register' card): register-style rows (a row
@@ -334,6 +342,10 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
        the foot of the row: flex-basis 100% takes the whole line-2 flow's last row, the group wraps
        whole chips inside it, and padding-right is already reserved by the row for the 44px control. */
     .cl-row-bias-mobile { display: flex !important; flex: 0 0 100%; min-width: 0; }
+    /* Lane P2 (2026-10-05): the record-grade chip. Same reason as the bias chips: the desktop one lives
+       on the hidden meta line, so the phone gets its own copy at the head of line 2 (it is one short
+       nowrap chip and never wraps). */
+    .cl-row-grade-mobile { display: inline-flex !important; flex-shrink: 0; }
     /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 and read off
        docs/design/handoff-2026-09-06/built/mobile-01-dashboard.png]: the overflow control
        was an ordinary item of the wrapping line-2 flow with margin-left: auto, and at 390
@@ -492,7 +504,7 @@ ${LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS}
   }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, due, timeline, tier, overflow, endStat, tags, biasTags, minHeight = 56, variant = "list" }: ListRowProps) {
+export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, due, timeline, tier, overflow, endStat, tags, biasTags, itemGrade, minHeight = 56, variant = "list" }: ListRowProps) {
   if (variant === "register" && endStat) {
     return (
       <div
@@ -653,6 +665,9 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
   // Lane P1: true only when the source carries at least one usable tag, so a source with none
   // renders no wrapper, no line and no gap (BiasChips itself also returns null for an empty set).
   const hasBias = hasBiasTags(biasTags);
+  // Lane P2: GradeChip itself renders nothing unless the grade is "record"; this flag only decides
+  // whether the wrappers and the meta line exist, so a brief-grade row is byte-identical to before.
+  const isRecordGrade = itemGrade === "record";
   const impactScored = isImpactScored(impact);
   const rowAbsence: AbsenceReason | null = pickAbsenceReason([
     tier == null ? "not in primary source" : null,
@@ -806,7 +821,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
                 `tags` re-renders below in .cl-row-line2 (mobile spec's line-2 item order) instead —
                 logged in DEVIATION-LOG.md: the mobile spec is silent on `meta`'s own position, so it
                 is left exactly where it already sat rather than invented a new placement. */}
-            {(meta || kind || metaReason || hasBias || (tags && tags.length > 0)) && (
+            {(meta || kind || metaReason || hasBias || isRecordGrade || (tags && tags.length > 0)) && (
               <span
                 className="cl-row-meta-tags"
                 style={{
@@ -821,6 +836,11 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
                     line 517 draws it — the neutral row-size TagChip, built here so no page builds
                     one. */}
                 {kind && <TagChip variant="row">{kind}</TagChip>}
+                {isRecordGrade && (
+                  <span className="cl-row-grade-desktop" style={{ display: "inline-flex", flexShrink: 0 }}>
+                    <GradeChip itemGrade={itemGrade} />
+                  </span>
+                )}
                 {meta && (
                   <span
                     className="cl-row-meta-text"
@@ -873,6 +893,13 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
         </div>
         <div className="cl-row-line2" style={{ display: "contents" }}>
           {tailContent}
+          {/* Mobile-only (lane P2): the record-grade chip at the head of line 2, see
+              `.cl-row-grade-mobile` above. Hidden >=768px, where the meta line carries it. */}
+          {isRecordGrade && (
+            <span className="cl-row-grade-mobile" style={{ display: "none" }}>
+              <GradeChip itemGrade={itemGrade} />
+            </span>
+          )}
           {/* Mobile-only: line 2's "then workspace tags" item (spec order). Hidden >=768px — the
               desktop tag rendering above (.cl-row-meta-tags) is unchanged. */}
           {tags && tags.length > 0 && (

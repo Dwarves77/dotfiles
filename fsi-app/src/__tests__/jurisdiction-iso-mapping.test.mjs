@@ -6,7 +6,7 @@
 // mappers in supabase-server.ts that build a Resource (fetchWorkspaceResources's
 // inline mapper, and its sibling rpcRowToResource) never set the field at all
 // — every list/ledger surface fed by either of them (RegulationsLedger,
-// MarketIntelLedger, OperationsLedger, OperationsItemsView, MapPageView,
+// MarketIntelLedger, OperationsLedger, MapPageView,
 // DashboardTopPriority, app/community/page.tsx) reads `r.jurisdictionIso` as
 // permanently undefined and falls through to whatever local fallback each
 // consumer happens to have. The third mapper (fetchIntelligenceItemUncached,

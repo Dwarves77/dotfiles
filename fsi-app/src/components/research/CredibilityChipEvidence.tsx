@@ -54,7 +54,7 @@ export function CredibilityChipEvidence({ evidenceLevel, agreementLevel, biasTag
         type="button"
         // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): stopPropagation + preventDefault so this
         // chip works when mounted inside an anchor-wrapped row (RegulationsLedger's RegRow,
-        // OperationsItemsView's whole-card <Link>) — without it, toggling the chip's own popover
+        // a whole-card <Link>), without it, toggling the chip's own popover
         // would also fire the row's navigation, same hazard PriorityDropdown.tsx's own trigger
         // documents and guards against. A no-op inside ResearchLedger's non-anchor row.
         onClick={(e) => {

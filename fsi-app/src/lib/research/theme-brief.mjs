@@ -206,6 +206,68 @@ export function buildThemeAnalysisView({ itemId, surface, themes, briefs, lineag
 /** Other-member links a chip carries beyond its own link (the Research strip's existing behaviour). */
 export const MAX_CHIP_MEMBER_LINKS = 3;
 
+/** Longest label a chip shows, in characters. The label never exceeds it (see deriveThemeLabel). */
+export const MAX_THEME_LABEL_CHARS = 56;
+
+/**
+ * The four basis signals the connection engine records (connections/discover.mjs: shared_source,
+ * shared_scenario, shared_compliance_object, shared_jurisdiction_topic), each as the plain phrase for what the
+ * theme's items share. A closed vocabulary read off the signal names themselves, nothing added; a signal this
+ * table does not know is humanised by rule (underscores to spaces, "shared" kept) rather than shown as a slug.
+ */
+export const THEME_SIGNAL_PHRASES = Object.freeze({
+  shared_source: "Shared source",
+  shared_scenario: "Shared scenarios",
+  shared_compliance_object: "Shared obligated parties",
+  shared_jurisdiction_topic: "Shared jurisdiction and topic",
+});
+
+function signalPhrase(signal) {
+  if (typeof signal !== "string" || !signal.trim()) return null;
+  const known = THEME_SIGNAL_PHRASES[signal.trim()];
+  if (known) return known;
+  const words = signal.trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function joinNames(names) {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/**
+ * The label for a theme chip whose theme has NO brief (a theme with a brief shows the brief's title). DERIVED
+ * ONLY from fields the theme row already holds, nothing written for it and no wording invented:
+ *   lead   the theme's strongest dominant signal as its plain phrase (THEME_SIGNAL_PHRASES), or, when the row
+ *          carries no usable signal, "<N> linked items" from its member count;
+ *   where  the pages it spans: "across A, B and C", or "on A" for a single page;
+ *   fit    when "<lead> <where>" would pass MAX_THEME_LABEL_CHARS the page names collapse to "across <P> pages"
+ *          (the count of pages); and if the lead alone is over the ceiling it is cut at a word boundary.
+ * The result is never the pivot item's title, so a chip no longer reads as a regulation citation; the pivot's
+ * title stays on the chip as `itemTitle` (the strip puts it on the link's title attribute). PURE.
+ * @param {{signals?: Array<{signal:string, weight?:number}>|null, pages?: Array<{label:string}>, memberCount?: number}} input
+ * @returns {string}
+ */
+export function deriveThemeLabel({ signals = null, pages = [], memberCount = 0 } = {}) {
+  const ranked = (Array.isArray(signals) ? signals : [])
+    .filter((x) => x && typeof x.signal === "string" && x.signal.trim())
+    .sort((a, b) => (Number(b.weight) || 0) - (Number(a.weight) || 0));
+  const top = ranked.length ? signalPhrase(ranked[0].signal) : null;
+  const n = Number.isFinite(memberCount) && memberCount > 0 ? Math.floor(memberCount) : 0;
+  let lead = top ?? (n > 0 ? `${n} linked ${n === 1 ? "item" : "items"}` : "Linked items");
+  const names = (Array.isArray(pages) ? pages : []).map((p) => p && p.label).filter((l) => typeof l === "string" && l.trim());
+  const where = names.length === 0 ? "" : names.length === 1 ? ` on ${names[0]}` : ` across ${joinNames(names)}`;
+  let label = `${lead}${where}`;
+  if (label.length > MAX_THEME_LABEL_CHARS && names.length > 1) label = `${lead} across ${names.length} pages`;
+  if (label.length > MAX_THEME_LABEL_CHARS) {
+    const room = MAX_THEME_LABEL_CHARS;
+    const cut = lead.slice(0, room);
+    const at = cut.lastIndexOf(" ");
+    label = (at > 0 && lead.length > room ? cut.slice(0, at) : cut).trimEnd();
+  }
+  return label;
+}
+
 /**
  * Theme chips for a list page's strip (surface set) or the dashboard (surface null), lane S3-B. PURE.
  *   surface set  every theme with at least one item on that page, most convergent first; the chip opens
@@ -214,7 +276,11 @@ export const MAX_CHIP_MEMBER_LINKS = 3;
  * Pages are classified from each member's own item type and domain (surfaceOf, the router the pages use),
  * not from connection_themes.surfaces, which is computed from item type alone.
  * @param {{themes:Array, items:Array, briefs?:Array, lineage?:Array, surface?:string|null, minPages?:number, max?:number}} input
- * @returns {Array<{themeId:string, href:string, itemTitle:string, briefTitle:string|null, memberCount:number,
+ * `label` is what a chip DISPLAYS: the brief's title when the theme has a brief, otherwise the derived label
+ * (deriveThemeLabel), never the pivot item's title. `itemTitle` stays on the chip for the link's title attribute.
+ * `themes` rows may carry `dominant_signals` ([{signal, weight}]) which sharpens the derived label; the label
+ * is complete without it (member count and pages).
+ * @returns {Array<{themeId:string, href:string, label:string, itemTitle:string, briefTitle:string|null, memberCount:number,
  *   pages:Array<{surface:string,label:string}>, hasBrief:boolean, stale:boolean,
  *   links:Array<{title:string, href:string}>}>}
  */
@@ -244,14 +310,17 @@ export function buildThemeChips({ themes, items, briefs = [], lineage = [], surf
     const resolved = resolveBriefForTheme(t, Array.isArray(briefs) ? briefs : [], { liveThemeIds, lineage: Array.isArray(lineage) ? lineage : [] });
     const others = members.filter((m) => m.id !== target.id);
     const crossFirst = [...others.filter((m) => m.surface !== target.surface), ...others.filter((m) => m.surface === target.surface)];
+    const pages = SURFACE_ORDER.filter((s) => pageSet.has(s)).map((s) => ({ surface: s, label: SURFACE_LABELS[s] }));
+    const briefTitle = resolved.brief ? trimOrNull(resolved.brief.title) : null;
     out.push({
       themeId: t.id,
       convergence: typeof t.convergence === "number" ? t.convergence : 0,
       href: target.href,
+      label: briefTitle ?? deriveThemeLabel({ signals: t.dominant_signals, pages, memberCount: t.member_ids.length }),
       itemTitle: target.title,
       briefTitle: resolved.brief ? resolved.brief.title ?? null : null,
       memberCount: t.member_ids.length,
-      pages: SURFACE_ORDER.filter((s) => pageSet.has(s)).map((s) => ({ surface: s, label: SURFACE_LABELS[s] })),
+      pages,
       hasBrief: Boolean(resolved.brief),
       stale: resolved.brief ? resolved.stale : false,
       links: crossFirst.slice(0, MAX_CHIP_MEMBER_LINKS).map(({ title, href }) => ({ title, href })),

@@ -81,6 +81,8 @@ function signal(i, { long = false } = {}) {
     sourceTier: i % 2 === 0 ? 7 : 3, // lane P1: a T7 source on every other row (it read T6 before)
     citationCount: i % 4 === 0 ? null : 2,
     biasTags: i % 3 === 0 ? SMOKE_BIAS_TAGS_FIVE : [],
+    // Lane P2: record-grade rows draw the grade chip, so the worst case (five bias tags AND the chip) is measured.
+    itemGrade: i % 5 === 4 ? undefined : 'record',
     // Always a real priceStat (never null) here: MarketIntelLedger's own honest-state design
     // (file header, ~L31) renders an em-dash "—" for `priceStat: null` — legitimate, pre-existing,
     // out of this lane's scope — which the rendering guard's placeholder-literal scan (a strictly

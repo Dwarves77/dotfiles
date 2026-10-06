@@ -65,12 +65,17 @@ export function sourceEntriesOf(r: Resource): SourceRow[] {
   // the ActionCard show (admin override included), not the tier the brief text was written with,
   // and that source's bias tags. Every other entry keeps exactly what the brief says, with no bias
   // (nothing is invented for a source this page cannot identify).
+  // Lane P2 (coordinator item 5): every OTHER entry is matched to a registered source the item cites
+  // (intelligence_item_citations) by canonical url, the same canonicalizeUrl the registry uses. A match shows
+  // that source's customer tier and bias; an entry with no match keeps exactly what the brief says.
+  const cited = r.citedSources ?? [];
   const primary = primaryEntryIndex(parsedList, r);
-  return parsedList.map((e, i): SourceRow =>
-    i === primary
-      ? { ...e, tier: typeof r.sourceTier === "number" ? r.sourceTier : e.tier, biasTags: r.biasTags }
-      : e,
-  );
+  return parsedList.map((e, i): SourceRow => {
+    if (i === primary) return { ...e, tier: typeof r.sourceTier === "number" ? r.sourceTier : e.tier, biasTags: r.biasTags };
+    const hit = cited.find((c) => sameUrl(c.url, e.url));
+    if (!hit) return e;
+    return { ...e, tier: hit.tier ?? e.tier, biasTags: hit.biasTags.length > 0 ? hit.biasTags : undefined };
+  });
 }
 
 function sameUrl(a: string | null | undefined, b: string | null | undefined): boolean {

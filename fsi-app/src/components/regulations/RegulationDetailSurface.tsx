@@ -67,6 +67,7 @@ import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import { GradeChip } from "@/components/ui/Chips";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
@@ -283,6 +284,7 @@ export function RegulationDetailSurface({
       bare
       band={band}
       kindLabel="Regulation"
+      extraChips={<GradeChip itemGrade={r.itemGrade} />}
       tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
       biasTags={r.biasTags}
       meta={actionCardMeta}
