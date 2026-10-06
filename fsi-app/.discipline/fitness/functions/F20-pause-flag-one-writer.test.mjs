@@ -28,6 +28,21 @@ test('RED: a raw SQL SET on the flag is flagged', () => {
   assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', src).length, 1);
 });
 
+test('RED: a direct write to judgement_drain (migration 354) is flagged in all three shapes', () => {
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', 'update.judgement_drain = "on";').length, 1);
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', 'await sb.from("system_state").update({ judgement_drain: "on" }).eq("id", true);').length, 1);
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', 'await client.query(`UPDATE system_state SET judgement_drain = $1 WHERE id = true`, [v]);').length, 1);
+});
+
+test('GREEN: judgement_drain reads, comparisons and the sibling RPC caller are clean', () => {
+  const src = [
+    'const s = await sb.from("system_state").select("judgement_drain").eq("id", true);',
+    'return data?.judgement_drain === "on";',
+    'await sb.rpc("admin_set_judgement_drain", { p_actor: "a", p_state: "on" });',
+  ].join(String.fromCharCode(10));
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', src), []);
+});
+
 test('GREEN: a string-literal READ (.select / .eq) is not a write', () => {
   const sel = 'await sb.from("system_state").select("scrape_cadence, scrape_start_date, global_processing_paused, updated_at").eq("id", true);';
   assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', sel), []);

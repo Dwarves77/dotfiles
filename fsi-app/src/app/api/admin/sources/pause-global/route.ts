@@ -3,6 +3,8 @@
 // POST body (either/both keys):
 //   - { cadence: 'off'|'weekly'|'monthly', start_date?: 'YYYY-MM-DD' }  -> set the global scrape schedule
 //   - { paused: boolean }                                              -> set the independent EMERGENCY STOP
+//   - { judgement_drain: 'off'|'on' }                                  -> set the judgement drain kill switch
+//     (migration 354, lane G6-DRAIN; its own sanctioned writer, the admin_set_judgement_drain RPC)
 // GET -> the current schedule + emergency state + computed next-scrape date.
 //
 // The global scrape schedule on the system_state singleton is the SINGLE source of truth for WHEN the
@@ -20,7 +22,7 @@ const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
 
 function stateResponse(
-  data: { scrape_cadence?: string | null; scrape_start_date?: string | null; global_processing_paused?: boolean | null; updated_at?: string | null } | null,
+  data: { scrape_cadence?: string | null; scrape_start_date?: string | null; global_processing_paused?: boolean | null; judgement_drain?: string | null; updated_at?: string | null } | null,
   extra: Record<string, unknown> = {}
 ) {
   const cadence = (data?.scrape_cadence as ScrapeCadence) ?? "off";
@@ -29,6 +31,7 @@ function stateResponse(
   return {
     ...extra,
     paused: !!data?.global_processing_paused,
+    judgement_drain: data?.judgement_drain === "on" ? "on" : "off",
     cadence,
     start_date: startDate,
     next_scrape: next ? next.toISOString().slice(0, 10) : null,
@@ -41,7 +44,7 @@ export async function POST(request: NextRequest) {
   if (isRefusal(auth)) return auth;
   const { supabase } = auth;
 
-  let body: { paused?: boolean; cadence?: string; start_date?: string | null };
+  let body: { paused?: boolean; cadence?: string; start_date?: string | null; judgement_drain?: string };
   try {
     body = await request.json();
   } catch {
@@ -50,11 +53,15 @@ export async function POST(request: NextRequest) {
 
   const hasPaused = typeof body.paused === "boolean";
   const hasCadence = typeof body.cadence === "string";
-  if (!hasPaused && !hasCadence) {
+  const hasDrain = typeof body.judgement_drain === "string";
+  if (!hasPaused && !hasCadence && !hasDrain) {
     return NextResponse.json(
-      { error: "provide `cadence` (off|weekly|monthly) and/or `paused` (boolean)" },
+      { error: "provide `cadence` (off|weekly|monthly), `paused` (boolean) and/or `judgement_drain` (off|on)" },
       { status: 400 }
     );
+  }
+  if (hasDrain && body.judgement_drain !== "off" && body.judgement_drain !== "on") {
+    return NextResponse.json({ error: "judgement_drain must be one of: off, on" }, { status: 400 });
   }
 
   // The route NEVER writes global_processing_paused / scrape_cadence directly. The ONE sanctioned writer is
@@ -83,20 +90,35 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { data, error } = await supabase.rpc("admin_set_pause_state", {
-    p_actor: `admin:${auth.userId}`,
-    p_paused: hasPaused ? (body.paused as boolean) : null,
-    p_cadence: pCadence,
-    p_start_date: pStartDate,
-    p_clear_start: pClearStart,
-  });
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  let data: unknown = null;
+  if (hasPaused || hasCadence) {
+    const res = await supabase.rpc("admin_set_pause_state", {
+      p_actor: `admin:${auth.userId}`,
+      p_paused: hasPaused ? (body.paused as boolean) : null,
+      p_cadence: pCadence,
+      p_start_date: pStartDate,
+      p_clear_start: pClearStart,
+    });
+    if (res.error) {
+      return NextResponse.json({ error: res.error.message }, { status: 500 });
+    }
+    data = res.data;
+  }
+  // The judgement drain switch has its OWN sanctioned writer (migration 354): the pause RPC cannot touch it.
+  if (hasDrain) {
+    const res = await supabase.rpc("admin_set_judgement_drain", {
+      p_actor: `admin:${auth.userId}`,
+      p_state: body.judgement_drain as string,
+    });
+    if (res.error) {
+      return NextResponse.json({ error: res.error.message }, { status: 500 });
+    }
+    data = res.data;
   }
 
   // admin_set_pause_state RETURNS the updated system_state row (marker-declared write + read-back in one call).
   const row = (Array.isArray(data) ? data[0] : data) as
-    | { scrape_cadence?: string | null; scrape_start_date?: string | null; global_processing_paused?: boolean | null; updated_at?: string | null }
+    | { scrape_cadence?: string | null; scrape_start_date?: string | null; global_processing_paused?: boolean | null; judgement_drain?: string | null; updated_at?: string | null }
     | null;
   return NextResponse.json(stateResponse(row, { success: true }), { headers: rateLimitHeaders(auth.userId) });
 }
@@ -108,7 +130,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await supabase
     .from("system_state")
-    .select("scrape_cadence, scrape_start_date, global_processing_paused, updated_at")
+    .select("scrape_cadence, scrape_start_date, global_processing_paused, judgement_drain, updated_at")
     .eq("id", true)
     .maybeSingle();
 

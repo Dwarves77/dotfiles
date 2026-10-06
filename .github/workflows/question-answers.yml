@@ -14,8 +14,15 @@ name: Question answers
 #                  its flag, and an unanswerable one records its outcome on the flag. mode=dry validates and
 #                  prints the plan and writes nothing.
 #
-# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, NO schedule block, NO workflow_run trigger. Every run
-# is an explicit dispatch. NOT CHAINED. Where it belongs in the loop is a coordinator decision: after the
+# PUSH TRIGGER (lane G6-DRAIN, 2026-10-06, coordinator ruling): the scheduled judgement drain session commits a
+# question-answers batch to a branch and opens a PR; the merge is a push to master touching
+# scripts/turns/question-answers/batches/question-answers-*.json and fires this workflow as an apply with no
+# human dispatch step. The batch file comes from scripts/drain/resolve-push-batch.mjs (one file per merge). The
+# mode is NOT decided by the trigger: scripts/lib/chained-dry-guard.mjs (called with --ref) forces dry while
+# scrape_cadence='off'; the requested apply stands only after build.
+#
+# BUILD MODE (CLAUDE.md rule 16): NO schedule block, NO workflow_run trigger. A run is an explicit dispatch or the
+# merge of a drain batch PR. NOT CHAINED. Where it belongs in the loop is a coordinator decision: after the
 # propagation drain raises or re-opens questions, and after population-turn raises them at mint (the question
 # generator runs as a population-turn flywheel step), so an answer pass follows each.
 #
@@ -31,6 +38,10 @@ name: Question answers
 # without recording its outcome is a defect in the run (rule 17).
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/turns/question-answers/batches/question-answers-*.json'
   workflow_dispatch:
     inputs:
       action:
@@ -59,8 +70,9 @@ permissions:
   contents: read
 
 env:
-  RUN_ACTION: ${{ inputs.action }}
-  RUN_MODE: ${{ inputs.mode }}
+  # A push has no inputs: it is an apply request and the chained guard decides the mode (rule 16).
+  RUN_ACTION: ${{ inputs.action || 'apply' }}
+  RUN_MODE: ${{ inputs.mode || 'apply' }}
   RUN_ANSWERS_FILE: ${{ inputs.answers_file }}
 
 jobs:
@@ -75,10 +87,20 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # a push resolves the merged batch file against its first parent
 
+      # PUSH ONLY (lane G6-DRAIN, 2026-10-06): the batch file the merge added. One file per merge, else the run
+      # fails loudly (scripts/drain/resolve-push-batch.mjs). Zero npm dependency.
+      - name: Resolve the merged batch (push only)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          node scripts/drain/resolve-push-batch.mjs --kind question-answers --before "${{ github.event.before }}" --sha "${{ github.sha }}" >> "$GITHUB_ENV"
+
+      # --ref: a push to master is machine-triggered, so the guard forces dry while scrape_cadence='off'.
       - name: Chained dry-run guard (build mode, rule 16)
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${RUN_MODE}" >> "$GITHUB_ENV"
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${RUN_MODE}" --ref "${{ github.ref }}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -101,8 +123,8 @@ jobs:
           echo "trigger     = ${{ github.event_name }}"
           echo "action      = $RUN_ACTION"
           echo "mode        = ${CHAINED_MODE:-$RUN_MODE} (apply action only)"
-          echo "answers_file = ${RUN_ANSWERS_FILE:-(none)}"
-          if [ "$RUN_ACTION" = "apply" ] && [ -z "$RUN_ANSWERS_FILE" ]; then
+          echo "answers_file = ${PUSH_BATCH_FILE:-${RUN_ANSWERS_FILE:-(none)}}"
+          if [ "$RUN_ACTION" = "apply" ] && [ -z "${PUSH_BATCH_FILE:-$RUN_ANSWERS_FILE}" ] && [ "${PUSH_BATCH_COUNT:-}" != "0" ]; then
             echo "::error::action=apply needs answers_file (an fsi-app relative path to a committed question-answers-NNN.json)."
             exit 1
           fi
@@ -114,10 +136,10 @@ jobs:
           node scripts/turns/export-questions-for-answers.mjs --out-dir "$RUNNER_TEMP/question-answers" | tee /tmp/question-answers-export.log
 
       - name: Apply the question-answers batch
-        if: env.RUN_ACTION == 'apply'
+        if: ${{ env.RUN_ACTION == 'apply' && env.PUSH_BATCH_COUNT != '0' }}
         run: |
           set -o pipefail
-          FLAGS="--answers $RUN_ANSWERS_FILE"
+          FLAGS="--answers ${PUSH_BATCH_FILE:-$RUN_ANSWERS_FILE}"
           if [ "${CHAINED_MODE:-$RUN_MODE}" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
           node scripts/turns/apply-question-answers.mjs $FLAGS | tee /tmp/question-answers-apply.log
           echo "### question-answers apply" >> "$GITHUB_STEP_SUMMARY"

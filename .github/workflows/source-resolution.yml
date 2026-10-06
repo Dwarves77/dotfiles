@@ -41,6 +41,10 @@ name: Source resolution
 # WORKER_SECRET for the post-apply cache flush.
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/maintenance/host-verdicts/host-verdicts-*.json'
   workflow_dispatch:
     inputs:
       mode:
@@ -74,7 +78,7 @@ jobs:
   resolve:
     # Same gate fetch-drain.yml uses: an explicit dispatch always runs; a chained firing runs only when the
     # upstream run actually succeeded.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -86,6 +90,18 @@ jobs:
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # a push reports the merged batch against its first parent
+
+      # PUSH ONLY (lane G6-DRAIN, 2026-10-06, coordinator ruling): a merged host-verdicts batch fires this
+      # workflow so resolve-provisional-sources applies it by rule (b2). The step only reports which batch the
+      # merge added (resolve-provisional-sources reads every committed batch itself and needs no file name).
+      # Mode is decided by the chained guard below, called with --ref: forced dry while scrape_cadence='off'.
+      - name: Resolve the merged batch (push only)
+        if: ${{ github.event_name == 'push' }}
+        working-directory: fsi-app
+        run: |
+          node scripts/drain/resolve-push-batch.mjs --kind host-verdicts --before "${{ github.event.before }}" --sha "${{ github.sha }}" >> "$GITHUB_ENV"
 
       # CHAINED DRY-RUN GUARD (rule 16). Runs before npm ci, exports CHAINED_FORCED_DRY (true/false) and
       # CHAINED_TRIGGER_LABEL. --chained marks a workflow_dispatch that another workflow fired (a non-empty
@@ -96,7 +112,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply --chained "${{ inputs.chain_upstream_run_id != '' }}" >> "$GITHUB_ENV"
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply --chained "${{ inputs.chain_upstream_run_id != '' }}" --ref "${{ github.ref }}" >> "$GITHUB_ENV"
 
       # The one place that resolves inputs.* (workflow_dispatch) against the chained default (workflow_run)
       # into the RUN_* vocabulary every later step reads. Always logs its decision.

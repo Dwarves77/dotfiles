@@ -23,7 +23,7 @@
 //
 // CLI (what the workflow yml actually calls):
 //   node scripts/lib/chained-dry-guard.mjs --event <github.event_name> --requested-mode <mode>
-//     [--chained <true|false>]
+//     [--chained <true|false>] [--ref <github.ref>]
 // Prints ONLY `KEY=VALUE` lines to stdout (redirect straight into $GITHUB_ENV: `>> "$GITHUB_ENV"`),
 // diagnostics to stderr:
 //   CHAINED_MODE=<the mode this gate resolved to: requested-mode, unchanged, or "dry">
@@ -48,6 +48,12 @@
 // `inputs.chain_upstream_run_id` being non-empty); this gate then treats that firing exactly like a
 // raw `workflow_run` event for the force-dry decision, independent of whatever mode the chained caller
 // requested.
+//
+// --ref (lane G6-DRAIN, 2026-10-06, coordinator ruling): a `push` to master is the merge of a session-
+// authored batch PR (the judgement drain commits batch files to a branch, a PR lands them, and each apply
+// workflow has a push trigger on its own batch directory). Nobody typed the inputs, so a push whose --ref is
+// master or main is treated exactly like a workflow_run hop: forced dry while scrape_cadence='off'. A push
+// with another ref (corpus-turn's operator-pushed `turn/**` request) or no --ref is unchanged.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { isMainModule } from "./is-main.mjs";
@@ -60,18 +66,34 @@ import { isMainModule } from "./is-main.mjs";
  * @param {{eventName: string, requestedMode: string, cadence: string, chained?: boolean}} args
  * @returns {{mode: string, forcedDry: boolean, triggerLabel: string}}
  */
-export function resolveChainedRunMode({ eventName, requestedMode, cadence, chained = false }) {
-  const isChainFired = eventName === "workflow_run" || (eventName === "workflow_dispatch" && chained === true);
+export function resolveChainedRunMode({ eventName, requestedMode, cadence, chained = false, ref = "" }) {
+  const isMasterPush = eventName === "push" && isMergeRef(ref);
+  const isChainFired = eventName === "workflow_run" || (eventName === "workflow_dispatch" && chained === true) || isMasterPush;
   if (!isChainFired) {
     return { mode: requestedMode, forcedDry: false, triggerLabel: eventName };
   }
+  const base = eventName === "workflow_run" ? "workflow_run" : isMasterPush ? "push (merge to master)" : "workflow_dispatch (chained)";
   if (cadence === "off") {
     const label = eventName === "workflow_run"
       ? "workflow_run (forced dry: build mode)"
-      : "workflow_dispatch (forced dry: build mode, chained)";
+      : isMasterPush
+        ? "push (forced dry: build mode, merge to master)"
+        : "workflow_dispatch (forced dry: build mode, chained)";
     return { mode: "dry", forcedDry: true, triggerLabel: label };
   }
-  return { mode: requestedMode, forcedDry: false, triggerLabel: eventName === "workflow_run" ? "workflow_run" : "workflow_dispatch (chained)" };
+  return { mode: requestedMode, forcedDry: false, triggerLabel: base };
+}
+
+/**
+ * Pure. True for a ref that is the merge target (master or main, bare or refs/heads/ qualified). A push to
+ * this ref is a MERGE, fired by the drain's batch PR landing, not typed by an operator, so it is
+ * machine-triggered exactly like a workflow_run hop (coordinator ruling 2026-10-06, lane G6-DRAIN: the guard,
+ * not the trigger, holds the population ruling). A push to any other ref (a `turn/**` request branch an
+ * operator pushes on purpose) and a push whose ref was not passed stay unchanged.
+ * @param {string} ref
+ */
+export function isMergeRef(ref) {
+  return /^(refs\/heads\/)?(master|main)$/.test(String(ref ?? ""));
 }
 
 /**
@@ -99,7 +121,7 @@ export async function readScrapeCadence(supabaseUrl, serviceRoleKey, fetchImpl =
 }
 
 function usage() {
-  return "Usage: node scripts/lib/chained-dry-guard.mjs --event <name> --requested-mode <mode> [--chained <true|false>]";
+  return "Usage: node scripts/lib/chained-dry-guard.mjs --event <name> --requested-mode <mode> [--chained <true|false>] [--ref <github.ref>]";
 }
 
 /** Pure CLI arg parse/validate. @param {string[]} argv */
@@ -112,6 +134,7 @@ export function parseArgs(argv) {
         event: { type: "string" },
         "requested-mode": { type: "string" },
         chained: { type: "string" },
+        ref: { type: "string" },
       },
       allowPositionals: false,
       strict: true,
@@ -125,7 +148,7 @@ export function parseArgs(argv) {
   // "false"; an empty string, e.g. inputs.chain_upstream_run_id evaluating falsy on a plain workflow_run
   // event, is treated the same as absent/false).
   const chained = values.chained === "true";
-  return { ok: true, eventName: values.event, requestedMode: values["requested-mode"], chained };
+  return { ok: true, eventName: values.event, requestedMode: values["requested-mode"], chained, ref: values.ref ?? "" };
 }
 
 async function main() {
@@ -144,6 +167,7 @@ async function main() {
     requestedMode: parsed.requestedMode,
     cadence,
     chained: parsed.chained,
+    ref: parsed.ref,
   });
   console.error(`chained-dry-guard: resolved mode=${mode} forcedDry=${forcedDry}`);
   console.log(`CHAINED_MODE=${mode}`);

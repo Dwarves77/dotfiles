@@ -58,6 +58,13 @@ name: Ledger consume
 # the cap, automatically, on every source-sweep completion. It runs disarmed ONLY on the rare firing where
 # zero verdict batches have ever been committed yet.
 #
+# PUSH TRIGGER (lane G6-DRAIN, 2026-10-06, coordinator ruling): the scheduled judgement drain session commits a
+# ledger-verdicts batch to a branch and opens a PR; the merge is a push to master touching
+# scripts/turns/ledger-verdicts/ledger-verdicts-*.json and runs this workflow's chained path (the same branch a
+# workflow_run takes: no inputs, mode forced to plan, then the capped chained apply pass when a batch is newer
+# than the last real apply). scripts/lib/chained-dry-guard.mjs, called with --ref, forces that apply pass to plan
+# while scrape_cadence='off', so the guard, not the trigger, holds the population ruling.
+#
 # EVENT CHAINING, NOT A SCHEDULE (build plan W1.4; rule 16 is about `schedule:`/cron, not event chaining).
 # `workflow_run: workflows: ["Source sweep"]` fires this workflow automatically after every source-sweep
 # run completes (successfully).
@@ -124,6 +131,10 @@ name: Ledger consume
 # `scripts/_snapshots` upload step below already covers this path).
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-*.json'
   workflow_dispatch:
     inputs:
       mode:
@@ -190,7 +201,7 @@ jobs:
   consume:
     # Only proceed on an explicit dispatch, or a workflow_run whose triggering run actually SUCCEEDED — a
     # failed/cancelled source-sweep produced no new candidates worth a plan pass over.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     # TIMEOUT ARITHMETIC (Lane LEDGER-EXPORT, 2026-09-04). Worst case is an export_candidates=true dispatch
     # at its default export_limit=400: run-ledger-consume.mjs's --with-text path calls buildFetchDoc's
@@ -233,7 +244,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply --ref "${{ github.ref }}" >> "$GITHUB_ENV"
+
+      # PUSH ONLY (lane G6-DRAIN, 2026-10-06): a merged ledger-verdicts batch fires this workflow on the same
+      # chained path as a Source sweep completion (a plan pass, then the capped chained apply pass, which
+      # auto-discovers every committed batch). The guard above, called with --ref, forces that apply pass to
+      # plan while scrape_cadence='off'. This step only reports which batch the merge added; it names no file.
+      - name: Resolve the merged batch (push only)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          node scripts/drain/resolve-push-batch.mjs --kind ledger-verdicts --before "${{ github.event.before }}" --sha "${{ github.sha }}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
