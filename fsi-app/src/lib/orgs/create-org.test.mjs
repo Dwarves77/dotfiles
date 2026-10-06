@@ -152,11 +152,11 @@ test("validation: unknown sector, band or region, and an over-long name, are ref
   assert.equal(ok.input.headcountBand, null);
 });
 
-// ── Invitation accept joins with the role the inviter granted (source-level pin) ───────────────────
-test("accepting an invitation passes only the token and the RPC inserts the inviter's proposed_role", () => {
-  const route = readFileSync(resolve(FSI, "src/app/api/invitations/[token]/accept/route.ts"), "utf8");
-  assert.match(route, /rpc\("accept_invitation",\s*\{\s*p_token: token,?\s*\}\)/, "the route sends the token and nothing else");
-  assert.equal(/request\.json\(|searchParams|body/.test(route.replace(/\/\/.*$/gm, "")), false, "the route reads no role from the request");
+// ── The inviter's role: the route half is proven at route level in
+// src/app/api/invitations/accept-route.npmtest.mjs (only p_token reaches the RPC). The role itself is
+// assigned inside the database function, so the function body is pinned here at source level: the RPC
+// cannot be executed without a database (not allowed in this lane).
+test("the live accept_invitation body (migration 156) inserts the inviter's proposed_role", () => {
   const sql = readFileSync(resolve(FSI, "supabase/migrations/156_org_member_bans.sql"), "utf8");
-  assert.match(sql, /INSERT INTO public\.org_memberships \(org_id, user_id, role\)\s*VALUES \(v_invitation\.org_id, v_caller_id, v_invitation\.proposed_role\)/i, "the live accept_invitation body inserts the inviter's role");
+  assert.match(sql, /INSERT INTO public\.org_memberships \(org_id, user_id, role\)\s*VALUES \(v_invitation\.org_id, v_caller_id, v_invitation\.proposed_role\)/i);
 });

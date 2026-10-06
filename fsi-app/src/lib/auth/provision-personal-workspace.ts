@@ -1,9 +1,9 @@
 /**
  * PROFILE PROVISIONING (lane AUTH-2, 2026-10-06; replaces the 2026-05-28 AUTO-PROVISION-ORG-ON-SIGNUP).
  *
- * The file keeps its original name only because renaming it moves two governance files outside this
- * lane's write set (.discipline/governance/exemptions.mjs and the generated coverage-report.json);
- * see the lane's session-log entry for the rename follow-up.
+ * This file now holds `ensureProfile`, not a personal-workspace creator. Its original name is kept by
+ * coordinator ruling (2026-10-06): renaming it would move two governance files outside the AUTH-2 write
+ * set (.discipline/governance/exemptions.mjs and the generated coverage-report.json).
  *
  * What it does now: `ensureProfile(userId, email)` creates the caller's `profiles` row when it is
  * missing and does nothing else. It never creates an organisation, a workspace_settings row or a

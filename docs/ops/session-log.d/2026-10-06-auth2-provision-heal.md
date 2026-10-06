@@ -45,12 +45,23 @@ Reused: `ORG_SIZE_DIMENSIONS`/`findBand`/`parseOrgProfile` (ADR-034 size bands a
 - Diagnosis hypothesis CONFIRMED by reading: `org_memberships_user_id_fkey` references `profiles(id)`
   (migration 075) and `create_org_for_self` (076) inserts the owner membership without creating a
   profile, so `POST /api/orgs` fails for a user with no profile. The live constraint was not queried.
-- File name kept (`provision-personal-workspace.ts`) because renaming moves
-  `.discipline/governance/exemptions.mjs` and the generated `coverage-report.json`, outside the write set.
+- File rename declined by coordinator ruling (2026-10-06). `provision-personal-workspace.ts` keeps its
+  name; its header now says it holds `ensureProfile`.
+- Partial-failure gap is NOT a gap (coordinator ruling 2, 2026-10-06): a user with a profile and no
+  membership is routed to onboarding by the AppShell redirect and can create an organisation or accept an
+  invitation. Proven by one test in `server-bootstrap-heal.npmtest.mjs` (profile present, no membership:
+  no heal, orgId null, redirect to /workspace/new).
+- Invitation role (ruling 5): now a route-level test, `src/app/api/invitations/accept-route.npmtest.mjs`
+  runs the real POST handler with the guard modules aliased to stubs and an injected RPC; only `p_token`
+  reaches `accept_invitation` whatever the request carries. The role itself is assigned inside the database
+  function, which cannot be executed here (no database), so migration 156's function body is still pinned
+  at source level in `create-org.test.mjs`.
 - Job title on the accept path is saved by a browser self-update (migration 165 policy), the create path
   saves it server side.
 
 ## Tests (red then green)
+- Added after the rulings: `accept-route.npmtest.mjs` 3/3 (route level) and one profile-present-no-membership
+  test in `server-bootstrap-heal.npmtest.mjs` (now 6/6).
 - Red on origin/master code (stash of the three modified modules): 11 of 15 new npmtests failed
   (`ensureProfile is not a function`, `computeNoWorkspaceRedirect is not a function`, heal not called).
   Green after: `ensure-profile.npmtest.mjs` 7/7, `server-bootstrap-heal.npmtest.mjs` 5/5,
@@ -65,16 +76,19 @@ Reused: `ORG_SIZE_DIMENSIONS`/`findBand`/`parseOrgProfile` (ADR-034 size bands a
 
 ## NOT done
 - Not applied anywhere; no live read or write. The repair script has not been run.
-- File rename (above). No migration. No `auth.users` trigger (brief item 2).
+- No file rename (declined). No migration. No `auth.users` trigger (brief item 2).
 - Existing personal workspaces created by the old callback are untouched, as instructed.
-- A profile written by a failed old provisioning run (profile present, no org) is not re-healed by design.
+- Nothing else owed on provisioning: a profile with no organisation is routed to onboarding (see decisions).
 
 ## Open items
 - Coordinator: register nothing new (the smoke leg lives in the already-registered `auth-onboarding-smoke.mjs`).
 - Repair command for the coordinator's executor (dry first, then `--apply`):
   `node fsi-app/scripts/maintenance/repair-smoke-account.mjs --arg <account email>`
-- DESIGN CHANGES OWED (rule 20): the no-workspace onboarding panel now carries job title, sector, size and
-  region fields that artboard 17's step 1 does not draw. Built to the system's need.
+- DESIGN CHANGES OWED (rule 20), for Claude Design: artboard 17 step 1 ("Workspace", the no-workspace
+  onboarding panel) does not draw the fields the system now needs there: job title, sector choice, company
+  size and region on the create-organisation form, and invitations listed ahead of it. Built to the system's
+  need per coordinator ruling 4 (2026-10-06), citing artboard 17 step 1 and rulings 20 and "system drives
+  design"; the artboard should be revised to match.
 
 ## UX compliance
 Screen: no-workspace onboarding (`NoWorkspaceLanding`, `/workspace/new`).

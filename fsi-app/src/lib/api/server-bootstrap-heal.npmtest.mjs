@@ -83,3 +83,22 @@ test("without a heal function (tests, callers without service credentials) nothi
   const b = await resolveServerBootstrapFromClient(fakeSupabase({}));
   assert.equal(b.orgId, null);
 });
+
+// Coordinator ruling 2: a user with a profile and NO membership (for example a profile left by an older
+// failed provisioning run, or a user removed from an organisation) is not a gap. The bootstrap does not
+// heal them, reports orgId null, and the shell redirect routes them to onboarding, where they can create
+// an organisation or accept an invitation.
+test("profile present, no membership: no heal, orgId null, and the shell routes them to /workspace/new", async () => {
+  const { computeNoWorkspaceRedirect } = await jiti.import("../../components/app-shell-banner.ts");
+  let called = 0;
+  const b = await resolveServerBootstrapFromClient(
+    fakeSupabase({ profile: { sector_overrides: [], is_platform_admin: false } }),
+    async () => { called++; return { exists: true }; }
+  );
+  assert.equal(called, 0);
+  assert.equal(b.orgId, null);
+  const redirect = computeNoWorkspaceRedirect({
+    user: b.user, orgId: b.orgId, identityStatus: "resolved", pathname: "/", suppressRoutes: ["/workspace/new", "/onboarding"],
+  });
+  assert.equal(redirect, "/workspace/new");
+});
