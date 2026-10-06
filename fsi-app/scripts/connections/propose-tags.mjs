@@ -29,10 +29,10 @@
 // docs/PROGRAM-BOARD.md's "TAG-PROPOSALS (2026-09-03)" entry). As of 2026-09-03, apply-tags.mjs also
 // offers an AUTO-ADOPTION path (autoAdoptTags / tag-ratification.mjs's `--arg auto`) that applies a
 // proposal's `confidence: "high"` (derive-tags.mjs's title/instrument-key tier) subset WITHOUT the
-// ratify:tags marker, leaving lower-confidence proposals on the SAME open flag this script wrote, for a
-// human to still ratify via the unchanged `ratify:tags` path. This script's own write (one open
-// integrity_flags row per targeted item, carrying every proposal regardless of confidence) is exactly
-// what it was before this date — it is apply-tags.mjs's read of that row that now branches two ways.
+// ratify:tags marker. Since lane G6-GATES (2026-10-05) the ratify:tags path is DELETED: every proposal on
+// the flag is decided by rule (adopt or decline) and the flag closes, with no operator step. This script's
+// own write (one open integrity_flags row per targeted item, carrying every proposal regardless of
+// confidence) is unchanged; it is apply-tags.mjs's read of that row that decides.
 //
 // DEDUP-BEFORE-INSERT / RESOLVE-IF-STALE, mirroring analyze-corpus.mjs's reflectFlags() convention
 // (read that function before touching this one): existing OPEN rows in this namespace
@@ -220,8 +220,8 @@ export function buildFlagRow(item, derived) {
   const description = `${summary}\n\nPROPOSALS_JSON: ${proposalsJson}`;
 
   const recommended_actions = [
-    "Review the proposals above against the item's own content.",
-    `If correct, resolve this flag with resolution_note containing the token "ratify:tags", then run: ${APPLY_COMMAND_TEMPLATE}`,
+    "No operator step is needed: the tag-ratification maintenance step decides every proposal above by rule (adopt or decline, with the reason recorded on this flag) and closes it.",
+    `To decide this one flag now, run: ${APPLY_COMMAND_TEMPLATE}`,
   ];
 
   return {

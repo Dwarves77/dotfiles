@@ -1,14 +1,15 @@
-// apply-tags.test.mjs — proves the ratify:tags marker parser, PROPOSALS_JSON extraction, the
-// ratifiability decision (TAG_NAMESPACE + resolved + resolved_by + marker + parseable non-empty
-// proposals), the merge-never-overwrite patch builder (with FIELD_CAPS respected), the pure
-// per-item discovery planner, and the injected-dependency applyTags() core — mocking the DB via plain
-// injected functions, same fixture-the-client posture as ratify-flag-to-census.test.mjs /
-// scripts/lib/db.test.mjs. Importing this module never invokes main().
+// apply-tags.test.mjs - proves PROPOSALS_JSON extraction, the merge-never-overwrite patch builder (with
+// FIELD_CAPS respected), the pure per-item discovery planner, and the injected-dependency
+// autoAdoptTags() core, mocking the DB via plain injected functions, same fixture-the-client posture as
+// ratify-flag-to-census.test.mjs / scripts/lib/db.test.mjs. The legacy ratify:tags id path is deleted
+// (lane G6-GATES, 2026-10-05) and a test below pins that it stays gone. Importing this module never
+// invokes main().
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as ApplyTags from "./apply-tags.mjs";
 import {
-  RATIFY_TAGS_TOKEN, hasRatifyTagsToken, extractProposalsFromDescription, evaluateApplication,
-  buildMergePatch, planDiscoveryForItem, applyTags,
+  extractProposalsFromDescription,
+  buildMergePatch, planDiscoveryForItem,
   AUTO_ADOPT_THRESHOLD, evaluateAutoAdoption, partitionByConfidence, buildAutoAdoptionNote, autoAdoptTags,
   decideTagProposal, decideTagProposals, evidencePresentInItemText, itemOwnText,
   isZeroProposalFlag, buildNoDerivableTagsNote,
@@ -16,19 +17,12 @@ import {
 import { buildFlagRow } from "./propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 
-// ── hasRatifyTagsToken ───────────────────────────────────────────────────────────────────────────
+// ── the legacy ratify:tags id path is gone ───────────────────────────────────────────────────────
 
-test("hasRatifyTagsToken: matches the bare token, case-insensitive, word-bounded", () => {
-  assert.ok(hasRatifyTagsToken("ratify:tags"));
-  assert.ok(hasRatifyTagsToken("RATIFY:TAGS looks good, applying"));
-  assert.ok(hasRatifyTagsToken("checked the evidence — ratify:tags"));
-});
-
-test("hasRatifyTagsToken: does not false-positive on a hyphenated lookalike or absent token", () => {
-  assert.ok(!hasRatifyTagsToken("not-ratify:tags-either"));
-  assert.ok(!hasRatifyTagsToken("looks fine, closing this out"));
-  assert.ok(!hasRatifyTagsToken(null));
-  assert.ok(!hasRatifyTagsToken(undefined));
+test("the legacy ratify:tags id path is deleted: no applyTags, evaluateApplication or ratify token export remains", () => {
+  for (const name of ["applyTags", "evaluateApplication", "hasRatifyTagsToken", "RATIFY_TAGS_TOKEN"]) {
+    assert.equal(name in ApplyTags, false, `${name} must not be exported`);
+  }
 });
 
 // ── extractProposalsFromDescription ──────────────────────────────────────────────────────────────
@@ -68,64 +62,6 @@ test("extractProposalsFromDescription: an empty proposals array parses OK (calle
   const r = extractProposalsFromDescription("summary\n\nPROPOSALS_JSON: []");
   assert.equal(r.ok, true);
   assert.deepEqual(r.value, []);
-});
-
-// ── evaluateApplication ──────────────────────────────────────────────────────────────────────────
-
-function ratifiedFlag(overrides = {}) {
-  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: PROPOSALS });
-  return {
-    id: "flag-1",
-    created_by: createdBy(TAG_NAMESPACE, "empty-signature"),
-    status: "resolved",
-    resolved_by: "operator-1",
-    resolution_note: "checked the evidence, looks right — ratify:tags",
-    description: row.description,
-    subject_ref: row.subject_ref,
-    ...overrides,
-  };
-}
-
-test("evaluateApplication: missing flag -> refused", () => {
-  assert.equal(evaluateApplication(null).ok, false);
-});
-
-test("evaluateApplication: wrong namespace -> refused (apply-tags only applies flywheel-tag: findings)", () => {
-  const r = evaluateApplication(ratifiedFlag({ created_by: "flywheel-gap:jurisdiction_span_gap" }));
-  assert.equal(r.ok, false);
-  assert.match(r.error, /not in the .*namespace/);
-});
-
-test("evaluateApplication: status != resolved -> refused", () => {
-  const r = evaluateApplication(ratifiedFlag({ status: "open" }));
-  assert.equal(r.ok, false);
-  assert.match(r.error, /not 'resolved'/);
-});
-
-test("evaluateApplication: resolved but no resolved_by -> refused", () => {
-  const r = evaluateApplication(ratifiedFlag({ resolved_by: null }));
-  assert.equal(r.ok, false);
-  assert.match(r.error, /resolved_by/);
-});
-
-test("evaluateApplication: resolved + resolved_by but no ratify:tags marker -> refused", () => {
-  const r = evaluateApplication(ratifiedFlag({ resolution_note: "looks fine" }));
-  assert.equal(r.ok, false);
-  assert.match(r.error, new RegExp(RATIFY_TAGS_TOKEN));
-});
-
-test("evaluateApplication: fully ratified -> ok, itemId + proposals extracted", () => {
-  const r = evaluateApplication(ratifiedFlag());
-  assert.equal(r.ok, true);
-  assert.equal(r.itemId, "item-1");
-  assert.deepEqual(r.proposals, PROPOSALS);
-});
-
-test("evaluateApplication: zero-proposal flag ratified -> refused (nothing to apply)", () => {
-  const row = buildFlagRow({ id: "item-2" }, { itemId: "item-2", proposals: [] });
-  const r = evaluateApplication(ratifiedFlag({ description: row.description, subject_ref: row.subject_ref }));
-  assert.equal(r.ok, false);
-  assert.match(r.error, /zero proposals/);
 });
 
 // ── buildMergePatch ──────────────────────────────────────────────────────────────────────────────
@@ -227,75 +163,6 @@ test("planDiscoveryForItem: an item with no shared signal against the corpus sco
   const r = planDiscoveryForItem("item-a", corpus);
   assert.equal(r.ok, true);
   assert.deepEqual(r.edges, []);
-});
-
-// ── applyTags (injected-dependency core, mocked DB) ─────────────────────────────────────────────
-
-function deps({ flag, item, updateResult } = {}) {
-  return {
-    readFlag: async () => ({ data: flag ?? null, error: null }),
-    readItem: async () => ({ data: item ?? null, error: null }),
-    updateItem: async () => updateResult ?? { updated: 1, snapshot: "/tmp/snap.jsonl" },
-  };
-}
-
-test("applyTags: flag not found -> status not_found", async () => {
-  const r = await applyTags(deps({ flag: null }), "missing-flag", { execute: true });
-  assert.equal(r.status, "not_found");
-});
-
-test("applyTags: not ratifiable -> status not_ratifiable, item never read, never updated", async () => {
-  let itemReadCalled = false, updateCalled = false;
-  const d = deps({ flag: ratifiedFlag({ status: "open" }) });
-  d.readItem = async () => { itemReadCalled = true; return { data: null, error: null }; };
-  d.updateItem = async () => { updateCalled = true; return {}; };
-  const r = await applyTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "not_ratifiable");
-  assert.equal(itemReadCalled, false);
-  assert.equal(updateCalled, false);
-});
-
-test("applyTags: item not found -> status item_not_found", async () => {
-  const r = await applyTags(deps({ flag: ratifiedFlag(), item: null }), "flag-1", { execute: true });
-  assert.equal(r.status, "item_not_found");
-});
-
-test("applyTags: no_change when every proposal is already present", async () => {
-  const item = { id: "item-1", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: ["emissions"] };
-  const r = await applyTags(deps({ flag: ratifiedFlag(), item }), "flag-1", { execute: true });
-  assert.equal(r.status, "no_change");
-});
-
-test("applyTags: dry run computes the patch but never calls updateItem", async () => {
-  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
-  let updateCalled = false;
-  const d = deps({ flag: ratifiedFlag(), item });
-  d.updateItem = async () => { updateCalled = true; return {}; };
-  const r = await applyTags(d, "flag-1", { execute: false });
-  assert.equal(r.status, "dry_run");
-  assert.equal(updateCalled, false);
-  assert.deepEqual(r.merge.patch.operational_scenario_tags, ["ocean-bunkering"]);
-  assert.deepEqual(r.merge.patch.topic_tags, ["emissions"]);
-});
-
-test("applyTags: execute=true applies the merge and returns the update result", async () => {
-  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
-  let capturedPatch = null, capturedId = null;
-  const d = deps({ flag: ratifiedFlag(), item });
-  d.updateItem = async (id, patch) => { capturedId = id; capturedPatch = patch; return { updated: 1, snapshot: "/tmp/x.jsonl" }; };
-  const r = await applyTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "applied");
-  assert.equal(r.itemId, "item-1");
-  assert.equal(capturedId, "item-1");
-  assert.deepEqual(capturedPatch, r.merge.patch);
-  assert.equal(r.updated, 1);
-});
-
-test("applyTags: read error propagates as status read_error, not thrown", async () => {
-  const d = { readFlag: async () => ({ data: null, error: { message: "boom" } }), readItem: async () => ({ data: null, error: null }), updateItem: async () => ({}) };
-  const r = await applyTags(d, "flag-1", { execute: true });
-  assert.equal(r.status, "read_error");
-  assert.match(r.error, /boom/);
 });
 
 // ── AUTO-ADOPTION path (2026-09-03 ruling) ───────────────────────────────────────────────────────

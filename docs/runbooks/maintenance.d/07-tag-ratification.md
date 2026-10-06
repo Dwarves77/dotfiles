@@ -2,18 +2,15 @@
 
 **Purpose**: apply TAG proposals - `integrity_flags` rows `propose-tags.mjs` opened (section 6a, above writes
 them; before this lane, `population-turn.yml`'s `--dry` run only ever previewed them in a log - see
-section 6a) - either (a) resolved by an operator with `ratify:tags` in `resolution_note` (the `arg`-id path,
-unchanged since 2026-09-02), or (b) auto-adopted at/above `apply-tags.mjs`'s `AUTO_ADOPT_THRESHOLD`
-without waiting for ratification (the `arg="auto"` path, added 2026-09-03).
+section 6a) - decided by rule, no operator in the path (auto-adoption, added 2026-09-03). The legacy
+operator path (a flag resolved with `ratify:tags` in `resolution_note`, applied by an `arg` id list) was
+DELETED by lane G6-GATES (2026-10-05): the step has one behaviour and takes no `arg` (a stray `arg` is
+ignored).
 
 **Upstream, everything already exists**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes; section 6a
 is now its write dispatch, `population-turn.yml`'s own dispatch stays `--dry`-only, a log preview) and
-`fsi-app/scripts/connections/apply-tags.mjs` (both apply halves - `evaluateApplication`/`applyTags` for
-the ratify path, `evaluateAutoAdoption`/`partitionByConfidence`/`autoAdoptTags` for the auto-adoption
-path, all imported unmodified). This wrapper is orchestration only; no logic is reimplemented here.
-
-**Ruling (id path)**: none named directly - gated by the per-flag `ratify:tags` marker itself (an
-operator resolving a flag IS the ratification), not a single planwide ruling token.
+`fsi-app/scripts/connections/apply-tags.mjs` (`evaluateAutoAdoption`/`autoAdoptTags`, imported
+unmodified; its `applyTags`/`evaluateApplication` ratify half is deleted). This wrapper is orchestration only; no logic is reimplemented here.
 
 **Ruling (auto path, 2026-09-03, CONFIRMED in session)**: the flywheel's own design spec closes its
 second loop "without a human in the path" (`docs/specs/08-flywheel-design.md:128`), and 339 of 619
@@ -33,22 +30,13 @@ title/what_is_it/summary/full_brief (re-checked at apply time, not trusted from 
 proposal payload), else it declines with the reason. The flag ALWAYS closes once every proposal is
 decided -- no residue stays open. See `apply-tags.mjs`'s `decideTagProposal`/`decideTagProposals`.
 
-**Dispatch, id path (unchanged)**:
-- `mode=dry` - lists every `status='resolved'` flag in the TAG namespace, split into `ratifiable`
-  (carries the `ratify:tags` marker + a parseable non-empty proposal list) and
-  `not_ratifiable_reasons` (resolved for some other reason).
-- `mode=apply` requires `arg` = a comma-separated list of `integrity_flags` ids to apply this run
-  (never "apply everything ratified" from one dispatch - the coordinator names exactly which proposals
-  land). Each id runs through `apply-tags.mjs`'s own `applyTags({execute:true})` (merge-only tag write,
-  cited, snapshotted).
-
-**Dispatch, auto path (2026-09-03, decision rule widened 2026-09-12)**:
-- `arg=auto` (case-insensitive) with `mode=dry` -- lists every OPEN TAG_NAMESPACE flag as `decidable`
+**Dispatch (2026-09-03, decision rule widened 2026-09-12, id path removed 2026-10-05)**:
+- `mode=dry` -- lists every OPEN TAG_NAMESPACE flag as `decidable`
   (>=1 parseable proposal) or `not_adoptable` (malformed/foreign-namespace/zero-proposal), then runs
   every decidable flag through `autoAdoptTags({execute:false})` to report `adopt_count`/`decline_count`
   and a 20-row sample per outcome (`adopted_sample`/`declined_sample`) -- the coordinator reads this
   before apply. Writes nothing.
-- `arg=auto` with `mode=apply` -- runs every decidable flag through `autoAdoptTags({execute:true})`:
+- `mode=apply` -- runs every decidable flag through `autoAdoptTags({execute:true})`:
   every proposal decides (adopt or decline -- see the ruling above), the merge writes only the adopted
   subset (merge-only, never removes an existing tag), and the flag ALWAYS closes with the shared
   `decision-note.mjs` `DECISIONS_JSON` grammar recording each proposal's outcome and reason
@@ -70,7 +58,7 @@ only half the cause: some of the 1,034 carried plenty of real text whose only fa
   other proposal goes through, and resolves the flag either way: adopted tags (`buildDecisionNote`) or, if
   nothing decides at all, the fixed `buildNoDerivableTagsNote` wording ("no derivable tags from the item's
   own text on \<date\> (derive-tags KEYWORD_MAP); the item joins the connection graph through its entity
-  refs; no manual tagging (ADR-030)"). The `--arg auto` dry output adds three buckets:
+  refs; no manual tagging (ADR-030)"). The dry output adds three buckets:
   `re_derived_and_adopted_count`/`_declined_count`/`no_derivable_tags_count`, each with a 20-row sample.
 - **Proposer** (`propose-tags.mjs`'s `proposeTags`): a ZERO-derivation finding no longer opens a flag
   asking for a human, `buildFlagRow` delegates to `buildNoDerivableFlagRow`, which writes the row ALREADY
@@ -112,7 +100,7 @@ A new test (`tag-yield.fixture.test.mjs`) enforces the rule going forward: no re
 carries a suppressed tag's own bare name may derive zero tags total. No behaviour change outside
 `KEYWORD_MAP`'s own coverage.
 
-**Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) - each
+**Discovery re-run**: not repeated by this step (`apply-tags.mjs`'s own optional CLI step) - each
 summary's `note` carries the documented fallback:
 `node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute`.
 

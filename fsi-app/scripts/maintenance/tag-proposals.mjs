@@ -21,12 +21,10 @@
 //   the exact command that would apply this selection. Writes nothing.
 //   Apply: runs proposeTags() with execute:true; writes new integrity_flags PROPOSAL rows and
 //   auto-resolves stale ones no longer reproduced by the fresh computation, through the guarded path
-//   (rule 015). THIS NEVER WRITES intelligence_items; it writes integrity_flags proposals only. The
-//   operator's standing rule (propose-tags.mjs's own header): "NO assumptions, NEVER silent
-//   auto-tagging; tag PROPOSALS go to operator ratification." Writing proposal flags IS the visibility
-//   that rule requires; a proposal only becomes a written tag once an operator resolves its flag with
-//   the `ratify:tags` marker and the sibling `tag-ratification` MAINT step applies it
-//   (docs/runbooks/MAINTENANCE-RUNBOOK.md §7).
+//   (rule 015). THIS NEVER WRITES intelligence_items; it writes integrity_flags proposals only. A
+//   proposal only becomes a written tag when the sibling `tag-ratification` MAINT step decides it by
+//   rule (auto-adoption, no operator marker; the ratify:tags path was deleted by lane G6-GATES,
+//   2026-10-05). See docs/runbooks/maintenance.d/07-tag-ratification.md.
 //
 // `--arg` selects the population, exactly as propose-tags.mjs's own CLI selectors do:
 //   (blank) or "untagged"  ; every verified, live item with all three signature tag arrays empty
@@ -141,9 +139,8 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   summary.note =
     `Wrote ${result.wrote?.inserted ?? 0} new integrity_flags PROPOSAL row(s); resolved ` +
     `${result.resolved?.updated ?? 0} stale row(s). This writes integrity_flags proposals ONLY; it ` +
-    "never writes intelligence_items tags (operator rule: NO assumptions, NEVER silent auto-tagging). " +
-    `Ratify each with resolution_note containing "ratify:tags", then run the tag-ratification MAINT ` +
-    "step to apply.";
+    "never writes intelligence_items tags. The tag-ratification MAINT step decides each proposal by " +
+    "rule (adopt or decline) and closes the flag; no operator marker is needed.";
 
   return summary;
 }

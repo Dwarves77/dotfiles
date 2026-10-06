@@ -1,18 +1,20 @@
 // SHARED-WRITER: census_worklist
-// census-off-vertical.mjs — MAINT dispatch step for R-A: what to do with the census_worklist rows the
-// relevance screen calls off-vertical.
+// census-off-vertical.mjs - MAINT dispatch step for ruling R-A: what to do with the census_worklist rows
+// the relevance screen calls off-vertical. R-A is ruled (docs/ratifications/2026-09/RULING-2026-09-06.md):
+// off_vertical rows are archived (reversibly), ambiguous rows are parked. The screen decides, so apply
+// takes no `arg` and no token (lane G6-GATES, 2026-10-05); a stray arg is ignored.
 //
 // WHAT IT DOES. Dry: reads every `would_mint`, not-yet-archived census_worklist row (the same pool the
 // 2026-08-31 screen ran over), computes each row's verdict the ONE shared way (scripts/mint/
 // export-census-rows.mjs's partitionByScreen, itself scripts/mint/lib/screen-verdict.mjs's
 // screenVerdictFor — imported unmodified, never re-derived), and counts on_vertical / off_vertical /
 // ambiguous — plus a titled sample of up to SAMPLE_SIZE rows per off_vertical/ambiguous class, so a dry
-// dispatch's summary.json is itself the list the coordinator puts in front of the operator for R-A's
-// ruling (finish-plan-2026-09-02 §1). Apply is gated on R-A's two named outcomes, per arg:
-//   arg=park    — no-op. R-A's "park" option means "leave would_mint as-is; the export gate already
+// dispatch's summary.json carries the evidence for what apply will do. Apply does both of R-A's outcomes
+// in one run, by the screen's verdict:
+//   ambiguous   - parked. R-A's "park" option means "leave would_mint as-is; the export gate already
 //                 withholds these rows from minting" (export-census-rows.mjs's own partitionByScreen
-//                 gate) — there is nothing to write.
-//   arg=archive — R-A's "archive (reversible)" option. RUNNABLE (migration 308, W2.2): census_worklist
+//                 gate) - there is nothing to write; the count is recorded in the summary.
+//   off_vertical - R-A's "archive (reversible)" option. RUNNABLE (migration 308, W2.2): census_worklist
 //                 now carries is_archived/archive_reason (mirroring intelligence_items', migration 004,
 //                 verbatim — no new column shape invented). Archives every off_vertical row through
 //                 guardedUpdateByIds + db.mjs's table-generic archivePatch("census_worklist",
@@ -33,7 +35,7 @@ export const CITE = Object.freeze({
   skill: "census-off-vertical-archive",
   reason:
     "MAINT census-off-vertical dispatch (Lane MAINT, 2026-09-02; archive path built lane RULINGS-EXEC, " +
-    "2026-09-05), gated on ruling R-A (finish-plan-2026-09-02 §1): archives (reversibly) census_worklist " +
+    "2026-09-05), under ruling R-A (finish-plan-2026-09-02 section 1; accepted, no token): archives (reversibly) census_worklist " +
     "would_mint rows the shared relevance screen (scripts/mint/lib/screen-verdict.mjs, via " +
     "export-census-rows.mjs's partitionByScreen, imported unmodified) calls off_vertical. Idempotent " +
     "(WHERE dryrun_disposition='would_mint' AND is_archived=false, re-checked per chunk via applyMatch).",
@@ -53,10 +55,10 @@ export function sampleWithTitles(screenedOutRows, rowsById, n = SAMPLE_SIZE) {
 }
 
 /**
- * @param {{ mode?: "dry"|"apply", arg?: string }} opts
+ * @param {{ mode?: "dry"|"apply" }} opts
  * @param {{ readAll: Function, readAllByIds: Function, reviewed?: object, guardedUpdateByIds?: Function }} deps
  */
-export async function main({ mode = "dry", arg = "" } = {}, deps) {
+export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
   const reviewed = deps.reviewed ?? loadReviewedVerdicts();
   const summary = { step: "census-off-vertical", mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
@@ -80,50 +82,42 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   };
 
   if (!apply) {
-    // The operator's ruling needs the actual rows, not just counts — a titled sample of each screened-out
-    // class, every dry dispatch, regardless of --arg.
+    // A titled sample of each screened-out class, every dry dispatch, so the evidence for the archive and
+    // the park is in the summary.
     summary.sample_off_vertical = sampleWithTitles(offVertical, rowsById);
     summary.sample_ambiguous = sampleWithTitles(ambiguous, rowsById);
     return summary;
   }
 
-  if (arg === "park") {
-    summary.note =
-      "park: no-op. The export gate (scripts/mint/export-census-rows.mjs's partitionByScreen) already " +
-      "withholds these rows from minting — 'park' is the status quo, nothing to write.";
+  // Ruling R-A: ambiguous rows are parked (no write; the export gate already withholds them). Recorded
+  // so the count is in the summary, not implied.
+  summary.parked_ambiguous = ambiguous.length;
+  if (!offVertical.length) {
+    summary.note = "archive: 0 off_vertical rows in the current would_mint/not-archived pool, nothing to write.";
     return summary;
   }
-  if (arg === "archive") {
-    if (!offVertical.length) {
-      summary.note = "archive: 0 off_vertical rows in the current would_mint/not-archived pool — nothing to write.";
-      return summary;
-    }
-    const ids = offVertical.map((o) => o.row_id);
-    const res = await deps.guardedUpdateByIds(
-      "census_worklist",
-      ids,
-      archivePatch("census_worklist", ARCHIVE_REASON),
-      { cite: CITE, applyMatch: (q) => q.eq("dryrun_disposition", "would_mint").eq("is_archived", false) },
-    );
-    summary.applied = res.updated;
+  const ids = offVertical.map((o) => o.row_id);
+  const res = await deps.guardedUpdateByIds(
+    "census_worklist",
+    ids,
+    archivePatch("census_worklist", ARCHIVE_REASON),
+    { cite: CITE, applyMatch: (q) => q.eq("dryrun_disposition", "would_mint").eq("is_archived", false) },
+  );
+  summary.applied = res.updated;
 
-    // Maintenance run 34046850770: the post-write read-back over `ids` (a full off-vertical batch —
-    // 1,655 in that run, ~65 KB URL-encoded into ONE PostgREST GET) blew the gateway's request-line
-    // limit ("paginated read failed at offset 0: <!DOCTYPE html>") AFTER the chunked archive write above
-    // had already succeeded — the exact class guardedUpdateByIds solved for the write. readAllByIds is
-    // the read-only twin (db.mjs), chunking this read the same way.
-    const after = await deps.readAllByIds("census_worklist", "id, is_archived, archive_reason", ids);
-    const archivedCount = after.filter((r) => r.is_archived && r.archive_reason === ARCHIVE_REASON).length;
-    summary.read_back = { would_archive: ids.length, archived: archivedCount };
-    summary.note = `archived ${archivedCount} of ${ids.length} off_vertical rows (ruling R-A).`;
-    if (archivedCount !== ids.length) {
-      summary.note += ` MISMATCH — expected all ${ids.length} to read back archived.`;
-      summary.exitCode = 1;
-    }
-    return summary;
+  // Maintenance run 34046850770: the post-write read-back over `ids` (a full off-vertical batch -
+  // 1,655 in that run, ~65 KB URL-encoded into ONE PostgREST GET) blew the gateway's request-line
+  // limit ("paginated read failed at offset 0: <!DOCTYPE html>") AFTER the chunked archive write above
+  // had already succeeded - the exact class guardedUpdateByIds solved for the write. readAllByIds is
+  // the read-only twin (db.mjs), chunking this read the same way.
+  const after = await deps.readAllByIds("census_worklist", "id, is_archived, archive_reason", ids);
+  const archivedCount = after.filter((r) => r.is_archived && r.archive_reason === ARCHIVE_REASON).length;
+  summary.read_back = { would_archive: ids.length, archived: archivedCount };
+  summary.note = `archived ${archivedCount} of ${ids.length} off_vertical rows, parked ${ambiguous.length} ambiguous (ruling R-A).`;
+  if (archivedCount !== ids.length) {
+    summary.note += ` MISMATCH: expected all ${ids.length} to read back archived.`;
+    summary.exitCode = 1;
   }
-  summary.note = `REFUSED — apply requires arg == 'archive' or 'park' per ruling R-A (open). Got: '${arg || "(none)"}'.`;
-  summary.exitCode = 1;
   return summary;
 }
 
