@@ -2,7 +2,17 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { applySimpleQueue } from "./apply-core.mjs";
-import * as ProvisionalSources from "./provisional-sources.mjs";
+// A local queue module with the shape applySimpleQueue consumes (the real provisional-sources queue was
+// retired by lane G6-GATES, 2026-10-05; the mechanics under test are queue-agnostic).
+const ProvisionalSources = {
+  QUEUE_ID: "provisional-sources",
+  TABLE: "sources",
+  SELECT_COLUMNS: "id,url,status,updated_at",
+  ALLOWED_DECISIONS: ["keep", "suspend", "skip"],
+  matchQueue: (qb) => qb.eq("status", "provisional"),
+  freshestTimestamp: (rows) => rows.map((r) => r.updated_at).sort().at(-1) ?? null,
+  patchForDecision: (d) => (d === "keep" ? { status: "active" } : d === "suspend" ? { status: "suspended" } : null),
+};
 
 const CITE = { skill: "test", reason: "test" };
 const LIVE_ROWS = [

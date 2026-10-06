@@ -36,7 +36,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, recompute-tiers, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets]
+        options: [all, tier-opinions, recompute-tiers, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets]
       arg:
         description: 'Optional per-step argument (an optional committed ruling-file path for the review-apply steps, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the two spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -275,20 +275,6 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/review-digests"
           node scripts/maintenance/review-digests.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/review-digests"
-
-      - name: review-apply-provisional-sources
-        # Lane REVIEW-WIRE (2026-09-04): the four maintenance steps build-review-digests.mjs's own
-        # QUEUES[].maintStep already names, wired for the first time (audit
-        # docs/audits/wiring-audit-2026-09-04/B1-modules.md Gap #1). `arg` IS the required ruling-file
-        # path (docs/ratifications/2026-09/<queue>.ruling.json), gated in BOTH modes — this queue's dry
-        # plan is the ruled decisions replayed against live rows, not a read of the table alone, so there
-        # is no meaningful blank-arg dry run either (same posture as reopen-validation-holds's own `arg`
-        # gate). `|| true` so an 'all' dry fan-out with no arg does not fail the job. Dispatch it NAMED,
-        # with the ruling file an operator has actually ruled on — never from 'all'.
-        if: env.RUN_STEP == 'review-apply-provisional-sources' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/review-apply-provisional-sources"
-          node scripts/maintenance/review-apply-provisional-sources.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/review-apply-provisional-sources" || true
 
       - name: review-apply-portal-links
         # Decides by rule (lane G6-GATES, 2026-10-05): a blank `arg` runs the queue's recommend rule over

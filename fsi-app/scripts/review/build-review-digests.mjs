@@ -8,7 +8,7 @@
 //
 // USAGE:
 //   node scripts/review/build-review-digests.mjs --out docs/ratifications/2026-09
-//   node scripts/review/build-review-digests.mjs --out /tmp/digests --queue provisional-sources
+//   node scripts/review/build-review-digests.mjs --out /tmp/digests --queue coverage-gaps
 //
 // See docs/ratifications/2026-09/README.md for what a digest is, how to rule on one, and which apply
 // script / maintenance step consumes the result.
@@ -16,7 +16,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderMarkdown, buildRulingFile } from "./lib/digest-core.mjs";
-import * as ProvisionalSources from "./lib/provisional-sources.mjs";
 import * as PortalLinks from "./lib/portal-links.mjs";
 import * as CoverageGaps from "./lib/coverage-gaps.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
@@ -24,14 +23,13 @@ import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-saf
 
 loadLocalEnvFile();
 
-// The canonical-candidates queue is retired (lane G6-GATES, 2026-10-05): canonical-autoverify rules every
-// candidate by rule, so no digest or apply step remains for it.
+// The canonical-candidates and provisional-sources queues are retired (lane G6-GATES, 2026-10-05):
+// canonical-autoverify and resolve-provisional-sources rule every row, so no digest or apply step remains.
 // Each entry: the queue module (grouping/recommendation), the apply script this digest names, and the
 // MAINT step (fsi-app/scripts/maintenance/**, .github/workflows/maintenance.yml) the coordinator wires up
 // to run it. MAINT step names are NAMED here as the intended wiring point — this lane's write set does
 // not include maintenance.yml, so wiring the step itself is a follow-up outside this lane (see the report).
 export const QUEUES = [
-  { module: ProvisionalSources, applyScript: "scripts/review/apply-provisional-sources.mjs", maintStep: "review-apply-provisional-sources" },
   { module: PortalLinks, applyScript: "scripts/review/apply-portal-links.mjs", maintStep: "review-apply-portal-links" },
   { module: CoverageGaps, applyScript: "scripts/review/apply-coverage-gaps.mjs", maintStep: "review-apply-coverage-gaps" },
 ];

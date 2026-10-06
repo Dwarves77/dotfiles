@@ -6,7 +6,8 @@ this worktree" - that was true when section 6 was first written (R1 was a siblin
 (`scripts/review/build-review-digests.test.mjs` + every `scripts/review/lib/*.test.mjs`), and this MAINT
 step correctly runs it - the "NOT PRESENT" branch below is now dead code on every real dispatch (kept
 only as the same fail-clearly guard it always was, in case a future worktree checkout somehow lacks the
-file). sections 13-16 below are the four consumer steps this digest exists to feed
+file). Sections 13-16 below were the four consumer steps this digest was built to feed; since
+2026-10-05 (lane G6-GATES) only sections 15 and 16 remain live, sections 13 and 14 are RETIRED stubs
 (`review-apply-provisional-sources`/`review-apply-canonical-candidates`/`review-apply-portal-links`/
 `review-apply-coverage-gaps`), wired for the first time in the same lane.
 

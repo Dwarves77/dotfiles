@@ -115,7 +115,8 @@ test("buildFlagRow: with proposals — category/subject_type/subject_ref/created
   assert.equal(row.created_by, createdBy(TAG_NAMESPACE, "empty-signature"));
   assert.match(row.description, /PROPOSALS_JSON: \[\{.*ocean-bunkering.*\}\]/);
   assert.match(row.description, /discover\.mjs scores 0 edges/);
-  assert.ok(row.recommended_actions.some((a) => a.includes("ratify:tags")));
+  assert.ok(!row.recommended_actions.some((a) => a.includes("ratify:tags")), "the retired operator marker must not be asked for");
+  assert.ok(row.recommended_actions.some((a) => a.includes("tag-ratification")));
   assert.ok(row.recommended_actions.some((a) => a.includes("scripts/connections/apply-tags.mjs")));
 });
 
