@@ -34,7 +34,6 @@ import {
   planTierMovements,
   outcomeReaderFor,
   applyTierMovements,
-  tierMovementEvent,
   TIER_SOURCE_COLUMNS,
 } from "@/lib/trust";
 import type { TierSourceRow } from "@/lib/trust";
@@ -44,7 +43,7 @@ import { workerAuthGuard } from "@/lib/api/worker-auth";
 // Pure shaping logic lives in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
 // --webpack` rejects any other export field). See logic.ts's header.
-import { tierMovementSummary } from "./logic";
+import { tierMovementSummary, tierMovementWriters, type TierWriteClient } from "./logic";
 
 export async function POST(request: NextRequest) {
   const denied = workerAuthGuard(request);
@@ -179,22 +178,8 @@ export async function POST(request: NextRequest) {
       // Scored prediction outcomes (lane L4-D): the same reader the maintenance step uses.
       readOutcomes: outcomeReaderFor(supabase),
     }, { scrapeCadence });
-    const applied = await applyTierMovements(plan.movements, {
-      setEffectiveTier: async (sourceId, tier) => {
-        // The tier_override guard repeats the planner's own rule at the write: an override set between
-        // the read and this write is never written over.
-        const { error } = await supabase
-          .from("sources")
-          .update({ effective_tier: tier })
-          .eq("id", sourceId)
-          .is("tier_override", null);
-        if (error) throw new Error(error.message);
-      },
-      insertEvent: async (event: ReturnType<typeof tierMovementEvent>) => {
-        const { error } = await supabase.from("source_trust_events").insert(event);
-        if (error) throw new Error(error.message);
-      },
-    });
+    // The writers carry the tier_override guard in the UPDATE itself (logic.ts, tier-override-guard.mjs).
+    const applied = await applyTierMovements(plan.movements, tierMovementWriters(supabase as unknown as TierWriteClient));
     tierMovement = tierMovementSummary(plan, applied);
   } catch (e) {
     return NextResponse.json(

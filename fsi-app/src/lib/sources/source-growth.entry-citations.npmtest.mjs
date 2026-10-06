@@ -37,6 +37,7 @@ function fakeDb(seed = {}) {
         st.filters.every((f) => {
           if (f.k === "eq") return r[f.c] === f.v;
           if (f.k === "in") return f.v.includes(r[f.c]);
+          if (f.k === "is") return f.v === null ? r[f.c] == null : r[f.c] === f.v;
           if (f.k === "ilike") return String(r[f.c] ?? "").toLowerCase().includes(String(f.v).replace(/%/g, "").toLowerCase());
           return true;
         });
@@ -55,7 +56,8 @@ function fakeDb(seed = {}) {
         const hit = rows.filter(match);
         writes.update.push({ table: name, patch: st.payload, ids: hit.map((r) => r.id) });
         hit.forEach((r) => Object.assign(r, st.payload));
-        return { data: null, error: null };
+        // PostgREST returns the updated rows when the chain ends in .select(); the tier writer reads that count.
+        return { data: hit.map((r) => ({ ...r })), error: null };
       }
       let out = rows.filter(match);
       if (st.limitN != null) out = out.slice(0, st.limitN);
@@ -68,6 +70,7 @@ function fakeDb(seed = {}) {
       upsert(p) { st.op = "upsert"; st.payload = p; return b; },
       eq(c, v) { st.filters.push({ k: "eq", c, v }); return b; },
       in(c, v) { st.filters.push({ k: "in", c, v }); return b; },
+      is(c, v) { st.filters.push({ k: "is", c, v }); return b; },
       ilike(c, v) { st.filters.push({ k: "ilike", c, v }); return b; },
       limit(n) { st.limitN = n; return b; },
       single() { const r = run(); return Promise.resolve({ data: r.data?.[0] ?? null, error: r.data?.[0] ? null : { message: "no row" } }); },
