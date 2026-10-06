@@ -1,0 +1,10 @@
+{
+  "id": "brief-apply-to-source-resolution",
+  "producer": { "file": ".github/workflows/brief-apply.yml", "name": "Brief apply" },
+  "consumer": { "file": ".github/workflows/source-resolution.yml", "name": "Source resolution" },
+  "trigger": "workflow_run",
+  "family": "source-resolution",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Lane S1-E (2026-10-05). Brief apply registers new provisional sources (S1-A) and nothing ran after it; source-resolution.yml now runs resolve-provisional-sources then recompute-tiers on its completion. Brief apply is a chain root, so this hop is depth 1 (F60 needs no fallback). A chained firing is forced dry while build mode holds (F61 guard present). Evidence that will prove it fired: a harness_runs row of family source-resolution with trigger workflow_run or workflow_run_forced_dry whose upstream_run_id equals a brief-apply row's github_run_id (mapRowsToHops places it on this hop through PRODUCER_FAMILY_BY_WORKFLOW_FILE). enforceFired stays false until that row exists in loop-fired-evidence.json."
+}

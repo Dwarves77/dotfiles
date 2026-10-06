@@ -49,6 +49,7 @@ export const FAMILY_BY_WORKFLOW_NAME = Object.freeze({
   "Corpus turn": "corpus-turn",
   "Downstream chain": "downstream-chain",
   "Brief apply": "brief-apply",
+  "Research walker": "research-walker",
   // Data producers are their own loop head: no sweep id exists upstream of them, so null is the honest
   // value, not a family this function should search.
   "Data producers": null,

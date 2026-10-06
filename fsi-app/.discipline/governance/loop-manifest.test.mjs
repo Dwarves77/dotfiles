@@ -212,3 +212,53 @@ test('ATTACK: a hop whose producer.name does not match the real yml is caught', 
   const real = readYamlName(fake[0].producer.file);
   assert.notEqual(real, fake[0].producer.name, 'fixture setup error: the wrong name accidentally matches');
 });
+
+// ── source-resolution hops (lane S1-E, 2026-10-05) ──────────────────────────────────────────────────────
+// Two hops share one consumer family, so a harness_runs row of that family is placed on exactly one hop by
+// the producer run it names (mapRowsToHops). Both producers need a harness family known to producerFamilyOf:
+// Brief apply was already in PRODUCER_FAMILY_BY_WORKFLOW_FILE, Research walker was not.
+import { mapRowsToHops, producerFamilyOf } from './loop-manifest.mjs';
+
+test('S1-E: both source-resolution hops exist, point at the real consumer, and name its family', () => {
+  const ids = ['brief-apply-to-source-resolution', 'research-walker-to-source-resolution'];
+  for (const id of ids) {
+    const hop = LOOP_HOPS.find((h) => h.id === id);
+    assert.ok(hop, `${id} is missing from loop-hops.d`);
+    assert.equal(hop.consumer.file, '.github/workflows/source-resolution.yml');
+    assert.equal(hop.consumer.name, 'Source resolution');
+    assert.equal(hop.family, 'source-resolution');
+    assert.equal(hop.trigger, 'workflow_run');
+    assert.equal(hop.enforceEdge, true);
+    assert.equal(hop.enforceFired, false);
+  }
+});
+
+test('S1-E: a source-resolution row is placed on the hop of the producer run it names', () => {
+  const row = (run_id, upstream) => ({
+    harness_family: 'source-resolution', run_id, github_run_id: `g-${run_id}`, upstream_run_id: upstream,
+    started_at: '2026-10-06T00:00:00Z', trigger: 'workflow_run_forced_dry',
+  });
+  const { entries, unmapped } = mapRowsToHops([
+    { harness_family: 'brief-apply', run_id: 'brief-apply-run-009', github_run_id: '111', started_at: '2026-10-05T00:00:00Z', trigger: 'workflow_dispatch' },
+    { harness_family: 'research-walker', run_id: 'research-walker-run-005', github_run_id: '222', started_at: '2026-10-05T00:00:00Z', trigger: 'workflow_dispatch' },
+    row('source-resolution-run-001', '111'),
+    row('source-resolution-run-002', '222'),
+  ]);
+  assert.deepEqual(unmapped, []);
+  const byHop = Object.fromEntries(entries.map((e) => [e.hop, e.run_id]));
+  assert.equal(byHop['brief-apply-to-source-resolution'], 'source-resolution-run-001');
+  assert.equal(byHop['research-walker-to-source-resolution'], 'source-resolution-run-002');
+});
+
+test('S1-E: producerFamilyOf resolves Research walker to its own family directory', () => {
+  const hop = LOOP_HOPS.find((h) => h.id === 'research-walker-to-source-resolution');
+  assert.equal(producerFamilyOf(hop), 'research-walker');
+});
+
+test('S1-E: hops 05 and 06 notes say where tier recompute runs', () => {
+  for (const id of ['population-turn-to-downstream-chain', 'corpus-turn-to-downstream-chain']) {
+    const note = LOOP_HOPS.find((h) => h.id === id).note;
+    assert.match(note, /recompute-tiers/, `${id}: note does not name recompute-tiers`);
+    assert.match(note, /tier-opinions/, `${id}: note does not name tier-opinions`);
+  }
+});

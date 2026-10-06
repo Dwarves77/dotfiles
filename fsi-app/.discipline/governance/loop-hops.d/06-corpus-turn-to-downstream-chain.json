@@ -6,5 +6,5 @@
   "family": "downstream-chain",
   "enforceEdge": true,
   "enforceFired": false,
-  "note": "Same edge, same now-registered family as population-turn-to-downstream-chain above (M3)."
+  "note": "Same edge, same now-registered family as population-turn-to-downstream-chain above (M3). Where tier recompute runs (lane S1-E, 2026-10-05): tier-opinions and recompute-tiers are steps inside Downstream chain under this edge too (see hop 05), run through the maintenance-step action."
 }

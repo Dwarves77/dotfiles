@@ -138,6 +138,8 @@ export const PRODUCER_FAMILY_BY_WORKFLOW_FILE = Object.freeze({
   '.github/workflows/source-sweep.yml': 'source-sweep',
   '.github/workflows/producers.yml': 'producers',
   '.github/workflows/brief-apply.yml': 'brief-apply',
+  // Lane S1-E: Research walker is a chain root that is the producer of research-walker-to-source-resolution.
+  '.github/workflows/research-walker.yml': 'research-walker',
 });
 
 /** Harness family of a hop's PRODUCER workflow: the family of whichever hop consumes that workflow, else the
