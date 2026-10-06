@@ -92,7 +92,7 @@ env:
   RUN_LIMIT: ${{ inputs.limit }}
   RUN_AFTER_ID: ${{ inputs.after_id }}
   RUN_ALLOW_BRIEF_OVERWRITE: ${{ inputs.allow_brief_overwrite }}
-  RUN_IO_BUDGET_MB: ${{ inputs.io_budget_mb || '400' }}
+  RUN_IO_BUDGET_MB: ${{ inputs.io_budget_mb }}
 
 jobs:
   brief-apply:
@@ -167,6 +167,7 @@ jobs:
       - name: Build driver flags
         if: ${{ env.PUSH_BATCH_COUNT != '0' }}
         run: |
+          RUN_IO_BUDGET_MB="${RUN_IO_BUDGET_MB:-400}" # a push has no inputs: the workflow_dispatch default
           FLAGS="--briefs ${PUSH_BATCH_FILE:-$RUN_BRIEFS_FILE}"
           if [ "${CHAINED_MODE:-$RUN_MODE}" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
           if [ -n "$RUN_LIMIT" ]; then FLAGS="$FLAGS --limit $RUN_LIMIT"; fi
