@@ -7,8 +7,9 @@ import { join } from "node:path";
 import { QUEUES, buildQueueDigest, main } from "./build-review-digests.mjs";
 import * as ProvisionalSources from "./lib/provisional-sources.mjs";
 
-test("QUEUES: names all four queues with an apply script and a maint step", () => {
-  assert.equal(QUEUES.length, 4);
+test("QUEUES: names the three live queues with an apply script and a maint step (canonical-candidates is retired)", () => {
+  assert.equal(QUEUES.length, 3);
+  assert.ok(!QUEUES.some((q) => q.module.QUEUE_ID === "canonical-candidates"));
   for (const q of QUEUES) {
     assert.ok(q.applyScript.startsWith("scripts/review/apply-"));
     assert.ok(q.maintStep.startsWith("review-apply-"));
@@ -51,17 +52,16 @@ test("main: writes one .digest.md and one .ruling.json per queue into --out, fil
   }
 });
 
-test("main: with no --queue filter, builds all four queues (portal-links resolves source hosts via a second readAll)", async () => {
+test("main: with no --queue filter, builds all three queues (portal-links resolves source hosts via a second readAll)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "r1-digest-"));
   try {
     const rowsByTable = {
       sources: [{ id: "src1", url: "https://portal.gov/x", name: "Portal", status: "provisional", total_checks: 0, updated_at: "2026-09-01T00:00:00Z" }],
-      canonical_source_candidates: [],
       portal_link_candidates: [{ id: "p1", source_id: "src1", url: "https://portal.gov/regulation-1", anchor_text: "Regulation 1", status: "candidate", last_seen_at: "2026-09-01T00:00:00Z" }],
       coverage_gap_candidates: [],
     };
     const summary = await main({ out: dir, now: "2026-09-02T00:00:00Z" }, { readAll: fakeReadAll(rowsByTable) });
-    assert.equal(summary.length, 4);
+    assert.equal(summary.length, 3);
     const portalSummary = summary.find((s) => s.queue === "portal-links");
     assert.equal(portalSummary.rows, 1);
     assert.equal(portalSummary.groups, 1);

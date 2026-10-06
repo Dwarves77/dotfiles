@@ -77,23 +77,36 @@ test("dry: readAll's match filters both dryrun_disposition='would_mint' and is_a
   assert.deepEqual(eqCalls, [["dryrun_disposition", "would_mint"], ["is_archived", false]]);
 });
 
-test("apply arg=park: no-op, applies nothing, exits 0", async () => {
-  const d = deps();
-  const r = await main({ mode: "apply", arg: "park" }, d);
-  assert.equal(r.applied, 0);
+test("apply with no arg: the screen decides, archives off_vertical, parks ambiguous (no token needed)", async () => {
+  const d = deps({ readAllByIdsImpl: async () => [{ id: "c3", is_archived: true, archive_reason: ARCHIVE_REASON }] });
+  const r = await main({ mode: "apply" }, d);
   assert.equal(r.exitCode, 0);
-  assert.match(r.note, /no-op/);
-  assert.equal(d.updateCalls.length, 0);
+  assert.doesNotMatch(r.note ?? "", /REFUSED/);
+  assert.equal(d.updateCalls.length, 1);
+  assert.equal(r.applied, 1);
+  assert.equal(typeof r.parked_ambiguous, "number");
+  assert.match(r.note, /parked \d+ ambiguous/);
+  // the archive write never touches an ambiguous row
+  for (const id of d.updateCalls[0].ids) assert.notEqual(id, "c2");
 });
 
-test("apply arg=archive: RUNNABLE (migration 308) — archives off_vertical rows via guardedUpdateByIds + archivePatch, cited, read back via readAllByIds", async () => {
+test("apply with a stray arg (the old park or archive tokens): ignored, same decision", async () => {
+  for (const arg of ["park", "archive", "delete-everything"]) {
+    const d = deps({ readAllByIdsImpl: async () => [{ id: "c3", is_archived: true, archive_reason: ARCHIVE_REASON }] });
+    const r = await main({ mode: "apply", arg }, d);
+    assert.equal(r.exitCode, 0, `arg=${arg}`);
+    assert.equal(d.updateCalls.length, 1, `arg=${arg}`);
+  }
+});
+
+test("apply: RUNNABLE (migration 308) - archives off_vertical rows via guardedUpdateByIds + archivePatch, cited, read back via readAllByIds", async () => {
   const d = deps({
     // readAll: the dry-count read only
     readAllByIdsImpl: async (_table, _cols, _ids) =>
       // post-apply read-back: whichever rows were archived read back is_archived=true
       [{ id: "c3", is_archived: true, archive_reason: ARCHIVE_REASON }],
   });
-  const r = await main({ mode: "apply", arg: "archive" }, d);
+  const r = await main({ mode: "apply" }, d);
   const readBack = d.calls.find((c) => c[0] === "readAllByIds" && c[1] === "census_worklist");
   assert.ok(readBack, "read-back goes through readAllByIds, never readAll's own match-in");
   assert.equal(d.updateCalls.length, 1);
@@ -113,20 +126,12 @@ test("apply arg=archive: RUNNABLE (migration 308) — archives off_vertical rows
   assert.equal(r.exitCode, 0);
 });
 
-test("apply arg=archive with 0 off_vertical rows in the pool: no-op, no write attempted", async () => {
+test("apply with 0 off_vertical rows in the pool: no-op, no write attempted", async () => {
   const d = deps({ readAllImpl: async () => [{ id: "c2", document_url: "https://eur-lex.europa.eu/y", title: "Regulation (EU) 2023/1805 FuelEU Maritime", surface_tags: [], dryrun_disposition: "would_mint" }] });
-  const r = await main({ mode: "apply", arg: "archive" }, d);
+  const r = await main({ mode: "apply" }, d);
   assert.equal(d.updateCalls.length, 0);
   assert.equal(r.applied, 0);
   assert.match(r.note, /nothing to write/);
-});
-
-test("apply with an unrecognized arg: refused, exits 1", async () => {
-  const d = deps();
-  const r = await main({ mode: "apply", arg: "delete-everything" }, d);
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
-  assert.equal(d.updateCalls.length, 0);
 });
 
 test("only reads dryrun_disposition='would_mint' rows (the ruling's own population)", async () => {

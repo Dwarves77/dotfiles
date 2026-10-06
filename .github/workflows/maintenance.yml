@@ -7,14 +7,15 @@ name: Maintenance
 # BEFORE/AFTER, artifact upload) and .github/workflows/population-turn.yml (dispatch-only, no schedule).
 #
 # EVERY STEP IS DRY BY DEFAULT. `mode=apply` is required to write anything, and several steps ALSO
-# refuse to write unless `arg` carries the exact ruling token their gate names (see each step below and
-# docs/runbooks/MAINTENANCE-RUNBOOK.md). Every wrapper (fsi-app/scripts/maintenance/*.mjs) writes a
+# refuse to write unless `arg` carries the exact token their gate names. Since lane G6-GATES (2026-10-05)
+# the only such token left is `refetch-capped`'s `GUARD-1-accepted` (an OPEN ruling in ADR-016, see that
+# step); the ruling-file queues decide by rule and the other acceptance tokens are gone. See each step below
+# and docs/runbooks/MAINTENANCE-RUNBOOK.md. Every wrapper (fsi-app/scripts/maintenance/*.mjs) writes a
 # summary.json into this run's out-dir regardless of mode; apply-mode writes, when a step makes any,
 # always go through the guarded path (fsi-app/scripts/lib/db.mjs) — rule 015.
 #
 # 'all' runs every step in ONE dispatch, DRY ONLY — never in apply mode (a single 'all' apply dispatch
-# could never carry seven different rulings' worth of `arg` tokens at once, and several steps would
-# refuse anyway; naming one step at a time for `apply` is the point, not an oversight). Applying more
+# could never carry a different `arg` per step at once; naming one step at a time for `apply` is the point, not an oversight). Applying more
 # than one step is multiple dispatches, each reviewed on its own artifact — same posture
 # population-turn.yml's own per-dispatch review takes.
 #
@@ -35,9 +36,9 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, recompute-tiers, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets]
+        options: [all, tier-opinions, recompute-tiers, w1-dispositions, origin-class-backfill, source-type-backfill, backfill-format-type, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources, retype-eu-decisions, timeline-backfill, close-run-logs, resolve-error-body-gate, resolve-cited-host-gate, uk-series-code-reconcile, resolve-signals, resolve-provisional-sources, enumerate-unclassified-hosts, finish-staged-updates, schema-vocabulary-inventory, close-acquire-primaries-holds, resolve-refetch-holds, close-coverage-reflections, close-legal-confirmation-rows, close-flags-for-verified-items, capture-static-primaries, apply-deferrals, plan-quarantine-disposition, lineage-gap-targets]
       arg:
-        description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the two spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
+        description: 'Optional per-step argument (an optional committed ruling-file path for the review-apply steps, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the two spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
         default: ''
         type: string
@@ -194,19 +195,19 @@ jobs:
           out_root: ${{ env.OUT_ROOT }}
 
       - name: w1-dispositions
-        # Gated on ruling R-C (finish-plan-2026-09-02.md §1). apply mode makes NO code edit — see the
-        # step's own header — it only unlocks the full wire/delete worklist report once R-C is accepted.
+        # Ruling R-C is closed, so no token and no arg. Apply mode makes NO code edit (see the step's own
+        # header), it reports the wire/delete worklist.
         if: env.RUN_STEP == 'w1-dispositions' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/w1-dispositions"
-          node scripts/maintenance/w1-dispositions.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/w1-dispositions"
+          node scripts/maintenance/w1-dispositions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/w1-dispositions"
 
       - name: origin-class-backfill
-        # Gated on ruling R-E. apply requires --arg R-E-accepted.
+        # Ruling R-E is accepted, the mapping is the rule: no token and no arg.
         if: env.RUN_STEP == 'origin-class-backfill' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/origin-class-backfill"
-          node scripts/maintenance/origin-class-backfill.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/origin-class-backfill"
+          node scripts/maintenance/origin-class-backfill.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/origin-class-backfill"
 
       - name: source-type-backfill
         # Not ruling-gated: migration 288 applied 2026-09-02; writes only where source_type IS NULL.
@@ -259,13 +260,12 @@ jobs:
           node scripts/maintenance/seed-corridors.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/seed-corridors"
 
       - name: census-off-vertical
-        # Gated on ruling R-A (open). apply requires --arg archive or park; 'archive' is currently
-        # NOT RUNNABLE (census_worklist has no archive columns — see the step's own header) and reports
-        # that rather than writing.
+        # Ruling R-A is given (RULING-2026-09-06): the relevance screen decides, apply archives off_vertical
+        # rows (reversible, migration 308) and parks ambiguous ones. No token and no arg.
         if: env.RUN_STEP == 'census-off-vertical' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/census-off-vertical"
-          node scripts/maintenance/census-off-vertical.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/census-off-vertical" || true
+          node scripts/maintenance/census-off-vertical.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/census-off-vertical" || true
 
       - name: review-digests
         # scripts/review/build-review-digests.mjs is built by a sibling lane (R1) and may not exist yet
@@ -290,25 +290,19 @@ jobs:
           mkdir -p "$OUT_ROOT/review-apply-provisional-sources"
           node scripts/maintenance/review-apply-provisional-sources.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/review-apply-provisional-sources" || true
 
-      - name: review-apply-canonical-candidates
-        # See review-apply-provisional-sources above for the shared rationale (Lane REVIEW-WIRE,
-        # 2026-09-04). `arg` gated in both modes; `|| true` for the same 'all' dry fan-out reason.
-        if: env.RUN_STEP == 'review-apply-canonical-candidates' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/review-apply-canonical-candidates"
-          node scripts/maintenance/review-apply-canonical-candidates.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/review-apply-canonical-candidates" || true
-
       - name: review-apply-portal-links
-        # See review-apply-provisional-sources above for the shared rationale (Lane REVIEW-WIRE,
-        # 2026-09-04). `arg` gated in both modes; `|| true` for the same 'all' dry fan-out reason.
+        # Decides by rule (lane G6-GATES, 2026-10-05): a blank `arg` runs the queue's recommend rule over
+        # the live rows, residue is recorded with a reason. `arg` may still name a committed ruling file.
+        # `|| true` so an 'all' dry fan-out does not fail the job.
         if: env.RUN_STEP == 'review-apply-portal-links' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/review-apply-portal-links"
           node scripts/maintenance/review-apply-portal-links.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/review-apply-portal-links" || true
 
       - name: review-apply-coverage-gaps
-        # See review-apply-provisional-sources above for the shared rationale (Lane REVIEW-WIRE,
-        # 2026-09-04). `arg` gated in both modes; `|| true` for the same 'all' dry fan-out reason.
+        # Decides by rule (lane G6-GATES, 2026-10-05): a blank `arg` runs the queue's recommend rule over
+        # the live rows, residue is recorded with a reason. `arg` may still name a committed ruling file.
+        # `|| true` so an 'all' dry fan-out does not fail the job.
         if: env.RUN_STEP == 'review-apply-coverage-gaps' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/review-apply-coverage-gaps"
@@ -318,8 +312,8 @@ jobs:
         # Operator rule (propose-tags.mjs's own header): NO assumptions, NEVER silent auto-tagging — a
         # tag PROPOSAL going to integrity_flags is the visibility that rule requires, not an item tag.
         # apply writes integrity_flags PROPOSAL rows ONLY (flag-namespaces.mjs's TAG_NAMESPACE) — it
-        # NEVER writes intelligence_items.*_tags; only the sibling tag-ratification step, gated on an
-        # operator's own `ratify:tags` resolution, ever does that. Wraps scripts/connections/
+        # NEVER writes intelligence_items.*_tags; only the sibling tag-ratification step, which decides every
+        # open proposal by rule with no operator resolution, ever does that. Wraps scripts/connections/
         # propose-tags.mjs's own guarded proposeTags() core unmodified — see the step's own header.
         # CHAIN (lane CHAIN, 2026-09-06): also runs automatically, apply mode, blank arg (this step's own
         # "unqualified apply runs the untagged default" contract, see the runbook), after a real
@@ -335,13 +329,14 @@ jobs:
           out_root: ${{ env.OUT_ROOT }}
 
       - name: tag-ratification
-        # apply requires --arg = comma-separated integrity_flags id(s) to apply (never a blanket
-        # "apply everything ratified" from one dispatch). Wraps scripts/connections/apply-tags.mjs's
-        # existing guarded apply path unmodified — see the step's own header.
+        # Decides every open flywheel-tag proposal by rule (auto-adoption: high adopts, medium adopts when
+        # its evidence re-confirms, otherwise declined with a reason). No arg, no id list, no operator
+        # marker (the legacy ratify:tags path was deleted, lane G6-GATES, 2026-10-05). Wraps
+        # scripts/connections/apply-tags.mjs's guarded auto path, see the step's own header.
         if: env.RUN_STEP == 'tag-ratification' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/tag-ratification"
-          node scripts/maintenance/tag-ratification.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/tag-ratification"
+          node scripts/maintenance/tag-ratification.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/tag-ratification"
 
       - name: apply-classifications
         # Lane CLASSIFY-STEP (2026-09-04): MAINT orchestrator for the full source-classification
@@ -517,12 +512,11 @@ jobs:
       - name: apply-deferrals
         # Lane M6 (2026-09-21, build plan section 6.1 row M6, Amendment 1 section E): dispatch runtime
         # for scripts/maintenance/apply-deferrals.mjs -- see that file's own header for the full
-        # mechanism. `arg` IS the required path to a reviewed JSON file of
-        # { item_id, reason, deferred_until, owner, resolution_event } rows, gated in BOTH modes (there is
-        # nothing to select without one, same posture as reopen-validation-holds above; `|| true` so an
-        # 'all' dry fan-out with no arg does not fail the job). Dispatch it NAMED, with the reviewed
-        # 53-item disposition file -- never from 'all'. This step is the invoker only; lane M6 built and
-        # unit-tested the script but did not run it.
+        # mechanism. A blank `arg` reads the plan.json the plan-quarantine-disposition step writes (its
+        # out dir is a sibling of this step's, so the two chain with no hand-authored file; no plan is
+        # recorded as `no-plan-file`, never an error). `arg` may still name a reviewed JSON file of
+        # { item_id, reason, deferred_until, owner, resolution_event } rows. `|| true` so an 'all' dry
+        # fan-out does not fail the job. This step is the invoker only.
         if: env.RUN_STEP == 'apply-deferrals' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/apply-deferrals"
@@ -833,10 +827,8 @@ jobs:
         # the item's actually-linked current source never auto-accepts unless that source is CONFIRMED
         # dead — reachable-but-walled, e.g. 403/WAF, REJECTS the candidate instead, since a wall is not a
         # dead link). Not ruling-gated (no `arg` needed): every row is ruled in the SAME run.
-        # review-apply-canonical-candidates (above) is UNCHANGED and still applies an operator's own group
-        # ruling for rows already taken through that path (its own, separate `needs_individual_review`
-        # fallback covers a different, untouched case — see runbook §14/§38); this step is the mechanism
-        # for rows that path could only route to a human. See runbook §38 for the full outcome table.
+        # The review-apply-canonical-candidates group-ruling step is RETIRED (lane G6-GATES, 2026-10-05):
+        # this step rules every candidate. See runbook section 38 for the full outcome table.
         if: env.RUN_STEP == 'canonical-autoverify' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/canonical-autoverify"

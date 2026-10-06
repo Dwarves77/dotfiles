@@ -1,105 +1,43 @@
 // Run: node --test scripts/maintenance/tag-ratification.test.mjs — no DB, deps injected.
-// evaluateApplication/applyTags/buildMergePatch themselves are pinned in
-// scripts/connections/apply-tags.test.mjs; this file tests the wrapper's own orchestration only:
-// listing ratifiable candidates, the arg-required apply gate, and per-id apply + read_back.
+// buildMergePatch/autoAdoptTags themselves are pinned in scripts/connections/apply-tags.test.mjs; this
+// file tests the wrapper's own orchestration only: the auto decision over open flags, dry counts, apply
+// and read_back.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { main } from "./tag-ratification.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
 import { deriveTags as realDeriveTags } from "../../src/lib/connections/derive-tags.mjs";
 
-const RATIFIED_FLAG = {
-  id: "flag-1",
-  subject_ref: buildSubjectRef("item-1"),
-  created_by: createdBy(TAG_NAMESPACE, "empty-signature"),
-  status: "resolved",
-  resolved_by: "operator",
-  resolution_note: "looks right, ratify:tags",
-  description: 'summary\n\nPROPOSALS_JSON: [{"field":"topic_tags","tag":"fuel-eu","evidence":"x","confidence":"high"}]',
-};
+// The legacy ratify:tags id path is deleted (lane G6-GATES, 2026-10-05): the step has one behaviour,
+// the auto decision, and needs no arg. These tests are red against the old code, which took the id path
+// on a blank arg and refused an apply with no ids.
 
-const RESOLVED_NOT_RATIFIED_FLAG = {
-  id: "flag-2",
-  subject_ref: buildSubjectRef("item-2"),
-  created_by: createdBy(TAG_NAMESPACE, "empty-signature"),
-  status: "resolved",
-  resolved_by: "operator",
-  resolution_note: "not this — false positive",
-  description: 'summary\n\nPROPOSALS_JSON: [{"field":"topic_tags","tag":"noise","evidence":"x","confidence":"low"}]',
-};
-
-function baseDeps(overrides = {}) {
-  const calls = [];
-  const items = new Map([
-    ["item-1", { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] }],
-    ["item-2", { id: "item-2", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] }],
-  ]);
-  return {
-    calls,
-    listResolvedCandidates: async () => [RATIFIED_FLAG, RESOLVED_NOT_RATIFIED_FLAG],
-    readFlag: async (id) => {
-      calls.push(["readFlag", id]);
-      const flag = [RATIFIED_FLAG, RESOLVED_NOT_RATIFIED_FLAG].find((f) => f.id === id);
-      return { data: flag ?? null, error: null };
-    },
-    readItem: async (id) => {
-      calls.push(["readItem", id]);
-      return { data: items.get(id) ?? null, error: null };
-    },
-    updateItem: async (id, patch) => {
-      calls.push(["updateItem", id, patch]);
-      items.set(id, { ...items.get(id), ...patch });
-      return { updated: 1, snapshot: "snap" };
-    },
-    ...overrides,
-  };
-}
-
-test("dry: lists ratifiable vs. not-ratifiable candidates, writes nothing", async () => {
-  const d = baseDeps();
+test("no arg, dry: runs the auto decision (no id list needed)", async () => {
+  const d = autoDeps();
   const r = await main({ mode: "dry" }, d);
   assert.equal(r.step, "tag-ratification");
+  assert.equal(r.counts.open_candidates, 3);
+  assert.equal(r.counts.decidable_count, 3);
   assert.equal(r.applied, 0);
-  assert.equal(r.counts.resolved_candidates, 2);
-  assert.equal(r.counts.ratifiable.length, 1);
-  assert.equal(r.counts.ratifiable[0].flag_id, "flag-1");
-  assert.equal(r.counts.not_ratifiable_count, 1);
-  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
   assert.equal(r.exitCode, 0);
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem" || c[0] === "resolveFlag"));
 });
 
-test("apply without arg: refused, no writes", async () => {
-  const d = baseDeps();
-  const r = await main({ mode: "apply", arg: "" }, d);
-  assert.equal(r.applied, 0);
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
-  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
+test("no arg, apply: decides and closes every open flag with no token and no id list", async () => {
+  const d = autoDeps();
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.exitCode, 0);
+  assert.doesNotMatch(r.note ?? "", /REFUSED/);
+  assert.equal(r.applied, 3);
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-open-high"));
 });
 
-test("apply with arg naming the ratified flag: applies through applyTags, reads back the item's tags", async () => {
-  const d = baseDeps();
-  const r = await main({ mode: "apply", arg: "flag-1" }, d);
-  assert.equal(r.applied, 1);
-  assert.equal(r.counts.apply_results[0].status, "applied");
-  assert.ok(d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-1"));
-  assert.ok(r.read_back["item-1"]);
-  assert.deepEqual(r.read_back["item-1"].topic_tags, ["fuel-eu"]);
-});
-
-test("apply naming a resolved-but-not-ratified flag: applyTags reports not_ratifiable, nothing written for it", async () => {
-  const d = baseDeps();
-  const r = await main({ mode: "apply", arg: "flag-2" }, d);
-  assert.equal(r.applied, 0);
-  assert.equal(r.counts.apply_results[0].status, "not_ratifiable");
-  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
-});
-
-test("apply with a comma-separated list applies each id independently", async () => {
-  const d = baseDeps();
+test("a stray arg (an old flag id list) is ignored and never selects the retired id path", async () => {
+  const d = autoDeps();
   const r = await main({ mode: "apply", arg: "flag-1, flag-2" }, d);
-  assert.equal(r.applied, 1); // flag-1 applies, flag-2 does not
-  assert.equal(r.counts.apply_results.length, 2);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.applied, 3);
+  assert.equal(r.counts.resolved_candidates, undefined);
 });
 
 // ── arg="auto" (2026-09-03 auto-adoption ruling) ─────────────────────────────────────────────────

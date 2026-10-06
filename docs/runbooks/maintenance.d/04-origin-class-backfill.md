@@ -12,8 +12,9 @@ the plan's table in its own test), imported unmodified by the wrapper.
 
 **Dispatch**: `mode=dry` groups every `origin_class IS NULL` row by the origin_class it would resolve
 to (plus `no_source_id_stays_null` / `no_rule_stays_null` counts - `item_type='tool'` is deliberately
-unmapped, per the plan's own flagged row awaiting a separate ruling). `mode=apply` requires
-`arg=R-E-accepted`; writes through `guardedUpdateByIds` per origin_class group, idempotent
+unmapped, per the plan's own flagged row awaiting a separate ruling). `mode=apply` takes no token and
+no `arg` (lane G6-GATES, 2026-10-05: the mapping is accepted, so the old `arg=R-E-accepted` gate is
+gone; a stray `arg` is ignored); writes through `guardedUpdateByIds` per origin_class group, idempotent
 (`WHERE origin_class IS NULL`, re-checked per chunk via `applyMatch`).
 
 **Artifact / read back**: `summary.json`'s `read_back.by_origin_class` - confirm against
@@ -31,7 +32,7 @@ instead of a fixture: `null_candidates` 1222, `no_source_id_stays_null` 12, `no_
 `would_classify` 1179 (`official` 1173, `community-corroborated` 6). R-E's mapping is already accepted
 (no new ruling needed) - this is a straight re-dispatch. Coordinator dispatch to close this backlog:
 `maintenance`, `mode=dry, step=origin-class-backfill` (confirm the 1179/43 split against live before
-applying), then `mode=apply, step=origin-class-backfill, arg=R-E-accepted` - expected read-back
+applying), then `mode=apply, step=origin-class-backfill` - expected read-back
 `origin_class_not_null_total` ≈ 2723 (1384 + 1179 + 80 + 54 + 15 + 11), NULL remainder ≈ 43.
 
 ---

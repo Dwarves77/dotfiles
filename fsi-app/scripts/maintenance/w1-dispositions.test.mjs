@@ -8,7 +8,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   main, parseRegisterTable, classifyDisposition, parseSectionRecommendations,
-  parseStatedSplit, buildRegisterReport, REGISTER_DOC_PATH, REQUIRED_ARG,
+  parseStatedSplit, buildRegisterReport, REGISTER_DOC_PATH,
 } from "./w1-dispositions.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -79,20 +79,20 @@ test("main dry: reports counts, applies nothing", async () => {
   assert.equal(r.wire.length, 1);
 });
 
-test("main apply: refused without the exact R-C-accepted arg, applies nothing", async () => {
-  const r = await main({ mode: "apply", arg: "" }, { readDoc: () => FIXTURE });
-  assert.equal(r.applied, 0);
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
-});
-
-test("main apply: R-C-accepted unlocks the report, still applies nothing (code change, not a DB write)", async () => {
-  const r = await main({ mode: "apply", arg: REQUIRED_ARG }, { readDoc: () => FIXTURE });
+test("main apply: runs with no acceptance token, reports the worklist, applies nothing (code change, not a DB write)", async () => {
+  const r = await main({ mode: "apply" }, { readDoc: () => FIXTURE });
   assert.equal(r.applied, 0);
   assert.equal(r.exitCode, 0);
-  assert.match(r.note, /R-C accepted/);
+  assert.match(r.note, /R-C is closed/);
+  assert.doesNotMatch(r.note, /REFUSED/);
   assert.equal(r.wire.length, 1);
   assert.equal(r.hold.length, 2);
+});
+
+test("main apply: a stray arg is ignored, never a gate", async () => {
+  const r = await main({ mode: "apply", arg: "anything" }, { readDoc: () => FIXTURE });
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.wire.length, 1);
 });
 
 test("integration: the real register document (repaired 2026-09-03, ruling R-C) parses to WIRE 8 / DELETE 10 / HOLD 6 / KEEP-NO-ACTION 2 = 26, stated split now agrees with the rows, no mismatch", () => {

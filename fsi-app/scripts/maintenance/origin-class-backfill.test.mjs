@@ -1,9 +1,9 @@
 // Run: node --test scripts/maintenance/origin-class-backfill.test.mjs — no DB, deps injected.
 // originClassFor itself is pinned cell-by-cell in lib/origin-class-map.test.mjs; this file tests the
-// wrapper's own orchestration only (grouping, the R-E arg gate, chunked-write summation, read_back).
+// wrapper's own orchestration only (grouping, the no-token apply, chunked-write summation, read_back).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { main, REQUIRED_ARG, CITE } from "./origin-class-backfill.mjs";
+import { main, CITE } from "./origin-class-backfill.mjs";
 
 const ITEMS = [
   { id: "i1", item_type: "regulation", source_id: "s1", origin_class: null }, // s1 tier 1 -> official
@@ -58,24 +58,22 @@ test("dry: groups the null-origin_class candidates by resolved origin_class, wri
   assert.equal(r.exitCode, 0);
 });
 
-test("apply without R-E-accepted: refused, no write attempted", async () => {
-  const d = deps();
-  const r = await main({ mode: "apply", arg: "" }, d);
-  assert.equal(r.applied, 0);
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
-  assert.equal(d.updateCalls.length, 0);
-});
-
-test("apply with R-E-accepted: writes through guardedUpdateByIds per origin_class group, cited, read back", async () => {
+test("apply with no acceptance token: writes through guardedUpdateByIds per origin_class group, cited, read back", async () => {
   const d = deps({ itemsAfter: [{ id: "i1", origin_class: "official" }, { id: "i3", origin_class: "verified" }] });
-  const r = await main({ mode: "apply", arg: REQUIRED_ARG }, d);
+  const r = await main({ mode: "apply" }, d);
   assert.equal(r.applied, 2);
   assert.equal(d.updateCalls.length, 2); // one write per distinct origin_class group
   for (const c of d.updateCalls) assert.equal(c.cite, CITE);
   const targeted = d.updateCalls.flatMap((c) => c.ids);
   assert.deepEqual(new Set(targeted), new Set(["i1", "i3"]));
   assert.equal(r.exitCode, 0);
+});
+
+test("apply: a stray arg is ignored, never a gate", async () => {
+  const d = deps();
+  const r = await main({ mode: "apply", arg: "anything" }, d);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.applied, 2);
 });
 
 test("apply: passes an applyMatch re-check (still-NULL guard) into every guardedUpdateByIds call", async () => {
@@ -85,7 +83,7 @@ test("apply: passes an applyMatch re-check (still-NULL guard) into every guarded
     calls.push(opts.applyMatch);
     return { updated: ids.length };
   };
-  await main({ mode: "apply", arg: REQUIRED_ARG }, d);
+  await main({ mode: "apply" }, d);
   assert.equal(calls.length, 2);
   for (const applyMatch of calls) assert.equal(typeof applyMatch, "function");
 });

@@ -22,7 +22,13 @@
 // this wrapper is the CLI + write path" shape (see reopen-validation-holds.mjs's own header for the
 // precedent this follows).
 //
-// REVIEWED-JSON CONTRACT. `--arg` IS the required path (repo-relative or absolute) to a JSON file: an
+// DEFAULT PLAN (lane G6-GATES, 2026-10-05). A blank `--arg` reads the plan file the sibling step
+// plan-quarantine-disposition writes (`plan.json` in that step's own out dir, a sibling of this step's out
+// dir under the run's OUT_ROOT), so the two chain with no hand-authored file. No plan file is not an
+// error: it is recorded as `no-plan-file` and the step ends with exit 0. An explicit `--arg` path still
+// applies as before (a committed file is the override path, an unreadable explicit path is still refused).
+//
+// JSON CONTRACT. `--arg`, when given, is the path (repo-relative or absolute) to a JSON file: an
 // array of { item_id, reason, deferred_until, owner, resolution_event }. Every field is passed straight
 // through to assertValidDeferral verbatim -- this script never invents, rewrites or defaults a field. A
 // row failing validation is reported by item_id and reason, never silently dropped and never written.
@@ -39,7 +45,7 @@
 // M6b wires the verifier into the CI data-audit lane; this lane only builds and unit-tests it (pure
 // validation only -- no DB call is made by any test in apply-deferrals.test.mjs).
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isValidDeferral } from "../lib/deferral.mjs";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
@@ -110,17 +116,32 @@ export function buildDeferralFlagRow({ item_id, payload }) {
   };
 }
 
+/** The sibling step's out dir name and the file it writes (scripts/plan-quarantine-disposition.mjs). */
+export const PLAN_STEP = "plan-quarantine-disposition";
+export const PLAN_FILE = "plan.json";
+
+/**
+ * Pure: where plan-quarantine-disposition wrote its plan, relative to THIS step's out dir (siblings under
+ * the run's OUT_ROOT). Null when there is no out dir to anchor on.
+ * @param {string|null} out
+ */
+export function defaultPlanPath(out) {
+  if (!out) return null;
+  return resolve(dirname(resolve(String(out))), PLAN_STEP, PLAN_FILE);
+}
+
 /**
  * @param {{ mode?: "dry"|"apply", arg?: string, out?: string|null }} opts
  * @param {object} deps -- `readDeferralsFile(path) -> Promise<array>` (injected so this stays DB/fs-free
  *   under `node --test`), and, apply mode only, `insertDeferralFlag(row) -> Promise<{id}>`.
  */
-export async function main({ mode = "dry", arg = "", out: _out = null } = {}, deps) {
-  const path = String(arg ?? "").trim();
+export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
+  const explicit = String(arg ?? "").trim();
+  const path = explicit || defaultPlanPath(out);
   if (!path) {
     return {
-      step: "apply-deferrals", mode, counts: {}, applied: 0, read_back: {}, exitCode: 1,
-      note: 'REFUSED -- --arg must name the reviewed deferrals JSON file path (e.g. "docs/ops/deferrals/<date>.json"). See this step\'s own header for the {item_id, reason, deferred_until, owner, resolution_event} contract.',
+      step: "apply-deferrals", mode, counts: {}, applied: 0, read_back: { residue: { "no-plan-file": 0 } }, exitCode: 0,
+      note: "no-plan-file: no --arg and no --out to locate the plan-quarantine-disposition plan.json, nothing to apply.",
     };
   }
 
@@ -128,9 +149,16 @@ export async function main({ mode = "dry", arg = "", out: _out = null } = {}, de
   try {
     rows = await deps.readDeferralsFile(path);
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!explicit) {
+      return {
+        step: "apply-deferrals", mode, counts: {}, applied: 0, read_back: { residue: { "no-plan-file": 1 }, plan_path: path }, exitCode: 0,
+        note: `no-plan-file: the default plan '${path}' is not present (${msg}); run plan-quarantine-disposition in apply mode first. Nothing to apply.`,
+      };
+    }
     return {
       step: "apply-deferrals", mode, counts: {}, applied: 0, read_back: {}, exitCode: 1,
-      note: `REFUSED -- could not read deferrals file '${path}': ${e instanceof Error ? e.message : String(e)}`,
+      note: `REFUSED -- could not read deferrals file '${path}': ${msg}`,
     };
   }
 

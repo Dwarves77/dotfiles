@@ -11,7 +11,7 @@
 // mode" from the task brief; `coverage_gaps` has neither. See the lane report's Corrections section.
 //
 // GROUPING: coverage_class (MISSING / AMBIGUOUS_ARCHIVED / HAVE_QUARANTINED — the table's own evidence-
-// hierarchy label, migration 214 header) x jurisdiction x transport_mode.
+// hierarchy label, migration 214 header) x estimated_priority (the two fields the recommend rule reads).
 //
 // RECOMMENDATION is a direct reading of the table's own documented evidence hierarchy (migration 214
 // header comment): HAVE_QUARANTINED is already in the corpus via the drain, so it is not a fresh
@@ -40,8 +40,11 @@ export function matchQueue(qb) {
   return qb.is("disposition", null);
 }
 
+// Grouped per (coverage_class, estimated_priority) since lane G6-GATES (2026-10-05): the recommend rule
+// is a function of exactly those two fields, so every group has a rule decision and no group is a
+// "mixed priority" case. Jurisdiction and transport mode are reported as evidence, not group keys.
 export function groupKeyOf(row) {
-  return `${row.coverage_class}::${row.jurisdiction || "(none)"}::${row.transport_mode || "multi"}`;
+  return `${row.coverage_class}::${row.estimated_priority || "(none)"}`;
 }
 
 const HIGH_PRIORITY = new Set(["CRITICAL", "HIGH"]);
@@ -58,27 +61,48 @@ export function groupRows(rows) {
   const groups = [];
   const byKey = partitionBy(rows, groupKeyOf);
   for (const [key, groupRowsList] of byKey) {
-    const [coverageClass] = key.split("::");
-    // A group can mix priorities only when coverage_class isn't MISSING (whose recommendation doesn't
-    // depend on priority); for MISSING groups the recommendation rule is applied per the group's own
-    // dominant priority signal — see the note below the rule.
-    const priorities = new Set(groupRowsList.map((r) => r.estimated_priority));
-    const recommended =
-      coverageClass === "MISSING" && priorities.size > 1
-        ? "uncertain" // mixed-priority MISSING group: the rule cannot call a single group verdict, never guessed
-        : recommendGapDisposition(coverageClass, groupRowsList[0].estimated_priority);
+    const [coverageClass, priority] = key.split("::");
+    const countBy = (field) => {
+      const out = {};
+      for (const r of groupRowsList) out[r[field] || "(none)"] = (out[r[field] || "(none)"] ?? 0) + 1;
+      return out;
+    };
     groups.push(
       buildGroup({
         key,
         rows: groupRowsList,
         idOf: (r) => r.id,
-        recommendedDecision: recommended,
+        recommendedDecision: recommendGapDisposition(coverageClass, priority),
         exampleOf: (r) => ({ id: r.id, title: r.instrument, url: r.authoritative_url, priority: r.estimated_priority }),
-        evidence: { coverage_class: coverageClass, priorities: [...priorities] },
+        evidence: {
+          coverage_class: coverageClass,
+          estimated_priority: priority,
+          jurisdictions: countBy("jurisdiction"),
+          transport_modes: countBy("transport_mode"),
+        },
       })
     );
   }
   return sortGroups(groups);
+}
+
+/** What the rule path does with a group the rule cannot decide (an unrecognised coverage_class): no
+ *  mutation, and the reason names the gap so a later vocabulary change picks it up. */
+export const RULE_RESIDUE = Object.freeze({ decision: "skip", reason: "unrecognised-coverage-class" });
+
+/**
+ * The reason text a rule-decided group carries, built from the row's own class and priority. It becomes
+ * the surface_test reason (migration 273 requires a non-empty verdict and reason on all five surfaces for
+ * any non-kept disposition) via patchForDecision's `rationale`.
+ */
+export function ruleRationale(group, decision) {
+  const cls = group.evidence?.coverage_class ?? "unknown";
+  const priority = group.evidence?.estimated_priority ?? "(none)";
+  const why =
+    decision === "declined" ? "already in the corpus via the drain, not a new acquisition gap"
+    : decision === "kept" ? "a genuine absence at critical or high priority, kept as acquisition backlog"
+    : "pending a different review lane or a later priority wave, parked";
+  return `coverage_class ${cls}, estimated_priority ${priority}: ${why}`;
 }
 
 /** A single verdict/reason pair, applied uniformly across all five surface keys — see the module header. */

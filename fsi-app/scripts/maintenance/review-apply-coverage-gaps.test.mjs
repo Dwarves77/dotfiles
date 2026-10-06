@@ -18,28 +18,88 @@ test("resolveRulingPath: relative arg resolves against the REPO ROOT", () => {
   assert.ok(!p.includes("/fsi-app/docs/"));
 });
 
-function unreachableDeps() {
-  return {
-    applyMain: async () => { throw new Error("applyMain must not be called when --arg is blank"); },
-    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
-  };
+import { main as realApplyMain } from "../review/apply-coverage-gaps.mjs";
+
+// Rows with one group per rule outcome. estimated_priority mixes inside MISSING on purpose: the rule path
+// groups per (coverage_class, estimated_priority), so there is no "mixed" group left undecided.
+const LIVE_ROWS = [
+  { id: "m1", coverage_class: "MISSING", estimated_priority: "CRITICAL", jurisdiction: "eu", transport_mode: "air", created_at: "2026-07-01T00:00:00Z" },
+  { id: "m2", coverage_class: "MISSING", estimated_priority: "HIGH", jurisdiction: "us", transport_mode: "ocean", created_at: "2026-07-01T00:00:00Z" },
+  { id: "m3", coverage_class: "MISSING", estimated_priority: "LOW", jurisdiction: "eu", transport_mode: "air", created_at: "2026-07-01T00:00:00Z" },
+  { id: "q1", coverage_class: "HAVE_QUARANTINED", estimated_priority: "HIGH", jurisdiction: "uk", transport_mode: "multi", created_at: "2026-07-01T00:00:00Z" },
+  { id: "a1", coverage_class: "AMBIGUOUS_ARCHIVED", estimated_priority: "MODERATE", jurisdiction: "uk", transport_mode: "multi", created_at: "2026-07-01T00:00:00Z" },
+  { id: "x1", coverage_class: "SOMETHING_NEW", estimated_priority: "HIGH", jurisdiction: "uk", transport_mode: "multi", created_at: "2026-07-01T00:00:00Z" },
+];
+
+// The shape migration 273's coverage_gap_candidates_surface_test_required_check requires on any non-null,
+// non-'kept' disposition: all five surface keys, each with a non-empty verdict and reason.
+function satisfiesSurfaceTestCheck(st) {
+  return ["regulations", "operations", "market_intel", "research", "community"].every(
+    (k) => typeof st?.[k]?.verdict === "string" && st[k].verdict.length > 0 && typeof st?.[k]?.reason === "string" && st[k].reason.length > 0,
+  );
 }
 
-test("dry, blank arg: refused, exit 1, no DB call", async () => {
-  const r = await main({ mode: "dry", arg: "" }, unreachableDeps());
-  assert.equal(r.step, "review-apply-coverage-gaps");
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
+function ruleDeps() {
+  const writes = [];
+  const deps = {
+    writes,
+    readAll: async () => LIVE_ROWS,
+    readAllByIds: async (_t, _c, ids) => LIVE_ROWS.filter((r) => ids.includes(r.id)).map((r) => ({ id: r.id, disposition: "x" })),
+    guardedUpdateByIds: async (table, ids, patch) => { writes.push({ table, ids, patch }); return { updated: ids.length, chunks: 1, halvings: 0 }; },
+    applyMain: realApplyMain,
+  };
+  return deps;
+}
+
+test("dry, blank arg: decides by rule with no ruling file (red against the old wrapper, which refused a blank arg)", async () => {
+  const d = ruleDeps();
+  const r = await main({ mode: "dry", arg: "" }, d);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.source, "rule");
+  assert.equal(d.writes.length, 0);
+  assert.equal(r.counts.queue, "coverage-gaps");
+  // per (class, priority): MISSING::CRITICAL, MISSING::HIGH, MISSING::LOW, HAVE_QUARANTINED::HIGH, AMBIGUOUS_ARCHIVED::MODERATE, SOMETHING_NEW::HIGH
+  assert.equal(r.counts.groups, 6);
+  assert.deepEqual(r.decisions, {
+    kept: { groups: 2, rows: 2 },
+    parked: { groups: 2, rows: 2 },
+    declined: { groups: 1, rows: 1 },
+    skip: { groups: 1, rows: 1 },
+  });
 });
 
-test("apply, blank arg: refused, exit 1, no DB call", async () => {
-  const r = await main({ mode: "apply", arg: "" }, unreachableDeps());
-  assert.equal(r.exitCode, 1);
+test("blank arg: residue is counted with its reason, never decided and never written", async () => {
+  const d = ruleDeps();
+  const r = await main({ mode: "apply", arg: "" }, d);
+  assert.deepEqual(r.residue, { "unrecognised-coverage-class": { groups: 1, rows: 1 } });
+  assert.ok(!d.writes.some((w) => w.ids.includes("x1")));
+});
+
+test("apply, blank arg: writes the rule decisions, and every non-kept decision carries a surface_test that satisfies migration 273", async () => {
+  const d = ruleDeps();
+  const r = await main({ mode: "apply", arg: "" }, d);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.applied, 5); // m1, m2 kept; m3, a1 parked; q1 declined; x1 is residue
+  const byDisposition = {};
+  for (const w of d.writes) (byDisposition[w.patch.disposition] ??= []).push(...w.ids);
+  assert.deepEqual(byDisposition.kept.sort(), ["m1", "m2"]);
+  assert.deepEqual(byDisposition.parked.sort(), ["a1", "m3"]);
+  assert.deepEqual(byDisposition.declined, ["q1"]);
+  for (const w of d.writes) {
+    assert.equal(w.table, "coverage_gap_candidates");
+    if (w.patch.disposition !== "kept") assert.ok(satisfiesSurfaceTestCheck(w.patch.surface_test), `${w.patch.disposition} surface_test`);
+    else assert.equal(w.patch.surface_test, undefined);
+  }
+  const declined = d.writes.find((w) => w.patch.disposition === "declined");
+  assert.match(declined.patch.surface_test.regulations.reason, /HAVE_QUARANTINED/);
+  assert.match(declined.patch.surface_test.regulations.reason, /HIGH/);
+  assert.equal(r.read_back.rows_named_in_ruling, 6);
 });
 
 test("dry: calls applyMain with apply:false, plan passed through unmodified", async () => {
   const calls = [];
   const deps = {
+    readAll: async () => { throw new Error("a committed file must not trigger the rule path read"); },
     applyMain: async (opts) => {
       calls.push(opts);
       return { queue: "coverage-gaps", mode: "dry-run", results: [{ key: "MISSING::EU::ocean", decision: "kept", would_apply: 4 }] };
@@ -48,6 +108,9 @@ test("dry: calls applyMain with apply:false, plan passed through unmodified", as
   };
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/coverage-gaps.ruling.json" }, deps);
   assert.equal(calls[0].apply, false);
+  assert.ok(calls[0].rulingPath, "a committed file still applies through its path");
+  assert.equal(calls[0].ruling, undefined);
+  assert.equal(r.source, "ruling-file");
   assert.equal(r.counts.queue, "coverage-gaps");
   assert.equal(r.applied, 0);
 });

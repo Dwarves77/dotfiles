@@ -17,7 +17,6 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderMarkdown, buildRulingFile } from "./lib/digest-core.mjs";
 import * as ProvisionalSources from "./lib/provisional-sources.mjs";
-import * as CanonicalCandidates from "./lib/canonical-candidates.mjs";
 import * as PortalLinks from "./lib/portal-links.mjs";
 import * as CoverageGaps from "./lib/coverage-gaps.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
@@ -25,13 +24,14 @@ import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-saf
 
 loadLocalEnvFile();
 
+// The canonical-candidates queue is retired (lane G6-GATES, 2026-10-05): canonical-autoverify rules every
+// candidate by rule, so no digest or apply step remains for it.
 // Each entry: the queue module (grouping/recommendation), the apply script this digest names, and the
 // MAINT step (fsi-app/scripts/maintenance/**, .github/workflows/maintenance.yml) the coordinator wires up
 // to run it. MAINT step names are NAMED here as the intended wiring point — this lane's write set does
 // not include maintenance.yml, so wiring the step itself is a follow-up outside this lane (see the report).
 export const QUEUES = [
   { module: ProvisionalSources, applyScript: "scripts/review/apply-provisional-sources.mjs", maintStep: "review-apply-provisional-sources" },
-  { module: CanonicalCandidates, applyScript: "scripts/review/apply-canonical-candidates.mjs", maintStep: "review-apply-canonical-candidates" },
   { module: PortalLinks, applyScript: "scripts/review/apply-portal-links.mjs", maintStep: "review-apply-portal-links" },
   { module: CoverageGaps, applyScript: "scripts/review/apply-coverage-gaps.mjs", maintStep: "review-apply-coverage-gaps" },
 ];
@@ -76,9 +76,7 @@ export async function main({ out, queue, now } = {}, deps) {
     const rows = await readAll(m.TABLE, m.SELECT_COLUMNS, { match: m.matchQueue });
     let sourceHostById;
     if (m === PortalLinks) {
-      const sourceRows = await readAll("sources", "id,url");
-      const { hostOf } = await import("../lib/institution-key.mjs");
-      sourceHostById = new Map(sourceRows.map((s) => [s.id, hostOf(s.url)]));
+      sourceHostById = await PortalLinks.loadSourceHostById(readAll);
     }
     const { markdown, ruling } = buildQueueDigest(entry, rows, { generatedAt, sourceHostById });
     const mdPath = join(out, `${m.QUEUE_ID}.digest.md`);

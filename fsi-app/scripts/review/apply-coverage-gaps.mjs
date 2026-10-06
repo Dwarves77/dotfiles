@@ -25,9 +25,10 @@ export const CITE = Object.freeze({
     "rows and which decision.",
 });
 
-/** @param {{rulingPath: string, apply?: boolean}} opts */
-export async function main({ rulingPath, apply = false } = {}, deps) {
-  const ruling = JSON.parse(readFileSync(rulingPath, "utf8"));
+/** @param {{rulingPath?: string, ruling?: object, apply?: boolean}} opts - `ruling` (an object built by
+ *  rule, scripts/review/lib/rule-ruling.mjs) takes the place of a ruling file when given. */
+export async function main({ rulingPath, ruling: rulingObject, apply = false } = {}, deps) {
+  const ruling = rulingObject ?? JSON.parse(readFileSync(rulingPath, "utf8"));
   return applySimpleQueue({
     module: CoverageGaps,
     ruling,
