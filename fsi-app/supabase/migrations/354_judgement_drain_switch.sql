@@ -122,7 +122,10 @@ BEGIN
       UPDATE g6_354_fixture SET judgement_drain = 'maybe';
     EXCEPTION WHEN check_violation THEN v_check_refused := true;
     END;
-    -- Green: a marked, in-range change passes.
+    -- Green: a marked, in-range change passes. The marker is set HERE, after the last exception sub-block and
+    -- immediately before the write: set_config(..., true) is transaction-local, and a sub-block whose handler
+    -- fires rolls its own set_config back, so a marker set inside Attack 3 would not survive to this UPDATE.
+    PERFORM set_config('app.judgement_drain_writer', 'selfcheck', true);
     UPDATE g6_354_fixture SET judgement_drain = 'on';
     v_marked_ok := (SELECT judgement_drain FROM g6_354_fixture WHERE id = true) = 'on';
 

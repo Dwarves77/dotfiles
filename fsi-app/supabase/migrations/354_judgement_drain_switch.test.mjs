@@ -31,8 +31,8 @@ test("the guard bounces an unmarked change and audits a marked one in system_sta
 
 test("the RPC is the only writer: it alone sets the marker, validates the state, and is granted to service_role", () => {
   const setters = SQL.match(/set_config\('app\.judgement_drain_writer'/g) ?? [];
-  // one in the RPC, one in the self-check fixture attack (the marked green leg)
-  assert.equal(setters.length, 2);
+  // one in the RPC, two in the self-check fixture (the CHECK attack, and the marked green leg)
+  assert.equal(setters.length, 3);
   const rpc = /CREATE OR REPLACE FUNCTION public\.admin_set_judgement_drain\(([\s\S]*?)\$fn\$;/.exec(SQL)[0];
   assert.match(rpc, /set_config\('app\.judgement_drain_writer'/);
   assert.match(rpc, /p_state NOT IN \('off', 'on'\)/);
@@ -70,4 +70,25 @@ test("the self-check never writes the live row: no UPDATE of public.system_state
 test("runs inside one transaction", () => {
   assert.match(SQL, /^\s*BEGIN;/m);
   assert.match(SQL, /^\s*COMMIT;/m);
+});
+
+test("self-check: the marker is set after the last exception sub-block and immediately before the marked UPDATE (a handler rolls a transaction-local set_config back)", () => {
+  const check = SQL.slice(SQL.indexOf("DO $$"));
+  const lastHandler = check.lastIndexOf("EXCEPTION WHEN check_violation");
+  const greenUpdate = check.indexOf("UPDATE g6_354_fixture SET judgement_drain = 'on';", lastHandler);
+  assert.ok(lastHandler > 0 && greenUpdate > lastHandler, "the green UPDATE follows the last exception sub-block");
+  const markers = [...check.matchAll(/set_config\('app\.judgement_drain_writer'/g)].map((m) => m.index);
+  const before = markers.filter((i) => i < greenUpdate).pop();
+  assert.ok(before !== undefined && before > check.indexOf("END;", lastHandler), "a marker set_config sits between the last sub-block's END and the green UPDATE");
+  // and nothing that could roll it back sits between that set_config and the green UPDATE
+  const between = check.slice(before, greenUpdate);
+  assert.doesNotMatch(between, /EXCEPTION WHEN/);
+  assert.doesNotMatch(between, /\bBEGIN\b/);
+});
+
+test("self-check: the CHECK attack no longer relies on a marker set inside its own sub-block surviving it", () => {
+  const attack3 = /-- Attack 3[\s\S]*?END;/.exec(RAW)[0];
+  assert.match(attack3, /set_config\('app\.judgement_drain_writer'/); // needed so the CHECK, not the guard, is what refuses
+  const after = RAW.slice(RAW.indexOf(attack3) + attack3.length);
+  assert.match(after.split("UPDATE g6_354_fixture SET judgement_drain = 'on'")[0], /set_config\('app\.judgement_drain_writer'/);
 });
