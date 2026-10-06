@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fitnessFunction } from './F61-chained-dry-guard-wired.mjs';
+import { fitnessFunction, hasMasterBatchPush } from './F61-chained-dry-guard-wired.mjs';
 import { readFile } from '../lib/file-content.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 
@@ -134,4 +134,51 @@ test('enumerate() finds every .yml file directly under .github/workflows/', () =
   const dir = join(getRepoRoot(), '.github', 'workflows');
   const expectedCount = readdirSync(dir).filter((f) => f.endsWith('.yml')).length;
   assert.equal(fitnessFunction.enumerate().length, expectedCount);
+});
+
+// ── lane G6-DRAIN (2026-10-06): a push to master on a committed batch path is machine-triggered too ────────
+
+const BATCH_PUSH_YML = `
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/turns/theme-briefs/batches/theme-briefs-*.json'
+  workflow_dispatch:
+jobs:
+  x:
+    steps:
+      - run: |
+          node scripts/lib/chained-dry-guard.mjs --event x --requested-mode apply >> "$GITHUB_ENV"
+          mode="apply"
+          if [ "$CHAINED_FORCED_DRY" = "true" ]; then mode="dry"; fi
+`;
+
+test('ATTACK: a batch-path push-to-master workflow that calls the guard WITHOUT --ref is a violation', () => {
+  const out = fitnessFunction.check('.github/workflows/fixture.yml', BATCH_PUSH_YML);
+  assert.equal(out.length, 1);
+  assert.match(out[0].message, /never passes --ref/);
+});
+
+test('CONTROL: the same workflow passing --ref to the guard is clean', () => {
+  const yml = BATCH_PUSH_YML.replace('--requested-mode apply >>', '--requested-mode apply --ref "${{ github.ref }}" >>');
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', yml), []);
+});
+
+test('ATTACK: a batch-path push-to-master workflow that never calls the guard at all is a violation', () => {
+  const yml = BATCH_PUSH_YML.replace(/node scripts\/lib\/chained-dry-guard\.mjs.*\n/, '').replace('if [ "$CHAINED_FORCED_DRY" = "true" ]; then mode="dry"; fi', '');
+  const out = fitnessFunction.check('.github/workflows/fixture.yml', yml);
+  assert.equal(out.length, 2);
+});
+
+test('CONTROL: a push to master filtered on src/ (a build workflow), or a push to a turn/** branch, is not a batch apply path', () => {
+  const build = BATCH_PUSH_YML.replace("fsi-app/scripts/turns/theme-briefs/batches/theme-briefs-*.json", 'fsi-app/src/**').replace(/node scripts\/lib\/chained-dry-guard\.mjs.*\n/, '');
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', build), []);
+  const turn = BATCH_PUSH_YML.replace('branches: [master]', "branches:\n      - 'turn/**'").replace(/node scripts\/lib\/chained-dry-guard\.mjs.*\n/, '');
+  assert.deepEqual(fitnessFunction.check('.github/workflows/fixture.yml', turn), []);
+});
+
+test('hasMasterBatchPush reads the block-list branches form too', () => {
+  const yml = "on:\n  push:\n    branches:\n      - master\n    paths:\n      - 'fsi-app/scripts/x/*.json'\n  workflow_dispatch:\n";
+  assert.equal(hasMasterBatchPush(yml), true);
 });

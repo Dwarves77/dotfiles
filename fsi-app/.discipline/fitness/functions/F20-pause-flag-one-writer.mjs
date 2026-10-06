@@ -13,7 +13,9 @@ import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { isOverridden } from '../lib/file-content.mjs';
 
-const COLS = '(?:global_processing_paused|scrape_cadence)';
+// judgement_drain joined 2026-10-06 (lane G6-DRAIN, migration 354): its ONE writer is the sibling RPC
+// admin_set_judgement_drain, called from the same sanctioned route; a direct write is RED the same way.
+const COLS = '(?:global_processing_paused|scrape_cadence|judgement_drain)';
 // A bareword column followed by ` = ` (assignment OR raw SQL SET), NOT preceded by a quote/word char (so a
 // string-literal read is excluded; a preceding `.` for a property write IS allowed). Plus an inline .update
 // object carrying the column (object-key `:` form).
@@ -58,7 +60,7 @@ export const fitnessFunction = {
     if (isOverridden(matchedLine, 'F20')) return [];
     return [violation(
       line,
-      `Direct write to a pause stop-flag (global_processing_paused / scrape_cadence) outside the sanctioned admin route. These columns have ONE writer: the admin_set_pause_state RPC (migration 201), which declares the guard-trigger marker — call it via supabase.rpc, never a direct .update()/assignment/SQL SET. An unmarked write BOUNCES at runtime anyway; this gate keeps the class out of the codebase. Governing: pause-flag-has-one-writer / RD-23.`,
+      `Direct write to a pause stop-flag (global_processing_paused / scrape_cadence / judgement_drain; the drain's own writer is admin_set_judgement_drain, migration 354) outside the sanctioned admin route. These columns have ONE writer: the admin_set_pause_state RPC (migration 201), which declares the guard-trigger marker; call it via supabase.rpc, never a direct .update()/assignment/SQL SET. An unmarked write BOUNCES at runtime anyway; this gate keeps the class out of the codebase. Governing: pause-flag-has-one-writer / RD-23.`,
     )];
   },
 };

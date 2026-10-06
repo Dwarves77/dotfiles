@@ -7,7 +7,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveChainedRunMode, readScrapeCadence, parseArgs } from "./chained-dry-guard.mjs";
+import { resolveChainedRunMode, readScrapeCadence, parseArgs, isMergeRef } from "./chained-dry-guard.mjs";
 
 // ── resolveChainedRunMode ────────────────────────────────────────────────────────────────────────────
 
@@ -143,4 +143,59 @@ test("parseArgs: --chained with any non-'true' string (including the empty-strin
     assert.equal(r.ok, true);
     assert.equal(r.chained, false);
   }
+});
+
+// ── push to master: the merge of a drain batch PR (lane G6-DRAIN, 2026-10-06, coordinator ruling) ───
+// An apply workflow carries a push trigger on its own committed batch directory. A merge is a machine
+// firing, so under build mode the guard, not the trigger, holds the population ruling.
+
+test("ATTACK: a push to master requesting apply under cadence off MUST resolve dry", () => {
+  for (const ref of ["refs/heads/master", "master", "refs/heads/main"]) {
+    const r = resolveChainedRunMode({ eventName: "push", requestedMode: "apply", cadence: "off", ref });
+    assert.equal(r.mode, "dry", ref);
+    assert.equal(r.forcedDry, true, ref);
+    assert.equal(r.triggerLabel, "push (forced dry: build mode, merge to master)");
+  }
+});
+
+test("RED: a push to master under cadence off never resolves to apply, whatever mode was requested", () => {
+  for (const requested of ["apply", "dry", "plan"]) {
+    const r = resolveChainedRunMode({ eventName: "push", requestedMode: requested, cadence: "off", ref: "refs/heads/master" });
+    assert.notEqual(r.mode, "apply");
+    assert.equal(r.forcedDry, true);
+  }
+});
+
+test("a push to master under a LIVE cadence passes its requested mode through, labelled as a merge", () => {
+  const r = resolveChainedRunMode({ eventName: "push", requestedMode: "apply", cadence: "weekly", ref: "refs/heads/master" });
+  assert.deepEqual(r, { mode: "apply", forcedDry: false, triggerLabel: "push (merge to master)" });
+});
+
+test("a push to an operator request branch (turn/**) or with no ref is unchanged: never forced", () => {
+  assert.deepEqual(
+    resolveChainedRunMode({ eventName: "push", requestedMode: "apply", cadence: "off", ref: "refs/heads/turn/2026-10-06" }),
+    { mode: "apply", forcedDry: false, triggerLabel: "push" },
+  );
+  assert.deepEqual(
+    resolveChainedRunMode({ eventName: "push", requestedMode: "apply", cadence: "off" }),
+    { mode: "apply", forcedDry: false, triggerLabel: "push" },
+  );
+});
+
+test("a ref passed on a workflow_dispatch changes nothing", () => {
+  const r = resolveChainedRunMode({ eventName: "workflow_dispatch", requestedMode: "apply", cadence: "off", ref: "refs/heads/master" });
+  assert.deepEqual(r, { mode: "apply", forcedDry: false, triggerLabel: "workflow_dispatch" });
+});
+
+test("isMergeRef: master and main only, bare or qualified; nothing that merely contains them", () => {
+  assert.equal(isMergeRef("refs/heads/master"), true);
+  assert.equal(isMergeRef("main"), true);
+  for (const bad of ["", undefined, null, "refs/heads/turn/master", "refs/heads/master2", "refs/tags/master", "refs/heads/feature/main"]) {
+    assert.equal(isMergeRef(bad), false, String(bad));
+  }
+});
+
+test("parseArgs: --ref parses through and defaults to empty", () => {
+  assert.equal(parseArgs(["--event", "push", "--requested-mode", "apply", "--ref", "refs/heads/master"]).ref, "refs/heads/master");
+  assert.equal(parseArgs(["--event", "push", "--requested-mode", "apply"]).ref, "");
 });

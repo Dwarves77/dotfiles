@@ -1,0 +1,15 @@
+{
+  "family": "judgement-drain",
+  "registered": "2026-10-06",
+  "registered_by": "lane G6-DRAIN",
+  "governing_files": [
+    "scripts/drain/plan-drain.mjs",
+    "scripts/drain/kinds.mjs",
+    "scripts/drain/switch.mjs",
+    "scripts/drain/artifact.mjs",
+    "scripts/drain/resolve-push-batch.mjs",
+    "../.claude/commands/drain.md",
+    "supabase/migrations/354_judgement_drain_switch.sql"
+  ],
+  "rationale": "judgement-drain (lane G6-DRAIN, 2026-10-06, build plan Stage 6, third bullet: the scheduled drain session is built with its kill switch, off): model judgement runs as an export, a session-authored committed batch file, and an apply by rule; a workflow cannot start a session, so after build a scheduled session is the runtime. This family records one run of that session. plan-drain.mjs is STEP 0 (reads system_state.judgement_drain from migration 354, the emergency stop and an open fleet-budget-halt flag, and exits with drain: off before any other read when any of them halts), then reads each judgement queue through its EXISTING exporter, orders work oldest pending first, one kind per batch, leases the items it hands out (mutation leases, migration 211) and writes a plan; the repo command .claude/commands/drain.md has Sonnet or Haiku sub-agents author each batch file against the existing schema and opens one PR per kind; the merge triggers the existing apply workflow, whose push trigger is gated by scripts/lib/chained-dry-guard.mjs (forced dry while scrape_cadence is off). plan-drain.mjs --finish releases the leases and writes this family's artifact: switch state, kinds, counts, leases held and released, PRs opened. Governing files: the planner and its four helpers (kinds.mjs is the one registry of queues, batch directories and apply workflows; resolve-push-batch.mjs is what each apply workflow's push step runs), the session command, and migration 354 that defines the switch. Paths escape fsi-app/ with ../ for the command, which lives at the repo root, the same escape the downstream-chain and brief-export families use for their workflow files."
+}

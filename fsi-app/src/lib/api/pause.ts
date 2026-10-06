@@ -154,3 +154,55 @@ export async function pausedResponse(supabase: SupabaseClient): Promise<NextResp
   }
   return null;
 }
+
+// ── The judgement drain kill switch (migration 354, lane G6-DRAIN) ──────────────────────────────────────
+// The scheduled judgement drain session (scripts/drain/plan-drain.mjs, .claude/commands/drain.md) is OFF
+// until build is complete. Two independent layers can halt it: system_state.judgement_drain (written only
+// through admin_set_judgement_drain, migration 354) and an open `fleet-budget-halt` integrity_flags row
+// (docs/runbooks/fleet-budget-control.md: until now a charter convention with no code reader). Either
+// halts the drain. Every read here fails CLOSED: an unreadable switch is off, an unreadable halt row is
+// a halt, so a broken read can never start a drain.
+
+export type JudgementDrainState = "off" | "on";
+
+/** Read system_state.judgement_drain. Fails CLOSED to "off" on any read error, a missing column (migration
+ *  354 not applied yet) or an unrecognised value. */
+export async function getJudgementDrain(supabase: SupabaseClient): Promise<JudgementDrainState> {
+  try {
+    const { data, error } = await supabase
+      .from("system_state")
+      .select("judgement_drain")
+      .eq("id", true)
+      .maybeSingle();
+    if (error) return "off";
+    return data?.judgement_drain === "on" ? "on" : "off";
+  } catch {
+    return "off";
+  }
+}
+
+/** True when an open `fleet-budget-halt` integrity_flags row exists (the runbook's STEP 0 query). Fails
+ *  CLOSED: a read error reports a halt, never an all-clear. */
+export async function isFleetBudgetHalted(supabase: SupabaseClient): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("integrity_flags")
+      .select("id")
+      .eq("subject_ref", "fleet-budget-halt")
+      .eq("status", "open")
+      .limit(1);
+    if (error) return true;
+    return Array.isArray(data) && data.length > 0;
+  } catch {
+    return true;
+  }
+}
+
+/** Why the drain may not run, or null when it may. Order: the emergency stop, the fleet halt, the drain
+ *  switch. */
+export async function judgementDrainHaltReason(supabase: SupabaseClient): Promise<string | null> {
+  if ((await getScrapeState(supabase)).emergencyPaused) return "emergency pause is set (global_processing_paused)";
+  if (await isFleetBudgetHalted(supabase)) return "fleet-budget-halt is open (or could not be read)";
+  if ((await getJudgementDrain(supabase)) !== "on") return "judgement_drain is off";
+  return null;
+}

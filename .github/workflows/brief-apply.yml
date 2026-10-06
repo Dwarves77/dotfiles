@@ -13,8 +13,16 @@ name: Brief apply
 # writes -- dry validates + plans + prints, apply passes --execute and runs the full per-item pipeline for
 # real. `briefs_file` names which committed record-briefs-NNN.json this dispatch consumes.
 #
-# BUILD MODE (CLAUDE.md rule 16): workflow_dispatch only, no `schedule:` block; every corpus write here
-# is by explicit dispatch, never a standing cadence.
+# BUILD MODE (CLAUDE.md rule 16): no `schedule:` block; every corpus write here is by explicit dispatch or by
+# the merge of a drain batch PR, never a standing cadence.
+#
+# PUSH TRIGGER (lane G6-DRAIN, 2026-10-06, coordinator ruling): the scheduled judgement drain session commits a
+# record-briefs batch file to a branch and opens a PR; the coordinator's executor merges it; the merge is a push
+# to master touching scripts/turns/record-briefs/batches/record-briefs-*.json, and that push fires this workflow
+# with no human dispatch step. The batch file is found by scripts/drain/resolve-push-batch.mjs (one file per
+# merge, else the run fails loudly). The mode is NOT decided by the trigger: a push to master is machine-
+# triggered, so scripts/lib/chained-dry-guard.mjs (called with --ref) forces dry while scrape_cadence='off' and
+# the requested apply stands only after build. The guard, not the trigger, holds the population ruling.
 #
 # population-report.mjs ALWAYS runs last, in every mode, `if: always()`, the same "a run that ends
 # without measuring its own effect is a defect in the run" posture date-chain.yml already applies.
@@ -30,6 +38,10 @@ name: Brief apply
 # written -- the "Validate briefs_file" step below now catches this before the driver step ever runs).
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/turns/record-briefs/batches/record-briefs-*.json'
   workflow_dispatch:
     inputs:
       mode:
@@ -75,7 +87,7 @@ permissions:
   contents: write
 
 env:
-  RUN_MODE: ${{ inputs.mode }}
+  RUN_MODE: ${{ inputs.mode || 'apply' }} # a push has no inputs: it REQUESTS apply and the chained guard decides
   RUN_BRIEFS_FILE: ${{ inputs.briefs_file }}
   RUN_LIMIT: ${{ inputs.limit }}
   RUN_AFTER_ID: ${{ inputs.after_id }}
@@ -101,6 +113,24 @@ jobs:
       WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # a push resolves the merged batch file against its first parent
+
+      # PUSH ONLY: which record-briefs batch file did this merge add. Zero npm dependency, so it runs before
+      # `npm ci`. PUSH_BATCH_FILE / PUSH_BATCH_COUNT are consumed below; a dispatch never sets them.
+      - name: Resolve the merged batch (push only)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          node scripts/drain/resolve-push-batch.mjs --kind record-briefs --before "${{ github.event.before }}" --sha "${{ github.sha }}" >> "$GITHUB_ENV"
+
+      # CHAINED DRY-RUN GUARD (rule 16, lane G6-DRAIN). A push to master is machine-triggered: this forces
+      # CHAINED_MODE=dry while scrape_cadence='off'. Exports CHAINED_MODE / CHAINED_FORCED_DRY, consumed below.
+      - name: Chained dry-run guard (build mode, rule 16)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "$RUN_MODE" --ref "${{ github.ref }}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -121,8 +151,8 @@ jobs:
       - name: This run's gates
         run: |
           echo "trigger              = ${{ github.event_name }}"
-          echo "mode                 = $RUN_MODE"
-          echo "briefs_file          = $RUN_BRIEFS_FILE"
+          echo "mode                 = ${CHAINED_MODE:-$RUN_MODE} (${CHAINED_TRIGGER_LABEL:-${{ github.event_name }}})"
+          echo "briefs_file          = ${PUSH_BATCH_FILE:-$RUN_BRIEFS_FILE}"
           echo "limit                = ${RUN_LIMIT:-(none, unbounded)}"
           echo "after_id             = ${RUN_AFTER_ID:-(none, start from the beginning)}"
           echo "allow_brief_overwrite = $RUN_ALLOW_BRIEF_OVERWRITE"
@@ -135,9 +165,11 @@ jobs:
           fi
 
       - name: Build driver flags
+        if: ${{ env.PUSH_BATCH_COUNT != '0' }}
         run: |
-          FLAGS="--briefs $RUN_BRIEFS_FILE"
-          if [ "$RUN_MODE" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
+          RUN_IO_BUDGET_MB="${RUN_IO_BUDGET_MB:-400}" # a push has no inputs: the workflow_dispatch default
+          FLAGS="--briefs ${PUSH_BATCH_FILE:-$RUN_BRIEFS_FILE}"
+          if [ "${CHAINED_MODE:-$RUN_MODE}" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
           if [ -n "$RUN_LIMIT" ]; then FLAGS="$FLAGS --limit $RUN_LIMIT"; fi
           if [ -n "$RUN_AFTER_ID" ]; then FLAGS="$FLAGS --after-id $RUN_AFTER_ID"; fi
           if [ "$RUN_ALLOW_BRIEF_OVERWRITE" = "true" ]; then FLAGS="$FLAGS --allow-brief-overwrite"; fi
@@ -153,11 +185,12 @@ jobs:
       # earliest possible surface for the CI dispatcher reading the Action's own log, not a replacement
       # for that guard.
       - name: Validate briefs_file
+        if: ${{ env.PUSH_BATCH_COUNT != '0' }}
         run: |
           node -e '
             const { resolve } = require("node:path");
             const { existsSync, readFileSync } = require("node:fs");
-            const given = process.env.RUN_BRIEFS_FILE;
+            const given = process.env.PUSH_BATCH_FILE || process.env.RUN_BRIEFS_FILE;
             const resolved = resolve(given);
             if (!existsSync(resolved)) {
               console.error(`::error::briefs_file does not exist. Path as given: ${given} ; resolved absolute path: ${resolved} (this job runs with working-directory: fsi-app -- briefs_file must be the fsi-app-relative path, e.g. scripts/turns/record-briefs/record-briefs-001.json, never fsi-app/scripts/turns/record-briefs/record-briefs-001.json)`);
@@ -179,6 +212,7 @@ jobs:
           '
 
       - name: apply-record-briefs
+        if: ${{ env.PUSH_BATCH_COUNT != '0' }}
         run: |
           set -o pipefail
           node scripts/turns/apply-record-briefs.mjs $DRIVER_FLAGS | tee /tmp/brief-apply.log
