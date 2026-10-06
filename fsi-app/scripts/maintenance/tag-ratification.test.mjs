@@ -260,3 +260,22 @@ test("auto, dry: D15 20-row sample cap -- more than 20 in one bucket still count
   assert.equal(r.counts.no_derivable_tags_count, 25, "the full count is never truncated");
   assert.equal(r.counts.no_derivable_tags_sample.length, 20, "the sample caps at 20 rows");
 });
+
+// ── lane G7-CORR: the production deps carry the correction reader (wiring proof, red against the old file) ──────────
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+test("G7-CORR: the CLI buildDeps wires readCorrections to the shared item-corrections reader, so a removed tag is planned around", () => {
+  const src = readFileSync(fileURLToPath(new URL("./tag-ratification.mjs", import.meta.url)), "utf8");
+  assert.match(src, /import \{ readItemCorrections \} from "\.\.\/\.\.\/src\/lib\/corrections\/item-corrections\.mjs"/);
+  assert.match(src, /readCorrections: \(id\) => readItemCorrections\(sb, id\)/);
+});
+
+test("G7-CORR: main() with readCorrections wired reports a removed tag as blocked and never writes it", async () => {
+  const d = autoDeps();
+  d.readCorrections = async (itemId) => [{ id: "c1", item_id: itemId, target_kind: "tag", target_ref: "topic_tags:emissions", op: "remove", created_at: "2026-10-06T00:00:00Z", revoked_at: null }];
+  const r = await main({ mode: "apply" }, d);
+  assert.equal(r.exitCode, 0);
+  const writes = d.calls.filter((c) => c[0] === "updateItem");
+  for (const w of writes) assert.ok(!(w[2].topic_tags ?? []).includes("emissions"), "the admin-removed tag is never in a write");
+});

@@ -76,6 +76,8 @@ import { createHash } from "node:crypto";
 import { readAll, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
 import { planLinkWrites } from "../../src/lib/entities/entity-resolve.mjs";
 import { partitionLineageWrites } from "../../src/lib/entities/lineage-backfill.mjs";
+// lane G7-CORR: an admin-removed connection (item_corrections tombstone, migration 356) is never re-created.
+import { readAllCorrections, tombstonedPairKeys } from "../../src/lib/corrections/item-corrections.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 
@@ -172,6 +174,7 @@ async function main() {
     loadExistingEdgesByPair(),
   ]);
 
+  const tombstones = tombstonedPairKeys(await readAllCorrections(sb));
   const snap = snapshotEdgeState(existingEdgeRows);
   console.log(`[lineage-backfill] PRIOR STATE (rule-015 snapshot, before any write): ${snap.count} item_cross_references rows, md5=${snap.md5}`);
   const typedAlready = existingEdgeRows.filter((r) => r.relationship !== "related").length;
@@ -185,7 +188,7 @@ async function main() {
   const relationshipCounts = {};
   const allInsertRows = [];
   const allUpgrades = [];
-  let totalSkippedForeign = 0, totalConflicts = 0, totalUnchanged = 0;
+  let totalSkippedForeign = 0, totalConflicts = 0, totalUnchanged = 0, totalSkippedTombstoned = 0;
   let flagsOpened = 0, flagsAlreadyOpen = 0;
 
   for (const item of targetItems) {
@@ -197,12 +200,13 @@ async function main() {
     // THE SAME pure planner the runtime calls — no reimplemented typing.
     const writes = planLinkWrites(content, corpus, item.id);
 
-    const { inserts, upgrades, skippedForeign, conflicts, unchanged } = partitionLineageWrites(writes, existingEdgesByPair);
+    const { inserts, upgrades, skippedForeign, conflicts, unchanged, skippedTombstoned } = partitionLineageWrites(writes, existingEdgesByPair, tombstones);
     for (const r of inserts) { relationshipCounts[r.relationship] = (relationshipCounts[r.relationship] || 0) + 1; allInsertRows.push(r); }
     for (const u of upgrades) { relationshipCounts[u.relationship] = (relationshipCounts[u.relationship] || 0) + 1; allUpgrades.push(u); }
     totalSkippedForeign += skippedForeign.length;
     totalConflicts += conflicts.length;
     totalUnchanged += unchanged.length;
+    totalSkippedTombstoned += skippedTombstoned.length;
 
     for (const w of writes) {
       if (w.table !== "integrity_flags") continue;
@@ -216,7 +220,7 @@ async function main() {
 
   console.log(`\n[lineage-backfill] items scanned: ${scanned}; with content (>=20 chars): ${withContent}; skipped (short/no content): ${skippedShort}`);
   console.log(`[lineage-backfill] typed edges by relationship (insert+upgrade combined): ${JSON.stringify(relationshipCounts)}`);
-  console.log(`[lineage-backfill] edges: ${allInsertRows.length} to insert, ${allUpgrades.length} to upgrade, ${totalSkippedForeign} skipped (manual origin, or generic claim on a foreign row: never touched), ${totalConflicts} conflict(s) (foreign row already typed differently: reported, not written), ${totalUnchanged} already correct (no-op)`);
+  console.log(`[lineage-backfill] edges: ${allInsertRows.length} to insert, ${allUpgrades.length} to upgrade, ${totalSkippedForeign} skipped (manual origin, or generic claim on a foreign row: never touched), ${totalConflicts} conflict(s) (foreign row already typed differently: reported, not written), ${totalUnchanged} already correct (no-op), ${totalSkippedTombstoned} skipped (admin-removed connection: never re-created)`);
   console.log(`[lineage-backfill] integrity_flags: ${flagsOpened} to open (surface + lineage-gap combined), ${flagsAlreadyOpen} already open`);
   console.log(`[lineage-backfill] prior-state snapshot: ${snap.count} rows, md5=${snap.md5}`);
 

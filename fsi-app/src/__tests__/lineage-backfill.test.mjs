@@ -282,3 +282,20 @@ test("G7-CORR: no tombstones argument keeps the pre-correction behaviour (skippe
   assert.equal(r.inserts.length, 1);
   assert.deepEqual(r.skippedTombstoned, []);
 });
+
+// ── lane G7-CORR: the backfill SCRIPT is wired to the tombstones (static: it imports an npm client at module scope) ──
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const BACKFILL_SCRIPT = readFileSync(fileURLToPath(new URL("../../scripts/entities/backfill-lineage-edges.mjs", import.meta.url)), "utf8");
+
+test("G7-CORR: backfill-lineage-edges.mjs reads the tombstones once and passes them as partitionLineageWrites' third argument", () => {
+  assert.match(BACKFILL_SCRIPT, /import \{ readAllCorrections, tombstonedPairKeys \} from "\.\.\/\.\.\/src\/lib\/corrections\/item-corrections\.mjs"/);
+  assert.match(BACKFILL_SCRIPT, /const tombstones = tombstonedPairKeys\(await readAllCorrections\(sb\)\)/);
+  assert.match(BACKFILL_SCRIPT, /partitionLineageWrites\(writes, existingEdgesByPair, tombstones\)/);
+});
+
+test("G7-CORR: the backfill report counts the skipped tombstoned pairs instead of hiding them", () => {
+  assert.match(BACKFILL_SCRIPT, /totalSkippedTombstoned \+= skippedTombstoned\.length/);
+  assert.match(BACKFILL_SCRIPT, /admin-removed connection: never re-created/);
+});
