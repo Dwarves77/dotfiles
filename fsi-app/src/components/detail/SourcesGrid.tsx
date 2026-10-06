@@ -68,14 +68,42 @@ export function sourceEntriesOf(r: Resource): SourceRow[] {
   // Lane P2 (coordinator item 5): every OTHER entry is matched to a registered source the item cites
   // (intelligence_item_citations) by canonical url, the same canonicalizeUrl the registry uses. A match shows
   // that source's customer tier and bias; an entry with no match keeps exactly what the brief says.
+  //
+  // Lane P3 (2026-10-05, rule 18: the registry rating is what the surface shows). An entry's meta text carries
+  // the brief's own tier wording ("Tier 1 - Federal statistical release"), parsed from its source line. When a
+  // registry tier exists for the entry (the item's own source, or a cited registered source) the chip shows
+  // THAT tier, and the brief's tier wording is dropped from the meta text so one source never shows two tiers
+  // (the rest of the meta, source type, issuer and date, stays). When no registry tier exists the entry is
+  // exactly what it was: the brief's text and the tier parsed beside it, which agree with each other.
   const cited = r.citedSources ?? [];
   const primary = primaryEntryIndex(parsedList, r);
   return parsedList.map((e, i): SourceRow => {
-    if (i === primary) return { ...e, tier: typeof r.sourceTier === "number" ? r.sourceTier : e.tier, biasTags: r.biasTags };
+    if (i === primary) {
+      return typeof r.sourceTier === "number"
+        ? { ...e, tier: r.sourceTier, meta: dropParsedTierPhrase(e.meta), biasTags: r.biasTags }
+        : { ...e, biasTags: r.biasTags };
+    }
     const hit = cited.find((c) => sameUrl(c.url, e.url));
     if (!hit) return e;
-    return { ...e, tier: hit.tier ?? e.tier, biasTags: hit.biasTags.length > 0 ? hit.biasTags : undefined };
+    const biasTags = hit.biasTags.length > 0 ? hit.biasTags : undefined;
+    return typeof hit.tier === "number"
+      ? { ...e, tier: hit.tier, meta: dropParsedTierPhrase(e.meta), biasTags }
+      : { ...e, biasTags };
   });
+}
+
+// "Tier 2", "[T2]", "(Tier 2)" or "T2" at the head of a meta segment, with the dash or colon after it.
+// The dash class is written as escapes so no dash glyph sits in this source (rule 022).
+const TIER_PHRASE_RE = /^[\[(]?\s*(?:tier\s*|T)\d\b\s*[\])]?\s*[-\u2013\u2014:]?\s*/i;
+
+/** The meta text with the brief's own parsed tier wording removed from each segment (segments are joined
+ *  by " · " in the parser); a segment that was only the tier wording disappears. Pure. */
+function dropParsedTierPhrase(meta: string): string {
+  return String(meta ?? "")
+    .split(" · ")
+    .map((seg) => seg.replace(TIER_PHRASE_RE, "").trim())
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function sameUrl(a: string | null | undefined, b: string | null | undefined): boolean {

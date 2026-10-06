@@ -16,7 +16,8 @@
 // The empty state asserts the section renders NOTHING (the "never break existing display" rule).
 
 import { fileURLToPath } from 'node:url';
-import { runUxSpec } from './ux-harness.mjs';
+import { runUxSpec, MOBILE_VIEWPORT } from './ux-harness.mjs';
+import { bundleEntry, newSmokePage, mountBundle } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -61,6 +62,47 @@ window.__mount = (props) => {
   root.render(React.createElement(ThemeStripView, props));
 };
 `;
+
+// Lane P3 (2026-10-05): the strip as the list pages mount it. ThemeStripView is a flex-column item of the list
+// shell (ListSurfaceShell: a column with minWidth 0 inside a minmax(0,1fr) grid), and the app scrolls inside
+// <main> with overflow-x auto. Mounted bare, the strip never reproduced the live defect (<main> scrolling
+// sideways at 375, scrollWidth 1196), because the defect needs the strip to be a flex-column item. This entry
+// mounts it in that exact nesting so the guard below can measure <main>.
+const SHELL_ENTRY = `${css}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ThemeStripView } from '@/components/shell/ThemeStripView';
+
+let root = null;
+window.__mount = (props) => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('main', { id: 'smoke-main', style: { overflowX: 'auto', height: '100vh' } },
+      React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr)' } },
+        React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 } },
+          React.createElement(ThemeStripView, props)))));
+};
+`;
+
+/** <main> must never scroll sideways at the phone width: the strip scrolls inside itself. */
+async function measureMainOverflow(browser, props) {
+  const bundle = await bundleEntry(SHELL_ENTRY, { alias: ALIAS });
+  const page = await newSmokePage(browser);
+  try {
+    await page.setViewportSize({ width: MOBILE_VIEWPORT.width, height: MOBILE_VIEWPORT.height });
+    await mountBundle(page, bundle, '__mount', props);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+    await page.waitForTimeout(50);
+    return await page.evaluate(() => {
+      const main = document.getElementById('smoke-main');
+      const strip = document.querySelector('[data-guard-strip]');
+      return { mainScroll: main.scrollWidth, mainClient: main.clientWidth, stripClient: strip ? strip.clientWidth : 0, stripScroll: strip ? strip.scrollWidth : 0 };
+    });
+  } finally {
+    await page.close();
+  }
+}
 
 const LONG_UNBROKEN = 'euregulationonpackagingandpackagingwastecomprehensiverevisiontwentytwentysix1234567890';
 
@@ -176,5 +218,13 @@ export async function runSmoke(browser) {
       { label: 'extreme', props: { chips: [CHIP(1, true), CHIP(2, true), CHIP(3), CHIP(4), CHIP(5), CHIP(6)] }, expectTitles: 6 },
     ],
   });
-  return { checks: section.checks + strip.checks, failures: [...section.failures, ...strip.failures] };
+  const failures = [...section.failures, ...strip.failures];
+  const m = await measureMainOverflow(browser, { chips: [CHIP(1), CHIP(2), CHIP(3), CHIP(4), CHIP(5), CHIP(6)] });
+  if (m.mainScroll > m.mainClient) {
+    failures.push(`theme-strip:in-shell@${MOBILE_VIEWPORT.width}: <main> scrolls sideways (scrollWidth ${m.mainScroll} > clientWidth ${m.mainClient}); the strip must contain its own overflow`);
+  }
+  if (m.stripScroll <= m.stripClient) {
+    failures.push(`theme-strip:in-shell@${MOBILE_VIEWPORT.width}: the strip does not scroll inside itself (scrollWidth ${m.stripScroll} <= clientWidth ${m.stripClient}), so its cards are clipped or the measurement is empty`);
+  }
+  return { checks: section.checks + strip.checks + 2, failures };
 }

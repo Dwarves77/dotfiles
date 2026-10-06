@@ -31,6 +31,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { InferenceSection, type InferenceSectionData } from "@/components/detail/InferenceSection";
 import { buildIntersectionView } from "@/lib/connections/connection-view-model.mjs";
+import { cleanPreContractBriefText } from "@/lib/research/theme-brief-text.mjs";
 import type { buildThemeAnalysisView } from "@/lib/research/theme-brief.mjs";
 import type { ItemConnection } from "@/types/resource";
 
@@ -159,11 +160,16 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
   const subtitle = `${theme.memberCount} ${theme.memberCount === 1 ? "item" : "items"}${pageNames ? ` across ${pageNames}` : ""}`;
   const s = theme.sections;
   const disclosure = s && (s.connection || s.gaps) ? s : null;
+  // Lane P3: a brief written BEFORE the structured-sections contract (no sections) carries the generator's
+  // working numbers and raw tag slugs in its prose; one pure pass (theme-brief-text.mjs) removes exactly those.
+  // A brief with sections is rendered as written, unchanged.
+  const legacy = !s;
+  const shownTitle = legacy && theme.title ? cleanPreContractBriefText(theme.title) : theme.title;
   return (
     <DetailSubSection title="Theme analysis" subtitle={subtitle} first={first}>
       {theme.hasBrief && theme.title && (
         <p data-guard-title style={{ ...ROW_TITLE, fontSize: "var(--fs-14)", fontWeight: 600 }}>
-          {theme.title}
+          {shownTitle}
         </p>
       )}
       {theme.hasBrief && theme.stale && (
@@ -199,7 +205,7 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
         </>
       ) : theme.hasBrief && theme.briefMd ? (
         <div style={{ marginTop: 10 }}>
-          <GfmSection markdown={theme.briefMd} />
+          <GfmSection markdown={cleanPreContractBriefText(theme.briefMd)} />
         </div>
       ) : null}
       {!theme.hasBrief && theme.absence && (

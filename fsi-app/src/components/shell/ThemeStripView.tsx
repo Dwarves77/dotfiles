@@ -14,7 +14,13 @@ type Chip = ReturnType<typeof buildThemeChips>[number];
 export function ThemeStripView({ chips }: { chips: Chip[] }) {
   if (chips.length === 0) return null;
   return (
-    <section style={{ maxWidth: 1180, margin: "0 auto", padding: "18px 36px 0" }}>
+    <section
+      // Lane P3: this section is a flex-column item of the list shell with auto side margins, and an item
+      // with auto cross-axis margins is NOT stretched: it sized to its content (the six 260px cards, 1108px)
+      // and pushed <main> to scroll sideways at 375. width 100% + minWidth 0 + border-box makes the strip
+      // take the column it sits in, so the cards scroll inside data-guard-strip, never the page.
+      style={{ maxWidth: 1180, width: "100%", minWidth: 0, boxSizing: "border-box", margin: "0 auto", padding: "18px 36px 0" }}
+    >
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
         <h2
           style={{
@@ -30,12 +36,19 @@ export function ThemeStripView({ chips }: { chips: Chip[] }) {
         </h2>
         <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>{chips.length} active</span>
       </div>
-      <div data-guard-strip style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+      <div
+        data-guard-strip
+        role="region"
+        aria-label="Themes across the corpus, scroll sideways for more"
+        tabIndex={0}
+        style={{ display: "flex", gap: 12, overflowX: "auto", maxWidth: "100%", paddingBottom: 4, scrollSnapType: "x proximity" }}
+      >
         {chips.map((c) => (
           <div
             key={c.themeId}
             style={{
               flex: "0 0 260px",
+              scrollSnapAlign: "start",
               border: "1px solid var(--color-border)",
               borderRadius: 8,
               padding: "10px 12px",

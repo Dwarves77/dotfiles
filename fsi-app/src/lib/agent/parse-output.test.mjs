@@ -155,3 +155,45 @@ test("L40: no row contains the span; the URL match applies as before (criterion 
   const [unmatched] = crossLinkClaimSources([fact("https://elsewhere.example/q")], rows);
   assert.equal(unmatched.search_result_id, null);
 });
+
+// Lane P3 (2026-10-05): a ledger block that does not parse must still never reach the stored body.
+// Fixture shape taken from the live item whose last brief section rendered the ledger as text: sections
+// 1 to 7, a horizontal rule, then the ledger block (invalid JSON: a stray token inside a record), then
+// the YAML frontmatter.
+const LEDGER_OPEN = "<<<CLAIM_PROVENANCE_LEDGER";
+const LEDGER_CLOSE = "CLAIM_PROVENANCE_LEDGER>>>";
+function ledgerOutput(ledgerInner, { close = true } = {}) {
+  const fields = Object.entries(BASE_FIELDS).map(([k, v]) => `${k}: ${v}`).join("\n");
+  const body = "# 1. Summary\n\nFirst section prose.\n\n# 7. Talking points\n\nLast section prose. |\n\n---\n\n";
+  return `${body}${LEDGER_OPEN}\n${ledgerInner}\n${close ? LEDGER_CLOSE : ""}\n---\n${fields}\n---\n`;
+}
+const VALID_LEDGER = '[{"section":"1","claim_text":"A claim.","claim_kind":"ANALYSIS","source_span":null,"source_id":null,"source_url":null,"slot_key":null}]';
+const BROKEN_JSON_LEDGER = '[{"section":"1","claim_text":"A claim."  "claim_kind":"ANALYSIS","slot_key":null}]';
+const FACT_NO_SPAN_LEDGER = '[{"section":"1","claim_text":"A fact.","claim_kind":"FACT","source_span":null,"source_id":null,"source_url":"http://x.example/a","slot_key":null}]';
+
+test("ledger: a valid ledger is stripped from the body and its claims returned (unchanged behaviour)", () => {
+  const out = parseAgentOutput(ledgerOutput(VALID_LEDGER));
+  assert.equal(out.claims.length, 1);
+  assert.ok(!out.body.includes("CLAIM_PROVENANCE_LEDGER"));
+});
+
+test("ledger: invalid JSON inside the block never leaves the block in the body", () => {
+  const out = parseAgentOutput(ledgerOutput(BROKEN_JSON_LEDGER));
+  assert.ok(!out.body.includes("CLAIM_PROVENANCE_LEDGER"), "ledger text leaked into the stored body");
+  assert.ok(!out.body.includes("claim_kind"));
+  assert.match(out.body, /Last section prose/);
+  assert.deepEqual(out.claims, []);
+});
+
+test("ledger: a FACT record with no span (strict parse throws) never leaves the block in the body", () => {
+  const out = parseAgentOutput(ledgerOutput(FACT_NO_SPAN_LEDGER));
+  assert.ok(!out.body.includes("CLAIM_PROVENANCE_LEDGER"));
+  assert.ok(!out.body.includes("claim_text"));
+});
+
+test("ledger: an opener that never closed (output cut off mid-ledger) is removed too", () => {
+  const out = parseAgentOutput(ledgerOutput('[{"section":"1","claim_text":"cut off', { close: false }));
+  assert.ok(!out.body.includes("CLAIM_PROVENANCE_LEDGER"));
+  assert.ok(!out.body.includes("cut off"));
+  assert.match(out.body, /Last section prose/);
+});

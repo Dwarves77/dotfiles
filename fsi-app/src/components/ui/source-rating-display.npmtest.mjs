@@ -345,3 +345,36 @@ test("a matrix fact with an unrated or unsourced source shows the Absence part, 
     assert.doesNotMatch(markup, /title="Tier \d/);
   }
 });
+
+// Lane P3 (2026-10-05): which fact-card kinds intentionally carry no tier. Only the inference card (ANALYSIS,
+// "not citable"). Every FACT and LEGAL card shows a tier square or the Absence part, whatever its citation shape.
+test("every FACT and LEGAL card shows a tier or the Absence part; only the inference card shows neither", () => {
+  const SOURCED = `FACT: "${CLAIM}" *Source: Regulation (EU) 2023/956, European Parliament, 2023. https://eur-lex.europa.eu/eli/reg/2023/956/oj.*`;
+  const BARE_URL = `FACT: "${CLAIM}" Source: https://eur-lex.europa.eu/eli/reg/2023/956/oj`;
+  const LEGAL = "*Legal Confirmation Required:* Confirm with counsel whether the obligation attaches to the workspace.";
+  const INFERENCES = [
+    "*Analytical inference:* The Regulation will likely extend to downstream goods.",
+    "*Industry interpretation:* Operators read the scope as covering all importers.",
+    "*Operational implication:* Budget for certificate purchases from 2026.",
+  ];
+  const shapes = [
+    { md: SOURCED, expect: "slot" },
+    { md: BARE_URL, expect: "slot" },
+    { md: LEGAL, expect: "slot" },
+    ...INFERENCES.map((md) => ({ md, expect: "none" })),
+  ];
+  for (const { md, expect } of shapes) {
+    const models = M.deriveFactCardModels(M.classifyParagraph(md));
+    assert.ok(models.length > 0, `no card derived for: ${md.slice(0, 40)}`);
+    for (const model of models) {
+      const markup = html(h(M.FactCard, { model }));
+      const hasTier = /title="Tier \d - provenance/.test(markup);
+      const hasAbsence = /data-part-slot="tier-absence"/.test(markup);
+      if (expect === "slot") assert.ok(hasTier || hasAbsence, `a ${model.kind} card showed neither a tier nor the Absence part`);
+      else {
+        assert.ok(!hasTier && !hasAbsence, "an inference card must not draw a tier slot");
+        assert.match(markup, /not citable/);
+      }
+    }
+  }
+});
