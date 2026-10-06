@@ -489,8 +489,8 @@ test("runPropagationDrain: processedEvents carries event id, table, pk, entity a
   });
   const result = await runPropagationDrain(sb, { caller: "test", mode: "dry" });
   assert.deepEqual(result.processedEvents, [
-    { eventId: 1, tableName: "derived_values", rowPk: "dv-1", entityId: "cl:jurisdiction:aaaaaaaaaaaaaaaa", changeKind: "update", occurredAt: "2026-09-01T00:00:00Z" },
-    { eventId: 2, tableName: "emission_factors", rowPk: "ef-1", entityId: null, changeKind: "supersede", occurredAt: "2026-09-01T00:00:01Z" },
+    { eventId: 1, tableName: "derived_values", rowPk: "dv-1", entityId: "cl:jurisdiction:aaaaaaaaaaaaaaaa", changeKind: "update", occurredAt: "2026-09-01T00:00:00Z", newRow: null },
+    { eventId: 2, tableName: "emission_factors", rowPk: "ef-1", entityId: null, changeKind: "supersede", occurredAt: "2026-09-01T00:00:01Z", newRow: null },
   ]);
   assert.equal(result.eventsDrained, 0);
 });
@@ -513,6 +513,19 @@ test("runPropagationDrain: in apply mode only an event that was invalidated and 
   assert.deepEqual(result.processedEvents.map((e) => e.eventId), [1]);
   assert.equal(result.eventsDrained, 1);
   assert.equal(result.errors.length, 1);
+});
+
+test("runPropagationDrain (lane L4-D): a processed event carries the changed row the outbox recorded, so a signpost predicate can read it", async () => {
+  const sb = fakeClient({
+    tables: {
+      propagation_events: [
+        { event_id: 7, table_name: "derived_values", row_pk: "dv-7", entity_id: "cl:instrument:00000000000000aa", change_kind: "update", occurred_at: "2026-09-01T00:00:00Z", new_row: { value: 12.5 }, drained_at: null },
+      ],
+    },
+    rpcHandlers: { invalidate_dependents: invalidateHandler({}) },
+  });
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "dry" });
+  assert.deepEqual(result.processedEvents[0].newRow, { value: 12.5 });
 });
 
 test("runPropagationDrain: an empty queue has an empty processedEvents list", async () => {

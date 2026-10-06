@@ -24,6 +24,14 @@
 // OFF. (3) --apply on the command line. Writes go through scripts/lib/db.mjs's guardedInsert (never a
 // bare INSERT) -- rule 015.
 //
+// SIGNPOSTS (lane L4-D, 2026-10-05, ADR-044 decision 4). When an assessment's horizon read (R1 or R3)
+// anchors on a dated forward event and the item has an instrument entity, assess.mjs's assessSignposts
+// states that expectation as a machine-watchable signpost; this producer writes it (an entities row of kind
+// signpost, then the signposts row) through the guarded path, after the assessment row it belongs to. Dry
+// by default like the assessment write; idempotent (the entity id is minted from item id plus forward event
+// id, existing signposts are read first). The propagation drain fires and scores them
+// (src/lib/learning/prediction-scoring.mjs).
+//
 // NO LLM CALL. assess.mjs is pure; this producer's own I/O (reading intelligence_items/sources/
 // item_forward_events, writing research_assessments) is the only side effect it performs.
 //
@@ -44,6 +52,7 @@
 import { resolve as resolvePath, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assessItem, extractDoiCandidate } from "../../../src/lib/research/assess.mjs";
+import { entityId } from "../../../src/lib/entities/entity-id.mjs";
 import { fetchWorkByDoi } from "../../research/openalex-client.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
@@ -88,7 +97,8 @@ const CITE = {
     "Lane W2-R (operator ruling 2026-10-01, 'Why is research have a design but not a build? Fix this.'): " +
     "the research_assessments row is computed deterministically from the item's own recorded facts, " +
     "forward events, and source tier (assess.mjs, pure, no LLM) and written through the guarded path per " +
-    "docs/specs/03-research.md's assessment model.",
+    "docs/specs/03-research.md's assessment model. Lane L4-D (ADR-044 decision 4): a dated expectation the " +
+    "assessment states is written as one signposts row (and its signpost entity), idempotent on a stable seed.",
 };
 
 /**
@@ -107,6 +117,8 @@ export function toAssessmentInput(row) {
     citationCount: typeof row.citation_count === "number" ? row.citation_count : null,
     biasTags: row.bias_tags ?? [],
     forwardEvents: row.forward_events ?? [],
+    // Lane L4-D: the entity the item is about (migration 283's instrument_entity_id). A signpost watches it.
+    entityId: row.instrument_entity_id ?? null,
   };
 }
 
@@ -234,6 +246,10 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
   let written = 0;
   let unchanged = 0;
   const plan = [];
+  // Lane L4-D: signposts the assessments state. One entry per (item, dated forward event); `assessmentId`
+  // is the row the signpost belongs to: the current row for an unchanged assessment, the inserted row for a
+  // new or superseding one (null in dry mode, and null when the write handed back no id).
+  const signpostCandidates = [];
 
   for (const input of candidates) {
     const sourceRecords = await resolveOpenAlexSourceRecords(input, deps.openAlexDeps ?? {});
@@ -243,6 +259,7 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
     if (!hasChanged(current, computed)) {
       unchanged += 1;
       perItem.push({ id: input.id, outcome: "unchanged", verdict: null, error: null });
+      for (const sp of computed.signposts ?? []) signpostCandidates.push({ sp, assessmentId: current?.id ?? null });
       continue;
     }
     const row = toRow(computed, { supersedes: current?.id ?? null });
@@ -251,20 +268,63 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
       ? `assessed (${computed.horizon.rule}, ${computed.horizon.band}, ${computed.statusToken})`
       : `refused (${computed.statusToken})`;
     perItem.push({ id: input.id, outcome, verdict: computed.refusalReason, error: null });
+    let assessmentId = null;
     if (mode === "apply" && deps.writeFn) {
-      await deps.writeFn(row, current?.id ?? null);
+      const inserted = await deps.writeFn(row, current?.id ?? null);
       written += 1;
+      assessmentId = inserted?.id ?? null;
+    }
+    for (const sp of computed.signposts ?? []) signpostCandidates.push({ sp, assessmentId });
+  }
+
+  // Signposts: one signposts row per dated expectation, idempotent on the entity id minted from the
+  // expectation's stable seed (item id plus forward event id). Existing ones are read first, so a re-run
+  // writes none and a signpost lost to a crash after its assessment landed is planned again.
+  const signpostPlan = [];
+  const seen = new Set();
+  for (const { sp, assessmentId } of signpostCandidates) {
+    const id = entityId("signpost", sp.seed);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    signpostPlan.push({
+      entity_id: id,
+      canonical_name: sp.label,
+      assessment_id: assessmentId,
+      watches: sp.watches,
+      predicate: sp.predicate,
+      direction: sp.direction,
+    });
+  }
+  const existing = signpostPlan.length && deps.readExistingSignposts
+    ? new Set(await deps.readExistingSignposts(signpostPlan.map((p) => p.entity_id)))
+    : new Set();
+  const toWrite = signpostPlan.filter((p) => !existing.has(p.entity_id));
+  let signpostsWritten = 0;
+  let signpostsSkippedNoAssessmentId = 0;
+  if (mode === "apply" && deps.signpostFn) {
+    for (const p of toWrite) {
+      if (!p.assessment_id) {
+        signpostsSkippedNoAssessmentId += 1;
+        continue;
+      }
+      await deps.signpostFn(p);
+      signpostsWritten += 1;
     }
   }
 
   return {
     perItem,
     plan,
+    signpostPlan: toWrite,
     metrics: {
       candidates: candidates.length,
       unchanged,
       planned: plan.length,
       written: mode === "apply" ? written : 0,
+      signposts_planned: toWrite.length,
+      signposts_existing: signpostPlan.length - toWrite.length,
+      signposts_written: signpostsWritten,
+      signposts_skipped_no_assessment_id: signpostsSkippedNoAssessmentId,
     },
   };
 }
@@ -329,7 +389,7 @@ export async function fetchLiveCandidates({ limit, client } = {}) {
 
   const { data: items, error } = await sb
     .from("intelligence_items")
-    .select("id,item_type,domain,added_date,title,what_is_it,why_matters,full_brief,source_id")
+    .select("id,item_type,domain,added_date,title,what_is_it,why_matters,full_brief,source_id,instrument_entity_id")
     .or(RESEARCH_CANDIDATE_OR)
     .eq("is_archived", false)
     .eq("provenance_status", "verified");
@@ -445,13 +505,35 @@ async function main() {
   }
 
   let writeFn;
+  let signpostFn;
+  let readExistingSignposts;
+  if (live && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // Read-only: which of the signposts this run would write already exist (idempotent re-run).
+    const { readAllByIds } = await import("../../lib/db.mjs");
+    readExistingSignposts = async (ids) => (await readAllByIds("signposts", "entity_id", ids, { idColumn: "entity_id", manyPerId: false })).map((r) => r.entity_id);
+  }
   if (decision.canWrite) {
-    const { guardedInsert, guardedUpdateByIds } = await import("../../lib/db.mjs");
+    const { guardedInsert, guardedUpdateByIds, guardedUpsert } = await import("../../lib/db.mjs");
     writeFn = async (row, currentId) => {
       if (currentId) {
         await guardedUpdateByIds("research_assessments", [currentId], { is_current: false }, { cite: CITE });
       }
-      await guardedInsert("research_assessments", row, { cite: CITE });
+      // Returns the inserted row so a signpost can name the assessment it belongs to.
+      const { inserted } = await guardedInsert("research_assessments", row, { cite: CITE });
+      return inserted;
+    };
+    // A signpost is an entity (kind signpost, signposts.entity_id references entities) plus its attribute row.
+    signpostFn = async (p) => {
+      await guardedUpsert(
+        "entities",
+        { entity_id: p.entity_id, kind: "signpost", canonical_name: p.canonical_name, status: "active" },
+        { onConflict: "entity_id", cite: CITE },
+      );
+      await guardedInsert(
+        "signposts",
+        { entity_id: p.entity_id, assessment_id: p.assessment_id, watches: p.watches, predicate: p.predicate, direction: p.direction },
+        { cite: CITE },
+      );
     };
   }
 
@@ -460,7 +542,7 @@ async function main() {
     currentByItemId,
     mode: decision.canWrite ? "apply" : "dry",
     now,
-    deps: { writeFn, openAlexDeps },
+    deps: { writeFn, signpostFn, readExistingSignposts, openAlexDeps },
   });
 
   console.log(`${PRODUCER_NAME}: ${live ? "live" : "fixture"} run, mode=${decision.canWrite ? "apply" : "dry"}`);

@@ -249,6 +249,31 @@ test("fireSignpost is idempotent on fired_at (a signpost already fired is not re
   assert.equal(eventWrites.length, 1, "a propagation_events row is still written on this later evaluation");
 });
 
+// ── Lane L4-D: the outbox insert must be valid against migration 284's DDL ───────────────────────────
+
+test("L4-D: the propagation_events insert carries change_kind (NOT NULL, in the CHECK set) and the WATCHED entity, never the assessment id", async () => {
+  const signpost = {
+    entityId: "cl:signpost:test-010",
+    assessmentId: "55555555-5555-5555-5555-555555555555",
+    watches: "cl:instrument:00000000000000aa",
+    predicate: { op: "date_passed", field: "occurred_at", by: "2027-01-01" },
+    direction: "confirms",
+    firedAt: null,
+  };
+  const client = fakeFireClient();
+  await fireSignpost(client, { signpost, currentLifecycleState: "emerging", now: new Date("2026-10-05T00:00:00Z"), reason: "occurred_at (2026-10-04T00:00:00.000Z) has passed" });
+  const ev = client.calls.find((c) => c.table === "propagation_events" && c.op === "insert").values;
+  assert.ok(["insert", "update", "delete", "supersede"].includes(ev.change_kind), `change_kind must be set to a CHECK value, got ${ev.change_kind}`);
+  assert.equal(ev.change_kind, "update", "fired_at moves NULL to a timestamp: an update of the signpost row");
+  assert.equal(ev.entity_id, "cl:instrument:00000000000000aa", "entity_id is the watched entity (an entities FK), not the research_assessments uuid");
+  assert.notEqual(ev.entity_id, signpost.assessmentId);
+  assert.equal(ev.row_pk, signpost.entityId);
+  assert.deepEqual(ev.old_row, { fired_at: null });
+  assert.equal(ev.new_row.fired_at, "2026-10-05T00:00:00.000Z");
+  assert.equal(ev.new_row.direction, "confirms");
+  assert.match(ev.new_row.reason, /has passed/);
+});
+
 // ── Zero editorial-approval affordance -- grepped and asserted, not merely absent by omission ────────
 
 test("DOCTRINE (research-is-horizon-scan): signpost-watch.ts's firing path exposes zero editorial-approval affordance", () => {

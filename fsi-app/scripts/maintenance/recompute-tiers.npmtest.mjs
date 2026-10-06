@@ -118,6 +118,9 @@ function makeClient(handler) {
       eq(c, v) { state.ops.push(["eq", c, v]); return b; },
       in(c, v) { state.ops.push(["in", c, v]); return b; },
       is(c, v) { state.ops.push(["is", c, v]); return b; },
+      gte(c, v) { state.ops.push(["gte", c, v]); return b; },
+      order(c) { state.ops.push(["order", c]); return b; },
+      range(a, z) { state.ops.push(["range", a, z]); return b; },
       single() { return settle(); },
       then(res, rej) { return settle().then(res, rej); },
     };
@@ -159,4 +162,64 @@ test("cadence off: no_substantive_update is held and reported as held_cadence_of
   assert.equal(off.writes.length, 0);
   assert.equal(offSummary.counts.held_cadence_off, 1);
   assert.equal(offSummary.counts.scrape_cadence, "off");
+});
+
+// ── Lane L4-D (2026-10-05): scored prediction outcomes are read with the other evidence and reported apart ──
+const outcomeRows = (id, n, outcome, d = 5) => Array.from({ length: n }, () => ({ source_id: id, outcome, scored_at: day(d) }));
+
+test("outcome evidence moves a source and the summary reports outcome-driven movements apart from the others", async () => {
+  const f = fakeDeps([quiet({ id: "s1", base_tier: 4 }), quiet({ id: "s2", base_tier: 4, conflict_count: 3, conflict_total: 5 })]);
+  f.deps.readers.readOutcomes = async () => [...outcomeRows("s1", 4, "refuted"), ...outcomeRows("s1", 1, "held")];
+  const summary = await main({ mode: "apply" }, f.deps);
+  assert.deepEqual(f.writes.sort((a, b) => a.id.localeCompare(b.id)), [{ id: "s1", tier: 5 }, { id: "s2", tier: 5 }]);
+  assert.equal(summary.counts.movements, 2);
+  assert.equal(summary.counts.outcome_movements, 1);
+  assert.equal(summary.counts.outcome_demotions, 1);
+  assert.equal(summary.counts.outcome_promotions, 0);
+  assert.equal(summary.counts.other_movements, 1);
+  assert.equal(summary.counts.outcome_read_error, null);
+  assert.equal(summary.counts.sample.find((m) => m.source_id === "s1").outcome_driven, true);
+  assert.equal(summary.counts.sample.find((m) => m.source_id === "s2").outcome_driven, false);
+  const ev = f.events.find((e) => e.source_id === "s1");
+  assert.equal(ev.event_type, "tier_demotion");
+  assert.equal(ev.details.outcome_driven, true);
+});
+
+test("a held-only record promotes; an admin override is never written over by outcomes", async () => {
+  const f = fakeDeps([quiet({ id: "s1", base_tier: 4 }), quiet({ id: "s2", base_tier: 4, tier_override: 2, effective_tier: 2 })]);
+  f.deps.readers.readOutcomes = async () => [...outcomeRows("s1", 5, "held"), ...outcomeRows("s2", 5, "refuted")];
+  const summary = await main({ mode: "apply" }, f.deps);
+  assert.deepEqual(f.writes, [{ id: "s1", tier: 3 }]);
+  assert.equal(summary.counts.outcome_promotions, 1);
+  assert.equal(summary.counts.override_held, 1);
+});
+
+test("dry mode reports outcome movements and writes nothing", async () => {
+  const f = fakeDeps([quiet({ id: "s1", base_tier: 4 })]);
+  f.deps.readers.readOutcomes = async () => outcomeRows("s1", 5, "held");
+  const summary = await main({ mode: "dry" }, f.deps);
+  assert.equal(summary.counts.outcome_movements, 1);
+  assert.equal(f.writes.length, 0);
+  assert.equal(f.events.length, 0);
+});
+
+test("an unreadable ledger (migration 353 unapplied) leaves the run as it was and says so", async () => {
+  const f = fakeDeps([quiet({ id: "s1", base_tier: 4 })]);
+  f.deps.readers.readOutcomes = async () => { throw new Error("relation source_reliability_ledger does not exist"); };
+  const summary = await main({ mode: "apply" }, f.deps);
+  assert.equal(summary.counts.movements, 0);
+  assert.match(summary.counts.outcome_read_error, /does not exist/);
+});
+
+test("buildDeps(): readOutcomes is ONE bounded read of the ledger window", async () => {
+  const seen = [];
+  const client = makeClient((s) => { seen.push(s); return { data: [{ source_id: "s1", outcome: "held", scored_at: day(2) }], error: null }; });
+  __setWriteClientForTest(() => client);
+  const deps = await buildDeps();
+  assert.equal(typeof deps.readers.readOutcomes, "function");
+  const rows = await deps.readers.readOutcomes("2025-10-04T00:00:00.000Z");
+  assert.equal(rows.length, 1);
+  const ledgerReads = client.__calls.filter((c) => c.table === "source_reliability_ledger");
+  assert.ok(ledgerReads.length >= 1);
+  assert.ok(ledgerReads.every((c) => c.ops.some((o) => o[0] === "gte" && o[1] === "scored_at" && o[2] === "2025-10-04T00:00:00.000Z")), "bounded by the window");
 });

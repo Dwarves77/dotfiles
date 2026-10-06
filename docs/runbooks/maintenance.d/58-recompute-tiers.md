@@ -15,6 +15,18 @@ applied automatically and each reversible on the next recompute (the decision is
    sources whose median differs from `base_tier` move one step toward the median. `host_class_table`
    opinions (section 2) are not evidence here.
 
+5. scored prediction outcomes (lane L4-D, ADR-044 decision 4): the `source_reliability_ledger` holds one row
+   per source per scored prediction (`held`, `refuted`, `partial`), appended by the propagation drain
+   (`src/lib/learning/prediction-scoring.mjs`). With at least 5 scored outcomes in the last 365 days, refuted
+   over held moves one step toward demotion, and held with no refuted moves one step toward promotion
+   (`outcomeMovement` in `trust.ts`); anything else moves nothing. It is one more delta inside the same clamp,
+   read as ONE bounded query of the ledger window per run (`readOutcomes`). The ledger never writes a tier,
+   needs no ratification, and a missing ledger (migration 353 unapplied) contributes nothing. `summary.json`
+   `counts` reports these apart: `outcome_movements`, `outcome_promotions`, `outcome_demotions`,
+   `other_movements`, `outcome_read_error`, and each `sample` entry carries `outcome_driven`. The event row is
+   the existing `tier_promotion` or `tier_demotion` with `details.outcome_driven` and `rules` naming
+   `prediction_outcomes`.
+
 Net movement is clamped to one tier either side of `base_tier`. An admin `tier_override` always wins and is
 never written over (planner skips it, and the write itself carries `tier_override IS NULL`). A source with
 `processing_paused` keeps its last-known tier. Every applied change writes a `source_trust_events` row

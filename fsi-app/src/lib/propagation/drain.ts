@@ -178,6 +178,9 @@ export interface ProcessedEvent {
   entityId: string | null;
   changeKind: string | null;
   occurredAt: string;
+  /** The changed row as the outbox recorded it (`new_row`; null for a delete). Lane L4-D: a signpost
+   *  predicate is evaluated against it (src/lib/learning/prediction-scoring.mjs). */
+  newRow: Record<string, unknown> | null;
 }
 
 export interface DrainResult {
@@ -234,7 +237,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
 
   const { data: events, error: eventsErr } = await sb
     .from("propagation_events")
-    .select("event_id,table_name,row_pk,entity_id,change_kind,occurred_at")
+    .select("event_id,table_name,row_pk,entity_id,change_kind,occurred_at,new_row")
     .is("drained_at", null)
     .order("occurred_at", { ascending: true })
     .limit(batch);
@@ -248,6 +251,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
     entity_id: string | null;
     change_kind?: string | null;
     occurred_at: string;
+    new_row?: Record<string, unknown> | null;
   }>;
   // eventList.length <= batch structurally (the .limit(batch) read above), DEFAULT_BATCH = 500 — well
   // under the ~2,000-UUID .in() danger threshold. Not assertBound: eventList legitimately reaching the
@@ -292,6 +296,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
       entityId: ev.entity_id ?? null,
       changeKind: ev.change_kind ?? null,
       occurredAt: ev.occurred_at,
+      newRow: ev.new_row ?? null,
     };
 
     if (apply) {

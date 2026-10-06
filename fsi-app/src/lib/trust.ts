@@ -863,6 +863,11 @@ export async function evaluateCandidatePromotion(
 //   d. tier opinions: 3 or more non-dismissed opinions in the last 90 days from at least 2 distinct
 //      opining sources, whose median differs from base_tier, move one step toward the median.
 //      Class-table opinions (host_class_table) are not evidence here; institution-canonicalize owns them.
+//   e. scored prediction outcomes (lane L4-D, ADR-044 decision 4): the source_reliability_ledger holds one
+//      row per source per scored prediction (held, refuted, partial). With at least OUTCOME_MIN_SAMPLE scored
+//      outcomes inside OUTCOME_WINDOW_DAYS, refuted over held moves one step toward demotion, and held with no
+//      refuted moves one step toward promotion (outcomeMovement). It is one more delta inside the same clamp;
+//      the ledger itself never writes a tier.
 // Net movement is clamped to one tier either side of base_tier. A dismissed opinion never counts.
 
 export const TIER_MOVEMENT = {
@@ -874,6 +879,10 @@ export const TIER_MOVEMENT = {
   OPINION_WINDOW_DAYS: Q7_CONFIG.TIER_OPINION_DISAGREEMENT_WINDOW_DAYS,
   /** Largest net movement either side of base_tier. */
   MAX_NET_STEP: 1,
+  /** Scored outcomes (held + refuted + partial) a source needs inside the window before outcomes move its tier. */
+  OUTCOME_MIN_SAMPLE: 5,
+  /** Lookback window for scored outcomes, days. Predictions are about dated horizons, so the window is a year. */
+  OUTCOME_WINDOW_DAYS: 365,
 } as const;
 
 /** Opinion sources that are not evidence for tier movement. */
@@ -934,12 +943,72 @@ export function opinionMovement(
   };
 }
 
+/** A source's tally of scored prediction outcomes over the window (lane L4-D). */
+export interface OutcomeTally {
+  held: number;
+  refuted: number;
+  partial: number;
+}
+
+export interface OutcomeMovement {
+  delta: -1 | 0 | 1;
+  held: number;
+  refuted: number;
+  partial: number;
+  sample: number;
+  window_days: number;
+  reason: string;
+}
+
+/**
+ * Pure: the one-step movement a source's scored prediction outcomes argue for. Rule, in order:
+ *   sample (held + refuted + partial) below OUTCOME_MIN_SAMPLE            -> 0 (too little evidence)
+ *   refuted greater than held                                             -> +1 (toward demotion)
+ *   refuted is zero and held is at least one                              -> -1 (toward promotion)
+ *   anything else (a mixed record, a tie, all partial)                    -> 0
+ */
+export function outcomeMovement(tally: OutcomeTally | null | undefined): OutcomeMovement {
+  const held = tally?.held ?? 0;
+  const refuted = tally?.refuted ?? 0;
+  const partial = tally?.partial ?? 0;
+  const sample = held + refuted + partial;
+  const base = { held, refuted, partial, sample, window_days: TIER_MOVEMENT.OUTCOME_WINDOW_DAYS };
+  if (sample < TIER_MOVEMENT.OUTCOME_MIN_SAMPLE) {
+    return { ...base, delta: 0, reason: `outcomes=${sample} below minimum sample (n>=${TIER_MOVEMENT.OUTCOME_MIN_SAMPLE})` };
+  }
+  if (refuted > held) return { ...base, delta: 1, reason: `outcomes held=${held} refuted=${refuted} partial=${partial}: refuted over held` };
+  if (refuted === 0 && held > 0) return { ...base, delta: -1, reason: `outcomes held=${held} refuted=0 partial=${partial}: held with no refuted` };
+  return { ...base, delta: 0, reason: `outcomes held=${held} refuted=${refuted} partial=${partial}: mixed record` };
+}
+
+export interface OutcomeRow {
+  source_id: string;
+  outcome: string;
+  scored_at: string;
+}
+
+/** Pure: per-source tally of the ledger rows inside the window. Rows with another outcome value are ignored. */
+export function tallyOutcomes(rows: OutcomeRow[], now: Date = new Date()): Map<string, OutcomeTally> {
+  const since = now.getTime() - TIER_MOVEMENT.OUTCOME_WINDOW_DAYS * MS_PER_DAY;
+  const out = new Map<string, OutcomeTally>();
+  for (const r of rows ?? []) {
+    if (r.outcome !== "held" && r.outcome !== "refuted" && r.outcome !== "partial") continue;
+    if (new Date(r.scored_at).getTime() < since) continue;
+    const t = out.get(r.source_id) ?? { held: 0, refuted: 0, partial: 0 };
+    t[r.outcome] += 1;
+    out.set(r.source_id, t);
+  }
+  return out;
+}
+
 export interface TierEvidence {
   citation_promote: boolean;
   citation_reasoning: string;
   promotion: PromotionEvaluation | null;
   demotion: DemotionEvaluation | null;
   opinion: OpinionMovement;
+  /** Scored prediction outcomes (lane L4-D). Optional: a caller that does not read the ledger contributes 0. */
+  outcome?: OutcomeMovement;
 }
 
 export interface TierMovementDecision {
@@ -952,8 +1021,11 @@ export interface TierMovementDecision {
   tier_override: SourceTier | null;
   /** True when an admin override is set: the machine writes nothing for this source. */
   override_held: boolean;
-  deltas: { citation: number; promotion: number; demotion: number; opinion: number };
+  deltas: { citation: number; promotion: number; demotion: number; opinion: number; outcome: number };
   net: number;
+  /** True when the movement exists because of scored prediction outcomes: without that delta the source would
+   *  not have landed on this tier. Lets a report separate outcome-driven movements from the rest. */
+  outcome_driven: boolean;
   rules: string[];
   inputs: Record<string, unknown>;
   reasoning: string;
@@ -981,20 +1053,27 @@ export function decideEffectiveTier(input: {
     promotion: evidence.promotion?.eligible ? -1 : 0,
     demotion: evidence.demotion?.triggered ? 1 : 0,
     opinion: evidence.opinion.delta as number,
+    outcome: (evidence.outcome?.delta ?? 0) as number,
   };
   const rules: string[] = [];
   if (deltas.citation) rules.push("citation_promotion");
   if (deltas.promotion) rules.push("evaluate_promotion");
   if (deltas.demotion) rules.push("evaluate_demotion");
   if (deltas.opinion) rules.push("tier_opinions");
+  if (deltas.outcome) rules.push("prediction_outcomes");
 
-  const sum = deltas.citation + deltas.promotion + deltas.demotion + deltas.opinion;
-  const net = Math.max(-TIER_MOVEMENT.MAX_NET_STEP, Math.min(TIER_MOVEMENT.MAX_NET_STEP, sum));
+  const sum = deltas.citation + deltas.promotion + deltas.demotion + deltas.opinion + deltas.outcome;
+  const clampNet = (n: number) => Math.max(-TIER_MOVEMENT.MAX_NET_STEP, Math.min(TIER_MOVEMENT.MAX_NET_STEP, n));
+  const net = clampNet(sum);
   const computed_dynamic_tier = clampTier(base_tier + net);
+  // The tier the other four evidence kinds alone would give: outcomes are the reason for a movement only when
+  // taking them away changes where the source lands.
+  const tier_without_outcome = clampTier(base_tier + clampNet(sum - deltas.outcome));
 
   const override_held = tier_override != null;
   const after_tier: SourceTier = override_held ? (tier_override as SourceTier) : computed_dynamic_tier;
   const changed = !override_held && after_tier !== before_tier;
+  const outcome_driven = changed && deltas.outcome !== 0 && tier_without_outcome !== after_tier;
 
   const inputs: Record<string, unknown> = {
     citation: { promote: evidence.citation_promote, reasoning: evidence.citation_reasoning },
@@ -1013,13 +1092,17 @@ export function decideEffectiveTier(input: {
       median: evidence.opinion.median,
       window_days: TIER_MOVEMENT.OPINION_WINDOW_DAYS,
     },
+    outcome: evidence.outcome
+      ? { held: evidence.outcome.held, refuted: evidence.outcome.refuted, partial: evidence.outcome.partial, sample: evidence.outcome.sample, window_days: evidence.outcome.window_days }
+      : null,
   };
 
+  const outcomeNote = evidence.outcome ? `; ${evidence.outcome.reason}` : "";
   const reasoning = override_held
     ? `effective_tier held at admin override ${tier_override}: base=${base_tier} (no machine write)`
     : changed
-      ? `effective_tier ${before_tier} -> ${after_tier}: base=${base_tier} net=${net} rules=${rules.join("+") || "none"} (${evidence.citation_reasoning}; ${evidence.opinion.reason})`
-      : `effective_tier unchanged at ${after_tier}: base=${base_tier} net=${net} rules=${rules.join("+") || "none"} (${evidence.citation_reasoning}; ${evidence.opinion.reason})`;
+      ? `effective_tier ${before_tier} -> ${after_tier}: base=${base_tier} net=${net} rules=${rules.join("+") || "none"} (${evidence.citation_reasoning}; ${evidence.opinion.reason}${outcomeNote})`
+      : `effective_tier unchanged at ${after_tier}: base=${base_tier} net=${net} rules=${rules.join("+") || "none"} (${evidence.citation_reasoning}; ${evidence.opinion.reason}${outcomeNote})`;
 
   return {
     before_tier,
@@ -1031,6 +1114,7 @@ export function decideEffectiveTier(input: {
     override_held,
     deltas,
     net,
+    outcome_driven,
     rules,
     inputs,
     reasoning,
@@ -1199,6 +1283,22 @@ export async function recomputeEffectiveTier(
     }
   }
   const { promotion, demotion } = evaluateTierEvidenceForRow(row, { scrapeCadence });
+
+  // Scored prediction outcomes (lane L4-D): this source's ledger rows inside the window. The ledger may not
+  // exist yet (migration 353 unapplied), so a failed read contributes no outcome evidence and never throws.
+  let outcome: OutcomeMovement | undefined;
+  try {
+    const sinceIso = new Date(now.getTime() - TIER_MOVEMENT.OUTCOME_WINDOW_DAYS * MS_PER_DAY).toISOString();
+    const { data: ledgerRows, error: ledgerErr } = await client
+      .from("source_reliability_ledger")
+      .select("source_id, outcome, scored_at")
+      .eq("source_id", sourceId)
+      .gte("scored_at", sinceIso);
+    if (!ledgerErr) outcome = outcomeMovement(tallyOutcomes((ledgerRows ?? []) as OutcomeRow[], now).get(sourceId));
+  } catch {
+    outcome = undefined;
+  }
+
   const decision = decideEffectiveTier({
     base_tier,
     effective_tier: row.effective_tier == null ? null : (row.effective_tier as SourceTier),
@@ -1209,6 +1309,7 @@ export async function recomputeEffectiveTier(
       promotion,
       demotion,
       opinion: opinionMovement(base_tier, (opinionRows ?? []) as TierOpinionRow[], now),
+      outcome,
     },
   });
 
@@ -1235,6 +1336,9 @@ export interface TierMovementReaders {
   /** Non-dismissed opinions with opined_at at or after sinceIso, every target. */
   readOpinions(sinceIso: string): Promise<TierOpinionRow[]>;
   readCitations(): Promise<CitationEdgeRow[]>;
+  /** Scored prediction outcomes (source_reliability_ledger rows) with scored_at at or after sinceIso, every
+   *  source (lane L4-D). Optional: a caller without it contributes no outcome evidence. */
+  readOutcomes?(sinceIso: string): Promise<OutcomeRow[]>;
 }
 
 export interface TierMovementPlan {
@@ -1245,6 +1349,10 @@ export interface TierMovementPlan {
   skipped: Array<{ source_id: string; reason: string }>;
   /** Only the sources whose effective_tier would change. */
   movements: Array<{ source_id: string; name: string | null; decision: TierMovementDecision }>;
+  /** How many of those movements exist because of scored prediction outcomes (lane L4-D). */
+  outcome_driven_movements: number;
+  /** The error text when the outcome read failed (the run continues without outcome evidence), else null. */
+  outcome_read_error: string | null;
 }
 
 /** Pure over its readers: decides every source, returns the ones that move. Never writes. */
@@ -1257,6 +1365,18 @@ export async function planTierMovements(
   const sources = await readers.readSources();
   const sinceIso = new Date(now.getTime() - TIER_MOVEMENT.OPINION_WINDOW_DAYS * MS_PER_DAY).toISOString();
   const [opinions, citations] = await Promise.all([readers.readOpinions(sinceIso), readers.readCitations()]);
+  // One bounded read of the ledger window (lane L4-D). A failure (migration 353 unapplied) is recorded on the
+  // plan and the run continues with no outcome evidence.
+  let outcomeTallies = new Map<string, OutcomeTally>();
+  let outcome_read_error: string | null = null;
+  if (readers.readOutcomes) {
+    try {
+      const outcomeSince = new Date(now.getTime() - TIER_MOVEMENT.OUTCOME_WINDOW_DAYS * MS_PER_DAY).toISOString();
+      outcomeTallies = tallyOutcomes(await readers.readOutcomes(outcomeSince), now);
+    } catch (e) {
+      outcome_read_error = e instanceof Error ? e.message : String(e);
+    }
+  }
 
   const opinionsByTarget = new Map<string, TierOpinionRow[]>();
   for (const o of opinions) {
@@ -1274,7 +1394,7 @@ export async function planTierMovements(
   const tierById = new Map<string, number>();
   for (const s of sources) tierById.set(s.id, s.effective_tier ?? s.base_tier);
 
-  const plan: TierMovementPlan = { scanned: sources.length, override_held: 0, held_cadence_off: 0, skipped: [], movements: [] };
+  const plan: TierMovementPlan = { scanned: sources.length, override_held: 0, held_cadence_off: 0, skipped: [], movements: [], outcome_driven_movements: 0, outcome_read_error };
   for (const row of sources) {
     if (row.processing_paused === true) {
       plan.skipped.push({ source_id: row.id, reason: "processing_paused" });
@@ -1302,10 +1422,14 @@ export async function planTierMovements(
         promotion,
         demotion,
         opinion: opinionMovement(base_tier, opinionsByTarget.get(row.id) ?? [], now),
+        outcome: readers.readOutcomes && !outcome_read_error ? outcomeMovement(outcomeTallies.get(row.id)) : undefined,
       },
     });
     if (decision.override_held) plan.override_held += 1;
-    if (decision.changed) plan.movements.push({ source_id: row.id, name: row.name ?? null, decision });
+    if (decision.changed) {
+      plan.movements.push({ source_id: row.id, name: row.name ?? null, decision });
+      if (decision.outcome_driven) plan.outcome_driven_movements += 1;
+    }
   }
   return plan;
 }
@@ -1323,6 +1447,7 @@ export function tierMovementEvent(sourceId: string, decision: TierMovementDecisi
       after_tier: decision.after_tier,
       base_tier: decision.base_tier,
       deltas: decision.deltas,
+      outcome_driven: decision.outcome_driven,
       inputs: decision.inputs,
     },
     created_by: "worker" as const,
