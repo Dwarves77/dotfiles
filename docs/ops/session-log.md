@@ -24445,3 +24445,20 @@ pointer), `docs/ops/session-log.md` (this entry).
 ## 2026-10-03, coordinator (COORD-DOCS lane, fifth pass): audit remediation closed
 
 Final lane states: R7-LINT-CI merged PR 909 (lint 614 → 0 across fsi-app/, ESLint gate in CI + pre-push, F51 allowlist for 2 coordinator-approved files). Lane 21 merged PR 908 (5 `.or()` sites + 6th in lib/supabase-server.ts fixed; operations/research slug pages gain provenance_status='verified'). Lane 10 confirmed DONE (already required; `gh api .../branches/master/protection/required_status_checks` lists "Consistency layer" as required; last 10 master runs green). Lane 13 migration 343 [CONFIRMED] applied live 2026-10-03 (list_migrations shows 343-346; to_regclass('public.user_list_order') is null). Pre-push hook does not run `next build`, so a prerender defect (useSyncExternalStore without getServerSnapshot) passed local gates and failed CI; added to tech-debt log. Files changed this pass: `docs/PROGRAM-BOARD.md`, `fsi-app/supabase/migrations/343_drop_user_list_order.sql`, `docs/ops/session-log.md`, `docs/tech-debt-log.md`.
+
+## 2026-10-05/06, coordinator: Stage 4 learning loop built; source chain; live check and gates
+
+**Accomplished.** Merged PRs 943 to 952, all fixture-proven and dry, nothing applied to live data: 943 questions on change and ADR-044; 944 customer tier rule, T7, per-claim tier, bias chips; 946 question answers and first inference, holdings-need targets, research walker consumer; 947 grade chip, inferences on detail pages, theme chip labels, OperationsItemsView deleted; 948 source-resolution workflow and loop hops 12 and 13, first dry run green; 950 signposts, prediction scoring, reliability ledger, outcome-driven tier movement; 951 five live defects fixed at their cause; 952 repeated-signup message. Plan stages S1-E and Stage 4 marked built in the buildout plan; INDEX and the maintenance runbook index gained ADR-044 and steps 60 and 61 (coordinator docs lane coord-docs-2026-10-06).
+
+**Decisions.**
+- ADR-044: the learning loop runs with no operator gate and no priced request; supersedes ADR-036 decisions 1 and 3, decision 2 stands.
+- L4-B and L4-D were re-cut rather than merged as first built, to satisfy F51 check 5 (concurrent edits to shared files).
+- `trust-recompute.yml` retirement: Option 1 ruled 2026-10-05 (a `recompute-trust-scores` maintenance step, a pause read in `recompute-tiers`, then delete the workflow and its closure-gate entry); execution by a later lane, not yet done.
+- A tier parsed from a brief's own wording never renders as a chip (rule 18): the chip slot shows the Absence part.
+- Signposts get no generic trigger.
+- Live checks become gates (operator, 2026-10-05): lane GATES-2 builds the Live smoke workflow.
+- Smoke user ruling 2026-10-06: the account is a workspace owner and never a platform admin.
+
+**Blockers.** `LIVE_SMOKE_EMAIL` and `LIVE_SMOKE_PASSWORD` pending from the operator. Migrations 351, 352, 353 await the operator's word (schema DDL applies before the dependent code runs live, standing rule 3). GATES-2 not merged at this entry.
+
+**Next steps.** Stage 5 growth, Stage 6 remaining gates, Stage 7 admin correction layer, Stage 8 workspace and pages. Layout baseline renewal fires 2026-10-08 (hard expiry 2026-10-15). Owed items are listed in the PROGRAM-BOARD 2026-10-06 resume pointer.

@@ -184,6 +184,8 @@ One line per step, in dispatch order. The step text lives in its own file.
 - [57. Disk IO budget: apply ceiling, cooldown, restart](maintenance.d/57-disk-io-budget.md)
 - [58. `recompute-tiers`](maintenance.d/58-recompute-tiers.md)
 - [59. `lineage-gap-targets`](maintenance.d/59-lineage-gap-targets.md)
+- [60. `question-answers`](maintenance.d/60-question-answers.md)
+- [61. `source-resolution`](maintenance.d/61-source-resolution.md)
 - [Appendix: `holdings-audit`, wired via the data-audit lane, not this runtime](maintenance.d/A1-holdings-audit.md)
 - [Appendix: three more scripts/verify/ checks wired via the data-audit lane (lane F25-WAVE52, 2026-09-07)](maintenance.d/A2-verify-checks-wired-via-data-audit-lane.md)
 - [Appendix: `check-vocabulary-drift`, wired via the data-audit lane (lane w9-d5-d7, D7 part 3, 2026-09-12)](maintenance.d/A3-check-vocabulary-drift.md)

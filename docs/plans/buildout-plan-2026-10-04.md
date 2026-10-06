@@ -50,6 +50,7 @@ Each stage reuses existing mechanisms. Every lane is fixture-proven and dry by d
 - S1-D: the research walker registers and rates an unknown publisher instead of rejecting the paper.
 - S1-E: source discovery, promotion and demotion become links in the chain manifest. Bias tags and tier
   shown to customers on every item.
+- BUILT 2026-10-05 (fixture-proven, dry): S1-E chain links PR 948 (source-resolution workflow, hops 12 and 13); customer tier rule, T7, per-claim tier and bias chips PR 944; grade chip, inferences and theme labels PR 947 (Stage 8 grade chip item, with Stage 4 inference display).
 
 ### Stage 2: typed connections
 - Run the existing relationship typing at mint and in the free brief path.
@@ -68,6 +69,7 @@ Each stage reuses existing mechanisms. Every lane is fixture-proven and dry by d
 - The first write of an inference from an answered question; cited, labelled, shown on the pages.
 - Predictions scored when the watched entity changes; the source reliability ledger adjusts weighting
   automatically.
+- BUILT 2026-10-05 (fixture-proven, dry; migrations 351 to 353 not applied): questions on change PR 943 (ADR-044); answers and first inference, holdings-need targets, research walker consumer PR 946; prediction scoring, reliability ledger and outcome-driven tier movement PR 950.
 
 ### Stage 5: growth
 - Repeated mentions of an entity, material, theme or term the system does not hold raise a proposal,
@@ -100,3 +102,4 @@ Each stage reuses existing mechanisms. Every lane is fixture-proven and dry by d
 - Public-source intake for auxiliary energy and indexation mechanics.
 - `regional_data_facts` and `estimated_values` have no consumer after ADR-043.
 - The rendering audit generator fails on master with DetailShell import errors.
+- Owed items from the Stage 4 and source-chain lanes: see PROGRAM-BOARD 2026-10-06 resume pointer.
