@@ -1,7 +1,9 @@
 // src/lib/agent/claim-ledger-block.ts
 //
 // Lane P3 (2026-10-05). The ONE definition of the Claim Provenance Ledger block's text shape and the
-// ONE function that removes it from prose. Pure, dependency-free.
+// ONE function that removes it from prose. Pure. The sentinel strings come from section-markers.mjs
+// (LEDGER_NAME / LEDGER_OPEN / LEDGER_CLOSE), the one definition shared with the write-path refusal, the stored-data
+// audit and the live smoke gate (lane GATES-2).
 //
 // THE DEFECT THIS CLOSES [CONFIRMED against the live rows, read-only, 2026-10-05]. The agent emits the
 // ledger as a block between two sentinels, before the YAML frontmatter. parseAgentOutput stripped the
@@ -16,18 +18,20 @@
 // it parses, in any section, and so is an opener that never closed (output cut off mid-ledger) and a
 // stray closing sentinel.
 
+import { LEDGER_NAME, LEDGER_OPEN, LEDGER_CLOSE } from "./section-markers.mjs";
+
 // A closed block: opener, anything (including newlines and braces), closer. Non-greedy so two blocks in
 // one text are removed separately and the prose between them is kept.
-const CLOSED_BLOCK_RE = /<<<CLAIM_PROVENANCE_LEDGER[\s\S]*?CLAIM_PROVENANCE_LEDGER>>>/g;
+const CLOSED_BLOCK_RE = new RegExp(`${LEDGER_OPEN}[\\s\\S]*?${LEDGER_CLOSE}`, 'g');
 // An opener with no closer after it: the ledger is the last thing before the frontmatter, so an
 // unterminated one runs to the end of the text it sits in.
-const OPEN_ONLY_RE = /<<<CLAIM_PROVENANCE_LEDGER[\s\S]*$/;
+const OPEN_ONLY_RE = new RegExp(`${LEDGER_OPEN}[\\s\\S]*$`);
 // A closer with no opener (the opener was cut away earlier).
-const CLOSE_ONLY_RE = /CLAIM_PROVENANCE_LEDGER>>>/g;
+const CLOSE_ONLY_RE = new RegExp(LEDGER_CLOSE, 'g');
 
 /** True when the text carries any ledger sentinel. Pure. */
 export function hasClaimLedgerBlock(text: string | null | undefined): boolean {
-  return String(text ?? "").includes("CLAIM_PROVENANCE_LEDGER");
+  return String(text ?? "").includes(LEDGER_NAME);
 }
 
 /**

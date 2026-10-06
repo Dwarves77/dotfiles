@@ -9,6 +9,7 @@
 // directly — they import from harness.mjs.
 
 import { detectOverflows, findPlaceholderLiterals, detectBoundsViolations, findUnseparatedThousands } from '../assertions.mjs';
+import { detectContainerOverflows, formatContainerOverflows } from '../overflow-rule.mjs';
 
 /** Run the overflow + placeholder-literal detectors against a `measureGuard()`-shaped result
  *  (`{ measurements, texts }`) and return human-readable failure strings (empty = clean), prefixed
@@ -24,8 +25,12 @@ import { detectOverflows, findPlaceholderLiterals, detectBoundsViolations, findU
  *  `assertGuardCleanExceptBandLabel` established per-spec before this lane made the label common to
  *  every surface. Empty by default: a caller that does not pass `known` gets the exact behaviour
  *  this function always had. */
-export function assertGuardClean(label, { measurements, texts, leafTexts }, known = []) {
+export function assertGuardClean(label, { measurements, texts, leafTexts, containerScan }, known = []) {
   const failures = [];
+  // GATES-2: the shared phone-width scroll-container rule (overflow-rule.mjs), present only at phone widths.
+  if (containerScan) {
+    failures.push(...formatContainerOverflows(label, detectContainerOverflows(containerScan.containers, { viewportWidth: containerScan.viewportWidth })));
+  }
   const overflows = detectOverflows(measurements);
   if (overflows.length > 0) {
     failures.push(`${label}: horizontal overflow — ${overflows.map((o) => `${o.name} +${o.overflowBy}px`).join(', ')}`);

@@ -1,0 +1,12 @@
+{
+  "family": "live-smoke",
+  "registered": "2026-10-05",
+  "registered_by": "lane gates2-live-smoke",
+  "governing_files": [
+    "../.github/workflows/live-smoke.yml",
+    "scripts/turns/emit-live-smoke-artifact.mjs",
+    ".discipline/rendering/live/live-assertions.mjs",
+    ".discipline/rendering/live/live-smoke.mjs"
+  ],
+  "rationale": "live-smoke (lane GATES-2, 2026-10-05): the read-only gate that signs in once as a dedicated smoke account and loads the real pages of a real deployment at 1440 and 375, asserting named invariants over what a customer actually receives (leaked markers, scroll containers, raw tag slugs, tier vocabulary, empty lists). Governing files are the workflow, the artifact emitter, and the two modules that define what a live-smoke run checks and how: the assertion library and the runner. The marker pattern list and the phone-width overflow rule are shared with the write path and the rendering guard and stay out of this list, because other families and gates own them too. One run is one workflow firing; its JSON report is converted into this family's run artifact and landed in harness_runs, so the closure gate has dispatch evidence."
+}

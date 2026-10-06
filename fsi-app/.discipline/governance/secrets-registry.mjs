@@ -34,6 +34,8 @@ export const WORKFLOW_SECRETS = Object.freeze(new Set([
   'ANTHROPIC_API_KEY',
   'APP_URL',
   'EIA_API_KEY',
+  'LIVE_SMOKE_EMAIL',
+  'LIVE_SMOKE_PASSWORD',
   'NEXT_PUBLIC_SUPABASE_URL',
   'SUPABASE_DB_PASSWORD',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -48,6 +50,11 @@ export const TOPOLOGY = Object.freeze([
   { name: 'SUPABASE_DB_PASSWORD', vaults: ['github-actions', 'local-.env'], consumers: ['data-audit-lane.yml (GH)', 'migration apply via node+pg (local/scripts)'], writeAuthority: 'gh (repo scope) / Supabase dashboard', note: 'postgres superuser password' },
   { name: 'SUPABASE_SERVICE_ROLE_KEY', vaults: ['github-actions', 'vercel-runtime', 'local-.env'], consumers: ['data-audit-lane.yml (GH)', 'service-role reads/writes (runtime + scripts)'], writeAuthority: 'gh (repo scope) / Vercel / Supabase', note: 'service-role JWT — bypasses RLS' },
   { name: 'ANTHROPIC_API_KEY', vaults: ['github-actions', 'vercel-runtime', 'local-.env'], consumers: ['/api/agent/run, /api/admin/scan, /api/ask (Sonnet/Haiku)', 'ledger-consume.yml (GH — Lane CONSUME, mode=apply gate)'], writeAuthority: 'gh (repo scope) / Vercel dashboard / local', note: 'spend-bearing; gated by the spend chokepoint (spend-client.ts) — every call, incl. first-fetch-classify, leaves an agent_runs row' },
+  // Lane GATES-2 (2026-10-05): the Live smoke gate signs in once through the login form as a dedicated
+  // read-only smoke account. [UNCONFIRMED until the operator creates the account and both secrets: this
+  // registers the NAMES as permitted; live-smoke.yml fails fast with a named message while either is unset.]
+  { name: 'LIVE_SMOKE_EMAIL', vaults: ['github-actions'], consumers: ['live-smoke.yml (GH, preflight + run steps)'], writeAuthority: 'gh (repo scope) / operator', note: 'email of the dedicated read-only smoke account (a normal customer login); never printed' },
+  { name: 'LIVE_SMOKE_PASSWORD', vaults: ['github-actions'], consumers: ['live-smoke.yml (GH, preflight + run steps)'], writeAuthority: 'gh (repo scope) / operator', note: 'password of the dedicated read-only smoke account; sent only to carosledge.com or *.vercel.app by live-preflight.mjs; never printed' },
   // Vercel-runtime / local-only credentials (NOT referenced by any workflow, so NOT in WORKFLOW_SECRETS —
   // documented for completeness so the register is exhaustive on day one).
   { name: 'BROWSERLESS_API_KEY', vaults: ['vercel-runtime', 'local-.env'], consumers: ['canonical-fetch.mjs / browserless.ts (fetch)'], writeAuthority: 'Vercel dashboard / local', note: 'transport; also deleted as belt-and-suspenders during paid holds' },

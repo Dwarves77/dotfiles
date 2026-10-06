@@ -69,6 +69,7 @@ import { norm } from "@/lib/agent/gate-a-match.mjs";
 // sibling (derivedCoveredTokens above).
 import { isDerivedConsistent } from "@/lib/agent/derived-consistency.mjs";
 import { decodeHtmlBytes, cleanCtl } from "@/lib/sources/charset-decode.mjs";
+import { findInternalMarkers, describeMarkers } from "@/lib/agent/section-markers.mjs";
 // htmlToText — THE ONE body (Lane LEDGER-TEXT, 2026-09-04). This file's own copy was the reference
 // implementation the consolidation lifted verbatim into src/lib/text/html-to-text.mjs (see that module's
 // header for the two other former copies it replaced and the defect this closes); behavior here is
@@ -1077,6 +1078,14 @@ export async function writeSynthesizedBrief(
   fmtSpec: ReturnType<typeof specForItemType>,
   sourceCount: number,
 ): Promise<StepResult> {
+  // MARKERS NEVER PERSIST (lane GATES-2, 2026-10-05). An internal marker (an unclosed Claim Provenance
+  // Ledger the parser failed to strip, a *_PROVENANCE token, a JSON payload) in the stored body is rendered
+  // to customers as raw text. Refuse BEFORE any database call; the pattern list is the one shared constant
+  // in section-markers.mjs (also read by the stored-data audit and the live smoke gate).
+  const leaked = findInternalMarkers(body);
+  if (leaked.length > 0) {
+    return { ok: false, detail: `internal_marker_in_body: ${describeMarkers(leaked)}` };
+  }
   // FORMAT DETERMINISM (cont.): force format_type to the canonical f(item_type) value regardless of what
   // the agent emitted — metadata must never drift from item_type (sectionBrief extracts by item_type, so a
   // mismatched format_type guaranteed criterion-5 failure). The prompt directive above makes the structure
