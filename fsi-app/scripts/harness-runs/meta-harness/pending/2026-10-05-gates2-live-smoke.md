@@ -1,0 +1,13 @@
+## Change
+
+Lane gates2-live-smoke registered a new harness family, `live-smoke`
+(`fsi-app/scripts/harness-runs/live-smoke/family.json`, 2026-10-05). Adding any family descriptor is itself a change
+to one of the meta-harness family's own governing files, since `ALLOWED_FAMILIES` and `GOVERNING_FILES` are derived
+from every descriptor. The new family carries its own pending file (`live-smoke/pending/2026-10-05-gates2-live-smoke.md`);
+this file is the meta-harness family's acknowledgment of the registration, per F28's RANGE rule.
+
+## Planned run
+
+The meta-harness family's own next run (whichever lane or coordinator pass next touches the meta-harness substrate
+itself). Delete this file once that run's artifact lands, or sooner if the coordinator judges the registration
+already covered.

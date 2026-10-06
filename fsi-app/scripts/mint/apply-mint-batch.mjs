@@ -182,6 +182,7 @@ import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/ins
 // a fake counter; see apply-mint-batch.test.mjs) so no test needs a real Supabase client.
 import { runMintEnrichment } from "../../src/lib/intake/mint-enrichment.ts";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+import { assertNoInternalMarkers } from "../../src/lib/agent/section-markers.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 export { buildAgentRunSearchRows, buildSectionRows, buildClaimRows, buildCitationRows };
@@ -332,6 +333,9 @@ export function resolveValidationFailedHolds(report, rowIdSet) {
  *  canonical-pipeline.ts's own ground() never does. */
 export function buildIntelligenceItemRow(payload, { sourceId, domain }) {
   const item = payload.item;
+  // MARKERS NEVER PERSIST (lane GATES-2, 2026-10-05): refuse an item whose full_brief carries an internal marker
+  // before the INSERT row exists (src/lib/agent/section-markers.mjs).
+  assertNoInternalMarkers(item.full_brief, "buildIntelligenceItemRow");
   return {
     title: item.title,
     domain,

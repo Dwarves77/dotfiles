@@ -33,6 +33,8 @@ secret reference can never silently ship again.
 | `NEXT_PUBLIC_SUPABASE_URL` | data-audit-lane | gh / Vercel |
 | `SUPABASE_DB_PASSWORD` | data-audit-lane | gh / Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | data-audit-lane | gh / Vercel / Supabase |
+| `LIVE_SMOKE_EMAIL` | live-smoke (preflight and run steps; the dedicated read-only smoke account's email) | gh (repo scope) / operator |
+| `LIVE_SMOKE_PASSWORD` | live-smoke (preflight and run steps; that account's password, only ever sent to carosledge.com or a *.vercel.app host) | gh (repo scope) / operator |
 | `ANTHROPIC_API_KEY` | ledger-consume (`mode=apply` gate — first-fetch-classify's Haiku call, routed through the spend chokepoint) | gh (repo scope) / Vercel dashboard / local |
 
 **No orphan labels.** Every `secrets.X` in `.github/workflows/*` is one of the 6 rows above, and every

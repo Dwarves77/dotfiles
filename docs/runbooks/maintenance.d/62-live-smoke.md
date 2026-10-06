@@ -13,9 +13,14 @@ fixtures and never sees stored data; this job does.
   deployment (`live-preflight.mjs` refuses any other host).
 With either unset the first step fails in seconds with a named message, before any install.
 
-**Triggers**: a Vercel `deployment_status` event reporting success (production and previews; the target is the
-event's environment URL), and `workflow_dispatch` with a `url` input. No schedule. The deployment_status trigger
-only fires from the workflow file on the default branch.
+**Triggers**: a Vercel `deployment_status` event reporting success for the `Production` environment (the target is
+the event's environment URL), and `workflow_dispatch` with a `url` input. No schedule. The deployment_status
+trigger only fires from the workflow file on the default branch.
+
+**Previews are excluded, and why.** A protected Vercel preview answers with Vercel's own login page, so every
+preview run would fail as `session-invalid` and teach people to ignore the check. Until a Vercel protection bypass
+exists, a preview is checked by hand: `gh workflow run live-smoke.yml -f url=<preview url>`. The host allowlist
+(`carosledge.com`, `*.vercel.app`) stays.
 
 **Dispatch** (after both secrets exist):
 `gh workflow run live-smoke.yml -f url=https://carosledge.com`
@@ -28,7 +33,10 @@ the item the first theme chip links to.
 `placeholder-literal`, `raw-tag-slug`, `bare-score`, `scroll-container-overflow` (375 only), `console-error`,
 `own-origin-5xx` (a 4xx on the own origin is a warning, `own-origin-4xx`), `tier-above-ceiling`,
 `legend-below-ceiling`, `list-has-no-rows`, `detail-has-no-masthead`. A JSON report is uploaded as the
-`live-smoke-report` artifact (7 days). Exit is non-zero on any failure.
+`live-smoke-report` artifact (7 days) and converted by `scripts/turns/emit-live-smoke-artifact.mjs` into the
+`live-smoke` harness family's run artifact, landed in `harness_runs` by `deliver-artifact-branch.sh` (the closure
+gate's dispatch evidence). A firing with no report records `report_missing`, never a clean run. Exit is non-zero on
+any failure.
 
 **Reading a failure**: `internal-marker` means a stored body carries a leaked sentinel or payload; the stored count
 is `scripts/verify/section-marker-audit.mjs` (data-audit label `section-markers`, hard), and the write path

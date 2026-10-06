@@ -441,6 +441,9 @@ const HARNESS_FAMILY_BY_WORKFLOW = {
   // Lane S1-E (2026-10-05): the source-resolution workflow records its own harness family, so its dispatch is
   // evidenced by that family's harness_runs rows once the coordinator fires it.
   'source-resolution.yml': 'source-resolution',
+  // Lane GATES-2 (2026-10-05): live-smoke records its own harness family (its JSON report becomes the run artifact),
+  // so its dispatch is evidenced by that family's harness_runs rows once the coordinator fires it.
+  'live-smoke.yml': 'live-smoke',
 };
 
 function harnessArtifactExists(family) {

@@ -33,6 +33,7 @@ import {
   requiredSlotItemTypes,
   resolveKitBackfillCandidates,
   healOneItem,
+  guardMarkerWrites,
   summarizeReports,
   main,
   // second pass (HEAL-2)
@@ -3399,4 +3400,38 @@ test("healOneItem STEP D: RELABEL-from-full-brief plans (dry) and only writes wi
   const call = deps2.calls.find((c) => c[0] === "updateSectionContent");
   assert.ok(call, JSON.stringify(deps2.calls));
   assert.equal(call[2], `This section covers scope only.\n\n*Analytical inference:* ${claimText}`);
+});
+
+// ── lane GATES-2 (2026-10-05): markers never persist ────────────────────────────────────────────────
+test("ATTACK: guardMarkerWrites refuses a marked body on both stored-body writes and never calls the inner dependency", () => {
+  const calls = [];
+  const g = guardMarkerWrites({
+    updateItemBrief: async (id, body) => { calls.push(["brief", id, body]); return { updated: 1 }; },
+    updateSectionContent: async (id, body) => { calls.push(["section", id, body]); return { updated: 1 }; },
+    other: () => "kept",
+  });
+  assert.throws(() => g.updateItemBrief("i1", "Text <<<CLAIM_PROVENANCE_LEDGER"), /internal_marker_in_body: heal-provenance updateItemBrief/);
+  assert.throws(() => g.updateSectionContent("s1", "x _PROVENANCE y"), /internal_marker_in_body: heal-provenance updateSectionContent/);
+  assert.deepEqual(calls, []);
+  assert.equal(g.other(), "kept");
+});
+
+test("CLEAN: guardMarkerWrites passes a clean body through to the inner dependency", async () => {
+  const calls = [];
+  const g = guardMarkerWrites({ updateItemBrief: async (id, body) => { calls.push([id, body]); return { updated: 1 }; } });
+  await g.updateItemBrief("i1", "Clean text.");
+  assert.deepEqual(calls, [["i1", "Clean text."]]);
+});
+
+test("ATTACK: healOneItem STEP BRIEF-HONEST refuses to persist a brief that still carries a marker", async () => {
+  const item = {
+    id: "item-marker", item_type: "tool", source_url: null,
+    full_brief: "Intro text. The consortium states a 15% reduction in this figure alone. Closing text. <<<CLAIM_PROVENANCE_LEDGER",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  await assert.rejects(
+    healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, stripUnprovable: true }),
+    /internal_marker_in_body: heal-provenance updateItemBrief/,
+  );
+  assert.equal(deps.calls.some((c) => c[0] === "updateItemBrief"), false);
 });

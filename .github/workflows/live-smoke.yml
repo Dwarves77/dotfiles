@@ -7,9 +7,12 @@ name: Live smoke
 # data; this job loads the real pages of a real deployment, READ-ONLY, and asserts named invariants over them.
 #
 # Triggers
-#   deployment_status   a Vercel deployment reported success: production AND pull-request previews. The target
-#                       is the event's environment_url. (GitHub runs a deployment_status workflow from the
-#                       default branch's copy of this file.)
+#   deployment_status   a Vercel deployment to the Production environment reported success. The target is the
+#                       event's environment_url. (GitHub runs a deployment_status workflow from the default
+#                       branch's copy of this file.) PREVIEWS ARE EXCLUDED until a Vercel protection bypass
+#                       exists: a protected preview answers with Vercel's own login page, so every preview run
+#                       would fail as session-invalid and teach people to ignore the check. A preview can still
+#                       be checked by hand with workflow_dispatch.
 #   workflow_dispatch   on demand, with a `url` input (https, carosledge.com or a *.vercel.app deployment).
 #
 # Required repository secrets (names registered in .discipline/governance/secrets-registry.mjs; never printed):
@@ -50,12 +53,15 @@ concurrency:
 jobs:
   live-smoke:
     name: Live smoke
-    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment_status.environment_url != '')
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment_status.environment == 'Production' && github.event.deployment_status.environment_url != '')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Note the start time
+        run: echo "STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -83,6 +89,26 @@ jobs:
           LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
           LIVE_SMOKE_REPORT: ${{ runner.temp }}/live-smoke-report.json
         run: node .discipline/rendering/live/live-smoke.mjs
+
+      # Record this family's harness-run artifact on EVERY firing, including one that failed before it produced a
+      # report (the artifact then says report_missing, never a clean run), then land it into harness_runs so the
+      # closure gate has dispatch evidence. The landing step self-skips without database credentials.
+      - name: Record this run's harness-run artifact (live-smoke family)
+        if: always()
+        working-directory: fsi-app
+        env:
+          LS_REPORT: ${{ runner.temp }}/live-smoke-report.json
+          LS_STARTED_AT: ${{ env.STARTED_AT }}
+          LS_URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url }}
+        run: node scripts/turns/emit-live-smoke-artifact.mjs
+
+      - name: Land the live-smoke harness-run artifact into harness_runs
+        if: always()
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: bash scripts/turns/deliver-artifact-branch.sh "Live smoke (run ${{ github.run_id }})"
 
       - name: Upload report
         if: always()

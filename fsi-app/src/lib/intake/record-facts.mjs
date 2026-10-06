@@ -81,6 +81,7 @@
 // file's "no-I/O" rule forbids.
 import { BINDING_POSITION, normaliseMode } from "../contracts/vocabularies.mjs";
 import { CORRIDOR_ID_SCHEME } from "../entities/decisions.mjs";
+import { assertNoInternalMarkers } from "../agent/section-markers.mjs";
 
 export const RECORD_FACTS_VERSION = "rf1-2026-09-04.3"; // lane BOILER-2: bare-domain guard is slot-scoped (URL_BEARING_SLOTS), jurisdictional_scope's continuation is list-marker-safe
 
@@ -937,7 +938,9 @@ export function buildRecordFullBrief({ sourceUrl, claims }) {
   if (factLines.length) parts.push("", "## Verbatim facts", "", ...factLines);
   if (gapLines.length) parts.push("", "## Not stated in the captured source", "", ...gapLines);
   parts.push("", `Source: ${sourceUrl}`);
-  return parts.join("\n");
+  // MARKERS NEVER PERSIST (lane GATES-2, 2026-10-05): the one assembly point of a record-grade full_brief, shared with
+  // record-facts-research.mjs, refuses a body carrying an internal marker (src/lib/agent/section-markers.mjs).
+  return assertNoInternalMarkers(parts.join("\n"), "buildRecordFullBrief");
 }
 
 /**

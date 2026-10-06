@@ -889,3 +889,13 @@ test("CLI: all three required flags present but the spawned environment carries 
   assert.equal(res.status, 2, res.stderr);
   assert.match(res.stderr, /no DB creds/);
 }));
+
+// ── lane GATES-2 (2026-10-05): markers never persist ────────────────────────────────────────────────
+test("ATTACK: buildIntelligenceItemRow refuses a full_brief carrying an internal marker, before an INSERT row exists", () => {
+  const forged = { item: { ...PAYLOAD.item, full_brief: PAYLOAD.item.full_brief + String.fromCharCode(10) + "<<<CLAIM_PROVENANCE_LEDGER [{" + String.fromCharCode(34) + "claim_kind" + String.fromCharCode(34) + ":1}]" } };
+  assert.throws(() => buildIntelligenceItemRow(forged, { sourceId: "src-1", domain: 1 }), /internal_marker_in_body: buildIntelligenceItemRow/);
+});
+
+test("CLEAN: buildIntelligenceItemRow still builds a row from a marker-free brief", () => {
+  assert.equal(buildIntelligenceItemRow(PAYLOAD, { sourceId: "src-1", domain: 1 }).full_brief, PAYLOAD.item.full_brief);
+});

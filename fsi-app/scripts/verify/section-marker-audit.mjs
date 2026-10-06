@@ -10,8 +10,9 @@
 // belongs to the population stage and to lane P3's finding.
 //
 // HARD: a stored marker is a customer-visible defect, so the lane fails while any exist. Layer C of the data-audit
-// lane reflects a red hard audit into a block row that halts generation until it is fixed or waived; see
-// docs/data-audit-dispositions.md.
+// lane reflects a red hard audit into a block row that halts generation until it is fixed or waived (see
+// docs/data-audit-dispositions.md). In build mode no generation runs, so a red audit halts nothing live; lane P3 is
+// counting the affected rows and the repair belongs to the population stage.
 //
 // Exit 0 = no stored body carries a marker. Exit 1 = at least one does. Exit 2 = cannot verify (no
 // credentials, read error), diagnosable and never a false green.

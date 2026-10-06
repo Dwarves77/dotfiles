@@ -91,3 +91,14 @@ export function findInternalMarkers(text) {
 export function describeMarkers(hits) {
   return hits.map((h) => `${h.id} "${h.excerpt}"`).join("; ");
 }
+
+/**
+ * The refusal every writer of a stored body uses: throws `internal_marker_in_body: <what> ...` when `text` carries a
+ * marker, returns `text` unchanged otherwise. `where` names the writer for the message. Writers that return a
+ * result instead of throwing (writeSynthesizedBrief) call findInternalMarkers directly.
+ */
+export function assertNoInternalMarkers(text, where) {
+  const hits = findInternalMarkers(text);
+  if (hits.length > 0) throw new Error(`internal_marker_in_body: ${where} refused to persist a body carrying ${describeMarkers(hits)}`);
+  return text;
+}

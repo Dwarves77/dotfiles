@@ -299,6 +299,7 @@ import {
   followUpgradingRedirects,
 } from "./export-census-rows.mjs";
 import { deriveKey } from "../lib/canonical-key.mjs";
+import { assertNoInternalMarkers } from "../../src/lib/agent/section-markers.mjs";
 import { cellarEndpointForOj } from "../lib/eurlex-cellar.mjs";
 export { cellarEndpointForOj };
 // buildGateARow -- THE live Gate-A scanner (gate-a-scan.mjs) wrapped exactly as apply-mint-batch.mjs's own
@@ -3115,7 +3116,23 @@ export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
  * claims/sections snapshots are only MUTATED to reflect a write when `apply` is true, so a later step's
  * dry-mode plan is never built against a write that never happened.
  */
-export async function healOneItem(item, { deps, apply, selectionMode, requiredSlotsMap, sourcesIndex, citedUrlCache, captureIndexCache, stripUnprovable }) {
+/**
+ * MARKERS NEVER PERSIST (lane GATES-2, 2026-10-05): wrap the two stored-body writes (`updateItemBrief` and
+ * `updateSectionContent`) so a heal cannot persist a body that still carries an internal marker
+ * (src/lib/agent/section-markers.mjs). A write that REMOVES a marker passes; one that keeps it throws
+ * `internal_marker_in_body` before the inner dependency runs. Dry runs never call either write.
+ */
+export function guardMarkerWrites(deps) {
+  const wrap = (name) => {
+    const inner = deps[name];
+    if (typeof inner !== "function") return {};
+    return { [name]: (...args) => { assertNoInternalMarkers(args[1], `heal-provenance ${name}`); return inner.apply(deps, args); } };
+  };
+  return { ...deps, ...wrap("updateItemBrief"), ...wrap("updateSectionContent") };
+}
+
+export async function healOneItem(item, { deps: rawDeps, apply, selectionMode, requiredSlotsMap, sourcesIndex, citedUrlCache, captureIndexCache, stripUnprovable }) {
+  const deps = guardMarkerWrites(rawDeps);
   const report = { id: item.id, item_type: item.item_type, steps: {} };
   const sIdx = sourcesIndex ?? { byId: new Map(), byCanonUrl: new Map() };
   // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET, SIXTH PASS). Defaults to a fresh, item-scoped Map
