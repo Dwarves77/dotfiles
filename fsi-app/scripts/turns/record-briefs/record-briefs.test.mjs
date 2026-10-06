@@ -1303,3 +1303,31 @@ describe("criterion-5 mirror (lane L25)", () => {
   });
 
 });
+
+// ── G5-TERMS (2026-10-06): the optional metadata.mentioned_terms array ──────────────────────────────────
+
+describe("metadata.mentioned_terms (optional, G5-TERMS)", () => {
+  const MENTIONED = [
+    { kind: "material", text: "Lithium iron phosphate" },
+    { kind: "term", text: "Book and claim" },
+    { kind: "standard", text: "ISO 14083" },
+  ];
+
+  test("serializes as one inline JSON line; absent serializes as null", () => {
+    const yaml = buildSyntheticFrontmatter(validMetadata({ mentioned_terms: MENTIONED }));
+    assert.match(yaml, /^mentioned_terms: \[\{"kind":"material","text":"Lithium iron phosphate"\}.*\]$/m);
+    assert.match(buildSyntheticFrontmatter(validMetadata()), /^mentioned_terms: null$/m);
+  });
+
+  test("an entry with a valid mentioned_terms array validates clean", () => {
+    const errors = validateRecordBriefsEntry(validEntry({ metadata: validMetadata({ mentioned_terms: MENTIONED }) }), 0, { poolTextByItemId: POOL });
+    assert.deepEqual(errors.filter((e) => e.includes("mentioned_terms")), []);
+  });
+
+  test("an unknown kind, a non-array and an over-long text are each refused naming mentioned_terms", () => {
+    for (const bad of [[{ kind: "theme", text: "x" }], { kind: "term", text: "x" }, [{ kind: "term", text: "x".repeat(121) }]]) {
+      const errors = validateRecordBriefsEntry(validEntry({ metadata: validMetadata({ mentioned_terms: bad }) }), 0, { poolTextByItemId: POOL });
+      assert.ok(errors.some((e) => e.includes("mentioned_terms")), `expected a mentioned_terms refusal for ${JSON.stringify(bad)}`);
+    }
+  });
+});

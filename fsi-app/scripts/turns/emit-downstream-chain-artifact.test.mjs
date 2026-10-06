@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
-import { readStepSummary, buildArtifact, STEPS } from "./emit-downstream-chain-artifact.mjs";
+import { readStepSummary, buildArtifact, termMetrics, STEPS } from "./emit-downstream-chain-artifact.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 function withTmpDir(fn) {
@@ -125,7 +125,7 @@ test("buildArtifact: one step nonzero exit -> that step 'nonzero_exit', a defect
 });
 
 test("STEPS: the maintenance-step names this family always runs, in the workflow's own order", () => {
-  assert.deepEqual(STEPS, ["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "apply-classifications"]);
+  assert.deepEqual(STEPS, ["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "term-recurrence", "apply-classifications"]);
 });
 
 // ── loop_run_id (lane M3b, 2026-09-20) ──────────────────────────────────────────────────────────────
@@ -201,4 +201,46 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream mint artifact with a mat
     });
     assert.equal(unmatched, null);
   });
+});
+
+// ── term-recurrence counts (lane G5-TERMS, 2026-10-06): detected per detector, proposed, adopted ─────────
+
+const TERM_SUMMARY = {
+  step: "term-recurrence",
+  mode: "dry",
+  exitCode: 0,
+  counts: {
+    detected_by_detector: { "entity-link": 6, "theme-candidate": 3, "scenario-tag": 3, "compliance-object": 3, "brief-terms": 1 },
+    terms_total: 5, proposed: 3, adopted: 2, newly_adopted: 2, notes: ["tables_absent"],
+  },
+};
+
+test("buildArtifact: metrics.terms carries detected per detector, proposed and adopted from the term-recurrence summary", () => {
+  const steps = fourCleanSteps().map((r) => (r.step === "term-recurrence" ? { ...r, summary: TERM_SUMMARY } : r));
+  const artifact = buildArtifact({
+    runId: "downstream-chain-run-006", harnessVersion: "sha256:0000000000000000", startedAt: new Date().toISOString(),
+    mode: "dry", skip: false, skipReason: "", upstreamName: "Population turn", upstreamRunId: "1", stepResults: steps,
+  });
+  assert.deepEqual(artifact.metrics.terms, {
+    mode: "dry",
+    detected_by_detector: TERM_SUMMARY.counts.detected_by_detector,
+    terms_total: 5, proposed: 3, adopted: 2, newly_adopted: 2, notes: ["tables_absent"],
+  });
+  assert.ok(artifact.per_item.some((p) => p.id === "term-recurrence" && p.outcome === "clean"));
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("termMetrics: null when the step never ran or left no counts", () => {
+  assert.equal(termMetrics(STEPS.map((step) => ({ step, ran: false, exitCode: null, summary: null, pathRel: null }))), null);
+  assert.equal(termMetrics([{ step: "term-recurrence", ran: true, exitCode: 0, summary: { exitCode: 0 }, pathRel: "x" }]), null);
+});
+
+test("buildArtifact: a skipped chain records metrics.terms null and stays valid", () => {
+  const artifact = buildArtifact({
+    runId: "downstream-chain-run-007", harnessVersion: "sha256:0000000000000000", startedAt: new Date().toISOString(),
+    mode: "dry", skip: true, skipReason: "no-op", upstreamName: "Corpus turn", upstreamRunId: "2",
+    stepResults: STEPS.map((step) => ({ step, ran: false, exitCode: null, summary: null, pathRel: null })),
+  });
+  assert.equal(artifact.metrics.terms, null);
+  assert.deepEqual(validateRunArtifact(artifact), []);
 });

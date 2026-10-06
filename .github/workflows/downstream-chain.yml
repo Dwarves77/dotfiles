@@ -344,6 +344,23 @@ jobs:
           mode: ${{ env.RUN_MODE }}
           out_root: ${{ env.OUT_ROOT }}
 
+      # term-recurrence (lane G5-TERMS, 2026-10-06, buildout plan Stage 5, CLAUDE.md rule 17): counts the
+      # repeated mentions of terms no code vocabulary holds (unresolved standards, out-of-glossary scenario
+      # tags, banked themes, the compliance-object candidates, the brief author's mentioned_terms), proposes
+      # them in vocabulary_terms and adopts them by rule (distinct_items >= trust.ts
+      # CITATION_FREQUENCY_PROMOTION_THRESHOLD and distinct_sources >= 2). Placed right after tag-proposals,
+      # which is the step that already reads the same tag columns. Its mode is this run's RUN_MODE, which
+      # the chained-dry-guard resolved above (dry while scrape_cadence is off). Not a maintenance step: it
+      # writes its own summary.json under OUT_ROOT/term-recurrence in cli.mjs's shape, and
+      # emit-downstream-chain-artifact.mjs reads its counts into the artifact (metrics.terms).
+      - name: term-recurrence
+        if: ${{ env.RUN_SKIP != 'true' }}
+        working-directory: fsi-app
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ env.OUT_ROOT }}/term-recurrence"
+          node scripts/connections/term-recurrence.mjs --mode "${{ env.RUN_MODE }}" --out "${{ env.OUT_ROOT }}/term-recurrence"
+
       - name: apply-classifications
         if: ${{ env.RUN_SKIP != 'true' }}
         uses: ./.github/actions/maintenance-step

@@ -78,7 +78,12 @@ import { parseTimeline } from "../../../src/lib/agent/timeline-parse.mjs";
 import { buildTimelineRows } from "../../../src/lib/agent/timeline-harvest.mjs";
 import { TIMELINE_SECTION_BY_FORMAT, findTimelineSectionFor } from "../../../src/lib/agent/formats/timeline-section.mjs";
 
-export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-09-17.1";
+export const RECORD_BRIEFS_SCHEMA_VERSION = "rb1-2026-10-06.1";
+// 2026-10-06.1 (lane G5-TERMS, buildout plan Stage 5): `metadata.mentioned_terms`, an OPTIONAL array of
+// { kind: material|term|standard, text } naming materials, terms and standards the brief mentions that no code
+// vocabulary holds. Serialized as one inline-JSON frontmatter line and validated by the real parseAgentOutput
+// (which uses the one shared validator in src/lib/connections/term-recurrence.mjs); absent means none.
+// apply-record-briefs.mjs writes the mentions (detector brief-terms). No existing entry changes meaning.
 // 2026-09-17.1 (lane L25, brief-chain-build-plan Part 7 row P1): the criterion-5 mirror. Batch 006's apply
 // quarantined 1bb72c94 at the ground step with missing_required_slot penalty_summary (criterion 5,
 // item_type regulation) after this validator had accepted the file: its only slot rule was that slot_key
@@ -594,6 +599,8 @@ export function buildSyntheticFrontmatter(metadata) {
     `requirement_trajectory: ${yamlInlineJson(m.requirement_trajectory ?? null)}`,
     `penalty_range: ${yamlScalar(m.penalty_range ?? null, "penalty_range")}`,
     `enforcement_body: ${yamlScalar(m.enforcement_body ?? null, "enforcement_body")}`,
+    // G5-TERMS: optional; inline JSON (always one line), null when absent or empty.
+    `mentioned_terms: ${yamlInlineJson(Array.isArray(m.mentioned_terms) && m.mentioned_terms.length === 0 ? null : m.mentioned_terms ?? null)}`,
   ];
   return lines.join("\n");
 }

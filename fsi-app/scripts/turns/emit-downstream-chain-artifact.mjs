@@ -33,7 +33,27 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const FAMILY = "downstream-chain";
 const FAMILY_DIR = resolve(FSI_ROOT, "scripts/harness-runs", FAMILY);
 
-export const STEPS = Object.freeze(["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "apply-classifications"]);
+// term-recurrence (lane G5-TERMS, 2026-10-06) runs right after tag-proposals: it is not a maintenance step
+// (scripts/connections/term-recurrence.mjs writes its own summary.json under OUT_ROOT/term-recurrence, the
+// same shape cli.mjs writes), and its counts are read into metrics.terms below.
+export const STEPS = Object.freeze(["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "term-recurrence", "apply-classifications"]);
+
+/** The term-recurrence counts the artifact records: detected per detector, proposed, adopted. Null when the
+ *  step left no readable summary (skipped chain, step never ran). @param {{step:string, summary:object|null}[]} stepResults */
+export function termMetrics(stepResults) {
+  const r = stepResults.find((x) => x.step === "term-recurrence");
+  const c = r?.summary?.counts;
+  if (!c || typeof c !== "object") return null;
+  return {
+    mode: r.summary.mode ?? null,
+    detected_by_detector: c.detected_by_detector ?? null,
+    terms_total: c.terms_total ?? null,
+    proposed: c.proposed ?? null,
+    adopted: c.adopted ?? null,
+    newly_adopted: c.newly_adopted ?? null,
+    notes: Array.isArray(c.notes) ? c.notes : [],
+  };
+}
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
@@ -115,12 +135,13 @@ export function buildArtifact({
       steps_run: stepsWithSummary,
       steps_with_summary: stepsWithSummary,
       steps_nonzero_exit: stepsNonzeroExit,
+      terms: termMetrics(stepResults),
     },
     defects_found: defectsFound,
     full_trace_refs: fullTraceRefs,
     proposer_notes: skip
       ? `This dispatch was a no-op: ${skipReason || "no reason recorded"}. No step ran; recorded anyway so the family's own history shows every firing, not only the ones with real work (MINT-RUNBOOK.md's "record it every batch, even when zero," applied here).`
-      : "Auto-emitted by emit-downstream-chain-artifact.mjs after tier-opinions/recompute-tiers/derive-obligations/tag-proposals/apply-classifications each wrote their own summary.json via the shared ./.github/actions/maintenance-step composite action.",
+      : "Auto-emitted by emit-downstream-chain-artifact.mjs after tier-opinions/recompute-tiers/derive-obligations/tag-proposals/term-recurrence/apply-classifications each wrote their own summary.json via the shared ./.github/actions/maintenance-step composite action.",
   };
 }
 

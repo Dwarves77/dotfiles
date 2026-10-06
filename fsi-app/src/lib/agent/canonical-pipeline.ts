@@ -789,6 +789,8 @@ export interface InjectedBriefMetadata {
   enforcement_body: AgentMetadata["enforcement_body"];
   operational_scenario_tags: AgentMetadata["operational_scenario_tags"];
   compliance_object_tags: AgentMetadata["compliance_object_tags"];
+  /** G5-TERMS (2026-10-06): optional author-named materials, terms and standards; absent means none. */
+  mentioned_terms?: AgentMetadata["mentioned_terms"];
   related_items: AgentMetadata["related_items"];
   intersection_summary: AgentMetadata["intersection_summary"];
   sources_used: AgentMetadata["sources_used"];
@@ -835,6 +837,7 @@ function buildInjectedFrontmatter(md: InjectedBriefMetadata): string {
     `theme: ${yamlScalarLine(md.theme, "theme")}`,
     `operational_scenario_tags: ${yamlArrayLine(md.operational_scenario_tags, "operational_scenario_tags")}`,
     `compliance_object_tags: ${yamlArrayLine(md.compliance_object_tags, "compliance_object_tags")}`,
+    `mentioned_terms: ${yamlJsonLine(md.mentioned_terms && md.mentioned_terms.length > 0 ? md.mentioned_terms : null)}`,
     `related_items: ${yamlArrayLine(md.related_items, "related_items")}`,
     `intersection_summary: ${yamlScalarLine(md.intersection_summary, "intersection_summary")}`,
     `sources_used: ${yamlArrayLine(md.sources_used, "sources_used")}`,
@@ -1137,6 +1140,11 @@ export async function writeSynthesizedBrief(
     cost_mechanism: md.cost_mechanism, penalty_range: md.penalty_range,
     enforcement_body: md.enforcement_body, requirement_trajectory: md.requirement_trajectory,
     operational_scenario_tags: md.operational_scenario_tags, compliance_object_tags: md.compliance_object_tags,
+    // G5-TERMS (2026-10-06, migration 355): CAPTURE, never drop. The compliance-object values outside the
+    // closed list that parse-output.ts used to discard are banked here (the theme_candidate idiom, migration
+    // 136) for scripts/connections/term-recurrence.mjs to count. Written on every brief write, so a
+    // regeneration that no longer emits one clears it.
+    compliance_object_candidates: md.compliance_object_candidates ?? [],
     intersection_summary: md.intersection_summary,
     sources_used: cleanUuids(md.sources_used), regeneration_skill_version: md.regeneration_skill_version,
     // ADR-028 (task 3.3, 2026-09-11): item_grade is a CACHE of "this item carries a real synthesized

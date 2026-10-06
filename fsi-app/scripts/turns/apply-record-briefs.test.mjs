@@ -217,12 +217,13 @@ test("resolveBriefsInput: CLI end-to-end - a zero-entry --briefs file exits 1 an
 
 // ── APPLY_STEP_ORDER - the per-item outcome vocabulary's own step namespace ─────────────────────────────
 
-test("APPLY_STEP_ORDER: the exact 10-step order the module header documents (structured-actions added lane STRUCTURED-ACTIONS, 2026-09-28; lineage added lane s2a-typed-edges, 2026-10-04)", () => {
+test("APPLY_STEP_ORDER: the exact 11-step order the module header documents (structured-actions added lane STRUCTURED-ACTIONS, 2026-09-28; lineage added lane s2a-typed-edges, 2026-10-04; terms added lane G5-TERMS, 2026-10-06)", () => {
   assert.deepEqual(APPLY_STEP_ORDER, [
     "generate",
     "section",
     "ground",
     "grow",
+    "terms",
     "structured-actions",
     "lineage",
     "discovery",
@@ -614,7 +615,7 @@ function successfulDeps(overrides = {}) {
   };
 }
 
-test("applyOneEntry: step order and outcome vocabulary, all 10 steps + provenance-status, all succeeding", async () => {
+test("applyOneEntry: step order and outcome vocabulary, all 11 steps + provenance-status, all succeeding", async () => {
   const itemId = "item-1";
   const result = await applyOneEntry(
     { itemId, entry: baseEntry(itemId) },
@@ -632,6 +633,7 @@ test("applyOneEntry: step order and outcome vocabulary, all 10 steps + provenanc
       { id: "item-1#provenance-status", outcome: "verified" },
       { id: "item-1#changelog", outcome: "changelog:written" },
       { id: "item-1#grow", outcome: "grown" },
+      { id: "item-1#terms", outcome: "terms:0" },
       // fakeSb's single() always returns { provenance_status } regardless of the columns selected, so
       // this step's own re-read sees item_type/full_brief as undefined and extracts zero actions -- the
       // dedicated structured-actions tests below exercise real extraction with a schema-shaped fake.
@@ -1290,4 +1292,100 @@ test("runApplyLoop dry mode: a previewEntry may return several results; every on
   });
   assert.equal(applied, 0);
   assert.ok(r.perItem.some((x) => x.id === "a#register-sources") && r.perItem.some((x) => x.id === "a#lineage"));
+});
+
+// ── terms step (lane G5-TERMS, 2026-10-06): detector 5 of the recurrence counter ─────────────────────────
+
+test("applyOneEntry: an entry with mentioned_terms writes them through recordBriefTerms with the item's source, after grow", async () => {
+  const calls = [];
+  const entry = { ...baseEntry("item-1"), metadata: { mentioned_terms: [{ kind: "material", text: "Lithium iron phosphate" }, { kind: "term", text: "Book and claim" }] } };
+  const writers = { tag: "fake-writers" };
+  const deps = successfulDeps({
+    readItemSourceId: async () => "src-9",
+    termWriters: writers,
+    recordBriefTerms: async (args, w) => { calls.push({ args, w }); return { mentioned: 2, terms_inserted: 1, mentions_written: 2, skipped_retired: 0 }; },
+  });
+  const res = await applyOneEntry({ itemId: "item-1", entry }, { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].args.itemId, "item-1");
+  assert.equal(calls[0].args.sourceId, "src-9");
+  assert.deepEqual(calls[0].args.terms, entry.metadata.mentioned_terms);
+  assert.equal(calls[0].w, writers);
+  const order = res.steps.map((x) => x.id.split("#")[1]);
+  assert.ok(order.indexOf("grow") < order.indexOf("terms") && order.indexOf("terms") < order.indexOf("structured-actions"));
+  assert.equal(res.steps.find((x) => x.id === "item-1#terms").outcome, "terms:2 (new_terms:1 retired_skipped:0)");
+});
+
+test("applyOneEntry: terms with no mentioned_terms touches nothing (no source read, no writer built)", async () => {
+  const deps = successfulDeps({
+    readItemSourceId: async () => { throw new Error("must not read"); },
+    recordBriefTerms: async () => { throw new Error("must not write"); },
+  });
+  const res = await applyOneEntry({ itemId: "item-1", entry: baseEntry("item-1") }, { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps });
+  assert.equal(res.steps.find((x) => x.id === "item-1#terms").outcome, "terms:0");
+});
+
+test("applyOneEntry: a terms write failure is recorded as terms_failed with its message and later steps still run", async () => {
+  const entry = { ...baseEntry("item-3"), metadata: { mentioned_terms: [{ kind: "term", text: "Book and claim" }] } };
+  const deps = successfulDeps({
+    readItemSourceId: async () => null,
+    termWriters: {},
+    recordBriefTerms: async () => { throw new Error("vocabulary_terms does not exist"); },
+  });
+  const res = await applyOneEntry({ itemId: "item-3", entry }, { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps });
+  const byId = Object.fromEntries(res.steps.map((x) => [x.id, x]));
+  assert.equal(byId["item-3#terms"].outcome, "terms_failed");
+  assert.equal(byId["item-3#terms"].error, "vocabulary_terms does not exist");
+  assert.equal(byId["item-3#discovery"].outcome, "discovery:2");
+});
+
+test("applyOneEntry: the DEFAULT terms writers run end to end through the guarded db helpers on a fake write client (the apply-only path is exercised)", async () => {
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { __setWriteClientForTest } = await import("../lib/db.mjs");
+  process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), "apply-record-briefs-terms-snapshots");
+  const calls = [];
+  const client = {
+    from(table) {
+      const st = { table, verb: "select", ops: [] };
+      const settle = () => {
+        calls.push({ table, verb: st.verb, ops: st.ops.slice() });
+        if (st.verb === "insert") {
+          const rows = st.ops.find((o) => o[0] === "insert")[1];
+          return Promise.resolve({ data: rows.map((r, i) => ({ id: `id-${i}`, kind: r.kind, term_key: r.term_key })), error: null });
+        }
+        if (st.verb === "upsert") return Promise.resolve({ data: st.ops.find((o) => o[0] === "upsert")[1], error: null });
+        return Promise.resolve({ data: [], error: null });
+      };
+      const b = {
+        select() { return b; },
+        insert(r) { st.verb = "insert"; st.ops.push(["insert", r]); return b; },
+        upsert(r, o) { st.verb = "upsert"; st.ops.push(["upsert", r, o]); return b; },
+        eq(c, v) { st.ops.push(["eq", c, v]); return b; },
+        in(c, v) { st.ops.push(["in", c, v]); return b; },
+        order() { return b; },
+        range() { return b; },
+        then(res, rej) { return settle().then(res, rej); },
+      };
+      return b;
+    },
+  };
+  __setWriteClientForTest(() => client);
+  try {
+    const entry = { ...baseEntry("item-7"), metadata: { mentioned_terms: [{ kind: "material", text: "Lithium iron phosphate" }, { kind: "standard", text: "ISO 14083" }] } };
+    const res = await applyOneEntry(
+      { itemId: "item-7", entry },
+      { sb: fakeSb({ provenanceStatus: "verified" }), allowBriefOverwrite: false, deps: successfulDeps({ readItemSourceId: async () => "src-2" }) },
+    );
+    assert.equal(res.steps.find((x) => x.id === "item-7#terms").outcome, "terms:2 (new_terms:2 retired_skipped:0)");
+    const inserted = calls.find((c) => c.table === "vocabulary_terms" && c.verb === "insert");
+    assert.equal(inserted.ops.find((o) => o[0] === "insert")[1].length, 2);
+    assert.ok(inserted.ops.find((o) => o[0] === "insert")[1].every((r) => r.status === "proposed"));
+    const upserted = calls.find((c) => c.table === "vocabulary_mentions" && c.verb === "upsert");
+    const up = upserted.ops.find((o) => o[0] === "upsert");
+    assert.equal(up[2].onConflict, "term_id,item_id,detector");
+    assert.deepEqual(up[1].map((r) => [r.detector, r.item_id, r.source_id]), [["brief-terms", "item-7", "src-2"], ["brief-terms", "item-7", "src-2"]]);
+  } finally {
+    __setWriteClientForTest(null);
+  }
 });
