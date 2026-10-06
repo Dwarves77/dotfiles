@@ -59,3 +59,7 @@ Coordinator rules; nothing here waits on the human.
 - The chained firing off Brief apply or Research walker was not exercised on a real event (no network); the dispatch path is the R14 proof.
 - Trust-recompute duplication is recorded above for the coordinator's ruling.
 - Index lines owed (coordinator, not edited here): `docs/INDEX.md` for `docs/runbooks/maintenance.d/61-source-resolution.md`, and the `MAINTENANCE-RUNBOOK.md` index entry for section 61.
+
+## Coordinator rulings (after PR 948 opened)
+- `fsi-app/scripts/lib/loop-run-id.mjs`: added `"Research walker": "research-walker"` to `FAMILY_BY_WORKFLOW_NAME` (write-set expansion granted). Proof: `loop-run-id.test.mjs` "every LOOP_HOPS producer name is a mapped key" was red in CI (17 pass, 1 fail locally), green after. No family lists `loop-run-id.mjs` as a governing file (grep of every family.json), so no pending marker. A firing off Research walker now resolves `config.loop_run_id` instead of null.
+- Trust recompute: Ruled 2026-10-05: Option 1; execution by a later lane: a recompute-trust-scores maintenance step reusing the route's trust-score logic through guarded writes, a pause read in recompute-tiers, then delete trust-recompute.yml and its closure-gate entry.
