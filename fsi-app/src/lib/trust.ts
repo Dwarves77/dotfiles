@@ -1471,7 +1471,9 @@ export function tierMovementEvent(sourceId: string, decision: TierMovementDecisi
 }
 
 export interface TierMovementWriters {
-  setEffectiveTier(sourceId: string, tier: SourceTier): Promise<void>;
+  /** Returns `{ written: false }` when the statement matched no row because the source is under an admin
+   *  override at write time (tier-override-guard.mjs). A writer that returns nothing is treated as written. */
+  setEffectiveTier(sourceId: string, tier: SourceTier): Promise<void | { written: boolean }>;
   insertEvent(event: ReturnType<typeof tierMovementEvent>): Promise<void>;
 }
 
@@ -1482,6 +1484,8 @@ export interface TierMovementApplyResult {
   demotions: number;
   write_failed: number;
   event_failed: number;
+  /** Writes the database refused because an admin override was set after the plan was read. Not applied, no event. */
+  override_skipped: number;
   failures: string[];
 }
 
@@ -1502,12 +1506,17 @@ export async function applyTierMovements(
     demotions: 0,
     write_failed: 0,
     event_failed: 0,
+    override_skipped: 0,
     failures: [],
   };
   for (const m of movements) {
     const label = m.name ?? m.source_id;
     try {
-      await writers.setEffectiveTier(m.source_id, m.decision.after_tier);
+      const w = await writers.setEffectiveTier(m.source_id, m.decision.after_tier);
+      if (w && w.written === false) {
+        result.override_skipped += 1;
+        continue;
+      }
     } catch (e) {
       result.write_failed += 1;
       result.failures.push(`${label}: effective_tier write failed: ${e instanceof Error ? e.message : String(e)}`);

@@ -86,6 +86,7 @@ import { fileURLToPath } from "node:url";
 import { hostOf } from "../lib/institution-key.mjs";
 import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
 import { runCli } from "./lib/cli.mjs";
+import { withTierOverrideGuard } from "../../src/lib/sources/tier-override-guard.mjs";
 
 export const CITE = Object.freeze({
   skill: "source-credibility-model",
@@ -443,6 +444,8 @@ export async function main({ mode = "dry" } = {}, deps) {
   // write carries one patch shape and one applyMatch re-check (still-at-old-tier guard — a row someone
   // else changed between the read and the write is left alone, same convention as origin-class-backfill).
   let tierRowsUpdated = 0;
+  // Rows the UPDATE statement refused because an admin override was set after the plan was read (G7-TIER).
+  let overrideSkipped = 0;
   const tierWrites = [];
   for (const plan of canonicalizations) {
     const groups = new Map();
@@ -460,6 +463,7 @@ export async function main({ mode = "dry" } = {}, deps) {
         },
       });
       tierRowsUpdated += res.updated ?? 0;
+      overrideSkipped += Math.max(0, g.ids.length - (res.updated ?? 0));
       tierWrites.push({
         institution_id: plan.institution_id,
         canonical_tier: plan.canonical_tier,
@@ -499,6 +503,7 @@ export async function main({ mode = "dry" } = {}, deps) {
         },
       });
       classOverrideRowsUpdated += res.updated ?? 0;
+      overrideSkipped += Math.max(0, g.ids.length - (res.updated ?? 0));
       classOverrideWrites.push({
         host: plan.host,
         old_base_tier: g.old,
@@ -511,6 +516,7 @@ export async function main({ mode = "dry" } = {}, deps) {
   }
   summary.counts.part_c_class_override.applied = classOverrideWrites;
   summary.applied += classOverrideRowsUpdated;
+  summary.counts.override_skipped = overrideSkipped;
 
   // ── read_back ─────────────────────────────────────────────────────────────────────────────────────
   const institutionsAfter = await deps.readInstitutions();
@@ -532,31 +538,31 @@ export async function main({ mode = "dry" } = {}, deps) {
   return summary;
 }
 
+/** Real wiring for main(): db.mjs reads and guarded writes. EXPORTED so the attack test drives it with a fake client. */
+export async function buildDeps() {
+  const { readAll, readAllByIds, guardedUpdate, guardedUpdateByIds, guardedDelete } = await import("../lib/db.mjs");
+  const SOURCE_COLUMNS = "id, url, base_tier, effective_tier, tier_override, institution_id, status, source_role";
+  return {
+    readInstitutions: () => readAll("institutions", "id, name, registrable_domain"),
+    readSources: () => readAll("sources", SOURCE_COLUMNS),
+    // affectedSourceIds is runtime-scaled (every source under the institutions this pass merged) with
+    // no declared cap, chunked via readAllByIds, not a single .in(), IN-CHUNK class (2026-09-06).
+    readSourcesByIds: (ids) => readAllByIds("sources", "id, base_tier, effective_tier", ids),
+    reassignSourcesInstitution: (duplicateId, canonicalId) =>
+      guardedUpdate("sources", (q) => q.eq("institution_id", duplicateId), { institution_id: canonicalId }, { cite: CITE, select: "id" }),
+    countSourcesForInstitution: async (institutionId) => {
+      const rows = await readAll("sources", "id", { match: (q) => q.eq("institution_id", institutionId) });
+      return rows.length;
+    },
+    deleteInstitution: (id) => guardedDelete("institutions", [id], { cite: CITE }),
+    guardedUpdateSourcesByIds: (ids, patch, { applyMatch }) =>
+      // The override guard is in the UPDATE itself: the planners exclude tier_override rows from the read,
+      // this refuses the write for a row overridden since (tier-override-guard.mjs).
+      guardedUpdateByIds("sources", ids, patch, { cite: CITE, applyMatch: withTierOverrideGuard(applyMatch), select: "id" }),
+  };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
-  await runCli({
-    step: "institution-canonicalize",
-    main,
-    needsDb: true,
-    buildDeps: async () => {
-      const { readAll, readAllByIds, guardedUpdate, guardedUpdateByIds, guardedDelete } = await import("../lib/db.mjs");
-      const SOURCE_COLUMNS = "id, url, base_tier, effective_tier, tier_override, institution_id, status, source_role";
-      return {
-        readInstitutions: () => readAll("institutions", "id, name, registrable_domain"),
-        readSources: () => readAll("sources", SOURCE_COLUMNS),
-        // affectedSourceIds is runtime-scaled (every source under the institutions this pass merged) with
-        // no declared cap — chunked via readAllByIds, not a single .in(), IN-CHUNK class (2026-09-06).
-        readSourcesByIds: (ids) => readAllByIds("sources", "id, base_tier, effective_tier", ids),
-        reassignSourcesInstitution: (duplicateId, canonicalId) =>
-          guardedUpdate("sources", (q) => q.eq("institution_id", duplicateId), { institution_id: canonicalId }, { cite: CITE, select: "id" }),
-        countSourcesForInstitution: async (institutionId) => {
-          const rows = await readAll("sources", "id", { match: (q) => q.eq("institution_id", institutionId) });
-          return rows.length;
-        },
-        deleteInstitution: (id) => guardedDelete("institutions", [id], { cite: CITE }),
-        guardedUpdateSourcesByIds: (ids, patch, { applyMatch }) =>
-          guardedUpdateByIds("sources", ids, patch, { cite: CITE, applyMatch, select: "id" }),
-      };
-    },
-  });
+  await runCli({ step: "institution-canonicalize", main, needsDb: true, buildDeps });
 }
