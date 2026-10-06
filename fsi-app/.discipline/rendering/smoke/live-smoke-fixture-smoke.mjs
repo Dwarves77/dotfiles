@@ -89,11 +89,14 @@ function startServer(defective) {
       res.end();
       return;
     }
-    // The admin gate: a platform admin gets 200, anyone else is refused. The defective site leaks it to the smoke user.
+    // The admin gate: a platform admin gets the dashboard, anyone else is refused. The defective site leaks it to the smoke
+    // user: a 200 that STAYS on /admin with the dashboard markers. The clean site reproduces production's shape: the root
+    // loading.tsx streams a 200 shell first and the redirect fires after (a client-side replace), so the status and URL at
+    // domcontentloaded say 200 and /admin and only the settled page tells the truth.
     if (url.pathname === "/admin") {
-      if (defective) { res.writeHead(200, { "content-type": "text/html" }); res.end(page("Admin", "<p>Admin content</p>")); return; }
-      res.writeHead(302, { location: "/" });
-      res.end();
+      if (defective) { res.writeHead(200, { "content-type": "text/html" }); res.end(page("Admin", '<div data-admin-dashboard="">Admin content</div>')); return; }
+      res.writeHead(200, { "content-type": "text/html" });
+      res.end(page("Loading", "<p>Loading shell</p>", { script: 'setTimeout(function(){location.replace("/")},400)' }));
       return;
     }
     if (url.pathname === "/api/admin/coverage" || url.pathname === "/api/admin/integrity-flags") {

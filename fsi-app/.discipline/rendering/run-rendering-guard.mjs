@@ -57,6 +57,7 @@ import { runSmoke as runScrollContainerAttackSmoke } from "./smoke/scroll-contai
 // GATES-2: the Live smoke gate's runner proven end to end against a loopback FIXTURE server (clean site,
 // a defective site that must trip every invariant, a bad login). No real site, no real credential.
 import { runSmoke as runLiveSmokeFixtureSmoke } from "./smoke/live-smoke-fixture-smoke.mjs";
+import { runSmoke as runNarrowOverflowLiveFixesSmoke } from "./smoke/narrow-overflow-live-fixes-smoke.mjs";
 import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
 import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
 import { runSmoke as runSettingsSectionIndexSmoke } from "./smoke/settings-section-index-smoke.mjs";
@@ -286,6 +287,7 @@ async function main() {
     { name: "admin-stat-tiles", run: runAdminStatTilesSmoke },
     { name: "scroll-container-attack", run: runScrollContainerAttackSmoke },
     { name: "live-smoke-fixture", run: runLiveSmokeFixtureSmoke },
+    { name: "narrow-overflow-live-fixes", run: runNarrowOverflowLiveFixesSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

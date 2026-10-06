@@ -29,6 +29,7 @@
  * design and that renderer is correct in its own home. Do not "fix" it there.
  */
 
+import { Children, cloneElement, isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
@@ -61,14 +62,67 @@ const CELL_BASE: React.CSSProperties = {
   verticalAlign: "top",
 };
 
+// NARROW TABLES (lane P4, 2026-10-06). The first Live smoke run measured five detail pages at 375 px whose
+// markdown table sat in the `overflowX: auto` wrapper below: a 6-column table is 550 to 760 px wide, so the
+// wrapper panned sideways on a phone (the scroll-container rule fails it). The house fix for a wide table at a
+// phone width is the `.cl-table-cards` stacked-card reflow in globals.css (at 640 px and under every row is a
+// card and every cell a "label: value" line, the label read from the cell's own `data-label`). A GFM table has
+// no author-written labels, so each cell's label is the text of its column header: the `table` override reads
+// the header row from the markdown tree and `labelCells` gives every cell its header. Above 640 px the table is unchanged: still a
+// table, still in its scroll wrapper.
+type HastNode = { type?: string; tagName?: string; value?: string; children?: HastNode[] };
+
+function hastText(node: HastNode | undefined): string {
+  if (!node) return "";
+  if (node.type === "text") return node.value ?? "";
+  return (node.children ?? []).map(hastText).join("");
+}
+
+/** Header labels of a GFM table, in column order, from the first row of its `thead`. */
+function tableHeaderLabels(table: HastNode | undefined): string[] {
+  const thead = (table?.children ?? []).find((c) => c.tagName === "thead");
+  const row = (thead?.children ?? []).find((c) => c.tagName === "tr");
+  return (row?.children ?? [])
+    .filter((c) => c.tagName === "th" || c.tagName === "td")
+    .map((c) => hastText(c).replace(/\s+/g, " ").trim());
+}
+
+type WithChildren = React.ReactElement<{ children?: React.ReactNode }>;
+
+/**
+ * Hands every cell its column header as `dataLabel` (the `td` override renders it as `data-label`). No hooks and
+ * no context, so this stays valid in a server component: it walks the React children react-markdown built
+ * (table > thead/tbody > tr > th/td) and clones each cell with the header at its own column index.
+ */
+function labelCells(sections: React.ReactNode, headers: string[]): React.ReactNode {
+  return Children.map(sections, (section) => {
+    if (!isValidElement(section)) return section;
+    const rows = Children.map((section as WithChildren).props.children, (row) => {
+      if (!isValidElement(row)) return row;
+      let col = 0;
+      const cells = Children.map((row as WithChildren).props.children, (cell) => {
+        if (!isValidElement(cell)) return cell;
+        const label = headers[col] ?? "";
+        col += 1;
+        return cloneElement(cell as React.ReactElement<{ dataLabel?: string }>, { dataLabel: label });
+      });
+      return cloneElement(row as WithChildren, undefined, cells);
+    });
+    return cloneElement(section as WithChildren, undefined, rows);
+  });
+}
+
 const COMPONENTS: Components = {
   p: ({ children }) => <p style={PARA}>{children}</p>,
 
   // Tables — the whole point of this component. Wrapped in an overflow container because a
-  // region x dimension matrix is wider than the prose column and must scroll rather than clip.
-  table: ({ children }) => (
+  // region x dimension matrix is wider than the prose column and must scroll rather than clip
+  // above 640 px; at 640 px and under `.cl-table-cards` stacks it into cards (see NARROW TABLES).
+  table: ({ children, node }) => (
     <div style={{ overflowX: "auto", margin: "0 0 12px" }}>
-      <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>{children}</table>
+      <table className="cl-table-cards" style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+        {labelCells(children, tableHeaderLabels(node as HastNode | undefined))}
+      </table>
     </div>
   ),
   // dc.html p9 concession table thead: background #FAFAF8 (var(--page), the same off-white the
@@ -91,11 +145,18 @@ const COMPONENTS: Components = {
       {children}
     </th>
   ),
-  td: ({ children, style }) => (
-    <td style={{ ...CELL_BASE, color: "var(--color-text-secondary)", borderBottom: "1px solid rgba(0,0,0,.06)", ...(style ?? {}) }}>
-      {children}
-    </td>
-  ),
+  td: (props) => {
+    // `dataLabel` is injected by LabelledRow; it is not a markdown attribute.
+    const { children, style, dataLabel } = props as typeof props & { dataLabel?: string };
+    return (
+      <td
+        data-label={dataLabel ?? ""}
+        style={{ ...CELL_BASE, color: "var(--color-text-secondary)", borderBottom: "1px solid rgba(0,0,0,.06)", ...(style ?? {}) }}
+      >
+        {children}
+      </td>
+    );
+  },
 
   ul: ({ children }) => (
     <ul style={{ ...PARA, paddingLeft: 20, listStyleType: "disc" }}>{children}</ul>

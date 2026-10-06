@@ -19,6 +19,7 @@ import {
   ADMIN_GATE_API_PATHS,
   findAdminLinks,
   judgeAdminProbe,
+  ADMIN_MARKER_SELECTORS,
   checkAdminProbes,
   extractAccessToken,
 } from "./live-assertions.mjs";
@@ -103,7 +104,7 @@ test("own-origin-5xx: ATTACK a 500 on the own origin fails; a 404 is a warning; 
   const origin = "https://x.test";
   const f = checkResponses(
     [
-      { url: "https://x.test/api/a", status: 500 },
+      { url: "https://x.test/api/a", status: 500, method: "post" },
       { url: "https://x.test/missing.png", status: 404 },
       { url: "https://cdn.other.test/a.js", status: 503 },
       { url: "https://x.test/ok", status: 200 },
@@ -115,6 +116,8 @@ test("own-origin-5xx: ATTACK a 500 on the own origin fails; a 404 is a warning; 
     [INVARIANTS.OWN_ORIGIN_5XX, "fail", "500 /api/a"],
     [INVARIANTS.OWN_ORIGIN_4XX, "warn", "404 /missing.png"],
   ]);
+  // Method, status and path are fields of their own, so a summary never has to parse them back out of text.
+  assert.deepEqual(f.map((x) => [x.method, x.status, x.path]), [["POST", 500, "/api/a"], ["GET", 404, "/missing.png"]]);
   assert.deepEqual(checkResponses([{ url: "https://x.test/ok", status: 200 }], origin), []);
 });
 
@@ -160,15 +163,40 @@ test("session-invalid: ATTACK a /login redirect is reported ALONE under its own 
 });
 
 // ---- reporting
-test("formatSummary prints one line per finding with url and truncated text; buildReport counts by invariant", () => {
-  const findings = checkSnapshot(base({ textNodes: ["x".repeat(400) + " <<<"] }));
+test("formatSummary prints one line per distinct finding with url path and truncated text; buildReport counts by invariant", () => {
+  const findings = checkSnapshot(base({ textNodes: ["x".repeat(400) + " <<<"], status: 200 }));
   const lines = formatSummary(findings);
-  assert.match(lines[0], /^FAIL internal-marker @1440 https:\/\/x\.test\/market\/abc :: /);
+  assert.match(lines[0], /^FAIL internal-marker GET 200 \/market\/abc :: /);
+  assert.match(lines[0], / \(1 page\)$/);
   assert.ok(lines[0].length < 260, "offending text is truncated");
   assert.equal(lines[lines.length - 1], "live smoke: 1 failure(s), 0 warning(s)");
   const r = buildReport({ baseUrl: "https://x.test", pages: [{ url: "https://x.test/", viewport: 1440 }], findings });
   assert.equal(r.failureCount, 1);
   assert.deepEqual(r.byInvariant, { "internal-marker": 1 });
+});
+
+test("formatSummary: every warning and failure shows method, status and path, and one route seen on many pages is ONE line with a page count", () => {
+  const origin = "https://x.test";
+  const findings = [];
+  // The first live run: the same 403 on /api/workspace/tags from 12 pages at 2 viewports = 24 raw warnings.
+  for (const viewport of [1440, 375]) {
+    for (let i = 0; i < 12; i++) {
+      findings.push(...checkResponses([{ url: `${origin}/api/workspace/tags`, status: 403, method: "GET" }], origin, { url: `${origin}/page-${i}`, viewport }));
+    }
+  }
+  findings.push(...checkResponses([{ url: `${origin}/api/other`, status: 500, method: "POST" }], origin, { url: `${origin}/a`, viewport: 1440 }));
+  assert.deepEqual(formatSummary(findings), [
+    "FAIL own-origin-5xx POST 500 /api/other (1 page)",
+    "WARN own-origin-4xx GET 403 /api/workspace/tags (24 pages)",
+    "live smoke: 1 failure(s), 24 warning(s)",
+  ]);
+  // A page-level finding at two viewports on one path is one line and two pages; a different path is its own line.
+  const overflow = [1440, 375].map((w) => ({ invariant: INVARIANTS.SCROLL_CONTAINER, url: `${origin}/market`, viewport: w, text: "div.x: wide", severity: "fail", status: 200 }));
+  overflow.push({ invariant: INVARIANTS.SCROLL_CONTAINER, url: `${origin}/research/abc`, viewport: 375, text: "div.x: wide", severity: "fail" });
+  assert.deepEqual(formatSummary(overflow).slice(0, 2), [
+    "FAIL scroll-container-overflow GET 200 /market :: div.x: wide (2 pages)",
+    "FAIL scroll-container-overflow GET - /research/abc :: div.x: wide (1 page)",
+  ]);
 });
 
 // ---- admin gate (rule 15: the smoke account is never a platform admin)
@@ -190,6 +218,18 @@ test("admin-gate: GET /admin passes on a redirect away or 401/403/404; ATTACK a 
   assert.equal(judgeAdminProbe({ kind: "page", path: "/admin", status: 403, finalPath: "/admin" }), null);
   assert.equal(judgeAdminProbe({ kind: "page", path: "/admin", status: 404, finalPath: "/admin" }), null);
   assert.match(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/admin" }), /may have become a platform admin: GET \/admin stayed on \/admin with status 200/);
+});
+
+test("admin-gate: the STREAMED redirect (a 200 loading shell, then the URL leaves /admin) passes; markers or a stay on /admin fail", () => {
+  assert.equal(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/", markers: 0 }), null);
+  // ATTACK: settled on /admin with the dashboard rendered.
+  assert.match(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/admin", markers: 2 }), /rendered admin-only markers/);
+  // ATTACK: markers win over a refusal status and over a URL that moved (the content is the leak).
+  assert.match(judgeAdminProbe({ kind: "page", path: "/admin", status: 403, finalPath: "/admin", markers: 1 }), /rendered admin-only markers/);
+  assert.match(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/", markers: 1 }), /rendered admin-only markers/);
+  // ATTACK: still on /admin after settling with a 200 and no marker: the redirect never fired.
+  assert.match(judgeAdminProbe({ kind: "page", path: "/admin", status: 200, finalPath: "/admin", markers: 0 }), /stayed on \/admin with status 200/);
+  assert.ok(ADMIN_MARKER_SELECTORS.includes("[data-admin-dashboard]"));
 });
 
 test("admin-gate: admin API routes pass on 401/403/404; ATTACK a 200 or a 500 fails; a missing token is unverifiable, not a pass", () => {
