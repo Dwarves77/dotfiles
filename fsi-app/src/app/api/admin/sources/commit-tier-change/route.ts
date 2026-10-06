@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { commitSeededTierChange } from "./logic";
+import { commitSeededTierChange, type CommitTierChangeClient } from "./logic";
 
 
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Seeded: operator-decided base_tier update. Refused (409) under an admin tier_override (logic.ts).
-  const result = await commitSeededTierChange(supabase, source_id, tier);
+  const result = await commitSeededTierChange(supabase as unknown as CommitTierChangeClient, source_id, tier);
   if (result.status !== 200) return NextResponse.json(result.body, { status: result.status });
 
   console.log(

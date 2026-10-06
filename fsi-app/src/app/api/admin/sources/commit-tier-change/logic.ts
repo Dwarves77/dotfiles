@@ -1,8 +1,31 @@
 // Decision + write for POST /api/admin/sources/commit-tier-change, kept beside route.ts because a route
 // file may export only handlers (F34). Lane G7-TIER (2026-10-05).
 
+type QueryResult<T> = PromiseLike<{ data: T | null; error: { message: string } | null }>;
+
+interface PriorSourceRow {
+  id: string;
+  base_tier: number | null;
+  tier_override: number | null;
+}
+
+/** Only the calls commitSeededTierChange makes on the sources table. */
+interface SourcesSelectChain {
+  eq(column: string, value: string): SourcesSelectChain;
+  maybeSingle(): QueryResult<PriorSourceRow>;
+}
+interface SourcesUpdateChain {
+  eq(column: string, value: string): SourcesUpdateChain;
+  is(column: string, value: null): SourcesUpdateChain;
+  select(columns: string): QueryResult<Array<{ id: string }>>;
+}
+interface SourcesTable {
+  select(columns: string): SourcesSelectChain;
+  update(patch: { base_tier: number }): SourcesUpdateChain;
+}
+
 export interface CommitTierChangeClient {
-  from: (table: string) => any;
+  from(table: "sources"): SourcesTable;
 }
 
 export type CommitTierChangeResult =
