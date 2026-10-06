@@ -34,6 +34,9 @@ import {
 import { assessItem } from "../../../src/lib/research/assess.mjs";
 import { writeProducerSummary } from "../lib/producer-summary.mjs";
 import { isResearchCandidate } from "../../../src/lib/research/surface-candidate.mjs";
+// L4-D: the producer now mints signpost entity ids with the entity spine's id builder; the composition proof below
+// asserts the producer's planned signpost id IS that builder's output for the assessment's own seed.
+import { entityId } from "../../../src/lib/entities/entity-id.mjs";
 
 test("toAssessmentInput narrows a DB row shape into assess.mjs's AssessmentInput, joining title/what_is_it/why_matters/full_brief into text", () => {
   const input = toAssessmentInput({
@@ -533,4 +536,40 @@ test("a candidate with no entity or no dated anchor plans no signpost", async ()
     deps: { readExistingSignposts: async () => [] },
   });
   assert.equal(result.metrics.signposts_planned, 0);
+});
+
+test("F27 composition (L4-D): assess.mjs's signpost seed, entity-id.mjs's builder and the producer's plan agree, and the planned row satisfies the signposts table's own constraints", async () => {
+  const computed = assessItem(DATED, { now: SP_NOW });
+  assert.equal(computed.signposts.length, 1);
+  const expectedId = entityId("signpost", computed.signposts[0].seed);
+  const result = await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map(), mode: "dry", now: SP_NOW, deps: { readExistingSignposts: async () => [] } });
+  const planned = result.signpostPlan[0];
+  assert.equal(planned.entity_id, expectedId);
+  // migration 346 / 282: entity id shape and kind, predicate carries an op, direction in the CHECK set.
+  assert.match(planned.entity_id, /^cl:signpost:[0-9a-f]{16}$/);
+  assert.ok("op" in planned.predicate);
+  assert.ok(["confirms", "refutes", "delays"].includes(planned.direction));
+  assert.match(planned.watches, /^cl:instrument:/);
+});
+
+test("L4-D: when an assessment is superseded, the signposts on the old row are re-pointed to the new one; a new first assessment re-points nothing", async () => {
+  const repoints = [];
+  const stale = { id: "old-assessment", technical_maturity_low: null, technical_maturity_high: null, commercial_maturity_low: null, commercial_maturity_high: null, horizon_band: "FAR", horizon_rule: "R4", horizon_kind: "availability", refusal_reason: null, credibility_evidence_score: null, status_token: "HYPOTHESIS" };
+  const deps = {
+    writeFn: async () => ({ id: "new-assessment" }),
+    signpostFn: async () => {},
+    readExistingSignposts: async () => [],
+    repointSignposts: async (from, to) => { repoints.push([from, to]); return 1; },
+  };
+  const r = await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map([[DATED.id, stale]]), mode: "apply", now: SP_NOW, deps });
+  assert.deepEqual(repoints, [["old-assessment", "new-assessment"]]);
+  assert.equal(r.metrics.signposts_repointed, 1);
+
+  const fresh = [];
+  await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map(), mode: "apply", now: SP_NOW, deps: { ...deps, repointSignposts: async (a, b) => { fresh.push([a, b]); } } });
+  assert.deepEqual(fresh, []);
+
+  const dry = [];
+  await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map([[DATED.id, stale]]), mode: "dry", now: SP_NOW, deps: { ...deps, repointSignposts: async (a, b) => { dry.push([a, b]); } } });
+  assert.deepEqual(dry, [], "dry writes nothing");
 });

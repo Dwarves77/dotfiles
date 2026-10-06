@@ -387,9 +387,10 @@ export function buildSignpostStepDeps(sb, db) {
     readSignpostsWatching: (entityIds) =>
       readSignposts((cols, withOutcome) =>
         fetchAllByIdChunks(entityIds, async (slice) => {
+          // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
           let q = sb.from("signposts").select(cols).in("watches", slice).is("fired_at", null);
           if (withOutcome) q = q.is("outcome", null);
-          const { data, error } = await q; // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
+          const { data, error } = await q;
           if (error) throw new Error(error.message);
           return data ?? [];
         }, { manyPerId: true })),
@@ -429,10 +430,10 @@ export function buildSignpostStepDeps(sb, db) {
 
     readGroundingSources: async (itemIds) => {
       const rows = await fetchAllByIdChunks(itemIds, async (slice) => {
-        // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
         const { data, error } = await sb
           .from("section_claim_provenance")
           .select("intelligence_item_id,source_id")
+          // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
           .in("intelligence_item_id", slice)
           .in("claim_kind", [...GROUNDING_CLAIM_KINDS])
           .not("source_id", "is", null);

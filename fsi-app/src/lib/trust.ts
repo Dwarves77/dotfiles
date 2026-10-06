@@ -20,6 +20,7 @@ import type {
 } from "@/types/source";
 
 import { PROMOTION_CRITERIA, DEMOTION_TRIGGERS } from "@/types/source";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 
 // ── Trust Score Computation ──
 // Weights:
@@ -999,6 +1000,21 @@ export function tallyOutcomes(rows: OutcomeRow[], now: Date = new Date()): Map<s
     out.set(r.source_id, t);
   }
   return out;
+}
+
+/** The ONE reader of the reliability ledger window, shared by the maintenance step (recompute-tiers.mjs) and the
+ *  admin route, so a route-triggered recompute carries the same outcome evidence as the step. Paginated, bounded
+ *  by the window. `client` is any Supabase-shaped client. */
+export function outcomeReaderFor(client: SupabaseLikeClient) {
+  return (sinceIso: string): Promise<OutcomeRow[]> =>
+    fetchAllRows((from: number, to: number) =>
+      client
+        .from("source_reliability_ledger")
+        .select("source_id, outcome, scored_at")
+        .gte("scored_at", sinceIso)
+        .order("id", { ascending: true })
+        .range(from, to)
+    ) as Promise<OutcomeRow[]>;
 }
 
 export interface TierEvidence {

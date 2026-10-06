@@ -335,7 +335,7 @@ test("end to end: the real deps over an in-memory database fire the signpost wit
   const sb = memorySb(tables);
   const dbCalls = [];
   const db = {
-    readAll: async (table, _cols, { match } = {}) => tables[table] ?? [],
+    readAll: async (table, _cols, { match: _match } = {}) => tables[table] ?? [],
     guardedInsertMany: async (table, rows) => { dbCalls.push({ table, rows }); (tables[table] ??= []).push(...rows); return { inserted: rows.length }; },
     guardedUpdateByIds: async (table, ids, patch, opts) => { dbCalls.push({ table, ids, patch, opts }); for (const r of tables[table]) if (ids.includes(r[opts.idColumn])) Object.assign(r, patch); return { updated: ids.length }; },
   };

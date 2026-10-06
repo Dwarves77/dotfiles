@@ -250,6 +250,7 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
   // is the row the signpost belongs to: the current row for an unchanged assessment, the inserted row for a
   // new or superseding one (null in dry mode, and null when the write handed back no id).
   const signpostCandidates = [];
+  let signpostsRepointed = 0;
 
   for (const input of candidates) {
     const sourceRecords = await resolveOpenAlexSourceRecords(input, deps.openAlexDeps ?? {});
@@ -273,6 +274,11 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
       const inserted = await deps.writeFn(row, current?.id ?? null);
       written += 1;
       assessmentId = inserted?.id ?? null;
+      // A superseding assessment takes over the open signposts of the row it supersedes, so a firing or a
+      // scoring later lands on the CURRENT assessment (lifecycle, ledger join).
+      if (current?.id && assessmentId && deps.repointSignposts) {
+        signpostsRepointed += (await deps.repointSignposts(current.id, assessmentId)) ?? 0;
+      }
     }
     for (const sp of computed.signposts ?? []) signpostCandidates.push({ sp, assessmentId });
   }
@@ -325,6 +331,7 @@ export async function runResearchAssessmentProducer({ candidates, currentByItemI
       signposts_existing: signpostPlan.length - toWrite.length,
       signposts_written: signpostsWritten,
       signposts_skipped_no_assessment_id: signpostsSkippedNoAssessmentId,
+      signposts_repointed: signpostsRepointed,
     },
   };
 }
@@ -506,6 +513,7 @@ async function main() {
 
   let writeFn;
   let signpostFn;
+  let repointSignposts;
   let readExistingSignposts;
   if (live && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     // Read-only: which of the signposts this run would write already exist (idempotent re-run).
@@ -521,6 +529,18 @@ async function main() {
       // Returns the inserted row so a signpost can name the assessment it belongs to.
       const { inserted } = await guardedInsert("research_assessments", row, { cite: CITE });
       return inserted;
+    };
+    // Re-point the unscored signposts of a superseded assessment at its successor (outcome IS NULL guard).
+    repointSignposts = async (fromId, toId) => {
+      try {
+        const r = await guardedUpdateByIds("signposts", [fromId], { assessment_id: toId }, {
+          cite: CITE, select: "entity_id", idColumn: "assessment_id", applyMatch: (q) => q.is("outcome", null),
+        });
+        return r.updated;
+      } catch (err) {
+        console.warn(`${PRODUCER_NAME}: re-pointing signposts from ${fromId} failed (migration 353 unapplied?): ${err.message}`);
+        return 0;
+      }
     };
     // A signpost is an entity (kind signpost, signposts.entity_id references entities) plus its attribute row.
     signpostFn = async (p) => {
@@ -542,7 +562,7 @@ async function main() {
     currentByItemId,
     mode: decision.canWrite ? "apply" : "dry",
     now,
-    deps: { writeFn, signpostFn, readExistingSignposts, openAlexDeps },
+    deps: { writeFn, signpostFn, repointSignposts, readExistingSignposts, openAlexDeps },
   });
 
   console.log(`${PRODUCER_NAME}: ${live ? "live" : "fixture"} run, mode=${decision.canWrite ? "apply" : "dry"}`);

@@ -49,6 +49,14 @@
 // lane's own tests exercise directly -- the same separation register-derivation.ts already has from
 // drain.ts (pure write-shape vs. the loop that decides when to call it).
 
+// WHAT A research-assessment SIGNPOST PREDICTS (lane L4-D, coordinator ruling 2026-10-05; do not re-derive).
+// The producer writes `{op: "date_passed", field: "occurred_at", by: <date>}` with direction confirms: the
+// prediction is "something is recorded against this watched entity by this date". It is HELD when a change
+// event on the entity lands on or before the date (the drain fires it and scores held), and REFUTED when the
+// date passes silently with no such event (the deadline step scores refuted; fired_at stays null). It does not
+// claim what the change says, only that the entity moved by the date the assessment expected. Scoring and the
+// reliability ledger live in src/lib/learning/prediction-scoring.mjs.
+
 import type { MethodFn, MethodContext, MethodResult } from "./index.ts";
 import type { Lifecycle } from "../types.ts";
 

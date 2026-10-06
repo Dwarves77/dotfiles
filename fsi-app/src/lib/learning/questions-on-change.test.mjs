@@ -59,9 +59,17 @@ test("eventTypeForOutboxRow: a table with no mapping returns null, never a guess
 
 const TRIGGER_RE = /CREATE\s+TRIGGER\s+propagation_outbox_trg\s+AFTER[^;]*?\bON\s+(?:public\.)?([a-z_]+)[^;]*?emit_propagation_event\s*\(/gis;
 
-/** Every table a migration attaches propagation_outbox_trg to, derived from the migration text. */
+/** Tables whose outbox row is written by an explicit insert in code, not by a trigger (lane L4-D: a fired
+ *  signpost writes its own propagation_events row in signpost-watch.ts fireSignpost). */
+function explicitOutboxInsertTables() {
+  const src = readFileSync(join(HERE, "..", "propagation", "methods", "signpost-watch.ts"), "utf8");
+  return [...src.matchAll(/from\("propagation_events"\)\.insert\(\{\s*table_name:\s*"([a-z_]+)"/g)].map((m) => m[1]);
+}
+
+/** Every table that emits outbox events: the ones a migration attaches propagation_outbox_trg to, derived from
+ *  the migration text, plus the ones code writes an outbox row for explicitly. */
 function emittingTablesFromMigrations() {
-  const tables = new Set();
+  const tables = new Set(explicitOutboxInsertTables());
   for (const f of readdirSync(MIGRATIONS).filter((n) => n.endsWith(".sql")).sort()) {
     const sql = readFileSync(join(MIGRATIONS, f), "utf8");
     for (const m of sql.matchAll(TRIGGER_RE)) tables.add(m[1]);
@@ -80,6 +88,25 @@ test("the mapping names no table the migrations never attach the outbox trigger 
   const tables = emittingTablesFromMigrations();
   const stale = Object.keys(EMITTING_TABLE_EVENT_MAP).filter((t) => !tables.has(t));
   assert.deepEqual(stale, []);
+});
+
+test("a fired signpost is an emitting table: its outbox row (written by fireSignpost) maps to signpost_fired", () => {
+  assert.deepEqual(explicitOutboxInsertTables(), ["signposts"]);
+  assert.equal(eventTypeForOutboxRow({ table_name: "signposts", change_kind: "update" }), "signpost_fired");
+  assert.ok(emittingTablesFromMigrations().has("signposts"));
+});
+
+test("a fired-signpost event for a watched entity raises the questions on the items linked to that entity", async () => {
+  const { deps, state } = fixtureDeps({ items: [REG("r1")] });
+  const out = await runQuestionsOnChange({
+    mode: "apply",
+    events: [EVENT({ tableName: "signposts", rowPk: "cl:signpost:00000000000000f1", changeKind: "update" })],
+    deps,
+  });
+  assert.equal(out.counts.events_unmapped, 0);
+  assert.equal(out.counts.events_mapped, 1);
+  assert.equal(state.inserted.length, 4, "the four product questions for the one linked item");
+  assert.match(describeChange(EVENT({ tableName: "signposts", rowPk: "s1" }), "Fixture jurisdiction"), /signpost/);
 });
 
 test("the pin detector itself works: a synthetic new emitting table is seen as unmapped", () => {

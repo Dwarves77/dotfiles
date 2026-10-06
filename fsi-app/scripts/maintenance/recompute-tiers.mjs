@@ -121,7 +121,7 @@ export async function main({ mode = "dry" } = {}, deps) {
  * writes through db.mjs's guarded helpers. EXPORTED so the npmtest can drive it with a fake client.
  */
 export async function buildDeps() {
-  const { readAll, guardedUpdateByIds, guardedInsert } = await import("../lib/db.mjs");
+  const { readAll, guardedUpdateByIds, guardedInsert, readClient } = await import("../lib/db.mjs");
   const { createJiti } = await import("jiti");
   const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(fsiRoot(), "src") } });
   const tierMovement = await jiti.import("../../src/lib/trust.ts");
@@ -145,8 +145,8 @@ export async function buildDeps() {
         ),
       readCitations: () => readAll("source_citations", "citing_source_id, cited_source_id, detected_at"),
       // Scored prediction outcomes (lane L4-D): one read of the ledger window, every source. The planner tallies.
-      readOutcomes: (sinceIso) =>
-        readAll("source_reliability_ledger", "source_id, outcome, scored_at", { orderBy: "id", match: (q) => q.gte("scored_at", sinceIso) }),
+      // The same reader the admin route uses (trust.ts outcomeReaderFor), so both carry one evidence set.
+      readOutcomes: (sinceIso) => tierMovement.outcomeReaderFor(readClient())(sinceIso),
     },
     writers: {
       // applyMatch repeats the planner's own override rule at the write: an override set between the

@@ -25,14 +25,16 @@ Reused: `evaluateSignpostPredicate`, `fireSignpost`, `nextLifecycleState`, the o
 - No new `source_trust_events` event_type is needed.
 - F28: families `propagation` (drain.ts, run-propagation-drain.mjs) and `research-assessment` (assess.mjs, the producer); pending markers added. `recompute-tiers.mjs`, `trust.ts`, `signpost-watch.ts` and the new module are governed by no family.
 
+## Added after coordinator rulings on PR 949
+
+- CI fixes: unused arg, the F27 composition proof (the producer test now asserts the plan's signpost id is `entityId('signpost', seed)` and the row meets the table's constraints), F39 markers placed on the line above each `.in()`.
+- `recompute-trust/route.ts` carries the outcome reader; ONE reader (`outcomeReaderFor` in `trust.ts`) is shared with `recompute-tiers.mjs`.
+- `questions-on-change.mjs`: `signposts` maps to `signpost_fired`. The fired row reaches the drain through `fireSignpost`'s own explicit outbox insert (entity_id = watched entity), so migration 353 does NOT attach a trigger to `signposts` (a generic trigger would add a duplicate event on the fired_at update and another on every scoring update). The mapping test's emitting-table derivation now also counts tables code writes an outbox row for (parsed from `signpost-watch.ts`).
+- `signpost-watch.ts` header states what a research-assessment signpost predicts (held by an event by the date, refuted by silence).
+- Superseded assessments: the producer re-points the unscored signposts of the old assessment to the new one (`repointSignposts`, guarded, non-fatal, dry writes nothing).
+
 ## What is NOT done
 
 - `market_series` and `regional_data_facts` outbox rows still carry no entity: neither table has a column naming an entity (`market_series` keys on `series_key` text; `regional_data_facts` on `region_id` to `regions`, which reaches entities only through the multi-valued `entity_refs`). Not guessed.
-- `src/app/api/admin/recompute-trust/route.ts` builds its own planner readers without `readOutcomes`, so a route-triggered recompute ignores outcome evidence until the next maintenance run re-applies it. NEEDS WRITE-SET EXPANSION: add one reader there.
-- A fired-signpost outbox event (table `signposts`) is unmapped in questions-on-change (not this lane's file) and is skipped by the signpost step.
-- Nothing applied; migrations 352 and 353 were not run against any Postgres (none available here); the SQL is proven by static tests and by its own apply-time self-check.
-- If a signpost firing succeeds but the assessment lifecycle update fails, the signpost is repaired for scoring but its lifecycle transition is not retried (existing three-call design of `fireSignpost`).
-
-## Open items
-
-- A superseding assessment leaves existing signposts pointing at the first assessment id.
+- Lifecycle transition not retried: if `fireSignpost` stamps `fired_at` but its assessment lifecycle update fails, the repair pass scores the signpost but cannot tell whether the lifecycle moved (a confirms transition is not idempotent). Exact change needed: add `signposts.lifecycle_applied_at timestamptz` (a migration after 353), set it in the same write as the lifecycle update, and have the repair path apply `nextLifecycleState` only where it is NULL.
+- Nothing applied; migrations 352 and 353 were not run against any Postgres.
