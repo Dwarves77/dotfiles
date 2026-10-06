@@ -29,6 +29,9 @@ import { createRequire } from "node:module";
 import { buildFixtures, VIEWPORTS } from "./fixtures.mjs";
 import { detectOverflows, findPlaceholderLiterals } from "./assertions.mjs";
 import { measureUx, assertUxClean } from "./ux-assert.mjs";
+// GATES-2 (2026-10-05): the ONE phone-width scroll-container rule, shared with the live smoke gate. The
+// fixture legs below measure it too, so a scroller wider than its box fails here as well as in every spec.
+import { isNarrowViewport, collectContainers, detectContainerOverflows, formatContainerOverflows } from "./overflow-rule.mjs";
 // RD-80 (lane G3, 2026-09-22): the application's own font files, one home in smoke-fixtures.mjs.
 // Injected here, at the single place every page this runner opens is created, so EVERY fixture leg
 // (including the fixtures.mjs legacy legs, which carry only a hand-copied `--font-sans` fallback
@@ -48,6 +51,12 @@ import {
 import { latestTrainWave } from "../fitness/functions/F25-module-liveness.mjs";
 import { getRepoRoot } from "../lib/context.mjs";
 import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
+// GATES-2 (2026-10-05): the phone-width scroll-container rule proven by attack (an inner wrapper wider than
+// its overflow-x:auto parent MUST fail the guard) plus its two controls. See that module's header.
+import { runSmoke as runScrollContainerAttackSmoke } from "./smoke/scroll-container-attack-smoke.mjs";
+// GATES-2: the Live smoke gate's runner proven end to end against a loopback FIXTURE server (clean site,
+// a defective site that must trip every invariant, a bad login). No real site, no real credential.
+import { runSmoke as runLiveSmokeFixtureSmoke } from "./smoke/live-smoke-fixture-smoke.mjs";
 import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
 import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
 import { runSmoke as runSettingsSectionIndexSmoke } from "./smoke/settings-section-index-smoke.mjs";
@@ -153,6 +162,11 @@ async function measure(page) {
   });
 }
 
+// GATES-2: every scroll container at a phone width (document, <main>, each overflow-x auto/scroll element).
+async function measureContainers(page, width) {
+  return isNarrowViewport(width) ? collectContainers(page) : null;
+}
+
 async function measureUxOn(browser, html, width) {
   const page = await browser.newPage({ viewport: { width, height: 900 }, ...DETERMINISM_CONTEXT });
   await page.setContent(html, { waitUntil: "load" });
@@ -186,6 +200,7 @@ async function main() {
       await page.setContent(fx.html, { waitUntil: "load" });
       const fontFailures = await assertFontsReady(page);
       const { measurements, texts } = await measure(page);
+      const containerScan = await measureContainers(page, width);
       await page.close();
       checks++;
 
@@ -238,6 +253,14 @@ async function main() {
         if (placeholders.length > 0) {
           failures.push(`${fx.id}@${width} [${fx.cls}]: placeholder literal rendered — ${placeholders.join(", ")}`);
         }
+        if (containerScan) {
+          failures.push(
+            ...formatContainerOverflows(
+              `${fx.id}@${width} [${fx.cls}]`,
+              detectContainerOverflows(containerScan.containers, { viewportWidth: containerScan.viewportWidth }),
+            ),
+          );
+        }
       }
     }
   }
@@ -261,6 +284,8 @@ async function main() {
     { name: "ops-matrix-acceptance", run: runOpsMatrixAcceptanceSmoke },
     { name: "command-bar-search-portal", run: runCommandBarSearchPortalSmoke },
     { name: "admin-stat-tiles", run: runAdminStatTilesSmoke },
+    { name: "scroll-container-attack", run: runScrollContainerAttackSmoke },
+    { name: "live-smoke-fixture", run: runLiveSmokeFixtureSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

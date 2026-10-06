@@ -1,0 +1,94 @@
+name: Live smoke
+
+# What a signed-in customer actually receives is checked by a gate, not by a person (lane GATES-2,
+# 2026-10-05). Four defects were visible on production that no automated check caught: raw ledger JSON
+# rendered as text, a 1108px theme strip on a 375px screen, raw tag slugs and bare scores in the theme
+# analysis card, a source row showing two tiers. The rendering guard mounts fixtures and never sees stored
+# data; this job loads the real pages of a real deployment, READ-ONLY, and asserts named invariants over them.
+#
+# Triggers
+#   deployment_status   a Vercel deployment reported success: production AND pull-request previews. The target
+#                       is the event's environment_url. (GitHub runs a deployment_status workflow from the
+#                       default branch's copy of this file.)
+#   workflow_dispatch   on demand, with a `url` input (https, carosledge.com or a *.vercel.app deployment).
+#
+# Required repository secrets (names registered in .discipline/governance/secrets-registry.mjs; never printed):
+#   LIVE_SMOKE_EMAIL     the email of a dedicated READ-ONLY smoke account (a normal customer login).
+#   LIVE_SMOKE_PASSWORD  that account's password.
+# With either unset the job stops in its first step with a named message, before any install.
+#
+# What it visits (at 1440x900 and 375x812): the dashboard, the four list pages, the first item on each list
+# and the item the first theme chip links to. Invariants live in
+# fsi-app/.discipline/rendering/live/live-assertions.mjs; the phone-width scroll-container rule is the SAME
+# module the rendering guard imports (fsi-app/.discipline/rendering/overflow-rule.mjs).
+#
+# NOT A REQUIRED CHECK YET. To make it one, all of these must be true: (1) both secrets exist and the smoke
+# account signs in on production; (2) three consecutive green runs on master, the same stability bar the
+# rendering-guard job in discipline.yml states; (3) an admin adds the job name "Live smoke" to the branch
+# protection required-check set. Until then a red run is a visible signal, not a merge block. The job has
+# no continue-on-error: a failure is red on its own run, it simply is not in the required set.
+#
+# No npm ci step: the runner imports only relative modules and Playwright (installed here with --no-save,
+# the same way the rendering-guard job does), so a dependency install would add minutes and no coverage.
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Deployment to check, https only (for example https://carosledge.com)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-smoke-${{ github.event.inputs.url || github.event.deployment_status.environment_url || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  live-smoke:
+    name: Live smoke
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment_status.environment_url != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Preflight (secrets and target, fails fast, nothing installed yet)
+        env:
+          LIVE_SMOKE_URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url }}
+          LIVE_SMOKE_EMAIL: ${{ secrets.LIVE_SMOKE_EMAIL }}
+          LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
+        run: node fsi-app/.discipline/rendering/live/live-smoke.mjs --preflight
+
+      - name: Install Playwright and chromium (scoped, not added to package.json)
+        working-directory: fsi-app
+        run: |
+          npm install --no-save playwright@1.61.1 --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Run live smoke (read-only, two viewports)
+        working-directory: fsi-app
+        env:
+          LIVE_SMOKE_URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url }}
+          LIVE_SMOKE_EMAIL: ${{ secrets.LIVE_SMOKE_EMAIL }}
+          LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
+          LIVE_SMOKE_REPORT: ${{ runner.temp }}/live-smoke-report.json
+        run: node .discipline/rendering/live/live-smoke.mjs
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-smoke-report
+          path: ${{ runner.temp }}/live-smoke-report.json
+          if-no-files-found: ignore
+          retention-days: 7
