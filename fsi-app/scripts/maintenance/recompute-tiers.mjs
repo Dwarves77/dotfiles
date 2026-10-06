@@ -37,6 +37,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
+import { notUnderTierOverride } from "../../src/lib/sources/tier-override-guard.mjs";
 
 export const CITE = Object.freeze({
   skill: "source-credibility-model",
@@ -108,6 +109,7 @@ export async function main({ mode = "dry" } = {}, deps) {
     promotions: result.promotions,
     demotions: result.demotions,
     write_failed: result.write_failed,
+    override_skipped: result.override_skipped,
     event_failed: result.event_failed,
     failures: result.failures.slice(0, 10),
   };
@@ -152,11 +154,13 @@ export async function buildDeps() {
       // applyMatch repeats the planner's own override rule at the write: an override set between the
       // read and this write is never written over.
       setEffectiveTier: async (sourceId, tier) => {
-        await guardedUpdateByIds("sources", [sourceId], { effective_tier: tier }, {
+        const res = await guardedUpdateByIds("sources", [sourceId], { effective_tier: tier }, {
           cite: CITE,
           select: "id, effective_tier",
-          applyMatch: (q) => q.is("tier_override", null),
+          applyMatch: notUnderTierOverride,
         });
+        // Zero rows matched: the row is under an override at write time (tier-override-guard.mjs).
+        return { written: res.updated > 0 };
       },
       insertEvent: async (event) => {
         await guardedInsert("source_trust_events", event, { cite: CITE, select: "id" });

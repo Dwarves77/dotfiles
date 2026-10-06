@@ -19,7 +19,7 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { tierMovementSummary } = await jiti.import("./logic.ts");
+const { tierMovementSummary, tierMovementWriters } = await jiti.import("./logic.ts");
 const { planTierMovements, applyTierMovements, outcomeReaderFor } = await jiti.import("@/lib/trust");
 
 const NOW = new Date("2026-10-04T12:00:00Z");
@@ -117,4 +117,54 @@ test("the route wires the shared reader (static)", async () => {
   assert.match(route, /readOutcomes: outcomeReaderFor\(supabase\)/);
   const step = readFileSync(resolve(ROOT, "scripts/maintenance/recompute-tiers.mjs"), "utf8");
   assert.match(step, /outcomeReaderFor\(readClient\(\)\)/);
+});
+
+// G7-TIER (2026-10-05): the route's own writers, attacked with an override set between the plan's read and the write.
+function storeClient(sources, events) {
+  return {
+    from() {
+      const st = { verb: "select", patch: null, id: null, nullGuard: false };
+      const b = {
+        update(p) { st.verb = "update"; st.patch = p; return b; },
+        insert(row) { events.push(row); return Promise.resolve({ data: [{ id: "ev" }], error: null }); },
+        eq(_c, v) { st.id = v; return b; },
+        is(c, v) { if (c === "tier_override" && v === null) st.nullGuard = true; return b; },
+        select() {
+          // the admin override lands after the planner read, before this statement runs
+          const row = sources.find((r) => r.id === st.id);
+          if (row && row.__overrideBeforeWrite) row.tier_override = row.__overrideBeforeWrite;
+          const hit = sources.filter((r) => r.id === st.id && (!st.nullGuard || r.tier_override == null));
+          for (const r of hit) Object.assign(r, st.patch);
+          return Promise.resolve({ data: hit.map((r) => ({ id: r.id })), error: null });
+        },
+      };
+      return b;
+    },
+  };
+}
+
+test("route writers ATTACK: an override set between read and write is not written over, the skip is counted, no audit event is recorded", async () => {
+  const stored = src({ conflict_count: 3, conflict_total: 5 });
+  const plan = await planTierMovements(readers([{ ...stored }]), { now: NOW });
+  assert.equal(plan.movements.length, 1, "the fixture decision would move the tier");
+  const sources = [{ ...stored, __overrideBeforeWrite: 2 }];
+  const events = [];
+  const applied = await applyTierMovements(plan.movements, tierMovementWriters(storeClient(sources, events)));
+  assert.equal(sources[0].effective_tier, null, "stored effective_tier unchanged");
+  assert.equal(sources[0].tier_override, 2);
+  assert.equal(applied.applied, 0);
+  assert.equal(applied.override_skipped, 1);
+  assert.equal(events.length, 0, "no tier_demotion event for a move that never happened");
+  assert.equal(tierMovementSummary(plan, applied).override_skipped, 1, "the response block carries the count");
+});
+
+test("route writers control: without an override the tier is written and the event recorded", async () => {
+  const stored = src({ conflict_count: 3, conflict_total: 5 });
+  const plan = await planTierMovements(readers([{ ...stored }]), { now: NOW });
+  const sources = [{ ...stored }];
+  const events = [];
+  const applied = await applyTierMovements(plan.movements, tierMovementWriters(storeClient(sources, events)));
+  assert.equal(sources[0].effective_tier, 5);
+  assert.equal(applied.applied, 1);
+  assert.equal(events.length, 1);
 });

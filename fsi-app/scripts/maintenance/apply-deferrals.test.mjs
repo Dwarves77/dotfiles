@@ -7,6 +7,7 @@ import {
   validateDeferralRow,
   partitionDeferralRows,
   buildDeferralFlagRow,
+  defaultPlanPath,
   main,
 } from "./apply-deferrals.mjs";
 
@@ -107,10 +108,48 @@ test("buildDeferralFlagRow: shape matches quarantine-disposition-audit.mjs's own
 // ── main(): dry mode plans, apply mode writes only the valid rows -- both exercised with injected deps,
 // no real filesystem or DB access. ─────────────────────────────────────────────────────────────────────
 
-test("main: blank --arg is refused before any file read", async () => {
-  const res = await main({ mode: "dry", arg: "" }, { readDeferralsFile: async () => { throw new Error("should not be called"); } });
+test("main: blank --arg with no out dir to anchor on: nothing to apply, exit 0, no file read, no gate", async () => {
+  const res = await main({ mode: "apply", arg: "" }, { readDeferralsFile: async () => { throw new Error("should not be called"); } });
+  assert.equal(res.exitCode, 0);
+  assert.equal(res.applied, 0);
+  assert.match(res.note, /no-plan-file/);
+});
+
+test("defaultPlanPath: the plan-quarantine-disposition step's plan.json, a sibling of this step's out dir", () => {
+  const p = defaultPlanPath("/run/maintenance-1/apply-deferrals").replaceAll("\\", "/");
+  assert.match(p, /\/maintenance-1\/plan-quarantine-disposition\/plan\.json$/);
+  assert.equal(defaultPlanPath(null), null);
+});
+
+test("main: blank --arg reads the default plan path and applies its valid rows with no hand-authored file", async () => {
+  const seen = [];
+  const inserted = [];
+  const res = await main(
+    { mode: "apply", arg: "", out: "/run/maintenance-1/apply-deferrals" },
+    {
+      readDeferralsFile: async (p) => { seen.push(p.replaceAll("\\", "/")); return [validRow({ item_id: "a", deferred_until: "2099-01-01T00:00:00Z" })]; },
+      insertDeferralFlag: async (row) => { inserted.push(row.subject_ref); return { id: "f1" }; },
+    },
+  );
+  assert.match(seen[0], /plan-quarantine-disposition\/plan\.json$/);
+  assert.equal(res.exitCode, 0);
+  assert.deepEqual(inserted, ["a"]);
+});
+
+test("main: blank --arg and the default plan file is absent: residue no-plan-file, exit 0, nothing written", async () => {
+  const res = await main(
+    { mode: "apply", arg: "", out: "/run/maintenance-1/apply-deferrals" },
+    { readDeferralsFile: async () => { throw new Error("ENOENT: no such file"); }, insertDeferralFlag: async () => { throw new Error("must not write"); } },
+  );
+  assert.equal(res.exitCode, 0);
+  assert.equal(res.applied, 0);
+  assert.equal(res.read_back.residue["no-plan-file"], 1);
+});
+
+test("main: an explicit --arg path that cannot be read is still refused (a given file must exist)", async () => {
+  const res = await main({ mode: "dry", arg: "missing.json" }, { readDeferralsFile: async () => { throw new Error("ENOENT"); } });
   assert.equal(res.exitCode, 1);
-  assert.match(res.note, /--arg must name/);
+  assert.match(res.note, /REFUSED/);
 });
 
 test("main: a file that is not a JSON array is refused", async () => {

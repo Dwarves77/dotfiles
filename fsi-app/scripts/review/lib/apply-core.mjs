@@ -1,6 +1,6 @@
-// apply-core.mjs — the shared apply mechanics for the three single-table queues (provisional-sources,
-// portal-links, coverage-gaps). canonical-candidates has an extra "resolve an existing source" step
-// (see apply-canonical-candidates.mjs) and does not use this module.
+// apply-core.mjs - the shared apply mechanics for the single-table review queues (portal-links,
+// coverage-gaps). The canonical-candidates and provisional-sources queues are retired (lane G6-GATES,
+// 2026-10-05: canonical-autoverify and resolve-provisional-sources rule those rows).
 //
 // Every write goes through `deps.guardedUpdateByIds` (scripts/lib/db.mjs) — cite required, snapshot
 // before mutate, chunked, read back. `applyMatch: module.matchQueue` re-applies the queue's OWN filter

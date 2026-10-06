@@ -1,7 +1,7 @@
 // Run: node --test scripts/maintenance/review-apply-portal-links.test.mjs — no DB, deps injected (same
 // pattern as reopen-validation-holds.test.mjs). scripts/review/apply-portal-links.mjs's own selection/
 // patch logic is pinned in scripts/review/apply-portal-links.test.mjs and its lib's own test; this file
-// tests ONLY the wrapper's own orchestration — the --arg gate (both modes), the ruling-path resolution,
+// tests ONLY the wrapper's own orchestration - the rule path (blank arg), the ruling-path resolution,
 // dry-plan pass-through, and apply read-back — and that it never re-derives the group decision itself (a
 // single `deps.applyMain` call per invocation is the whole write-side DB interaction).
 import { test } from "node:test";
@@ -28,32 +28,58 @@ test("resolveRulingPath: an already-absolute arg passes through unchanged", () =
   assert.equal(resolveRulingPath(absPath), resolve(absPath));
 });
 
-// ── --arg gate: refuses BEFORE any DB call, in both modes ──────────────────────────────────────────────
+// ── blank arg: decided by rule, no ruling file (lane G6-GATES, 2026-10-05) ────────────────────────────
+// Red against the old wrapper, which refused a blank arg in both modes.
 
-function unreachableDeps() {
+import { main as realApplyMain } from "../review/apply-portal-links.mjs";
+
+const SOURCES = [
+  { id: "s-law", url: "https://www.example-gov.org/portal" },
+  { id: "s-misc", url: "https://news.example.com/" },
+];
+// gazette/legislation patterns -> link (rule); a URL with no instrument signal -> drop (rule);
+// guidance / compliance patterns -> uncertain (residue, left for ledger-consume).
+const CANDIDATES = [
+  { id: "c1", source_id: "s-law", url: "https://www.example-gov.org/oj/L-2024-1", anchor_text: "Official Journal", status: "candidate", first_seen_at: "2026-09-01T00:00:00Z" },
+  { id: "c2", source_id: "s-law", url: "https://www.example-gov.org/regulations/x", anchor_text: "Regulation text", status: "candidate", first_seen_at: "2026-09-01T00:00:00Z" },
+  { id: "c3", source_id: "s-misc", url: "https://news.example.com/about-us", anchor_text: "About", status: "candidate", first_seen_at: "2026-09-01T00:00:00Z" },
+  { id: "c4", source_id: "s-law", url: "https://www.example-gov.org/notice/9", anchor_text: "Guidance notice", status: "candidate", first_seen_at: "2026-09-01T00:00:00Z" },
+];
+
+function ruleDeps() {
+  const writes = [];
   return {
-    applyMain: async () => { throw new Error("applyMain must not be called when --arg is blank"); },
-    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
+    writes,
+    readAll: async (table) => (table === "sources" ? SOURCES : CANDIDATES),
+    readAllByIds: async (_t, _c, ids) => CANDIDATES.filter((r) => ids.includes(r.id)).map((r) => ({ id: r.id, status: r.status, disposition_reason: null })),
+    guardedUpdateByIds: async (table, ids, patch) => { writes.push({ table, ids, patch }); return { updated: ids.length, chunks: 1, halvings: 0 }; },
+    applyMain: realApplyMain,
   };
 }
 
-test("dry, blank arg: refused, exit 1, no DB call", async () => {
-  const r = await main({ mode: "dry", arg: "" }, unreachableDeps());
-  assert.equal(r.step, "review-apply-portal-links");
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
-  assert.match(r.note, /--arg/);
+test("dry, blank arg: decides by rule with no ruling file, writes nothing, records decisions and residue", async () => {
+  const d = ruleDeps();
+  const r = await main({ mode: "dry", arg: "" }, d);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.source, "rule");
+  assert.equal(d.writes.length, 0);
+  assert.equal(r.applied, 0);
+  // link: gazette + legislation groups (2 rows) plus the uncertain group (1 row, residue, no mutation); drop: 1 row
+  assert.equal(r.decisions.drop.rows, 1);
+  assert.equal(r.decisions.link.rows, 3);
+  assert.deepEqual(r.residue, { "ledger-consume-owned": { groups: 1, rows: 1 } });
 });
 
-test("dry, whitespace-only arg: refused the same as blank", async () => {
-  const r = await main({ mode: "dry", arg: "   " }, unreachableDeps());
-  assert.equal(r.exitCode, 1);
-});
-
-test("apply, blank arg: refused, exit 1, no DB call — a blanket apply is refused just as hard as a blanket dry read", async () => {
-  const r = await main({ mode: "apply", arg: "" }, unreachableDeps());
-  assert.equal(r.exitCode, 1);
-  assert.match(r.note, /REFUSED/);
+test("apply, blank arg: drops the no-signal row by rule (status rejected with a reason), leaves link and residue rows untouched", async () => {
+  const d = ruleDeps();
+  const r = await main({ mode: "apply", arg: "  " }, d);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.applied, 1);
+  assert.equal(d.writes.length, 1);
+  assert.deepEqual(d.writes[0].ids, ["c3"]);
+  assert.equal(d.writes[0].patch.status, "rejected");
+  assert.match(d.writes[0].patch.disposition_reason, /no instrument signal/);
+  assert.equal(r.read_back.rows_named_in_ruling, 4);
 });
 
 // ── dry mode: passes rulingPath + apply:false through to applyMain, plan is applyMain's own result ─────
@@ -66,8 +92,10 @@ test("dry: resolves the ruling path, calls applyMain with apply:false, plan is p
       return { queue: "portal-links", mode: "dry-run", results: [{ key: "host::gazette_path", decision: "link", would_apply: 3 }] };
     },
     readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
+    readAll: async () => { throw new Error("a committed file must not trigger the rule path read"); },
   };
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/portal-links.ruling.json" }, deps);
+  assert.equal(r.source, "ruling-file");
   assert.equal(calls.length, 1);
   assert.equal(calls[0].apply, false);
   assert.ok(posix(calls[0].rulingPath).endsWith("/docs/ratifications/2026-09/portal-links.ruling.json"));

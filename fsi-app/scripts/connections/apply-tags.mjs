@@ -1,14 +1,13 @@
 #!/usr/bin/env node
 // SHARED-WRITER: intelligence_items, integrity_flags
 // apply-tags.mjs — the ONLY place a propose-tags.mjs tag PROPOSAL becomes a WRITTEN
-// operational_scenario_tags/compliance_object_tags/topic_tags value. Mirrors
-// ratify-flag-to-census.mjs's resolution-note-as-ratification-vehicle design (read that file's header
-// before touching this one — same shape, different marker and different target table) for its ORIGINAL
-// path: a flag is ratify-eligible once an operator has resolved it with resolution_note carrying the
-// literal token `ratify:tags` (word-bounded, case-insensitive — same tokenizer posture as RATIFY_TOKEN
-// there). That path (evaluateApplication/applyTags) is UNCHANGED below.
+// operational_scenario_tags/compliance_object_tags/topic_tags value, by rule, with no human in the path.
+// The legacy operator path (a flag resolved with the literal token `ratify:tags`, applied by id through
+// applyTags/evaluateApplication) is DELETED (lane G6-GATES, 2026-10-05; operator ruling: nothing in the
+// data machine waits on a review, a ruling file or a typed token). It was dead in practice, none of the
+// flags it waited on were ever ratified, and the auto path below already decides every proposal.
 //
-// AUTO-ADOPTION PATH (added 2026-09-03, operator ruling, CONFIRMED in session). Context: the flywheel's
+// AUTO-ADOPTION (added 2026-09-03, operator ruling, CONFIRMED in session; now the only path). Context: the flywheel's
 // own design spec closes its second loop "without a human in the path" (docs/specs/08-flywheel-design.md
 // :128, on signposts), and the ledger already carries the standing read that the flywheel has no
 // human-review loop — yet the ORIGINAL rule above routed every derived tag, however strong its evidence,
@@ -36,35 +35,11 @@
 // AUTO_ADOPT_THRESHOLD below is the one place this cutoff lives; re-tuning it (e.g. if a `low` tier is
 // ever added) is a single-constant change, same posture as ADR-007's per-dimension threshold precedent.
 //
-// WHAT THE RATIFY PATH DOES, per --flag <id> (unchanged):
-//   1. Reads the integrity_flags row; requires it to be in flag-namespaces.mjs's TAG_NAMESPACE,
-//      status='resolved', resolved_by set, and resolution_note carrying `ratify:tags`.
-//   2. Extracts the PROPOSALS_JSON block propose-tags.mjs's buildFlagRow() wrote into `description`.
-//   3. Reads the target item's CURRENT operational_scenario_tags/compliance_object_tags/topic_tags.
-//   4. MERGES — never overwrites: every existing tag survives untouched; only proposal tags absent
-//      from the existing array are appended, capped at derive-tags.mjs's own FIELD_CAPS (the same
-//      emission ceiling the live vocabulary enforces at agent-authoring time) so a merge can never grow
-//      an array past the shape the platform's own rules intend. A proposal tag already present, or one
-//      that would exceed the field's cap, contributes nothing (reported, not silently dropped).
-//   5. Writes via guardedUpdate (rule 015: cited, snapshotted BEFORE the mutation — the reversibility
-//      guarantee) — ONLY when the merge actually changes something; a flag whose every proposal was
-//      already present (or capped out) applies as a documented no-op, never an empty/no-op DB write.
-//   6. RE-RUNS DISCOVERY for the item, closing the loop the whole TAG lane exists for: reuses
-//      discover.mjs's discoverConnections/computeTagFrequencies and write-edges.mjs's
-//      writeDiscoveredEdges UNMODIFIED (no forked scoring logic — the same reuse posture
-//      discover-for-items.mjs documents for itself), scoped to just this one item. See
-//      planDiscoveryForItem() below and the file-header note on why this duplicates
-//      discover-for-items.mjs's small DB-loading GLUE (not its scoring) rather than importing it
-//      directly — that script exports only parseArgs/selectTargets (argument-parsing scaffolding, not
-//      an execution entry point), so there is no side-effect-free "run discovery for one item" call to
-//      import; if this step ever needs to be skipped or re-run independently, the documented fallback
-//      is: `node scripts/connections/discover-for-items.mjs --ids <itemId> --execute`.
-//
 // WHAT THE AUTO-ADOPTION PATH DOES, per --flag <id> (autoAdoptTags, exported for tag-ratification.mjs's
-// `--arg auto` bulk orchestration; also reachable directly via this file's own `--flag <id> --auto` CLI):
+// bulk orchestration; also reachable directly via this file's own `--flag <id>` CLI):
 //   1. Reads the integrity_flags row; requires TAG_NAMESPACE and status='open' (an already-resolved flag,
 //      by ANY path — ratified, previously auto-adopted, or closed for some other reason — is left alone;
-//      this path never re-opens or overwrites a human's resolution).
+//      this path never re-opens or overwrites an earlier resolution).
 //   2. Extracts PROPOSALS_JSON (same parser, unmodified) and partitions proposals by
 //      derive-tags.mjs's `meetsConfidence(p.confidence, AUTO_ADOPT_THRESHOLD)`.
 //   3. If NO proposal meets the threshold: nothing happens — the flag stays open for review exactly as
@@ -78,9 +53,8 @@
 //      `auto-adopted:tags:<threshold>` (this note IS the provenance record: intelligence_items has no
 //      per-tag provenance column, so the flag row — never deleted, always queryable by subject_ref — is
 //      the audit trail, per this lane's dispatch). If some proposals fell below the threshold (residue),
-//      the flag is left OPEN, untouched, exactly as it is today — a human can still ratify the residue
-//      via the ordinary `ratify:tags` path (which will find the auto-adopted tags already present and
-//      merge in only what remains, a harmless no-op for the part already written).
+//      the flag is left open by this older posture, which the EVERY PROPOSAL DECIDED section below
+//      supersedes: every proposal is decided and the flag closes.
 //   Idempotent by construction: re-running on an already-resolved flag refuses at step 1
 //   (`not_adoptable`); re-running on an open flag with residue recomputes the same eligible/residue split
 //   and the merge is a no-op the second time (buildMergePatch's existing alreadyPresent handling).
@@ -101,16 +75,12 @@
 //
 // Usage:
 //   node scripts/connections/apply-tags.mjs --flag <integrity_flags-id> [--dry|--execute]
-//   node scripts/connections/apply-tags.mjs --flag <integrity_flags-id> --auto [--dry|--execute]
-//   node scripts/connections/apply-tags.mjs --all-ratified [--dry|--execute]
 //     --dry           compute + report, write nothing (DEFAULT)
 //     --execute       actually write the tag merge (and, on success, re-run discovery) (explicit opt-in)
-//     --auto          use the auto-adoption path (open flags, confidence threshold) instead of the
-//                      ratify:tags path (resolved flags) — mutually exclusive with --all-ratified.
-//     --skip-discovery  (with --execute) apply the tag merge but skip step 6 — use the documented
-//                        fallback command above instead. Off by default (discovery re-run is the point).
-// Exit 0 done (including "already applied"/"no change needed") · 1 bad args / flag not applicable ·
-// 2 no DB creds.
+//     --skip-discovery  (with --execute) apply the tag merge but skip the discovery re-run; use the
+//                        documented fallback command above instead. Off by default.
+// The bulk form is the tag-ratification maintenance step. Exit 0 done (including "no change needed") ·
+// 1 bad args / flag not applicable · 2 no DB creds.
 
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -135,20 +105,7 @@ import { surfaceOf } from "../../src/lib/surface-of.mjs";
 // CONFIDENCE TIERS); "high" is the conservative choice.
 export const AUTO_ADOPT_THRESHOLD = "high";
 
-export const RATIFY_TAGS_TOKEN = "ratify:tags";
 const TAG_FIELDS = Object.freeze(["operational_scenario_tags", "compliance_object_tags", "topic_tags"]);
-
-/**
- * True when `note` carries the `ratify:tags` marker as its own whitespace-delimited token (not merely
- * a substring — same "not-ratify:tags-either must not match" guard ratify-flag-to-census.mjs's
- * RATIFY_TOKEN check documents). PURE.
- * @param {string|null|undefined} note
- * @returns {boolean}
- */
-export function hasRatifyTagsToken(note) {
-  const text = String(note || "");
-  return new RegExp(`(^|\\s)${RATIFY_TAGS_TOKEN.replace(":", "\\:")}(\\s|$)`, "i").test(text);
-}
 
 /**
  * Extract + validate the PROPOSALS_JSON block propose-tags.mjs's buildFlagRow() wrote into a flag's
@@ -176,37 +133,8 @@ export function extractProposalsFromDescription(description) {
 }
 
 /**
- * Decide whether an integrity_flags row is applicable. PURE. Requires: TAG_NAMESPACE membership,
- * status='resolved', resolved_by set, the ratify:tags marker, and a parseable non-empty proposals list.
- * @param {{id?:string, created_by?:string, status?:string, resolved_by?:string|null,
- *   resolution_note?:string|null, description?:string, subject_ref?:string}} flag
- * @returns {{ok:true, itemId:string, proposals:Array} | {ok:false, error:string}}
- */
-export function evaluateApplication(flag) {
-  if (!flag || typeof flag.id !== "string") return { ok: false, error: "flag not found." };
-  if (!isInNamespace(flag.created_by, TAG_NAMESPACE)) {
-    return { ok: false, error: `flag created_by "${flag.created_by}" is not in the ${TAG_NAMESPACE} namespace — apply-tags.mjs only applies flywheel-tag: findings.` };
-  }
-  if (flag.status !== "resolved") {
-    return { ok: false, error: `flag status is '${flag.status}', not 'resolved' — not yet operator-resolved.` };
-  }
-  if (!flag.resolved_by) {
-    return { ok: false, error: "flag has no resolved_by — not confirmed operator-resolved." };
-  }
-  if (!hasRatifyTagsToken(flag.resolution_note)) {
-    return { ok: false, error: `resolution_note does not carry the '${RATIFY_TAGS_TOKEN}' marker.` };
-  }
-  const parsed = extractProposalsFromDescription(flag.description);
-  if (!parsed.ok) return parsed;
-  if (!parsed.value.length) return { ok: false, error: "flag carries zero proposals — nothing to apply." };
-  const itemId = String(flag.subject_ref || "").trim();
-  if (!itemId) return { ok: false, error: "flag has no subject_ref (item id)." };
-  return { ok: true, itemId, proposals: parsed.value };
-}
-
-/**
  * Decide whether an integrity_flags row is eligible for the AUTO-ADOPTION path (2026-09-03 ruling — see
- * file header). PURE. Unlike evaluateApplication, this does NOT require a ratify:tags marker — it
+ * file header). PURE. It
  * requires the flag to still be OPEN (untouched by any resolution path), so it never re-decides a flag a
  * human — or a prior auto-adopt run — already closed.
  * @param {{id?:string, created_by?:string, status?:string, description?:string, subject_ref?:string}} flag
@@ -398,43 +326,6 @@ export function planDiscoveryForItem(itemId, corpus, { limit = 12, threshold = 0
   return { ok: true, edges };
 }
 
-/**
- * The whole decide-and-apply core, DB access injected (mirrors ratify-flag-to-census.mjs's ratifyFlag()
- * — directly testable with a fake client, no real Supabase creds, no process.exit).
- * @param {{
- *   readFlag: (flagId:string) => Promise<{data:object|null, error:{message:string}|null}>,
- *   readItem: (itemId:string) => Promise<{data:object|null, error:{message:string}|null}>,
- *   updateItem: (itemId:string, patch:object) => Promise<{updated:number, snapshot:string|null}>,
- * }} deps
- * @param {string} flagId
- * @param {{execute:boolean}} opts
- * @returns {Promise<
- *   {status:'not_found'|'read_error'|'not_ratifiable'|'item_read_error'|'item_not_found', error:string} |
- *   {status:'no_change', itemId:string, merge:object} |
- *   {status:'dry_run', itemId:string, merge:object} |
- *   {status:'applied', itemId:string, merge:object, updated:number, snapshot:string|null}
- * >}
- */
-export async function applyTags(deps, flagId, { execute } = {}) {
-  const { data: flag, error } = await deps.readFlag(flagId);
-  if (error) return { status: "read_error", error: error.message };
-  if (!flag) return { status: "not_found", error: `no integrity_flags row with id ${flagId}.` };
-
-  const decision = evaluateApplication(flag);
-  if (!decision.ok) return { status: "not_ratifiable", error: decision.error };
-
-  const { data: item, error: itemErr } = await deps.readItem(decision.itemId);
-  if (itemErr) return { status: "item_read_error", error: itemErr.message };
-  if (!item) return { status: "item_not_found", error: `no intelligence_items row with id ${decision.itemId}.` };
-
-  const merge = buildMergePatch(item, decision.proposals);
-  if (!Object.keys(merge.patch).length) return { status: "no_change", itemId: decision.itemId, merge };
-  if (!execute) return { status: "dry_run", itemId: decision.itemId, merge };
-
-  const upd = await deps.updateItem(decision.itemId, merge.patch);
-  return { status: "applied", itemId: decision.itemId, merge, updated: upd.updated, snapshot: upd.snapshot };
-}
-
 // ─────────────────────── ZERO-PROPOSAL RE-DERIVATION (D15 part 1, defect-fix-plan-2026-09-12) ──────────
 // "1,034 tag flags carry zero proposals and ask for manual tagging, and the decider leaves them open."
 // Root cause: most of these items were record-grade stubs on 2026-09-03 with a title and no brief text;
@@ -622,25 +513,11 @@ async function main() {
 const args = process.argv.slice(2);
 const flagIdRaw = args[args.indexOf("--flag") + 1];
 const flagId = args.includes("--flag") && flagIdRaw && !flagIdRaw.startsWith("--") ? flagIdRaw : null;
-const ALL_RATIFIED = args.includes("--all-ratified");
 const EXECUTE = args.includes("--execute");
 const SKIP_DISCOVERY = args.includes("--skip-discovery");
-const AUTO = args.includes("--auto");
 
-if (!flagId && !ALL_RATIFIED) {
-  console.error("apply-tags: one of --flag <integrity_flags-id> or --all-ratified is required.");
-  process.exit(1);
-}
-if (flagId && ALL_RATIFIED) {
-  console.error("apply-tags: pass --flag OR --all-ratified, not both (ambiguous selection).");
-  process.exit(1);
-}
-if (AUTO && ALL_RATIFIED) {
-  console.error("apply-tags: --auto and --all-ratified are mutually exclusive (bulk auto-adoption is dispatched via tag-ratification.mjs --arg auto, not this CLI).");
-  process.exit(1);
-}
-if (AUTO && !flagId) {
-  console.error("apply-tags: --auto requires --flag <integrity_flags-id>.");
+if (!flagId) {
+  console.error("apply-tags: --flag <integrity_flags-id> is required (the bulk form is the tag-ratification maintenance step).");
   process.exit(1);
 }
 
@@ -650,7 +527,7 @@ const sb = readClient();
 
 const CITE = {
   skill: "flywheel-build-plan-2026-08-10",
-  reason: "TAG lane (2026-09-01, auto-adoption path added 2026-09-03): write a derive-tags.mjs proposal onto intelligence_items' connection-signature tag arrays (merge-only, never overwrites), through the guarded write path (rule 015) — either operator-ratified (resolution_note contains 'ratify:tags') or, for high-confidence proposals, auto-adopted per the 2026-09-03 operator ruling (see apply-tags.mjs header).",
+  reason: "TAG lane (2026-09-01, auto-adoption path added 2026-09-03): write a derive-tags.mjs proposal onto intelligence_items' connection-signature tag arrays (merge-only, never overwrites), through the guarded write path (rule 015), decided by rule (auto-adoption, 2026-09-03 operator ruling; the ratify:tags operator path was deleted 2026-10-05, see apply-tags.mjs header).",
 };
 
 const deps = {
@@ -710,35 +587,21 @@ function report(flagId, result) {
   switch (result.status) {
     case "not_found":
     case "read_error":
-    case "not_ratifiable":
     case "not_adoptable":
     case "item_read_error":
     case "item_not_found":
       console.error(`apply-tags: flag ${flagId} — ${result.error}`);
       return false;
-    case "no_change":
-      console.log(`apply-tags: flag ${flagId} — no change needed for item ${result.itemId} (every proposal already present or capped out). Nothing written.`);
+    case "dry_run": {
+      const adopted = result.decisions.filter((d) => d.decision === "adopt").length;
+      const declined = result.decisions.filter((d) => d.decision === "decline").length;
+      console.log(
+        `apply-tags: flag ${flagId} -> item ${result.itemId} would decide ${result.decisions.length} proposal(s) ` +
+        `(adopt ${adopted}, decline ${declined}); patch: ${JSON.stringify(result.merge.patch)}; flag would CLOSE either way ` +
+        `(DRY RUN: nothing written. Re-run with --execute to apply.)`,
+      );
       return true;
-    case "dry_run":
-      if ("decisions" in result) {
-        // Auto path (decideTagProposals) -- every proposal decided, task 7.2's dry output shape.
-        const adopted = result.decisions.filter((d) => d.decision === "adopt").length;
-        const declined = result.decisions.filter((d) => d.decision === "decline").length;
-        console.log(
-          `apply-tags: flag ${flagId} -> item ${result.itemId} would decide ${result.decisions.length} proposal(s) ` +
-          `(adopt ${adopted}, decline ${declined}); patch: ${JSON.stringify(result.merge.patch)}; flag would CLOSE either way ` +
-          `(DRY RUN: nothing written. Re-run with --execute to apply.)`,
-        );
-      } else {
-        console.log(
-          `apply-tags: flag ${flagId} applicable -> item ${result.itemId} patch: ` +
-          `${JSON.stringify(result.merge.patch)} (DRY RUN: nothing written. Re-run with --execute to apply.)`,
-        );
-      }
-      return true;
-    case "applied":
-      console.log(`WROTE: item ${result.itemId} updated (${result.updated} row) with ${JSON.stringify(result.merge.patch)} (snapshot: ${result.snapshot}).`);
-      return true;
+    }
     case "decided":
       console.log(`WROTE + RESOLVED: item ${result.itemId} updated with ${JSON.stringify(result.merge.patch)}; flag ${flagId} closed (${result.decisions.length} proposal(s) decided).`);
       return true;
@@ -753,38 +616,10 @@ function report(flagId, result) {
 let anyFailed = false;
 let appliedItemIds = [];
 
-if (flagId) {
-  const result = AUTO
-    ? await autoAdoptTags(deps, flagId, { execute: EXECUTE })
-    : await applyTags(deps, flagId, { execute: EXECUTE });
+{
+  const result = await autoAdoptTags(deps, flagId, { execute: EXECUTE });
   if (!report(flagId, result)) anyFailed = true;
-  if (result.status === "applied" || result.status === "decided") {
-    appliedItemIds.push(result.itemId);
-  }
-} else {
-  // --all-ratified: every OPEN-namespace-shaped resolved flag under TAG_NAMESPACE that clears
-  // evaluateApplication. Reads once, applies each in turn (small population — the flywheel-tag
-  // namespace is scoped to items with empty signature tags, not the whole corpus).
-  const { data: candidates, error: listErr } = await sb
-    .from("integrity_flags")
-    .select("id")
-    .eq("status", "resolved")
-    .like("created_by", `${TAG_NAMESPACE}%`);
-  if (listErr) {
-    console.error(`apply-tags: --all-ratified candidate read failed: ${listErr.message}`);
-    process.exit(1);
-  }
-  const ids = (candidates ?? []).map((r) => r.id);
-  console.log(`apply-tags: --all-ratified — ${ids.length} resolved ${TAG_NAMESPACE} flag(s) to evaluate${EXECUTE ? "" : " (DRY RUN)"}.`);
-  let appliedCount = 0, skippedCount = 0;
-  for (const id of ids) {
-    const result = await applyTags(deps, id, { execute: EXECUTE });
-    const ok = report(id, result);
-    if (result.status === "not_ratifiable") { skippedCount++; continue; } // not every resolved flag carries ratify:tags — expected, not a failure
-    if (!ok) anyFailed = true;
-    if (result.status === "applied") { appliedCount++; appliedItemIds.push(result.itemId); }
-  }
-  console.log(`apply-tags: --all-ratified done — ${appliedCount} applied, ${skippedCount} not-yet-ratified (skipped), of ${ids.length} candidate(s).`);
+  if (result.status === "decided") appliedItemIds.push(result.itemId);
 }
 
 if (EXECUTE && !SKIP_DISCOVERY) {

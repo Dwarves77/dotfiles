@@ -1,5 +1,6 @@
 // SHARED-WRITER: intelligence_items
-// origin-class-backfill.mjs — MAINT dispatch step for R-E: the WO-19 origin_class backfill
+// origin-class-backfill.mjs - MAINT dispatch step for the WO-19 origin_class backfill (ruling R-E, accepted
+// 2026-09-05/06: the mapping is the rule, so apply takes no acceptance token; lane G6-GATES, 2026-10-05)
 // (docs/plans/wo19-origin-class-backfill-mapping.md), item_type + sources.tier -> origin_class.
 //
 // UPSTREAM: NONE EXISTS TO WRAP. `grep -rn origin_class fsi-app/scripts` (run this session) finds only
@@ -21,21 +22,20 @@ import { fileURLToPath } from "node:url";
 import { originClassFor } from "./lib/origin-class-map.mjs";
 import { runCli } from "./lib/cli.mjs";
 
-export const REQUIRED_ARG = "R-E-accepted";
 export const CITE = Object.freeze({
   skill: "wo19-origin-class-backfill-mapping",
   reason:
-    "MAINT origin-class-backfill dispatch (Lane MAINT, 2026-09-02), gated on ruling R-E: stamps " +
+    "MAINT origin-class-backfill dispatch (Lane MAINT, 2026-09-02), mapping accepted as ruling R-E: stamps " +
     "intelligence_items.origin_class from item_type + sources.tier per " +
     "docs/plans/wo19-origin-class-backfill-mapping.md §2/§4. Idempotent (WHERE origin_class IS NULL, " +
     "re-checked per chunk via applyMatch).",
 });
 
 /**
- * @param {{ mode?: "dry"|"apply", arg?: string }} opts
+ * @param {{ mode?: "dry"|"apply" }} opts
  * @param {{ readAll: Function, fetchRowsIn: Function, readClient: Function, guardedUpdateByIds: Function }} deps
  */
-export async function main({ mode = "dry", arg = "" } = {}, deps) {
+export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
   const summary = { step: "origin-class-backfill", mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
 
@@ -67,12 +67,6 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   };
 
   if (!apply) return summary;
-
-  if (arg !== REQUIRED_ARG) {
-    summary.note = `REFUSED — apply requires arg == '${REQUIRED_ARG}' (ruling R-E). Got: '${arg || "(none)"}'. No write attempted.`;
-    summary.exitCode = 1;
-    return summary;
-  }
 
   let applied = 0;
   const writes = [];

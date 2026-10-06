@@ -15,11 +15,11 @@ always reported in the summary rather than resolved by the script.
 
 **This step makes NO code edit, in either mode.** Deleting/wiring a module is a code change reviewed
 through a PR, not a database write a service-role key can make. `apply` only unlocks the full
-wire/delete worklist (module + one-line basis) for a follow-up CODE lane to execute, once R-C is
-accepted; `applied` is always 0 by design.
+wire/delete worklist (module + one-line basis) for a follow-up CODE lane to execute, R-C being
+closed; `applied` is always 0 by design.
 
-**Dispatch**: `mode=apply` requires `arg=R-C-accepted`; anything else is refused (exit 1), no report
-unlocked.
+**Dispatch**: no token and no `arg` (lane G6-GATES, 2026-10-05: R-C is closed, so the old
+`arg=R-C-accepted` gate is gone; a stray `arg` is ignored). `mode=apply` reports the same worklist.
 
 **Artifact / read back**: `summary.json`'s `wire` / `delete` / `hold` / `keep_no_action` lists (module +
 basis) are the worklist. Nothing to read back in the database - this is a report for a code lane, not a

@@ -6,9 +6,10 @@
 // register document into a precise, machine-derived worklist a follow-up CODE lane executes — parsing
 // the doc's own "Summary — ratify in one pass" table (26 rows: module, recommendation, one-line basis)
 // rather than hand-transcribing it, so the worklist can never silently drift from the document it
-// reports on. `apply` mode changes nothing in the repo either; it only unlocks the full worklist report
-// once R-C is accepted (arg == "R-C-accepted"), for a coordinator to hand to that code lane. `applied`
-// is always 0 for this step, by design.
+// reports on. `apply` mode changes nothing in the repo either; it reports the same worklist, for a
+// coordinator to hand to that code lane. `applied` is always 0 for this step, by design. Ruling R-C is
+// closed (docs/PROGRAM-BOARD.md), so no acceptance token gates the report: the step takes no `arg` and a
+// stray one is ignored (lane G6-GATES, 2026-10-05: no step waits on a typed token).
 //
 // A FINDING THIS STEP SURFACES, NOT SILENTLY RECONCILES (CLAUDE.md rule 14 — a finding is a hypothesis
 // until verified, and a mismatch is reported honestly, never picked-a-winner silently). The document's
@@ -31,7 +32,6 @@ import { fileURLToPath } from "node:url";
 import { runCli } from "./lib/cli.mjs";
 
 export const REGISTER_DOC_PATH = "docs/plans/unwired-disposition-2026-08-31.md";
-export const REQUIRED_ARG = "R-C-accepted";
 
 /** Pure: every `| N | module | recommendation | basis |` row of the doc's summary table. Skips the
  *  header/separator rows (col 1 isn't a bare integer for those). */
@@ -124,11 +124,10 @@ export function buildRegisterReport(markdown) {
 const rowView = (r) => ({ num: r.num, module: r.module, basis: r.basis });
 
 /**
- * @param {{ mode?: "dry"|"apply", arg?: string }} opts
+ * @param {{ mode?: "dry"|"apply" }} opts
  * @param {{ readDoc: () => Promise<string>|string }} deps
  */
-export async function main({ mode = "dry", arg = "" } = {}, deps) {
-  const apply = mode === "apply";
+export async function main({ mode = "dry" } = {}, deps) {
   const markdown = await deps.readDoc();
   const report = buildRegisterReport(markdown);
 
@@ -153,19 +152,11 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
       "Reported, not silently reconciled.";
   }
 
-  if (!apply) return summary;
-
-  if (arg !== REQUIRED_ARG) {
-    summary.note = `REFUSED — apply requires arg == '${REQUIRED_ARG}' (ruling R-C). Got: '${arg || "(none)"}'. No code was touched.`;
-    summary.exitCode = 1;
-    return summary;
-  }
-
   summary.note =
     (summary.note ? summary.note + " " : "") +
-    "R-C accepted. This step makes NO in-runner edit — deleting/wiring modules is a code change, not a " +
+    "R-C is closed. This step makes NO in-runner edit, because deleting or wiring modules is a code change, not a " +
     "DB write. The wire/delete lists above are the exact scope (module + one-line basis, which for a " +
-    "WIRE row names the wire site and for a DELETE row names why it's dead) for a follow-up CODE lane to " +
+    "WIRE row names the wire site and for a DELETE row names why it is dead) for a follow-up CODE lane to " +
     "execute. applied=0 by design; read_back is empty because this step touches no table.";
   return summary;
 }

@@ -29,6 +29,7 @@
 //           audit trail), not by inventing a DB state this table doesn't have. `item_id` is never set
 //           here (no intelligence_item is minted by this digest).
 
+import { hostOf } from "../../lib/institution-key.mjs";
 import { partitionBy, buildGroup, sortGroups, latestIso } from "./digest-core.mjs";
 
 export const QUEUE_ID = "portal-links";
@@ -64,6 +65,23 @@ export function recommendLinkDecision(pattern) {
   if (pattern === "gazette_path" || pattern === "legislation_path") return "link";
   if (pattern === "other") return "drop";
   return "uncertain";
+}
+
+/** Why a group got its rule decision, recorded as the group rationale (and the drop's disposition_reason). */
+export function ruleRationale(group, decision) {
+  const pattern = group.evidence?.link_pattern ?? "unknown";
+  return decision === "drop"
+    ? `rule: link pattern "${pattern}" carries no instrument signal, dropped from the classify queue`
+    : `rule: link pattern "${pattern}" is an instrument signal, left for the consume step`;
+}
+
+/** What the rule path does with a group it cannot decide: no mutation, and the consume step owns it. */
+export const RULE_RESIDUE = Object.freeze({ decision: "link", reason: "ledger-consume-owned" });
+
+/** source_id -> host map, read once from `sources` (shared by the digest builder and the rule path). */
+export async function loadSourceHostById(readAll) {
+  const sourceRows = await readAll("sources", "id,url");
+  return new Map(sourceRows.map((s) => [s.id, hostOf(s.url)]));
 }
 
 /**

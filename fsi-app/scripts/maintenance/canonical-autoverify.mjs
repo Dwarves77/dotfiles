@@ -16,18 +16,15 @@
 // now REJECTS the candidate outright — a wall is not a dead link, so the current citation stands and no
 // authority-downgrade question is even reached.
 //
-// WHAT THIS REPLACES. The group-ruling path (scripts/review/lib/canonical-candidates.mjs +
-// scripts/review/apply-canonical-candidates.mjs, wired by review-apply-canonical-candidates.mjs) only
-// ever auto-resolves a candidate whose URL ALREADY matches a registered source; every other row —
-// including every genuinely NEW source location the web crawl found — used to be routed to
-// "needs_individual_review" and wait for a human. That is the human-process gap the ruling names. This
+// WHAT THIS REPLACES. The group-ruling path (scripts/review/lib/canonical-candidates.mjs,
+// scripts/review/apply-canonical-candidates.mjs and the review-apply-canonical-candidates maintenance
+// step) only ever auto-resolved a candidate whose URL ALREADY matched a registered source; every other
+// row, including every genuinely NEW source location the web crawl found, was routed to
+// "needs_individual_review" and waited for a human. That is the human-process gap the ruling names. This
 // step performs the SAME verification a human reviewer would (fetch the page, check it is not a wall/
 // wrong-page-type, confirm the page actually supports the item's claim, rate its authority) and rules the
-// row itself, all the way to a terminal outcome. `review-apply-canonical-candidates.mjs` is UNCHANGED and
-// still applies a group ruling an operator has already taken (its own, separate `needs_individual_review`
-// fallback is for a DIFFERENT unresolvable case — a group ruled "accept" that names a candidate needing a
-// brand-new source with no existing registry match at all — untouched by this ruling); this step is the
-// mechanism for the individual rows that path could not auto-resolve.
+// row itself, all the way to a terminal outcome. The group-ruling path is RETIRED (lane G6-GATES,
+// 2026-10-05): this step rules every candidate, so nothing remains for a ruling file to decide.
 //
 // $0 — no LLM call anywhere in this module. Every check below is a deterministic string/regex/host-class
 // test, reusing modules that already exist rather than re-implementing them (CLAUDE.md "one module every
@@ -77,7 +74,7 @@
 //   - REGISTRATION / RE-POINT on accept: scripts/lib/db.mjs's registerSource (the ONE source-registration
 //     function — also used by heal-provenance.mjs's STEP SOURCE, never a third copy) plus a
 //     guardedUpdateByIds repoint of intelligence_items.source_id/source_url, the SAME two-write shape
-//     bulk-approve/route.ts's approve path and apply-canonical-candidates.mjs's accept path both use.
+//     bulk-approve/route.ts's approve path and the retired group-ruling accept path both used.
 //     registerSource's own `extra` pass-through (already part of its signature, never a new parameter) is
 //     how a provisional accept is minted `status: 'provisional'` instead of the function's normal
 //     `'active'` default.

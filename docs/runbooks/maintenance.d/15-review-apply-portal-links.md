@@ -18,12 +18,19 @@ permanently hide these rows from the real consume step. A `link`-ruled row stays
 where `run-ledger-consume.mjs`'s `consumePortalCandidates` already looks for it - the operator's
 affirmative ruling lives in the committed ruling JSON, the audit trail, not an invented DB state.
 
-**Ruling**: none by token - same per-group `decision`-field gate as section 13.
+**Ruling**: decided by rule (lane G6-GATES, 2026-10-05; operator ruling: no human gates). The queue's own
+deterministic `recommendLinkDecision` decides each (portal host x link pattern) group: a gazette or
+legislation pattern is `link`, a pattern with no instrument signal is `drop`. The `uncertain` groups
+(guidance and compliance patterns) are RESIDUE: no mutation, the same effect as `link`, owned by
+`run-ledger-consume.mjs` (its verdict arming classifies the remaining candidates), recorded under
+`summary.residue["ledger-consume-owned"]`.
 
-**Dispatch**: `arg` is the ruling-file path, required in BOTH modes, resolved the same way as section 13 - e.g.
-`arg: docs/ratifications/2026-09/portal-links.ruling.json`. `mode=dry` reports the upstream script's own
-per-group plan; writes nothing. `mode=apply` writes through `guardedUpdateByIds` (rule 015) - only for
-`drop`-decided groups; `link`/`skip` groups always report `applied: 0`.
+**Dispatch**: `arg` is OPTIONAL. Blank: the rule path described above runs over the live rows, no ruling
+file needed; the summary carries `decisions` (groups and rows per decision) and `residue` (groups and rows
+per reason). An `arg` naming a committed ruling file (resolved the same way as section 13, e.g.
+`arg: docs/ratifications/2026-09/portal-links.ruling.json`) still applies that file, the lane-verdict path.
+`mode=dry` reports the plan; writes nothing. `mode=apply` writes through `guardedUpdateByIds` (rule 015) -
+only for `drop`-decided groups; `link`/`skip` groups always report `applied: 0`.
 
 **Artifact / read back**: `summary.json`'s `plan` (dry) / `applied` (apply, summed across groups - will
 be 0 whenever every ruled group is `link`/`skip`, which is not a failure) plus `read_back` - every row

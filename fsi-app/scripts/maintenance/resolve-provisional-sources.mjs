@@ -125,6 +125,7 @@
 // any apply.
 import { resolve, join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { notUnderTierOverride } from "../../src/lib/sources/tier-override-guard.mjs";
 import { readAll, guardedUpdate, guardedInsert, guardedInsertMany, hostOf, readClient } from "../lib/db.mjs";
 import { classTierForHostAcrossNames, verdictPlacementForHost } from "../../src/lib/sources/host-authority.ts";
 // Lane S1-B (2026-10-04): committed host verdicts (rule b2) and bias tags on machine promotion, both reused
@@ -532,7 +533,11 @@ async function applySourcesDecision(row, plan, { apply, deps, summary, worklistF
     summary.samples.promote.push({ table: "sources", id: row.id, host: plan.host, tier: decision.tier, rule: decision.rule, status });
     if (apply) {
       // A row with tier_override set keeps its tiers (admin override respected); only status may change.
-      await deps.activateSourcesRow(row.id, decision.tier, status, row.tier_override ?? null);
+      const act = await deps.activateSourcesRow(row.id, decision.tier, status, row.tier_override ?? null);
+      // A row whose tiers were kept under an admin override (seen on the read, or set before the write).
+      if (row.tier_override != null || act?.tier_override_kept) {
+        summary.counts.tier_override_kept = (summary.counts.tier_override_kept ?? 0) + 1;
+      }
       await resolveVerdictFlag(plan, deps, summary, resolvedFlagHosts);
     }
     return;
@@ -706,8 +711,16 @@ export async function buildDeps() {
     // row's own fetch_status), never hardcoded "active" -- a promoted row that is currently
     // inaccessible says so on the row rather than masquerading as active.
     // Lane S1-B: a row with tier_override set keeps its tiers (sourcesActivationPatch); status still changes.
-    activateSourcesRow: (id, tier, status, tierOverride = null) =>
-      guardedUpdate("sources", (q) => q.eq("id", id), sourcesActivationPatch({ status, tier, tierOverride }), { cite: CITE }),
+    // The tier-carrying write also carries `tier_override IS NULL` in the statement (G7-TIER): an override set
+    // after the read matches no row, and the status-only write then runs, so the promote still activates.
+    activateSourcesRow: async (id, tier, status, tierOverride = null) => {
+      if (tierOverride == null) {
+        const r = await guardedUpdate("sources", (q) => notUnderTierOverride(q.eq("id", id)), sourcesActivationPatch({ status, tier, tierOverride: null }), { cite: CITE, select: "id" });
+        if (r.updated > 0) return { tier_override_kept: false };
+      }
+      await guardedUpdate("sources", (q) => q.eq("id", id), sourcesActivationPatch({ status, tier, tierOverride: tierOverride ?? 0 }), { cite: CITE, select: "id" });
+      return { tier_override_kept: true };
+    },
     // Lane S1-B: bias tags on machine promotion, through the guarded batched insert (rule 015); writeBiasTags
     // expects { error }, guardedInsertMany throws on failure, which writeMachineBiasTags catches and counts.
     insertBiasTagRows: async (rows) => {

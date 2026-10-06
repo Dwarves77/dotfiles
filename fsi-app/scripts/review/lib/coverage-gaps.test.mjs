@@ -1,13 +1,11 @@
 // Run: node --test scripts/review/lib/coverage-gaps.test.mjs — pure, no DB.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { groupKeyOf, recommendGapDisposition, groupRows, patchForDecision, freshestTimestamp } from "./coverage-gaps.mjs";
+import { groupKeyOf, recommendGapDisposition, groupRows, patchForDecision, freshestTimestamp, ruleRationale } from "./coverage-gaps.mjs";
 
-test("groupKeyOf: coverage_class x jurisdiction x transport_mode", () => {
-  assert.equal(
-    groupKeyOf({ coverage_class: "MISSING", jurisdiction: "eu", transport_mode: "air" }),
-    "MISSING::eu::air"
-  );
+test("groupKeyOf: coverage_class x estimated_priority (the two fields the recommend rule reads)", () => {
+  assert.equal(groupKeyOf({ coverage_class: "MISSING", estimated_priority: "HIGH", jurisdiction: "eu", transport_mode: "air" }), "MISSING::HIGH");
+  assert.equal(groupKeyOf({ coverage_class: "MISSING" }), "MISSING::(none)");
 });
 
 test("recommendGapDisposition: both directions across the table's own evidence hierarchy", () => {
@@ -26,7 +24,7 @@ const ROWS = [
   { id: "g3", instrument: "IMO Net-Zero", jurisdiction: "global", transport_mode: "ocean", estimated_priority: "HIGH", coverage_class: "HAVE_QUARANTINED", authoritative_url: "https://imo.org/x", created_at: "2026-07-17T00:00:00Z" },
 ];
 
-test("groupRows: deterministic order, per-class recommendation, mixed-priority MISSING group is uncertain", () => {
+test("groupRows: deterministic order, and EVERY group has a rule decision (no mixed-priority group is left uncertain)", () => {
   const g1 = groupRows(ROWS);
   const g2 = groupRows([...ROWS].reverse());
   assert.deepEqual(g1.map((g) => g.key), g2.map((g) => g.key));
@@ -37,7 +35,14 @@ test("groupRows: deterministic order, per-class recommendation, mixed-priority M
     { ...ROWS[0], id: "m1", jurisdiction: "eu", transport_mode: "air", estimated_priority: "CRITICAL" },
     { ...ROWS[0], id: "m2", jurisdiction: "eu", transport_mode: "air", estimated_priority: "LOW" },
   ]);
-  assert.equal(mixed[0].recommended_decision, "uncertain");
+  assert.deepEqual(mixed.map((g) => [g.key, g.recommended_decision]).sort(), [["MISSING::CRITICAL", "kept"], ["MISSING::LOW", "parked"]]);
+  assert.deepEqual(mixed[0].evidence.jurisdictions, { eu: 1 });
+});
+
+test("ruleRationale: names the row's class and priority and the rule's reason", () => {
+  const g = { evidence: { coverage_class: "MISSING", estimated_priority: "LOW" } };
+  assert.match(ruleRationale(g, "parked"), /MISSING.*LOW.*parked/);
+  assert.match(ruleRationale({ evidence: { coverage_class: "HAVE_QUARANTINED", estimated_priority: "HIGH" } }, "declined"), /already in the corpus/);
 });
 
 test("patchForDecision: kept has no surface_test; declined/parked carry a uniform 5-surface payload", () => {

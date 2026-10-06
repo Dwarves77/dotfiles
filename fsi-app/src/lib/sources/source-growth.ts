@@ -21,6 +21,7 @@ import type { TrustMetrics } from "@/types/source";
 import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
 import { classTierForHost, decidePoolHostRegistration } from "@/lib/sources/host-authority";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";
+import { writeEffectiveTierUnlessOverridden } from "@/lib/sources/tier-override-guard.mjs";
 import { recordTierOpinion, type MinimalSupabaseClient } from "@/lib/sources/tier-opinion-writer";
 
 export interface CitationEdge {
@@ -397,14 +398,19 @@ export function buildReputationEventRow(
 export async function applyReputationRecompute(
   supabase: SupabaseClient,
   sourceId: string
-): Promise<{ before: number; after: number; changed: boolean } | null> {
+): Promise<{ before: number; after: number; changed: boolean; override_skipped?: boolean } | null> {
   try {
     const r = await recomputeEffectiveTier(supabase as unknown as { from: (t: string) => unknown }, sourceId);
-    const rep = { before: r.before_tier, after: r.after_tier, changed: r.changed };
+    const rep: { before: number; after: number; changed: boolean; override_skipped?: boolean } = { before: r.before_tier, after: r.after_tier, changed: r.changed };
     if (r.changed && r.tier_override == null) {
-      const { error: upErr } = await supabase.from("sources").update({ effective_tier: r.after_tier }).eq("id", sourceId);
-      if (upErr) console.warn(`[source-growth] effective_tier write failed for ${sourceId}: ${upErr.message}`);
-      else {
+      // The override guard is in the UPDATE itself (tier-override-guard.mjs): an override set between the
+      // recompute's read and this write is never written over, and no audit event is recorded for it.
+      const w = await writeEffectiveTierUnlessOverridden(supabase, sourceId, r.after_tier);
+      if (w.error) console.warn(`[source-growth] effective_tier write failed for ${sourceId}: ${w.error.message}`);
+      else if (!w.written) {
+        rep.changed = false;
+        rep.override_skipped = true;
+      } else {
         try {
           const { error: evErr } = await supabase.from("source_trust_events").insert(buildReputationEventRow(sourceId, r));
           if (evErr) console.warn(`[source-growth] source_trust_events insert failed for ${sourceId}: ${evErr.message}`);
