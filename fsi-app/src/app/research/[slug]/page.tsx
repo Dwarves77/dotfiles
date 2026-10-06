@@ -48,7 +48,7 @@ import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
-import { fetchCrossPageForItem, fetchInferencesForItem, type CrossPageAnalysis, type ItemInferences } from "@/lib/supabase-server";
+import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
 import { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
 import { fetchSignpostsForAssessment, fetchAssessmentHistoryChain } from "@/lib/research/read-signposts.mjs";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
@@ -93,8 +93,6 @@ interface ItemScoped {
    *  resolveBriefForTheme, so a drifted theme id still finds its prior brief) feeds both the rail's Cluster
    *  synthesis card and the shared "Across pages" section. */
   crossPage: CrossPageAnalysis;
-  /** Lane P2: current, customer-visible inference records citing this item (null when none). */
-  inferences: ItemInferences | null;
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings - see
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
    *  finding's query legitimately returns no rows, resolving to {} at zero extra cost). Reuses `self.id`
@@ -287,10 +285,9 @@ export default async function ResearchFindingDetailPage({
           return { related, relatedReason, claimTiers, assessment, signposts, assessmentHistory };
         })();
 
-        const [resourceLookup, crossPage, inferences, relatedAndBrief] = await Promise.all([
+        const [resourceLookup, crossPage, relatedAndBrief] = await Promise.all([
           buildResourceLookup(supabase, relatedIds),
           fetchCrossPageForItem(supabase, id, "research"),
-          fetchInferencesForItem(supabase, id),
           relatedAndBriefPromise,
         ]);
 
@@ -299,7 +296,6 @@ export default async function ResearchFindingDetailPage({
           related: relatedAndBrief.related,
           relatedReason: relatedAndBrief.relatedReason,
           crossPage,
-          inferences,
           claimTiers: relatedAndBrief.claimTiers,
           assessment: relatedAndBrief.assessment,
           signposts: relatedAndBrief.signposts,
@@ -319,7 +315,6 @@ export default async function ResearchFindingDetailPage({
   const related = result.itemScoped?.related ?? [];
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
   const crossPage = result.itemScoped?.crossPage ?? null;
-  const inferences = result.itemScoped?.inferences ?? null;
   const themeBrief = crossPage?.theme ?? null;
   const claimTiers = result.itemScoped?.claimTiers ?? {};
   const assessment = result.itemScoped?.assessment ?? null;
@@ -347,7 +342,6 @@ export default async function ResearchFindingDetailPage({
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
         crossPage={crossPage}
-        inferences={inferences}
         assessment={assessment}
         signposts={signposts}
         assessmentHistory={assessmentHistory}

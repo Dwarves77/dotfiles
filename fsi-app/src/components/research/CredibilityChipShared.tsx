@@ -119,7 +119,7 @@ export function GradeModifierLedger({ modifiers }: { modifiers: GradeModifier[] 
 //
 // ROW-CHIP RULE FIX (lane CHIPS, 2026-09-05, W3.4): the rendering guard's own `detectSmallTargets`
 // treats every `a[href]` as a target too (ux-assert.mjs TARGET_SELECTOR) — so once this chip mounted
-// inside RegulationsLedger's RegRow and OperationsItemsView's OperationsItemCard (each a WHOLE
+// inside RegulationsLedger's RegRow and an operations item card (each a WHOLE
 // card wrapped in one `<Link>`, the same anchor-nesting shape PriorityDropdown.tsx's own 44×44
 // trigger already lives inside), the enclosing anchor's bounding box always fully CONTAINS the chip
 // button, so `boxGap` between them is always 0 — the "24 + 8px clearance" alternative can never be
@@ -142,8 +142,8 @@ export const chipButtonStyle = (scored: boolean): React.CSSProperties => ({
   border: `1px solid ${scored ? "var(--color-primary)" : "var(--color-border-medium)"}`,
   background: scored ? "var(--color-bg-ai-strip)" : "transparent",
   color: scored ? "var(--color-primary)" : "var(--color-text-muted)",
-  // whiteSpace normal (not nowrap): at a 375px viewport, RegulationsLedger's/OperationsItemsView's
-  // available row width is narrower than this button's natural nowrap width ("Evidence ×
+  // whiteSpace normal (not nowrap): at a 375px viewport, the row and card
+  // available width is narrower than this button's natural nowrap width ("Evidence ×
   // agreement: Not scored" etc.), which measured as a real 3-7px horizontal overflow on those two
   // surfaces (this lane's own rendering-guard run, 2026-09-05) — ResearchLedger/MarketIntelLedger
   // never hit it only because their rows happen to have more available width, not because nowrap is

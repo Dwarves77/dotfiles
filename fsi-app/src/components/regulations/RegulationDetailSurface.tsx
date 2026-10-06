@@ -67,7 +67,6 @@ import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { CrossPageSection } from "@/components/detail/CrossPageSection";
-import { InferenceSection } from "@/components/detail/InferenceSection";
 import { GradeChip } from "@/components/ui/Chips";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
@@ -152,7 +151,6 @@ export function RegulationDetailSurface({
   connections,
   resourceLookup,
   crossPage = null,
-  inferences = null,
   sections = [],
   claimTiers,
   groupLabel,
@@ -440,8 +438,6 @@ export function RegulationDetailSurface({
 
           {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
           <CrossPageSection surfaceKey="regulations" surfaceLabel="Regulations" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
-          {/* Lane P2: the inferences that cite this item, labelled as inferences; renders nothing when there are none. */}
-          <InferenceSection inferences={inferences} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

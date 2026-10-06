@@ -384,3 +384,32 @@ test("D23/7: computeAuditDate prefers change_date over added when both are prese
   assert.equal(computeAuditDate([], []), "");
   assert.equal(computeAuditDate([{ added: null, changeDate: null }], []), "");
 });
+
+// ── lane P2: the grade reaches the dashboard rows on both paths ──────────────────────────────────────
+
+test("P2: Due-next rows and a changed row built from the corpus carry the item's grade; brief or unknown carries none", () => {
+  const rec = resource("rec", { itemGrade: "record" });
+  const brief = resource("brf", { itemGrade: "brief" });
+  const unknown = resource("unk");
+  assert.equal(buildDueNextRows([rec], NOW)[0].itemGrade, "record");
+  assert.equal(buildDueNextRows([brief], NOW)[0].itemGrade, "brief", "the row carries it; GradeChip itself draws nothing for brief");
+  assert.equal("itemGrade" in buildDueNextRows([unknown], NOW)[0], false);
+  const changed = buildChangedRows([{ id: "rec", title: "Item rec", priority: "HIGH", added: "2026-09-05" }], [rec], NOW);
+  assert.equal(changed[0].itemGrade, "record");
+});
+
+test("P2: a changed row whose item is not loaded carries the grade the change feed's follow-up read supplied, and none otherwise", () => {
+  const withGrade = buildChangedRows([{ id: "g", title: "G", priority: "HIGH", added: "2026-09-05", itemGrade: "record" }], [], NOW);
+  assert.equal(withGrade[0].itemGrade, "record");
+  const without = buildChangedRows([{ id: "h", title: "H", priority: "HIGH", added: "2026-09-05" }], [], NOW);
+  assert.equal("itemGrade" in without[0], false, "nothing is invented");
+});
+
+test("P2: the four ledgers and the dashboard share one value-field derivation (rowValueFields)", () => {
+  for (const f of ["regulations/RegulationsLedger", "market/MarketIntelLedger", "operations/OperationsLedger", "research/ResearchLedger"]) {
+    const code = readFileSync(resolve(ROOT, `src/components/${f}.tsx`), "utf8");
+    assert.match(code, /\.\.\.rowValueFields\(r, due\),/, f);
+  }
+  const dash = readFileSync(resolve(ROOT, "src/components/dashboard/DashboardBrief.tsx"), "utf8");
+  assert.equal(dash.split("itemGrade={row.itemGrade}").length - 1, 2, "both dashboard tables pass the grade to ListRow");
+});

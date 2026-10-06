@@ -76,7 +76,6 @@ import {
 } from "@/lib/agent/parse-record-sections";
 import { ThemeBriefCard } from "@/components/detail/ThemeBriefCard";
 import { CrossPageSection, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
-import { InferenceSection } from "@/components/detail/InferenceSection";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
@@ -156,7 +155,6 @@ export function ResearchFindingDetailSurface({
   resourceLookup = {},
   themeBrief = null,
   crossPage = null,
-  inferences = null,
   assessment = null,
   signposts = [],
   assessmentHistory = [],
@@ -399,8 +397,6 @@ export function ResearchFindingDetailSurface({
 
           {/* Lane S3-B: intersections and theme analysis, the one shared section on all four detail pages. */}
           <CrossPageSection surfaceKey="research" surfaceLabel="Research" connections={connections} resourceLookup={resourceLookup} crossPage={crossPage} />
-          {/* Lane P2: the inferences that cite this item, labelled as inferences; renders nothing when there are none. */}
-          <InferenceSection inferences={inferences} />
         </DetailLayout>
       </DetailPageWrapper>
     </div>

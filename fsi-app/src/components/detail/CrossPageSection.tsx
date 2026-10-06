@@ -29,6 +29,7 @@ import { DetailSection } from "@/components/detail/DetailShell";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { StateNote } from "@/components/ui/StateNote";
 import { GfmSection } from "@/components/shared/GfmSection";
+import { InferenceSection, type InferenceSectionData } from "@/components/detail/InferenceSection";
 import { buildIntersectionView } from "@/lib/connections/connection-view-model.mjs";
 import type { buildThemeAnalysisView } from "@/lib/research/theme-brief.mjs";
 import type { ItemConnection } from "@/types/resource";
@@ -42,6 +43,9 @@ export interface CrossPageData {
   intersectionSummary?: string | null;
   /** The item's theme analysis for the viewing page, or null when the item is in no theme. */
   theme?: ThemeAnalysisView | null;
+  /** Lane P2: the current, customer-visible inferences that cite the item; rendered as their own section after
+   *  this one, so every detail page that mounts CrossPageSection carries them with no second mount. */
+  inferences?: InferenceSectionData | null;
 }
 
 const LABEL: CSSProperties = {
@@ -266,13 +270,17 @@ export function CrossPageSection({
     summary: crossPage?.intersectionSummary ?? null,
   });
   const theme = crossPage?.theme ?? null;
-  if (!intersections && !theme) return null;
+  const inferences = <InferenceSection inferences={crossPage?.inferences} />;
+  if (!intersections && !theme) return inferences;
   return (
-    <DetailSection id="across-pages" title="Across pages" aside="Intersections and theme analysis">
-      <div data-guard-container="cross-page">
-        {intersections && <IntersectionsBlock view={intersections} />}
-        {theme && <ThemeAnalysis theme={theme} surfaceLabel={surfaceLabel} first={!intersections} />}
-      </div>
-    </DetailSection>
+    <>
+      <DetailSection id="across-pages" title="Across pages" aside="Intersections and theme analysis">
+        <div data-guard-container="cross-page">
+          {intersections && <IntersectionsBlock view={intersections} />}
+          {theme && <ThemeAnalysis theme={theme} surfaceLabel={surfaceLabel} first={!intersections} />}
+        </div>
+      </DetailSection>
+      {inferences}
+    </>
   );
 }

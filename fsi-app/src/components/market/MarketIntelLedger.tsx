@@ -31,7 +31,7 @@ import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
-import { scoreResource } from "@/lib/scoring";
+import { rowValueFields } from "@/lib/list-row-fields";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
@@ -233,12 +233,7 @@ export function MarketIntelLedger({
             title: r.title,
             meta,
             kind: kind || undefined,
-            impact: r.impactScores ?? scoreResource(r),
-            due: due ? { label: due.label, days: `${due.days}` } : null,
-            timeline: r.timeline ?? null,
-            tier: r.sourceTier ?? null,
-            biasTags: r.biasTags,
-            itemGrade: r.itemGrade,
+            ...rowValueFields(r, due),
             tags: tagsFacet.tagsForItem(r.id),
             overflow: (
               <PriorityDropdown

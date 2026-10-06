@@ -29,7 +29,7 @@ import { computeAuditDate } from "@/lib/dashboard/brief-rows";
 import { recentChangesWindowDays } from "@/lib/dashboard/recent-changes-window.mjs";
 import { readScrapeState } from "@/lib/api/pause";
 import { findThemeForItem, buildThemeAnalysisView, buildThemeChips } from "@/lib/research/theme-brief.mjs";
-import { readCustomerInferences, type selectCurrentInferences } from "@/lib/detail/inference-view.mjs";
+import { readCustomerInferences } from "@/lib/detail/inference-view.mjs";
 import { lineageFromThemeDelta } from "@/lib/connections/theme-delta.mjs";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
@@ -2758,6 +2758,8 @@ export interface RecentChangeRow {
    *  pre-fix /regulations destination in itemDetailHref). */
   itemType?: string | null;
   domain?: number | null;
+  /** Lane P2: the item's grade from the same follow-up read, so a degraded What-changed row still draws the grade chip. */
+  itemGrade?: "record" | "brief";
   /**
    * D23 (migration 319, defect-fix-plan-2026-09-12.md): 'new' for an item first added in the
    * window, 'updated' for one that changed without being newly added (a regenerated brief, a
@@ -3139,18 +3141,18 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     // links. Fail-soft: on error the rows simply lack the fields and
     // itemDetailHref falls back to the pre-fix /regulations destination.
     const recentRows = (recentResult.data || []) as RecentChangeRpcRow[];
-    const recentTypeById = new Map<string, { item_type: string | null; domain: number | null }>();
+    const recentTypeById = new Map<string, { item_type: string | null; domain: number | null; item_grade: string | null }>();
     if (recentRows.length > 0) {
       const { data: typeRows, error: typeErr } = await getServiceSupabase()
         .from("intelligence_items")
-        .select("id, item_type, domain")
+        .select("id, item_type, domain, item_grade")
         // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", recentRows.map((r) => r.id));
       if (typeErr) {
         console.warn(`[supabase-server] recent-changes item_type enrichment failed (rows link to /regulations fallback): ${describeSupabaseError(typeErr)}`);
       }
-      for (const t of (typeRows || []) as Array<{ id: string; item_type: string | null; domain: number | null }>) {
-        recentTypeById.set(t.id, { item_type: t.item_type ?? null, domain: t.domain ?? null });
+      for (const t of (typeRows || []) as Array<{ id: string; item_type: string | null; domain: number | null; item_grade: string | null }>) {
+        recentTypeById.set(t.id, { item_type: t.item_type ?? null, domain: t.domain ?? null, item_grade: t.item_grade ?? null });
       }
     }
     const recentChanges: RecentChangeRow[] = recentRows.map((r) => ({
@@ -3164,6 +3166,9 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       changeDate: r.change_date || r.added_date,
       itemType: recentTypeById.get(r.id)?.item_type ?? null,
       domain: recentTypeById.get(r.id)?.domain ?? null,
+      ...(recentTypeById.get(r.id)?.item_grade === "record" || recentTypeById.get(r.id)?.item_grade === "brief"
+        ? { itemGrade: recentTypeById.get(r.id)?.item_grade as "record" | "brief" }
+        : {}),
     }));
 
     // Lane BRIEFDATA (2026-09-08), as narrowed by FOLD 62: the What-changed card's own bounded
@@ -4509,7 +4514,8 @@ export async function fetchIntelligenceItem(
 // (pure, tested); these functions only read, soft-fail to an empty answer, and never throw. All of it is
 // corpus-wide and org-independent, so it is safe inside the cached item-scoped detail bundle.
 
-const THEME_COLUMNS = "id, member_ids, density, convergence, surfaces, pivots";
+// dominant_signals feeds the theme chip label (deriveThemeLabel, lane P2).
+const THEME_COLUMNS = "id, member_ids, dominant_signals, density, convergence, surfaces, pivots";
 const THEME_BRIEF_BASE_COLUMNS = "theme_id, title, brief_md, member_hash, generated_at";
 
 /** Every stored brief. Migration 351 added sections, claims and member_ids; a database without it answers
@@ -4552,6 +4558,13 @@ async function readVerifiedItemsByIds(supabase: SupabaseClient, ids: string[]) {
 }
 
 export type CrossPageAnalysis = {
+  /**
+   * Lane P2 (ADR-044 decision 3, ADR-039 section (a)): the current, customer-visible inference records that cite
+   * the item. `inference_records` has RLS and no customer policy (migration 338), so this is a server read with the
+   * service-role client, like every other guarded-table read of a detail page, with no API route. Every shape
+   * decision is in the pure src/lib/detail/inference-view.mjs; null when there is nothing to show.
+   */
+  inferences: Awaited<ReturnType<typeof readCustomerInferences>>;
   /** The item's own stated intersection coupling (intelligence_items.intersection_summary), or null. */
   intersectionSummary: string | null;
   /** The item's theme analysis for the viewing page, or null when the item is in no theme. */
@@ -4569,7 +4582,7 @@ export async function fetchCrossPageForItem(
   itemUiId: string,
   surface: DetailSurface
 ): Promise<CrossPageAnalysis> {
-  const empty: CrossPageAnalysis = { intersectionSummary: null, theme: null };
+  const empty: CrossPageAnalysis = { intersectionSummary: null, theme: null, inferences: null };
   try {
     const { data: self } = await supabase
       .from("intelligence_items")
@@ -4578,11 +4591,16 @@ export async function fetchCrossPageForItem(
       .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
       .maybeSingle();
     if (!self) return empty;
+    // Read beside the theme work, never throws (a failure shows no inferences, never an error).
+    const inferences = await readCustomerInferences(supabase, self.id, (ids) => readVerifiedItemsByIds(supabase, ids)).catch((e) => {
+      console.error("readCustomerInferences failed, showing no inferences:", e);
+      return null;
+    });
     const summary = typeof self.intersection_summary === "string" && self.intersection_summary.trim() ? self.intersection_summary.trim() : null;
     try {
       const { data: themes } = await supabase.from("connection_themes").select(THEME_COLUMNS);
       const theme = findThemeForItem(self.id, themes ?? []);
-      if (!theme) return { intersectionSummary: summary, theme: null };
+      if (!theme) return { intersectionSummary: summary, theme: null, inferences };
       const [briefs, lineage, members] = await Promise.all([
         readThemeBriefs(supabase),
         readThemeLineage(supabase).catch(() => []),
@@ -4590,11 +4608,12 @@ export async function fetchCrossPageForItem(
       ]);
       return {
         intersectionSummary: summary,
+        inferences,
         theme: buildThemeAnalysisView({ itemId: self.id, surface, themes: themes ?? [], briefs, lineage, members }),
       };
     } catch (e) {
       console.error("fetchCrossPageForItem theme read failed, showing the summary only:", e);
-      return { intersectionSummary: summary, theme: null };
+      return { intersectionSummary: summary, theme: null, inferences };
     }
   } catch (e) {
     console.error("fetchCrossPageForItem failed, showing nothing:", e);
@@ -4629,47 +4648,6 @@ export async function fetchThemeChips(opts: {
   } catch (e) {
     console.error("fetchThemeChips failed, showing nothing:", e);
     return [];
-  }
-}
-
-// ── Customer inference read (lane P2, ADR-044 decision 3, ADR-039 section (a)) ───────────────────────
-// `inference_records` has RLS enabled and NO policy for anon or authenticated (migration 338), so a customer
-// read is a server read with the service-role client, the same way every other guarded table is read for a
-// detail page (the connection and theme reads above, section_claim_provenance in load-detail-core.ts). No API
-// route: no customer read of a guarded table in this codebase goes through one, and a route would only add a
-// second public surface over the same read. The detail pages call this inside their cached item-scoped
-// bundle (corpus-wide, org-independent, same 300s window as the cross-page read).
-//
-// Every shape decision (which rows are current, the method allowlist that keeps the pool-position inference
-// internal, the question in words, the citation restriction) is in the pure, tested
-// src/lib/detail/inference-view.mjs; this function only reads, applies it, and soft-fails to nothing.
-// Three bounded reads: the rows citing the item (cap INFERENCE_READ_CAP), the rows that supersede them (a
-// recompute inserts a NEW row that points at the old one), and the cited items' titles through the customer
-// read gate (verified, non-archived), so a citation a customer cannot open is never shown.
-
-export type ItemInferences = {
-  claims: ReturnType<typeof selectCurrentInferences>;
-  /** id to title of the cited items the customer may see (every id in a claim's citedItemIds is a key). */
-  titles: Record<string, string>;
-};
-
-/**
- * The current, customer-visible inference records that cite this item, newest first, bounded. `itemUiId` is
- * the page's own id (legacy id or uuid). Never throws; any failed read degrades to "nothing to show".
- */
-export async function fetchInferencesForItem(supabase: SupabaseClient, itemUiId: string): Promise<ItemInferences | null> {
-  try {
-    const { data: self } = await supabase
-      .from("intelligence_items")
-      .select("id")
-      .eq(itemIdColumn(itemUiId), itemUiId)
-      .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
-      .maybeSingle();
-    if (!self) return null;
-    return await readCustomerInferences(supabase, self.id, (ids) => readVerifiedItemsByIds(supabase, ids));
-  } catch (e) {
-    console.error("fetchInferencesForItem failed, showing nothing:", e);
-    return null;
   }
 }
 

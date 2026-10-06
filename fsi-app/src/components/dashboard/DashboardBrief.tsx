@@ -217,6 +217,7 @@ export function DashboardBrief({
                     timeline={row.timeline}
                     tier={row.tier}
                     biasTags={row.biasTags}
+                    itemGrade={row.itemGrade}
                     overflow={
                       // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
                       // the same row component as the lists (B), including the 56px rows and the
@@ -308,6 +309,7 @@ export function DashboardBrief({
                     timeline={row.timeline}
                     tier={row.tier}
                     biasTags={row.biasTags}
+                    itemGrade={row.itemGrade}
                     overflow={
                       // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
                       // the same row component as the lists (B), including the 56px rows and the

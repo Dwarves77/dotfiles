@@ -151,6 +151,8 @@ export function buildChangedRows(
         due: null,
         timeline: null,
         tier: null,
+        // Lane P2: the grade the follow-up read supplied, when it did; never a guess.
+        ...(c.itemGrade ? { itemGrade: c.itemGrade } : {}),
         // ITEM F2: the row still needs a watchlist type for its ⋯ control's Watch toggle, and the
         // change feed carries the same (itemType, domain) pair the href above is built from, so it
         // goes through the SAME classifier rather than defaulting to "reg".

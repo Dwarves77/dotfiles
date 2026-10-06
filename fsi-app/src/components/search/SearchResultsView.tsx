@@ -7,7 +7,7 @@
  * `createSupabaseServerClient`; a smoke spec bundles a client entry point and cannot construct a
  * Next.js request context, so the row-bearing markup (F35's actual subject) lives here instead,
  * taking already-resolved data as plain props, the same server/view split
- * `OperationsItemsView.tsx` and the other `*View.tsx` components in this app already use.
+ * the other `*View.tsx` components in this app use.
  *
  * Same frame and masthead as every other list surface (README section 0.3): Masthead (carrying its
  * own CommandBar) + PageFrame, one SectionCard holding the results on the shared `ListRow` part, no

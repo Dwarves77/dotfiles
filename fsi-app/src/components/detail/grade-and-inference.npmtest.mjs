@@ -32,6 +32,7 @@ export { GradeChip } from "@/components/ui/Chips";
 export { ListRow } from "@/components/ui/ListRow";
 export { ActionCard } from "@/components/ui/ActionCard";
 export { InferenceSection } from "@/components/detail/InferenceSection";
+export { CrossPageSection } from "@/components/detail/CrossPageSection";
 export { bandFromPriority } from "@/lib/urgency/bands";
 export { SourcesGrid, sourceEntriesOf } from "@/components/detail/SourcesGrid";
 `;
@@ -220,13 +221,7 @@ test("the section shows at most five inferences", () => {
 
 const src = (rel) => readFileSync(resolve(REPO_ROOT, rel), "utf8");
 
-test("all four ledgers pass the item's grade to the row", () => {
-  for (const f of ["regulations/RegulationsLedger", "market/MarketIntelLedger", "operations/OperationsLedger", "research/ResearchLedger"]) {
-    assert.match(src(`src/components/${f}.tsx`), /itemGrade: r\.itemGrade,/, f);
-  }
-});
-
-test("all four detail surfaces mount the grade chip in the masthead pill row and the inference section", () => {
+test("all four detail surfaces mount the grade chip in the masthead pill row and the one Across pages section that carries the inferences", () => {
   for (const f of [
     "regulations/RegulationDetailSurface",
     "pages/MarketSignalDetailSurface",
@@ -235,17 +230,24 @@ test("all four detail surfaces mount the grade chip in the masthead pill row and
   ]) {
     const code = src(`src/components/${f}.tsx`);
     assert.match(code, /<GradeChip itemGrade=\{r\.itemGrade\} \/>/, `${f} grade chip`);
-    assert.match(code, /<InferenceSection inferences=\{inferences\} \/>/, `${f} inference section`);
-    assert.match(code, /inferences = null,/, `${f} takes the inferences prop`);
+    assert.match(code, /<CrossPageSection [^>]*crossPage=\{crossPage\}/, `${f} mounts the shared section`);
   }
 });
 
-test("all four detail routes load the inferences with the one customer read, inside the cached item-scoped bundle", () => {
-  for (const f of ["regulations", "market", "operations", "research"]) {
-    const code = src(`src/app/${f}/[slug]/page.tsx`);
-    assert.match(code, /fetchInferencesForItem\(supabase, /, `${f} reads inferences`);
-    assert.match(code, /inferences=\{inferences\}/, `${f} passes them to the surface`);
-  }
+test("the inferences travel with the cross-page read: one read site, rendered by the one shared section", () => {
+  const server = src("src/lib/supabase-server.ts");
+  assert.match(server, /inferences = await readCustomerInferences\(supabase, self\.id,/);
+  assert.match(server, /const THEME_COLUMNS = "[^"]*dominant_signals/, "the theme read selects dominant_signals for the chip label");
+  assert.match(src("src/components/detail/CrossPageSection.tsx"), /<InferenceSection inferences=\{crossPage\?\.inferences\} \/>/);
+});
+
+test("an item with inferences but no intersections or theme still shows the Inferences section, and an item with none shows nothing", () => {
+  const data = { claims: [claim()], titles: TITLES };
+  const withOnly = html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: { inferences: data } }));
+  assert.match(text(withOnly), /Inferences/);
+  assert.doesNotMatch(text(withOnly), /Across pages/);
+  assert.equal(html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: null })), "");
+  assert.equal(html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: { inferences: { claims: [], titles: {} } } })), "");
 });
 
 // ── Sources grid: entries matched to a cited registered source by canonical url (coordinator item 5) ──────

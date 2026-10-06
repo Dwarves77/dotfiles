@@ -53,6 +53,32 @@ export function questionInWords(ref) {
   return PRODUCT_QUESTIONS.includes(token) ? PRODUCT_QUESTION_WORDS[token] : null;
 }
 
+/**
+ * THE ONE "current row" rule, shared by the customer read and the admin review page: a row is current when no
+ * other row names it in `supersedes` (migration 338: a recompute inserts a NEW row that points at the prior one,
+ * so the head of a chain is the row nothing points at, never the row whose own `supersedes` is null).
+ * `supersededIds` is the set of ids some row names. Pure.
+ * @param {{inference_id: string}} row
+ * @param {Set<string>} supersededIds
+ */
+export function isCurrentInferenceRow(row, supersededIds) {
+  return !!row && typeof row.inference_id === "string" && !supersededIds.has(row.inference_id);
+}
+
+/**
+ * The current rows of a set that holds whole chains (the admin page reads every row): the originals that nobody
+ * superseded and the recomputed heads, never the replaced originals. Status and method are NOT filtered here (the
+ * admin sees refuted and every method); the customer read adds those rules on top.
+ * @template {{inference_id: string, supersedes?: string|null}} T
+ * @param {T[]} rows
+ * @returns {T[]}
+ */
+export function currentInferenceRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const superseded = new Set(list.map((r) => r && r.supersedes).filter((x) => typeof x === "string"));
+  return list.filter((r) => isCurrentInferenceRow(r, superseded));
+}
+
 /** True for a method the customer may see (ADR-039(a) allowlist). @param {string|null|undefined} methodId */
 export function isCustomerInferenceMethod(methodId) {
   return typeof methodId === "string" && CUSTOMER_INFERENCE_METHOD_IDS.includes(methodId);
@@ -74,7 +100,7 @@ export function selectCurrentInferences(rows, supersededIds = new Set()) {
   for (const r of Array.isArray(rows) ? rows : []) {
     if (!r || typeof r.inference_id !== "string" || typeof r.claim_text !== "string" || !r.claim_text.trim()) continue;
     if (r.admissibility !== "current") continue;
-    if (superseded.has(r.inference_id)) continue;
+    if (!isCurrentInferenceRow(r, superseded)) continue;
     if (!isCustomerInferenceMethod(r.method_id)) continue;
     if (!Array.isArray(r.cited_item_ids)) continue;
     out.push({

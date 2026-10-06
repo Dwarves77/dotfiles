@@ -178,3 +178,31 @@ test("readCustomerInferences: nothing, an error, or only citations the customer 
   assert.equal(await readCustomerInferences(fakeClient({ rows: [row()] }), ITEM, titlesOf({})), null, "no cited item is visible");
   assert.equal(await readCustomerInferences(fakeClient({ rows: [row({ method_id: "pool-adjusted-position" })] }), ITEM, titlesOf({ [ITEM]: "x" })), null, "a hidden method never shows even if the query returned it");
 });
+
+// ── the one current-row rule, shared with /admin/inferences ──────────────────────────────────────────
+import { currentInferenceRows, isCurrentInferenceRow } from "./inference-view.mjs";
+
+test("currentInferenceRows: an original nobody replaced, a recomputed head and a refuted row stay; the replaced original goes", () => {
+  const rows = [
+    { inference_id: "orig-alone", supersedes: null },
+    { inference_id: "orig-replaced", supersedes: null },
+    { inference_id: "head", supersedes: "orig-replaced" },
+    { inference_id: "refuted", supersedes: null, status_token: "REFUTED" },
+  ];
+  assert.deepEqual(currentInferenceRows(rows).map((r) => r.inference_id), ["orig-alone", "head", "refuted"]);
+  assert.deepEqual(currentInferenceRows(null), []);
+});
+
+test("currentInferenceRows: a chain of three keeps only its newest row", () => {
+  const chain = [{ inference_id: "a", supersedes: null }, { inference_id: "b", supersedes: "a" }, { inference_id: "c", supersedes: "b" }];
+  assert.deepEqual(currentInferenceRows(chain).map((r) => r.inference_id), ["c"]);
+  assert.equal(isCurrentInferenceRow({ inference_id: "a" }, new Set(["a"])), false);
+  assert.equal(isCurrentInferenceRow({ inference_id: "c" }, new Set(["a", "b"])), true);
+});
+
+test("the admin page reads through the shared rule, not a supersedes IS NULL filter", async () => {
+  const { readFileSync } = await import("node:fs");
+  const code = readFileSync(new URL("../../app/admin/inferences/page.tsx", import.meta.url), "utf8");
+  assert.match(code, /currentInferenceRows\(/);
+  assert.doesNotMatch(code, /\.is\("supersedes", null\)/);
+});

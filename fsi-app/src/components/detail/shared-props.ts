@@ -8,7 +8,6 @@
 import type { Supersession, ItemConnection } from "@/types/resource";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import type { CrossPageData } from "@/components/detail/CrossPageSection";
-import type { InferenceSectionData } from "@/components/detail/InferenceSection";
 
 export interface DetailSurfaceSharedProps {
   supersessions?: Supersession[];
@@ -19,8 +18,6 @@ export interface DetailSurfaceSharedProps {
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
   /** Stated intersection summary and theme analysis for the shared "Across pages" section. */
   crossPage?: CrossPageData | null;
-  /** Current, customer-visible inference records that cite this item (lane P2); null or empty renders no section. */
-  inferences?: InferenceSectionData | null;
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;

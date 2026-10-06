@@ -87,7 +87,7 @@ import { formatDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
 import { notFound } from "next/navigation";
 import { applyIdRedirect, loadDetail } from "@/lib/detail/load-detail";
-import { fetchCrossPageForItem, fetchInferencesForItem, type CrossPageAnalysis, type ItemInferences } from "@/lib/supabase-server";
+import { fetchCrossPageForItem, type CrossPageAnalysis } from "@/lib/supabase-server";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { slugsOrEmpty } from "@/lib/perf/static-params-fallback.mjs";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
@@ -164,8 +164,6 @@ interface ItemScoped {
   claimTiers: ClaimTierMap;
   /** Lane S3-B: stated intersection summary and theme analysis for the shared "Across pages" section. */
   crossPage: CrossPageAnalysis;
-  /** Lane P2: current, customer-visible inference records citing this item (null when none). */
-  inferences: ItemInferences | null;
 }
 
 export default async function RegulationDetailPage({
@@ -204,13 +202,12 @@ export default async function RegulationDetailPage({
         ])
       ).filter(Boolean);
       const itemUuid = await resolveItemUuid(supabase, resource.id);
-      const [resourceLookup, claimTiers, crossPage, inferences] = await Promise.all([
+      const [resourceLookup, claimTiers, crossPage] = await Promise.all([
         buildResourceLookup(supabase, relatedIds),
         itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
         fetchCrossPageForItem(supabase, resource.id, "regulations"),
-        fetchInferencesForItem(supabase, resource.id),
       ]);
-      return { resourceLookup, claimTiers, crossPage, inferences };
+      return { resourceLookup, claimTiers, crossPage };
     },
   });
 
@@ -231,7 +228,6 @@ export default async function RegulationDetailPage({
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
   const claimTiers = result.itemScoped?.claimTiers ?? {};
   const crossPage = result.itemScoped?.crossPage ?? null;
-  const inferences = result.itemScoped?.inferences ?? null;
 
   console.log(`[perf] /regulations/${id} data ${result.elapsedMs}ms`);
 
@@ -284,7 +280,6 @@ export default async function RegulationDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         crossPage={crossPage}
-        inferences={inferences}
         sections={sections}
         claimTiers={claimTiers}
         groupLabel={groupLabel}
