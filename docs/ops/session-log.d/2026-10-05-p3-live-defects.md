@@ -28,7 +28,7 @@ scripts/tmp/ were deleted afterwards.
   members" are analysis inside sentences and remain: pre-contract briefs are re-authored at population.
 - Defect 4 (two tiers for one source). `sourceEntriesOf` drops the brief's parsed tier wording from an entry's meta text
   when a registry tier shows as the chip (the item's own source, or a cited registered source). With no registry tier the
-  entry is exactly as before (its text and parsed tier agree). Tests in `grade-and-inference.npmtest.mjs`.
+  text stays and the chip slot shows the Absence part. Tests in `grade-and-inference.npmtest.mjs`.
 - Defect 5 (bias chips twice). [REFUTED as a rendered duplicate] Mounted a `ListRow` with bias tags at 1280 and 375 in
   chromium: the DOM holds two mounts of `BiasChips` by design (`.cl-row-bias-desktop` in the meta line,
   `.cl-row-bias-mobile` on line 2), exactly one is visible at each width, the other is `display: none` (so it is out of the
@@ -53,13 +53,13 @@ scripts/tmp/ were deleted afterwards.
   `stripClaimLedgerBlocks(content_md)`, through the guarded update path in `scripts/lib/db.mjs` (`guardedUpdateByIds`),
   then read back that no stored text contains "CLAIM_PROVENANCE_LEDGER". No data was edited by this lane.
 
-### NOT done (NEEDS WRITE-SET EXPANSION)
-- The render-side guard for already-stored ledger text. Rendering reads stored `content_md` through
-  `src/lib/detail/fact-paragraphs.ts` (`parseFactParagraphs`, via `FactBlocks`) and `src/components/shared/GfmSection.tsx`
-  (prose blocks and every `fullBrief` render). Neither file is in this lane's write set, and nothing in the write set sits on
-  that path. Until it lands, item 9d18608f's section 7 still renders the ledger text from stored data. Proposed change, two
-  lines: `parseFactParagraphs` runs `markdown = stripClaimLedgerBlocks(markdown)` first, and `GfmSection` does the same on its
-  `markdown` prop, both importing `@/lib/agent/claim-ledger-block`.
+### Coordinator rulings on PR 951 (applied)
+- Expansion granted for `fact-paragraphs.ts` and `GfmSection.tsx`: both now run `stripClaimLedgerBlocks` on their markdown input, so a stored ledger block never renders whatever the data says (item 9d18608f section 7 stored shape, as a fixture, in `fact-paragraphs.test.mjs` and `theme-brief-render.npmtest.mjs`; both fail without the change).
+- Defect 4, no registry tier: the tier parsed from the brief's own wording is not a rating (rule 18), so the chip slot shows the Absence part and the entry's text stays as written. The P1 and P2 assertions that kept the parsed chip were changed, each with a comment giving the reason (rule 18, 2026-10-05), in `source-rating-display.npmtest.mjs` and `grade-and-inference.npmtest.mjs`.
+- The data repair step (5 full_brief rows, 4 section rows) runs at population.
+
+### Owed
+- `claim-ledger-block.ts` and lane GATES-2's `src/lib/agent/section-markers.mjs` must share ONE definition of the ledger marker. Not imported here (not on master); to be reconciled by whichever lane merges second.
 - Design change owed (rule 20): artboard 07's CLUSTER SYNTHESIS meta line draws "density 0.180"; the system need removes it.
 
 ### Read and reused
@@ -74,9 +74,7 @@ Reused: the existing ledger locator (kept), `tag-labels.mjs` tables as the one s
 tests as the home of the new Sources tests.
 
 ### Decisions
-- Defect 4, no registry tier: the brief's parsed tier chip is kept (P1 and P2 tests assert it, and the chip and the text
-  then agree); only the registry-tier case drops the wording. Read of "never present the parsed phrase as a chip": the
-  phrase text is never made a chip.
+- Defect 4, no registry tier: superseded by the coordinator ruling above (no parsed chip; Absence part).
 - Defect 3 applies the pass only to briefs without `sections`.
 - F28: no edited file is a governing file of any harness family (grep of every `family.json`), so no pending marker.
 
@@ -95,3 +93,4 @@ tests as the home of the new Sources tests.
   connected item (unchanged 44px rows). No async action; text only changed.
 - Research rail cluster card and Sources grid rows. Goal: read the count and the source's one rating. No control added; no
   async action.
+- Ledger render guard (same screens as above). Goal: read a section; no control, no async action; stored ledger text is removed from what is drawn.

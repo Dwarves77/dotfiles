@@ -20,6 +20,8 @@
 // text, do not change the pipeline output"); it never writes back to the
 // database and never changes what the pipeline emits.
 
+import { stripClaimLedgerBlocks } from "../agent/claim-ledger-block.ts";
+
 export type FactParagraphKind = "fact" | "inference" | "counsel" | "prose";
 
 export interface ParsedSource {
@@ -169,6 +171,9 @@ export function classifyParagraph(paragraph: string): FactParagraph {
  *  tables handled specially (e.g. the operations concession table) should
  *  detect those blocks before calling this. */
 export function parseFactParagraphs(markdown: string | null | undefined): FactParagraph[] {
+  // Lane P3 (2026-10-05): a Claim Provenance Ledger block persisted into a stored section never renders,
+  // whatever the data says (the writer fix covers new rows; this covers rows already stored).
+  markdown = stripClaimLedgerBlocks(markdown);
   if (!markdown || !markdown.trim()) return [];
   const paragraphs = markdown
     .split(/\n\s*\n/)

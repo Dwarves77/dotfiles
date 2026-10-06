@@ -73,22 +73,23 @@ export function sourceEntriesOf(r: Resource): SourceRow[] {
   // the brief's own tier wording ("Tier 1 - Federal statistical release"), parsed from its source line. When a
   // registry tier exists for the entry (the item's own source, or a cited registered source) the chip shows
   // THAT tier, and the brief's tier wording is dropped from the meta text so one source never shows two tiers
-  // (the rest of the meta, source type, issuer and date, stays). When no registry tier exists the entry is
-  // exactly what it was: the brief's text and the tier parsed beside it, which agree with each other.
+  // (the rest of the meta, source type, issuer and date, stays). When no registry tier exists the entry's text
+  // stays as written but the tier parsed from the brief's own wording is not a rating and is never drawn as a
+  // chip: the tier slot shows the Absence part (coordinator ruling on PR 951, rule 18).
   const cited = r.citedSources ?? [];
   const primary = primaryEntryIndex(parsedList, r);
   return parsedList.map((e, i): SourceRow => {
     if (i === primary) {
       return typeof r.sourceTier === "number"
         ? { ...e, tier: r.sourceTier, meta: dropParsedTierPhrase(e.meta), biasTags: r.biasTags }
-        : { ...e, biasTags: r.biasTags };
+        : { ...e, tier: null, biasTags: r.biasTags };
     }
     const hit = cited.find((c) => sameUrl(c.url, e.url));
-    if (!hit) return e;
+    if (!hit) return { ...e, tier: null };
     const biasTags = hit.biasTags.length > 0 ? hit.biasTags : undefined;
     return typeof hit.tier === "number"
       ? { ...e, tier: hit.tier, meta: dropParsedTierPhrase(e.meta), biasTags }
-      : { ...e, biasTags };
+      : { ...e, tier: null, biasTags };
   });
 }
 

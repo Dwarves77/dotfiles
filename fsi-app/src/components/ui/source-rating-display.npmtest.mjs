@@ -283,7 +283,8 @@ test("the Sources grid shows the primary source's tier (override) and bias outsi
   const other = rows.find((x) => /Other/.test(x.name));
   assert.equal(primary.tier, 2, "the primary entry shows the customer tier, not the tier the brief text was written with");
   assert.deepEqual(primary.biasTags, FIVE);
-  assert.equal(other.tier, 5, "an entry this page cannot identify keeps what the brief says");
+  // Changed 2026-10-05 (rule 18, lane P3): the brief's own T5 wording is not a rating, so an entry this page cannot identify shows no tier chip (Absence part); it used to keep the parsed T5.
+  assert.equal(other.tier, null, "an entry this page cannot identify has no registry rating, so no tier chip");
   assert.equal(other.biasTags, undefined, "and carries no bias it was not given");
 });
 

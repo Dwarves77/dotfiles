@@ -17,6 +17,7 @@ const SMOKE = resolve(REPO_ROOT, ".discipline/rendering/smoke");
 const ENTRY = `
 export { ThemeBriefCard } from "@/components/detail/ThemeBriefCard";
 export { CrossPageSection } from "@/components/detail/CrossPageSection";
+export { GfmSection } from "@/components/shared/GfmSection";
 `;
 
 let M;
@@ -101,4 +102,22 @@ test("a brief written under the contract (sections present) is rendered as writt
   const sections = { connection: null, meaning: "It binds on emissions-reporting-Scope3 with density 0.184.", forThisPage: null, watch: null, gaps: null };
   const out = section(theme({ briefMd: null, sections, ramificationsMissing: false }));
   assert.match(out, /emissions-reporting-Scope3 with density 0\.184/);
+});
+
+test("P3: GfmSection never draws a stored Claim Provenance Ledger block (the 9d18608f section 7 shape)", () => {
+  const stored = [
+    "| a | b |",
+    "|---|---|",
+    "| EPR fee | data sharing |",
+    "",
+    "---",
+    "",
+    "<<<CLAIM_PROVENANCE_LEDGER",
+    '[ { "claim_text": "x"  "claim_kind": "FACT" } ]',
+    "CLAIM_PROVENANCE_LEDGER>>>",
+  ].join("\n");
+  const out = text(renderToStaticMarkup(h(M.GfmSection, { markdown: stored })));
+  assert.doesNotMatch(out, /CLAIM_PROVENANCE_LEDGER|claim_text|claim_kind/);
+  assert.match(out, /EPR fee/);
+  assert.equal(renderToStaticMarkup(h(M.GfmSection, { markdown: "<<<CLAIM_PROVENANCE_LEDGER\n[" })), "");
 });

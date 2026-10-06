@@ -93,3 +93,27 @@ test("parseFactParagraphs returns an empty array for null/empty/whitespace-only 
   assert.deepEqual(parseFactParagraphs(""), []);
   assert.deepEqual(parseFactParagraphs("   \n\n  "), []);
 });
+
+// Lane P3 (2026-10-05): the stored shape of a market initiative whose last section carried the ledger (item
+// 9d18608f section 7): a table, a rule, then the ledger block whose JSON is invalid. Fixture, not a live read.
+const STORED_SECTION_7 = [
+  "| Source | Why it matters |",
+  "|---|---|",
+  "| Report | The EPR fee and data-sharing frameworks. |",
+  "",
+  "---",
+  "",
+  "<<<CLAIM_PROVENANCE_LEDGER",
+  "[",
+  '  { "section": "1", "claim_text": "A convened claim."  "claim_kind": "FACT", "source_span": "x", "slot_key": null }',
+  "]",
+  "CLAIM_PROVENANCE_LEDGER>>>",
+].join("\n");
+
+test("a stored Claim Provenance Ledger block never reaches a parsed paragraph", () => {
+  const blocks = parseFactParagraphs(STORED_SECTION_7);
+  const all = blocks.map((b) => b.text).join("\n");
+  assert.ok(!/CLAIM_PROVENANCE_LEDGER|claim_text|claim_kind/.test(all), all);
+  assert.match(all, /EPR fee and data-sharing/);
+  assert.deepEqual(parseFactParagraphs("<<<CLAIM_PROVENANCE_LEDGER\n[ {"), []);
+});
