@@ -232,7 +232,9 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
 
       {/* p4's five-across track, continued sideways rather than wrapped. `overflow-x: auto` is the
           operator's instruction for the remainder; at 1440 with five or fewer series nothing
-          scrolls and the row is pixel-identical to the artboard. */}
+          scrolls and the row is pixel-identical to the artboard. `data-overflow-allowed` is the shared
+          overflow rule's declaration (overflow-rule.mjs): this track may scroll inside its OWN box, and
+          that box (the card or page column) must still fit the screen. */}
       {/* Outside the grid: a <style> element placed inside it would be the grid's FIRST auto
           column, a zero-width card ahead of Diesel. Measured, not guessed. */}
       <style>{`
@@ -243,6 +245,7 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
       <div
         className="cl-headline-track"
         data-audit="headline-track"
+        data-overflow-allowed=""
         style={{
           display: "grid",
           gridAutoFlow: "column",

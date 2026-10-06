@@ -50,6 +50,11 @@ export const KNOWN_TAG_SLUGS = Object.freeze(
   new Set([...Object.keys(COMPLIANCE_OBJECT_LABELS), ...Object.keys(SCENARIO_LABELS)].filter((k) => k.includes("-"))),
 );
 
+/** The pathname of a url, or the input when it does not parse. */
+const pathOf = (u) => {
+  try { return new URL(u).pathname; } catch { return String(u ?? ""); }
+};
+
 const trunc = (s, n = 120) => {
   const t = String(s ?? "").replace(/\s+/g, " ").trim();
   return t.length > n ? `${t.slice(0, n)}...` : t;
@@ -130,6 +135,9 @@ export function checkSnapshot(snap) {
       invariant,
       url: snap.url,
       viewport: snap.viewport?.width ?? 0,
+      method: "GET",
+      status: snap.status ?? null,
+      path: pathOf(snap.url),
       text: trunc(text),
       severity: WARNING_INVARIANTS.has(invariant) ? "warn" : "fail",
     });
@@ -184,14 +192,26 @@ export function findAdminLinks(hrefs) {
 }
 
 /**
+ * Selectors that exist only inside the platform-admin dashboard. `data-admin-dashboard` is the stable attribute on
+ * AdminDashboard's root element; `data-audit="admin-usage-rail"` is an existing audit hook inside it. The loading
+ * shell the root `loading.tsx` streams carries neither, so a page that is only the shell does not match.
+ */
+export const ADMIN_MARKER_SELECTORS = Object.freeze(["[data-admin-dashboard]", '[data-audit="admin-usage-rail"]']);
+
+/**
  * Judge one admin probe. PURE.
- * @param {{kind:'page'|'api', path:string, status:number|null, finalPath?:string|null, tokenMissing?:boolean}} probe
+ * A page probe is read AFTER navigation settles (the runner waits for the URL to leave /admin): `/admin` is gated
+ * server-side, but the root loading.tsx streams a 200 shell before the redirect fires, so the status and URL at
+ * domcontentloaded are not the verdict. The verdict is the settled state: admin-only markers in the page fail it
+ * whatever the URL says, and a page still on /admin fails unless it answered a refusal status (401/403/404).
+ * @param {{kind:'page'|'api', path:string, status:number|null, finalPath?:string|null, markers?:number, tokenMissing?:boolean}} probe
  * @returns {string|null} the failure text, or null when the route refused
  */
 export function judgeAdminProbe(probe) {
   const lead = "the smoke account may have become a platform admin: ";
   if (probe.tokenMissing) return `could not read the session token, so ${probe.path} cannot be verified as refused`;
   if (probe.kind === "page") {
+    if (Number(probe.markers) > 0) return `${lead}GET ${probe.path} rendered admin-only markers (final path ${probe.finalPath ?? probe.path})`;
     const stayed = String(probe.finalPath ?? "").startsWith("/admin");
     if (!stayed) return null; // redirected away from /admin
     if (REFUSAL_STATUSES.includes(Number(probe.status))) return null;
@@ -206,7 +226,7 @@ export function checkAdminProbes(probes, baseUrl) {
   const out = [];
   for (const p of probes ?? []) {
     const why = judgeAdminProbe(p);
-    if (why) out.push({ invariant: INVARIANTS.ADMIN_GATE, url: `${baseUrl}${p.path}`, viewport: 0, text: trunc(why), severity: "fail" });
+    if (why) out.push({ invariant: INVARIANTS.ADMIN_GATE, url: `${baseUrl}${p.path}`, viewport: 0, method: "GET", status: p.status ?? null, path: p.path, text: trunc(why), severity: "fail" });
   }
   return out;
 }
@@ -244,7 +264,7 @@ export function extractAccessToken(cookieString) {
 
 /**
  * Own-origin request outcomes. 5xx fails; 4xx is a warning with the path.
- * @param {{url:string,status:number}[]} responses @param {string} origin
+ * @param {{url:string,status:number,method?:string}[]} responses @param {string} origin
  */
 export function checkResponses(responses, origin, ctx = {}) {
   const out = [];
@@ -253,8 +273,10 @@ export function checkResponses(responses, origin, ctx = {}) {
     try { u = new URL(r.url); } catch { continue; }
     if (u.origin !== origin) continue;
     const status = Number(r.status);
-    if (status >= 500) out.push({ invariant: INVARIANTS.OWN_ORIGIN_5XX, url: ctx.url ?? r.url, viewport: ctx.viewport ?? 0, text: `${status} ${u.pathname}`, severity: "fail" });
-    else if (status >= 400) out.push({ invariant: INVARIANTS.OWN_ORIGIN_4XX, url: ctx.url ?? r.url, viewport: ctx.viewport ?? 0, text: `${status} ${u.pathname}`, severity: "warn" });
+    const method = String(r.method || "GET").toUpperCase();
+    const row = { url: ctx.url ?? r.url, viewport: ctx.viewport ?? 0, method, status, path: u.pathname, text: `${status} ${u.pathname}` };
+    if (status >= 500) out.push({ invariant: INVARIANTS.OWN_ORIGIN_5XX, ...row, severity: "fail" });
+    else if (status >= 400) out.push({ invariant: INVARIANTS.OWN_ORIGIN_4XX, ...row, severity: "warn" });
   }
   return out;
 }
@@ -274,13 +296,33 @@ export function checkConsole(messages, ctx = {}) {
 
 // ---------------------------------------------------------------- reporting
 
-/** Plain log lines, one per finding. @param {object[]} findings */
+/**
+ * Plain log lines: one line per DISTINCT finding, failures first. Every line names the severity, the invariant, the
+ * HTTP method, the status and the path, then the offending text when it adds anything, then how many pages carried
+ * it. 24 identical 403s on one route are one line with "24 pages", not 24 lines. The last line keeps the raw counts.
+ * @param {object[]} findings
+ */
 export function formatSummary(findings) {
   const fails = findings.filter((f) => f.severity === "fail");
   const warns = findings.filter((f) => f.severity === "warn");
   const lines = [];
-  for (const f of fails) lines.push(`FAIL ${f.invariant} @${f.viewport} ${f.url} :: ${f.text}`);
-  for (const f of warns) lines.push(`WARN ${f.invariant} @${f.viewport} ${f.url} :: ${f.text}`);
+  for (const [label, list] of [["FAIL", fails], ["WARN", warns]]) {
+    const groups = new Map();
+    for (const f of list) {
+      const method = f.method ?? "GET";
+      const status = f.status ?? "-";
+      const path = f.path ?? pathOf(f.url);
+      const key = [f.invariant, method, status, path, f.text].join("");
+      const g = groups.get(key) ?? { f, method, status, path, pages: new Set() };
+      g.pages.add(`${f.viewport}|${f.url}`);
+      groups.set(key, g);
+    }
+    for (const g of groups.values()) {
+      const echo = `${g.status} ${g.path}`;
+      const text = g.f.text && g.f.text !== echo ? ` :: ${g.f.text}` : "";
+      lines.push(`${label} ${g.f.invariant} ${g.method} ${g.status} ${g.path}${text} (${g.pages.size} page${g.pages.size === 1 ? "" : "s"})`);
+    }
+  }
   lines.push(`live smoke: ${fails.length} failure(s), ${warns.length} warning(s)`);
   return lines;
 }

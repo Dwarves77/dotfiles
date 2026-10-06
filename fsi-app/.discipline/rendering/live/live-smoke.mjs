@@ -30,6 +30,7 @@ import {
   checkAdminProbes,
   extractAccessToken,
   ADMIN_GATE_API_PATHS,
+  ADMIN_MARKER_SELECTORS,
   formatSummary,
   buildReport,
 } from "./live-assertions.mjs";
@@ -42,6 +43,8 @@ export const LIST_SURFACES = Object.freeze(["regulations", "market", "research",
 
 const NAV_TIMEOUT_MS = 45000;
 const SIGN_IN_TIMEOUT_MS = 30000;
+/** How long GET /admin may take to leave /admin (the server redirect streams after a 200 loading shell). */
+const ADMIN_SETTLE_MS = 10000;
 
 async function settle(page) {
   await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
@@ -73,12 +76,12 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport) {
   const page = await ctx.newPage();
   const responses = [];
   const consoleMsgs = [];
-  page.on("response", (r) => responses.push({ url: r.url(), status: r.status() }));
+  page.on("response", (r) => responses.push({ url: r.url(), status: r.status(), method: r.request().method() }));
   page.on("console", (m) => consoleMsgs.push({ type: m.type(), text: m.text() }));
   page.on("pageerror", (e) => consoleMsgs.push({ type: "error", text: String(e?.message ?? e) }));
   const url = `${baseUrl}${path}`;
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
+    const navResp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
     await settle(page);
     const snap = await collectSnapshot(page);
     const offOrigin = snap.origin !== origin;
@@ -88,6 +91,7 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport) {
       url,
       kind,
       viewport,
+      status: navResp ? navResp.status() : null,
       redirectedToLogin: toLogin || offOrigin,
       redirectNote: offOrigin
         ? `landed on ${snap.origin} instead of the target (deployment protection or an auth wall), the signed-in session was not accepted`
@@ -129,9 +133,17 @@ async function probeAdminGate(ctx, baseUrl) {
     tokenMissing = !token;
     try {
       const resp = await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
-      probes.push({ kind: "page", path: "/admin", status: resp ? resp.status() : null, finalPath: new URL(page.url()).pathname });
+      // /admin is gated server-side, but the root loading.tsx streams a 200 shell before the redirect fires, so
+      // the status and URL at domcontentloaded are not the verdict. Wait for the URL to leave /admin (a refused
+      // account always does), let the page settle, then read the settled URL and look for admin-only markers.
+      await page.waitForURL((u) => !u.pathname.startsWith("/admin"), { timeout: ADMIN_SETTLE_MS }).catch(() => {});
+      await settle(page);
+      const countMarkers = () => page.evaluate((sels) => sels.filter((s) => document.querySelector(s)).length, [...ADMIN_MARKER_SELECTORS]);
+      // A late client redirect can destroy the execution context mid-read; the retry reads the page it landed on.
+      const markers = await countMarkers().catch(async () => { await settle(page); return countMarkers(); });
+      probes.push({ kind: "page", path: "/admin", status: resp ? resp.status() : null, finalPath: new URL(page.url()).pathname, markers });
     } catch {
-      probes.push({ kind: "page", path: "/admin", status: null, finalPath: "/admin", error: "navigation failed" });
+      probes.push({ kind: "page", path: "/admin", status: null, finalPath: "/admin", markers: 0, error: "navigation failed" });
     }
     for (const path of ADMIN_GATE_API_PATHS) {
       if (tokenMissing) { probes.push({ kind: "api", path, status: null, tokenMissing: true }); continue; }

@@ -430,7 +430,7 @@ export function AdminDashboard({
   const tabsInCardHead = section === "Sources" && (sub === "Provisional review" || sub === "Spot-check");
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--color-background)" }}>
+    <div data-admin-dashboard="" style={{ minHeight: "100vh", background: "var(--color-background)" }}>
       <style>{`
         /* Lane adminlayout (2026-09-08). The frame is ONE grid, the same one every
            other route composes itself on (README §0.3, DashboardBrief /
