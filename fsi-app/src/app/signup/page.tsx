@@ -11,7 +11,9 @@
  * Functionality unchanged from the pre-existing page: Supabase signUp,
  * emailRedirectTo -> /auth/callback?next=<redirect || /onboarding>,
  * same-origin-only redirect, already-signed-in guard, "check your email"
- * state after submit.
+ * state after submit. A signUp answer for an address that already has an account (empty
+ * identities, no email sent) is classified by lib/auth/classify-signup-result.mjs and shown as
+ * "already has an account" with sign in and reset links, never as "we sent a link".
  */
 
 import { useEffect, useState } from "react";
@@ -21,10 +23,12 @@ import { Button } from "@/components/ui/Button";
 import { AuthFrame } from "@/components/auth/AuthFrame";
 import { Masthead } from "@/components/ui/Masthead";
 import { formatLocaleDate } from "@/lib/format";
+import { classifySignUpResult } from "@/lib/auth/classify-signup-result.mjs";
 import {
   AuthTabs,
   AuthField,
   AuthErrorBanner,
+  AuthAlreadyRegisteredNotice,
   CheckEmailPanel,
   AUTH_INPUT_STYLE,
 } from "@/components/auth/AuthPanel";
@@ -46,6 +50,7 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
   // Redirect already-signed-in users away from signup. The proxy in
@@ -70,6 +75,7 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setAlreadyRegistered(false);
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
@@ -86,7 +92,7 @@ export default function SignupPage() {
     const origin =
       typeof window !== "undefined" ? window.location.origin : "";
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const result = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -96,8 +102,14 @@ export default function SignupPage() {
       },
     });
 
-    if (signUpError) {
-      setError(signUpError.message);
+    const outcome = classifySignUpResult(result);
+    if (outcome === "error") {
+      setError(result.error?.message ?? "Sign up failed.");
+      setLoading(false);
+      return;
+    }
+    if (outcome === "already_registered") {
+      setAlreadyRegistered(true);
       setLoading(false);
       return;
     }
@@ -134,6 +146,7 @@ export default function SignupPage() {
         ) : (
           <>
             {error && <AuthErrorBanner message={error} />}
+            {alreadyRegistered && <AuthAlreadyRegisteredNotice redirect={redirect} />}
 
             <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <AuthField label="Work email">

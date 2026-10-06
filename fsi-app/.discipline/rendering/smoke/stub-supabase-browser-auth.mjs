@@ -20,7 +20,11 @@ export function createSupabaseBrowserClient() {
       getUser: async () => ({ data: { user: null }, error: null }),
       signInWithPassword: async () => ({ data: {}, error: null }),
       signInWithOtp: async () => ({ data: {}, error: null }),
-      signUp: async () => ({ data: {}, error: null }),
+      // A smoke leg may set window.__SIGNUP_FIXTURE__ to the exact response signUp should return
+      // (lane AUTH-1: the already-registered shape, a user with an empty identities array). Unset,
+      // it keeps the original empty success the composition mounts rely on.
+      signUp: async () =>
+        (typeof window !== "undefined" && window.__SIGNUP_FIXTURE__) || { data: {}, error: null },
     },
     from() {
       const chain = {

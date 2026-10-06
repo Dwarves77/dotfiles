@@ -70,6 +70,66 @@ async function runPageLeg(browser) {
   return { checks, failures };
 }
 
+// -- /signup, already-registered branch (lane AUTH-1, 2026-10-06) ---------------------------------
+// Supabase answers a repeated signup with a success-shaped response (user present, identities an
+// empty array, no email sent). The REAL /signup page is mounted through the compose-signup entry and
+// submitted with that exact response (stub-supabase-browser-auth.mjs reads window.__SIGNUP_FIXTURE__);
+// it must say the address already has an account, link to sign in and to the password reset, and must
+// never claim a link was sent. A fresh-address response is submitted too, so the confirmation branch
+// is proven unchanged.
+const SIGNUP_FIXTURES = {
+  repeated: { data: { user: { id: 'u-existing', email: 'dup@example.com', identities: [] }, session: null }, error: null },
+  fresh: { data: { user: { id: 'u-new', email: 'new@example.com', identities: [{ id: 'i1', provider: 'email' }] }, session: null }, error: null },
+};
+
+async function submitSignup(browser, css, js, width, fixture) {
+  const page = await newSmokePage(browser, { apiRoutes: [] });
+  try {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addStyleTag({ content: css });
+    await page.evaluate((f) => { window.__SIGNUP_FIXTURE__ = f; }, fixture);
+    await mountBundle(page, js, '__mount', null);
+    await page.waitForSelector('input[type=email]', { timeout: 5000 });
+    await page.fill('input[type=email]', 'dup@example.com');
+    const pw = await page.$$('input[type=password]');
+    for (const input of pw) await input.fill('correct-horse-1');
+    await page.click('button[type=submit]');
+    await page.waitForTimeout(300);
+    return {
+      text: (await page.textContent('body')) || '',
+      hrefs: await page.$$eval('a', (as) => as.map((a) => [a.textContent.trim(), a.getAttribute('href')])),
+      ux: await measureUx(page),
+    };
+  } finally {
+    await page.close();
+  }
+}
+
+async function runSignupLeg(browser) {
+  const failures = [];
+  let checks = 0;
+  const css = await fullAppCssCompiled();
+  const mount = AUDIT_MOUNTS['compose-signup'];
+  const js = await bundleEntry(mount.entry, { alias: mount.alias || {} });
+  for (const width of [375, 1440]) {
+    const dup = await submitSignup(browser, css, js, width, SIGNUP_FIXTURES.repeated);
+    checks++;
+    const tag = `signup-repeated[@${width}]`;
+    if (!dup.text.includes('This email address already has an account.')) failures.push(`${tag}: missing the "already has an account" wording.`);
+    if (/confirmation link|Check your email|We sent/i.test(dup.text)) failures.push(`${tag}: claims an email was sent for an already-registered address.`);
+    const has = (label, href) => dup.hrefs.some(([t, h]) => t === label && h === href);
+    if (!has('Sign in', '/login')) failures.push(`${tag}: no "Sign in" link to /login.`);
+    if (!has('Reset your password', '/auth/reset-password')) failures.push(`${tag}: no "Reset your password" link to /auth/reset-password.`);
+    failures.push(...assertUxClean(tag, { titleWords: dup.ux.titleWords, clipped: dup.ux.clipped }));
+
+    const fresh = await submitSignup(browser, css, js, width, SIGNUP_FIXTURES.fresh);
+    checks++;
+    if (!fresh.text.includes('We sent a confirmation link to')) failures.push(`signup-fresh[@${width}]: the confirmation branch changed.`);
+    if (fresh.text.includes('already has an account')) failures.push(`signup-fresh[@${width}]: a new address was told it already has an account.`);
+  }
+  return { checks, failures };
+}
+
 const ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -148,6 +208,10 @@ export async function runSmoke(browser) {
   const pageLeg = await runPageLeg(browser);
   checks += pageLeg.checks;
   failures.push(...pageLeg.failures);
+
+  const signupLeg = await runSignupLeg(browser);
+  checks += signupLeg.checks;
+  failures.push(...signupLeg.failures);
 
   return { checks, failures };
 }
