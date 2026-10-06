@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AskAssistant } from "@/components/AskAssistant";
 import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceOverridesHydration } from "@/lib/hooks/useWorkspaceOverridesHydration";
-import { computeShowIdentityErrorNote, computeShowNoWorkspaceBanner } from "@/components/app-shell-banner";
+import { computeNoWorkspaceRedirect, computeShowIdentityErrorNote, computeShowNoWorkspaceBanner } from "@/components/app-shell-banner";
 import { StateNote } from "@/components/ui/StateNote";
 import { bandFromPriority } from "@/lib/urgency/bands";
 
@@ -30,6 +30,7 @@ const NO_WORKSPACE_BANNER_SUPPRESS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   // Sprint 3 SF-WS-1 (2026-05-27): read orgId from AuthContext rather
   // than useWorkspaceStore. AuthContext hydrates orgId synchronously
   // from server props; the workspaceStore hydrates in a useEffect, so
@@ -91,6 +92,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname,
     suppressRoutes: NO_WORKSPACE_BANNER_SUPPRESS,
   });
+  // Lane AUTH-2 (2026-10-06): a signed-in user with no membership lands on onboarding (/workspace/new:
+  // invitations first, otherwise create an organisation). Same predicate as the banner above, so it only
+  // fires on a RESOLVED no-workspace answer. The banner stays as the one-frame fallback.
+  const noWorkspaceRedirect = computeNoWorkspaceRedirect({
+    user,
+    orgId,
+    identityStatus,
+    pathname,
+    suppressRoutes: NO_WORKSPACE_BANNER_SUPPRESS,
+  });
+  useEffect(() => {
+    if (noWorkspaceRedirect) router.replace(noWorkspaceRedirect);
+  }, [noWorkspaceRedirect, router]);
   const showIdentityErrorNote = computeShowIdentityErrorNote({
     user,
     identityStatus,

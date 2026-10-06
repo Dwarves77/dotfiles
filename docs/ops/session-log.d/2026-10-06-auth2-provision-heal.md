@@ -1,0 +1,92 @@
+# 2026-10-06 lane AUTH-2 (auth2-provision-heal): every signed-in user has a profile, and no-membership users onboard
+
+## Accomplished (all [CONFIRMED] by test runs named below, no live database touched)
+- Retired the silent personal workspace. `ensurePersonalWorkspace` is replaced by `ensureProfile` in
+  `fsi-app/src/lib/auth/provision-personal-workspace.ts` (file name kept, see decisions). It inserts the
+  caller's `profiles` row when missing and writes nothing else: no organisation, no workspace_settings,
+  no membership, no `is_platform_admin`. Plain insert, never an upsert, so an existing profile is never
+  overwritten. A failure is logged and counted in `error_events` (route `auth/ensure-profile`); a failed
+  read is a counted failure, never treated as "no profile".
+- Three idempotent entry points, one mechanism: `/auth/callback` (personal workspace creation removed),
+  the server bootstrap (`resolveServerBootstrapWithHeal` in `server-bootstrap.ts`, used by
+  `resolveServerBootstrap` and `/api/auth/identity`, so password sign-in and any other path heal on the
+  first request), and `POST /api/orgs` (guard before the organisation RPC).
+- Signed-in user with a resolved no-membership answer is routed to `/workspace/new`:
+  `computeNoWorkspaceRedirect` (`app-shell-banner.ts`, same predicate as the banner) plus one effect in
+  `AppShell.tsx`.
+- `NoWorkspaceLanding` reworked in place: job title (saved on the profile in both paths), pending
+  invitations first, paste-an-invitation, then "Create your organisation" (name, sectors, company size,
+  region). No way to choose an existing organisation by name; no role control anywhere.
+- `POST /api/orgs` now takes `{ name, sectors, headcount_band, regions, job_title }` through
+  `src/lib/orgs/create-org.mjs` (allowlist parser plus creation with injected deps). It writes the org and
+  owner membership through `create_org_for_self`, then `workspace_settings.sector_profile`,
+  `workspace_settings.profile.org_size.headcount_band` (sibling keys kept), `profiles.region`,
+  `profiles.job_title`. Every column already exists: no migration (358 not used).
+- `fsi-app/scripts/maintenance/repair-smoke-account.mjs` (dry by default) for the smoke account.
+- 375 px smoke leg for the onboarding form added to the existing `auth-onboarding-smoke.mjs`.
+
+## Read and reused
+Read in full: COMMON.md, the lane brief, the diagnosis, `lane-common-contract.md`,
+`provision-personal-workspace.ts`, `auth/callback/route.ts`, `server-bootstrap.ts`, `/api/auth/identity`,
+`/api/orgs`, `/api/invitations/[token]/accept`, `NoWorkspaceLanding.tsx`, `/workspace/new` and `/onboarding`
+pages, `app-shell-banner.ts`, `AppShell.tsx`, migrations 006, 075 (FK), 076 (`create_org_for_self`,
+`accept_invitation`), 156, 165, 251, 293, `profile-contract.mjs`, `community/profile-policy.mjs`,
+`OrganisationProfileSection.tsx`, `OnboardingWizard` writers, `route-guard.ts`, `scripts/lib/db.mjs`,
+`maintenance/lib/cli.mjs`, `close-run-logs.mjs`, `auth-onboarding-smoke.mjs`, `ux-laws.md`.
+Reused: `ORG_SIZE_DIMENSIONS`/`findBand`/`parseOrgProfile` (ADR-034 size bands and the
+`workspace_settings.profile` jsonb), `REGIONS` (spec 05 vocabulary), `ALL_SECTORS`, `create_org_for_self`,
+`accept_invitation`, `computeShowNoWorkspaceBanner` (redirect shares its predicate), `captureError`,
+`runCli`, `guardedInsert`/`readAll`, the compose-onboarding smoke stubs and `measureUx`.
+
+## Decisions
+- Heal trigger is "no profiles row" (not "no membership"): a user who deliberately left or was removed
+  from an organisation is not re-provisioned. Create-org and accept both need the profile (FK), and all
+  three entry points ensure it.
+- Diagnosis hypothesis CONFIRMED by reading: `org_memberships_user_id_fkey` references `profiles(id)`
+  (migration 075) and `create_org_for_self` (076) inserts the owner membership without creating a
+  profile, so `POST /api/orgs` fails for a user with no profile. The live constraint was not queried.
+- File name kept (`provision-personal-workspace.ts`) because renaming moves
+  `.discipline/governance/exemptions.mjs` and the generated `coverage-report.json`, outside the write set.
+- Job title on the accept path is saved by a browser self-update (migration 165 policy), the create path
+  saves it server side.
+
+## Tests (red then green)
+- Red on origin/master code (stash of the three modified modules): 11 of 15 new npmtests failed
+  (`ensureProfile is not a function`, `computeNoWorkspaceRedirect is not a function`, heal not called).
+  Green after: `ensure-profile.npmtest.mjs` 7/7, `server-bootstrap-heal.npmtest.mjs` 5/5,
+  `app-shell-redirect.npmtest.mjs` 3/3, `create-org.test.mjs` 9/9 (includes both attacks: a body naming
+  another organisation touches only the org the RPC returned; a self-chosen role is ignored; plus the
+  source-level pin that accept passes only the token and the RPC inserts the inviter's `proposed_role`),
+  `repair-smoke-account.test.mjs` 8/8. Existing `server-bootstrap`, `platform-admin-gate`, `AppShell`,
+  `OnboardingWizard` npmtests 37/37 after the change.
+- Smoke: the new leg first failed (create button 38 px, under the 44 px floor), then 35 checks, 0 failures
+  after the fix.
+- `tsc --noEmit` clean.
+
+## NOT done
+- Not applied anywhere; no live read or write. The repair script has not been run.
+- File rename (above). No migration. No `auth.users` trigger (brief item 2).
+- Existing personal workspaces created by the old callback are untouched, as instructed.
+- A profile written by a failed old provisioning run (profile present, no org) is not re-healed by design.
+
+## Open items
+- Coordinator: register nothing new (the smoke leg lives in the already-registered `auth-onboarding-smoke.mjs`).
+- Repair command for the coordinator's executor (dry first, then `--apply`):
+  `node fsi-app/scripts/maintenance/repair-smoke-account.mjs --arg <account email>`
+- DESIGN CHANGES OWED (rule 20): the no-workspace onboarding panel now carries job title, sector, size and
+  region fields that artboard 17's step 1 does not draw. Built to the system's need.
+
+## UX compliance
+Screen: no-workspace onboarding (`NoWorkspaceLanding`, `/workspace/new`).
+- Primary goal: get into a workspace.
+- Path: job title (optional) then either Accept on a pending invitation (1 step) or fill organisation name,
+  optional sectors, size and region and press Create organisation (1 submit).
+- One primary action: Create organisation (the invitation Accept buttons are the primary action of their
+  own section; no section has two competing primaries).
+- Feedback per async action: invitation list shows a loading line while fetching; Accept and Create show
+  pending text ("Creating your organisation...") with the button disabled; failures render the error
+  banner with the server message and keep every typed value; success hard-navigates to `/` (accept) or
+  `/onboarding` (create, which continues setup).
+- Targets: every control of the create form measured at least 44 px tall at 375 and 1440 by the smoke leg.
+- Defaults: size defaults to "Prefer not to say", sectors and regions start empty, nothing is preselected
+  into a commitment.
