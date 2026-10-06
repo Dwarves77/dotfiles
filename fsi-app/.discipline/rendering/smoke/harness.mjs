@@ -47,6 +47,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { assertGuardClean, detectOverflows, findPlaceholderLiterals, assertBoundsClean } from './guard-assert.mjs';
+import { isNarrowViewport, collectContainers } from '../overflow-rule.mjs';
 // SoT for the FactCard kind vocabulary (lane w10-factcard Amendment 2, 2026-09-20) - reused here so
 // the placeholder-literal exemption below and fact-card-model.ts's own kind list can never drift
 // apart into a hand-duplicated second copy. Node 24 type-strips this .ts import natively (see
@@ -190,7 +191,7 @@ export function isDeclaredColumnLabel(el, headerLiterals = HEADER_LITERALS) {
 }
 
 export async function measureGuard(page) {
-  return page.evaluate(({ kindWords, headerLiterals }) => {
+  const measured = await page.evaluate(({ kindWords, headerLiterals }) => {
     const els = [document.body, ...document.querySelectorAll('[data-guard-container]')];
     const measurements = els.map((el) => ({
       name: el === document.body ? 'body' : el.getAttribute('data-guard-container') || el.tagName,
@@ -262,6 +263,12 @@ export async function measureGuard(page) {
     }
     return { measurements, texts, leafTexts };
   }, { kindWords: [...FACT_CARD_KINDS], headerLiterals: [...HEADER_LITERALS] });
+  // GATES-2 (2026-10-05): at a phone width, ALSO measure every scroll container (document, <main>, every
+  // overflow-x auto/scroll element), not only body and the spec-declared containers. One rule, one module
+  // (overflow-rule.mjs), shared with the live smoke gate. assertGuardClean applies it when present.
+  const vw = await page.evaluate(() => window.innerWidth);
+  if (isNarrowViewport(vw)) measured.containerScan = await collectContainers(page);
+  return measured;
 }
 
 /**
