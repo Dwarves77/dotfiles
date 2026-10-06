@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { resolveServerBootstrapFromClient, type ServerBootstrap } from "@/lib/api/server-bootstrap";
+import { resolveServerBootstrapWithHeal, type ServerBootstrap } from "@/lib/api/server-bootstrap";
 import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 
 // GET /api/auth/identity — PERF-10 (2026-09-04, root-cause fix,
@@ -33,13 +33,14 @@ import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 // (React cache()-shared) server-side resolve for an always-paid client fetch on every document load is
 // a real, honestly-reported latency trade — see this lane's REPORT for the measured cost.
 //
-// Reuses resolveServerBootstrapFromClient (server-bootstrap.ts) unchanged — this route is a new
+// Reuses the server-bootstrap.ts resolution (resolveServerBootstrapWithHeal = the same core plus the
+// AUTH-2 profile-only self-heal). This route is a new
 // TRANSPORT for the exact same resolution logic /onboarding and /workspace/new already call directly
 // server-side for their own (still-dynamic, still-cookie-reading) render, not a reimplementation.
 async function handleGET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const bootstrap: ServerBootstrap = await resolveServerBootstrapFromClient(supabase);
+    const bootstrap: ServerBootstrap = await resolveServerBootstrapWithHeal(supabase);
     return NextResponse.json(bootstrap, {
       headers: { "Cache-Control": "private, no-store" },
     });

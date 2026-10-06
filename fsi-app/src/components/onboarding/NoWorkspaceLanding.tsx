@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Mail, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { formatLocaleDate } from "@/lib/format";
+import { ALL_SECTORS } from "@/lib/constants";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { ORG_SIZE_DIMENSIONS } from "@/lib/profile/profile-contract.mjs";
+import { REGIONS } from "@/lib/community/profile-policy.mjs";
 import { AuthFrame } from "@/components/auth/AuthFrame";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 
@@ -16,12 +20,19 @@ import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 // OnboardingStepper (both artboard-specified) wrap the pre-existing
 // three-CTA content, whose functionality is unchanged.
 //
-// Three CTAs:
-//   1. "Pending invitations" panel (renders if /api/invitations/mine returns rows)
-//   2. "Accept by token" — paste an invitation URL or token
-//   3. "Create your own workspace" — POST /api/orgs and redirect to /
+// Lane AUTH-2 (2026-10-06): this is where a signed-in user with no membership lands (AppShell redirects
+// here on a resolved no-workspace answer). Signup asks only for email and password, so the questions the
+// specs need are asked once, here, never before email confirmation:
+//   0. "Your job title": saved on the user's own profile in BOTH paths (the spec 05 pseudonymous
+//      display reads it).
+//   1. Pending invitations for the user's email come first. Accepting joins with the role the INVITER
+//      granted; the user never picks a role.
+//   2. "Have an invitation URL?": paste a link or token (also invitation-only).
+//   3. "Create your organisation": name, sectors, company size, region. POST /api/orgs; the creator
+//      becomes owner. There is deliberately no way to pick an existing organisation by name: joining
+//      is by invitation only, otherwise anyone could enter any workspace.
 //
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
+// Workstream B (Multi-Tenant Foundation) 2026-05-15; reworked by AUTH-2.
 
 interface PendingInvitation {
   id: string;
@@ -40,7 +51,7 @@ interface Props {
   userEmail: string;
 }
 
-export function NoWorkspaceLanding({ userEmail }: Props) {
+export function NoWorkspaceLanding({ userId, userEmail }: Props) {
   const router = useRouter();
   const [invitations, setInvitations] = useState<PendingInvitation[] | null>(null);
   const [loadingInvites, setLoadingInvites] = useState(true);
@@ -50,8 +61,14 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
   const [token, setToken] = useState("");
   const [acceptingPaste, setAcceptingPaste] = useState(false);
 
+  // Job title (both paths)
+  const [jobTitle, setJobTitle] = useState("");
+
   // Create-org path
   const [orgName, setOrgName] = useState("");
+  const [sectors, setSectors] = useState<string[]>([]);
+  const [headcountBand, setHeadcountBand] = useState("");
+  const [regions, setRegions] = useState<string[]>([]);
   const [creatingOrg, setCreatingOrg] = useState(false);
 
   useEffect(() => {
@@ -74,8 +91,26 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
     };
   }, []);
 
+  // Saves the typed job title on the user's own profile (self-write policy, migration 165). Used by the
+  // accept path; the create path sends it with POST /api/orgs. Returns false after showing the error.
+  const saveJobTitle = async (): Promise<boolean> => {
+    const title = jobTitle.trim();
+    if (!title) return true;
+    const supabase = createSupabaseBrowserClient();
+    const { error: titleError } = await supabase
+      .from("profiles")
+      .update({ job_title: title, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (titleError) {
+      setError("Your job title could not be saved. Check it and try again, or clear it to continue without one.");
+      return false;
+    }
+    return true;
+  };
+
   const acceptInvitation = async (inviteToken: string) => {
     setError(null);
+    if (!(await saveJobTitle())) return;
     const cleanToken = inviteToken.trim().split("/").pop() || inviteToken.trim();
     const res = await fetch(`/api/invitations/${cleanToken}/accept`, {
       method: "POST",
@@ -118,11 +153,17 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
     const res = await fetch("/api/orgs", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name: orgName.trim() }),
+      body: JSON.stringify({
+        name: orgName.trim(),
+        sectors,
+        headcount_band: headcountBand || undefined,
+        regions,
+        job_title: jobTitle.trim() || undefined,
+      }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(json.error || "Could not create workspace.");
+      setError(json.error || "Could not create your organisation. Check the details and try again.");
       setCreatingOrg(false);
       return;
     }
@@ -134,7 +175,7 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
 
   return (
     <AuthFrame>
-      <div style={{ width: 480, display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 18 }}>
         <OnboardingStepper current={1} />
         <h1
           style={{
@@ -153,8 +194,9 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
           className="text-sm"
           style={{ color: "var(--color-text-secondary)", marginTop: -8 }}
         >
-          Signed in as {userEmail}. Either accept an invitation from your team,
-          or create your own workspace.
+          Signed in as {userEmail}. Accept an invitation from your team, or
+          create your organisation. You become its owner and can invite
+          teammates after.
         </p>
 
         {error && (
@@ -170,6 +212,20 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
             {error}
           </div>
         )}
+
+        {/* Job title: saved on your profile whichever way you continue. */}
+        <Section title="Your job title">
+          <input
+            type="text"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            maxLength={120}
+            aria-label="Your job title"
+            placeholder="e.g. Head of operations (optional)"
+            className="w-full px-3 py-2 text-sm rounded-md border outline-none"
+            style={{ ...FIELD_STYLE, minHeight: 44 }}
+          />
+        </Section>
 
         {/* Panel 1 — pending invitations addressed to this email */}
         <Section
@@ -251,36 +307,124 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
           </form>
         </Section>
 
-        {/* Panel 3 — create your own workspace */}
-        <Section title="Or start your own workspace" icon={<Plus size={14} />}>
-          <form onSubmit={createOrg} className="space-y-3">
-            <input
-              type="text"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="Workspace name (e.g. your company)"
-              className="w-full px-3 py-2 text-sm rounded-md border outline-none"
-              style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-              }}
-            />
-            <div className="flex items-center gap-3">
-              <Button variant="primary" type="submit" disabled={!orgName.trim() || creatingOrg}>
-                {creatingOrg ? "Creating..." : "Create workspace"}
-              </Button>
-              <span
-                className="text-xs"
-                style={{ color: "var(--color-text-muted)" }}
+        {/* Panel 3: create your organisation */}
+        <Section title="Or create your organisation" icon={<Plus size={14} />}>
+          <form onSubmit={createOrg} className="space-y-4">
+            <label className="block text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+              Organisation name
+              <input
+                type="text"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                maxLength={200}
+                placeholder="Your company"
+                className="mt-1 w-full px-3 py-2 text-sm rounded-md border outline-none"
+                style={{ ...FIELD_STYLE, minHeight: 44 }}
+              />
+            </label>
+
+            <fieldset className="border-0 p-0 m-0">
+              <legend className="text-xs font-semibold mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                Industry or sector (choose all that apply)
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {ALL_SECTORS.map((sec) => (
+                  <ChoiceChip
+                    key={sec.id}
+                    label={sec.label}
+                    pressed={sectors.includes(sec.id)}
+                    onToggle={() => setSectors((prev) => toggle(prev, sec.id))}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="block text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+              Company size
+              <select
+                value={headcountBand}
+                onChange={(e) => setHeadcountBand(e.target.value)}
+                className="mt-1 w-full px-3 py-2 text-sm rounded-md border outline-none"
+                style={{ ...FIELD_STYLE, minHeight: 44 }}
               >
-                You become the owner. You can invite teammates after.
+                <option value="">Prefer not to say</option>
+                {ORG_SIZE_DIMENSIONS.headcount.bands.map((band: { id: string; label: string }) => (
+                  <option key={band.id} value={band.id}>
+                    {band.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <fieldset className="border-0 p-0 m-0">
+              <legend className="text-xs font-semibold mb-2" style={{ color: "var(--color-text-secondary)" }}>
+                Region (choose all that apply)
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {REGIONS.map((code: string) => (
+                  <ChoiceChip
+                    key={code}
+                    label={REGION_LABELS[code] ?? code}
+                    pressed={regions.includes(code)}
+                    onToggle={() => setRegions((prev) => toggle(prev, code))}
+                  />
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="flex flex-col gap-2">
+              <Button variant="primary" type="submit" className="min-h-[44px]" disabled={!orgName.trim() || creatingOrg}>
+                {creatingOrg ? "Creating your organisation..." : "Create organisation"}
+              </Button>
+              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                You become the owner. Sector, size and region tailor what you see, and you can change
+                them later in Settings.
               </span>
             </div>
           </form>
         </Section>
       </div>
     </AuthFrame>
+  );
+}
+
+const FIELD_STYLE: React.CSSProperties = {
+  borderColor: "var(--color-border)",
+  backgroundColor: "var(--color-surface)",
+  color: "var(--color-text-primary)",
+};
+
+const REGION_LABELS: Record<string, string> = {
+  EU: "European Union",
+  UK: "United Kingdom",
+  US: "United States",
+  LATAM: "Latin America",
+  APAC: "Asia Pacific",
+  HK: "Hong Kong",
+  MEA: "Middle East and Africa",
+  GLOBAL: "Global",
+};
+
+function toggle(list: string[], id: string): string[] {
+  return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+}
+
+function ChoiceChip({ label, pressed, onToggle }: { label: string; pressed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onToggle}
+      className="px-3 text-xs rounded-md border"
+      style={{
+        minHeight: 44,
+        borderColor: pressed ? "var(--color-text-primary)" : "var(--color-border)",
+        backgroundColor: pressed ? "var(--color-text-primary)" : "var(--color-surface)",
+        color: pressed ? "var(--color-surface)" : "var(--color-text-primary)",
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

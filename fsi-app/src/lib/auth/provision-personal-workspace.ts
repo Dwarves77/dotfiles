@@ -1,162 +1,124 @@
 /**
- * AUTO-PROVISION-ORG-ON-SIGNUP — personal workspace creation.
+ * PROFILE PROVISIONING (lane AUTH-2, 2026-10-06; replaces the 2026-05-28 AUTO-PROVISION-ORG-ON-SIGNUP).
  *
- * Sprint 3 Track 2 (2026-05-28). When a user lands on /auth/callback
- * without an existing `org_memberships` row, this helper creates:
- *   - a `profiles` row (defense-in-depth idempotent upsert)
- *   - a `Personal — {emailLocal}` organization
- *   - a `workspace_settings` row with platform-default values
- *   - an owner-role `org_memberships` row
+ * This file now holds `ensureProfile`, not a personal-workspace creator. Its original name is kept by
+ * coordinator ruling (2026-10-06): renaming it would move two governance files outside the AUTH-2 write
+ * set (.discipline/governance/exemptions.mjs and the generated coverage-report.json).
  *
- * Idempotent: if the user already has any org_membership, returns the
- * existing org_id without writing anything. Safe to call on every auth
- * callback invocation.
+ * What it does now: `ensureProfile(userId, email)` creates the caller's `profiles` row when it is
+ * missing and does nothing else. It never creates an organisation, a workspace_settings row or a
+ * membership. A signed-in user with no membership is routed to onboarding (/workspace/new), where
+ * they accept an invitation or create an organisation with a name, sector, size and region.
+ * The silent "Personal - <email>" workspace of 2026-05-28 is retired: it gave every user an
+ * organisation they never described, so the sector profile the specs seed at workspace creation was
+ * always empty.
  *
- * Failure-tolerant: any sub-step failure returns null and logs a
- * warning. Auth flow proceeds regardless. The defense-in-depth
- * `null_orgId` seed-fallback branch in `getAppData()` still catches
- * users whose provisioning silently failed.
+ * Why a profile row at all: org_memberships.user_id has a foreign key to profiles.id (migration 075),
+ * and create_org_for_self() (migration 076) inserts the owner membership without creating a profile.
+ * A user with no profile therefore cannot create an organisation and cannot accept an invitation.
  *
- * Operator decision (chat 2026-05-28): default scope is personal
- * workspace, NOT invitation-only. New users get their own org + owner
- * role on first sign-in. Admin can later move them into a shared org
- * by editing membership.
+ * One mechanism, three entry points, all idempotent:
+ *   - /auth/callback after a successful code exchange (confirmation completed in the same browser);
+ *   - the server bootstrap (server-bootstrap.ts resolveServerBootstrapWithHeal), the first time any
+ *     signed-in session, by any sign-in path, meets the app without a profile;
+ *   - POST /api/orgs, as a guard before the organisation RPC.
+ *
+ * Existing rows are never written: an existing profile is returned untouched, so platform-admin and
+ * every other column stay exactly as they are. Failure is never silent: it is logged and counted in
+ * error_events (route "auth/ensure-profile").
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-interface ProvisionResult {
-  orgId: string | null;
+export interface EnsureProfileResult {
+  /** True when this call inserted the row. */
   created: boolean;
+  /** True when a profile row exists after the call. */
+  exists: boolean;
+  /** Set when a step failed, naming the step. */
+  failedStep?: string;
 }
 
-const DEFAULT_HOME_SECTIONS = {
-  dueThisQuarter: true,
-  summaryStrip: true,
-  supersessions: true,
-  topUrgency: true,
-  weeklyBriefing: true,
-  whatChanged: true,
-} as const;
+/** The client surface this module uses; the real supabase-js client satisfies it. */
+export type ProvisionClient = SupabaseClient;
 
-const DEFAULT_ALERT_CONFIG = {
-  priorities: ["CRITICAL", "HIGH"],
-} as const;
+export interface EnsureProfileDeps {
+  /** Injected for tests; the default is a service-role client built from env. */
+  client?: ProvisionClient;
+  /** Counts a failure. The default records it in error_events via captureError. Never throws. */
+  reportFailure?: (step: string, message: string) => Promise<void> | void;
+}
 
-export async function ensurePersonalWorkspace(
-  userId: string,
-  email: string
-): Promise<ProvisionResult> {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    console.warn("[provision] env missing; skipping personal workspace provision");
-    return { orgId: null, created: false };
+/** Postgres unique_violation. */
+const UNIQUE_VIOLATION = "23505";
+
+async function defaultReportFailure(step: string, message: string): Promise<void> {
+  try {
+    const { captureError } = await import("@/lib/telemetry/capture-error");
+    await captureError({
+      side: "server",
+      route: "auth/ensure-profile",
+      error: new Error(`ensure-profile failed at ${step}: ${message}`),
+    });
+  } catch (e) {
+    console.error("[ensure-profile] failure counter threw:", e);
   }
+}
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
-  );
+export async function ensureProfile(
+  userId: string,
+  email: string | null | undefined,
+  deps: EnsureProfileDeps = {}
+): Promise<EnsureProfileResult> {
+  let db = deps.client;
+  if (!db) {
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      console.warn("[ensure-profile] env missing; skipping profile provision");
+      return { created: false, exists: false, failedStep: "env_missing" };
+    }
+    db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { persistSession: false } }
+    );
+  }
+  const client = db;
+  const report = deps.reportFailure ?? defaultReportFailure;
+
+  const fail = async (step: string, message: string): Promise<EnsureProfileResult> => {
+    console.warn(`[ensure-profile] ${step} failed:`, message);
+    await report(step, message);
+    return { created: false, exists: false, failedStep: step };
+  };
+
+  const readExisting = async () =>
+    client.from("profiles").select("id").eq("id", userId).maybeSingle();
 
   try {
-    // 1. Idempotent: short-circuit if membership already exists.
-    const { data: existing } = await supabase
-      .from("org_memberships")
-      .select("org_id")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (existing?.org_id) {
-      return { orgId: existing.org_id, created: false };
-    }
+    const { data: existing, error: readErr } = await readExisting();
+    if (readErr) return await fail("profiles_read", readErr.message);
+    if (existing?.id) return { created: false, exists: true };
 
-    // 2. Profiles row — upsert so a partial prior state doesn't block
-    //    the org_memberships FK (org_memberships.user_id → profiles.id).
-    const { error: profileErr } = await supabase.from("profiles").upsert(
-      {
-        id: userId,
-        email,
-        role: "member",
-        settings: {},
-      },
-      { onConflict: "id" }
-    );
-    if (profileErr) {
-      console.warn(
-        "[provision] profiles upsert failed:",
-        profileErr.message
-      );
-      return { orgId: null, created: false };
-    }
+    // Plain insert, never an upsert: an existing row must not be overwritten. Only id, email and the
+    // schema's own defaults are written; is_platform_admin is not in the payload.
+    const { error: insertErr } = await client.from("profiles").insert({
+      id: userId,
+      email: email || null,
+      role: "member",
+      settings: {},
+    });
+    if (!insertErr) return { created: true, exists: true };
 
-    // 3. Personal organization.
-    const emailLocal = (email.split("@")[0] || "user").slice(0, 32);
-    const slug = `personal-${userId.slice(0, 8)}`;
-    const { data: org, error: orgErr } = await supabase
-      .from("organizations")
-      .insert({
-        name: `Personal — ${emailLocal}`,
-        slug,
-        plan: "free",
-      })
-      .select("id")
-      .single();
-    if (orgErr || !org) {
-      console.warn(
-        "[provision] organizations insert failed:",
-        orgErr?.message
-      );
-      return { orgId: null, created: false };
+    if (insertErr.code === UNIQUE_VIOLATION) {
+      // A concurrent call may have inserted it; re-read before calling this a failure.
+      const { data: again, error: againErr } = await readExisting();
+      if (!againErr && again?.id) return { created: false, exists: true };
     }
-
-    // 4. workspace_settings — populate with platform defaults so the
-    //    user lands on a usable home dashboard immediately.
-    const { error: settingsErr } = await supabase
-      .from("workspace_settings")
-      .insert({
-        org_id: org.id,
-        sector_profile: [],
-        jurisdiction_weights: {},
-        default_filters: {},
-        alert_config: DEFAULT_ALERT_CONFIG,
-        home_sections: DEFAULT_HOME_SECTIONS,
-        default_export_format: "html",
-      });
-    if (settingsErr) {
-      console.warn(
-        "[provision] workspace_settings insert failed:",
-        settingsErr.message
-      );
-      // Continue — workspace_settings has sensible row-level defaults
-      // and the membership write below is what unblocks the user.
-    }
-
-    // 5. Owner membership.
-    const { error: membershipErr } = await supabase
-      .from("org_memberships")
-      .insert({
-        org_id: org.id,
-        user_id: userId,
-        role: "owner",
-      });
-    if (membershipErr) {
-      console.warn(
-        "[provision] org_memberships insert failed:",
-        membershipErr.message
-      );
-      return { orgId: null, created: false };
-    }
-
-    return { orgId: org.id, created: true };
+    return await fail("profiles_insert", insertErr.message);
   } catch (e) {
-    console.warn(
-      "[provision] unexpected exception:",
-      e instanceof Error ? e.message : String(e)
-    );
-    return { orgId: null, created: false };
+    return await fail("unexpected_exception", e instanceof Error ? e.message : String(e));
   }
 }

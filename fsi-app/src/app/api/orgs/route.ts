@@ -1,60 +1,61 @@
 // src/app/api/orgs/route.ts
 //
-// POST /api/orgs — self-service org creation. Creates the organization,
-// makes the caller the owner, seeds default workspace_settings.
+// POST /api/orgs: self-service org creation with the onboarding profile. Creates the organisation,
+// makes the caller the owner, seeds workspace_settings, and records the sector, company size and
+// region the person gave plus their job title (lane AUTH-2, 2026-10-06; logic in
+// src/lib/orgs/create-org.mjs, which documents what is written and what is never taken from the body).
 //
-// Request body: { name: string, slug?: string }
-// Response: { org_id: string, slug: string, name: string }
+// Request body: { name: string, sectors?: string[], headcount_band?: string, regions?: string[],
+//                 job_title?: string }. An organisation id, user id, role or slug in the body is ignored.
+// Response: { org_id, slug, name, settings_saved, profile_saved }
 //
-// All work happens inside the create_org_for_self() RPC (migration 076)
-// so the row inserts run as a single transaction with consistent
-// authorization (the RPC checks auth.uid() and bypasses the
-// organizations RLS that blocks public INSERT).
-//
-// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
+// Workstream B (Multi-Tenant Foundation) 2026-05-15; extended by AUTH-2.
 
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import { ALL_SECTORS } from "@/lib/constants";
+import { ensureProfile } from "@/lib/auth/provision-personal-workspace";
+import { createOrganisationForSelf, parseCreateOrgInput } from "@/lib/orgs/create-org.mjs";
 
 export async function POST(request: NextRequest) {
   const auth = await requireCommunityRoute(request);
   if (isRefusal(auth)) return auth;
 
-  let body: { name?: string; slug?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const name = (body?.name ?? "").trim();
-  const slug = (body?.slug ?? "").trim() || null;
-  if (!name) {
-    return NextResponse.json(
-      { error: "name is required" },
-      { status: 400 }
-    );
-  }
-  if (name.length > 200) {
-    return NextResponse.json(
-      { error: "name must be 200 characters or fewer" },
-      { status: 400 }
-    );
+  const parsed = parseCreateOrgInput(body, { validSectorIds: ALL_SECTORS.map((s) => s.id) });
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { data, error } = await auth.supabase.rpc("create_org_for_self", {
-    p_org_name: name,
-    p_org_slug: slug,
+  let email: string | null = null;
+  try {
+    const { data } = await auth.supabase.auth.getUser();
+    email = data.user?.email ?? null;
+  } catch {
+    email = null;
+  }
+
+  const created = await createOrganisationForSelf({
+    supabase: auth.supabase,
+    userId: auth.userId,
+    email,
+    input: parsed.input,
+    ensureProfile,
   });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  if (!created.ok) {
+    return NextResponse.json({ error: created.error }, { status: created.status });
   }
 
   // Fetch the slug + name for the response so the caller can route to
   // /admin or /onboarding without an extra round trip.
-  const orgId = data as string;
+  const orgId = created.orgId;
   const { data: org } = await auth.supabase
     .from("organizations")
     .select("id, name, slug")
@@ -65,7 +66,9 @@ export async function POST(request: NextRequest) {
     {
       org_id: orgId,
       slug: org?.slug ?? null,
-      name: org?.name ?? name,
+      name: org?.name ?? parsed.input.name,
+      settings_saved: created.settingsSaved,
+      profile_saved: created.profileSaved,
     },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );

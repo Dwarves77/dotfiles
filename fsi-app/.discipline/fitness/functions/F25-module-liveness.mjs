@@ -473,6 +473,11 @@ const PROVEN_BUT_UNWIRED = [
 // entries are removed rather than kept as now-stale allowlist rows.
 
 export const LEGACY_ALLOWLIST = [
+  {
+    file: 'fsi-app/scripts/maintenance/repair-smoke-account.mjs',
+    reason: "Operator-account repair CLI, run by the coordinator's executor; writes only profiles and org_memberships for one named non-admin account; refuses platform admins.",
+    reviewByPhase: 'lane AUTH-2, 2026-10-06',
+  },
   // record-harness-run.mjs's allowlist entry (lane HARNESS-LANDING, 2026-09-27) is REMOVED here (lane
   // QUARANTINE-DISPOSITION, 2026-09-28): it now HAS a direct ES import this gate's import-graph sources
   // see -- scripts/plan-quarantine-disposition.mjs's runPlanner() imports recordHarnessRun to land this

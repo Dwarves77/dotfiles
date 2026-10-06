@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-gate";
+import { ensureProfile } from "@/lib/auth/provision-personal-workspace";
 
 /**
  * Server-side auth + workspace bootstrap.
@@ -117,7 +118,14 @@ function isTransientAuthError(error: unknown): boolean {
  * dependency. Exported for server-bootstrap.npmtest.mjs.
  */
 export async function resolveServerBootstrapFromClient(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  /**
+   * Lane AUTH-2 self-heal, opt-in so a test or caller without service credentials never writes: when
+   * given, it is called once for a signed-in user whose profiles row is missing (confirmation completed
+   * in another browser, so /auth/callback never ran). It creates the profile only, never an
+   * organisation. Production callers pass it through resolveServerBootstrapWithHeal.
+   */
+  healProfile?: (userId: string, email: string | null) => Promise<{ exists: boolean }>
 ): Promise<ServerBootstrap> {
   const { data, error } = await supabase.auth.getClaims();
   // A transient auth failure (network, 5xx) is NOT "signed out": answering anonymous here let the
@@ -169,7 +177,17 @@ export async function resolveServerBootstrapFromClient(
     (membership?.organizations as
       | { id?: string; name?: string; workspace_settings?: { sector_profile: string[] | null }[] | null }
       | null) || null;
-  const profile = profileRes.data as { sector_overrides: string[] | null; is_platform_admin?: unknown } | null;
+  let profile = profileRes.data as { sector_overrides: string[] | null; is_platform_admin?: unknown } | null;
+  if (!profile && healProfile) {
+    // A heal failure is already logged and counted inside ensureProfile; it must not turn a page load
+    // into an error, so it never throws here and the answer below stays the pre-heal shape.
+    try {
+      const healed = await healProfile(user.id, user.email);
+      if (healed.exists) profile = { sector_overrides: [], is_platform_admin: false };
+    } catch (e) {
+      console.warn("[server-bootstrap] profile heal threw:", e instanceof Error ? e.message : String(e));
+    }
+  }
   const sectors = profile?.sector_overrides ?? [];
 
   const orgId = org?.id || membership?.org_id || null;
@@ -186,11 +204,16 @@ export async function resolveServerBootstrapFromClient(
   };
 }
 
+/** The production resolution: the pure core plus the AUTH-2 profile self-heal (service-role insert). */
+export function resolveServerBootstrapWithHeal(supabase: SupabaseClient): Promise<ServerBootstrap> {
+  return resolveServerBootstrapFromClient(supabase, (userId, email) => ensureProfile(userId, email));
+}
+
 export const resolveServerBootstrap = cache(
   async (): Promise<ServerBootstrap> => {
     try {
       const supabase = await createSupabaseServerClient();
-      return await resolveServerBootstrapFromClient(supabase);
+      return await resolveServerBootstrapWithHeal(supabase);
     } catch (e) {
       // A failed lookup must reach the page's error boundary, never read as anonymous/no-org (see
       // IdentityLookupError). Anything else (e.g. no request scope) keeps the soft EMPTY fallback.

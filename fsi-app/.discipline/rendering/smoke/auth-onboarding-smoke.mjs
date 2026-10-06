@@ -130,6 +130,92 @@ async function runSignupLeg(browser) {
   return { checks, failures };
 }
 
+// -- /workspace/new, the no-workspace onboarding form at phone width (lane AUTH-2, 2026-10-06) --------
+// A signed-in user with no membership lands here (AppShell redirect). The REAL NoWorkspaceLanding is
+// mounted with the onboarding page-composition stubs (router + signed-out supabase, the same ones
+// compose-onboarding uses) at 375 and 1440 and held to: no clipped overflow past the viewport, no
+// heading narrower than its longest word, the invitation panel BEFORE the create-organisation panel
+// (invitations come first), the form's own controls present (job title, organisation name, sector
+// chips, company size, region chips, the one primary action), and every control of THIS form at least
+// 44 CSS px tall (ux-laws 2). The legacy rows of this page (token paste, invitation buttons) are not
+// asserted here: they are older than this lane.
+const NO_WORKSPACE_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { NoWorkspaceLanding } from '@/components/onboarding/NoWorkspaceLanding';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(NoWorkspaceLanding, { userId: 'smoke-user', userEmail: 'new.user@example.com' }),
+  );
+};
+`;
+
+async function runNoWorkspaceLeg(browser) {
+  const failures = [];
+  let checks = 0;
+  const css = await fullAppCssCompiled();
+  const alias = AUDIT_MOUNTS['compose-onboarding'].alias;
+  const js = await bundleEntry(NO_WORKSPACE_ENTRY, { alias });
+  for (const width of [375, 1440]) {
+    const tag = `workspace-new[@${width}]`;
+    const page = await newSmokePage(browser, { apiRoutes: AUDIT_MOUNTS['compose-onboarding'].apiRoutes || [] });
+    try {
+      await page.setViewportSize({ width, height: 900 });
+      await page.addStyleTag({ content: css });
+      await mountBundle(page, js, '__mount', null);
+      await page.waitForSelector('input[aria-label="Your job title"]', { timeout: 5000 });
+      await page.waitForTimeout(300);
+      checks++;
+      const missing = await verifyFontsLoaded(page);
+      if (missing.length) {
+        failures.push(`${tag}: declared faces not loaded, refusing to measure on a fallback: ${missing.join(', ')}`);
+        continue;
+      }
+      const ux = await measureUx(page);
+      failures.push(...assertUxClean(tag, { titleWords: ux.titleWords, clipped: ux.clipped }));
+
+      const facts = await page.evaluate(() => {
+        const text = document.body.textContent || '';
+        const h = (el) => Math.round(el.getBoundingClientRect().height);
+        const form = [...document.querySelectorAll('form')].find((f) => (f.textContent || '').includes('Create organisation'));
+        const controls = form
+          ? [...form.querySelectorAll('input, select, button')].map((el) => ({ name: el.getAttribute('aria-label') || el.textContent.trim().slice(0, 30) || el.tagName, h: h(el) }))
+          : [];
+        return {
+          hasForm: !!form,
+          invitesBeforeCreate: text.indexOf('Pending invitations') !== -1 && text.indexOf('Pending invitations') < text.indexOf('Or create your organisation'),
+          jobTitle: !!document.querySelector('input[aria-label="Your job title"]'),
+          orgName: !!form && !!form.querySelector('input[placeholder="Your company"]'),
+          sectorChips: form ? form.querySelectorAll('button[aria-pressed]').length : 0,
+          sizeSelect: !!form && !!form.querySelector('select'),
+          primary: !!form && [...form.querySelectorAll('button[type=submit]')].length === 1,
+          controls,
+          overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        };
+      });
+      checks++;
+      if (!facts.hasForm) { failures.push(`${tag}: the create-organisation form did not render.`); continue; }
+      if (!facts.invitesBeforeCreate) failures.push(`${tag}: pending invitations must come before the create-organisation panel.`);
+      if (!facts.jobTitle) failures.push(`${tag}: no job title field.`);
+      if (!facts.orgName) failures.push(`${tag}: no organisation name field.`);
+      if (facts.sectorChips < 10) failures.push(`${tag}: expected sector and region chips, found ${facts.sectorChips} toggle buttons.`);
+      if (!facts.sizeSelect) failures.push(`${tag}: no company size select.`);
+      if (!facts.primary) failures.push(`${tag}: the create form must have exactly one primary (submit) action.`);
+      for (const c of facts.controls) {
+        if (c.h < 44) failures.push(`${tag}: control "${c.name}" is ${c.h}px tall, under the 44px target floor.`);
+      }
+      if (facts.overflowX > 1) failures.push(`${tag}: horizontal page overflow of ${facts.overflowX}px.`);
+    } finally {
+      await page.close();
+    }
+  }
+  return { checks, failures };
+}
+
 const ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -212,6 +298,10 @@ export async function runSmoke(browser) {
   const signupLeg = await runSignupLeg(browser);
   checks += signupLeg.checks;
   failures.push(...signupLeg.failures);
+
+  const noWorkspaceLeg = await runNoWorkspaceLeg(browser);
+  checks += noWorkspaceLeg.checks;
+  failures.push(...noWorkspaceLeg.failures);
 
   return { checks, failures };
 }

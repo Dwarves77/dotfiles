@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ensurePersonalWorkspace } from "@/lib/auth/provision-personal-workspace";
+import { ensureProfile } from "@/lib/auth/provision-personal-workspace";
 import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
 
 // Supabase auth callback. Handles:
@@ -12,12 +12,11 @@ import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
 // Phase C: signup links call here with ?next=/onboarding so a freshly verified
 // user lands directly in the onboarding wizard.
 //
-// Sprint 3 Track 2 (2026-05-28): AUTO-PROVISION-ORG-ON-SIGNUP.
-// After a successful code exchange, ensure the user has a personal
-// workspace + owner membership. Idempotent: short-circuits when the
-// user already has an org_membership. Failure-tolerant: provision
-// failure does NOT block auth — the defense-in-depth null_orgId
-// seed-fallback still catches users whose provisioning silently fails.
+// Lane AUTH-2 (2026-10-06): after a successful code exchange, ensure the user has a profiles row, and
+// nothing else. No organisation is created here: a user with no membership is routed to onboarding
+// (/workspace/new) to accept an invitation or create an organisation. Idempotent and failure-tolerant
+// (a failure is logged and counted in error_events and does not block auth); the server bootstrap runs
+// the same ensureProfile on the first request of any session that still has no profile.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -47,10 +46,8 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Provision personal workspace if no membership exists.
-      // Best-effort: any failure is logged but does not block auth.
       if (data?.user?.id) {
-        await ensurePersonalWorkspace(data.user.id, data.user.email ?? "");
+        await ensureProfile(data.user.id, data.user.email ?? null);
       }
       return NextResponse.redirect(`${origin}${next}`);
     }
