@@ -102,6 +102,32 @@ export function AuthErrorBanner({ message }: { message: string }) {
   );
 }
 
+/** Shown on /signup when signUp reports the address already has an account (no email is claimed).
+ *  The banner is the shared error part; the two recovery links sit under it, spaced for touch. */
+export function AuthAlreadyRegisteredNotice({ redirect }: { redirect?: string | null }) {
+  const suffix = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+  const linkStyle: CSSProperties = {
+    display: "inline-block",
+    padding: "7px 0",
+    fontSize: "var(--fs-125)",
+    fontWeight: 600,
+    color: "var(--ink)",
+  };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <AuthErrorBanner message="This email address already has an account." />
+      <div style={{ display: "flex", gap: 20 }}>
+        <a href={`/login${suffix}`} style={linkStyle}>
+          Sign in
+        </a>
+        <a href="/auth/reset-password" style={linkStyle}>
+          Reset your password
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function AuthDivider() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
