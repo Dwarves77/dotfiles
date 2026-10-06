@@ -14,6 +14,7 @@ import {
   assessItem,
   extractDoiCandidate,
   resolveAuthoritySources,
+  assessSignposts,
 } from "./assess.mjs";
 
 function baseInput(overrides = {}) {
@@ -297,4 +298,63 @@ test("assessItem never fabricates a maturity corridor, horizon, or credibility s
   assert.ok(a.refusalReason);
   assert.equal(a.credibilityEvidenceScore, null);
   assert.equal(a.credibilityAuthorityScore, null);
+});
+
+// ── assessSignposts: the dated expectation an assessment states, as machine-watchable signposts (L4-D) ──
+
+const SIGNPOST_NOW = new Date("2026-10-01T00:00:00Z");
+const datedItem = (over = {}) =>
+  baseInput({
+    entityId: "cl:instrument:00000000000000aa",
+    text: "ReFuelEU SAF blending steps apply to this route.",
+    forwardEvents: [{ id: "fe-1", kind: "obligation", event_date: "2027-01-01", obligation_text: "ReFuelEU SAF blending mandate takes effect.", source_citation: null }],
+    ...over,
+  });
+
+test("assessHorizon R1 and R3 name the forward event they anchored on; R4 names none", () => {
+  const r1 = assessHorizon(datedItem(), null, SIGNPOST_NOW);
+  assert.deepEqual(r1.anchor, { eventId: "fe-1", eventDate: "2027-01-01" });
+  const r3 = assessHorizon(
+    baseInput({ forwardEvents: [{ id: "fe-9", kind: "milestone", event_date: "2030-06-01", obligation_text: null, source_citation: "IEA World Energy Outlook" }] }),
+    null,
+    SIGNPOST_NOW,
+  );
+  assert.deepEqual(r3.anchor, { eventId: "fe-9", eventDate: "2030-06-01" });
+  const r4 = assessHorizon(baseInput({ text: "lab-scale electrolyser" }), { low: 4, high: 5 }, SIGNPOST_NOW);
+  assert.equal(r4.anchor, undefined);
+});
+
+test("one dated expectation about an entity yields exactly one signpost: watches the entity, movement by the date, direction confirms", () => {
+  const a = assessItem(datedItem(), { now: SIGNPOST_NOW });
+  assert.equal(a.signposts.length, 1);
+  const sp = a.signposts[0];
+  assert.equal(sp.watches, "cl:instrument:00000000000000aa");
+  assert.equal(sp.direction, "confirms");
+  assert.equal(sp.forwardEventId, "fe-1");
+  assert.equal(sp.itemId, "item-1");
+  assert.deepEqual(sp.predicate, {
+    op: "date_passed", field: "occurred_at", by: "2027-01-01", basis: "movement_by_date", horizon_rule: "R1", forward_event_id: "fe-1",
+  });
+  assert.match(sp.seed, /item-1/);
+  assert.match(sp.seed, /fe-1/);
+});
+
+test("the signpost seed is stable across runs (idempotent identity) and differs per forward event", () => {
+  const a = assessSignposts(datedItem(), assessHorizon(datedItem(), null, SIGNPOST_NOW), SIGNPOST_NOW);
+  const b = assessSignposts(datedItem(), assessHorizon(datedItem(), null, SIGNPOST_NOW), SIGNPOST_NOW);
+  assert.equal(a[0].seed, b[0].seed);
+  const other = datedItem({ forwardEvents: [{ id: "fe-2", kind: "obligation", event_date: "2027-01-01", obligation_text: "ReFuelEU SAF blending mandate takes effect.", source_citation: null }] });
+  assert.notEqual(assessSignposts(other, assessHorizon(other, null, SIGNPOST_NOW), SIGNPOST_NOW)[0].seed, a[0].seed);
+});
+
+test("no signpost without an entity to watch, without a dated anchor (R4), or for a date already past", () => {
+  assert.deepEqual(assessItem(datedItem({ entityId: null }), { now: SIGNPOST_NOW }).signposts, []);
+  assert.deepEqual(assessItem(baseInput({ entityId: "cl:instrument:00000000000000aa", text: "lab-scale electrolyser" }), { now: SIGNPOST_NOW }).signposts, []);
+  assert.deepEqual(assessItem(datedItem(), { now: new Date("2027-06-01T00:00:00Z") }).signposts, []);
+});
+
+test("a refusal (nothing to band) carries no signposts", () => {
+  const a = assessItem(baseInput({ entityId: "cl:instrument:00000000000000aa", text: "A one-line note." }), { now: SIGNPOST_NOW });
+  assert.equal(a.horizon, null);
+  assert.deepEqual(a.signposts, []);
 });

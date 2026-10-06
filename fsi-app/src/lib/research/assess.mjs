@@ -228,7 +228,8 @@ function priorBandFromTrl(trlLow) {
  * @param {import("./assess.mjs").AssessmentInput} input
  * @param {{low:number, high:number}|null} technicalMaturity
  * @param {Date} now
- * @returns {{kind: HorizonKind, band: HorizonBand, rule: HorizonRule, confidence: "low"|"medium"|"high", triggerNote: string} | null}
+ * @returns {{kind: HorizonKind, band: HorizonBand, rule: HorizonRule, confidence: "low"|"medium"|"high", triggerNote: string, anchor?: {eventId: string, eventDate: string}} | null}
+ *   `anchor` (lane L4-D) names the dated forward event R1 or R3 read; R4 has none, it rests on no dated event.
  */
 export function assessHorizon(input, technicalMaturity, now) {
   // R1: a dated statutory instrument.
@@ -243,6 +244,7 @@ export function assessHorizon(input, technicalMaturity, now) {
           rule: "R1",
           confidence: "high",
           triggerNote: `binds on you at ${dated.event_date} because ${dated.obligation_text ?? "a dated statutory instrument named in the item's own text"}`,
+          anchor: { eventId: dated.id, eventDate: dated.event_date },
         };
       }
     }
@@ -262,6 +264,7 @@ export function assessHorizon(input, technicalMaturity, now) {
         rule: "R3",
         confidence: "medium",
         triggerNote: `${body}'s roadmap dates this at ${roadmapEvent.event_date}, tagged with the issuing body's own scenario assumption`,
+        anchor: { eventId: roadmapEvent.id, eventDate: roadmapEvent.event_date },
       };
     }
   }
@@ -369,6 +372,54 @@ export function assessAuthorityScore(input) {
 }
 
 /**
+ * The forward-looking claim an assessment states, as machine-watchable signposts (lane L4-D, ADR-044
+ * decision 4). PURE, rule-based, no text generation, from fields the assessment already carries.
+ *
+ * What an assessment carries that is signpost-shaped: when horizon rule R1 or R3 anchored on a dated
+ * forward event (`horizon.anchor`), the assessment states "this binds or becomes available at that date".
+ * The watchable form of that statement, and the only form the available data supports, is movement by
+ * the date: by the event date, the entity the item is about (`input.entityId`, the item's
+ * instrument_entity_id) records a change in the propagation outbox. The signpost watches that entity,
+ * direction `confirms`, predicate `{op: "date_passed", field: "occurred_at", by: <event date>}`: it fires
+ * when the drain processes a change event on the entity that occurred on or before `by` (the evaluator
+ * reads `occurred_at` off the event), and a `by` that passes with no firing scores the prediction
+ * refuted (src/lib/learning/prediction-scoring.mjs). An R4 read rests on no dated event, a refusal has
+ * nothing to watch, an assessment with no entity has nothing to watch it on, and a date already past is
+ * not a forward expectation: none of those yields a signpost.
+ *
+ * `seed` is the stable identity (item id plus forward event id): the producer mints the signpost's
+ * entity id from it, so a re-run over the same corpus state names the same signpost and writes none.
+ * @param {import("./assess.mjs").AssessmentInput & {entityId?: string|null}} input
+ * @param {ReturnType<typeof assessHorizon>} horizon
+ * @param {Date} now
+ * @returns {Array<{seed:string, itemId:string, forwardEventId:string, watches:string, direction:"confirms", predicate:object, label:string}>}
+ */
+export function assessSignposts(input, horizon, now) {
+  if (!horizon || !horizon.anchor || !input.entityId) return [];
+  const due = new Date(horizon.anchor.eventDate);
+  if (Number.isNaN(due.getTime()) || due.getTime() <= now.getTime()) return [];
+  const by = /^\d{4}-\d{2}-\d{2}/.test(String(horizon.anchor.eventDate)) ? String(horizon.anchor.eventDate).slice(0, 10) : due.toISOString().slice(0, 10);
+  return [
+    {
+      seed: `signpost:${input.id}:${horizon.anchor.eventId}`,
+      itemId: input.id,
+      forwardEventId: horizon.anchor.eventId,
+      watches: input.entityId,
+      direction: "confirms",
+      predicate: {
+        op: "date_passed",
+        field: "occurred_at",
+        by,
+        basis: "movement_by_date",
+        horizon_rule: horizon.rule,
+        forward_event_id: horizon.anchor.eventId,
+      },
+      label: `Signpost, ${horizon.kind} horizon read ${horizon.rule}: movement on the watched entity by ${by} (item ${input.id})`,
+    },
+  ];
+}
+
+/**
  * Assemble the full migration-336 row shape for one item. Pure; makes no I/O decision (the producer
  * decides whether/how to write this). `null` fields are honest absence, propagated straight through to
  * the DB columns' own nullability -- never defaulted to a sentinel.
@@ -384,6 +435,7 @@ export function assessAuthorityScore(input) {
  *   credibilityEvidenceScore: string | null,
  *   credibilityAuthorityScore: object | null,
  *   statusToken: "CONFIRMED" | "HYPOTHESIS",
+ *   signposts: ReturnType<typeof assessSignposts>,
  * }}
  */
 export function assessItem(input, opts = {}) {
@@ -407,6 +459,7 @@ export function assessItem(input, opts = {}) {
   // HYPOTHESIS -- a refusal is not itself a confirmed fact about the world, it is an honest "could not
   // determine" that the next assessment run may overturn with new evidence.
   const statusToken = horizon && (horizon.rule === "R1" || horizon.rule === "R3") ? "CONFIRMED" : "HYPOTHESIS";
+  const signposts = assessSignposts(input, horizon, now);
 
   return {
     itemId: input.id,
@@ -417,5 +470,6 @@ export function assessItem(input, opts = {}) {
     credibilityEvidenceScore,
     credibilityAuthorityScore,
     statusToken,
+    signposts,
   };
 }

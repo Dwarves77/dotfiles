@@ -522,3 +522,86 @@ test("parseEventRange and the --questions-for-events argument", () => {
   assert.equal(parseArgs(["--questions-for-events", "20-10"]).ok, false);
   assert.equal(parseArgs(["--questions-for-events", "10-20", "--mode", "apply"]).mode, "apply");
 });
+
+// ── lane L4-D: the signpost step runs after the drain, with the same replay and unfinished-id rules ─────
+
+import { signpostStep } from "./run-propagation-drain.mjs";
+
+const spSummary = (counts = {}, failed = []) => ({ counts: { signposts_fired: 1, ...counts }, failed_event_ids: failed, errors: [], scored: [] });
+
+test("the signpost step runs over the drain's processed events with the sweep, and its summary lands on the run", async () => {
+  const calls = [];
+  const out = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [ev(5), ev(6)] }),
+    signposts: async (a) => { calls.push(a); return spSummary(); },
+  });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].events.map((e) => e.eventId), [5, 6]);
+  assert.equal(calls[0].sweep, true);
+  assert.equal(calls[0].mode, "apply");
+  assert.equal(out.sp.summary.counts.signposts_fired, 1);
+});
+
+test("the signpost step still runs when the drain processed no events (the deadline sweep is state based)", async () => {
+  let ran = 0;
+  await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [] }),
+    signposts: async () => { ran += 1; return spSummary(); },
+  });
+  assert.equal(ran, 1);
+});
+
+test("a signpost failure carries its event ids into the unfinished list, so the next run replays them", async () => {
+  const out = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [ev(5), ev(6)] }),
+    signposts: async () => spSummary({}, [6]),
+  });
+  assert.deepEqual(out.unfinishedIds, [6]);
+
+  const thrown = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [ev(5), ev(6)] }),
+    signposts: async () => { throw new Error("boom"); },
+  });
+  assert.ok(thrown.sp.error);
+  assert.deepEqual(thrown.unfinishedIds, [5, 6]);
+});
+
+test("replayed events go through the signpost step first, without the sweep, then the drain's own events with it", async () => {
+  const calls = [];
+  const out = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: historyWith([5]),
+    drain: async () => ({ processedEvents: [ev(7)] }),
+    signposts: async (a) => { calls.push([a.events.map((e) => e.eventId), a.sweep]); return spSummary(); },
+  });
+  assert.deepEqual(calls, [[[5], false], [[7], true]]);
+  assert.ok(out.replay.signposts);
+});
+
+test("dry mode: signpost failures are not carried (the events were never drained)", async () => {
+  const out = await orchestrateQuestions({
+    mode: "dry", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [ev(5)] }),
+    signposts: async () => { throw new Error("boom"); },
+  });
+  assert.deepEqual(out.unfinishedIds, []);
+});
+
+test("without a signpost step the run is exactly as before (opt in)", async () => {
+  const out = await orchestrateQuestions({
+    mode: "apply", sb: qocSb({ propagation_events: OUTBOX }), getDb: async () => qocDb(), harnessRunsDir: "x", readHistory: noHistory,
+    drain: async () => ({ processedEvents: [ev(5)] }),
+  });
+  assert.equal(out.sp.summary, null);
+});
+
+test("signpostStep over a database with no signposts reports zero counts and writes nothing", async () => {
+  const empty = { from() { const q = { select() { return q; }, in() { return q; }, is() { return q; }, not() { return q; }, order() { return q; }, range() { return q; }, then(r, j) { return Promise.resolve({ data: [], error: null }).then(r, j); } }; return q; } };
+  const db = { readAll: async () => [], guardedInsertMany: async () => { throw new Error("no write expected"); }, guardedUpdateByIds: async () => { throw new Error("no write expected"); } };
+  const summary = await signpostStep({ mode: "apply", events: [ev(5)], sb: empty, db, sweep: true });
+  assert.equal(summary.counts.signposts_fired, 0);
+  assert.equal(summary.counts.events_seen, 1);
+});

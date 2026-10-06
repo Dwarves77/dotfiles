@@ -25,7 +25,8 @@
 //   estimated_values         any                             value_revised
 //   statutory_computations   any                             obligation_amended
 //
-// signpost_fired, confidence_decayed and source_frozen are reserved: no table that emits outbox events
+// signposts maps to signpost_fired (lane L4-D, fireSignpost's own outbox row). confidence_decayed and
+// source_frozen are reserved: no table that emits outbox events
 // today corresponds to them, so nothing maps to them.
 //
 // ENTITY TO ITEM LINK (the EXISTING one, read in reverse; no new table). migration 283: an item names an
@@ -63,6 +64,9 @@ export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
   derived_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a derived value" }),
   estimated_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "an estimated value" }),
   statutory_computations: Object.freeze({ type: "obligation_amended", byKind: Object.freeze({}), label: "a statutory computation" }),
+  // Lane L4-D: a fired signpost writes its own outbox row (signpost-watch.ts fireSignpost), with entity_id the
+  // WATCHED entity, so the items linked to that entity are asked what the firing means. Not trigger-attached.
+  signposts: Object.freeze({ type: "signpost_fired", byKind: Object.freeze({}), label: "a signpost on this entity" }),
 });
 
 const KIND_VERB = Object.freeze({ insert: "was added", update: "was revised", delete: "was removed", supersede: "was superseded" });

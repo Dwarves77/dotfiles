@@ -49,6 +49,14 @@
 // lane's own tests exercise directly -- the same separation register-derivation.ts already has from
 // drain.ts (pure write-shape vs. the loop that decides when to call it).
 
+// WHAT A research-assessment SIGNPOST PREDICTS (lane L4-D, coordinator ruling 2026-10-05; do not re-derive).
+// The producer writes `{op: "date_passed", field: "occurred_at", by: <date>}` with direction confirms: the
+// prediction is "something is recorded against this watched entity by this date". It is HELD when a change
+// event on the entity lands on or before the date (the drain fires it and scores held), and REFUTED when the
+// date passes silently with no such event (the deadline step scores refuted; fired_at stays null). It does not
+// claim what the change says, only that the entity moved by the date the assessment expected. Scoring and the
+// reliability ledger live in src/lib/learning/prediction-scoring.mjs.
+
 import type { MethodFn, MethodContext, MethodResult } from "./index.ts";
 import type { Lifecycle } from "../types.ts";
 
@@ -59,10 +67,15 @@ export const METHOD_VERSION = "1.0.0";
 
 /** The three predicate shapes signposts.predicate's `predicate_is_evaluable` CHECK admits (migration 346,
  *  spec 08 section 1.2's own comment). */
-export type SignpostPredicate =
+export type SignpostPredicate = (
   | { op: "date_passed"; field: string }
   | { op: "threshold"; metric: string; gte: number }
-  | { op: "count_gte"; relation: string; n: number };
+  | { op: "count_gte"; relation: string; n: number }
+) & {
+  /** Optional expectation date (ISO date). A signpost that has not fired by the end of this day is scored
+   *  refuted by src/lib/learning/prediction-scoring.mjs (lane L4-D). Any other key is carried, not read. */
+  by?: string;
+};
 
 /** The signpost's own row, as `ctx.priorValue` carries it (this lane's own convention -- see header). */
 export interface SignpostRow {
@@ -251,7 +264,7 @@ export interface FireSignpostResult {
  */
 export async function fireSignpost(
   sb: SignpostFireClient,
-  args: { signpost: SignpostRow; currentLifecycleState: Lifecycle; now: Date },
+  args: { signpost: SignpostRow; currentLifecycleState: Lifecycle; now: Date; reason?: string },
 ): Promise<FireSignpostResult> {
   const { signpost, currentLifecycleState, now } = args;
   const nowIso = now.toISOString();
@@ -264,10 +277,25 @@ export async function fireSignpost(
 
   // Step 2: write a propagation_events row -- REUSE of the existing outbox table (migration 284), not a
   // second drain. A later drain.ts run picks this event up and walks the invalidation DAG from it.
+  // Lane L4-D fixed two defects against migration 284's DDL (this insert would have failed at the database):
+  //   - `change_kind` is NOT NULL with no default. The value that moved is the signpost's own `fired_at`
+  //     (NULL to a timestamp), so the kind is "update" (the CHECK admits insert, update, delete, supersede),
+  //     and `old_row` / `new_row` state which value changed and why (direction, predicate, the evaluator's reason).
+  //   - `entity_id` is `text REFERENCES entities(entity_id)`. It used to be the assessment's uuid, which is
+  //     not an entity. It is now the WATCHED entity, so the drain and the questions-on-change step can group
+  //     this event with every other change to that entity. The signpost itself is `row_pk`.
   const { error: eventErr } = await sb.from("propagation_events").insert({
     table_name: "signposts",
     row_pk: signpost.entityId,
-    entity_id: signpost.assessmentId,
+    entity_id: signpost.watches,
+    change_kind: "update",
+    old_row: { fired_at: signpost.firedAt ?? null },
+    new_row: {
+      fired_at: signpost.firedAt ?? nowIso,
+      direction: signpost.direction,
+      predicate: signpost.predicate,
+      reason: args.reason ?? null,
+    },
     occurred_at: nowIso,
   });
   const propagationEventWritten = !eventErr;

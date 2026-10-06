@@ -34,6 +34,9 @@ import {
 import { assessItem } from "../../../src/lib/research/assess.mjs";
 import { writeProducerSummary } from "../lib/producer-summary.mjs";
 import { isResearchCandidate } from "../../../src/lib/research/surface-candidate.mjs";
+// L4-D: the producer now mints signpost entity ids with the entity spine's id builder; the composition proof below
+// asserts the producer's planned signpost id IS that builder's output for the assessment's own seed.
+import { entityId } from "../../../src/lib/entities/entity-id.mjs";
 
 test("toAssessmentInput narrows a DB row shape into assess.mjs's AssessmentInput, joining title/what_is_it/why_matters/full_brief into text", () => {
   const input = toAssessmentInput({
@@ -442,4 +445,131 @@ test("F27 composition: surface-candidate admission, assess.mjs's ladder, and the
   assert.doesNotThrow(() =>
     writeProducerSummary({ producer: PRODUCER_NAME, status: "ok", rows_changed: result.metrics.written, counts: result.metrics }),
   );
+});
+
+// ── Lane L4-D (2026-10-05): the assessment's dated expectation is written as a signposts row ─────────
+
+const SP_NOW = new Date("2026-10-01T00:00:00Z");
+const DATED = {
+  id: "item-dated",
+  itemType: "research_finding",
+  addedDate: "2026-01-01",
+  text: "ReFuelEU SAF blending steps apply to this route.",
+  sourceTier: 2,
+  citationCount: null,
+  biasTags: [],
+  entityId: "cl:instrument:00000000000000aa",
+  forwardEvents: [{ id: "fe-1", kind: "obligation", event_date: "2027-01-01", obligation_text: "ReFuelEU SAF blending mandate takes effect.", source_citation: null }],
+};
+
+test("toAssessmentInput carries the item's instrument entity as entityId, null when it has none", () => {
+  assert.equal(toAssessmentInput({ id: "a", item_type: "research_finding", instrument_entity_id: "cl:instrument:00000000000000aa" }).entityId, "cl:instrument:00000000000000aa");
+  assert.equal(toAssessmentInput({ id: "a", item_type: "research_finding" }).entityId, null);
+});
+
+test("a fixture assessment with one dated expectation yields one signposts row, written once, and a re-run writes none", async () => {
+  const written = [];
+  const signposts = [];
+  const existing = new Set();
+  const deps = {
+    writeFn: async (row) => { written.push(row); return { id: "assessment-uuid-1" }; },
+    signpostFn: async (sp) => { signposts.push(sp); existing.add(sp.entity_id); },
+    readExistingSignposts: async (ids) => ids.filter((id) => existing.has(id)),
+  };
+  const first = await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map(), mode: "apply", now: SP_NOW, deps });
+  assert.equal(signposts.length, 1);
+  assert.equal(first.metrics.signposts_written, 1);
+  const sp = signposts[0];
+  assert.match(sp.entity_id, /^cl:signpost:[0-9a-f]{16}$/);
+  assert.equal(sp.assessment_id, "assessment-uuid-1");
+  assert.equal(sp.watches, "cl:instrument:00000000000000aa");
+  assert.equal(sp.direction, "confirms");
+  assert.equal(sp.predicate.op, "date_passed");
+  assert.equal(sp.predicate.by, "2027-01-01");
+
+  // Re-run over the same corpus state: the assessment is now current and unchanged, and the signpost exists.
+  const current = new Map([[DATED.id, { id: "assessment-uuid-1", technical_maturity_low: null, technical_maturity_high: null, commercial_maturity_low: null, commercial_maturity_high: null, horizon_band: "NOW", horizon_rule: "R1", horizon_kind: "obligation", refusal_reason: null, credibility_evidence_score: null, status_token: "CONFIRMED" }]]);
+  const second = await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: current, mode: "apply", now: SP_NOW, deps });
+  assert.equal(second.metrics.unchanged, 1);
+  assert.equal(second.metrics.signposts_planned, 0);
+  assert.equal(second.metrics.signposts_written, 0);
+  assert.equal(signposts.length, 1);
+});
+
+test("a signpost lost to a crash after its assessment was written is planned again on the next run (the assessment is unchanged)", async () => {
+  const signposts = [];
+  const current = new Map([[DATED.id, { id: "assessment-uuid-1", technical_maturity_low: null, technical_maturity_high: null, commercial_maturity_low: null, commercial_maturity_high: null, horizon_band: "NOW", horizon_rule: "R1", horizon_kind: "obligation", refusal_reason: null, credibility_evidence_score: null, status_token: "CONFIRMED" }]]);
+  const result = await runResearchAssessmentProducer({
+    candidates: [DATED], currentByItemId: current, mode: "apply", now: SP_NOW,
+    deps: { writeFn: async () => { throw new Error("not called: unchanged"); }, signpostFn: async (sp) => { signposts.push(sp); }, readExistingSignposts: async () => [] },
+  });
+  assert.equal(signposts.length, 1);
+  assert.equal(signposts[0].assessment_id, "assessment-uuid-1");
+  assert.equal(result.metrics.signposts_written, 1);
+});
+
+test("dry mode plans the signpost and writes nothing anywhere", async () => {
+  let writes = 0;
+  const result = await runResearchAssessmentProducer({
+    candidates: [DATED], currentByItemId: new Map(), mode: "dry", now: SP_NOW,
+    deps: { writeFn: async () => { writes += 1; }, signpostFn: async () => { writes += 1; }, readExistingSignposts: async () => [] },
+  });
+  assert.equal(writes, 0);
+  assert.equal(result.metrics.signposts_planned, 1);
+  assert.equal(result.metrics.signposts_written, 0);
+  assert.equal(result.signpostPlan.length, 1);
+});
+
+test("an assessment write that returns no id leaves its signpost unwritten and counted, never guessed", async () => {
+  const signposts = [];
+  const result = await runResearchAssessmentProducer({
+    candidates: [DATED], currentByItemId: new Map(), mode: "apply", now: SP_NOW,
+    deps: { writeFn: async () => {}, signpostFn: async (sp) => { signposts.push(sp); }, readExistingSignposts: async () => [] },
+  });
+  assert.equal(signposts.length, 0);
+  assert.equal(result.metrics.signposts_skipped_no_assessment_id, 1);
+});
+
+test("a candidate with no entity or no dated anchor plans no signpost", async () => {
+  const result = await runResearchAssessmentProducer({
+    candidates: [{ ...DATED, id: "no-entity", entityId: null }, ...FIXTURE_CANDIDATES], currentByItemId: new Map(), mode: "dry", now: SP_NOW,
+    deps: { readExistingSignposts: async () => [] },
+  });
+  assert.equal(result.metrics.signposts_planned, 0);
+});
+
+test("F27 composition (L4-D): assess.mjs's signpost seed, entity-id.mjs's builder and the producer's plan agree, and the planned row satisfies the signposts table's own constraints", async () => {
+  const computed = assessItem(DATED, { now: SP_NOW });
+  assert.equal(computed.signposts.length, 1);
+  const expectedId = entityId("signpost", computed.signposts[0].seed);
+  const result = await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map(), mode: "dry", now: SP_NOW, deps: { readExistingSignposts: async () => [] } });
+  const planned = result.signpostPlan[0];
+  assert.equal(planned.entity_id, expectedId);
+  // migration 346 / 282: entity id shape and kind, predicate carries an op, direction in the CHECK set.
+  assert.match(planned.entity_id, /^cl:signpost:[0-9a-f]{16}$/);
+  assert.ok("op" in planned.predicate);
+  assert.ok(["confirms", "refutes", "delays"].includes(planned.direction));
+  assert.match(planned.watches, /^cl:instrument:/);
+});
+
+test("L4-D: when an assessment is superseded, the signposts on the old row are re-pointed to the new one; a new first assessment re-points nothing", async () => {
+  const repoints = [];
+  const stale = { id: "old-assessment", technical_maturity_low: null, technical_maturity_high: null, commercial_maturity_low: null, commercial_maturity_high: null, horizon_band: "FAR", horizon_rule: "R4", horizon_kind: "availability", refusal_reason: null, credibility_evidence_score: null, status_token: "HYPOTHESIS" };
+  const deps = {
+    writeFn: async () => ({ id: "new-assessment" }),
+    signpostFn: async () => {},
+    readExistingSignposts: async () => [],
+    repointSignposts: async (from, to) => { repoints.push([from, to]); return 1; },
+  };
+  const r = await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map([[DATED.id, stale]]), mode: "apply", now: SP_NOW, deps });
+  assert.deepEqual(repoints, [["old-assessment", "new-assessment"]]);
+  assert.equal(r.metrics.signposts_repointed, 1);
+
+  const fresh = [];
+  await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map(), mode: "apply", now: SP_NOW, deps: { ...deps, repointSignposts: async (a, b) => { fresh.push([a, b]); } } });
+  assert.deepEqual(fresh, []);
+
+  const dry = [];
+  await runResearchAssessmentProducer({ candidates: [DATED], currentByItemId: new Map([[DATED.id, stale]]), mode: "dry", now: SP_NOW, deps: { ...deps, repointSignposts: async (a, b) => { dry.push([a, b]); } } });
+  assert.deepEqual(dry, [], "dry writes nothing");
 });

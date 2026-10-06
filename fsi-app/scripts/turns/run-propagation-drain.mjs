@@ -37,6 +37,16 @@
 // so it stays unfinished and is carried forward. `--questions-for-events <from>-<to>` runs the same step
 // over an id range only (dry unless --mode apply is given), with no drain.
 //
+// SIGNPOSTS (lane L4-D, ADR-044 decision 4). After the drain, the events it processed are matched to the
+// unfired signposts whose `watches` is the event's entity; a signpost whose predicate holds is fired
+// (fireSignpost: fired_at, an outbox row that flows through this same drain on the next run, the assessment's
+// lifecycle) and scored by its direction, and a signpost whose expectation date has passed unfired is scored
+// refuted. Every scored outcome appends one source_reliability_ledger row per grounding source. The step is
+// dry in dry mode (counts only), runs inside the same replay discipline (a failed signpost's event ids join
+// the unfinished list and are replayed next run, without the state-based sweep), and its counts land in the
+// artifact's metrics as sp_*. The chained workflow run is dry while scrape_cadence is off, so a chained firing
+// reports and changes nothing.
+//
 // ALWAYS records a harness-run artifact, in both modes, from a `finally` block — same crash-safety
 // run-source-sweep.mjs and run-extraction.mjs already apply to their own families.
 //
@@ -66,6 +76,10 @@ import { loadLocalEnvFile } from "../lib/env-file.mjs";
 // with run-population-flywheel.mjs's mint-time step.
 import { runQuestionsOnChange, buildEntityItemsReader, readOutboxEvents, CITE as QUESTIONS_ON_CHANGE_CITE } from "../../src/lib/learning/questions-on-change.mjs";
 import { buildTriggerQuestionsDeps } from "../lib/trigger-question-deps.mjs";
+// Lane L4-D (2026-10-05): the signpost step, run after the drain passes and the questions step (rule 17: a
+// prediction is fired and scored by the same run that saw the change, and its reliability evidence is
+// appended in the same motion). See src/lib/learning/prediction-scoring.mjs for the whole rule.
+import { runSignpostStep, buildSignpostStepDeps, hydrateEventRows, signpostMetrics } from "../../src/lib/learning/prediction-scoring.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -202,6 +216,15 @@ export async function questionsOnChangeStep({ mode, result, sb, db }) {
   return runQuestionsOnChange({ mode, events: result?.processedEvents ?? [], deps });
 }
 
+/** The signpost step (lane L4-D). `sb` reads signposts, assessments and grounding sources and carries
+ *  fireSignpost's own writes, `db` is the scripts/lib/db.mjs module (guarded ledger insert and score update).
+ *  Events replayed from the outbox arrive without their changed row, so it is read back first. `sweep` runs
+ *  the state-based paths (repair, deadline) and is false for a replay. @param {{mode:"dry"|"apply", events:Array<object>, sb:object, db:object, sweep?:boolean, now?:Date}} args */
+export async function signpostStep({ mode, events, sb, db, sweep = true, now = new Date() }) {
+  const hydrated = await hydrateEventRows(sb, events ?? []);
+  return runSignpostStep({ mode, events: hydrated, sweep, now, deps: buildSignpostStepDeps(sb, db) });
+}
+
 /** The questions-on-change counts as flat run-artifact metrics, under `prefix` (qoc_ for the run's own
  *  events, qoc_replayed_ for replayed ones). PURE. `questions_raised` is what apply mode wrote, and in dry
  *  mode what it would write (same number by construction). A null summary yields {}. */
@@ -251,15 +274,20 @@ export function unfinishedIdsFromHistory(runs) {
  * An id is finished only when apply mode ran its step to completion without a per-event failure for it; a
  * dry run writes nothing, so replayed ids stay unfinished (carried forward) and the events it just
  * considered were never drained, so they are not unfinished.
+ * Lane L4-D: `signposts` (optional, `({mode, events, sweep}) => summary`) is the signpost step. It runs over the
+ * replayed events (no sweep) and then over the drain's own events (with the sweep, even when there are none).
+ * Its failed event ids join the same unfinished list, so the same replay carries them to the next run.
  * @param {{mode:"dry"|"apply", sb:object, getDb:()=>Promise<object>, harnessRunsDir:string,
- *   range?:{from:number,to:number}|null, drain?:(()=>Promise<object>)|null, readHistory?:Function}} args
+ *   range?:{from:number,to:number}|null, drain?:(()=>Promise<object>)|null, readHistory?:Function,
+ *   signposts?:Function|null}} args
  */
-export async function orchestrateQuestions({ mode, sb, getDb, harnessRunsDir, range = null, drain = null, readHistory = readRunHistory }) {
+export async function orchestrateQuestions({ mode, sb, getDb, harnessRunsDir, range = null, drain = null, readHistory = readRunHistory, signposts = null }) {
   const apply = mode === "apply";
   const out = {
     result: null, drainError: null,
-    replay: { events: [], summary: null, error: null },
+    replay: { events: [], summary: null, error: null, signposts: null, signpostsError: null },
     qoc: { summary: null, error: null },
+    sp: { summary: null, error: null },
     unfinishedIds: [],
   };
   const unfinished = new Set();
@@ -279,9 +307,16 @@ export async function orchestrateQuestions({ mode, sb, getDb, harnessRunsDir, ra
   } catch (err) {
     out.replay.error = err;
   }
+  if (signposts && out.replay.events.length) {
+    try {
+      out.replay.signposts = await signposts({ mode, events: out.replay.events, sweep: false });
+    } catch (err) {
+      out.replay.signpostsError = err;
+    }
+  }
   const replayAll = range ? out.replay.events.map((e) => e.eventId) : replayIds;
-  const replayFailed = out.replay.summary?.failed_event_ids ?? [];
-  if (out.replay.error) {
+  const replayFailed = [...(out.replay.summary?.failed_event_ids ?? []), ...(out.replay.signposts?.failed_event_ids ?? [])];
+  if (out.replay.error || out.replay.signpostsError) {
     if (apply || !range) replayAll.forEach((id) => unfinished.add(Number(id)));
   } else if (apply) {
     replayFailed.forEach((id) => unfinished.add(Number(id)));
@@ -306,6 +341,17 @@ export async function orchestrateQuestions({ mode, sb, getDb, harnessRunsDir, ra
       if (apply) {
         const failed = out.qoc.error ? events.map((e) => e.eventId) : (out.qoc.summary?.failed_event_ids ?? []);
         failed.forEach((id) => unfinished.add(Number(id)));
+      }
+      if (signposts) {
+        try {
+          out.sp.summary = await signposts({ mode, events, sweep: true });
+        } catch (err) {
+          out.sp.error = err;
+        }
+        if (apply) {
+          const failed = out.sp.error ? events.map((e) => e.eventId) : (out.sp.summary?.failed_event_ids ?? []);
+          failed.forEach((id) => unfinished.add(Number(id)));
+        }
       }
     }
   }
@@ -397,6 +443,8 @@ async function main() {
       getDb: () => import("../lib/db.mjs"),
       range: questionsForEvents,
       drain: questionsForEvents ? null : () => runPropagationDrain(sb, { caller: `run-propagation-drain:${runId}`, mode, batch }),
+      // Lane L4-D: fire and score signposts over the same events (and replay them with the same ids).
+      signposts: async ({ events, sweep }) => signpostStep({ mode, events, sb, db: await import("../lib/db.mjs"), sweep }),
     });
     if (orchestrated.drainError) throw orchestrated.drainError;
     result = orchestrated.result;
@@ -410,6 +458,8 @@ async function main() {
     if (result) console.log(`${mode === "dry" ? "[dry-run] " : ""}${JSON.stringify(result, null, 2)}`);
     if (orchestrated.replay.summary) console.log(`${mode === "dry" ? "[dry-run] " : ""}questions-on-change replay (${orchestrated.replay.events.length} event(s)): ${JSON.stringify(orchestrated.replay.summary.counts)}`);
     if (questionsOnChange) console.log(`${mode === "dry" ? "[dry-run] " : ""}questions-on-change: ${JSON.stringify(questionsOnChange.counts)}`);
+    if (orchestrated.sp.summary) console.log(`${mode === "dry" ? "[dry-run] " : ""}signposts: ${JSON.stringify(orchestrated.sp.summary.counts)}`);
+    if (orchestrated.replay.signposts) console.log(`${mode === "dry" ? "[dry-run] " : ""}signposts replay: ${JSON.stringify(orchestrated.replay.signposts.counts)}`);
   } catch (err) {
     runError = err;
   } finally {
@@ -420,6 +470,8 @@ async function main() {
             ...unfinishedMetrics(orchestrated.unfinishedIds),
             qoc_replayed_events: orchestrated.replay.events.length,
             ...questionsOnChangeMetrics(orchestrated.replay.summary, "qoc_replayed_"),
+            ...signpostMetrics(orchestrated.sp.summary),
+            ...signpostMetrics(orchestrated.replay.signposts, "sp_replayed_"),
           }
         : {};
       const shaped = result && reportPath ? shapeRunOutput(result, reportPath, questionsOnChange, qocExtra) : null;
@@ -444,6 +496,22 @@ async function main() {
           root_cause: questionsError.stack ?? "",
           fix_ref: null,
         });
+      }
+      for (const [what, err] of [
+        ["signpost step after the drain", orchestrated?.sp.error],
+        ["signpost step over replayed events", orchestrated?.replay.signpostsError],
+      ]) {
+        if (err) {
+          defectsFound.push({ description: `${what} threw: ${err.message}`, root_cause: err.stack ?? "", fix_ref: null });
+        }
+      }
+      for (const [what, errs] of [
+        ["signpost step", orchestrated?.sp.summary?.errors],
+        ["signpost step (replay)", orchestrated?.replay.signposts?.errors],
+      ]) {
+        for (const message of errs ?? []) {
+          defectsFound.push({ description: `${what}: ${message}`, root_cause: "", fix_ref: null });
+        }
       }
       if (result?.errors?.length) {
         for (const e of result.errors) {
@@ -507,9 +575,9 @@ async function main() {
     console.error(`run-propagation-drain: FAILED — ${runError.message}`);
     process.exit(1);
   }
-  const phaseError = questionsError ?? orchestrated?.replay.error;
+  const phaseError = questionsError ?? orchestrated?.replay.error ?? orchestrated?.sp.error ?? orchestrated?.replay.signpostsError;
   if (phaseError) {
-    console.error(`run-propagation-drain: questions-on-change FAILED: ${phaseError.message}`);
+    console.error(`run-propagation-drain: post-drain step (questions or signposts) FAILED: ${phaseError.message}`);
     process.exit(1);
   }
   process.exit(0);
