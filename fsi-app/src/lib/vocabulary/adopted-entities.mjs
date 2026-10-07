@@ -17,12 +17,13 @@
 // real-world things.
 
 import { entityId } from "../entities/entity-id.mjs";
+import { fetchAllByIdChunks } from "../db/paginate.mjs";
 import { adoptedEntries } from "./adopted-terms.mjs";
 
 /** adopted term kind -> entity_kind. */
 export const ADOPTED_ENTITY_KINDS = Object.freeze({ standard: "instrument", material: "material" });
 
-const READ_CHUNK = 100;
+const READ_CHUNK = 50;
 
 /**
  * Plan the entities rows the adopted set implies. PURE. `existingEntityIds` is the set of ids already on the
@@ -58,10 +59,17 @@ export async function mintAdoptedTermEntities(sb, adopted, { dry = false } = {})
   const all = [...probe.byTerm.values()];
   if (all.length === 0) return { planned: 0, minted: 0 };
   const existing = new Set();
-  for (let i = 0; i < all.length; i += READ_CHUNK) {
-    const { data, error } = await sb.from("entities").select("entity_id").in("entity_id", all.slice(i, i + READ_CHUNK));
-    if (error) return { planned: 0, minted: 0, error: `entities read failed: ${error.message}` };
-    for (const r of data ?? []) existing.add(r.entity_id);
+  try {
+    // The shared id-chunk reader (F39): the id list follows the adopted set, so it is never one oversized .in().
+    const rows = await fetchAllByIdChunks(all, async (chunk) => {
+      // fitness-allow: F39 (chunk is one fetchAllByIdChunks slice, bounded by READ_CHUNK; the precedent is admin/inferences/page.tsx)
+      const { data, error } = await sb.from("entities").select("entity_id").in("entity_id", chunk);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    }, { chunk: READ_CHUNK });
+    for (const r of rows ?? []) existing.add(r.entity_id);
+  } catch (e) {
+    return { planned: 0, minted: 0, error: `entities read failed: ${e instanceof Error ? e.message : String(e)}` };
   }
   const { entities } = planAdoptedTermEntities(adopted, existing);
   if (dry || entities.length === 0) return { planned: entities.length, minted: 0 };
