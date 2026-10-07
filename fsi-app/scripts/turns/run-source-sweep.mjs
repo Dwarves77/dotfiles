@@ -48,16 +48,19 @@
 //   node scripts/turns/run-source-sweep.mjs --walker register-eurlex --from 2026-08-25 --to 2026-08-31 --mode dry
 //   node scripts/turns/run-source-sweep.mjs --walker register-federal-register --from 2026-08-25 --to 2026-08-31 --mode apply [--types RULE,PRORULE] [--term ...] [--max-pages 5]
 //   node scripts/turns/run-source-sweep.mjs --walker feed --feed-url https://example.gov/feed.xml --mode dry
+//   node scripts/turns/run-source-sweep.mjs --walker register-eurlex --targets-file lineage-gap-targets.json --mode dry
+//   node scripts/turns/run-source-sweep.mjs --walker register-eurlex --celex 32023R1805 --mode dry
 // Exit 0 done · 1 bad args · 2 no DB creds (cannot run here).
 
 import { parseArgs as nodeParseArgs } from "node:util";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { walkEurlexOj, walkFederalRegister } from "../../src/lib/sources/register-walk.mjs";
-import { EUR_LEX_PORTAL_URL } from "../../src/lib/sources/identifier-variants.mjs"; // F46: eur-lex.europa.eu's one home (lane L35)
+import { EUR_LEX_PORTAL_URL, celexTxtHtmlUrl } from "../../src/lib/sources/identifier-variants.mjs"; // F46: eur-lex.europa.eu's one home (lane L35)
 import { FEDERAL_REGISTER_PORTAL_URL } from "../../src/lib/sources/transport-escalation.mjs"; // F46: www.federalregister.gov's one home (lane L35)
 import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
+import { celexOf } from "../../src/lib/connections/term-needs.mjs"; // lane G5-NEED: the one CELEX shape check
 // walkSource (lane SITEMAP, 2026-09-04): the third walker, added by CALLING an unmodified module —
 // same "driver calls, never edits, the walker modules" posture register-walk.mjs/feed-walk.mjs already
 // have (see SOURCE_SWEEP_GOVERNING_FILES's own note below on why this new pair is NOT added to that
@@ -193,6 +196,7 @@ function usage() {
     "Usage: node scripts/turns/run-source-sweep.mjs\n" +
     "         --walker <register-eurlex|register-federal-register|feed|sitemap>\n" +
     "         --mode <dry|apply> [--from ISO-date] [--to ISO-date] [--feed-url url] [--series L|C]\n" +
+    "         [--targets-file lineage-gap-targets.json | --celex <CELEX id>]   (register-eurlex explicit targets)\n" +
     "         [--types RULE,PRORULE] [--term text] [--max-pages N] [--per-page N] [--source-name name]\n" +
     "         [--source-id uuid | --host hostname | --all-hosts] [--max-hosts N] [--slice N] [--after host]\n" +
     "         [--time-budget-seconds N] [--limit N]\n" +
@@ -213,6 +217,8 @@ export function parseArgs(argv) {
         from: { type: "string" },
         to: { type: "string" },
         "feed-url": { type: "string" },
+        "targets-file": { type: "string" },
+        celex: { type: "string" },
         series: { type: "string", default: "L" },
         types: { type: "string", default: "RULE" },
         term: { type: "string" },
@@ -245,6 +251,23 @@ export function parseArgs(argv) {
   }
   const modeCheck = validateModeArg(values.mode);
   if (!modeCheck.ok) return modeCheck;
+  // EXPLICIT EUR-LEX TARGETS (lane G5-NEED, 2026-10-07, coordinator ruling): a CELEX id the corpus is missing
+  // (lineage-gap-targets.json) or one named on the command line is persisted to the same ledger the date walk
+  // feeds. Only the EUR-Lex register takes identifiers; no Federal Register shape is produced upstream.
+  const explicitTargets = Boolean(values["targets-file"] || values.celex);
+  let celex = null;
+  if (explicitTargets) {
+    if (values.walker !== "register-eurlex") {
+      return { ok: false, error: "--targets-file / --celex are explicit targets for --walker register-eurlex only (the EUR-Lex register is the one register walker that takes identifiers)." };
+    }
+    if (values["targets-file"] && values.celex) {
+      return { ok: false, error: "pass one of --targets-file or --celex, not both." };
+    }
+    if (values.celex) {
+      celex = celexOf(values.celex);
+      if (!celex) return { ok: false, error: `--celex must be a CELEX id such as 32023R1805 (got ${JSON.stringify(values.celex)}).` };
+    }
+  }
   if (values.walker === "feed") {
     if (!values["feed-url"]) return { ok: false, error: "--feed-url is required for --walker feed." };
   } else if (values.walker === "sitemap") {
@@ -265,7 +288,7 @@ export function parseArgs(argv) {
         return { ok: false, error: "--source-id, --host, or --all-hosts is required for --walker sitemap (exactly one)." };
       }
     }
-  } else {
+  } else if (!explicitTargets) {
     if (!values.from || Number.isNaN(Date.parse(values.from))) {
       return { ok: false, error: `--from must be a parseable ISO date for a register walker (got ${JSON.stringify(values.from)}).` };
     }
@@ -315,6 +338,8 @@ export function parseArgs(argv) {
     from: values.from || null,
     to: values.to || null,
     feedUrl: values["feed-url"] || null,
+    targetsFile: values["targets-file"] || null,
+    celex,
     series: values.series,
     types: values.types.split(",").map((t) => t.trim()).filter(Boolean),
     term: values.term || undefined,
@@ -348,6 +373,50 @@ export function portalFor({ walker, feedUrl, sourceName }) {
     return { url: FEDERAL_REGISTER_PORTAL_URL, name: sourceName || "Federal Register" };
   }
   return { url: feedUrl, name: sourceName || new URL(feedUrl).host };
+}
+
+/**
+ * The explicit EUR-Lex targets of a run: CELEX ids from a lineage-gap-targets.json object (its `targets[].identifier`,
+ * written by scripts/maintenance/lineage-gap-targets.mjs) and/or one `celex` id, each turned into the EUR-Lex text URL
+ * the ledger holds (identifier-variants.mjs celexTxtHtmlUrl, the one home of that URL shape). Identifiers that are
+ * not CELEX ids are returned in `skipped` with their reason, never dropped silently: they are raised as term-need
+ * standards by scripts/connections/raise-term-needs.mjs. No Federal Register branch exists because the lineage
+ * detector produces no Federal Register shape. PURE.
+ * @param {{targetsJson?: {targets?: Array<{identifier?: string}>}|null, celex?: string|null}} input
+ * @returns {{links: Array<{url:string, anchorText:string}>, celex: string[], skipped: Array<{identifier:string, reason:string}>}}
+ */
+export function eurlexTargetLinks({ targetsJson = null, celex = null } = {}) {
+  const ids = new Set();
+  const skipped = [];
+  const skippedSeen = new Set();
+  const consider = (identifier) => {
+    const raw = String(identifier ?? "").trim();
+    if (!raw) return;
+    const c = celexOf(raw);
+    if (c) {
+      ids.add(c);
+    } else if (!skippedSeen.has(raw)) {
+      skippedSeen.add(raw);
+      skipped.push({ identifier: raw, reason: "not a CELEX id (raised as a term-need of kind standard by raise-term-needs)" });
+    }
+  };
+  if (celex) consider(celex);
+  for (const t of Array.isArray(targetsJson?.targets) ? targetsJson.targets : []) consider(t?.identifier);
+  const sorted = [...ids].sort();
+  return {
+    links: sorted.map((c) => ({ url: celexTxtHtmlUrl(c), anchorText: `CELEX:${c}` })),
+    celex: sorted,
+    skipped,
+  };
+}
+
+/** Persist the explicit EUR-Lex targets through the injected `persist` (the same ledger writer the date walk
+ *  uses). No fetch: a target is a URL to be classified downstream, not a page to be read here. Dry counts only.
+ *  @param {{persist: (links: object[]) => Promise<{upserted:number, failed:number}>}} deps
+ *  @param {{links: object[], celex: string[], skipped: object[]}} targets */
+export async function walkEurlexTargets(deps, targets) {
+  const p = targets.links.length ? await deps.persist(targets.links) : { upserted: 0, failed: 0 };
+  return { register: "eurlex-targets", celex: targets.celex, skipped: targets.skipped, links: targets.links.map((l) => l.url), upserted: p.upserted, failed: p.failed };
 }
 
 // Cite for the portal_link_candidates guarded upsert below (lane R3, GUARDED-UPSERT remediation,
@@ -644,6 +713,25 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
   const wrote = mode === "apply";
   const verb = wrote ? "upserted" : "planned (dry, nothing written)";
   const writeMetrics = (n) => (wrote ? { upserted: n } : { upserted: 0, planned: n });
+  if (walker === "register-eurlex" && result.register === "eurlex-targets") {
+    const perItem = [
+      ...result.celex.map((c, i) => ({
+        id: c,
+        outcome: "targeted",
+        verdict: `explicit CELEX target, ${verb}`,
+        evidence_refs: [result.links[i]],
+        error: null,
+      })),
+      ...result.skipped.map((k) => ({ id: k.identifier, outcome: "skipped", verdict: k.reason, evidence_refs: [], error: null })),
+    ];
+    const metrics = {
+      register: "eurlex-targets", mode,
+      targets: result.celex.length,
+      skipped_non_celex: result.skipped.length,
+      ...writeMetrics(result.upserted), failed: result.failed,
+    };
+    return { perItem, metrics, inputsRef: result.links, fullTraceRefs: [reportPath] };
+  }
   if (walker === "register-eurlex") {
     const perItem = result.days.map((d) => ({
       id: d.day,
@@ -989,7 +1077,7 @@ async function main() {
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
   const {
-    walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName,
+    walker, mode, from, to, feedUrl, targetsFile, celex: cliCelex, series, types, term, maxPages, perPage, sourceName,
     sourceId: cliSourceId, host, allHosts, maxHosts, slice, afterHost: cliAfterHost, timeBudgetSeconds,
     checkCoverage, limit, maxSitemapFetches, maxSitemapEntries,
   } = parsed;
@@ -1183,7 +1271,10 @@ async function main() {
   try {
     runId = claimRunId(harnessRunsDir, "source-sweep");
 
-    if (walker === "register-eurlex") {
+    if (walker === "register-eurlex" && (targetsFile || cliCelex)) {
+      const targetsJson = targetsFile ? JSON.parse(readFileSync(resolve(targetsFile), "utf8")) : null;
+      result = await walkEurlexTargets({ persist }, eurlexTargetLinks({ targetsJson, celex: cliCelex }));
+    } else if (walker === "register-eurlex") {
       result = await walkEurlexOj({ fetchHtml: fetchHtmlImpl, persist }, { from, to, series });
     } else if (walker === "register-federal-register") {
       result = await walkFederalRegister({ fetchJson: fetchJsonImpl, persist }, { from, to, types, term, perPage, maxPages });
@@ -1342,7 +1433,7 @@ async function main() {
       const artifact = {
         ...baseArtifactFields({ family: "source-sweep", harnessVersion, runId, startedAt }),
         config: {
-          walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
+          walker, mode, from, to, feed_url: feedUrl, targets_file: targetsFile, celex: cliCelex, series, types, term: term ?? null,
           max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal?.url ?? null,
           cli_source_id: cliSourceId, host, all_hosts: allHosts, max_hosts: maxHosts,
           // SLICE + CURSOR (lane M8, 2026-09-18) -- slice is the --all-hosts sizing knob this lane wires

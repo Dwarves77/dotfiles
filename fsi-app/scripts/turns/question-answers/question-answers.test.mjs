@@ -620,3 +620,28 @@ test("CLIs: without credentials and without --fixture both exit 2; with --fixtur
   assert.equal(live.status, 0, live.stderr);
   assert.match(live.stdout, /inferences written 1, questions closed 1, unanswerable outcomes recorded 1, search targets raised 1 \(refreshed 0, closed 0\)/);
 });
+
+// ── one need reader, both namespaces (lane G5-NEED, 2026-10-07) ────────────────────────────────────────────
+test("the need reader reads a term-need target too: kind and namespace ride along, holdings needs are unchanged", async () => {
+  const { loadOpenNeedTargets } = await import("./data.mjs");
+  const termFlag = {
+    id: "f-term", subject_ref: "t-1", created_by: "term-need:standard", status: "open", category: "coverage_gap", subject_type: "system",
+    description: "Term need: ISO 14083 standard authoritative source",
+    recommended_actions: [{ action: "find-source", need: "ISO 14083 standard authoritative source", kind: "standard", term_key: "iso 14083" }],
+  };
+  const holdFlag = { id: "f-hold", subject_ref: REF_COMPLY, created_by: "holdings-need:comply", status: "open", description: "x",
+    recommended_actions: [{ action: "find-source", need: "late filing penalty schedule", item_id: A, surface: "regulations", product_question: "comply" }] };
+  const resolved = { ...termFlag, id: "f-done", subject_ref: "t-2", status: "resolved" };
+  const deps = fixtureDeps({ tables: { integrity_flags: [termFlag, holdFlag, resolved] } });
+
+  const holdingsOnly = await loadOpenNeedTargets(deps);
+  assert.deepEqual(holdingsOnly.map((f) => f.id), ["f-hold"], "default reader keeps its old scope");
+  const both = await loadOpenNeedTargets(deps, { includeTermNeeds: true });
+  assert.deepEqual(both.map((f) => f.id).sort(), ["f-hold", "f-term"], "an open term-need is read, a resolved one is not");
+
+  assert.deepEqual(needOfFlag(termFlag), {
+    subject_ref: "t-1", need: "ISO 14083 standard authoritative source", item_id: null, surface: null, product_question: null,
+    namespace: "term-need", kind: "standard",
+  });
+  assert.equal(needOfFlag(holdFlag).namespace, undefined, "holdings need shape is byte-identical to before");
+});

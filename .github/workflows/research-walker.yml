@@ -85,7 +85,10 @@ jobs:
 
       - name: research-walker.mjs
         run: |
-          node scripts/research/research-walker.mjs --dispatch
+          # --holdings-needs (lane G5-NEED, 2026-10-07): the open holdings-need and term-need targets are read
+          # from integrity_flags as search inputs; the walker's artifact counts needs read, searched, candidates.
+          # Mode stays dry (rule 16): the OpenAlex search is served by the fixture stub unless --live is passed.
+          node scripts/research/research-walker.mjs --dispatch --holdings-needs
 
       # Record this family's own harness-run artifact into harness_runs (CONVENTION.md). The exit code
       # is checked explicitly (lane RW-WF, 2026-10-03), never swallowed with `|| echo ...` -- that

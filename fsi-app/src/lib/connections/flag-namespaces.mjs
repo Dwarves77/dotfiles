@@ -65,9 +65,20 @@ export const QUESTION_NAMESPACE = "question:";
 export const HOLDINGS_NEED_NAMESPACE = "holdings-need:";
 export const HOLDINGS_NEED_ACTION = "find-source";
 
+// TERM_NEED_NAMESPACE, the eighth namespace, born with raise-term-needs.mjs (lane G5-NEED, 2026-10-07, buildout
+// plan Stage 5 last clause). An ADOPTED vocabulary term (vocabulary_terms, migration 355) with no held item whose
+// primary source is at or above the item type's authority floor becomes ONE open discovery target: a need stated
+// in words, raised by rule, closed by rule when a qualifying holding exists. Same flag shape and the same
+// find-source action as the holdings-need target, so ONE reader (question-answers/data.mjs needOfFlag) feeds the
+// research walker from both namespaces. subject_type is "system"; subject_ref is the vocabulary term id (or
+// `lineage:<identifier>` for an instrument identifier that is not a CELEX id, kind standard); the subtype is the
+// term kind.
+export const TERM_NEED_NAMESPACE = "term-need:";
+export const TERM_NEED_ACTION = HOLDINGS_NEED_ACTION;
+
 export const ALL_NAMESPACES = Object.freeze([
   GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE,
-  QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE,
+  QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE, TERM_NEED_NAMESPACE,
 ]);
 
 /**

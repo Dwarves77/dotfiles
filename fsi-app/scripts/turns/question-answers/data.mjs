@@ -14,7 +14,8 @@
 // Held pool text is retrieved by seek-more.mjs queryHeldPools and identified by heldPoolHash; both are the
 // shared implementations, not copies.
 
-import { QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE, HOLDINGS_NEED_ACTION, createdBy } from "../../../src/lib/connections/flag-namespaces.mjs";
+import { QUESTION_NAMESPACE, HOLDINGS_NEED_NAMESPACE, HOLDINGS_NEED_ACTION, TERM_NEED_NAMESPACE, createdBy } from "../../../src/lib/connections/flag-namespaces.mjs";
+import { TERM_KINDS } from "../../../src/lib/connections/term-recurrence.mjs";
 import { PRODUCT_QUESTIONS } from "../../../src/lib/learning/constants.mjs";
 import { usableCapturesOrdered } from "../../../src/lib/forward-events/read-and-extract.mjs";
 import { surfaceOf } from "../../../src/lib/surface-of.mjs";
@@ -33,6 +34,8 @@ export const QUESTION_CREATED_BY = Object.freeze(PRODUCT_QUESTIONS.map((pq) => c
 export const ANSWERED_ACTION = "answered_from_holdings";
 /** The created_by values of every holdings-need target (one per product question). */
 export const NEED_CREATED_BY = Object.freeze(PRODUCT_QUESTIONS.map((pq) => createdBy(HOLDINGS_NEED_NAMESPACE, pq)));
+/** The created_by values of every term-need target (one per vocabulary term kind; lane G5-NEED). */
+export const TERM_NEED_CREATED_BY = Object.freeze(TERM_KINDS.map((k) => createdBy(TERM_NEED_NAMESPACE, k)));
 
 export const FLAG_COLUMNS = "id, subject_ref, created_by, description, recommended_actions, status, created_at";
 export const ITEM_COLUMNS = "id, title, item_type, domain, jurisdiction_iso, summary, provenance_status, is_archived, origin_class, instrument_entity_id";
@@ -123,18 +126,31 @@ export function needAction(entry, parsed, batch, nowIso) {
   };
 }
 
-/** The structured need of a holdings-need target flag, or null when it carries none. Pure. */
+/**
+ * The structured need of a holdings-need or term-need target flag, or null when it carries none. Pure. A
+ * term-need target (flag namespace term-need:, lane G5-NEED) also carries `namespace` and the term `kind`; a
+ * holdings need keeps the exact shape it always had.
+ */
 export function needOfFlag(flag) {
   const acts = Array.isArray(flag?.recommended_actions) ? flag.recommended_actions : [];
   const a = acts.find((x) => x && x.action === HOLDINGS_NEED_ACTION && typeof x.need === "string" && x.need.trim());
-  return a ? { subject_ref: flag.subject_ref, need: a.need, item_id: a.item_id ?? null, surface: a.surface ?? null, product_question: a.product_question ?? null } : null;
+  if (!a) return null;
+  const base = { subject_ref: flag.subject_ref, need: a.need, item_id: a.item_id ?? null, surface: a.surface ?? null, product_question: a.product_question ?? null };
+  return typeof flag.created_by === "string" && flag.created_by.startsWith(TERM_NEED_NAMESPACE)
+    ? { ...base, namespace: "term-need", kind: a.kind ?? flag.created_by.slice(TERM_NEED_NAMESPACE.length) }
+    : base;
 }
 
-/** Every open holdings-need target. */
-export async function loadOpenNeedTargets({ readAll }) {
+/**
+ * Every open need target: the holdings-need targets (default, what the answer apply step closes) and, with
+ * `includeTermNeeds`, the term-need targets too (what the research walker searches). ONE reader for both
+ * namespaces; the answer apply step never sees a term need because it does not ask for it.
+ */
+export async function loadOpenNeedTargets({ readAll }, { includeTermNeeds = false } = {}) {
+  const createdBys = includeTermNeeds ? [...NEED_CREATED_BY, ...TERM_NEED_CREATED_BY] : [...NEED_CREATED_BY];
   return readAll("integrity_flags", FLAG_COLUMNS, {
     orderBy: "id",
-    match: (q) => q.in("created_by", [...NEED_CREATED_BY]).in("status", [...OPEN_STATUSES]),
+    match: (q) => q.in("created_by", createdBys).in("status", [...OPEN_STATUSES]),
   });
 }
 

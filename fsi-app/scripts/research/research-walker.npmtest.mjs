@@ -166,3 +166,45 @@ test("walk: needs are bounded by maxHoldingsNeeds, and no needs leaves the walk 
   const plain = await runWalk({ greyLitSources: [], openAlexCandidatesOverride: [], mode: "dry", hostVerdicts: new Map() });
   assert.equal(plain.metrics.holdings_needs_searched, 0);
 });
+
+// ── lane G5-NEED: term needs are searched through the same path, and the artifact counts say so ──────────
+
+test("walk: holdings needs and term needs are both read, searched and counted (needs read, searched, candidates)", async () => {
+  const queries = [];
+  const fetchStub = async (url) => {
+    queries.push(new URL(String(url)).searchParams.get("search"));
+    return { status: 200, statusText: "OK", ok: true, headers: { get: () => null }, json: async () => ({ results: FIXTURE_OPENALEX_PUBLISHER_CANDIDATES }) };
+  };
+  const verdicts = loadHostVerdicts({ files: [join(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts;
+  const r = await runWalk({
+    greyLitSources: [],
+    openAlexCandidatesOverride: [],
+    openAlexDeps: { fetch: fetchStub },
+    holdingsNeeds: [
+      { subject_ref: "a:regulations:what", need: "customs filing form for storage plans" },
+      { subject_ref: "t-1", need: "ISO 14083 standard authoritative source", namespace: "term-need", kind: "standard" },
+      { subject_ref: "lineage:2019/1242", need: "2019/1242 standard authoritative source", namespace: "term-need", kind: "standard" },
+    ],
+    needsRead: 7,
+    mode: "dry",
+    hostVerdicts: verdicts,
+  });
+  assert.deepEqual(queries.sort(), ["2019/1242 standard authoritative source", "ISO 14083 standard authoritative source", "customs filing form for storage plans"]);
+  assert.equal(r.metrics.needs_read, 7);
+  assert.equal(r.metrics.holdings_needs_searched, 3, "total needs searched, both namespaces");
+  assert.equal(r.metrics.term_needs_searched, 2);
+  assert.equal(r.metrics.term_need_candidates, 0, "the candidate urls were already found for the first need, so they are not new for the term needs");
+  assert.ok(r.perItem.some((i) => i.id === "need:t-1" && /need-searched/.test(i.outcome)));
+});
+
+test("walk: a term need that is the only need contributes its own candidates to the term-need count", async () => {
+  const fetchStub = async () => ({ status: 200, statusText: "OK", ok: true, headers: { get: () => null }, json: async () => ({ results: FIXTURE_OPENALEX_PUBLISHER_CANDIDATES }) });
+  const r = await runWalk({
+    greyLitSources: [], openAlexCandidatesOverride: [], openAlexDeps: { fetch: fetchStub },
+    holdingsNeeds: [{ subject_ref: "t-9", need: "x standard authoritative source", namespace: "term-need", kind: "standard" }],
+    mode: "dry", hostVerdicts: new Map(),
+  });
+  assert.equal(r.metrics.term_needs_searched, 1);
+  assert.equal(r.metrics.term_need_candidates, FIXTURE_OPENALEX_PUBLISHER_CANDIDATES.length);
+  assert.equal(r.metrics.needs_read, 1, "defaults to the needs searched when the caller gives no read count");
+});

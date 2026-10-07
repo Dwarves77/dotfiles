@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
-import { readStepSummary, buildArtifact, termMetrics, STEPS } from "./emit-downstream-chain-artifact.mjs";
+import { readStepSummary, buildArtifact, termMetrics, termNeedMetrics, STEPS } from "./emit-downstream-chain-artifact.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 function withTmpDir(fn) {
@@ -125,7 +125,7 @@ test("buildArtifact: one step nonzero exit -> that step 'nonzero_exit', a defect
 });
 
 test("STEPS: the maintenance-step names this family always runs, in the workflow's own order", () => {
-  assert.deepEqual(STEPS, ["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "term-recurrence", "apply-classifications"]);
+  assert.deepEqual(STEPS, ["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "term-recurrence", "raise-term-needs", "apply-classifications"]);
 });
 
 // ── loop_run_id (lane M3b, 2026-09-20) ──────────────────────────────────────────────────────────────
@@ -243,4 +243,35 @@ test("buildArtifact: a skipped chain records metrics.terms null and stays valid"
   });
   assert.equal(artifact.metrics.terms, null);
   assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+// ── raise-term-needs counts (lane G5-NEED, 2026-10-07): needs raised, closed, CELEX targets ──────────────
+
+const NEED_SUMMARY = {
+  step: "raise-term-needs",
+  mode: "dry",
+  exitCode: 0,
+  counts: {
+    adopted_terms: 4, terms_with_holding: 1, term_needs: 3, lineage_celex_targets: 2, lineage_non_celex_needs: 1,
+    open_needs_before: 2, would_insert: 2, would_resolve: 1, unchanged: 1, notes: [],
+  },
+};
+
+test("buildArtifact: metrics.term_needs carries needs raised, closed and the CELEX targets from the raise-term-needs summary", () => {
+  const steps = fourCleanSteps().map((r) => (r.step === "raise-term-needs" ? { ...r, summary: NEED_SUMMARY } : r));
+  const artifact = buildArtifact({
+    runId: "downstream-chain-run-008", harnessVersion: "sha256:0000000000000000", startedAt: new Date().toISOString(),
+    mode: "dry", skip: false, skipReason: "", upstreamName: "Population turn", upstreamRunId: "1", stepResults: steps,
+  });
+  assert.deepEqual(artifact.metrics.term_needs, {
+    mode: "dry", adopted_terms: 4, terms_with_holding: 1, term_needs: 3, lineage_celex_targets: 2, lineage_non_celex_needs: 1,
+    would_insert: 2, would_resolve: 1, unchanged: 1, notes: [],
+  });
+  assert.ok(artifact.per_item.some((p) => p.id === "raise-term-needs" && p.outcome === "clean"));
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("termNeedMetrics: null when the step never ran or left no counts; a skipped chain records null", () => {
+  assert.equal(termNeedMetrics(STEPS.map((step) => ({ step, ran: false, exitCode: null, summary: null, pathRel: null }))), null);
+  assert.equal(termNeedMetrics([{ step: "raise-term-needs", ran: true, exitCode: 0, summary: { exitCode: 0 }, pathRel: "x" }]), null);
 });
