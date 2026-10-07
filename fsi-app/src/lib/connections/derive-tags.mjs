@@ -90,6 +90,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+// G5-READ (2026-10-07): adopted vocabulary terms (migration 355) are held vocabulary, so they derive like a code tag.
+import { adoptedEntries, adoptedKeys } from "../vocabulary/adopted-terms.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PARSE_OUTPUT_PATH = resolve(HERE, "..", "agent", "parse-output.ts");
@@ -551,21 +553,64 @@ function phraseRegex(phrase) {
   return new RegExp(`\\b${escapeRe(phrase)}s?\\b`, "i");
 }
 
+// An operational_scenario_tags value is lower-case kebab-case (parse-output.ts OPERATIONAL_SCENARIO_TAG_RE).
+const ADOPTED_SCENARIO_SHAPE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/i;
+
+/**
+ * KEYWORD_MAP-shaped entries for the ADOPTED terms that extend a tag vocabulary: `scenario` terms extend
+ * operational_scenario_tags and `compliance_object` terms extend compliance_object_tags. An adopted term maps
+ * to ITSELF: the tag token is the term key exactly as vocabulary_terms holds it (no invented token; an
+ * adopted term IS held, G5-READ), keyed by its own name forms plus its first-seen label. A scenario key that
+ * is not kebab-case is skipped (it could not pass the parser's shape rule). PURE.
+ * @param {unknown} adopted the adopted-terms set (src/lib/vocabulary/adopted-terms.mjs)
+ * @returns {Array<{field:string, tag:string, keywords:string[]}>}
+ */
+export function adoptedKeywordEntries(adopted) {
+  const out = [];
+  const add = (field, kind, shapeOk) => {
+    const held = new Set((field === "compliance_object_tags" ? COMPLIANCE_OBJECT_VALUES : SCENARIO_TAG_VALUES).map((t) => t.toLowerCase()));
+    for (const e of adoptedEntries(adopted, kind)) {
+      if (held.has(e.key.toLowerCase()) || !shapeOk(e.key)) continue;
+      out.push({ field, tag: e.key, keywords: dedupeKeywords([...ownNameForms(e.key), ...(e.label ? [e.label] : [])]) });
+    }
+  };
+  add("operational_scenario_tags", "scenario", (k) => ADOPTED_SCENARIO_SHAPE.test(k));
+  add("compliance_object_tags", "compliance_object", () => true);
+  return out;
+}
+
+/**
+ * The HELD vocabulary per field: the code vocabulary UNIONED with the adopted terms of the matching kind. The
+ * code values are never dropped (the union only adds). Used by apply-tags.mjs to re-check a medium proposal
+ * against the live vocabulary. PURE.
+ * @param {unknown} adopted
+ * @returns {{topic_tags: Set<string>, compliance_object_tags: Set<string>, operational_scenario_tags: Set<string>}}
+ */
+export function heldVocabulary(adopted) {
+  return {
+    topic_tags: new Set(TOPIC_TAG_VALUES),
+    compliance_object_tags: new Set([...COMPLIANCE_OBJECT_VALUES, ...adoptedKeys(adopted, "compliance_object")]),
+    operational_scenario_tags: new Set([...SCENARIO_TAG_VALUES, ...adoptedKeys(adopted, "scenario")]),
+  };
+}
+
 /**
  * Derive tag PROPOSALS for one item. PURE, deterministic — same input always produces the same output.
  * Never mutates `item`; never touches a DB; never invents a tag token outside KEYWORD_MAP.
  * @param {{id:string, title?:string|null, canonical_instrument_key?:string|null,
  *   jurisdiction_iso?:string[]|string|null, jurisdictions?:string[]|null, full_brief?:string|null}} item
+ * @param {unknown} [adopted] the adopted-terms set (G5-READ): adopted scenario and compliance_object terms derive
+ *   like a code tag. Omitted, the result is exactly the pre-G5-READ output.
  * @returns {{itemId:string, proposals:Array<{field:string, tag:string, evidence:string, confidence:"high"|"medium"}>}}
  */
-export function deriveTags(item) {
+export function deriveTags(item, adopted) {
   const it = item || {};
   const titleText = [it.title, it.canonical_instrument_key].filter(Boolean).join(" · ");
   const bodyText = String(it.full_brief || "");
 
   // key: `${field}|${tag}` -> best proposal found so far (high beats medium; first-found wins a tie)
   const best = new Map();
-  for (const entry of KEYWORD_MAP) {
+  for (const entry of [...KEYWORD_MAP, ...adoptedKeywordEntries(adopted)]) {
     const key = `${entry.field}|${entry.tag}`;
     for (const kw of entry.keywords) {
       const re = phraseRegex(kw);

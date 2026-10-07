@@ -76,7 +76,10 @@ import { findInternalMarkers, describeMarkers } from "@/lib/agent/section-marker
 // unchanged, only the definition moved.
 import { htmlToText } from "@/lib/text/html-to-text.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
-import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
+import { buildSystemPrompt } from "@/lib/agent/system-prompt";
+// G5-READ (2026-10-07): adopted vocabulary terms (migration 355) are read by the prompt glossary, the parser and
+// the theme write boundary; loaded once per brief pass here, fail-closed to the code vocabularies.
+import { adoptedTermsFromSupabase } from "@/lib/vocabulary/adopted-terms.mjs";
 // U7 — brief generation now CONSUMES the connection graph (not only feeds it). selectBriefCandidates
 // is the pure-core-plus-DI module (src/lib/connections/brief-candidates.mjs); the concrete Supabase
 // readers are built here (candidateReadersFor, below) so the module itself stays DB-free and testable
@@ -147,7 +150,7 @@ import { holdingsPresent, holdingsPrecondition, HOLDINGS_PRESENT_DETAIL } from "
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
-  DB_PRIORITY_VALUES, DB_URGENCY_TIER_VALUES, DB_FORMAT_TYPE_VALUES, DB_SIGNAL_BAND_VALUES,
+  DB_PRIORITY_VALUES, DB_THEME_VALUES, DB_URGENCY_TIER_VALUES, DB_FORMAT_TYPE_VALUES, DB_SIGNAL_BAND_VALUES,
 } from "@/lib/agent/metadata-vocab";
 const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
 
@@ -932,6 +935,11 @@ async function synthesiseAndWriteBrief(
   // (there is no synchronous way to hand a session lane corrective feedback and re-run it).
   const slotRows = await requiredSlotsFor(sb, it.item_type);
 
+  // G5-READ: the adopted terms, read once for this pass. The prompt glossary names them, parseAgentOutput
+  // accepts them, and writeSynthesizedBrief's theme boundary re-reads only when a theme needs it.
+  const adopted = await adoptedTermsFromSupabase(sb);
+  const systemPrompt = buildSystemPrompt(adopted);
+
   let parsed: ReturnType<typeof parseAgentOutput>;
   let body: string;
   let fmtSpec: ReturnType<typeof specForItemType>;
@@ -941,7 +949,7 @@ async function synthesiseAndWriteBrief(
     // this branch -- the free driver already has a finished, lane-authored brief.
     fmtSpec = specForItemType(it.item_type);
     try {
-      parsed = parseAgentOutput(buildInjectedRawText(injected.body, injected.metadata));
+      parsed = parseAgentOutput(buildInjectedRawText(injected.body, injected.metadata), adopted);
     } catch (e) {
       return { ok: false, detail: `injected_parse_failed: ${e instanceof Error ? e.message : String(e)}` };
     }
@@ -1025,14 +1033,14 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
     // unaddressed is regenerated ONCE with explicit slot feedback appended; a second miss FAILS HONESTLY with
     // a named detail (missing_required_slot(synthesis)) — never a silent pass-through of a slot-blind brief.
     // A slot-table read failure (slotRows == null) skips the check this run (the DB gate remains the backstop).
-    parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, user, blocks));
+    parsed = parseAgentOutput(await generateBriefText(systemPrompt, user, blocks), adopted);
     body = stripUrlMarkers((parsed.body || "").trim()) as string;
     if (slotRows && slotRows.length && body.length >= 600) {
       const missing = uncoveredSlots(body, slotRows);
       if (missing.length) {
         console.warn(`[canonical] item ${it.id}: synthesis left ${missing.length} required slot(s) unaddressed (${missing.map((s) => s.slot_key).join(", ")}) — one corrective retry`);
         const retryUser = `${user}${buildSlotRetryFeedback(missing)}`;
-        parsed = parseAgentOutput(await generateBriefText(SYSTEM_PROMPT, retryUser, blocks));
+        parsed = parseAgentOutput(await generateBriefText(systemPrompt, retryUser, blocks), adopted);
         body = stripUrlMarkers((parsed.body || "").trim()) as string;
         const stillMissing = body.length >= 600 ? uncoveredSlots(body, slotRows) : missing;
         if (stillMissing.length) {
@@ -1105,9 +1113,12 @@ export async function writeSynthesizedBrief(
   // guarantees these against sets identical to the DB, so a throw here means parser/DB drift — fail LOUD,
   // named, not a silent whole-row reject).
   const dbSeverity = toDbSeverity(md.severity);
-  const dbTheme = toDbTheme(md.theme);
+  // G5-READ: an adopted theme is held. Read the adopted set only when a theme is present and is not one of the
+  // 7 code values, so the common write makes no extra query.
+  const adoptedForTheme = md.theme && !DB_THEME_VALUES.has(md.theme) ? await adoptedTermsFromSupabase(sb) : undefined;
+  const dbTheme = toDbTheme(md.theme, adoptedForTheme);
   // capture-not-null (INV-1, migration 136): bank an out-of-vocab theme instead of dropping it.
-  const themeCandidate = toThemeCandidate(md.theme);
+  const themeCandidate = toThemeCandidate(md.theme, adoptedForTheme);
   if (themeCandidate) console.warn(`[canonical-pipeline] theme "${themeCandidate}" out-of-vocab on item ${it.id} -> theme=null, banked in theme_candidate (Emergence-Capture residual)`);
   assertDbValue("priority", md.priority, DB_PRIORITY_VALUES, /*nullable*/ false);
   assertDbValue("urgency_tier", md.urgency_tier, DB_URGENCY_TIER_VALUES);

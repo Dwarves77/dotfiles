@@ -15,6 +15,10 @@
 // source, because the migration FILE and an old schema snapshot disagreed and the snapshot was stale.
 // If a migration later changes a CHECK, update the matching set here in the same change.
 
+// G5-READ (2026-10-07): the adopted `theme` terms (vocabulary_terms) widen the held theme vocabulary, so the
+// write boundary below accepts a theme the system has adopted by rule. The code list stays the floor.
+import { adoptedThemeTokens } from "../vocabulary/adopted-terms.mjs";
+
 // ── severity: display (skill/agent) <-> db (stored) ──
 // The 5 SKILL.md decision-pressure labels. The DB severity CHECK also permits per-surface vocabularies
 // (critical/high/moderate/low, immediate/watch/reference/background) used by non-agent writers; those are
@@ -107,18 +111,18 @@ export function toDisplaySeverity(value: string | null | undefined): string | nu
 
 /** Gate a theme value to the LIVE DB vocabulary. An out-of-vocabulary theme returns null (honest, no
  *  force-fit) — its value is preserved by toThemeCandidate() below (capture-not-null), not lost. */
-export function toDbTheme(value: string | null | undefined): string | null {
+export function toDbTheme(value: string | null | undefined, adopted?: unknown): string | null {
   if (value == null || value === "") return null;
-  return DB_THEME_VALUES.has(value) ? value : null;
+  return DB_THEME_VALUES.has(value) || adoptedThemeTokens(adopted).includes(value) ? value : null;
 }
 
 /** Capture-not-null (Emergence-Capture INV-1, migration 136): the agent-proposed theme value to BANK in
  *  intelligence_items.theme_candidate when it matched no live theme vocabulary. Returns the residual value,
  *  or null when theme is DB-valid (clear the candidate) or absent. Banked WITH the row's provenance so the
  *  follow-on recurrence detector can mine it — never silently dropped. */
-export function toThemeCandidate(value: string | null | undefined): string | null {
+export function toThemeCandidate(value: string | null | undefined, adopted?: unknown): string | null {
   if (value == null || value === "") return null;
-  return DB_THEME_VALUES.has(value) ? null : value;
+  return DB_THEME_VALUES.has(value) || adoptedThemeTokens(adopted).includes(value) ? null : value;
 }
 
 // ── RESEARCH ASSESSMENT + PLANNING-ASSUMPTION vocabulary (Lane L9, 2026-10-02) ──

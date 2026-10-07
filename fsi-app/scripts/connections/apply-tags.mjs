@@ -94,8 +94,9 @@ import { fileURLToPath } from "node:url";
 import { runCli, fsiRoot } from "../maintenance/lib/cli.mjs";
 import { discoverConnections, computeTagFrequencies } from "../../src/lib/connections/discover.mjs";
 import {
-  deriveTags, FIELD_CAPS, meetsConfidence, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES,
+  deriveTags, FIELD_CAPS, meetsConfidence, heldVocabulary,
 } from "../../src/lib/connections/derive-tags.mjs";
+import { memoAdoptedTerms } from "../../src/lib/vocabulary/adopted-terms.mjs";
 import { TAG_NAMESPACE, isInNamespace } from "../../src/lib/connections/flag-namespaces.mjs";
 import { buildDecisionNote } from "../../src/lib/connections/decision-note.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
@@ -194,15 +195,12 @@ export function buildAutoAdoptionNote(threshold = AUTO_ADOPT_THRESHOLD) {
 // derive-tags.mjs proposal carries only "high"|"medium" (no lower tier exists -- see that module's
 // header), so deciding both tiers exhaustively covers every proposal a flag can carry.
 //
-// FIELD_VOCAB re-checks a medium proposal's tag against the SAME closed-vocabulary SoTs derive-tags.mjs
-// itself derives from (TOPIC_TAG_VALUES/COMPLIANCE_OBJECT_VALUES/SCENARIO_TAG_VALUES) -- re-read live at
-// apply time, not trusted from the (possibly stale) proposal payload, so a tag retired from the
+// A medium proposal's tag is re-checked against the closed vocabulary derive-tags.mjs itself derives from --
+// re-read live at apply time, not trusted from the (possibly stale) proposal payload, so a tag retired from the
 // vocabulary since the flag was opened declines rather than silently writing a dead token.
-const FIELD_VOCAB = Object.freeze({
-  topic_tags: new Set(TOPIC_TAG_VALUES),
-  compliance_object_tags: new Set(COMPLIANCE_OBJECT_VALUES),
-  operational_scenario_tags: new Set(SCENARIO_TAG_VALUES),
-});
+// G5-READ (2026-10-07): the held vocabulary is the code vocabulary UNIONED with the adopted terms of the matching
+// kind (derive-tags.mjs heldVocabulary), so a proposal for an adopted tag is not declined as "not in the
+// vocabulary". The code values are never dropped.
 
 // The item's own text a medium proposal's keyword evidence must be RE-CONFIRMED present in (task 7.2's
 // exact field list) -- narrower than propose-tags.mjs's own enrichment scope (sections/claims/search
@@ -237,14 +235,15 @@ export function evidencePresentInItemText(evidence, item) {
  * @param {{field:string, tag:string, evidence:string, confidence:string}} proposal
  * @param {object} item - the target intelligence_items row (title/what_is_it/summary/full_brief read)
  * @param {string} [threshold] - defaults to AUTO_ADOPT_THRESHOLD
+ * @param {unknown} [adoptedTerms] - the adopted-terms set (G5-READ); omitted, the code vocabulary alone decides
  * @returns {{field:string, tag:string, evidence:string, confidence:string, label:string, decision:"adopt"|"decline", reason:string}}
  */
-export function decideTagProposal(proposal, item, threshold = AUTO_ADOPT_THRESHOLD) {
+export function decideTagProposal(proposal, item, threshold = AUTO_ADOPT_THRESHOLD, adoptedTerms) {
   const label = `${proposal.field}:${proposal.tag}`;
   if (meetsConfidence(proposal.confidence, threshold)) {
     return { ...proposal, label, decision: "adopt", reason: `confidence '${proposal.confidence}' meets the auto-adopt threshold '${threshold}' (title/instrument-key identity match).` };
   }
-  const vocab = FIELD_VOCAB[proposal.field];
+  const vocab = heldVocabulary(adoptedTerms)[proposal.field];
   if (!vocab || !vocab.has(proposal.tag)) {
     return { ...proposal, label, decision: "decline", reason: `tag "${proposal.tag}" is not in the live closed vocabulary for ${proposal.field}.` };
   }
@@ -265,8 +264,8 @@ export function decideTagProposal(proposal, item, threshold = AUTO_ADOPT_THRESHO
  * @param {string} [threshold]
  * @returns {Array<object>}
  */
-export function decideTagProposals(proposals, item, threshold = AUTO_ADOPT_THRESHOLD) {
-  return (Array.isArray(proposals) ? proposals : []).map((p) => decideTagProposal(p, item, threshold));
+export function decideTagProposals(proposals, item, threshold = AUTO_ADOPT_THRESHOLD, adoptedTerms) {
+  return (Array.isArray(proposals) ? proposals : []).map((p) => decideTagProposal(p, item, threshold, adoptedTerms));
 }
 
 /**
@@ -436,8 +435,10 @@ async function reDeriveZeroProposalTags(deps, flag, { execute, today = new Date(
   // buildDecisionNote aggregation this function runs, end to end through autoAdoptTags, for the
   // declined-and-still-resolves branch, without weakening the real derivation for any real caller.
   const derive = deps.deriveTags ?? deriveTags;
-  const derived = derive(buildReDeriveInput(item));
-  const decisions = decideTagProposals(derived.proposals, item);
+  // G5-READ: the adopted terms (optional dep, memoised once per run by the caller), read before deriving.
+  const adoptedTerms = deps.readAdoptedTerms ? await deps.readAdoptedTerms() : undefined;
+  const derived = derive(buildReDeriveInput(item), adoptedTerms);
+  const decisions = decideTagProposals(derived.proposals, item, undefined, adoptedTerms);
   const adopted = decisions.filter((d) => d.decision === "adopt");
   const merge = buildMergePatch(item, adopted, await removedFor(deps, itemId));
   const hasWrite = Object.keys(merge.patch).length > 0;
@@ -504,7 +505,8 @@ export async function autoAdoptTags(deps, flagId, { execute, threshold = AUTO_AD
   // Task 7.2: every proposal is decided (adopt or decline), never left as "below threshold" residue on
   // an open flag -- a derive-tags.mjs proposal carries only "high"|"medium", both decided by
   // decideTagProposal, so this partition is always exhaustive.
-  const decisions = decideTagProposals(decision.proposals, item, threshold);
+  const adoptedTerms = deps.readAdoptedTerms ? await deps.readAdoptedTerms() : undefined;
+  const decisions = decideTagProposals(decision.proposals, item, threshold, adoptedTerms);
   const adopted = decisions.filter((d) => d.decision === "adopt");
   const merge = buildMergePatch(item, adopted, await removedFor(deps, decision.itemId));
   const hasWrite = Object.keys(merge.patch).length > 0;
@@ -549,6 +551,7 @@ const CITE = {
 };
 
 const deps = {
+  readAdoptedTerms: memoAdoptedTerms(sb),
   readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
   // Widened 2026-09-12 (task 7.2): decideTagProposal re-checks a medium-confidence proposal's keyword
   // evidence against the item's OWN title/what_is_it/summary/full_brief, not just its tag arrays.

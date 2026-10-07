@@ -32,6 +32,14 @@ try {
   const defs = (await client.query(
     `SELECT conname, pg_get_constraintdef(oid) AS def FROM pg_constraint
       WHERE conrelid = 'public.intelligence_items'::regclass AND contype='c'`)).rows;
+  // lane G5-READ (migration 357): the theme CHECK was replaced by a guard trigger (it must also accept the adopted
+  // theme terms, which a CHECK cannot read). The 7 code values live in the guard function's `NEW.theme IN (...)`
+  // list, so that list stands in for the dropped CHECK and is compared to DB_THEME_VALUES exactly as before.
+  const guardFn = (await client.query(
+    `SELECT pg_get_functiondef(p.oid) AS def FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.proname = 'intelligence_items_theme_guard'`)).rows[0];
+  const guardList = guardFn && /NEW\.theme IN \(([\s\S]*?)\)/.exec(guardFn.def);
+  if (guardList) defs.push({ conname: "intelligence_items_theme_guard (trigger function)", def: `CHECK (theme IN (${guardList[1]}))` });
   for (const [col, set] of Object.entries(COLS)) {
     if (!set) { console.log(`  [skip] ${col}: no metadata-vocab Set exported`); continue; }
     // find the CHECK that constrains this column (mentions the column name + string literals)

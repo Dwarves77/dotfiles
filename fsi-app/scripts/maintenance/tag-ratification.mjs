@@ -27,6 +27,8 @@ import { runCli } from "./lib/cli.mjs";
 // lane G7-CORR: an admin tag removal (item_corrections, migration 356) is read by the auto path so a removed tag is
 // skipped and reported as blockedByCorrection instead of being "adopted" and then stripped by the database trigger.
 import { readItemCorrections } from "../../src/lib/corrections/item-corrections.mjs";
+// lane G5-READ: an adopted vocabulary term is held, so the auto path decides proposals against it (memoised once per run).
+import { memoAdoptedTerms } from "../../src/lib/vocabulary/adopted-terms.mjs";
 
 export const CITE = Object.freeze({
   skill: "flywheel-build-plan-2026-08-10",
@@ -182,6 +184,7 @@ if (IS_MAIN) {
       const { readClient, guardedUpdate } = await import("../lib/db.mjs");
       const sb = readClient();
       return {
+        readAdoptedTerms: memoAdoptedTerms(sb),
         listOpenCandidates: async () => {
           const rows = [];
           for (let from = 0; ; from += 1000) {

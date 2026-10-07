@@ -44,6 +44,8 @@ import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespa
 import { runCli } from "./lib/cli.mjs";
 // lane G7-CORR: a tag an admin removed (item_corrections, migration 356) is never proposed again.
 import { readAllCorrections } from "../../src/lib/corrections/item-corrections.mjs";
+// lane G5-READ: an adopted vocabulary term is derivable, so the proposer reads the adopted set once per run.
+import { memoAdoptedTerms } from "../../src/lib/vocabulary/adopted-terms.mjs";
 
 export const CITE = Object.freeze({
   skill: "flywheel-build-plan-2026-08-10",
@@ -164,6 +166,7 @@ if (IS_MAIN) {
         "operational_scenario_tags, compliance_object_tags, topic_tags, created_at";
 
       return {
+        readAdoptedTerms: memoAdoptedTerms(readClient()),
         readTagCorrections: () => readAllCorrections(readClient()),
         readCorpus: () => readAll("intelligence_items", SIG, {
           match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
