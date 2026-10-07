@@ -27,6 +27,12 @@
 //                  reported after this step regardless of ground's own ok/fail - a quarantine is reported,
 //                  never hidden.
 //   4. grow - growSources(itemId) (existing).
+//   4a. terms - lane G5-TERMS, 2026-10-06. The optional `metadata.mentioned_terms` the brief author emitted
+//                  (materials, terms and standards no code vocabulary holds) become vocabulary_mentions rows,
+//                  detector brief-terms, through recordBriefTerms (src/lib/connections/term-recurrence.mjs);
+//                  a term not yet held is inserted as `proposed`, a retired term is skipped. The recurrence
+//                  counts and the adoption rule are applied by scripts/connections/term-recurrence.mjs in
+//                  downstream-chain (rule 17), never here. An entry with no mentioned_terms records terms:0.
 //   4b. structured-actions - lane STRUCTURED-ACTIONS, 2026-09-28 (coordinator ruling). Re-reads the
 //                  item's item_type + just-written full_brief and runs extractRecommendedActions
 //                  (src/lib/agent/extract-recommended-actions.mjs) over it. DRY MODE ONLY: records the
@@ -117,7 +123,8 @@ import { isMainModule } from "../lib/is-main.mjs";
 import { claimRunId, writeRunArtifact, hashHarnessVersion } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { validateRecordBriefsFile, RECORD_BRIEFS_SCHEMA_VERSION } from "./record-briefs/schema.mjs";
-import { readAll, readAllByIds } from "../lib/db.mjs";
+import { readAll, readAllByIds, guardedInsertMany, guardedUpsert } from "../lib/db.mjs";
+import { recordBriefTerms } from "../../src/lib/connections/term-recurrence.mjs";
 import { runUnscopedFlywheelSteps } from "./run-population-flywheel.mjs";
 import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
 import { usableCapturesOrdered } from "../../src/lib/forward-events/read-and-extract.mjs";
@@ -358,6 +365,7 @@ export const APPLY_STEP_ORDER = Object.freeze([
   "section",
   "ground",
   "grow",
+  "terms",
   "structured-actions",
   "lineage",
   "discovery",
@@ -626,11 +634,27 @@ export async function previewEntryCitations({ itemId, entry }, { sb, deps = {} }
  *   generateBriefFromInjected:Function, sectionBrief:Function, groundBrief:Function, growSources:Function,
  *   recordFlywheelDefect:Function, runDiscoveryStep:Function, runForwardEventsStep:Function,
  *   syncComplianceDeadlineForItem:Function, importLinkItemEntities:Function, recordItemChange:Function,
- *   linkItems:Function
+ *   linkItems:Function, recordBriefTerms:Function, termWriters:object, readItemSourceId:Function
  * }>}} ctx `batchId` (D29, defect-fix-plan-2026-09-12): the record-briefs file's own `batch` field,
  *   threaded through to groundBrief's `opts.batchId` (recorded on every replace-ledger archive's `note`).
  * @returns {Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array<{id:string,outcome:string,error:string|null}>}>}
  */
+/** The guarded writers recordBriefTerms needs (rule 015: every write goes through scripts/lib/db.mjs). */
+export const TERMS_CITE = Object.freeze({
+  skill: "buildout-plan-2026-10-04",
+  reason:
+    "G5-TERMS: apply-record-briefs writes vocabulary_mentions (detector brief-terms) for the mentioned_terms a session brief author emitted, and inserts a not-yet-held term as proposed. Counting and adoption are scripts/connections/term-recurrence.mjs.",
+});
+export function buildTermWriters() {
+  return {
+    readTerms: (termKeys) =>
+      // Chunked by-id read (F39): the keys are filtered through readAllByIds, never one runtime-sized .in().
+      readAllByIds("vocabulary_terms", "id, kind, term_key, status", termKeys, { idColumn: "term_key", orderBy: "id" }),
+    insertTerms: (rows) => guardedInsertMany("vocabulary_terms", rows, { cite: TERMS_CITE, select: "id, kind, term_key" }),
+    upsertMentions: (rows) => guardedUpsert("vocabulary_mentions", rows, { onConflict: "term_id,item_id,detector", cite: TERMS_CITE }),
+  };
+}
+
 export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite, batch = "unbatched", batchId = null, deps = {} }) {
   const needsPipeline = !(deps.generateBriefFromInjected && deps.sectionBrief && deps.groundBrief && deps.growSources);
   const pipeline = needsPipeline ? await loadPipeline() : null;
@@ -768,6 +792,29 @@ export async function applyOneEntry({ itemId, entry }, { sb, allowBriefOverwrite
     record("grow", r.ok ? "grown" : "grow_failed", r.ok ? null : r.detail);
   } catch (e) {
     record("grow", "grow_failed", e instanceof Error ? e.message : String(e));
+  }
+
+  // 4a. terms (lane G5-TERMS, 2026-10-06): detector 5 of the recurrence counter. Nothing to read or write when
+  //    the author emitted no mentioned_terms (the common case), so a plain entry costs no database call.
+  try {
+    const mentioned = entry.metadata?.mentioned_terms;
+    if (!Array.isArray(mentioned) || mentioned.length === 0) {
+      record("terms", "terms:0");
+    } else {
+      const readSourceId = deps.readItemSourceId
+        ?? (async () => {
+          const { data, error } = await sb.from("intelligence_items").select("source_id").eq("id", itemId).single();
+          if (error) throw new Error(`intelligence_items source_id read failed: ${error.message}`);
+          return data?.source_id ?? null;
+        });
+      const sourceId = await readSourceId();
+      const doRecordTerms = deps.recordBriefTerms ?? recordBriefTerms;
+      const writers = deps.termWriters ?? buildTermWriters();
+      const r = await doRecordTerms({ itemId, sourceId, terms: mentioned, now: new Date().toISOString() }, writers);
+      record("terms", `terms:${r.mentions_written} (new_terms:${r.terms_inserted} retired_skipped:${r.skipped_retired})`);
+    }
+  } catch (e) {
+    record("terms", "terms_failed", e instanceof Error ? e.message : String(e));
   }
 
   // 4b. structured-actions (lane STRUCTURED-ACTIONS, 2026-09-28; coordinator ruling: the destination is

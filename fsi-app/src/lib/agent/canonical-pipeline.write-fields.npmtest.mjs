@@ -182,3 +182,24 @@ test("writeSynthesizedBrief: a non-null why_matters and non-empty key_data DO pa
   assert.equal(payload.why_matters, "Tightens the Q1 filing window for importers.");
   assert.deepEqual(payload.key_data, ["Phase-in begins 2026-01-01"]);
 });
+
+// ── G5-TERMS (2026-10-06, migration 355): the compliance-object capture is part of the ONE update ──────────
+test("writeSynthesizedBrief: compliance_object_candidates (the values parse-output.ts used to drop) land in the ONE update payload", async () => {
+  const sb = fakeClient();
+  const md = baseMetadata({ compliance_object_tags: ["shipper"], compliance_object_candidates: ["charterer", "ship-agent"] });
+
+  const result = await writeSynthesizedBrief(sb, ITEM, "x".repeat(650), md, null, 1);
+
+  assert.equal(result.ok, true);
+  assert.equal(sb.calls.updates.length, 1);
+  assert.deepEqual(sb.calls.updates[0].compliance_object_candidates, ["charterer", "ship-agent"]);
+  assert.deepEqual(sb.calls.updates[0].compliance_object_tags, ["shipper"]);
+});
+
+test("writeSynthesizedBrief: a regeneration with no candidate writes [] (clears a stale one), never omits the key", async () => {
+  const sb = fakeClient();
+  await writeSynthesizedBrief(sb, ITEM, "x".repeat(650), baseMetadata(), null, 1); // baseMetadata carries no candidates field
+
+  assert.ok("compliance_object_candidates" in sb.calls.updates[0]);
+  assert.deepEqual(sb.calls.updates[0].compliance_object_candidates, []);
+});

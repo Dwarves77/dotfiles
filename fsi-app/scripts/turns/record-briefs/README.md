@@ -501,12 +501,28 @@ at validation time exactly as it would at the real write site.
 A lane-authored `compliance_object_tags` value that is not in `parseAgentOutput`'s closed vocabulary
 (`COMPLIANCE_OBJECT_VALUES`, `src/lib/agent/parse-output.ts`) does NOT fail validation and does NOT appear
 in the offending entry's error list. `parseAgentOutput` filters the parsed array down to vocabulary values
-only (capping at 4) and silently drops anything else -- the same leniency it applies to a model-generated
-brief, so a batch that would pass through the real write site behaves identically here: one hallucinated
+only (capping at 4); since lane G5-TERMS (migration 355) the other values are no longer lost: they are
+captured in `compliance_object_candidates` (distinct, at most 8, each at most 80 characters) and written to
+`intelligence_items.compliance_object_candidates` for the term recurrence counter -- the same leniency it
+applies to a model-generated brief, so a batch that would pass through the real write site behaves identically here: one hallucinated
 or misspelled tag costs an intersection-detection hint, never the whole entry. A lane that needs every one
 of its tags to land should check its own output against the live vocabulary before writing the batch --
 this validator (`validateRecordBriefsEntry`) has no separate check for this, by design, since inventing one
 here would make an entry pass or fail on a rule the real write site does not enforce.
+
+## `metadata.mentioned_terms` (optional, lane G5-TERMS, 2026-10-06)
+
+A lane may add `mentioned_terms` to an entry's `metadata`: an array of `{ "kind": "material" | "term" |
+"standard", "text": "..." }` naming materials, general terms and standards the brief mentions that no code
+vocabulary holds. At most 25 entries, each `text` non-empty and at most 120 characters; a repeat of the same
+kind and text (after lower-casing and collapsing spaces) is ignored. Absent, `null` or `[]` means none.
+`buildSyntheticFrontmatter` writes it as one inline JSON line, and the real `parseAgentOutput` validates it
+through the one shared validator in `src/lib/connections/term-recurrence.mjs`, so a bad kind, a non-array or an
+over-long text fails the entry naming `mentioned_terms`. `apply-record-briefs.mjs` writes one
+`vocabulary_mentions` row per term (detector `brief-terms`) in its `terms` step and inserts a term not yet held
+as `proposed`; `scripts/connections/term-recurrence.mjs` counts the mentions across items and sources and adopts
+a term by rule. Name only what the brief actually mentions: a mention is evidence, never a claim, and it does
+not need a source span. `RECORD_BRIEFS_SCHEMA_VERSION` rb1-2026-10-06.1 introduced the field.
 
 ## Why a hand-written validator, not a JSON-Schema library
 

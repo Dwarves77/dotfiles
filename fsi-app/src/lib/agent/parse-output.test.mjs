@@ -197,3 +197,40 @@ test("ledger: an opener that never closed (output cut off mid-ledger) is removed
   assert.ok(!out.body.includes("cut off"));
   assert.match(out.body, /Last section prose/);
 });
+
+// ── G5-TERMS (2026-10-06): compliance-object capture and the optional mentioned_terms array ───────────────
+test("compliance_object_tags: an out-of-vocabulary value is CAPTURED in compliance_object_candidates, not silently dropped", () => {
+  const { metadata } = parseAgentOutput(buildOutput({ compliance_object_tags: "[shipper, charterer, Ship-Agent, charterer]" }));
+  assert.deepEqual(metadata.compliance_object_tags, ["shipper"]);
+  assert.deepEqual(metadata.compliance_object_candidates, ["charterer", "Ship-Agent"]);
+});
+
+test("compliance_object_candidates: empty when every tag is in the closed vocabulary or none was emitted", () => {
+  assert.deepEqual(parseAgentOutput(buildOutput({ compliance_object_tags: "[shipper, importer]" })).metadata.compliance_object_candidates, []);
+  assert.deepEqual(parseAgentOutput(buildOutput()).metadata.compliance_object_candidates, []);
+});
+
+test("compliance_object_candidates: capped at 8 distinct values of at most 80 characters", () => {
+  const many = Array.from({ length: 12 }, (_, i) => `role-${i}`).join(", ");
+  const { metadata } = parseAgentOutput(buildOutput({ compliance_object_tags: `[${many}, ${"x".repeat(81)}]` }));
+  assert.equal(metadata.compliance_object_candidates.length, 8);
+  assert.ok(metadata.compliance_object_candidates.every((c) => c.length <= 80));
+});
+
+test("mentioned_terms: a valid inline JSON array parses; absent or null yields []", () => {
+  const mt = '[{"kind":"material","text":"Lithium iron phosphate"},{"kind":"term","text":"Book and claim"},{"kind":"standard","text":"ISO 14083"}]';
+  const { metadata } = parseAgentOutput(buildOutput({ mentioned_terms: mt }));
+  assert.deepEqual(metadata.mentioned_terms, [
+    { kind: "material", text: "Lithium iron phosphate" },
+    { kind: "term", text: "Book and claim" },
+    { kind: "standard", text: "ISO 14083" },
+  ]);
+  assert.deepEqual(parseAgentOutput(buildOutput()).metadata.mentioned_terms, []);
+  assert.deepEqual(parseAgentOutput(buildOutput({ mentioned_terms: "null" })).metadata.mentioned_terms, []);
+});
+
+test("mentioned_terms: a bad kind, a non-array and malformed JSON each throw AgentOutputParseError", () => {
+  assert.throws(() => parseAgentOutput(buildOutput({ mentioned_terms: '[{"kind":"theme","text":"x"}]' })), AgentOutputParseError);
+  assert.throws(() => parseAgentOutput(buildOutput({ mentioned_terms: '{"kind":"term","text":"x"}' })), AgentOutputParseError);
+  assert.throws(() => parseAgentOutput(buildOutput({ mentioned_terms: "[{not json" })), AgentOutputParseError);
+});

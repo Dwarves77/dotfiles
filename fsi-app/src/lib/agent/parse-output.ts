@@ -12,6 +12,8 @@
 
 import { DB_THEME_VALUE_LIST } from "./metadata-vocab.ts";
 import { stripClaimLedgerBlocks } from "./claim-ledger-block.ts";
+// G5-TERMS (2026-10-06): the ONE validator for the optional `mentioned_terms` array (kind vocabulary, caps).
+import { validateMentionedTerms } from "../connections/term-recurrence.mjs";
 
 const SEVERITY_VALUES = [
   "ACTION REQUIRED",
@@ -109,6 +111,16 @@ export interface RequirementTrajectoryJSON {
   note?: string;
 }
 
+/**
+ * G5-TERMS (2026-10-06): one entry of the optional `mentioned_terms` array a session brief author emits: a
+ * material, general term or standard the brief mentions that no code vocabulary holds. Counted across items
+ * by scripts/connections/term-recurrence.mjs (detector brief-terms); never a customer-facing field.
+ */
+export interface MentionedTerm {
+  kind: "material" | "term" | "standard";
+  text: string;
+}
+
 export interface AgentMetadata {
   severity: typeof SEVERITY_VALUES[number];
   priority: typeof PRIORITY_VALUES[number];
@@ -157,6 +169,15 @@ export interface AgentMetadata {
   cross_references: string | null;
   operational_scenario_tags: string[];
   compliance_object_tags: typeof COMPLIANCE_OBJECT_VALUES[number][];
+  /**
+   * G5-TERMS (2026-10-06, migration 355): the compliance-object values the agent emitted that matched none of
+   * the closed list. They used to be dropped without a trace; they are now BANKED (capture-not-null, the
+   * theme_candidate idiom of migration 136) so the recurrence counter can see a role the system does not hold.
+   * Distinct, at most 8, each at most 80 characters. Advisory, never grounds a claim.
+   */
+  compliance_object_candidates: string[];
+  /** G5-TERMS: optional, [] when absent. See MentionedTerm. */
+  mentioned_terms: MentionedTerm[];
   related_items: string[];
   intersection_summary: string | null;
   sources_used: string[];
@@ -529,6 +550,13 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   const compObjTags: string[] = compObjRawTags
     .filter((tag) => (COMPLIANCE_OBJECT_VALUES as readonly string[]).includes(tag))
     .slice(0, 4);
+  // G5-TERMS: what the filter above would have lost, captured instead. A value the closed list does not hold is
+  // a CANDIDATE (distinct, capped, bounded length); an in-vocabulary overflow past 4 is not a candidate.
+  const compObjCandidates: string[] = [
+    ...new Set(
+      compObjRawTags.filter((tag) => !(COMPLIANCE_OBJECT_VALUES as readonly string[]).includes(tag) && tag.length <= 80),
+    ),
+  ].slice(0, 8);
 
   // Parse related_items (UUID array, may be empty)
   const relRaw = fields.related_items.trim();
@@ -693,6 +721,25 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     };
   }
 
+  // G5-TERMS (2026-10-06): mentioned_terms is OPTIONAL, the same not-in-required[] posture as
+  // requirement_trajectory. Inline JSON array of { kind: material|term|standard, text }; validated by the ONE
+  // shared validator (term-recurrence.mjs) so the record-briefs schema, this parser and the apply path agree.
+  let mentionedTerms: MentionedTerm[] = [];
+  const mentionedRaw = fields.mentioned_terms;
+  if (mentionedRaw !== undefined && mentionedRaw.trim() !== "" && mentionedRaw.trim().toLowerCase() !== "null") {
+    let parsedTerms: unknown;
+    try {
+      parsedTerms = JSON.parse(mentionedRaw);
+    } catch (e) {
+      throw new AgentOutputParseError(`mentioned_terms must be an inline JSON array when present: ${(e as Error).message}`);
+    }
+    const checked = validateMentionedTerms(parsedTerms);
+    if (checked.errors.length > 0) {
+      throw new AgentOutputParseError(checked.errors.join("; "));
+    }
+    mentionedTerms = checked.terms as MentionedTerm[];
+  }
+
   // Sprint 3 R-A + M-A callout fields (migration 110, 2026-05-27).
   // OPTIONAL — agents are not required to emit them. Each field is a
   // single-line short string (~50-200 chars) that the renderer drops
@@ -770,6 +817,8 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     key_data: keyData,
     operational_scenario_tags: opScenTags,
     compliance_object_tags: compObjTags as AgentMetadata["compliance_object_tags"],
+    compliance_object_candidates: compObjCandidates,
+    mentioned_terms: mentionedTerms,
     related_items: relatedItems,
     intersection_summary: interSum,
     sources_used: sourcesUsed,
