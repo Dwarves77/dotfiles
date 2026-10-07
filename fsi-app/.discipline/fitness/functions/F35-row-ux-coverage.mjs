@@ -102,7 +102,7 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/ui/ItemGroup.tsx': 'panel-21c-smoke.mjs, the ItemGroup sign-off measurement (lane w10-factcard-d)',
   // lane S3-B (2026-10-05): the shared cross-page analysis rows (intersection rows, theme member rows) and the
   // themes strip cards; cross-page-smoke.mjs mounts both real components at 375 and 1280.
-  'src/components/detail/CrossPageSection.tsx': 'cross-page-smoke.mjs, the Across pages section on all four detail pages (lane S3-B)',
+  'src/components/detail/CrossPageSection.tsx': 'cross-page-smoke.mjs, the Connected intelligence section on all four detail pages (lane S3-B)',
   'src/components/shell/ThemeStripView.tsx': 'cross-page-smoke.mjs, the themes strip cards on all four list pages (lane S3-B)',
   // lane P2 (2026-10-05): the shared Inferences section on all four detail pages; inference-section-smoke.mjs mounts it at 375 and 1280.
   'src/components/detail/InferenceSection.tsx': 'inference-section-smoke.mjs, the Inferences section on all four detail pages (lane P2)',

@@ -376,7 +376,7 @@ export function DashboardBrief({
             {crossPageThemes.length > 0 && (
               <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--line-3)" }}>
                 <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 4px" }}>
-                  Themes across pages
+                  Connected across pages
                 </p>
                 {crossPageThemes.map((t) => (
                   <Link

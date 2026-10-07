@@ -48,7 +48,8 @@ export interface InferenceSectionData {
   titles: Record<string, string>;
 }
 
-function asClaim(v: InferenceSectionClaim) {
+/** The InferenceClaim shape of a section claim; the one conversion, also read by the index presence check. */
+export function inferenceClaimOf(v: InferenceSectionClaim) {
   return {
     claimText: v.claimText,
     statusToken: v.statusToken as InferenceStatusToken,
@@ -58,12 +59,12 @@ function asClaim(v: InferenceSectionClaim) {
   };
 }
 
-export function InferenceSection({ inferences }: { inferences?: InferenceSectionData | null }) {
+export function InferenceSection({ inferences, index }: { inferences?: InferenceSectionData | null; index?: number | null }) {
   const titles = inferences?.titles ?? {};
-  const visible = pickVisibleInferences(inferences?.claims ?? [], (v) => admissibleForInference(asClaim(v), "display").ok);
+  const visible = pickVisibleInferences(inferences?.claims ?? [], (v) => admissibleForInference(inferenceClaimOf(v), "display").ok);
   if (visible.length === 0) return null;
   return (
-    <DetailSection id="inferences" title="Inferences" aside="Machine-written, not facts">
+    <DetailSection id="inferences" title="Inferences" aside="Machine-written, not facts" index={index}>
       <div data-guard-container="inferences">
         <StateNote>
           These are inferences, not facts. Each one shows its status, its confidence and the items it is drawn from.
@@ -85,7 +86,7 @@ export function InferenceSection({ inferences }: { inferences?: InferenceSection
                 Question: {v.questionText}
               </p>
             )}
-            <InferenceClaim claim={asClaim(v)} use="display" resolveCitationTitle={(id) => titles[id] ?? null} />
+            <InferenceClaim claim={inferenceClaimOf(v)} use="display" resolveCitationTitle={(id) => titles[id] ?? null} />
           </div>
         ))}
       </div>
