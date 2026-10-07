@@ -74,16 +74,19 @@ Each stage reuses existing mechanisms. Every lane is fixture-proven and dry by d
 ### Stage 5: growth
 - Repeated mentions of an entity, material, theme or term the system does not hold raise a proposal,
   adopt past a threshold, and become a source search target.
+- BUILT 2026-10-07 (fixture-proven, dry; migrations 355 and 357 applied): repeated unknown mentions counted, proposed and adopted PR 959 (G5-TERMS); adopted terms and lineage gaps become source search targets, walker runs them PR 964 (G5-NEED); adopted vocabulary read by every vocabulary reader PR 965 (G5-READ). G5-SEARCH open.
 
 ### Stage 6: remaining gates removed
 - The three ruling-file queues decide by rule or lane verdict.
 - Acceptance tokens come off the maintenance steps.
 - The scheduled drain session is built with its kill switch, off.
+- BUILT 2026-10-06 (fixture-proven, dry; migration 354 applied, drain off): queues decide by rule, acceptance tokens off maintenance steps PR 956 (G6-GATES); judgement drain planner, kill switch and merge-push apply triggers PR 958 (G6-DRAIN).
 
 ### Stage 7: admin override
 - Every automatic tier writer respects the tier override.
 - A correction layer for item data (fact, tag, connection, brief text), applied over the machine value,
   preserved through re-runs, with an audit trail and an admin screen.
+- BUILT 2026-10-06 (fixture-proven, dry; migration 356 applied): tier writers respect the override PR 955 (G7-TIER); item data corrections PR 957 (G7-CORR); admin Corrections panel, item page and dashboard tab PR 962 (G7-UI).
 
 ### Stage 8: workspace and pages
 - Notes at the bottom of any item, private per workspace; multi-person assignment with notification; tag
@@ -103,3 +106,5 @@ Each stage reuses existing mechanisms. Every lane is fixture-proven and dry by d
 - `regional_data_facts` and `estimated_values` have no consumer after ADR-043.
 - The rendering audit generator fails on master with DetailShell import errors.
 - Owed items from the Stage 4 and source-chain lanes: see PROGRAM-BOARD 2026-10-06 resume pointer.
+- Chain dry fire 2026-10-07 findings (every dispatch dry, 13 of 13 hops fire at run level): chained Population turn and chained Downstream chain are NO-OP (forced dry, no work), so mint, term, obligation and propagation steps are unexercised through the chain (lane CHAIN-1); Brief apply, Theme briefs apply and Question answers apply dispatches skip their driver steps because they gate on `PUSH_BATCH_COUNT`, set only on a push (CHAIN-1); the harness exporter maps 6 of 13 hops to evidence rows; Maintenance step=all and Uptime probes ran red (lane OPS-1). See PROGRAM-BOARD 2026-10-07 resume pointer.
+- Verdict re-authoring: all 386 committed ledger-consume verdicts (30 + 356) carry a prompt_version other than the live one, so the ledger consume plan promotes nothing until they are re-authored against the live prompt_version.
