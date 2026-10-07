@@ -116,8 +116,8 @@ test("the empty-segment colour is the globals.css token for #E5E1DB, never a raw
   assert.doesNotMatch(code, /#E5E1DB/i);
 });
 
-test("ROW_VALUE_VISIBLE is the one-line flip: off in the list row, valueVisible draws N/12 8 px right", () => {
-  assert.equal(mod.ROW_VALUE_VISIBLE, false);
+test("the row variant has no visible value by default; valueVisible draws N/12 8 px right", () => {
+  assert.equal(mod.ROW_VALUE_VISIBLE, undefined);
   const hidden = render({ total: 8 });
   assert.doesNotMatch(hidden, /\/12<\/span>/);
   assert.match(hidden, /aria-label="Impact 8 of 12"/);

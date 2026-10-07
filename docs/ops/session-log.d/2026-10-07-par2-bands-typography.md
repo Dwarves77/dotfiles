@@ -19,6 +19,8 @@ Claude Design look rulings on artboard 22 (rulings A, B, C of the lane brief). T
 
 - `parity-checks-smoke.mjs` check 1 (item groups render band-tinted) failed against the white ItemGroup header; its measure now accepts the 3px band rule on the shared header as the group carrying its band (the ACTION strip tint check is unchanged). Disclosed as a spec edit outside the literal grant, forced by the ItemGroup ruling.
 
+- ImpactMeter (coordinator addition, write-set expansion for ImpactMeter.tsx and its tests): `ROW_VALUE_VISIBLE` and its comment are removed; `valueVisible` defaults to false, so the row variant renders the segments and the accessible label only. The legend and detail rail still pass `valueVisible`. `ImpactMeter.npmtest.mjs` now asserts the constant is gone; the impact-meter smoke message no longer names it.
+
 ### Decisions
 - The 2px rule colour (`--line-1`) and the 12px/800/.08em label for 02.x sub-sections are my choices, kept per the coordinator; recorded below as a question for Claude Design.
 - Band colour on white at 18px Anton is used as ruled; contrast of the awareness green on white was not measured here.
@@ -30,6 +32,7 @@ Claude Design look rulings on artboard 22 (rulings A, B, C of the lane brief). T
 ### DESIGN CHANGES OWED (question for Claude Design)
 - Artboard 22 is absent from the committed handoff file, so no frame was read. Please add it.
 - 02.x sub-section label: what rule colour and label size does the artboard draw? Built as a 2px `--line-1` rule and a 12px/800/.08em uppercase label.
+- Impact meter in the list row: 84px of segments plus an 8px gap plus about 20px of "N/12" does not fit the 88px impact slot, so the row shows no visible value. Which figure gives (segments, slot or value)?
 - Band tile min-height is still 112px; with a one line label the tile has empty space above the rule. Ruling B states no height.
 - The "stated coupling" callout on Connected intelligence keeps its band tint per ruling A, owed pending a client boundary decision (see NOT done).
 
