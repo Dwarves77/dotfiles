@@ -400,7 +400,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
 export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
   return (
     <RailCard title="Impact assessment" dataAudit="impact-assessment-rail">
-      <ImpactMeter scores={scores} />
+      <ImpactMeter scores={scores} valueVisible />
     </RailCard>
   );
 }

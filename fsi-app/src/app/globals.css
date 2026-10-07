@@ -515,7 +515,7 @@ body {
    re-declaring its own @media block. MarketSignalDetailSurface.tsx (src/components/pages/, outside
    this lane's write set) is NOT wired to this variable — see this lane's REPORT, "NEEDS WRITE-SET
    EXPANSION". */
-:root { --cl-detail-pad-x: 36px; }
+:root { --cl-detail-pad-x: 36px; --cl-impact-track: #E5E1DB; /* unfilled ImpactMeter segment, Claude Design 2026-10-07 */ }
 @media (max-width: 767px) {
   :root { --cl-detail-pad-x: 16px; }
 }

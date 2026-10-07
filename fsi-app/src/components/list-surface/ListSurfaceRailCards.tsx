@@ -554,7 +554,7 @@ export function LegendRailCard() {
               all, only prose describing the OLD per-dimension model (parts inventory finding: "no
               legend anywhere mounts a live meter instance"). This mounts the real component. */}
           <dd style={{ margin: "4px 0 0" }}>
-            <ImpactMeter total={8} />
+            <ImpactMeter total={8} valueVisible />
           </dd>
         </div>
         <div>
