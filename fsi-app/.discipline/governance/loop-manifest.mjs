@@ -153,6 +153,19 @@ export function producerFamilyOf(hop, hops = LOOP_HOPS) {
 const asText = (v) => (v === null || v === undefined ? null : String(v));
 
 /**
+ * Whether an evidence row or entry counts as a firing of `hop`. PURE. A trigger in FIRED_TRIGGERS always does.
+ * A hop that declares `dispatchFallback: true` in its hop file (the F60 explicit-dispatch workaround: GitHub's
+ * 3-level workflow_run limit means the real event is a machine-fired workflow_dispatch, recorded honestly as
+ * such) also counts a `workflow_dispatch` row that carries a non-null `upstream_run_id`: nothing but the
+ * producer's own dispatch step passes one, so a hand dispatch (no upstream id) never counts.
+ * @param {{trigger?: string, upstream_run_id?: unknown}} row @param {object} hop
+ */
+export function isFiredEvidence(row, hop) {
+  if (FIRED_TRIGGERS.includes(row?.trigger)) return true;
+  return row?.trigger === 'workflow_dispatch' && hop?.dispatchFallback === true && asText(row?.upstream_run_id) !== null;
+}
+
+/**
  * Map `harness_runs` rows onto loop hops. PURE. A row is fired evidence when its trigger is in FIRED_TRIGGERS
  * and its family is a hop's family. When one family serves several hops, the hop is the one whose producer
  * family has a row whose github_run_id equals this row's upstream_run_id; a row that cannot be placed on
@@ -166,11 +179,11 @@ export function mapRowsToHops(rows, hops = LOOP_HOPS) {
   const byHop = new Map();
   const unmapped = [];
   for (const row of list) {
-    if (!FIRED_TRIGGERS.includes(row?.trigger)) continue;
-    const candidates = hops.filter((h) => h.family && h.family === row.harness_family);
-    if (candidates.length === 0) continue; // a family no hop names: not a loop firing
+    if (!FIRED_TRIGGERS.includes(row?.trigger) && row?.trigger !== 'workflow_dispatch') continue;
+    const candidates = hops.filter((h) => h.family && h.family === row.harness_family && isFiredEvidence(row, h));
+    if (candidates.length === 0) continue; // a family no hop names, or a plain dispatch: not a loop firing
     let hop = null;
-    if (candidates.length === 1) {
+    if (candidates.length === 1 && FIRED_TRIGGERS.includes(row.trigger)) {
       hop = candidates[0];
     } else {
       const upstream = asText(row.upstream_run_id);

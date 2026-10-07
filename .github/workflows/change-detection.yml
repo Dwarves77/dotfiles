@@ -112,27 +112,6 @@ jobs:
           echo "check_limit  = ${{ inputs.check_limit }}"
           echo "skip_check   = ${{ inputs.skip_check }}"
 
-      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
-      # Same guard source-sweep.yml carries: claimRunId (scripts/lib/run-artifact.mjs) numbers the next
-      # artifact from the files it can see in the checked-out tree (master); artifacts land through a PR,
-      # so a run dispatched before a previous run's PR merged would otherwise see a stale count and claim
-      # the same run_id as an unmerged sibling branch.
-      - name: Hydrate unmerged change-detection artifacts from sibling branches (run_id collision guard)
-        run: |
-          git fetch --no-tags origin '+refs/heads/change-detection/*:refs/remotes/origin/change-detection/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/change-detection/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/change-detection/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-artifacts.txt
-              fi
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged change-detection file(s) from sibling branches"
-
       - name: run-change-detection.mjs
         run: |
           args=(--mode "${{ inputs.mode }}")
@@ -145,10 +124,9 @@ jobs:
       # source-sweep.yml apply to their own families. A dispatch normally runs against master, which is
       # typically branch-protected, so this lands on its own branch and opens a PR rather than pushing
       # straight to whatever ref triggered the run.
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
       - name: Land the change-detection harness-run artifact into harness_runs

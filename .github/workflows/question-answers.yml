@@ -129,6 +129,23 @@ jobs:
             exit 1
           fi
 
+      # RUN_DRIVER (lane CHAIN-1, 2026-10-07, chain-fire-2026-10-06 finding F1): the apply step used to gate on
+      # `env.PUSH_BATCH_COUNT != '0'`, a variable only a push sets; on a dispatch it is unset, GitHub coerces null
+      # and '0' to the same number, and an action=apply dispatch with a real answers_file skipped the driver and
+      # finished green. Computed for both paths: a push runs it when the merge added a batch, a dispatch when it
+      # names a file.
+      - name: Resolve RUN_DRIVER (a push that added a batch, or a dispatch that names a file)
+        env:
+          RUN_EVENT: ${{ github.event_name }}
+        run: |
+          RUN_DRIVER=false
+          if [ "$RUN_EVENT" = "push" ]; then
+            if [ "${PUSH_BATCH_COUNT:-0}" != "0" ]; then RUN_DRIVER=true; fi
+          elif [ -n "$RUN_ANSWERS_FILE" ]; then
+            RUN_DRIVER=true
+          fi
+          echo "RUN_DRIVER=$RUN_DRIVER" >> "$GITHUB_ENV"
+
       - name: Export open questions holdings could answer
         if: env.RUN_ACTION == 'export'
         run: |
@@ -136,7 +153,7 @@ jobs:
           node scripts/turns/export-questions-for-answers.mjs --out-dir "$RUNNER_TEMP/question-answers" | tee /tmp/question-answers-export.log
 
       - name: Apply the question-answers batch
-        if: ${{ env.RUN_ACTION == 'apply' && env.PUSH_BATCH_COUNT != '0' }}
+        if: ${{ env.RUN_ACTION == 'apply' && env.RUN_DRIVER == 'true' }}
         run: |
           set -o pipefail
           FLAGS="--answers ${PUSH_BATCH_FILE:-$RUN_ANSWERS_FILE}"

@@ -150,28 +150,6 @@ jobs:
             echo "upstream Source sweep run id = ${{ github.event.workflow_run.id }} (conclusion ${{ github.event.workflow_run.conclusion }})"
           fi
 
-      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
-      # Same run_id collision guard source-sweep.yml/ledger-consume.yml carry (see either file's own
-      # comment for the incident this closes): claimRunId (scripts/lib/run-artifact.mjs) numbers the next
-      # artifact from what it can see in the checked-out tree, i.e. master, but artifacts land through a
-      # PR, so a run dispatched before a prior run's PR merged would otherwise claim the same run_id as
-      # that unmerged sibling.
-      - name: Hydrate unmerged fetch-drain artifacts from sibling branches (run_id collision guard)
-        run: |
-          git fetch --no-tags origin '+refs/heads/fetch-drain/*:refs/remotes/origin/fetch-drain/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/fetch-drain/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/fetch-drain/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-artifacts.txt
-              fi
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged fetch-drain file(s) from sibling branches"
-
       - name: run-fetch-drain.mjs
         env:
           # This file's own header: the loop-manifest field M9a adds; this workflow only supplies the
@@ -185,10 +163,9 @@ jobs:
       # and ledger-consume.yml apply to their own families. A run normally executes against master, which
       # is typically branch-protected, so this lands on its own branch and opens a PR rather than pushing
       # straight to whatever ref triggered the run.
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
       - name: Land the fetch-drain harness-run artifact into harness_runs

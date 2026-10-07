@@ -147,7 +147,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+          # --requested-mode (lane CHAIN-1, 2026-10-07, finding F5): the REAL requested mode, not a hardcoded apply.
+          # A hand dispatch asks for inputs.mode; a chained firing has no inputs and asks for the apply default the
+          # resolve step below uses, which the guard forces to dry while build mode is live.
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${{ inputs.mode || 'apply' }}" >> "$GITHUB_ENV"
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained gate (workflow_run)
       # into a single RUN_* vocabulary every later step reads — see this file's own header. ALWAYS runs
@@ -163,6 +166,7 @@ jobs:
           RUN_SKIP=false
           RUN_SKIP_REASON=""
           RUN_TRIGGER_CONTEXT=""
+          RUN_UPSTREAM_LOOP_RUN_ID=""
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
             RUN_MODE="${{ inputs.mode }}"
@@ -171,8 +175,7 @@ jobs:
             UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
             UPSTREAM_RUN_ID="${{ github.event.workflow_run.id }}"
             UPSTREAM_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-            UPSTREAM_HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
-            echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION, head_branch=$UPSTREAM_HEAD_BRANCH"
+            echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION"
 
             # RUN_MODE (rule 16, lane CHAINED-DRY-GUARD, 2026-09-29): "apply" is the chained default,
             # forced to "dry" by the CHAINED_FORCED_DRY guard step above whenever build mode
@@ -186,68 +189,25 @@ jobs:
               RUN_SKIP=true
               RUN_SKIP_REASON="upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success — no-op, nothing to chain from."
             else
-              # Find the upstream run's own artifact branch. population-turn.yml always names it
-              # population/<run_id>. corpus-turn.yml names it turn/<run_id> for a workflow_dispatch run,
-              # or — for a push-triggered run — the SAME branch the coordinator pushed (workflow_run's own
-              # head_branch already IS that branch for a push event; it is "master" or whatever ref was
-              # picked for a workflow_dispatch run, which is why turn/<run_id> is tried FIRST).
-              CANDIDATES=""
-              if [ "$UPSTREAM_NAME" = "Population turn" ]; then
-                CANDIDATES="population/$UPSTREAM_RUN_ID"
-                FAMILY_DIR="fsi-app/scripts/harness-runs/mint"
-              else
-                CANDIDATES="turn/$UPSTREAM_RUN_ID $UPSTREAM_HEAD_BRANCH"
-                FAMILY_DIR="fsi-app/scripts/harness-runs/corpus-turn"
-              fi
-
-              FOUND_BRANCH=""
-              for CAND in $CANDIDATES; do
-                git fetch --no-tags --depth=1 origin "+refs/heads/$CAND:refs/remotes/origin/$CAND" 2>/dev/null || true
-                if git rev-parse --verify --quiet "refs/remotes/origin/$CAND" >/dev/null; then
-                  FOUND_BRANCH="$CAND"
-                  break
-                fi
-              done
-
-              if [ -z "$FOUND_BRANCH" ]; then
+              # THE HAND-OFF (lane CHAIN-1, 2026-10-07, chain-fire-2026-10-06 finding F2): read the upstream's
+              # harness_runs row (Population turn -> family mint, Corpus turn -> family corpus-turn, both landed by
+              # deliver-artifact-branch.sh) through the one reader, scripts/lib/upstream-artifact.mjs, and apply the
+              # gate for this run's mode. This file used to look for a population/<run_id> or turn/<run_id> git
+              # branch, or a new committed artifact on master, and nothing pushes either any more, so a chained
+              # Downstream chain ended as a 0-step NO-OP on every firing. In a dry run (build mode forces every
+              # chained firing dry) the row only has to exist and not be a no-op, and the four derivations then
+              # run their real steps dry; in an apply run the row must show real work (population minted > 0, or
+              # corpus-turn tickets_selected > 0). A read failure fails this step, it is never read as "nothing
+              # upstream".
+              HANDOFF="$(node scripts/lib/upstream-artifact.mjs read --consumer downstream-chain --upstream-name "$UPSTREAM_NAME" --upstream-run-id "$UPSTREAM_RUN_ID" --run-mode "$RUN_MODE")"
+              HANDOFF_SKIP="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP=//p')"
+              HANDOFF_REASON="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP_REASON=//p')"
+              echo "upstream hand-off: skip=$HANDOFF_SKIP row=$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_ROW_ID=//p')"
+              # The loop id comes from the upstream row (ADR-031; a CI checkout holds no upstream artifact file).
+              RUN_UPSTREAM_LOOP_RUN_ID="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p')"
+              if [ "$HANDOFF_SKIP" != "false" ]; then
                 RUN_SKIP=true
-                RUN_SKIP_REASON="no artifact branch found on origin for $UPSTREAM_NAME run $UPSTREAM_RUN_ID (tried: $CANDIDATES) — that run's own commit step found nothing new to push, or the branch already merged — no-op, nothing to chain from."
-              else
-                NEW_ARTIFACT=""
-                for f in $(git ls-tree -r --full-tree --name-only "refs/remotes/origin/$FOUND_BRANCH" -- "$FAMILY_DIR/"); do
-                  rel="${f#fsi-app/}"
-                  if [ ! -e "$rel" ]; then
-                    NEW_ARTIFACT="$f"
-                    break
-                  fi
-                done
-                if [ -z "$NEW_ARTIFACT" ]; then
-                  RUN_SKIP=true
-                  RUN_SKIP_REASON="$FOUND_BRANCH carries no new $FAMILY_DIR artifact this checkout doesn't already have — no-op, nothing to chain from."
-                elif ! git show "refs/remotes/origin/$FOUND_BRANCH:$NEW_ARTIFACT" > /tmp/upstream-artifact.json 2>/dev/null; then
-                  RUN_SKIP=true
-                  RUN_SKIP_REASON="could not read $NEW_ARTIFACT from $FOUND_BRANCH (transient git error) — no-op."
-                else
-                  EFFECTIVE_MODE="$(jq -r '.config.mode // ""' /tmp/upstream-artifact.json 2>/dev/null || echo '')"
-                  if [ "$UPSTREAM_NAME" = "Population turn" ]; then
-                    COUNT="$(jq -r '.metrics.minted // 0' /tmp/upstream-artifact.json 2>/dev/null || echo 0)"
-                    WANT_MODE="execute"
-                    COUNT_LABEL="minted"
-                  else
-                    COUNT="$(jq -r '.metrics.tickets_selected // 0' /tmp/upstream-artifact.json 2>/dev/null || echo 0)"
-                    WANT_MODE="apply"
-                    COUNT_LABEL="tickets_selected"
-                  fi
-                  case "$COUNT" in ''|*[!0-9]*) COUNT=0 ;; esac
-                  echo "$UPSTREAM_NAME artifact = $NEW_ARTIFACT effective_mode=$EFFECTIVE_MODE $COUNT_LABEL=$COUNT"
-                  if [ "$EFFECTIVE_MODE" != "$WANT_MODE" ]; then
-                    RUN_SKIP=true
-                    RUN_SKIP_REASON="$UPSTREAM_NAME run $UPSTREAM_RUN_ID ran with effective mode=$EFFECTIVE_MODE (wanted $WANT_MODE) — a dry run, nothing new was written — no-op."
-                  elif [ "$COUNT" -le 0 ]; then
-                    RUN_SKIP=true
-                    RUN_SKIP_REASON="$UPSTREAM_NAME run $UPSTREAM_RUN_ID applied for real but $COUNT_LABEL=$COUNT — nothing new to derive from — no-op."
-                  fi
-                fi
+                RUN_SKIP_REASON="${HANDOFF_REASON:-the upstream hand-off returned no answer} - no-op, nothing to chain from."
               fi
             fi
 
@@ -261,6 +221,11 @@ jobs:
             echo "RUN_MODE=$RUN_MODE"
             echo "RUN_SKIP=$RUN_SKIP"
             echo "OUT_ROOT=$RUNNER_TEMP/downstream-chain-${{ github.run_id }}"
+            # The run id writeRunArtifact stamps as the artifact's top-level upstream_run_id (lane CHAIN-1,
+            # 2026-10-07, finding F3): without it this family's rows carried a null upstream and the loop firing
+            # evidence could not place hop 05 versus hop 06 (this family serves both). Empty on a hand dispatch.
+            echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${UPSTREAM_RUN_ID:-}"
+            echo "RUN_UPSTREAM_LOOP_RUN_ID=$RUN_UPSTREAM_LOOP_RUN_ID"
           } >> "$GITHUB_ENV"
           {
             echo "RUN_TRIGGER_CONTEXT<<__RUN_TRIGGER_CONTEXT_EOF__"
@@ -416,6 +381,7 @@ jobs:
           DC_SKIP_REASON: ${{ env.RUN_SKIP_REASON }}
           DC_STARTED_AT: ${{ env.STARTED_AT }}
           DC_OUT_ROOT: ${{ env.OUT_ROOT }}
+          DC_LOOP_RUN_ID: ${{ env.RUN_UPSTREAM_LOOP_RUN_ID }}
         run: |
           UPSTREAM_NAME=""
           UPSTREAM_RUN_ID=""

@@ -208,7 +208,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply --chained "${{ inputs.chain_upstream_run_id != '' }}" >> "$GITHUB_ENV"
+          # --requested-mode (lane CHAIN-1, 2026-10-07, finding F5): the REAL requested mode, not a hardcoded apply.
+          # A hand dispatch asks for inputs.mode (the F60 fallback passes the mode it resolved); a native
+          # workflow_run has no inputs and asks for the apply default the resolve step below uses, which the guard
+          # forces to dry while build mode is live.
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${{ inputs.mode || 'apply' }}" --chained "${{ inputs.chain_upstream_run_id != '' }}" >> "$GITHUB_ENV"
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults (workflow_run)
       # into a single RUN_* vocabulary every step below reads — see this file's own header "CHAINING"
@@ -222,6 +226,13 @@ jobs:
           RUN_SKIP=false
           RUN_SKIP_REASON=""
           RUN_TRIGGER_CONTEXT=""
+          # The upstream run's id (lane CHAIN-1, 2026-10-07, finding F3): exported below as
+          # GITHUB_EVENT_WORKFLOW_RUN_ID, which writeRunArtifact stamps as the artifact's top-level
+          # upstream_run_id. Before this, every propagation row carried a null upstream, so the loop firing
+          # evidence could not place a row on hop 07 (downstream-chain) versus hop 08 (producers); this family
+          # serves both. Empty on a hand dispatch.
+          RUN_UPSTREAM_RUN_ID=""
+          RUN_UPSTREAM_NAME=""
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
             # RUN_MODE honours the operator's own input verbatim UNLESS this dispatch was itself
@@ -253,6 +264,8 @@ jobs:
             CHAIN_UPSTREAM_NAME="${{ inputs.chain_upstream_name }}"
             CHAIN_UPSTREAM_RUN_ID="${{ inputs.chain_upstream_run_id }}"
             if [ -n "$CHAIN_UPSTREAM_NAME" ]; then
+              RUN_UPSTREAM_RUN_ID="$CHAIN_UPSTREAM_RUN_ID"
+              RUN_UPSTREAM_NAME="$CHAIN_UPSTREAM_NAME"
               RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$CHAIN_UPSTREAM_NAME" --argjson run_id "$CHAIN_UPSTREAM_RUN_ID" --arg conclusion "success" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
               echo "chain-dispatched by $CHAIN_UPSTREAM_NAME (run $CHAIN_UPSTREAM_RUN_ID) via the F60 explicit-dispatch fallback; trigger_context = $RUN_TRIGGER_CONTEXT"
             fi
@@ -262,6 +275,8 @@ jobs:
             UPSTREAM_RUN_ID="${{ github.event.workflow_run.id }}"
             UPSTREAM_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
             echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION"
+            RUN_UPSTREAM_RUN_ID="$UPSTREAM_RUN_ID"
+            RUN_UPSTREAM_NAME="$UPSTREAM_NAME"
 
             # Chained defaults: mode=apply, batch at the SAME default a hand dispatch already uses; the
             # two opt-in checkboxes stay hand-only (build plan W4.3) — a chained dispatch never ticks
@@ -305,6 +320,9 @@ jobs:
             echo "RUN_STATUTORY_ROWS_FILE=$RUN_STATUTORY_ROWS_FILE"
             echo "RUN_STATUTORY_FORCE_DRY=$RUN_STATUTORY_FORCE_DRY"
             echo "RUN_SKIP=$RUN_SKIP"
+            echo "RUN_UPSTREAM_RUN_ID=$RUN_UPSTREAM_RUN_ID"
+            echo "RUN_UPSTREAM_NAME=$RUN_UPSTREAM_NAME"
+            echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${RUN_UPSTREAM_RUN_ID:-}"
             # RUN_EVENT (lane LOOP-B-FIRING, 2026-09-28, F50/F60): the REAL github.event_name, recorded
             # honestly regardless of RUN_TRIGGER_CONTEXT's presence: a chain_upstream_name-driven
             # dispatch (F60's explicit-dispatch fallback) is a genuine workflow_dispatch event even though
@@ -327,15 +345,16 @@ jobs:
             echo "propagation-drain proceeding: mode=$RUN_MODE batch=$RUN_BATCH backfill_entities=$RUN_BACKFILL_ENTITIES seed_derived_values=$RUN_SEED_DERIVED_VALUES backfill_and_statutory=$RUN_BACKFILL_AND_STATUTORY statutory_rows_file=${RUN_STATUTORY_ROWS_FILE:-(none - live default)} statutory_force_dry=$RUN_STATUTORY_FORCE_DRY trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
           fi
 
+      # UNCONDITIONAL (lane CHAIN-1, 2026-10-07): a NO-OP firing records its own row (the "Record a NO-OP run"
+      # step below) and lands it, and landing needs @supabase/supabase-js, so Node and the install run on every
+      # firing, the same posture downstream-chain.yml already holds for its always-recorded artifact.
       - uses: actions/setup-node@v4
-        if: ${{ env.RUN_SKIP != 'true' }}
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install
-        if: ${{ env.RUN_SKIP != 'true' }}
         run: npm ci
 
       - name: Verify required secrets
@@ -345,28 +364,6 @@ jobs:
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
-
-      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
-      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
-      # the checked-out tree, i.e. master, but artifacts land through a PR — a run dispatched before the
-      # previous run's PR merged would otherwise claim the same run_id as that unmerged sibling — the exact
-      # collision source-sweep.yml documents finding for its own family (source-sweep run #3, 2026-09-01).
-      - name: Hydrate unmerged propagation artifacts from sibling branches (run_id collision guard)
-        if: ${{ env.RUN_SKIP != 'true' }}
-        run: |
-          git fetch --no-tags origin '+refs/heads/propagation/*:refs/remotes/origin/propagation/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/propagation/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/propagation/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-artifacts.txt
-              fi
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged propagation file(s) from sibling branches"
 
       # The two population passes the engine needs before its first real drain (system-completion train,
       # 2026-09-02): the entity spine backfill (ADR-024 progressive re-keying) and the initial derived-value
@@ -469,11 +466,18 @@ jobs:
       # lands on its own branch and opens a PR (source-sweep.yml's own pattern) rather than pushing
       # straight to whatever ref triggered the run. On a RUN_SKIP=true (no-op) dispatch nothing was ever
       # written, so `git diff --cached --quiet` is true below and this step is a harmless no-op too.
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
+
+      # A legitimate NO-OP is still a run (lane CHAIN-1, 2026-10-07, finding F3 / rule 17): when the resolve step
+      # decided there was nothing to drain for (the upstream did not succeed), this writes a `propagation` row
+      # (config.noop, noop_reason, the honest trigger, the upstream run id) that the landing step lands.
+      - name: Record a NO-OP run (the chain decided there was nothing to do)
+        if: ${{ always() && env.RUN_SKIP == 'true' }}
+        run: |
+          node scripts/lib/upstream-artifact.mjs noop --family propagation --mode "$RUN_MODE" --reason "$RUN_SKIP_REASON" --upstream-name "$RUN_UPSTREAM_NAME" --upstream-run-id "$RUN_UPSTREAM_RUN_ID" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
       - name: Land the propagation harness-run artifact into harness_runs
         # No git add/commit/branch/rebase/push/PR (coordinator ruling on PR #824, operator ruling

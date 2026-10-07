@@ -157,3 +157,112 @@ test("the committed evidence file exists with an entries array (F50 reads it)", 
   const r = readEvidenceFile();
   assert.ok(Array.isArray(r.entries), r.error);
 });
+
+// ── lane CHAIN-1 (2026-10-07): the two upstream_run_id shapes the first dry fire found null ───────────────
+// chain-fire-2026-10-06 finding F3: Downstream chain and Propagation drain rows carried upstream_run_id null, so
+// the hops whose family serves two hops (05/06, 07/08) were UNMAPPED. The workflows now export the upstream run
+// id as GITHUB_EVENT_WORKFLOW_RUN_ID and writeRunArtifact stamps it; these tests drive that real emission path.
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { writeRunArtifact } from "../lib/run-artifact.mjs";
+import { buildArtifact as buildDownstreamArtifact } from "../turns/emit-downstream-chain-artifact.mjs";
+
+/** Emit a downstream-chain artifact exactly as the workflow step does, with the env the resolve step exports, and
+ *  return the row the landing step would insert (record-harness-run.mjs's baseRow mapping, by hand). */
+function emittedDownstreamRow({ upstreamRunId, githubRunId, upstreamName }) {
+  const dir = mkdtempSync(join(tmpdir(), "chain1-exporter-"));
+  const keys = ["GITHUB_EVENT_NAME", "CHAINED_FORCED_DRY", "GITHUB_EVENT_WORKFLOW_RUN_ID", "GITHUB_RUN_ID"];
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  try {
+    Object.assign(process.env, { GITHUB_EVENT_NAME: "workflow_run", CHAINED_FORCED_DRY: "true", GITHUB_EVENT_WORKFLOW_RUN_ID: upstreamRunId, GITHUB_RUN_ID: githubRunId });
+    const artifact = buildDownstreamArtifact({
+      runId: "downstream-chain-run-001", harnessVersion: "sha256:0123456789abcdef", startedAt: "2026-10-07T07:00:00Z",
+      mode: "dry", skip: false, skipReason: "", upstreamName, upstreamRunId, stepResults: [],
+    });
+    const written = JSON.parse(readFileSync(writeRunArtifact(dir, artifact), "utf8"));
+    return {
+      harness_family: written.harness_family, run_id: written.run_id, started_at: written.started_at, trigger: written.trigger,
+      github_run_id: written.config.github_run_id, upstream_run_id: written.upstream_run_id ?? null,
+    };
+  } finally {
+    for (const k of keys) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("CHAIN-1 shape 1: a downstream-chain row emitted with the exported upstream id carries it, and lands on hop 05 / hop 06 by producer family", () => {
+  const popRow = emittedDownstreamRow({ upstreamRunId: "555", githubRunId: "777", upstreamName: "Population turn" });
+  const corpusRow = emittedDownstreamRow({ upstreamRunId: "666", githubRunId: "778", upstreamName: "Corpus turn" });
+  assert.equal(popRow.upstream_run_id, "555", "writeRunArtifact stamps the exported upstream id");
+  assert.equal(popRow.trigger, "workflow_run_forced_dry");
+  const { entries, unmapped } = mapRowsToHops([
+    row({ harness_family: "mint", run_id: "mint-run-001", trigger: "manual", github_run_id: "555", upstream_run_id: null }),
+    row({ harness_family: "corpus-turn", run_id: "corpus-turn-run-001", trigger: "manual", github_run_id: "666", upstream_run_id: null }),
+    { ...popRow, run_id: "downstream-chain-run-001" },
+    { ...corpusRow, run_id: "downstream-chain-run-002" },
+  ]);
+  assert.deepEqual(unmapped, []);
+  assert.deepEqual(entries.map((e) => [e.hop, e.run_id]), [
+    ["population-turn-to-downstream-chain", "downstream-chain-run-001"],
+    ["corpus-turn-to-downstream-chain", "downstream-chain-run-002"],
+  ]);
+});
+
+test("CHAIN-1 shape 2: propagation rows that carry the upstream id land on hop 07 (downstream-chain producer) and hop 08 (producers), not unmapped", () => {
+  const rows = [
+    row({ harness_family: "producers", run_id: "producers-run-001", trigger: "manual", github_run_id: "900", upstream_run_id: null }),
+    row({ harness_family: "downstream-chain", run_id: "downstream-chain-run-001", trigger: "manual", github_run_id: "901", upstream_run_id: null }),
+    row({ harness_family: "propagation", run_id: "propagation-run-001", trigger: "workflow_run_forced_dry", github_run_id: "910", upstream_run_id: "900" }),
+    row({ harness_family: "propagation", run_id: "propagation-run-002", trigger: "workflow_run_forced_dry", github_run_id: "911", upstream_run_id: "901", started_at: "2026-10-03T11:00:00Z" }),
+  ];
+  const { entries, unmapped } = mapRowsToHops(rows);
+  assert.deepEqual(unmapped, []);
+  assert.deepEqual(entries.map((e) => [e.hop, e.run_id]), [
+    ["downstream-chain-to-propagation-drain", "propagation-run-002"],
+    ["data-producers-to-propagation-drain", "propagation-run-001"],
+  ]);
+  const before = mapRowsToHops(rows.map((r) => (r.harness_family === "propagation" ? { ...r, upstream_run_id: null } : r)));
+  assert.equal(before.unmapped.length, 2, "with a null upstream (the pre-fix rows) both are unmapped");
+});
+
+// ── lane CHAIN-1 ruling 1 (2026-10-07): the F60 dispatch fallback is fired evidence on a dispatchFallback hop ──
+import { isFiredEvidence } from "../../.discipline/governance/loop-manifest.mjs";
+
+const prodRows = () => [
+  row({ harness_family: "downstream-chain", run_id: "downstream-chain-run-001", trigger: "manual", github_run_id: "901", upstream_run_id: null }),
+  row({ harness_family: "producers", run_id: "producers-run-001", trigger: "manual", github_run_id: "900", upstream_run_id: null }),
+];
+
+test("CHAIN-1: a workflow_dispatch propagation row carrying the downstream-chain upstream id maps to hop 07 (dispatchFallback)", () => {
+  const { entries, unmapped } = mapRowsToHops([
+    ...prodRows(),
+    row({ harness_family: "propagation", run_id: "propagation-run-002", trigger: "workflow_dispatch", github_run_id: "911", upstream_run_id: "901" }),
+  ]);
+  assert.deepEqual(unmapped, []);
+  assert.deepEqual(entries.map((e) => [e.hop, e.run_id, e.trigger]), [["downstream-chain-to-propagation-drain", "propagation-run-002", "workflow_dispatch"]]);
+});
+
+test("ATTACK: a workflow_dispatch propagation row WITHOUT upstream_run_id (a hand dispatch) does not map and is not unmapped noise", () => {
+  const { entries, unmapped } = mapRowsToHops([...prodRows(), row({ harness_family: "propagation", run_id: "propagation-run-003", trigger: "workflow_dispatch", github_run_id: "912", upstream_run_id: null })]);
+  assert.deepEqual(entries, []);
+  assert.deepEqual(unmapped, []);
+});
+
+test("ATTACK: a dispatch row whose upstream id is not the downstream-chain producer's run does not map (never claimed on a guess)", () => {
+  // 900 is a producers run: hop 08 does not declare dispatchFallback, hop 07's producer family has no row 900.
+  const { entries, unmapped } = mapRowsToHops([...prodRows(), row({ harness_family: "propagation", run_id: "propagation-run-004", trigger: "workflow_dispatch", github_run_id: "913", upstream_run_id: "900" })]);
+  assert.deepEqual(entries, []);
+  assert.equal(unmapped.length, 1);
+});
+
+test("ATTACK: a dispatch row with an upstream id on a hop that does not declare dispatchFallback never counts (fetch-drain)", () => {
+  const { entries } = mapRowsToHops([row({ trigger: "workflow_dispatch", upstream_run_id: "100" })]);
+  assert.deepEqual(entries, []);
+  const fetchHop = LOOP_HOPS.find((h) => h.family === "fetch-drain");
+  assert.equal(isFiredEvidence({ trigger: "workflow_dispatch", upstream_run_id: "100" }, fetchHop), false);
+  const hop07 = LOOP_HOPS.find((h) => h.id === "downstream-chain-to-propagation-drain");
+  assert.equal(hop07.dispatchFallback, true);
+  assert.equal(isFiredEvidence({ trigger: "workflow_dispatch", upstream_run_id: "1" }, hop07), true);
+  assert.equal(isFiredEvidence({ trigger: "workflow_dispatch", upstream_run_id: null }, hop07), false);
+  assert.equal(isFiredEvidence({ trigger: "manual", upstream_run_id: "1" }, hop07), false);
+});

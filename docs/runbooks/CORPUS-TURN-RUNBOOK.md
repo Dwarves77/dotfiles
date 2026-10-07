@@ -162,7 +162,7 @@ entry for the one-writer rule and exact column semantics).
    job finishes in time. `main()`'s sitemap loop (`walkTargetsWithinBudget`/`checkTimeBudget`,
    `run-source-sweep.mjs`) now checks elapsed wall-clock time before EVERY source and stops the walk —
    never mid-source — the moment `--time-budget-seconds` (default 1500s = the workflow's 1800s
-   `timeout-minutes: 30` minus a 300s reserve for checkout/`npm ci`/the hydrate step/the commit-and-PR
+   `timeout-minutes: 30` minus a 300s reserve for checkout/`npm ci`/the artifact landing
    step, the SAME arithmetic `DEFAULT_MAX_HOSTS`'s comment already used to size a host count) is spent. A
    budget-exhausted run still exits 0 — a bounded, complete unit of work, not an error — and its artifact
    records `budget_seconds`, `elapsed_seconds`, `sources_walked`, `sources_not_reached` (count + ids, never
@@ -1083,8 +1083,9 @@ point is safe (it will report zero recomputes) but accomplishes nothing yet.
 `gh workflow run propagation-drain.yml`), picking `mode` (`dry` or `apply`) and optionally `batch`
 (defaults to `run-propagation-drain.mjs`'s own default). It mirrors `source-sweep.yml`'s scaffold exactly:
 fresh branch per dispatch, commit + PR via `deliver-artifact-branch.sh`, a commented-out `schedule:` block
-under the same no-schedule-during-build ruling as every other family in this repo (see above), and the same
-hydrate-unmerged-artifacts collision guard.
+under the same no-schedule-during-build ruling as every other family in this repo (see above). (The
+hydrate-unmerged-artifacts collision guard this paragraph used to name was deleted by lane CHAIN-1,
+2026-10-07: artifacts land in `harness_runs`, which renumbers at land time, so no sibling branch carries any.)
 
 ### Chaining: dispatched automatically after Data producers (lane CHAIN, 2026-09-04)
 

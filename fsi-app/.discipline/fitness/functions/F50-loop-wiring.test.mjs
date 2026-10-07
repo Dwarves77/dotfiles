@@ -201,3 +201,13 @@ test('readFiredEvidence: absent file yields no fired hops and no problems', () =
   assert.equal(r.firedHopIds.size, 0);
   assert.deepEqual(r.problems, []);
 });
+
+// lane CHAIN-1 (2026-10-07): a dispatchFallback hop accepts a workflow_dispatch evidence entry that carries an
+// upstream_run_id; a hop without the flag, or an entry without the id, is still a problem.
+test('readFiredEvidence: a workflow_dispatch entry with upstream_run_id fires a dispatchFallback hop only', () => {
+  const fb = { ...HOP, dispatchFallback: true };
+  const entry = (over) => JSON.stringify({ entries: [{ hop: HOP.id, family: HOP.family, run_id: 'r', trigger: 'workflow_dispatch', upstream_run_id: '9', ...over }] });
+  assert.equal(readFiredEvidence(entry({}), [fb]).firedHopIds.has(HOP.id), true);
+  assert.equal(readFiredEvidence(entry({}), [HOP]).problems.length, 1);
+  assert.equal(readFiredEvidence(entry({ upstream_run_id: null }), [fb]).problems.length, 1);
+});

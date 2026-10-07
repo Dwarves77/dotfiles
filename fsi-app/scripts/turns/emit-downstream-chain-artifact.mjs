@@ -192,6 +192,9 @@ function main() {
     fsiRoot: FSI_ROOT,
     upstreamName,
     upstreamRunId,
+    // The upstream row's own loop id (lane CHAIN-1, ADR-031): an explicit id wins over the on-disk resolver,
+    // which finds nothing in a CI checkout now that artifacts land only in harness_runs.
+    explicit: process.env.DC_LOOP_RUN_ID || null,
   });
 
   const artifact = buildArtifact({

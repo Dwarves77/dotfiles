@@ -35,7 +35,7 @@ import { join } from 'node:path';
 import { violation } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFile } from '../lib/file-content.mjs';
-import { LOOP_HOPS, FIRED_TRIGGERS, LOOP_FIRED_EVIDENCE_PATH } from '../../governance/loop-manifest.mjs';
+import { LOOP_HOPS, FIRED_TRIGGERS, LOOP_FIRED_EVIDENCE_PATH, isFiredEvidence } from '../../governance/loop-manifest.mjs';
 import { extractWorkflowRunNames, hasWorkflowRunEdge } from '../lib/yml-read.mjs';
 
 export { extractWorkflowRunNames, hasWorkflowRunEdge };
@@ -107,7 +107,7 @@ export function readFiredEvidence(evidenceText, hops) {
       problems.push(`evidence entry names unknown hop "${e?.hop}" (run ${e?.run_id}).`);
     } else if (e.family !== hop.family) {
       problems.push(`evidence entry for hop "${hop.id}" names family "${e.family}" but the hop's family is "${hop.family}" (run ${e.run_id}).`);
-    } else if (!FIRED_TRIGGERS.includes(e.trigger)) {
+    } else if (!isFiredEvidence(e, hop)) {
       problems.push(`evidence entry for hop "${hop.id}" carries trigger "${e.trigger}", not one of ${FIRED_TRIGGERS.join(', ')} (run ${e.run_id}).`);
     } else {
       firedHopIds.add(hop.id);

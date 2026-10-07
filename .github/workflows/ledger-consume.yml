@@ -407,30 +407,6 @@ jobs:
             echo "NOTE: export_after blank -> auto-resumes past the previous export dispatch's own next_cursor (resolveExportAfter)."
           fi
 
-      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
-      # Same run_id collision guard source-sweep.yml carries (see its own comment for the incident this
-      # closes): claimRunId numbers the next artifact from what it can see in the checked-out tree, i.e.
-      # master, but artifacts land through a PR — a run dispatched before a prior run's PR merged would
-      # otherwise claim the same run_id as that unmerged sibling. Runs UNCONDITIONALLY as of Lane
-      # LEDGER-CHAIN-2 (2026-09-05) — both the consume path (plan/apply) AND the export path now self-emit
-      # a `ledger-consume` family artifact via claimRunId (buildExportRunArtifact, this file's header), so
-      # both need the same collision guard, and a workflow_run firing runs BOTH in one job.
-      - name: Hydrate unmerged ledger-consume artifacts from sibling branches (run_id collision guard)
-        run: |
-          git fetch --no-tags origin '+refs/heads/ledger-consume/*:refs/remotes/origin/ledger-consume/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/ledger-consume/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/ledger-consume/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-artifacts.txt
-              fi
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged ledger-consume file(s) from sibling branches"
-
       - name: run-ledger-consume.mjs
         if: steps.params.outputs.run_consume == 'true'
         run: |
@@ -486,10 +462,9 @@ jobs:
           fi
           node scripts/turns/run-ledger-consume.mjs "${args[@]}"
 
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
       # R22 (2026-10-02, coordinator correction): removed the git add / checkout -b / commit / fetch+
