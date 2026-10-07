@@ -42,27 +42,52 @@ const CUTOFF = "2026-06-28"; // premise-2 legacy-cap date boundary
 const PRE_ADR016_SKILL = "remediation-discipline";
 
 // ── The three legacy populations, EXACT premise-2 predicates (a row belongs to exactly one — the length
-//    ranges are disjoint). `len` is the JS string length of the already-fetched result_content field (this
-//    script rewrites the text itself, so it reads result_content regardless - see the module header);
-//    `searched_at` gates only legacy_40k.
-function classify(row) {
-  const len = (row.result_content || "").length;
-  if (row.searched_at && row.searched_at < CUTOFF && len >= 39900 && len <= 40000) return "legacy_40k";
-  if (len === 600000) return "primary_600k";
-  if (len === 60000 || (len >= 59900 && len <= 59999)) return "corroborator_60k";
+//    ranges are disjoint). The length is `agent_run_searches.result_chars` (migration 322, trigger-maintained,
+//    backfilled by 323), NEVER the length of `result_content`: reading `result_content` for every row decompressed
+//    ~239 MB of stored text per run and hit the statement timeout (maintenance chain fire 2026-10-07, F-RED-1;
+//    `paginated read failed at offset 0: canceling statement due to statement timeout`). `searched_at` gates only
+//    legacy_40k. A NULL result_chars (no content) never matches a class.
+//
+// SERVER FILTER BOUNDS (lane OPS-1, coordinator ruling 2026-10-07). result_chars is the Postgres character count,
+// the old test was the JS UTF-16 length, and the two differ for characters outside the Basic Multilingual Plane.
+// So the server-side prefilter is the class ranges WIDENED by 1 percent on each side (lower bound floored, upper
+// bound ceiled), so a row classify() would place in a class is never excluded by the server; classify() then makes
+// the final placement from the same result_chars, so server and client agree by construction.
+//   class             exact range        widened server range
+//   legacy_40k        39900..40000       39501..40400
+//   corroborator_60k  59900..60000       59301..60600   (60000 itself, and 59900..59999)
+//   primary_600k      600000             594000..606000
+export const CLASS_RANGES = {
+  legacy_40k: [39900, 40000],
+  corroborator_60k: [59900, 60000],
+  primary_600k: [600000, 600000],
+};
+export const SERVER_RANGES = Object.fromEntries(
+  Object.entries(CLASS_RANGES).map(([k, [lo, hi]]) => [k, [Math.floor(lo * 0.99), Math.ceil(hi * 1.01)]]),
+);
+/** PostgREST `.or()` filter string over result_chars from SERVER_RANGES. */
+export const SERVER_OR_FILTER = Object.values(SERVER_RANGES)
+  .map(([lo, hi]) => `and(result_chars.gte.${lo},result_chars.lte.${hi})`)
+  .join(",");
+export const WORKLIST_COLUMNS = "id, intelligence_item_id, result_url, search_query, searched_at, result_index, result_chars";
+
+export function classify(row) {
+  const len = Number.isInteger(row.result_chars) ? row.result_chars : -1;
+  const [l40lo, l40hi] = CLASS_RANGES.legacy_40k;
+  const [c60lo, c60hi] = CLASS_RANGES.corroborator_60k;
+  if (row.searched_at && row.searched_at < CUTOFF && len >= l40lo && len <= l40hi) return "legacy_40k";
+  if (len === CLASS_RANGES.primary_600k[0]) return "primary_600k";
+  if (len >= c60lo && len <= c60hi) return "corroborator_60k";
   return null;
 }
 
 // Dedup key: (item_id, result_url) per the dispatch. Returns a Map key → first row seen (stable).
 const dedupKey = (r) => `${r.intelligence_item_id}|${r.result_url}`;
 
-async function buildWorklist() {
-  // READ-ONLY, paged past the 1000-row cap (readAll). We must pull result_content to derive length
-  // (PostgREST cannot filter/compute length server-side); the table is ~2.9k rows / ~32MB — a one-shot build read.
-  const rows = await readAll(
-    "agent_run_searches",
-    "id, intelligence_item_id, result_url, search_query, searched_at, result_index, result_content",
-  );
+export async function buildWorklist(readAllFn = readAll) {
+  // READ-ONLY, paged past the 1000-row cap (readAll). Never selects result_content: the length is the stored
+  // result_chars, prefiltered server-side on the widened SERVER_RANGES (see the header above).
+  const rows = await readAllFn("agent_run_searches", WORKLIST_COLUMNS, { match: (q) => q.or(SERVER_OR_FILTER) });
   const pops = { legacy_40k: [], corroborator_60k: [], primary_600k: [] };
   const seen = { legacy_40k: new Set(), corroborator_60k: new Set(), primary_600k: new Set() };
   let rawCounts = { legacy_40k: 0, corroborator_60k: 0, primary_600k: 0 };
@@ -79,7 +104,7 @@ async function buildWorklist() {
       result_url: r.result_url,
       search_query: r.search_query,
       searched_at: r.searched_at,
-      old_length: (r.result_content || "").length,
+      old_length: r.result_chars,
     });
   }
   return { pops, rawCounts };

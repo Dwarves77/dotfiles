@@ -309,6 +309,27 @@ export async function mintCandidateDryRun(sb, seed, { origin = "first_fetch" } =
   return mintIntelligenceItem(sb, { seed, origin }, { dryRun: true });
 }
 
+// ── Run kind (lane OPS-1, 2026-10-07, chain-fire report F7) ──────────────────────────────────────────────
+// A green dry run printed "REFUSING -- kill switch ... is OFF" and then ran the fixture path to green, so a
+// green run could be read as a live walk. Every run now names its kind in its log and its artifact:
+// "fixture" (the committed fixtures end to end, the default) or "live_search" (OpenAlex queried live for the
+// open needs; the grey-lit sources and the mint check are still fixtures and a dry mint). It is recorded as
+// run_mode, beside the existing config.mode ("dry"/"apply"), which assemble-train and the harness ledger
+// export read and which this must not overwrite.
+export const FIXTURE_RUN_BANNER = "FIXTURE RUN: no live corpus; counts are fixture counts";
+export const LIVE_SEARCH_RUN_BANNER = "LIVE SEARCH RUN: OpenAlex queried live for the open needs; grey-lit sources and the mint check are fixtures and dry";
+
+/** Pure: the run kind from the CLI flags. @param {{live?: boolean, readNeedsFromDb?: boolean}} f */
+export function describeRunKind({ live = false, readNeedsFromDb = false } = {}) {
+  const liveSearch = Boolean(live && readNeedsFromDb);
+  return { runMode: liveSearch ? "live_search" : "fixture", banner: liveSearch ? LIVE_SEARCH_RUN_BANNER : FIXTURE_RUN_BANNER, openAlexLive: liveSearch };
+}
+
+/** Pure: the artifact's config block, carrying the run kind. config.mode stays the dry/apply field. */
+export function buildWalkerConfig(kind, dispatch) {
+  return { mode: "dry", run_mode: kind.runMode, banner: kind.banner, source: "fixtures/research-walker-fixtures.mjs", dispatch };
+}
+
 // ── R14 gate ───────────────────────────────────────────────────────────────────────────────────────────
 
 export function decideApply({ dispatch, enabled, killSwitchOn, hasCreds }) {
@@ -506,7 +527,9 @@ async function main() {
     ({ needs: holdingsNeeds, read: needsRead } = await readOpenNeeds({ readAll: db.readAll }));
   }
 
-  console.log(`${WALKER_NAME}: fixture run (no --live), mode=dry -- zero network, zero DB credential${holdingsNeeds.length ? `; ${holdingsNeeds.length} need(s) (holdings and term) as search input` : ""}.`);
+  const kind = describeRunKind({ live, readNeedsFromDb });
+  console.log(`${WALKER_NAME}: ${kind.banner}`);
+  console.log(`${WALKER_NAME}: run_mode=${kind.runMode}, mode=dry${kind.openAlexLive ? "" : " -- zero network, zero DB credential for the walk itself"}${holdingsNeeds.length ? `; ${holdingsNeeds.length} need(s) (holdings and term) as search input` : ""}.`);
   // The committed fixture response, served through a deps.fetch stub -- so this run exercises L3's
   // real openAlexGet (mailto, retry/backoff, JSON parse) end to end, never a shortcut that skips the
   // client it reuses.
@@ -522,7 +545,7 @@ async function main() {
     openAlexQuery: "freight decarbonisation",
     // The OpenAlex API is free and keyless; real calls happen only when the holdings needs are read from the
     // database AND --live is passed. Every other run is served by the fixture stub.
-    openAlexDeps: readNeedsFromDb && live ? {} : { fetch: fixtureFetch },
+    openAlexDeps: kind.openAlexLive ? {} : { fetch: fixtureFetch },
     holdingsNeeds,
     needsRead,
     mode: "dry",
@@ -531,6 +554,7 @@ async function main() {
     hostVerdicts: loadHostVerdicts({ files: [resolvePath(HOST_VERDICTS_DIR, "host-verdicts-000.fixture.json")] }).verdicts,
   });
 
+  result.metrics.run_mode = kind.runMode;
   console.log(`${WALKER_NAME}: metrics ${JSON.stringify(result.metrics)}`);
   for (const item of result.perItem) {
     console.log(`  ${item.id}: ${item.outcome}${item.error ? ` -- ${item.error}` : ""}`);
@@ -543,13 +567,14 @@ async function main() {
     harnessVersion,
     runId,
     startedAt,
-    config: { mode: "dry", source: "fixtures/research-walker-fixtures.mjs", dispatch },
+    config: buildWalkerConfig(kind, dispatch),
     inputsRef: ["scripts/research/fixtures/research-walker-fixtures.mjs"],
     perItem: result.perItem,
     metrics: result.metrics,
     defectsFound: [],
     fullTraceRefs: ["scripts/research/fixtures/research-walker-fixtures.mjs"],
     proposerNotes:
+      `${kind.banner}. ` +
       "research-walker's run artifact (lane L7, 2026-10-02, R14 lift criterion 8). Dry/fixture run: " +
       "resolves the 3 named grey-lit sources through the institution class table (rule 18), then runs " +
       "every candidate (grey-lit + OpenAlex-fixture) through the real mint chokepoint " +

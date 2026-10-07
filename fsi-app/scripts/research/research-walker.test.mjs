@@ -21,6 +21,10 @@ import {
   readOpenNeeds,
   searchHoldingsNeeds,
   MAX_HOLDINGS_NEEDS,
+  describeRunKind,
+  buildWalkerConfig,
+  FIXTURE_RUN_BANNER,
+  LIVE_SEARCH_RUN_BANNER,
 } from "./research-walker.mjs";
 import { loadHostVerdicts, HOST_VERDICTS_DIR } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
 import { join } from "node:path";
@@ -304,4 +308,31 @@ test("readHoldingsNeeds is unchanged: holdings needs only", async () => {
   };
   await readHoldingsNeeds({ readAll });
   assert.ok(seen.every((x) => x.startsWith("holdings-need:")));
+});
+
+// Lane OPS-1 (chain-fire report F7): a green run can never be read as a live walk.
+test("describeRunKind: the default and every non-live combination is a FIXTURE run with the exact banner", () => {
+  for (const flags of [{}, { live: false, readNeedsFromDb: false }, { live: true, readNeedsFromDb: false }, { live: false, readNeedsFromDb: true }]) {
+    const k = describeRunKind(flags);
+    assert.equal(k.runMode, "fixture");
+    assert.equal(k.openAlexLive, false);
+    assert.equal(k.banner, "FIXTURE RUN: no live corpus; counts are fixture counts");
+  }
+  assert.equal(FIXTURE_RUN_BANNER, "FIXTURE RUN: no live corpus; counts are fixture counts");
+});
+
+test("describeRunKind: only --live together with --holdings-needs is a live_search run, and it never claims to be a fixture run", () => {
+  const k = describeRunKind({ live: true, readNeedsFromDb: true });
+  assert.equal(k.runMode, "live_search");
+  assert.equal(k.openAlexLive, true);
+  assert.equal(k.banner, LIVE_SEARCH_RUN_BANNER);
+  assert.ok(!k.banner.includes("FIXTURE RUN"));
+});
+
+test("buildWalkerConfig: the artifact carries run_mode fixture and the banner, and config.mode stays dry (ledger and assemble-train read it)", () => {
+  const c = buildWalkerConfig(describeRunKind({}), true);
+  assert.equal(c.run_mode, "fixture");
+  assert.equal(c.banner, FIXTURE_RUN_BANNER);
+  assert.equal(c.mode, "dry");
+  assert.equal(c.dispatch, true);
 });
