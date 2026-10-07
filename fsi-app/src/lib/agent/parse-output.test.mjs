@@ -234,3 +234,42 @@ test("mentioned_terms: a bad kind, a non-array and malformed JSON each throw Age
   assert.throws(() => parseAgentOutput(buildOutput({ mentioned_terms: '{"kind":"term","text":"x"}' })), AgentOutputParseError);
   assert.throws(() => parseAgentOutput(buildOutput({ mentioned_terms: "[{not json" })), AgentOutputParseError);
 });
+
+// ---- G5-READ (2026-10-07): adopted vocabulary terms are held, a proposed one is not ----
+import { groupAdoptedTerms } from "../vocabulary/adopted-terms.mjs";
+
+const ADOPTED = groupAdoptedTerms([
+  { kind: "compliance_object", term_key: "charterer", label: "Charterer", status: "adopted" },
+  { kind: "theme", term_key: "carbon border adjustment", label: "Carbon border adjustment", status: "adopted" },
+]);
+const PROPOSED_ONLY = groupAdoptedTerms([
+  { kind: "compliance_object", term_key: "charterer", label: "Charterer", status: "proposed" },
+  { kind: "theme", term_key: "carbon border adjustment", label: "Carbon border adjustment", status: "proposed" },
+]);
+
+test("G5-READ compliance_object: an ADOPTED term is accepted into the tags; the same term while PROPOSED is a candidate", () => {
+  const out = buildOutput({ compliance_object_tags: "[shipper, Charterer]" });
+  const adopted = parseAgentOutput(out, ADOPTED).metadata;
+  assert.deepEqual(adopted.compliance_object_tags, ["shipper", "charterer"]);
+  assert.deepEqual(adopted.compliance_object_candidates, []);
+  for (const held of [PROPOSED_ONLY, undefined]) {
+    const m = parseAgentOutput(out, held).metadata;
+    assert.deepEqual(m.compliance_object_tags, ["shipper"]);
+    assert.deepEqual(m.compliance_object_candidates, ["Charterer"]);
+  }
+});
+
+test("G5-READ compliance_object: the 19 code values still match exactly and the cap of 4 holds across code plus adopted", () => {
+  const out = buildOutput({ compliance_object_tags: "[shipper, importer, exporter, distributor, charterer]" });
+  assert.deepEqual(parseAgentOutput(out, ADOPTED).metadata.compliance_object_tags, ["shipper", "importer", "exporter", "distributor"]);
+});
+
+test("G5-READ theme: an ADOPTED theme token is accepted for a research_summary; while PROPOSED (or unknown) it is refused", () => {
+  const out = buildOutput({ format_type: "research_summary", theme: "carbon_border_adjustment" });
+  assert.equal(parseAgentOutput(out, ADOPTED).metadata.theme, "carbon_border_adjustment");
+  assert.throws(() => parseAgentOutput(out, PROPOSED_ONLY), AgentOutputParseError);
+  assert.throws(() => parseAgentOutput(out), AgentOutputParseError);
+  // a code theme is accepted either way, and the adopted set never relaxes the research_summary-only rule
+  assert.equal(parseAgentOutput(buildOutput({ format_type: "research_summary", theme: "fuels_saf" })).metadata.theme, "fuels_saf");
+  assert.throws(() => parseAgentOutput(buildOutput({ theme: "carbon_border_adjustment" }), ADOPTED), AgentOutputParseError);
+});

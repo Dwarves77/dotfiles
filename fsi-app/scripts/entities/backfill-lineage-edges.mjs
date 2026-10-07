@@ -75,6 +75,8 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { readAll, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
 import { planLinkWrites } from "../../src/lib/entities/entity-resolve.mjs";
+// lane G5-READ: an adopted `standard` term is a named entity to the same planner the runtime calls.
+import { adoptedTermsFromSupabase } from "../../src/lib/vocabulary/adopted-terms.mjs";
 import { partitionLineageWrites } from "../../src/lib/entities/lineage-backfill.mjs";
 // lane G7-CORR: an admin-removed connection (item_corrections tombstone, migration 356) is never re-created.
 import { readAllCorrections, tombstonedPairKeys } from "../../src/lib/corrections/item-corrections.mjs";
@@ -175,6 +177,7 @@ async function main() {
   ]);
 
   const tombstones = tombstonedPairKeys(await readAllCorrections(sb));
+  const adoptedTerms = await adoptedTermsFromSupabase(sb); // once per run, fail-closed to none
   const snap = snapshotEdgeState(existingEdgeRows);
   console.log(`[lineage-backfill] PRIOR STATE (rule-015 snapshot, before any write): ${snap.count} item_cross_references rows, md5=${snap.md5}`);
   const typedAlready = existingEdgeRows.filter((r) => r.relationship !== "related").length;
@@ -198,7 +201,7 @@ async function main() {
     withContent++;
 
     // THE SAME pure planner the runtime calls — no reimplemented typing.
-    const writes = planLinkWrites(content, corpus, item.id);
+    const writes = planLinkWrites(content, corpus, item.id, adoptedTerms);
 
     const { inserts, upgrades, skippedForeign, conflicts, unchanged, skippedTombstoned } = partitionLineageWrites(writes, existingEdgesByPair, tombstones);
     for (const r of inserts) { relationshipCounts[r.relationship] = (relationshipCounts[r.relationship] || 0) + 1; allInsertRows.push(r); }

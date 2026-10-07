@@ -347,3 +347,49 @@ test("planLinkWrites: a lineage-gap flag and a generic surface flag can coexist 
   const createdBys = flagTables.map((w) => w.row.created_by).sort();
   assert.deepEqual(createdBys, ["intake-entity-link", "lineage-gap:absent-parent"]);
 });
+
+// ---- G5-READ (2026-10-07): an adopted `standard` term is a named entity; the same term PROPOSED is not ----
+import { entityDictionary, adoptedTermRegex } from "./entity-resolve.mjs";
+import { groupAdoptedTerms } from "../vocabulary/adopted-terms.mjs";
+
+const STD_ROW = { kind: "standard", term_key: "iso 14084", label: "ISO 14084" };
+const ADOPTED_STD = groupAdoptedTerms([{ ...STD_ROW, status: "adopted" }]);
+const PROPOSED_STD = groupAdoptedTerms([{ ...STD_ROW, status: "proposed" }]);
+const CORPUS_STD = [...CORPUS, { id: "iso14084", title: "ISO 14084 Freight emissions addendum", instrument_identifier: null }];
+
+test("G5-READ entityDictionary: code entries first and never dropped; adopted standards appended; no adopted set is NAMED_ENTITIES itself", () => {
+  assert.equal(entityDictionary(undefined), NAMED_ENTITIES);
+  assert.equal(entityDictionary(PROPOSED_STD), NAMED_ENTITIES);
+  const d = entityDictionary(ADOPTED_STD);
+  assert.equal(d.length, NAMED_ENTITIES.length + 1);
+  assert.deepEqual(d.slice(0, NAMED_ENTITIES.length), NAMED_ENTITIES);
+  assert.equal(d[d.length - 1].canonical, "ISO 14084");
+  const dup = groupAdoptedTerms([{ kind: "standard", term_key: "iso 14083", label: "ISO 14083", status: "adopted" }]);
+  assert.equal(entityDictionary(dup).length, NAMED_ENTITIES.length, "an adopted standard the dictionary already holds adds nothing");
+});
+
+test("G5-READ detect/resolve/bucket: an ADOPTED standard is detected as `named`, resolves by title and WIRES; PROPOSED it is only a surfaced shaped mention", () => {
+  const text = "The new addendum aligns with ISO 14084 for freight emissions.";
+  const adopted = planLinks(text, CORPUS_STD, "x", ADOPTED_STD);
+  assert.deepEqual(adopted.edges.map((e) => [e.target_item_id, e.kind]), [["iso14084", "named"]]);
+  assert.equal(adopted.surface.length, 0);
+  for (const held of [PROPOSED_STD, undefined]) {
+    const r = planLinks(text, CORPUS_STD, "x", held);
+    assert.equal(r.edges.length, 0, "a term that is not adopted never wires");
+    assert.deepEqual(r.surface.map((s) => s.kind), ["shaped"]);
+  }
+  assert.deepEqual(detectMentions(text, ADOPTED_STD).map((m) => m.kind), ["named"]);
+});
+
+test("G5-READ planLinkWrites threads the adopted set, and stays inside the moat boundary", () => {
+  const writes = planLinkWrites("aligns with ISO-14084", CORPUS_STD, "x", ADOPTED_STD);
+  assert.deepEqual(writes.map((w) => w.table), ["item_cross_references"]);
+  assert.equal(writes[0].row.target_item_id, "iso14084");
+});
+
+test("G5-READ adoptedTermRegex: words joined by space or hyphen, bounded by non-alphanumerics, regex characters escaped", () => {
+  const re = adoptedTermRegex("iso 14084");
+  assert.ok(re.test("per ISO-14084 here") && re.test("ISO 14084"));
+  assert.ok(!re.test("iso 140841") && !re.test("xiso 14084"));
+  assert.ok(adoptedTermRegex("a.b c").test("a.b c") && !adoptedTermRegex("a.b c").test("axb c"));
+});

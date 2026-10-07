@@ -10,6 +10,10 @@ import { planLinkWrites, assertMoatBoundary } from "@/lib/entities/entity-resolv
 import { partitionLineageWrites, pairKey } from "@/lib/entities/lineage-backfill.mjs";
 // lane G7-CORR: an admin-removed connection (item_corrections tombstone, migration 356) is never re-created.
 import { readConnectionCorrectionsFor, tombstonedPairKeys } from "@/lib/corrections/item-corrections.mjs";
+// lane G5-READ: an adopted `standard` term is a named entity to the resolver, and an adopted standard or material
+// is minted onto the entity spine (migration 355 terms, migration 357 `material` kind).
+import { adoptedTermsFromSupabase } from "@/lib/vocabulary/adopted-terms.mjs";
+import { mintAdoptedTermEntities } from "@/lib/vocabulary/adopted-entities.mjs";
 
 interface CorpusRow { id: string; title: string | null; instrument_identifier: string | null }
 interface LinkWrite { table: string; row: Record<string, unknown> }
@@ -95,7 +99,13 @@ export async function linkItems(sb: SupabaseClient, itemId: string, opts: LinkOp
     } catch { corpus = []; }
   }
 
-  const writes: LinkWrite[] = planLinkWrites(content, corpus, itemId);
+  // The adopted vocabulary terms, read once for this pass (fail-closed to none). Standards resolve as named
+  // entities below; adopted standards and materials are minted onto the spine (idempotent, non-gating).
+  const adoptedTerms = await adoptedTermsFromSupabase(sb);
+  const minted = await mintAdoptedTermEntities(sb, adoptedTerms, { dry });
+  if (minted.error) console.warn(`[linkStep] adopted-term entity mint: ${minted.error}`);
+
+  const writes: LinkWrite[] = planLinkWrites(content, corpus, itemId, adoptedTerms);
   assertMoatBoundary(writes); // runtime moat guard, in addition to the pure guard inside planLinkWrites
 
   // existing edges of THIS item (source side), read only when the plan carries an edge to place.

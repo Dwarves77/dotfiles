@@ -110,3 +110,39 @@ test("scope vocab: retired customs/dangerous-goods scenario families stay out of
       "expressible via CBAM-declaration, or this guard is passing vacuously against a deleted section.",
   );
 });
+
+// G5-READ (2026-10-07), EP-10 companion: every code vocabulary stays pinned to its CODE constant, and the union
+// with the adopted terms (src/lib/vocabulary/adopted-terms.mjs) can only ADD. A reader that built its held
+// vocabulary from the adopted terms alone, or dropped a code value, would silently un-hold the 19 compliance
+// roles, the glossary or the 7 themes. Pure static scans plus the two pure unions, so this runs in the depless CI.
+test("adopted-term union: the held vocabulary of every field contains every code value, with and without adopted terms", async () => {
+  const { heldVocabulary, TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES } = await import("../src/lib/connections/derive-tags.mjs");
+  const { groupAdoptedTerms, unionVocabulary } = await import("../src/lib/vocabulary/adopted-terms.mjs");
+  const adopted = groupAdoptedTerms([
+    { kind: "scenario", term_key: "g5-drift-scenario", label: "x", status: "adopted" },
+    { kind: "compliance_object", term_key: "g5-drift-role", label: "x", status: "adopted" },
+    { kind: "theme", term_key: "g5 drift theme", label: "x", status: "adopted" },
+  ]);
+  for (const held of [heldVocabulary(undefined), heldVocabulary(adopted)]) {
+    for (const v of TOPIC_TAG_VALUES) assert.ok(held.topic_tags.has(v), `topic tag ${v} dropped`);
+    for (const v of COMPLIANCE_OBJECT_VALUES) assert.ok(held.compliance_object_tags.has(v), `compliance role ${v} dropped`);
+    for (const v of SCENARIO_TAG_VALUES) assert.ok(held.operational_scenario_tags.has(v), `scenario ${v} dropped`);
+  }
+  assert.ok(heldVocabulary(adopted).compliance_object_tags.has("g5-drift-role"));
+  assert.ok(heldVocabulary(adopted).operational_scenario_tags.has("g5-drift-scenario"));
+  const themes = [...read("src/lib/agent/metadata-vocab.ts").match(/DB_THEME_VALUE_LIST\s*=\s*\[([\s\S]*?)\]\s*as const/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  assert.equal(themes.length, 7, "the 7 code themes are pinned in metadata-vocab.ts");
+  const out = unionVocabulary(themes, adopted, "theme");
+  for (const v of themes) assert.ok(out.includes(v), `code theme ${v} dropped by the union`);
+});
+
+test("adopted-term union: the code constants are still the floor in parse-output.ts and migration 357's guard lists the same 7 themes", () => {
+  const parse = read("src/lib/agent/parse-output.ts");
+  assert.ok(/const COMPLIANCE_OBJECT_VALUES = \[/.test(parse), "the 19 compliance roles stay a code constant");
+  assert.ok(/const THEME_VALUES = DB_THEME_VALUE_LIST/.test(parse), "the parser theme floor stays the code list");
+  const themes = [...read("src/lib/agent/metadata-vocab.ts").match(/DB_THEME_VALUE_LIST\s*=\s*\[([\s\S]*?)\]\s*as const/)[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();
+  const sql = read("supabase/migrations/357_vocabulary_kinds.sql");
+  const fn = /CREATE OR REPLACE FUNCTION public\.intelligence_items_theme_guard\(\)[\s\S]*?\$fn\$;/.exec(sql)[0];
+  const listed = [...(/NEW\.theme IN \(([\s\S]*?)\)/.exec(fn)[1]).matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+  assert.deepEqual(listed, themes);
+});

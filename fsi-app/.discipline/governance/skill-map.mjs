@@ -37,6 +37,10 @@ export const GOVERNED = [
       // corpus-turn / source-sweep drivers (lane RT, 2026-09-01): census ledger + forward-event applies
       // run through the same intake domain this skill governs.
       'fsi-app/scripts/turns/',
+      // lane G5-READ (2026-10-07): mints entities rows (instrument, material) for adopted vocabulary terms. The
+      // other entities writers (link-item-entities.mjs, backfill-lineage-edges.mjs) reach this skill through its
+      // ops signals; this module carries no intelligence_items op, so it is mapped by file, to the same skill.
+      'fsi-app/src/lib/vocabulary/adopted-entities.mjs',
     ],
     // row mutations on the intelligence taxonomy (item_type / provenance / classification)
     ops: [/intelligence_items/i, /\bitem_type\b/i, /\bprovenance_status\b/i],

@@ -5,10 +5,11 @@ import {
   KINDS, entityId, assertEntityId, entityKindOf, normalizeSeed, corridorSeed, hostFromUrl,
 } from "./entity-id.mjs";
 
-test("KINDS matches migration 282's entity_kind enum exactly (11 values, frozen)", () => {
+test("KINDS is migration 282's entity_kind enum (11 values) plus migration 357's `material`, frozen", () => {
   assert.deepEqual(KINDS, [
     "corridor", "node", "jurisdiction", "organisation", "asset",
     "instrument", "obligation", "method", "technology", "signpost", "person",
+    "material",
   ]);
   assert.ok(Object.isFrozen(KINDS));
 });

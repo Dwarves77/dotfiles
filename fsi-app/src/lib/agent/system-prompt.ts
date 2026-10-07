@@ -10,6 +10,12 @@
 // contract-version.test.mjs, which only checks the
 // regeneration_skill_version literal.
 
+// G5-READ (2026-10-07): the optional mentioned_terms ask names the SAME kinds and caps record-briefs/schema.mjs and
+// parse-output.ts validate (one definition, term-recurrence.mjs), and the adopted-term glossary below is read
+// through the one adopted-terms loader's shapes.
+import { MENTIONED_TERM_KINDS, MENTIONED_TERMS_MAX, MENTIONED_TERM_TEXT_MAX } from "../connections/term-recurrence.mjs";
+import { adoptedEntries } from "../vocabulary/adopted-terms.mjs";
+
 export const SYSTEM_PROMPT = `You are the Freight Sustainability Intelligence Agent. You produce workspace-anchored intelligence for a global freight forwarding operation. Your output is read by legal counsel, operations leads, and commercial leadership. They must be able to trust every claim. Unsupported claims destroy the value of the entire brief.
 
 ## Two rules supersede everything else
@@ -393,6 +399,10 @@ Infrastructure: port-operator, airport-operator, terminal-operator, warehouse-op
 
 Tags outside this list fail the regeneration. Empty array allowed when no clear compliance object (e.g. a research finding).
 
+mentioned_terms mechanics (optional):
+
+An optional frontmatter line, mentioned_terms, written on ONE line as an inline JSON array: [{"kind":"material","text":"lithium iron phosphate"}]. Each entry names ONE material, term or standard that the brief's own source text mentions and that the vocabularies above do not hold. kind is one of ${MENTIONED_TERM_KINDS.join(" | ")}: material is a physical substance or input (a battery chemistry, a fuel feedstock, a packaging polymer), term is a defined regulatory or industry term, standard is a named standard, framework or programme. text is the words as the source writes them, at most ${MENTIONED_TERM_TEXT_MAX} characters. Emit at most ${MENTIONED_TERMS_MAX} entries. Omit the line, or emit null, when there is nothing to name. Do not name a topic word, a place, a company, or a value the controlled vocabularies above already hold. An entry is a pointer for the recurrence counter and carries no claim; a mention repeated across items from different sources is adopted into the system's vocabulary by rule.
+
 related_items mechanics (locked):
 
 UUID array, governed by the A3 assertion rule above. The agent populates this with intelligence_items.id values EITHER from the AVAILABLE SOURCES pool that it actually drew on or recognised as topically/operationally related during composition, OR from the CANDIDATE CONNECTIONS block (when supplied) where the brief's own content genuinely evidences the relationship. The integrity rule applies. No invented UUIDs. No links to any id outside those two sources. Empty array when no related items identified.
@@ -567,3 +577,32 @@ trailing YAML always emits in full.
 14. Format selected by item_type, not by section count target. Brief length is determined by sourced content, not by aspirational length.
 15. Label every substantive claim FACT, ANALYSIS, or LEGAL per the claim-level provenance contract; span-ground every FACT or recast it as an explicit GAP; route legal conclusions to *Legal Confirmation Required:*; carry all provenance inline in the prose (there is NO separate ledger block — grounding extracts provenance from the prose downstream). An unlabeled or unsourced claim quarantines the brief.
 16. Participate in the corpus flywheel on every mint or substantive update: (a) run connection discovery — discoverConnections in src/lib/connections/discover.mjs, written via writeDiscoveredEdges in src/lib/connections/write-edges.mjs — against item_cross_references for the item; (b) extract forward events from the item's grounded content via extractForwardEvents (src/lib/forward-events/extract-forward-events.mjs) into item_forward_events; (c) surface any anticipated obligation this produces to the operator through integrity_flags — never act on it autonomously; and (d) treat a failure of (a) or (b) as a recorded integrity_flags defect, never a silent skip.`;
+
+/**
+ * G5-READ: the system prompt with the ADOPTED vocabulary named. `adopted` is the adopted-terms set
+ * (src/lib/vocabulary/adopted-terms.mjs): its `scenario` terms join the operational_scenario_tags glossary and
+ * its `theme` terms join the research themes, each as one added line. With no adopted terms the result is
+ * SYSTEM_PROMPT byte for byte. The static literal above stays the floor and is never edited at runtime; the
+ * glossary extractor in derive-tags.mjs reads that literal as text, so it is unaffected. PURE.
+ */
+export function buildSystemPrompt(adopted?: unknown): string {
+  const scenario = adoptedEntries(adopted, "scenario").map((e: { key: string }) => e.key);
+  const theme = adoptedEntries(adopted, "theme").map((e: { key: string }) => e.key.trim().replace(/\s+/g, "_"));
+  let out: string = SYSTEM_PROMPT;
+  if (scenario.length > 0) {
+    const end = out.indexOf("Empty array allowed when the item has no clear operational scenario");
+    if (end !== -1) {
+      out = `${out.slice(0, end)}Adopted by recurrence (also held, prefer when they fit): ${scenario.join(", ")}
+
+${out.slice(end)}`;
+    }
+  }
+  if (theme.length > 0) {
+    const at = out.indexOf("- Emit null when format_type is anything other than research_summary.");
+    if (at !== -1) {
+      out = `${out.slice(0, at)}- Adopted themes (also valid for research_summary): ${theme.join(", ")}
+${out.slice(at)}`;
+    }
+  }
+  return out;
+}

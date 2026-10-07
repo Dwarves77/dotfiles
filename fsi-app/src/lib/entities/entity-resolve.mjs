@@ -7,23 +7,55 @@ import { RE_REGNUM, RE_CELEX, RE_STD_SHAPED, NAMED_ENTITIES } from "./canonical-
 // One-url-canonicalizer doctrine (F18): URL identity for dedup routes through the SINGLE sanctioned
 // canonicalizer (../sources/url-canonicalize.ts) — no bespoke normalizer lives here.
 import { canonicalizeUrl } from "../sources/url-canonicalize.ts";
+// G5-READ (2026-10-07): an ADOPTED `standard` term (vocabulary_terms, migration 355) is held, so it is a named
+// entity exactly like a NAMED_ENTITIES entry: detected as `named`, resolved by title, wired when it resolves to one item.
+import { adoptedEntries } from "../vocabulary/adopted-terms.mjs";
 
 const uniqBy = (arr, key) => { const m = new Map(); for (const x of arr) if (!m.has(key(x))) m.set(key(x), x); return [...m.values()]; };
 const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The regex of one adopted term: its words joined by a space or hyphen, bounded by non-alphanumerics. PURE. */
+export function adoptedTermRegex(key) {
+  const words = String(key || "").split(/[\s-]+/).filter(Boolean).map(escapeRe);
+  return new RegExp(`(?<![A-Za-z0-9])${words.join("[\\s-]+")}(?![A-Za-z0-9])`, "i");
+}
+
+/**
+ * The entity dictionary: the code dictionary NAMED_ENTITIES UNIONED with the adopted `standard` terms, each as
+ * `{canonical, re}`. The code entries come first and are never dropped; an adopted standard whose name an
+ * entry already holds adds nothing. `adopted` omitted: exactly NAMED_ENTITIES. PURE.
+ * @param {unknown} [adopted] the adopted-terms set (src/lib/vocabulary/adopted-terms.mjs)
+ */
+export function entityDictionary(adopted) {
+  const entries = adoptedEntries(adopted, "standard");
+  if (entries.length === 0) return NAMED_ENTITIES;
+  const have = new Set(NAMED_ENTITIES.map((e) => norm(e.canonical)));
+  const out = [...NAMED_ENTITIES];
+  for (const e of entries) {
+    const canonical = e.label || e.key;
+    if (have.has(norm(canonical)) || have.has(norm(e.key))) continue;
+    have.add(norm(canonical));
+    out.push({ canonical, re: adoptedTermRegex(e.key), adopted: true });
+  }
+  return out;
+}
+
 // DETECT every entity mention in text. Returns [{kind:'identifier'|'named'|'shaped', value, canonical}].
 // identifier = reg#/CELEX (durable); named = a dictionary entity (wire-eligible); shaped = standard-CODE-shaped
 // but NOT in the dictionary (NOTICED → surfaced, never wired — this is the wide net that makes fail-safe real).
-export function detectMentions(text) {
+export function detectMentions(text, adopted) {
   const s = String(text || "");
+  const dict = entityDictionary(adopted);
   const out = [];
   for (const m of s.match(RE_REGNUM) || []) out.push({ kind: "identifier", value: m, canonical: m });
   for (const m of s.match(RE_CELEX) || []) out.push({ kind: "identifier", value: m.replace(/^CELEX[:\s]*/i, ""), canonical: m.replace(/^CELEX[:\s]*/i, "") });
-  for (const e of NAMED_ENTITIES) if (e.re.test(s)) out.push({ kind: "named", value: e.canonical, canonical: e.canonical });
+  for (const e of dict) if (e.re.test(s)) out.push({ kind: "named", value: e.canonical, canonical: e.canonical });
   // shaped: standard-code-shaped tokens NOT already represented by a dictionary named-entity
   for (const raw of s.match(RE_STD_SHAPED) || []) {
     const val = raw.trim();
-    const isNamed = NAMED_ENTITIES.some((e) => e.re.test(val));
+    const isNamed = dict.some((e) => e.re.test(val));
     const isRegnum = (val.match(RE_REGNUM) || []).length > 0; // "Regulation (EU) 2023/1805" carries an identifier already
     if (!isNamed && !isRegnum) out.push({ kind: "shaped", value: val, canonical: val });
   }
@@ -33,14 +65,14 @@ export function detectMentions(text) {
 // RESOLVE a mention to specific corpus items. corpus = [{id, title, instrument_identifier}]. excludeId = the
 // mentioning item (never self-link). Identifier → items carrying that reg#/CELEX (instrument_identifier or in
 // title). Named → items whose title matches the dictionary entity. Shaped → best-effort by value-in-title.
-export function resolve(mention, corpus, excludeId = null) {
+export function resolve(mention, corpus, excludeId = null, adopted) {
   const pool = (corpus || []).filter((c) => c.id !== excludeId);
   let ids = [];
   if (mention.kind === "identifier") {
     const v = norm(mention.value);
     ids = pool.filter((c) => norm(c.instrument_identifier) === v || norm(c.title).includes(v) || norm(c.instrument_identifier).includes(v)).map((c) => c.id);
   } else if (mention.kind === "named") {
-    const e = NAMED_ENTITIES.find((x) => x.canonical === mention.canonical);
+    const e = entityDictionary(adopted).find((x) => x.canonical === mention.canonical);
     if (e) ids = pool.filter((c) => e.re.test(String(c.title || "")) || e.re.test(String(c.instrument_identifier || ""))).map((c) => c.id);
   } else { // shaped — unknown standard; try literal title contains, usually empty → surface
     const v = norm(mention.value);
@@ -131,7 +163,7 @@ export function classifyRelationship(content, mentionCanonical, selfTitle) {
 // ARE lineage-pattern-shaped (implements/amends/supplements/derogation) — these still land in `surface`
 // too (unchanged posture), but are additionally distinguished here because they are a specific, actionable
 // discovery target (an enabling/parent act absent from the corpus), not generic ambiguity.
-export function planLinks(content, corpus, selfId) {
+export function planLinks(content, corpus, selfId, adopted) {
   const selfRow = (corpus || []).find((c) => c.id === selfId);
   const selfTitle = selfRow ? selfRow.title : "";
   // The item's OWN instrument number almost always appears in its own content/title right beside the
@@ -143,8 +175,8 @@ export function planLinks(content, corpus, selfId) {
   // this keeps it out of the gap feed the same way.
   const selfOwnId = selfRow ? norm(selfRow.instrument_identifier) : "";
   const edges = [], surface = [], lineageGaps = [];
-  for (const m of detectMentions(content)) {
-    const r = resolve(m, corpus, selfId);
+  for (const m of detectMentions(content, adopted)) {
+    const r = resolve(m, corpus, selfId, adopted);
     const bucket = classifyBucket(m, r.count);
     if (bucket === "wire") {
       let relationship = "related", basis = null;
@@ -249,8 +281,8 @@ export function assertMoatBoundary(writes) {
 // row in its own dedup namespace (lineage-gap:absent-parent — link-items.ts's executor dedups it the same
 // one-open-flag-per-item way it already dedups the entity-link flag), naming the missing parent
 // instrument(s) as an L2 discovery target.
-export function planLinkWrites(content, corpus, itemId) {
-  const { edges, surface, lineageGaps } = planLinks(content, corpus, itemId);
+export function planLinkWrites(content, corpus, itemId, adopted) {
+  const { edges, surface, lineageGaps } = planLinks(content, corpus, itemId, adopted);
   const writes = edges.map((e) => ({
     table: "item_cross_references",
     row: {
