@@ -31,6 +31,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";
+import { isAbsentError, readTolerant } from "../lib/absent-tolerant.mjs";
 import {
   DETECTORS,
   ADOPTION_MIN_SOURCES,
@@ -55,17 +56,7 @@ export const CITE = Object.freeze({
 });
 
 const PREVIEW_LIMIT = 20;
-const ABSENT_RE = /does not exist|could not find|schema cache|relation .* does not exist|column .* does not exist/i;
 
-/** Run a read that may fail because migration 355 is not applied yet. @returns {Promise<{rows: object[], absent: boolean}>} */
-async function readTolerant(fn) {
-  try {
-    return { rows: (await fn()) ?? [], absent: false };
-  } catch (e) {
-    if (ABSENT_RE.test(e instanceof Error ? e.message : String(e))) return { rows: [], absent: true };
-    throw e;
-  }
-}
 
 /**
  * @param {{ mode?: "dry"|"apply" }} opts
@@ -93,7 +84,7 @@ export async function main({ mode = "dry" } = {}, deps) {
   try {
     items = await deps.readItems(true);
   } catch (e) {
-    if (!ABSENT_RE.test(e instanceof Error ? e.message : String(e))) throw e;
+    if (!isAbsentError(e)) throw e;
     candidatesAbsent = true;
     items = await deps.readItems(false);
   }

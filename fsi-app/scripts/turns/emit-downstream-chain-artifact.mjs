@@ -36,7 +36,11 @@ const FAMILY_DIR = resolve(FSI_ROOT, "scripts/harness-runs", FAMILY);
 // term-recurrence (lane G5-TERMS, 2026-10-06) runs right after tag-proposals: it is not a maintenance step
 // (scripts/connections/term-recurrence.mjs writes its own summary.json under OUT_ROOT/term-recurrence, the
 // same shape cli.mjs writes), and its counts are read into metrics.terms below.
-export const STEPS = Object.freeze(["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "term-recurrence", "apply-classifications"]);
+export const STEPS = Object.freeze(["tier-opinions", "recompute-tiers", "derive-obligations", "tag-proposals", "term-recurrence", "raise-term-needs", "apply-classifications"]);
+
+// raise-term-needs (lane G5-NEED, 2026-10-07) runs right after term-recurrence, the same non-maintenance shape:
+// scripts/connections/raise-term-needs.mjs writes its own summary.json under OUT_ROOT/raise-term-needs and its
+// counts are read into metrics.term_needs below.
 
 /** The term-recurrence counts the artifact records: detected per detector, proposed, adopted. Null when the
  *  step left no readable summary (skipped chain, step never ran). @param {{step:string, summary:object|null}[]} stepResults */
@@ -51,6 +55,26 @@ export function termMetrics(stepResults) {
     proposed: c.proposed ?? null,
     adopted: c.adopted ?? null,
     newly_adopted: c.newly_adopted ?? null,
+    notes: Array.isArray(c.notes) ? c.notes : [],
+  };
+}
+
+/** The raise-term-needs counts the artifact records: needs raised, closed, CELEX register targets. Null when the
+ *  step left no readable summary. @param {{step:string, summary:object|null}[]} stepResults */
+export function termNeedMetrics(stepResults) {
+  const r = stepResults.find((x) => x.step === "raise-term-needs");
+  const c = r?.summary?.counts;
+  if (!c || typeof c !== "object") return null;
+  return {
+    mode: r.summary.mode ?? null,
+    adopted_terms: c.adopted_terms ?? null,
+    terms_with_holding: c.terms_with_holding ?? null,
+    term_needs: c.term_needs ?? null,
+    lineage_celex_targets: c.lineage_celex_targets ?? null,
+    lineage_non_celex_needs: c.lineage_non_celex_needs ?? null,
+    would_insert: c.would_insert ?? null,
+    would_resolve: c.would_resolve ?? null,
+    unchanged: c.unchanged ?? null,
     notes: Array.isArray(c.notes) ? c.notes : [],
   };
 }
@@ -136,12 +160,13 @@ export function buildArtifact({
       steps_with_summary: stepsWithSummary,
       steps_nonzero_exit: stepsNonzeroExit,
       terms: termMetrics(stepResults),
+      term_needs: termNeedMetrics(stepResults),
     },
     defects_found: defectsFound,
     full_trace_refs: fullTraceRefs,
     proposer_notes: skip
       ? `This dispatch was a no-op: ${skipReason || "no reason recorded"}. No step ran; recorded anyway so the family's own history shows every firing, not only the ones with real work (MINT-RUNBOOK.md's "record it every batch, even when zero," applied here).`
-      : "Auto-emitted by emit-downstream-chain-artifact.mjs after tier-opinions/recompute-tiers/derive-obligations/tag-proposals/term-recurrence/apply-classifications each wrote their own summary.json via the shared ./.github/actions/maintenance-step composite action.",
+      : "Auto-emitted by emit-downstream-chain-artifact.mjs after tier-opinions/recompute-tiers/derive-obligations/tag-proposals/term-recurrence/raise-term-needs/apply-classifications each wrote their own summary.json via the shared ./.github/actions/maintenance-step composite action.",
   };
 }
 

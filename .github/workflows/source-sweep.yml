@@ -48,6 +48,11 @@ on:
         description: 'ISO date (register-eurlex / register-federal-register only). Required for those two walkers.'
         required: false
         type: string
+      lineage_targets:
+        description: 'register-eurlex only (lane G5-NEED, 2026-10-07): instead of a from/to date walk, run the lineage-gap-targets report inline first (report only, never writes, never resolves a flag) and pass its lineage-gap-targets.json to the walker as explicit targets (--targets-file): each CELEX id of an absent lineage parent becomes its EUR-Lex text URL in the portal_link_candidates ledger, no fetch. Non-CELEX identifiers are skipped here (raise-term-needs turns them into term-need standards). from/to are not required when this is set. mode stays dry by default.'
+        required: false
+        type: boolean
+        default: false
       feed_url:
         description: 'Feed URL (feed walker only). Required when walker=feed.'
         required: false
@@ -164,6 +169,11 @@ jobs:
                 exit 1
               fi
             fi
+          elif [ "${{ inputs.lineage_targets }}" = "true" ]; then
+            if [ "${{ inputs.walker }}" != "register-eurlex" ]; then
+              echo "::error::lineage_targets is an explicit-target mode for walker=register-eurlex only."
+              exit 1
+            fi
           else
             if [ -z "${{ inputs.from }}" ] || [ -z "${{ inputs.to }}" ]; then
               echo "::error::from/to date inputs are required for walker=${{ inputs.walker }}."
@@ -188,6 +198,7 @@ jobs:
           echo "mode         = ${{ inputs.mode }}"
           echo "from/to      = ${{ inputs.from }} .. ${{ inputs.to }}"
           echo "feed         = ${{ inputs.feed_url }}"
+          echo "lineage      = lineage_targets=${{ inputs.lineage_targets }}"
           echo "sitemap      = source_id=${{ inputs.source_id }} host=${{ inputs.host }} all_hosts=${{ inputs.all_hosts }} max_hosts=${{ inputs.max_hosts }} time_budget_seconds=${{ inputs.time_budget_seconds }} check_coverage=${{ inputs.check_coverage }}"
           echo "loop_run_id  = ${{ steps.loop.outputs.loop_run_id }}"
 
@@ -215,6 +226,17 @@ jobs:
           done
           echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged source-sweep file(s) from sibling branches"
 
+      # lineage-gap-targets (lane G5-NEED, 2026-10-07, rule 17): the producer of lineage-gap-targets.json
+      # had no consumer. The maintenance-step artifact of an earlier run is not reachable from this workflow
+      # (each workflow run keeps its own artifacts), so the report is produced HERE, inline, as the first
+      # step, in report mode (--mode dry: reads integrity_flags and the corpus, writes only the JSON file,
+      # resolves no flag), and the sweep step below reads that file.
+      - name: lineage-gap-targets (report) for explicit EUR-Lex targets
+        if: ${{ inputs.walker == 'register-eurlex' && inputs.lineage_targets }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/lineage-gap-targets"
+          node scripts/maintenance/lineage-gap-targets.mjs --mode dry --out "$RUNNER_TEMP/lineage-gap-targets"
+
       - name: run-source-sweep.mjs
         if: ${{ inputs.walker != 'research' }}
         env:
@@ -234,6 +256,8 @@ jobs:
               if [ -n "${{ inputs.time_budget_seconds }}" ]; then args+=(--time-budget-seconds "${{ inputs.time_budget_seconds }}"); fi
             fi
             if [ -n "${{ inputs.limit }}" ]; then args+=(--limit "${{ inputs.limit }}"); fi
+          elif [ "${{ inputs.walker }}" = "register-eurlex" ] && [ "${{ inputs.lineage_targets }}" = "true" ]; then
+            args+=(--targets-file "$RUNNER_TEMP/lineage-gap-targets/lineage-gap-targets.json")
           else
             args+=(--from "${{ inputs.from }}" --to "${{ inputs.to }}")
           fi

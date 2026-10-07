@@ -10,6 +10,7 @@ import {
   selectAllHostsTargets, buildSitemapCoveragePatch, buildCoverageReport, DEFAULT_MAX_HOSTS,
   DEFAULT_TIME_BUDGET_SECONDS, checkTimeBudget, walkTargetsWithinBudget, withFetchTimeout,
   DEFAULT_SLICE_HOSTS, MAX_SLICE_HOSTS, lastFullyWalkedHost, latestSitemapAllHostsCursor,
+  eurlexTargetLinks, walkEurlexTargets,
 } from "./run-source-sweep.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -958,4 +959,85 @@ test("shapeRunOutput sitemap: --check-coverage result shape — read-only metric
   assert.equal(shaped.metrics.sitemap_unwalked_active, 1626);
   assert.deepEqual(shaped.metrics.walk_outcome_counts, { walked: 4, never_walked: 1626 });
   assert.equal(shaped.metrics.feed_url_populated, 189);
+});
+
+// ── explicit EUR-Lex targets (lane G5-NEED, 2026-10-07): lineage-gap-targets.json and --celex ────────────
+
+const LINEAGE_TARGETS_JSON = {
+  generated_for: "2026-10-07", mode: "dry",
+  targets: [
+    { identifier: "32023R1805", relationship: "implements", citing_item_id: "a", flag_id: "f1" },
+    { identifier: "CELEX:32019r1242", relationship: "amends", citing_item_id: "b", flag_id: "f2" },
+    { identifier: "32023R1805", relationship: "depends_on", citing_item_id: "c", flag_id: "f3" },
+    { identifier: "2019/1242", relationship: "implements", citing_item_id: "a", flag_id: "f1" },
+  ],
+  resolvable: [], relink_item_ids: [], residue: [],
+};
+
+test("parseArgs: --targets-file and --celex are explicit EUR-Lex targets, no --from/--to needed", () => {
+  const f = parseArgs(["--walker", "register-eurlex", "--mode", "dry", "--targets-file", "lineage-gap-targets.json"]);
+  assert.equal(f.ok, true);
+  assert.equal(f.targetsFile, "lineage-gap-targets.json");
+  assert.equal(f.celex, null);
+  const c = parseArgs(["--walker", "register-eurlex", "--mode", "dry", "--celex", "celex:32023r1805"]);
+  assert.equal(c.ok, true);
+  assert.equal(c.celex, "32023R1805");
+  assert.equal(parseArgs(["--walker", "register-eurlex", "--mode", "dry"]).ok, false, "the date walk still requires --from/--to");
+});
+
+test("parseArgs: explicit targets are refused for any other walker, for a bad CELEX, and when both are given", () => {
+  assert.match(parseArgs(["--walker", "register-federal-register", "--mode", "dry", "--celex", "32023R1805"]).error, /EUR-Lex/);
+  assert.match(parseArgs(["--walker", "feed", "--mode", "dry", "--feed-url", "https://x.gov/f.xml", "--targets-file", "t.json"]).error, /EUR-Lex/);
+  assert.match(parseArgs(["--walker", "register-eurlex", "--mode", "dry", "--celex", "2023/1805"]).error, /CELEX/);
+  assert.match(parseArgs(["--walker", "register-eurlex", "--mode", "dry", "--celex", "32023R1805", "--targets-file", "t.json"]).error, /one of/);
+});
+
+test("eurlexTargetLinks: CELEX ids become EUR-Lex text URLs (deduplicated), other shapes are skipped with their reason", () => {
+  const r = eurlexTargetLinks({ targetsJson: LINEAGE_TARGETS_JSON });
+  assert.deepEqual(r.celex, ["32019R1242", "32023R1805"]);
+  assert.deepEqual(r.links, [
+    { url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32019R1242", anchorText: "CELEX:32019R1242" },
+    { url: "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R1805", anchorText: "CELEX:32023R1805" },
+  ]);
+  assert.deepEqual(r.skipped, [{ identifier: "2019/1242", reason: "not a CELEX id (raised as a term-need of kind standard by raise-term-needs)" }]);
+  const one = eurlexTargetLinks({ celex: "32023R1805" });
+  assert.deepEqual(one.celex, ["32023R1805"]);
+  assert.deepEqual(eurlexTargetLinks({ targetsJson: { targets: [] } }).links, []);
+  assert.deepEqual(eurlexTargetLinks({ targetsJson: null }).links, []);
+});
+
+test("walkEurlexTargets: persists the explicit links through the injected persist, dry counts and writes nothing", async () => {
+  const seen = [];
+  const persist = async (links) => { seen.push(links); return { upserted: links.length, failed: 0 }; };
+  const t = eurlexTargetLinks({ targetsJson: LINEAGE_TARGETS_JSON });
+  const res = await walkEurlexTargets({ persist }, t);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].length, 2);
+  assert.deepEqual([res.register, res.upserted, res.failed, res.celex.length, res.skipped.length], ["eurlex-targets", 2, 0, 2, 1]);
+  const none = await walkEurlexTargets({ persist }, { links: [], celex: [], skipped: [] });
+  assert.equal(none.upserted, 0);
+  assert.equal(seen.length, 1, "no links, no persist call");
+});
+
+test("walkEurlexTargets through the real ledger writer (apply path, fake row writer): lands in portal_link_candidates on conflict url", async () => {
+  const calls = [];
+  const upsertRow = async (table, row, opts) => { calls.push({ table, row, opts }); };
+  const t = eurlexTargetLinks({ celex: "32023R1805" });
+  const res = await walkEurlexTargets({ persist: (links) => upsertPortalLinkCandidates({}, "src-eurlex", links, { upsertRow }) }, t);
+  assert.equal(res.upserted, 1);
+  assert.equal(calls[0].table, "portal_link_candidates");
+  assert.equal(calls[0].opts.onConflict, "url");
+  assert.equal(calls[0].row.source_id, "src-eurlex");
+  assert.equal(calls[0].row.url, "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R1805");
+});
+
+test("shapeRunOutput: an explicit-target EUR-Lex run reports targets, upserted-or-planned and skipped honestly in both modes", () => {
+  const result = { register: "eurlex-targets", celex: ["32023R1805"], skipped: [{ identifier: "2019/1242", reason: "x" }], links: ["u"], upserted: 1, failed: 0 };
+  const dry = shapeRunOutput("register-eurlex", result, "traces/x.json", "dry");
+  assert.deepEqual([dry.metrics.upserted, dry.metrics.planned, dry.metrics.targets, dry.metrics.skipped_non_celex, dry.metrics.mode], [0, 1, 1, 1, "dry"]);
+  assert.deepEqual(dry.perItem.map((p) => p.id), ["32023R1805", "2019/1242"]);
+  assert.match(dry.perItem[0].verdict, /planned \(dry, nothing written\)/);
+  assert.equal(dry.perItem[1].outcome, "skipped");
+  const apply = shapeRunOutput("register-eurlex", result, "traces/x.json", "apply");
+  assert.deepEqual([apply.metrics.upserted, apply.metrics.planned], [1, undefined]);
 });

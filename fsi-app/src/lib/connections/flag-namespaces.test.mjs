@@ -82,3 +82,14 @@ test("HOLDINGS_NEED_NAMESPACE: registered, disjoint from every other namespace a
   const ref = buildSubjectRef("item-1", "regulations", "what");
   assert.equal(ref, "item-1:regulations:what", "the target's subject_ref is the question's own");
 });
+
+test("TERM_NEED_NAMESPACE: registered, disjoint from every other namespace, shares the find-source action with holdings-need", async () => {
+  const m = await import("./flag-namespaces.mjs");
+  assert.equal(m.TERM_NEED_NAMESPACE, "term-need:");
+  assert.ok(m.ALL_NAMESPACES.includes(m.TERM_NEED_NAMESPACE));
+  assert.equal(m.createdBy(m.TERM_NEED_NAMESPACE, "standard"), "term-need:standard");
+  assert.equal(m.TERM_NEED_ACTION, m.HOLDINGS_NEED_ACTION, "one reader, both namespaces: the same find-source action");
+  for (const ns of m.ALL_NAMESPACES) {
+    if (ns !== m.TERM_NEED_NAMESPACE) assert.ok(!ns.startsWith(m.TERM_NEED_NAMESPACE) && !m.TERM_NEED_NAMESPACE.startsWith(ns));
+  }
+});

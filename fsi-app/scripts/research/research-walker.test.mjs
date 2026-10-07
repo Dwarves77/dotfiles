@@ -18,6 +18,7 @@ import {
   resolveOpenAlexPublisher,
   holdingsNeedsFromFlags,
   readHoldingsNeeds,
+  readOpenNeeds,
   searchHoldingsNeeds,
   MAX_HOLDINGS_NEEDS,
 } from "./research-walker.mjs";
@@ -268,4 +269,39 @@ test("searchHoldingsNeeds: no needs, no calls", async () => {
   const urls = [];
   assert.deepEqual(await searchHoldingsNeeds([], {}, { fetch: okFetch(urls) }), []);
   assert.equal(urls.length, 0);
+});
+
+// ── lane G5-NEED: one reader, both need namespaces ────────────────────────────────────────────────────────
+const termNeedFlag = (ref, need) => ({
+  id: `f-${ref}`, subject_ref: ref, created_by: "term-need:standard", status: "open",
+  recommended_actions: [{ action: "find-source", need, kind: "standard", term_key: "k" }],
+});
+
+test("readOpenNeeds reads open holdings-need AND term-need flags through the one reader, and reports how many it read before the cap", async () => {
+  const readAll = async (_table, _cols, opts) => {
+    const q = { filters: [], in(c, v) { this.filters.push([c, v]); return this; } };
+    opts.match(q);
+    const cb = q.filters.find(([c]) => c === "created_by")[1];
+    assert.ok(cb.some((x) => x.startsWith("holdings-need:")) && cb.some((x) => x.startsWith("term-need:")));
+    assert.ok(q.filters.some(([c, v]) => c === "status" && v.includes("open")));
+    return [needFlag("a:x:what", "need A"), termNeedFlag("t-1", "ISO 14083 standard authoritative source"), termNeedFlag("t-2", "another standard authoritative source")];
+  };
+  const r = await readOpenNeeds({ readAll }, 2);
+  assert.equal(r.read, 3);
+  assert.equal(r.needs.length, 2, "bounded");
+  const all = await readOpenNeeds({ readAll });
+  assert.deepEqual(all.needs.map((n) => n.namespace ?? "holdings-need").sort(), ["holdings-need", "term-need", "term-need"]);
+  assert.equal(all.needs.find((n) => n.subject_ref === "t-1").need, "ISO 14083 standard authoritative source");
+});
+
+test("readHoldingsNeeds is unchanged: holdings needs only", async () => {
+  let seen = null;
+  const readAll = async (_t, _c, opts) => {
+    const q = { filters: [], in(c, v) { this.filters.push([c, v]); return this; } };
+    opts.match(q);
+    seen = q.filters.find(([c]) => c === "created_by")[1];
+    return [];
+  };
+  await readHoldingsNeeds({ readAll });
+  assert.ok(seen.every((x) => x.startsWith("holdings-need:")));
 });

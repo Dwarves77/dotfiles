@@ -154,6 +154,18 @@ export async function readHoldingsNeeds(deps, max = MAX_HOLDINGS_NEEDS) {
   return holdingsNeedsFromFlags(await loadOpenNeedTargets(deps), max);
 }
 
+/**
+ * Lane G5-NEED (2026-10-07): the open needs of BOTH namespaces through the one reader, holdings-need targets
+ * (a question the held text cannot answer) and term-need targets (an adopted term, or a lineage parent that is
+ * not a CELEX id, with no authoritative holding). Bounded like the holdings reader; `read` is how many open
+ * needs existed before the cap, so the run's artifact can say how many needs it read versus searched.
+ * @param {{readAll:Function}} deps @returns {Promise<{needs: object[], read: number}>}
+ */
+export async function readOpenNeeds(deps, max = MAX_HOLDINGS_NEEDS) {
+  const flags = await loadOpenNeedTargets(deps, { includeTermNeeds: true });
+  return { needs: holdingsNeedsFromFlags(flags, max), read: holdingsNeedsFromFlags(flags, Infinity).length };
+}
+
 /** Search OpenAlex once per need (the need in words is the query). A failed search is recorded on its need,
  *  never thrown: the other needs still run. */
 export async function searchHoldingsNeeds(needs, { perNeed = HOLDINGS_NEED_PER_PAGE } = {}, deps = {}) {
@@ -325,6 +337,7 @@ export async function runWalk({
   openAlexCandidatesOverride,
   holdingsNeeds = [],
   maxHoldingsNeeds = MAX_HOLDINGS_NEEDS,
+  needsRead = null,
 }) {
   const topicCandidates =
     openAlexCandidatesOverride ?? (await searchOpenAlexWorks({ query: openAlexQuery, perPage: 10 }, openAlexDeps));
@@ -338,6 +351,7 @@ export async function runWalk({
       needCandidates.push({ ...c, forNeed: nr.subject_ref });
     }
   }
+  const termNeedRefs = new Set(needResults.filter((nr) => nr.namespace === "term-need").map((nr) => nr.subject_ref));
   const openAlexCandidates = [...topicCandidates, ...needCandidates];
   const perItem = [];
   for (const nr of needResults) {
@@ -427,6 +441,9 @@ export async function runWalk({
   return {
     perItem,
     metrics: {
+      needs_read: needsRead ?? needResults.length,
+      term_needs_searched: termNeedRefs.size,
+      term_need_candidates: needCandidates.filter((c) => termNeedRefs.has(c.forNeed)).length,
       holdings_needs_searched: needResults.length,
       holdings_need_candidates: needCandidates.length,
       holdings_needs_without_candidates: needResults.filter((nr) => nr.candidates.length === 0).length,
@@ -474,19 +491,22 @@ async function main() {
   // Open holdings-need targets as search inputs (lane L4-B): from a fixture file (offline) or read from the
   // database (needs credentials). Reads only; nothing is written to a target.
   let holdingsNeeds = [];
+  let needsRead = null;
   if (needsFile) {
     const { readFileSync } = await import("node:fs");
-    holdingsNeeds = holdingsNeedsFromFlags(JSON.parse(readFileSync(resolvePath(needsFile), "utf8")));
+    const fileFlags = JSON.parse(readFileSync(resolvePath(needsFile), "utf8"));
+    holdingsNeeds = holdingsNeedsFromFlags(fileFlags);
+    needsRead = holdingsNeedsFromFlags(fileFlags, Infinity).length;
   } else if (readNeedsFromDb) {
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error(`${WALKER_NAME}: --holdings-needs reads open targets from the database and needs credentials (exit 2).`);
       process.exit(2);
     }
     const db = await import("../lib/db.mjs");
-    holdingsNeeds = await readHoldingsNeeds({ readAll: db.readAll });
+    ({ needs: holdingsNeeds, read: needsRead } = await readOpenNeeds({ readAll: db.readAll }));
   }
 
-  console.log(`${WALKER_NAME}: fixture run (no --live), mode=dry -- zero network, zero DB credential${holdingsNeeds.length ? `; ${holdingsNeeds.length} holdings need(s) as search input` : ""}.`);
+  console.log(`${WALKER_NAME}: fixture run (no --live), mode=dry -- zero network, zero DB credential${holdingsNeeds.length ? `; ${holdingsNeeds.length} need(s) (holdings and term) as search input` : ""}.`);
   // The committed fixture response, served through a deps.fetch stub -- so this run exercises L3's
   // real openAlexGet (mailto, retry/backoff, JSON parse) end to end, never a shortcut that skips the
   // client it reuses.
@@ -504,6 +524,7 @@ async function main() {
     // database AND --live is passed. Every other run is served by the fixture stub.
     openAlexDeps: readNeedsFromDb && live ? {} : { fetch: fixtureFetch },
     holdingsNeeds,
+    needsRead,
     mode: "dry",
     // The fixture run reads the loader's own fixture batch by name (it is never picked up by real
     // discovery); a live run passes loadHostVerdicts({ dir: HOST_VERDICTS_DIR }) (the committed batches).
