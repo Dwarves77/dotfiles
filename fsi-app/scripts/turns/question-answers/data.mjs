@@ -36,6 +36,8 @@ export const ANSWERED_ACTION = "answered_from_holdings";
 export const NEED_CREATED_BY = Object.freeze(PRODUCT_QUESTIONS.map((pq) => createdBy(HOLDINGS_NEED_NAMESPACE, pq)));
 /** The created_by values of every term-need target (one per vocabulary term kind; lane G5-NEED). */
 export const TERM_NEED_CREATED_BY = Object.freeze(TERM_KINDS.map((k) => createdBy(TERM_NEED_NAMESPACE, k)));
+/** Every need target, both namespaces: what the research walker reads. */
+export const ALL_NEED_CREATED_BY = Object.freeze([...NEED_CREATED_BY, ...TERM_NEED_CREATED_BY]);
 
 export const FLAG_COLUMNS = "id, subject_ref, created_by, description, recommended_actions, status, created_at";
 export const ITEM_COLUMNS = "id, title, item_type, domain, jurisdiction_iso, summary, provenance_status, is_archived, origin_class, instrument_entity_id";
@@ -147,10 +149,11 @@ export function needOfFlag(flag) {
  * namespaces; the answer apply step never sees a term need because it does not ask for it.
  */
 export async function loadOpenNeedTargets({ readAll }, { includeTermNeeds = false } = {}) {
-  const createdBys = includeTermNeeds ? [...NEED_CREATED_BY, ...TERM_NEED_CREATED_BY] : [...NEED_CREATED_BY];
   return readAll("integrity_flags", FLAG_COLUMNS, {
     orderBy: "id",
-    match: (q) => q.in("created_by", createdBys).in("status", [...OPEN_STATUSES]),
+    match: includeTermNeeds
+      ? (q) => q.in("created_by", [...ALL_NEED_CREATED_BY]).in("status", [...OPEN_STATUSES])
+      : (q) => q.in("created_by", [...NEED_CREATED_BY]).in("status", [...OPEN_STATUSES]),
   });
 }
 

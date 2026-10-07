@@ -36,11 +36,11 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "../maintenance/lib/cli.mjs";
+import { readTolerant } from "../lib/absent-tolerant.mjs";
 import { planReflect } from "./propose-tags.mjs";
 import { planTermNeeds, planLineageNeeds } from "../../src/lib/connections/term-needs.mjs";
 import { planLineageGapTargets, LINEAGE_GAP_CREATED_BY } from "../../src/lib/entities/lineage-backfill.mjs";
-import { TERM_NEED_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
-import { TERM_KINDS } from "../../src/lib/connections/term-recurrence.mjs";
+import { TERM_NEED_CREATED_BY } from "../turns/question-answers/data.mjs";
 
 export const STEP = "raise-term-needs";
 export const RESOLVE_NOTE = "term-need closed by rule: the need is no longer reproduced (an authoritative holding exists, the term is no longer adopted, or the lineage parent is now held).";
@@ -53,17 +53,8 @@ export const CITE = Object.freeze({
     "namespace only, never any other table.",
 });
 
-const ABSENT_RE = /does not exist|could not find|schema cache|relation .* does not exist|column .* does not exist/i;
 const CELEX_SAMPLE = 50;
 
-async function readTolerant(fn) {
-  try {
-    return { rows: (await fn()) ?? [], absent: false };
-  } catch (e) {
-    if (ABSENT_RE.test(e instanceof Error ? e.message : String(e))) return { rows: [], absent: true };
-    throw e;
-  }
-}
 
 /**
  * @param {{ mode?: "dry"|"apply" }} opts
@@ -158,7 +149,6 @@ const FLAG_COLS = "id, subject_ref, created_by, description, recommended_actions
 /** Real wiring for main(): reads through db.mjs, writes through its guarded helpers. EXPORTED for the test. */
 export async function buildDeps() {
   const { readAll, readAllByIds, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
-  const needCreatedBy = TERM_KINDS.map((k) => `${TERM_NEED_NAMESPACE}${k}`);
   return {
     readTerms: () => readAll("vocabulary_terms", "id, kind, term_key, label, status, distinct_items, distinct_sources"),
     readMentions: () => readAll("vocabulary_mentions", "term_id, item_id"),
@@ -166,7 +156,7 @@ export async function buildDeps() {
     readSourcesByIds: (ids) => readAllByIds("sources", "id, base_tier, tier_override", ids),
     readOpenNeeds: () =>
       readAll("integrity_flags", FLAG_COLS, {
-        match: (q) => q.in("created_by", needCreatedBy).in("status", ["open", "in_review"]),
+        match: (q) => q.in("created_by", [...TERM_NEED_CREATED_BY]).in("status", ["open", "in_review"]),
       }),
     readLineageFlags: () =>
       readAll("integrity_flags", FLAG_COLS, {
