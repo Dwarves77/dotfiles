@@ -6,9 +6,9 @@
 //
 // Schema reference (migration 032):
 //   notifications(id, user_id, kind, payload, read_at, created_at)
-//   kind in (mention, reply, promote, invite, moderation)
+//   kind in (mention, reply, invite, moderation, archive)
 //   payload jsonb carries group_id when the notification originated in
-//   a group context (reply/promote/invite/moderation/mention).
+//   a group context (reply/invite/moderation/mention).
 //
 // Auth:    cookie session via requireCommunityAuth.
 // Limits:  60 req/min/user via checkRateLimit.

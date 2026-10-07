@@ -27,7 +27,6 @@ import {
   MessageSquare,
   UserPlus,
   ShieldAlert,
-  Star,
   Inbox,
   Loader2,
   CheckCheck,
@@ -73,7 +72,6 @@ const KIND_LABEL: Record<Kind, string> = {
   mention: "Mention",
   reply: "Reply",
   invite: "Invite",
-  promote: "Promotion",
   moderation: "Moderation",
   archive: "Archived",
 };
@@ -89,8 +87,6 @@ function KindIcon({ kind }: { kind: Kind }) {
       return <UserPlus {...props} />;
     case "moderation":
       return <ShieldAlert {...props} />;
-    case "promote":
-      return <Star {...props} />;
     case "archive":
       return <Archive {...props} />;
     default:

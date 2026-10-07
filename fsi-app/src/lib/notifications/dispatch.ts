@@ -1,5 +1,5 @@
 // Shared notification fan-out helper. Wired at each event-origin point
-// (reply, invite, moderation, future: mention, promote) to insert a row
+// (reply, invite, moderation, future: mention) to insert a row
 // into the per-user `notifications` table that the bell + list components
 // read at /api/community/notifications.
 //
@@ -16,14 +16,14 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Kinds must stay in sync with the notifications_kind_check CHECK constraint.
+// Kinds are a subset of the notifications_kind_check CHECK constraint. 'promote' is retired from code
+// (ADR-041, Community is social only); the DB CHECK still allows it until the owed migration.
 // 'archive' added by migration 235 (dual-scope archive): a workspace archive
 // fans out to the item's watchers and its assigned owner.
 export type NotificationKind =
   | "reply"
   | "invite"
   | "moderation"
-  | "promote"
   | "mention"
   | "archive";
 

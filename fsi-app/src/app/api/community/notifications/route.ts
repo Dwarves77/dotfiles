@@ -6,7 +6,7 @@
 //
 // Schema reference (migration 032):
 //   notifications(id, user_id, kind, payload, read_at, created_at)
-//   kind ∈ {mention, reply, promote, invite, moderation}
+//   kind ∈ {mention, reply, invite, moderation, archive}
 //
 // Auth:    cookie session via requireCommunityAuth.
 // Limits:  60 req/min/user via checkRateLimit.

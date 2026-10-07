@@ -12,12 +12,13 @@ import { Check } from "lucide-react";
 //
 // Schema (migration 032):
 //   user_id PK, enabled, on_mention, on_reply_in_my_threads,
-//   on_new_post_in_joined_groups, on_invite, on_promote,
-//   channels[], updated_at
+//   on_new_post_in_joined_groups, on_invite,
+//   channels[], updated_at (plus on_promote, no longer read or written: ADR-041,
+//   owed DROP COLUMN)
 //
 // Defaults at signup (Phase C lock spec):
 //   enabled=true, on_mention=true, on_reply_in_my_threads=true,
-//   on_new_post_in_joined_groups=false, on_invite=true, on_promote=true,
+//   on_new_post_in_joined_groups=false, on_invite=true,
 //   channels=['in_app']
 //
 // Locked toggle: on_invite is intentionally not toggleable. It's required for
@@ -31,7 +32,6 @@ export interface NotificationPrefs {
   on_reply_in_my_threads: boolean;
   on_new_post_in_joined_groups: boolean;
   on_invite: boolean;
-  on_promote: boolean;
   channels: string[];
 }
 
@@ -41,7 +41,6 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   on_reply_in_my_threads: true,
   on_new_post_in_joined_groups: false,
   on_invite: true,
-  on_promote: true,
   channels: ["in_app"],
 };
 
@@ -65,7 +64,6 @@ type RowKey = keyof Pick<
   | "on_mention"
   | "on_reply_in_my_threads"
   | "on_new_post_in_joined_groups"
-  | "on_promote"
 >;
 
 const ROWS: Array<{
@@ -97,12 +95,6 @@ const ROWS: Array<{
     description:
       "Higher volume · off by default",
   },
-  {
-    key: "on_promote",
-    label: "When a post gets promoted",
-    description:
-      "Editorial promoted your post or a verifier signed off",
-  },
 ];
 
 export function NotificationPreferences({ userId, onSaved }: Props) {
@@ -120,7 +112,7 @@ export function NotificationPreferences({ userId, onSaved }: Props) {
       const { data, error } = await supabase
         .from("notification_preferences")
         .select(
-          "enabled, on_mention, on_reply_in_my_threads, on_new_post_in_joined_groups, on_invite, on_promote, channels"
+          "enabled, on_mention, on_reply_in_my_threads, on_new_post_in_joined_groups, on_invite, channels"
         )
         .eq("user_id", userId)
         .maybeSingle();
@@ -140,7 +132,6 @@ export function NotificationPreferences({ userId, onSaved }: Props) {
           on_reply_in_my_threads: data.on_reply_in_my_threads ?? true,
           on_new_post_in_joined_groups: data.on_new_post_in_joined_groups ?? false,
           on_invite: data.on_invite ?? true,
-          on_promote: data.on_promote ?? true,
           channels: data.channels ?? ["in_app"],
         });
       }
@@ -165,7 +156,6 @@ export function NotificationPreferences({ userId, onSaved }: Props) {
           on_reply_in_my_threads: next.on_reply_in_my_threads,
           on_new_post_in_joined_groups: next.on_new_post_in_joined_groups,
           on_invite: next.on_invite,
-          on_promote: next.on_promote,
           channels: next.channels,
           updated_at: new Date().toISOString(), // clock-ok: async save handler, never the render path
         },
