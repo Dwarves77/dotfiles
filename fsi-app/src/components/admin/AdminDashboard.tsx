@@ -44,6 +44,7 @@ import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
 import { CoverageCatalogueView } from "@/components/admin/CoverageCatalogueView";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
+import { CorrectionsTab } from "@/components/admin/corrections/CorrectionsTab";
 import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
 import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
@@ -173,7 +174,7 @@ const SECTIONS: SectionDef[] = [
   {
     name: "Ingest",
     sub: "Staged updates, flags & rejections, scan scheduling.",
-    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan", "Corpus turns", "Statutory rows"],
+    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan", "Corpus turns", "Statutory rows", "Corrections"],
   },
   {
     name: "Coverage",
@@ -689,6 +690,7 @@ export function AdminDashboard({
       if (tab === "Regulatory scan") return renderScan();
       if (tab === "Corpus turns") return <CorpusTurnPanel />;
       if (tab === "Statutory rows") return <StatutoryRowsUpload />;
+      if (tab === "Corrections") return <CorrectionsTab />;
     }
 
     // Coverage
