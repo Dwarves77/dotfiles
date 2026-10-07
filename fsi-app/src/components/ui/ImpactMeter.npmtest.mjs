@@ -93,7 +93,37 @@ test("geometry constants: twelve segments in groups of three, 12 px tall, equal"
   assert.equal(mod.ROW_SEGMENT_COUNT, 12);
   assert.equal(mod.ROW_SEGMENT_GROUP_SIZE, 3);
   assert.equal(mod.ROW_SEGMENT_HEIGHT_PX, 12);
-  assert.equal(mod.ROW_TRACK_COLOR, "#E5E1DB");
+  assert.equal(mod.ROW_TRACK_COLOR, "var(--cl-impact-track)");
+});
+
+test("Claude Design 2026-10-07 geometry: 5 x 12 segments, radius 1, gaps 1.5 and 4, total 84 (inside 88)", () => {
+  assert.equal(mod.ROW_SEGMENT_WIDTH_PX, 5);
+  assert.equal(mod.ROW_SEGMENT_HEIGHT_PX, 12);
+  assert.equal(mod.ROW_SEGMENT_RADIUS_PX, 1);
+  assert.equal(mod.ROW_SEGMENT_GAP_PX, 1.5);
+  assert.equal(mod.ROW_GROUP_GAP_PX, 4);
+  assert.equal(mod.ROW_VALUE_GAP_PX, 8);
+  // 12 x 5 + 8 x 1.5 + 3 x 4 = 84
+  assert.equal(12 * 5 + 8 * 1.5 + 3 * 4, 84);
+  assert.equal(mod.ROW_SEGMENTS_TOTAL_PX, 84);
+  assert.ok(mod.ROW_SEGMENTS_TOTAL_PX <= 88);
+});
+
+test("the empty-segment colour is the globals.css token for #E5E1DB, never a raw hex in the component", () => {
+  const css = readFileSync(resolve(HERE, "../../app/globals.css"), "utf8");
+  assert.match(css, /--cl-impact-track:\s*#E5E1DB/i);
+  const code = SOURCE.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.doesNotMatch(code, /#E5E1DB/i);
+});
+
+test("ROW_VALUE_VISIBLE is the one-line flip: off in the list row, valueVisible draws N/12 8 px right", () => {
+  assert.equal(mod.ROW_VALUE_VISIBLE, false);
+  const hidden = render({ total: 8 });
+  assert.doesNotMatch(hidden, /\/12<\/span>/);
+  assert.match(hidden, /aria-label="Impact 8 of 12"/);
+  const shown = render({ total: 8, valueVisible: true });
+  assert.match(shown, /<b style="font-weight:700;color:var\(--ink\)">8<\/b><span style="color:#7A6E6C">\/12<\/span>/);
+  assert.match(shown, /gap:8px/);
 });
 
 test("the four-bar implementation is gone: no stepped heights, no per-bar fill fraction", () => {
@@ -114,7 +144,7 @@ test("a scored row renders twelve equal segments in four groups of three", () =>
   // every segment carries the same size, whatever N is
   const sizes = new Set([...markup.matchAll(/class="cl-impact-bar" style="[^"]*?(width:\d+px;height:\d+px)/g)].map((m) => m[1]));
   assert.equal(sizes.size, 1);
-  assert.match(markup, /width:3px;height:12px/);
+  assert.match(markup, /width:5px;height:12px/);
 });
 
 test("each group holds exactly three segments (group markup, not a count of the whole)", () => {
@@ -137,9 +167,9 @@ test("segmentFilled: segment i is filled when i < N, so the fill runs left to ri
 test("the painted markup fills exactly N segments, leftmost first, the rest the track colour", () => {
   for (const n of [1, 2, 5, 8, 11, 12]) {
     const markup = render({ total: n });
-    const backgrounds = [...markup.matchAll(/class="cl-impact-bar" style="[^"]*?background:(#[0-9A-F]{6})/g)].map((m) => m[1]);
+    const backgrounds = [...markup.matchAll(/class="cl-impact-bar" style="[^"]*?background:(#[0-9A-F]{6}|var\(--cl-impact-track\))/g)].map((m) => m[1]);
     assert.equal(backgrounds.length, 12);
-    const filled = backgrounds.map((c) => c !== "#E5E1DB");
+    const filled = backgrounds.map((c) => c !== "var(--cl-impact-track)");
     assert.deepEqual(filled, Array.from({ length: 12 }, (_, i) => i < n), `N=${n}`);
   }
 });
@@ -176,9 +206,9 @@ test("no filled bar is #16A34A (the lowest stop's green) when N is 7 or more", (
 
 test("every filled segment in one row shares the SAME colour (never a per-segment colour)", () => {
   const markup = render({ scores: { cost: 1, compliance: 2, client: 2, operational: 2 } }); // N=7
-  const fillColors = [...markup.matchAll(/class="cl-impact-bar" style="[^"]*?background:(#[0-9A-F]{6})/g)]
+  const fillColors = [...markup.matchAll(/class="cl-impact-bar" style="[^"]*?background:(#[0-9A-F]{6}|var\(--cl-impact-track\))/g)]
     .map((m) => m[1])
-    .filter((c) => c !== "#E5E1DB");
+    .filter((c) => c !== "var(--cl-impact-track)");
   assert.equal(fillColors.length, 7);
   assert.ok(fillColors.every((c) => c === fillColors[0]), "every filled segment is the same colour");
   assert.equal(fillColors[0], "#F97316");
@@ -189,7 +219,7 @@ test("every filled segment in one row shares the SAME colour (never a per-segmen
 // ---------------------------------------------------------------------------------------------
 
 test("the sum label is tabular-nums, N bold, /12 in #7A6E6C", () => {
-  const markup = render({ scores: { cost: 1, compliance: 1, client: 1, operational: 1 } }); // N=4
+  const markup = render({ scores: { cost: 1, compliance: 1, client: 1, operational: 1 }, valueVisible: true }); // N=4
   assert.match(markup, /font-size:var\(--fs-11\);font-variant-numeric:tabular-nums/);
   assert.match(markup, /<b style="font-weight:700;color:var\(--ink\)">4<\/b><span style="color:#7A6E6C">\/12<\/span>/);
 });
@@ -200,12 +230,12 @@ test("the sum label is tabular-nums, N bold, /12 in #7A6E6C", () => {
 // ---------------------------------------------------------------------------------------------
 
 test("unscored renders the same twelve segments, dashed outline, no fill, no word", () => {
-  const markup = render({ scores: null });
+  const markup = render({ scores: null, valueVisible: true });
   assert.match(markup, /cl-impact-unscored/);
   const outlines = [...markup.matchAll(/border:1px dashed rgba\(0,0,0,\.3\)/g)];
   assert.equal(outlines.length, 12, "all twelve segments are dashed outlines");
   assert.equal([...markup.matchAll(/class="cl-impact-group"/g)].length, 4);
-  assert.match(markup, /width:3px;height:12px/);
+  assert.match(markup, /width:5px;height:12px/);
   // no fill: unlike the scored branch, no segment carries a `background:#RRGGBB` fill
   assert.doesNotMatch(markup, /background:#[0-9A-F]{6}/);
   // "no word": the closed-vocabulary reason is carried on aria-label/title for assistive tech (the
@@ -220,7 +250,7 @@ test("unscored renders the same twelve segments, dashed outline, no fill, no wor
 });
 
 test("the unscored score slot is an em dash via Absence's dash variant, carrying the reason only off-text", () => {
-  const markup = render({ scores: undefined });
+  const markup = render({ scores: undefined, valueVisible: true });
   // 2026-09-25 (Absence rule reversal, look-only pass against the new artboards): the dash variant's
   // aria-label/title now carry the closed-vocabulary NEEDS_PHRASE text, not the raw reason string.
   assert.match(markup, /class="cl-absence-dash" data-absence="dash" aria-label="needs scoring inputs" title="needs scoring inputs"/);

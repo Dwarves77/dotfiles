@@ -77,7 +77,8 @@ const ROWS = [
 const SEGMENTS = 12;
 const GROUP_SIZE = 3;
 const N_BY_CASE = { 'n7-a': 7, 'n7-b': 7, n2: 2, n12: 12 };
-const TRACK_RGB = 'rgb(229, 225, 219)'; // #E5E1DB, the unfilled track
+const TRACK_RGB = 'rgb(229, 225, 219)'; // #E5E1DB via --cl-impact-track, the unfilled track
+const SEGMENTS_MAX_WIDTH_PX = 84; // Claude Design 2026-10-07: 12 x 5 + 8 x 1.5 + 3 x 4
 
 /** Read every segment's painted size, border and background, its group, the sum text, the meter
  *  block's rendered width (segments + gap + sum label) and the impact cell's clientWidth/scrollWidth
@@ -97,7 +98,8 @@ async function measureMeters(page) {
           group: groupEls.indexOf(b.parentElement),
         };
       });
-      const sum = box.querySelector('.cl-impact-scored > span:last-child');
+      const sum = box.querySelector('.cl-impact-scored > span:not(.cl-impact-bars)');
+      const barsEl = box.querySelector('.cl-impact-bars');
       const meter = box.querySelector('.cl-impact-scored');
       const cell = box.querySelector('.cl-row-impact');
       out[box.getAttribute('data-meter-case')] = {
@@ -105,6 +107,7 @@ async function measureMeters(page) {
         groups: groupEls.length,
         sum: sum ? sum.textContent : null,
         meterWidth: meter ? meter.getBoundingClientRect().width : null,
+        barsWidth: barsEl ? barsEl.getBoundingClientRect().width : null,
         cellClientWidth: cell ? cell.clientWidth : null,
         cellScrollWidth: cell ? cell.scrollWidth : null,
       };
@@ -169,6 +172,17 @@ export async function runSmoke(browser) {
           failures.push(`${label}: ${badGroup.length} segment(s) sit in the wrong group (each group holds three).`);
         }
 
+        // Segment geometry 5 x 12, and the meter is 84px or less at every width.
+        checks++;
+        const geo = new Set(got.bars.map((b) => `${b.width}x${b.height}`));
+        if (!(geo.size === 1 && geo.has('5pxx12px'))) {
+          failures.push(`${label}: segment size ${[...geo].join(' | ')}, expected 5px x 12px.`);
+        }
+        checks++;
+        if (got.barsWidth == null || got.barsWidth > SEGMENTS_MAX_WIDTH_PX + 0.01 || got.meterWidth > SEGMENTS_MAX_WIDTH_PX + 0.01) {
+          failures.push(`${label}: meter width bars ${got.barsWidth} / meter ${got.meterWidth}, expected ${SEGMENTS_MAX_WIDTH_PX} or less.`);
+        }
+
         // Equal segments: one width and one height across all twelve, whatever N is.
         checks++;
         const sizes = new Set(got.bars.map((b) => `${b.width}x${b.height}`));
@@ -206,10 +220,11 @@ export async function runSmoke(browser) {
             failures.push(`${label}: ${colors.size} distinct fill colours in one row, expected 1 (${[...colors].join(' | ')}).`);
           }
 
-          // Sum label text.
+          // List row: the visible N/12 is OFF (ROW_VALUE_VISIBLE=false, coordinator ruling 2026-10-07,
+          // 84 + 8 + about 20 does not fit the 88px slot); the value lives in the accessible label.
           checks++;
-          if (got.sum !== `${n}/12`) {
-            failures.push(`${label}: sum label "${got.sum}", expected "${n}/12".`);
+          if (got.sum !== null) {
+            failures.push(`${label}: list row shows a visible value "${got.sum}", expected none while ROW_VALUE_VISIBLE is false.`);
           }
         }
 

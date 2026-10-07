@@ -14,17 +14,15 @@
  * segments share ONE colour, read off the severity ramp at N (linear interpolation between the
  * stops 1 #16A34A, 4 #CA8A04, 7 #F97316, 12 #DC2626), never a per-segment colour, so the
  * composition of the four dimensions never changes the rendered markup for a given N (byte-identical,
- * asserted by ImpactMeter.npmtest.mjs). The unfilled track is #E5E1DB. Unscored draws the same
+ * asserted by ImpactMeter.npmtest.mjs). The unfilled track is #E5E1DB (token --cl-impact-track). Unscored draws the same
  * twelve segments as 1px dashed rgba(0,0,0,.3) outlines with no fill, plus an em dash in the score
  * slot (Absence's `dash` variant) and no word. The accessible label states the value in words
  * ("Impact N of 12"), the segments are decoration.
  *
- * GEOMETRY, one reading recorded (see the lane's DESIGN CHANGES OWED entry): the ruling says "12 px
- * segments" and the system sheet gives no gap, so a segment is 12 px TALL and ROW_SEGMENT_WIDTH_PX
- * wide, because the list row's impact track is a fixed 88 px (README 0.4) that must also hold the
- * N/12 figure; twelve segments 12 px WIDE would need about 180 px. Every number is an exported
- * constant, so a ruling that reads the 12 px the other way is a one-line change here and the row
- * grid is untouched either way. No media query: the row variant draws the same at every width.
+ * GEOMETRY, Claude Design ruling 2026-10-07 (lane PAR-1b, replaces PAR-1's 3 px reading): each segment
+ * is 5 px wide x 12 px tall, radius 1; 1.5 px gap within a group, 4 px between groups; total 84 px.
+ * See ROW_VALUE_VISIBLE for the open question about the N/12 figure in the list row. No media query:
+ * the row variant draws the same at every width.
  *
  * `total` lets a caller with no per-dimension scores render the meter at a known N directly (the
  * legend row, brief 2.16: "the legend row on every list uses this exact meter at 8/12", rendered as
@@ -98,11 +96,28 @@ export function rampColor(n: number): string {
 export const ROW_SEGMENT_COUNT = 12;
 export const ROW_SEGMENT_GROUP_SIZE = 3;
 export const ROW_SEGMENT_HEIGHT_PX = 12;
-export const ROW_SEGMENT_WIDTH_PX = 3;
-export const ROW_SEGMENT_GAP_PX = 1;
-export const ROW_GROUP_GAP_PX = 3;
+export const ROW_SEGMENT_WIDTH_PX = 5;
+export const ROW_SEGMENT_GAP_PX = 1.5;
+export const ROW_GROUP_GAP_PX = 4;
 export const ROW_SEGMENT_RADIUS_PX = 1;
-export const ROW_TRACK_COLOR = "#E5E1DB";
+/** Claude Design ruling 2026-10-07 (lane PAR-1b): "N/12" sits 8 px right of the segments. */
+export const ROW_VALUE_GAP_PX = 8;
+/** Total width of the twelve segments: 12 x 5 + 8 x 1.5 + 3 x 4 = 84 px, inside the row's 88 px slot. */
+export const ROW_SEGMENTS_TOTAL_PX =
+  ROW_SEGMENT_COUNT * ROW_SEGMENT_WIDTH_PX +
+  (ROW_SEGMENT_GROUP_SIZE - 1) * (ROW_SEGMENT_COUNT / ROW_SEGMENT_GROUP_SIZE) * ROW_SEGMENT_GAP_PX +
+  (ROW_SEGMENT_COUNT / ROW_SEGMENT_GROUP_SIZE - 1) * ROW_GROUP_GAP_PX;
+/** Empty segment colour: the token for #E5E1DB, declared in globals.css (no raw hex in the component). */
+export const ROW_TRACK_COLOR = "var(--cl-impact-track)";
+
+/**
+ * DESIGN CHANGES OWED (coordinator ruling 2026-10-07, lane PAR-1b): the segments are 84 px and the value
+ * sits 8 px to their right, about 84 + 8 + 20 = 112 px against the list row's fixed 88 px impact slot
+ * (ListRow.tsx, overflow hidden). Until Claude Design says which figure gives, the visible N/12 (and the
+ * unscored dash) is OFF in the list row: the value stays in the accessible label only. The legend and the
+ * detail rail have room and pass `valueVisible` to draw it. The answer is a one-line flip of this constant.
+ */
+export const ROW_VALUE_VISIBLE = false;
 
 /** Segment i (0-based, left to right) is filled when it is below the total. Exported for the test. */
 export function segmentFilled(n: number, i: number): boolean {
@@ -156,38 +171,43 @@ export interface ImpactMeterProps {
    *  is the one caller with no scores at all: `<ImpactMeter total={8} />` (brief 2.16). */
   total?: number;
   variant?: "row" | "full";
+  /** Draw the visible "N/12" (or the unscored dash) 8 px right of the segments. Defaults to
+   *  ROW_VALUE_VISIBLE; the legend and the detail rail, which have room, pass true. */
+  valueVisible?: boolean;
 }
 
-export function ImpactMeter({ scores, total, variant = "row" }: ImpactMeterProps) {
+export function ImpactMeter({ scores, total, variant = "row", valueVisible = ROW_VALUE_VISIBLE }: ImpactMeterProps) {
   if (variant === "full") {
     return <FullVariant scores={scores} />;
   }
   if (total == null && !isImpactScored(scores)) {
-    return <RowUnscored />;
+    return <RowUnscored valueVisible={valueVisible} />;
   }
   const n = total ?? sumScores(scores!);
-  return <RowScored n={n} />;
+  return <RowScored n={n} valueVisible={valueVisible} />;
 }
 
-function RowScored({ n }: { n: number }) {
+function RowScored({ n, valueVisible }: { n: number; valueVisible: boolean }) {
   const color = rampColor(n);
   return (
     <span
       className="cl-impact-scored"
       aria-label={`Impact ${n} of 12`}
-      style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+      style={{ display: "flex", alignItems: "center", gap: ROW_VALUE_GAP_PX, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
     >
       <Segments segment={(i) => ({ background: segmentFilled(n, i) ? color : ROW_TRACK_COLOR })} />
-      <span
-        style={{
-          fontSize: "var(--fs-11)",
-          fontVariantNumeric: "tabular-nums",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <b style={{ fontWeight: 700, color: "var(--ink)" }}>{n}</b>
-        <span style={{ color: "#7A6E6C" }}>/12</span>
-      </span>
+      {valueVisible && (
+        <span
+          style={{
+            fontSize: "var(--fs-11)",
+            fontVariantNumeric: "tabular-nums",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <b style={{ fontWeight: 700, color: "var(--ink)" }}>{n}</b>
+          <span style={{ color: "#7A6E6C" }}>/12</span>
+        </span>
+      )}
     </span>
   );
 }
@@ -197,18 +217,20 @@ function RowScored({ n }: { n: number }) {
  * dash in the score slot and NO literal UNSCORED". The dash stays and only the segments beside
  * it change: the same twelve segments as 1px dashed rgba(0,0,0,.3) outlines, no fill, no word.
  */
-function RowUnscored() {
+function RowUnscored({ valueVisible }: { valueVisible: boolean }) {
   return (
     <span
       className="cl-impact-scored cl-impact-unscored"
       aria-label="Impact not scored"
       title="Impact not scored"
-      style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+      style={{ display: "flex", alignItems: "center", gap: ROW_VALUE_GAP_PX, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
     >
       <Segments segment={() => ({ border: "1px dashed rgba(0,0,0,.3)" })} />
-      <span style={{ fontSize: "var(--fs-11)" }}>
-        <Absence reason="unscored" variant="dash" />
-      </span>
+      {valueVisible && (
+        <span style={{ fontSize: "var(--fs-11)" }}>
+          <Absence reason="unscored" variant="dash" />
+        </span>
+      )}
     </span>
   );
 }
