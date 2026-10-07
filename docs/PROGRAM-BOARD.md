@@ -14,6 +14,77 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below  -  that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
+> **Resume from (2026-10-07):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). PRs 954 to 965 merged (all fixture-proven and dry unless stated; master tip 835d6fc9 at this pointer):
+> - 954 GATES-2: live smoke gate, container rule, markers never persist.
+> - 955 G7-TIER: every automatic tier writer respects the tier override, proven by attack.
+> - 956 G6-GATES: queues decide by rule, acceptance tokens off maintenance steps (steps 13 and 14 retired).
+> - 957 G7-CORR: admin corrections to item data, preserved through re-runs.
+> - 958 G6-DRAIN: judgement drain planner, kill switch (migration 354, off), merge-push apply triggers.
+> - 959 G5-TERMS: repeated unknown mentions are counted, proposed and adopted by rule.
+> - 960 AUTH-2: profile-only heal, no-membership users onboard, org creation with profile.
+> - 961 P4: fix the first Live smoke findings (wide tables, headline track, admin probe, summary).
+> - 962 G7-UI: admin Corrections panel, item page and dashboard tab.
+> - 963 C-TOGGLE: remove the promote notification toggle and kind (ADR-041).
+> - 964 G5-NEED: adopted terms and lineage gaps become source search targets, and the walker runs them.
+> - 965 G5-READ: adopted vocabulary terms are read by every vocabulary reader.
+>
+> Migrations 354 to 357 are applied live (354 judgement drain switch, 355 vocabulary_terms, 356 item_corrections, 357 vocabulary_kinds, which removed `intelligence_items_theme_check`). `fsi-app/docs/inventories/db-check-constraints.json` was regenerated from the live catalog on 2026-10-07 and no longer lists it.
+>
+> Chain dry fire (2026-10-07, every dispatch mode=dry, 56 chain runs, evidence in the gitignored scratch `fsi-app/scripts/tmp/chain-fire-2026-10-06.md`): 13 of 13 hops fire at run level. Population turn and Downstream chain are NO-OP on a chained firing (forced dry, zero work). Brief apply, Theme briefs apply and Question answers apply dispatches skip their driver steps (the steps gate on `PUSH_BATCH_COUNT`, set only on a push). Ledger consume plan can promote nothing: all 386 committed verdicts carry a stale prompt_version. Lanes CHAIN-1 (chained firings execute real work, driver steps run on dispatch) and OPS-1 are open.
+>
+> The Gmail smoke account was repaired as a Dietl / Rockit member (AUTH-2 heal), so it is a workspace member and never a platform admin.
+>
+> Owed list: the full register is `fsi-app/scripts/tmp/remaining-build-register-2026-10-06.md` (gitignored scratch, so it is not durable). Its section 6 is copied here verbatim so the board holds it. Since it was written: items 1 and 5 (migrations 355, 357) are applied and merged via 959 and 965, item 23 is resolved by 960, item 30 (docs and index) is closed by the coord/docs-2026-10-07 PR, and in item 38 G7-UI and G5-TERMS are merged (962, 959).
+>
+> Format: item | source log or doc.
+> Migrations
+> 1. Migration 355 `vocabulary_terms`: applied live as `20261007021924`, but PR 959 is open and master has no 355 file. [C: list_migrations versus tree] | coordinator state; G5-TERMS
+> 2. No migration file on master from 351 upward is unapplied: 351, 352, 353, 354, 356 are all in `list_migrations`. [C: list_migrations versus `git ls-tree`]
+> 3. Older numbered files not found in `list_migrations` by name: `299_item_type_required_slots_wave3` (header: NOT APPLIED, held by R14) and `315_workspace_due_next`. [C: file headers and list read; H: 315 may be applied under another name; a function existence query would settle it, not run] | system map; migration headers
+> 4. Next migration lane: GIN index on `inference_records.cited_item_ids`; `signposts.lifecycle_applied_at timestamptz` | p2-grade-inference-chips; l4d-predictions-reliability
+> 5. Migration 357 (G5-READ: entity_kind material, theme CHECK to registry) | coordinator state
+> Population-stage repairs
+> 6. Strip ledger blocks in 5 `full_brief` rows and 4 section rows (ids in P3 log) | p3-live-defects
+> 7. Re-author the 9 pre-contract theme briefs (pre-351 shape) | s3c-theme-brief-batches; coordinator state
+> 8. Whole-corpus typing backfill (23,709 untyped edges) | system map; buildout stage 2
+> 9. Ledger-block rows (data-audit block rows) from first live `section-marker-audit` if any body carries a marker | gates2-live-smoke
+> 10. `origin_class` NULL on 1,222 items; `source_role` NULL on 874 sources (2026-09 counts, re-read owed) | system map section 18 [H: stale counts]
+> 11. Stored-body marker count: never measured | gates2-live-smoke
+> Code and wiring owed
+> 12. `market_series` and `regional_data_facts` outbox rows carry no single entity so reach no item | l4a, l4d
+> 13. Question answers and propagation drain not chained to a workflow | l4b-question-answers
+> 14. `seek-more.mjs` still names `operator-priced-only` | l4a-questions-on-change
+> 15. `trust-recompute.yml` retirement (workflow delete, closure-gate entry) | coordinator state; S6-4
+> 16. GUARD-1 token (ADR-016 item b); provenance-heal `+strip-unprovable` opt-in | g6-gates; coordinator state
+> 17. Theme-briefs workflow not chained; Research reader selects only exact-id brief row | s3c
+> 18. Inference read inside 300 s cached bundle; citation titles as text | p2-grade-inference-chips
+> 19. Sources grid entries other than the item's own carry no bias | p1-source-rating-display
+> 20. Per-claim tier matching against live rows unverified | p1-source-rating-display
+> 21. 768 to 1023 px row chips ellipsise (guard measures 375 and 1280 only) | p1, p2
+> 22. `docs/inventories/migrations.md` generated file causes F51 check 5 collisions on every migration lane | coordinator state
+> 23. `/api/workspace/tags` 403 for a user with no organisation (24 live-smoke warnings): resolved by AUTH-2 (960 merged) [H: not re-run live] | p4-live-smoke-1; coordinator state
+> 24. Repair command for the smoke account, `repair-smoke-account.mjs --arg <email>`, dry then `--apply`; not run | auth2-provision-heal
+> 25. Pre-existing personal workspaces created by the old callback untouched | auth2-provision-heal
+> 26. Closure-gate registration for `layout-baseline-renewal` (needs write-set expansion to `closure-gate.mjs`) | s0b-baseline-renewal-tool
+> 27. `ProvisionalReviewCard.tsx` copy still describes the 0.65 to 0.79 band as proposed on approval | s1b-host-verdicts
+> 28. Production dependencies of `plan-drain.mjs` proven on fakes only; `db-catalog.json` refresh not done | g6-drain
+> 29. `loop-fired-evidence` for hops 12 and 13 until a chained row lands | s1e-source-chain
+> Docs and index owed
+> 30. INDEX line: judgement-drain `FAMILY.md`; MAINTENANCE-RUNBOOK index lines for steps 62 (live-smoke) and 63 (judgement-drain); retire index lines 13 and 14; INDEX line for ADR-044 and runbooks 60 and 61 may already be merged via 953 [H] | g6-drain; g6-gates; coordinator state
+> 31. Operator question open: Settings "When a post gets promoted" toggle versus ADR-041 | coordinator state
+> Operator or date owed
+> 32. Layout baseline renewal fires 2026-10-08 09:00 -04:00; hard expiry 2026-10-15; rendering-guard required versus continue-on-error decision after; legacy-remediation deferrals also expire 2026-10-15 | coordinator state; buildout stage 0
+> 33. EIA secret `EIA_API_KEY`; EEX licence; SBTi licence for apply | system map
+> 34. Public-source intake for auxiliary energy and indexation mechanics | buildout open items
+> 35. `regional_data_facts` and `estimated_values` have no consumer after ADR-043 | buildout open items
+> 36. Rendering audit generator fails on master with DetailShell import errors | buildout open items [H: not re-checked after later merges]
+> Design changes owed (rule 20)
+> 37. `fsi-app/scripts/tmp/claude-design-request-2026-10-06.md`: 16 artboard sections (00 system, 01 to 09, 12, 13, 16, 17, 20, 21), 69 numbered or lettered items. Plan-level open items: artboards 09, 13 and 15. Added since: row and detail bias chips, grade chip, inferences section, themes strip and "Across pages" section, fact card tier slot, artboard 17 step 1 fields (job title, sector, size, region), cluster synthesis "density 0.180" removal. [C: file read headings and grep counts]
+> Not-started build lanes (not owed notes, owed work)
+> 38. S5-2, S5-3, S5-4 briefs and builds; G7-UI merge; G5-TERMS merge
+> 39. All of Stage 8 (items S8-1 to S8-5, S8-8 to S8-10)
+> 40. L18 portfolio, L19 entity tables, L20 branch-database chain proof, L21 to L28 spec 09 domains: no PR found
+>
 > **Resume from (2026-10-06):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). Landed 2026-10-05 and 2026-10-06, PRs 943 to 952 (all fixture-proven and dry; nothing applied to live data): 943 questions fire on a value change, ADR-044 (learning loop, no gate); 944 customer tier rule, T7 shown as T7, per-claim tier, bias chips; 946 question answers and the first inference, holdings-need search targets, research walker consumer; 947 grade chip, inferences on detail pages, theme chip labels, OperationsItemsView deleted; 948 source-resolution workflow and loop hops 12 and 13, first dry run green; 950 signposts, prediction scoring, reliability ledger, outcome-driven tier movement; 951 five live defects fixed at their cause; 952 repeated-signup message. Unapplied migrations: 351, 352, 353, awaiting the operator's word. Open: lane GATES-2 (live smoke) in flight; its smoke user is the workspace-owner non-admin account, secrets `LIVE_SMOKE_EMAIL` and `LIVE_SMOKE_PASSWORD` pending from the operator; `trust-recompute.yml` retirement ruled (Option 1), not yet executed; layout baseline renewal fires 2026-10-08, hard expiry 2026-10-15. Next per the plan: Stage 5 growth, Stage 6 remaining gates, Stage 7 admin correction layer, Stage 8 workspace and pages.
 >
 > Owed items carried (source log in brackets; each is work, not a note):

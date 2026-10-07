@@ -24462,3 +24462,13 @@ Final lane states: R7-LINT-CI merged PR 909 (lint 614 → 0 across fsi-app/, ESL
 **Blockers.** `LIVE_SMOKE_EMAIL` and `LIVE_SMOKE_PASSWORD` pending from the operator. Migrations 351, 352, 353 await the operator's word (schema DDL applies before the dependent code runs live, standing rule 3). GATES-2 not merged at this entry.
 
 **Next steps.** Stage 5 growth, Stage 6 remaining gates, Stage 7 admin correction layer, Stage 8 workspace and pages. Layout baseline renewal fires 2026-10-08 (hard expiry 2026-10-15). Owed items are listed in the PROGRAM-BOARD 2026-10-06 resume pointer.
+
+## 2026-10-06/07, coordinator: Stages 5 to 7 built, chain dry fire, smoke account repaired
+
+**Accomplished.** Merged PRs 954 to 965, fixture-proven and dry: 954 GATES-2 live smoke gate; 955 G7-TIER tier override respected by every automatic writer; 956 G6-GATES queues decide by rule, acceptance tokens off (steps 13 and 14 retired); 957 G7-CORR item data corrections; 958 G6-DRAIN judgement drain planner and kill switch (off); 959 G5-TERMS; 960 AUTH-2 profile heal and no-membership onboarding; 961 P4 first Live smoke findings; 962 G7-UI Corrections panel; 963 C-TOGGLE (ADR-041); 964 G5-NEED; 965 G5-READ. Migrations 354 to 357 applied live; 357 removed `intelligence_items_theme_check`. Chain dry fire on 2026-10-07: 56 chain runs, all mode=dry, 13 of 13 hops fire at run level. The Gmail smoke account was repaired as a Dietl / Rockit member.
+
+**Findings (chain dry fire, verified by run logs).** Population turn and Downstream chain are NO-OP on a chained firing. Brief apply, Theme briefs apply and Question answers apply dispatches skip their driver steps (gate on `PUSH_BATCH_COUNT`, set only on a push). All 386 committed ledger verdicts are stale against the live prompt_version. The exporter maps 6 of 13 hops. Maintenance step=all and Uptime probes ran red.
+
+**Docs this pass.** `db-check-constraints.json` regenerated from the live catalog (read-only); INDEX lines for steps 62 and 63 and the judgement-drain and live-smoke FAMILY.md; MAINTENANCE-RUNBOOK index entries for steps 62 and 63, steps 13 and 14 marked RETIRED; PROGRAM-BOARD 2026-10-07 resume pointer with the register's section 6 owed list copied in; buildout plan Stages 5, 6, 7 marked BUILT and open items added.
+
+**Open.** Lanes CHAIN-1 and OPS-1; G5-SEARCH; verdict re-authoring; Stage 8; layout baseline renewal fires 2026-10-08, hard expiry 2026-10-15.
