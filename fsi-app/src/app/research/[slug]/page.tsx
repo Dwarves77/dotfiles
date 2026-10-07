@@ -91,7 +91,7 @@ interface ItemScoped {
   relatedReason: "theme" | "source" | "none";
   /** Lane S3-B: stated intersection summary and theme analysis. The theme (read through
    *  resolveBriefForTheme, so a drifted theme id still finds its prior brief) feeds both the rail's Cluster
-   *  synthesis card and the shared "Across pages" section. */
+   *  synthesis card and the shared "Connected intelligence" section. */
   crossPage: CrossPageAnalysis;
   /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings - see
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade

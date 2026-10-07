@@ -46,6 +46,7 @@ import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
 import { Absence } from "@/components/ui/Absence";
 import { StateNote } from "@/components/ui/StateNote";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { CONNECTED_SECTION_ID, INFERENCES_SECTION_ID, crossPageIndexEntries, regulationSectionOrd } from "@/lib/detail/section-index-data";
 import { SectionIndex, REGULATION_SECTION_INDEX, type SectionIndexEntry, type SectionIndexDepth } from "@/components/ui/SectionIndex";
 import {
   DetailMasthead,
@@ -66,7 +67,7 @@ import { renderRequirementTrajectory } from "@/components/detail/RequirementTraj
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
-import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import { CrossPageSection, crossPagePresence } from "@/components/detail/CrossPageSection";
 import { GradeChip } from "@/components/ui/Chips";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
@@ -236,26 +237,28 @@ export function RegulationDetailSurface({
 
   // lane W10-SectionHeader, 2026-09-22: SectionHeader's "S2"-style ordinal, reused from the SAME
   // REGULATION_SECTION_INDEX table (section-index-data.ts) SectionIndex itself already reads,
-  // never a second, duplicated name/order table.
-  const sectionOrdinal = (indexId: string): number | null => {
-    const i = REGULATION_SECTION_INDEX.findIndex((e) => e.id === indexId);
-    return i >= 0 ? i + 1 : null;
-  };
+  // never a second, duplicated name/order table. Lane IDX-1 (2026-10-07): the FIXED `ord`, not the
+  // array position (the two disagreed once a section was filtered out of the index).
+  const sectionOrdinal = regulationSectionOrd;
 
   const hasPenalties = hasPenaltyContent(r);
   // Design handoff 2026-09-25 (#801, board 03): Connections moves into the masthead card (via
-  // DetailMasthead's connectionsSlot below) and is no longer a jump-to S-section in main content,
-  // so "related" is always excluded from the sticky index now (there is no such section any more).
+  // DetailMasthead's connectionsSlot below) and is no longer a jump-to S-section in main content;
+  // there is no Related section on Regulations. Lane IDX-1 (2026-10-07): the index lists every
+  // main-content section with its fixed ordinal, including Connected and Inferences when they render.
   const hasRelated = connections.length > 0 || supersessions.length > 0;
+  const { connected: hasConnectedSection, inferences: hasInferencesSection } = crossPagePresence({ surfaceKey: "regulations", connections, resourceLookup, crossPage });
   const indexEntries: SectionIndexEntry[] = useMemo(
-    () =>
-      REGULATION_SECTION_INDEX.filter((e) => {
-        if (e.id === "related") return false;
+    () => [
+      ...REGULATION_SECTION_INDEX.filter((e) => {
+        if (e.id === CONNECTED_SECTION_ID || e.id === INFERENCES_SECTION_ID) return false;
         if (e.id === "summary" || e.id === "sources") return true;
         if (e.id === "penalties") return hasPenalties;
         return dynamicSectionsByIndexId.has(e.id);
       }),
-    [dynamicSectionsByIndexId, hasPenalties]
+      ...crossPageIndexEntries("regulations", { connected: hasConnectedSection, inferences: hasInferencesSection }),
+    ],
+    [dynamicSectionsByIndexId, hasPenalties, hasConnectedSection, hasInferencesSection]
   );
 
   // Trajectory sentence moved to S1 Summary (review item 5 / brief item 5); ActionCard's fourth

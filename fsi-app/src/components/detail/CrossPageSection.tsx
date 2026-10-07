@@ -1,5 +1,5 @@
 /**
- * CrossPageSection (lane S3-B): the ONE "Across pages" section every detail page mounts, so a reader sees
+ * CrossPageSection (lane S3-B): the ONE "Connected intelligence" section every detail page mounts, so a reader sees
  * what an item connects to on the OTHER pages and what that connection means, wherever they start.
  *
  * Two blocks, each rendering nothing when its data is absent (the section itself renders nothing when
@@ -29,7 +29,10 @@ import { DetailSection } from "@/components/detail/DetailShell";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { StateNote } from "@/components/ui/StateNote";
 import { GfmSection } from "@/components/shared/GfmSection";
-import { InferenceSection, type InferenceSectionData } from "@/components/detail/InferenceSection";
+import { InferenceSection, inferenceClaimOf as claimOf, type InferenceSectionData } from "@/components/detail/InferenceSection";
+import { CONNECTED_SECTION_ID, connectedSectionOrd, inferencesSectionOrd } from "@/lib/detail/section-index-data";
+import { pickVisibleInferences } from "@/lib/detail/inference-view.mjs";
+import { admissibleForInference } from "@/components/shared/InferenceClaim";
 import { buildIntersectionView } from "@/lib/connections/connection-view-model.mjs";
 import { cleanPreContractBriefText } from "@/lib/research/theme-brief-text.mjs";
 import type { buildThemeAnalysisView } from "@/lib/research/theme-brief.mjs";
@@ -256,6 +259,34 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
   );
 }
 
+/**
+ * Which of the two trailing sections will render, decided by the SAME functions the render uses, so the
+ * section index (lane IDX-1) lists a tab exactly when its section exists: a tab for an empty section would
+ * jump nowhere. `connected` is the section built here (intersections or theme analysis), `inferences` is the
+ * InferenceSection that follows it.
+ */
+export function crossPagePresence({
+  surfaceKey,
+  connections = [],
+  resourceLookup = {},
+  crossPage,
+}: {
+  surfaceKey: string;
+  connections?: ItemConnection[];
+  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  crossPage?: CrossPageData | null;
+}): { connected: boolean; inferences: boolean } {
+  const intersections = buildIntersectionView(connections, resourceLookup, {
+    currentSurface: surfaceKey,
+    summary: crossPage?.intersectionSummary ?? null,
+  });
+  const visible = pickVisibleInferences(
+    crossPage?.inferences?.claims ?? [],
+    (v: InferenceSectionData["claims"][number]) => admissibleForInference(claimOf(v), "display").ok,
+  );
+  return { connected: !!intersections || !!crossPage?.theme, inferences: visible.length > 0 };
+}
+
 export function CrossPageSection({
   surfaceKey,
   surfaceLabel,
@@ -276,11 +307,11 @@ export function CrossPageSection({
     summary: crossPage?.intersectionSummary ?? null,
   });
   const theme = crossPage?.theme ?? null;
-  const inferences = <InferenceSection inferences={crossPage?.inferences} />;
+  const inferences = <InferenceSection inferences={crossPage?.inferences} index={inferencesSectionOrd(surfaceKey)} />;
   if (!intersections && !theme) return inferences;
   return (
     <>
-      <DetailSection id="across-pages" title="Across pages" aside="Intersections and theme analysis">
+      <DetailSection id={CONNECTED_SECTION_ID} title="Connected intelligence" aside="Intersections and theme analysis" index={connectedSectionOrd(surfaceKey)}>
         <div data-guard-container="cross-page">
           {intersections && <IntersectionsBlock view={intersections} />}
           {theme && <ThemeAnalysis theme={theme} surfaceLabel={surfaceLabel} first={!intersections} />}

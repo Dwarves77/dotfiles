@@ -1,8 +1,8 @@
 // UX smoke spec: SectionIndex. Lane W10-ActionCard-a, 2026-09-21, operator review items 4 and 6.
 // Mounts the REAL `SectionIndex` (src/components/ui/SectionIndex.tsx) with the real
 // `REGULATION_SECTION_INDEX` table, measured at 1440x900 and 375x812. The review's own eight
-// anchored sections plus check 8's trailing "related" entry (lane PARITY-PARTS, 2026-09-24;
-// Connections moved out of the rail), nine total.
+// anchored sections plus the trailing Connected and Inferences entries (lane IDX-1, 2026-10-07;
+// Connections live in the masthead, there is no Related entry), ten total.
 //
 // Acceptance measured here, verbatim from the brief's step 7:
 //   - no index label with scrollWidth > clientWidth (never truncates)
@@ -104,11 +104,11 @@ export async function runSmoke(browser) {
         const guard = await measureGuard(page);
 
         const acceptance = await measureAcceptance(page);
-        // Operator check 8 (lane PARITY-PARTS, 2026-09-24): REGULATION_SECTION_INDEX gained a
-        // trailing "related" entry (Connections moved out of the rail), 9 entries now, not 8.
+        // Lane IDX-1 (2026-10-07): REGULATION_SECTION_INDEX is the ten fixed sections (the Related
+        // entry left, Connected and Inferences joined), so the full table renders 10 links.
         checks += 1;
-        if (acceptance.linkCount !== 9) {
-          failures.push(`${label}: expected 9 section-index links, found ${acceptance.linkCount}`);
+        if (acceptance.linkCount !== 10) {
+          failures.push(`${label}: expected 10 section-index links, found ${acceptance.linkCount}`);
         }
         checks += 1;
         for (const t of detectTruncatedLabels(acceptance.labelBoxes)) {

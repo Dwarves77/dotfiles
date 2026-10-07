@@ -98,7 +98,7 @@ export const UX_SMOKE_SPECS = [
   // line reported for the coordinator to add (lane common contract's UX contract).
   { name: "lead-time-chart", run: runLeadTimeChartSmoke },
   { name: "labour-chain", run: runLabourChainSmoke }, // lane L13, 2026-10-03, spec 04 S5/S6#5 fully-loaded labour chain
-  // lane S3-B, 2026-10-05: the "Across pages" section on the four detail pages (intersections and theme
+  // lane S3-B, 2026-10-05: the "Connected intelligence" section on the four detail pages (intersections and theme
   // analysis) and the themes strip on the four list pages. F35 ROW_COMPONENTS carries both components.
   { name: "cross-page", run: runCrossPageSmoke },
   // lane P2, 2026-10-05: the "Inferences" section on the four detail pages (machine-written inferences, labelled).
