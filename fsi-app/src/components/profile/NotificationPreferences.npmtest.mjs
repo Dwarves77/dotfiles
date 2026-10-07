@@ -24,3 +24,17 @@ test("NotifRow: border moved to border-bottom rgba(0,0,0,.06) (dc.html), no bord
   assert.match(body, /borderBottom:\s*"1px solid rgba\(0,0,0,\.06\)"/);
   assert.doesNotMatch(body, /borderTop:/);
 });
+
+// ADR-041 (Community is social only) + operator ruling 2026-10-06 "Remove the toggle": the
+// on_promote preference belonged to the retired editorial promotion path. The DB column stays until a
+// population-stage DROP COLUMN, so only the code surface is asserted gone.
+test("ADR-041: preferences rows, type, defaults, select and save carry no on_promote", () => {
+  const code = SOURCE.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+  assert.doesNotMatch(code, /on_promote/);
+  assert.doesNotMatch(code, /gets promoted/);
+});
+
+test("ADR-041: remaining rows are the four live toggles", () => {
+  const rows = [...SOURCE.matchAll(/key:\s*"(\w+)"/g)].map((m) => m[1]);
+  assert.deepEqual(rows, ["enabled", "on_mention", "on_reply_in_my_threads", "on_new_post_in_joined_groups"]);
+});

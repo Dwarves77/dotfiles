@@ -37,6 +37,7 @@ const FSI = resolve(dirname(fileURLToPath(import.meta.url)), ".."); // .discipli
 
 const MIGRATION_PATH = "supabase/migrations/032_community_notifications_moderation.sql";
 const COMPONENT_PATH = "src/components/profile/NotificationPreferences.tsx";
+const OWED_DROP_COLUMNS = ["on_promote"];
 
 const migrationText = readFileSync(resolve(FSI, MIGRATION_PATH), "utf8");
 const componentText = readFileSync(resolve(FSI, COMPONENT_PATH), "utf8");
@@ -166,9 +167,22 @@ test("save path: every upserted key (besides updated_at, which is DB-computed) i
   }
   // And the inverse for the user-facing toggle columns specifically (catches a silently DROPPED key,
   // not just an added wrong one) — user_id and updated_at are handled separately above.
-  const togglesAndChannels = LIVE_COLUMNS.filter((c) => !["user_id", "updated_at"].includes(c));
+  // OWED_DROP_COLUMNS: columns that still exist in migration 032 but are intentionally no longer
+  // written (ADR-041, Community is social only; operator ruling 2026-10-06 "Remove the toggle").
+  // The pending population-stage migration is `ALTER TABLE notification_preferences DROP COLUMN
+  // on_promote`. Exempt from this inverse check ONLY; the upsert must still never name them.
+  const togglesAndChannels = LIVE_COLUMNS.filter(
+    (c) => !["user_id", "updated_at", ...OWED_DROP_COLUMNS].includes(c)
+  );
   for (const c of togglesAndChannels) {
     assert.ok(keys.includes(c), `NotificationPreferences.tsx no longer upserts column "${c}" — a save would silently drop it`);
+  }
+});
+
+test("save path: the upsert never names an owed-drop column (ADR-041)", () => {
+  const keys = extractUpsertPayloadKeys(componentText);
+  for (const c of OWED_DROP_COLUMNS) {
+    assert.equal(keys.includes(c), false, `NotificationPreferences.tsx upserts retired column "${c}"`);
   }
 });
 
