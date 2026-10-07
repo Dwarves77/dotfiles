@@ -36,6 +36,7 @@ import { BandTileRow } from '@/components/ui/BandTileRow';
 import { BandSectionHeader } from '@/components/list-surface/ListSurfaceShell';
 import { DetailSection, DetailPageWrapper } from '@/components/detail/DetailShell';
 import { CrossPageSection } from '@/components/detail/CrossPageSection';
+import { ItemGroup } from '@/components/ui/ItemGroup';
 import { BAND_ORDER, band } from '@/lib/urgency/bands';
 
 let root = null;
@@ -47,6 +48,8 @@ window.__mount = (props) => {
     root.render(h(BandTileRow, null, BAND_ORDER.map((b, i) => h(BandTile, { key: b.key, band: b, count: props.counts[i], onSelect: () => {} }))));
   } else if (props.kind === 'group') {
     root.render(h('div', { style: { background: 'var(--card)' } }, BAND_ORDER.map((b) => h(BandSectionHeader, { key: b.key, band: b, total: 1135, showing: 5 }))));
+  } else if (props.kind === 'itemgroup') {
+    root.render(h(DetailPageWrapper, { band: band('action') }, h(ItemGroup, { title: 'Take-back registration', qualifier: '2 facts' }, [h('div', { key: 'a' }, 'Card one')])));
   } else if (props.kind === 'detail') {
     root.render(h(DetailPageWrapper, { band: band(props.bandKey) }, h(DetailSection, { id: 's2', title: 'Substantive findings', index: 2, aside: '3 items' }, h('p', null, 'Section text'))));
   } else {
@@ -101,6 +104,11 @@ async function measure(browser, vp, props) {
           return { bg: cs(h).backgroundColor, topW: cs(h).borderTopWidth, nameFont: cs(name).fontFamily, nameSize: cs(name).fontSize, nameColor: cs(name).color, topColor: cs(h).borderTopColor };
         });
       }
+      if (kind === 'itemgroup') {
+        const h = document.querySelector('[data-part-slot="group-header"] [data-audit="band-header"]');
+        const name = h.querySelector('[data-audit="band-header-label"]');
+        return { bg: cs(h).backgroundColor, topW: cs(h).borderTopWidth, nameFont: cs(name).fontFamily, nameSize: cs(name).fontSize, nameColor: cs(name).color, topColor: cs(h).borderTopColor };
+      }
       if (kind === 'detail') {
         const head = document.querySelector('.cl-section-header');
         const h2 = head.querySelector('h2');
@@ -133,6 +141,7 @@ export async function runSmoke(browser) {
       ],
     }),
     await runUxSpec(browser, { name: 'par2-group-header', entry: ENTRY, alias: ALIAS, knownSafePlaceholders: ['Action'], states: [{ label: 'four', props: { kind: 'group' } }] }),
+    await runUxSpec(browser, { name: 'par2-item-group', entry: ENTRY, alias: ALIAS, knownSafePlaceholders: ['Action'], states: [{ label: 'titled', props: { kind: 'itemgroup' }, expectTitles: 1 }] }),
     await runUxSpec(browser, { name: 'par2-detail-section', entry: ENTRY, alias: ALIAS, knownSafePlaceholders: ['Action'], states: [{ label: 'immediate', props: { kind: 'detail', bandKey: 'immediate' }, expectTitles: 1 }] }),
     await runUxSpec(browser, { name: 'par2-cross-page', entry: ENTRY, alias: ALIAS, knownSafePlaceholders: ['Action'], states: [{ label: 'full', props: { kind: 'cross', section: SECTION }, expectTitles: 2 }] }),
   ];
@@ -163,6 +172,12 @@ export async function runSmoke(browser) {
       if (!/Anton/i.test(g.nameFont)) failures.push(`par2-group${at}: header ${i} band name face is ${g.nameFont}, expected Anton`);
       if (g.nameColor !== g.topColor) failures.push(`par2-group${at}: header ${i} band name colour ${g.nameColor} differs from the band rule ${g.topColor}`);
     }
+    const ig = await measure(browser, vp, { kind: 'itemgroup' });
+    checks += 1;
+    if (rgb(ig.bg) !== 'rgb(255,255,255)') failures.push(`par2-itemgroup${at}: header background is ${ig.bg}, expected white (untinted)`);
+    if (ig.topW !== '3px') failures.push(`par2-itemgroup${at}: header top rule is ${ig.topW}, expected 3px`);
+    if (ig.nameSize !== '18px' || !/Anton/i.test(ig.nameFont)) failures.push(`par2-itemgroup${at}: band name is ${ig.nameSize} ${ig.nameFont}, expected Anton 18px`);
+    if (ig.nameColor !== ig.topColor) failures.push(`par2-itemgroup${at}: band name colour ${ig.nameColor} differs from the band rule ${ig.topColor}`);
     const d = await measure(browser, vp, { kind: 'detail', bandKey: 'immediate' });
     checks += 1;
     if (rgb(d.bg) !== rgb(d.tint)) failures.push(`par2-detail${at}: section header background ${d.bg}, expected the band tint ${d.tint}`);

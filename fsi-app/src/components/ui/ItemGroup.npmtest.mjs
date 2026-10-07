@@ -24,22 +24,35 @@ test("header renders only when title or an explicit pill band is given, never fo
   assert.match(SOURCE, /\{hasHeader && \(/);
 });
 
-test("band pill: 6px dot, 9.5px/800 uppercase label, band-coloured", () => {
-  assert.match(SOURCE, /width: 6, height: 6, borderRadius: "50%", background: pillBand\.cssVar/);
-  assert.match(SOURCE, /fontSize: "var\(--fs-95, 9\.5px\)"/);
-  assert.match(SOURCE, /fontWeight: 800,/);
-  assert.match(SOURCE, /letterSpacing: "0\.08em"/);
+// Lane PAR-2 (2026-10-07, artboard 22 ruling A + coordinator ruling): the group header is the SHARED
+// BandGroupHeader (white, 3px band rule, Anton 18 band name), the same part the list band blocks
+// render; ItemGroup no longer draws its own tinted header or 6px dot pill.
+test("header renders through the shared BandGroupHeader, white, with no band tint and no second implementation", () => {
+  assert.match(SOURCE, /import \{ BandGroupHeader \} from "@\/components\/ui\/BandGroupHeader"/);
+  assert.match(SOURCE, /<BandGroupHeader\s+band=\{pillBand \?\? band\}/);
+  assert.match(SOURCE, /nameSlot="band-pill"/);
+  assert.doesNotMatch(SOURCE, /background: band \? band\.tintCssVar : "var\(--page\)"/);
+  assert.doesNotMatch(SOURCE, /width: 6, height: 6/);
+});
+
+test("BandGroupHeader: white, 3px band rule, Anton 18 band name in the band colour, definition truncates with a title", () => {
+  const H = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "BandGroupHeader.tsx"), "utf8");
+  assert.match(H, /background: "var\(--card\)"/);
+  assert.match(H, /borderTop: band \? `3px solid \$\{band\.cssVar\}`/);
+  assert.match(H, /fontFamily: "var\(--font-display\)"/);
+  assert.match(H, /fontSize: 18,/);
+  assert.match(H, /color: band\.cssVar/);
+  assert.match(H, /data-guard-display="band-group-name"/);
+  assert.match(H, /title=\{band\.window\}/);
+  assert.doesNotMatch(H, /tintCssVar/);
 });
 
 // 2026-09-25 operator note (look-only pass against the new artboards): "band tag on every fact
-// card should appear once, in the masthead, not per-card." The masthead's ActionCard already shows
-// the item's band once; a group on the SAME item's own detail page must not repaint it. The pill
-// is therefore gated on an EXPLICITLY passed `band` prop, never on the page's ambient BandProvider
-// context, even though the header's tint/action-strip colour still reads the ambient band.
-test("band pill renders only for an explicitly-passed band, never the ambient page band (band tag once, in the masthead)", () => {
+// card should appear once, in the masthead, not per-card." The header-gating half stays: a header
+// renders only for a title or an explicit band prop, never for the ambient band alone.
+test("the header is gated on a title or an explicit band, never the ambient page band alone", () => {
   assert.match(SOURCE, /const pillBand = bandProp \?\? null;/);
-  assert.match(SOURCE, /\{pillBand && \(/);
-  assert.doesNotMatch(SOURCE, /\{band && \(\s*\n\s*<span data-part-slot="band-pill"/);
+  assert.match(SOURCE, /const hasHeader = Boolean\(title \|\| pillBand\);/);
 });
 
 test("item title is 13px/600; qualifier is 11px muted", () => {

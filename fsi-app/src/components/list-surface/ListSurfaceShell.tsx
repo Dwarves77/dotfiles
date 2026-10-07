@@ -41,6 +41,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { BandTile } from "@/components/ui/BandTile";
+import { BandGroupHeader } from "@/components/ui/BandGroupHeader";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
@@ -315,57 +316,19 @@ function FilterSheet({
   );
 }
 
-/**
- * Lane PAR-2 (2026-10-07, Claude Design artboard 22 ruling A, verbatim): "Group headers (Immediate /
- * Action / Monitor / Awareness item groups) are white, not tinted. Band name in Anton 18 px in the
- * band colour, definition in grey, 3 px band rule on top." This replaces the PARITY-PARTS band-tint
- * background and the 11px/800 label with its dot (operator item A2, 2026-09-08); artboard 22 is the
- * later ruling. Band tints stay on tiles, pills, callouts, detail section headers and state notes.
- * The definition truncates on one line and carries its full text in `title` (ux-laws).
- */
+/** Lane PAR-2 (artboard 22 ruling A): the list group header is the shared BandGroupHeader (white, 3px
+ *  band rule, Anton 18 band name, grey definition), the same part ItemGroup renders. Kept as a named
+ *  export so the smoke spec mounts it. */
 export function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total: number; showing: number }) {
   return (
-    <div
-      data-audit="band-header"
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        justifyContent: "space-between",
-        gap: 12,
-        padding: "10px 16px",
-        borderTop: `3px solid ${band.cssVar}`,
-        borderBottom: "1px solid var(--line-2)",
-        background: "var(--card)",
-      }}
-    >
-      <span style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
-        <span
-          data-audit="band-header-label"
-          data-guard-display="band-group-name"
-          style={{
-            flexShrink: 0,
-            fontFamily: "var(--font-display)",
-            fontWeight: 400,
-            fontSize: 18,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            color: band.cssVar,
-          }}
-        >
-          {band.label}
+    <BandGroupHeader
+      band={band}
+      right={
+        <span style={{ flexShrink: 0, fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
+          showing {formatNumber(showing)} of {formatNumber(total)}
         </span>
-        <span
-          data-audit="band-header-window"
-          title={band.window}
-          style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--fs-11)", color: "var(--ink-3)" }}
-        >
-          {band.window}
-        </span>
-      </span>
-      <span style={{ flexShrink: 0, fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
-        showing {formatNumber(showing)} of {formatNumber(total)}
-      </span>
-    </div>
+      }
+    />
   );
 }
 
