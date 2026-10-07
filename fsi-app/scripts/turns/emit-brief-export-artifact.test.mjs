@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
-import { buildArtifact, parseIdsList } from "./emit-brief-export-artifact.mjs";
+import { buildArtifact, parseIdsList, emit } from "./emit-brief-export-artifact.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 function withTmpDir(fn) {
@@ -171,5 +171,24 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream mint artifact with a mat
       fsiRoot,
     });
     assert.equal(unmatched, null);
+  });
+});
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): an explicit loop run id beats the on-disk resolver ───────────────
+// A CI checkout holds no upstream artifact file (artifacts land only in harness_runs), so the disk resolver
+// returns null for a chained firing. The workflow reads the upstream row's loop id and passes it explicitly.
+
+test("brief-export: emit records the explicit loop run id when the disk resolver finds nothing", () => {
+  withTmpDir((dir) => {
+    const { artifact } = emit({ env: { BE_UPSTREAM_NAME: "Population turn", BE_UPSTREAM_RUN_ID: "999999102", BE_LOOP_RUN_ID: "explicit-loop-id-7" }, familyDir: join(dir, "family") });
+    assert.equal(artifact.config.loop_run_id, "explicit-loop-id-7");
+    assert.deepEqual(validateRunArtifact(artifact), []);
+  });
+});
+
+test("brief-export: emit with no explicit loop run id and nothing on disk records null (never invented)", () => {
+  withTmpDir((dir) => {
+    const { artifact } = emit({ env: { BE_UPSTREAM_NAME: "Population turn", BE_UPSTREAM_RUN_ID: "999999102" }, familyDir: join(dir, "family") });
+    assert.equal(artifact.config.loop_run_id, null);
   });
 });

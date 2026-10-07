@@ -5,7 +5,7 @@
 // process.argv[1] against this file's own path).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
@@ -13,6 +13,7 @@ import {
   perItemFromTicketsSnapshot,
   latestForwardEventsCount,
   buildArtifact,
+  emit,
 } from "./emit-corpus-turn-artifact.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
@@ -233,4 +234,28 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream ledger-consume artifact 
     fsiRoot: dir,
   });
   assert.equal(unmatched, null);
+});
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): an explicit loop run id beats the on-disk resolver ───────────────
+// A CI checkout holds no upstream artifact file (artifacts land only in harness_runs), so the disk resolver
+// returns null for a chained firing. The workflow reads the upstream row's loop id and passes it explicitly.
+
+function emitInTmp(env) {
+  const dir = tmpDir();
+  try {
+    return emit({ env, familyDir: join(dir, "family") }).artifact;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("corpus-turn: emit records the explicit loop run id when the disk resolver finds nothing", () => {
+  const artifact = emitInTmp({ CT_MODE: "dry", CT_SELECTION: "tickets", CT_LOOP_RUN_ID: "explicit-loop-id-7", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999101" });
+  assert.equal(artifact.config.loop_run_id, "explicit-loop-id-7");
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("corpus-turn: emit with no explicit loop run id and nothing on disk records null (never invented)", () => {
+  const artifact = emitInTmp({ CT_MODE: "dry", CT_SELECTION: "tickets", CT_LOOP_RUN_ID: "", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999101" });
+  assert.equal(artifact.config.loop_run_id, null);
 });

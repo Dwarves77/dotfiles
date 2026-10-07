@@ -1033,6 +1033,21 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
  * Build this run's CONVENTION.md-shaped artifact. PURE. Mirrors run-source-sweep.mjs's / run-extraction
  * .mjs's identical `finally`-block artifact-assembly pattern — a thrown error still produces a record.
  */
+/**
+ * This run's loop_run_id (ADR-031): the explicit id the workflow read from the Source sweep row
+ * (LEDGER_CONSUME_LOOP_RUN_ID, lane CHAIN-2) wins over the on-disk resolver. `env` and `fsiRoot` are
+ * injectable for the test.
+ * @returns {string|null}
+ */
+export function resolveSweepLoopRunId({ env = process.env, fsiRoot = FSI_ROOT } = {}) {
+  return resolveLoopRunId({
+    explicit: env.LEDGER_CONSUME_LOOP_RUN_ID || null,
+    upstreamFamily: "source-sweep",
+    upstreamRunId: env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+    harnessRunsDir: resolve(fsiRoot, "scripts", "harness-runs", "source-sweep"),
+  });
+}
+
 export function buildRunArtifact({
   runId,
   harnessVersion,
@@ -1697,13 +1712,11 @@ async function main() {
     // workflow_run edge feeding this family anywhere in the repo), so this is the ONE hop
     // resolveLoopRunId's match-by-config.loop_run_id mechanism is sound for (source-sweep is the loop
     // head; see loop-run-id.mjs's own header for why this does not generalize past hop 1). No
-    // --loop-run-id CLI flag exists on this runner yet, so `explicit` is always null here.
-    loop_run_id: resolveLoopRunId({
-      explicit: null,
-      upstreamFamily: "source-sweep",
-      upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
-      harnessRunsDir: resolve(FSI_ROOT, "scripts", "harness-runs", "source-sweep"),
-    }),
+    // --loop-run-id CLI flag exists on this runner yet. `explicit` is LEDGER_CONSUME_LOOP_RUN_ID (lane
+    // CHAIN-2, ADR-031): ledger-consume.yml reads the Source sweep row's own loop id through
+    // scripts/lib/upstream-artifact.mjs, because a CI checkout holds no sweep artifact for the disk
+    // resolver below to find (artifacts land only in harness_runs); the disk resolver stays the fallback.
+    loop_run_id: resolveSweepLoopRunId(),
     record_only: parsed.recordOnly,
     limit: parsed.limit,
     source_id: parsed.sourceId,

@@ -20,6 +20,10 @@
 //       (loop-run-id.mjs, ADR-031) scans the checked-out tree for the upstream artifact, and a CI checkout
 //       holds none now that artifacts land only in harness_runs, so it returned null at every hop past the
 //       sweep. A consumer passes this value as the explicit id, which the resolver lets win.
+//   loop-id --upstream-name <workflow name> --upstream-run-id <id>      (lane CHAIN-2)
+//     CHAIN_UPSTREAM_LOOP_RUN_ID=<the upstream row's config.loop_run_id|empty>, and nothing else. No consumer
+//       and no gate: for the chained consumers that only need the loop id (ADR-031) and have already decided
+//       to run. Same read, same retries, same exit codes as `read`.
 //   noop  --family <mint|propagation> --mode <dry|apply> --reason <text> [--upstream-name n --upstream-run-id i
 //         --loop-run-id l --started-at iso]
 //     Writes a schema-valid NO-OP run artifact (config.noop=true, config.noop_reason) under
@@ -213,7 +217,7 @@ function parse(argv) {
     return { ok: false, error: err.message };
   }
   const [sub] = parsed.positionals;
-  if (sub !== "read" && sub !== "noop") return { ok: false, error: `first argument must be "read" or "noop" (got ${JSON.stringify(sub ?? null)})` };
+  if (sub !== "read" && sub !== "noop" && sub !== "loop-id") return { ok: false, error: `first argument must be "read", "loop-id" or "noop" (got ${JSON.stringify(sub ?? null)})` };
   return { ok: true, sub, values: parsed.values };
 }
 
@@ -267,13 +271,14 @@ export async function runCli(argv, deps = {}) {
     return 0;
   }
 
-  // read
-  if (!APPLY_EVIDENCE[v.consumer]) {
+  // read, loop-id
+  const loopIdOnly = p.sub === "loop-id";
+  if (!loopIdOnly && !APPLY_EVIDENCE[v.consumer]) {
     err(`upstream-artifact read: --consumer must be one of ${Object.keys(APPLY_EVIDENCE).join(", ")} (got ${JSON.stringify(v.consumer ?? null)})`);
     return 1;
   }
   const runMode = v["run-mode"];
-  if (runMode !== "dry" && runMode !== "apply") {
+  if (!loopIdOnly && runMode !== "dry" && runMode !== "apply") {
     err(`upstream-artifact read: --run-mode must be "dry" or "apply" (got ${JSON.stringify(runMode ?? null)})`);
     return 1;
   }
@@ -296,6 +301,11 @@ export async function runCli(argv, deps = {}) {
   } catch (e) {
     err(`upstream-artifact: ${e instanceof Error ? e.message : String(e)}`);
     return 1;
+  }
+  if (loopIdOnly) {
+    err(`upstream-artifact: loop-id upstream=${v["upstream-name"]} run=${v["upstream-run-id"]} family=${result.family} row=${result.row?.run_id ?? "(none)"}`);
+    out(`CHAIN_UPSTREAM_LOOP_RUN_ID=${oneLine(result.row?.config?.loop_run_id)}`);
+    return 0;
   }
   const gate = decideChainGate({
     consumer: v.consumer,

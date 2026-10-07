@@ -95,7 +95,7 @@ function usage() {
     "Usage: node scripts/turns/run-propagation-drain.mjs --mode <dry|apply> [--batch N]\n" +
     "         [--questions-for-events <from>-<to>]   (questions only over that outbox id range; dry by default)\n" +
     "         [--harness-runs-dir dir] [--out-dir dir] [--trigger-context '<json>']\n" +
-    "         [--trigger <workflow_run|workflow_dispatch>]"
+    "         [--trigger <workflow_run|workflow_dispatch>] [--loop-run-id <id>]"
   );
 }
 
@@ -112,6 +112,7 @@ export function parseArgs(argv) {
         "out-dir": { type: "string" },
         "trigger-context": { type: "string" },
         trigger: { type: "string" },
+        "loop-run-id": { type: "string" },
         "questions-for-events": { type: "string" },
       },
       allowPositionals: false,
@@ -172,6 +173,10 @@ export function parseArgs(argv) {
     outDir: values["out-dir"] || null,
     triggerContext,
     trigger,
+    // --loop-run-id (lane CHAIN-2, ADR-031): the upstream row's own loop id, read by propagation-drain.yml
+    // through scripts/lib/upstream-artifact.mjs. An explicit id wins over the on-disk resolver, which finds
+    // nothing in a CI checkout now that artifacts land only in harness_runs.
+    loopRunId: values["loop-run-id"] && values["loop-run-id"].trim() !== "" ? values["loop-run-id"].trim() : null,
     questionsForEvents,
   };
 }
@@ -187,6 +192,21 @@ export function parseEventRange(text) {
   const to = Number(m[2]);
   if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) || from > to || to - from + 1 > MAX_REPLAY_RANGE) return null;
   return { from, to };
+}
+
+/**
+ * This run's loop_run_id (ADR-031). An explicit id (--loop-run-id, lane CHAIN-2: the upstream row's own loop
+ * id as the workflow read it) wins over the on-disk resolver, which finds nothing in a CI checkout. PURE
+ * apart from the resolver's directory read; `fsiRoot` is injectable for the test.
+ * @returns {string|null}
+ */
+export function resolveDrainLoopRunId({ explicit = null, triggerContext = null, fsiRoot = FSI_ROOT } = {}) {
+  return resolveLoopRunIdFromUpstream({
+    explicit,
+    upstreamName: triggerContext?.name ?? null,
+    upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
+    fsiRoot,
+  });
 }
 
 /** Resolve this run's top-level artifact `trigger` field (F50). PURE (no I/O), independently testable.
@@ -419,7 +439,7 @@ async function main() {
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  const { mode, batch, triggerContext, trigger: explicitTrigger, questionsForEvents } = parsed;
+  const { mode, batch, triggerContext, trigger: explicitTrigger, loopRunId: explicitLoopRunId, questionsForEvents } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   const outDir = resolve(parsed.outDir || join(harnessRunsDir, "traces"));
 
@@ -550,12 +570,7 @@ async function main() {
           // "Downstream chain" (family downstream-chain) or "Data producers" (its own loop head, no
           // upstream sweep id to inherit -- resolves null by the map's own contract). Null when there is
           // no trigger context at all (a plain hand dispatch).
-          loop_run_id: resolveLoopRunIdFromUpstream({
-            explicit: null,
-            upstreamName: triggerContext?.name ?? null,
-            upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
-            fsiRoot: FSI_ROOT,
-          }),
+          loop_run_id: resolveDrainLoopRunId({ explicit: explicitLoopRunId, triggerContext }),
         },
         inputs_ref: [`mode=${mode}`, `batch=${batch}`],
         per_item: shaped?.perItem ?? [],

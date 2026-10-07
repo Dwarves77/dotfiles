@@ -279,6 +279,27 @@ jobs:
       - name: Export upstream run id (workflow_run chaining only)
         run: echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${{ github.event.workflow_run.id }}" >> "$GITHUB_ENV"
 
+      # THE LOOP RUN ID (lane CHAIN-2, 2026-10-07, ADR-031; the same hand-off lane CHAIN-1 gave Population turn and
+      # Downstream chain). A chained run must record the loop run id of its root, and the on-disk resolver finds
+      # no upstream artifact in a CI checkout now that artifacts land only in `harness_runs`. This step reads the
+      # upstream's row through the one reader, scripts/lib/upstream-artifact.mjs, and exports the id the emitter
+      # takes as its explicit id (which wins over the disk resolver). The `loop-id` subcommand prints the loop
+      # id and nothing else (no consumer, no gate: this workflow's own conditions already decided to run), and
+      # a read failure is a warning and a null id, never a red run.
+      - name: Read the upstream loop run id (ADR-031, chained firings only)
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          CHAIN_UPSTREAM_NAME: ${{ github.event.workflow_run.name }}
+          CHAIN_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          if HANDOFF="$(node scripts/lib/upstream-artifact.mjs loop-id --upstream-name "$CHAIN_UPSTREAM_NAME" --upstream-run-id "$CHAIN_UPSTREAM_RUN_ID")"; then
+            LOOP_ID="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p')"
+            echo "LEDGER_CONSUME_LOOP_RUN_ID=$LOOP_ID" >> "$GITHUB_ENV"
+            echo "upstream loop run id: ${LOOP_ID:-(the upstream row records none)}"
+          else
+            echo "::warning::could not read the upstream loop run id for $CHAIN_UPSTREAM_NAME run $CHAIN_UPSTREAM_RUN_ID; this run records a null loop_run_id (ADR-031)."
+          fi
+
       # ── resolve this run's parameters by trigger — see this file's header, "DECISION" and "EVENT
       # CHAINING" ─────────────────────────────────────────────────────────────────────────────────────
       # workflow_dispatch: use the inputs verbatim — export_candidates=true runs ONLY the export half

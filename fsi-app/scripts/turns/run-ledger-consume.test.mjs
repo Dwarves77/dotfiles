@@ -26,7 +26,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { resolve, dirname, join, relative, basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import {
   parseArgs,
@@ -57,6 +57,7 @@ import {
   resolveExportAfter,
   findLatestExportArtifact,
   buildExportRunArtifact,
+  resolveSweepLoopRunId,
 } from "./run-ledger-consume.mjs";
 // applyPromoteCap (Lane M2, 2026-09-18) lives in src/lib/intake/promote-cap.mjs, not this driver: a
 // PURE, zero-import .mjs module (no bare npm import, same glob-portability discipline the file header
@@ -1636,3 +1637,42 @@ test("ledger-consume.yml: the mode input's own description names the max_promote
 // and consumePortalCandidates runs end-to-end against a stub client with 0 candidates) is NOT a test in
 // this file — see the header comment at the top of this file for exactly why (glob-portability's
 // no-bare-npm-import rule) and where the verification evidence lives.
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): an explicit loop run id beats the on-disk resolver ───────────────
+// A CI checkout holds no Source sweep artifact (artifacts land only in harness_runs), so the disk resolver
+// returns null for a chained firing; the workflow reads the sweep row's loop id and passes it as LEDGER_CONSUME_LOOP_RUN_ID.
+
+function withEmptyFsiRoot(fn) {
+  const dir = mkdtempSync(join(tmpdir(), "ledger-consume-loop-id-"));
+  try {
+    return fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("resolveSweepLoopRunId: LEDGER_CONSUME_LOOP_RUN_ID wins when the disk resolver finds nothing", () => {
+  withEmptyFsiRoot((fsiRoot) => {
+    assert.equal(resolveSweepLoopRunId({ env: { LEDGER_CONSUME_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot }), "sweep-loop-9");
+  });
+});
+
+test("resolveSweepLoopRunId: with no explicit id and nothing on disk the id is null (never invented)", () => {
+  withEmptyFsiRoot((fsiRoot) => {
+    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot }), null);
+  });
+});
+
+test("resolveSweepLoopRunId: an explicit id also wins over a different id recorded on disk", () => {
+  withEmptyFsiRoot((fsiRoot) => {
+    const sweepDir = join(fsiRoot, "scripts", "harness-runs", "source-sweep");
+    mkdirSync(sweepDir, { recursive: true });
+    writeFileSync(join(sweepDir, "source-sweep-run-001.json"), JSON.stringify({
+      harness_family: "source-sweep", harness_version: "sha256:0000000000000000", run_id: "source-sweep-run-001",
+      started_at: "2026-10-06T00:00:00Z", config: { github_run_id: "999999106", loop_run_id: "disk-loop" },
+      inputs_ref: ["x"], per_item: [], metrics: {}, defects_found: [], full_trace_refs: ["x"], proposer_notes: "fixture",
+    }));
+    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "disk-loop");
+    assert.equal(resolveSweepLoopRunId({ env: { LEDGER_CONSUME_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "sweep-loop-9");
+  });
+});

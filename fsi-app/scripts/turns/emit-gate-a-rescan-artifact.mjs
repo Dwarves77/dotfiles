@@ -175,27 +175,35 @@ export function buildArtifact({
 }
 
 const IS_MAIN = isMainModule(import.meta.url);
-if (IS_MAIN) main();
 
-function main() {
-  const mode = process.env.GAR_MODE === "apply" ? "apply" : "dry";
+/**
+ * Read this run's env, build the artifact and write it. `env`, `familyDir` and `fsiRoot` are injectable so a
+ * test runs against a temp directory (the shape emit-source-resolution-artifact.mjs already has).
+ * @returns {{outPath: string, artifact: object}}
+ */
+export function emit({ env = process.env, familyDir = FAMILY_DIR, fsiRoot = FSI_ROOT } = {}) {
+  const mode = env.GAR_MODE === "apply" ? "apply" : "dry";
   // trigger is recorded EXACTLY as the event gives it (F50 reads this field) -- "workflow_run" or
   // "workflow_dispatch", never a re-derived/guessed value.
-  const trigger = process.env.GAR_EVENT_TRIGGER === "workflow_run" ? "workflow_run" : "workflow_dispatch";
-  const limit = Number(process.env.GAR_LIMIT || "0");
-  const upstreamName = process.env.GAR_UPSTREAM_NAME || null;
-  const upstreamRunId = process.env.GAR_UPSTREAM_RUN_ID || null;
-  const startedAt = process.env.GAR_STARTED_AT || new Date().toISOString();
-  const rescanSummary = readJsonIfExists(process.env.GAR_RESCAN_SUMMARY_PATH);
-  const attachSummary = readJsonIfExists(process.env.GAR_ATTACH_SUMMARY_PATH);
+  const trigger = env.GAR_EVENT_TRIGGER === "workflow_run" ? "workflow_run" : "workflow_dispatch";
+  const limit = Number(env.GAR_LIMIT || "0");
+  const upstreamName = env.GAR_UPSTREAM_NAME || null;
+  const upstreamRunId = env.GAR_UPSTREAM_RUN_ID || null;
+  const startedAt = env.GAR_STARTED_AT || new Date().toISOString();
+  const rescanSummary = readJsonIfExists(env.GAR_RESCAN_SUMMARY_PATH);
+  const attachSummary = readJsonIfExists(env.GAR_ATTACH_SUMMARY_PATH);
   // GAR_RESCAN_STEP_OUTCOME (GitHub Actions run 36217491293, 2026-09-26): gate-a-rescan.yml's own
   // "gate-a-rescan.mjs" step's steps.rescan.outcome, so buildArtifact can tell a genuine no-op apart
   // from a crash that left no summary.json -- see buildArtifact's own header for the incident.
-  const rescanStepOutcome = process.env.GAR_RESCAN_STEP_OUTCOME || null;
+  const rescanStepOutcome = env.GAR_RESCAN_STEP_OUTCOME || null;
 
   const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
-    family: FAMILY, familyDir: FAMILY_DIR, governingFiles: GOVERNING_FILES[FAMILY], fsiRoot: FSI_ROOT,
+    family: FAMILY, familyDir, governingFiles: GOVERNING_FILES[FAMILY], fsiRoot,
     upstreamName, upstreamRunId,
+    // GAR_LOOP_RUN_ID: the dispatch input (gate-a-rescan.yml's loop_run_id, documented as winning over any
+    // upstream resolution but never read until lane CHAIN-2) or, on a chained firing, the upstream row's own
+    // loop id (ADR-031). An explicit id wins over the on-disk resolver, which finds nothing in a CI checkout.
+    explicit: env.GAR_LOOP_RUN_ID || null,
   });
 
   const artifact = buildArtifact({
@@ -203,6 +211,11 @@ function main() {
     rescanSummary, attachSummary, loopRunId, rescanStepOutcome,
   });
 
-  const outPath = writeRunArtifact(FAMILY_DIR, artifact);
+  const outPath = writeRunArtifact(familyDir, artifact);
+  return { outPath, artifact };
+}
+
+if (IS_MAIN) {
+  const { outPath } = emit();
   console.log(`emit-gate-a-rescan-artifact: wrote ${outPath}`);
 }
