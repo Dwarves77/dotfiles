@@ -1,0 +1,178 @@
+name: Chain proof
+
+# The data layer of the loop, proven on a disposable local Supabase stack (lane PROOF-1, 2026-10-07;
+# docs/decisions/ADR-045-chain-proof-on-a-local-stack.md; Stage 9 item 1 of the buildout plan).
+#
+# WHAT THIS PROVES. The trigger layer (workflow_run edges, the dispatch fallback, upstream and loop ids) is
+# proven by the three dry fires of 2026-10-07. This job proves the DATA layer: every migration replayed onto an
+# empty database, then the same scripts in hop order in apply mode against that local copy with per-step read-back
+# assertions, then the attack suite on the real schema. Together they are the L20 proof. Nothing here touches
+# production: the local stack is the only database any step after the export can reach.
+#
+# ISOLATION (ruling R3 as amended). The export step reads the two existing repository secrets, exactly as the chain
+# workflows do: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, the only two names in that step's env. It never holds
+# SUPABASE_DB_PASSWORD, APP_URL, WORKER_SECRET or a GitHub token, and `permissions` is contents: read. The export
+# step is the ONLY step with those secrets in its env. Every other step sources the local stack's env file, then
+# runs scripts/proof/preflight.mjs, which fails the job on a production host or any forbidden credential name.
+# scripts/lib/pg-conn.mjs runs in loopback mode (CHAIN_PROOF_LOCAL=1) and never falls through to production.
+#
+# PUBLIC REPOSITORY. Logs and artifacts are world-readable: never print or upload a row. The run artifact is counts,
+# migration file names and hashed ids. The exported subset lives only under RUNNER_TEMP and is deleted at the end.
+#
+# DISPATCH ONLY. No schedule, no workflow_run, no push trigger (rule 16: build mode holds standing schedules off).
+# The Supabase CLI is told to start from a scratch directory that holds only supabase/config.toml, so it boots an
+# EMPTY database; scripts/proof/replay-migrations.mjs applies the migration files itself (the CLI cannot: duplicate
+# numeric prefixes at 006 and 007).
+#
+# LATER LANES. The subset export and load (PROOF-2), the chain steps (PROOF-3) and the attack suite (PROOF-4) are
+# scripts under scripts/proof/. run-lane-step.mjs runs each one, or records a named skip while its lane has not landed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      replay_continue_on_error:
+        description: 'Discovery mode: attempt every migration file and record every failure instead of stopping at the first'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chain-proof
+  cancel-in-progress: false
+
+jobs:
+  chain-proof:
+    name: Chain proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Note the start time and the proof's scratch paths
+        run: |
+          {
+            echo "CP_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "CP_OUT_DIR=$RUNNER_TEMP/chain-proof-out"
+            echo "CHAIN_PROOF_ENV=$RUNNER_TEMP/chain-proof.env"
+            echo "CHAIN_PROOF_STACK=$RUNNER_TEMP/chain-proof-stack"
+            echo "CHAIN_PROOF_SUBSET=$RUNNER_TEMP/subset"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/chain-proof-out"
+
+      - name: Install fsi-app deps
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Ensure psql is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+
+      - name: Install the Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start the local stack (empty database, storage and auth only)
+        id: stack
+        run: |
+          mkdir -p "$CHAIN_PROOF_STACK/supabase"
+          cp fsi-app/supabase/config.toml "$CHAIN_PROOF_STACK/supabase/config.toml"
+          cd "$CHAIN_PROOF_STACK"
+          supabase start
+
+      - name: Write the local env file (loopback hosts only, keys masked)
+        run: |
+          (cd "$CHAIN_PROOF_STACK" && supabase status -o env) | node fsi-app/scripts/proof/write-local-env.mjs --out "$CHAIN_PROOF_ENV"
+
+      - name: Preflight (local stack environment only)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+
+      - name: Replay every migration onto the empty database
+        working-directory: fsi-app
+        env:
+          REPLAY_CONTINUE: ${{ inputs.replay_continue_on_error }}
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          FLAGS=""
+          if [ "$REPLAY_CONTINUE" = "true" ]; then FLAGS="--continue-on-error"; fi
+          node scripts/proof/replay-migrations.mjs --report "$CP_OUT_DIR/replay-report.json" $FLAGS
+
+      # The ONLY step that holds production credentials: the two read credentials the subset export needs, from the
+      # repository secrets. It does not source the local env file. Everything it writes goes under RUNNER_TEMP,
+      # never the workspace and never an artifact. Lane PROOF-2 owns the script.
+      - name: Export the production subset (read only; the only step with production credentials)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET"
+
+      - name: Load the subset into the local database
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name load-subset --lane PROOF-2 --script scripts/proof/load-subset.mjs --out-dir "$CP_OUT_DIR" -- --in "$CHAIN_PROOF_SUBSET"
+
+      - name: Run the chain steps in hop order (apply mode, local database)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name chain --lane PROOF-3 --script scripts/proof/run-chain.mjs --out-dir "$CP_OUT_DIR"
+
+      - name: Run the attack suite on the real schema
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name attacks --lane PROOF-4 --script scripts/proof/attacks.mjs --out-dir "$CP_OUT_DIR"
+
+      - name: Export the local harness_runs ledger (hashed ids, no row text)
+        if: always() && steps.stack.outcome == 'success'
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/export-local-harness-runs.mjs --out "$CP_OUT_DIR/harness-runs-local.json"
+
+      # Records the run artifact on EVERY firing, including one that stopped early. Not landed into production
+      # harness_runs: this job holds no production write credential.
+      - name: Record this run's artifact (chain-proof family)
+        if: always()
+        working-directory: fsi-app
+        run: node scripts/proof/emit-chain-proof-artifact.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the run artifact (counts and hashed ids only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-proof-report
+          path: ${{ runner.temp }}/chain-proof-out
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop the local stack and delete the subset
+        if: always()
+        run: |
+          if [ -d "$CHAIN_PROOF_STACK" ]; then (cd "$CHAIN_PROOF_STACK" && supabase stop --no-backup) || true; fi
+          rm -rf "$CHAIN_PROOF_SUBSET" "$CHAIN_PROOF_ENV"

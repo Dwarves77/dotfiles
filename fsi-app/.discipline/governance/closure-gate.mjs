@@ -444,6 +444,9 @@ const HARNESS_FAMILY_BY_WORKFLOW = {
   // Lane GATES-2 (2026-10-05): live-smoke records its own harness family (its JSON report becomes the run artifact),
   // so its dispatch is evidenced by that family's harness_runs rows once the coordinator fires it.
   'live-smoke.yml': 'live-smoke',
+  // Lane PROOF-1 (2026-10-07): chain-proof records its own harness family (counts and hashed ids, uploaded as a
+  // workflow artifact; the job holds no production write credential, so a ledger row is a separate hand step).
+  'chain-proof.yml': 'chain-proof',
 };
 
 function harnessArtifactExists(family) {

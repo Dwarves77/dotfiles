@@ -1,0 +1,16 @@
+{
+  "family": "chain-proof",
+  "registered": "2026-10-07",
+  "registered_by": "lane proof1-stack-and-replay",
+  "governing_files": [
+    "../.github/workflows/chain-proof.yml",
+    "supabase/config.toml",
+    "scripts/proof/replay-migrations.mjs",
+    "scripts/proof/preflight.mjs",
+    "scripts/proof/write-local-env.mjs",
+    "scripts/proof/run-lane-step.mjs",
+    "scripts/proof/emit-chain-proof-artifact.mjs",
+    "scripts/lib/pg-conn.mjs"
+  ],
+  "rationale": "chain-proof (lane PROOF-1, 2026-10-07, ADR-045): the dispatch-only job that proves the DATA layer of the loop on a disposable local Supabase stack: every migration replayed from an empty database, then the same scripts in hop order in apply mode with per-step read-back assertions and the attack suite on the real schema. The trigger layer is proven separately by the three dry fires of 2026-10-07. Governing files are the workflow, the minimal stack config, the migration replay runner, the isolation preflight (it refuses a production host and every forbidden credential name), the local env writer, the lane step wrapper, the artifact emitter, and the shared connection resolver whose loopback mode keeps every script on the local database. One run is one workflow firing; the artifact is counts and hashed ids only, uploaded as a workflow artifact, never landed into production harness_runs because the job holds no production write credential."
+}
