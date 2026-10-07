@@ -1,20 +1,25 @@
 #!/usr/bin/env node
-// schema-diff.mjs -- a normalised comparison of two local databases' public schemas (lane PROOF-1, coordinator
-// ruling 2026-10-07). A is the proof schema (the production dump applied to the stack); B is replay_check (the
-// migration files replayed onto an empty database). The diff says how far the migration files are from
-// reproducing production, as a finding.
+// schema-diff.mjs -- the chain proof's SCHEMA ORACLE GATE (lane PROOF-1, coordinator reversal 2026-10-07).
 //
-// Both sides are read with the same catalog query over the public schema and compared as sets of NAMES:
-//   tables       table names
-//   columns      table.column with its data type
-//   functions    function name with its argument types
-//   triggers     table.trigger
-//   constraints  table.constraint with its type
-// The report holds counts of what differs and the names (capped), never row data. It is a finding, not a gate:
-// the exit code is 0 whenever both sides could be read.
+// The stack's schema is built by replaying the repo's migration files (replay-migrations.mjs). A schema-only dump of
+// production, applied to a second database on the same stack (apply-schema-dump.mjs), is the oracle. This script
+// reads both public schemas through the same catalog query and compares them, normalised. The difference must be
+// EMPTY: if it is not, it exits 1 and the job fails at this step, with the counts and the names of the differing
+// objects in the log and in the artifact (replay-schema-diff.json).
 //
-// Usage: node scripts/proof/schema-diff.mjs --a <url> --b <url> --out <path>   (both loopback only)
-// Exit: 0 = compared; 1 = a side could not be read; 2 = usage error or a non-loopback URL.
+// WHAT IS COMPARED, per object, as name plus a hash of the normalised definition (whitespace collapsed):
+//   tables       relation name with its kind and row level security flags
+//   columns      table.column with its data type, nullability, default and identity/generated setting
+//   constraints  table.constraint with its type and definition
+//   indexes      table.index with its definition
+//   functions    name(argument types) with its full definition (extension members excluded)
+//   triggers     table.trigger with its definition
+//   policies     table.policy with its command, roles, USING and WITH CHECK
+// A difference is an object only on one side, or on both sides with a different definition ("changed").
+// The report holds counts and names only. It never holds a definition's text and never row data.
+//
+// Usage: node scripts/proof/schema-diff.mjs --replayed <url> --oracle <url> --out <path>   (both loopback only)
+// Exit: 0 = identical; 1 = they differ, or a side could not be read; 2 = usage error or a non-loopback URL.
 
 import { spawnSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -22,37 +27,54 @@ import { dirname, resolve } from "node:path";
 import { assertLoopbackDbUrl } from "./replay-migrations.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 
-export const CATEGORIES = Object.freeze(["tables", "columns", "functions", "triggers", "constraints"]);
+export const CATEGORIES = Object.freeze(["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies"]);
 const MAX_NAMES = 200;
+const MAX_LOGGED = 40;
+
+// Every category is an object { name: md5-of-normalised-definition }. N() collapses whitespace.
+const N = (expr) => `regexp_replace(${expr}, '\\s+', ' ', 'g')`;
+const PUBLIC_RELS = `(select c.oid, c.relname, c.relkind, c.relrowsecurity, c.relforcerowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r', 'p'))`;
 
 export const CATALOG_QUERY = `select json_build_object(
- 'tables', (select coalesce(json_agg(c.relname order by c.relname), '[]'::json) from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r', 'p')),
- 'columns', (select coalesce(json_agg(table_name || '.' || column_name || ' ' || data_type order by table_name, column_name), '[]'::json) from information_schema.columns where table_schema = 'public' and table_name in (select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r', 'p'))),
- 'functions', (select coalesce(json_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' order by p.proname, pg_get_function_identity_arguments(p.oid)), '[]'::json) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prokind in ('f', 'p')),
- 'triggers', (select coalesce(json_agg(c.relname || '.' || t.tgname order by c.relname, t.tgname), '[]'::json) from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and not t.tgisinternal),
- 'constraints', (select coalesce(json_agg(c.relname || '.' || k.conname || ' ' || k.contype order by c.relname, k.conname), '[]'::json) from pg_constraint k join pg_class c on c.oid = k.conrelid join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public')
+ 'tables', (select coalesce(json_object_agg(r.relname, md5(r.relkind::text || r.relrowsecurity::text || r.relforcerowsecurity::text)), '{}'::json) from ${PUBLIC_RELS} r),
+ 'columns', (select coalesce(json_object_agg(r.relname || '.' || a.attname, md5(${N("format_type(a.atttypid, a.atttypmod) || ' ' || a.attnotnull::text || ' ' || coalesce(pg_get_expr(d.adbin, d.adrelid), '') || ' ' || a.attidentity::text || a.attgenerated::text")})), '{}'::json) from ${PUBLIC_RELS} r join pg_attribute a on a.attrelid = r.oid and a.attnum > 0 and not a.attisdropped left join pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum),
+ 'constraints', (select coalesce(json_object_agg(r.relname || '.' || k.conname, md5(${N("k.contype::text || ' ' || pg_get_constraintdef(k.oid)")})), '{}'::json) from ${PUBLIC_RELS} r join pg_constraint k on k.conrelid = r.oid),
+ 'indexes', (select coalesce(json_object_agg(i.tablename || '.' || i.indexname, md5(${N("i.indexdef")})), '{}'::json) from pg_indexes i where i.schemaname = 'public'),
+ 'functions', (select coalesce(json_object_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', md5(${N("pg_get_functiondef(p.oid)")})), '{}'::json) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prokind in ('f', 'p') and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')),
+ 'triggers', (select coalesce(json_object_agg(r.relname || '.' || t.tgname, md5(${N("pg_get_triggerdef(t.oid)")})), '{}'::json) from ${PUBLIC_RELS} r join pg_trigger t on t.tgrelid = r.oid and not t.tgisinternal),
+ 'policies', (select coalesce(json_object_agg(pl.tablename || '.' || pl.policyname, md5(${N("pl.cmd || ' ' || pl.roles::text || ' ' || coalesce(pl.qual, '') || ' ' || coalesce(pl.with_check, '') || ' ' || pl.permissive")})), '{}'::json) from pg_policies pl where pl.schemaname = 'public')
 )`;
 
-/** Normalised set difference of two catalogs. PURE. */
-export function diffCatalogs(a, b) {
-  const result = {};
+/** Normalised comparison of two catalogs (each category a { name: hash } map). PURE. */
+export function diffCatalogs(replayed, oracle) {
+  const categories = {};
   let total = 0;
   for (const cat of CATEGORIES) {
-    const A = new Set(a?.[cat] ?? []);
-    const B = new Set(b?.[cat] ?? []);
-    const onlyA = [...A].filter((x) => !B.has(x)).sort();
-    const onlyB = [...B].filter((x) => !A.has(x)).sort();
-    result[cat] = {
-      a_count: A.size,
-      b_count: B.size,
-      only_in_a: onlyA.length,
-      only_in_b: onlyB.length,
-      names_only_in_a: onlyA.slice(0, MAX_NAMES),
-      names_only_in_b: onlyB.slice(0, MAX_NAMES),
+    const A = replayed?.[cat] ?? {};
+    const B = oracle?.[cat] ?? {};
+    const onlyA = Object.keys(A).filter((k) => !(k in B)).sort();
+    const onlyB = Object.keys(B).filter((k) => !(k in A)).sort();
+    const changed = Object.keys(A).filter((k) => k in B && A[k] !== B[k]).sort();
+    categories[cat] = {
+      replayed_count: Object.keys(A).length,
+      oracle_count: Object.keys(B).length,
+      only_in_replayed: onlyA.length,
+      only_in_oracle: onlyB.length,
+      changed: changed.length,
+      names_only_in_replayed: onlyA.slice(0, MAX_NAMES),
+      names_only_in_oracle: onlyB.slice(0, MAX_NAMES),
+      names_changed: changed.slice(0, MAX_NAMES),
     };
-    total += onlyA.length + onlyB.length;
+    total += onlyA.length + onlyB.length + changed.length;
   }
-  return { schema: "chain-proof-schema-diff/1", a: "proof schema (production dump)", b: "replay_check (migration files)", differing_total: total, categories: result };
+  return {
+    schema: "chain-proof-schema-diff/2",
+    replayed: "the stack, built by replaying the migration files",
+    oracle: "schema-only dump of production",
+    differing_total: total,
+    identical: total === 0,
+    categories,
+  };
 }
 
 /** Read one side's catalog through psql. `spawn` is injectable. Returns the parsed catalog or null. */
@@ -62,12 +84,19 @@ export function readCatalog({ url, psql = "psql", spawn = spawnSync }) {
   try { return JSON.parse(String(r.stdout).trim()); } catch { return null; }
 }
 
-/** One-screen summary. PURE. */
+/** The log text: counts per category, then the names of what differs (capped). PURE. */
 export function summarizeDiff(d) {
-  const lines = [`Schema diff (proof schema vs replay_check): ${d.differing_total} differing name(s)`];
+  const lines = [d.identical ? "Schema oracle: the replayed schema and the production dump are IDENTICAL" : `Schema oracle: FAILED, ${d.differing_total} differing object(s) between the replayed schema and the production dump`];
   for (const cat of CATEGORIES) {
     const c = d.categories[cat];
-    lines.push(`  ${cat}: proof ${c.a_count}, replay ${c.b_count}, only in proof ${c.only_in_a}, only in replay ${c.only_in_b}`);
+    lines.push(`  ${cat}: replayed ${c.replayed_count}, oracle ${c.oracle_count}, only in replayed ${c.only_in_replayed}, only in oracle ${c.only_in_oracle}, changed ${c.changed}`);
+  }
+  for (const cat of CATEGORIES) {
+    const c = d.categories[cat];
+    for (const [label, names, n] of [["only in replayed", c.names_only_in_replayed, c.only_in_replayed], ["only in oracle", c.names_only_in_oracle, c.only_in_oracle], ["changed", c.names_changed, c.changed]]) {
+      if (n === 0) continue;
+      lines.push(`  ${cat} ${label}: ${names.slice(0, MAX_LOGGED).join(", ")}${n > MAX_LOGGED ? `, and ${n - MAX_LOGGED} more` : ""}`);
+    }
   }
   return lines.join("\n");
 }
@@ -75,14 +104,15 @@ export function summarizeDiff(d) {
 function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
 
 if (isMainModule(import.meta.url)) {
-  const [a, b, out] = [arg("--a"), arg("--b"), arg("--out")];
-  if (!a || !b || !out) { console.error("schema-diff: --a, --b and --out are required"); process.exit(2); }
-  try { assertLoopbackDbUrl(a); assertLoopbackDbUrl(b); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }
-  const ca = readCatalog({ url: a });
-  const cb = readCatalog({ url: b });
-  if (!ca || !cb) { console.error(`schema-diff: could not read the ${!ca ? "proof schema" : "replay_check"} catalog`); process.exit(1); }
-  const d = diffCatalogs(ca, cb);
+  const [replayedUrl, oracleUrl, out] = [arg("--replayed"), arg("--oracle"), arg("--out")];
+  if (!replayedUrl || !oracleUrl || !out) { console.error("schema-diff: --replayed, --oracle and --out are required"); process.exit(2); }
+  try { assertLoopbackDbUrl(replayedUrl); assertLoopbackDbUrl(oracleUrl); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }
+  const replayed = readCatalog({ url: replayedUrl });
+  const oracle = readCatalog({ url: oracleUrl });
+  if (!replayed || !oracle) { console.error(`schema-diff: could not read the ${!replayed ? "replayed" : "oracle"} schema; the oracle gate cannot pass`); process.exit(1); }
+  const d = diffCatalogs(replayed, oracle);
   mkdirSync(dirname(resolve(out)), { recursive: true });
   writeFileSync(resolve(out), JSON.stringify(d, null, 2) + "\n", "utf8");
-  console.log(summarizeDiff(d));
+  (d.identical ? console.log : console.error)(summarizeDiff(d));
+  process.exit(d.identical ? 0 : 1);
 }

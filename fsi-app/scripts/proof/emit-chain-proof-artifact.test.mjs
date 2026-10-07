@@ -8,7 +8,7 @@ import { validateRunArtifact, readRunHistory } from "../lib/run-artifact.mjs";
 import { readInputs, buildArtifact, summaryMarkdown, emit } from "./emit-chain-proof-artifact.mjs";
 
 const REPLAY = {
-  ok: false, planned: 5, applied: 3, failed: 1, tolerated: 0, skipped: 1, not_in_inventory: ["011_x.sql"], skipped_not_applied: ["007_y.sql"], applied_without_file: [],
+  ok: false, planned: 5, applied: 3, failed: 1, skipped: 1, not_in_inventory: ["011_x.sql"], skipped_not_applied: ["007_y.sql"], applied_without_file: [],
   post_checks: [{ name: "harness_runs table exists", ok: false }], post_info: { public_tables: 100 },
   files: [{ file: "006_b.sql", status: "failed", error: { line: 4, message: 'relation "t" does not exist' } }, { file: "001_a.sql", status: "applied" }],
 };
@@ -84,14 +84,27 @@ test("emit refuses without CP_OUT_DIR", () => {
   assert.throws(() => emit({ env: {} }), /CP_OUT_DIR/);
 });
 
-test("schema apply and schema diff inputs become metrics, a per-item entry, and one defect per failed statement", () => {
+test("schema apply and the schema oracle become metrics, per-item entries, and defects naming the differing objects", () => {
   const schemaApply = { ok: false, public_tables: 100, fatal_errors: 1, role_errors: 2, errors: [{ line: 9, message: 'type "foo" does not exist' }] };
-  const categories = Object.fromEntries(["tables", "columns", "functions", "triggers", "constraints"].map((k, i) => [k, { only_in_a: i, only_in_b: 1 }]));
-  const a = buildArtifact({ ...base, inputs: { replay: null, replayError: "x", local: null, steps: [], schemaApply, schemaDiff: { differing_total: 15, categories } } });
+  const cats = ["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies"];
+  const categories = Object.fromEntries(cats.map((k) => [k, { only_in_replayed: 0, only_in_oracle: 0, changed: 0, names_only_in_replayed: [], names_only_in_oracle: [], names_changed: [] }]));
+  categories.columns = { only_in_replayed: 0, only_in_oracle: 1, changed: 1, names_only_in_replayed: [], names_only_in_oracle: ["items.extra"], names_changed: ["items.title"] };
+  const a = buildArtifact({ ...base, inputs: { replay: null, replayError: "x", local: null, steps: [], schemaApply, schemaDiff: { differing_total: 2, identical: false, categories } } });
   assert.deepEqual(validateRunArtifact(a), []);
   assert.equal(a.metrics.schema_apply_fatal_errors, 1);
   assert.equal(a.metrics.schema_diff_columns, 2);
+  assert.equal(a.metrics.schema_diff_tables, 0);
   assert.ok(a.defects_found.some((d) => d.description === "production schema dump statement failed locally" && /line 9/.test(d.root_cause)));
-  assert.ok(a.per_item.some((p) => p.id === "replay-schema-diff" && p.outcome === "finding"));
-  assert.match(summaryMarkdown(a), /Replay vs proof schema: 15 differing names/);
+  const oracle = a.defects_found.find((d) => d.description === "schema oracle: 2 differing columns");
+  assert.ok(oracle && /changed: items\.title/.test(oracle.root_cause) && /only in oracle: items\.extra/.test(oracle.root_cause));
+  assert.ok(a.per_item.some((p) => p.id === "schema-oracle" && p.outcome === "failed"));
+  assert.match(summaryMarkdown(a), /Schema oracle \(replayed vs production dump\): 2 differing objects/);
+});
+
+test("an identical oracle diff is an ok per-item entry with no defect", () => {
+  const cats = ["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies"];
+  const categories = Object.fromEntries(cats.map((k) => [k, { only_in_replayed: 0, only_in_oracle: 0, changed: 0, names_only_in_replayed: [], names_only_in_oracle: [], names_changed: [] }]));
+  const a = buildArtifact({ ...base, inputs: { replay: null, replayError: "x", local: null, steps: [], schemaDiff: { differing_total: 0, identical: true, categories } } });
+  assert.ok(a.per_item.some((p) => p.id === "schema-oracle" && p.outcome === "ok"));
+  assert.ok(!a.defects_found.some((d) => d.description.startsWith("schema oracle")));
 });

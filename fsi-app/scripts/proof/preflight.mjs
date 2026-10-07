@@ -50,7 +50,7 @@ export const FORBIDDEN_PREFIXES = Object.freeze(["VERCEL_"]);
 
 export const PRODUCTION_HOST_MARKERS = Object.freeze(["supabase.co", "supabase.com", "carosledge.com", "vercel.app", "vercel.com"]);
 
-const URL_VARS = Object.freeze(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL", "DATABASE_URL", "PROOF_DB_URL", "PROOF_API_URL", "PROOF_REPLAY_DB_URL"]);
+const URL_VARS = Object.freeze(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL", "DATABASE_URL", "PROOF_DB_URL", "PROOF_API_URL", "PROOF_ORACLE_DB_URL"]);
 const REQUIRED_URL_VARS = Object.freeze(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL"]);
 
 const present = (v) => typeof v === "string" && v.trim() !== "";

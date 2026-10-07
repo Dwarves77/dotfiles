@@ -51,11 +51,11 @@ test("no forbidden credential name appears anywhere outside the export step, and
   assert.doesNotMatch(TEXT.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n"), /github\.token|GITHUB_TOKEN|GH_TOKEN|gh workflow run/);
 });
 
-const LOCAL_SCRIPTS = /scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs|apply-schema-dump|schema-diff|create-replay-db)\.mjs/;
+const LOCAL_SCRIPTS = /scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs|apply-schema-dump|schema-diff|create-oracle-db)\.mjs/;
 
 test("every step that touches the local database sources the local env and runs the preflight first", () => {
   const touching = steps().filter((s) => LOCAL_SCRIPTS.test(s.body) && !/Export the production schema dump/.test(s.name));
-  assert.ok(touching.length >= 8, `expected replay_check, schema apply, load, chain, attacks, replay, diff and ledger steps, got ${touching.length}`);
+  assert.ok(touching.length >= 8, `expected oracle_check, replay, oracle apply, oracle gate, load, chain, attacks and ledger steps, got ${touching.length}`);
   for (const s of touching) {
     const src = s.body.indexOf('. "$CHAIN_PROOF_ENV"');
     const pre = s.body.indexOf("scripts/proof/preflight.mjs");
@@ -65,24 +65,37 @@ test("every step that touches the local database sources the local env and runs 
   }
 });
 
-test("the migration replay is discovery: after the data proof, never a gate, continue-on-error mode, replay_check only", () => {
-  const names = steps().map((s) => s.name);
-  const replay = steps().find((s) => /Replay the migration files/.test(s.name));
+test("the replay builds the proof schema and is a gate: first, no continue-on-error anywhere, stops at the first error", () => {
+  const names = steps().map((n) => n.name);
+  const replay = steps().find((n) => /Replay the migration files/.test(n.name));
   assert.ok(replay);
-  assert.match(replay.body, /continue-on-error: true/);
-  assert.match(replay.body, /--continue-on-error/);
-  assert.match(replay.body, /--db-url "\$PROOF_REPLAY_DB_URL"/);
-  assert.doesNotMatch(replay.body, /--db-url "\$PROOF_DB_URL"/);
-  assert.ok(names.findIndex((n) => /Replay the migration files/.test(n)) > names.findIndex((n) => /Run the attack suite/.test(n)), "the replay must follow the data proof");
-  assert.ok(names.findIndex((n) => /Create the empty replay_check/.test(n)) < names.findIndex((n) => /Apply the production schema dump/.test(n)), "replay_check must be made before the dump is applied");
-  const diff = steps().find((s) => /Compare the replayed schema/.test(s.name));
-  assert.match(diff.body, /continue-on-error: true/);
+  const code = TEXT.split(String.fromCharCode(10)).filter((l) => !l.trim().startsWith("#")).join(String.fromCharCode(10));
+  assert.doesNotMatch(code, /continue-on-error/, "no step or flag may continue on error");
+  assert.doesNotMatch(code, /replay_continue_on_error|replay-tolerate/);
+  assert.doesNotMatch(replay.body, /--db-url/, "the replay builds the stack's own database (PROOF_DB_URL), never another");
+  assert.ok(names.findIndex((n) => /Replay the migration files/.test(n)) < names.findIndex((n) => /Export the production schema dump/.test(n)), "the replay must run before any production credential is used");
+  assert.ok(names.findIndex((n) => /Create the empty oracle_check/.test(n)) < names.findIndex((n) => /Replay the migration files/.test(n)), "oracle_check must be made before the replay builds anything");
 });
 
-test("the production schema is applied to the local stack before the subset load", () => {
-  const names = steps().map((s) => s.name);
-  assert.ok(names.findIndex((n) => /Apply the production schema dump/.test(n)) < names.findIndex((n) => /Load the subset/.test(n)));
+test("the schema oracle gate compares the replayed schema with the dump and sits before the subset load", () => {
+  const names = steps().map((n) => n.name);
+  const apply = names.findIndex((n) => /Apply the production schema dump to oracle_check/.test(n));
+  const gate = names.findIndex((n) => /Schema oracle gate/.test(n));
+  const load = names.findIndex((n) => /Load the subset/.test(n));
+  assert.ok(apply >= 0 && gate > apply && load > gate, "order must be apply dump, oracle gate, load");
+  const g = steps()[gate];
+  assert.match(g.body, /schema-diff\.mjs --replayed "\$PROOF_DB_URL" --oracle "\$PROOF_ORACLE_DB_URL"/);
+  const ap = steps()[apply];
+  assert.match(ap.body, /apply-schema-dump\.mjs --db-url "\$PROOF_ORACLE_DB_URL"/);
+  assert.doesNotMatch(TEXT.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n"), /apply-schema-dump\.mjs[^\n]*PROOF_DB_URL/, "the dump must never be applied to the replayed database");
   assert.match(TEXT, /rm -rf "\$RUNNER_TEMP\/schema-dump"/);
+});
+
+test("the expected-red state and the gate that lifts it are stated in the workflow header", () => {
+  const head = TEXT.slice(0, TEXT.indexOf("\non:"));
+  assert.match(head, /EXPECTED STATE: RED/);
+  assert.match(head, /migrations-history lane/);
+  assert.match(head, /empty schema diff/);
 });
 
 test("the subset never leaves the job: it is not under the workspace and not in an uploaded path", () => {

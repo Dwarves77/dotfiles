@@ -15,37 +15,38 @@
 // that the inventory does not list is REPORTED and not applied. A file the inventory lists that is absent on
 // disk is REPORTED.
 //
-// APPLIED SET (coordinator ruling 2026-10-07). The replay applies exactly what production has applied, taken from
-// the committed fsi-app/docs/inventories/applied-migrations.json (production's list_migrations, synced by hand with
-// scripts/proof/sync-applied-migrations.mjs), never from file headers: several headers still say NOT APPLIED for
-// applied migrations and are stale. A file matches an applied row when (version, name) equals (file prefix, rest of
-// the name), or the row's name is the whole file base name, or the row is timestamp-versioned and its name is the
-// rest of the file name. A file with no match is SKIPPED and listed (skipped_not_applied). An applied row that
-// matches no file is a FINDING (applied_without_file), listed in the report; it never stops the replay.
+// APPLIED SET (coordinator ruling 2026-10-07). The replay applies what production has applied, taken from the
+// committed fsi-app/docs/inventories/applied-migrations.json (production's list_migrations, synced by hand with
+// scripts/proof/sync-applied-migrations.mjs, which also owns the shape of that file), never from file headers:
+// several headers still say NOT APPLIED for applied migrations and are stale. A file matches an applied row when
+// (version, name) equals (file prefix, rest of the name), or the row's name is the whole file base name, or the row
+// is timestamp-versioned and its name is the rest of the file name. A file with no match is SKIPPED and listed
+// (skipped_not_applied). An applied row that matches no file is an ERROR (applied_without_file): the replay
+// refuses to run, applies nothing, and names the rows.
 //
-// DISCOVERY, NEVER A GATE (coordinator ruling 2026-10-07). Production's names diverge from the file names (352
-// applied rows, 46 with no file, 17 files with no applied row), so the file set cannot rebuild production. The
-// chain proof's schema is a schema-only dump of production (apply-schema-dump.mjs). This replay runs AFTER the data
-// proof, against a second empty database on the same stack (create-replay-db.mjs), in continue-on-error mode, and
-// its findings, together with schema-diff.mjs's comparison against the dumped schema, land in the artifact.
+// THE REPLAY BUILDS THE PROOF SCHEMA (coordinator reversal 2026-10-07: no workarounds). The stack's schema is the
+// repo files replayed here, onto the stack's empty database. A schema-only dump of production is the ORACLE: after
+// the replay, schema-diff.mjs must find the replayed schema and the dump identical, or the job fails. Production's
+// names diverge from the file names today (352 applied rows, 46 with no file, 17 files with no applied row), so
+// the job is expected to be RED until a migrations-history lane repairs the repo (docs/runbooks/maintenance.d/
+// 64-chain-proof.md says so, and names the gate that lifts it).
 //
-// STOP RULE. The first error stops the replay with the file name, the psql error and the statement at the
-// reported line, unless that file is on the tolerate list (scripts/proof/replay-tolerate.json, each entry
-// carries a reason and an owner; absent file = empty list) or --continue-on-error is given (discovery mode:
-// every file is attempted and every failure is recorded). This lane does not patch migrations.
+// STOP RULE. The first error stops the replay with the file name, the psql error and the statement at the reported
+// line. There is no tolerate list, no skip list and no continue-on-error mode. This lane does not patch migrations.
 //
 // SAFETY. The database URL must name a loopback host or the runner refuses before running anything (exit 2).
 // The report holds counts, file names, NOTICE lines (the migrations' own self-checks) and error text; the
 // replay runs on an empty database, so no row can appear in it.
 //
-// Usage: node scripts/proof/replay-migrations.mjs --report <path> [--db-url <url>] [--continue-on-error]
-//          [--migrations-dir <dir>] [--inventory <md>] [--tolerate <json>] [--psql <bin>]
-//   The database URL is --db-url or PROOF_REPLAY_DB_URL; the proof schema database is never a fallback.
-// Exit: 0 = every file applied (or tolerated/skipped with a reason) and the post checks passed;
-//       1 = a file failed or a post check failed; 2 = cannot run (no URL, not loopback, no psql).
+// Usage: node scripts/proof/replay-migrations.mjs --report <path> [--db-url <url>]
+//          [--migrations-dir <dir>] [--inventory <md>] [--applied <json>] [--psql <bin>]
+//   The database URL is --db-url, else PROOF_DB_URL (the stack's own database, where the proof schema is built).
+// Exit: 0 = every planned file applied and the post checks passed;
+//       1 = a file failed, an applied row has no file, or a post check failed; 2 = cannot run (no URL, not
+//       loopback, no psql, an unreadable inventory).
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isLoopbackHost } from "../lib/pg-conn.mjs";
@@ -57,7 +58,6 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const REPO_ROOT = resolve(FSI_ROOT, "..");
 export const DEFAULT_MIGRATIONS_DIR = resolve(FSI_ROOT, "supabase", "migrations");
 export const DEFAULT_INVENTORY = resolve(REPO_ROOT, "docs", "inventories", "migrations.md");
-export const DEFAULT_TOLERATE = resolve(HERE, "replay-tolerate.json");
 export const DEFAULT_APPLIED = resolve(FSI_ROOT, "docs", "inventories", "applied-migrations.json");
 export const DB_CATALOG = resolve(FSI_ROOT, ".discipline", "governance", "db-catalog.json");
 
@@ -117,21 +117,19 @@ export function prefixReport(files) {
  * Plan the replay. PURE.
  * @param {{prefix:string,file:string,subject:string}[]} inventoryRows
  * @param {string[]} diskFiles  the *.sql names found in the migrations directory
- * @param {{skip?:{file:string,reason:string,owner:string}[]}} [tolerate]
  * @param {{version:string,name:string}[]|null} [appliedRows] production's applied list; null = no applied filter
  */
-export function planReplay(inventoryRows, diskFiles, tolerate = {}, appliedRows = null) {
+export function planReplay(inventoryRows, diskFiles, appliedRows = null) {
   const onDisk = new Set(diskFiles);
   const listed = new Set(inventoryRows.map((r) => r.file));
-  const skipByFile = new Map((tolerate.skip ?? []).map((s) => [s.file, s]));
   const ordered = [];
   const missingOnDisk = [];
   const applied = appliedRows ? matchApplied(appliedRows, [...onDisk]) : null;
   const skippedNotApplied = [];
   for (const row of inventoryRows) {
     if (!onDisk.has(row.file)) { missingOnDisk.push(row.file); continue; }
-    let skip = skipByFile.get(row.file) ?? null;
-    if (!skip && applied && !applied.appliedFiles.has(row.file)) {
+    let skip = null;
+    if (applied && !applied.appliedFiles.has(row.file)) {
       skip = { file: row.file, reason: "not in the applied-migrations inventory (production has not applied it)", owner: "applied-migrations.json" };
       skippedNotApplied.push(row.file);
     }
@@ -139,26 +137,6 @@ export function planReplay(inventoryRows, diskFiles, tolerate = {}, appliedRows 
   }
   const notInInventory = diskFiles.filter((f) => !listed.has(f)).sort();
   return { ordered, missingOnDisk, notInInventory, skippedNotApplied, appliedWithoutFile: applied ? applied.appliedWithoutFile : [], ...prefixReport(ordered.map((o) => o.file)) };
-}
-
-/** Validate the tolerate file: every entry needs a reason and an owner. Returns { tolerate, errors }. PURE. */
-export function parseTolerate(text) {
-  if (text == null) return { tolerate: { skip: [], tolerate: [] }, errors: [] };
-  let parsed;
-  try { parsed = JSON.parse(text); } catch (e) { return { tolerate: { skip: [], tolerate: [] }, errors: [`tolerate file is not JSON: ${e.message}`] }; }
-  const errors = [];
-  const out = { skip: [], tolerate: [] };
-  for (const kind of ["skip", "tolerate"]) {
-    const list = parsed?.[kind] ?? [];
-    if (!Array.isArray(list)) { errors.push(`"${kind}" must be an array`); continue; }
-    for (const e of list) {
-      if (typeof e?.file !== "string" || !e.file) errors.push(`${kind} entry without a file`);
-      else if (typeof e.reason !== "string" || !e.reason.trim()) errors.push(`${kind} entry ${e.file} has no reason`);
-      else if (typeof e.owner !== "string" || !e.owner.trim()) errors.push(`${kind} entry ${e.file} has no owner`);
-      else out[kind].push(e);
-    }
-  }
-  return { tolerate: out, errors };
 }
 
 /** Read what psql printed. PURE. `fileText` is the migration source, used to quote the failing statement. */
@@ -250,13 +228,13 @@ export function probeDatabase({ psql, dbUrl, spawn = spawnSync }) {
  * Run the replay. Everything external is injected, so tests need no database.
  * @returns the report object (also what the CLI writes).
  */
-export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrationsDir, dbUrl, psql = "psql", continueOnError = false, spawn = spawnSync, readFn = readFileSync, now = () => new Date(), probe = probeDatabase, expectedTables = null }) {
+export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spawnSync, readFn = readFileSync, now = () => new Date(), probe = probeDatabase, expectedTables = null }) {
   const startedAt = now().toISOString();
   const files = [];
   let stoppedAt = null;
-  const toleratedBy = (file, message) => (tolerate.tolerate ?? []).find((t) => t.file === file && (!t.error_contains || String(message).includes(t.error_contains)));
+  const refusedForApplied = (plan.appliedWithoutFile ?? []).length > 0;
 
-  for (const item of plan.ordered) {
+  for (const item of refusedForApplied ? [] : plan.ordered) {
     if (item.skip) {
       files.push({ file: item.file, status: "skipped", seconds: 0, reason: item.skip.reason, owner: item.skip.owner });
       continue;
@@ -270,19 +248,15 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
       continue;
     }
     const error = parsed.error ?? { line: null, message: String(run.stderr).trim().split(/\r?\n/).pop()?.slice(0, MAX_TEXT) || `psql exited ${run.status}`, context: [], statement: null };
-    const tol = toleratedBy(item.file, error.message);
-    if (tol) {
-      files.push({ file: item.file, status: "tolerated", seconds: run.seconds, notices: parsed.notices, error, reason: tol.reason, owner: tol.owner });
-      continue;
-    }
     files.push({ file: item.file, status: "failed", seconds: run.seconds, notices: parsed.notices, error });
-    if (!continueOnError) { stoppedAt = item.file; break; }
+    stoppedAt = item.file;
+    break;
   }
 
   const count = (s) => files.filter((f) => f.status === s).length;
   let postChecks = [];
   let postInfo = null;
-  if (!stoppedAt) {
+  if (!stoppedAt && !refusedForApplied) {
     const probed = probe({ psql, dbUrl, spawn });
     if (probed) {
       const ev = evaluatePostChecks(probed, expectedTables);
@@ -302,7 +276,6 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
     planned: plan.ordered.length,
     applied: count("applied"),
     failed,
-    tolerated: count("tolerated"),
     skipped: count("skipped"),
     attempted: files.filter((f) => f.status !== "skipped").length,
     stopped_at: stoppedAt,
@@ -316,7 +289,8 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
     post_info: postInfo,
     files,
   };
-  report.ok = failed === 0 && !stoppedAt && postChecks.length > 0 && postChecks.every((c) => c.ok);
+  report.refused = refusedForApplied;
+  report.ok = !refusedForApplied && failed === 0 && !stoppedAt && postChecks.length > 0 && postChecks.every((c) => c.ok);
   return report;
 }
 
@@ -324,29 +298,29 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
 export function summarize(report) {
   const lines = [
     `Migration replay: ${report.ok ? "OK" : "FAILED"}`,
-    `  planned ${report.planned}, applied ${report.applied}, failed ${report.failed}, tolerated ${report.tolerated}, skipped ${report.skipped}`,
+    `  planned ${report.planned}, applied ${report.applied}, failed ${report.failed}, skipped ${report.skipped}`,
     `  listed in inventory but absent on disk: ${report.missing_on_disk.length}; on disk but not in inventory (not applied): ${report.not_in_inventory.length}`,
     `  duplicate prefixes: ${report.duplicate_prefixes.map((d) => `${d.prefix} x${d.files.length}`).join(", ") || "none"}; absent numbers: ${report.gaps.length}`,
-    `  skipped, not in the applied inventory: ${report.skipped_not_applied.length}; applied rows with no file (finding): ${report.applied_without_file.length}`,
+    `  skipped, not in the applied inventory: ${report.skipped_not_applied.length}; applied rows with no file (ERROR): ${report.applied_without_file.length}`,
   ];
   for (const f of report.files.filter((x) => x.status === "failed")) {
     lines.push(`  FAILED ${f.file}${f.error?.line ? ` line ${f.error.line}` : ""}: ${f.error?.message}`);
     if (f.error?.statement) lines.push(`    statement: ${f.error.statement}`);
     for (const c of f.error?.context ?? []) lines.push(`    ${c}`);
   }
-  for (const r of report.applied_without_file.slice(0, 60)) lines.push(`  FINDING applied row with no file: ${r.version} ${r.name}`);
-  for (const f of report.skipped_not_applied) lines.push(`  FINDING file with no applied row (skipped): ${f}`);
+  if (report.refused) lines.push("  REFUSED: applied rows with no migration file; nothing was replayed. The names:");
+  for (const r of report.applied_without_file.slice(0, 80)) lines.push(`    applied row with no file: ${r.version} ${r.name}`);
+  for (const f of report.skipped_not_applied) lines.push(`    file with no applied row (skipped): ${f}`);
   for (const c of report.post_checks.filter((x) => !x.ok)) lines.push(`  POST CHECK FAILED: ${c.name}`);
   if (report.post_info) lines.push(`  public tables ${report.post_info.public_tables}, committed catalog ${report.post_info.catalog_tables}, delta ${report.post_info.delta}`);
   return lines.join("\n");
 }
 
 function parseArgs(argv) {
-  const out = { continueOnError: false };
+  const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--continue-on-error") out.continueOnError = true;
-    else if (["--report", "--db-url", "--migrations-dir", "--inventory", "--tolerate", "--psql", "--applied"].includes(a)) out[a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = argv[++i];
+    if (["--report", "--db-url", "--migrations-dir", "--inventory", "--psql", "--applied"].includes(a)) out[a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = argv[++i];
     else throw new Error(`unknown argument ${a}`);
   }
   return out;
@@ -355,8 +329,8 @@ function parseArgs(argv) {
 function main() {
   let args;
   try { args = parseArgs(process.argv.slice(2)); } catch (e) { console.error(e.message); process.exit(2); }
-  const dbUrl = args.dbUrl || process.env.PROOF_REPLAY_DB_URL;
-  if (!dbUrl) { console.error("replay-migrations: no database URL (--db-url or PROOF_REPLAY_DB_URL; the proof schema database is never a fallback); cannot run"); process.exit(2); }
+  const dbUrl = args.dbUrl || process.env.PROOF_DB_URL;
+  if (!dbUrl) { console.error("replay-migrations: no database URL (--db-url or PROOF_DB_URL); cannot run"); process.exit(2); }
   try { assertLoopbackDbUrl(dbUrl); } catch (e) { console.error(`replay-migrations: ${e.message}`); process.exit(2); }
   const psql = args.psql || "psql";
   const probe = spawnSync(psql, ["--version"], { encoding: "utf8" });
@@ -364,20 +338,17 @@ function main() {
 
   const migrationsDir = args.migrationsDir ? resolve(args.migrationsDir) : DEFAULT_MIGRATIONS_DIR;
   const inventoryPath = args.inventory ? resolve(args.inventory) : DEFAULT_INVENTORY;
-  const toleratePath = args.tolerate ? resolve(args.tolerate) : DEFAULT_TOLERATE;
   const inventoryRows = parseInventoryOrder(readFileSync(inventoryPath, "utf8"));
   if (inventoryRows.length === 0) { console.error("replay-migrations: the inventory lists no migration rows; cannot order the replay"); process.exit(2); }
-  const { tolerate, errors } = parseTolerate(existsSync(toleratePath) ? readFileSync(toleratePath, "utf8") : null);
-  if (errors.length) { console.error(`replay-migrations: tolerate file refused: ${errors.join("; ")}`); process.exit(2); }
   const diskFiles = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql"));
   let appliedRows;
   try { appliedRows = parseAppliedInventory(readFileSync(args.applied ? resolve(args.applied) : DEFAULT_APPLIED, "utf8")); } catch (e) { console.error(`replay-migrations: applied-migrations inventory refused: ${e.message}`); process.exit(2); }
-  const plan = planReplay(inventoryRows, diskFiles, tolerate, appliedRows);
+  const plan = planReplay(inventoryRows, diskFiles, appliedRows);
 
   let expectedTables = null;
   try { expectedTables = JSON.parse(readFileSync(DB_CATALOG, "utf8")).tables?.length ?? null; } catch { /* informational only */ }
 
-  const report = replay({ plan, tolerate, migrationsDir, dbUrl, psql, continueOnError: args.continueOnError, expectedTables });
+  const report = replay({ plan, migrationsDir, dbUrl, psql, expectedTables });
   if (args.report) {
     mkdirSync(dirname(resolve(args.report)), { recursive: true });
     writeFileSync(resolve(args.report), JSON.stringify(report, null, 2) + "\n", "utf8");

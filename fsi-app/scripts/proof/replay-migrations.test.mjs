@@ -1,13 +1,13 @@
 /** Tests for scripts/proof/replay-migrations.mjs (lane PROOF-1). A fixture directory with a duplicate numeric
  *  prefix (006 x2), a gap (008 absent), a file the inventory does not list, and a listed file that is absent
- *  proves the planning; a fake psql proves the stop rule, the tolerate list, discovery mode and the report. */
+ *  proves the planning; a fake psql proves the stop rule, the applied-set filter, the refusal and the report. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  parseInventoryOrder, appliedRowMatchesFile, matchApplied, prefixReport, planReplay, parseTolerate, parsePsqlOutput,
+  parseInventoryOrder, appliedRowMatchesFile, matchApplied, prefixReport, planReplay, parsePsqlOutput,
   assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR,
 } from "./replay-migrations.mjs";
 
@@ -62,16 +62,6 @@ test("planReplay: inventory order, duplicates and gaps named, unlisted reported 
   assert.ok(plan.gaps.includes("008"));
 });
 
-test("parseTolerate requires a reason and an owner on every entry", () => {
-  assert.deepEqual(parseTolerate(null).errors, []);
-  assert.equal(parseTolerate("{not json").errors.length, 1);
-  const bad = parseTolerate(JSON.stringify({ skip: [{ file: "a.sql", reason: "r" }], tolerate: [{ file: "b.sql", owner: "o" }] }));
-  assert.equal(bad.errors.length, 2);
-  const ok = parseTolerate(JSON.stringify({ skip: [{ file: "a.sql", reason: "r", owner: "o" }] }));
-  assert.deepEqual(ok.errors, []);
-  assert.equal(ok.tolerate.skip.length, 1);
-});
-
 test("parsePsqlOutput reads NOTICE self-checks and the first error with its statement", () => {
   const text = "-- header\nCREATE TABLE a (id int);\nSELECT * FROM missing_table;\n";
   const stderr = [
@@ -123,8 +113,8 @@ function run(opts = {}) {
   const dir = fixtureDir();
   try {
     const { spawn, calls } = fakePsql(opts);
-    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, opts.tolerate);
-    const report = replay({ plan, tolerate: opts.tolerate, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, continueOnError: opts.continueOnError, expectedTables: 108 });
+    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK);
+    const report = replay({ plan, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, expectedTables: 108 });
     return { report, calls };
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
@@ -156,37 +146,6 @@ test("replay stops at the first error with the file, the message and the stateme
   assert.equal(report.post_checks.length, 0, "no post checks after a stopped replay");
 });
 
-test("--continue-on-error attempts every file and records every failure", () => {
-  const { report } = run({ continueOnError: true, failOn: { "001_schema.sql": "boom one", "009_capture.sql": "boom two" } });
-  assert.equal(report.failed, 2);
-  assert.equal(report.applied, 3);
-  assert.equal(report.stopped_at, null);
-  assert.equal(report.ok, false);
-});
-
-test("a tolerated error is recorded with its reason and owner and does not stop the replay", () => {
-  const tolerate = { skip: [], tolerate: [{ file: "007_old_thing.sql", error_contains: "already exists", reason: "retired file re-creates an existing object", owner: "coordinator" }] };
-  const { report } = run({ tolerate, failOn: { "007_old_thing.sql": 'relation "t" already exists' } });
-  assert.equal(report.tolerated, 1);
-  assert.equal(report.files.find((f) => f.status === "tolerated").owner, "coordinator");
-  assert.equal(report.ok, true);
-});
-
-test("a tolerate entry whose error text does not match does not tolerate the failure", () => {
-  const tolerate = { skip: [], tolerate: [{ file: "007_old_thing.sql", error_contains: "already exists", reason: "r", owner: "o" }] };
-  const { report } = run({ tolerate, failOn: { "007_old_thing.sql": "permission denied" } });
-  assert.equal(report.failed, 1);
-  assert.equal(report.ok, false);
-});
-
-test("a skipped file is not run and is recorded with its reason and owner", () => {
-  const tolerate = { skip: [{ file: "007_old_thing.sql", reason: "marked NEVER APPLIED", owner: "coordinator" }], tolerate: [] };
-  const { report, calls } = run({ tolerate });
-  assert.ok(!calls.includes("007_old_thing.sql"));
-  assert.equal(report.skipped, 1);
-  assert.equal(report.files.find((f) => f.status === "skipped").reason, "marked NEVER APPLIED");
-});
-
 test("a failed post check fails the report", () => {
   const { report } = run({ probe: { ...GOOD_PROBE, harness_runs_rls: false } });
   assert.equal(report.ok, false);
@@ -215,7 +174,7 @@ test("appliedRowMatchesFile: short version plus name, whole base name, or timest
 });
 
 test("applied filter: a file with no applied row is SKIPPED and listed, the rest are planned", () => {
-  const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, {}, APPLIED);
+  const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, APPLIED);
   assert.deepEqual(plan.skippedNotApplied, ["006_rls_multi_tenant.sql"]);
   assert.equal(plan.ordered.find((o) => o.file === "006_rls_multi_tenant.sql").skip.owner, "applied-migrations.json");
   assert.deepEqual(plan.appliedWithoutFile, []);
@@ -225,7 +184,7 @@ test("applied filter in a replay: the skipped file is not run and the report lis
   const dir = fixtureDir();
   try {
     const { spawn, calls } = fakePsql();
-    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, {}, APPLIED);
+    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, APPLIED);
     const report = replay({ plan, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, expectedTables: 108 });
     assert.ok(!calls.includes("006_rls_multi_tenant.sql"));
     assert.deepEqual(report.skipped_not_applied, ["006_rls_multi_tenant.sql"]);
@@ -234,21 +193,29 @@ test("applied filter in a replay: the skipped file is not run and the report lis
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("FINDING, not a gate: an applied version with no file is listed and the replay still runs every planned file", () => {
+test("ERROR: an applied version with no file refuses the replay, runs nothing and names the rows", () => {
   const dir = fixtureDir();
   try {
     const { spawn, calls } = fakePsql();
     const applied = [...APPLIED, { version: "300", name: "ghost_migration" }];
-    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, {}, applied);
+    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, applied);
     assert.deepEqual(plan.appliedWithoutFile, [{ version: "300", name: "ghost_migration" }]);
-    const report = replay({ plan, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, continueOnError: true, expectedTables: 108 });
-    assert.ok(calls.filter((c) => c !== "(probe)").length >= 4, "the replay must run despite the finding");
-    assert.equal(report.refused, undefined);
-    assert.deepEqual(report.applied_without_file, [{ version: "300", name: "ghost_migration" }]);
-    assert.equal(report.ok, true);
-    assert.match(summarize(report), /FINDING applied row with no file: 300 ghost_migration/);
-    assert.match(summarize(report), /FINDING file with no applied row \(skipped\): 006_rls_multi_tenant\.sql/);
+    const report = replay({ plan, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, expectedTables: 108 });
+    assert.equal(calls.length, 0, "psql was called on a refused replay");
+    assert.equal(report.refused, true);
+    assert.equal(report.ok, false);
+    assert.match(summarize(report), /REFUSED/);
+    assert.match(summarize(report), /applied row with no file: 300 ghost_migration/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("no tolerate list, no skip list and no continue-on-error mode exist any more", async () => {
+  const mod = await import("./replay-migrations.mjs");
+  assert.equal(mod.parseTolerate, undefined);
+  assert.equal(mod.DEFAULT_TOLERATE, undefined);
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./replay-migrations.mjs", import.meta.url), "utf8");
+  assert.ok(!/continueOnError|--continue-on-error"/.test(src.replace(/\/\/.*$/gm, "")), "a continue-on-error option is still present");
 });
 
 test("matchApplied reports every applied row that matches no file", () => {
