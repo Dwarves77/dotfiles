@@ -678,6 +678,146 @@ test('check 5 (lane F51c) GREEN, git-fixture end to end: an entry-directory file
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// GENERATED FILES (lane RULES-1, 2026-10-07): a file listed in the generated-files registry (each entry
+// names its generator) is exempt from check 5 only when its committed copy equals what that generator
+// prints on the checked tree. Two lanes that both regenerate honestly pass; a hand-edited or stale copy
+// fails; a non-generated shared file fails exactly as before.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('evaluateConcurrencyViolations (RULES-1) GREEN: a concurrently-touched file that generatedCheck says is current is exempt; a non-generated one in the same range is still refused', () => {
+  const masterCommits = [masterCommit('aaaaaaaa1111', 'lane A: regenerate the inventory and edit a file', ['inv.md', 'shared.mjs'], true)];
+  const generatedCheck = (f) => (f === 'inv.md' ? { generated: true, exempt: true, generator: 'gen.mjs' } : { generated: false });
+  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['inv.md', 'shared.mjs'], generatedCheck });
+  assert.deepEqual(v.map((x) => x.path), ['shared.mjs']);
+});
+
+test('evaluateConcurrencyViolations (RULES-1) RED: a generated file whose copy is not current is refused, and the message says to rerun the generator', () => {
+  const masterCommits = [masterCommit('aaaaaaaa1111', 'lane A: regenerate the inventory', ['inv.md'], true)];
+  const generatedCheck = () => ({ generated: true, exempt: false, generator: 'gen.mjs', reason: 'the committed copy does not equal the output of gen.mjs on this tree (hand-edited or stale); rerun the generator' });
+  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['inv.md'], generatedCheck });
+  assert.equal(v.length, 1);
+  assert.ok(v[0].message.includes('concurrency violation:'));
+  assert.ok(v[0].message.includes('generated file'), 'the message says this file is a registered generated file');
+  assert.ok(v[0].message.includes('rerun the generator'));
+});
+
+test('evaluateConcurrencyViolations (RULES-1): the generated check is only consulted for a file that has a concurrent prior touch (a serial or untouched file never runs a generator)', () => {
+  let calls = 0;
+  const generatedCheck = () => { calls++; return { generated: false }; };
+  const masterCommits = [masterCommit('a1', 'serial', ['inv.md'], false)];
+  assert.deepEqual(evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['inv.md', 'other.txt'], generatedCheck }), []);
+  assert.equal(calls, 0);
+});
+
+// A git fixture with a tiny generator: gen.mjs prints the sorted listing of items/, inventory.txt is the
+// committed copy of that output. Lane A (merged first) and lane B (cut before A merged) both touch
+// inventory.txt, which is a genuinely concurrent edit of one file.
+const FIXTURE_GENERATOR = "import { readdirSync } from 'node:fs';\nimport { fileURLToPath } from 'node:url';\nimport { dirname, join } from 'node:path';\n" +
+  "const here = dirname(fileURLToPath(import.meta.url));\nprocess.stdout.write(readdirSync(join(here, 'items')).sort().join('\\n') + '\\n');\n";
+const FIXTURE_ENTRIES = [
+  { path: 'inventory.txt', generator: 'gen.mjs', source: 'tree' },
+  { path: 'live.json', generator: 'gen.mjs', source: 'live', why: 'needs a live database' },
+];
+
+function concurrentGeneratedFixture(prefix, laneBFiles) {
+  const { tmp, git } = tmpRepo(prefix);
+  const commit = (message) => { git(['add', '-A']); git(['commit', '-q', '-m', message]); };
+  writeFile(join(tmp, 'a0.txt'), '1'); commit('c0 (anchor)');
+  const anchorSha = git(['rev-parse', 'HEAD']).trim();
+  writeFile(join(tmp, 'gen.mjs'), FIXTURE_GENERATOR);
+  writeFile(join(tmp, 'items/seed'), '1');
+  writeFile(join(tmp, 'inventory.txt'), 'seed\n');
+  writeFile(join(tmp, 'live.json'), '{}');
+  writeFile(join(tmp, 'shared.mjs'), 'seed');
+  commit('seed');
+  const seedSha = git(['rev-parse', 'HEAD']).trim();
+  git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  git(['checkout', '-q', '-b', 'lane-a', seedSha]);
+  writeFile(join(tmp, 'items/a'), '1');
+  writeFile(join(tmp, 'inventory.txt'), 'a\nseed\n'); // lane A regenerated honestly
+  writeFile(join(tmp, 'live.json'), '{"a":1}');
+  writeFile(join(tmp, 'shared.mjs'), 'a');
+  commit('lane A: add item a, regenerate inventory.txt');
+  git(['update-ref', 'refs/remotes/origin/master', git(['rev-parse', 'HEAD']).trim()]); // lane A merges first
+  git(['checkout', '-q', '-b', 'lane/b', seedSha]); // lane B was cut before lane A merged
+  laneBFiles(tmp);
+  commit('lane B: add item b and touch the shared files');
+  return { tmp, anchorSha };
+}
+
+test('check 5 (RULES-1) GREEN, git-fixture end to end: a generated file touched by two concurrent branches passes when the second lane\'s copy equals the generator output on its tree', () => {
+  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-green-', (t) => {
+    writeFile(join(t, 'items/b'), '1');
+    writeFile(join(t, 'inventory.txt'), 'b\nseed\n'); // equals gen.mjs output on lane B's tree
+  });
+  try {
+    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
+    assert.ok(!v.some((x) => x.path === 'inventory.txt'), JSON.stringify(v));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (RULES-1) RED, git-fixture end to end: the same concurrent edit fails when the generated file was edited by hand (differs from the generator output)', () => {
+  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-hand-', (t) => {
+    writeFile(join(t, 'items/b'), '1');
+    writeFile(join(t, 'inventory.txt'), 'b\nseed\nhand-added line\n');
+  });
+  try {
+    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
+    const hit = v.find((x) => x.path === 'inventory.txt');
+    assert.ok(hit, 'a hand-edited generated file must still be refused');
+    assert.ok(hit.message.includes('does not equal'), hit.message);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (RULES-1) RED, git-fixture end to end: a stale generated copy (the lane added an item but did not regenerate) is refused', () => {
+  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-stale-', (t) => {
+    writeFile(join(t, 'items/b'), '1');
+    writeFile(join(t, 'inventory.txt'), 'older\nseed\n'); // generator would now print b and seed
+  });
+  try {
+    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
+    assert.ok(v.some((x) => x.path === 'inventory.txt'));
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (RULES-1) RED, git-fixture end to end: a non-generated shared file and a live-sourced generated file are still refused in the same range as a passing generated file', () => {
+  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-mixed-', (t) => {
+    writeFile(join(t, 'items/b'), '1');
+    writeFile(join(t, 'inventory.txt'), 'b\nseed\n');
+    writeFile(join(t, 'shared.mjs'), 'b');
+    writeFile(join(t, 'live.json'), '{"b":1}');
+  });
+  try {
+    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
+    const paths = v.map((x) => x.path);
+    assert.ok(!paths.includes('inventory.txt'), 'the current generated copy passes');
+    assert.ok(paths.includes('shared.mjs'), 'a non-generated shared file is refused exactly as before');
+    assert.ok(paths.includes('live.json'), 'a live-sourced file cannot be shown equal offline and stays refused');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('check 5 (RULES-1): with no registry passed, the real registry applies (a fixture path it does not list gets no exemption)', () => {
+  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-default-', (t) => {
+    writeFile(join(t, 'items/b'), '1');
+    writeFile(join(t, 'inventory.txt'), 'b\nseed\n');
+  });
+  try {
+    const v = runCheck5(tmp, { anchor: anchorSha });
+    assert.ok(v.some((x) => x.path === 'inventory.txt'), 'inventory.txt is not in the real registry, so it is refused as a concurrent hand edit');
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('check 5 (lane F51b) GREEN: on origin/master itself (no lane range), the standing number prints but no violations are returned', () => {
   const { tmp, git } = tmpRepo('f51-check5-');
   try {
