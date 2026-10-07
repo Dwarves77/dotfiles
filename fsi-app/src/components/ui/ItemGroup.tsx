@@ -53,6 +53,7 @@
 import type { ReactNode } from "react";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { StateNote } from "@/components/ui/StateNote";
+import { BandGroupHeader } from "@/components/ui/BandGroupHeader";
 import { useBandContext } from "@/components/ui/band-context";
 import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
 
@@ -68,7 +69,7 @@ export interface ItemGroupProps {
   /** 11px muted, right of the title. */
   qualifier?: string | null;
   /**
-   * Drives the header's TINT (background, ACTION-strip colour). Real data only - see header note.
+   * Drives the header's band rule and name (PAR-2: white header, no tint) and the ACTION-strip colour. Real data only - see header note.
    * Does NOT by itself render the dot+label PILL any more (2026-09-25, "band tag once, in the
    * masthead") - the pill renders only when this prop is passed EXPLICITLY, never when it is the
    * page's own ambient band inherited from BandProvider (see `pillBand` below).
@@ -120,39 +121,22 @@ export function ItemGroup({ title, qualifier, band: bandProp, actionStrip: actio
       }}
     >
       {hasHeader && (
-        <div
-          data-part-slot="group-header"
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 10,
-            padding: "10px 14px",
-            background: band ? band.tintCssVar : "var(--page)",
-            borderBottom: "1px solid rgba(0,0,0,.08)",
-          }}
-        >
-          {pillBand && (
-            <span data-part-slot="band-pill" style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: pillBand.cssVar, display: "inline-block" }} />
-              <span
-                style={{
-                  fontSize: "var(--fs-95, 9.5px)",
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: pillBand.cssVar,
-                }}
-              >
-                {pillBand.label}
+        // Lane PAR-2 (2026-10-07, artboard 22 ruling A, coordinator ruling): the group header is the
+        // shared BandGroupHeader (white, 3px band rule, Anton 18 band name, grey definition), the same
+        // part the list band blocks render. It carries the item title and qualifier. No band renders
+        // the neutral white header.
+        <div data-part-slot="group-header">
+          <BandGroupHeader
+            band={pillBand ?? band}
+            nameSlot="band-pill"
+            right={qualifier ? <span style={{ flexShrink: 0, fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>{qualifier}</span> : undefined}
+          >
+            {title && (
+              <span style={{ minWidth: 0, flex: "1 1 24ch", overflowWrap: "anywhere", fontSize: "var(--fs-13)", fontWeight: 600, color: "var(--ink)" }} data-guard-title>
+                {title}
               </span>
-            </span>
-          )}
-          {title && (
-            <span style={{ fontSize: "var(--fs-13)", fontWeight: 600, color: "var(--ink)" }} data-guard-title>
-              {title}
-            </span>
-          )}
-          {qualifier && <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginLeft: "auto" }}>{qualifier}</span>}
+            )}
+          </BandGroupHeader>
         </div>
       )}
       <div data-part-slot="group-body" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 0 }}>

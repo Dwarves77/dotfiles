@@ -162,6 +162,7 @@ export const ANTON_ALLOWLIST = [
     reason: 'the selection panel\'s headline figure, Anton 18 - the same role as the market surface\'s headline-figure entry above (a single extracted number read at display size), on the panel the artboard-8 redesign put below the table. Not in the initial DOM (the matrix opens with no cell selected, ruling R2), so it is invisible to a guard run that never selects; declared anyway rather than left to be found by the first leg that clicks.',
     source: 'FOLD 64 2026-09-09, lane opsmatrix3\'s panel; stated with the cell-score row rather than after a later red.',
   },
+  { id: 'band-group-name', match: '[data-guard-display="band-group-name"]', reason: 'the band name on a list group header (Immediate / Action / Monitor / Awareness), Anton 18 in the band colour, white header with a 3px band rule on top - drawn by ListSurfaceShell.tsx BandSectionHeader', source: 'Claude Design artboard 22 ruling A, 2026-10-07 (lane PAR-2); an entry beyond the original six' },
   {
     id: 'nav-wordmark',
     match: '[data-guard-display="wordmark"]',

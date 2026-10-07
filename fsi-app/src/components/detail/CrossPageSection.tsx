@@ -71,12 +71,21 @@ const ROW_LINK: CSSProperties = {
 };
 
 const ROW_TITLE: CSSProperties = {
-  fontSize: "var(--fs-125)",
+  // Lane PAR-2 (artboard 22 ruling C): detail row titles are 15px (was 12.5px).
+  fontSize: 15,
   fontWeight: 700,
   lineHeight: 1.35,
   color: "var(--ink)",
   margin: 0,
   overflowWrap: "anywhere",
+};
+
+// Lane PAR-2 (artboard 22 ruling C): Connected intelligence disclosures are rule-separated rows, not
+// boxed cards: a hairline above and below, no border box, no fill, no radius.
+const DISCLOSURE_ROW: CSSProperties = {
+  marginTop: 14,
+  borderTop: "1px solid var(--line-2)",
+  borderBottom: "1px solid var(--line-2)",
 };
 
 const SUMMARY_STYLE: CSSProperties = {
@@ -129,7 +138,7 @@ function IntersectionsBlock({ view }: { view: IntersectionView }) {
       )}
       <GroupList groups={view.groups} />
       {view.possible.length > 0 && (
-        <details style={{ marginTop: 14 }}>
+        <details data-audit="disclosure-row" style={DISCLOSURE_ROW}>
           <summary style={SUMMARY_STYLE}>
             Possible connections ({view.possibleCount})
           </summary>
@@ -171,7 +180,7 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
   return (
     <DetailSubSection title="Theme analysis" subtitle={subtitle} first={first}>
       {theme.hasBrief && theme.title && (
-        <p data-guard-title style={{ ...ROW_TITLE, fontSize: "var(--fs-14)", fontWeight: 600 }}>
+        <p data-guard-title style={{ ...ROW_TITLE, fontWeight: 600 }}>
           {shownTitle}
         </p>
       )}
@@ -241,7 +250,7 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
         </Block>
       )}
       {disclosure && (
-        <details style={{ marginTop: 14 }}>
+        <details data-audit="disclosure-row" style={DISCLOSURE_ROW}>
           <summary style={SUMMARY_STYLE}>How the items connect{disclosure.gaps ? " and what is missing" : ""}</summary>
           {disclosure.connection && (
             <Block label="How the items connect">

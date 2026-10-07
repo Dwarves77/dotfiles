@@ -21,7 +21,7 @@
  *
  * GEOMETRY, Claude Design ruling 2026-10-07 (lane PAR-1b, replaces PAR-1's 3 px reading): each segment
  * is 5 px wide x 12 px tall, radius 1; 1.5 px gap within a group, 4 px between groups; total 84 px.
- * See ROW_VALUE_VISIBLE for the open question about the N/12 figure in the list row. No media query:
+ * The row variant has no visible value: it renders the segments and the accessible label. No media query:
  * the row variant draws the same at every width.
  *
  * `total` lets a caller with no per-dimension scores render the meter at a known N directly (the
@@ -110,15 +110,6 @@ export const ROW_SEGMENTS_TOTAL_PX =
 /** Empty segment colour: the token for #E5E1DB, declared in globals.css (no raw hex in the component). */
 export const ROW_TRACK_COLOR = "var(--cl-impact-track)";
 
-/**
- * DESIGN CHANGES OWED (coordinator ruling 2026-10-07, lane PAR-1b): the segments are 84 px and the value
- * sits 8 px to their right, about 84 + 8 + 20 = 112 px against the list row's fixed 88 px impact slot
- * (ListRow.tsx, overflow hidden). Until Claude Design says which figure gives, the visible N/12 (and the
- * unscored dash) is OFF in the list row: the value stays in the accessible label only. The legend and the
- * detail rail have room and pass `valueVisible` to draw it. The answer is a one-line flip of this constant.
- */
-export const ROW_VALUE_VISIBLE = false;
-
 /** Segment i (0-based, left to right) is filled when it is below the total. Exported for the test. */
 export function segmentFilled(n: number, i: number): boolean {
   return i < n;
@@ -171,12 +162,12 @@ export interface ImpactMeterProps {
    *  is the one caller with no scores at all: `<ImpactMeter total={8} />` (brief 2.16). */
   total?: number;
   variant?: "row" | "full";
-  /** Draw the visible "N/12" (or the unscored dash) 8 px right of the segments. Defaults to
-   *  ROW_VALUE_VISIBLE; the legend and the detail rail, which have room, pass true. */
+  /** Draw the visible "N/12" (or the unscored dash) 8 px right of the segments. Off by default; the
+   *  legend and the detail rail, which have room, pass true. */
   valueVisible?: boolean;
 }
 
-export function ImpactMeter({ scores, total, variant = "row", valueVisible = ROW_VALUE_VISIBLE }: ImpactMeterProps) {
+export function ImpactMeter({ scores, total, variant = "row", valueVisible = false }: ImpactMeterProps) {
   if (variant === "full") {
     return <FullVariant scores={scores} />;
   }
