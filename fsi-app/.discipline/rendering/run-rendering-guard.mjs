@@ -75,8 +75,8 @@ import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
 // invisible to every other leg.
 import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.mjs";
 // lane METERFIX, 2026-09-08: the partially scored impact meter. Mounts the real ListRow -> real
-// ImpactMeter and measures BAR HEIGHTS at 1440 and 390, the only slot in this engine that reads
-// the meter's painted geometry, which is what the "never one lonely bar" ruling is about.
+// ImpactMeter and measures its painted segments at all four row widths (375, 768, 1024, 1280), the
+// only slot in this engine that reads the meter's painted geometry (twelve equal segments, lane PAR-1).
 import { runSmoke as runImpactMeterPartialSmoke } from "./smoke/impact-meter-partial-smoke.mjs";
 // lane BRIEFDATA, 2026-09-08: the WATCH WRITE against an auth-enforcing, state-keeping route stub.
 // See that module's header for the live measurement (org_watchlist: 0 rows; user_watchlist: 1 row)

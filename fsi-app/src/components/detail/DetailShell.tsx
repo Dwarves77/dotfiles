@@ -392,8 +392,8 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
 // Operator check 3 (lane PARITY-PARTS, 2026-09-24): "Impact is ONE stepped meter out of 12; the
 // four-bar Cost/Compliance/Client-facing/Operational block and the legend text 'four scored
 // dimensions' must appear nowhere." The card mounts the SAME row meter every list row draws (README
-// 0.4 row variant, revised 2026-09-18: four rising bars as a stepped fill of the total, N/12 beside
-// it), never the per-dimension full variant. The detail rail's former RailLegend (which described
+// 0.4 row variant, replaced 2026-10-07 by artboard 22 ruling B: twelve equal segments in four groups of
+// three filled left to right, N/12 beside it), never the per-dimension full variant. The detail rail's former RailLegend (which described
 // the retired per-dimension model in prose) is deleted; the four detail surfaces mount the list
 // surfaces' own `LegendRailCard`, which carries ruling 5's live meter frozen at 8/12.
 
@@ -419,8 +419,8 @@ export function RailLegend() {
     <RailCard title="Legend" dataAudit="detail-legend-rail">
       <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: "var(--fs-11)", color: "var(--ink-2)", lineHeight: 1.5 }}>
         <p style={{ margin: 0 }}>
-          <strong style={{ color: "var(--ink)" }}>Impact</strong>, one stepped meter, filled left to
-          right; the number beside it is the score, out of 12.
+          <strong style={{ color: "var(--ink)" }}>Impact</strong>, one meter of twelve segments, filled left
+          to right; the number beside it is the score, out of 12.
         </p>
         <p style={{ margin: 0 }}>
           <strong style={{ color: "var(--ink)" }}>Timeline</strong>, passed · next · ahead.

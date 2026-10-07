@@ -31,7 +31,7 @@
 // `data-guard-title` convention, not a layout change.
 
 import { fileURLToPath } from 'node:url';
-import { runUxSpec, MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
+import { runUxSpec, UX_VIEWPORTS } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import {
   bundleEntry,
@@ -289,7 +289,7 @@ async function runLedgerSpec(browser) {
   const failures = [];
   let checks = 0;
   const bundleJs = await bundleEntry(LEDGER_ENTRY, { alias: ALIAS });
-  for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
+  for (const vp of UX_VIEWPORTS) {
     for (const state of LEDGER_STATES) {
       const label = `regulations-ledger:${state.label}@${vp.width}`;
       const page = await newSmokePage(browser, { apiRoutes: LEDGER_API_ROUTES });

@@ -204,9 +204,9 @@ window.__mount = () => {
       // 2026-09-18 row-variant rewrite (lane METERFIX, 2026-09-08's own "partially scored [0,0,0,2]"
       // note, superseded, the per-dimension model it described no longer exists). The same
       // dimension vector (sum 2/12) is kept because it still demonstrates the NEW model's own
-      // partial-fill case well: N=2 fills only bar 1 two-thirds (fill_i = clamp(N-3i,0,3)/3) and
-      // leaves bars 2-4 empty, so impactmeter.json's row-partial entries assert the stepped-fill
-      // geometry, not the retired zero-dimension-stub geometry.
+      // partial-fill case well: N=2 fills only segments 1 and 2 of the twelve (lane PAR-1, 2026-10-07)
+      // and leaves segments 3 to 12 as the track, so impactmeter.json's row-partial entries assert
+      // the twelve-segment geometry, not the retired zero-dimension-stub geometry.
       React.createElement('div', { 'data-audit': 'row-partial' },
         React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 0, compliance: 0, client: 0, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-scored', style: { width: 380 } },

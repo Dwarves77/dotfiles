@@ -419,7 +419,7 @@ export function DashboardBrief({
                   {/* Operator check 3 (lane PARITY-PARTS, 2026-09-24): ONE stepped meter out of 12, not
                       the retired four-bar per-dimension block; same rewording as DetailShell.tsx's
                       RailLegend. */}
-                  One stepped meter, filled left to right; the number beside it is the score, out of 12.
+                  One meter of twelve segments, filled left to right; the number beside it is the score, out of 12.
                 </dd>
               </div>
               <div>

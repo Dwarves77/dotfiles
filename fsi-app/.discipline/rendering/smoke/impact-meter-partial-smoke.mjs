@@ -1,35 +1,30 @@
 // Smoke spec: the ImpactMeter row variant, mounted inside the real ListRow. Originally built for
-// lane METERFIX (2026-09-08, the retired per-dimension model's "never one lonely bar" ruling);
-// REWRITTEN in place, same file, for the site-wide parts brief's row-variant rewrite (lane w10a,
-// 2026-09-18, docs/design/parts-brief-2026-09-18.md section 2.16). Extended rather than duplicated
-// per the coordinator's UX-contract note: this is the existing spec that mounts the real `ListRow`
-// -> real `ImpactMeter` through harness.mjs's esbuild+Playwright path (README's stated reason for a
-// rendered-height spec over a source match still applies: the fill height is a painted pixel count,
-// and only a real layout engine can answer whether the new geometry fits the row at a phone width).
+// lane METERFIX (2026-09-08), rewritten for the parts brief's stepped four-bar fill (lane w10a,
+// 2026-09-18) and REWRITTEN AGAIN (lane PAR-1, 2026-10-07, Claude Design artboard 22 ruling B:
+// "Twelve equal 12 px segments in four groups of three, filled left to right in the ramp colour.
+// Replaces the stepped four-bar meter everywhere, legend included."). Same file, extended rather than
+// duplicated: this is the spec that mounts the real `ListRow` -> real `ImpactMeter` through
+// harness.mjs's esbuild+Playwright path, and only a real layout engine can answer whether twelve
+// segments plus the N/12 figure fit the row's fixed 88px impact track at every width.
 //
-// WHAT THE NEW MODEL CHANGES, MEASURED HERE. The row no longer draws four scored DIMENSIONS (each
-// its own height/colour); it draws a stepped fill of the TOTAL N/12 (four bars, fixed heights
-// 6/9/12/15px, one colour per row read off the severity ramp at N). This spec now asserts: (1) the
-// fixed geometry (width 8px, radius 1.5px) regardless of N; (2) fill_i = clamp(N-3i,0,3)/3 against
-// three different dimension vectors, including two that sum to the SAME N, so a real DOM render
-// (not only ImpactMeter.npmtest.mjs's server-rendered markup) proves the "byte-identical for the
-// same N" acceptance line; (3) every filled bar in one row shares the SAME background-color; (4) the
-// unscored row's four dashed outlines, no fill; (5) the row's own width at both viewports, so the
-// "fits the 88px impact cell at 375px" UX-contract question is answered from a real measurement, not
-// an estimate.
+// WHAT IT ASSERTS, MEASURED. (1) Twelve segments, in four groups of three, every segment the same
+// height and width (equal) at every N; (2) segment i is filled when i < N and the track colour
+// otherwise, read as computed background; (3) every filled segment in a row shares ONE colour;
+// (4) two rows with different dimensions and the SAME N paint identically (the byte-identical
+// acceptance line, proven on a real render, not only on server markup); (5) the unscored row draws
+// the same twelve segments as dashed outlines with no fill; (6) the sum label text; (7) the impact
+// cell never clips the meter (scrollWidth against clientWidth), the measured answer to whether the
+// geometry fits the 88px track.
 //
-// VIEWPORTS. RD-60 measures row components at 375px; MOBILE_VIEWPORT/DESKTOP_VIEWPORT (ux-harness.mjs)
-// are the shared constants every UX-harness spec in this directory uses, so this file reuses them
-// instead of its own prior 1440/390 pair (390 predates ux-harness.mjs's 375 standard; 1440 predates
-// the shared 1280 desktop constant). Source-level companions live in
-// src/components/ui/ImpactMeter.npmtest.mjs (constants, colour interpolation, the server-rendered
-// byte-identical proof); this file guards the real rendered picture inside the real row.
+// VIEWPORTS. All four the row guard measures (UX_VIEWPORTS: 375, 768, 1024, 1280), so the meter is
+// proven inside each of the row's three layouts and the phone row, not only at the two ends.
+// Source-level companions live in src/components/ui/ImpactMeter.npmtest.mjs.
 //
 // Registered in run-rendering-guard.mjs's SMOKE_SPECS.
 
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
-import { MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
+import { UX_VIEWPORTS } from './ux-harness.mjs';
 
 const STYLE_INJECT = `
 (() => {
@@ -74,34 +69,32 @@ window.__mount = (props) => {
 const ROWS = [
   { caseId: 'n7-a', jurisdiction: 'EU', title: 'Sum 7, dims [1,1,2,3]', impact: { cost: 1, compliance: 1, client: 2, operational: 3 } },
   { caseId: 'n7-b', jurisdiction: 'US', title: 'Sum 7, dims [0,2,2,3]', impact: { cost: 0, compliance: 2, client: 2, operational: 3 } },
-  { caseId: 'n2', jurisdiction: 'GB', title: 'Sum 2, one partial bar', impact: { cost: 0, compliance: 0, client: 0, operational: 2 } },
-  { caseId: 'n12', jurisdiction: 'DE', title: 'Sum 12, four full bars', impact: { cost: 3, compliance: 3, client: 3, operational: 3 } },
+  { caseId: 'n2', jurisdiction: 'GB', title: 'Sum 2, two segments', impact: { cost: 0, compliance: 0, client: 0, operational: 2 } },
+  { caseId: 'n12', jurisdiction: 'DE', title: 'Sum 12, every segment filled', impact: { cost: 3, compliance: 3, client: 3, operational: 3 } },
   { caseId: 'unscored', jurisdiction: 'FR', title: 'No score yet', impact: null },
 ];
 
-// fill_i = clamp(N - 3i, 0, 3) / 3 against each bar's own fixed height (brief 2.16, verbatim).
-const HEIGHTS_PX = [6, 9, 12, 15];
-function expectedFillPx(n, i) {
-  const fraction = Math.min(Math.max(n - 3 * i, 0), 3) / 3;
-  return Math.round(HEIGHTS_PX[i] * fraction);
-}
-
+const SEGMENTS = 12;
+const GROUP_SIZE = 3;
 const N_BY_CASE = { 'n7-a': 7, 'n7-b': 7, n2: 2, n12: 12 };
+const TRACK_RGB = 'rgb(229, 225, 219)'; // #E5E1DB, the unfilled track
 
-/** Read every bar's own height + its fill span's height/colour, the sum text, and the meter block's
- *  own rendered width (bars + gap + sum label), plus the impact cell's clientWidth/scrollWidth so a
- *  clip is a measured fact, not an inference. */
+/** Read every segment's painted size, border and background, its group, the sum text, the meter
+ *  block's rendered width (segments + gap + sum label) and the impact cell's clientWidth/scrollWidth
+ *  so a clip is a measured fact, not an inference. */
 async function measureMeters(page) {
   return page.evaluate(() => {
     const out = {};
     for (const box of document.querySelectorAll('[data-meter-case]')) {
+      const groupEls = [...box.querySelectorAll('.cl-impact-group')];
       const bars = [...box.querySelectorAll('.cl-impact-bar')].map((b) => {
-        const fill = b.querySelector(':scope > span');
+        const cs = getComputedStyle(b);
         return {
-          ownHeight: getComputedStyle(b).height,
-          border: getComputedStyle(b).borderStyle,
-          fillHeight: fill ? getComputedStyle(fill).height : null,
-          fillColor: fill ? getComputedStyle(fill).backgroundColor : null,
+          width: cs.width,
+          height: cs.height,
+          border: cs.borderTopStyle,
+          background: cs.backgroundColor,
+          group: groupEls.indexOf(b.parentElement),
         };
       });
       const sum = box.querySelector('.cl-impact-scored > span:last-child');
@@ -109,6 +102,7 @@ async function measureMeters(page) {
       const cell = box.querySelector('.cl-row-impact');
       out[box.getAttribute('data-meter-case')] = {
         bars,
+        groups: groupEls.length,
         sum: sum ? sum.textContent : null,
         meterWidth: meter ? meter.getBoundingClientRect().width : null,
         cellClientWidth: cell ? cell.clientWidth : null,
@@ -124,7 +118,7 @@ export async function runSmoke(browser) {
   let checks = 0;
   const bundleJs = await bundleEntry(ENTRY);
 
-  for (const viewport of [DESKTOP_VIEWPORT, MOBILE_VIEWPORT]) {
+  for (const viewport of UX_VIEWPORTS) {
     const page = await newSmokePage(browser);
     try {
       await page.setViewportSize(viewport);
@@ -149,7 +143,7 @@ export async function runSmoke(browser) {
           const shapeA = JSON.stringify(a.bars);
           const shapeB = JSON.stringify(b.bars);
           if (shapeA !== shapeB || a.sum !== b.sum) {
-            failures.push(`${label0}: sum-7 rows with different dimensions rendered different bars/sum (${shapeA} vs ${shapeB}, sums "${a.sum}"/"${b.sum}").`);
+            failures.push(`${label0}: sum-7 rows with different dimensions rendered different segments/sum (${shapeA} vs ${shapeB}, sums "${a.sum}"/"${b.sum}").`);
           }
         }
       }
@@ -163,48 +157,51 @@ export async function runSmoke(browser) {
           continue;
         }
 
-        // Four slots, always.
+        // Twelve segments in four groups of three, always.
         checks++;
-        if (got.bars.length !== 4) {
-          failures.push(`${label}: expected 4 bars, measured ${got.bars.length}.`);
+        if (got.bars.length !== SEGMENTS || got.groups !== SEGMENTS / GROUP_SIZE) {
+          failures.push(`${label}: expected ${SEGMENTS} segments in ${SEGMENTS / GROUP_SIZE} groups, measured ${got.bars.length} in ${got.groups}.`);
           continue;
+        }
+        checks++;
+        const badGroup = got.bars.filter((b, i) => b.group !== Math.floor(i / GROUP_SIZE));
+        if (badGroup.length > 0) {
+          failures.push(`${label}: ${badGroup.length} segment(s) sit in the wrong group (each group holds three).`);
+        }
+
+        // Equal segments: one width and one height across all twelve, whatever N is.
+        checks++;
+        const sizes = new Set(got.bars.map((b) => `${b.width}x${b.height}`));
+        if (sizes.size !== 1) {
+          failures.push(`${label}: segments are not equal (${[...sizes].join(' | ')}).`);
         }
 
         if (row.caseId === 'unscored') {
-          // Dashed outline, no fill, on all four bars.
+          // Dashed outline, no fill, on all twelve segments.
           checks++;
           const notDashed = got.bars.filter((b) => b.border !== 'dashed');
           if (notDashed.length > 0) {
-            failures.push(`${label}: ${notDashed.length} bar(s) not dashed (${notDashed.map((b) => b.border).join(',')}).`);
+            failures.push(`${label}: ${notDashed.length} segment(s) not dashed (${notDashed.map((b) => b.border).join(',')}).`);
           }
           checks++;
-          const hasFill = got.bars.filter((b) => b.fillHeight !== null);
-          if (hasFill.length > 0) {
-            failures.push(`${label}: unscored row has a fill span, expected none.`);
+          const filled = got.bars.filter((b) => b.background !== 'rgba(0, 0, 0, 0)');
+          if (filled.length > 0) {
+            failures.push(`${label}: unscored row has ${filled.length} filled segment(s), expected none.`);
           }
         } else {
           const n = N_BY_CASE[row.caseId];
 
-          // Own (track) heights are the brief's fixed set regardless of N.
+          // Segment i is filled when i < N, the track colour otherwise: the fill runs left to right.
           checks++;
-          const ownHeights = got.bars.map((b) => b.ownHeight);
-          const wantOwn = HEIGHTS_PX.map((h) => `${h}px`);
-          if (ownHeights.join(',') !== wantOwn.join(',')) {
-            failures.push(`${label}: bar own heights ${ownHeights.join(',')}, expected ${wantOwn.join(',')}.`);
+          const filledFlags = got.bars.map((b) => b.background !== TRACK_RGB);
+          const wantFlags = got.bars.map((_, i) => i < n);
+          if (filledFlags.join(',') !== wantFlags.join(',')) {
+            failures.push(`${label}: filled segments ${filledFlags.map(Number).join('')}, expected ${wantFlags.map(Number).join('')} (N=${n}).`);
           }
 
-          // Fill heights follow fill_i = clamp(N-3i,0,3)/3 of the bar's own height.
+          // Every filled segment shares ONE colour (never a per-segment colour).
           checks++;
-          const fillHeights = got.bars.map((b) => Math.round(parseFloat(b.fillHeight)));
-          const wantFill = [0, 1, 2, 3].map((i) => expectedFillPx(n, i));
-          const closeEnough = fillHeights.every((v, i) => Math.abs(v - wantFill[i]) <= 1);
-          if (!closeEnough) {
-            failures.push(`${label}: fill heights ${fillHeights.join(',')}px, expected ~${wantFill.join(',')}px (N=${n}).`);
-          }
-
-          // All four bars share ONE colour (never a per-bar colour).
-          checks++;
-          const colors = new Set(got.bars.map((b) => b.fillColor));
+          const colors = new Set(got.bars.filter((b) => b.background !== TRACK_RGB).map((b) => b.background));
           if (colors.size !== 1) {
             failures.push(`${label}: ${colors.size} distinct fill colours in one row, expected 1 (${[...colors].join(' | ')}).`);
           }
