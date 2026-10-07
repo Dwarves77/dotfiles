@@ -177,7 +177,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+          # --requested-mode read-only (lane CHAIN-1, 2026-10-07, finding F5): this workflow has no mode input and
+          # never writes (db.mjs's readClient proxy throws on any write), so there is no apply to request. It used
+          # to hardcode apply, which made a dispatch log "resolved mode=apply". The guard is kept because the loop
+          # firing evidence and F61 expect every chained consumer to evaluate it.
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode read-only >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:

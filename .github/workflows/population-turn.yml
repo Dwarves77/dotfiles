@@ -130,33 +130,30 @@ name: Population turn
 # reason logged via `::notice::` and every real step below skips, so the JOB ITSELF STILL EXITS 0 GREEN —
 # a refused chain is never a red run, exactly A9/§5's "never a coordinator failure" posture):
 #   1. The upstream run's own `conclusion` (`github.event.workflow_run.conclusion`) is `"success"`.
-#   2. The upstream run's own harness-run artifact  --  read from `ledger-consume/<upstream run_id>`, THE
-#      MECHANISM below — reports `config.mode == "apply"` AND `config.apply_disarmed == false` (i.e. a
-#      REAL, non-disarmed apply  --  not a plan run, and not an apply request that armed on zero committed
-#      verdict batches and so ran disarmed). What arms an apply today (lane M2, 2026-09-18; the source
-#      constant this gate used to name is retired): run-ledger-consume.mjs's own `isApplyArmed` check plus
-#      the `max_promote` cap  --  an apply is armed the moment at least one verdict batch is committed under
-#      `scripts/turns/ledger-verdicts/`, capped at `max_promote` candidates per run  --  AND `metrics.promoted
-#      > 0` (candidates actually reached census_worklist). `metrics.promoted` alone is NOT sufficient  -- 
-#      PROMOTED_LIKE_DISPOSITIONS
-#      (run-ledger-consume.mjs) counts a PLAN run's `would_mint` outcomes under the same key, so checking
-#      promoted without also checking mode/apply_disarmed would chain a real population-turn apply off a
-#      run that wrote nothing to the database — an honest-looking number describing a no-op.
+#   2. The upstream run's own harness-run row, read from `harness_runs` by scripts/lib/upstream-artifact.mjs
+#      (THE MECHANISM below), passes the gate for THIS run's mode. In a dry run (build mode forces every
+#      chained firing dry) the row only has to exist and not be a no-op: this run then executes its REAL steps
+#      dry on whatever the upstream recorded, which is what proves the chain's wiring while the cadence is off.
+#      In an apply run the row must show REAL work: `config.mode == "apply"` AND `config.apply_disarmed ==
+#      false` (a real, non-disarmed apply, not a plan run and not an apply request that armed on zero committed
+#      verdict batches) AND `metrics.promoted > 0` (candidates actually reached census_worklist). What arms an
+#      apply (lane M2, 2026-09-18): run-ledger-consume.mjs's own `isApplyArmed` check plus the `max_promote`
+#      cap, an apply is armed the moment at least one verdict batch is committed under
+#      `scripts/turns/ledger-verdicts/`. `metrics.promoted` alone is NOT sufficient: PROMOTED_LIKE_DISPOSITIONS
+#      (run-ledger-consume.mjs) counts a PLAN run's `would_mint` outcomes under the same key, so an apply gate
+#      that checked promoted without mode/apply_disarmed would chain a real apply off a run that wrote nothing.
 #
-# THE MECHANISM (reading the upstream run's own artifact). `ledger-consume.yml` does NOT upload its
-# harness-run JSON via `actions/upload-artifact` (only `scripts/_snapshots/` — the raw fetch/classify
-# trace, not this run's own metrics/config). The one place that artifact reliably lands is the
-# `ledger-consume/<run_id>` branch `deliver-artifact-branch.sh` ALWAYS pushes before it even attempts to
-# open a PR (see that script's own header) — regardless of whether the PR opens or falls back to the
-# tracking issue (this repository currently refuses Actions-created PRs, per A1 §6/§7 of the wiring
-# audit), so the branch is the one delivery guarantee this family makes. This run fetches exactly that one
-# branch (`git fetch ... refs/heads/ledger-consume/<upstream run_id>`) and reads whichever
-# `scripts/harness-runs/ledger-consume/*.json` file on it this checkout doesn't already have — the SAME
-# sibling-branch hydration idiom this workflow already uses below for unmerged mint/forward-events
-# artifacts (see "Hydrate unmerged mint + forward-events artifacts..."), applied here to find
-# ledger-consume's own new file instead of copying it in. A missing branch (nothing new to commit) or a
-# missing new artifact on it is a named no-op, never an error — `git fetch` failures and absent refs are
-# handled the same way (`|| true` / `git rev-parse --verify --quiet`).
+# THE MECHANISM (lane CHAIN-1, 2026-10-07, chain-fire-2026-10-06 finding F2). `ledger-consume.yml` lands its
+# harness-run artifact in the `harness_runs` table (deliver-artifact-branch.sh, operator ruling 2026-09-26: no
+# branch, no PR), so this run reads it there: `node scripts/lib/upstream-artifact.mjs read --consumer
+# population-turn --upstream-name <workflow> --upstream-run-id <github.event.workflow_run.id> --run-mode
+# <RUN_MODE>` looks the family up from the upstream's workflow NAME (loop-run-id.mjs's one map) and reads the row
+# whose github_run_id is that run. This file used to look for a `ledger-consume/<run_id>` git branch that
+# nothing pushes any more, so a chained Population turn was a NO-OP on every firing. A missing row, an upstream
+# that was itself a no-op, or an apply request without real upstream work is a named no-op, and a no-op still
+# records its own `mint` row (`upstream-artifact.mjs noop`, config.noop and noop_reason, honest trigger, the
+# upstream run id stamped) so the loop firing evidence can place hop 03 on a run that decided to do nothing. A
+# read failure is a red run, never a silent no-op.
 #
 # THE POPULATION CAP  --  `max_items` (lane M3, 2026-09-19, build plan section 6.1 row M3). RETIRES
 # `POPULATION_PAUSED` (lane CHAIN, 2026-09-04's flag-style stop) as this workflow's own gap-closure lane:
@@ -282,7 +279,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+          # --requested-mode (lane CHAIN-1, 2026-10-07, finding F5): the REAL requested mode, not a hardcoded apply.
+          # A hand dispatch asks for inputs.mode; a chained firing has no inputs and asks for the apply default the
+          # resolve step below uses, which the guard forces to dry while build mode is live. A dry dispatch used to
+          # log "resolved mode=apply", which read as an armed run when it was not.
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${{ inputs.mode || 'apply' }}" >> "$GITHUB_ENV"
 
       # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults +
       # promoted/pause gate (workflow_run) into a single RUN_* vocabulary every step below reads —
@@ -348,47 +349,16 @@ jobs:
               RUN_SKIP=true
               RUN_SKIP_REASON="upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success — no-op, nothing to chain from."
             else
-              # THE MECHANISM — see this file's header. ledger-consume.yml never uploads its harness-run
-              # JSON as a workflow artifact (only scripts/_snapshots/); the ledger-consume/<run_id> branch
-              # deliver-artifact-branch.sh ALWAYS pushes (PR or not) is the one reliable source.
-              BRANCH="ledger-consume/$UPSTREAM_RUN_ID"
-              git fetch --no-tags --depth=1 origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null || true
-              if ! git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH" >/dev/null; then
+              # THE MECHANISM, see this file's header: read the upstream's harness_runs row and apply the gate
+              # for this run's mode. The reader prints KEY=VALUE lines; a node failure (a read error, missing
+              # credentials in Actions) fails this step loudly, it is never read as "nothing upstream".
+              HANDOFF="$(node scripts/lib/upstream-artifact.mjs read --consumer population-turn --upstream-name "$UPSTREAM_NAME" --upstream-run-id "$UPSTREAM_RUN_ID" --run-mode "$RUN_MODE")"
+              HANDOFF_SKIP="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP=//p')"
+              HANDOFF_REASON="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP_REASON=//p')"
+              echo "upstream hand-off: skip=$HANDOFF_SKIP row=$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_ROW_ID=//p')"
+              if [ "$HANDOFF_SKIP" != "false" ]; then
                 RUN_SKIP=true
-                RUN_SKIP_REASON="no $BRANCH artifact branch found on origin (ledger-consume's own commit step found nothing new to push) — no-op, nothing to chain from."
-              else
-                NEW_ARTIFACT=""
-                for f in $(git ls-tree -r --full-tree --name-only "refs/remotes/origin/$BRANCH" -- fsi-app/scripts/harness-runs/ledger-consume/); do
-                  rel="${f#fsi-app/}"
-                  if [ ! -e "$rel" ]; then
-                    NEW_ARTIFACT="$rel"
-                    break
-                  fi
-                done
-                if [ -z "$NEW_ARTIFACT" ]; then
-                  RUN_SKIP=true
-                  RUN_SKIP_REASON="$BRANCH carries no ledger-consume harness-run artifact this checkout doesn't already have — no-op, nothing to chain from."
-                elif ! git show "refs/remotes/origin/$BRANCH:fsi-app/$NEW_ARTIFACT" > /tmp/ledger-consume-artifact.json 2>/dev/null; then
-                  RUN_SKIP=true
-                  RUN_SKIP_REASON="could not read fsi-app/$NEW_ARTIFACT from $BRANCH (transient git error) — no-op."
-                else
-                  # jq extractions each fall back rather than fail the step under -e (this repo's own
-                  # convention — see uptime-probes.yml's identical `2>/dev/null || echo ...` idiom): a
-                  # malformed/unreadable field degrades to a safe default and this gate still decides
-                  # correctly (an unreadable "apply_disarmed" reads as disarmed=true, i.e. still refuses).
-                  PROMOTED="$(jq -r '.metrics.promoted // 0' /tmp/ledger-consume-artifact.json 2>/dev/null || echo 0)"
-                  EFFECTIVE_MODE="$(jq -r '.config.mode // "plan"' /tmp/ledger-consume-artifact.json 2>/dev/null || echo plan)"
-                  APPLY_DISARMED="$(jq -r '.config.apply_disarmed // true' /tmp/ledger-consume-artifact.json 2>/dev/null || echo true)"
-                  case "$PROMOTED" in ''|*[!0-9]*) PROMOTED=0 ;; esac
-                  echo "ledger-consume artifact = $NEW_ARTIFACT promoted=$PROMOTED effective_mode=$EFFECTIVE_MODE apply_disarmed=$APPLY_DISARMED"
-                  if [ "$EFFECTIVE_MODE" != "apply" ] || [ "$APPLY_DISARMED" != "false" ]; then
-                    RUN_SKIP=true
-                    RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID ran with effective mode=$EFFECTIVE_MODE (apply_disarmed=$APPLY_DISARMED)  --  no real writes happened (apply arms only once at least one ledger-verdicts batch is committed, per run-ledger-consume.mjs's own isApplyArmed/max_promote cap; this run had none committed, or ran plan-only), so nothing new reached census_worklist  --  no-op."
-                  elif [ "$PROMOTED" -le 0 ]; then
-                    RUN_SKIP=true
-                    RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID applied for real but metrics.promoted=$PROMOTED — nothing new reached census_worklist — no-op."
-                  fi
-                fi
+                RUN_SKIP_REASON="${HANDOFF_REASON:-the upstream hand-off returned no answer} - no-op, nothing to chain from."
               fi
             fi
 
@@ -427,6 +397,10 @@ jobs:
             echo "RUN_LIMIT=$RUN_LIMIT"
             echo "RUN_LIMIT_FLAG=$RUN_LIMIT_FLAG"
             echo "RUN_UPSTREAM_RUN_ID=${UPSTREAM_RUN_ID:-}"
+            echo "RUN_UPSTREAM_NAME=${UPSTREAM_NAME:-}"
+            # The run id writeRunArtifact stamps as every artifact's top-level upstream_run_id (lane CHAIN-1,
+            # 2026-10-07, finding F3): the same convention ledger-consume/corpus-turn/fetch-drain already use.
+            echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${UPSTREAM_RUN_ID:-}"
             echo "RUN_SOURCE_ID=$RUN_SOURCE_ID"
             echo "RUN_CELEX_PREFIX=$RUN_CELEX_PREFIX"
             echo "RUN_CAPTURE=$RUN_CAPTURE"
@@ -453,15 +427,16 @@ jobs:
             echo "population-turn proceeding: mode=$RUN_MODE limit=$RUN_LIMIT flywheel_backlog=$RUN_FLYWHEEL_BACKLOG trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
           fi
 
+      # UNCONDITIONAL (lane CHAIN-1, 2026-10-07): a NO-OP firing records its own row (the "Record a NO-OP run"
+      # step below) and lands it, and landing needs @supabase/supabase-js, so Node and the install run on every
+      # firing, the same posture downstream-chain.yml already holds for its always-recorded artifact.
       - uses: actions/setup-node@v4
-        if: ${{ env.RUN_SKIP != 'true' }}
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install
-        if: ${{ env.RUN_SKIP != 'true' }}
         run: npm ci
 
       - name: Verify required secrets
@@ -708,6 +683,16 @@ jobs:
       # artifact either). This lane executed the coordinator's instruction as given, uniformly across all
       # four files, but did not independently verify this specific consequence is intended; see this
       # lane's session-log addendum.
+      # A legitimate NO-OP is still a run (lane CHAIN-1, 2026-10-07, finding F3 / rule 17): when the resolve step
+      # decided there was nothing to chain from, this writes a `mint` family row (config.noop, noop_reason, the
+      # honest trigger, the upstream run id) that the landing step below lands, so the loop firing evidence can
+      # place hop 03 on a run that decided to do nothing. Before this, a NO-OP wrote no row and hop 03 looked
+      # as if it had never fired.
+      - name: Record a NO-OP run (the chain decided there was nothing to do)
+        if: ${{ always() && env.RUN_SKIP == 'true' }}
+        run: |
+          node scripts/lib/upstream-artifact.mjs noop --family mint --mode "$RUN_MODE" --reason "$RUN_SKIP_REASON" --upstream-name "$RUN_UPSTREAM_NAME" --upstream-run-id "$RUN_UPSTREAM_RUN_ID" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
       - name: Land this run's harness-run artifact(s) into harness_runs
         if: always()
         run: |

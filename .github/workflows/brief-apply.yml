@@ -164,8 +164,26 @@ jobs:
             echo "revalidate      = APP_URL/WORKER_SECRET NOT set - the apply still succeeds; caches fall back to their own revalidate backstop"
           fi
 
+      # RUN_DRIVER (lane CHAIN-1, 2026-10-07, chain-fire-2026-10-06 finding F1): the three driver steps below used
+      # to gate on `env.PUSH_BATCH_COUNT != '0'`, a variable only a push sets. On a workflow_dispatch it is unset,
+      # GitHub coerces null and '0' to the same number, so the comparison was false and a dispatch that named a
+      # real briefs_file skipped every driver step and finished green having done nothing. The flag is computed
+      # here for BOTH paths: a push runs the driver when the merge added a batch (PUSH_BATCH_COUNT other than 0),
+      # a dispatch runs it when it names a file. The brief file itself is resolved by the driver steps as before.
+      - name: Resolve RUN_DRIVER (a push that added a batch, or a dispatch that names a file)
+        env:
+          RUN_EVENT: ${{ github.event_name }}
+        run: |
+          RUN_DRIVER=false
+          if [ "$RUN_EVENT" = "push" ]; then
+            if [ "${PUSH_BATCH_COUNT:-0}" != "0" ]; then RUN_DRIVER=true; fi
+          elif [ -n "$RUN_BRIEFS_FILE" ]; then
+            RUN_DRIVER=true
+          fi
+          echo "RUN_DRIVER=$RUN_DRIVER" >> "$GITHUB_ENV"
+
       - name: Build driver flags
-        if: ${{ env.PUSH_BATCH_COUNT != '0' }}
+        if: ${{ env.RUN_DRIVER == 'true' }}
         run: |
           RUN_IO_BUDGET_MB="${RUN_IO_BUDGET_MB:-400}" # a push has no inputs: the workflow_dispatch default
           FLAGS="--briefs ${PUSH_BATCH_FILE:-$RUN_BRIEFS_FILE}"
@@ -185,7 +203,7 @@ jobs:
       # earliest possible surface for the CI dispatcher reading the Action's own log, not a replacement
       # for that guard.
       - name: Validate briefs_file
-        if: ${{ env.PUSH_BATCH_COUNT != '0' }}
+        if: ${{ env.RUN_DRIVER == 'true' }}
         run: |
           node -e '
             const { resolve } = require("node:path");
@@ -212,7 +230,7 @@ jobs:
           '
 
       - name: apply-record-briefs
-        if: ${{ env.PUSH_BATCH_COUNT != '0' }}
+        if: ${{ env.RUN_DRIVER == 'true' }}
         run: |
           set -o pipefail
           node scripts/turns/apply-record-briefs.mjs $DRIVER_FLAGS | tee /tmp/brief-apply.log
@@ -220,6 +238,17 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/brief-apply.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # LAND THE RUN IN harness_runs (lane CHAIN-1, 2026-10-07, finding F3 / CLAUDE.md rule 17). This workflow was
+      # the one harness family that never landed its artifact in the table of record: the commit step below stages
+      # it for git and, on master, only warns, so a Brief apply run left no harness_runs row and the loop firing
+      # evidence had no producer row to place Gate A rescan (hop 10) and Source resolution (hop 12) on. Runs
+      # BEFORE the commit step because deliver-artifact-branch.sh finds artifacts by `git status` (untracked), and
+      # the commit step stages them. `if: always()`: a thrown driver still leaves its schema-valid artifact.
+      - name: Land this run's harness-run artifact into harness_runs
+        if: always()
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Brief apply (mode=${CHAINED_MODE:-$RUN_MODE}, run ${{ github.run_id }})"
 
       # Commit the run artifact back to the DISPATCHED ref (never a side branch): the NEXT dispatch of
       # this same ref checks out this same tree and must see this run's own harness-run artifact, or run

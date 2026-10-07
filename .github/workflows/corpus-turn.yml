@@ -165,7 +165,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode apply >> "$GITHUB_ENV"
+          # --requested-mode (lane CHAIN-1, 2026-10-07, finding F5): the REAL requested mode, not a hardcoded apply.
+          # A hand dispatch asks for inputs.mode; a chained firing has no inputs and asks for the apply default the
+          # resolve step below uses, which the guard forces to dry while build mode is live. A dry dispatch used to
+          # log "resolved mode=apply", which read as an armed run when it was not.
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${{ inputs.mode || 'apply' }}" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
