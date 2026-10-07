@@ -16,9 +16,9 @@ itself, but the whole chain feeding it, since the drain is where every branch of
 |---|---|---|---|
 | `source-sweep.yml` | `workflow_dispatch` only | — (a sweep is always a deliberate, operator/coordinator-named dispatch; no upstream to gate on) | `ledger-consume.yml` (`workflow_run`, unconditional — every conclusion re-checks, see below) |
 | `ledger-consume.yml` | `workflow_dispatch`, or `workflow_run` on `["Source sweep"]` completed | chained: `github.event.workflow_run.conclusion == 'success'` (forces `mode=plan`, never `apply`, on a chained run — see that file's own header) | `population-turn.yml` (`workflow_run`) |
-| `population-turn.yml` | `workflow_dispatch`, or `workflow_run` on `["Ledger consume"]` completed | chained: upstream `conclusion == 'success'` AND `POPULATION_PAUSED != 'true'` AND the upstream's own `ledger-consume/<run_id>` artifact shows `config.mode == 'apply'` and `metrics.promoted > 0` | its OWN mandatory flywheel step (discovery + forward-events + recluster + `derive-obligations` + `tag-proposals` + `tag-ratification --arg auto`, MINT-RUNBOOK.md §8/§9 — runs IN this job, not a further `workflow_run` hop) **then**, lane CHAIN 2026-09-06, `downstream-chain.yml` (`workflow_run`) when `metrics.minted > 0` |
+| `population-turn.yml` | `workflow_dispatch`, or `workflow_run` on `["Ledger consume"]` completed | chained: upstream `conclusion == 'success'` AND `POPULATION_PAUSED != 'true'` AND (lane CHAIN-1, 2026-10-07) the upstream's own `harness_runs` row, read by `scripts/lib/upstream-artifact.mjs`, passes the gate for the run's mode (dry: the row exists and is not a no-op; apply: `config.mode == 'apply'`, `apply_disarmed == false` and `metrics.promoted > 0`) | its OWN mandatory flywheel step (discovery + forward-events + recluster + `derive-obligations` + `tag-proposals` + `tag-ratification --arg auto`, MINT-RUNBOOK.md section 8/section 9, runs IN this job, not a further `workflow_run` hop) **then**, lane CHAIN 2026-09-06, `downstream-chain.yml` (`workflow_run`) when `metrics.minted > 0` |
 | `corpus-turn.yml` | `workflow_dispatch`, or `push` to `turn/**` | — (push is itself the request; a dispatch is deliberate) | lane CHAIN 2026-09-06: `downstream-chain.yml` (`workflow_run`) when `metrics.tickets_selected > 0` |
-| **`downstream-chain.yml`** (lane CHAIN, 2026-09-06) | `workflow_dispatch`, or `workflow_run` on `["Population turn", "Corpus turn"]` completed | chained: upstream `conclusion == 'success'` AND the upstream's own artifact branch (`population/<run_id>` or `turn/<run_id>`/pushed branch) shows real applied work (`metrics.minted > 0` at `config.mode == "execute"`, or `metrics.tickets_selected > 0` at `config.mode == "apply"`) | `tier-opinions` → `derive-obligations` → `tag-proposals` → `apply-classifications` (all four, in order, via `./.github/actions/maintenance-step` — the SAME invocation `maintenance.yml`'s own dispatch-one-step job uses), **then** `propagation-drain.yml` (`workflow_run`) |
+| **`downstream-chain.yml`** (lane CHAIN, 2026-09-06) | `workflow_dispatch`, or `workflow_run` on `["Population turn", "Corpus turn"]` completed | chained: upstream `conclusion == 'success'` AND (lane CHAIN-1, 2026-10-07) the upstream's own `harness_runs` row (family `mint` or `corpus-turn`, matched on `github_run_id`, read by `scripts/lib/upstream-artifact.mjs`) passes the gate for the run's mode: dry needs the row to exist and not be a no-op, apply needs real work (`metrics.minted > 0` at `config.mode == "execute"`, or `metrics.tickets_selected > 0` at `config.mode == "apply"`) | `tier-opinions` → `derive-obligations` → `tag-proposals` → `apply-classifications` (all four, in order, via `./.github/actions/maintenance-step`, the SAME invocation `maintenance.yml`'s own dispatch-one-step job uses), **then** `propagation-drain.yml` (`workflow_run`) |
 | `producers.yml` | `workflow_dispatch` (+ its own per-source cadence documented in that file) | — | `propagation-drain.yml` (`workflow_run`) |
 | **`propagation-drain.yml`** | `workflow_dispatch`, or `workflow_run` on `["Data producers", "Downstream chain"]` completed | chained: upstream `conclusion == 'success'` — no per-run count check needed (see that file's own header: both upstream families' writes queue `propagation_events` via DB trigger B4 unconditionally, so a drain over zero new events is still the correct, informative outcome, never evidence of a disarmed upstream) | — (end of the loop; `propagation_events` drained to zero or checkpointed) |
 
@@ -32,7 +32,7 @@ dispatch/push or a `workflow_run` firing off another workflow's own completion, 
    (discovery, forward-events, `derive-obligations`, `tag-proposals`, `tag-ratification --arg auto`) and
    records the §9 outcomes on the run's own `mint-run-NNN.json`.
 3. `population-turn.yml` finishes green; `downstream-chain.yml` fires automatically, reads that same
-   `mint-run-NNN.json` off the `population/<run_id>` branch, confirms `metrics.minted > 0`, and re-runs
+   run's `mint` row from `harness_runs` (CHAIN-1: no `population/<run_id>` branch exists any more), applies the mode's gate, and re-runs
    the four WHOLE-CORPUS deterministic derivations (`tier-opinions`, `derive-obligations`,
    `tag-proposals`, `apply-classifications`) — catching anything population-turn's own item-scoped
    flywheel pass could not (a `tier-opinions` disagreement on a source untouched by this mint; a
@@ -60,9 +60,11 @@ dispatch/push or a `workflow_run` firing off another workflow's own completion, 
 **Secrets**: `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (same pair every guarded script
 requires); `APP_URL`/`WORKER_SECRET` for the cache-flush step (best-effort, `|| true`).
 
-**Artifact**: `scripts/harness-runs/propagation/propagation-run-NNN.json`, committed via a
-`propagation/<run_id>` branch + PR (`deliver-artifact-branch.sh`, same pattern every other harness-run
-family in this repo uses) — read back the run's own `metrics` for exactly what it invalidated/recomputed.
+**Artifact**: `scripts/harness-runs/propagation/propagation-run-NNN.json`, landed in
+`harness_runs` by `deliver-artifact-branch.sh` (no branch, no PR; the same path every harness-run family now
+uses), with the top-level `upstream_run_id` stamped from the upstream run (CHAIN-1), read back the run's own
+`metrics` for exactly what it invalidated/recomputed. A drain that skips because its upstream did not succeed
+records a `propagation` NO-OP row (`config.noop`, `noop_reason`).
 
 ## Tracing edge authorship
 

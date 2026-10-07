@@ -166,6 +166,7 @@ jobs:
           RUN_SKIP=false
           RUN_SKIP_REASON=""
           RUN_TRIGGER_CONTEXT=""
+          RUN_UPSTREAM_LOOP_RUN_ID=""
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
             RUN_MODE="${{ inputs.mode }}"
@@ -202,6 +203,8 @@ jobs:
               HANDOFF_SKIP="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP=//p')"
               HANDOFF_REASON="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP_REASON=//p')"
               echo "upstream hand-off: skip=$HANDOFF_SKIP row=$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_ROW_ID=//p')"
+              # The loop id comes from the upstream row (ADR-031; a CI checkout holds no upstream artifact file).
+              RUN_UPSTREAM_LOOP_RUN_ID="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p')"
               if [ "$HANDOFF_SKIP" != "false" ]; then
                 RUN_SKIP=true
                 RUN_SKIP_REASON="${HANDOFF_REASON:-the upstream hand-off returned no answer} - no-op, nothing to chain from."
@@ -222,6 +225,7 @@ jobs:
             # 2026-10-07, finding F3): without it this family's rows carried a null upstream and the loop firing
             # evidence could not place hop 05 versus hop 06 (this family serves both). Empty on a hand dispatch.
             echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${UPSTREAM_RUN_ID:-}"
+            echo "RUN_UPSTREAM_LOOP_RUN_ID=$RUN_UPSTREAM_LOOP_RUN_ID"
           } >> "$GITHUB_ENV"
           {
             echo "RUN_TRIGGER_CONTEXT<<__RUN_TRIGGER_CONTEXT_EOF__"
@@ -377,6 +381,7 @@ jobs:
           DC_SKIP_REASON: ${{ env.RUN_SKIP_REASON }}
           DC_STARTED_AT: ${{ env.STARTED_AT }}
           DC_OUT_ROOT: ${{ env.OUT_ROOT }}
+          DC_LOOP_RUN_ID: ${{ env.RUN_UPSTREAM_LOOP_RUN_ID }}
         run: |
           UPSTREAM_NAME=""
           UPSTREAM_RUN_ID=""

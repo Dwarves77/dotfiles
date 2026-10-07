@@ -68,7 +68,7 @@ name: Population turn
 # export that minted nothing) has metrics.minted absent/0 by construction, so whenever a dry artifact
 # happened to be newest, it read as "nothing to connect" and let a new apply through, while apply
 # artifacts BEHIND it on the timeline stayed unconnected. `run-population-flywheel.mjs --check-gate` now
-# scans EVERY mint-run artifact on this checkout (including hydrated unmerged siblings, see below) and
+# scans EVERY mint-run artifact on this checkout (the sibling-branch hydration that once added unmerged ones was removed by lane CHAIN-1: no branch carries artifacts any more) and
 # refuses if ANY of them minted items but was left without the §9 outcome keys — a dry artifact still
 # never counts on its own, but it no longer masks a stale artifact elsewhere in the list. Still a pure,
 # filesystem-only, no-DB-creds-needed check, so a defect in a PRIOR run (or a hand-run predecessor from
@@ -300,6 +300,7 @@ jobs:
           RUN_SKIP=false
           RUN_SKIP_REASON=""
           RUN_TRIGGER_CONTEXT=""
+          RUN_UPSTREAM_LOOP_RUN_ID=""
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
             RUN_MODE="${{ inputs.mode }}"
@@ -356,6 +357,8 @@ jobs:
               HANDOFF_SKIP="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP=//p')"
               HANDOFF_REASON="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_SKIP_REASON=//p')"
               echo "upstream hand-off: skip=$HANDOFF_SKIP row=$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_ROW_ID=//p')"
+              # The loop id comes from the upstream row (ADR-031; a CI checkout holds no upstream artifact file).
+              RUN_UPSTREAM_LOOP_RUN_ID="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p')"
               if [ "$HANDOFF_SKIP" != "false" ]; then
                 RUN_SKIP=true
                 RUN_SKIP_REASON="${HANDOFF_REASON:-the upstream hand-off returned no answer} - no-op, nothing to chain from."
@@ -398,6 +401,7 @@ jobs:
             echo "RUN_LIMIT_FLAG=$RUN_LIMIT_FLAG"
             echo "RUN_UPSTREAM_RUN_ID=${UPSTREAM_RUN_ID:-}"
             echo "RUN_UPSTREAM_NAME=${UPSTREAM_NAME:-}"
+            echo "RUN_UPSTREAM_LOOP_RUN_ID=$RUN_UPSTREAM_LOOP_RUN_ID"
             # The run id writeRunArtifact stamps as every artifact's top-level upstream_run_id (lane CHAIN-1,
             # 2026-10-07, finding F3): the same convention ledger-consume/corpus-turn/fetch-drain already use.
             echo "GITHUB_EVENT_WORKFLOW_RUN_ID=${UPSTREAM_RUN_ID:-}"
@@ -447,33 +451,10 @@ jobs:
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
-      # ── hydrate UNMERGED sibling artifacts so this run's mint-run_id (and, now, forward-events-run_id)
-      # cannot collide ────────────────────────────────────────────────────────────────────────────────
-      # Same problem, same fix as source-sweep.yml's own step (see that file's comment for the full
-      # rationale). Extended (lane TANDEM, 2026-09-04) to also hydrate scripts/harness-runs/forward-events/.
-      - name: Hydrate unmerged mint + forward-events artifacts from sibling population branches (run_id collision guard)
-        if: ${{ env.RUN_SKIP != 'true' }}
-        run: |
-          git fetch --no-tags origin '+refs/heads/population/*:refs/remotes/origin/population/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/population/*'); do
-            for family_dir in fsi-app/scripts/harness-runs/mint/ fsi-app/scripts/harness-runs/forward-events/; do
-              for f in $(git ls-tree -r --full-tree --name-only "$b" -- "$family_dir"); do
-                rel="${f#fsi-app/}"
-                if [ ! -e "$rel" ]; then
-                  mkdir -p "$(dirname "$rel")"
-                  git show "$b:$f" > "$rel"
-                  echo "$rel" >> /tmp/hydrated-artifacts.txt
-                fi
-              done
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged mint/forward-events file(s) from sibling population branches"
-
       # THE GATE (apply mode only, and never on a flywheel_backlog dispatch — that dispatch's whole job IS
       # to clear what THE GATE refuses, so gating it would be circular) — see the header comment above for
       # the full rationale. Filesystem-only (readRunHistory over whatever mint-run-NNN.json files are on
-      # this checkout, hydrated siblings included), so it runs before "Verify required secrets" would even
+      # this checkout), so it runs before "Verify required secrets" would even
       # matter and before this run spends any budget on export-census-rows.mjs.
       # (coordinator, 2026-09-04, first backlog dispatch, Population turn #22 FAILED at the discover step): a
       # `type: boolean` input is a BOOLEAN in expressions; comparing it to the STRING 'true' coerces both to
@@ -546,6 +527,7 @@ jobs:
           # dispatch), already known from github.event.workflow_run.id, never a jq-derived value.
           if [ "$RUN_LIMIT_FLAG" = "--max-items" ]; then args+=(--max-items "$RUN_LIMIT"); fi
           if [ -n "$RUN_UPSTREAM_RUN_ID" ]; then args+=(--upstream-run-id "$RUN_UPSTREAM_RUN_ID"); fi
+          if [ -n "$RUN_UPSTREAM_LOOP_RUN_ID" ]; then args+=(--loop-run-id "$RUN_UPSTREAM_LOOP_RUN_ID"); fi
           node scripts/mint/run-mint-batch.mjs "${args[@]}" || true
 
       - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
@@ -645,10 +627,9 @@ jobs:
         if: ${{ always() && env.RUN_SKIP != 'true' && env.RUN_MODE == 'apply' }}
         run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
 
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
       # scripts/_snapshots/ is gitignored (guarded-write prior-value snapshots stay off the repo by
@@ -691,7 +672,7 @@ jobs:
       - name: Record a NO-OP run (the chain decided there was nothing to do)
         if: ${{ always() && env.RUN_SKIP == 'true' }}
         run: |
-          node scripts/lib/upstream-artifact.mjs noop --family mint --mode "$RUN_MODE" --reason "$RUN_SKIP_REASON" --upstream-name "$RUN_UPSTREAM_NAME" --upstream-run-id "$RUN_UPSTREAM_RUN_ID" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          node scripts/lib/upstream-artifact.mjs noop --family mint --mode "$RUN_MODE" --reason "$RUN_SKIP_REASON" --upstream-name "$RUN_UPSTREAM_NAME" --upstream-run-id "$RUN_UPSTREAM_RUN_ID" --loop-run-id "$RUN_UPSTREAM_LOOP_RUN_ID" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
       - name: Land this run's harness-run artifact(s) into harness_runs
         if: always()

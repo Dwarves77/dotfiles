@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 import { HARNESS_RUN_COLUMNS } from "./export-loop-fired-evidence.mjs"; // the one column list both read
-import { LOOP_FIRED_EVIDENCE_FILE, FIRED_TRIGGERS } from "../../.discipline/governance/loop-manifest.mjs";
+import { LOOP_FIRED_EVIDENCE_FILE, FIRED_TRIGGERS, LOOP_HOPS, isFiredEvidence, producerFamilyOf } from "../../.discipline/governance/loop-manifest.mjs";
 
 const text = (v) => (v === null || v === undefined ? null : String(v));
 
@@ -30,9 +30,20 @@ export function auditEntries(entries, rows) {
   const byRunId = new Map((rows || []).map((r) => [String(r.run_id), r]));
   for (const e of entries) {
     const label = `${e?.hop ?? "?"} (${e?.run_id ?? "?"})`;
-    if (!FIRED_TRIGGERS.includes(e?.trigger)) {
-      failures.push(`${label}: trigger "${e?.trigger}" is not a fired trigger (${FIRED_TRIGGERS.join(", ")})`);
+    const hop = LOOP_HOPS.find((h) => h.id === e?.hop);
+    if (!isFiredEvidence(e, hop)) {
+      failures.push(`${label}: trigger "${e?.trigger}" is not a fired trigger (${FIRED_TRIGGERS.join(", ")}, or workflow_dispatch with an upstream_run_id on a dispatchFallback hop)`);
       continue;
+    }
+    if (!FIRED_TRIGGERS.includes(e.trigger)) {
+      // A dispatch-fallback firing is only as good as its upstream link: the producer family must hold a row
+      // whose github_run_id is the entry's upstream_run_id, or the "upstream" is just a number.
+      const pf = producerFamilyOf(hop);
+      const linked = pf !== null && (rows || []).some((r) => r.harness_family === pf && text(r.github_run_id) === text(e.upstream_run_id));
+      if (!linked) {
+        failures.push(`${label}: no ${pf ?? "producer"} row has github_run_id ${text(e.upstream_run_id)}, so the dispatch is not shown to come from the producer`);
+        continue;
+      }
     }
     const row = byRunId.get(String(e.run_id));
     if (!row) {

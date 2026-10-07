@@ -224,3 +224,45 @@ test("CHAIN-1 shape 2: propagation rows that carry the upstream id land on hop 0
   const before = mapRowsToHops(rows.map((r) => (r.harness_family === "propagation" ? { ...r, upstream_run_id: null } : r)));
   assert.equal(before.unmapped.length, 2, "with a null upstream (the pre-fix rows) both are unmapped");
 });
+
+// ── lane CHAIN-1 ruling 1 (2026-10-07): the F60 dispatch fallback is fired evidence on a dispatchFallback hop ──
+import { isFiredEvidence } from "../../.discipline/governance/loop-manifest.mjs";
+
+const prodRows = () => [
+  row({ harness_family: "downstream-chain", run_id: "downstream-chain-run-001", trigger: "manual", github_run_id: "901", upstream_run_id: null }),
+  row({ harness_family: "producers", run_id: "producers-run-001", trigger: "manual", github_run_id: "900", upstream_run_id: null }),
+];
+
+test("CHAIN-1: a workflow_dispatch propagation row carrying the downstream-chain upstream id maps to hop 07 (dispatchFallback)", () => {
+  const { entries, unmapped } = mapRowsToHops([
+    ...prodRows(),
+    row({ harness_family: "propagation", run_id: "propagation-run-002", trigger: "workflow_dispatch", github_run_id: "911", upstream_run_id: "901" }),
+  ]);
+  assert.deepEqual(unmapped, []);
+  assert.deepEqual(entries.map((e) => [e.hop, e.run_id, e.trigger]), [["downstream-chain-to-propagation-drain", "propagation-run-002", "workflow_dispatch"]]);
+});
+
+test("ATTACK: a workflow_dispatch propagation row WITHOUT upstream_run_id (a hand dispatch) does not map and is not unmapped noise", () => {
+  const { entries, unmapped } = mapRowsToHops([...prodRows(), row({ harness_family: "propagation", run_id: "propagation-run-003", trigger: "workflow_dispatch", github_run_id: "912", upstream_run_id: null })]);
+  assert.deepEqual(entries, []);
+  assert.deepEqual(unmapped, []);
+});
+
+test("ATTACK: a dispatch row whose upstream id is not the downstream-chain producer's run does not map (never claimed on a guess)", () => {
+  // 900 is a producers run: hop 08 does not declare dispatchFallback, hop 07's producer family has no row 900.
+  const { entries, unmapped } = mapRowsToHops([...prodRows(), row({ harness_family: "propagation", run_id: "propagation-run-004", trigger: "workflow_dispatch", github_run_id: "913", upstream_run_id: "900" })]);
+  assert.deepEqual(entries, []);
+  assert.equal(unmapped.length, 1);
+});
+
+test("ATTACK: a dispatch row with an upstream id on a hop that does not declare dispatchFallback never counts (fetch-drain)", () => {
+  const { entries } = mapRowsToHops([row({ trigger: "workflow_dispatch", upstream_run_id: "100" })]);
+  assert.deepEqual(entries, []);
+  const fetchHop = LOOP_HOPS.find((h) => h.family === "fetch-drain");
+  assert.equal(isFiredEvidence({ trigger: "workflow_dispatch", upstream_run_id: "100" }, fetchHop), false);
+  const hop07 = LOOP_HOPS.find((h) => h.id === "downstream-chain-to-propagation-drain");
+  assert.equal(hop07.dispatchFallback, true);
+  assert.equal(isFiredEvidence({ trigger: "workflow_dispatch", upstream_run_id: "1" }, hop07), true);
+  assert.equal(isFiredEvidence({ trigger: "workflow_dispatch", upstream_run_id: null }, hop07), false);
+  assert.equal(isFiredEvidence({ trigger: "manual", upstream_run_id: "1" }, hop07), false);
+});

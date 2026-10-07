@@ -276,35 +276,6 @@ jobs:
             fi
           fi
 
-      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
-      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
-      # the checked-out tree, i.e. master. Artifacts land through a PR, so a run dispatched before the
-      # previous run's PR merged sees a stale count and claims the SAME run_id (source-sweep run #3 on
-      # 2026-09-01 wrote a second "source-sweep-run-002" while run #2's was still on its branch). The
-      # unmerged sibling branches are fetched and their forward-events (and corpus-turn) artifacts placed
-      # in the working tree (untracked; removed again before the commit step, never committed by this run)
-      # so the claim counts above them. scripts/turns/LAST-TURN.json is no longer hydrated or written by
-      # this workflow (retired as this family's selection mechanism, lane TURNREQ, 2026-09-04 — see
-      # scripts/turns/last-turn-date.mjs's own header) — every step is idempotent
-      # (CORPUS-TURN-RUNBOOK.md, "The first full backfill").
-      - name: Hydrate unmerged run artifacts from sibling branches (run_id collision guard)
-        run: |
-          git fetch --no-tags origin '+refs/heads/turn/*:refs/remotes/origin/turn/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/turn/*'); do
-            for dir in forward-events corpus-turn; do
-              for f in $(git ls-tree -r --full-tree --name-only "$b" -- "fsi-app/scripts/harness-runs/$dir/"); do
-                rel="${f#fsi-app/}"
-                if [ ! -e "$rel" ]; then
-                  mkdir -p "$(dirname "$rel")"
-                  git show "$b:$f" > "$rel"
-                  echo "$rel" >> /tmp/hydrated-artifacts.txt
-                fi
-              done
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged artifact file(s) from sibling branches"
-
       # ── 2. discover-for-items — mint-time connection discovery for items that bypassed the mint hook ──
       - name: discover-for-items.mjs
         if: steps.scope.outputs.has_scope == 'true'
@@ -421,10 +392,9 @@ jobs:
       # scripts/harness-runs/** is NOT gitignored, but this family's own posture (every sibling family) is
       # to land via deliver-artifact-branch.sh (a DB write, no branch/commit/push) and let a workflow
       # artifact carry the raw files for short-lived human inspection instead.
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
       # R22 (2026-10-01, Actions-storage remediation): narrowed from the whole fsi-app/scripts/_snapshots/

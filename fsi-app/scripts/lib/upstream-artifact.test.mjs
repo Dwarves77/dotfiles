@@ -17,10 +17,15 @@ import {
   runCli,
 } from "./upstream-artifact.mjs";
 import { validateRunArtifact, writeRunArtifact } from "./run-artifact.mjs";
+import { resolveHarnessRunContext } from "./loop-run-id.mjs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const HERE_FSI = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const ledgerRow = (over = {}) => ({
   run_id: "ledger-consume-run-010", harness_family: "ledger-consume", github_run_id: "100", started_at: "2026-10-07T07:00:00Z",
-  config: { mode: "apply", apply_disarmed: false }, metrics: { promoted: 3 }, ...over,
+  config: { mode: "apply", apply_disarmed: false, loop_run_id: "9001" }, metrics: { promoted: 3 }, ...over,
 });
 const mintRow = (over = {}) => ({
   run_id: "mint-run-030", harness_family: "mint", github_run_id: "200", started_at: "2026-10-07T07:05:00Z",
@@ -171,7 +176,7 @@ const READ = ["read", "--consumer", "population-turn", "--upstream-name", "Ledge
 test("CLI read: prints the KEY=VALUE lines the workflow reads", async () => {
   const { io, deps } = cli();
   assert.equal(await runCli(READ, deps), 0);
-  assert.deepEqual(io.out, ["CHAIN_SKIP=false", "CHAIN_SKIP_REASON=", "CHAIN_UPSTREAM_ROW_ID=ledger-consume-run-010"]);
+  assert.deepEqual(io.out, ["CHAIN_SKIP=false", "CHAIN_SKIP_REASON=", "CHAIN_UPSTREAM_ROW_ID=ledger-consume-run-010", "CHAIN_UPSTREAM_LOOP_RUN_ID=9001"]);
 });
 
 test("CLI read: a refused gate prints skip=true with a one-line reason and still exits 0", async () => {
@@ -188,6 +193,33 @@ test("CLI read: no row at all is a named skip, not an error", async () => {
   assert.equal(io.out[0], "CHAIN_SKIP=true");
   assert.match(io.out[1], /no harness_runs row exists/);
   assert.equal(io.out[2], "CHAIN_UPSTREAM_ROW_ID=");
+  assert.equal(io.out[3], "CHAIN_UPSTREAM_LOOP_RUN_ID=");
+});
+
+// ── ADR-031: the loop id comes from the upstream ROW (a CI checkout holds no upstream artifact file) ───────
+test("loop id: the reader exposes the upstream row's loop id, empty when the row has none", async () => {
+  const { io, deps } = cli({ readRowsFactory: () => async () => [ledgerRow({ config: { mode: "plan" } })] });
+  await runCli(["read", "--consumer", "population-turn", "--upstream-name", "Ledger consume", "--upstream-run-id", "100", "--run-mode", "dry"], deps);
+  assert.equal(io.out[3], "CHAIN_UPSTREAM_LOOP_RUN_ID=");
+});
+
+test("loop id: an explicit id from the row wins over the on-disk resolver, which finds nothing in a CI checkout", () => {
+  const dir = mkdtempSync(join(tmpdir(), "loop-ctx-"));
+  try {
+    const base = { family: "downstream-chain", familyDir: dir, governingFiles: ["scripts/lib/upstream-artifact.mjs"], fsiRoot: join(HERE_FSI), upstreamName: "Population turn", upstreamRunId: "200" };
+    assert.equal(resolveHarnessRunContext({ ...base, explicit: null }).loopRunId, null, "disk-only resolution is null with no upstream artifact on disk");
+    assert.equal(resolveHarnessRunContext({ ...base, explicit: "9001" }).loopRunId, "9001");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("loop id: a NO-OP artifact records the loop id it is given (the envelope sets config.loop_run_id)", async () => {
+  const written = [];
+  const { deps } = cli({ claimId: (f) => `${f}-run-042`, versionOf: () => "sha256:0123456789abcdef", writeNoop: (a) => { written.push(a); return "x"; } });
+  assert.equal(await runCli(["noop", "--family", "mint", "--mode", "dry", "--reason", "r", "--loop-run-id", "9001"], deps), 0);
+  assert.equal(written[0].config.loop_run_id, "9001");
+  assert.deepEqual(validateRunArtifact(written[0]), []);
 });
 
 test("CLI read: a read error is exit 1, and missing credentials are exit 1 in Actions, exit 2 outside", async () => {

@@ -91,16 +91,14 @@ for (const w of APPLY_WORKFLOWS) {
 
 // ── F5: the guard is told the REAL requested mode ─────────────────────────────────────────────────────
 test("F5: no workflow hardcodes --requested-mode apply into the chained dry-run guard call", () => {
-  for (const f of ["population-turn.yml", "corpus-turn.yml", "downstream-chain.yml", "brief-export.yml"]) {
+  for (const f of ["population-turn.yml", "corpus-turn.yml", "downstream-chain.yml", "propagation-drain.yml", "brief-export.yml"]) {
     assert.ok(!/--requested-mode apply/.test(yml(f)), `${f} still hardcodes --requested-mode apply`);
     assert.ok(yml(f).includes("chained-dry-guard.mjs"), `${f} must still call the guard (F61)`);
   }
 });
 
-// propagation-drain.yml is deliberately absent from both F5 tests: F61's attack test pins its guard call shape
-// (--requested-mode apply --chained), so changing it is a separate write-set expansion (see the lane report).
-test("F5: the three mode-carrying workflows pass inputs.mode (apply when a chained firing has no inputs); brief-export has no mode and says read-only", () => {
-  for (const f of ["population-turn.yml", "corpus-turn.yml", "downstream-chain.yml"]) {
+test("F5: the four mode-carrying workflows pass inputs.mode (apply when a chained firing has no inputs); brief-export has no mode and says read-only", () => {
+  for (const f of ["population-turn.yml", "corpus-turn.yml", "downstream-chain.yml", "propagation-drain.yml"]) {
     assert.ok(yml(f).includes(`--requested-mode "\${{ inputs.mode || 'apply' }}"`), `${f}: the guard must receive inputs.mode`);
   }
   assert.ok(yml("brief-export.yml").includes("--requested-mode read-only"));
@@ -153,6 +151,18 @@ test("F3: Propagation drain records a NO-OP row and installs unconditionally so 
   const prop = yml("propagation-drain.yml");
   assert.ok(!/- name: Install\n\s+if:/.test(prop));
   assert.match(stepText(prop, "Record a NO-OP run"), /upstream-artifact\.mjs noop --family propagation --mode "\$RUN_MODE"/);
+});
+
+// ── ADR-031: the loop id is carried from the upstream row into every consumer that records one ─────────
+test("ADR-031: Population turn and Downstream chain carry the upstream row's loop id (explicit id, not the disk resolver)", () => {
+  const pop = yml("population-turn.yml");
+  assert.match(pop, /RUN_UPSTREAM_LOOP_RUN_ID="\$\(printf '%s\\n' "\$HANDOFF" \| sed -n 's\/\^CHAIN_UPSTREAM_LOOP_RUN_ID=\/\/p'\)"/);
+  assert.match(pop, /args\+=\(--loop-run-id "\$RUN_UPSTREAM_LOOP_RUN_ID"\)/, "run-mint-batch receives it");
+  assert.match(stepText(pop, "Record a NO-OP run"), /--loop-run-id "\$RUN_UPSTREAM_LOOP_RUN_ID"/);
+  const down = yml("downstream-chain.yml");
+  assert.match(down, /CHAIN_UPSTREAM_LOOP_RUN_ID=/);
+  assert.match(stepText(down, "Record this chain's own harness-run artifact"), /DC_LOOP_RUN_ID: \$\{\{ env\.RUN_UPSTREAM_LOOP_RUN_ID \}\}/);
+  assert.match(readFileSync(join(HERE, "..", "turns", "emit-downstream-chain-artifact.mjs"), "utf8"), /explicit: process\.env\.DC_LOOP_RUN_ID \|\| null/);
 });
 
 // ── F3 / F1: Brief apply lands its artifact in harness_runs (the hop 10 and 12 producer row) ──────────

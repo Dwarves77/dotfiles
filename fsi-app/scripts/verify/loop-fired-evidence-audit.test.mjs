@@ -82,3 +82,26 @@ test("runAudit: a matching entry exits 0, a forged one exits 1, a DB read error 
   assert.equal(await runAudit(deps(JSON.stringify({ entries: [entry] }), { readAllFn: async () => { throw new Error("x"); } }).deps), 2);
   assert.equal(await runAudit(deps("{ nope").deps), 1);
 });
+
+// ── lane CHAIN-1 ruling 1 (2026-10-07): the dispatch-fallback entry on hop 07 ─────────────────────────
+const dEntry = {
+  hop: "downstream-chain-to-propagation-drain", family: "propagation", run_id: "propagation-run-002", github_run_id: "911",
+  upstream_run_id: "901", started_at: "2026-10-03T10:00:00Z", trigger: "workflow_dispatch",
+};
+const dLive = { harness_family: "propagation", run_id: "propagation-run-002", started_at: "2026-10-03T10:00:00+00:00", trigger: "workflow_dispatch", github_run_id: 911, upstream_run_id: "901" };
+const producerRow = { harness_family: "downstream-chain", run_id: "downstream-chain-run-001", started_at: "2026-10-03T09:00:00+00:00", trigger: "workflow_run_forced_dry", github_run_id: "901", upstream_run_id: "555" };
+
+test("a dispatch-fallback entry on hop 07 passes when the producer family holds the upstream run", () => {
+  assert.deepEqual(auditEntries([dEntry], [dLive, producerRow]), { ok: true, failures: [] });
+});
+
+test("ATTACK: a dispatch-fallback entry whose upstream run has no producer row fails", () => {
+  const r = auditEntries([dEntry], [dLive]);
+  assert.equal(r.ok, false);
+  assert.match(r.failures[0], /no downstream-chain row has github_run_id 901/);
+});
+
+test("ATTACK: a workflow_dispatch entry with no upstream_run_id, or on a hop without dispatchFallback, fails", () => {
+  assert.equal(auditEntries([{ ...dEntry, upstream_run_id: null }], [{ ...dLive, upstream_run_id: null }, producerRow]).ok, false);
+  assert.equal(auditEntries([{ ...entry, trigger: "workflow_dispatch" }], [{ ...live, trigger: "workflow_dispatch" }]).ok, false);
+});

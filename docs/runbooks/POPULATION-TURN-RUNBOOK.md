@@ -157,13 +157,17 @@ whether this dispatch does anything:
 
 1. **The upstream run's own `conclusion` must be `"success"`.** A failed or cancelled `ledger-consume`
    run never chains into a mint.
-2. **The upstream run's own harness-run artifact must show a real, non-disarmed apply that promoted
-   something.** `ledger-consume.yml` does not upload its harness-run JSON as a workflow artifact (only
-   `scripts/_snapshots/`, the raw fetch/classify trace) — the one place that artifact reliably lands is
-   the `ledger-consume/<run_id>` branch `deliver-artifact-branch.sh` always pushes before it even
-   attempts a PR (see `MAINTENANCE-RUNBOOK.md`/this file's own "Landing a run" section for that fallback
-   behaviour). This run fetches exactly that branch and reads whichever `ledger-consume-run-NNN.json` on
-   it this checkout doesn't already have, then checks:
+2. **The upstream run's own `harness_runs` row must pass the gate for this run's mode (lane CHAIN-1,
+   2026-10-07; supersedes the artifact-branch reader this step used to be).** `ledger-consume.yml` lands
+   its harness-run artifact in the `harness_runs` table (`deliver-artifact-branch.sh`, operator ruling
+   2026-09-26: no branch, no PR), so this run reads it there:
+   `node scripts/lib/upstream-artifact.mjs read --consumer population-turn --upstream-name "Ledger consume"
+   --upstream-run-id <github.event.workflow_run.id> --run-mode <dry|apply>` finds the row whose
+   `github_run_id` is that run (the family comes from the upstream workflow's NAME through
+   `loop-run-id.mjs`'s one map). A missing row, an upstream that was itself a no-op, or a read error is
+   handled as below; a read error is a red run, never a silent no-op. In a **dry** run (build mode forces
+   every chained firing dry) the row only has to exist and not be a no-op, and this run then executes its
+   real steps dry. In an **apply** run the row must show real work, checking:
    - `config.mode == "apply"` **and** `config.apply_disarmed == false` — a plan run, or an apply request
      that armed on zero committed verdict batches and so ran disarmed, never chains a mint. What arms an
      apply today (lane M2, 2026-09-18): `run-ledger-consume.mjs`'s own `isApplyArmed` check plus the
@@ -175,7 +179,9 @@ whether this dispatch does anything:
    - `metrics.promoted > 0` — at least one candidate actually reached `census_worklist`.
 
    Any failure at step 2 is a named no-op (`::notice::` in the run's own log naming exactly which check
-   failed and the numbers it read), never a red run.
+   failed and the numbers it read), never a red run, **and a no-op still records a `mint` row**
+   (`upstream-artifact.mjs noop`: `config.noop`, `config.noop_reason`, the honest trigger, the upstream run id
+   stamped) so the loop firing evidence can place hop 03 on a run that decided to do nothing.
 
 **When it proceeds**, the chained run behaves like a hand dispatch with `mode: apply`, capped at
 `max_items` items (default 25, see "Population cap" below  --  NOT the `limit` input a hand dispatch uses),
@@ -221,6 +227,11 @@ coordinator action required to arm or disarm anything.
    `RUN_SKIP_REASON`.
 
 ## Landing a run: what the workflow tries, and what actually happens on this repository
+
+> **SUPERSEDED (lane CHAIN-1, 2026-10-07).** Since lane STATUTORY-WRITER (2026-09-29) and R22 (2026-10-02) this
+> workflow pushes no `population/<run_id>` branch and opens no PR: `deliver-artifact-branch.sh` lands every
+> artifact straight into `harness_runs`. The branch-and-PR text below is history, kept for the incidents it
+> records; nothing reads a `population/*` branch any more (the sibling-branch hydrate step was deleted too).
 
 The workflow ends by committing `scripts/harness-runs/mint/` plus the run's own export/apply-ready/
 report files to a fresh `population/<run_id>` branch, pushing it, and calling

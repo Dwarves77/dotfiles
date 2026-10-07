@@ -1151,29 +1151,6 @@ jobs:
       # failed partway still leaves a record of exactly what happened, the same posture Population AFTER
       # above already takes.
 
-      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next maintenance-run-NNN artifact from the
-      # files it can see in the checked-out tree, i.e. the ref this run started from. Artifacts land
-      # through a PR (this workflow's own concurrency group serializes DISPATCHES, but does not wait for a
-      # prior run's PR to merge before the next dispatch starts), so a run whose predecessor's PR has not
-      # yet merged would see a stale count and claim the SAME run_id -- the exact collision
-      # source-sweep.yml's own identically-named step guards against for its own family.
-      - name: Hydrate unmerged maintenance-artifact sibling artifacts (run_id collision guard)
-        if: always()
-        run: |
-          git fetch --no-tags origin '+refs/heads/maintenance-artifact/*:refs/remotes/origin/maintenance-artifact/*' || true
-          : > /tmp/hydrated-maintenance-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/maintenance-artifact/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/maintenance/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-maintenance-artifacts.txt
-              fi
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-maintenance-artifacts.txt) unmerged maintenance-artifact file(s) from sibling branches"
-
       - name: Write this run's maintenance harness-run artifact
         if: always()
         id: write_artifact
@@ -1193,10 +1170,9 @@ jobs:
       # harness_runs by the step below, IS the dispatch evidence; no second, file-based record is needed.
       # See docs/runbooks/fleet-budget-control.md for the export's regeneration rule.
 
-      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+      - name: Remove run-id claim markers (nothing is hydrated from sibling branches any more)
         if: always()
         run: |
-          if [ -s /tmp/hydrated-maintenance-artifacts.txt ]; then xargs -a /tmp/hydrated-maintenance-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/maintenance/.claims
           rm -rf scripts/harness-runs/quarantine-disposition/.claims
 

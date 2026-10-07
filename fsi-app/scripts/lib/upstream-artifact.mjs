@@ -15,8 +15,13 @@
 //   read  --consumer <population-turn|downstream-chain> --upstream-name <workflow name>
 //         --upstream-run-id <id> --run-mode <dry|apply>
 //     CHAIN_SKIP=<true|false>   CHAIN_SKIP_REASON=<one line>   CHAIN_UPSTREAM_ROW_ID=<run_id|empty>
+//     CHAIN_UPSTREAM_LOOP_RUN_ID=<the upstream row's config.loop_run_id|empty>
+//       The loop id is read from the upstream's row, not resolved from files on disk: resolveLoopRunId
+//       (loop-run-id.mjs, ADR-031) scans the checked-out tree for the upstream artifact, and a CI checkout
+//       holds none now that artifacts land only in harness_runs, so it returned null at every hop past the
+//       sweep. A consumer passes this value as the explicit id, which the resolver lets win.
 //   noop  --family <mint|propagation> --mode <dry|apply> --reason <text> [--upstream-name n --upstream-run-id i
-//         --started-at iso]
+//         --loop-run-id l --started-at iso]
 //     Writes a schema-valid NO-OP run artifact (config.noop=true, config.noop_reason) under
 //     scripts/harness-runs/<family>/ so deliver-artifact-branch.sh lands it. A legitimate NO-OP is still a
 //     run: the trigger is stamped honestly by writeRunArtifact (workflow_run, or workflow_run_forced_dry when
@@ -159,7 +164,7 @@ export const NOOP_FAMILIES = Object.freeze({
  * Pure. The NO-OP run artifact (CONVENTION.md shape). `config.noop` / `config.noop_reason` are what the
  * downstream gate and the loop evidence read.
  */
-export function buildNoopArtifact({ family, runId, harnessVersion, startedAt, mode, reason, upstreamName = null, upstreamRunId = null }) {
+export function buildNoopArtifact({ family, runId, harnessVersion, startedAt, mode, reason, upstreamName = null, upstreamRunId = null, loopRunId = null }) {
   const trace = NOOP_FAMILIES[family];
   if (!trace) throw new Error(`buildNoopArtifact: family "${family}" is not one of ${Object.keys(NOOP_FAMILIES).join(", ")}`);
   const why = oneLine(reason) || "no reason recorded";
@@ -174,6 +179,7 @@ export function buildNoopArtifact({ family, runId, harnessVersion, startedAt, mo
       noop_reason: why,
       upstream_name: upstreamName || null,
       upstream_run_id: upstreamRunId || null,
+      loop_run_id: loopRunId || null,
     },
     inputsRef: ["noop"],
     perItem: [{ id: "noop", outcome: "noop", verdict: why, evidence_refs: [] }],
@@ -198,6 +204,7 @@ function parse(argv) {
         mode: { type: "string" },
         reason: { type: "string" },
         "started-at": { type: "string" },
+        "loop-run-id": { type: "string" },
       },
       allowPositionals: true,
       strict: true,
@@ -253,6 +260,7 @@ export async function runCli(argv, deps = {}) {
       reason: v.reason ?? "",
       upstreamName: v["upstream-name"] ?? null,
       upstreamRunId: v["upstream-run-id"] ?? null,
+      loopRunId: v["loop-run-id"] ?? null,
     });
     const path = writeNoop(artifact, v.family);
     err(`upstream-artifact noop: wrote ${path}`);
@@ -300,6 +308,7 @@ export async function runCli(argv, deps = {}) {
   out(`CHAIN_SKIP=${gate.skip}`);
   out(`CHAIN_SKIP_REASON=${oneLine(gate.reason)}`);
   out(`CHAIN_UPSTREAM_ROW_ID=${result.row?.run_id ?? ""}`);
+  out(`CHAIN_UPSTREAM_LOOP_RUN_ID=${oneLine(result.row?.config?.loop_run_id)}`);
   return 0;
 }
 

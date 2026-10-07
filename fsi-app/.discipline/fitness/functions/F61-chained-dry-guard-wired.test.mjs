@@ -123,9 +123,9 @@ test('ATTACK: propagation-drain.yml, the one workflow reachable via a machine-fi
   const text = readFileSync(join(dir, 'propagation-drain.yml'), 'utf8');
   assert.match(
     text,
-    /chained-dry-guard\.mjs --event "\$\{\{ github\.event_name \}\}" --requested-mode apply --chained/,
+    /chained-dry-guard\.mjs --event "\$\{\{ github\.event_name \}\}" --requested-mode "\$\{\{ inputs\.mode \|\| 'apply' \}\}" --chained/,
     'expected the guard call to pass --chained (derived from inputs.chain_upstream_run_id being ' +
-      'non-empty), so a machine-fired workflow_dispatch is treated like workflow_run for the force-dry ' +
+      'non-empty) and the mode input expression (lane CHAIN-1: the real requested mode, never a hardcoded apply), so a machine-fired workflow_dispatch is treated like workflow_run for the force-dry ' +
       'decision, not merely trusted to have arrived already-dry from its caller.'
   );
 });
