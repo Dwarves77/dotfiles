@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 import { getServiceSupabase } from "@/lib/supabase-server";
+import { readGateAHealth } from "@/lib/health/gate-a-gauges.mjs";
 import {
   ALL_SURFACES,
   evaluateSurface,
@@ -161,32 +162,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ── Gate-A honesty (migration 226) ──────────────────────────────────────
-  // Read-side backstop for the provenance gate. ALARMS must all read 0 (the workflow fails, fail-closed on
-  // null); verified_gen_ver_null_info is a non-alarming legacy-lineage report. Catches drift/bypass — items
-  // verified under an older validate that lacked a criterion, or any path bypassing the write-time trigger.
-  let gate_a: {
-    invariant_violations: number | null;
-    briefless_verified: number | null;
-    no_gatestate_verified: number | null;
-    verified_failing_revalidation: number | null;
-    verified_gen_ver_null_info: number | null;
-    error: string | null;
-  } = {
-    invariant_violations: null,
-    briefless_verified: null,
-    no_gatestate_verified: null,
-    verified_failing_revalidation: null,
-    verified_gen_ver_null_info: null,
-    error: null,
-  };
-  try {
-    const { data, error } = await supabase.rpc("gate_a_health");
-    if (error) gate_a.error = error.message;
-    else gate_a = { ...(data as Omit<typeof gate_a, "error">), error: null };
-  } catch (e) {
-    gate_a.error = e instanceof Error ? e.message : "gate_a_health threw";
-  }
+  // ── Gate-A honesty (migration 226 / 256) ────────────────────────────────────────────────────────────
+  // Read-side backstop for the provenance gate. Five gauges, each { value, state, computed_at, reason }
+  // and never a bare null (lane OPS-1, 2026-10-07): state is computed | not_computed | unreadable. The
+  // cache behind gate_a_health() is refreshed only by the deliberately unscheduled gate_a_health_refresh(),
+  // so not_computed (cache empty or past its 30 minute TTL) is the expected build-mode state; the uptime
+  // probe warns on it and fails only on unreadable or a computed alarm above 0. Not computed on request:
+  // see the decision record in src/lib/health/gate-a-gauges.mjs.
+  const gate_a = await readGateAHealth(supabase);
 
   // ── Customer-visible forward obligations (lane SURF, 2026-09-01) ─────────────────────────────────
   // migration 274/275's item_forward_events now renders on the Regulations list/detail surfaces

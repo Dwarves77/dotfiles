@@ -66,6 +66,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # Only the Gate-A probe script and the one module it decides with (node is preinstalled on the runner).
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            fsi-app/scripts/health
+            fsi-app/scripts/lib/is-main.mjs
+            fsi-app/src/lib/health
+          sparse-checkout-cone-mode: false
+
       - name: Verify required secrets
         env:
           APP_URL: ${{ secrets.APP_URL }}
@@ -119,33 +128,17 @@ jobs:
           jq -r '.rpcs | to_entries[] | "  \(.key): ok=\(.value.ok)"' \
             "$tmp_body" 2>/dev/null || echo "  (could not parse rpcs)"
 
-          # ── GATE-A HONESTY ASSERTION (migration 226 gate_a_health) ───────────────────────────────────────
+          # ── GATE-A HONESTY ASSERTION (migration 226 gate_a_health, lane OPS-1 2026-10-07) ────────────────
           # Read-side backstop for the provenance gate. Runs BEFORE the surfaces build-mode ACK below so it can
-          # NEVER be masked by an operations-only-down tolerance. Every ALARM must read 0; fail-closed on a
-          # null/unreadable value (a gauge we cannot read is treated as a failure). verified_gen_ver_null_info
-          # is INFO only (legacy stamp gap, not a bypass) — echoed, never alarmed.
-          ga_inv=$(jq -r '.gate_a.invariant_violations' "$tmp_body" 2>/dev/null || echo null)
-          ga_bl=$(jq -r '.gate_a.briefless_verified' "$tmp_body" 2>/dev/null || echo null)
-          ga_ngs=$(jq -r '.gate_a.no_gatestate_verified' "$tmp_body" 2>/dev/null || echo null)
-          ga_reval=$(jq -r '.gate_a.verified_failing_revalidation' "$tmp_body" 2>/dev/null || echo null)
-          ga_info=$(jq -r '.gate_a.verified_gen_ver_null_info' "$tmp_body" 2>/dev/null || echo null)
-          ga_err=$(jq -r '.gate_a.error' "$tmp_body" 2>/dev/null || echo null)
-          echo "gate_a ALARMS: invariant=$ga_inv briefless=$ga_bl no_gatestate=$ga_ngs failing_reval=$ga_reval | INFO gen_ver_null=$ga_info err=$ga_err"
-          ga_fail=0
-          for pair in "invariant_violations:$ga_inv" "briefless_verified:$ga_bl" "no_gatestate_verified:$ga_ngs" "verified_failing_revalidation:$ga_reval"; do
-            name="${pair%%:*}"; val="${pair##*:}"
-            case "$val" in
-              0) ;;
-              ''|null|parse_error) echo "::error::gate_a.$name unreadable ($val) — fail-closed."; ga_fail=1 ;;
-              *) echo "::error::gate_a ALARM: $name=$val (must be 0)."; ga_fail=1 ;;
-            esac
-          done
-          if [ "$ga_err" != "null" ] && [ -n "$ga_err" ]; then echo "::error::gate_a_health error: $ga_err"; ga_fail=1; fi
-          if [ "$ga_fail" -ne 0 ]; then
-            echo "::error::Gate-A honesty assertion FAILED — not maskable by the surfaces build-mode ACK."
+          # NEVER be masked by an operations-only-down tolerance. Each gauge is { value, state }: FAIL on state
+          # unreadable (a gauge we cannot read, fail-closed) or a computed alarm above 0; PASS with a warning
+          # line naming the cache age on not_computed (the refresh is deliberately unscheduled, so the cache is
+          # expected to be stale in build mode). The decision is fsi-app/src/lib/health/gate-a-gauges.mjs,
+          # unit-tested; verified_gen_ver_null_info is INFO only, never alarmed.
+          if ! node fsi-app/scripts/health/gate-a-probe.mjs "$tmp_body"; then
+            echo "::error::Gate-A honesty assertion FAILED, not maskable by the surfaces build-mode ACK."
             exit 1
           fi
-          echo "✓ Gate-A honesty assertions pass (all ALARMs 0; INFO gen_ver_null=$ga_info)."
           # ── end Gate-A honesty assertion ─────────────────────────────────────────────────────────────────
 
           if [ "$status" -ne 200 ]; then
