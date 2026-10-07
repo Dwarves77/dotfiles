@@ -9,8 +9,13 @@
     "scripts/proof/preflight.mjs",
     "scripts/proof/write-local-env.mjs",
     "scripts/proof/run-lane-step.mjs",
+    "scripts/proof/dump-production-schema.mjs",
+    "scripts/proof/apply-schema-dump.mjs",
+    "scripts/proof/create-replay-db.mjs",
+    "scripts/proof/schema-diff.mjs",
+    "scripts/proof/sync-applied-migrations.mjs",
     "scripts/proof/emit-chain-proof-artifact.mjs",
     "scripts/lib/pg-conn.mjs"
   ],
-  "rationale": "chain-proof (lane PROOF-1, 2026-10-07, ADR-045): the dispatch-only job that proves the DATA layer of the loop on a disposable local Supabase stack: every migration replayed from an empty database, then the same scripts in hop order in apply mode with per-step read-back assertions and the attack suite on the real schema. The trigger layer is proven separately by the three dry fires of 2026-10-07. Governing files are the workflow, the minimal stack config, the migration replay runner, the isolation preflight (it refuses a production host and every forbidden credential name), the local env writer, the lane step wrapper, the artifact emitter, and the shared connection resolver whose loopback mode keeps every script on the local database. One run is one workflow firing; the artifact is counts and hashed ids only, uploaded as a workflow artifact, never landed into production harness_runs because the job holds no production write credential."
+  "rationale": "chain-proof (lane PROOF-1, 2026-10-07, ADR-045): the dispatch-only job that proves the DATA layer of the loop on a disposable local Supabase stack: a schema-only dump of production applied to the stack as the proof schema, then the same scripts in hop order in apply mode with per-step read-back assertions and the attack suite on the real schema. The trigger layer is proven separately by the three dry fires of 2026-10-07. Governing files are the workflow, the minimal stack config, the production schema dump and its local apply, the discovery replay of the migration files (runner, empty replay database, applied-migrations inventory reader, schema diff), the isolation preflight (it refuses a production host and every forbidden credential name), the local env writer, the lane step wrapper, the artifact emitter, and the shared connection resolver whose loopback mode keeps every script on the local database. One run is one workflow firing; the artifact is counts and hashed ids only, uploaded as a workflow artifact, never landed into production harness_runs because the job holds no production write credential."
 }

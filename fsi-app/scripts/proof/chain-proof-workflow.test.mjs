@@ -32,31 +32,57 @@ test("permissions are contents: read only, one run at a time, 60 minute limit, a
   assert.doesNotMatch(TEXT, /^\s+environment:/m);
 });
 
-test("the only secrets referenced are the two read credentials, and only in the export step", () => {
+test("the only secrets referenced are the three existing production names, and only in the export step", () => {
   const refs = [...TEXT.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]);
-  assert.deepEqual([...new Set(refs)].sort(), ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
+  assert.deepEqual([...new Set(refs)].sort(), ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_PASSWORD", "SUPABASE_SERVICE_ROLE_KEY"]);
   const holders = steps().filter((s) => /secrets\.[A-Z]/.test(s.body));
   assert.equal(holders.length, 1, "more than one step references a secret");
-  assert.match(holders[0].name, /Export the production subset/);
+  assert.match(holders[0].name, /Export the production schema dump and data subset/);
   assert.doesNotMatch(holders[0].body, /CHAIN_PROOF_ENV/, "the export step must not source the local env file");
 });
 
-test("no forbidden credential name appears as a secret, an env key, or a GitHub token anywhere in the file", () => {
-  const code = TEXT.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
-  for (const name of FORBIDDEN_NAMES) assert.ok(!code.includes(name), `${name} referenced in the workflow`);
-  assert.doesNotMatch(code, /github\.token|GITHUB_TOKEN|GH_TOKEN|gh workflow run/);
+test("no forbidden credential name appears anywhere outside the export step, and SUPABASE_DB_PASSWORD only there", () => {
+  const exportStep = steps().find((s) => /Export the production schema dump/.test(s.name));
+  const rest = TEXT.replace(exportStep.body, "");
+  const code = rest.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  for (const name of FORBIDDEN_NAMES) assert.ok(!code.includes(name), `${name} referenced outside the export step`);
+  const exportCode = exportStep.body.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  for (const name of FORBIDDEN_NAMES.filter((n) => n !== "SUPABASE_DB_PASSWORD")) assert.ok(!exportCode.includes(name), `${name} referenced in the export step`);
+  assert.doesNotMatch(TEXT.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n"), /github\.token|GITHUB_TOKEN|GH_TOKEN|gh workflow run/);
 });
 
+const LOCAL_SCRIPTS = /scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs|apply-schema-dump|schema-diff|create-replay-db)\.mjs/;
+
 test("every step that touches the local database sources the local env and runs the preflight first", () => {
-  const touching = steps().filter((s) => /scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs)\.mjs/.test(s.body) && !/Export the production subset/.test(s.name));
-  assert.ok(touching.length >= 5, `expected the replay, load, chain, attack and ledger steps, got ${touching.length}`);
+  const touching = steps().filter((s) => LOCAL_SCRIPTS.test(s.body) && !/Export the production schema dump/.test(s.name));
+  assert.ok(touching.length >= 8, `expected replay_check, schema apply, load, chain, attacks, replay, diff and ledger steps, got ${touching.length}`);
   for (const s of touching) {
     const src = s.body.indexOf('. "$CHAIN_PROOF_ENV"');
     const pre = s.body.indexOf("scripts/proof/preflight.mjs");
     assert.ok(src >= 0 && pre > src, `step "${s.name}" does not source the local env then preflight`);
-    const first = s.body.search(/scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs)\.mjs/);
+    const first = s.body.search(LOCAL_SCRIPTS);
     assert.ok(pre < first, `step "${s.name}" runs its script before the preflight`);
   }
+});
+
+test("the migration replay is discovery: after the data proof, never a gate, continue-on-error mode, replay_check only", () => {
+  const names = steps().map((s) => s.name);
+  const replay = steps().find((s) => /Replay the migration files/.test(s.name));
+  assert.ok(replay);
+  assert.match(replay.body, /continue-on-error: true/);
+  assert.match(replay.body, /--continue-on-error/);
+  assert.match(replay.body, /--db-url "\$PROOF_REPLAY_DB_URL"/);
+  assert.doesNotMatch(replay.body, /--db-url "\$PROOF_DB_URL"/);
+  assert.ok(names.findIndex((n) => /Replay the migration files/.test(n)) > names.findIndex((n) => /Run the attack suite/.test(n)), "the replay must follow the data proof");
+  assert.ok(names.findIndex((n) => /Create the empty replay_check/.test(n)) < names.findIndex((n) => /Apply the production schema dump/.test(n)), "replay_check must be made before the dump is applied");
+  const diff = steps().find((s) => /Compare the replayed schema/.test(s.name));
+  assert.match(diff.body, /continue-on-error: true/);
+});
+
+test("the production schema is applied to the local stack before the subset load", () => {
+  const names = steps().map((s) => s.name);
+  assert.ok(names.findIndex((n) => /Apply the production schema dump/.test(n)) < names.findIndex((n) => /Load the subset/.test(n)));
+  assert.match(TEXT, /rm -rf "\$RUNNER_TEMP\/schema-dump"/);
 });
 
 test("the subset never leaves the job: it is not under the workspace and not in an uploaded path", () => {
@@ -65,7 +91,7 @@ test("the subset never leaves the job: it is not under the workspace and not in 
   assert.ok(upload);
   assert.doesNotMatch(upload.body, /subset|scripts\/tmp|_snapshots/);
   assert.match(upload.body, /retention-days: 7/);
-  assert.match(TEXT, /rm -rf "\$CHAIN_PROOF_SUBSET"/);
+  assert.match(TEXT, /rm -rf .*CHAIN_PROOF_SUBSET/);
 });
 
 test("the stack starts from a scratch directory holding only the config, never from the migrations directory", () => {

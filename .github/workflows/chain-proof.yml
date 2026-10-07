@@ -4,37 +4,39 @@ name: Chain proof
 # docs/decisions/ADR-045-chain-proof-on-a-local-stack.md; Stage 9 item 1 of the buildout plan).
 #
 # WHAT THIS PROVES. The trigger layer (workflow_run edges, the dispatch fallback, upstream and loop ids) is
-# proven by the three dry fires of 2026-10-07. This job proves the DATA layer: every migration replayed onto an
-# empty database, then the same scripts in hop order in apply mode against that local copy with per-step read-back
-# assertions, then the attack suite on the real schema. Together they are the L20 proof. Nothing here touches
-# production: the local stack is the only database any step after the export can reach.
+# proven by the three dry fires of 2026-10-07. This job proves the DATA layer on a copy of production's own schema:
+# a schema-only dump of production is applied to the local stack (that is the proof schema), a subset of production
+# data is loaded, the same scripts run in hop order in apply mode with per-step read-back assertions, and the attack
+# suite runs on the real schema. Nothing here touches production: the local stack is the only database any step
+# after the export can reach.
 #
-# ISOLATION (ruling R3 as amended). The export step reads the two existing repository secrets, exactly as the chain
-# workflows do: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, the only two names in that step's env. It never holds
-# SUPABASE_DB_PASSWORD, APP_URL, WORKER_SECRET or a GitHub token, and `permissions` is contents: read. The export
-# step is the ONLY step with those secrets in its env. Every other step sources the local stack's env file, then
-# runs scripts/proof/preflight.mjs, which fails the job on a production host or any forbidden credential name.
-# scripts/lib/pg-conn.mjs runs in loopback mode (CHAIN_PROOF_LOCAL=1) and never falls through to production.
+# THE MIGRATION FILES ARE HISTORY, NOT THE COPY. The files do not reproduce production (352 applied rows whose
+# names diverge from the file names, 46 rows with no file, 17 files with no applied row). Replaying them is a
+# DISCOVERY step that runs after the data proof, in continue-on-error mode, against a second empty database
+# (replay_check) on the same stack, and its findings plus a normalised schema diff against the proof schema land in
+# the artifact. It never gates the job.
 #
-# PUBLIC REPOSITORY. Logs and artifacts are world-readable: never print or upload a row. The run artifact is counts,
-# migration file names and hashed ids. The exported subset lives only under RUNNER_TEMP and is deleted at the end.
+# ISOLATION (ruling R3 as amended twice). The export step is the ONLY step with production credentials: the three
+# existing repository secrets NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (the data read) and
+# SUPABASE_DB_PASSWORD (the schema dump), exactly as the data-audit lane uses them. It never holds APP_URL,
+# WORKER_SECRET or a GitHub token, and `permissions` is contents: read. Every other step sources the local stack's
+# env file, then runs scripts/proof/preflight.mjs, which fails the job on a production host or any forbidden
+# credential name (SUPABASE_DB_PASSWORD included). scripts/lib/pg-conn.mjs runs in loopback mode
+# (CHAIN_PROOF_LOCAL=1) and never falls through to production.
+#
+# PUBLIC REPOSITORY. Logs and artifacts are world-readable: never print or upload a row, a connection string or the
+# schema dump. The run artifact is counts, names and hashed ids. The dump and the subset live only under RUNNER_TEMP
+# and are deleted at the end.
 #
 # DISPATCH ONLY. No schedule, no workflow_run, no push trigger (rule 16: build mode holds standing schedules off).
-# The Supabase CLI is told to start from a scratch directory that holds only supabase/config.toml, so it boots an
-# EMPTY database; scripts/proof/replay-migrations.mjs applies the migration files itself (the CLI cannot: duplicate
-# numeric prefixes at 006 and 007).
+# The Supabase CLI starts from a scratch directory that holds only supabase/config.toml, so it boots an EMPTY
+# database and never applies the migration tree.
 #
 # LATER LANES. The subset export and load (PROOF-2), the chain steps (PROOF-3) and the attack suite (PROOF-4) are
 # scripts under scripts/proof/. run-lane-step.mjs runs each one, or records a named skip while its lane has not landed.
 
 on:
-  workflow_dispatch:
-    inputs:
-      replay_continue_on_error:
-        description: 'Discovery mode: attempt every migration file and record every failure instead of stopping at the first'
-        required: false
-        default: false
-        type: boolean
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -67,6 +69,7 @@ jobs:
             echo "CHAIN_PROOF_ENV=$RUNNER_TEMP/chain-proof.env"
             echo "CHAIN_PROOF_STACK=$RUNNER_TEMP/chain-proof-stack"
             echo "CHAIN_PROOF_SUBSET=$RUNNER_TEMP/subset"
+            echo "CHAIN_PROOF_SCHEMA_DUMP=$RUNNER_TEMP/schema-dump/production-schema.sql"
           } >> "$GITHUB_ENV"
           mkdir -p "$RUNNER_TEMP/chain-proof-out"
 
@@ -105,26 +108,37 @@ jobs:
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
 
-      - name: Replay every migration onto the empty database
+      # Made BEFORE the production schema is applied, from the stack's own empty postgres database as a template, so
+      # replay_check carries the auth and storage schemas and extensions and none of the application tables. A failure
+      # here only skips the discovery replay; it never fails the proof.
+      - name: Create the empty replay_check database (for the discovery replay)
+        id: replaydb
+        continue-on-error: true
         working-directory: fsi-app
-        env:
-          REPLAY_CONTINUE: ${{ inputs.replay_continue_on_error }}
         run: |
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
-          FLAGS=""
-          if [ "$REPLAY_CONTINUE" = "true" ]; then FLAGS="--continue-on-error"; fi
-          node scripts/proof/replay-migrations.mjs --report "$CP_OUT_DIR/replay-report.json" $FLAGS
+          node scripts/proof/create-replay-db.mjs --env-file "$CHAIN_PROOF_ENV"
 
-      # The ONLY step that holds production credentials: the two read credentials the subset export needs, from the
-      # repository secrets. It does not source the local env file. Everything it writes goes under RUNNER_TEMP,
-      # never the workspace and never an artifact. Lane PROOF-2 owns the script.
-      - name: Export the production subset (read only; the only step with production credentials)
+      # The ONLY step that holds production credentials: the three existing repository secrets. It does not source
+      # the local env file. It takes a schema-only dump of production (lane PROOF-1) and then the data subset (lane
+      # PROOF-2). Everything it writes goes under RUNNER_TEMP, never the workspace and never an artifact.
+      - name: Export the production schema dump and data subset (read only; the only step with production credentials)
         working-directory: fsi-app
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET"
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          node scripts/proof/run-lane-step.mjs --name dump-production-schema --lane PROOF-1 --script scripts/proof/dump-production-schema.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SCHEMA_DUMP"
+          node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET"
+
+      - name: Apply the production schema dump to the local stack (the proof schema)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/apply-schema-dump.mjs --in "$CHAIN_PROOF_SCHEMA_DUMP" --report "$CP_OUT_DIR/schema-apply-report.json"
 
       - name: Load the subset into the local database
         working-directory: fsi-app
@@ -146,6 +160,25 @@ jobs:
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/run-lane-step.mjs --name attacks --lane PROOF-4 --script scripts/proof/attacks.mjs --out-dir "$CP_OUT_DIR"
+
+      # Discovery, never a gate: every migration file is attempted in continue-on-error mode against replay_check.
+      - name: Replay the migration files onto replay_check (discovery, never a gate)
+        if: always() && steps.replaydb.outcome == 'success'
+        continue-on-error: true
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/replay-migrations.mjs --db-url "$PROOF_REPLAY_DB_URL" --report "$CP_OUT_DIR/replay-report.json" --continue-on-error
+
+      - name: Compare the replayed schema with the proof schema (names and counts only)
+        if: always() && steps.replaydb.outcome == 'success'
+        continue-on-error: true
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/schema-diff.mjs --a "$PROOF_DB_URL" --b "$PROOF_REPLAY_DB_URL" --out "$CP_OUT_DIR/replay-schema-diff.json"
 
       - name: Export the local harness_runs ledger (hashed ids, no row text)
         if: always() && steps.stack.outcome == 'success'
@@ -171,8 +204,8 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Stop the local stack and delete the subset
+      - name: Stop the local stack and delete the dump and the subset
         if: always()
         run: |
           if [ -d "$CHAIN_PROOF_STACK" ]; then (cd "$CHAIN_PROOF_STACK" && supabase stop --no-backup) || true; fi
-          rm -rf "$CHAIN_PROOF_SUBSET" "$CHAIN_PROOF_ENV"
+          rm -rf "$RUNNER_TEMP/schema-dump" "$CHAIN_PROOF_SUBSET" "$CHAIN_PROOF_ENV"

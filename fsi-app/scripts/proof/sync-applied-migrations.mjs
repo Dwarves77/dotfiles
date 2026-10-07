@@ -46,6 +46,18 @@ export function buildInventory(rows, syncedAt) {
   };
 }
 
+/** Parse and validate the committed inventory text. PURE. Returns the migrations array; throws a named reason.
+ *  This is the ONE reader of applied-migrations.json: replay-migrations.mjs imports it. */
+export function parseAppliedInventory(text) {
+  let inv;
+  try { inv = JSON.parse(text); } catch (e) { throw new Error(`the inventory is not JSON: ${e.message}`); }
+  if (!inv || typeof inv !== "object" || !Array.isArray(inv.migrations)) throw new Error("the inventory has no migrations array");
+  const migrations = normalizeExport(inv.migrations);
+  if (migrations.length === 0) throw new Error("the inventory lists no migrations");
+  if (inv.count !== migrations.length) throw new Error(`the inventory count (${inv.count}) does not equal its rows (${migrations.length})`);
+  return migrations;
+}
+
 if (isMainModule(import.meta.url)) {
   const argv = process.argv.slice(2);
   const oi = argv.indexOf("--out");

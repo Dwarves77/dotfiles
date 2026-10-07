@@ -5,6 +5,8 @@
 // directory (CP_OUT_DIR) and records counts, step outcomes and one defect per failure:
 //   replay-report.json          from replay-migrations.mjs
 //   harness-runs-local.json     from export-local-harness-runs.mjs (hashed ids only)
+//   schema-apply-report.json    from apply-schema-dump.mjs (the production schema dump applied to the stack)
+//   replay-schema-diff.json     from schema-diff.mjs (proof schema vs the migration-file replay; counts and names)
 //   step-<name>.json            from run-lane-step.mjs, one per later step (ran / skipped with a reason / failed)
 // A missing or unreadable input is recorded as missing, never as a clean run.
 //
@@ -41,15 +43,17 @@ function readJson(path, readFn) {
 export function readInputs(outDir, { readFn = readFileSync, listFn = readdirSync } = {}) {
   const replay = readJson(join(outDir, "replay-report.json"), readFn);
   const local = readJson(join(outDir, "harness-runs-local.json"), readFn);
+  const schemaApply = readJson(join(outDir, "schema-apply-report.json"), readFn);
+  const schemaDiff = readJson(join(outDir, "replay-schema-diff.json"), readFn);
   let names = [];
   try { names = listFn(outDir).filter((n) => /^step-[a-z0-9-]+\.json$/.test(n)).sort(); } catch { names = []; }
   const steps = names.map((n) => readJson(join(outDir, n), readFn).value).filter(Boolean);
-  return { replay: replay.value ?? null, replayError: replay.error ?? null, local: local.value ?? null, steps };
+  return { replay: replay.value ?? null, replayError: replay.error ?? null, local: local.value ?? null, schemaApply: schemaApply.value ?? null, schemaDiff: schemaDiff.value ?? null, steps };
 }
 
 /** Build the artifact. PURE. */
 export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = null, inputs }) {
-  const { replay, replayError, local, steps } = inputs;
+  const { replay, replayError, local, steps, schemaApply = null, schemaDiff = null } = inputs;
   const perItem = [];
   const defects = [];
 
@@ -80,6 +84,21 @@ export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = nu
     defects.push({ description: "chain proof produced no replay report", root_cause: replayError ?? "", fix_ref: null });
   }
 
+  if (schemaApply) {
+    perItem.push({
+      id: "schema-apply",
+      outcome: schemaApply.ok ? "ok" : "failed",
+      verdict: `public tables ${schemaApply.public_tables}; fatal errors ${schemaApply.fatal_errors}; role errors ${schemaApply.role_errors}`,
+      counts: { fatal_errors: schemaApply.fatal_errors, role_errors: schemaApply.role_errors },
+      evidence_refs: ["schema-apply-report.json"],
+      error: null,
+    });
+    for (const e of (schemaApply.errors ?? []).slice(0, 30)) defects.push({ description: "production schema dump statement failed locally", root_cause: `line ${e.line}: ${e.message}`.slice(0, 300), fix_ref: null });
+  }
+  if (schemaDiff) {
+    perItem.push({ id: "replay-schema-diff", outcome: "finding", verdict: `${schemaDiff.differing_total} differing name(s) between the proof schema and the migration-file replay`, counts: Object.fromEntries(Object.entries(schemaDiff.categories ?? {}).map(([k, v]) => [k, (v.only_in_a ?? 0) + (v.only_in_b ?? 0)])), evidence_refs: ["replay-schema-diff.json"], error: null });
+  }
+
   for (const s of steps) {
     perItem.push({
       id: `step:${s.step}`,
@@ -107,6 +126,15 @@ export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = nu
     steps_skipped: steps.filter((s) => s.status === "skipped").length,
     steps_failed: steps.filter((s) => s.status === "failed").length,
     local_harness_runs: local?.count ?? null,
+    schema_apply_public_tables: schemaApply?.public_tables ?? null,
+    schema_apply_fatal_errors: schemaApply?.fatal_errors ?? null,
+    schema_apply_role_errors: schemaApply?.role_errors ?? null,
+    schema_diff_differing: schemaDiff?.differing_total ?? null,
+    schema_diff_tables: schemaDiff ? (schemaDiff.categories.tables.only_in_a + schemaDiff.categories.tables.only_in_b) : null,
+    schema_diff_columns: schemaDiff ? (schemaDiff.categories.columns.only_in_a + schemaDiff.categories.columns.only_in_b) : null,
+    schema_diff_functions: schemaDiff ? (schemaDiff.categories.functions.only_in_a + schemaDiff.categories.functions.only_in_b) : null,
+    schema_diff_triggers: schemaDiff ? (schemaDiff.categories.triggers.only_in_a + schemaDiff.categories.triggers.only_in_b) : null,
+    schema_diff_constraints: schemaDiff ? (schemaDiff.categories.constraints.only_in_a + schemaDiff.categories.constraints.only_in_b) : null,
   };
 
   return buildRunArtifactEnvelope({
@@ -115,7 +143,7 @@ export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = nu
     runId,
     startedAt,
     config: { stack: "local-supabase", production_writes: false, loop_run_id: loopRunId },
-    inputsRef: ["replay-report.json", "harness-runs-local.json", "step-*.json"],
+    inputsRef: ["replay-report.json", "schema-apply-report.json", "replay-schema-diff.json", "harness-runs-local.json", "step-*.json"],
     perItem,
     metrics,
     defectsFound: defects,
@@ -133,8 +161,10 @@ export function summaryMarkdown(artifact) {
   const lines = [
     "## Chain proof",
     "",
-    `Migration replay: applied ${m.replay_applied ?? "n/a"} of ${m.replay_planned ?? "n/a"}, failed ${m.replay_failed ?? "n/a"}, tolerated ${m.replay_tolerated ?? "n/a"}, skipped ${m.replay_skipped ?? "n/a"}.`,
+    `Proof schema (production dump): public tables ${m.schema_apply_public_tables ?? "n/a"}, fatal errors ${m.schema_apply_fatal_errors ?? "n/a"}, role errors ${m.schema_apply_role_errors ?? "n/a"}.`,
+    `Migration-file replay (discovery, a finding not a gate): applied ${m.replay_applied ?? "n/a"} of ${m.replay_planned ?? "n/a"}, failed ${m.replay_failed ?? "n/a"}, tolerated ${m.replay_tolerated ?? "n/a"}, skipped ${m.replay_skipped ?? "n/a"}.`,
     `Steps: ${m.steps_ran} ran, ${m.steps_skipped} skipped, ${m.steps_failed} failed. Local harness_runs rows: ${m.local_harness_runs ?? "n/a"}.`,
+    `Replay vs proof schema: ${m.schema_diff_differing ?? "n/a"} differing names (tables ${m.schema_diff_tables ?? "n/a"}, columns ${m.schema_diff_columns ?? "n/a"}, functions ${m.schema_diff_functions ?? "n/a"}, triggers ${m.schema_diff_triggers ?? "n/a"}, constraints ${m.schema_diff_constraints ?? "n/a"}).`,
   ];
   for (const p of artifact.per_item.filter((x) => x.id.startsWith("step:"))) lines.push(`- ${p.id}: ${p.outcome}${p.outcome === "skipped" ? ` (${p.verdict})` : ""}`);
   for (const d of artifact.defects_found) lines.push(`- DEFECT ${d.description}${d.root_cause ? `: ${d.root_cause}` : ""}`);

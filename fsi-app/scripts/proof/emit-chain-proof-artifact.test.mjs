@@ -83,3 +83,15 @@ test("readInputs tolerates a missing directory and unreadable files", () => {
 test("emit refuses without CP_OUT_DIR", () => {
   assert.throws(() => emit({ env: {} }), /CP_OUT_DIR/);
 });
+
+test("schema apply and schema diff inputs become metrics, a per-item entry, and one defect per failed statement", () => {
+  const schemaApply = { ok: false, public_tables: 100, fatal_errors: 1, role_errors: 2, errors: [{ line: 9, message: 'type "foo" does not exist' }] };
+  const categories = Object.fromEntries(["tables", "columns", "functions", "triggers", "constraints"].map((k, i) => [k, { only_in_a: i, only_in_b: 1 }]));
+  const a = buildArtifact({ ...base, inputs: { replay: null, replayError: "x", local: null, steps: [], schemaApply, schemaDiff: { differing_total: 15, categories } } });
+  assert.deepEqual(validateRunArtifact(a), []);
+  assert.equal(a.metrics.schema_apply_fatal_errors, 1);
+  assert.equal(a.metrics.schema_diff_columns, 2);
+  assert.ok(a.defects_found.some((d) => d.description === "production schema dump statement failed locally" && /line 9/.test(d.root_cause)));
+  assert.ok(a.per_item.some((p) => p.id === "replay-schema-diff" && p.outcome === "finding"));
+  assert.match(summaryMarkdown(a), /Replay vs proof schema: 15 differing names/);
+});

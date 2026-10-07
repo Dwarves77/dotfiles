@@ -21,7 +21,13 @@
 // applied migrations and are stale. A file matches an applied row when (version, name) equals (file prefix, rest of
 // the name), or the row's name is the whole file base name, or the row is timestamp-versioned and its name is the
 // rest of the file name. A file with no match is SKIPPED and listed (skipped_not_applied). An applied row that
-// matches no file is an ERROR (applied_without_file): the replay refuses to run and reports them.
+// matches no file is a FINDING (applied_without_file), listed in the report; it never stops the replay.
+//
+// DISCOVERY, NEVER A GATE (coordinator ruling 2026-10-07). Production's names diverge from the file names (352
+// applied rows, 46 with no file, 17 files with no applied row), so the file set cannot rebuild production. The
+// chain proof's schema is a schema-only dump of production (apply-schema-dump.mjs). This replay runs AFTER the data
+// proof, against a second empty database on the same stack (create-replay-db.mjs), in continue-on-error mode, and
+// its findings, together with schema-diff.mjs's comparison against the dumped schema, land in the artifact.
 //
 // STOP RULE. The first error stops the replay with the file name, the psql error and the statement at the
 // reported line, unless that file is on the tolerate list (scripts/proof/replay-tolerate.json, each entry
@@ -34,7 +40,7 @@
 //
 // Usage: node scripts/proof/replay-migrations.mjs --report <path> [--db-url <url>] [--continue-on-error]
 //          [--migrations-dir <dir>] [--inventory <md>] [--tolerate <json>] [--psql <bin>]
-//   The database URL defaults to PROOF_DB_URL, then SUPABASE_DB_URL.
+//   The database URL is --db-url or PROOF_REPLAY_DB_URL; the proof schema database is never a fallback.
 // Exit: 0 = every file applied (or tolerated/skipped with a reason) and the post checks passed;
 //       1 = a file failed or a post check failed; 2 = cannot run (no URL, not loopback, no psql).
 
@@ -44,6 +50,7 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isLoopbackHost } from "../lib/pg-conn.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
+import { parseAppliedInventory } from "./sync-applied-migrations.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -247,10 +254,9 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
   const startedAt = now().toISOString();
   const files = [];
   let stoppedAt = null;
-  const refusedForApplied = (plan.appliedWithoutFile ?? []).length > 0;
   const toleratedBy = (file, message) => (tolerate.tolerate ?? []).find((t) => t.file === file && (!t.error_contains || String(message).includes(t.error_contains)));
 
-  for (const item of refusedForApplied ? [] : plan.ordered) {
+  for (const item of plan.ordered) {
     if (item.skip) {
       files.push({ file: item.file, status: "skipped", seconds: 0, reason: item.skip.reason, owner: item.skip.owner });
       continue;
@@ -276,7 +282,7 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
   const count = (s) => files.filter((f) => f.status === s).length;
   let postChecks = [];
   let postInfo = null;
-  if (!stoppedAt && !refusedForApplied) {
+  if (!stoppedAt) {
     const probed = probe({ psql, dbUrl, spawn });
     if (probed) {
       const ev = evaluatePostChecks(probed, expectedTables);
@@ -310,8 +316,7 @@ export function replay({ plan, tolerate = { skip: [], tolerate: [] }, migrations
     post_info: postInfo,
     files,
   };
-  report.refused = refusedForApplied;
-  report.ok = !refusedForApplied && failed === 0 && !stoppedAt && postChecks.length > 0 && postChecks.every((c) => c.ok);
+  report.ok = failed === 0 && !stoppedAt && postChecks.length > 0 && postChecks.every((c) => c.ok);
   return report;
 }
 
@@ -322,17 +327,15 @@ export function summarize(report) {
     `  planned ${report.planned}, applied ${report.applied}, failed ${report.failed}, tolerated ${report.tolerated}, skipped ${report.skipped}`,
     `  listed in inventory but absent on disk: ${report.missing_on_disk.length}; on disk but not in inventory (not applied): ${report.not_in_inventory.length}`,
     `  duplicate prefixes: ${report.duplicate_prefixes.map((d) => `${d.prefix} x${d.files.length}`).join(", ") || "none"}; absent numbers: ${report.gaps.length}`,
-    `  skipped, not in the applied inventory: ${report.skipped_not_applied.length}; applied rows with no file (ERROR): ${report.applied_without_file.length}`,
+    `  skipped, not in the applied inventory: ${report.skipped_not_applied.length}; applied rows with no file (finding): ${report.applied_without_file.length}`,
   ];
   for (const f of report.files.filter((x) => x.status === "failed")) {
     lines.push(`  FAILED ${f.file}${f.error?.line ? ` line ${f.error.line}` : ""}: ${f.error?.message}`);
     if (f.error?.statement) lines.push(`    statement: ${f.error.statement}`);
     for (const c of f.error?.context ?? []) lines.push(`    ${c}`);
   }
-  if (report.refused) {
-    lines.push("  REFUSED: applied rows with no migration file (nothing was replayed):");
-    for (const r of report.applied_without_file) lines.push(`    ${r.version} ${r.name}`);
-  }
+  for (const r of report.applied_without_file.slice(0, 60)) lines.push(`  FINDING applied row with no file: ${r.version} ${r.name}`);
+  for (const f of report.skipped_not_applied) lines.push(`  FINDING file with no applied row (skipped): ${f}`);
   for (const c of report.post_checks.filter((x) => !x.ok)) lines.push(`  POST CHECK FAILED: ${c.name}`);
   if (report.post_info) lines.push(`  public tables ${report.post_info.public_tables}, committed catalog ${report.post_info.catalog_tables}, delta ${report.post_info.delta}`);
   return lines.join("\n");
@@ -352,8 +355,8 @@ function parseArgs(argv) {
 function main() {
   let args;
   try { args = parseArgs(process.argv.slice(2)); } catch (e) { console.error(e.message); process.exit(2); }
-  const dbUrl = args.dbUrl || process.env.PROOF_DB_URL || process.env.SUPABASE_DB_URL;
-  if (!dbUrl) { console.error("replay-migrations: no database URL (--db-url, PROOF_DB_URL or SUPABASE_DB_URL); cannot run"); process.exit(2); }
+  const dbUrl = args.dbUrl || process.env.PROOF_REPLAY_DB_URL;
+  if (!dbUrl) { console.error("replay-migrations: no database URL (--db-url or PROOF_REPLAY_DB_URL; the proof schema database is never a fallback); cannot run"); process.exit(2); }
   try { assertLoopbackDbUrl(dbUrl); } catch (e) { console.error(`replay-migrations: ${e.message}`); process.exit(2); }
   const psql = args.psql || "psql";
   const probe = spawnSync(psql, ["--version"], { encoding: "utf8" });
@@ -368,8 +371,7 @@ function main() {
   if (errors.length) { console.error(`replay-migrations: tolerate file refused: ${errors.join("; ")}`); process.exit(2); }
   const diskFiles = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql"));
   let appliedRows;
-  try { appliedRows = JSON.parse(readFileSync(args.applied ? resolve(args.applied) : DEFAULT_APPLIED, "utf8")).migrations; } catch (e) { console.error(`replay-migrations: cannot read the applied-migrations inventory: ${e.message}`); process.exit(2); }
-  if (!Array.isArray(appliedRows) || appliedRows.length === 0) { console.error("replay-migrations: the applied-migrations inventory lists no migrations; cannot decide what to apply"); process.exit(2); }
+  try { appliedRows = parseAppliedInventory(readFileSync(args.applied ? resolve(args.applied) : DEFAULT_APPLIED, "utf8")); } catch (e) { console.error(`replay-migrations: applied-migrations inventory refused: ${e.message}`); process.exit(2); }
   const plan = planReplay(inventoryRows, diskFiles, tolerate, appliedRows);
 
   let expectedTables = null;

@@ -234,19 +234,20 @@ test("applied filter in a replay: the skipped file is not run and the report lis
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("ERROR: a listed applied version with no file refuses the replay, runs nothing and names the rows", () => {
+test("FINDING, not a gate: an applied version with no file is listed and the replay still runs every planned file", () => {
   const dir = fixtureDir();
   try {
     const { spawn, calls } = fakePsql();
     const applied = [...APPLIED, { version: "300", name: "ghost_migration" }];
     const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, {}, applied);
     assert.deepEqual(plan.appliedWithoutFile, [{ version: "300", name: "ghost_migration" }]);
-    const report = replay({ plan, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, expectedTables: 108 });
-    assert.equal(calls.length, 0, "psql was called on a refused replay");
-    assert.equal(report.refused, true);
-    assert.equal(report.ok, false);
-    assert.match(summarize(report), /REFUSED/);
-    assert.match(summarize(report), / 300 ghost_migration/);
+    const report = replay({ plan, migrationsDir: dir, dbUrl: "postgresql://postgres:postgres@127.0.0.1:54322/postgres", spawn, continueOnError: true, expectedTables: 108 });
+    assert.ok(calls.filter((c) => c !== "(probe)").length >= 4, "the replay must run despite the finding");
+    assert.equal(report.refused, undefined);
+    assert.deepEqual(report.applied_without_file, [{ version: "300", name: "ghost_migration" }]);
+    assert.equal(report.ok, true);
+    assert.match(summarize(report), /FINDING applied row with no file: 300 ghost_migration/);
+    assert.match(summarize(report), /FINDING file with no applied row \(skipped\): 006_rls_multi_tenant\.sql/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
