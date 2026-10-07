@@ -48,12 +48,23 @@ Reused: `runCli`'s existing exit/summary contract, the existing `gate_a_health()
   Live table sizes: the 2026-10-04 inventory in the repo carries none; the only recorded size is migration 322's
   2026-09-16 figure, agent_run_searches 6,393 rows, 245 MB total, 239 MB TOAST.
 
+## Follow-up round (coordinator rulings on PR 966, same day)
+
+- F48: `cli.test.mjs` builds its child environment with `withoutCredentials()` (was a hand-rolled delete).
+- F23: the write detector (`coverage-scan.mjs` WRITE_RE) matched the actual call shape `.rpc(` in
+  `gate-a-gauges.mjs` (a read RPC; the scan cannot tell). Mapped the file in `skill-map.mjs` under
+  `caros-ledge-platform-intent` (write-set expansion granted for that one file). No exemptions.mjs entry.
+  The regenerated `coverage-report.json` was NOT committed (it carries 227 lines of unrelated pre-existing drift).
+- F-RED-1 fixed at the cause (write-set expansion granted for `refetch-capped-worklist.mjs` and its test).
+  `buildWorklist` no longer selects `result_content`; it selects `result_chars` and prefilters server side with
+  `.or()` on the class ranges widened 1 percent each side (legacy_40k 39501..40400, corroborator_60k 59301..60600,
+  primary_600k 594000..606000, stated in the file header); `classify()` places rows from `result_chars`.
+  Test `refetch-capped-worklist.npmtest.mjs` (6 tests, a fixture row at every class boundary, rows inside and
+  outside the widened bounds, dedup, no `result_content` in the select). It is an npmtest because `scripts/lib/db.mjs`
+  is not on the no-npm import graph.
+- Two new files outside the listed write set, accepted by the coordinator: `src/lib/health/gate-a-gauges.mjs`
+  (and its test) and `scripts/health/gate-a-probe.mjs`.
+
 ## NOT done
 
-- F-RED-1 root cause fix (statement timeout). Root cause [CONFIRMED by reading the code]: the failing read is
-  `buildWorklist` in `scripts/remediation/refetch-capped-worklist.mjs` (the script `refetch-capped.mjs` wraps), a
-  `readAll` of `agent_run_searches` selecting `result_content` (up to 600,000 chars per row, 239 MB TOAST in the
-  table) in 1000-row pages just to compute `.length` client side; page 1 decompresses tens of MB and times out.
-  That file and its test are outside this lane's write set: NEEDS WRITE-SET EXPANSION (see the report for the
-  staged patch). Nothing was changed there.
 - Live timing of any of this: confirmed after merge by the coordinator's executor.

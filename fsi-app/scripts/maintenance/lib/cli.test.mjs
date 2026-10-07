@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { withoutCredentials } from "../../lib/env-file.mjs";
 import { REQUIRES_ARG, fanoutSkipSummary } from "./cli.mjs";
 
 const MAINT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -38,8 +39,7 @@ test("every declared step id is a real runCli step in its own wrapper (no stale 
 });
 
 test("end to end: the real wrapper process exits 0 and logs the skip under RUN_STEP=all, with no DB creds", () => {
-  const env = { ...process.env, RUN_STEP: "all" };
-  delete env.NEXT_PUBLIC_SUPABASE_URL; delete env.SUPABASE_SERVICE_ROLE_KEY;
+  const env = { ...withoutCredentials(), RUN_STEP: "all" };
   const r = spawnSync(process.execPath, [resolve(MAINT, "reopen-validation-holds.mjs"), "--mode", "dry"], { env, encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /skipped in step=all fan-out/);

@@ -68,6 +68,10 @@ export const GOVERNED = [
       // is governed as the pages are, same precedent as shell-context.ts above.
       'fsi-app/src/lib/community/member-pref-route.mjs',
       'fsi-app/src/components/Sidebar.tsx', // nav entry = surface exposure
+      // Gate A gauges (lane OPS-1, 2026-10-07): shapes the gate_a_health() RPC read that /api/health/surfaces serves
+      // to the uptime probe. The write detector matches its `.rpc(` call shape (a read RPC, the scan cannot tell);
+      // it reports the health of the five customer surfaces' provenance gate, so it is governed with the surfaces.
+      'fsi-app/src/lib/health/gate-a-gauges.mjs',
     ],
     ops: [],
   },
