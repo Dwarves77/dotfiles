@@ -30,6 +30,7 @@ import { runSmoke as runLeadTimeChartSmoke } from './lead-time-chart-smoke.mjs';
 import { runSmoke as runLabourChainSmoke } from './labour-chain-smoke.mjs';
 import { runSmoke as runCrossPageSmoke } from './cross-page-smoke.mjs';
 import { runSmoke as runInferenceSectionSmoke } from './inference-section-smoke.mjs';
+import { runSmoke as runAdminCorrectionsSmoke } from './admin-corrections-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -102,4 +103,6 @@ export const UX_SMOKE_SPECS = [
   { name: "cross-page", run: runCrossPageSmoke },
   // lane P2, 2026-10-05: the "Inferences" section on the four detail pages (machine-written inferences, labelled).
   { name: "inference-section", run: runInferenceSectionSmoke },
+  // lane G7-UI, 2026-10-06: the admin Corrections panel (/admin/items/[id]), the Corrections tab and the shared row.
+  { name: "admin-corrections", run: runAdminCorrectionsSmoke },
 ];
