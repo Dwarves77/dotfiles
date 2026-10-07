@@ -361,16 +361,16 @@ jobs:
       # Downstream chain). A chained run must record the loop run id of its root, and the on-disk resolver finds
       # no upstream artifact in a CI checkout now that artifacts land only in `harness_runs`. This step reads the
       # upstream's row through the one reader, scripts/lib/upstream-artifact.mjs, and exports the id the emitter
-      # takes as its explicit id (which wins over the disk resolver). Only the loop id is used: the reader's
-      # gate answer is ignored here (this workflow's own conditions already decided to run), and --consumer
-      # only names a defined hand-off table, so a read failure is a warning and a null id, never a red run.
+      # takes as its explicit id (which wins over the disk resolver). The `loop-id` subcommand prints the loop
+      # id and nothing else (no consumer, no gate: this workflow's own conditions already decided to run), and
+      # a read failure is a warning and a null id, never a red run.
       - name: Read the upstream loop run id (ADR-031, chained firings only)
         if: ${{ env.RUN_UPSTREAM_RUN_ID != '' }}
         env:
           CHAIN_UPSTREAM_NAME: ${{ env.RUN_UPSTREAM_NAME }}
           CHAIN_UPSTREAM_RUN_ID: ${{ env.RUN_UPSTREAM_RUN_ID }}
         run: |
-          if HANDOFF="$(node scripts/lib/upstream-artifact.mjs read --consumer downstream-chain --upstream-name "$CHAIN_UPSTREAM_NAME" --upstream-run-id "$CHAIN_UPSTREAM_RUN_ID" --run-mode dry)"; then
+          if HANDOFF="$(node scripts/lib/upstream-artifact.mjs loop-id --upstream-name "$CHAIN_UPSTREAM_NAME" --upstream-run-id "$CHAIN_UPSTREAM_RUN_ID")"; then
             LOOP_ID="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p')"
             echo "RUN_UPSTREAM_LOOP_RUN_ID=$LOOP_ID" >> "$GITHUB_ENV"
             echo "upstream loop run id: ${LOOP_ID:-(the upstream row records none)}"

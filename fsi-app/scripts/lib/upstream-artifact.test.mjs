@@ -258,3 +258,33 @@ test("CLI noop: an unknown family or a bad mode is exit 1 and writes nothing", a
   assert.equal(await runCli(["noop", "--family", "mint", "--mode", "plan", "--reason", "r"], deps), 1);
   assert.equal(written.length, 0);
 });
+
+// ── lane CHAIN-2: loop-id, the loop id only, no consumer and no gate ──────────────────────────────────────
+const LOOP_ID = ["loop-id", "--upstream-name", "Source sweep", "--upstream-run-id", "100"];
+
+test("CLI loop-id: prints only the upstream row's loop id, with no consumer, run mode or gate", async () => {
+  const { io, deps } = cli({ readRowsFactory: () => async () => [ledgerRow({ config: { mode: "plan", noop: true, loop_run_id: "sweep-5" } })] });
+  assert.equal(await runCli(LOOP_ID, deps), 0);
+  assert.deepEqual(io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID=sweep-5"], "a no-op or plan upstream is not gated here");
+});
+
+test("CLI loop-id: no row, or a row with no loop id, prints an empty id and exits 0", async () => {
+  const a = cli({ readRowsFactory: () => async () => [] });
+  assert.equal(await runCli(LOOP_ID, a.deps), 0);
+  assert.deepEqual(a.io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID="]);
+  const b = cli({ readRowsFactory: () => async () => [ledgerRow({ config: { mode: "plan" } })] });
+  assert.equal(await runCli(LOOP_ID, b.deps), 0);
+  assert.deepEqual(b.io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID="]);
+});
+
+test("CLI loop-id: a read error and missing credentials fail like read (exit 1 in Actions, 2 outside)", async () => {
+  const a = cli({ readRowsFactory: () => async () => { throw new Error("boom"); } });
+  assert.equal(await runCli(LOOP_ID, a.deps), 1);
+  assert.equal(await runCli(LOOP_ID, cli({ envKey: "" }).deps), 1);
+  assert.equal(await runCli(LOOP_ID, cli({ envKey: "", isGitHubActions: false }).deps), 2);
+});
+
+test("CLI read: the consumer is still required (loop-id did not loosen read)", async () => {
+  const { deps } = cli();
+  assert.equal(await runCli(["read", "--upstream-name", "Source sweep", "--upstream-run-id", "100", "--run-mode", "dry"], deps), 1);
+});

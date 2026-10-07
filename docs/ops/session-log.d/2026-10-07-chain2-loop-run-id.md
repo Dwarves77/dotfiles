@@ -28,13 +28,12 @@ COMMON.md, the brief, lane-common-contract.md, the CHAIN-1 log (owed section), `
 
 ## Decisions
 
-- `--consumer downstream-chain` is passed to the reader in all seven read steps. The reader's `read` only accepts the two consumers in its `APPLY_EVIDENCE` table (`population-turn`, `downstream-chain`), and `upstream-artifact.mjs` is outside this lane's write set. The gate answer (`CHAIN_SKIP`) is ignored and the loop id is printed regardless of the gate, so this works, but the consumer name is a stand-in. See open items.
+- Coordinator ruling on PR 971: the stand-in `--consumer downstream-chain` was not acceptable. Write-set expansion granted for `upstream-artifact.mjs` and its test: new `loop-id` subcommand (`--upstream-name`, `--upstream-run-id`) prints `CHAIN_UPSTREAM_LOOP_RUN_ID=` and nothing else, no consumer, no run mode, no gate; same read, retries and exit codes as `read`. The seven read steps call it; the population-turn and downstream-chain `read` calls are unchanged. Tests: loop-id ignores the gate (a no-op or plan upstream still yields its id), empty id on no row or no id, same exit codes on read error and missing credentials, `read` still requires a consumer; the wiring test asserts every step uses `loop-id` and names no consumer.
 - Ledger consume and Fetch drain read the Source sweep row (family `source-sweep`, in `FAMILY_BY_WORKFLOW_NAME`).
 
 ## NOT done / open
 
 - Not proven live: nothing here ran in GitHub Actions or against the database (common terms rule 5).
-- Open: a cleaner reader contract (a `loop-id` subcommand, or a `--consumer none`) belongs in `upstream-artifact.mjs`, which this lane may not edit. Until then the stand-in consumer name is one token per workflow.
 - Corpus turn has no F28 marker: `corpus-turn.yml` is not in `GOVERNING_FILES` and the emitter is not either (confirmed by intersecting `governing-files.mjs` with the diff). Markers added: brief-export, gate-a-rescan, source-resolution, propagation, ledger-consume, fetch-drain.
 
 ## Post-merge dry proof (the coordinator's executor)

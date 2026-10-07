@@ -204,7 +204,8 @@ for (const c of LOOP_ID_CONSUMERS) {
     const text = yml(c.file);
     const step = stepText(text, READ_STEP);
     assert.ok(step.includes(`if: \${{ ${c.gate} }}`), `the read step must gate on ${c.gate}`);
-    assert.match(step, /node scripts\/lib\/upstream-artifact\.mjs read --consumer downstream-chain --upstream-name "\$CHAIN_UPSTREAM_NAME" --upstream-run-id "\$CHAIN_UPSTREAM_RUN_ID" --run-mode dry/);
+    assert.match(step, /node scripts\/lib\/upstream-artifact\.mjs loop-id --upstream-name "\$CHAIN_UPSTREAM_NAME" --upstream-run-id "\$CHAIN_UPSTREAM_RUN_ID"\)/);
+    assert.ok(!/--consumer/.test(step), "the loop id read names no consumer (a stand-in name would misreport who is asking)");
     assert.match(step, /sed -n 's\/\^CHAIN_UPSTREAM_LOOP_RUN_ID=\/\/p'/);
     assert.ok(step.includes(`echo "${c.envVar}=$LOOP_ID" >> "$GITHUB_ENV"`), `must export ${c.envVar}`);
     assert.match(step, /::warning::/, "a read failure is a warning and a null id, never a red run");
