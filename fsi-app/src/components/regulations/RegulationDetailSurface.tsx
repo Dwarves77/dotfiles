@@ -247,7 +247,7 @@ export function RegulationDetailSurface({
   // there is no Related section on Regulations. Lane IDX-1 (2026-10-07): the index lists every
   // main-content section with its fixed ordinal, including Connected and Inferences when they render.
   const hasRelated = connections.length > 0 || supersessions.length > 0;
-  const crossPagePresent = crossPagePresence({ surfaceKey: "regulations", connections, resourceLookup, crossPage });
+  const { connected: hasConnectedSection, inferences: hasInferencesSection } = crossPagePresence({ surfaceKey: "regulations", connections, resourceLookup, crossPage });
   const indexEntries: SectionIndexEntry[] = useMemo(
     () => [
       ...REGULATION_SECTION_INDEX.filter((e) => {
@@ -256,9 +256,9 @@ export function RegulationDetailSurface({
         if (e.id === "penalties") return hasPenalties;
         return dynamicSectionsByIndexId.has(e.id);
       }),
-      ...crossPageIndexEntries("regulations", crossPagePresent),
+      ...crossPageIndexEntries("regulations", { connected: hasConnectedSection, inferences: hasInferencesSection }),
     ],
-    [dynamicSectionsByIndexId, hasPenalties, crossPagePresent.connected, crossPagePresent.inferences]
+    [dynamicSectionsByIndexId, hasPenalties, hasConnectedSection, hasInferencesSection]
   );
 
   // Trajectory sentence moved to S1 Summary (review item 5 / brief item 5); ActionCard's fourth

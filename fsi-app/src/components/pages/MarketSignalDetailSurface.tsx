@@ -694,7 +694,7 @@ export function MarketSignalDetailSurface({
           </DetailSection>
 
           {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
-            <DetailSection id="related" title={`Connected · related ${BAND_LABEL[signalBand].toLowerCase()}`} index={6}>
+            <DetailSection id="related" title="Related" aside={BAND_LABEL[signalBand]} index={6}>
               {(connections.length > 0 || supersessions.length > 0) && (
                 <div style={{ marginBottom: related.length > 0 ? 16 : 0 }}>
                   <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />

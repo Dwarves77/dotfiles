@@ -35,16 +35,13 @@ Reused: `DetailSection`'s existing `index` prop, `SectionIndex`'s existing `ord`
 
 ### Decisions
 - Header ordinals: the Connected and Inferences headers show S9 and S10 on Regulations, S7 and S8 on the other three.
-- Market's own S6 section title still begins "Connected · related ..." (`MarketSignalDetailSurface.tsx`, tab "Related").
-  Left as is, outside the ruling's scope; it now sits beside a "Connected intelligence" section and may read as a
-  clash. Open item.
+- Market's S6 header was "Connected · related <band>", which collided with "Connected intelligence". Coordinator ruling
+  2026-10-07: it now reads "Related" (aside carries the band label), matching its tab. No test pinned the old header.
 - WRITE-SET NOTE: `InferenceSection.tsx` (index prop, exported `inferenceClaimOf`) and `grade-and-inference.npmtest.mjs`
-  (pins the old header and the wiring regex) were edited though not named in the write set; both are required for the
-  header ordinal and for the test that pins the renamed header.
+  (pins the old header and the wiring regex) were edited though not named in the write set; accepted by the coordinator.
 
 ### What is NOT done
-- Prose comments naming "Across pages" remain in `app/*/[slug]/page.tsx`, `shared-props.ts`, `supabase-server.ts`,
-  `ThemeBriefCard.tsx` and `ux-smoke-specs.mjs` (outside the write set; comments, not headers).
+- Stale "Across pages" comments in seven files were reworded to "Connected intelligence" (comments only, per coordinator).
 - The admin gallery `/admin/parts/section-index` body fixtures (`section-index-fixtures.ts`) have no bodies for the two
   new tabs. Not in the write set.
 

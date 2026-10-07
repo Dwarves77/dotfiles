@@ -4511,7 +4511,7 @@ export async function fetchIntelligenceItem(
 }
 
 // ── Cross-page analysis reads (lane S3-B): themes, theme briefs, intersection summary ─────────────────
-// The reads behind the shared "Across pages" section on the four detail pages, the theme strips on the four
+// The reads behind the shared "Connected intelligence" section on the four detail pages, the theme strips on the four
 // list pages and the dashboard's theme list. Every shape decision lives in src/lib/research/theme-brief.mjs
 // (pure, tested); these functions only read, soft-fail to an empty answer, and never throw. All of it is
 // corpus-wide and org-independent, so it is safe inside the cached item-scoped detail bundle.
@@ -4574,7 +4574,7 @@ export type CrossPageAnalysis = {
 };
 
 /**
- * Everything the "Across pages" section needs beyond the connections already loaded with the item: the
+ * Everything the "Connected intelligence" section needs beyond the connections already loaded with the item: the
  * item's stated intersection summary and its theme analysis (theme, brief resolved through
  * resolveBriefForTheme so a drifted theme id still finds its prior brief, members grouped by page).
  * Never throws; any failed read degrades to "nothing to show" for that half.
