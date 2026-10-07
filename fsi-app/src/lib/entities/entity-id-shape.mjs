@@ -14,12 +14,14 @@
 // PLAIN ESM, ZERO DEPENDENCIES, importable by a fitness function, a script, a server route, or a
 // client component.
 
-// The full entity_kind enum, byte-identical to migration 282's `CREATE TYPE entity_kind AS ENUM (...)`
-// (spec 08 section 1.1). Frozen so a caller cannot silently widen the vocabulary, widening it means a
-// migration. Kept here (not just re-exported) because the shape check below needs it directly.
+// The full entity_kind enum: migration 282's `CREATE TYPE entity_kind AS ENUM (...)` (spec 08 section 1.1) plus
+// `material`, added by migration 357 (lane G5-READ: an adopted material term is a real entity). Frozen so a
+// caller cannot silently widen the vocabulary, widening it means a migration. Kept here (not just re-exported)
+// because the shape check below needs it directly.
 export const KINDS = Object.freeze([
   "corridor", "node", "jurisdiction", "organisation", "asset",
   "instrument", "obligation", "method", "technology", "signpost", "person",
+  "material",
 ]);
 const KIND_SET = new Set(KINDS);
 

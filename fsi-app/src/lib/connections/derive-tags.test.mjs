@@ -281,3 +281,44 @@ test("meetsConfidence over a real deriveTags() output: partitions maritime fixtu
   assert.equal(eligible.length, 3, "ocean-bunkering + ocean-emissions-MRV + topic_tags:emissions are title-level HIGH");
   assert.equal(residue.length, 2, "vessel-shore-power + vessel-operator are body-only MEDIUM");
 });
+
+// ---- G5-READ (2026-10-07): an adopted scenario / compliance_object term is derivable, a proposed one is not ----
+import { adoptedKeywordEntries, heldVocabulary } from "./derive-tags.mjs";
+import { groupAdoptedTerms } from "../vocabulary/adopted-terms.mjs";
+
+const ADOPTED_ROWS = [
+  { kind: "scenario", term_key: "ocean-slow-steaming", label: "ocean-slow-steaming", status: "adopted" },
+  { kind: "compliance_object", term_key: "charterer", label: "Charterer", status: "adopted" },
+  { kind: "scenario", term_key: "not kebab", label: "not kebab", status: "adopted" },
+];
+const ITEM = { id: "i1", title: "Ocean slow steaming rules for carriers", full_brief: "The charterer must report speed.", jurisdiction_iso: [] };
+
+test("G5-READ deriveTags: an ADOPTED scenario term and compliance_object term derive as themselves; the same terms PROPOSED derive nothing", () => {
+  const adopted = groupAdoptedTerms(ADOPTED_ROWS);
+  const got = deriveTags(ITEM, adopted).proposals.map((p) => `${p.field}:${p.tag}:${p.confidence}`);
+  assert.ok(got.includes("operational_scenario_tags:ocean-slow-steaming:high"), JSON.stringify(got));
+  assert.ok(got.includes("compliance_object_tags:charterer:medium"), JSON.stringify(got));
+  const proposed = groupAdoptedTerms(ADOPTED_ROWS.map((r) => ({ ...r, status: "proposed" })));
+  for (const held of [proposed, undefined]) {
+    const none = deriveTags(ITEM, held).proposals.map((p) => p.tag);
+    assert.ok(!none.includes("ocean-slow-steaming") && !none.includes("charterer"), JSON.stringify(none));
+  }
+});
+
+test("G5-READ deriveTags: no adopted set is the unchanged pre-G5-READ output, and a scenario key that is not kebab-case is skipped", () => {
+  assert.deepEqual(deriveTags(ITEM), deriveTags(ITEM, groupAdoptedTerms([])));
+  const entries = adoptedKeywordEntries(groupAdoptedTerms(ADOPTED_ROWS));
+  assert.deepEqual(entries.map((e) => e.tag).sort(), ["charterer", "ocean-slow-steaming"]);
+});
+
+test("G5-READ heldVocabulary: the union never drops a code value in any field and adds only the adopted keys", () => {
+  const held = heldVocabulary(groupAdoptedTerms(ADOPTED_ROWS));
+  for (const v of TOPIC_TAG_VALUES) assert.ok(held.topic_tags.has(v));
+  for (const v of COMPLIANCE_OBJECT_VALUES) assert.ok(held.compliance_object_tags.has(v));
+  for (const v of SCENARIO_TAG_VALUES) assert.ok(held.operational_scenario_tags.has(v));
+  assert.ok(held.compliance_object_tags.has("charterer"));
+  assert.ok(held.operational_scenario_tags.has("ocean-slow-steaming"));
+  assert.equal(held.compliance_object_tags.size, COMPLIANCE_OBJECT_VALUES.length + 1);
+  const code = heldVocabulary(undefined);
+  assert.equal(code.operational_scenario_tags.size, new Set(SCENARIO_TAG_VALUES).size);
+});

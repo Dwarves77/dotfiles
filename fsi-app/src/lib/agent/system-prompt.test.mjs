@@ -133,3 +133,43 @@ test("the prompt names the exact context block header canonical-pipeline.ts emit
     "the context block must be gated to research_finding items only -- every other item_type is untouched",
   );
 });
+
+// ---- G5-READ (2026-10-07): the mentioned_terms ask and the adopted-term glossary ----
+import { buildSystemPrompt } from "./system-prompt.ts";
+import { MENTIONED_TERM_KINDS, MENTIONED_TERMS_MAX, MENTIONED_TERM_TEXT_MAX, validateMentionedTerms } from "../connections/term-recurrence.mjs";
+import { groupAdoptedTerms } from "../vocabulary/adopted-terms.mjs";
+
+test("G5-READ mentioned_terms: the prompt asks brief authors for the optional array with the SAME kinds and caps the validator enforces", () => {
+  const at = SYSTEM_PROMPT.indexOf("mentioned_terms mechanics (optional):");
+  assert.ok(at > 0, "the mentioned_terms section is missing");
+  const section = SYSTEM_PROMPT.slice(at, SYSTEM_PROMPT.indexOf("related_items mechanics (locked):"));
+  assert.match(section, /inline JSON array/);
+  assert.match(section, /\{"kind":"material","text":/);
+  for (const kind of MENTIONED_TERM_KINDS) assert.ok(section.includes(kind), `kind ${kind} not named`);
+  assert.ok(section.includes(`at most ${MENTIONED_TERM_TEXT_MAX} characters`));
+  assert.ok(section.includes(`at most ${MENTIONED_TERMS_MAX} entries`));
+  assert.match(section, /Omit the line, or emit null/);
+  // the example in the prompt is itself valid under the one shared validator
+  const example = JSON.parse(/(\[\{"kind":"material"[^\n]*?\}\])/.exec(section)[1]);
+  assert.deepEqual(validateMentionedTerms(example).errors, []);
+});
+
+test("G5-READ mentioned_terms: the ask sits outside the Fields: bullet block (it is not a numbered rule or a documented field)", () => {
+  const fields = SYSTEM_PROMPT.slice(SYSTEM_PROMPT.indexOf("Fields:"), SYSTEM_PROMPT.indexOf("Severity to priority mapping"));
+  assert.ok(!fields.includes("mentioned_terms"));
+});
+
+test("G5-READ buildSystemPrompt: no adopted terms is SYSTEM_PROMPT byte for byte; adopted scenario and theme terms are named, proposed ones are not", () => {
+  assert.equal(buildSystemPrompt(), SYSTEM_PROMPT);
+  assert.equal(buildSystemPrompt(groupAdoptedTerms([])), SYSTEM_PROMPT);
+  const rows = [
+    { kind: "scenario", term_key: "ocean-slow-steaming", label: "x" },
+    { kind: "theme", term_key: "carbon border adjustment", label: "x" },
+  ];
+  const adopted = buildSystemPrompt(groupAdoptedTerms(rows.map((r) => ({ ...r, status: "adopted" }))));
+  assert.ok(adopted.includes("Adopted by recurrence (also held, prefer when they fit): ocean-slow-steaming"));
+  assert.ok(adopted.includes("Adopted themes (also valid for research_summary): carbon_border_adjustment"));
+  assert.ok(adopted.indexOf("ocean-slow-steaming") < adopted.indexOf("Empty array allowed when the item has no clear operational scenario"));
+  assert.ok(adopted.startsWith(SYSTEM_PROMPT.slice(0, 200)) && adopted.length > SYSTEM_PROMPT.length);
+  assert.equal(buildSystemPrompt(groupAdoptedTerms(rows.map((r) => ({ ...r, status: "proposed" })))), SYSTEM_PROMPT);
+});

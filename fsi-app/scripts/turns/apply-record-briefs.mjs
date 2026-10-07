@@ -124,6 +124,7 @@ import { claimRunId, writeRunArtifact, hashHarnessVersion } from "../lib/run-art
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { validateRecordBriefsFile, RECORD_BRIEFS_SCHEMA_VERSION } from "./record-briefs/schema.mjs";
 import { readAll, readAllByIds, guardedInsertMany, guardedUpsert } from "../lib/db.mjs";
+import { adoptedTermsFromSupabase } from "../../src/lib/vocabulary/adopted-terms.mjs";
 import { recordBriefTerms } from "../../src/lib/connections/term-recurrence.mjs";
 import { runUnscopedFlywheelSteps } from "./run-population-flywheel.mjs";
 import { hashSourcePool } from "../../src/lib/agent/source-pool-hash.mjs";
@@ -1152,7 +1153,10 @@ async function main() {
     // step would quarantine on is refused here, naming the slot.
     const { requiredSlotsByItemType, itemTypeByItemId } = rawItemIds.length > 0 ? await readRequiredSlotContext(sb, rawItemIds) : { requiredSlotsByItemType: {}, itemTypeByItemId: {} };
 
-    const validated = validateRecordBriefsFile(raw, { poolTextByItemId, requiredSlotsByItemType, itemTypeByItemId });
+    // lane G5-READ: the adopted vocabulary terms (migration 355), read once for this run, so a brief that uses an
+    // adopted theme or compliance_object term validates the same way the write boundary will accept it.
+    const adoptedTerms = await adoptedTermsFromSupabase(sb);
+    const validated = validateRecordBriefsFile(raw, { poolTextByItemId, requiredSlotsByItemType, itemTypeByItemId, adoptedTerms });
     if (!validated.ok) {
       const slotRefusals = validated.errors.filter((e) => /required slot "/.test(e)).length;
       metrics = { file_valid: false, error_count: validated.errors.length, slot_refusals: slotRefusals };

@@ -79,6 +79,7 @@ import { buildNoDerivableTagsNote } from "./apply-tags.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 // lane G7-CORR: a tag an admin removed (item_corrections, migration 356) is never proposed again.
 import { removedTagsFor, filterTagProposals, readAllCorrections } from "../../src/lib/corrections/item-corrections.mjs";
+import { memoAdoptedTerms } from "../../src/lib/vocabulary/adopted-terms.mjs";
 
 // @supabase/supabase-js reaches this file only THROUGH scripts/lib/db.mjs's own lazy-require (see that
 // file's top-of-file note) — nothing here imports it directly, so this module stays importable without
@@ -315,9 +316,12 @@ export async function proposeTags(deps, { mode, ids = null, since = null, execut
     ? await deps.readTagCorrections(flagCandidates.map((i) => i.id))
     : [];
   let blockedByCorrectionCount = 0;
+  // lane G5-READ: the adopted vocabulary terms (optional dep, read once for the batch); an adopted scenario or
+  // compliance_object term derives like a code tag.
+  const adoptedTerms = deps.readAdoptedTerms && flagCandidates.length ? await deps.readAdoptedTerms() : undefined;
   const fresh = enriched.map((item) => {
     const wide = assembleTagInput(item);
-    const base = deriveTags(wide);
+    const base = deriveTags(wide, adoptedTerms);
     const alias = deriveAliasTags(wide);
     const merged = mergeTagProposals(base.proposals, alias.proposals);
     const { kept, blocked } = filterTagProposals(merged, removedTagsFor(tagCorrections, item.id));
@@ -426,6 +430,7 @@ const SIG = "id, title, canonical_instrument_key, jurisdiction_iso, jurisdiction
   "operational_scenario_tags, compliance_object_tags, topic_tags, created_at";
 
 const deps = {
+  readAdoptedTerms: memoAdoptedTerms(readClient()),
   readTagCorrections: () => readAllCorrections(readClient()),
   readCorpus: () => readAll("intelligence_items", SIG, {
     match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),

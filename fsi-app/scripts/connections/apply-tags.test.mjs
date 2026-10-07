@@ -589,3 +589,36 @@ test("G7-CORR autoAdoptTags: a correction read failure propagates (fail closed),
   await assert.rejects(() => autoAdoptTags(d, "flag-1", { execute: true }), /item_corrections read failed/);
   assert.ok(!d.calls.length, "no write and no flag resolution happened");
 });
+
+// ---- G5-READ (2026-10-07): the apply decision holds adopted terms in the vocabulary ----
+import { groupAdoptedTerms } from "../../src/lib/vocabulary/adopted-terms.mjs";
+
+test("G5-READ decideTagProposal: a medium proposal for an ADOPTED scenario tag adopts; the same tag while PROPOSED (or unset) declines", () => {
+  const item = { full_brief: "Operators are adopting ocean slow steaming across the fleet." };
+  const proposal = { field: "operational_scenario_tags", tag: "ocean-slow-steaming", evidence: "ocean slow steaming", confidence: "medium" };
+  const row = { kind: "scenario", term_key: "ocean-slow-steaming", label: "ocean-slow-steaming" };
+  const adopted = groupAdoptedTerms([{ ...row, status: "adopted" }]);
+  const proposed = groupAdoptedTerms([{ ...row, status: "proposed" }]);
+  assert.equal(decideTagProposal(proposal, item, undefined, adopted).decision, "adopt");
+  assert.equal(decideTagProposal(proposal, item, undefined, proposed).decision, "decline");
+  assert.equal(decideTagProposal(proposal, item).decision, "decline");
+  const [d] = decideTagProposals([proposal], item, undefined, adopted);
+  assert.equal(d.decision, "adopt");
+});
+
+test("G5-READ autoAdoptTags: the re-derivation path reads the adopted set from deps and derives an adopted tag", async () => {
+  const adopted = groupAdoptedTerms([{ kind: "scenario", term_key: "ocean-slow-steaming", label: "ocean-slow-steaming", status: "adopted" }]);
+  const flag = { id: "f1", status: "open", subject_ref: "item-1", created_by: createdBy(TAG_NAMESPACE, "x"), description: "PROPOSALS_JSON: []" };
+  const item = { id: "item-1", title: "Ocean slow steaming programme", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [], full_brief: "", what_is_it: "", summary: "" };
+  const patches = [];
+  const deps = {
+    readFlag: async () => ({ data: flag, error: null }),
+    readItem: async () => ({ data: item, error: null }),
+    readCorrections: async () => [],
+    readAdoptedTerms: async () => adopted,
+    updateItem: async (id, patch) => { patches.push(patch); return { updated: 1, snapshot: null }; },
+    resolveFlag: async () => ({ updated: 1, snapshot: null }),
+  };
+  const r = await autoAdoptTags(deps, "f1", { execute: true });
+  assert.ok(patches.length === 1 && patches[0].operational_scenario_tags.includes("ocean-slow-steaming"), JSON.stringify({ r, patches }));
+});

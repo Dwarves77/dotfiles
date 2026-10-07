@@ -707,7 +707,9 @@ export function validateRecordBriefsClaim(claim, i, itemId, poolText) {
  * Validate one record-briefs entry: item_id/source_pool_hash/body shape, metadata (via the real
  * parseAgentOutput, see file header), and every claim (via validateRecordBriefsClaim above). Every
  * message names the item id and the offending field or claim index.
- * @param {object} entry @param {number} i @param {{poolTextByItemId?: Record<string,string>}} [opts]
+ * @param {object} entry @param {number} i
+ * @param {{poolTextByItemId?: Record<string,string>, adoptedTerms?: unknown}} [opts] `adoptedTerms` (lane G5-READ) is
+ *   the adopted-terms set parseAgentOutput accepts as held vocabulary (an adopted theme or compliance_object term).
  * @returns {string[]}
  */
 export function validateRecordBriefsEntry(entry, i, opts = {}) {
@@ -733,7 +735,7 @@ export function validateRecordBriefsEntry(entry, i, opts = {}) {
   } else {
     try {
       const rawText = buildSyntheticRawText(typeof entry.body === "string" ? entry.body : "", entry.metadata);
-      parseAgentOutput(rawText);
+      parseAgentOutput(rawText, opts.adoptedTerms);
     } catch (err) {
       const msg = err instanceof AgentOutputParseError ? err.message : err?.message ?? String(err);
       at(`metadata: ${msg}`);

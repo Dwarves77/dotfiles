@@ -71,3 +71,26 @@ test("BACKFILL MAP — deterministic map targets are DB-valid; keys are legacy-o
       `ambiguous legacy candidate "${ambiguous}" must stay banked, never backfilled by guess`);
   }
 });
+
+// ---- G5-READ (2026-10-07): the write boundary accepts an adopted theme, never drops a code one ----
+import { groupAdoptedTerms } from "../vocabulary/adopted-terms.mjs";
+
+test("G5-READ BOUNDARY: toDbTheme/toThemeCandidate accept an ADOPTED theme token; the same term PROPOSED is nulled and banked", () => {
+  const adopted = groupAdoptedTerms([{ kind: "theme", term_key: "carbon border adjustment", label: "x", status: "adopted" }]);
+  const proposed = groupAdoptedTerms([{ kind: "theme", term_key: "carbon border adjustment", label: "x", status: "proposed" }]);
+  assert.equal(toDbTheme("carbon_border_adjustment", adopted), "carbon_border_adjustment");
+  assert.equal(toThemeCandidate("carbon_border_adjustment", adopted), null);
+  assert.equal(toDbTheme("carbon_border_adjustment", proposed), null);
+  assert.equal(toThemeCandidate("carbon_border_adjustment", proposed), "carbon_border_adjustment");
+  assert.equal(toDbTheme("carbon_border_adjustment"), null);
+  for (const v of DB_THEME_VALUE_LIST) assert.equal(toDbTheme(v, adopted), v, "a code theme is never dropped");
+});
+
+test("G5-READ DB SIDE: migration 357 replaces the CHECK with a guard that names every code theme and the adopted terms", () => {
+  const sql = readFileSync(resolve(HERE, "../../../supabase/migrations/357_vocabulary_kinds.sql"), "utf8");
+  const fnBody = /CREATE OR REPLACE FUNCTION public\.intelligence_items_theme_guard\(\)[\s\S]*?\$fn\$;/.exec(sql)?.[0] ?? "";
+  const listed = [...(/NEW\.theme IN \(([\s\S]*?)\)/.exec(fnBody)?.[1] ?? "").matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+  assert.deepEqual(listed, [...DB_THEME_VALUE_LIST].sort(), "the guard's 7 values must equal DB_THEME_VALUE_LIST");
+  assert.match(fnBody, /t\.status = 'adopted'/);
+  assert.match(sql, /DROP CONSTRAINT IF EXISTS intelligence_items_theme_check/);
+});

@@ -2,7 +2,7 @@
 // kind vocabulary. Every `entities.entity_id` value in this system is minted by `entityId()` below,
 // never hand-assembled at a call site — the same "one constructor, many callers" discipline
 // `cl_corridor_id()` (migration 258) applies at the SQL layer for the corridor case specifically; this
-// module is the JS-layer equivalent for ALL eleven kinds.
+// module is the JS-layer equivalent for ALL twelve kinds (the eleven of migration 282 and `material` of migration 357).
 //
 // FORMAT: `cl:<kind>:<16 lowercase hex>` — 16 hex characters (the first 16 of a sha256 hex digest, 8
 // bytes of the 32-byte digest), matching the length migration 258's `cl_corridor_id()` already uses and
@@ -67,7 +67,8 @@ export function normalizeSeed(kind, seed) {
     const s = String(seed || "").trim();
     return s.includes("://") || s.includes("/") ? hostFromUrl(s) : s.toLowerCase().replace(/^www\./, "");
   }
-  // Generic fallback for the six kinds this lane's backfill does not yet produce.
+  // Generic fallback for the kinds this lane's backfill does not produce. `material` (migration 357) takes it
+  // too: its minter (src/lib/vocabulary/adopted-entities.mjs) passes the already-normalised, lower-case term key.
   return String(seed || "").trim().replace(/\s+/g, " ");
 }
 

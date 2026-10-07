@@ -14,6 +14,8 @@ import { DB_THEME_VALUE_LIST } from "./metadata-vocab.ts";
 import { stripClaimLedgerBlocks } from "./claim-ledger-block.ts";
 // G5-TERMS (2026-10-06): the ONE validator for the optional `mentioned_terms` array (kind vocabulary, caps).
 import { validateMentionedTerms } from "../connections/term-recurrence.mjs";
+// G5-READ (2026-10-07): an ADOPTED compliance_object or theme term is held, so it is accepted like a code value.
+import { adoptedKeys, adoptedThemeTokens } from "../vocabulary/adopted-terms.mjs";
 
 const SEVERITY_VALUES = [
   "ACTION REQUIRED",
@@ -387,7 +389,7 @@ export function foldYamlBlockLists(yaml: string): string {
   return out.join("\n");
 }
 
-function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
+function parseYamlFrontmatter(rawYaml: string, adopted?: unknown): AgentMetadata {
   const fields: Record<string, string> = {};
   const yaml = foldYamlBlockLists(rawYaml);
   const lines = yaml.split(/\r?\n/);
@@ -501,9 +503,11 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   const theme: typeof THEME_VALUES[number] | null =
     themeRawValue === "null" || themeRawValue === "" ? null : (themeRawValue as typeof THEME_VALUES[number]);
   if (theme !== null) {
-    if (!(THEME_VALUES as readonly string[]).includes(theme)) {
+    // G5-READ: the 7 code themes plus the adopted `theme` terms (vocabulary_terms, status adopted).
+    const adoptedThemes = adoptedThemeTokens(adopted);
+    if (!(THEME_VALUES as readonly string[]).includes(theme) && !adoptedThemes.includes(theme)) {
       throw new AgentOutputParseError(
-        `Invalid theme: "${theme}". Allowed: ${THEME_VALUES.join(", ")} or null`
+        `Invalid theme: "${theme}". Allowed: ${[...THEME_VALUES, ...adoptedThemes].join(", ")} or null`
       );
     }
     if (fields.format_type !== "research_summary") {
@@ -547,14 +551,21 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
   // compliance_object_tags is ADVISORY (drives intersection detection), not a grounded claim — a dropped
   // bad tag costs an intersection hint; the prior throw cost the whole item (the out-of-vocab "building in
   // context of owner-..." flagship failure). Keep only vocabulary values, cap at 4.
+  // G5-READ: the 19 code values plus the adopted `compliance_object` terms are the held vocabulary. A code
+  // value matches exactly (unchanged); an adopted term matches case-insensitively and is kept in its stored
+  // lower-case key form.
+  const adoptedCompObj = new Set<string>(adoptedKeys(adopted, "compliance_object"));
+  const heldCompObjTag = (tag: string): string | null =>
+    (COMPLIANCE_OBJECT_VALUES as readonly string[]).includes(tag) ? tag : adoptedCompObj.has(tag.toLowerCase()) ? tag.toLowerCase() : null;
   const compObjTags: string[] = compObjRawTags
-    .filter((tag) => (COMPLIANCE_OBJECT_VALUES as readonly string[]).includes(tag))
+    .map(heldCompObjTag)
+    .filter((tag): tag is string => tag !== null)
     .slice(0, 4);
   // G5-TERMS: what the filter above would have lost, captured instead. A value the closed list does not hold is
   // a CANDIDATE (distinct, capped, bounded length); an in-vocabulary overflow past 4 is not a candidate.
   const compObjCandidates: string[] = [
     ...new Set(
-      compObjRawTags.filter((tag) => !(COMPLIANCE_OBJECT_VALUES as readonly string[]).includes(tag) && tag.length <= 80),
+      compObjRawTags.filter((tag) => heldCompObjTag(tag) === null && tag.length <= 80),
     ),
   ].slice(0, 8);
 
@@ -1008,7 +1019,7 @@ export function crossLinkClaimSources(
  * Throws AgentOutputParseError if the YAML block is missing or malformed, or
  * if a claim ledger is present but malformed.
  */
-export function parseAgentOutput(rawText: string): ParsedAgentOutput {
+export function parseAgentOutput(rawText: string, adopted?: unknown): ParsedAgentOutput {
   const block = findYamlBlock(rawText);
   if (!block) {
     throw new AgentOutputParseError(
@@ -1016,7 +1027,7 @@ export function parseAgentOutput(rawText: string): ParsedAgentOutput {
       rawText.slice(-500)
     );
   }
-  const metadata = parseYamlFrontmatter(block.yaml);
+  const metadata = parseYamlFrontmatter(block.yaml, adopted);
   // Sprint 4 task 1.8: extract the claim ledger (sits before the YAML block)
   // and strip it from the stored body so full_brief stays clean prose.
   //
