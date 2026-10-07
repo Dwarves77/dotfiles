@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { ActionButton } from "@/components/ui/ActionRow";
+import { SectionCard } from "@/components/ui/SectionCard";
 import {
   describeCorrection,
   kindLabel,
@@ -21,6 +22,7 @@ import {
   stateOf,
   ORPHAN_EXPLANATION,
 } from "@/components/admin/corrections/model.mjs";
+import { fieldStyle, labelStyle } from "@/components/admin/corrections/styles";
 import type { CorrectionData } from "@/components/admin/corrections/types";
 
 export interface RevokeResult {
@@ -82,18 +84,10 @@ export function CorrectionRow({ correction: c, onRevoke, itemHref }: CorrectionR
   }
 
   return (
-    <div
-      data-correction-row={c.id}
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        padding: 16,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        minWidth: 0,
-      }}
+    <SectionCard
+      padding={16}
+      dataAttributes={{ "data-correction-row": c.id }}
+      style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}
     >
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "6px 12px", minWidth: 0 }}>
         <h3
@@ -188,14 +182,14 @@ export function CorrectionRow({ correction: c, onRevoke, itemHref }: CorrectionR
           <div role="alert" style={{ fontSize: 13, color: "var(--ink)" }}>
             Revoking restores the machine value. Customers will see it again straight away.
           </div>
-          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-2)", display: "flex", flexDirection: "column", gap: 4 }}>
+          <label style={labelStyle}>
             Why are you revoking this?
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={2}
               disabled={pending}
-              style={{ width: "100%", boxSizing: "border-box", minHeight: 44, padding: 8, fontSize: 13, fontFamily: "inherit", border: "1px solid var(--line-1)", borderRadius: 6 }}
+              style={fieldStyle}
             />
           </label>
           {error && (
@@ -213,6 +207,6 @@ export function CorrectionRow({ correction: c, onRevoke, itemHref }: CorrectionR
           </div>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

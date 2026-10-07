@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { ActionButton } from "@/components/ui/ActionRow";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { SECTION_TITLE_STYLE } from "@/components/ui/section-title-style";
 import { CorrectionForm, type FormDraft } from "@/components/admin/corrections/CorrectionForm";
 import { CorrectionRow } from "@/components/admin/corrections/CorrectionRow";
@@ -49,16 +50,7 @@ interface OpenForm {
 const PAGE = 10;
 const clip = (s: string, n = 240) => (s.length > n ? `${s.slice(0, n)}...` : s);
 
-const card: React.CSSProperties = {
-  background: "var(--card)",
-  border: "1px solid var(--line-1)",
-  borderRadius: "var(--radius-card)",
-  padding: 16,
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  minWidth: 0,
-};
+const cardLayout: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 12, minWidth: 0 };
 const h2: React.CSSProperties = { ...SECTION_TITLE_STYLE, fontSize: 18, whiteSpace: "normal", overflowWrap: "anywhere" };
 const muted: React.CSSProperties = { fontSize: 12, color: "var(--ink-2)", overflowWrap: "anywhere" };
 const rowBox: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 8, paddingTop: 12, borderTop: "1px solid var(--line-1)", minWidth: 0 };
@@ -153,7 +145,7 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-      <div style={{ ...card, gap: 8 }}>
+      <SectionCard padding={16} style={{ ...cardLayout, gap: 8 }}>
         <h1 data-guard-title style={{ ...SECTION_TITLE_STYLE, whiteSpace: "normal", overflowWrap: "anywhere" }}>
           Corrections to {targets.title}
         </h1>
@@ -176,9 +168,9 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
             {notice}
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      <section style={card} aria-labelledby="corr-facts">
+      <SectionCard as="section" padding={16} style={cardLayout} aria-labelledby="corr-facts">
         <h2 id="corr-facts" data-guard-title style={h2}>Facts</h2>
         <div style={muted}>Each fact can be hidden from customers or replaced with a source backed one. Nothing is deleted.</div>
         {targets.facts.length === 0 && <div style={muted}>This item has no facts that can be corrected.</div>}
@@ -198,9 +190,9 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
             <ActionButton onClick={() => setFactsShown((n) => n + PAGE)}>Show more facts ({targets.facts.length - factsShown} left)</ActionButton>
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section style={card} aria-labelledby="corr-tags">
+      <SectionCard as="section" padding={16} style={cardLayout} aria-labelledby="corr-tags">
         <h2 id="corr-tags" data-guard-title style={h2}>Tags</h2>
         {TAG_COLUMNS.map((col: string) => {
           const tags = (targets.tags as Record<string, string[]>)[col] ?? [];
@@ -225,9 +217,9 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
             </div>
           );
         })}
-      </section>
+      </SectionCard>
 
-      <section style={card} aria-labelledby="corr-conn">
+      <SectionCard as="section" padding={16} style={cardLayout} aria-labelledby="corr-conn">
         <h2 id="corr-conn" data-guard-title style={h2}>Connections</h2>
         {targets.connections.length === 0 && <div style={muted}>No connections to other items yet.</div>}
         {targets.connections.map((c) => (
@@ -248,9 +240,9 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
           </div>
           {open && isOpen("connection", "add", "") && formFor(open)}
         </div>
-      </section>
+      </SectionCard>
 
-      <section style={card} aria-labelledby="corr-sections">
+      <SectionCard as="section" padding={16} style={cardLayout} aria-labelledby="corr-sections">
         <h2 id="corr-sections" data-guard-title style={h2}>Section text</h2>
         {targets.sections.length === 0 && <div style={muted}>This item has no sections.</div>}
         {targets.sections.slice(0, sectionsShown).map((s) => (
@@ -269,9 +261,9 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
             <ActionButton onClick={() => setSectionsShown((n) => n + PAGE)}>Show more sections ({targets.sections.length - sectionsShown} left)</ActionButton>
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section style={card} aria-labelledby="corr-brief">
+      <SectionCard as="section" padding={16} style={cardLayout} aria-labelledby="corr-brief">
         <h2 id="corr-brief" data-guard-title style={h2}>Full brief</h2>
         <div style={{ fontSize: 13, color: "var(--ink)", overflowWrap: "anywhere" }}>{targets.full_brief ? clip(targets.full_brief, 400) : "This item has no full brief."}</div>
         {activeNote("full_brief", "full_brief")}
@@ -279,7 +271,7 @@ export function ItemCorrectionsPanel({ targets, fetcher = authedFetch }: ItemCor
           <ActionButton onClick={() => openForm({ kind: "full_brief", op: "replace", ref: "full_brief", currentText: targets.full_brief, heading: "Replace the full brief", submitLabel: "Replace full brief" })}>Replace the brief</ActionButton>
         </div>
         {open && isOpen("full_brief", "replace", "full_brief") && formFor(open)}
-      </section>
+      </SectionCard>
 
       <section style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }} aria-labelledby="corr-all">
         <h2 id="corr-all" data-guard-title style={h2}>All corrections</h2>

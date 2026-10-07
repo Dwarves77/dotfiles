@@ -15,6 +15,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { ActionButton } from "@/components/ui/ActionRow";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { fieldStyle, labelStyle } from "@/components/admin/corrections/styles";
 import { SECTION_TITLE_STYLE } from "@/components/ui/section-title-style";
 import { CorrectionRow } from "@/components/admin/corrections/CorrectionRow";
 import { ItemSearchPicker } from "@/components/admin/corrections/ItemSearchPicker";
@@ -37,17 +39,6 @@ export interface CorrectionsTabProps {
   loadAll?: () => Promise<{ rows: CorrectionData[]; unchecked: number }>;
   fetcher?: Fetcher;
 }
-
-const selectStyle: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  minHeight: 44,
-  padding: "8px 10px",
-  fontSize: 13,
-  fontFamily: "inherit",
-  border: "1px solid var(--line-1)",
-  borderRadius: 6,
-};
 
 export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTabProps) {
   const [rows, setRows] = useState<CorrectionData[]>([]);
@@ -90,9 +81,7 @@ export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTa
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-      <div
-        style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", padding: 16, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}
-      >
+      <SectionCard padding={16} style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
         <h2 data-guard-title style={{ ...SECTION_TITLE_STYLE, fontSize: 18, whiteSpace: "normal", overflowWrap: "anywhere" }}>
           Corrections to item data
         </h2>
@@ -111,18 +100,18 @@ export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTa
           </div>
         )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-2)", display: "flex", flexDirection: "column", gap: 4 }}>
+          <label style={labelStyle}>
             State
-            <select value={state} onChange={(e) => { setState(e.target.value); setShown(PAGE); }} style={selectStyle}>
+            <select value={state} onChange={(e) => { setState(e.target.value); setShown(PAGE); }} style={fieldStyle}>
               <option value="">All states</option>
               {STATE_FILTERS.map((s: string) => (
                 <option key={s} value={s}>{stateLabel(s)}</option>
               ))}
             </select>
           </label>
-          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-2)", display: "flex", flexDirection: "column", gap: 4 }}>
+          <label style={labelStyle}>
             What was corrected
-            <select value={kind} onChange={(e) => { setKind(e.target.value); setShown(PAGE); }} style={selectStyle}>
+            <select value={kind} onChange={(e) => { setKind(e.target.value); setShown(PAGE); }} style={fieldStyle}>
               <option value="">Everything</option>
               {KIND_FILTERS.map((k: string) => (
                 <option key={k} value={k}>{kindLabel(k)}</option>
@@ -140,7 +129,7 @@ export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTa
             {notice}
           </div>
         )}
-      </div>
+      </SectionCard>
 
       {load.state === "ready" && rows.length === 0 && (
         <div style={{ fontSize: 13, color: "var(--ink-2)" }}>

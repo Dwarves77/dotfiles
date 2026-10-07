@@ -18,6 +18,7 @@ import { useState } from "react";
 import { ActionButton } from "@/components/ui/ActionRow";
 import { ItemSearchPicker } from "@/components/admin/corrections/ItemSearchPicker";
 import { EDGE_RELATIONSHIPS, relationshipLabel, valueFor } from "@/components/admin/corrections/model.mjs";
+import { fieldStyle, labelStyle } from "@/components/admin/corrections/styles";
 import type { Fetcher, TargetKind, CorrectionOp } from "@/components/admin/corrections/types";
 
 export interface FormDraft {
@@ -45,18 +46,6 @@ export interface CorrectionFormProps {
   onCancel: () => void;
   fetcher?: Fetcher;
 }
-
-const field: React.CSSProperties = {
-  width: "100%",
-  boxSizing: "border-box",
-  minHeight: 44,
-  padding: "8px 10px",
-  fontSize: 13,
-  fontFamily: "inherit",
-  border: "1px solid var(--line-1)",
-  borderRadius: 6,
-};
-const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: "var(--ink-2)", display: "flex", flexDirection: "column", gap: 4 };
 
 export function CorrectionForm(p: CorrectionFormProps) {
   const [text, setText] = useState(p.currentText ?? "");
@@ -111,15 +100,15 @@ export function CorrectionForm(p: CorrectionFormProps) {
         <>
           <label style={labelStyle}>
             Corrected claim text (optional, leave it to keep the wording)
-            <textarea value={claimText} onChange={(e) => setClaimText(e.target.value)} rows={3} disabled={pending} style={field} />
+            <textarea value={claimText} onChange={(e) => setClaimText(e.target.value)} rows={3} disabled={pending} style={fieldStyle} />
           </label>
           <label style={labelStyle}>
             Source span, copied word for word from the source
-            <textarea value={span} onChange={(e) => setSpan(e.target.value)} rows={3} disabled={pending} style={field} />
+            <textarea value={span} onChange={(e) => setSpan(e.target.value)} rows={3} disabled={pending} style={fieldStyle} />
           </label>
           <label style={labelStyle}>
             Capture id the span comes from
-            <input value={capture} onChange={(e) => setCapture(e.target.value)} disabled={pending} style={field} />
+            <input value={capture} onChange={(e) => setCapture(e.target.value)} disabled={pending} style={fieldStyle} />
           </label>
         </>
       )}
@@ -127,7 +116,7 @@ export function CorrectionForm(p: CorrectionFormProps) {
       {needsTag && (
         <label style={labelStyle}>
           Tag to add
-          <input value={tag} onChange={(e) => setTag(e.target.value)} disabled={pending} style={field} />
+          <input value={tag} onChange={(e) => setTag(e.target.value)} disabled={pending} style={fieldStyle} />
         </label>
       )}
 
@@ -145,7 +134,7 @@ export function CorrectionForm(p: CorrectionFormProps) {
           )}
           <label style={labelStyle}>
             How they are related
-            <select value={relationship} onChange={(e) => setRelationship(e.target.value)} disabled={pending} style={field}>
+            <select value={relationship} onChange={(e) => setRelationship(e.target.value)} disabled={pending} style={fieldStyle}>
               {EDGE_RELATIONSHIPS.map((r: string) => (
                 <option key={r} value={r}>{relationshipLabel(r)}</option>
               ))}
@@ -157,13 +146,13 @@ export function CorrectionForm(p: CorrectionFormProps) {
       {(p.kind === "section_text" || p.kind === "full_brief") && (
         <label style={labelStyle}>
           {p.kind === "section_text" ? "New section text" : "New full brief"}
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} disabled={pending} style={field} />
+          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} disabled={pending} style={fieldStyle} />
         </label>
       )}
 
       <label style={labelStyle}>
         Reason (required)
-        <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} disabled={pending} style={field} />
+        <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} disabled={pending} style={fieldStyle} />
       </label>
 
       {disabledReason && <div style={{ fontSize: 12, color: "var(--ink-2)" }}>{disabledReason}</div>}

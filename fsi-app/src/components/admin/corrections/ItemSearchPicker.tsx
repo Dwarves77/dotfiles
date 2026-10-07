@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
+import { fieldStyle, labelStyle } from "@/components/admin/corrections/styles";
 import type { SearchResultRow } from "@/app/api/search/logic";
 import type { Fetcher } from "@/components/admin/corrections/types";
 
@@ -60,14 +61,14 @@ export function ItemSearchPicker({ label, excludeIds = [], onPick, fetcher = aut
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
-      <label style={{ fontSize: 12, fontWeight: 700, color: "var(--ink-2)", display: "flex", flexDirection: "column", gap: 4 }}>
+      <label style={labelStyle}>
         {label}
         <input
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Type at least three letters of the title"
-          style={{ width: "100%", boxSizing: "border-box", minHeight: 44, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", border: "1px solid var(--line-1)", borderRadius: 6 }}
+          style={fieldStyle}
         />
       </label>
       {state === "searching" && <div style={{ fontSize: 12, color: "var(--ink-2)" }}>Searching...</div>}
