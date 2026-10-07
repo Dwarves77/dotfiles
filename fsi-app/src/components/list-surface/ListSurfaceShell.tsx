@@ -315,7 +315,15 @@ function FilterSheet({
   );
 }
 
-function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total: number; showing: number }) {
+/**
+ * Lane PAR-2 (2026-10-07, Claude Design artboard 22 ruling A, verbatim): "Group headers (Immediate /
+ * Action / Monitor / Awareness item groups) are white, not tinted. Band name in Anton 18 px in the
+ * band colour, definition in grey, 3 px band rule on top." This replaces the PARITY-PARTS band-tint
+ * background and the 11px/800 label with its dot (operator item A2, 2026-09-08); artboard 22 is the
+ * later ruling. Band tints stay on tiles, pills, callouts, detail section headers and state notes.
+ * The definition truncates on one line and carries its full text in `title` (ux-laws).
+ */
+export function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total: number; showing: number }) {
   return (
     <div
       data-audit="band-header"
@@ -327,40 +335,34 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
         padding: "10px 16px",
         borderTop: `3px solid ${band.cssVar}`,
         borderBottom: "1px solid var(--line-2)",
-        // Lane PARITY-PARTS (2026-09-24, operator check 1; README 0.5 "Band tints behind text carry
-        // meaning ... lists (band blocks, state notes)"): the band-block header sits on its band's
-        // tint, never on the card white. One declaration here, every list surface.
-        background: band.tintCssVar,
+        background: "var(--card)",
       }}
     >
-      {/* Operator item A2 (2026-09-08), verbatim: "the band-block header text ('IMMEDIATE <= 90
-          days') must be 11px/800 .08em uppercase in the band colour, dot 7px, window 11px muted,
-          currently too small". Measured before: dot 6px, label letter-spacing .1em, window 10.5px.
-          The label's own size and weight (11px/800, band colour, uppercase) were already right.
-          A2's values differ from what artboard 02's own band-block header draws (8px dot, .1em,
-          11.5px window); the operator's 2026-09-08 item is the later ruling and wins over the
-          artboard, per the precedence rule. Logged in DEVIATION-LOG.md with both values.
-          A2 states three values and nothing else, so the row's `alignItems: "baseline"` and its
-          8px gap stay exactly as they are (the artboard draws centre alignment and a 10px gap);
-          logged, not improvised. The band-coloured 3px rule above is correct today and untouched
-          (ruling 5.2's one coloured rule per screen). */}
-      <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span
-          aria-hidden="true"
-          data-audit="band-header-dot"
-          style={{ width: 7, height: 7, borderRadius: "50%", background: band.cssVar, display: "inline-block" }}
-        />
+      <span style={{ display: "flex", alignItems: "baseline", gap: 10, minWidth: 0 }}>
         <span
           data-audit="band-header-label"
-          style={{ fontSize: "var(--fs-11)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: band.cssVar }}
+          data-guard-display="band-group-name"
+          style={{
+            flexShrink: 0,
+            fontFamily: "var(--font-display)",
+            fontWeight: 400,
+            fontSize: 18,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            color: band.cssVar,
+          }}
         >
           {band.label}
         </span>
-        <span data-audit="band-header-window" style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
+        <span
+          data-audit="band-header-window"
+          title={band.window}
+          style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--fs-11)", color: "var(--ink-3)" }}
+        >
           {band.window}
         </span>
       </span>
-      <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
+      <span style={{ flexShrink: 0, fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
         showing {formatNumber(showing)} of {formatNumber(total)}
       </span>
     </div>
