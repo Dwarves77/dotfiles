@@ -14,10 +14,15 @@ import { measureUx, assertUxClean } from '../ux-assert.mjs';
 /** iPhone-class portrait viewport (the operator's device class, 2026-09-03 screenshots). */
 export const MOBILE_VIEWPORT = Object.freeze({ width: 375, height: 812 });
 export const DESKTOP_VIEWPORT = Object.freeze({ width: 1280, height: 800 });
+// Lane PAR-1 (2026-10-07, artboard 22 ruling A): the row has three layouts above the phone (stacked
+// 768 to 1023, mid 1024 to 1279, wide 1280+), so the guard measures each layout's own width, not
+// only the two ends. Same rules at every width (overflow, squeezed title, 44 px targets).
+export const TABLET_VIEWPORT = Object.freeze({ width: 768, height: 1024 });
+export const MID_VIEWPORT = Object.freeze({ width: 1024, height: 768 });
 // not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (the viewport loop below), per
 // the wiring audit's Appendix B (dead exports, 2026-09-04) — MOBILE_VIEWPORT/DESKTOP_VIEWPORT above
 // remain exported since other callers import them individually.
-const UX_VIEWPORTS = Object.freeze([MOBILE_VIEWPORT, DESKTOP_VIEWPORT]);
+export const UX_VIEWPORTS = Object.freeze([MOBILE_VIEWPORT, TABLET_VIEWPORT, MID_VIEWPORT, DESKTOP_VIEWPORT]);
 // D1 rendering-guard UX assertion (operator report 2026-09-07): the five list pages' own
 // real-world width — the sweep runs here, ADDITIVE to UX_VIEWPORTS above, so every existing
 // runUxSpec caller (market/research/operations/regulations-strip/regulations-register) gets the

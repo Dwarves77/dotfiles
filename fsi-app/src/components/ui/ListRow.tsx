@@ -16,18 +16,19 @@
  * target); this is the only one. Title truncates with ellipsis; meta
  * line is 11px muted.
  *
- * Mobile (lane moblist, 2026-09-07, mobile-390 spec "LIST ROW"): below 768px
- * a CSS media query on THIS shared part (never a page-local override)
- * reflows the row to the spec's 76px two-line anatomy — line 1 jurisdiction
- * code + wrapping title, line 2 impact meter/sum, date+days, tier,
- * workspace tags, then the 44x44 overflow control pushed right; the
- * TIMELINE column is the only thing dropped at this width (it stays on
- * detail, per the spec's own "THE 76px TIMELINE COLUMN IS THE ONLY THING
- * DROPPED" line). 375px is a fluid reflow of the same row, not a fixed
- * 390px layout — no horizontal clipping at either width. Tablet 1024 and
- * desktop keep the original fixed 8-column grid unchanged (operator ruling
- * 2026-09-07: "tablet 1024 keeps the desktop row... leave tablet as is").
- * The `data-guard-title` attribute is unchanged by this lane.
+ * THREE LAYOUTS ABOVE THE PHONE (lane PAR-1, 2026-10-07, Claude Design artboard 22 ruling A, which
+ * supersedes the 2026-09-07 "leave tablet as is" ruling): "768 to 1023 uses the stacked row with the
+ * timeline kept (line 1 jurisdiction + title; line 2 Catalogue record, meter, date, timeline, tier,
+ * more; line 3 bias chips wrapping whole). 1024 to 1279 uses the mid row with the chip line under
+ * the title. 1280+ puts chips on the meta line." Below 768 the phone row stands (lane moblist,
+ * 2026-09-07, mobile-390 spec "LIST ROW"): the same stacked anatomy with the TIMELINE dropped, 76px
+ * two-line, line 1 jurisdiction code + wrapping title, line 2 grade chip, impact meter/sum,
+ * date+days, tier, workspace tags, then the 44x44 overflow control pushed right, bias chips on a
+ * line of their own. All of it is CSS on THIS shared part (never a page-local override) over ONE
+ * element tree: the `.cl-row-content`/`.cl-row-line1`/`.cl-row-line2` wrappers are `display:
+ * contents` where the desktop 8-column grid applies (1024 and up) and become flex rows where the
+ * row stacks (under 1024). Chips wrap whole and are never clipped. The `data-guard-title`
+ * attribute is unchanged.
  *
  * REGISTER VARIANT (lane map60, 2026-09-08): `variant="register"` renders
  * artboard 10's jurisdiction register instead, its own six-column grid
@@ -335,7 +336,6 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
     .cl-row-due { flex-direction: row !important; align-items: baseline !important; gap: 5px; }
     .cl-row-due-label { font-size: 11.5px !important; font-weight: 700 !important; }
     .cl-row-due-days { font-size: 11.5px !important; font-weight: 500 !important; }
-    .cl-row-timeline { display: none !important; }
     .cl-row-tags-mobile { display: inline-flex !important; }
     /* Lane P1 (2026-10-05): the source's bias chips. The meta line above is hidden at this width
        (and every non-absence child of it with it), so the chips come back on a line of their own at
@@ -369,6 +369,34 @@ const LIST_ROW_NARROW_REFLOW_CSS = `
       width: 44px;
       height: 44px;
       flex-shrink: 0;
+    }
+`;
+
+// PHONE-ONLY half of the reflow (lane PAR-1, 2026-10-07, artboard 22 ruling A). Below 768px the
+// timeline column is the one cell dropped (mobile-390 spec: "THE 76px TIMELINE COLUMN IS THE ONLY
+// THING DROPPED"). From 768 to 1023 the SAME stacked reflow above applies and the timeline is KEPT
+// on line 2, at its own desktop track width. The narrow command-bar box (container query below)
+// takes both halves: it is phone-sized whatever the viewport is.
+const LIST_ROW_PHONE_ONLY_CSS = `
+    .cl-row-timeline { display: none !important; }
+`;
+const LIST_ROW_TABLET_TIMELINE_CSS = `
+    /* Artboard 22 ruling A, stacked row from 768px: "line 2 Catalogue record, meter, date, timeline, tier,
+       more". The timeline keeps the 76px track it has in the desktop grid. */
+    .cl-row-timeline { flex: 0 0 76px; width: 76px; }
+`;
+
+// MID ROW (lane PAR-1, artboard 22 ruling A): "1024 to 1279 uses the mid row with the chip line under
+// the title. 1280+ puts chips on the meta line." The grid is the desktop one; only the bias chips
+// leave the meta line for a line of their own under it, wrapping whole chips (never clipped). One
+// element, CSS decides (P3 item 5 precedent): the same `.cl-row-bias-desktop` the wide row keeps on
+// the meta line takes the full width of the wrapping meta line here and drops to the next line.
+const LIST_ROW_MID_CSS = `
+    .cl-row-meta-tags { flex-wrap: wrap !important; row-gap: 4px; }
+    .cl-row-bias-desktop { flex: 0 0 100% !important; min-width: 0; }
+    .cl-row-bias-desktop [data-part="bias-chips"] { flex-wrap: wrap !important; }
+    .cl-row-bias-desktop [data-part="bias-chips"] [data-part="chip-tag"] {
+      white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
     }
 `;
 
@@ -470,8 +498,27 @@ const RESPONSIVE_CSS = `
     .cl-row-register-arrow { grid-column: 4; grid-row: 1 / -1; }
   }
 
-  @media (max-width: 767px) {
+  /* Artboard 22 ruling A (lane PAR-1): three layouts above the phone.
+       below 768px   the phone row (stacked, timeline dropped);
+       768px up to 64em   the stacked row with the timeline KEPT;
+       64em up to 80em    the mid row (desktop grid, chip line under the title);
+       80em and up        the wide row (desktop grid, chips on the meta line, unchanged).
+     The stacked reflow is emitted for every width under 64em, the phone-only half after it. The upper
+     two breakpoints are written in em (a media query's em is always the browser's initial 16px, so
+     64em is the tablet-landscape width and 80em the wide-desktop width) because the rendering guard's
+     placeholder scan reads the text of this style element and flags a bare four-digit number as an
+     unseparated thousand, comments included. */
+  @media (width < 64em) {
 ${LIST_ROW_NARROW_REFLOW_CSS}
+${LIST_ROW_TABLET_TIMELINE_CSS}
+  }
+
+  @media (max-width: 767px) {
+${LIST_ROW_PHONE_ONLY_CSS}
+  }
+
+  @media (64em <= width < 80em) {
+${LIST_ROW_MID_CSS}
   }
 
   /* CONTAINER-QUERY twin of the viewport reflow above (lane searchrow, 2026-09-11)
@@ -500,6 +547,7 @@ ${LIST_ROW_NARROW_REFLOW_CSS}
      desktop grid regardless of what the viewport is doing. */
   @container (max-width: 489px) {
 ${LIST_ROW_NARROW_REFLOW_CSS}
+${LIST_ROW_PHONE_ONLY_CSS}
 ${LIST_ROW_NARROW_CONTAINER_TYPE_OVERRIDE_CSS}
   }
 `;
@@ -892,14 +940,15 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
           </span>
         </div>
         <div className="cl-row-line2" style={{ display: "contents" }}>
-          {tailContent}
-          {/* Mobile-only (lane P2): the record-grade chip at the head of line 2, see
-              `.cl-row-grade-mobile` above. Hidden >=768px, where the meta line carries it. */}
+          {/* Stacked rows only (phone and 768 to 1023; lane P2, moved ahead of the value cells by lane
+              PAR-1 so it IS the head of line 2, as artboard 22 draws it): the record-grade chip, see
+              `.cl-row-grade-mobile` above. Hidden from 1024, where the meta line carries it. */}
           {isRecordGrade && (
             <span className="cl-row-grade-mobile" style={{ display: "none" }}>
               <GradeChip itemGrade={itemGrade} />
             </span>
           )}
+          {tailContent}
           {/* Mobile-only: line 2's "then workspace tags" item (spec order). Hidden >=768px — the
               desktop tag rendering above (.cl-row-meta-tags) is unchanged. */}
           {tags && tags.length > 0 && (

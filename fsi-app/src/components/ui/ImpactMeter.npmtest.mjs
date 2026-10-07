@@ -1,13 +1,14 @@
-// Regression tests for src/components/ui/ImpactMeter.tsx, rewritten for the site-wide parts brief's
-// row-variant redesign (docs/design/parts-brief-2026-09-18.md, section 2.16). The brief's own
-// acceptance line ("group rows by N, every row renders byte-identical meter markup") is a claim about
-// REAL RENDERED OUTPUT, not source text, so this file departs from the plain-source-regex convention
-// most `*.npmtest.mjs` files in this repo use (no JSX mount infra for `node --test` was the reason
-// given historically) and instead compiles the real component with esbuild (already a project
-// dependency, `.discipline/rendering/smoke/harness.mjs` uses the same package to bundle real .tsx
-// components for the Playwright smoke suite) and renders it with `react-dom/server`'s
-// `renderToStaticMarkup`, entirely in Node, no browser. `react`/`react-dom` are left external so the
-// component renders with the SAME React the app ships, not a bundled copy.
+// Regression tests for src/components/ui/ImpactMeter.tsx. Rewritten (lane PAR-1, 2026-10-07) for Claude
+// Design artboard 22 ruling B: "Twelve equal 12 px segments in four groups of three, filled left to
+// right in the ramp colour. Replaces the stepped four-bar meter everywhere, legend included." The
+// parts brief's acceptance line ("group rows by N, every row renders byte-identical meter markup",
+// docs/design/parts-brief-2026-09-18.md section 2.16) is a claim about REAL RENDERED OUTPUT, not source
+// text, so this file departs from the plain-source-regex convention most `*.npmtest.mjs` files in this
+// repo use and instead compiles the real component with esbuild (already a project dependency,
+// `.discipline/rendering/smoke/harness.mjs` uses the same package to bundle real .tsx components for
+// the Playwright smoke suite) and renders it with `react-dom/server`'s `renderToStaticMarkup`,
+// entirely in Node, no browser. `react`/`react-dom` are left external so the component renders with
+// the SAME React the app ships, not a bundled copy.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, unlinkSync } from "node:fs";
@@ -48,7 +49,7 @@ try {
   // best-effort cleanup; a leftover compiled fixture under gitignored scripts/tmp/ is harmless
 }
 
-const { ImpactMeter, rampColor, sumScores, barFillFraction, isImpactScored } = mod;
+const { ImpactMeter, rampColor, sumScores, segmentFilled, isImpactScored } = mod;
 
 function render(props) {
   return renderToStaticMarkup(React.createElement(ImpactMeter, props));
@@ -85,55 +86,69 @@ test("total renders directly, bypassing dimension derivation (the legend's own c
 });
 
 // ---------------------------------------------------------------------------------------------
-// Geometry (brief 2.16, verbatim): four bars 8px wide, heights 6/9/12/15, gap 2, radius 1.5,
-// track #E5E1DB, bottom-aligned.
+// Geometry (artboard 22 ruling B): twelve equal segments, four groups of three, 12 px, left to right.
 // ---------------------------------------------------------------------------------------------
 
-test("geometry constants match the brief exactly", () => {
-  assert.deepEqual(mod.ROW_BAR_HEIGHTS_PX, [6, 9, 12, 15]);
-  assert.equal(mod.ROW_BAR_WIDTH_PX, 8);
-  assert.equal(mod.ROW_BAR_GAP_PX, 2);
-  assert.equal(mod.ROW_BAR_RADIUS_PX, 1.5);
+test("geometry constants: twelve segments in groups of three, 12 px tall, equal", () => {
+  assert.equal(mod.ROW_SEGMENT_COUNT, 12);
+  assert.equal(mod.ROW_SEGMENT_GROUP_SIZE, 3);
+  assert.equal(mod.ROW_SEGMENT_HEIGHT_PX, 12);
   assert.equal(mod.ROW_TRACK_COLOR, "#E5E1DB");
 });
 
-test("a scored row renders four bars at the brief's fixed heights, 8px wide, bottom-aligned, gap 2", () => {
+test("the four-bar implementation is gone: no stepped heights, no per-bar fill fraction", () => {
+  assert.equal(mod.ROW_BAR_HEIGHTS_PX, undefined);
+  assert.equal(mod.ROW_BAR_WIDTH_PX, undefined);
+  assert.equal(mod.barFillFraction, undefined);
+  assert.doesNotMatch(SOURCE, /ROW_BAR_|barFillFraction|stepped fill/);
+});
+
+test("a scored row renders twelve equal segments in four groups of three", () => {
   const markup = render({ scores: { cost: 3, compliance: 3, client: 3, operational: 3 } }); // N=12
-  assert.match(markup, /class="cl-impact-bars" style="display:flex;align-items:flex-end;gap:2px"/);
-  for (const h of [6, 9, 12, 15]) {
-    assert.match(
-      markup,
-      new RegExp(`class="cl-impact-bar" style="position:relative;width:8px;height:${h}px;border-radius:1\\.5px;background:#E5E1DB`)
-    );
+  assert.equal([...markup.matchAll(/class="cl-impact-bar"/g)].length, 12);
+  const groups = markup.split('class="cl-impact-group"').slice(1);
+  assert.equal(groups.length, 4);
+  for (const g of groups) {
+    assert.equal([...g.slice(0, g.indexOf("</span></span>") + 14).matchAll(/class="cl-impact-bar"/g)].length >= 3, true);
+  }
+  // every segment carries the same size, whatever N is
+  const sizes = new Set([...markup.matchAll(/class="cl-impact-bar" style="[^"]*?(width:\d+px;height:\d+px)/g)].map((m) => m[1]));
+  assert.equal(sizes.size, 1);
+  assert.match(markup, /width:3px;height:12px/);
+});
+
+test("each group holds exactly three segments (group markup, not a count of the whole)", () => {
+  const markup = render({ total: 5 });
+  const perGroup = [...markup.matchAll(/<span aria-hidden="true" class="cl-impact-group"[^>]*>((?:<span[^>]*class="cl-impact-bar"[^>]*><\/span>)+)<\/span>/g)].map(
+    (m) => [...m[1].matchAll(/class="cl-impact-bar"/g)].length
+  );
+  assert.deepEqual(perGroup, [3, 3, 3, 3]);
+});
+
+test("segmentFilled: segment i is filled when i < N, so the fill runs left to right", () => {
+  assert.equal(segmentFilled(1, 0), true);
+  assert.equal(segmentFilled(1, 1), false);
+  const n8 = Array.from({ length: 12 }, (_, i) => segmentFilled(8, i)).map(Number).join("");
+  assert.equal(n8, "111111110000");
+  assert.equal(Array.from({ length: 12 }, (_, i) => segmentFilled(12, i)).every(Boolean), true);
+  assert.equal(Array.from({ length: 12 }, (_, i) => segmentFilled(0, i)).some(Boolean), false);
+});
+
+test("the painted markup fills exactly N segments, leftmost first, the rest the track colour", () => {
+  for (const n of [1, 2, 5, 8, 11, 12]) {
+    const markup = render({ total: n });
+    const backgrounds = [...markup.matchAll(/class="cl-impact-bar" style="[^"]*?background:(#[0-9A-F]{6})/g)].map((m) => m[1]);
+    assert.equal(backgrounds.length, 12);
+    const filled = backgrounds.map((c) => c !== "#E5E1DB");
+    assert.deepEqual(filled, Array.from({ length: 12 }, (_, i) => i < n), `N=${n}`);
   }
 });
 
-test("fill_i = clamp(N - 3i, 0, 3) / 3, the brief's own worked examples", () => {
-  // 1/12 = one low stub (bar 0 only, one third full)
-  assert.equal(barFillFraction(1, 0), 1 / 3);
-  assert.equal(barFillFraction(1, 1), 0);
-  // 6/12 = bars 1-2 full (0-indexed 0,1), bars 3-4 empty
-  assert.equal(barFillFraction(6, 0), 1);
-  assert.equal(barFillFraction(6, 1), 1);
-  assert.equal(barFillFraction(6, 2), 0);
-  assert.equal(barFillFraction(6, 3), 0);
-  // 8/12 = bars 1-2 full, bar 3 two-thirds, bar 4 empty
-  assert.equal(barFillFraction(8, 0), 1);
-  assert.equal(barFillFraction(8, 1), 1);
-  assert.equal(barFillFraction(8, 2), 2 / 3);
-  assert.equal(barFillFraction(8, 3), 0);
-  // 12/12 = four full bars
-  for (let i = 0; i < 4; i += 1) assert.equal(barFillFraction(12, i), 1);
-});
-
-test("a bar's filled pixel height is its own fixed height times its fill fraction", () => {
-  // sum = 3+2+0+0 = 5; fill_0=1 (bar0's own 6px, full), fill_1=2/3 (bar1's own 9px * 2/3 = 6px),
-  // fill_2=0, fill_3=0 (both bar2's 12px and bar3's 15px track are unfilled: height:0).
-  const markup = render({ scores: { cost: 3, compliance: 2, client: 0, operational: 0 } });
-  const fillHeights = [...markup.matchAll(/position:absolute;left:0;right:0;bottom:0;height:(\d+)(?:px)?/g)].map(
-    (m) => Number(m[1])
-  );
-  assert.deepEqual(fillHeights, [6, 6, 0, 0]);
+test("the accessible label states the value in words and the segments are decoration", () => {
+  const markup = render({ total: 8 });
+  assert.match(markup, /aria-label="Impact 8 of 12"/);
+  assert.equal([...markup.matchAll(/class="cl-impact-bar"/g)].length, 12);
+  assert.equal([...markup.matchAll(/aria-hidden="true" class="cl-impact-group"/g)].length, 4);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -159,11 +174,13 @@ test("no filled bar is #16A34A (the lowest stop's green) when N is 7 or more", (
   }
 });
 
-test("all four bars in one row share the SAME colour (never a per-bar colour)", () => {
+test("every filled segment in one row shares the SAME colour (never a per-segment colour)", () => {
   const markup = render({ scores: { cost: 1, compliance: 2, client: 2, operational: 2 } }); // N=7
-  const fillColors = [...markup.matchAll(/background:(#[0-9A-F]{6});border-radius:1\.5px/g)].map((m) => m[1]);
-  assert.equal(fillColors.length, 4);
-  assert.ok(fillColors.every((c) => c === fillColors[0]), "every filled bar is the same colour");
+  const fillColors = [...markup.matchAll(/class="cl-impact-bar" style="[^"]*?background:(#[0-9A-F]{6})/g)]
+    .map((m) => m[1])
+    .filter((c) => c !== "#E5E1DB");
+  assert.equal(fillColors.length, 7);
+  assert.ok(fillColors.every((c) => c === fillColors[0]), "every filled segment is the same colour");
   assert.equal(fillColors[0], "#F97316");
 });
 
@@ -182,15 +199,14 @@ test("the sum label is tabular-nums, N bold, /12 in #7A6E6C", () => {
 // em dash in the score slot. No word.").
 // ---------------------------------------------------------------------------------------------
 
-test("unscored renders the same four bars, dashed outline, no fill, no word", () => {
+test("unscored renders the same twelve segments, dashed outline, no fill, no word", () => {
   const markup = render({ scores: null });
   assert.match(markup, /cl-impact-unscored/);
   const outlines = [...markup.matchAll(/border:1px dashed rgba\(0,0,0,\.3\)/g)];
-  assert.equal(outlines.length, 4, "all four bars are dashed outlines");
-  for (const h of [6, 9, 12, 15]) {
-    assert.match(markup, new RegExp(`width:8px;height:${h}px;border-radius:1\\.5px;border:1px dashed`));
-  }
-  // no fill: unlike the scored branch, no inner span with a `background:#RRGGBB` fill exists
+  assert.equal(outlines.length, 12, "all twelve segments are dashed outlines");
+  assert.equal([...markup.matchAll(/class="cl-impact-group"/g)].length, 4);
+  assert.match(markup, /width:3px;height:12px/);
+  // no fill: unlike the scored branch, no segment carries a `background:#RRGGBB` fill
   assert.doesNotMatch(markup, /background:#[0-9A-F]{6}/);
   // "no word": the closed-vocabulary reason is carried on aria-label/title for assistive tech (the
   // same Absence `dash` convention every other absent value cell uses), never as visible TEXT
@@ -218,12 +234,11 @@ test("isImpactScored still gates on any dimension >= 1 (unchanged predicate, sti
 });
 
 // ---------------------------------------------------------------------------------------------
-// No mobile media query on the row variant (lane w10a case not drawn, coordinator ruling: the
-// brief does not draw 768px geometry for the new model, so the row variant's geometry is unchanged
-// at every width; the OLD per-score-height media query governed the retired per-dimension model).
+// No media query on the row variant: the meter draws the same twelve segments at every width; the row
+// (ListRow.tsx) owns the three layouts and the meter fits its fixed 88px impact track in all of them.
 // ---------------------------------------------------------------------------------------------
 
-test("the row variant carries no @media rule (geometry unchanged at every width, per coordinator ruling)", () => {
+test("the row variant carries no @media rule (the same meter at every width)", () => {
   assert.doesNotMatch(SOURCE, /@media/);
 });
 

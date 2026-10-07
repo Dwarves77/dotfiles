@@ -55,7 +55,7 @@
 
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
+import { UX_VIEWPORTS } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, detectOverflows, findPlaceholderLiterals } from './harness.mjs';
 import { fullAppCss, SMOKE_BIAS_TAGS_FIVE } from './smoke-fixtures.mjs';
@@ -382,8 +382,7 @@ export async function runSmoke(browser) {
   const failures = [];
   let checks = 0;
   const bundleJs = await bundleEntry(ENTRY, BUNDLE_ALIAS);
-  for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
-    const mobile = vp.width === MOBILE_VIEWPORT.width;
+  for (const vp of UX_VIEWPORTS) {
     for (const state of STATES) {
       const label = `dashboard-brief:${state.label}@${vp.width}`;
       const page = await newSmokePage(browser);
@@ -461,19 +460,14 @@ export async function runSmoke(browser) {
           failures.push(`${label}: expected >=${state.expectTitles} [data-guard-title] element(s), found ${ux.titles.length}`);
         }
 
-        if (mobile) {
-          // Small-target (law-2) is asserted at every viewport; overflow/clipped/squeezed-title are
-          // NOT — see this file's header for the disclosed, mobile-not-yet-designed reasoning.
-          failures.push(
-            ...assertUxClean(label, { targets: ux.targets, titles: [], clipped: [] }),
-          );
-        } else {
-          const overflows = detectOverflows(guard.measurements);
-          if (overflows.length > 0) {
-            failures.push(`${label}: horizontal overflow — ${overflows.map((o) => `${o.name} +${o.overflowBy}px`).join(', ')}`);
-          }
-          failures.push(...assertUxClean(label, ux));
+        // Lane PAR-1 (2026-10-07): the SAME rules at every width (375, 768, 1024, 1280): overflow,
+        // clipped text, squeezed title, law-2 targets. The earlier mobile-only relaxation (targets
+        // only) was already stale against this file's own header, which says 375 runs every check.
+        const overflows = detectOverflows(guard.measurements);
+        if (overflows.length > 0) {
+          failures.push(`${label}: horizontal overflow ${overflows.map((o) => `${o.name} +${o.overflowBy}px`).join(', ')}`);
         }
+        failures.push(...assertUxClean(label, ux));
       } finally {
         await page.close();
       }

@@ -93,10 +93,14 @@ const API_ROUTES = [
 
 const DATE_LABEL = 'Monday, September 21 2026';
 
-// A single unbroken ~80-char token, the same stress class notices-rail-smoke.mjs / community-smoke.mjs
-// use, so a title with no natural wrap point is measured, not just a normal multi-word title.
+// A very long title built of hyphen-joined words, the same stress class market-rows-smoke.mjs and
+// research-rows-smoke.mjs use (their LONG helper). Lane PAR-1 (2026-10-07): this was a single unbroken
+// 86-character token, which at the new 768 and 1024 widths is narrower than the row but wider than
+// the title column, the one case the RD-82 word-break rule cannot carve out ("a word wider than the
+// container cannot fit anywhere"), so no layout could pass it and it measured the fixture, not the
+// row. Hyphen-joined words keep the title long and force the row to wrap it, as every sibling spec does.
 const LONG_UNBROKEN =
-  'euregulationonpackagingandpackagingwastecomprehensiverevisiontwentytwentysix1234567890';
+  'eu-regulation-on-packaging-and-packaging-waste-comprehensive-revision-twenty-twenty-six-1234567890';
 
 function resultRow(i, { long = false } = {}) {
   return {

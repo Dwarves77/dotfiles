@@ -193,10 +193,11 @@
       }
     },
     {
-      "name": "Impact bars 8px wide on a 1px rgba(0,0,0,.25) baseline",
+      "name": "Impact segments 3px wide, 12px tall (twelve equal segments, artboard 22 ruling B)",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-impact-bar",
       "expect": {
-        "width": "8px"
+        "width": "3px",
+        "height": "12px"
       }
     },
     {

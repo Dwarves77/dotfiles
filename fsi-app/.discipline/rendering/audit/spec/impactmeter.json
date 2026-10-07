@@ -3,132 +3,134 @@
   "mount": "impactmeter",
   "viewport": 1440,
   "artboards": [
-    "docs/design/parts-brief-2026-09-18.md section 2.16 (row variant, rewritten 2026-09-18)",
+    "Claude Design artboard 22, ruling B (2026-10-07), twelve equal segments in four groups of three; superseding docs/design/parts-brief-2026-09-18.md section 2.16 for the row variant",
     "00-system-sheet (full variant, unchanged by this brief)",
     "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
     "01-dashboard, 03-regulation-detail (full, rail)"
   ],
-  "source": "docs/design/parts-brief-2026-09-18.md section 2.16, \"IMPACT METER, ROW VARIANT (revised 2026-09-18)\", superseding this file's own prior audit-derived values (docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md items B29-B46) for the row variant only; the full variant's source there is unchanged.",
+  "source": "Claude Design artboard 22 (Divergence board 2026-10-07), ruling B, verbatim: \"Twelve equal 12 px segments in four groups of three, filled left to right in the ramp colour. Replaces the stepped four-bar meter everywhere, legend included.\" The full variant's source is unchanged (docs/design/parts-brief-2026-09-18.md section 2.16, last paragraph).",
   "notes": [
-    "Row variant, rewritten 2026-09-18 (lane w10a): the brief replaced the OLD per-dimension model (four scored dimensions, sorted ascending, each its own height/colour) with a STEPPED FILL OF THE TOTAL N/12. Four bars at fixed heights 6/9/12/15px, 8px wide, gap 2, radius 1.5, on an unfilled track #E5E1DB. Each bar holds 3 of the 12 points and fills bottom-up: fill_i = clamp(N - 3*i, 0, 3) / 3. ALL filled bars share ONE colour, read off the severity ramp at N (linear interpolation between 1 #16A34A, 4 #CA8A04, 7 #F97316, 12 #DC2626), never a per-bar colour, the brief's own acceptance test is that two rows with the same N render byte-identical markup regardless of dimension composition (asserted at the source level by src/components/ui/ImpactMeter.npmtest.mjs, not only here).",
-    "Row-scored fixture (sum 7/12, dims cost:1 compliance:1 client:2 operational:3, mounts.mjs's own pre-existing vector, still valid under the new model): fill_0=1 (bar1 full, 6px), fill_1=1 (bar2 full, 9px), fill_2=1/3 (bar3, 12*1/3=4px), fill_3=0 (bar4, 0px); colour = rampColor(7) = #F97316.",
-    "Row-partial fixture (sum 2/12, dims cost:0 compliance:0 client:0 operational:2): REPURPOSED from the retired per-dimension model's own \"[0,0,0,2], never one lonely bar\" fixture (lane METERFIX, 2026-09-08, superseded), the same dimension vector is kept because it still demonstrates the NEW model's partial-fill case: fill_0=2/3 (bar1, 6*2/3=4px), fill_1..3=0; colour = rampColor(2) = #529B33.",
-    "Row-unscored: the brief's own words, \"the same four bars as 1px dashed rgba(0,0,0,.3) outlines, no fill, and an em dash in the score slot. No word.\" No baseline element any more (the retired model's single 30px dashed line, `.cl-impact-baseline`, is gone from the row variant; it survives only in the full variant's own unchanged unscored branch, which never carried the row's class name in the first place).",
-    "768px mobile geometry is NOT drawn by the brief; per the coordinator's ruling (lane w10a, 2026-09-18, recorded in the lane's report as a case not drawn) the row variant's geometry is unchanged at every width, so this mount carries no separate mobile capture and no @media rule exists in ImpactMeter.tsx to measure.",
-    "Full variant track: unchanged by this brief. height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px. The fixture's four scores (cost:1, compliance:3, client:1, operational:2) are unchanged from before this lane.",
-    "Full variant, unscored: unchanged by this brief, the 96px dashed baseline (`width: variant === \"full\" ? 96 : 30` in the pre-2026-09-18 source; the row variant's own unscored branch no longer uses that ternary at all, having moved to the four-bar treatment above, but the full branch keeps its literal 96 unchanged)."
+    "Row variant, REPLACED 2026-10-07 (lane PAR-1): the stepped four-bar fill is deleted. The row draws the TOTAL N/12 as twelve equal segments in four groups of three; segment i is filled when i < N, so the fill runs left to right. All filled segments share ONE colour read off the severity ramp at N (1 #16A34A, 4 #CA8A04, 7 #F97316, 12 #DC2626, linear interpolation), the unfilled track is #E5E1DB, and two rows with the same N render byte-identical markup (asserted at the source level by src/components/ui/ImpactMeter.npmtest.mjs and on a real render by smoke/impact-meter-partial-smoke.mjs).",
+    "GEOMETRY, one reading recorded: the ruling says '12 px segments' and the system sheet gives no gap, so a segment is 12px tall and 3px wide with a 1px gap inside a group and a 3px gap between groups, which keeps the meter plus its N/12 figure inside the list row's fixed 88px impact track. If Claude Design means 12px wide, the row grid has to widen; the lane's DESIGN CHANGES OWED entry asks.",
+    "Row-scored fixture (sum 7/12, dims cost:1 compliance:1 client:2 operational:3): segments 1 to 7 filled in rampColor(7) = #F97316, segments 8 to 12 the #E5E1DB track.",
+    "Row-partial fixture (sum 2/12, dims cost:0 compliance:0 client:0 operational:2): segments 1 and 2 filled in rampColor(2) = #529B33, segments 3 to 12 the track. The same dimension vector as before, kept because it is still the partial-fill case.",
+    "Row-unscored: the same twelve segments as 1px dashed rgba(0,0,0,.3) outlines, no fill, and an em dash in the score slot. No word.",
+    "Full variant track: unchanged. height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px.",
+    "Full variant, unscored: unchanged, the 96px dashed baseline."
   ],
   "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
   "expect": {
     "display": "flex",
-    "align-items": "flex-end",
-    "gap": "2px"
+    "align-items": "center",
+    "gap": "3px"
   },
   "children": [
     {
-      "name": "row scored, four bars, one selector, count 4 (the brief's fixed geometry, not four separately-authored elements)",
+      "name": "row scored, twelve equal segments, one selector, count 12",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar",
       "expect": {
+        "count": 12,
+        "width": "3px",
+        "height": "12px",
+        "border-radius": "1px"
+      }
+    },
+    {
+      "name": "row scored, four groups of three",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-group",
+      "expect": {
         "count": 4,
-        "width": "8px",
-        "border-radius": "1.5px",
+        "display": "flex",
+        "gap": "1px"
+      }
+    },
+    {
+      "name": "row scored, segment 1 (filled), colour = rampColor(7)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "expect": {
+        "background-color": "#F97316"
+      }
+    },
+    {
+      "name": "row scored, segment 7 (the last filled one, group 3), same colour (one colour per row)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-group:nth-of-type(3) .cl-impact-bar:nth-of-type(1)",
+      "expect": {
+        "background-color": "#F97316"
+      }
+    },
+    {
+      "name": "row scored, segment 8 (first unfilled one, group 3) is the track colour",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-group:nth-of-type(3) .cl-impact-bar:nth-of-type(2)",
+      "expect": {
         "background-color": "#E5E1DB"
       }
     },
     {
-      "name": "row scored, bar 1, own height 6px (fill_0=1, full)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
-      "expect": { "height": "6px" }
-    },
-    {
-      "name": "row scored, bar 1's fill, full height, colour = rampColor(7)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1) > span",
-      "expect": { "height": "6px", "background-color": "#F97316" }
-    },
-    {
-      "name": "row scored, bar 2, own height 9px (fill_1=1, full)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(2)",
-      "expect": { "height": "9px" }
-    },
-    {
-      "name": "row scored, bar 2's fill, full height, same colour as bar 1 (one colour per row, never per-bar)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(2) > span",
-      "expect": { "height": "9px", "background-color": "#F97316" }
-    },
-    {
-      "name": "row scored, bar 3, own height 12px (fill_2=1/3, partial)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
-      "expect": { "height": "12px" }
-    },
-    {
-      "name": "row scored, bar 3's fill, 4px of its 12px (one third), same colour",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3) > span",
-      "expect": { "height": "4px", "background-color": "#F97316" }
-    },
-    {
-      "name": "row scored, bar 4, own height 15px (fill_3=0, unfilled)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
-      "expect": { "height": "15px" }
-    },
-    {
-      "name": "row scored, bar 4's fill is 0px (never a per-bar colour swap; the fill height alone carries N)",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4) > span",
-      "expect": { "height": "0px" }
+      "name": "row scored, segment 12 (last, group 4) is the track colour",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-group:nth-of-type(4) .cl-impact-bar:nth-of-type(3)",
+      "expect": {
+        "background-color": "#E5E1DB"
+      }
     },
     {
       "name": "row scored, sum label: 11px, tabular-nums, N bold, /12 in #7A6E6C",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
       "note": "brief 2.16: \"Beside it: N/12, 11px, tabular numerals, N in bold, '/12' #7A6E6C.\"",
-      "expect": { "font-size": "11px", "font-variant-numeric": "tabular-nums", "text": "7/12" }
+      "expect": {
+        "font-size": "11px",
+        "font-variant-numeric": "tabular-nums",
+        "text": "7/12"
+      }
     },
     {
       "name": "row scored, the bold N",
       "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child > b",
-      "expect": { "font-weight": "700", "text": "7" }
+      "expect": {
+        "font-weight": "700",
+        "text": "7"
+      }
     },
     {
-      "name": "row unscored, four dashed bar outlines, one selector, count 4, no fill",
+      "name": "row unscored, twelve dashed segment outlines, one selector, count 12, no fill",
       "selector": "[data-audit=\"row-unscored\"] .cl-impact-bar",
-      "note": "brief 2.16: \"the same four bars as 1px dashed rgba(0,0,0,.3) outlines, no fill\". Same geometry (8px wide, radius 1.5) as the scored bars, dashed border instead of a track+fill.",
       "expect": {
-        "count": 4,
-        "width": "8px",
-        "border-radius": "1.5px",
+        "count": 12,
+        "width": "3px",
+        "height": "12px",
         "border-width": "1px",
         "border-style": "dashed",
         "border-color": "rgba(0,0,0,.3)"
       }
     },
     {
-      "name": "row unscored, the four heights are the same fixed set as the scored row",
-      "selector": "[data-audit=\"row-unscored\"] .cl-impact-bar:nth-of-type(1)",
-      "expect": { "height": "6px" }
-    },
-    {
-      "name": "row unscored, bar 4 (the tallest)",
-      "selector": "[data-audit=\"row-unscored\"] .cl-impact-bar:nth-of-type(4)",
-      "expect": { "height": "15px" }
-    },
-    {
       "name": "row unscored, an em dash in the score slot, no word (B3/brief 2.16)",
       "selector": "[data-audit=\"row-unscored\"] .cl-absence-dash",
-      "expect": { "font-size": "inherit", "text": "\u2014" }
+      "expect": {
+        "font-size": "inherit",
+        "text": "\u2014"
+      }
     },
     {
-      "name": "row partial (sum 2/12, dims [0,0,0,2]), bar 1 two-thirds full",
-      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(1) > span",
-      "note": "fill_0 = clamp(2,0,3)/3 = 2/3 of bar 1's own 6px = 4px. Colour = rampColor(2) = #529B33 (between the 1->#16A34A and 4->#CA8A04 stops).",
-      "expect": { "height": "4px", "background-color": "#529B33" }
+      "name": "row partial (sum 2/12), segment 2 filled, colour = rampColor(2)",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-group:nth-of-type(1) .cl-impact-bar:nth-of-type(2)",
+      "expect": {
+        "background-color": "#529B33"
+      }
     },
     {
-      "name": "row partial, bars 2-4 are unfilled (fill_1..3 = 0)",
-      "selector": "[data-audit=\"row-partial\"] .cl-impact-bar:nth-of-type(2) > span",
-      "expect": { "height": "0px" }
+      "name": "row partial, segment 3 is the track colour",
+      "selector": "[data-audit=\"row-partial\"] .cl-impact-group:nth-of-type(1) .cl-impact-bar:nth-of-type(3)",
+      "expect": {
+        "background-color": "#E5E1DB"
+      }
     },
     {
       "name": "row partial, the sum still shows, tabular numerals",
       "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
-      "expect": { "font-size": "11px", "text": "2/12" }
+      "expect": {
+        "font-size": "11px",
+        "text": "2/12"
+      }
     },
     {
       "name": "full scored, track height/radius/gradient (unchanged by this brief)",
@@ -144,12 +146,20 @@
       "name": "full scored, dimension label (unchanged)",
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
       "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px, logged as the comparison value, unchanged by this lane.",
-      "expect": { "width": "116px", "font-size": "12.5px" }
+      "expect": {
+        "width": "116px",
+        "font-size": "12.5px"
+      }
     },
     {
       "name": "full unscored, the 96px dashed baseline (unchanged by this brief)",
       "selector": "[data-audit=\"full-unscored\"] span[style*=\"border-bottom\"]",
-      "expect": { "width": "96px", "border-bottom-width": "1px", "border-bottom-style": "dashed", "border-bottom-color": "rgba(0,0,0,.3)" }
+      "expect": {
+        "width": "96px",
+        "border-bottom-width": "1px",
+        "border-bottom-style": "dashed",
+        "border-bottom-color": "rgba(0,0,0,.3)"
+      }
     }
   ],
   "forbid": [

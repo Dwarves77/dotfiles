@@ -208,12 +208,12 @@
       }
     },
     {
-      "name": "B3, unscored meter, SUPERSEDED 2026-09-18 (parts brief section 2.16, lane w10a): four dashed bar outlines, not a baseline",
+      "name": "B3, unscored meter, SUPERSEDED 2026-10-07 (artboard 22 ruling B, lane PAR-1): twelve dashed segment outlines, not four bars",
       "selector": "[data-audit=\"row-absent\"] .cl-impact-bar",
-      "note": "Was: the 30px dashed baseline, rgba(0,0,0,.3) (`.cl-impact-baseline`, dc.html p1 second row). The row variant no longer has a baseline element at all; it draws the same four bars as the scored row (8px wide, heights 6/9/12/15, gap 2, radius 1.5) as 1px dashed rgba(0,0,0,.3) outlines instead, per the site-wide parts brief's rewritten row variant.",
+      "note": "Was: four dashed bars (2026-09-18) and before that the 30px dashed baseline. The row variant now draws twelve equal 3px by 12px segments in four groups of three; unscored they are 1px dashed rgba(0,0,0,.3) outlines with no fill.",
       "expect": {
-        "count": 4,
-        "width": "8px",
+        "count": 12,
+        "width": "3px",
         "border-width": "1px",
         "border-style": "dashed",
         "border-color": "rgba(0,0,0,.3)"

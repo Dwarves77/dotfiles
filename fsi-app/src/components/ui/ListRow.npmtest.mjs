@@ -264,3 +264,63 @@ test("SEARCHKEYS: the narrow-box type override forces flex-shrink:0 and max-widt
   assert.match(rule, /flex-shrink:\s*0\s*!important/, "without this the pre-existing flexShrink:1 collapses the element to 0 width");
   assert.match(rule, /max-width:\s*100%\s*!important/, "without this a long meta string overflows past its own overflow:hidden and gets clipped raw by the parent instead of ellipsizing");
 });
+
+// ── Lane PAR-1 (2026-10-07), Claude Design artboard 22 ruling A: three row layouts above the phone ──
+// "768 to 1023 uses the stacked row with the timeline kept ... 1024 to 1279 uses the mid row with the
+// chip line under the title. 1280+ puts chips on the meta line." One element tree, CSS decides.
+const CSS_REGION = SOURCE.slice(SOURCE.indexOf("const LIST_ROW_NARROW_REFLOW_CSS"), SOURCE.indexOf("export function ListRow("));
+
+test("PAR-1: the stacked reflow applies under 64em (768 to 1023) AND on the phone, one template", () => {
+  assert.match(SOURCE, /@media \(width < 64em\) \{\s*\n\$\{LIST_ROW_NARROW_REFLOW_CSS\}/);
+  assert.match(SOURCE, /@media \(max-width: 767px\) \{\s*\n\$\{LIST_ROW_PHONE_ONLY_CSS\}/);
+});
+
+test("PAR-1: the shared stacked template no longer drops the timeline; only the phone-only half does", () => {
+  const stacked = SOURCE.slice(SOURCE.indexOf("const LIST_ROW_NARROW_REFLOW_CSS = `"), SOURCE.indexOf("const LIST_ROW_PHONE_ONLY_CSS"));
+  assert.doesNotMatch(stacked, /\.cl-row-timeline/, "the stacked template says nothing about the timeline");
+  const phone = SOURCE.slice(SOURCE.indexOf("const LIST_ROW_PHONE_ONLY_CSS = `"), SOURCE.indexOf("const LIST_ROW_TABLET_TIMELINE_CSS"));
+  assert.match(phone, /\.cl-row-timeline\s*\{\s*display:\s*none\s*!important/);
+});
+
+test("PAR-1: the tablet stacked row keeps the timeline at its own 76px track", () => {
+  const tablet = SOURCE.slice(SOURCE.indexOf("const LIST_ROW_TABLET_TIMELINE_CSS = `"), SOURCE.indexOf("// MID ROW"));
+  assert.match(tablet, /\.cl-row-timeline\s*\{\s*flex:\s*0 0 76px;\s*width:\s*76px/);
+  assert.doesNotMatch(tablet, /display:\s*none/);
+});
+
+test("PAR-1: the narrow command-bar container takes the phone-only half too (it is phone-sized at any viewport)", () => {
+  const container = SOURCE.slice(SOURCE.indexOf("@container (max-width: 489px)"));
+  assert.match(container, /\$\{LIST_ROW_NARROW_REFLOW_CSS\}\s*\n\$\{LIST_ROW_PHONE_ONLY_CSS\}/);
+});
+
+test("PAR-1: the mid row (64em up to 80em) moves the bias chips to a line of their own under the title, wrapping whole chips", () => {
+  assert.match(SOURCE, /@media \(64em <= width < 80em\) \{\s*\n\$\{LIST_ROW_MID_CSS\}/);
+  const mid = SOURCE.slice(SOURCE.indexOf("const LIST_ROW_MID_CSS = `"), SOURCE.indexOf("// SEARCHKEYS"));
+  assert.match(mid, /\.cl-row-meta-tags\s*\{\s*flex-wrap:\s*wrap\s*!important/);
+  assert.match(mid, /\.cl-row-bias-desktop\s*\{\s*flex:\s*0 0 100%\s*!important/);
+  assert.match(mid, /\[data-part="bias-chips"\]\s*\{\s*flex-wrap:\s*wrap\s*!important/);
+  assert.match(mid, /white-space:\s*normal\s*!important/, "a chip wraps its words rather than clipping");
+});
+
+test("PAR-1: the wide row (80em and up) has no rule of its own, so chips stay on the meta line as before", () => {
+  assert.doesNotMatch(SOURCE, /@media \(min-width: 80em\)|@media \(width >= 80em\)/);
+});
+
+test("PAR-1: the CSS text carries no bare four-digit number (the guard's placeholder scan reads style text)", () => {
+  assert.doesNotMatch(CSS_REGION.replace(/\/\/[^\n]*/g, ""), /\b(1023|1024|1279|1280)\b/);
+});
+
+test("PAR-1: the grade chip sits at the head of line 2, ahead of the value cells, on the stacked rows", () => {
+  const line2 = SOURCE.slice(SOURCE.indexOf('className="cl-row-line2"'));
+  assert.ok(
+    line2.indexOf('className="cl-row-grade-mobile"') < line2.indexOf("{tailContent}"),
+    "the grade chip precedes tailContent in the DOM, so no CSS order trick is needed"
+  );
+  assert.ok(line2.indexOf("{tailContent}") < line2.indexOf('className="cl-row-bias-mobile"'), "bias chips stay last: line 3");
+});
+
+test("PAR-1: still one element tree, no second mount per breakpoint", () => {
+  assert.equal((SOURCE.match(/className="cl-row-title-text"/g) || []).length, 1);
+  assert.equal((SOURCE.match(/<ImpactMeter /g) || []).length, 1);
+  assert.equal((SOURCE.match(/<MilestoneTimeline /g) || []).length, 1);
+});

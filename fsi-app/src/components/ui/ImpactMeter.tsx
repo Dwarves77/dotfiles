@@ -4,35 +4,35 @@
  * ImpactMeter, the one impact meter. Four scored dimensions (cost,
  * compliance, client-facing, operational), each 1-3, sum to N/12.
  *
- * ROW VARIANT, REWRITTEN 2026-09-18 (site-wide parts brief, docs/design/parts-brief-2026-09-18.md
- * section 2.16, "IMPACT METER, ROW VARIANT (revised 2026-09-18)"). The brief replaced the row
- * variant's model outright: the four bars used to be the four SCORED DIMENSIONS, sorted ascending,
- * each its own height and colour, so two rows with the same sum could render visibly different bar
- * patterns (sum 6 as [3,3,0,0] vs [1,1,2,2]), which the parts inventory's own audit named as the
- * defect the brief's acceptance test is built to catch ("group rows by N, every row renders
- * byte-identical markup"). The row now draws a STEPPED FILL OF THE TOTAL N/12: four bars at fixed
- * heights 6/9/12/15px, 8px wide, gap 2, radius 1.5, on an unfilled track #E5E1DB; each bar holds 3
- * of the 12 points and fills bottom-up, left to right:
+ * ROW VARIANT, REPLACED 2026-10-07 (lane PAR-1, Claude Design artboard 22, ruling B, verbatim:
+ * "Twelve equal 12 px segments in four groups of three, filled left to right in the ramp colour.
+ * Replaces the stepped four-bar meter everywhere, legend included."). The stepped four-bar fill
+ * (2026-09-18, parts brief 2.16) is deleted, not kept beside it: one row meter, one implementation.
  *
- *     fill_i = clamp(N - 3*i, 0, 3) / 3   for i = 0..3
+ * The row draws the TOTAL N/12 as twelve equal segments in four groups of three. Segment i (0..11)
+ * is filled when i < N, so the fill runs left to right and one point is one segment. ALL filled
+ * segments share ONE colour, read off the severity ramp at N (linear interpolation between the
+ * stops 1 #16A34A, 4 #CA8A04, 7 #F97316, 12 #DC2626), never a per-segment colour, so the
+ * composition of the four dimensions never changes the rendered markup for a given N (byte-identical,
+ * asserted by ImpactMeter.npmtest.mjs). The unfilled track is #E5E1DB. Unscored draws the same
+ * twelve segments as 1px dashed rgba(0,0,0,.3) outlines with no fill, plus an em dash in the score
+ * slot (Absence's `dash` variant) and no word. The accessible label states the value in words
+ * ("Impact N of 12"), the segments are decoration.
  *
- * ALL filled bars share ONE colour, read off the severity ramp at N (linear interpolation between
- * the stops 1 #16A34A, 4 #CA8A04, 7 #F97316, 12 #DC2626), never a per-bar colour, so the composition
- * of the four dimensions never changes the rendered markup for a given N (byte-identical, asserted
- * by ImpactMeter.npmtest.mjs). Unscored draws the same four bars as 1px dashed rgba(0,0,0,.3)
- * outlines with no fill, plus an em dash in the score slot (Absence's `dash` variant) and no word.
- * The 768px mobile geometry is not drawn by the brief; per the coordinator's ruling (lane w10a,
- * 2026-09-18) the row variant's geometry is unchanged at every width, so there is no longer a
- * mobile media query on this file (the prior 5/10/16px score-height swap governed the OLD
- * per-dimension model and does not apply to a stepped total).
+ * GEOMETRY, one reading recorded (see the lane's DESIGN CHANGES OWED entry): the ruling says "12 px
+ * segments" and the system sheet gives no gap, so a segment is 12 px TALL and ROW_SEGMENT_WIDTH_PX
+ * wide, because the list row's impact track is a fixed 88 px (README 0.4) that must also hold the
+ * N/12 figure; twelve segments 12 px WIDE would need about 180 px. Every number is an exported
+ * constant, so a ruling that reads the 12 px the other way is a one-line change here and the row
+ * grid is untouched either way. No media query: the row variant draws the same at every width.
  *
  * `total` lets a caller with no per-dimension scores render the meter at a known N directly (the
  * legend row, brief 2.16: "the legend row on every list uses this exact meter at 8/12", rendered as
  * `<ImpactMeter total={8} />`). `scores` still derives N as the sum of the four dimensions for
  * every list row, which is the only caller that has dimensions at all.
  *
- * FULL VARIANT (detail rail, dashboard) IS UNCHANGED by this brief: one continuous bar per
- * dimension over the full green→orange→red ramp, revealed from the left by the score.
+ * FULL VARIANT (detail rail, dashboard) IS UNCHANGED: one continuous bar per dimension over the
+ * full green→orange→red ramp, revealed from the left by the score.
  */
 
 import type { ImpactScores } from "@/types/resource";
@@ -94,18 +94,60 @@ export function rampColor(n: number): string {
   return `#${toHex2(lastColor[0])}${toHex2(lastColor[1])}${toHex2(lastColor[2])}`;
 }
 
-/** Geometry constants for the row variant's stepped fill (brief 2.16, verbatim). Exported for the
- *  test. */
-export const ROW_BAR_WIDTH_PX = 8;
-export const ROW_BAR_GAP_PX = 2;
-export const ROW_BAR_RADIUS_PX = 1.5;
-export const ROW_BAR_HEIGHTS_PX: readonly number[] = [6, 9, 12, 15];
+/** Geometry of the row variant (artboard 22, ruling B). Exported for the test. */
+export const ROW_SEGMENT_COUNT = 12;
+export const ROW_SEGMENT_GROUP_SIZE = 3;
+export const ROW_SEGMENT_HEIGHT_PX = 12;
+export const ROW_SEGMENT_WIDTH_PX = 3;
+export const ROW_SEGMENT_GAP_PX = 1;
+export const ROW_GROUP_GAP_PX = 3;
+export const ROW_SEGMENT_RADIUS_PX = 1;
 export const ROW_TRACK_COLOR = "#E5E1DB";
 
-/** fill_i = clamp(N - 3*i, 0, 3) / 3, the fraction (0..1) of bar i's OWN height that is filled from
- *  the bottom. Exported for the test. */
-export function barFillFraction(n: number, i: number): number {
-  return Math.min(Math.max(n - 3 * i, 0), 3) / 3;
+/** Segment i (0-based, left to right) is filled when it is below the total. Exported for the test. */
+export function segmentFilled(n: number, i: number): boolean {
+  return i < n;
+}
+
+/** The segment indexes of each group, [[0,1,2],[3,4,5],[6,7,8],[9,10,11]]. */
+const SEGMENT_GROUPS: ReadonlyArray<readonly number[]> = Array.from(
+  { length: ROW_SEGMENT_COUNT / ROW_SEGMENT_GROUP_SIZE },
+  (_, g) => Array.from({ length: ROW_SEGMENT_GROUP_SIZE }, (_, k) => g * ROW_SEGMENT_GROUP_SIZE + k),
+);
+
+/** The twelve segments in four groups of three, drawn by both the scored and the unscored row so the
+ *  two can never drift apart. `segment(i)` supplies each segment's own paint. */
+function Segments({ segment }: { segment: (i: number) => React.CSSProperties }) {
+  return (
+    <span
+      className="cl-impact-bars"
+      style={{ display: "flex", alignItems: "center", gap: ROW_GROUP_GAP_PX, flexShrink: 0 }}
+    >
+      {SEGMENT_GROUPS.map((group, g) => (
+        <span
+          key={g}
+          aria-hidden="true"
+          className="cl-impact-group"
+          style={{ display: "flex", alignItems: "center", gap: ROW_SEGMENT_GAP_PX }}
+        >
+          {group.map((i) => (
+            <span
+              key={i}
+              aria-hidden="true"
+              className="cl-impact-bar"
+              style={{
+                boxSizing: "border-box",
+                width: ROW_SEGMENT_WIDTH_PX,
+                height: ROW_SEGMENT_HEIGHT_PX,
+                borderRadius: ROW_SEGMENT_RADIUS_PX,
+                ...segment(i),
+              }}
+            />
+          ))}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 export interface ImpactMeterProps {
@@ -133,44 +175,9 @@ function RowScored({ n }: { n: number }) {
     <span
       className="cl-impact-scored"
       aria-label={`Impact ${n} of 12`}
-      style={{ display: "flex", alignItems: "flex-end", gap: 6, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+      style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
     >
-      <span
-        className="cl-impact-bars"
-        style={{ display: "flex", alignItems: "flex-end", gap: ROW_BAR_GAP_PX }}
-      >
-        {ROW_BAR_HEIGHTS_PX.map((h, i) => {
-          const fillPx = h * barFillFraction(n, i);
-          return (
-            <span
-              key={i}
-              aria-hidden="true"
-              className="cl-impact-bar"
-              style={{
-                position: "relative",
-                width: ROW_BAR_WIDTH_PX,
-                height: h,
-                borderRadius: ROW_BAR_RADIUS_PX,
-                background: ROW_TRACK_COLOR,
-                overflow: "hidden",
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: fillPx,
-                  background: color,
-                  borderRadius: ROW_BAR_RADIUS_PX,
-                }}
-              />
-            </span>
-          );
-        })}
-      </span>
+      <Segments segment={(i) => ({ background: segmentFilled(n, i) ? color : ROW_TRACK_COLOR })} />
       <span
         style={{
           fontSize: "var(--fs-11)",
@@ -186,9 +193,9 @@ function RowScored({ n }: { n: number }) {
 }
 
 /**
- * B3 (operator, 2026-09-08, carried into the 2026-09-18 rewrite): "the meter column gets ... an em
- * dash in the score slot and NO literal UNSCORED". Brief 2.16 keeps that dash and changes only the
- * bars beside it: the same four bars as 1px dashed rgba(0,0,0,.3) outlines, no fill, no word.
+ * B3 (operator, 2026-09-08, carried through the 2026-09-18 and 2026-10-07 rewrites): "the meter column gets ... an em
+ * dash in the score slot and NO literal UNSCORED". The dash stays and only the segments beside
+ * it change: the same twelve segments as 1px dashed rgba(0,0,0,.3) outlines, no fill, no word.
  */
 function RowUnscored() {
   return (
@@ -196,28 +203,9 @@ function RowUnscored() {
       className="cl-impact-scored cl-impact-unscored"
       aria-label="Impact not scored"
       title="Impact not scored"
-      style={{ display: "flex", alignItems: "flex-end", gap: 6, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+      style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
     >
-      <span
-        className="cl-impact-bars"
-        style={{ display: "flex", alignItems: "flex-end", gap: ROW_BAR_GAP_PX }}
-      >
-        {ROW_BAR_HEIGHTS_PX.map((h, i) => (
-          <span
-            key={i}
-            aria-hidden="true"
-            className="cl-impact-bar"
-            data-score="unscored"
-            style={{
-              boxSizing: "border-box",
-              width: ROW_BAR_WIDTH_PX,
-              height: h,
-              borderRadius: ROW_BAR_RADIUS_PX,
-              border: "1px dashed rgba(0,0,0,.3)",
-            }}
-          />
-        ))}
-      </span>
+      <Segments segment={() => ({ border: "1px dashed rgba(0,0,0,.3)" })} />
       <span style={{ fontSize: "var(--fs-11)" }}>
         <Absence reason="unscored" variant="dash" />
       </span>
@@ -225,7 +213,7 @@ function RowUnscored() {
   );
 }
 
-/** Unchanged by the 2026-09-18 brief: one continuous bar per dimension over the full
+/** Unchanged by the row-meter replacement: one continuous bar per dimension over the full
  *  green→orange→red ramp, revealed from the left by the score. */
 function FullVariant({ scores }: { scores?: ImpactScores | null }) {
   if (!isImpactScored(scores)) {
