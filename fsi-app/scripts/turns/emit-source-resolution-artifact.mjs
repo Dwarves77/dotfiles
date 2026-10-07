@@ -156,6 +156,9 @@ export function emit({ env = process.env, familyDir = FAMILY_DIR, fsiRoot = FSI_
     fsiRoot,
     upstreamName,
     upstreamRunId,
+    // The upstream row's own loop id (lane CHAIN-2, ADR-031): an explicit id wins over the on-disk resolver,
+    // which finds nothing in a CI checkout now that artifacts land only in harness_runs.
+    explicit: env.SR_LOOP_RUN_ID || null,
   });
   const artifact = buildArtifact({
     runId,

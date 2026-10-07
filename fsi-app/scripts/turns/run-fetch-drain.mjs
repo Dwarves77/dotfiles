@@ -131,6 +131,21 @@ export function parseArgs(argv) {
  *  timestamp is eligible for reset. PURE, `nowMs` is the caller's own clock reading (`Date.now()` live,
  *  a fixed value in a test), never read internally, so this is testable without a live clock.
  *  @param {number} nowMs @returns {string} */
+/**
+ * This run's loop_run_id (ADR-031): the explicit id the workflow read from the Source sweep row
+ * (FETCH_DRAIN_LOOP_RUN_ID, lane CHAIN-2) wins over the on-disk resolver. `env` and `fsiRoot` are
+ * injectable for the test.
+ * @returns {string|null}
+ */
+export function resolveSweepLoopRunId({ env = process.env, fsiRoot = FSI_ROOT } = {}) {
+  return resolveLoopRunId({
+    explicit: env.FETCH_DRAIN_LOOP_RUN_ID || null,
+    upstreamFamily: "source-sweep",
+    upstreamRunId: env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+    harnessRunsDir: resolve(fsiRoot, "scripts", "harness-runs", "source-sweep"),
+  });
+}
+
 export function stuckCutoffIso(nowMs) {
   return new Date(nowMs - STUCK_AFTER_MS).toISOString();
 }
@@ -458,12 +473,10 @@ async function main() {
           // its own github.run_id -- see loop-run-id.mjs's own header for why this does not generalize
           // past hop 1). No --loop-run-id CLI flag exists on this runner yet, so `explicit` is always
           // null here; a future caller can pass one once the workflow itself resolves it out-of-band.
-          loop_run_id: resolveLoopRunId({
-            explicit: null,
-            upstreamFamily: "source-sweep",
-            upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
-            harnessRunsDir: resolve(FSI_ROOT, "scripts", "harness-runs", "source-sweep"),
-          }),
+          // `explicit` is FETCH_DRAIN_LOOP_RUN_ID (lane CHAIN-2, ADR-031): fetch-drain.yml reads the Source
+          // sweep row's own loop id through scripts/lib/upstream-artifact.mjs, because a CI checkout holds no
+          // sweep artifact for the disk resolver to find (artifacts land only in harness_runs).
+          loop_run_id: resolveSweepLoopRunId(),
         },
         inputs_ref: [
           `live query: pending_first_fetch status='queued' order by queued_at limit ${limit}`,

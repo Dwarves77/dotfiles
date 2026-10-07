@@ -166,36 +166,42 @@ export function buildArtifact({
   };
 }
 
-if (IS_MAIN) main();
+/**
+ * Read this run's env, build the artifact and write it. `env`, `familyDir` and `fsiRoot` are injectable so a
+ * test runs against a temp directory (the shape emit-source-resolution-artifact.mjs already has).
+ * @returns {{outPath: string, artifact: object}}
+ */
+export function emit({ env = process.env, familyDir = FAMILY_DIR, fsiRoot = FSI_ROOT } = {}) {
+  const mode = env.CT_MODE || "dry";
+  const selection = env.CT_SELECTION || "since";
+  const limit = env.CT_LIMIT || null;
+  const since = env.CT_SINCE || null;
+  const ticketCount = env.CT_TICKET_COUNT || "0";
+  const consumed = env.CT_CONSUMED === "true";
+  const signals = env.CT_SIGNALS === "true";
+  const startedAt = env.CT_STARTED_AT || new Date().toISOString();
+  const hasScope = env.CT_HAS_SCOPE === "true";
 
-function main() {
-  const mode = process.env.CT_MODE || "dry";
-  const selection = process.env.CT_SELECTION || "since";
-  const limit = process.env.CT_LIMIT || null;
-  const since = process.env.CT_SINCE || null;
-  const ticketCount = process.env.CT_TICKET_COUNT || "0";
-  const consumed = process.env.CT_CONSUMED === "true";
-  const signals = process.env.CT_SIGNALS === "true";
-  const startedAt = process.env.CT_STARTED_AT || new Date().toISOString();
-  const hasScope = process.env.CT_HAS_SCOPE === "true";
+  const ticketsPathEnv = env.CT_TICKETS_PATH || null; // fsi-app-relative, e.g. "scripts/_snapshots/turn-123/tickets.json"
+  const corpusPathEnv = env.CT_CORPUS_PATH || null; // fsi-app-relative
 
-  const ticketsPathEnv = process.env.CT_TICKETS_PATH || null; // fsi-app-relative, e.g. "scripts/_snapshots/turn-123/tickets.json"
-  const corpusPathEnv = process.env.CT_CORPUS_PATH || null; // fsi-app-relative
+  const ticketsPathRel = ticketsPathEnv && existsSync(resolve(fsiRoot, ticketsPathEnv)) ? ticketsPathEnv : null;
+  const corpusPathRel = hasScope && corpusPathEnv && existsSync(resolve(fsiRoot, corpusPathEnv)) ? corpusPathEnv : null;
 
-  const ticketsPathRel = ticketsPathEnv && existsSync(resolve(FSI_ROOT, ticketsPathEnv)) ? ticketsPathEnv : null;
-  const corpusPathRel = hasScope && corpusPathEnv && existsSync(resolve(FSI_ROOT, corpusPathEnv)) ? corpusPathEnv : null;
-
-  const perItem = selection === "tickets" ? perItemFromTicketsSnapshot(ticketsPathRel ? resolve(FSI_ROOT, ticketsPathRel) : null, mode) : [];
+  const perItem = selection === "tickets" ? perItemFromTicketsSnapshot(ticketsPathRel ? resolve(fsiRoot, ticketsPathRel) : null, mode) : [];
   const fe = hasScope ? latestForwardEventsCount(FORWARD_EVENTS_DIR) : { count: null, path: null };
   const feRel = fe.path ? `scripts/harness-runs/forward-events/${fe.path.split("/").pop()}` : null;
 
   const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
     family: FAMILY,
-    familyDir: FAMILY_DIR,
+    familyDir,
     governingFiles: GOVERNING_FILES[FAMILY],
-    fsiRoot: FSI_ROOT,
+    fsiRoot,
     upstreamName: "Ledger consume",
-    upstreamRunId: process.env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+    upstreamRunId: env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
+    // The upstream row's own loop id (lane CHAIN-2, ADR-031): an explicit id wins over the on-disk resolver,
+    // which finds nothing in a CI checkout now that artifacts land only in harness_runs.
+    explicit: env.CT_LOOP_RUN_ID || null,
   });
 
   const artifact = buildArtifact({
@@ -216,6 +222,11 @@ function main() {
     loopRunId,
   });
 
-  const outPath = writeRunArtifact(FAMILY_DIR, artifact);
+  const outPath = writeRunArtifact(familyDir, artifact);
+  return { outPath, artifact };
+}
+
+if (IS_MAIN) {
+  const { outPath } = emit();
   console.log(`emit-corpus-turn-artifact: wrote ${outPath}`);
 }

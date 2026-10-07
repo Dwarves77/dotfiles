@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { parseArgs, shapeRunOutput, resolveArtifactTrigger, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
+import { parseArgs, shapeRunOutput, resolveArtifactTrigger, resolveDrainLoopRunId, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
 // ── resolveArtifactTrigger (lane LOOP-B-FIRING, 2026-09-28, F50) ────────────────────────────────────
@@ -604,4 +604,27 @@ test("signpostStep over a database with no signposts reports zero counts and wri
   const summary = await signpostStep({ mode: "apply", events: [ev(5)], sb: empty, db, sweep: true });
   assert.equal(summary.counts.signposts_fired, 0);
   assert.equal(summary.counts.events_seen, 1);
+});
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): --loop-run-id beats the on-disk resolver ─────────────────────────
+
+test("parseArgs: --loop-run-id is null by default and a blank value is null", () => {
+  assert.equal(parseArgs(["--mode", "dry"]).loopRunId, null);
+  assert.equal(parseArgs(["--mode", "dry", "--loop-run-id", "  "]).loopRunId, null);
+});
+
+test("parseArgs: --loop-run-id carries the trimmed id", () => {
+  assert.equal(parseArgs(["--mode", "dry", "--loop-run-id", " loop-77 "]).loopRunId, "loop-77");
+});
+
+test("resolveDrainLoopRunId: an explicit id wins when the disk resolver finds nothing (a CI checkout holds no upstream artifact)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "propagation-loop-id-"));
+  try {
+    const triggerContext = { name: "Downstream chain", run_id: 999999107, conclusion: "success" };
+    assert.equal(resolveDrainLoopRunId({ explicit: "loop-77", triggerContext, fsiRoot: dir }), "loop-77");
+    assert.equal(resolveDrainLoopRunId({ explicit: null, triggerContext, fsiRoot: dir }), null);
+    assert.equal(resolveDrainLoopRunId({ explicit: "loop-77", triggerContext: null, fsiRoot: dir }), "loop-77");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

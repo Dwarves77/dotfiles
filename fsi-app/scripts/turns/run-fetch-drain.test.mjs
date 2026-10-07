@@ -3,8 +3,11 @@
 // against fixtures (no network, no DB). Importing this module never invokes main() (IS_MAIN guard).
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
-  parseArgs, stuckCutoffIso, batchIds, tallyByStatus, shapeDryPlan, shapeBatchPerItem, functionUrlFor,
+  parseArgs, stuckCutoffIso, batchIds, tallyByStatus, shapeDryPlan, shapeBatchPerItem, functionUrlFor, resolveSweepLoopRunId,
   DEFAULT_LIMIT, MAX_LIMIT, BATCH_SIZE, STUCK_AFTER_MS,
 } from "./run-fetch-drain.mjs";
 
@@ -219,4 +222,43 @@ test("ATTACK: a --limit above MAX_LIMIT is refused, never silently clamped", () 
   const r = parseArgs(["--mode", "apply", "--limit", "1000"]);
   assert.equal(r.ok, false, "a --limit of 1000 must be refused, not silently accepted or clamped");
   assert.match(r.error, /at most 64/);
+});
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): an explicit loop run id beats the on-disk resolver ───────────────
+// A CI checkout holds no Source sweep artifact (artifacts land only in harness_runs), so the disk resolver
+// returns null for a chained firing; the workflow reads the sweep row's loop id and passes it as FETCH_DRAIN_LOOP_RUN_ID.
+
+function withEmptyFsiRoot(fn) {
+  const dir = mkdtempSync(join(tmpdir(), "fetch-drain-loop-id-"));
+  try {
+    return fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("resolveSweepLoopRunId: FETCH_DRAIN_LOOP_RUN_ID wins when the disk resolver finds nothing", () => {
+  withEmptyFsiRoot((fsiRoot) => {
+    assert.equal(resolveSweepLoopRunId({ env: { FETCH_DRAIN_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot }), "sweep-loop-9");
+  });
+});
+
+test("resolveSweepLoopRunId: with no explicit id and nothing on disk the id is null (never invented)", () => {
+  withEmptyFsiRoot((fsiRoot) => {
+    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot }), null);
+  });
+});
+
+test("resolveSweepLoopRunId: an explicit id also wins over a different id recorded on disk", () => {
+  withEmptyFsiRoot((fsiRoot) => {
+    const sweepDir = join(fsiRoot, "scripts", "harness-runs", "source-sweep");
+    mkdirSync(sweepDir, { recursive: true });
+    writeFileSync(join(sweepDir, "source-sweep-run-001.json"), JSON.stringify({
+      harness_family: "source-sweep", harness_version: "sha256:0000000000000000", run_id: "source-sweep-run-001",
+      started_at: "2026-10-06T00:00:00Z", config: { github_run_id: "999999106", loop_run_id: "disk-loop" },
+      inputs_ref: ["x"], per_item: [], metrics: {}, defects_found: [], full_trace_refs: ["x"], proposer_notes: "fixture",
+    }));
+    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "disk-loop");
+    assert.equal(resolveSweepLoopRunId({ env: { FETCH_DRAIN_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "sweep-loop-9");
+  });
 });

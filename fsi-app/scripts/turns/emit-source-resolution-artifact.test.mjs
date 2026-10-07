@@ -236,3 +236,22 @@ test("governing files: the family descriptor lists the workflow and this emitter
     "scripts/turns/emit-source-resolution-artifact.mjs",
   ]);
 });
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): an explicit loop run id beats the on-disk resolver ───────────────
+// A CI checkout holds no upstream artifact file (artifacts land only in harness_runs), so the disk resolver
+// returns null for a chained firing. The workflow reads the upstream row's loop id and passes it explicitly.
+
+test("source-resolution: emit records the explicit loop run id when the disk resolver finds nothing", () => {
+  withTmpDir((dir) => {
+    const { artifact } = emit({ env: { SR_MODE: "dry", SR_UPSTREAM_NAME: "Brief apply", SR_UPSTREAM_RUN_ID: "999999104", SR_LOOP_RUN_ID: "explicit-loop-id-7" }, familyDir: join(dir, "family") });
+    assert.equal(artifact.config.loop_run_id, "explicit-loop-id-7");
+    assert.deepEqual(validateRunArtifact(artifact), []);
+  });
+});
+
+test("source-resolution: emit with no explicit loop run id and nothing on disk records null (never invented)", () => {
+  withTmpDir((dir) => {
+    const { artifact } = emit({ env: { SR_MODE: "dry", SR_UPSTREAM_NAME: "Brief apply", SR_UPSTREAM_RUN_ID: "999999104" }, familyDir: join(dir, "family") });
+    assert.equal(artifact.config.loop_run_id, null);
+  });
+});

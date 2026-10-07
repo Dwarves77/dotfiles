@@ -4,7 +4,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
-import { buildArtifact } from "./emit-gate-a-rescan-artifact.mjs";
+import { buildArtifact, emit } from "./emit-gate-a-rescan-artifact.mjs";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+
+function withTmpDir(fn) {
+  const dir = mkdtempSync(join(tmpdir(), "gate-a-rescan-artifact-test-"));
+  try {
+    return fn(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 const BASE = {
   runId: "gate-a-rescan-run-001",
@@ -159,4 +171,23 @@ test("buildArtifact: trigger is recorded exactly as given, workflow_dispatch inc
   });
   assert.equal(artifact.config.trigger, "workflow_dispatch");
   assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): an explicit loop run id beats the on-disk resolver ───────────────
+// A CI checkout holds no upstream artifact file (artifacts land only in harness_runs), so the disk resolver
+// returns null for a chained firing. The workflow reads the upstream row's loop id and passes it explicitly.
+
+test("gate-a-rescan: emit records the explicit loop run id when the disk resolver finds nothing", () => {
+  withTmpDir((dir) => {
+    const { artifact } = emit({ env: { GAR_MODE: "dry", GAR_EVENT_TRIGGER: "workflow_run", GAR_UPSTREAM_NAME: "Brief apply", GAR_UPSTREAM_RUN_ID: "999999103", GAR_LOOP_RUN_ID: "explicit-loop-id-7" }, familyDir: join(dir, "family") });
+    assert.equal(artifact.config.loop_run_id, "explicit-loop-id-7");
+    assert.deepEqual(validateRunArtifact(artifact), []);
+  });
+});
+
+test("gate-a-rescan: emit with no explicit loop run id and nothing on disk records null (never invented)", () => {
+  withTmpDir((dir) => {
+    const { artifact } = emit({ env: { GAR_MODE: "dry", GAR_EVENT_TRIGGER: "workflow_run", GAR_UPSTREAM_NAME: "Brief apply", GAR_UPSTREAM_RUN_ID: "999999103", GAR_LOOP_RUN_ID: "" }, familyDir: join(dir, "family") });
+    assert.equal(artifact.config.loop_run_id, null);
+  });
 });

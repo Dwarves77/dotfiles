@@ -6,7 +6,7 @@
 // Run: node --test scripts/lib/chain-handoff-wiring.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync, writeFileSync, chmodSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -176,3 +176,90 @@ test("F3: Brief apply lands its harness-run artifact into harness_runs, before t
   assert.ok(at("- name: Land this run's harness-run artifact into harness_runs") < at("- name: Commit the run artifact back to the dispatched ref"),
     "deliver-artifact-branch.sh finds artifacts by `git status` (untracked); the commit step would hide them");
 });
+
+// ── lane CHAIN-2 (2026-10-07, ADR-031): every other chained consumer carries the upstream's loop id ──────
+// CHAIN-1 gave Population turn and Downstream chain the upstream row's loop id. Seven more emitters resolved it
+// from files on disk (null in CI). Each of their workflows now reads the upstream row through the same reader
+// and exports the id its emitter takes as the explicit id; the emitter's own test proves explicit wins.
+const READ_STEP = "Read the upstream loop run id";
+const LOOP_ID_CONSUMERS = [
+  { file: "corpus-turn.yml", envVar: "CT_LOOP_RUN_ID", gate: "github.event_name == 'workflow_run'", first: "node scripts/turns/emit-corpus-turn-artifact.mjs", reader: "scripts/turns/emit-corpus-turn-artifact.mjs", expr: "explicit: env.CT_LOOP_RUN_ID || null" },
+  { file: "ledger-consume.yml", envVar: "LEDGER_CONSUME_LOOP_RUN_ID", gate: "github.event_name == 'workflow_run'", first: "node scripts/turns/run-ledger-consume.mjs", reader: "scripts/turns/run-ledger-consume.mjs", expr: "env.LEDGER_CONSUME_LOOP_RUN_ID || null" },
+  { file: "fetch-drain.yml", envVar: "FETCH_DRAIN_LOOP_RUN_ID", gate: "github.event_name == 'workflow_run'", first: "node scripts/turns/run-fetch-drain.mjs", reader: "scripts/turns/run-fetch-drain.mjs", expr: "env.FETCH_DRAIN_LOOP_RUN_ID || null" },
+  { file: "brief-export.yml", envVar: "BE_LOOP_RUN_ID", gate: "env.RUN_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/emit-brief-export-artifact.mjs", reader: "scripts/turns/emit-brief-export-artifact.mjs", expr: "explicit: env.BE_LOOP_RUN_ID || null" },
+  { file: "gate-a-rescan.yml", envVar: "GAR_LOOP_RUN_ID", gate: "env.GAR_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/emit-gate-a-rescan-artifact.mjs", reader: "scripts/turns/emit-gate-a-rescan-artifact.mjs", expr: "explicit: env.GAR_LOOP_RUN_ID || null" },
+  { file: "source-resolution.yml", envVar: "SR_LOOP_RUN_ID", gate: "env.SR_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/emit-source-resolution-artifact.mjs", reader: "scripts/turns/emit-source-resolution-artifact.mjs", expr: "explicit: env.SR_LOOP_RUN_ID || null" },
+  { file: "propagation-drain.yml", envVar: "RUN_UPSTREAM_LOOP_RUN_ID", gate: "env.RUN_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/run-propagation-drain.mjs", reader: "scripts/turns/run-propagation-drain.mjs", expr: "explicit: explicitLoopRunId" },
+];
+
+/** Index of the first non-comment line containing `needle`. */
+function firstCodeLine(text, needle) {
+  const at = text.split("\n").findIndex((l) => !/^\s*#/.test(l) && l.includes(needle));
+  assert.ok(at >= 0, `no code line contains ${needle}`);
+  return at;
+}
+
+for (const c of LOOP_ID_CONSUMERS) {
+  test(`ADR-031 (${c.file}): reads the upstream row's loop id through the one reader, gated on a chained firing, before the emitter runs`, () => {
+    const text = yml(c.file);
+    const step = stepText(text, READ_STEP);
+    assert.ok(step.includes(`if: \${{ ${c.gate} }}`), `the read step must gate on ${c.gate}`);
+    assert.match(step, /node scripts\/lib\/upstream-artifact\.mjs read --consumer downstream-chain --upstream-name "\$CHAIN_UPSTREAM_NAME" --upstream-run-id "\$CHAIN_UPSTREAM_RUN_ID" --run-mode dry/);
+    assert.match(step, /sed -n 's\/\^CHAIN_UPSTREAM_LOOP_RUN_ID=\/\/p'/);
+    assert.ok(step.includes(`echo "${c.envVar}=$LOOP_ID" >> "$GITHUB_ENV"`), `must export ${c.envVar}`);
+    assert.match(step, /::warning::/, "a read failure is a warning and a null id, never a red run");
+    const lines = text.split("\n");
+    const readAt = lines.findIndex((l) => l.startsWith("      - name:") && l.includes(READ_STEP));
+    assert.ok(readAt < firstCodeLine(text, c.first), "the read step must run before the step that writes the artifact");
+  });
+
+  test(`ADR-031 (${c.file}): the consumer takes the exported id as its explicit id`, () => {
+    const src = readFileSync(join(HERE, "..", "..", c.reader), "utf8");
+    assert.ok(src.includes(c.expr), `${c.reader} must pass ${c.expr}`);
+  });
+}
+
+test("ADR-031 (propagation-drain.yml): the drain gets --loop-run-id and the NO-OP row carries it too", () => {
+  const text = yml("propagation-drain.yml");
+  assert.match(stepText(text, "run-propagation-drain.mjs"), /args\+=\(--loop-run-id "\$RUN_UPSTREAM_LOOP_RUN_ID"\)/);
+  assert.match(stepText(text, "Record a NO-OP run"), /--loop-run-id "\$\{RUN_UPSTREAM_LOOP_RUN_ID:-\}"/);
+});
+
+// The read step's own script, EXECUTED under bash with a stub `node`, so the export is proven and not pattern-matched.
+function runReadStep(file, nodeBody, env) {
+  const script = runScript(yml(file), READ_STEP);
+  const dir = mkdtempSync(join(tmpdir(), "read-loop-id-"));
+  try {
+    const bin = join(dir, "bin");
+    spawnSync("mkdir", ["-p", bin]);
+    const stub = join(bin, "node");
+    writeFileSync(stub, `#!/bin/sh\n${nodeBody}\n`);
+    chmodSync(stub, 0o755);
+    const ghEnv = join(dir, "github_env").replace(/\\/g, "/");
+    writeFileSync(ghEnv, "");
+    const sep = process.platform === "win32" ? ";" : ":";
+    const r = spawnSync("bash", ["-e", "-c", script], {
+      env: { ...process.env, ...env, GITHUB_ENV: ghEnv, PATH: `${bin.replace(/\\/g, "/")}${sep}${process.env.PATH}` },
+      encoding: "utf8",
+    });
+    return { status: r.status, stdout: r.stdout, ghEnv: readFileSync(ghEnv, "utf8") };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+for (const c of LOOP_ID_CONSUMERS) {
+  test(`ADR-031 (${c.file}): executed, the read step exports the upstream row's loop id, an empty one, or a warning on a failed read`, () => {
+    const env = { CHAIN_UPSTREAM_NAME: "Source sweep", CHAIN_UPSTREAM_RUN_ID: "424242" };
+    const ok = runReadStep(c.file, `echo "CHAIN_SKIP=true"; echo "CHAIN_UPSTREAM_LOOP_RUN_ID=sweep-loop-5"`, env);
+    assert.equal(ok.status, 0);
+    assert.equal(ok.ghEnv, `${c.envVar}=sweep-loop-5\n`);
+    const none = runReadStep(c.file, `echo "CHAIN_UPSTREAM_LOOP_RUN_ID="`, env);
+    assert.equal(none.status, 0);
+    assert.equal(none.ghEnv, `${c.envVar}=\n`);
+    const failed = runReadStep(c.file, `echo "read failed" >&2; exit 1`, env);
+    assert.equal(failed.status, 0, "a failed read must not fail the run");
+    assert.equal(failed.ghEnv, "", "a failed read exports nothing, so the emitter records null");
+    assert.match(failed.stdout, /::warning::/);
+  });
+}

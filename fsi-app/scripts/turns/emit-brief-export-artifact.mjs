@@ -127,25 +127,36 @@ export function buildArtifact({
   });
 }
 
-if (IS_MAIN) main();
-
-function main() {
-  const mode = process.env.BE_MODE === "explicit" ? "explicit" : "auto";
-  const selection = process.env.BE_SELECTION || "record";
-  const limit = Number(process.env.BE_LIMIT || "0");
-  const upstreamName = process.env.BE_UPSTREAM_NAME || null;
-  const upstreamRunId = process.env.BE_UPSTREAM_RUN_ID || null;
-  const startedAt = process.env.BE_STARTED_AT || new Date().toISOString();
-  const ids = parseIdsList(process.env.BE_IDS);
-  const batchPath = process.env.BE_BATCH_PATH || null;
-  const branch = process.env.BE_BRANCH || null;
+/**
+ * Read this run's env, build the artifact and write it. `env`, `familyDir` and `fsiRoot` are injectable so a
+ * test runs against a temp directory (the shape emit-source-resolution-artifact.mjs already has).
+ * @returns {{outPath: string, artifact: object}}
+ */
+export function emit({ env = process.env, familyDir = FAMILY_DIR, fsiRoot = FSI_ROOT } = {}) {
+  const mode = env.BE_MODE === "explicit" ? "explicit" : "auto";
+  const selection = env.BE_SELECTION || "record";
+  const limit = Number(env.BE_LIMIT || "0");
+  const upstreamName = env.BE_UPSTREAM_NAME || null;
+  const upstreamRunId = env.BE_UPSTREAM_RUN_ID || null;
+  const startedAt = env.BE_STARTED_AT || new Date().toISOString();
+  const ids = parseIdsList(env.BE_IDS);
+  const batchPath = env.BE_BATCH_PATH || null;
+  const branch = env.BE_BRANCH || null;
 
   const { harnessVersion, runId, loopRunId } = resolveHarnessRunContext({
-    family: FAMILY, familyDir: FAMILY_DIR, governingFiles: GOVERNING_FILES[FAMILY], fsiRoot: FSI_ROOT, upstreamName, upstreamRunId,
+    family: FAMILY, familyDir, governingFiles: GOVERNING_FILES[FAMILY], fsiRoot, upstreamName, upstreamRunId,
+    // The upstream row's own loop id (lane CHAIN-2, ADR-031): an explicit id wins over the on-disk resolver,
+    // which finds nothing in a CI checkout now that artifacts land only in harness_runs.
+    explicit: env.BE_LOOP_RUN_ID || null,
   });
 
   const artifact = buildArtifact({ runId, harnessVersion, startedAt, mode, selection, limit, upstreamName, upstreamRunId, ids, batchPath, branch, loopRunId });
 
-  const outPath = writeRunArtifact(FAMILY_DIR, artifact);
+  const outPath = writeRunArtifact(familyDir, artifact);
+  return { outPath, artifact };
+}
+
+if (IS_MAIN) {
+  const { outPath } = emit();
   console.log(`emit-brief-export-artifact: wrote ${outPath}`);
 }
