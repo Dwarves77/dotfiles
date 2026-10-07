@@ -77,6 +77,8 @@ import { deriveAliasTags, mergeTagProposals } from "../../src/lib/connections/ta
 // byte-identical resolution_note wording -- one place, never a second hand-typed copy.
 import { buildNoDerivableTagsNote } from "./apply-tags.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
+// lane G7-CORR: a tag an admin removed (item_corrections, migration 356) is never proposed again.
+import { removedTagsFor, filterTagProposals, readAllCorrections } from "../../src/lib/corrections/item-corrections.mjs";
 
 // @supabase/supabase-js reaches this file only THROUGH scripts/lib/db.mjs's own lazy-require (see that
 // file's top-of-file note) — nothing here imports it directly, so this module stays importable without
@@ -280,7 +282,7 @@ export function planReflect(existingOpen, fresh, { scopeSubjectRefs = null } = {
  *   zero-derivation finding dedups against its own prior write instead of being re-inserted every run.
  * @param {{mode:"ids"|"since"|"untagged", ids?:string[]|null, since?:string|null, execute?:boolean}} opts
  * @returns {Promise<{
- *   corpusCount:number, targetsCount:number, missingIds:string[], flagCandidatesCount:number,
+ *   corpusCount:number, targetsCount:number, missingIds:string[], flagCandidatesCount:number, blockedByCorrectionCount:number,
  *   fresh:Array<{subjectRef:string, row:object, proposalCount:number, itemId:string, proposals:Array}>,
  *   withProposalsCount:number, existingOpenCount:number,
  *   plan:{newRows:object[], staleIds:string[], unchanged:number},
@@ -308,11 +310,19 @@ export async function proposeTags(deps, { mode, ids = null, since = null, execut
   // alias table yields 72. deps.enrichTargets (optional; batch-scoped, only the flag-worthy items) attaches
   // sections/claims/searchResults; assembleTagInput folds them into the derive-tags input shape.
   const enriched = deps.enrichTargets ? await deps.enrichTargets(flagCandidates) : flagCandidates;
+  // lane G7-CORR: tag corrections for this batch (optional dep; a read failure throws, never plans without them).
+  const tagCorrections = deps.readTagCorrections && flagCandidates.length
+    ? await deps.readTagCorrections(flagCandidates.map((i) => i.id))
+    : [];
+  let blockedByCorrectionCount = 0;
   const fresh = enriched.map((item) => {
     const wide = assembleTagInput(item);
     const base = deriveTags(wide);
     const alias = deriveAliasTags(wide);
-    const derived = { itemId: item.id, proposals: mergeTagProposals(base.proposals, alias.proposals) };
+    const merged = mergeTagProposals(base.proposals, alias.proposals);
+    const { kept, blocked } = filterTagProposals(merged, removedTagsFor(tagCorrections, item.id));
+    blockedByCorrectionCount += blocked.length;
+    const derived = { itemId: item.id, proposals: kept };
     return {
       subjectRef: buildSubjectRef(item.id),
       row: buildFlagRow(item, derived),
@@ -354,6 +364,7 @@ export async function proposeTags(deps, { mode, ids = null, since = null, execut
     targetsCount: targets.length,
     missingIds,
     flagCandidatesCount: flagCandidates.length,
+    blockedByCorrectionCount,
     fresh,
     withProposalsCount: withProposals,
     existingOpenCount: existingOpen.length,
@@ -415,6 +426,7 @@ const SIG = "id, title, canonical_instrument_key, jurisdiction_iso, jurisdiction
   "operational_scenario_tags, compliance_object_tags, topic_tags, created_at";
 
 const deps = {
+  readTagCorrections: () => readAllCorrections(readClient()),
   readCorpus: () => readAll("intelligence_items", SIG, {
     match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
   }),

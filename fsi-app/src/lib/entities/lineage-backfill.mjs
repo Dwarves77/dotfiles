@@ -22,6 +22,9 @@
 // upgraded; every other origin value is foreign and must never be touched by this module.
 export const LINEAGE_BACKFILL_ORIGIN = "entity_extraction";
 
+// lane G7-CORR: an admin-removed connection (item_corrections tombstone, migration 356) is never re-created.
+import { isPairTombstoned } from "../corrections/item-corrections.mjs";
+
 export function pairKey(source, target) {
   return `${source}|${target}`;
 }
@@ -77,27 +80,32 @@ export function appendBasis(existingBasis, incomingBasis) {
  * @param {Map<string,{id:string, origin:string, relationship:string, basis?:any}>} existingEdgesByPair
  *   keyed by pairKey(source_item_id, target_item_id), the live item_cross_references rows for the pairs this
  *   run might touch (caller loads once, up front, per rule-015's prior-state-snapshot posture).
+ * @param {Set<string>} [tombstones] canonical pair keys an admin removed (item-corrections.mjs tombstonedPairKeys);
+ *   a tombstoned pair is skipped before any other decision and reported in `skippedTombstoned`.
  * @returns {{
  *   inserts: Array<object>,
  *   upgrades: Array<{id, source_item_id, target_item_id, relationship, basis, origin, prior_relationship, basis_added}>,
  *   skippedForeign: Array<{source_item_id, target_item_id, foreignOrigin}>,
  *   conflicts: Array<{source_item_id, target_item_id, foreignOrigin, existingRelationship, claimedRelationship}>,
  *   unchanged: Array<{id, source_item_id, target_item_id}>,
+ *   skippedTombstoned: Array<{source_item_id, target_item_id}>,
  * }}
  */
-export function partitionLineageWrites(writes, existingEdgesByPair) {
+export function partitionLineageWrites(writes, existingEdgesByPair, tombstones) {
   const edgeWrites = (writes || []).filter((w) => w && w.table === "item_cross_references");
   const inserts = [];
   const upgrades = [];
   const skippedForeign = [];
   const conflicts = [];
   const unchanged = [];
+  const skippedTombstoned = [];
 
   for (const w of edgeWrites) {
     const row = w.row;
     const key = pairKey(row.source_item_id, row.target_item_id);
     const existing = existingEdgesByPair ? existingEdgesByPair.get(key) : undefined;
     const pair = { source_item_id: row.source_item_id, target_item_id: row.target_item_id };
+    if (isPairTombstoned(tombstones, row.source_item_id, row.target_item_id)) { skippedTombstoned.push(pair); continue; }
     const own = existing && existing.origin === LINEAGE_BACKFILL_ORIGIN;
 
     if (!existing) { inserts.push(row); continue; }
@@ -137,8 +145,9 @@ export function partitionLineageWrites(writes, existingEdgesByPair) {
   skippedForeign.sort(byPair);
   conflicts.sort(byPair);
   unchanged.sort(byPair);
+  skippedTombstoned.sort(byPair);
 
-  return { inserts, upgrades, skippedForeign, conflicts, unchanged };
+  return { inserts, upgrades, skippedForeign, conflicts, unchanged, skippedTombstoned };
 }
 
 // ── ABSENT-PARENT GAP FLAGS -> DISCOVERY TARGETS (lane s2a-typed-edges, 2026-10-04) ─────────────────────

@@ -317,3 +317,65 @@ test("discovery refresh of an own-origin row CARRIES its intersection entry inst
   assert.ok(w.basis.some((b) => b.signal === "intersection"), "intersection entry survives the discovery refresh");
   assert.ok(w.basis.some((b) => b.signal === "shared_source"));
 });
+
+// ── lane G7-CORR: connection tombstones (item_corrections, migration 356) ───────────────────────────────────────
+// The database trigger already skips a tombstoned machine edge; the writer reads the same tombstones so it
+// plans around them and reports skippedTombstoned instead of counting a row it knows will be dropped.
+function tombClient(corrections, existing, captured) {
+  return {
+    from(table) {
+      const rows = table === "item_corrections" ? corrections : existing;
+      return {
+        select() { return this; },
+        order() { return this; },
+        range(from) { return Promise.resolve({ data: from === 0 ? rows : [], error: null }); },
+        upsert(batch, opts) { captured.push({ batch, opts }); return Promise.resolve({ error: null }); },
+      };
+    },
+  };
+}
+const tomb = (item, other, op = "remove", extra = {}) => ({
+  id: `t-${item}-${other}-${op}`, item_id: item, target_kind: "connection", target_ref: other, op,
+  created_at: "2026-10-06T00:00:00Z", revoked_at: null, ...extra,
+});
+
+test("G7-CORR: a discovery edge on a tombstoned pair is skipped in BOTH directions and counted", async () => {
+  const captured = [];
+  const r = await writeDiscoveredEdges(tombClient([tomb("A", "B")], [], captured), [edge("A", "B"), edge("B", "A"), edge("G", "H")]);
+  assert.equal(r.skippedTombstoned, 2);
+  assert.equal(r.inserted, 1);
+  assert.deepEqual(captured.flatMap((c) => c.batch).map((e) => `${e.source_item_id}${e.target_item_id}`), ["GH"]);
+});
+
+test("G7-CORR: a revoked tombstone, or a newer admin add, lets the edge through", async () => {
+  const captured = [];
+  const revoked = tomb("A", "B", "remove", { revoked_at: "2026-10-07T00:00:00Z" });
+  let r = await writeDiscoveredEdges(tombClient([revoked], [], captured), [edge("A", "B")]);
+  assert.equal(r.skippedTombstoned, 0);
+  assert.equal(r.inserted, 1);
+  const newerAdd = tomb("B", "A", "add", { created_at: "2026-10-08T00:00:00Z" });
+  r = await writeDiscoveredEdges(tombClient([tomb("A", "B"), newerAdd], [], captured), [edge("A", "B")]);
+  assert.equal(r.skippedTombstoned, 0);
+});
+
+test("G7-CORR: a correction read failure throws (fail closed) rather than planning as if there were no tombstones", async () => {
+  const sb = {
+    from(table) {
+      return {
+        select() { return this; }, order() { return this; },
+        range() { return Promise.resolve(table === "item_corrections" ? { data: null, error: { message: "relation does not exist" } } : { data: [], error: null }); },
+        upsert() { return Promise.resolve({ error: null }); },
+      };
+    },
+  };
+  await assert.rejects(() => writeDiscoveredEdges(sb, [edge("A", "B")]), /paginated read failed/);
+});
+
+test("G7-CORR: an intersection pair on a tombstoned pair is neither inserted nor updated", async () => {
+  const { planIntersectionEdges } = await import("./write-edges.mjs");
+  const pairs = [{ a: "A", b: "B", shared_scenarios: ["s"], shared_objects: [], strength: 0.5, tier: "medium" }];
+  const plan = planIntersectionEdges([], pairs, new Set(["A|B"]));
+  assert.equal(plan.inserts.length, 0);
+  assert.equal(plan.skippedTombstoned, 2, "both directed rows are skipped");
+  assert.equal(planIntersectionEdges([], pairs).inserts.length, 2, "without tombstones the same pair inserts both rows");
+});

@@ -42,6 +42,8 @@ import { fileURLToPath } from "node:url";
 import { proposeTags, NO_DERIVABLE_SUBTYPE } from "../connections/propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { runCli } from "./lib/cli.mjs";
+// lane G7-CORR: a tag an admin removed (item_corrections, migration 356) is never proposed again.
+import { readAllCorrections } from "../../src/lib/corrections/item-corrections.mjs";
 
 export const CITE = Object.freeze({
   skill: "flywheel-build-plan-2026-08-10",
@@ -152,7 +154,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
+      const { readAll, readClient, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
 
       // Same connection-signature + grounded-text column set propose-tags.mjs's own CLI reads, plus
       // created_at for --since selection; kept in lockstep with that file's SIG by hand (propose-tags.mjs
@@ -162,6 +164,7 @@ if (IS_MAIN) {
         "operational_scenario_tags, compliance_object_tags, topic_tags, created_at";
 
       return {
+        readTagCorrections: () => readAllCorrections(readClient()),
         readCorpus: () => readAll("intelligence_items", SIG, {
           match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
         }),

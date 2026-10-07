@@ -384,6 +384,10 @@ test("fetchClaimTierMap: a thrown query (network failure) resolves to {} rather 
 test("fetchClaimTierMap: a successful query builds the map from the joined rows", async () => {
   const supabaseStub = {
     from(table) {
+      // lane G7-CORR: the claim read now also reads item_corrections (suppressed claims); no corrections here.
+      if (table === "item_corrections") {
+        return { select() { return this; }, eq() { return this; }, then(resolve) { resolve({ data: [], error: null }); } };
+      }
       assert.equal(table, "section_claim_provenance");
       return {
         select() {
@@ -404,4 +408,92 @@ test("fetchClaimTierMap: a successful query builds the map from the joined rows"
   const map = await fetchClaimTierMap(supabaseStub, "item-uuid");
   assert.equal(map["[effective_date] ... «a»"].tier, 2);
   assert.equal(map["[effective_date] ... «a»"].sourceName, "EUR-Lex");
+});
+
+// ── lane G7-CORR: a suppressed claim is hidden from the customer claim read (item_corrections, migration 356) ──────
+function claimStub({ claims, corrections, correctionsError = null }) {
+  const filters = [];
+  return {
+    from(table) {
+      const f = [];
+      return {
+        select() { return this; },
+        eq(c, v) { f.push([c, v]); return this; },
+        then(resolve) {
+          if (table === "item_corrections") return resolve({ data: correctionsError ? null : corrections.filter((r) => f.every(([c, v]) => r[c] === v)), error: correctionsError });
+          filters.push(f);
+          return resolve({ data: claims, error: null });
+        },
+      };
+    },
+  };
+}
+const src = { name: "EUR-Lex", url: "https://x", base_tier: 2, tier_override: null };
+const fact = (id, claim_text) => ({ id, claim_text, sources: src });
+const sup = (target_ref, extra = {}) => ({
+  id: `c-${target_ref}`, item_id: "item-uuid", target_kind: "fact", target_ref, op: "suppress", machine_value: { claim_text: "T" },
+  created_at: "2026-10-06T00:00:00Z", revoked_at: null, ...extra,
+});
+
+test("G7-CORR fetchClaimTierMap: a suppressed claim is absent from the map, an unsuppressed one stays", async () => {
+  const map = await fetchClaimTierMap(claimStub({ claims: [fact("claim-1", "gone"), fact("claim-2", "kept")], corrections: [sup("claim-1")] }), "item-uuid");
+  assert.equal(map["gone"], undefined);
+  assert.equal(map["kept"].tier, 2);
+});
+
+test("G7-CORR fetchClaimTierMap: a revoked suppression shows the claim again", async () => {
+  const map = await fetchClaimTierMap(claimStub({ claims: [fact("claim-1", "back")], corrections: [sup("claim-1", { revoked_at: "2026-10-07T00:00:00Z" })] }), "item-uuid");
+  assert.equal(map["back"].tier, 2);
+});
+
+test("G7-CORR fetchClaimTierMap: a claim re-inserted under a new id is still suppressed by its captured machine text", async () => {
+  const map = await fetchClaimTierMap(claimStub({ claims: [fact("regenerated-id", "T")], corrections: [sup("old-id")] }), "item-uuid");
+  assert.equal(map["T"], undefined);
+});
+
+test("G7-CORR fetchClaimTierMap: a correction read error fails closed to {} (a suppressed claim never leaks through an error)", async () => {
+  const map = await fetchClaimTierMap(claimStub({ claims: [fact("claim-1", "x")], corrections: [], correctionsError: { message: "boom" } }), "item-uuid");
+  assert.deepEqual(map, {});
+});
+
+// ── lane G7-CORR: a suppressed claim is removed from sections and the full brief (redactDetail) ─────────────────────
+const redactDeps = (extra) => ({
+  fetchItem: async () => ({ ...baseDetail, resource: { ...baseDetail.resource, fullBrief: "Brief. Claim T. End." } }),
+  fetchSections: async () => [{ id: "s1", section_key: "a", content_md: "Para. Claim T." }],
+  getRelevance: async () => null,
+  createServiceClient: () => ({}),
+  resolveOrgId: async () => null,
+  cacheWrap: makeMemoCache(),
+  ...extra,
+});
+
+test("G7-CORR loadDetailCore: redactDetail runs after the cached reads and its result is what the page gets", async () => {
+  const seen = [];
+  const result = await loadDetailCore(call("regulations", "item-a", {
+    loadItemScoped: async () => ({}),
+    deps: redactDeps({
+      redactDetail: async (input) => {
+        seen.push(input);
+        return { resource: { ...input.resource, fullBrief: "Brief.  End." }, sections: [{ id: "s1", section_key: "a", content_md: "Para. " }] };
+      },
+    }),
+  }));
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].id, "item-a");
+  assert.equal(seen[0].resource.fullBrief, "Brief. Claim T. End.", "it receives the unredacted cached reads");
+  assert.equal(result.resource.fullBrief, "Brief.  End.");
+  assert.equal(result.sections[0].content_md, "Para. ");
+});
+
+test("G7-CORR loadDetailCore: with no redactDetail dep the result is exactly the cached reads (existing stubs unchanged)", async () => {
+  const result = await loadDetailCore(call("regulations", "item-a", { loadItemScoped: async () => ({}), deps: redactDeps({}) }));
+  assert.equal(result.resource.fullBrief, "Brief. Claim T. End.");
+  assert.equal(result.sections[0].content_md, "Para. Claim T.");
+});
+
+test("G7-CORR loadDetailCore: a redactDetail failure propagates (a suppressed claim never leaks through an error)", async () => {
+  await assert.rejects(() => loadDetailCore(call("regulations", "item-a", {
+    loadItemScoped: async () => ({}),
+    deps: redactDeps({ redactDetail: async () => { throw new Error("item_corrections read failed: boom"); } }),
+  })), /item_corrections read failed/);
 });

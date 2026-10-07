@@ -31,6 +31,9 @@
 // proof (perf-lane brief task 6) actually runnable as a plain, portable
 // *.test.mjs — no *.npmtest.mjs / CI-npm-step wiring needed at all.
 import type { SupabaseClient } from "@supabase/supabase-js";
+// lane G7-CORR: a claim an admin suppressed (item_corrections, migration 356) is hidden from this customer read.
+// Relative path with the .mjs extension, like fact-card-model.ts: this file is loaded by plain `node --test`.
+import { readItemCorrections, suppressedClaimMatcher } from "../corrections/item-corrections.mjs";
 import type {
   Resource,
   Supersession,
@@ -105,6 +108,11 @@ export interface DetailDeps {
   fetchItem: (id: string) => Promise<DetailSourceItem | null>;
   fetchSections: (id: string) => Promise<unknown>;
   getRelevance: (relevanceInput: unknown) => Promise<unknown | null>;
+  /** lane G7-CORR: read-time removal of a suppressed claim's text from the item's sections and full brief
+   *  (src/lib/corrections/suppressed-render.mjs). Optional so existing stubs stay valid; production wires it in
+   *  load-detail.ts. Runs per request, after the cached reads, so a suppress takes effect without waiting out the
+   *  cache window; stored text is never touched. */
+  redactDetail?: (input: { id: string; resource: unknown; sections: unknown }) => Promise<{ resource: unknown; sections: unknown }>;
 }
 
 export interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
@@ -173,6 +181,8 @@ export interface ClaimTierSourceRowLike {
 }
 
 export interface ClaimTierRowLike {
+  /** section_claim_provenance.id; read so a suppression can match the claim by id (G7-CORR). */
+  id?: string;
   claim_text: string;
   // PostgREST returns a single embedded resource as an object when the FK is unambiguous (confirmed:
   // section_claim_provenance carries exactly one FK to sources), but this repo's own established
@@ -219,11 +229,15 @@ export async function fetchClaimTierMap(
   try {
     const { data, error } = await supabase
       .from("section_claim_provenance")
-      .select("claim_text, sources(name, url, base_tier, tier_override)")
+      .select("id, claim_text, sources(name, url, base_tier, tier_override)")
       .eq("intelligence_item_id", itemUuid)
       .eq("claim_kind", "FACT");
     if (error || !data) return {};
-    return buildClaimTierMap(data as unknown as ClaimTierRowLike[]);
+    // Suppressed claims never reach a customer. A correction read error throws into the catch below and the
+    // whole map resolves to {} (fail closed): an error must not leak a claim an admin hid.
+    const isSuppressed = suppressedClaimMatcher(await readItemCorrections(supabase, itemUuid), itemUuid);
+    const visible = (data as unknown as ClaimTierRowLike[]).filter((row) => !isSuppressed(row));
+    return buildClaimTierMap(visible);
   } catch {
     return {};
   }
@@ -298,15 +312,24 @@ export async function loadDetailCore<ItemScoped, ViewerScoped = undefined>(
     return { relevance, viewerScoped };
   };
 
-  const [sections, itemScoped, viewer] = await Promise.all([
+  const [fetchedSections, itemScoped, viewer] = await Promise.all([
     deps.fetchSections(config.id),
     runItemScoped(),
     runViewerScoped(),
   ]);
 
+  // lane G7-CORR: hide a suppressed claim everywhere the item's text renders (sections, full brief).
+  let outResource: unknown = resource;
+  let sections: unknown = fetchedSections;
+  if (deps.redactDetail) {
+    const red = await deps.redactDetail({ id: config.id, resource, sections: fetchedSections });
+    outResource = red.resource;
+    sections = red.sections;
+  }
+
   return {
     notFound: false,
-    resource,
+    resource: outResource as Resource,
     connections,
     supersessions,
     changelog,

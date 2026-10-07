@@ -135,3 +135,14 @@ test("apply: bad --arg refuses before touching deps, no writes", async () => {
   assert.equal(r.applied, 0);
   assert.deepEqual(d.calls, []);
 });
+
+// ── lane G7-CORR: the production deps carry the correction reader (wiring proof, red against the old file) ──────────
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+test("G7-CORR: the CLI buildDeps wires readTagCorrections to the shared item-corrections reader, so a removed tag is never proposed", () => {
+  const src = readFileSync(fileURLToPath(new URL("./tag-proposals.mjs", import.meta.url)), "utf8");
+  assert.match(src, /import \{ readAllCorrections \} from "\.\.\/\.\.\/src\/lib\/corrections\/item-corrections\.mjs"/);
+  assert.match(src, /readTagCorrections: \(\) => readAllCorrections\(readClient\(\)\)/);
+  assert.match(src, /const \{ readAll, readClient, guardedInsertMany, guardedUpdateByIds \} = await import\("\.\.\/lib\/db\.mjs"\)/);
+});

@@ -1,3 +1,4 @@
+import { loadSuppressedClaims, redactSuppressedClaims } from "@/lib/corrections/suppressed-render.mjs";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -301,6 +302,19 @@ async function handlePOST(request: NextRequest) {
       ...row,
       source: Array.isArray(row.source) ? row.source[0] ?? null : row.source ?? null,
     }));
+
+    // lane G7-CORR: a claim an admin suppressed (item_corrections, migration 356) must not reach a customer through
+    // the Assistant either. Same pure read-time removal the detail pages use; stored text is never touched. A read
+    // error throws into this route's error path (fail closed).
+    const suppressedClaims = await loadSuppressedClaims(supabase, items.map((i) => i.id));
+    if (suppressedClaims.length) {
+      for (const item of items) {
+        const mine = suppressedClaims.filter((c) => c.item_id === item.id);
+        if (mine.length && item.full_brief) {
+          item.full_brief = redactSuppressedClaims({ fullBrief: item.full_brief, claims: mine }).fullBrief ?? item.full_brief;
+        }
+      }
+    }
 
     // Build a lookup map for citation validation. The map is keyed by both
     // exact title and lowercased title so the LLM's casing variants still

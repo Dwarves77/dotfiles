@@ -4068,6 +4068,8 @@ export async function fetchSbtiLeadTimeSeries(
  * outside the D1 domain that were never backfilled).
  */
 export interface IntelligenceItemSectionRow {
+  /** intelligence_item_sections.id; read so a suppressed claim can be removed from its own section (G7-CORR). */
+  id?: string;
   section_key: string;
   section_order: number;
   content_md: string;
@@ -4105,7 +4107,7 @@ async function fetchIntelligenceItemSectionsUncached(
 
     const { data, error } = await supabase
       .from("intelligence_item_sections")
-      .select("section_key, section_order, content_md, is_conditional, source_ids")
+      .select("id, section_key, section_order, content_md, is_conditional, source_ids")
       .eq("item_id", uuid)
       .order("section_order", { ascending: true });
     if (error) {

@@ -66,6 +66,8 @@ import {
   type IntelligenceItemSectionRow,
 } from "@/lib/supabase-server";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { resolveItemUuid } from "@/lib/connections/resource-lookup";
+import { loadSuppressedClaims, redactSuppressedClaims } from "@/lib/corrections/suppressed-render.mjs";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { itemTag, surfaceDetailTag } from "@/lib/cache/revalidate-item";
@@ -114,6 +116,21 @@ const defaultDetailDeps: DetailDeps = {
   // passes through fetchIntelligenceItem's own relevanceInput field.
   getRelevance: (relevanceInput: unknown) =>
     getViewerRelevanceForItem(relevanceInput as Parameters<typeof getViewerRelevanceForItem>[0]),
+  // lane G7-CORR: a claim an admin suppressed is removed from the rendered sections and full brief at read time.
+  redactDetail: async ({ id, resource, sections }) => {
+    const sb = defaultCreateServiceClient();
+    if (!sb) return { resource, sections };
+    const uuid = await resolveItemUuid(sb, id);
+    if (!uuid) return { resource, sections };
+    const claims = await loadSuppressedClaims(sb, [uuid]);
+    if (!claims.length) return { resource, sections };
+    const r = redactSuppressedClaims({
+      sections: sections as Array<{ id?: string; content_md?: string }>,
+      fullBrief: (resource as { fullBrief?: string }).fullBrief,
+      claims,
+    });
+    return { resource: { ...(resource as object), fullBrief: r.fullBrief }, sections: r.sections };
+  },
 };
 
 export interface LoadDetailConfig<ItemScoped, ViewerScoped> {

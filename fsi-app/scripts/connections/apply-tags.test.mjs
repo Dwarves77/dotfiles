@@ -551,3 +551,41 @@ test("INVARIANT: autoAdoptTags never returns a status that leaves the flag open 
     assert.ok(d.calls.some((c) => c[0] === "resolveFlag"), "every decidable flag must resolve on apply");
   }
 });
+
+// ── lane G7-CORR: an admin tag removal holds against apply-tags (item_corrections, migration 356) ─────────────────
+const removal = (itemId, ref) => ({ id: `c-${ref}`, item_id: itemId, target_kind: "tag", target_ref: ref, op: "remove", created_at: "2026-10-06T00:00:00Z", revoked_at: null });
+
+test("G7-CORR buildMergePatch: a removed tag is never added back, and is reported as blockedByCorrection", () => {
+  const current = { operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const proposals = [{ field: "topic_tags", tag: "emissions" }, { field: "topic_tags", tag: "carbon" }];
+  const removed = { topic_tags: new Set(["emissions"]), operational_scenario_tags: new Set(), compliance_object_tags: new Set() };
+  const { patch, added, blockedByCorrection } = buildMergePatch(current, proposals, removed);
+  assert.deepEqual(patch.topic_tags, ["carbon"]);
+  assert.deepEqual(added.topic_tags, ["carbon"]);
+  assert.deepEqual(blockedByCorrection.topic_tags, ["emissions"]);
+});
+
+test("G7-CORR buildMergePatch: no removed argument keeps the pre-correction behaviour", () => {
+  const { patch, blockedByCorrection } = buildMergePatch({}, [{ field: "topic_tags", tag: "emissions" }]);
+  assert.deepEqual(patch.topic_tags, ["emissions"]);
+  assert.deepEqual(blockedByCorrection, {});
+});
+
+test("G7-CORR autoAdoptTags: with readCorrections wired, a removed tag is skipped and the rest still applies", async () => {
+  const item = { id: "item-1", title: "t", full_brief: "carbon pricing for ocean bunkering", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag(), item });
+  d.readCorrections = async () => [removal("item-1", "topic_tags:emissions")];
+  const r = await autoAdoptTags(d, "flag-1", { execute: false });
+  assert.equal(r.status, "dry_run");
+  assert.equal(r.merge.patch.topic_tags, undefined, "emissions was the only topic tag proposed and an admin removed it");
+  assert.deepEqual(r.merge.patch.operational_scenario_tags, ["ocean-bunkering"]);
+  assert.deepEqual(r.merge.blockedByCorrection.topic_tags, ["emissions"]);
+});
+
+test("G7-CORR autoAdoptTags: a correction read failure propagates (fail closed), nothing is written", async () => {
+  const item = { id: "item-1", title: "t", full_brief: "carbon pricing for ocean bunkering", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag(), item });
+  d.readCorrections = async () => { throw new Error("item_corrections read failed: boom"); };
+  await assert.rejects(() => autoAdoptTags(d, "flag-1", { execute: true }), /item_corrections read failed/);
+  assert.ok(!d.calls.length, "no write and no flag resolution happened");
+});

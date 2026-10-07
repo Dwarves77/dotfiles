@@ -24,6 +24,9 @@ import {
 } from "../connections/apply-tags.mjs";
 import { TAG_NAMESPACE } from "../../src/lib/connections/flag-namespaces.mjs";
 import { runCli } from "./lib/cli.mjs";
+// lane G7-CORR: an admin tag removal (item_corrections, migration 356) is read by the auto path so a removed tag is
+// skipped and reported as blockedByCorrection instead of being "adopted" and then stripped by the database trigger.
+import { readItemCorrections } from "../../src/lib/corrections/item-corrections.mjs";
 
 export const CITE = Object.freeze({
   skill: "flywheel-build-plan-2026-08-10",
@@ -196,6 +199,7 @@ if (IS_MAIN) {
           return rows;
         },
         readFlag: (id) => sb.from("integrity_flags").select("*").eq("id", id).maybeSingle(),
+        readCorrections: (id) => readItemCorrections(sb, id),
         // Widened 2026-09-12 (task 7.2): the auto path re-checks a medium-confidence proposal's keyword
         // evidence against the item's own title/what_is_it/summary/full_brief (apply-tags.mjs's
         // decideTagProposal), not just its tag arrays.
