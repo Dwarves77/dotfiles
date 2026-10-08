@@ -16,29 +16,24 @@
 // already has an entity is never touched, whatever it holds (an administrator's or an earlier run's value is
 // not overwritten). Idempotent: a second run finds nothing to do.
 //
-// DRY BY DEFAULT. `--apply` writes, through the guarded path (scripts/lib/db.mjs guardedUpdateByIds: cite,
-// prior-value snapshot, read-back). Nothing in CI or any workflow runs this; it is dispatched by hand after the
-// build layers are complete (operator ruling 2026-10-04: no data population until every build layer is done).
-//
-// WHAT AN APPLY ALSO DOES, STATED PLAINLY. market_series carries the outbox trigger, and setting entity_id is a
-// material change to the row, so each updated row writes one propagation_events row (change_kind update, entity
-// = the new entity). The dry report prints that count as `outbox_events_on_apply`. The drain and
-// questions-on-change process them as they would any value change (one open question per item and surface at a
-// time, MAX_ITEMS_PER_EVENT per event); run it with that load in mind.
+// DRY BY DEFAULT. `--apply` writes through the one sanctioned writer, the definer function
+// backfill_market_series_entity(p_entity_id, p_ids) (migration 373): it refuses an entity with no entities row, stamps
+// only rows whose entity_id IS NULL, and declares the transaction-local backfill marker, so the outbox trigger writes NO
+// propagation_events row for these rows (a backfill is not a value change; a producer write still emits). Reversal needs no
+// snapshot because only NULL rows are ever written: `entity_id = <id>` over the series prefix is the exact set.
+// Nothing in CI or any workflow runs this; it is dispatched by hand after the build layers are complete (operator ruling
+// 2026-10-04: no data population until every build layer is done), and only after migration 373 is applied.
 //
 // Usage (cwd fsi-app):  node scripts/migrations/data/backfill-market-series-entity.mjs [--apply]
 // Exit 0 done, 1 unresolvable mapping, 2 no DB credentials (self-skip, never crash).
 
-import { readAll, guardedUpdateByIds } from "../../lib/db.mjs";
+import { readAll, readClient } from "../../lib/db.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
 import { loadProducerRegistry } from "../../producers/registry/load-registry.mjs";
 import { MARKET_SERIES_PRODUCERS } from "../../../src/lib/market/series-registry.mjs";
 
-const CITE = {
-  skill: "remediation-discipline",
-  reason: "Lane L4-E (migration 373): stamp market_series.entity_id on existing rows from the producer registry entry that owns the series namespace, so their outbox rows reach the items linked to that entity.",
-};
+const RPC_CHUNK = 500;
 
 /**
  * Resolve every registry entry that declares an entity_id to its series_key prefix. PURE.
@@ -84,21 +79,36 @@ export function planEntityBackfill(rows, mappings) {
 }
 
 /**
+ * The default writer: the sanctioned RPC, in chunks, summed. Injectable client so a test needs no database.
+ * @param {() => {rpc: Function}} [getClient]
+ * @returns {(ids:string[], entityId:string) => Promise<{updated:number}>}
+ */
+export function makeRpcUpdater(getClient = readClient) {
+  return async (ids, entityId) => {
+    let updated = 0;
+    for (let i = 0; i < ids.length; i += RPC_CHUNK) {
+      const { data, error } = await getClient().rpc("backfill_market_series_entity", { p_entity_id: entityId, p_ids: ids.slice(i, i + RPC_CHUNK) });
+      if (error) throw new Error(`backfill_market_series_entity failed: ${error.message}`);
+      updated += Number(data) || 0;
+    }
+    return { updated };
+  };
+}
+
+/**
  * @param {{apply?:boolean}} opts
  * @param {{ registry?: ReadonlyArray<object>, seriesProducers?: ReadonlyArray<object>,
  *           readRows?: () => Promise<Array<object>>,
  *           updateIds?: (ids:string[], entityId:string) => Promise<{updated:number}>,
  *           log?: (s:string) => void }} [deps]
- * @returns {Promise<{ok:boolean, code:number, counts?:object, perEntry?:object, outbox_events_on_apply?:number, applied?:number}>}
+ * @returns {Promise<{ok:boolean, code:number, counts?:object, perEntry?:object, applied?:number}>}
  */
 export async function runBackfill(opts = {}, deps = {}) {
   const {
     registry = loadProducerRegistry(),
     seriesProducers = MARKET_SERIES_PRODUCERS,
     readRows = () => readAll("market_series", "id,series_key,entity_id", { orderBy: "id" }),
-    updateIds = (ids, entityId) => guardedUpdateByIds("market_series", ids, { entity_id: entityId }, {
-      cite: CITE, select: "id", chunk: 100, applyMatch: (qb) => qb.is("entity_id", null),
-    }),
+    updateIds = makeRpcUpdater(),
     log = (s) => console.log(s),
   } = deps;
   const apply = opts.apply === true;
@@ -109,7 +119,7 @@ export async function runBackfill(opts = {}, deps = {}) {
   log(`[backfill-market-series-entity] mode=${apply ? "APPLY" : "DRY-RUN (default)"} mappings=${mappings.map((m) => `${m.entry}:${m.prefix}->${m.entity_id}`).join(", ") || "(none)"}`);
 
   const { updates, counts, perEntry } = planEntityBackfill(await readRows(), mappings);
-  log(`[backfill-market-series-entity] ${JSON.stringify(counts)} per_entry=${JSON.stringify(perEntry)} outbox_events_on_apply=${updates.length}`);
+  log(`[backfill-market-series-entity] ${JSON.stringify(counts)} per_entry=${JSON.stringify(perEntry)} outbox_rows_on_apply=0 (declared backfill)`);
 
   let applied = 0;
   if (apply) {
@@ -123,7 +133,7 @@ export async function runBackfill(opts = {}, deps = {}) {
   } else {
     log("DRY RUN: nothing written. Re-run with --apply to write.");
   }
-  return { ok: true, code: 0, counts, perEntry, outbox_events_on_apply: updates.length, applied };
+  return { ok: true, code: 0, counts, perEntry, applied };
 }
 
 async function main() {

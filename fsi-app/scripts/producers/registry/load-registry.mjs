@@ -29,9 +29,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertEntityId } from "../../../src/lib/entities/entity-id-shape.mjs";
 
-/** The env var the runner sets on the producer child when the entry carries an entity_id. One name, read by
- *  the producers' shared write path (src/lib/market/write-market-series.mjs entityIdFromEnv). */
-export const PRODUCER_ENTITY_ID_ENV = "PRODUCER_ENTITY_ID";
+// The env var the runner sets on the producer child when the entry carries an entity_id: one name, owned by the
+// shared write path that reads it (src/lib/market/write-market-series.mjs entityIdFromEnv).
+import { PRODUCER_ENTITY_ID_ENV } from "../../../src/lib/market/write-market-series.mjs";
+export { PRODUCER_ENTITY_ID_ENV };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REGISTRY_DIR = HERE;

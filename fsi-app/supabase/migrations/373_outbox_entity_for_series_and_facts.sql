@@ -1,4 +1,4 @@
--- subject: Migration 373 (lane L4-E, 2026-10-08, remaining-build-register item 12, spec 08, CLAUDE.md rule 17, migration 352's one-entity-per-outbox-row rule): market_series and regional_data_facts changes reach the items they move; NOT APPLIED. `market_series` gains `entity_id text NULL REFERENCES entities(entity_id)` and its outbox trigger is recreated as ('id','entity_id') in 352's optional-argument form (NULL or unknown leaves the outbox entity NULL, the write never fails). `regional_data_facts` gains a new trigger function `emit_propagation_events_for_region(pk_col, region_col)` that resolves the row's region to its jurisdiction entities through `entity_refs` (ref_table 'regions', role 'jurisdiction', migration 283) and writes ONE outbox row per entity (a region with no refs writes none and does not raise). `emit_propagation_event()` itself is not touched, so every existing one-event attachment is byte-identical. `propagation_events` rows are never updated or deleted (append-only). The self-check runs against the REAL tables inside a sub-transaction rolled back by a sentinel.
+-- subject: Migration 373 (lane L4-E, 2026-10-08, remaining-build-register item 12, spec 08, CLAUDE.md rule 17, migration 352's one-entity-per-outbox-row rule): market_series and regional_data_facts changes reach the items they move; NOT APPLIED. `market_series` gains `entity_id text NULL REFERENCES entities(entity_id)` and its outbox trigger is recreated as ('id','entity_id') in 352's optional-argument form (NULL or unknown leaves the outbox entity NULL, the write never fails). `regional_data_facts` gains a new trigger function `emit_propagation_events_for_region(pk_col, region_col)` that resolves the row's region to its jurisdiction entities through `entity_refs` (ref_table 'regions', role 'jurisdiction', migration 283) and writes ONE outbox row per entity (a region with no refs writes none and does not raise). `emit_propagation_event()` is redefined as migration 352's body plus ONE leg at the top (a transaction-local writer marker `app.outbox_backfill_writer` equal to the table name skips emission), so a declared backfill is silent and every other write, including a producer write, still emits; the one sanctioned way to declare it is the new definer function `backfill_market_series_entity(entity_id, ids)`, which sets the marker, stamps only rows whose entity_id is NULL, and clears the marker. `propagation_events` rows are never updated or deleted (append-only). The self-check runs against the REAL tables inside a sub-transaction rolled back by a sentinel.
 -- 373 -- outbox entity for market_series and regional_data_facts (lane L4-E, 2026-10-08).
 --
 -- NOT APPLIED. Authored by lane L4-E; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3).
@@ -28,8 +28,7 @@
 -- (the optional branch only runs when the first lookup found nothing, and finds nothing again). The FK means an unknown id
 -- cannot be stored, so "unknown leaves NULL" holds by construction; the self-check proves the FK refuses one.
 --
--- regional_data_facts. A new function, not a change to emit_propagation_event(), so the one-event attachments (emission_factors,
--- derived_values, statutory_computations, estimated_values and the rest) cannot move. It copies 284's classification exactly
+-- regional_data_facts. A new function, so the fan-out never touches the one-event path. It copies 284's classification exactly
 -- (insert, delete, no-op update detection by jsonb diff minus updated_at, supersede detection) and 284's INSERT column list
 -- exactly; the only difference is the entity: a loop over the region's jurisdiction refs, in entity_id order, one INSERT each.
 -- When an UPDATE moves a fact to another region, the entities of BOTH regions are affected, so both regions' jurisdiction
@@ -43,8 +42,24 @@
 -- region id. The ruling spelled the attachment ('region_id'); the pk column is passed first so the argument convention
 -- stays identical across all attachments.
 --
+-- THE BACKFILL MARKER (coordinator ruling, 2026-10-08; the writer-marker idiom of migrations 201 and 354). Stamping entity_id
+-- on the rows that already exist is a material change to each row, so the trigger would write one outbox row per row stamped
+-- (hundreds to thousands of update events, each of which raises questions on the linked items). A backfill is not a value
+-- change, so it must be silent, and a producer write must still emit. emit_propagation_event() had no marker check (352's body
+-- has none), so it is redefined here: 352's body unchanged, plus one leg at the top:
+--   IF current_setting('app.outbox_backfill_writer', true) = TG_TABLE_NAME THEN RETURN NEW; END IF;
+-- The marker is transaction-local (set_config(..., true)) and equal to a TABLE NAME, so it silences only that table's trigger
+-- and only inside the declaring transaction. Nothing a PostgREST client can call sets it except the sanctioned writer,
+-- backfill_market_series_entity(p_entity_id, p_ids): SECURITY DEFINER, search_path pinned, EXECUTE revoked from PUBLIC and
+-- granted to service_role only (F70). It refuses an entity id with no entities row, stamps ONLY rows whose entity_id IS NULL
+-- (an existing value, an administrator's included, is never overwritten), declares the marker, updates, CLEARS the marker, and
+-- returns the row count; clearing means a later statement in the same transaction emits again. Reversal of a backfill is a
+-- predicate (entity_id = X over the series prefix), not a snapshot, because only NULL rows are ever written.
+--
 -- WHAT THIS DOES NOT DO. No existing propagation_events row is touched; the new entities apply to events written after this
--- migration. No market_series row is backfilled here (the data script does that, dry by default).
+-- migration. No market_series row is backfilled here (scripts/migrations/data/backfill-market-series-entity.mjs does that,
+-- dry by default, through the function above). The region fan-out function carries no marker leg: no regional_data_facts
+-- backfill exists.
 --
 -- SELF-CHECK. A DO block creates real fixture rows in the real tables (entities, regions, entity_refs, regional_data_facts,
 -- market_series) and one TEMP table, asserts the outbox rows they produce, then raises a sentinel exception that rolls
@@ -52,13 +67,16 @@
 -- gives 2 more; a no-op update gives 0; a region with no jurisdiction ref (and one with a non-jurisdiction ref) gives 0 and
 -- does not raise; a fact moved between regions gives the union; a delete gives the current region's events; a market_series
 -- row with an entity gives exactly 1 event with that entity, an UPDATE gives exactly 1, a NULL entity gives 1 event with a
--- NULL entity and does not raise, an unknown entity is refused by the FK; a one-argument attachment still gives exactly 1
+-- NULL entity and does not raise, an unknown entity is refused by the FK; a declared backfill (the sanctioned writer) stamps the
+-- NULL row and writes 0 outbox rows, never overwrites an existing entity, is idempotent, refuses an unknown entity, and a producer-style
+-- write right after it still emits exactly 1 event while a marker naming another table silences nothing; a one-argument attachment still gives exactly 1
 -- event with no entity; the three real trigger attachments have the expected function and argument count. Nothing survives.
 --
 -- Reversible: ALTER TABLE public.market_series DROP COLUMN entity_id (drops its trigger argument's target; recreate the
 -- trigger as emit_propagation_event('id')); DROP TRIGGER propagation_outbox_trg ON public.regional_data_facts; CREATE TRIGGER
 -- propagation_outbox_trg AFTER INSERT OR UPDATE OR DELETE ON public.regional_data_facts FOR EACH ROW EXECUTE FUNCTION
--- public.emit_propagation_event('id'); DROP FUNCTION public.emit_propagation_events_for_region().
+-- public.emit_propagation_event('id'); DROP FUNCTION public.emit_propagation_events_for_region(); DROP FUNCTION
+-- public.backfill_market_series_entity(text, uuid[]); re-run the body of migration 352's emit_propagation_event() (drops the marker leg).
 
 BEGIN;
 
@@ -94,6 +112,68 @@ BEGIN
   END IF;
 END $$;
 
+-- The outbox writer: migration 352's body, plus the declared-backfill leg at the top (see THE BACKFILL MARKER above).
+CREATE OR REPLACE FUNCTION public.emit_propagation_event() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_new       jsonb;
+  v_old       jsonb;
+  v_pk_col    text := TG_ARGV[0];
+  v_kind      text;
+  v_row_pk    text;
+  v_entity_id text;
+BEGIN
+  -- Migration 373: a declared backfill (backfill_market_series_entity sets app.outbox_backfill_writer to the table name,
+  -- transaction-local) is not a value change and writes no outbox row. Any other write, a producer's included, falls through.
+  IF coalesce(current_setting('app.outbox_backfill_writer', true), '') = TG_TABLE_NAME THEN
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    v_new := to_jsonb(NEW);
+    v_old := NULL;
+    v_kind := 'insert';
+  ELSIF TG_OP = 'DELETE' THEN
+    v_new := NULL;
+    v_old := to_jsonb(OLD);
+    v_kind := 'delete';
+  ELSE -- UPDATE
+    v_new := to_jsonb(NEW);
+    v_old := to_jsonb(OLD);
+    IF (v_new - 'updated_at') IS NOT DISTINCT FROM (v_old - 'updated_at') THEN
+      RETURN NEW; -- nothing material changed; do not amplify the outbox
+    END IF;
+    IF (v_old ? 'superseded_by') AND (v_old->>'superseded_by') IS NULL AND (v_new->>'superseded_by') IS NOT NULL THEN
+      v_kind := 'supersede';
+    ELSE
+      v_kind := 'update';
+    END IF;
+  END IF;
+
+  v_row_pk := coalesce(v_new->>v_pk_col, v_old->>v_pk_col);
+  v_entity_id := coalesce(v_new->>'entity_id', v_old->>'entity_id');
+
+  -- Lane L4-D: a table with no entity_id column may name its entity in another column, given as the optional
+  -- second trigger argument. Used only when an entities row exists for it (the FK on propagation_events.entity_id
+  -- would otherwise fail this INSERT and roll back the change being recorded).
+  IF v_entity_id IS NULL AND TG_NARGS >= 2 THEN
+    v_entity_id := coalesce(v_new->>TG_ARGV[1], v_old->>TG_ARGV[1]);
+    IF v_entity_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.entities e WHERE e.entity_id = v_entity_id) THEN
+      v_entity_id := NULL;
+    END IF;
+  END IF;
+
+  INSERT INTO public.propagation_events (table_name, row_pk, entity_id, change_kind, old_row, new_row)
+  VALUES (TG_TABLE_NAME, v_row_pk, v_entity_id, v_kind, v_old, v_new);
+
+  RETURN NEW;
+END $$;
+
+COMMENT ON FUNCTION public.emit_propagation_event() IS
+  'The outbox writer (spec 08 section 2.2 Part 1). ONE INSERT, no recursion. TG_ARGV[0] names the primary-key '
+  'column. Optional TG_ARGV[1] (migration 352) names a column that holds an entity id, used when the row has '
+  'no entity_id column of its own and only when an entities row exists for the value (propagation_events.'
+  'entity_id is an FK). A transaction-local app.outbox_backfill_writer marker equal to TG_TABLE_NAME (migration 373, set only by backfill_market_series_entity) skips emission for a declared backfill. Attached AFTER INSERT OR UPDATE OR DELETE FOR EACH ROW on every propagation source table.';
+
 -- market_series: the entity the series describes.
 ALTER TABLE public.market_series
   ADD COLUMN IF NOT EXISTS entity_id text REFERENCES public.entities(entity_id);
@@ -112,6 +192,33 @@ DROP TRIGGER IF EXISTS propagation_outbox_trg ON public.market_series;
 CREATE TRIGGER propagation_outbox_trg
   AFTER INSERT OR UPDATE OR DELETE ON public.market_series
   FOR EACH ROW EXECUTE FUNCTION public.emit_propagation_event('id', 'entity_id');
+
+-- The ONE sanctioned declarer of a backfill: sets the transaction-local marker, stamps only NULL rows, clears the marker.
+CREATE OR REPLACE FUNCTION public.backfill_market_series_entity(p_entity_id text, p_ids uuid[]) RETURNS integer
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp
+AS $fn$
+DECLARE
+  v_n integer;
+BEGIN
+  IF p_entity_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.entities e WHERE e.entity_id = p_entity_id) THEN
+    RAISE EXCEPTION 'backfill_market_series_entity: unknown entity %', coalesce(p_entity_id, 'NULL');
+  END IF;
+  PERFORM set_config('app.outbox_backfill_writer', 'market_series', true);
+  UPDATE public.market_series SET entity_id = p_entity_id
+   WHERE id = ANY(coalesce(p_ids, ARRAY[]::uuid[])) AND entity_id IS NULL;
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  PERFORM set_config('app.outbox_backfill_writer', '', true);
+  RETURN v_n;
+END; $fn$;
+
+COMMENT ON FUNCTION public.backfill_market_series_entity(text, uuid[]) IS
+  'The one sanctioned writer of a market_series entity backfill (migration 373): refuses an entity id with no entities row, stamps '
+  'only rows whose entity_id IS NULL, declares the transaction-local marker app.outbox_backfill_writer = market_series so the '
+  'outbox trigger skips emission for these rows, clears the marker, returns the row count. service_role only.';
+
+REVOKE EXECUTE ON FUNCTION public.backfill_market_series_entity(text, uuid[]) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.backfill_market_series_entity(text, uuid[]) FROM anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.backfill_market_series_entity(text, uuid[]) TO service_role;
 
 -- regional_data_facts: one outbox row per jurisdiction entity of the row's region.
 CREATE OR REPLACE FUNCTION public.emit_propagation_events_for_region() RETURNS trigger
@@ -200,6 +307,8 @@ DECLARE
   v_fact_c   uuid;
   v_ser      uuid;
   v_ser_null uuid;
+  v_cnt      integer;
+  v_refused  boolean;
   v_old      uuid;
   v_mark     bigint;
   v_n        int;
@@ -218,6 +327,21 @@ BEGIN
    WHERE t.tgname = 'propagation_outbox_trg' AND t.tgrelid = 'public.regional_data_facts'::regclass AND NOT t.tgisinternal
      AND p.proname = 'emit_propagation_events_for_region' AND t.tgnargs = 2;
   IF NOT v_ok THEN RAISE EXCEPTION 'ABORT: regional_data_facts outbox trigger is not emit_propagation_events_for_region with 2 arguments'; END IF;
+  SELECT count(*) = 1 INTO v_ok FROM pg_proc p
+   WHERE p.proname = 'emit_propagation_event' AND p.pronamespace = 'public'::regnamespace
+     AND p.prosrc LIKE '%TG_NARGS%' AND p.prosrc LIKE '%app.outbox_backfill_writer%';
+  IF NOT v_ok THEN RAISE EXCEPTION 'ABORT: emit_propagation_event() lost the optional entity argument or lacks the backfill marker leg'; END IF;
+  IF has_function_privilege('service_role', 'public.backfill_market_series_entity(text, uuid[])', 'EXECUTE') IS NOT TRUE THEN
+    RAISE EXCEPTION 'ABORT: service_role cannot execute backfill_market_series_entity';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
+     AND has_function_privilege('anon', 'public.backfill_market_series_entity(text, uuid[])', 'EXECUTE') THEN
+    RAISE EXCEPTION 'ABORT: anon can execute backfill_market_series_entity';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated')
+     AND has_function_privilege('authenticated', 'public.backfill_market_series_entity(text, uuid[])', 'EXECUTE') THEN
+    RAISE EXCEPTION 'ABORT: authenticated can execute backfill_market_series_entity';
+  END IF;
   IF to_regclass('public.emission_factors') IS NOT NULL THEN
     SELECT count(*) = 1 INTO v_ok FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
      WHERE t.tgname = 'propagation_outbox_trg' AND t.tgrelid = 'public.emission_factors'::regclass AND NOT t.tgisinternal
@@ -315,6 +439,50 @@ BEGIN
     SELECT count(*) INTO v_n FROM public.propagation_events
      WHERE event_id > v_mark AND table_name = 'market_series' AND row_pk = v_ser_null::text AND entity_id IS NULL;
     IF v_n <> 1 THEN RAISE EXCEPTION 'ABORT: a market_series row with a NULL entity must give 1 event with a NULL entity (got %)', v_n; END IF;
+
+    -- (l) a declared backfill is silent: the RPC stamps the NULL row, emits 0 outbox rows, and reports 1
+    SELECT coalesce(max(event_id), 0) INTO v_mark FROM public.propagation_events;
+    SELECT public.backfill_market_series_entity(v_e2, ARRAY[v_ser_null]) INTO v_cnt;
+    SELECT count(*) INTO v_n FROM public.propagation_events WHERE event_id > v_mark AND table_name = 'market_series';
+    IF v_cnt <> 1 OR v_n <> 0 THEN
+      RAISE EXCEPTION 'ABORT: a declared backfill must stamp 1 row and write 0 outbox rows (stamped %, wrote %)', v_cnt, v_n;
+    END IF;
+    IF (SELECT entity_id FROM public.market_series WHERE id = v_ser_null) IS DISTINCT FROM v_e2 THEN
+      RAISE EXCEPTION 'ABORT: the backfill did not stamp the entity';
+    END IF;
+
+    -- (m) it never overwrites: a row that has an entity is left alone, and a second pass stamps nothing
+    SELECT public.backfill_market_series_entity(v_e3, ARRAY[v_ser_null, v_ser]) INTO v_cnt;
+    IF v_cnt <> 0 OR (SELECT entity_id FROM public.market_series WHERE id = v_ser_null) IS DISTINCT FROM v_e2
+       OR (SELECT entity_id FROM public.market_series WHERE id = v_ser) IS DISTINCT FROM v_e1 THEN
+      RAISE EXCEPTION 'ABORT: the backfill overwrote an existing entity or stamped a row that already had one (stamped %)', v_cnt;
+    END IF;
+
+    -- (n) a producer write still emits after the backfill returned (the marker is cleared): exactly 1 event, with the entity
+    SELECT coalesce(max(event_id), 0) INTO v_mark FROM public.propagation_events;
+    UPDATE public.market_series SET label = 'migration 373 series, producer write' WHERE id = v_ser_null;
+    SELECT count(*), array_agg(entity_id) INTO v_n, v_ents
+      FROM public.propagation_events WHERE event_id > v_mark AND table_name = 'market_series' AND row_pk = v_ser_null::text;
+    IF v_n <> 1 OR v_ents IS DISTINCT FROM ARRAY[v_e2] THEN
+      RAISE EXCEPTION 'ABORT: a producer-style write after a backfill must still give exactly 1 event carrying the entity (got % %)', v_n, v_ents;
+    END IF;
+
+    -- (o) a marker naming another table does not silence market_series
+    PERFORM set_config('app.outbox_backfill_writer', 'regional_data_facts', true);
+    SELECT coalesce(max(event_id), 0) INTO v_mark FROM public.propagation_events;
+    UPDATE public.market_series SET label = 'migration 373 series, other-table marker' WHERE id = v_ser_null;
+    SELECT count(*) INTO v_n FROM public.propagation_events WHERE event_id > v_mark AND table_name = 'market_series';
+    PERFORM set_config('app.outbox_backfill_writer', '', true);
+    IF v_n <> 1 THEN RAISE EXCEPTION 'ABORT: a marker for another table must not silence market_series (got % events)', v_n; END IF;
+
+    -- (p) the writer refuses an entity id with no entities row
+    v_refused := false;
+    BEGIN
+      PERFORM public.backfill_market_series_entity(v_unknown, ARRAY[v_ser_null]);
+    EXCEPTION WHEN raise_exception THEN
+      IF SQLERRM LIKE 'backfill_market_series_entity: unknown entity%' THEN v_refused := true; ELSE RAISE; END IF;
+    END;
+    IF NOT v_refused THEN RAISE EXCEPTION 'ABORT: the backfill writer accepted an entity id with no entities row'; END IF;
 
     -- (j) an unknown entity cannot be stored (the FK refuses it)
     BEGIN

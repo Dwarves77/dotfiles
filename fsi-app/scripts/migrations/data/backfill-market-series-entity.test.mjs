@@ -63,15 +63,14 @@ function harness(rows = ROWS) {
   };
 }
 
-test("runBackfill: dry by default writes nothing and reports the outbox events an apply would emit", async () => {
+test("runBackfill: dry by default writes nothing and says an apply writes no outbox rows", async () => {
   const h = harness();
   const res = await runBackfill({}, h.deps);
   assert.equal(res.code, 0);
   assert.equal(h.writes.length, 0);
   assert.equal(res.applied, 0);
-  assert.equal(res.outbox_events_on_apply, 3);
   assert.ok(h.logs.some((l) => /DRY-RUN/.test(l)));
-  assert.ok(h.logs.some((l) => /outbox_events_on_apply=3/.test(l)));
+  assert.ok(h.logs.some((l) => /outbox_rows_on_apply=0/.test(l)));
 });
 
 test("runBackfill --apply: one write per entity with its ids; counts read back; a second pass over the stamped rows writes nothing", async () => {
@@ -99,10 +98,24 @@ test("runBackfill: an unresolvable mapping stops the run before any read or writ
   assert.equal(h.writes.length, 0);
 });
 
-test("the default writer never overwrites a set entity and writes through the guarded path (source scan)", async () => {
+test("the default writer is the sanctioned RPC in chunks; the script has no direct table write at all (source scan)", async () => {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(new URL("./backfill-market-series-entity.mjs", import.meta.url), "utf8");
-  assert.match(src, /guardedUpdateByIds\("market_series"/);
-  assert.match(src, /applyMatch: \(qb\) => qb\.is\("entity_id", null\)/);
+  assert.match(src, /getClient\(\)\.rpc\("backfill_market_series_entity"/);
+  assert.match(src, /makeRpcUpdater\(getClient = readClient\)/);
+  assert.match(src, /RPC_CHUNK = 500/);
   assert.doesNotMatch(src, /\.from\("market_series"\)\s*\.(update|insert|upsert|delete)/);
+  assert.doesNotMatch(src, /guardedUpdate/);
+});
+
+test("the default writer chunks ids, passes the entity, sums the counts and throws on an RPC error", async () => {
+  const calls = [];
+  const fake = (result) => ({ rpc: async (name, args) => { calls.push([name, args]); return result(args); } });
+  const { makeRpcUpdater } = await import("./backfill-market-series-entity.mjs");
+  const ids = Array.from({ length: 1201 }, (_, i) => `id${i}`);
+  const upd = makeRpcUpdater(() => fake((a) => ({ data: a.p_ids.length, error: null })));
+  assert.deepEqual(await upd(ids, EU), { updated: 1201 });
+  assert.deepEqual(calls.map((c) => [c[0], c[1].p_entity_id, c[1].p_ids.length]), [["backfill_market_series_entity", EU, 500], ["backfill_market_series_entity", EU, 500], ["backfill_market_series_entity", EU, 201]]);
+  const bad = makeRpcUpdater(() => fake(() => ({ data: null, error: { message: "unknown entity" } })));
+  await assert.rejects(() => bad(["x"], EU), /backfill_market_series_entity failed: unknown entity/);
 });
