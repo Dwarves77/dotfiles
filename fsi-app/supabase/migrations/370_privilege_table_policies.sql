@@ -153,7 +153,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- The 15 policies item 6 re-points and the 3 org_memberships admin policies and the 2 community_group_members policies the recursion fix re-points must exist
+  -- The 15 policies item 6 re-points and the 3 org_memberships admin policies and the 2 community_group_members policies and the notifications policy the recursion fix re-points must exist
   -- under these names (migrations 006, 077, 313, 362).
   v_pol := ARRAY[
     'workspace_item_overrides.overrides_insert_org', 'workspace_item_overrides.overrides_update_org',
@@ -168,7 +168,8 @@ BEGIN
     'org_memberships.membership_write_admin', 'org_memberships.membership_update_admin',
     'org_memberships.membership_delete_admin',
     'community_group_members.community_group_members_insert_admin',
-    'community_group_members.community_group_members_update_self_prefs'];
+    'community_group_members.community_group_members_update_self_prefs',
+    'notifications.notifications_update_self_read'];
   FOREACH v_pair IN ARRAY v_pol LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_policies
@@ -355,6 +356,23 @@ ALTER POLICY community_group_members_insert_admin ON public.community_group_memb
   WITH CHECK (public.user_group_role(group_id) = 'admin');
 ALTER POLICY community_group_members_update_self_prefs ON public.community_group_members
   WITH CHECK (user_id = auth.uid() AND role = public.user_group_role(group_id));
+
+-- The same class on notifications (migration 032), ruled by the coordinator: the lock moves from the policy to the
+-- column grant. The original:
+--   notifications_update_self_read   FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid()
+--       AND kind = (SELECT n.kind FROM notifications n WHERE n.id = notifications.id)
+--       AND payload = (SELECT n.payload FROM notifications n WHERE n.id = notifications.id)
+--       AND created_at = (SELECT n.created_at FROM notifications n WHERE n.id = notifications.id))
+-- The three subqueries lock kind, payload and created_at to their stored values (and read the policy's own table, 42P17).
+-- The only column a user session writes is read_at (the community notification routes mark read, mark unread and mark
+-- all read with the cookie-bound client; the bell component only calls those routes; inserts come from the service
+-- role in lib/notifications/dispatch.ts). So authenticated keeps UPDATE on read_at alone and the policy reduces to the
+-- own-row condition; the column grant is the guard, there is no trigger.
+REVOKE UPDATE ON TABLE public.notifications FROM PUBLIC, anon, authenticated;
+GRANT UPDATE (read_at) ON public.notifications TO authenticated;
+ALTER POLICY notifications_update_self_read ON public.notifications
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 CREATE OR REPLACE FUNCTION public.org_membership_role_guard()
 RETURNS trigger
@@ -959,6 +977,21 @@ BEGIN
         pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.community_group_members SET role = %L WHERE group_id = %L AND user_id = %L', 'admin', v_g1, v_member)),
         'err:42501:%', 'err:42P17%');
 
+      -- ===== The recursion class on notifications (migration 032 policy) =====
+      INSERT INTO public.notifications (user_id, kind) VALUES (v_member, 'mention'), (v_viewer, 'mention');
+      PERFORM pg_temp.sec3b_expect('N1 a user marks their own notification read: no 42P17',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET read_at = now() WHERE user_id = %L', v_member)),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('N2 a user cannot rewrite their own notification payload (column privilege)',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET payload = %L WHERE user_id = %L', '{"forged":true}', v_member)),
+        'err:42501:%permission denied%');
+      PERFORM pg_temp.sec3b_expect('N2 a user cannot rewrite their own notification kind',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET kind = %L WHERE user_id = %L', 'moderation', v_member)),
+        'err:42501:%permission denied%');
+      PERFORM pg_temp.sec3b_expect('N3 a user marking another user notification read updates nothing',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET read_at = now() WHERE user_id = %L', v_viewer)),
+        'ok:0');
+
       -- ===== Item 4: community_posts =====
       FOREACH v_attack IN ARRAY ARRAY['signed_off_at = now()', format('signed_off_by = %L', v_member)] LOOP
         PERFORM pg_temp.sec3b_expect('4A community_posts ' || split_part(v_attack, ' ', 1) || ' by the author',
@@ -1094,6 +1127,23 @@ BEGIN
               WHERE schemaname = 'public' AND tablename = 'org_memberships'
                 AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'org_memberships') THEN
     RAISE EXCEPTION 'ABORT: a policy on org_memberships names org_memberships; read the role through user_org_role()';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'notifications'
+                AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'notifications') THEN
+    RAISE EXCEPTION 'ABORT: a policy on notifications names notifications; the column grant is the guard';
+  END IF;
+  FOR v_attack IN
+    SELECT a.attname FROM pg_attribute a
+     WHERE a.attrelid = 'public.notifications'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND a.attname <> 'read_at'
+  LOOP
+    IF has_column_privilege('authenticated', 'public.notifications', v_attack, 'UPDATE')
+       OR has_column_privilege('anon', 'public.notifications', v_attack, 'UPDATE') THEN
+      RAISE EXCEPTION 'ABORT: authenticated or anon still holds UPDATE on notifications.%', v_attack;
+    END IF;
+  END LOOP;
+  IF NOT has_column_privilege('authenticated', 'public.notifications', 'read_at', 'UPDATE') THEN
+    RAISE EXCEPTION 'ABORT: authenticated lost UPDATE on notifications.read_at';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_policies
               WHERE schemaname = 'public' AND tablename = 'community_group_members'

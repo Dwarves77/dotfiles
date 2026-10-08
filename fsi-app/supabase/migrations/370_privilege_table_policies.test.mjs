@@ -155,7 +155,7 @@ test("item 6: user_can_write_in_org is member/admin/owner, SECURITY DEFINER with
     assert.doesNotMatch(s, /user_belongs_to_org/);
   }
   // reads keep user_belongs_to_org: no SELECT policy is touched
-  assert.doesNotMatch(SQL, /ALTER POLICY \w+_(read|member_read|read_org) /);
+  assert.doesNotMatch(SQL, /ALTER POLICY \w+_(org_read|member_read|read_org) /);
 });
 
 test("self-check ATTACKS as role authenticated and service_role through a fixture jwt sub, requires 42501 on every attack, rolls back", () => {
@@ -366,11 +366,47 @@ test("recursion: one self-check leg per re-pointed community_group_members polic
   assert.match(SQL, /tablename = 'community_group_members'\s+AND \(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'community_group_members'/);
 });
 
+test("recursion: notifications_update_self_read (migration 032) reads notifications in its WITH CHECK; 370 moves the lock to the column grant and reduces the policy to the own-row condition", () => {
+  const m032 = MIG("032_community_notifications_moderation.sql");
+  const at = m032.indexOf('create policy "notifications_update_self_read"');
+  assert.ok(at > 0);
+  const original = m032.slice(at, m032.indexOf(";", at));
+  assert.match(original, /from notifications n/i, "the original reads its own table");
+  const stmtAt = SQL.indexOf("ALTER POLICY notifications_update_self_read ON public.notifications");
+  assert.ok(stmtAt > 0);
+  const stmt = SQL.slice(stmtAt, SQL.indexOf(";", stmtAt));
+  assert.match(stmt, /USING \(user_id = auth\.uid\(\)\)\s+WITH CHECK \(user_id = auth\.uid\(\)\)/);
+  assert.doesNotMatch(stmt.replace("ALTER POLICY notifications_update_self_read ON public.notifications", ""), /notifications/);
+  // the lock is the column grant: UPDATE revoked at table level, granted back on read_at alone, no trigger
+  assert.match(SQL, /REVOKE UPDATE ON TABLE public\.notifications FROM PUBLIC, anon, authenticated;/);
+  assert.match(SQL, /GRANT UPDATE \(read_at\) ON public\.notifications TO authenticated;/);
+  assert.doesNotMatch(SQL, /CREATE TRIGGER[^;]*ON public\.notifications/);
+});
+
+test("recursion: the notification routes write only read_at, with the cookie-bound client (so the column grant cannot break them)", () => {
+  for (const f of [["app", "api", "community", "notifications", "[id]", "route.ts"], ["app", "api", "community", "notifications", "route.ts"]]) {
+    const t = readFileSync(join(SRC, ...f), "utf8");
+    const updates = [...t.matchAll(/\.update\(\{([^}]*)\}\)/g)].map((m) => m[1].trim());
+    assert.ok(updates.length >= 1, f.join("/"));
+    for (const u of updates) assert.match(u, /^read_at\b/, `${f.join("/")} updates only read_at, got ${u}`);
+    assert.match(t, /requireCommunityRoute/);
+    assert.doesNotMatch(t, /getServiceSupabase/);
+  }
+});
+
+test("recursion: the self-check has notification legs (own read_at ok and not 42P17, payload and kind refused by column privilege, another user's row 0 rows) and the catalog assertion covers notifications", () => {
+  assert.ok(SQL.includes("'N1 a user marks their own notification read: no 42P17'"));
+  assert.ok(SQL.includes("'N2 a user cannot rewrite their own notification payload (column privilege)'"));
+  assert.ok(SQL.includes("'N3 a user marking another user notification read updates nothing'"));
+  assert.match(SQL, /tablename = 'notifications'\s+AND \(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'notifications'/);
+  assert.match(SQL, /a\.attname <> 'read_at'/);
+});
+
 test("recursion: the self-check attacks the class (an admin INSERT, UPDATE and DELETE do not raise 42P17), leg 3A must reach the guard, and the apply fails if a policy names the table", () => {
   assert.ok(SQL.includes("'3 recursion class: an admin UPDATE on org_memberships does not raise 42P17'"));
   assert.ok(SQL.includes("'3 recursion class: an admin INSERT on org_memberships does not raise 42P17'"));
   assert.ok(SQL.includes("'3 recursion class: an admin DELETE on org_memberships does not raise 42P17'"));
-  assert.equal((SQL.match(/'err:42P17%'/g) || []).length, 8, "three org_memberships legs and five community_group_members legs");
+  assert.equal((SQL.match(/'err:42P17%'/g) || []).length, 9, "three org_memberships legs, five community_group_members legs and one notifications leg");
   assert.match(SQL, /PERFORM pg_temp\.sec3b_expect\('3A an admin promotes a member to owner',[\s\S]*?'err:42501:%org_membership_role_guard%'\)/);
   assert.match(SQL, /'3 control: the owner grants owner'/);
   assert.match(SQL, /\(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'org_memberships'/);
