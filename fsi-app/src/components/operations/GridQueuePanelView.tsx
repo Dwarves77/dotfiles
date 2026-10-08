@@ -24,6 +24,7 @@
 
 import { evaluateGridQueueGate } from "@/lib/spec09/grid-queue.mjs";
 import "@/components/market/spec09.css";
+import { CoverageState } from "@/components/ui/CoverageState";
 
 export interface GridQueueRow {
   queue_id: string;
@@ -44,7 +45,8 @@ export function GridQueuePanelView({ rows }: { rows: GridQueueRow[] }) {
   if (rows.length === 0) {
     return (
       <div data-guard-container="grid-queue">
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>{GRID_QUEUE_GAP_LINE}</p>
+        {/* COV-1: the "not covered" state (spec 00 section 4), with the source reason this file already carried. */}
+        <CoverageState state="not_covered" variant="inline" subject="Grid connection queue" reason={GRID_QUEUE_GAP_LINE} requestRef="/operations#grid-queue" />
       </div>
     );
   }

@@ -27,6 +27,7 @@ import { runSmoke as runItemGroupCoverageSmoke } from './item-group-coverage-smo
 import { runSmoke as runParityChecksSmoke } from './parity-checks-smoke.mjs';
 import { runSmoke as runMarketDetailRawDumpSmoke } from './market-detail-raw-dump-smoke.mjs';
 import { runSmoke as runLeadTimeChartSmoke } from './lead-time-chart-smoke.mjs';
+import { runSmoke as runMarketRibbonSmoke } from './market-ribbon-smoke.mjs';
 import { runSmoke as runLabourChainSmoke } from './labour-chain-smoke.mjs';
 import { runSmoke as runCrossPageSmoke } from './cross-page-smoke.mjs';
 import { runSmoke as runInferenceSectionSmoke } from './inference-section-smoke.mjs';
@@ -36,6 +37,7 @@ import { runSmoke as runStatementsSmoke } from './statements-smoke.mjs';
 import { runSmoke as runItemCollabSmoke } from './item-collab-smoke.mjs';
 import { runSmoke as runPortfolioSmoke } from './portfolio-smoke.mjs';
 import { runSmoke as runBindingBannerSmoke } from './binding-banner-smoke.mjs';
+import { runSmoke as runCoverageSmoke } from './coverage-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -102,6 +104,8 @@ export const UX_SMOKE_SPECS = [
   // red-then-green text check proving neither state is a silent no-op render. F35 ROW_COMPONENTS
   // line reported for the coordinator to add (lane common contract's UX contract).
   { name: "lead-time-chart", run: runLeadTimeChartSmoke },
+  // lane MKT-1, 2026-10-08: the Market headline ribbon (spec 02 rows 1, 10, 11) and the scoped policy timeline view (row 9).
+  { name: "market-ribbon", run: runMarketRibbonSmoke },
   { name: "labour-chain", run: runLabourChainSmoke }, // lane L13, 2026-10-03, spec 04 S5/S6#5 fully-loaded labour chain
   // lane S3-B, 2026-10-05: the "Connected intelligence" section on the four detail pages (intersections and theme
   // analysis) and the themes strip on the four list pages. F35 ROW_COMPONENTS carries both components.
@@ -118,4 +122,6 @@ export const UX_SMOKE_SPECS = [
   { name: "portfolio", run: runPortfolioSmoke },
   // lane OBL-2, 2026-10-08: the item-level binding-position banner on the Regulations detail page (spec 01 section 4 component 1).
   { name: "binding-banner", run: runBindingBannerSmoke },
+  // lane COV-1, 2026-10-08: the generated Coverage page, the denominator line, the portfolio-add coverage line and all six coverage states (coverage-smoke.mjs).
+  { name: "coverage", run: runCoverageSmoke },
 ];

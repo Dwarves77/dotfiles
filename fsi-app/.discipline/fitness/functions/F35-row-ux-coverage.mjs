@@ -41,6 +41,7 @@ export const ROW_COMPONENTS = Object.freeze({
   // cohort row (CompanyBar) for each entry in buildLeadTimePosition()'s sorted result, spec 02 section
   // 6 item 5. Title carries data-guard-title via the shared SectionHeading.
   'src/components/market/LeadTimeChart.tsx': 'spec 02 section 6 item 5 lead-time position chart, per-company cohort rows',
+  'src/components/market/MarketComparativeRibbon.tsx': 'spec 02 section 6 row 1 headline series cards (level, 1w, 1m, YoY, trend, freshness), market-ribbon-smoke.mjs (lane MKT-1)',
   'src/components/operations/OperationsLedger.tsx': 'screenshot 02-operations-items (one word per line)',
   'src/components/operations/RegionDimensionMatrix.tsx': 'screenshot 01-operations-regions (text off the right edge)',
   'src/components/research/ResearchLedger.tsx': 'screenshot 03-research-findings (one word per line, label overlap)',
@@ -55,6 +56,8 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
   // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.
+  // lane COV-1 (2026-10-08, coordinator grant): the generated Coverage page renders one row per place (title over a wrapping row of cell chips); coverage-smoke.mjs mounts it.
+  'src/components/coverage/CoveragePageView.tsx': 'spec 00 section 4 generated Coverage page, one row per place (lane COV-1)',
   'src/components/market/OemRoadmapPanelView.tsx': 'spec09 §1.1 OEM roadmap row',
   'src/components/market/ReroutingPanelView.tsx': 'spec09 §1.7 rerouting-multiplier row',
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',

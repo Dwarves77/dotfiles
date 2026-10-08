@@ -1,0 +1,10 @@
+{
+  "id": "corpus-turn-to-theme-briefs",
+  "producer": { "file": ".github/workflows/corpus-turn.yml", "name": "Corpus turn" },
+  "consumer": { "file": ".github/workflows/theme-briefs.yml", "name": "Theme briefs" },
+  "trigger": "workflow_run",
+  "family": "theme-briefs",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Lane CHAIN-4 (2026-10-08), remaining-build-register item 17. analyze-corpus re-clusters the connection graph inside Corpus turn (step 6), which changes theme membership, so a re-brief list exists after it: theme-briefs.yml carries on.workflow_run.workflows: [\"Corpus turn\"]. A chained firing has no inputs and no batch file, so it runs action=export (read only; lists themes with no brief or a stale one); apply stays on push or dispatch. Depth: source-sweep(0) -> ledger-consume(1) -> corpus-turn(2) -> theme-briefs(3), the last level GitHub still fires, so no fallback. Downstream chain also runs analyze-corpus for its ticket scope but is itself depth 3, so an edge off it would be dropped; Corpus turn covers the same re-cluster. Forced dry while build mode holds. Evidence that will prove it fired: a theme-briefs harness_runs row with trigger workflow_run or workflow_run_forced_dry whose upstream_run_id equals a corpus-turn row's github_run_id. enforceFired stays false until that row exists in loop-fired-evidence.json."
+}

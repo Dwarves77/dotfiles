@@ -122,6 +122,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { OperationsFact, OperationsCoverageRow } from "@/lib/supabase-server";
 import { Absence } from "@/components/ui/Absence";
+import { CoverageState } from "@/components/ui/CoverageState";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { FactCard } from "@/components/ui/FactCard";
 import { buildRegionGrid, impliedBaseFact } from "@/lib/operations/region-grid.mjs";
@@ -632,7 +633,16 @@ export function RegionDimensionMatrix({
                             it a dead cell would put arrow-key holes in the grid and leave a reader
                             asking "why is this empty?" with nowhere to click. */}
                         {n === 0 ? (
-                          <Absence reason="not in primary source" variant="narrow" />
+                          // COV-1: the unsourced cell is the "not covered" state (spec 00 section 4). The cell form is
+                          // the SAME declared dash this cell drew before (data-absence, cl-absence-dash, same glyph),
+                          // so the artboard's presentation holds; what changes is that the dash now says WHICH state it
+                          // is and why, on hover and to assistive technology, instead of one reason for every hole.
+                          <CoverageState
+                            state="not_covered"
+                            variant="cell"
+                            subject={`${dimensionLabel(d)} for ${r.label}`}
+                            reason="No producer has written this cell."
+                          />
                         ) : (
                           <span
                             data-audit="ops-cell-score"

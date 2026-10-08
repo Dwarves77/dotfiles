@@ -76,6 +76,7 @@ import { BINDING_POSITION, TRANSPORT_MODES } from "@/lib/contracts/vocabularies.
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { itemDetailHref } from "@/lib/item-links";
 import { formatNumber } from "@/lib/format";
+import { CoverageState } from "@/components/ui/CoverageState";
 
 export interface ObligationItem {
   id: string;
@@ -145,6 +146,9 @@ interface Props {
    *  2026-09-08). Changing it refetches from offset 0. The detail variant ignores it entirely and
    *  falls back to the unfiltered token set. */
   filters?: RegisterFilters;
+  /** Clears every facet at once (COV-1): the "widen scope" control of the not-filtered-in state. Owned by the
+   *  page that owns the filter state; absent means the control is not offered. */
+  onWiden?: () => void;
 }
 
 export interface RegisterFilters {
@@ -184,8 +188,12 @@ export function ObligationRegisterFilterBar({
   variant = "list",
   sourceEventCount = null,
   filters = REGISTER_FILTERS_NONE,
+  onWiden,
 }: Props) {
   const { jurisdiction, mode, bindingPosition, dueWindow } = filters;
+  // A facet is active when it differs from the "no facet selected" token (REGISTER_FILTERS_NONE).
+  const filtersActive =
+    jurisdiction !== ALL || mode !== ALL || bindingPosition !== ALL || dueWindow !== "all";
 
   // The set of rows currently on screen, the total behind the active filter set, and network state.
   // `rows`/`total` start from what the server rendered (the honest first paint) and are only ever
@@ -195,6 +203,10 @@ export function ObligationRegisterFilterBar({
   const [total, setTotal] = useState<number>(initialTotal ?? initialRows.length);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which call failed, so the error state's Retry repeats THAT call (COV-1), and a nonce that re-runs the
+  // filter-change fetch below without changing a filter.
+  const [errorKind, setErrorKind] = useState<"refresh" | "more">("refresh");
+  const [retryNonce, setRetryNonce] = useState(0);
   // Guards a stale response (a fast second filter change resolving after a slower first one) from
   // clobbering newer state — the same "ignore anything but the latest request" pattern RegulationsLedger's
   // own remainder fetch uses.
@@ -223,12 +235,13 @@ export function ObligationRegisterFilterBar({
       })
       .catch(() => {
         if (requestIdRef.current !== myId) return;
+        setErrorKind("refresh");
         setError("Could not refresh the register for these filters — showing the last loaded set.");
       })
       .finally(() => {
         if (requestIdRef.current === myId) setLoading(false);
       });
-  }, [jurisdiction, mode, bindingPosition, dueWindow, variant]);
+  }, [jurisdiction, mode, bindingPosition, dueWindow, variant, retryNonce]);
 
   const loadMore = useCallback(() => {
     const myId = ++requestIdRef.current;
@@ -242,6 +255,7 @@ export function ObligationRegisterFilterBar({
       })
       .catch(() => {
         if (requestIdRef.current !== myId) return;
+        setErrorKind("more");
         setError("Could not load more obligations — try again.");
       })
       .finally(() => {
@@ -250,22 +264,40 @@ export function ObligationRegisterFilterBar({
   }, [jurisdiction, mode, bindingPosition, dueWindow, rows.length]);
 
   if (total === 0 && rows.length === 0 && !loading) {
-    return variant === "detail" ? null : (
+    if (variant === "detail") return null;
+    // COV-1 (spec 00 section 4). Zero rows under an ACTIVE facet is the "not filtered in" state: the register has
+    // obligations, the reader's scope hides them, and one click widens it. Before this, that case fell into the
+    // "register is empty" message below, which told a filtering reader the register held nothing. The hidden count
+    // is not stated: this route returns the total for the active filters only, and a number nobody has is not shown.
+    if (filtersActive) {
+      return (
+        <section id="obligation-register" style={sectionStyle}>
+          <Header total={0} />
+          <CoverageState
+            state="not_filtered_in"
+            variant="inline"
+            subject="Other obligations in the register"
+            noun="obligation"
+            reason="No obligation matches the facets you chose. Clear them to see the whole register."
+            onWiden={onWiden}
+          />
+        </section>
+      );
+    }
+    // Otherwise the register itself is empty: the "no data yet" state, keeping the explanation this branch carried.
+    return (
       <section id="obligation-register" style={sectionStyle}>
         <Header total={0} />
-        <p style={emptyTextStyle}>
-          {typeof sourceEventCount === "number" ? (
-            <>
-              No obligations classified into the register yet. It is derived from{" "}
-              <strong>{formatNumber(sourceEventCount)}</strong> dated forward event
-              {sourceEventCount === 1 ? "" : "s"} already on file (migration 274); the register fills in
-              as they are matched to their parent regulation&apos;s jurisdiction, mode and binding position.
-            </>
-          ) : (
-            "No obligations on file yet. This register is derived from forward-events extraction landing "
-            + "dated obligations for verified regulations."
-          )}
-        </p>
+        <CoverageState
+          state="no_data_yet"
+          variant="inline"
+          subject="The obligation register"
+          reason={
+            typeof sourceEventCount === "number"
+              ? `No obligations classified into the register yet. It is derived from ${formatNumber(sourceEventCount)} dated forward event${sourceEventCount === 1 ? "" : "s"} already on file (migration 274); the register fills in as they are matched to their parent regulation's jurisdiction, mode and binding position.`
+              : "No obligations on file yet. This register is derived from forward-events extraction landing dated obligations for verified regulations."
+          }
+        />
       </section>
     );
   }
@@ -279,9 +311,14 @@ export function ObligationRegisterFilterBar({
     <section id="obligation-register" style={variant === "detail" ? detailSectionStyle : sectionStyle}>
       <Header total={total} shown={rows.length} />
       {error && (
-        <p role="status" style={{ ...emptyTextStyle, color: "var(--accent, #E8610A)" }}>
-          {error}
-        </p>
+        // COV-1: a failed fetch is the "error" state, a distinct alert with a Retry that repeats the call that failed.
+        <CoverageState
+          state="error"
+          variant="inline"
+          subject="The obligation register"
+          reason={error}
+          onRetry={() => (errorKind === "more" ? loadMore() : setRetryNonce((n) => n + 1))}
+        />
       )}
 
       {rows.length === 0 ? (

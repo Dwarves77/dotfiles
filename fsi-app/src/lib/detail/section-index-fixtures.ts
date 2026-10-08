@@ -21,4 +21,6 @@ export const SECTION_INDEX_BODY_FIXTURES: SectionIndexBodyFixture[] = [
   { id: "compliance", fullTitle: "S6 Compliance chain", body: "Where the workspace sits in the regulation's defined roles." },
   { id: "penalties", fullTitle: "S7 Penalties", body: "Enforcement body and penalty range, verbatim from the source." },
   { id: "sources", fullTitle: "S8 Sources", body: "Full source list with type labels." },
+  { id: "across-pages", fullTitle: "S9 Connected intelligence", body: "Intersections with items on other pages, and the theme analysis they belong to." },
+  { id: "inferences", fullTitle: "S10 Inferences", body: "What the system has inferred about this item, labelled as inference and never as fact." },
 ];

@@ -118,9 +118,46 @@ export function collectLinksInPage(surface) {
   return { first, chip };
 }
 
+/**
+ * Runs INSIDE the browser (lane SMOKE-2): MEASURES, never judges. For each content requirement (live-content.mjs) it
+ * returns one record per VISIBLE element matching the selector: the text length, how many `childSelector` matches
+ * it holds, and whether its text matches the pattern. A hidden copy (the row's desktop meta line at 375, the phone
+ * line at 1440) is skipped, because a customer does not receive it. The judgement is pure, in live-content.mjs.
+ * @param {{key:string, selector:string, textPattern?:string, childSelector?:string}[]} requirements
+ */
+export function collectContentInPage(requirements) {
+  const squash = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+  const visible = (el) => (typeof el.checkVisibility === "function" ? el.checkVisibility({ checkVisibilityCSS: true }) : el.getClientRects().length > 0);
+  const out = {};
+  for (const req of requirements) {
+    const re = req.textPattern ? new RegExp(req.textPattern, "i") : null;
+    const rows = [];
+    let nodes = [];
+    try { nodes = Array.from(document.querySelectorAll(req.selector)); } catch { nodes = []; }
+    for (const el of nodes) {
+      if (rows.length >= 40) break;
+      if (!visible(el)) continue;
+      const text = squash(el.textContent);
+      rows.push({
+        textLength: text.length,
+        children: req.childSelector ? el.querySelectorAll(req.childSelector).length : 0,
+        matches: re ? re.test(text) : true,
+        text: text.slice(0, 60),
+      });
+    }
+    out[req.key] = rows;
+  }
+  return out;
+}
+
 /** @param {import('playwright').Page} page */
 export async function collectSnapshot(page) {
   return page.evaluate(collectSnapshotInPage);
+}
+
+/** @param {import('playwright').Page} page @param {object[]} requirements the content requirements for this page's kind */
+export async function collectContent(page, requirements) {
+  return page.evaluate(collectContentInPage, requirements);
 }
 
 /** @param {import('playwright').Page} page @param {string} surface */
