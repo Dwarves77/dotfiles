@@ -94,3 +94,27 @@ test("the real CLI: --list prints the selected runs as JSON and runs nothing", (
   assert.deepEqual(listed.map((r) => r.name), loadProducerRegistry().filter((e) => e.in_all).map((e) => e.name));
   assert.deepEqual(listed.find((r) => r.name === "ecb-fx").commands, [["node", "scripts/producers/market/ecb-fx-producer.mjs", "--apply"]]);
 });
+
+// ---- lane L4-E (2026-10-08): the entry's entity_id reaches only its own producer ---------------------------
+
+import { entityId } from "../../../src/lib/entities/entity-id.mjs";
+
+test("entity_id: the oil bulletin producer child gets the EU entity, the EIA child the US entity, ecb-fx and the fetch stage none", () => {
+  const h = harness();
+  assert.equal(runRegistered(["--mode", "dry", "--producer", "all"], h.deps), 0);
+  const envOf = (script) => h.calls.find((c) => c.args[0] === script).env;
+  assert.equal(envOf("scripts/producers/market/eu-weekly-oil-bulletin.mjs").PRODUCER_ENTITY_ID, entityId("jurisdiction", "EU"));
+  assert.equal(envOf("scripts/producers/market/eia-v2-petroleum-spot-producer.mjs").PRODUCER_ENTITY_ID, entityId("jurisdiction", "US"));
+  assert.equal("PRODUCER_ENTITY_ID" in envOf("scripts/producers/market/ecb-fx-producer.mjs"), false);
+  assert.equal("PRODUCER_ENTITY_ID" in envOf("scripts/producers/market/fetch-oil-bulletin.mjs"), false);
+});
+
+test("entity_id: an ambient PRODUCER_ENTITY_ID in the runner's own environment never reaches an entry that declares none", () => {
+  const h = harness();
+  h.deps.env = { ...h.deps.env, PRODUCER_ENTITY_ID: entityId("jurisdiction", "JP") };
+  assert.equal(runRegistered(["--mode", "dry", "--producer", "all"], h.deps), 0);
+  const ecb = h.calls.find((c) => c.args[0] === "scripts/producers/market/ecb-fx-producer.mjs");
+  assert.equal("PRODUCER_ENTITY_ID" in ecb.env, false);
+  const eu = h.calls.find((c) => c.args[0] === "scripts/producers/market/eu-weekly-oil-bulletin.mjs");
+  assert.equal(eu.env.PRODUCER_ENTITY_ID, entityId("jurisdiction", "EU"), "an entry's own entity wins over an ambient one");
+});

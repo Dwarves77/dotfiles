@@ -47,7 +47,7 @@ export function buildDrainRun({ plan, prs = {}, finishedAt }) {
     drain: plan.drain,
     holder: plan.holder ?? null,
     plan_run_id: plan.run_id,
-    kinds: kinds.map((k) => ({ kind: k.kind, pending_exported: k.pending_exported, planned: k.batches.reduce((a, b) => a + b.count, 0), batches: k.batches.map((b) => b.batch_path), apply_workflow: k.apply_workflow, pr: prs[k.kind] ?? null })),
+    kinds: kinds.map((k) => ({ kind: k.kind, mode: k.mode ?? "pending", pending_exported: k.pending_exported, planned: k.batches.reduce((a, b) => a + b.count, 0), batches: k.batches.map((b) => b.batch_path), apply_workflow: k.apply_workflow, pr: prs[k.kind] ?? null })),
     leases_held: leases.length,
     leases_released: leases.filter((l) => l.released).length,
     finished_at: finishedAt,

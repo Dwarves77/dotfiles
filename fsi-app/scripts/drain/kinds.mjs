@@ -44,6 +44,9 @@ export const KIND_ORDER = Object.freeze(["ledger-verdicts", "host-verdicts", "ne
  * @property {string} itemsKey        top-level array in that file holding one entry per pending item
  * @property {string} idKey            field of a queue item that names it in the plan and in the batch file
  * @property {string|null} leaseKey   field of an item that is a uuid usable as a mutation lease key, or null
+ * @property {Record<string, {label: string, exportArgv: string[]}>} [modes]  selection modes beyond the default
+ *   "pending" (lane VERD-1). Each names the SAME exporter run with one more flag; items keep the kind's idKey and
+ *   leaseKey. Only a kind that registers a mode can be planned in it.
  */
 
 /** @type {readonly DrainKind[]} */
@@ -65,6 +68,15 @@ export const KINDS = Object.freeze([
     itemsKey: "candidates",
     idKey: "candidate_id",
     leaseKey: "candidate_id",
+    // Lane VERD-1: stale verdicts are re-authored through the drain. "stale" exports the candidates whose
+    // committed verdicts are all under an older prompt_version (the same exporter, --stale-verdicts), oldest
+    // first; the session writes a NEW verdict per candidate under the live prompt_version from the exported text.
+    modes: {
+      stale: {
+        label: "Candidates owed a re-authored verdict (committed verdicts all under an older prompt_version)",
+        exportArgv: ["scripts/turns/run-ledger-consume.mjs", "--export-candidates", "{out}/ledger-candidates.json", "--with-text", "--limit", "{limit}", "--stale-verdicts"],
+      },
+    },
   },
   {
     id: "host-verdicts",
@@ -162,6 +174,39 @@ export const KINDS = Object.freeze([
 /** @param {string} id */
 export function kindById(id) {
   return KINDS.find((k) => k.id === id) ?? null;
+}
+
+/** The default selection mode of every kind: the queue of everything pending. */
+export const DEFAULT_MODE = "pending";
+
+/** Mode ids a kind can be planned in: "pending" first, then the modes it registers. @param {DrainKind} kind */
+export function kindModes(kind) {
+  return [DEFAULT_MODE, ...Object.keys(kind.modes ?? {})];
+}
+
+/**
+ * The exporter argv (after `node`) for a kind in a mode. "pending" is the kind's own exportArgv.
+ * @param {DrainKind} kind
+ * @param {string} [mode]
+ */
+export function exportArgvFor(kind, mode = DEFAULT_MODE) {
+  if (mode === DEFAULT_MODE) return kind.exportArgv;
+  const m = kind.modes?.[mode];
+  if (!m) throw new Error(`kind ${kind.id} has no mode "${mode}" (modes: ${kindModes(kind).join(", ")})`);
+  return m.exportArgv;
+}
+
+/**
+ * A kind from a CLI value: an exact id, or a prefix that names exactly one kind ("ledger" is ledger-verdicts).
+ * @param {string} input
+ */
+export function resolveKind(input) {
+  const v = String(input ?? "");
+  if (!v) return null;
+  const exact = kindById(v);
+  if (exact) return exact;
+  const hits = KINDS.filter((k) => k.id.startsWith(v));
+  return hits.length === 1 ? hits[0] : null;
 }
 
 /** Normalise a path to forward slashes and strip a leading `fsi-app/`. */
