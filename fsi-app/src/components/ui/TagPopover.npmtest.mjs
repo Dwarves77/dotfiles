@@ -41,3 +41,37 @@ test("the popover panel (role=\"listbox\") is NOT gated on `controlled` — it s
   const lastControlledGate = before.lastIndexOf("{!controlled && (");
   assert.ok(lastOpenGate > lastControlledGate, "the listbox panel must be gated on `open`, not nested inside the `!controlled` trigger block");
 });
+
+// ── Attribution (lane s8b-tag-attribution, 2026-10-07, migration 360) ───────────────────────────────
+// Structural: there is no JSX render harness here, so the render itself is proven by the workspace-tags
+// smoke spec (.discipline/rendering/smoke/workspace-tags-smoke.mjs) in a real browser at 375 and 1280.
+
+test("an applied row shows the attribution line, built by the shared attributionText and carried in its title", () => {
+  assert.match(SOURCE, /import \{ attributionText, type TagApplication \} from "@\/lib\/tags\/attribution";/);
+  assert.match(SOURCE, /const attribution = isApplied \? attributionText\(applications\.find\(\(a\) => a\.tagId === tag\.id\)\) : null;/);
+  assert.match(SOURCE, /data-part="tag-attribution"\s+title=\{attribution\}/);
+});
+
+test("the attribution line truncates instead of widening the 280px panel", () => {
+  const start = SOURCE.indexOf('data-part="tag-attribution"');
+  assert.notEqual(start, -1);
+  const block = SOURCE.slice(start, start + 600);
+  assert.match(block, /whiteSpace: "nowrap"/);
+  assert.match(block, /overflow: "hidden"/);
+  assert.match(block, /textOverflow: "ellipsis"/);
+});
+
+test("a fresh apply reads the author and date back from the server, so the new row is attributed without reopening", () => {
+  assert.match(SOURCE, /async function refreshApplications\(\)/);
+  const toggle = SOURCE.slice(SOURCE.indexOf("async function toggle"), SOURCE.indexOf("async function createAndApply"));
+  assert.match(toggle, /await refreshApplications\(\);/);
+  const create = SOURCE.slice(SOURCE.indexOf("async function createAndApply"), SOURCE.indexOf("function onKeyDown"));
+  assert.match(create, /await refreshApplications\(\);/);
+});
+
+test("the 280px panel is shifted back inside the viewport (measured overflow at 375 with applied chips before the anchor)", () => {
+  assert.match(SOURCE, /const \[shiftX, setShiftX\] = useState\(0\);/);
+  assert.match(SOURCE, /left: shiftX,/);
+  assert.match(SOURCE, /maxWidth: `calc\(100vw - \$\{VIEWPORT_MARGIN \* 2\}px\)`/);
+  assert.match(SOURCE, /window\.addEventListener\("resize", fit\);/);
+});

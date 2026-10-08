@@ -4,8 +4,9 @@ import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
-import { normalizeTagName, buildTagCountsMap, resolveItemUuid } from "@/lib/tags/server";
+import { normalizeTagName, buildTagCountsMap, resolveItemUuid, loadItemApplications } from "@/lib/tags/server";
 import type { WorkspaceTag } from "@/lib/tags/types";
+import type { TagApplication } from "@/lib/tags/attribution";
 
 // GET /api/workspace/tags — list the caller's workspace tags with live item
 // counts (README "Workspace tags": the source for the + Tag popover and the
@@ -17,7 +18,9 @@ import type { WorkspaceTag } from "@/lib/tags/types";
 // Optional ?itemId=<legacy_id or uuid> also returns `appliedTagIds`: the
 // tags already applied to that one item, so the + Tag popover can render
 // a checkmark instead of a count next to an applied tag without a second
-// round trip (R6).
+// round trip (R6). With itemId it also returns `applications`: who applied
+// each of those tags and when (migration 360 / lane s8b-tag-attribution),
+// so the chip's title and the tag list can read "applied by <name> on <date>".
 async function handleGET(request: NextRequest) {
   const auth = await requireUserRoute(request);
   if (isRefusal(auth)) return auth;
@@ -61,6 +64,7 @@ async function handleGET(request: NextRequest) {
 
   const rawItemId = request.nextUrl.searchParams.get("itemId");
   let appliedTagIds: string[] | undefined;
+  let applications: TagApplication[] | undefined;
   if (rawItemId) {
     const intelItemId = await resolveItemUuid(supabase, rawItemId);
     if (intelItemId) {
@@ -72,6 +76,7 @@ async function handleGET(request: NextRequest) {
         .limit(500); // fitness-allow: F38 (tags applied to one item, bounded-by-design)
       if (!appliedErr) {
         appliedTagIds = (appliedRows ?? []).map((r) => r.tag_id as string);
+        applications = await loadItemApplications(supabase, orgId, intelItemId);
       }
     }
   }
@@ -89,7 +94,12 @@ async function handleGET(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { tags, ...(appliedTagIds ? { appliedTagIds } : {}), ...(itemTags ? { itemTags } : {}) },
+    {
+      tags,
+      ...(appliedTagIds ? { appliedTagIds } : {}),
+      ...(applications ? { applications } : {}),
+      ...(itemTags ? { itemTags } : {}),
+    },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }

@@ -59,14 +59,16 @@ writeFileSync(
 writeFileSync(
   join(STUBS, "supabase-service.mjs"),
   `const TAGS = [{ id: "tag-1", org_id: "org-1", name: "Q4 review", created_at: "2026-09-01T00:00:00Z" }];
-   const LINKS = [{ tag_id: "tag-1", intelligence_item_id: "item-1" }];
+   const LINKS = [{ tag_id: "tag-1", intelligence_item_id: "item-1", created_by: "user-ada", created_at: "2026-09-03T10:00:00Z" }];
+   const PROFILES = [{ id: "user-ada", full_name: "Ada Lovelace", display_name: "ada", email: "ada@example.com" }];
    export function getServiceSupabase() {
      return {
        from(table) {
-         const rows = table === "workspace_tags" ? TAGS : LINKS;
+         const rows = table === "workspace_tags" ? TAGS : table === "profiles" ? PROFILES : LINKS;
          const chain = {
            select: () => chain,
            eq: () => chain,
+           in: () => chain,
            ilike: () => chain,
            order: () => chain,
            limit: async () => ({ data: rows, error: null }),
@@ -156,4 +158,34 @@ test("the gate runs FIRST: an unauthenticated request never reaches the org or t
   assert.equal(res.status, 401);
   // Nothing shaped like a successful body escapes the gate.
   assert.equal("tags" in (await res.json()), false);
+});
+
+// ── Attribution (lane s8b-tag-attribution, 2026-10-07, migration 360) ───────────────────────────────
+const ITEM_UUID = "00000000-0000-4000-8000-000000000007";
+
+test("?itemId returns who applied each tag and when, with the author's name from the profile", async () => {
+  const res = await GET(
+    new NextRequest(`https://carosledge.com/api/workspace/tags?itemId=${ITEM_UUID}`, {
+      headers: { authorization: "Bearer valid-token" },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.deepEqual(body.applications, [
+    { tagId: "tag-1", appliedBy: "user-ada", appliedByName: "Ada Lovelace", appliedAt: "2026-09-03T10:00:00Z" },
+  ]);
+});
+
+test("the attribution never carries an email address", async () => {
+  const res = await GET(
+    new NextRequest(`https://carosledge.com/api/workspace/tags?itemId=${ITEM_UUID}`, {
+      headers: { authorization: "Bearer valid-token" },
+    })
+  );
+  assert.equal(JSON.stringify(await res.json()).includes("ada@example.com"), false);
+});
+
+test("without ?itemId there is no applications field (the list read stays as it was)", async () => {
+  const body = await (await GET(request("Bearer valid-token"))).json();
+  assert.equal("applications" in body, false);
 });
