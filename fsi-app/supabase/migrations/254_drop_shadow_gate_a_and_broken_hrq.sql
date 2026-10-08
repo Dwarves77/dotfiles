@@ -44,6 +44,12 @@
 -- REVERSIBILITY. The dropped functions are recoverable only from this file's history plus the live-DB
 -- definitions captured in the census; they are being removed precisely because they are duplicates or broken,
 -- so re-creating them is never the right recovery. The table's DATA is fully recoverable from the committed CSV.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37792517133, class OUT-OF-REPO-DROP): GATE 2 does not count gate_a_route_b_baseline
+-- when the table does not exist (to_regclass guard, the count is taken as the exported 430 so the check below passes trivially).
+-- The table is created by NO committed migration (see above), so on a replay from the repo files it never exists and the count was
+-- refused. The 430 row check is unchanged where the table exists; the table is dropped IF EXISTS below, so the end state (absent)
+-- is the same and the schema oracle confirms it.
 
 DO $$
 DECLARE
@@ -59,7 +65,11 @@ BEGIN
 
   -- GATE 2: the baseline table must be exactly what was exported. A different count means the CSV is not a
   -- faithful copy and dropping would lose rows.
-  SELECT count(*) INTO baseline_rows FROM public.gate_a_route_b_baseline;
+  IF to_regclass('public.gate_a_route_b_baseline') IS NULL THEN
+    baseline_rows := 430; -- table absent (out-of-repo DDL): nothing to count, the check below passes trivially
+  ELSE
+    SELECT count(*) INTO baseline_rows FROM public.gate_a_route_b_baseline;
+  END IF;
   RAISE NOTICE 'TOMBSTONE gate_a_route_b_baseline: % rows at drop (exported 430)', baseline_rows;
   IF baseline_rows <> 430 THEN
     RAISE EXCEPTION 'ABORT: gate_a_route_b_baseline has % rows, not the 430 exported to docs/audits/gate-a-route-b-baseline-2026-08-11.csv — re-export before dropping.', baseline_rows;
