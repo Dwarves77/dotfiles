@@ -114,6 +114,12 @@ Also ungranted at the time, granted after the fact by ruling (coordinator, 2026-
 `stub-next-navigation-item.mjs` (the shell-slot smoke needs a detail-route pathname), the `ux-smoke-specs.mjs` and `F35` registrations
 (they are what make the smoke run), the `dispatch-kinds.npmtest.mjs` change (its kind list includes `assignment`), and the new
 retirement test `notes-path-retired.test.mjs`.
+Granted before the edit (coordinator ruling on PR 988, 2026-10-08): `fsi-app/.discipline/governance/skill-map.mjs`, where
+`item-notes.mjs` and `item-assignments.mjs` are mapped under `caros-ledge-platform-intent` as S8-A's workspace-layer writers (F23
+reported `item-notes.mjs` as an unmapped write; no exemption was added).
+Re-cut (coordinator ruling, 2026-10-08): F51 check 5 counted S8-F2's merge to `ux-smoke-specs.mjs` against this lane's fork point,
+so the lane commits were cherry-picked onto a fresh branch from current origin/master (the master merge commit left out), the
+registry conflict resolved keeping both lanes' entries, and the branch was lease force-pushed over `lane/s8a-notes-assignment`.
 
 ### What is NOT done
 - The data move is staged, not run (no population before every layer is complete).
