@@ -42,12 +42,10 @@ export const ALLOWLIST = {
       decidedOn: '2026-09-17',
     },
   },
-  functions: {
-    gate_a_health_refresh: {
-      reason: 'The gate_a_health_cache writer, deliberately UNSCHEDULED by operator ruling 2026-08-10 (migration 256): gate_a_health() reports the cache age so the dormancy is visible, and the operator runs the refresh by hand. Last computed_at live 2026-09-17: 2026-08-10 09:20 UTC.',
-      decidedOn: '2026-08-10',
-    },
-  },
+  // Empty since migration 371 (lane SEC-4, 2026-10-08): the one function it held (the unscheduled gate-a health cache
+  // writer, operator ruling 2026-08-10, migration 256) is now referenced by migration 371's class E grant, so its entry
+  // would be a stale allowlist violation.
+  functions: {},
 };
 
 /** Committed ceilings. Re-seed DOWN in the commit that drops or wires an object; never up. */

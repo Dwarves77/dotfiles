@@ -131,7 +131,7 @@ function commitMsg(dir, env = {}) {
   writeFileSync(msg, 'chore: touch many files');
   const started = process.hrtime.bigint();
   const r = spawnSync('node', [RUNNER, '--mode=commit-msg', `--message-file=${msg}`], {
-    cwd: dir, encoding: 'utf-8', env: { ...process.env, ...env },
+    cwd: dir, encoding: 'utf-8', env: { ...process.env, DISCIPLINE_FIRING_LOG: 'off', ...env },
   });
   const ms = Number(process.hrtime.bigint() - started) / 1e6;
   return { code: r.status, out: (r.stdout || '') + (r.stderr || ''), ms };
@@ -219,7 +219,7 @@ test('e2e: renaming a file that carries glyphs and a home path is not a violatio
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('e2e: the firing log gets one line per firing {ts, rule, mode, path, line, verdict}', () => {
+test('e2e: the firing log gets one line per firing {ts, rule, mode, path, line, verdict, baseline}', () => {
   const dir = newRepo();
   const log = join(dir, 'firings.log');
   try {
@@ -234,7 +234,8 @@ test('e2e: the firing log gets one line per firing {ts, rule, mode, path, line, 
     const rows = readFileSync(log, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
     const fail = rows.find((x) => x.rule === '012' && x.verdict === 'FAIL');
     assert.ok(fail, 'rule 012 FAIL logged');
-    assert.deepEqual(Object.keys(fail).sort(), ['line', 'mode', 'path', 'rule', 'ts', 'verdict']);
+    assert.deepEqual(Object.keys(fail).sort(), ['baseline', 'line', 'mode', 'path', 'rule', 'ts', 'verdict']);
+    assert.match(fail.baseline, /^fallback previous commit \(HEAD\): origin\/master does not resolve/, 'a repo with no origin/master names its fallback in the log');
     assert.equal(fail.path, 'fsi-app/src/lib/x/a.ts');
     assert.equal(fail.line, 2);
     assert.equal(fail.mode, 'commit-msg');
@@ -267,5 +268,175 @@ test('e2e: DISCIPLINE_FIRING_LOG=off writes no log, and fixture mode writes none
     assert.equal(fx.status, 1, 'the fixture diff view reaches the rules through the CLI');
     const sizeAfter = existsSync(defaultLog) ? readFileSync(defaultLog).length : -1;
     assert.equal(sizeAfter, sizeBefore, 'fixture mode left the default firing log untouched');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// The baseline (lane GATE-5, 2026-10-08): "introduced" is measured against the merge base with
+// origin/master, not the previous commit. DEAD-1 hit this: rule 022 blocked a byte-identical restore of a
+// master file because the branch's previous commit had deleted it.
+// ---------------------------------------------------------------------------
+
+const KEEP = 'docs/notes/keep.md';
+const HOME_TS = 'fsi-app/src/lib/x/home.ts';
+
+// master holds two files that carry a glyph and a home path; origin/master points at it; the branch's
+// first commit deletes both. `withOrigin: false` leaves the repo with no remote-tracking ref (the fallback).
+function deletedOnBranch({ withOrigin = true } = {}) {
+  const dir = newRepo();
+  write(dir, KEEP, `# keep\nan old aside ${EM} kept as written\n`);
+  write(dir, HOME_TS, `export const HOME = '${HOME_PATH}';\n`);
+  git(dir, ['add', '-A']);
+  git(dir, ['commit', '-q', '-m', 'master state']);
+  if (withOrigin) git(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  git(dir, ['rm', '-q', KEEP, HOME_TS]);
+  git(dir, ['commit', '-q', '-m', 'delete both']);
+  return dir;
+}
+
+const restore = (dir) => git(dir, ['checkout', 'HEAD~1', '--', KEEP, HOME_TS]);
+
+function runnerCi(dir, args, env = {}) {
+  const r = spawnSync('node', [RUNNER, '--mode=ci', ...args], {
+    cwd: dir, encoding: 'utf-8', env: { ...process.env, DISCIPLINE_FIRING_LOG: 'off', ...env },
+  });
+  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+}
+
+test('baseline e2e: a byte-identical RESTORE of master files that carry a glyph and a home path passes 022 and 012', () => {
+  const dir = deletedOnBranch();
+  try {
+    restore(dir);
+    const r = commitMsg(dir);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /Baseline: merge base with origin\/master \([0-9a-f]{8}\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e: a NEW glyph line in the same commit as the restore still fails, and only the new line is charged', () => {
+  const dir = deletedOnBranch();
+  try {
+    restore(dir);
+    write(dir, 'docs/notes/fresh.md', `# fresh\nbrand new ${EM} aside\n`);
+    git(dir, ['add', '-A']);
+    const r = commitMsg(dir);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /FAIL {2}\[022\]/);
+    assert.match(r.out, /docs\/notes\/fresh\.md: brand new/);
+    assert.ok(!r.out.includes('keep.md'), 'the restored file is not charged');
+    assert.ok(!/FAIL {2}\[012\]/.test(r.out), 'the restored home path is not charged');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e: a restore that EDITS a line to add a new glyph is still caught', () => {
+  const dir = deletedOnBranch();
+  try {
+    restore(dir);
+    write(dir, KEEP, `# keep\nan old aside ${EM} kept as written\nand a second ${EM} aside\n`);
+    git(dir, ['add', '-A']);
+    const r = commitMsg(dir);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /docs\/notes\/keep\.md: and a second/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e FALLBACK: with no origin/master the previous commit is the baseline, the restore is charged, and the output names the fallback', () => {
+  const dir = deletedOnBranch({ withOrigin: false });
+  try {
+    restore(dir);
+    const r = commitMsg(dir);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /FAIL {2}\[022\]/);
+    assert.match(r.out, /FAIL {2}\[012\]/);
+    assert.match(r.out, /Baseline: fallback previous commit \(HEAD\): origin\/master does not resolve \(no remote-tracking ref\)/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e: an unchanged block MOVED to another file across two commits of the branch passes 012, a different home path fails', () => {
+  const dir = newRepo();
+  try {
+    const line = `export const HOME = '${HOME_PATH}';`;
+    write(dir, 'fsi-app/src/lib/x/a.ts', `export const one = 1;\n${line}\nexport const two = 2;\n`);
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'master state']);
+    git(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    write(dir, 'fsi-app/src/lib/x/a.ts', 'export const one = 1;\nexport const two = 2;\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'take the block out of a.ts']);
+
+    write(dir, 'fsi-app/src/lib/x/b.ts', `export const three = 3;\n${line}\n`);
+    git(dir, ['add', '-A']);
+    const moved = commitMsg(dir);
+    assert.equal(moved.code, 0, moved.out);
+
+    write(dir, 'fsi-app/src/lib/x/b.ts', `export const three = 3;\nexport const OTHER = '${HOME_PATH}/elsewhere';\n`);
+    git(dir, ['add', '-A']);
+    const fresh = commitMsg(dir);
+    assert.equal(fresh.code, 1, fresh.out);
+    assert.match(fresh.out, /FAIL {2}\[012\]/);
+    assert.match(fresh.out, /fsi-app\/src\/lib\/x\/b\.ts:2/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e: the firing log records the baseline used on every row', () => {
+  const dir = deletedOnBranch();
+  const log = join(dir, 'firings.log');
+  try {
+    restore(dir);
+    write(dir, 'docs/notes/fresh.md', `bad ${EM} line\n`);
+    git(dir, ['add', '-A']);
+    const r = commitMsg(dir, { DISCIPLINE_FIRING_LOG: log });
+    assert.equal(r.code, 1, r.out);
+    const rows = readFileSync(log, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(rows.length > 0);
+    for (const row of rows) assert.match(row.baseline, /^merge base with origin\/master \([0-9a-f]{8}\)$/);
+    const fail = rows.find((x) => x.rule === '022' && x.verdict === 'FAIL');
+    assert.equal(fail.path, 'docs/notes/fresh.md');
+    console.log(`# firing-log sample: ${JSON.stringify(fail)}`);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e CI: a restore commit passes --commit=<sha> in the pull-request shape (BASE_REF)', () => {
+  const dir = deletedOnBranch();
+  try {
+    restore(dir);
+    git(dir, ['commit', '-q', '-m', 'restore both']);
+    const sha = git(dir, ['rev-parse', 'HEAD']).trim();
+    const r = runnerCi(dir, [`--commit=${sha}`], { BASE_REF: 'master' });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /Baseline: merge base with origin\/master/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e CI: a pull request that deletes then restores passes the per-commit walk and the whole-range pass', () => {
+  const dir = deletedOnBranch();
+  try {
+    restore(dir);
+    git(dir, ['commit', '-q', '-m', 'restore both']);
+    const head = git(dir, ['rev-parse', 'HEAD']).trim();
+    const r = runnerCi(dir, [], { BASE_REF: 'master', PR_HEAD: head });
+    assert.equal(r.code, 0, r.out);
+    const baselines = r.out.split('\n').filter((l) => l.includes('Baseline:'));
+    assert.equal(baselines.length, 3, `two commits plus the whole-range pass:\n${baselines.join('\n')}`);
+    assert.ok(baselines.slice(0, 2).every((l) => /merge base with origin\/master/.test(l)));
+    assert.match(baselines[2], /Baseline: range [0-9a-f]{40}\.\.[0-9a-f]{40}/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('baseline e2e CI: a commit that is already on origin/master (push to master) is still checked against its parent, not an empty diff', () => {
+  const dir = newRepo();
+  try {
+    write(dir, 'docs/notes/a.md', 'clean\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'older']);
+    write(dir, 'docs/notes/b.md', `merged ${EM} aside\n`);
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'squash commit']);
+    git(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    const sha = git(dir, ['rev-parse', 'HEAD']).trim();
+    const r = runnerCi(dir, [`--commit=${sha}`]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /Baseline: fallback parent commit: the commit is already on origin\/master/);
+    assert.match(r.out, /docs\/notes\/b\.md/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -9,7 +9,11 @@
 // (storage.buckets, auth.users, vault, ltree...) and none of the application tables. PostgreSQL refuses CREATE
 // DATABASE ... TEMPLATE while another session is connected to the template, and the stack's own services (auth,
 // storage) hold connections, so this connects to template1, terminates the other sessions on `postgres`, and
-// creates the database, retrying a few times because the services reconnect.
+// creates the database, retrying a few times because the services reconnect. The three statements (terminate, drop
+// if exists, create) go to one psql invocation as three separate -c arguments with ON_ERROR_STOP: each -c is its own
+// transaction, which DROP DATABASE and CREATE DATABASE require (lane PROOF-5b, 2026-10-08: [CONFIRMED] by
+// chain-proof run 37748342640, where one -c string holding all three failed with "DROP DATABASE cannot run inside
+// a transaction block").
 // [CONFIRMED by chain-proof run 37743372083, lane PROOF-5, 2026-10-08] the local `postgres` role is NOT a superuser:
 // terminating the stack's services' sessions failed with "Only roles with the SUPERUSER attribute may terminate
 // processes of roles with the SUPERUSER attribute" on all 5 attempts. This one statement block therefore runs as the
@@ -37,9 +41,14 @@ export function withDatabase(url, name) {
   return u.toString();
 }
 
-const SQL = `select pg_terminate_backend(pid) from pg_stat_activity where datname = 'postgres' and pid <> pg_backend_pid();
-drop database if exists ${ORACLE_DB};
-create database ${ORACLE_DB} template postgres;`;
+// Three statements, each passed to psql as its OWN -c argument. psql runs every -c as a separate command, so each is
+// its own transaction; one -c string holding all three is a single implicit transaction, in which DROP DATABASE and
+// CREATE DATABASE are refused ("DROP DATABASE cannot run inside a transaction block", chain-proof run 37748342640).
+export const STATEMENTS = Object.freeze([
+  "select pg_terminate_backend(pid) from pg_stat_activity where datname = 'postgres' and pid <> pg_backend_pid()",
+  `drop database if exists ${ORACLE_DB}`,
+  `create database ${ORACLE_DB} template postgres`,
+]);
 
 /** Create the database with retries. `spawn` and `sleep` are injectable. Returns { ok, attempts, message }. */
 export async function createOracleDb({ superuserUrl, psql = "psql", attempts = 5, spawn = spawnSync, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
@@ -47,7 +56,7 @@ export async function createOracleDb({ superuserUrl, psql = "psql", attempts = 5
   const templateUrl = withDatabase(superuserUrl, "template1");
   let last = "";
   for (let i = 1; i <= attempts; i++) {
-    const r = spawn(psql, [templateUrl, "-X", "-v", "ON_ERROR_STOP=1", "-c", SQL], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+    const r = spawn(psql, [templateUrl, "-X", "-v", "ON_ERROR_STOP=1", ...STATEMENTS.flatMap((s) => ["-c", s])], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
     if (!r.error && r.status === 0) return { ok: true, attempts: i, message: `${ORACLE_DB} created on attempt ${i}` };
     last = String(r.error ? r.error.message : r.stderr ?? "").trim().split(/\r?\n/).slice(-1)[0]?.replace(/postgres(?:ql)?:\/\/\S+/gi, "<url>").slice(0, 200) ?? "";
     if (i < attempts) await sleep(2000);
