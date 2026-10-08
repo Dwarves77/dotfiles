@@ -117,6 +117,41 @@ blocks; a non-zero exit means the harness itself broke.
 5. **Commit the spec file, any new mount, and the regenerated document together.** The document is
    generated: never hand-edit its tables, edit the spec and rerun.
 
+## CI: the Design audit job (soft)
+
+`.github/workflows/design-audit.yml` (workflow name `Design audit`, lane DAUDIT-2, 2026-10-08) runs
+`npm run audit:design` on every pull request to master and on `workflow_dispatch`. Until then the audit
+was run by hand only: results.json went 26 days unmeasured and 136 rows turned non-matching with nothing
+red (ADR-046, an operator-seat blind spot).
+
+- **Soft by contract.** The job reports; it never fails the build on a non-matching row (MISMATCH, NOT
+  BUILT, NOT IN SPEC). Many such rows are open DESIGN CHANGES OWED (CLAUDE.md rule 20) or a build defect
+  waiting on a follow-up lane, and failing a PR on them would block correct work. It fails only when the
+  harness itself cannot run: the generator exits non-zero, or results.json or the audit document is not
+  produced. The workflow deletes both generated files before the run so a stale committed copy can never
+  pass for fresh output. There is no `continue-on-error` anywhere in the file.
+- **Where the result lands.** The job summary carries the four counts and the id of every non-matching
+  row. results.json and the audit document are uploaded as the artifact `design-audit-results` (retention
+  14 days).
+- **The row id handle.** results.json carries no row id field, so a row is named `<spec id>#<index>`:
+  the spec id is the spec file name (`fsi-app/.discipline/rendering/audit/spec/<spec id>.json`) and the
+  index is the zero-based position of the row in the `rows` array of results.json. The index is stable
+  only until the next regeneration; a lane that cites a row quotes the commit it read it at.
+- **Same container as the rendering guard.** The job runs in the Playwright image the rendering-guard job
+  of `discipline.yml` uses (GATE-6), and `scripts/proof/design-audit-workflow.test.mjs` fails if the two
+  image tags ever differ, if a `continue-on-error` or a path filter appears, or if the exit contract
+  changes. It also runs the summary script against fixture results, so the counts and the id list are
+  proven by execution.
+- **Reading a non-matching row.** Trace it to exactly one cause before acting on it: harness (a selector
+  or a mount fixture no longer matches the product), spec stale (the spec predates a ruled change; cite
+  the ruling in the spec's `note`), build defect (the component diverges from the artboard and nothing
+  ruled it), or system-driven (the build is right by a system need, so the design changes and the row is
+  listed under DESIGN CHANGES OWED with the artboard number and the ruling). The DAUDIT-2 session log
+  (`docs/ops/session-log.d/2026-10-08-daudit2-design-audit.md`) is the worked example for 96 rows.
+- **A selector that names a class nothing emits is a vacuous guard.** A target on it reads NOT BUILT, but
+  a FORBID on it reads MATCH for ever. When a part drops a marker class, grep the specs for it in the same
+  change (the `cl-absence` class left the Absence part and 14 specs kept forbids on it until DAUDIT-2).
+
 ## Files
 
 | File | What it is |

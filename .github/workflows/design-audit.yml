@@ -1,0 +1,159 @@
+name: Design audit
+
+# THE DESIGN AUDIT AS A PULL REQUEST REVIEW JOB (lane DAUDIT-2, 2026-10-08).
+#
+# `npm run audit:design` (fsi-app/.discipline/rendering/audit/run-audit.mjs) mounts the real components in a
+# real browser and compares every value a spec states against getComputedStyle: one row per property, with
+# the design value and the measured value on it. It had never run in CI. results.json was last regenerated
+# by hand on 2026-09-11 and then by DAUDIT-1 on 2026-10-08, so 26 days of component changes went unmeasured
+# and 136 rows turned non-matching with nothing red (ADR-046: a gate nobody runs is an OPERATOR-SEAT blind
+# spot). This workflow runs it on every pull request so the next divergence is seen on the PR that causes it.
+#
+# SOFT, BY DESIGN. The audit REPORTS; it does not gate. A non-matching row (MISMATCH, NOT BUILT, NOT IN SPEC)
+# is a finding for a review lane, and many rows are open DESIGN CHANGES OWED (CLAUDE.md rule 20: the artboard
+# changes, not the build), so failing the build on one would block work that is correct. The job therefore
+# exits 0 whenever the audit RAN, whatever it found. It fails only when the HARNESS cannot run: the
+# generator exits non-zero (a mount threw, chromium is missing, a spec file is not valid JSON) or it did not
+# produce results.json and the audit document. Both generated files are deleted before the run so a file
+# left in the checkout can never pass for fresh output. There is no continue-on-error anywhere (GATE-9 refuses
+# it on a discipline job and it would hide exactly the harness failure this job exists to surface).
+#
+# WHERE THE RESULT LANDS. The job summary carries the four counts (MATCH, MISMATCH, NOT BUILT, NOT IN SPEC)
+# and the id of every non-matching row, in the form `<spec id>#<row index>`: the spec id is the file name
+# under fsi-app/.discipline/rendering/audit/spec/ and the index is the zero-based position of the row in the
+# "rows" array of results.json (results.json carries no row id field, so the index is the stable handle until
+# the next regeneration). results.json and the audit document are uploaded as the artifact
+# design-audit-results (14 days), the full record behind the summary.
+#
+# THE CONTAINER IS THE GATE-6 PATTERN (lane GATE-6, 2026-10-08). The job runs in the official Playwright
+# image, so chromium and its OS libraries are present and no browser install runs. The image tag is the
+# same one discipline.yml's rendering-guard job carries (design-audit-workflow.test.mjs pins the two equal,
+# reading the tag from discipline.yml with the same pattern), and the install step below reads the npm
+# package version back out of THIS file, so the package and the image's browsers cannot drift.
+#
+# SEPARATE WORKFLOW FILE, NOT A discipline.yml JOB: discipline.yml is owned by the GATE lanes, and a job
+# there inherits their shape test (no continue-on-error on any discipline job). This file is its own
+# workflow with its own unique name (names are unique across .github/workflows).
+#
+# NO PATH FILTERS. A skipped check reports neither success nor failure, and the audit reads components,
+# specs, mounts, tokens and fonts that live all over the tree, so a filter would hide the PR that matters.
+
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A superseded commit on the same PR is spend against a result that no longer applies; a manual dispatch is
+# never cancelled by another.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  design-audit:
+    name: Design audit (build vs design, value-level, soft)
+    runs-on: ubuntu-latest
+    # The Playwright image: chromium is already installed. The tag is the one discipline.yml's rendering-guard
+    # job carries, and design-audit-workflow.test.mjs fails if the two ever differ.
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble
+    # 15 minutes, as the rendering guard. The audit measured 2 min 37 s on a developer machine (73 specs, 2430
+    # checks); the headroom covers a cold install and a slower runner.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Trust the workspace for git (the container user does not own the checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Install the Playwright npm package matching the image (browsers come from the image)
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's|^ *image: mcr\.microsoft\.com/playwright:v\([0-9][0-9.]*\)-.*$|\1|p' .github/workflows/design-audit.yml)"
+          test -n "$version"
+          echo "playwright npm package: $version"
+          cd fsi-app
+          npm install --no-save "playwright@${version}" --no-audit --no-fund
+
+      # THE ONE STEP THAT CAN FAIL THE JOB. It runs the generator and nothing else. A non-zero exit from the
+      # generator, or a missing or empty output file, means the harness could not run, and set -e fails the
+      # step. A non-matching row is not an error here: the generator itself exits 0 whenever the sweep ran.
+      - name: Run the design audit (the generator reports, it never gates)
+        working-directory: fsi-app
+        run: |
+          set -euo pipefail
+          results=".discipline/rendering/audit/results.json"
+          document="../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"
+          rm -f "$results" "$document"
+          AUDIT_HEAD="$(git rev-parse --short HEAD)"
+          AUDIT_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          export AUDIT_HEAD AUDIT_BRANCH
+          npm run audit:design
+          test -s "$results"
+          test -s "$document"
+
+      # Reads the file the generator just wrote and states it. It never exits non-zero for a finding: the only
+      # way this step fails is a results.json that cannot be read, which is the harness failing.
+      - name: Write the counts and the non-matching row ids to the job summary
+        working-directory: fsi-app
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const results = JSON.parse(readFileSync('.discipline/rendering/audit/results.json', 'utf8'));
+          const counts = { MATCH: 0, MISMATCH: 0, 'NOT BUILT': 0, 'NOT IN SPEC': 0 };
+          const nonMatching = [];
+          results.rows.forEach((row, index) => {
+            counts[row.status] = (counts[row.status] ?? 0) + 1;
+            if (row.status !== 'MATCH') nonMatching.push(`${row.spec}#${index}`);
+          });
+          const lines = [
+            '## Design audit (soft: this job reports, it does not gate)',
+            '',
+            `Specs run: ${results.specs.length}. Checks: ${results.rows.length}. Run at: ${results.runAt}.`,
+            '',
+            '| Status | Rows |',
+            '|---|---|',
+            `| MATCH | ${counts.MATCH} |`,
+            `| MISMATCH | ${counts.MISMATCH} |`,
+            `| NOT BUILT | ${counts['NOT BUILT']} |`,
+            `| NOT IN SPEC | ${counts['NOT IN SPEC']} |`,
+            '',
+            `Harness errors: ${results.errors.length}.`,
+          ];
+          for (const e of results.errors) lines.push(`- \`${e.spec}\`: ${e.message}`);
+          lines.push('', `Non-matching rows (${nonMatching.length}), as \`<spec id>#<row index>\`:`, '');
+          lines.push(nonMatching.length === 0 ? 'None.' : nonMatching.map((id) => `\`${id}\``).join(', '));
+          lines.push('', 'The full record is the artifact design-audit-results (results.json and the audit document).', '');
+          const out = lines.join('\n');
+          console.log(out);
+          if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${out}\n`);
+          if (results.errors.length > 0) console.log(`::warning::${results.errors.length} spec file(s) hit a harness error; see the summary`);
+          NODE
+
+      - name: Upload the audit result (results.json and the audit document)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-audit-results
+          path: |
+            fsi-app/.discipline/rendering/audit/results.json
+            docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md
+          if-no-files-found: ignore
+          retention-days: 14
