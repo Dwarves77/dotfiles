@@ -9,6 +9,12 @@
 - Tests: `apply-pending-migrations.test.mjs` (11), `migration-proof-workflow.test.mjs` (9).
 - Runbook `docs/runbooks/maintenance.d/67-migration-proof.md`.
 
+## Follow-up: F25 red on PR 1019 (coordinator-approved fix)
+
+- CI run 37761862971, fitness job: F25 (module-liveness) failed, one violation: `write-local-env.mjs` had no production importer. Cause [CONFIRMED from the log and the F25 source]: F25 reads dispatch roots from `.github/workflows/*.yml` only (Source 1 and Source 11); the lift moved the only reference out of every workflow into `.github/actions/local-stack/action.yml`.
+- Fix (granted): `F25-module-liveness.mjs` now scans `CI_RUN_SITE_GLOBS` = workflow files plus `.github/actions/**/*.yml` at both sites. No allowlist entry. Checked first: `execution-wiring.mjs` reads only discipline.yml's literal text (no action parsing); F52's `listWorkflowAndActionFiles` is a lister that reads the filesystem and is not injectable into F25's glob-based tests, so the one-site change is widening F25's own existing glob list.
+- Tests: 3 added to `F25-module-liveness.test.mjs` (a composite-action run line is a root, including through a nested .sh; the globs reach the real action file; on the real tree `write-local-env.mjs` is a root). Red then green: with the glob list narrowed back to workflows only, exactly those 3 fail (53 pass, 3 fail); restored, 56 of 56 pass.
+
 ## Read and reused
 
 - Read in full: CLAUDE.md, `docs/dispatches/lane-common-contract.md`, `chain-proof.yml`, `chain-proof-workflow.test.mjs`, `replay-migrations.mjs`, `applied-map.mjs`, `APPLIED-MAP.json` (never and outside entries), `64-chain-proof.md`, `build-proof.yml`, the `discipline.yml` header and docs-only step, `.github/actions/maintenance-step/action.yml`, ADR-046, the header of migration 299, `write-local-env.mjs` and `preflight.mjs` headers.
