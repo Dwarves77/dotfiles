@@ -93,6 +93,8 @@ interface Props {
   /** The active facet selection, owned by the page that renders the rail Filters card (item D2,
    *  2026-09-08). Passed straight through; this component still owns only the first-page seed. */
   filters?: RegisterFilters;
+  /** Clears every facet (COV-1): passed straight through to the filter bar's "not filtered in" widen control. */
+  onWiden?: () => void;
 }
 
 interface ApiResult {
@@ -103,7 +105,7 @@ interface ApiResult {
 
 const EMPTY_RESULT: ApiResult = { rows: [], total: 0 };
 
-export function ObligationRegister({ itemId, variant = "list", initialResult, filters }: Props) {
+export function ObligationRegister({ itemId, variant = "list", initialResult, filters, onWiden }: Props) {
   const hasSsrSeed = variant === "list" && !itemId && !!initialResult;
   const [state, setState] = useState<{ loading: boolean; result: ApiResult | null }>(
     hasSsrSeed ? { loading: false, result: initialResult! } : { loading: true, result: null }
@@ -175,6 +177,7 @@ export function ObligationRegister({ itemId, variant = "list", initialResult, fi
       variant={variant}
       sourceEventCount={result.sourceEventCount ?? null}
       filters={filters}
+      onWiden={onWiden}
     />
   );
 }

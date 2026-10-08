@@ -56,6 +56,7 @@ import { FilterChip, FilterChipGroup } from "@/components/ui/Chips";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RailCard } from "@/components/ui/RailCard";
+import { CoverageState } from "@/components/ui/CoverageState";
 import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { formatNumber } from "@/lib/format";
 
@@ -473,7 +474,9 @@ export function MapPageView(props: MapPageViewProps) {
 
         <RailCard dataAudit="map-coverage-rail" title="Coverage gaps">
           {coverageGapsRanked.length === 0 ? (
-            <p style={{ fontSize: "var(--fs-115)", color: "var(--ink-2)", margin: 0 }}>Coverage snapshot unavailable.</p>
+            // COV-1: a snapshot that did not load is the "error" state (spec 00 section 4): a distinct alert and a retry,
+            // not a quiet sentence that reads like an absence of gaps.
+            <CoverageState state="error" variant="inline" subject="The coverage snapshot" onRetry={() => window.location.reload()} />
           ) : (
             // dc.html p10: a 6px-gap list of 12px rows, name weight 600 left, "N of N" muted
             // right, no dividers and no row padding. Each row stays the region link it already

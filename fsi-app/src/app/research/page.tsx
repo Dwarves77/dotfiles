@@ -22,6 +22,7 @@ import { Suspense } from "react";
 import { ResearchLedger } from "@/components/research/ResearchLedger";
 import { renderNowIso } from "@/lib/render-now";
 import { ThemeStrip } from "@/components/shell/ThemeStrip";
+import { CoverageDenominatorLine } from "@/components/coverage/CoverageDenominatorLine";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import { BiasLegend } from "@/components/ui/BiasChips";
@@ -123,6 +124,7 @@ export default async function Research() {
                 feature the artboards have no region for, at the foot of the content column rather
                 than in a region an artboard region must occupy. */}
             <ThemeStrip surface="research" />
+            <CoverageDenominatorLine surface="research" surfacePath="/research" />
             {/* Split-credibility legend (spec-03 §4 "two scores, never merged"). Same R7 move: it
                 already sat below the ledger, now inside the content column so it shares the page's
                 one geometry instead of its own centred 1180px band. */}

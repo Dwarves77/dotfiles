@@ -5,8 +5,8 @@ name: Layout baseline renewal
 # lanes cannot run a browser, and the rendering-guard job in discipline.yml runs the guard WITHOUT
 # --write-baseline and uploads nothing.
 #
-# WHAT THIS RUNS. The rendering-guard job's own setup (checkout, node 24, playwright 1.61.1 + chromium,
-# discipline.yml's rendering-guard job), then
+# WHAT THIS RUNS. The rendering-guard job's own setup (checkout, node 24, the Playwright container image
+# and the matching npm package, discipline.yml's rendering-guard job), then
 # `node .discipline/rendering/layout-guard/run-layout-guard.mjs --write-baseline` with NO --route and NO
 # --width flag, so the baseline covers the full route and width set (a flagged run would write a partial
 # baseline). It measures on ubuntu, which is the oracle the required gate runs on.
@@ -34,6 +34,11 @@ jobs:
   renew:
     name: Regenerate layout-guard baseline (artifact only)
     runs-on: ubuntu-latest
+    # Same container as the rendering-guard job in discipline.yml (lane GATE-6, 2026-10-08): chromium and its
+    # OS libraries come from the image, so no browser install runs. The tag is the ONE place the Playwright
+    # version is written in this file; the install step reads it back out of this file.
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble
     timeout-minutes: 20
     steps:
       - name: Checkout repository
@@ -41,16 +46,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Trust the workspace for git (the container user does not own the checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: '24'
 
-      - name: Install Playwright + chromium (scoped, not added to package.json)
-        working-directory: fsi-app
+      - name: Install the Playwright npm package matching the image (browsers come from the image)
         run: |
-          npm install --no-save playwright@1.61.1 --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          version="$(sed -n 's|^ *image: mcr\.microsoft\.com/playwright:v\([0-9][0-9.]*\)-.*$|\1|p' .github/workflows/layout-baseline-renewal.yml)"
+          test -n "$version"
+          echo "playwright npm package: $version"
+          cd fsi-app
+          npm install --no-save "playwright@${version}" --no-audit --no-fund
 
       - name: Regenerate baseline (full route and width set, no flags other than --write-baseline)
         working-directory: fsi-app

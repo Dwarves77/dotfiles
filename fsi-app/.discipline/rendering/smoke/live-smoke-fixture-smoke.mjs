@@ -14,6 +14,7 @@
 import { createServer } from "node:http";
 import { runLiveSmoke } from "../live/live-smoke.mjs";
 import { INVARIANTS } from "../live/live-assertions.mjs";
+import { CONTENT_INVARIANT_IDS } from "../live/live-content.mjs";
 
 const FIXTURE_EMAIL = "smoke@fixture.test";
 const FIXTURE_PASSWORD = "fixture-only-password";
@@ -25,8 +26,17 @@ html,body{margin:0}*{box-sizing:border-box}body{font:14px sans-serif}</style></h
 const LEGEND_OK = "<p>Source tier, T1 binding law through T7 news / commentary.</p>";
 const LEGEND_BAD = "<p>Source tier, T1 binding law through T6 commercial intelligence.</p>";
 
+// The dashboard "Across the platform" rail card with its "Connected across pages" list (four surface stat links plus a theme).
+const RAIL = '<aside data-audit="across-platform-card"><p>Across the platform</p>'
+  + '<a href="/regulations">Regulations</a><a href="/market">Market Intel</a><a href="/research">Research</a><a href="/operations">Operations</a>'
+  + '<p>Connected across pages</p><a href="/market/item-1">Ocean carrier surcharge across Regulations and Market</a></aside>';
+
 function sitePages(defective) {
-  const row = (surface) => `<div data-part="list-row"><a href="/${surface}/item-1">Item one</a></div>`;
+  // Lane SMOKE-2: a clean list row carries the elements the design places on it (a tier square, a Catalogue record
+  // chip, the source's bias chips); the defective site's rows carry none, so the content invariants fire there.
+  const rowExtras = '<span data-part="chip-tier">T2</span><span data-part="chip-grade">Catalogue record</span>'
+    + '<span data-part="bias-chips" role="group"><span data-bias-tag="corporate"><span data-part="chip-tag">Corporate</span></span></span>';
+  const row = (surface) => `<div data-part="list-row"><a href="/${surface}/item-1">Item one</a>${defective ? "" : rowExtras}</div>`;
   const list = (surface, rows) => page(surface, `${rows}${defective ? LEGEND_BAD : LEGEND_OK}`);
   const strip = defective
     ? `<section><h2>Themes across the corpus</h2><div style="overflow-x:auto;width:100%"><div data-nostrip style="width:1108px;height:30px"><a href="/market/item-1">Theme one</a></div></div></section>`
@@ -34,16 +44,22 @@ function sitePages(defective) {
   const detail = (surface) =>
     page(
       `${surface} item`,
-      `<section id="across-pages"><h2>Connected intelligence</h2><p>${
-        defective ? 'Shared: carrier-ocean. &lt;&lt;&lt;CLAIM_PROVENANCE_LEDGER [{"claim_kind":"FACT","source_span":"verbatim text of the span"}]' : "Shares an ocean carrier scenario."
-      }</p></section>
+      `<section id="across-pages"><h2>Connected intelligence</h2>${
+        // The defective site keeps the section but hollows it: no cross-page container, so the content invariant
+        // fires on a present-but-empty section as well as the slug and marker invariants.
+        defective
+          ? '<p>Shared: carrier-ocean. &lt;&lt;&lt;CLAIM_PROVENANCE_LEDGER [{"claim_kind":"FACT","source_span":"verbatim text of the span"}]</p>'
+          : '<div data-guard-container="cross-page"><p>Shares an ocean carrier scenario with two items on the Market page, and the theme analysis that links them.</p></div>'
+      }</section>
+      ${defective ? "" : '<section id="inferences"><h2>Inferences</h2><div data-guard-container="inferences"><div data-figure-kind="inference"><p>Machine-written inference: the carrier surcharge is likely to track the fuel index.</p></div></div></section>'}
+      ${defective ? "" : '<span data-part="bias-chips" role="group"><span data-bias-tag="corporate"><span data-part="chip-tag">Corporate</span></span></span>'}
       <div data-section-card=""><span>Cluster synthesis</span><div>${defective ? "85 items · density 0.180" : "85 items"}</div></div>
       <span data-part="chip-tier">${defective ? "T9" : "T2"}</span><span data-part="chip-tag">${defective ? "undefined" : "Ocean"}</span>
       ${LEGEND_OK}`,
       { script: defective ? 'console.error("fixture boom"); fetch("/api/boom");' : "" },
     );
   const out = {
-    "/": page("Dashboard", `<p>Home.</p>${defective ? '<a href="/admin">Admin</a>' : ""}${LEGEND_OK}`),
+    "/": page("Dashboard", `<p>Home.</p>${defective ? '<a href="/admin">Admin</a>' : RAIL}${LEGEND_OK}`),
     "/regulations": list("regulations", row("regulations")),
     "/market": page("market", `${strip}${row("market")}${defective ? LEGEND_BAD : LEGEND_OK}`),
     "/research": list("research", defective ? "" : row("research")),
@@ -135,12 +151,14 @@ const EXPECTED_DEFECTS = [
   INVARIANTS.LEGEND_BELOW_CEILING,
   INVARIANTS.LIST_EMPTY,
   INVARIANTS.ADMIN_GATE,
+  // Lane SMOKE-2: the six content invariants, each fired by an element the defective site omits or hollows out.
+  ...Object.values(CONTENT_INVARIANT_IDS),
 ];
 
 export async function runFixtureLeg(browser, defective, password) {
   const { server, baseUrl } = await startServer(defective);
   try {
-    return await runLiveSmoke({ browser, baseUrl, email: FIXTURE_EMAIL, password, signInTimeoutMs: 5000 });
+    return await runLiveSmoke({ browser, baseUrl, email: FIXTURE_EMAIL, password, signInTimeoutMs: 5000, contentChecks: true });
   } finally {
     server.close();
   }

@@ -823,6 +823,99 @@
       ]
     },
     {
+      "id": "question-answers-after-propagation",
+      "kind": "script",
+      "hop": "14",
+      "title": "Hop 14 Question answers after Propagation drain: export the open questions holdings could answer (read only)",
+      "workflow": "Question answers",
+      "workflow_file": ".github/workflows/question-answers.yml",
+      "family": "question-answers",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "propagation-after-downstream",
+        "name": "Propagation drain"
+      },
+      "loop": true,
+      "network": "none",
+      "caveat": "A chained firing has no inputs and no batch file, so it runs action=export, which is read only. The guard forces the run dry while build mode holds; the export writes nothing either way, so the step does not require a live system_state. Upstream is the Propagation drain that runs after Downstream chain (hop 07); the workflow also chains off the drain that runs after Data producers, which a row of the same family and the same consumer covers equally.",
+      "script": [
+        "guard --event workflow_run --requested-mode apply --chained false",
+        "loop_var QA_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "node scripts/turns/export-questions-for-answers.mjs --out-dir \"$CP_STEP_TMP/question-answers\""
+      ],
+      "assertions": [
+        {
+          "id": "export-recorded",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'question-answers' AND github_run_id = '{{run_id}}' AND config->>'action' = 'export' AND metrics->>'open_questions' IS NOT NULL",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "question-answers-after-population",
+      "kind": "script",
+      "hop": "15",
+      "title": "Hop 15 Question answers after Population turn: export the open questions holdings could answer (read only)",
+      "workflow": "Question answers",
+      "workflow_file": ".github/workflows/question-answers.yml",
+      "family": "question-answers",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "population-turn",
+        "name": "Population turn"
+      },
+      "loop": true,
+      "network": "none",
+      "caveat": "A chained firing has no inputs and no batch file, so it runs action=export, which is read only. The guard forces the run dry while build mode holds; the export writes nothing either way, so the step does not require a live system_state.",
+      "script": [
+        "guard --event workflow_run --requested-mode apply --chained false",
+        "loop_var QA_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "node scripts/turns/export-questions-for-answers.mjs --out-dir \"$CP_STEP_TMP/question-answers\""
+      ],
+      "assertions": [
+        {
+          "id": "export-recorded",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'question-answers' AND github_run_id = '{{run_id}}' AND config->>'action' = 'export' AND metrics->>'open_questions' IS NOT NULL",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "theme-briefs-after-corpus",
+      "kind": "script",
+      "hop": "16",
+      "title": "Hop 16 Theme briefs after Corpus turn: export the themes needing a brief or a re-brief (read only)",
+      "workflow": "Theme briefs",
+      "workflow_file": ".github/workflows/theme-briefs.yml",
+      "family": "theme-briefs",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "corpus-turn",
+        "name": "Corpus turn"
+      },
+      "loop": true,
+      "network": "none",
+      "caveat": "A chained firing has no inputs and no batch file, so it runs action=export, which is read only. The guard forces the run dry while build mode holds; the export writes nothing either way, so the step does not require a live system_state.",
+      "script": [
+        "guard --event workflow_run --requested-mode apply --chained false",
+        "loop_var TB_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "node scripts/turns/export-themes-for-briefs.mjs --out-dir \"$CP_STEP_TMP/theme-briefs\""
+      ],
+      "assertions": [
+        {
+          "id": "export-recorded",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'theme-briefs' AND github_run_id = '{{run_id}}' AND config->>'action' = 'export' AND metrics->>'themes_total' IS NOT NULL",
+          "min": 1
+        }
+      ]
+    },
+    {
       "id": "hop-order",
       "kind": "check",
       "title": "Every step landed its row, in manifest order, linked to its upstream, carrying the sweep's loop run id",
