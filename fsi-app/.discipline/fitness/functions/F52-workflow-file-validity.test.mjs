@@ -675,10 +675,10 @@ test('GATE-4: the workflow header states the push-to-master posture and the meas
   assert.match(header, /push to master[^\n]*(Validate commits|validate-commits)/i);
 });
 
-test('GATE-4: the rendering guard is a required job: no continue-on-error, depth-1 checkout, 10 minute timeout', () => {
+test('GATE-4: the rendering guard is a required job: no continue-on-error, depth-1 checkout, 15 minute timeout (GATE-6)', () => {
   const block = jobText('rendering-guard');
   assert.doesNotMatch(block, /^\s*continue-on-error:\s*true/m, 'rendering-guard must be able to fail the workflow');
-  assert.match(block, /^ {4}timeout-minutes:\s*10\s*$/m);
+  assert.match(block, /^ {4}timeout-minutes:\s*15\s*$/m);
   const checkout = stepNamed('rendering-guard', 'Checkout repository');
   assert.match(checkout, /fetch-depth:\s*1\s*$/m, 'the rendering guard checks out depth 1');
   assert.doesNotMatch(checkout, /fetch-depth:\s*0/);
@@ -712,4 +712,92 @@ test('GATE-4: the explicit-test runner runs its files concurrently (the programm
   const src = readFileSync(join(REPO, 'fsi-app', '.discipline', 'lib', 'run-explicit-tests.mjs'), 'utf8');
   const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
   assert.match(code, /run\(\{[^}]*\bconcurrency\b[^}]*\}\)/, 'run({ files, execArgv, concurrency }) must pass a concurrency option');
+});
+
+// ── GATE-6 (lane gate6-guard-container): every Playwright job runs in the pinned official image ──────
+//
+// Four Rendering guard runs were cancelled at the job timeout because `playwright install --with-deps`
+// stalled on apt downloads. The jobs now run in mcr.microsoft.com/playwright:v<version>-noble, which has
+// chromium and its OS libraries, and install only the npm package, whose version is READ BACK OUT OF THE
+// IMAGE TAG in the same workflow file (the job context has no container image property, so the file is the
+// one place the version is written). These assertions fail if a browser install returns, if the image tag
+// and the npm version could differ, or if the guard stops printing its own runtime.
+
+const PLAYWRIGHT_IMAGE = /^ {6}image:\s*mcr\.microsoft\.com\/playwright:v(\d+\.\d+\.\d+)-noble\s*$/m;
+
+function playwrightJobs() {
+  return [
+    { file: 'discipline.yml', job: 'rendering-guard' },
+    { file: 'layout-baseline-renewal.yml', job: 'renew' },
+    { file: 'live-smoke.yml', job: 'live-smoke' },
+  ].map(({ file, job }) => {
+    const text = readFileSync(join(REPO, '.github', 'workflows', file), 'utf8');
+    const lines = text.split(/\r?\n/);
+    const found = extractJobs(lines).find((j) => j.id === job);
+    assert.ok(found, `${file} has no job "${job}"`);
+    return { file, job, text, block: lines.slice(found.startLine, found.endLine + 1).join('\n') };
+  });
+}
+
+test('GATE-6: each Playwright job runs in the official Playwright image, one image line, same version everywhere', () => {
+  const versions = new Set();
+  for (const { file, job, block } of playwrightJobs()) {
+    const containerBlock = block.match(/^ {4}container:\s*\n((?: {6}.*\n)+)/m);
+    assert.ok(containerBlock, `${file}/${job} must declare a job-level container`);
+    assert.match(containerBlock[1], PLAYWRIGHT_IMAGE, `${file}/${job} container image must be the Playwright image pinned to a full version`);
+    assert.equal(block.match(/^ *image:/gm).length, 1, `${file}/${job}: exactly one image line, so the version is written once`);
+    versions.add(block.match(PLAYWRIGHT_IMAGE)[1]);
+  }
+  assert.equal(versions.size, 1, `all Playwright jobs use one version, got ${[...versions].join(', ')}`);
+});
+
+test('GATE-6: no Playwright job installs a browser, and the npm package version is read from the image tag in its own file', () => {
+  for (const { file, job, block } of playwrightJobs()) {
+    const code = block.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    assert.doesNotMatch(code, /playwright install/, `${file}/${job}: browsers come from the image, never an install`);
+    assert.doesNotMatch(code, /apt-get|--with-deps/, `${file}/${job}: no apt step`);
+    assert.doesNotMatch(code, /playwright@\d/, `${file}/${job}: the npm version is not a second literal`);
+    assert.match(code, /npm install --no-save "playwright@\$\{version\}"/, `${file}/${job}: installs the package at the derived version`);
+    // The derivation reads this very file and its pattern must extract the version from the real image line.
+    const derive = code.match(/sed -n 's\|(.*)\|\\1\|p'\s+(\.github\/workflows\/[a-z-]+\.yml)/);
+    assert.ok(derive, `${file}/${job}: the install step derives the version with sed over a workflow file`);
+    assert.equal(derive[2], `.github/workflows/${file}`, `${file}/${job}: derives from its own file, not another`);
+    const pattern = new RegExp(derive[1].replaceAll('\\(', '(').replaceAll('\\)', ')'), 'm'); // sed BRE groups to JS groups
+    const image = block.match(PLAYWRIGHT_IMAGE)[0].trim();
+    assert.equal(image.replace(pattern, '$1'), image.match(/:v(\d+\.\d+\.\d+)-/)[1], `${file}/${job}: the derivation yields the image tag's version`);
+    assert.match(code, /test -n "\$version"/, `${file}/${job}: an empty derivation fails the step`);
+  }
+});
+
+test('GATE-6: the rendering guard prints its own runtime to the step summary with no pipe and keeps the guard exit status', () => {
+  const step = stepNamed('rendering-guard', 'Run rendering guard');
+  assert.match(step, /run-rendering-guard\.mjs \|\| status=\$\?/, 'the guard exit status is captured, not lost');
+  assert.match(step, /line="guard run: \$\(\( \$\(date \+%s\) - start \)\) s"/);
+  assert.match(step, /echo "\$line" >> "\$GITHUB_STEP_SUMMARY"/);
+  assert.doesNotMatch(step, /\| *tee/, 'no pipe into tee: F52f would need pipefail and the pipe adds nothing here');
+  assert.match(step, /exit "\$status"/);
+});
+
+test('GATE-6: every Playwright job trusts the workspace for git before anything runs git (the container user does not own the checkout)', () => {
+  for (const { file, job, block } of playwrightJobs()) {
+    const trust = block.indexOf('git config --global --add safe.directory "$GITHUB_WORKSPACE"');
+    assert.ok(trust > 0, `${file}/${job}: a safe.directory step is required in the container`);
+    assert.ok(trust > block.indexOf('actions/checkout@'), `${file}/${job}: after the checkout`);
+    assert.ok(trust < block.indexOf('Install the Playwright npm package'), `${file}/${job}: before the install and the run`);
+  }
+});
+
+test('GATE-6: the workflow header describes the container form and the 15 minute limit, not an install and 10 minutes', () => {
+  const header = DISCIPLINE_LINES.slice(0, DISCIPLINE_LINES.findIndex((l) => /^jobs:\s*$/.test(l))).join('\n');
+  assert.doesNotMatch(header, /installs\s+Playwright chromium/);
+  assert.doesNotMatch(header, /10-minute timeout/);
+  assert.match(header, /Playwright container image/);
+  assert.match(header, /15-minute timeout/);
+});
+
+test('GATE-6: the rendering guard timeout is 15 minutes and the comment records the measured reasoning', () => {
+  const block = jobText('rendering-guard');
+  assert.match(block, /^ {4}timeout-minutes:\s*15\s*$/m);
+  assert.match(block, /p90 433 s/);
+  assert.match(block, /max 604 s/);
 });

@@ -13,9 +13,9 @@ const RAW = readFileSync(fileURLToPath(new URL("./356_item_corrections.sql", imp
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const fn = (name) => new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}\\(([\\s\\S]*?)\\n\\$fn\\$;`).exec(SQL)?.[0] ?? "";
 
-test("header: subject line, NOT APPLIED, the database preserves corrections", () => {
+test("header: subject line, APPLIED, the database preserves corrections", () => {
   assert.match(RAW, /^-- subject: Migration 356 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version \d+/);
   assert.match(RAW, /DATABASE preserves corrections/);
 });
 

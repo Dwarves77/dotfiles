@@ -22,9 +22,10 @@ name: Discipline engine
 #   rendering-guard        real-browser layout leg, REQUIRED (lane GATE-4,
 #                          2026-10-07: continue-on-error removed now that
 #                          BUILD_MODE suspends the baseline clock), and by a
-#                          wide margin the most expensive job here: it installs
-#                          Playwright chromium and carries a 10-minute timeout
-#                          against everything else's 5.
+#                          wide margin the most expensive job here: it runs in the
+#                          Playwright container image (lane GATE-6, no browser
+#                          install) and carries a 15-minute timeout against
+#                          everything else's 5.
 #
 # The header said "Two jobs" from Wave 2 until 2026-08-12 while the file had
 # grown to five. A comment that miscounts the jobs it documents is the same
@@ -77,7 +78,7 @@ on:
 # WHY THIS WORKFLOW IS THE CONSUMER. Five jobs fire on every pull_request event,
 # seven counting bug-class-guard, and GitHub rounds EVERY job up to a whole
 # billable minute, so a short job costs a full minute even when it takes twenty
-# seconds. One of the five, rendering-guard, installs Playwright chromium; it was
+# seconds. One of the five, rendering-guard, runs in the Playwright container image; it was
 # NON-BLOCKING when this note was written (it is required since lane GATE-4), and
 # on a superseded commit it is spend against a result that no longer applies. Delivery to this repo
 # is by GitHub web upload, which is scoped to one directory per commit, so one
@@ -580,7 +581,23 @@ jobs:
     # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # CONTAINER, NOT AN INSTALL (lane GATE-6, 2026-10-08). The job runs in the official Playwright image, so
+    # chromium and its OS libraries are already present and `playwright install --with-deps` is not run at
+    # all. Why: four Rendering guard runs were cancelled at the 10 minute limit (PRs 1007, 1009 first attempt,
+    # 1016, 1020), and the 1020 log shows the install stalled about 7 minutes on apt package downloads before
+    # any test ran, while the same code had passed in 8m6s on the prior push. The image tag below is the ONE
+    # place the Playwright version is written: the install step reads it back out of this file, so the npm
+    # package and the image's browsers cannot drift (the F52 workflow-shape test asserts the derivation).
+    # `job.container.image` does not exist in the job context (only id and network), hence the file read.
+    # To bump Playwright, change the tag; the distro is noble (published for 1.61, proven by the first run).
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.1-noble
+    # TIMEOUT 15 MINUTES (was 10). Measured by GATE-4 (docs/ops/session-log.d/2026-10-07-gate4-ci.md): the guard
+    # run itself is median 231 s, p90 433 s, max 604 s, checkout 5 s, and the install (44 s typical) is gone,
+    # so the longest observed run plus startup is about 11 minutes; 15 leaves headroom without letting a
+    # stall run to the old limit unnoticed. The per-check timeouts inside the guard are untouched. The guard's
+    # own runtime is printed as a `guard run: <s> s` step summary line so the next evaluation reads a number.
+    timeout-minutes: 15
     # REQUIRED JOB (lane GATE-4, 2026-10-07, gate plan 2026-10-08). This job used to carry
     # continue-on-error (operator policy 2026-07-11: a flaky required check is a merge embargo, so the
     # browser leg stayed non-blocking until it proved stable). The condition that mattered at the end is
@@ -589,11 +606,11 @@ jobs:
     # blocks while a baselined one does not. Its non-pass rate over the 301 sampled runs was about 1.5
     # percent (gate evaluation B section 8). A job that cannot fail the workflow gates nothing, which is
     # why the soft pattern is removed here and not kept. It runs on the pull_request head only (see the
-    # header); the 10-minute timeout stays.
+    # header); the timeout is set above.
     #
     # WHY its own job (RENDER-1, 2026-07-11): the overflow leg needs a REAL layout engine
-    # (scrollWidth/clientWidth are all-zero in jsdom), so this job installs Playwright chromium and
-    # renders the extreme-data fixtures at every app breakpoint tier. It makes the L-1/L-4/L-6 overflow,
+    # (scrollWidth/clientWidth are all-zero in jsdom), so this job runs in the Playwright image (chromium
+    # included) and renders the extreme-data fixtures at every app breakpoint tier. It makes the L-1/L-4/L-6 overflow,
     # F-1 placeholder, and V-07 hydration classes build-visible (invariant SF-10-customer-surface-
     # rendering). The pure detector core is ALSO unit-proven red-then-green in the REQUIRED no-npm suite
     # (fsi-app/.discipline/rendering/assertions.test.mjs, in the Discipline-engine-unit-tests job), so
@@ -619,17 +636,29 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Trust the workspace for git (the container user does not own the checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: '24'
 
-      - name: Install Playwright + chromium (scoped, not added to package.json)
-        working-directory: fsi-app
+      - name: Install the Playwright npm package matching the image (browsers come from the image)
         run: |
-          npm install --no-save playwright@1.61.1 --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          version="$(sed -n 's|^ *image: mcr\.microsoft\.com/playwright:v\([0-9][0-9.]*\)-.*$|\1|p' .github/workflows/discipline.yml)"
+          test -n "$version"
+          echo "playwright npm package: $version"
+          cd fsi-app
+          npm install --no-save "playwright@${version}" --no-audit --no-fund
 
       - name: Run rendering guard (fixtures × breakpoint tiers, real layout measurement)
         working-directory: fsi-app
-        run: node .discipline/rendering/run-rendering-guard.mjs
+        run: |
+          start="$(date +%s)"
+          status=0
+          node .discipline/rendering/run-rendering-guard.mjs || status=$?
+          line="guard run: $(( $(date +%s) - start )) s"
+          echo "$line"
+          echo "$line" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

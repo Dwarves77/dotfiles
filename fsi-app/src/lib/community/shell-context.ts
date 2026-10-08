@@ -16,6 +16,7 @@
 // The reads are the same four parallel reads plus the two profile reads the pages ran; the mapping to
 // the typed arrays is the same. Server-only (a cookie-bound server client is the RLS boundary).
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
 import type { CommunityMembership, CommunityInvitation, CommunityTopicSummary, CommunityGroupSummary } from "@/components/community/types";
 
 export const COMMUNITY_REGIONS = [
@@ -140,11 +141,16 @@ export async function loadCommunityShellContext(
     regionCounts[row.region] = Number(row.count) || 0;
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name:full_name, headshot_url:avatar_url, is_platform_admin")
-    .eq("id", user.id)
-    .maybeSingle();
+  // SEC-6 (migration 375): the flag is not selectable; it comes from the is_platform_admin rpc. This is a display
+  // gate for the shell, so an rpc error reads as not-admin (the admin routes keep their own fail-closed gates).
+  const [{ data: profile }, adminRead] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("name:full_name, headshot_url:avatar_url")
+      .eq("id", user.id)
+      .maybeSingle(),
+    readOwnPlatformAdmin(supabase),
+  ]);
   const { data: orgRow } = await supabase
     .from("org_memberships")
     .select("organizations(name)")
@@ -160,7 +166,7 @@ export async function loadCommunityShellContext(
       name: profile?.name ?? user.email?.split("@")[0] ?? "",
       headshotUrl: profile?.headshot_url ?? null,
       employer,
-      isPlatformAdmin: !!profile?.is_platform_admin,
+      isPlatformAdmin: adminRead.admin,
     },
     memberships,
     invitations,

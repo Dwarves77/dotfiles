@@ -35,6 +35,7 @@ const REQUIRED = {
   "RLS audits": ["rls-derivation-edges", "rls-harness-runs", "rls-spec09-org"],
   "S8-5 cross-organisation": ["s8-5-cross-organisation-read", "s8-5-cross-organisation-write-refused", "s8-c-count-rpcs-membership-gate"],
   "admin gate": ["admin-gate-self-promotion-refused"],
+  "SEC-6 admin flag": ["sec6-admin-flag-column-refused", "sec6-admin-predicate-nonadmin-false"],
   "ADR-035 aggregate floor": ["adr035-aggregate-below-floor-refused", "adr035-floor-cannot-be-lowered", "adr035-dominance-cap-refused", "adr035-aggregate-tables-closed"],
 };
 

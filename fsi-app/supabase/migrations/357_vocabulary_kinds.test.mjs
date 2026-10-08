@@ -13,9 +13,9 @@ const RAW = readFileSync(fileURLToPath(new URL("./357_vocabulary_kinds.sql", imp
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const FN = /CREATE OR REPLACE FUNCTION public\.intelligence_items_theme_guard\(\)[\s\S]*?\$fn\$;/.exec(SQL)?.[0] ?? "";
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and APPLIED", () => {
   assert.match(RAW, /^-- subject: Migration 357 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version \d+/);
 });
 
 test("preconditions name migration 355 (vocabulary_terms) and 282 (entity_kind)", () => {

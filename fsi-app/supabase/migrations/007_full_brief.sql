@@ -1,3 +1,4 @@
+/* status: NO LEDGER ROW, duplicate prefix, unverified (as of 2026-10-07; see APPLIED-MAP.json) */
 -- subject: Add full_brief column for skill-standard intelligence briefs
 -- Add full_brief column for skill-standard intelligence briefs
 -- This is the primary content field — rich markdown regulatory playbooks
