@@ -186,6 +186,10 @@ export default async function Market() {
   // the artboard does not draw, kept exactly as it is, after the last designed region).
   const carbonOverlays = buildCarbonCostOverlays(corridorScopes);
 
+  // One render instant for everything on this page that judges freshness: the ledger and, since lane
+  // MKT-1 (2026-10-08), the headline ribbon's per-series freshness states and panel summary.
+  const nowIso = renderNowIso();
+
   return (
     <>
       {/* UILISTS lane (2026-09-06): MarketIntelLedger now renders its own Masthead (UI system
@@ -204,8 +208,8 @@ export default async function Market() {
           initialResources={marketIntel.resources.map(toLedgerRowPayload)}
           aggregates={aggregates}
           seriesBoard={seriesBoard}
-          nowIso={renderNowIso()}
-          headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded />}
+          nowIso={nowIso}
+          headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded nowIso={nowIso} />}
           /* Artboard 04/id="p4" rail card CARBON COST PER FEU (lane lists60, 2026-09-08). The SAME
              overlay entries the <CarbonCostOverlay/> section below already receives, reduced to the
              card's rows — one computation, two views, no second read. */
