@@ -39,10 +39,14 @@ export const consistencyCheck = {
     'own derived output, byte for byte.',
   source: 'Layer 4 dispatch + ADR-005; plan 6.8 Rule A (lane N5, 2026-09-19)',
 
-  run() {
-    const root = getRepoRoot();
-    const migDir = resolve(root, MIG_DIR_REL);
-    const docPath = resolve(root, DOC_PATH_REL);
+  // Injectable paths (lane GATE-5, 2026-10-08). `migDir` and `docPath` default to the real tree; the test
+  // passes a throwaway copy under the OS temp directory, so it never writes a fixture into the real
+  // migrations directory where a concurrent reader (F64's live test enumerates it) would race it. The
+  // consistency runner calls run() with no arguments, so production behaviour is unchanged.
+  run({ migDir: migDirOverride, docPath: docPathOverride } = {}) {
+    const root = migDirOverride && docPathOverride ? null : getRepoRoot();
+    const migDir = migDirOverride || resolve(root, MIG_DIR_REL);
+    const docPath = docPathOverride || resolve(root, DOC_PATH_REL);
     const drifts = [];
 
     if (!existsSync(migDir)) {
