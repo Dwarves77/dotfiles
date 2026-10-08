@@ -1,0 +1,130 @@
+{
+  "tables": {
+    "integrity_flags": [
+      {
+        "id": "11111111-0000-4000-8000-000000000001",
+        "category": "coverage_gap",
+        "subject_type": "system",
+        "subject_ref": "22222222-0000-4000-8000-000000000001",
+        "created_by": "term-need:standard",
+        "description": "Term need: Fixture cold chain handling standard authoritative source",
+        "recommended_actions": [
+          { "action": "find-source", "need": "Fixture cold chain handling standard authoritative source", "kind": "standard", "term_key": "fixture-cold-chain", "term_id": "22222222-0000-4000-8000-000000000001", "rule": "adopted term with no held item whose primary source base tier is at or above the item type authority floor" }
+        ],
+        "status": "open",
+        "created_at": "2026-10-02T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000002",
+        "category": "coverage_gap",
+        "subject_type": "item",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:comply",
+        "created_by": "holdings-need:comply",
+        "description": "Holdings need: the implementing act schedule for the fixture humidity amendment",
+        "recommended_actions": [
+          { "action": "find-source", "need": "the implementing act schedule for the fixture humidity amendment", "item_id": "aaaaaaaa-0000-4000-8000-000000000001", "surface": "regulations", "product_question": "comply", "pool_hash": "fixture-pool-hash" }
+        ],
+        "status": "open",
+        "created_at": "2026-10-03T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000003",
+        "category": "coverage_gap",
+        "subject_type": "system",
+        "subject_ref": "theme-fixture-1",
+        "created_by": "flywheel-gap:surface_gap",
+        "description": "Theme theme-fixture-1 connects regulation and research signals (4 members) with no market signal tracked.",
+        "recommended_actions": ["Check whether a market-signal item for this theme exists but scored below the discovery threshold."],
+        "status": "open",
+        "created_at": "2026-10-04T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000004",
+        "category": "coverage_gap",
+        "subject_type": "item",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001",
+        "created_by": "lineage-gap:absent-parent",
+        "description": "Lineage gap: Directive (EU) 2099/9999 (amends)",
+        "recommended_actions": [
+          { "action": "find-source", "rationale": "item amends Directive (EU) 2099/9999, which does not resolve to any item in the corpus" }
+        ],
+        "status": "open",
+        "created_at": "2026-10-05T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000005",
+        "category": "coverage_gap",
+        "subject_type": "system",
+        "subject_ref": "22222222-0000-4000-8000-000000000005",
+        "created_by": "term-need:material",
+        "description": "Term need with no structured action",
+        "recommended_actions": [],
+        "status": "open",
+        "created_at": "2026-10-06T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000006",
+        "category": "coverage_gap",
+        "subject_type": "system",
+        "subject_ref": "22222222-0000-4000-8000-000000000006",
+        "created_by": "term-need:theme",
+        "description": "Term need: Fixture reefer topic authoritative source",
+        "recommended_actions": [
+          { "action": "find-source", "need": "Fixture reefer topic authoritative source", "kind": "theme", "term_id": "22222222-0000-4000-8000-000000000006" }
+        ],
+        "status": "resolved",
+        "resolved_by": "apply-need-urls",
+        "resolved_at": "2026-10-06T12:00:00Z",
+        "resolution_note": "__SET_BY_TEST__",
+        "created_at": "2026-10-01T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000007",
+        "category": "coverage_gap",
+        "subject_type": "system",
+        "subject_ref": "22222222-0000-4000-8000-000000000006",
+        "created_by": "term-need:theme",
+        "description": "Term need: Fixture reefer topic authoritative source",
+        "recommended_actions": [
+          { "action": "find-source", "need": "Fixture reefer topic authoritative source", "kind": "theme", "term_id": "22222222-0000-4000-8000-000000000006" }
+        ],
+        "status": "open",
+        "created_at": "2026-10-07T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000008",
+        "category": "coverage_gap",
+        "subject_type": "item",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000001:regulations:what",
+        "created_by": "question:what",
+        "description": "What does this change mean",
+        "recommended_actions": [],
+        "status": "open",
+        "created_at": "2026-10-03T00:00:00Z"
+      },
+      {
+        "id": "11111111-0000-4000-8000-000000000009",
+        "category": "coverage_gap",
+        "subject_type": "item",
+        "subject_ref": "aaaaaaaa-0000-4000-8000-000000000002",
+        "created_by": "lineage-gap:absent-parent",
+        "description": "Lineage gap: Regulation (EU) 2088/1 (amends)",
+        "recommended_actions": [
+          { "action": "find-source", "rationale": "item amends Regulation (EU) 2088/1, which does not resolve to any item in the corpus" }
+        ],
+        "status": "open",
+        "created_at": "2026-10-05T01:00:00Z"
+      }
+    ],
+    "intelligence_items": [
+      { "id": "aaaaaaaa-0000-4000-8000-000000000001", "title": "Fixture bonded warehouse humidity amendment", "instrument_identifier": null, "is_archived": false },
+      { "id": "aaaaaaaa-0000-4000-8000-000000000002", "title": "Fixture bonded store guidance", "instrument_identifier": null, "is_archived": false },
+      { "id": "aaaaaaaa-0000-4000-8000-000000000010", "title": "Fixture parent regulation", "instrument_identifier": "Regulation (EU) 2088/1", "is_archived": false }
+    ],
+    "sources": [
+      { "id": "bbbbbbbb-0000-4000-8000-000000000a01", "url": "https://eur-lex.europa.eu/", "name": "EUR-Lex", "status": "active", "base_tier": 1 }
+    ],
+    "census_worklist": [],
+    "portal_link_candidates": []
+  }
+}

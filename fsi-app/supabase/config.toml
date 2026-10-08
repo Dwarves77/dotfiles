@@ -1,0 +1,73 @@
+# Minimal local Supabase stack config for the chain-proof job (lane PROOF-1, 2026-10-07,
+# docs/decisions/ADR-045-chain-proof-on-a-local-stack.md). It is NOT a development config for this repo.
+#
+# DO NOT run `supabase start` or `supabase db reset` from fsi-app/ against this file: the CLI would try to apply
+# supabase/migrations/ itself, keyed on the numeric prefix, and this tree has duplicate prefixes (006 x2, 007 x3)
+# and 37 absent numbers. The chain-proof workflow copies ONLY this file into a scratch directory and starts the
+# stack there, so the stack boots an empty database (auth and storage schemas only), and
+# scripts/proof/replay-migrations.mjs applies the migration files itself, in the order of
+# docs/inventories/migrations.md.
+#
+# What the migrations need from the stack:
+#   storage   migration 052 inserts into storage.buckets and creates storage policies, so storage-api must run.
+#   auth      migrations reference auth.users and the auth helper functions, so gotrue must run.
+#   vault     migration 256 calls vault.create_secret; the supabase_vault extension ships in the database image.
+#   cron      none: the live catalog has 0 pg_cron jobs.
+# Everything else is switched off to keep the start fast: studio, realtime, analytics, edge runtime, inbucket,
+# image transformation, the pooler.
+#
+# [HYPOTHESIS until the first dispatch] the Postgres major version below matches production, and the key names
+# of this file match the installed CLI version.
+
+project_id = "chain-proof"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.image_transformation]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = []
+jwt_expiry = 3600
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false

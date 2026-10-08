@@ -1,0 +1,10 @@
+{
+  "name": "ecb-fx",
+  "script": "scripts/producers/market/ecb-fx-producer.mjs",
+  "domain_table": "market_series",
+  "source": "ecb",
+  "licence": "ECB legal notice: reproduction permitted provided the source is acknowledged",
+  "dry_capable": true,
+  "enabled_env": "MARKET_PRODUCER_ECB_FX_ENABLED",
+  "in_all": true
+}

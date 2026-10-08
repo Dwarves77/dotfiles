@@ -1,0 +1,10 @@
+{
+  "name": "sbti-target-dashboard",
+  "script": "scripts/producers/market/sbti-target-dashboard-producer.mjs",
+  "domain_table": "market_series",
+  "source": "sbti_dashboard",
+  "licence": "No data licence published; redistribution prohibited, so the producer refuses --apply (source-licence register)",
+  "dry_capable": true,
+  "enabled_env": "MARKET_PRODUCER_SBTI_ENABLED",
+  "in_all": false
+}

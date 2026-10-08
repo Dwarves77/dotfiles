@@ -1,0 +1,22 @@
+{
+  "family": "chain-proof",
+  "registered": "2026-10-07",
+  "registered_by": "lane proof1-stack-and-replay",
+  "governing_files": [
+    "../.github/workflows/chain-proof.yml",
+    "supabase/config.toml",
+    "scripts/proof/replay-migrations.mjs",
+    "scripts/proof/preflight.mjs",
+    "scripts/proof/write-local-env.mjs",
+    "scripts/proof/run-lane-step.mjs",
+    "scripts/proof/dump-production-schema.mjs",
+    "scripts/proof/apply-schema-dump.mjs",
+    "scripts/proof/create-oracle-db.mjs",
+    "scripts/proof/schema-diff.mjs",
+    "scripts/proof/sync-applied-migrations.mjs",
+    "scripts/proof/applied-map.mjs",
+    "scripts/proof/emit-chain-proof-artifact.mjs",
+    "scripts/lib/pg-conn.mjs"
+  ],
+  "rationale": "chain-proof (lane PROOF-1, 2026-10-07, ADR-045): the dispatch-only job that proves the DATA layer of the loop on a disposable local Supabase stack: the stack schema is built by replaying the repo migration files (stop on the first error), a schema-only dump of production is the oracle, and the replayed schema must be identical to it (schema-diff.mjs), then the same scripts run in hop order in apply mode with per-step read-back assertions and the attack suite on the real schema. The trigger layer is proven separately by the three dry fires of 2026-10-07. The job is expected to be red until a migrations-history lane repairs the repo. Governing files are the workflow, the minimal stack config, the migration replay runner, the production schema dump and its apply to the oracle database, the empty oracle database, the schema oracle diff, the applied-migrations inventory reader, the isolation preflight (it refuses a production host and every forbidden credential name), the local env writer, the lane step wrapper, the artifact emitter, and the shared connection resolver whose loopback mode keeps every script on the local database. One run is one workflow firing; the artifact is counts and hashed ids only, uploaded as a workflow artifact, never landed into production harness_runs because the job holds no production write credential."
+}

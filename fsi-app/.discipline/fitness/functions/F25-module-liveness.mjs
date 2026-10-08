@@ -315,6 +315,22 @@ export function findDispatchRoots(
     if (posix.dirname(f) === 'fsi-app/.discipline/governance/invariants.d' && !/\.md$/.test(f)) roots.add(f);
   }
 
+  // Source 12 (lane S8-E0, 2026-10-07): the producer registry. Every producer is one JSON file under
+  // fsi-app/scripts/producers/registry/ and producers.yml runs them through the registry runner, so no
+  // workflow line names a registry producer's script any more (that was the point of the registry: the
+  // eight domain lanes add a file and never edit producers.yml). The entry's `script` and `pre.script`
+  // fields are therefore the dispatch evidence, read here as data like Sources 9 and 10 read their
+  // directories. An unparseable entry is skipped (the registry loader and its test refuse it loudly).
+  for (const f of listFilesFn(['fsi-app/scripts/producers/registry/'])) {
+    if (posix.dirname(f) !== 'fsi-app/scripts/producers/registry' || !f.endsWith('.json')) continue;
+    try {
+      const entry = JSON.parse(readFileFn(f));
+      for (const rel of [entry.script, entry.pre && entry.pre.script]) {
+        if (typeof rel === 'string') roots.add(normalize(rel));
+      }
+    } catch { /* malformed entry: the loader test reds it */ }
+  }
+
   return roots;
 }
 

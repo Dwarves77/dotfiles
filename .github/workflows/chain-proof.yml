@@ -1,0 +1,213 @@
+name: Chain proof
+
+# The data layer of the loop, proven on a disposable local Supabase stack (lane PROOF-1, 2026-10-07;
+# docs/decisions/ADR-045-chain-proof-on-a-local-stack.md; Stage 9 item 1 of the buildout plan).
+#
+# WHAT THIS PROVES. The trigger layer (workflow_run edges, the dispatch fallback, upstream and loop ids) is
+# proven by the three dry fires of 2026-10-07. This job proves the DATA layer: the stack's schema is built by
+# REPLAYING THE REPO'S MIGRATION FILES (no workaround: the files are what the repo claims production is), a subset of
+# production data is loaded, the same scripts run in hop order in apply mode with per-step read-back assertions, and
+# the attack suite runs on the real schema. Nothing here touches production: the local stack is the only database any
+# step after the export can reach.
+#
+# THE SCHEMA ORACLE. In the credentialed export step a schema-only dump of production is written to runner disk. It
+# is applied to a second database on the stack (oracle_check), and scripts/proof/schema-diff.mjs compares the
+# replayed schema with it (tables, columns, types, defaults, constraints, indexes, functions, triggers, policies;
+# names and definitions, never rows). The difference must be EMPTY or the job fails at that step with the counts
+# and the names of the differing objects in the log and the artifact.
+#
+# EXPECTED STATE: RED. Production's migration names diverge from the repo's file names, and the record of which file
+# stands for which ledger row is fsi-app/supabase/migrations/APPLIED-MAP.json, produced by lane MIG-HIST-1. Until that
+# map lands the replay refuses (the honest state); once it lands, the job is green only with an empty schema diff
+# (docs/runbooks/maintenance.d/64-chain-proof.md, docs/decisions/ADR-045-chain-proof-on-a-local-stack.md).
+#
+# ISOLATION (ruling R3 as amended). The export step is the ONLY step with production credentials: the three
+# existing repository secrets NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (the data read) and
+# SUPABASE_DB_PASSWORD (the schema dump), exactly as the data-audit lane uses them. It never holds APP_URL,
+# WORKER_SECRET or a GitHub token, and `permissions` is contents: read. Every other step sources the local stack's
+# env file, then runs scripts/proof/preflight.mjs, which fails the job on a production host or any forbidden
+# credential name (SUPABASE_DB_PASSWORD included). scripts/lib/pg-conn.mjs runs in loopback mode
+# (CHAIN_PROOF_LOCAL=1) and never falls through to production.
+#
+# PUBLIC REPOSITORY. Logs and artifacts are world-readable: never print or upload a row, a connection string or the
+# schema dump. The run artifact is counts, names and hashed ids. The dump and the subset live only under RUNNER_TEMP
+# and are deleted at the end.
+#
+# DISPATCH ONLY. No schedule, no workflow_run, no push trigger (rule 16: build mode holds standing schedules off).
+# The Supabase CLI starts from a scratch directory that holds only supabase/config.toml, so it boots an EMPTY
+# database and never applies the migration tree; scripts/proof/replay-migrations.mjs does, and stops on its first error.
+#
+# LATER LANES. The subset export and load (PROOF-2), the chain steps (PROOF-3) and the attack suite (PROOF-4) are
+# scripts under scripts/proof/. run-lane-step.mjs runs each one, or records a named skip while its lane has not landed.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chain-proof
+  cancel-in-progress: false
+
+jobs:
+  chain-proof:
+    name: Chain proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Note the start time and the proof's scratch paths
+        run: |
+          {
+            echo "CP_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "CP_OUT_DIR=$RUNNER_TEMP/chain-proof-out"
+            echo "CHAIN_PROOF_ENV=$RUNNER_TEMP/chain-proof.env"
+            echo "CHAIN_PROOF_STACK=$RUNNER_TEMP/chain-proof-stack"
+            echo "CHAIN_PROOF_SUBSET=$RUNNER_TEMP/subset"
+            echo "CHAIN_PROOF_SCHEMA_DUMP=$RUNNER_TEMP/schema-dump/production-schema.sql"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/chain-proof-out"
+
+      - name: Install fsi-app deps
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Ensure psql is available
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y postgresql-client
+          fi
+          psql --version
+
+      - name: Install the Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start the local stack (empty database, storage and auth only)
+        id: stack
+        run: |
+          mkdir -p "$CHAIN_PROOF_STACK/supabase"
+          cp fsi-app/supabase/config.toml "$CHAIN_PROOF_STACK/supabase/config.toml"
+          cd "$CHAIN_PROOF_STACK"
+          supabase start
+
+      - name: Write the local env file (loopback hosts only, keys masked)
+        run: |
+          (cd "$CHAIN_PROOF_STACK" && supabase status -o env) | node fsi-app/scripts/proof/write-local-env.mjs --out "$CHAIN_PROOF_ENV"
+
+      - name: Preflight (local stack environment only)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+
+      # Made BEFORE the replay, from the stack's own empty postgres database as a template, so oracle_check carries the
+      # auth and storage schemas and extensions and none of the application tables. A failure here fails the job: the
+      # oracle gate cannot run without it.
+      - name: Create the empty oracle_check database (home of the production schema dump)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/create-oracle-db.mjs --env-file "$CHAIN_PROOF_ENV"
+
+      # The proof schema is built from the repo's migration files, selected through APPLIED-MAP.json. It stops at the
+      # first error and refuses when the map is absent, a ledger version is missing from it or a map entry's file is
+      # missing. No tolerate list, no skip list, no continue-on-error mode.
+      - name: Replay the migration files onto the stack (builds the proof schema; stops on the first error)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/replay-migrations.mjs --report "$CP_OUT_DIR/replay-report.json"
+
+      # The ONLY step that holds production credentials: the three existing repository secrets. It does not source
+      # the local env file. It takes a schema-only dump of production (lane PROOF-1) and then the data subset (lane
+      # PROOF-2). Everything it writes goes under RUNNER_TEMP, never the workspace and never an artifact.
+      - name: Export the production schema dump and data subset (read only; the only step with production credentials)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          node scripts/proof/run-lane-step.mjs --name dump-production-schema --lane PROOF-1 --script scripts/proof/dump-production-schema.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SCHEMA_DUMP"
+          node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET"
+
+      - name: Apply the production schema dump to oracle_check (the oracle)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/apply-schema-dump.mjs --db-url "$PROOF_ORACLE_DB_URL" --in "$CHAIN_PROOF_SCHEMA_DUMP" --report "$CP_OUT_DIR/schema-apply-report.json"
+
+      # The gate: the replayed schema and the production dump must be identical. Fails with counts and names.
+      - name: Schema oracle gate (the replayed schema must equal the production dump)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/schema-diff.mjs --replayed "$PROOF_DB_URL" --oracle "$PROOF_ORACLE_DB_URL" --out "$CP_OUT_DIR/replay-schema-diff.json"
+
+      - name: Load the subset into the local database
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name load-subset --lane PROOF-2 --script scripts/proof/load-subset.mjs --out-dir "$CP_OUT_DIR" -- --in "$CHAIN_PROOF_SUBSET"
+
+      - name: Run the chain steps in hop order (apply mode, local database)
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name chain --lane PROOF-3 --script scripts/proof/run-chain.mjs --out-dir "$CP_OUT_DIR"
+
+      - name: Run the attack suite on the real schema
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name attacks --lane PROOF-4 --script scripts/proof/attacks.mjs --out-dir "$CP_OUT_DIR"
+
+      - name: Export the local harness_runs ledger (hashed ids, no row text)
+        if: always() && steps.stack.outcome == 'success'
+        working-directory: fsi-app
+        run: |
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/export-local-harness-runs.mjs --out "$CP_OUT_DIR/harness-runs-local.json"
+
+      # Records the run artifact on EVERY firing, including one that stopped early. Not landed into production
+      # harness_runs: this job holds no production write credential.
+      - name: Record this run's artifact (chain-proof family)
+        if: always()
+        working-directory: fsi-app
+        run: node scripts/proof/emit-chain-proof-artifact.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the run artifact (counts and hashed ids only)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-proof-report
+          path: ${{ runner.temp }}/chain-proof-out
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop the local stack and delete the dump and the subset
+        if: always()
+        run: |
+          if [ -d "$CHAIN_PROOF_STACK" ]; then (cd "$CHAIN_PROOF_STACK" && supabase stop --no-backup) || true; fi
+          rm -rf "$RUNNER_TEMP/schema-dump" "$CHAIN_PROOF_SUBSET" "$CHAIN_PROOF_ENV"

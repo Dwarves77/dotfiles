@@ -15,6 +15,10 @@
  * preview, top border rgba(0,0,0,.08)) when the query has no exact match.
  * Multi-select, stays open; the keyboard model (↑ ↓ / Enter / Esc /
  * Backspace) is tagPopoverKeyboard.ts, unit tested there.
+ *
+ * ATTRIBUTION (migration 313 created_by/created_at, lane s8b-tag-attribution): an applied row carries a second, muted
+ * line "applied by <name> on <date>" (truncated with the full text in its title), so a workspace
+ * member sees who tagged the item and when without leaving the list.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +39,11 @@ import {
   removeWorkspaceTag,
   createWorkspaceTag,
 } from "@/lib/tags/client";
+import { attributionText, type TagApplication } from "@/lib/tags/attribution";
+
+const PANEL_WIDTH = 280;
+const PANEL_BORDER = 2;
+const VIEWPORT_MARGIN = 8;
 
 export interface TagPopoverProps {
   /** The item (legacy_id or uuid) tags are being applied to/removed from. */
@@ -71,9 +80,14 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
   );
   const [tags, setTags] = useState<TagOption[]>([]);
   const [appliedOrder, setAppliedOrder] = useState<string[]>([]); // oldest -> newest
+  const [applications, setApplications] = useState<TagApplication[]>([]);
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(-1);
   const [busy, setBusy] = useState(false);
+  // Horizontal shift (px, <= 0) that keeps the 280px panel inside the viewport. The anchor sits after
+  // the applied tag chips, so at phone width its left edge can be past x=95 and the fixed-width panel
+  // ran off the right edge (measured at 375: panel right edge at 523). Recomputed on open and resize.
+  const [shiftX, setShiftX] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,10 +106,11 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
     if (!open) return;
     let cancelled = false;
     (async () => {
-      const { tags: allTags, appliedTagIds } = await fetchItemWorkspaceTags(itemId);
+      const { tags: allTags, appliedTagIds, applications: apps } = await fetchItemWorkspaceTags(itemId);
       if (cancelled) return;
       setTags(allTags.map((t) => ({ id: t.id, name: t.name, itemCount: t.itemCount })));
       setAppliedOrder(appliedTagIds);
+      setApplications(apps);
     })();
     return () => {
       cancelled = true;
@@ -125,6 +140,27 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
     }
   }, [open]);
 
+  // After an apply the server holds the author and date; read them back so the new row shows
+  // "applied by <name> on <date>" now rather than only after the popover is reopened.
+  async function refreshApplications() {
+    const { applications: apps } = await fetchItemWorkspaceTags(itemId);
+    setApplications(apps);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function fit() {
+      const anchor = containerRef.current;
+      if (!anchor) return;
+      const left = anchor.getBoundingClientRect().left;
+      const overflow = left + PANEL_WIDTH + PANEL_BORDER + VIEWPORT_MARGIN - window.innerWidth;
+      setShiftX(overflow > 0 ? -Math.min(overflow, Math.max(0, left - VIEWPORT_MARGIN)) : 0);
+    }
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [open]);
+
   async function toggle(tagId: string) {
     if (busy) return;
     setBusy(true);
@@ -134,7 +170,10 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
         if (ok) setAppliedOrder((prev) => prev.filter((id) => id !== tagId));
       } else {
         const ok = await applyWorkspaceTag(tagId, itemId);
-        if (ok) setAppliedOrder((prev) => [...prev, tagId]);
+        if (ok) {
+          setAppliedOrder((prev) => [...prev, tagId]);
+          await refreshApplications();
+        }
       }
       onChange?.();
     } finally {
@@ -153,6 +192,7 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
       if (ok) {
         setAppliedOrder((prev) => (prev.includes(created.id) ? prev : [...prev, created.id]));
         setQuery("");
+        await refreshApplications();
       }
       onChange?.();
     } finally {
@@ -240,8 +280,9 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
-            left: 0,
-            width: 280,
+            left: shiftX,
+            width: PANEL_WIDTH,
+            maxWidth: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
             background: "#FFFFFF",
             borderRadius: 10,
             border: "1px solid rgba(0,0,0,.12)",
@@ -273,6 +314,7 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
           <div style={{ maxHeight: 320, overflowY: "auto" }}>
             {rows.map((tag, i) => {
               const isApplied = applied.has(tag.id);
+              const attribution = isApplied ? attributionText(applications.find((a) => a.tagId === tag.id)) : null;
               return (
                 <div
                   key={tag.id}
@@ -284,17 +326,36 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    height: 40,
-                    padding: "0 12px",
+                    minHeight: 40,
+                    padding: attribution ? "6px 12px" : "0 12px",
+                    gap: 8,
                     cursor: "pointer",
                     background: highlight === i ? "#FAFAF8" : "transparent",
                   }}
                 >
-                  <WorkspaceTagPill name={tag.name} />
+                  <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2, minWidth: 0 }}>
+                    <WorkspaceTagPill name={tag.name} />
+                    {attribution && (
+                      <span
+                        data-part="tag-attribution"
+                        title={attribution}
+                        style={{
+                          maxWidth: "100%",
+                          fontSize: 11,
+                          color: "var(--ink-3)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {attribution}
+                      </span>
+                    )}
+                  </span>
                   {isApplied ? (
-                    <span aria-hidden="true" style={{ color: "var(--ink)", fontSize: 13, fontWeight: 700 }}>✓</span>
+                    <span aria-hidden="true" style={{ color: "var(--ink)", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>✓</span>
                   ) : (
-                    <span style={{ fontSize: 11, color: "var(--ink-3)" }}>{tag.itemCount}</span>
+                    <span style={{ fontSize: 11, color: "var(--ink-3)", flexShrink: 0 }}>{tag.itemCount}</span>
                   )}
                 </div>
               );

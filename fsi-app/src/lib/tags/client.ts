@@ -30,6 +30,7 @@
 
 import { authedFetch } from "@/lib/api/authed-fetch";
 import type { WorkspaceTag } from "./types";
+import type { TagApplication } from "./attribution";
 
 let cache: WorkspaceTag[] | null = null;
 let inflight: Promise<WorkspaceTag[]> | null = null;
@@ -79,16 +80,22 @@ export async function fetchWorkspaceTags(opts: { force?: boolean } = {}): Promis
 
 /** Fetch the tags already applied to one item (by legacy_id or uuid), plus
  *  a fresh full workspace tag list. Used by TagPopover on open. Not cached
- *  (per-item, small, and needs to be current every time the popover opens). */
+ *  (per-item, small, and needs to be current every time the popover opens).
+ *  `applications` says who applied each of those tags and when (migration 313 created_by/created_at,
+ *  lane s8b-tag-attribution); an older response without it reads as none. */
 export async function fetchItemWorkspaceTags(
   itemId: string
-): Promise<{ tags: WorkspaceTag[]; appliedTagIds: string[] }> {
+): Promise<{ tags: WorkspaceTag[]; appliedTagIds: string[]; applications: TagApplication[] }> {
   const res = await authedFetch(`/api/workspace/tags?itemId=${encodeURIComponent(itemId)}`);
-  if (!res.ok) return { tags: cache ?? [], appliedTagIds: [] };
-  const body = (await res.json()) as { tags?: WorkspaceTag[]; appliedTagIds?: string[] };
+  if (!res.ok) return { tags: cache ?? [], appliedTagIds: [], applications: [] };
+  const body = (await res.json()) as {
+    tags?: WorkspaceTag[];
+    appliedTagIds?: string[];
+    applications?: TagApplication[];
+  };
   cache = body.tags ?? [];
   notify();
-  return { tags: cache, appliedTagIds: body.appliedTagIds ?? [] };
+  return { tags: cache, appliedTagIds: body.appliedTagIds ?? [], applications: body.applications ?? [] };
 }
 
 export async function createWorkspaceTag(name: string): Promise<WorkspaceTag | null> {

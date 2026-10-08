@@ -165,18 +165,22 @@ export function TagChip({ children, variant = "detail" }: { children: React.Reac
  * so the three chip families stay visually distinct at a glance), #F5F2EE
  * fill, 1px rgba(0,0,0,.14) border, 11.5px/600 label. Optional `onRemove`
  * renders a trailing × (removable, used inside TagPopover's applied rows
- * and the detail tag row).
+ * and the detail tag row). Optional `title` is the native tooltip; the detail tag
+ * row passes "applied by <name> on <date>" (migration 313 created_by/created_at, lane s8b-tag-attribution).
  */
 export function WorkspaceTagPill({
   name,
   onRemove,
+  title,
 }: {
   name: string;
   onRemove?: () => void;
+  title?: string;
 }) {
   return (
     <span
       data-part="chip-workspace-tag"
+      title={title}
       style={{
         display: "inline-flex",
         alignItems: "center",
