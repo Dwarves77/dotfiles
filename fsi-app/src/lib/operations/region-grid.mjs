@@ -73,6 +73,17 @@ export function indexAgainstBase(fact, baseFact) {
   return (fact.valueNumeric / baseFact.valueNumeric) * 100;
 }
 
+/**
+ * THE IMPLIED BASE for a cross-region comparison with no chosen base: the first fact, in the order
+ * given (column or display order), that is a valid envelope. One home for the rule so the matrix's
+ * compare mode and the Operations statements cannot drift (lane S8-F2, 2026-10-08). Returns the fact
+ * itself (same reference) or null when none qualifies. Pure.
+ * @param {Array<{valueNumeric?: number|null, unit?: string|null}|null|undefined>} facts
+ */
+export function impliedBaseFact(facts) {
+  return (Array.isArray(facts) ? facts : []).find((f) => isEnvelopedFact(f)) ?? null;
+}
+
 /** Render-ready numeric string for an enveloped fact, rounded to what `nObservations` honestly
  *  supports (envelope.mjs `roundToSampleSupport` / `significantFigures` — never a raw, over-precise
  *  float). Returns null for a non-enveloped (or malformed) fact; callers fall back to the legacy

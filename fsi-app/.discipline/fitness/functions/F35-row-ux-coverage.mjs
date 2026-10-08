@@ -106,6 +106,8 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/shell/ThemeStripView.tsx': 'cross-page-smoke.mjs, the themes strip cards on all four list pages (lane S3-B)',
   // lane P2 (2026-10-05): the shared Inferences section on all four detail pages; inference-section-smoke.mjs mounts it at 375 and 1280.
   'src/components/detail/InferenceSection.tsx': 'inference-section-smoke.mjs, the Inferences section on all four detail pages (lane P2)',
+  // lane S8-F2, 2026-10-08: the industry-level statements block under the Operations matrix (ADR-043); statements-smoke.mjs mounts it at 375, 768, 1024 and 1280.
+  'src/components/operations/StatementsBlock.tsx': 'statements-smoke.mjs, the Operations statements block (lane S8-F2)',
   // lane G7-UI, 2026-10-06: the admin Corrections screen (operator surface, no artboard; rule 20). Both mount the shared CorrectionRow.
   'src/components/admin/corrections/ItemCorrectionsPanel.tsx': 'admin-corrections-smoke.mjs, the per item Corrections panel at /admin/items/[id] (lane G7-UI)',
   'src/components/admin/corrections/CorrectionsTab.tsx': 'admin-corrections-smoke.mjs, the Corrections tab of the admin dashboard (lane G7-UI)',

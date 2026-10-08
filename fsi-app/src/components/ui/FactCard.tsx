@@ -33,6 +33,7 @@ import type { FactCardModel, ClaimNode } from "@/lib/detail/fact-card-model";
 import { withClaimTiers } from "@/lib/detail/fact-card-model";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { Absence } from "@/components/ui/Absence";
+import { SourceLink } from "@/components/ui/SourceLink";
 import { hostFromUrl } from "@/lib/entities/host-from-url.mjs";
 import {
   factHeadline,
@@ -513,21 +514,7 @@ function MatrixFactCardBody({ fact: f, baseFact }: { fact: Record<string, unknow
         </span>
         {name ? (
           url ? (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                minHeight: 28,
-                color: "var(--ink-2)",
-                textDecoration: "underline",
-                textDecorationColor: "var(--link-line)",
-              }}
-            >
-              {name}
-            </a>
+            <SourceLink href={url}>{name}</SourceLink>
           ) : (
             name
           )

@@ -360,7 +360,8 @@ test("the base-region control is gone and indexAgainstBase moved into compare mo
   // Superseded, not dropped: the library function is still called, now from ui/FactCard.tsx's
   // density="matrix" branch, which the panel's compare mode reaches via <FactCard density="matrix">.
   assert.match(FACTCARD_SOURCE, /indexAgainstBase/, "still live: a dead export would be rule 13 the other way round");
-  assert.match(SOURCE, /const baseFact = compareRows\.find\(\(x\) => x\.fact && isEnvelopedFact\(x\.fact\)\)/);
+  // The implied-base rule lives once in region-grid.mjs (impliedBaseFact), shared with the statements.
+  assert.match(SOURCE, /const baseFact = impliedBaseFact\(compareRows\.map\(\(x\) => x\.fact\)\)/);
 });
 
 test("compare mode renders one headline card per region, stacked, each labelled with its region", () => {

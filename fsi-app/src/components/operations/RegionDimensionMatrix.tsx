@@ -124,7 +124,7 @@ import type { OperationsFact, OperationsCoverageRow } from "@/lib/supabase-serve
 import { Absence } from "@/components/ui/Absence";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { FactCard } from "@/components/ui/FactCard";
-import { buildRegionGrid, isEnvelopedFact } from "@/lib/operations/region-grid.mjs";
+import { buildRegionGrid, impliedBaseFact } from "@/lib/operations/region-grid.mjs";
 import { LabourChain } from "@/components/operations/LabourChain";
 import type { LabourFactLike } from "@/lib/operations/labour-chain.ts";
 
@@ -832,7 +832,7 @@ function MatrixPanel({
   const compareRows = compare
     ? regions.map((r) => ({ region: r, fact: ((cellAt(r.key, dimension.db)?.facts ?? []) as Record<string, unknown>[])[0] ?? null }))
     : [];
-  const baseFact = compareRows.find((x) => x.fact && isEnvelopedFact(x.fact))?.fact ?? null;
+  const baseFact = impliedBaseFact(compareRows.map((x) => x.fact));
 
   const count = compare
     ? compareRows.reduce((s, x) => s + (cellAt(x.region.key, dimension.db)?.factCount ?? 0), 0)
