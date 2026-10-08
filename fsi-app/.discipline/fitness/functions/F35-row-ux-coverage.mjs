@@ -111,6 +111,10 @@ export const ROW_COMPONENTS = Object.freeze({
   // lane G7-UI, 2026-10-06: the admin Corrections screen (operator surface, no artboard; rule 20). Both mount the shared CorrectionRow.
   'src/components/admin/corrections/ItemCorrectionsPanel.tsx': 'admin-corrections-smoke.mjs, the per item Corrections panel at /admin/items/[id] (lane G7-UI)',
   'src/components/admin/corrections/CorrectionsTab.tsx': 'admin-corrections-smoke.mjs, the Corrections tab of the admin dashboard (lane G7-UI)',
+  // lane S8-A (2026-10-07): the private workspace notes list and the assignment chips, mounted once at the foot of every
+  // detail page by DetailShell's item collaboration slot; item-collab-smoke.mjs mounts both at 375, 768, 1024 and 1280.
+  'src/components/detail/ItemNotesBlock.tsx': 'item-collab-smoke.mjs, the notes list on all four detail pages (lane S8-A)',
+  'src/components/detail/ItemAssignBlock.tsx': 'item-collab-smoke.mjs, the assignee chips and member picker on all four detail pages (lane S8-A)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

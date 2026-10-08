@@ -43,6 +43,10 @@ import { RailCard } from "@/components/ui/RailCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { BandProvider, useBandContext } from "@/components/ui/band-context";
+import { ItemNotesBlock } from "@/components/detail/ItemNotesBlock";
+import { ItemAssignBlock } from "@/components/detail/ItemAssignBlock";
+import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
+import { itemIdFromDetailPath } from "@/lib/workspace/item-collab-shared.mjs";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { tierScaleSpan } from "@/lib/customer-source-tier";
 import type { ImpactScores, Resource } from "@/types/resource";
@@ -232,6 +236,33 @@ export function DetailSection({
   );
 }
 
+// ── Item collaboration slot: private workspace notes and assignment, at the foot of every detail page ──
+//
+// Lane S8-A (2026-10-07, plan Stage 8 bullet 1): ONE slot, mounted by DetailPageWrapper below, so the four
+// detail surfaces pass nothing new and no surface can forget it (PI-1: no new surface, both blocks render
+// inside the existing detail pages). The item id is read from the page's own pathname (the four routes are
+// /<surface>/<legacy_id or uuid>, the id the routes resolve); "a workspace is present" is the shared
+// bootstrap singleton's roster being non-null, the same signal OwnerTeamCard uses, so a signed-out reader or a
+// user with no organisation sees nothing and costs no request. Server render and first client render both
+// return null (the singleton has no data until the client fetch lands), so hydration cannot mismatch.
+function ItemCollabSlot() {
+  const pathname = usePathname();
+  const { data } = useWorkspaceBootstrap();
+  const itemId = itemIdFromDetailPath(pathname);
+  if (!itemId || !data || data.members == null) return null;
+  // Same grid as the page body (DetailLayout, empty rail) so the two cards share the content column's width.
+  return (
+    <DetailLayout rail={null}>
+      <DetailSection id="notes" title="Notes" aside="Visible to your workspace only">
+        <ItemNotesBlock itemId={itemId} />
+      </DetailSection>
+      <DetailSection id="assignments" title="Assignments" aside="Assign teammates, with a notification">
+        <ItemAssignBlock itemId={itemId} />
+      </DetailSection>
+    </DetailLayout>
+  );
+}
+
 // ── Page wrapper: the ONE outer frame (max-width + responsive side padding)
 // shared by header/timeline/index/layout, so a detail surface never re-declares its own copy of the
 // --cl-detail-pad-x breakpoint (globals.css, lane MOBILE-2 precedent). One instance per page.
@@ -252,7 +283,10 @@ export function DetailPageWrapper({
 }) {
   return (
     <BandProvider band={band} action={action}>
-      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 40px" }}>{children}</div>
+      <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 40px" }}>
+        {children}
+        <ItemCollabSlot />
+      </div>
     </BandProvider>
   );
 }

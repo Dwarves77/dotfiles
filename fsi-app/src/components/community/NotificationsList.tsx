@@ -32,6 +32,7 @@ import {
   CheckCheck,
   Circle,
   Archive,
+  UserCheck,
 } from "lucide-react";
 import type { NotificationKind } from "@/lib/notifications/dispatch";
 
@@ -74,6 +75,7 @@ const KIND_LABEL: Record<Kind, string> = {
   invite: "Invite",
   moderation: "Moderation",
   archive: "Archived",
+  assignment: "Assigned",
 };
 
 function KindIcon({ kind }: { kind: Kind }) {
@@ -89,6 +91,8 @@ function KindIcon({ kind }: { kind: Kind }) {
       return <ShieldAlert {...props} />;
     case "archive":
       return <Archive {...props} />;
+    case "assignment":
+      return <UserCheck {...props} />;
     default:
       return <Inbox {...props} />;
   }

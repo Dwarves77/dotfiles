@@ -18,10 +18,15 @@ const LIST = strip(
 test("NotificationKind no longer includes promote", () => {
   const union = DISPATCH.match(/export type NotificationKind =([\s\S]*?);/)[1];
   const kinds = [...union.matchAll(/"(\w+)"/g)].map((m) => m[1]);
-  assert.deepEqual(kinds, ["reply", "invite", "moderation", "mention", "archive"]);
+  assert.deepEqual(kinds, ["reply", "invite", "moderation", "mention", "archive", "assignment"]);
 });
 
 test("NotificationsList renders no promote kind (label or icon)", () => {
   assert.doesNotMatch(LIST, /promote/i);
   assert.doesNotMatch(LIST, /\bStar\b/);
+});
+
+test("NotificationsList labels and iconises the assignment kind (lane S8-A)", () => {
+  assert.match(LIST, /assignment:\s*"Assigned"/);
+  assert.match(LIST, /case "assignment":\s*return <UserCheck/);
 });
