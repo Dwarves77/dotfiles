@@ -4,7 +4,7 @@ This is the write-ownership register for datasets shared across the two systems 
 own all site data going forward — the ingestion **HARNESS** (`scripts/mint/**`, `scripts/forward-events/**`,
 `scripts/harness-runs/**` conventions) and the corpus **FLYWHEEL** (`src/lib/connections/**`,
 `scripts/connections/**`) — plus every era script from the `scripts/_archive/**` sunset pass
-(`.discipline/shared-writer-registry.test.mjs`, `scripts/_archive/README.md`) that a KEEP verdict left
+(`.discipline/shared-writer-registry.test.mjs`, `scripts/_archive/README.md`, since deleted by lane DEAD-1, 2026-10-08, see git history) that a KEEP verdict left
 writing one of these tables.
 
 Built entirely from reading code (`grep`/`Read`, no assumptions) as of 2026-09-01, on top of the sunset
@@ -346,11 +346,11 @@ any DB-level guard backs this beyond the RLS note in migration 203's sibling com
 Upsert on unique `(source_id, document_url)`, with an **identity-preservation** rule: `(lane, created_by)`
 is immutable after first insert (migration 221 trigger) — a re-walk by a different lane/session over an
 already-discovered URL must pass the *original* discoverer's identity through unchanged, or the trigger
-raises. Documented and implemented in `src/lib/intake/census-writer.mjs:98-165`.
+raises. The DB trigger (migration 221) enforces it; the former writer `src/lib/intake/census-writer.mjs` that passed the original identity through was deleted (lane DEAD-1, 2026-10-08, no caller).
 
 | Writer | Evidence |
 |---|---|
-| `src/lib/intake/census-writer.mjs` (`writeCensusRows`) | lines 136-165, upsert under a per-source `withLease` mutation lease |
+| ~~`src/lib/intake/census-writer.mjs`~~ (`writeCensusRows`) | **DELETED (lane DEAD-1, 2026-10-08)**, no production caller; was an upsert under a per-source `withLease` mutation lease |
 | `scripts/connections/ratify-flag-to-census.mjs` | **RESOLVED (lane W71-WIRE, 2026-09-05):** it does NOT go through `writeCensusRows`'s identity-preservation path at all — a ratified flag is, by construction, a document with no PRIOR `census_worklist` row (the whole point is minting a fresh worklist entry from an operator's own finding), so there is no existing `(lane, created_by)` to preserve. `buildCensusRow` sets `created_by: "flywheel-ratified:<flagId>"` (a new, distinct identity namespace, never colliding with a live-discovery lane's own `created_by`) and `lane` from the note's own `lane=` field (default `'C'`). Idempotent on the table's own `(source_id, document_url)` unique key via a pre-insert existence check (`findExisting`), same skip-if-exists posture as every other writer here. Now wired as a `maintenance.yml` step (dry/apply, `arg`=flag id). |
 | `scripts/turns/apply-need-urls.mjs` (lane G5-SEARCH, 2026-10-07) | INSERT (one row per applied census-kind need, through `ensureCensusRow` in `scripts/connections/ratify-flag-to-census.mjs`: the same row shape, the `flywheel-ratified:<flag id>` identity and the skip-if-exists check as the ratification path, lane `C`; the source for the url is registered first through `registerSource`). Dry by default; apply through the guarded path with read-back. | `guardedInsert("census_worklist", row, { cite: CITE, select: "id" })` in the `insertRow` dep of `applyNeedUrls` |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02; hold-back added lane URL-GUIL, 2026-09-03) | UPDATE — `enumeration_status = 'reconciled'` only, on the one row a successfully-minted payload traces back to via its `row_id` (a `not_applied_*` payload's row is left untouched — see `mint-run-006.json`'s own precedent). SEPARATELY, `dryrun_disposition = 'hold'` + `hold_reason` (`validation_failed:<criterion>:<reason>`) + `notes` (the failure JSON), on every row the sibling `mint-batch-report.json` reports `valid:false` for — see `resolveValidationFailedHolds`; excludes the row from every future `selectCensusRows` filter (`dryrun_disposition === 'would_mint'`) with no new filter code | `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", rowId), { enumeration_status: "reconciled" }, ...)`; `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", hold.rowId), { dryrun_disposition: "hold", hold_reason, notes }, ...)` |
@@ -647,7 +647,7 @@ Every KEEP script from the sunset pass that touches one of the tables above is a
 table's section (with a `(KEEP)` marker and its own evidence line); this is the flat summary the task
 asked for:
 
-| Script | KEEP reason (from `scripts/_archive/README.md` / task-1 evidence gate) | Table(s) written |
+| Script | KEEP reason (from `scripts/_archive/README.md`, deleted by lane DEAD-1, 2026-10-08, / task-1 evidence gate) | Table(s) written |
 |---|---|---|
 <!-- `scripts/_wave-alpha/backfill-canonical-keys.mjs` row REMOVED (lane W71-C, 2026-09-05): the script was
      DELETED — migration 200's canonical_instrument_key backfill applied live 2026-07-11 (RD-5, 20/21 rows
@@ -670,12 +670,12 @@ asked for:
 | `scripts/lib/inconclusive-probe.mjs` | Imported by `scripts/lib/inconclusive-report.mjs` and `inconclusive-probe.selftest.mjs`, the latter run via `.discipline/run-test-suite.sh`'s directory glob. | none (read-only probe library) |
 | `scripts/lib/liveness-reconstruction.mjs` | Same F25 allowlist mechanism. | none (read-only reconstruction proof) |
 | `scripts/lib/verify-reconstruction.mjs` | Same F25 allowlist mechanism. | writes `section_claim_provenance`, `agent_run_searches` per the same audit doc (already listed above) |
-| `scripts/lib/exclusion-audit.mjs` | Imported by its own selftest, `exclusion-audit-reconstruction.mjs`, `bootstrap-test1.mjs`, and `scripts/lib/block1-reaudit.mjs`. | none (read-only registry cross-product) |
-| `scripts/lib/decision-anchors.mjs` | Imported by `scripts/lib/decision-log-audit.mjs` and its own selftest, run via `.discipline/run-test-suite.sh`'s glob. | none (pure decision-anchor evaluator) |
-| `scripts/lib/liveness.mjs` | Imported by `scripts/lib/liveness-reconstruction.mjs` (itself KEEP) and its own selftest — both would break if this moved. | none (pure heartbeat-verdict library) |
+| ~~`scripts/lib/exclusion-audit.mjs`~~ | **DELETED (lane DEAD-1, 2026-10-08)** with its importers' archive; no live importer remained. | n/a (row kept for history) |
+| ~~`scripts/lib/decision-anchors.mjs`~~ | **DELETED (lane DEAD-1, 2026-10-08)** with its importer's archive; no live importer remained. | n/a (row kept for history) |
+| ~~`scripts/lib/liveness.mjs`~~ | **DELETED (lane DEAD-1, 2026-10-08)** with its importer's archive; no live importer remained. | n/a (row kept for history) |
 | `scripts/lib/urgency.mjs` | Same F25 allowlist mechanism; additionally cited by `code_location` in the assumption-register fixture `scripts/gen/fixtures/assumption-register/wo20-catalogued-assumptions-2026-08-30.json`. | none directly found (referenced by migration 271's comment, not a call site) |
 
-**Superseded 2026-09-01 (lane hyg, F25 module-liveness archival — task 6; see `scripts/_archive/README.md`'s
+**Superseded 2026-09-01 (lane hyg, F25 module-liveness archival, task 6; see `scripts/_archive/README.md`, deleted by lane DEAD-1 on 2026-10-08, its
 own ledger section for the full evidence and `.discipline/fitness/functions/F25-module-liveness.mjs` for
 the current allowlist).** The "moving it reds F25" premise in the `block1-reaudit.mjs` /
 `funded-release-plan.mjs` / `liveness-reconstruction.mjs` / `verify-reconstruction.mjs` /
@@ -918,7 +918,7 @@ established at line 180 for the migration-282/283 entity tables.
     from rule 015 the same way `recordApplyRunStart` is: additive, never a mutation of existing state),
     the shared function `deliver-artifact-branch.sh` now calls per landed artifact file, in place of the
     removed branch/PR/issue steps.
-  - `fsi-app/scripts/turns/import-stranded-harness-branches.mjs`, the one-time import of the branches
+  - ~~`fsi-app/scripts/turns/import-stranded-harness-branches.mjs`~~ (DELETED, lane DEAD-1, 2026-10-08; the import was done by hand), the one-time import of the branches
     stranded by the old path (`--dry` only in this lane; `--apply` is intentionally unimplemented until
     the migration is confirmed live and the operator authorizes the real import).
   - `fsi-app/scripts/verify/harness-runs-rls-adversarial-audit.mjs`, the RD-15 adversarial proof (anon/
