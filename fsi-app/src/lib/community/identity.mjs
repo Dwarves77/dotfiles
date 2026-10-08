@@ -191,7 +191,7 @@ export function authorBlockForPost({ authorUserId, identity, postAnonymous } = {
 
 /**
  * Cross-organisation identities through community_identity. Pass ids (a post page's authors, a roster) and/or a name
- * prefix query (search, invite candidates). Never throws: an RPC error returns an empty map and the message, so a
+ * name query (search, invite candidates: the start of any token of the name). Never throws: an RPC error returns an empty map and the message, so a
  * feed degrades to "no author" rather than failing. Ids are deduplicated and sent in chunks of IDENTITY_IDS_PER_CALL.
  *
  * @param {any} supabase  a Supabase client (anything with .rpc)

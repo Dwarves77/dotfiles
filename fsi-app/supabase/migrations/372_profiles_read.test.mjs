@@ -103,14 +103,26 @@ test("community_identity applies the per-user half of R8.7: name, company and av
   assert.match(body, /\bb\.vf,\s+b\.anon/);
 });
 
-test("community_identity query mode: prefix, at least two characters, wildcards escaped, never an anonymous member, capped", () => {
+test("community_identity query mode: matches the start of ANY whitespace-separated token of the shown name, at least two characters, wildcards escaped, never an anonymous member, capped", () => {
   const body = fn("community_identity");
   assert.match(body, /length\(q\.term\) >= 2/);
   assert.match(body, /NOT b\.anon/);
-  assert.match(body, /b\.nm ILIKE \(replace\(replace\(replace\(q\.term, '\\', '\\\\'\), '%', '\\%'\), '_', '\\_'\) \|\| '%'\)/);
+  // the escaped term is built once, in q
+  assert.match(body, /replace\(replace\(replace\(nullif\(btrim\(p_query\), ''\), '\\', '\\\\'\), '%', '\\%'\), '_', '\\_'\) AS esc/);
+  // the name is whitespace-normalised once, in base
+  assert.match(body, /regexp_replace\(.*'\\s\+', ' ', 'g'\) AS nn/);
+  // token-start match: the term at the start of the name, or after a space
+  assert.match(body, /b\.nn ILIKE \(q\.esc \|\| '%'\)\s+OR b\.nn ILIKE \('% ' \|\| q\.esc \|\| '%'\)/);
+  assert.doesNotMatch(body, /ILIKE \('%' \|\| q\.esc/, "no substring match: a query must start a token");
   assert.match(body, /\[1:200\]/);
   assert.match(body, /LIMIT \(CASE WHEN nullif\(btrim\(p_query\), ''\) IS NULL THEN 200 ELSE 25 END\)/);
   assert.match(body, /auth\.uid\(\) IS NOT NULL/);
+});
+
+test("the self-check proves a surname finds the member (token match) and still not the anonymous one", () => {
+  assert.ok(SQL.includes("community_identity(NULL, 'Three')"), "a second-token query leg");
+  assert.ok(SQL.includes("a surname (second token) query must find u3 and must not find the default-anonymous u2"));
+  assert.ok(SQL.includes("a mid-token fragment must not match"));
 });
 
 test("self-check attacks as anon, authenticated and service_role with fixture subs, and rolls back", () => {

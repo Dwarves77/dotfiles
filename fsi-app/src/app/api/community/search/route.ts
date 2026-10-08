@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     wantPosts ? postsQuery("body") : Promise.resolve(none),
     wantGroups ? groupsQuery("name") : Promise.resolve(none),
     wantGroups ? groupsQuery("description") : Promise.resolve(none),
-    // SEC-5 (migration 372): people search goes through community_identity (name PREFIX, anonymous members are
+    // SEC-5 (migration 372): people search goes through community_identity (a query matches the start of any token of the name, anonymous members are
     // not findable by name, no email or admin flag ever returned) because profiles is no longer readable across
     // organisations.
     wantPeople ? loadCommunityIdentities(auth.supabase, null, q) : Promise.resolve(noPeople),

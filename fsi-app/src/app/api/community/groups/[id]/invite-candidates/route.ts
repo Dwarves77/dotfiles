@@ -80,7 +80,7 @@ export async function GET(
   // Never offer the caller as a candidate (they cannot invite themselves).
   excluded.add(auth.userId);
 
-  // Search by name PREFIX through the community_identity RPC (migration 372, SEC-5): profiles is no longer
+  // Search by name (the start of any token of it) through the community_identity RPC (migration 372, SEC-5): profiles is no longer
   // readable across organisations, and the RPC escapes the wildcards itself, caps the result, and never matches a
   // default-anonymous member by name (their name is withheld, so they cannot be found by it).
   const { rows: identities, error: identityErr } = await loadCommunityIdentities(auth.supabase, null, q);

@@ -62,8 +62,8 @@
 -- authenticated u1 reading u3's row (other organisation) returns 0 rows, u2's (same organisation) 1 row, its own 1 row;
 -- u1 selecting email from its own row, and SELECT *, raise 42501; my_profile() as u1 returns 1 row carrying u1's email;
 -- my_profile() as anon raises 42501; community_identity as u1: for u2 (default_anonymous) display_name and company_name are
--- NULL, anonymous true, verified true; for u3 the name and company are returned, anonymous false; a name-prefix query finds
--- u1 and u3 and NOT u2; a one-character query, a wildcard query and a NULL/NULL call return nothing; community_identity as
+-- NULL, anonymous true, verified true; for u3 the name and company are returned, anonymous false; a name query finds
+-- u1 and u3 and NOT u2, a second-token (surname) query finds u3, a mid-token fragment finds nothing; a one-character query, a wildcard query and a NULL/NULL call return nothing; community_identity as
 -- anon raises 42501; the function's result columns carry no email and no is_platform_admin; u1 can still update its own
 -- job_title (the revoke is not over-broad); service_role still reads email. Then the privilege and policy catalog.
 --
@@ -188,8 +188,9 @@ GRANT EXECUTE ON FUNCTION public.my_profile() TO authenticated, service_role;
 --   verified      community_member_profiles.verified (false when the member has no row); NEVER withheld
 --   anonymous     community_member_profiles.default_anonymous (false when the member has no row)
 -- Modes: p_ids (up to 200 ids, a larger array is sliced) returns those members, anonymous ones with NULL name; p_query
--- (a name PREFIX, at least two characters, wildcards escaped) returns at most 25 members whose shown name starts with it
--- and never a default-anonymous member (their name is withheld, so they are not findable by it); with both, the query
+-- (at least two characters, wildcards escaped) returns at most 25 members whose shown name has a whitespace-separated token
+-- that STARTS with it (so "Surname" finds "Jane Surname"; a fragment from the middle of a token does not match) and
+-- never a default-anonymous member (their name is withheld, so they are not findable by it); with both, the query
 -- filters the ids. Neither returns nothing. The per-POST half of R8.7 (community_posts.anonymous) is applied by the
 -- routes at the row, once (src/lib/community/identity.mjs authorBlockForPost). Never returns email or is_platform_admin.
 CREATE OR REPLACE FUNCTION public.community_identity(p_ids uuid[], p_query text DEFAULT NULL)
@@ -209,11 +210,13 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $fn$
   WITH q AS (
-    SELECT nullif(btrim(p_query), '') AS term
+    SELECT nullif(btrim(p_query), '') AS term,
+           replace(replace(replace(nullif(btrim(p_query), ''), '\', '\\'), '%', '\%'), '_', '\_') AS esc
   ),
   base AS (
     SELECT p.id AS id,
            nullif(btrim(coalesce(nullif(btrim(p.full_name), ''), p.display_name)), '') AS nm,
+           regexp_replace(coalesce(nullif(btrim(p.full_name), ''), p.display_name, ''), '\s+', ' ', 'g') AS nn,
            coalesce(
              (SELECT o.name FROM public.organizations o WHERE o.id = p.org_id),
              (SELECT o2.name
@@ -246,14 +249,15 @@ AS $fn$
       OR (q.term IS NOT NULL
           AND length(q.term) >= 2
           AND NOT b.anon
-          AND b.nm ILIKE (replace(replace(replace(q.term, '\', '\\'), '%', '\%'), '_', '\_') || '%')
+          AND (b.nn ILIKE (q.esc || '%')
+               OR b.nn ILIKE ('% ' || q.esc || '%'))
           AND (p_ids IS NULL OR b.id = ANY ((p_ids)[1:200])))
    ORDER BY (CASE WHEN b.anon THEN NULL ELSE b.nm END) NULLS LAST, b.id
    LIMIT (CASE WHEN nullif(btrim(p_query), '') IS NULL THEN 200 ELSE 25 END)
 $fn$;
 
 COMMENT ON FUNCTION public.community_identity(uuid[], text) IS
-  'SEC-5 (migration 372). Cross-organisation Community identity under spec 07 R8.7: name, company, job title, region, avatar, verified, anonymous. The per-user half of R8.7 is applied here (default_anonymous withholds display_name, company_name and avatar_url, verified stays); the per-post half is applied by the routes. p_ids: up to 200 ids. p_query: a name prefix of at least two characters, wildcards escaped, at most 25 rows, never matches a default-anonymous member. Never returns email or is_platform_admin. SECURITY DEFINER, search_path pinned, EXECUTE to authenticated and service_role only.';
+  'SEC-5 (migration 372). Cross-organisation Community identity under spec 07 R8.7: name, company, job title, region, avatar, verified, anonymous. The per-user half of R8.7 is applied here (default_anonymous withholds display_name, company_name and avatar_url, verified stays); the per-post half is applied by the routes. p_ids: up to 200 ids. p_query: matches the start of any whitespace-separated token of the shown name, at least two characters, wildcards escaped, at most 25 rows, never matches a default-anonymous member. Never returns email or is_platform_admin. SECURITY DEFINER, search_path pinned, EXECUTE to authenticated and service_role only.';
 
 REVOKE ALL ON FUNCTION public.community_identity(uuid[], text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.community_identity(uuid[], text) TO authenticated, service_role;
@@ -376,8 +380,15 @@ BEGIN
         INTO v_n, v_n2, v_n3
         FROM (SELECT user_id FROM public.community_identity(NULL, 'Sec5')) s;
       IF v_n <> 1 OR v_n2 <> 0 OR v_n3 <> 1 THEN
-        RAISE EXCEPTION 'ABORT: a name-prefix query must find u1 and u3 and must not find the default-anonymous u2';
+        RAISE EXCEPTION 'ABORT: a name query must find u1 and u3 and must not find the default-anonymous u2';
       END IF;
+      SELECT count(*) INTO v_n FROM public.community_identity(NULL, 'Three') WHERE user_id = v_u3;
+      SELECT count(*) INTO v_n2 FROM public.community_identity(NULL, 'Two') WHERE user_id = v_u2;
+      IF v_n <> 1 OR v_n2 <> 0 THEN
+        RAISE EXCEPTION 'ABORT: a surname (second token) query must find u3 and must not find the default-anonymous u2';
+      END IF;
+      SELECT count(*) INTO v_n FROM public.community_identity(NULL, 'hree') WHERE user_id = v_u3;
+      IF v_n <> 0 THEN RAISE EXCEPTION 'ABORT: a mid-token fragment must not match (% rows)', v_n; END IF;
       SELECT count(*) INTO v_n FROM public.community_identity(NULL, 'S');
       IF v_n <> 0 THEN RAISE EXCEPTION 'ABORT: a one-character query returned % rows', v_n; END IF;
       SELECT count(*) INTO v_n FROM public.community_identity(NULL, '%%');

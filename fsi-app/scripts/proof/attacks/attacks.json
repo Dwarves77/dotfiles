@@ -2001,7 +2001,7 @@
       "kind": "sql",
       "needs_fixtures": true,
       "invariant": "R8.7 per-user anonymity at the database: a default-anonymous member's name, company and avatar are never returned by community_identity, by id or by name search, while the verified marker stays; email and is_platform_admin are never in its result.",
-      "expected": "By id the anonymous member comes back with the name fields NULL, anonymous true, verified true; a name-prefix search does not find them; anon cannot execute the function; the result has no email column.",
+      "expected": "By id the anonymous member comes back with the name fields NULL, anonymous true, verified true; a name search (by any token of the name) does not find them but does find a named member by their second token; anon cannot execute the function; the result has no email column.",
       "reference": "migration 372 (community_identity SECURITY DEFINER); spec 07 Amendment 2026-09-25 (R8.7); migration 336 (default_anonymous)",
       "steps": [
         {
@@ -2049,7 +2049,7 @@
           }
         },
         {
-          "label": "attack: find the default-anonymous member by a name prefix",
+          "label": "attack: find the default-anonymous member by the first token of the name",
           "kind": "attack",
           "as": "user:owner_a",
           "sql": "SELECT count(*) FILTER (WHERE user_id = $1::uuid) AS found_anonymous, count(*) FILTER (WHERE user_id = $2::uuid) AS found_named FROM public.community_identity(NULL, 'Proof4')",
@@ -2062,6 +2062,37 @@
             "equals": {
               "found_anonymous": "0",
               "found_named": "1"
+            }
+          }
+        },
+        {
+          "label": "attack: find the default-anonymous member by the second token of the name",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT count(*) FILTER (WHERE user_id = $1::uuid) AS found_anonymous FROM public.community_identity(NULL, 'member_b')",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "found_anonymous": "0"
+            }
+          }
+        },
+        {
+          "label": "control: a named member is found by the second token of the name, and a mid-token fragment finds no one",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT count(*) FILTER (WHERE user_id = $1::uuid) AS found_by_surname, (SELECT count(*) FROM public.community_identity(NULL, 'wner_a') WHERE user_id = $1::uuid) AS found_by_fragment FROM public.community_identity(NULL, 'owner_a')",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "found_by_surname": "1",
+              "found_by_fragment": "0"
             }
           }
         },
