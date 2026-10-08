@@ -107,7 +107,7 @@ export const REG_FAMILY_ITEM_TYPES = Object.freeze(["regulation", "directive", "
 // hostOf() (institution-key.mjs) already strips a leading "www." and lowercases, so ONE bare-host form
 // per host matches both the www and non-www spelling -- the plan's own list named "www.legislation.gov.uk"
 // AND "legislation.gov.uk" separately; hostOf collapses that distinction rather than requiring two entries.
-export const STATIC_TEXT_HOSTS = Object.freeze(new Set([
+const STATIC_TEXT_HOSTS = Object.freeze(new Set([
   "eur-lex.europa.eu",
   "legislation.gov.uk",
   "federalregister.gov",

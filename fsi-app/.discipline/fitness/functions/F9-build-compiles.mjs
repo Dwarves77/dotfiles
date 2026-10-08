@@ -107,4 +107,3 @@ export const fitnessFunction = {
 
 // Exported for tests to mock tsc invocation if needed.
 export const _findTsc = findTsc;
-export const _runTypecheck = runTypecheck;

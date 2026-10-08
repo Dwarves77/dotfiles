@@ -13,9 +13,9 @@ import { isOverridden } from '../lib/file-content.mjs';
 export const PRIMITIVE = 'fsi-app/src/lib/sources/canonical-fetch.mjs';
 export const HOLD_GATE_CORE = 'fsi-app/src/lib/sources/fetch-hold.mjs';
 // The gate call the primitive MUST contain.
-export const GATE_CALL_RE = /assertFetchAllowed\s*\(/;
+const GATE_CALL_RE = /assertFetchAllowed\s*\(/;
 // A raw Browserless content endpoint (the bypass shape) — the /content render URL or the base host.
-export const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.io|browserless[^\n"'`]{0,40}\/content|BROWSERLESS_BASE_URL/;
+const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.io|browserless[^\n"'`]{0,40}\/content|BROWSERLESS_BASE_URL/;
 
 // TRANSPORT MODULES (C5, 2026-07-11; widened 2026-08-11): every canonical fetch entry point beyond the
 // Browserless primitive — direct-HTTP, API, and admin-triggered manual fetch. Each MUST carry the
@@ -41,7 +41,7 @@ export const TRANSPORT_MODULES = [
 export const SANCTIONED = new Set([PRIMITIVE, HOLD_GATE_CORE]);
 
 /** Lines making a raw Browserless content fetch, skipping comments + overrides. @param {string} content */
-export function rawBrowserlessLines(content) {
+function rawBrowserlessLines(content) {
   const out = [];
   const lines = content.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {

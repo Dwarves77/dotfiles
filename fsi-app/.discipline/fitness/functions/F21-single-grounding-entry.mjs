@@ -24,10 +24,10 @@ export const SANCTIONED = new Set([
 ]);
 
 // Any reference to the workflow symbol (import or start(...)) — only the sanctioned set may name it.
-export const WORKFLOW_RE = /\bgenerateBriefWorkflow\b/;
+const WORKFLOW_RE = /\bgenerateBriefWorkflow\b/;
 // A direct CALL to a pipeline grounding primitive. Word-boundaried so `regenerateBrief(` does NOT match, and
 // `\s*\(` so bare mentions in identifiers (groundBriefImpl) do not match.
-export const GROUNDING_CALL_RE = /\b(generateBrief|groundBrief|generateBriefFromStored|generateBriefRefreshPrimary)\s*\(/;
+const GROUNDING_CALL_RE = /\b(generateBrief|groundBrief|generateBriefFromStored|generateBriefRefreshPrimary)\s*\(/;
 
 /** Lines making a forbidden grounding-entry reference, skipping comments + overrides. @param {string} content */
 export function groundingEntryLines(content) {

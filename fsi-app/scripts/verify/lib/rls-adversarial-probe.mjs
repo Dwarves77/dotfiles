@@ -9,11 +9,11 @@
 // table-specific), and its own CLI bootstrap message -- only the mechanical "run this inside
 // BEGIN..ROLLBACK and classify the outcome" primitive is shared.
 
-export const DENY_SQLSTATE = "42501"; // insufficient_privilege
+const DENY_SQLSTATE = "42501"; // insufficient_privilege
 
 /** The binding assertion for a single probe: 'deny' expects SQLSTATE 42501 (insufficient_privilege);
  *  'allow' expects no error. Returns {ok, note}. Pure. */
-export function classifyProbe(expect, { errored, code }) {
+function classifyProbe(expect, { errored, code }) {
   if (expect === "deny") {
     if (errored && code === DENY_SQLSTATE) return { ok: true, note: "" };
     if (errored) return { ok: false, note: `denied for the wrong reason (SQLSTATE ${code || "?"}), expected ${DENY_SQLSTATE}` };

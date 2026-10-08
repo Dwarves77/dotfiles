@@ -167,7 +167,3 @@ export function isExecutionWired(relPath) {
   for (const re of regexes) if (re.test(p)) return true;
   return false;
 }
-
-/** Test seam: force a rebuild (used by the negative test to inject fixtures is unnecessary — this reads
- *  the real runners; the test asserts real wired/unwired paths). Exposed for completeness. */
-export function _resetCacheForTest() { CACHE = null; }

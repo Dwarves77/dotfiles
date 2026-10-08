@@ -134,5 +134,3 @@ export const rule = {
 
 // Exported for unit tests that want to assert regex behavior independently.
 export const _HARDCODED_PATH_RE = HARDCODED_PATH_RE;
-export const _CODE_EXTENSIONS = CODE_EXTENSIONS;
-export const _SKIP_PATH_FRAGMENTS = SKIP_PATH_FRAGMENTS;

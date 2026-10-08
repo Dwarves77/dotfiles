@@ -71,13 +71,13 @@ export function replaySchema(migrationTexts) {
 }
 
 /** Non-comment lines of a source file (line comments and block comments removed). */
-export function codeWithoutComments(content) {
+function codeWithoutComments(content) {
   return String(content).replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
 }
 
 /** scripts/lib/db.mjs read helpers take the table name as a string-literal first argument (readAll,
  *  readAllByIds, exactCount, readOne); F14's scanCode sees only .from("t").select. Mirrors its GUARDED_WRITE_RE. */
-export const READ_HELPER_RE = /\b(?:readAll|readAllByIds|readOne|exactCount|countRows)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
+const READ_HELPER_RE = /\b(?:readAll|readAllByIds|readOne|exactCount|countRows)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
 
 const word = (n) => new RegExp(String.raw`(^|[^A-Za-z0-9_])${n}($|[^A-Za-z0-9_])`, 'g');
 const count = (re, s) => (s.match(re) || []).length;

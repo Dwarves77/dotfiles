@@ -26,12 +26,12 @@ function parseArgs(argv) {
 }
 
 // Returns array of { sha, subject, body } for commits matching a Dispatch-UUID line
-export function findCommitsByUuid(uuid) {
+function findCommitsByUuid(uuid) {
   const out = git(['log', `--grep=Dispatch-UUID: ${uuid}`, '--format=%H%x00%s%x00%B%x1e']);
   return parseCommitRecords(out);
 }
 
-export function findRecentDispatches(days = 30) {
+function findRecentDispatches(days = 30) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const out = git(['log', `--since=${since}`, '--grep=^Dispatch-UUID:', '--format=%H%x00%s%x00%B%x1e']);
   const records = parseCommitRecords(out);

@@ -21,7 +21,7 @@
 // Everything else past the bound is PAST-BOUND (the dwell tripwire this audit adds).
 
 export const DWELL_BOUND_DAYS = 30;
-export const STANDING_DEBT = new Set(["register-step-gap", "data-audit-lane"]);
+const STANDING_DEBT = new Set(["register-step-gap", "data-audit-lane"]);
 
 /** Is a flag RD-28-held (a hold_class marker anywhere in its recommended_actions)? @param {any} f */
 export function isRd28Held(f) {

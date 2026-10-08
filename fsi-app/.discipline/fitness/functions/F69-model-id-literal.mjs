@@ -21,7 +21,7 @@ import { isOverridden } from '../lib/file-content.mjs';
 // A quoted Anthropic model-id literal: "claude-haiku-...", "claude-sonnet-...", "claude-opus-...", in
 // either quote style. Matches the literal wherever it appears on a line (an assignment, a call argument,
 // a default, a template-literal fallback). The point is ANY hardcoded copy outside the sanctioned homes.
-export const MODEL_ID_LITERAL_RE = /["'`]claude-(?:haiku|sonnet|opus)-[a-z0-9.-]+["'`]/i;
+const MODEL_ID_LITERAL_RE = /["'`]claude-(?:haiku|sonnet|opus)-[a-z0-9.-]+["'`]/i;
 
 // The single shared home. Declares the literals once; everything else imports them.
 export const CANONICAL_HOME = 'fsi-app/src/lib/llm/model-ids.mjs';
@@ -34,7 +34,7 @@ export const SECURITY_ALLOWLIST_FILES = new Set([
 /** Lines (1-indexed) in `content` that carry a hardcoded model-id literal, ignoring comment/JSDoc lines
  *  and lines carrying an F69 override. A comment line is excluded because the literal there is prose
  *  (a drift note, a cost-estimate doc comment), never a live value a caller reads. */
-export function modelIdLiteralLines(content) {
+function modelIdLiteralLines(content) {
   const out = [];
   const lines = content.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {

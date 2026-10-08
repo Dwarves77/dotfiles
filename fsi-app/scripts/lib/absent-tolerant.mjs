@@ -3,7 +3,7 @@
 // migration 355 creates and must report `tables_absent` in a dry run instead of crashing; the pattern lived in both
 // files until F45 named the clone pair.
 
-export const ABSENT_RE = /does not exist|could not find|schema cache|relation .* does not exist|column .* does not exist/i;
+const ABSENT_RE = /does not exist|could not find|schema cache|relation .* does not exist|column .* does not exist/i;
 
 /** True when `e` is the error a read raises because a table or column is not there yet. @param {unknown} e */
 export function isAbsentError(e) {

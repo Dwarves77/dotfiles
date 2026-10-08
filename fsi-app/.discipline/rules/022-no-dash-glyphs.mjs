@@ -141,4 +141,3 @@ export const rule = {
 
 export const _GLYPH_RE = GLYPH_RE;
 export const _MARKER = MARKER;
-export const isDesignHandoffBundleFileExempt = isDesignHandoffBundleFile;

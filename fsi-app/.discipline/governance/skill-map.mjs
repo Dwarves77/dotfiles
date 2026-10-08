@@ -216,11 +216,6 @@ export function skillsForOp(text) {
   return GOVERNED.filter((g) => g.ops.some((re) => { re.lastIndex = 0; return re.test(text); }));
 }
 
-// Convenience: governing skills for a class.
-export function skillsForClass(cls) {
-  return GOVERNED.filter((g) => g.classes.includes(cls));
-}
-
 // ---- CLI (consumed by the shell PreToolUse hook) ----
 // Usage:
 //   node skill-map.mjs --file <path>     → prints governing skill names (one per line), empty if none

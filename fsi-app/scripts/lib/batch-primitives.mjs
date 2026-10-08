@@ -13,7 +13,6 @@
 //   withRateLimit(fn, opts)           enforce minimum interval / max concurrency
 //   withIdempotency(fn, opts)         skip already-done items
 //   createPgPool(opts)                configured pg.Pool factory
-//   createProgressReporter(opts)      hook-based progress output
 //
 // Predicates (callers compose into withRetry):
 //   isGenericRetryable(err)           generic network errors
@@ -26,9 +25,6 @@
 //   - withCheckpoint (save-and-resume progress state) is intentionally absent.
 //     Current batches finish in 16 min and resume cleanly via idempotency
 //     alone. Add withCheckpoint if a long-running batch (multi-hour) needs it.
-//   - createProgressReporter is hook-based, not a wrapper. Caller invokes
-//     reporter.tick() / reporter.error() / reporter.complete() directly
-//     inside the loop. Reads cleaner than wrapping the work function.
 
 import pg from "pg";
 
@@ -212,69 +208,6 @@ export function createPgPool(opts = {}) {
     console.error("[pg.Pool error]", err.message || err);
   });
   return pool;
-}
-
-// ─────────────────────────────────────────────────────────────────
-// createProgressReporter
-//
-// Hook-based progress reporter. Returns object with tick/skip/error/
-// complete/summary methods. Caller invokes inside the batch loop.
-// ─────────────────────────────────────────────────────────────────
-export function createProgressReporter(opts = {}) {
-  const { total = 0, label = "batch" } = opts;
-  const start = Date.now();
-  let processed = 0;
-  let errored = 0;
-  let skipped = 0;
-  const padWidth = String(total || 1).length;
-
-  function emitLine(item, status) {
-    const idx = String(processed).padStart(padWidth, " ");
-    const name =
-      (item && (item.name || item.id)) ?? String(item ?? "(item)");
-    console.log(`[${idx}/${total || "?"}] ${truncate(name, 60)}  ${status}`);
-  }
-
-  return {
-    tick(item, result) {
-      processed++;
-      const status =
-        result && result.skipped ? "skip" : result?.status ?? "ok";
-      if (result && result.skipped) skipped++;
-      emitLine(item, status);
-    },
-    skip(item) {
-      processed++;
-      skipped++;
-      emitLine(item, "skip");
-    },
-    error(item, err) {
-      processed++;
-      errored++;
-      const msg = (err && (err.message || String(err))) || "unknown error";
-      emitLine(item, `FAILED: ${msg}`);
-    },
-    complete() {
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      console.log(`\n=== ${label} complete ===`);
-      console.log(`Processed: ${processed}/${total || processed}`);
-      console.log(`Errored: ${errored}`);
-      console.log(`Skipped: ${skipped}`);
-      console.log(`Elapsed: ${elapsed}s`);
-    },
-    summary() {
-      return {
-        processed,
-        errored,
-        skipped,
-        elapsedMs: Date.now() - start,
-      };
-    },
-  };
-}
-
-function truncate(s, n) {
-  return s.length <= n ? s : s.slice(0, n - 1) + "…";
 }
 
 function sleep(ms) {
