@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/Button";
 import { InlineErrorBanner } from "@/components/ui/InlineErrorBanner";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { PortfolioAddSearch } from "@/components/portfolio/PortfolioAddSearch";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import { ORIGIN_CLASS } from "@/lib/contracts/vocabularies.mjs";
 import { formatLocaleDate, countNoun } from "@/lib/format";
@@ -92,6 +93,9 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
   const [busy, setBusy] = useState<string | null>(null);
   const [name, setName] = useState(portfolio.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // SEC-3b (migration 370): portfolios are a shared workspace write and role viewer reads but does not
+  // write them, so a viewer sees the roll-ups and rows without the add, remove, rename or delete controls.
+  const isViewer = useWorkspaceStore((s) => s.userRole) === "viewer";
 
   const allRows: PortfolioItemRow[] = groups.flatMap((g) => g.rows);
   const memberItemIds = allRows.map((r) => r.itemUuid);
@@ -116,18 +120,19 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
   const removeEntity = (entityId: string) =>
     run(`rm:${entityId}`, () => removeMemberRequest(portfolio.id, { entityId }), () => router.refresh());
 
-  const removeMenu = (label: string, onRemove: () => void) => (
-    <PriorityDropdown
-      variant="card"
-      showPriorityActions={false}
-      ariaLabel={`Actions for ${label}`}
-      menuTopContent={
-        <button type="button" style={menuButtonStyle} onClick={onRemove} disabled={busy !== null}>
-          Remove from portfolio
-        </button>
-      }
-    />
-  );
+  const removeMenu = (label: string, onRemove: () => void) =>
+    isViewer ? undefined : (
+      <PriorityDropdown
+        variant="card"
+        showPriorityActions={false}
+        ariaLabel={`Actions for ${label}`}
+        menuTopContent={
+          <button type="button" style={menuButtonStyle} onClick={onRemove} disabled={busy !== null}>
+            Remove from portfolio
+          </button>
+        }
+      />
+    );
 
   const dek = (
     <span>
@@ -192,6 +197,7 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
                 </p>
               )}
             </RailCard>
+            {!isViewer && (
             <RailCard title="Manage">
               <form
                 onSubmit={(e) => {
@@ -248,6 +254,7 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
                 )}
               </div>
             </RailCard>
+            )}
           </div>
         }
       >
@@ -256,7 +263,7 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
 
           {notHeld.length > 0 && (
             <StateNote
-              action={{
+              action={isViewer ? undefined : {
                 label: busy?.startsWith("clear") ? "Removing..." : "Remove them",
                 onClick: () => {
                   void (async () => {
@@ -282,10 +289,12 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
 
           {rollup.total === 0 && (
             <SectionCard>
-              <SectionHeading title="Nothing here yet" aside="Add your first item below" />
+              <SectionHeading title="Nothing here yet" aside={isViewer ? "Read only" : "Add your first item below"} />
               <div style={{ padding: "0 16px 16px" }}>
                 <StateNote>
-                  This portfolio is empty. Search below to add an item, or add an item, corridor or entity from the page that shows it.
+                  {isViewer
+                    ? "This portfolio is empty. Your role in this workspace can read portfolios but not add to them; a member, admin or owner can."
+                    : "This portfolio is empty. Search below to add an item, or add an item, corridor or entity from the page that shows it."}
                 </StateNote>
               </div>
             </SectionCard>
@@ -344,10 +353,12 @@ export function PortfolioDetailView({ view, nowIso }: PortfolioDetailViewProps) 
             </StateNote>
           )}
 
-          <SectionCard>
-            <SectionHeading title="Add to this portfolio" aside="Held items only" />
-            <PortfolioAddSearch portfolioId={portfolio.id} memberItemIds={memberItemIds} />
-          </SectionCard>
+          {!isViewer && (
+            <SectionCard>
+              <SectionHeading title="Add to this portfolio" aside="Held items only" />
+              <PortfolioAddSearch portfolioId={portfolio.id} memberItemIds={memberItemIds} />
+            </SectionCard>
+          )}
         </div>
       </PageFrame>
     </>

@@ -1786,6 +1786,880 @@
       ]
     },
     {
+      "id": "sec3b-org-plan-self-upgrade-refused",
+      "group": "SEC-3b table policies",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "organizations.plan is system-written: an organization owner, a member of another organization and an anonymous caller cannot change a plan, while the owner can still edit the organization's other columns and the service role can set the plan.",
+      "expected": "Each plan write is refused (42501) or matches zero rows and the plan stays free; the rename and the service-role plan change each affect one row.",
+      "reference": "migration 370 (lane SEC-3b); privilege census 2026-10-08; migration 006 (org_update_admin)",
+      "steps": [
+        {
+          "label": "precondition: org A is on the free plan",
+          "kind": "attack",
+          "sql": "SELECT plan FROM public.organizations WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "equals": {
+              "plan": "free"
+            }
+          }
+        },
+        {
+          "label": "attack: the org A owner sets their own plan to enterprise",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.organizations SET plan = 'enterprise' WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of org B sets org A's plan",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.organizations SET plan = 'enterprise' WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller sets org A's plan",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "UPDATE public.organizations SET plan = 'enterprise' WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "org A is still on the free plan",
+          "kind": "attack",
+          "sql": "SELECT plan FROM public.organizations WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "equals": {
+              "plan": "free"
+            }
+          }
+        },
+        {
+          "label": "control: the org A owner renames the organization",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.organizations SET name = 'Proof4 renamed' WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the service role sets the plan",
+          "kind": "control",
+          "as": "service",
+          "sql": "UPDATE public.organizations SET plan = 'pro' WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec3b-member-verified-badge-refused",
+      "group": "SEC-3b table policies",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "The Community verified badge is system-written: a member cannot set verified, verified_at, verification_method or organisation_key on their own profile, nor insert a profile that carries them, while the member can still edit their declared fields and the service role (the verify route) can verify.",
+      "expected": "Each forbidden write is refused (42501) or matches zero rows and verified stays false; the sector edit and the service-role verification each affect one row.",
+      "reference": "migration 370 (lane SEC-3b); privilege census 2026-10-08; migration 293 (community_member_profiles_update_own); src/app/api/community/profile/verify/route.ts",
+      "steps": [
+        {
+          "label": "setup: member B has a community profile",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_member_profiles (user_id, org_type) VALUES ($1::uuid, 'other')",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: the member sets verified",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_member_profiles SET verified = true WHERE user_id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the member sets the verification evidence",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_member_profiles SET verified_at = now(), verification_method = 'linkedin', organisation_key = 'proof4' WHERE user_id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the org A owner inserts their own verified profile",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.community_member_profiles (user_id, org_type, verified) VALUES ($1::uuid, 'other', true)",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "the member is still unverified",
+          "kind": "attack",
+          "sql": "SELECT verified FROM public.community_member_profiles WHERE user_id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "equals": {
+              "verified": "false"
+            }
+          }
+        },
+        {
+          "label": "control: the member edits their declared sector",
+          "kind": "control",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_member_profiles SET sector = 'proof4' WHERE user_id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the service role verifies the member",
+          "kind": "control",
+          "as": "service",
+          "sql": "UPDATE public.community_member_profiles SET verified = true, verified_at = now(), verification_method = 'corporate-email', organisation_key = 'proof4' WHERE user_id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec3b-org-membership-role-escalation-refused",
+      "group": "SEC-3b table policies",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Organization roles move only by rule: an admin cannot grant owner (to themselves or anyone), cannot demote or remove an owner, cannot move a membership to another organization, and the last owner cannot be demoted or removed; an owner can still change a non-owner role.",
+      "expected": "Each forbidden write is refused (42501) or matches zero rows; org A still has exactly one owner; the owner's role change on the admin affects one row.",
+      "reference": "migration 370 (lane SEC-3b); privilege census 2026-10-08; migration 006 (membership_write_admin, membership_update_admin)",
+      "steps": [
+        {
+          "label": "setup: create the admin auth user",
+          "kind": "setup",
+          "sql": "INSERT INTO auth.users (id, aud, role, email, created_at, updated_at) VALUES (gen_random_uuid(), 'authenticated', 'authenticated', 'proof4-sec3b-admin@chain-proof.invalid', now(), now()) RETURNING id AS admin_id",
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "admin_id": "admin_id"
+          }
+        },
+        {
+          "label": "setup: create the admin profile",
+          "kind": "setup",
+          "sql": "INSERT INTO public.profiles (id, email, display_name) VALUES ($1::uuid, 'proof4-sec3b-admin@chain-proof.invalid', 'Proof4 admin') ON CONFLICT (id) DO NOTHING",
+          "params": [
+            "@admin_id"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "setup: make the admin a admin of org A",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'admin')",
+          "params": [
+            "@org_a",
+            "@admin_id"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: the admin promotes themselves to owner",
+          "kind": "attack",
+          "as": "user:admin_id",
+          "sql": "UPDATE public.org_memberships SET role = 'owner' WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@admin_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the admin adds member B to org A as owner",
+          "kind": "attack",
+          "as": "user:admin_id",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'owner')",
+          "params": [
+            "@org_a",
+            "@member_b"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: the admin demotes the owner",
+          "kind": "attack",
+          "as": "user:admin_id",
+          "sql": "UPDATE public.org_memberships SET role = 'member' WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the admin removes the owner",
+          "kind": "attack",
+          "as": "user:admin_id",
+          "sql": "DELETE FROM public.org_memberships WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the sole owner removes their own membership",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "DELETE FROM public.org_memberships WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the sole owner demotes themselves",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.org_memberships SET role = 'admin' WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the admin moves their membership to org B",
+          "kind": "attack",
+          "as": "user:admin_id",
+          "sql": "UPDATE public.org_memberships SET org_id = $1::uuid WHERE user_id = $2::uuid AND org_id = $3::uuid",
+          "params": [
+            "@org_b",
+            "@admin_id",
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "org A still has exactly one owner",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM public.org_memberships WHERE org_id = $1::uuid AND role = 'owner'",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "equals": {
+              "n": "1"
+            }
+          }
+        },
+        {
+          "label": "control: the owner sets the admin to member",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.org_memberships SET role = 'member' WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@admin_id"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec3b-viewer-cannot-write-workspace-tables",
+      "group": "SEC-3b table policies",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "The viewer role is read-only on the shared workspace tables: a viewer reads tags but cannot add or delete a tag, add a team watchlist row or create a portfolio, while an owner can.",
+      "expected": "Each viewer write is refused (42501) or matches zero rows; the viewer still reads the workspace's tags; the owner's tag and portfolio inserts each affect one row.",
+      "reference": "migration 370 (lane SEC-3b); privilege census 2026-10-08; migrations 006, 077, 313, 362 (policies now keyed on user_can_write_in_org)",
+      "steps": [
+        {
+          "label": "setup: create the viewer auth user",
+          "kind": "setup",
+          "sql": "INSERT INTO auth.users (id, aud, role, email, created_at, updated_at) VALUES (gen_random_uuid(), 'authenticated', 'authenticated', 'proof4-sec3b-viewer@chain-proof.invalid', now(), now()) RETURNING id AS viewer_id",
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "viewer_id": "viewer_id"
+          }
+        },
+        {
+          "label": "setup: create the viewer profile",
+          "kind": "setup",
+          "sql": "INSERT INTO public.profiles (id, email, display_name) VALUES ($1::uuid, 'proof4-sec3b-viewer@chain-proof.invalid', 'Proof4 viewer') ON CONFLICT (id) DO NOTHING",
+          "params": [
+            "@viewer_id"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "setup: make the viewer a viewer of org A",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'viewer')",
+          "params": [
+            "@org_a",
+            "@viewer_id"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: the viewer still reads the org A tags",
+          "kind": "control",
+          "as": "user:viewer_id",
+          "sql": "SELECT count(*)::int AS n FROM public.workspace_tags WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "equals": {
+              "n": "1"
+            }
+          }
+        },
+        {
+          "label": "attack: the viewer adds a workspace tag",
+          "kind": "attack",
+          "as": "user:viewer_id",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES ($1::uuid, 'proof4 viewer tag', $2::uuid)",
+          "params": [
+            "@org_a",
+            "@viewer_id"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: the viewer deletes a workspace tag",
+          "kind": "attack",
+          "as": "user:viewer_id",
+          "sql": "DELETE FROM public.workspace_tags WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the viewer adds a team watchlist row",
+          "kind": "attack",
+          "as": "user:viewer_id",
+          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'item', 'proof4-viewer')",
+          "params": [
+            "@org_a",
+            "@viewer_id"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: the viewer creates a portfolio",
+          "kind": "attack",
+          "as": "user:viewer_id",
+          "sql": "INSERT INTO public.portfolios (org_id, name, created_by) VALUES ($1::uuid, 'proof4 viewer portfolio', $2::uuid)",
+          "params": [
+            "@org_a",
+            "@viewer_id"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "org A still has exactly one tag",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM public.workspace_tags WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "equals": {
+              "n": "1"
+            }
+          }
+        },
+        {
+          "label": "control: the owner adds a workspace tag",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES ($1::uuid, 'proof4 owner tag', $2::uuid)",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the owner creates a portfolio",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.portfolios (org_id, name, created_by) VALUES ($1::uuid, 'proof4 owner portfolio', $2::uuid)",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec3b-post-signoff-and-author-forgery-refused",
+      "group": "SEC-3b table policies",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "The sign-off stamp, author and group of a Community post are not the author to change: an author cannot stamp signed_off_at or signed_off_by (update or insert), cannot reassign the author, and cannot move the post to a group they do not moderate, while the author can still edit the body and the service role (the decide route) can stamp.",
+      "expected": "Each forbidden write is refused (42501) or matches zero rows and the post is unchanged; the body edit and the service-role stamp each affect one row.",
+      "reference": "migration 370 (lane SEC-3b); privilege census 2026-10-08; migration 030 (community_posts_update_author_or_admin); src/app/api/community/signoff/[id]/decide/route.ts",
+      "steps": [
+        {
+          "label": "setup: group 1, owned by the org A owner",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_groups (name, slug, region, privacy, owner_user_id) VALUES ('proof4 sec3b g1', 'proof4-sec3b-g1', 'EU', 'public', $1::uuid) RETURNING id AS g1_id",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "g1_id": "g1_id"
+          }
+        },
+        {
+          "label": "setup: group 2, owned by the org A owner",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_groups (name, slug, region, privacy, owner_user_id) VALUES ('proof4 sec3b g2', 'proof4-sec3b-g2', 'EU', 'public', $1::uuid) RETURNING id AS g2_id",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "g2_id": "g2_id"
+          }
+        },
+        {
+          "label": "setup: the org A owner is a plain member of group one",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_group_members (group_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'member')",
+          "params": [
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "setup: a post by the org A owner in group one",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_posts (group_id, author_user_id, title, body) VALUES ($1::uuid, $2::uuid, 'proof4 post', 'proof4 body') RETURNING id AS post_id",
+          "params": [
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "post_id": "post_id"
+          }
+        },
+        {
+          "label": "attack: the author stamps signed_off_at",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_posts SET signed_off_at = now() WHERE id = $1::uuid",
+          "params": [
+            "@post_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the author stamps signed_off_by",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_posts SET signed_off_by = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@post_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the author reassigns the author",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_posts SET author_user_id = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@post_id",
+            "@member_b"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the author moves the post to group two",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_posts SET group_id = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@post_id",
+            "@g2_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the author inserts a post that is already signed off",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.community_posts (group_id, author_user_id, title, body, signed_off_at) VALUES ($1::uuid, $2::uuid, 'proof4 forged', 'x', now())",
+          "params": [
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "the post is unstamped, in group one, by the owner",
+          "kind": "attack",
+          "sql": "SELECT (signed_off_at IS NOT NULL) AS stamped, (group_id = $2::uuid) AS in_g1, (author_user_id = $3::uuid) AS by_owner FROM public.community_posts WHERE id = $1::uuid",
+          "params": [
+            "@post_id",
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "equals": {
+              "stamped": "false",
+              "in_g1": "true",
+              "by_owner": "true"
+            }
+          }
+        },
+        {
+          "label": "control: the author edits the body",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_posts SET body = 'proof4 edited' WHERE id = $1::uuid",
+          "params": [
+            "@post_id"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the service role stamps the post",
+          "kind": "control",
+          "as": "service",
+          "sql": "UPDATE public.community_posts SET signed_off_at = now(), signed_off_by = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@post_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec3b-signoff-self-decision-and-group-takeover-refused",
+      "group": "SEC-3b table policies",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "A sign-off request starts pending and is decided by someone other than its requester; a group moderator cannot take group ownership.",
+      "expected": "Each forbidden write is refused (42501) or matches zero rows; the request stays pending and the group stays with its owner until a legitimate verifier decides and the owner transfers.",
+      "reference": "migration 370 (lane SEC-3b); privilege census 2026-10-08; migration 153 (signoff_insert, signoff_decide); migration 046 (community_groups_update_owner_or_admin)",
+      "steps": [
+        {
+          "label": "setup: group one, owned by the org A owner",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_groups (name, slug, region, privacy, owner_user_id) VALUES ('proof4 sec3b g1', 'proof4-sec3b-g1', 'EU', 'public', $1::uuid) RETURNING id AS g1_id",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "g1_id": "g1_id"
+          }
+        },
+        {
+          "label": "setup: the org A owner administers group one",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_group_members (group_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'admin')",
+          "params": [
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "setup: member B moderates group one",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_group_members (group_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'moderator')",
+          "params": [
+            "@g1_id",
+            "@member_b"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "setup: a post by the org A owner",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_posts (group_id, author_user_id, title, body) VALUES ($1::uuid, $2::uuid, 'proof4 post', 'proof4 body') RETURNING id AS post_id",
+          "params": [
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "post_id": "post_id"
+          }
+        },
+        {
+          "label": "setup: a pending request by the org A owner",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_post_signoff_requests (post_id, requested_by, status) VALUES ($1::uuid, $2::uuid, 'pending') RETURNING id AS req_id",
+          "params": [
+            "@post_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "req_id": "req_id"
+          }
+        },
+        {
+          "label": "setup: both the owner and member B are active verifiers",
+          "kind": "setup",
+          "sql": "UPDATE public.profiles SET verifier_status = 'active' WHERE id = ANY(ARRAY[$1::uuid, $2::uuid])",
+          "params": [
+            "@owner_a",
+            "@member_b"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: the requester, an active verifier, decides their own request",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_post_signoff_requests SET status = 'signed_off', verifier_id = $2::uuid, decided_at = now() WHERE id = $1::uuid AND status = 'pending'",
+          "params": [
+            "@req_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the requester opens a request that is already signed off",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.community_post_signoff_requests (post_id, requested_by, status) VALUES ($1::uuid, $2::uuid, 'signed_off')",
+          "params": [
+            "@post_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: another verifier records the requester as the verifier",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_post_signoff_requests SET status = 'signed_off', verifier_id = $2::uuid, decided_at = now() WHERE id = $1::uuid AND status = 'pending'",
+          "params": [
+            "@req_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a verifier rewrites requested_by",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_post_signoff_requests SET requested_by = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@req_id",
+            "@member_b"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: the group moderator takes group ownership",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_groups SET owner_user_id = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@g1_id",
+            "@member_b"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "the request is still pending and the group still has its owner",
+          "kind": "attack",
+          "sql": "SELECT (SELECT status FROM public.community_post_signoff_requests WHERE id = $1::uuid) AS status, (SELECT owner_user_id = $3::uuid FROM public.community_groups WHERE id = $2::uuid) AS owner_kept",
+          "params": [
+            "@req_id",
+            "@g1_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "equals": {
+              "status": "pending",
+              "owner_kept": "true"
+            }
+          }
+        },
+        {
+          "label": "control: a different verifier decides the request",
+          "kind": "control",
+          "as": "user:member_b",
+          "sql": "UPDATE public.community_post_signoff_requests SET status = 'signed_off', verifier_id = $2::uuid, decided_at = now() WHERE id = $1::uuid AND status = 'pending'",
+          "params": [
+            "@req_id",
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the owner transfers the group",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.community_groups SET owner_user_id = $2::uuid WHERE id = $1::uuid",
+          "params": [
+            "@g1_id",
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        }
+      ]
+    },
+    {
       "id": "sec5-profiles-anon-read-refused",
       "group": "SEC-5 profiles read",
       "kind": "sql",

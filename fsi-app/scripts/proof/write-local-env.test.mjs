@@ -1,7 +1,7 @@
 /** Tests for scripts/proof/write-local-env.mjs (lane PROOF-1, ruling R3). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseStatusEnv, buildLocalEnv, renderEnvFile, maskLines } from "./write-local-env.mjs";
+import { parseStatusEnv, buildLocalEnv, renderEnvFile, maskLines, withUser, SUPERUSER_ROLE } from "./write-local-env.mjs";
 import { checkPreflight } from "./preflight.mjs";
 
 const STATUS = [
@@ -59,4 +59,27 @@ test("renderEnvFile single-quotes values and refuses a value with a quote", () =
 test("maskLines masks the keys only, once each", () => {
   const e = buildLocalEnv(parseStatusEnv(STATUS));
   assert.deepEqual(maskLines(e).sort(), ["::add-mask::anon-jwt", "::add-mask::service-jwt"]);
+});
+
+test("PROOF-5: the env carries PROOF_DB_SUPERUSER_URL, the same loopback database URL with the superuser role and the same password", () => {
+  const e = buildLocalEnv(parseStatusEnv(STATUS));
+  assert.equal(SUPERUSER_ROLE, "supabase_admin");
+  assert.equal(e.PROOF_DB_SUPERUSER_URL, "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres");
+  const u = new URL(e.PROOF_DB_SUPERUSER_URL);
+  assert.equal(u.hostname, "127.0.0.1");
+  assert.equal(u.username, "supabase_admin");
+  assert.equal(u.password, new URL(e.PROOF_DB_URL).password);
+  assert.equal(new URL(e.PROOF_DB_URL).username, "postgres", "the ordinary URL stays on the postgres role");
+  assert.match(renderEnvFile(e), /export PROOF_DB_SUPERUSER_URL='postgresql:\/\/supabase_admin:postgres@127\.0\.0\.1:54322\/postgres'/);
+});
+
+test("PROOF-5: withUser replaces only the user", () => {
+  assert.equal(withUser("postgresql://postgres:pw@127.0.0.1:54322/postgres", "x"), "postgresql://x:pw@127.0.0.1:54322/postgres");
+});
+
+test("PROOF-5: ATTACK: a superuser URL on a non-loopback host is refused by the chain-proof preflight", () => {
+  const e = buildLocalEnv(parseStatusEnv(STATUS));
+  const r = checkPreflight({ PATH: "/usr/bin", ...e, PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:pw@db.example.org:5432/postgres" });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes("PROOF_DB_SUPERUSER_URL does not name a loopback host")));
 });

@@ -49,6 +49,7 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import {
   PRIORITY_DISPLAY_LABEL_SHORT,
   type PriorityKey,
@@ -152,9 +153,14 @@ export function PriorityDropdown({
   onDismiss,
   onArchive,
   menuTopContent,
-  showPriorityActions = true,
+  showPriorityActions: showPriorityActionsProp = true,
   ariaLabel = "Regulation actions",
 }: PriorityDropdownProps) {
+  // SEC-3b (migration 370): setting a priority or dismissing writes workspace_item_overrides, a shared
+  // workspace table, and role viewer reads but does not write it. A viewer is not offered those items;
+  // the personal archive and any menuTopContent (the personal watch) stay.
+  const isViewer = useWorkspaceStore((s) => s.userRole) === "viewer";
+  const showPriorityActions = showPriorityActionsProp && !isViewer;
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -207,6 +213,9 @@ export function PriorityDropdown({
   }
 
   const popoverWidth = 200;
+
+  // A viewer with nothing left in the menu gets no empty kebab.
+  if (isViewer && !menuTopContent && !onArchive) return null;
 
   return (
     <div

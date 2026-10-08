@@ -10,10 +10,18 @@
 // env change only):
 //   API_URL                          -> NEXT_PUBLIC_SUPABASE_URL, PROOF_API_URL
 //   DB_URL                           -> SUPABASE_DB_URL, PROOF_DB_URL
+//   DB_URL with the user replaced    -> PROOF_DB_SUPERUSER_URL (lane PROOF-5: the one step that needs a superuser,
+//                                       create-oracle-db.mjs; the `postgres` role of the local stack is not one)
 //   SERVICE_ROLE_KEY (or SECRET_KEY) -> SUPABASE_SERVICE_ROLE_KEY, PROOF_SERVICE_KEY
 //   ANON_KEY (or PUBLISHABLE_KEY)    -> NEXT_PUBLIC_SUPABASE_ANON_KEY
 //   plus CHAIN_PROOF_LOCAL=1 (pg-conn loopback mode) and SCRAPE_HOLD=off (explicit).
 // The fallback key names are for newer CLI versions and are a HYPOTHESIS until the first run.
+//
+// THE SUPERUSER ROLE (lane PROOF-5, 2026-10-08). chain-proof run 37743372083 showed the local stack's `postgres` role
+// is not a superuser (the stack's services hold superuser sessions it may not terminate). The stack's superuser is
+// `supabase_admin`: [INFERRED] the Supabase CLI 2.95.4 binary configures its own service containers with
+// DB_USER=supabase_admin and the same configured database password it prints as the DB_URL password; not run
+// against a live stack in this lane (no container runtime), so the first chain-proof run after this change is the check.
 //
 // Usage: supabase status -o env | node scripts/proof/write-local-env.mjs --out <file>
 // Prints `::add-mask::<value>` lines (GitHub Actions) for each key, never the keys themselves otherwise.
@@ -37,6 +45,16 @@ export function parseStatusEnv(text) {
 
 const hostOf = (u) => { try { return new URL(u).hostname; } catch { return null; } };
 
+/** The stack's superuser role (see the header). */
+export const SUPERUSER_ROLE = "supabase_admin";
+
+/** The same URL with another user, password kept. PURE. */
+export function withUser(url, user) {
+  const u = new URL(url);
+  u.username = user;
+  return u.toString();
+}
+
 /** Build the local env. PURE. Throws a message naming the variable, never a value. */
 export function buildLocalEnv(status) {
   const api = status.API_URL;
@@ -54,6 +72,7 @@ export function buildLocalEnv(status) {
     PROOF_API_URL: api,
     SUPABASE_DB_URL: db,
     PROOF_DB_URL: db,
+    PROOF_DB_SUPERUSER_URL: withUser(db, SUPERUSER_ROLE),
     SUPABASE_SERVICE_ROLE_KEY: service,
     PROOF_SERVICE_KEY: service,
     CHAIN_PROOF_LOCAL: "1",

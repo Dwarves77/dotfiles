@@ -6,6 +6,7 @@ import type { WatchlistItemType } from "@/lib/data";
 import { isTeamOnlyWatchType } from "@/lib/watchlist-scope";
 import { getClientWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import { ActionButton } from "@/components/ui/ActionRow";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
 /** WatchButton — the WIRED watch toggle (chrome-audit S2-04, browser wave).
  *
@@ -309,6 +310,11 @@ function DefaultWatchButton({
     initialTeamAvailable
   );
 
+  // SEC-3b (migration 370): the team watchlist (org_watchlist) is a shared workspace write, and role
+  // viewer reads but does not write it. A viewer keeps the personal watch; the team control is not offered.
+  const isViewer = useWorkspaceStore((s) => s.userRole) === "viewer";
+  const teamWritable = teamAvailable && !isViewer;
+
   const personalButton = (
     <PersonalWatchButton
       watched={watched}
@@ -358,14 +364,14 @@ function DefaultWatchButton({
     // No personal control, ever: user_watchlist's CHECK does not admit this
     // type (route.ts's isTeamOnlyScopeViolation would 400 the write), so
     // offering it would be an affordance the API can only reject.
-    if (!teamAvailable) {
+    if (!teamWritable) {
       // And no team control either — no workspace resolved, so the write
       // would 403. Nothing here can succeed; render a disabled explainer
       // instead of a control that can only fail, same principle the
       // pre-existing !teamAvailable branch below applies to the team pill.
       return (
         <span
-          title="Watching this item requires a workspace membership"
+          title={isViewer ? "Your role in this workspace can read the team watchlist but not add to it" : "Watching this item requires a workspace membership"}
           style={{
             display: "inline-block",
             fontFamily: "var(--font-sans)",
@@ -385,7 +391,7 @@ function DefaultWatchButton({
     return teamButton(true);
   }
 
-  if (!teamAvailable) return personalButton;
+  if (!teamWritable) return personalButton;
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>

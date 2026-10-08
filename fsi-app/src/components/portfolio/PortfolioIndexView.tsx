@@ -33,6 +33,7 @@ import { InlineErrorBanner } from "@/components/ui/InlineErrorBanner";
 import { formatLocaleDate, countNoun } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { createPortfolioRequest } from "@/lib/portfolio/client";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { PortfolioSummary } from "@/lib/portfolio/types";
 
 export type PortfolioIndexState = "ok" | "signed-out" | "unavailable";
@@ -53,6 +54,9 @@ export function PortfolioIndexView({ state, portfolios, countsTruncated = false,
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // SEC-3b (migration 370): creating a portfolio is a shared workspace write and role viewer reads but
+  // does not write, so a viewer sees the list without the create form.
+  const isViewer = useWorkspaceStore((s) => s.userRole) === "viewer";
 
   async function create() {
     const clean = name.trim();
@@ -91,7 +95,7 @@ export function PortfolioIndexView({ state, portfolios, countsTruncated = false,
           <RailCard title="How portfolios work">
             <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0, lineHeight: 1.5 }}>
               Add an item, corridor or entity from the page that shows it. Adding the same thing again from
-              anywhere is the same record. Everyone in your workspace sees and can change the same portfolios.
+              anywhere is the same record. Everyone in your workspace sees the same portfolios; members, admins and owners can change them.
             </p>
           </RailCard>
         }
@@ -112,6 +116,7 @@ export function PortfolioIndexView({ state, portfolios, countsTruncated = false,
               </div>
             ) : (
               <>
+                {!isViewer && (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -143,6 +148,7 @@ export function PortfolioIndexView({ state, portfolios, countsTruncated = false,
                     {pending ? "Creating..." : "Create portfolio"}
                   </Button>
                 </form>
+                )}
                 {error && (
                   <div style={{ padding: "0 16px 14px" }}>
                     <InlineErrorBanner message={error} />
@@ -152,8 +158,9 @@ export function PortfolioIndexView({ state, portfolios, countsTruncated = false,
                 {portfolios.length === 0 ? (
                   <div style={{ padding: "0 16px 16px" }}>
                     <StateNote>
-                      No portfolios yet. Name one above to start; it opens straight away and you can add items,
-                      corridors and entities from there.
+                      {isViewer
+                        ? "No portfolios yet. Your role in this workspace can read portfolios but not create them; a member, admin or owner can."
+                        : "No portfolios yet. Name one above to start; it opens straight away and you can add items, corridors and entities from there."}
                     </StateNote>
                   </div>
                 ) : (
