@@ -882,7 +882,7 @@ BEGIN
       -- ===== Item 6: the viewer gap =====
       INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES (v_org, 'sec3b seed', v_owner) RETURNING id INTO v_tag;
       INSERT INTO public.portfolios (org_id, name, created_by) VALUES (v_org, 'sec3b seed', v_owner) RETURNING id INTO v_pf;
-      INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (v_org, v_owner, 'item', 'sec3b-seed');
+      INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (v_org, v_owner, 'reg', 'sec3b-seed');
       PERFORM pg_temp.sec3b_expect('6 the viewer still reads tags',
         pg_temp.sec3b_try('authenticated', v_viewer, format('SELECT 1 FROM public.workspace_tags WHERE org_id = %L', v_org)),
         'ok:%', 'ok:0');
@@ -896,10 +896,10 @@ BEGIN
         pg_temp.sec3b_try('authenticated', v_viewer, format('DELETE FROM public.workspace_tags WHERE id = %L', v_tag)),
         'ok:0');
       PERFORM pg_temp.sec3b_expect('6C the viewer inserts a team watchlist row',
-        pg_temp.sec3b_try('authenticated', v_viewer, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_viewer, 'item', 'sec3b-viewer')),
+        pg_temp.sec3b_try('authenticated', v_viewer, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_viewer, 'reg', 'sec3b-viewer')),
         'err:42501:%');
       PERFORM pg_temp.sec3b_expect('6C control: a member inserts a team watchlist row',
-        pg_temp.sec3b_try('authenticated', v_member, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_member, 'item', 'sec3b-member')),
+        pg_temp.sec3b_try('authenticated', v_member, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_member, 'reg', 'sec3b-member')),
         'ok:1');
       PERFORM pg_temp.sec3b_expect('6C the viewer updates a team watchlist row',
         pg_temp.sec3b_try('authenticated', v_viewer, format('UPDATE public.org_watchlist SET note = %L WHERE org_id = %L', 'sec3b', v_org)),
