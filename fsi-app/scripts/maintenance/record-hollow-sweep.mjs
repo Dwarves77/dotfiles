@@ -163,7 +163,7 @@ export const RESTORE_CITE = Object.freeze({
 
 export const ARCHIVE_REASON = "record_hollow";
 export const SWEEP_MARKER = "record-hollow-sweep";
-export const TITLE_FACT_PREFIX = "[title]";
+const TITLE_FACT_PREFIX = "[title]";
 export const RESTORE_ARG_PREFIX = "restore:";
 
 // The exact SQL this step's own two-read + JS-aggregation selection reproduces (documented in the file

@@ -69,7 +69,7 @@ function mainCheckoutRoot() {
   }
 }
 
-export const CHECKOUT_ROOTS = [...new Set([WORKTREE_ROOT, mainCheckoutRoot()].filter(Boolean).map(norm))];
+const CHECKOUT_ROOTS = [...new Set([WORKTREE_ROOT, mainCheckoutRoot()].filter(Boolean).map(norm))];
 
 // The REAL (symlink/junction-resolved) location of every install the checkout reaches. Node's ESM
 // resolver hands back a realpathed URL, so an install reached through a link whose TARGET lies outside
@@ -85,7 +85,7 @@ function installDirOf(resolvedFile) {
   const i = parts.lastIndexOf('node_modules');
   return i === -1 ? null : parts.slice(0, i + 1).join(sep);
 }
-export const BLOCKED_INSTALL_REALPATHS = (() => {
+const BLOCKED_INSTALL_REALPATHS = (() => {
   const out = new Set();
   for (const root of CHECKOUT_ROOTS) {
     try {

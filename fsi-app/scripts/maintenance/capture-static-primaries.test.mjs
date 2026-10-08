@@ -3,11 +3,12 @@
 // every fetch is a stubbed global.fetch or an injected fetchImpl, and every DB call is either a fake
 // `deps` object (main() orchestration) or db.mjs's own write-client test seam (buildDeps real-wiring,
 // the D22 pattern -- apply-classifications.test.mjs's own buildRealDeps section is the template).
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, join } from "node:path";
 import {
   isStaticTextHost, htmlToText, deriveCelexTxtHtmlUrl, classifyCaptureOutcome, maxPoolLenByItem,
   deriveCellarUrl, headersFor, CELLAR_CELEX_PREFIX,
@@ -15,6 +16,16 @@ import {
   makeDirectFetch, main, buildDeps, CITE, REG_FAMILY_ITEM_TYPES,
 } from "./capture-static-primaries.mjs";
 import { __setWriteClientForTest } from "../lib/db.mjs";
+
+// guardedInsert snapshots the prior row state to disk before writing (db.mjs). The buildDeps() real-wiring
+// tests below run the real guardedInsert against a fake write client, and without this redirect they left
+// scripts/_snapshots/<timestamp>_agent_run_searches.jsonl and _integrity_flags.jsonl in the real working
+// tree on every run (lane TESTFIX-1, 2026-10-08: found by diffing the ignored status around a full suite
+// run). A private temp directory, removed when the file finishes (the sibling tests set a fixed temp path
+// and never clean it).
+const SNAP_DIR = mkdtempSync(join(tmpdir(), "capture-static-primaries-test-snapshots-"));
+process.env.DISCIPLINE_SNAP_DIR = SNAP_DIR;
+after(() => { rmSync(SNAP_DIR, { recursive: true, force: true }); });
 
 // ── isStaticTextHost / STATIC_TEXT_HOSTS ────────────────────────────────────────────────────────────────
 

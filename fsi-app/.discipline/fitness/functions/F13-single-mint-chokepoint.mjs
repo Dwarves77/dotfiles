@@ -7,32 +7,39 @@
 //
 // Governing: phase-intake-gate contract (docs/design/intake-gate-plan.md v2.2, dispatch §2).
 //
-// Scope: fsi-app/src/**/*.{ts,tsx,mjs}, EXCLUDING the chokepoint itself and test files
-// (__tests__/**, *.test.*). Scripts (fsi-app/scripts/**) are one-shot tools, out of runtime scope.
+// Scope: every JavaScript or TypeScript file under fsi-app/src and fsi-app/scripts (any of .ts .tsx .mjs .js
+// .cjs .jsx), EXCLUDING the chokepoint itself and test files (__tests__/**, *.test.*). Lane GATE-8 (2026-10-08,
+// AUD-AT-4 B1-18, B1-19) widened the scope from src/**/*.{ts,tsx,mjs}: a route.js, a .cjs helper or a script
+// that mints through a direct insert bypasses the gate the same way a route.ts does.
+//
+// How it reads (lane GATE-8, AUD-AT-4 B1-13 to B1-17, B1-21): through ../lib/table-access.mjs, on the
+// comment-and-string-lexed source. It finds each `.from(<table>)` call, resolves the argument against the
+// file's own string constants (a template literal, a `const T = "intelligence_items"`, a name split over a
+// `+`), and walks the whole method chain that follows, so an `.insert(` or `.upsert(` is seen however far down
+// the chain it sits. A URL earlier on the line no longer hides the call, and an override marker inside a string
+// is not a marker. Raw SQL `INSERT INTO intelligence_items` in a string is also a mint.
 //
 // Override: trailing `// fitness-allow: F13 (reason)` on the matching line.
 
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
+import { overrideLines } from '../lib/code-scan.mjs';
+import { tableWriteLines, rawSqlLines } from '../lib/table-access.mjs';
 
 const CHOKEPOINT = 'fsi-app/src/lib/intake/mint-item.ts';
+const TABLE = 'intelligence_items';
 
-// The scan is line-anchored on `from("intelligence_items")`; an INSERT is flagged when `.insert(`
-// appears on the same line or within the next 3 lines (supabase-js allows the chained call to wrap).
-const FROM_ITEMS_RE = /\bfrom\(\s*["']intelligence_items["']\s*\)/;
+// Scripts that insert into intelligence_items on purpose, each with its reason. An adversarial audit ATTACKS the
+// provenance guard (rule 15: a guard is proven by attack, not by presence): it issues the forbidden insert inside
+// a transaction that is always rolled back and asserts the database refuses it. It mints nothing.
+export const SANCTIONED_ADVERSARIAL_SCRIPTS = new Map([
+  ['fsi-app/scripts/verify/prov-guard-adversarial-audit.mjs', 'migration 250 provenance-guard attack; every case runs in a transaction that is always rolled back'],
+]);
 
 export function isMintBypass(content) {
-  const lines = content.split(/\r?\n/);
-  const hits = [];
-  for (let i = 0; i < lines.length; i++) {
-    const codePart = lines[i].split('//')[0];
-    if (!FROM_ITEMS_RE.test(codePart)) continue;
-    if (isOverridden(lines[i], 'F13')) continue;
-    const window = lines.slice(i, Math.min(lines.length, i + 4)).map((l) => l.split('//')[0]).join('\n');
-    if (/\.insert\s*\(/.test(window)) hits.push(i + 1);
-  }
-  return hits;
+  const overridden = overrideLines(content, 'F13');
+  const lines = new Set([...tableWriteLines(content, TABLE), ...rawSqlLines(content, 'INSERT\\s+INTO', TABLE)]);
+  return [...lines].filter((ln) => !overridden.has(ln)).sort((a, b) => a - b);
 }
 
 export const fitnessFunction = {
@@ -42,16 +49,16 @@ export const fitnessFunction = {
   source: 'phase-intake-gate contract v2.2 (dispatch §2); the drain-first-fetch direct-mint bypass finding',
 
   enumerate() {
-    return globFiles(['fsi-app/src/**/*.{ts,tsx,mjs}']).filter(
+    return globFiles(['fsi-app/src/**/*.{ts,tsx,mjs,js,cjs,jsx}', 'fsi-app/scripts/**/*.{mjs,js,cjs,ts}']).filter(
       (p) =>
         p !== CHOKEPOINT &&
         !p.includes('/__tests__/') &&
-        !/\.test\.(ts|tsx|mjs)$/.test(p)
+        !/\.test\.(ts|tsx|mjs|js|cjs)$/.test(p)
     );
   },
 
   check(filepath, content) {
-    if (filepath === CHOKEPOINT) return PASS;
+    if (filepath === CHOKEPOINT || SANCTIONED_ADVERSARIAL_SCRIPTS.has(filepath)) return PASS;
     const hits = isMintBypass(content);
     if (hits.length === 0) return PASS;
     return hits.map((line) =>

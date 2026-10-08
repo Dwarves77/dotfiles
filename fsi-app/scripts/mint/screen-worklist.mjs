@@ -99,7 +99,7 @@ function parseArgs(argv) {
  * input (a usage error, not a screening outcome) but never on row-level shape problems -- those are
  * malformed rows, reported, not thrown.
  */
-export function loadRows(inputPath) {
+function loadRows(inputPath) {
   const raw = readFileSync(inputPath, "utf8");
   const parsed = JSON.parse(raw);
   if (Array.isArray(parsed)) return parsed;

@@ -36,13 +36,14 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
-import { INVARIANTS, SKILL_FILES, MARKER_SOURCE } from './invariants.mjs';
+import { INVARIANTS, SKILL_FILES, MARKER_SOURCE, RETIRED_INVARIANTS } from './invariants.mjs';
 import { resolveRange, gitFileAtBase } from '../lib/change-range.mjs';
 import { DOCTRINES } from './doctrine-register.mjs';
 import { runSecretsReferenceAudit } from './secrets-reference-audit.mjs';
 import { scanDoctrineContradictions, DOCTRINE_FILES } from './doctrine-contradiction.mjs';
 import { isExecutionWired } from './execution-wiring.mjs';
 import { rules } from '../manifest.mjs';
+import { recordGateFirings } from '../lib/gate-firings.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
 import { consistencyChecks } from '../consistency/manifest.mjs';
 
@@ -119,9 +120,74 @@ function resolveToken(tok) {
   }
 }
 
+// The source text of the mechanism an enforcedBy token names, or null when it cannot be read. Used to ask whether
+// the enforcer names the invariant it claims to enforce (see auditInvariants). Lane GATE-8, 2026-10-08.
+function enforcerSource(tok) {
+  const [type, ...rest] = tok.split(':');
+  const locator = rest.join(':');
+  const dirFile = (relDir, prefix) => {
+    const names = TRACKED ? [...TRACKED].filter((p) => p.startsWith(relDir + '/')).map((p) => p.slice(relDir.length + 1)) : (() => { try { return readdirSync(join(REPO, relDir)); } catch { return []; } })();
+    const hit = names.find((n) => !n.includes('/') && n.startsWith(prefix) && n.endsWith('.mjs') && !n.endsWith('.test.mjs'));
+    return hit ? readRepoFile(relDir + '/' + hit) : null;
+  };
+  switch (type) {
+    case 'rule': return dirFile('fsi-app/.discipline/rules', locator + '-');
+    case 'fitness': return dirFile('fsi-app/.discipline/fitness/functions', locator + '-');
+    case 'consistency': return dirFile('fsi-app/.discipline/consistency/checks', locator + '-');
+    case 'audit':
+    case 'selftest': return readRepoFile(locator);
+    case 'migration': {
+      const hit = migrationFiles.find((f) => f.startsWith(locator + '_'));
+      return hit ? readRepoFile('fsi-app/supabase/migrations/' + hit) : null;
+    }
+    default: return null;
+  }
+}
+
+// The invariant ids on the merge-base tree: the file stems under invariants.d/ (the loader enforces id === stem).
+// null when git cannot answer (no baseline: the removal and new-invariant checks are skipped, never failed).
+function baseInvariantIds(base) {
+  try {
+    const out = execSync(`git ls-tree --name-only ${base} fsi-app/.discipline/governance/invariants.d/`, { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 24 });
+    return out.split('\n').map((l) => l.trim()).filter((l) => l.endsWith('.mjs')).map((l) => l.split('/').pop().slice(0, -4));
+  } catch { return null; }
+}
+
 function countMarkers(content) {
   const re = new RegExp(MARKER_SOURCE);
   return content.split(/\r?\n/).filter((l) => re.test(l)).length;
+}
+
+// An exemption must give a reason, not a placeholder (lane GATE-8, AUD-AT-4 B7-17: a one-character reason cleared
+// the gate). The floor is far below every shipped reason (the shortest is 111 characters) and far above a token.
+export const MIN_REASON_CHARS = 40;
+export const MIN_REASON_WORDS = 6;
+export function isMeaningfulReason(reason) {
+  const t = typeof reason === 'string' ? reason.trim() : '';
+  return t.length >= MIN_REASON_CHARS && t.split(/\s+/).filter(Boolean).length >= MIN_REASON_WORDS;
+}
+
+// PURE removed-invariant audit (lane GATE-8, AUD-AT-4 B7-15, B7-15b). An invariant that existed on the merge-base
+// and is gone at HEAD is a finding unless it is recorded in RETIRED_INVARIANTS with a reason. The earlier gate only
+// noticed a deletion when a doctrine happened to name the deleted invariant (UNKNOWN INVARIANT); an invariant no
+// doctrine names could be deleted outright and the registry simply got smaller. `baseIds`/`headIds`: Set or array of
+// ids; `retired`: { [id]: { reason, retiredOn } }.
+export function auditRemovedInvariants(baseIds, headIds, retired = {}) {
+  const head = new Set(headIds);
+  const problems = [];
+  for (const id of baseIds) {
+    if (head.has(id)) continue;
+    const r = retired[id];
+    if (!r) {
+      problems.push(`REMOVED INVARIANT: ${id} exists on the merge-base and is gone at HEAD, with no RETIRED_INVARIANTS entry. Deleting an invariant is a decision: record it in invariants.mjs RETIRED_INVARIANTS with a reason and the date, or restore it.`);
+    } else if (!isMeaningfulReason(r.reason) || !r.retiredOn || Number.isNaN(Date.parse(r.retiredOn))) {
+      problems.push(`REMOVED INVARIANT: ${id}'s RETIRED_INVARIANTS entry needs a meaningful reason and an ISO retiredOn date.`);
+    }
+  }
+  for (const id of Object.keys(retired)) {
+    if (head.has(id)) problems.push(`STALE RETIREMENT: ${id} is listed in RETIRED_INVARIANTS but is live at HEAD; remove the entry.`);
+  }
+  return { problems };
 }
 
 // PURE per-invariant audit (checks 1-3), injectable so the gate's catching behaviour is
@@ -144,6 +210,21 @@ export function auditInvariants(invariants, env) {
     }
     if (inv.exempt && !hasExempt) {
       problems.push(`EMPTY-EXEMPTION: ${where} has exempt without a non-empty reason.`);
+    }
+    if (hasExempt && !isMeaningfulReason(inv.exempt.reason)) {
+      problems.push(`THIN-EXEMPTION: ${where} exempt.reason ${JSON.stringify(inv.exempt.reason.trim().slice(0, 40))} is too short to be a reason (at least ${MIN_REASON_CHARS} characters and ${MIN_REASON_WORDS} words: say WHY it is not mechanically enforceable).`);
+    }
+
+    // NEW invariants must be enforced by something that names them (lane GATE-8, AUD-AT-4 B7-16). An enforcer that
+    // never mentions the invariant id can be any unrelated check: a new invariant mapped to a fitness function
+    // about something else passed the gate. The ratchet applies to ids absent from the merge-base registry (the
+    // existing registry is not retrofitted); a mechanism with no `env.enforcerSource` (a fixture) is not judged.
+    if (hasEnforced && typeof env.isNewInvariant === 'function' && env.isNewInvariant(inv.id)) {
+      const names = inv.enforcedBy.some((tok) => {
+        const src = typeof env.enforcerSource === 'function' ? env.enforcerSource(tok) : null;
+        return typeof src === 'string' && src.includes(inv.id);
+      });
+      if (!names) problems.push(`ENFORCER DOES NOT NAME THE INVARIANT: ${where} is new, and none of ${inv.enforcedBy.join(', ')} mentions "${inv.id}" in its source. Name the invariant id in the enforcing rule, check, audit or test (its header comment is enough), so the mapping is checkable and not just asserted.`);
     }
 
     // 2: every enforcedBy token must resolve to a real artifact.
@@ -228,6 +309,9 @@ export function auditDoctrines(doctrines, env) {
     if (d.exempt && !hasExempt) {
       problems.push(`EMPTY-EXEMPTION: ${where} has exempt without a non-empty reason.`);
     }
+    if (hasExempt && !isMeaningfulReason(d.exempt.reason)) {
+      problems.push(`THIN-EXEMPTION: ${where} exempt.reason ${JSON.stringify(d.exempt.reason.trim().slice(0, 40))} is too short to be a reason (at least ${MIN_REASON_CHARS} characters and ${MIN_REASON_WORDS} words).`);
+    }
     if (hasEnforced) {
       for (const invId of d.enforcedBy) {
         if (!env.allInvariantIds.has(invId)) {
@@ -256,16 +340,26 @@ export function runInvariantCoverage() {
     skillContent[skill] = c;
   }
 
+  // The merge-base (plan 6.8, Rule B). Resolved first because checks 1-3 also ask which invariants are new.
+  const { base, source, reason } = resolveRange({ cwd: REPO });
+  const baseIds = source === 'unavailable' ? null : baseInvariantIds(base);
+  const baseIdSet = baseIds ? new Set(baseIds) : null;
+
   // Checks 1-3 via the pure core (real resolvers + skill content).
   const { problems: invProblems, referenced } = auditInvariants(INVARIANTS, {
     resolveToken,
     getSkillContent: (s) => skillContent[s],
+    // new = absent from the merge-base registry; with no baseline nothing is judged new (skipped, never failed)
+    isNewInvariant: (id) => baseIdSet !== null && !baseIdSet.has(id),
+    enforcerSource,
   });
   const problems = [...preProblems, ...invProblems];
 
+  // REMOVED invariants (lane GATE-8): an id on the merge-base and not at HEAD needs a RETIRED_INVARIANTS entry.
+  if (baseIds !== null) problems.push(...auditRemovedInvariants(baseIds, INVARIANTS.map((i) => i.id), RETIRED_INVARIANTS).problems);
+
   // 4: marker floor against the merge-base tree (plan 6.8, Rule B), via the pure/injectable core.
   // Skipped, never failed, when no git range resolves (no baseline to compare against).
-  const { base, source, reason } = resolveRange({ cwd: REPO });
   if (source === 'unavailable') {
     console.log(`  [invariant-coverage] marker floor: skipped (${reason})`);
   } else {
@@ -335,6 +429,7 @@ export function runInvariantCoverage() {
 // CLI
 if (process.argv[1] && process.argv[1].endsWith('invariant-coverage.mjs')) {
   const { ok, problems, summary } = runInvariantCoverage();
+  recordGateFirings('invariant-coverage', problems.map((message) => ({ message }))); // every refusal is a logged firing (lane GATE-8)
   console.log(`\n===== INVARIANT COVERAGE (meta-gate) =====`);
   console.log(`skills: ${summary.skills}  invariants: ${summary.invariants}  |  ENFORCED ${summary.enforced}  EXEMPT ${summary.exempt}`);
   console.log(`doctrine register: ${summary.doctrines}  |  ENFORCED ${summary.docEnforced}  EXEMPT ${summary.docExempt}  (unenforced doctrine = FAIL)`);

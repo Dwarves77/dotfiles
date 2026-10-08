@@ -20,7 +20,12 @@
 //            (no validation, whole-commit scope). Consistency-Override stays: it is validated and dated,
 //            and lives in consistency/override-check.mjs for pre-push step 2 and the CI backstop.
 //
-// REGISTERED (7):
+// GATE-7 (2026-10-08, honest forms from the AUD-AT-3 attack register): rules 012, 015, 017, 018, 019, 021
+// and 022 read the staged BLOB and the honest content forms of their pattern (lib/context.mjs,
+// lib/mask-source.mjs); rule 023 is new, one check for the blind spot all five content rules shared (a file
+// git does not diff as text).
+//
+// REGISTERED (8):
 //   012  hardcoded user-home path in introduced code
 //   015  raw row write outside the guarded path (scripts/lib/db.mjs) in introduced code
 //   017  raw process.env knob read in generation logic
@@ -28,6 +33,7 @@
 //   019  source-not-item raw-archived instead of reclassified
 //   021  dashboard cache key out of step with the DashboardData shape hash
 //   022  em dash, en dash or section-sign glyph in introduced prose
+//   023  source file not diffed as text (binary attribute, NUL byte, UTF-16)
 //
 // Commit messages are normal: subject + body, no required trailers.
 //
@@ -55,6 +61,10 @@ import { rule as rule021 } from './rules/021-cached-shape-key.mjs';
 // count the coordinator ran by hand; moved into the engine so it fires on every commit.
 import { rule as rule022 } from './rules/022-no-dash-glyphs.mjs';
 
+// Source file not diffed as text (2026-10-08, lane GATE-7): the one check for the blind spot every content
+// rule shared.
+import { rule as rule023 } from './rules/023-source-not-diffed-as-text.mjs';
+
 export const rules = [
   rule012,
   rule015,
@@ -63,4 +73,5 @@ export const rules = [
   rule019,
   rule021,
   rule022,
+  rule023,
 ];

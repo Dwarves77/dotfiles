@@ -5,6 +5,6 @@
   "trigger": "workflow_run",
   "family": "fetch-drain",
   "enforceEdge": true,
-  "enforceFired": true,
-  "note": "Edge exists and is enforced: fetch-drain.yml carries on.workflow_run.workflows: [\"Source sweep\"]. The fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ALLOWED_FAMILIES) with real prior artifacts. Fired proof: harness_runs evidence entry fetch-drain-run-006 (trigger workflow_run, 2026-09-29) in loop-fired-evidence.json, so enforceFired is now true."
+  "enforceFired": false,
+  "note": "Edge exists and is enforced: fetch-drain.yml carries on.workflow_run.workflows: [\"Source sweep\"]. The fetch-drain harness family already exists (scripts/harness-runs/fetch-drain/, registered in ALLOWED_FAMILIES). Fired proof: harness_runs evidence entry fetch-drain-run-006 (trigger workflow_run, 2026-09-29) in loop-fired-evidence.json. enforceFired is false since lane GATE-8 (2026-10-08): F50 now accepts a firing claim only when its run id resolves in the committed ledger export (harness-ledger-export.json), and that export has not been generated yet (it needs the credentialed refresh: node fsi-app/scripts/lib/export-harness-ledger.mjs --out fsi-app/.discipline/governance/harness-ledger-export.json). After the refresh lands a row for fetch-drain-run-006, set enforceFired back to true; the F50 live test fails if it is true without a resolving row."
 }

@@ -24,10 +24,65 @@ import { join } from 'node:path';
 import { violation, PASS } from '../lib/result.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { tryResolveAppDep } from '../../lib/resolve-dep.mjs';
+import { globFiles } from '../lib/glob.mjs';
+import { readFile } from '../lib/file-content.mjs';
+import { commentsOnly } from '../../governance/coverage-scan.mjs';
 
 // Sentinel filepath: the runner enumerates this single "file" and calls check()
 // on it. The check then runs tsc against the whole fsi-app project.
 const SENTINEL = 'fsi-app/tsconfig.json';
+
+// STATIC GUARDS (lane GATE-8, 2026-10-08, AUD-AT-4 B8-02, B8-03). "tsc exits 0" is only as strong as the set of
+// files tsc is asked to check. Two honest-looking edits make a type-broken file pass it: excluding the file in
+// tsconfig.json, and putting the `@ts-nocheck` directive at its top. Neither needs tsc to detect, so both are
+// read here from the files, before the compiler runs, and reported whether or not tsc resolves.
+//   - `@ts-nocheck` as a directive comment in any file under src: a violation naming the file.
+//   - a tsconfig.json `exclude` entry beyond the three the project documents (node_modules, supabase/functions, the
+//     src/_archive sunset directory): a violation naming the entry. `include` must still cover every .ts and .tsx.
+export const ALLOWED_TSCONFIG_EXCLUDES = Object.freeze(['node_modules', 'supabase/functions', 'src/_archive', '.next', 'dist', 'build']);
+
+/** Pure. `tsconfigText`: the file text; `srcFiles`: [{ path, content }] for the .ts and .tsx files under src. */
+export function staticTypecheckViolations({ tsconfigText, srcFiles }) {
+  const out = [];
+  let cfg = null;
+  try {
+    // tsconfig.json is JSON with comments: strip them before parsing
+    cfg = JSON.parse(String(tsconfigText).replace(/^\s*\/\/.*$/gm, ''));
+  } catch { cfg = null; }
+  if (cfg === null) {
+    out.push('fsi-app/tsconfig.json could not be parsed, so what tsc checks cannot be verified.');
+  } else {
+    for (const e of Array.isArray(cfg.exclude) ? cfg.exclude : []) {
+      const norm = String(e).replace(/^\.\//, '').replace(/\/+$/, '');
+      if (!ALLOWED_TSCONFIG_EXCLUDES.includes(norm)) {
+        out.push(`fsi-app/tsconfig.json excludes "${e}", which hides files from the type check. Only ${ALLOWED_TSCONFIG_EXCLUDES.slice(0, 3).join(', ')} are documented exclusions; fix the type error instead of excluding the file.`);
+      }
+    }
+    const inc = Array.isArray(cfg.include) ? cfg.include.map(String) : [];
+    for (const need of ['**/*.ts', '**/*.tsx']) {
+      if (!inc.includes(need)) out.push(`fsi-app/tsconfig.json include no longer lists "${need}", so some source files are not type checked.`);
+    }
+    if (Array.isArray(cfg.files) && cfg.files.length > 0 && inc.length === 0) out.push('fsi-app/tsconfig.json narrows the project to an explicit files list.');
+  }
+  for (const f of srcFiles) {
+    if (!f.content.includes('@ts-nocheck')) continue;
+    if (/@ts-nocheck/.test(commentsOnly(f.content))) out.push(`${f.path} carries a @ts-nocheck directive, which turns the type check off for the whole file. Fix the types.`);
+  }
+  return out;
+}
+
+let _staticCache = null;
+function realStaticViolations() {
+  if (_staticCache) return _staticCache;
+  const tsconfigText = readFile('fsi-app/tsconfig.json') ?? '';
+  const srcFiles = [];
+  for (const p of globFiles(['fsi-app/src/**/*.{ts,tsx}'])) {
+    const content = readFile(p);
+    if (content !== null) srcFiles.push({ path: p, content });
+  }
+  _staticCache = staticTypecheckViolations({ tsconfigText, srcFiles });
+  return _staticCache;
+}
 
 function findTsc() {
   // The compiler's own entry script, found the way Node resolves it from fsi-app/ (in-tree install,
@@ -76,9 +131,10 @@ export const fitnessFunction = {
   check(filepath, _content, deps = {}) {
     if (filepath !== SENTINEL) return PASS;
 
-    const { typecheck = runTypecheck, log = (m) => console.log(m) } = deps;
+    const { typecheck = runTypecheck, log = (m) => console.log(m), staticViolations = realStaticViolations } = deps;
+    const guards = staticViolations().map((m) => violation(1, m));
     const result = typecheck();
-    if (result.ok) return PASS;
+    if (result.ok) return guards.length ? guards : PASS;
 
     // Lane GATES-1 (2026-10-04): the compiler not resolving is a fact about the environment (a job that
     // never ran "npm ci", such as the no-npm Discipline engine unit tests job, which spawns this whole
@@ -86,7 +142,7 @@ export const fitnessFunction = {
     // the dependencies is the authoritative run. A tsc that runs and fails is still a violation, below.
     if (result.errCode === 'TSC_NOT_FOUND') {
       log(`  [F9] SKIP: ${result.output}`);
-      return PASS;
+      return guards.length ? guards : PASS;
     }
 
     // Parse tsc output for the first few error locations
@@ -98,7 +154,7 @@ export const fitnessFunction = {
       ? `\nFirst ${errorLines.length} error(s):\n${errorLines.map((l) => '    ' + l).join('\n')}`
       : `\n(no error lines parsed; raw output below)\n${result.output.split(/\r?\n/).slice(0, 20).map((l) => '    ' + l).join('\n')}`;
 
-    return [violation(
+    return [...guards, violation(
       1,
       `${summary}${errorSummary}\n\nRemediation: run \`cd fsi-app && npx tsc --noEmit\` locally to see all errors. Fix the type errors. Do not push until tsc exits 0.`,
     )];
@@ -107,4 +163,3 @@ export const fitnessFunction = {
 
 // Exported for tests to mock tsc invocation if needed.
 export const _findTsc = findTsc;
-export const _runTypecheck = runTypecheck;

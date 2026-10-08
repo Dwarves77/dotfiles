@@ -6,8 +6,13 @@
 // (main OR sub-agent) — that is why it catches the incident the session-scoped PreToolUse gate cannot.
 //
 // Modes:
-//   --mode=post-checkout  → detection + LOUD alarm (git already moved HEAD; nonzero surfaces the warning)
-//   --mode=pre-commit     → real BLOCK (nonzero aborts the commit)
+//   --mode=post-checkout        detection + LOUD alarm (git already moved HEAD; nonzero surfaces the warning)
+//   --mode=pre-commit           real BLOCK (nonzero aborts the commit): any commit in the MAIN checkout
+//   --mode=pre-merge-commit     the same block for a merge commit (GATE-7: pre-commit does not run for a merge)
+//   --mode=post-commit          alarm for a commit that landed through a path that skips pre-commit (cherry-pick)
+//   --mode=reference-transaction  alarm for an agent context moving HEAD or the checked-out branch by plumbing
+//                               (reset --hard, symbolic-ref, update-ref); never blocks, the ref has moved
+// Every refusal and alarm appends one line to the shared firing log (lib/firing-log.mjs) so it is countable.
 //
 // Fail-open on infra errors (missing git/node handled by the shell wrapper): a broken environment must
 // not wedge every checkout/commit. The block is only ever raised on a POSITIVE, resolved violation.
@@ -16,6 +21,7 @@ import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
+import { appendFirings } from '../lib/firing-log.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -30,11 +36,13 @@ function git(args) {
 async function main() {
   const mode = (process.argv.find((a) => a.startsWith('--mode=')) || '').slice('--mode='.length) || 'post-checkout';
 
-  let evaluateCheckout, evaluateCommit;
+  let evaluateCheckout, evaluateCommit, evaluateLanded, evaluateRefMove;
   try {
     const m = await import(pathToFileURL(resolve(HERE, 'worktree-isolation.mjs')).href);
     evaluateCheckout = m.evaluateCheckout;
     evaluateCommit = m.evaluateCommit;
+    evaluateLanded = m.evaluateLanded;
+    evaluateRefMove = m.evaluateRefMove;
   } catch {
     process.exit(0); // detection module unavailable → do not wedge git
   }
@@ -52,9 +60,15 @@ async function main() {
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
 
   const ctx = { gitDir, gitCommonDir, env: process.env, branch };
-  const verdict = mode === 'pre-commit' ? evaluateCommit(ctx) : evaluateCheckout(ctx);
+  const verdict =
+    mode === 'pre-commit' ? evaluateCommit(ctx)
+      : mode === 'pre-merge-commit' ? evaluateCommit({ ...ctx, op: 'merge commit' })
+        : mode === 'post-commit' ? evaluateLanded(ctx)
+          : mode === 'reference-transaction' ? evaluateRefMove(ctx)
+            : evaluateCheckout(ctx);
 
   if (!verdict.blocked) process.exit(0);
+  appendFirings([{ rule: `worktree-isolation:${mode}`, mode: 'hook', path: null, line: verdict.reason, verdict: mode.startsWith('pre-') ? 'refuse' : 'alarm' }]);
 
   const line = '='.repeat(78);
   process.stderr.write(`\n${line}\n`);

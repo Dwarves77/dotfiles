@@ -627,6 +627,3 @@ export const DOCTRINES = [
       'PI-5 is enforced by surface-contract-gate.golden.mjs (fixture red-then-green: a declined/parked row without the five-surface record FAILS, with it PASSES, kept/candidate exempt). The gate is DORMANT by operator ruling: coverage_gap_candidates never held a declined row (the 27 data_feed rows were KEPT — Session C\'s lane embodies the fix, it did not commit the error), so NO seed/synthetic rows were created and demonstrability lives in the golden\'s fixtures, never in production data. LIVE DB binding is owned by SESSION C\'s forthcoming migration (disposition{kept,declined,parked} + surface_test jsonb + a CHECK requiring the five-surface record when declined/parked); the golden\'s PART B auto-arms the moment that migration lands in-tree (PENDING-C, named not silently unwired). Whether a recorded surface verdict is CORRECT is scope judgment, not mechanized. The five contracts also live verbatim in caros-ledge-platform-intent (sessions\' side) and the standalone caros-ledge-surface-contracts skill (operator\'s side).',
   },
 ];
-
-// Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).
-export const DOCTRINE_IDS = new Set(DOCTRINES.map((d) => d.id));

@@ -32,15 +32,15 @@ export const DOCTRINE_FILES = [
 export const GATE_RE = /\b(requires?\s+(a\s+)?human[-\s](review|approval|sign-?off|confirmation)|human[-\s](review|approval|sign-?off|tick)\b(?![-\s]*(queue|surface))|pending\s+human|awaits?\s+(the\s+)?operator\b|awaiting\s+(operator\s+)?(review|approval|sign-?off)|operator\s+(approval|sign-?off|must\s+approve)|human-in-the-loop|manual\s+approval|human\s+must\s+(approve|review|confirm)|human\s+finish\b|operator-as-finish|requires?\s+operator\s+(review|approval)|\+\s*human\s+(review|approval))\b/i;
 
 // SELF-INFLICTED GATE — a closer of "operator re-confirms a ruling already given".
-export const SELF_GATE_RE = /(operator|human|jason)\s+re-?confirm|re-?confirm(s|ation|ed)?\s+(of\s+)?(a\s+)?(prior\s+|already[-\s]given\s+)?(ruling|decision)|operator\s+re-?approv|re-?park(ed|s)?\s+(on|to)\s+(the\s+)?(operator|jason|desk)/i;
+const SELF_GATE_RE = /(operator|human|jason)\s+re-?confirm|re-?confirm(s|ation|ed)?\s+(of\s+)?(a\s+)?(prior\s+|already[-\s]given\s+)?(ruling|decision)|operator\s+re-?approv|re-?park(ed|s)?\s+(on|to)\s+(the\s+)?(operator|jason|desk)/i;
 
 // EXEMPTIONS. A gate-shaped line is NOT a violation when it is:
 //  - NEGATED (the anti-pattern statement: "no human-approval gate", "not parked for human review"),
-export const NEGATION_RE = /\b(no|not|never|without|nor|no longer)\b[^.]{0,60}?\b(human|operator|manual|review|approval|gate|finish)\b|\b(human|operator|manual)\b[^.]{0,25}?\b(no longer|is not|are not|never)\b/i;
+const NEGATION_RE = /\b(no|not|never|without|nor|no longer)\b[^.]{0,60}?\b(human|operator|manual|review|approval|gate|finish)\b|\b(human|operator|manual)\b[^.]{0,25}?\b(no longer|is not|are not|never)\b/i;
 //  - VISIBILITY (surface/visible/shown/single-pane — preserved by no-human-finish),
 export const VISIBILITY_RE = /single-pane\s+operator\s+review|operator\s+visibility|admin\s+gets?\s+visibility|surfaces?\s+to|visible\s+in\b|shown\s+on\s+the\s+trail|operator\s+sees|visibility\s+queue|operator\s+gets?\s+visibility|for\s+visibility|via\s+the\s+trail/i;
 //  - CITED (carries a register/ADR entry that classifies it — retained-with-reason or superseded-rewritten).
-export const CITATION_RE = /\b(RD-\d+|SF-\d+|SC-\d+|EP-\d+|PI-\d+|ADR-\d+|no-human-finish-of-intake|RETAINED:|SUPERSEDED:|register:)/i;
+const CITATION_RE = /\b(RD-\d+|SF-\d+|SC-\d+|EP-\d+|PI-\d+|ADR-\d+|no-human-finish-of-intake|RETAINED:|SUPERSEDED:|register:)/i;
 
 const isComment = (line) => { const t = line.trimStart(); return t.startsWith("//") || t.startsWith("*"); };
 
