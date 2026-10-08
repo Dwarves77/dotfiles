@@ -198,3 +198,10 @@ allow();
 
 - Item 7 reading RULED by the coordinator: correct and intended (nobody commits in the main checkout; RD-19). A-H1-7 (plumbing) out of scope, agreed.
 - Coordinator grant: the local post-commit engine run for cherry-pick, am and rebase is built (hooks/post-commit runs `runner.mjs --mode=ci --commit=HEAD` when the reflog subject says the commit skipped commit-msg; tested on a real cherry-pick), so A-H2-11, A-H2-13 and A-H2-14 are now flagged locally as well as in CI. It cannot undo the commit.
+
+## Merge with GATE-8 (PR 1039, 62268ab9)
+
+- One child-session predicate: `governance/worktree-isolation.mjs` keeps GATE-8's `isChildSession` import (`lib/session-context.mjs`); GATE-7 has no predicate of its own. The `reference-transaction` shell hook now only tests that `CLAUDE_CODE_CHILD_SESSION` is non-empty and lets the node runner decide with `isChildSession`.
+- Firing writers kept SEPARATE, because they write different files: GATE-8's `lib/gate-firings.mjs` writes `out/governance-firings.json` (one record per gate, replaced on each run); GATE-7's `lib/firing-log.mjs` appends JSON lines to `governance/.hook-firings.log` (the rules engine's log, GATE-1) for the isolation hooks, vault-sync and the PreToolUse gate.
+- `evaluateCommit` keeps GATE-7's block for everyone and also names a lane branch in its message. GATE-8's one test that expected an orchestrator commit on master in the main checkout to pass now expects the block (coordinator ruling).
+- ADR-046 keeps both addenda, GATE-7's first. Rule 023 names RD-97 in its header (GATE-8's new-invariant check). Also, after the first CI run: rule 012 dropped the `fsi-app/node_modules/` exempt prefix (F59); the root prefix covers the install.
