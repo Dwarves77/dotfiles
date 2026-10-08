@@ -180,7 +180,6 @@ async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfa
           .from("workspace_item_overrides")
           .select("item_id, is_archived")
           .eq("org_id", orgId)
-          // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
           .in("item_id", slice);
         if (error) {
           console.error(

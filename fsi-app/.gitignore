@@ -61,3 +61,6 @@ scripts/.a5-sonnet*
 
 # orphan-module/dead-export census output (regenerated every orphan-modules.mjs run — CI included)
 .discipline/governance/orphan-modules-report.json
+
+# Fitness runner output (fitness-firings.json, uploaded by the discipline workflow; lane GATE-3)
+.discipline/out/

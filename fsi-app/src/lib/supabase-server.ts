@@ -499,7 +499,6 @@ async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
     // COUNTS-61: the queue's population is named ONCE, in src/lib/admin/provisional-review-queue.ts,
     // and migration 314's admin_attention_counts counts the same two statuses. Before that the RPC
     // counted `pending_review` alone, so the badge said 489 over a table header reading "491 PENDING".
-    // fitness-allow: F39 (a bounded status vocabulary, not a corpus-scale id list)
     .in("status", [...PROVISIONAL_REVIEW_STATUSES])
     .order("independent_citers", { ascending: false });
 

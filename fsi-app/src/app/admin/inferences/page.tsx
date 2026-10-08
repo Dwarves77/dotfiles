@@ -43,7 +43,6 @@ export default async function AdminInferencesPage() {
   // to every other batch lookup (never N+1 queries for N rows).
   const allItemIds = Array.from(new Set(rows.flatMap((r) => r.cited_item_ids ?? [])));
   const items = await fetchAllByIdChunks(allItemIds, async (slice) => {
-    // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
     const { data } = await sb.from("intelligence_items").select("id, title").in("id", slice);
     return (data as Array<{ id: string; title: string | null }>) || [];
   });

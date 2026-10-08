@@ -85,7 +85,6 @@ export async function listCorrections(sb, itemId) {
   if (corrections.length) {
     try {
       const ev = await fetchAllByIdChunks(corrections.map((c) => c.id), async (slice) => {
-        // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
         const { data, error: evErr } = await sb.from("item_correction_evidence").select("*").in("correction_id", slice);
         if (evErr) throw new Error(evErr.message);
         return data ?? [];

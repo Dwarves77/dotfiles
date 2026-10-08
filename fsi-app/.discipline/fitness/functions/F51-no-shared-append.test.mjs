@@ -1,4 +1,4 @@
-// Red-then-green for F51 (no-shared-append, plan 6.8, lane N6). Each of the five checks is proven by
+// Red-then-green for F51 (no-shared-append, plan 6.8, lane N6). Each of the four checks is proven by
 // attack (rule 15): a violation is planted in a throwaway fixture, the check catches it, the violation
 // is removed, the check passes. The final test replays the 2026-09-18 lane set (M8, M9b, M9a, M1, W10-A)
 // merging in every order and asserts zero conflicts, the acceptance that closes plan 6.8.
@@ -11,13 +11,12 @@ import { join, dirname } from 'node:path';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { FAMILIES } from '../../../scripts/harness-runs/family-registry.mjs';
 import {
-  scanHandEntries, scanStoredMeasurements, findDuplicateIds, evaluateIdDuplicates, countHotspots,
-  parseFirstParentLog, parseFirstParentLogDetailed, evaluateConcurrencyViolations, resolveForkPoint,
-  classifyConcurrency, underEntryDir,
-  runCheck1, runCheck2, runCheck3, runCheck4, runCheck5,
-  ZERO_CEILING_ALLOWLIST, MIGRATION_DUPLICATE_ALLOWLIST, HOTSPOT_ALLOWLIST, HOTSPOT_WINDOW_ANCHOR_COMMIT,
+  scanHandEntries, scanStoredMeasurements, findDuplicateIds, evaluateIdDuplicates,
+  runCheck1, runCheck2, runCheck3, runCheck4,
+  ZERO_CEILING_ALLOWLIST, MIGRATION_DUPLICATE_ALLOWLIST,
   fitnessFunction,
 } from './F51-no-shared-append.mjs';
+import * as f51 from './F51-no-shared-append.mjs';
 
 function tmpRepo(prefix) {
   const tmp = mkdtempSync(join(tmpdir(), prefix));
@@ -371,552 +370,7 @@ test('check 4 wired to the live tree: this lane\'s own branch touches no coordin
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// CHECK 5: the hotspot standing number. countHotspots/parseFirstParentLog are pure; runCheck5 is
-// git-fixture-based.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-test('countHotspots: a file touched 3+ times is a hotspot; fewer than 3 is not', () => {
-  const perCommit = [['a.mjs', 'b.mjs'], ['a.mjs'], ['a.mjs', 'c.mjs'], ['b.mjs']];
-  assert.deepEqual(countHotspots(perCommit), [['a.mjs', 3]]);
-});
-
-test('parseFirstParentLog: parses the %x01-delimited git log --name-only shape, oldest and newest blocks alike', () => {
-  const raw = '\x01aaa\nfile1.mjs\nfile2.mjs\n\x01bbb\nfile1.mjs\n';
-  assert.deepEqual(parseFirstParentLog(raw), [['file1.mjs', 'file2.mjs'], ['file1.mjs']]);
-});
-
-test('parseFirstParentLogDetailed (lane F51b): parses the %x01/%x02-delimited sha+subject+files shape', () => {
-  const raw = '\x01aaa\x02first subject\nfile1.mjs\nfile2.mjs\n\x01bbb\x02second subject\nfile1.mjs\n';
-  assert.deepEqual(parseFirstParentLogDetailed(raw), [
-    { sha: 'aaa', subject: 'first subject', files: ['file1.mjs', 'file2.mjs'] },
-    { sha: 'bbb', subject: 'second subject', files: ['file1.mjs'] },
-  ]);
-});
-
-function initCheck5Repo(tmp, git) {
-  // An ANCHOR commit (Amendment 2), touching pre-anchor.txt three times before it lands -- none of that
-  // must ever count. Then, AFTER the anchor: three commits touching hot.txt (a hotspot), one commit
-  // touching entry.mjs under an entry directory (excluded even though it is also touched 3+ times), one
-  // touching docs/INDEX.md (allowlisted), and one touching gone.txt which is then deleted (falls out
-  // because it no longer exists).
-  const commit = (files, message) => {
-    for (const [path, content] of files) writeFile(join(tmp, path), content);
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', message]);
-  };
-  commit([['pre-anchor.txt', '1']], 'pre1');
-  commit([['pre-anchor.txt', '2']], 'pre2');
-  commit([['pre-anchor.txt', '3']], 'pre3 (anchor)');
-  const anchorSha = git(['rev-parse', 'HEAD']).trim();
-
-  commit([['hot.txt', '1'], ['fsi-app/.discipline/fitness/functions/fixture-entry.mjs', '1'], ['gone.txt', '1']], 'c1');
-  commit([['hot.txt', '2'], ['fsi-app/.discipline/fitness/functions/fixture-entry.mjs', '2'], ['gone.txt', '2']], 'c2');
-  commit([['hot.txt', '3'], ['fsi-app/.discipline/fitness/functions/fixture-entry.mjs', '3'], ['docs/INDEX.md', '1']], 'c3 (deletes gone.txt)');
-  execFileSync('git', ['rm', '-q', 'gone.txt'], { cwd: tmp });
-  git(['commit', '-q', '-m', 'c4: delete gone.txt']);
-  commit([['docs/INDEX.md', '2']], 'c5');
-  commit([['docs/INDEX.md', '3']], 'c6');
-  git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-  return anchorSha;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// CHECK 5 (lane F51c, 2026-09-21/22, third occurrence): the F51b raw-count definition ("master touches +
-// this range, threshold 3") still refused three genuinely SERIAL cases (a lane cut after the prior one
-// already merged). The VIOLATION criterion is now CONCURRENCY: a prior commit only counts against this
-// lane's range when this lane's branch was already open while that commit merged (it is NOT an ancestor
-// of this lane's fork point with origin/master). The pure core, evaluateConcurrencyViolations, takes
-// pre-classified commits (a `concurrent` boolean per commit, from classifyConcurrency or set directly by
-// a fixture); it is tested directly per brief item 2(a)-(d) below, and the git-fixture tests further down
-// exercise classifyConcurrency/resolveForkPoint end to end through runCheck5's own range resolution.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-function masterCommit(sha, subject, files, concurrent = true) {
-  return { sha, subject, files, concurrent };
-}
-
-test('evaluateConcurrencyViolations (a) RED: one CONCURRENT prior touch on origin/master plus the range touching the file is a violation (two branches cut from the same master, first merges, second is checked)', () => {
-  const masterCommits = [
-    masterCommit('aaaaaaaa1111111111111111111111111111aaaa', 'lane A: first touch', ['shared.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
-  assert.equal(v.length, 1);
-  assert.equal(v[0].path, 'shared.mjs');
-  assert.ok(v[0].message.includes('concurrency violation:'));
-});
-
-test('evaluateConcurrencyViolations (b) GREEN: three SERIAL prior touches (each lane cut after the previous one merged) never violate, however many there are', () => {
-  const masterCommits = [
-    masterCommit('a1', 'lane M3: extend the resolver', ['shared.mjs'], false),
-    masterCommit('a2', 'lane M3b: extend it again', ['shared.mjs'], false),
-    masterCommit('a3', 'lane M4: extract the shared home', ['shared.mjs'], false),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
-  assert.deepEqual(v, []);
-});
-
-test('evaluateConcurrencyViolations (c) VIOLATION: the same three touches, but the third one is CONCURRENT (that branch was cut before the second one merged)', () => {
-  const masterCommits = [
-    masterCommit('a1', 'lane M3: extend the resolver', ['shared.mjs'], false),
-    masterCommit('a2', 'lane M3b: cut before M4 merged', ['shared.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
-  assert.equal(v.length, 1);
-  assert.equal(v[0].path, 'shared.mjs');
-});
-
-test('evaluateConcurrencyViolations (d): three serial touches plus one genuinely concurrent touch on the same file produces exactly one violation, naming only the concurrent commit', () => {
-  const masterCommits = [
-    masterCommit('serial1a1111111111111111111111111111111', 'lane S1: serial touch', ['shared.mjs'], false),
-    masterCommit('serial2b2222222222222222222222222222222', 'lane S2: serial touch', ['shared.mjs'], false),
-    masterCommit('serial3c3333333333333333333333333333333', 'lane S3: serial touch', ['shared.mjs'], false),
-    masterCommit('concur4d4444444444444444444444444444444', 'lane C: genuinely concurrent touch', ['shared.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
-  assert.equal(v.length, 1, 'exactly one violation, not one per prior touch');
-  assert.equal(v[0].path, 'shared.mjs');
-  assert.ok(v[0].message.includes('concur4d4'.slice(0, 8)), 'message must name the concurrent commit');
-  assert.ok(!v[0].message.includes('serial1a1'.slice(0, 8)), 'message must not name serial commit 1');
-  assert.ok(!v[0].message.includes('serial2b2'.slice(0, 8)), 'message must not name serial commit 2');
-  assert.ok(!v[0].message.includes('serial3c3'.slice(0, 8)), 'message must not name serial commit 3');
-});
-
-test('evaluateConcurrencyViolations GREEN: a concurrent touch on origin/master, range does NOT touch that file (the bystander case) is not a violation', () => {
-  const masterCommits = [
-    masterCommit('a1', 'lane A: concurrent touch', ['shared.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['unrelated-file.mjs'] });
-  assert.deepEqual(v, []);
-});
-
-test('evaluateConcurrencyViolations GREEN: an empty range never produces a violation regardless of master history', () => {
-  const masterCommits = [
-    masterCommit('a1', 's1', ['shared.mjs'], true),
-    masterCommit('a2', 's2', ['shared.mjs'], true),
-  ];
-  assert.deepEqual(evaluateConcurrencyViolations({ masterCommits, rangeFiles: [] }), []);
-});
-
-test('evaluateConcurrencyViolations: an allowlisted file in the range is skipped even with a concurrent prior touch, a non-allowlisted one in the same range is not', () => {
-  const masterCommits = [
-    masterCommit('a1', 's1', ['docs/INDEX.md', 'other-hot.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['docs/INDEX.md', 'other-hot.mjs'] });
-  const paths = v.map((x) => x.path);
-  assert.ok(!paths.includes('docs/INDEX.md'), 'docs/INDEX.md is in the dated HOTSPOT_ALLOWLIST and must be skipped');
-  assert.ok(paths.includes('other-hot.mjs'), 'other-hot.mjs is not allowlisted and must still be caught');
-});
-
-test('evaluateConcurrencyViolations: the violation message names the concurrent prior commits (sha and subject)', () => {
-  const masterCommits = [
-    masterCommit('cafe1111111111111111111111111111111111', 'lane C1: concurrent touch', ['shared.mjs'], true),
-    masterCommit('cafe2222222222222222222222222222222222', 'lane C2: also concurrent', ['shared.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['shared.mjs'] });
-  assert.equal(v.length, 1);
-  assert.ok(v[0].message.includes('cafe1111'), 'message must name the first prior commit sha (short form)');
-  assert.ok(v[0].message.includes('lane C1: concurrent touch'), 'message must name the first prior commit subject');
-  assert.ok(v[0].message.includes('cafe2222'), 'message must name the second prior commit sha (short form)');
-  assert.ok(v[0].message.includes('lane C2: also concurrent'), 'message must name the second prior commit subject');
-});
-
-test('evaluateConcurrencyViolations: an entry-directory file in the range is excluded even with a concurrent prior touch', () => {
-  const masterCommits = [
-    masterCommit('a1', 's1', ['fsi-app/.discipline/fitness/functions/F900-fixture.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['fsi-app/.discipline/fitness/functions/F900-fixture.mjs'] });
-  assert.deepEqual(v, []);
-});
-
-test('evaluateConcurrencyViolations: existsCheck excludes a file that fell out of the tree even when the range formally touches it', () => {
-  const masterCommits = [
-    masterCommit('a1', 's1', ['gone.mjs'], true),
-  ];
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['gone.mjs'], existsCheck: () => false });
-  assert.deepEqual(v, []);
-});
-
-test('check 5 (lane F51c) GREEN, git-fixture end to end: hot.txt has 3 SERIAL prior touches on origin/master (raw count 3+), but this lane was cut AFTER every one of them already merged -- zero concurrency, not a violation, even though this lane\'s own range touches hot.txt', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    const anchorSha = initCheck5Repo(tmp, git); // hot.txt touched 3x on origin/master, all before this lane is cut
-    git(['checkout', '-q', '-b', 'lane/fixture']); // cut fresh from the current origin/master tip: fork point = tip
-    writeFile(join(tmp, 'hot.txt'), '4'); // this lane's range touches the same file the raw count would have flagged
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'lane/fixture: touches hot.txt after every prior touch already merged']);
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(!v.some((x) => x.path === 'hot.txt'), 'every prior touch to hot.txt is an ancestor of this lane\'s fork point (serial); raw count 3+ must not matter under the concurrency definition');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (lane F51c) GREEN, git-fixture end to end: hot.txt\'s prior touches are bystanders to a range that does not touch it -- not a violation regardless of concurrency', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    const anchorSha = initCheck5Repo(tmp, git);
-    git(['checkout', '-q', '-b', 'lane/fixture']);
-    writeFile(join(tmp, 'lane-own-file.txt'), '1'); // this lane's own range never touches hot.txt
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'lane/fixture: unrelated change']);
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(!v.some((x) => x.path === 'hot.txt'), 'hot.txt is a bystander to this lane\'s range and must not be refused');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// ATTACK TESTS (a)-(d), brief item 2, full runCheck5 pipeline through classifyConcurrency/resolveForkPoint
-// on real branched git history (never the live tree). (d) is proven as a pure evaluateConcurrencyViolations
-// test above; (a)-(c) need real branch divergence to exercise resolveForkPoint end to end.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-test('ATTACK (a) VIOLATION, git-fixture end to end: two branches cut from the same master, both touching shared.mjs, the first merges, the second is checked', () => {
-  const { tmp, git } = tmpRepo('f51-attack-a-');
-  try {
-    writeFile(join(tmp, 'a0.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'c0 (anchor)']);
-    const anchorSha = git(['rev-parse', 'HEAD']).trim();
-    writeFile(join(tmp, 'seed.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'seed']);
-    const seedSha = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-    git(['branch', 'lane-a', seedSha]);
-    git(['checkout', '-q', 'lane-a']);
-    writeFile(join(tmp, 'shared.mjs'), 'a'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane A: touch shared.mjs']);
-    const laneATip = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', laneATip]); // lane A merges first
-    git(['checkout', '-q', '-b', 'lane-b', seedSha]); // lane B was cut from `seed`, BEFORE lane A's commit merged
-    writeFile(join(tmp, 'shared.mjs'), 'b'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane B: touch shared.mjs too']);
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(v.some((x) => x.path === 'shared.mjs' && x.message.includes('concurrency violation:')), 'lane A\'s merged touch is NOT an ancestor of lane B\'s fork point (seed) -- genuinely concurrent, must be refused');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('ATTACK (b) PASS, git-fixture end to end: three serial branches, each cut after the previous one merged, all touching shared.mjs -- zero violations', () => {
-  const { tmp, git } = tmpRepo('f51-attack-b-');
-  try {
-    writeFile(join(tmp, 'a0.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'c0 (anchor)']);
-    const anchorSha = git(['rev-parse', 'HEAD']).trim();
-    writeFile(join(tmp, 'seed.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'seed']);
-    const seedSha = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-    git(['checkout', '-q', '-b', 'lane-1', seedSha]);
-    writeFile(join(tmp, 'shared.mjs'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane 1: touch shared.mjs']);
-    const lane1Tip = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', lane1Tip]); // lane 1 merges
-    git(['checkout', '-q', '-b', 'lane-2', lane1Tip]); // cut AFTER lane 1 merged
-    writeFile(join(tmp, 'shared.mjs'), '2'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane 2: touch shared.mjs again']);
-    const lane2Tip = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', lane2Tip]); // lane 2 merges
-    git(['checkout', '-q', '-b', 'lane-3', lane2Tip]); // cut AFTER lane 2 merged
-    writeFile(join(tmp, 'shared.mjs'), '3'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane 3: touch shared.mjs a third time']);
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(!v.some((x) => x.path === 'shared.mjs'), 'all three touches are ancestors of lane 3\'s own fork point (serial, cut after every prior merge); this is the design working');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('ATTACK (c) VIOLATION, git-fixture end to end: same as (b), but the third branch was cut BEFORE the second one merged', () => {
-  const { tmp, git } = tmpRepo('f51-attack-c-');
-  try {
-    writeFile(join(tmp, 'a0.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'c0 (anchor)']);
-    const anchorSha = git(['rev-parse', 'HEAD']).trim();
-    writeFile(join(tmp, 'seed.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'seed']);
-    const seedSha = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-    git(['checkout', '-q', '-b', 'lane-1', seedSha]);
-    writeFile(join(tmp, 'shared.mjs'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane 1: touch shared.mjs']);
-    const lane1Tip = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', lane1Tip]); // lane 1 merges
-    git(['checkout', '-q', '-b', 'lane-2', lane1Tip]);
-    writeFile(join(tmp, 'shared.mjs'), '2'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane 2: touch shared.mjs again']);
-    const lane2Tip = git(['rev-parse', 'HEAD']).trim();
-    // lane 3 is cut from lane 1's tip, BEFORE lane 2 merges -- the concurrent case.
-    git(['checkout', '-q', '-b', 'lane-3', lane1Tip]);
-    writeFile(join(tmp, 'shared.mjs'), '3'); git(['add', '-A']); git(['commit', '-q', '-m', 'lane 3: touch shared.mjs a third time']);
-    git(['update-ref', 'refs/remotes/origin/master', lane2Tip]); // NOW lane 2 merges, while lane 3 is already open
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(v.some((x) => x.path === 'shared.mjs' && x.message.includes('concurrency violation:')), 'lane 2\'s touch merged while lane 3 was already open (not an ancestor of lane 3\'s fork point, lane 1\'s tip) -- genuinely concurrent, must be refused');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (lane F51c) GREEN, git-fixture end to end: an entry-directory file and an allowlisted file are excluded even with a genuinely CONCURRENT prior touch, while a second, non-allowlisted concurrently-touched file in the same range still fails', () => {
-  const { tmp, git } = tmpRepo('f51-check5-concurrent-allow-');
-  try {
-    writeFile(join(tmp, 'a0.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'c0 (anchor)']);
-    const anchorSha = git(['rev-parse', 'HEAD']).trim();
-    writeFile(join(tmp, 'seed.txt'), '1'); git(['add', '-A']); git(['commit', '-q', '-m', 'seed']);
-    const seedSha = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-    git(['branch', 'lane-a', seedSha]);
-    git(['checkout', '-q', 'lane-a']);
-    writeFile(join(tmp, 'fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), 'a');
-    writeFile(join(tmp, 'docs/INDEX.md'), 'a');
-    writeFile(join(tmp, 'other-hot.txt'), 'a');
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'lane A: touch an entry-dir file, an allowlisted file, and other-hot.txt']);
-    const laneATip = git(['rev-parse', 'HEAD']).trim();
-    git(['update-ref', 'refs/remotes/origin/master', laneATip]);
-    git(['checkout', '-q', '-b', 'lane-b', seedSha]); // lane B forked before lane A merged: genuinely concurrent
-    writeFile(join(tmp, 'fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), 'b');
-    writeFile(join(tmp, 'docs/INDEX.md'), 'b');
-    writeFile(join(tmp, 'other-hot.txt'), 'b');
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'lane B: touches the same three files']);
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    const paths = v.map((x) => x.path);
-    assert.ok(!paths.includes('fsi-app/.discipline/fitness/functions/fixture-entry.mjs'), 'entry-directory file must be excluded even with a concurrent prior touch');
-    assert.ok(!paths.includes('docs/INDEX.md'), 'HOTSPOT_ALLOWLIST entry must be excluded even with a concurrent prior touch');
-    assert.ok(paths.includes('other-hot.txt'), 'a non-allowlisted, non-entry-dir file with a genuinely concurrent prior touch must still be caught');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// GENERATED FILES (lane RULES-1, 2026-10-07): a file listed in the generated-files registry (each entry
-// names its generator) is exempt from check 5 only when its committed copy equals what that generator
-// prints on the checked tree. Two lanes that both regenerate honestly pass; a hand-edited or stale copy
-// fails; a non-generated shared file fails exactly as before.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-test('evaluateConcurrencyViolations (RULES-1) GREEN: a concurrently-touched file that generatedCheck says is current is exempt; a non-generated one in the same range is still refused', () => {
-  const masterCommits = [masterCommit('aaaaaaaa1111', 'lane A: regenerate the inventory and edit a file', ['inv.md', 'shared.mjs'], true)];
-  const generatedCheck = (f) => (f === 'inv.md' ? { generated: true, exempt: true, generator: 'gen.mjs' } : { generated: false });
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['inv.md', 'shared.mjs'], generatedCheck });
-  assert.deepEqual(v.map((x) => x.path), ['shared.mjs']);
-});
-
-test('evaluateConcurrencyViolations (RULES-1) RED: a generated file whose copy is not current is refused, and the message says to rerun the generator', () => {
-  const masterCommits = [masterCommit('aaaaaaaa1111', 'lane A: regenerate the inventory', ['inv.md'], true)];
-  const generatedCheck = () => ({ generated: true, exempt: false, generator: 'gen.mjs', reason: 'the committed copy does not equal the output of gen.mjs on this tree (hand-edited or stale); rerun the generator' });
-  const v = evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['inv.md'], generatedCheck });
-  assert.equal(v.length, 1);
-  assert.ok(v[0].message.includes('concurrency violation:'));
-  assert.ok(v[0].message.includes('generated file'), 'the message says this file is a registered generated file');
-  assert.ok(v[0].message.includes('rerun the generator'));
-});
-
-test('evaluateConcurrencyViolations (RULES-1): the generated check is only consulted for a file that has a concurrent prior touch (a serial or untouched file never runs a generator)', () => {
-  let calls = 0;
-  const generatedCheck = () => { calls++; return { generated: false }; };
-  const masterCommits = [masterCommit('a1', 'serial', ['inv.md'], false)];
-  assert.deepEqual(evaluateConcurrencyViolations({ masterCommits, rangeFiles: ['inv.md', 'other.txt'], generatedCheck }), []);
-  assert.equal(calls, 0);
-});
-
-// A git fixture with a tiny generator: gen.mjs prints the sorted listing of items/, inventory.txt is the
-// committed copy of that output. Lane A (merged first) and lane B (cut before A merged) both touch
-// inventory.txt, which is a genuinely concurrent edit of one file.
-const FIXTURE_GENERATOR = "import { readdirSync } from 'node:fs';\nimport { fileURLToPath } from 'node:url';\nimport { dirname, join } from 'node:path';\n" +
-  "const here = dirname(fileURLToPath(import.meta.url));\nprocess.stdout.write(readdirSync(join(here, 'items')).sort().join('\\n') + '\\n');\n";
-const FIXTURE_ENTRIES = [
-  { path: 'inventory.txt', generator: 'gen.mjs', source: 'tree' },
-  { path: 'live.json', generator: 'gen.mjs', source: 'live', why: 'needs a live database' },
-];
-
-function concurrentGeneratedFixture(prefix, laneBFiles) {
-  const { tmp, git } = tmpRepo(prefix);
-  const commit = (message) => { git(['add', '-A']); git(['commit', '-q', '-m', message]); };
-  writeFile(join(tmp, 'a0.txt'), '1'); commit('c0 (anchor)');
-  const anchorSha = git(['rev-parse', 'HEAD']).trim();
-  writeFile(join(tmp, 'gen.mjs'), FIXTURE_GENERATOR);
-  writeFile(join(tmp, 'items/seed'), '1');
-  writeFile(join(tmp, 'inventory.txt'), 'seed\n');
-  writeFile(join(tmp, 'live.json'), '{}');
-  writeFile(join(tmp, 'shared.mjs'), 'seed');
-  commit('seed');
-  const seedSha = git(['rev-parse', 'HEAD']).trim();
-  git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-  git(['checkout', '-q', '-b', 'lane-a', seedSha]);
-  writeFile(join(tmp, 'items/a'), '1');
-  writeFile(join(tmp, 'inventory.txt'), 'a\nseed\n'); // lane A regenerated honestly
-  writeFile(join(tmp, 'live.json'), '{"a":1}');
-  writeFile(join(tmp, 'shared.mjs'), 'a');
-  commit('lane A: add item a, regenerate inventory.txt');
-  git(['update-ref', 'refs/remotes/origin/master', git(['rev-parse', 'HEAD']).trim()]); // lane A merges first
-  git(['checkout', '-q', '-b', 'lane/b', seedSha]); // lane B was cut before lane A merged
-  laneBFiles(tmp);
-  commit('lane B: add item b and touch the shared files');
-  return { tmp, anchorSha };
-}
-
-test('check 5 (RULES-1) GREEN, git-fixture end to end: a generated file touched by two concurrent branches passes when the second lane\'s copy equals the generator output on its tree', () => {
-  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-green-', (t) => {
-    writeFile(join(t, 'items/b'), '1');
-    writeFile(join(t, 'inventory.txt'), 'b\nseed\n'); // equals gen.mjs output on lane B's tree
-  });
-  try {
-    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
-    assert.ok(!v.some((x) => x.path === 'inventory.txt'), JSON.stringify(v));
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (RULES-1) RED, git-fixture end to end: the same concurrent edit fails when the generated file was edited by hand (differs from the generator output)', () => {
-  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-hand-', (t) => {
-    writeFile(join(t, 'items/b'), '1');
-    writeFile(join(t, 'inventory.txt'), 'b\nseed\nhand-added line\n');
-  });
-  try {
-    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
-    const hit = v.find((x) => x.path === 'inventory.txt');
-    assert.ok(hit, 'a hand-edited generated file must still be refused');
-    assert.ok(hit.message.includes('does not equal'), hit.message);
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (RULES-1) RED, git-fixture end to end: a stale generated copy (the lane added an item but did not regenerate) is refused', () => {
-  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-stale-', (t) => {
-    writeFile(join(t, 'items/b'), '1');
-    writeFile(join(t, 'inventory.txt'), 'older\nseed\n'); // generator would now print b and seed
-  });
-  try {
-    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
-    assert.ok(v.some((x) => x.path === 'inventory.txt'));
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (RULES-1) RED, git-fixture end to end: a non-generated shared file and a live-sourced generated file are still refused in the same range as a passing generated file', () => {
-  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-mixed-', (t) => {
-    writeFile(join(t, 'items/b'), '1');
-    writeFile(join(t, 'inventory.txt'), 'b\nseed\n');
-    writeFile(join(t, 'shared.mjs'), 'b');
-    writeFile(join(t, 'live.json'), '{"b":1}');
-  });
-  try {
-    const v = runCheck5(tmp, { anchor: anchorSha, generatedFiles: FIXTURE_ENTRIES });
-    const paths = v.map((x) => x.path);
-    assert.ok(!paths.includes('inventory.txt'), 'the current generated copy passes');
-    assert.ok(paths.includes('shared.mjs'), 'a non-generated shared file is refused exactly as before');
-    assert.ok(paths.includes('live.json'), 'a live-sourced file cannot be shown equal offline and stays refused');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (RULES-1): with no registry passed, the real registry applies (a fixture path it does not list gets no exemption)', () => {
-  const { tmp, anchorSha } = concurrentGeneratedFixture('f51-gen-default-', (t) => {
-    writeFile(join(t, 'items/b'), '1');
-    writeFile(join(t, 'inventory.txt'), 'b\nseed\n');
-  });
-  try {
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(v.some((x) => x.path === 'inventory.txt'), 'inventory.txt is not in the real registry, so it is refused as a concurrent hand edit');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (lane F51b) GREEN: on origin/master itself (no lane range), the standing number prints but no violations are returned', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    const anchorSha = initCheck5Repo(tmp, git); // HEAD is already refs/remotes/origin/master's own tip; no lane range exists
-    assert.deepEqual(runCheck5(tmp, { anchor: anchorSha }), [], 'on master itself there is no range to refuse, even though hot.txt is a standing hotspot');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (Amendment 2) ANCHOR HONOURED: a file touched 3+ times AT OR BEFORE the anchor is never counted, even if this lane\'s own range touches it', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    const anchorSha = initCheck5Repo(tmp, git);
-    git(['checkout', '-q', '-b', 'lane/fixture']);
-    writeFile(join(tmp, 'pre-anchor.txt'), '4'); // this lane's range touches the pre-anchor file
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'lane/fixture: touches pre-anchor.txt']);
-    const v = runCheck5(tmp, { anchor: anchorSha });
-    assert.ok(!v.some((x) => x.path === 'pre-anchor.txt'), 'pre-anchor.txt has 0 touches in the post-anchor window, so this lane\'s single touch (total 1) never reaches threshold 3');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 (Amendment 2) SHORT-WINDOW SKIP: fewer than 3 first-parent commits after the anchor prints the count and skips, never fails', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    writeFile(join(tmp, 'a.txt'), '1');
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'anchor commit']);
-    const anchorSha = git(['rev-parse', 'HEAD']).trim();
-    writeFile(join(tmp, 'b.txt'), '1');
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'one commit after the anchor']);
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-    assert.deepEqual(runCheck5(tmp, { anchor: anchorSha }), [], 'only 1 commit after the anchor, below the 3-commit floor needed for any hotspot');
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 SKIP: no origin/master ref at all is skipped, never failed', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    writeFile(join(tmp, 'x.txt'), '1');
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'base, no origin/master ref']);
-    const sha = git(['rev-parse', 'HEAD']).trim();
-    assert.deepEqual(runCheck5(tmp, { anchor: sha }), []);
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('check 5 SKIP: the anchor commit itself is unreachable (bad anchor) is skipped, never failed', () => {
-  const { tmp, git } = tmpRepo('f51-check5-');
-  try {
-    writeFile(join(tmp, 'x.txt'), '1');
-    git(['add', '-A']);
-    git(['commit', '-q', '-m', 'base']);
-    git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
-    assert.deepEqual(runCheck5(tmp, { anchor: '0'.repeat(40) }), []);
-  } finally {
-    rmSync(tmp, { recursive: true, force: true });
-  }
-});
-
-test('underEntryDir: recognizes the five derived directories, docs/ops/session-log.d/ and docs/runbooks/maintenance.d/', () => {
-  assert.equal(underEntryDir('fsi-app/.discipline/fitness/functions/F1-x.mjs'), true);
-  assert.equal(underEntryDir('fsi-app/.discipline/governance/invariants.d/RD-1.mjs'), true);
-  assert.equal(underEntryDir('fsi-app/scripts/harness-runs/mint/family.json'), true);
-  assert.equal(underEntryDir('fsi-app/.discipline/governance/skill-acks/2026-09-19-n6.md'), true);
-  assert.equal(underEntryDir('fsi-app/.discipline/governance/loop-hops.d/01-sweep-to-fetch-drain.json'), true);
-  assert.equal(underEntryDir('docs/ops/session-log.d/2026-09-19-n6.md'), true);
-  // RB-SPLIT (2026-10-04): one file per maintenance step; the index file itself stays a plain hotspot.
-  assert.equal(underEntryDir('docs/runbooks/maintenance.d/59-new-step.md'), true);
-  assert.equal(underEntryDir('docs/runbooks/MAINTENANCE-RUNBOOK.md'), false);
-  assert.equal(underEntryDir('fsi-app/scripts/lib/run-artifact.mjs'), false);
-});
-
-test('check 5 wired to the live tree (lane F51c): HOTSPOT_ALLOWLIST names only the six coordinator-only-by-contract entries plus the two dated R7-LINT-CI approvals (the dated 2026-10-04 MAINTENANCE-RUNBOOK entry is removed by lane RB-SPLIT, the runbook now being one file per step) -- the seven serial-owner entries (the lane-briefs README, the three ADR-031 loop-id-resolver files, loop-manifest.mjs, and the two FactCard part files) are deleted, cleared by the concurrency definition instead', () => {
-  assert.deepEqual(
-    Object.keys(HOTSPOT_ALLOWLIST).sort(),
-    [
-      'docs/INDEX.md', 'docs/PROGRAM-BOARD.md', 'docs/audits/system-health-audit-2026-09-17.md',
-      'docs/ops/HANDOFF-2026-09-19-addendum.md', 'docs/ops/session-log.md',
-      // 2026-10-04: the maintenance runbook step index is coordinator-only, same as docs/INDEX.md.
-      'docs/runbooks/MAINTENANCE-RUNBOOK.md',
-      'docs/plans/complete-system-build-plan-2026-09-04.md',
-      // Two dated, coordinator-approved (2026-10-03) concurrency exemptions for lane R7-LINT-CI, a
-      // whole-tree lint remediation merged clean against #907 and #908 (see HOTSPOT_ALLOWLIST).
-      'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs', 'fsi-app/src/lib/supabase-server.ts',
-    ].sort(),
-  );
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// LANE G1 AMENDMENT 2 ATTACK (a): F51 check 5 fired on docs/dispatches/lane-briefs/2026-09-19/README.md
+// LANE G1 AMENDMENT 2 ATTACK (a): F51's former check 5 fired on docs/dispatches/lane-briefs/2026-09-19/README.md
 // because three coordinator docs PRs each appended a row to its per-brief table (Cause A, the exact
 // shape plan 6.8 removed elsewhere). The fix (item 1) deleted the table; this test proves the shape
 // stays gone. AMENDMENT 2 ATTACK (b), the allowlist-does-not-widen synthetic fixture, is RETIRED by lane
@@ -935,61 +389,24 @@ test('AMENDMENT 2 ATTACK (a): the live README carries no per-brief table row; pl
   assert.equal(tableRowPattern.test(plantedRegression), true, 'the detection pattern must catch a re-added table row in a fixture copy');
 });
 
-test('check 5 (Amendment 2) wired to the live tree: runCheck5 with the real anchor reports 0 violations (the conversion regime is excluded, no file is allowlisted to force this)', () => {
-  assert.equal(HOTSPOT_WINDOW_ANCHOR_COMMIT, 'ccb6aa0c091aba55f6e85d93ecc704c218acc20c');
-  assert.deepEqual(runCheck5(getRepoRoot()), []);
-});
-
+// fitnessFunction.check() wired end to end against the live tree: returns the true current violation set.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// LIVE-TREE PROOF (lane F51c, brief item 3): re-run the concurrency definition against the REAL recent
-// master history, with the allowlist emptied, naming exactly the seven files whose dated entries this
-// lane deletes. If any of them showed a violation here, the definition would be wrong (go back to item
-// 1, never re-add an entry, per the brief) -- none does, because every prior touch to every one of them
-// is a real serial edit (a lane cut after the previous one merged), not a concurrent one.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-test('check 5 (lane F51c) LIVE-TREE PROOF: the concurrency definition clears the seven deleted-allowlist files against the real repo history, with no allowlist entry protecting them', () => {
-  const root = getRepoRoot();
-  const raw = execFileSync(
-    'git',
-    ['log', '--first-parent', '-n', '30', '--name-only', '--pretty=format:%x01%H%x02%s', `${HOTSPOT_WINDOW_ANCHOR_COMMIT}..origin/master`],
-    { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 },
-  );
-  const commits = parseFirstParentLogDetailed(raw);
-  const forkPoint = resolveForkPoint(root);
-  assert.ok(forkPoint, 'this lane\'s fork point with origin/master must resolve against the live tree');
-  const classified = classifyConcurrency(root, commits, forkPoint);
-  const deletedEntryFiles = [
-    'docs/dispatches/lane-briefs/2026-09-19/README.md',
-    'fsi-app/scripts/lib/loop-run-id.mjs',
-    'fsi-app/scripts/lib/loop-run-id.test.mjs',
-    'fsi-app/scripts/turns/emit-downstream-chain-artifact.mjs',
-    'fsi-app/.discipline/governance/loop-manifest.mjs',
-    'fsi-app/src/components/ui/FactCard.tsx',
-    'fsi-app/src/components/ui/FactCard.npmtest.mjs',
-  ];
-  const v = evaluateConcurrencyViolations({
-    masterCommits: classified,
-    rangeFiles: deletedEntryFiles,
-    allowlist: {}, // deliberately empty: proving the definition, not the allowlist, clears these
-    existsCheck: (f) => existsSync(join(root, f)),
-  });
-  assert.deepEqual(v, [], 'every file whose HOTSPOT_ALLOWLIST entry lane F51c deletes must clear the concurrency definition on its own');
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// fitnessFunction.check() wired end to end against the live tree: prints the hotspot line, returns the
-// true current violation set (see the report for what each one is and why it is outside this lane's
-// write set to fix).
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-test('fitnessFunction.check() live: id/name/enumerate shape, and the result matches the sum of the five checks', () => {
+test('fitnessFunction.check() live: id/name/enumerate shape, and the result matches the sum of the four checks', () => {
   assert.equal(fitnessFunction.id, 'F51');
   assert.equal(fitnessFunction.name, 'no-shared-append');
   assert.deepEqual(fitnessFunction.enumerate(), ['fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs']);
   const root = getRepoRoot();
-  const expectedCount = runCheck1(root).length + runCheck2(root).length + runCheck3(root).length + runCheck4(root).length + runCheck5(root).length;
+  const expectedCount = runCheck1(root).length + runCheck2(root).length + runCheck3(root).length + runCheck4(root).length;
   assert.equal(fitnessFunction.check().length, expectedCount);
 });
+
+test('GATE-3: check 5 (hotspot concurrency) and its HOTSPOT_ALLOWLIST are gone, a concurrent edit is left to git to merge', () => {
+  for (const gone of ['runCheck5', 'HOTSPOT_ALLOWLIST', 'HOTSPOT_WINDOW_ANCHOR_COMMIT', 'countHotspots', 'evaluateConcurrencyViolations', 'resolveForkPoint', 'classifyConcurrency', 'underEntryDir']) {
+    assert.equal(f51[gone], undefined, `${gone} must not be exported any more`);
+  }
+  assert.doesNotMatch(fitnessFunction.description, /\b5\) the standing hotspot/);
+});
+
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // THE REPLAY (plan 6.8's own acceptance for closing itself): a throwaway repo seeded with the REAL
@@ -1028,11 +445,6 @@ function seedReplayBase(tmp, git) {
     mkdirSync(dirname(dst), { recursive: true });
     cpSync(src, dst);
   }
-  // Exactly one real pending/ file, per the brief.
-  const pendingSrc = join(REAL_ROOT, 'fsi-app/scripts/harness-runs/forward-events/pending/2026-09-19-n3-migrated.md');
-  const pendingDst = join(tmp, 'fsi-app/scripts/harness-runs/forward-events/pending/2026-09-19-n3-migrated.md');
-  mkdirSync(dirname(pendingDst), { recursive: true });
-  cpSync(pendingSrc, pendingDst);
   cpSync(join(REAL_ROOT, 'docs/ops/session-log.d'), join(tmp, 'docs/ops/session-log.d'), { recursive: true });
   git(['add', '-A']);
   git(['commit', '-q', '-m', 'base: derived directories as they are on the real tree']);
@@ -1040,34 +452,30 @@ function seedReplayBase(tmp, git) {
 }
 
 // What each of the five 2026-09-18 lanes' registration required under plan 6.8, per the brief:
-// M8/M9b/M1 add a family descriptor and a pending file; M9a/W10-A add a fitness function, an invariant
-// and a skill ack. Every branch also adds its own session-log.d file.
+// M8/M9b/M1 add a family descriptor; M9a/W10-A add a fitness function and an invariant. Every branch
+// also adds its own session-log.d file. (The pending marker and the skill ack the original replay also
+// carried were deleted by lane GATE-3, 2026-10-08.)
 const LANE_APPLY = {
   m8: (tmp) => {
     writeFile(join(tmp, 'fsi-app/scripts/harness-runs/fixture-m8/family.json'), JSON.stringify({ family: 'fixture-m8', registered: '2026-09-18', registered_by: 'lane-m8', governing_files: ['fsi-app/scripts/turns/fixture-m8-runner.mjs'], rationale: 'replay fixture' }, null, 2));
-    writeFile(join(tmp, 'fsi-app/scripts/harness-runs/fixture-m8/pending/2026-09-18-m8.md'), '## Change\nregistered family fixture-m8\n## Planned run\nfixture-m8-run-001\n');
     writeFile(join(tmp, 'docs/ops/session-log.d/2026-09-18-m8.md'), '## 2026-09-18, lane M8 fixture\n\n### UX compliance (M8)\nNot a UI change.\n');
   },
   m9b: (tmp) => {
     writeFile(join(tmp, 'fsi-app/scripts/harness-runs/fixture-m9b/family.json'), JSON.stringify({ family: 'fixture-m9b', registered: '2026-09-18', registered_by: 'lane-m9b', governing_files: ['fsi-app/scripts/turns/fixture-m9b-runner.mjs'], rationale: 'replay fixture' }, null, 2));
-    writeFile(join(tmp, 'fsi-app/scripts/harness-runs/fixture-m9b/pending/2026-09-18-m9b.md'), '## Change\nregistered family fixture-m9b\n## Planned run\nfixture-m9b-run-001\n');
     writeFile(join(tmp, 'docs/ops/session-log.d/2026-09-18-m9b.md'), '## 2026-09-18, lane M9b fixture\n\n### UX compliance (M9b)\nNot a UI change.\n');
   },
   m1: (tmp) => {
     writeFile(join(tmp, 'fsi-app/scripts/harness-runs/fixture-m1/family.json'), JSON.stringify({ family: 'fixture-m1', registered: '2026-09-18', registered_by: 'lane-m1', governing_files: ['fsi-app/scripts/turns/fixture-m1-runner.mjs'], rationale: 'replay fixture' }, null, 2));
-    writeFile(join(tmp, 'fsi-app/scripts/harness-runs/fixture-m1/pending/2026-09-18-m1.md'), '## Change\nregistered family fixture-m1\n## Planned run\nfixture-m1-run-001\n');
     writeFile(join(tmp, 'docs/ops/session-log.d/2026-09-18-m1.md'), '## 2026-09-18, lane M1 fixture\n\n### UX compliance (M1)\nNot a UI change.\n');
   },
   m9a: (tmp) => {
     writeFile(join(tmp, 'fsi-app/.discipline/fitness/functions/F900-fixture-m9a.mjs'), "export const fitnessFunction = { id: 'F900', name: 'fixture-m9a', enumerate() { return []; }, check() { return []; } };\n");
     writeFile(join(tmp, 'fsi-app/.discipline/governance/invariants.d/ZZ-900.mjs'), "export const invariant = { id: 'ZZ-900', skill: 'remediation-discipline', section: 'fixture', text: 'fixture', anchor: 'fixture', exempt: { reason: 'replay fixture' } };\n");
-    writeFile(join(tmp, 'fsi-app/.discipline/governance/skill-acks/2026-09-18-m9a.md'), '## Skill\nremediation-discipline\n## Citing files reviewed\nnone (fixture)\n');
     writeFile(join(tmp, 'docs/ops/session-log.d/2026-09-18-m9a.md'), '## 2026-09-18, lane M9a fixture\n\n### UX compliance (M9a)\nNot a UI change.\n');
   },
   w10a: (tmp) => {
     writeFile(join(tmp, 'fsi-app/.discipline/fitness/functions/F901-fixture-w10a.mjs'), "export const fitnessFunction = { id: 'F901', name: 'fixture-w10a', enumerate() { return []; }, check() { return []; } };\n");
     writeFile(join(tmp, 'fsi-app/.discipline/governance/invariants.d/ZZ-901.mjs'), "export const invariant = { id: 'ZZ-901', skill: 'remediation-discipline', section: 'fixture', text: 'fixture', anchor: 'fixture', exempt: { reason: 'replay fixture' } };\n");
-    writeFile(join(tmp, 'fsi-app/.discipline/governance/skill-acks/2026-09-18-w10a.md'), '## Skill\nremediation-discipline\n## Citing files reviewed\nnone (fixture)\n');
     writeFile(join(tmp, 'docs/ops/session-log.d/2026-09-18-w10a.md'), '## 2026-09-18, lane W10-A fixture\n\n### UX compliance (W10-A)\nNot a UI change.\n');
   },
 };
@@ -1085,12 +493,7 @@ function verifyMergedReplayTree(tmp) {
   for (const fam of ['fixture-m8', 'fixture-m9b', 'fixture-m1']) {
     assert.equal(harnessDirs.filter((d) => d === fam).length, 1, `family directory "${fam}" must exist exactly once`);
     assert.ok(existsSync(join(tmp, 'fsi-app/scripts/harness-runs', fam, 'family.json')));
-    assert.ok(existsSync(join(tmp, 'fsi-app/scripts/harness-runs', fam, 'pending', `2026-09-18-${fam.slice('fixture-'.length)}.md`)));
   }
-
-  const ackFiles = readdirSync(join(tmp, 'fsi-app/.discipline/governance/skill-acks'));
-  assert.equal(ackFiles.filter((f) => f === '2026-09-18-m9a.md').length, 1);
-  assert.equal(ackFiles.filter((f) => f === '2026-09-18-w10a.md').length, 1);
 
   const logFiles = readdirSync(join(tmp, 'docs/ops/session-log.d'));
   for (const lane of ['m8', 'm9b', 'm9a', 'm1', 'w10a']) {

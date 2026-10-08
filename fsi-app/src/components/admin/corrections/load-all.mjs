@@ -23,7 +23,6 @@ export async function loadAllCorrections(supabase, fetcher) {
   const titles = new Map();
   const itemIds = [...new Set(raw.map((r) => r.item_id))];
   const items = await fetchAllByIdChunks(itemIds, async (slice) => {
-    // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
     const { data, error } = await supabase.from("intelligence_items").select("id, title").in("id", slice);
     if (error) throw new Error(error.message);
     return data ?? [];
