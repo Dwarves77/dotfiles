@@ -24,6 +24,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { STATE_COOKIE, LINKEDIN_OAUTH_BASE_URL } from "../start/logic"; // F46: www.linkedin.com's one home (lane L35)
 
 const TOKEN_ENDPOINT = `${LINKEDIN_OAUTH_BASE_URL}/accessToken`;
@@ -222,10 +223,18 @@ export async function GET(request: NextRequest) {
   // for it on profiles; the Supabase auth.users row owns the canonical email.
   void primaryEmail;
 
-  const { error: upsertError } = await supabase
-    .from("profiles")
-    .update(update)
-    .eq("id", user.id);
+  // Migration 367 (SEC-2): verification_tier is system-written, so a user-session client can no longer update it.
+  // This write is attested by the server-side LinkedIn code exchange above, not by the browser, and it is scoped to
+  // the verified session's own user id, so it goes through the service-role client (the one fail-closed home).
+  // The session client above stays the identity check.
+  let upsertError: { code?: string } | null = null;
+  try {
+    const result = await getServiceSupabase().from("profiles").update(update).eq("id", user.id);
+    upsertError = result.error;
+  } catch {
+    // getServiceSupabase throws (fail-closed) when the service key is not configured.
+    upsertError = { code: "service-client-unavailable" };
+  }
   if (upsertError) {
     console.warn("[linkedin-oauth] profile upsert failed", {
       reason: "profile-upsert-failed",
