@@ -1097,3 +1097,39 @@ test('AH6: a workflow name: is unique across .github/workflows (a duplicate woul
   }
   assert.deepEqual([...names.entries()].filter(([, files]) => files.length > 1), [], 'two workflow files share a name');
 });
+
+// ── GATE-9: a container job whose steps use pipefail must run them under bash ────────────────────────────────
+// A container job's steps run under `sh -e` (dash on the Playwright image), which rejects `set -o pipefail`: the first
+// GATE-9 run of the rendering guard died with "set: Illegal option -o pipefail". Every job with a `container:` key whose
+// code uses pipefail must declare `defaults.run.shell: bash` (the layout-baseline-renewal and live-smoke jobs use no
+// pipefail today, so they need nothing; the day one does, this test names it).
+
+function containerShellProblems(fileLabel, text) {
+  const problems = [];
+  const lines = text.split(/\r?\n/);
+  for (const job of extractJobs(lines)) {
+    const jobLines = lines.slice(job.startLine, job.endLine + 1);
+    if (!jobLines.some((l) => /^ {4}container:/.test(l))) continue;
+    const usesPipefail = jobLines.some((l) => !/^\s*#/.test(l) && /pipefail/.test(l));
+    const hasBash = /^ {4}defaults:\n {6}run:\n {8}shell: bash\s*$/m.test(jobLines.filter((l) => !/^\s*#/.test(l)).join('\n'));
+    if (usesPipefail && !hasBash) problems.push(`${fileLabel} job ${job.id}: a container job that uses pipefail must declare defaults.run.shell: bash (the default shell there is sh)`);
+  }
+  return problems;
+}
+
+test('GATE-9: every container job that uses pipefail declares defaults.run.shell: bash (real workflow files)', () => {
+  const dir = join(REPO, '.github', 'workflows');
+  for (const f of readdirSync(dir).filter((n) => /\.ya?ml$/.test(n))) {
+    assert.deepEqual(containerShellProblems(f, readFileSync(join(dir, f), 'utf8')), []);
+  }
+  assert.match(jobText('rendering-guard'), /^ {4}defaults:\n {6}run:\n {8}shell: bash$/m, 'the rendering guard job runs its steps under bash');
+});
+
+test('GATE-9 attack: removing the shell default from the rendering guard job, or adding pipefail to a container job without it, is caught', () => {
+  const noShell = DISCIPLINE_YML.replace('    defaults:\n      run:\n        shell: bash\n', '');
+  assert.notEqual(noShell, DISCIPLINE_YML);
+  assert.equal(containerShellProblems('discipline.yml', noShell).length, 1);
+  const synthetic = 'name: X\non:\n  workflow_dispatch: {}\njobs:\n  a:\n    runs-on: ubuntu-latest\n    container:\n      image: x\n    steps:\n      - run: |\n          set -euo pipefail\n          echo hi\n';
+  assert.equal(containerShellProblems('x.yml', synthetic).length, 1);
+  assert.deepEqual(containerShellProblems('x.yml', synthetic.replace('    container:', '    defaults:\n      run:\n        shell: bash\n    container:')), []);
+});

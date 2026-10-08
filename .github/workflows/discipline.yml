@@ -637,6 +637,11 @@ jobs:
     # To bump Playwright, change the tag; the distro is noble (published for 1.61, proven by the first run).
     container:
       image: mcr.microsoft.com/playwright:v1.61.1-noble
+    # SHELL (lane GATE-9): a container job's steps run under `sh -e` (dash) by default, which has no `-o pipefail`
+    # (the first GATE-9 run died with "set: Illegal option -o pipefail"). The image has bash, so the job says so.
+    defaults:
+      run:
+        shell: bash
     # TIMEOUT 15 MINUTES (was 10). Measured by GATE-4 (docs/ops/session-log.d/2026-10-07-gate4-ci.md): the guard
     # run itself is median 231 s, p90 433 s, max 604 s, checkout 5 s, and the install (44 s typical) is gone,
     # so the longest observed run plus startup is about 11 minutes; 15 leaves headroom without letting a

@@ -237,3 +237,17 @@ test("with the real tree and no map present, the plan refuses (the honest red st
   if (mapText === null) assert.equal(plan.errors[0].kind, "map_absent_or_invalid");
   else assert.ok(Array.isArray(plan.errors));
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: replay-migrations.mjs exits 2 with no database URL and 2 for a non-loopback one (it never reaches a database)", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./replay-migrations.mjs", import.meta.url));
+  const env = { ...withoutCredentials(), PROOF_DB_URL: "", SUPABASE_DB_URL: "", CHAIN_PROOF_LOCAL: "" };
+  const none = spawnSync(process.execPath, [script], { encoding: "utf8", env });
+  assert.equal(none.status, 2, none.stdout + none.stderr);
+  assert.match(none.stderr, /no database URL/);
+  const remote = spawnSync(process.execPath, [script, "--db-url", "postgresql://u:p@db.example.com:5432/postgres"], { encoding: "utf8", env });
+  assert.equal(remote.status, 2, remote.stdout + remote.stderr);
+});

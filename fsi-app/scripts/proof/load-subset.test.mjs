@@ -158,3 +158,17 @@ test("runCli: exit 2 without PROOF_DB_URL; refuses a remote host and never conne
   assert.equal(await runCli([], { env: { PROOF_DB_URL: "postgresql://u:p@127.0.0.1:54322/postgres" }, connect, errorLog: (m) => errs.push(m) }), 1);
   assert.ok(errs.every((m) => !m.includes("p@")), "no connection string is printed");
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: load-subset.mjs exits 1 without --in and non-zero for an input directory that does not exist", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./load-subset.mjs", import.meta.url));
+  const env = { ...withoutCredentials(), SUPABASE_DB_URL: "", PROOF_DB_URL: "", CHAIN_PROOF_LOCAL: "" };
+  const none = spawnSync(process.execPath, [script], { encoding: "utf8", env });
+  assert.equal(none.status, 1, none.stdout + none.stderr);
+  assert.match(none.stderr, /--in <export dir>/);
+  const missing = spawnSync(process.execPath, [script, "--in", "no-such-subset-dir-gate9"], { encoding: "utf8", env });
+  assert.notEqual(missing.status, 0);
+});

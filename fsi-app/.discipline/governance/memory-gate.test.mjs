@@ -280,3 +280,98 @@ test('memory B7-13: a workflow-only commit range, read from a real git diff in a
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ── lane GATE-9 (2026-10-08): a session-log file is evidence by its content, not its name (AUD-AT-5 VC-4) ──────
+import { isMemoryEvidence, rangeHead } from './memory-gate.mjs';
+import { spawnSync, execFileSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REAL_ENTRY = '# 2026-10-08 lane X (x): a real entry\n\n## Accomplished\n\n- Fixed the thing that was broken and proved it with a test run.\n';
+
+test('VC-4: a one-byte file, a bare heading, an empty Accomplished section and an undated entry are NOT evidence', () => {
+  for (const c of ['x', '', '# 2026-10-08 lane X\n', '# 2026-10-08 lane X\n\n## Accomplished\n\n## Decisions\n\n- a long decision line that is not an accomplishment\n', '# lane X no date\n\n## Accomplished\n\n- Fixed the thing that was broken and proved it.\n', '# 2026-10-08 x\n\n## Accomplished\n\n- done\n', null, undefined]) {
+    assert.equal(isMemoryEvidence(c), false, JSON.stringify(c));
+  }
+});
+
+test('VC-4: the dated heading plus an Accomplished line is evidence, in the heading, bold-label and inline forms', () => {
+  assert.equal(isMemoryEvidence(REAL_ENTRY), true);
+  assert.equal(isMemoryEvidence('## 2026-10-08 x\n\n**Accomplished**\n\nFixed the thing that was broken and proved it.\n'), true);
+  assert.equal(isMemoryEvidence('# 2026-10-08 x\n\nAccomplished: fixed the thing that was broken and proved it.\n'), true);
+  assert.equal(isMemoryEvidence(REAL_ENTRY.replace(/\n/g, '\r\n')), true, 'CRLF checkouts');
+});
+
+test('VC-4: classifyChanged with a reader counts a session-log.d file only when its content is evidence; a deleted file is none', () => {
+  const code = 'fsi-app/src/lib/x.ts';
+  const log = 'docs/ops/session-log.d/2026-10-08-lane-x.md';
+  const verdict = (content) => memoryGateVerdict([code, log], { readMemoryFile: () => content }).ok;
+  assert.equal(verdict('x'), false, 'the one-byte file fails');
+  assert.equal(verdict(null), false, 'a deleted or unreadable file fails');
+  assert.equal(verdict(REAL_ENTRY), true);
+  assert.equal(memoryGateVerdict([code, 'docs/ops/session-log.md'], { readMemoryFile: () => null }).ok, true, 'the shared log and PROGRAM-BOARD are counted by name, as before');
+  assert.equal(memoryGateVerdict([code, log]).ok, true, 'a pure-core caller with no reader keeps the name rule');
+  assert.match(memoryGateVerdict([code, log], { readMemoryFile: () => 'x' }).message, /dated heading and an Accomplished line/);
+});
+
+test('rangeHead: the right-hand side of a..b and a...b, HEAD when empty or absent', () => {
+  assert.equal(rangeHead('origin/master...abc123'), 'abc123');
+  assert.equal(rangeHead('a..b'), 'b');
+  assert.equal(rangeHead('a..'), 'HEAD');
+  assert.equal(rangeHead('a'), 'HEAD');
+});
+
+/** The gate CLI, copied with its three relative imports into a throwaway git repo so a real range can be run. */
+function gateFixture(fn) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const fsi = join(here, '..', '..');
+  const dir = mkdtempSync(join(tmpdir(), 'mg-cli-'));
+  try {
+    for (const rel of ['.discipline/governance/memory-gate.mjs', '.discipline/lib/change-range.mjs', '.discipline/lib/gate-firings.mjs', 'scripts/lib/is-main.mjs']) {
+      mkdirSync(dirname(join(dir, 'fsi-app', rel)), { recursive: true });
+      copyFileSync(join(fsi, rel), join(dir, 'fsi-app', rel));
+    }
+    const git = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.test', '-c', 'commit.gpgsign=false', ...a], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    git('init', '-q', '-b', 'master');
+    writeFileSync(join(dir, 'README'), 'base');
+    writeFileSync(join(dir, '.gitignore'), 'fsi-app/.discipline/out/\n'); // the gate writes its firings file there
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base');
+    const base = git('rev-parse', 'HEAD').trim();
+    const gate = (...args) => spawnSync(process.execPath, [join(dir, 'fsi-app/.discipline/governance/memory-gate.mjs'), ...args], { cwd: dir, encoding: 'utf8' });
+    const commitFiles = (files, msg) => {
+      for (const [p, c] of Object.entries(files)) { mkdirSync(dirname(join(dir, p)), { recursive: true }); writeFileSync(join(dir, p), c); }
+      git('add', '-A');
+      git('commit', '-q', '-m', msg);
+    };
+    return fn({ gate, commitFiles, base });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test('VC-4: through the real CLI over a real range, a code change with a one-byte session-log file exits 1, with a real entry exits 0', () => {
+  gateFixture(({ gate, commitFiles, base }) => {
+    commitFiles({ 'fsi-app/scripts/x.mjs': 'export const x = 1;\n', 'docs/ops/session-log.d/2026-10-08-zz.md': 'x' }, 'code plus a stub log');
+    const bad = gate(`--range=${base}..HEAD`);
+    assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.match(bad.stderr, /Memory gate/);
+    commitFiles({ 'docs/ops/session-log.d/2026-10-08-zz.md': REAL_ENTRY }, 'a real entry');
+    const good = gate(`--range=${base}..HEAD`);
+    assert.equal(good.status, 0, good.stdout + good.stderr);
+    assert.match(good.stdout, /memory gate OK/);
+  });
+});
+
+test('memory-gate exit status: 1 for code with no memory, 0 for the same on --warn-only, 0 for no code, 2 for an unresolvable range', () => {
+  gateFixture(({ gate, commitFiles, base }) => {
+    commitFiles({ 'fsi-app/scripts/y.mjs': 'export const y = 1;\n' }, 'code only');
+    assert.equal(gate(`--range=${base}..HEAD`).status, 1);
+    assert.equal(gate(`--range=${base}..HEAD`, '--warn-only').status, 0);
+    commitFiles({ 'docs/notes.md': 'just docs' }, 'docs only');
+    assert.equal(gate('--range=HEAD~1..HEAD').status, 0, 'a docs-only range has no code to record');
+    assert.equal(gate('--range=no-such-ref..HEAD').status, 2);
+  });
+});

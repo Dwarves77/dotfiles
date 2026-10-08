@@ -10,6 +10,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withoutCredentials } from "../lib/env-file.mjs";
 import { isGoldenFile, discoverGoldens, classifyGolden, overallVerdict } from "./run-goldens.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -34,7 +35,7 @@ function fixture(files, fn) {
   }
 }
 
-const run = (dir) => spawnSync(process.execPath, [SCRIPT, `--dir=${dir}`], { encoding: "utf8" });
+const run = (dir) => spawnSync(process.execPath, [SCRIPT, `--dir=${dir}`], { encoding: "utf8", env: withoutCredentials() });
 
 test("FC-5: every golden spelling is a golden, in any case of extension that node runs, and the runner is not one", () => {
   for (const n of ["a.golden.mjs", "x.golden.cjs", "y.goldens.mjs", "golden-z.mjs", "funded-pass-lock-golden.mjs", "b-golden.cjs"]) {
