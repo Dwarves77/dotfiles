@@ -20,6 +20,8 @@ const read = (name) => readFileSync(join(HERE, name), "utf8");
 const SRC = join(HERE, "..", "..", "src");
 const readSrc = (...p) => readFileSync(join(SRC, ...p), "utf8");
 const FOUR = ["verifier_status", "verification_tier", "membership_tier", "contribution_score"];
+const FIVE = ["verifier_since", "linkedin_verified", "linkedin_identity_verified", "linkedin_workplace_verified", "linkedin_verification_checked_at"];
+const NINE = [...FOUR, ...FIVE];
 const SEC1 = ["is_platform_admin", "role", "org_id", "workspace_role"];
 
 test("header: subject line and NOT APPLIED, and it names migration 364 as its prerequisite", () => {
@@ -28,17 +30,22 @@ test("header: subject line and NOT APPLIED, and it names migration 364 as its pr
   assert.match(RAW, /REQUIRES migration 364/);
 });
 
-test("the four columns exist, created by 007 (tiers, score) and 075 (verifier_status), and no migration drops them", () => {
+test("the nine columns exist, created by 007 (tiers, score, linkedin flags) and 075 (verifier_status, verifier_since), and no migration drops them", () => {
   const m007 = read("007_community_layer.sql");
+  assert.match(m007, /ADD COLUMN IF NOT EXISTS linkedin_verified BOOLEAN DEFAULT FALSE/);
+  assert.match(m007, /ADD COLUMN IF NOT EXISTS linkedin_identity_verified BOOLEAN DEFAULT FALSE/);
+  assert.match(m007, /ADD COLUMN IF NOT EXISTS linkedin_workplace_verified BOOLEAN DEFAULT FALSE/);
+  assert.match(m007, /ADD COLUMN IF NOT EXISTS linkedin_verification_checked_at TIMESTAMPTZ/);
+  assert.match(read("075_profiles_consolidation_phase1.sql"), /ADD COLUMN IF NOT EXISTS verifier_since timestamptz NULL/);
   assert.match(m007, /ADD COLUMN IF NOT EXISTS verification_tier TEXT DEFAULT 'unverified'/);
   assert.match(m007, /ADD COLUMN IF NOT EXISTS membership_tier TEXT DEFAULT 'free'/);
   assert.match(m007, /ADD COLUMN IF NOT EXISTS contribution_score INTEGER DEFAULT 0/);
   assert.match(read("075_profiles_consolidation_phase1.sql"), /ADD COLUMN IF NOT EXISTS verifier_status text NOT NULL DEFAULT 'none'/);
   for (const f of readdirSync(HERE).filter((n) => n.endsWith(".sql"))) {
     const t = read(f).split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
-    for (const c of FOUR) assert.doesNotMatch(t, new RegExp(`DROP COLUMN[^;]*\\b${c}\\b`, "i"), `${f} drops ${c}`);
+    for (const c of NINE) assert.doesNotMatch(t, new RegExp(`DROP COLUMN[^;]*\\b${c}\\b`, "i"), `${f} drops ${c}`);
   }
-  for (const c of FOUR) assert.ok(SQL.includes(`'${c}'`), `precondition names ${c}`);
+  for (const c of NINE) assert.ok(SQL.includes(`'${c}'`), `precondition names ${c}`);
 });
 
 test("preconditions abort unless 364 is in effect (guard function, enabled trigger, no table-level grant left)", () => {
@@ -49,8 +56,8 @@ test("preconditions abort unless 364 is in effect (guard function, enabled trigg
   assert.ok(SQL.includes("migration 364 (profiles_privilege_guard and profiles_privilege_guard_trg) must be applied before 367"));
 });
 
-test("layer 1: column-level REVOKE of INSERT and UPDATE on exactly the four columns, from PUBLIC, anon, authenticated", () => {
-  const list = FOUR.join(", ");
+test("layer 1: column-level REVOKE of INSERT and UPDATE on exactly the nine columns, from PUBLIC, anon, authenticated", () => {
+  const list = NINE.join(", ");
   assert.ok(SQL.includes(`REVOKE INSERT (${list})\n  ON public.profiles FROM PUBLIC, anon, authenticated;`));
   assert.ok(SQL.includes(`REVOKE UPDATE (${list})\n  ON public.profiles FROM PUBLIC, anon, authenticated;`));
   assert.doesNotMatch(SQL, /REVOKE[^;]*\bservice_role\b/);
@@ -67,7 +74,7 @@ test("layer 2: the SAME 364 guard function is replaced; no second function and n
   assert.match(fn, /pg_get_userbyid\(c\.relowner\)/);
   assert.doesNotMatch(fn, /current_setting\('request\.jwt/);
   // the four 364 comparisons are carried over, the four new ones added
-  for (const c of [...SEC1, ...FOUR]) assert.match(fn, new RegExp(`NEW\\.${c}\\s+IS DISTINCT FROM OLD\\.${c}`), c);
+  for (const c of [...SEC1, ...NINE]) assert.match(fn, new RegExp(`NEW\\.${c}\\s+IS DISTINCT FROM OLD\\.${c}`), c);
   // INSERT branch: 364 conditions carried over, defaults of the four new columns enforced
   assert.match(fn, /NEW\.is_platform_admin IS TRUE/);
   assert.match(fn, /NEW\.org_id IS NOT NULL/);
@@ -77,6 +84,11 @@ test("layer 2: the SAME 364 guard function is replaced; no second function and n
   assert.match(fn, /NEW\.verification_tier\s+IS DISTINCT FROM 'unverified'/);
   assert.match(fn, /NEW\.membership_tier\s+IS DISTINCT FROM 'free'/);
   assert.match(fn, /NEW\.contribution_score IS DISTINCT FROM 0/);
+  assert.match(fn, /NEW\.verifier_since IS NOT NULL/);
+  assert.match(fn, /NEW\.linkedin_verified IS TRUE/);
+  assert.match(fn, /NEW\.linkedin_identity_verified IS TRUE/);
+  assert.match(fn, /NEW\.linkedin_workplace_verified IS TRUE/);
+  assert.match(fn, /NEW\.linkedin_verification_checked_at IS NOT NULL/);
   assert.equal((fn.match(/USING ERRCODE = '42501'/g) || []).length, 2);
 });
 
@@ -111,11 +123,12 @@ test("request_verification(): EXECUTE revoked from PUBLIC and anon, granted to a
   assert.doesNotMatch(SQL, /GRANT EXECUTE ON FUNCTION public\.request_verification\(\)[^;]*\b(anon|PUBLIC)\b/);
 });
 
-test("self-check ATTACKS as role authenticated with a fixture jwt sub and requires 42501 on every status column, UPDATE and INSERT", () => {
+test("self-check ATTACKS as role authenticated with a fixture jwt sub and requires 42501 on every status, tier and badge column, UPDATE and INSERT", () => {
   assert.match(SQL, /SET LOCAL ROLE authenticated;/);
   assert.match(SQL, /set_config\('request\.jwt\.claim\.sub'/);
-  assert.match(SQL, /v_cols\s+text\[\] := ARRAY\['verifier_status', 'verification_tier', 'membership_tier', 'contribution_score'\]/);
-  assert.match(SQL, /v_vals\s+text\[\] := ARRAY\['''active''', '''staff_verified''', '''premium''', '9999'\]/);
+  const squash = (m) => m[1].replace(/\s+/g, " ").trim();
+  assert.equal(squash(SQL.match(/v_cols\s+text\[\] := ARRAY\[([\s\S]*?)\];/)), NINE.map((c) => "'" + c + "'").join(", "));
+  assert.equal(squash(SQL.match(/v_vals\s+text\[\] := ARRAY\[([\s\S]*?)\];/)),"'''active''', '''staff_verified''', '''premium''', '9999', 'now()', 'true', 'true', 'true', 'now()'");
   assert.match(SQL, /UPDATE public\.profiles SET verifier_status = 'active' WHERE id = v_uid;/);
   assert.match(SQL, /INSERT INTO public\.profiles \(id, verifier_status\) VALUES \(v_uid2, 'active'\);/);
   assert.match(SQL, /EXCEPTION WHEN insufficient_privilege THEN/);
@@ -126,8 +139,8 @@ test("self-check ATTACKS as role authenticated with a fixture jwt sub and requir
 
 test("self-check proves each layer alone: layer 1 is a column privilege denial, layer 2 (grants restored inside the rolled-back block) names the trigger", () => {
   assert.match(SQL, /position\('permission denied' IN v_msg\)/);
-  assert.match(SQL, /GRANT UPDATE \(verifier_status, verification_tier, membership_tier, contribution_score\) ON public\.profiles TO authenticated;/);
-  assert.match(SQL, /GRANT INSERT \(verifier_status, verification_tier, membership_tier, contribution_score\) ON public\.profiles TO authenticated;/);
+  assert.ok(SQL.includes("GRANT UPDATE (" + NINE.join(", ") + ") ON public.profiles TO authenticated;"));
+  assert.ok(SQL.includes("GRANT INSERT (" + NINE.join(", ") + ") ON public.profiles TO authenticated;"));
   assert.match(SQL, /position\('profiles_privilege_guard' IN v_msg\) = 0/);
   assert.match(SQL, /the extended guard no longer refuses is_platform_admin/);
 });
@@ -144,10 +157,10 @@ test("self-check exercises the RPC: none to pending, pending no-op, active refus
   assert.match(SQL, /request_verification\(\) was not sanctioned by the guard/);
 });
 
-test("self-check is not over-broad and the sanctioned path stays open: job_title updates, service_role sets all four", () => {
+test("self-check is not over-broad and the sanctioned path stays open: job_title updates, service_role sets all nine", () => {
   assert.match(SQL, /UPDATE public\.profiles SET job_title = 'sec2-selfcheck' WHERE id = v_uid;/);
   assert.match(SQL, /INSERT INTO public\.profiles \(id, display_name\) VALUES \(v_uid2, 'sec2-selfcheck'\);/);
-  assert.match(SQL, /SET LOCAL ROLE service_role;\s+UPDATE public\.profiles\s+SET verifier_status = 'active', verification_tier = 'staff_verified',\s+membership_tier = 'premium', contribution_score = 5/);
+  assert.match(SQL, /SET LOCAL ROLE service_role;\s+UPDATE public\.profiles\s+SET verifier_status = 'active', verification_tier = 'staff_verified',\s+membership_tier = 'premium', contribution_score = 5,\s+verifier_since = now\(\), linkedin_verified = true, linkedin_identity_verified = true,\s+linkedin_workplace_verified = true, linkedin_verification_checked_at = now\(\)/);
   assert.ok(SQL.includes("'active/staff_verified/premium/5'"));
 });
 
@@ -173,7 +186,7 @@ function walk(dir, out = []) {
 // ensureProfile writes with the service-role client (sanctioned role) and inserts none of the four columns.
 const SERVICE_ROLE_WRITERS = new Set(["provision-personal-workspace.ts"]);
 
-test("no .from('profiles').update/insert/upsert payload in src names verifier_status, verification_tier, membership_tier or contribution_score", () => {
+test("no .from('profiles').update/insert/upsert payload in src names any of the nine columns", () => {
   const offenders = [];
   let writers = 0;
   for (const file of walk(SRC)) {
@@ -185,7 +198,7 @@ test("no .from('profiles').update/insert/upsert payload in src names verifier_st
       writers += 1;
       if (SERVICE_ROLE_WRITERS.has(base)) continue;
       const seg = text.slice(m.index, m.index + 700).split(/\.eq\(|\.match\(|\.select\(/)[0];
-      for (const c of FOUR) if (new RegExp(`\\b${c}\\b`).test(seg)) offenders.push(`${base}: ${c}`);
+      for (const c of NINE) if (new RegExp(`\\b${c}\\b`).test(seg)) offenders.push(`${base}: ${c}`);
     }
   }
   assert.ok(writers >= 5, `expected to find the known profiles writers, found ${writers}`);
@@ -205,7 +218,7 @@ test("UserProfilePage: verification is requested through the RPC; persist() cann
   assert.match(page, /const \{ data, error \} = await supabase\.rpc\("request_verification"\);\s+if \(error\) \{\s+setError\(error\.message\);\s+return false;/);
   // every remaining persist({...}) call sends display and scope fields only
   for (const call of [...page.matchAll(/persist\(\{([^}]*)\}\)/g)].map((x) => x[1])) {
-    for (const c of [...FOUR, ...SEC1, "verifier_since"]) assert.doesNotMatch(call, new RegExp(`\\b${c}\\b`), call);
+    for (const c of [...NINE, ...SEC1]) assert.doesNotMatch(call, new RegExp(`\\b${c}\\b`), call);
   }
 });
 

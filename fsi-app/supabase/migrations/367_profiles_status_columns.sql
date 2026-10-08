@@ -1,4 +1,4 @@
--- subject: Migration 367 (lane SEC-2, 2026-10-08): an authenticated user can no longer write their own verifier_status, verification_tier, membership_tier or contribution_score on public.profiles (column UPDATE and INSERT privileges revoked, and the migration 364 guard function profiles_privilege_guard extended to the same four columns); the one legitimate user transition, asking to be verified, becomes the SECURITY DEFINER RPC public.request_verification() (none or revoked to pending for auth.uid() only); the self-check attacks both layers and the RPC as roles authenticated and anon and rolls back; NOT APPLIED.
+-- subject: Migration 367 (lane SEC-2, 2026-10-08): an authenticated user can no longer write their own verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified or linkedin_verification_checked_at on public.profiles (column UPDATE and INSERT privileges revoked, and the migration 364 guard function profiles_privilege_guard extended to the same nine columns); the one legitimate user transition, asking to be verified, becomes the SECURITY DEFINER RPC public.request_verification() (none or revoked to pending for auth.uid() only); the self-check attacks both layers and the RPC as roles authenticated and anon and rolls back; NOT APPLIED.
 -- 367 -- profiles status and tier columns (lane SEC-2, 2026-10-08).
 --
 -- NOT APPLIED. Authored by lane SEC-2; the coordinator's executor applies it before the PR merges (two-track
@@ -16,25 +16,31 @@
 -- (migration 007 RLS gates community reads on verification_tier != 'unverified' / IN ('linkedin_verified',
 -- 'staff_verified')), membership_tier (007 RLS: IN ('member','contributor','verified','premium')) and
 -- contribution_score. [CONFIRMED by code read] profiles_self_insert (165) also lets a user create their own row, and
--- 364 granted column INSERT on these four, so a user with no row yet could insert one carrying verifier_status
+-- 364 granted column INSERT on these columns, so a user with no row yet could insert one carrying verifier_status
 -- 'active'. Both paths are closed here (rule 13: a flag is work).
 --
--- THE COLUMNS (all four confirmed to exist by reading the migrations that create them; none is ever dropped, grep of
--- every DROP COLUMN in the migration tree; the precondition asserts them again at apply time):
+-- THE COLUMNS (all nine confirmed to exist by reading the migrations that create them; none is ever dropped, grep of
+-- every DROP COLUMN in the migration tree; the precondition asserts them again at apply time). The first four are the
+-- original SEC-2 design; the last five are the badge and timestamp fields of the same verification lifecycle,
+-- added by coordinator ruling (the same lane, the same migration):
 --     verifier_status     text NOT NULL DEFAULT 'none' CHECK IN ('none','pending','active','revoked')  (075)
 --     verification_tier   text DEFAULT 'unverified'                                                    (007)
 --     membership_tier     text DEFAULT 'free'                                                          (007)
 --     contribution_score  integer DEFAULT 0                                                            (007)
+--     verifier_since      timestamptz NULL                                                             (075)
+--     linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified  boolean DEFAULT FALSE (007)
+--     linkedin_verification_checked_at  timestamptz NULL                                               (007)
 --
 -- THE FIX.
---   1. Column privileges: REVOKE INSERT and UPDATE on those four columns FROM PUBLIC, anon, authenticated. (364
+--   1. Column privileges: REVOKE INSERT and UPDATE on those nine columns FROM PUBLIC, anon, authenticated. (364
 --      already replaced the table-level grant with column grants, so a column revoke bites; the precondition proves
 --      the table-level grant is gone.) service_role is untouched and keeps full privileges.
 --   2. Defence in depth: CREATE OR REPLACE the SAME function public.profiles_privilege_guard() (no second function,
 --      no second trigger; the existing trigger profiles_privilege_guard_trg already calls it) so that it also
---      raises 42501 for an unsanctioned change to any of the four columns on UPDATE, or a non-default value on
+--      raises 42501 for an unsanctioned change to any of the nine columns on UPDATE, or a non-default value on
 --      INSERT (verifier_status other than 'none', verification_tier other than 'unverified', membership_tier other
---      than 'free', contribution_score other than 0). The 364 checks and the sanctioned-caller idiom (current_user in
+--      than 'free', contribution_score other than 0, verifier_since or linkedin_verification_checked_at not NULL,
+--      any of the three linkedin_* booleans TRUE). The 364 checks and the sanctioned-caller idiom (current_user in
 --      service_role, postgres, supabase_admin, or the table owner) are carried over unchanged.
 --
 -- THE ONE LEGITIMATE USER TRANSITION. Asking to be verified (UserProfilePage VerifierTab, "Request verifier
@@ -54,7 +60,7 @@
 -- is added here.
 --
 -- CONSUMERS [CONFIRMED by grep of fsi-app/src and fsi-app/scripts]:
---   writers of the four columns: UserProfilePage.tsx (verifier_status 'pending', now the RPC) and
+--   writers of the original four columns: UserProfilePage.tsx (verifier_status 'pending', now the RPC) and
 --     api/auth/linkedin/callback/route.ts (verification_tier 'linkedin_verified', plus linkedin_verified, now written
 --     with the service-role client; the user is already authenticated and the value is attested by the server-side
 --     LinkedIn code exchange, not by the client). No other writer in src or scripts.
@@ -62,14 +68,15 @@
 --     policies, the spot-check scripts that read source_verifications.verification_tier (a different table).
 --   test/fixture only: .discipline/rendering/smoke/stub-supabase-browser-account.mjs (a stub returning 'active').
 --
--- NOT COVERED HERE, recorded in the lane session log with the exact one-line extension (rule 13, decision-ready):
--- verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified,
--- linkedin_verification_checked_at. They are display or badge fields, no authorisation gate reads them today
--- [CONFIRMED by grep], and they were outside the coordinator's design for this lane.
+-- WRITERS OF THE FIVE ADDED COLUMNS [CONFIRMED by grep of fsi-app/src, fsi-app/scripts, fsi-app/.discipline and
+-- supabase/seed]: linkedin_verified is written only by the LinkedIn callback (service-role client, above).
+-- verifier_since, linkedin_identity_verified, linkedin_workplace_verified and linkedin_verification_checked_at have
+-- NO writer anywhere in code (UserProfilePage and the community pages only select verifier_since/linkedin_verified),
+-- so nothing needs to move; a future writer must be server-side or an RPC.
 --
 -- SELF-CHECK (inside the migration transaction, rolled back by a sentinel exception, no data changed). Fixture
 -- profile rows are created by the migration role and discarded. As role authenticated with a fixture JWT sub:
---   A. UPDATE of each of the four columns on the own row is refused with 42501 "permission denied" (layer 1);
+--   A. UPDATE of each of the nine columns on the own row is refused with 42501 "permission denied" (layer 1);
 --   B. request_verification() from 'none' returns 'pending' and the row reads 'pending';
 --   C. calling it again from 'pending' returns 'pending' and changes nothing (no-op);
 --   D. from 'active' it is refused with 55000; from 'revoked' it succeeds; the migration role sets the fixture state;
@@ -81,16 +88,16 @@
 --      and the 364 columns are still refused by the same function (is_platform_admin);
 --   H. the RPC still works with the grants restored AND the guard enabled (it is sanctioned by owner identity, not
 --      by an absent grant);
---   I. as role service_role, UPDATE of all four columns SUCCEEDS (the sanctioned path is open);
+--   I. as role service_role, UPDATE of all nine columns SUCCEEDS (the sanctioned path is open);
 --   J. not over-broad: job_title still updates for authenticated.
 -- After the sub-transaction the privilege catalog is checked (has_column_privilege, has_function_privilege).
--- Reversible: GRANT INSERT (verifier_status, verification_tier, membership_tier, contribution_score) and GRANT UPDATE
+-- Reversible: GRANT INSERT (the nine columns above) and GRANT UPDATE
 -- of the same TO authenticated, DROP FUNCTION public.request_verification(), and CREATE OR REPLACE
 -- profiles_privilege_guard() back to the migration 364 body (do not, it re-opens self-authorisation).
 
 BEGIN;
 
--- ---- Preconditions: 364 is in place, the four columns exist --------------------------------------------------------
+-- ---- Preconditions: 364 is in place, the nine columns exist --------------------------------------------------------
 DO $$
 DECLARE
   v_col text;
@@ -99,6 +106,8 @@ BEGIN
     RAISE EXCEPTION 'ABORT: public.profiles does not exist';
   END IF;
   FOREACH v_col IN ARRAY ARRAY['verifier_status', 'verification_tier', 'membership_tier', 'contribution_score',
+                               'verifier_since', 'linkedin_verified', 'linkedin_identity_verified',
+                               'linkedin_workplace_verified', 'linkedin_verification_checked_at',
                                'updated_at'] LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_attribute
@@ -121,9 +130,9 @@ BEGIN
 END $$;
 
 -- ---- Layer 1: column privileges --------------------------------------------------------------------------------
-REVOKE INSERT (verifier_status, verification_tier, membership_tier, contribution_score)
+REVOKE INSERT (verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified, linkedin_verification_checked_at)
   ON public.profiles FROM PUBLIC, anon, authenticated;
-REVOKE UPDATE (verifier_status, verification_tier, membership_tier, contribution_score)
+REVOKE UPDATE (verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified, linkedin_verification_checked_at)
   ON public.profiles FROM PUBLIC, anon, authenticated;
 
 -- ---- Layer 2: extend the 364 guard function (same function, same trigger) ---------------------------------------
@@ -153,9 +162,14 @@ BEGIN
        OR NEW.verifier_status    IS DISTINCT FROM OLD.verifier_status
        OR NEW.verification_tier  IS DISTINCT FROM OLD.verification_tier
        OR NEW.membership_tier    IS DISTINCT FROM OLD.membership_tier
-       OR NEW.contribution_score IS DISTINCT FROM OLD.contribution_score THEN
+       OR NEW.contribution_score IS DISTINCT FROM OLD.contribution_score
+       OR NEW.verifier_since     IS DISTINCT FROM OLD.verifier_since
+       OR NEW.linkedin_verified  IS DISTINCT FROM OLD.linkedin_verified
+       OR NEW.linkedin_identity_verified  IS DISTINCT FROM OLD.linkedin_identity_verified
+       OR NEW.linkedin_workplace_verified IS DISTINCT FROM OLD.linkedin_workplace_verified
+       OR NEW.linkedin_verification_checked_at IS DISTINCT FROM OLD.linkedin_verification_checked_at THEN
       RAISE EXCEPTION
-        'profiles_privilege_guard: is_platform_admin, role, org_id, workspace_role, verifier_status, verification_tier, membership_tier and contribution_score on public.profiles are writable only by service_role, the table owner or a SECURITY DEFINER function it owns; current_user=%', current_user
+        'profiles_privilege_guard: is_platform_admin, role, org_id, workspace_role, verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, the linkedin_* verification flags and linkedin_verification_checked_at on public.profiles are writable only by service_role, the table owner or a SECURITY DEFINER function it owns; current_user=%', current_user
         USING ERRCODE = '42501';
     END IF;
   ELSE
@@ -166,9 +180,14 @@ BEGIN
        OR NEW.verifier_status    IS DISTINCT FROM 'none'
        OR NEW.verification_tier  IS DISTINCT FROM 'unverified'
        OR NEW.membership_tier    IS DISTINCT FROM 'free'
-       OR NEW.contribution_score IS DISTINCT FROM 0 THEN
+       OR NEW.contribution_score IS DISTINCT FROM 0
+       OR NEW.verifier_since IS NOT NULL
+       OR NEW.linkedin_verified IS TRUE
+       OR NEW.linkedin_identity_verified IS TRUE
+       OR NEW.linkedin_workplace_verified IS TRUE
+       OR NEW.linkedin_verification_checked_at IS NOT NULL THEN
       RAISE EXCEPTION
-        'profiles_privilege_guard: a new public.profiles row may not set is_platform_admin, role, org_id, workspace_role, verifier_status, verification_tier, membership_tier or contribution_score; only service_role or the table owner may; current_user=%', current_user
+        'profiles_privilege_guard: a new public.profiles row may not set is_platform_admin, role, org_id, workspace_role, verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, the linkedin_* verification flags or linkedin_verification_checked_at; only service_role or the table owner may; current_user=%', current_user
         USING ERRCODE = '42501';
     END IF;
   END IF;
@@ -177,7 +196,7 @@ END;
 $fn$;
 
 COMMENT ON FUNCTION public.profiles_privilege_guard() IS
-  'SEC-1 (migration 364), extended by SEC-2 (migration 367). BEFORE INSERT OR UPDATE guard on public.profiles: raises 42501 when a caller other than service_role, postgres, supabase_admin or the table owner changes is_platform_admin, role, org_id, workspace_role, verifier_status, verification_tier, membership_tier or contribution_score (or inserts a row carrying a non-default value of one). SECURITY INVOKER so current_user is the real caller; keys on current_user, not on a JWT claim. Layer 2 behind the column-level grants.';
+  'SEC-1 (migration 364), extended by SEC-2 (migration 367). BEFORE INSERT OR UPDATE guard on public.profiles: raises 42501 when a caller other than service_role, postgres, supabase_admin or the table owner changes is_platform_admin, role, org_id, workspace_role, verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified or linkedin_verification_checked_at (or inserts a row carrying a non-default value of one). SECURITY INVOKER so current_user is the real caller; keys on current_user, not on a JWT claim. Layer 2 behind the column-level grants.';
 
 -- ---- The one legitimate transition: request_verification() -----------------------------------------------------
 CREATE OR REPLACE FUNCTION public.request_verification()
@@ -230,8 +249,11 @@ DECLARE
   v_state    text;
   v_ret      text;
   v_rows     integer;
-  v_cols     text[] := ARRAY['verifier_status', 'verification_tier', 'membership_tier', 'contribution_score'];
-  v_vals     text[] := ARRAY['''active''', '''staff_verified''', '''premium''', '9999'];
+  v_cols     text[] := ARRAY['verifier_status', 'verification_tier', 'membership_tier', 'contribution_score',
+                             'verifier_since', 'linkedin_verified', 'linkedin_identity_verified',
+                             'linkedin_workplace_verified', 'linkedin_verification_checked_at'];
+  v_vals     text[] := ARRAY['''active''', '''staff_verified''', '''premium''', '9999',
+                             'now()', 'true', 'true', 'true', 'now()'];
   v_attack   text;
   i          integer;
 BEGIN
@@ -245,7 +267,7 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
       json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
 
-    -- A. Layer 1: each status or tier column refused by column privilege.
+    -- A. Layer 1: each status, tier, badge or timestamp column refused by column privilege.
     FOR i IN 1 .. array_length(v_cols, 1) LOOP
       v_denied := false;
       v_msg := NULL;
@@ -379,9 +401,9 @@ BEGIN
     INSERT INTO public.profiles (id, display_name) VALUES (v_uid2, 'sec2-selfcheck');
     RESET ROLE;
 
-    -- G. Layer 2 alone: restore the four column grants inside this rolled-back block and attack again.
-    GRANT INSERT (verifier_status, verification_tier, membership_tier, contribution_score) ON public.profiles TO authenticated;
-    GRANT UPDATE (verifier_status, verification_tier, membership_tier, contribution_score) ON public.profiles TO authenticated;
+    -- G. Layer 2 alone: restore the nine column grants inside this rolled-back block and attack again.
+    GRANT INSERT (verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified, linkedin_verification_checked_at) ON public.profiles TO authenticated;
+    GRANT UPDATE (verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified, linkedin_verification_checked_at) ON public.profiles TO authenticated;
     GRANT UPDATE (is_platform_admin) ON public.profiles TO authenticated;
     SET LOCAL ROLE authenticated;
     PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
@@ -453,15 +475,17 @@ BEGIN
     END IF;
     RESET ROLE;
 
-    -- I. The sanctioned path stays open: service_role can set all four.
+    -- I. The sanctioned path stays open: service_role can set all nine.
     SET LOCAL ROLE service_role;
     UPDATE public.profiles
        SET verifier_status = 'active', verification_tier = 'staff_verified',
-           membership_tier = 'premium', contribution_score = 5
+           membership_tier = 'premium', contribution_score = 5,
+           verifier_since = now(), linkedin_verified = true, linkedin_identity_verified = true,
+           linkedin_workplace_verified = true, linkedin_verification_checked_at = now()
      WHERE id = v_uid;
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     IF v_rows <> 1 THEN
-      RAISE EXCEPTION 'ABORT: service_role could not UPDATE the four status columns (rows=%)', v_rows;
+      RAISE EXCEPTION 'ABORT: service_role could not UPDATE the status columns (rows=%)', v_rows;
     END IF;
     RESET ROLE;
     SELECT verifier_status || '/' || verification_tier || '/' || membership_tier || '/' || contribution_score::text
@@ -520,7 +544,7 @@ BEGIN
     RAISE EXCEPTION 'ABORT: profiles_privilege_guard_trg is missing or disabled';
   END IF;
 
-  RAISE NOTICE 'migration 367 OK: authenticated cannot write verifier_status, verification_tier, membership_tier or contribution_score on profiles (column privilege and the extended 364 trigger each refuse with 42501); request_verification() moves none or revoked to pending for the caller only; service_role writes still work';
+  RAISE NOTICE 'migration 367 OK: authenticated cannot write verifier_status, verification_tier, membership_tier, contribution_score, verifier_since or the linkedin_* verification fields on profiles (column privilege and the extended 364 trigger each refuse with 42501); request_verification() moves none or revoked to pending for the caller only; service_role writes still work';
 END $$;
 
 COMMIT;
