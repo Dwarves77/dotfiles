@@ -190,6 +190,9 @@ const LOOP_ID_CONSUMERS = [
   { file: "gate-a-rescan.yml", envVar: "GAR_LOOP_RUN_ID", gate: "env.GAR_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/emit-gate-a-rescan-artifact.mjs", reader: "scripts/turns/emit-gate-a-rescan-artifact.mjs", expr: "explicit: env.GAR_LOOP_RUN_ID || null" },
   { file: "source-resolution.yml", envVar: "SR_LOOP_RUN_ID", gate: "env.SR_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/emit-source-resolution-artifact.mjs", reader: "scripts/turns/emit-source-resolution-artifact.mjs", expr: "explicit: env.SR_LOOP_RUN_ID || null" },
   { file: "propagation-drain.yml", envVar: "RUN_UPSTREAM_LOOP_RUN_ID", gate: "env.RUN_UPSTREAM_RUN_ID != ''", first: "node scripts/turns/run-propagation-drain.mjs", reader: "scripts/turns/run-propagation-drain.mjs", expr: "explicit: explicitLoopRunId" },
+  // Lane CHAIN-4 (2026-10-08): the judgement workflows chained off Population turn, Propagation drain and Corpus turn.
+  { file: "question-answers.yml", envVar: "QA_LOOP_RUN_ID", gate: "github.event_name == 'workflow_run' && env.RUN_SKIP != 'true'", first: "node scripts/turns/export-questions-for-answers.mjs", reader: "scripts/turns/question-answers/artifact.mjs", expr: "env?.QA_LOOP_RUN_ID" },
+  { file: "theme-briefs.yml", envVar: "TB_LOOP_RUN_ID", gate: "github.event_name == 'workflow_run' && env.RUN_SKIP != 'true'", first: "node scripts/turns/export-themes-for-briefs.mjs", reader: "scripts/turns/theme-briefs/artifact.mjs", expr: "env?.TB_LOOP_RUN_ID" },
 ];
 
 /** Index of the first non-comment line containing `needle`. */
@@ -262,5 +265,77 @@ for (const c of LOOP_ID_CONSUMERS) {
     assert.equal(failed.status, 0, "a failed read must not fail the run");
     assert.equal(failed.ghEnv, "", "a failed read exports nothing, so the emitter records null");
     assert.match(failed.stdout, /::warning::/);
+  });
+}
+
+// ── lane CHAIN-4 (2026-10-08): Question answers and Theme briefs are chained (hops 14, 15, 16) ────────────────
+// A chained firing has no inputs and no batch file: it runs the read only export, forced dry by the guard, and an
+// upstream that did not succeed is a recorded NO-OP row. Apply stays on a push or a dispatch.
+const CHAIN4 = [
+  { file: "question-answers.yml", upstreams: ["Population turn", "Propagation drain"], family: "question-answers" },
+  { file: "theme-briefs.yml", upstreams: ["Corpus turn"], family: "theme-briefs" },
+];
+
+for (const c of CHAIN4) {
+  test(`CHAIN-4 (${c.file}): carries the workflow_run edge off ${c.upstreams.join(" and ")}, nothing else`, () => {
+    const text = yml(c.file);
+    const m = /\n {2}workflow_run:\n {4}workflows: (\[[^\]]*\])\n {4}types: \[completed\]/.exec(text);
+    assert.ok(m, "an on.workflow_run block with a workflows list and types: [completed]");
+    assert.deepEqual(JSON.parse(m[1]), c.upstreams);
+    assert.ok(!/^ {2}schedule:/m.test(text), "build mode holds: no schedule block (rule 16)");
+  });
+
+  test(`CHAIN-4 (${c.file}): a chained firing is the read only export, a push or dispatch keeps its own action`, () => {
+    const text = yml(c.file);
+    assert.ok(text.includes("RUN_ACTION: ${{ inputs.action || (github.event_name == 'workflow_run' && 'export' || 'apply') }}"));
+    assert.match(stepText(text, "Export "), /if: \$\{\{ env\.RUN_ACTION == 'export' && env\.RUN_SKIP != 'true' \}\}/);
+    assert.ok(stepText(text, "Apply the").includes("env.RUN_ACTION == 'apply' && env.RUN_DRIVER == 'true' && env.RUN_SKIP != 'true'"));
+  });
+
+  test(`CHAIN-4 (${c.file}): the chain gate exports the upstream run id and skips on a non-success conclusion; the NO-OP row lands before the landing step`, () => {
+    const text = yml(c.file);
+    const resolveStep = stepText(text, "Resolve the chained firing");
+    assert.match(resolveStep, /GITHUB_EVENT_WORKFLOW_RUN_ID=\$UPSTREAM_RUN_ID/);
+    assert.match(resolveStep, /if \[ "\$UPSTREAM_CONCLUSION" != "success" \]/);
+    assert.match(resolveStep, /RUN_SKIP=true/);
+    const noop = stepText(text, "Record a NO-OP run");
+    assert.match(noop, /if: \$\{\{ always\(\) && env\.RUN_SKIP == 'true' \}\}/);
+    assert.ok(noop.includes(`upstream-artifact.mjs noop --family ${c.family} --mode`));
+    const lines = text.split("\n");
+    const at = (needle) => lines.findIndex((l) => l.includes(needle));
+    assert.ok(at("- name: Record a NO-OP run") < at("- name: Land this run's harness-run artifact"), "the NO-OP row is written before the landing step");
+  });
+
+  test(`CHAIN-4 (${c.file}): executed, the chain gate skips a failed upstream and passes a successful one`, () => {
+    const script = runScript(yml(c.file), "Resolve the chained firing");
+    const run = (conclusion) => {
+      const dir = mkdtempSync(join(tmpdir(), "chain4-gate-"));
+      try {
+        const ghEnv = join(dir, "github_env").replace(/\\/g, "/");
+        writeFileSync(ghEnv, "");
+        const r = spawnSync("bash", ["-e", "-c", script], {
+          env: { ...process.env, GITHUB_ENV: ghEnv, UPSTREAM_NAME: c.upstreams[0], UPSTREAM_RUN_ID: "777", UPSTREAM_CONCLUSION: conclusion },
+          encoding: "utf8",
+        });
+        assert.equal(r.status, 0, r.stderr);
+        return readFileSync(ghEnv, "utf8");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    };
+    const ok = run("success");
+    assert.match(ok, /^GITHUB_EVENT_WORKFLOW_RUN_ID=777$/m);
+    assert.match(ok, new RegExp(`^RUN_UPSTREAM_NAME=${c.upstreams[0]}$`, "m"));
+    assert.ok(!/RUN_SKIP=/.test(ok), "a successful upstream does not skip");
+    const bad = run("failure");
+    assert.match(bad, /^RUN_SKIP=true$/m);
+    assert.match(bad, /^RUN_SKIP_REASON=upstream run 777 .* concluded 'failure', not success/m);
+  });
+
+  test(`CHAIN-4 (${c.file}): the chained dry-run guard stays in the file, its mode is consulted and a push is still told its ref (F61)`, () => {
+    const text = yml(c.file);
+    assert.ok(text.includes("chained-dry-guard.mjs"));
+    assert.ok(text.includes("CHAINED_MODE"));
+    assert.ok(text.includes('--ref "${{ github.ref }}"'));
   });
 }

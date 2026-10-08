@@ -8,9 +8,9 @@ const manifest = loadManifest();
 const hops = loadHops();
 const clone = (x) => JSON.parse(JSON.stringify(x));
 
-test("the hop registry is read from loop-hops.d: 13 hops, in numeric order, each with a producer and a consumer", () => {
-  assert.equal(hops.length, 13);
-  assert.deepEqual(hops.map((h) => h.num), ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13"]);
+test("the hop registry is read from loop-hops.d: 16 hops, in numeric order, each with a producer and a consumer", () => {
+  assert.equal(hops.length, 16);
+  assert.deepEqual(hops.map((h) => h.num), ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"]);
   for (const h of hops) {
     assert.match(h.consumerFile, /^\.github\/workflows\/.+\.yml$/);
     assert.ok(h.producerName.length > 0);
@@ -21,7 +21,7 @@ test("the committed manifest is valid against the hop registry", () => {
   assert.deepEqual(validateManifest(manifest, hops), []);
 });
 
-test("every hop 01 to 13 is covered by a step, and the steps run in hop order", () => {
+test("every hop 01 to 16 is covered by a step, and the steps run in hop order", () => {
   const covered = manifest.steps.filter((s) => s.hop).map((s) => s.hop);
   for (const h of hops) assert.ok(covered.includes(h.num), `hop ${h.num} has no step`);
   const sorted = [...covered].sort();

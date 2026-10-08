@@ -60,6 +60,15 @@ import {
 } from "@/components/pages/MarketSignalDetailSurface";
 import { candidatesFromCorridorEntities } from "@/lib/market/resolve-item-corridor.mjs";
 import { NoticesRail } from "@/components/figures/NoticesRail";
+// Figure provenance (spec 02 section 6 rows 10 and 11, lane MKT-1, operator ruling 2026-10-08): the
+// methodology and provenance drawer describes the envelope of the figure this page actually shows. The
+// price board's six ratified series are attached to their items by SERIES_ITEM_MAP_RAW (the same map the
+// refresh producer writes the board from), so the series behind a board is found the way the producer
+// found it, and its envelope comes from the market_series row itself.
+import { SERIES_ITEM_MAP_RAW } from "@/lib/market/series-item-map.mjs";
+import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
+import { producerFor } from "@/lib/market/series-registry.mjs";
+import { envelopeFromSeriesRow, type FigureEnvelope, type SourceLicence } from "@/components/market/SeriesProvenance";
 
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
@@ -77,9 +86,34 @@ interface ItemScoped {
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
    *  item's query legitimately returns no rows, resolving to {} at zero extra cost). */
   claimTiers: ClaimTierMap;
+  /** Lane MKT-1: licence and attribution per emission-factor source_key, from the licence gate view. */
+  factorLicences: Record<string, SourceLicence>;
+  /** Lane MKT-1: the market_series envelope and cadence behind this item's price board, when the item is
+   *  one of the ratified series items; null otherwise. Freshness is NOT computed here (this bundle is
+   *  cached): the surface judges it against the viewer's clock after mount. */
+  seriesFigure: SeriesFigure | null;
   /** PERF-10 (2026-09-04): moved here from loadViewerScoped — see this file's header. Platform-wide,
    *  not per-org-override-adjusted; genuinely item-scoped, cacheable. */
   relatedPool: Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"];
+}
+
+/** The series behind a price board: its figure envelope plus what the surface needs to judge freshness. */
+interface SeriesFigure {
+  label: string;
+  envelope: FigureEnvelope;
+  asAtDate: string | null;
+  referencePeriod: string | null;
+  cadenceDays: number | null;
+}
+
+/** The ratified series key attached to an item uuid, or null (the reverse of SERIES_ITEM_MAP_RAW). */
+function seriesKeyForItem(itemUuid: string | null): string | null {
+  if (!itemUuid) return null;
+  const map = SERIES_ITEM_MAP_RAW as Record<string, { item_id: string | null; status: string }>;
+  for (const [key, entry] of Object.entries(map)) {
+    if (entry.status === "ratified" && entry.item_id === itemUuid) return key;
+  }
+  return null;
 }
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the remaining reason this route still
@@ -200,7 +234,7 @@ export default async function MarketSignalDetailPage({
           supabase
             .from("emission_factors")
             .select(
-              "factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind"
+              "factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind, derivation, origin_class, method_version, n_observations, as_at_date"
             )
             .eq("tier", "modal_default")
             .is("superseded_by", null)
@@ -235,6 +269,62 @@ export default async function MarketSignalDetailPage({
             return [] as CorridorCandidate[];
           });
 
+        // Lane MKT-1: licence and attribution for the factors' sources, through the licence gate view
+        // (migration 258's licence_clear_sources, the database half of the licence gate).
+        const factorLicencesPromise = carbonFactorsPromise
+          .then(async (factorRows) => {
+            const keys = Array.from(new Set(factorRows.map((f) => f.source_key).filter(Boolean)));
+            if (keys.length === 0) return {} as ItemScoped["factorLicences"];
+            const { data: srcRows, error: srcErr } = await supabase
+              .from("licence_clear_sources")
+              .select("source_key, name, attribution, licence, url")
+              // fitness-allow: F39 (keys are the distinct source_keys of the small modal_default factor tier, not a corpus-scale id list)
+              .in("source_key", keys);
+            if (srcErr) console.error("[market/[slug]] factor licence fetch failed", srcErr);
+            const out: ItemScoped["factorLicences"] = {};
+            for (const r of srcRows ?? []) out[r.source_key] = { name: r.name, attribution: r.attribution, licence: r.licence, url: r.url };
+            return out;
+          })
+          .catch(() => ({}) as ItemScoped["factorLicences"]);
+
+        // Lane MKT-1: the series behind this item's price board, read the way the producer attached it.
+        const seriesKey = seriesKeyForItem(itemUuid);
+        const seriesFigurePromise: Promise<SeriesFigure | null> = seriesKey
+          ? Promise.resolve(
+              supabase
+                .from("market_series")
+                .select(
+                  "id, series_key, label, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period"
+                )
+                .eq("series_key", seriesKey)
+                .order("reference_period", { ascending: false })
+                .limit(60)
+            )
+              .then(({ data: seriesRows, error: seriesErr }) => {
+                if (seriesErr) console.error("[market/[slug]] series figure fetch failed", seriesErr);
+                if (!Array.isArray(seriesRows) || seriesRows.length === 0) return null;
+                const board = buildSeriesBoard(seriesRows) as {
+                  groups: Array<{ keyPrefix: string; sourceUrl: string; licenceStatus: string; sourceName: string; series: Array<Record<string, unknown>> }>;
+                };
+                for (const g of board.groups) {
+                  const row = g.series.find((x) => x.seriesKey === seriesKey);
+                  if (!row) continue;
+                  const asRow = row as unknown as Parameters<typeof envelopeFromSeriesRow>[0] & {
+                    label: string; asAtDate: string | null; referencePeriod: string | null;
+                  };
+                  return {
+                    label: asRow.label,
+                    envelope: { ...envelopeFromSeriesRow(asRow, g), asOf: asRow.asAtDate ?? asRow.referencePeriod },
+                    asAtDate: asRow.asAtDate,
+                    referencePeriod: asRow.referencePeriod,
+                    cadenceDays: producerFor(g.keyPrefix)?.cadenceDays ?? null,
+                  };
+                }
+                return null;
+              })
+              .catch(() => null)
+          : Promise.resolve(null);
+
         const relatedIds = Array.from(
           new Set<string>([
             ...connections.map((c) => c.id),
@@ -249,7 +339,7 @@ export default async function MarketSignalDetailPage({
           .then((pub) => pub.resources)
           .catch(() => [] as Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"]);
 
-        const [resourceLookup, crossPage, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool] =
+        const [resourceLookup, crossPage, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool, factorLicences, seriesFigure] =
           await Promise.all([
             buildResourceLookup(supabase, relatedIds),
             fetchCrossPageForItem(supabase, resource.id, "market"),
@@ -259,9 +349,11 @@ export default async function MarketSignalDetailPage({
             corridorCandidatesPromise,
             itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
             relatedPoolPromise,
+            factorLicencesPromise,
+            seriesFigurePromise,
           ]);
 
-        return { resourceLookup, crossPage, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool };
+        return { resourceLookup, crossPage, convergence, priceBoard, carbonFactors, corridorCandidates, claimTiers, relatedPool, factorLicences, seriesFigure };
       },
     });
 
@@ -280,6 +372,8 @@ export default async function MarketSignalDetailPage({
   const corridorCandidates = result.itemScoped?.corridorCandidates ?? [];
   const claimTiers = result.itemScoped?.claimTiers ?? {};
   const relatedPool = result.itemScoped?.relatedPool ?? [];
+  const factorLicences = result.itemScoped?.factorLicences ?? {};
+  const seriesFigure = result.itemScoped?.seriesFigure ?? null;
 
   console.log(`[perf] /market/${id} data ${result.elapsedMs}ms`);
 
@@ -303,6 +397,8 @@ export default async function MarketSignalDetailPage({
         convergence={convergence}
         priceBoard={priceBoard}
         carbonFactors={carbonFactors}
+        factorLicences={factorLicences}
+        seriesFigure={seriesFigure}
         corridorCandidates={corridorCandidates}
         groupLabel={`Market / ${publisher || jurisLabel(r)}`}
         deck={deck}

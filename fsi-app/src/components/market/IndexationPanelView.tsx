@@ -16,6 +16,7 @@
  */
 
 import "@/components/market/spec09.css";
+import { CoverageState } from "@/components/ui/CoverageState";
 
 export interface IndexationClauseRow {
   clause_id: string;
@@ -45,9 +46,8 @@ export function IndexationPanelView({ rows }: { rows: IndexationClauseRow[] }) {
   if (rows.length === 0) {
     return (
       <div data-guard-container="indexation-clauses" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 10px" }}>
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-          <strong style={{ color: "var(--color-text-secondary)" }}>Contract indexation terms</strong> · {INDEXATION_CLAUSES_GAP_LINE}
-        </p>
+        {/* COV-1: the "not covered" state, same treatment as every other named gap. */}
+        <CoverageState state="not_covered" variant="inline" subject="Contract indexation terms" reason={INDEXATION_CLAUSES_GAP_LINE} requestRef="/market#indexation-clauses" />
       </div>
     );
   }
