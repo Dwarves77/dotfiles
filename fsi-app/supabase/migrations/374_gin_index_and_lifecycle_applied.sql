@@ -1,4 +1,4 @@
--- subject: Migration 374 (lane MIG-374, 2026-10-08): the two schema items owed by earlier lanes. A GIN index on inference_records.cited_item_ids for the customer containment read (cited_item_ids @> ARRAY[item]), and signposts.lifecycle_applied_at timestamptz, the record that a fired signpost's assessment lifecycle update was made, which lets src/lib/learning/prediction-scoring.mjs retry a failed lifecycle transition exactly once instead of skipping it or advancing it twice; NOT APPLIED.
+-- subject: Migration 374 (lane MIG-374, 2026-10-08): the two schema items owed by earlier lanes. A GIN index on inference_records.cited_item_ids for the customer containment read (cited_item_ids @> ARRAY[item]), and signposts.lifecycle_applied_at timestamptz, the record that a fired signpost's assessment lifecycle update was made, which lets src/lib/learning/prediction-scoring.mjs retry a failed lifecycle transition exactly once instead of skipping it or advancing it twice, backfilled from fired_at for every already fired signpost so a pre-374 transition is never applied twice; the self-check requires 0 fired signposts without a stamp; NOT APPLIED.
 -- 374 -- GIN index on inference_records.cited_item_ids, and signposts.lifecycle_applied_at (lane MIG-374, 2026-10-08).
 --
 -- NOT APPLIED. Authored by lane MIG-374; the coordinator's executor applies it. Two-track policy (CLAUDE.md standing
@@ -31,21 +31,26 @@
 -- signpost found fired with the column still NULL. Both writes set it only where it is still NULL. A signpost that
 -- never fired (a deadline refutation) never has it set.
 --
--- EXISTING ROWS. The column is added nullable with no default and no backfill. A signpost that fired BEFORE this
--- migration reads as "fired, lifecycle not recorded as applied", so the first repair pass after it would apply
--- nextLifecycleState to that signpost's assessment a second time if the firing's own lifecycle update had in fact
--- succeeded. The self-check below counts such rows and reports the number in a NOTICE. When that number is not zero,
--- the executor decides per row set, with the assessments in view, whether to backfill
--- (`UPDATE public.signposts SET lifecycle_applied_at = fired_at WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL`)
--- as a data step BEFORE the next propagation drain; this file does not guess it, because it cannot tell a firing whose
--- lifecycle update failed from one that succeeded. Build mode holds data population until every layer is built
--- (operator ruling 2026-10-04), so the expected count is 0.
+-- EXISTING ROWS (backfilled, so the invariant holds from the moment this applies). The invariant is: a fired signpost
+-- carries its applied stamp. A signpost that fired BEFORE this migration would otherwise read as "fired, lifecycle not
+-- recorded as applied", and the first repair pass would apply nextLifecycleState to its assessment a second time. So the
+-- migration fills the new column from an existing one, in the same transaction that adds it:
+--   UPDATE public.signposts SET lifecycle_applied_at = fired_at WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL;
+-- It deletes nothing and writes no other column or table. fired_at is the nearest recorded time to the firing's own
+-- lifecycle update, which is not recorded anywhere; the value says "treated as applied as of its firing", and the repair
+-- pass never reads the stamp's value, only whether it is NULL. A pre-374 firing whose lifecycle update had in fact
+-- failed is treated as applied and is not repaired: the migration cannot tell the two apart, and the alternative (a
+-- second advance of every succeeded transition) is the defect this column exists to prevent. Build mode holds data
+-- population until every layer is built (operator ruling 2026-10-04), so the expected row count is 0.
+-- No writer marker is involved: migration 354's marker belongs to system_state.judgement_drain, and no migration
+-- attaches a trigger to signposts (migrations 346 and 353 create none), so this UPDATE passes no guard.
 --
 -- SELF-CHECK. The index exists on the column with the GIN access method and is valid; the column exists, is
--- timestamptz and nullable; and a NOTICE reports the count described above.
+-- timestamptz and nullable; after the backfill the count of fired signposts with a NULL stamp is 0 (otherwise the
+-- migration aborts); and the closing NOTICE prints how many rows the backfill stamped.
 --
 -- Reversible: DROP INDEX public.inference_records_cited_item_ids_gin_idx;
---             ALTER TABLE public.signposts DROP COLUMN lifecycle_applied_at;
+--             ALTER TABLE public.signposts DROP COLUMN lifecycle_applied_at;  (the backfill goes with the column)
 
 BEGIN;
 
@@ -76,6 +81,16 @@ ALTER TABLE public.signposts
 COMMENT ON COLUMN public.signposts.lifecycle_applied_at IS
   'NULL until the assessment lifecycle update for this signpost''s firing has been recorded as made, then when it was made; never cleared. Set only by src/lib/learning/prediction-scoring.mjs, only where still NULL: right after fireSignpost moves research_assessments.lifecycle_state for a firing, or by the repair pass after it applies nextLifecycleState to a signpost found fired with this column NULL. The repair applies the transition only where this is NULL, so a failed lifecycle update is retried once and a succeeded one is never applied twice. A signpost that never fired never has it set.';
 
+-- Backfill: a fired signpost carries its applied stamp from the moment this applies (see EXISTING ROWS above)
+DO $$
+DECLARE
+  n_stamped bigint;
+BEGIN
+  UPDATE public.signposts SET lifecycle_applied_at = fired_at WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL;
+  GET DIAGNOSTICS n_stamped = ROW_COUNT;
+  PERFORM set_config('mig374.stamped', n_stamped::text, true);
+END $$;
+
 -- Self-check
 DO $$
 DECLARE
@@ -83,7 +98,7 @@ DECLARE
   v_valid    boolean;
   v_type     text;
   v_nullable text;
-  n_legacy   bigint;
+  n_unstamped bigint;
 BEGIN
   SELECT am.amname, i.indisvalid INTO v_am, v_valid
     FROM pg_index i
@@ -116,9 +131,12 @@ BEGIN
     RAISE EXCEPTION 'ABORT: signposts.lifecycle_applied_at must be nullable (NULL means not recorded as applied)';
   END IF;
 
-  SELECT count(*) INTO n_legacy FROM public.signposts WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL;
+  SELECT count(*) INTO n_unstamped FROM public.signposts WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL;
+  IF n_unstamped <> 0 THEN
+    RAISE EXCEPTION 'ABORT: % fired signpost(s) still carry no lifecycle_applied_at after the backfill', n_unstamped;
+  END IF;
 
-  RAISE NOTICE 'migration 374 OK: GIN index on inference_records(cited_item_ids) valid, signposts.lifecycle_applied_at present and nullable; % fired signpost(s) read as lifecycle not recorded as applied (0 expected in build mode, see EXISTING ROWS in the header)', n_legacy;
+  RAISE NOTICE 'migration 374 OK: GIN index on inference_records(cited_item_ids) valid, signposts.lifecycle_applied_at present and nullable, % fired signpost(s) stamped by the backfill, 0 fired signposts without a stamp', current_setting('mig374.stamped');
 END $$;
 
 COMMIT;

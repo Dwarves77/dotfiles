@@ -5,7 +5,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const RAW = readFileSync(fileURLToPath(new URL("./374_gin_index_and_lifecycle_applied.sql", import.meta.url)), "utf8");
@@ -22,10 +22,27 @@ test("the GIN index is on inference_records.cited_item_ids, named, idempotent", 
   assert.match(SQL, /CREATE INDEX IF NOT EXISTS inference_records_cited_item_ids_gin_idx ON public\.inference_records USING gin \(cited_item_ids\);/);
 });
 
-test("signposts gains one nullable timestamptz column with no default and no backfill", () => {
+test("signposts gains one nullable timestamptz column with no default", () => {
   assert.match(SQL, /ALTER TABLE public\.signposts\s+ADD COLUMN IF NOT EXISTS lifecycle_applied_at timestamptz;/);
   assert.doesNotMatch(SQL, /lifecycle_applied_at timestamptz\s+(NOT NULL|DEFAULT)/i);
-  assert.doesNotMatch(SQL, /UPDATE\s+public\.signposts/i, "no data step: the backfill is stated in the header, not run");
+});
+
+test("the backfill stamps every already fired signpost from fired_at, after the column exists, and writes nothing else", () => {
+  const stmts = SQL.match(/UPDATE\s+public\.signposts[\s\S]*?;/gi) ?? [];
+  assert.equal(stmts.length, 1, "exactly one UPDATE of signposts");
+  assert.match(stmts[0], /^UPDATE public\.signposts SET lifecycle_applied_at = fired_at WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL;$/);
+  assert.ok(SQL.indexOf("ADD COLUMN IF NOT EXISTS lifecycle_applied_at") < SQL.indexOf(stmts[0]), "the column is added before it is filled");
+  assert.match(SQL, /GET DIAGNOSTICS n_stamped = ROW_COUNT/);
+  assert.doesNotMatch(SQL, /DELETE\s+FROM/i);
+  assert.doesNotMatch(SQL, /UPDATE\s+public\.(?!signposts\b)/i, "no other table is updated");
+});
+
+test("no writer marker is needed: no trigger is attached to signposts by any migration", () => {
+  const dir = fileURLToPath(new URL("./", import.meta.url));
+  for (const f of readdirSync(dir).filter((n) => n.endsWith(".sql"))) {
+    const sql = readFileSync(dir + f, "utf8").split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
+    assert.doesNotMatch(sql, /CREATE\s+(OR\s+REPLACE\s+)?TRIGGER[^;]*\bON\s+(public\.)?signposts\b/i, f);
+  }
 });
 
 test("the column comment names the write that sets it", () => {
@@ -35,6 +52,15 @@ test("the column comment names the write that sets it", () => {
   assert.match(c[1], /fireSignpost/);
   assert.match(c[1], /research_assessments\.lifecycle_state/);
   assert.match(c[1], /only where still NULL/);
+});
+
+test("the self-check requires zero fired signposts with a NULL stamp after the backfill, and the NOTICE reports how many were stamped", () => {
+  assert.match(SQL, /SELECT count\(\*\) INTO n_unstamped FROM public\.signposts WHERE fired_at IS NOT NULL AND lifecycle_applied_at IS NULL;/);
+  assert.match(SQL, /IF n_unstamped <> 0 THEN/);
+  assert.match(SQL, /RAISE EXCEPTION 'ABORT: % fired signpost\(s\) still carry no lifecycle_applied_at/);
+  assert.match(SQL, /set_config\('mig374\.stamped', n_stamped::text, true\)/);
+  assert.match(SQL, /current_setting\('mig374\.stamped'\)/);
+  assert.match(SQL, /RAISE NOTICE 'migration 374 OK:[^;]*stamped/);
 });
 
 test("the self-check asserts the index exists as a valid gin index on the column, and the column exists, is timestamptz and nullable", () => {
