@@ -21,7 +21,8 @@ import { toCandidateRows, latestPerNaturalKey } from "./run-envelope-producer.mj
 import { planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";
 import { writeProducerSummary } from "../lib/producer-summary.mjs";
 import { loadProducerRegistry } from "../registry/load-registry.mjs";
-import { classTierForHost } from "../../../src/lib/sources/host-authority.ts";
+import { classTierForHost, verdictPlacementForHost, HOST_CLASS_TIER } from "../../../src/lib/sources/host-authority.ts";
+import { loadHostVerdicts } from "../../maintenance/host-verdicts/load-host-verdicts.mjs";
 import { hostOf } from "../../../src/lib/sources/institution.ts";
 import { ORIGIN_CLASSES } from "../../../src/lib/contracts/vocabularies.mjs";
 import { DERIVATIONS } from "../../../src/lib/contracts/envelope.mjs";
@@ -208,13 +209,26 @@ function fakeDeps({ dataSources = [{ source_key: SOURCE_KEY }], regions = [{ id:
   };
 }
 
-test("the source is rated through the institution class table (never hand-typed): the dry preview tier equals classTierForHost, and the figure is not refused", async () => {
+test("the source is rated by the class table plus the committed host verdict batch (never hand-typed): the dry preview tier is the table's gov tier, and the figure is not refused", async () => {
   const deps = fakeDeps();
   const s = await runNesoCarbonIntensity({ apply: false, now: FETCHED_ON }, deps);
+  const host = hostOf(SOURCE_URL);
+  const committed = loadHostVerdicts();
+  assert.equal(committed.verdicts.get(host)?.class, "gov", "host-verdicts-001.json classes the host gov");
+  assert.deepEqual(committed.rejected, [], "the committed batches load without a rejected entry");
   assert.equal(s.source.ok, true);
-  assert.equal(s.source.tier, classTierForHost(hostOf(SOURCE_URL), SOURCE_NAME));
-  assert.ok(s.source.tier !== null);
-  assert.equal(s.source.source_id, `preview:${hostOf(SOURCE_URL)}`);
+  assert.equal(s.source.tier, HOST_CLASS_TIER.gov, "the tier is read from the class table for the verdict's class");
+  assert.equal(s.source.tier, verdictPlacementForHost(host, committed.verdicts).tier);
+  assert.equal(classTierForHost(host, null), null, "no curated host-only rule places it, so the verdict is what answers");
+  assert.equal(classTierForHost(host, SOURCE_NAME), 7, "the residue catch-all would answer 7 for a named host, which is why the verdict is consulted before it");
+  assert.equal(s.source.source_id, `preview:${host}`);
+});
+
+test("without the verdict batch the built-in rules alone answer tier 7 (the class table's answer before the batch applies)", async () => {
+  const host = hostOf(SOURCE_URL);
+  const s = await runNesoCarbonIntensity({ apply: false, now: FETCHED_ON }, { ...fakeDeps(), hostVerdicts: new Map() });
+  assert.equal(s.source.tier, classTierForHost(host, SOURCE_NAME));
+  assert.equal(s.source.tier, 7);
 });
 
 test("DRY RUN writes nothing and reports counts; the source is not registered and no row is inserted", async () => {

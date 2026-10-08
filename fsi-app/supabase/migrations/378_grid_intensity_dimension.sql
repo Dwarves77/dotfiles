@@ -31,19 +31,18 @@
 -- carry this dimension would add 'missing' cells to the coverage view that no producer is going to fill.
 --
 -- THE data_sources ROW (the FK). regional_data_facts.source_key REFERENCES data_sources(source_key) (migration 267), so
--- the producer cannot write a fact until the source is registered. The sanctioned flow is a SOURCE_LICENCES entry in
--- src/lib/contracts/source-licence.mjs plus a regenerated 258 block; that file is outside this lane's write set, so the
--- row is inserted directly, ON CONFLICT DO NOTHING, exactly as migration 281 did for 'ecb'. THE KNOWN CONSEQUENCE,
--- recorded here as 281 recorded it: after the apply, data_sources carries a 'neso_carbon_intensity' row that the
--- SOURCE_LICENCES register does not; the divergence is inert (no application code calls assertEmbeddable for it) and a
--- coordinator follow-up adds the register entry. LICENCE BASIS: the PROD-SRC fact lane (2026-10-08) read the NESO Carbon
--- Intensity API page and recorded `CC BY 4.0` plus an "API Terms of Use" pointer on GitHub (register section 1.5, row D).
--- This lane did not re-read that page; verified_on stays NULL and `blocker` says so, as 281 did for the ECB notice.
--- 'permitted' follows the CC BY precedent in the register (eurostat, ec_weekly_oil_bulletin): attribution is an
--- authorisation, not a condition to discharge, and the attribution string ships with the data.
+-- the producer cannot write a fact until the source is registered. The register entry is in the same PR
+-- (src/lib/contracts/source-licence.mjs, key neso_carbon_intensity) and this row carries the SAME values (a test in
+-- 378_grid_intensity_dimension.test.mjs renders the register row and finds it in this file). The insert is ON CONFLICT
+-- DO NOTHING, never DO UPDATE, the migration 281 pattern: a later register regeneration of 258's block is a separate act.
+-- LICENCE BASIS: the PROD-SRC fact lane (2026-10-08) read the NESO Carbon Intensity API page and recorded `CC BY 4.0`
+-- plus an "API Terms of Use" pointer on GitHub (register section 1.5, row D); verified_on carries that date. The Terms of
+-- Use were not read by that lane or by this one. 'permitted' follows the CC BY precedent in the register (eurostat,
+-- ec_weekly_oil_bulletin): attribution is an authorisation, not a condition to discharge, and the attribution string
+-- ships with the data.
 --
 -- TIER. The source's rating is NOT stored in data_sources (it has no tier column). The producer registers the publisher
--- in `sources` through registerSource with the tier from the institution class table (classTierForHost), and stamps each
+-- in `sources` through registerSource with the tier from the institution class table plus the committed host verdict batch (host-verdicts-001.json classes the host gov, tier 2), and stamps each
 -- fact's source_id with that row (regional_data_facts.source_id, migration 106), so the fact carries the rating (rule 18).
 --
 -- Reversible: `DELETE FROM public.data_sources WHERE source_key = 'neso_carbon_intensity';` (safe while no fact
@@ -90,11 +89,11 @@ VALUES (
   'National Energy System Operator (NESO), Carbon Intensity API',
   'permitted',
   true,
-  'CC BY 4.0 (NESO Carbon Intensity API page; API Terms of Use on the project GitHub)',
+  'CC BY 4.0',
   'Source: National Energy System Operator (NESO), Carbon Intensity API, CC BY 4.0',
   'https://carbonintensity.org.uk/',
+  '2026-10-08'::date,
   NULL,
-  'licence text read by the PROD-SRC fact lane on 2026-10-08 (page states CC BY 4.0), not re-read by lane S8-E5; verified_on left NULL until a session re-reads the page and the API Terms of Use',
   NULL,
   NULL,
   NULL

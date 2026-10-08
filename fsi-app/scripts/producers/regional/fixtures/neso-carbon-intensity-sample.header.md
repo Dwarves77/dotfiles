@@ -11,4 +11,5 @@ This is real data, saved unmodified from one HTTP response (lane S8-E5, the one 
   page; it saved only the API response, which carries no licence field and no unit field.
 - The unit gCO2/kWh is not in the response; it is the unit the repo's spec 04 section 7 names for this dataset family.
 - The response does not say whether `average` is over forecast or actual half-hour values.
+- NESO About page (cited by host-verdicts-001.json for the publicly-owned claim): https://www.neso.energy/about. Not fetched by lane S8-E5; the ownership claim (publicly owned since 2024-10-01) is the coordinator ruling of 2026-10-08.
 - Used by: scripts/producers/regional/neso-carbon-intensity-producer.test.mjs (parser, mapper, dry run).

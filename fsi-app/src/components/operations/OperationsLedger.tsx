@@ -73,7 +73,9 @@ import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFi
 const PER_BAND_CAP = 5;
 const LIST_KEY = "operations";
 
-// ── Dimensions (D1–D6) — unchanged from the previous version ──
+// ── Dimensions (D1 to D7). D7 grid_intensity is migration 378's seventh value (lane S8-E5, 2026-10-08, coordinator
+// grant): it is the one constant the matrix rows, the rail's Dimension facet, the coverage-gap counts and the
+// statements all render from, so adding the entry here is the whole wiring. ──
 
 interface Dimension {
   num: number;
@@ -91,6 +93,10 @@ const DIMENSIONS: Dimension[] = [
   // Artboard 08/id="p8" names this row "Operational cost" in the matrix and "D6 Operational cost"
   // in the rail; "Operational cost data" was a longer name for the same dimension.
   { num: 6, key: "cost", db: "operational_cost", name: "Operational cost" },
+  // D7: GB grid carbon intensity today (NESO Carbon Intensity API), any region's grid intensity by the same
+  // dimension. Artboard 08 draws six rows; the seventh is a system need (rule 20), on the DESIGN CHANGES OWED
+  // list in docs/ops/session-log.d/2026-10-08-s8e5-aux-energy.md.
+  { num: 7, key: "gridintensity", db: "grid_intensity", name: "Grid carbon intensity" },
 ];
 
 // DEFECT-FIX (item 3.3, 2026-09-07): all six dimensions render in the "Regions side by side"
@@ -104,6 +110,11 @@ const DIMENSIONS: Dimension[] = [
 // RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any
 // `state === 'absent'` cell (see that file's own header) — no fabricated count, no blank cell.
 const MATRIX_DIMENSIONS = DIMENSIONS;
+
+// The masthead states how many dimensions each region has, from the constant itself, never a typed word
+// (it said "six" while the list was six long; it is now seven and will move with the list).
+const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const DIMENSION_COUNT_WORD = NUMBER_WORDS[MATRIX_DIMENSIONS.length] ?? String(MATRIX_DIMENSIONS.length);
 
 interface Region {
   key: string;
@@ -478,7 +489,7 @@ export function OperationsLedger({
       scopeLine={
         <>
           <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> active items ·{" "}
-          <b style={{ color: "var(--ink)" }}>{formatNumber(jurisdictionCount)}</b> jurisdictions · six dimensions per
+          <b style={{ color: "var(--ink)" }}>{formatNumber(jurisdictionCount)}</b> jurisdictions · {DIMENSION_COUNT_WORD} dimensions per
           region · every fact carries a source and date
         </>
       }

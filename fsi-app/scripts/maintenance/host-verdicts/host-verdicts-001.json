@@ -1,0 +1,13 @@
+{
+  "batch": "host-verdicts-001",
+  "generated_at": "2026-10-08T00:00:00Z",
+  "entries": [
+    {
+      "host": "carbonintensity.org.uk",
+      "class": "gov",
+      "evidence": "Carbon Intensity API site (https://carbonintensity.org.uk/), the API of the National Energy System Operator (NESO), which has been publicly owned since 2024-10-01. NESO About page: https://www.neso.energy/about. Coordinator ruling 2026-10-08 (lane S8-E5); the About page was not fetched by the lane, the ownership claim is the coordinator's.",
+      "verdict_source": "session-lane",
+      "generated_at": "2026-10-08T00:00:00Z"
+    }
+  ]
+}

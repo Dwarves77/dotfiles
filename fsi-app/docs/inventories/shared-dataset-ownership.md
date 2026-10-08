@@ -868,7 +868,8 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
     period end. Disjoint from every sibling's `(region_code, dimension)` slice. It is NOT a
     `run-envelope-producer.mjs` caller: it reuses that module's `toCandidateRows` / `latestPerNaturalKey`
     but writes through its own guarded loop so each row carries `source_id`, the `sources` row registered
-    through `registerSource` at the tier `classTierForHost` computes (rule 18). Gates: source-level `ENABLED`
+    through `registerSource` at the tier the institution class table gives it, read through the committed host
+    verdict batch `host-verdicts-001.json` (gov, tier 2), never typed (rule 18). Gates: source-level `ENABLED`
     (false), kill switch `REGIONAL_PRODUCER_NESO_CARBON_INTENSITY_ENABLED`, `--apply`, plus a refusal when the
     `data_sources` row or the `UK` region row is absent. Registered in
     `scripts/producers/registry/neso-carbon-intensity.json` (`in_all: false` until armed). The

@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderDataSourceSeedSql, SOURCE_LICENCES, mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
 import { buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql, columnLists } from "./_lib/fixture-inserts.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -83,6 +84,16 @@ test("data_sources: neso_carbon_intensity is registered as the FK target, permit
   for (const c of cols) assert.ok(t.columns.has(c), `data_sources.${c} exists`);
   // regional_data_facts.source_key is the FK the producer's rows depend on (migration 267)
   assert.match(read("267_origin_class_and_envelope.sql"), /ADD COLUMN IF NOT EXISTS source_key text REFERENCES public\.data_sources\(source_key\)/);
+});
+
+test("the data_sources row equals the SOURCE_LICENCES register entry (one set of verdicts, not two): the rendered seed row is found in this file", () => {
+  assert.ok(SOURCE_LICENCES.neso_carbon_intensity, "the register carries the key");
+  assert.equal(mayEmbedAsSeed("neso_carbon_intensity"), true);
+  const squash = (t) => t.replace(/\s+/g, "");
+  const line = renderDataSourceSeedSql().split("\n").find((l) => l.includes("'neso_carbon_intensity'"));
+  assert.ok(line, "the generator renders a row for the key");
+  assert.ok(squash(SQL).includes(squash(line.trim().replace(/,$/, ""))), "migration 378 inserts the same values the register renders");
+  assert.match(SOURCE_LICENCES.neso_carbon_intensity.note, /CC BY 4.0/);
 });
 
 test("self-check: rolled back by a sentinel, attacks both guards with a bogus dimension, and asserts nothing survives", () => {

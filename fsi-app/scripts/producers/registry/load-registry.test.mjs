@@ -33,13 +33,17 @@ function fixtureDir(files) {
 const exists = () => true;
 
 test("the real registry lists the four moved producers, sorted, each script on disk", () => {
+  // Superset form (lane S8-E5): each domain lane adds one entry file, so an exact list would fail every
+  // new entry and make parallel lanes collide on this line. The four originals must stay, the whole list
+  // stays sorted by filename, and sbti stays out of the all-sweep.
   const entries = loadProducerRegistry(REGISTRY_DIR);
-  assert.deepEqual(
-    entries.map((e) => e.name),
-    ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"],
-  );
+  const names = entries.map((e) => e.name);
+  for (const original of ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"]) {
+    assert.ok(names.includes(original), `the original entry ${original} is still registered`);
+  }
+  assert.deepEqual(names, [...names].sort(), "entries load sorted by filename");
   assert.equal(entries.every((e) => e.dry_capable === true), true);
-  assert.deepEqual(entries.filter((e) => !e.in_all).map((e) => e.name), ["sbti-target-dashboard"]);
+  assert.ok(entries.filter((e) => !e.in_all).map((e) => e.name).includes("sbti-target-dashboard"), "sbti is not in the all-sweep");
 });
 
 test("a well-formed fixture entry loads", () => {
