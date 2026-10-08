@@ -90,6 +90,15 @@ governing-files.mjs, build-mode.mjs, invariant-coverage.mjs. Reused: `hashHarnes
 7. True positive of my own reading: the closure gate's maintenance-step introduction index never dated any
    step (the split loop broke on its empty first element). Fixed in the same change; see item 5 above.
 
+8. CI failure on the PR (Discipline engine unit tests): `scripts/verify/verification-audit-report.mjs` imported
+   the deleted `listPendingFiles`. My earlier consumer grep was cut off at 60 lines and missed it. Fixed with
+   the coordinator's design: the per-family column is now "current in ledger" (yes, no, no export) from
+   `readHarnessLedgerExport` / `familyCurrentInLedger` / `computeGoverningHash`, and the zero-run line reads
+   "zero runs and not current in ledger". A grep with no line cap for every deleted export found no further
+   code consumer (one comment in `scripts/turns/research-sweep.mjs` line 99 still names
+   `auditPendingTreeState`; comment only, not touched). RD-55 and RD-76 residuals also got one sentence each.
+   Full `run-test-suite.sh` locally: 10158 tests, 10155 pass, 0 fail, 3 skipped.
+
 ### Read and reused (second pass)
 
 `fetchAllByIdChunks` (`src/lib/db/paginate.mjs`) for the bulk-import lookup; `git ls-files` enumeration as
