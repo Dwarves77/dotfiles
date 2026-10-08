@@ -1,7 +1,7 @@
--- subject: Migration 355 (lane G5-TERMS, 2026-10-06, buildout plan Stage 5): `vocabulary_terms` and `vocabulary_mentions` are created, the durable home for repeated mentions of an entity, material, theme or term the system does not hold (counted, proposed, adopted by rule); `intelligence_items.compliance_object_candidates` captures the out-of-vocabulary compliance-object values the parser used to drop silently; RLS on, admin read only, service role writes; NOT APPLIED.
+-- subject: Migration 355 (lane G5-TERMS, 2026-10-06, buildout plan Stage 5): `vocabulary_terms` and `vocabulary_mentions` are created, the durable home for repeated mentions of an entity, material, theme or term the system does not hold (counted, proposed, adopted by rule); `intelligence_items.compliance_object_candidates` captures the out-of-vocabulary compliance-object values the parser used to drop silently; RLS on, admin read only, service role writes; APPLIED (production ledger version 20261007021924, as of 2026-10-07).
 -- 355 -- vocabulary terms, their mentions, and the compliance-object candidate capture (lane G5-TERMS, 2026-10-06).
 --
--- NOT APPLIED. Authored by lane G5-TERMS; the coordinator applies it (two-track policy, CLAUDE.md standing
+-- APPLIED (production ledger version 20261007021924, as of 2026-10-07). Authored by lane G5-TERMS; the coordinator applied it (two-track policy, CLAUDE.md standing
 -- rule 3: schema DDL applies via the Supabase CLI before the dependent code commits). Until it is applied
 -- the collector (scripts/connections/term-recurrence.mjs) is dry by default and must not be applied. The
 -- dependent code writes intelligence_items.compliance_object_candidates on every brief write, exactly as it

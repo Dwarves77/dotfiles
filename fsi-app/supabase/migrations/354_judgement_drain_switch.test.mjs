@@ -11,9 +11,9 @@ import { fileURLToPath } from "node:url";
 const RAW = readFileSync(fileURLToPath(new URL("./354_judgement_drain_switch.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 
-test("header: subject line, NOT APPLIED, the switch stays off", () => {
+test("header: subject line, APPLIED, the switch stays off", () => {
   assert.match(RAW, /^-- subject: Migration 354 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version \d+/);
   assert.match(RAW, /STAYS 'off'/);
 });
 
