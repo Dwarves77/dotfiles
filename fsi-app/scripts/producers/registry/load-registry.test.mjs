@@ -32,14 +32,17 @@ function fixtureDir(files) {
 
 const exists = () => true;
 
-test("the real registry lists the four moved producers, sorted, each script on disk", () => {
+test("the real registry lists the four moved producers (and any domain producer added since), sorted, each script on disk", () => {
   const entries = loadProducerRegistry(REGISTRY_DIR);
-  assert.deepEqual(
-    entries.map((e) => e.name),
-    ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"],
-  );
+  const names = entries.map((e) => e.name);
+  for (const original of ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"]) {
+    assert.ok(names.includes(original), `${original} is registered`);
+  }
+  assert.deepEqual(names, [...names].sort(), "entries are returned sorted by filename");
   assert.equal(entries.every((e) => e.dry_capable === true), true);
-  assert.deepEqual(entries.filter((e) => !e.in_all).map((e) => e.name), ["sbti-target-dashboard"]);
+  // The four originals keep their in_all posture: only the sbti entry is name-only.
+  const originals = entries.filter((e) => ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"].includes(e.name));
+  assert.deepEqual(originals.filter((e) => !e.in_all).map((e) => e.name), ["sbti-target-dashboard"]);
 });
 
 test("a well-formed fixture entry loads", () => {

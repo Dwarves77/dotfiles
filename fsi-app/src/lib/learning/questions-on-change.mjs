@@ -21,6 +21,7 @@
 //   emission_factors         insert, update, delete          value_revised
 //   market_series            any                             value_revised
 //   regional_data_facts      any                             value_revised
+//   grid_connection_queues   any                             value_revised
 //   derived_values           any                             value_revised
 //   estimated_values         any                             value_revised
 //   statutory_computations   any                             obligation_amended
@@ -61,6 +62,7 @@ export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
   emission_factors: Object.freeze({ type: "value_revised", byKind: Object.freeze({ supersede: "factor_superseded" }), label: "an emission factor" }),
   market_series: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a market series value" }),
   regional_data_facts: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a regional data fact" }),
+  grid_connection_queues: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a grid connection queue observation" }),
   derived_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a derived value" }),
   estimated_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "an estimated value" }),
   statutory_computations: Object.freeze({ type: "obligation_amended", byKind: Object.freeze({}), label: "a statutory computation" }),

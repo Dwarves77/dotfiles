@@ -1,0 +1,10 @@
+{
+  "name": "ukpn-capacity-heatmap",
+  "script": "scripts/producers/operations/ukpn-capacity-heatmap-producer.mjs",
+  "domain_table": "grid_connection_queues",
+  "source": "ukpn_ltds_capacity_heatmap",
+  "licence": "CC BY 4.0 (UK Power Networks Long Term Development Statement Capacity Heatmap, catalogue metadata license field)",
+  "dry_capable": true,
+  "enabled_env": "OPERATIONS_PRODUCER_UKPN_HEATMAP_ENABLED",
+  "in_all": false
+}

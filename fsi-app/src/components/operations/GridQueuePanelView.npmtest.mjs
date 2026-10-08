@@ -30,3 +30,21 @@ test("p50/p90 queue-month cells name the specific missing input instead of a bar
 test("the whole-panel empty state still names the specific no-source data requirement (unchanged)", () => {
   assert.match(SOURCE, /GRID_QUEUE_GAP_LINE =\s*\n?\s*"No rows yet \u2014 source: none confirmed, no \$0 feed for demand-side connection-queue months/); // glyph:verbatim (pre-existing constant text)
 });
+
+// Lane S8-E6 (migration 379): the per-substation columns a producer writes have a reader (F14 class).
+const PANEL = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "GridQueuePanel.tsx"), "utf8");
+
+test("the panel reads every per-substation column migration 379 adds that the view shows", () => {
+  for (const col of ["substation_name", "demand_firm_mw", "demand_available_mw", "demand_constraint", "demand_constraint_limiting_factor"]) {
+    assert.ok(PANEL.includes(col), `GridQueuePanel selects ${col}`);
+    assert.ok(SOURCE.includes(col), `GridQueuePanelView renders ${col}`);
+  }
+  assert.match(PANEL, /order\("demand_available_mw", \{ ascending: true, nullsFirst: true \}\)/, "band-level rows are never pushed out by substation rows");
+});
+
+test("a band-less substation row shows its name, operator, headroom (a deficit stays negative) and constraint, and still reaches the UNKNOWN gate", () => {
+  assert.match(SOURCE, /capacity_band_mw: string \| null/);
+  assert.match(SOURCE, /row\.substation_name \?\? row\.dso_name/);
+  assert.match(SOURCE, /MW demand headroom/);
+  assert.match(SOURCE, /constraint \$\{row\.demand_constraint\}/);
+});
