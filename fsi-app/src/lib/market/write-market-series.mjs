@@ -17,7 +17,32 @@
 // source-state-min-wage.mjs's value/unit/trend/source_id refresh on an unchanged (state_code,dimension,
 // fact_label) key).
 //
-// PLAIN ESM, ZERO DEPENDENCIES.
+// ENTITY (lane L4-E, migration 373). A producer whose registry entry declares an entity_id (scripts/producers/registry)
+// is handed it as PRODUCER_ENTITY_ID by the registry runner. This planner is the one place every market_series producer's rows
+// pass before the guarded write, so it is the one place that stamps `entity_id`: a CREATE row gets the entity unless the row
+// already names one; an UPDATE patch carries it only when the existing row was read WITH entity_id and it is NULL (an existing
+// value is never overwritten, and a producer that does not read the column never touches it; the data script
+// scripts/migrations/data/backfill-market-series-entity.mjs stamps the rows that already exist). No entity configured, no
+// change: the plan is byte-identical to before. A malformed id fails loud (entityIdFromEnv).
+//
+// PLAIN ESM, ZERO DEPENDENCIES beyond the entity-id SHAPE validator (itself plain ESM, no node:crypto).
+
+import { assertEntityId } from "../entities/entity-id-shape.mjs";
+
+/** The env var the registry runner sets on a producer child whose entry declares an entity_id. The one name. */
+export const PRODUCER_ENTITY_ID_ENV = "PRODUCER_ENTITY_ID";
+
+/**
+ * The entity a producer run stamps, from its environment: null when none is configured; throws on a malformed id.
+ * @param {Record<string,string|undefined>} [env]
+ * @returns {string|null}
+ */
+export function entityIdFromEnv(env = process.env) {
+  const v = env?.[PRODUCER_ENTITY_ID_ENV];
+  if (v === undefined || v === "") return null;
+  assertEntityId(v);
+  return v;
+}
 
 const rowKey = (r) => `${r.series_key}\u0000${r.reference_period ?? ""}`;
 
@@ -32,13 +57,15 @@ export const REFRESHABLE_FIELDS = Object.freeze([
  *   Minimal shape read from market_series (readAll("market_series", "id, series_key, reference_period")).
  * @param {Array<object>} incomingRows
  *   Full market_series-shaped rows from a parser (series_key, reference_period, label, value_numeric, …).
+ * @param {{ entityId?: string|null }} [opts]
+ *   entityId defaults to entityIdFromEnv(); null/absent leaves the plan unchanged.
  * @returns {{
  *   toCreate: Array<object>,
  *   toUpdate: Array<{id:string, patch:object}>,
  *   skippedNoReferencePeriod: Array<object>,
  * }}
  */
-export function planMarketSeriesUpsert(existingRows, incomingRows) {
+export function planMarketSeriesUpsert(existingRows, incomingRows, { entityId = entityIdFromEnv() } = {}) {
   const byKey = new Map((existingRows ?? []).map((r) => [rowKey(r), r]));
   const toCreate = [];
   const toUpdate = [];
@@ -56,11 +83,12 @@ export function planMarketSeriesUpsert(existingRows, incomingRows) {
     }
     const existing = byKey.get(rowKey(row));
     if (!existing) {
-      toCreate.push(row);
+      toCreate.push(entityId && !row.entity_id ? { ...row, entity_id: entityId } : row);
       continue;
     }
     const patch = {};
     for (const field of REFRESHABLE_FIELDS) patch[field] = row[field] ?? null;
+    if (entityId && existing.entity_id === null) patch.entity_id = entityId;
     toUpdate.push({ id: existing.id, patch });
   }
 
