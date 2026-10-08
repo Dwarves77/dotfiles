@@ -2,7 +2,7 @@
 -- Migration 182: repoint the 3 RLS policy arms off user_profiles onto profiles.is_platform_admin
 --                (Wave-α Track E, dead-weight erase e6 — STEP 1 of 2; MUST apply before 183).
 --
--- STATUS: AUTHOR-ONLY — NOT APPLIED. Rides an operator DDL window. Do not apply inline.
+-- STATUS: APPLIED (production ledger version 182, ledger name repoint_user_profiles_policy_arms, as of 2026-10-07). It was authored as an operator DDL window item and applied under that ledger name.
 -- Numbered 182 (180 views, 181 vendors; 164–179 reserved for Track B). MUST precede migration 183
 -- (the user_profiles drop) — 183 depends on nothing referencing user_profiles.
 --

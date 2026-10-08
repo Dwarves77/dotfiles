@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { isPlatformAdminProfile } from "@/lib/auth/platform-admin-gate";
+import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
 import { ensureProfile } from "@/lib/auth/provision-personal-workspace";
 
 /**
@@ -68,8 +68,8 @@ export interface ServerBootstrap {
    */
   workspaceSectors: string[];
   /**
-   * `profiles.is_platform_admin` for THIS user, read through the same predicate `/admin`'s gate uses
-   * (src/lib/auth/platform-admin-gate.ts). The nav shows Admin on this bit, never on the workspace role
+   * `profiles.is_platform_admin` for THIS user, read through the same rpc `/admin`'s gate uses
+   * (src/lib/auth/platform-admin-gate.ts readOwnPlatformAdmin; the column itself is revoked, migration 375). The nav shows Admin on this bit, never on the workspace role
    * (lane AUTH-IDENTITY, 2026-09-24).
    */
   isPlatformAdmin: boolean;
@@ -152,7 +152,9 @@ export async function resolveServerBootstrapFromClient(
   // PostgREST treats the embed as to-many and returns an array — this org has always resolved at most
   // one settings row in practice (one row inserted per org, migration 006), so `[0]` is taken exactly
   // as `.maybeSingle()` did for the old direct query, with no behavior change for a caller.
-  const [membershipRes, profileRes] = await Promise.all([
+  // SEC-6 (migration 375): profiles.is_platform_admin is revoked from authenticated, so the nav's platform-admin
+  // bit is the answer of rpc("is_platform_admin"), a third parallel read, never a column of the profiles select.
+  const [membershipRes, profileRes, adminRes] = await Promise.all([
     supabase
       .from("org_memberships")
       .select("org_id, role, organizations(id, name, workspace_settings(sector_profile))")
@@ -162,28 +164,30 @@ export async function resolveServerBootstrapFromClient(
       .maybeSingle(),
     supabase
       .from("profiles")
-      .select("sector_overrides, is_platform_admin")
+      .select("sector_overrides")
       .eq("id", user.id)
       .maybeSingle(),
+    readOwnPlatformAdmin(supabase),
   ]);
 
   // Lane AUTH-IDENTITY: read the errors. A failed read is not an empty row (CLAUDE.md, agent/run
   // error-swallow post-mortem: a `data` destructure without `error` is the bug shape).
   if (membershipRes.error) throw new IdentityLookupError("org_memberships", membershipRes.error);
   if (profileRes.error) throw new IdentityLookupError("profiles", profileRes.error);
+  if (adminRes.error) throw new IdentityLookupError("is_platform_admin", adminRes.error);
 
   const membership = membershipRes.data;
   const org =
     (membership?.organizations as
       | { id?: string; name?: string; workspace_settings?: { sector_profile: string[] | null }[] | null }
       | null) || null;
-  let profile = profileRes.data as { sector_overrides: string[] | null; is_platform_admin?: unknown } | null;
+  let profile = profileRes.data as { sector_overrides: string[] | null } | null;
   if (!profile && healProfile) {
     // A heal failure is already logged and counted inside ensureProfile; it must not turn a page load
     // into an error, so it never throws here and the answer below stays the pre-heal shape.
     try {
       const healed = await healProfile(user.id, user.email);
-      if (healed.exists) profile = { sector_overrides: [], is_platform_admin: false };
+      if (healed.exists) profile = { sector_overrides: [] };
     } catch (e) {
       console.warn("[server-bootstrap] profile heal threw:", e instanceof Error ? e.message : String(e));
     }
@@ -200,7 +204,7 @@ export async function resolveServerBootstrapFromClient(
     role: (membership?.role as ServerBootstrap["role"]) || null,
     sectors,
     workspaceSectors,
-    isPlatformAdmin: isPlatformAdminProfile(profile),
+    isPlatformAdmin: adminRes.admin,
   };
 }
 

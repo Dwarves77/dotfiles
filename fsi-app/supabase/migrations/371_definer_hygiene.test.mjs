@@ -35,7 +35,7 @@ const CLASS_D = [
   "get_all_surface_counts", "get_surface_counts", "get_market_intel_items", "get_operations_items", "get_research_items",
   "get_technology_items", "get_workspace_due_next", "get_workspace_intelligence", "get_workspace_intelligence_aggregates",
   "get_workspace_intelligence_aggregates_scoped", "get_workspace_intelligence_dashboard", "get_workspace_intelligence_listings",
-  "get_workspace_intelligence_slim", "get_workspace_recent_changes", "user_can_write_in_org",
+  "get_workspace_intelligence_slim", "get_workspace_recent_changes", "user_can_write_in_org", "user_org_role", "user_group_role",
 ];
 const CLASS_E = ["gate_a_health_refresh"];
 // Closed by earlier migrations (354, 201, 363, 356, 369, 358, 287, 238, 367); 371 does not touch their grants.
@@ -156,7 +156,7 @@ test("completeness: the class table covers every callable SECURITY DEFINER funct
   assert.deepEqual(callable, classed);
   assert.equal(new Set(classed).size, classed.length, "no function sits in two classes");
   assert.equal(triggers.length, 12, "twelve trigger definers: class B is dynamic, so the count is a tripwire not a list");
-  assert.equal(callable.length, 46);
+  assert.equal(callable.length, 48);
 });
 
 test("class C by caller evidence: the four predicates are evaluated inside RLS policies that name no role, so anon evaluates them", () => {

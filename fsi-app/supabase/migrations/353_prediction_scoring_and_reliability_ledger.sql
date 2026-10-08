@@ -1,7 +1,7 @@
--- subject: Migration 353 (lane L4-D, 2026-10-05, ADR-044 decision 4, learning-loop-design-2026-09-25 sections 3 and 4): `signposts` gains the prediction columns (`inference_record_id`, `outcome` held|refuted|partial, `outcome_assessed_at`, `scored_by`) and `source_reliability_ledger` is created, append-only, one row per source per scored prediction, RLS on with no customer policy; NOT APPLIED. The ledger is evidence; it never writes a tier (src/lib/trust.ts reads it as one more delta inside the existing clamp).
+-- subject: Migration 353 (lane L4-D, 2026-10-05, ADR-044 decision 4, learning-loop-design-2026-09-25 sections 3 and 4): `signposts` gains the prediction columns (`inference_record_id`, `outcome` held|refuted|partial, `outcome_assessed_at`, `scored_by`) and `source_reliability_ledger` is created, append-only, one row per source per scored prediction, RLS on with no customer policy; APPLIED (production ledger version 20261006030901, as of 2026-10-07). The ledger is evidence; it never writes a tier (src/lib/trust.ts reads it as one more delta inside the existing clamp).
 -- 353 -- prediction scoring columns on signposts, and the source reliability ledger (lane L4-D, 2026-10-05).
 --
--- NOT APPLIED. Authored by lane L4-D; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3),
+-- APPLIED (production ledger version 20261006030901, as of 2026-10-07). Authored by lane L4-D; the coordinator applied it (two-track policy, CLAUDE.md standing rule 3),
 -- before src/lib/learning/prediction-scoring.mjs scores a real row. Until then every reader tolerates the
 -- columns and the table being absent (prediction-scoring.mjs falls back to the six base signposts columns and
 -- reports scoring_skipped_columns_absent; trust.ts treats a failed ledger read as no outcome evidence).

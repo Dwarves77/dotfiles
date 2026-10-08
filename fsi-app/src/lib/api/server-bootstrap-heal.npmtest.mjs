@@ -15,6 +15,11 @@ const { resolveServerBootstrapFromClient } = await jiti.import("./server-bootstr
 
 function fakeSupabase({ membership = null, profile = null }) {
   return {
+    // SEC-6 (migration 375): the platform-admin bit is the rpc's answer, true only for a profile that says so.
+    async rpc(name) {
+      assert.equal(name, "is_platform_admin");
+      return { data: !!(profile && profile.is_platform_admin === true), error: null };
+    },
     auth: {
       async getClaims() {
         return { data: { claims: { sub: "user-1", email: "u@example.com" } }, error: null };
@@ -23,7 +28,8 @@ function fakeSupabase({ membership = null, profile = null }) {
     from(table) {
       const data = table === "org_memberships" ? membership : profile;
       return {
-        select() {
+        select(cols) {
+          assert.doesNotMatch(String(cols ?? ""), /is_platform_admin/, "the column is revoked from authenticated (migration 375)");
           return {
             eq() {
               const tail = { maybeSingle: async () => ({ data, error: null }) };

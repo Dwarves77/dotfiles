@@ -12,7 +12,7 @@
 -- explicit REVOKE is a privilege door open to the anon key. SEC-3a's session log (2026-10-08) counted 56 definers in the
 -- migration tree, 14 with an explicit REVOKE FROM PUBLIC and 42 without (31 callable, 11 trigger). This lane's own parse
 -- of the tree (create, drop and redefine in file order, comments stripped) found 57 (45 callable, 12 trigger) before 370 merged
--- (58 with 370, which adds the callable user_can_write_in_org): one more than SEC-3a's 56 before 370. Migration 358 defines move_override_notes_to_item_notes (SEC-3a's log says the tree does not define it),
+-- (58 with 370, which adds the callable user_can_write_in_org; 370's amendment for the 42P17 policy recursion adds two more, user_org_role and user_group_role, both policy predicates used only in INSERT, UPDATE and DELETE policies and so class D like user_can_write_in_org: 60): one more than SEC-3a's 56 before 370. Migration 358 defines move_override_notes_to_item_notes (SEC-3a's log says the tree does not define it),
 -- and intelligence_items_theme_guard is a trigger function revoked from PUBLIC only; the callable count is 32 + 14 and the
 -- trigger count 11 + 1, and the test file asserts both.
 -- A CREATE OR REPLACE also resets a function's search_path, which is how migrations 272
@@ -202,7 +202,7 @@ SELECT v.cls, v.revoke_from, v.grant_to, n
   FROM (VALUES
     ('A', 'PUBLIC, anon, authenticated', 'service_role', ARRAY['_assert_org_membership', '_workspace_active_items']),
     ('C', 'PUBLIC', 'anon, authenticated, service_role', ARRAY['get_market_intel_items_public', 'get_operations_items_public', 'get_research_items_public', 'get_workspace_intelligence_listings_public', 'get_workspace_intelligence_slim_public', 'user_belongs_to_org', 'user_is_group_admin', 'user_is_group_member', 'user_owns_group']),
-    ('D', 'PUBLIC, anon', 'authenticated, service_role', ARRAY['accept_invitation', 'create_org_for_self', 'decline_invitation', 'lookup_invitation', 'revoke_invitation', 'get_all_surface_counts', 'get_surface_counts', 'get_market_intel_items', 'get_operations_items', 'get_research_items', 'get_technology_items', 'get_workspace_due_next', 'get_workspace_intelligence', 'get_workspace_intelligence_aggregates', 'get_workspace_intelligence_aggregates_scoped', 'get_workspace_intelligence_dashboard', 'get_workspace_intelligence_listings', 'get_workspace_intelligence_slim', 'get_workspace_recent_changes', 'user_can_write_in_org']),
+    ('D', 'PUBLIC, anon', 'authenticated, service_role', ARRAY['accept_invitation', 'create_org_for_self', 'decline_invitation', 'lookup_invitation', 'revoke_invitation', 'get_all_surface_counts', 'get_surface_counts', 'get_market_intel_items', 'get_operations_items', 'get_research_items', 'get_technology_items', 'get_workspace_due_next', 'get_workspace_intelligence', 'get_workspace_intelligence_aggregates', 'get_workspace_intelligence_aggregates_scoped', 'get_workspace_intelligence_dashboard', 'get_workspace_intelligence_listings', 'get_workspace_intelligence_slim', 'get_workspace_recent_changes', 'user_can_write_in_org', 'user_org_role', 'user_group_role']),
     ('E', 'PUBLIC, anon, authenticated', 'service_role', ARRAY['gate_a_health_refresh'])
   ) AS v(cls, revoke_from, grant_to, names), unnest(v.names) AS n;
 
