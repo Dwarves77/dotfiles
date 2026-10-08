@@ -305,7 +305,7 @@
   "20260905012221": {"name":"307_item_forward_events_text_identity_dedupe","file":"307_item_forward_events_text_identity_dedupe.sql","class":"identical"},
   "20260905192958": {"name":"308_census_worklist_archive_columns","file":"308_census_worklist_archive_columns.sql","class":"code-differs"},
   "20260905193019": {"name":"309_source_tier_opinions_host_class_table","file":"309_source_tier_opinions_host_class_table.sql","class":"code-differs"},
-  "20260905194746": {"name":"310_listing_rpcs_item_grade","file":"310_listing_rpcs_item_grade.sql","class":"comments-only"},
+  "20260905194746": {"name":"310_listing_rpcs_item_grade","file":"310_listing_rpcs_item_grade.sql","class":"code-differs"},
   "20260905195809": {"name":"311_spec09_org_scope_and_pool_drop","file":"311_spec09_org_scope_and_pool_drop.sql","class":"code-differs"},
   "20260906154322": {"name":"312_entities_display_name","file":"312_entities_display_name.sql","class":"code-differs"},
   "20260907044404": {"name":"313_workspace_tags","file":"313_workspace_tags.sql","class":"code-differs"},
