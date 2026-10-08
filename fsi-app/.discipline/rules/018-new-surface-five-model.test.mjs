@@ -69,4 +69,30 @@ test('018 check: PASS — /privacy is plumbing (operator ruling 2026-09-07)', ()
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
+test('018 check: PASS, a /dashboard sub-route is a workspace view under the Dashboard, not a surface (ruling 2026-10-07)', () => {
+  const ctx = buildContextFromFixture({
+    message: 'feat: portfolio pages under the dashboard',
+    files: [
+      { path: 'fsi-app/src/app/dashboard/portfolio/page.tsx', additions: 20, deletions: 0 },
+      { path: 'fsi-app/src/app/dashboard/portfolio/[id]/page.tsx', additions: 20, deletions: 0 },
+    ],
+    fileContents: {
+      'fsi-app/src/app/dashboard/portfolio/page.tsx': 'export default function Page(){return null;}\n',
+      'fsi-app/src/app/dashboard/portfolio/[id]/page.tsx': 'export default function Page(){return null;}\n',
+    },
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('018 check: FAIL, allowing /dashboard did not open the door: a new top-level segment beside it still fails', () => {
+  const ctx = buildContextFromFixture({
+    message: 'feat: a portfolio surface of its own',
+    files: [{ path: 'fsi-app/src/app/portfolio/page.tsx', additions: 20, deletions: 0 }],
+    fileContents: { 'fsi-app/src/app/portfolio/page.tsx': 'export default function Page(){return null;}\n' },
+  });
+  const r = rule.check(ctx);
+  assert.equal(r.status, 'FAIL');
+  assert.ok(r.message.includes('/portfolio'));
+});
+
 test('018: metadata', () => { assert.equal(rule.id, '018'); });
