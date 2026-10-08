@@ -112,6 +112,17 @@ function labelCells(sections: React.ReactNode, headers: string[]): React.ReactNo
   });
 }
 
+const SUB_LABEL: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "var(--ink)",
+  margin: "18px 0 10px",
+  paddingBottom: 6,
+  borderBottom: "2px solid var(--line-1)",
+};
+
 const COMPONENTS: Components = {
   p: ({ children }) => <p style={PARA}>{children}</p>,
 
@@ -168,10 +179,12 @@ const COMPONENTS: Components = {
 
   // Sections already carry their own heading from the surface shell, so in-content headings render
   // subordinate to it — never competing with the section title.
-  h1: ({ children }) => <h4 style={{ fontSize: 14, fontWeight: 600, margin: "16px 0 8px", color: "var(--color-text-primary)" }}>{children}</h4>,
-  h2: ({ children }) => <h4 style={{ fontSize: 14, fontWeight: 600, margin: "16px 0 8px", color: "var(--color-text-primary)" }}>{children}</h4>,
-  h3: ({ children }) => <h5 style={{ fontSize: 13, fontWeight: 600, margin: "14px 0 6px", color: "var(--color-text-primary)" }}>{children}</h5>,
-  h4: ({ children }) => <h5 style={{ fontSize: 13, fontWeight: 600, margin: "14px 0 6px", color: "var(--color-text-primary)" }}>{children}</h5>,
+  // Lane PAR-2 (2026-10-07, artboard 22 ruling C): an in-section sub-heading (the 02.x sub-sections)
+  // is an uppercase label with a 2px rule under it, in the body face (never Anton).
+  h1: ({ children }) => <h4 style={SUB_LABEL}>{children}</h4>,
+  h2: ({ children }) => <h4 style={SUB_LABEL}>{children}</h4>,
+  h3: ({ children }) => <h5 style={SUB_LABEL}>{children}</h5>,
+  h4: ({ children }) => <h5 style={SUB_LABEL}>{children}</h5>,
 
   a: ({ children, href }) => (
     <a

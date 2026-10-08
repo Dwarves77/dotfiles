@@ -38,7 +38,10 @@ import {
   needsRenewal,
   warningWindowStart,
   WARNING_WINDOW_DAYS,
+  baselineAgeNotice,
+  loadBaseline,
 } from './layout-guard/baseline.mjs';
+import { BUILD_MODE } from '../governance/build-mode.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -49,7 +52,8 @@ const [kRule, kRoute, kWidth, kElement] = JSON.parse(
 ).keys[0].split('|');
 const known = { rule: kRule, route: kRoute, width: Number(kWidth), element: kElement, measured: 'm', message: 'm' };
 const fresh = { rule: kRule, route: kRoute, width: Number(kWidth), element: 'section[a card added today]', measured: 'm', message: 'm' };
-const split = (date) => applyBaseline([known, fresh], { date });
+// buildMode:false pins the OLD behaviour, so the expiry proofs below keep proving the cliff itself.
+const split = (date) => applyBaseline([known, fresh], { date, buildMode: false });
 
 test('the expiry is the DATE the operator named', () => {
   assert.equal(BASELINE_EXPIRY_DATE, '2026-10-15', 'operator ruling 2026-09-09, quoted at the constant');
@@ -133,39 +137,102 @@ test('warningWindowStart is exactly WARNING_WINDOW_DAYS before the expiry date',
 });
 
 test('ATTACK, before the window opens: needsRenewal is false even with no writtenAt at all', () => {
-  assert.equal(needsRenewal({ date: '2026-10-07', expiryDate: '2026-10-15', writtenAt: undefined }), false);
+  assert.equal(needsRenewal({ date: '2026-10-07', expiryDate: '2026-10-15', writtenAt: undefined, buildMode: false }), false);
 });
 
 test('ATTACK, inside the window, baseline untouched since before the window opened: needsRenewal is TRUE', () => {
   assert.equal(
-    needsRenewal({ date: '2026-10-08', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }),
+    needsRenewal({ date: '2026-10-08', expiryDate: '2026-10-15', writtenAt: '2026-09-08', buildMode: false }),
     true,
     'writtenAt predates the window start (2026-10-08): nobody has renewed, the warning must fire',
   );
-  assert.equal(needsRenewal({ date: '2026-10-14', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }), true);
+  assert.equal(needsRenewal({ date: '2026-10-14', expiryDate: '2026-10-15', writtenAt: '2026-09-08', buildMode: false }), true);
 });
 
 test('ATTACK, inside the window, baseline WAS re-measured during the window: needsRenewal is false', () => {
   assert.equal(
-    needsRenewal({ date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-10-08' }),
+    needsRenewal({ date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-10-08', buildMode: false }),
     false,
     'writtenAt on-or-after the window start counts as renewed',
   );
-  assert.equal(needsRenewal({ date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-10-10' }), false);
+  assert.equal(needsRenewal({ date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-10-10', buildMode: false }), false);
 });
 
 test('ATTACK, missing writtenAt inside the window: fails CLOSED (cannot prove a renewal happened)', () => {
-  assert.equal(needsRenewal({ date: '2026-10-09', expiryDate: '2026-10-15', writtenAt: undefined }), true);
-  assert.equal(needsRenewal({ date: '2026-10-09', expiryDate: '2026-10-15', writtenAt: null }), true);
+  // '' and null, NEVER undefined: undefined triggers needsRenewal's default parameter, which reads the LIVE
+  // baseline.json, so that case passed only while the committed file happened to be old (it went red the
+  // moment a renewal was written). The fail-closed branch is `typeof writtenAt !== 'string' || !writtenAt`.
+  assert.equal(needsRenewal({ date: '2026-10-09', expiryDate: '2026-10-15', writtenAt: '', buildMode: false }), true);
+  assert.equal(needsRenewal({ date: '2026-10-09', expiryDate: '2026-10-15', writtenAt: null, buildMode: false }), true);
 });
 
 test('ATTACK, past expiry: needsRenewal is false -- isExpired is the failure mode there, not this one (no double fire)', () => {
-  assert.equal(needsRenewal({ date: '2026-10-15', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }), false);
-  assert.equal(needsRenewal({ date: '2026-12-01', expiryDate: '2026-10-15', writtenAt: '2026-09-08' }), false);
+  assert.equal(needsRenewal({ date: '2026-10-15', expiryDate: '2026-10-15', writtenAt: '2026-09-08', buildMode: false }), false);
+  assert.equal(needsRenewal({ date: '2026-12-01', expiryDate: '2026-10-15', writtenAt: '2026-09-08', buildMode: false }), false);
 });
 
-test('STANDING GATE, real clock, real baseline.json: the renewal warning is not due yet, OR the ' +
-  'baseline has been re-measured since the warning window opened', () => {
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// BUILD MODE (operator ruling 2026-10-08, verbatim: "We are building the fucking site. Make it simple and
+// pause the 7 day rule until the site goes live."; CLAUDE.md rule 16). While BUILD_MODE is true the hard
+// expiry and the 7-day renewal warning do not fail, and both still report. Flipping BUILD_MODE to false
+// (.discipline/governance/build-mode.mjs) is the go-live step and brings the old behaviour back.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test('BUILD_MODE is the governance-layer constant and is on while the site is being built', () => {
+  assert.equal(BUILD_MODE, true, 'the pause is on until go-live; flipping it to false is the go-live step');
+  const src = readFileSync(join(HERE, '../governance/build-mode.mjs'), 'utf8');
+  assert.match(src, /We are building the fucking site/, 'the ruling is quoted verbatim in the header');
+  assert.match(src, /rule 16/, 'the header cites CLAUDE.md rule 16');
+  assert.match(src, /GO-LIVE STEP/, 'the header names the go-live step');
+});
+
+test('ATTACK, BUILD_MODE true, baseline past its expiry: the gate PASSES with a logged notice, the baseline still applies', () => {
+  for (const date of ['2026-10-15', '2026-12-01', '2027-06-01']) {
+    const r = applyBaseline([known, fresh], { date, buildMode: true });
+    assert.equal(r.pastExpiry, true, `${date} is past the expiry and that is still reported`);
+    assert.equal(r.expired, false, `${date}: in build mode the baseline does NOT die`);
+    assert.equal(r.baselined.length, 1, `${date}: the baselined finding stays covered`);
+    assert.ok(r.blocking.some((f) => f.element === 'section[a card added today]'),
+      `${date}: a NEW finding still blocks, build mode pauses the date rule and nothing else`);
+    assert.match(r.notice, /BUILD_MODE/, `${date}: the pause is logged, never silent`);
+    assert.match(r.notice, /past/, `${date}: the notice says the expiry is past`);
+  }
+});
+
+test('ATTACK, BUILD_MODE false: the old behaviour returns, a past-expiry baseline excuses nothing (red)', () => {
+  const r = applyBaseline([known, fresh], { date: '2026-12-01', buildMode: false });
+  assert.equal(r.expired, true);
+  assert.equal(r.baselined.length, 0);
+  assert.equal(r.blocking.length, 2, 'every finding blocks again');
+  assert.equal(r.notice, null, 'no pause notice when the pause is off');
+});
+
+test('ATTACK, BUILD_MODE true, inside the 7-day window with a stale baseline: needsRenewal is false; false: it is true again', () => {
+  const stale = { date: '2026-10-10', expiryDate: '2026-10-15', writtenAt: '2026-09-08' };
+  assert.equal(needsRenewal({ ...stale, buildMode: true }), false, 'the 7-day rule is paused in build mode');
+  assert.equal(needsRenewal({ ...stale, buildMode: false }), true, 'and fires again the moment build mode is off');
+});
+
+test('the age notice reports the baseline age as information, in and out of build mode', () => {
+  const on = baselineAgeNotice({ date: '2026-10-08', writtenAt: '2026-09-08', expiryDate: '2026-10-15', buildMode: true });
+  assert.match(on, /30 day/, 'age in days since writtenAt');
+  assert.match(on, /2026-10-15/, 'names the expiry');
+  assert.match(on, /BUILD_MODE/, 'says the rule is paused');
+  const past = baselineAgeNotice({ date: '2026-11-01', writtenAt: '2026-09-08', expiryDate: '2026-10-15', buildMode: true });
+  assert.match(past, /past/);
+  assert.equal(baselineAgeNotice({ date: '2026-10-08', writtenAt: '2026-09-08', expiryDate: '2026-10-15', buildMode: false }), null,
+    'with build mode off the gate speaks through its failures, not a notice');
+});
+
+test('STANDING GATE, real clock, real baseline.json: the baseline parses; and either build mode pauses ' +
+  'the 7-day rule (age reported), OR the warning is not due / the baseline was re-measured', () => {
+  // Always asserted, build mode or not: the file must exist, parse, and agree with itself.
+  const { keys, meta } = loadBaseline();
+  assert.ok(meta, 'baseline.json must exist and parse');
+  assert.ok(keys.size > 0 && meta.keys.length === meta.count, 'baseline.json keys array must agree with its count');
+  assert.equal(meta.expiryDate, BASELINE_EXPIRY_DATE);
+  const notice = baselineAgeNotice({ writtenAt: meta.writtenAt });
+  if (notice) console.log(`# ${notice}`);
   const due = needsRenewal();
   assert.equal(
     due,

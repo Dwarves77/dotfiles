@@ -42,7 +42,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { RailCard } from "@/components/ui/RailCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { BandProvider } from "@/components/ui/band-context";
+import { BandProvider, useBandContext } from "@/components/ui/band-context";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { tierScaleSpan } from "@/lib/customer-source-tier";
 import type { ImpactScores, Resource } from "@/types/resource";
@@ -210,13 +210,23 @@ export function DetailSection({
   index?: number | null;
   children: React.ReactNode;
 }) {
+  // Lane PAR-2 (2026-10-07, artboard 22 ruling C): the section header sits on the item's band tint
+  // (read from the page's BandProvider, band-context.tsx; no provider renders no tint) with a 24px
+  // title. The tint is a token (`band.tintCssVar`) handed to globals.css `.cl-detail-section-head`.
+  const { band } = useBandContext();
   return (
     <SectionCard as="section" id={id} padding="0" style={{ marginBottom: 16, scrollMarginTop: 56, overflow: "hidden" }}>
       {/* lane W10-SectionHeader, 2026-09-22: every S-section on every detail surface renders through
           the one shared SectionHeader part (parts-brief-2026-09-18.md section 2.3) instead of a
           hand-typed h2+aside (F49). data-guard-title/data-guard-display live on SectionHeader's own
           h2 now, unchanged markers, same guard coverage (item D3 / FOLD 63, 2026-09-08). */}
-      <SectionHeader index={index != null ? `S${index}` : null} title={title} meta={aside} />
+      <div
+        className="cl-detail-section-head"
+        data-audit="detail-section-head"
+        style={band ? ({ ["--cl-detail-head-tint" as string]: band.tintCssVar } as React.CSSProperties) : undefined}
+      >
+        <SectionHeader index={index != null ? `S${index}` : null} title={title} meta={aside} />
+      </div>
       <div style={{ padding: "16px 20px", maxWidth: "72ch" }}>{children}</div>
     </SectionCard>
   );

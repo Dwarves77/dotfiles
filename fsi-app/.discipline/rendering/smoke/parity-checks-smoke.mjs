@@ -48,7 +48,12 @@ const MEASURE_FN = `
       const rootBg = hex(cs(g).backgroundColor);
       const headerBg = header ? hex(cs(header).backgroundColor) : null;
       const stripBg = stripNote ? hex(cs(stripNote).backgroundColor) : null;
-      const tinted = !!(TINTS[rootBg] || (headerBg && TINTS[headerBg]));
+      // Lane PAR-2 (2026-10-07, artboard 22 ruling A, coordinator ruling): the item group header is WHITE with
+      // the band's 3px rule on top (ui/BandGroupHeader.tsx), no longer tinted. "Carries its band" is now the
+      // 3px band-coloured top rule; the ACTION strip below stays band-tinted (checked as before).
+      const bandHeader = header ? header.querySelector('[data-audit="band-header"]') : null;
+      const rule = bandHeader ? cs(bandHeader) : null;
+      const tinted = !!(rule && rule.borderTopWidth === '3px' && hex(rule.borderTopColor) !== 'transparent') || !!(TINTS[rootBg] || (headerBg && TINTS[headerBg] && !bandHeader));
       const stripOk = !strip || !!TINTS[stripBg];
       return { tinted, hasStrip: !!strip, stripOk };
     });
@@ -151,7 +156,7 @@ export async function runSmoke(browser) {
     // Check 1
     checks += 1;
     const untinted = m.c1.filter((g) => !g.tinted);
-    if (untinted.length) failures.push(`parity-checks:c1: ${untinted.length} item-group(s) render untinted (band-context not threaded)`);
+    if (untinted.length) failures.push(`parity-checks:c1: ${untinted.length} item-group(s) render without their band rule (band-context not threaded)`);
     checks += 1;
     const badStrips = m.c1.filter((g) => g.hasStrip && !g.stripOk);
     if (badStrips.length) failures.push(`parity-checks:c1: ${badStrips.length} ACTION strip(s) render but are not band-tinted`);

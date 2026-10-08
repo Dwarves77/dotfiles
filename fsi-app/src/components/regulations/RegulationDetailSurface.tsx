@@ -501,7 +501,7 @@ function BriefSummary({
   return (
     <>
       {shortText && (
-        <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "0 0 14px", maxWidth: "72ch", color: "var(--ink)" }}>{shortText}</p>
+        <p style={{ fontSize: 15, lineHeight: 1.7, margin: "0 0 14px", maxWidth: "72ch", color: "var(--ink)" }}>{shortText}</p>
       )}
       {trajectory && (
         <div style={{ margin: "0 0 14px" }}>

@@ -31,6 +31,7 @@ import { runSmoke as runLabourChainSmoke } from './labour-chain-smoke.mjs';
 import { runSmoke as runCrossPageSmoke } from './cross-page-smoke.mjs';
 import { runSmoke as runInferenceSectionSmoke } from './inference-section-smoke.mjs';
 import { runSmoke as runAdminCorrectionsSmoke } from './admin-corrections-smoke.mjs';
+import { runSmoke as runPar2BandsSmoke } from './par2-bands-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -105,4 +106,5 @@ export const UX_SMOKE_SPECS = [
   { name: "inference-section", run: runInferenceSectionSmoke },
   // lane G7-UI, 2026-10-06: the admin Corrections panel (/admin/items/[id]), the Corrections tab and the shared row.
   { name: "admin-corrections", run: runAdminCorrectionsSmoke },
+  { name: "par2-bands", run: runPar2BandsSmoke }, // lane PAR-2, 2026-10-07, artboard 22 rulings A, B, C
 ];

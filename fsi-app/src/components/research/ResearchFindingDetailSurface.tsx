@@ -330,7 +330,7 @@ export function ResearchFindingDetailSurface({
           {isRecord ? (
             <DetailSection id="summary" title="Summary" index={1}>
               <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
-              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
+              {trajectoryNode && <p style={{ fontSize: 15, lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                   <GfmSection markdown={r.fullBrief} />

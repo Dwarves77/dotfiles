@@ -348,7 +348,7 @@ export function OperationsDetailSurface({
               former top-level tabs as sub-headings, content and data paths unchanged. */}
           <DetailSection id="summary" title="Summary" index={1}>
             {r.whatIsIt || r.note || r.whyMatters ? (
-              <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
+              <p style={{ fontSize: 15, lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
                 {r.whatIsIt || r.note || r.whyMatters}
               </p>
             ) : (
