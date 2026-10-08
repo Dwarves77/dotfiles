@@ -196,6 +196,29 @@ test("search_path: every SECURITY DEFINER function in public lacking one is enum
   assert.doesNotMatch(SQL, /CREATE OR REPLACE FUNCTION public\.(?!accept_invitation)/);
 });
 
+test("search_path is one rule: a path that does not END in pg_temp counts as unpinned, is rebuilt keeping its schemas, and the self-check asserts every definer ends in pg_temp", () => {
+  const ends = SQL.match(/c LIKE 'search_path=%' AND c ~ 'pg_temp\$'/g) ?? [];
+  assert.ok(ends.length >= 2, "the enumeration and the self-check both test 'ends in pg_temp'");
+  assert.match(SQL, /regexp_replace\(v_cur, ',\?\\s\*pg_temp', '', 'g'\) \|\| ', pg_temp'/);
+  assert.doesNotMatch(SQL, /NOT EXISTS \(SELECT 1 FROM unnest\(coalesce\(p\.proconfig, '\{\}'::text\[\]\)\) c WHERE c LIKE 'search_path=%'\)/);
+  assert.doesNotMatch(RAW, /NOT CLOSED HERE/);
+  // the six definers the tree pins to `public` alone are exactly what the rule now repairs
+  const six = ["admin_set_judgement_drain", "admin_set_pause_state", "capture_worker_fetch", "enqueue_pending_first_fetch", "move_override_notes_to_item_notes", "reorder_user_list_item"];
+  const files = readdirSync(HERE).filter((f) => /^\d+_.*\.sql$/.test(f) && parseInt(f, 10) < 371).sort((a, b) => parseInt(a, 10) - parseInt(b, 10) || a.localeCompare(b));
+  for (const n of six) {
+    let last = "";
+    for (const f of files) {
+      const t = strip(readFileSync(join(HERE, f), "utf8"));
+      const re = new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+(?:public\\.)?"?${n}"?\\s*\\(`, "gi");
+      let m;
+      while ((m = re.exec(t))) last = t.slice(m.index, t.indexOf("$", m.index + 40));
+    }
+    const pin = /SET\s+search_path\s*(?:=|TO)\s*([^\n]*)/i.exec(last);
+    assert.ok(pin, `${n} carries a pin in the tree`);
+    assert.doesNotMatch(pin[1], /pg_temp/, `${n} is pinned without pg_temp`);
+  }
+});
+
 // Same pattern as the migration's v_ext_re; the test fails if the migration's literal drifts from this one.
 const EXT_RE = "(^|[^A-Za-z0-9_.])(gen_random_bytes|digest|hmac|crypt|gen_salt|pgp_sym_encrypt|pgp_sym_decrypt|uuid_generate_v[0-9a-z]*|similarity|word_similarity|unaccent)[[:space:]]*[(]";
 

@@ -58,8 +58,9 @@
 --      E  gate_a_health_refresh, service_role only: the unscheduled cache writer (migration 256), no caller through rpc.
 --         This migration now references it, so its entry in F47's reason-bearing allowlist is removed in the same PR.
 --
--- 2. search_path. Every SECURITY DEFINER function in public whose proconfig has no search_path is enumerated from pg_proc
---    at apply time and pinned with ALTER FUNCTION ... SET search_path = public, pg_temp (no CREATE OR REPLACE, so no body
+-- 2. search_path. Every SECURITY DEFINER function in public whose proconfig has no search_path ending in pg_temp is
+--    enumerated from pg_proc at apply time and pinned with ALTER FUNCTION ... SET search_path = public, pg_temp, or its
+--    existing schemas followed by pg_temp when it already has a pin without it (no CREATE OR REPLACE, so no body
 --    is restated and none can drift). The body of each function the tree defines without a pin was read for unqualified
 --    references to objects outside public [CONFIRMED]: get_technology_items, get_workspace_intelligence, _dashboard,
 --    _listings and _slim name only public tables, public._assert_org_membership and public._workspace_active_items, so
@@ -88,10 +89,11 @@
 -- public grants EXECUTE to PUBLIC, every one carries search_path in proconfig, every classed function holds exactly the
 -- privileges of its class for anon, authenticated and service_role.
 --
--- NOT CLOSED HERE (recorded, not worked around). Six functions carry search_path = public with no pg_temp
--- (admin_set_judgement_drain, admin_set_pause_state, capture_worker_fetch, enqueue_pending_first_fetch,
--- move_override_notes_to_item_notes, reorder_user_list_item): they carry a pin, which is all the brief and F70 require, but
--- without pg_temp named, temporary relations are searched first. Re-pinning them with pg_temp last is a one-line ALTER each.
+-- ONE RULE FOR search_path (coordinator ruling, 2026-10-08): a path that omits pg_temp searches the temporary schema first
+-- and implicitly, which is the shadowing hole the pin exists to close, so a path that does not END in pg_temp counts as
+-- unpinned. Six functions in the tree carry search_path = public alone (admin_set_judgement_drain, admin_set_pause_state,
+-- capture_worker_fetch, enqueue_pending_first_fetch, move_override_notes_to_item_notes, reorder_user_list_item); the same
+-- apply-time enumeration repairs them (their existing schemas are kept and pg_temp is appended), with no list in the SQL.
 
 BEGIN;
 
@@ -261,19 +263,27 @@ DO $$
 DECLARE
   r record;
   v_path text;
+  v_cur text;
   -- unqualified calls to functions that live in the extensions schema (pgcrypto, uuid-ossp, pg_trgm, unaccent)
   v_ext_re constant text := '(^|[^A-Za-z0-9_.])(gen_random_bytes|digest|hmac|crypt|gen_salt|pgp_sym_encrypt|pgp_sym_decrypt|uuid_generate_v[0-9a-z]*|similarity|word_similarity|unaccent)[[:space:]]*[(]';
 BEGIN
   FOR r IN
-    SELECT p.oid::regprocedure AS sig, p.proname, p.prosrc
+    SELECT p.oid::regprocedure AS sig, p.proname, p.prosrc,
+           (SELECT substr(c, 13) FROM unnest(coalesce(p.proconfig, '{}'::text[])) c WHERE c LIKE 'search_path=%' LIMIT 1) AS cur
       FROM pg_proc p
      WHERE p.pronamespace = 'public'::regnamespace AND p.prosecdef
-       AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}'::text[])) c WHERE c LIKE 'search_path=%')
+       AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}'::text[])) c WHERE c LIKE 'search_path=%' AND c ~ 'pg_temp$')
      ORDER BY p.proname, p.oid
   LOOP
-    v_path := 'public, pg_temp';
-    IF r.prosrc ~* v_ext_re THEN
+    v_cur := r.cur;
+    IF v_cur IS NOT NULL THEN
+      -- already pinned, but without pg_temp last: keep its schemas and name pg_temp last (the temporary schema is
+      -- otherwise searched first, the shadowing hole the pin exists to close)
+      v_path := regexp_replace(v_cur, ',?\s*pg_temp', '', 'g') || ', pg_temp';
+    ELSIF r.prosrc ~* v_ext_re THEN
       v_path := 'public, extensions, pg_temp';
+    ELSE
+      v_path := 'public, pg_temp';
     END IF;
     EXECUTE format('ALTER FUNCTION %s SET search_path = %s', r.sig, v_path);
     RAISE NOTICE 'migration 371: public.% pinned to search_path = %', r.proname, v_path;
@@ -367,11 +377,11 @@ BEGIN
                     WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE');
     IF v_n <> 0 THEN RAISE EXCEPTION 'ABORT: % SECURITY DEFINER function(s) in public still grant EXECUTE to PUBLIC', v_n; END IF;
 
-    -- every SECURITY DEFINER function in public carries a search_path
+    -- every SECURITY DEFINER function in public carries a search_path that ends in pg_temp
     SELECT count(*) INTO v_n FROM pg_proc p
      WHERE p.pronamespace = 'public'::regnamespace AND p.prosecdef
-       AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}'::text[])) c WHERE c LIKE 'search_path=%');
-    IF v_n <> 0 THEN RAISE EXCEPTION 'ABORT: % SECURITY DEFINER function(s) in public carry no search_path', v_n; END IF;
+       AND NOT EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}'::text[])) c WHERE c LIKE 'search_path=%' AND c ~ 'pg_temp$');
+    IF v_n <> 0 THEN RAISE EXCEPTION 'ABORT: % SECURITY DEFINER function(s) in public carry no search_path ending in pg_temp', v_n; END IF;
 
     -- accept_invitation as applied carries the promotion-only clause
     SELECT p.prosrc INTO v_src FROM pg_proc p WHERE p.oid = to_regprocedure('public.accept_invitation(text)');

@@ -94,6 +94,24 @@ test('RED: a definer with a REVOKE but no search_path names only the search_path
   assert.doesNotMatch(v[0].message, /missing:[^.]*REVOKE/);
 });
 
+test('RED: a search_path that omits pg_temp is not pinned (the temporary schema is then searched first), in the header and in an ALTER', () => {
+  const header = [
+    'CREATE FUNCTION public.leaky() RETURNS int LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$ SELECT 1 $$;',
+    'REVOKE EXECUTE ON FUNCTION public.leaky() FROM PUBLIC;',
+  ].join('\n');
+  const v1 = checkDefinerHygiene({ filepath: '999_fixture.sql', content: header });
+  assert.equal(v1.length, 1);
+  assert.match(v1[0].message, /search_path/);
+  const alter = [
+    'CREATE FUNCTION public.leaky() RETURNS int LANGUAGE sql SECURITY DEFINER AS $$ SELECT 1 $$;',
+    'REVOKE EXECUTE ON FUNCTION public.leaky() FROM PUBLIC;',
+    'ALTER FUNCTION public.leaky() SET search_path = public, extensions;',
+  ].join('\n');
+  assert.equal(checkDefinerHygiene({ filepath: '999_fixture.sql', content: alter }).length, 1);
+  const named = alter.replace('public, extensions;', "'public', 'extensions', 'pg_temp';");
+  assert.deepEqual(checkDefinerHygiene({ filepath: '999_fixture.sql', content: named }), []);
+});
+
 test('RED: a REVOKE that names only anon or authenticated does not satisfy the PUBLIC half', () => {
   const content = [
     'CREATE FUNCTION public.leaky() RETURNS int LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp AS $$ SELECT 1 $$;',

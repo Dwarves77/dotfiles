@@ -25,8 +25,8 @@
 | get_market_intel_items, get_operations_items, get_research_items | D | health probe and server paths, service client; refuse anon in body | PUBLIC default; GRANT anon, authenticated, service_role (272, 316) | authenticated, service_role | public, extensions, pg_temp / same |
 | get_workspace_due_next, get_workspace_recent_changes | D | getServiceSupabase (supabase-server.ts 866, 3065) | PUBLIC default; due_next GRANT anon, authenticated, service_role (315) | authenticated, service_role | public, extensions, pg_temp / same |
 | get_workspace_intelligence_aggregates, _aggregates_scoped | D | no src caller found by grep; refuse non-members in body | PUBLIC default; GRANT authenticated, service_role (077) | authenticated, service_role | public, extensions, pg_temp / same |
-| get_technology_items, get_workspace_intelligence, get_workspace_intelligence_dashboard, get_workspace_intelligence_listings, get_workspace_intelligence_slim | D | server paths, service client | PUBLIC default; GRANT anon, authenticated, service_role (272, 316) | authenticated, service_role | NONE (272 and 316 reset 160's pin) / public, pg_temp |
-| 12 trigger definers (_intelligence_items_normalize_jurisdictions, enqueue_pending_first_fetch, intelligence_items_theme_guard, item_corrections_apply_claims, _apply_items, _apply_sections, _before_insert, _block_tombstoned_edge, org_memberships_ban_guard, trg_intelligence_items_version_snapshot, update_community_group_member_count, update_community_post_reply_count) | B | EXECUTE on a trigger function is checked at CREATE TRIGGER, not at fire time | PUBLIC default (theme_guard: revoked from PUBLIC only) | no PUBLIC, anon, authenticated | all pinned already (enqueue_pending_first_fetch pinned to public only) |
+| get_technology_items, get_workspace_intelligence, get_workspace_intelligence_dashboard, get_workspace_intelligence_listings, get_workspace_intelligence_slim | D | server paths, service client | PUBLIC default; GRANT anon, authenticated, service_role (272, 316) | authenticated, service_role | NONE (272 and 316 reset 160 pin) / public, pg_temp |
+| 12 trigger definers (_intelligence_items_normalize_jurisdictions, enqueue_pending_first_fetch, intelligence_items_theme_guard, item_corrections_apply_claims, _apply_items, _apply_sections, _before_insert, _block_tombstoned_edge, org_memberships_ban_guard, trg_intelligence_items_version_snapshot, update_community_group_member_count, update_community_post_reply_count) | B | EXECUTE on a trigger function is checked at CREATE TRIGGER, not at fire time | PUBLIC default (theme_guard: revoked from PUBLIC only) | no PUBLIC, anon, authenticated | all pinned; enqueue_pending_first_fetch public alone becomes public, pg_temp (follow-up commit) |
 
 ## Read and reused
 
@@ -40,10 +40,11 @@
 - Class membership is held in a table read by the grant loop and the self-check, and the test file proves it covers exactly the 45 callable definers the tree defines (31 in the classes + 14 closed earlier), so a definer added below 371 and left out fails the test.
 - `accept_invitation` search_path is `public, pg_temp` (the body names only public and auth-qualified objects), not 160's `public, extensions, pg_temp`.
 - Out-of-repo definers: the migration cannot read their bodies, so the apply-time scan decides `extensions` from the source text; the catch-all only removes PUBLIC.
+- search_path is one rule (coordinator ruling): the path must end in pg_temp, else it is treated as unpinned and rebuilt. F70 applies the same rule to new definers.
 
 ## Confirmed facts and corrections to the brief's inputs
 
-- [CONFIRMED by parsing the tree] 57 SECURITY DEFINER functions (45 callable, 12 trigger), not 56: `move_override_notes_to_item_notes` is defined in migration 358 (SEC-3a's log says it is not), and 358 already revokes it from PUBLIC and grants service_role.
+- [CONFIRMED by parsing the tree, count accepted by the coordinator] 57 SECURITY DEFINER functions (45 callable, 12 trigger), not SEC-3a's 56. Correction of SEC-3a's count, recorded here and not by editing its file: `move_override_notes_to_item_notes` is defined at line 184 of migration 358 (SEC-3a's log says it is not defined in the tree), and 358 already revokes it from PUBLIC and grants service_role (lines 204 and 205).
 - [CONFIRMED] Only five definers have no search_path in the tree, not the many the 42-function framing implied: migration 160 pinned most, and CREATE OR REPLACE in 272 and 316 reset get_technology_items, get_workspace_intelligence, _dashboard, _listings and _slim. The migration enumerates from pg_proc anyway.
 - [CONFIRMED] The only definer in the tree that calls an extension function unqualified is create_org_for_self (pgcrypto gen_random_bytes), already pinned `public, extensions, pg_temp`. The five unpinned bodies name no extension function (asserted in the test).
 
@@ -51,11 +52,13 @@
 
 - F70 test: written first, run with no implementation: ERR_MODULE_NOT_FOUND (0 tests). With the implementation: 15 tests, 13 pass, 2 fail (the two that need migration 371 to exist); with 371: 15 pass.
 - 371 test: written first, run with no migration: 22 tests, 5 pass, 17 fail. After the migration, the F47 edit, RD-93, attacks.json and the regenerated inventory: all pass. Final run of 371 test, F70 test, F47 test, 369 test, attacks-manifest test and attack-engine test together: 96 tests, 95 pass, 0 fail (1 skipped by the node runner in one of the six files).
+- Follow-up commit (search_path one rule): tests first. 371 test: 23 tests, 22 pass, 1 fail (the new one-rule test) against the previous SQL; F70 test: 16 tests, 15 pass, 1 fail (a path without pg_temp, in header and ALTER, must be flagged). After the SQL and F70 edits: 371, F70, F47 and attacks-manifest tests together, 63 tests, 62 pass, 0 fail, 1 skipped.
+
 
 ## NOT done
 
 - Not applied. The SQL has not been executed against any database; syntax and semantics were checked by reading only. The self-check, the four new attacks and the apply-time NOTICE output have not run. No live access in this lane.
-- Six definers carry `search_path = public` with no `pg_temp` (admin_set_judgement_drain, admin_set_pause_state, capture_worker_fetch, enqueue_pending_first_fetch, move_override_notes_to_item_notes, reorder_user_list_item). They have a pin, which is all the brief and F70 require, so 371 does not touch them. Staged for a coordinator ruling or the next lane: `ALTER FUNCTION <sig> SET search_path = public, pg_temp;` for each.
+- (Closed by the follow-up commit, coordinator ruling 2026-10-08.) The six definers pinned to `search_path = public` with no `pg_temp` (admin_set_judgement_drain, admin_set_pause_state, capture_worker_fetch, enqueue_pending_first_fetch, move_override_notes_to_item_notes, reorder_user_list_item) are now repaired by the same apply-time enumeration: a path that does not END in pg_temp counts as unpinned, its schemas are kept and pg_temp is appended; no list of names is in the SQL. The self-check asserts every SECURITY DEFINER function in public has a search_path ending in pg_temp. F70 was tightened to the same rule (a header or ALTER search_path must name pg_temp).
 - Trigger functions: the revoke stops a role calling the function by name; nothing here proves a trigger still fires after the revoke except the PostgreSQL rule that EXECUTE on a trigger function is checked at CREATE TRIGGER (the rule is stated in the migration, not exercised by a runtime test).
 - No src change.
 

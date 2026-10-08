@@ -12,8 +12,9 @@
 // the SAME file, carry both:
 //   1. a `REVOKE EXECUTE ON FUNCTION <name>(...) FROM ... PUBLIC ...` (REVOKE ALL is accepted too); a REVOKE that names
 //      only anon or authenticated does not close the PUBLIC grant;
-//   2. a pinned search_path: `SET search_path` in the function header (or tail), or an
-//      `ALTER FUNCTION <name>(...) SET search_path` in the same file.
+//   2. a pinned search_path that NAMES pg_temp (a path without it searches the temporary schema first, which is the
+//      shadowing hole the pin exists to close): `SET search_path = ..., pg_temp` in the function header (or tail), or an
+//      `ALTER FUNCTION <name>(...) SET search_path = ..., pg_temp` in the same file.
 // A violation names the file, the function and which of the two is missing.
 //
 // SCOPE BY NUMBER, NOT BY ALLOWLIST. Migrations below 371 are out of scope because they are history (371 repairs every
@@ -87,7 +88,7 @@ export function findDefinerFunctions(content) {
     out.push({
       name: m[1].toLowerCase(),
       line: text.slice(0, m.index).split('\n').length,
-      inlineSearchPath: /\bSET\s+search_path\b/i.test(all),
+      inlineSearchPath: /\bSET\s+search_path\s*(?:=|TO)\s*[^\n;]*\bpg_temp\b/i.test(all),
       returnsTrigger: /\bRETURNS\s+trigger\b/i.test(header),
     });
   }
@@ -105,12 +106,12 @@ export function checkDefinerHygiene({ filepath, content }) {
       'i',
     ).test(text);
     const alter = new RegExp(
-      `ALTER\\s+FUNCTION\\s+(?:"?public"?\\.)?"?${name}"?\\s*\\([^)]*\\)\\s+SET\\s+search_path`,
+      `ALTER\\s+FUNCTION\\s+(?:"?public"?\\.)?"?${name}"?\\s*\\([^)]*\\)\\s+SET\\s+search_path\\s*(?:=|TO)\\s*[^;]*\\bpg_temp\\b`,
       'i',
     ).test(text);
     const missing = [];
     if (!revoke) missing.push('REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC');
-    if (!fn.inlineSearchPath && !alter) missing.push('a pinned search_path');
+    if (!fn.inlineSearchPath && !alter) missing.push('a pinned search_path that names pg_temp');
     if (missing.length === 0) continue;
     out.push(
       violation(
@@ -132,7 +133,7 @@ export const fitnessFunction = {
   description:
     'Every CREATE [OR REPLACE] FUNCTION ... SECURITY DEFINER in a migration numbered 371 or higher carries, in the ' +
     'same file, a REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC and a pinned search_path (header SET search_path or an ' +
-    'ALTER FUNCTION ... SET search_path). Migrations below 371 are out of scope by number; migration 371 repaired them ' +
+    'ALTER FUNCTION ... SET search_path, either naming pg_temp). Migrations below 371 are out of scope by number; migration 371 repaired them ' +
     'at apply time from pg_proc.',
   source: 'fsi-app/.discipline/fitness/functions/F70-definer-hygiene.mjs',
 
