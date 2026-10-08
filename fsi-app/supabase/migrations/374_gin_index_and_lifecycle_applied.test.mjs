@@ -11,9 +11,10 @@ import { fileURLToPath } from "node:url";
 const RAW = readFileSync(fileURLToPath(new URL("./374_gin_index_and_lifecycle_applied.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 
-test("header: subject line, NOT APPLIED, and the reason the index is not concurrent", () => {
+test("header: subject line, states APPLIED with the ledger version, and the reason the index is not concurrent", () => {
   assert.match(RAW, /^-- subject: Migration 374 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008225033, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   assert.match(RAW, /CREATE INDEX CONCURRENTLY cannot run inside a transaction block/);
   assert.doesNotMatch(SQL, /CONCURRENTLY/i, "the plain form is used");
 });
