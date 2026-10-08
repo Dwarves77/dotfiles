@@ -427,12 +427,6 @@ const COMPONENTS = [
 // own status is, unaffected.
 const PROVEN_BUT_UNWIRED = [
   {
-    file: 'src/lib/intake/census-writer.mjs',
-    disposition:
-      'W1 register #11: HOLD (crawl-rebuild scope, ADR-015 §5 — "no build proceeds until the operator ' +
-      'prices wave-one sizing"). Correct, tested, waiting on an unfunded orchestrator, not a wiring gap.',
-  },
-  {
     file: 'src/lib/intake/intake-url-corpus.mjs',
     disposition:
       'W1 register #17: KEEP, no action — a data-only golden-fixture file with no production call site to ' +
@@ -454,32 +448,10 @@ const PROVEN_BUT_UNWIRED = [
       'comments, never import it. Newly unwired as a direct, verified consequence of #3\'s deletion — added ' +
       'here the same commit that removed #3\'s own entry, per this register\'s own explicit instruction.',
   },
-  {
-    file: 'src/lib/llm/program-total.mjs',
-    disposition:
-      'W1 register #1: WIRE, but explicitly low-urgency — "wire it in the same change that ever gives ' +
-      'seedSpend its first real caller; don\'t invent a caller just to hang this on." Pending MAINT execution.',
-  },
   // 'src/lib/sources/api-fetch.ts' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the W1 register #12
   // DELETE disposition was executed — superseded by canonical-pipeline.ts's own inline apiFetchForHost,
   // which already did the live work; this was a parallel, unused implementation, not an
   // orchestrator-blocked module like its scripts/lib/sources siblings.
-  { file: 'src/lib/sources/instrument-identity.ts', disposition: null }, // not covered by the Aug-31 register
-  {
-    file: 'src/lib/contracts/corridor-id.mjs',
-    disposition:
-      'Newly unwired as a direct, verified side effect of lane W71-C (2026-09-05) deleting ' +
-      'scripts/gen/migration-258.mjs (the migration-258 generator was this module\'s only production ' +
-      'importer, via renderCorridorIdSql() — the migration itself is applied live and unaffected). Same ' +
-      'shape as provenance-envelope.mjs\'s own entry below: a genuinely reusable identity module ' +
-      '(corridorId(), validateCorridorSpec(), isSameCorridor() — runtime logic, not just SQL codegen), not ' +
-      'a one-shot, with a concrete named future consumer — migration 258\'s own inventory row states ' +
-      '"deliberately NO factor rows... a separate, independently-verified data unit"; whichever lane loads ' +
-      'corridor-scoped emission-factor data is this module\'s real caller. Its src/__tests__/' +
-      'contracts-corridor-id.test.mjs proof stays wired via the src/__tests__/*.test.mjs glob regardless. ' +
-      'No expiry granted (lane W71-C\'s brief forbids adding one) — wire it into that future loader, or ' +
-      'delete it with its test if that loader never materializes.',
-  },
 ];
 
 // SCRIPTS_LIB (the 15 "proven, never consumed" scripts/lib entries) ARCHIVED 2026-09-01 (lane hyg,
@@ -500,28 +472,6 @@ export const LEGACY_ALLOWLIST = [
   // family's own runs. The shell-invocation reachability path the removed reason described is unchanged
   // and still real; it is just no longer the ONLY path, so the allowlist entry is stale per this gate's
   // own "keeps shrinking" contract.
-  {
-    file: 'fsi-app/scripts/turns/import-stranded-harness-branches.mjs',
-    reason:
-      'Genuinely operator-invoked, out-of-workflow, one-time CLI (the same "hand-run, per-item, no ' +
-      'schedule, no workflow line" shape OUT-OF-REPO-BOUNDARY.md\'s Operator-CLI register already ' +
-      'recognizes for the _reground/*.mjs toolkit) -- imports the branches stranded by the OLD harness-' +
-      'artifact-landing path into harness_runs (migration 331) exactly once. --dry is safe to re-run; ' +
-      '--apply is a one-shot the operator dispatches by hand, never from a workflow or another script.',
-    reviewByPhase: 'lane HARNESS-LANDING, 2026-09-27',
-  },
-  {
-    file: 'fsi-app/scripts/maintenance/one-off/2026-09-29-reverse-chained-apply.mjs',
-    reason:
-      'Genuinely operator-invoked, out-of-workflow, one-time CLI (the same "hand-run, per-item, no ' +
-      'schedule, no workflow line" shape OUT-OF-REPO-BOUNDARY.md\'s Operator-CLI register already ' +
-      'recognizes for the _reground/*.mjs toolkit and import-stranded-harness-branches.mjs above) -- ' +
-      'reverses the row set GitHub Actions run 36568656803 (chained apply, cancelled mid-write) minted, ' +
-      'per operator ruling 2026-09-29. --dry and --verify are read-only and safe to re-run; --apply ' +
-      '(delete) and --archive (soft-archive) are one-shots the coordinator dispatches by hand, never from ' +
-      'a workflow or another script.',
-    reviewByPhase: 'lane REVERSE-CHAINED-APPLY, 2026-09-29',
-  },
   {
     file: 'fsi-app/scripts/turns/read-brief-export-queue.mjs',
     reason:
@@ -613,24 +563,6 @@ export const LEGACY_ALLOWLIST = [
   // each retains a real, non-archived importer among the four modules below or each other, verified the
   // same way.
   {
-    file: 'fsi-app/scripts/lib/decision-anchors.mjs',
-    reason:
-      'Orphaned 2026-09-01 when this lane archived its sole importer, scripts/lib/decision-log-audit.mjs ' +
-      '(scripts/_archive/lib/decision-log-audit.mjs). Not archived itself: decision-anchors.selftest.mjs is ' +
-      'hard-named in .github/workflows/discipline.yml\'s npm-deps test step — moving the module breaks that ' +
-      'CI-pinned path, and this lane\'s write set forbids editing .github/**.',
-    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
-  },
-  {
-    file: 'fsi-app/scripts/lib/exclusion-audit.mjs',
-    reason:
-      'Orphaned 2026-09-01 when this lane archived its remaining production importers, ' +
-      'scripts/lib/block1-reaudit.mjs, bootstrap-test1.mjs, and exclusion-audit-reconstruction.mjs (all now ' +
-      'under scripts/_archive/lib/). Not archived itself: exclusion-audit.selftest.mjs is hard-named in ' +
-      '.github/workflows/discipline.yml\'s npm-deps test step — same CI-pin blocker as decision-anchors.mjs above.',
-    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
-  },
-  {
     file: 'fsi-app/scripts/lib/inconclusive-probe.mjs',
     reason:
       'Orphaned 2026-09-01 when this lane archived its sole importer, scripts/lib/inconclusive-report.mjs ' +
@@ -638,15 +570,6 @@ export const LEGACY_ALLOWLIST = [
       'hard-named in .github/workflows/discipline.yml\'s npm-deps test step — same CI-pin blocker as ' +
       'decision-anchors.mjs above.',
     reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
-  },
-  {
-    file: 'fsi-app/scripts/lib/liveness.mjs',
-    reason:
-      'Orphaned 2026-09-01 when this lane archived its sole importer, scripts/lib/liveness-reconstruction.mjs ' +
-      '(scripts/_archive/lib/liveness-reconstruction.mjs). No CI pin on liveness.selftest.mjs (only named in ' +
-      'run-test-suite.sh, freely editable) — grouped with its three CI-pinned siblings above rather than ' +
-      'archived alone, so the operator rules on the whole small orphaned cluster together.',
-    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or delete module + proof together)',
   },
 
   // 'fsi-app/scripts/lib/anthropic.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the coupled DELETE

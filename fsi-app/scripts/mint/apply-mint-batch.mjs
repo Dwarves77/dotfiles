@@ -302,7 +302,7 @@ export const VALIDATION_FAILED_HOLD_REASON_PREFIX = "validation_failed:";
  *  entry with no real row_id, correctly resolve to nothing here, the same as they always have for the
  *  successful-mint stamp. `hold_reason` mirrors the exact template the operator specified:
  *  `validation_failed:<criterion>:<reason>`, one segment per failure, comma-joined for a multi-failure
- *  row, truncated at 900 chars (the same bound census-writer.mjs's own hold_reason already uses). The
+ *  row, truncated at 900 chars (the same bound the since-deleted census-writer.mjs's hold_reason used). The
  *  full `failures[]` array is carried as `evidence` for the caller to write into census_worklist.notes —
  *  the compact reason names WHAT failed, the evidence carries the exact `url`/`claim`/etc. fields a human
  *  or a re-admission pass needs to judge whether a later fix actually addresses THIS row. */

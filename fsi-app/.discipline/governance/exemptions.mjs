@@ -41,25 +41,10 @@ export const EXEMPTIONS = [
     by: 'Wave 4 producers (WO-16/17/18/20) coordinator, 2026-08-30',
   },
   {
-    match: 'fsi-app/src/lib/contracts/corridor-id.mjs',
-    kinds: ['writes'],
-    reason:
-      'FALSE POSITIVE, not a write. WRITE_RE matches `.update(` and this module calls ' +
-      'createHash("sha256").update(payload) — a crypto digest update, not a Supabase mutation. The file ' +
-      'imports node:crypto and nothing else; it has no DB client and cannot reach the database. ' +
-      'FOLLOW-UP (evidence, not a request to relax the gate): this false-positive CLASS will recur, ' +
-      'because Map.delete(), Set.delete() and hash.update() are ordinary JS. The durable fix is to ' +
-      'require a db-client OR scripts/lib/db.mjs import as a precondition for the WRITES ' +
-      'classification. Deliberately NOT done inside this unit: narrowing a governance detector needs ' +
-      'its own change with a before/after count on all 21 current unmapped writes, so it cannot ' +
-      'silently mask a real one.',
-    by: 'corridor-identity unit 2026-08-12',
-  },
-  {
     match: 'fsi-app/src/lib/entities/entity-id.mjs',
     kinds: ['writes'],
     reason:
-      'SAME FALSE POSITIVE as corridor-id.mjs above, same file shape: WRITE_RE matches `.update(` and ' +
+      'FALSE POSITIVE, the class first recorded for the since-deleted corridor-id.mjs (lane DEAD-1): WRITE_RE matches `.update(` and ' +
       'entityId() calls createHash("sha256").update(payload) — a crypto digest update, not a Supabase ' +
       'mutation. The file imports only node:crypto and ../contracts/vocabularies.mjs; it has no DB client ' +
       'and cannot reach the database. Recorded here rather than left as a phantom gap, per the corridor-' +
@@ -70,7 +55,7 @@ export const EXEMPTIONS = [
     match: 'fsi-app/src/lib/community/organisation-key.mjs',
     kinds: ['writes'],
     reason:
-      'SAME FALSE POSITIVE as corridor-id.mjs / entity-id.mjs above, same file shape: WRITE_RE matches ' +
+      'SAME FALSE POSITIVE as entity-id.mjs above (first recorded for the since-deleted corridor-id.mjs), same file shape: WRITE_RE matches ' +
       '`.update(` and deriveOrganisationKey() calls createHmac("sha256", salt).update(domain) — a crypto ' +
       'HMAC digest update, not a Supabase mutation. The file imports only node:crypto; it has no DB ' +
       'client and cannot reach the database (the module is deliberately PURE — see its own header). ' +
