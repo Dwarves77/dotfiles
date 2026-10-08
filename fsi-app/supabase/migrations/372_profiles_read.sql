@@ -182,7 +182,7 @@ GRANT EXECUTE ON FUNCTION public.my_profile() TO authenticated, service_role;
 --   company_name  the active organisation (profiles.org_id), else the earliest membership's organisation; NULL when
 --                 default-anonymous
 --   job_title     profiles.job_title (role is not withheld by anonymity, R8.7: only name and company are)
---   region        community_member_profiles.region, else profiles.region
+--   region        community_member_profiles.region (text), else profiles.region (text[], migration 105) joined with ', '
 --   avatar_url    NULL when default-anonymous (a photograph identifies a member as much as a name does; this column is
 --                 an addition to the brief's list, because the posts feed and replies render the headshot today)
 --   verified      community_member_profiles.verified (false when the member has no row); NEVER withheld
@@ -227,7 +227,7 @@ AS $fn$
                LIMIT 1)
            ) AS co,
            p.job_title AS jt,
-           coalesce(c.region, p.region) AS rg,
+           coalesce(c.region, nullif(array_to_string(p.region, ', '), '')) AS rg,
            p.avatar_url AS av,
            coalesce(c.verified, false) AS vf,
            coalesce(c.default_anonymous, false) AS anon
@@ -295,18 +295,18 @@ BEGIN
     END;
 
     IF v_ready THEN
-      INSERT INTO public.profiles (id, email, display_name, full_name, job_title) VALUES
-        (v_u1, v_e1, 'Sec5 One', 'Sec5 One', 'Ops lead'),
-        (v_u2, 'sec5-u2-' || replace(v_u2::text, '-', '') || '@selfcheck.invalid', 'Sec5 Two', 'Sec5 Two', 'Analyst'),
-        (v_u3, 'sec5-u3-' || replace(v_u3::text, '-', '') || '@selfcheck.invalid', 'Sec5 Three', 'Sec5 Three', 'Buyer');
+      INSERT INTO public.profiles (id, email, display_name, full_name, job_title, region) VALUES
+        (v_u1, v_e1, 'Sec5 One', 'Sec5 One', 'Ops lead', NULL),
+        (v_u2, 'sec5-u2-' || replace(v_u2::text, '-', '') || '@selfcheck.invalid', 'Sec5 Two', 'Sec5 Two', 'Analyst', ARRAY['EU']),
+        (v_u3, 'sec5-u3-' || replace(v_u3::text, '-', '') || '@selfcheck.invalid', 'Sec5 Three', 'Sec5 Three', 'Buyer', ARRAY['EU', 'UK']);
       INSERT INTO public.organizations (id, name, slug) VALUES
         (v_oa, 'Sec5 Org A', 'sec5-a-' || replace(v_oa::text, '-', '')),
         (v_ob, 'Sec5 Org B', 'sec5-b-' || replace(v_ob::text, '-', ''));
       INSERT INTO public.org_memberships (org_id, user_id, role) VALUES
         (v_oa, v_u1, 'member'), (v_oa, v_u2, 'member'), (v_ob, v_u3, 'member');
-      INSERT INTO public.community_member_profiles (user_id, org_type, verified, verified_at, verification_method, organisation_key, default_anonymous) VALUES
-        (v_u1, 'other', false, NULL, NULL, NULL, false),
-        (v_u2, 'forwarder', true, now(), 'write-in', 'sec5-selfcheck', true);
+      INSERT INTO public.community_member_profiles (user_id, org_type, region, verified, verified_at, verification_method, organisation_key, default_anonymous) VALUES
+        (v_u1, 'other', NULL, false, NULL, NULL, NULL, false),
+        (v_u2, 'forwarder', 'APAC', true, now(), 'write-in', 'sec5-selfcheck', true);
 
       -- A. anon cannot SELECT profiles at all.
       SET LOCAL ROLE anon;
@@ -371,6 +371,17 @@ BEGIN
         FROM public.community_identity(ARRAY[v_u3], NULL);
       IF v_text IS DISTINCT FROM 'Sec5 Three' OR v_msg IS DISTINCT FROM 'Sec5 Org B' OR v_flag OR v_flag2 THEN
         RAISE EXCEPTION 'ABORT: community_identity did not return the other-organisation member''s name and company with anonymous = false';
+      END IF;
+
+      -- region: u3 has no community region and a two-element profiles.region array (joined string); u2 has a
+      -- community region, which wins over its one-element profiles.region array (and anonymity does not hide it).
+      SELECT region INTO v_text FROM public.community_identity(ARRAY[v_u3], NULL);
+      IF v_text IS DISTINCT FROM 'EU, UK' THEN
+        RAISE EXCEPTION 'ABORT: community_identity region for a null community region must be the joined profiles.region array (got %)', v_text;
+      END IF;
+      SELECT region INTO v_text FROM public.community_identity(ARRAY[v_u2], NULL);
+      IF v_text IS DISTINCT FROM 'APAC' THEN
+        RAISE EXCEPTION 'ABORT: community_identity region must prefer the community region (got %)', v_text;
       END IF;
 
       SELECT count(*) INTO v_n FROM public.community_identity(ARRAY[v_u1, v_u2, v_u3], NULL);

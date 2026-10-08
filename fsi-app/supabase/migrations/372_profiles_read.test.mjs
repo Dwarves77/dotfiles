@@ -15,6 +15,7 @@ const HERE = fileURLToPath(new URL(".", import.meta.url));
 const SRC = join(HERE, "..", "..", "src");
 const RAW = readFileSync(join(HERE, "372_profiles_read.sql"), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
+const read293 = () => readFileSync(join(HERE, "293_community_identity_and_guard.sql"), "utf8");
 const src = (rel) => readFileSync(join(SRC, rel), "utf8");
 
 test("header: subject line and NOT APPLIED", () => {
@@ -123,6 +124,35 @@ test("the self-check proves a surname finds the member (token match) and still n
   assert.ok(SQL.includes("community_identity(NULL, 'Three')"), "a second-token query leg");
   assert.ok(SQL.includes("a surname (second token) query must find u3 and must not find the default-anonymous u2"));
   assert.ok(SQL.includes("a mid-token fragment must not match"));
+});
+
+test("column types: community_member_profiles.region is text and profiles.region is text[] (migration 105), so the coalesce converts the array", () => {
+  assert.match(read293(), /region\s+text\s+CHECK \(region IS NULL OR region IN/);
+  assert.match(readFileSync(join(HERE, "105_profiles_projection.sql"), "utf8"), /region TEXT\[\]/);
+  const body = fn("community_identity");
+  assert.match(body, /coalesce\(c\.region, nullif\(array_to_string\(p\.region, ', '\), ''\)\) AS rg/);
+  assert.doesNotMatch(body, /coalesce\(c\.region, p\.region\)/, "text vs text[] cannot be matched (42804)");
+});
+
+test("every other coalesce in community_identity is text with text or boolean with boolean (types read from the creating migrations)", () => {
+  const body = fn("community_identity");
+  const types = readFileSync(join(HERE, "007_community_layer.sql"), "utf8");
+  for (const col of ["full_name", "avatar_url", "job_title"]) assert.match(types, new RegExp("ADD COLUMN IF NOT EXISTS " + col + " TEXT"));
+  assert.match(readFileSync(join(HERE, "001_schema.sql"), "utf8"), /display_name TEXT,/);
+  assert.match(readFileSync(join(HERE, "006_multi_tenant.sql"), "utf8"), /CREATE TABLE organizations \([\s\S]*?name\s+TEXT NOT NULL/);
+  assert.match(read293(), /verified\s+boolean\s+NOT NULL DEFAULT false/);
+  assert.match(readFileSync(join(HERE, "336_community_anonymity_opt_in.sql"), "utf8"), /default_anonymous boolean NOT NULL DEFAULT false/);
+  // the coalesces present: text/text, text/text/'' , org name text, boolean/boolean x2
+  assert.match(body, /coalesce\(nullif\(btrim\(p\.full_name\), ''\), p\.display_name\)/);
+  assert.match(body, /coalesce\(nullif\(btrim\(p\.full_name\), ''\), p\.display_name, ''\)/);
+  assert.match(body, /coalesce\(c\.verified, false\)/);
+  assert.match(body, /coalesce\(c\.default_anonymous, false\)/);
+});
+
+test("the self-check proves the region join: a null community region falls back to the joined profiles.region array, and a community region wins", () => {
+  assert.ok(SQL.includes("ARRAY['EU', 'UK']"), "a fixture profile with a two-element region array");
+  assert.ok(SQL.includes("v_text IS DISTINCT FROM 'EU, UK'"), "asserts the joined string");
+  assert.ok(SQL.includes("v_text IS DISTINCT FROM 'APAC'"), "asserts the community region wins");
 });
 
 test("self-check attacks as anon, authenticated and service_role with fixture subs, and rolls back", () => {

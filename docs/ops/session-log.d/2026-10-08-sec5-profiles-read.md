@@ -117,3 +117,22 @@ Own-row readers of the flag through the user session that must move to `my_profi
 - Attack `sec5-community-identity-anonymous-no-name` gains two steps: the default-anonymous member is not found by the second token of the name ('member_b'); a named member is found by the second token ('owner_a') and not by a mid-token fragment ('wner_a'). Attacks suite 76 of 76.
 - Red then green: with the static test updated first, 2 of 18 failed (token rule and the new self-check legs absent from the SQL); after the SQL change 18 of 18 pass.
 - Comments in the search route, the invite-candidates route and `identity.mjs` say "start of any token" instead of "prefix".
+
+## Follow-up commit: apply abort fixed, region type mismatch (coordinator report, 2026-10-08)
+
+- [CONFIRMED by the apply attempt] Migration 372 aborted at apply (rolled back, nothing recorded) with 42804 "COALESCE types text and text[] cannot be matched" in `community_identity`: `community_member_profiles.region` is text (migration 293), `profiles.region` is text[] (migration 105 converted it). My mistake: I read the 293 type and the profiles column name but not the 105 conversion, and no database was available to execute the function. Fix: `coalesce(c.region, nullif(array_to_string(p.region, ', '), ''))`.
+- Self-check legs added, with fixtures: u3 has no community region and `profiles.region = ARRAY['EU','UK']`, asserted to return `'EU, UK'`; u2 has community region `'APAC'` and `profiles.region = ARRAY['EU']`, asserted to return `'APAC'` (the community region wins, and anonymity does not hide it).
+- Every other coalesce in the function, with the column types read from the creating migrations:
+
+| Expression | Left | Right | Source |
+|---|---|---|---|
+| `coalesce(nullif(btrim(p.full_name), ''), p.display_name)` (name) | text | text | full_name 007, display_name 001 |
+| `coalesce(nullif(btrim(p.full_name), ''), p.display_name, '')` (normalised name) | text | text, text literal | same |
+| `coalesce((SELECT o.name ...), (SELECT o2.name ...))` (company) | text | text | organizations.name 006 (`TEXT NOT NULL`) |
+| `coalesce(c.verified, false)` | boolean | boolean | community_member_profiles.verified 293 (`boolean NOT NULL DEFAULT false`) |
+| `coalesce(c.default_anonymous, false)` | boolean | boolean | community_member_profiles.default_anonymous 336 (`boolean NOT NULL DEFAULT false`) |
+| `coalesce(c.region, nullif(array_to_string(p.region, ', '), ''))` (region, fixed) | text | text | 293 text; 105 text[] converted by `array_to_string` |
+
+  Non-coalesce type edges also read: `p.job_title` text (007), `p.avatar_url` text (007), `p.org_id` uuid against `organizations.id` uuid (006, 105), `m.created_at` timestamptz and `m.id` uuid (006), `b.id = ANY(p_ids[1:200])` uuid against uuid[]; the result columns are cast to text where the source could be a varchar. The static test now asserts the region expression, the absence of the old form, and each of these source types against the creating migration files.
+- Red then green: with the static test updated first, 2 of 21 failed (the region expression and the self-check legs absent); after the SQL change 21 of 21 pass; attacks suite unaffected (97 of 97 with it).
+- What this does not prove: the function body has still never executed against Postgres from this lane (none on this machine). The type review above is by reading; the apply-time self-check is the execution.
