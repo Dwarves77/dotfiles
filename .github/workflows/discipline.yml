@@ -53,6 +53,16 @@ name: Discipline engine
 # reopen the "skipped required check blocks the merge" problem the cost-control note below rejects path
 # filters for.
 #
+# THE HONEST FORMS (lane GATE-9, 2026-10-08, AUD-AT-5). Every multi-command run: step of this file starts with
+# `set -euo pipefail` (a step's exit status is its last command's unless the shell is told otherwise, and
+# `+o pipefail` or `|&` quietly made the rule engine's verdict tee's); a push to master validates EVERY commit in
+# the pushed range, not only its head; the memory gate FAILS on a push as it does on a pull request; the docs-only
+# fast path classes a rename by its source and never skips a governing doc (docs-only-range.mjs); and a tracked test
+# or golden that no runner executes fails the "Test discovery" step. The shape of this file is asserted by
+# fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.test.mjs (no continue-on-error, no paths-ignore,
+# pull_request on master only, no verdict step made conditional or neutered), so an edit that would leave a gate
+# unable to fail is itself a failing test.
+#
 # GATE FIRINGS ARE A CI ARTIFACT (doctrine point 6 of the gate plan). validate-commits uploads the rule
 # firing lines (gate-firings-validate-commits) and fitness-check uploads fitness-firings.json
 # (gate-firings-fitness-check) on every run, pass or fail, so the next evaluation of the gates is a query
@@ -130,6 +140,7 @@ jobs:
           GATE_BRANCH: ${{ github.head_ref || github.ref_name }}
           GATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          set -euo pipefail
           mkdir -p fsi-app/.discipline/out
           printf '# gate-firings event=%s branch=%s sha=%s\n' "$GATE_EVENT" "$GATE_BRANCH" "$GATE_SHA" > fsi-app/.discipline/out/rules-ci-firings.log
 
@@ -137,12 +148,19 @@ jobs:
         if: github.event_name == 'push'
         env:
           COMMIT_SHA: ${{ github.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
         run: |
-          set -u -o pipefail
-          echo "Validating commit $COMMIT_SHA"
-          node fsi-app/.discipline/runner.mjs \
-            --mode=ci \
-            --commit="$COMMIT_SHA" 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log
+          set -euo pipefail
+          # GATE-9 (AUD-AT-5 VC-2): validate every commit the push brought in (before..after), not its head. A push of
+          # two commits whose first adds a banned glyph passed because only the head was read. A branch-creation push
+          # (no before) or a before that is no longer reachable (a force push) falls back to the head commit.
+          if [ -z "$PUSH_BEFORE" ] || [ "$PUSH_BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
+            echo "Validating commit $COMMIT_SHA (no usable before sha)"
+            node fsi-app/.discipline/runner.mjs --mode=ci --commit="$COMMIT_SHA" 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log
+          else
+            echo "Validating push range ${PUSH_BEFORE}..${COMMIT_SHA}"
+            node fsi-app/.discipline/runner.mjs --mode=ci --range="${PUSH_BEFORE}..${COMMIT_SHA}" 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log
+          fi
 
       - name: Run discipline engine (pull request)
         if: github.event_name == 'pull_request'
@@ -153,7 +171,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -u -o pipefail
+          set -euo pipefail
           # Make sure origin/<base> is resolvable from the checkout. The
           # checkout action gives us refs/remotes/origin/<base> for the
           # target branch on pull_request events, but we re-fetch defensively
@@ -188,14 +206,10 @@ jobs:
       # requirement with nothing shared to conflict on -- see
       # docs/ops/session-log.d/README.md).
       #
-      # BLOCKING ON pull_request ONLY, warn on push, deliberately. Delivery to
-      # this repo is by GitHub web upload, scoped to one directory per commit
-      # (see the cost-control header above), so one logical unit lands as
-      # several pushes and the code piece may arrive before the docs piece. A
-      # push-event hard fail would false-fail that path on every unit. The PR
-      # range contains the whole unit, branch protection makes PR checks the
-      # real gate, and the push-event warning still surfaces a direct-to-master
-      # commit that skipped the vault.
+      # BLOCKING ON BOTH EVENTS (lane GATE-9, 2026-10-08, AUD-AT-5 VC-3). It was warn-only on push on the
+      # reasoning that piecewise web-upload delivery lands code and docs as separate pushes; a warning on the
+      # protected branch is a gate that cannot fail, and the register showed a code-only push passing it. The push
+      # range is before..after, so a unit pushed together satisfies it.
       #
       # Lives as a STEP inside validate-commits, not a sixth job: GitHub bills
       # every job up to a whole minute, and the cost-control header above is
@@ -209,7 +223,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -u
+          set -euo pipefail
           # Task 7.8 (2026-09-12): both checks below (memory gate + UX compliance gate) now live in ONE
           # script, fsi-app/.discipline/governance/memory-gate.mjs, run by BOTH this step and pre-push
           # step 2b, so the two surfaces cannot silently disagree the way they did for PR #647 (task
@@ -235,7 +249,7 @@ jobs:
               *)
                 RANGE="${PUSH_BEFORE}..${PUSH_SHA}" ;;
             esac
-            node fsi-app/.discipline/governance/memory-gate.mjs --range="$RANGE" --warn-only
+            node fsi-app/.discipline/governance/memory-gate.mjs --range="$RANGE"
           else
             git fetch --no-tags origin "$BASE_REF" || true
             RANGE="origin/${BASE_REF}...${PR_HEAD}"
@@ -251,6 +265,16 @@ jobs:
         with:
           name: gate-firings-validate-commits
           path: fsi-app/.discipline/out/rules-ci-firings.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # The governance gates' own firings (lib/gate-firings.mjs, lane GATE-8): the memory gate runs in this job.
+      - name: Upload gate firings (governance gates, validate-commits)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-firings-governance-validate-commits
+          path: fsi-app/.discipline/out/governance-firings.json
           if-no-files-found: ignore
           retention-days: 7
 
@@ -295,7 +319,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -u
+          set -euo pipefail
           if [ "$EVENT_NAME" = "push" ]; then
             case "$PUSH_BEFORE" in
               0000000000000000000000000000000000000000|"")
@@ -320,6 +344,15 @@ jobs:
         # CI but missing from pre-push let a non-portable import pass locally and only red in CI.)
         if: steps.docs_only.outputs.docs_only != 'true'
         run: bash fsi-app/.discipline/run-test-suite.sh
+
+      - name: Test discovery (every tracked test and golden is run by a suite or listed as not a test)
+        # Lane GATE-9 (2026-10-08, AUD-AT-5 TD-1 to TD-4, FC-3, FC-5): the suite runs what discovery finds, so a
+        # test the discovery rules do not see (a .test.ts, a .spec.mjs, a test at the repo-root scripts/ or under
+        # docs/, an npmtest or golden outside its glob) was tracked, run by nothing, and green. This step lists
+        # every tracked file whose name says it is a test and fails on one that no runner executes and that is
+        # not named, with a reason, in test-discovery.mjs NOT_A_TEST_ALLOWLIST.
+        if: steps.docs_only.outputs.docs_only != 'true'
+        run: node fsi-app/.discipline/lib/test-discovery.mjs --check-unrun
 
       - name: Invariant-coverage meta-gate (per-invariant wiring of all 6 skills)
         # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)
@@ -365,6 +398,18 @@ jobs:
         if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/governance/orphan-modules.mjs --all
 
+      # The governance gates' own firings (lib/gate-firings.mjs, lane GATE-8): the closure gate, the invariant
+      # coverage meta-gate and the skill-contract gate run in this job. Every run, pass or fail; an absent file
+      # (a docs-only run skips the gates) uploads nothing. Retention is the F68 budget.
+      - name: Upload gate firings (governance gates)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-firings-governance-test-discipline-engine
+          path: fsi-app/.discipline/out/governance-firings.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   consistency-backstop:
     name: Consistency layer (C3/C4/C5 reality — always-on backstop)
     runs-on: ubuntu-latest
@@ -391,7 +436,7 @@ jobs:
         env:
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          set -u
+          set -euo pipefail
           node fsi-app/.discipline/consistency/override-check.mjs --commit="$COMMIT_SHA"
 
       - name: Consistency runner (pull request) — override-aware
@@ -401,7 +446,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -u
+          set -euo pipefail
           git fetch --no-tags origin "$BASE_REF" || true
           # LANE R23 item 1 (2026-10-02): dropped the hand-built --range="origin/${BASE_REF}..${HEAD_SHA}"
           # (tip-vs-tip). BASE_REF + PR_HEAD are env vars; override-check.mjs resolves the range itself via
@@ -444,7 +489,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -u
+          set -euo pipefail
           if [ "$EVENT_NAME" = "push" ]; then
             case "$PUSH_BEFORE" in
               0000000000000000000000000000000000000000|"")
@@ -646,6 +691,7 @@ jobs:
 
       - name: Install the Playwright npm package matching the image (browsers come from the image)
         run: |
+          set -euo pipefail
           version="$(sed -n 's|^ *image: mcr\.microsoft\.com/playwright:v\([0-9][0-9.]*\)-.*$|\1|p' .github/workflows/discipline.yml)"
           test -n "$version"
           echo "playwright npm package: $version"
@@ -655,6 +701,7 @@ jobs:
       - name: Run rendering guard (fixtures × breakpoint tiers, real layout measurement)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           start="$(date +%s)"
           status=0
           node .discipline/rendering/run-rendering-guard.mjs || status=$?

@@ -33,7 +33,14 @@
 //     firing evidence can place the hop on a run that decided there was nothing to do.
 //
 // THE GATE (decideChainGate), per ADR-023 / rule 16 posture:
-//   - the upstream row must exist (a successful upstream that landed nothing is reported, never invented);
+//   - the upstream row must exist (a successful upstream that landed nothing is reported, never invented) and
+//     must BE the upstream (its harness_family and github_run_id are the ones asked for; a row that is not is
+//     treated as absent, so a forged or mismatched row's loop id is never trusted);
+//   - the row must keep the no-op contract (run-artifact.mjs noopContractErrors, the same function the schema
+//     calls): config.noop and config.skip are JSON booleans, the metrics the gate reads are numbers, and a run
+//     that records itself a NO-OP wrote nothing. A row that breaks it is INVALID: the gate neither skips nor
+//     proceeds, the CLI exits 1 and the chain run fails (GATE-9, AUD-AT-5 G-1, G-2, G-3). A flag that outranks
+//     the work, or a metric that coerces to work, must stop the chain loudly, not steer it quietly;
 //   - an upstream that was itself a NO-OP produces nothing to consume;
 //   - run mode dry: the consumer runs its REAL steps dry on whatever the upstream recorded (a plan or dry
 //     upstream legitimately feeds a dry downstream; that is what proves the wiring in build mode);
@@ -51,7 +58,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from "./is-main.mjs";
 import { FAMILY_BY_WORKFLOW_NAME } from "./loop-run-id.mjs";
-import { writeRunArtifact, claimRunId, hashHarnessVersion, buildRunArtifactEnvelope } from "./run-artifact.mjs";
+import { writeRunArtifact, claimRunId, hashHarnessVersion, buildRunArtifactEnvelope, noopContractErrors } from "./run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -100,7 +107,11 @@ const oneLine = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
  * @returns {{skip: boolean, reason: string}}
  */
 export function decideChainGate({ consumer, upstreamName, row, runMode, upstreamRunId = "" }) {
-  const evidence = APPLY_EVIDENCE[consumer]?.[upstreamName];
+  // Object.hasOwn, never a bare lookup: "constructor" and "__proto__" are keys of every object and would
+  // resolve to a truthy non-function "evidence" (AUD-AT-5 G-5).
+  const evidence = Object.hasOwn(APPLY_EVIDENCE, consumer) && Object.hasOwn(APPLY_EVIDENCE[consumer], upstreamName)
+    ? APPLY_EVIDENCE[consumer][upstreamName]
+    : undefined;
   if (!evidence) {
     return { skip: true, reason: `no hand-off is defined from "${upstreamName}" into ${consumer}, so there is nothing to chain from` };
   }
@@ -111,6 +122,10 @@ export function decideChainGate({ consumer, upstreamName, row, runMode, upstream
     };
   }
   const cfg = row.config ?? {};
+  const contract = noopContractErrors(cfg, row.metrics);
+  if (contract.length > 0) {
+    return { skip: false, invalid: true, reason: `upstream ${row.run_id} breaks the no-op contract (${contract.join("; ")}); the chain stops here rather than guess whether it wrote` };
+  }
   if (cfg.noop === true || cfg.skip === true) {
     return { skip: true, reason: `upstream ${row.run_id} was itself a no-op (${oneLine(cfg.noop_reason ?? cfg.skip_reason) || "no reason recorded"}), so it produced nothing to consume` };
   }
@@ -126,14 +141,22 @@ export function decideChainGate({ consumer, upstreamName, row, runMode, upstream
  * @returns {Promise<{family: string|null, row: object|null}>}
  */
 export async function readUpstreamArtifact({ upstreamName, upstreamRunId, readRows, attempts = 3, delayMs = 3000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
-  const family = upstreamName != null ? FAMILY_BY_WORKFLOW_NAME[upstreamName] ?? null : null;
+  const family = upstreamName != null && Object.hasOwn(FAMILY_BY_WORKFLOW_NAME, upstreamName) ? FAMILY_BY_WORKFLOW_NAME[upstreamName] ?? null : null;
   if (!family || upstreamRunId === null || upstreamRunId === undefined || String(upstreamRunId).trim() === "") {
     return { family: family ?? null, row: null };
   }
   for (let i = 0; i < attempts; i++) {
-    const rows = await readRows(family, String(upstreamRunId).trim());
-    if (Array.isArray(rows) && rows.length > 0) {
-      const sorted = [...rows].sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at));
+    const wanted = String(upstreamRunId).trim();
+    const rows = await readRows(family, wanted);
+    // Only a row that IS the upstream resolves: its family and its github run id are the ones asked for. The
+    // reader filters on both, so a real row always passes; a row that does not (an injected, forged or
+    // mismatched one) is not the ledger's record of that run, and its config.loop_run_id is never trusted
+    // (AUD-AT-5 G-7).
+    const own = Array.isArray(rows)
+      ? rows.filter((r) => r && r.harness_family === family && r.github_run_id != null && String(r.github_run_id).trim() === wanted)
+      : [];
+    if (own.length > 0) {
+      const sorted = [...own].sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at));
       return { family, row: sorted[0] };
     }
     if (i < attempts - 1) await sleep(delayMs);
@@ -318,7 +341,11 @@ export async function runCli(argv, deps = {}) {
     runMode,
     upstreamRunId: v["upstream-run-id"] ?? "",
   });
-  err(`upstream-artifact: consumer=${v.consumer} upstream=${v["upstream-name"]} run=${v["upstream-run-id"]} family=${result.family} row=${result.row?.run_id ?? "(none)"} run-mode=${runMode} skip=${gate.skip}`);
+  err(`upstream-artifact: consumer=${v.consumer} upstream=${v["upstream-name"]} run=${v["upstream-run-id"]} family=${result.family} row=${result.row?.run_id ?? "(none)"} run-mode=${runMode} skip=${gate.skip}${gate.invalid ? " INVALID" : ""}`);
+  if (gate.invalid) {
+    err(`upstream-artifact: ${oneLine(gate.reason)}`);
+    return 1;
+  }
   out(`CHAIN_SKIP=${gate.skip}`);
   out(`CHAIN_SKIP_REASON=${oneLine(gate.reason)}`);
   out(`CHAIN_UPSTREAM_ROW_ID=${result.row?.run_id ?? ""}`);

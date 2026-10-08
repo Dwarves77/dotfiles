@@ -251,6 +251,50 @@ export function validateRunArtifact(artifact) {
     }
   });
 
+  errors.push(...noopContractErrors(artifact.config, artifact.metrics));
+
+  return errors;
+}
+
+/** The metrics the chain's hand-off gate reads to decide whether an upstream did real work (upstream-artifact.mjs
+ *  APPLY_EVIDENCE). When present they are numbers: `Number(true)` is 1 and `Number([3])` is 3, so a coerced
+ *  value would count as work (AUD-AT-5 G-3). */
+const GATE_READ_METRICS = Object.freeze(["promoted", "minted", "tickets_selected"]);
+
+/**
+ * The no-op contract (lane GATE-9, 2026-10-08, AUD-AT-5 G-1, G-2, G-3, G-6). A run that records `config.noop`
+ * says it did nothing; the schema ties that flag to the write metrics so the flag cannot outrank the work:
+ *   - `config.noop` and `config.skip`, when present, are JSON booleans (the string "true" and the number 1 are
+ *     not a no-op flag, they are a malformed artifact);
+ *   - the metrics the chain gate reads (GATE_READ_METRICS), when present, are finite numbers;
+ *   - a no-op carries no write metric above zero: `config.noop === true` with any numeric metric other than
+ *     `noop` itself above zero is a contradiction (it wrote and said it did not).
+ * PURE: no I/O, never throws. The chain gate (decideChainGate) calls this too, so the schema and the gate cannot
+ * disagree about what a no-op is.
+ * @param {unknown} config @param {unknown} metrics @returns {string[]} errors, empty when the contract holds
+ */
+export function noopContractErrors(config, metrics) {
+  const errors = [];
+  const cfg = isPlainObject(config) ? config : {};
+  const met = isPlainObject(metrics) ? metrics : {};
+  for (const flag of ["noop", "skip"]) {
+    if (Object.hasOwn(cfg, flag) && typeof cfg[flag] !== "boolean") {
+      errors.push(`config.${flag}, when present, must be a JSON boolean (got ${JSON.stringify(cfg[flag])})`);
+    }
+  }
+  for (const key of GATE_READ_METRICS) {
+    if (Object.hasOwn(met, key) && !(typeof met[key] === "number" && Number.isFinite(met[key]))) {
+      errors.push(`metrics.${key}, when present, must be a finite number (got ${JSON.stringify(met[key])})`);
+    }
+  }
+  if (cfg.noop === true) {
+    for (const [key, value] of Object.entries(met)) {
+      if (key === "noop") continue;
+      if (typeof value === "number" && value > 0) {
+        errors.push(`config.noop is true but metrics.${key} is ${value}: a no-op wrote nothing, so a run that wrote cannot record itself as one`);
+      }
+    }
+  }
   return errors;
 }
 
