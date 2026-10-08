@@ -167,7 +167,7 @@ test("fixtures: the fixture entity id has the shape cl:<kind>:<16 hex>", () => {
 });
 
 test("no dash glyph, no section sign, no home path in the migration (rules 022, 012)", () => {
-  assert.ok(!/[\u2013\u2014\u00a7]/.test(RAW));
+  assert.ok(!/[\u2013\u2014\u00a7]/.test(RAW)); // glyph:verbatim (the regex class that detects the banned glyphs must carry them)
   assert.ok(!/(Users[\\/]|\/home\/)/.test(RAW));
 });
 

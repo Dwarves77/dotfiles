@@ -347,7 +347,7 @@ test("registry entry validates, feeds grid_connection_queues, is dry by default 
 
 test("the producer script carries no dash glyph or section sign (rule 022) and no home path (rule 012)", () => {
   const text = readFileSync(join(HERE, "ukpn-capacity-heatmap-producer.mjs"), "utf8");
-  assert.ok(!/[\u2013\u2014\u00a7]/.test(text));
+  assert.ok(!/[\u2013\u2014\u00a7]/.test(text)); // glyph:verbatim (the regex class that detects the banned glyphs must carry them)
   assert.ok(!/(Users[\\/]|\/home\/)/.test(text));
 });
 
