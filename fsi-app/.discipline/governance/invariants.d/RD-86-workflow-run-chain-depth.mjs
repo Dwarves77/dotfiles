@@ -27,13 +27,9 @@ export const invariant = {
     'chain-depth limit, computed from the real .github/workflows/*.yml graph; a hop past the limit MUST ' +
     'carry an explicit `gh workflow run <consumer>` dispatch fallback in the producer\'s own yml, or the ' +
     'hop can never fire autonomously.',
-  enforcedBy: [
-    'fitness:F60',
-    'selftest:fsi-app/.discipline/fitness/functions/F60-workflow-run-chain-depth.test.mjs',
-    'selftest:fsi-app/.discipline/fitness/lib/workflow-run-depth.test.mjs',
-  ],
+  exempt: { reason: 'RETIRED 2026-10-08 (lane GATE-3): F60 and its depth model were deleted, zero firings in 90 days and no security class. The one hop past the limit already carries its explicit dispatch fallback in the workflows, and F50 (loop-wiring) still checks every hop edge.' },
   residual:
-    'F60 reads .github/workflows/*.yml with the same documented line-based text scan F50 already uses ' +
+    'GATE-3 (2026-10-08): F60 and the depth model it used (fitness/lib/workflow-run-depth.mjs) were deleted, so the chain-depth check described here no longer runs. F60 reads .github/workflows/*.yml with the same documented line-based text scan F50 already uses ' +
     '(no YAML parser is a direct dependency of this repository); a workflow_run block written in some ' +
     'other valid YAML shape would not be found, same residual F50/RD-74 already names. The depth model ' +
     'is conservative (worst-case: a producer reachable by more than one path is scored at its DEEPEST ' +

@@ -73,3 +73,55 @@ test('runner: --function with unknown id exits 2', () => {
     assert.equal(err.status, 2);
   }
 });
+
+// ── lane GATE-3 (2026-10-08): the firing artifact ─────────────────────────────────────────────────────
+import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { buildFiringRecords, writeFiringsArtifact, EVIDENCE_MAX } from './runner.mjs';
+
+test('firings: one record per violation, with gate, verdict, file, line and evidence', () => {
+  const recs = buildFiringRecords([
+    { fn: { id: 'F39' }, file: 'fsi-app/src/a.ts', line: 12, message: 'bad .in()' },
+    { fn: { id: 'F25' }, file: 'fsi-app/scripts/b.mjs', line: undefined, message: 'unwired' },
+  ]);
+  assert.deepEqual(recs, [
+    { gate: 'F39', verdict: 'fail', file: 'fsi-app/src/a.ts', line: 12, evidence: 'bad .in()' },
+    { gate: 'F25', verdict: 'fail', file: 'fsi-app/scripts/b.mjs', line: null, evidence: 'unwired' },
+  ]);
+});
+
+test('firings: evidence is whitespace-collapsed and cut at 200 characters', () => {
+  const long = 'x'.repeat(500);
+  const [r] = buildFiringRecords([{ fn: { id: 'F1' }, file: 'f', line: 1, message: `a\n   b\t${long}` }]);
+  assert.equal(r.evidence.length, EVIDENCE_MAX);
+  assert.equal(EVIDENCE_MAX, 200);
+  assert.ok(r.evidence.startsWith('a b xxx'));
+});
+
+test('firings: writeFiringsArtifact creates the directory and writes parseable JSON', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'fitness-firings-'));
+  try {
+    const target = join(dir, 'nested', 'out', 'fitness-firings.json');
+    writeFiringsArtifact(target, buildFiringRecords([{ fn: { id: 'F6' }, file: 'm.sql', line: 3, message: 'dup' }]));
+    assert.deepEqual(JSON.parse(readFileSync(target, 'utf8')), [{ gate: 'F6', verdict: 'fail', file: 'm.sql', line: 3, evidence: 'dup' }]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('firings: a real runner invocation writes the artifact (an empty array when nothing fired) to --firings-out', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'fitness-firings-'));
+  try {
+    const target = join(dir, 'fitness-firings.json');
+    const r = runRunner(['--function=F6', '--quiet', `--firings-out=${target}`]);
+    assert.ok(r.status === 0 || r.status === 1, `exit ${r.status}: ${r.err}`);
+    assert.ok(existsSync(target), 'the artifact must exist after every run');
+    const recs = JSON.parse(readFileSync(target, 'utf8'));
+    assert.ok(Array.isArray(recs));
+    if (r.status === 0) assert.deepEqual(recs, []);
+    else assert.ok(recs.length > 0 && recs.every((x) => x.gate === 'F6' && x.verdict === 'fail'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

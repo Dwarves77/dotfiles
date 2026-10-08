@@ -102,6 +102,88 @@ test("findUnboundedInCalls: multiple .in() calls on one line are each reported",
   assert.deepEqual(sites.map((s) => s.col), ['"a"', '"b"']);
 });
 
+// ── lane GATE-3 (2026-10-08): a list is bounded by SHAPE, so it needs no marker ─────────────────────────
+
+const NEW_FILE = "fsi-app/src/lib/some-new-file.ts";
+
+test("GATE-3 GREEN: .in(col, X.slice(0, N)) with N <= 500 is bounded with no marker; N = 500 is the edge", () => {
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, 'q.in("id", ids.slice(0, 100))'), []);
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, 'q.in("id", rows.map((r) => r.id).slice(0, 500))'), []);
+});
+
+test("GATE-3 RED: a slice past 500, a non-head slice, or a non-literal bound is still unbounded", () => {
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("id", ids.slice(0, 501))').length, 1);
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("id", ids.slice(10, 20))').length, 1, "only a head slice is a cap");
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("id", ids.slice(0, n))').length, 1, "n is a runtime value");
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("id", ids.slice(0))').length, 1, "slice(0) is a copy, not a cap");
+});
+
+test("GATE-3 GREEN: a copy or spread of a module-level SCREAMING_SNAKE constant is bounded", () => {
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, 'q.in("kind", Array.from(EVENT_KINDS))'), []);
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, 'q.in("kind", [...EVENT_KINDS])'), []);
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("kind", Array.from(eventKinds))').length, 1, "a lower-case variable is runtime data");
+});
+
+test("GATE-3 GREEN: a .in() inside the callback of fetchAllByIdChunks or readAllByIds needs no marker; the same call outside is RED", () => {
+  const inside = [
+    "const rows = await fetchAllByIdChunks(ids, async (slice) => {",
+    '  const { data } = await sb.from("x").select("id").in("id", slice);',
+    "  return data ?? [];",
+    "});",
+  ].join("\n");
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, inside), []);
+  const viaRead = [
+    'const rows = await readAllByIds("x", "id", ids, {',
+    '  match: (q) => q.in("status", statuses),',
+    "});",
+  ].join("\n");
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, viaRead), []);
+  const outside = inside.replace(/\n\}\);$/, "\n});\n") + '\nconst more = await sb.from("x").select("id").in("id", allIds);';
+  const v = fitnessFunction.check(NEW_FILE, outside);
+  assert.equal(v.length, 1, "only the call after the helper's closing paren is unbounded");
+  assert.equal(v[0].line, 6);
+});
+
+test("GATE-3: a helper name inside a comment or a string does not open a bounded span", () => {
+  const commented = [
+    "// see fetchAllByIdChunks(ids, (slice) => { ... for the pattern",
+    'const q2 = sb.from("x").select("id").in("id", allIds);',
+  ].join("\n");
+  assert.equal(fitnessFunction.check(NEW_FILE, commented).length, 1);
+  const stringy = 'const note = "readAllByIds(";\nq.in("id", allIds);\nconst more = ")";';
+  assert.equal(fitnessFunction.check(NEW_FILE, stringy).length, 1);
+});
+
+test("GATE-3: CRLF content maps a call to the right span (line starts are computed over the real text)", () => {
+  const crlf = [
+    "const rows = await fetchAllByIdChunks(ids, async (slice) => {",
+    '  return sb.from("x").select("id").in("id", slice);',
+    "});",
+    'sb.from("y").select("id").in("id", allIds);',
+  ].join("\r\n");
+  const v = fitnessFunction.check(NEW_FILE, crlf);
+  assert.equal(v.length, 1);
+  assert.equal(v[0].line, 4);
+});
+
+test("GATE-3: a spread is bounded only when its source is a module-level constant, not a runtime array", () => {
+  assert.equal(isBoundedArgShape("[...EVENT_KINDS]"), true);
+  assert.equal(isBoundedArgShape('["a", ...EXTRA_KINDS]'), true);
+  assert.equal(isBoundedArgShape("[...wellFormedUrls]"), false, "the bulk-import shape");
+  assert.equal(isBoundedArgShape("[...byId.keys()]"), false);
+  assert.equal(isBoundedArgShape('["a", ...ids]'), false);
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("url", [...wellFormedUrls])').length, 1);
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, 'q.in("kind", [...EVENT_KINDS])'), []);
+});
+
+test("GATE-3: isBoundedArgShape reads the truncated slice tail IN_CALL_RE hands it", () => {
+  assert.equal(isBoundedArgShape("ids.slice(0, 200"), true);
+  assert.equal(isBoundedArgShape("ids.slice( 0 ,500"), true);
+  assert.equal(isBoundedArgShape("ids.slice(0, 501"), false);
+  assert.equal(isBoundedArgShape("Array.from(KINDS"), true);
+  assert.equal(isBoundedArgShape("Array.from(kinds"), false);
+});
+
 test("test files and _archive are excluded from enumeration", () => {
   const files = fitnessFunction.enumerate();
   for (const f of files) {

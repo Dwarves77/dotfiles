@@ -114,9 +114,11 @@ function fakeHistoryReader(byDir) {
   return (dir) => byDir[posix(dir)] ?? { runs: [], invalid: [] };
 }
 
-function fakeListPending(byFamily) {
-  return (repoRoot, family) => byFamily[family] ?? [];
-}
+// Ledger fakes (lane GATE-3, 2026-10-08: currency from the ledger export replaced the pending/ file count).
+const LIVE = "sha256:1111111111111111";
+const fakeHash = () => LIVE;
+const fakeLedger = (rows) => () => ({ present: true, capturedAt: "2026-10-08", rows });
+const noLedger = () => ({ present: false, capturedAt: null, rows: [] });
 
 test("collectHarnessMarkers: a family with run history reports its latest run", () => {
   const root = "/fake/harness-runs";
@@ -132,7 +134,8 @@ test("collectHarnessMarkers: a family with run history reports its latest run", 
         invalid: [],
       },
     }),
-    listPending: fakeListPending({}),
+    ledgerReader: fakeLedger([{ family: "mint", started_at: "2026-09-02T00:00:00Z", governing_hash: LIVE }]),
+    hashFor: fakeHash,
   });
   assert.deepEqual(rows, [
     {
@@ -142,31 +145,44 @@ test("collectHarnessMarkers: a family with run history reports its latest run", 
       latestRunId: "mint-run-002",
       latestStartedAt: "2026-09-02T00:00:00Z",
       latestDefectCount: 1,
-      pendingFileCount: 0,
+      currentInLedger: "yes",
     },
   ]);
 });
 
-test("collectHarnessMarkers: a zero-run family with no pending file reports honestly (F28 tree-state rule gap)", () => {
+test("collectHarnessMarkers: a zero-run family with no ledger row at its live hash reports \"no\"", () => {
   const rows = collectHarnessMarkers({
     families: ["source-sweep"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    listPending: fakeListPending({}),
+    ledgerReader: fakeLedger([{ family: "source-sweep", started_at: "2026-09-01T00:00:00Z", governing_hash: "sha256:2222222222222222" }]),
+    hashFor: fakeHash,
   });
   assert.equal(rows[0].runCount, 0);
   assert.equal(rows[0].latestRunId, null);
-  assert.equal(rows[0].pendingFileCount, 0);
+  assert.equal(rows[0].currentInLedger, "no");
 });
 
-test("collectHarnessMarkers: a zero-run family WITH pending file(s) is counted, not flagged as a bare gap", () => {
+test("collectHarnessMarkers: a ledger row of ANOTHER family at the live hash does not make this family current", () => {
   const rows = collectHarnessMarkers({
     families: ["propagation"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    listPending: fakeListPending({ propagation: ["2026-09-19-n3.md"] }),
+    ledgerReader: fakeLedger([{ family: "mint", started_at: "2026-09-01T00:00:00Z", governing_hash: LIVE }]),
+    hashFor: fakeHash,
   });
-  assert.equal(rows[0].pendingFileCount, 1);
+  assert.equal(rows[0].currentInLedger, "no");
+});
+
+test("collectHarnessMarkers: no ledger export at all reports \"no export\", not \"no\"", () => {
+  const rows = collectHarnessMarkers({
+    families: ["mint"],
+    root: "/fake/harness-runs",
+    historyReader: fakeHistoryReader({}),
+    ledgerReader: noLedger,
+    hashFor: fakeHash,
+  });
+  assert.equal(rows[0].currentInLedger, "no export");
 });
 
 test("collectHarnessMarkers: rows are sorted by family name", () => {
@@ -174,37 +190,39 @@ test("collectHarnessMarkers: rows are sorted by family name", () => {
     families: ["screen", "mint"],
     root: "/fake/harness-runs",
     historyReader: fakeHistoryReader({}),
-    listPending: fakeListPending({}),
+    ledgerReader: noLedger,
+    hashFor: fakeHash,
   });
   assert.deepEqual(rows.map((r) => r.family), ["mint", "screen"]);
 });
 
-// ── collectHarnessMarkers, real filesystem: a temp fixture proving listPendingFiles is the reader ──
-// (lane N3 Amendment 1, 2026-09-19). Builds a real repo-shaped temp directory (fsi-app/scripts/
-// harness-runs/<family>/pending/<file>) and lets collectHarnessMarkers call the REAL listPendingFiles
-// (no fake injected here) against it, proving the wiring end to end, not just the fake's shape.
+// ── collectHarnessMarkers, real filesystem: a temp fixture proving the real ledger reader is wired ──
+// Builds a repo-shaped temp directory with a committed-style harness-ledger-export.json and lets
+// collectHarnessMarkers call the REAL readHarnessLedgerExport against it (no ledger fake injected), with
+// repoRoot left at its default (three levels above `root`).
 
-test("collectHarnessMarkers (real listPendingFiles): one family with a pending file, one without", () => {
-  const tmp = mkdtempSync(pathJoin(tmpdir(), "verification-audit-pending-"));
+test("collectHarnessMarkers (real readHarnessLedgerExport): one family with a row at the live hash, one without", () => {
+  const tmp = mkdtempSync(pathJoin(tmpdir(), "verification-audit-ledger-"));
   try {
     const harnessRunsDir = pathJoin(tmp, "fsi-app", "scripts", "harness-runs");
-    const withPendingDir = pathJoin(harnessRunsDir, "with-pending", "pending");
-    mkdirSync(withPendingDir, { recursive: true });
-    writeFileSync(pathJoin(withPendingDir, "2026-09-19-n3.md"), "## Change\n\nx\n\n## Planned run\n\ny\n");
-    mkdirSync(pathJoin(harnessRunsDir, "without-pending"), { recursive: true });
+    mkdirSync(pathJoin(harnessRunsDir, "ran"), { recursive: true });
+    mkdirSync(pathJoin(harnessRunsDir, "not-ran"), { recursive: true });
+    const exportDir = pathJoin(tmp, "fsi-app", ".discipline", "governance");
+    mkdirSync(exportDir, { recursive: true });
+    writeFileSync(
+      pathJoin(exportDir, "harness-ledger-export.json"),
+      JSON.stringify({ capturedAt: "2026-10-08", rows: [{ family: "ran", started_at: "2026-10-01T00:00:00Z", governing_hash: LIVE }] }),
+    );
 
     const rows = collectHarnessMarkers({
-      families: ["with-pending", "without-pending"],
+      families: ["ran", "not-ran"],
       root: harnessRunsDir,
       historyReader: fakeHistoryReader({}),
-      // repoRoot left at its default (three levels above `root`, i.e. `tmp` here), the exact
-      // relationship the real CLI usage has between DEFAULT_HARNESS_RUNS_ROOT and the repo root.
+      hashFor: fakeHash,
     });
 
-    const withPending = rows.find((r) => r.family === "with-pending");
-    const withoutPending = rows.find((r) => r.family === "without-pending");
-    assert.equal(withPending.pendingFileCount, 1);
-    assert.equal(withoutPending.pendingFileCount, 0);
+    assert.equal(rows.find((r) => r.family === "ran").currentInLedger, "yes");
+    assert.equal(rows.find((r) => r.family === "not-ran").currentInLedger, "no");
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -225,10 +243,10 @@ test("renderMarkdown: every section header is present", () => {
   assert.match(md, /## 1\. intelligence_items provenance/);
   assert.match(md, /## 2\. Claims — citation status/);
   assert.match(md, /## 3\. Sections with a FACT claim missing source_span/);
-  assert.match(md, /## 4\. F28 harness-run markers/);
+  assert.match(md, /## 4\. F28 harness-run currency/);
 });
 
-test("renderMarkdown: names every family missing both a run and a pending file", () => {
+test("renderMarkdown: names every family with zero runs that is not current in the ledger", () => {
   const md = renderMarkdown({
     generatedAt: "2026-09-02T00:00:00Z",
     provenanceMatrix: [],
@@ -237,10 +255,10 @@ test("renderMarkdown: names every family missing both a run and a pending file",
     claimRowCount: 0,
     missingSpan: { sectionCount: 0, claimCount: 0 },
     harnessMarkers: [
-      { family: "ghost-family", runCount: 0, invalidCount: 0, latestRunId: null, latestStartedAt: null, latestDefectCount: null, pendingFileCount: 0 },
+      { family: "ghost-family", runCount: 0, invalidCount: 0, latestRunId: null, latestStartedAt: null, latestDefectCount: null, currentInLedger: "no export" },
     ],
   }).join("\n");
-  assert.match(md, /1 family with zero runs and no pending file.*ghost-family/s);
+  assert.match(md, /1 family with zero runs and not current in ledger.*ghost-family/s);
 });
 
 test("renderMarkdown: says so plainly when every family is covered", () => {
@@ -252,10 +270,10 @@ test("renderMarkdown: says so plainly when every family is covered", () => {
     claimRowCount: 0,
     missingSpan: { sectionCount: 0, claimCount: 0 },
     harnessMarkers: [
-      { family: "mint", runCount: 3, invalidCount: 0, latestRunId: "mint-run-003", latestStartedAt: "x", latestDefectCount: 0, pendingFileCount: 0 },
+      { family: "mint", runCount: 3, invalidCount: 0, latestRunId: "mint-run-003", latestStartedAt: "x", latestDefectCount: 0, currentInLedger: "yes" },
     ],
   }).join("\n");
-  assert.match(md, /Every registered family has either run history or a pending file recording why\./);
+  assert.match(md, /Every registered family has either run history or a ledger row at its live governing hash\./);
 });
 
 // ── writeReportFiles ─────────────────────────────────────────────────────────────────────────────

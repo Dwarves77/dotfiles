@@ -143,7 +143,6 @@ export async function writeCensusRows(sb, outcomes, opts) {
       .from("census_worklist")
       .select("document_url, lane, created_by")
       .eq("source_id", sourceId)
-      // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
       .in("document_url", slice);
     if (error) throw new Error(`census_worklist identity lookup failed: ${error.message}`);
     return data ?? [];

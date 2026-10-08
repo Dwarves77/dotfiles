@@ -24,10 +24,16 @@
 // A site is GREEN only when:
 //   (a) it lives inside db.mjs's readAllByIds/guardedUpdateByIds/guardedDelete or
 //       src/lib/db/paginate.mjs's fetchAllRows core (the chunking implementations themselves), or
-//   (b) it carries a `// fitness-allow: F39 (reason)` marker — same line or the line directly above —
+//   (b) its list is BOUNDED BY SHAPE (lane GATE-3, 2026-10-08; measured: of 5 CI firings in 30 days, 3 were
+//       false positives, each a list the gate could not see was capped, and the 136 markers it had
+//       accumulated were mostly the same fact restated). The list is bounded when it is
+//         - `<expr>.slice(0, N)` with N a literal <= 500 (SLICE_CAP);
+//         - a spread or copy of a module-level SCREAMING_SNAKE constant (`[...CONST]`, `Array.from(CONST)`);
+//         - or the call sits inside the callback of fetchAllByIdChunks(...) or readAllByIds(...), the two
+//           chunking helpers, whose callback only ever receives one chunk; or
+//   (c) it carries a `// fitness-allow: F39 (reason)` marker - same line or the line directly above -
 //       naming why the list is provably bounded (a request-scoped LIMIT clamp asserted via
-//       assertBound, an ad hoc chunked-slice loop already capping the list below a safe size, a
-//       same-file small literal set built inline rather than declared as a constant).
+//       assertBound, a same-file small literal set built inline rather than declared as a constant).
 //
 // NO ALLOWLIST, NO EXPIRY (unlike F38's ALLOWLIST-with-expiry shape): rule 13-18's directive for this
 // class is explicit — a site that cannot be proven bounded gets FIXED, not allowlisted, and a flag that
@@ -57,31 +63,112 @@ const IN_CALL_RE = /\.in\(\s*((?:"[^"]*"|'[^']*'|`[^`]*`))\s*,\s*([^)]*)\)/g;
 // vocabulary declared once, not a runtime id list. Matches F38's identical trust of ALL_CAPS constants.
 const ENUM_CONST_RE = /^[A-Z][A-Z0-9_]*$/;
 
+// The largest literal `.slice(0, N)` that still reads as bounded: 500 ids is ~20 KB of URL, an order of
+// magnitude under the ~2,000-id failure the class is about. db.mjs's own default chunk is 50.
+export const SLICE_CAP = 500;
+
+// The argument text handed to isBoundedArgShape is the FULL second argument (parens balanced, see
+// findUnboundedInCalls); the optional `)` below also accepts the truncated tail IN_CALL_RE's own capture
+// produces (`ids.slice(0, 200`), which is what a caller that only has the regex capture would pass.
+const SLICE_TAIL_RE = /\.slice\(\s*0\s*,\s*(\d+)\s*\)?\s*$/;
+const ARRAY_FROM_CONST_RE = /^Array\.from\(\s*[A-Z][A-Z0-9_]*\s*\)?\s*$/;
+
+// The two chunking helpers whose callback only ever receives ONE chunk of ids.
+const CHUNKING_CALLERS = ['fetchAllByIdChunks', 'readAllByIds'];
+
 /** True when `arg` (the exact text of .in()'s second argument) is something OTHER than a runtime,
- *  unbounded-by-construction value: an array literal, a string/template literal, or a same-file
- *  SCREAMING_SNAKE_CASE enum constant. PURE. @param {string} arg */
+ *  unbounded-by-construction value: an array literal, a string/template literal, a same-file
+ *  SCREAMING_SNAKE_CASE enum constant, a literal `.slice(0, N)` with N <= SLICE_CAP, or a copy of a
+ *  SCREAMING_SNAKE constant (`Array.from(CONST)`). PURE. @param {string} arg */
 export function isBoundedArgShape(arg) {
   const trimmed = arg.trim();
-  if (trimmed.startsWith('[')) return true; // array literal — a fixed enum written inline
+  if (trimmed.startsWith('[')) {
+    // An array literal is a fixed enum written inline, or a spread of a module-level constant
+    // (`[...CONST]`). A spread of anything else (`[...ids]`, `[...byId.keys()]`) is a runtime list wearing
+    // brackets: its size follows the data, so it is not bounded by shape (lane GATE-3, 2026-10-08; this
+    // hole let `.in("url", [...wellFormedUrls])` in bulk-import/route.ts through unmarked until then).
+    const spreads = [...trimmed.matchAll(/\.\.\.\s*([A-Za-z_$][\w$]*)/g)].map((m) => m[1]);
+    return spreads.every((name) => ENUM_CONST_RE.test(name));
+  }
   if (/^(?:"[^"]*"|'[^']*'|`[^`]*`)$/.test(trimmed)) return true; // a single string/template literal
   if (ENUM_CONST_RE.test(trimmed)) return true; // same-file/imported SCREAMING_SNAKE_CASE constant
+  if (ARRAY_FROM_CONST_RE.test(trimmed)) return true; // a copy of a module-level constant
+  const slice = SLICE_TAIL_RE.exec(trimmed);
+  if (slice && Number(slice[1]) <= SLICE_CAP) return true; // a literal head slice no larger than SLICE_CAP
   return false;
 }
 
-/** Find every `.in(col, X)` call in `content` whose X is NOT a bounded shape (array literal, string
- *  literal, or SCREAMING_SNAKE_CASE constant) — a runtime value with no cap visible at the call site.
- *  PURE — no filesystem, no git. Returns `{ line, col, argText }[]`. @param {string} content */
+/** Index just past the `)` that closes the `(` at `openIdx`, scanning `text` while skipping string,
+ *  template and comment text; -1 when it never closes (the span is then ignored, never guessed). PURE. */
+function closingParen(text, openIdx) {
+  let depth = 0;
+  for (let i = openIdx; i < text.length; i++) {
+    const c = text[i];
+    const n = text[i + 1];
+    if (c === '/' && n === '/') { const e = text.indexOf('\n', i); if (e === -1) return -1; i = e; continue; }
+    if (c === '/' && n === '*') { const e = text.indexOf('*/', i + 2); if (e === -1) return -1; i = e + 1; continue; }
+    if (c === '"' || c === "'" || c === '`') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== c) { if (text[j] === '\\') j++; j++; }
+      if (j >= text.length) return -1;
+      i = j;
+      continue;
+    }
+    if (c === '(') depth++;
+    else if (c === ')') { depth--; if (depth === 0) return i + 1; }
+  }
+  return -1;
+}
+
+/** The [start, end) character spans of every `fetchAllByIdChunks(...)` / `readAllByIds(...)` call in
+ *  `content`: a `.in()` written inside one is inside the helper's per-chunk callback. PURE. */
+export function chunkingCallbackSpans(content) {
+  const spans = [];
+  for (const name of CHUNKING_CALLERS) {
+    const re = new RegExp(`\\b${name}\\s*\\(`, 'g');
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      // a mention inside a comment is not a call (its text could even be unbalanced)
+      const before = content.slice(content.lastIndexOf('\n', m.index) + 1, m.index);
+      if (before.includes('//') || /^\s*(?:\*|\/\*)/.test(before)) continue;
+      // ...nor is a mention inside a string literal (an odd number of quote characters precede it)
+      if (['"', "'", '`'].some((q) => before.split(q).length % 2 === 0)) continue;
+      const open = m.index + m[0].length - 1;
+      const end = closingParen(content, open);
+      if (end !== -1) spans.push([open, end]);
+    }
+  }
+  return spans;
+}
+
+/** Find every `.in(col, X)` call in `content` whose X is NOT bounded (see isBoundedArgShape) and which is
+ *  not written inside the callback of a chunking helper (chunkingCallbackSpans) - a runtime value with no
+ *  cap visible at the call site. PURE - no filesystem, no git. Returns `{ line, col, argText }[]`.
+ *  @param {string} content */
 export function findUnboundedInCalls(content) {
   const lines = content.split(/\r?\n/);
+  const spans = chunkingCallbackSpans(content);
   const out = [];
+  let lineStart = 0;
   lines.forEach((line, i) => {
+    const thisStart = lineStart;
+    lineStart += line.length + (content[lineStart + line.length] === '\r' ? 2 : 1);
     const trimmed = line.trim();
     if (trimmed.startsWith('//') || trimmed.startsWith('*')) return;
     IN_CALL_RE.lastIndex = 0;
     let m;
     while ((m = IN_CALL_RE.exec(line)) !== null) {
-      const [, colExpr, argExpr] = m;
+      const [, colExpr, truncatedArg] = m;
+      // Extend the capture to the real second argument when its parens balance on this line, so a nested
+      // call (`rows.map((r) => r.id).slice(0, 200)`) is classified on its whole text, not on the tail the
+      // first `)` cut off. When they do not balance on the line, the regex capture stands, as before.
+      const openIdx = m.index + '.in'.length;
+      const closeIdx = closingParen(line, openIdx);
+      const argStart = m.index + m[0].indexOf(',', m[0].indexOf(colExpr) + colExpr.length) + 1;
+      const argExpr = closeIdx !== -1 && argStart <= closeIdx - 1 ? line.slice(argStart, closeIdx - 1) : truncatedArg;
       if (isBoundedArgShape(argExpr)) continue;
+      const abs = thisStart + m.index;
+      if (spans.some(([s, e]) => abs > s && abs < e)) continue; // inside a fetchAllByIdChunks/readAllByIds callback
       out.push({ line: i + 1, col: colExpr, argText: argExpr.trim() });
     }
   });
@@ -101,10 +188,11 @@ export const fitnessFunction = {
   name: 'unbounded-in-filter',
   description:
     'Every `.in(col, X)` call in scripts/**+src/** whose X is a runtime value (not an array literal, ' +
-    'string literal, or SCREAMING_SNAKE_CASE enum constant) must live inside db.mjs\'s ' +
-    'readAllByIds/guardedUpdateByIds/guardedDelete or paginate.mjs\'s fetchAllRows core, or carry a ' +
-    '`// fitness-allow: F39 (reason)` marker (same line or the line above) naming why the list is ' +
-    'provably bounded. No allowlist, no expiry — an unbounded id list serialises into the PostgREST ' +
+    'string literal, SCREAMING_SNAKE_CASE enum constant, `.slice(0, N)` with N <= 500, or a copy of a ' +
+    'module-level constant) must live inside db.mjs\'s readAllByIds/guardedUpdateByIds/guardedDelete or ' +
+    'paginate.mjs\'s fetchAllRows core, sit inside the callback of fetchAllByIdChunks/readAllByIds, or ' +
+    'carry a `// fitness-allow: F39 (reason)` marker (same line or the line above) naming why the list ' +
+    'is provably bounded. No allowlist, no expiry - an unbounded id list serialises into the PostgREST ' +
     'request URL and 400s past ~2,000 UUIDs; a site that cannot be proven bounded gets fixed.',
   source: 'IN-CHUNK, 2026-09-06 (review-apply run 34045479342; census-off-vertical run 34046850770)',
 
