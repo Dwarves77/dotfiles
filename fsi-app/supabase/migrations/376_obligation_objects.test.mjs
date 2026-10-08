@@ -234,3 +234,57 @@ test("duty_holder_class: the migration states no value CHECK (only non-empty), s
   assert.doesNotMatch(SQL, /unnest\(duty_holder_class\)/i);
   assert.ok(RAW.includes("DUTY_HOLDER_CLASSES in src/lib/contracts/vocabularies.mjs"), "the migration header points at the vocabulary module");
 });
+
+// ---- jsonb_typeof pairing (production apply of 376 aborted on self-check step (e), 2026-10-08): in a CHECK,
+// jsonb_typeof(col -> 'k') is NULL when key k is ABSENT, and a CHECK whose condition is NULL PASSES, so
+// '{"attribute":"org_role"}' was accepted by the trigger-shape CHECK. Every key a CHECK inspects through jsonb_typeof
+// must therefore be paired, inside the same constraint, with a presence test on the same key (col ? 'k', or
+// col ?& ARRAY[... 'k' ...]); a bare jsonb_typeof(col) must be on a column that is NOT NULL or behind col IS NULL OR.
+const TABLE_SQL = SQL.slice(SQL.indexOf("CREATE TABLE IF NOT EXISTS public.obligation_objects"), SQL.indexOf("COMMENT ON TABLE public.obligation_objects"));
+
+/** Returns a list of unpaired jsonb_typeof uses found in the CONSTRAINT clauses of `tableSql`. PURE. */
+function unpairedTypeofs(tableSql) {
+  const bad = [];
+  const clauses = tableSql.split(/\bCONSTRAINT\s+/).slice(1);
+  for (const clause of clauses) {
+    const name = clause.split(/\s/)[0];
+    for (const m of clause.matchAll(/jsonb_typeof\(\s*(\w+)\s*->\s*'(\w+)'\s*\)/g)) {
+      const [, col, key] = m;
+      const presence = new RegExp(String.raw`\b${col}\s*\?\s*'${key}'|\b${col}\s*\?&\s*ARRAY\[[^\]]*'${key}'`);
+      if (!presence.test(clause)) bad.push(name + ": jsonb_typeof(" + col + " -> '" + key + "') has no presence test on '" + key + "'");
+    }
+    for (const m of clause.matchAll(/jsonb_typeof\(\s*(\w+)\s*\)/g)) {
+      const col = m[1];
+      const notNull = new RegExp(String.raw`\n\s*${col}\s+[a-z\[\]]+\s+(?:[^\n,]*\s)?NOT NULL`).test(tableSql);
+      const guarded = new RegExp(String.raw`\b${col}\s+IS NULL\s+OR\b`).test(clause);
+      if (!notNull && !guarded) bad.push(name + ": jsonb_typeof(" + col + ") is on a nullable column with no IS NULL OR guard");
+    }
+  }
+  return bad;
+}
+
+test("jsonb CHECKs: every jsonb_typeof(col -> 'k') is paired with a presence test on the same key, and a bare jsonb_typeof is on a NOT NULL or guarded column", () => {
+  assert.deepEqual(unpairedTypeofs(TABLE_SQL), []);
+  // the pairing is exercised on all three jsonb constraints, so a rename that hides them is a failure
+  assert.ok((TABLE_SQL.match(/jsonb_typeof\(\s*\w+\s*->/g) || []).length >= 4);
+});
+
+test("jsonb CHECKs: the trigger-shape CHECK requires BOTH keys present (the production apply defect)", () => {
+  assert.match(TABLE_SQL, /applicability_trigger \? 'attribute'/);
+  assert.match(TABLE_SQL, /applicability_trigger \? 'value'/);
+});
+
+test("jsonb CHECKs, mutation (red): dropping a presence pairing, or unguarding a bare typeof, is reported", () => {
+  const dropValue = TABLE_SQL.replace("AND applicability_trigger ? 'value'", "");
+  assert.notEqual(dropValue, TABLE_SQL, "the mutation changed the text");
+  assert.match(unpairedTypeofs(dropValue).join("|"), /obligation_objects_trigger_shape_check: jsonb_typeof\(applicability_trigger -> 'value'\)/);
+  const dropAttr = TABLE_SQL.replace("AND applicability_trigger ? 'attribute'", "");
+  assert.match(unpairedTypeofs(dropAttr).join("|"), /jsonb_typeof\(applicability_trigger -> 'attribute'\)/);
+  const dropAmount = TABLE_SQL.replace("direct_compliance_cost ?& ARRAY['amount', 'currency', 'basis', 'source']", "TRUE");
+  assert.match(unpairedTypeofs(dropAmount).join("|"), /jsonb_typeof\(direct_compliance_cost -> 'amount'\)/);
+  const dropEffort = TABLE_SQL.replace("effort ?& ARRAY['person_days', 'recurrence']", "TRUE");
+  assert.match(unpairedTypeofs(dropEffort).join("|"), /jsonb_typeof\(effort -> 'person_days'\)/);
+  const unguarded = TABLE_SQL.replace(/direct_compliance_cost IS NULL\s+OR \(jsonb_typeof\(direct_compliance_cost\) = 'object'/, "(jsonb_typeof(direct_compliance_cost) = 'object'");
+  assert.notEqual(unguarded, TABLE_SQL, "the unguard mutation changed the text");
+  assert.match(unpairedTypeofs(unguarded).join("|"), /jsonb_typeof\(direct_compliance_cost\) is on a nullable column/);
+});

@@ -139,7 +139,12 @@ CREATE TABLE IF NOT EXISTS public.obligation_objects (
   -- The profile attribute that includes the row: {"attribute": "...", "value": "..."} (spec 01 section 3.5 design
   -- rule: every register row carries the trigger that put it there). Both keys are non-blank strings.
   CONSTRAINT obligation_objects_trigger_shape_check
+    -- PRESENCE FIRST: jsonb_typeof(col -> 'k') is NULL when k is absent, and a CHECK whose condition is NULL PASSES,
+    -- so a type test alone accepted '{"attribute":"org_role"}' (production apply of 376 aborted on self-check step
+    -- (e), 2026-10-08). Every key a CHECK inspects through jsonb_typeof is paired with a presence test on that key.
     CHECK (jsonb_typeof(applicability_trigger) = 'object'
+       AND applicability_trigger ? 'attribute'
+       AND applicability_trigger ? 'value'
        AND jsonb_typeof(applicability_trigger -> 'attribute') = 'string'
        AND jsonb_typeof(applicability_trigger -> 'value') = 'string'
        AND btrim(applicability_trigger ->> 'attribute') <> ''
