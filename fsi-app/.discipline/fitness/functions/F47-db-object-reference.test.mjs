@@ -53,7 +53,12 @@ test('ALLOWLIST shape: every entry carries a reason and a decidedOn date', () =>
   }
 });
 
-test('LIVE ratchet: the committed schema replays, the counts equal the ceilings, no dead function, no allowlist issue', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('LIVE ratchet: the committed schema replays, the counts equal the ceilings, no dead function, no allowlist issue', LIVE_TREE, () => {
   const r = scanTree();
   assert.ok(r.schema.tables.size > 100 && r.schema.functions.size > 50, `schema replay looks wrong: ${r.schema.tables.size} tables, ${r.schema.functions.size} functions`);
   assert.deepEqual(r.allowlistIssues, []);

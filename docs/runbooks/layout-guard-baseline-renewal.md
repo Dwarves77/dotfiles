@@ -21,8 +21,8 @@ day rule until the site goes live." (CLAUDE.md rule 16, build mode.)
 - GO-LIVE STEP: flip `BUILD_MODE` to `false`. That restores the behaviour described in the sections above
   in the same commit, so renew first (Path A, "Renewal by workflow") or set a new expiry (Path B) in the
   go-live change, or it goes red on purpose.
-- The required-check versus continue-on-error question for the rendering guard is deferred to go-live with
-  the rule.
+- The rendering guard is a required job (lane GATE-4, 2026-10-07: `continue-on-error` removed from
+  `.github/workflows/discipline.yml`); BUILD_MODE pausing the baseline clock is what lets it gate.
 
 ## Why there are two gates, not one
 

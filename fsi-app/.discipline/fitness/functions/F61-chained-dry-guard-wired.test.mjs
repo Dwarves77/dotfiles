@@ -95,7 +95,12 @@ test('CONTROL: null content is skipped, not thrown on', () => {
 
 // ── LIVE: the real tree, today, reports zero violations (this lane's own fix) ───────────────────────
 
-test('LIVE: every real .github/workflows/*.yml file reports zero violations', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('LIVE: every real .github/workflows/*.yml file reports zero violations', LIVE_TREE, () => {
   const files = fitnessFunction.enumerate();
   assert.ok(files.length > 0, 'enumerate() found no workflow files -- check getRepoRoot()/.github/workflows path');
   let violations = [];

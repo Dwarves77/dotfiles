@@ -50,7 +50,12 @@ test('override: a trailing `// fitness-allow: F16 (reason)` suppresses the line'
   assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/sources/x.mjs', overridden), []);
 });
 
-test('LIVE: the real canonical fetch primitive carries the hold gate', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('LIVE: the real canonical fetch primitive carries the hold gate', LIVE_TREE, () => {
   const content = readFileSync(resolve(REPO_ROOT, PRIMITIVE), 'utf8');
   assert.deepEqual(fitnessFunction.check(PRIMITIVE, content), [], 'the shipped primitive must contain assertFetchAllowed(');
 });
@@ -69,7 +74,7 @@ test('GREEN: a transport module WITH assertFetchAllowed is clean', () => {
   assert.deepEqual(fitnessFunction.check(TRANSPORT_MODULES[0], withGate), []);
 });
 
-test('LIVE: every real transport module carries the hold gate', () => {
+test('LIVE: every real transport module carries the hold gate', LIVE_TREE, () => {
   for (const rel of TRANSPORT_MODULES) {
     const content = readFileSync(resolve(REPO_ROOT, rel), 'utf8');
     assert.deepEqual(fitnessFunction.check(rel, content), [], `${rel} must contain assertFetchAllowed(`);

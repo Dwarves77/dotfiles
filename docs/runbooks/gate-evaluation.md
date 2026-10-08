@@ -17,7 +17,7 @@ and does not fail when its file is absent (`if-no-files-found: ignore`).
 | Artifact | Uploaded by job | File | Content |
 |---|---|---|---|
 | `gate-firings-validate-commits` | `validate-commits` (push and pull request) | `rules-ci-firings.log` | First line `# gate-firings event=<event> branch=<branch> sha=<sha>`, then the rule engine's output: a `PASS` line per passing rule (`SKIP` lines are printed only with `--verbose`, which CI does not pass), a `FAIL` line per failing rule followed by its message, source and fix, and a `Summary:` line. A pull request run prints one block per commit in the range, headed `=== Commit <sha>: <subject> ===` |
-| `gate-firings-fitness-check` | `fitness-check` (pull request only) | `fitness-firings.json` | A JSON array of firings written by the fitness runner: `gate`, `verdict`, `file`, `line`, `evidence` (200 characters), per the GATE-3 brief |
+| `gate-firings-fitness-check` | `fitness-check` (pull request only) | `fitness-firings.json` | A JSON array, one record per violation the fitness runner found: `gate`, `verdict` (always `fail`), `file`, `line`, `evidence` (first 200 characters of the message). Written on every run, an empty array when nothing fired (`fsi-app/.discipline/fitness/runner.mjs`, `buildFiringRecords`) |
 
 Two facts that shape every query:
 
@@ -30,8 +30,8 @@ Two facts that shape every query:
   days has no artifact to download. The window of any query is the last 7 days of runs unless the files
   were downloaded and kept earlier.
 
-The `verdict` values and the exact field set of `fitness-firings.json` are fixed by the fitness runner,
-not by the workflow. Open one real file from a recent pull request run before relying on a filter below.
+The field set of `fitness-firings.json` is fixed by the fitness runner, not by the workflow. The file lists
+failures only, so a gate that passed has no record; its absence from the file is the pass.
 
 ## Prerequisites
 
@@ -91,7 +91,7 @@ Which branch and event a firing belongs to: the directory name is the run id, wh
 the first line of each rules log carries the same event, branch and commit.
 
 Runs that fired nothing: a run directory with a rules log and no `FAIL` line, and a fitness file that is an
-empty array, is a run where those gates passed. A run with no directory has no data, which is not the same
+`[]`, is a run where those gates passed. A run with no directory has no data, which is not the same
 thing.
 
 ## What the artifacts do not carry

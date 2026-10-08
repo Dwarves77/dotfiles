@@ -132,7 +132,12 @@ test('fitnessFunction: id F32, holistic (single-sentinel enumerate)', () => {
   assert.equal(files[0], 'fsi-app/supabase/migrations/286_statutory_and_estimates.sql');
 });
 
-test('fitnessFunction.check(): runs against the LIVE migration 286 and passes', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('fitnessFunction.check(): runs against the LIVE migration 286 and passes', LIVE_TREE, () => {
   const problems = fitnessFunction.check();
   assert.deepEqual(problems, []);
 });
