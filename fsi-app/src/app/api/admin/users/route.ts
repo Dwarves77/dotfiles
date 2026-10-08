@@ -72,7 +72,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/admin/users — list org members
+// GET /api/admin/users: list org members (every organisation; platform admin only). SEC-5 (migration 372): the
+// member rows carry the profile embed (name, email, avatar) the admin member list renders. A signed-in session can
+// no longer read other users' profiles or any email, so the admin dashboard's browser refresh calls this route,
+// which reads through the service client behind the platform-admin gate (requireAdminRoute).
 export async function GET(request: NextRequest) {
   const auth = await requireAdminRoute(request);
   if (isRefusal(auth)) return auth;
@@ -81,7 +84,7 @@ export async function GET(request: NextRequest) {
   try {
     const { data, error } = await supabase
       .from("org_memberships")
-      .select("id, org_id, user_id, role, created_at")
+      .select("id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, display_name, email, avatar_url)")
       .order("created_at", { ascending: false });
 
     if (error) {

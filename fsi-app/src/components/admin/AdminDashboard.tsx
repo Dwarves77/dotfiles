@@ -281,13 +281,12 @@ export function AdminDashboard({
     try {
       const [orgRes, memberRes, updateRes] = await Promise.all([
         supabase.from("organizations").select("id, name, slug, plan, created_at"),
-        supabase
-          .from("org_memberships")
-          .select(
-            // D-1 fix: display_name + email were omitted, so MembersPanel's display chain
-            // (full_name ?? display_name ?? email ?? uuid-slice) fell through to UUID slices.
-            "id, org_id, user_id, role, created_at, user:profiles!user_id(full_name, display_name, email, avatar_url)"
-          ),
+        // SEC-5 (migration 372): the member embed reads other users' profiles and email, which a signed-in
+        // session can no longer do; /api/admin/users does it behind the platform-admin gate (service client) and
+        // carries the same embed the D-1 fix added (name, display_name, email, avatar), so the MembersPanel
+        // display chain (full_name ?? display_name ?? email ?? uuid-slice) is unchanged.
+        authedFetch("/api/admin/users")
+          .then(async (r) => ({ data: r.ok ? ((await r.json()).members ?? []) : [] })),
         supabase
           .from("staged_updates")
           .select("id, update_type, created_at, reason, proposed_changes, status")

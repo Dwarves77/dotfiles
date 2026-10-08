@@ -31,6 +31,24 @@ export function formatAuthorIdentity(
   return parts.join(" · ");
 }
 
+/** Shown for an author whose name and company are withheld (R8.7: per post or per user). */
+export const ANONYMOUS_LABEL = "Anonymous member";
+
+/**
+ * The label the AuthorIdentityChip renders (SEC-5, migration 372). Identical to formatAuthorIdentity for an author
+ * whose identity is shown. For an anonymous author it leads with ANONYMOUS_LABEL, so a withheld name reads as a
+ * choice the member made rather than as missing data, and an anonymous author with no other fields is never blank
+ * (the verified marker, which anonymity keeps, then has a line to sit beside). Returns null only when there is
+ * nothing at all to show.
+ */
+export function authorIdentityLabel(
+  identity: AuthorIdentityProjection | null | undefined
+): string | null {
+  const line = formatAuthorIdentity(identity);
+  if (!identity?.anonymous) return line;
+  return line ? `${ANONYMOUS_LABEL} · ${line}` : ANONYMOUS_LABEL;
+}
+
 /**
  * Entity-binding requirement (spec 05 §5 component 2, acceptance criterion 6: "every thread binds
  * to at least one spine entity"; R8.7's amendment states this item "stays unchanged"). Delegates to

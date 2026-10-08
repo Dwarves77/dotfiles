@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { AdminDashboard, type AdminMemberRow } from "@/components/admin/AdminDashboard";
 import { fetchSourceData } from "@/lib/supabase-server";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { formatLocaleDate } from "@/lib/format";
 import type { ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
 import type { AssumptionRegisterRow } from "@/components/admin/AssumptionRegisterPanel";
@@ -151,7 +152,9 @@ async function loadAdminPageData(supabase: Awaited<ReturnType<typeof createSupab
     // Migrated 2026-05-15 (migration 075): user_profiles -> profiles.
     // The `!user_id` hint disambiguates the FK org_memberships.user_id ->
     // profiles.id added in migration 075.
-    supabase
+    // SEC-5 (migration 372): the embed reads other users' profiles including email, which a signed-in session
+    // can no longer do. requirePlatformAdmin ran before this function, so the read goes through the service client.
+    getServiceSupabase()
       .from("org_memberships")
       .select(
         // D-1 fix: also carry display_name + email so the panel's display chain
