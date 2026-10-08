@@ -195,7 +195,7 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 
 ## 2026-07-22 — GUARD-1 pool INSERT payload size (ADR-016 residual, accepted fail-loud)
 
-**Context:** ADR-016 removed the storage-side fetch caps, so `agent_run_searches.result_content_excerpt` can now hold a full document up to `STORAGE_MAX_CHARS` (10M, the pathological-page sanity ceiling). The GUARD-1 all-or-nothing pool persist in `src/lib/agent/canonical-pipeline.ts` (`generateBrief` + `generateBriefRefreshPrimary`) is a single batched INSERT.
+**Context:** ADR-016 removed the storage-side fetch caps, so `agent_run_searches.result_content_excerpt` (renamed `result_content` by migration 264, 2026-08-17) can now hold a full document up to `STORAGE_MAX_CHARS` (10M, the pathological-page sanity ceiling). The GUARD-1 all-or-nothing pool persist in `src/lib/agent/canonical-pipeline.ts` (`generateBrief` + `generateBriefRefreshPrimary`) is a single batched INSERT.
 
 **Accepted residual (operator ruling on PR #371, 2026-07-22):** No code change. Supabase publishes no fixed REST request-body byte limit; the constraining layer is the upstream API gateway and cannot be tested under the write-freeze. A single 10M-char row is ~10MB and passes with wide margin; only a pathological coincidence of many multi-MB captures in ONE item's pool would approach the gateway limit. The failure path is already FAIL-LOUD, not silent: an INSERT rejection returns `generate_failed` with no brief written and no partial pool (a clean retry, never a fragment). An RPC-per-row transaction would preserve atomicity but does NOT reduce request-body size, so it does not by itself solve a gateway-size rejection.
 

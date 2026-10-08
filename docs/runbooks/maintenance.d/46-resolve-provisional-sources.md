@@ -2,8 +2,9 @@
 
 **Purpose**: resolve pending `provisional_sources` rows (489 with `status='pending_review'` since
 April) and `sources` rows with `status='provisional'` (563) -- Part 7 task 7.5 item 1. Retires the
-human-approval half of the ruled-digest path (`scripts/review/build-review-digests.mjs` +
-`scripts/review/apply-provisional-sources.mjs`, keep/suspend from an operator ruling file) for every
+human-approval half of the ruled-digest path (`fsi-app/scripts/review/build-review-digests.mjs` +
+`fsi-app/scripts/review/apply-provisional-sources.mjs`, keep/suspend from an operator ruling file; the
+apply script was deleted by G6-GATES 2026-10-05, see section 13 RETIRED) for every
 row the deterministic rule below can classify.
 
 **Upstream**: `scripts/maintenance/resolve-provisional-sources.mjs`, reusing (never a second copy):

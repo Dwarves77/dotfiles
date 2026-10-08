@@ -1,4 +1,5 @@
-// F26: storage-ceiling parity across BOTH writers of agent_run_searches.result_content_excerpt.
+// F26: storage-ceiling parity across BOTH writers of agent_run_searches.result_content (named
+// result_content_excerpt until migration 264, 2026-08-17; this check reads env-var and literal text, not the column name).
 //
 // WHY THIS EXISTS (2026-08-17). That column has two independent writers:
 //   1. the Next.js canonical pipeline  — fsi-app/src/lib/agent/generation-config.ts

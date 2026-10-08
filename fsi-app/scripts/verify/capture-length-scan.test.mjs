@@ -20,8 +20,8 @@ const REPO = resolve(HERE, "..", "..", ".."); // fsi-app/scripts/verify -> fsi-a
 
 // The regex the guard enforces: length(result_content) or char_length(result_content), any whitespace
 // inside the parens, an optional single-identifier qualifier (e.g. s.result_content), case-insensitive.
-// Never matches a DIFFERENT column merely sharing the result_content prefix (e.g. result_content_excerpt)
-// because the pattern requires result_content to be followed immediately by optional whitespace then ")".
+// Never matches a DIFFERENT column merely sharing the result_content prefix (the old name
+// result_content_excerpt no longer exists, migration 264) because the pattern requires result_content to be followed immediately by optional whitespace then ")".
 const BANNED = /\b(?:char_)?length\(\s*(?:\w+\.)?result_content\s*\)/i;
 
 // Every entry names the file (repo-root-relative, exactly as `git ls-files` prints it) and WHY it is
