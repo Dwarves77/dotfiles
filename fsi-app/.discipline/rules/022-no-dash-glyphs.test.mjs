@@ -423,3 +423,72 @@ test('022 scope: trigger and check share ONE computation of the diff view', () =
   rule.check(ctx);
   assert.strictEqual(ctx.introducedLines('fsi-app/src/foo.mjs'), first);
 });
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): honest forms from the AUD-AT-3 attack register. Every glyph form is assembled at
+// runtime so this file's own source carries no glyph, no escape and no entity.
+// ---------------------------------------------------------------------------
+
+const BSL = String.fromCharCode(92);
+const ESC_EM = `${BSL}u${'20'}14`;
+const ESC_BRACED = `${BSL}u{${'20'}14}`;
+const ENT_NAMED = `&${'md'}ash;`;
+const ENT_DEC = `&#${8212};`;
+const ENT_HEX = `&#x${'20'}14;`;
+const LOOK_BAR = String.fromCharCode(0x2015);
+const LOOK_MINUS = String.fromCharCode(0x2212);
+const LOOK_NBH = String.fromCharCode(0x2011);
+
+function addedCtx(path, added, removed = null) {
+  return buildContextFromFixture({
+    message: 'x',
+    files: [{ path }],
+    changes: [{ path, added, ...(removed ? { removed } : {}) }],
+  });
+}
+
+test('022 GATE-7 A022-1: escape and entity forms of the glyphs are glyphs', () => {
+  for (const form of [ESC_EM, ESC_BRACED, ENT_NAMED, ENT_DEC, ENT_HEX, `${BSL}xA7`, `${BSL}u00a7`]) {
+    const r = rule.check(addedCtx('docs/notes/a.md', [`text ${form} more`]));
+    assert.equal(r.status, 'FAIL', form);
+  }
+});
+
+test('022 GATE-7 A022-2: the look-alikes U+2015, U+2212 and U+2011 are banned with the dashes', () => {
+  for (const g of [LOOK_BAR, LOOK_MINUS, LOOK_NBH]) {
+    assert.equal(rule.check(addedCtx('docs/notes/a.md', [`a ${g} b`])).status, 'FAIL', g.codePointAt(0).toString(16));
+  }
+});
+
+test('022 GATE-7 A022-3: a docs folder called fixtures is prose; a code-root fixtures directory is data', () => {
+  const line = `x ${EM_DASH} y`;
+  assert.equal(rule.check(addedCtx('docs/fixtures/notes.md', [line])).status, 'FAIL');
+  assert.equal(rule.check(addedCtx('fsi-app/scripts/mint/fixtures/a.json', [line])).status, 'PASS');
+  assert.equal(rule.check(addedCtx('fsi-app/src/lib/sources/fixtures/a.json', [line])).status, 'PASS');
+});
+
+test('022 GATE-7 A022-4: docs/archive/ is exempt only at the top of docs or of fsi-app', () => {
+  const line = `x ${EM_DASH} y`;
+  assert.equal(rule.check(addedCtx('docs/specs/docs/archive/a.md', [line])).status, 'FAIL');
+  assert.equal(rule.check(addedCtx('docs/archive/a.md', [line])).status, 'PASS');
+  assert.equal(rule.check(addedCtx('fsi-app/docs/archive/a.md', [line])).status, 'PASS');
+});
+
+test('022 GATE-7 A022-5: the marker is a token, not a substring of a longer word', () => {
+  assert.equal(rule.check(addedCtx('docs/notes/a.md', [`x ${EM_DASH} y ${_MARKER}`])).status, 'PASS');
+  assert.equal(rule.check(addedCtx('docs/notes/a.md', [`x ${EM_DASH} y not${_MARKER}ish`])).status, 'FAIL');
+  assert.equal(rule.check(addedCtx('docs/notes/a.md', [`x ${EM_DASH} y ${_MARKER}-extra`])).status, 'FAIL');
+});
+
+test('022 GATE-7 A022-6: an edit that adds glyphs to a line that already had one is charged; an apostrophe fix is not', () => {
+  const one = `a ${EM_DASH} b`;
+  const four = `a ${EM_DASH} b ${EM_DASH} c ${EM_DASH} d ${EM_DASH} e`;
+  assert.equal(rule.check(addedCtx('docs/notes/a.md', [four], [one])).status, 'FAIL');
+  assert.equal(rule.check(addedCtx('docs/notes/a.md', [`a ${EM_DASH} b's`], [one])).status, 'PASS');
+});
+
+test('022 GATE-7 A022-9: a forged handoff path nested below another directory is not the bundle', () => {
+  const line = `x ${EM_DASH} y`;
+  assert.equal(rule.check(addedCtx('docs/design/handoff-2026-09-07/README.md', [line])).status, 'PASS');
+  assert.equal(rule.check(addedCtx('docs/other/docs/design/handoff-2026-09-07/README.md', [line])).status, 'FAIL');
+});

@@ -18,6 +18,12 @@
 // `ctx.baseline` ({ ref, source, label }), which the runner prints and writes to the firing log. A range
 // context is already a merge-base diff (change-range.mjs's resolveRange) and reports its own range.
 //
+// THE BLOB, NOT THE WORKING TREE (lane GATE-7, 2026-10-08). ctx.getFileContent(path) returns the content the
+// COMMIT carries: `git show :<path>` (the index) for a proposed commit, `git show <sha>:<path>` for an existing
+// commit, `git show <head>:<path>` for a range. A rule that decides on the whole file (015, 019, 021) used to
+// read the disk, so a staged violation passed when an UNSTAGED comment or constant in the working copy said
+// otherwise, and a CI pass over an old commit read the file as it is at HEAD today. One site, here.
+//
 // INTRODUCED LINES, NOT PRESENT LINES. A rule that polices a text pattern must charge a commit only for
 // what the commit introduces. `ctx.introducedLines(path)` returns { added, pairs }: `added` is every line
 // the change adds to the path, and `pairs` has one entry per added line carrying the removed line it
@@ -30,8 +36,7 @@
 // another charges exactly one line however git chose to align them.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve as resolvePath } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { resolveBaseline } from './baseline.mjs';
 
 // Resolve repo root lazily and cache. Resolution order:
@@ -109,6 +114,22 @@ function baselineFor(source, env) {
   if (source.type === 'staged') return resolveBaseline({ kind: 'staged', env, cwd: getRepoRoot(), git: quietGit });
   if (source.type === 'commit') return resolveBaseline({ kind: 'commit', head: source.sha, env, cwd: getRepoRoot(), git: quietGit });
   return { ref: null, source: 'range', label: `range ${source.range}` };
+}
+
+/** The blob a diff source carries for `path`, or null. `git show <rev>:<path>` prints the stored bytes with no
+ *  textconv or filter, the same bytes the diff was taken from. */
+function readBlob(root, source, path) {
+  const spec = (rev) => `${rev}:${String(path).replaceAll('\\', '/')}`;
+  let rev = null;
+  if (source?.type === 'staged') rev = '';
+  else if (source?.type === 'commit') rev = source.sha;
+  else if (source?.type === 'range') rev = source.range.includes('...') ? source.range.split('...').pop() : source.range.split('..').pop();
+  if (rev === null) return null;
+  try {
+    return execFileSync('git', ['-C', root, 'show', spec(rev)], { encoding: 'utf-8', maxBuffer: DIFF_MAX_BUFFER, stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return null;
+  }
 }
 
 function loadDiff(source, baseline) {
@@ -236,8 +257,8 @@ function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMerge
   const parsed = parseUnifiedDiff(diffText);
   const diffFiles = new Map(parsed.files.map((f) => [f.path, f]));
   const stagedFiles = stagedFilesOverride
-    ? stagedFilesOverride.map((f) => ({ ...f, status: f.status !== 'M' ? f.status : (diffFiles.get(f.path)?.status ?? 'M'), oldPath: diffFiles.get(f.path)?.oldPath ?? null }))
-    : parsed.files.map((f) => ({ path: f.path, oldPath: f.oldPath, status: f.status, additions: f.additions, deletions: f.deletions }));
+    ? stagedFilesOverride.map((f) => ({ ...f, status: f.status !== 'M' ? f.status : (diffFiles.get(f.path)?.status ?? 'M'), oldPath: diffFiles.get(f.path)?.oldPath ?? null, binary: diffFiles.get(f.path)?.binary ?? false }))
+    : parsed.files.map((f) => ({ path: f.path, oldPath: f.oldPath, status: f.status, additions: f.additions, deletions: f.deletions, binary: f.binary }));
   const totalFilesChanged = stagedFiles.length;
   const totalAdditions = stagedFiles.reduce((sum, f) => sum + f.additions, 0);
   const totalDeletions = stagedFiles.reduce((sum, f) => sum + f.deletions, 0);
@@ -259,24 +280,19 @@ function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMerge
     _diffSource: diffSource,
   };
 
-  // Read file content for a staged path. Resolution order:
+  // Read file content for a path. Resolution order:
   //   1. injected fileContents map (test fixtures)
   //   2. fixture mode without injection -> null
-  //   3. disk read (works for commit-msg pre-commit AND ci modes, since
-  //      both reflect the file state on disk in the working tree)
-  // Returns null on any failure or missing file.
+  //   3. the BLOB the commit carries (see the header): index for a proposed commit, the commit's own tree for an
+  //      existing commit, the range head's tree for a range. A path the commit does not carry (deleted, or not
+  //      in that tree) -> null; the disk is never consulted.
+  const repoRoot = isFixture ? null : getRepoRoot(); // fixed at build time: the repository this context was diffed in
   ctx.getFileContent = (path) => {
     if (ctx._fileContents && Object.prototype.hasOwnProperty.call(ctx._fileContents, path)) {
       return ctx._fileContents[path];
     }
     if (ctx.isFixture) return null;
-    try {
-      const abs = resolvePath(getRepoRoot(), path);
-      if (existsSync(abs)) return readFileSync(abs, 'utf-8');
-    } catch {
-      // ignore
-    }
-    return null;
+    return readBlob(repoRoot, ctx._diffSource, path);
   };
 
   // The introduced-lines view (see the header). Computed once for the whole diff on first use.
@@ -318,7 +334,7 @@ function headerPath(rest) {
   return rest.slice(2 + n, 2 + n + 3) === ' b/' && left === right ? left : null;
 }
 
-/** Parse a unified diff (git's `-U0` shape) into files: { path, oldPath, status, additions, deletions,
+/** Parse a unified diff (git's `-U0` shape) into files: { path, oldPath, status, additions, deletions, binary,
  *  hunks: [{ oldStart, newStart, removed: string[], added: string[] }] }. Status is A (new file), D
  *  (deleted), R (renamed, with or without edits) or M. A combined merge diff (`diff --cc`) is skipped. */
 export function parseUnifiedDiff(diffText) {
@@ -328,7 +344,7 @@ export function parseUnifiedDiff(diffText) {
   for (let raw of String(diffText ?? '').split('\n')) {
     if (raw.endsWith('\r')) raw = raw.slice(0, -1);
     if (raw.startsWith('diff --git ')) {
-      cur = { path: null, oldPath: null, status: 'M', additions: 0, deletions: 0, hunks: [], _from: headerPath(raw.slice(11)), _minus: null, _plus: null };
+      cur = { path: null, oldPath: null, status: 'M', additions: 0, deletions: 0, binary: false, hunks: [], _from: headerPath(raw.slice(11)), _minus: null, _plus: null };
       files.push(cur);
       hunk = null;
       continue;
@@ -346,7 +362,8 @@ export function parseUnifiedDiff(diffText) {
       else if (raw[0] === '-') { hunk.removed.push(raw.slice(1)); cur.deletions += 1; }
       continue; // a "\ No newline at end of file" marker or anything else inside a hunk is not content
     }
-    if (raw.startsWith('new file mode')) cur.status = 'A';
+    if (raw.startsWith('Binary files ') && raw.endsWith(' differ')) cur.binary = true; // git did not diff it as text (a NUL byte, a binary or -diff attribute)
+    else if (raw.startsWith('new file mode')) cur.status = 'A';
     else if (raw.startsWith('deleted file mode')) cur.status = 'D';
     else if (raw.startsWith('rename from ')) { cur.status = 'R'; cur.oldPath = unquotePath(raw.slice(12)); }
     else if (raw.startsWith('rename to ')) cur.path = unquotePath(raw.slice(10));
@@ -466,9 +483,28 @@ function buildIntroduced(parsed) {
 
 /** The pairs of `info` (from ctx.introducedLines) that INTRODUCE the pattern: the added line matches
  *  `test`, it was not relocated from elsewhere in the diff, and the removed line it replaces does not
- *  already match. `test` must be stateless (no global-flag regexes). */
-export function introducedMatches(info, test) {
-  return info.pairs.filter((p) => test(p.added) && !p.moved && !(p.removed !== null && test(p.removed)));
+ *  already match (or matches fewer times, when `extract` is given). `test` must be stateless (no
+ *  global-flag regexes). */
+export function introducedMatches(info, test, extract = null) {
+  return info.pairs.filter((p) => {
+    if (!test(p.added) || p.moved) return false;
+    if (p.removed === null || !test(p.removed)) return true;
+    // The line it replaces carried the pattern too. An edit that ADDS another occurrence to that line is still
+    // an introduction (edit-extend, GATE-7): with `extract` (line -> the tokens the pattern matched), the pair
+    // counts when the added line holds a token more times than the removed line did.
+    return extract ? hasSurplus(extract(p.added), extract(p.removed)) : false;
+  });
+}
+
+function hasSurplus(addedTokens, removedTokens) {
+  const left = new Map();
+  for (const t of removedTokens) left.set(t, (left.get(t) || 0) + 1);
+  for (const t of addedTokens) {
+    const n = left.get(t) || 0;
+    if (n === 0) return true;
+    left.set(t, n - 1);
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -484,6 +520,10 @@ function fixtureDiff(changes) {
     if (status === 'A') text += 'new file mode 100644\n';
     if (status === 'D') text += 'deleted file mode 100644\n';
     if (status === 'R') text += `rename from ${c.oldPath}\nrename to ${c.path}\n`;
+    if (c.binary) {
+      text += `Binary files ${status === 'A' ? '/dev/null' : `a/${c.oldPath || c.path}`} and b/${c.path} differ\n`;
+      continue;
+    }
     if (hunks.some((h) => (h.removed || []).length + (h.added || []).length > 0) || status === 'A' || status === 'D') {
       text += `--- ${status === 'A' ? '/dev/null' : `a/${c.oldPath || c.path}`}\n+++ ${status === 'D' ? '/dev/null' : `b/${c.path}`}\n`;
     }

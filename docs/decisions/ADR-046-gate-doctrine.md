@@ -299,6 +299,37 @@ The lanes have disjoint write sets; GATE-0 lands last.
 - Security and spend guards are unchanged by this ADR (rule 15 of CLAUDE.md: a guard is proven by attack,
   not by presence, and `scripts/verify/prov-guard-adversarial-audit.mjs` remains the template).
 
+## Addendum 2026-10-08 (lane GATE-7): the scope of the rules, hooks and gates
+
+Prior decision: the attack register `fsi-app/scripts/tmp/aud-at3-gates-attacked-2026-10-08.md` (lane
+AUD-AT-3) ran 216 attacks against the commit rules, the git hooks, the PreToolUse gate and its shim, and
+187 were accepted. Reading the 187 against doctrine point 1 needs one sentence the ADR did not carry,
+so it is written down here.
+
+The commit rules, hooks and PreToolUse gates are MISTAKE-CATCHERS for cooperating sessions, not an adversary boundary; a bypass that requires intent (`--no-verify`, `core.hooksPath`, `env -i`, deleting origin/master, editing the engine in the same commit, a forged skill name) is OUT OF SCOPE and is recorded as such, with the one exception that intent-forms a session reaches by habit (running from a script file because the gate denied the inline form) are logged by the gate as firings so they are counted; a blind spot on an HONEST form (a construct an agent writes without trying to evade: a split string, a destructured import, a rename, a commit whose staged blob differs from the working tree, a tool the matcher does not route, a cwd the shim mis-scopes) is a DEFECT.
+
+Consequences of the sentence, each built by lane GATE-7 with the register's attack as its negative test:
+
+- A rule decides on the content the commit carries (the staged blob, the commit's own tree in CI), never on
+  the working tree. One site: `ctx.getFileContent` in `lib/context.mjs`.
+- A rule reads the honest forms of its own pattern (split strings, escapes, aliases, destructured imports,
+  edit-extend, look-alike glyphs, decoy comments). A form that cannot be told from code without parsing is
+  parsed with the one tokenizer, `lib/mask-source.mjs`. A file git does not diff as text hides every
+  introduced line from every content rule, so it is itself a finding (rule 023, one site).
+- The classifiers (the docs-only fast path, the memory gate) class a rename by its source path as well as its
+  destination; a tracked hook file that differs from HEAD refuses the push.
+- The worktree-isolation belt does not trust the child-session marker: the main checkout takes no commit or
+  merge commit from anyone, and the alarm covers the landed-commit and ref-move paths git has hooks for.
+- Every tool the harness exposes is routed through the gate and classified by its effect (a write is
+  skill-gated, a read is allowed); the scope shim's decision lives in the repo (`pretooluse-scope.mjs`) so it
+  is versioned and tested.
+- Every refusal and every counted intent-form is a line in the shared firing log (`lib/firing-log.mjs`).
+
+What stays out of scope, by this sentence, is listed per attack id in
+`docs/ops/session-log.d/2026-10-08-gate7-honest-forms.md`. A later evaluation that finds a blind spot on an
+honest form reopens it as a defect; one that finds a bypass that needs intent records it and does not build
+for it.
+
 ## Addendum, 2026-10-08 (GATE-8)
 
 GATE-8 applied the scope paragraph GATE-7 records in this ADR (the gates are mistake-catchers for cooperating sessions, a blind spot on an honest form is a defect, a form that requires intent is out of scope and recorded) to the fitness functions and governance gates, rows 4 and 5 of the AUD-AT-4 register (`docs/ops/session-log.d/2026-10-08-gate8-fitness-honest-forms.md` maps each attack id to its fix or to its out-of-scope reason).

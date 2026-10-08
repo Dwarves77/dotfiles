@@ -9,7 +9,7 @@
 // is now caught at commit time regardless of operator or agent discipline.
 //
 // Trigger: any commit that stages at least one code file in a relevant path.
-// Check:   FAIL on a match for any of the four patterns expressed in HARDCODED_PATH_RE below
+// Check:   FAIL on a match for any of the patterns expressed in HARDCODED_PATH_SOURCE below
 //          (Windows user-home paths, Git Bash translated paths, and this operator's Unix/macOS
 //          home directory) on a line the commit INTRODUCES. Report file:line:matched-text for
 //          every violation. The literal patterns are intentionally not enumerated in this comment
@@ -20,28 +20,52 @@
 // line of it. A line counts only when the pattern is absent from the removed line it replaces in the
 // diff (an edited line that already carried it passes) and the line was not moved from elsewhere in the
 // same diff. Both come from ctx.introducedLines (lib/context.mjs), one git diff per run.
+//
+// HONEST FORMS (lane GATE-7, 2026-10-08, attacks A012-1 to A012-10 of the AUD-AT-3 register). The pattern is
+// read on the line with adjacent string literals folded together (a path split across a plus sign is the same
+// path), accepts a doubled separator (the JS-escaped form of a Windows path), any drive letter in either case,
+// a percent-encoded separator, and the two-argument join form; the extension list covers the module and script
+// extensions the repo and its tooling use; the exempt prefixes are anchored to the START of the path (a
+// directory named node_modules deep in the tree is not the install); and an edit that ADDS a second path to a
+// line that already carried one is charged for the surplus (introducedMatches' extract argument). A file git
+// does not diff as text is rule 023's finding, not a blind spot here.
 
 import { pass, fail } from '../lib/result.mjs';
 import { introducedMatches } from '../lib/context.mjs';
+import { foldStringConcat } from '../lib/mask-source.mjs';
 
-// Regex matches operator's specified pattern set per Sprint Foundation
-// incident response. Asymmetric by design: Windows variants match any user
-// (broad enough to catch the OS layout); Unix variants match the operator's
-// username specifically (narrow enough to avoid false positives on
-// legitimate test paths like /home/runner/ on GitHub Actions).
-const HARDCODED_PATH_RE = /C:[\\/]Users[\\/]|\/c\/Users\/|\/home\/jason\/|\/Users\/jason\//g;
+// The pattern set per the Sprint Foundation incident response. Asymmetric by design: the Windows variants
+// match any user (broad enough to catch the OS layout); the Unix variants match the operator's username
+// specifically (narrow enough to avoid false positives on legitimate test paths like /home/runner/ on
+// GitHub Actions). The drive letter is any letter in either case and must not follow a word character (so a
+// URL scheme such as https: never reads as a drive); a separator is one or more slashes or backslashes (a JS
+// string writes a Windows path with a doubled backslash) or a percent-encoded one; the join form is the
+// two-argument path.join of a drive and the Users directory.
+const SEP = String.raw`(?:[\\/]+|%5[Cc]|%2[Ff])`;
+const HARDCODED_PATH_SOURCE = [
+  String.raw`(?<![A-Za-z0-9_])[A-Za-z]:${SEP}Users${SEP}`,
+  String.raw`(?<![A-Za-z0-9_])[A-Za-z]:[\\/]*["'\x60]\s*,\s*["'\x60]Users\b`,
+  // Written with escaped slashes so this file's own lines are not the literal paths the rule forbids.
+  String.raw`\/c\/Users\/`,
+  String.raw`\/home\/jason\/`,
+  String.raw`\/Users\/jason\/`,
+].join('|');
+const HARDCODED_PATH_RE = new RegExp(HARDCODED_PATH_SOURCE, 'gi');
 
-const CODE_EXTENSIONS = ['.mjs', '.ts', '.tsx', '.js', '.json', '.yml', '.yaml', '.sh', '.sql'];
+const CODE_EXTENSIONS = [
+  '.mjs', '.cjs', '.mts', '.cts', '.ts', '.tsx', '.js', '.jsx', '.json', '.yml', '.yaml', '.sh', '.sql', '.ps1', '.py', '.toml',
+];
 
-// Path fragments that exempt a file from the check. Conservative list:
+// Path prefixes that exempt a file from the check, matched at the START of the repo-relative path (GATE-7:
+// a substring match exempted fake_node_modules/ and a committed src/node_modules/ alike). Conservative list:
 // - node_modules/          third-party code, not maintained here
 // - .git/                  internal git state
 // - scripts/tmp/           operator scratch space (per existing convention; many historical hardcoded paths)
-// - .claude/settings.local.json  Claude Code PERMISSION ALLOWLIST — by design it holds absolute
+// - .claude/settings.local.json  Claude Code PERMISSION ALLOWLIST: by design it holds absolute
 //                          user-home Read()/Bash() grant globs (a permission scope literally naming a
 //                          home-dir path). These are permission scopes, not repo-root/module paths the rule targets;
-//                          they cannot be runtime-resolved. Exempted 2026-07-11 (Wave-α Track E) so
-//                          editing the file — e.g. removing dead grants — doesn't trip on pre-existing
+//                          they cannot be runtime-resolved. Exempted 2026-07-11 (Wave-alpha Track E) so
+//                          editing the file, e.g. removing dead grants, doesn't trip on pre-existing
 //                          legitimate grants. settings.json (shared, checked-in) is NOT exempt.
 // - fsi-app/scripts/_snapshots/  Rule-015 reversibility evidence and population-turn traces: verbatim
 //                          CAPTURED THIRD-PARTY CONTENT (census-rows*.json carry `captured_text` /
@@ -50,11 +74,16 @@ const CODE_EXTENSIONS = ['.mjs', '.ts', '.tsx', '.js', '.json', '.yml', '.yaml',
 //                          L 2023/2463 carries a Windows path of ITS author's machine, and the grounding
 //                          pool must stay byte-exact (ADR-016; `validate_item_provenance` matches spans
 //                          verbatim), so the content cannot be rewritten to satisfy a code rule.
-const SKIP_PATH_FRAGMENTS = ['node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json', 'fsi-app/scripts/_snapshots/'];
+const SKIP_PATH_FRAGMENTS = [
+  'node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json', 'fsi-app/scripts/_snapshots/',
+];
 
-// Stateless twin of the global regex above, for introducedMatches (a /g regex carries lastIndex).
-const HAS_HARDCODED_PATH_RE = new RegExp(HARDCODED_PATH_RE.source);
-const hasHardcodedPath = (line) => HAS_HARDCODED_PATH_RE.test(line);
+// Stateless twin of the global regex above, for introducedMatches (a /g regex carries lastIndex). The line is
+// read with adjacent string literals folded together.
+const HAS_HARDCODED_PATH_RE = new RegExp(HARDCODED_PATH_SOURCE, 'i');
+const hasHardcodedPath = (line) => HAS_HARDCODED_PATH_RE.test(foldStringConcat(line));
+// The matched path text of a line, for edit-extend: a second path on a line that already carried one.
+const pathTokens = (line) => foldStringConcat(line).match(new RegExp(HARDCODED_PATH_SOURCE, 'gi')) || [];
 
 function isCodeFile(path) {
   const lower = path.toLowerCase();
@@ -62,8 +91,8 @@ function isCodeFile(path) {
 }
 
 function isSkippedPath(path) {
-  const normalized = path.replaceAll('\\', '/');
-  return SKIP_PATH_FRAGMENTS.some((frag) => normalized.includes(frag));
+  const normalized = path.replaceAll('\\', '/').replace(/^\.\//, '');
+  return SKIP_PATH_FRAGMENTS.some((frag) => normalized.startsWith(frag));
 }
 
 function relevantFiles(ctx) {
@@ -91,8 +120,8 @@ export const rule = {
     const violations = [];
 
     for (const file of relevantFiles(ctx)) {
-      for (const pair of introducedMatches(ctx.introducedLines(file.path), hasHardcodedPath)) {
-        const line = pair.added;
+      for (const pair of introducedMatches(ctx.introducedLines(file.path), hasHardcodedPath, pathTokens)) {
+        const line = foldStringConcat(pair.added);
         HARDCODED_PATH_RE.lastIndex = 0;
         let match;
         let perLine = 0;

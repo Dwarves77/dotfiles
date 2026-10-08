@@ -35,24 +35,38 @@ function norm(p) { return (p || '').replaceAll('\\', '/'); }
 // Extract the top route segment from a src/app path. Route groups "(group)" and the app root
 // don't count as segments. fsi-app/src/app/page.tsx → ''; fsi-app/src/app/market/page.tsx → 'market';
 // fsi-app/src/app/(marketing)/foo/page.tsx → 'foo'.
+//
+// HONEST FORMS (lane GATE-7, 2026-10-08, attacks A018-1, A018-1b, A018-2, A018-6 of the AUD-AT-3 register):
+// a route file is a page in any of its extensions (page.tsx, page.jsx, page.ts, page.js), a route.ts or
+// route.js outside /api is a URL surface too (a handler can serve HTML), and a file under the pages router
+// (src/pages/) is a page whose top segment is its first path part. Nested routes below an allowed segment
+// (A018-3) are sub-views of that segment, not surfaces: telling a sixth surface from a sub-view needs the
+// operator's list of second-level routes, which does not exist, so the rule stays at the top segment.
+const ROUTE_FILE_RE = /^fsi-app\/src\/app\/(?:(.*)\/)?(page|route)\.(?:tsx|jsx|ts|js)$/;
+const PAGES_ROUTER_RE = /^fsi-app\/src\/pages\/(.+)\.(?:tsx|jsx|ts|js)$/;
 function topSegment(path) {
   const n = norm(path);
-  const m = n.match(/fsi-app\/src\/app\/(.*)\/page\.tsx$/) || n.match(/fsi-app\/src\/app\/(page\.tsx)$/);
+  const pages = n.match(PAGES_ROUTER_RE);
+  if (pages) {
+    const parts = pages[1].split('/').filter(Boolean);
+    if (parts[0] === 'api' || /^_/.test(parts[0])) return null; // api handlers and _app/_document/_error
+    return parts[0] === 'index' ? '' : parts[0];
+  }
+  const m = n.match(ROUTE_FILE_RE);
   if (!m) return null;
-  if (m[1] === 'page.tsx') return '';
-  const segs = m[1].split('/').filter((s) => s && !/^\(.*\)$/.test(s)); // drop route groups
+  const segs = (m[1] || '').split('/').filter((s) => s && !/^\(.*\)$/.test(s)); // drop route groups
+  if (m[2] === 'route' && segs[0] === 'api') return null; // API handlers are not surfaces
   return segs.length ? segs[0] : '';
 }
 
-// A page.tsx the commit CREATES a route with: an added file, or a rename out of a different top-level
+// A route file the commit CREATES a route with: an added file, or a rename out of a different top-level
 // route (a `git mv` of an allowed page into an unlisted route is a new route, not an edit). A deleted or
 // edited page is never a new surface. ctx.stagedFiles[].status and .oldPath come from the diff itself.
 function relevant(ctx) {
   return ctx.stagedFiles.filter((f) => {
-    const n = norm(f.path);
-    if (!(n.startsWith('fsi-app/src/app/') && n.endsWith('/page.tsx')) && n !== 'fsi-app/src/app/page.tsx') return false;
+    if (topSegment(f.path) === null) return false;
     if (f.status === 'A') return true;
-    return f.status === 'R' && topSegment(f.oldPath) !== topSegment(n);
+    return f.status === 'R' && topSegment(f.oldPath) !== topSegment(f.path);
   });
 }
 

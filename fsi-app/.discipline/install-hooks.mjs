@@ -58,7 +58,7 @@ const SOURCE_HOOKS_DIR = join(__dirname, 'hooks');
 // .git/hooks/pre-push-tmpdir.test.mjs by the prior "copy every file" behaviour.
 const KNOWN_GIT_HOOK_NAMES = new Set([
   'applypatch-msg', 'pre-applypatch', 'post-applypatch',
-  'pre-commit', 'pre-merge-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit',
+  'pre-commit', 'pre-merge-commit', 'prepare-commit-msg', 'commit-msg', 'post-commit', 'reference-transaction',
   'pre-rebase', 'post-checkout', 'post-merge',
   'pre-push', 'pre-receive', 'update', 'proc-receive', 'post-receive', 'post-update',
   'push-to-checkout', 'pre-auto-gc', 'post-rewrite', 'sendemail-validate', 'fsmonitor-watchman',

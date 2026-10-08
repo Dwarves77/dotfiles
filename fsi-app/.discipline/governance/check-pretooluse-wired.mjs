@@ -35,6 +35,9 @@ const REQUIRED = [
   "Bash", "Edit", "Write", "MultiEdit", "NotebookEdit",
   "Agent", "Task", "Workflow", // dispatch tools — subagent calls are not hook-covered, so the dispatch is gated
   "mcp__github__push_files", "mcp__github__create_or_update_file", "mcp__github__merge_pull_request",
+  // GATE-7 (2026-10-08, register attacks A-PT-R-*): the harness tools the matcher used to leave unrouted. Each
+  // is classified by the gate (shell tools as Bash, worktree and dispatch tools asked, artifact tools by action).
+  "PowerShell", "Monitor", "EnterWorktree", "ExitWorktree", "ArtifactData", "Artifact", "SendMessage",
 ];
 
 // Mirror Claude Code matcher semantics: "*" or "" matches all; only [A-Za-z0-9_|] -> exact `|`-alternation;

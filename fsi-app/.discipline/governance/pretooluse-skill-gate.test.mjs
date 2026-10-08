@@ -18,6 +18,12 @@ const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-
 // Each invocation is a tool_use + a non-errored tool_result for it — the matcher (skill-token.mjs)
 // requires the invocation to have RESOLVED successfully (G-12 fix), not merely to appear.
 const TMP = mkdtempSync(join(tmpdir(), "skillgate-"));
+// The gate's audit log and the shared firing log are redirected into the temp directory (GATE-7, TESTFIX-1): the
+// gate's own test must never append to files under the checkout. The CLI children spawned below inherit this.
+const AUDIT_LOG = join(TMP, "gate-audit.log");
+const FIRING_LOG = join(TMP, "firings.log");
+process.env.GATE_AUDIT_LOG = AUDIT_LOG;
+process.env.DISCIPLINE_FIRING_LOG = FIRING_LOG;
 let _sgId = 0;
 const skillLine = (slug) => {
   const id = `toolu_sg${++_sgId}`;
@@ -347,7 +353,7 @@ test("a skill the session cannot register (errored Skill call) is an ALLOW, with
   const payload = JSON.stringify({ tool_name: "Edit", tool_input: GOVERNED_FILE, transcript_path: UNRESOLVABLE });
   const out = JSON.parse(runGate(payload)).hookSpecificOutput;
   assert.equal(out.permissionDecision, "allow");
-  const log = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), ".gate-audit.log"), "utf8").trim().split("\n");
+  const log = readFileSync(AUDIT_LOG, "utf8").trim().split("\n");
   assert.ok(
     log.some((l) => /\tEdit\tallow\tedit-governed-skillunresolvable\tenvironmental-policy-and-innovation$/.test(l)),
     "the unresolvable allow must leave an audit-log line naming the skill",
