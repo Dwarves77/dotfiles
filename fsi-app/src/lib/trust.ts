@@ -1193,6 +1193,87 @@ export function trustMetricsFromRow(s: TierSourceRow): TrustMetrics {
   };
 }
 
+/** The sources columns one trust-score pass writes. Never a tier column: effective_tier has its own writer. */
+export interface TrustScorePatch {
+  trust_score_overall: number;
+  trust_score_accuracy: number;
+  trust_score_timeliness: number;
+  trust_score_reliability: number;
+  trust_score_citation: number;
+  trust_score_computed_at: string;
+}
+
+export interface TrustScoreRow {
+  id: string;
+  name: string | null;
+  base_tier: number;
+  overall: number;
+  patch: TrustScorePatch;
+}
+
+export interface TrustScoreDistribution {
+  "0-20": number;
+  "21-40": number;
+  "41-60": number;
+  "61-80": number;
+  "81-100": number;
+}
+
+/**
+ * The trust-score pass as a pure plan (the one home, shared by POST /api/admin/recompute-trust and the
+ * recompute-trust-scores maintenance step, 2026-10-07). For every source that is not on a per-source hold
+ * (processing_paused keeps its last-known score) it computes the Bayesian-prior-blend overall score and the
+ * four components from the flat metric columns, anchored to base_tier (the structural classification, not
+ * the dynamic credibility signal), and returns the column patch each writer applies, plus the score
+ * distribution and the per-base-tier averages the workflow log reports. Writes nothing.
+ */
+export function planTrustScores(sources: TierSourceRow[], computedAtIso: string) {
+  const rows: TrustScoreRow[] = [];
+  const distribution: TrustScoreDistribution = { "0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0 };
+  const byTier: Record<number, number[]> = {};
+  let skipped_paused = 0;
+  for (const s of sources) {
+    if (s.processing_paused) {
+      skipped_paused++;
+      continue;
+    }
+    const metrics = trustMetricsFromRow(s);
+    const score = computeTrustScore(metrics);
+    const overall = computeOverallScore(metrics, s.base_tier as SourceTier);
+    rows.push({
+      id: s.id,
+      name: s.name ?? null,
+      base_tier: s.base_tier,
+      overall,
+      patch: {
+        trust_score_overall: overall,
+        trust_score_accuracy: score.accuracy_component,
+        trust_score_timeliness: score.timeliness_component,
+        trust_score_reliability: score.reliability_component,
+        trust_score_citation: score.citation_component,
+        trust_score_computed_at: computedAtIso,
+      },
+    });
+    if (overall <= 20) distribution["0-20"]++;
+    else if (overall <= 40) distribution["21-40"]++;
+    else if (overall <= 60) distribution["41-60"]++;
+    else if (overall <= 80) distribution["61-80"]++;
+    else distribution["81-100"]++;
+    (byTier[s.base_tier] ??= []).push(overall);
+  }
+  const tier_averages: Record<string, { n: number; avg: number; min: number; max: number }> = {};
+  for (const [t, arr] of Object.entries(byTier)) {
+    const sum = arr.reduce((a, b) => a + b, 0);
+    tier_averages[`T${t}`] = {
+      n: arr.length,
+      avg: Math.round((sum / arr.length) * 10) / 10,
+      min: Math.min(...arr),
+      max: Math.max(...arr),
+    };
+  }
+  return { rows, distribution, tier_averages, skipped_paused };
+}
+
 /**
  * Cadence hold (CLAUDE.md rule 16). While system_state.scrape_cadence is 'off', scan timestamps cannot
  * advance, so a trigger that reads them (no_substantive_update) would fire on every unscanned source.

@@ -2,7 +2,7 @@
 
 **New this runbook, lane S1-E, 2026-10-05 (CLAUDE.md rule 17).** Not a `maintenance.yml` step: it is a chained
 workflow, `.github/workflows/source-resolution.yml`, that runs two existing maintenance steps (46
-`resolve-provisional-sources`, 58 `recompute-tiers`) through the shared `./.github/actions/maintenance-step`
+`resolve-provisional-sources`, 58 `recompute-tiers`, and, since lane TRUST-RET 2026-10-07, 66 `recompute-trust-scores`) through the shared `./.github/actions/maintenance-step`
 composite action, the same way `downstream-chain.yml` runs 02 and 58.
 
 **Purpose**: nothing that registers a new provisional source may end without the sources being resolved and their
@@ -18,6 +18,8 @@ provisional sources; before this workflow nothing ran after them.
    committed host verdict can place; an unplaceable host stays on the worklist.
 4. `recompute-tiers` (section 58): moves `effective_tier` one tier either side of `base_tier`, never over an admin
    `tier_override`.
+4a. `recompute-trust-scores` (section 66): recomputes the `sources.trust_score_*` columns after the tier move; writes
+   no tier column. Its counts (sources scored, held by a per-source pause, scores written) are recorded in the artifact.
 5. `scripts/turns/emit-source-resolution-artifact.mjs` writes the run's artifact on every firing (even a failed
    step): per step the counts the step prints (sources resolved, promoted, rejected, worklisted, verdict-placed;
    sources scanned, tier movements planned or applied), the trigger, this run's github run id and the upstream

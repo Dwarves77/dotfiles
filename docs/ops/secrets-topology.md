@@ -28,8 +28,8 @@ secret reference can never silently ship again.
 
 | Secret | Consumers (workflows) | Write authority |
 |---|---|---|
-| `APP_URL` | uptime-probes, source-monitoring, spot-check-monthly, trust-recompute | gh (repo scope, verified) |
-| `WORKER_SECRET` | uptime-probes, source-monitoring, spot-check-monthly, trust-recompute — AND the app's `/api/worker/*` + `/api/health/*` auth (vercel-runtime) | gh (verified) / Vercel |
+| `APP_URL` | uptime-probes, source-monitoring, spot-check-monthly | gh (repo scope, verified) |
+| `WORKER_SECRET` | uptime-probes, source-monitoring, spot-check-monthly, and the app's `/api/worker/*` + `/api/health/*` auth (vercel-runtime) | gh (verified) / Vercel |
 | `NEXT_PUBLIC_SUPABASE_URL` | data-audit-lane, chain-proof (export step only) | gh / Vercel |
 | `SUPABASE_DB_PASSWORD` | data-audit-lane, chain-proof (export step only: schema-only dump) | gh / Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | data-audit-lane, chain-proof (export step only, read use) | gh / Vercel / Supabase |

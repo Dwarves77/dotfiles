@@ -48,8 +48,22 @@ const RECOMPUTE_SUMMARY = {
   exitCode: 0,
 };
 
+// recompute-trust-scores.mjs main() (lane TRUST-RET, 2026-10-07), trimmed to the fields this emitter reads.
+const TRUST_SUMMARY = {
+  step: "recompute-trust-scores",
+  mode: "dry",
+  counts: { sources_read: 130, sources_scored: 128, skipped_paused: 2 },
+  applied: 0,
+  exitCode: 0,
+};
+const SUMMARY_BY_STEP = {
+  "resolve-provisional-sources": RESOLVE_SUMMARY,
+  "recompute-tiers": RECOMPUTE_SUMMARY,
+  "recompute-trust-scores": TRUST_SUMMARY,
+};
+
 function writeSummaries(outRoot, over = {}) {
-  const set = { "resolve-provisional-sources": RESOLVE_SUMMARY, "recompute-tiers": RECOMPUTE_SUMMARY, ...over };
+  const set = { ...SUMMARY_BY_STEP, ...over };
   for (const [step, summary] of Object.entries(set)) {
     if (summary === null) continue;
     mkdirSync(join(outRoot, step), { recursive: true });
@@ -57,8 +71,8 @@ function writeSummaries(outRoot, over = {}) {
   }
 }
 
-test("STEPS: the two maintenance steps this family runs, in the workflow's own order", () => {
-  assert.deepEqual([...STEPS], ["resolve-provisional-sources", "recompute-tiers"]);
+test("STEPS: the three maintenance steps this family runs, in the workflow's own order", () => {
+  assert.deepEqual([...STEPS], ["resolve-provisional-sources", "recompute-tiers", "recompute-trust-scores"]);
 });
 
 test("countsFor: resolve-provisional-sources reads resolved, promoted, rejected, worklisted and verdict-placed", () => {
@@ -85,6 +99,14 @@ test("countsFor: recompute-tiers reads the planned or applied tier movements", (
   });
 });
 
+test("countsFor: recompute-trust-scores reads the scored, held and written counts; a paused or empty summary is null, never a made-up zero", () => {
+  assert.deepEqual(countsFor("recompute-trust-scores", TRUST_SUMMARY), { sources_scored: 128, skipped_paused: 2, scores_applied: 0 });
+  assert.equal(countsFor("recompute-trust-scores", { ...TRUST_SUMMARY, mode: "apply", applied: 126 }).scores_applied, 126);
+  const paused = { step: "recompute-trust-scores", mode: "dry", paused: true, counts: {}, applied: 0, exitCode: 0 };
+  assert.deepEqual(countsFor("recompute-trust-scores", paused), { sources_scored: null, skipped_paused: null, scores_applied: 0 });
+  assert.equal(countsFor("recompute-trust-scores", null), null);
+});
+
 test("countsFor: a step that never wrote a summary, or a summary missing fields, yields null, never a made-up zero", () => {
   assert.equal(countsFor("recompute-tiers", null), null);
   const partial = countsFor("resolve-provisional-sources", { counts: { promote: 2 } });
@@ -106,17 +128,20 @@ test("buildArtifact: both steps clean -> per_item carries each step's counts, me
       step,
       ran: true,
       exitCode: 0,
-      summary: step === "recompute-tiers" ? RECOMPUTE_SUMMARY : RESOLVE_SUMMARY,
+      summary: SUMMARY_BY_STEP[step],
       pathRel: `x/${step}/summary.json`,
     })),
   });
   assert.equal(artifact.harness_family, "source-resolution");
   assert.equal(artifact.upstream_run_id, "555");
   assert.equal(artifact.config.upstream_name, "Brief apply");
-  assert.deepEqual(artifact.per_item.map((p) => p.outcome), ["clean", "clean"]);
+  assert.deepEqual(artifact.per_item.map((p) => p.outcome), ["clean", "clean", "clean"]);
   assert.equal(artifact.per_item[0].counts.promoted, 7);
   assert.equal(artifact.per_item[1].counts.tier_movements, 9);
-  assert.equal(artifact.metrics.steps_with_summary, 2);
+  assert.deepEqual(artifact.per_item[2].counts, { sources_scored: 128, skipped_paused: 2, scores_applied: 0 });
+  assert.equal(artifact.metrics.trust_sources_scored, 128);
+  assert.equal(artifact.metrics.trust_scores_applied, 0);
+  assert.equal(artifact.metrics.steps_with_summary, 3);
   assert.equal(artifact.metrics.steps_nonzero_exit, 0);
   assert.equal(artifact.metrics.sources_resolved, 12);
   assert.equal(artifact.metrics.sources_promoted, 7);
@@ -152,11 +177,13 @@ test("buildArtifact: step one failed, step two never ran -> nonzero_exit then sk
     stepResults: [
       { step: "resolve-provisional-sources", ran: true, exitCode: 1, summary: { exitCode: 1, error: "db timeout" }, pathRel: "x/r/summary.json" },
       { step: "recompute-tiers", ran: false, exitCode: null, summary: null, pathRel: null },
+      { step: "recompute-trust-scores", ran: false, exitCode: null, summary: null, pathRel: null },
     ],
   });
-  assert.deepEqual(artifact.per_item.map((p) => p.outcome), ["nonzero_exit", "skipped"]);
+  assert.deepEqual(artifact.per_item.map((p) => p.outcome), ["nonzero_exit", "skipped", "skipped"]);
   assert.equal(artifact.metrics.steps_nonzero_exit, 1);
   assert.equal(artifact.metrics.tier_movements, null);
+  assert.equal(artifact.metrics.trust_sources_scored, null);
   assert.equal(artifact.defects_found.length, 1);
   assert.match(artifact.defects_found[0].root_cause, /resolve-provisional-sources: exitCode=1/);
   assert.deepEqual(validateRunArtifact(artifact), []);
@@ -195,6 +222,7 @@ test("emit: a chained build-mode firing writes a validator-clean artifact with b
     assert.deepEqual(onDisk.per_item.map((p) => p.id), [...STEPS]);
     assert.equal(onDisk.per_item[0].counts.sources_resolved, 12);
     assert.equal(onDisk.per_item[1].counts.tier_movements, 9);
+    assert.equal(onDisk.per_item[2].counts.sources_scored, 128);
     assert.deepEqual(validateRunArtifact(onDisk), []);
     assert.equal(readRunHistory(familyDir).invalid.length, 0);
 
@@ -217,7 +245,7 @@ test("emit: a chained build-mode firing writes a validator-clean artifact with b
   }
 });
 
-test("emit: with the second step's summary missing the run still records, the unrun step is skipped", () => {
+test("emit: with a step's summary missing the run still records, the unrun step is skipped", () => {
   withTmpDir((dir) => {
     const outRoot = join(dir, "out");
     writeSummaries(outRoot, { "recompute-tiers": null });
@@ -225,8 +253,8 @@ test("emit: with the second step's summary missing the run still records, the un
       env: { SR_MODE: "dry", SR_OUT_ROOT: outRoot, SR_UPSTREAM_NAME: "", SR_UPSTREAM_RUN_ID: "" },
       familyDir: join(dir, "family"),
     });
-    assert.deepEqual(artifact.per_item.map((p) => p.outcome), ["clean", "skipped"]);
-    assert.equal(artifact.metrics.steps_with_summary, 1);
+    assert.deepEqual(artifact.per_item.map((p) => p.outcome), ["clean", "skipped", "clean"]);
+    assert.equal(artifact.metrics.steps_with_summary, 2);
   });
 });
 

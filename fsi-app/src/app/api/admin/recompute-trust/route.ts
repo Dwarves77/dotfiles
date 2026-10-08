@@ -3,8 +3,10 @@
 // Walks every source in the registry and recomputes trust_score_overall
 // using the Bayesian-prior-blend formula in src/lib/trust.ts. Component
 // scores (accuracy, timeliness, reliability, citation) are also updated
-// to reflect current earned signals. Designed to run on a monthly cron
-// from .github/workflows/trust-recompute.yml.
+// to reflect current earned signals. An admin action. The scheduled/dispatched runtime of the same trust-
+// score pass is the recompute-trust-scores maintenance step (scripts/maintenance/recompute-trust-scores.mjs,
+// runbook section 66); the former trust-recompute.yml workflow was retired 2026-10-07. Both call the one
+// planTrustScores in src/lib/trust.ts.
 //
 // TIER MOVEMENT (S1-C, 2026-10-04). After the trust-score pass this route moves effective_tier from the
 // evidence, through the one calculator in src/lib/trust.ts (decideEffectiveTier via planTierMovements):
@@ -28,16 +30,13 @@ import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { getServiceSupabase } from "@/lib/supabase-service";
 
 import {
-  computeTrustScore,
-  computeOverallScore,
-  trustMetricsFromRow,
+  planTrustScores,
   planTierMovements,
   outcomeReaderFor,
   applyTierMovements,
   TIER_SOURCE_COLUMNS,
 } from "@/lib/trust";
 import type { TierSourceRow } from "@/lib/trust";
-import type { SourceTier } from "@/types/source";
 import { isGloballyPaused, getScrapeState } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 // Pure shaping logic lives in a sibling module, not here: a route.ts may
@@ -86,58 +85,20 @@ export async function POST(request: NextRequest) {
   let failed = 0;
   const failures: string[] = [];
 
-  // Distribution buckets reported back to the workflow log so the cron run
-  // surfaces meaningful telemetry, not just a count.
-  const distribution = { "0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0 };
-  const byTier: Record<number, number[]> = {};
+  // The score computation, the distribution and the per-base-tier averages are one shared plan
+  // (trust.ts planTrustScores), also run by scripts/maintenance/recompute-trust-scores.mjs.
+  const scorePlan = planTrustScores(sources, now);
+  const distribution = scorePlan.distribution;
+  const tierAverages = scorePlan.tier_averages;
 
-  for (const s of sources) {
-    // Build a TrustMetrics shape from the flat columns (shared with the tier calculator).
-    const metrics = trustMetricsFromRow(s);
-
-    const score = computeTrustScore(metrics);
-    // Phase 1.5: base_tier per scoring-internals default rule.
-    const overall = computeOverallScore(metrics, s.base_tier as SourceTier);
-
-    const { error: updateErr } = await supabase
-      .from("sources")
-      .update({
-        trust_score_overall: overall,
-        trust_score_accuracy: score.accuracy_component,
-        trust_score_timeliness: score.timeliness_component,
-        trust_score_reliability: score.reliability_component,
-        trust_score_citation: score.citation_component,
-        trust_score_computed_at: now,
-      })
-      .eq("id", s.id);
-
+  for (const r of scorePlan.rows) {
+    const { error: updateErr } = await supabase.from("sources").update(r.patch).eq("id", r.id);
     if (updateErr) {
       failed++;
-      failures.push(`${s.name}: ${updateErr.message}`);
+      failures.push(`${r.name}: ${updateErr.message}`);
     } else {
       updated++;
     }
-
-    if (overall <= 20) distribution["0-20"]++;
-    else if (overall <= 40) distribution["21-40"]++;
-    else if (overall <= 60) distribution["41-60"]++;
-    else if (overall <= 80) distribution["61-80"]++;
-    else distribution["81-100"]++;
-
-    // Phase 1.5: byTier rollup keyed on base_tier per scoring-internals rule.
-    if (!byTier[s.base_tier]) byTier[s.base_tier] = [];
-    byTier[s.base_tier].push(overall);
-  }
-
-  const tierAverages: Record<string, { n: number; avg: number; min: number; max: number }> = {};
-  for (const [t, arr] of Object.entries(byTier)) {
-    const sum = arr.reduce((a, b) => a + b, 0);
-    tierAverages[`T${t}`] = {
-      n: arr.length,
-      avg: Math.round((sum / arr.length) * 10) / 10,
-      min: Math.min(...arr),
-      max: Math.max(...arr),
-    };
   }
 
   // Tier movement: decide from the evidence, apply, record. See the header.

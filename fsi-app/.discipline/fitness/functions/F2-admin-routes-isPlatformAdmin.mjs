@@ -16,7 +16,8 @@
 //
 // Known exceptions: worker-secret-gated routes use x-worker-secret header instead.
 // These are explicitly allowlisted per the precedent established in Track B-code:
-//   - recompute-trust   (monthly trust recompute cron + manual admin re-trigger)
+//   - recompute-trust   (admin trust-score and tier recompute action, worker-secret gated; the trust-recompute.yml
+//                        workflow that called it was retired 2026-10-07, the runtime is the recompute-trust-scores step)
 //   - spot-check/recurring (scheduled spot-check job)
 // New worker-secret routes added in the future must update this allowlist.
 // (q7-daily-recompute was removed 2026-07-18 (dormant-systems P-7): the route was superseded by the

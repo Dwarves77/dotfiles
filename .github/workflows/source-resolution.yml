@@ -16,6 +16,8 @@ name: Source resolution
 #                                   verdict can place; an unplaceable host stays on the worklist.
 #   2. recompute-tiers              moves effective_tier from the evidence, one tier either side of base_tier,
 #                                   never over an admin tier_override.
+#   3. recompute-trust-scores       recomputes the sources.trust_score_* columns (lane TRUST-RET, 2026-10-07, the
+#                                   runtime of the retired trust-recompute.yml; writes no tier column; runbook 66).
 # Both are whole-registry and idempotent, so running them after any producer that completed is honest, cheap
 # and never a duplicate write. Runbook section 61 (docs/runbooks/maintenance.d/61-source-resolution.md).
 #
@@ -208,8 +210,18 @@ jobs:
           mode: ${{ env.RUN_MODE }}
           out_root: ${{ env.OUT_ROOT }}
 
+      # After the tier move, so the score is computed from the same source rows the tier pass just read. Writes
+      # only the six trust_score_* columns, never a tier column; halts on the operator's emergency stop. Runbook
+      # section 66 (docs/runbooks/maintenance.d/66-recompute-trust-scores.md).
+      - name: recompute-trust-scores
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: recompute-trust-scores
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
       # CACHE FLUSH AFTER A REAL APPLY (same step downstream-chain.yml and maintenance.yml carry). Promoted
-      # sources and moved tiers are read by the public ledgers and detail pages.
+      # sources, moved tiers and recomputed scores are read by the public ledgers and detail pages.
       - name: Flush public/detail caches after a real apply
         if: ${{ success() && env.RUN_MODE == 'apply' }}
         working-directory: fsi-app

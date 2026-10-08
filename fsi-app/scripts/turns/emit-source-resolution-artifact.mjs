@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // emit-source-resolution-artifact.mjs -- the source-resolution family's harness-run artifact writer (lane
-// S1-E, 2026-10-05). .github/workflows/source-resolution.yml calls this after its two maintenance steps
-// (resolve-provisional-sources, then recompute-tiers), `if: always()`, so a firing that stopped part way
+// S1-E, 2026-10-05). .github/workflows/source-resolution.yml calls this after its three maintenance steps
+// (resolve-provisional-sources, recompute-tiers, then recompute-trust-scores, lane TRUST-RET 2026-10-07),
+// `if: always()`, so a firing that stopped part way
 // still leaves a record. "Emission is CODE", the same posture emit-downstream-chain-artifact.mjs holds.
 //
-// It runs no step itself. It reads back what the two `./.github/actions/maintenance-step` calls already
+// It runs no step itself. It reads back what the three `./.github/actions/maintenance-step` calls already
 // wrote (each one's `$SR_OUT_ROOT/<step>/summary.json`) and records, per step, the counts the step already
 // prints: sources resolved, promoted, rejected, worklisted and verdict-placed for resolve-provisional-
-// sources; sources scanned and tier movements planned (dry) or applied (apply) for recompute-tiers.
+// sources; sources scanned and tier movements planned (dry) or applied (apply) for recompute-tiers;
+// sources scored, held and written for recompute-trust-scores.
 // A count the step did not print is recorded as null, never as a made-up zero.
 //
 // REUSE. The summary reader (readStepSummary) is the one in emit-downstream-chain-artifact.mjs, the run-id,
@@ -32,7 +34,7 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const FAMILY = "source-resolution";
 const FAMILY_DIR = resolve(FSI_ROOT, "scripts/harness-runs", FAMILY);
 
-export const STEPS = Object.freeze(["resolve-provisional-sources", "recompute-tiers"]);
+export const STEPS = Object.freeze(["resolve-provisional-sources", "recompute-tiers", "recompute-trust-scores"]);
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
@@ -57,6 +59,13 @@ export function countsFor(step, summary) {
       verdict_placed: num(summary.host_verdicts?.promoted_by_verdict),
       bias_tags_written: num(summary.bias_tags?.written),
       rows_applied: num(summary.applied),
+    };
+  }
+  if (step === "recompute-trust-scores") {
+    return {
+      sources_scored: num(c.sources_scored),
+      skipped_paused: num(c.skipped_paused),
+      scores_applied: num(summary.applied),
     };
   }
   return {
@@ -119,6 +128,8 @@ export function buildArtifact({ runId, harnessVersion, startedAt, mode, upstream
       tier_movements: pick(stepResults, "recompute-tiers", "tier_movements"),
       tier_promotions: pick(stepResults, "recompute-tiers", "tier_promotions"),
       tier_demotions: pick(stepResults, "recompute-tiers", "tier_demotions"),
+      trust_sources_scored: pick(stepResults, "recompute-trust-scores", "sources_scored"),
+      trust_scores_applied: pick(stepResults, "recompute-trust-scores", "scores_applied"),
     },
     defectsFound: failed.length
       ? [{
@@ -129,7 +140,7 @@ export function buildArtifact({ runId, harnessVersion, startedAt, mode, upstream
       : [],
     fullTraceRefs,
     proposerNotes:
-      "Auto-emitted by emit-source-resolution-artifact.mjs after resolve-provisional-sources and recompute-tiers each wrote " +
+      "Auto-emitted by emit-source-resolution-artifact.mjs after resolve-provisional-sources, recompute-tiers and recompute-trust-scores each wrote " +
       "their own summary.json through the shared ./.github/actions/maintenance-step composite action. In build mode a chained " +
       "firing is forced dry, so the counts are what the steps WOULD resolve and move.",
   });
