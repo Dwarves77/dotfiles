@@ -30,6 +30,7 @@ import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { TierChip } from "@/components/ui/Chips";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { SourceLink } from "@/components/ui/SourceLink";
 import type { buildStatements } from "@/lib/operations/statements.mjs";
 
 type Statement = ReturnType<typeof buildStatements>[number];
@@ -115,21 +116,7 @@ function ComponentRow({ c }: { c: Component }) {
           {c.sourceName
             ? c.sourceUrl
               ? (
-                <a
-                  href={c.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    minHeight: 28,
-                    color: "var(--ink-2)",
-                    textDecoration: "underline",
-                    textDecorationColor: "var(--link-line)",
-                  }}
-                >
-                  {c.sourceName}
-                </a>
+                <SourceLink href={c.sourceUrl}>{c.sourceName}</SourceLink>
               )
               : c.sourceName
             : null}

@@ -24,6 +24,14 @@ Reused instead of built: `isEnvelopedFact`, `indexAgainstBase`, `formatEnveloped
 - Absence wording uses `ABSENCE_TEXT_STYLE` with the phrase from the brief, because the closed `Absence` vocabulary has no such reason (RecalculationNotice and LeadTimeChart take the same route).
 - Field labels are "Published by" and "Status flag", not "Source" and "Status": the rendering guard's placeholder-literal scan failed 8 of 24 checks on the bare header words (it is a header-literal list, `HEADER_LITERALS`).
 
+### Coordinator rulings applied (PR 989 round 2)
+- F45 (CI red, +18 duplicated lines): the source-name anchor typed in `FactCard.tsx`'s matrix card and again in `StatementsBlock.tsx` is now one part, `ui/SourceLink.tsx`, imported by both. Local F45 measure after the change: 5322 duplicated lines, equal to the CI base of 5322. Write-set expansion granted for FactCard.tsx.
+- The implied-base rule exists once: `impliedBaseFact` in `region-grid.mjs` (first valid envelope in the order given, by reference), called by `MatrixPanel` (that one call site) and by `statements.mjs`. Test added in `region-grid.test.mjs`; the one `RegionDimensionMatrix.npmtest.mjs` source assertion that pinned the old inline expression now pins the helper call. Write-set expansion granted for region-grid.mjs and RegionDimensionMatrix.tsx.
+- The earlier "NOT done" note about folding the matrix onto a shared helper is closed by the above.
+
+### OWED TO THE PRODUCER WAVE (coordinator is designing it; not built here)
+- Statements group by label text, which is right for today's rows (after the producer's own region prefix is stripped). The structural fix is a canonical measure key on `regional_data_facts` that producers write and statements group by, so two regions' differently worded labels for one measure can meet in one statement. Until it exists, groups across producers with different wording stay one-region and show the absence line.
+
 ### Evidence
 - Red: `statements.test.mjs` before the module existed: 1 test, 1 fail (ERR_MODULE_NOT_FOUND on `./statements.mjs`). Green: 23 of 23 pass.
 - Attack by mutation: with the verdict screen removed from `buildStatements`, the attack test fails (22 of 23); restored, 23 of 23. With the phone card rule and the empty guard removed from the component, `statements-smoke` fails 2 checks (phone borders 0px, empty renders a node); restored, 0.

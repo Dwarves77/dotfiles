@@ -8,6 +8,7 @@ import {
   sourceUrlFromNote,
   sourceNameFromNote,
   isEnvelopedFact,
+  impliedBaseFact,
   indexAgainstBase,
   formatEnvelopedValue,
   originClassLabel,
@@ -281,3 +282,16 @@ test("factHeadline: a short string with no digit is not a figure", () => {
   // promoting a word into the display face.
   assert.equal(factHeadline({ factLabel: "Wage", value: "not applicable" }).figure, null);
 });
+
+test("impliedBaseFact: the first valid envelope in the order given, by reference; null when none", () => {
+  const free = { valueNumeric: null, unit: "EUR/hour" };
+  const noUnit = { valueNumeric: 3, unit: null };
+  const a = { valueNumeric: 40, unit: "EUR/hour" };
+  const b = { valueNumeric: 50, unit: "EUR/hour" };
+  assert.equal(impliedBaseFact([null, free, noUnit, a, b]), a);
+  assert.equal(impliedBaseFact([b, a]), b);
+  assert.equal(impliedBaseFact([free, noUnit, undefined]), null);
+  assert.equal(impliedBaseFact([]), null);
+  assert.equal(impliedBaseFact(undefined), null);
+});
+

@@ -43,6 +43,7 @@
 
 import {
   isEnvelopedFact,
+  impliedBaseFact,
   indexAgainstBase,
   formatEnvelopedValue,
   originClassLabel,
@@ -151,7 +152,11 @@ function indexGroup(components, roster, baseRegionCode) {
   const sameBasis = components.every((c) => c.unit === first.unit && c.currency === first.currency);
   if (!sameBasis) return undefined;
   const explicit = isText(baseRegionCode) && roster.some((r) => r.code === baseRegionCode);
-  const base = explicit ? components.find((c) => c.regionCode === baseRegionCode) : first;
+  // No chosen base: the rule compare mode uses (region-grid.mjs impliedBaseFact), one home for both.
+  const envelopes = components.map((c) => ({ valueNumeric: c.value, unit: c.unit }));
+  const base = explicit
+    ? components.find((c) => c.regionCode === baseRegionCode)
+    : components[envelopes.indexOf(impliedBaseFact(envelopes))];
   if (!base) return undefined;
   const indexes = components.map((c) =>
     indexAgainstBase({ valueNumeric: c.value, unit: c.unit }, { valueNumeric: base.value, unit: base.unit }),
