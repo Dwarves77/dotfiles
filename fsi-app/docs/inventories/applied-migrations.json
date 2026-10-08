@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-08T09:15:29.913Z",
-  "count": 361,
+  "synced_at": "2026-10-08T13:24:44.804Z",
+  "count": 365,
   "migrations": [
     {
       "version": "001",
@@ -1446,6 +1446,22 @@
     {
       "version": "20261008072538",
       "name": "369_privilege_functions_views"
+    },
+    {
+      "version": "20261008092141",
+      "name": "372_profiles_read"
+    },
+    {
+      "version": "20261008131209",
+      "name": "375_admin_flag_private"
+    },
+    {
+      "version": "20261008131555",
+      "name": "370_privilege_table_policies"
+    },
+    {
+      "version": "20261008131647",
+      "name": "371_definer_hygiene"
     }
   ]
 }
