@@ -65,7 +65,8 @@ import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "@/lib/pr
 import { DerivedFigure } from "@/components/figures/EstimatedFigure";
 import type { Value } from "@/lib/propagation/types.ts";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
-import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import { CrossPageSection, crossPagePresence } from "@/components/detail/CrossPageSection";
+import { crossPageIndexEntries } from "@/lib/detail/section-index-data";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
@@ -427,11 +428,13 @@ export function MarketSignalDetailSurface({
   // intensity figure's purposes; without this OR, a record-grade item with a resolved corridor match
   // would show no Findings section at all).
   const showFindings = !isRecord || carbonOverlayResolved || !!corridorCostView;
+  const crossPagePresent = crossPagePresence({ surfaceKey: "market", connections, resourceLookup, crossPage });
   const indexEntries: SectionIndexEntry[] = [
     { id: "summary", shortName: "Summary", ord: 1 },
     ...(showFindings ? [{ id: "findings", shortName: "Findings", ord: 2 }] : []),
     { id: "sources", shortName: "Sources", ord: 5 },
     ...(hasRelated ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+    ...crossPageIndexEntries("market", crossPagePresent),
   ];
 
   const actionCard = (
@@ -691,7 +694,7 @@ export function MarketSignalDetailSurface({
           </DetailSection>
 
           {(connections.length > 0 || supersessions.length > 0 || related.length > 0) && (
-            <DetailSection id="related" title={`Connected · related ${BAND_LABEL[signalBand].toLowerCase()}`} index={6}>
+            <DetailSection id="related" title="Related" aside={BAND_LABEL[signalBand]} index={6}>
               {(connections.length > 0 || supersessions.length > 0) && (
                 <div style={{ marginBottom: related.length > 0 ? 16 : 0 }}>
                   <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />

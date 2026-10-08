@@ -4,11 +4,13 @@
  * BandTile — the urgency-band tile (UI system handoff 2026-09-06, README
  * §0.4 "Band tiles"). Four per row on every list surface + the dashboard.
  *
- * Card: white, radius 10, padding 14px 16px 0, flex column; stacked label
- * (10.5px/800/.08em uppercase in band colour) over window (10.5px muted);
- * Anton numeral 34px in band colour; the 4px band rule is pinned to the
- * card's bottom edge (margin: auto -16px 0) so all four rules align
- * regardless of label length. Each tile filters the list (onSelect).
+ * Card: white, radius 10, padding 14px 16px 0, flex column; label
+ * (10.5px/800/.08em uppercase in band colour) and definition (10.5px muted) on
+ * ONE line, the definition truncating with its full text in `title` (lane PAR-2,
+ * 2026-10-07, artboard 22 ruling B); Anton numeral 34px in band colour in a FIXED
+ * 34px row; the 4px band rule is pinned to the card's bottom edge (margin: auto
+ * -16px 0) so all four rules align regardless of label length. Each tile filters
+ * the list (onSelect).
  *
  * MOBILE 390 (lane mobframe, 2026-09-07, mobile-390 spec, BAND TILES):
  * below 768, card padding 12px 14px 0, label 10px/800/.06em, window 10px,
@@ -76,31 +78,42 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
           .cl-band-tile { padding: 12px 14px 0 !important; }
           .cl-band-tile .cl-band-tile-label { font-size: 10px !important; letter-spacing: 0.06em !important; }
           .cl-band-tile .cl-band-tile-window { font-size: 10px !important; }
-          .cl-band-tile .cl-band-tile-numeral { font-size: 30px !important; margin: 6px 0 8px !important; }
+          .cl-band-tile .cl-band-tile-numeral { font-size: 30px !important; margin: 6px 0 8px !important; height: 34px !important; line-height: 34px !important; }
           .cl-band-tile .cl-band-tile-rule { margin: auto -14px 0 !important; }
         }
       `}</style>
-      <span
-        className="cl-band-tile-label"
-        style={{
-          fontSize: "var(--fs-105)",
-          fontWeight: 800,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: band.cssVar,
-        }}
-      >
-        {band.label}
-      </span>
-      <span
-        className="cl-band-tile-window"
-        style={{
-          fontSize: "var(--fs-105)",
-          color: "var(--ink-3)",
-          margin: "1px 0 0",
-        }}
-      >
-        {band.window}
+      {/* PAR-2 (artboard 22 ruling B): label and definition share ONE line. The label never
+          shrinks; the definition is the one element that gives way (ellipsis), and carries its
+          full text in `title` so a truncated definition is never lost (ux-laws, no clipped text). */}
+      <span className="cl-band-tile-head" style={{ display: "flex", alignItems: "baseline", gap: 6, minWidth: 0 }}>
+        <span
+          className="cl-band-tile-label"
+          style={{
+            flexShrink: 0,
+            fontSize: "var(--fs-105)",
+            fontWeight: 800,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: band.cssVar,
+          }}
+        >
+          {band.label}
+        </span>
+        <span
+          className="cl-band-tile-window"
+          title={band.window}
+          style={{
+            flex: "1 1 auto",
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            fontSize: "var(--fs-105)",
+            color: "var(--ink-3)",
+          }}
+        >
+          {band.window}
+        </span>
       </span>
       {loading ? (
         <span
@@ -121,7 +134,11 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
           style={{
             fontFamily: "var(--font-display)",
             fontSize: 34,
-            lineHeight: 1,
+            // PAR-2 (ruling B): the numeral row is a FIXED 34px box on every tile, desktop and
+            // phone, so all four tiles' numerals and bottom rules line up whatever the figure.
+            display: "block",
+            height: 34,
+            lineHeight: "34px",
             letterSpacing: "0.04em",
             color: band.cssVar,
             fontVariantNumeric: "tabular-nums",

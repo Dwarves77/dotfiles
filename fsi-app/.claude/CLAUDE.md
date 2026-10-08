@@ -186,7 +186,7 @@ The deferral criterion is **traffic volume, not budget**. When the platform onbo
 
 ## Design System
 - **Light-first** (Apple HIG principles from frontend-design skill)
-- Body typeface: Plus Jakarta Sans (300-700). Display typeface: Anton, scoped to masthead title, `.card-head h3`, and `.brief-section h3` only — see STATUS.md and the design previews for the canonical surfaces. Do not use Anton in body copy or in arbitrary section headers.
+- Body typeface: Plus Jakarta Sans (300-700). Display typeface: Anton, scoped to masthead title, `.card-head h3`, `.brief-section h3`, and the list group header band name (Immediate / Action / Monitor / Awareness, Anton 18, artboard 22) only, see STATUS.md and the design previews for the canonical surfaces. Do not use Anton in body copy or in arbitrary section headers.
 - Semantic color tokens only — no raw hex in components
 - 8pt spacing grid, WCAG AA contrast, 44pt touch targets
 - No ambient orbs, no dark-first aesthetic

@@ -1,5 +1,5 @@
 /**
- * CrossPageSection (lane S3-B): the ONE "Across pages" section every detail page mounts, so a reader sees
+ * CrossPageSection (lane S3-B): the ONE "Connected intelligence" section every detail page mounts, so a reader sees
  * what an item connects to on the OTHER pages and what that connection means, wherever they start.
  *
  * Two blocks, each rendering nothing when its data is absent (the section itself renders nothing when
@@ -29,7 +29,10 @@ import { DetailSection } from "@/components/detail/DetailShell";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
 import { StateNote } from "@/components/ui/StateNote";
 import { GfmSection } from "@/components/shared/GfmSection";
-import { InferenceSection, type InferenceSectionData } from "@/components/detail/InferenceSection";
+import { InferenceSection, inferenceClaimOf as claimOf, type InferenceSectionData } from "@/components/detail/InferenceSection";
+import { CONNECTED_SECTION_ID, connectedSectionOrd, inferencesSectionOrd } from "@/lib/detail/section-index-data";
+import { pickVisibleInferences } from "@/lib/detail/inference-view.mjs";
+import { admissibleForInference } from "@/components/shared/InferenceClaim";
 import { buildIntersectionView } from "@/lib/connections/connection-view-model.mjs";
 import { cleanPreContractBriefText } from "@/lib/research/theme-brief-text.mjs";
 import type { buildThemeAnalysisView } from "@/lib/research/theme-brief.mjs";
@@ -68,12 +71,21 @@ const ROW_LINK: CSSProperties = {
 };
 
 const ROW_TITLE: CSSProperties = {
-  fontSize: "var(--fs-125)",
+  // Lane PAR-2 (artboard 22 ruling C): detail row titles are 15px (was 12.5px).
+  fontSize: 15,
   fontWeight: 700,
   lineHeight: 1.35,
   color: "var(--ink)",
   margin: 0,
   overflowWrap: "anywhere",
+};
+
+// Lane PAR-2 (artboard 22 ruling C): Connected intelligence disclosures are rule-separated rows, not
+// boxed cards: a hairline above and below, no border box, no fill, no radius.
+const DISCLOSURE_ROW: CSSProperties = {
+  marginTop: 14,
+  borderTop: "1px solid var(--line-2)",
+  borderBottom: "1px solid var(--line-2)",
 };
 
 const SUMMARY_STYLE: CSSProperties = {
@@ -126,7 +138,7 @@ function IntersectionsBlock({ view }: { view: IntersectionView }) {
       )}
       <GroupList groups={view.groups} />
       {view.possible.length > 0 && (
-        <details style={{ marginTop: 14 }}>
+        <details data-audit="disclosure-row" style={DISCLOSURE_ROW}>
           <summary style={SUMMARY_STYLE}>
             Possible connections ({view.possibleCount})
           </summary>
@@ -168,7 +180,7 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
   return (
     <DetailSubSection title="Theme analysis" subtitle={subtitle} first={first}>
       {theme.hasBrief && theme.title && (
-        <p data-guard-title style={{ ...ROW_TITLE, fontSize: "var(--fs-14)", fontWeight: 600 }}>
+        <p data-guard-title style={{ ...ROW_TITLE, fontWeight: 600 }}>
           {shownTitle}
         </p>
       )}
@@ -238,7 +250,7 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
         </Block>
       )}
       {disclosure && (
-        <details style={{ marginTop: 14 }}>
+        <details data-audit="disclosure-row" style={DISCLOSURE_ROW}>
           <summary style={SUMMARY_STYLE}>How the items connect{disclosure.gaps ? " and what is missing" : ""}</summary>
           {disclosure.connection && (
             <Block label="How the items connect">
@@ -254,6 +266,34 @@ function ThemeAnalysis({ theme, surfaceLabel, first }: { theme: ThemeAnalysisVie
       )}
     </DetailSubSection>
   );
+}
+
+/**
+ * Which of the two trailing sections will render, decided by the SAME functions the render uses, so the
+ * section index (lane IDX-1) lists a tab exactly when its section exists: a tab for an empty section would
+ * jump nowhere. `connected` is the section built here (intersections or theme analysis), `inferences` is the
+ * InferenceSection that follows it.
+ */
+export function crossPagePresence({
+  surfaceKey,
+  connections = [],
+  resourceLookup = {},
+  crossPage,
+}: {
+  surfaceKey: string;
+  connections?: ItemConnection[];
+  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  crossPage?: CrossPageData | null;
+}): { connected: boolean; inferences: boolean } {
+  const intersections = buildIntersectionView(connections, resourceLookup, {
+    currentSurface: surfaceKey,
+    summary: crossPage?.intersectionSummary ?? null,
+  });
+  const visible = pickVisibleInferences(
+    crossPage?.inferences?.claims ?? [],
+    (v: InferenceSectionData["claims"][number]) => admissibleForInference(claimOf(v), "display").ok,
+  );
+  return { connected: !!intersections || !!crossPage?.theme, inferences: visible.length > 0 };
 }
 
 export function CrossPageSection({
@@ -276,11 +316,11 @@ export function CrossPageSection({
     summary: crossPage?.intersectionSummary ?? null,
   });
   const theme = crossPage?.theme ?? null;
-  const inferences = <InferenceSection inferences={crossPage?.inferences} />;
+  const inferences = <InferenceSection inferences={crossPage?.inferences} index={inferencesSectionOrd(surfaceKey)} />;
   if (!intersections && !theme) return inferences;
   return (
     <>
-      <DetailSection id="across-pages" title="Across pages" aside="Intersections and theme analysis">
+      <DetailSection id={CONNECTED_SECTION_ID} title="Connected intelligence" aside="Intersections and theme analysis" index={connectedSectionOrd(surfaceKey)}>
         <div data-guard-container="cross-page">
           {intersections && <IntersectionsBlock view={intersections} />}
           {theme && <ThemeAnalysis theme={theme} surfaceLabel={surfaceLabel} first={!intersections} />}

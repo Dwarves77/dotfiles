@@ -162,7 +162,7 @@ interface ItemScoped {
    *  above), read unconditionally (never gated on item_grade — a brief-grade item's query legitimately
    *  returns no rows, resolving to {} at zero extra cost since fetchClaimTierMap never throws). */
   claimTiers: ClaimTierMap;
-  /** Lane S3-B: stated intersection summary and theme analysis for the shared "Across pages" section. */
+  /** Lane S3-B: stated intersection summary and theme analysis for the shared "Connected intelligence" section. */
   crossPage: CrossPageAnalysis;
 }
 

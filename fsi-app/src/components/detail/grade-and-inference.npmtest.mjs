@@ -32,7 +32,7 @@ export { GradeChip } from "@/components/ui/Chips";
 export { ListRow } from "@/components/ui/ListRow";
 export { ActionCard } from "@/components/ui/ActionCard";
 export { InferenceSection } from "@/components/detail/InferenceSection";
-export { CrossPageSection } from "@/components/detail/CrossPageSection";
+export { CrossPageSection, crossPagePresence } from "@/components/detail/CrossPageSection";
 export { bandFromPriority } from "@/lib/urgency/bands";
 export { SourcesGrid, sourceEntriesOf } from "@/components/detail/SourcesGrid";
 `;
@@ -221,7 +221,7 @@ test("the section shows at most five inferences", () => {
 
 const src = (rel) => readFileSync(resolve(REPO_ROOT, rel), "utf8");
 
-test("all four detail surfaces mount the grade chip in the masthead pill row and the one Across pages section that carries the inferences", () => {
+test("all four detail surfaces mount the grade chip in the masthead pill row and the one Connected intelligence section that carries the inferences", () => {
   for (const f of [
     "regulations/RegulationDetailSurface",
     "pages/MarketSignalDetailSurface",
@@ -238,16 +238,45 @@ test("the inferences travel with the cross-page read: one read site, rendered by
   const server = src("src/lib/supabase-server.ts");
   assert.match(server, /inferences = await readCustomerInferences\(supabase, self\.id,/);
   assert.match(server, /const THEME_COLUMNS = "[^"]*dominant_signals/, "the theme read selects dominant_signals for the chip label");
-  assert.match(src("src/components/detail/CrossPageSection.tsx"), /<InferenceSection inferences=\{crossPage\?\.inferences\} \/>/);
+  assert.match(src("src/components/detail/CrossPageSection.tsx"), /<InferenceSection inferences=\{crossPage\?\.inferences\} index=\{inferencesSectionOrd\(surfaceKey\)\} \/>/);
 });
 
 test("an item with inferences but no intersections or theme still shows the Inferences section, and an item with none shows nothing", () => {
   const data = { claims: [claim()], titles: TITLES };
   const withOnly = html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: { inferences: data } }));
   assert.match(text(withOnly), /Inferences/);
-  assert.doesNotMatch(text(withOnly), /Across pages/);
+  assert.doesNotMatch(text(withOnly), /Connected intelligence/);
   assert.equal(html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: null })), "");
   assert.equal(html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: { inferences: { claims: [], titles: {} } } })), "");
+});
+
+// ── lane IDX-1: the section header, its fixed ordinal, and the index presence ─────────────────────────────
+
+test("the cross-page section is headed Connected intelligence with its fixed ordinal, never Across pages", () => {
+  const theme = { memberCount: 2, pages: [], hasBrief: false, absence: "No brief yet.", membersByPage: [], title: null, stale: false };
+  const reg = html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: { theme } }));
+  assert.match(text(reg), /Connected intelligence/);
+  assert.doesNotMatch(text(reg), /Across pages/);
+  assert.match(text(reg), /S9/, "Regulations numbers it 09");
+  const mkt = html(h(M.CrossPageSection, { surfaceKey: "market", surfaceLabel: "Market Intel", crossPage: { theme } }));
+  assert.match(text(mkt), /S7/, "the other three number it 07");
+});
+
+test("the Inferences header carries its fixed ordinal", () => {
+  const data = { claims: [claim()], titles: TITLES };
+  assert.match(text(html(h(M.CrossPageSection, { surfaceKey: "regulations", surfaceLabel: "Regulations", crossPage: { inferences: data } }))), /S10/);
+  assert.match(text(html(h(M.CrossPageSection, { surfaceKey: "research", surfaceLabel: "Research", crossPage: { inferences: data } }))), /S8/);
+});
+
+test("crossPagePresence says exactly which of the two sections render, so the index never lists an empty tab", () => {
+  const data = { claims: [claim()], titles: TITLES };
+  const theme = { memberCount: 1, pages: [], hasBrief: false, absence: "x", membersByPage: [] };
+  const p = (crossPage) => M.crossPagePresence({ surfaceKey: "market", crossPage });
+  assert.deepEqual(p(null), { connected: false, inferences: false });
+  assert.deepEqual(p({ theme }), { connected: true, inferences: false });
+  assert.deepEqual(p({ inferences: data }), { connected: false, inferences: true });
+  assert.deepEqual(p({ theme, inferences: data }), { connected: true, inferences: true });
+  assert.deepEqual(p({ inferences: { claims: [claim({ statusToken: "REFUTED" })], titles: TITLES } }), { connected: false, inferences: false });
 });
 
 // ── Sources grid: entries matched to a cited registered source by canonical url (coordinator item 5) ──────

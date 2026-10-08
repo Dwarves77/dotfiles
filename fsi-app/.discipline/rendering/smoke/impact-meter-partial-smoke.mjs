@@ -220,11 +220,11 @@ export async function runSmoke(browser) {
             failures.push(`${label}: ${colors.size} distinct fill colours in one row, expected 1 (${[...colors].join(' | ')}).`);
           }
 
-          // List row: the visible N/12 is OFF (ROW_VALUE_VISIBLE=false, coordinator ruling 2026-10-07,
-          // 84 + 8 + about 20 does not fit the 88px slot); the value lives in the accessible label.
+          // List row: no visible N/12 (coordinator ruling 2026-10-07; 84 + 8 + about 20 does not fit the 88px
+          // slot, owed to Claude Design); the value lives in the accessible label.
           checks++;
           if (got.sum !== null) {
-            failures.push(`${label}: list row shows a visible value "${got.sum}", expected none while ROW_VALUE_VISIBLE is false.`);
+            failures.push(`${label}: list row shows a visible value "${got.sum}", expected none in the list row.`);
           }
         }
 

@@ -616,3 +616,11 @@ body {
 @media (max-width: 767px) {
   .cl-facet-row, .cl-facet-more { min-height: 44px !important; }
 }
+
+/* Lane PAR-2 (2026-10-07, Claude Design artboard 22 ruling C): a detail section header sits on the
+   item's band tint behind a 24px title. DetailSection (DetailShell.tsx) hands the tint token in as
+   --cl-detail-head-tint (the band's own `--*-tint` var); with no band context it is unset and the
+   header stays on the card white. The 24px title overrides SectionHeader's shared 20px inline size
+   for detail sections only, hence !important (an inline style cannot be out-ranked otherwise). */
+.cl-detail-section-head .cl-section-header { background: var(--cl-detail-head-tint, transparent); }
+.cl-detail-section-head .cl-section-header h2 { font-size: 24px !important; }

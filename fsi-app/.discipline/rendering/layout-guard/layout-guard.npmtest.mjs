@@ -486,7 +486,9 @@ test('the Anton allowlist is exactly the operator\'s six, plus the three declare
   const extra = ids.filter((id) => !['page-title', 'card-title', 'band-tile-numeral', 'stat-block-numeral', 'headline-figure', 'timeline-callout'].includes(id));
   assert.deepEqual(
     extra.sort(),
-    ['matrix-cell-score', 'matrix-fact-figure', 'nav-wordmark'].sort(),
+    // 'band-group-name': the list/item group header band name, Anton 18 in the band colour. Declared per the
+    // Claude Design ruling of 2026-10-07 (artboard 22 item 1, ruling A; lane PAR-2), see allowlists.mjs.
+    ['band-group-name', 'matrix-cell-score', 'matrix-fact-figure', 'nav-wordmark'].sort(),
     'any addition beyond his six is declared here, so it cannot be added quietly'
   );
 });
@@ -584,7 +586,7 @@ test('the baseline gates NEW findings and expires on the DATE the operator named
   const known = { rule: 'L6', route: '/admin', width: 1440, element: 'section[x]', measured: '…', message: '…' };
   const fresh = { rule: 'L6', route: '/admin', width: 1440, element: 'section[a card added today]', measured: '…', message: '…' };
   // A hand-made baseline set, so this proves the SPLIT rather than today's baseline.json contents.
-  const split = (date) => applyBaseline([known, fresh], { date });
+  const split = (date) => applyBaseline([known, fresh], { date, buildMode: false });
   const before = split('2026-10-14');
   assert.ok(before.blocking.some((f) => f.element === 'section[a card added today]'),
     'a finding that is not in the baseline must fail the build, which is what "no train lands with a failure" means');

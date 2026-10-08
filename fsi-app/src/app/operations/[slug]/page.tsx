@@ -91,7 +91,7 @@ function pickRelated(row: RelatedRow): {
 
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
-  /** Lane S3-B: stated intersection summary and theme analysis for the shared "Across pages" section. */
+  /** Lane S3-B: stated intersection summary and theme analysis for the shared "Connected intelligence" section. */
   crossPage: CrossPageAnalysis;
   matrixEligibility: MatrixEligibility | undefined;
   related: ReturnType<typeof pickRelated>[];

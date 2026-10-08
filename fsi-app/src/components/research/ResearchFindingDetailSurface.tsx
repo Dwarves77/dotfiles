@@ -75,7 +75,8 @@ import {
   type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
 import { ThemeBriefCard } from "@/components/detail/ThemeBriefCard";
-import { CrossPageSection, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
+import { CrossPageSection, crossPagePresence, type ThemeAnalysisView } from "@/components/detail/CrossPageSection";
+import { crossPageIndexEntries } from "@/lib/detail/section-index-data";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import type { selectAssessmentView } from "@/lib/research/read-assessments.mjs";
@@ -194,17 +195,20 @@ export function ResearchFindingDetailSurface({
   // S6 section, which now holds only the findings list.
   const hasConnections = connections.length > 0 || supersessions.length > 0;
   const hasRelatedFindings = related.length > 0;
+  const crossPagePresent = crossPagePresence({ surfaceKey: "research", connections, resourceLookup, crossPage });
   const indexEntries: SectionIndexEntry[] = isRecord
     ? [
         { id: "summary", shortName: "Summary", ord: 1 },
         { id: "sources", shortName: "Sources", ord: 5 },
         ...(hasRelatedFindings ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+        ...crossPageIndexEntries("research", crossPagePresent),
       ]
     : [
         { id: "summary", shortName: "Summary", ord: 1 },
         { id: "findings", shortName: "Findings", ord: 2 },
         { id: "sources", shortName: "Sources", ord: 5 },
         ...(hasRelatedFindings ? [{ id: "related", shortName: "Related", ord: 6 }] : []),
+        ...crossPageIndexEntries("research", crossPagePresent),
       ];
 
   const actionCard = (
@@ -326,7 +330,7 @@ export function ResearchFindingDetailSurface({
           {isRecord ? (
             <DetailSection id="summary" title="Summary" index={1}>
               <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
-              {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
+              {trajectoryNode && <p style={{ fontSize: 15, lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
                   <GfmSection markdown={r.fullBrief} />

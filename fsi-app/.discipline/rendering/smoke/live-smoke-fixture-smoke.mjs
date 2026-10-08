@@ -34,7 +34,7 @@ function sitePages(defective) {
   const detail = (surface) =>
     page(
       `${surface} item`,
-      `<section id="across-pages"><h2>Across pages</h2><p>${
+      `<section id="across-pages"><h2>Connected intelligence</h2><p>${
         defective ? 'Shared: carrier-ocean. &lt;&lt;&lt;CLAIM_PROVENANCE_LEDGER [{"claim_kind":"FACT","source_span":"verbatim text of the span"}]' : "Shares an ocean carrier scenario."
       }</p></section>
       <div data-section-card=""><span>Cluster synthesis</span><div>${defective ? "85 items · density 0.180" : "85 items"}</div></div>

@@ -60,7 +60,8 @@ import { Absence } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { GradeChip, TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
-import { CrossPageSection } from "@/components/detail/CrossPageSection";
+import { CrossPageSection, crossPagePresence } from "@/components/detail/CrossPageSection";
+import { crossPageIndexEntries } from "@/lib/detail/section-index-data";
 import type { DetailSurfaceSharedProps } from "@/components/detail/shared-props";
 
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
@@ -224,10 +225,12 @@ export function OperationsDetailSurface({
   // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
   // ActionCard comment below and the "Substantive findings" section comment for why S3/S4 are a
   // real gap, never renumbered, and why S2 now holds every former top-level content tab).
+  const crossPagePresent = crossPagePresence({ surfaceKey: "operations", connections, resourceLookup, crossPage });
   const indexEntries: SectionIndexEntry[] = [
     { id: "summary", shortName: "Summary", ord: 1 },
     { id: "findings", shortName: "Findings", ord: 2 },
     { id: "sources", shortName: "Sources", ord: 5 },
+    ...crossPageIndexEntries("operations", crossPagePresent),
   ];
 
   const actionCard = (
@@ -345,7 +348,7 @@ export function OperationsDetailSurface({
               former top-level tabs as sub-headings, content and data paths unchanged. */}
           <DetailSection id="summary" title="Summary" index={1}>
             {r.whatIsIt || r.note || r.whyMatters ? (
-              <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
+              <p style={{ fontSize: 15, lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
                 {r.whatIsIt || r.note || r.whyMatters}
               </p>
             ) : (

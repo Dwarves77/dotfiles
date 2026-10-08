@@ -1,5 +1,5 @@
 // UX smoke spec: the cross-page surfaces (lane S3-B, 2026-10-05). Mounts the REAL
-// `CrossPageSection` (src/components/detail/CrossPageSection.tsx, the "Across pages" section every detail
+// `CrossPageSection` (src/components/detail/CrossPageSection.tsx, the "Connected intelligence" section every detail
 // page mounts) and the REAL `ThemeStripView` (src/components/shell/ThemeStripView.tsx, the themes strip on
 // the four list pages), measured at 375x812 and 1280x800 for law-2 targets, overflow and squeezed or
 // word-broken titles (ux-assert.mjs), on fixture data only, per the UX contract
