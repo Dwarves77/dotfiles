@@ -35,7 +35,9 @@ for (const rel of SCREENS) {
 }
 
 test("the + Tag trigger is withheld from a viewer, and a viewer sees applied tags without the remove control", () => {
-  assert.match(read("components/ui/ActionRow.tsx"), /\{onTag && !isViewer && \(/);
+  const row = read("components/ui/ActionRow.tsx");
+  assert.match(row, /const onTag = isViewer \? undefined : onTagProp;/);
+  assert.match(row, /\{onTag && \(/);
   assert.match(read("components/ui/DetailTagRow.tsx"), /onRemove=\{\s*isViewer\s*\?\s*undefined/);
 });
 

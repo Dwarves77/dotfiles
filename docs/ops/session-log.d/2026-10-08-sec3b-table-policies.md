@@ -64,6 +64,11 @@
 - Product facts the decision needs: migration 336 and the R8.7 amendment (spec 07, 2026-09-25) make author identity shown by default in Community (name unless the post is anonymous), which is the opposite of spec 05 section 2's "not name or company". Which one governs decides whether cross-org full_name and avatar_url stay readable.
 - Decision-ready: once the coordinator rules (a) which cross-org columns Community may read and (b) how a platform admin reads other orgs, item 5 is one more migration (371) plus the call-site repoints; this lane has the call-site list above.
 
+## Corrections after the first CI run (same day)
+
+- F28 failed: `attacks.json` is a governing file of the chain-proof family and the range added no run artifact. Added `fsi-app/scripts/harness-runs/chain-proof/pending/2026-10-08-sec3b-table-policies.md` (common rule 10 prescribes the marker; it is outside the brief's write set list, disclosed here).
+- `ActionRow.npmtest.mjs` (existing, not touched) asserts the literal `{onTag && (`. The first draft changed that line to `{onTag && !isViewer && (`; ActionRow now renames the prop (`onTag: onTagProp`) and derives `const onTag = isViewer ? undefined : onTagProp`, so the JSX line is unchanged. Not caught locally because npmtests were not run; CI caught it.
+
 ## Decisions
 
 1. The sanctioned set is the 364 and 367 set, including postgres, so SECURITY DEFINER functions (create_org_for_self, accept_invitation) pass the membership trigger. Not closed: accept_invitation's ON CONFLICT DO UPDATE SET role can demote an existing owner or admin who accepts a lower invite (census finding). It is a function body change (SEC-3a territory); the one-line fix is DO NOTHING, or a WHERE clause limiting the update to viewers. Recorded here and in the migration header.
