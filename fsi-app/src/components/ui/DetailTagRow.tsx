@@ -23,6 +23,7 @@ import { TagPopover } from "@/components/ui/TagPopover";
 import { fetchItemWorkspaceTags, removeWorkspaceTag } from "@/lib/tags/client";
 import type { WorkspaceTag } from "@/lib/tags/types";
 import { attributionText, type TagApplication } from "@/lib/tags/attribution";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
 export function DetailTagRow({
   itemId,
@@ -36,6 +37,9 @@ export function DetailTagRow({
   const [applied, setApplied] = useState<WorkspaceTag[]>([]);
   const [applications, setApplications] = useState<TagApplication[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // SEC-3b (migration 370): role viewer reads workspace tags but does not change them, so a viewer
+  // sees the applied pills without the remove control.
+  const isViewer = useWorkspaceStore((s) => s.userRole) === "viewer";
 
   async function reload() {
     const { tags, appliedTagIds, applications: apps } = await fetchItemWorkspaceTags(itemId);
@@ -61,10 +65,14 @@ export function DetailTagRow({
           key={tag.id}
           name={tag.name}
           title={attributionText(applications.find((a) => a.tagId === tag.id)) ?? undefined}
-          onRemove={async () => {
-            const ok = await removeWorkspaceTag(tag.id, itemId);
-            if (ok) setApplied((prev) => prev.filter((t) => t.id !== tag.id));
-          }}
+          onRemove={
+            isViewer
+              ? undefined
+              : async () => {
+                  const ok = await removeWorkspaceTag(tag.id, itemId);
+                  if (ok) setApplied((prev) => prev.filter((t) => t.id !== tag.id));
+                }
+          }
         />
       ))}
       <TagPopover itemId={itemId} onChange={reload} open={open} onOpenChange={onOpenChange} />
