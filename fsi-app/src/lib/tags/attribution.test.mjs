@@ -1,4 +1,4 @@
-// Unit tests for src/lib/tags/attribution.ts (lane s8b-tag-attribution, 2026-10-07, migration 360):
+// Unit tests for src/lib/tags/attribution.ts (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at):
 // the pure wording and shaping behind "applied by <name> on <date>". No database, no npm package.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -61,4 +61,22 @@ test("attributionText: the three author states and the missing date", () => {
     "applied by Ada"
   );
   assert.equal(attributionText(undefined), null);
+});
+
+import { groupApplicationsByItem } from "./attribution.ts";
+
+test("groupApplicationsByItem: one list per item, names resolved, order kept", () => {
+  const grouped = groupApplicationsByItem(
+    [
+      { tag_id: "t1", intelligence_item_id: "i1", created_by: "u1", created_at: "2026-09-03T10:00:00Z" },
+      { tag_id: "t2", intelligence_item_id: "i1", created_by: null, created_at: "2026-09-04T10:00:00Z" },
+      { tag_id: "t1", intelligence_item_id: "i2", created_by: "u1", created_at: "2026-09-05T10:00:00Z" },
+    ],
+    new Map([["u1", "Ada Lovelace"]])
+  );
+  assert.deepEqual(Object.keys(grouped), ["i1", "i2"]);
+  assert.deepEqual(grouped.i1.map((a) => a.tagId), ["t1", "t2"]);
+  assert.equal(grouped.i1[0].appliedByName, "Ada Lovelace");
+  assert.equal(grouped.i1[1].appliedByName, null);
+  assert.equal(grouped.i2[0].appliedAt, "2026-09-05T10:00:00Z");
 });

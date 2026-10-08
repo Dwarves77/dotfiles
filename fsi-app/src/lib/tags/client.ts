@@ -81,7 +81,7 @@ export async function fetchWorkspaceTags(opts: { force?: boolean } = {}): Promis
 /** Fetch the tags already applied to one item (by legacy_id or uuid), plus
  *  a fresh full workspace tag list. Used by TagPopover on open. Not cached
  *  (per-item, small, and needs to be current every time the popover opens).
- *  `applications` says who applied each of those tags and when (migration 360,
+ *  `applications` says who applied each of those tags and when (migration 313 created_by/created_at,
  *  lane s8b-tag-attribution); an older response without it reads as none. */
 export async function fetchItemWorkspaceTags(
   itemId: string

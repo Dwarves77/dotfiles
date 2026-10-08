@@ -132,7 +132,7 @@ test("the whole row stays the one click target — no second nested Link/button 
 
 // ── tags (lane uitags, 2026-09-07, README "Workspace tags" / ruling R6) ──
 test("tags is an optional prop, additive — every pre-existing caller (no tags passed) is unaffected", () => {
-  assert.match(SOURCE, /tags\?:\s*\{\s*id:\s*string;\s*name:\s*string\s*\}\[\]\s*\|\s*null;/);
+  assert.match(SOURCE, /tags\?:\s*\{\s*id:\s*string;\s*name:\s*string;\s*title\?:\s*string\s*\}\[\]\s*\|\s*null;/);
 });
 test("tags render on the second line, beside meta — not a fifth grid column", () => {
   assert.match(SOURCE, /tags && tags\.length > 0 && \(/);
@@ -323,4 +323,12 @@ test("PAR-1: still one element tree, no second mount per breakpoint", () => {
   assert.equal((SOURCE.match(/className="cl-row-title-text"/g) || []).length, 1);
   assert.equal((SOURCE.match(/<ImpactMeter /g) || []).length, 1);
   assert.equal((SOURCE.match(/<MilestoneTimeline /g) || []).length, 1);
+});
+
+// Lane s8b-tag-attribution (2026-10-07): list-row tag chips carry the same "applied by <name> on <date>"
+// title as the detail chips. Structural here; the render is proven by workspace-tags-smoke.mjs.
+test("ListRow tags accept an optional title and pass it to both the desktop and the mobile chip", () => {
+  assert.match(SOURCE, /tags\?: \{ id: string; name: string; title\?: string \}\[\] \| null;/);
+  assert.match(SOURCE, /<WorkspaceTagPill key=\{t\.id\} name=\{t\.name\} title=\{t\.title\} \/>/);
+  assert.match(SOURCE, /<WorkspaceTagPill key=\{`m-\$\{t\.id\}`\} name=\{t\.name\} title=\{t\.title\} \/>/);
 });

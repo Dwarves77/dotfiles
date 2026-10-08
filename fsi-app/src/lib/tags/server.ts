@@ -15,6 +15,30 @@ import {
   type TagLinkRow,
 } from "./attribution";
 
+/** Display names for a set of member ids in one profiles lookup (full name, else display name; never
+ *  an email). Bounded by the number of distinct tag authors in one workspace. A read error leaves the
+ *  names out, so a chip renders "a workspace member" rather than failing the response. */
+export async function loadAuthorNames(
+  supabase: SupabaseClient,
+  authorIds: string[]
+): Promise<Map<string, string | null>> {
+  const nameById = new Map<string, string | null>();
+  const ids = Array.from(new Set(authorIds.filter(Boolean)));
+  if (ids.length === 0) return nameById;
+  const { data: profiles, error: profErr } = await supabase
+    .from("profiles")
+    .select("id, full_name, display_name")
+    // fitness-allow: F39 (scoped to the authors of a workspace's tag applications, not corpus-scale)
+    .in("id", ids);
+  if (profErr) {
+    console.warn(`[api/workspace/tags] author name read failed (chips render without names): ${profErr.message}`);
+  }
+  for (const p of (profiles ?? []) as ProfileNameRow[]) {
+    nameById.set(p.id, memberDisplayName(p));
+  }
+  return nameById;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Minimal shape this module needs from a Supabase client — narrow enough to
@@ -82,7 +106,7 @@ export function buildTagCountsMap(rows: { tag_id: string }[]): Map<string, numbe
   return counts;
 }
 
-/** Who applied which tag to one item, and when (migration 360 / lane s8b-tag-attribution). Reads the
+/** Who applied which tag to one item, and when (migration 313 created_by/created_at, lane s8b-tag-attribution). Reads the
  *  item's join rows (bounded: one item carries few tags) and resolves the applying members' names
  *  from profiles in a single lookup. The author is whatever the write route stamped from the
  *  session; nothing here reads a client-supplied value. Read errors degrade to an empty list so the
@@ -104,20 +128,9 @@ export async function loadItemApplications(
   }
   const rows = (linkData ?? []) as TagLinkRow[];
 
-  const authorIds = Array.from(new Set(rows.map((r) => r.created_by).filter((id): id is string => Boolean(id))));
-  const nameById = new Map<string, string | null>();
-  if (authorIds.length > 0) {
-    const { data: profiles, error: profErr } = await supabase
-      .from("profiles")
-      .select("id, full_name, display_name")
-      // fitness-allow: F39 (scoped to the authors of one item's tag applications, not corpus-scale)
-      .in("id", authorIds);
-    if (profErr) {
-      console.warn(`[api/workspace/tags] author name read failed (chips render without names): ${profErr.message}`);
-    }
-    for (const p of (profiles ?? []) as ProfileNameRow[]) {
-      nameById.set(p.id, memberDisplayName(p));
-    }
-  }
+  const nameById = await loadAuthorNames(
+    supabase,
+    rows.map((r) => r.created_by).filter((id): id is string => Boolean(id))
+  );
   return buildApplications(rows, nameById);
 }

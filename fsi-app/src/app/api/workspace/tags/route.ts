@@ -4,9 +4,15 @@ import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
-import { normalizeTagName, buildTagCountsMap, resolveItemUuid, loadItemApplications } from "@/lib/tags/server";
+import {
+  normalizeTagName,
+  buildTagCountsMap,
+  resolveItemUuid,
+  loadItemApplications,
+  loadAuthorNames,
+} from "@/lib/tags/server";
 import type { WorkspaceTag } from "@/lib/tags/types";
-import type { TagApplication } from "@/lib/tags/attribution";
+import { groupApplicationsByItem, type ItemTagLinkRow, type TagApplication } from "@/lib/tags/attribution";
 
 // GET /api/workspace/tags — list the caller's workspace tags with live item
 // counts (README "Workspace tags": the source for the + Tag popover and the
@@ -19,7 +25,7 @@ import type { TagApplication } from "@/lib/tags/attribution";
 // tags already applied to that one item, so the + Tag popover can render
 // a checkmark instead of a count next to an applied tag without a second
 // round trip (R6). With itemId it also returns `applications`: who applied
-// each of those tags and when (migration 360 / lane s8b-tag-attribution),
+// each of those tags and when (migration 313 created_by/created_at, lane s8b-tag-attribution),
 // so the chip's title and the tag list can read "applied by <name> on <date>".
 async function handleGET(request: NextRequest) {
   const auth = await requireUserRoute(request);
@@ -44,7 +50,7 @@ async function handleGET(request: NextRequest) {
 
   const { data: linkRows, error: linksErr } = await supabase
     .from("item_workspace_tags")
-    .select("tag_id, intelligence_item_id")
+    .select("tag_id, intelligence_item_id, created_by, created_at")
     .eq("org_id", orgId)
     .limit(5000); // fitness-allow: F38 (workspace tag-application count, bounded-by-design per workspace)
 
@@ -84,13 +90,23 @@ async function handleGET(request: NextRequest) {
   // Optional ?withItemTags=1: also return a full itemId -> tagIds map (list
   // rail facet + ListRow second-line tags) built from the SAME bounded
   // linkRows read above — no extra query.
+  // The same rows carry who applied each tag and when (migration 313 created_by / created_at), so the
+  // list rows show the same "applied by <name> on <date>" title as the detail chips (lane
+  // s8b-tag-attribution); one extra profiles lookup for the distinct authors.
   let itemTags: Record<string, string[]> | undefined;
+  let itemTagApplications: Record<string, TagApplication[]> | undefined;
   if (request.nextUrl.searchParams.get("withItemTags")) {
     const map: Record<string, string[]> = {};
-    for (const row of (linkRows ?? []) as { tag_id: string; intelligence_item_id: string }[]) {
+    const links = (linkRows ?? []) as ItemTagLinkRow[];
+    for (const row of links) {
       (map[row.intelligence_item_id] ??= []).push(row.tag_id);
     }
     itemTags = map;
+    const names = await loadAuthorNames(
+      supabase,
+      links.map((r) => r.created_by).filter((id): id is string => Boolean(id))
+    );
+    itemTagApplications = groupApplicationsByItem(links, names);
   }
 
   return NextResponse.json(
@@ -99,6 +115,7 @@ async function handleGET(request: NextRequest) {
       ...(appliedTagIds ? { appliedTagIds } : {}),
       ...(applications ? { applications } : {}),
       ...(itemTags ? { itemTags } : {}),
+      ...(itemTagApplications ? { itemTagApplications } : {}),
     },
     { headers: rateLimitHeaders(auth.userId) }
   );

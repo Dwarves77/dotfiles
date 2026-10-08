@@ -160,7 +160,7 @@ test("the gate runs FIRST: an unauthenticated request never reaches the org or t
   assert.equal("tags" in (await res.json()), false);
 });
 
-// ── Attribution (lane s8b-tag-attribution, 2026-10-07, migration 360) ───────────────────────────────
+// ── Attribution (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at) ───────────────────────────────
 const ITEM_UUID = "00000000-0000-4000-8000-000000000007";
 
 test("?itemId returns who applied each tag and when, with the author's name from the profile", async () => {
@@ -188,4 +188,18 @@ test("the attribution never carries an email address", async () => {
 test("without ?itemId there is no applications field (the list read stays as it was)", async () => {
   const body = await (await GET(request("Bearer valid-token"))).json();
   assert.equal("applications" in body, false);
+});
+
+test("?withItemTags=1 also returns itemTagApplications: per item, who applied each tag and when, no email", async () => {
+  const res = await GET(
+    new NextRequest("https://carosledge.com/api/workspace/tags?withItemTags=1", {
+      headers: { authorization: "Bearer valid-token" },
+    })
+  );
+  const body = await res.json();
+  assert.deepEqual(body.itemTags, { "item-1": ["tag-1"] });
+  assert.deepEqual(body.itemTagApplications, {
+    "item-1": [{ tagId: "tag-1", appliedBy: "user-ada", appliedByName: "Ada Lovelace", appliedAt: "2026-09-03T10:00:00Z" }],
+  });
+  assert.equal(JSON.stringify(body).includes("ada@example.com"), false);
 });

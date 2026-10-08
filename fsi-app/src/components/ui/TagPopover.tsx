@@ -16,7 +16,7 @@
  * Multi-select, stays open; the keyboard model (↑ ↓ / Enter / Esc /
  * Backspace) is tagPopoverKeyboard.ts, unit tested there.
  *
- * ATTRIBUTION (migration 360, lane s8b-tag-attribution): an applied row carries a second, muted
+ * ATTRIBUTION (migration 313 created_by/created_at, lane s8b-tag-attribution): an applied row carries a second, muted
  * line "applied by <name> on <date>" (truncated with the full text in its title), so a workspace
  * member sees who tagged the item and when without leaving the list.
  */

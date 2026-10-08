@@ -1,5 +1,5 @@
 /**
- * Workspace tag attribution (lane s8b-tag-attribution, 2026-10-07, migration 360 / plan Stage 8).
+ * Workspace tag attribution (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at / plan Stage 8).
  *
  * A workspace tag shows who applied it and when. Inside a workspace the members see each other's
  * names (the Community pseudonymity rules do not apply here), so the name is the profile's own
@@ -35,6 +35,24 @@ export interface TagLinkRow {
   tag_id: string;
   created_by: string | null;
   created_at: string | null;
+}
+
+/** A join row carrying its item, for the list-wide read. */
+export interface ItemTagLinkRow extends TagLinkRow {
+  intelligence_item_id: string;
+}
+
+/** Group a list-wide join-row read into item id -> that item's applications (list rows show the
+ *  same "applied by <name> on <date>" title as the detail chips). */
+export function groupApplicationsByItem(
+  rows: ItemTagLinkRow[],
+  nameById: ReadonlyMap<string, string | null>
+): Record<string, TagApplication[]> {
+  const out: Record<string, TagApplication[]> = {};
+  for (const row of rows) {
+    (out[row.intelligence_item_id] ??= []).push(...buildApplications([row], nameById));
+  }
+  return out;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

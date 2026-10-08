@@ -35,6 +35,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { DetailTagRow } from '@/components/ui/DetailTagRow';
 import { useWorkspaceTagsFacet } from '@/lib/tags/useWorkspaceTagsFacet';
+import { ListRow } from '@/components/ui/ListRow';
 
 // The rail facet's two reads, rendered plainly. ListSurfaceRailCards' "Workspace tags" group maps
 // over exactly \`tags\` (name + itemCount) and ListRow's \`tags\` prop is exactly \`tagsForItem(id)\`.
@@ -45,6 +46,18 @@ function RailFacetProbe({ itemUuid }) {
       React.createElement('li', { key: t.id, 'data-facet-tag': t.name }, t.name + ' ' + t.itemCount))),
     React.createElement('ul', null, facet.tagsForItem(itemUuid).map((t) =>
       React.createElement('li', { key: t.id, 'data-row-tag': t.name }, t.name))),
+    // The REAL list row, fed by the same hook the five ledgers use (lane s8b-tag-attribution, 2026-10-07):
+    // its workspace-tag chips must carry the same "applied by <name> on <date>" title as the detail chips.
+    React.createElement('div', { 'data-audit': 'listrow' },
+      React.createElement(ListRow, {
+        href: '#',
+        band: 'action',
+        jurisdiction: 'EU',
+        title: 'Packaging and packaging waste regulation',
+        meta: 'Regulation · Ocean · emissions',
+        tier: 1,
+        tags: facet.tagsForItem(itemUuid),
+      })),
   );
 }
 
@@ -68,7 +81,7 @@ const ITEM_ID = 'r7';
 const ITEM_UUID = '00000000-0000-4000-8000-000000000007';
 const APPLIED = { id: 'tag-applied', orgId: 'org-1', name: 'Board pack', itemCount: 3, createdAt: '2026-09-01T00:00:00Z' };
 const UNAPPLIED = { id: 'tag-unapplied', orgId: 'org-1', name: 'Q4 review', itemCount: 1, createdAt: '2026-09-02T00:00:00Z' };
-// Lane s8b-tag-attribution (2026-10-07, migration 360): a workspace tag shows who applied it and when. The
+// Lane s8b-tag-attribution (2026-10-07, migration 313 created_by/created_at): a workspace tag shows who applied it and when. The
 // third tag carries a deliberately long author name so the 375 pass proves the attribution line truncates
 // inside the 280px panel instead of widening it.
 const LONG_AUTHOR = 'Alexandria Bartholomew Montgomery-Featherstonehaugh the Third';
@@ -110,7 +123,8 @@ function tagsApi(seen) {
         const appliedTagIds = [...state.applied];
         const itemTags = { [ITEM_UUID]: appliedTagIds };
         const applications = appliedTagIds.map((tagId) => ({ tagId, ...state.applications[tagId] }));
-        route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tags, appliedTagIds, applications, itemTags }) });
+        const itemTagApplications = { [ITEM_UUID]: applications };
+        route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tags, appliedTagIds, applications, itemTags, itemTagApplications }) });
       },
     },
     {
@@ -179,7 +193,7 @@ export async function runSmoke(browser) {
     failures.push(`workspace-tags: the + Tag popover listed ${options.length} option(s), expected both workspace tags.`);
   }
 
-  // ── ATTRIBUTION (migration 360): the chip's title and the tag list say who applied it and when ──
+  // ── ATTRIBUTION (migration 313 created_by/created_at): the chip's title and the tag list say who applied it and when ──
   const chipTitles = await page.$$eval('[data-audit="tagrow"] [data-part="chip-workspace-tag"][title]', (els) =>
     els.map((e) => ({ text: (e.textContent || '').trim(), title: e.getAttribute('title') })));
   checks++;
@@ -194,6 +208,19 @@ export async function runSmoke(browser) {
   checks++;
   if (listLines.length !== 2) {
     failures.push(`workspace-tags: ${listLines.length} attribution lines rendered for 2 applied tags (an unapplied tag must carry none).`);
+  }
+
+  // List rows (the five ledgers and the watchlist) carry the same title on their tag chips.
+  const rowChips = await page.$$eval('[data-audit="listrow"] [data-part="chip-workspace-tag"]', (els) =>
+    els.map((e) => ({ text: (e.textContent || '').trim(), title: e.getAttribute('title') })));
+  checks++;
+  if (rowChips.length === 0) {
+    failures.push('workspace-tags: the list row rendered no workspace-tag chips.');
+  } else if (rowChips.some((c) => !c.title)) {
+    failures.push(`workspace-tags: a list-row tag chip has no attribution title (${JSON.stringify(rowChips)}).`);
+  } else if (!rowChips.some((c) => c.text.startsWith(APPLIED.name) && c.title === ADA_TEXT) ||
+             !rowChips.some((c) => c.text.startsWith(LONG.name) && c.title === LONG_TEXT)) {
+    failures.push(`workspace-tags: list-row tag chip titles are ${JSON.stringify(rowChips)}, expected "${ADA_TEXT}" and "${LONG_TEXT}".`);
   }
 
   // 375 pass: the long author name must truncate inside the 280px panel, never widen it or the page.

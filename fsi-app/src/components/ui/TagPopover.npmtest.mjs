@@ -42,7 +42,7 @@ test("the popover panel (role=\"listbox\") is NOT gated on `controlled` — it s
   assert.ok(lastOpenGate > lastControlledGate, "the listbox panel must be gated on `open`, not nested inside the `!controlled` trigger block");
 });
 
-// ── Attribution (lane s8b-tag-attribution, 2026-10-07, migration 360) ───────────────────────────────
+// ── Attribution (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at) ───────────────────────────────
 // Structural: there is no JSX render harness here, so the render itself is proven by the workspace-tags
 // smoke spec (.discipline/rendering/smoke/workspace-tags-smoke.mjs) in a real browser at 375 and 1280.
 

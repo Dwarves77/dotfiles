@@ -1,4 +1,4 @@
-// Structural proof for the tag chip title (lane s8b-tag-attribution, 2026-10-07, migration 360). No JSX
+// Structural proof for the tag chip title (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at). No JSX
 // render harness exists in this repo, so this reads the sources; the render itself is proven in a real
 // browser by .discipline/rendering/smoke/workspace-tags-smoke.mjs.
 import { test } from "node:test";
@@ -22,4 +22,11 @@ test("WorkspaceTagPill puts an optional title on the chip itself and keeps the d
   assert.match(body, /title\?: string;/);
   assert.match(body, /data-part="chip-workspace-tag"\s+title=\{title\}/);
   assert.match(body, /aria-label=\{`Remove tag \$\{name\}`\}/);
+});
+
+const HOOK = readFileSync(resolve(HERE, "..", "..", "lib", "tags", "useWorkspaceTagsFacet.ts"), "utf8");
+
+test("the facet hook turns itemTagApplications into the title on every row tag", () => {
+  assert.match(HOOK, /itemTagApplications\?: Record<string, TagApplication\[\]>;/);
+  assert.match(HOOK, /title: attributionText\(\(itemTagApplications\[itemId\] \?\? \[\]\)\.find\(\(a\) => a\.tagId === t\.id\)\) \?\? undefined,/);
 });

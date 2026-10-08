@@ -1,4 +1,4 @@
-// Route-level proof of the tag-attribution write (lane s8b-tag-attribution, 2026-10-07, migration 360):
+// Route-level proof of the tag-attribution write (lane s8b-tag-attribution, 2026-10-07, migration 313 created_by/created_at):
 // PUT /api/workspace/tags/[id]/items stamps the applying member from the SESSION, ignores any author the
 // request body claims (the attack), and keeps the first applier on a repeat apply. The route file is the
 // real one; only its module dependencies are substituted by jiti aliases (the same technique as
