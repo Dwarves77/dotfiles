@@ -295,9 +295,13 @@ BEGIN
     END;
 
     IF v_ready THEN
+      -- profiles.region is text[] NOT NULL DEFAULT '{}' (migration 105): u1 omits it so the default applies, u2 and u3
+      -- give arrays. Never an explicit NULL.
+      INSERT INTO public.profiles (id, email, display_name, full_name, job_title) VALUES
+        (v_u1, v_e1, 'Sec5 One', 'Sec5 One', 'Ops lead');
       INSERT INTO public.profiles (id, email, display_name, full_name, job_title, region) VALUES
-        (v_u1, v_e1, 'Sec5 One', 'Sec5 One', 'Ops lead', NULL),
-        (v_u2, 'sec5-u2-' || replace(v_u2::text, '-', '') || '@selfcheck.invalid', 'Sec5 Two', 'Sec5 Two', 'Analyst', ARRAY['EU']),
+        (v_u2, 'sec5-u2-' || replace(v_u2::text, '-', '') || '@selfcheck.invalid', 'Sec5 Two', 'Sec5 Two', 'Analyst', ARRAY['EU']);
+      INSERT INTO public.profiles (id, email, display_name, full_name, job_title, region) VALUES
         (v_u3, 'sec5-u3-' || replace(v_u3::text, '-', '') || '@selfcheck.invalid', 'Sec5 Three', 'Sec5 Three', 'Buyer', ARRAY['EU', 'UK']);
       INSERT INTO public.organizations (id, name, slug) VALUES
         (v_oa, 'Sec5 Org A', 'sec5-a-' || replace(v_oa::text, '-', '')),
@@ -374,7 +378,12 @@ BEGIN
       END IF;
 
       -- region: u3 has no community region and a two-element profiles.region array (joined string); u2 has a
-      -- community region, which wins over its one-element profiles.region array (and anonymity does not hide it).
+      -- community region, which wins over its one-element profiles.region array (and anonymity does not hide it); u1
+      -- has no community region and an empty profiles.region ('{}': array_to_string gives '', nullif makes it NULL).
+      SELECT count(*), max(region) INTO v_n, v_text FROM public.community_identity(ARRAY[v_u1], NULL);
+      IF v_n <> 1 OR v_text IS NOT NULL THEN
+        RAISE EXCEPTION 'ABORT: community_identity region must be NULL when the community region is null and profiles.region is empty (rows=%, got %)', v_n, v_text;
+      END IF;
       SELECT region INTO v_text FROM public.community_identity(ARRAY[v_u3], NULL);
       IF v_text IS DISTINCT FROM 'EU, UK' THEN
         RAISE EXCEPTION 'ABORT: community_identity region for a null community region must be the joined profiles.region array (got %)', v_text;

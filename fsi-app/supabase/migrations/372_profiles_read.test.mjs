@@ -15,6 +15,7 @@ const HERE = fileURLToPath(new URL(".", import.meta.url));
 const SRC = join(HERE, "..", "..", "src");
 const RAW = readFileSync(join(HERE, "372_profiles_read.sql"), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
+const read = (name) => readFileSync(join(HERE, name), "utf8");
 const read293 = () => readFileSync(join(HERE, "293_community_identity_and_guard.sql"), "utf8");
 const src = (rel) => readFileSync(join(SRC, rel), "utf8");
 
@@ -153,6 +154,113 @@ test("the self-check proves the region join: a null community region falls back 
   assert.ok(SQL.includes("ARRAY['EU', 'UK']"), "a fixture profile with a two-element region array");
   assert.ok(SQL.includes("v_text IS DISTINCT FROM 'EU, UK'"), "asserts the joined string");
   assert.ok(SQL.includes("v_text IS DISTINCT FROM 'APAC'"), "asserts the community region wins");
+});
+
+// ---- the self-check fixtures against the live definitions in the migration tree -----------------------------------
+// Apply 2 aborted on a fixture row (23502: profiles.region is text[] NOT NULL DEFAULT '{}' and the fixture inserted an
+// explicit NULL). Each fixture INSERT is parsed here and every value is checked against the NOT NULL, default, CHECK
+// and FK facts of the table, each fact itself read from the creating migration so the table below cannot drift.
+
+function insertBlocks(table) {
+  const out = [];
+  const re = new RegExp("INSERT INTO public\\." + table + " \\(([^)]*)\\) VALUES([^;]*);", "g");
+  for (const m of SQL.matchAll(re)) out.push({ cols: m[1].split(",").map((c) => c.trim()), values: m[2] });
+  return out;
+}
+
+test("fixture profiles rows: the NOT NULL region is never given an explicit NULL (omitted so the default applies, or an array)", () => {
+  assert.match(read("105_profiles_projection.sql"), /ALTER COLUMN region SET DEFAULT '\{\}',\s+ALTER COLUMN region SET NOT NULL/);
+  const blocks = insertBlocks("profiles");
+  assert.ok(blocks.length >= 3, "one INSERT per fixture shape (no region, one element, two elements)");
+  for (const b of blocks) {
+    if (!b.cols.includes("region")) continue;
+    assert.doesNotMatch(b.values, /,\s*NULL\s*\)/, "an explicit NULL in the region position of a profiles fixture");
+    assert.match(b.values, /ARRAY\[/);
+  }
+  const noRegion = blocks.filter((b) => !b.cols.includes("region"));
+  assert.equal(noRegion.length, 1, "exactly one fixture profile omits region, so the default '{}' applies");
+  assert.ok(noRegion[0].values.includes("v_u1"));
+});
+
+test("fixture profiles rows: every column written exists with a compatible type, and every NOT NULL column without a default is written or defaulted", () => {
+  const m001 = read("001_schema.sql");
+  const m007 = read("007_community_layer.sql");
+  const m075 = read("075_profiles_consolidation_phase1.sql");
+  // (column, how it is satisfied, evidence regex over the creating migration)
+  const facts = [
+    ["id", "written; uuid PK DEFAULT gen_random_uuid(); live FK to auth.users, so the fixture inserts auth.users first", m001, /CREATE TABLE profiles \(\s+id\s+UUID PRIMARY KEY DEFAULT gen_random_uuid\(\)/],
+    ["email", "written; text, UNIQUE, nullable (a per-user random address)", m001, /email\s+TEXT UNIQUE/],
+    ["display_name", "written; text, nullable", m001, /display_name TEXT,/],
+    ["full_name", "written; text, nullable", m007, /ADD COLUMN IF NOT EXISTS full_name TEXT/],
+    ["job_title", "written; text, nullable", m007, /ADD COLUMN IF NOT EXISTS job_title TEXT/],
+    ["role", "omitted; NOT NULL DEFAULT 'viewer'", m001, /role\s+TEXT NOT NULL DEFAULT 'viewer'/],
+    ["settings", "omitted; NOT NULL DEFAULT '{}'", m001, /settings\s+JSONB NOT NULL DEFAULT '\{\}'/],
+    ["created_at", "omitted; NOT NULL DEFAULT NOW()", m001, /created_at\s+TIMESTAMPTZ NOT NULL DEFAULT NOW\(\)/],
+    ["timezone", "omitted; NOT NULL DEFAULT 'UTC'", m075, /ADD COLUMN IF NOT EXISTS timezone text NOT NULL DEFAULT 'UTC'/],
+    ["sector_overrides", "omitted; NOT NULL DEFAULT '{}'", m075, /sector_overrides text\[\] NOT NULL DEFAULT '\{\}'/],
+    ["jurisdiction_overrides", "omitted; NOT NULL DEFAULT '{}'", m075, /jurisdiction_overrides text\[\] NOT NULL DEFAULT '\{\}'/],
+    ["transport_mode_overrides", "omitted; NOT NULL DEFAULT '{}'", m075, /transport_mode_overrides text\[\] NOT NULL DEFAULT '\{\}'/],
+    ["verifier_status", "omitted; NOT NULL DEFAULT 'none', CHECK none/pending/active/revoked", m075, /verifier_status text NOT NULL DEFAULT 'none'/],
+    ["is_platform_admin", "omitted; NOT NULL DEFAULT false (and the 364 guard refuses a non-default insert by an unsanctioned role)", m075, /is_platform_admin boolean NOT NULL DEFAULT false/],
+    ["sector", "omitted; NOT NULL DEFAULT '{}'", read("105_profiles_projection.sql"), /sector TEXT\[\] NOT NULL DEFAULT '\{\}'/],
+    ["region", "written or omitted; text[] NOT NULL DEFAULT '{}'", read("105_profiles_projection.sql"), /ALTER COLUMN region SET DEFAULT '\{\}'/],
+  ];
+  for (const [col, , text, re] of facts) assert.match(text, re, "profiles." + col + " fact not found in its creating migration");
+  const written = new Set(insertBlocks("profiles").flatMap((b) => b.cols));
+  for (const c of written) assert.ok(facts.some(([col]) => col === c), "profiles." + c + " is written by a fixture but has no checked fact");
+  assert.deepEqual([...written].sort(), ["display_name", "email", "full_name", "id", "job_title", "region"]);
+  // every other profile column the fixture does not write has a default or is nullable: the 075 CHECK on verifier_status is satisfied by its default
+  assert.match(m075, /CHECK \(verifier_status IN \('none', 'pending', 'active', 'revoked'\)\)/);
+});
+
+test("fixture community_member_profiles rows satisfy NOT NULL, CHECK and the verified-has-method constraint of migration 293", () => {
+  const m293 = read293();
+  const orgTypes = [...m293.match(/org_type\s+text NOT NULL\s+CHECK \(org_type IN \(([^)]*)\)\)/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const regions = [...m293.match(/region\s+text\s+CHECK \(region IS NULL OR region IN \(([^)]*)\)\)/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const methods = [...m293.match(/verification_method text CHECK \(verification_method IS NULL OR verification_method IN \(([^)]*)\)\)/)[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.match(m293, /CHECK \(verified = false OR \(verified_at IS NOT NULL AND verification_method IS NOT NULL AND organisation_key IS NOT NULL\)\)/);
+  assert.match(m293, /user_id\s+uuid PRIMARY KEY REFERENCES auth\.users\(id\)/);
+  assert.match(m293, /verified\s+boolean\s+NOT NULL DEFAULT false/);
+  assert.match(read("336_community_anonymity_opt_in.sql"), /default_anonymous boolean NOT NULL DEFAULT false/);
+  const blocks = insertBlocks("community_member_profiles");
+  assert.equal(blocks.length, 1);
+  const cols = blocks[0].cols;
+  assert.deepEqual(cols, ["user_id", "org_type", "region", "verified", "verified_at", "verification_method", "organisation_key", "default_anonymous"]);
+  const rows = [...blocks[0].values.matchAll(/\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g)].map((m) => m[1].split(/,(?![^(]*\))/).map((x) => x.trim()));
+  assert.equal(rows.length, 2);
+  const unq = (v) => (v.startsWith("'") ? v.slice(1, -1) : v);
+  for (const r of rows) {
+    const row = Object.fromEntries(cols.map((c, i) => [c, r[i]]));
+    assert.ok(orgTypes.includes(unq(row.org_type)), "org_type " + row.org_type + " violates the CHECK");
+    if (row.region !== "NULL") assert.ok(regions.includes(unq(row.region)), "region " + row.region + " violates the CHECK");
+    assert.ok(["true", "false"].includes(row.verified) && ["true", "false"].includes(row.default_anonymous), "NOT NULL booleans are literal");
+    if (row.verification_method !== "NULL") assert.ok(methods.includes(unq(row.verification_method)), "verification_method violates the CHECK");
+    if (row.verified === "true") {
+      assert.notEqual(row.verified_at, "NULL");
+      assert.notEqual(row.verification_method, "NULL");
+      assert.notEqual(row.organisation_key, "NULL");
+    }
+  }
+});
+
+test("fixture organizations and org_memberships rows satisfy NOT NULL, UNIQUE, the role CHECK and the profiles FK", () => {
+  const m006 = read("006_multi_tenant.sql");
+  assert.match(m006, /CREATE TABLE organizations \([\s\S]*?name\s+TEXT NOT NULL,\s+slug\s+TEXT UNIQUE NOT NULL,\s+plan\s+TEXT NOT NULL DEFAULT 'free'/);
+  assert.match(m006, /CREATE TABLE org_memberships \([\s\S]*?org_id\s+UUID NOT NULL REFERENCES organizations\(id\)[\s\S]*?user_id\s+UUID NOT NULL,[\s\S]*?CHECK \(role IN \('owner', 'admin', 'member', 'viewer'\)\)[\s\S]*?UNIQUE\(org_id, user_id\)/);
+  assert.match(read("075_profiles_consolidation_phase1.sql"), /org_memberships_user_id_fkey/);
+  const orgs = insertBlocks("organizations")[0];
+  assert.deepEqual(orgs.cols, ["id", "name", "slug"], "plan is omitted so the 370 plan guard sees the free default");
+  const mem = insertBlocks("org_memberships")[0];
+  assert.deepEqual(mem.cols, ["org_id", "user_id", "role"]);
+  assert.ok(/'member'/.test(mem.values) && !/'owner'/.test(mem.values), "no owner insert (the 370 membership guard is for unsanctioned roles only; the fixture stays plain)");
+  // profiles rows are inserted before the memberships that reference them
+  assert.ok(SQL.indexOf("INSERT INTO public.profiles") < SQL.indexOf("INSERT INTO public.org_memberships"));
+  assert.ok(SQL.indexOf("INSERT INTO auth.users") < SQL.indexOf("INSERT INTO public.profiles"));
+});
+
+test("the self-check proves an empty profiles.region with a null community region returns a NULL region", () => {
+  assert.ok(SQL.includes("v_text IS NOT NULL"), "asserts NULL, not an empty string");
+  assert.ok(SQL.includes("must be NULL when the community region is null and profiles.region is empty"));
 });
 
 test("self-check attacks as anon, authenticated and service_role with fixture subs, and rolls back", () => {

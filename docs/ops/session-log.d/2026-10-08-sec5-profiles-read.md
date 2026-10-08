@@ -136,3 +136,39 @@ Own-row readers of the flag through the user session that must move to `my_profi
   Non-coalesce type edges also read: `p.job_title` text (007), `p.avatar_url` text (007), `p.org_id` uuid against `organizations.id` uuid (006, 105), `m.created_at` timestamptz and `m.id` uuid (006), `b.id = ANY(p_ids[1:200])` uuid against uuid[]; the result columns are cast to text where the source could be a varchar. The static test now asserts the region expression, the absence of the old form, and each of these source types against the creating migration files.
 - Red then green: with the static test updated first, 2 of 21 failed (the region expression and the self-check legs absent); after the SQL change 21 of 21 pass; attacks suite unaffected (97 of 97 with it).
 - What this does not prove: the function body has still never executed against Postgres from this lane (none on this machine). The type review above is by reading; the apply-time self-check is the execution.
+
+## Follow-up commit: second apply abort, explicit NULL in the profiles fixture (coordinator report, 2026-10-08)
+
+- [CONFIRMED by the apply attempt] Migration 372 aborted a second time, in the self-check fixture `INSERT INTO public.profiles`: 23502, `profiles.region` is `text[] NOT NULL DEFAULT '{}'` (migration 105) and my first follow-up put an explicit `NULL` in the region position of the u1 row. My mistake, made while fixing the first abort: I added the region column to the fixture without reading the column's NOT NULL in the same file I had just cited for its type. Apply 2 passed the `auth.users` insert, so that fixture shape is now confirmed to work live.
+- Fix: u1's profiles row omits `region` (the default `'{}'` applies), u2 gives `ARRAY['EU']`, u3 gives `ARRAY['EU','UK']`, three separate INSERTs. New leg: for u1 (community region null, profiles.region `'{}'`), `community_identity` returns a NULL region (`array_to_string('{}')` is `''`, `nullif` makes it NULL).
+- Every fixture column against the migration tree (live definitions as written in the creating migrations; the FK `profiles_id_auth_users_fkey` exists live and is declared in no repo migration, which is why `auth.users` rows are inserted first):
+
+| Table.column | Fixture value | Definition (migration) | Satisfied |
+|---|---|---|---|
+| profiles.id | `gen_random_uuid()` var | uuid PK default gen_random_uuid() (001); FK to auth.users (live) | yes, auth.users row inserted first |
+| profiles.email | `sec5-uN-<hex>@selfcheck.invalid` | text UNIQUE, nullable (001) | yes, unique per user |
+| profiles.display_name | 'Sec5 One/Two/Three' | text, nullable (001) | yes |
+| profiles.full_name | same | text, nullable (007) | yes |
+| profiles.job_title | 'Ops lead' / 'Analyst' / 'Buyer' | text, nullable (007) | yes |
+| profiles.region | omitted / `ARRAY['EU']` / `ARRAY['EU','UK']` | text[] NOT NULL DEFAULT '{}' (105) | yes, no explicit NULL |
+| profiles.role | omitted | text NOT NULL DEFAULT 'viewer' (001) | default |
+| profiles.settings, created_at, updated_at | omitted | NOT NULL with defaults (001) | default |
+| profiles.timezone, sector_overrides, jurisdiction_overrides, transport_mode_overrides, sector | omitted | NOT NULL with defaults 'UTC' / '{}' (075, 105) | default |
+| profiles.verifier_status | omitted | text NOT NULL DEFAULT 'none', CHECK none/pending/active/revoked (075) | default satisfies CHECK |
+| profiles.is_platform_admin | omitted | boolean NOT NULL DEFAULT false (075); 364 guard refuses a non-default INSERT from an unsanctioned role | default |
+| profiles.org_id, workspace_role | omitted | nullable; workspace_role CHECK allows NULL (105) | NULL allowed; 364 guard allows NULL on INSERT |
+| community_member_profiles.user_id | the profile id | uuid PK, FK auth.users (293) | yes |
+| community_member_profiles.org_type | 'other' / 'forwarder' | text NOT NULL, CHECK in the nine-value list (293) | both in the list |
+| community_member_profiles.region | NULL / 'APAC' | text nullable, CHECK region IS NULL OR in (EU, UK, US, LATAM, APAC, HK, MEA, GLOBAL) (293) | yes |
+| community_member_profiles.verified | false / true | boolean NOT NULL DEFAULT false (293) | yes |
+| community_member_profiles.verified_at, verification_method, organisation_key | NULL x3 (u1, verified false) / now(), 'write-in', 'sec5-selfcheck' (u2, verified true) | CHECK verified = false OR all three NOT NULL; method CHECK in (corporate-email, linkedin, write-in) (293) | yes, both rows |
+| community_member_profiles.default_anonymous | false / true | boolean NOT NULL DEFAULT false (336) | yes |
+| community_member_profiles (370 trigger) | INSERT by the apply role | `community_member_profiles_verification_guard` refuses a verified insert from an unsanctioned role; `is_sanctioned_writer` allows current_user postgres, supabase_admin, service_role or the table owner | [HYPOTHESIS] the apply role is one of those; it was for 364 and 367 |
+| organizations.id, name, slug | uuid var, 'Sec5 Org A/B', 'sec5-a/b-<hex>' | id uuid PK default; name text NOT NULL; slug text UNIQUE NOT NULL (006) | yes |
+| organizations.plan | omitted | text NOT NULL DEFAULT 'free', CHECK free/pro/enterprise (006); 370 plan guard requires 'free' on INSERT for unsanctioned roles | default |
+| org_memberships.org_id, user_id, role | org uuid, profile uuid, 'member' | org_id NOT NULL FK organizations; user_id NOT NULL, FK profiles(id) (075); role CHECK owner/admin/member/viewer; UNIQUE(org_id, user_id) (006) | yes, profiles inserted first; 'member' not 'owner' |
+| org_memberships (191 trigger) | INSERT | ban guard looks up org_member_bans for (org, user); none exist for fresh uuids | yes |
+
+- The static test now parses each fixture INSERT in the migration and asserts: no explicit NULL in any profiles region position and exactly one profiles fixture omitting region; the set of columns written equals the set with a checked fact, each fact matched in its creating migration file; community_member_profiles values are in the org_type, region and verification_method CHECK lists with the verified-has-method rule satisfied row by row; organizations and org_memberships columns, UNIQUE, role CHECK and FK order. The same fixture inserts in `attacks.json` (community_member_profiles, org_memberships) use values that satisfy the same list.
+- Red then green: with the static test written first, 2 of 26 failed (the explicit-NULL fixture and the empty-region leg absent); the other three new tests passed on the old SQL because they check facts the old SQL already satisfied. After the SQL change 26 of 26 pass; with the attacks suite 102 of 102.
+- Still not proven by execution from this lane: the rest of the self-check body after the profiles inserts has never run. I re-read every statement after the fixture block for the same class of error (type, NOT NULL, ambiguous call, assignment of a count into a boolean) and found none further; the apply is the test.
