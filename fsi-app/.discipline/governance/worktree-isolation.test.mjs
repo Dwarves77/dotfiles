@@ -156,3 +156,60 @@ test('WIRING: post-checkout + pre-commit hook scripts invoke the runner; runner 
   const gate = read('fsi-app/.discipline/governance/pretooluse-skill-gate.mjs');
   assert.match(gate, /isBranchingGitCommand/);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+import { branchLooksLaneOwned } from './worktree-isolation.mjs';
+
+test('B7-28: a commit on a lane branch in the MAIN checkout is blocked with the child-session variable absent, 0, false or empty', () => {
+  for (const env of [{}, { CLAUDE_CODE_CHILD_SESSION: '0' }, { CLAUDE_CODE_CHILD_SESSION: 'false' }, { CLAUDE_CODE_CHILD_SESSION: '' }]) {
+    const v = evaluateCommit({ ...MAIN, env, branch: 'lane/gate8-x' });
+    assert.equal(v.blocked, true, JSON.stringify(env));
+    assert.equal(v.laneBranch, true);
+    assert.match(v.reason, /lane branch/);
+  }
+  // the same commit inside the lane's own worktree passes, and the orchestrator on master in main passes
+  assert.equal(evaluateCommit({ ...WORKTREE, env: {}, branch: 'lane/gate8-x' }).blocked, false);
+  assert.equal(evaluateCommit({ ...MAIN, env: {}, branch: 'master' }).blocked, false);
+});
+
+test('B7-28: HEAD arriving on a lane branch in the MAIN checkout raises the post-checkout alarm even for a non-child session', () => {
+  const v = evaluateCheckout({ ...MAIN, env: {}, branch: 'lane/gate8-x' });
+  assert.equal(v.blocked, true);
+  assert.match(v.reason, /lane branch/);
+  assert.equal(evaluateCheckout({ ...WORKTREE, env: {}, branch: 'lane/gate8-x' }).blocked, false);
+  assert.equal(evaluateCheckout({ ...MAIN, env: {}, branch: 'master' }).blocked, false);
+  assert.equal(branchLooksLaneOwned('lane/x'), true);
+  assert.equal(branchLooksLaneOwned('coord/x'), false);
+});
+
+test('B7-29: a main checkout whose parent path contains a segment named worktrees is still the main checkout', () => {
+  const nested = { gitDir: '/work/worktrees/repo/.git', gitCommonDir: '/work/worktrees/repo/.git' };
+  assert.equal(isMainCheckout(nested), true);
+  assert.equal(evaluateCommit({ ...nested, env: { CLAUDE_CODE_CHILD_SESSION: '1' }, branch: 'guard/x' }).blocked, true);
+  // without common-dir information, only the exact <repo>/.git/worktrees/<name> shape is a linked worktree
+  assert.equal(isMainCheckout({ gitDir: '/work/worktrees/repo/.git' }), true);
+  assert.equal(isMainCheckout({ gitDir: '/sandbox/repo/.git/worktrees/agent-abc' }), false);
+  // a linked worktree is still recognised through the common dir
+  assert.equal(isMainCheckout({ gitDir: '/work/worktrees/repo/.git/worktrees/wt1', gitCommonDir: '/work/worktrees/repo/.git' }), false);
+});
+
+test('B7-30: the git verbs that move HEAD or a ref are branching commands, in every honest spelling', () => {
+  for (const c of [
+    'git reset --hard origin/master',
+    'git restore --source=origin/master .',
+    'git cherry-pick abc123',
+    'git revert HEAD',
+    'git pull origin master',
+    'git update-ref refs/heads/x HEAD',
+    'git symbolic-ref HEAD refs/heads/x',
+    'git commit-tree -p HEAD -m x TREE',
+    'git.exe checkout main',
+    'git -c core.pager=cat checkout main',
+    'git --no-pager -C /repo merge x',
+  ]) {
+    assert.equal(isBranchingGitCommand(c), true, `should match: ${c}`);
+  }
+  for (const c of ['git status', 'git log --oneline', 'git diff', 'git show HEAD', 'git commit -m "reset the cherry-pick notes"', 'git fetch origin']) {
+    assert.equal(isBranchingGitCommand(c), false, `should NOT match: ${c}`);
+  }
+});

@@ -65,7 +65,7 @@ const CITATION_WINDOW = 800;
 // Skills this module has consciously decided it cannot reach in this repo (see header). Register such a
 // skill in PINNED_MANIFEST with `skillPath: null`; checkDrift() then requires it to be present here (so a
 // silently-unresolvable citation cannot pass by accident) but never looks for a file on disk for it.
-export const ACCOUNT_LEVEL_SKILLS = [];
+const ACCOUNT_LEVEL_SKILLS = [];
 
 // ---------------------------------------------------------------------------------------------------------
 // PINNED MANIFEST: the registry of governing skills this gate watches, by skillPath only (plan 6.8 Rule
@@ -247,11 +247,6 @@ export function checkManifestDrift(manifest, repoRoot, accountLevelSkills = ACCO
  *  the range-based acknowledgment rule was deleted by lane GATE-3, 2026-10-08). */
 export function checkDrift(repoRoot = REPO) {
   return checkManifestDrift(PINNED_MANIFEST, repoRoot);
-}
-
-/** Convenience boolean for callers that just need pass/fail. */
-export function isSkillContractClean(repoRoot = REPO) {
-  return checkDrift(repoRoot).ok;
 }
 
 // ---- CLI (operator utility, mirrors skill-map.mjs's --list/--check style) ----

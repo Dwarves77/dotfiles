@@ -220,8 +220,9 @@ const headerNeverApplied = sqlFiles.filter((f) => {
   return cls === "never-applied" || (cls == null && declaresNotApplied(text));
 }).sort();
 
-test("the map covers all 365 ledger rows, every value has name and class, and every named file exists", () => {
-  assert.equal(versions.length, 365);
+test("the map covers every ledger row the committed applied-migrations inventory lists, every value has name and class, and every named file exists", () => {
+  // The expected count is the committed inventory's own count (synced from the ledger by sync-applied-migrations.mjs), not a literal that every apply breaks.
+  assert.equal(versions.length, JSON.parse(readFileSync(join(MIG_DIR, "..", "..", "docs", "inventories", "applied-migrations.json"), "utf8")).count);
   for (const v of versions) {
     const e = map[v];
     assert.ok(typeof e.name === "string" && typeof e.class === "string", v);

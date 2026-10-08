@@ -52,7 +52,7 @@ export function buildResolutionNote(entry, todayIso) {
 }
 
 /** Real default artifact writer; injectable for tests. */
-export function writeArtifactFile(outDir, name, json) {
+function writeArtifactFile(outDir, name, json) {
   mkdirSync(outDir, { recursive: true });
   const file = resolve(outDir, name);
   writeFileSync(file, JSON.stringify(json, null, 2) + "\n");

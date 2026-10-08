@@ -114,3 +114,22 @@ test('a REAL git worktree at a temp path outside the repo yields no drift (a not
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+// ---- lane GATE-8 (2026-10-08): AUD-AT-4 B7-35, red then green ----
+import { consistencyCheck } from './C4-worktrees-reality.mjs';
+
+test('C4 B7-35: under CI the disk-to-inventory direction still runs, so an unlisted worktree inside the repository path is drift', () => {
+  const root = '/fixture-home/user/dotfiles';
+  const live = [root, `${root}/unlisted-inside`];
+  const ci = consistencyCheck.run({ ci: true, liveWorktrees: live, repoRoot: root });
+  assert.ok(Array.isArray(ci) && ci.length === 1, `CI mode must see the unlisted worktree: ${JSON.stringify(ci)}`);
+  assert.match(ci[0].detail, /unlisted-inside/);
+  const local = consistencyCheck.run({ ci: false, liveWorktrees: live, repoRoot: root });
+  assert.ok(local.some((d) => /unlisted-inside/.test(d.detail)), 'locally it is drift too');
+});
+
+test('C4 B7-35: under CI the inventory-to-disk direction is skipped (a runner has none of the developer worktree directories)', () => {
+  const root = '/fixture-home/user/dotfiles';
+  const drifts = consistencyCheck.run({ ci: true, liveWorktrees: [root], repoRoot: root });
+  assert.ok(!drifts.some((d) => /no matching directory exists/.test(d.detail)), JSON.stringify(drifts));
+});

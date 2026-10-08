@@ -128,7 +128,7 @@ function walkCrons(root, configFiles) {
 }
 
 // ── the content-fetch audit (surface-enumerated) ──────────────────────────────
-export const FETCH_AUDIT_METHOD =
+const FETCH_AUDIT_METHOD =
   "content-fetch drift audit (surface-enumerated; AST noRawSourceFetch + findRawSourceFetch text-lint)";
 
 export function auditContentFetch(root, { canonicalToken = "browserlessRender" } = {}) {

@@ -23,9 +23,10 @@ const checkList = (constraint) => {
   return listIn(m[1]);
 };
 
-test("header: subject line first, states NOT APPLIED, names the migrations it requires and the direction of a relation", () => {
+test("header: subject line first, states APPLIED with the ledger version, names the migrations it requires and the direction of a relation", () => {
   assert.match(RAW, /^-- subject: Migration 377 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008134702, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   for (const n of ["282", "284", "352"]) assert.match(RAW, new RegExp(`migration ${n}`));
   assert.match(RAW, /relation names the CHILD's role toward the PARENT/);
 });

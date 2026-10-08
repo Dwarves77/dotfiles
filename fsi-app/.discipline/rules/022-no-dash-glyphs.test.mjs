@@ -269,6 +269,46 @@ test('022 check: FAIL (attack) for an added dash in an undated handoff-notes fol
   assert.equal(rule.check(ctx).status, 'FAIL');
 });
 
+// ---------------------------------------------------------------------------
+// Check: design-audit generator output exemption (lane DAUDIT-1, coordinator ruling 2026-10-08)
+// ---------------------------------------------------------------------------
+
+const GENERATED_AUDIT_PATHS = [
+  'fsi-app/.discipline/rendering/audit/results.json',
+  'docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md',
+];
+
+for (const path of GENERATED_AUDIT_PATHS) {
+  test(`022 check: PASS for an added dash in generator output ${path}`, () => {
+    const ctx = buildContextFromFixture({
+      message: 'audit: regenerate',
+      files: [{ path, additions: 1, deletions: 0 }],
+      addedLines: { [path]: [`spec prose ${EM_DASH} copied verbatim`] },
+    });
+    assert.equal(rule.trigger(ctx), false);
+    assert.equal(rule.check(ctx).status, 'PASS');
+  });
+}
+
+for (const path of [
+  'docs/design/handoff-2026-09-06/DEVIATION-LOG.md',
+  'fsi-app/.discipline/rendering/audit/spec/factcard.json',
+  'fsi-app/.discipline/rendering/audit/README.md',
+  'fsi-app/.discipline/rendering/audit/other/results.json',
+  'docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md.notes',
+  'docs/ops/session-log.d/2026-10-08-daudit1-mounts.md',
+]) {
+  test(`022 check: FAIL (attack) for an added dash in authored file ${path} beside the generated outputs`, () => {
+    const ctx = buildContextFromFixture({
+      message: 'docs: authored',
+      files: [{ path, additions: 1, deletions: 0 }],
+      addedLines: { [path]: [`note ${EM_DASH} detail`] },
+    });
+    assert.equal(rule.trigger(ctx), true);
+    assert.equal(rule.check(ctx).status, 'FAIL');
+  });
+}
+
 test('022 check: PASS for an UNCHANGED line containing a glyph (context, not added)', () => {
   // The file carries a glyph somewhere in its full content, but addedLines for this path is empty
   // (or omits that line) -- rule 022 reads ONLY ctx.getAddedLines, never full file content, so a

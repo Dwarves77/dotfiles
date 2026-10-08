@@ -41,7 +41,7 @@ export const IN_FLIGHT_STALE_MIN = 60;
 export const DEFAULT_IO_BUSY_MAX = 0.5;
 export const DEFAULT_IO_READ_MBPS_MAX = 40;
 
-export const SAMPLE_GAP_MS = 30000;
+const SAMPLE_GAP_MS = 30000;
 export const REQUEST_TIMEOUT_MS = 10000;
 export const METRICS_PATH = "/customer/v1/privileged/metrics";
 

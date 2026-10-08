@@ -82,6 +82,7 @@ import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { resolveSpecifier, isTestFile } from './F25-module-liveness.mjs';
+import { views } from '../lib/code-scan.mjs';
 
 const SHEBANG_RE = /^#!\/usr\/bin\/env node/;
 const IMPORT_SPEC_RE = /(?:\bfrom\s*|\bimport\s*)\(?\s*["'`]([^"'`\n]+)["'`]/g;
@@ -102,7 +103,11 @@ export function isSeamScope(resolved) {
  */
 export function extractSeams(file, content, tracked) {
   const seams = new Set();
-  for (const m of content.matchAll(IMPORT_SPEC_RE)) {
+  // Lane GATE-8 (2026-10-08, AUD-AT-4 B4-24): an import is an import only where the keyword is CODE. A seam named
+  // in a comment, or in a string that holds an import statement, is not exercised by anything.
+  const { text, code } = views(content);
+  for (const m of text.matchAll(IMPORT_SPEC_RE)) {
+    if (code[m.index] !== m[0][0]) continue;
     const resolved = resolveSpecifier(m[1], file, tracked);
     if (resolved && resolved !== file && isSeamScope(resolved)) seams.add(resolved);
   }
@@ -113,13 +118,37 @@ export function extractSeams(file, content, tracked) {
  *  under scripts/producers/**, not a test file, and shebang-marked (see the header note on scope — a
  *  shebang-less module like run-envelope-producer.mjs is a shared SEAM other entries import, not itself
  *  an entry needing its own composition proof). */
-export function isProducerEntryPoint(file, content) {
+export function isProducerEntryPoint(file, content, registryScripts = new Set()) {
+  // Lane GATE-8 (2026-10-08, AUD-AT-4 B4-22, B4-26): a script the producer REGISTRY runs is an entry point whether
+  // or not it carries the shebang (the registry is what producers.yml executes), and a producer written as .js,
+  // .cjs or .ts is a producer.
   return (
     file.startsWith('fsi-app/scripts/producers/') &&
-    file.endsWith('.mjs') &&
+    /\.(?:mjs|js|cjs|ts)$/.test(file) &&
     !isTestFile(file) &&
-    SHEBANG_RE.test(content)
+    (SHEBANG_RE.test(content) || registryScripts.has(file))
   );
+}
+
+/** A composition proof must actually prove something (AUD-AT-4 B4-23): it registers a test and asserts, in code.
+ *  A file that only imports the seams is not exercised by anything. */
+export function hasAssertions(content) {
+  const { code } = views(content);
+  return /\b(?:test|it|describe)\s*\(/.test(code) && /\b(?:assert|expect)\b|\bt\.(?:is|ok|equal|deepEqual|true|false)\b/.test(code);
+}
+
+/** Repo-relative script paths the producer registry (scripts/producers/registry/*.json) runs, `script` and `pre.script`. */
+export function registryScriptPaths(root, listFilesFn = globFiles, readFileFn = (f) => readFileSync(join(root, f), 'utf8')) {
+  const out = new Set();
+  for (const f of listFilesFn(['fsi-app/scripts/producers/registry/*.json'])) {
+    try {
+      const entry = JSON.parse(readFileFn(f));
+      for (const rel of [entry.script, entry.pre && entry.pre.script]) {
+        if (typeof rel === 'string') out.add(rel.startsWith('fsi-app/') ? rel : `fsi-app/${rel}`);
+      }
+    } catch { /* a malformed registry entry is the loader test's to red */ }
+  }
+  return out;
 }
 
 // ── the shrinking allowlist ──────────────────────────────────────────────────────────────────────────
@@ -202,10 +231,11 @@ export function auditSeamCoverage(producers, proofs, exemptions = []) {
 }
 
 function collectProducers(root, files, tracked) {
+  const registry = registryScriptPaths(root);
   return files
-    .filter((f) => f.startsWith('fsi-app/scripts/producers/') && f.endsWith('.mjs') && !isTestFile(f))
+    .filter((f) => f.startsWith('fsi-app/scripts/producers/') && /\.(?:mjs|js|cjs|ts)$/.test(f) && !isTestFile(f))
     .map((f) => ({ file: f, content: readFileSync(join(root, f), 'utf8') }))
-    .filter(({ file, content }) => isProducerEntryPoint(file, content))
+    .filter(({ file, content }) => isProducerEntryPoint(file, content, registry))
     .map(({ file, content }) => ({ file, seams: extractSeams(file, content, tracked) }));
 }
 
@@ -216,7 +246,8 @@ function collectProofs(root, tracked) {
   ]);
   return proofFiles.map((f) => {
     const content = readFileSync(join(root, f), 'utf8');
-    return { file: f, imports: extractSeams(f, content, tracked) };
+    // a proof that asserts nothing covers nothing (AUD-AT-4 B4-23)
+    return { file: f, imports: hasAssertions(content) ? extractSeams(f, content, tracked) : [] };
   });
 }
 
@@ -242,9 +273,9 @@ export const fitnessFunction = {
     const root = getRepoRoot();
     // The tracked set is wider than either scope below: it is only used for resolveSpecifier's
     // extension probing, so it needs to contain every file a relative import could point at.
-    const tracked = new Set(globFiles(['fsi-app/src/**/*.mjs', 'fsi-app/scripts/**/*.mjs']));
+    const tracked = new Set(globFiles(['fsi-app/src/**/*.{mjs,js,cjs}', 'fsi-app/scripts/**/*.{mjs,js,cjs}']));
 
-    const entryFiles = globFiles(['fsi-app/scripts/producers/**/*.mjs']);
+    const entryFiles = globFiles(['fsi-app/scripts/producers/**/*.{mjs,js,cjs}']);
     const producers = collectProducers(root, entryFiles, tracked);
     const proofs = collectProofs(root, tracked);
 

@@ -351,7 +351,7 @@ async function main() {
     };
     const nowIso = new Date().toISOString();
     try {
-      // IN-CHUNK (2026-09-04): chunked by id (100 per request); see analyze-corpus.mjs IN_CHUNK.
+      // IN-CHUNK (2026-09-04): chunked by id (100 per request).
       const res = await guardedUpdateByIds(
         "corpus_turn_requests",
         requestIds,
@@ -426,7 +426,7 @@ async function main() {
     const nowIso = new Date().toISOString();
     const requestIds = rows.map((r) => r.id);
     try {
-      // IN-CHUNK (2026-09-04): chunked by id (100 per request); see analyze-corpus.mjs IN_CHUNK.
+      // IN-CHUNK (2026-09-04): chunked by id (100 per request).
       const res = await guardedUpdateByIds(
         "corpus_turn_requests",
         requestIds,

@@ -48,7 +48,7 @@
 /** Universal structural/audit columns present on most tables regardless of domain: excluded entirely
  * (weight 0), not merely downweighted (see module header for why a flat weight alone is not enough on a
  * short table). */
-export const STRUCTURAL_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'org_id', 'user_id']);
+const STRUCTURAL_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'org_id', 'user_id']);
 
 /** A column present in more than this many tables is not "distinctive" evidence for the min-evidence gate
  * (2 below), generously wide so genuinely rare envelope columns (df ~4-10 in the live schema) still
@@ -57,7 +57,7 @@ export const RARE_DF_CEILING = 20;
 
 /** Minimum number of distinctive (non-structural, type-matching, df <= RARE_DF_CEILING) shared columns
  * before the column-name signal is nonzero at all, a single coincidental match is not evidence. */
-export const MIN_SIGNIFICANT_SHARED = 2;
+const MIN_SIGNIFICANT_SHARED = 2;
 
 /** Words too generic in a TABLE NAME to count as evidence of relatedness by themselves (they recur across
  * unrelated domains: "org_memberships" and "user_watchlist" would otherwise share nothing here, but
@@ -202,7 +202,7 @@ export function commentMentionsOther(a, b, commentByTable) {
 
 /** Weights for the blended score. Tuned against the calibration fixture (duplicate-table-scan.test.mjs):
  * 7/8 recall on the 8 DUP-1 positives, 14/15 of the hand-labelled negatives correctly excluded. */
-export const SCORE_WEIGHTS = Object.freeze({ name: 0.5, comment: 0.15, tableName: 0.35, overlapFactor: 0.5, mention: 0.5 });
+const SCORE_WEIGHTS = Object.freeze({ name: 0.5, comment: 0.15, tableName: 0.35, overlapFactor: 0.5, mention: 0.5 });
 
 /** The candidate threshold, calibrated to be the smallest value that still catches every reachable
  * positive (the lowest-scoring caught positive, census_worklist<->coverage_gap_census_findings, sits at

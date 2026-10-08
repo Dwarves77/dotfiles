@@ -14,6 +14,8 @@ import {
   isSeamScope,
   extractSeams,
   isProducerEntryPoint,
+  hasAssertions,
+  registryScriptPaths,
   auditSeamCoverage,
   fitnessFunction,
   SEAM_EXEMPTIONS,
@@ -266,4 +268,39 @@ test('eu-weekly-oil-bulletin.mjs is covered by market-producer-composition.test.
   const proofContent = readFileSync(join(root, proofFile), 'utf8');
   const covered = new Set(extractSeams(proofFile, proofContent, tracked));
   for (const s of seams) assert.ok(covered.has(s), `market-producer-composition.test.mjs does not import seam ${s}`);
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F27 B4-22: a producer the REGISTRY runs is an entry point without a shebang; a .js producer is a producer', () => {
+  const file = 'fsi-app/scripts/producers/market/new-producer.mjs';
+  assert.equal(isProducerEntryPoint(file, 'export const x = 1;'), false);
+  assert.equal(isProducerEntryPoint(file, 'export const x = 1;', new Set([file])), true);
+  assert.equal(isProducerEntryPoint('fsi-app/scripts/producers/market/p.js', '#!/usr/bin/env node\n'), true);
+  assert.equal(isProducerEntryPoint('fsi-app/scripts/producers/market/p.cjs', '#!/usr/bin/env node\n'), true);
+});
+
+test('F27 B4-22: registryScriptPaths reads script and pre.script from the registry entries', () => {
+  const files = {
+    'fsi-app/scripts/producers/registry/a.json': JSON.stringify({ script: 'scripts/producers/market/a.mjs', pre: { script: 'scripts/producers/market/a-pre.mjs' } }),
+    'fsi-app/scripts/producers/registry/b.json': 'not json',
+  };
+  const got = registryScriptPaths('/repo', () => Object.keys(files), (f) => files[f]);
+  assert.deepEqual([...got].sort(), ['fsi-app/scripts/producers/market/a-pre.mjs', 'fsi-app/scripts/producers/market/a.mjs']);
+});
+
+test('F27 B4-23: a proof that only imports the seams and asserts nothing is not a composition proof', () => {
+  assert.equal(hasAssertions(IMPORT_OF('../lib/a.mjs')), false);
+  assert.equal(hasAssertions(IMPORT_OF('../lib/a.mjs') + '\n// test("x", () => assert.ok(1));'), false);
+  assert.equal(hasAssertions(IMPORT_OF('../lib/a.mjs') + '\nconst s = "assert.ok(1) in test(x)";'), false);
+  assert.equal(hasAssertions(IMPORT_OF('../lib/a.mjs') + '\ntest("x", () => { assert.equal(1, 1); });'), true);
+});
+
+test('F27 B4-24: a proof whose seam imports sit in comments covers nothing; a real import still does', () => {
+  const tracked = new Set(['fsi-app/src/lib/a.mjs', 'fsi-app/scripts/producers/p/q.test.mjs']);
+  const commented = '// ' + IMPORT_OF('../../../src/lib/a.mjs') + '\n/* ' + IMPORT_OF('../../../src/lib/a.mjs') + ' */';
+  assert.deepEqual(extractSeams('fsi-app/scripts/producers/p/q.test.mjs', commented, tracked), []);
+  const inString = 'const t = `' + IMPORT_OF('../../../src/lib/a.mjs') + '`;';
+  assert.deepEqual(extractSeams('fsi-app/scripts/producers/p/q.test.mjs', inString, tracked), []);
+  assert.deepEqual(extractSeams('fsi-app/scripts/producers/p/q.test.mjs', IMPORT_OF('../../../src/lib/a.mjs'), tracked), ['fsi-app/src/lib/a.mjs']);
 });

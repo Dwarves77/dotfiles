@@ -334,7 +334,7 @@ own EIGHTH PASS header for the complete mechanism.
    composite attribute (`{below_floor_facts, claims:[...]}`, same payload shape). `fact_missing_source_span`
    / `fact_span_not_in_source` / `fact_mint_hold` are UNCHANGED - an ungrounded claim still quarantines.
    `scripts/mint/validate-mint-payload.mjs` mirrors this in the same lane (its own `fact_below_authority_floor`
-   push moves `failures` → `warnings`, `VALIDATE_MINT_PAYLOAD_KIT_VERSION` bumped to `vmp-2026-09-04.2`) so
+   push moves `failures` → `warnings`) so
    the kit and the function agree on what blocks.
 3. **New deps wired** into `scripts/maintenance/provenance-heal.mjs` (its own write set, edited in this
    same lane): `registerSource(source)` → `db.mjs`'s own guarded, institutionKey-deduped registration, and
