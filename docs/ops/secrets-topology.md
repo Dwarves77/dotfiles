@@ -30,9 +30,9 @@ secret reference can never silently ship again.
 |---|---|---|
 | `APP_URL` | uptime-probes, source-monitoring, spot-check-monthly, trust-recompute | gh (repo scope, verified) |
 | `WORKER_SECRET` | uptime-probes, source-monitoring, spot-check-monthly, trust-recompute — AND the app's `/api/worker/*` + `/api/health/*` auth (vercel-runtime) | gh (verified) / Vercel |
-| `NEXT_PUBLIC_SUPABASE_URL` | data-audit-lane | gh / Vercel |
-| `SUPABASE_DB_PASSWORD` | data-audit-lane | gh / Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | data-audit-lane | gh / Vercel / Supabase |
+| `NEXT_PUBLIC_SUPABASE_URL` | data-audit-lane, chain-proof (export step only) | gh / Vercel |
+| `SUPABASE_DB_PASSWORD` | data-audit-lane, chain-proof (export step only: schema-only dump) | gh / Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | data-audit-lane, chain-proof (export step only, read use) | gh / Vercel / Supabase |
 | `LIVE_SMOKE_EMAIL` | live-smoke (preflight and run steps; the dedicated read-only smoke account's email) | gh (repo scope) / operator |
 | `LIVE_SMOKE_PASSWORD` | live-smoke (preflight and run steps; that account's password, only ever sent to carosledge.com or a *.vercel.app host) | gh (repo scope) / operator |
 | `ANTHROPIC_API_KEY` | ledger-consume (`mode=apply` gate — first-fetch-classify's Haiku call, routed through the spend chokepoint) | gh (repo scope) / Vercel dashboard / local |
@@ -66,3 +66,9 @@ it is out of scope for THIS repo's SF-11 (which only scans this repo's workflows
 Related: [observability-posture](./observability-posture.md) (R0.2), [backup-posture](./backup-posture.md) (R0.1),
 `fsi-app/.discipline/governance/secrets-registry.mjs` (machine SoT), doctrine register entries
 `credential-surface-visibility` / `no-new-secrets-without-need` / `credential-capability-verified-by-test`.
+
+## chain-proof.yml (2026-10-07)
+`chain-proof.yml` (dispatch only, `permissions: contents: read`) uses three existing GitHub-Actions secrets and no
+others: `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (the data read) and `SUPABASE_DB_PASSWORD` (a
+schema-only dump of production), read only, in its export step's env and nowhere else. Every other step runs against a local stack and fails a preflight if a production host or any other
+credential name is present. No new secret and no GitHub Environment are registered for it (ADR-045).

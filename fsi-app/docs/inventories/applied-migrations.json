@@ -1,0 +1,1415 @@
+{
+  "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
+  "synced_at": "2026-10-07T14:21:19.459Z",
+  "count": 352,
+  "migrations": [
+    {
+      "version": "001",
+      "name": "schema"
+    },
+    {
+      "version": "002",
+      "name": "rls"
+    },
+    {
+      "version": "003",
+      "name": "indexes"
+    },
+    {
+      "version": "004",
+      "name": "source_trust_framework"
+    },
+    {
+      "version": "005",
+      "name": "rls_trust_framework"
+    },
+    {
+      "version": "006",
+      "name": "multi_tenant"
+    },
+    {
+      "version": "007",
+      "name": "community_layer"
+    },
+    {
+      "version": "009",
+      "name": "capture_undeclared_tables"
+    },
+    {
+      "version": "010",
+      "name": "migrate_legacy_to_item"
+    },
+    {
+      "version": "011",
+      "name": "backfill_orphan_supersessions"
+    },
+    {
+      "version": "013",
+      "name": "drop_legacy_tables"
+    },
+    {
+      "version": "015",
+      "name": "provisional_recommended_classification"
+    },
+    {
+      "version": "016",
+      "name": "add_processing_pause"
+    },
+    {
+      "version": "017",
+      "name": "add_admin_only_to_sources"
+    },
+    {
+      "version": "018",
+      "name": "b2_brief_schema"
+    },
+    {
+      "version": "019",
+      "name": "reclassify_mistyped_tools"
+    },
+    {
+      "version": "020",
+      "name": "intersection_readiness"
+    },
+    {
+      "version": "021",
+      "name": "canonical_source_candidates"
+    },
+    {
+      "version": "022",
+      "name": "canonical_source_classification_cache"
+    },
+    {
+      "version": "023",
+      "name": "intersection_detection_function"
+    },
+    {
+      "version": "024",
+      "name": "admin_action_cooldowns"
+    },
+    {
+      "version": "025",
+      "name": "sector_activation_interest"
+    },
+    {
+      "version": "026",
+      "name": "research_pipeline_stage"
+    },
+    {
+      "version": "027",
+      "name": "user_profiles"
+    },
+    {
+      "version": "028",
+      "name": "community_groups"
+    },
+    {
+      "version": "029",
+      "name": "community_group_members"
+    },
+    {
+      "version": "030",
+      "name": "community_posts"
+    },
+    {
+      "version": "031",
+      "name": "community_topics"
+    },
+    {
+      "version": "032",
+      "name": "community_notifications_moderation"
+    },
+    {
+      "version": "033",
+      "name": "jurisdiction_iso"
+    },
+    {
+      "version": "034",
+      "name": "staged_updates_materialization_error"
+    },
+    {
+      "version": "035",
+      "name": "agent_integrity_flags"
+    },
+    {
+      "version": "036",
+      "name": "admin_notifications_rpc"
+    },
+    {
+      "version": "037",
+      "name": "source_verification"
+    },
+    {
+      "version": "038",
+      "name": "bulk_import_audit"
+    },
+    {
+      "version": "039",
+      "name": "coverage_matrix_rpc"
+    },
+    {
+      "version": "040",
+      "name": "discovery_provenance"
+    },
+    {
+      "version": "041",
+      "name": "post_promotions"
+    },
+    {
+      "version": "042",
+      "name": "community_region_counts_rpc"
+    },
+    {
+      "version": "043",
+      "name": "security_advisor_fixes"
+    },
+    {
+      "version": "044",
+      "name": "integrity_flag_trigger_tune"
+    },
+    {
+      "version": "045",
+      "name": "orphan_slugs_and_acf_dedup"
+    },
+    {
+      "version": "046",
+      "name": "community_rls_recursion_fix"
+    },
+    {
+      "version": "047",
+      "name": "workspace_intelligence_slim_rpc"
+    },
+    {
+      "version": "048",
+      "name": "integrity_flags_platform"
+    },
+    {
+      "version": "049",
+      "name": "perf_v2_indexes"
+    },
+    {
+      "version": "050",
+      "name": "integrity_flags_workflow_gap"
+    },
+    {
+      "version": "051",
+      "name": "sources_last_scanned_recovery"
+    },
+    {
+      "version": "052",
+      "name": "raw_fetches"
+    },
+    {
+      "version": "053",
+      "name": "intelligence_item_versions"
+    },
+    {
+      "version": "054",
+      "name": "sources_scoreboard_columns"
+    },
+    {
+      "version": "055",
+      "name": "sources_auto_run_enabled"
+    },
+    {
+      "version": "056",
+      "name": "sources_access_method_extension"
+    },
+    {
+      "version": "057",
+      "name": "agent_runs"
+    },
+    {
+      "version": "058",
+      "name": "ingestion_control_log"
+    },
+    {
+      "version": "059",
+      "name": "ingestion_state"
+    },
+    {
+      "version": "060",
+      "name": "user_watchlist"
+    },
+    {
+      "version": "061",
+      "name": "coverage_gaps"
+    },
+    {
+      "version": "062",
+      "name": "intelligence_items_hidden_reason"
+    },
+    {
+      "version": "063",
+      "name": "sources_classification_axes"
+    },
+    {
+      "version": "064",
+      "name": "workspace_intelligence_dashboard_rpc"
+    },
+    {
+      "version": "065",
+      "name": "pending_first_fetch_queue"
+    },
+    {
+      "version": "066",
+      "name": "workspace_intelligence_listings_rpc"
+    },
+    {
+      "version": "067",
+      "name": "sources_classification_metadata"
+    },
+    {
+      "version": "068",
+      "name": "workspace_intelligence_aggregates"
+    },
+    {
+      "version": "069",
+      "name": "workspace_intelligence_aggregates_scoped"
+    },
+    {
+      "version": "070",
+      "name": "phase1_routing_rpcs"
+    },
+    {
+      "version": "071",
+      "name": "deterministic_tiebreaker"
+    },
+    {
+      "version": "072",
+      "name": "jurisdiction_normalizer"
+    },
+    {
+      "version": "073",
+      "name": "shared_workspace_scope"
+    },
+    {
+      "version": "074",
+      "name": "ecovadis_vendor_reclass"
+    },
+    {
+      "version": "075",
+      "name": "profiles_consolidation_phase1"
+    },
+    {
+      "version": "076",
+      "name": "org_invitations"
+    },
+    {
+      "version": "077",
+      "name": "rpc_membership_checks"
+    },
+    {
+      "version": "079",
+      "name": "canonical_entity_columns"
+    },
+    {
+      "version": "080",
+      "name": "jurisdiction_vocabulary_extension"
+    },
+    {
+      "version": "081",
+      "name": "admin_signal_documentation"
+    },
+    {
+      "version": "082",
+      "name": "operator_queues_and_routing"
+    },
+    {
+      "version": "083",
+      "name": "trigger_derive_jurisdiction_iso"
+    },
+    {
+      "version": "084",
+      "name": "sources_canonical_category"
+    },
+    {
+      "version": "085",
+      "name": "d16_document_063_column_shadowing"
+    },
+    {
+      "version": "086",
+      "name": "analytical_press_routing"
+    },
+    {
+      "version": "087",
+      "name": "canonicalize_source_urls"
+    },
+    {
+      "version": "088",
+      "name": "citation_stats_rpc"
+    },
+    {
+      "version": "089",
+      "name": "intelligence_item_citations"
+    },
+    {
+      "version": "090",
+      "name": "tier_schema_split"
+    },
+    {
+      "version": "091",
+      "name": "source_tier_opinions"
+    },
+    {
+      "version": "092",
+      "name": "source_bias_tags"
+    },
+    {
+      "version": "093",
+      "name": "sources_tier_override"
+    },
+    {
+      "version": "094",
+      "name": "tier_compat_shim"
+    },
+    {
+      "version": "097",
+      "name": "q4_bias_retune_option_b"
+    },
+    {
+      "version": "098",
+      "name": "get_source_citation_stats_edge_table"
+    },
+    {
+      "version": "099",
+      "name": "tier_opinion_review_state"
+    },
+    {
+      "version": "100",
+      "name": "research_source_coverage_rpc"
+    },
+    {
+      "version": "101",
+      "name": "intelligence_items_domain_backfill"
+    },
+    {
+      "version": "102",
+      "name": "severity_band_theme_columns"
+    },
+    {
+      "version": "103",
+      "name": "intelligence_item_sections"
+    },
+    {
+      "version": "104",
+      "name": "community_post_intelligence_refs"
+    },
+    {
+      "version": "105",
+      "name": "profiles_projection"
+    },
+    {
+      "version": "106",
+      "name": "regions_and_facts"
+    },
+    {
+      "version": "107",
+      "name": "intelligence_items_trajectory_points"
+    },
+    {
+      "version": "108",
+      "name": "market_intel_rpc_trajectory_payload"
+    },
+    {
+      "version": "109",
+      "name": "region_dimension_coverage"
+    },
+    {
+      "version": "110",
+      "name": "callout_columns_and_rpc_extension"
+    },
+    {
+      "version": "111",
+      "name": "workspace_overrides_dismissed_at"
+    },
+    {
+      "version": "112",
+      "name": "provenance_invariant_schema"
+    },
+    {
+      "version": "113",
+      "name": "seed_item_type_required_slots"
+    },
+    {
+      "version": "114",
+      "name": "validate_item_provenance"
+    },
+    {
+      "version": "115",
+      "name": "set_provenance_status_trigger"
+    },
+    {
+      "version": "116",
+      "name": "active_intelligence_items_view"
+    },
+    {
+      "version": "117",
+      "name": "provenance_gate_customer_rpcs"
+    },
+    {
+      "version": "118",
+      "name": "provenance_flip_binding"
+    },
+    {
+      "version": "119",
+      "name": "validate_item_provenance_failclose"
+    },
+    {
+      "version": "120",
+      "name": "provenance_gate_remaining_customer_rpcs"
+    },
+    {
+      "version": "121",
+      "name": "uniform_promotion_no_human_tick"
+    },
+    {
+      "version": "122",
+      "name": "source_institutions"
+    },
+    {
+      "version": "123",
+      "name": "source_label_derivation"
+    },
+    {
+      "version": "124",
+      "name": "monitoring_queue_reconciled_at"
+    },
+    {
+      "version": "125",
+      "name": "routing_by_item_type"
+    },
+    {
+      "version": "126",
+      "name": "research_required_slots"
+    },
+    {
+      "version": "128",
+      "name": "research_finding_slot_ledger_fix"
+    },
+    {
+      "version": "129",
+      "name": "market_required_slots"
+    },
+    {
+      "version": "130",
+      "name": "technology_required_slots"
+    },
+    {
+      "version": "131",
+      "name": "operations_required_slots"
+    },
+    {
+      "version": "132",
+      "name": "operations_slot_gap_satisfiable"
+    },
+    {
+      "version": "133",
+      "name": "get_technology_items_rpc"
+    },
+    {
+      "version": "134",
+      "name": "fix_research_technology_rpc_columns"
+    },
+    {
+      "version": "135",
+      "name": "source_registration_guard"
+    },
+    {
+      "version": "136",
+      "name": "theme_candidate_capture"
+    },
+    {
+      "version": "137",
+      "name": "reg_family_slot_gap_satisfiable"
+    },
+    {
+      "version": "138",
+      "name": "reg_only_authority_floor"
+    },
+    {
+      "version": "139",
+      "name": "close_quarantine_flags_on_verify"
+    },
+    {
+      "version": "140",
+      "name": "attention_counts_platform_flags"
+    },
+    {
+      "version": "141",
+      "name": "per_type_authority_floor"
+    },
+    {
+      "version": "142",
+      "name": "legal_line_guard"
+    },
+    {
+      "version": "143",
+      "name": "label_variant_tolerance"
+    },
+    {
+      "version": "144",
+      "name": "scrape_cadence"
+    },
+    {
+      "version": "145",
+      "name": "provenance_floor_inline_derive"
+    },
+    {
+      "version": "146",
+      "name": "item_xref_origin_and_related_derive"
+    },
+    {
+      "version": "147",
+      "name": "sources_fetch_status"
+    },
+    {
+      "version": "148",
+      "name": "surface_counts"
+    },
+    {
+      "version": "149",
+      "name": "severity_backfill_ops_reg"
+    },
+    {
+      "version": "150",
+      "name": "criterion2_url_canonicalize"
+    },
+    {
+      "version": "151",
+      "name": "published_price_statistics"
+    },
+    {
+      "version": "152",
+      "name": "state_cost_facts"
+    },
+    {
+      "version": "153",
+      "name": "community_post_signoff_requests"
+    },
+    {
+      "version": "154",
+      "name": "community_signoff_withdraw_policy"
+    },
+    {
+      "version": "155",
+      "name": "community_group_vertical"
+    },
+    {
+      "version": "156",
+      "name": "org_member_bans"
+    },
+    {
+      "version": "157",
+      "name": "security_hardening"
+    },
+    {
+      "version": "158",
+      "name": "floor_unconditional_label_per_claim"
+    },
+    {
+      "version": "159",
+      "name": "intelligence_items_fts"
+    },
+    {
+      "version": "160",
+      "name": "search_path_pin_app_functions"
+    },
+    {
+      "version": "161",
+      "name": "sources_content_hash"
+    },
+    {
+      "version": "162",
+      "name": "portal_link_candidates"
+    },
+    {
+      "version": "164",
+      "name": "market_intel_org_gate"
+    },
+    {
+      "version": "165",
+      "name": "profiles_self_write_and_anon_pii"
+    },
+    {
+      "version": "166",
+      "name": "provisional_sources_admin_select"
+    },
+    {
+      "version": "167",
+      "name": "staged_updates_reviewer_notes"
+    },
+    {
+      "version": "168",
+      "name": "aux_table_parent_gates"
+    },
+    {
+      "version": "169",
+      "name": "reconciler_rls_repair"
+    },
+    {
+      "version": "170",
+      "name": "ledger_repair_107_134"
+    },
+    {
+      "version": "171",
+      "name": "validate_provenance_brief_presence"
+    },
+    {
+      "version": "180",
+      "name": "drop_orphan_rpcs_and_dead_views"
+    },
+    {
+      "version": "181",
+      "name": "drop_vendor_family"
+    },
+    {
+      "version": "182",
+      "name": "repoint_user_profiles_policy_arms"
+    },
+    {
+      "version": "183",
+      "name": "drop_user_profiles_mirror"
+    },
+    {
+      "version": "184",
+      "name": "drop_ingestion_pair"
+    },
+    {
+      "version": "185",
+      "name": "drop_dead_columns"
+    },
+    {
+      "version": "190",
+      "name": "community_counter_integrity"
+    },
+    {
+      "version": "191",
+      "name": "org_membership_ban_guard"
+    },
+    {
+      "version": "192",
+      "name": "drop_forum_layer"
+    },
+    {
+      "version": "195",
+      "name": "error_events"
+    },
+    {
+      "version": "200",
+      "name": "canonical_instrument_key"
+    },
+    {
+      "version": "20260711032524",
+      "name": "reconciler_integrity_flags_insert"
+    },
+    {
+      "version": "20260712185517",
+      "name": "201_pause_flag_session_guard"
+    },
+    {
+      "version": "20260714151401",
+      "name": "203_holdings_quality"
+    },
+    {
+      "version": "20260715145217",
+      "name": "agent_runs_model_column"
+    },
+    {
+      "version": "20260716191254",
+      "name": "claim_versions_nondestructive_grounding"
+    },
+    {
+      "version": "20260717141813",
+      "name": "provenance_status_on_delete"
+    },
+    {
+      "version": "20260717145835",
+      "name": "claim_versions_orphaned_reason"
+    },
+    {
+      "version": "20260717175348",
+      "name": "drain_worklist_and_mutation_leases"
+    },
+    {
+      "version": "20260717184405",
+      "name": "corpus_census"
+    },
+    {
+      "version": "20260717194710",
+      "name": "disposition_ledger"
+    },
+    {
+      "version": "20260717203000",
+      "name": "214_coverage_gap_candidates"
+    },
+    {
+      "version": "20260717223651",
+      "name": "216_coverage_gap_data_class_and_gemini_delta"
+    },
+    {
+      "version": "20260717232219",
+      "name": "217_coverage_gap_class1_labor_cost_feeds"
+    },
+    {
+      "version": "20260717234619",
+      "name": "218_coverage_gap_class2_energy_price_feeds"
+    },
+    {
+      "version": "20260718001047",
+      "name": "219_coverage_gap_class3_commercial_fuel_assessments"
+    },
+    {
+      "version": "20260718003159",
+      "name": "220_coverage_gap_class4_state_subnational_trackers"
+    },
+    {
+      "version": "20260718015746",
+      "name": "221_coverage_gap_class5_compliance_reporting_portals"
+    },
+    {
+      "version": "20260718020307",
+      "name": "222_coverage_gap_class6_enforcement_verification_systems"
+    },
+    {
+      "version": "20260718020707",
+      "name": "223_coverage_gap_class5_eu_epr_expansion"
+    },
+    {
+      "version": "20260718020828",
+      "name": "224_coverage_gap_class6_five_surface_test"
+    },
+    {
+      "version": "20260718021214",
+      "name": "225_coverage_gap_class7_lca_disclosure_verification"
+    },
+    {
+      "version": "20260718022118",
+      "name": "226_coverage_gap_class8_market_intel_sources"
+    },
+    {
+      "version": "20260718022732",
+      "name": "227_coverage_gap_class9_research_horizon_sources"
+    },
+    {
+      "version": "20260718185835",
+      "name": "228_coverage_gap_surface_contract_gate"
+    },
+    {
+      "version": "20260718185947",
+      "name": "229_coverage_gap_gate_first_live_dispositions"
+    },
+    {
+      "version": "20260718190445",
+      "name": "230_coverage_gap_access_model_and_backlog_view"
+    },
+    {
+      "version": "20260718190922",
+      "name": "231_coverage_gap_backlog_view_section4_fix"
+    },
+    {
+      "version": "20260718192452",
+      "name": "232_coverage_gap_gemini_second_pass_and_vertical_standards"
+    },
+    {
+      "version": "20260718193242",
+      "name": "233_coverage_gap_gemini_second_pass_access_model"
+    },
+    {
+      "version": "20260718200026",
+      "name": "234_coverage_gap_section3_final_dispositions"
+    },
+    {
+      "version": "20260718200111",
+      "name": "235_coverage_gap_section4_final_rulings"
+    },
+    {
+      "version": "20260718200309",
+      "name": "236_coverage_gap_saf_claims_substantiation_membership_check"
+    },
+    {
+      "version": "20260718200509",
+      "name": "237_coverage_gap_backlog_view_watch_condition_fix"
+    },
+    {
+      "version": "20260718202706",
+      "name": "coverage_gap_rank12_parked_with_watch"
+    },
+    {
+      "version": "20260719005005",
+      "name": "215_drop_source_conflicts_dormant"
+    },
+    {
+      "version": "20260719134457",
+      "name": "item_source_evidence"
+    },
+    {
+      "version": "20260719134945",
+      "name": "criterion3_durable_evidence_superset"
+    },
+    {
+      "version": "20260719143114",
+      "name": "revert_item_source_evidence_dead_duplicate"
+    },
+    {
+      "version": "20260719150314",
+      "name": "drop_dead_backup_and_superseded_tables"
+    },
+    {
+      "version": "20260719170716",
+      "name": "220_portal_link_candidates_disposition"
+    },
+    {
+      "version": "20260719205437",
+      "name": "coverage_gap_census_findings"
+    },
+    {
+      "version": "20260719210535",
+      "name": "coverage_gap_census_sweep1_existing_feeds"
+    },
+    {
+      "version": "20260719211619",
+      "name": "census_worklist"
+    },
+    {
+      "version": "20260719212507",
+      "name": "source_health_flags_sweep1_dead_urls"
+    },
+    {
+      "version": "20260719212632",
+      "name": "coverage_gap_census_pending_a_marker"
+    },
+    {
+      "version": "20260719212830",
+      "name": "coverage_gap_census_sweep2_adjacent_universes"
+    },
+    {
+      "version": "20260719213059",
+      "name": "coverage_gap_census_sweep3_research_feedstock"
+    },
+    {
+      "version": "20260719214851",
+      "name": "census_rollup_stitch"
+    },
+    {
+      "version": "20260720150850",
+      "name": "census_findings_recovery_sweep_schema"
+    },
+    {
+      "version": "20260720151231",
+      "name": "census_sweep4_found_then_lost_recovery"
+    },
+    {
+      "version": "20260721222204",
+      "name": "next_uncensused_portal_candidates"
+    },
+    {
+      "version": "20260725183634",
+      "name": "223_acquisition_backlog_v"
+    },
+    {
+      "version": "20260726193259",
+      "name": "item_gate_a_state"
+    },
+    {
+      "version": "20260726195325",
+      "name": "gate_a_criterion_7"
+    },
+    {
+      "version": "20260727010226",
+      "name": "226_gate_a_health_rpc"
+    },
+    {
+      "version": "20260727052713",
+      "name": "227_derived_claim_kind"
+    },
+    {
+      "version": "20260727222644",
+      "name": "census_identity_verification"
+    },
+    {
+      "version": "20260728192603",
+      "name": "census_worklist_title"
+    },
+    {
+      "version": "20260728201753",
+      "name": "rls_lockdown_operator_control_residue"
+    },
+    {
+      "version": "20260728210801",
+      "name": "promotion_policy"
+    },
+    {
+      "version": "20260731021933",
+      "name": "232_gate_a_postgres_port"
+    },
+    {
+      "version": "20260731024004",
+      "name": "233_gate_a_scan_and_store"
+    },
+    {
+      "version": "20260801004400",
+      "name": "extend_own_body_floor_to_voluntary_instruments_v203"
+    },
+    {
+      "version": "20260801131707",
+      "name": "enable_pg_net_for_capture_worker"
+    },
+    {
+      "version": "20260801181308",
+      "name": "capture_worker_fetch_function"
+    },
+    {
+      "version": "20260801201905",
+      "name": "gate_a_health_cached"
+    },
+    {
+      "version": "20260801230903",
+      "name": "recent_changes_rpc"
+    },
+    {
+      "version": "20260801235426",
+      "name": "watchlist_type_expansion"
+    },
+    {
+      "version": "20260802003313",
+      "name": "item_ownership"
+    },
+    {
+      "version": "20260802010848",
+      "name": "dual_scope_archive"
+    },
+    {
+      "version": "20260802033207",
+      "name": "dual_scope_watchlist"
+    },
+    {
+      "version": "20260802040409",
+      "name": "237_personal_list_order"
+    },
+    {
+      "version": "20260802041213",
+      "name": "238_reorder_user_list_item"
+    },
+    {
+      "version": "20260802042749",
+      "name": "239_user_item_state_policies"
+    },
+    {
+      "version": "20260802153524",
+      "name": "247_profiles_auth_users_fk"
+    },
+    {
+      "version": "20260809014650",
+      "name": "fix_result_content_excerpt_comment"
+    },
+    {
+      "version": "20260809030555",
+      "name": "security_hardening_2026_08_09_grants_and_searchpath"
+    },
+    {
+      "version": "20260809030625",
+      "name": "security_hardening_2026_08_09_revoke_public"
+    },
+    {
+      "version": "20260809031157",
+      "name": "platform_admin_rls_alignment_2026_08_09"
+    },
+    {
+      "version": "20260809183427",
+      "name": "provenance_verified_depth_binding"
+    },
+    {
+      "version": "20260809203609",
+      "name": "workspace_profile_readtime_anchoring"
+    },
+    {
+      "version": "20260809213025",
+      "name": "connection_discovery_basis_and_origin"
+    },
+    {
+      "version": "20260810154010",
+      "name": "253_connection_themes"
+    },
+    {
+      "version": "20260811095827",
+      "name": "254_drop_shadow_gate_a_and_broken_hrq"
+    },
+    {
+      "version": "20260811133508",
+      "name": "255_canonical_key_oj_sequence_suffix"
+    },
+    {
+      "version": "20260811134926",
+      "name": "256_migration_homes_and_vault_capture_key"
+    },
+    {
+      "version": "20260811152450",
+      "name": "reconciler_select_policies"
+    },
+    {
+      "version": "20260812204907",
+      "name": "emission_factors_and_licence_gate"
+    },
+    {
+      "version": "20260812204959",
+      "name": "rls_initplan_and_policy_destack"
+    },
+    {
+      "version": "20260812205117",
+      "name": "drop_dead_notification_v1"
+    },
+    {
+      "version": "20260817173320",
+      "name": "264_rename_result_content_excerpt"
+    },
+    {
+      "version": "20260818190852",
+      "name": "265_drop_detect_intersections"
+    },
+    {
+      "version": "20260821184630",
+      "name": "266_theme_briefs"
+    },
+    {
+      "version": "20260830005305",
+      "name": "267_origin_class_and_envelope"
+    },
+    {
+      "version": "20260830020924",
+      "name": "268_market_series"
+    },
+    {
+      "version": "20260830035607",
+      "name": "269_routing_rpcs_use_surface_of"
+    },
+    {
+      "version": "20260830173247",
+      "name": "widen_org_watchlist_item_type_for_market_series"
+    },
+    {
+      "version": "20260830201604",
+      "name": "assumption_register"
+    },
+    {
+      "version": "20260830220000",
+      "name": "customer_rpcs_project_jurisdiction_iso"
+    },
+    {
+      "version": "20260831202515",
+      "name": "coverage_gap_candidates_live_ddl_catchup"
+    },
+    {
+      "version": "20260901141611",
+      "name": "item_forward_events"
+    },
+    {
+      "version": "20260901141937",
+      "name": "item_forward_events_dedupe_key_fix"
+    },
+    {
+      "version": "20260901190126",
+      "name": "276_connection_theme_runs_theme_delta"
+    },
+    {
+      "version": "20260901213944",
+      "name": "277_corpus_turn_requests"
+    },
+    {
+      "version": "20260901213958",
+      "name": "278_item_grade"
+    },
+    {
+      "version": "20260901214007",
+      "name": "279_source_content_fingerprint"
+    },
+    {
+      "version": "20260901214014",
+      "name": "280_theme_briefs_public_read"
+    },
+    {
+      "version": "20260902112701",
+      "name": "281_data_sources_ecb"
+    },
+    {
+      "version": "20260902112737",
+      "name": "282_entities"
+    },
+    {
+      "version": "20260902112807",
+      "name": "283_entity_refs"
+    },
+    {
+      "version": "20260902113008",
+      "name": "284_propagation_outbox"
+    },
+    {
+      "version": "20260902113142",
+      "name": "285_derivation_dag_and_derived_values"
+    },
+    {
+      "version": "20260902113240",
+      "name": "286_statutory_and_estimates"
+    },
+    {
+      "version": "20260902113429",
+      "name": "287_sensitive_aggregates"
+    },
+    {
+      "version": "20260902201119",
+      "name": "288_source_type_taxonomy"
+    },
+    {
+      "version": "20260902202729",
+      "name": "289_criterion2_url_balanced_parens"
+    },
+    {
+      "version": "20260903005821",
+      "name": "290_obligations"
+    },
+    {
+      "version": "20260903060338",
+      "name": "293_community_identity_and_guard"
+    },
+    {
+      "version": "20260903060421",
+      "name": "294_community_aggregate_instruments"
+    },
+    {
+      "version": "20260903060446",
+      "name": "295_community_promotion_machine"
+    },
+    {
+      "version": "20260903060602",
+      "name": "296_spec09_market_tables"
+    },
+    {
+      "version": "20260903060644",
+      "name": "297_spec09_operations_tables"
+    },
+    {
+      "version": "20260903060714",
+      "name": "298_spec09_regulations_tables"
+    },
+    {
+      "version": "20260904001306",
+      "name": "300_criterion2_url_typographic_delimiters"
+    },
+    {
+      "version": "20260904054918",
+      "name": "302_criterion3_rating_not_refusal"
+    },
+    {
+      "version": "20260904084952",
+      "name": "303_slim_listings_id_tiebreak"
+    },
+    {
+      "version": "20260904172741",
+      "name": "304_source_sitemap_coverage"
+    },
+    {
+      "version": "20260904195605",
+      "name": "305_workspace_intelligence_listings_domain_param"
+    },
+    {
+      "version": "20260904223227",
+      "name": "306_public_workspace_intelligence_listings"
+    },
+    {
+      "version": "20260905012221",
+      "name": "307_item_forward_events_text_identity_dedupe"
+    },
+    {
+      "version": "20260905192958",
+      "name": "308_census_worklist_archive_columns"
+    },
+    {
+      "version": "20260905193019",
+      "name": "309_source_tier_opinions_host_class_table"
+    },
+    {
+      "version": "20260905194746",
+      "name": "310_listing_rpcs_item_grade"
+    },
+    {
+      "version": "20260905195809",
+      "name": "311_spec09_org_scope_and_pool_drop"
+    },
+    {
+      "version": "20260906154322",
+      "name": "312_entities_display_name"
+    },
+    {
+      "version": "20260907044404",
+      "name": "313_workspace_tags"
+    },
+    {
+      "version": "20260908123756",
+      "name": "attention_counts_provisional_queue_population"
+    },
+    {
+      "version": "20260911230524",
+      "name": "316_regulation_exposure_fields"
+    },
+    {
+      "version": "20260912014238",
+      "name": "240_layer_c_insert_gate"
+    },
+    {
+      "version": "20260912213045",
+      "name": "provisional_sources_status_promoted_317"
+    },
+    {
+      "version": "20260913145200",
+      "name": "319_recent_changes_include_updates"
+    },
+    {
+      "version": "20260913145755",
+      "name": "321_claim_versions_record_briefs_supersede"
+    },
+    {
+      "version": "20260913155212",
+      "name": "318_forward_events_delete_document_date_rows"
+    },
+    {
+      "version": "20260913174141",
+      "name": "320_changelog_backfill_regenerated_briefs"
+    },
+    {
+      "version": "20260916212015",
+      "name": "322_agent_run_searches_result_chars"
+    },
+    {
+      "version": "20260916212038",
+      "name": "323_agent_run_searches_result_chars_backfill"
+    },
+    {
+      "version": "20260917204847",
+      "name": "324_drop_drain_worklist"
+    },
+    {
+      "version": "20260917205619",
+      "name": "325_drop_snapshot_gapflags_20260831"
+    },
+    {
+      "version": "20260918015220",
+      "name": "326_regulation_directive_slot_gap_source_says_so"
+    },
+    {
+      "version": "20260918015309",
+      "name": "328_activate_three_provisional_sources"
+    },
+    {
+      "version": "20260918183010",
+      "name": "329_drop_community_promotion_transitions"
+    },
+    {
+      "version": "20260925184917",
+      "name": "330_derivation_edges_rls"
+    },
+    {
+      "version": "20260928014509",
+      "name": "331_harness_runs"
+    },
+    {
+      "version": "20260928022001",
+      "name": "332_state_cost_facts_value_numeric"
+    },
+    {
+      "version": "20260928022009",
+      "name": "333_derivation_edges_allow_state_cost_facts"
+    },
+    {
+      "version": "20260929125347",
+      "name": "drop_placeholder_community_layer"
+    },
+    {
+      "version": "20260929181249",
+      "name": "intelligence_items_recommended_actions"
+    },
+    {
+      "version": "20260929182913",
+      "name": "336_community_anonymity_opt_in"
+    },
+    {
+      "version": "20260930084717",
+      "name": "338_inference_records"
+    },
+    {
+      "version": "20260930084816",
+      "name": "339_derivation_edges_admit_inference_records"
+    },
+    {
+      "version": "20261002025824",
+      "name": "342_canonical_source_candidates_admin_gate"
+    },
+    {
+      "version": "20261002025833",
+      "name": "343_drop_user_list_order"
+    },
+    {
+      "version": "20261002030947",
+      "name": "340_drop_sources_reliability_score"
+    },
+    {
+      "version": "20261002030959",
+      "name": "341_drop_promotion_policy"
+    },
+    {
+      "version": "20261002034422",
+      "name": "345_planning_assumption_register"
+    },
+    {
+      "version": "20261002044447",
+      "name": "344_research_assessments"
+    },
+    {
+      "version": "20261002195345",
+      "name": "346_research_assessments_entity_spine_signposts"
+    },
+    {
+      "version": "20261003221706",
+      "name": "347_aggregate_floor_adr035"
+    },
+    {
+      "version": "20261003231932",
+      "name": "348_community_social_only"
+    },
+    {
+      "version": "20261004035257",
+      "name": "349_external_data_only"
+    },
+    {
+      "version": "20261004115520",
+      "name": "350_retire_automate_vs_hire_values"
+    },
+    {
+      "version": "20261006030519",
+      "name": "351_theme_briefs_structured"
+    },
+    {
+      "version": "20261006030839",
+      "name": "352_outbox_entity_for_emission_factors"
+    },
+    {
+      "version": "20261006030901",
+      "name": "353_prediction_scoring_and_reliability_ledger"
+    },
+    {
+      "version": "20261006061049",
+      "name": "354_judgement_drain_switch"
+    },
+    {
+      "version": "20261006061456",
+      "name": "356_item_corrections"
+    },
+    {
+      "version": "20261007021924",
+      "name": "355_vocabulary_terms"
+    },
+    {
+      "version": "20261007095953",
+      "name": "357_vocabulary_kinds"
+    }
+  ]
+}
