@@ -1,7 +1,7 @@
 -- subject: Migration 367 (lane SEC-2, 2026-10-08): an authenticated user can no longer write their own verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified or linkedin_verification_checked_at on public.profiles (column UPDATE and INSERT privileges revoked, and the migration 364 guard function profiles_privilege_guard extended to the same nine columns); the one legitimate user transition, asking to be verified, becomes the SECURITY DEFINER RPC public.request_verification() (none or revoked to pending for auth.uid() only); the self-check attacks both layers and the RPC as roles authenticated and anon and rolls back; NOT APPLIED.
 -- 367 -- profiles status and tier columns (lane SEC-2, 2026-10-08).
 --
--- NOT APPLIED. Authored by lane SEC-2; the coordinator's executor applies it before the PR merges (two-track
+-- APPLIED (production ledger version 20261008033159, as of 2026-10-08). Authored by lane SEC-2; the coordinator's executor applies it before the PR merges (two-track
 -- policy, CLAUDE.md standing rule 3: schema DDL applies via the Supabase CLI before any dependent code commits).
 -- REQUIRES migration 364 (lane SEC-1, PR 991) applied first: 364 turned the table-level INSERT/UPDATE grant into
 -- per-column grants and created profiles_privilege_guard plus its trigger profiles_privilege_guard_trg. This

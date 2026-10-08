@@ -1,7 +1,7 @@
 -- subject: Migration 359 (lane S8-A, 2026-10-07, plan Stage 8 bullet 1): `item_assignments`, multi-person assignment of any intelligence item to members of the caller's own org (one row per org, item and assignee, optional due date, state open or done; the assignee must hold the role member, admin or owner, a viewer is not assignable) with RLS and a column guard trigger, and the `assignment` value added to the notifications.kind CHECK so an assignment notifies each assignee through the existing Community notification machinery (migrations 032 and 235); coordination metadata only, never analysed, never read by any other page or the flywheel (ADR-042, ADR-043); NOT APPLIED
 -- 359 -- item_assignments (lane S8-A, 2026-10-07).
 --
--- NOT APPLIED. Authored by lane S8-A; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3) BEFORE the
+-- APPLIED (production ledger version 20261008034443, as of 2026-10-08). Authored by lane S8-A; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3) BEFORE the
 -- routes under src/app/api/workspace/items/[id]/assignments/ and the 'assignment' notification kind in
 -- src/lib/notifications/dispatch.ts are deployed. Requires migrations 006 (organizations, org_memberships,
 -- user_belongs_to_org), 032 and 235 (notifications and its kind CHECK, which this file replaces), and the profiles table.

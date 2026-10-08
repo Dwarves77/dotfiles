@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const RAW = readFileSync(join(HERE, "364_profiles_privilege_columns.sql"), "utf8");
@@ -18,9 +19,9 @@ const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i ===
 const read = (name) => readFileSync(join(HERE, name), "utf8");
 const FOUR = ["is_platform_admin", "role", "org_id", "workspace_role"];
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and applied status as the map says", () => {
   assert.match(RAW, /^-- subject: Migration 364 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "364_profiles_privilege_columns.sql"), []);
 });
 
 test("the four privilege-bearing columns exist, created by 001 (role), 075 (is_platform_admin), 105 (org_id, workspace_role)", () => {

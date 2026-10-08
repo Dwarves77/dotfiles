@@ -8,14 +8,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { DB_THEME_VALUE_LIST } from "../../src/lib/agent/metadata-vocab.ts";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const RAW = readFileSync(fileURLToPath(new URL("./357_vocabulary_kinds.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const FN = /CREATE OR REPLACE FUNCTION public\.intelligence_items_theme_guard\(\)[\s\S]*?\$fn\$;/.exec(SQL)?.[0] ?? "";
 
-test("header: subject line and APPLIED", () => {
+test("header: subject line and applied status as the map says", () => {
   assert.match(RAW, /^-- subject: Migration 357 /);
-  assert.match(RAW, /APPLIED \(production ledger version \d+/);
+  assert.deepEqual(headerProblems(RAW, "357_vocabulary_kinds.sql"), []);
 });
 
 test("preconditions name migration 355 (vocabulary_terms) and 282 (entity_kind)", () => {

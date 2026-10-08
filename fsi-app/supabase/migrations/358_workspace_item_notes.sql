@@ -1,7 +1,7 @@
 -- subject: Migration 358 (lane S8-A, 2026-10-07, plan Stage 8 bullet 1): `item_notes`, threaded private-per-workspace notes on any intelligence item (org members read, the author edits and deletes their own, an owner or admin deletes any, by soft delete), with RLS and a column guard trigger, plus `move_override_notes_to_item_notes()`, the idempotent data move of the single `workspace_item_overrides.notes` text field into the new table; a note is workspace commentary, never analysed, never read by any page other than the item's own detail page, never read by the flywheel (ADR-042, ADR-043); NOT APPLIED
 -- 358 -- item_notes (lane S8-A, 2026-10-07).
 --
--- NOT APPLIED. Authored by lane S8-A; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3) BEFORE the
+-- APPLIED (production ledger version 20261008034412, as of 2026-10-08). Authored by lane S8-A; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3) BEFORE the
 -- routes under src/app/api/workspace/items/[id]/notes/ are deployed. Requires migrations 006 (organizations,
 -- org_memberships, workspace_item_overrides, user_belongs_to_org), 075 (org_memberships.user_id -> profiles), and the
 -- profiles table itself.

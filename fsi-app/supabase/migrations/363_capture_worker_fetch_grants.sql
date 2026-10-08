@@ -1,7 +1,7 @@
 -- subject: Migration 363 (lane TOKEN-1, 2026-10-08): closes the public RPC exposure of the SECURITY DEFINER function public.capture_worker_fetch(uuid[]) by revoking EXECUTE from PUBLIC, anon and authenticated and granting it to service_role only; the self-check attacks the grant as anon and as authenticated; NOT APPLIED.
 -- 363 -- capture_worker_fetch grants: service_role only (lane TOKEN-1, 2026-10-08).
 --
--- NOT APPLIED. Authored by lane TOKEN-1; the coordinator's executor applies it (two-track policy, CLAUDE.md
+-- APPLIED (production ledger version 20261008005235, as of 2026-10-08). Authored by lane TOKEN-1; the coordinator's executor applies it (two-track policy, CLAUDE.md
 -- standing rule 3: schema DDL applies via the Supabase CLI before any dependent code commits; nothing in src,
 -- scripts, supabase/functions, triggers or cron calls this function, so no code depends on this migration).
 --

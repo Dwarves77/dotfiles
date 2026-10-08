@@ -12,6 +12,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findDefinerFunctions } from "../../.discipline/fitness/functions/F70-definer-hygiene.mjs";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const FSI = join(HERE, "..", "..");
@@ -67,11 +68,10 @@ function walk(dir, out = []) {
 const isTest = (f) => /\.(test|npmtest)\.mjs$/.test(f);
 const CODE = [...walk(join(FSI, "src")), ...walk(join(FSI, "scripts"))].filter((f) => !isTest(f));
 
-test("header: subject line, APPLIED with the ledger version, and the file exists", () => {
+test("header: subject line, applied status as the map says, and the file exists", () => {
   assert.ok(RAW.length > 0, "migration file exists");
   assert.match(RAW, /^-- subject: Migration 371 /);
-  assert.match(RAW, /APPLIED \(production ledger version 20261008131647, as of 2026-10-08\)/);
-  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "371_definer_hygiene.sql"), []);
 });
 
 test("the migration number is unique", () => {
