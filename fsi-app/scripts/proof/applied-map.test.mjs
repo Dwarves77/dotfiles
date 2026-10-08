@@ -24,7 +24,7 @@ const ORDER = FILES;
 const run = (over = {}) => resolveMap({ ledger: LEDGER, map: { ...MAP, ...over.map }, diskFiles: over.diskFiles ?? FILES, orderFiles: over.orderFiles ?? ORDER });
 
 test("the class list is the ruled one", () => {
-  assert.deepEqual([...CLASSES].sort(), ["code-differs", "comment-only", "comments-only", "data-only", "duplicate-prefix", "identical", "never-applied", "outside-ledger", "recovered", "superseded-by"]);
+  assert.deepEqual([...CLASSES].sort(), ["apply-record-stub", "code-differs", "comment-only", "comments-only", "data-only", "duplicate-prefix", "identical", "never-applied", "outside-ledger", "recovered", "statements-null", "superseded-by"]);
 });
 
 test("identical, comments-only, code-differs and recovered: the file is applied, in inventory order", () => {
@@ -96,4 +96,19 @@ test("parseAppliedMap: absent is an error naming the file and MIG-HIST-1; bad JS
   assert.match(parseAppliedMap("{nope").error, /not JSON/);
   assert.match(parseAppliedMap("[]").error, /object keyed by ledger version/);
   assert.deepEqual(parseAppliedMap(JSON.stringify(MAP)).map, MAP);
+});
+
+test("statements-null and apply-record-stub: the file is the only text there is, so it is applied like identical", () => {
+  const r = run({ map: {
+    "001": { name: "a", file: "001_a.sql", class: "statements-null" },
+    "002": { name: "b", file: "002_b.sql", class: "apply-record-stub" },
+  } });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.toApply.map((t) => [t.file, t.class]).slice(0, 2), [["001_a.sql", "statements-null"], ["002_b.sql", "apply-record-stub"]]);
+});
+
+test("ERROR: statements-null with a null file is refused like any apply class; an invented class is still refused", () => {
+  const r = run({ map: { "001": { name: "a", file: null, class: "statements-null" }, "002": { name: "b", file: "002_b.sql", class: "statements-unknown" } } });
+  assert.ok(r.errors.some((e) => e.kind === "entry_needs_file" && e.key === "001"));
+  assert.ok(r.errors.some((e) => e.kind === "class_unknown" && e.key === "002"));
 });

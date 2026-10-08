@@ -1,3 +1,4 @@
+/* status: NO LEDGER ROW, duplicate prefix, unverified (as of 2026-10-07; see APPLIED-MAP.json) */
 -- subject: ══════════════════════════════════════════════════════════════
 -- ══════════════════════════════════════════════════════════════
 -- Migration 007 RLS: Community Layer Row Level Security

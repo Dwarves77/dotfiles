@@ -43,6 +43,7 @@ import { fileURLToPath } from 'node:url';
 import { skillsForFile, skillsForOp } from './skill-map.mjs';
 import { isExempt } from './exemptions.mjs';
 import { isExecutionWired } from './execution-wiring.mjs';
+import { rawWriteHits } from '../rules/015-row-mutation-guarded-path.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..');               // dotfiles repo root
@@ -56,7 +57,12 @@ const SKIP_DIR = /node_modules|\.next|\/dist\/|\/\.git\/|\/_archive\//;
 // ---- governed-surface classifiers (content-based) ----
 // `insert` is FIRST deliberately: creation is a governed write. Its absence here is what made the
 // source-role-at-birth defect invisible to this scan (see the header note).
-const WRITE_DML_RE = /\.\s*(insert|update|upsert|delete)\s*\(/;
+// update / upsert / delete are decided by rule 015's database-write detector (rawWriteHits: the receiver
+// chain must be a Supabase query builder), so createHash().update() and Map.prototype.delete are not writes.
+// One predicate, one site: this scan imports it instead of keeping a second regex (MIG-HIST-1b, after the
+// RULES-1 / GATE-1 fix of rule 015). insert is not in that detector (additive for rule 015's purpose) but is
+// a governed write HERE (creation is birth), so it keeps its own check.
+const INSERT_CALL_RE = /\.\s*insert\s*\(/;
 
 // RPC WRITERS (lane GATE-3, 2026-10-08). A bare `.rpc(` used to read as a write, so every READ rpc (a
 // category fetcher, a count) landed on the governed surface as an ungoverned write (OPS-1: gate-a-gauges.mjs,
@@ -79,7 +85,7 @@ export function callsWriteRpc(code, writeRpcs = WRITE_RPCS) {
   for (const m of String(code).matchAll(RPC_NAME_RE)) if (writeRpcs.includes(m[2])) return true;
   return false;
 }
-const isWrite = (code) => WRITE_DML_RE.test(code) || callsWriteRpc(code);
+const isWrite = (code) => rawWriteHits(code).length > 0 || INSERT_CALL_RE.test(code) || callsWriteRpc(code);
 const SQL_MUT_RE = /\b(UPDATE\s+\w+\s+SET|DELETE\s+FROM|INSERT\s+INTO|ALTER\s+TABLE|DROP\s+\w+|CREATE\s+OR\s+REPLACE\s+(FUNCTION|VIEW))\b/i;
 const MODEL_RE = /api\.anthropic\.com|new\s+Anthropic\s*\(|messages\.create|@anthropic-ai\/sdk/;
 const ROUTING_RE = /runCategoryRpc|get_\w+_items\b|fetch(Market|Research|Operations|Technology|Regulations)\w*|category[-_ ]rout/i;

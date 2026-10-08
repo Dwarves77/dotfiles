@@ -1,0 +1,13 @@
+-- subject: Recovered 2026-10-07 from supabase_migrations.schema_migrations (ledger version 20260801201905, name gate_a_health_cached): the pg_cron extension, the one schema statement of this ledger row that no master migration holds. APPLIED.
+-- recovered: 2026-10-07 from supabase_migrations.schema_migrations (lane MIG-HIST-1)
+-- ledger version: 20260801201905
+-- ledger name: gate_a_health_cached
+-- applied status: APPLIED (a ledger row exists; applied 2026-08-01 per the version timestamp)
+-- file number: 243 (assigned by lane MIG-HIST-1: the ledger version carries no file number; the nearest free gap number on master)
+-- scope: RESIDUE (only the statement named in the subject line)
+-- coverage: The cache table and the compute, refresh and health functions are held by 256_migration_homes_and_vault_capture_key.sql items 1 to 3. The stored cron.schedule call and the stored call to gate_a_health_refresh are NOT recreated: they are data and scheduling, not schema. Live read 2026-10-07 [CONFIRMED]: cron.job is empty and the last run of the removed job was 2026-08-10, so no schedule is live.
+-- removal: never in git on any ref as this migration; its objects were captured by master migration 256 (PR 443, 2026-08-11); no removal commit exists
+-- body-sha256: 5b8346adbfc0ddc6e36cb74d9b90a8446a986a2352d08a73b4a7984fe8978108
+-- DO NOT APPLY: production already holds this change under the ledger row above. This file exists so the repo describes the database.
+-- ---- recovered statements below, verbatim from schema_migrations.statements ----
+CREATE EXTENSION IF NOT EXISTS pg_cron;

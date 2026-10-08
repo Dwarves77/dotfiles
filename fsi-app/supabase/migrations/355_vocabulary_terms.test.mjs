@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url";
 const RAW = readFileSync(fileURLToPath(new URL("./355_vocabulary_terms.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and APPLIED", () => {
   assert.match(RAW, /^-- subject: Migration 355 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version \d+/);
 });
 
 test("vocabulary_terms: the six kinds, three statuses, unique (kind, term_key), adopted rows are stamped", () => {

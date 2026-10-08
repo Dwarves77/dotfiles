@@ -144,3 +144,16 @@ test('F23 runs the real scan and gets a well-formed summary', () => {
 test('F23 is holistic: one sentinel so the whole-tree check runs exactly once', () => {
   assert.equal(fitnessFunction.enumerate().length, 1);
 });
+
+test('a hash or Map .update/.delete call is NOT a governed write; a Supabase .from().update() is (one predicate with rule 015)', () => {
+  const hash = 'const sha = createHash("sha256").update(body).digest("hex");';
+  assert.equal(classify('fsi-app/scripts/verify/x.mjs', hash).includes('WRITES'), false);
+  const map = 'const m = new Map(); m.delete(key); const s = new Set(); s.delete(k);';
+  assert.equal(classify('fsi-app/scripts/verify/x.mjs', map).includes('WRITES'), false);
+  const db = 'await sb.from("sources").update({ x: 1 }).eq("id", id);';
+  assert.ok(classify('fsi-app/scripts/verify/x.mjs', db).includes('WRITES'));
+  const del = 'await supabase.from("sources").delete().eq("id", id);';
+  assert.ok(classify('fsi-app/src/lib/x.ts', del).includes('WRITES'));
+  const both = hash + '\n' + db;
+  assert.ok(classify('fsi-app/scripts/verify/x.mjs', both).includes('WRITES'), 'a real write next to a hash call is still a write');
+});
