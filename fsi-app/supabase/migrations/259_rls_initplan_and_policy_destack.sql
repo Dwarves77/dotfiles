@@ -43,29 +43,29 @@ ALTER POLICY intelligence_items_admin_insert ON public.intelligence_items WITH C
 ALTER POLICY intelligence_items_admin_update ON public.intelligence_items USING ((select auth.role()) = 'service_role');
 ALTER POLICY item_timelines_admin_update ON public.item_timelines USING ((select auth.role()) = 'service_role');
 ALTER POLICY item_timelines_admin_write ON public.item_timelines WITH CHECK ((select auth.role()) = 'service_role');
--- 2026-10-08 (lane MIG-CI, ruling after replay run 37853598030, class OUT-OF-REPO-ALTER): the three policies on intelligence_summaries below
--- (summaries_write_service INSERT, summaries_read_authenticated SELECT, summaries_update_service UPDATE) were created by direct SQL that no
--- migration records (docs/inventories/out-of-band-objects.md, 'Policies: 7 out-of-band'; RLS was enabled on the table the same way), so the ALTER
--- POLICY statements below were refused on a replay (policy does not exist) although production has them. They are created here, guarded,
--- with a placeholder expression that the ALTER right below replaces with the real one, and RLS is enabled (idempotent). Command per the
--- inventory; roles default to PUBLIC [HYPOTHESIS: the oracle compares roles]. Final schema equals production if that holds; the four other
--- out-of-band policies (changes_*, sector_contexts_*) are touched by no migration and are left to the oracle to report.
-ALTER TABLE public.intelligence_summaries ENABLE ROW LEVEL SECURITY;
-DO $capture$
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37853598030, class OUT-OF-REPO-ALTER): the three ALTER POLICY statements on intelligence_summaries
+-- below name policies created by direct SQL that no migration records (docs/inventories/out-of-band-objects.md, '7 out-of-band policies'), so on a
+-- replay from the repo files they were refused (policy does not exist) although production has them. Each statement is unchanged and now runs
+-- only where its policy exists. The policies themselves stay absent on a replay; capturing the seven out-of-band policies is owed to a capture
+-- migration (the inventory says so) and the schema oracle will report them until then.
+DO $guard$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_write_service') THEN
-    CREATE POLICY summaries_write_service ON public.intelligence_summaries FOR INSERT WITH CHECK (true);
+  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_write_service') THEN
+    ALTER POLICY summaries_write_service ON public.intelligence_summaries WITH CHECK ((select auth.role()) = 'service_role');
+  ELSE
+    RAISE NOTICE '259: policy summaries_write_service does not exist (out-of-band DDL), skipped';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_read_authenticated') THEN
-    CREATE POLICY summaries_read_authenticated ON public.intelligence_summaries FOR SELECT USING (true);
+  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_read_authenticated') THEN
+    ALTER POLICY summaries_read_authenticated ON public.intelligence_summaries USING ((select auth.role()) = 'authenticated' OR (select auth.role()) = 'service_role');
+  ELSE
+    RAISE NOTICE '259: policy summaries_read_authenticated does not exist (out-of-band DDL), skipped';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_update_service') THEN
-    CREATE POLICY summaries_update_service ON public.intelligence_summaries FOR UPDATE USING (true);
+  IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'intelligence_summaries' AND policyname = 'summaries_update_service') THEN
+    ALTER POLICY summaries_update_service ON public.intelligence_summaries USING ((select auth.role()) = 'service_role');
+  ELSE
+    RAISE NOTICE '259: policy summaries_update_service does not exist (out-of-band DDL), skipped';
   END IF;
-END $capture$;
-ALTER POLICY summaries_write_service ON public.intelligence_summaries WITH CHECK ((select auth.role()) = 'service_role');
-ALTER POLICY summaries_read_authenticated ON public.intelligence_summaries USING ((select auth.role()) = 'authenticated' OR (select auth.role()) = 'service_role');
-ALTER POLICY summaries_update_service ON public.intelligence_summaries USING ((select auth.role()) = 'service_role');
+END $guard$;
 ALTER POLICY sources_admin_delete ON public.sources USING ((select auth.role()) = 'service_role');
 ALTER POLICY sources_admin_insert ON public.sources WITH CHECK ((select auth.role()) = 'service_role');
 ALTER POLICY sources_admin_update ON public.sources USING ((select auth.role()) = 'service_role');
