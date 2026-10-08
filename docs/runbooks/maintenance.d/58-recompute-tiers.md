@@ -33,8 +33,14 @@ never written over (planner skips it, and the write itself carries `tier_overrid
 (`tier_promotion` or `tier_demotion`, `created_by` "worker", `details.applied` true, with `rule`, `rules`,
 `before_tier`, `after_tier`, `deltas` and the inputs).
 
-**Same logic, two entries**: `POST /api/admin/recompute-trust` (applies after its trust-score pass; it no
-longer only proposes demotions) and this step. Both call the planner and applier in `trust.ts`.
+**Same logic, two entries**: `POST /api/admin/recompute-trust` (the admin action; it applies after its trust-score
+pass and no longer only proposes demotions) and this step. Both call the planner and applier in `trust.ts`. The
+trust-score pass itself is section 66 (`recompute-trust-scores`); the `trust-recompute.yml` workflow that used to
+call the route was retired 2026-10-07.
+**Emergency stop (lane TRUST-RET, 2026-10-07)**: the step reads `system_state.global_processing_paused` before
+anything else and, when set, plans and writes nothing (`summary.json` `paused: true`, `pause_reason`, exit 0), as
+the route does. An unreadable flag fails closed. The cadence is a separate read and stays the hold below.
+
 `extended_inaccessibility` now requires `status = 'inaccessible'`, matching its declared condition, so a
 source that is merely not being scanned does not fire.
 

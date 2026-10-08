@@ -223,3 +223,38 @@ test("buildDeps(): readOutcomes is ONE bounded read of the ledger window", async
   assert.ok(ledgerReads.length >= 1);
   assert.ok(ledgerReads.every((c) => c.ops.some((o) => o[0] === "gte" && o[1] === "scored_at" && o[2] === "2025-10-04T00:00:00.000Z")), "bounded by the window");
 });
+
+// Lane TRUST-RET (2026-10-07): the operator's emergency stop halts the run before any plan or write.
+test("the emergency stop halts recompute-tiers: nothing read, planned or written", async () => {
+  const f = fakeDeps([row()]);
+  f.deps.readPause = async () => ({ paused: true, error: null });
+  f.deps.readers.readSources = async () => { throw new Error("must not read"); };
+  const summary = await main({ mode: "apply" }, f.deps);
+  assert.equal(summary.paused, true);
+  assert.equal(summary.applied, 0);
+  assert.equal(f.writes.length, 0);
+  assert.equal(f.events.length, 0);
+  assert.equal(summary.exitCode, 0);
+});
+
+test("a clear pause read leaves the run as it was", async () => {
+  const f = fakeDeps([row()]);
+  f.deps.readPause = async () => ({ paused: false, error: null });
+  assert.equal((await main({ mode: "apply" }, f.deps)).applied, 1);
+});
+
+test("an unreadable pause flag fails closed: the step does not write", async () => {
+  const f = fakeDeps([row()]);
+  f.deps.readPause = async () => ({ paused: true, error: "db down" });
+  const summary = await main({ mode: "apply" }, f.deps);
+  assert.equal(f.writes.length, 0);
+  assert.match(summary.pause_reason, /failing closed/);
+});
+
+test("buildDeps(): readPause reads system_state.global_processing_paused", async () => {
+  const client = makeClient((s) => ({ data: s.table === "system_state" ? [{ global_processing_paused: true }] : [], error: null }));
+  __setWriteClientForTest(() => client);
+  const deps = await buildDeps();
+  assert.deepEqual(await deps.readPause(), { paused: true, error: null });
+  assert.ok(client.__calls.some((c) => c.table === "system_state" && c.ops.some((o) => o[0] === "select" && o[1] === "global_processing_paused")));
+});

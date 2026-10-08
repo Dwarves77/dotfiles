@@ -21,6 +21,9 @@
 // Cadence hold (CLAUDE.md rule 16): while system_state.scrape_cadence is 'off' the no_substantive_update
 // demotion trigger is suppressed (it reads scan timestamps that cannot advance during the hold) and the
 // summary reports the count as held_cadence_off. system_state is read once per run.
+// Emergency stop (lane TRUST-RET, 2026-10-07): system_state.global_processing_paused halts the run before any
+// plan or write, the same stop POST /api/admin/recompute-trust honours (scripts/maintenance/lib/emergency-pause.mjs).
+// The scrape cadence is a separate read and stays the hold described above, not a stop.
 // Net movement is clamped to one tier either side of base_tier. An admin tier_override always wins and
 // is never written over. base_tier is never written. Every applied change writes a source_trust_events
 // row (tier_promotion or tier_demotion, created_by "worker", details.applied true).
@@ -37,6 +40,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
+import { readEmergencyPause, pausedSummary } from "./lib/emergency-pause.mjs";
 import { notUnderTierOverride } from "../../src/lib/sources/tier-override-guard.mjs";
 
 export const CITE = Object.freeze({
@@ -56,11 +60,14 @@ const SAMPLE_LIMIT = 25;
  *   readers: { readSources: Function, readOpinions: Function, readCitations: Function, readOutcomes?: Function },
  *   writers: { setEffectiveTier: Function, insertEvent: Function },
  *   readCadence: () => Promise<string>,
+ *   readPause?: () => Promise<{ paused: boolean, error: string|null }>,
  *   now?: () => Date,
  * }} deps
  */
 export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
+  const pause = deps.readPause ? await deps.readPause() : { paused: false, error: null };
+  if (pause.paused) return pausedSummary({ step: "recompute-tiers", mode, pause });
   const now = deps.now ? deps.now() : new Date();
   const scrapeCadence = await deps.readCadence();
   const plan = await deps.tierMovement.planTierMovements(deps.readers, { now, scrapeCadence });
@@ -135,6 +142,8 @@ export async function buildDeps() {
       const rows = await readAll("system_state", "scrape_cadence");
       return rows?.[0]?.scrape_cadence ?? "off";
     },
+    // The operator's emergency stop (see ./lib/emergency-pause.mjs). Read once per run, fails closed.
+    readPause: () => readEmergencyPause(readAll),
     readers: {
       // The whole registry, paused rows included: a paused source still weighs as a citer, and the
       // planner itself skips moving a paused row.
