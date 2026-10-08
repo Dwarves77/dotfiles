@@ -301,7 +301,7 @@
   "20260904084952": {"name":"303_slim_listings_id_tiebreak","file":"303_slim_listings_id_tiebreak.sql","class":"code-differs"},
   "20260904172741": {"name":"304_source_sitemap_coverage","file":"304_source_sitemap_coverage.sql","class":"code-differs"},
   "20260904195605": {"name":"305_workspace_intelligence_listings_domain_param","file":"305_workspace_intelligence_listings_domain_param.sql","class":"code-differs"},
-  "20260904223227": {"name":"306_public_workspace_intelligence_listings","file":"306_public_workspace_intelligence_listings.sql","class":"identical"},
+  "20260904223227": {"name":"306_public_workspace_intelligence_listings","file":"306_public_workspace_intelligence_listings.sql","class":"code-differs"},
   "20260905012221": {"name":"307_item_forward_events_text_identity_dedupe","file":"307_item_forward_events_text_identity_dedupe.sql","class":"identical"},
   "20260905192958": {"name":"308_census_worklist_archive_columns","file":"308_census_worklist_archive_columns.sql","class":"code-differs"},
   "20260905193019": {"name":"309_source_tier_opinions_host_class_table","file":"309_source_tier_opinions_host_class_table.sql","class":"code-differs"},
