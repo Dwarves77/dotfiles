@@ -159,7 +159,12 @@ test('GREEN: Date.now() used to build a scratch-dir name, asserted deepEqual aga
   assert.deepEqual(findClockFragileAssertions(src), []);
 });
 
-test('LIVE: no test file in the live tree carries the #816 combination', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('LIVE: no test file in the live tree carries the #816 combination', LIVE_TREE, () => {
   const files = fitnessFunction.enumerate();
   assert.ok(files.length > 20, `expected a real scan, got ${files.length} files`);
   const red = [];

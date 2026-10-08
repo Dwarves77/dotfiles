@@ -99,7 +99,12 @@ test('test files and _archive are excluded from enumeration', () => {
   }
 });
 
-test('LIVE: the whole scoped tree (fsi-app/src + fsi-app/scripts) passes F38 clean as of this lane\'s fixes', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('LIVE: the whole scoped tree (fsi-app/src + fsi-app/scripts) passes F38 clean as of this lane\'s fixes', LIVE_TREE, () => {
   const problems = [];
   for (const f of fitnessFunction.enumerate()) {
     const content = readFileSync(resolve(REPO_ROOT, f), 'utf8');

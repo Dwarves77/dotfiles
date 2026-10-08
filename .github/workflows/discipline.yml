@@ -19,8 +19,10 @@ name: Discipline engine
 #                          override-aware.
 #   fitness-check          npm ci, then the fitness function suite and the
 #                          npm-dependent proofs.
-#   rendering-guard        real-browser layout leg, NON-BLOCKING, and by a wide
-#                          margin the most expensive job here: it installs
+#   rendering-guard        real-browser layout leg, REQUIRED (lane GATE-4,
+#                          2026-10-07: continue-on-error removed now that
+#                          BUILD_MODE suspends the baseline clock), and by a
+#                          wide margin the most expensive job here: it installs
 #                          Playwright chromium and carries a 10-minute timeout
 #                          against everything else's 5.
 #
@@ -37,6 +39,24 @@ name: Discipline engine
 #
 # Any job failing fails the workflow; PR merge is blocked when this
 # workflow is set as a required check (Repo -> Settings -> Branches).
+#
+# PUSH TO MASTER RUNS THE SLIM JOB SET (lane GATE-4, 2026-10-07, gate plan 2026-10-08).
+# On a push to master only validate-commits and consistency-backstop run (the app build is checked by
+# build-proof.yml, its own workflow, which already triggers on push). test-discipline-engine, fitness-check
+# and rendering-guard carry `if: github.event_name == 'pull_request'`: a pull_request run checks out the
+# merge of the PR head into the base, so the suite, the fitness functions and the rendering guard have
+# already passed on the content that lands. Measured (gate evaluation B, 30 days to 2026-10-08): the 370
+# master-push runs were about 38 percent of the estimated discipline job-minutes, re-running checks the
+# PR run had already passed. The consistency layer stays because it is the unconditional C3/C4/C5 reality
+# backstop. A skipped job on a push blocks nothing (merge protection reads the PR checks), so this does not
+# reopen the "skipped required check blocks the merge" problem the cost-control note below rejects path
+# filters for.
+#
+# GATE FIRINGS ARE A CI ARTIFACT (doctrine point 6 of the gate plan). validate-commits uploads the rule
+# firing lines (gate-firings-validate-commits) and fitness-check uploads fitness-firings.json
+# (gate-firings-fitness-check) on every run, pass or fail, so the next evaluation of the gates is a query
+# over artifacts and not a fact lane over logs: docs/runbooks/gate-evaluation.md. One artifact per job
+# because upload-artifact v4 refuses a second upload under the same name within one run.
 
 on:
   push:
@@ -57,9 +77,9 @@ on:
 # WHY THIS WORKFLOW IS THE CONSUMER. Five jobs fire on every pull_request event,
 # seven counting bug-class-guard, and GitHub rounds EVERY job up to a whole
 # billable minute, so a short job costs a full minute even when it takes twenty
-# seconds. One of the five, rendering-guard, installs Playwright chromium and is
-# NON-BLOCKING, so on a superseded commit it is pure spend against a result that
-# could never have gated the merge anyway. Delivery to this repo
+# seconds. One of the five, rendering-guard, installs Playwright chromium; it was
+# NON-BLOCKING when this note was written (it is required since lane GATE-4), and
+# on a superseded commit it is spend against a result that no longer applies. Delivery to this repo
 # is by GitHub web upload, which is scoped to one directory per commit, so one
 # logical unit lands as five or six commits. Without a concurrency group each of
 # those commits ran a full four-job pass to completion, and the first five passes
@@ -99,16 +119,29 @@ jobs:
         with:
           node-version: '24'
 
+      # GATE FIRINGS LOG (lane GATE-4, gate plan doctrine point 6). The rule engine's own output (one
+      # PASS / SKIP / FAIL line per rule, FAIL with its message) is teed to this file by the two engine
+      # steps below, then uploaded by the last step of the job on every run. The header line carries the
+      # event, branch and commit so a downloaded file is self-describing.
+      - name: Prepare gate firings log
+        env:
+          GATE_EVENT: ${{ github.event_name }}
+          GATE_BRANCH: ${{ github.head_ref || github.ref_name }}
+          GATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          mkdir -p fsi-app/.discipline/out
+          printf '# gate-firings event=%s branch=%s sha=%s\n' "$GATE_EVENT" "$GATE_BRANCH" "$GATE_SHA" > fsi-app/.discipline/out/rules-ci-firings.log
+
       - name: Run discipline engine (push to master)
         if: github.event_name == 'push'
         env:
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          set -u
+          set -u -o pipefail
           echo "Validating commit $COMMIT_SHA"
           node fsi-app/.discipline/runner.mjs \
             --mode=ci \
-            --commit="$COMMIT_SHA"
+            --commit="$COMMIT_SHA" 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log
 
       - name: Run discipline engine (pull request)
         if: github.event_name == 'pull_request'
@@ -119,7 +152,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          set -u
+          set -u -o pipefail
           # Make sure origin/<base> is resolvable from the checkout. The
           # checkout action gives us refs/remotes/origin/<base> for the
           # target branch on pull_request events, but we re-fetch defensively
@@ -137,7 +170,7 @@ jobs:
           # either.
           echo "Validating PR range: base=origin/${BASE_REF} head=${PR_HEAD} (range resolved by runner.mjs via change-range.mjs)"
           node fsi-app/.discipline/runner.mjs \
-            --mode=ci
+            --mode=ci 2>&1 | tee -a fsi-app/.discipline/out/rules-ci-firings.log
 
       # ── Memory gate (2026-08-13) ─────────────────────────────────────────
       # WHY. docs/ is the project memory, and memory that is not committed does
@@ -208,8 +241,22 @@ jobs:
             node fsi-app/.discipline/governance/memory-gate.mjs --range="$RANGE"
           fi
 
+      - name: Upload gate firings (rule engine output)
+        # Every run, pass or fail. An absent file uploads nothing and does not fail the job. One artifact
+        # per job because upload-artifact v4 refuses a second upload under the same name in one run. The
+        # retention is the F68 budget (7 days); docs/runbooks/gate-evaluation.md says how to query these.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-firings-validate-commits
+          path: fsi-app/.discipline/out/rules-ci-firings.log
+          if-no-files-found: ignore
+          retention-days: 7
+
   test-discipline-engine:
     name: Discipline engine unit tests
+    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -362,6 +409,8 @@ jobs:
 
   fitness-check:
     name: Fitness functions (application-layer enforcement)
+    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -440,6 +489,16 @@ jobs:
         if: steps.docs_only.outputs.docs_only != 'true'
         run: node fsi-app/.discipline/fitness/runner.mjs
 
+      - name: Cache actionlint tarball (version-keyed)
+        # Lane GATE-4: one network-reset failure on the release download in the evaluation window (run
+        # 37607165874). The pinned release tarball is cached under a key that carries the version, so a
+        # version bump is a new key; the step below verifies the sha256 on EVERY run, hit or miss.
+        if: steps.docs_only.outputs.docs_only != 'true'
+        uses: actions/cache@v4
+        with:
+          path: /tmp/actionlint.tar.gz
+          key: actionlint-v1.7.12-linux-amd64
+
       - name: actionlint (pinned, checksum-verified) over .github/workflows
         # Lane F52, 2026-09-20 (invariant RD-77; see docs/runbooks/CORPUS-TURN-RUNBOOK.md "Workflow-file
         # validity gate"). F52-workflow-file-validity.mjs is a five-check structural floor, not a full
@@ -459,9 +518,14 @@ jobs:
         if: steps.docs_only.outputs.docs_only != 'true'
         run: |
           set -euo pipefail
-          curl -sSL -o /tmp/actionlint.tar.gz \
-            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
-          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz" | sha256sum -c -
+          # Lane GATE-4: use the cached tarball when its checksum matches; otherwise download (with retries on
+          # a transient network error) and verify. Either way the checksum is verified before anything runs.
+          SUM="8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz"
+          if ! echo "$SUM" | sha256sum -c - >/dev/null 2>&1; then
+            curl -sSL --retry 3 --retry-all-errors -o /tmp/actionlint.tar.gz \
+              https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+            echo "$SUM" | sha256sum -c -
+          fi
           tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
           /tmp/actionlint -color -shellcheck= -pyflakes= .github/workflows/*.yml
 
@@ -499,14 +563,33 @@ jobs:
         working-directory: fsi-app
         run: node scripts/verify/run-goldens.mjs
 
+      - name: Upload gate firings (fitness functions)
+        # Every run, pass or fail. The fitness runner writes fitness-firings.json (lane GATE-3); when it is
+        # absent (a docs-only run skips the runner, or the runner predates the file) nothing is uploaded and
+        # the job does not fail. See validate-commits for why the artifact name carries the job.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-firings-fitness-check
+          path: fsi-app/.discipline/out/fitness-firings.json
+          if-no-files-found: ignore
+          retention-days: 7
+
   rendering-guard:
     name: Rendering guard (overflow / placeholder / hydration — real-browser layout)
+    # PR head only (lane GATE-4): a push to master skips this job, see the header's slim job set note.
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # NON-BLOCKING LANE (operator policy 2026-07-11): a flaky required check is a merge embargo on the
-    # whole program, so this browser leg runs ALWAYS-ON but NON-BLOCKING (continue-on-error, the same
-    # data-audit-lane / SOFT pattern as the bug-class scan) and does NOT enter the required-check set
-    # until it has 3 CONSECUTIVE GREEN runs on master post-merge. Stability is proven before it gates.
+    # REQUIRED JOB (lane GATE-4, 2026-10-07, gate plan 2026-10-08). This job used to carry
+    # continue-on-error (operator policy 2026-07-11: a flaky required check is a merge embargo, so the
+    # browser leg stayed non-blocking until it proved stable). The condition that mattered at the end is
+    # met: BUILD_MODE (fsi-app/.discipline/governance/build-mode.mjs) suspends the layout-guard baseline
+    # clock, so the calendar rule that turned this job red on its own no longer applies, and a NEW finding
+    # blocks while a baselined one does not. Its non-pass rate over the 301 sampled runs was about 1.5
+    # percent (gate evaluation B section 8). A job that cannot fail the workflow gates nothing, which is
+    # why the soft pattern is removed here and not kept. It runs on the pull_request head only (see the
+    # header); the 10-minute timeout stays.
     #
     # WHY its own job (RENDER-1, 2026-07-11): the overflow leg needs a REAL layout engine
     # (scrollWidth/clientWidth are all-zero in jsdom), so this job installs Playwright chromium and
@@ -516,45 +599,25 @@ jobs:
     # (fsi-app/.discipline/rendering/assertions.test.mjs, in the Discipline-engine-unit-tests job), so
     # the detection logic already gates; this job is the supplementary real-browser layer.
     #
-    # KNOWN OPEN (guard's day-one catch, registered — see docs/ops/rendering-guard-followups-2026-07-11.md):
+    # KNOWN OPEN (guard's day-one catch, registered, see docs/ops/rendering-guard-followups-2026-07-11.md):
     # the timeline-labels GREEN fixture approximates the real InteractiveTimeline (which is absolute-
-    # positioned on a % track) with a flex space-between row AND does not bundle Plus Jakarta Sans, so
-    # Linux-CI font-fallback digits overflow +11px at 380px where Windows fits — a fixture fidelity +
-    # cross-OS font-nondeterminism issue, NOT a confirmed production defect. Fix (fidelity + deterministic
-    # font, + verify the real strip @380px in the live-data mobile E2E) precedes required-status.
-    continue-on-error: true
+    # positioned on a % track) with a flex space-between row. The font half of that finding (Linux-CI
+    # fallback digits overflowing +11px at 380px) was closed by RD-80, which vendors the fonts the app
+    # ships; the fixture fidelity half is still a fixture approximation, NOT a confirmed production defect.
     steps:
-      # FULL HISTORY (task 0.1, FACETFIX, 2026-09-11; [CONFIRMED], method: fetched both real CI job
-      # logs with `gh api repos/Dwarves77/dotfiles/actions/jobs/<id>/logs` and diffed them, then read
-      # the oracle's source; full evidence in docs/ops/session-log.md's FACETFIX entry). Root cause of
-      # the push-vs-pull_request layout-guard divergence (run 34614334442 attempts 1 and 2, both
-      # green, vs master run 34634686151 attempt 2 / job 103383607922, red, same tree). This step used
-      # to omit fetch-depth entirely, which defaults to a depth-1 checkout: on a pull_request event
-      # that fetches ONLY refs/pull/<N>/merge (the synthetic merge commit, one commit deep, no
-      # origin/master ref at all), and on a push it fetches ONLY the pushed commit itself under
-      # refs/remotes/origin/master. `latestTrainWave()` (F25-module-liveness.mjs, read by
-      # exemptions-375.mjs, exemptions-law2-desktop.mjs and this guard's own L9 desktop exemption)
-      # resolves "the latest landed wave" from `git log --oneline origin/master` (falling back to
-      # HEAD). Under that depth-1 checkout the two events see DIFFERENT, WRONG inputs: a PR run's
-      # origin/master ref does not exist and its one-commit HEAD (the synthetic merge) carries no
-      # "waveNN" token, so the oracle returns null, which every exemption treats as "still active" (a
-      # false pass; both PR-run job logs print "latest landed wave: unknown" and suppress the same 4
-      # law-2 lines, leaving "layout guard: 36 route x width measurement(s), 0 finding(s)"). A push
-      # run's origin/master IS the single just-pushed commit, so the oracle returns whatever wave
-      # number happens to be IN THAT ONE COMMIT'S OWN SUBJECT LINE (a coincidence of the
-      # "train/waveNN" commit-message convention, not a real history scan), which on master run
-      # 34634686151 (commit 5e891abd, subject "train/wave71...") read as 71, past the law-2 desktop
-      # exemption's wave-70 expiry, so nothing was suppressed and the master job log shows "layout
-      # guard: 36 route x width measurement(s), 120 finding(s)" as real failures instead. Same tree,
-      # two verdicts; the guard must give one. `fetch-depth: 0` gives BOTH events the full commit
-      # history reachable from whatever they checked out (the PR merge ref's full ancestry, or
-      # master's full ancestry), so `latestTrainWave()` sees the TRUE landed-wave history either way
-      # and the two events agree. The permanent fix for the underlying finding itself (not merely the
-      # oracle divergence) is the facet-row hit-target fix in ListSurfaceRailCards.tsx, same commit.
+      # DEPTH 1, NO EXTRA REF FETCH (lane GATE-4). This step used to check out with `fetch-depth: 0`
+      # (task 0.1, FACETFIX, 2026-09-11) so `latestTrainWave()` (F25-module-liveness.mjs) could read the
+      # landed-wave history and a push run and a pull_request run would agree. That fetched every remote
+      # branch on every run (hundreds of `[new branch]` lines). Both reasons are gone: this job now runs
+      # on pull_request only, so there is no push-versus-PR pair to reconcile, and the three consumers of
+      # the oracle (exemptions-375.mjs, exemptions-law2-desktop.mjs, layout-guard/manifests.mjs) are
+      # unaffected by a depth-1 checkout: the two dated exemption lists fail CLOSED on an unknown wave
+      # (expired at waves 58 and 70, so none is active either way) and manifests.mjs carries no numbered
+      # expiry. The checkout action fetches the PR merge ref alone at depth 1.
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Node
         uses: actions/setup-node@v5

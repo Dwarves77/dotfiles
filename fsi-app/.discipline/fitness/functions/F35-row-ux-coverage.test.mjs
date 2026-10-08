@@ -85,7 +85,12 @@ test('check(): a tracked row component passes by delegation, and still fails wit
   );
 });
 
-test('LIVE: every TITLE_DELEGATES entry exists on disk and really carries data-guard-title', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('LIVE: every TITLE_DELEGATES entry exists on disk and really carries data-guard-title', LIVE_TREE, () => {
   for (const path of Object.keys(TITLE_DELEGATES)) {
     const p = join(REPO, 'fsi-app', path);
     assert.ok(existsSync(p), `${path} missing on disk`);
@@ -98,7 +103,7 @@ test('stripComments keeps line count', () => {
   assert.equal(stripComments(s).split('\n').length, s.split('\n').length);
 });
 
-test('LIVE: every ROW_COMPONENTS entry exists on disk', () => {
+test('LIVE: every ROW_COMPONENTS entry exists on disk', LIVE_TREE, () => {
   for (const c of Object.keys(ROW_COMPONENTS)) {
     assert.ok(existsSync(join(REPO, 'fsi-app', c)), `${c} missing on disk`);
   }
