@@ -63,9 +63,11 @@ By name in that register: 01S3.3 four distinct dates (fields `date_of_applicatio
 - GRANTED, done: the generic-phrase fix moved to `classify-binding-position.mjs` (decision 6). Red then green: the three new tests failed against the old module (generic packaging phrase, UK carbon border phrase, identity numbers) and the CBAM-without-jurisdiction test failed against the new rule until it was given an EU jurisdiction; all 18 pass now. The `derive-obligations` census cases (51 monitoring_only, 61 null, 81 direct_duty, 103 monitoring_only, 164 null) pass unchanged through the new call.
 - New static check in `376_obligation_objects.test.mjs`: the self-check's fixture INSERTs and UPDATEs are checked against the table definitions rebuilt from the migration tree with the shared helper `_lib/fixture-inserts.mjs` (lane SEC-3b-F). Two findings are asserted rather than hidden: `agent_run_searches.result_content` is created by migration 264 inside a DO block the helper does not see, and the `status = 'maybe'` UPDATE is the deliberate attack on the status CHECK.
 
+- Round 3, coordinator ruling: the duty-holder vocabulary is authoritative and lives with the shared vocabularies. `DUTY_HOLDER_CLASSES` moved from `relevance.mjs` to `fsi-app/src/lib/contracts/vocabularies.mjs` (the spec 01 section 3.2 list of ten classes plus five the four instruments and the monitoring_only rule name, each with a definition line, an order, an `origin` and its `orgRoles`); `relevance.mjs` imports it and holds no copy. Migration 376 carries no CHECK on class values (spec 01 section 10: volatile taxonomies are data), only non-empty; its header says so. `376_obligation_objects.test.mjs` asserts every fixture row's classes are in the vocabulary and that the migration states no value CHECK; `obligation-gate.test.mjs` asserts the list, definitions, unique order, frozen shape and that orgRoles are ORG_ROLES ids. The definition lines are generic one-line glosses written by this lane, not quotations of any instrument. The vocabulary is not added to the `VOCABULARIES` registry (its test pins eleven entries and `TRANSPORT_MODES` is outside it too).
+
 ## Open items
 
-- Which duty-holder classes are authoritative: `DUTY_HOLDER_CLASSES` in relevance.mjs is the vocabulary used by the gate; the migration deliberately has no CHECK on class values.
+- None.
 
 ## UX compliance (BindingBanner, Regulations detail)
 

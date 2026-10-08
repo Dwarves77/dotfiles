@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DUTY_HOLDER_CLASSES } from "../../src/lib/contracts/vocabularies.mjs";
 import { buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
@@ -213,4 +214,23 @@ test("fixtures: the checker catches a defect in this migration's own table (red)
   assert.match(checkFixtures({ inserts: badStatus, schema: SCHEMA }).join("|"), /instrument_item_id: NOT NULL with no default and not written/);
   const upd = parseUpdates("UPDATE public.obligation_objects SET status = 'maybe' WHERE obligation_id = 'x';");
   assert.match(checkFixtures({ inserts: [], updates: upd, schema: SCHEMA }).join("|"), /status: 'maybe' violates/);
+});
+
+// ---- duty_holder_class vocabulary (coordinator ruling 2026-10-08): the authoritative list lives in
+// src/lib/contracts/vocabularies.mjs; the migration carries NO CHECK on the values (spec 01 section 10: volatile
+// taxonomies are data, the vocabulary module is the one site).
+const FIXTURE = JSON.parse(readFileSync(join(HERE, "..", "..", "src", "lib", "obligations", "fixtures", "obligation-objects.fixture.json"), "utf8"));
+
+test("duty_holder_class: every fixture row's classes are in the vocabulary module", () => {
+  assert.equal(FIXTURE.objects.length, 4);
+  for (const o of FIXTURE.objects) {
+    for (const c of o.duty_holder_class) assert.ok(Object.hasOwn(DUTY_HOLDER_CLASSES, c), o.capture_fixture_key + ": " + c + " is not in DUTY_HOLDER_CLASSES");
+  }
+});
+
+test("duty_holder_class: the migration states no value CHECK (only non-empty), so the vocabulary has one site", () => {
+  assert.ok(SQL.includes("CHECK (cardinality(duty_holder_class) >= 1)"));
+  assert.doesNotMatch(SQL, /duty_holder_class\s*(<@|=\s*ANY|IN)/i);
+  assert.doesNotMatch(SQL, /unnest\(duty_holder_class\)/i);
+  assert.ok(RAW.includes("DUTY_HOLDER_CLASSES in src/lib/contracts/vocabularies.mjs"), "the migration header points at the vocabulary module");
 });

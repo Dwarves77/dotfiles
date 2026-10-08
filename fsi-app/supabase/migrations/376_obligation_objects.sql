@@ -43,7 +43,11 @@
 --     is never money. Nothing in this table computes or sums across slots.
 --  8. FOUR DATES are four nullable columns (entry_into_force, date_of_application, first_deadline, enforcement_start),
 --     never collapsed; a date is NULL rather than invented.
---  9. ADMIN OVERRIDE. No automatic writer for this table exists in this lane. Migration 356's correction kinds do not
+--  9. duty_holder_class VALUES have no CHECK here (coordinator ruling 2026-10-08): the authoritative list is
+--     DUTY_HOLDER_CLASSES in src/lib/contracts/vocabularies.mjs (spec 01 section 3.2 list, each with a definition
+--     line); spec 01 section 10 treats volatile taxonomies as data, and the vocabulary module is the one site. The
+--     static test asserts every fixture row's classes are in it. The column is only required to be non-empty.
+-- 10. ADMIN OVERRIDE. No automatic writer for this table exists in this lane. Migration 356's correction kinds do not
 --     include obligation objects; an override mechanism for this table is not built here (recorded in the lane log).
 --
 -- Reversible: DROP TRIGGER IF EXISTS propagation_outbox_trg ON public.obligation_objects;

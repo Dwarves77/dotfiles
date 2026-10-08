@@ -27,7 +27,7 @@
 //
 // OBLIGATION GRAIN (lane OBL-2, 2026-10-08, migration 376): when `item.obligation_objects` carries rows (the
 // item's current obligation_objects), roleScope and sizeThreshold are read PER OBJECT, roleScope from
-// duty_holder_class (DUTY_HOLDER_CLASSES maps each class to ORG_ROLES ids) plus an `org_role` applicability_trigger,
+// duty_holder_class (DUTY_HOLDER_CLASSES in contracts/vocabularies.mjs maps each class to ORG_ROLES ids) plus an `org_role` applicability_trigger,
 // sizeThreshold from a size-dimension applicability_trigger, and the item `applicability` is the aggregate of its
 // objects (applies if any object applies, else needs_profile_input if any needs input, else does_not_apply). The
 // result also carries `binding` (summariseObligationBinding): one line per distinct binding_position with the
@@ -53,35 +53,16 @@ import {
   ORG_SIZE_DIMENSIONS,
   findBand,
 } from "../profile/profile-contract.mjs";
-import { BINDING_POSITION } from "../contracts/vocabularies.mjs";
+import { BINDING_POSITION, DUTY_HOLDER_CLASSES } from "../contracts/vocabularies.mjs";
 
 const arr = (x) => (Array.isArray(x) ? x.filter((v) => typeof v === "string" && v.trim()) : []);
 const lc = (s) => String(s || "").toLowerCase();
 const uniq = (a) => [...new Set(a)];
 
 // ── obligation grain (lane OBL-2) ─────────────────────────────────────────────────────────────────────────
-// duty_holder_class vocabulary (spec 01 section 3.2: carrier, shipper, forwarder, NVOCC, customs representative
-// direct/indirect, ISM company, fuel supplier, aircraft operator, producer; plus the classes the four
-// forwarder-direct instruments name). `orgRoles` maps a class to ADR-034 ORG_ROLES ids where a clear
-// correspondence exists; a class with no ORG_ROLES counterpart maps to [] and is never force-fitted (CLAUDE.md
-// rule 2). A class not in this table is shown by its raw id and maps to no role.
-export const DUTY_HOLDER_CLASSES = Object.freeze({
-  carrier: { label: "Carrier", orgRoles: ["carrier"] },
-  shipper: { label: "Shipper", orgRoles: ["shipper"] },
-  forwarder: { label: "Freight forwarder", orgRoles: ["forwarder"] },
-  nvocc: { label: "NVOCC", orgRoles: ["forwarder"] },
-  customs_representative_direct: { label: "Customs representative (direct)", orgRoles: ["forwarder"] },
-  customs_representative_indirect: { label: "Customs representative (indirect)", orgRoles: ["forwarder"] },
-  importer_of_record: { label: "Importer of record", orgRoles: ["importer_of_record"] },
-  exporter: { label: "Exporter", orgRoles: ["exporter"] },
-  ism_company: { label: "ISM company", orgRoles: ["carrier"] },
-  aircraft_operator: { label: "Aircraft operator", orgRoles: ["carrier"] },
-  fuel_supplier: { label: "Fuel supplier", orgRoles: [] },
-  producer: { label: "Producer", orgRoles: [] },
-  packaging_user: { label: "User of transport packaging", orgRoles: [] },
-  trader: { label: "Trader", orgRoles: [] },
-  member_state: { label: "Member State", orgRoles: ["public_body"] },
-});
+// duty_holder_class values are read from DUTY_HOLDER_CLASSES in src/lib/contracts/vocabularies.mjs, the one site of
+// the vocabulary (coordinator ruling 2026-10-08); each maps to ORG_ROLES ids, or to none. A class not in it is shown
+// by its raw id and maps to no role.
 
 const ORG_ROLE_LABEL = Object.fromEntries(ORG_ROLES.map((r) => [r.id, r.label]));
 const POSITION_ORDER = Object.values(BINDING_POSITION).sort((a, b) => a.order - b.order).map((p) => p.code);

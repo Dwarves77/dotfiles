@@ -13,9 +13,10 @@ import {
   summariseObligationBinding,
   currentObligationObjects,
   fetchObligationObjectsForItem,
-  DUTY_HOLDER_CLASSES,
 } from "./relevance.mjs";
+import { DUTY_HOLDER_CLASSES } from "../contracts/vocabularies.mjs";
 import { assertEntityId } from "../entities/entity-id-shape.mjs";
+import { ORG_ROLES } from "../profile/profile-contract.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = JSON.parse(readFileSync(join(HERE, "..", "obligations", "fixtures", "obligation-objects.fixture.json"), "utf8"));
@@ -254,4 +255,28 @@ test("fetchObligationObjectsForItem: a uuid is used directly, a legacy id is res
 test("fetchObligationObjectsForItem: a read error throws (the route marks the banner load as failed, never an empty claim)", async () => {
   const c = fakeClient({ objectsError: { message: "boom" } });
   await assert.rejects(() => fetchObligationObjectsForItem(c, "11111111-2222-4333-8444-555555555555"), /boom/);
+});
+
+test("DUTY_HOLDER_CLASSES: the spec 01 section 3.2 list is present, each class carries a definition line, a unique order, and orgRoles drawn from ORG_ROLES", () => {
+  for (const id of ["carrier", "shipper", "forwarder", "nvocc", "customs_representative_direct", "customs_representative_indirect", "ism_company", "fuel_supplier", "aircraft_operator", "producer"]) {
+    assert.ok(DUTY_HOLDER_CLASSES[id], id);
+    assert.equal(DUTY_HOLDER_CLASSES[id].origin, "spec 01 section 3.2", id);
+  }
+  const roleIds = new Set(ORG_ROLES.map((r) => r.id));
+  const orders = new Set();
+  for (const [key, c] of Object.entries(DUTY_HOLDER_CLASSES)) {
+    assert.equal(c.code, key);
+    assert.ok(c.label && c.definition && c.definition.length > 20, key + " has a label and a definition line");
+    assert.ok(!orders.has(c.order), key + " has a unique order");
+    orders.add(c.order);
+    for (const r of c.orgRoles) assert.ok(roleIds.has(r), key + ": " + r + " is an ORG_ROLES id");
+    assert.ok(Object.isFrozen(c) && Object.isFrozen(c.orgRoles), key + " is frozen");
+  }
+});
+
+test("DUTY_HOLDER_CLASSES: relevance.mjs reads the vocabulary module and holds no copy of the table", () => {
+  const src = readFileSync(join(HERE, "relevance.mjs"), "utf8");
+  assert.ok(src.includes('import { BINDING_POSITION, DUTY_HOLDER_CLASSES } from "../contracts/vocabularies.mjs";'));
+  assert.ok(!src.includes("export const DUTY_HOLDER_CLASSES"));
+  assert.ok(!src.includes("customs_representative_indirect:"));
 });
