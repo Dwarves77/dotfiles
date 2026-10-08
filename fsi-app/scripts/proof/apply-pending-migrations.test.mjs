@@ -55,7 +55,7 @@ test("the 299 exclusion reason is still what the file's own header says", () => 
   assert.match(EXCLUDED[names[0]], /LEFT UNAPPLIED \(two-track policy\)/);
 });
 
-test("the committed tree: the plan has no errors, 370 to 372 are selected in order, 299 is excluded, and every pick is a map never or an unreferenced file", () => {
+test("the committed tree: the plan has no errors, the pending set is exactly the map's never-applied entries plus unreferenced files minus 299, in number order", () => {
   const plan = planReplay(
     parseInventoryOrder(readFileSync(DEFAULT_INVENTORY, "utf8")),
     readdirSync(DEFAULT_MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")),
@@ -65,14 +65,13 @@ test("the committed tree: the plan has no errors, 370 to 372 are selected in ord
   assert.deepEqual(plan.errors, []);
   const sel = selectPending(plan);
   const files = sel.apply.map((a) => a.file);
-  const i370 = files.indexOf("370_privilege_table_policies.sql");
-  assert.ok(i370 >= 0 && files[i370 + 1] === "371_definer_hygiene.sql" && files[i370 + 2] === "372_profiles_read.sql", `370, 371, 372 must be selected in order, got ${files.join(", ")}`);
-  assert.ok(!files.includes("299_item_type_required_slots_wave3.sql"));
-  assert.ok(sel.excluded.some((e) => e.file === "299_item_type_required_slots_wave3.sql"));
   const map = JSON.parse(readFileSync(DEFAULT_MAP, "utf8"));
-  const never = new Set(Object.values(map).filter((e) => e.class === "never-applied").map((e) => e.file));
-  for (const a of sel.apply) assert.ok(never.has(a.file) || plan.unreferenced.includes(a.file), `${a.file} is neither a map never nor unreferenced`);
-  assert.deepEqual(files, [...files].sort((a, b) => Number(/^(\d+)/.exec(a)[1]) - Number(/^(\d+)/.exec(b)[1])), "applied in number order");
+  const never = Object.values(map).filter((e) => e.class === "never-applied").map((e) => e.file);
+  const want = [...never, ...plan.unreferenced].filter((f) => !Object.keys(EXCLUDED).includes(f)).sort((a, b) => Number(/^(\d+)/.exec(a)[1]) - Number(/^(\d+)/.exec(b)[1]) || (a < b ? -1 : 1));
+  assert.deepEqual(files, want, "the selection is derived from the map and the tree, not from a list kept here");
+  assert.ok(!files.includes("299_item_type_required_slots_wave3.sql"));
+  assert.ok(never.includes("299_item_type_required_slots_wave3.sql"), "the exclusion is not vacuous: 299 is a never-applied entry");
+  assert.ok(sel.excluded.some((e) => e.file === "299_item_type_required_slots_wave3.sql"));
 });
 
 /** A stand-in for psql. It records every call and answers by the file it was asked to run. */

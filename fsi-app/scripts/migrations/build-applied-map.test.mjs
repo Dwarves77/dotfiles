@@ -155,7 +155,8 @@ test("--add-never: one new NOT APPLIED file gains exactly one keyed entry in the
 
 test("--add-never: the note is the shape the committed never-applied entries carry (prefix plus the subject line cut at 160 characters)", () => {
   const committed = JSON.parse(readFileSync(MAP_PATH, "utf8"));
-  for (const k of ["never:370_privilege_table_policies.sql", "never:371_definer_hygiene.sql", "never:372_profiles_read.sql"]) {
+  // Whichever derived never-applied entries the committed map carries now (an entry leaves when its migration is applied).
+  for (const k of Object.keys(committed).filter((x) => x.startsWith("never:") && String(committed[x].note).startsWith(NEVER_NOTE_PREFIX))) {
     const e = committed[k];
     const text = readFileSync(join(MIG_DIR, e.file), "utf8").replace(/\r\n/g, "\n");
     const subject = text.split("\n").find((l) => l.startsWith("-- subject:"));
@@ -219,8 +220,8 @@ const headerNeverApplied = sqlFiles.filter((f) => {
   return cls === "never-applied" || (cls == null && declaresNotApplied(text));
 }).sort();
 
-test("the map covers all 361 ledger rows, every value has name and class, and every named file exists", () => {
-  assert.equal(versions.length, 361);
+test("the map covers all 365 ledger rows, every value has name and class, and every named file exists", () => {
+  assert.equal(versions.length, 365);
   for (const v of versions) {
     const e = map[v];
     assert.ok(typeof e.name === "string" && typeof e.class === "string", v);
