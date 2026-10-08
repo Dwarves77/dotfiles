@@ -169,7 +169,25 @@ export async function ratifyFlag(deps, flagId, { execute } = {}) {
   const decision = evaluateRatification(flag);
   if (!decision.ok) return { status: "not_ratifiable", error: decision.error };
 
-  const row = buildCensusRow(flagId, decision.fields);
+  return ensureCensusRow(deps, flagId, decision.fields, { execute });
+}
+
+/**
+ * The census write alone: build the row for `fields`, skip when the (source_id, document_url) pair already has one,
+ * insert otherwise. Exported (lane G5-SEARCH, 2026-10-07) so a caller whose `fields` come from somewhere other than
+ * an operator-written resolution note (scripts/turns/apply-need-urls.mjs, a session-found URL) reaches the same
+ * row shape, the same `flywheel-ratified:<flagId>` identity and the same skip-if-exists check, never a second
+ * copy. ratifyFlag above calls it, so its behaviour is unchanged.
+ * @param {{
+ *   findExisting: (sourceId:string, documentUrl:string) => Promise<{data:object|null, error:{message:string}|null}>,
+ *   insertRow: (row:object) => Promise<{inserted:object, snapshot:string}>,
+ * }} deps
+ * @param {string} flagId
+ * @param {Record<string,any>} fields - same keys evaluateRatification()'s `fields` carries
+ * @param {{execute:boolean}} opts
+ */
+export async function ensureCensusRow(deps, flagId, fields, { execute } = {}) {
+  const row = buildCensusRow(flagId, fields);
 
   const { data: existing, error: existErr } = await deps.findExisting(row.source_id, row.document_url);
   if (existErr) return { status: "exists_error", error: existErr.message };

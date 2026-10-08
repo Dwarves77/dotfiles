@@ -101,7 +101,7 @@ test("ordering: dated kinds oldest first, undated kinds after them in KIND_ORDER
     },
   });
   const plan = await planDrain(deps, { runId: "r4" });
-  assert.deepEqual(plan.kinds.map((k) => k.kind), ["theme-briefs", "ledger-verdicts", "host-verdicts", "question-answers", "record-briefs"]);
+  assert.deepEqual(plan.kinds.map((k) => k.kind), ["theme-briefs", "ledger-verdicts", "host-verdicts", "needs-search", "question-answers", "record-briefs"]);
 });
 
 test("orderKinds and earliestPending are pure and stable", () => {

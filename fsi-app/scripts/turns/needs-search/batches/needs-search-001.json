@@ -1,0 +1,29 @@
+{
+  "batch": "needs-search-001",
+  "generated_at": "2026-10-07T00:00:00Z",
+  "authored_by": "session-lane",
+  "note": "PROOF INPUT, not a finding. The need ids exist only in fixtures/corpus.fixture.json, and the URLs below are placeholders on reserved or fixture hosts. Applied against the live database this batch is refused whole (unknown need), which is the expected result and is recorded as residue.",
+  "entries": [
+    {
+      "need_id": "11111111-0000-4000-8000-000000000001",
+      "url": "https://needs-fixture.example/standards/fixture-cold-chain",
+      "institution": "Fixture Standards Institute",
+      "why_authoritative": "Fixture entry: the page states the standard it publishes. Its host is not in the class table, so the entry carries a host verdict.",
+      "confidence": 0.7,
+      "host_verdict": {
+        "host": "needs-fixture.example",
+        "class": "standards_body",
+        "evidence": "Fixture page title: Fixture Standards Institute, publisher of the fixture cold chain handling standard.",
+        "verdict_source": "session-lane",
+        "generated_at": "2026-10-07T00:00:00Z"
+      }
+    },
+    {
+      "need_id": "11111111-0000-4000-8000-000000000004",
+      "url": "https://eur-lex.europa.eu/fixture/needs-search-001",
+      "institution": "Publications Office of the European Union",
+      "why_authoritative": "Fixture entry: the host is EUR-Lex, which the class table rates as a legal publisher, so no host verdict is needed.",
+      "confidence": 0.9
+    }
+  ]
+}

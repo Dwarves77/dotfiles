@@ -24,7 +24,7 @@
 // that DOES feed a session is the record-briefs queue below.
 
 /** Fixed tie-break order for kinds whose pending age is unknown or equal: upstream of the flywheel first. */
-export const KIND_ORDER = Object.freeze(["ledger-verdicts", "host-verdicts", "question-answers", "theme-briefs", "record-briefs"]);
+export const KIND_ORDER = Object.freeze(["ledger-verdicts", "host-verdicts", "needs-search", "question-answers", "theme-briefs", "record-briefs"]);
 
 /**
  * @typedef {object} DrainKind
@@ -83,6 +83,24 @@ export const KINDS = Object.freeze([
     itemsKey: "hosts",
     idKey: "host",
     leaseKey: null,
+  },
+  {
+    id: "needs-search",
+    label: "Source URLs for open needs",
+    batchDir: "scripts/turns/needs-search/batches",
+    batchRe: /^needs-search-\d{3}\.json$/,
+    batchPrefix: "needs-search",
+    applyWorkflow: "needs-search.yml",
+    applyFileInput: "batch_file",
+    namesFile: true,
+    authoringGuide: "scripts/turns/needs-search/README.md",
+    batchSize: 40,
+    maxBatchesPerRun: 1,
+    exportArgv: ["scripts/turns/export-needs-for-search.mjs", "--out-dir", "{out}", "--limit", "{limit}"],
+    bundleGlobPrefix: "needs-search-export",
+    itemsKey: "needs",
+    idKey: "need_id",
+    leaseKey: "need_id",
   },
   {
     id: "question-answers",

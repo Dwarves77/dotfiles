@@ -1,0 +1,15 @@
+{
+  "family": "needs-search",
+  "registered": "2026-10-07",
+  "registered_by": "lane G5-SEARCH",
+  "governing_files": [
+    "../.github/workflows/needs-search.yml",
+    "scripts/turns/export-needs-for-search.mjs",
+    "scripts/turns/apply-need-urls.mjs",
+    "scripts/turns/needs-search/schema.mjs",
+    "scripts/turns/needs-search/data.mjs",
+    "scripts/turns/needs-search/artifact.mjs",
+    "scripts/connections/ratify-flag-to-census.mjs"
+  ],
+  "rationale": "needs-search (lane G5-SEARCH, 2026-10-07, buildout plan Stage 5 last clause and 'How model judgement runs'): the system raises source needs by rule (term-need, holdings-need, flywheel-gap, lineage-gap:absent-parent flags) and until now a person had to find the URL (ratify-flag-to-census took an operator-found url). The flow is the question-answers pattern applied to needs: a read-only export lists every open need with what satisfies it and writes a bundle for a session lane; the lane commits a needs-search-NNN.json batch of {need_id, url, institution, why_authoritative, confidence}; the apply step validates every entry whole (open need, http(s) url without credentials, a host the institution class table rates by host alone or a host verdict in the host-verdicts entry format, no tier in the batch), registers the source through registerSource at the class-table tier, creates the census_worklist row (through ratify-flag-to-census.mjs ensureCensusRow) or portal_link_candidates row the need kind calls for, and resolves the need flag by rule with a marker the export reads back. One run is one export or one apply, told apart by config.action. Governing files are the workflow, the two runtimes, the pure validator (schema.mjs), the shared reads and need assembly (data.mjs), the artifact writer (artifact.mjs) and the census write core in ratify-flag-to-census.mjs; the need reader (question-answers/data.mjs), the lineage planner and the class table are governed by their own families or none and are not hashed here."
+}
