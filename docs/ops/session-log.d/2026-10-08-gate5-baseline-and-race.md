@@ -30,6 +30,6 @@ Read: root CLAUDE.md, `docs/dispatches/lane-common-contract.md`, the DEAD-1 sess
 
 ## NOT done / open items
 
-- NEEDS WRITE-SET EXPANSION (not touched): the comment in `fsi-app/.discipline/manifest.mjs` ("FIRING LOG ... {ts, rule, mode, path, line, verdict}") now omits the `baseline` key; `runner.mjs`'s header carries the current schema.
+- The one comment line in `fsi-app/.discipline/manifest.mjs` listing the firing-log keys was granted by the coordinator after the first push and now lists `baseline`; nothing else in that file changed.
 - No rule's substance changed; fitness runner, migrations and workflows untouched. The workflow already exports `BASE_REF` and `PR_HEAD` to the engine, so no workflow edit was needed.
 - Full suite and fitness runner not run locally (CI is the gate, ADR-040).

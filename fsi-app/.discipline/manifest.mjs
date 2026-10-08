@@ -32,7 +32,7 @@
 // Commit messages are normal: subject + body, no required trailers.
 //
 // FIRING LOG. runner.mjs appends one JSON line per rule firing to governance/.hook-firings.log
-// (gitignored): {ts, rule, mode, path, line, verdict}. A later evaluation is a query over that file.
+// (gitignored): {ts, rule, mode, path, line, verdict, baseline}. A later evaluation is a query over that file.
 
 import { rule as rule012 } from './rules/012-hardcoded-user-path.mjs';
 // Operating-mechanism build (2026-06-06): content-verifier tripwires for the three damage
