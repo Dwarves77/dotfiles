@@ -19,9 +19,10 @@ const read = (name) => readFileSync(join(HERE, name), "utf8");
 const read293 = () => readFileSync(join(HERE, "293_community_identity_and_guard.sql"), "utf8");
 const src = (rel) => readFileSync(join(SRC, rel), "utf8");
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and APPLIED with the ledger version", () => {
   assert.match(RAW, /^-- subject: Migration 372 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008092141, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
 });
 
 test("policy: Public read is dropped; one SELECT policy TO authenticated: own row or a row sharing an organisation", () => {
