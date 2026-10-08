@@ -9,14 +9,18 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   evaluateGate, runGate, scriptFileRun, governedPath, classifyMcp, isSelectSql, sqlReadKind, sqlSkeleton, auditLogPath, inScope,
 } from "./pretooluse-skill-gate.mjs";
 import { skillFileReadInTranscript } from "./skill-token.mjs";
 import { cwdHoldsFsiApp } from "./pretooluse-scope.mjs";
+import { decide as decideEntry } from "./pretooluse-entry.mjs";
+import { verifyWiring, matcherMatches } from "./check-pretooluse-wired.mjs";
+import { applyWiring, SHIM_FILE_NAME } from "./wire-pretooluse-settings.mjs";
 
 const TMP = mkdtempSync(join(tmpdir(), "gate7-honest-"));
 const AUDIT_LOG = join(TMP, "gate-audit.log");
@@ -291,4 +295,110 @@ test("A-PT-S5 / A-PT-S6: an MCP write or an Agent dispatch is scoped by the path
 });
 test("A-PT-S7: a payload with no cwd and a command naming nothing is out of scope", () => {
   assert.equal(scope("Bash", { command: "ls" }, ""), false);
+});
+
+// ── WIRE-1 (2026-10-08): the entry the installed shim delegates to, and the verifier that fails on drift ──
+// The shim installed under the user home carries no logic; pretooluse-entry.mjs holds read, parse, scope
+// (failing TOWARD the gate) and the gate call. The matcher routes every tool name except a closed read-only
+// list, so a tool that does not exist yet is classified by the entry, never silently unrouted.
+const WIRE_HERE = dirname(fileURLToPath(import.meta.url));
+const WIRE_REPO = join(WIRE_HERE, "..", "..", "..");
+const decisionOf = (out) => JSON.parse(out).hookSpecificOutput.permissionDecision;
+
+test("WIRE-1 entry: a routed tool the gate does not classify as mutating is allowed (a future SomeNewTool)", async () => {
+  const out = await decideEntry(JSON.stringify({ tool_name: "SomeNewTool", tool_input: { x: 1 }, cwd: `${ABS}/fsi-app`, transcript_path: EMPTY }));
+  assert.equal(decisionOf(out), "allow");
+});
+test("WIRE-1 entry: an in-scope write reaches the gate (deny with no skill), an out-of-scope call is allowed", async () => {
+  const inside = await decideEntry(JSON.stringify({ tool_name: "Bash", tool_input: { command: "node fsi-app/scripts/x.mjs --apply" }, cwd: "/elsewhere", transcript_path: EMPTY }));
+  assert.equal(decisionOf(inside), "deny");
+  const outside = await decideEntry(JSON.stringify({ tool_name: "Bash", tool_input: { command: "git push" }, cwd: "/unrelated-project-dir-with-no-repo", transcript_path: EMPTY }));
+  assert.equal(decisionOf(outside), "allow");
+});
+test("WIRE-1 entry: an empty, unparseable or non-object payload goes to the gate and is asked (fails TOWARD the gate)", async () => {
+  for (const raw of ["", "not json", "null", "42"]) assert.equal(decisionOf(await decideEntry(raw)), "ask", JSON.stringify(raw));
+});
+
+const wireSandbox = () => {
+  const root = mkdtempSync(join(tmpdir(), "wire1-verify-"));
+  const settingsPath = join(root, "home", ".claude", "settings.json");
+  const userHooksDir = join(root, "home", ".claude", "hooks");
+  mkdirSync(dirname(settingsPath), { recursive: true });
+  writeFileSync(settingsPath, JSON.stringify({ theme: "dark", env: { SECRET: "x" }, hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "node other.mjs" }] }] } }, null, 2) + "\n");
+  const ctx = { settingsPath, userHooksDir, mainRoot: WIRE_REPO };
+  return { root, ctx, shimPath: join(userHooksDir, SHIM_FILE_NAME), edit: (fn) => { const s = JSON.parse(readFileSync(settingsPath, "utf8")); fn(s); writeFileSync(settingsPath, JSON.stringify(s, null, 2) + "\n"); }, clean: () => rmSync(root, { recursive: true, force: true }) };
+};
+const installed = () => { const sb = wireSandbox(); applyWiring({ ...sb.ctx, apply: true, log: () => {} }); return sb; };
+const gateEntry = (s) => s.hooks.PreToolUse.find((e) => e.hooks.some((h) => String(h.command).includes("pretooluse-fsi-app-scope")));
+
+test("WIRE-1 verifier: a freshly installed shim and settings pass end to end (source proof plus a real behavioral fire)", () => {
+  const sb = installed();
+  try {
+    const v = verifyWiring(sb.ctx);
+    assert.equal(v.status, "pass", JSON.stringify(v.problems));
+  } finally { sb.clean(); }
+});
+test("WIRE-1: a new tool is routed by the matcher; Read is not", () => {
+  const sb = installed();
+  try {
+    const entry = gateEntry(JSON.parse(readFileSync(sb.ctx.settingsPath, "utf8")));
+    assert.equal(matcherMatches(entry.matcher, "SomeNewTool"), true);
+    assert.equal(matcherMatches(entry.matcher, "mcp__brand__new_tool"), true);
+    assert.equal(matcherMatches(entry.matcher, "Read"), false);
+    assert.equal(matcherMatches(entry.matcher, "Glob"), false);
+  } finally { sb.clean(); }
+});
+test("ATTACK WIRE-1: a shim with one logic line added fails the byte check", () => {
+  const sb = installed();
+  try {
+    writeFileSync(sb.shimPath, readFileSync(sb.shimPath, "utf8") + "\nprocess.env.SKIP_GATE = '1';\n");
+    const v = verifyWiring(sb.ctx);
+    assert.equal(v.status, "fail");
+    assert.match(v.problems.join("\n"), /installed shim differs from the rendered template/);
+  } finally { sb.clean(); }
+});
+test("ATTACK WIRE-1: a stale matcher (the GATE-7 fifteen-name form, or the older one) fails", () => {
+  for (const stale of [
+    "^(Bash|PowerShell|Monitor|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Workflow|SendMessage|EnterWorktree|ExitWorktree|ArtifactData|Artifact|mcp__.+)$",
+    "^(Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Workflow|mcp__.+)$",
+  ]) {
+    const sb = installed();
+    try {
+      sb.edit((s) => { gateEntry(s).matcher = stale; });
+      const v = verifyWiring(sb.ctx);
+      assert.equal(v.status, "fail");
+      assert.match(v.problems.join("\n"), /matcher is not the canonical MATCHER/);
+      assert.match(v.problems.join("\n"), /SomeNewTool/, "an unknown tool name is not routed by a closed list");
+    } finally { sb.clean(); }
+  }
+});
+test("ATTACK WIRE-1: a hook command that drifted from the canonical command fails", () => {
+  const sb = installed();
+  try {
+    sb.edit((s) => { gateEntry(s).hooks[0].command = `node "${sb.shimPath.replaceAll("\\", "/")}"`; });
+    const v = verifyWiring(sb.ctx);
+    assert.equal(v.status, "fail");
+    assert.match(v.problems.join("\n"), /hook command differs from the canonical command/);
+  } finally { sb.clean(); }
+});
+test("ATTACK WIRE-1: a missing installed shim fails; a missing gate entry fails; an absent settings.json skips", () => {
+  const sb = installed();
+  try {
+    rmSync(sb.shimPath);
+    assert.equal(verifyWiring(sb.ctx).status, "fail");
+    sb.edit((s) => { s.hooks.PreToolUse = s.hooks.PreToolUse.filter((e) => !gateEntry({ hooks: { PreToolUse: [e] } })); });
+    const v = verifyWiring(sb.ctx);
+    assert.equal(v.status, "fail");
+    rmSync(sb.ctx.settingsPath);
+    assert.equal(verifyWiring(sb.ctx).status, "skip");
+  } finally { sb.clean(); }
+});
+test("ATTACK WIRE-1: a gate hook wired DIRECTLY (unscoped) fails, so the installer's migration is required", () => {
+  const sb = installed();
+  try {
+    sb.edit((s) => { gateEntry(s).hooks[0].command = `node "${join(WIRE_HERE, "pretooluse-skill-gate.mjs").replaceAll("\\", "/")}" || printf %s x`; });
+    const v = verifyWiring(sb.ctx);
+    assert.equal(v.status, "fail");
+    assert.match(v.problems.join("\n"), /direct/i);
+  } finally { sb.clean(); }
 });

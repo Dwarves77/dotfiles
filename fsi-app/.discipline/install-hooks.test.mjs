@@ -9,12 +9,13 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import { installHooks, buildTrampoline } from './install-hooks.mjs';
+import { installHooks, buildTrampoline, installGateWiring } from './install-hooks.mjs';
+import { spawnSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -210,4 +211,79 @@ test('pre-push hook source: unsets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE before a
   const unsetIndex = content.indexOf('unset GIT_DIR');
   const step1Index = content.indexOf('Step 1:');
   assert.ok(unsetIndex >= 0 && step1Index >= 0 && unsetIndex < step1Index, 'the unset must run before step 1');
+});
+
+// WIRE-1 (2026-10-08): the one install command also installs the action-time gate's user-level wiring. Every
+// test below runs on temp files; the real ~/.claude is never read or written.
+const GOV = join(__dirname, 'governance');
+function makeGateFixture({ withSettings = true } = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'discipline-wire1-'));
+  const mainRoot = join(root, 'main');
+  const gov = join(mainRoot, 'fsi-app', '.discipline', 'governance');
+  mkdirSync(gov, { recursive: true });
+  writeFileSync(join(gov, 'pretooluse-user-shim.mjs'), readFileSync(join(GOV, 'pretooluse-user-shim.mjs'), 'utf-8'));
+  writeFileSync(join(gov, 'pretooluse-entry.mjs'), '// stub entry\n');
+  const settingsPath = join(root, 'home', '.claude', 'settings.json');
+  mkdirSync(dirname(settingsPath), { recursive: true });
+  if (withSettings) writeFileSync(settingsPath, JSON.stringify({ theme: 'dark', hooks: {} }, null, 2) + '\n');
+  return { root, mainRoot, settingsPath, userHooksDir: join(root, 'home', '.claude', 'hooks') };
+}
+
+test('installGateWiring: skips with a note when settings.json is absent (CI), writing nothing', () => {
+  const f = makeGateFixture({ withSettings: false });
+  try {
+    const lines = [];
+    const res = installGateWiring({ settingsPath: f.settingsPath, userHooksDir: f.userHooksDir, mainRoot: f.mainRoot, log: (l) => lines.push(l) });
+    assert.equal(res.status, 'skip');
+    assert.match(lines.join('\n'), /skip/i);
+    assert.equal(existsSync(f.userHooksDir), false);
+    assert.equal(existsSync(f.settingsPath), false);
+  } finally {
+    cleanup(f.root);
+  }
+});
+
+test('installGateWiring: installs the shim and the gate entry when settings.json exists', () => {
+  const f = makeGateFixture();
+  try {
+    const res = installGateWiring({ settingsPath: f.settingsPath, userHooksDir: f.userHooksDir, mainRoot: f.mainRoot, log: () => {} });
+    assert.equal(res.status, 'applied');
+    assert.ok(existsSync(join(f.userHooksDir, 'pretooluse-fsi-app-scope.mjs')));
+    const settings = JSON.parse(readFileSync(f.settingsPath, 'utf-8'));
+    assert.equal(settings.theme, 'dark');
+    assert.equal(settings.hooks.PreToolUse.length, 1);
+    assert.match(settings.hooks.PreToolUse[0].hooks[0].command, /pretooluse-fsi-app-scope\.mjs/);
+  } finally {
+    cleanup(f.root);
+  }
+});
+
+test('installGateWiring: --dry-run passes through and writes nothing', () => {
+  const f = makeGateFixture();
+  try {
+    const before = readFileSync(f.settingsPath, 'utf-8');
+    const res = installGateWiring({ settingsPath: f.settingsPath, userHooksDir: f.userHooksDir, mainRoot: f.mainRoot, dryRun: true, log: () => {} });
+    assert.equal(res.status, 'dry-run');
+    assert.equal(readFileSync(f.settingsPath, 'utf-8'), before);
+    assert.equal(existsSync(f.userHooksDir), false);
+  } finally {
+    cleanup(f.root);
+  }
+});
+
+test('install-hooks CLI: runs the git hooks and then skips the gate wiring when settings.json is absent', () => {
+  const f = makeGateFixture({ withSettings: false });
+  const hooksDir = makeTempHooksDir();
+  try {
+    const r = spawnSync(process.execPath, [join(__dirname, 'install-hooks.mjs'), `--hooks-dir=${hooksDir}`, `--settings=${f.settingsPath}`, `--user-hooks-dir=${f.userHooksDir}`], { encoding: 'utf-8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /commit-msg/);
+    assert.match(r.stdout, /Action-time gate wiring/);
+    assert.match(r.stdout, /skip/i);
+    assert.ok(existsSync(join(hooksDir, 'commit-msg')));
+    assert.equal(existsSync(f.userHooksDir), false);
+  } finally {
+    cleanup(f.root);
+    cleanup(hooksDir);
+  }
 });
