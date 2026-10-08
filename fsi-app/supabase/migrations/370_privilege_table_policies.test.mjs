@@ -30,9 +30,10 @@ const SRC_FILES = walk(SRC);
 const text = (f) => readFileSync(f, "utf8");
 const base = (f) => f.split(/[\\/]/).pop();
 
-test("header: subject line, NOT APPLIED, and the profiles read policy is declared out of this migration", () => {
+test("header: subject line, APPLIED with the ledger version, and the profiles read policy is declared out of this migration", () => {
   assert.match(RAW, /^-- subject: Migration 370 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008131555, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   assert.match(RAW.split("\n")[0], /profiles read policy \(item 5 of the brief\) is NOT in this migration/);
   assert.doesNotMatch(SQL, /Public read/);
   assert.doesNotMatch(SQL, /profiles_public/);
@@ -411,6 +412,110 @@ test("recursion: the self-check attacks the class (an admin INSERT, UPDATE and D
   assert.match(SQL, /'3 control: the owner grants owner'/);
   assert.match(SQL, /\(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'org_memberships'/);
   assert.match(SQL, /the three org_memberships admin policies do not all use user_org_role/);
+});
+
+// ---- The self-check fixtures against the live definitions in the migration tree -------------------------------------
+// Apply 3 of 370 aborted on a fixture row: 23514, org_watchlist.item_type admits source, reg, signal, research,
+// operations, market_series (migrations 236 and 270) and the fixture wrote 'item'. Every INSERT (direct, and inside
+// format('INSERT ...', args)) and every UPDATE ... SET col = 'literal' in this file is parsed by the shared helper
+// _lib/fixture-inserts.mjs (the parser lifted from 372_profiles_read.test.mjs) and checked against the table definition
+// REBUILT FROM THE MIGRATION TREE below 370: table and column exist, NOT NULL columns without a default are written, no
+// explicit NULL into a NOT NULL column, every literal inside a single-column IN-list CHECK is in the list.
+import { buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql, columnLists } from "./_lib/fixture-inserts.mjs";
+
+const FIXTURE_SQL = stripSql(RAW);
+const SCHEMA = buildSchema(HERE, { before: 370 });
+// auth.users is Supabase-managed, not created by this repo's migrations; the columns below are the ones PROOF-4's fixtures
+// (scripts/proof/attacks/fixtures.mjs) insert on the same schema, id being the only one this block relies on being required.
+const EXTERNAL = { "auth.users": { columns: ["id", "aud", "role", "email", "created_at", "updated_at"], required: ["id"] } };
+const INSERTS = parseInserts(FIXTURE_SQL);
+const UPDATES = parseUpdates(FIXTURE_SQL);
+
+test("fixtures: every INSERT and every UPDATE literal in the self-check satisfies the live table definitions (NOT NULL, defaults, IN-list CHECKs, columns)", () => {
+  assert.ok(INSERTS.length >= 35, "found " + INSERTS.length + " inserts, direct and in format()");
+  assert.ok(UPDATES.length >= 40, "found " + UPDATES.length + " updates");
+  assert.deepEqual(checkFixtures({ inserts: INSERTS, updates: UPDATES, schema: SCHEMA, external: EXTERNAL }), []);
+});
+
+test("fixtures: the parser sees the sixteen tables the self-check writes, so a table dropped from the scan is a failure", () => {
+  const tables = [...new Set(INSERTS.map((i) => i.schemaName + "." + i.table))].sort();
+  assert.deepEqual(tables, [
+    "auth.users", "public.community_group_members", "public.community_groups", "public.community_member_profiles",
+    "public.community_post_signoff_requests", "public.community_posts", "public.item_workspace_tags", "public.notifications",
+    "public.org_memberships", "public.org_watchlist", "public.organizations", "public.portfolio_members", "public.portfolios",
+    "public.profiles", "public.workspace_item_overrides", "public.workspace_tags",
+  ]);
+  for (const t of tables.filter((x) => x.startsWith("public."))) assert.ok(SCHEMA.tables.has(t.slice(7)), t + " is defined in the migration tree");
+});
+
+test("fixtures: org_watchlist rows use a vocabulary value ('reg'), never 'item' (the apply-3 abort), and the CHECK list is the one migrations 236 and 270 leave", () => {
+  const lists = columnLists(SCHEMA, "org_watchlist", "item_type");
+  assert.equal(lists.length, 1);
+  assert.deepEqual([...lists[0].values].sort(), ["market_series", "operations", "reg", "research", "signal", "source"]);
+  const rows = INSERTS.filter((i) => i.table === "org_watchlist").flatMap((i) => i.rows.map((r) => Object.fromEntries(i.cols.map((c, k) => [c, r[k]]))));
+  assert.equal(rows.length, 3, "the seed row and the viewer and member legs");
+  for (const r of rows) assert.deepEqual([r.item_type.kind, r.item_type.value], ["string", "reg"]);
+  assert.equal(new Set(rows.map((r) => r.item_id.value)).size, 3, "org_watchlist is UNIQUE (org_id, item_type, item_id): the three item ids differ");
+});
+
+test("fixtures: the checker catches the apply-3 defect (red): the same insert with 'item' is reported, and a NOT NULL column omitted or set NULL is reported", () => {
+  const bad = parseInserts("INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (v_org, v_owner, 'item', 'x');");
+  assert.match(checkFixtures({ inserts: bad, schema: SCHEMA }).join("|"), /org_watchlist\.item_type: 'item' violates org_watchlist_item_type_check/);
+  const omitted = parseInserts("INSERT INTO public.org_watchlist (org_id, item_id) VALUES (v_org, 'x');");
+  assert.match(checkFixtures({ inserts: omitted, schema: SCHEMA }).join("|"), /item_type: NOT NULL with no default and not written/);
+  const nulled = parseInserts("INSERT INTO public.org_watchlist (org_id, item_type, item_id) VALUES (v_org, NULL, 'x');");
+  assert.match(checkFixtures({ inserts: nulled, schema: SCHEMA }).join("|"), /item_type: explicit NULL into a NOT NULL column/);
+  const viaFormat = parseInserts("x(format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_viewer, 'item', 'y'));");
+  assert.match(checkFixtures({ inserts: viaFormat, schema: SCHEMA }).join("|"), /'item' violates/);
+});
+
+test("fixtures: facts the migration tree states only inside DO blocks or in compound CHECKs, asserted from their migrations", () => {
+  // profiles.verifier_status CHECK (075, inside a DO block): the self-check sets 'active'
+  assert.match(readFileSync(join(HERE, "075_profiles_consolidation_phase1.sql"), "utf8"), /CHECK \(verifier_status IN \('none', 'pending', 'active', 'revoked'\)\)/);
+  const profileUpdates = UPDATES.filter((u) => u.table === "profiles").flatMap((u) => u.sets);
+  assert.ok(profileUpdates.some((s) => s.col === "verifier_status" && s.lit.value === "active"));
+  // community_posts_title_shape (030): a top-level post (parent_post_id NULL) needs a title; every fixture post writes one
+  assert.match(readFileSync(join(HERE, "030_community_posts.sql"), "utf8"), /parent_post_id is null and title is not null/);
+  for (const i of INSERTS.filter((x) => x.table === "community_posts")) assert.ok(i.cols.includes("title") && !i.cols.includes("parent_post_id"), "a top-level post carries a title");
+  // community_member_profiles_verified_has_method (293): the only fixture that sets verified = true is refused by the guard before the CHECK, and the service-role leg writes all four
+  assert.match(readFileSync(join(HERE, "293_community_identity_and_guard.sql"), "utf8"), /CHECK \(verified = false OR \(verified_at IS NOT NULL AND verification_method IS NOT NULL AND organisation_key IS NOT NULL\)\)/);
+  assert.ok(FIXTURE_SQL.includes("SET verified = true, verified_at = now(), verification_method = %L, organisation_key = %L"));
+  // text lengths: workspace_tags name <= 60 (313), portfolios name <= 80 (362), not blank
+  assert.match(readFileSync(join(HERE, "313_workspace_tags.sql"), "utf8"), /length\(name\) <= 60/);
+  assert.match(readFileSync(join(HERE, "362_portfolios.sql"), "utf8"), /length\(name\) <= 80/);
+  for (const i of INSERTS.filter((x) => ["workspace_tags", "portfolios"].includes(x.table))) {
+    const k = i.cols.indexOf("name");
+    for (const r of i.rows) assert.ok(r[k].kind === "string" && r[k].value.trim().length > 0 && r[k].value.length <= 60, i.table + " fixture name");
+  }
+  // the attack-leg values that must stay valid so the refusal is the one under test: statuses, roles, plans, priorities
+  for (const [table, col, value] of [
+    ["community_post_signoff_requests", "status", "signed_off"], ["community_post_signoff_requests", "status", "withdrawn"],
+    ["org_memberships", "role", "owner"], ["organizations", "plan", "enterprise"], ["workspace_item_overrides", "priority_override", "CRITICAL"],
+    ["community_member_profiles", "verification_method", "linkedin"], ["notifications", "kind", "moderation"],
+  ]) assert.ok(columnLists(SCHEMA, table, col).every((l) => l.values.has(value)), table + "." + col + " admits " + value);
+});
+
+test("fixtures: foreign-key order and uniqueness: each referenced row is inserted before the row that references it", () => {
+  const at = (needle, from = 0) => { const i = FIXTURE_SQL.indexOf(needle, from); assert.ok(i >= 0, needle); return i; };
+  const users = at("INSERT INTO auth.users");
+  const profiles = at("INSERT INTO public.profiles", users);
+  const orgs = at("INSERT INTO public.organizations", profiles);
+  const members = at("INSERT INTO public.org_memberships", orgs);
+  const tags = at("INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES (v_org", members);
+  const itemTags = at("INSERT INTO public.item_workspace_tags (tag_id", tags);
+  const portfolios = at("INSERT INTO public.portfolios (org_id, name, created_by) VALUES (v_org", members);
+  const pm = at("format('INSERT INTO public.portfolio_members", portfolios);
+  const groups = at("INSERT INTO public.community_groups", members);
+  const gm = at("INSERT INTO public.community_group_members (group_id, user_id, role) VALUES", groups);
+  const posts = at("INSERT INTO public.community_posts", gm);
+  const req = at("INSERT INTO public.community_post_signoff_requests (post_id, requested_by, status) VALUES (v_p1", posts);
+  assert.ok(itemTags > tags && pm > portfolios && req > posts);
+  // live FKs the order relies on: org_memberships.user_id -> profiles (075), profiles.id -> auth.users (live), members/posts -> auth.users
+  assert.match(readFileSync(join(HERE, "075_profiles_consolidation_phase1.sql"), "utf8"), /org_memberships_user_id_fkey/);
+  // UNIQUE (org_id, user_id) on org_memberships: the five fixture memberships are five different users
+  const mem = INSERTS.find((i) => i.table === "org_memberships" && i.rows.length === 5);
+  assert.ok(mem, "the five-row membership fixture");
+  assert.equal(new Set(mem.rows.map((r) => r[1].text)).size, 5);
 });
 
 test("no JWT literal and no section-sign or dash glyph in the new file", () => {

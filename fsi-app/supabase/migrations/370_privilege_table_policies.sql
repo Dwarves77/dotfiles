@@ -1,7 +1,7 @@
--- subject: Migration 370 (lane SEC-3b, 2026-10-08): table policies and triggers that stop a signed-in user changing their own standing; organizations.plan, the community_member_profiles verification columns and community_posts sign-off columns become system-written (table-level INSERT/UPDATE replaced by column grants plus a guard trigger each), org_memberships gets a role-transition trigger (only an owner grants or revokes owner, nobody changes their own role, the last owner cannot be demoted or removed, org_id and user_id are fixed), community_posts author and group moves are guarded, community_post_signoff_requests pins the initial status and refuses a self-decision, community_groups.owner_user_id moves only by the current owner, and the viewer role loses write access on workspace_item_overrides, org_watchlist, workspace_tags, item_workspace_tags, portfolios and portfolio_members through the new user_can_write_in_org(); the profiles read policy (item 5 of the brief) is NOT in this migration, see the lane report; the three org_memberships admin policies (membership_write_admin, membership_update_admin, membership_delete_admin) read the actor's role through the SECURITY DEFINER user_org_role() instead of a subquery on their own table, which raised 42P17 infinite recursion under RLS; a rolled-back self-check attacks every guard as role authenticated and proves the legitimate paths still work; NOT APPLIED.
+-- subject: Migration 370 (lane SEC-3b, 2026-10-08): table policies and triggers that stop a signed-in user changing their own standing; organizations.plan, the community_member_profiles verification columns and community_posts sign-off columns become system-written (table-level INSERT/UPDATE replaced by column grants plus a guard trigger each), org_memberships gets a role-transition trigger (only an owner grants or revokes owner, nobody changes their own role, the last owner cannot be demoted or removed, org_id and user_id are fixed), community_posts author and group moves are guarded, community_post_signoff_requests pins the initial status and refuses a self-decision, community_groups.owner_user_id moves only by the current owner, and the viewer role loses write access on workspace_item_overrides, org_watchlist, workspace_tags, item_workspace_tags, portfolios and portfolio_members through the new user_can_write_in_org(); the profiles read policy (item 5 of the brief) is NOT in this migration, see the lane report; the three org_memberships admin policies (membership_write_admin, membership_update_admin, membership_delete_admin) read the actor's role through the SECURITY DEFINER user_org_role() instead of a subquery on their own table, which raised 42P17 infinite recursion under RLS; a rolled-back self-check attacks every guard as role authenticated and proves the legitimate paths still work; APPLIED (production ledger version 20261008131555, as of 2026-10-08).
 -- 370 -- privilege table policies (lane SEC-3b, 2026-10-08).
 --
--- NOT APPLIED. Authored by lane SEC-3b; the coordinator's executor applies it after CI (two-track policy, CLAUDE.md
+-- APPLIED (production ledger version 20261008131555, as of 2026-10-08). Authored by lane SEC-3b; the coordinator's executor applies it after CI (two-track policy, CLAUDE.md
 -- standing rule 3: schema DDL applies via the Supabase CLI before any dependent code commits). Written against the
 -- privilege census (fsi-app/scripts/tmp/privilege-census-2026-10-08.md, section 1 findings 1 to 7) and the pattern of
 -- migrations 364 and 367 (column grants plus a BEFORE INSERT OR UPDATE guard that keys on current_user).
@@ -882,7 +882,7 @@ BEGIN
       -- ===== Item 6: the viewer gap =====
       INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES (v_org, 'sec3b seed', v_owner) RETURNING id INTO v_tag;
       INSERT INTO public.portfolios (org_id, name, created_by) VALUES (v_org, 'sec3b seed', v_owner) RETURNING id INTO v_pf;
-      INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (v_org, v_owner, 'item', 'sec3b-seed');
+      INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (v_org, v_owner, 'reg', 'sec3b-seed');
       PERFORM pg_temp.sec3b_expect('6 the viewer still reads tags',
         pg_temp.sec3b_try('authenticated', v_viewer, format('SELECT 1 FROM public.workspace_tags WHERE org_id = %L', v_org)),
         'ok:%', 'ok:0');
@@ -896,10 +896,10 @@ BEGIN
         pg_temp.sec3b_try('authenticated', v_viewer, format('DELETE FROM public.workspace_tags WHERE id = %L', v_tag)),
         'ok:0');
       PERFORM pg_temp.sec3b_expect('6C the viewer inserts a team watchlist row',
-        pg_temp.sec3b_try('authenticated', v_viewer, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_viewer, 'item', 'sec3b-viewer')),
+        pg_temp.sec3b_try('authenticated', v_viewer, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_viewer, 'reg', 'sec3b-viewer')),
         'err:42501:%');
       PERFORM pg_temp.sec3b_expect('6C control: a member inserts a team watchlist row',
-        pg_temp.sec3b_try('authenticated', v_member, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_member, 'item', 'sec3b-member')),
+        pg_temp.sec3b_try('authenticated', v_member, format('INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES (%L, %L, %L, %L)', v_org, v_member, 'reg', 'sec3b-member')),
         'ok:1');
       PERFORM pg_temp.sec3b_expect('6C the viewer updates a team watchlist row',
         pg_temp.sec3b_try('authenticated', v_viewer, format('UPDATE public.org_watchlist SET note = %L WHERE org_id = %L', 'sec3b', v_org)),

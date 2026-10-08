@@ -31,8 +31,14 @@ function fakeSupabase({
   claimsError = null,
   membershipData = null,
   profileData = null,
+  isAdmin = false,
 } = {}) {
   return {
+    // SEC-6 (migration 375): the platform-admin bit is read through rpc("is_platform_admin"), never selected.
+    async rpc(name) {
+      assert.equal(name, "is_platform_admin");
+      return { data: isAdmin, error: null };
+    },
     auth: {
       async getClaims() {
         return { data: claimsData, error: claimsError };
@@ -61,6 +67,7 @@ function fakeSupabase({
         return {
           select(cols) {
             assert.match(cols, /sector_overrides/);
+            assert.doesNotMatch(cols, /is_platform_admin/, "the column is revoked from authenticated (migration 375): it is read through the rpc");
             return { eq(col) { assert.equal(col, "id"); return { maybeSingle: async () => ({ data: profileData, error: null }) }; } };
           },
         };
@@ -109,6 +116,7 @@ test("authenticated, no email claim → user.email is null (matches the prior op
 test("authenticated but no membership → orgId null, workspaceSectors empty (only 2 queries ever issued: org_memberships, profiles)", async () => {
   const supabase = {
     auth: { async getClaims() { return { data: { claims: { sub: "user-1" } }, error: null }; } },
+    rpc: async () => ({ data: false, error: null }),
     from(table) {
       if (table === "org_memberships") return { select() { return { eq() { return { order() { return { limit() { return { maybeSingle: async () => ({ data: null, error: null }) }; } }; } }; } }; } };
       if (table === "profiles") return { select() { return { eq() { return { maybeSingle: async () => ({ data: null, error: null }) }; } }; } };
@@ -203,9 +211,13 @@ test("resolveServerBootstrap outside a request context → fails soft to EMPTY, 
 // ── Lane AUTH-IDENTITY (2026-09-24): a FAILED read is never an empty row. Before this, a failed
 // org_memberships read returned `data: null` and the error was never read, so the bootstrap said
 // `orgId: null`: "this user has no workspace", the same false state as the client-side defect. ──
-function erroringClient({ membershipError = null, profileError = null, claimsError = null } = {}) {
+function erroringClient({ membershipError = null, profileError = null, claimsError = null, adminError = null } = {}) {
   const ok = (data) => async () => ({ data, error: null });
   return {
+    rpc: async (name) => {
+      assert.equal(name, "is_platform_admin");
+      return adminError ? { data: null, error: adminError } : { data: true, error: null };
+    },
     auth: {
       async getClaims() {
         return claimsError ? { data: null, error: claimsError } : { data: { claims: { sub: "user-1", email: "a@x.example" } }, error: null };
@@ -214,7 +226,7 @@ function erroringClient({ membershipError = null, profileError = null, claimsErr
     from(table) {
       const single = table === "org_memberships"
         ? (membershipError ? async () => ({ data: null, error: membershipError }) : ok(null))
-        : (profileError ? async () => ({ data: null, error: profileError }) : ok({ sector_overrides: [], is_platform_admin: true }));
+        : (profileError ? async () => ({ data: null, error: profileError }) : ok({ sector_overrides: [] }));
       const q = { select() { return q; }, eq() { return q; }, order() { return q; }, limit() { return q; }, maybeSingle: single };
       return q;
     },
@@ -235,6 +247,13 @@ test("AUTH-IDENTITY: a profiles read error THROWS IdentityLookupError (the platf
   );
 });
 
+test("SEC-6: an is_platform_admin rpc error THROWS IdentityLookupError (the platform-admin bit is unknown, not false)", async () => {
+  await assert.rejects(
+    () => resolveServerBootstrapFromClient(erroringClient({ adminError: { message: "permission denied for function is_platform_admin" } })),
+    (e) => e.name === "IdentityLookupError" && /is_platform_admin/.test(e.message),
+  );
+});
+
 test("AUTH-IDENTITY: a TRANSIENT auth failure (AuthRetryableFetchError) throws; it is not 'signed out'", async () => {
   await assert.rejects(
     () => resolveServerBootstrapFromClient(erroringClient({ claimsError: { name: "AuthRetryableFetchError", message: "fetch failed", status: 0 } })),
@@ -242,8 +261,12 @@ test("AUTH-IDENTITY: a TRANSIENT auth failure (AuthRetryableFetchError) throws; 
   );
 });
 
-test("AUTH-IDENTITY: the platform-admin bit is carried from the profiles row", async () => {
+test("AUTH-IDENTITY / SEC-6: the platform-admin bit is carried from the is_platform_admin rpc, and only a literal true admits", async () => {
   const b = await resolveServerBootstrapFromClient(erroringClient());
   assert.equal(b.isPlatformAdmin, true);
+  const admin = await resolveServerBootstrapFromClient(fakeSupabase({ claimsData: { claims: { sub: "u" } }, profileData: { sector_overrides: [] }, isAdmin: true }));
+  assert.equal(admin.isPlatformAdmin, true);
+  const notTrue = await resolveServerBootstrapFromClient(fakeSupabase({ claimsData: { claims: { sub: "u" } }, profileData: { sector_overrides: [] }, isAdmin: "true" }));
+  assert.equal(notTrue.isPlatformAdmin, false);
   assert.equal(b.orgId, null, "a SUCCESSFUL empty membership read is still a real no-org answer");
 });

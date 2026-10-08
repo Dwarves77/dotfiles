@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { insertBlocks as insertBlocksOf, buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const SRC = join(HERE, "..", "..", "src");
@@ -162,12 +163,9 @@ test("the self-check proves the region join: a null community region falls back 
 // explicit NULL). Each fixture INSERT is parsed here and every value is checked against the NOT NULL, default, CHECK
 // and FK facts of the table, each fact itself read from the creating migration so the table below cannot drift.
 
-function insertBlocks(table) {
-  const out = [];
-  const re = new RegExp("INSERT INTO public\\." + table + " \\(([^)]*)\\) VALUES([^;]*);", "g");
-  for (const m of SQL.matchAll(re)) out.push({ cols: m[1].split(",").map((c) => c.trim()), values: m[2] });
-  return out;
-}
+// The parser is the shared helper _lib/fixture-inserts.mjs (lifted from this file by lane SEC-3b-F, which 370's self-check
+// also uses); this file keeps its per-table facts below and adds the generic check of every fixture row.
+const insertBlocks = (table) => insertBlocksOf(SQL, table);
 
 test("fixture profiles rows: the NOT NULL region is never given an explicit NULL (omitted so the default applies, or an array)", () => {
   assert.match(read("105_profiles_projection.sql"), /ALTER COLUMN region SET DEFAULT '\{\}',\s+ALTER COLUMN region SET NOT NULL/);
@@ -329,4 +327,13 @@ test("platform-admin reads of other users' profiles go through the service clien
   assert.match(src("app/api/admin/users/route.ts"), /user:profiles!user_id\(full_name, display_name, email, avatar_url\)/);
   assert.doesNotMatch(src("components/admin/AdminDashboard.tsx"), /.from("org_memberships")/);
   assert.match(src("components/admin/AdminDashboard.tsx"), /authedFetch\("\/api\/admin\/users"\)/);
+});
+
+test("every fixture INSERT and UPDATE literal satisfies the live table definitions rebuilt from the migration tree below 372 (shared helper; the apply-2 and apply-3 class)", () => {
+  const schema = buildSchema(HERE, { before: 372 });
+  const text = stripSql(RAW);
+  const external = { "auth.users": { columns: ["id", "aud", "role", "email", "created_at", "updated_at"], required: ["id"] } };
+  const inserts = parseInserts(text);
+  assert.ok(inserts.length >= 6, "the auth.users, profiles, organizations, memberships and community profile fixtures are all parsed");
+  assert.deepEqual(checkFixtures({ inserts, updates: parseUpdates(text), schema, external }), []);
 });

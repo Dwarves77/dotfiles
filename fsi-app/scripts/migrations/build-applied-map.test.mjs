@@ -7,7 +7,9 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
-import { buildAppliedMap, serializeMap, ROW_RULINGS, FILE_RULINGS, MIG_DIR, MAP_PATH, ledgerKeys, fileEntries, fileKey } from "./build-applied-map.mjs";
+import { buildAppliedMap, serializeMap, addNeverEntries, NEVER_NOTE_PREFIX, ROW_RULINGS, FILE_RULINGS, MIG_DIR, MAP_PATH, ledgerKeys, fileEntries, fileKey } from "./build-applied-map.mjs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { resolveMap } from "../proof/applied-map.mjs";
 import { planReplay, parseInventoryOrder } from "../proof/replay-migrations.mjs";
 import { parseAppliedInventory } from "../proof/sync-applied-migrations.mjs";
@@ -116,6 +118,89 @@ test("every ruling carries a class from the fixed vocabulary and a covering file
   for (const [f, r] of Object.entries(FILE_RULINGS)) assert.ok(["duplicate-prefix", "outside-ledger", "never-applied"].includes(r.class), f);
 });
 
+// ---- --add-never: a new NOT APPLIED migration gets its keyed entry without an export (lane SEC-6) ---------------------------
+// Every lane that adds a migration runs `node fsi-app/scripts/migrations/build-applied-map.mjs --add-never --write`.
+const NEW_FILE = "375_admin_flag_private.sql";
+const SUBJECT = "-- subject: Migration 375 (lane SEC-6, 2026-10-08): profiles.is_platform_admin becomes readable by nobody but the system and, through two definer functions, its owner. A SECURITY DEFINER predicate";
+const addFixture = {
+  "001_x.sql": "-- subject: x\nCREATE TABLE x (id int);\n",
+  "002_covered.sql": "-- subject: c\nSELECT 1;\n",
+  "003_super.sql": "-- subject: s\nSELECT 1;\n",
+  "004_keyed.sql": "-- subject: k\nSELECT 1;\n",
+  [NEW_FILE]: `${SUBJECT}\n-- 375 -- x\n--\n-- NOT APPLIED. Authored by lane SEC-6.\nBEGIN;\nCOMMIT;\n`,
+};
+const baseMap = () => ({
+  "001": { name: "x", file: "001_x.sql", class: "identical" },
+  "20260101000000": { name: "y", file: "002_covered.sql", class: "identical" },
+  "20260101000001": { name: "z", file: null, class: "superseded-by", superseded_by: "003_super.sql", note: "n" },
+  "never:004_keyed.sql": { name: "keyed", file: "004_keyed.sql", class: "never-applied", note: "kept" },
+});
+const runAdd = (map, fx = addFixture) => addNeverEntries({ map, listFiles: Object.keys(fx), readFile: (f) => fx[f] });
+
+test("--add-never: one new NOT APPLIED file gains exactly one keyed entry in the existing shape, nothing else changes", () => {
+  const before = baseMap();
+  const r = runAdd(before);
+  assert.deepEqual(r.refused, []);
+  assert.deepEqual(r.added, [NEW_FILE]);
+  assert.deepEqual(Object.keys(r.map).filter((k) => !(k in before)), [`never:${NEW_FILE}`]);
+  assert.deepEqual(r.map[`never:${NEW_FILE}`], {
+    name: "admin_flag_private",
+    file: NEW_FILE,
+    class: "never-applied",
+    note: `${NEVER_NOTE_PREFIX}${SUBJECT.slice(0, 160)}`,
+  });
+  for (const k of Object.keys(before)) assert.deepEqual(r.map[k], before[k], `${k} must be untouched`);
+  assert.deepEqual(before, baseMap(), "the input map is not mutated");
+});
+
+test("--add-never: the note is the shape the committed never-applied entries carry (prefix plus the subject line cut at 160 characters)", () => {
+  const committed = JSON.parse(readFileSync(MAP_PATH, "utf8"));
+  // Whichever derived never-applied entries the committed map carries now (an entry leaves when its migration is applied).
+  for (const k of Object.keys(committed).filter((x) => x.startsWith("never:") && String(committed[x].note).startsWith(NEVER_NOTE_PREFIX))) {
+    const e = committed[k];
+    const text = readFileSync(join(MIG_DIR, e.file), "utf8").replace(/\r\n/g, "\n");
+    const subject = text.split("\n").find((l) => l.startsWith("-- subject:"));
+    assert.equal(e.note, `${NEVER_NOTE_PREFIX}${subject.slice(0, 160)}`, k);
+    assert.equal(e.name, e.file.replace(/\.sql$/, "").replace(/^\d+_/, ""), k);
+  }
+});
+
+test("--add-never: a file already named by a ledger row, a superseded_by or a keyed entry is untouched, and a second run adds nothing", () => {
+  const first = runAdd(baseMap());
+  const again = runAdd(first.map);
+  assert.deepEqual(again.added, []);
+  assert.deepEqual(again.refused, []);
+  assert.deepEqual(again.map, first.map);
+  const noNew = { ...addFixture };
+  delete noNew[NEW_FILE];
+  const r = runAdd(baseMap(), noNew);
+  assert.deepEqual(r.added, []);
+  assert.deepEqual(r.map, baseMap());
+});
+
+test("--add-never: a file with no entry whose header does not say NOT APPLIED is refused, named, and the map is returned unchanged", () => {
+  const fx = { ...addFixture, "376_no_header.sql": "-- subject: Migration 376 (lane X)\nBEGIN;\nCOMMIT;\n", "377_late.sql": `${"-- filler\n".repeat(40)}-- NOT APPLIED. beyond line 30\n` };
+  const r = runAdd(baseMap(), fx);
+  assert.deepEqual(r.refused.map((x) => x.file), ["376_no_header.sql", "377_late.sql"]);
+  for (const x of r.refused) assert.match(x.reason, /NOT APPLIED/);
+  assert.equal(`never:376_no_header.sql` in r.map, false);
+  assert.equal(`never:377_late.sql` in r.map, false);
+  assert.deepEqual(r.added, [NEW_FILE], "the valid file is still reported, the CLI decides not to write when anything is refused");
+});
+
+test("--add-never: serializeMap reproduces the committed map byte for byte, so a write touches only the added lines", () => {
+  const text = readFileSync(MAP_PATH, "utf8").replace(/\r\n/g, "\n");
+  assert.equal(serializeMap(JSON.parse(text)), text);
+});
+
+test("--add-never CLI (dry): on the committed tree it prints a map equal to the committed one (nothing to add), exit 0", () => {
+  const script = fileURLToPath(new URL("./build-applied-map.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script, "--add-never"], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stdout.replace(/\r\n/g, "\n"), readFileSync(MAP_PATH, "utf8").replace(/\r\n/g, "\n"));
+  assert.match(r.stderr, /add-never: 0 added/);
+});
+
 // ---- the committed map against the committed directory ----------------------------------------------------
 const map = JSON.parse(readFileSync(MAP_PATH, "utf8"));
 const versions = ledgerKeys(map);
@@ -135,8 +220,8 @@ const headerNeverApplied = sqlFiles.filter((f) => {
   return cls === "never-applied" || (cls == null && declaresNotApplied(text));
 }).sort();
 
-test("the map covers all 362 ledger rows, every value has name and class, and every named file exists", () => {
-  assert.equal(versions.length, 362);
+test("the map covers all 365 ledger rows, every value has name and class, and every named file exists", () => {
+  assert.equal(versions.length, 365);
   for (const v of versions) {
     const e = map[v];
     assert.ok(typeof e.name === "string" && typeof e.class === "string", v);
