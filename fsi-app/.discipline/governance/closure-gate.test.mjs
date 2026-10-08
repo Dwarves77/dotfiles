@@ -5,13 +5,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  parseTrainCommits,
   parseMaintenanceSteps,
   isDispatchable,
   checkNeverRun,
   findNextRows,
   hasOwningTrain,
   checkStaleNext,
+  ledgerClock,
+  STALE_NEXT_WINDOW_DAYS,
   migrationNumber,
   checkWriterReader,
   LANE_CONTRACT_MARKER,
@@ -30,20 +31,6 @@ import {
 import * as closureGate from './closure-gate.mjs';
 
 // ── shared parsers ──────────────────────────────────────────────────────────────────────────────────
-
-test('parseTrainCommits: extracts train/waveN commits, ascending by wave, ignores non-train commits', () => {
-  const log = [
-    'e8cb748f train/wave36 2026 09 04 (#583)',
-    'aaaaaaaa fix: something unrelated',
-    'f2800ea9 train/wave35 2026 09 04 (#582)',
-    'bbbbbbbb train/wave9 2026 09 03 (#556)',
-  ].join('\n');
-  assert.deepEqual(parseTrainCommits(log), [
-    { hash: 'bbbbbbbb', wave: 9 },
-    { hash: 'f2800ea9', wave: 35 },
-    { hash: 'e8cb748f', wave: 36 },
-  ]);
-});
 
 test('parseMaintenanceSteps: extracts the options[] step list, drops "all"', () => {
   const yaml = `
@@ -150,35 +137,65 @@ test('hasOwningTrain: recognises train/waveN, TNN, and "train N", nothing else',
   assert.equal(hasOwningTrain('no train reference here at all'), false);
 });
 
-test('RED: a NEXT row with no owning train, older than grace, fails', () => {
-  const r = checkStaleNext({ rows: [{ line: 5, raw: '| **NEXT** | do it | — |', lastTouchedTrain: 10 }], currentTrain: 20, allowlist: {} });
+const STALE_NOW = new Date('2026-10-08T00:00:00Z');
+const daysAgo = (n) => new Date(STALE_NOW.getTime() - n * 24 * 60 * 60 * 1000);
+const NEXT_ROW = '| **NEXT** | do it | x |';
+
+test('RED: a NEXT row with no owning train, untouched past the window by ledger date, fails', () => {
+  const r = checkStaleNext({ rows: [{ line: 5, raw: NEXT_ROW, lastTouchedAt: daysAgo(STALE_NEXT_WINDOW_DAYS + 5) }], now: STALE_NOW, allowlist: {} });
   assert.equal(r.ok, false);
   assert.equal(r.failures[0].line, 5);
+  assert.match(r.failures[0].reason, /untouched for 26 days/);
 });
 
 test('GREEN: a NEXT row naming its own owning train passes regardless of age', () => {
-  const r = checkStaleNext({ rows: [{ line: 5, raw: '| **NEXT (train/wave9)** | do it | — |', lastTouchedTrain: 5 }], currentTrain: 30, allowlist: {} });
+  const r = checkStaleNext({ rows: [{ line: 5, raw: '| **NEXT (train/wave9)** | do it | x |', lastTouchedAt: daysAgo(400) }], now: STALE_NOW, allowlist: {} });
   assert.equal(r.ok, true);
 });
 
-test('GREEN: within grace passes with no owning train', () => {
-  const r = checkStaleNext({ rows: [{ line: 5, raw: '| **NEXT** | do it | — |', lastTouchedTrain: 18 }], currentTrain: 20, allowlist: {} });
+test('GREEN: within the window passes with no owning train', () => {
+  const r = checkStaleNext({ rows: [{ line: 5, raw: NEXT_ROW, lastTouchedAt: daysAgo(STALE_NEXT_WINDOW_DAYS - 1) }], now: STALE_NOW, allowlist: {} });
   assert.equal(r.ok, true);
 });
 
-test('RATCHET: allowlisted stale row fails once its expiry train passes', () => {
-  const row = { line: 5, raw: '| **NEXT** | do it | — |', lastTouchedTrain: 10 };
-  const allowlist = { '| **NEXT** | do it | — |': { disposition: 'T46 closes it', expiryTrain: 20 } };
-  assert.equal(checkStaleNext({ rows: [row], currentTrain: 20, allowlist }).ok, true);
-  const failing = checkStaleNext({ rows: [row], currentTrain: 21, allowlist });
+test('RED: an undated NEXT row cannot be proven fresh and fails', () => {
+  const r = checkStaleNext({ rows: [{ line: 5, raw: NEXT_ROW, lastTouchedAt: null }], now: STALE_NOW, allowlist: {} });
+  assert.equal(r.ok, false);
+  assert.match(r.failures[0].reason, /undated row/);
+});
+
+test('AUD-AT-5: STALE-NEXT ages by the ledger clock, not a counter: the same row is fresh then stale as the export advances', () => {
+  const row = { line: 5, raw: NEXT_ROW, lastTouchedAt: new Date('2026-09-11T00:00:00Z') };
+  const early = ledgerClock({ present: true, capturedAt: '2026-09-20T00:00:00Z', rows: [] });
+  const late = ledgerClock({ present: true, capturedAt: '2026-10-20T00:00:00Z', rows: [] });
+  assert.equal(checkStaleNext({ rows: [row], now: early.now, allowlist: {} }).ok, true);
+  assert.equal(checkStaleNext({ rows: [row], now: late.now, allowlist: {} }).ok, false);
+});
+
+test('RATCHET: an allowlisted stale row fails once its until date passes', () => {
+  const row = { line: 5, raw: NEXT_ROW, lastTouchedAt: daysAgo(90) };
+  const allowlist = { [NEXT_ROW]: { disposition: 'T46 closes it', until: '2026-10-09' } };
+  assert.equal(checkStaleNext({ rows: [row], now: STALE_NOW, allowlist }).ok, true);
+  const failing = checkStaleNext({ rows: [row], now: new Date('2026-10-10T00:00:00Z'), allowlist });
   assert.equal(failing.ok, false);
-  assert.match(failing.failures[0].reason, /allowlist EXPIRED/);
+  assert.match(failing.failures[0].reason, /EXPIRED on 2026-10-09/);
+  // an entry with no ISO until date is refused outright (no numeric train expiry survives)
+  const legacy = checkStaleNext({ rows: [row], now: STALE_NOW, allowlist: { [NEXT_ROW]: { disposition: 'T46 closes it', expiryTrain: 99 } } });
+  assert.equal(legacy.ok, false);
+  assert.match(legacy.failures[0].reason, /needs a disposition and an ISO until date/);
 });
 
 test('ALLOWLIST AUDIT: an entry whose row text no longer matches (edited or resolved) is reported', () => {
-  const r = checkStaleNext({ rows: [], currentTrain: 20, allowlist: { '| **NEXT** | ghost row | — |': { disposition: 'x', expiryTrain: 30 } } });
+  const r = checkStaleNext({ rows: [], now: STALE_NOW, allowlist: { '| **NEXT** | ghost row | x |': { disposition: 'x', until: '2027-01-01' } } });
   assert.equal(r.ok, false);
   assert.match(r.allowlistIssues[0], /no longer matches/);
+});
+
+test('AUD-AT-5: ledgerClock reads capturedAt, else the newest run date, else the wall clock', () => {
+  const wall = new Date('2026-12-01T00:00:00Z');
+  assert.deepEqual(ledgerClock({ capturedAt: '2026-10-03T00:00:00Z', rows: [{ started_at: '2026-10-05T00:00:00Z' }] }, wall), { now: new Date('2026-10-03T00:00:00Z'), source: 'ledger-captured-at' });
+  assert.deepEqual(ledgerClock({ capturedAt: null, rows: [{ started_at: '2026-09-01T00:00:00Z' }, { started_at: '2026-10-05T00:00:00Z' }, { started_at: 'junk' }] }, wall), { now: new Date('2026-10-05T00:00:00Z'), source: 'ledger-newest-run' });
+  assert.deepEqual(ledgerClock({ present: false, capturedAt: null, rows: [] }, wall), { now: wall, source: 'wall-clock' });
 });
 
 // ── CHECK 3: WRITER-READER (reuses producer-consumer-orphan.mjs's own pure core) ───────────────────
@@ -219,26 +236,26 @@ test('GREEN: a table created before the migration window is out of scope even if
   assert.equal(r.ok, true);
 });
 
-test('RATCHET: an allowlisted orphan passes until its expiry train', () => {
+test('RATCHET: an allowlisted orphan passes until its until date', () => {
   const migrationTexts = [{ file: 'fsi-app/supabase/migrations/270_orphan.sql', content: 'CREATE TABLE public.orphan_table (id uuid);' }];
   const codeFiles = [{ file: 'fsi-app/scripts/x.mjs', content: 'sb.from("orphan_table").insert(row);' }];
-  const allowlist = { orphan_table: { disposition: 'W5.1 gives it a reader', expiryTrain: 20 } };
-  assert.equal(checkWriterReader({ migrationTexts, codeFiles, allowlist, minMigration: 266, currentTrain: 20 }).ok, true);
-  const failing = checkWriterReader({ migrationTexts, codeFiles, allowlist, minMigration: 266, currentTrain: 21 });
+  const allowlist = { orphan_table: { disposition: 'W5.1 gives it a reader', until: '2026-10-09' } };
+  assert.equal(checkWriterReader({ migrationTexts, codeFiles, allowlist, minMigration: 266, now: STALE_NOW }).ok, true);
+  const failing = checkWriterReader({ migrationTexts, codeFiles, allowlist, minMigration: 266, now: new Date('2026-10-10T00:00:00Z') });
   assert.equal(failing.ok, false);
-  assert.match(failing.failures[0].reason, /allowlist EXPIRED/);
+  assert.match(failing.failures[0].reason, /EXPIRED on 2026-10-09/);
 });
 
 test('ALLOWLIST AUDIT: an entry for a table that is no longer orphaned is reported', () => {
   const migrationTexts = [{ file: 'fsi-app/supabase/migrations/270_both.sql', content: 'CREATE TABLE public.both_table (id uuid);' }];
   const codeFiles = [{ file: 'fsi-app/scripts/x.mjs', content: 'sb.from("both_table").insert(row); sb.from("both_table").select("id");' }];
-  const r = checkWriterReader({ migrationTexts, codeFiles, allowlist: { both_table: { disposition: 'x', expiryTrain: 99 } }, minMigration: 266 });
+  const r = checkWriterReader({ migrationTexts, codeFiles, allowlist: { both_table: { disposition: 'x', until: '2099-01-01' } }, minMigration: 266 });
   assert.equal(r.ok, false);
   assert.match(r.allowlistIssues[0], /no longer a writer\/reader orphan/);
 });
 
 test('ALLOWLIST AUDIT: an entry for a table outside the migration window is reported', () => {
-  const r = checkWriterReader({ migrationTexts: [], codeFiles: [], allowlist: { nonexistent_table: { disposition: 'x', expiryTrain: 99 } }, minMigration: 266 });
+  const r = checkWriterReader({ migrationTexts: [], codeFiles: [], allowlist: { nonexistent_table: { disposition: 'x', until: '2099-01-01' } }, minMigration: 266 });
   assert.equal(r.ok, false);
   assert.match(r.allowlistIssues[0], /not created by any migration/);
 });
@@ -284,14 +301,14 @@ test('LIVE: the combined closure gate is green', () => {
   assert.equal(r.ok, true);
 });
 
-test('LIVE: every allowlist entry names a non-empty disposition and a numeric expiryTrain (the ratchet shape itself is honest)', () => {
+test('LIVE: every allowlist entry names a non-empty disposition and an ISO until date (the ratchet shape itself is honest)', () => {
   for (const [key, e] of Object.entries(STALE_NEXT_ALLOWLIST)) {
-    assert.ok(e.disposition && e.disposition.length > 10, `STALE_NEXT_ALLOWLIST["${key.slice(0, 40)}…"] needs a real disposition`);
-    assert.ok(Number.isInteger(e.expiryTrain), `STALE_NEXT_ALLOWLIST["${key.slice(0, 40)}…"] needs a numeric expiryTrain`);
+    assert.ok(e.disposition && e.disposition.length > 10, `STALE_NEXT_ALLOWLIST["${key.slice(0, 40)}..."] needs a real disposition`);
+    assert.ok(!Number.isNaN(Date.parse(e.until)), `STALE_NEXT_ALLOWLIST["${key.slice(0, 40)}..."] needs an ISO until date`);
   }
   for (const [table, e] of Object.entries(WRITER_READER_ALLOWLIST)) {
     assert.ok(e.disposition && e.disposition.length > 10, `WRITER_READER_ALLOWLIST["${table}"] needs a real disposition`);
-    assert.ok(Number.isInteger(e.expiryTrain), `WRITER_READER_ALLOWLIST["${table}"] needs a numeric expiryTrain`);
+    assert.ok(!Number.isNaN(Date.parse(e.until)), `WRITER_READER_ALLOWLIST["${table}"] needs an ISO until date`);
   }
 });
 
@@ -386,9 +403,42 @@ test('NEVER-RUN: with no ledger export there is nothing to ask, so a young targe
   assert.equal(checkNeverRun({ targets: [fresh], now: NOW, windowDays: 90, ledgerPresent: false }).ok, true);
 });
 
-test('NEVER-RUN: the verdict reads no train counter (the counter feeds STALE-NEXT and WRITER-READER only)', async () => {
+test('NEVER-RUN: the verdict reads no train counter', async () => {
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('./closure-gate.mjs', import.meta.url), 'utf8');
   const fn = src.slice(src.indexOf('export function checkNeverRun'), src.indexOf('export const NEVER_RUN_DORMANT'));
   assert.equal(/[Tt]rain/.test(fn.replace(/\/\/.*$/gm, '')), false);
+});
+
+// ---- coordinator ruling on AUD-AT-5 item 5: the train counter is deleted; its consumers read the ledger clock ----
+
+test('AUD-AT-5: the train counter is gone from the closure gate (no symbol, no git train walk), and the gate runs without it', async () => {
+  const { readFileSync } = await import('node:fs');
+  const code = readFileSync(new URL('./closure-gate.mjs', import.meta.url), 'utf8').replace(/\/\/.*$/gm, '');
+  for (const gone of ['parseTrainCommits', 'currentTrain', 'trainOf', 'isAncestorOfTrain', 'lastTouchedTrain', 'expiryTrain', 'merge-base']) {
+    assert.equal(code.includes(gone), false, `${gone} must not survive in closure-gate.mjs`);
+  }
+  assert.equal(typeof closureGate.parseTrainCommits, 'undefined');
+  const r = runClosureGate();
+  assert.equal(r.ok, true);
+  assert.ok(r.clock.now instanceof Date && ['ledger-captured-at', 'ledger-newest-run', 'wall-clock'].includes(r.clock.source));
+  assert.equal('currentTrain' in r, false);
+});
+
+test('AUD-AT-5: no other module reads the train counter (the closure gate was its only consumer)', async () => {
+  const { readdirSync, readFileSync, statSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const offenders = [];
+  const walk = (dir) => {
+    for (const n of readdirSync(dir)) {
+      if (n === 'node_modules' || n === 'out') continue;
+      const f = join(dir, n);
+      if (statSync(f).isDirectory()) { walk(f); continue; }
+      if (!/\.mjs$/.test(n) || /closure-gate\.test\.mjs$/.test(n)) continue;
+      if (/parseTrainCommits|currentTrain\(|lastTouchedTrain|expiryTrain/.test(readFileSync(f, 'utf8'))) offenders.push(f);
+    }
+  };
+  walk(root);
+  assert.deepEqual(offenders, []);
 });
