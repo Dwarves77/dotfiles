@@ -9,7 +9,7 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 Coordinator docs executor, branch coord/dead3-docs-2026-10-08. Full record and the 935-file orphan table: `docs/ops/session-log.d/2026-10-08-dead3-docs.md`.
 
-- 24 dead INDEX lines removed (targets moved to docs/archive); 10 living docs given INDEX lines; steps 64 to 66 added to the MAINTENANCE-RUNBOOK index. [CONFIRMED: INDEX link resolver, 0 dead links]
+- 24 dead INDEX lines removed (targets moved to docs/archive); 9 living docs given INDEX lines (a tenth, ADR-045, gained its line from GATE-0 while this lane was open); steps 64 to 66 added to the MAINTENANCE-RUNBOOK index. [CONFIRMED: INDEX link resolver, 0 dead links]
 - Runbook references: 4 stale pointers repointed plus a fifth the census missed; 14 tombstones confirmed. 3 orphans archived. Retired-term references rewritten in 7 files; 3 more comment edits owed because the files are harness governing files (F28 pending markers).
 - Gate evaluation and dead-code census landed under docs/audits (strict audit-finding-status run: 0 unlabeled).
 - NOT done: step 5, glyph:verbatim removal, because GATE-1 is not merged (board item 41). Owed items 41 to 46 are on the PROGRAM-BOARD.
