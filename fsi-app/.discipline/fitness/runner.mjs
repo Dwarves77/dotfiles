@@ -8,6 +8,7 @@
 //   --list                  print all registered functions
 //   --verbose               verbose output (per-file PASS lines)
 //   --quiet                 suppress PASS output; only show failures
+//   --firings-out=<path>    where to write fitness-firings.json (default fsi-app/.discipline/out/)
 //
 // Exit codes:
 //   0 = all functions pass (no violations)
@@ -17,6 +18,38 @@
 import { fitnessFunctions } from './manifest.mjs';
 import { readFile, _clearCache } from './lib/file-content.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
+import { getRepoRoot } from '../lib/context.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+
+// Lane GATE-3 (2026-10-08): the firing artifact. Every violation the run found, one record each, so the
+// discipline workflow can upload what fired (and a later audit can count firings from evidence instead of
+// re-reading CI logs, which is how gate evaluation B had to do it).
+export const FIRINGS_ARTIFACT = 'fitness-firings.json';
+export const EVIDENCE_MAX = 200;
+
+/** Pure: failureSummary entries ({ fn, file, line, message }) to [{ gate, verdict, file, line, evidence }]. */
+export function buildFiringRecords(failureSummary) {
+  return failureSummary.map((v) => ({
+    gate: v.fn.id,
+    verdict: 'fail',
+    file: v.file,
+    line: v.line ?? null,
+    evidence: String(v.message ?? '').replace(/\s+/g, ' ').trim().slice(0, EVIDENCE_MAX),
+  }));
+}
+
+/** Writes the records as JSON to `path` (parent directories created). Returns the absolute path written. */
+export function writeFiringsArtifact(path, records) {
+  const abs = resolve(path);
+  mkdirSync(dirname(abs), { recursive: true });
+  writeFileSync(abs, JSON.stringify(records, null, 2) + '\n', 'utf8');
+  return abs;
+}
+
+function defaultFiringsPath() {
+  return resolve(getRepoRoot(), 'fsi-app', '.discipline', 'out', FIRINGS_ARTIFACT);
+}
 
 function parseArgs(argv) {
   const out = {};
@@ -25,6 +58,7 @@ function parseArgs(argv) {
     else if (arg === '--verbose') out.verbose = true;
     else if (arg === '--quiet') out.quiet = true;
     else if (arg.startsWith('--function=')) out.function = arg.slice(11);
+    else if (arg.startsWith('--firings-out=')) out.firingsOut = arg.slice(14);
   }
   return out;
 }
@@ -86,6 +120,14 @@ async function main() {
       if (fnViolations === 0) console.log(`  PASS  [${fn.id}] ${fn.name}`);
       else console.log(`  FAIL  [${fn.id}] ${fn.name}: ${fnViolations} violation(s)`);
     }
+  }
+
+  // The artifact is written on every run, an empty array included: "nothing fired" is a fact too. A write
+  // failure is reported but never changes the verdict (the artifact is evidence, not the gate).
+  try {
+    writeFiringsArtifact(args.firingsOut ?? defaultFiringsPath(), buildFiringRecords(failureSummary));
+  } catch (err) {
+    console.error(`  WARN  could not write ${FIRINGS_ARTIFACT}: ${err.message}`);
   }
 
   if (failureSummary.length > 0) {

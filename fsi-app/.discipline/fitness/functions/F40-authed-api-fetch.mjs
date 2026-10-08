@@ -108,6 +108,25 @@ export function matchesGuardedRoute(requestPath, guarded) {
   return null;
 }
 
+// HOISTED out of check() (lane GATE-3, 2026-10-08). check() runs once per scanned file (611 of them), and it
+// used to call guardedRoutes() each time, re-globbing and re-reading every route.ts for every file: measured
+// 71.8 s for the whole pass on this tree, against the single read below. The set is read lazily on the
+// first check() of a pass and dropped by enumerate(), so a new pass (a test that edits the tree, a second
+// runner invocation in one process) never sees a stale set.
+let guardedCache = null;
+let guardedReads = 0;
+/** How many times the guarded-route set has been read from disk in this process (test seam). */
+export function guardedRouteReadCount() {
+  return guardedReads;
+}
+function guardedRouteSet() {
+  if (guardedCache === null) {
+    guardedReads++;
+    guardedCache = guardedRoutes();
+  }
+  return guardedCache;
+}
+
 function lineOf(content, index) {
   return content.slice(0, index).split(/\r?\n/).length;
 }
@@ -120,6 +139,7 @@ export const fitnessFunction = {
   source: 'production defect TAGS-401 (click-through audit 2026-09-08, train 61); requireAuth reads the Authorization header and nothing else',
 
   enumerate() {
+    guardedCache = null; // a new pass over the tree: the guarded-route set is re-read once, in check()
     return globFiles(['fsi-app/src/**/*.{ts,tsx}']).filter(
       (p) =>
         !p.includes('/__tests__/') &&
@@ -154,14 +174,13 @@ export const fitnessFunction = {
 
     // ── (b) a guarded /api/ fetch goes through the helper ─────────────────────────────────────
     if (filepath.startsWith('fsi-app/src/app/api/')) return out;
-    const guarded = guardedRoutes();
     const usesHelper = content.includes(HELPER_IMPORT);
     API_FETCH.lastIndex = 0;
     let m;
     while ((m = API_FETCH.exec(content)) !== null) {
       const [, callee, , path] = m;
       if (callee === 'authedFetch') continue;
-      const route = matchesGuardedRoute(path, guarded);
+      const route = matchesGuardedRoute(path, guardedRouteSet()); // read lazily: a file with no /api/ fetch never pays for it
       if (!route) continue;
       const line = lineOf(content, m.index);
       if (usesHelper) continue; // authHeaders() form; rule (a) proves the header is not hand-built

@@ -1,7 +1,7 @@
 // Red-then-green for the closure gate's four pure cores, plus a LIVE run over the real tree (same
 // pattern as doctrine-contradiction.test.mjs / producer-consumer-orphan.mjs's own live evidence: the
 // live assertion is the actual enforcement — if this ever goes red, the gate itself has caught something
-// real, and the fix is a new allowlist entry with a disposition + expiry train, not a test edit).
+// real, and the fix is the dispatch or the code, not a test edit).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -19,7 +19,9 @@ import {
   checkWriterReader,
   LANE_CONTRACT_MARKER,
   checkLaneContract,
-  NEVER_RUN_ALLOWLIST,
+  NEVER_RUN_WINDOW_DAYS,
+  NEVER_RUN_WINDOW_DAYS_BUILD_MODE,
+  gatherNeverRunTargets,
   STALE_NEXT_ALLOWLIST,
   WRITER_READER_ALLOWLIST,
   runClosureGate,
@@ -28,6 +30,7 @@ import {
   runWriterReaderLive,
   runLaneContractLive,
 } from './closure-gate.mjs';
+import * as closureGate from './closure-gate.mjs';
 
 // ── runbook corpus (RB-SPLIT, 2026-10-04): index plus one file per step ─────────────────────────────
 
@@ -92,69 +95,87 @@ test('isDispatchable: true only when workflow_dispatch is in the on: block', () 
   assert.equal(isDispatchable(''), false);
 });
 
-test('hasRunEvidence: any one of the three sources is enough', () => {
-  assert.equal(hasRunEvidence({ harnessArtifact: true, runbookRecord: false, ledgerEntry: false }), true);
-  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: true, ledgerEntry: false }), true);
-  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: false, ledgerEntry: true }), true);
-  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: false, ledgerEntry: false }), false);
+test('hasRunEvidence: a tracked harness artifact or a runbook run record is enough (undated evidence); nothing else counts', () => {
+  assert.equal(hasRunEvidence({ harnessArtifact: true, runbookRecord: false }), true);
+  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: true }), true);
+  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: false }), false);
+  assert.equal(hasRunEvidence({ ledgerEntry: true }), false, 'a ledger row is DATED evidence, judged by checkNeverRun, not by this predicate');
 });
 
-// ── CHECK 1: NEVER-RUN ──────────────────────────────────────────────────────────────────────────────
+// ── CHECK 1: NEVER-RUN (lane GATE-3, 2026-10-08): the clock is the newest harness_runs row date ────────
 
-test('RED: an overdue target with no evidence and no allowlist entry fails', () => {
-  const r = checkNeverRun({
-    targets: [{ id: 'maintenance:foo', introducedTrain: 10, evidence: { harnessArtifact: false, runbookRecord: false, ledgerEntry: false } }],
-    currentTrain: 20,
-    allowlist: {},
-  });
+const NOW = new Date('2026-10-08T00:00:00Z');
+const NO_EVIDENCE = { harnessArtifact: false, runbookRecord: false };
+const at = (iso) => new Date(iso);
+const never = (over) => checkNeverRun({ targets: [{ id: 'workflow:x.yml', introducedAt: at('2026-01-01T00:00:00Z'), newestRunAt: null, evidence: NO_EVIDENCE, ...over }], now: NOW, windowDays: 30 });
+
+test('RED: a target whose newest ledger row is older than the window is overdue, and the reason says how old', () => {
+  const r = never({ newestRunAt: at('2026-08-20T00:00:00Z') }); // 49 days
   assert.equal(r.ok, false);
-  assert.equal(r.failures.length, 1);
-  assert.match(r.failures[0].reason, /NEVER-RUN/);
+  assert.match(r.failures[0].reason, /NEVER-RUN: newest harness_runs row is 49 days old \(window 30 days\)/);
 });
 
-test('GREEN: within grace (N=3 trains) passes with no evidence', () => {
-  const r = checkNeverRun({
-    targets: [{ id: 'maintenance:foo', introducedTrain: 18, evidence: { harnessArtifact: false, runbookRecord: false, ledgerEntry: false } }],
-    currentTrain: 20,
-    allowlist: {},
-  });
-  assert.equal(r.ok, true);
+test('GREEN: a ledger row inside the window clears the target, however old the target and whatever else is on record', () => {
+  assert.equal(never({ newestRunAt: at('2026-09-20T00:00:00Z') }).ok, true);
 });
 
-test('GREEN: any evidence source clears an overdue target', () => {
-  for (const ev of [{ harnessArtifact: true }, { runbookRecord: true }, { ledgerEntry: true }]) {
-    const r = checkNeverRun({
-      targets: [{ id: 'maintenance:foo', introducedTrain: 5, evidence: { harnessArtifact: false, runbookRecord: false, ledgerEntry: false, ...ev } }],
-      currentTrain: 20,
-      allowlist: {},
-    });
-    assert.equal(r.ok, true, JSON.stringify(ev));
+test('RED: no ledger row, no undated evidence, and the target older than the window - overdue', () => {
+  const r = never({});
+  assert.equal(r.ok, false);
+  assert.match(r.failures[0].reason, /introduced 280 days ago, no harness_runs row/);
+});
+
+test('GREEN: no row, no evidence, but the target is younger than the window - it has had no chance to run yet', () => {
+  assert.equal(never({ introducedAt: at('2026-09-20T00:00:00Z') }).ok, true);
+});
+
+test('GREEN: no ledger row but undated evidence (a tracked artifact, or a runbook run record) - it has run, the ledger cannot date it', () => {
+  for (const ev of [{ harnessArtifact: true }, { runbookRecord: true }]) {
+    assert.equal(never({ evidence: { ...NO_EVIDENCE, ...ev } }).ok, true, JSON.stringify(ev));
   }
 });
 
-test('RATCHET: an allowlisted overdue target passes until its expiry train, then fails', () => {
-  const target = { id: 'maintenance:foo', introducedTrain: 5, evidence: { harnessArtifact: false, runbookRecord: false, ledgerEntry: false } };
-  const allowlist = { 'maintenance:foo': { disposition: 'tracked to W3.3', expiryTrain: 20 } };
-  assert.equal(checkNeverRun({ targets: [target], currentTrain: 20, allowlist }).ok, true, 'at expiry train, still passes');
-  const failing = checkNeverRun({ targets: [target], currentTrain: 21, allowlist });
-  assert.equal(failing.ok, false);
-  assert.match(failing.failures[0].reason, /allowlist EXPIRED/);
+test('RED: undated evidence does not rescue a target whose newest dated row is outside the window', () => {
+  const r = never({ newestRunAt: at('2026-06-01T00:00:00Z'), evidence: { harnessArtifact: true, runbookRecord: true } });
+  assert.equal(r.ok, false);
 });
 
-test('ALLOWLIST AUDIT: a stale entry (target now has evidence) is reported, not silently accepted', () => {
-  const r = checkNeverRun({
-    targets: [{ id: 'maintenance:foo', introducedTrain: 5, evidence: { harnessArtifact: true, runbookRecord: false, ledgerEntry: false } }],
-    currentTrain: 20,
-    allowlist: { 'maintenance:foo': { disposition: 'x', expiryTrain: 30 } },
-  });
-  assert.equal(r.ok, false);
-  assert.match(r.allowlistIssues[0], /stale/);
+test('GREEN: a target of unknown age with no evidence is not measurable, so it is not failed', () => {
+  assert.equal(never({ introducedAt: null }).ok, true);
 });
 
-test('ALLOWLIST AUDIT: an entry naming a target that no longer exists is reported', () => {
-  const r = checkNeverRun({ targets: [], currentTrain: 20, allowlist: { 'maintenance:ghost': { disposition: 'x', expiryTrain: 30 } } });
-  assert.equal(r.ok, false);
-  assert.match(r.allowlistIssues[0], /no longer exists/);
+test('the window is a parameter: 49 days is overdue at 30 and clear at 90 (BUILD_MODE)', () => {
+  const target = { id: 'workflow:x.yml', introducedAt: at('2026-01-01T00:00:00Z'), newestRunAt: at('2026-08-20T00:00:00Z'), evidence: NO_EVIDENCE };
+  assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: NEVER_RUN_WINDOW_DAYS }).ok, false);
+  assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: NEVER_RUN_WINDOW_DAYS_BUILD_MODE }).ok, true);
+  assert.equal(NEVER_RUN_WINDOW_DAYS, 30);
+  assert.equal(NEVER_RUN_WINDOW_DAYS_BUILD_MODE, 90);
+});
+
+test('GATE-3: there is no NEVER-RUN allowlist and no train grace any more (no stale-entry audit, nothing to expire)', () => {
+  assert.equal(closureGate.NEVER_RUN_ALLOWLIST, undefined);
+  assert.deepEqual(never({ newestRunAt: at('2026-09-20T00:00:00Z') }).allowlistIssues, []);
+});
+
+test('the live gatherer dates a maintenance step by its own config.step row or by an `all` row, and a workflow by its family', () => {
+  const ledger = {
+    present: true,
+    capturedAt: '2026-10-08',
+    rows: [
+      { family: 'maintenance', started_at: '2026-10-01T00:00:00Z', config: { step: 'tier-opinions' } },
+      { family: 'maintenance', started_at: '2026-10-05T00:00:00Z', config: { step: 'all' } },
+      { family: 'maintenance', started_at: '2026-09-01T00:00:00Z', config: { step: 'other-step' } },
+      { family: 'mint', started_at: '2026-10-02T00:00:00Z', config: {} },
+    ],
+  };
+  const targets = gatherNeverRunTargets({ ledger });
+  const byId = new Map(targets.map((t) => [t.id, t]));
+  const tier = byId.get('maintenance:tier-opinions');
+  assert.ok(tier, 'maintenance:tier-opinions is a real step on this tree');
+  assert.equal(tier.newestRunAt.toISOString(), '2026-10-05T00:00:00.000Z', 'the newer `all` row wins over the step-specific one');
+  const pop = byId.get('workflow:population-turn.yml');
+  assert.equal(pop.newestRunAt.toISOString(), '2026-10-02T00:00:00.000Z', 'population-turn.yml is the mint family');
+  assert.ok(tier.introducedAt instanceof Date && !Number.isNaN(tier.introducedAt.getTime()), 'introduction date comes from git, not a train number');
 });
 
 // ── CHECK 2: STALE-NEXT ─────────────────────────────────────────────────────────────────────────────
@@ -287,7 +308,7 @@ test('GREEN: contract text carrying the marker verbatim passes', () => {
 
 // ── LIVE: the real tree, via the real allowlists ────────────────────────────────────────────────────
 
-test('LIVE: NEVER-RUN is green on this tree (real allowlist, real trains, real dispatch evidence)', () => {
+test('LIVE: NEVER-RUN is green on this tree (real ledger export if present, real git introduction dates, real undated evidence)', () => {
   const r = runNeverRunLive();
   assert.equal(r.ok, true, `NEVER-RUN failures:\n${r.failures.map((f) => `  ${f.id}: ${f.reason}`).join('\n')}\nallowlist issues:\n${r.allowlistIssues.join('\n')}`);
 });
@@ -313,10 +334,6 @@ test('LIVE: the combined closure gate is green', () => {
 });
 
 test('LIVE: every allowlist entry names a non-empty disposition and a numeric expiryTrain (the ratchet shape itself is honest)', () => {
-  for (const [id, e] of Object.entries(NEVER_RUN_ALLOWLIST)) {
-    assert.ok(e.disposition && e.disposition.length > 10, `NEVER_RUN_ALLOWLIST["${id}"] needs a real disposition`);
-    assert.ok(Number.isInteger(e.expiryTrain), `NEVER_RUN_ALLOWLIST["${id}"] needs a numeric expiryTrain`);
-  }
   for (const [key, e] of Object.entries(STALE_NEXT_ALLOWLIST)) {
     assert.ok(e.disposition && e.disposition.length > 10, `STALE_NEXT_ALLOWLIST["${key.slice(0, 40)}…"] needs a real disposition`);
     assert.ok(Number.isInteger(e.expiryTrain), `STALE_NEXT_ALLOWLIST["${key.slice(0, 40)}…"] needs a numeric expiryTrain`);

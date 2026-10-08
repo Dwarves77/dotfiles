@@ -13,6 +13,7 @@ import {
   matchesGuardedRoute,
   stripComments,
   BEARER_BUILDER_ALLOWLIST,
+  guardedRouteReadCount,
 } from './F40-authed-api-fetch.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
@@ -109,6 +110,27 @@ test('matchesGuardedRoute is segment-wise: arity must agree, dynamic segments ma
   assert.equal(matchesGuardedRoute('/api/workspace/tags/${id}/items', guarded), 'workspace/tags/[id]/items');
   assert.equal(matchesGuardedRoute('/api/workspace/tagsomething', guarded), null);
   assert.equal(matchesGuardedRoute('/api/workspace', guarded), null);
+});
+
+// ── lane GATE-3 (2026-10-08): the guarded-route set is read once per pass, not once per file ────────────
+
+test('PERF: the guarded-route set is read from disk once per enumerate() pass, however many files are checked', () => {
+  const FETCH = 'const r = await fetch("/api/workspace/tags", { credentials: "include" });';
+  fitnessFunction.enumerate();
+  const before = guardedRouteReadCount();
+  for (let i = 0; i < 25; i++) fitnessFunction.check(`fsi-app/src/lib/fixture-${i}.ts`, FETCH);
+  assert.equal(guardedRouteReadCount() - before, 1, '25 files, one read (it was 25 reads before the hoist)');
+  // a new pass re-reads, so a stale set is never carried across passes
+  fitnessFunction.enumerate();
+  fitnessFunction.check('fsi-app/src/lib/fixture-again.ts', FETCH);
+  assert.equal(guardedRouteReadCount() - before, 2);
+});
+
+test('PERF: a file with no /api/ fetch costs no read of the route tree', () => {
+  fitnessFunction.enumerate();
+  const before = guardedRouteReadCount();
+  fitnessFunction.check('fsi-app/src/lib/plain.ts', 'export const x = 1;');
+  assert.equal(guardedRouteReadCount() - before, 0, 'the set is read lazily on first use, never for a file with nothing to match');
 });
 
 // ── live census ───────────────────────────────────────────────────────────────────────────────

@@ -10,13 +10,20 @@
 // CI on every train, exactly where the meta-gate runs, not folded into the per-file fitness runner
 // (all four checks are holistic, whole-tree analyses, not per-file scans).
 //
-// FOUR CHECKS, each RATCHET-ONLY (an allowlist entry names a disposition + an EXPIRY TRAIN; the gate
-// fails once the current train passes that expiry, so an allowlist entry cannot become a permanent
-// exemption by silence — same non-negotiable shape as F23's GAP_BASELINE and F30's baseline, applied
-// per-item instead of per-category because these are individually named things, not a count):
+// FOUR CHECKS. STALE-NEXT and WRITER-READER are RATCHET-ONLY (an allowlist entry names a disposition + an
+// EXPIRY TRAIN; the gate fails once the current train passes that expiry, so an allowlist entry cannot
+// become a permanent exemption by silence - same non-negotiable shape as F23's GAP_BASELINE and F30's
+// baseline, applied per-item instead of per-category because these are individually named things, not a
+// count). NEVER-RUN has no allowlist and no train counter (lane GATE-3, 2026-10-08):
 //
-//   1. NEVER-RUN        — every maintenance.yml step and every other dispatchable workflow must show
-//                          evidence of a real dispatch within N=3 trains of its own introduction.
+//   1. NEVER-RUN        - every maintenance.yml step and every other dispatchable workflow must show a
+//                          harness_runs row within the last 30 days (90 in BUILD_MODE), judged from the
+//                          committed harness ledger export (harness-ledger-export.json). The clock is the
+//                          newest row date per workflow family (per step for maintenance); a target with no
+//                          row is overdue only once it is older than the window itself, and a target with
+//                          undated evidence (a tracked run artifact, a runbook run record) but no ledger row
+//                          is not overdue. The train counter had not advanced for 27 days (last train commit
+//                          2026-09-11), so a workflow introduced since could never become overdue.
 //   2. STALE-NEXT        — a docs/PROGRAM-BOARD.md row whose status cell is NEXT/"next:" must carry an
 //                          owning train reference; if it does not, and the row has not been touched in
 //                          N=3 trains, it fails.
@@ -48,12 +55,17 @@ import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { scanSchema, scanCode, scanSql, buildOrphanReport } from './producer-consumer-orphan.mjs';
+import { readHarnessLedgerExport, newestLedgerRunAt } from '../../scripts/lib/run-artifact.mjs';
+import { BUILD_MODE } from './build-mode.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..'); // dotfiles repo root
 const FSI = 'fsi-app';
 
-const NEVER_RUN_TRAIN_GRACE = 3; // N — trains of grace after introduction before NEVER-RUN gates
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** NEVER-RUN window: a target with no harness_runs row inside it is overdue (lane GATE-3, 2026-10-08). */
+export const NEVER_RUN_WINDOW_DAYS = 30;
+export const NEVER_RUN_WINDOW_DAYS_BUILD_MODE = 90;
 const STALE_NEXT_TRAIN_GRACE = 3; // N — trains a NEXT row may go untouched, with no owning train, before it gates
 const MIGRATIONS_SINCE = 266; // WRITER-READER scope: tables created by migrations numbered >= this
 
@@ -91,43 +103,47 @@ export function isDispatchable(yamlText) {
 }
 
 /**
- * Evidence of a real dispatch for one target (a maintenance step, or a whole workflow), from the three
- * named sources. Pure — takes pre-gathered evidence booleans, no fs/git of its own.
+ * UNDATED evidence of a real dispatch for one target (a maintenance step, or a whole workflow): a tracked
+ * harness run artifact, or a run record in the runbook. Neither carries a trustworthy date, so neither can
+ * start the NEVER-RUN clock; they only say the target has run at some time. Pure - takes pre-gathered
+ * evidence booleans, no fs/git of its own.
  */
-export function hasRunEvidence({ harnessArtifact, runbookRecord, ledgerEntry }) {
-  return Boolean(harnessArtifact || runbookRecord || ledgerEntry);
+export function hasRunEvidence({ harnessArtifact, runbookRecord }) {
+  return Boolean(harnessArtifact || runbookRecord);
 }
 
 /**
- * PURE CORE. `targets`: [{ id, introducedTrain, evidence: {harnessArtifact, runbookRecord, ledgerEntry} }]
- * `currentTrain`: number. `allowlist`: { [id]: {disposition, expiryTrain} }.
+ * PURE CORE (lane GATE-3, 2026-10-08: the train counter and the allowlist are gone). `targets`:
+ * [{ id, introducedAt: Date|null, newestRunAt: Date|null, evidence: {harnessArtifact, runbookRecord} }],
+ * where `newestRunAt` is the newest harness_runs row date for the target's workflow family (or maintenance
+ * step) from the ledger export. `now`: the reference Date. `windowDays`: 30, or 90 in BUILD_MODE.
+ *
+ * Overdue means one of:
+ *   - the newest ledger row is older than the window ("last ran N days ago"), whatever else is on record;
+ *   - there is NO ledger row, no undated evidence either, and the target itself is older than the window
+ *     (a target introduced inside the window has had no chance to run yet).
+ * A target with no ledger row but undated evidence is not overdue: it has run, the ledger just cannot date
+ * it, and the clock cannot be read from nothing.
  */
-export function checkNeverRun({ targets, currentTrain, allowlist = {} }) {
+export function checkNeverRun({ targets, now, windowDays = NEVER_RUN_WINDOW_DAYS }) {
   const failures = [];
-  const allowlistIssues = [];
+  const days = (from) => Math.floor((now.getTime() - from.getTime()) / DAY_MS);
   for (const t of targets) {
-    const ran = hasRunEvidence(t.evidence);
-    const age = t.introducedTrain == null ? null : currentTrain - t.introducedTrain;
-    const overdue = !ran && age !== null && age > NEVER_RUN_TRAIN_GRACE;
-    const al = allowlist[t.id];
-    if (overdue) {
-      if (al) {
-        if (currentTrain > al.expiryTrain) {
-          failures.push({ id: t.id, reason: `NEVER-RUN, allowlist EXPIRED at train ${al.expiryTrain} (now train ${currentTrain}): ${al.disposition}` });
-        }
-      } else {
-        failures.push({ id: t.id, reason: `NEVER-RUN: introduced train ${t.introducedTrain}, no dispatch evidence (harness artifact / runbook record / ledger entry) ${age} trains later (grace ${NEVER_RUN_TRAIN_GRACE}).` });
+    if (t.newestRunAt) {
+      const age = days(t.newestRunAt);
+      if (age > windowDays) {
+        failures.push({ id: t.id, reason: `NEVER-RUN: newest harness_runs row is ${age} days old (window ${windowDays} days). Dispatch it, then regenerate the harness ledger export.` });
       }
-    } else if (al && (ran || age === null || age <= NEVER_RUN_TRAIN_GRACE)) {
-      allowlistIssues.push(`NEVER_RUN_ALLOWLIST["${t.id}"] is stale — the target now has run evidence or is within grace; remove the entry.`);
+      continue;
+    }
+    if (hasRunEvidence(t.evidence)) continue;
+    if (!t.introducedAt) continue; // unknown age: nothing to measure the window against
+    const age = days(t.introducedAt);
+    if (age > windowDays) {
+      failures.push({ id: t.id, reason: `NEVER-RUN: introduced ${age} days ago, no harness_runs row, harness artifact or runbook run record (window ${windowDays} days).` });
     }
   }
-  // audit: allowlist entries naming a target that no longer exists at all
-  const ids = new Set(targets.map((t) => t.id));
-  for (const id of Object.keys(allowlist)) {
-    if (!ids.has(id)) allowlistIssues.push(`NEVER_RUN_ALLOWLIST["${id}"] names a target that no longer exists (maintenance step removed / workflow deleted) — stale entry, remove it.`);
-  }
-  return { ok: failures.length === 0 && allowlistIssues.length === 0, failures, allowlistIssues };
+  return { ok: failures.length === 0, failures, allowlistIssues: [] };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -370,22 +386,26 @@ function buildIntroducingCommitIndex(path, literals) {
 
   let log = '';
   try {
-    log = git(['log', '--reverse', '--format=COMMIT_START %H', '-p', '--', path]);
+    log = git(['log', '--reverse', '--format=COMMIT_START %H %cI', '-p', '--', path]);
   } catch {
     return found;
   }
 
   for (const chunk of log.split(/^COMMIT_START /m)) {
-    if (!chunk || remaining.size === 0) break;
+    if (remaining.size === 0) break;
+    // The first element of the split is the empty text BEFORE the first marker: skip it. (Until lane GATE-3
+    // this was `!chunk || ... break`, which ended the loop on that empty first element, so the index was
+    // always empty and no maintenance step ever got an introduction date, hence was never gated.)
+    if (!chunk) continue;
     const nl = chunk.indexOf('\n');
     if (nl === -1) continue;
-    const hash = chunk.slice(0, nl).trim();
+    const date = chunk.slice(0, nl).trim().split(/\s+/)[1] ?? null; // "<hash> <committer date, ISO 8601>"
     const body = chunk.slice(nl + 1);
     for (const literal of remaining) {
       const hit = body
         .split('\n')
         .some((line) => line.startsWith('+') && !line.startsWith('+++') && line.includes(literal));
-      if (hit) found.set(literal, hash);
+      if (hit) found.set(literal, date);
     }
     for (const literal of found.keys()) remaining.delete(literal);
   }
@@ -402,7 +422,7 @@ function buildIntroducingCommitForFileIndex(paths) {
 
   let log = '';
   try {
-    log = git(['log', '--reverse', '--diff-filter=A', '--name-only', '--format=COMMIT_START %H', '--', ...paths]);
+    log = git(['log', '--reverse', '--diff-filter=A', '--name-only', '--format=COMMIT_START %H %cI', '--', ...paths]);
   } catch {
     return found;
   }
@@ -411,11 +431,11 @@ function buildIntroducingCommitForFileIndex(paths) {
     if (!chunk) continue;
     const nl = chunk.indexOf('\n');
     if (nl === -1) continue;
-    const hash = chunk.slice(0, nl).trim();
+    const date = chunk.slice(0, nl).trim().split(/\s+/)[1] ?? null;
     const body = chunk.slice(nl + 1);
     for (const line of body.split('\n')) {
       const f = line.trim();
-      if (f && !found.has(f)) found.set(f, hash); // first (oldest) commit wins, --reverse already orders it
+      if (f && !found.has(f)) found.set(f, date); // first (oldest) commit wins, --reverse already orders it
     }
   }
   return found;
@@ -455,24 +475,6 @@ function harnessArtifactExists(family) {
   return trackedFiles().some((f) => f.startsWith(prefix) && /-run-\d+\.json$/.test(f));
 }
 
-// R22 (2026-10-02, coordinator-directed): docs/ops/dispatch-ledger.jsonl RETIRED as this gate's dispatch-
-// evidence source. A8b found it 11 days stale -- its only writer (maintenance.yml's own append step,
-// removed this same lane) had nowhere to land a new row once every family's artifact-branch-push path
-// closed (deliver-artifact-branch.sh lands straight into harness_runs since lane STATUTORY-WRITER,
-// 2026-09-29). The replacement is a COMMITTED SNAPSHOT of harness_runs itself
-// (fsi-app/.discipline/governance/harness-ledger-export.json), the SAME "credentialed refresh, secret-
-// less check" pattern db-catalog.json already uses -- see scripts/lib/export-harness-ledger.mjs's own
-// header and docs/runbooks/fleet-budget-control.md for the regeneration rule (the coordinator's DB
-// executor regenerates it each session). An absent or malformed export file is zero evidence from this
-// source, exactly like the retired jsonl's own missing-file posture -- never a hard failure.
-function readHarnessLedgerExport() {
-  const text = readRepo('fsi-app/.discipline/governance/harness-ledger-export.json');
-  if (!text) return [];
-  let parsed;
-  try { parsed = JSON.parse(text); } catch { return []; }
-  return Array.isArray(parsed?.rows) ? parsed.rows : [];
-}
-
 // RB-SPLIT (2026-10-04): the maintenance runbook is an index plus one file per step under
 // docs/runbooks/maintenance.d/ (each file keeps its own "## N. `step`" heading verbatim). The evidence
 // scan below reads the assembled corpus: the index first, then every step file in filename order, which
@@ -506,41 +508,39 @@ export function runbookHasRecord(runbookText, stepId) {
   return /run\s*#?\d+|run[`" ]*\d{6,}|landed live/i.test(section);
 }
 
-function gatherNeverRunTargets() {
+
+// Lane GATE-3 (2026-10-08): the NEVER-RUN clock. Dispatch evidence is the committed harness ledger export
+// (fsi-app/.discipline/governance/harness-ledger-export.json, the SAME "credentialed refresh, secret-less
+// check" pattern db-catalog.json uses; scripts/lib/export-harness-ledger.mjs regenerates it from
+// harness_runs). It is read through run-artifact.mjs's readHarnessLedgerExport, the one reader F28 also
+// uses, so the two gates cannot disagree about what a ledger row is. An absent or malformed export is zero
+// evidence, never a hard failure. The reference "now" is the export's own capturedAt when it has one, so the
+// verdict is a pure function of committed files (a stale snapshot is not misread as a stale workflow); with
+// no export it is the wall clock.
+//
+// A maintenance step is dated by the newest `maintenance` family row whose config.step is that step, or
+// "all" (a single dispatch of maintenance.yml's `all` option ran every step dry, so it is real evidence for
+// each). A workflow is dated by the newest row of its harness family (HARNESS_FAMILY_BY_WORKFLOW). A
+// workflow with no family mapping gets no ledger date, only the undated evidence below.
+export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO) } = {}) {
   const maintYaml = readRepo('.github/workflows/maintenance.yml') || '';
   const runbookText = readRunbookCorpus();
-  const ledger = readHarnessLedgerExport();
   const targets = [];
+  const asDate = (iso) => (iso ? new Date(iso) : null);
 
   const maintSteps = parseMaintenanceSteps(maintYaml);
-  // PERF (lane M9b): ONE batched history scan for all 62 step-id literals, not one pickaxe spawn each --
+  // PERF (lane M9b): ONE batched history scan for all step-id literals, not one pickaxe spawn each --
   // see buildIntroducingCommitIndex's own header.
   const maintIntroIndex = buildIntroducingCommitIndex('.github/workflows/maintenance.yml', maintSteps);
 
   for (const step of maintSteps) {
-    const id = `maintenance:${step}`;
-    const intro = maintIntroIndex.get(step) ?? null;
-    // A ledger row for config.step:"all" is a single dispatch that ran maintenance.yml's own `all`
-    // option ("every step dry in one dispatch", docs/runbooks/MAINTENANCE-RUNBOOK.md), so it is real
-    // dispatch evidence for every individual step it covered, not only for the literal step id. Fixed
-    // train 48 (ASSEMBLE-48): before this, a maintenance:all dry run left every individual
-    // maintenance:* step still reading NEVER-RUN despite the dispatch having genuinely exercised it,
-    // forcing a re-grant the ratchet exists to prevent instead of recognizing evidence that already
-    // existed. R22 (2026-10-02): reads the harness-ledger-export's own `config.step` (every maintenance
-    // row carries it, write-run-artifact.mjs's own `config: {step, mode, arg}`) rather than the retired
-    // jsonl's `step` field; `finished_at` present is this source's own "ran" signal, an outcome/error
-    // distinction the old ledger made that is NOT reproduced here (named, not silently dropped: a
-    // write-run-artifact.mjs row lands `if: always()` regardless of a sub-step's own exit code, so
-    // "landed" is weaker evidence than the old "outcome !== error", a deliberate simplification this
-    // lane accepts in exchange for a live, never-stale source).
-    const ledgerEntry = ledger.some((e) => e.family === 'maintenance' && (e.config?.step === step || e.config?.step === 'all') && e.finished_at);
     targets.push({
-      id,
-      introducedTrain: trainOf(intro),
+      id: `maintenance:${step}`,
+      introducedAt: asDate(maintIntroIndex.get(step) ?? null),
+      newestRunAt: newestLedgerRunAt(ledger.rows, 'maintenance', (e) => e.config?.step === step || e.config?.step === 'all'),
       evidence: {
         harnessArtifact: false, // maintenance steps do not map 1:1 to harness families
         runbookRecord: runbookHasRecord(runbookText, step),
-        ledgerEntry,
       },
     });
   }
@@ -550,29 +550,20 @@ function gatherNeverRunTargets() {
     if (f.split('/').pop() === 'maintenance.yml') return false; // covered step-by-step above
     return isDispatchable(readRepo(f) || '');
   });
-  // PERF (lane M9b): ONE batched history scan across every dispatchable workflow file at once, not one
-  // `git log --diff-filter=A` spawn per file -- see buildIntroducingCommitForFileIndex's own header.
+  // PERF (lane M9b): ONE batched history scan across every dispatchable workflow file at once -- see
+  // buildIntroducingCommitForFileIndex's own header.
   const fileIntroIndex = buildIntroducingCommitForFileIndex(dispatchableFiles);
 
   for (const f of dispatchableFiles) {
     const name = f.split('/').pop();
-    const id = `workflow:${name}`;
-    const intro = fileIntroIndex.get(f) ?? null;
     const family = HARNESS_FAMILY_BY_WORKFLOW[name];
-    // R22 (2026-10-02): the retired jsonl's `workflow` field (the dispatching workflow's own name, e.g.
-    // "population-turn") never existed on a harness_runs row; the equivalent join key is this SAME
-    // `family` this function already resolves for the harnessArtifact check two lines below (both
-    // evidence sources now key on the harness family, never the workflow filename). A workflow with no
-    // family mapping (HARNESS_FAMILY_BY_WORKFLOW has no entry) gets no ledger evidence from this source
-    // either, unchanged from before this lane.
-    const ledgerEntry = family != null && ledger.some((e) => e.family === family && e.finished_at);
     targets.push({
-      id,
-      introducedTrain: trainOf(intro),
+      id: `workflow:${name}`,
+      introducedAt: asDate(fileIntroIndex.get(f) ?? null),
+      newestRunAt: family ? newestLedgerRunAt(ledger.rows, family) : null,
       evidence: {
         harnessArtifact: harnessArtifactExists(family),
         runbookRecord: false,
-        ledgerEntry,
       },
     });
   }
@@ -617,54 +608,9 @@ function gatherCodeFiles() {
     .map((f) => ({ file: f, content: readRepo(f) || '' }));
 }
 
-// ── Allowlists (ratchet-only: every entry names a disposition + an EXPIRY TRAIN; stale entries and
-//    expired entries both fail the gate — see checkNeverRun/checkStaleNext/checkWriterReader above). ──
-
-// Seeded 2026-09-04 (train 36 base) from a live run on this tree. Each entry is a target this run
-// FOUND overdue; the disposition names the plan item that closes it and the train by which it must.
-//
-// EMPTIED train 48 (ASSEMBLE-48, coordinator-confirmed dispatches 2026-09-05). Every entry that stood
-// here is now STALE by the gate's own rule (checkNeverRun's allowlistIssues: "the target now has run
-// evidence... remove the entry"), not re-granted:
-//   - 'maintenance:tier-opinions': real apply dispatch, run 33990256285 (Maintenance #50) — 371
-//     source_tier_opinions rows written, opinion_source=host_class_table, live count confirmed 371.
-//   - 'maintenance:census-off-vertical', 'maintenance:w1-dispositions', 'maintenance:origin-class-backfill':
-//     each got its first real dispatch inside the coordinator's single maintenance:all dry run, run
-//     33989002396 (Maintenance #49) — census-off-vertical would_mint 3,461; w1-dispositions wire 8 /
-//     delete 10 / hold 6 / keep 2 (26); origin-class-backfill 1,222 null candidates, 1,179 would_classify.
-//   - 'maintenance:spec09-reroute': dispatched dry, run 33990746578 (Maintenance #53), after
-//     seed-corridors' apply grew the corridor spine to 4 rows — corridor_entities_found 4, the gap the
-//     entry's own disposition named as its close condition.
-//   - the four 'maintenance:review-apply-*' steps: each ran inside the same maintenance:all dry
-//     dispatch (run 33989002396) and REFUSED BY DESIGN (arg required: a ruled digest / .ruling.json the
-//     coordinator has not produced) — the refusal is the step's own designed behaviour without a ruling
-//     file, not a NEVER-RUN gap; the dispatch itself is real evidence the step was exercised.
-// 'workflow:inspect-oil-bulletin.yml' entry REMOVED already (lane W71-D, 2026-09-05): the disposition's
-// own [HYPOTHESIS] was CONFIRMED — fetch-oil-bulletin.mjs really did supersede it (producers.yml's "EU
-// Weekly Oil Bulletin -> market_series" step, 2026-08-30, runs fetch-oil-bulletin.mjs then
-// eu-weekly-oil-bulletin.mjs --input, doing for real what inspect-oil-bulletin.yml's read-only scouting
-// steps existed only to scout). The workflow had no further loop-stage role, so it was deleted
-// (.github/workflows/inspect-oil-bulletin.yml), not re-granted.
-// Fixed the same train, not merely disposed by allowlist: gatherNeverRunTargets()'s ledger-evidence
-// match now recognizes a maintenance:all dispatch row as evidence for every individual step it dry-ran
-// (see that function's own comment) — the mechanism that actually let all nine of the above resolve on
-// real dispatch evidence rather than a tenth re-grant.
-export const NEVER_RUN_ALLOWLIST = {
-  // R22 (2026-10-02): both targets are real, registered harness families (downstream-chain.yml's own
-  // header; producers.yml's deliver-artifact-branch.sh call against scripts/harness-runs/producers/
-  // family.json) that this lane's ledger-source swap correctly stopped crediting with the retired
-  // dispatch-ledger.jsonl's stale, hand-written `workflow:` rows (A8b: 11 days stale). Neither ever had
-  // a historical git-tracked harness-run file (harnessArtifactExists is false for both), and the
-  // replacement export (fsi-app/.discipline/governance/harness-ledger-export.json) does not exist yet --
-  // this lane has no DB credentials to generate it for real (CLAUDE.md rule 2: never fabricate rows).
-  // Expires at train 80 (currentTrain is 71 as of this entry): the coordinator's DB executor regenerates
-  // the export (docs/runbooks/fleet-budget-control.md) well before then, at which point either workflow
-  // having actually dispatched since its own introduction lands real evidence and this entry goes stale
-  // (removed per the allowlistIssues audit above), or it genuinely has not dispatched and NEVER-RUN is
-  // right to flag it for real.
-  'workflow:downstream-chain.yml': { expiryTrain: 80, disposition: 'awaiting first harness-ledger-export.json regeneration (R22, 2026-10-02); real family, no historical tracked artifact.' },
-  'workflow:producers.yml': { expiryTrain: 80, disposition: 'awaiting first harness-ledger-export.json regeneration (R22, 2026-10-02); real family, no historical tracked artifact.' },
-};
+// ── Allowlists for STALE-NEXT and WRITER-READER (ratchet-only: every entry names a disposition + an EXPIRY
+//    TRAIN; stale entries and expired entries both fail the gate - see checkStaleNext/checkWriterReader
+//    above). NEVER-RUN has none: lane GATE-3 (2026-10-08) deleted NEVER_RUN_ALLOWLIST with the train counter. ──
 
 // Seeded 2026-09-04 from a LIVE run over docs/PROGRAM-BOARD.md (10 rows found — the plan's own §"Why
 // the previous plans stopped short" cites "12 NEXT rows" system-wide; this gate scopes strictly to rows
@@ -713,7 +659,10 @@ export const WRITER_READER_ALLOWLIST = {};
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 export function runNeverRunLive() {
-  return checkNeverRun({ targets: gatherNeverRunTargets(), currentTrain: currentTrain(), allowlist: NEVER_RUN_ALLOWLIST });
+  const ledger = readHarnessLedgerExport(REPO);
+  const now = ledger.capturedAt ? new Date(ledger.capturedAt) : new Date();
+  const windowDays = BUILD_MODE ? NEVER_RUN_WINDOW_DAYS_BUILD_MODE : NEVER_RUN_WINDOW_DAYS;
+  return checkNeverRun({ targets: gatherNeverRunTargets({ ledger }), now, windowDays });
 }
 
 export function runStaleNextLive() {
@@ -754,8 +703,6 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
   if (report) {
     console.log('\n--- NEVER-RUN failures ---');
     for (const f of r.neverRun.failures) console.log(`  ✗ ${f.id}: ${f.reason}`);
-    console.log('--- NEVER-RUN allowlist issues ---');
-    for (const i of r.neverRun.allowlistIssues) console.log(`  ⚠ ${i}`);
 
     console.log('\n--- STALE-NEXT failures ---');
     for (const f of r.staleNext.failures) console.log(`  ✗ line ${f.line}: ${f.reason}`);
@@ -771,7 +718,6 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
     for (const f of r.laneContract.failures) console.log(`  ✗ ${f.reason}`);
 
     console.log('\n--- ALLOWLIST (train, disposition, expiry) ---');
-    for (const [id, e] of Object.entries(NEVER_RUN_ALLOWLIST)) console.log(`  NEVER-RUN      ${id}  expiry train ${e.expiryTrain}  — ${e.disposition}`);
     for (const [key, e] of Object.entries(STALE_NEXT_ALLOWLIST)) console.log(`  STALE-NEXT     ${key.slice(0, 60)}…  expiry train ${e.expiryTrain}  — ${e.disposition}`);
     for (const [table, e] of Object.entries(WRITER_READER_ALLOWLIST)) console.log(`  WRITER-READER  ${table}  expiry train ${e.expiryTrain}  — ${e.disposition}`);
   }

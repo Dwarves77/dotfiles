@@ -51,12 +51,10 @@ export const invariant = {
   anchor:
     "### Section 4 - category 46: a loop's own hops are checked as data, not remembered as wired (an edge, a family, and a fired-from-upstream artifact are three separate facts)",
   enforcedBy: [
-    'fitness:F54',
-    'selftest:fsi-app/.discipline/fitness/functions/F54-push-gate-npm-parity.test.mjs',
     'selftest:fsi-app/.discipline/lib/no-npm-sandbox.test.mjs',
   ],
   residual:
-    'F54 is a line-based, indentation-based text scan of discipline.yml (no YAML parser is a direct ' +
+    'GATE-3 (2026-10-08): F54 (push-gate-npm-parity) was deleted, so only the no-npm sandbox test enforces this invariant and the hook-versus-workflow step parity described here is no longer checked. F54 is a line-based, indentation-based text scan of discipline.yml (no YAML parser is a direct ' +
     'dependency of this repository), not a real parser: it assumes the 2-space block-style indentation ' +
     'and the `- name:` / `run:` / `working-directory:` shapes this repo\'s workflow files use today, the ' +
     'same posture as F50/F52/yml-read.mjs. It classifies a "test-running step" by name-keyword ' +
