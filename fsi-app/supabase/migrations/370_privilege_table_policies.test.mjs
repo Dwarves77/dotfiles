@@ -321,11 +321,56 @@ test("recursion: the final policy state of org_memberships (006 policies with 37
   }
 });
 
+test("recursion: community_group_members (migration 029) policies that read the table are re-pointed to user_group_role, with their original meaning", () => {
+  const m029 = MIG("029_community_group_members.sql");
+  const m046 = MIG("046_community_rls_recursion_fix.sql");
+  const names = [...m029.matchAll(/create policy "(\w+)"\s+on community_group_members/gi)].map((m) => m[1]);
+  assert.ok(names.includes("community_group_members_insert_admin") && names.includes("community_group_members_update_self_prefs"));
+  for (const name of names) {
+    const at = m029.indexOf(`create policy "${name}"`);
+    const original = m029.slice(at, m029.indexOf(";", at));
+    if (!/from community_group_members/i.test(original)) continue;
+    const alteredIn370 = SQL.includes(`ALTER POLICY ${name} ON public.community_group_members`);
+    const redefinedIn046 = new RegExp(`DROP POLICY IF EXISTS "${name}"`).test(m046);
+    assert.ok(alteredIn370 || redefinedIn046, `${name} reads community_group_members and nothing re-points it`);
+    if (redefinedIn046) {
+      const a = m046.indexOf(`CREATE POLICY "${name}"`);
+      assert.doesNotMatch(m046.slice(a, m046.indexOf(";", a)), /FROM community_group_members/i, `${name} (046)`);
+    }
+  }
+  const ins = SQL.slice(SQL.indexOf("ALTER POLICY community_group_members_insert_admin"), SQL.indexOf(";", SQL.indexOf("ALTER POLICY community_group_members_insert_admin")));
+  assert.match(ins, /WITH CHECK \(public\.user_group_role\(group_id\) = 'admin'\)/);
+  const upd = SQL.slice(SQL.indexOf("ALTER POLICY community_group_members_update_self_prefs"), SQL.indexOf(";", SQL.indexOf("ALTER POLICY community_group_members_update_self_prefs")));
+  assert.match(upd, /WITH CHECK \(user_id = auth\.uid\(\) AND role = public\.user_group_role\(group_id\)\)/);
+  assert.doesNotMatch(ins.split("WITH CHECK")[1] + upd.split("WITH CHECK")[1], /community_group_members/);
+  // user_is_group_admin is true for moderator too, so using it would widen the insert policy: it is not what the insert policy uses
+  assert.doesNotMatch(ins, /user_is_group_admin/);
+});
+
+test("recursion: user_group_role is SECURITY DEFINER, search_path pinned, EXECUTE revoked from PUBLIC and granted to authenticated and service_role", () => {
+  const at = SQL.indexOf("CREATE OR REPLACE FUNCTION public.user_group_role(p_group uuid)");
+  assert.ok(at > 0);
+  const fn = SQL.slice(at, SQL.indexOf("$fn$;", at + 80));
+  assert.match(fn, /SECURITY DEFINER/);
+  assert.match(fn, /SET search_path = public, pg_temp/);
+  assert.match(fn, /m\.user_id = auth\.uid\(\)/);
+  assert.match(SQL, /REVOKE ALL ON FUNCTION public\.user_group_role\(uuid\) FROM PUBLIC;/);
+  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.user_group_role\(uuid\) TO authenticated, service_role;/);
+});
+
+test("recursion: one self-check leg per re-pointed community_group_members policy (ok:1 as the intended role, never 42P17), the refusals stay refusals, and the catalog assertion covers the table", () => {
+  assert.ok(SQL.includes("'R1 a group admin inserts a member: no 42P17'"));
+  assert.ok(SQL.includes("'R2 a member updates their own starred preference: no 42P17'"));
+  assert.ok(SQL.includes("'R1 a moderator is not a group admin for the insert policy'"));
+  assert.ok(SQL.includes("'R2 a member cannot raise their own group role through the preferences policy'"));
+  assert.match(SQL, /tablename = 'community_group_members'\s+AND \(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'community_group_members'/);
+});
+
 test("recursion: the self-check attacks the class (an admin INSERT, UPDATE and DELETE do not raise 42P17), leg 3A must reach the guard, and the apply fails if a policy names the table", () => {
   assert.ok(SQL.includes("'3 recursion class: an admin UPDATE on org_memberships does not raise 42P17'"));
   assert.ok(SQL.includes("'3 recursion class: an admin INSERT on org_memberships does not raise 42P17'"));
   assert.ok(SQL.includes("'3 recursion class: an admin DELETE on org_memberships does not raise 42P17'"));
-  assert.equal((SQL.match(/'err:42P17%'/g) || []).length, 3);
+  assert.equal((SQL.match(/'err:42P17%'/g) || []).length, 8, "three org_memberships legs and five community_group_members legs");
   assert.match(SQL, /PERFORM pg_temp\.sec3b_expect\('3A an admin promotes a member to owner',[\s\S]*?'err:42501:%org_membership_role_guard%'\)/);
   assert.match(SQL, /'3 control: the owner grants owner'/);
   assert.match(SQL, /\(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'org_memberships'/);

@@ -153,7 +153,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- The 15 policies item 6 re-points and the 3 org_memberships admin policies the recursion fix re-points must exist
+  -- The 15 policies item 6 re-points and the 3 org_memberships admin policies and the 2 community_group_members policies the recursion fix re-points must exist
   -- under these names (migrations 006, 077, 313, 362).
   v_pol := ARRAY[
     'workspace_item_overrides.overrides_insert_org', 'workspace_item_overrides.overrides_update_org',
@@ -166,7 +166,9 @@ BEGIN
     'portfolio_members.portfolio_members_org_insert', 'portfolio_members.portfolio_members_org_delete'];
   v_pol := v_pol || ARRAY[
     'org_memberships.membership_write_admin', 'org_memberships.membership_update_admin',
-    'org_memberships.membership_delete_admin'];
+    'org_memberships.membership_delete_admin',
+    'community_group_members.community_group_members_insert_admin',
+    'community_group_members.community_group_members_update_self_prefs'];
   FOREACH v_pair IN ARRAY v_pol LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_policies
@@ -317,6 +319,42 @@ ALTER POLICY membership_update_admin ON public.org_memberships
   USING (public.user_org_role(org_id) IN ('owner', 'admin') OR (select auth.role()) = 'service_role');
 ALTER POLICY membership_delete_admin ON public.org_memberships
   USING (public.user_org_role(org_id) IN ('owner', 'admin') OR (select auth.role()) = 'service_role');
+
+-- The same class on community_group_members (migration 029): two policies read their own table. Migration 046 already
+-- moved the SELECT and DELETE policies onto SECURITY DEFINER helpers; these two were left. The original text:
+--   community_group_members_insert_admin   FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM community_group_members m2
+--       WHERE m2.group_id = community_group_members.group_id AND m2.user_id = auth.uid() AND m2.role = 'admin'))
+--   community_group_members_update_self_prefs   FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid()
+--       AND role = (SELECT m.role FROM community_group_members m WHERE m.group_id = community_group_members.group_id
+--       AND m.user_id = auth.uid()))
+-- Both ask for the caller's role in the row's group. user_is_group_admin is not the same predicate (it is true for
+-- moderator as well as admin, which would widen the insert policy), so user_group_role returns the role itself and the
+-- two policies keep their exact meaning: the caller is an ADMIN of the group (insert), and the row's role equals the
+-- caller's role in that group (self preferences update).
+CREATE OR REPLACE FUNCTION public.user_group_role(p_group uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $fn$
+  SELECT m.role
+    FROM public.community_group_members m
+   WHERE m.group_id = p_group
+     AND m.user_id = auth.uid()
+   LIMIT 1;
+$fn$;
+
+COMMENT ON FUNCTION public.user_group_role(uuid) IS
+  'SEC-3b (migration 370, recursion fix). The role (admin, moderator, member) auth.uid() holds in the community group, NULL when none. SECURITY DEFINER with a pinned search_path so a policy on community_group_members can ask it without a subquery on its own table (a policy that reads its own table raises 42P17 infinite recursion). Same shape as user_org_role and user_is_group_member.';
+
+REVOKE ALL ON FUNCTION public.user_group_role(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.user_group_role(uuid) TO authenticated, service_role;
+
+ALTER POLICY community_group_members_insert_admin ON public.community_group_members
+  WITH CHECK (public.user_group_role(group_id) = 'admin');
+ALTER POLICY community_group_members_update_self_prefs ON public.community_group_members
+  WITH CHECK (user_id = auth.uid() AND role = public.user_group_role(group_id));
 
 CREATE OR REPLACE FUNCTION public.org_membership_role_guard()
 RETURNS trigger
@@ -904,6 +942,23 @@ BEGIN
       INSERT INTO public.community_posts (group_id, author_user_id, title, body)
       VALUES (v_g1, v_member, 'sec3b post two', 'sec3b body') RETURNING id INTO v_p2;
 
+      -- ===== The recursion class on community_group_members (migration 029 policies) =====
+      PERFORM pg_temp.sec3b_expect('R1 a group admin inserts a member: no 42P17',
+        pg_temp.sec3b_try('authenticated', v_owner, format('INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (%L, %L, %L)', v_g1, v_other, 'member')),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R1 a plain member cannot insert a member (refused by the policy, not by recursion)',
+        pg_temp.sec3b_try('authenticated', v_member, format('INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (%L, %L, %L)', v_g1, v_extra, 'member')),
+        'err:42501:%', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R1 a moderator is not a group admin for the insert policy',
+        pg_temp.sec3b_try('authenticated', v_admin, format('INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (%L, %L, %L)', v_g1, v_extra, 'member')),
+        'err:42501:%', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R2 a member updates their own starred preference: no 42P17',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.community_group_members SET starred = true WHERE group_id = %L AND user_id = %L', v_g1, v_member)),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R2 a member cannot raise their own group role through the preferences policy',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.community_group_members SET role = %L WHERE group_id = %L AND user_id = %L', 'admin', v_g1, v_member)),
+        'err:42501:%', 'err:42P17%');
+
       -- ===== Item 4: community_posts =====
       FOREACH v_attack IN ARRAY ARRAY['signed_off_at = now()', format('signed_off_by = %L', v_member)] LOOP
         PERFORM pg_temp.sec3b_expect('4A community_posts ' || split_part(v_attack, ' ', 1) || ' by the author',
@@ -1039,6 +1094,11 @@ BEGIN
               WHERE schemaname = 'public' AND tablename = 'org_memberships'
                 AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'org_memberships') THEN
     RAISE EXCEPTION 'ABORT: a policy on org_memberships names org_memberships; read the role through user_org_role()';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'community_group_members'
+                AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'community_group_members') THEN
+    RAISE EXCEPTION 'ABORT: a policy on community_group_members names community_group_members; read the role through user_group_role()';
   END IF;
   IF (SELECT count(*) FROM pg_policies
        WHERE schemaname = 'public' AND tablename = 'org_memberships'
