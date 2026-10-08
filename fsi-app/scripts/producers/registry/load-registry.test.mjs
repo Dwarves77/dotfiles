@@ -32,14 +32,17 @@ function fixtureDir(files) {
 
 const exists = () => true;
 
-test("the real registry lists the four moved producers, sorted, each script on disk", () => {
+test("the real registry lists the four moved producers (and any added since), sorted, each script on disk", () => {
   const entries = loadProducerRegistry(REGISTRY_DIR);
-  assert.deepEqual(
-    entries.map((e) => e.name),
-    ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"],
-  );
+  const names = entries.map((e) => e.name);
+  // A superset check: the registry is an entry directory that later lanes add to, so the four original entries
+  // must still be there, but a new entry must not make this test red.
+  for (const original of ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"]) {
+    assert.ok(names.includes(original), `${original} is in the registry`);
+  }
+  assert.deepEqual(names, [...names].sort(), "entries are listed sorted");
   assert.equal(entries.every((e) => e.dry_capable === true), true);
-  assert.deepEqual(entries.filter((e) => !e.in_all).map((e) => e.name), ["sbti-target-dashboard"]);
+  assert.ok(entries.find((e) => e.name === "sbti-target-dashboard").in_all === false, "SBTi stays out of the all sweep");
 });
 
 test("a well-formed fixture entry loads", () => {

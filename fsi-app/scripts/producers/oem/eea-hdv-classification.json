@@ -1,0 +1,6 @@
+{
+  "notes": "Rules for eea-hdv-map.mjs. Empty on purpose: the committed real sample proves only conventional rows, so no zero-emission fuel value, no stage threshold and no manufacturer alias is written until the dataset's own table definition (HDV-tabledefinition.xlsx) or a real run evidences it. zev_tech_rules: [{when: {ms_fuel|engine_fuel|ms_electric: exact value}, tech_category: one of the eight in migration 296}]. stage_rules: [{min_units: registered vehicles per manufacturer and technology, stage: one of the four in migration 296}]. manufacturer_aliases: {EEA OEM_ManufacturerName: entities.canonical_name of an existing organisation}.",
+  "zev_tech_rules": [],
+  "stage_rules": [],
+  "manufacturer_aliases": {}
+}
