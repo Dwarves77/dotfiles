@@ -68,3 +68,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: node scripts/verify/run-data-audit-lane.mjs
+
+      - name: Upload the UI-orphan register
+        # Every run, pass or fail: the register (lane AUDWIRE-1, VERIFY-1 row B-3) is written by
+        # scripts/verify/ui-orphan-audit.mjs to fsi-app/.discipline/out/ (gitignored, the same out directory the
+        # fitness firings use). Absent when the audit self-skipped without a connection; nothing uploads then.
+        # 7 day retention per F68.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-orphan-register
+          path: fsi-app/.discipline/out/ui-orphan-register.md
+          if-no-files-found: ignore
+          retention-days: 7

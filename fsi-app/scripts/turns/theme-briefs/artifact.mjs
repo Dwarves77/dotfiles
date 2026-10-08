@@ -39,8 +39,12 @@ export function buildThemeBriefsArtifact(o) {
 }
 
 /** Claim a run id, build and write the artifact. Returns the path written. */
-export function emitThemeBriefsArtifact(o, { familyDir = DEFAULT_FAMILY_DIR, fsiRoot = FSI_ROOT } = {}) {
+export function emitThemeBriefsArtifact(o, { familyDir = DEFAULT_FAMILY_DIR, fsiRoot = FSI_ROOT, env = process.env } = {}) {
+  // The loop run id (ADR-031, lane CHAIN-4): a chained firing's workflow reads the upstream row's id through
+  // scripts/lib/upstream-artifact.mjs loop-id and exports it as TB_LOOP_RUN_ID; the on-disk resolver finds no
+  // upstream artifact in a CI checkout. Null for a root run (a dispatch or a batch push) or an unreadable id.
+  const loopRunId = typeof env?.TB_LOOP_RUN_ID === "string" && env.TB_LOOP_RUN_ID.trim() ? env.TB_LOOP_RUN_ID.trim() : null;
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], fsiRoot);
   const runId = claimRunId(familyDir, FAMILY);
-  return writeRunArtifact(familyDir, buildThemeBriefsArtifact({ ...o, runId, harnessVersion }));
+  return writeRunArtifact(familyDir, buildThemeBriefsArtifact({ ...o, config: { loop_run_id: loopRunId, ...o.config }, runId, harnessVersion }));
 }

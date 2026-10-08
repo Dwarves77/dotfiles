@@ -315,3 +315,26 @@ test("buildThemeBundle: a tight budget omits members and claims and says exactly
   const keptClaims = tight.members.reduce((a, m) => a + m.claims.length, 0);
   assert.equal(keptClaims + tight.truncation.claims_omitted, 4, "every claim is either kept or counted as omitted");
 });
+
+// ── lane CHAIN-4: the chained firing records the loop run id it was handed (ADR-031) ───────────────────────────
+import { mkdtempSync, mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { emitThemeBriefsArtifact } from "./artifact.mjs";
+import { validateRunArtifact } from "../../lib/run-artifact.mjs";
+
+test("CHAIN-4: TB_LOOP_RUN_ID is recorded as config.loop_run_id; absent or blank records null", () => {
+  const input = {
+    action: "export", startedAt: "2026-10-08T00:00:00.000Z", config: { mode: "read-only" }, inputsRef: ["connection_themes"],
+    perItem: [], metrics: { themes: 0 }, defectsFound: [], fullTraceRefs: ["bundle.json"], proposerNotes: "",
+  };
+  const read = (env) => {
+    const familyDir = join(mkdtempSync(join(tmpdir(), "tb-loop-")), "theme-briefs");
+    mkdirSync(familyDir);
+    return JSON.parse(readFileSync(emitThemeBriefsArtifact(input, { familyDir, env }), "utf8"));
+  };
+  assert.equal(read({ TB_LOOP_RUN_ID: " 37613373980 " }).config.loop_run_id, "37613373980");
+  assert.equal(read({}).config.loop_run_id, null);
+  assert.equal(read({ TB_LOOP_RUN_ID: "  " }).config.loop_run_id, null);
+  assert.deepEqual(validateRunArtifact(read({ TB_LOOP_RUN_ID: "5" })), []);
+});

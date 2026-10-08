@@ -17,6 +17,7 @@
 
 import { computeEnergyConsumedKwh } from "@/lib/spec09/auxiliary-energy.mjs";
 import "@/components/market/spec09.css";
+import { CoverageState } from "@/components/ui/CoverageState";
 
 export interface AuxiliaryEnergyRow {
   profile_id: string;
@@ -38,7 +39,8 @@ export function AuxiliaryEnergyPanelView({ rows }: { rows: AuxiliaryEnergyRow[] 
   if (rows.length === 0) {
     return (
       <div data-guard-container="auxiliary-energy">
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>{AUXILIARY_ENERGY_GAP_LINE}</p>
+        {/* COV-1: the "not covered" state (spec 00 section 4), with the source reason this file already carried. */}
+        <CoverageState state="not_covered" variant="inline" subject="Auxiliary energy loads" reason={AUXILIARY_ENERGY_GAP_LINE} requestRef="/operations#auxiliary-energy" />
       </div>
     );
   }
