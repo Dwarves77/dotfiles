@@ -3309,9 +3309,9 @@
       "group": "SEC-6 admin flag",
       "kind": "sql",
       "needs_fixtures": true,
-      "invariant": "public.is_platform_admin() answers for the caller alone and says false to everyone who is not a platform admin; anon cannot call it; it takes no argument, so it cannot be asked about another user; and the admin tables it guards stay closed to a non-admin and open to the admin.",
-      "expected": "The owner and the org B member get false, the platform admin gets true; anon is refused 42501; a call naming a user is refused 42883; a non-admin reading an admin-only table gets 0 rows or 42501 and the admin reads it without error.",
-      "reference": "migration 375 (public.is_platform_admin() SECURITY DEFINER, EXECUTE to authenticated and service_role only; policies such as vocabulary_terms_admin_read call it)",
+      "invariant": "public.is_platform_admin() answers for the caller alone and says false to everyone who is not a platform admin, anon included (it is a class C RLS predicate: callable by anon so a table with another policy for anon never raises 42501, and false because there is no caller); it takes no argument, so it cannot be asked about another user; and the admin tables it guards stay closed to a non-admin and open to the admin.",
+      "expected": "The owner and the org B member get false, the platform admin gets true; anon gets false and no error; a call naming a user is refused 42883; a non-admin reading an admin-only table gets 0 rows or 42501 and the admin reads it without error.",
+      "reference": "migration 375 (public.is_platform_admin() SECURITY DEFINER, class C of migration 371: EXECUTE to anon, authenticated and service_role, not PUBLIC; policies such as vocabulary_terms_admin_read call it)",
       "steps": [
         {
           "label": "attack: an organisation owner asks whether they are a platform admin",
@@ -3350,12 +3350,15 @@
           }
         },
         {
-          "label": "attack: an anonymous caller executes is_platform_admin()",
+          "label": "attack: an anonymous caller asks whether they are a platform admin (class C predicate: no error, and false)",
           "kind": "attack",
           "as": "anon",
           "sql": "SELECT public.is_platform_admin() AS is_admin",
           "expect": {
-            "error": "42501"
+            "rows": 1,
+            "equals": {
+              "is_admin": "false"
+            }
           }
         },
         {

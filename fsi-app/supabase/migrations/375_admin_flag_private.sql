@@ -16,9 +16,11 @@
 --
 -- WHAT THIS MIGRATION DOES.
 --   1. public.is_platform_admin() RETURNS boolean: the caller's own row's flag (auth.uid()), false when there is no row or
---      no caller. SECURITY DEFINER, STABLE, search_path = public, pg_temp, REVOKE ALL FROM PUBLIC and anon, EXECUTE to
---      authenticated and service_role only. No parameter, so it cannot name another user: it answers "am I an admin" and
---      nothing else. It reads the column as its owner, so the column revoke below does not reach it.
+--      no caller. SECURITY DEFINER, STABLE, search_path = public, pg_temp, REVOKE ALL FROM PUBLIC, EXECUTE to anon,
+--      authenticated and service_role (class C of migration 371: an RLS predicate, granted explicitly to every role the
+--      policies it sits in apply to; see ANON AND THE PREDICATE below). No parameter, so it cannot name another user: it
+--      answers "am I an admin" and nothing else, and says false when auth.uid() is null, so granting anon leaks nothing.
+--      It reads the column as its owner, so the column revoke below does not reach it.
 --   2. The census. A parse of every CREATE POLICY, DROP POLICY, DROP TABLE and ALTER POLICY in the migration tree, in file
 --      order, leaves exactly 22 live policies whose USING or WITH CHECK reads profiles.is_platform_admin (the test file
 --      repeats that parse and fails if the tree and the list below ever disagree). One ALTER POLICY each, below, in
@@ -61,18 +63,22 @@
 -- column without a role (the connection role) and attempts UPDATE and INSERT writes, none of which needs SELECT on the
 -- column; it is unchanged.
 --
--- ANON AND THE PREDICATE [INFERRED from migration 371's class-C note, not executed here]. PostgreSQL checks EXECUTE on a
--- function used inside a policy as the role running the query. The 22 policies above have no anon-readable table: their
--- tables are admin queues and logs that only the service client or a platform admin reads. For an anon query on one of
--- them the answer was an empty set (policy false) or 42501 (no table grant); it is now 42501 from the function privilege
--- when the table grant exists. Closed either way. A table that anon must read through some OTHER policy is not in the list.
+-- ANON AND THE PREDICATE [coordinator correction, 2026-10-08; mechanism INFERRED from migration 371's class-C note, not
+-- executed here]. PostgreSQL checks EXECUTE on a function used inside a policy as the role running the query, and policies
+-- are OR'd: a table that also carries a public-read policy would raise 42501 for anon instead of evaluating that other
+-- policy to true if the predicate were closed to anon. So the predicate is class C (371: RLS predicates get anon,
+-- authenticated and service_role granted explicitly, REVOKE FROM PUBLIC kept), and it returns false when auth.uid() is
+-- null, so the grant leaks nothing. [CONFIRMED by a parse of the tree, repeated by the test file] no table among the 22
+-- policies' tables carries a live policy that lets anon read it today (the reconciler policies on integrity_flags are TO
+-- reconciler, the rest are service_role or caller-keyed), so the anon leg of the self-check is the predicate call
+-- (false, no raise); the test fails if one of those tables gains a public-read policy without a row-read leg here.
 --
 -- SELF-CHECK (one DO block, sentinel rollback, no data changed). Fixtures: two auth.users and profiles rows (a non-admin and
 -- an admin, the admin inserted by the sanctioned apply role through the 364 guard). ASSUMPTION, stated and the same as
 -- 372: a minimal auth.users row can be inserted; if not, the role legs are skipped with a NOTICE and the catalog pass still
 -- runs. Legs: authenticated non-admin SELECT of the column raises 42501, of id, display_name and verifier_status works,
 -- is_platform_admin() is false, my_profile() carries false; authenticated admin SELECT of the column on its OWN row raises
--- 42501, is_platform_admin() is true, my_profile() carries true; anon is_platform_admin() raises 42501; service_role with
+-- 42501, is_platform_admin() is true, my_profile() carries true; anon is_platform_admin() returns false and does not raise; service_role with
 -- no caller gets false from the predicate and still reads the column; then for each of the eleven source migrations one
 -- policy's table is counted as the owner, as the admin (no error, same count) and as the non-admin (0 rows, or 42501
 -- where the role holds no table grant), never 42P17 and never any other error. Then the catalog pass: no policy in public
@@ -157,8 +163,8 @@ $fn$;
 COMMENT ON FUNCTION public.is_platform_admin() IS
   'SEC-6 (migration 375). True when the caller (auth.uid()) has a profiles row with is_platform_admin = true, false when the flag is false, the row is missing or there is no caller. SECURITY DEFINER so it reads the column its owner can read after SELECT (is_platform_admin) was revoked from authenticated; no parameter, so it cannot ask about anyone else. Used by the 22 admin RLS policies and by the own-row readers in the app (platform-admin gate, identity bootstrap, Community shell, signoff decide).';
 
-REVOKE ALL ON FUNCTION public.is_platform_admin() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.is_platform_admin() TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.is_platform_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_platform_admin() TO anon, authenticated, service_role;
 
 -- ---- 2. The 22 policies, one ALTER each, meaning unchanged -----------------------------------------------------------
 -- 082
@@ -362,15 +368,21 @@ BEGIN
       IF v_flag IS DISTINCT FROM true THEN RAISE EXCEPTION 'ABORT: my_profile() must carry is_platform_admin = true for the platform admin (got %)', v_flag; END IF;
       RESET ROLE;
 
-      -- C. ANON cannot execute the predicate.
+      -- C. ANON can call the predicate (policies are OR'd, so a closed predicate would break any other policy on the
+      -- same table) and it says false: there is no caller. No table among the 22 has an anon-readable policy, so the
+      -- leg is the call itself.
       SET LOCAL ROLE anon;
+      PERFORM set_config('request.jwt.claim.sub', '', true);
+      PERFORM set_config('request.jwt.claims', '', true);
       v_denied := false;
+      v_flag := NULL;
       BEGIN
-        PERFORM public.is_platform_admin();
+        SELECT public.is_platform_admin() INTO v_flag;
       EXCEPTION WHEN insufficient_privilege THEN
         v_denied := true;
       END;
-      IF NOT v_denied THEN RAISE EXCEPTION 'ABORT: anon could execute is_platform_admin()'; END IF;
+      IF v_denied THEN RAISE EXCEPTION 'ABORT: anon could not execute is_platform_admin() (policies are OR''d: a closed predicate raises 42501 on a table that has another policy for anon)'; END IF;
+      IF v_flag IS DISTINCT FROM false THEN RAISE EXCEPTION 'ABORT: is_platform_admin() must be false for anon (got %)', v_flag; END IF;
       RESET ROLE;
 
       -- D. SERVICE_ROLE: no caller means false, and the sanctioned column read stays open.
@@ -493,7 +505,7 @@ BEGIN
     RAISE EXCEPTION 'ABORT: authenticated can SELECT profiles.email (migration 372 removed it)';
   END IF;
 
-  -- 4. The predicate: definer, pinned path naming pg_temp, anon refused, authenticated and service_role granted.
+  -- 4. The predicate: definer, pinned path naming pg_temp, EXECUTE for anon, authenticated and service_role (class C), not PUBLIC.
   IF NOT EXISTS (
     SELECT 1 FROM pg_proc
      WHERE oid = 'public.is_platform_admin()'::regprocedure
@@ -504,12 +516,10 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'ABORT: public.is_platform_admin() must be STABLE SECURITY DEFINER returning boolean with a search_path that names pg_temp';
   END IF;
-  IF has_function_privilege('anon', 'public.is_platform_admin()', 'EXECUTE') THEN
-    RAISE EXCEPTION 'ABORT: anon can execute is_platform_admin()';
-  END IF;
-  IF NOT has_function_privilege('authenticated', 'public.is_platform_admin()', 'EXECUTE')
+  IF NOT has_function_privilege('anon', 'public.is_platform_admin()', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.is_platform_admin()', 'EXECUTE')
      OR NOT has_function_privilege('service_role', 'public.is_platform_admin()', 'EXECUTE') THEN
-    RAISE EXCEPTION 'ABORT: authenticated and service_role must be able to execute is_platform_admin()';
+    RAISE EXCEPTION 'ABORT: anon, authenticated and service_role must all be able to execute is_platform_admin() (class C: an RLS predicate)';
   END IF;
   IF EXISTS (
     SELECT 1 FROM pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a

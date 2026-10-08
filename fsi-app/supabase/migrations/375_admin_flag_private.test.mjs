@@ -38,11 +38,18 @@ test("is_platform_admin(): boolean, STABLE SECURITY DEFINER, no parameter, pinne
   assert.match(m[1], /coalesce\(\(SELECT p\.is_platform_admin FROM public\.profiles p WHERE p\.id = auth\.uid\(\)\), false\)/);
 });
 
-test("is_platform_admin(): REVOKE ALL FROM PUBLIC, anon; EXECUTE to authenticated and service_role only", () => {
-  assert.match(SQL, /REVOKE ALL ON FUNCTION public\.is_platform_admin\(\) FROM PUBLIC, anon;/);
-  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.is_platform_admin\(\) TO authenticated, service_role;/);
-  assert.doesNotMatch(SQL, /GRANT[^;]*is_platform_admin\(\)[^;]*\banon\b/);
+test("is_platform_admin(): class C of migration 371 (REVOKE ALL FROM PUBLIC, then EXECUTE to anon, authenticated and service_role): a policy function must be callable by every role the policy applies to", () => {
+  assert.match(SQL, /REVOKE ALL ON FUNCTION public\.is_platform_admin\(\) FROM PUBLIC;/);
+  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.is_platform_admin\(\) TO anon, authenticated, service_role;/);
   assert.doesNotMatch(SQL, /GRANT[^;]*is_platform_admin\(\)[^;]*\bPUBLIC\b/);
+  assert.doesNotMatch(SQL, /REVOKE[^;]*is_platform_admin\(\)[^;]*\banon\b/);
+  // 371's class table: class C is "RLS predicates, anon, authenticated and service_role granted explicitly"; the header says so.
+  assert.match(RAW, /class C/);
+  assert.doesNotMatch(RAW, /class D/);
+  // the same-shaped precedents in the tree, so the grant is the house pattern and not a guess
+  const m371 = readFileSync(join(HERE, "371_definer_hygiene.sql"), "utf8");
+  assert.match(m371, /user_belongs_to_org, user_is_group_admin/);
+  assert.match(m371, /C {2}public listing RPCs and RLS predicates, anon, authenticated and service_role granted explicitly/);
 });
 
 test("F70 definer-hygiene is satisfied by this file (REVOKE FROM PUBLIC and a pg_temp search_path)", () => {
@@ -79,7 +86,7 @@ test("the policy list the preconditions and the catalog pass use is the same 22 
 });
 
 // ---- the census: the 22 are exactly what the migration tree leaves reading the flag --------------------------------
-function treeCensus() {
+function livePolicies() {
   const files = readdirSync(HERE).filter((f) => f.endsWith(".sql") && Number(/^(\d+)_/.exec(f)?.[1] ?? 1e9) < 375).sort();
   const live = new Map(); // "table.policy" -> definition text
   for (const f of files) {
@@ -105,8 +112,27 @@ function treeCensus() {
       else for (const k of [...live.keys()]) if (k.startsWith(`${e.tbl}.`)) live.delete(k);
     }
   }
-  return [...live.entries()].filter(([, def]) => /is_platform_admin/i.test(def)).map(([k]) => k).sort();
+  return live;
 }
+
+function treeCensus() {
+  return [...livePolicies().entries()].filter(([, def]) => /is_platform_admin/i.test(def)).map(([k]) => k).sort();
+}
+
+test("ANON: no table among the 22 policies' tables carries a policy that lets anon read it, so the anon leg of the self-check is the predicate call (returns false, does not raise), not a row read", () => {
+  const tables = new Set(ALTERS.map((a) => a.tbl));
+  const publicRead = [];
+  for (const [key, def] of livePolicies()) {
+    const [tbl, pol] = [key.slice(0, key.indexOf(".")), key.slice(key.indexOf(".") + 1)];
+    if (!tables.has(tbl)) continue;
+    const d = def.replace(/\s+/g, " ");
+    if (!/\b(FOR\s+)?(SELECT|ALL)\b/i.test(d)) continue; // an INSERT or UPDATE policy reads nothing for anon
+    if (/\bTO\s+(reconciler|authenticated|service_role)\b/i.test(d)) continue; // a named role, not anon
+    if (/is_platform_admin|auth\.role\(\)\s*=\s*'service_role'|auth\.uid\(\)/i.test(d)) continue; // a caller-keyed policy
+    publicRead.push(pol);
+  }
+  assert.deepEqual(publicRead, [], "if a table among the 22 gains a public-read policy, the self-check needs an anon row-read leg for it");
+});
 
 test("CENSUS: the live policies the migration tree (every file below 375, in order, with DROP POLICY, DROP TABLE and ALTER POLICY applied) leaves reading is_platform_admin are exactly the 22 repointed", () => {
   assert.deepEqual(treeCensus(), ALTERS.map((a) => `${a.tbl}.${a.pol}`).sort());
@@ -174,10 +200,12 @@ test("self-check attacks: column refused for the non-admin (own and other row) a
   assert.match(SQL, /EXCEPTION WHEN insufficient_privilege THEN/);
 });
 
-test("self-check legs: predicate false for non-admin, true for admin via a session with the admin uid, anon refused, service_role no-caller false and column read open", () => {
+test("self-check legs: predicate false for non-admin, true for admin via a session with the admin uid, anon gets false without raising, service_role no-caller false and column read open", () => {
   assert.match(SQL, /is_platform_admin\(\) must be false for a non-admin/);
   assert.match(SQL, /is_platform_admin\(\) must be true for the platform admin/);
-  assert.match(SQL, /ABORT: anon could execute is_platform_admin\(\)/);
+  assert.match(SQL, /ABORT: anon could not execute is_platform_admin\(\)/);
+  assert.match(SQL, /ABORT: is_platform_admin\(\) must be false for anon/);
+  assert.doesNotMatch(SQL, /ABORT: anon could execute is_platform_admin\(\)/);
   assert.match(SQL, /is_platform_admin\(\) must be false when there is no caller/);
   assert.match(SQL, /service_role could not read profiles\.is_platform_admin/);
   assert.match(SQL, /my_profile\(\) must carry is_platform_admin = true/);
@@ -220,7 +248,8 @@ test("catalog pass: privileges (anon and authenticated lose the column, service_
   assert.match(SQL, /has_column_privilege\('authenticated', 'public\.profiles', 'email', 'SELECT'\)/);
   assert.match(SQL, /prosecdef\s+AND provolatile = 's'/);
   assert.match(SQL, /search_path=%pg_temp%/);
-  assert.match(SQL, /has_function_privilege\('anon', 'public\.is_platform_admin\(\)', 'EXECUTE'\)/);
+  assert.match(SQL, /NOT has_function_privilege\('anon', 'public\.is_platform_admin\(\)', 'EXECUTE'\)/);
+  assert.match(SQL, /anon, authenticated and service_role must all be able to execute is_platform_admin\(\)/);
   assert.match(SQL, /a\.grantee = 0 AND a\.privilege_type = 'EXECUTE'/);
 });
 
