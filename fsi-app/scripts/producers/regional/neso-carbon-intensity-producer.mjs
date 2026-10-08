@@ -34,10 +34,11 @@
 //   * BASIS NOT STATED BY THE SOURCE. The stats response does not say whether `average` is over forecast or actual
 //     half-hour values. That is recorded here, not guessed; it is a property of the source's published number.
 //
-// SOURCE RATING (rule 18). The publisher is registered in `sources` through registerSource, tier from the
-// institution class table plus the committed host verdict batches (classTierForHostWithVerdicts), never hand-typed.
+// SOURCE RATING (rule 18). The publisher is registered in `sources` through registerSource, rated by the ONE shared
+// step (scripts/lib/rate-source-by-class.mjs): the institution class table plus the committed host verdict batches,
+// a verdict outranking the residue name rule (host-authority.ts classTierForHostWithVerdicts), never hand-typed.
 // host-verdicts-001.json classes carbonintensity.org.uk as gov (NESO is publicly owned), so the table answers tier 2;
-// with no batch the built-in rules alone answer tier 7 (the residue ruling's company class). The fact row carries the registered source's id in
+// with no batch the residue ruling alone answers tier 7 (company). The fact row carries the registered source's id in
 // regional_data_facts.source_id. Separately, regional_data_facts.source_key is an FK to data_sources; the producer
 // REFUSES to write when that row is absent (migration 378 inserts it), naming the row.
 //
@@ -51,9 +52,7 @@
 import { readFileSync } from "node:fs";
 import { toCandidateRows, latestPerNaturalKey } from "./run-envelope-producer.mjs";
 import { planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";
-import { classTierForHost, verdictPlacementForHost } from "../../../src/lib/sources/host-authority.ts";
-import { hostOf } from "../../../src/lib/sources/institution.ts";
-import { loadHostVerdicts } from "../../maintenance/host-verdicts/load-host-verdicts.mjs";
+import { makeResolveSource } from "../../lib/rate-source-by-class.mjs";
 import { readAll, guardedInsert, guardedUpdate, registerSource } from "../../lib/db.mjs";
 import { loadLocalEnvFile } from "../../lib/env-file.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
@@ -148,26 +147,10 @@ export function decideApply({ apply, enabled, killSwitchOn, hasCreds }) {
   return { canWrite: true, reason: "all gates satisfied" };
 }
 
-/**
- * Rate the publisher through the institution class table PLUS the committed host verdict batches
- * (scripts/maintenance/host-verdicts). Order, the README's: the curated host-only rules first (classTierForHost with
- * no name, so the residue catch-all cannot fire), then a committed verdict for the host, then the residue ruling on
- * the publisher's name. The tier is read from the class table for the verdict's class, never typed here. A host no
- * layer places is refused with a named reason (rule 18: rate it, do not guess).
- * WHY NOT classTierForHostWithVerdicts / scripts/lib/rate-source-by-class.mjs: both run the residue ruling WITH the
- * stored name before consulting a verdict, and that ruling's rule 7 (company, tier 7) places any named host, so a
- * verdict for a named host is never reached (measured for this host: every non-empty name returns company 7).
- */
-async function rateSource({ mode, registerSourceFn, hostVerdicts }) {
-  const host = hostOf(SOURCE_URL);
-  const tier = classTierForHost(host, null) ?? verdictPlacementForHost(host, hostVerdicts)?.tier ?? classTierForHost(host, SOURCE_NAME);
-  if (tier == null) {
-    return { ok: false, reason: `host "${host}" is not classified by the institution class table or any committed host verdict batch, needs registry review before this figure can publish with a rating` };
-  }
-  if (mode !== "apply") return { ok: true, source_id: `preview:${host}`, tier };
-  const reg = await registerSourceFn({ url: SOURCE_URL, name: SOURCE_NAME, base_tier: tier }, { cite: CITE });
-  return { ok: true, source_id: reg.source_id, tier };
-}
+// The publisher is rated through the ONE shared rating step (scripts/lib/rate-source-by-class.mjs): the class table
+// plus the committed host verdict batches, a verdict outranking the residue name rule (host-authority.ts
+// classTierForHostWithVerdicts). Nothing here special-cases a verdict.
+const resolveSource = makeResolveSource({ urlField: "url", nameField: "name", cite: CITE });
 
 const ENVELOPE_SELECT =
   "id, region_id, dimension, fact_label, value, value_numeric, unit, currency, derivation, origin_class, " +
@@ -217,7 +200,7 @@ export async function runNesoCarbonIntensity({ apply = false, now = new Date(), 
     summary.checks.skipped = "no DB creds: data_sources, regions and existing-row checks were not run";
   }
 
-  const rated = await rateSource({ mode: canWrite ? "apply" : "dry", registerSourceFn: deps.registerSourceFn, hostVerdicts: deps.hostVerdicts ?? loadHostVerdicts().verdicts });
+  const rated = await resolveSource({ url: SOURCE_URL, name: SOURCE_NAME }, { mode: canWrite ? "apply" : "dry", registerSourceFn: deps.registerSourceFn, hostVerdicts: deps.hostVerdicts });
   summary.source = rated.ok ? { ok: true, tier: rated.tier, source_id: rated.source_id } : { ok: false, reason: rated.reason };
   if (!rated.ok) return refuse(rated.reason);
 

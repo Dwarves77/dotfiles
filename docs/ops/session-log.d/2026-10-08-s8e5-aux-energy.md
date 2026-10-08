@@ -28,11 +28,20 @@
 - Grant 3 (source-licence.mjs): `neso_carbon_intensity` register entry, `permitted`, licence `CC BY 4.0`, attribution string, the
   PROD-SRC reading quoted (page states "CC BY 4.0", "API Terms of Use" pointer), `verifiedOn 2026-10-08`.
 - Grant 4 (tier): `scripts/maintenance/host-verdicts/host-verdicts-001.json`, one entry, host `carbonintensity.org.uk`, class
-  `gov`, evidence "NESO publicly owned since 2024-10-01", About page https://www.neso.energy/about. The tier is never typed: the
-  producer reads it from the class table through the verdict (gov = tier 2, `HOST_CLASS_TIER`). The batch is dry as every batch is:
-  it applies only when a source-resolution run is dispatched. Until that run, and for any caller that reads the built-in rules
-  alone, the class table's answer for this publisher is tier 7 (the residue ruling's company class); the producer itself reads
-  the committed batch directly, so its rating is tier 2 as soon as the batch is on master.
+  `gov`, evidence: NESO is publicly owned (the UK government completed the purchase of the Electricity System Operator on
+  2024-10-01), citation the NESO About page https://www.neso.energy/about (not fetched by the lane; the claim is the
+  coordinator's). The tier is never typed: it is read from the class table for the verdict's class (gov = tier 2,
+  `HOST_CLASS_TIER`). The batch is dry as every batch is. Until the batch is on master the class table's answer for this
+  publisher is tier 7 (the residue ruling's company class); once it is, the producer rates tier 2 through the shared rating
+  step, with no special case of its own.
+- Resolver fix (shared, granted): `classTierForHostWithVerdicts` in `src/lib/sources/host-authority.ts` is now the one
+  precedence: never-register hosts, then the curated host-only rules, then a committed verdict, then the residue ruling over
+  the stored name. `scripts/lib/rate-source-by-class.mjs` rates through it (committed batches by default, `hostVerdicts`
+  injectable, forwarded by `makeResolveSource`). The producer's own verdict-first special case is removed. Red-then-green in
+  `scripts/lib/rate-source-by-class.test.mjs`: 3 of 10 failed before the fix, 10 of 10 after, including the six-name probe.
+- Rail fix (granted): the shared facet "+ N more" button carries `minHeight: 44` inline, like the rows
+  (`ListSurfaceRailCards.tsx`); red-then-green in `ListSurfaceRailCards.facets.npmtest.mjs` (1 of 8 failed, then 8 of 8).
+  This closes the 11 rendering-guard findings D7 caused (a seventh Dimension option hid behind a 24 px "+ 1 more" button).
 - Grant 2 (readers): `grid_intensity` is wired as D7 in the one constant the Operations surface renders its dimensions from,
   `DIMENSIONS` in `OperationsLedger.tsx` (`MATRIX_DIMENSIONS` is that constant; the matrix rows, the rail Dimension facet, the
   coverage-gap counts and the statements all read it, and `RegionDimensionMatrix` takes the list as a prop), and in
@@ -69,20 +78,20 @@
   `operational_cost` is prices; `infrastructure` is capacity. None covers an emissions factor.
 - `ENABLED=false` and `in_all: false`: a registry sweep in apply mode stops on the first non-zero child (SBTi precedent), and
   no population happens until every build layer is complete.
-- Own guarded write loop and own rating function instead of `runEnvelopeProducer` and `rate-source-by-class.mjs`: the shared shell
-  builds rows without `source_id` (rule 18 wants the rated source on the figure), and the shared rating step reads the built-in
-  rules only. The pure pieces are reused; the loop and the 6-line rating order are the only new code.
+- Own guarded write loop instead of `runEnvelopeProducer`: the shared shell builds rows without `source_id` (rule 18 wants the
+  rated source on the figure). The pure pieces are reused; the loop is the only new code. Rating is the shared step, not a copy.
 
 ## Findings
 
-- [CONFIRMED, evaluated 2026-10-08 with `classifyResidueRuling`] A host verdict (rule b2) is unreachable for any host that has a
-  stored name. `classTierForHostWithVerdicts` and `resolve-provisional-sources.mjs` run the built-in rules, including the D14
-  residue ruling's rule 7 (company, tier 7), BEFORE consulting a verdict, and rule 7 places every host given a non-empty name
-  (checked for `carbonintensity.org.uk` with six different names: all return company 7; with no name it returns the worklist).
-  A verdict can therefore only place a host whose name is empty. This lane's producer consults the verdict before the name-based
-  residue rule (the README's stated order: after the built-in rules, before the residue worklist). The shared resolver should do
-  the same; that is outside this write set and is reported, not fixed. Consequence for this batch: the source-resolution run
-  would leave the `sources` row at tier 7 if the host arrives with a stored name; the producer's own registration is tier 2.
+- [CONFIRMED, six-name probe, 2026-10-08, `classifyResidueRuling("carbonintensity.org.uk", name)`] A host verdict was
+  unreachable for any host that carries a stored name. The resolvers ran the built-in rules, including the D14 residue
+  ruling's rule 7 (company, tier 7), BEFORE consulting a verdict, and rule 7 places every host given a non-empty name. Probe
+  results: name null returns the worklist (tier null); "NESO", "Carbon Intensity API", "National Energy System Operator",
+  "National Energy System Operator (NESO) Carbon Intensity API" and "Carbon Intensity" each return company, tier 7. FIXED in the
+  shared function and the shared rating step (above). STILL OPEN, two callers outside the grant that keep their own two-step
+  order (class tier across names first, verdict only when that is null): `scripts/maintenance/resolve-provisional-sources.mjs`
+  (`resolveSignals`, rule b2) and `scripts/maintenance/enumerate-unclassified-hosts.mjs` (`collectUnresolvedRows`). Until they
+  are changed, a source-resolution run leaves a NAMED provisional host at tier 7 even with a verdict for it.
 - [CONFIRMED] `registerSource` dedups by institution key and does not update the tier of an existing row, so if a tier 7 `sources`
   row for `carbonintensity.org.uk` already exists in production, the producer's first apply reuses it at tier 7. Read-only SQL
   before the first apply: `select id, base_tier from sources where url like '%carbonintensity.org.uk%'`.
@@ -110,8 +119,8 @@
 - `OperationsDimension` consumers beyond the three granted files were not audited for a six-value assumption outside
   `src/components/operations` and `operations-matrix.ts`; the grep over `src` for the six names found no other list.
 - `docs/inventories/db-check-constraints.json` (source: live) updates when 378 is applied and the inventory re-run.
-- Folding verdict awareness into `scripts/lib/rate-source-by-class.mjs` and `host-authority.ts` (see Findings) is not done.
-- The NESO About page and the API Terms of Use were not fetched by this lane; the ownership claim is the coordinator's ruling.
+- The two callers that still order the residue rule before a verdict (see Findings) are not changed.
+- The NESO About page and the API Terms of Use were not fetched by this lane; the ownership claim (the UK government completed the purchase of the Electricity System Operator on 2024-10-01) is the coordinator's ruling.
 - The stats response does not say whether `average` is over forecast or actual half-hours; not determined.
 
 ## Open items

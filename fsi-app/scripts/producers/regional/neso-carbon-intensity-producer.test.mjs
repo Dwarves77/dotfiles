@@ -358,3 +358,12 @@ test("CLI: a dry run on --input prints the plan and exits 0 with no credentials;
   assert.equal(apply.status, 1);
   assert.match(apply.stderr, /ENABLED constant/);
 });
+
+test("the producer rates through the shared step only: it imports no host-authority, institution or verdict-loader module of its own", () => {
+  const full = readFileSync(join(HERE, "neso-carbon-intensity-producer.mjs"), "utf8");
+  const src = full.split(String.fromCharCode(10)).filter((l) => !l.trim().startsWith("//")).join(String.fromCharCode(10));
+  assert.match(src, /rate-source-by-class\.mjs/);
+  for (const forbidden of ["host-authority", "load-host-verdicts", "verdictPlacementForHost", "classTierForHost("]) {
+    assert.equal(src.includes(forbidden), false, `no private verdict logic: ${forbidden}`);
+  }
+});
