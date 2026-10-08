@@ -52,9 +52,22 @@ test('C5 passes GREEN against the live tree', () => {
   assert.deepEqual(drifts, [], `C5 found drift on the live tree:\n${drifts.map((d) => '  - ' + d.detail).join('\n')}`);
 });
 
-test('ACTIVE_PHASE: none is a no-op (between phases), even with a malformed anchors block present', () => {
-  withDoc(buildDoc({ activePhaseLine: 'ACTIVE_PHASE: none', anchorsBlock: '```anchors\nnot a real line\n```' }), () => {
-    assert.deepEqual(consistencyCheck.run(), []);
+test('ACTIVE_PHASE: none is a no-op between phases: nothing finished to re-check, and no phase being switched off', () => {
+  const unfinished = [
+    '# Fixture governing program doc',
+    '',
+    'ACTIVE_PHASE: none',
+    '',
+    '### fixture-phase planned',
+    '```anchors',
+    'not a real line',
+    '```',
+    '',
+  ].join('\n');
+  withDoc(unfinished, () => {
+    const drifts = consistencyCheck.run();
+    // the only drift the fixture can draw is the flip-from-active check against the merge-base doc, never a malformed-anchors one
+    assert.ok(!drifts.some((d) => d.kind === 'malformed'), JSON.stringify(drifts));
   });
   assert.deepEqual(consistencyCheck.run(), []);
 });
@@ -159,4 +172,54 @@ test('CONTROL: a correctly matched present+absent anchor pair against a real fil
     assert.deepEqual(consistencyCheck.run(), []);
   });
   assert.deepEqual(consistencyCheck.run(), []);
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+import { anchorView, flippedToNoneWithoutFinishing } from './C5-program-anchors-reality.mjs';
+
+test('C5 B7-38: an anchor kept alive only in a comment is GONE; the same text in code is present', () => {
+  const commented = '// export const consistencyCheck is documented here\nexport const other = 1;\n/* export const consistencyCheck */';
+  assert.equal(anchorView('x.mjs', commented).includes('export const consistencyCheck'), false);
+  assert.equal(anchorView('x.mjs', 'export const consistencyCheck = {};\n').includes('export const consistencyCheck'), true);
+  assert.equal(anchorView('x.sql', '-- COALESCE(a, b)\nSELECT 1;').includes('COALESCE(a, b)'), false);
+  assert.equal(anchorView('x.sql', 'SELECT COALESCE(a, b);').includes('COALESCE(a, b)'), true);
+  assert.equal(anchorView('notes.md', '// not code').includes('// not code'), true, 'other file types are matched raw');
+});
+
+test('C5 B7-38: a PRESENT anchor whose identifier survives only in a comment of the target is flagged GONE', () => {
+  withDoc(buildDoc({ anchorsBlock: `\`\`\`anchors\npresent :: ${ANCHOR_FILE_REL} :: ZZZ_C5_COMMENT_ONLY_TOKEN\n\`\`\`` }), () => {
+    // the token is not in the target at all, so this is the plain GONE path; the comment path is covered by anchorView above
+    const drifts = consistencyCheck.run();
+    assert.ok(drifts.some((d) => d.kind === 'stale-status' && d.detail.includes('GONE')), JSON.stringify(drifts));
+  });
+});
+
+const finishedDoc = (phaseHeading, anchors) => `# Fixture governing program doc\n\nACTIVE_PHASE: none\n\n## Phases\n\n### ${phaseHeading}\nbody\n\`\`\`anchors\n${anchors}\n\`\`\`\n`;
+
+test('C5 B7-39: ACTIVE_PHASE none still checks the anchors of a phase marked DONE', () => {
+  const doc = finishedDoc('phase-fixture-done  ✅ DONE 2026-10-08', `present :: ${ANCHOR_FILE_REL} :: ${ANCHOR_ABSENT_SUBSTR}`);
+  withDoc(doc, () => {
+    const drifts = consistencyCheck.run();
+    assert.ok(drifts.some((d) => d.kind === 'stale-status' && d.detail.includes('GONE')), `a finished phase's rotted anchor must be caught under none: ${JSON.stringify(drifts)}`);
+  });
+  const ok = finishedDoc('phase-fixture-done  ✅ DONE 2026-10-08', `present :: ${ANCHOR_FILE_REL} :: ${ANCHOR_PRESENT_SUBSTR}`);
+  withDoc(ok, () => {
+    const drifts = consistencyCheck.run();
+    // none is a no-op when every finished phase's anchors hold (a flip-from-active drift can still come from the merge-base)
+    assert.ok(!drifts.some((d) => d.detail.includes('GONE')), JSON.stringify(drifts));
+  });
+  assert.deepEqual(consistencyCheck.run(), []);
+});
+
+test('C5 B7-39: a phase active at the merge-base cannot be switched off by writing none unless it is marked DONE', () => {
+  const doc = (active, heading) => [`ACTIVE_PHASE: ${active}`, '', heading, 'body'].join('\n');
+  const base = doc('phase-2', '### phase-2 planned');
+  const switchedOff = doc('none', '### phase-2 planned');
+  assert.match(flippedToNoneWithoutFinishing(base, switchedOff), /phase-2.*not marked DONE or LANDING/);
+  const finished = doc('none', '### phase-2  ✅ DONE 2026-10-08');
+  assert.equal(flippedToNoneWithoutFinishing(base, finished), null);
+  assert.equal(flippedToNoneWithoutFinishing(null, switchedOff), null, 'no baseline: skipped, never failed');
+  assert.equal(flippedToNoneWithoutFinishing('ACTIVE_PHASE: none', switchedOff), null, 'none to none is not a flip');
+  assert.equal(flippedToNoneWithoutFinishing(base, base), null, 'still active: the normal anchors path judges it');
 });

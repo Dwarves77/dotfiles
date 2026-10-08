@@ -340,11 +340,11 @@ test('check 4 GREEN: a lane/ branch that never touches a coordinator-only file p
   }
 });
 
-test('check 4 SKIP: a non-lane branch is skipped even if it touches a coordinator-only file', () => {
+test('check 4 SKIP: a coordinator branch (coord/*) is skipped even if it touches a coordinator-only file', () => {
   const { tmp, git } = tmpRepo('f51-check4-');
   try {
     initCheck4Base(tmp, git);
-    git(['checkout', '-q', '-b', 'not-a-lane-branch']);
+    git(['checkout', '-q', '-b', 'coord/fixture']);
     writeFile(join(tmp, 'docs/ops/session-log.md'), '# session log\ncoordinator edit\n');
     git(['add', '-A']);
     git(['commit', '-q', '-m', 'coordinator commit']);
@@ -558,6 +558,51 @@ test('F51 REPLAY: the 2026-09-18 lane set (M8, M9b, M9a, M1, W10-A) merges clean
 
     console.log(`F51 replay: ${ordersRun} order(s), ${mode}, elapsed ${elapsedMs}ms total, zero conflicts, every derived entry present exactly once.`);
     assert.ok(ordersRun === 120 || ordersRun === 26, `expected either the full 120 or the reduced 26 (2 lexical extremes + 24 random), got ${ordersRun}`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+// ---- lane GATE-8 (2026-10-08): AUD-AT-4 B6-32, red then green ----
+import { isCoordinatorBranch, effectiveBranch } from './F51-no-shared-append.mjs';
+
+test('F51 B6-32: check 4 applies to every branch that is not the coordinator\'s, whatever its prefix', () => {
+  for (const b of ['claude/zz', 'feat/x', 'fix/y', 'lane/z', 'worktree-agent-abc123', 'docs3-pass']) {
+    assert.equal(isCoordinatorBranch(b), false, b);
+  }
+  for (const b of ['master', 'main', 'coord/docs3-pass', 'coord/adr-035']) {
+    assert.equal(isCoordinatorBranch(b), true, b);
+  }
+  assert.equal(isCoordinatorBranch(null), false);
+});
+
+test('F51 B6-32: a branch named claude/zz that changes a coordinator-only file is caught', () => {
+  const { tmp, git } = tmpRepo('f51-check4-');
+  try {
+    initCheck4Base(tmp, git);
+    git(['checkout', '-q', '-b', 'claude/zz']);
+    writeFile(join(tmp, 'docs/ops/session-log.md'), '# session log\nedit\n');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'non-lane-named branch edits the session log']);
+    assert.equal(runCheck4(tmp).length, 1);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('F51 B6-32: a detached HEAD (a pull request checkout) is judged by the branch name CI provides, and an unnamed one is strict', () => {
+  const { tmp, git } = tmpRepo('f51-check4-');
+  try {
+    initCheck4Base(tmp, git);
+    git(['checkout', '-q', '-b', 'tmp-work']);
+    writeFile(join(tmp, 'docs/ops/session-log.md'), '# session log\nedit\n');
+    git(['add', '-A']);
+    git(['commit', '-q', '-m', 'edit']);
+    git(['checkout', '-q', '--detach']);
+    assert.equal(effectiveBranch(tmp, { GITHUB_HEAD_REF: 'lane/from-ci' }), 'lane/from-ci');
+    assert.equal(runCheck4(tmp, { GITHUB_HEAD_REF: 'lane/from-ci' }).length, 1, 'a PR from a lane branch is caught while detached');
+    assert.deepEqual(runCheck4(tmp, { GITHUB_HEAD_REF: 'coord/docs-pass' }), [], 'the coordinator\'s branch is exempt');
+    assert.equal(runCheck4(tmp, {}).length, 1, 'no name at all: the strict reading');
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

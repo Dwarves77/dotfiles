@@ -298,3 +298,7 @@ The lanes have disjoint write sets; GATE-0 lands last.
   commit hooks do; it does not move the gate back to the local push.
 - Security and spend guards are unchanged by this ADR (rule 15 of CLAUDE.md: a guard is proven by attack,
   not by presence, and `scripts/verify/prov-guard-adversarial-audit.mjs` remains the template).
+
+## Addendum, 2026-10-08 (GATE-8)
+
+GATE-8 applied the scope paragraph GATE-7 records in this ADR (the gates are mistake-catchers for cooperating sessions, a blind spot on an honest form is a defect, a form that requires intent is out of scope and recorded) to the fitness functions and governance gates, rows 4 and 5 of the AUD-AT-4 register (`docs/ops/session-log.d/2026-10-08-gate8-fitness-honest-forms.md` maps each attack id to its fix or to its out-of-scope reason).

@@ -8,9 +8,6 @@ import {
   parseTrainCommits,
   parseMaintenanceSteps,
   isDispatchable,
-  hasRunEvidence,
-  assembleRunbookCorpus,
-  runbookHasRecord,
   checkNeverRun,
   findNextRows,
   hasOwningTrain,
@@ -31,34 +28,6 @@ import {
   runLaneContractLive,
 } from './closure-gate.mjs';
 import * as closureGate from './closure-gate.mjs';
-
-// ── runbook corpus (RB-SPLIT, 2026-10-04): index plus one file per step ─────────────────────────────
-
-const STEP_FILES = [
-  { name: '08-provenance-heal.md', text: '## 8. `provenance-heal`\n\nDispatched, run #41 landed.\n\n' },
-  { name: '04a-source-type-backfill.md', text: '## 4a. `source-type-backfill`\n\nNever dispatched yet.\n\n' },
-  { name: '04-origin-class-backfill.md', text: '## 4. `origin-class-backfill`\n\nDispatched, landed live.\n\n' },
-  { name: 'A1-holdings-audit.md', text: '## Appendix: `holdings-audit`\n\nrun 123456789\n' },
-];
-
-test('assembleRunbookCorpus: index first, then step files in filename order (04 before 04a before 08 before A1)', () => {
-  const corpus = assembleRunbookCorpus('# Index\n', STEP_FILES);
-  const at = (needle) => corpus.indexOf(needle);
-  assert.ok(at('# Index') < at('`origin-class-backfill`'));
-  assert.ok(at('`origin-class-backfill`') < at('`source-type-backfill`'));
-  assert.ok(at('`source-type-backfill`') < at('`provenance-heal`'));
-  assert.ok(at('`provenance-heal`') < at('`holdings-audit`'));
-});
-
-test("runbookHasRecord over the assembled corpus: evidence is read from the step's OWN file only", () => {
-  const corpus = assembleRunbookCorpus('# Index\n\n- [8. `provenance-heal`](maintenance.d/08-provenance-heal.md)\n', STEP_FILES);
-  assert.equal(runbookHasRecord(corpus, 'provenance-heal'), true);
-  assert.equal(runbookHasRecord(corpus, 'origin-class-backfill'), true);
-  // a neighbour's run number must not count for a step whose own file has none
-  assert.equal(runbookHasRecord(corpus, 'source-type-backfill'), false);
-  // an index list line is not a section heading, so it never stands in for a step's section
-  assert.equal(runbookHasRecord(assembleRunbookCorpus('- [8. `provenance-heal`](x.md) run #5\n', []), 'provenance-heal'), false);
-});
 
 // ── shared parsers ──────────────────────────────────────────────────────────────────────────────────
 
@@ -95,19 +64,11 @@ test('isDispatchable: true only when workflow_dispatch is in the on: block', () 
   assert.equal(isDispatchable(''), false);
 });
 
-test('hasRunEvidence: a tracked harness artifact or a runbook run record is enough (undated evidence); nothing else counts', () => {
-  assert.equal(hasRunEvidence({ harnessArtifact: true, runbookRecord: false }), true);
-  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: true }), true);
-  assert.equal(hasRunEvidence({ harnessArtifact: false, runbookRecord: false }), false);
-  assert.equal(hasRunEvidence({ ledgerEntry: true }), false, 'a ledger row is DATED evidence, judged by checkNeverRun, not by this predicate');
-});
-
 // ── CHECK 1: NEVER-RUN (lane GATE-3, 2026-10-08): the clock is the newest harness_runs row date ────────
 
 const NOW = new Date('2026-10-08T00:00:00Z');
-const NO_EVIDENCE = { harnessArtifact: false, runbookRecord: false };
 const at = (iso) => new Date(iso);
-const never = (over) => checkNeverRun({ targets: [{ id: 'workflow:x.yml', introducedAt: at('2026-01-01T00:00:00Z'), newestRunAt: null, evidence: NO_EVIDENCE, ...over }], now: NOW, windowDays: 30 });
+const never = (over) => checkNeverRun({ targets: [{ id: 'workflow:x.yml', introducedAt: at('2026-01-01T00:00:00Z'), newestRunAt: null, ...over }], now: NOW, windowDays: 30 });
 
 test('RED: a target whose newest ledger row is older than the window is overdue, and the reason says how old', () => {
   const r = never({ newestRunAt: at('2026-08-20T00:00:00Z') }); // 49 days
@@ -119,25 +80,14 @@ test('GREEN: a ledger row inside the window clears the target, however old the t
   assert.equal(never({ newestRunAt: at('2026-09-20T00:00:00Z') }).ok, true);
 });
 
-test('RED: no ledger row, no undated evidence, and the target older than the window - overdue', () => {
+test('RED: no ledger row and the target older than the window - overdue', () => {
   const r = never({});
   assert.equal(r.ok, false);
-  assert.match(r.failures[0].reason, /introduced 280 days ago, no harness_runs row/);
+  assert.match(r.failures[0].reason, /introduced 280 days ago and the harness ledger export holds no run of it/);
 });
 
 test('GREEN: no row, no evidence, but the target is younger than the window - it has had no chance to run yet', () => {
   assert.equal(never({ introducedAt: at('2026-09-20T00:00:00Z') }).ok, true);
-});
-
-test('GREEN: no ledger row but undated evidence (a tracked artifact, or a runbook run record) - it has run, the ledger cannot date it', () => {
-  for (const ev of [{ harnessArtifact: true }, { runbookRecord: true }]) {
-    assert.equal(never({ evidence: { ...NO_EVIDENCE, ...ev } }).ok, true, JSON.stringify(ev));
-  }
-});
-
-test('RED: undated evidence does not rescue a target whose newest dated row is outside the window', () => {
-  const r = never({ newestRunAt: at('2026-06-01T00:00:00Z'), evidence: { harnessArtifact: true, runbookRecord: true } });
-  assert.equal(r.ok, false);
 });
 
 test('GREEN: a target of unknown age with no evidence is not measurable, so it is not failed', () => {
@@ -145,7 +95,7 @@ test('GREEN: a target of unknown age with no evidence is not measurable, so it i
 });
 
 test('the window is a parameter: 49 days is overdue at 30 and clear at 90 (BUILD_MODE)', () => {
-  const target = { id: 'workflow:x.yml', introducedAt: at('2026-01-01T00:00:00Z'), newestRunAt: at('2026-08-20T00:00:00Z'), evidence: NO_EVIDENCE };
+  const target = { id: 'workflow:x.yml', introducedAt: at('2026-01-01T00:00:00Z'), newestRunAt: at('2026-08-20T00:00:00Z') };
   assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: NEVER_RUN_WINDOW_DAYS }).ok, false);
   assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: NEVER_RUN_WINDOW_DAYS_BUILD_MODE }).ok, true);
   assert.equal(NEVER_RUN_WINDOW_DAYS, 30);
@@ -302,7 +252,8 @@ test('RED: contract text missing the §0 marker fails', () => {
 });
 
 test('GREEN: contract text carrying the marker verbatim passes', () => {
-  const r = checkLaneContract(`# Lane common contract\n\n${LANE_CONTRACT_MARKER}\n\nbody`);
+  const six = ['Reachable', 'Run', 'Populated', 'Visible', 'Gated', 'Documented'].map((n, i) => `${i + 1}. **${n}**: x`).join('\n');
+  const r = checkLaneContract(`# Lane common contract\n\n${LANE_CONTRACT_MARKER}\n\n${six}\n`);
   assert.equal(r.ok, true);
 });
 
@@ -342,4 +293,102 @@ test('LIVE: every allowlist entry names a non-empty disposition and a numeric ex
     assert.ok(e.disposition && e.disposition.length > 10, `WRITER_READER_ALLOWLIST["${table}"] needs a real disposition`);
     assert.ok(Number.isInteger(e.expiryTrain), `WRITER_READER_ALLOWLIST["${table}"] needs a numeric expiryTrain`);
   }
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+const SIX_CONDITIONS = [
+  '1. **Reachable**: invoked by a runtime step.',
+  '2. **Run**: it has executed for real at least once.',
+  '3. **Populated**: the table has rows.',
+  '4. **Visible**: a surface renders it.',
+  '5. **Gated**: a fitness function fails CI.',
+  '6. **Documented**: runbook section.',
+].join('\n');
+
+test('closure B7-02: isDispatchable reads the on: key in scalar, list, flow-mapping and block form', () => {
+  assert.equal(isDispatchable('name: x\non: workflow_dispatch\njobs: {}\n'), true);
+  assert.equal(isDispatchable('on: [push, workflow_dispatch]\n'), true);
+  assert.equal(isDispatchable('on: { workflow_dispatch: {}, push: { branches: [master] } }\n'), true);
+  assert.equal(isDispatchable('on:\n  workflow_dispatch:\n'), true);
+  assert.equal(isDispatchable('on:\n  - workflow_dispatch\n'), true);
+  assert.equal(isDispatchable('on: push\n'), false);
+  assert.equal(isDispatchable('on: [push, pull_request]\n'), false);
+});
+
+test('closure B7-02: a column-0 comment inside the on: block does not end it (the old reader stopped there)', () => {
+  const yml = 'on:\n# the schedule is commented out\n  # schedule:\n  workflow_dispatch:\n';
+  assert.equal(isDispatchable(yml), true);
+});
+
+test('closure B7-02: workflow_dispatch named in a job step or a comment is not the trigger', () => {
+  const yml = 'on:\n  push:\njobs:\n  a:\n    steps:\n      - run: |\n          echo "workflow_dispatch:"\n# workflow_dispatch:\n';
+  assert.equal(isDispatchable(yml), false);
+});
+
+test('closure B7-03: evidence is the ledger export only; a runbook sentence or a tracked artifact does not clear an old target', () => {
+  // the targets carry no evidence field any more; a target with no ledger row and an old introduction fails
+  const r = checkNeverRun({ targets: [{ id: 'maintenance:x', introducedAt: new Date('2026-01-01T00:00:00Z'), newestRunAt: null, evidence: { harnessArtifact: true, runbookRecord: true } }], now: NOW, windowDays: 30 });
+  assert.equal(r.ok, false);
+  assert.equal(closureGate.hasRunEvidence, undefined);
+  assert.equal(closureGate.runbookHasRecord, undefined);
+});
+
+test('closure: a dormant exemption holds a target out of the window until its date, expires, and is audited for staleness', () => {
+  const target = { id: 'workflow:dormant.yml', introducedAt: new Date('2026-01-01T00:00:00Z'), newestRunAt: null };
+  const ex = { 'workflow:dormant.yml': { reason: 'dormant by ruling', until: '2026-11-30' } };
+  assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: 30, dormant: ex }).ok, true);
+  const expired = checkNeverRun({ targets: [target], now: new Date('2026-12-01T00:00:00Z'), windowDays: 30, dormant: ex });
+  assert.equal(expired.ok, false);
+  assert.match(expired.failures[0].reason, /EXPIRED on 2026-11-30/);
+  // a target that is no longer overdue (it ran) leaves a stale entry, which fails
+  const ran = checkNeverRun({ targets: [{ ...target, newestRunAt: new Date('2026-10-01T00:00:00Z') }], now: NOW, windowDays: 30, dormant: ex });
+  assert.equal(ran.ok, false);
+  assert.match(ran.allowlistIssues[0], /no longer overdue/);
+  // an entry with no reason or no valid date does not exempt
+  assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: 30, dormant: { 'workflow:dormant.yml': { until: '2026-11-30' } } }).ok, false);
+  assert.equal(checkNeverRun({ targets: [target], now: NOW, windowDays: 30, dormant: { 'workflow:dormant.yml': { reason: 'x', until: 'soon' } } }).ok, false);
+});
+
+test('closure: every shipped NEVER_RUN_DORMANT entry carries a reason and a valid until date', () => {
+  for (const [id, e] of Object.entries(closureGate.NEVER_RUN_DORMANT)) {
+    assert.ok(e.reason && e.reason.length > 20, id);
+    assert.ok(!Number.isNaN(Date.parse(e.until)), id);
+  }
+});
+
+test('closure B7-08: the lane-contract marker must be a heading line over the six conditions, not a quoted line over a gutted section', () => {
+  const good = `# Lane common contract\n\n${LANE_CONTRACT_MARKER}\n\nA component is done only when all six hold:\n\n${SIX_CONDITIONS}\n\n## Where you work\n`;
+  assert.equal(checkLaneContract(good).ok, true);
+  const quoted = `# Lane common contract\n\n> ${LANE_CONTRACT_MARKER}\n\n${SIX_CONDITIONS}\n`;
+  assert.equal(checkLaneContract(quoted).ok, false, 'a quoted marker is not the heading');
+  const gutted = `# Lane common contract\n\n${LANE_CONTRACT_MARKER}\n\nnothing here\n\n## Where you work\n${SIX_CONDITIONS}\n`;
+  assert.equal(checkLaneContract(gutted).ok, false, 'the six conditions must sit under the heading');
+  const partial = `# Lane common contract\n\n${LANE_CONTRACT_MARKER}\n\n1. **Reachable**: x\n2. **Run**: y\n`;
+  assert.equal(checkLaneContract(partial).ok, false);
+});
+
+// ---- coordinator addition (AUD-AT-5): the ledger export decides "has it ever run" when it exists ----
+
+test('NEVER-RUN: with the ledger export present, a brand-new workflow with no ledger run FAILS (no window, no train counter)', () => {
+  const fresh = { id: 'workflow:brand-new.yml', introducedAt: new Date('2026-10-08T00:00:00Z'), newestRunAt: null };
+  const r = checkNeverRun({ targets: [fresh], now: NOW, windowDays: 90, ledgerPresent: true });
+  assert.equal(r.ok, false);
+  assert.match(r.failures[0].reason, /holds no run of workflow:brand-new\.yml/);
+  // an unknown introduction date does not rescue it either
+  assert.equal(checkNeverRun({ targets: [{ ...fresh, introducedAt: null }], now: NOW, windowDays: 90, ledgerPresent: true }).ok, false);
+  // a run inside the window clears it
+  assert.equal(checkNeverRun({ targets: [{ ...fresh, newestRunAt: new Date('2026-10-01T00:00:00Z') }], now: NOW, windowDays: 90, ledgerPresent: true }).ok, true);
+});
+
+test('NEVER-RUN: with no ledger export there is nothing to ask, so a young target still rides the age window', () => {
+  const fresh = { id: 'workflow:brand-new.yml', introducedAt: new Date('2026-10-08T00:00:00Z'), newestRunAt: null };
+  assert.equal(checkNeverRun({ targets: [fresh], now: NOW, windowDays: 90, ledgerPresent: false }).ok, true);
+});
+
+test('NEVER-RUN: the verdict reads no train counter (the counter feeds STALE-NEXT and WRITER-READER only)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('./closure-gate.mjs', import.meta.url), 'utf8');
+  const fn = src.slice(src.indexOf('export function checkNeverRun'), src.indexOf('export const NEVER_RUN_DORMANT'));
+  assert.equal(/[Tt]rain/.test(fn.replace(/\/\/.*$/gm, '')), false);
 });

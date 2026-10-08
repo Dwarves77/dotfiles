@@ -93,17 +93,10 @@ const ROUTING_RE = /runCategoryRpc|get_\w+_items\b|fetch(Market|Research|Operati
 // leaving them out of PROOF_RE let their fixture content classify them as WRITES/MODEL production gaps.
 const PROOF_RE = /\.selftest\.mjs$|\.test\.(mjs|ts|tsx)$|\.npmtest\.mjs$|(\.golden|-golden)\.mjs$/;
 
-/**
- * Strip comments so a MENTION is never read as a CALL. Block comments go first; line comments only
- * when the `//` is NOT preceded by `:` — otherwise `https://api.anthropic.com` would be truncated at
- * the scheme and every URL in real code would vanish along with the signal we are looking for.
- * Exported for the test, which pins both halves.
- */
-export function stripComments(src) {
-  return String(src)
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
-}
+// Lane GATE-8: the lexer lives in source-lexer.mjs (no import cycle with execution-wiring.mjs) and is
+// re-exported here, the one site the fitness functions import it from.
+import { stripComments } from './source-lexer.mjs';
+export { CODE, LIT, COM, classifySource, viewSource, codeOnly, codeAndStrings, commentsOnly, stripComments, foldStringConcat } from './source-lexer.mjs';
 
 function walk(absDir, acc = []) {
   if (!existsSync(absDir)) return acc;

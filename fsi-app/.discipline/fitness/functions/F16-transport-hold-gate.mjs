@@ -8,14 +8,20 @@
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
+import { views, overrideLines, lineOfIndex } from '../lib/code-scan.mjs';
+import { foldStringConcat } from '../../governance/coverage-scan.mjs';
 
 export const PRIMITIVE = 'fsi-app/src/lib/sources/canonical-fetch.mjs';
 export const HOLD_GATE_CORE = 'fsi-app/src/lib/sources/fetch-hold.mjs';
-// The gate call the primitive MUST contain.
+// The gate call the primitive MUST contain. Lane GATE-8 (2026-10-08, AUD-AT-4 B1-37, B1-38): it must be CODE. A
+// comment that names the call, or a string literal that holds its text, is not the gate.
 export const GATE_CALL_RE = /assertFetchAllowed\s*\(/;
+export const hasGateCall = (content) => GATE_CALL_RE.test(views(content).code);
 // A raw Browserless content endpoint (the bypass shape) — the /content render URL or the base host.
-export const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.io|browserless[^\n"'`]{0,40}\/content|BROWSERLESS_BASE_URL/;
+// B1-33 and B1-35 (lane GATE-8): a host split over a concatenation is read folded, and the endpoint variables a
+// websocket or puppeteer connect reads (BROWSERLESS_WS, BROWSERLESS_ENDPOINT, a browserWSEndpoint option) are the
+// same bypass with no host literal in the file.
+export const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.io|browserless[^\n"'`]{0,40}\/content|BROWSERLESS_BASE_URL|BROWSERLESS_[A-Z_]*(?:WS|ENDPOINT|URL)\b|browserWSEndpoint/;
 
 // TRANSPORT MODULES (C5, 2026-07-11; widened 2026-08-11): every canonical fetch entry point beyond the
 // Browserless primitive — direct-HTTP, API, and admin-triggered manual fetch. Each MUST carry the
@@ -42,14 +48,16 @@ export const SANCTIONED = new Set([PRIMITIVE, HOLD_GATE_CORE]);
 
 /** Lines making a raw Browserless content fetch, skipping comments + overrides. @param {string} content */
 export function rawBrowserlessLines(content) {
-  const out = [];
-  const lines = content.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim();
-    if (t.startsWith('//') || t.startsWith('*')) continue;
-    if (RAW_BROWSERLESS_RE.test(lines[i]) && !isOverridden(lines[i], 'F16')) out.push(i + 1);
+  const overridden = overrideLines(content, 'F16');
+  const folded = foldStringConcat(views(content).text);
+  const out = new Set();
+  const re = new RegExp(RAW_BROWSERLESS_RE.source, 'g');
+  let m;
+  while ((m = re.exec(folded))) {
+    const ln = lineOfIndex(folded, m.index);
+    if (!overridden.has(ln)) out.add(ln);
   }
-  return out;
+  return [...out].sort((a, b) => a - b);
 }
 
 export const fitnessFunction = {
@@ -58,21 +66,23 @@ export const fitnessFunction = {
   description: 'The single fetch primitive carries the scrape-hold gate (assertFetchAllowed); no other file constructs a raw Browserless content fetch that would bypass it.',
   source: 'transport-unit dispatch (2026-07-06)',
 
-  // Production fetch path only (matches F15) — one-off scripts are not the production fetch path and are held
-  // by the runner-level BROWSERLESS_API_KEY deletion, not this gate.
+  // Matches F15's scope. Lane GATE-8 (AUD-AT-4 B1-36) widened it from the production fetch path alone: a raw
+  // Browserless call in a script bypasses the hold gate the same way a route does, and the runner-level
+  // BROWSERLESS_API_KEY deletion is not a substitute for a gate that fails the build.
   enumerate() {
-    return globFiles(['fsi-app/src/lib/**/*.{ts,mjs}', 'fsi-app/src/app/api/**/*.ts']);
+    return globFiles(['fsi-app/src/**/*.{ts,tsx,mjs,js,cjs,jsx}', 'fsi-app/scripts/**/*.{mjs,js,cjs,ts}'])
+      .filter((p) => !/\.(test|selftest|npmtest|golden)\.(ts|tsx|mjs|js|cjs)$/.test(p) && !p.includes('/__tests__/'));
   },
 
   check(filepath, content) {
     if (filepath === PRIMITIVE) {
       // the primitive MUST carry the hold gate
-      return GATE_CALL_RE.test(content) ? [] : [violation(1,
+      return hasGateCall(content) ? [] : [violation(1,
         `The canonical fetch primitive is missing the scrape-hold gate. Call assertFetchAllowed(url) from fetch-hold.mjs at the top of browserlessFetch so every fetch is gated by the scrape hold (item 6).`)];
     }
     // TRANSPORT-MODULE HOLD GATE (C5): every transport module MUST carry assertFetchAllowed.
     if (TRANSPORT_MODULES.includes(filepath)) {
-      const out = GATE_CALL_RE.test(content) ? [] : [violation(1,
+      const out = hasGateCall(content) ? [] : [violation(1,
         `Transport module ${filepath} is missing the scrape-hold gate. Call assertFetchAllowed(url) at the top of its fetch entry point so the hold gates every live transport (direct-HTTP / API / Browserless), not only Browserless (C5, invariant RD-15).`)];
       // a transport module may reference the raw endpoint only if sanctioned; canonical-pipeline routes render
       // through browserlessFetch, so it must not construct a raw Browserless fetch either.

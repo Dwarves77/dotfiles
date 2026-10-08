@@ -50,13 +50,23 @@
 
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
 import { gitChangedFiles, resolveRange } from '../lib/change-range.mjs';
+import { recordGateFirings } from '../lib/gate-firings.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // PURE CORE
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
-const CODE_RE = /^fsi-app\/(src|supabase\/migrations|scripts|\.discipline)\//;
-const CODE_EXCLUDE_RE = /^fsi-app\/scripts\/(harness-runs\/|turns\/LAST-TURN\.json$|turns\/record-briefs\/batches\/)/;
+// CODE is every path that changes what the system does or how it is gated. Lane GATE-8 (2026-10-08, AUD-AT-4 B7-10,
+// B7-11, B7-13) widened it from the four fsi-app directories: a workflow, package.json, an edge function, a skill and
+// the build config change behaviour exactly as a source file does, and a change to them with no memory entry was
+// invisible to the gate (a PR that edited only .github/workflows passed it).
+const CODE_RE = /^(?:fsi-app\/(?:src|supabase\/migrations|supabase\/functions|scripts|\.discipline|\.claude\/skills)\/|\.github\/|fsi-app\/(?:package(?:-lock)?\.json|tsconfig\.json|next\.config\.[a-z]+)$)/;
+// The exclusion is for lane-emitted DATA only: a run record, a batch file. It is by DIRECTORY AND EXTENSION, so an
+// executable file placed under scripts/harness-runs/ or record-briefs/batches/ (a .mjs, a .sh, a .yml) is code, which
+// is what the earlier directory-only exclusion let through (B7-10, B7-13).
+const CODE_EXCLUDE_DIR_RE = /^fsi-app\/scripts\/(harness-runs\/|turns\/LAST-TURN\.json$|turns\/record-briefs\/batches\/)/;
+const DATA_EXTENSION_RE = /\.(?:json|jsonl|ndjson|md|txt|csv)$/i;
+const CODE_EXCLUDE_RE = { test: (f) => CODE_EXCLUDE_DIR_RE.test(f) && DATA_EXTENSION_RE.test(f) };
 const MEMORY_RE = /^docs\/(ops\/session-log\.md|PROGRAM-BOARD\.md)$/;
 // D28 (defect-fix-plan-2026-09-12.md, W9 lane L18): a per-lane-per-day session-log file also satisfies
 // the vault requirement - see docs/ops/session-log.d/README.md for the entry format and the "one file per
@@ -140,6 +150,8 @@ if (isMainModule(import.meta.url)) {
   }
 
   const verdict = memoryGateVerdict(files, { range });
+  // every refusal is a logged firing (lane GATE-8, 2026-10-08); a pass clears the gate's records
+  recordGateFirings('memory-gate', verdict.ok ? [] : [{ message: verdict.message }]);
   if (verdict.ok) {
     console.log(verdict.message);
     process.exit(0);

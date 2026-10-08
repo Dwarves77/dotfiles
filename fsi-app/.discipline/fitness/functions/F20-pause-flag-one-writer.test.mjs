@@ -81,3 +81,50 @@ test('LIVE census: the whole src tree passes F20 (the RPC is the only writer)', 
   }
   assert.deepEqual(offenders, [], `direct pause-flag writers present: ${offenders.join(', ')}`);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('B2-18: nested braces before the key inside .update({...}) is still a direct write', () => {
+  const src = 'await sb.from("system_state").update({ meta: { by: "x" }, scrape_cadence: "off" }).eq("id", true);';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', src).length, 1);
+});
+
+test('B2-19: .upsert( is a direct write the same way .update( is', () => {
+  const src = 'await sb.from("system_state").upsert({ id: true, scrape_cadence: "off" });';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', src).length, 1);
+});
+
+test('B2-20: an update through a variable payload is a direct write', () => {
+  const src = 'const patch = { global_processing_paused: true };\nawait sb.from("system_state").update(patch).eq("id", true);';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', src).length, 1);
+});
+
+test('B2-21: a PostgREST PATCH through fetch with a JSON body is a direct write', () => {
+  const src = 'await fetch(`${base}/rest/v1/system_state?id=eq.true`, { method: "PATCH", body: JSON.stringify({ scrape_cadence: "off" }) });';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', src).length, 1);
+});
+
+test('B2-22: a column name built by concatenation is the same column', () => {
+  const src = 'await sb.from("system_state").update({ ["scrape_" + "cadence"]: "off" }).eq("id", true);';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/rogue.ts', src).length, 1);
+});
+
+test('B2-23: a direct write in scripts (.mjs, .cjs, .ts) is in scope', () => {
+  const g = fitnessFunction.enumerate.toString();
+  assert.match(g, /scripts/);
+  assert.match(g, /cjs/);
+});
+
+test('B2-24: a file whose path merely ends with the sanctioned suffix is not the sanctioned route', () => {
+  const src = 'await sb.from("system_state").update({ scrape_cadence: "off" });';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/evil/src/app/api/admin/sources/pause-global/route.ts', src).length, 1);
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/app/api/admin/sources/pause-global/route.ts', src), []);
+});
+
+test('a column mentioned in a comment, a forged marker in a string, and a type member are not writes or overrides', () => {
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', '// update.global_processing_paused = x\nconst a = 1;'), []);
+  const forged = 'const m = "// fitness-allow: F20 (forged)"; update.global_processing_paused = x;';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', forged).length, 1);
+  const types = 'const a = await sb.from("system_state").update(x);\ninterface S {\n  scrape_cadence: string;\n  global_processing_paused: boolean;\n}';
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', types), []);
+});

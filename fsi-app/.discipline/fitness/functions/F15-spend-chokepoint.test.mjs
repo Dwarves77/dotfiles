@@ -86,3 +86,43 @@ test('SANCTIONED STALENESS AUDIT: every sanctioned path still exists (a ghost en
     `SANCTIONED names paths that no longer exist — remove them, or the chokepoint carries exemptions for ghosts:\n  ${missing.join('\n  ')}`,
   );
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F15 B1-23: a host split across a concatenation is the same host', () => {
+  assert.equal(directApiCallLines('const u = "https://api." + "anthropic.com/v1/messages";').length, 1);
+});
+
+test('F15 B1-24: the header spelled X-API-Key in a file that names Anthropic is the same header', () => {
+  assert.equal(directApiCallLines('const h = { "X-API-Key": key, "anthropic-version": "2023-06-01" };').length, 1);
+  // the same header for another provider is not a model call
+  assert.equal(directApiCallLines('headers["X-Api-Key"] = REGULATIONS_GOV_API_KEY;').length, 0);
+  assert.equal(directApiCallLines('const h = { "X-Api-Key": k };').length, 0);
+});
+
+test('F15 B1-25: an SDK import through a split specifier in a dynamic import', () => {
+  assert.equal(directApiCallLines('const sdk = await import("@anthropic-ai/" + "sdk");').length, 1);
+});
+
+test('F15 B1-26: a continuation line that begins with an asterisk is code, not a skipped comment line', () => {
+  const src = 'const total = a\n  * b + fetch("https://api.anthropic.com/v1/messages");';
+  assert.equal(directApiCallLines(src).length, 1);
+  assert.equal(directApiCallLines('/**\n * api.anthropic.com is documented here\n */\nconst a = 1;').length, 0);
+});
+
+test('F15 B1-27 B1-28 B1-30: scripts of every extension and components are in scope', () => {
+  const body = fitnessFunction.enumerate.toString();
+  assert.match(body, /cjs/);
+  assert.match(body, /tsx/);
+  assert.match(body, /scripts/);
+});
+
+test('F15 B1-31: a base URL read from the ANTHROPIC_BASE_URL variable is a direct-call signal', () => {
+  assert.equal(directApiCallLines('const base = process.env.ANTHROPIC_BASE_URL;\nawait fetch(base + "/v1/messages");').length, 1);
+});
+
+test('F15: a URL earlier on the line does not hide the call, a forged marker in a string is not an override', () => {
+  assert.equal(directApiCallLines('const a = "https://x.test/a"; fetch("https://api.anthropic.com/v1/messages");').length, 1);
+  assert.equal(directApiCallLines('const m = "// fitness-allow: F15 (forged)"; fetch("https://api.anthropic.com/v1");').length, 1);
+  assert.equal(directApiCallLines('fetch("https://api.anthropic.com/v1"); // fitness-allow: F15 (migration pending)').length, 0);
+});

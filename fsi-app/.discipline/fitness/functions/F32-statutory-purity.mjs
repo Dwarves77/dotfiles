@@ -34,6 +34,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { violation, PASS } from '../lib/result.mjs';
+import { globFiles } from '../lib/glob.mjs';
+import { maskSql } from '../lib/sql-mask.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 
 const MIGRATION_286_PATH = 'fsi-app/supabase/migrations/286_statutory_and_estimates.sql';
@@ -86,7 +88,10 @@ export function assertStatutoryPurity(inputs, lookup) {
 /** Structural presence check over migration 286's raw text — pure, so the selftest can prove BOTH the
  *  pass and every regression shape against constructed migration text rather than only the live file.
  *  @param {string} content @returns {string[]} problems ([] = pass) */
-export function checkTriggerPresence(content) {
+export function checkTriggerPresence(rawContent) {
+  // Lane GATE-8 (2026-10-08, AUD-AT-4 B5-15): read on the comment-masked text. The required definition kept only in
+  // a trailing comment (`-- BEFORE INSERT OR UPDATE ON public.statutory_computations`) is not a definition.
+  const content = maskSql(rawContent);
   const problems = [];
   if (!/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.assert_statutory_purity\s*\(\s*\)/i.test(content)) {
     problems.push('assert_statutory_purity() function definition is missing from migration 286.');
@@ -104,6 +109,98 @@ export function checkTriggerPresence(content) {
     problems.push(
       'statutory_purity_trg is not wired as a BEFORE INSERT OR UPDATE trigger on public.statutory_computations.',
     );
+  }
+  return problems;
+}
+
+const FN = '(?:"?public"?\\s*\\.\\s*)?"?assert_statutory_purity"?';
+const TBL = '(?:"?public"?\\s*\\.\\s*)?"?statutory_computations"?';
+
+/** Dollar-quoted body of every `CREATE [OR REPLACE] FUNCTION assert_statutory_purity()` in masked `text`, with its index. */
+function purityFunctionBodies(text) {
+  const out = [];
+  const re = new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\s+${FN}\\s*\\(\\s*\\)`, 'gi');
+  let m;
+  while ((m = re.exec(text))) {
+    const tagRe = /\$[A-Za-z_0-9]*\$/g;
+    tagRe.lastIndex = m.index + m[0].length;
+    const tag = tagRe.exec(text);
+    if (!tag) { out.push({ index: m.index, body: '' }); continue; }
+    const end = text.indexOf(tag[0], tag.index + tag[0].length);
+    out.push({ index: m.index, body: end === -1 ? '' : text.slice(tag.index + tag[0].length, end) });
+  }
+  return out;
+}
+
+/** The assertions a working purity function carries. The function body's content is the invariant, not its
+ *  existence (AUD-AT-4 B5-16): a later `CREATE OR REPLACE` with a no-op body still "defines" the function. The
+ *  body must raise, must read both non-contractable sources, and must run both EXISTS queries over NEW.inputs. */
+export function purityBodyProblems(body) {
+  const problems = [];
+  const b = String(body);
+  if (!/\bRAISE\s+EXCEPTION\b/i.test(b)) problems.push('it never RAISEs EXCEPTION');
+  if (!/\bestimated_values\b/i.test(b)) problems.push('it does not read estimated_values');
+  if (!/\bderived_values\b/i.test(b)) problems.push('it does not read derived_values');
+  if (!/\bNEW\s*\.\s*inputs\b/i.test(b)) problems.push('it does not inspect NEW.inputs');
+  if ((b.match(/\bEXISTS\s*\(/gi) || []).length < 2) problems.push('it has fewer than the two EXISTS assertions');
+  return problems;
+}
+
+/**
+ * Corpus replay (AUD-AT-4 B5-15, B5-16): the CURRENT state of the purity function and the purity trigger after every
+ * migration, in order. `files`: [{ path, text }]. Returns problems ([] = pass).
+ *   - the highest-numbered definition of assert_statutory_purity() must still carry its assertions;
+ *   - a later DROP FUNCTION with no later CREATE removes it;
+ *   - the trigger must end up created BEFORE INSERT OR UPDATE ON statutory_computations, executing the function,
+ *     and not dropped or disabled (ALTER TABLE ... DISABLE TRIGGER statutory_purity_trg | ALL | USER) by a later one.
+ */
+export function checkPurityCorpus(files) {
+  const idOf = (p) => { const m = /(?:^|\/)(\d+)_/.exec(String(p).replace(/\\/g, '/')); return m ? Number(m[1]) : -1; };
+  const ordered = [...files].sort((a, b) => idOf(a.path) - idOf(b.path) || (a.path < b.path ? -1 : 1));
+  let fn = null; // { path, body }
+  let trig = null; // { timing, events, executes, enabled }
+  for (const f of ordered) {
+    const text = maskSql(f.text);
+    const events = [];
+    for (const b of purityFunctionBodies(text)) events.push({ index: b.index, kind: 'fn', body: b.body });
+    let m;
+    const dropFn = new RegExp(`DROP\\s+FUNCTION\\s+(?:IF\\s+EXISTS\\s+)?${FN}`, 'gi');
+    while ((m = dropFn.exec(text))) events.push({ index: m.index, kind: 'dropfn' });
+    const create = new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?(?:CONSTRAINT\\s+)?TRIGGER\\s+statutory_purity_trg\\s+(BEFORE|AFTER|INSTEAD\\s+OF)\\s+([\\s\\S]*?)\\s+ON\\s+${TBL}([\\s\\S]*?);`, 'gi');
+    while ((m = create.exec(text))) {
+      events.push({
+        index: m.index,
+        kind: 'trig',
+        timing: m[1].toUpperCase().replace(/\s+/g, ' '),
+        evs: m[2].toUpperCase(),
+        executes: new RegExp(`EXECUTE\\s+(?:FUNCTION|PROCEDURE)\\s+${FN}`, 'i').test(m[3]),
+      });
+    }
+    const dropTrig = new RegExp(`DROP\\s+TRIGGER\\s+(?:IF\\s+EXISTS\\s+)?statutory_purity_trg\\s+ON`, 'gi');
+    while ((m = dropTrig.exec(text))) events.push({ index: m.index, kind: 'droptrig' });
+    const alter = new RegExp(`ALTER\\s+TABLE\\s+(?:ONLY\\s+)?(?:IF\\s+EXISTS\\s+)?${TBL}\\s+(DISABLE|ENABLE)\\s+(?:ALWAYS\\s+|REPLICA\\s+)?TRIGGER\\s+("?statutory_purity_trg"?|ALL|USER)`, 'gi');
+    while ((m = alter.exec(text))) events.push({ index: m.index, kind: m[1].toUpperCase() === 'DISABLE' ? 'disable' : 'enable' });
+    const dropTable = new RegExp(`DROP\\s+TABLE\\s+(?:IF\\s+EXISTS\\s+)?[^;]*${TBL}`, 'gi');
+    while ((m = dropTable.exec(text))) events.push({ index: m.index, kind: 'droptrig' });
+    events.sort((a, b) => a.index - b.index);
+    for (const e of events) {
+      if (e.kind === 'fn') fn = { path: f.path, body: e.body };
+      else if (e.kind === 'dropfn') fn = null;
+      else if (e.kind === 'trig') trig = { timing: e.timing, evs: e.evs, executes: e.executes, enabled: true };
+      else if (e.kind === 'droptrig') trig = null;
+      else if (e.kind === 'disable' && trig) trig.enabled = false;
+      else if (e.kind === 'enable' && trig) trig.enabled = true;
+    }
+  }
+  const problems = [];
+  if (!fn) problems.push('assert_statutory_purity() is not defined after the last migration (it was dropped, or never created).');
+  else for (const p of purityBodyProblems(fn.body)) problems.push(`assert_statutory_purity() as last defined in ${fn.path} is a weakened body: ${p}.`);
+  if (!trig) problems.push('statutory_purity_trg does not exist after the last migration.');
+  else {
+    if (trig.timing !== 'BEFORE') problems.push(`statutory_purity_trg is ${trig.timing}, not BEFORE, after the last migration.`);
+    if (!/\bINSERT\b/.test(trig.evs) || !/\bUPDATE\b/.test(trig.evs)) problems.push('statutory_purity_trg does not fire on both INSERT and UPDATE after the last migration.');
+    if (!trig.executes) problems.push('statutory_purity_trg does not EXECUTE assert_statutory_purity() after the last migration.');
+    if (!trig.enabled) problems.push('statutory_purity_trg is DISABLED by a later migration.');
   }
   return problems;
 }
@@ -134,6 +231,10 @@ export const fitnessFunction = {
       return [violation(1, `Cannot read ${MIGRATION_286_PATH}: ${err.message}`)];
     }
     const problems = checkTriggerPresence(content);
+    // The CURRENT state, after every later migration (lane GATE-8, AUD-AT-4 B5-16): a later migration that replaces
+    // the function with a no-op, drops it, or drops, retimes or disables the trigger is as bad as editing 286.
+    const corpus = globFiles(['fsi-app/supabase/migrations/*.sql']).map((path) => ({ path, text: readFileSync(resolve(root, path), 'utf8') }));
+    problems.push(...checkPurityCorpus(corpus));
     if (problems.length === 0) return PASS;
     return problems.map((msg) => violation(1, msg));
   },

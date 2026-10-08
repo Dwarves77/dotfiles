@@ -64,3 +64,73 @@ test('F13: isMintBypass helper is direct-usable and metadata present', () => {
   assert.equal(isMintBypass(`x${FROM}${INSERT}`).length, 1);
   assert.equal(fitnessFunction.id, 'F13');
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F13 B1-13: a URL earlier on the line does not hide the insert', () => {
+  const src = `const u = "https://example.com/x"; await sb${FROM}${INSERT};`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F13 B1-14: .upsert( is a mint the same way .insert( is', () => {
+  const src = `await sb${FROM}.upsert(row, { onConflict: "id" });`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F13 B1-15: the table named through a constant is still intelligence_items', () => {
+  const src = `const T = "intelligence_items";\nawait sb.from(T).insert(row);`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F13 B1-16: an insert more than three lines down the chain is still the same call', () => {
+  const src = `await sb${FROM}\n  .select("id")\n  .eq("a", 1)\n  .eq("b", 2)\n  .insert(row);`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F13 B1-17: a template literal table name is read', () => {
+  const src = 'await sb.from(`intelligence_items`).insert(row);';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F13 B1-18 B1-19: scripts and non-.ts files are in scope', () => {
+  const files = fitnessFunction.enumerate();
+  assert.ok(files.some((f) => f.startsWith('fsi-app/scripts/')), 'scripts are enumerated');
+  const globbed = fitnessFunction.enumerate.toString();
+  assert.match(globbed, /cjs/);
+  assert.match(globbed, /\bjs\b/);
+});
+
+test('F13 B1-21: an override marker inside a string literal is not an override', () => {
+  const src = `const note = "// fitness-allow: F13 (forged)"; await sb${FROM}${INSERT};`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F13: a real trailing comment marker still overrides a chain that wraps', () => {
+  const src = `await sb${FROM}\n  .insert(row); // fitness-allow: F13 (one-shot repair)\n`;
+  // the marker is on the insert line, not the from line: the override belongs to the from line only
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+  const onFrom = `await sb${FROM} // fitness-allow: F13 (one-shot repair)\n  .insert(row);`;
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', onFrom), []);
+});
+
+test('F13: raw SQL INSERT INTO intelligence_items in a string is a mint', () => {
+  const src = 'await client.query("INSERT INTO intelligence_items (id) VALUES ($1)", [id]);';
+  assert.equal(fitnessFunction.check('fsi-app/scripts/x.mjs', src).length, 1);
+});
+
+test('F13: a mention in a comment is not a mint', () => {
+  const src = `// we never do sb${FROM}${INSERT} here\n/* sb${FROM}.upsert(x) */\nconst a = 1;`;
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', src), []);
+});
+
+test('F13: every sanctioned adversarial script still exists and still carries an insert (a stale entry is red)', async () => {
+  const { SANCTIONED_ADVERSARIAL_SCRIPTS } = await import('./F13-single-mint-chokepoint.mjs');
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { getRepoRoot } = await import('../../lib/context.mjs');
+  for (const [path, reason] of SANCTIONED_ADVERSARIAL_SCRIPTS) {
+    assert.ok(reason.length > 10, `${path} carries a reason`);
+    assert.ok(existsSync(join(getRepoRoot(), path)), `${path} exists`);
+    assert.ok(isMintBypass(readFileSync(join(getRepoRoot(), path), 'utf8')).length > 0, `${path} still has an insert, or its entry is stale`);
+  }
+});

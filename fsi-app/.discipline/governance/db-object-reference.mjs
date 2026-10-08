@@ -28,6 +28,9 @@
 // PURE CORE + INJECTED SCANS: every function below takes text or scanned maps; the fitness function F47
 // does the file reads. Negative-tested with synthetic schemas (a table nothing names must be reported).
 import { scanCode, scanSql } from './producer-consumer-orphan.mjs';
+import { codeAndStrings } from './source-lexer.mjs';
+import { maskSql } from '../fitness/lib/sql-mask.mjs';
+import { workflowInvocationText } from '../fitness/lib/yml-read.mjs';
 
 const ID = String.raw`(?:public\.)?"?([a-z_][a-z0-9_]*)"?`;
 const STMT_RE = new RegExp([
@@ -40,9 +43,10 @@ const STMT_RE = new RegExp([
   String.raw`(?<dropFunction>drop\s+function\s+(?:if\s+exists\s+)?${ID})`,
 ].join('|'), 'gi');
 
-/** Strip SQL comments so a commented-out statement never counts. */
+/** Strip SQL comments so a commented-out statement never counts. Lane GATE-8 (2026-10-08, AUD-AT-4): read through
+ *  the one SQL masker, so a `--` inside a string literal is not a comment (the old regex cut the line there). */
 export function stripSqlComments(sql) {
-  return String(sql).replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  return maskSql(sql);
 }
 
 /** Replay CREATE/DROP/RENAME in order over [{file, content}] (sorted by the caller). Returns
@@ -70,9 +74,11 @@ export function replaySchema(migrationTexts) {
   return { tables, views, functions };
 }
 
-/** Non-comment lines of a source file (line comments and block comments removed). */
-export function codeWithoutComments(content) {
-  return String(content).replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*)/.test(l)).join('\n');
+/** Non-comment text of a source file. Lane GATE-8 (2026-10-08, AUD-AT-4 B6-13, B6-14): the file is lexed, so a
+ *  trailing comment, a JSDoc continuation and a block comment are all comments and a starred line of real code is
+ *  not; a workflow file's YAML comments (hash comments, trailing or whole-line) and echo lines are dropped. */
+export function codeWithoutComments(content, file = '') {
+  return /\.ya?ml$/i.test(file) ? workflowInvocationText(content) : codeAndStrings(content);
 }
 
 /** scripts/lib/db.mjs read helpers take the table name as a string-literal first argument (readAll,
@@ -104,7 +110,7 @@ export function tableSqlReferences(name, sqlText) {
 export function buildReferenceReport({ schema, codeFiles, migrationTexts, allowlist = { tables: {}, functions: {} } }) {
   const code = scanCode(codeFiles);
   const sql = scanSql(migrationTexts);
-  const codeText = codeFiles.map((f) => codeWithoutComments(f.content)).join('\n');
+  const codeText = codeFiles.map((f) => codeWithoutComments(f.content, f.file)).join('\n');
   const helperReads = new Map();
   for (const m of codeText.matchAll(READ_HELPER_RE)) helperReads.set(m[1], (helperReads.get(m[1]) || 0) + 1);
   const sqlText = migrationTexts.map((f) => stripSqlComments(f.content)).join('\n');
