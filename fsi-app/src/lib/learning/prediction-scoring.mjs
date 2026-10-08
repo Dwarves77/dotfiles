@@ -50,10 +50,24 @@
 // questions step uses, and the next run replays them. State-based work (repair, deadline) needs no replay:
 // it is retried because the signpost is still unscored.
 //
+// LIFECYCLE RETRY (migration 374). fireSignpost makes three writes: fired_at, the outbox row, then the assessment's
+// lifecycle_state. A failure at the third leaves fired_at set and the lifecycle unmoved, and a confirms transition
+// is not idempotent, so a repair that cannot tell whether the lifecycle moved would either skip it or advance it
+// twice. signposts.lifecycle_applied_at is that record. It is stamped in the write right after a firing's lifecycle
+// update (markLifecycleApplied; the lifecycle row and the signpost row are two tables, so "same write" is the
+// immediately following guarded write, never a transaction). The repair pass (sweep) reads fired signposts whose
+// lifecycle_applied_at IS NULL, applies nextLifecycleState to the assessment's current state, and stamps. Both the
+// assessment update (only while still in the state read) and the stamp (only while still NULL) are conditional, so
+// a rerun never applies one twice; a repair that fails leaves the stamp NULL and is retried. The lifecycle write
+// always precedes the stamp: stamping first would lose a transition on a crash, writing second can only repeat one,
+// and the window between the two writes is one round trip.
+// Until migration 374 is applied the column is absent: the firing still moves the lifecycle, the stamp and the
+// repair are skipped and counted (lifecycle_skipped_column_absent), exactly as migration 353's columns are tolerated.
+//
 // PLAIN ESM. The one .ts import is the existing signpost watcher, the same Node type-stripping import the
 // drain runner already makes of drain.ts.
 
-import { evaluateSignpostPredicate, fireSignpost, METHOD_ID, METHOD_VERSION } from "../propagation/methods/signpost-watch.ts";
+import { evaluateSignpostPredicate, fireSignpost, nextLifecycleState, METHOD_ID, METHOD_VERSION } from "../propagation/methods/signpost-watch.ts";
 import { fetchAllRows, fetchAllByIdChunks } from "../db/paginate.mjs";
 
 export const CITE = Object.freeze({
@@ -82,6 +96,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const SIGNPOST_BASE_COLUMNS = "entity_id,assessment_id,watches,predicate,direction,fired_at";
 const SIGNPOST_SCORED_COLUMNS = `${SIGNPOST_BASE_COLUMNS},outcome`;
+const SIGNPOST_LIFECYCLE_COLUMNS = `${SIGNPOST_BASE_COLUMNS},lifecycle_applied_at`;
 
 // ── Pure rules ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -201,6 +216,7 @@ function emptyCounts() {
     scored_by_event: 0, scored_by_repair: 0, scored_by_deadline: 0,
     ledger_rows_planned: 0, ledger_rows_written: 0, ledger_rows_existing: 0, scored_without_sources: 0,
     scoring_skipped_columns_absent: 0, errors: 0,
+    lifecycle_stamped: 0, lifecycle_repair_planned: 0, lifecycle_repaired: 0, lifecycle_repair_no_assessment: 0, lifecycle_skipped_column_absent: 0,
   };
 }
 
@@ -211,6 +227,10 @@ function emptyCounts() {
  *   readFiredUnscored: () => Promise<Array<object>>,
  *   readDeadlineCandidates: () => Promise<Array<object>>,
  *   columnsAbsent: () => boolean,
+ *   lifecycleAbsent: () => boolean,
+ *   markLifecycleApplied: (signpostEntityId: string, now: Date) => Promise<{skipped: boolean}>,
+ *   readLifecycleUnapplied: () => Promise<Array<object>>,
+ *   applyLifecycle: (args: {signpost: object, from: string, to: string, now: Date}) => Promise<unknown>,
  *   readAssessments: (ids: string[]) => Promise<Map<string, {item_id: string|null, lifecycle_state: string}>>,
  *   readGroundingSources: (itemIds: string[]) => Promise<Map<string, string[]>>,
  *   readLedgerSources: (signpostEntityId: string) => Promise<string[]>,
@@ -267,6 +287,20 @@ export async function runSignpostStep({ mode, events, now = new Date(), sweep = 
       }
     }
     firedNow.add(f.signpost.entity_id);
+    if (apply) {
+      // fireSignpost has just moved the assessment's lifecycle: record that, so the repair never moves it again.
+      if (deps.lifecycleAbsent()) counts.lifecycle_skipped_column_absent += 1;
+      else {
+        try {
+          const st = await deps.markLifecycleApplied(f.signpost.entity_id, now);
+          if (st?.skipped) counts.lifecycle_skipped_column_absent += 1;
+          else counts.lifecycle_stamped += 1;
+        } catch (err) {
+          counts.errors += 1;
+          errors.push(`stamp ${f.signpost.entity_id}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    }
     if (outcome) toScore.push({ sp: f.signpost, outcome, via: "event", eventId: f.event.eventId });
   }
 
@@ -277,6 +311,31 @@ export async function runSignpostStep({ mode, events, now = new Date(), sweep = 
       if (firedNow.has(sp.entity_id)) continue;
       const outcome = outcomeForDirection(sp.direction);
       if (outcome) toScore.push({ sp, outcome, via: "repair", eventId: null });
+    }
+    // ---- 2b. lifecycle repair: fired earlier, the assessment's lifecycle never recorded as applied (migration 374)
+    const unapplied = (await deps.readLifecycleUnapplied()).filter((sp) => !firedNow.has(sp.entity_id));
+    if (deps.lifecycleAbsent()) {
+      counts.lifecycle_skipped_column_absent += 1;
+    } else if (unapplied.length) {
+      const aMap = await deps.readAssessments([...new Set(unapplied.map((sp) => sp.assessment_id))]);
+      const current = new Map([...aMap].map(([id, a]) => [id, a.lifecycle_state]));
+      for (const sp of unapplied) {
+        const from = current.get(sp.assessment_id);
+        if (from === undefined) { counts.lifecycle_repair_no_assessment += 1; continue; }
+        const to = nextLifecycleState(from, sp.direction);
+        counts.lifecycle_repair_planned += 1;
+        if (apply) {
+          try {
+            await deps.applyLifecycle({ signpost: sp, from, to, now });
+            counts.lifecycle_repaired += 1;
+          } catch (err) {
+            counts.errors += 1;
+            errors.push(`lifecycle ${sp.entity_id}: ${err instanceof Error ? err.message : String(err)}`);
+            continue;
+          }
+        }
+        current.set(sp.assessment_id, to); // the next signpost on this assessment starts from where this one left it
+      }
     }
     // ---- 3. deadline: an expectation date passed with no firing
     const candidates = await deps.readDeadlineCandidates();
@@ -355,6 +414,7 @@ export async function hydrateEventRows(sb, events) {
 // ── Real wiring (reads through sb, writes through db.mjs's guarded helpers) ───────────────────────────
 
 const MISSING_COLUMN_RE = /outcome/i; // PostgREST names the missing column: column signposts.outcome does not exist
+const MISSING_LIFECYCLE_COLUMN_RE = /lifecycle_applied_at/i; // migration 374's column, a separate fact from 353's
 
 /**
  * Build the deps runSignpostStep needs, over a Supabase client (reads and fireSignpost's own writes) and the
@@ -364,7 +424,11 @@ const MISSING_COLUMN_RE = /outcome/i; // PostgREST names the missing column: col
  * @param {{readAll: Function, guardedInsertMany: Function, guardedUpdateByIds: Function}} db
  */
 export function buildSignpostStepDeps(sb, db) {
-  const state = { columnsAbsent: false };
+  const state = { columnsAbsent: false, lifecycleAbsent: false };
+
+  /** Stamp signposts.lifecycle_applied_at where it is still NULL (guarded write, rule 015). */
+  const stampLifecycle = (entityId, now) =>
+    db.guardedUpdateByIds("signposts", [entityId], { lifecycle_applied_at: now.toISOString() }, { cite: CITE, select: "entity_id", idColumn: "entity_id", applyMatch: (q) => q.is("lifecycle_applied_at", null) });
 
   /** Run a signposts read with the outcome column; on a missing-column error retry on the base columns. */
   async function readSignposts(build) {
@@ -382,6 +446,7 @@ export function buildSignpostStepDeps(sb, db) {
 
   return {
     columnsAbsent: () => state.columnsAbsent,
+    lifecycleAbsent: () => state.lifecycleAbsent,
 
     readSignpostsWatching: (entityIds) =>
       readSignposts((cols, withOutcome) =>
@@ -414,6 +479,38 @@ export function buildSignpostStepDeps(sb, db) {
         if (MISSING_COLUMN_RE.test(err instanceof Error ? err.message : String(err))) { state.columnsAbsent = true; return []; }
         throw err;
       }
+    },
+
+    readLifecycleUnapplied: async () => {
+      if (state.lifecycleAbsent) return [];
+      try {
+        return await fetchAllRows((a, b) =>
+          sb.from("signposts").select(SIGNPOST_LIFECYCLE_COLUMNS).not("fired_at", "is", null).is("lifecycle_applied_at", null).order("entity_id").range(a, b), { cap: STATE_READ_CAP });
+      } catch (err) {
+        if (MISSING_LIFECYCLE_COLUMN_RE.test(err instanceof Error ? err.message : String(err))) { state.lifecycleAbsent = true; return []; }
+        throw err;
+      }
+    },
+
+    markLifecycleApplied: async (entityId, now) => {
+      try {
+        await stampLifecycle(entityId, now);
+        return { skipped: false };
+      } catch (err) {
+        if (MISSING_LIFECYCLE_COLUMN_RE.test(err instanceof Error ? err.message : String(err))) { state.lifecycleAbsent = true; return { skipped: true }; }
+        throw err;
+      }
+    },
+
+    applyLifecycle: async ({ signpost, from, to, now }) => {
+      if (to !== from) {
+        const r = await db.guardedUpdateByIds("research_assessments", [signpost.assessment_id], { lifecycle_state: to }, {
+          cite: CITE, select: "id", idColumn: "id", applyMatch: (q) => q.eq("lifecycle_state", from),
+        });
+        // The assessment is no longer in the state the transition was computed from: leave the stamp NULL and let the next run redo it.
+        if (!r || r.updated < 1) throw new Error(`assessment ${signpost.assessment_id} lifecycle moved from ${from} since it was read; retried next run`);
+      }
+      await stampLifecycle(signpost.entity_id, now);
     },
 
     readAssessments: async (ids) => {
