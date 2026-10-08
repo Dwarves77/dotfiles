@@ -22,9 +22,10 @@ const RAW = readFileSync(join(HERE, NAME), "utf8");
 const strip = (sql) => sql.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const SQL = strip(RAW);
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and APPLIED with the ledger version", () => {
   assert.match(RAW, /^-- subject: Migration 375 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008131209, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
 });
 
 test("one transaction, BEGIN first and COMMIT last", () => {
