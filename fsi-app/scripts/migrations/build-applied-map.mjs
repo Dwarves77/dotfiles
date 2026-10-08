@@ -93,12 +93,16 @@ export const ROW_RULINGS = {
   '20260912213045': { paired: '317_provisional_sources_status_promoted.sql' },
 };
 
-// Coordinator rulings for the repo files that had no ledger row (set b), by file. Files that are the same
+// Coordinator rulings for the repo files that had no ledger row (set b), by file. Ruling 2026-10-08 (lane MIG-CI,
+// MIG-HIST-2's second ruled residue): the three duplicate-prefix files are outside-ledger, not skipped: the replay stopped at
+// 035 because intelligence_items.full_brief is created only in 007_full_brief, so the oracle proved that file ran in
+// production without a ledger row; the two siblings are classed by the same shape (their objects are not yet verified).
+// No file is class duplicate-prefix any more; the class stays in the vocabulary. Files that are the same
 // migration as a row listed in ROW_RULINGS (paired, or superseded_by) are accounted for there, not here.
 export const FILE_RULINGS = {
-  '006_rls_multi_tenant.sql': { class: 'duplicate-prefix', evidence: 'forensics E3: second file on version 006; the ledger holds 006 multi_tenant only; F51 allowlist 2026-09-19 (renumbering refused); [HYPOTHESIS] applied by hand in April' },
-  '007_full_brief.sql': { class: 'duplicate-prefix', evidence: 'forensics E3: second file on version 007; the ledger holds 007 community_layer only; F51 allowlist 2026-09-19' },
-  '007_rls_community.sql': { class: 'duplicate-prefix', evidence: 'forensics E3: third file on version 007; the ledger holds 007 community_layer only; F51 allowlist 2026-09-19' },
+  '006_rls_multi_tenant.sql': { class: 'outside-ledger', evidence: 'replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape' },
+  '007_full_brief.sql': { class: 'outside-ledger', evidence: 'replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape' },
+  '007_rls_community.sql': { class: 'outside-ledger', evidence: 'replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape' },
   '202_standard_own_body_floor.sql': { class: 'outside-ledger', evidence: 'docs/ops/session-log.md line 2415: applied live via the direct postgres pooler; no ledger row [HYPOTHESIS until objects verified]' },
   '205_funded_pass_runlock.sql': { class: 'outside-ledger', evidence: 'docs/PROGRAM-BOARD.md line 507: proven live; no ledger row [HYPOTHESIS until objects verified]' },
   '206_mint_gate_hold_marker.sql': { class: 'outside-ledger', evidence: 'hardening-resume-2026-07-16.md line 19: flip live; no ledger row [HYPOTHESIS until objects verified]' },

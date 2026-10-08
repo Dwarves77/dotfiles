@@ -164,8 +164,10 @@ test("every repo .sql file is named by an entry (ledger row, superseder or keyed
   assert.deepEqual(neverInMap, headerNeverApplied, "the map's never-applied entries equal the set the files' own headers declare");
   assert.ok(headerNeverApplied.includes("299_item_type_required_slots_wave3.sql"), "the set is not vacuous: 299 carries a first-line NEVER APPLIED status");
   const classCount = (c) => [...without.values()].filter((w) => w.class === c).length;
-  assert.equal(classCount("duplicate-prefix"), 3);
-  assert.equal(classCount("outside-ledger"), 7);
+  assert.equal(classCount("duplicate-prefix"), 0, "ruling 2026-10-08: no file is skipped as a duplicate prefix any more");
+  assert.equal(classCount("outside-ledger"), 10);
+  for (const f of ["006_rls_multi_tenant.sql", "007_full_brief.sql", "007_rls_community.sql"]) assert.equal(without.get(f).class, "outside-ledger", f);
+  assert.match(without.get("007_full_brief.sql").note, /^replay run 37779804328: 035 depends on intelligence_items\.full_brief, created only in 007_full_brief; siblings by the same shape$/);
   assert.equal(without.size, 10 + neverInMap.length);
 });
 

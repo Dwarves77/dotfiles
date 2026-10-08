@@ -1,4 +1,4 @@
-/* status: NO LEDGER ROW, duplicate prefix, unverified (as of 2026-10-07; see APPLIED-MAP.json) */
+/* status: APPLIED OUTSIDE LEDGER (no schema_migrations row; evidence: replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape) [HYPOTHESIS until objects verified] (as of 2026-10-08; see APPLIED-MAP.json) */
 -- subject: Add full_brief column for skill-standard intelligence briefs
 -- Add full_brief column for skill-standard intelligence briefs
 -- This is the primary content field — rich markdown regulatory playbooks
