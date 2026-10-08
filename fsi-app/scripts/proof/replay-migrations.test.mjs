@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   parseInventoryOrder, prefixReport, planReplay, parsePsqlOutput,
-  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, LEDGER_TABLE_SQL, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP, DEFAULT_APPLIED,
+  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, LEDGER_TABLE_SQL, needsAutocommit, runFileWithPsql, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP, DEFAULT_APPLIED,
 } from "./replay-migrations.mjs";
 
 const INVENTORY = [
@@ -109,6 +109,25 @@ test("ATTACK: if the ledger table cannot be made, nothing is replayed and the fa
   assert.equal(report.applied, 0);
   assert.equal(report.stopped_at, "(stack prelude)");
   assert.match(report.files[0].error.message, /permission denied/);
+});
+
+const NL = String.fromCharCode(10);
+
+test("needsAutocommit: CONCURRENTLY index statements need autocommit, a comment or a plain index does not", () => {
+  for (const sql of ["CREATE INDEX CONCURRENTLY IF NOT EXISTS i ON t (a);", "create unique index concurrently i on t(a);", "DROP INDEX CONCURRENTLY i;", "REINDEX INDEX CONCURRENTLY i;", "REINDEX (VERBOSE) TABLE CONCURRENTLY t;"]) assert.equal(needsAutocommit(sql), true, sql);
+  for (const sql of ["-- CREATE INDEX CONCURRENTLY x" + NL + "SELECT 1;", "CREATE INDEX i ON t (a);", "SELECT 1;", ""]) assert.equal(needsAutocommit(sql), false, sql);
+});
+
+test("runFileWithPsql runs a CONCURRENTLY file without --single-transaction (260 was applied by direct psql for that reason) and every other file inside one", () => {
+  const seen = [];
+  const spawn = (_bin, args) => { seen.push(args); return { status: 0, stdout: "", stderr: "" }; };
+  runFileWithPsql({ psql: "psql", dbUrl: URL_LOCAL, file: "/x/a.sql", text: "CREATE INDEX CONCURRENTLY i ON t (a);", spawn });
+  runFileWithPsql({ psql: "psql", dbUrl: URL_LOCAL, file: "/x/b.sql", text: "CREATE TABLE t (a int);", spawn });
+  runFileWithPsql({ psql: "psql", dbUrl: URL_LOCAL, file: "/x/c.sql", spawn });
+  assert.equal(seen[0].includes("--single-transaction"), false);
+  assert.ok(seen[0].includes("ON_ERROR_STOP=1"), "an autocommit file still stops at its first error");
+  assert.equal(seen[1].includes("--single-transaction"), true);
+  assert.equal(seen[2].includes("--single-transaction"), true, "without the source text the safe default is one transaction");
 });
 
 test("ORDER: planReplay replays in ledger version order when file numbers and ledger versions disagree", () => {

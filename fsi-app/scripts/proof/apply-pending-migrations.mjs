@@ -87,7 +87,7 @@ export function applyPending({ selection, migrationsDir, dbUrl, psql = "psql", s
     for (const item of selection.apply) {
       const path = join(migrationsDir, item.file);
       const text = readFn(path, "utf8");
-      const run = runFileWithPsql({ psql, dbUrl, file: path, spawn });
+      const run = runFileWithPsql({ psql, dbUrl, file: path, text, spawn });
       const parsed = parsePsqlOutput(run.stderr, text);
       if (run.status === 0) {
         files.push({ file: item.file, source: item.source, status: "applied", seconds: run.seconds, notices: parsed.notices });

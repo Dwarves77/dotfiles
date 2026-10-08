@@ -171,10 +171,22 @@ export function assertLoopbackDbUrl(url) {
   return host;
 }
 
-/** Run one file through psql. `spawn` is injectable. Returns { status, stderr, seconds }. */
-export function runFileWithPsql({ psql, dbUrl, file, spawn = spawnSync }) {
+/**
+ * True when the file holds a statement Postgres refuses inside a transaction block: CREATE INDEX CONCURRENTLY, DROP INDEX
+ * CONCURRENTLY, REINDEX ... CONCURRENTLY (lane MIG-CI, replay run 37855793584: 260 was applied in production by direct psql for exactly
+ * this reason, its header says so). Such a file is run without --single-transaction; ON_ERROR_STOP still stops it at the first error.
+ * Comments are ignored. PURE.
+ */
+export function needsAutocommit(text) {
+  const code = String(text ?? "").split(/\r?\n/).filter((l) => !l.trim().startsWith("--")).join("\n");
+  return /\bcreate\s+(unique\s+)?index\s+concurrently\b/i.test(code) || /\bdrop\s+index\s+concurrently\b/i.test(code) || /\breindex\b[^;]*\bconcurrently\b/i.test(code);
+}
+
+/** Run one file through psql. `spawn` is injectable. `text` (the file's source) decides single transaction or autocommit. Returns { status, stderr, seconds }. */
+export function runFileWithPsql({ psql, dbUrl, file, text = null, spawn = spawnSync }) {
   const started = Date.now();
-  const r = spawn(psql, [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", file], {
+  const args = [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", ...(text != null && needsAutocommit(text) ? [] : ["--single-transaction"]), "-f", file];
+  const r = spawn(psql, args, {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
     env: { ...process.env, PGCONNECT_TIMEOUT: "10" },
@@ -255,7 +267,7 @@ export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spaw
   for (const item of refused || preludeFailed ? [] : plan.ordered) {
     const path = join(migrationsDir, item.file);
     const text = readFn(path, "utf8");
-    const run = runFileWithPsql({ psql, dbUrl, file: path, spawn });
+    const run = runFileWithPsql({ psql, dbUrl, file: path, text, spawn });
     const parsed = parsePsqlOutput(run.stderr, text);
     if (run.status === 0) {
       files.push({ file: item.file, status: "applied", seconds: run.seconds, notices: parsed.notices });
