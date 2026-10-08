@@ -20,11 +20,14 @@
 //     Print all registered rules.
 //
 // Firing log (lane GATE-1, 2026-10-08). Every rule whose trigger fires appends one JSON line per firing to
-// governance/.hook-firings.log (gitignored): {ts, rule, mode, path, line, verdict}. A FAIL writes one line
-// per location the rule reported; a PASS writes one line with a null path and line. mode is commit-msg, ci
-// (one commit), ci-range (the whole-range pass) or fixture. DISCIPLINE_FIRING_LOG=<path> redirects the log,
-// DISCIPLINE_FIRING_LOG=off disables it, and fixture mode writes nothing unless the variable names a path.
-// A logging failure never changes a verdict.
+// governance/.hook-firings.log (gitignored): {ts, rule, mode, path, line, verdict, baseline}. A FAIL writes
+// one line per location the rule reported; a PASS writes one line with a null path and line. mode is
+// commit-msg, ci (one commit), ci-range (the whole-range pass) or fixture. baseline (lane GATE-5) is what
+// "introduced" was measured against for that run, from ctx.baseline.label in lib/context.mjs: "merge base
+// with origin/master (<sha>)", "range <a..b>", "fixture", or a named "fallback ..." to the previous commit
+// when no merge base exists. The same label is printed at the top of each run's output.
+// DISCIPLINE_FIRING_LOG=<path> redirects the log, DISCIPLINE_FIRING_LOG=off disables it, and fixture
+// mode writes nothing unless the variable names a path. A logging failure never changes a verdict.
 //
 // Exit codes:
 //   0 = all applicable rules PASS or SKIP
@@ -101,7 +104,9 @@ async function main() {
     // building their own range and simply omit --range, so the three callers (this one, the CI job,
     // pre-push) cannot drift from each other or from F51's own range checks, which already resolved
     // through this same function.
-    const resolved = resolveRange({ explicit: args.range, env: process.env });
+    // cwd: the repo root this engine run resolved (getRepoRoot), the same root every context diffs in; omitted,
+    // resolveRange anchors on this module's own location, which is only the same repository by coincidence.
+    const resolved = resolveRange({ explicit: args.range, env: process.env, cwd: getRepoRoot() });
     if (resolved.source === 'unavailable' || !resolved.range) {
       console.error(
         `Error: --mode=ci could not resolve a range${resolved.reason ? ` (${resolved.reason})` : ''}. ` +
@@ -188,8 +193,9 @@ function runOnContext(ctx, args, mode) {
     results.push({ rule, ...res });
   }
 
+  if (!args.quiet) console.log(`  Baseline: ${ctx.baseline.label}`);
   printResults(results, args);
-  logFirings(results, mode);
+  logFirings(results, mode, ctx.baseline.label);
 
   const failed = results.filter((r) => r.status === STATUS.FAIL);
   return failed.length > 0 ? 1 : 0;
@@ -199,7 +205,7 @@ const FIRING_LOG_DEFAULT = join(import.meta.dirname, 'governance', '.hook-firing
 const MAX_FAIL_LINES_LOGGED = 50;
 
 // One JSON line per firing. Never throws: a log that cannot be written must not change a commit's verdict.
-function logFirings(results, mode) {
+function logFirings(results, mode, baseline) {
   try {
     const target = process.env.DISCIPLINE_FIRING_LOG;
     if (target === 'off') return;
@@ -212,10 +218,10 @@ function logFirings(results, mode) {
       if (r.status === STATUS.FAIL) {
         const locations = (r.locations && r.locations.length ? r.locations : [{ path: null, line: null }]).slice(0, MAX_FAIL_LINES_LOGGED);
         for (const loc of locations) {
-          lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: loc.path ?? null, line: loc.line ?? null, verdict: 'FAIL' }));
+          lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: loc.path ?? null, line: loc.line ?? null, verdict: 'FAIL', baseline }));
         }
       } else {
-        lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: null, line: null, verdict: 'PASS' }));
+        lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: null, line: null, verdict: 'PASS', baseline }));
       }
     }
     if (lines.length === 0) return;

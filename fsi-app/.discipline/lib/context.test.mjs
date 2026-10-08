@@ -308,6 +308,25 @@ test('real git: text moved into a new file and a pre-existing glyph line edited 
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('baseline: a fixture context says so, and a staged context with origin/master is diffed against the merge base in ONE diff', () => {
+  assert.equal(buildContextFromFixture({ message: 'x' }).baseline.source, 'fixture');
+
+  const dir = repo({ 'keep.txt': `kept ${EM} line\n` });
+  try {
+    sh(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    sh(dir, ['rm', '-q', 'keep.txt']);
+    sh(dir, ['commit', '-q', '-m', 'delete']);
+    put(dir, { 'keep.txt': `kept ${EM} line\n` });
+    sh(dir, ['add', '-A']);
+    const before = _diffLoadCount();
+    const ctx = stagedContext(dir);
+    assert.equal(_diffLoadCount() - before, 1);
+    assert.equal(ctx.baseline.source, 'merge-base');
+    assert.deepEqual(ctx.introducedLines('keep.txt').added, [], 'identical to master, so nothing is introduced');
+    assert.equal(ctx.stagedFiles.length, 0, 'the restore is no change against the merge base');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('real git: CRLF content is stripped of the carriage return', () => {
   const dir = repo({ 'win.txt': 'one\r\ntwo\r\n' });
   try {
