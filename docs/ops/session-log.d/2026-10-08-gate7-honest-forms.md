@@ -58,7 +58,7 @@ Read in full: COMMON, the brief, `CLAUDE.md`, `lane-common-contract.md`, the reg
 
 ## Attack ids mapped (187 ACCEPTED rows)
 
-**131 turned from ACCEPTED to refused or alarmed in repo code** (each has a named test above); **56 stay** (listed with the reason below). Of the 131: 12 (the seven A-PT-R tool-routing rows and A-PT-S1, S2, S3, S4, S8) take effect only when the executor applies the shim and the matcher below; four hook rows (A-H1-5, A-H1-6, A-H3-2, A-H3-3) take effect only after `node fsi-app/.discipline/install-hooks.mjs` is re-run (four new hook names). A-H1-5, A-H3-2 and A-H3-3 are alarms, not blocks (git has already moved).
+**131 turned from ACCEPTED to refused or alarmed in repo code** (each has a named test above); **56 stay** (listed with the reason below; after the coordinator grants A-H2-11, -13, -14 and A-P3c-1, -3 are addressed, so 51 remain). Of the 131: 12 (the seven A-PT-R tool-routing rows and A-PT-S1, S2, S3, S4, S8) take effect only when the executor applies the shim and the matcher below; four hook rows (A-H1-5, A-H1-6, A-H3-2, A-H3-3) take effect only after `node fsi-app/.discipline/install-hooks.mjs` is re-run (four new hook names). A-H1-5, A-H3-2 and A-H3-3 are alarms, not blocks (git has already moved).
 
 Fixed:
 - R012: A012-1 to A012-10 (incl. 3b; A012-8 and A012-9 through rule 023)
@@ -189,13 +189,12 @@ allow();
 
 ## NOT done
 
-- **NEEDS WRITE-SET EXPANSION: `fsi-app/.discipline/governance/invariants.d/RD-96-source-diffed-as-text.mjs`**, because rule 023 is registered in `manifest.mjs` and the invariant-coverage meta-gate (`governance/invariant-coverage.test.mjs`) fails with "ORPHAN MECHANISM: rule 023 is in the manifest but no invariant references it". Proposed fix: one file in the shape of `RD-69-no-dash-glyphs.mjs` (id `RD-96-source-diffed-as-text`, skill `remediation-discipline`, the same section and anchor, `enforcedBy: ['rule:023']`, text: a source file that git does not diff as text hides its lines from every content rule, so it is a finding). Until it is granted this lane's branch is NOT pushed.
-- NEEDS WRITE-SET EXPANSION (optional, separate): `governance/check-pretooluse-wired.mjs` `REQUIRED` list does not name PowerShell, Monitor, EnterWorktree, ExitWorktree, ArtifactData, Artifact or SendMessage, so step 3c cannot notice an unrouted matcher (A-P3c rows).
-- Not run locally, per COMMON rule 9 and ADR-040: the full suite, the fitness runner, `tsc`. ESLint (max-warnings 0) was run on every changed file under `fsi-app/` and is clean.
+- Write-set grants received from the coordinator and built: `governance/invariants.d/RD-97-source-diffed-as-text.mjs` (RD-96 was taken by ALIAS-1) for rule 023, and the seven tools in `check-pretooluse-wired.mjs` `REQUIRED` (A-P3c-1 and A-P3c-3 are therefore addressed: step 3c now fails a matcher that omits them).
+- Not run locally, per COMMON rule 9 and ADR-040: the full suite, the fitness runner, `tsc`. ESLint (max-warnings 0) was run on the changed files under `fsi-app/` and is clean.
 - `docs/inventories` were not regenerated (no migration, no component).
 - The old `governance/.gate-audit.log` ignore line in `fsi-app/.gitignore` is left; `.discipline/out/` was already ignored.
 
 ## Open items
 
-- Whether the main checkout should refuse commits for the human operator as well (item 7 reading above).
-- A-H2-11, -13, -14 (cherry-pick, am, rebase run no commit-msg) are covered only by CI validate-commits; a local post-commit run of the engine in CI mode on the landed commit would close the local gap if the coordinator wants it.
+- Item 7 reading RULED by the coordinator: correct and intended (nobody commits in the main checkout; RD-19). A-H1-7 (plumbing) out of scope, agreed.
+- Coordinator grant: the local post-commit engine run for cherry-pick, am and rebase is built (hooks/post-commit runs `runner.mjs --mode=ci --commit=HEAD` when the reflog subject says the commit skipped commit-msg; tested on a real cherry-pick), so A-H2-11, A-H2-13 and A-H2-14 are now flagged locally as well as in CI. It cannot undo the commit.

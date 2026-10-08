@@ -144,3 +144,56 @@ test('inside a linked worktree the same commit passes, marker or no marker', () 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ── post-commit runs the commit rules on a commit that skipped commit-msg (A-H2-11, A-H2-13, A-H2-14) ──
+import { readdirSync } from 'node:fs';
+
+function copyTree(dir, relDir, keep) {
+  for (const name of readdirSync(join(REPO, relDir), { withFileTypes: true })) {
+    if (name.isDirectory()) continue;
+    if (!keep(name.name)) continue;
+    mkdirSync(join(dir, relDir), { recursive: true });
+    copyFileSync(join(REPO, relDir, name.name), join(dir, relDir, name.name));
+  }
+}
+
+function engineRepo() {
+  const dir = hookedRepo();
+  const src = (n) => /\.mjs$/.test(n) && !/\.test\.mjs$/.test(n);
+  for (const rel of ['fsi-app/.discipline', 'fsi-app/.discipline/lib', 'fsi-app/.discipline/rules', 'fsi-app/.discipline/governance']) copyTree(dir, rel, src);
+  return dir;
+}
+
+test('A-H2-11 / A-H2-13 / A-H2-14: a cherry-picked commit that violates a rule is flagged by post-commit; an ordinary commit is not re-run', () => {
+  const dir = engineRepo();
+  const wt = `${dir}-wt`;
+  const bad = `const p = '${String.fromCharCode(67)}:/Users/someone/project';\n`;
+  try {
+    baseHistory(dir);
+    gitIn(dir, [...BYPASS, 'branch', 'side']);
+    gitIn(dir, [...BYPASS, 'worktree', 'add', '-q', '-b', 'lane/x', wt, 'master']);
+    // the violating commit is made on side, with hooks bypassed (a cherry-pick source from elsewhere)
+    const sideWt = `${dir}-side`;
+    gitIn(dir, [...BYPASS, 'worktree', 'add', '-q', sideWt, 'side']);
+    writeFileSync(join(sideWt, 'fsi-app', 'x.mjs'), bad);
+    gitIn(sideWt, [...BYPASS, 'add', 'fsi-app/x.mjs']);
+    gitIn(sideWt, [...BYPASS, 'commit', '-q', '-m', 'violating']);
+    const sha = gitIn(sideWt, ['rev-parse', 'HEAD']).stdout.trim();
+
+    const pick = gitIn(wt, ['cherry-pick', sha], { DISCIPLINE_FIRING_LOG: 'off' });
+    assert.match(pick.stderr, /skipped commit-msg/, pick.stderr);
+    assert.match(pick.stderr, /FAIL\s+\[012\]/, pick.stderr);
+    assert.match(pick.stderr, /commit rules FAILED on the landed commit/);
+
+    // an ordinary commit in the worktree does not trigger the post-commit engine run (commit-msg is not
+    // installed in this fixture, so the absence of the run is the point)
+    writeFileSync(join(wt, 'ok.txt'), 'ok\n');
+    gitIn(wt, ['add', 'ok.txt']);
+    const plain = gitIn(wt, ['commit', '-q', '-m', 'plain'], { DISCIPLINE_FIRING_LOG: 'off' });
+    assert.doesNotMatch(plain.stderr, /skipped commit-msg/);
+    rmSync(sideWt, { recursive: true, force: true });
+  } finally {
+    rmSync(wt, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
