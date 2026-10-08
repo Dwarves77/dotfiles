@@ -32,9 +32,9 @@ test("permissions are contents: read only, one run at a time, 60 minute limit, a
   assert.doesNotMatch(TEXT, /^\s+environment:/m);
 });
 
-test("the only secrets referenced are the three existing production names, and only in the export step", () => {
+test("the only secrets referenced are the two existing production names, and only in the export step", () => {
   const refs = [...TEXT.matchAll(/secrets\.([A-Z0-9_]+)/g)].map((m) => m[1]);
-  assert.deepEqual([...new Set(refs)].sort(), ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_PASSWORD", "SUPABASE_SERVICE_ROLE_KEY"]);
+  assert.deepEqual([...new Set(refs)].sort(), ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_PASSWORD"]);
   const holders = steps().filter((s) => /secrets\.[A-Z]/.test(s.body));
   assert.equal(holders.length, 1, "more than one step references a secret");
   assert.match(holders[0].name, /Export the production schema dump and data subset/);
@@ -113,4 +113,34 @@ test("the stack starts from a scratch directory holding only the config, never f
   assert.match(start.body, /cp fsi-app\/supabase\/config\.toml "\$CHAIN_PROOF_STACK\/supabase\/config\.toml"/);
   assert.match(start.body, /cd "\$CHAIN_PROOF_STACK"/);
   assert.doesNotMatch(start.body, /migrations/);
+});
+
+
+test("the export step's secrets are step-scoped (no workflow or job level env), and every later step preflights before its script", () => {
+  // no env: block at workflow or job level (indentation 0 or 4)
+  assert.doesNotMatch(TEXT, /^env:/m, "workflow-level env present");
+  assert.doesNotMatch(TEXT, /^ {4}env:/m, "job-level env present");
+  const all = steps();
+  const exp = all.findIndex((s) => /Export the production schema dump/.test(s.name));
+  assert.ok(exp >= 0);
+  assert.match(all[exp].body, /\n {8}env:\n {10}NEXT_PUBLIC_SUPABASE_URL: \$\{\{ secrets\.NEXT_PUBLIC_SUPABASE_URL \}\}\n {10}SUPABASE_DB_PASSWORD: \$\{\{ secrets\.SUPABASE_DB_PASSWORD \}\}\n/);
+  assert.doesNotMatch(all[exp].body, /SUPABASE_SERVICE_ROLE_KEY/, "the export step needs only the URL and the database password");
+  // ordering: every step after the export that runs a proof script against the local stack preflights first, so a
+  // production host or SUPABASE_DB_PASSWORD left in the job env would fail the preflight there (it refuses both)
+  const after = all.slice(exp + 1).filter((s) => LOCAL_SCRIPTS.test(s.body));
+  assert.ok(after.length >= 5, "expected the oracle, load, chain, attacks and ledger steps after the export");
+  for (const s of after) {
+    const pre = s.body.indexOf("scripts/proof/preflight.mjs");
+    const first = s.body.search(LOCAL_SCRIPTS);
+    assert.ok(pre >= 0 && pre < first, `step "${s.name}" does not preflight before its script`);
+  }
+  assert.ok(FORBIDDEN_NAMES.includes("SUPABASE_DB_PASSWORD"), "the preflight must keep refusing SUPABASE_DB_PASSWORD");
+});
+
+test("the export step pins the smallest committed record-briefs batch and the load step reads the subset it wrote", () => {
+  const exp = steps().find((s) => /Export the production schema dump/.test(s.name));
+  assert.match(exp.body, /export-subset\.mjs[^\n]*--pin-ids-from scripts\/turns\/record-briefs\/batches\/record-briefs-009b-tool\.json/);
+  const load = steps().find((s) => /Load the subset/.test(s.name));
+  assert.match(load.body, /load-subset\.mjs[^\n]*--in "\$CHAIN_PROOF_SUBSET"/);
+  assert.match(load.body, /\. "\$CHAIN_PROOF_ENV"/);
 });

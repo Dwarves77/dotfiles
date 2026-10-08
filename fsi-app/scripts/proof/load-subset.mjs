@@ -159,8 +159,8 @@ export async function loadSubset({ client, dir, readFileFn = readFileSync, log =
 export async function runCli(argv, deps = {}) {
   const { log = (m) => console.log(m), errorLog = (m) => console.error(m), connect, env = process.env } = deps;
   const arg = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : undefined; };
-  const dir = arg("--dir");
-  if (!dir) { errorLog("load-subset: --dir <export dir> is required."); return 1; }
+  const dir = arg("--dir") ?? arg("--in");
+  if (!dir) { errorLog("load-subset: --in <export dir> (or --dir) is required."); return 1; }
   const cs = env.PROOF_DB_URL;
   if (!cs) { errorLog("load-subset: PROOF_DB_URL is not set, self-skip."); return 2; }
   if (!isLoopbackConnString(cs)) { errorLog("load-subset: PROOF_DB_URL host is not loopback; refusing (this script never loads into a remote database)."); return 1; }

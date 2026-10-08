@@ -30,7 +30,7 @@
 // Exit codes: 0 wrote the export; 1 export failed (orphan, query error, unsafe out dir); 2 no credentials.
 
 import { hash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve, relative, isAbsolute, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { surfaceOf, SURFACES } from "../../src/lib/surface-of.mjs";
@@ -84,6 +84,14 @@ export function pickSeeds(candidates, n = DEFAULT_ITEMS) {
     }
   }
   return picked;
+}
+
+/** Item ids named by a committed record-briefs batch file ({ entries: [{ item_id }] }). Pure given the text. */
+export function readPinnedIds(text) {
+  const parsed = JSON.parse(text);
+  const ids = (parsed.entries ?? []).map((e) => e.item_id).filter((x) => typeof x === "string" && x.length > 0);
+  if (ids.length === 0) throw new Error("export-subset: the pin file names no item ids");
+  return [...new Set(ids)];
 }
 
 const q = (ident) => `"${String(ident).replace(/"/g, '""')}"`;
@@ -322,7 +330,7 @@ export async function buildClosure({ client, seedIds, catalog, fks, exclude = DE
     for (const [t, rows] of downFrontier) {
       if (!rows.length) continue;
       for (const fk of childrenOf.get(t) ?? []) {
-        if (isExcluded(fk.child) || !catalog.has(fk.child)) continue;
+        if (isExcluded(fk.child) || !catalog.has(fk.child) || restricted.includes(fk.child)) continue; // restricted tables hold only the seeds
         const tuples = [...new Map(rows.map((r) => { const v = fk.cols.map((x) => r[x.p]); return [keyOf(v), v]; })).values()].filter((v) => v.every((x) => x !== null && x !== undefined));
         if (!tuples.length) continue;
         const found = await selectMatching(client, fk.child, fk.cols.map((x) => x.c), tuples);
@@ -414,7 +422,13 @@ export async function exportSubset(args) {
     const cand = await client.query(
       "SELECT id, item_type, domain, item_grade FROM public.intelligence_items WHERE provenance_status = 'verified' ORDER BY id",
     );
-    const seedIds = pickSeeds(cand.rows, items);
+    const pinned = args.pinIds ?? [];
+    if (pinned.length) {
+      const have = await client.query("SELECT id FROM public.intelligence_items WHERE id = ANY($1)", [pinned]);
+      if (have.rows.length !== pinned.length) throw new Error(`export-subset: ${pinned.length - have.rows.length} of ${pinned.length} pinned item ids do not exist in the source`);
+    }
+    const pinnedSet = new Set(pinned);
+    const seedIds = [...pinned, ...pickSeeds(cand.rows.filter((c) => !pinnedSet.has(c.id)), items)];
     if (seedIds.length === 0) throw new Error("export-subset: no verified items to seed from");
     const { subset, stats } = await (args.closureFn ?? buildClosure)({
       client, seedIds, catalog, fks,
@@ -424,7 +438,7 @@ export async function exportSubset(args) {
     const order = fkOrder([...subset.keys()], fks);
     const manifest = writeSubset({ subset, order, outDir, stats, now, writeFileFn: args.writeFileFn, mkdirFn: args.mkdirFn });
     const total = manifest.tables.reduce((a, t) => a + t.rows, 0);
-    log(`export-subset: seeds=${seedIds.length} tables=${manifest.tables.length} rows=${total} orphans=0`);
+    log(`export-subset: seeds=${seedIds.length} pinned=${pinned.length} tables=${manifest.tables.length} rows=${total} orphans=0`);
     for (const t of manifest.tables) log(`  ${t.table}: ${t.rows}`);
     return manifest;
   } finally {
@@ -438,13 +452,19 @@ export async function runCli(argv, deps = {}) {
   const outDir = arg("--out");
   if (!outDir) { errorLog("export-subset: --out <dir> is required."); return 1; }
   const items = Number(arg("--items") ?? DEFAULT_ITEMS);
+  let pinIds = [];
+  const pinPath = arg("--pin-ids-from");
+  if (pinPath !== undefined) {
+    try { pinIds = readPinnedIds(readFileSync(resolve(pinPath), "utf8")); }
+    catch (e) { errorLog(`export-subset: pin file unusable: ${e instanceof Error ? e.message : String(e)}`); return 1; }
+  }
   if (!Number.isInteger(items) || items < 1) { errorLog("export-subset: --items must be a positive integer."); return 1; }
   const open = connect ?? (async () => (await import("../lib/pg-conn.mjs")).connectPg());
   let client;
   try { client = await open(); } catch { client = null; }
   if (!client) { errorLog("export-subset: no database connection (SUPABASE_DB_PASSWORD / NEXT_PUBLIC_SUPABASE_URL unset?), self-skip."); return 2; }
   try {
-    await exportSubset({ client, outDir, items, log });
+    await exportSubset({ client, outDir, items, pinIds, log });
     return 0;
   } catch (e) {
     // the orphan check runs before any file is written, so a failed export leaves no partial subset;

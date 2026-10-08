@@ -5,7 +5,7 @@ import { hash } from "node:crypto";
 import { join } from "node:path";
 import {
   pickSeeds, buildClosure, verifyNoOrphans, findOrphans, fkOrder, exportSubset, writeSubset,
-  fetchCatalog, fetchFkGraph, isOutsideWorkspace, runCli,
+  fetchCatalog, fetchFkGraph, isOutsideWorkspace, runCli, readPinnedIds,
 } from "./export-subset.mjs";
 
 const SECRET_TITLE = "CONFIDENTIAL-REGULATION-TITLE-XYZZY";
@@ -100,6 +100,9 @@ function fakeClient(data = makeData(), { extraFks = [] } = {}) {
       }
       if (s.startsWith("SELECT id, item_type, domain, item_grade FROM public.intelligence_items")) {
         return { rows: data.intelligence_items.filter((r) => r.provenance_status === "verified").map(({ id, item_type, domain, item_grade }) => ({ id, item_type, domain, item_grade })) };
+      }
+      if (s.startsWith("SELECT id FROM public.intelligence_items WHERE id = ANY($1)")) {
+        return { rows: data.intelligence_items.filter((r) => params[0].includes(r.id)).map((r) => ({ id: r.id })) };
       }
       let m = s.match(/^SELECT to_jsonb\(t\) AS r FROM public\."(\w+)" t WHERE t\."(\w+)" = ANY\(\$1\)$/);
       if (m) return { rows: data[m[1]].filter((r) => params[0].includes(r[m[2]])).map((r) => ({ r: structuredClone(r) })) };
@@ -277,4 +280,32 @@ test("writeSubset skips empty tables and numbers files in order", () => {
   const subset = new Map([["a", new Map([["k", { id: 1 }]])], ["b", new Map()]]);
   const m = writeSubset({ subset, order: ["a", "b"], outDir: "/o", stats: { nulled: {}, dropped: {} }, now: "t", writeFileFn: (p, b) => written.set(p, b), mkdirFn: () => {} });
   assert.deepEqual(m.tables.map((t) => t.file), ["001_a.jsonl"]);
+});
+
+test("pinned ids (from a record-briefs batch file) are in the manifest's item rows even when the round robin would not pick them", async () => {
+  const pinIds = readPinnedIds(JSON.stringify({ batch: "b", entries: [{ item_id: "i9", body: "x" }, { item_id: "i3" }, { item_id: "i9" }] }));
+  assert.deepEqual(pinIds, ["i9", "i3"], "deduplicated, order kept");
+  const written = new Map();
+  const logs = [];
+  const manifest = await exportSubset({
+    client: fakeClient(), outDir: "/runner-temp/subset", items: 1, pinIds, root: "/workspace/repo",
+    log: (m) => logs.push(m), writeFileFn: (p, body) => written.set(p, body), mkdirFn: () => {},
+  });
+  const itemsFile = manifest.tables.find((t) => t.table === "intelligence_items").file;
+  const rows = written.get(join("/runner-temp/subset", itemsFile)).split(String.fromCharCode(10)).filter(Boolean).map((l) => JSON.parse(l));
+  const got = rows.map((r) => r.id);
+  assert.ok(got.includes("i9") && got.includes("i3"), "both pinned ids present");
+  assert.equal(got.length, 3, "two pinned plus one round-robin pick: " + got.join(","));
+  assert.match(logs.join(String.fromCharCode(10)), /pinned=2/);
+});
+
+test("a pinned id missing from the source fails the export, naming only counts", async () => {
+  await assert.rejects(
+    exportSubset({ client: fakeClient(), outDir: "/runner-temp/s", items: 1, pinIds: ["i1", "nope"], root: "/w", log: () => {}, writeFileFn: () => {}, mkdirFn: () => {} }),
+    (e) => /1 of 2 pinned item ids do not exist/.test(e.message) && !e.message.includes("nope"),
+  );
+});
+
+test("readPinnedIds rejects a file that names no ids", () => {
+  assert.throws(() => readPinnedIds(JSON.stringify({ entries: [] })), /names no item ids/);
 });
