@@ -1349,7 +1349,7 @@ export function mergeBriefOverrides<
     .filter((row) => !row.effective_archived);
 }
 
-async function fetchBriefResourcesByIds(
+export async function fetchBriefResourcesByIds(
   ids: string[],
   overrides: OverrideRowsRaw
 ): Promise<Resource[]> {

@@ -111,6 +111,11 @@ export const ROW_COMPONENTS = Object.freeze({
   // lane G7-UI, 2026-10-06: the admin Corrections screen (operator surface, no artboard; rule 20). Both mount the shared CorrectionRow.
   'src/components/admin/corrections/ItemCorrectionsPanel.tsx': 'admin-corrections-smoke.mjs, the per item Corrections panel at /admin/items/[id] (lane G7-UI)',
   'src/components/admin/corrections/CorrectionsTab.tsx': 'admin-corrections-smoke.mjs, the Corrections tab of the admin dashboard (lane G7-UI)',
+  // lane S8-D, 2026-10-07: the portfolio pages under the dashboard (spec 00 section 5, migration 362). Both views are
+  // built from shared row parts only (RowTable and ListRow); portfolio-smoke.mjs mounts the real components at 375,
+  // 768, 1024 and 1280. The title attribute is satisfied by delegation (Masthead, SectionHeading, ListRow).
+  'src/components/portfolio/PortfolioIndexView.tsx': 'portfolio-smoke.mjs, the /dashboard/portfolio list of portfolios (lane S8-D)',
+  'src/components/portfolio/PortfolioDetailView.tsx': 'portfolio-smoke.mjs, one portfolio grouped by surface with roll-ups (lane S8-D)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */
