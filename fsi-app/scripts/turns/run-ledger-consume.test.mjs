@@ -1676,3 +1676,255 @@ test("resolveSweepLoopRunId: an explicit id also wins over a different id record
     assert.equal(resolveSweepLoopRunId({ env: { LEDGER_CONSUME_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "sweep-loop-9");
   });
 });
+
+// ── stale verdicts are re-authored, never edited (lane VERD-1, 2026-10-08) ────────────────────────────────
+//
+// A "stale" verdict is an entry in a committed ledger-verdicts-NNN.json batch whose prompt_version is not the
+// live FIRST_FETCH_CLASSIFY_PROMPT_VERSION. It is excluded from use (existing rule, tested above), so its
+// candidate stays status='candidate' and owed a verdict. These tests cover what this lane adds: the stale
+// export selection, the per-URL version index (which entries are still owed and which a newer entry has
+// superseded), the pre-landing batch check, and the supersession record in the consume run's artifact.
+// The new functions are read through a namespace import so a run against the code from before this lane
+// fails per test (undefined function), not as one whole-file import error.
+const M = await import("./run-ledger-consume.mjs");
+const CUR = "sha256:bbbbbbbbbbbbbbbb"; // the "live" prompt_version in these fixtures; PV (aaaa...) is the stale one
+
+function staleBatch(name, entries) {
+  return { batch: name, entries };
+}
+function ledgerRow(n, url, firstSeen) {
+  return { id: `plc-${n}`, url, source_id: "s", anchor_text: null, first_seen_at: firstSeen, sources: null };
+}
+
+test("parseArgs: --stale-verdicts is a boolean that requires --export-candidates, never a silent no-op", () => {
+  const ok = M.parseArgs(["--export-candidates", "out.json", "--stale-verdicts"]);
+  assert.equal(ok.ok, true);
+  assert.equal(ok.staleVerdicts, true);
+  assert.equal(M.parseArgs(["--export-candidates", "out.json"]).staleVerdicts, false);
+  const bad = M.parseArgs(["--stale-verdicts"]);
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /--stale-verdicts requires --export-candidates/);
+});
+
+test("parseArgs: --check-verdicts takes a non-empty path and is exclusive with --export-candidates", () => {
+  assert.equal(M.parseArgs(["--check-verdicts", "scripts/turns/ledger-verdicts/ledger-verdicts-003.json"]).checkVerdicts, "scripts/turns/ledger-verdicts/ledger-verdicts-003.json");
+  assert.equal(M.parseArgs([]).checkVerdicts, null);
+  assert.equal(M.parseArgs(["--check-verdicts", " "]).ok, false);
+  const both = M.parseArgs(["--check-verdicts", "a.json", "--export-candidates", "b.json"]);
+  assert.equal(both.ok, false);
+  assert.match(both.error, /--check-verdicts cannot be combined with --export-candidates/);
+});
+
+test("indexVerdictVersions: stale-only URLs are owed a verdict; a URL with a current entry anywhere is superseded, not owed", () => {
+  const batches = [
+    staleBatch("ledger-verdicts-001", [
+      verdictEntry({ url: "https://x/owed", candidate_id: "c-owed", prompt_version: PV, classified_at: "2026-09-04T00:00:00.000Z" }),
+      verdictEntry({ url: "https://x/redone", candidate_id: "c-redone", prompt_version: PV }),
+      verdictEntry({ url: "https://x/fine", candidate_id: "c-fine", prompt_version: CUR }),
+    ]),
+    staleBatch("ledger-verdicts-002", [
+      verdictEntry({ url: "https://x/redone", candidate_id: "c-redone", prompt_version: CUR }),
+    ]),
+  ];
+  const idx = M.indexVerdictVersions(batches, CUR);
+  assert.deepEqual([...idx.stale.keys()], ["https://x/owed"]);
+  assert.deepEqual(idx.stale.get("https://x/owed"), {
+    candidate_id: "c-owed", url: "https://x/owed", prompt_version: PV, classified_at: "2026-09-04T00:00:00.000Z", batch: "ledger-verdicts-001",
+  });
+  assert.deepEqual(idx.superseded, [{ url: "https://x/redone", stale_prompt_version: PV, stale_batch: "ledger-verdicts-001", current_batch: "ledger-verdicts-002" }]);
+  assert.equal(idx.current_urls, 2);
+});
+
+test("indexVerdictVersions: a current entry in an EARLIER batch still supersedes a stale entry in a later one (stale is never used)", () => {
+  const idx = M.indexVerdictVersions([
+    staleBatch("b1", [verdictEntry({ url: "https://x/u", prompt_version: CUR })]),
+    staleBatch("b2", [verdictEntry({ url: "https://x/u", prompt_version: PV })]),
+  ], CUR);
+  assert.equal(idx.stale.size, 0);
+  assert.equal(idx.superseded.length, 1);
+  assert.equal(idx.superseded[0].current_batch, "b1");
+});
+
+test("indexVerdictVersions: all-current and empty inputs owe nothing", () => {
+  assert.equal(M.indexVerdictVersions([], CUR).stale.size, 0);
+  const idx = M.indexVerdictVersions([staleBatch("b1", [verdictEntry({ prompt_version: CUR })])], CUR);
+  assert.equal(idx.stale.size, 0);
+  assert.deepEqual(idx.superseded, []);
+});
+
+test("buildCandidateExportPayload: stale mode annotates each row with the stale verdict's version, batch and age, and nothing else about it", () => {
+  const rows = [ledgerRow(1, "https://x/a", "2026-09-01T00:00:00Z")];
+  const staleByUrl = new Map([["https://x/a", { candidate_id: "plc-1", url: "https://x/a", prompt_version: PV, classified_at: "2026-09-04T00:00:00.000Z", batch: "ledger-verdicts-002", entity_verdict: "portal", rationale: "OLD TEXT MUST NOT LEAK" }]]);
+  const payload = M.buildCandidateExportPayload(rows, { limit: 5, promptVersion: CUR, staleByUrl, nextCursor: null });
+  assert.equal(payload.export_mode, "stale");
+  assert.equal(payload.prompt_version, CUR);
+  const c = payload.candidates[0];
+  assert.equal(c.verdict_prompt_version, PV);
+  assert.equal(c.verdict_batch, "ledger-verdicts-002");
+  assert.equal(c.verdict_classified_at, "2026-09-04T00:00:00.000Z");
+  assert.equal(JSON.stringify(c).includes("OLD TEXT MUST NOT LEAK"), false, "a re-authored verdict is written from the exported text, never from the old entry's classification");
+  assert.equal(payload.next_cursor, null);
+});
+
+test("buildCandidateExportPayload: without staleByUrl the payload has no export_mode and no verdict_* fields (pending mode unchanged)", () => {
+  const payload = M.buildCandidateExportPayload([ledgerRow(1, "https://x/a", "2026-09-01T00:00:00Z")], { limit: 5 });
+  assert.equal("export_mode" in payload, false);
+  assert.equal("verdict_prompt_version" in payload.candidates[0], false);
+});
+
+test("runExportCandidates stale mode: pages the ledger, keeps ONLY stale-verdict rows in age order, and fetches text for those alone", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-stale-export-"));
+  try {
+    // 7 ledger rows, oldest first. Verdict state: r1 stale, r2 current, r3 no verdict, r4 stale, r5 stale, r6 current, r7 stale.
+    const LEDGER = ["r1", "r2", "r3", "r4", "r5", "r6", "r7"].map((id, i) => ledgerRow(id, `https://x/${id}`, `2026-09-0${i + 1}T00:00:00Z`));
+    const idx = M.indexVerdictVersions([staleBatch("ledger-verdicts-001", [
+      verdictEntry({ url: "https://x/r1", prompt_version: PV }), verdictEntry({ url: "https://x/r2", prompt_version: CUR }),
+      verdictEntry({ url: "https://x/r4", prompt_version: PV }), verdictEntry({ url: "https://x/r5", prompt_version: PV }),
+      verdictEntry({ url: "https://x/r6", prompt_version: CUR }), verdictEntry({ url: "https://x/r7", prompt_version: PV }),
+    ])], CUR);
+    const pages = [];
+    const selectPage = async ({ limit, after }) => {
+      pages.push({ limit, after: after?.id ?? null });
+      const start = after ? LEDGER.findIndex((r) => r.id === after.id) + 1 : 0;
+      return LEDGER.slice(start, start + limit);
+    };
+    const fetched = [];
+    const fetchDoc = async (url) => { fetched.push(url); return { text: "t".repeat(300), transport: "direct-fetch" }; };
+    const outPath = join(tmpDir, "stale.json");
+    const { payload } = await M.runExportCandidates({
+      selectPage, limit: 3, outPath, promptVersion: CUR, staleIndex: idx.stale, scanPageSize: 2,
+      withText: true, fetchDoc, maxChars: 6000, now: () => "2026-10-08T00:00:00Z",
+    });
+    assert.deepEqual(payload.candidates.map((c) => c.candidate_id), ["plc-r1", "plc-r4", "plc-r5"]);
+    assert.deepEqual(fetched, ["https://x/r1", "https://x/r4", "https://x/r5"], "no page is fetched for a current-verdict or no-verdict row");
+    assert.equal(payload.export_mode, "stale");
+    assert.equal(payload.count, 3);
+    assert.deepEqual(payload.next_cursor, { firstSeenAt: "2026-09-05T00:00:00Z", id: "plc-r5" }, "resume after the last kept row");
+    assert.deepEqual(pages.map((p) => p.limit), [2, 2, 2], "scanned in pages of scanPageSize");
+    assert.deepEqual(JSON.parse(readFileSync(outPath, "utf8")).candidates.map((c) => c.verdict_prompt_version), [PV, PV, PV]);
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("runExportCandidates stale mode: the ledger exhausted before the limit leaves next_cursor null, and nothing stale means an empty export", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-stale-empty-"));
+  try {
+    const LEDGER = [ledgerRow("a", "https://x/a", "2026-09-01T00:00:00Z"), ledgerRow("b", "https://x/b", "2026-09-02T00:00:00Z")];
+    const selectPage = async ({ limit, after }) => LEDGER.slice(after ? LEDGER.findIndex((r) => r.id === after.id) + 1 : 0).slice(0, limit);
+    const some = M.indexVerdictVersions([staleBatch("b1", [verdictEntry({ url: "https://x/b", prompt_version: PV })])], CUR).stale;
+    const r1 = await M.runExportCandidates({ selectPage, limit: 5, outPath: join(tmpDir, "1.json"), staleIndex: some, scanPageSize: 5 });
+    assert.deepEqual(r1.payload.candidates.map((c) => c.candidate_id), ["plc-b"]);
+    assert.equal(r1.payload.next_cursor, null);
+    const r2 = await M.runExportCandidates({ selectPage, limit: 5, outPath: join(tmpDir, "2.json"), staleIndex: new Map(), scanPageSize: 5 });
+    assert.equal(r2.count, 0);
+    assert.equal(r2.payload.next_cursor, null);
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("runExportCandidates without staleIndex still makes exactly one selectPage call with the caller's own limit (pending mode unchanged)", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-pending-same-"));
+  try {
+    const calls = [];
+    const selectPage = async (o) => { calls.push(o); return []; };
+    await M.runExportCandidates({ selectPage, limit: 7, outPath: join(tmpDir, "p.json") });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].limit, 7);
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("findLatestExportArtifact: a stale-mode export never supplies the pending export's resume cursor, and the reverse", () => {
+  const runs = [
+    { run_id: "ledger-consume-run-001", config: { action: "export" }, metrics: { next_cursor: { firstSeenAt: "a", id: "1" } } },
+    { run_id: "ledger-consume-run-002", config: { action: "export", export_mode: "stale" }, metrics: { next_cursor: { firstSeenAt: "b", id: "2" } } },
+  ];
+  const readRunHistoryImpl = () => ({ runs });
+  assert.equal(M.findLatestExportArtifact("/fake", { readRunHistoryImpl }).run_id, "ledger-consume-run-001");
+  assert.equal(M.findLatestExportArtifact("/fake", { readRunHistoryImpl, mode: "stale" }).run_id, "ledger-consume-run-002");
+  assert.equal(M.findLatestExportArtifact("/fake", { readRunHistoryImpl: () => ({ runs: [runs[0]] }), mode: "stale" }), null);
+});
+
+test("checkVerdictsBatch: an entry under a stale prompt_version is REFUSED (the existing rule, now said out loud before landing)", () => {
+  const file = verdictsFile([verdictEntry({ url: "https://x/a", prompt_version: PV })], { batch: "ledger-verdicts-003" });
+  const r = M.checkVerdictsBatch({ parsed: file, committed: [], currentVersion: CUR });
+  assert.ok(r.errors.some((e) => /entries\[0\].*prompt_version.*not the live/.test(e)), r.errors.join("|"));
+});
+
+test("checkVerdictsBatch: a CURRENT entry for a candidate that has only a stale verdict is accepted and reported as superseding it", () => {
+  const committed = [staleBatch("ledger-verdicts-002", [verdictEntry({ url: "https://x/a", prompt_version: PV, classified_at: "2026-09-04T00:00:00.000Z" })])];
+  const file = verdictsFile([
+    verdictEntry({ url: "https://x/a", prompt_version: CUR }),
+    verdictEntry({ url: "https://x/brand-new", candidate_id: "plc-9", prompt_version: CUR }),
+  ], { batch: "ledger-verdicts-003", prompt_version: CUR });
+  const r = M.checkVerdictsBatch({ parsed: file, committed, currentVersion: CUR });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.supersedes, [{ url: "https://x/a", stale_prompt_version: PV, stale_batch: "ledger-verdicts-002" }]);
+  assert.equal(r.new_urls, 1);
+  assert.equal(r.repeats_current, 0);
+});
+
+test("checkVerdictsBatch: a second current entry for a URL that already has one is allowed (later batch wins) and counted, not refused", () => {
+  const committed = [staleBatch("ledger-verdicts-002", [verdictEntry({ url: "https://x/a", prompt_version: CUR })])];
+  const r = M.checkVerdictsBatch({ parsed: verdictsFile([verdictEntry({ url: "https://x/a", prompt_version: CUR })], { batch: "b3", prompt_version: CUR }), committed, currentVersion: CUR });
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.repeats_current, 1);
+  assert.deepEqual(r.supersedes, []);
+});
+
+test("checkVerdictsBatch: a structurally malformed batch fails with the existing validator's errors, and the supersession report is empty", () => {
+  const r = M.checkVerdictsBatch({ parsed: verdictsFile([verdictEntry({ url: "" })], { prompt_version: CUR }), committed: [], currentVersion: CUR });
+  assert.ok(r.errors.some((e) => /url must be a non-empty string/.test(e)));
+  assert.deepEqual(r.supersedes, []);
+});
+
+test("partitionVerdictsByPromptVersion still excludes a stale entry from use instead of failing the file (existing rule, kept)", () => {
+  const { current, stale } = partitionVerdictsByPromptVersion([verdictEntry({ prompt_version: PV }), verdictEntry({ prompt_version: CUR })], CUR);
+  assert.equal(current.length, 1);
+  assert.equal(stale.length, 1);
+});
+
+test("loadVerdictBatchFiles: reads and validates each path in order; a bad file stops the load with the message text the driver always printed", () => {
+  const files = {
+    "/v/a.json": JSON.stringify(verdictsFile([verdictEntry({})], { batch: "a" })),
+    "/v/bad.json": "{not json",
+    "/v/invalid.json": JSON.stringify(verdictsFile([verdictEntry({ url: "" })], { batch: "i" })),
+  };
+  const readFileImpl = (p) => { if (!(p in files)) throw new Error("ENOENT"); return files[p]; };
+  const good = M.loadVerdictBatchFiles(["/v/a.json"], { readFileImpl });
+  assert.equal(good.ok, true);
+  assert.equal(good.batches[0].parsed.batch, "a");
+  assert.match(M.loadVerdictBatchFiles(["/v/bad.json"], { readFileImpl }).message, /is not valid JSON/);
+  assert.match(M.loadVerdictBatchFiles(["/v/invalid.json"], { readFileImpl }).message, /failed schema validation/);
+  assert.match(M.loadVerdictBatchFiles(["/v/missing.json"], { readFileImpl }).message, /cannot read verdicts file/);
+});
+
+test("shapeConsumeResult: a verdict that superseded a stale one is marked on its per_item row, and the metrics carry open vs superseded counts", () => {
+  const telemetry = new Map([["https://x/1", { sourceId: "src-1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: true, error: null, source: "session-verdict", verdictCandidateId: "row-1", confidence: 0.9 }]]);
+  const supersededByUrl = new Map([["https://x/1", { url: "https://x/1", stale_prompt_version: PV, stale_batch: "ledger-verdicts-002", current_batch: "ledger-verdicts-003" }]]);
+  const { perItem, metrics } = M.shapeConsumeResult(fakeConsumeResult(), telemetry, { supersededByUrl, staleVerdictCounts: { open: 12, superseded: 3 } });
+  const byId = Object.fromEntries(perItem.map((p) => [p.id, p]));
+  assert.deepEqual(byId["row-1"].supersedes_stale_verdict, { prompt_version: PV, batch: "ledger-verdicts-002", superseded_by_batch: "ledger-verdicts-003" });
+  assert.equal("supersedes_stale_verdict" in byId["row-2"], false);
+  assert.equal(metrics.stale_verdicts_open, 12);
+  assert.equal(metrics.stale_verdicts_superseded, 3);
+});
+
+test("shapeConsumeResult: without the stale-verdict options the metrics gain no stale_verdicts_* keys (existing artifacts unchanged)", () => {
+  const { metrics } = M.shapeConsumeResult(fakeConsumeResult(), new Map());
+  assert.equal("stale_verdicts_open" in metrics, false);
+});
+
+test("the committed batches on disk load and validate, and every URL is either still owed or superseded under a different live version", () => {
+  const paths = discoverVerdictsFiles(join(FSI_ROOT, "scripts", "turns", "ledger-verdicts"));
+  assert.ok(paths.length >= 1);
+  const loaded = M.loadVerdictBatchFiles(paths, {});
+  assert.equal(loaded.ok, true, loaded.message);
+  const idx = M.indexVerdictVersions(loaded.batches.map((b) => ({ batch: b.parsed.batch, entries: b.parsed.entries })), "sha256:0000000000000000");
+  const urls = new Set(loaded.batches.flatMap((b) => b.parsed.entries.map((e) => e.url)));
+  assert.equal(idx.stale.size + idx.superseded.length, urls.size);
+  assert.equal(idx.current_urls, 0, "no committed entry carries the fixture's live version");
+});
