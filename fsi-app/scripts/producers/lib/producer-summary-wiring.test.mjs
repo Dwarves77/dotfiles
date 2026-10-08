@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadProducerRegistry } from "../registry/load-registry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..", "..", "..", ".."); // fsi-app/scripts/producers/lib -> repo root
@@ -67,7 +68,10 @@ test("every script producers.yml runs with --apply, under scripts/producers/ or 
   const ymlText = readFileSync(WORKFLOW_PATH, "utf8");
   const scripts = findApplyInvokedProducerScripts(ymlText);
 
-  // Not a vacuous pass: prove the extractor actually found the twelve scripts this lane wired, by name.
+  // Not a vacuous pass: prove the extractor actually found the eight scripts still run by hand-written steps,
+  // by name. The four market producers (ecb-fx, eia-v2-petroleum-spot, eu-weekly-oil-bulletin,
+  // sbti-target-dashboard) moved to the producer registry (lane S8-E0, 2026-10-07); the second test below
+  // holds every registry entry to the same import rule.
   // Updated 2026-10-03 (lane L11): added sbti-target-dashboard-producer.mjs's own --apply invocation
   // (producers.yml's new 'sbti-target-dashboard' step). That producer's own --apply path is always
   // refused (a licence gate, see its own header) but the step's `run:` block still shells out with
@@ -77,12 +81,8 @@ test("every script producers.yml runs with --apply, under scripts/producers/ or 
     "scripts/gen/emission-factors-desnz.mjs",
     "scripts/gen/emission-factors-epa.mjs",
     "scripts/gen/fetch-desnz-factors.mjs",
-    "scripts/producers/market/ecb-fx-producer.mjs",
-    "scripts/producers/market/eia-v2-petroleum-spot-producer.mjs",
-    "scripts/producers/market/eu-weekly-oil-bulletin.mjs",
     "scripts/producers/market/ratify-series-items.mjs",
     "scripts/producers/market/refresh-published-price-statistics.mjs",
-    "scripts/producers/market/sbti-target-dashboard-producer.mjs",
     "scripts/producers/regional/bls-oews-producer.mjs",
     "scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs",
     "scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs",
@@ -90,6 +90,15 @@ test("every script producers.yml runs with --apply, under scripts/producers/ or 
 
   const missing = scripts.filter((rel) => !scriptImportsProducerSummary(readFileSync(resolve(FSI_ROOT, rel), "utf8")));
   assert.deepEqual(missing, [], `these --apply-invoked producer scripts do not import producer-summary.mjs: ${missing.join(", ")}`);
+});
+
+test("every producer script the registry runs (scripts/producers/registry/*.json) imports producer-summary.mjs", () => {
+  const entries = loadProducerRegistry();
+  assert.ok(entries.length >= 4, "sanity: the registry holds at least the four moved producers");
+  const missing = entries
+    .map((e) => e.script)
+    .filter((rel) => !scriptImportsProducerSummary(readFileSync(resolve(FSI_ROOT, rel), "utf8")));
+  assert.deepEqual(missing, [], `these registry producer scripts do not import producer-summary.mjs: ${missing.join(", ")}`);
 });
 
 test("ATTACK: findApplyInvokedProducerScripts + scriptImportsProducerSummary catches a script that does not import it", () => {

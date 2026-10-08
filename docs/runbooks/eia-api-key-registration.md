@@ -55,7 +55,8 @@ gh secret list --repo Dwarves77/dotfiles | grep EIA_API_KEY
 Actions tab → **Data producers** workflow → **Run workflow**, with inputs:
 
 - `mode`: `dry`
-- `producer`: `eia-v2-petroleum-spot`
+- `producer`: `registry`
+- `registry_producer`: `eia-v2-petroleum-spot`
 
 Equivalent `gh` CLI dispatch (the exact staged command this runbook promises):
 
@@ -63,7 +64,8 @@ Equivalent `gh` CLI dispatch (the exact staged command this runbook promises):
 gh workflow run producers.yml \
   --repo Dwarves77/dotfiles \
   -f mode=dry \
-  -f producer=eia-v2-petroleum-spot
+  -f producer=registry \
+  -f registry_producer=eia-v2-petroleum-spot
 ```
 
 This step's own comment in `producers.yml` states the expectation plainly: a dry run with the secret
@@ -88,7 +90,8 @@ this diff explicitly).
 gh workflow run producers.yml \
   --repo Dwarves77/dotfiles \
   -f mode=apply \
-  -f producer=eia-v2-petroleum-spot
+  -f producer=registry \
+  -f registry_producer=eia-v2-petroleum-spot
 ```
 
 Two gates must both already be satisfied for this to write anything (see the producer's own header,
