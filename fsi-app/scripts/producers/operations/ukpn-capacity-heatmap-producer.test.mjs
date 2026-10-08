@@ -13,6 +13,9 @@ import {
   SOURCE_URL, PORTAL_HOST, ORIGIN_CLASS,
 } from "./ukpn-capacity-heatmap-producer.mjs";
 import { validateEnvelope } from "../../../src/lib/contracts/envelope.mjs";
+import { entityId } from "../../../src/lib/entities/entity-id.mjs";
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
+import { buildSchema, columnLists } from "../../../supabase/migrations/_lib/fixture-inserts.mjs";
 import { loadProducerRegistry, buildCommands } from "../registry/load-registry.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -365,4 +368,81 @@ test("obs_status L (Missing, not covered) is in the shared vocabulary, and M is 
   assert.equal(OBS_STATUS.L.label, "Missing, not covered");
   assert.equal(OBS_STATUS.L.isPresent, false);
   assert.ok(mapHeatmapFile(FILE).rows.every((r) => r.obs_status !== "M"));
+});
+
+// ---- composition proof (fitness function F27): the whole chain, real modules, no stubs between them ---------------
+// Real parser input (the committed fixture files read from disk by run() itself), the real mapper and planner, the real
+// writeProducerSummary writing into a temp dir, the real entityId for GB, and the rows the guarded insert receives
+// checked against the table as migrations 297 and 379 define it. Only the database is a fake (it records its inserts).
+
+const MIG_DIR = join(HERE, "..", "..", "..", "supabase", "migrations");
+
+function listFromSql(sql, column) {
+  const code = sql.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
+  const m = new RegExp(`(?<!\\w)${column}\\s+IN\\s*\\(([^)]*)\\)`).exec(code);
+  return m ? [...m[1].matchAll(/'([^']*)'/g)].map((x) => x[1]) : null;
+}
+
+test("COMPOSITION: fixture files -> parser -> mapper -> planner -> guarded insert -> producer summary on disk, rows insertable under migration 379", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "ukpn-composition-"));
+  const prev = process.env.PRODUCER_SUMMARY_DIR;
+  process.env.PRODUCER_SUMMARY_DIR = dir;
+  try {
+    const d = fakeDeps();
+    const out = await run({
+      argv: ["node", "x", "--apply", "--meta", join(FX, "ukpn-capacity-heatmap-metadata-sample.json"), "--file", join(FX, "ukpn-capacity-heatmap-sample.json")],
+      env: ARMED, deps: d, ...quiet, // readText defaults to the real fs
+    });
+    assert.equal(out.exitCode, 0);
+    assert.equal(d.log.inserted.length, 128);
+
+    // the real entityId for GB, the one the spine is minted with
+    const gb = entityId("jurisdiction", "GB");
+    assert.equal(GB_JURISDICTION_ID, gb);
+    assert.ok(d.log.inserted.every((r) => r.jurisdiction_id === gb));
+
+    // the summary on disk is what the real writeProducerSummary writes for this run
+    assert.deepEqual(readdirSync(dir), ["ukpn-capacity-heatmap.json"]);
+    const onDisk = JSON.parse(readFileSync(join(dir, "ukpn-capacity-heatmap.json"), "utf8"));
+    assert.equal(onDisk.producer, "ukpn-capacity-heatmap");
+    assert.equal(onDisk.status, "ok");
+    assert.equal(onDisk.rows_changed, 128);
+    assert.equal(onDisk.edges_authored, null);
+    assert.equal(onDisk.counts.created, 128);
+    const ref = mkdtempSync(join(tmpdir(), "ukpn-composition-ref-"));
+    process.env.PRODUCER_SUMMARY_DIR = ref;
+    const refPath = writeProducerSummary({ producer: "ukpn-capacity-heatmap", status: "ok", rows_changed: 128, edges_authored: null, counts: onDisk.counts });
+    const expected = JSON.parse(readFileSync(refPath, "utf8"));
+    for (const k of ["written_at"]) { delete expected[k]; delete onDisk[k]; }
+    assert.deepEqual(onDisk, expected);
+    rmSync(ref, { recursive: true, force: true });
+
+    // every inserted row is insertable under migration 297 + 379 (rebuilt from the tree, 379 included)
+    const t = buildSchema(MIG_DIR, { before: 380 }).tables.get("grid_connection_queues");
+    const sql379 = readFileSync(join(MIG_DIR, "379_grid_connection_queues_substation_evidence.sql"), "utf8");
+    const rag = listFromSql(sql379, "demand_constraint");
+    const origins = listFromSql(sql379, "origin_class");
+    const derivations = listFromSql(sql379, "derivation");
+    const obs = columnLists(buildSchema(MIG_DIR, { before: 380 }), "grid_connection_queues", "obs_status")[0].values;
+    for (const r of d.log.inserted) {
+      for (const k of Object.keys(r)) assert.ok(t.columns.has(k), `${k} is a column of grid_connection_queues`);
+      for (const col of t.columns.values()) {
+        if (col.notNull && !col.hasDefault) assert.ok(r[col.name] != null, `${col.name} is NOT NULL with no default and is written`);
+      }
+      assert.ok(rag.includes(r.demand_constraint));
+      assert.ok(origins.includes(r.origin_class));
+      assert.ok(derivations.includes(r.derivation));
+      assert.ok(obs.has(r.obs_status));
+      assert.ok(r.capacity_band_mw != null || r.substation_ref != null, "379 CHECK: a band or a substation");
+      assert.ok(r.demand_firm_mw >= 0, "379 CHECK: firm capacity is not negative");
+      assert.ok(r.source_id && r.origin_class && r.derivation, "379 CHECK: a demand figure carries its envelope");
+    }
+    const keys = new Set(d.log.inserted.map((r) => `${r.dso_name}|${r.substation_ref}|${r.as_of}`));
+    assert.equal(keys.size, d.log.inserted.length, "379 UNIQUE (dso_name, substation_ref, as_of) holds across the batch");
+    // the envelopes the mapper built for the same rows are valid
+    for (const env of mapHeatmapFile(FILE, { sourceId: SRC_ID }).envelopes.values()) assert.deepEqual(validateEnvelope(env), []);
+  } finally {
+    if (prev === undefined) delete process.env.PRODUCER_SUMMARY_DIR; else process.env.PRODUCER_SUMMARY_DIR = prev;
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

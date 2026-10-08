@@ -34,6 +34,10 @@ Reused: the ecb-fx three-gate shape (ENABLED, kill switch plus credentials plus 
 - Migration tests: 16 tests, the self-check INSERTs checked by the shared `_lib/fixture-inserts.mjs` helper (SEC-3b-F, on master after the rebase) against the tree-rebuilt definitions; four mutations of the SQL (trigger argument dropped, vocabulary list changed, a fixture INSERT losing dso_name, the nonnegative CHECK widened to the headroom column) each turned a named test red; restored, all green. The helper cannot see CHECKs added inside a DO block, so the demand_constraint and envelope CHECKs are proven by this file's text assertions and by the self-check attacks, not by the helper.
 - Existing tests that the change made red and are now green: `load-registry.test.mjs` (exact four entries, superset now), `questions-on-change.test.mjs` (new emitting table, mapping added), `build-applied-map.test.mjs` (two tests, map entry added).
 
+## F27 composition proof (CI failure on the first push, fixed)
+
+CI's Fitness job failed on F27 (`producer-seam-proof`): no single proof file imported all three first-party seams of the producer (`producer-summary.mjs`, `envelope.mjs`, `entity-id.mjs`). Reproduced locally with `node fsi-app/.discipline/fitness/runner.mjs --function=F27` (1 violation), then fixed in the producer test only: one real-chain test runs the committed fixture files through `run()` (real fs read, real parser, mapper and planner), with the real `writeProducerSummary` writing into a temp dir (asserted on disk and compared with a second real `writeProducerSummary` call), the real `entityId("jurisdiction","GB")`, and every row the guarded insert receives checked against the table as migrations 297 and 379 define it (columns exist, NOT NULL without default written, the 379 CHECK lists, band-or-substation, firm >= 0, envelope, unique key across the batch). F27 now passes locally (0 violations); a planted unknown column in the mapper turns the composition test red.
+
 ## Fixture dry-run output
 
 ```
