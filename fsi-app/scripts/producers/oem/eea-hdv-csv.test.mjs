@@ -74,6 +74,9 @@ test("aggregateHdvCsv: the real sample is 71 matched unique vehicles of one manu
   assert.equal(g.ms_electric, "No");
   assert.equal(g.units, 71);
   assert.deepEqual(g.countries, ["AT", "BE", "DE", "FR", "IT", "NL", "RO"]);
+  assert.deepEqual(Object.keys(g.units_by_year).sort(), ["2022", "2023"], "registrations are counted per registration year");
+  assert.equal(Object.values(g.units_by_year).reduce((a, b) => a + b, 0), 71);
+  assert.equal(g.undated_units, 0);
   assert.match(g.first_registration, /^2022\d{4}$/);
   assert.match(g.last_registration, /^2023\d{4}$/);
   assert.ok(g.first_registration <= g.last_registration);
@@ -103,6 +106,8 @@ test("aggregateHdvCsv: groups by every powertrain column, sums units, and exclud
   assert.equal(diesel.units, 3);
   assert.equal(diesel.first_registration, "20220101");
   assert.equal(diesel.last_registration, "20230630", "an unparseable date is ignored for the range, the unit still counts");
+  assert.deepEqual(diesel.units_by_year, { 2022: 1, 2023: 1 });
+  assert.equal(diesel.undated_units, 1, "a unit with no parseable date counts in units and in no year");
   assert.equal(out.groups.find((g) => g.engine_fuel === "NG PI").units, 1);
 });
 

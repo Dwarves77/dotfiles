@@ -25,7 +25,7 @@ const SOURCE_ID = "00000000-0000-4000-8000-0000000000e1";
 const ENTITIES = [{ entity_id: "cl:organisation:00000000000000a1", canonical_name: "acme-trucks.example" }];
 const SYNTH = validateClassification({
   zev_tech_rules: [{ when: { ms_fuel: "SYNTH-BATTERY" }, tech_category: "heavy_battery" }],
-  stage_rules: [{ min_units: 1, stage: "pilot_demonstration" }, { min_units: 3, stage: "small_batch_fleet" }],
+  stage_rules: [{ min_units: 1, stage: "small_batch_fleet" }, { min_units: 1000, stage: "mass_series_production" }],
   manufacturer_aliases: { "Acme Trucks AG": "acme-trucks.example" },
 });
 
@@ -105,7 +105,7 @@ test("fetchHdvCsv: a non-2xx answer or a thrown fetch is a NetworkError naming t
 const ROW = (o = {}) => ({
   manufacturer_id: "cl:organisation:00000000000000a1", tech_category: "heavy_battery", commercial_stage: "small_batch_fleet",
   target_year: null, energy_density_wh_kg: null, density_basis: null, c_rate_max: null, usable_kwh: null, announced_at: null,
-  source_id: SOURCE_ID, origin_class: "official", derivation: "observed", confidence_admiralty: null, ...o,
+  source_id: SOURCE_ID, origin_class: "official", derivation: "calculated", confidence_admiralty: null, ...o,
 });
 
 test("planOemUpsert: creates a missing (manufacturer, technology, source) row, leaves an identical one, patches only the covered columns that differ", () => {
@@ -155,7 +155,7 @@ test("apply with all gates open: one guarded insert per planned row, each with i
   assert.equal(calls.inserts.length, 1);
   const { table, row, opts } = calls.inserts[0];
   assert.equal(table, "oem_tech_roadmaps");
-  assert.equal(row.commercial_stage, "small_batch_fleet", "4 units reach the 3-unit rule");
+  assert.equal(row.commercial_stage, "small_batch_fleet", "4 units in 2023 are 1 to 999");
   assert.equal(row.source_id, SOURCE_ID);
   assert.match(opts.cite.skill, /s8e1|eea-hdv/);
   assert.match(opts.cite.reason, /CC BY 4\.0/);
@@ -172,14 +172,14 @@ test("every row an apply writes carries exactly the table's 13 insertable column
   assert.ok(ORIGIN_CLASSES.includes(row.origin_class));
   assert.ok(DERIVATIONS.includes(row.derivation));
   assert.equal(row.origin_class, "official");
-  assert.equal(row.derivation, "observed");
+  assert.equal(row.derivation, "calculated");
   assert.ok(["heavy_battery", "megawatt_charging", "hydrogen_fcell", "ammonia_engine", "methanol_dualfuel", "saf_refinery", "e_axle", "reefer_electrification"].includes(row.tech_category));
   assert.ok(["announced", "pilot_demonstration", "small_batch_fleet", "mass_series_production"].includes(row.commercial_stage));
   for (const c of ["target_year", "energy_density_wh_kg", "density_basis", "c_rate_max", "usable_kwh", "announced_at", "confidence_admiralty"]) assert.equal(row[c], null, c);
 });
 
 test("a second apply over unchanged data writes nothing (idempotent)", async () => {
-  const { deps, calls } = fakeDeps({ readExisting: async () => [{ roadmap_id: "r1", manufacturer_id: "cl:organisation:00000000000000a1", tech_category: "heavy_battery", commercial_stage: "small_batch_fleet", source_id: SOURCE_ID, origin_class: "official", derivation: "observed", confidence_admiralty: null }] });
+  const { deps, calls } = fakeDeps({ readExisting: async () => [{ roadmap_id: "r1", manufacturer_id: "cl:organisation:00000000000000a1", tech_category: "heavy_battery", commercial_stage: "small_batch_fleet", source_id: SOURCE_ID, origin_class: "official", derivation: "calculated", confidence_admiralty: null }] });
   const out = await runProducer({ mode: "apply", chunks: [synthCsv(4)], classification: SYNTH, enabled: true, killSwitchOn: true, hasCreds: true, deps });
   assert.equal(out.counts.written, 0);
   assert.equal(out.counts.unchanged, 1);
@@ -187,7 +187,7 @@ test("a second apply over unchanged data writes nothing (idempotent)", async () 
 });
 
 test("apply with a changed stage updates through the guarded writer with the patch only", async () => {
-  const { deps, calls } = fakeDeps({ readExisting: async () => [{ roadmap_id: "r1", manufacturer_id: "cl:organisation:00000000000000a1", tech_category: "heavy_battery", commercial_stage: "announced", source_id: SOURCE_ID, origin_class: "official", derivation: "observed", confidence_admiralty: null }] });
+  const { deps, calls } = fakeDeps({ readExisting: async () => [{ roadmap_id: "r1", manufacturer_id: "cl:organisation:00000000000000a1", tech_category: "heavy_battery", commercial_stage: "mass_series_production", source_id: SOURCE_ID, origin_class: "official", derivation: "calculated", confidence_admiralty: null }] });
   const out = await runProducer({ mode: "apply", chunks: [synthCsv(4)], classification: SYNTH, enabled: true, killSwitchOn: true, hasCreds: true, deps });
   assert.equal(out.counts.updated, 1);
   assert.deepEqual(calls.updates[0].patch, { commercial_stage: "small_batch_fleet" });

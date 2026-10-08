@@ -6,21 +6,22 @@
 //   manufacturer_id    the manufacturer, resolved to an EXISTING organisation entity (never minted)
 //   tech_category      from the powertrain flags and fuel columns, through the rules in eea-hdv-classification.json
 //   commercial_stage   from the number of registered vehicles, through the stage rules in the same file
-//   source_id, origin_class ('official': a public body), derivation ('observed': a registered count), and
+//   source_id, origin_class ('official': a public body), derivation ('calculated': the stage is a classification computed from
+//   observed registration counts, coordinator ruling 2026-10-08), and
 //   confidence_admiralty, left NULL: the PROD-SRC register carries no rating note for this dataset, and spec 09's
 //   "typically B2/C2" describes vendor claims, which a registration count is not (rule 2: no invented rating).
 // UNCOVERED, left NULL and never estimated (spec 09 section 5 item 3): target_year, energy_density_wh_kg,
 // density_basis, c_rate_max, usable_kwh, announced_at. The extract holds no pack data, no target and no announcement
 // date; announced_at is NOT NULL in migration 296 and is made nullable by migration 380 for exactly this reason.
 //
-// WHAT THE SHIPPED CONFIG DOES NOT CONTAIN, AND WHY. The committed real sample proves only conventional rows (one
-// manufacturer, zero-emission flag "No", fuel "Diesel CI" / "Diesel"). The values the extract uses for a
-// zero-emission vehicle's fuel columns, the unit counts that separate the four commercial stages, and the entity
-// names the manufacturer strings map to are not in the sample, so none is written down: eea-hdv-classification.json
-// ships with empty rules, every zero-emission group is reported as residue "zero_emission_unmapped", every
-// manufacturer that would need an alias is listed by name in the residue, and the file validates strictly (closed
-// category and stage sets, closed `when` keys) so a ruling lands as data in one place. Residue is recorded with its
-// reason and blocks nothing; it is the work list.
+// WHAT THE SHIPPED CONFIG CONTAINS, AND WHAT IT DOES NOT. Stage rules: the coordinator ruling of 2026-10-08 (1 to 999
+// registered vehicles in a year is small_batch_fleet, 1000 or more mass_series_production; registrations never evidence
+// announced or pilot_demonstration). Not contained: the values the extract uses in its fuel columns for a zero-emission
+// vehicle (the EEA table definition lists field names and datatypes only, no values, and the committed sample holds no
+// zero-emission vehicle), so zev_tech_rules is empty and every zero-emission group is residue "zero_emission_unmapped";
+// and the entity each manufacturer string maps to (population time, through the entity alias table), so unresolved
+// manufacturers are listed by name in the residue. Residue is recorded with its reason and blocks nothing; it is the
+// work list. The file validates strictly (closed category and stage sets, closed `when` keys).
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -157,8 +158,9 @@ export function mapGroupsToRows(groups, { cfg, entities, sourceId }) {
     }
 
     const key = `${manufacturerId}|${cls.tech_category}`;
-    const m = merged.get(key) ?? { manufacturerId, tech: cls.tech_category, units: 0, groups: 0, first: null, last: null, countries: new Set() };
+    const m = merged.get(key) ?? { manufacturerId, tech: cls.tech_category, units: 0, groups: 0, byYear: {}, first: null, last: null, countries: new Set() };
     m.units += g.units;
+    for (const [y, n] of Object.entries(g.units_by_year ?? {})) m.byYear[y] = (m.byYear[y] ?? 0) + n;
     m.groups += 1;
     if (g.first_registration && (m.first === null || g.first_registration < m.first)) m.first = g.first_registration;
     if (g.last_registration && (m.last === null || g.last_registration > m.last)) m.last = g.last_registration;
@@ -169,9 +171,14 @@ export function mapGroupsToRows(groups, { cfg, entities, sourceId }) {
   const rows = [];
   const evidence = [];
   for (const m of [...merged.values()].sort((a, b) => a.manufacturerId.localeCompare(b.manufacturerId) || a.tech.localeCompare(b.tech))) {
-    const stage = stageFor(m.units, cfg);
+    // The ruling: registrations evidence availability per manufacturer x technology x year. The row is the current
+    // state, so the stage is read from the latest registration year that has registrations.
+    const years = Object.keys(m.byYear).sort();
+    const latestYear = years.length ? years[years.length - 1] : null;
+    const stage = latestYear === null ? null : stageFor(m.byYear[latestYear], cfg);
     if (stage === null) {
-      const r = (residue.byReason.no_stage_rule ??= { groups: 0, units: 0 });
+      const reason = latestYear === null ? "no_registration_year" : "no_stage_rule";
+      const r = (residue.byReason[reason] ??= { groups: 0, units: 0 });
       r.groups += m.groups;
       r.units += m.units;
       continue;
@@ -188,10 +195,10 @@ export function mapGroupsToRows(groups, { cfg, entities, sourceId }) {
       announced_at: null,
       source_id: sourceId,
       origin_class: "official",
-      derivation: "observed",
+      derivation: "calculated",
       confidence_admiralty: null,
     });
-    evidence.push({ units: m.units, first_registration: m.first, last_registration: m.last, countries: [...m.countries].sort() });
+    evidence.push({ units: m.units, stage_year: latestYear, stage_year_units: m.byYear[latestYear], first_registration: m.first, last_registration: m.last, countries: [...m.countries].sort() });
   }
 
   residue.unresolvedManufacturers = [...unresolved.entries()].map(([manufacturer, units]) => ({ manufacturer, units })).sort((a, b) => b.units - a.units || a.manufacturer.localeCompare(b.manufacturer));

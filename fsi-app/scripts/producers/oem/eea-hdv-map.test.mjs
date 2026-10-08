@@ -22,17 +22,17 @@ const SYNTH = validateClassification({
     { when: { ms_fuel: "SYNTH-BATTERY" }, tech_category: "heavy_battery" },
     { when: { ms_fuel: "SYNTH-H2", ms_electric: "Yes" }, tech_category: "hydrogen_fcell" },
   ],
+  // The coordinator's ruling of 2026-10-08, as the shipped config carries it.
   stage_rules: [
+    { min_units: 1, stage: "small_batch_fleet" },
     { min_units: 1000, stage: "mass_series_production" },
-    { min_units: 10, stage: "small_batch_fleet" },
-    { min_units: 1, stage: "pilot_demonstration" },
   ],
   manufacturer_aliases: { "Acme Trucks AG": "acme-trucks.example" },
 });
 
 const group = (o = {}) => ({
   manufacturer: "Acme Trucks AG", zev: "Yes", hybrid: "No", dual_fuel: "No", engine_fuel: "", ms_fuel: "SYNTH-BATTERY",
-  ms_electric: "Yes", units: 12, first_registration: "20220301", last_registration: "20230915", countries: ["DE", "FR"], ...o,
+  ms_electric: "Yes", units: 12, units_by_year: { 2023: 12 }, undated_units: 0, first_registration: "20220301", last_registration: "20230915", countries: ["DE", "FR"], ...o,
 });
 const ENTITIES = [
   { entity_id: "cl:organisation:00000000000000a1", canonical_name: "acme-trucks.example" },
@@ -49,10 +49,10 @@ test("the table's column list is the 13 insertable columns of migration 296; cov
   assert.deepEqual([...UNCOVERED_COLUMNS].sort(), ["announced_at", "c_rate_max", "density_basis", "energy_density_wh_kg", "target_year", "usable_kwh"]);
 });
 
-test("the shipped config validates, and carries no zero-emission rule, no stage rule and no alias (nothing unevidenced is asserted)", () => {
+test("the shipped config validates: the ruled stage thresholds, and no zero-emission rule and no alias (nothing unevidenced is asserted)", () => {
   const cfg = loadClassification();
   assert.deepEqual(cfg.zev_tech_rules, []);
-  assert.deepEqual(cfg.stage_rules, []);
+  assert.deepEqual(cfg.stage_rules.map((r) => [r.min_units, r.stage]), [[1000, "mass_series_production"], [1, "small_batch_fleet"]]);
   assert.deepEqual(cfg.manufacturer_aliases, {});
 });
 
@@ -71,13 +71,16 @@ test("classifyGroup: a zero-emission group takes the first rule whose every `whe
   assert.deepEqual(classifyGroup(group(), loadClassification()), { residue: "zero_emission_unmapped" }, "the shipped config maps nothing");
 });
 
-test("stageFor: the highest min_units not above the count wins; no rule or a count below every rule gives null", () => {
+test("stageFor: 1 to 999 registered vehicles is small_batch_fleet, 1000 or more mass_series_production, 0 or no rule is null (the ruling)", () => {
   assert.equal(stageFor(5000, SYNTH), "mass_series_production");
+  assert.equal(stageFor(1000, SYNTH), "mass_series_production");
   assert.equal(stageFor(999, SYNTH), "small_batch_fleet");
-  assert.equal(stageFor(10, SYNTH), "small_batch_fleet");
-  assert.equal(stageFor(9, SYNTH), "pilot_demonstration");
+  assert.equal(stageFor(1, SYNTH), "small_batch_fleet");
   assert.equal(stageFor(0, SYNTH), null);
-  assert.equal(stageFor(50, loadClassification()), null);
+  assert.equal(stageFor(1000, loadClassification()), "mass_series_production", "the shipped config carries the same rule");
+  assert.equal(stageFor(1, loadClassification()), "small_batch_fleet");
+  assert.equal(stageFor(0, loadClassification()), null);
+  assert.equal(stageFor(50, validateClassification({})), null, "an empty config gives no stage");
 });
 
 test("mapGroupsToRows: a zero-emission group becomes one row; every covered column filled, every uncovered column NULL, envelope complete", () => {
@@ -90,17 +93,31 @@ test("mapGroupsToRows: a zero-emission group becomes one row; every covered colu
   assert.equal(r.commercial_stage, "small_batch_fleet");
   assert.equal(r.source_id, SOURCE);
   assert.equal(r.origin_class, "official");
-  assert.equal(r.derivation, "observed");
+  assert.equal(r.derivation, "calculated", "the stage is a classification computed from observed counts");
   assert.equal(r.confidence_admiralty, null, "the register carries no confidence note for this dataset, so none is invented");
   for (const c of UNCOVERED_COLUMNS) assert.equal(r[c], null, `${c} stays NULL, never estimated`);
   assert.deepEqual(residue.byReason, {});
 });
 
-test("mapGroupsToRows: groups of one manufacturer and one technology are summed before the stage rule is applied", () => {
-  const groups = [group({ units: 6, ms_fuel: "SYNTH-BATTERY" }), group({ units: 7, ms_fuel: "SYNTH-BATTERY", ms_electric: "No" })];
+test("mapGroupsToRows: groups of one manufacturer and one technology are summed per year before the stage rule is applied", () => {
+  const groups = [
+    group({ units: 600, units_by_year: { 2023: 600 }, ms_fuel: "SYNTH-BATTERY" }),
+    group({ units: 500, units_by_year: { 2023: 500 }, ms_fuel: "SYNTH-BATTERY", ms_electric: "No" }),
+  ];
   const { rows } = mapGroupsToRows(groups, { cfg: SYNTH, entities: ENTITIES, sourceId: SOURCE });
   assert.equal(rows.length, 1);
-  assert.equal(rows[0].commercial_stage, "small_batch_fleet", "6 + 7 = 13 units, above the 10-unit rule neither group reaches alone");
+  assert.equal(rows[0].commercial_stage, "mass_series_production", "600 + 500 = 1100 in 2023, above the 1000 rule neither group reaches alone");
+});
+
+test("mapGroupsToRows: the stage is read from the latest registration year, not the total across years", () => {
+  const { rows } = mapGroupsToRows([group({ units: 2005, units_by_year: { 2022: 2000, 2023: 5 } })], { cfg: SYNTH, entities: ENTITIES, sourceId: SOURCE });
+  assert.equal(rows[0].commercial_stage, "small_batch_fleet", "2023 has 5 registrations; the 2000 of 2022 do not make the current stage");
+});
+
+test("mapGroupsToRows: units with no registration year give no stage evidence (residue no_registration_year), never a guessed year", () => {
+  const { rows, residue } = mapGroupsToRows([group({ units: 3, units_by_year: {}, undated_units: 3 })], { cfg: SYNTH, entities: ENTITIES, sourceId: SOURCE });
+  assert.equal(rows.length, 0);
+  assert.deepEqual(residue.byReason, { no_registration_year: { groups: 1, units: 3 } });
 });
 
 test("mapGroupsToRows: residue is counted by reason with groups and units, and unresolved manufacturers are listed by name", () => {

@@ -155,7 +155,7 @@ const DATE_RE = /^(19|20)\d{6}$/;
 
 /**
  * Fold the extract into groups: one per distinct (manufacturer, zero-emission flag, hybrid flag, dual-fuel flag,
- * engine fuel, registration fuel, electric flag), with the number of vehicles, the first and last registration date
+ * engine fuel, registration fuel, electric flag), with the number of vehicles, the vehicles per registration year (units_by_year; undated_units counts those with no parseable date), the first and last registration date
  * seen (YYYYMMDD strings, null when none parsed) and the registration countries.
  *
  * @param {AsyncIterable<string|Uint8Array>|Iterable<string|Uint8Array>} chunks
@@ -202,14 +202,18 @@ export async function aggregateHdvCsv(chunks, { maxBytes } = {}) {
     const key = Object.values(g).join("\u0000");
     let agg = groups.get(key);
     if (!agg) {
-      agg = { ...g, units: 0, first_registration: null, last_registration: null, countries: new Set() };
+      agg = { ...g, units: 0, units_by_year: {}, undated_units: 0, first_registration: null, last_registration: null, countries: new Set() };
       groups.set(key, agg);
     }
     agg.units += 1;
     const date = rec[col.MS_RegistrationDateClean_YYYYMMDD];
     if (DATE_RE.test(date)) {
+      const year = date.slice(0, 4);
+      agg.units_by_year[year] = (agg.units_by_year[year] ?? 0) + 1;
       if (agg.first_registration === null || date < agg.first_registration) agg.first_registration = date;
       if (agg.last_registration === null || date > agg.last_registration) agg.last_registration = date;
+    } else {
+      agg.undated_units += 1;
     }
     const country = rec[col.MS_RegistrationCountry];
     if (country) agg.countries.add(country);

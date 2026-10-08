@@ -24,6 +24,7 @@
 //   derived_values           any                             value_revised
 //   estimated_values         any                             value_revised
 //   statutory_computations   any                             obligation_amended
+//   oem_tech_roadmaps        any                             value_revised   (lane S8-E1, migration 380)
 //
 // signposts maps to signpost_fired (lane L4-D, fireSignpost's own outbox row). confidence_decayed and
 // source_frozen are reserved: no table that emits outbox events
@@ -66,6 +67,8 @@ export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
   statutory_computations: Object.freeze({ type: "obligation_amended", byKind: Object.freeze({}), label: "a statutory computation" }),
   // Lane L4-D: a fired signpost writes its own outbox row (signpost-watch.ts fireSignpost), with entity_id the
   // WATCHED entity, so the items linked to that entity are asked what the firing means. Not trigger-attached.
+  // Lane S8-E1 (migration 380): an OEM roadmap row's outbox event carries the manufacturer as its entity.
+  oem_tech_roadmaps: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "an OEM equipment roadmap row" }),
   signposts: Object.freeze({ type: "signpost_fired", byKind: Object.freeze({}), label: "a signpost on this entity" }),
 });
 
