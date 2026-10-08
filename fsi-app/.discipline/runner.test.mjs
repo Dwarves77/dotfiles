@@ -131,7 +131,7 @@ function commitMsg(dir, env = {}) {
   writeFileSync(msg, 'chore: touch many files');
   const started = process.hrtime.bigint();
   const r = spawnSync('node', [RUNNER, '--mode=commit-msg', `--message-file=${msg}`], {
-    cwd: dir, encoding: 'utf-8', env: { ...process.env, ...env },
+    cwd: dir, encoding: 'utf-8', env: { ...process.env, DISCIPLINE_FIRING_LOG: 'off', ...env },
   });
   const ms = Number(process.hrtime.bigint() - started) / 1e6;
   return { code: r.status, out: (r.stdout || '') + (r.stderr || ''), ms };
