@@ -88,10 +88,15 @@
   ruling's rule 7 (company, tier 7), BEFORE consulting a verdict, and rule 7 places every host given a non-empty name. Probe
   results: name null returns the worklist (tier null); "NESO", "Carbon Intensity API", "National Energy System Operator",
   "National Energy System Operator (NESO) Carbon Intensity API" and "Carbon Intensity" each return company, tier 7. FIXED in the
-  shared function and the shared rating step (above). STILL OPEN, two callers outside the grant that keep their own two-step
-  order (class tier across names first, verdict only when that is null): `scripts/maintenance/resolve-provisional-sources.mjs`
-  (`resolveSignals`, rule b2) and `scripts/maintenance/enumerate-unclassified-hosts.mjs` (`collectUnresolvedRows`). Until they
-  are changed, a source-resolution run leaves a NAMED provisional host at tier 7 even with a verdict for it.
+  shared function and the shared rating step (above), and then in the two callers that kept their own two-step order
+  (class tier across names first, verdict only when that was null): `resolve-provisional-sources.mjs` (`resolveSignals`,
+  rule b2) and `enumerate-unclassified-hosts.mjs` (`collectUnresolvedRows`). Both now place a host through
+  `placeHostWithVerdicts` / `classTierForHostWithVerdicts` in `host-authority.ts`, the one precedence (never-register hosts,
+  curated host-only rules, verdict, residue ruling over the names); `classTierForHostWithVerdicts` is the tier of
+  `placeHostWithVerdicts`, which also reports which layer answered so the resolver can keep labelling rule b versus b2.
+  Neither caller keeps an ordering of its own (a structural test in each file's test fails if a private verdict lookup returns).
+  Red-then-green: 3 tests failed before (the six-name probe on the resolver and on the enumerate step, and the structural
+  test), 65 of 65 after; the wider maintenance, research and turns suites pass (1753 tests).
 - [CONFIRMED] `registerSource` dedups by institution key and does not update the tier of an existing row, so if a tier 7 `sources`
   row for `carbonintensity.org.uk` already exists in production, the producer's first apply reuses it at tier 7. Read-only SQL
   before the first apply: `select id, base_tier from sources where url like '%carbonintensity.org.uk%'`.
@@ -119,7 +124,6 @@
 - `OperationsDimension` consumers beyond the three granted files were not audited for a six-value assumption outside
   `src/components/operations` and `operations-matrix.ts`; the grep over `src` for the six names found no other list.
 - `docs/inventories/db-check-constraints.json` (source: live) updates when 378 is applied and the inventory re-run.
-- The two callers that still order the residue rule before a verdict (see Findings) are not changed.
 - The NESO About page and the API Terms of Use were not fetched by this lane; the ownership claim (the UK government completed the purchase of the Electricity System Operator on 2024-10-01) is the coordinator's ruling.
 - The stats response does not say whether `average` is over forecast or actual half-hours; not determined.
 

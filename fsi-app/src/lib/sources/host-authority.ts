@@ -615,17 +615,37 @@ export function verdictPlacementForHost(
  *  for a named host was unreachable [CONFIRMED, six-name probe on carbonintensity.org.uk: no name returns the
  *  worklist, and "NESO", "Carbon Intensity API", "National Energy System Operator", "National Energy System
  *  Operator (NESO) Carbon Intensity API" and "Carbon Intensity" all return company 7]. */
+export interface HostPlacement {
+  tier: number | null;
+  /** which layer of the precedence answered: the curated host-only rules, a committed verdict, the residue
+   *  ruling over the stored name(s), or null when nothing placed the host. */
+  via: "class" | "verdict" | "residue" | null;
+  /** present only when via is "verdict". */
+  verdict: { tier: number; class: string; batch: string | null } | null;
+}
+
+/** The precedence above, returning WHICH layer placed the host so a caller that reports the layer (the
+ *  resolver's rule b versus rule b2) needs no ordering of its own. */
+export function placeHostWithVerdicts(
+  host: string | null | undefined,
+  names: ReadonlyArray<string | null | undefined> | null | undefined,
+  verdicts: ReadonlyMap<string, HostVerdictRef> | null | undefined,
+): HostPlacement {
+  if (permanentlyUnregisteredClass(host) != null) return { tier: null, via: null, verdict: null };
+  const hostOnly = preResidueTierForHost(host);
+  if (hostOnly != null) return { tier: hostOnly, via: "class", verdict: null };
+  const verdict = verdictPlacementForHost(host, verdicts);
+  if (verdict != null) return { tier: verdict.tier, via: "verdict", verdict };
+  const residue = classTierForHostAcrossNames(host, names);
+  return residue != null ? { tier: residue, via: "residue", verdict: null } : { tier: null, via: null, verdict: null };
+}
+
 export function classTierForHostWithVerdicts(
   host: string | null | undefined,
   names: ReadonlyArray<string | null | undefined> | null | undefined,
   verdicts: ReadonlyMap<string, HostVerdictRef> | null | undefined,
 ): number | null {
-  if (permanentlyUnregisteredClass(host) != null) return null;
-  const hostOnly = preResidueTierForHost(host);
-  if (hostOnly != null) return hostOnly;
-  const verdict = verdictPlacementForHost(host, verdicts);
-  if (verdict != null) return verdict.tier;
-  return classTierForHostAcrossNames(host, names);
+  return placeHostWithVerdicts(host, names, verdicts).tier;
 }
 
 export type PoolHostRegisterAction = "inherit" | "register" | "worklist";
