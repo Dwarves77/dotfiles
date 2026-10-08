@@ -273,6 +273,10 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [wave1-step1-verification](./audits/wave1-step1-verification.md)  -  Wave 1a Step 1  -  Post-merge verification checklist
 - [wave1-track1-summary](./audits/wave1-track1-summary.md)  -  Wave 1a Track 1 (Gate 4) Discovery Summary
 - [wave1b-stub-quality-investigation-2026-05-11](./audits/wave1b-stub-quality-investigation-2026-05-11.md)  -  Wave 1b stub quality investigation, 2026-05-11
+- [aud-at1-rls-grants-attacked-2026-10-08](./audits/aud-at1-rls-grants-attacked-2026-10-08.md)  -  Attack audit (SEC-7): RLS and database grants subsystem tested for common attack paths; landing note cites PR 1037
+- [aud-at3-gates-attacked-2026-10-08](./audits/aud-at3-gates-attacked-2026-10-08.md)  -  Attack audit (GATE-7): Commit validation rules and pre-commit/pre-push hooks tested for honest attack forms; landing note cites PR 1040
+- [aud-at4-gates-attacked-2026-10-08](./audits/aud-at4-gates-attacked-2026-10-08.md)  -  Attack audit (GATE-8): Fitness-gate functions and governance enforcement tested against attack patterns; landing note cites PR 1039
+- [aud-at5-gates-attacked-2026-10-08](./audits/aud-at5-gates-attacked-2026-10-08.md)  -  Attack audit (GATE-9): CI workflow and build chain hand-off points tested for attack vectors; landing note cites PR 1042
 
 ## ops
 

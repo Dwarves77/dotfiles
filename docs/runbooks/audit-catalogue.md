@@ -111,14 +111,14 @@ The eighteen subsystems are the coordinator's list. One extension, stated once: 
 
 Cell notation. `YYYY-MM-DD ID` means that audit ran this lens on this subsystem by the lens's method; the ID resolves in the index below. A leading `~` marks a partial run: the method differs from the lens's method, the evidence is a lower bound, or only part of the subsystem was covered. `-` marks an empty cell, which is an owed audit. `n/a` marks a lens that does not apply to the subsystem (reasons are in section 1). Where one cell lists several audits, the latest is first.
 
-Counts, computed mechanically from the tables in 3a and 3b (18 subsystems x 10 lenses = 180 cells): **89 filled, 34 partial only, 44 empty (owed), 13 not applicable.** Of the 167 applicable cells, 44 are empty and 34 more hold a partial entry only, so 78 cells still owe an audit. The DOCS-3 refresh moved three ATTACKED cells (rows 11, 12 and 13) from empty to partial only; no cell became filled.
+Counts, computed mechanically from the tables in 3a and 3b (18 subsystems x 10 lenses = 180 cells): **89 filled, 38 partial only, 40 empty (owed), 13 not applicable.** Of the 167 applicable cells, 40 are empty and 38 more hold a partial entry only, so 78 cells still owe an audit. The DOCS-4 refresh landed four ATTACKED registers (AT1, AT3, AT4, AT5), moving four cells from empty to partial only.
 
 | Lens | Filled | Partial only | Empty | n/a |
 |---|---|---|---|---|
 | EXISTS (EX) | 18 | 0 | 0 | 0 |
 | RUNS (RU) | 12 | 3 | 3 | 0 |
 | CALLED (CA) | 15 | 0 | 3 | 0 |
-| ATTACKED (AT) | 0 | 4 | 12 | 2 |
+| ATTACKED (AT) | 0 | 8 | 8 | 2 |
 | COSTS (CO) | 9 | 4 | 5 | 0 |
 | FIRED-TRUE (FT) | 8 | 1 | 0 | 9 |
 | MODE (MO) | 7 | 1 | 8 | 2 |
@@ -134,17 +134,17 @@ Lens columns: EX = EXISTS, RU = RUNS, CA = CALLED, AT = ATTACKED, CO = COSTS, FT
 
 | # | Subsystem | EX | RU | CA | AT | CO |
 |---|---|---|---|---|---|---|
-| 1 | Commit rules | 2026-10-08 GA; 2026-09-30 A6B | 2026-10-08 GA | - | - | 2026-10-08 GA |
-| 2 | Hooks | 2026-10-08 GA; 2026-09-30 A10; 2026-09-30 A6B | ~2026-10-08 GA | 2026-10-08 GA | - | 2026-10-08 GA |
+| 1 | Commit rules | 2026-10-08 GA; 2026-09-30 A6B | 2026-10-08 GA | - | 2026-10-08 AT3 | 2026-10-08 GA |
+| 2 | Hooks | 2026-10-08 GA; 2026-09-30 A10; 2026-09-30 A6B | ~2026-10-08 GA | 2026-10-08 GA | 2026-10-08 AT3 | 2026-10-08 GA |
 | 3 | PreToolUse gates | 2026-10-08 GA; 2026-09-30 A6B | 2026-10-08 GA | 2026-10-08 GA | ~2026-10-08 GA | 2026-10-08 GA |
-| 4 | Fitness functions | 2026-10-08 GB; 2026-09-30 A6B; 2026-08-31 FRA | 2026-10-08 DC; 2026-10-08 GB; 2026-09-30 A9 | 2026-09-07 WV52; 2026-08-09 GWT | - | 2026-10-08 GB |
-| 5 | Governance gates | 2026-10-08 GB; 2026-09-30 A6B; 2026-08-31 FRA | 2026-10-08 GB; 2026-09-30 A9; ~2026-09-18 STG; 2026-08-09 GWT | 2026-10-08 GB; ~2026-09-18 STG; 2026-08-09 GWT | - | 2026-10-08 GB |
+| 4 | Fitness functions | 2026-10-08 GB; 2026-09-30 A6B; 2026-08-31 FRA | 2026-10-08 DC; 2026-10-08 GB; 2026-09-30 A9 | 2026-09-07 WV52; 2026-08-09 GWT | 2026-10-08 AT4 | 2026-10-08 GB |
+| 5 | Governance gates | 2026-10-08 GB; 2026-09-30 A6B; 2026-08-31 FRA | 2026-10-08 GB; 2026-09-30 A9; ~2026-09-18 STG; 2026-08-09 GWT | 2026-10-08 GB; ~2026-09-18 STG; 2026-08-09 GWT | 2026-10-08 AT4 | 2026-10-08 GB |
 | 6 | Rendering guard | 2026-10-08 GB; 2026-09-30 A6B; 2026-09-08 LGD | 2026-09-12 RGC; 2026-09-08 LGD | - | - | 2026-10-08 GB |
-| 7 | CI workflow | 2026-10-08 GB; 2026-09-30 A10; 2026-09-30 A4 | 2026-10-08 DC; 2026-10-08 GB; 2026-07-08 BCI | 2026-07-08 BCI | - | 2026-10-08 GB |
-| 8 | Chain workflows and hops | 2026-09-30 A4; 2026-09-30 A7; 2026-09-18 STG; 2026-09-04 WIR; 2026-07-18 DSA | 2026-10-06 RB6; 2026-09-18 STG; 2026-09-04 WIR | 2026-09-18 STG; 2026-09-04 WIR; 2026-09-01 SRV | - | ~2026-08-10 RCI |
+| 7 | CI workflow | 2026-10-08 GB; 2026-09-30 A10; 2026-09-30 A4 | 2026-10-08 DC; 2026-10-08 GB; 2026-07-08 BCI | 2026-07-08 BCI | 2026-10-08 AT5 | 2026-10-08 GB |
+| 8 | Chain workflows and hops | 2026-09-30 A4; 2026-09-30 A7; 2026-09-18 STG; 2026-09-04 WIR; 2026-07-18 DSA | 2026-10-06 RB6; 2026-09-18 STG; 2026-09-04 WIR | 2026-09-18 STG; 2026-09-04 WIR; 2026-09-01 SRV | 2026-10-08 AT5 | ~2026-08-10 RCI |
 | 9 | Harness families | 2026-09-04 WIR | 2026-10-08 GB; 2026-09-18 STG; 2026-09-04 WIR | 2026-09-04 WIR | - | ~2026-10-08 GB |
 | 10 | Migrations and ledger | 2026-10-08 VERIFY1; 2026-09-30 A5; 2026-09-30 A5B; 2026-09-30 A5C; 2026-08-31 FRA | ~2026-10-06 RB6; ~2026-05 W1S | 2026-10-08 DC; 2026-10-08 VERIFY1; 2026-09-30 A5; 2026-09-25 SIW; 2026-09-17 SHA; 2026-08-11 DLC; 2026-07-19 SSA | - | - |
-| 11 | RLS and grants | 2026-09-30 A5; 2026-09-25 SIW; ~2026-08-11 DLC; ~2026-08-09 FCR; 2026-05-15 CSA | - | - | ~2026-10-08 PRIV | - |
+| 11 | RLS and grants | 2026-09-30 A5; 2026-09-25 SIW; ~2026-08-11 DLC; ~2026-08-09 FCR; 2026-05-15 CSA | - | - | 2026-10-08 AT1; ~2026-10-08 PRIV | - |
 | 12 | SECURITY DEFINER functions | 2026-08-11 DLC | - | 2026-09-17 SHA; 2026-08-11 DLC | ~2026-10-08 PRIV | - |
 | 13 | API routes | 2026-10-08 VERIFY1; 2026-09-30 A1; 2026-09-30 A1C; 2026-08-31 FRA; 2026-08-09 FCA; 2026-08-09 FCR; 2026-07-18 DSA; 2026-05-10 AUA | 2026-10-08 OBL1; 2026-07-18 DS7; 2026-05-25 CSS; 2026-05-12 CCA; 2026-05-06 E2E | 2026-10-08 DC; 2026-10-08 OBL1; 2026-10-08 VERIFY1; 2026-09-30 A1; 2026-08-09 FCA; 2026-08-09 PWT; 2026-07-18 DSA; 2026-05-08 WAA; 2026-05-06 ISR | ~2026-10-08 AT2 | 2026-09-04 PCT; 2026-09-04 PWF; 2026-09-04 WIR; 2026-09-03 PLT; 2026-05-11 DPA; 2026-05-07 HF3; 2026-05-06 ISR; 2026-05-06 PLP; 2026-05-05 PPF; 2026-05-05 PRF |
 | 14 | Components | 2026-10-08 VERIFY1; 2026-09-30 A2; 2026-09-30 A2B; 2026-09-30 A2BC; 2026-08-31 FRA | 2026-09-08 LGD; 2026-05-25 CSS; 2026-05-12 CCA | 2026-10-08 DC; 2026-10-08 VERIFY1; 2026-09-30 A2; 2026-08-09 FCA; 2026-08-09 PWT; 2026-05-11 FUA | n/a | 2026-09-04 PCT; 2026-09-04 PWF; 2026-09-03 PLT; 2026-05-07 HF3; 2026-05-06 PLP; 2026-05-05 PPF; 2026-05-05 PRF |
@@ -188,7 +188,7 @@ Lens columns: EX = EXISTS, RU = RUNS, CA = CALLED, AT = ATTACKED, CO = COSTS, FT
 - [CONFIRMED: audit text] VERIFY-1 (VERIFY1) numbers its own subsystems differently from section 2: its declaration reads "13 (entity spine)", "14 (components)", "15 (data layer)" and "10 (verifiers)". This matrix enters it on rows 10, 13, 14 and 15 as the DOCS-3 brief directed, with row 10 holding its reads of the migration 299 and 315 status; the ui-orphan audit mechanism it reads is a script and sits on row 15. [HYPOTHESIS] Its own labels would not map one to one onto section 2 if re-derived.
 - [CONFIRMED: audit text] AT2 declares EXISTS and CALLED on each route's guard as well as the ATTACKED lens it feeds; row 13 EXISTS and CALLED were already filled, so only the ATTACKED cell moves (partial, "~"). OBL1 declares CALLED and RUNS on subsystems 13 and 15; PRODSRC declares EXISTS of external datasets on subsystem 16.
 - [CONFIRMED: audit text] MIG-HIST-1 (MH) compares the ledger export, the files and the generated map by class; it states that no database was queried and that the live objects of the seven outside-ledger files are unverified. It is entered as a partial RECORD-VS-REALITY run on row 10 ("~"), which adds an entry to an already filled cell. This entry was not in the DOCS-3 brief's list of cells; it is recorded so the index row has a matrix cell.
-- [CONFIRMED: file listing at the cut] No register for AT1 (rows 11 and 12 attacked), AT3, AT4 or AT5 existed in `fsi-app/scripts/tmp/` or in the lanes' scratch directories when this pass was cut, so none is entered. Each enters by the same procedure when its register lands.
+- [CONFIRMED: file listing at the DOCS-4 cut on 2026-10-08] Four ATTACKED registers landed in `docs/audits/` on 2026-10-08 (AT1, AT3, AT4, AT5) via lane DOCS-4, PR 1043. AT1 covers row 11 (RLS and grants). AT3 covers rows 1 and 2 (commit rules and hooks). AT4 covers rows 4 and 5 (fitness functions and governance gates). AT5 covers rows 7 and 8 (CI workflow and chain workflows). Each register is entered as a partial ATTACKED run (M basis, all findings carry status tokens) in its respective matrix cells and in the index.
 
 ### 3d. The audit index
 
@@ -202,6 +202,10 @@ Every file and folder under `docs/audits/` as of 204d919f (the first cut was f70
 | AT2 | `aud-at2-route-guard-register-2026-10-08.md` | 2026-10-08 | 13 | AT (partial: static trace, no route attacked) | M |
 | OBL1 | `obl1-obligations-register-2026-10-08.md` | 2026-10-08 | 13, 15 | CA, RU | M |
 | PRIV | `privilege-census-2026-10-08.md` | 2026-10-08 | 11, 12 | AT (partial: probes staged, not run) | M |
+| AT1 | `aud-at1-rls-grants-attacked-2026-10-08.md` | 2026-10-08 | 11 | AT | M |
+| AT3 | `aud-at3-gates-attacked-2026-10-08.md` | 2026-10-08 | 1, 2 | AT | M |
+| AT4 | `aud-at4-gates-attacked-2026-10-08.md` | 2026-10-08 | 4, 5 | AT | M |
+| AT5 | `aud-at5-gates-attacked-2026-10-08.md` | 2026-10-08 | 7, 8 | AT | M |
 | PRODSRC | `prodsrc-public-datasets-2026-10-08.md` | 2026-10-08 | 16 | EX | M |
 | VERIFY1 | `verify1-register-unknowns-2026-10-08.md` | 2026-10-08 | 10, 13, 14, 15 | EX, CA | M |
 | MH | `migration-history-2026-10-07.md` | 2026-10-07 | 10 | RR (partial: no database queried) | M |
