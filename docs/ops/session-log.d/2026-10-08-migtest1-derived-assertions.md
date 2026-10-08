@@ -30,9 +30,16 @@
 - `headerProblems` throws (not returns a problem) for a file with no derivable form (unmapped without a NOT APPLIED header; named only as a superseder; outside-ledger): that is the one failure and the message says what is owed.
 - A first-line `NEVER APPLIED` status counts as a not-applied header exactly as before (299).
 
-### NOT done / open items
-- NEEDS WRITE-SET EXPANSION (not done, decision-ready): the 358 to 369 `-- subject:` lines still end `NOT APPLIED` (372 to 375 had theirs flipped in the 372 PR). Flipping them needs `node fsi-app/scripts/inventories/generate-migrations-inventory.mjs --write` in the same commit (the page prints subjects).
-- Open finding (a merge of two migration branches still conflicts): `docs/inventories/migrations.md`, a generated table, takes one new row per migration at adjacent lines. Not changed here (generated file, generator not in the write set).
-- The lane common terms rule 14 (the `--add-never` step) and `docs/decisions/ADR-045-chain-proof-on-a-local-stack.md` still describe `--add-never` and the `never-applied` skip class; coordinator's. `fsi-app/scripts/migrations/migration-compare.mjs` line 175 comment says "a file the map lists as never-applied" (stale, not in the write set).
-- The helper `supabase/migrations/_lib/applied-status.mjs` is now imported by `scripts/proof/applied-map.mjs`, a chain-proof governing file, but is not in `scripts/harness-runs/chain-proof/family.json` `governing_files` (not in the write set).
-- `373_outbox_entity_for_series_and_facts.test.mjs` (another lane, merged during this lane) asserts its NOT APPLIED header literally; it will need the helper when 373 is applied.
+### Follow-up grants (same PR, one commit)
+- Unused `copyFileSync` import removed from the helper test (CI Fitness job failed eslint `--max-warnings=0` on it).
+- The 358 to 369 `-- subject:` lines lose NOT APPLIED (the 372 form `APPLIED (production ledger version V, as of 2026-10-08)`; 362 had it mid-line, removed) and `docs/inventories/migrations.md` was regenerated with its generator (9 rows changed, 343 rows).
+- `scripts/harness-runs/chain-proof/family.json` lists `supabase/migrations/_lib/applied-status.mjs` under governing_files (F28 test 30 of 30).
+- 373 and 377 (merged since the cut) assert their status through `headerProblems` too; grep of `NOT APPLIED` in `supabase/migrations/*.test.mjs` now finds only the helper's own fixtures.
+- `migration-compare.mjs` comment on `declaresNotApplied` corrected (comment-only).
+
+### Granted change NOT made: blank separator lines between rows of migrations.md
+- [CONFIRMED by repro] Blank separator lines do not make two branches that each add a migration merge cleanly: both insert at the same place (after the last row), and git reports a conflict for two additions at one anchor whatever unchanged lines surround them. Repro in a throwaway repo: base table with a blank line between every row, branch A adds row 3, branch B adds row 4 after row 2: `CONFLICT (content)`, both rows inside the conflict markers. It would also split the markdown table into one-row tables when rendered. The generator was not changed.
+- Decision-ready options (coordinator's pick): (a) `.gitattributes` `docs/inventories/migrations.md merge=union` plus a regenerate step before CI compares (union keeps both rows but not necessarily in numeric order; whether GitHub's web merge honors it is [HYPOTHESIS], unverified); (b) stop committing the rows: consumers of the page (replay order in `replay-migrations.mjs` parseInventoryOrder, the C3 check, the inventory parity test) derive the list from the files instead; (c) accept one regenerate-on-merge step in the merge train. Any of these is outside the grant.
+
+### Still open
+- The lane common terms rule 14 (the `--add-never` step) and ADR-045 still describe never entries in the map (coordinator's docs pass).
