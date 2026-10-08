@@ -20,8 +20,9 @@
  *  in-scope UI-selected field as one row: component (the UI file), prop (the select-list entry the
  *  component binds), bound column (table.column), producer present (yes or no) and the basis for that
  *  answer. The producer=no rows are the B-3 field list. The full register is written to ARTIFACT_PATH
- *  (gitignored scratch, CLAUDE.md rule 5: regenerable machine evidence) and the producer=no rows are also
- *  printed, so a CI run that discards the working tree still leaves the list in its log.
+ *  (fsi-app/.discipline/out/, gitignored regenerable machine evidence, CLAUDE.md rule 5; the data-audit lane
+ *  workflow uploads it as an artifact, 7 day retention per F68) and the producer=no rows are also printed to
+ *  the job log.
  *
  *  Scope exclusions mirror dead-column-audit.mjs (PK/FK/generated/timestamp columns; reused via
  *  dead-column-scan.mjs's scopedColumns, those columns are "used" by a join/default/clock, not a literal
@@ -57,8 +58,8 @@ import {
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const ALLOWLIST_PATH = resolve(ROOT, 'scripts/verify/ui-orphan-allowlist.json');
-/** The register the audit writes on every completed run (path relative to fsi-app, gitignored scratch). */
-export const ARTIFACT_PATH = 'scripts/tmp/ui-orphan-audit/ui-orphan-register.md';
+/** The register the audit writes on every completed run (path relative to fsi-app; .discipline/out/ is gitignored, the same out directory the fitness firings use, and the data-audit lane workflow uploads it). */
+export const ARTIFACT_PATH = '.discipline/out/ui-orphan-register.md';
 
 const CODE_EXT = new Set(['.ts', '.tsx', '.mjs', '.js']);
 const SQL_EXT = new Set(['.sql']);
