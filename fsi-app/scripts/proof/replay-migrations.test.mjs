@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   parseInventoryOrder, prefixReport, planReplay, parsePsqlOutput,
-  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP, DEFAULT_APPLIED,
+  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, LEDGER_TABLE_SQL, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP, DEFAULT_APPLIED,
 } from "./replay-migrations.mjs";
 
 const INVENTORY = [
@@ -91,6 +91,24 @@ test("planReplay with the map: apply classes and outside-ledger in inventory ord
   assert.deepEqual(plan.unreferenced, ["012_unlisted.sql"]);
 });
 
+test("the stack gets the Supabase-managed ledger table once, before the first file (170 writes into it)", () => {
+  const { report, calls } = run();
+  assert.equal(calls.filter((c) => c === "(ledger)").length, 1);
+  assert.equal(calls[0], "(ledger)", "the ledger table must exist before any migration file runs");
+  assert.equal(report.ok, true);
+  assert.match(LEDGER_TABLE_SQL, /create schema if not exists supabase_migrations/);
+  assert.match(LEDGER_TABLE_SQL, /create table if not exists supabase_migrations\.schema_migrations \(version text primary key, statements text\[\], name text\)/);
+});
+
+test("ATTACK: if the ledger table cannot be made, nothing is replayed and the failure is named", () => {
+  const { report, calls } = run({ failLedger: true });
+  assert.deepEqual(calls, ["(ledger)"]);
+  assert.equal(report.ok, false);
+  assert.equal(report.applied, 0);
+  assert.equal(report.stopped_at, "(stack prelude)");
+  assert.match(report.files[0].error.message, /permission denied/);
+});
+
 test("ORDER: planReplay replays in ledger version order when file numbers and ledger versions disagree", () => {
   const inv = parseInventoryOrder(["| 010 | 010_x.sql | x |", "| 020 | 020_y.sql | y |", "| 030 | 030_z.sql | z |", ""].join("\n"));
   const disk = ["010_x.sql", "020_y.sql", "030_z.sql"];
@@ -170,9 +188,13 @@ test("ATTACK: a non-loopback database URL is refused before anything runs", () =
 
 const GOOD_PROBE = { tables: 108, system_state: true, harness_runs: true, harness_runs_rls: true, triggers: ["guard_judgement_drain_writer_trg", "guard_pause_flag_writer_trg"] };
 
-function fakePsql({ failOn = {}, probe } = {}) {
+function fakePsql({ failOn = {}, probe, failLedger = false } = {}) {
   const calls = [];
   const spawn = (_bin, args) => {
+    if (args.includes("-c") && String(args[args.indexOf("-c") + 1]).includes("schema_migrations")) {
+      calls.push("(ledger)");
+      return failLedger ? { status: 3, stdout: "", stderr: "ERROR:  permission denied for database postgres\n" } : { status: 0, stdout: "", stderr: "" };
+    }
     if (args.includes("-c")) { calls.push("(probe)"); return { status: 0, stdout: JSON.stringify(probe ?? GOOD_PROBE), stderr: "" }; }
     const file = args[args.indexOf("-f") + 1];
     const name = file.split(/[\\/]/).pop();
@@ -183,10 +205,10 @@ function fakePsql({ failOn = {}, probe } = {}) {
   return { spawn, calls };
 }
 
-function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER } = {}) {
+function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER, failLedger = false } = {}) {
   const dir = fixtureDir();
   try {
-    const { spawn, calls } = fakePsql({ failOn, probe });
+    const { spawn, calls } = fakePsql({ failOn, probe, failLedger });
     const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, ledger, mapText);
     const report = replay({ plan, migrationsDir: dir, dbUrl: URL_LOCAL, spawn, expectedTables: 108 });
     return { report, calls };
@@ -195,7 +217,7 @@ function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER } = {}) {
 
 test("replay applies exactly the planned files in order, never a satisfied or skipped one", () => {
   const { report, calls } = run();
-  assert.deepEqual(calls.filter((c) => c !== "(probe)"), ["001_schema.sql", "002_cmt.sql", "003_code.sql", "006_multi_tenant.sql", "009_live.sql", "010_rec.sql"]);
+  assert.deepEqual(calls.filter((c) => c !== "(probe)" && c !== "(ledger)"), ["001_schema.sql", "002_cmt.sql", "003_code.sql", "006_multi_tenant.sql", "009_live.sql", "010_rec.sql"]);
   assert.equal(report.applied, 6);
   assert.equal(report.ok, true);
   assert.equal(report.satisfied_count, 3);

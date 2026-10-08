@@ -33,6 +33,11 @@
 // names diverge from the file names today, so the job is expected to be RED until lane MIG-HIST-1 lands the map and
 // repairs the repo (docs/runbooks/maintenance.d/64-chain-proof.md says so, and names the gate that lifts it).
 //
+// STACK FIDELITY (lane MIG-CI, 2026-10-08). Before the first file the replay makes sure the stack has the Supabase-managed
+// ledger table production has, supabase_migrations.schema_migrations (ensureLedgerTable): the local stack starts from an empty
+// scratch directory, so the CLI never creates it, and the ledger repair 170 writes into it. The oracle compares schema public
+// only, so this adds no compared object.
+//
 // STOP RULE. The first error stops the replay with the file name, the psql error and the statement at the reported
 // line. There is no tolerate list, no skip list and no continue-on-error mode. This lane does not patch migrations.
 //
@@ -211,16 +216,42 @@ export function probeDatabase({ psql, dbUrl, spawn = spawnSync }) {
 }
 
 /**
+ * The Supabase-managed migration ledger table. Production has it (the CLI and the MCP apply tool write it); the local stack
+ * starts from an empty scratch directory, so the CLI never creates it, and a migration that records into it (170, the ledger
+ * repair) is refused with "relation does not exist" although nothing is wrong with the file (lane MIG-CI, replay run
+ * 37782247331). The proof stack is made to have the object production has: schema supabase_migrations and the table with
+ * the columns the migrations write. The schema oracle compares schema public only, so this changes no compared object.
+ */
+export const LEDGER_TABLE_SQL = "create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);";
+
+/** Make the stack's supabase_migrations.schema_migrations exist. `spawn` is injectable. Returns { ok, message }. */
+export function ensureLedgerTable({ psql, dbUrl, spawn = spawnSync }) {
+  const r = spawn(psql, [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", "-c", LEDGER_TABLE_SQL], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+  if (r.error) return { ok: false, message: `could not run ${psql}: ${r.error.message}` };
+  if (r.status !== 0) return { ok: false, message: String(r.stderr ?? "").trim().split(/\r?\n/).pop()?.slice(0, MAX_TEXT) || `psql exited ${r.status}` };
+  return { ok: true, message: null };
+}
+
+/**
  * Run the replay. Everything external is injected, so tests need no database.
  * @returns the report object (also what the CLI writes).
  */
-export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spawnSync, readFn = readFileSync, now = () => new Date(), probe = probeDatabase, expectedTables = null }) {
+export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spawnSync, readFn = readFileSync, now = () => new Date(), probe = probeDatabase, expectedTables = null, prelude = ensureLedgerTable }) {
   const startedAt = now().toISOString();
   const files = [];
   let stoppedAt = null;
   const refused = (plan.errors ?? []).length > 0;
+  let preludeFailed = false;
+  if (!refused) {
+    const pre = prelude({ psql, dbUrl, spawn });
+    if (!pre.ok) {
+      preludeFailed = true;
+      files.push({ file: "(stack prelude: supabase_migrations.schema_migrations)", status: "failed", seconds: 0, notices: [], error: { line: null, message: pre.message, context: [], statement: null } });
+      stoppedAt = "(stack prelude)";
+    }
+  }
 
-  for (const item of refused ? [] : plan.ordered) {
+  for (const item of refused || preludeFailed ? [] : plan.ordered) {
     const path = join(migrationsDir, item.file);
     const text = readFn(path, "utf8");
     const run = runFileWithPsql({ psql, dbUrl, file: path, spawn });
