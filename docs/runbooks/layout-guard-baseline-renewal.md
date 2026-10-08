@@ -4,6 +4,26 @@ Procedure for renewing `fsi-app/.discipline/rendering/layout-guard/baseline.json
 guard's dated, per-entry exemption list (`fsi-app/.discipline/rendering/layout-guard/baseline.mjs`). Not
 dated itself: this is a repeatable procedure, re-used every time the baseline approaches its expiry.
 
+## Paused until go-live (operator ruling 2026-10-08)
+
+Operator ruling, 2026-10-08, verbatim: "We are building the fucking site. Make it simple and pause the 7
+day rule until the site goes live." (CLAUDE.md rule 16, build mode.)
+
+- `fsi-app/.discipline/governance/build-mode.mjs` exports `BUILD_MODE = true`. While it is true, the hard
+  cliff (`isExpired`'s effect in `applyBaseline`) and the 7-day renewal warning (`needsRenewal`) do NOT fail.
+  A baseline past `BASELINE_EXPIRY_DATE` keeps covering its entries, and the standing test still asserts
+  `baseline.json` parses and agrees with its own count, and logs the baseline's age and days to expiry as a
+  notice (`baselineAgeNotice`). Present-state checks are untouched: a NEW layout finding still blocks and the
+  count may still only shrink.
+- Nothing in this runbook is required before go-live. `layout-baseline-renewal.yml` stays in the repo
+  (dispatch only, no schedule) and no renewal is due on 2026-10-08 or 2026-10-15. The 2026-10-15 date is
+  not an event while `BUILD_MODE` is true.
+- GO-LIVE STEP: flip `BUILD_MODE` to `false`. That restores the behaviour described in the sections above
+  in the same commit, so renew first (Path A, "Renewal by workflow") or set a new expiry (Path B) in the
+  go-live change, or it goes red on purpose.
+- The required-check versus continue-on-error question for the rendering guard is deferred to go-live with
+  the rule.
+
 ## Why there are two gates, not one
 
 The baseline carries `BASELINE_EXPIRY_DATE` (currently `2026-10-15`; read the constant live, not this
@@ -22,7 +42,7 @@ line). Two separate mechanisms key off that date:
 Both gates run in the existing `node --test` glob `run-test-suite.sh` already covers
 (`.discipline/rendering/*.test.mjs`), so both fire in CI and in pre-push step 3 with no separate wiring.
 
-## When the renewal warning fires (you are here)
+## When the renewal warning fires (only once BUILD_MODE is false)
 
 `node --test fsi-app/.discipline/rendering/layout-guard-expiry.test.mjs` fails on the "STANDING GATE"
 test, naming today's date, the expiry date, and the window's own start date. Pick ONE of the two paths

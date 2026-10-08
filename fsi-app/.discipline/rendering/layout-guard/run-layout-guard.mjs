@@ -143,7 +143,8 @@ export async function runLayoutGuardFor({ route, width }) {
  */
 export async function runLayoutGuard(browser, options = {}) {
   const { findings, errors, checks } = await measureAllRoutes(browser, options);
-  const { baselined, blocking, expired, date } = applyBaseline(findings);
+  const { baselined, blocking, expired, date, notice } = applyBaseline(findings);
+  if (notice) console.log(notice);
   const failures = [
     ...blocking.map(formatFinding),
     ...errors.map((e) => `layout-guard ${e.route}@${e.width ?? '-'}: harness error - ${e.message}`),

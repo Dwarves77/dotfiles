@@ -586,7 +586,7 @@ test('the baseline gates NEW findings and expires on the DATE the operator named
   const known = { rule: 'L6', route: '/admin', width: 1440, element: 'section[x]', measured: '…', message: '…' };
   const fresh = { rule: 'L6', route: '/admin', width: 1440, element: 'section[a card added today]', measured: '…', message: '…' };
   // A hand-made baseline set, so this proves the SPLIT rather than today's baseline.json contents.
-  const split = (date) => applyBaseline([known, fresh], { date });
+  const split = (date) => applyBaseline([known, fresh], { date, buildMode: false });
   const before = split('2026-10-14');
   assert.ok(before.blocking.some((f) => f.element === 'section[a card added today]'),
     'a finding that is not in the baseline must fail the build, which is what "no train lands with a failure" means');
