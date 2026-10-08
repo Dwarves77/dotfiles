@@ -1,0 +1,10 @@
+{
+  "name": "neso-carbon-intensity",
+  "script": "scripts/producers/regional/neso-carbon-intensity-producer.mjs",
+  "domain_table": "regional_data_facts",
+  "source": "neso_carbon_intensity",
+  "licence": "CC BY 4.0 (NESO Carbon Intensity API; attribution required)",
+  "dry_capable": true,
+  "enabled_env": "REGIONAL_PRODUCER_NESO_CARBON_INTENSITY_ENABLED",
+  "in_all": false
+}
