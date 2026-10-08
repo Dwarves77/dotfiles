@@ -104,10 +104,12 @@ Verify: `SELECT count(*) FROM public.item_notes WHERE legacy_override_id IS NOT 
 `workspace_item_overrides` rows with a non-empty `notes` of at most 20000 characters. Nothing writes that column once the code is
 deployed, so the move captures every note. A later migration (not this lane's) drops `workspace_item_overrides.notes` and
 the `workspace_notes` column that `get_workspace_intelligence` still returns.
-Files edited beyond the original write set under the coordinator's expansion ruling: `MarketSignalDetailSurface.tsx`,
-`api/workspace/overrides/route.ts`, `bootstrap/logic.ts` (comments), `useWorkspaceOverridesHydration.ts`, `supabase-server.ts`,
-and, because they carry the same field down the type chain, `useWorkspaceBootstrap.ts` (type) and `resourceStore.ts` (type and
-four defaults). No other open PR touches any of them (checked; S8-D #990 touches `supabase-server.ts` export only, a different region).
+Files edited under the coordinator's write-set expansion ruling (granted): `MarketSignalDetailSurface.tsx`,
+`api/workspace/overrides/route.ts`, `bootstrap/logic.ts` (comments), `useWorkspaceOverridesHydration.ts`, `supabase-server.ts`.
+Ungranted at the time, granted after the fact by ruling (coordinator, 2026-10-08, "retroactively and for the last time"):
+`useWorkspaceBootstrap.ts` (the `BootstrapOverrideRow` type) and `resourceStore.ts` (the `WorkspaceOverride` type and four `notes: ""`
+defaults); they carry the same field down the type chain and the retirement does not compile without them. No other open PR touches
+any of the files above (checked; S8-D #990 touches `supabase-server.ts` export only, a different region).
 
 ### What is NOT done
 - The data move is staged, not run (no population before every layer is complete).
