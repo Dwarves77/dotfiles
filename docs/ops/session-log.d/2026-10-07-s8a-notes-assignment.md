@@ -120,6 +120,10 @@ reported `item-notes.mjs` as an unmapped write; no exemption was added).
 Re-cut (coordinator ruling, 2026-10-08): F51 check 5 counted S8-F2's merge to `ux-smoke-specs.mjs` against this lane's fork point,
 so the lane commits were cherry-picked onto a fresh branch from current origin/master (the master merge commit left out), the
 registry conflict resolved keeping both lanes' entries, and the branch was lease force-pushed over `lane/s8a-notes-assignment`.
+Granted before the edit (coordinator ruling on PR 988, 2026-10-08): `fsi-app/src/components/ui/SectionRule.coverage.npmtest.mjs`.
+CI's npm-dependent unit tests failed it because retiring the Market `NotesField` left `MarketSignalDetailSurface.tsx` with no
+SectionCard of its own; the file leaves the test's `FILES` list (LEFT note, same precedent as `OperationsLedger.tsx`) and a
+doesNotMatch assertion guards it. All 206 `*.npmtest.mjs` files then run locally through `run-npmtest-suites.sh`: 1887 of 1887 pass.
 
 ### What is NOT done
 - The data move is staged, not run (no population before every layer is complete).
