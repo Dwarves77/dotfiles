@@ -131,23 +131,37 @@ test("self-check attacks: figure without envelope, unknown constraint, no band a
   assert.match(SQL, /-3\.1/, "the leg that accepts a deficit");
 });
 
-test("every fixture INSERT in the self-check supplies the NOT NULL, default-less columns of the creating migrations and names only real columns", () => {
-  const known = new Set([...BASE.keys(), ...ADDED]);
-  // 297 NOT NULL without default, minus the one column 379 relaxes
-  const required = [...BASE].filter(([n, v]) => v.notNull && !v.hasDefault && n !== "queue_id" && n !== "capacity_band_mw").map(([n]) => n);
-  assert.deepEqual(required.sort(), ["as_of", "dso_name", "jurisdiction_id"]);
-  const inserts = [...SQL.matchAll(/INSERT INTO public\.grid_connection_queues\s*\(([^)]*)\)/g)];
-  assert.ok(inserts.length >= 6);
-  for (const m of inserts) {
-    const cols = m[1].split(",").map((c) => c.trim());
-    for (const c of cols) assert.ok(known.has(c), `unknown column ${c}`);
-    for (const r of required) assert.ok(cols.includes(r), `insert lacks required ${r}: (${cols.join(", ")})`);
-  }
-  // the entities fixture is the one migration 297's own post-check uses
-  const ent = /INSERT INTO public\.entities \(([^)]*)\)/.exec(SQL)[1];
-  assert.equal(ent.replace(/\s/g, ""), "entity_id,kind,canonical_name");
-  assert.match(M297, /INSERT INTO public\.entities \(entity_id, kind, canonical_name\)/);
-  // the fixture entity id has the shape the entities CHECK requires: cl:<kind>:<16 hex>
+// Every INSERT in the self-check is parsed by the shared helper (lane SEC-3b-F) and checked against the table definitions
+// REBUILT FROM THE MIGRATION TREE below 379 (CREATE TABLE, ALTER TABLE, NOT NULL, defaults, IN-list CHECKs): the
+// grid_connection_queues fixtures see 297's table, and the entities fixture sees 282's. 379's own columns and CHECKs are
+// applied first by running the helper over the tree INCLUDING 379 for the grid_connection_queues inserts.
+import { buildSchema, parseInserts, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
+
+test("fixtures: every INSERT in the self-check satisfies the table definitions rebuilt from the migration tree (NOT NULL, defaults, IN-list CHECKs, columns)", () => {
+  const inserts = parseInserts(stripSql(RAW));
+  assert.ok(inserts.length >= 7, "found " + inserts.length + " inserts");
+  const tables = [...new Set(inserts.map((i) => i.schemaName + "." + i.table))].sort();
+  assert.deepEqual(tables, ["public.entities", "public.grid_connection_queues"]);
+  // 379 itself is part of the tree for the grid inserts (its columns and the relaxed NOT NULL), so build including it.
+  const schema = buildSchema(HERE, { before: 380 });
+  assert.deepEqual(checkFixtures({ inserts, schema }), []);
+  // and the added columns are what the helper rebuilt from 379, not a hand list
+  const t = schema.tables.get("grid_connection_queues");
+  for (const c of ADDED) assert.ok(t.columns.has(c), c);
+  assert.equal(t.columns.get("capacity_band_mw").notNull, false, "379 relaxes capacity_band_mw to nullable");
+  assert.equal(t.columns.size, 19);
+});
+
+test("fixtures: the checker catches a bad fixture (red): an omitted required column and a value outside the 297 obs_status IN-list are reported", () => {
+  const schema = buildSchema(HERE, { before: 380 });
+  const omitted = parseInserts("INSERT INTO public.grid_connection_queues (jurisdiction_id, as_of) VALUES (v_j, '2026-09-01');");
+  assert.match(checkFixtures({ inserts: omitted, schema }).join("|"), /dso_name: NOT NULL with no default and not written/);
+  const wrong = parseInserts("INSERT INTO public.grid_connection_queues (jurisdiction_id, dso_name, substation_ref, obs_status, as_of) VALUES (v_j, 'd', 's', 'ZZ', '2026-09-01');");
+  assert.match(checkFixtures({ inserts: wrong, schema }).join("|"), /obs_status: 'ZZ' violates grid_connection_queues_obs_status_check/);
+});
+
+// the fixture entity id has the shape the entities CHECK requires: cl:<kind>:<16 hex>
+test("fixtures: the fixture entity id has the shape cl:<kind>:<16 hex>", () => {
   const id = /ok_jur\s+text := '([^']+)'/.exec(SQL)[1];
   assert.match(id, /^cl:jurisdiction:[0-9a-f]{16}$/);
 });
