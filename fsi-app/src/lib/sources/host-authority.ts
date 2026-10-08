@@ -603,16 +603,49 @@ export function verdictPlacementForHost(
   return { tier: HOST_CLASS_TIER[v.class], class: v.class, batch: v.batch ?? null };
 }
 
-/** Thin wrapper over classTierForHostAcrossNames: the built-in rules first, the committed host verdicts
- *  only when those return null. Tier always comes from HOST_CLASS_TIER for the verdict's class. */
+/** THE one precedence for placing a host when committed host verdicts exist (lane S8-E5, 2026-10-08):
+ *    1. a permanently-unregistered host (aggregator / hosting platform) is never placed, a verdict included;
+ *    2. the curated HOST-ONLY rules (preResidueTierForHost: legal, gov, ruled hosts, verifier, academic,
+ *       association, standards body, analysis, law firm, news), which read no stored name at all;
+ *    3. a committed host verdict for the host, the tier read from HOST_CLASS_TIER for its class;
+ *    4. only then the D14 residue ruling over the stored name(s).
+ *  A verdict is a per-host ruling made after a session lane read the host, so it outranks the residue
+ *  ruling's catch-all. The previous order ran the residue ruling (names included) BEFORE the verdict, and
+ *  that ruling's rule 7 (company, tier 7) places every host that has any non-empty stored name, so a verdict
+ *  for a named host was unreachable [CONFIRMED, six-name probe on carbonintensity.org.uk: no name returns the
+ *  worklist, and "NESO", "Carbon Intensity API", "National Energy System Operator", "National Energy System
+ *  Operator (NESO) Carbon Intensity API" and "Carbon Intensity" all return company 7]. */
+export interface HostPlacement {
+  tier: number | null;
+  /** which layer of the precedence answered: the curated host-only rules, a committed verdict, the residue
+   *  ruling over the stored name(s), or null when nothing placed the host. */
+  via: "class" | "verdict" | "residue" | null;
+  /** present only when via is "verdict". */
+  verdict: { tier: number; class: string; batch: string | null } | null;
+}
+
+/** The precedence above, returning WHICH layer placed the host so a caller that reports the layer (the
+ *  resolver's rule b versus rule b2) needs no ordering of its own. */
+export function placeHostWithVerdicts(
+  host: string | null | undefined,
+  names: ReadonlyArray<string | null | undefined> | null | undefined,
+  verdicts: ReadonlyMap<string, HostVerdictRef> | null | undefined,
+): HostPlacement {
+  if (permanentlyUnregisteredClass(host) != null) return { tier: null, via: null, verdict: null };
+  const hostOnly = preResidueTierForHost(host);
+  if (hostOnly != null) return { tier: hostOnly, via: "class", verdict: null };
+  const verdict = verdictPlacementForHost(host, verdicts);
+  if (verdict != null) return { tier: verdict.tier, via: "verdict", verdict };
+  const residue = classTierForHostAcrossNames(host, names);
+  return residue != null ? { tier: residue, via: "residue", verdict: null } : { tier: null, via: null, verdict: null };
+}
+
 export function classTierForHostWithVerdicts(
   host: string | null | undefined,
   names: ReadonlyArray<string | null | undefined> | null | undefined,
   verdicts: ReadonlyMap<string, HostVerdictRef> | null | undefined,
 ): number | null {
-  const builtIn = classTierForHostAcrossNames(host, names);
-  if (builtIn != null) return builtIn;
-  return verdictPlacementForHost(host, verdicts)?.tier ?? null;
+  return placeHostWithVerdicts(host, names, verdicts).tier;
 }
 
 export type PoolHostRegisterAction = "inherit" | "register" | "worklist";

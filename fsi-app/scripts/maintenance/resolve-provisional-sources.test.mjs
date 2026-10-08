@@ -560,3 +560,48 @@ test("export-unplaced is read-only even under mode apply, and writes host, names
   assert.equal(summary.mode, "dry");
   assert.equal(summary.counts.unplaced_hosts, 1);
 });
+
+// ── a committed verdict outranks the residue name rule (lane S8-E5, 2026-10-08) ─────────────────────────
+// [CONFIRMED, six-name probe] the D14 residue ruling's rule 7 (company, tier 7) places any host with a non-empty
+// stored name, so a verdict for a NAMED host never applied: classTier was non-null before rule b2 was consulted.
+// The resolver now places a host through host-authority's one precedence, so the verdict wins whatever the name.
+const NESO_PROBE_NAMES = [
+  null,
+  "NESO",
+  "Carbon Intensity API",
+  "National Energy System Operator",
+  "National Energy System Operator (NESO) Carbon Intensity API",
+  "Carbon Intensity",
+];
+const NESO_GOV = new Map([["carbonintensity.org.uk", { class: "gov", batch: "host-verdicts-001" }]]);
+
+test("main apply: a host with a committed verdict promotes at the verdict tier whatever its stored name (six-name probe), as rule b2", async () => {
+  for (const name of NESO_PROBE_NAMES) {
+    const deps = fakeDeps({ pending: [{ id: "p1", url: "https://carbonintensity.org.uk/x", name }] });
+    deps.hostVerdicts = NESO_GOV;
+    const s = await main({ mode: "apply" }, deps);
+    assert.equal(deps.calls.promote.length, 1, `name ${JSON.stringify(name)} promotes`);
+    assert.equal(deps.calls.promote[0].tier, 2, `name ${JSON.stringify(name)} rates gov (tier 2), not company (tier 7)`);
+    assert.equal(s.host_verdicts.promoted_by_verdict, 1, `name ${JSON.stringify(name)} is counted as a verdict promotion`);
+    assert.equal(s.counts.worklist, 0);
+  }
+});
+
+test("main apply: without the verdict the named host stays on the residue rule (tier 7), and a curated host-only rule still outranks a verdict", async () => {
+  const bare = fakeDeps({ pending: [{ id: "p1", url: "https://carbonintensity.org.uk/x", name: "NESO" }] });
+  await main({ mode: "apply" }, bare);
+  assert.equal(bare.calls.promote[0].tier, 7);
+  const curated = fakeDeps({ pending: [{ id: "p2", url: "https://www.epa.gov/x", name: "EPA" }] });
+  curated.hostVerdicts = new Map([["epa.gov", { class: "news", batch: "b" }]]);
+  const s = await main({ mode: "apply" }, curated);
+  assert.equal(curated.calls.promote[0].tier, 2);
+  assert.equal(s.host_verdicts.promoted_by_verdict, 0);
+});
+
+test("the resolver keeps no ordering of its own: it places hosts through the shared host-authority function only", () => {
+  const src = readFileSync(new URL("./resolve-provisional-sources.mjs", import.meta.url), "utf8");
+  const code = src.split(String.fromCharCode(10)).filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*")).join(String.fromCharCode(10));
+  assert.match(code, /placeHostWithVerdicts/);
+  assert.equal(code.includes("verdictPlacementForHost("), false, "no second ordering: no private verdict lookup");
+  assert.equal(code.includes("classTierForHostAcrossNames("), false, "no second ordering: no private residue-first class lookup");
+});

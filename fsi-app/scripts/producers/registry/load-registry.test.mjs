@@ -32,17 +32,18 @@ function fixtureDir(files) {
 
 const exists = () => true;
 
-test("the real registry lists the four moved producers (and any added since), sorted, each script on disk", () => {
+test("the real registry lists the four moved producers, sorted, each script on disk", () => {
+  // Superset form (lane S8-E5): each domain lane adds one entry file, so an exact list would fail every
+  // new entry and make parallel lanes collide on this line. The four originals must stay, the whole list
+  // stays sorted by filename, and sbti stays out of the all-sweep.
   const entries = loadProducerRegistry(REGISTRY_DIR);
   const names = entries.map((e) => e.name);
-  // A superset check: the registry is an entry directory that later lanes add to, so the four original entries
-  // must still be there, but a new entry must not make this test red.
   for (const original of ["ecb-fx", "eia-v2-petroleum-spot", "eu-weekly-oil-bulletin", "sbti-target-dashboard"]) {
-    assert.ok(names.includes(original), `${original} is in the registry`);
+    assert.ok(names.includes(original), `the original entry ${original} is still registered`);
   }
-  assert.deepEqual(names, [...names].sort(), "entries are listed sorted");
+  assert.deepEqual(names, [...names].sort(), "entries load sorted by filename");
   assert.equal(entries.every((e) => e.dry_capable === true), true);
-  assert.ok(entries.find((e) => e.name === "sbti-target-dashboard").in_all === false, "SBTi stays out of the all sweep");
+  assert.ok(entries.filter((e) => !e.in_all).map((e) => e.name).includes("sbti-target-dashboard"), "sbti is not in the all-sweep");
 });
 
 test("a well-formed fixture entry loads", () => {

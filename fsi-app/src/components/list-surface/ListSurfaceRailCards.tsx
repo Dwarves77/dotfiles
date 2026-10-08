@@ -169,6 +169,11 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
             width: "100%",
             background: "none",
             border: "none",
+            // The same inline 44px target the facet rows carry (FACETFIX, 2026-09-11). The CSS-class rule
+            // only reached 44px below 768px, so at every wider width this 24px button failed law 2 and the
+            // layout guard's L9 the moment a facet had more than VISIBLE_OPTIONS_CAP options (the Operations
+            // Dimension facet at seven, lane S8-E5, 2026-10-08). The class fix is the target, not the cap.
+            minHeight: 44,
             padding: "4px 0",
             lineHeight: "16px",
             textAlign: "left",

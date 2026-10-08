@@ -17,9 +17,9 @@
  * Read-only helper (no DB writes). Called server-side by the Operations page
  * component. Returns a MatrixEligibility record per Operations dimension.
  *
- * Dimensions are the 6-value vocabulary from migration 106/109:
+ * Dimensions are the 7-value vocabulary from migrations 106/109/378:
  *   regulatory_feasibility | regional_resources | labor_markets |
- *   materials_sourcing | infrastructure | operational_cost
+ *   materials_sourcing | infrastructure | operational_cost | grid_intensity
  *
  * S3 eligibility: any dimension reaches >=2 sourced regions AND item's
  *   jurisdiction is one of those regions.
@@ -36,7 +36,8 @@ export type OperationsDimension =
   | "labor_markets"
   | "materials_sourcing"
   | "infrastructure"
-  | "operational_cost";
+  | "operational_cost"
+  | "grid_intensity";
 
 export const ALL_OPERATIONS_DIMENSIONS: OperationsDimension[] = [
   "regulatory_feasibility",
@@ -45,6 +46,7 @@ export const ALL_OPERATIONS_DIMENSIONS: OperationsDimension[] = [
   "materials_sourcing",
   "infrastructure",
   "operational_cost",
+  "grid_intensity",
 ];
 
 // Human-readable dimension labels (for omit-note text).
@@ -55,6 +57,7 @@ const DIMENSION_LABELS: Record<OperationsDimension, string> = {
   materials_sourcing: "Materials Sourcing",
   infrastructure: "Infrastructure",
   operational_cost: "Operational Cost",
+  grid_intensity: "Grid Carbon Intensity",
 };
 
 // ── Region coverage row shape from region_dimension_coverage ───────────────

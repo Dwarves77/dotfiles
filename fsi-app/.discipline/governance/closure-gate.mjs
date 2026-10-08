@@ -197,10 +197,25 @@ export function checkNeverRun({ targets, now, windowDays = NEVER_RUN_WINDOW_DAYS
  * either to dispatch each once and regenerate the ledger export, or to delete the workflow; the date forces it.
  */
 const DORMANT_REASON = 'Dormant by the build-mode ruling (standing rule 16, ADR-023): dispatch-only, schedule commented out, no harness family, so no ledger row can exist. Exposed by the GATE-8 on: reader fix. Dispatch it once or delete the workflow.';
+const BUILD_MODE_DORMANT_REASON = 'build mode: dispatch-only workflow, never dispatched; fires at Stage 9';
 export const NEVER_RUN_DORMANT = Object.freeze({
   'workflow:data-audit-lane.yml': { reason: DORMANT_REASON, until: '2026-11-30' },
   'workflow:source-monitoring.yml': { reason: DORMANT_REASON, until: '2026-11-30' },
   'workflow:spot-check-monthly.yml': { reason: DORMANT_REASON, until: '2026-11-30' },
+  'workflow:brief-apply.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:brief-export.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:chain-proof.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:corpus-turn.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:date-chain.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:fetch-drain.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:gate-a-rescan.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:layout-baseline-renewal.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:needs-search.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:question-answers.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:research-assessment.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:research-walker.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:theme-briefs.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  'workflow:uptime-probes.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════

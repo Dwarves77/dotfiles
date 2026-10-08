@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { rule as rule022 } from '../rules/022-no-dash-glyphs.mjs';
 import {
   buildContextFromFixture,
   buildContextForProposedCommit,
@@ -397,4 +398,81 @@ test('GATE-7: introducedMatches with an extract charges a surplus occurrence on 
   const extract = (line) => [...line].filter((c) => c === EM);
   assert.equal(introducedMatches(ctx.introducedLines('a.mjs'), hasGlyph).length, 0, 'without extract the line is a pre-existing match');
   assert.equal(introducedMatches(ctx.introducedLines('a.mjs'), hasGlyph, extract).length, 1, 'with extract the second glyph is charged');
+});
+
+// ---------------------------------------------------------------------------
+// RULE-MERGE-1 (2026-10-08): a proposed MERGE commit is charged only for lines in neither parent.
+// The S8-E6 case: master added glyph lines to a generated file after the lane forked; merging master into
+// the lane diffed the index against the merge base with master, so every master line read as introduced.
+// ---------------------------------------------------------------------------
+
+function mergeScenario() {
+  const dir = repo({ 'docs/generated.md': 'head\n', 'lane.txt': 'one\n', 'shared.txt': 'a\nb\nc\n' });
+  sh(dir, ['branch', '-M', 'master']);
+  sh(dir, ['branch', 'lane']);
+  put(dir, { 'docs/generated.md': `head\nmaster generated ${EM} line\n`, 'shared.txt': `a\nb\nc\nmaster ${EM} tail\n`, 'docs/from-master.md': `new file ${EM} from master\n` });
+  sh(dir, ['add', '-A']);
+  sh(dir, ['commit', '-q', '-m', 'master adds glyph lines']);
+  sh(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  sh(dir, ['checkout', '-q', 'lane']);
+  put(dir, { 'lane.txt': `one\ntwo ${EM} lane work\n` });
+  sh(dir, ['add', '-A']);
+  sh(dir, ['commit', '-q', '-m', 'lane work']);
+  sh(dir, ['merge', '--no-commit', '--no-ff', 'master']);
+  return dir;
+}
+
+test('RULE-MERGE-1: merging master into a lane charges nothing for lines master added; the baseline says merge-parents', () => {
+  const dir = mergeScenario();
+  try {
+    const ctx = stagedContext(dir);
+    assert.equal(ctx.baseline.source, 'merge-parents');
+    assert.equal(ctx.baseline.ref, 'HEAD+MERGE_HEAD');
+    assert.equal(ctx.baseline.label, 'merge commit: lines in neither parent');
+    assert.equal(rule022.trigger(ctx), false, 'no introduced glyph line: master carries them');
+    assert.equal(rule022.check(ctx).status, 'PASS');
+    assert.deepEqual(ctx.introducedLines('docs/generated.md').added, []);
+    assert.deepEqual(ctx.stagedFiles.map((f) => f.path).sort(), ['docs/from-master.md', 'docs/generated.md', 'lane.txt', 'shared.txt'], 'the union of both sides');
+    assert.equal(ctx.stagedFiles.find((f) => f.path === 'docs/generated.md').status, 'M');
+    assert.equal(ctx.stagedFiles.find((f) => f.path === 'docs/from-master.md').status, 'A', 'status comes from the HEAD side');
+    assert.deepEqual(ctx.introducedLines('docs/from-master.md').added, []);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('RULE-MERGE-1: a conflict-resolution line written by the lane that neither parent has still fails, naming that line', () => {
+  const dir = mergeScenario();
+  try {
+    put(dir, { 'shared.txt': `a\nb\nc\nmaster ${EM} tail\nresolved ${EM} by the lane\n` });
+    sh(dir, ['add', '-A']);
+    const ctx = stagedContext(dir);
+    assert.equal(ctx.baseline.source, 'merge-parents');
+    assert.equal(rule022.trigger(ctx), true);
+    const result = rule022.check(ctx);
+    assert.equal(result.status, 'FAIL');
+    assert.deepEqual(result.locations, [{ path: 'shared.txt', line: 5 }]);
+    assert.match(result.remediation, /resolved .* by the lane/);
+    assert.doesNotMatch(result.remediation, /master .* tail/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('RULE-MERGE-1: a glyph line the lane committed before the merge is in the lane parent, so the merge does not re-charge it', () => {
+  const dir = mergeScenario();
+  try {
+    const ctx = stagedContext(dir);
+    assert.ok(ctx.getFileContent('lane.txt').includes(EM));
+    assert.deepEqual(ctx.introducedLines('lane.txt').added, []);
+    assert.equal(rule022.trigger(ctx), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('RULE-MERGE-1: a non-merge proposed commit still reports the merge-base baseline', () => {
+  const dir = repo({ 'keep.txt': `kept ${EM} line\n` });
+  try {
+    sh(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    put(dir, { 'new.txt': `new ${EM} line\n` });
+    sh(dir, ['add', '-A']);
+    const ctx = stagedContext(dir);
+    assert.equal(ctx.baseline.source, 'merge-base');
+    assert.equal(rule022.check(ctx).status, 'FAIL', 'an ordinary commit is still charged for its new glyph line');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
