@@ -116,7 +116,7 @@ test('018 check: PASS, a /dashboard sub-route is a workspace view under the Dash
 test('018 check: FAIL, allowing /dashboard did not open the door: a new top-level segment beside it still fails', () => {
   const ctx = buildContextFromFixture({
     message: 'feat: a portfolio surface of its own',
-    files: [{ path: 'fsi-app/src/app/portfolio/page.tsx', additions: 20, deletions: 0 }],
+    files: [{ path: 'fsi-app/src/app/portfolio/page.tsx', status: 'A', additions: 20, deletions: 0 }],
     fileContents: { 'fsi-app/src/app/portfolio/page.tsx': 'export default function Page(){return null;}\n' },
   });
   const r = rule.check(ctx);
