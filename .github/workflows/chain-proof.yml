@@ -22,12 +22,16 @@ name: Chain proof
 # (docs/runbooks/maintenance.d/64-chain-proof.md, docs/decisions/ADR-045-chain-proof-on-a-local-stack.md).
 #
 # ISOLATION (ruling R3 as amended). The export step is the ONLY step with production credentials: the three
-# existing repository secrets NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (the data read) and
-# SUPABASE_DB_PASSWORD (the schema dump), exactly as the data-audit lane uses them. It never holds APP_URL,
+# existing repository secrets NEXT_PUBLIC_SUPABASE_URL and SUPABASE_DB_PASSWORD (the schema dump and the read
+# only data subset, both over Postgres), as the data-audit lane uses them, step-scoped env only. Owed: a dedicated
+# read only Postgres role, so the job never holds the write password even for this one step. It never holds APP_URL,
 # WORKER_SECRET or a GitHub token, and `permissions` is contents: read. Every other step sources the local stack's
 # env file, then runs scripts/proof/preflight.mjs, which fails the job on a production host or any forbidden
 # credential name (SUPABASE_DB_PASSWORD included). scripts/lib/pg-conn.mjs runs in loopback mode
 # (CHAIN_PROOF_LOCAL=1) and never falls through to production.
+#
+# The subset export also pins the item ids named by the smallest committed record-briefs batch
+# (--pin-ids-from), so Brief apply has a target on the proof stack.
 #
 # PUBLIC REPOSITORY. Logs and artifacts are world-readable: never print or upload a row, a connection string or the
 # schema dump. The run artifact is counts, names and hashed ids. The dump and the subset live only under RUNNER_TEMP
@@ -133,18 +137,17 @@ jobs:
           node scripts/proof/preflight.mjs
           node scripts/proof/replay-migrations.mjs --report "$CP_OUT_DIR/replay-report.json"
 
-      # The ONLY step that holds production credentials: the three existing repository secrets. It does not source
+      # The ONLY step that holds production credentials: the two existing repository secrets. It does not source
       # the local env file. It takes a schema-only dump of production (lane PROOF-1) and then the data subset (lane
       # PROOF-2). Everything it writes goes under RUNNER_TEMP, never the workspace and never an artifact.
       - name: Export the production schema dump and data subset (read only; the only step with production credentials)
         working-directory: fsi-app
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           node scripts/proof/run-lane-step.mjs --name dump-production-schema --lane PROOF-1 --script scripts/proof/dump-production-schema.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SCHEMA_DUMP"
-          node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET"
+          node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET" --pin-ids-from scripts/turns/record-briefs/batches/record-briefs-009b-tool.json
 
       - name: Apply the production schema dump to oracle_check (the oracle)
         working-directory: fsi-app
