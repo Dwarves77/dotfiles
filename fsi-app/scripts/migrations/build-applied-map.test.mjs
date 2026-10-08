@@ -121,6 +121,19 @@ const map = JSON.parse(readFileSync(MAP_PATH, "utf8"));
 const versions = ledgerKeys(map);
 const sqlFiles = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql"));
 const base = (p) => p;
+// Files that some ledger row names (as its file or its superseder).
+const namedByRows = new Set();
+for (const v of versions) { if (map[v].file) namedByRows.add(map[v].file); if (map[v].superseded_by) namedByRows.add(map[v].superseded_by); }
+// The never-applied set as the FILES say it, not as a list kept here: no ledger row names the file, and
+// either its first-line status is NEVER APPLIED or it has no first-line status and its own header carries the
+// two-track line "-- NOT APPLIED". A migration that lands NOT APPLIED changes this set and the map together
+// (the generator derives the same way), so only a real mismatch fails.
+const headerNeverApplied = sqlFiles.filter((f) => {
+  if (namedByRows.has(f)) return false;
+  const text = readFileSync(join(MIG_DIR, f), "utf8");
+  const cls = statusClassOfFile(text);
+  return cls === "never-applied" || (cls == null && declaresNotApplied(text));
+}).sort();
 
 test("the map covers all 361 ledger rows, every value has name and class, and every named file exists", () => {
   assert.equal(versions.length, 361);
@@ -134,8 +147,7 @@ test("the map covers all 361 ledger rows, every value has name and class, and ev
 });
 
 test("every repo .sql file is named by an entry (ledger row, superseder or keyed file entry), and its first-line status matches", () => {
-  const named = new Set();
-  for (const v of versions) { if (map[v].file) named.add(base(map[v].file)); if (map[v].superseded_by) named.add(base(map[v].superseded_by)); }
+  const named = namedByRows;
   const without = new Map(fileEntries(map).map((f) => [base(f.file), f]));
   const wantStatus = { "never-applied": "never-applied", "outside-ledger": "outside-ledger", "duplicate-prefix": "duplicate-prefix" };
   for (const f of sqlFiles) {
@@ -148,9 +160,13 @@ test("every repo .sql file is named by an entry (ledger row, superseder or keyed
     }
     else if (cls) assert.equal(cls, "applied-under-ledger", `${f}: carries ${cls} but has no keyed file entry`);
   }
-  assert.equal(without.size, 13);
-  assert.deepEqual([...without.values()].map((w) => w.class).sort(), [...Array(3).fill("duplicate-prefix"), ...Array(3).fill("never-applied"), ...Array(7).fill("outside-ledger")]);
-  assert.deepEqual([...without.keys()].filter((f) => without.get(f).class === "never-applied").sort(), ["299_item_type_required_slots_wave3.sql", "370_privilege_table_policies.sql", "371_definer_hygiene.sql"]);
+  const neverInMap = [...without.keys()].filter((f) => without.get(f).class === "never-applied").sort();
+  assert.deepEqual(neverInMap, headerNeverApplied, "the map's never-applied entries equal the set the files' own headers declare");
+  assert.ok(headerNeverApplied.includes("299_item_type_required_slots_wave3.sql"), "the set is not vacuous: 299 carries a first-line NEVER APPLIED status");
+  const classCount = (c) => [...without.values()].filter((w) => w.class === c).length;
+  assert.equal(classCount("duplicate-prefix"), 3);
+  assert.equal(classCount("outside-ledger"), 7);
+  assert.equal(without.size, 10 + neverInMap.length);
 });
 
 test("the five applied-under-ledger files each carry the status line naming their ledger version", () => {
@@ -201,14 +217,14 @@ test("ACCEPTANCE: each recovered body is byte-identical to the export file body 
 });
 
 // ---- the committed map through the reader the replay uses (PROOF-1 applied-map.mjs) --------------------------
-test("CONFORMANCE: the committed map resolves through the replay reader with no error, no unreferenced file, three never-applied skips", () => {
+test("CONFORMANCE: the committed map resolves through the replay reader with no error, no unreferenced file, and its never-applied skips are exactly the header-declared set", () => {
   const ledger = parseAppliedInventory(readFileSync(resolve(MIG_DIR, "..", "..", "docs", "inventories", "applied-migrations.json"), "utf8"));
   assert.equal(ledger.length, versions.length, "applied-migrations.json and the map hold the same ledger rows");
   const inventoryRows = parseInventoryOrder(readFileSync(resolve(MIG_DIR, "..", "..", "..", "docs", "inventories", "migrations.md"), "utf8"));
   const r = resolveMap({ ledger, map, diskFiles: sqlFiles, orderFiles: inventoryRows.map((x) => x.file) });
   assert.deepEqual(r.errors, []);
   assert.deepEqual(r.unreferenced, []);
-  assert.deepEqual(r.skipped.filter((x) => x.class === "never-applied").map((x) => x.file), ["299_item_type_required_slots_wave3.sql", "370_privilege_table_policies.sql", "371_definer_hygiene.sql"]);
+  assert.deepEqual(r.skipped.filter((x) => x.class === "never-applied").map((x) => x.file).sort(), headerNeverApplied);
   const plan = planReplay(inventoryRows, sqlFiles, ledger, readFileSync(MAP_PATH, "utf8"));
   assert.deepEqual(plan.errors, []);
 });
