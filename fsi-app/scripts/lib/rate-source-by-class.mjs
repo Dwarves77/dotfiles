@@ -10,7 +10,18 @@
 // only; "dry"/anything else previews with a deterministic `preview:<host>` id, never touching the DB).
 
 import { hostOf } from "../../src/lib/sources/institution.ts";
-import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
+import { classTierForHostWithVerdicts } from "../../src/lib/sources/host-authority.ts";
+import { loadHostVerdicts } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
+
+// The committed host verdict batches, loaded once per process. A caller (a test, a dry fixture run) may pass its
+// own `hostVerdicts` map instead. Lane S8-E5 (2026-10-08): the rating step reads verdicts through the ONE shared
+// precedence in host-authority.ts (classTierForHostWithVerdicts), so a host with a verdict rates by the verdict
+// whatever its stored name, instead of every producer special-casing its own verdict lookup.
+let committedVerdicts = null;
+function committedHostVerdicts() {
+  if (committedVerdicts === null) committedVerdicts = loadHostVerdicts().verdicts;
+  return committedVerdicts;
+}
 
 /**
  * @param {{url: string, name?: string|null}} candidate
@@ -19,21 +30,22 @@ import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
  *   registerSourceFn: (source: {url:string, name:string, base_tier:number}, opts: {cite: object}) => Promise<{source_id:string, source_key?:string|null}>,
  *   cite: object,
  *   sourceKeyFor?: (host: string) => string,
+ *   hostVerdicts?: ReadonlyMap<string, object>,   // default: the committed host verdict batches
  * }} opts
  * @returns {Promise<
  *   | {ok: true, source_id: string, source_key: string|null, tier: number}
  *   | {ok: false, reason: string}
  * >}
  */
-export async function rateSourceByInstitutionClass({ url, name }, { mode, registerSourceFn, cite, sourceKeyFor }) {
+export async function rateSourceByInstitutionClass({ url, name }, { mode, registerSourceFn, cite, sourceKeyFor, hostVerdicts }) {
   const host = hostOf(url);
   if (!host) return { ok: false, reason: `cannot parse a host from url ${JSON.stringify(url)}` };
 
-  const tier = classTierForHost(host, name ?? null);
+  const tier = classTierForHostWithVerdicts(host, name == null ? [] : [name], hostVerdicts ?? committedHostVerdicts());
   if (tier == null) {
     return {
       ok: false,
-      reason: `host "${host}" is not classified by the institution class table (classTierForHost returned null), ` +
+      reason: `host "${host}" is not classified by the institution class table (no built-in rule, committed host verdict or residue ruling placed it), ` +
         "needs registry review before this figure can publish with a rating (rule 18: rate it, do not guess)",
     };
   }
@@ -60,10 +72,10 @@ export async function rateSourceByInstitutionClass({ url, name }, { mode, regist
  * @returns {(candidate: object, opts: {mode: "dry"|"apply", registerSourceFn: Function}) => Promise<object>}
  */
 export function makeResolveSource({ urlField, nameField, cite, sourceKeyFor }) {
-  return function resolveSource(candidate, { mode, registerSourceFn }) {
+  return function resolveSource(candidate, { mode, registerSourceFn, hostVerdicts }) {
     return rateSourceByInstitutionClass(
       { url: candidate[urlField], name: candidate[nameField] },
-      { mode, registerSourceFn, cite, sourceKeyFor },
+      { mode, registerSourceFn, cite, sourceKeyFor, hostVerdicts },
     );
   };
 }

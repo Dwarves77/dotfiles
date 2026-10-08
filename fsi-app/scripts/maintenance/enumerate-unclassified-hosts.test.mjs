@@ -228,3 +228,17 @@ test("main(): with --out it also writes unplaced-hosts.json", async () => {
 test("collectUnresolvedRows is exported for the resolver's export mode", () => {
   assert.equal(typeof collectUnresolvedRows, "function");
 });
+
+// ── one precedence (lane S8-E5, 2026-10-08) ─────────────────────────────────────────────────────────────
+test("main(): a host with a committed verdict is placed whatever its stored name (six-name probe); the step keeps no ordering of its own", async () => {
+  const names = [null, "NESO", "Carbon Intensity API", "National Energy System Operator", "National Energy System Operator (NESO) Carbon Intensity API", "Carbon Intensity"];
+  for (const name of names) {
+    const deps = { ...fakeDeps({ pending: [{ id: "p1", url: "https://carbonintensity.org.uk/x", name }] }), hostVerdicts: new Map([["carbonintensity.org.uk", { class: "gov", batch: "b" }]]) };
+    const summary = await main({ out: null }, deps);
+    assert.equal(summary.counts.unresolved_hosts, 0, `name ${JSON.stringify(name)}`);
+  }
+  const src = readFileSync(new URL("./enumerate-unclassified-hosts.mjs", import.meta.url), "utf8");
+  const code = src.split(String.fromCharCode(10)).filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*")).join(String.fromCharCode(10));
+  assert.match(code, /placeHostWithVerdicts|classTierForHostWithVerdicts/);
+  assert.equal(code.includes("verdictPlacementForHost("), false, "no second ordering: no private verdict lookup");
+});

@@ -3392,6 +3392,186 @@
           }
         }
       ]
+    },
+    {
+      "id": "sec7-anon-write-refused-on-the-grant",
+      "group": "SEC-7 write policy roles",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Write policies name their role, so anon holds no table-level INSERT, UPDATE or DELETE it cannot use: an anonymous caller writing the tables whose policies call the helpers user_can_write_in_org, user_org_role and user_group_role, the user-keyed tables and the service-role-only tables is refused by the table GRANT (permission denied for table), never by a revoked policy helper (permission denied for function) and never by a policy, while org owners and the service role still write through the same policies and a member of another organization is still refused by the policy.",
+      "expected": "Each anonymous write is refused 42501 with a message naming the table; each control row is written (row_count 1); the cross-organization write is refused 42501 by row-level security, not by the grant.",
+      "reference": "migration 381 (lane SEC-7); AUD-AT-1 register section 11; migrations 369 (grant hygiene) and 370 (the helper-keyed policies)",
+      "steps": [
+        {
+          "label": "attack: anon inserts a team watchlist row (helper family user_can_write_in_org)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'reg', 'sec7-anon')",
+          "params": ["@org_a", "@owner_a"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table org_watchlist" }
+        },
+        {
+          "label": "attack: anon updates team watchlist rows",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "UPDATE public.org_watchlist SET note = 'sec7' WHERE org_id = $1::uuid",
+          "params": ["@org_a"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table org_watchlist" }
+        },
+        {
+          "label": "attack: anon deletes team watchlist rows",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "DELETE FROM public.org_watchlist WHERE org_id = $1::uuid",
+          "params": ["@org_a"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table org_watchlist" }
+        },
+        {
+          "label": "attack: anon inserts a workspace tag",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES ($1::uuid, 'sec7 anon tag', $2::uuid)",
+          "params": ["@org_a", "@owner_a"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table workspace_tags" }
+        },
+        {
+          "label": "attack: anon inserts a portfolio",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.portfolios (org_id, name, created_by) VALUES ($1::uuid, 'sec7 anon portfolio', $2::uuid)",
+          "params": ["@org_a", "@owner_a"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table portfolios" }
+        },
+        {
+          "label": "attack: anon adds an organization membership (helper family user_org_role)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'member')",
+          "params": ["@org_a", "@member_b"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table org_memberships" }
+        },
+        {
+          "label": "attack: anon removes organization memberships",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "DELETE FROM public.org_memberships WHERE org_id = $1::uuid",
+          "params": ["@org_a"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table org_memberships" }
+        },
+        {
+          "label": "attack: anon adds a community group member (helper family user_group_role)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (gen_random_uuid(), $1::uuid, 'member')",
+          "params": ["@member_b"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table community_group_members" }
+        },
+        {
+          "label": "attack: anon writes a user watchlist row (policy keyed on auth.uid())",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.user_watchlist (user_id, item_type, item_id) VALUES ($1::uuid, 'reg', 'sec7-anon')",
+          "params": ["@member_b"],
+          "expect": { "error": "42501", "message_includes": "permission denied for table user_watchlist" }
+        },
+        {
+          "label": "attack: anon inserts an intelligence item (service-role-only policy)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.intelligence_items DEFAULT VALUES",
+          "expect": { "error": "42501", "message_includes": "permission denied for table intelligence_items" }
+        },
+        {
+          "label": "attack: anon updates sources (service-role-only policy)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "UPDATE public.sources SET name = name WHERE false",
+          "expect": { "error": "42501", "message_includes": "permission denied for table sources" }
+        },
+        {
+          "label": "attack: anon deletes integrity flags (service-role-only policy)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "DELETE FROM public.integrity_flags WHERE false",
+          "expect": { "error": "42501", "message_includes": "permission denied for table integrity_flags" }
+        },
+        {
+          "label": "attack: a member of organization B inserts a workspace tag into organization A (the policy still refuses, row-level security)",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES ($1::uuid, 'sec7 foreign tag', $2::uuid)",
+          "params": ["@org_a", "@member_b"],
+          "expect": { "error": "42501", "message_includes": "row-level security" }
+        },
+        {
+          "label": "control: the org A owner inserts a team watchlist row",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'reg', 'sec7-owner')",
+          "params": ["@org_a", "@owner_a"],
+          "expect": { "row_count": 1 }
+        },
+        {
+          "label": "control: the org A owner inserts a workspace tag",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES ($1::uuid, 'sec7 owner tag', $2::uuid)",
+          "params": ["@org_a", "@owner_a"],
+          "expect": { "row_count": 1 }
+        },
+        {
+          "label": "control: the org A owner inserts a portfolio",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.portfolios (org_id, name, created_by) VALUES ($1::uuid, 'sec7 owner portfolio', $2::uuid)",
+          "params": ["@org_a", "@owner_a"],
+          "expect": { "row_count": 1 }
+        },
+        {
+          "label": "control: a user writes their own user watchlist row",
+          "kind": "control",
+          "as": "user:member_b",
+          "sql": "INSERT INTO public.user_watchlist (user_id, item_type, item_id) VALUES ($1::uuid, 'reg', 'sec7-own')",
+          "params": ["@member_b"],
+          "expect": { "row_count": 1 }
+        },
+        {
+          "label": "control: the service role updates the team watchlist",
+          "kind": "control",
+          "as": "service",
+          "sql": "UPDATE public.org_watchlist SET note = 'sec7 service' WHERE org_id = $1::uuid",
+          "params": ["@org_a"],
+          "expect": { "row_count": 1 }
+        }
+      ]
+    },
+    {
+      "id": "sec7-no-unjustified-anon-write-privilege",
+      "group": "SEC-7 write policy roles",
+      "kind": "sql",
+      "invariant": "Every INSERT, UPDATE and DELETE privilege anon holds on a public table is justified by a policy that applies to anon or public for that command, and no write policy keeps the implicit role {public} on a table whose write policies all name an authenticated actor.",
+      "expected": "Both catalog counts are 0 and authenticated keeps INSERT on org_watchlist.",
+      "reference": "migration 381 (lane SEC-7); AUD-AT-1 register section 11; migrations 369 (grant hygiene) and 370 (the helper-keyed policies)",
+      "steps": [
+        {
+          "label": "attack: count anon write privileges that no anon-or-public policy justifies",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM pg_class c CROSS JOIN (VALUES ('INSERT'), ('UPDATE'), ('DELETE')) v(priv) WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p') AND (CASE WHEN v.priv = 'DELETE' THEN has_table_privilege('anon', c.oid, v.priv) ELSE has_any_column_privilege('anon', c.oid, v.priv) END) AND NOT EXISTS (SELECT 1 FROM pg_policies p WHERE p.schemaname = 'public' AND p.tablename = c.relname AND p.roles && ARRAY['anon', 'public']::name[] AND (p.cmd = v.priv OR p.cmd = 'ALL'))",
+          "expect": { "equals": { "n": "0" } }
+        },
+        {
+          "label": "attack: count write policies with roles {public} on tables whose write policies all name an authenticated actor",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM pg_policies p WHERE p.schemaname = 'public' AND p.cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL') AND p.roles = ARRAY['public']::name[] AND NOT EXISTS (SELECT 1 FROM pg_policies q WHERE q.schemaname = 'public' AND q.tablename = p.tablename AND q.cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL') AND q.roles && ARRAY['anon', 'public']::name[] AND NOT ((coalesce(q.qual, '') || ' ' || coalesce(q.with_check, '')) ~* '(auth\\.uid\\(\\)|auth\\.jwt\\(\\)|auth\\.role\\(\\).{0,60}(service_role|authenticated)|user_org_role|user_group_role|user_can_write_in_org|user_belongs_to_org|user_is_group_admin|user_owns_group|user_is_group_member|is_platform_admin)'))",
+          "expect": { "equals": { "n": "0" } }
+        },
+        {
+          "label": "control: authenticated still holds INSERT on org_watchlist",
+          "kind": "control",
+          "sql": "SELECT has_table_privilege('authenticated', 'public.org_watchlist', 'INSERT')::text AS ok",
+          "expect": { "equals": { "ok": "true" } }
+        }
+      ]
     }
   ]
 }
