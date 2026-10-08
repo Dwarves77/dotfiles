@@ -180,17 +180,23 @@ existing `MarketComparativeRibbon.npmtest.mjs` (one regex, for the new `nowIso` 
 - The `market-ribbon` smoke spec through `runUxSpec`: 23 checks, 0 failures. The whole rendering guard run locally with this branch
   (`node .discipline/rendering/run-rendering-guard.mjs`): exit 0, 30 UX smoke specs including `market-ribbon`, 727 UX checks.
 
-## NEEDS A RULING (open)
+## Audit harness: results.json and the audit document NOT regenerated (coordinator ruling 2026-10-08, closed)
 
-- results.json and `AUDIT-2026-09-07.md` were not regenerated. A full run of `npm run audit:design` on this branch (2336 checks, 2206
-  MATCH, 70 MISMATCH, 60 NOT BUILT) reports harness build errors for 11 specs (actionrow, detailheader, detailsection, detailtagrow,
-  detailtimeline, inthisliststat, railcards, sectionindex, settings-section-index, summarydepthswitch, tagpopover: their mounts import
-  `DetailHeader`, `DetailTimeline` and `SectionIndex` from `DetailShell.tsx`, which no longer exports them) and, because those specs
-  produce no rows, regenerating in full deletes 6179 lines of results.json and rewrites 787 lines of the audit document. That is
-  pre-existing breakage unrelated to this lane (results.json was last regenerated 2026-09-11), so committing the regenerated pair would
-  erase the evidence for those 11 specs. The generator was run, its output inspected and reverted. The spec rows (the part of the ruling
-  that decides what the audit requires) are committed. Decision needed: fix those 11 mounts first and then regenerate, or commit the
-  regenerated pair as is.
+- [CONFIRMED by running `npm run audit:design` on this branch and reading the harness errors and `mounts.mjs`]: the design-audit harness is
+  stale against the DetailShell refactor. Eleven specs fail to build: actionrow, detailheader, detailsection, detailtagrow,
+  detailtimeline, inthisliststat, railcards, sectionindex, settings-section-index, summarydepthswitch, tagpopover. Their mounts in
+  `fsi-app/.discipline/rendering/audit/mounts.mjs` (the import block around lines 1920 to 1931, and the `SectionIndex` import near line
+  1883) import three names from `@/components/detail/DetailShell` that it no longer exports: `DetailHeader`, `DetailTimeline` and
+  `SectionIndex` (`DetailShell.tsx` exports `DetailMasthead`, `SummaryDepthSwitch`, `DetailSection`, `DetailPageWrapper`, `DetailLayout`,
+  `DetailRail` and others; `SectionIndex` now lives in `src/components/ui/SectionIndex.tsx`; no `DetailHeader` or `DetailTimeline`
+  export exists in `src/components/detail`).
+- Effect: those specs produce no rows, so a full regeneration (2336 checks, 2206 MATCH, 70 MISMATCH, 60 NOT BUILT) deletes 6179 lines of
+  `results.json` and rewrites 787 lines of `AUDIT-2026-09-07.md`. Ruling: the regenerated pair is not committed; the broken mounts are a
+  separate defect and get their own lane, which fixes the mounts and regenerates once. This lane ran the generator, inspected the output
+  and reverted it; the spec rows it changed (compose-04-market-list.json) are committed and will be picked up by that regeneration.
+
+## Other open items
+
 - `getPublicMarketIntelItems`-style caching: the detail route's item bundle is cached; the new `market_series` and `licence_clear_sources`
   reads sit inside it (authenticated-only tables, read by the same client as the existing `emission_factors` read). I did not verify the
   live grants from this lane (no live access); the code fails soft to an empty envelope on a read error, so the drawer shows less, never
