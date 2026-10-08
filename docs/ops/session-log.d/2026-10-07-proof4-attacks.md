@@ -26,4 +26,8 @@ Read: COMMON.md, proof4.md, CLAUDE.md, lane-common-contract, the chain-proof des
 
 ### Findings recorded as hypotheses (rule 14)
 - [HYPOTHESIS] `profiles` allows a signed-in user to set their own `is_platform_admin`: migration 165's `profiles_self_update` keys on `auth.uid() = id` only, and no column grant or trigger restricting `is_platform_admin` was found in the migration files (027's guard was on `user_profiles`, since dropped). The attack `admin-gate-self-promotion-refused` verifies it on the first run.
-- [HYPOTHESIS] `sensitive_field_policy.max_share_pct` has only a `> 0 and <= 100` CHECK; ADR-035's 25 percent is asserted by migration 347's one-time self-check, not held by a constraint. Not attacked here (outside the brief).
+- [HYPOTHESIS] `sensitive_field_policy.max_share_pct` has only a `> 0 and <= 100` CHECK; ADR-035's 25 percent is asserted by migration 347's one-time self-check, not held by a constraint. Not attacked here (outside the brief). OWED: the coordinator will lane the ADR-035 `max_share_pct` CHECK gap (a constraint holding the 25 percent cap, then an attack for it in this suite).
+
+### Follow-up owed after PR 975 merges (coordinator ruling, one push)
+- Fix the `chain-proof.yml` attack step path to `scripts/proof/attacks/run-attacks.mjs`; add `run-attacks.mjs` and `attacks.json` to the chain-proof `family.json` governing_files; swap the runner's local loopback check for `isLoopbackHost` from `scripts/lib/pg-conn.mjs`.
+- Lint fix pushed 2026-10-08 (3 unused-variable warnings in the tier-override attack and its test).

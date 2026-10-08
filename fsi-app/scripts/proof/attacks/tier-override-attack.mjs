@@ -62,7 +62,7 @@ const same = (a, b) => ["base_tier", "effective_tier", "tier_override"].every((k
 
 /** Run the attack. Returns { status, observed }. Every dependency is injectable. */
 export async function runTierOverrideAttack({
-  attack, client, cwd, env,
+  client, cwd, env,
   spawn = spawnSync,
   readJson = (p) => JSON.parse(readFileSync(p, "utf8")),
   makeTempDir = () => mkdtempSync(join(tmpdir(), "proof4-tier-")),

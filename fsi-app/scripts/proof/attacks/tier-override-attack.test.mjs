@@ -37,13 +37,6 @@ function fakeDb({ ids = ["ctl", "ovr"], onRun } = {}) {
   return client;
 }
 
-function fakeRunner(client, behaviour, summary = { counts: { override_held: 1, movements: 1 }, read_back: { override_skipped: 0 } }) {
-  return (cmd, args) => {
-    behaviour(client.state, args);
-    return { status: behaviour.exit ?? 0, stdout: "", stderr: "", __summary: summary };
-  };
-}
-
 const run = async (client, behaviour, over = {}) => {
   const summary = over.summary ?? { counts: { override_held: 1, movements: 1 }, read_back: { override_skipped: 0 } };
   return runTierOverrideAttack({
@@ -51,7 +44,7 @@ const run = async (client, behaviour, over = {}) => {
     client,
     cwd: "/work/fsi-app",
     env: { CHAIN_PROOF_LOCAL: "1" },
-    spawn: (cmd, args, opts) => {
+    spawn: (cmd, args) => {
       behaviour(client.state, args);
       return { status: over.exit ?? 0, stdout: "", stderr: "" };
     },
