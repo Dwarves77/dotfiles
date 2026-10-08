@@ -51,14 +51,28 @@ exact `data-part` / `data-audit` / `data-figure-kind` hooks the components alrea
 - Changed governing files of the live-smoke family: `live-assertions.mjs` and `live-smoke.mjs`. Per GATE-3 nothing is
   declared; the next run's `governing_hash` and the ledger record it. No `pending/` directory created.
 
+### Follow-up, coordinator grant (same day)
+Coordinator granted both write-set expansions and ruled the missing-credentials behaviour stays as it is today (fail-fast
+exit 1 with a named `::error::`; the brief's "exit 2" skip convention was wrong).
+- `fsi-app/src/lib/detail/section-index-fixtures.ts`: two entries appended, `across-pages` (S9 Connected intelligence) and
+  `inferences` (S10 Inferences), same shape as the eight existing ones. Their ids match `REGULATION_SECTION_INDEX`.
+  `section-index-smoke.mjs` builds its own bodies and does not read this file.
+- `fsi-app/.discipline/rendering/smoke/live-smoke-fixture-smoke.mjs`: `runFixtureLeg` passes `contentChecks: true`; the clean
+  site gains the dashboard rail card, list-row tier square, Catalogue record chip and bias chips, the cross-page container,
+  the Inferences section and the detail bias chips; the defective site omits them (and keeps a hollow `#across-pages`
+  section with no cross-page container, so a present-but-empty section also fails); the six ids join `EXPECTED_DEFECTS`.
+- Red then green, real chromium on the fixture server (`runSmoke`, 3 checks): with `contentChecks` on and the clean site
+  unchanged, the clean leg failed with 20 failures, the first `content-across-pages-rail@1440 ... missing Across pages rail`.
+  After the fixture edit: 3 checks, 0 failures, so the clean leg is clean and the defective leg fires all six content ids.
+
 ### What is NOT done
-- NEEDS WRITE-SET EXPANSION 1: `fsi-app/src/lib/detail/section-index-fixtures.ts`. The brief names "admin gallery fixtures
+- (GRANTED and done, see the follow-up above) NEEDS WRITE-SET EXPANSION 1: `fsi-app/src/lib/detail/section-index-fixtures.ts`. The brief names "admin gallery fixtures
   for the two new tabs"; the register does not name them, but IDX-1's session log does: the `/admin/parts/section-index`
   body fixtures have no bodies for the Connected and Inferences tabs. The only gallery fixtures file is under `src/**`
   (`SectionIndexGallery.tsx` imports it), which the brief also lists as NOT mine. Staged edit: two entries appended to
   `SECTION_INDEX_BODY_FIXTURES`, ids `across-pages` (`S9 Connected intelligence`) and `inferences` (`S10 Inferences`), each
   with a one-sentence placeholder body, matching the existing entries' shape. Nothing in this lane touched it.
-- NEEDS WRITE-SET EXPANSION 2: `fsi-app/.discipline/rendering/smoke/live-smoke-fixture-smoke.mjs`. Staged edit: pass
+- (GRANTED and done, see the follow-up above) NEEDS WRITE-SET EXPANSION 2: `fsi-app/.discipline/rendering/smoke/live-smoke-fixture-smoke.mjs`. Staged edit: pass
   `contentChecks: true` in `runFixtureLeg`; add the six elements to the clean `sitePages` (home rail card, list tier
   squares, a record chip, bias chips, the two sections) and omit them in the defective site; add the six ids to
   `EXPECTED_DEFECTS`. Until then the content invariants are proven by the pure and stub-browser tests only, not by a real
