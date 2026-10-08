@@ -2226,7 +2226,7 @@
           "label": "attack: the viewer adds a team watchlist row",
           "kind": "attack",
           "as": "user:viewer_id",
-          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'item', 'proof4-viewer')",
+          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'reg', 'proof4-viewer')",
           "params": [
             "@org_a",
             "@viewer_id"
@@ -3208,6 +3208,187 @@
           ],
           "expect": {
             "error": "42501"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec6-admin-flag-column-refused",
+      "group": "SEC-6 admin flag",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "profiles.is_platform_admin is not selectable by any signed-in user: not on their own row, not on another user's row, not as a filter, not even by the platform admin; the only own-row path is my_profile().",
+      "expected": "Every direct read of the column by an organisation owner and by the platform admin raises 42501; the other columns of the own row stay readable; my_profile() returns the owner false and the admin true.",
+      "reference": "migration 375 (REVOKE SELECT (is_platform_admin) FROM PUBLIC, anon, authenticated; 22 policies repointed at public.is_platform_admin()); migration 372 (my_profile())",
+      "steps": [
+        {
+          "label": "attack: an organisation owner selects is_platform_admin from their own profiles row",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT is_platform_admin FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an organisation owner selects is_platform_admin from the platform admin's row",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT is_platform_admin FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@admin"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an organisation owner uses the column as a filter to list the admins",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE is_platform_admin",
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: the platform admin selects the column from their own profiles row",
+          "kind": "attack",
+          "as": "user:admin",
+          "sql": "SELECT is_platform_admin FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@admin"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "control: the revoke is not over-broad, the owner still reads other columns of their own row",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT id, display_name, verifier_status FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: my_profile() tells the owner their own flag is false",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT is_platform_admin FROM public.my_profile()",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "is_platform_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "control: my_profile() tells the platform admin their own flag is true",
+          "kind": "control",
+          "as": "user:admin",
+          "sql": "SELECT is_platform_admin FROM public.my_profile()",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "is_platform_admin": "true"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec6-admin-predicate-nonadmin-false",
+      "group": "SEC-6 admin flag",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "public.is_platform_admin() answers for the caller alone and says false to everyone who is not a platform admin, anon included (it is a class C RLS predicate: callable by anon so a table with another policy for anon never raises 42501, and false because there is no caller); it takes no argument, so it cannot be asked about another user; and the admin tables it guards stay closed to a non-admin and open to the admin.",
+      "expected": "The owner and the org B member get false, the platform admin gets true; anon gets false and no error; a call naming a user is refused 42883; a non-admin reading an admin-only table gets 0 rows or 42501 and the admin reads it without error.",
+      "reference": "migration 375 (public.is_platform_admin() SECURITY DEFINER, class C of migration 371: EXECUTE to anon, authenticated and service_role, not PUBLIC; policies such as vocabulary_terms_admin_read call it)",
+      "steps": [
+        {
+          "label": "attack: an organisation owner asks whether they are a platform admin",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT public.is_platform_admin() AS is_admin",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "is_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "attack: a member of another organisation asks whether they are a platform admin",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT public.is_platform_admin() AS is_admin",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "is_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "control: the platform admin is told true",
+          "kind": "control",
+          "as": "user:admin",
+          "sql": "SELECT public.is_platform_admin() AS is_admin",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "is_admin": "true"
+            }
+          }
+        },
+        {
+          "label": "attack: an anonymous caller asks whether they are a platform admin (class C predicate: no error, and false)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT public.is_platform_admin() AS is_admin",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "is_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "attack: the owner asks about another user (the function takes no argument)",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT public.is_platform_admin($1::uuid) AS is_admin",
+          "params": [
+            "@admin"
+          ],
+          "expect": {
+            "error": "42883"
+          }
+        },
+        {
+          "label": "attack: a non-admin reads an admin-only table whose policy calls the predicate",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.vocabulary_terms LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "control: the platform admin reads the same table without error",
+          "kind": "control",
+          "as": "user:admin",
+          "sql": "SELECT count(*) AS n FROM public.vocabulary_terms",
+          "expect": {
+            "rows": 1
           }
         }
       ]

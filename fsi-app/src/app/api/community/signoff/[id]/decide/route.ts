@@ -28,6 +28,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -132,17 +133,19 @@ export async function POST(
   }
 
   // ── Caller-role read (for a precise 403 only; RLS is the true gate) ──
-  const { data: meProfile } = await auth.supabase
-    .from("profiles")
-    .select("verifier_status, is_platform_admin")
-    .eq("id", auth.userId)
-    .maybeSingle();
+  // The admin bit comes from the is_platform_admin rpc (migration 375: the column is not selectable).
+  const [{ data: meProfile }, adminRead] = await Promise.all([
+    auth.supabase
+      .from("profiles")
+      .select("verifier_status")
+      .eq("id", auth.userId)
+      .maybeSingle(),
+    readOwnPlatformAdmin(auth.supabase),
+  ]);
   const isActiveVerifier =
     (meProfile as { verifier_status?: string | null } | null)?.verifier_status ===
     "active";
-  const isAdmin =
-    (meProfile as { is_platform_admin?: boolean | null } | null)
-      ?.is_platform_admin === true;
+  const isAdmin = adminRead.admin;
   if (!isActiveVerifier && !isAdmin) {
     return NextResponse.json(
       { error: "Only active verifiers may record a sign-off decision." },

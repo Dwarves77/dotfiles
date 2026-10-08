@@ -9,6 +9,8 @@
 // SHAPE. An object keyed by ledger version; each value { name, file: <path or null>, class, superseded_by?, note? }.
 // Classes and what the replay does:
 //   identical | comments-only | code-differs | recovered   a file stands for the row: APPLY that file, in order
+//   statements-null | apply-record-stub                    the ledger stored no SQL (or only a provenance note) for the row: the file
+//                                                          is the only text there is, so it is APPLIED like identical (MIG-HIST-1b)
 //   superseded-by | data-only | comment-only               the row is SATISFIED with no file of its own: counted, listed
 //   outside-ledger                                         a file that is live but has no ledger row: APPLIED
 //   never-applied | duplicate-prefix                       a file production never applied: SKIPPED and listed
@@ -19,7 +21,7 @@
 // file (or superseded_by file) is missing on disk; a file claimed both to apply and to skip; a file to apply that the
 // migrations inventory (the order source) does not list.
 
-export const APPLY_CLASSES = Object.freeze(["identical", "comments-only", "code-differs", "recovered"]);
+export const APPLY_CLASSES = Object.freeze(["identical", "comments-only", "code-differs", "recovered", "statements-null", "apply-record-stub"]);
 export const SATISFIED_CLASSES = Object.freeze(["superseded-by", "data-only", "comment-only"]);
 export const BY_FILE_APPLY_CLASSES = Object.freeze(["outside-ledger"]);
 export const SKIP_CLASSES = Object.freeze(["never-applied", "duplicate-prefix"]);
