@@ -240,7 +240,10 @@ function usage() {
     "         #                    apply run may promote, oldest-eligible first (the guard that replaced\n" +
     "         #                    the retired LEDGER_CONSUME_APPLY_ENABLED constant)\n" +
     "       node scripts/turns/run-ledger-consume.mjs --export-candidates path [--limit N] [--source-id uuid]\n" +
-    "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}'] [--with-text]"
+    "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}'] [--with-text] [--stale-verdicts]\n" +
+      "         # --stale-verdicts: export only candidates whose committed verdicts are ALL under an older prompt_version\n" +
+      "       node scripts/turns/run-ledger-consume.mjs --check-verdicts path\n" +
+      "         # dry pre-landing check of one batch file: schema, live prompt_version, which stale verdicts it supersedes"
   );
 }
 
@@ -262,6 +265,10 @@ export function parseArgs(argv) {
         "allow-api": { type: "boolean", default: false },
         "export-candidates": { type: "string" },
         "with-text": { type: "boolean", default: false },
+        // Lane VERD-1 (2026-10-08): the stale selection mode of --export-candidates, and the dry pre-landing
+        // check of one batch file (see indexVerdictVersions / checkVerdictsBatch below).
+        "stale-verdicts": { type: "boolean", default: false },
+        "check-verdicts": { type: "string" },
         // D26 lane L17 (2026-09-13): string, not presence-based boolean - a GitHub Actions boolean input
         // arrives as the literal string "true"/"false" (ledger-consume.yml's own record_only input), and
         // this flag needs an explicit off switch (unlike --newest-first/--with-text, which are pure
@@ -308,6 +315,15 @@ export function parseArgs(argv) {
     // an effect finds out immediately, not by reading an unaugmented payload afterward.
     return { ok: false, error: "--with-text requires --export-candidates (it has no effect in plan/apply mode)." };
   }
+  if (values["stale-verdicts"] === true && !values["export-candidates"]) {
+    return { ok: false, error: "--stale-verdicts requires --export-candidates (it selects which candidates the export lists)." };
+  }
+  if (values["check-verdicts"] !== undefined && !values["check-verdicts"].trim()) {
+    return { ok: false, error: "--check-verdicts, if given, must be a non-empty path." };
+  }
+  if (values["check-verdicts"] !== undefined && values["export-candidates"] !== undefined) {
+    return { ok: false, error: "--check-verdicts cannot be combined with --export-candidates." };
+  }
   if (values["record-only"] !== "true" && values["record-only"] !== "false") {
     return { ok: false, error: `--record-only must be "true" or "false" (got ${JSON.stringify(values["record-only"])}).` };
   }
@@ -347,6 +363,8 @@ export function parseArgs(argv) {
     allowApi: values["allow-api"] === true,
     exportCandidates: values["export-candidates"] || null,
     withText: values["with-text"] === true,
+    staleVerdicts: values["stale-verdicts"] === true,
+    checkVerdicts: values["check-verdicts"] || null,
     recordOnly: values["record-only"] === "true",
   };
 }
@@ -740,6 +758,127 @@ export function indexVerdictsByUrl(entries) {
   return byUrl;
 }
 
+// ── stale verdicts: re-authored through the judgement drain, never edited (lane VERD-1, 2026-10-08) ──────
+//
+// A verdict is an entry in a committed batch file, so there is no verdict row to update and no column to
+// set. A stale entry (prompt_version other than the live one) is excluded from use above, its candidate
+// stays status='candidate', and the way out is a NEW entry for the same URL under the live prompt_version in
+// a NEW batch file (the old file is never edited). "Superseded" is therefore derived, not stored: a URL is
+// superseded when it has a current entry anywhere in the committed batches, and still OWED when it has only
+// stale ones. The consume run records the superseded set in its own artifact (the harness ledger of the
+// apply step), and the drain's stale mode exports exactly the OWED set.
+
+/**
+ * Read and validate verdict-batch files in the order given. One loader for the consume path, the stale
+ * export and the pre-landing check, so the three can never disagree about what a readable batch is.
+ * Message texts are the ones the consume path has always printed before exiting 4. Injectable reader.
+ * @param {string[]} paths
+ * @param {{readFileImpl?: (p: string, enc: string) => string}} [opts]
+ * @returns {{ok: true, batches: {path: string, parsed: object}[]} | {ok: false, message: string}}
+ */
+export function loadVerdictBatchFiles(paths, opts = {}) {
+  const readImpl = opts.readFileImpl ?? readFileSync;
+  const batches = [];
+  for (const filePath of paths) {
+    let raw;
+    try {
+      raw = readImpl(filePath, "utf8");
+    } catch (err) {
+      return { ok: false, message: `run-ledger-consume: cannot read verdicts file "${filePath}": ${err.message} (exit 4).` };
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      return { ok: false, message: `run-ledger-consume: verdicts file "${filePath}" is not valid JSON: ${err.message} (exit 4).` };
+    }
+    const schemaErrors = validateVerdictsFile(parsed);
+    if (schemaErrors.length) {
+      return {
+        ok: false,
+        message:
+          `run-ledger-consume: verdicts file "${filePath}" failed schema validation ` +
+          `(scripts/turns/ledger-verdicts/schema.json) - exit 4:\n  ${schemaErrors.join("\n  ")}`,
+      };
+    }
+    batches.push({ path: filePath, parsed });
+  }
+  return { ok: true, batches };
+}
+
+/**
+ * Index committed verdicts by URL and live-version state. Pure. `batches` are ascending by batch number.
+ *  - stale: URLs whose entries are ALL under another prompt_version (owed a re-authored verdict), mapped to
+ *    their newest stale entry's identity (candidate_id, version, age, batch), never its classification.
+ *  - superseded: URLs with a stale entry AND a current entry in any batch (the stale one is never used).
+ *  - current_urls: how many URLs hold a current entry.
+ * @param {{batch: string, entries: object[]}[]} batches
+ * @param {string} currentVersion FIRST_FETCH_CLASSIFY_PROMPT_VERSION
+ */
+export function indexVerdictVersions(batches, currentVersion) {
+  const currentBatchByUrl = new Map();
+  const newestStaleByUrl = new Map();
+  for (const { batch, entries } of batches) {
+    for (const e of entries) {
+      if (e.prompt_version === currentVersion) {
+        if (!currentBatchByUrl.has(e.url)) currentBatchByUrl.set(e.url, batch);
+      } else {
+        newestStaleByUrl.set(e.url, {
+          candidate_id: e.candidate_id, url: e.url, prompt_version: e.prompt_version, classified_at: e.classified_at, batch,
+        });
+      }
+    }
+  }
+  const stale = new Map();
+  const superseded = [];
+  for (const [url, s] of newestStaleByUrl) {
+    const currentBatch = currentBatchByUrl.get(url);
+    if (currentBatch !== undefined) {
+      superseded.push({ url, stale_prompt_version: s.prompt_version, stale_batch: s.batch, current_batch: currentBatch });
+    } else {
+      stale.set(url, s);
+    }
+  }
+  return { stale, superseded, current_urls: currentBatchByUrl.size };
+}
+
+/**
+ * The dry pre-landing check of ONE batch file (`--check-verdicts`). Pure over already-loaded inputs.
+ * Refuses (errors) a structurally invalid file, and any entry not under the live prompt_version: a batch
+ * landed now must be authored under the live prompt, so a stale entry is refused here instead of landing as
+ * a silent no-op. Accepts an entry for a URL that only has stale verdicts committed and reports it as
+ * superseding that one. A repeat of a URL that already has a current entry is allowed (a later batch wins,
+ * the existing correction rule) and counted.
+ * @param {{parsed: unknown, committed: {batch: string, entries: object[]}[], currentVersion: string}} args
+ */
+export function checkVerdictsBatch({ parsed, committed, currentVersion }) {
+  const errors = validateVerdictsFile(parsed);
+  if (errors.length) return { errors, supersedes: [], new_urls: 0, repeats_current: 0 };
+  parsed.entries.forEach((e, i) => {
+    if (e.prompt_version !== currentVersion) {
+      errors.push(
+        `entries[${i}]: prompt_version ${e.prompt_version} is not the live ${currentVersion}; a batch landed now is authored under the live prompt (a stale verdict is never accepted as current)`
+      );
+    }
+  });
+  const before = indexVerdictVersions(committed, currentVersion);
+  const committedUrls = new Set(committed.flatMap((b) => b.entries.map((e) => e.url)));
+  const currentCommittedUrls = new Set(committed.flatMap((b) => b.entries.filter((e) => e.prompt_version === currentVersion).map((e) => e.url)));
+  const supersedes = [];
+  let newUrls = 0;
+  let repeatsCurrent = 0;
+  const seen = new Set();
+  for (const e of parsed.entries) {
+    if (seen.has(e.url) || e.prompt_version !== currentVersion) continue;
+    seen.add(e.url);
+    const stale = before.stale.get(e.url);
+    if (stale) supersedes.push({ url: e.url, stale_prompt_version: stale.prompt_version, stale_batch: stale.batch });
+    else if (currentCommittedUrls.has(e.url)) repeatsCurrent += 1;
+    else if (!committedUrls.has(e.url)) newUrls += 1;
+  }
+  return { errors, supersedes, new_urls: newUrls, repeats_current: repeatsCurrent };
+}
+
 /**
  * Map one validated verdict entry to a FirstFetchClassifyOutput-shaped object — the SAME shape
  * buildCandidateSeed (portal-harvest.ts) consumes from a live classify() call, so a verdict-driven
@@ -908,7 +1047,9 @@ export function ledgerStatusAfter(disposition, mode) {
  * run-source-sweep.mjs's header on why a walker's own query is mirrored, never independently re-derived).
  * @param {object} result ConsumeResult
  * @param {Map<string, {sourceId: string|null, costUsd: number, renderMs: number|null, inputTokens: number, outputTokens: number, ok: boolean, error: string|null, source?: string, verdictCandidateId?: string|null, confidence?: number|null}>} telemetryByUrl
- * @param {{sourceIdFilter?: string|null, verdictBatchesRead?: number}} [opts]
+ * @param {{sourceIdFilter?: string|null, verdictBatchesRead?: number, supersededByUrl?: Map<string, object>, staleVerdictCounts?: {open: number, superseded: number}}} [opts]
+ *   supersededByUrl / staleVerdictCounts (lane VERD-1): the apply step's record that a current verdict
+ *   superseded a stale one (per_item marker) and how many stale verdicts are still owed vs superseded.
  */
 export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
   const sourceIdFilter = opts.sourceIdFilter ?? null;
@@ -947,6 +1088,10 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
       item.confidence = typeof t.confidence === "number" ? t.confidence : null;
       if (t.verdictCandidateId && t.verdictCandidateId !== o.ledgerId) {
         item.verdict_candidate_id_mismatch = true;
+      }
+      const sup = opts.supersededByUrl?.get(o.url);
+      if (sup) {
+        item.supersedes_stale_verdict = { prompt_version: sup.stale_prompt_version, batch: sup.stale_batch, superseded_by_batch: sup.current_batch };
       }
     }
     return item;
@@ -1024,6 +1169,9 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
     input_tokens_total: inputTokensTotal,
     output_tokens_total: outputTokensTotal,
     next_cursor: result.nextCursor ?? null,
+    ...(opts.staleVerdictCounts
+      ? { stale_verdicts_open: opts.staleVerdictCounts.open, stale_verdicts_superseded: opts.staleVerdictCounts.superseded }
+      : {}),
   };
 
   return { perItem, metrics };
@@ -1243,7 +1391,11 @@ export function shapeCandidateTextFields(fetchOutcome, opts) {
 /**
  * Shape one export batch from a page of LedgerCandidate rows. PURE — no I/O, independently testable.
  * @param {object[]} candidates rows from selectCandidateLedgerPage
- * @param {{limit?: number, promptVersion?: string|null, now?: () => string, withText?: boolean, contentMaxChars?: number|null, textByCandidateId?: Map<string, object>}} [opts]
+ * @param {{limit?: number, promptVersion?: string|null, now?: () => string, withText?: boolean, contentMaxChars?: number|null, textByCandidateId?: Map<string, object>, staleByUrl?: Map<string, object>, nextCursor?: object|null}} [opts]
+ *   staleByUrl (lane VERD-1): stale export mode. Each row is annotated with its stale verdict's prompt_version,
+ *   batch and classified_at (identity only, never the old classification, so a re-authored verdict is written
+ *   from the exported text alone). nextCursor, when the key is present, overrides the full-page cursor rule:
+ *   a stale export scans past rows it does not keep, so the cursor is the scan position, not the last row kept.
  */
 export function buildCandidateExportPayload(candidates, opts = {}) {
   const now = opts.now ?? (() => new Date().toISOString());
@@ -1262,6 +1414,14 @@ export function buildCandidateExportPayload(candidates, opts = {}) {
       source_category: row.sources?.category ?? null,
       source_tier: row.sources?.base_tier ?? null,
     };
+    if (opts.staleByUrl) {
+      const sv = opts.staleByUrl.get(row.url);
+      if (sv) {
+        base.verdict_prompt_version = sv.prompt_version;
+        base.verdict_batch = sv.batch;
+        base.verdict_classified_at = sv.classified_at;
+      }
+    }
     if (!withText) return base;
     const t = opts.textByCandidateId?.get(row.id);
     if (!t) return base; // defensive: --with-text always populates one entry per row (see runExportCandidates)
@@ -1306,15 +1466,18 @@ export function buildCandidateExportPayload(candidates, opts = {}) {
     fetch_ok_count: withText ? fetchOkCount : null,
     fetch_failed_count: withText ? fetchFailedCount : null,
     prompt_version: opts.promptVersion ?? null,
+    ...(opts.staleByUrl ? { export_mode: "stale" } : {}),
     count: candidates.length,
     candidates: candidateRows,
     // Same keyset-cursor convention as ConsumeResult.nextCursor (portal-harvest.ts) — omitted when this
     // page read fewer rows than `limit` (the source is exhausted here), present otherwise so a session
     // lane can page through the full backlog across several --export-candidates calls.
     next_cursor:
-      candidates.length === limit && candidates.length > 0
-        ? { firstSeenAt: candidates[candidates.length - 1].first_seen_at, id: candidates[candidates.length - 1].id }
-        : null,
+      "nextCursor" in opts
+        ? opts.nextCursor
+        : candidates.length === limit && candidates.length > 0
+          ? { firstSeenAt: candidates[candidates.length - 1].first_seen_at, id: candidates[candidates.length - 1].id }
+          : null,
   };
 }
 
@@ -1330,16 +1493,43 @@ export function buildCandidateExportPayload(candidates, opts = {}) {
  * aborts the batch; the row is still exported, `fetch_ok:false`. This function performs NO database write
  * of any kind: `selectPage` is the only DB-shaped call it makes (a read), `fetchDoc` is a plain HTTP-shaped
  * function, and the only other I/O is the local `writeFileSync` below.
- * @param {{selectPage: (opts:object)=>Promise<object[]>, limit: number, sourceId?: string|null, newestFirst?: boolean, after?: object|null, promptVersion?: string|null, outPath: string, now?: () => string, withText?: boolean, fetchDoc?: (url:string)=>Promise<{text:string,transport?:string}>, maxChars?: number}} opts
+ * `staleIndex` (lane VERD-1): when given (the Map indexVerdictVersions returns as `stale`), the export lists only
+ * ledger rows whose URL is in it. The ledger is scanned in keyset pages of `scanPageSize` until `limit` rows
+ * are kept or it is exhausted, so only kept rows are fetched with --with-text, and the cursor is the scan
+ * position (null once the ledger is exhausted).
+ * @param {{selectPage: (opts:object)=>Promise<object[]>, limit: number, sourceId?: string|null, newestFirst?: boolean, after?: object|null, promptVersion?: string|null, outPath: string, now?: () => string, withText?: boolean, fetchDoc?: (url:string)=>Promise<{text:string,transport?:string}>, maxChars?: number, staleIndex?: Map<string, object>, scanPageSize?: number}} opts
  * @returns {Promise<{path: string, count: number, payload: object}>}
  */
 export async function runExportCandidates(opts) {
-  const candidates = await opts.selectPage({
-    limit: opts.limit,
-    sourceId: opts.sourceId ?? undefined,
-    newestFirst: opts.newestFirst,
-    after: opts.after ?? undefined,
-  });
+  const staleIndex = opts.staleIndex ?? null;
+  let candidates;
+  let staleCursor = null;
+  if (staleIndex) {
+    const pageSize = opts.scanPageSize ?? 500;
+    candidates = [];
+    let after = opts.after ?? undefined;
+    scan: for (;;) {
+      const page = await opts.selectPage({ limit: pageSize, sourceId: opts.sourceId ?? undefined, newestFirst: opts.newestFirst, after });
+      for (const row of page) {
+        if (!staleIndex.has(row.url)) continue;
+        candidates.push(row);
+        if (candidates.length >= opts.limit) {
+          staleCursor = { firstSeenAt: row.first_seen_at, id: row.id };
+          break scan;
+        }
+      }
+      if (page.length < pageSize) break;
+      const last = page[page.length - 1];
+      after = { firstSeenAt: last.first_seen_at, id: last.id };
+    }
+  } else {
+    candidates = await opts.selectPage({
+      limit: opts.limit,
+      sourceId: opts.sourceId ?? undefined,
+      newestFirst: opts.newestFirst,
+      after: opts.after ?? undefined,
+    });
+  }
 
   const withText = opts.withText === true;
   let textByCandidateId;
@@ -1367,6 +1557,7 @@ export async function runExportCandidates(opts) {
     withText,
     contentMaxChars: withText ? opts.maxChars ?? null : null,
     textByCandidateId,
+    ...(staleIndex ? { staleByUrl: staleIndex, nextCursor: staleCursor } : {}),
   });
   const outPath = resolve(opts.outPath);
   mkdirSync(dirname(outPath), { recursive: true });
@@ -1407,13 +1598,17 @@ export function resolveExportAfter({ explicitAfter, latestExportArtifact }) {
  * one `resolveExportAfter` needs. Injectable `readRunHistoryImpl` for tests. I/O wrapper only; the
  * filtering/selection itself has no logic beyond "last one in `readRunHistory`'s ascending-by-started_at
  * order", so it is not split into a separate pure function.
- * @param {string} dir @param {{readRunHistoryImpl?: (d:string)=>{runs:object[]}}} [opts]
+ * `mode` (lane VERD-1) keeps the two export cursors apart: "pending" (the default; an artifact with no
+ * config.export_mode is pending) or "stale". A stale export scans a different candidate set, so its cursor
+ * must never resume a pending export, and the reverse.
+ * @param {string} dir @param {{readRunHistoryImpl?: (d:string)=>{runs:object[]}, mode?: "pending"|"stale"}} [opts]
  * @returns {object|null}
  */
 export function findLatestExportArtifact(dir, opts = {}) {
   const readHistory = opts.readRunHistoryImpl ?? readRunHistory;
+  const mode = opts.mode ?? "pending";
   const { runs } = readHistory(dir);
-  const exportRuns = runs.filter((r) => r?.config?.action === "export");
+  const exportRuns = runs.filter((r) => r?.config?.action === "export" && (r.config.export_mode ?? "pending") === mode);
   return exportRuns.length ? exportRuns[exportRuns.length - 1] : null;
 }
 
@@ -1477,6 +1672,50 @@ async function main() {
     process.exit(1);
   }
 
+  // ── --check-verdicts (lane VERD-1): the dry pre-landing check of ONE batch file. Needs the live prompt
+  // version (jiti, no DB) and the committed batches (files); touches no database and writes nothing, so it
+  // runs before the credentials check. Exit 0 clean, 4 on any refusal (the code a bad verdicts file always
+  // exited with).
+  if (parsed.checkVerdicts) {
+    const { createJiti } = await import("jiti");
+    const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
+    const { FIRST_FETCH_CLASSIFY_PROMPT_VERSION: liveVersion } = await jiti.import("../../src/lib/llm/first-fetch-classify.ts");
+    const target = resolve(parsed.checkVerdicts);
+    const committedPaths = discoverVerdictsFiles(resolve(ROOT, "scripts", "turns", "ledger-verdicts")).filter((p) => resolve(p) !== target);
+    const loadedCommitted = loadVerdictBatchFiles(committedPaths);
+    if (!loadedCommitted.ok) {
+      console.error(loadedCommitted.message);
+      process.exit(4);
+    }
+    let parsedTarget;
+    try {
+      parsedTarget = JSON.parse(readFileSync(target, "utf8"));
+    } catch (err) {
+      console.error(`run-ledger-consume --check-verdicts: cannot read "${target}" as JSON: ${err.message} (exit 4).`);
+      process.exit(4);
+    }
+    const report = checkVerdictsBatch({
+      parsed: parsedTarget,
+      committed: loadedCommitted.batches.map((b) => ({ batch: b.parsed.batch, entries: b.parsed.entries })),
+      currentVersion: liveVersion,
+    });
+    if (report.errors.length) {
+      const shown = report.errors.slice(0, 20);
+      const more = report.errors.length - shown.length;
+      console.error(
+        `run-ledger-consume --check-verdicts: REFUSED "${target}" (live prompt_version ${liveVersion}), ${report.errors.length} error(s):\n  ` +
+          shown.join("\n  ") + (more > 0 ? `\n  ... and ${more} more` : "")
+      );
+      process.exit(4);
+    }
+    console.log(
+      `run-ledger-consume --check-verdicts: OK "${target}" (live prompt_version ${liveVersion}): ` +
+        `${parsedTarget.entries.length} entr(ies), ${report.supersedes.length} supersede a stale committed verdict, ` +
+        `${report.new_urls} for URLs with no committed verdict, ${report.repeats_current} repeat a current verdict (later batch wins).`
+    );
+    process.exit(0);
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("run-ledger-consume: no DB creds — cannot run here (exit 2).");
     process.exit(2);
@@ -1507,7 +1746,25 @@ async function main() {
   // export artifact's own `next_cursor` instead of restarting from the beginning every time.
   if (parsed.exportCandidates) {
     const exportHarnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
-    const latestExportArtifact = findLatestExportArtifact(exportHarnessRunsDir);
+    // STALE MODE (lane VERD-1): list only candidates whose committed verdicts are all under an older prompt
+    // version. The owed set shrinks as re-authored batches land, so a stale export always starts from the
+    // beginning unless --after is given, and its cursor artifact is tagged export_mode "stale" so it never
+    // resumes (or is resumed by) a pending export.
+    const exportMode = parsed.staleVerdicts ? "stale" : "pending";
+    let staleIndex = null;
+    if (parsed.staleVerdicts) {
+      const loadedAll = loadVerdictBatchFiles(discoverVerdictsFiles(resolve(ROOT, "scripts", "turns", "ledger-verdicts")));
+      if (!loadedAll.ok) {
+        console.error(loadedAll.message);
+        process.exit(4);
+      }
+      staleIndex = indexVerdictVersions(
+        loadedAll.batches.map((b) => ({ batch: b.parsed.batch, entries: b.parsed.entries })),
+        FIRST_FETCH_CLASSIFY_PROMPT_VERSION
+      ).stale;
+      console.log(`run-ledger-consume --export-candidates --stale-verdicts: ${staleIndex.size} URL(s) hold only stale-version verdicts.`);
+    }
+    const latestExportArtifact = exportMode === "stale" ? null : findLatestExportArtifact(exportHarnessRunsDir, { mode: "pending" });
     const effectiveAfter = resolveExportAfter({ explicitAfter: parsed.after, latestExportArtifact });
     if (!parsed.after && effectiveAfter) {
       console.log(
@@ -1529,6 +1786,7 @@ async function main() {
       withText: parsed.withText,
       fetchDoc: parsed.withText ? buildFetchDoc() : undefined,
       maxChars: CONTENT_MAX_CHARS,
+      staleIndex: staleIndex ?? undefined,
     });
     console.log(
       `run-ledger-consume --export-candidates${parsed.withText ? " --with-text" : ""}: wrote ${count} candidate(s) to ${path}`
@@ -1545,6 +1803,7 @@ async function main() {
       after_source: parsed.after ? "explicit" : effectiveAfter ? "auto-resumed" : "start",
       with_text: parsed.withText,
       prompt_version: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
+      ...(exportMode === "stale" ? { export_mode: "stale" } : {}),
     };
     const exportArtifact = buildExportRunArtifact({
       runId: exportRunId,
@@ -1554,6 +1813,7 @@ async function main() {
       config: exportConfig,
       inputsRef: [
         "portal_link_candidates: status=candidate" +
+          (exportMode === "stale" ? " with only stale-version committed verdicts" : "") +
           (parsed.sourceId ? ` source_id=${parsed.sourceId}` : "") +
           ` limit=${parsed.limit} order=${parsed.newestFirst ? "desc" : "asc"}(first_seen_at,id)` +
           (effectiveAfter ? ` after=${JSON.stringify(effectiveAfter)} (${exportConfig.after_source})` : " after=start"),
@@ -1563,8 +1823,10 @@ async function main() {
     });
     const exportArtifactPath = writeRunArtifact(exportHarnessRunsDir, exportArtifact);
     console.log(
-      `Wrote ${exportArtifactPath} (next_cursor=${JSON.stringify(payload.next_cursor ?? null)} — the next ` +
-        `export dispatch with no --after resumes from here automatically).`
+      `Wrote ${exportArtifactPath} (next_cursor=${JSON.stringify(payload.next_cursor ?? null)}` +
+        (exportMode === "stale"
+          ? "; a stale export always starts from the beginning because the owed set shrinks as re-authored batches land)."
+          : " - the next export dispatch with no --after resumes from here automatically).")
     );
     process.exit(0);
   }
@@ -1587,38 +1849,21 @@ async function main() {
   let verdictsByUrl = new Map();
   const verdictsFilesInfo = [];
   let allCurrentEntries = [];
-  for (const filePath of verdictsFilePaths) {
-    let raw;
-    try {
-      raw = readFileSync(filePath, "utf8");
-    } catch (err) {
-      console.error(`run-ledger-consume: cannot read verdicts file "${filePath}": ${err.message} (exit 4).`);
-      process.exit(4);
-    }
-    let parsedVerdicts;
-    try {
-      parsedVerdicts = JSON.parse(raw);
-    } catch (err) {
-      console.error(`run-ledger-consume: verdicts file "${filePath}" is not valid JSON: ${err.message} (exit 4).`);
-      process.exit(4);
-    }
-    const schemaErrors = validateVerdictsFile(parsedVerdicts);
-    if (schemaErrors.length) {
-      console.error(
-        `run-ledger-consume: verdicts file "${filePath}" failed schema validation ` +
-          `(scripts/turns/ledger-verdicts/schema.json) — exit 4:\n  ${schemaErrors.join("\n  ")}`
-      );
-      process.exit(4);
-    }
+  const loadedVerdicts = loadVerdictBatchFiles(verdictsFilePaths);
+  if (!loadedVerdicts.ok) {
+    console.error(loadedVerdicts.message);
+    process.exit(4);
+  }
+  for (const { path: filePath, parsed: parsedVerdicts } of loadedVerdicts.batches) {
     const { current, stale } = partitionVerdictsByPromptVersion(parsedVerdicts.entries, FIRST_FETCH_CLASSIFY_PROMPT_VERSION);
     if (stale.length) {
       console.log(
         `run-ledger-consume: ${stale.length}/${parsedVerdicts.entries.length} verdict(s) in "${filePath}" ` +
-          `carry a prompt_version other than the live ${FIRST_FETCH_CLASSIFY_PROMPT_VERSION} — excluded, treated ` +
+          `carry a prompt_version other than the live ${FIRST_FETCH_CLASSIFY_PROMPT_VERSION}, excluded, treated ` +
           `as no-verdict for their URLs (never silently accepted as current).`
       );
     }
-    allCurrentEntries = allCurrentEntries.concat(current); // ascending batch order — later batch wins on a duplicate URL
+    allCurrentEntries = allCurrentEntries.concat(current); // ascending batch order: later batch wins on a duplicate URL
     verdictsFilesInfo.push({
       path: filePath,
       batch: parsedVerdicts.batch,
@@ -1627,6 +1872,14 @@ async function main() {
       stale_prompt_version_entries: stale.length,
     });
   }
+  // Lane VERD-1: which stale verdicts a current one has superseded (derived, never stored on the old entry) and
+  // how many are still owed a re-authored verdict. Recorded in this run's artifact (config + metrics + per_item).
+  const versionIndex = indexVerdictVersions(
+    loadedVerdicts.batches.map((b) => ({ batch: b.parsed.batch, entries: b.parsed.entries })),
+    FIRST_FETCH_CLASSIFY_PROMPT_VERSION
+  );
+  const supersededByUrl = new Map(versionIndex.superseded.map((x) => [x.url, x]));
+  const staleVerdictCounts = { open: versionIndex.stale.size, superseded: versionIndex.superseded.length };
   verdictsByUrl = indexVerdictsByUrl(allCurrentEntries);
   if (!parsed.verdicts) {
     console.log(
@@ -1727,6 +1980,8 @@ async function main() {
     // this run actually read, whether an explicit --verdicts path (length 1) or every auto-discovered
     // scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch (length 0 when none exist).
     verdicts_files: verdictsFilesInfo,
+    // Lane VERD-1: stale-version verdicts still owed a re-authored verdict, and those a current verdict superseded.
+    stale_verdicts: { open: staleVerdictCounts.open, superseded: staleVerdictCounts.superseded },
     allow_api: parsed.allowApi,
     prompt_version: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
   };
@@ -1782,7 +2037,12 @@ async function main() {
     if (runId) {
       const harnessVersion = hashHarnessVersion(LEDGER_CONSUME_GOVERNING_FILES, FSI_ROOT);
       const shaped = result
-        ? shapeConsumeResult(result, telemetry, { sourceIdFilter: parsed.sourceId, verdictBatchesRead: verdictsFilesInfo.length })
+        ? shapeConsumeResult(result, telemetry, {
+            sourceIdFilter: parsed.sourceId,
+            verdictBatchesRead: verdictsFilesInfo.length,
+            supersededByUrl,
+            staleVerdictCounts,
+          })
         : null;
       const artifact = buildRunArtifact({
         runId,

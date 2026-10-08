@@ -23,6 +23,21 @@ Haiku sub-agents inside the session, never the metered API.
 4. `plan-drain.mjs --finish` releases the leases and writes this family's artifact, landed into `harness_runs`
    by `scripts/turns/deliver-artifact-branch.sh`.
 
+## Selection modes
+
+A kind is planned in its default mode `pending` (everything awaiting a judgement) unless it registers another in
+`scripts/drain/kinds.mjs` (`modes`). Lane VERD-1 (2026-10-08) registered `stale` for the ledger kind:
+`plan-drain.mjs --kind ledger --mode stale` plans that kind alone over the candidates whose committed verdicts
+are all under an older `prompt_version`, oldest first, through the same exporter (`run-ledger-consume.mjs
+--export-candidates ... --stale-verdicts`), the same lease key (`candidate_id`) and the same batch path rule. The
+session writes NEW verdicts under the live prompt from the exported text; an old verdict is never edited, and is
+superseded by a current verdict for the same URL (the consume run records which, in its own artifact). A plan
+entry carries its `mode`; a run is one mode per kind, so a `pending` run and a `stale` run are separate runs.
+`--dry` prints the plan with no lease and no plan file (the switch is still read first). The mode is a property
+of the planned run, not a new family: artifacts stay `judgement-drain` runs. The mode is recorded in the plan
+file (each kind entry's `mode`); the run artifact written by `--finish` lists each kind's batch path but does not
+yet carry the mode (`scripts/drain/artifact.mjs`, outside lane VERD-1's write set).
+
 ## Standing metric
 
 Per run: kinds planned, batches, items, leases held versus released, PRs opened, and the defects (an export that

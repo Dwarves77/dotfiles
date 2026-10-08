@@ -7,6 +7,8 @@ import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { KINDS, kindById } from "./kinds.mjs";
+import * as Kinds from "./kinds.mjs";
+import * as Drain from "./plan-drain.mjs";
 import { decideDrainSwitch } from "./switch.mjs";
 import { planDrain, releasePlanLeases, earliestPending, orderKinds, parseArgs, defaultRunId, runExporter, PLAN_SCHEMA, LEASE_STALE_SECONDS } from "./plan-drain.mjs";
 import { emitJudgementDrainArtifact, buildDrainRun } from "./artifact.mjs";
@@ -173,7 +175,7 @@ test("releasePlanLeases releases every lease, records a failed release instead o
 test("parseArgs and defaultRunId", () => {
   assert.equal(parseArgs(["--limit", "0"]).ok, false);
   assert.equal(parseArgs(["--nope"]).ok, false);
-  assert.deepEqual(parseArgs(["--finish", "p.json", "--prs", "a=b"]), { ok: true, out: null, runId: null, limit: null, finish: "p.json", prs: "a=b" });
+  assert.deepEqual(parseArgs(["--finish", "p.json", "--prs", "a=b"]), { ok: true, out: null, runId: null, limit: null, finish: "p.json", prs: "a=b", kind: null, mode: "pending", dry: false });
   assert.equal(defaultRunId("2026-10-06T01:02:03.456Z"), "20261006t010203Z");
 });
 
@@ -245,4 +247,175 @@ test("artifact: written through the shared writer into a family directory with a
   const json = JSON.parse(readFileSync(path, "utf8"));
   assert.equal(json.harness_family, "judgement-drain");
   assert.equal(json.config.leases_released, 1);
+});
+
+// ── stale mode and --dry (lane VERD-1, 2026-10-08) ────────────────────────────────────────────────────────
+//
+// The ledger kind gains a selection mode "stale" (default stays "pending"): candidates whose committed verdicts
+// are all under an older prompt_version, exported through the same exporter with its --stale-verdicts flag,
+// kept oldest first, leased on the same candidate_id key. --dry prints the plan and writes nothing.
+// New functions are read through namespace imports (Kinds, Drain) so a run against the code from before this
+// lane fails per test, not as one whole-file import error.
+const CUR = "sha256:bbbbbbbbbbbbbbbb";
+const OLD = "sha256:aaaaaaaaaaaaaaaa";
+const cand = (n, firstSeen, verdictVersion) => ({ candidate_id: uuid(n), url: `https://x/${n}`, first_seen_at: firstSeen, verdict_prompt_version: verdictVersion, verdict_batch: "ledger-verdicts-002" });
+
+test("kinds: only the ledger kind registers a stale mode, its argv is the pending argv plus --stale-verdicts, and unknown modes are refused", () => {
+  const ledger = kindById("ledger-verdicts");
+  assert.deepEqual(Kinds.kindModes(ledger), ["pending", "stale"]);
+  assert.deepEqual(Kinds.exportArgvFor(ledger, "pending"), ledger.exportArgv);
+  assert.deepEqual(Kinds.exportArgvFor(ledger, "stale"), [...ledger.exportArgv, "--stale-verdicts"]);
+  for (const k of KINDS.filter((x) => x.id !== "ledger-verdicts")) assert.deepEqual(Kinds.kindModes(k), ["pending"], k.id);
+  assert.throws(() => Kinds.exportArgvFor(kindById("theme-briefs"), "stale"), /no mode "stale"/);
+});
+
+test("kinds: resolveKind takes an exact id or a unique prefix and nothing else", () => {
+  assert.equal(Kinds.resolveKind("ledger").id, "ledger-verdicts");
+  assert.equal(Kinds.resolveKind("ledger-verdicts").id, "ledger-verdicts");
+  assert.equal(Kinds.resolveKind("theme").id, "theme-briefs");
+  assert.equal(Kinds.resolveKind("record").id, "record-briefs");
+  assert.equal(Kinds.resolveKind("nope"), null);
+  assert.equal(Kinds.resolveKind(""), null);
+  assert.equal(Kinds.resolveKind("s"), null, "no kind id starts with s");
+});
+
+test("parseArgs: --kind, --mode and --dry; stale needs a kind that registers it; --finish takes none of them", () => {
+  const ok = parseArgs(["--kind", "ledger", "--mode", "stale", "--dry"]);
+  assert.deepEqual([ok.ok, ok.kind, ok.mode, ok.dry], [true, "ledger-verdicts", "stale", true]);
+  assert.equal(parseArgs(["--kind", "ledger"]).mode, "pending");
+  assert.match(parseArgs(["--mode", "stale"]).error, /--mode stale requires --kind/);
+  assert.match(parseArgs(["--kind", "theme", "--mode", "stale"]).error, /theme-briefs has no mode "stale"/);
+  assert.match(parseArgs(["--kind", "zzz"]).error, /--kind must be/);
+  assert.match(parseArgs(["--mode", "sideways", "--kind", "ledger"]).error, /--mode must be/);
+  assert.match(parseArgs(["--finish", "p.json", "--dry"]).error, /--finish cannot be combined/);
+});
+
+test("selectStaleItems: 3 stale + 2 current rows -> the 3 stale, oldest candidate first, none of the current", () => {
+  const items = [
+    cand(1, "2026-09-03T00:00:00Z", OLD), cand(2, "2026-09-01T00:00:00Z", CUR), cand(3, "2026-09-02T00:00:00Z", OLD),
+    cand(4, "2026-09-04T00:00:00Z", CUR), cand(5, "2026-09-01T12:00:00Z", OLD),
+  ];
+  const out = Drain.selectStaleItems(items, CUR);
+  assert.deepEqual(out.map((i) => i.candidate_id), [uuid(5), uuid(3), uuid(1)]);
+  assert.deepEqual(Drain.selectStaleItems([{ candidate_id: uuid(9), first_seen_at: "2026-09-01T00:00:00Z" }], CUR), [], "an item carrying no stale verdict is not stale");
+});
+
+test("stale mode plan: lists only the stale rows in age order, under the same lease keys, with the stale mode passed to the exporter", async () => {
+  const items = [
+    cand(1, "2026-09-03T00:00:00Z", OLD), cand(2, "2026-09-01T00:00:00Z", CUR), cand(3, "2026-09-02T00:00:00Z", OLD),
+    cand(4, "2026-09-04T00:00:00Z", CUR), cand(5, "2026-09-01T12:00:00Z", OLD),
+  ];
+  const { deps, calls } = spyDeps({ queues: { "ledger-verdicts": { ok: true, items, current_prompt_version: CUR } }, dirs: { "ledger-verdicts": ["ledger-verdicts-001.json", "ledger-verdicts-002.json"] } });
+  const seenModes = [];
+  const inner = deps.exportQueue;
+  deps.exportQueue = async (kind, o) => { seenModes.push([kind.id, o.mode]); return inner(kind, o); };
+  const plan = await planDrain(deps, { runId: "s1", kindId: "ledger-verdicts", mode: "stale" });
+  assert.equal(plan.drain, "on");
+  assert.deepEqual(seenModes, [["ledger-verdicts", "stale"]], "only the named kind is exported");
+  assert.equal(plan.kinds.length, 1);
+  const lv = plan.kinds[0];
+  assert.equal(lv.mode, "stale");
+  assert.deepEqual(lv.batches[0].item_ids, [uuid(5), uuid(3), uuid(1)]);
+  assert.equal(lv.batches[0].batch_path, "scripts/turns/ledger-verdicts/ledger-verdicts-003.json");
+  assert.equal(lv.residue.not_stale, 2);
+  assert.deepEqual(calls.filter((c) => c.startsWith("acquire:")), [uuid(5), uuid(3), uuid(1)].map((u) => `acquire:${u}`));
+  assert.deepEqual(plan.leases.map((l) => l.lease_id), [uuid(5), uuid(3), uuid(1)]);
+});
+
+test("stale mode plan: an exporter that does not report the live prompt_version is an export error, never a guess", async () => {
+  const { deps } = spyDeps({ queues: { "ledger-verdicts": { ok: true, items: [cand(1, "2026-09-01T00:00:00Z", OLD)] } } });
+  const plan = await planDrain(deps, { runId: "s2", kindId: "ledger-verdicts", mode: "stale" });
+  assert.match(plan.kinds[0].export_error, /live prompt_version/);
+  assert.equal(plan.totals.items, 0);
+  assert.equal(plan.leases.length, 0);
+});
+
+test("pending mode (the default) is unchanged: every kind exported, the exporter is told 'pending'", async () => {
+  const { deps } = spyDeps();
+  const modes = [];
+  const inner = deps.exportQueue;
+  deps.exportQueue = async (kind, o) => { modes.push(o.mode); return inner(kind, o); };
+  const plan = await planDrain(deps, { runId: "s3" });
+  assert.equal(modes.length, KINDS.length);
+  assert.ok(modes.every((m) => m === "pending"));
+  assert.ok(plan.kinds.every((k) => k.mode === "pending"));
+});
+
+test("planDrain refuses a mode the named kind does not register (a coding error, not a silent pending run)", async () => {
+  const { deps } = spyDeps();
+  await assert.rejects(planDrain(deps, { runId: "s4", kindId: "theme-briefs", mode: "stale" }), /no mode "stale"/);
+  await assert.rejects(planDrain(deps, { runId: "s5", mode: "stale" }), /requires a kind/);
+});
+
+test("--dry: the switch is still read first, and no lease is taken, none is held, nothing is written", async () => {
+  const items = [cand(1, "2026-09-03T00:00:00Z", OLD), cand(3, "2026-09-02T00:00:00Z", OLD)];
+  const { deps, calls } = spyDeps({ queues: { "ledger-verdicts": { ok: true, items, current_prompt_version: CUR } } });
+  const plan = await planDrain(deps, { runId: "d1", kindId: "ledger-verdicts", mode: "stale", dry: true });
+  assert.equal(calls[0], "readSwitch");
+  assert.equal(calls.filter((c) => c.startsWith("acquire:")).length, 0);
+  assert.equal(plan.dry, true);
+  assert.deepEqual(plan.leases, []);
+  assert.deepEqual(plan.kinds[0].batches[0].item_ids, [uuid(3), uuid(1)]);
+  assert.equal(plan.kinds[0].would_lease, 2);
+  assert.equal(plan.totals.leases_held, 0);
+});
+
+test("--dry with the switch off still stops at STEP 0", async () => {
+  const { deps, calls } = spyDeps({ sw: decideDrainSwitch({ judgementDrain: "off", emergencyPaused: false, fleetHalted: false }) });
+  const plan = await planDrain(deps, { runId: "d2", kindId: "ledger-verdicts", mode: "stale", dry: true });
+  assert.deepEqual(calls, ["readSwitch"]);
+  assert.equal(plan.drain, "off");
+});
+
+test("runPlanCli --kind ledger --mode stale --dry on the fixture prints the plan and writes nothing", async () => {
+  const items = [cand(1, "2026-09-03T00:00:00Z", OLD), cand(2, "2026-09-01T00:00:00Z", CUR), cand(3, "2026-09-02T00:00:00Z", OLD)];
+  const { deps, calls } = spyDeps({ queues: { "ledger-verdicts": { ok: true, items, current_prompt_version: CUR, source: { type: "file", path: "fixture" } } } });
+  const out = []; const writes = [];
+  const parsed = parseArgs(["--kind", "ledger", "--mode", "stale", "--dry"]);
+  const code = await Drain.runPlanCli(parsed, { deps, now: NOW, writePlan: (p) => writes.push(p), planPath: (id) => `plan-${id}.json`, log: (l) => out.push(l) });
+  assert.equal(code, 0);
+  assert.deepEqual(writes, [], "no plan file");
+  assert.equal(calls.filter((c) => c.startsWith("acquire:")).length, 0, "no lease");
+  assert.match(out[0], /^drain: on \(dry run: nothing written, no lease taken\)\. 2 item\(s\) in 1 batch\(es\) across 1 kind\(s\)/);
+  assert.ok(out.some((l) => /ledger-verdicts \[stale\]: exported 3, planned 2 in 1 batch\(es\), 1 not stale/.test(l)), out.join("\n"));
+  assert.ok(out.some((l) => l.includes("scripts/turns/ledger-verdicts/ledger-verdicts-001.json") && l.includes(uuid(3)) && l.includes(uuid(1))), out.join("\n"));
+  console.log("DRY RUN OUTPUT:\n" + out.join("\n"));
+});
+
+test("runPlanCli non-dry still writes the plan file and holds the leases (existing behaviour)", async () => {
+  const { deps } = spyDeps({ queues: { "theme-briefs": { ok: true, items: [{ theme_id: uuid(1) }] } } });
+  const out = []; const writes = [];
+  const code = await Drain.runPlanCli(parseArgs([]), { deps, now: NOW, writePlan: (p) => writes.push(p), planPath: (id) => `plan-${id}.json`, log: (l) => out.push(l) });
+  assert.equal(code, 0);
+  assert.equal(writes.length, 1);
+  assert.match(out[0], /^drain: on\. 1 item\(s\) in 1 batch\(es\) across 1 kind\(s\); 1 lease\(s\) held; plan /);
+});
+
+test("runPlanCli with the drain off prints the one-line reason and reads nothing else", async () => {
+  const { deps, calls } = spyDeps({ sw: decideDrainSwitch({ judgementDrain: "off", emergencyPaused: false, fleetHalted: false }) });
+  const out = [];
+  const code = await Drain.runPlanCli(parseArgs([]), { deps, now: NOW, writePlan: () => { throw new Error("must not write"); }, planPath: () => "x", log: (l) => out.push(l) });
+  assert.equal(code, 0);
+  assert.deepEqual(calls, ["readSwitch"]);
+  assert.match(out[0], /^drain: off \(judgement_drain is off/);
+});
+
+test("runExporter in stale mode runs the ledger exporter with --stale-verdicts and carries the live prompt_version it reported", () => {
+  let seen;
+  const spawn = (_node, argv) => { seen = argv; return { status: 0, stdout: "" }; };
+  const res = runExporter(kindById("ledger-verdicts"), { limit: 300, mode: "stale" }, {
+    spawn, mkdtemp: () => tmpdir(), readdir: () => ["ledger-candidates.json"],
+    readFile: () => JSON.stringify({ prompt_version: CUR, candidates: [cand(1, "2026-09-01T00:00:00Z", OLD)] }),
+  });
+  assert.ok(seen.includes("--stale-verdicts"));
+  assert.ok(seen.includes("300"));
+  assert.equal(res.current_prompt_version, CUR);
+  assert.equal(res.items.length, 1);
+});
+
+test("runExporter without a mode is the pending argv, byte for byte (no --stale-verdicts)", () => {
+  let seen;
+  const spawn = (_node, argv) => { seen = argv; return { status: 0, stdout: "" }; };
+  runExporter(kindById("ledger-verdicts"), { limit: 300 }, { spawn, mkdtemp: () => tmpdir(), readdir: () => ["ledger-candidates.json"], readFile: () => JSON.stringify({ candidates: [] }) });
+  assert.equal(seen.includes("--stale-verdicts"), false);
 });
