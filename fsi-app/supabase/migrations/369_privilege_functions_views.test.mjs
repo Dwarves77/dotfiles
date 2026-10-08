@@ -58,47 +58,71 @@ test("functions: the four named writers are revoked from PUBLIC, anon, authentic
   assert.match(SQL, /GRANT EXECUTE ON FUNCTION %s TO service_role/);
 });
 
-test("functions: the disclosed extension list is guarded by to_regprocedure so an absent out-of-repo function does not abort", () => {
+test("functions: the ruled extension list is guarded by to_regprocedure so an absent out-of-repo function does not abort, and gate_a_health_refresh is not in it", () => {
   for (const sig of [
     "public.item_corrections_latest(uuid, text)",
     "public.item_corrections_span_is_verbatim(uuid, uuid, text)",
     "public.item_corrections_pair_tombstoned(uuid, uuid)",
     "public.move_override_notes_to_item_notes()",
-    "public.gate_a_health_refresh()",
   ]) assert.ok(SQL.includes(`'${sig}'`), `${sig} is listed`);
+  assert.ok(!RAW.includes("gate_a_health_refresh"), "gate_a_health_refresh is not mentioned anywhere in the migration (F47 allowlists it)");
   assert.match(SQL, /IF to_regprocedure\(v_sig\) IS NULL THEN\s+RAISE NOTICE[^;]*skipped[^;]*;\s+CONTINUE;/);
 });
 
-test("publish_aggregate: revoked from PUBLIC and anon only, authenticated and service_role granted, search_path pinned by ALTER (body not restated)", () => {
-  assert.match(SQL, /REVOKE EXECUTE ON FUNCTION public\.publish_aggregate\(text, text, jsonb\) FROM PUBLIC, anon;/);
-  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.publish_aggregate\(text, text, jsonb\) TO authenticated, service_role;/);
-  assert.match(SQL, /ALTER FUNCTION public\.publish_aggregate\(text, text, jsonb\) SET search_path = public, pg_temp;/);
-  assert.doesNotMatch(SQL, /CREATE OR REPLACE FUNCTION public\.publish_aggregate/);
-  assert.doesNotMatch(SQL, /FUNCTION public\.publish_aggregate\(text, text, jsonb\) FROM PUBLIC, anon, authenticated/);
+test("functions: every function in the extension list is SECURITY DEFINER and every caller is a SECURITY DEFINER function or the service role", () => {
+  const m356 = read("supabase", "migrations", "356_item_corrections.sql");
+  const body = (name) => { const i = m356.indexOf(`FUNCTION public.${name}(`); assert.ok(i >= 0, name); return m356.slice(i, i + 700); };
+  for (const n of ["item_corrections_latest", "item_corrections_span_is_verbatim", "item_corrections_pair_tombstoned"]) {
+    assert.match(body(n), /SECURITY DEFINER/, `${n} is SECURITY DEFINER`);
+  }
+  for (const caller of ["item_corrections_patch", "item_corrections_before_insert", "item_corrections_block_tombstoned_edge"]) {
+    assert.match(body(caller), /SECURITY DEFINER/, `${caller} (a caller) is SECURITY DEFINER`);
+  }
+  const rpcs = [];
+  for (const f of CODE) {
+    const t = readFileSync(f, "utf8");
+    if (/\.rpc\(\s*["'`](item_corrections_latest|item_corrections_span_is_verbatim|item_corrections_pair_tombstoned|move_override_notes_to_item_notes)["'`]/.test(t)) rpcs.push(relative(FSI, f));
+  }
+  assert.deepEqual(rpcs, [], "no src or script calls any of the four through rpc");
 });
 
-test("publish_aggregate: authenticated must keep EXECUTE because the PROOF-4 attacks call it as a member and never as anon", () => {
+test("publish_aggregate (ruling A): revoked from PUBLIC, anon and authenticated, granted to service_role only, search_path pinned by ALTER (body not restated)", () => {
+  assert.match(SQL, /REVOKE EXECUTE ON FUNCTION public\.publish_aggregate\(text, text, jsonb\) FROM PUBLIC, anon, authenticated;/);
+  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.publish_aggregate\(text, text, jsonb\) TO service_role;/);
+  assert.match(SQL, /ALTER FUNCTION public\.publish_aggregate\(text, text, jsonb\) SET search_path = public, pg_temp;/);
+  assert.doesNotMatch(SQL, /CREATE OR REPLACE FUNCTION public\.publish_aggregate/);
+  assert.doesNotMatch(SQL, /publish_aggregate\(text, text, jsonb\) TO authenticated/);
+});
+
+test("publish_aggregate: every PROOF-4 step that calls it runs as service, or as anon or a member and must be refused 42501; a service step proves the ADR-035 floor refuses", () => {
   const manifest = JSON.parse(read("scripts", "proof", "attacks", "attacks.json"));
-  const text = JSON.stringify(manifest);
-  const asList = [];
+  const steps = [];
   const visit = (o) => {
     if (Array.isArray(o)) o.forEach(visit);
     else if (o && typeof o === "object") {
-      if (typeof o.sql === "string" && o.sql.includes("publish_aggregate")) asList.push(o.as ?? "(default)");
+      if (typeof o.sql === "string" && o.sql.includes("publish_aggregate")) steps.push(o);
       Object.values(o).forEach(visit);
     }
   };
   visit(manifest);
-  assert.ok(text.includes("publish_aggregate") && asList.length > 0, "the manifest calls publish_aggregate");
-  for (const a of asList) assert.ok(a === "service" || a.startsWith("user:"), `publish_aggregate attack runs as ${a}`);
-  assert.ok(asList.some((a) => a.startsWith("user:")), "at least one call is as an authenticated member");
+  assert.ok(steps.length > 0, "the manifest calls publish_aggregate");
+  for (const s of steps) {
+    if (s.as === "service") continue;
+    assert.ok(s.as === "anon" || String(s.as).startsWith("user:"), `unexpected role ${s.as}`);
+    assert.equal(s.expect?.error, "42501", `${s.label}: a non-service caller must be refused 42501`);
+  }
+  assert.ok(steps.some((s) => s.as === "anon"), "an anon leg exists");
+  assert.ok(steps.some((s) => String(s.as).startsWith("user:")), "an authenticated leg exists");
+  const floor = steps.find((s) => s.as === "service" && /k-1/.test(s.label));
+  assert.ok(floor, "a service leg attacks the floor with k-1 organisations");
+  assert.equal(floor.expect.equals.refused, "true");
 });
 
 test("functions: every caller of the closed functions uses the service-role client", () => {
   const callers = [];
   for (const f of CODE) {
     const t = readFileSync(f, "utf8");
-    if (/\.rpc\(\s*["'`](admin_set_judgement_drain|admin_set_pause_state|item_corrections_note|item_corrections_patch|item_corrections_latest|item_corrections_span_is_verbatim|item_corrections_pair_tombstoned|move_override_notes_to_item_notes|gate_a_health_refresh|publish_aggregate)["'`]/.test(t)) {
+    if (/\.rpc\(\s*["'`](admin_set_judgement_drain|admin_set_pause_state|item_corrections_note|item_corrections_patch|item_corrections_latest|item_corrections_span_is_verbatim|item_corrections_pair_tombstoned|move_override_notes_to_item_notes|publish_aggregate)["'`]/.test(t)) {
       callers.push(relative(FSI, f).replace(/\\/g, "/"));
     }
   }
@@ -186,33 +210,52 @@ test("grant hygiene: the six privileges revoked from anon on all public tables, 
   assert.match(SQL, /anon SELECT grant count changed/);
 });
 
-test("grant hygiene: authenticated table grants are not touched (SEC-3b owns the policies)", () => {
-  assert.doesNotMatch(SQL, /ON ALL TABLES IN SCHEMA public FROM[^;]*authenticated/);
-  assert.doesNotMatch(SQL, /TRUNCATE[^;]*FROM[^;]*authenticated/);
+test("grant hygiene: authenticated loses TRUNCATE, TRIGGER and REFERENCES (not covered by RLS) and keeps INSERT, UPDATE, DELETE (SEC-3b owns the policies)", () => {
+  assert.match(SQL, /REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public FROM authenticated;/);
+  assert.doesNotMatch(SQL, /REVOKE[^;]*\b(INSERT|UPDATE|DELETE)\b[^;]*ON ALL TABLES IN SCHEMA public FROM[^;]*authenticated/);
+  assert.doesNotMatch(SQL, /GRANT[^;]*(TRUNCATE|TRIGGER|REFERENCES)[^;]*TO authenticated/);
 });
 
-test("grant hygiene: the postgres default privileges for new tables stop granting the six to anon", () => {
+test("grant hygiene: the postgres default privileges for new tables stop granting the six to anon and the three to authenticated", () => {
   assert.match(SQL, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public\s+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM anon;/);
+  assert.match(SQL, /ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public\s+REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM authenticated;/);
+});
+
+test("self-check: the default-privilege change is asserted from pg_default_acl, no table is created (F47 and F64 would flag one)", () => {
+  assert.doesNotMatch(SQL, /\bCREATE\s+(TEMP\s+|TEMPORARY\s+)?TABLE\b/i);
+  assert.ok(!RAW.includes("sec3a_acl_probe"));
+  assert.match(SQL, /FROM pg_default_acl d, aclexplode\(d\.defaclacl\) a/);
+  assert.match(SQL, /d\.defaclobjtype = 'r'/);
+  assert.match(SQL, /d\.defaclnamespace = 'public'::regnamespace/);
+});
+
+test("self-check: a real TRUNCATE as authenticated on a real table must raise 42501", () => {
+  assert.match(SQL, /pg_temp\.sec3a_attempt\('authenticated', format\('TRUNCATE public\.%I', v_trunc\)\)/);
+  assert.match(SQL, /authenticated TRUNCATE of % got % \(want 42501\)/);
 });
 
 test("self-check: attacks as anon, authenticated and service_role, expects 42501, rolls back by sentinel, drops its helper", () => {
   assert.match(SQL, /CREATE FUNCTION pg_temp\.sec3a_attempt/);
   assert.match(SQL, /DROP FUNCTION pg_temp\.sec3a_attempt\(text, text\);/);
   assert.match(SQL, /FOREACH v_role IN ARRAY ARRAY\['anon', 'authenticated'\]/);
+  assert.match(SQL, /anon calling publish_aggregate got % \(want 42501\)/);
+  assert.match(SQL, /authenticated calling publish_aggregate got % \(want 42501\)/);
   assert.match(SQL, /SET LOCAL ROLE %I/);
   assert.ok((SQL.match(/\(want 42501\)/g) ?? []).length >= 10, "at least ten 42501 expectations");
   for (const needle of [
     "admin_set_judgement_drain", "admin_set_pause_state", "item_corrections_note", "item_corrections_patch",
     "publish_aggregate", "INSERT INTO public.%I DEFAULT VALUES", "DELETE FROM public.%I WHERE false",
-    "research_assessments_current", "sec3a_acl_probe", "security_invoker=(on|true)",
+    "research_assessments_current", "security_invoker=(on|true)",
   ]) assert.ok(SQL.includes(needle), `self-check names ${needle}`);
   assert.match(SQL, /RAISE EXCEPTION 'sec3a_369_selfcheck_rollback';/);
   assert.match(SQL, /IF SQLERRM <> 'sec3a_369_selfcheck_rollback' THEN RAISE; END IF;/);
   assert.match(SQL, /service_role calling admin_set_judgement_drain got % \(want ok\)/);
 });
 
-test("self-check: no fixture row is invented and no live table is truncated", () => {
+test("self-check: no fixture row is invented and the only TRUNCATE statement is the one attack run as authenticated", () => {
   assert.doesNotMatch(SQL, /gen_random_uuid\(\)\s*,\s*'selfcheck'/);
-  assert.doesNotMatch(SQL, /\bTRUNCATE\s+(TABLE\s+)?public\./);
+  const truncates = SQL.match(/\bTRUNCATE\s+(TABLE\s+)?public\./g) ?? [];
+  assert.equal(truncates.length, 1, "exactly one TRUNCATE statement text");
+  assert.match(SQL, /pg_temp\.sec3a_attempt\('authenticated', format\('TRUNCATE public\.%I', v_trunc\)\)/);
   assert.doesNotMatch(SQL, /INSERT INTO auth\.users/);
 });

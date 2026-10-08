@@ -1,4 +1,4 @@
--- subject: Migration 369 (lane SEC-3a, 2026-10-08): functions, views and grants that let anon or a signed-in user write what only the system may write; EXECUTE on admin_set_judgement_drain, admin_set_pause_state, item_corrections_note, item_corrections_patch (and their read helpers, move_override_notes_to_item_notes and gate_a_health_refresh) revoked from PUBLIC, anon and authenticated and held by service_role only; publish_aggregate revoked from PUBLIC and anon and pinned to search_path public, pg_temp; every public view set to security_invoker = on with INSERT, UPDATE and DELETE revoked from PUBLIC, anon and authenticated, and anon SELECT revoked on research_assessments_current; anon loses INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES and TRIGGER on every public table except the write privileges a policy naming anon or public still needs, and the postgres default privileges for new tables stop granting those six to anon; the self-check attacks each closure as anon, authenticated and service_role in a block that always rolls back; NOT APPLIED.
+-- subject: Migration 369 (lane SEC-3a, 2026-10-08): functions, views and grants that let anon or a signed-in user write what only the system may write; EXECUTE on admin_set_judgement_drain, admin_set_pause_state, item_corrections_note, item_corrections_patch (and the three corrections read helpers and move_override_notes_to_item_notes) revoked from PUBLIC, anon and authenticated and held by service_role only; publish_aggregate likewise service_role only (ruling A) and pinned to search_path public, pg_temp; every public view set to security_invoker = on with INSERT, UPDATE and DELETE revoked from PUBLIC, anon and authenticated, and anon SELECT revoked on research_assessments_current; anon loses INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES and TRIGGER on every public table except the write privileges a policy naming anon or public still needs, authenticated loses TRUNCATE, TRIGGER and REFERENCES (not covered by RLS), and the postgres default privileges for new tables stop granting them; the self-check attacks each closure as anon, authenticated and service_role in a block that always rolls back; NOT APPLIED.
 -- 369 -- functions, views and grants (lane SEC-3a, 2026-10-08).
 --
 -- NOT APPLIED. Authored by lane SEC-3a; the coordinator's executor applies it after CI (two-track policy, CLAUDE.md
@@ -26,35 +26,29 @@
 --      callers are the zz_item_corrections_apply_* trigger functions, which are SECURITY DEFINER (owned by the migration
 --      role, so unaffected by a revoke from the public roles) and create_item_correction (service_role). Revoked from
 --      PUBLIC, anon, authenticated; granted to service_role.
---    Extension, same family and same posture, DISCLOSED because the brief names only the first four: the three read
---      helpers of migration 356 (item_corrections_latest(uuid, text), item_corrections_span_is_verbatim(uuid, uuid,
---      text), item_corrections_pair_tombstoned(uuid, uuid)) are SECURITY DEFINER and return rows of item_corrections
---      (an admin-read-only table by RLS) to anon; and the two further census rows move_override_notes_to_item_notes()
---      (census section 2: an anon-triggerable cross-tenant bulk write, defined out of repo) and gate_a_health_refresh()
---      (migration 256: cache recompute, deliberately unscheduled and run by the operator). Each is revoked from PUBLIC,
---      anon, authenticated and granted to service_role, but only when it exists (to_regprocedure), so the migration is
---      safe on a database where the out-of-repo function is absent. [CONFIRMED by git grep over fsi-app/src,
---      fsi-app/scripts, fsi-app/.discipline] none of the five is called from src or scripts (item-corrections.mjs and
---      gate-a-gauges.mjs name them in comments only), and none is referenced by a policy.
---    publish_aggregate(text, text, jsonb)   migrations 287, 347. SECURITY DEFINER, no search_path set. Revoked from
---      PUBLIC and anon (the brief); authenticated KEEPS EXECUTE (see COHORT VALIDATION). The search_path is pinned with
---      ALTER FUNCTION ... SET search_path = public, pg_temp, not CREATE OR REPLACE: the body is not reproduced here, so
---      the 180-line gate cannot drift from the applied one, and the pin changes nothing else (every table in the body is
---      already qualified public., every function it calls is in pg_catalog).
---
--- COHORT VALIDATION (brief item 3) IS NOT BUILT, BY DESIGN, AND IS REPORTED. The brief says: validate the cohort
--- against the caller's membership, and STOP and report the shape if that needs a design the census does not settle.
--- It does. [CONFIRMED by code read] (a) publish_aggregate has no caller in src or scripts (the Community benchmark that
--- fed it was removed by ADR-042, migration 349 kept the function); (b) its cohort is p_cohort_filter -> 'member_ids',
--- a list of CONTRIBUTOR identifiers whose k_min counts distinct contributing organisations (ADR-035: at least 10),
--- so a caller is not normally one of them and a rule "every member_id is the caller's organisation" can never meet k_min
--- 10, while a rule "the caller's organisation is one of the member_ids" is a reciprocity design nobody has ruled; (c) the
--- PROOF-4 attacks (scripts/proof/attacks/attacks.json, group ADR-035 aggregate floor) call publish_aggregate as
--- user:owner_a with synthetic ids p4-1.. and require a refusal row or a grant row, so any membership test added to the
--- body breaks the proof lane until that file is changed (not in this lane's write set). The anon hole, the part the
--- census can be fully settled on, is closed here. The authenticated residue (any signed-in user can still write cohort
--- rows into aggregate_query_log with caller-supplied ids and so trigger the freeze and complement refusals against a
--- legitimate cohort) is stated in the session log with the two candidate shapes for a ruling.
+--    Extension, same family and same posture, ruled by the coordinator: the three read helpers of migration 356
+--      (item_corrections_latest(uuid, text), item_corrections_span_is_verbatim(uuid, uuid, text),
+--      item_corrections_pair_tombstoned(uuid, uuid)) return rows of item_corrections (an admin-read-only table by RLS)
+--      to anon, and move_override_notes_to_item_notes() (census section 2: an anon-triggerable cross-tenant bulk write,
+--      defined out of repo, run post-merge by the executor over the Supabase MCP as the service role). A function is in
+--      this list only because [CONFIRMED by git grep over fsi-app/src, fsi-app/scripts, fsi-app/.discipline and the
+--      migration tree] it is SECURITY DEFINER and every caller is a SECURITY DEFINER function (the three helpers are
+--      called only from item_corrections_patch, item_corrections_before_insert and
+--      item_corrections_block_tombstoned_edge, migration 356, all SECURITY DEFINER) or the service role (no src or
+--      script reaches any of the four through rpc; item-corrections.mjs names two of them in a comment only). Each is
+--      revoked from PUBLIC, anon, authenticated and granted to service_role, but only when it exists
+--      (to_regprocedure), so the migration is safe on a database where the out-of-repo function is absent.
+--    publish_aggregate(text, text, jsonb)   migrations 287, 347. SECURITY DEFINER, no search_path set. RULING A
+--      (coordinator, 2026-10-08): service_role only. Revoked from PUBLIC, anon and authenticated, granted to
+--      service_role. Aggregates are system-published and no user path exists (ADR-042; no caller in src or scripts), so
+--      the cohort-membership validation the original brief asked for is moot: a user cannot call the gate with a
+--      caller-supplied cohort at all, which also closes the ledger poisoning by any signed-in user. A future caller is
+--      a server route that derives member_ids from a real join and calls through the service client. The search_path is
+--      pinned with ALTER FUNCTION ... SET search_path = public, pg_temp, not CREATE OR REPLACE: the body is not
+--      reproduced here, so the 180-line gate cannot drift from the applied one, and the pin changes nothing else (every
+--      table in the body is already qualified public., every function it calls is in pg_catalog). The PROOF-4 attacks
+--      (scripts/proof/attacks/attacks.json, group ADR-035 aggregate floor) were changed in the same PR: the floor and
+--      dominance legs run as the service role, and an authenticated leg and an anon leg must be refused 42501.
 --
 -- CALLERS [CONFIRMED by git grep and by reading the files]. admin_set_pause_state and admin_set_judgement_drain: only
 -- src/app/api/admin/sources/pause-global/route.ts, through the client requireAdminRoute returns, which is
@@ -91,15 +85,19 @@
 -- without an identity or service_role test, so the re-grant set is expected to be small; its size is printed in a
 -- NOTICE. TRUNCATE, REFERENCES and TRIGGER are never granted back: they are not subject to RLS, and anon needs none of
 -- them. anon SELECT is untouched (the block asserts the anon SELECT grant count is identical before and after).
--- authenticated grants are untouched (SEC-3b owns the table policies). Default privileges: ALTER DEFAULT PRIVILEGES FOR
--- ROLE postgres IN SCHEMA public REVOKE the same six FROM anon, so a table created later does not come back with them.
--- A function default privilege is NOT changed here (that would change every future function for every role).
+-- authenticated: REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public FROM authenticated (coordinator
+-- ruling). None of the three is subject to RLS and Supabase's default grant gives all three to authenticated; no
+-- legitimate caller needs them (migrations run as the owner). authenticated INSERT, UPDATE and DELETE are untouched
+-- (SEC-3b owns the table policies); the block asserts their grant counts are identical before and after. Default
+-- privileges: ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE the same six FROM anon and the three
+-- FROM authenticated, so a table created later does not come back with them. A function default privilege is NOT
+-- changed here (that would change every future function for every role).
 --
 -- SELF-CHECK. One DO block, no fixture rows invented, every change rolled back by a sentinel exception. A helper in
 -- pg_temp (dropped afterwards) runs one statement as a role under SET LOCAL ROLE and returns 'ok' or the SQLSTATE.
 -- Attacks: anon and authenticated each calling admin_set_judgement_drain, admin_set_pause_state, item_corrections_note
--- and item_corrections_patch must get 42501; anon calling publish_aggregate must get 42501 while authenticated and
--- service_role succeed (a refusal payload for an unregistered field, which still writes the ledger, rolled back);
+-- and item_corrections_patch must get 42501, and so must anon and authenticated calling publish_aggregate, while
+-- service_role succeeds (a refusal payload for an unregistered field, which still writes the ledger, rolled back);
 -- service_role must succeed on the service-only writers (note excepted: it is not expected to succeed as service_role
 -- because its foreign key needs a real correction, so only the privilege check is asserted). Every view must carry
 -- security_invoker = on and grant no INSERT, UPDATE or DELETE to anon or authenticated, and a real INSERT DEFAULT VALUES
@@ -107,8 +105,10 @@
 -- research_assessments_current must get 42501. The two flipped read views must still be readable as service_role, and
 -- readable as authenticated only as zero rows when the base table has no SELECT policy. Hygiene: no public table's anon
 -- ACL holds any of the six privileges except those the live policies justify; a real INSERT DEFAULT VALUES, UPDATE
--- and DELETE as anon on a table with no anon-or-public write policy must get 42501; and a table created by the migration
--- role in the rolled-back block carries none of the six for anon (the default-privilege change).
+-- and DELETE as anon on a table with no anon-or-public write policy must get 42501; a real TRUNCATE as authenticated on
+-- a real table must get 42501; and the postgres default ACL for new tables in public (pg_default_acl) holds none of the
+-- six for anon and none of the three for authenticated (read from the catalog; no table is created, so no object is
+-- left for F47 or F64 to flag).
 
 BEGIN;
 
@@ -152,8 +152,7 @@ BEGIN
     'public.item_corrections_latest(uuid, text)',
     'public.item_corrections_span_is_verbatim(uuid, uuid, text)',
     'public.item_corrections_pair_tombstoned(uuid, uuid)',
-    'public.move_override_notes_to_item_notes()',
-    'public.gate_a_health_refresh()'
+    'public.move_override_notes_to_item_notes()'
   ] LOOP
     IF to_regprocedure(v_sig) IS NULL THEN
       RAISE NOTICE 'migration 369: % does not exist on this database, skipped', v_sig;
@@ -164,8 +163,8 @@ BEGIN
   END LOOP;
 END $$;
 
-REVOKE EXECUTE ON FUNCTION public.publish_aggregate(text, text, jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.publish_aggregate(text, text, jsonb) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION public.publish_aggregate(text, text, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.publish_aggregate(text, text, jsonb) TO service_role;
 ALTER FUNCTION public.publish_aggregate(text, text, jsonb) SET search_path = public, pg_temp;
 
 -- ---- 2. Views --------------------------------------------------------------------------------------------------
@@ -193,13 +192,16 @@ BEGIN
   END IF;
 END $$;
 
--- ---- 3. Grant hygiene (anon) -----------------------------------------------------------------------------------
+-- ---- 3. Grant hygiene (anon: the six; authenticated: TRUNCATE, TRIGGER, REFERENCES) ---------------------------------
 DO $$
 DECLARE
   r record;
   v_anon oid := (SELECT oid FROM pg_roles WHERE rolname = 'anon');
+  v_auth oid := (SELECT oid FROM pg_roles WHERE rolname = 'authenticated');
   v_sel_before integer;
   v_sel_after integer;
+  v_iud_before integer;
+  v_iud_after integer;
   v_regranted integer := 0;
   v_list text := '';
 BEGIN
@@ -207,8 +209,13 @@ BEGIN
     FROM pg_class c, aclexplode(c.relacl) a
    WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p', 'v')
      AND a.grantee = v_anon AND a.privilege_type = 'SELECT';
+  SELECT count(*) INTO v_iud_before
+    FROM pg_class c, aclexplode(c.relacl) a
+   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p')
+     AND a.grantee = v_auth AND a.privilege_type IN ('INSERT', 'UPDATE', 'DELETE');
 
   REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA public FROM anon;
+  REVOKE TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public FROM authenticated;
 
   FOR r IN
     SELECT p.tablename AS t,
@@ -237,12 +244,21 @@ BEGIN
   IF v_sel_after <> v_sel_before THEN
     RAISE EXCEPTION 'ABORT: the anon SELECT grant count changed from % to % (this migration must not touch SELECT)', v_sel_before, v_sel_after;
   END IF;
+  SELECT count(*) INTO v_iud_after
+    FROM pg_class c, aclexplode(c.relacl) a
+   WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p')
+     AND a.grantee = v_auth AND a.privilege_type IN ('INSERT', 'UPDATE', 'DELETE');
+  IF v_iud_after <> v_iud_before THEN
+    RAISE EXCEPTION 'ABORT: the authenticated INSERT, UPDATE, DELETE grant count changed from % to % (SEC-3b owns those)', v_iud_before, v_iud_after;
+  END IF;
 
   RAISE NOTICE 'migration 369: anon write privileges re-granted on % table(s) that carry a write policy naming anon or public: %', v_regranted, coalesce(nullif(v_list, ''), '(none)');
 END $$;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES FROM anon;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+  REVOKE TRUNCATE, TRIGGER, REFERENCES ON TABLES FROM authenticated;
 
 -- ---- Self-check: attack every closure, rolled back -------------------------------------------------------------
 -- Helper: run one statement as a role, return 'ok' or the SQLSTATE. Lives in pg_temp, dropped after the self-check.
@@ -263,6 +279,8 @@ END $f$;
 DO $selfcheck$
 DECLARE
   v_anon oid := (SELECT oid FROM pg_roles WHERE rolname = 'anon');
+  v_auth oid := (SELECT oid FROM pg_roles WHERE rolname = 'authenticated');
+  v_trunc text;
   v_cur_drain text;
   v_res text;
   v_role text;
@@ -303,13 +321,13 @@ BEGIN
     v_res := pg_temp.sec3a_attempt('service_role', 'SELECT public.item_corrections_note(gen_random_uuid(), ''{}''::jsonb)');
     IF v_res = '42501' THEN RAISE EXCEPTION 'ABORT: service_role was refused item_corrections_note'; END IF;
 
-    -- publish_aggregate: anon refused; authenticated and service_role still reach the gate (a refusal payload).
+    -- publish_aggregate (ruling A): anon and authenticated refused; service_role reaches the gate (a refusal payload).
     v_res := pg_temp.sec3a_attempt('anon', 'SELECT public.publish_aggregate(''sec3a_no_table'', ''sec3a_no_column'', ''{"member_ids": []}''::jsonb)');
     IF v_res <> '42501' THEN RAISE EXCEPTION 'ABORT: anon calling publish_aggregate got % (want 42501)', v_res; END IF;
-    FOREACH v_role IN ARRAY ARRAY['authenticated', 'service_role'] LOOP
-      v_res := pg_temp.sec3a_attempt(v_role, 'SELECT public.publish_aggregate(''sec3a_no_table'', ''sec3a_no_column'', ''{"member_ids": []}''::jsonb)');
-      IF v_res <> 'ok' THEN RAISE EXCEPTION 'ABORT: % calling publish_aggregate got % (want ok)', v_role, v_res; END IF;
-    END LOOP;
+    v_res := pg_temp.sec3a_attempt('authenticated', 'SELECT public.publish_aggregate(''sec3a_no_table'', ''sec3a_no_column'', ''{"member_ids": []}''::jsonb)');
+    IF v_res <> '42501' THEN RAISE EXCEPTION 'ABORT: authenticated calling publish_aggregate got % (want 42501)', v_res; END IF;
+    v_res := pg_temp.sec3a_attempt('service_role', 'SELECT public.publish_aggregate(''sec3a_no_table'', ''sec3a_no_column'', ''{"member_ids": []}''::jsonb)');
+    IF v_res <> 'ok' THEN RAISE EXCEPTION 'ABORT: service_role calling publish_aggregate got % (want ok)', v_res; END IF;
 
     -- the privilege catalog for every function this migration closes
     FOREACH v_sig IN ARRAY ARRAY[
@@ -321,7 +339,6 @@ BEGIN
       'public.item_corrections_span_is_verbatim(uuid, uuid, text)',
       'public.item_corrections_pair_tombstoned(uuid, uuid)',
       'public.move_override_notes_to_item_notes()',
-      'public.gate_a_health_refresh()',
       'public.publish_aggregate(text, text, jsonb)'
     ] LOOP
       IF to_regprocedure(v_sig) IS NULL THEN CONTINUE; END IF;
@@ -337,11 +354,7 @@ BEGIN
       ) THEN
         RAISE EXCEPTION 'ABORT: PUBLIC still holds EXECUTE on %', v_sig;
       END IF;
-      IF v_sig = 'public.publish_aggregate(text, text, jsonb)' THEN
-        IF NOT has_function_privilege('authenticated', to_regprocedure(v_sig), 'EXECUTE') THEN
-          RAISE EXCEPTION 'ABORT: authenticated lost EXECUTE on publish_aggregate (the PROOF-4 attacks call it as a member)';
-        END IF;
-      ELSIF has_function_privilege('authenticated', to_regprocedure(v_sig), 'EXECUTE') THEN
+      IF has_function_privilege('authenticated', to_regprocedure(v_sig), 'EXECUTE') THEN
         RAISE EXCEPTION 'ABORT: authenticated still holds EXECUTE on %', v_sig;
       END IF;
     END LOOP;
@@ -456,18 +469,41 @@ BEGIN
       IF v_res <> '42501' THEN RAISE EXCEPTION 'ABORT: anon DELETE from % got % (want 42501)', v_tbl, v_res; END IF;
     END IF;
 
-    -- the default-privilege change: a table the migration role creates now carries none of the six for anon
-    IF current_user = 'postgres' THEN
-      CREATE TABLE public.sec3a_acl_probe (id integer);
-      SELECT count(*) INTO v_n
-        FROM pg_class c, aclexplode(c.relacl) a
-       WHERE c.oid = 'public.sec3a_acl_probe'::regclass AND a.grantee = v_anon
-         AND a.privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER');
-      IF v_n <> 0 THEN
-        RAISE EXCEPTION 'ABORT: a table created after this migration still gives anon % of the six write privileges', v_n;
-      END IF;
+    -- authenticated: TRUNCATE, TRIGGER and REFERENCES are gone from every table's ACL, and a real TRUNCATE is refused
+    -- (TRUNCATE is not subject to RLS, so before this migration it would have emptied the table; the block rolls back)
+    FOR v_view IN
+      SELECT c.oid, c.relname FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind IN ('r', 'p') ORDER BY c.relname
+    LOOP
+      FOREACH v_priv IN ARRAY ARRAY['TRUNCATE', 'REFERENCES', 'TRIGGER'] LOOP
+        IF EXISTS (SELECT 1 FROM pg_class c, aclexplode(c.relacl) a WHERE c.oid = v_view.oid AND a.grantee = v_auth AND a.privilege_type = v_priv) THEN
+          RAISE EXCEPTION 'ABORT: authenticated still holds % on table %', v_priv, v_view.relname;
+        END IF;
+      END LOOP;
+    END LOOP;
+    SELECT c.relname INTO v_trunc
+      FROM pg_class c
+     WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'
+       AND NOT EXISTS (SELECT 1 FROM aclexplode(c.relacl) a WHERE a.grantee = 0 AND a.privilege_type = 'TRUNCATE')
+     ORDER BY (c.relname = 'aggregate_query_log') DESC, c.relname
+     LIMIT 1;
+    IF v_trunc IS NULL THEN
+      RAISE NOTICE 'migration 369 self-check: no table suitable for the authenticated TRUNCATE attack, leg skipped';
     ELSE
-      RAISE NOTICE 'migration 369 self-check: the apply role is %, not postgres, so the default-privilege probe is skipped', current_user;
+      v_res := pg_temp.sec3a_attempt('authenticated', format('TRUNCATE public.%I', v_trunc));
+      IF v_res <> '42501' THEN RAISE EXCEPTION 'ABORT: authenticated TRUNCATE of % got % (want 42501)', v_trunc, v_res; END IF;
+    END IF;
+
+    -- the default-privilege change, read from the catalog (no table is created): the default ACL the migration role
+    -- gives new tables in public holds none of the six for anon and none of the three for authenticated
+    SELECT count(*) INTO v_n
+      FROM pg_default_acl d, aclexplode(d.defaclacl) a
+     WHERE d.defaclobjtype = 'r'
+       AND d.defaclnamespace = 'public'::regnamespace
+       AND d.defaclrole = 'postgres'::regrole
+       AND ((a.grantee = v_anon AND a.privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'))
+         OR (a.grantee = v_auth AND a.privilege_type IN ('TRUNCATE', 'REFERENCES', 'TRIGGER')));
+    IF v_n <> 0 THEN
+      RAISE EXCEPTION 'ABORT: the postgres default ACL for new tables in public still grants % write-class privilege(s) to anon or authenticated', v_n;
     END IF;
 
     RAISE EXCEPTION 'sec3a_369_selfcheck_rollback';
@@ -476,7 +512,7 @@ BEGIN
     IF SQLERRM <> 'sec3a_369_selfcheck_rollback' THEN RAISE; END IF;
   END;
 
-  RAISE NOTICE 'migration 369 OK: admin writers and the corrections evidence writers are service_role only; publish_aggregate refuses anon and carries a pinned search_path; every public view is security_invoker with no INSERT, UPDATE or DELETE for PUBLIC, anon or authenticated; anon holds no TRUNCATE, REFERENCES or TRIGGER and write privileges only where a policy needs them; each closure attacked as anon and authenticated and confirmed open for service_role';
+  RAISE NOTICE 'migration 369 OK: admin writers and the corrections evidence writers are service_role only; publish_aggregate is service_role only and carries a pinned search_path; every public view is security_invoker with no INSERT, UPDATE or DELETE for PUBLIC, anon or authenticated; anon holds no TRUNCATE, REFERENCES or TRIGGER and write privileges only where a policy needs them; authenticated holds no TRUNCATE, REFERENCES or TRIGGER; the default ACL for new tables matches; each closure attacked as anon and authenticated and confirmed open for service_role';
 END $selfcheck$;
 
 DROP FUNCTION pg_temp.sec3a_attempt(text, text);
@@ -489,4 +525,6 @@ COMMIT;
 --   ALTER VIEW public.<view> SET (security_invoker = off);  GRANT INSERT, UPDATE, DELETE ON public.<view> TO anon, authenticated;
 --   GRANT SELECT ON public.research_assessments_current TO anon;
 --   GRANT INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON ALL TABLES IN SCHEMA public TO anon;
+--   GRANT TRUNCATE, TRIGGER, REFERENCES ON ALL TABLES IN SCHEMA public TO authenticated;
 --   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLES TO anon;
+--   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT TRUNCATE, TRIGGER, REFERENCES ON TABLES TO authenticated;
