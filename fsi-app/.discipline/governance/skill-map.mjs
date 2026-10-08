@@ -153,7 +153,7 @@ export const MCP_READ_NAMES = [
   'query_logs', 'find', 'navigate', 'read_page', 'get_page_text', 'screenshot', 'mark_chapter',
   'tabs_context', 'tabs_context_mcp', 'status',
 ];
-export const MCP_WRITE_PREFIXES = ['create_', 'update_', 'delete_', 'deploy_', 'upload_', 'set_', 'run_'];
+export const MCP_WRITE_PREFIXES = ['create_', 'update_', 'delete_', 'deploy_', 'upload_', 'set_', 'run_', 'push_', 'merge_'];
 export const MCP_WRITE_NAMES = ['apply_migration', 'execute_sql'];
 // `execute_sql` is a READ when the statement's first token is SELECT (see classifyMcp in the gate).
 export const MCP_SQL_TOOL_NAMES = ['execute_sql'];

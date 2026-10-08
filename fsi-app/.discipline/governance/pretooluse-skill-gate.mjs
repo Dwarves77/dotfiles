@@ -90,15 +90,23 @@ const DANGER = new RegExp(BASH_DANGER_PATTERNS.join("|"), "i");
  * unquoted `#` (to the end of that line) are removed, so a DANGER word inside a commit message, a grep
  * pattern, an echo or a heredoc never reads as an operation. A quoted string is replaced by the single
  * token `Q` (so `git -C "p q" checkout x` keeps its shape); newlines are kept (they separate commands).
- * PURE. RESIDUAL (named, not hidden): a destructive word that only appears inside a quoted string handed
- * to an interpreter, `psql -c "delete from t"` or `bash -c "git push"`, is not seen here; the operator's
- * instruction for this rebuild was to strip quoted strings.
+ * PURE. The one exception is an interpreter's inline-code argument (`psql -c "..."`, `bash -c "..."`,
+ * `node -e "..."`), which interpreterPayloads() hands back so DANGER also runs over its contents.
  * @param {string} cmd @returns {string}
  */
 export function argvOnly(cmd) {
+  return scanArgv(cmd).text.replace(PLACEHOLDER_RE, "Q");
+}
+
+// A quoted string is carried through the scan as \u0001<index>\u0002 so interpreterPayloads() can find its
+// contents again; argvOnly() turns every placeholder into the plain token Q.
+const PLACEHOLDER_RE = /\u0001\d+\u0002/g;
+
+function scanArgv(cmd) {
   const s = String(cmd ?? "");
   const n = s.length;
   const pending = []; // heredocs opened on the current line: { delim, dash }
+  const quoted = []; // contents of each quoted string, by placeholder index
   let out = "";
   let i = 0;
   while (i < n) {
@@ -110,14 +118,14 @@ export function argvOnly(cmd) {
     }
     if (c === "'") { // single quote: literal to the next single quote
       const j = s.indexOf("'", i + 1);
-      out += "Q";
+      out += `\u0001${quoted.push(s.slice(i + 1, j === -1 ? n : j)) - 1}\u0002`;
       i = j === -1 ? n : j + 1;
       continue;
     }
     if (c === '"') { // double quote: to the next unescaped double quote
       let j = i + 1;
       while (j < n && s[j] !== '"') j += s[j] === "\\" ? 2 : 1;
-      out += "Q";
+      out += `\u0001${quoted.push(s.slice(i + 1, Math.min(j, n))) - 1}\u0002`;
       i = j >= n ? n : j + 1;
       continue;
     }
@@ -165,7 +173,48 @@ export function argvOnly(cmd) {
     out += c;
     i++;
   }
-  return out;
+  return { text: out, quoted };
+}
+
+// Interpreters whose inline-code argument is run as code, so DANGER also reads it (operator ruling on PR 998):
+// a SHELL interpreter's argument is itself a command line (analysed recursively, so `bash -c "echo 'git push'"`
+// stays quiet); a CODE interpreter's argument (SQL for psql, a script for node or python) is read as written.
+const SHELL_INTERPRETERS = new Set(["bash", "sh", "zsh"]);
+const CODE_INTERPRETERS = new Set(["psql", "node", "python", "python3"]);
+
+/**
+ * The inline-code arguments of interpreter calls in a command: [{ kind: "shell" | "code", content }] for each
+ * simple command whose first word (after env assignments) is bash, sh, zsh, psql, node, python or python3 and
+ * that carries -c / -e (bundled flags such as -lc, --command, --eval accepted) followed by a quoted string.
+ * PURE. @param {string} cmd @returns {{kind: string, content: string}[]}
+ */
+export function interpreterPayloads(cmd) {
+  const { text, quoted } = scanArgv(cmd);
+  const found = [];
+  for (const segment of text.split(/\n|;|&&|\|\||\||&|\(|\)/)) {
+    const t = segment.trim().split(/\s+/).filter(Boolean);
+    let k = 0;
+    while (k < t.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t[k])) k++;
+    if (k >= t.length) continue;
+    const prog = t[k].replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
+    const kind = SHELL_INTERPRETERS.has(prog) ? "shell" : CODE_INTERPRETERS.has(prog) ? "code" : null;
+    if (!kind) continue;
+    for (let m = k + 1; m < t.length; m++) {
+      const inline = /^(?:-[a-zA-Z]*[ce]|--command|--eval)$/.test(t[m]);
+      const joined = /^--(?:command|eval)=\u0001(\d+)\u0002$/.exec(t[m]);
+      const next = inline && m + 1 < t.length ? /^\u0001(\d+)\u0002$/.exec(t[m + 1]) : null;
+      const hit = joined || next;
+      if (hit) found.push({ kind, content: quoted[Number(hit[1])] });
+    }
+  }
+  return found;
+}
+
+/** True when DANGER matches the command's own argv or the inline code of an interpreter it runs (depth 3). */
+export function dangerIn(cmd, depth = 0) {
+  if (DANGER.test(argvOnly(cmd))) return true;
+  if (depth >= 3) return false;
+  return interpreterPayloads(cmd).some((p) => (p.kind === "code" ? DANGER.test(p.content) : dangerIn(p.content, depth + 1)));
 }
 
 // The git invocations in an argv-only command: [{ sub, args }] for each `git [global opts] <sub> <args>`.
@@ -336,7 +385,7 @@ export function evaluateGate(payload) {
         `pre-commit hooks catch a sub-agent's; approve only if this honors worktree isolation.)`,
         "worktree-isolation");
     }
-    if (!DANGER.test(argvOnly(cmd))) return decision("allow", "", "bash-read");
+    if (!dangerIn(cmd)) return decision("allow", "", "bash-read");
     const skills = skillsForOp(cmd).map((s) => s.skill);
     const required = skills.length ? skills : ["remediation-discipline", "environmental-policy-and-innovation"];
     return gateWrite(transcriptPath, required, "bash-write", "Data write (prod effect).", () => decision("ask",
