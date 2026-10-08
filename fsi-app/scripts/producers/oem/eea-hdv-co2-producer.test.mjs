@@ -259,3 +259,60 @@ test("the fixture header beside the sample quotes the licence text, the fetch ur
   assert.ok(SAMPLE.length <= 200 * 1024, "the fixture is at most 200 KB");
   assert.equal(h.dataset_page, DATASET.page_url);
 });
+
+// ---- composition proof (fitness function F27) -----------------------------------------------------------------------
+// ONE proof that runs the real chain the producer performs, with no fake between the modules: the real streaming reader
+// and aggregator (eea-hdv-csv.mjs), the real mapper (eea-hdv-map.mjs) and the real producers-family summary writer
+// (../lib/producer-summary.mjs) writing into a temp directory. Only the database edge is injected. The mapped rows are
+// asserted against migration 296's constraints (the live table definition), not just against the mapper's own shape.
+import { mkdtempSync, readFileSync as readFile, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { writeProducerSummary } from "../lib/producer-summary.mjs";
+import { aggregateHdvCsv } from "./eea-hdv-csv.mjs";
+import { mapGroupsToRows } from "./eea-hdv-map.mjs";
+
+function insertableColumnsOf296() {
+  const sql = readFile(join(FSI, "supabase", "migrations", "296_spec09_market_tables.sql"), "utf8");
+  const block = sql.slice(sql.indexOf("CREATE TABLE IF NOT EXISTS public.oem_tech_roadmaps"));
+  const body = block.slice(block.indexOf("(") + 1, block.indexOf("\n);"));
+  return body.split("\n").map((l) => /^\s{2}([a-z_]+)\s/.exec(l)?.[1]).filter((c) => c && !["CONSTRAINT"].includes(c) && !["roadmap_id", "created_at"].includes(c));
+}
+
+test("COMPOSITION: real reader + aggregator + mapper + real summary writer, the rows satisfy migration 296 and the summary lands on disk", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "s8e1-summary-"));
+  const prev = process.env.PRODUCER_SUMMARY_DIR;
+  process.env.PRODUCER_SUMMARY_DIR = dir;
+  try {
+    // 1. the real sample through the real reader and mapper with the shipped config: no zero-emission vehicle, so no row.
+    const agg = await aggregateHdvCsv([SAMPLE]);
+    assert.equal(agg.totals.counted, 71);
+    const sample = mapGroupsToRows(agg.groups, { cfg: SYNTH, entities: ENTITIES, sourceId: SOURCE_ID });
+    assert.equal(sample.rows.length, 0);
+
+    // 2. a synthetic zero-emission csv through the same real chain: every row carries exactly migration 296's insertable columns.
+    const synth = await aggregateHdvCsv([synthCsv(4)]);
+    const { rows } = mapGroupsToRows(synth.groups, { cfg: SYNTH, entities: ENTITIES, sourceId: SOURCE_ID });
+    assert.equal(rows.length, 1);
+    assert.deepEqual(Object.keys(rows[0]).sort(), insertableColumnsOf296().sort(), "the mapper's columns are the live table's insertable columns");
+    assert.equal(rows[0].announced_at, null, "announced_at is NULL: migration 380 makes it nullable, the dataset carries no date");
+    assert.match(rows[0].source_id, /^[0-9a-f-]{36}$/, "source_id is a sources(id) uuid");
+    assert.ok(["official"].includes(rows[0].origin_class) && ["calculated"].includes(rows[0].derivation));
+
+    // 3. runProducer over the real chain with the REAL summary writer: the family summary is on disk with the run's outcome.
+    const { deps, calls } = fakeDeps({ writeSummary: writeProducerSummary });
+    const out = await runProducer({ mode: "apply", chunks: [synthCsv(4)], classification: SYNTH, enabled: true, killSwitchOn: true, hasCreds: true, datasetDate: "2025-04-28", deps });
+    assert.equal(out.exitCode, 0);
+    assert.equal(calls.inserts.length, 1);
+    assert.deepEqual(Object.keys(calls.inserts[0].row).sort(), insertableColumnsOf296().sort());
+    const summary = JSON.parse(readFile(join(dir, "eea-hdv-co2.json"), "utf8"));
+    assert.equal(summary.producer, "eea-hdv-co2");
+    assert.equal(summary.status, "ok");
+    assert.equal(summary.rows_changed, 1);
+    assert.equal(summary.edges_authored, null);
+    assert.equal(summary.counts.vehicles_counted, 4);
+    assert.equal(summary.counts.created, 1);
+  } finally {
+    if (prev === undefined) delete process.env.PRODUCER_SUMMARY_DIR; else process.env.PRODUCER_SUMMARY_DIR = prev;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

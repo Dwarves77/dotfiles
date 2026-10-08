@@ -74,3 +74,7 @@ The brief permits one network fetch (the fixture sample). The URL was not named 
 ## NOT done
 
 Nothing applied or run against live data; ENABLED stays false. The zero-emission rules and the aliases are empty (above); no battery-electric versus fuel-cell split exists until the values are evidenced.
+
+## CI round 1: F27 (producer-seam-proof)
+
+CI failed one fitness function, F27: "NO COMPOSITION PROOF ... imports 3 first-party seam(s) and no single proof file imports all of them together" (producer-summary.mjs, eea-hdv-csv.mjs, eea-hdv-map.mjs). Reproduced locally with `runner.mjs --function=F27` (FAIL, 1 violation). Fix, approved by the coordinator: one real-chain composition test in `eea-hdv-co2-producer.test.mjs` (real reader and aggregator, real mapper, `runProducer` with the real `writeProducerSummary` into a temp `PRODUCER_SUMMARY_DIR`; asserts the 13 insertable columns against migration 296's CREATE TABLE and the summary file). F27 then PASSES locally; a mutation of the mapper (announced_at set to a date) turns the composition test and the 13-column test red. Fitness runner was run for F27 and F25 only, not the whole runner.
