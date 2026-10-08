@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { resolveOrgMembershipFromUserId } from "@/lib/api/org";
 import { createPortfolio, listPortfolios } from "@/lib/portfolio/portfolio-core.mjs";
 import { portfolioResponse, readJsonBody, resolvePortfolioCaller } from "@/lib/portfolio/route-support";
 
@@ -23,6 +24,11 @@ async function handleGET(request: NextRequest) {
 async function handlePOST(request: NextRequest) {
   const caller = await resolvePortfolioCaller(request);
   if (caller instanceof NextResponse) return caller;
+  // SEC-3b (migration 370): role viewer reads portfolios but does not write them. This route uses the
+  // service-role client, so RLS does not apply; the role is checked here, before any write.
+  if ((await resolveOrgMembershipFromUserId(caller.sb, caller.userId))?.role === "viewer") {
+    return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
+  }
   const body = await readJsonBody(request);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   const result = await createPortfolio(caller.sb, { orgId: caller.orgId, userId: caller.userId, name: body.name });

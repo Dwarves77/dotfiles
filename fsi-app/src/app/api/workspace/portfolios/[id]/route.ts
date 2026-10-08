@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { resolveOrgMembershipFromUserId } from "@/lib/api/org";
 import { deletePortfolio, renamePortfolio } from "@/lib/portfolio/portfolio-core.mjs";
 import { readPortfolioDetail } from "@/lib/portfolio/read";
 import { portfolioResponse, readJsonBody, resolvePortfolioCaller } from "@/lib/portfolio/route-support";
@@ -31,6 +32,11 @@ async function handleGET(request: NextRequest, context: RouteContext) {
 async function handlePATCH(request: NextRequest, context: RouteContext) {
   const caller = await resolvePortfolioCaller(request);
   if (caller instanceof NextResponse) return caller;
+  // SEC-3b (migration 370): role viewer reads portfolios but does not write them. This route uses the
+  // service-role client, so RLS does not apply; the role is checked here, before any write.
+  if ((await resolveOrgMembershipFromUserId(caller.sb, caller.userId))?.role === "viewer") {
+    return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
+  }
   const { id } = await context.params;
   const body = await readJsonBody(request);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
@@ -40,6 +46,11 @@ async function handlePATCH(request: NextRequest, context: RouteContext) {
 async function handleDELETE(request: NextRequest, context: RouteContext) {
   const caller = await resolvePortfolioCaller(request);
   if (caller instanceof NextResponse) return caller;
+  // SEC-3b (migration 370): role viewer reads portfolios but does not write them. This route uses the
+  // service-role client, so RLS does not apply; the role is checked here, before any write.
+  if ((await resolveOrgMembershipFromUserId(caller.sb, caller.userId))?.role === "viewer") {
+    return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
+  }
   const { id } = await context.params;
   return portfolioResponse(caller.userId, await deletePortfolio(caller.sb, { orgId: caller.orgId, portfolioId: id }));
 }

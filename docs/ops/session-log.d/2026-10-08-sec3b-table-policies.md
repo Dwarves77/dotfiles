@@ -46,9 +46,11 @@
 
 - Item 2: none (verify route is already service-role; profile route upserts only allowed columns). Item 4: none (decide route is already service-role; the posts PATCH sends title and body; CommunityRooms updates referenced_intelligence_item_ids, all still granted). Item 5: none (stopped). Item 6: the six components above.
 
-## NEEDS WRITE-SET EXPANSION (not touched)
+## Route enforcement of the viewer role (expansion GRANTED by the coordinator, built)
 
-- Server enforcement of the viewer role in the service-role routes, because RLS does not apply to them: `src/app/api/workspace/overrides/route.ts` (POST and DELETE: reject role viewer; it already resolves membership for the archive branch), `src/app/api/watchlist/route.ts` (scope team: POST, PATCH, DELETE), `src/app/api/workspace/tags/route.ts`, `src/app/api/workspace/tags/[id]/items/route.ts`, `src/app/api/workspace/portfolios/route.ts`, `src/app/api/workspace/portfolios/[id]/route.ts`, `src/app/api/workspace/portfolios/[id]/members/route.ts`. The seam exists: `resolveOrgMembershipFromUserId` in `src/lib/api/org.ts` returns the role; each route needs a 403 for viewer on write methods plus a route test. Without this, a viewer still writes through the app.
+- Every write handler of the seven service-role routes resolves the caller's membership with `resolveOrgMembershipFromUserId` (`src/lib/api/org.ts`) and returns 403 `{ error: "viewer_read_only" }` for role viewer, before any write; reads unchanged. Routes: `workspace/overrides` (POST, DELETE), `watchlist` (POST, DELETE, TEAM scope only), `workspace/tags` (POST, DELETE), `workspace/tags/[id]/items` (PUT, DELETE), `workspace/portfolios` (POST), `workspace/portfolios/[id]` (PATCH, DELETE), `workspace/portfolios/[id]/members` (POST, DELETE).
+- One reading of the ruling to confirm: `/api/watchlist` carries two scopes. Only `scope=team` (org_watchlist, the shared write that migration 370's policies gate) is refused for a viewer; `scope=personal` (user_watchlist, the caller's own rows, no policy change) stays open, which is what the viewer UI keeps (personal watch). The route's header comment, which said the team scope had no role gate by design, was rewritten to match.
+- Test `src/app/api/workspace/viewer-read-only-routes.npmtest.mjs` (27 tests): per handler, a viewer gets 403 `viewer_read_only` and the stubbed service client records zero calls; a member passes through (no viewer refusal, the client is reached); plus the personal watchlist scope is not refused for a viewer. Red then green: with the seven route files restored to master, 13 fail (every viewer case) and 14 pass; with the change, 27 of 27 pass.
 
 ## STOP: item 5, the profiles read policy (not built)
 
@@ -71,15 +73,15 @@
 
 ## Decisions
 
-1. The sanctioned set is the 364 and 367 set, including postgres, so SECURITY DEFINER functions (create_org_for_self, accept_invitation) pass the membership trigger. Not closed: accept_invitation's ON CONFLICT DO UPDATE SET role can demote an existing owner or admin who accepts a lower invite (census finding). It is a function body change (SEC-3a territory); the one-line fix is DO NOTHING, or a WHERE clause limiting the update to viewers. Recorded here and in the migration header.
-2. Added beyond the brief, same triggers, same invariant: org_id and user_id immutability on memberships; INSERT closure of the sign-off columns; requested_by and post_id immutability on sign-off requests. Without them the named rules are bypassable by moving the row.
+1. The sanctioned set is the 364 and 367 set, including postgres, so SECURITY DEFINER functions (create_org_for_self, accept_invitation) pass the membership trigger. Not closed: accept_invitation's ON CONFLICT DO UPDATE SET role can demote an existing owner or admin who accepts a lower invite (census finding). It is a function body change (SEC-3a territory); the one-line fix is DO NOTHING, or a WHERE clause limiting the update to viewers. Recorded here and in the migration header. Coordinator ruling: this goes to the functions lane (SEC-4), not this lane.
+2. Added beyond the brief, same triggers, same invariant (all accepted by the coordinator as part of items 3, 4 and 7): org_id and user_id immutability on memberships (accepted as part of item 3); INSERT closure of the sign-off columns (accepted as part of item 4); requested_by and post_id immutability on sign-off requests (accepted as part of item 7). Without them the named rules are bypassable by moving the row.
 3. Column revoke is table-level revoke plus column re-grant (a column revoke under a table grant is a no-op, 364's finding). Consequence: a column added later to these three tables is not writable by authenticated until its migration grants it; this fails closed, visibly.
 4. The viewer UI gate is viewer-only (role null or loading keeps today's screen), so no flicker for members; enforcement is the database and, once granted, the routes.
 5. Migration number 370 confirmed free on origin (368 merged, 369 is SEC-3a).
 
 ## NOT done
 
-- Item 5 (above). Server route enforcement of the viewer role (above). Nothing applied; nothing executed against Postgres (none on this machine): the SQL has been read and statically tested only, the self-check runs at apply time and in the chain-proof replay. [HYPOTHESIS] a fixture `auth.users` insert with only (id, aud, role, email, created_at, updated_at) succeeds on the live project; if not, the self-check skips its legs with a NOTICE and the catalog assertions still run.
+- Item 5 (above; reassigned by the coordinator to a new lane, under the corrected rule that spec 07 amendment R8.7, identity shown by default with anonymity opt-in, governs, not the spec 05 pseudonymous subset; the call-site list above stays as the hand-off). Nothing applied; nothing executed against Postgres (none on this machine): the SQL has been read and statically tested only, the self-check runs at apply time and in the chain-proof replay. [HYPOTHESIS] a fixture `auth.users` insert with only (id, aud, role, email, created_at, updated_at) succeeds on the live project; if not, the self-check skips its legs with a NOTICE and the catalog assertions still run.
 - No rendering-guard or UX smoke run locally (CI runs them); no local tsc run (CI runs it).
 
 ## Open items

@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { revalidateTag } from "next/cache";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { resolveOrgIdFromUserId, resolveOrgMembershipFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
 import { isTeamOnlyScopeViolation } from "@/lib/watchlist-scope";
@@ -21,14 +21,13 @@ import { ITEM_TYPES, teamOnlyError } from "./logic";
 //   - TEAM watch     → org_watchlist (migration 077, CHECK aligned by 236).
 //     Visible to every member of the org, carries an optional note.
 //
-// NO ROLE GATE on the team scope, and that is deliberate divergence from the
-// dual-scope archive, not an oversight. Migration 077 shipped all four
-// org_watchlist RLS policies as `user_belongs_to_org(org_id)` and named the
-// choice in its own DDL comment ("Bloomberg pattern"): any member may add or
-// remove. Archiving is destructive — it hides an item from everyone — so it
-// earned admin/owner protection. Watching is additive: a team watch only ever
-// surfaces an item. Applying the archive gate here would contradict the shipped
-// RLS and make the API stricter than the database it writes to.
+// ROLE GATE on the team scope (SEC-3b, migration 370, 2026-10-08): a viewer cannot write it (403
+// viewer_read_only, before any write); owner, admin and member can, and the personal scope is open to every
+// role. This matches the database: migration 370 switched the org_watchlist write policies from
+// user_belongs_to_org to user_can_write_in_org (member, admin, owner). The gate is the viewer split only, not
+// the admin/owner gate of the dual-scope archive: any member may add or remove a team watch ("Bloomberg
+// pattern", migration 077), because watching is additive and a team watch only ever surfaces an item, while
+// archiving is destructive and earned admin/owner protection.
 //
 // Writes are always scoped to the authed caller — the route never accepts a
 // user_id or org_id from the body.
@@ -259,8 +258,14 @@ async function handlePOST(request: NextRequest) {
   const supabase = getServiceSupabase();
 
   if (scope === "team") {
-    const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
+    const membership = await resolveOrgMembershipFromUserId(supabase, auth.userId).catch(() => null);
+    const orgId = membership?.orgId ?? null;
     if (!orgId) return noOrgError();
+    // SEC-3b (migration 370): the team watchlist is a shared workspace write and role viewer reads it but
+    // does not write it. The personal scope (user_watchlist, the caller's own rows) stays open to a viewer.
+    if (membership?.role === "viewer") {
+      return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
+    }
 
     // ignoreDuplicates, not overwrite. The team row is ONE shared row keyed by
     // (org_id, item_type, item_id). A second member adding an already-watched
@@ -317,8 +322,14 @@ async function handleDELETE(request: NextRequest) {
   const supabase = getServiceSupabase();
 
   if (p.scope === "team") {
-    const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
+    const membership = await resolveOrgMembershipFromUserId(supabase, auth.userId).catch(() => null);
+    const orgId = membership?.orgId ?? null;
     if (!orgId) return noOrgError();
+    // SEC-3b (migration 370): the team watchlist is a shared workspace write and role viewer reads it but
+    // does not write it. The personal scope (user_watchlist, the caller's own rows) stays open to a viewer.
+    if (membership?.role === "viewer") {
+      return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
+    }
 
     // Any member may remove, matching 077's RLS. The delete is bounded to the
     // caller's own org, so one org can never clear another's rail.

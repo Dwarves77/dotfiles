@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { resolveOrgIdFromUserId, resolveOrgMembershipFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import {
   normalizeTagName,
@@ -134,9 +134,15 @@ async function handlePOST(request: NextRequest) {
   if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
-  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
+  const membership = await resolveOrgMembershipFromUserId(supabase, auth.userId);
+  const orgId = membership?.orgId ?? null;
   if (!orgId) {
     return NextResponse.json({ error: "User has no organization membership" }, { status: 403 });
+  }
+  // SEC-3b (migration 370): role viewer reads the workspace but does not write it. This route uses the
+  // service-role client, so RLS does not apply; the role is checked here, before any write.
+  if (membership?.role === "viewer") {
+    return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
   }
 
   let body: Record<string, unknown>;
@@ -203,9 +209,15 @@ async function handleDELETE(request: NextRequest) {
   if (isRefusal(auth)) return auth;
 
   const supabase = getServiceSupabase();
-  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
+  const membership = await resolveOrgMembershipFromUserId(supabase, auth.userId);
+  const orgId = membership?.orgId ?? null;
   if (!orgId) {
     return NextResponse.json({ error: "User has no organization membership" }, { status: 403 });
+  }
+  // SEC-3b (migration 370): role viewer reads the workspace but does not write it. This route uses the
+  // service-role client, so RLS does not apply; the role is checked here, before any write.
+  if (membership?.role === "viewer") {
+    return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
   }
 
   let body: Record<string, unknown>;
