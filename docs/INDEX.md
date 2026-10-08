@@ -273,10 +273,6 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [wave1-step1-verification](./audits/wave1-step1-verification.md)  -  Wave 1a Step 1  -  Post-merge verification checklist
 - [wave1-track1-summary](./audits/wave1-track1-summary.md)  -  Wave 1a Track 1 (Gate 4) Discovery Summary
 - [wave1b-stub-quality-investigation-2026-05-11](./audits/wave1b-stub-quality-investigation-2026-05-11.md)  -  Wave 1b stub quality investigation, 2026-05-11
-- [aud-at1-rls-grants-attacked-2026-10-08](./audits/aud-at1-rls-grants-attacked-2026-10-08.md)  -  Attack audit (SEC-7): RLS and database grants subsystem tested for common attack paths; landing note cites PR 1037
-- [aud-at3-gates-attacked-2026-10-08](./audits/aud-at3-gates-attacked-2026-10-08.md)  -  Attack audit (GATE-7): Commit validation rules and pre-commit/pre-push hooks tested for honest attack forms; landing note cites PR 1040
-- [aud-at4-gates-attacked-2026-10-08](./audits/aud-at4-gates-attacked-2026-10-08.md)  -  Attack audit (GATE-8): Fitness-gate functions and governance enforcement tested against attack patterns; landing note cites PR 1039
-- [aud-at5-gates-attacked-2026-10-08](./audits/aud-at5-gates-attacked-2026-10-08.md)  -  Attack audit (GATE-9): CI workflow and build chain hand-off points tested for attack vectors; landing note cites PR 1042
 
 ## ops
 
@@ -391,3 +387,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [verify1-register-unknowns-2026-10-08](audits/verify1-register-unknowns-2026-10-08.md) - VERIFY-1: the remaining-build register's unknown rows (entity spine, coverage, the 12 regulation components, the market ribbon, B-2 to B-5, D-5, migrations 299 and 315) checked for existence and callers, with the absent list for briefing
 - [prodsrc-public-datasets-2026-10-08](audits/prodsrc-public-datasets-2026-10-08.md) - PROD-SRC: the free public datasets behind spec 09's domains by licence, format and cadence, column group by column group, with the paid or licensed alternatives named; EXISTS of external datasets
 - [migration-history-2026-10-07](audits/migration-history-2026-10-07.md) - MIG-HIST-1: the migration ledger against the repo files by map class (352 rows then), the 45 file-less rows, the 11 row-less files, and 11 findings; the audit behind `APPLIED-MAP.json`
+- [aud-at1-rls-grants-attacked-2026-10-08](audits/aud-at1-rls-grants-attacked-2026-10-08.md) - AUD-AT-1, 2026-10-08: RLS and grants (catalogue row 11) attacked as anon and as an authenticated non-admin org member, rolled back; 1260 probe statements, none accepted against the catalog; landed by DOCS-4 (fix in PR 1037)
+- [aud-at3-gates-attacked-2026-10-08](audits/aud-at3-gates-attacked-2026-10-08.md) - AUD-AT-3, 2026-10-08: commit rules and hooks (catalogue rows 1 and 2) attacked with forms their authors did not list; 216 attacks, 187 accepted; landed by DOCS-4 (fixed by GATE-7, PR 1040)
+- [aud-at4-gates-attacked-2026-10-08](audits/aud-at4-gates-attacked-2026-10-08.md) - AUD-AT-4, 2026-10-08: fitness functions and governance gates (catalogue rows 4 and 5) attacked; 279 attacks over 61 gates, 267 accepted; landed by DOCS-4 (fixed by GATE-8, PR 1039)
+- [aud-at5-gates-attacked-2026-10-08](audits/aud-at5-gates-attacked-2026-10-08.md) - AUD-AT-5, 2026-10-08: CI workflow and chain hops (catalogue rows 7 and 8) attacked; 348 attacks, 173 accepted, 105 refused, 70 no-effect; landed by DOCS-4 (fix in PR 1042)

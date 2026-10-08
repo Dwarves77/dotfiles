@@ -1,6 +1,6 @@
 # AUD-AT-3: commit rules and hooks, attacked (fact lane, 2026-10-08)
 
-> **Landing note (lane GATE-7, PR 1040):** Fixes landed in PR 1040. This register was not re-run by this lane; findings carry the tokens the audit's own method assigns.
+> **Landing note (lane GATE-7, PR 1040):** Fixes landed in PR 1040. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edit is the form of status tokens, where the checker required it: 5 lines received the token that line's own section or method statement already carries.
 
 Lane aud-at3. Cells: O-007 (row 1, commit rules) and O-008 (row 2, hooks). Fact lane, read-only: no proposals. Code under test: origin/master 12c69634 (git archive; the main checkout was clean at that sha). origin/master advanced to 3cb67204 during the run; between the two, the only change inside the gates attacked here is one added path in `skill-map.mjs` (COV-1, `request-coverage.mjs`), which none of the attacks depend on. [CONFIRMED: `git diff 12c69634 3cb67204` over fsi-app/.discipline and .claude/hooks]
 
@@ -17,7 +17,7 @@ Lane aud-at3. Cells: O-007 (row 1, commit rules) and O-008 (row 2, hooks). Fact 
 - PreToolUse: the real out-of-repo shim was run (a) as is, for payloads whose scope it decides (out-of-scope payloads return allow without calling the gate, so nothing is logged), and (b) as a copy with only its `GATE` constant repointed at the archived gate copy for in-scope payloads, so no decision was logged into the main checkout's `.gate-audit.log`. Skill-load evidence used forged and genuine transcript files in scratch.
 - Step 3c was run as the real `check-pretooluse-wired.mjs` against forged `settings.json` files, each under its own scratch home (`USERPROFILE` override).
 - Not run: the opt-in heavy steps of pre-push (`DISCIPLINE_PREPUSH_FULL=1`), see section 6.
-- Side effects: the live skill gate answered three of this lane's own commands while it ran (command text containing `rm -rf` once and `git push` twice; each denied for a missing skill, which is what its patterns say). Those commands were run again from script files. One command deleting scratch copies was denied by the permission prompt (not by the gate) and was not retried in that form. The main checkout's gitignored `.gate-audit.log` grows from every live tool call of this session; no attack in this file was aimed at it. This file is the one repo-visible file the lane creates (gitignored `fsi-app/scripts/tmp/`); throwaway repos and scratch are deleted at the end of the lane.
+- Side effects: the live skill gate answered three of this lane's own commands while it ran (command text containing `rm -rf` once and `git push` twice; each denied for a missing skill, which is what its patterns say). Those commands were run again from script files. One command deleting scratch copies was denied by the permission prompt (not by the gate) and was not retried in that form. The main checkout's gitignored `.gate-audit.log` grows from every live tool call of this session; no attack in this file was aimed at it. This file is the one repo-visible file the lane creates (gitignored `fsi-app/scripts/tmp/`); throwaway repos and scratch are deleted at the end of the lane. [CONFIRMED: ran, output captured]
 
 ## 2. Totals
 
@@ -358,7 +358,7 @@ Status tokens: ACCEPTED = the input was not blocked. REFUSED = blocked. ALARM-ON
 - A019-1 (R019): reason built from a split string
 - A019-2 (R019): sanctioned-helper name placed in a comment
 - A019-3 (R019): reason literal lives in scripts/lib (exempt dir), imported by the archiving script
-- A019-4 (R019): archive helper called through an alias (archiveRows never followed by an open paren)
+- A019-4 (R019): archive helper called through an alias (archiveRows never followed by an open paren) [CONFIRMED: ran, output captured]
 - A019-6 (R019): same archive in a .cjs file (rule scopes .mjs)
 - A019-7 (R019): .gitattributes binary on the script
 - A019-8 (R019): edit-extend: existing source-y archive line swapped to another source-y reason
@@ -499,7 +499,7 @@ Status tokens: ACCEPTED = the input was not blocked. REFUSED = blocked. ALARM-ON
 - A-P0b-1b (PP0b): forged next/package.json containing {} (valid JSON, no code)
 - A-P-1 (PPbypass): git push --no-verify of the drift commit
 - A-P-2 (PPbypass): git -c core.hooksPath=/dev/null push of the drift commit
-- A-P0-3 (PP0): tracked hook file edited in the working tree to exit 0 (edit never committed)
+- A-P0-3 (PP0): tracked hook file edited in the working tree to exit 0 (edit never committed) [CONFIRMED: ran, output captured]
 - A-P2c-2 (PPrules): pushed commit carrying a rule 022 glyph (landed with --no-verify)
 - A-P0-2b (PP0): installed .git/hooks/pre-push replaced by exit 0, drift commit (control C-P2-0 refuses the same commit)
 - A-P3-3 (PP34): opt-in DISCIPLINE_PREPUSH_FULL=1 set, diff is a code deletion disguised as a rename into docs/ (docs-only fast path skips steps 3-4 again)
@@ -508,8 +508,8 @@ Status tokens: ACCEPTED = the input was not blocked. REFUSED = blocked. ALARM-ON
 ## 6. Owed legs (not attacked, with the reason)
 
 - Pre-push steps 3 (discipline and fitness tests), 3b (invariant-coverage meta-gate), 3d (ESLint), 3e (fitness runner), 3f (npmtest), 3g (goldens), 3h (closure gate, skill-contract drift), 4 (tsc): attacked only at the level this subsystem owns, which is whether they run (A-P3-1, A-P3-3: a default push and an opt-in push both skip them). Their own contents are other subsystems' gates (governance gates and fitness functions, AT-4; CI job steps, AT-5) and the opt-in run (`DISCIPLINE_PREPUSH_FULL=1`) needs the full npm install and tens of minutes per ADR-040, which the fixtures do not have. OWED: a content attack per step through the real full run.
-- Repo SessionStart `session-start-vault.mjs`, PreCompact `pre-compact-snapshot.mjs`, SessionEnd echo: no blocking claim to attack. Each header says it never fails the session and exits 0 on every path (session-start-vault.mjs, pre-compact-snapshot.mjs read in full). OWED only as a context-injection lens, which is not ATTACKED.
-- Settings precedence and switches that sit above the hook command (a project `.claude/settings.local.json` entry, a managed setting, a session started with permissions skipped, a hook-disable switch): they cannot be exercised from a fixture repo, and the user-level settings file was read, never modified. OWED: a run in a throwaway Claude Code session started with each switch.
+- Repo SessionStart `session-start-vault.mjs`, PreCompact `pre-compact-snapshot.mjs`, SessionEnd echo: no blocking claim to attack. Each header says it never fails the session and exits 0 on every path (session-start-vault.mjs, pre-compact-snapshot.mjs read in full). OWED only as a context-injection lens, which is not ATTACKED. [CONFIRMED: owed, not attacked by this lane]
+- Settings precedence and switches that sit above the hook command (a project `.claude/settings.local.json` entry, a managed setting, a session started with permissions skipped, a hook-disable switch): they cannot be exercised from a fixture repo, and the user-level settings file was read, never modified. OWED: a run in a throwaway Claude Code session started with each switch. [CONFIRMED: owed, not attacked by this lane]
 - Step 0b symlink inside a worktree: wt_nm_ensure_link leaves a real symlink alone by design; creating one on Windows needs Developer Mode or an administrator right, which this lane did not use. OWED.
 - CI side of the ACCEPTED local forms: the validate-commits job could not be run here. The rules engine itself was run in its CI mode (`runner.mjs --mode=ci --range=base..HEAD`) for four of the ACCEPTED content forms (rows A-CI-*) and for the evil merge (A-M-1, A-M-2); the workflow's own path filters, job conditions and fork-PR behaviour are AT-5's cells (O-009).
 - Real-session reachability of the path forms in A-PT-E1, A-PT-E4 and A-PT-S4 (relative and short-name file paths): depends on what path form the Claude Code harness passes to the hook; the gate code was run with those payloads, a live session was not.

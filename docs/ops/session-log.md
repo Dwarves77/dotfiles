@@ -24584,4 +24584,29 @@ Lists only. Written by the DOCS-3 docs pass at origin/master 430d7fce from: `gh 
 
 **Docs landed by DOCS-3 (branch coord/docs3-pass).** `docs/audits/`: privilege-census-2026-10-08, aud-at2-route-guard-register-2026-10-08, obl1-obligations-register-2026-10-08, verify1-register-unknowns-2026-10-08, prodsrc-public-datasets-2026-10-08, migration-history-2026-10-07. `docs/runbooks/audit-catalogue.md` (matrix, index, owed list, incident ledger I-5 to I-7), `docs/runbooks/maintenance.d/64-chain-proof.md`, `docs/decisions/ADR-045` (addendum), `docs/PROGRAM-BOARD.md`, `docs/INDEX.md`. Detail: `docs/ops/session-log.d/2026-10-08-docs3-pass.md`.
 
-**Docs landed by DOCS-4 (branch lane/docs4-pass).** `docs/audits/`: aud-at1-rls-grants-attacked-2026-10-08 (SEC-7, PR 1037), aud-at3-gates-attacked-2026-10-08 (GATE-7, PR 1040), aud-at4-gates-attacked-2026-10-08 (GATE-8, PR 1039), aud-at5-gates-attacked-2026-10-08 (GATE-9, PR 1042). `docs/runbooks/audit-catalogue.md` (ATTACKED lens count updated: 0 filled, 8 partial, 8 empty; four new matrix cells for AT1, AT3, AT4, AT5; four new index entries; incident fact I-8). `docs/dispatches/lane-common-contract.md` (migrations two-track policy added to wiring preflight rules). `docs/INDEX.md` (four audit register lines). `docs/PROGRAM-BOARD.md` (2026-10-08 resume pointer updated with DOCS-4 landing). Detail: `docs/ops/session-log.d/2026-10-08-docs4-pass.md`.
+## 2026-10-08 (later), coordinator: the DOCS-4 docs pass
+
+Lists only. Written by the DOCS-4 docs pass (lane docs4-pass, branch lane/docs4-pass, PR 1044) at origin/master 76ef361c from `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100`, `gh pr list --state open`, and `git log`. Nothing is typed from memory.
+
+**Merged after the DOCS-3 landing (df792300, 2026-10-08T16:06:57Z), 5 PRs.**
+- PR 1032, DEAD-1b, merged 2026-10-08T16:07:51Z, 492dfdb4
+- PR 1039, GATE-8, merged 2026-10-08T21:11:37Z, 62268ab9
+- PR 1040, GATE-7, merged 2026-10-08T22:26:52Z, 0a026a85
+- PR 1035, MIGTEST-1, merged 2026-10-08T22:37:12Z, 4ee8bbee
+- PR 1014, MIG-374, merged 2026-10-08T22:50:10Z, 76ef361c (migration 374, NOT APPLIED per its title)
+
+**Merged after the DOCS-3 cut (430d7fce) and before its landing, with no board row until this pass, 5 PRs.**
+- PR 1017, ALIAS-1, 2026-10-08T14:41:11Z, 48dfb0c3 (listed OPEN in the DOCS-3 board table)
+- PR 1038, migrations 373 and 377 applied, 2026-10-08T16:04:05Z, c7d580f4
+- PR 1034, DAUDIT-1, 2026-10-08T16:05:13Z, 86665c84
+- PR 1036, TESTFIX-1, 2026-10-08T16:06:02Z, af038241
+- PR 1033, DOCS-3, 2026-10-08T16:06:57Z, df792300
+
+**Open at the cut (11).**
+- PR 1019 MIG-CI, 1025 OBL-2, 1029 S8-E5, 1030 S8-E1, 1031 S8-E6, 1037 SEC-7, 1041 ledger export (branch coord/ledger-export-2026-10-08), 1042 GATE-9, 1043 RULE-MERGE-1, 1044 DOCS-4, 1045 WIRE-1
+
+**Docs landed by DOCS-4 (PR 1044).**
+- `docs/audits/`: aud-at1-rls-grants-attacked-2026-10-08 (fixing lane SEC-7, PR 1037, open), aud-at3-gates-attacked-2026-10-08 (GATE-7, PR 1040, merged), aud-at4-gates-attacked-2026-10-08 (GATE-8, PR 1039, merged), aud-at5-gates-attacked-2026-10-08 (GATE-9, PR 1042, open). `scripts/verify/audit-finding-status.mjs` reported 9 unlabeled finding lines across the four (AT1 1, AT3 5, AT4 2, AT5 1) and 0 after each received the token its own section carries; 4 table rows in AT5 carry the `glyph:verbatim` marker.
+- `docs/runbooks/audit-catalogue.md`: ATTACKED cells for rows 1, 2, 4, 5, 7, 8 and 11 entered as full runs; counts by script 89/34/44/13 to 96/33/38/13 (filled, partial only, empty, not applicable); ATTACKED 0/4/12/2 to 7/3/6/2; O-005 to O-010 retired, P-032 closed, owed-leg entries P-035 to P-041; incident ledger rows I-8 to I-11; section 3c DOCS-3 statements marked superseded with their wording kept.
+- `docs/dispatches/lane-common-contract.md`: the migration rule of the 2026-10-04 lane common terms (SQL file only, NOT APPLIED; no regeneration of migrations.md or touch of APPLIED-MAP.json; fixture INSERTs checked by `_lib/fixture-inserts.mjs`; migration-proof job) in the wiring preflight list.
+- `docs/PROGRAM-BOARD.md` (later 2026-10-08 pointer and thread rows), `docs/INDEX.md` (four audit lines). Detail: `docs/ops/session-log.d/2026-10-08-docs4-pass.md`.

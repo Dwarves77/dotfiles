@@ -1,6 +1,6 @@
 # AUD-AT-1: RLS and grants x ATTACKED (owed cell O-001), 2026-10-08
 
-> **Landing note (lane SEC-7, PR 1037):** Fixes landed in PR 1037. This register was not re-run by this lane; findings carry the tokens the audit's own method assigns.
+> **Landing note (lane SEC-7, PR 1037):** The fix for its residual is in flight in PR 1037 (SEC-7, migration 381, NOT APPLIED), open at the time of this landing. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edit is the form of status tokens, where the checker required it: 1 line received the token that line's own section or method statement already carries.
 
 Lenses run: ATTACKED. Lenses not run: EXISTS, RUNS, CALLED, COSTS, FIRED-TRUE, MODE, OVERLAPS, OPERATOR-SEAT, RECORD-VS-REALITY (all owed for subsystem 11).
 Subsystem: 11, RLS and grants. Unit: each table by principal by command (SELECT, INSERT, UPDATE, DELETE, TRUNCATE), each column privilege revoked from authenticated by migrations 364, 367 and 370, each policy.
@@ -65,7 +65,7 @@ The caller in these three rows holds role member in the org. Migration 370 made 
 
 1. P2 (org viewer): 121 tables x 5 commands = 605 cells OWED. Reason: no viewer membership exists. Fixture creation inside a rolled-back block was not among the approved statements.
 2. P3 (org member of another org): 121 x 5 = 605 cells OWED. Reason: one organization exists.
-3. NX cells (command ran and was refused or returned nothing, but the table had no rows for the probe to act on, so the policy was not exercised against a row): counted in section 2 and listed per table in section 7 as NX. For INSERT the probe never depends on existing rows beyond the copy source; where a table was empty the INSERT used DEFAULT VALUES.
+3. NX cells (command ran and was refused or returned nothing, but the table had no rows for the probe to act on, so the policy was not exercised against a row): counted in section 2 and listed per table in section 7 as NX. For INSERT the probe never depends on existing rows beyond the copy source; where a table was empty the INSERT used DEFAULT VALUES. [CONFIRMED: rolled-back DO block probe, AUD-AT-1]
 4. One column privilege not probed by a statement: portfolios has 5 columns without UPDATE for authenticated; 1 of them is a generated or identity column that cannot be assigned, so 4 were probed (30 of 31 revoked UPDATE columns probed across the 6 tables) [CONFIRMED: attgenerated/attidentity catalog read].
 5. Layer 2 standing alone (the guard trigger with the column grant restored) was not exercised: restoring a grant is a write outside the approved statements. Migrations 364 and 370 each run that leg inside their own self-check [CONFIRMED: read of the migration files]; this lane did not re-run it.
 6. Views (6) and functions (EXECUTE grants, SECURITY DEFINER bodies) are outside this lane's enumerator (tables, column privileges, policies). The census staged probes A, B and C (derived_values_admissible, research_assessments_current, admin_set_judgement_drain) were not run here. OWED.

@@ -1,6 +1,6 @@
 # AUD-AT-4 gates attacked: fitness functions and governance gates (fact lane, 2026-10-08)
 
-> **Landing note (lane GATE-8, PR 1039):** Fixes landed in PR 1039. This register was not re-run by this lane; findings carry the tokens the audit's own method assigns.
+> **Landing note (lane GATE-8, PR 1039):** Fixes landed in PR 1039. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edit is the form of status tokens, where the checker required it: 2 lines received the token that line's own section or method statement already carries.
 
 Base: origin/master 12c69634. Lens run: ATTACKED. Subsystem rows 4 (fitness functions) and 5 (governance gates). Owed cells: O-005, O-006. Every row carries a rule 14 status token.
 
@@ -457,8 +457,8 @@ None.
 - F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run.
 - F45 live ratchet: the detector, ratchet comparison and scope predicates were run in process; `measureAtBase` against a real origin/master base was not run (no remote in the throwaway repo).
 - F24 and the live-only DDL class: the gate reads a committed snapshot of the database; an object that exists live and is absent from the snapshot cannot be represented offline. Owed to a live-catalog leg (no live access in this lane).
-- F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were.
-- CLOSURE NEVER-RUN with real git history dates (`introducedAt` from `git log`) was exercised through the exported pure functions, not end to end.
+- F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were. [CONFIRMED: owed, not exercised by this lane]
+- CLOSURE NEVER-RUN with real git history dates (`introducedAt` from `git log`) was exercised through the exported pure functions, not end to end. [CONFIRMED: owed, not exercised by this lane]
 - Overlap between gates (whether another gate catches an input one gate accepted) was not measured; ACCEPTED means this gate alone did not block.
 
 ## Read and reused
