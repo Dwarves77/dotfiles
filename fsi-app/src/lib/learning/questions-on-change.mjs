@@ -11,7 +11,7 @@
 // subject_ref and created_by). It answers nothing; answering is the session-batch lane (ADR-044).
 //
 // EVENT MAPPING (pure). propagation_events has NO event_type column (migration 284 carries change_kind
-// insert/update/delete/supersede), so the six TRIGGER_EVENT_TYPES in constants.mjs are derived here from
+// insert/update/delete/supersede), so the TRIGGER_EVENT_TYPES in constants.mjs are derived here from
 // the outbox row's (table_name, change_kind). Every table that attaches propagation_outbox_trg today is
 // mapped, and questions-on-change.test.mjs parses the migrations and fails when a new emitting table has
 // no mapping.
@@ -24,6 +24,8 @@
 //   derived_values           any                             value_revised
 //   estimated_values         any                             value_revised
 //   statutory_computations   any                             obligation_amended
+//
+// entity_aliases and entity_relations (migration 377) map to identity_revised for any change kind.
 //
 // signposts maps to signpost_fired (lane L4-D, fireSignpost's own outbox row). confidence_decayed and
 // source_frozen are reserved: no table that emits outbox events
@@ -56,6 +58,12 @@ export const CITE = Object.freeze({
 /** Max items per event that raise questions (4 questions per item on its surface). */
 export const MAX_ITEMS_PER_EVENT = 25;
 
+/** The change text for an identity change: names the entity and what to do about it. PURE. */
+function describeIdentityChange(event, entityName) {
+  const who = entityName ? `${entityName} (${event.entityId})` : String(event.entityId);
+  return `the identity of ${who} changed (alias or relation): re-resolve mentions and roll-ups that name it`;
+}
+
 /** table_name -> { default event type, per change_kind overrides }, plus a plain label for the question. */
 export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
   emission_factors: Object.freeze({ type: "value_revised", byKind: Object.freeze({ supersede: "factor_superseded" }), label: "an emission factor" }),
@@ -67,6 +75,11 @@ export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
   // Lane L4-D: a fired signpost writes its own outbox row (signpost-watch.ts fireSignpost), with entity_id the
   // WATCHED entity, so the items linked to that entity are asked what the firing means. Not trigger-attached.
   signposts: Object.freeze({ type: "signpost_fired", byKind: Object.freeze({}), label: "a signpost on this entity" }),
+  // Lane ALIAS-1 (migration 377, coordinator ruling 2026-10-08): a name alias or a hierarchy relation on an
+  // entity changed. Both tables carry the entity on the outbox row (entity_aliases by its own entity_id,
+  // entity_relations by its child), so the items linked to that entity are asked to re-resolve what names it.
+  entity_aliases: Object.freeze({ type: "identity_revised", byKind: Object.freeze({}), label: "an alias of this entity", describe: describeIdentityChange }),
+  entity_relations: Object.freeze({ type: "identity_revised", byKind: Object.freeze({}), label: "a relation of this entity", describe: describeIdentityChange }),
 });
 
 const KIND_VERB = Object.freeze({ insert: "was added", update: "was revised", delete: "was removed", supersede: "was superseded" });
@@ -92,6 +105,7 @@ export function eventTypeForOutboxRow(row) {
  */
 export function describeChange(event, entityName) {
   const entry = EMITTING_TABLE_EVENT_MAP[event.tableName];
+  if (entry && entry.describe) return entry.describe(event, entityName);
   const what = entry ? entry.label : `a value in ${event.tableName}`;
   const verb = KIND_VERB[event.changeKind] ?? "changed";
   const where = entityName ? `${entityName} (${event.entityId})` : String(event.entityId);
