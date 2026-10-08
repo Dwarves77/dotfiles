@@ -131,10 +131,8 @@ function makeDeps(scenario = {}) {
   let snapshotCalls = 0;
   const counts = new Map();
   const runIds = stepRunIds(manifest, LOOP);
-  const ids = readdirSync(resolve(FSI_ROOT, "scripts", "turns", "record-briefs", "batches")).flatMap((f) => (JSON.parse(readFileSync(resolve(FSI_ROOT, "scripts", "turns", "record-briefs", "batches", f), "utf8")).entries ?? []).map((e) => e.item_id));
   const state = { report: null };
   const familyOf = Object.fromEntries(scriptSteps.map((s) => [s.id, s]));
-  let current = null;
 
   const deps = {
     fsiRoot: FSI_ROOT,
@@ -159,7 +157,6 @@ function makeDeps(scenario = {}) {
     },
     setup: async (sql, params, opts) => { calls.setup.push({ sql, params, opts }); },
     runScript: async ({ script, env }) => {
-      current = env.CP_STEP_ID;
       calls.scripts.push({ id: env.CP_STEP_ID, env, script });
       const s = familyOf[env.CP_STEP_ID];
       files.push(`scripts/harness-runs/${s.family}/${s.family}-run-${String(calls.scripts.length).padStart(3, "0")}.json`);
@@ -181,7 +178,7 @@ function makeDeps(scenario = {}) {
 
 test("the real manifest runs end to end on a permissive stub: every step in order, upstream ids threaded, artifacts landed once", async () => {
   const { deps, calls, state, runIds } = makeDeps();
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.error, null, res.error ?? "");
   assert.equal(res.ok, true);
   assert.deepEqual(calls.scripts.map((c) => c.id), scriptSteps.map((s) => s.id));
@@ -218,7 +215,7 @@ test("the real manifest runs end to end on a permissive stub: every step in orde
 
 test("ATTACK: a database that answers 0 stops the run at the first failing assertion with the step, the table, the predicate and the observed value", async () => {
   const { deps, calls, state } = makeDeps({ zeroSql: "harness_family = 'ledger-consume'" });
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /chain step "ledger-consume" failed assertion "harness-row"/);
   assert.match(res.error, /harness_runs WHERE harness_family = 'ledger-consume' AND github_run_id = '3770000000002'/);
@@ -232,7 +229,7 @@ test("ATTACK: a database that answers 0 stops the run at the first failing asser
 
 test("ATTACK: a stub that returns 0 for every count fails the very first step (the preconditions), before any script runs", async () => {
   const { deps, calls } = makeDeps({ zeroSql: "count(*)" });
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /chain step "preconditions" failed assertion "cadence-open": system_state WHERE scrape_cadence <> 'off': observed 0/);
   assert.equal(calls.scripts.length, 0);
@@ -242,7 +239,7 @@ test("a growth assertion fails when the table did not grow", async () => {
   const { deps, state } = makeDeps();
   const q = deps.query;
   deps.query = async (sql, params) => (sql.includes("public.item_cross_references") ? [{ n: 7 }] : q(sql, params));
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /chain step "corpus-turn" failed assertion "cross-references-grew": item_cross_references WHERE true: observed 0, expected grew by >= 1 \(before 7, after 7\)/);
   assert.equal(state.report.stopped_at, "corpus-turn");
@@ -250,7 +247,7 @@ test("a growth assertion fails when the table did not grow", async () => {
 
 test("a script that exits nonzero stops the run (its artifact is still landed first)", async () => {
   const { deps, calls } = makeDeps({ exitFor: "corpus-turn" });
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /chain step "corpus-turn": the script exited 3/);
   assert.equal(calls.landed.length, 5, "the failing step's own artifact was landed before the stop");
@@ -259,14 +256,14 @@ test("a script that exits nonzero stops the run (its artifact is still landed fi
 
 test("an artifact that will not land stops the run, naming the file", async () => {
   const { deps } = makeDeps({ landFails: true });
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /chain step "source-sweep": the harness-run artifact source-sweep-run-001\.json would not land/);
 });
 
 test("a prepare hook that cannot proceed (NO TARGET) stops the run at that step with its message", async () => {
   const { deps, calls, state } = makeDeps({ hooks: { ...HOOKS, "brief-batch": async () => { throw new Error("NO TARGET: none of the item ids exists locally"); } } });
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /NO TARGET/);
   assert.equal(state.report.stopped_at, "brief-apply");
@@ -278,7 +275,7 @@ test("the closing check fails when a step's row is missing from the ledger", asy
   const { deps } = makeDeps();
   const q = deps.query;
   deps.query = async (sql, params) => (sql.includes("WHERE github_run_id = ANY($1::text[])") ? (await q(sql, params)).slice(1) : q(sql, params));
-  const res = await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.equal(res.ok, false);
   assert.match(res.error, /chain step "hop-order" failed assertion "hop-order"/);
   assert.match(res.error, /no harness_runs row of family source-sweep/);
@@ -288,7 +285,7 @@ test("the report is rewritten after every step, so a crash mid-run still leaves 
   const { deps } = makeDeps();
   const writes = [];
   deps.writeReport = (r) => writes.push(r.steps.length);
-  await runChainSteps({ manifest, loopRunId: LOOP, env: {}, deps });
+  await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.ok(writes.length >= manifest.steps.length);
   assert.equal(writes.at(-1), manifest.steps.length);
 });

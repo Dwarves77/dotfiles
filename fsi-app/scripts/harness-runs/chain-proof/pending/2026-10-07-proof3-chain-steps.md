@@ -10,5 +10,5 @@ proven on fixtures and stubs only; the workflow has not been fired.
 
 The coordinator's first dispatch of `chain-proof.yml` after PROOF-2 (the subset export and load) is on master. It
 uploads `chain-steps-report.json` with the rest of the run directory. This marker is superseded by that run; delete
-it in the change that lands it. Owed with the same change: add the new files under `scripts/proof/steps/` to this
-family's `family.json` `governing_files` (family.json is outside lane PROOF-3's write set).
+it in the change that lands it.
+The runner, its manifest and the supporting modules are now listed in this family's `family.json` `governing_files` (coordinator ruling on PR 987).

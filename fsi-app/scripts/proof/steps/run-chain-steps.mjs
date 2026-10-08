@@ -138,7 +138,7 @@ export function planLines(manifest) {
  *         writeFile, readFile, listDir, writeReport, log, now, fsiRoot }
  * @returns {Promise<{ok: boolean, report: object, error: string|null}>}
  */
-export async function runChainSteps({ manifest, loopRunId, env, deps, window = sweepWindow(deps.now()) }) {
+export async function runChainSteps({ manifest, loopRunId, deps, window = sweepWindow(deps.now()) }) {
   const { query, runScript, listArtifacts, landArtifact, log } = deps;
   const hooks = deps.hooks ?? HOOKS;
   const runIds = stepRunIds(manifest, loopRunId);
@@ -353,7 +353,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   let deps;
   try { deps = await realDeps({ env, fsiRoot: FSI_ROOT, outDir: resolve(outDir) }); } catch (e) { console.error(`run-chain-steps: ${e.message}`); return 2; }
   try {
-    const res = await runChainSteps({ manifest, loopRunId, env, deps });
+    const res = await runChainSteps({ manifest, loopRunId, deps });
     console.log(res.ok ? `run-chain-steps: ${res.report.steps.length} step(s) passed` : `run-chain-steps: FAILED at ${res.report.stopped_at}`);
     return res.ok ? 0 : 1;
   } finally {
