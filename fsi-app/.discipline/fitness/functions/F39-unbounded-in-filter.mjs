@@ -82,11 +82,14 @@ const CHUNKING_CALLERS = ['fetchAllByIdChunks', 'readAllByIds'];
  *  SCREAMING_SNAKE constant (`Array.from(CONST)`). PURE. @param {string} arg */
 export function isBoundedArgShape(arg) {
   const trimmed = arg.trim();
-  // An array literal: a fixed enum written inline, or `[...CONST]`. NOTE (lane GATE-3, 2026-10-08): this
-  // also lets `[...runtimeIds]` through, a hole; closing it would newly fail
-  // src/app/api/admin/sources/bulk-import/route.ts line 379 (`.in("url", [...wellFormedUrls])`), a file
-  // outside this lane's write set, so it is recorded in the lane report instead of changed here.
-  if (trimmed.startsWith('[')) return true;
+  if (trimmed.startsWith('[')) {
+    // An array literal is a fixed enum written inline, or a spread of a module-level constant
+    // (`[...CONST]`). A spread of anything else (`[...ids]`, `[...byId.keys()]`) is a runtime list wearing
+    // brackets: its size follows the data, so it is not bounded by shape (lane GATE-3, 2026-10-08; this
+    // hole let `.in("url", [...wellFormedUrls])` in bulk-import/route.ts through unmarked until then).
+    const spreads = [...trimmed.matchAll(/\.\.\.\s*([A-Za-z_$][\w$]*)/g)].map((m) => m[1]);
+    return spreads.every((name) => ENUM_CONST_RE.test(name));
+  }
   if (/^(?:"[^"]*"|'[^']*'|`[^`]*`)$/.test(trimmed)) return true; // a single string/template literal
   if (ENUM_CONST_RE.test(trimmed)) return true; // same-file/imported SCREAMING_SNAKE_CASE constant
   if (ARRAY_FROM_CONST_RE.test(trimmed)) return true; // a copy of a module-level constant

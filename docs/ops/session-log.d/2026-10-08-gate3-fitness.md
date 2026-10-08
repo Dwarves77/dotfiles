@@ -1,6 +1,6 @@
 ## 2026-10-08, lane GATE-3 (gate3-fitness): fitness functions and governance gates, remove, repair, replace
 
-Branch `lane/gate3-fitness`, cut from origin/master 93498aa7. Not pushed: see "Blocked".
+Branch `lane/gate3-fitness`, cut from origin/master 93498aa7; second pass after the coordinator's rulings (see "Rulings applied").
 
 ### Accomplished (each item confirmed by running its test, red then green where behaviour was added)
 
@@ -39,10 +39,10 @@ Branch `lane/gate3-fitness`, cut from origin/master 93498aa7. Not pushed: see "B
    (kept the rendering guard), RD-86 (kept nothing, see Blocked), RD-90 (kept tint.test.mjs and
    timeline-dot-styles.test.mjs). Retired with a reason (`exempt`): RD-62 (F37, no owning test), RD-91 (F63,
    superseded by migration-history-audit, lane MIG-HIST-1, not yet on master).
-9. Skill acks: 26 ack files deleted; `checkDrift` no longer requires an ack in a range.
+9. Skill acks: 26 ack files deleted; the range-ack requirement is removed from `skill-contract-map.mjs`.
 10. `.discipline/out/` ignore line added to `fsi-app/.gitignore`.
 
-Removed F39 markers (15 lines, 11 files): admin/inferences/page.tsx, components/admin/corrections/load-all.mjs,
+Removed F39 markers (15 lines, 11 files; 119 stay): admin/inferences/page.tsx, components/admin/corrections/load-all.mjs,
 load-item-targets.mjs, lib/corrections/admin-api/logic.mjs, lib/corrections/suppressed-render.mjs,
 lib/dashboard/surface-coverage.ts, lib/intake/census-writer.mjs, lib/learning/prediction-scoring.mjs (4),
 lib/learning/questions-on-change.mjs (2), lib/supabase-server.ts (1, the PROVISIONAL_REVIEW_STATUSES spread),
@@ -60,16 +60,40 @@ governing-files.mjs, build-mode.mjs, invariant-coverage.mjs. Reused: `hashHarnes
 
 - The ledger clock reads the export's `capturedAt` when present (deterministic from committed files), else the wall clock.
 - A target with no ledger row but undated evidence (tracked artifact, runbook run record) is not overdue.
-- `[...runtimeIds]` is still treated as bounded by F39's existing array-literal rule. Closing it would newly fail
-  `src/app/api/admin/sources/bulk-import/route.ts` line 379 (`.in("url", [...wellFormedUrls])`), outside the write set.
 
-### Blocked (NEEDS WRITE-SET EXPANSION, nothing outside the set was touched)
+### Rulings applied (coordinator, same day)
 
-- Orphans left by the deletions, found by running F25 on this tree: `fitness/lib/workflow-run-depth.mjs` (+ test,
-  F60), `governance/generated-files.mjs` (+ test, F51 check 5; the brief says keep it), `src/lib/perf/perf-budget.mjs` (F37).
-- Item 4 (F23 WRITE_RPCS, git ls-files enumeration) lives in `governance/coverage-scan.mjs`.
-- Item 10 (runner writes `fitness-firings.json`) lives in `fitness/runner.mjs`.
-- Item 7 remainder: `checkRangeAcks` and `parseSkillAck` still exported until `skill-drift-gate.test.mjs` is edited.
+1. Orphans deleted: `fitness/lib/workflow-run-depth.mjs` + test, `governance/generated-files.mjs` + test,
+   `src/lib/perf/perf-budget.mjs`. Grep found no importer of any of them outside comments (perf-budget.mjs is
+   named only in comments in `obligations/read-register.mjs`). RD-86 is retired with a reason, its last
+   enforcer being the deleted depth test.
+2. Item 4 done in `governance/coverage-scan.mjs`: `.rpc(` is a write only when the name is in `WRITE_RPCS`
+   (the brief's list plus the lease and lock names the repo actually calls: `heartbeat_mutation_lease`,
+   `release_mutation_lease`, `heartbeat_funded_pass_lock`, `release_funded_pass_lock`); files are enumerated
+   with `git ls-files`, so gitignored scratch is never scanned. A call whose rpc name is not a string literal
+   is not counted (it cannot be classified). `coverage-report.json` regenerated with its generator: 1238
+   governed files, 0 gaps. Tests are in `F23-governed-surface-coverage.test.mjs` (no separate coverage-scan
+   test file exists).
+3. Item 10 done in `fitness/runner.mjs`: every run writes `fitness-firings.json`
+   (`[{gate, verdict, file, line, evidence}]`, evidence cut to 200 characters, an empty array when nothing
+   fired) to `fsi-app/.discipline/out/`, or to `--firings-out=<path>`; a write failure warns and never changes
+   the verdict.
+4. `skill-contract-map.mjs`: `checkRangeAcks`, `parseSkillAck`, the skill-acks directory constant and the
+   change-range import are gone; `skill-drift-gate.test.mjs` lost the three git-fixture proofs and the
+   parseSkillAck test.
+5. Invariant `residual` texts of RD-12, RD-62, RD-79, RD-84, RD-86, RD-90, RD-91 each gained one factual
+   sentence naming the deleted gate.
+6. F39: a spread is bounded only when its source is a SCREAMING_SNAKE constant. Tightening it exposed one
+   real unbounded site, `.in("url", [...wellFormedUrls])` in `bulk-import/route.ts`, which now reads through
+   `fetchAllByIdChunks` (manyPerId, fail-closed on a lookup error as before). tsc and eslint clean on the file.
+   The supabase-server.ts marker at the `[...byId.keys()]` call stays (its bound is the earlier `.limit()`).
+7. True positive of my own reading: the closure gate's maintenance-step introduction index never dated any
+   step (the split loop broke on its empty first element). Fixed in the same change; see item 5 above.
+
+### Read and reused (second pass)
+
+`fetchAllByIdChunks` (`src/lib/db/paginate.mjs`) for the bulk-import lookup; `git ls-files` enumeration as
+`closure-gate.mjs` already uses it; the lane's own F39 `closingParen` scanner.
 
 ### UX compliance
 

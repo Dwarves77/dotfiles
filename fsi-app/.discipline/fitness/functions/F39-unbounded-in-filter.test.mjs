@@ -166,6 +166,16 @@ test("GATE-3: CRLF content maps a call to the right span (line starts are comput
   assert.equal(v[0].line, 4);
 });
 
+test("GATE-3: a spread is bounded only when its source is a module-level constant, not a runtime array", () => {
+  assert.equal(isBoundedArgShape("[...EVENT_KINDS]"), true);
+  assert.equal(isBoundedArgShape('["a", ...EXTRA_KINDS]'), true);
+  assert.equal(isBoundedArgShape("[...wellFormedUrls]"), false, "the bulk-import shape");
+  assert.equal(isBoundedArgShape("[...byId.keys()]"), false);
+  assert.equal(isBoundedArgShape('["a", ...ids]'), false);
+  assert.equal(fitnessFunction.check(NEW_FILE, 'q.in("url", [...wellFormedUrls])').length, 1);
+  assert.deepEqual(fitnessFunction.check(NEW_FILE, 'q.in("kind", [...EVENT_KINDS])'), []);
+});
+
 test("GATE-3: isBoundedArgShape reads the truncated slice tail IN_CALL_RE hands it", () => {
   assert.equal(isBoundedArgShape("ids.slice(0, 200"), true);
   assert.equal(isBoundedArgShape("ids.slice( 0 ,500"), true);

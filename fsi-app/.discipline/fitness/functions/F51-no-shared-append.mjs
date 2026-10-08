@@ -28,8 +28,8 @@
 //   time]: all 14 of its CI firings in 30 days were PROCESS, git merged every one of those branches cleanly,
 //   and the correct change was unchanged by the re-cut. The only thing it added over git's own merge was
 //   the refusal itself. HOTSPOT_ALLOWLIST, the 30-commit window, its anchor commit and the fork-point
-//   classifier went with it. The generated-files registry (`governance/generated-files.mjs`) is kept as a
-//   module; this function no longer consults it.)
+//   classifier went with it, and so did the generated-files registry (`governance/generated-files.mjs`), whose
+//   only consumer was check 5.)
 //
 // SCOPE, HONESTLY. Checks 1-3 are static/textual scans of specific, named files -- they are pattern
 // checks against the shapes Cause A and Cause B actually took, not a general ban on the identifiers

@@ -31,6 +31,7 @@ import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { splitCsvLine } from "@/lib/csv/split.mjs";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { fetchAllByIdChunks } from "@/lib/db/paginate.mjs";
 import { pausedResponse } from "@/lib/api/pause";
 import { isRefusal, requireAdminRoute } from "@/lib/api/route-guard";
 // Pure decision logic lives in a sibling module, not here: a route.ts may
@@ -373,20 +374,30 @@ export async function POST(request: NextRequest) {
 
   const existingByUrl = new Map<string, string>();
   if (wellFormedUrls.size > 0) {
-    const { data: srcRows, error: srcLookupErr } = await supabase
-      .from("sources")
-      .select("id, url")
-      .in("url", [...wellFormedUrls]);
-    // Wave-α A4 (write-consequence swallow class): an errored dedup read
-    // previously left the map empty, defeating duplicate detection — every
-    // imported row would insert as if new. Fail closed.
-    if (srcLookupErr) {
+    // IN-CHUNK class (F39, lane GATE-3): the list follows the upload, so it is read in chunks, never as one
+    // .in() whose URL grows with the row count. sources.url is not guaranteed unique, hence manyPerId.
+    let srcRows: Array<{ id: string; url: string }>;
+    try {
+      srcRows = await fetchAllByIdChunks(
+        wellFormedUrls,
+        async (slice: string[]) => {
+          const { data, error } = await supabase.from("sources").select("id, url").in("url", slice);
+          if (error) throw new Error(error.message);
+          return (data ?? []) as Array<{ id: string; url: string }>;
+        },
+        { manyPerId: true },
+      );
+    } catch (srcLookupErr) {
+      // Wave-α A4 (write-consequence swallow class): an errored dedup read
+      // previously left the map empty, defeating duplicate detection, so every
+      // imported row would insert as if new. Fail closed.
+      const message = srcLookupErr instanceof Error ? srcLookupErr.message : String(srcLookupErr);
       return NextResponse.json(
-        { error: `Source registry lookup failed — aborting import to avoid duplicates: ${srcLookupErr.message}` },
+        { error: `Source registry lookup failed, aborting import to avoid duplicates: ${message}` },
         { status: 500 }
       );
     }
-    for (const r of srcRows || []) {
+    for (const r of srcRows) {
       existingByUrl.set(canonicalizeUrl((r as { url: string }).url), (r as { id: string }).id);
     }
   }

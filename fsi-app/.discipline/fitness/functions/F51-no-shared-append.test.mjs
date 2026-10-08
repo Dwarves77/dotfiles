@@ -404,7 +404,7 @@ test('GATE-3: check 5 (hotspot concurrency) and its HOTSPOT_ALLOWLIST are gone, 
   for (const gone of ['runCheck5', 'HOTSPOT_ALLOWLIST', 'HOTSPOT_WINDOW_ANCHOR_COMMIT', 'countHotspots', 'evaluateConcurrencyViolations', 'resolveForkPoint', 'classifyConcurrency', 'underEntryDir']) {
     assert.equal(f51[gone], undefined, `${gone} must not be exported any more`);
   }
-  assert.doesNotMatch(fitnessFunction.description, /5\) the standing hotspot/);
+  assert.doesNotMatch(fitnessFunction.description, /\b5\) the standing hotspot/);
 });
 
 
