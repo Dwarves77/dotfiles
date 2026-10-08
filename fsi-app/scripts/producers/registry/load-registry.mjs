@@ -14,7 +14,11 @@
 //   enabled_env   the runtime kill-switch env var the runner sets to "1" for the run, or null
 //   in_all        true: runs in the producer=all sweep; false: runs only when named
 // Optional: args (static CLI args, never --apply), pre ({script, args, since_flag}: a fetch stage run
-// first, given --since <date> when the dispatch passes one). The runner appends --apply itself.
+// first, given --since <date> when the dispatch passes one), entity_id (lane L4-E, 2026-10-08: the entity
+// the producer's rows describe, `cl:<kind>:<16 hex>`; checked for SHAPE only, never against the live
+// entities table; the runner hands it to the producer as PRODUCER_ENTITY_ID_ENV and the producer's write
+// path stamps it on the rows it writes, which is what lets an outbox row for those rows reach an item).
+// The runner appends --apply itself.
 // Unknown fields are refused, so a typo cannot silently do nothing.
 //
 // Pure apart from reading the directory and checking that each script exists; the existence probe is
@@ -23,6 +27,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertEntityId } from "../../../src/lib/entities/entity-id-shape.mjs";
+
+/** The env var the runner sets on the producer child when the entry carries an entity_id. One name, read by
+ *  the producers' shared write path (src/lib/market/write-market-series.mjs entityIdFromEnv). */
+export const PRODUCER_ENTITY_ID_ENV = "PRODUCER_ENTITY_ID";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const REGISTRY_DIR = HERE;
@@ -33,7 +42,7 @@ const TABLE_RE = /^[a-z][a-z0-9_]*$/;
 const ENV_RE = /^[A-Z][A-Z0-9_]*$/;
 const SCRIPT_RE = /^scripts\/(producers|gen)\/[A-Za-z0-9_./-]+\.mjs$/;
 const REQUIRED = ["name", "script", "domain_table", "source", "licence", "dry_capable", "enabled_env", "in_all"];
-const OPTIONAL = ["args", "pre"];
+const OPTIONAL = ["args", "pre", "entity_id"];
 const PRE_FIELDS = ["script", "args", "since_flag"];
 const MODE_FLAGS = ["--apply", "--dry"];
 
@@ -77,6 +86,13 @@ export function validateEntry(file, entry, { exists = existsSync, fsiRoot = FSI_
   if (typeof entry.in_all !== "boolean") fail(file, "in_all must be a boolean");
   checkScript(file, "script", entry.script, exists, fsiRoot);
   if ("args" in entry) checkArgs(file, "args", entry.args);
+  if ("entity_id" in entry) {
+    try {
+      assertEntityId(entry.entity_id);
+    } catch (e) {
+      fail(file, `entity_id must be a well-formed entity id cl:<kind>:<16 hex> (${e.message})`);
+    }
+  }
   if ("pre" in entry) {
     const pre = entry.pre;
     if (pre === null || typeof pre !== "object" || Array.isArray(pre)) fail(file, "pre must be an object");
@@ -147,6 +163,7 @@ export function buildCommands(entry, { mode, since = "" }) {
     if (since && entry.pre.since_flag) args.push(entry.pre.since_flag, since);
     out.push({ args, env });
   }
-  out.push({ args: [entry.script, ...(entry.args ?? []), ...(mode === "apply" ? ["--apply"] : [])], env });
+  const producerEnv = entry.entity_id ? { ...env, [PRODUCER_ENTITY_ID_ENV]: entry.entity_id } : env;
+  out.push({ args: [entry.script, ...(entry.args ?? []), ...(mode === "apply" ? ["--apply"] : [])], env: producerEnv });
   return out;
 }
