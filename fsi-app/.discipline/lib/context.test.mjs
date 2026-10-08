@@ -336,3 +336,65 @@ test('real git: CRLF content is stripped of the carriage return', () => {
     assert.deepEqual(ctx.introducedLines('win.txt').added, ['two changed']);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): the BLOB, not the working tree; binary files; edit-extend.
+// ---------------------------------------------------------------------------
+
+test('GATE-7 A015-13 / A019-10 / A021-7: getFileContent returns the STAGED blob, not the unstaged working copy', () => {
+  const dir = repo({ 'a.mjs': 'one\n' });
+  try {
+    put(dir, { 'a.mjs': 'staged raw write\n' });
+    sh(dir, ['add', '-A']);
+    put(dir, { 'a.mjs': 'staged raw write\n// unstaged comment naming lib/db.mjs\n' });
+    const ctx = stagedContext(dir);
+    assert.equal(ctx.getFileContent('a.mjs'), 'staged raw write\n');
+    assert.equal(ctx.getFileContent('missing.mjs'), null);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('GATE-7: an existing-commit context reads that commit\'s tree, a range context reads the range head', async () => {
+  const { buildContextForExistingCommit, buildContextForRange } = await import('./context.mjs');
+  const dir = repo({ 'a.mjs': 'v1\n' });
+  try {
+    const first = sh(dir, ['rev-parse', 'HEAD']).trim();
+    put(dir, { 'a.mjs': 'v2\n' });
+    sh(dir, ['commit', '-q', '-am', 'second']);
+    put(dir, { 'a.mjs': 'v3 working copy\n' });
+    const saved = process.env.DISCIPLINE_REPO_ROOT;
+    process.env.DISCIPLINE_REPO_ROOT = dir;
+    _clearRepoRootCache();
+    try {
+      const old = buildContextForExistingCommit({ commit: first });
+      assert.equal(old.getFileContent('a.mjs'), 'v1\n');
+      const range = buildContextForRange({ range: `${first}..HEAD` });
+      assert.equal(range.getFileContent('a.mjs'), 'v2\n');
+    } finally {
+      if (saved === undefined) delete process.env.DISCIPLINE_REPO_ROOT; else process.env.DISCIPLINE_REPO_ROOT = saved;
+      _clearRepoRootCache();
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('GATE-7: a file git does not diff as text is flagged binary on the staged file', () => {
+  const dir = repo({ 'keep.txt': 'x\n' });
+  try {
+    put(dir, { 'doc.md': 'text ' + EM + ' dash' + String.fromCharCode(0) + 'more\n', 'plain.md': 'text\n' });
+    sh(dir, ['add', '-A']);
+    const ctx = stagedContext(dir);
+    assert.equal(ctx.stagedFiles.find((f) => f.path === 'doc.md').binary, true);
+    assert.equal(ctx.stagedFiles.find((f) => f.path === 'plain.md').binary, false);
+    assert.deepEqual(ctx.introducedLines('doc.md').added, [], 'no hunk: the line is invisible to the content rules');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('GATE-7: introducedMatches with an extract charges a surplus occurrence on an edited line, and only a surplus', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'a.mjs' }],
+    changes: [{ path: 'a.mjs', removed: [`one ${EM} two`], added: [`one ${EM} two ${EM} three`] }],
+  });
+  const extract = (line) => [...line].filter((c) => c === EM);
+  assert.equal(introducedMatches(ctx.introducedLines('a.mjs'), hasGlyph).length, 0, 'without extract the line is a pre-existing match');
+  assert.equal(introducedMatches(ctx.introducedLines('a.mjs'), hasGlyph, extract).length, 1, 'with extract the second glyph is charged');
+});

@@ -49,7 +49,7 @@
 // transitively).
 
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
-import { gitChangedFiles, resolveRange } from '../lib/change-range.mjs';
+import { gitChangedPaths, resolveRange } from '../lib/change-range.mjs';
 import { recordGateFirings } from '../lib/gate-firings.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,9 @@ if (isMainModule(import.meta.url)) {
 
   let files;
   try {
-    files = gitChangedFiles(range);
+    // gitChangedPaths (GATE-7): a rename is a delete of its source plus an add of its destination, so code
+    // moved out of the CODE directories still counts as a code change that needs a memory entry.
+    files = gitChangedPaths(range);
   } catch (e) {
     console.error(String(e.message || e));
     process.exit(2);

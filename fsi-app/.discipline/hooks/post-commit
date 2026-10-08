@@ -1,0 +1,44 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/post-commit
+# Landed-commit legs (lane GATE-7, 2026-10-08, register attacks A-H1-5, A-H2-11, A-H2-13, A-H2-14).
+#
+# `git cherry-pick`, `git am` and a rebase that replays a commit create a commit WITHOUT running pre-commit or
+# commit-msg, but they do run post-commit. The commit has already landed by then, so a nonzero exit cannot undo
+# it; both legs are detection plus a loud message:
+#
+#   1. RULES. The commit rules engine runs on the landed commit in its existing CI mode (runner.mjs
+#      --mode=ci --commit=HEAD, the same engine and the same baseline commit-msg and validate-commits use; no
+#      second rule runner). Only for a commit that skipped commit-msg: the reflog subject says how HEAD moved
+#      ("cherry-pick: ...", "rebase (pick): ...", "am: ..."), and an ordinary "commit: ..." already ran the rules.
+#   2. WORKTREE ISOLATION (RD-19). Alarm, in the main checkout only, that a commit landed there. In a linked
+#      worktree it never fires. (`git commit-tree` plus `update-ref` runs no hook at all; recorded out of scope.)
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || exit 0
+
+RULES_RC=0
+if command -v node >/dev/null 2>&1 && [ -f "$REPO_ROOT/fsi-app/.discipline/runner.mjs" ]; then
+  case "$(git reflog -1 --format=%gs 2>/dev/null)" in
+    cherry-pick*|rebase*|am*|"am "*)
+      echo "[discipline post-commit] this commit skipped commit-msg (cherry-pick, rebase or am): running the commit rules on it." >&2
+      node "$REPO_ROOT/fsi-app/.discipline/runner.mjs" --mode=ci --commit=HEAD >&2 || {
+        RULES_RC=1
+        echo "[discipline post-commit] the commit rules FAILED on the landed commit above. The commit exists: amend it, or fix and re-commit, before pushing (CI validate-commits runs the same rules)." >&2
+      }
+      ;;
+  esac
+fi
+
+RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
+
+if command -v node >/dev/null 2>&1 && [ -f "$RUNNER" ]; then
+  node "$RUNNER" --mode=post-commit || exit 1
+  exit "$RULES_RC"
+fi
+
+[ -f "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh" ] && . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh"
+if command -v wt_in_main_checkout >/dev/null 2>&1 && wt_in_main_checkout; then
+  echo "[worktree-isolation post-commit] WORKTREE-ISOLATION VIOLATION (RD-19): a commit LANDED in the MAIN checkout (node not found, decided in shell). Move it to a worktree branch and reset the main checkout to origin/master." >&2
+  exit 1
+fi
+exit "$RULES_RC"

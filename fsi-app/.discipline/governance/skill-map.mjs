@@ -125,6 +125,18 @@ export const GOVERNED = [
       'fsi-app/src/lib/d3/',
       'fsi-app/scripts/lib/funded-pass-lock.mjs',
       'fsi-app/scripts/lib/mutation-lease.mjs',
+      // THE GATES THEMSELVES (lane GATE-7, 2026-10-08, register attacks A-PT-E6 to A-PT-E8): the commit rules,
+      // the git hooks, the governance modules (this map and the PreToolUse gate among them), the engine and its
+      // lib, the CI workflow and the repo's Claude Code hooks. A change to a gate is a change to the system
+      // that polices every other change, so editing one demands this skill, as a spend-chokepoint edit does.
+      'fsi-app/.discipline/rules/',
+      'fsi-app/.discipline/hooks/',
+      'fsi-app/.discipline/governance/',
+      'fsi-app/.discipline/lib/',
+      'fsi-app/.discipline/runner.mjs',
+      'fsi-app/.discipline/manifest.mjs',
+      '.github/workflows/discipline.yml',
+      '.claude/hooks/',
     ],
     // delete / archive operations on existing rows
     ops: [/is_archived\b/i, /archive_reason\b/i, /\.delete\s*\(/, /\bDELETE\s+FROM\b/i],
@@ -151,17 +163,37 @@ export const GOVERNED = [
 // Bash: patterns that mark a command as a data write / destructive op. Applied ONLY to the command's own
 // argv tokens (the gate strips heredoc bodies, quoted strings and `#` comments first), case-insensitive.
 // `truncate` is word-bounded so `echo truncated` is not the SQL/shell verb.
+//
+// GATE-7 (2026-10-08, register attacks A-PT-B1 to A-PT-B27): the verb list covers the schema-level drops
+// (schema, database, view, function, index, policy, trigger, type, extension), a schema-qualified table
+// (`update public.intelligence_items`), `supabase.exe`, a REST write through curl (-X / --request with
+// DELETE, PATCH or PUT) and a fetch-style `method: "DELETE"` in an interpreter's inline code, and the
+// PowerShell recursive delete. The word-adjacency forms that cannot be written as one pattern (git global
+// options between `git` and `push`, `git.exe`, an alias, rm flags in any order, find -delete) are decided
+// structurally in the gate (structuralDanger), not here.
 export const BASH_DANGER_PATTERNS = [
   '--apply\\b', '--execute\\b', '--write\\b',
-  'b2-runner', 'git\\s+push', 'rm\\s+-rf', 'drop\\s+(table|column)', '\\btruncate\\b', 'delete\\s+from',
-  'set\\s+not\\s+null', 'add\\s+constraint', 'update\\s+intelligence_items', 'update\\s+sources',
-  'set\\s+provenance_status', 'supabase\\s+db\\s+(reset|push)', 'run-migration', 'exec_sql', 'seed/apply-',
+  'b2-runner', 'git\\s+push', 'rm\\s+-rf',
+  'drop\\s+(table|column|schema|database|view|function|index|policy|trigger|type|extension|role)', '\\btruncate\\b', 'delete\\s+from',
+  'set\\s+not\\s+null', 'add\\s+constraint',
+  'update\\s+(?:"?\\w+"?\\.)?"?(?:intelligence_items|sources)\\b',
+  'set\\s+provenance_status', 'supabase(?:\\.exe)?\\s+db\\s+(reset|push)', 'run-migration', 'exec_sql', 'seed/apply-',
+  '\\bcurl(?:\\.exe)?\\b[^\\n]*(?:-X|--request)[\\s=]*(?:DELETE|PATCH|PUT)\\b',
+  '\\bmethod["\']?\\s*:\\s*["\']?(?:DELETE|PATCH|PUT)\\b',
+  '\\bremove-item\\b[^\\n]*-recurse',
 ];
 
 // MCP: the tool NAME is the part after `mcp__<server>__`. READ names never reach the skill demand; WRITE
 // names are skill-gated (deny when the governing skill is not loaded); a name in neither table is UNKNOWN
 // and is ASKED, never denied.
 export const MCP_READ_PREFIXES = ['list_', 'get_', 'read_', 'search_'];
+// A name that starts with a read prefix but carries one of these words as a whole `_`-separated token is a
+// write (GATE-7, A-PT-M1, A-PT-M2: `get_and_delete_rows`, `search_and_replace`). Destructive or mutating
+// verbs only; nouns that appear in read tool names (run, check, config, event, deployment) are not here.
+export const MCP_MUTATING_WORDS = [
+  'delete', 'remove', 'drop', 'replace', 'destroy', 'truncate', 'purge', 'erase', 'update', 'insert', 'write',
+  'overwrite', 'create', 'revoke', 'apply', 'patch',
+];
 export const MCP_READ_NAMES = [
   'query_logs', 'find', 'navigate', 'read_page', 'get_page_text', 'screenshot', 'mark_chapter',
   'tabs_context', 'tabs_context_mcp', 'status',
@@ -176,6 +208,24 @@ export const MCP_BATCH_NAMES = ['browser_batch'];
 export const MCP_COMPUTER_NAMES = ['computer'];
 export const MCP_COMPUTER_READ_ACTIONS = ['screenshot', 'zoom', 'wait', 'scroll', 'scroll_to', 'hover'];
 
+// NON-MCP TOOLS THE GATE ROUTES (lane GATE-7, 2026-10-08, register attacks A-PT-R-*). The registered matcher
+// used to name Bash, the file-edit tools, the dispatch tools and `mcp__.+` only, so PowerShell, Monitor,
+// EnterWorktree, ExitWorktree, ArtifactData, Artifact and SendMessage never reached the gate. Each is
+// classified by what it DOES, deny-by-default for a write effect (skill demand, as an MCP write), allow for a
+// read effect:
+//   SHELL_TOOLS      run a command line; judged exactly as Bash (the command text is the effect)
+//   DISPATCH_TOOLS   start or continue an agent; always asked (the interior cannot be inspected from here)
+//   WORKTREE_TOOLS   create, enter or remove a worktree; asked with the isolation doctrine
+//   ACTION_TOOLS     one tool, several actions; the action decides read or write. A tool listed here whose
+//                    action is missing is a write when DEFAULT_WRITE names it (Artifact publishes by default).
+export const SHELL_TOOLS = ['Bash', 'PowerShell', 'Monitor'];
+export const DISPATCH_TOOLS = ['Agent', 'Task', 'Workflow', 'SendMessage'];
+export const WORKTREE_TOOLS = ['EnterWorktree', 'ExitWorktree'];
+export const ACTION_TOOLS = {
+  ArtifactData: { readActions: ['get', 'list', 'query'], defaultWrite: false },
+  Artifact: { readActions: ['read', 'list', 'open', 'quickstart'], defaultWrite: true },
+};
+
 // Worktree isolation (RD-19): the git forms that move or rewrite a branch ask the operator to confirm the
 // assigned worktree. One row per subcommand. `none` forms never ask: merge-base, branch --list/-a/
 // --show-current, checkout -- <path>, rebase --abort, log, diff, status, fetch, rev-parse.
@@ -185,7 +235,18 @@ export const MCP_COMPUTER_READ_ACTIONS = ['screenshot', 'zoom', 'wait', 'scroll'
 //   firstArg         ask only when the first argument is one of these (`worktree add`)
 //   anyArg           ask only when any argument is one of these (`reset --hard`)
 //   anyArgRe         ask only when any argument matches (`branch -d/-D`, `push --force/-f`)
+//   GATE-7 (2026-10-08, register attacks A-PT-I1 to A-PT-I7): cherry-pick, am, pull (a fetch plus a merge into
+//   the checked-out branch), revert and symbolic-ref with a target move or rewrite a branch; `restore .` and
+//   `clean -f` discard the working tree; an alias set on the command line (`-c alias.co=checkout`) is resolved
+//   before the table is read (gitInvocations in the gate).
 export const GIT_ISOLATION_FORMS = [
+  { sub: 'cherry-pick', exceptAnyArg: ['--abort', '--quit'] },
+  { sub: 'am', exceptAnyArg: ['--abort', '--quit'] },
+  { sub: 'pull' },
+  { sub: 'revert', exceptAnyArg: ['--abort', '--quit'] },
+  { sub: 'symbolic-ref', anyArgRe: /^(?:refs\/.+|--delete|-d)$/ },
+  { sub: 'restore', anyArg: ['.', ':/'] },
+  { sub: 'clean', anyArgRe: /^-[a-zA-Z]*f[a-zA-Z]*$|^--force$/ },
   { sub: 'checkout', needsArgs: true, exceptFirstArg: ['--'] },
   { sub: 'switch' },
   { sub: 'rebase', exceptAnyArg: ['--abort'] },
@@ -206,9 +267,25 @@ function norm(p) {
 // path (commit-time rules) OR an ABSOLUTE path (the PreToolUse hook, e.g. '<abs-checkout>/fsi-app/
 // src/...'). Match on the repo-relative SUFFIX so both forms resolve identically. Every pattern is
 // a multi-segment path, so suffix matching cannot collide.
+// GATE-7 (register attacks A-PT-E2, E3, E5): both sides are canonicalised before they are compared: slash and
+// backslash alike, doubled separators collapsed, `.` segments dropped, `..` segments resolved, and case folded
+// (the Windows file system the repo is edited on does not tell fsi-app from FSI-APP). An 8.3 short name
+// (FSI-AP~1) needs the file system to expand it; the gate does that before calling here (governedPath).
+export function canonPath(p) {
+  const absolute = norm(p).startsWith('/');
+  const parts = [];
+  for (const seg of norm(p).split('/')) {
+    if (!seg || seg === '.') continue;
+    if (seg === '..') { parts.pop(); continue; }
+    parts.push(seg.toLowerCase());
+  }
+  return (absolute ? '/' : '') + parts.join('/');
+}
 function fileMatches(path, pattern) {
-  const f = norm(path), pat = norm(pattern);
-  if (pat.endsWith('/')) return f.startsWith(pat) || f.includes('/' + pat);   // directory: relative OR absolute
+  const f = canonPath(path);
+  const isDir = norm(pattern).endsWith('/');
+  const pat = canonPath(pattern);
+  if (isDir) return f.startsWith(pat + '/') || f.includes('/' + pat + '/');   // directory: relative OR absolute
   return f === pat || f.endsWith('/' + pat);                                  // exact file: relative OR absolute
 }
 

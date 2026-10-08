@@ -147,3 +147,52 @@ test('021 check: FAIL when the DashboardData anchor is gone (renamed or moved)',
   assert.equal(r.status, 'FAIL');
   assert.ok(r.message.includes('DashboardData'));
 });
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): honest forms from the AUD-AT-3 attack register.
+// ---------------------------------------------------------------------------
+
+function ctx021(shapeContent, consumerContent = null, files = [{ path: _SHAPE_FILE, status: 'M' }]) {
+  return buildContextFromFixture({
+    message: 'feat: payload',
+    files,
+    fileContents: { [_SHAPE_FILE]: shapeContent, ...(consumerContent === null ? {} : { [_CONSUMER_FILE]: consumerContent }) },
+  });
+}
+
+test('021 GATE-7 A021-1: a comment that quotes the NEW key ahead of the real stale constant does not satisfy the rule', () => {
+  const stale = shapeFile(FIELDS_V2, KEY_V1);
+  const decoy = `// DASHBOARD_DATA_CACHE_KEY = "${KEY_V2}" (rotated)\n/* export const DASHBOARD_DATA_CACHE_KEY = "${KEY_V2}"; */\n${stale}`;
+  assert.equal(rule.check(ctx021(decoy)).status, 'FAIL');
+  assert.equal(rule.check(ctx021(shapeFile(FIELDS_V2, KEY_V2))).status, 'PASS');
+});
+
+test('021 GATE-7 A021-1b: a block-comment copy of the OLD interface ahead of the real one is not the interface', () => {
+  const real = shapeFile(FIELDS_V2, KEY_V1);
+  const old = ['/*', 'export interface DashboardData {', ...FIELDS_V1.map((f) => `  ${f}`), '}', '*/'].join('\n');
+  assert.equal(computeShapeKey(`${old}\n${real}`), KEY_V2);
+  assert.equal(rule.check(ctx021(`${old}\n${real}`)).status, 'FAIL'); // key says V1, shape hashes to V2
+});
+
+test('021 GATE-7 A021-3: a consumer that splits the raw key literal across a concatenation is still inlining it', () => {
+  const ok = shapeFile(FIELDS_V1, KEY_V1);
+  const split = 'const k = "app-" + "data-v9";\n';
+  const inlined = 'const k = "app-data-v9";\n';
+  assert.equal(rule.check(ctx021(ok, 'const k = DASHBOARD_DATA_CACHE_KEY;\n')).status, 'PASS');
+  assert.equal(rule.check(ctx021(ok, inlined)).status, 'FAIL');
+  assert.equal(rule.check(ctx021(ok, 'const k = "app-" + "data-v9";\n')).status, 'FAIL');
+  assert.ok(split.length > 0);
+  assert.equal(rule.check(ctx021(ok, '// the app-data- prefix is documented here\nconst k = DASHBOARD_DATA_CACHE_KEY;\n')).status, 'PASS');
+});
+
+test('021 GATE-7 A021-5: deleting or renaming the shape file away is refused (the anchor is gone)', () => {
+  const del = buildContextFromFixture({ message: 'x', files: [{ path: _SHAPE_FILE, status: 'D' }] });
+  assert.equal(rule.trigger(del), true);
+  assert.equal(rule.check(del).status, 'FAIL');
+  const moved = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'fsi-app/src/lib/dashboard-shape.ts', status: 'R' }, { path: _SHAPE_FILE, status: 'D' }],
+    changes: [{ path: 'fsi-app/src/lib/dashboard-shape.ts', oldPath: _SHAPE_FILE, status: 'R' }],
+  });
+  assert.equal(rule.check(moved).status, 'FAIL');
+});
