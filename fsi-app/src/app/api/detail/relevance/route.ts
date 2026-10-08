@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchIntelligenceItem } from "@/lib/supabase-server";
 import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 // GET /api/detail/relevance?itemId=<uuid-or-legacy_id> — PERF-10 (2026-09-04, root-cause fix,
 // ADR-026 Follow-up).
@@ -28,6 +29,8 @@ import { withErrorCapture } from "@/lib/telemetry/capture-error";
 // already made. This route does not duplicate a new read path; it re-derives the one input
 // getViewerRelevanceForItem has always required, from the same cached source.
 async function handleGET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const { searchParams } = new URL(request.url);
   const itemId = searchParams.get("itemId");
   if (!itemId) {

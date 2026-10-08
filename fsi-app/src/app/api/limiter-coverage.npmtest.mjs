@@ -143,3 +143,52 @@ for (const r of WORKER_ROUTES) {
     assert.ok(src.includes('import { checkRateLimit } from "@/lib/api/rate-limit";'));
   });
 }
+
+// ---- anonymous callers (coordinator grant): keyed by clientKey(request) ----
+const linkedinStart = await jiti.import("./auth/linkedin/start/route.ts");
+const startReq = (xff) =>
+  new NextRequest("http://x/api/auth/linkedin/start", { headers: xff ? { "x-forwarded-for": xff } : {} });
+
+test("anonymous route: the 61st request from one address is 429, another address is untouched", async () => {
+  for (let i = 1; i <= 60; i++) {
+    const res = await linkedinStart.GET(startReq("203.0.113.50, 10.0.0.1"));
+    assert.notEqual(res.status, 429, "call " + i);
+  }
+  const res = await linkedinStart.GET(startReq("203.0.113.50"));
+  assert.equal(res.status, 429);
+  assert.ok(res.headers.get("retry-after"));
+  const other = await linkedinStart.GET(startReq("203.0.113.51"));
+  assert.notEqual(other.status, 429);
+});
+
+test("anonymous route: requests with no x-forwarded-for share one bucket and are limited, not skipped", async () => {
+  for (let i = 1; i <= 60; i++) {
+    const res = await linkedinStart.GET(startReq(null));
+    assert.notEqual(res.status, 429, "call " + i);
+  }
+  assert.equal((await linkedinStart.GET(startReq(null))).status, 429);
+});
+
+const ANON_ROUTES = [
+  ["auth/identity", /async function handleGET\(/],
+  ["detail/relevance", /async function handleGET\(/],
+  ["listings/cursor", /export async function GET\(/],
+  ["listings/rest", /export async function GET\(/],
+  ["obligations/register", /async function handleGET\(/],
+  ["obligations/upcoming", /async function handleGET\(/],
+  ["auth/linkedin/start", /export async function GET\(/],
+  ["../auth/callback", /export async function GET\(/],
+];
+for (const [r, decl] of ANON_ROUTES) {
+  test(`${r}: the handler's first act is the limiter keyed by clientKey(request)`, () => {
+    const src = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), r, "route.ts"), "utf8");
+    const at = src.search(decl);
+    assert.ok(at >= 0, "handler found");
+    const body = src.slice(at);
+    const limitAt = body.indexOf("checkRateLimit(clientKey(request))");
+    assert.ok(limitAt >= 0, "calls the limiter with clientKey(request)");
+    const firstAwait = body.indexOf("await ");
+    assert.ok(firstAwait < 0 || limitAt < firstAwait, "the limiter runs before any await");
+    assert.ok(src.includes('import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";'));
+  });
+}

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ensureProfile } from "@/lib/auth/provision-personal-workspace";
 import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 // Supabase auth callback. Handles:
 //   - Email-confirmation links from /signup (next=/onboarding by default)
@@ -18,6 +19,8 @@ import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
 // (a failure is logged and counted in error_events and does not block auth); the server bootstrap runs
 // the same ensureProfile on the first request of any session that still has no profile.
 export async function GET(request: Request) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   // Wave-α A6: same-origin allowlist — a crafted `next` (`//evil.com`,

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { resolveServerBootstrapWithHeal, type ServerBootstrap } from "@/lib/api/server-bootstrap";
 import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 // GET /api/auth/identity — PERF-10 (2026-09-04, root-cause fix,
 // docs/decisions/ADR-026-detail-cache-and-viewer-state-split.md Follow-up).
@@ -37,7 +38,9 @@ import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 // AUTH-2 profile-only self-heal). This route is a new
 // TRANSPORT for the exact same resolution logic /onboarding and /workspace/new already call directly
 // server-side for their own (still-dynamic, still-cookie-reading) render, not a reimplementation.
-async function handleGET() {
+async function handleGET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   try {
     const supabase = await createSupabaseServerClient();
     const bootstrap: ServerBootstrap = await resolveServerBootstrapWithHeal(supabase);

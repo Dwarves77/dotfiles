@@ -8,6 +8,7 @@ import {
   DUE_WINDOWS,
 } from "@/lib/obligations/read-register.mjs";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 /**
  * GET /api/obligations/register?itemId=&jurisdiction=&mode=&bindingPosition=&dueWindow=&offset=&limit=
@@ -58,6 +59,8 @@ function parseIntParam(raw: string | null, fallback: number, min: number, max: n
 }
 
 async function handleGET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const { searchParams } = request.nextUrl;
   const itemIdParam = searchParams.get("itemId");
   const variant: "list" | "detail" = itemIdParam ? "detail" : "list";

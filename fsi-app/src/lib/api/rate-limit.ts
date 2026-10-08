@@ -80,6 +80,17 @@ export function checkRateLimit(userId: string): NextResponse | null {
 }
 
 /**
+ * Limiter key for callers with no user id (public GETs, the auth redirects): the first
+ * x-forwarded-for entry, trimmed. When the header is absent or empty the key is the one shared
+ * "anon:unknown" bucket: fail closed, never skip the limiter. On Vercel the header is always
+ * present, so the shared bucket only ever holds local traffic. ROUTES-1 (register AT2-7d).
+ */
+export function clientKey(request: { headers: Headers }): string {
+  const first = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return first ? `ip:${first}` : "anon:unknown";
+}
+
+/**
  * Get rate limit headers for a successful response.
  */
 export function rateLimitHeaders(userId: string): Record<string, string> {

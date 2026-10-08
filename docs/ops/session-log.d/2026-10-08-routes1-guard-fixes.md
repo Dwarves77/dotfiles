@@ -49,7 +49,9 @@ The existing limiter (`src/lib/api/rate-limit.ts`, `checkRateLimit`) has ONE tie
 | `api/auth/linkedin/callback` GET | session check, no limiter | `checkRateLimit(user.id)` after the session check and before the token call to LinkedIn: the neighbours' tier and key | same file: 61st call by one user is 429 with no request to LinkedIn; another user's bucket is separate. |
 | `api/version` GET | none | EXEMPT: a public GET of constant build metadata, no DB, no input; a limiter would only spend a bucket on a probe | none |
 
-NOT DONE in this item (see "NEEDS WRITE-SET EXPANSION" below): the 8 anonymous methods `auth/identity`, `auth/linkedin/start`, `detail/relevance`, `listings/cursor`, `listings/rest`, `obligations/register`, `obligations/upcoming`, `auth/callback` (plus `api/version`, exempt above).
+| the 8 anonymous methods: `auth/identity` GET, `auth/linkedin/start` GET, `detail/relevance` GET, `listings/cursor` GET, `listings/rest` GET, `obligations/register` GET, `obligations/upcoming` GET, `auth/callback` GET | none | `checkRateLimit(clientKey(request))` as the handler's first act (coordinator grant, 2026-10-08): `clientKey` (new, `src/lib/api/rate-limit.ts`, beside `checkRateLimit`) is `ip:<first x-forwarded-for entry, trimmed>`, else the one shared `anon:unknown` bucket (fail closed, never skip; on Vercel the header is always present). Same 60/min tier. `auth/identity` gained a `request` parameter to read the header. | `src/lib/api/rate-limit.npmtest.mjs` (4: forwarded header keys per address, trimmed; absent or empty header is the shared bucket; per-address exhaustion; shared bucket limited, not skipped). `limiter-coverage.npmtest.mjs`: representative route `auth/linkedin/start` (61st request from one address is 429, another address untouched; no header shares one bucket and is limited) and a source check on all 8 that the limiter runs before the first await. |
+
+Tiers present: one limit (60/min) with three key kinds (user id, worker route, client address); one representative route is tested per key kind.
 
 ### 6. `fsi-app/.claude/CLAUDE.md`
 
@@ -58,7 +60,7 @@ One line: "except `/api/auth/callback`" now reads "except `/auth/callback`" (the
 ### 7. Register rows
 
 - Closed by SEC-3b, PR 1003 (merge 5c57faa2, helper `requireOrgWriter` in `src/lib/api/org.ts`), 13 of the 15 rows that wrote shared or org-wide rows on membership only: R121 and R122 (watchlist POST, DELETE, team scope), R136 and R137 (workspace/overrides POST, DELETE), R141 and R142 (portfolios/[id]/members POST, DELETE), R144 and R145 (portfolios/[id] PATCH, DELETE), R147 (portfolios POST), R148 and R149 (tags/[id]/items PUT, DELETE), R151 and R152 (tags POST, DELETE). Source: SEC-3b session log lines 51-53.
-- The two left: R069 `community/moderation/reports/[id]` POST, CLOSED here (item 3). R118 `telemetry/error` POST: NOT changed by this lane. Facts: it runs `requireUserRoute`, then `captureError` INSERTs or UPDATEs `error_events` with the service role (capture-error.ts:77) from caller-supplied route, message and stack (register AT2-9); no brief item covers it and it is outside the write set. Recorded as open.
+- The two left: R069 `community/moderation/reports/[id]` POST, CLOSED here (item 3). R118 `telemetry/error` POST: left unchanged, by coordinator ruling (2026-10-08). It is covered by the two controls it already has: the session gate and the per-user 60/min limiter, both in `requireUserRoute` (route-guard.ts:304-314), plus the 32 KB body cap. Recorded as covered, no further work.
 
 ## Read and reused
 
@@ -70,17 +72,15 @@ Reused, not built: `checkRateLimit` (the only limiter), `workerAuthGuard`, `user
 - F2 requires the CALL `workerAuthGuard(`, not a header read: every worker route uses it, and a direct header compare would be a second implementation of the secret check.
 - The admin half of F2 is comment-stripped too (same flaw, same file, one change).
 - The `PUBLIC_ROUTES` list lives in `route-policy.ts`; that is the "proxy/middleware file" edited.
-- Worker limiter key `worker:/api/<route>`: the only unsettled detail for non-user callers; the tier (60/min) is the neighbours'.
+- Worker limiter key `worker:/api/<route>`: the only unsettled detail for non-user callers; the tier (60/min) is the neighbours'. Anonymous callers: `clientKey(request)` per the coordinator grant.
 - Test for the moderation route placed outside the bracketed directory (glob).
 
 ## What is NOT done
 
-- NEEDS WRITE-SET EXPANSION: `fsi-app/src/lib/api/rate-limit.ts` (and its test) because the 8 anonymous methods have no user id to key the existing limiter, no client-address helper exists in the repo (git grep for x-forwarded-for, x-real-ip found nothing), and writing the address parsing inline in 8 route files would be 8 copies of one rule. Proposed: one exported helper beside `checkRateLimit` that derives a key from the first `x-forwarded-for` entry, then each anonymous route calls it first. Waiting for the grant; the decision on the key for unidentifiable callers (shared bucket or skip) also needs a ruling.
-- `telemetry/error` (R118), open as above.
-- The register's ATTACKED lens for the 19 route methods and 7 pages marked HYPOTHESIS: not run (out of scope).
+- Nothing from the brief's seven items is outstanding. The register's ATTACKED lens for the 19 route methods and 7 pages marked HYPOTHESIS was not run (out of scope).
 
 ## Verification run
 
-- `node --test` on the touched files: `route-policy.test.mjs` 15/15, `F2-admin-routes-isPlatformAdmin.test.mjs` 18/18, `reviewer-gate.npmtest.mjs` 11/11, `limiter-coverage.npmtest.mjs` 12/12; existing tests beside the touched routes (`recompute-trust/route.npmtest.mjs`, `health/spend/route.npmtest.mjs`, `worker/check-sources/route.npmtest.mjs`, `recompute-trust-scores.npmtest.mjs`) unchanged and green.
-- Red against the old code (route files restored from HEAD, test files kept): route-policy 1 new test failed; F2 7 of 18 failed; moderation 9 of 11 failed; limiter 10 of 12 failed.
+- `node --test` on the touched files: `route-policy.test.mjs` 15/15, `F2-admin-routes-isPlatformAdmin.test.mjs` 18/18, `reviewer-gate.npmtest.mjs` 11/11, `limiter-coverage.npmtest.mjs` 22/22, `rate-limit.npmtest.mjs` 4/4; existing tests beside the touched routes (`recompute-trust/route.npmtest.mjs`, `health/spend/route.npmtest.mjs`, `worker/check-sources/route.npmtest.mjs`, `recompute-trust-scores.npmtest.mjs`) unchanged and green.
+- Red against the old code (route files restored from HEAD, test files kept): route-policy 1 new test failed; F2 7 of 18 failed; moderation 9 of 11 failed; limiter and clientKey tests 14 of 26 failed (workers and linkedin callback 10 of 12 on the first pass).
 - One extra command outside the brief's list: `node fsi-app/.discipline/fitness/runner.mjs --function=F2` (F2 only, 40 files, 0 violations), to confirm the widened scope on the real tree.
