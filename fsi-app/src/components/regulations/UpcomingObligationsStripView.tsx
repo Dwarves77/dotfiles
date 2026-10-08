@@ -47,9 +47,24 @@ interface ViewProps {
   /** List variant only: whether the jurisdiction filter narrowed the read, so the empty-state copy
    *  can say so honestly. */
   hasJurisdictionFilter?: boolean;
+  /** List variant only, and ONLY when the caller scoped the read (lane MKT-1: the Market policy timeline).
+   *  Omitted, the strip renders exactly as it always has (Regulations passes nothing). */
+  scopeInfo?: ScopeInfo;
 }
 
-export function UpcomingObligationsStripView({ variant, events, hasJurisdictionFilter = false }: ViewProps) {
+/** The visible scope of a scoped read (spec 00 section 4, "not filtered in"): the filter as text, how many
+ *  events it hid, and the one-click widen control. */
+export interface ScopeInfo {
+  /** The filter as the reader reads it, e.g. "Ocean, EU"; empty when the scope filters nothing. */
+  label: string;
+  /** Events in the same upcoming window the scope removed. */
+  hiddenByScope: number;
+  /** True while the reader has widened the view to everything. */
+  widened: boolean;
+  onToggleWiden: () => void;
+}
+
+export function UpcomingObligationsStripView({ variant, events, hasJurisdictionFilter = false, scopeInfo }: ViewProps) {
   if (variant === "detail") {
     if (events.length === 0) return null; // honest omission — see UpcomingObligationsStrip.tsx's header
     return <DetailCard events={events} />;
@@ -59,8 +74,11 @@ export function UpcomingObligationsStripView({ variant, events, hasJurisdictionF
     return (
       <section style={stripWrapStyle}>
         <Header />
+        {scopeInfo && <ScopeLine info={scopeInfo} />}
         <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: "6px 0 0" }}>
-          No upcoming obligations match{hasJurisdictionFilter ? " your workspace's jurisdictions" : ""} right now.
+          {scopeInfo
+            ? `No upcoming obligations match ${scopeInfo.widened ? "any scope" : scopeInfo.label || "this scope"} right now.`
+            : `No upcoming obligations match${hasJurisdictionFilter ? " your workspace's jurisdictions" : ""} right now.`}
         </p>
       </section>
     );
@@ -69,6 +87,7 @@ export function UpcomingObligationsStripView({ variant, events, hasJurisdictionF
   return (
     <section style={stripWrapStyle}>
       <Header count={events.length} />
+      {scopeInfo && <ScopeLine info={scopeInfo} />}
       {/* DEFECT 6 (lane opsclip, train 61): the strip cut its fifth card mid-word at the
           container edge with no fade, no visible scrollbar and no other affordance, so the cut
           read as broken rather than as "more to the right". `.cl-scroll-shadow` (globals.css) is
@@ -139,6 +158,47 @@ function DetailCard({ events }: { events: UpcomingEvent[] }) {
           </a>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** The filter as text, plus the spec 00 section 4 "not filtered in" treatment: "N hidden by your scope" and
+ *  a one-click widen. Widened, the same control narrows back. The button keeps a 32px target with 8px clear
+ *  around it (law 2). */
+function ScopeLine({ info }: { info: ScopeInfo }) {
+  const showHidden = !info.widened && info.hiddenByScope > 0;
+  const buttonStyle: React.CSSProperties = {
+    minHeight: 32,
+    padding: "4px 10px",
+    border: "1px solid var(--color-border)",
+    borderRadius: 6,
+    background: "var(--color-surface)",
+    color: "var(--color-text-primary)",
+    fontSize: 11.5,
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+  return (
+    <div
+      data-audit="policy-scope"
+      style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px", margin: "0 0 10px" }}
+    >
+      <span style={{ fontSize: 11.5, color: "var(--color-text-muted)", minWidth: 0, overflowWrap: "anywhere" }}>
+        Scope:{" "}
+        <strong data-audit="policy-scope-label" style={{ color: "var(--color-text-primary)" }}>
+          {info.widened ? "All modes and regions" : info.label || "All modes and regions"}
+        </strong>
+      </span>
+      {showHidden && (
+        <button type="button" data-audit="policy-scope-widen" onClick={info.onToggleWiden} style={buttonStyle}>
+          {formatNumber(info.hiddenByScope)} hidden by your scope · Show all
+        </button>
+      )}
+      {info.widened && (
+        <button type="button" data-audit="policy-scope-narrow" onClick={info.onToggleWiden} style={buttonStyle}>
+          Back to your scope
+        </button>
+      )}
     </div>
   );
 }
