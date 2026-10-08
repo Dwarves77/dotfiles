@@ -19,9 +19,10 @@ const read = (name) => readFileSync(join(HERE, name), "utf8");
 const SIX = ["regulatory_feasibility", "regional_resources", "labor_markets", "materials_sourcing", "infrastructure", "operational_cost"];
 const SEVEN = [...SIX, "grid_intensity"];
 
-test("header: subject line, states NOT APPLIED, names the ruling and why a new value rather than an existing one", () => {
+test("header: subject line, states APPLIED with the ledger version, names the ruling and why a new value rather than an existing one", () => {
   assert.match(RAW, /^-- subject: Migration 378 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008231719, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   assert.match(RAW, /ruling A/i);
   assert.match(RAW, /regional_resources/);
   assert.match(RAW, /operational_cost/);
