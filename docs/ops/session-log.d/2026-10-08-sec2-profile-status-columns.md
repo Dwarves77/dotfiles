@@ -42,6 +42,11 @@
 | linkedin_workplace_verified | none | none needed |
 | linkedin_verification_checked_at | none | none needed |
 
+## Correction after review (same day)
+
+- The first draft's self-check began with `INSERT INTO public.profiles (id) VALUES (gen_random_uuid())`, which violates `profiles_id_auth_users_fkey` (live only, in no repo migration). [CONFIRMED by the coordinator's catalog read.] The self-check now uses migration 364's final fixture pattern: the oldest real profile row for the UPDATE and RPC legs (normalised to the column defaults by the migration role first so every attack value differs; every change rolled back; leg skipped with a NOTICE if profiles is empty), and an `auth.users` row with no profile, or a fixture `auth.users` row with only its id, for the INSERT legs (skipped with a NOTICE if it cannot be made). The anon and no-sub legs need no row and always run. Static test: 18 tests, the new one asserts no invented profile id and the NOTICE skips.
+- The branch was re-cut from origin/master 93498aa7 (SEC-1 / 364 merged, PROOF-4 / 992 merged) and the lane commits cherry-picked; `docs/inventories/migrations.md` regenerated.
+
 ## Decisions
 
 1. Eligible states for the request: `none` (and NULL) and `revoked`. `revoked` is a withdrawn credential and the UI already offers the button there; an admin-adjudicated re-application path (reject back to `none`) would be a separate design.
@@ -51,14 +56,13 @@
 
 ## NOT done
 
-- Not applied to any database; nothing run against Postgres (none on this machine). The SQL has been read and statically tested, never executed; the in-migration self-check runs at apply time. [HYPOTHESIS] the fixture `INSERT INTO public.profiles (id)` succeeds on the live table (the same assumption 364 makes).
+- Not applied to any database; nothing run against Postgres (none on this machine). The SQL has been read and statically tested, never executed; the in-migration self-check runs at apply time. [HYPOTHESIS] a fixture `auth.users` row can be inserted with only its id (the same assumption migration 364's self-check states); if it cannot, the INSERT legs are skipped with a NOTICE and the catalog assertions still run.
 - PR 985 is superseded by PR 992 (merging), and the PROOF-4 attack registry is not on origin/master in this branch, so no entry was added to `scripts/proof/attacks/attacks.json`. OWED to a PROOF-4 follow-up, exact attack spec: id `status-columns-self-authorise-refused`; as role authenticated with a fixture sub on the chain stack, (a) `UPDATE public.profiles SET verifier_status = 'active' WHERE id = <own>` must fail 42501; (b) the same for `verification_tier = 'staff_verified'`, `membership_tier = 'premium'`, `contribution_score = 9999`; (c) `SELECT public.request_verification()` from `none` must return `pending`; (d) from `active` it must fail 55000; (e) `INSERT INTO public.profiles (id, verifier_status) VALUES (<own>, 'active')` must fail 42501; (f) `UPDATE public.profiles SET linkedin_verified = true` (and each of `verifier_since`, `linkedin_identity_verified`, `linkedin_workplace_verified`, `linkedin_verification_checked_at`) must fail 42501.
 - No rendering-guard or UI smoke run (CI runs them); `tsc --noEmit` ran locally with no output.
 
 ## Open items
 
-- Merge order: 364 must be applied before 367 (the migration aborts otherwise). Whichever of PR 991 and this PR merges second must regenerate `docs/inventories/migrations.md`.
-- Apply order for the executor: 364, then 367, then merge this PR (the code depends on 367: the RPC must exist before `UserProfilePage` calls it, and the LinkedIn write needs `SUPABASE_SERVICE_ROLE_KEY`, already used by other routes).
+- 364 is applied and merged. Apply order for the executor: 367, then merge this PR (the code depends on 367: the RPC must exist before `UserProfilePage` calls it, and the LinkedIn write needs `SUPABASE_SERVICE_ROLE_KEY`, already used by other routes).
 
 ### UX compliance
 - Screen/block: Verifier badge tab on /profile (VerifierTab), unchanged layout.

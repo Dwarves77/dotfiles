@@ -130,11 +130,26 @@ test("self-check ATTACKS as role authenticated with a fixture jwt sub and requir
   assert.equal(squash(SQL.match(/v_cols\s+text\[\] := ARRAY\[([\s\S]*?)\];/)), NINE.map((c) => "'" + c + "'").join(", "));
   assert.equal(squash(SQL.match(/v_vals\s+text\[\] := ARRAY\[([\s\S]*?)\];/)),"'''active''', '''staff_verified''', '''premium''', '9999', 'now()', 'true', 'true', 'true', 'now()'");
   assert.match(SQL, /UPDATE public\.profiles SET verifier_status = 'active' WHERE id = v_uid;/);
-  assert.match(SQL, /INSERT INTO public\.profiles \(id, verifier_status\) VALUES \(v_uid2, 'active'\);/);
+  assert.match(SQL, /INSERT INTO public\.profiles \(id, verifier_status\) VALUES \(v_new, 'active'\);/);
   assert.match(SQL, /EXCEPTION WHEN insufficient_privilege THEN/);
   assert.ok(SQL.includes("authenticated could self-authorise verifier_status = active"));
   assert.ok(SQL.includes("authenticated was able to INSERT its own profiles row with verifier_status = active"));
   assert.match(SQL, /RAISE EXCEPTION 'sec2_367_selfcheck_rollback'/);
+});
+
+test("self-check fixtures are real: no invented profiles id (profiles_id_auth_users_fkey), oldest real row for UPDATE and RPC legs, an auth.users row for INSERT legs, each leg skipped with a NOTICE", () => {
+  assert.doesNotMatch(SQL, /INSERT INTO public\.profiles \(id\) VALUES \(gen_random_uuid\(\)\)/);
+  assert.doesNotMatch(SQL, /INSERT INTO public\.profiles \(id[^)]*\) VALUES \(v_uid[23]/);
+  assert.match(SQL, /SELECT id INTO v_uid FROM public\.profiles ORDER BY created_at LIMIT 1;/);
+  assert.match(SQL, /FROM auth\.users u LEFT JOIN public\.profiles p ON p\.id = u\.id\s+WHERE p\.id IS NULL\s+LIMIT 1;/);
+  assert.match(SQL, /INSERT INTO auth\.users \(id\) VALUES \(v_new\);/);
+  assert.equal((SQL.match(/gen_random_uuid\(\)/g) || []).length, 1, "gen_random_uuid only to make the fixture auth.users id");
+  assert.match(SQL, /public\.profiles is empty, UPDATE and RPC legs .* skipped/);
+  assert.match(SQL, /could not insert a fixture auth\.users row \(%\), INSERT legs \(F, G2\) skipped/);
+  assert.match(SQL, /IF v_uid IS NOT NULL THEN/);
+  assert.match(SQL, /IF v_new IS NOT NULL THEN/);
+  // the real row is normalised to defaults before each attack so every attack value differs from the row's own
+  assert.match(SQL, /SET verifier_status = 'none', verification_tier = 'unverified', membership_tier = 'free',\s+contribution_score = 0, verifier_since = NULL, linkedin_verified = false,/);
 });
 
 test("self-check proves each layer alone: layer 1 is a column privilege denial, layer 2 (grants restored inside the rolled-back block) names the trigger", () => {
@@ -159,7 +174,7 @@ test("self-check exercises the RPC: none to pending, pending no-op, active refus
 
 test("self-check is not over-broad and the sanctioned path stays open: job_title updates, service_role sets all nine", () => {
   assert.match(SQL, /UPDATE public\.profiles SET job_title = 'sec2-selfcheck' WHERE id = v_uid;/);
-  assert.match(SQL, /INSERT INTO public\.profiles \(id, display_name\) VALUES \(v_uid2, 'sec2-selfcheck'\);/);
+  assert.match(SQL, /INSERT INTO public\.profiles \(id, display_name\) VALUES \(v_new, 'sec2-selfcheck'\);/);
   assert.match(SQL, /SET LOCAL ROLE service_role;\s+UPDATE public\.profiles\s+SET verifier_status = 'active', verification_tier = 'staff_verified',\s+membership_tier = 'premium', contribution_score = 5,\s+verifier_since = now\(\), linkedin_verified = true, linkedin_identity_verified = true,\s+linkedin_workplace_verified = true, linkedin_verification_checked_at = now\(\)/);
   assert.ok(SQL.includes("'active/staff_verified/premium/5'"));
 });

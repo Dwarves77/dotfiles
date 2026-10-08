@@ -74,14 +74,19 @@
 -- NO writer anywhere in code (UserProfilePage and the community pages only select verifier_since/linkedin_verified),
 -- so nothing needs to move; a future writer must be server-side or an RPC.
 --
--- SELF-CHECK (inside the migration transaction, rolled back by a sentinel exception, no data changed). Fixture
--- profile rows are created by the migration role and discarded. As role authenticated with a fixture JWT sub:
+-- SELF-CHECK (inside the migration transaction, rolled back by a sentinel exception, no data changed). Fixtures are
+-- never invented ids (profiles.id has a foreign key to auth.users, profiles_id_auth_users_fkey, which exists live and
+-- is declared in no repo migration): the UPDATE and RPC legs use the oldest REAL profile row (normalised to the column
+-- defaults by the migration role first; every change rolled back; skipped with a NOTICE if profiles is empty), and
+-- the INSERT legs use an auth.users row with no profile, or a fixture auth.users row inserted with only its id
+-- (rolled back; skipped with a NOTICE if it cannot be made), the same approach migration 364 uses. As role
+-- authenticated with the fixture JWT sub:
 --   A. UPDATE of each of the nine columns on the own row is refused with 42501 "permission denied" (layer 1);
 --   B. request_verification() from 'none' returns 'pending' and the row reads 'pending';
 --   C. calling it again from 'pending' returns 'pending' and changes nothing (no-op);
 --   D. from 'active' it is refused with 55000; from 'revoked' it succeeds; the migration role sets the fixture state;
 --   E. as role anon the RPC is refused (no EXECUTE); as authenticated with no sub it is refused with 42501;
---   F. INSERT of an own row carrying verifier_status 'active' is refused with 42501 (layer 1), and a plain own-row
+--   F. (INSERT fixture) INSERT of an own row carrying verifier_status 'active' is refused with 42501 (layer 1), and a plain own-row
 --      INSERT succeeds;
 --   G. with the column grants TEMPORARILY restored inside the rolled-back sub-transaction, the same UPDATE and
 --      INSERT attacks are refused by the TRIGGER (message names profiles_privilege_guard): layer 2 stands alone;
@@ -239,11 +244,17 @@ REVOKE ALL ON FUNCTION public.request_verification() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.request_verification() TO authenticated;
 
 -- ---- Self-check: attack both layers and the RPC, rolled back ----------------------------------------------------
+-- FIXTURES (same approach as migration 364). public.profiles.id has a foreign key to auth.users
+-- (profiles_id_auth_users_fkey), so no id is ever invented: the UPDATE and RPC legs use the oldest REAL profile row
+-- (its nine columns are first set to their defaults by the migration role, and every change is rolled back; if
+-- profiles is empty those legs are skipped with a NOTICE), and the INSERT legs use an auth.users row that has no
+-- profile yet, or, if none exists, a fixture auth.users row inserted with only its id (ASSUMPTION, stated in a
+-- NOTICE: auth.users requires nothing but id; if that insert fails the INSERT legs are skipped with a NOTICE and the
+-- privilege-catalog assertions below still run).
 DO $$
 DECLARE
-  v_uid      uuid := gen_random_uuid();
-  v_uid2     uuid := gen_random_uuid();
-  v_uid3     uuid := gen_random_uuid();
+  v_uid      uuid;
+  v_new      uuid;
   v_denied   boolean;
   v_msg      text;
   v_state    text;
@@ -257,99 +268,128 @@ DECLARE
   v_attack   text;
   i          integer;
 BEGIN
+  SELECT id INTO v_uid FROM public.profiles ORDER BY created_at LIMIT 1;
+  IF v_uid IS NULL THEN
+    RAISE NOTICE 'migration 367 self-check: public.profiles is empty, UPDATE and RPC legs (A to E, G, H to J) skipped';
+  END IF;
+
+  SELECT u.id INTO v_new
+    FROM auth.users u LEFT JOIN public.profiles p ON p.id = u.id
+   WHERE p.id IS NULL
+   LIMIT 1;
+
   BEGIN
-    -- Fixture: profile rows created by the migration role (the guard allows postgres/owner).
-    INSERT INTO public.profiles (id) VALUES (v_uid);
+    IF v_new IS NULL THEN
+      BEGIN
+        v_new := gen_random_uuid();
+        INSERT INTO auth.users (id) VALUES (v_new);
+        RAISE NOTICE 'migration 367 self-check: inserted a fixture auth.users row with only its id (assumes no other NOT NULL column without a default; rolled back with the self-check)';
+      EXCEPTION WHEN OTHERS THEN
+        v_new := NULL;
+        RAISE NOTICE 'migration 367 self-check: could not insert a fixture auth.users row (%), INSERT legs (F, G2) skipped', SQLERRM;
+      END;
+    END IF;
 
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
-    PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+    IF v_uid IS NOT NULL THEN
+      -- Normalise the real row to the column defaults (migration role: sanctioned; rolled back), so every attack
+      -- value below DIFFERS from what the row holds and the trigger's IS DISTINCT FROM comparison must fire.
+      UPDATE public.profiles
+         SET verifier_status = 'none', verification_tier = 'unverified', membership_tier = 'free',
+             contribution_score = 0, verifier_since = NULL, linkedin_verified = false,
+             linkedin_identity_verified = false, linkedin_workplace_verified = false,
+             linkedin_verification_checked_at = NULL
+       WHERE id = v_uid;
 
-    -- A. Layer 1: each status, tier, badge or timestamp column refused by column privilege.
-    FOR i IN 1 .. array_length(v_cols, 1) LOOP
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
+      PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+
+      -- A. Layer 1: each status, tier, badge or timestamp column refused by column privilege.
+      FOR i IN 1 .. array_length(v_cols, 1) LOOP
+        v_denied := false;
+        v_msg := NULL;
+        BEGIN
+          EXECUTE format('UPDATE public.profiles SET %I = %s WHERE id = %L', v_cols[i], v_vals[i], v_uid);
+        EXCEPTION WHEN insufficient_privilege THEN
+          v_denied := true;
+          v_msg := SQLERRM;
+        END;
+        IF NOT v_denied THEN
+          RAISE EXCEPTION 'ABORT: authenticated was able to UPDATE profiles.% on its own row', v_cols[i];
+        END IF;
+        IF position('profiles_privilege_guard' IN v_msg) > 0 OR position('permission denied' IN v_msg) = 0 THEN
+          RAISE EXCEPTION 'ABORT: layer 1 did not refuse profiles.% by column privilege (got: %)', v_cols[i], v_msg;
+        END IF;
+      END LOOP;
+      -- The single named attack of the finding, spelled out.
+      v_denied := false;
+      BEGIN
+        UPDATE public.profiles SET verifier_status = 'active' WHERE id = v_uid;
+      EXCEPTION WHEN insufficient_privilege THEN
+        v_denied := true;
+      END;
+      IF NOT v_denied THEN
+        RAISE EXCEPTION 'ABORT: authenticated could self-authorise verifier_status = active';
+      END IF;
+
+      -- B. The RPC from 'none' sets 'pending'.
+      v_ret := public.request_verification();
+      IF v_ret IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: request_verification() from none returned % (expected pending)', v_ret;
+      END IF;
+      RESET ROLE;
+      SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
+      IF v_state IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: request_verification() did not persist pending (row reads %)', v_state;
+      END IF;
+
+      -- C. Again from 'pending': no-op, returns 'pending', status unchanged.
+      SET LOCAL ROLE authenticated;
+      v_ret := public.request_verification();
+      IF v_ret IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: request_verification() from pending returned % (expected the no-op pending)', v_ret;
+      END IF;
+      RESET ROLE;
+      SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
+      IF v_state IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: the pending no-op changed the status to %', v_state;
+      END IF;
+
+      -- D. From 'active': refused (55000). From 'revoked': succeeds.
+      UPDATE public.profiles SET verifier_status = 'active' WHERE id = v_uid;   -- migration role: sanctioned
+      SET LOCAL ROLE authenticated;
       v_denied := false;
       v_msg := NULL;
       BEGIN
-        EXECUTE format('UPDATE public.profiles SET %I = %s WHERE id = %L', v_cols[i], v_vals[i], v_uid);
-      EXCEPTION WHEN insufficient_privilege THEN
+        v_ret := public.request_verification();
+      EXCEPTION WHEN object_not_in_prerequisite_state THEN
         v_denied := true;
         v_msg := SQLERRM;
       END;
       IF NOT v_denied THEN
-        RAISE EXCEPTION 'ABORT: authenticated was able to UPDATE profiles.% on its own row', v_cols[i];
+        RAISE EXCEPTION 'ABORT: request_verification() was accepted from active (returned %)', v_ret;
       END IF;
-      IF position('profiles_privilege_guard' IN v_msg) > 0 OR position('permission denied' IN v_msg) = 0 THEN
-        RAISE EXCEPTION 'ABORT: layer 1 did not refuse profiles.% by column privilege (got: %)', v_cols[i], v_msg;
+      RESET ROLE;
+      SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
+      IF v_state IS DISTINCT FROM 'active' THEN
+        RAISE EXCEPTION 'ABORT: the refused call from active changed the status to %', v_state;
       END IF;
-    END LOOP;
-    -- The single named attack of the finding, spelled out.
-    v_denied := false;
-    BEGIN
-      UPDATE public.profiles SET verifier_status = 'active' WHERE id = v_uid;
-    EXCEPTION WHEN insufficient_privilege THEN
-      v_denied := true;
-    END;
-    IF NOT v_denied THEN
-      RAISE EXCEPTION 'ABORT: authenticated could self-authorise verifier_status = active';
-    END IF;
-
-    -- B. The RPC from 'none' sets 'pending'.
-    v_ret := public.request_verification();
-    IF v_ret IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: request_verification() from none returned % (expected pending)', v_ret;
-    END IF;
-    RESET ROLE;
-    SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
-    IF v_state IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: request_verification() did not persist pending (row reads %)', v_state;
-    END IF;
-
-    -- C. Again from 'pending': no-op, returns 'pending', status unchanged.
-    SET LOCAL ROLE authenticated;
-    v_ret := public.request_verification();
-    IF v_ret IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: request_verification() from pending returned % (expected the no-op pending)', v_ret;
-    END IF;
-    RESET ROLE;
-    SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
-    IF v_state IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: the pending no-op changed the status to %', v_state;
-    END IF;
-
-    -- D. From 'active': refused (55000). From 'revoked': succeeds.
-    UPDATE public.profiles SET verifier_status = 'active' WHERE id = v_uid;   -- migration role: sanctioned
-    SET LOCAL ROLE authenticated;
-    v_denied := false;
-    v_msg := NULL;
-    BEGIN
+      UPDATE public.profiles SET verifier_status = 'revoked' WHERE id = v_uid;
+      SET LOCAL ROLE authenticated;
       v_ret := public.request_verification();
-    EXCEPTION WHEN object_not_in_prerequisite_state THEN
-      v_denied := true;
-      v_msg := SQLERRM;
-    END;
-    IF NOT v_denied THEN
-      RAISE EXCEPTION 'ABORT: request_verification() was accepted from active (returned %)', v_ret;
-    END IF;
-    RESET ROLE;
-    SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
-    IF v_state IS DISTINCT FROM 'active' THEN
-      RAISE EXCEPTION 'ABORT: the refused call from active changed the status to %', v_state;
-    END IF;
-    UPDATE public.profiles SET verifier_status = 'revoked' WHERE id = v_uid;
-    SET LOCAL ROLE authenticated;
-    v_ret := public.request_verification();
-    IF v_ret IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: request_verification() from revoked returned % (expected pending)', v_ret;
-    END IF;
-    RESET ROLE;
-    SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
-    IF v_state IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: request_verification() from revoked did not persist pending (row reads %)', v_state;
+      IF v_ret IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: request_verification() from revoked returned % (expected pending)', v_ret;
+      END IF;
+      RESET ROLE;
+      SELECT verifier_status INTO v_state FROM public.profiles WHERE id = v_uid;
+      IF v_state IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: request_verification() from revoked did not persist pending (row reads %)', v_state;
+      END IF;
     END IF;
 
-    -- E. anon has no EXECUTE; an authenticated role with no sub is refused by the function.
+    -- E. anon has no EXECUTE; an authenticated role with no sub is refused by the function. No row is needed.
     SET LOCAL ROLE anon;
     v_denied := false;
     v_msg := NULL;
@@ -380,127 +420,145 @@ BEGIN
     RESET ROLE;
 
     -- F. INSERT path, layer 1: own row carrying verifier_status = active refused; a plain own row accepted.
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid2::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid2::text, 'role', 'authenticated')::text, true);
-    v_denied := false;
-    v_msg := NULL;
-    BEGIN
-      INSERT INTO public.profiles (id, verifier_status) VALUES (v_uid2, 'active');
-    EXCEPTION WHEN insufficient_privilege THEN
-      v_denied := true;
-      v_msg := SQLERRM;
-    END;
-    IF NOT v_denied THEN
-      RAISE EXCEPTION 'ABORT: authenticated was able to INSERT its own profiles row with verifier_status = active';
+    IF v_new IS NOT NULL THEN
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_new::text, true);
+      PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_new::text, 'role', 'authenticated')::text, true);
+      v_denied := false;
+      v_msg := NULL;
+      BEGIN
+        INSERT INTO public.profiles (id, verifier_status) VALUES (v_new, 'active');
+      EXCEPTION WHEN insufficient_privilege THEN
+        v_denied := true;
+        v_msg := SQLERRM;
+      END;
+      IF NOT v_denied THEN
+        RAISE EXCEPTION 'ABORT: authenticated was able to INSERT its own profiles row with verifier_status = active';
+      END IF;
+      IF position('permission denied' IN v_msg) = 0 THEN
+        RAISE EXCEPTION 'ABORT: layer 1 did not refuse the INSERT by column privilege (got: %)', v_msg;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_new) THEN
+        INSERT INTO public.profiles (id, display_name) VALUES (v_new, 'sec2-selfcheck');
+      END IF;
+      RESET ROLE;
     END IF;
-    IF position('permission denied' IN v_msg) = 0 THEN
-      RAISE EXCEPTION 'ABORT: layer 1 did not refuse the INSERT by column privilege (got: %)', v_msg;
-    END IF;
-    INSERT INTO public.profiles (id, display_name) VALUES (v_uid2, 'sec2-selfcheck');
-    RESET ROLE;
 
     -- G. Layer 2 alone: restore the nine column grants inside this rolled-back block and attack again.
     GRANT INSERT (verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified, linkedin_verification_checked_at) ON public.profiles TO authenticated;
     GRANT UPDATE (verifier_status, verification_tier, membership_tier, contribution_score, verifier_since, linkedin_verified, linkedin_identity_verified, linkedin_workplace_verified, linkedin_verification_checked_at) ON public.profiles TO authenticated;
     GRANT UPDATE (is_platform_admin) ON public.profiles TO authenticated;
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
 
-    FOR i IN 1 .. array_length(v_cols, 1) LOOP
+    IF v_uid IS NOT NULL THEN
+      UPDATE public.profiles
+         SET verifier_status = 'none', verification_tier = 'unverified', membership_tier = 'free',
+             contribution_score = 0, verifier_since = NULL, linkedin_verified = false,
+             linkedin_identity_verified = false, linkedin_workplace_verified = false,
+             linkedin_verification_checked_at = NULL
+       WHERE id = v_uid;
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+
+      FOR i IN 1 .. array_length(v_cols, 1) LOOP
+        v_denied := false;
+        v_msg := NULL;
+        BEGIN
+          EXECUTE format('UPDATE public.profiles SET %I = %s WHERE id = %L', v_cols[i], v_vals[i], v_uid);
+        EXCEPTION WHEN insufficient_privilege THEN
+          v_denied := true;
+          v_msg := SQLERRM;
+        END;
+        IF NOT v_denied THEN
+          RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated UPDATE profiles.% on its own row', v_cols[i];
+        END IF;
+        IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
+          RAISE EXCEPTION 'ABORT: layer 2 did not refuse profiles.% (got: %)', v_cols[i], v_msg;
+        END IF;
+      END LOOP;
+      -- the 364 columns are still refused by the one shared function
       v_denied := false;
       v_msg := NULL;
       BEGIN
-        EXECUTE format('UPDATE public.profiles SET %I = %s WHERE id = %L', v_cols[i], v_vals[i], v_uid);
+        UPDATE public.profiles SET is_platform_admin = NOT is_platform_admin WHERE id = v_uid;
       EXCEPTION WHEN insufficient_privilege THEN
         v_denied := true;
         v_msg := SQLERRM;
       END;
-      IF NOT v_denied THEN
-        RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated UPDATE profiles.% on its own row', v_cols[i];
+      IF NOT v_denied OR position('profiles_privilege_guard' IN v_msg) = 0 THEN
+        RAISE EXCEPTION 'ABORT: the extended guard no longer refuses is_platform_admin (got: %)', v_msg;
       END IF;
-      IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
-        RAISE EXCEPTION 'ABORT: layer 2 did not refuse profiles.% (got: %)', v_cols[i], v_msg;
-      END IF;
-    END LOOP;
-    -- the 364 columns are still refused by the one shared function
-    v_denied := false;
-    v_msg := NULL;
-    BEGIN
-      UPDATE public.profiles SET is_platform_admin = true WHERE id = v_uid;
-    EXCEPTION WHEN insufficient_privilege THEN
-      v_denied := true;
-      v_msg := SQLERRM;
-    END;
-    IF NOT v_denied OR position('profiles_privilege_guard' IN v_msg) = 0 THEN
-      RAISE EXCEPTION 'ABORT: the extended guard no longer refuses is_platform_admin (got: %)', v_msg;
+      RESET ROLE;
     END IF;
 
-    -- G2. Layer 2 on the INSERT path, every column.
-    RESET ROLE;
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid3::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid3::text, 'role', 'authenticated')::text, true);
-    FOR i IN 1 .. array_length(v_cols, 1) LOOP
-      v_denied := false;
-      v_msg := NULL;
-      BEGIN
-        EXECUTE format('INSERT INTO public.profiles (id, %I) VALUES (%L, %s)', v_cols[i], v_uid3, v_vals[i]);
-      EXCEPTION WHEN insufficient_privilege THEN
-        v_denied := true;
-        v_msg := SQLERRM;
-      END;
-      IF NOT v_denied THEN
-        RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated INSERT a row with profiles.% set', v_cols[i];
+    -- G2. Layer 2 on the INSERT path, every column (the BEFORE trigger fires before any key or foreign-key check).
+    IF v_new IS NOT NULL THEN
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_new::text, true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_new::text, 'role', 'authenticated')::text, true);
+      FOR i IN 1 .. array_length(v_cols, 1) LOOP
+        v_denied := false;
+        v_msg := NULL;
+        BEGIN
+          EXECUTE format('INSERT INTO public.profiles (id, %I) VALUES (%L, %s)', v_cols[i], v_new, v_vals[i]);
+        EXCEPTION WHEN insufficient_privilege THEN
+          v_denied := true;
+          v_msg := SQLERRM;
+        END;
+        IF NOT v_denied THEN
+          RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated INSERT a row with profiles.% set', v_cols[i];
+        END IF;
+        IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
+          RAISE EXCEPTION 'ABORT: layer 2 did not refuse the INSERT of profiles.% (got: %)', v_cols[i], v_msg;
+        END IF;
+      END LOOP;
+      RESET ROLE;
+    END IF;
+
+    IF v_uid IS NOT NULL THEN
+      -- H. The RPC still works with the grants restored and the guard enabled (sanctioned by owner identity).
+      UPDATE public.profiles SET verifier_status = 'none' WHERE id = v_uid;
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+      v_ret := public.request_verification();
+      IF v_ret IS DISTINCT FROM 'pending' THEN
+        RAISE EXCEPTION 'ABORT: request_verification() was not sanctioned by the guard (returned %)', v_ret;
       END IF;
-      IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
-        RAISE EXCEPTION 'ABORT: layer 2 did not refuse the INSERT of profiles.% (got: %)', v_cols[i], v_msg;
+      RESET ROLE;
+
+      -- I. The sanctioned path stays open: service_role can set all nine.
+      SET LOCAL ROLE service_role;
+      UPDATE public.profiles
+         SET verifier_status = 'active', verification_tier = 'staff_verified',
+             membership_tier = 'premium', contribution_score = 5,
+             verifier_since = now(), linkedin_verified = true, linkedin_identity_verified = true,
+             linkedin_workplace_verified = true, linkedin_verification_checked_at = now()
+       WHERE id = v_uid;
+      GET DIAGNOSTICS v_rows = ROW_COUNT;
+      IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'ABORT: service_role could not UPDATE the status columns (rows=%)', v_rows;
       END IF;
-    END LOOP;
-    RESET ROLE;
+      RESET ROLE;
+      SELECT verifier_status || '/' || verification_tier || '/' || membership_tier || '/' || contribution_score::text
+        INTO v_state FROM public.profiles WHERE id = v_uid;
+      IF v_state IS DISTINCT FROM 'active/staff_verified/premium/5' THEN
+        RAISE EXCEPTION 'ABORT: the service_role UPDATE did not persist (row reads %)', v_state;
+      END IF;
 
-    -- H. The RPC still works with the grants restored and the guard enabled (sanctioned by owner identity).
-    UPDATE public.profiles SET verifier_status = 'none' WHERE id = v_uid;
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
-    v_ret := public.request_verification();
-    IF v_ret IS DISTINCT FROM 'pending' THEN
-      RAISE EXCEPTION 'ABORT: request_verification() was not sanctioned by the guard (returned %)', v_ret;
-    END IF;
-    RESET ROLE;
-
-    -- I. The sanctioned path stays open: service_role can set all nine.
-    SET LOCAL ROLE service_role;
-    UPDATE public.profiles
-       SET verifier_status = 'active', verification_tier = 'staff_verified',
-           membership_tier = 'premium', contribution_score = 5,
-           verifier_since = now(), linkedin_verified = true, linkedin_identity_verified = true,
-           linkedin_workplace_verified = true, linkedin_verification_checked_at = now()
-     WHERE id = v_uid;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
-    IF v_rows <> 1 THEN
-      RAISE EXCEPTION 'ABORT: service_role could not UPDATE the status columns (rows=%)', v_rows;
-    END IF;
-    RESET ROLE;
-    SELECT verifier_status || '/' || verification_tier || '/' || membership_tier || '/' || contribution_score::text
-      INTO v_state FROM public.profiles WHERE id = v_uid;
-    IF v_state IS DISTINCT FROM 'active/staff_verified/premium/5' THEN
-      RAISE EXCEPTION 'ABORT: the service_role UPDATE did not persist (row reads %)', v_state;
-    END IF;
-
-    -- J. Not over-broad: the guard does not trip on an ordinary column.
-    SET LOCAL ROLE authenticated;
-    UPDATE public.profiles SET job_title = 'sec2-selfcheck' WHERE id = v_uid;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
-    RESET ROLE;
-    IF v_rows <> 1 THEN
-      RAISE EXCEPTION 'ABORT: authenticated could not UPDATE profiles.job_title on its own row (rows=%)', v_rows;
+      -- J. Not over-broad: the guard does not trip on an ordinary column.
+      SET LOCAL ROLE authenticated;
+      UPDATE public.profiles SET job_title = 'sec2-selfcheck' WHERE id = v_uid;
+      GET DIAGNOSTICS v_rows = ROW_COUNT;
+      RESET ROLE;
+      IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'ABORT: authenticated could not UPDATE profiles.job_title on its own row (rows=%)', v_rows;
+      END IF;
     END IF;
 
     RAISE EXCEPTION 'sec2_367_selfcheck_rollback';
