@@ -6,7 +6,7 @@
 // Mirrors usePersonalStateHydration.ts's pattern exactly (same file's header explains the
 // shared rationale for reading off the useWorkspaceBootstrap() singleton instead of a
 // dedicated fetch). This hook is the NEW half: before this lane, the workspace override
-// layer (priority overrides, archive state, owner, notes) arrived as an SSR prop —
+// layer (priority overrides, archive state, owner) arrived as an SSR prop,
 // `initialOverrides`, resolved server-side per page by fetchWorkspaceOverrideRows/fetchDashboardData
 // /fetchResourcesOnly/fetchListingsOnly, all of which require an authenticated org id and
 // therefore a cookies() read in the page's own server render. That per-page cookies() read is
@@ -19,7 +19,7 @@
 // the key — see src/lib/data.ts). The per-org override layer moves entirely off the server
 // render path and into this ONE client hydration hook, mounted once near the app root
 // (AppShell.tsx) so every surface that reads useResourceStore's `overrides` map — the SAME map
-// mergeWithOverrides, OwnerTeamCard, and NotesField already consumed pre-this-lane — gets it
+// mergeWithOverrides and OwnerTeamCard already consumed pre-this-lane, gets it
 // without each page re-deriving it.
 //
 // UX-LAWS COMPLIANCE (docs/design/ux-laws.md, "never render empty or wrong while the per-viewer
@@ -64,7 +64,6 @@ export function useWorkspaceOverridesHydration() {
           isArchived: r.isArchived,
           archiveReason: r.archiveReason,
           archiveNote: r.archiveNote,
-          notes: r.notes,
           dismissedAt: r.dismissedAt,
           ownerUserId: r.ownerUserId,
           ownerName: r.ownerName,

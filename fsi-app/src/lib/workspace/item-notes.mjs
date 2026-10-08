@@ -6,7 +6,7 @@
 //   read    any member of the caller's org (a viewer reads), the caller's own org only
 //   add     owner, admin or member, as themselves
 //   edit    the author only, never an admin, never a deleted note
-//   delete  owner or admin only, by soft delete (deleted_at); the row is kept
+//   delete  the author's own note, or any note for an owner or admin, by soft delete (deleted_at); the row is kept
 // A note is workspace commentary. Nothing here feeds analysis, another page or the flywheel.
 
 import { NOTE_MAX_LENGTH, canWrite, isOrgAdmin, loadRoster, nameIndex, ok, fail } from "./item-collab-shared.mjs";
@@ -25,12 +25,18 @@ function view(row, ctx, names) {
     edited_at: row.edited_at,
     mine,
     can_edit: mine && canWrite(ctx.role),
-    can_delete: isOrgAdmin(ctx.role),
+    can_delete: mayDelete(row, ctx),
   };
 }
 
+/** The author deletes their own note (the same right as editing it); an owner or admin deletes any. */
+function mayDelete(row, ctx) {
+  const mine = row.author_user_id != null && row.author_user_id === ctx.userId;
+  return isOrgAdmin(ctx.role) || (mine && canWrite(ctx.role));
+}
+
 function viewer(ctx) {
-  return { role: ctx.role, can_write: canWrite(ctx.role), can_delete: isOrgAdmin(ctx.role) };
+  return { role: ctx.role, can_write: canWrite(ctx.role) };
 }
 
 /** Validate a note body. Returns { body } or { error }. Accepts any string, trims it. */
@@ -121,11 +127,11 @@ export async function editNote({ supabase }, ctx, input) {
 export async function deleteNote({ supabase }, ctx, input) {
   const noteId = typeof input?.noteId === "string" ? input.noteId : "";
   if (!noteId) return fail(400, "noteId is required.");
-  if (!isOrgAdmin(ctx.role)) return fail(403, "Only a workspace owner or admin can delete a note.");
 
   const found = await findNote(supabase, ctx, noteId);
   if (found.error) return fail(500, found.error.message);
   if (!found.row) return fail(404, "That note no longer exists. Reload to see the current notes.");
+  if (!mayDelete(found.row, ctx)) return fail(403, "Only the author, or a workspace owner or admin, can delete a note.");
 
   const { error } = await supabase
     .from("item_notes")

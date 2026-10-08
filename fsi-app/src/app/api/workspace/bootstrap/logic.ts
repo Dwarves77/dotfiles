@@ -135,14 +135,14 @@ export async function loadAdminAttention(
 }
 
 // PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): the caller's org-scoped override rows
-// (priority, archive state, owner, notes) — the exact per-org merge layer the four index pages'
+// (priority, archive state, owner), the exact per-org merge layer the four index pages'
 // server render used to bake into their RPC call (get_workspace_intelligence_slim/listings(p_org_id))
 // and the four detail pages' loadViewerScoped used to read directly (regulations' owner,
-// market's note). Both moved off the server render path this lane (see the four index page.tsx
+// market's note, retired by lane S8-A: notes are item_notes now). Both moved off the server render path this lane (see the four index page.tsx
 // files and load-detail.ts) so the four listing/detail routes' render trees carry no cookies() read
 // of their own — resourceStore.setOverrides(bootstrap.overrides) (a new client hook,
 // useWorkspaceOverridesHydration) is now the ONE place that hydrates the SAME WorkspaceOverride
-// shape every consumer (mergeWithOverrides, OwnerTeamCard, NotesField) already reads.
+// shape every consumer (mergeWithOverrides, OwnerTeamCard) already reads.
 //
 // Reuses fetchWorkspaceOverrideRowsRaw + mapOverrideRows (supabase-server.ts) UNCHANGED — this is a
 // new TRANSPORT (client-fetched bootstrap field instead of a page.tsx server prop) for the exact

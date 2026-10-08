@@ -4,7 +4,8 @@
 //
 // RULES (the same as migration 359's RLS and guard trigger, enforced here in code):
 //   read     any member of the caller's org; the response also carries the org roster for the picker
-//   assign   owner, admin or member; every assignee must be a member of the CALLER'S org (never another org)
+//   assign   owner, admin or member; every assignee must be a member of the CALLER'S org (never another org) and
+//            must hold the role member, admin or owner (a viewer is readable-only and is not assignable)
 //   state    open or done; the assignee, whoever assigned, or an owner or admin
 //   remove   the same three parties
 // Each newly assigned member other than the caller gets one notification of kind `assignment`, through the
@@ -73,7 +74,8 @@ export async function listAssignments({ supabase }, ctx) {
   const names = nameIndex(roster.members);
   return ok(200, {
     assignments: (rowsRes.data || []).map((row) => view(row, ctx, names)),
-    members: roster.members.map((m) => ({ user_id: m.user_id, display_name: m.display_name })),
+    // The picker lists only members who can be assigned: a viewer is readable-only.
+    members: roster.members.filter((m) => canWrite(m.role)).map((m) => ({ user_id: m.user_id, display_name: m.display_name })),
     viewer: viewer(ctx),
   });
 }
@@ -112,6 +114,10 @@ export async function assignMembers({ supabase, notify }, ctx, input) {
   const outsiders = assignees.filter((id) => !names.has(id));
   if (outsiders.length > 0) {
     return fail(403, "Everyone you assign must be a member of your workspace. Pick from the list and try again.");
+  }
+  const roles = new Map(roster.members.map((m) => [m.user_id, m.role]));
+  if (assignees.some((id) => !canWrite(roles.get(id)))) {
+    return fail(403, "A viewer can read this workspace but cannot be assigned work. Pick a member, admin or owner and try again.");
   }
 
   const { data: existing, error: existingErr } = await supabase

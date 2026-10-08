@@ -62,7 +62,7 @@ test("update reaches the author and an owner or admin of THIS org only; the admi
   assert.match(upd, /m\.role IN \('owner', 'admin'\)/);
 });
 
-test("the guard trigger: author-only body edit, admin-only soft delete, identity columns immutable, deleted is final", () => {
+test("the guard trigger: author-only body edit, soft delete by the author or an admin, identity columns immutable, deleted is final", () => {
   assert.match(SQL, /CREATE TRIGGER item_notes_guard_trg\s+BEFORE UPDATE ON public\.item_notes/);
   const f = /CREATE OR REPLACE FUNCTION public\.item_notes_guard\(\)([\s\S]*?)\n\$fn\$;/.exec(SQL)[1];
   assert.match(f, /auth\.role\(\) = 'service_role' OR auth\.uid\(\) IS NULL/, "trusted contexts pass; the routes enforce the same rules in code");
@@ -72,6 +72,7 @@ test("the guard trigger: author-only body edit, admin-only soft delete, identity
   assert.match(f, /OLD\.author_user_id IS NULL OR OLD\.author_user_id <> auth\.uid\(\)/);
   assert.match(f, /NEW\.edited_at := now\(\)/);
   assert.match(f, /m\.role IN \('owner', 'admin'\)/);
+  assert.match(f, /IF NOT v_admin AND \(OLD\.author_user_id IS NULL OR OLD\.author_user_id <> auth\.uid\(\)\) THEN/, "the author may delete their own note");
   assert.equal((f.match(/ERRCODE = '42501'/g) ?? []).length, 4, "every refusal is insufficient_privilege");
 });
 
@@ -94,7 +95,7 @@ test("the self-check attacks on live rows (no fabricated fixture), under each ro
   assert.doesNotMatch(chk, /gen_random_uuid\(\)/, "no fabricated user or org id (migration 311's unappliable proof)");
   assert.equal((chk.match(/SET LOCAL ROLE authenticated/g) ?? []).length, 3, "outsider, second member, author");
   assert.match(chk, /request\.jwt\.claims/);
-  for (const attack of ["a caller outside the org read", "a caller outside the org inserted", "a second member edited", "the author could not edit", "a plain member soft deleted"]) {
+  for (const attack of ["a caller outside the org read", "a caller outside the org inserted", "a second member edited", "a second plain member soft deleted", "the author could not edit", "the author could not delete their own note"]) {
     assert.ok(chk.includes(attack), `attack present: ${attack}`);
   }
   assert.match(chk, /item_notes self-check passed \(rolled back\)/);

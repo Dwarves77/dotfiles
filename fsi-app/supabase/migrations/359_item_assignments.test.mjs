@@ -47,6 +47,7 @@ test("insert: as yourself, role-gated, and the assignee must be a member of the 
   assert.match(ins, /m\.role IN \('owner', 'admin', 'member'\)/, "a viewer cannot assign");
   assert.match(ins, /a\.user_id = item_assignments\.assignee_user_id/);
   assert.match(ins, /a\.org_id = item_assignments\.org_id/, "the assignee's membership is checked in the row's own org");
+  assert.match(ins, /a\.role IN \('owner', 'admin', 'member'\)/, "a viewer is not assignable");
 });
 
 test("update and delete reach the assignee, the assigner, or an owner or admin of THIS org", () => {
@@ -81,8 +82,8 @@ test("the self-check attacks on live rows (no fabricated fixture), under each ro
   assert.match(chk, /FROM public\.org_memberships m/);
   assert.match(chk, /FROM public\.profiles p\s+WHERE NOT EXISTS/);
   assert.doesNotMatch(chk, /gen_random_uuid\(\)/);
-  assert.equal((chk.match(/SET LOCAL ROLE authenticated/g) ?? []).length, 3, "outsider, assignee, bystander");
-  for (const attack of ["a caller outside the org read", "a caller outside the org inserted", "the assignee could not mark", "the due date was changed", "a bystander member changed"]) {
+  assert.equal((chk.match(/SET LOCAL ROLE authenticated/g) ?? []).length, 4, "outsider, viewer assignee, assignee, bystander");
+  for (const attack of ["a caller outside the org read", "a caller outside the org inserted", "a viewer was assigned", "the assignee could not mark", "the due date was changed", "a bystander member changed"]) {
     assert.ok(chk.includes(attack), `attack present: ${attack}`);
   }
   assert.match(chk, /item_assignments self-check passed \(rolled back\)/);

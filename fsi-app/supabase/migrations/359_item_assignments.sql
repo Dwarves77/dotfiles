@@ -1,4 +1,4 @@
--- subject: Migration 359 (lane S8-A, 2026-10-07, plan Stage 8 bullet 1): `item_assignments`, multi-person assignment of any intelligence item to members of the caller's own org (one row per org, item and assignee, optional due date, state open or done) with RLS and a column guard trigger, and the `assignment` value added to the notifications.kind CHECK so an assignment notifies each assignee through the existing Community notification machinery (migrations 032 and 235); coordination metadata only, never analysed, never read by any other page or the flywheel (ADR-042, ADR-043); NOT APPLIED
+-- subject: Migration 359 (lane S8-A, 2026-10-07, plan Stage 8 bullet 1): `item_assignments`, multi-person assignment of any intelligence item to members of the caller's own org (one row per org, item and assignee, optional due date, state open or done; the assignee must hold the role member, admin or owner, a viewer is not assignable) with RLS and a column guard trigger, and the `assignment` value added to the notifications.kind CHECK so an assignment notifies each assignee through the existing Community notification machinery (migrations 032 and 235); coordination metadata only, never analysed, never read by any other page or the flywheel (ADR-042, ADR-043); NOT APPLIED
 -- 359 -- item_assignments (lane S8-A, 2026-10-07).
 --
 -- NOT APPLIED. Authored by lane S8-A; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3) BEFORE the
@@ -10,9 +10,10 @@
 --   * REUSE DECISION. workspace_item_overrides.owner_user_id (migration 234) is a SINGLE org-scoped owner per item and stays
 --     as it is (OwnerTeamCard's one "Assignee" select). It cannot hold several assignees, a due date or a done state, so
 --     this table is the multi-person assignment the plan asks for; the two do not share rows and neither writes the other.
---   * ONE ROW per (org_id, item_id, assignee_user_id) (UNIQUE). The assignee must be a member of the same org: the INSERT
---     policy checks it, and the route checks it (an assignment outside the company group is refused, same rule as the
---     overrides route's ownerUserId guard).
+--   * ONE ROW per (org_id, item_id, assignee_user_id) (UNIQUE). The assignee must be a member of the same org AND hold the
+--     role member, admin or owner: a viewer is readable-only and is not assignable (coordinator ruling 2026-10-07). The
+--     INSERT policy checks both, and the route checks both (an assignment outside the company group is refused, same
+--     rule as the overrides route's ownerUserId guard).
 --   * WHO MAY DO WHAT. Read: any org member. Assign: owner, admin or member, as themselves (assigned_by = auth.uid()), to
 --     a member of that org. Change state, or remove an assignment: the assignee, the person who assigned, or an owner or
 --     admin of the org. The item_assignments_guard trigger lets an authenticated caller change ONLY state; everything
@@ -80,6 +81,7 @@ CREATE POLICY item_assignments_insert_member ON public.item_assignments
         SELECT 1 FROM public.org_memberships a
         WHERE a.org_id = item_assignments.org_id
           AND a.user_id = item_assignments.assignee_user_id
+          AND a.role IN ('owner', 'admin', 'member')
       )
     )
     OR auth.role() = 'service_role'
@@ -171,6 +173,7 @@ DECLARE
   v_assigner  uuid;
   v_assignee  uuid;
   v_bystander uuid;
+  v_viewer    uuid;
   v_outsider  uuid;
   v_item      uuid;
   v_row       uuid;
@@ -191,7 +194,7 @@ BEGIN
   -- The assignee may be the assigner when the org has a single member; the bystander needs a third member with role member.
   SELECT m.user_id INTO v_assignee
     FROM public.org_memberships m
-   WHERE m.org_id = v_org AND m.user_id <> v_assigner
+   WHERE m.org_id = v_org AND m.user_id <> v_assigner AND m.role IN ('owner', 'admin', 'member')
    ORDER BY m.created_at
    LIMIT 1;
   IF v_assignee IS NULL THEN
@@ -200,6 +203,10 @@ BEGIN
   SELECT m.user_id INTO v_bystander
     FROM public.org_memberships m
    WHERE m.org_id = v_org AND m.role = 'member' AND m.user_id NOT IN (v_assigner, v_assignee)
+   LIMIT 1;
+  SELECT m.user_id INTO v_viewer
+    FROM public.org_memberships m
+   WHERE m.org_id = v_org AND m.role = 'viewer'
    LIMIT 1;
   SELECT p.id INTO v_outsider
     FROM public.profiles p
@@ -229,6 +236,22 @@ BEGIN
       RESET ROLE;
     ELSE
       RAISE NOTICE 'migration 359 self-check: no profile outside org %, cross-org steps skipped', v_org;
+    END IF;
+
+    -- ATTACK 1b: a viewer of the org is not assignable.
+    IF v_viewer IS NOT NULL THEN
+      PERFORM set_config('request.jwt.claims', json_build_object('sub', v_assigner, 'role', 'authenticated')::text, true);
+      SET LOCAL ROLE authenticated;
+      BEGIN
+        INSERT INTO public.item_assignments (org_id, item_id, assignee_user_id, assigned_by)
+        VALUES (v_org, v_item, v_viewer, v_assigner);
+        RAISE EXCEPTION 'ATTACK FAILED: a viewer was assigned';
+      EXCEPTION WHEN insufficient_privilege THEN
+        NULL;
+      END;
+      RESET ROLE;
+    ELSE
+      RAISE NOTICE 'migration 359 self-check: org % has no viewer, viewer step skipped', v_org;
     END IF;
 
     -- ATTACK 2: the assignee can mark done but cannot change the due date.

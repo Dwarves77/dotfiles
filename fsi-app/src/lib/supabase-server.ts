@@ -888,7 +888,7 @@ async function fetchWorkspaceDueNext(orgId: string): Promise<Resource[]> {
  * are IDENTICAL in every column except `effective_priority`/`effective_archived`, which collapse to
  * the item's own `priority`/`is_archived` (no org to merge an override from) — so this reuses
  * mapWorkspaceItemRows UNCHANGED, same as the org-scoped path above. The per-org override merge
- * (priority_override, is_archived, owner_user_id, notes) happens client-side —
+ * (priority_override, is_archived, owner_user_id) happens client-side,
  * src/stores/resourceStore.ts's existing mergeWithOverrides, fed by the caller's own
  * overrides fetch (src/lib/data.ts's getPublicResourcesOnly/getPublicListingsOnly callers).
  *
@@ -2626,7 +2626,8 @@ export interface WorkspaceOverrideRow {
   isArchived: boolean;
   archiveReason: string | null;
   archiveNote: string | null;
-  notes: string;
+  // `notes` is retired from this row (lane S8-A, 2026-10-07): private workspace notes live in item_notes
+  // (migration 358). workspace_item_overrides.notes stays in the table until the data move has run.
   // Sprint 3 followup Part 2 (migration 111): ISO timestamp when the
   // workspace has dismissed the regulation from the active Kanban view.
   // null when not dismissed.
@@ -2645,7 +2646,7 @@ export interface WorkspaceOverrideRow {
 // mapping byte-for-byte, and the owner logic would have tripled.
 //
 // P1-1 (DEEP-AUDIT S1-8): SERVICE client. orgId is authenticated upstream; the
-// anon client has no JWT so org-scoped RLS returned [] and dismissals/notes
+// anon client has no JWT so org-scoped RLS returned [] and dismissals
 // silently vanished on reload.
 //
 // Name resolution goes through org_memberships (scoped to THIS org), not raw
@@ -2658,7 +2659,6 @@ interface OverrideDbRow {
   is_archived: boolean | null;
   archive_reason: string | null;
   archive_note: string | null;
-  notes: string | null;
   dismissed_at: string | null;
   owner_user_id: string | null;
 }
@@ -2682,7 +2682,7 @@ export async function fetchWorkspaceOverrideRowsRaw(orgId: string): Promise<Over
   const { data, error } = await svc
     .from("workspace_item_overrides")
     .select(
-      "item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at, owner_user_id"
+      "item_id, priority_override, is_archived, archive_reason, archive_note, dismissed_at, owner_user_id"
     )
     .eq("org_id", orgId);
   if (error) {
@@ -2731,7 +2731,6 @@ export function mapOverrideRows(
     isArchived: !!o.is_archived,
     archiveReason: o.archive_reason ?? null,
     archiveNote: o.archive_note ?? null,
-    notes: o.notes ?? "",
     dismissedAt: o.dismissed_at ?? null,
     ownerUserId: o.owner_user_id ?? null,
     ownerName: o.owner_user_id ? raw.ownerNames.get(o.owner_user_id) ?? null : null,

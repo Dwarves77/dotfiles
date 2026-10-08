@@ -69,7 +69,6 @@ export interface BootstrapOverrideRow {
   isArchived: boolean;
   archiveReason: string | null;
   archiveNote: string | null;
-  notes: string;
   dismissedAt?: string | null;
   ownerUserId?: string | null;
   ownerName?: string | null;

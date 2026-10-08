@@ -1,4 +1,4 @@
--- subject: Migration 358 (lane S8-A, 2026-10-07, plan Stage 8 bullet 1): `item_notes`, threaded private-per-workspace notes on any intelligence item (org members read, the author edits their own, only an owner or admin deletes, by soft delete), with RLS and a column guard trigger, plus `move_override_notes_to_item_notes()`, the idempotent data move of the single `workspace_item_overrides.notes` text field into the new table; a note is workspace commentary, never analysed, never read by any page other than the item's own detail page, never read by the flywheel (ADR-042, ADR-043); NOT APPLIED
+-- subject: Migration 358 (lane S8-A, 2026-10-07, plan Stage 8 bullet 1): `item_notes`, threaded private-per-workspace notes on any intelligence item (org members read, the author edits and deletes their own, an owner or admin deletes any, by soft delete), with RLS and a column guard trigger, plus `move_override_notes_to_item_notes()`, the idempotent data move of the single `workspace_item_overrides.notes` text field into the new table; a note is workspace commentary, never analysed, never read by any page other than the item's own detail page, never read by the flywheel (ADR-042, ADR-043); NOT APPLIED
 -- 358 -- item_notes (lane S8-A, 2026-10-07).
 --
 -- NOT APPLIED. Authored by lane S8-A; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3) BEFORE the
@@ -18,7 +18,8 @@
 --     request). item_id references intelligence_items and cascades, same as workspace_item_overrides.
 --   * WHO MAY DO WHAT. Read: any org member (a viewer reads). Add: owner, admin or member, as themselves
 --     (author_user_id = auth.uid()). Edit the body: the author only, never anyone else (an admin included), enforced by
---     the item_notes_guard trigger because RLS cannot restrict columns. Delete: owner or admin only, and only by setting
+--     the item_notes_guard trigger because RLS cannot restrict columns. Delete: the author may delete their own note (the
+--     same right as editing it, coordinator ruling 2026-10-07) and an owner or admin may delete any note, only by setting
 --     deleted_at (soft delete); there is no DELETE policy, DELETE is revoked from anon and authenticated, and a deleted
 --     note can neither be edited nor un-deleted by an authenticated caller. service_role (the routes' client) bypasses RLS
 --     and the guard, so the routes enforce the same rules in code (src/lib/workspace/item-notes.mjs).
@@ -39,8 +40,8 @@
 --
 -- SELF-CHECK. The final DO block attacks the table on LIVE rows inside a subtransaction it always rolls back (no fixture
 -- is fabricated, so no foreign key can fail, the class that made migration 311's first inline proof unappliable): a
--- caller outside the org reads nothing and cannot insert; a second member of the org cannot edit the author's note; a
--- plain member cannot soft delete; the author can edit. Any step whose live fixture is absent is skipped with a NOTICE.
+-- caller outside the org reads nothing and cannot insert; a second member of the org cannot edit or soft delete the
+-- author's note; the author can edit and soft delete their own. Any step whose live fixture is absent is skipped with a NOTICE.
 --
 -- Reversible: DROP FUNCTION public.move_override_notes_to_item_notes(); DROP TABLE public.item_notes; DROP FUNCTION
 -- public.item_notes_guard(). (The data move copies, it never deletes the source field, so dropping loses nothing.)
@@ -165,8 +166,8 @@ BEGIN
       SELECT 1 FROM public.org_memberships m
       WHERE m.org_id = OLD.org_id AND m.user_id = auth.uid() AND m.role IN ('owner', 'admin')
     ) INTO v_admin;
-    IF NOT v_admin THEN
-      RAISE EXCEPTION 'item_notes: only an owner or admin can delete a note' USING ERRCODE = '42501';
+    IF NOT v_admin AND (OLD.author_user_id IS NULL OR OLD.author_user_id <> auth.uid()) THEN
+      RAISE EXCEPTION 'item_notes: only the author or an owner or admin can delete a note' USING ERRCODE = '42501';
     END IF;
   END IF;
 
@@ -208,14 +209,14 @@ DO $check$
 DECLARE
   v_org         uuid;
   v_author      uuid;
-  v_author_role text;
   v_other       uuid;
+  v_other_role  text;
   v_outsider    uuid;
   v_item        uuid;
   v_note        uuid;
   v_n           integer;
 BEGIN
-  SELECT m.org_id, m.user_id, m.role INTO v_org, v_author, v_author_role
+  SELECT m.org_id, m.user_id INTO v_org, v_author
     FROM public.org_memberships m
    WHERE m.role IN ('owner', 'admin', 'member')
    ORDER BY m.created_at
@@ -227,9 +228,10 @@ BEGIN
     RETURN;
   END IF;
 
-  SELECT m.user_id INTO v_other
+  SELECT m.user_id, m.role INTO v_other, v_other_role
     FROM public.org_memberships m
    WHERE m.org_id = v_org AND m.user_id <> v_author AND m.role IN ('owner', 'admin', 'member')
+   ORDER BY (m.role = 'member') DESC
    LIMIT 1;
   SELECT p.id INTO v_outsider
     FROM public.profiles p
@@ -261,7 +263,8 @@ BEGIN
       RAISE NOTICE 'migration 358 self-check: no profile outside org %, cross-org steps skipped', v_org;
     END IF;
 
-    -- ATTACK 2: a second member of the org cannot edit the author's note.
+    -- ATTACK 2: a second member of the org cannot edit the author's note, and (when that member holds the plain
+    -- member role) cannot soft delete it either.
     IF v_other IS NOT NULL THEN
       PERFORM set_config('request.jwt.claims', json_build_object('sub', v_other, 'role', 'authenticated')::text, true);
       SET LOCAL ROLE authenticated;
@@ -274,12 +277,23 @@ BEGIN
       EXCEPTION WHEN insufficient_privilege THEN
         NULL;
       END;
+      IF v_other_role = 'member' THEN
+        BEGIN
+          UPDATE public.item_notes SET deleted_at = now() WHERE id = v_note;
+          GET DIAGNOSTICS v_n = ROW_COUNT;
+          IF v_n <> 0 THEN
+            RAISE EXCEPTION 'ATTACK FAILED: a second plain member soft deleted another member''s note';
+          END IF;
+        EXCEPTION WHEN insufficient_privilege THEN
+          NULL;
+        END;
+      END IF;
       RESET ROLE;
     ELSE
       RAISE NOTICE 'migration 358 self-check: org % has a single member, second-member steps skipped', v_org;
     END IF;
 
-    -- ATTACK 3: the author can edit, and a plain member author cannot soft delete.
+    -- ATTACK 3: the author can edit and can soft delete their own note.
     PERFORM set_config('request.jwt.claims', json_build_object('sub', v_author, 'role', 'authenticated')::text, true);
     SET LOCAL ROLE authenticated;
     UPDATE public.item_notes SET body = 'edited by the author' WHERE id = v_note;
@@ -287,13 +301,10 @@ BEGIN
     IF v_n <> 1 THEN
       RAISE EXCEPTION 'ATTACK FAILED: the author could not edit their own note (% rows)', v_n;
     END IF;
-    IF v_author_role = 'member' THEN
-      BEGIN
-        UPDATE public.item_notes SET deleted_at = now() WHERE id = v_note;
-        RAISE EXCEPTION 'ATTACK FAILED: a plain member soft deleted a note';
-      EXCEPTION WHEN insufficient_privilege THEN
-        NULL;
-      END;
+    UPDATE public.item_notes SET deleted_at = now() WHERE id = v_note;
+    GET DIAGNOSTICS v_n = ROW_COUNT;
+    IF v_n <> 1 THEN
+      RAISE EXCEPTION 'ATTACK FAILED: the author could not delete their own note (% rows)', v_n;
     END IF;
     RESET ROLE;
 

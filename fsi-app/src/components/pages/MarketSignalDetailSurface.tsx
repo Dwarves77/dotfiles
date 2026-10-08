@@ -21,8 +21,7 @@
  * S1 Summary), TrajectoryBars + the WO-24 carbon-cost overlay + the DP-SURF
  * per-unit carbon-intensity figure (into S2 Drivers & trajectory), the
  * recommended-actions "Do now" list (S4), the record-grade facts card
- * (S1, when itemGrade==='record'), the persistent workspace Notes field
- * (rail, matching the artboard's "YOUR NOTES" rail card), AffectedLanesCard
+ * (S1, when itemGrade==='record'), AffectedLanesCard
  * and ItemConnectionsCard + RelevanceBadgeClient (rail — not drawn on this
  * artboard specifically but part of the one shared rail set every detail
  * surface carries; logged in DEVIATION-LOG.md), and related-signals (kept
@@ -41,10 +40,8 @@
  * corroboration counts come exclusively from sources.independent_citers.
  */
 
-import { SectionCard } from "@/components/ui/SectionCard";
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { authedFetch } from "@/lib/api/authed-fetch";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
@@ -54,7 +51,6 @@ import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { renderRequirementTrajectory } from "@/components/detail/RequirementTrajectory";
 import { GradeChip, TagChip } from "@/components/ui/Chips";
 import { ActionCard } from "@/components/ui/ActionCard";
-import { useResourceStore } from "@/stores/resourceStore";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { buildCarbonOverlayView, buildCarbonCostPerFeuView } from "@/lib/market/carbon-overlay-view.mjs";
 import { formatRange } from "@/lib/figures/format-range.mjs";
@@ -154,7 +150,6 @@ interface Props extends DetailSurfaceSharedProps {
   corridorCandidates?: CorridorCandidate[];
   groupLabel?: string;
   deck?: string;
-  initialNote?: string;
 }
 
 // ── Severity vocabulary (5-label, mirrors MarketPage) ─────────────────────
@@ -282,7 +277,6 @@ export function MarketSignalDetailSurface({
   corridorCandidates = [],
   groupLabel,
   deck,
-  initialNote = "",
   supersessions = [],
   connections = [],
   resourceLookup = {},
@@ -516,14 +510,11 @@ export function MarketSignalDetailSurface({
               }
               impact={<ImpactRailCard scores={impact} />}
               relevance={<RelevanceBadgeClient itemId={r.id} />}
-              /* Artboard 05's page-specific cards, in its own order:
-                 YOUR NOTES, then IN THIS LIST. */
-              designed={
-                <>
-                  <NotesField itemId={r.id} initialNote={initialNote} />
-                  <InThisListStat backHref="/market" backLabel="Back to list" band={band} />
-                </>
-              }
+              /* Artboard 05's page-specific cards: IN THIS LIST. Artboard 05's rail "YOUR NOTES" card is
+                 retired (lane S8-A, 2026-10-07, coordinator ruling: never a second copy): private workspace
+                 notes are the shared Notes section DetailShell mounts at the foot of every detail page
+                 (ItemNotesBlock), backed by item_notes (migration 358). */
+              designed={<InThisListStat backHref="/market" backLabel="Back to list" band={band} />}
               legend={<RailLegend />}
               /* R7, artboard 05 draws neither. Operator check 8 (lane PARITY-PARTS, 2026-09-24):
                  Connections is not a rail card, moved into the "Related" section in main content. */
@@ -796,84 +787,6 @@ function RecordGradeSections({ r, sections, claimTiers }: { r: Resource; section
         </div>
       )}
     </>
-  );
-}
-
-// ── Persistent notes field (rail — matches artboard "YOUR NOTES") ────────
-function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?: string }) {
-  const override = useResourceStore((s) => s.overrides.get(itemId));
-  const [note, setNote] = useState<string>(initialNote);
-  const [status, setStatus] = useState<"idle" | "dirty" | "saving" | "saved" | "error">(
-    initialNote.trim().length > 0 ? "saved" : "idle"
-  );
-  const appliedOverrideRef = useRef(false);
-  useEffect(() => {
-    if (appliedOverrideRef.current || !override) return;
-    appliedOverrideRef.current = true;
-    if (status !== "idle") return;
-    const overrideNote = override.notes ?? "";
-    if (overrideNote.trim().length > 0) {
-      setNote(overrideNote);
-      setStatus("saved");
-    }
-    // Apply the override once, guarded by appliedOverrideRef; status/setStatus/setNote are
-    // read/written inside but intentionally excluded so this effect does not re-fire on the state it
-    // itself sets.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [override]);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latest = useRef(note);
-  latest.current = note;
-
-  async function save(value: string) {
-    setStatus("saving");
-    try {
-      const resp = await authedFetch("/api/workspace/overrides", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", },
-        body: JSON.stringify({ itemId, notes: value }),
-      });
-      if (!resp.ok) throw new Error(`save failed (${resp.status})`);
-      setStatus(latest.current === value ? "saved" : "dirty");
-    } catch {
-      setStatus("error");
-    }
-  }
-  function queueSave(value: string) {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => save(value), 800);
-  }
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-
-  const statusLabel =
-    status === "saving" ? "Saving…" :
-    status === "saved" ? "Saved" :
-    status === "error" ? "Save failed — edit to retry" :
-    status === "dirty" ? "Unsaved…" : "Not saved";
-
-  return (
-    // Operator item A1 (2026-09-08): shared `SectionCard`: the notes card carried the five card
-    // declarations by hand and no rule.
-    <SectionCard padding="14px 16px">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>
-          Your notes <span style={{ fontWeight: 600, textTransform: "none", letterSpacing: 0 }}>· visible to workspace</span>
-        </p>
-      </div>
-      <textarea
-        value={note}
-        onChange={(e) => { const v = e.target.value; setNote(v); setStatus("dirty"); queueSave(v); }}
-        onBlur={() => { if (timer.current) clearTimeout(timer.current); if (status === "dirty" || status === "error") save(latest.current); }}
-        placeholder="Which lanes or clients this touches, who's on it, what was decided…"
-        style={{
-          width: "100%", boxSizing: "border-box", fontFamily: "var(--font-sans)", fontSize: "var(--fs-12)",
-          lineHeight: 1.6, padding: "8px 10px", border: "1px solid var(--line-1)", borderRadius: "var(--radius-control)",
-          outline: "none", background: "var(--page)", resize: "vertical", minHeight: 60, color: "var(--ink)",
-        }}
-        suppressHydrationWarning
-      />
-      <p style={{ fontSize: "var(--fs-10)", color: status === "error" ? "var(--immediate)" : "var(--ink-3)", margin: "6px 0 0" }}>{statusLabel}</p>
-    </SectionCard>
   );
 }
 

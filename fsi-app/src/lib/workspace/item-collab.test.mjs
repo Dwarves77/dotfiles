@@ -208,7 +208,7 @@ test("a member adds a note; the list shows it with the author's name and the cal
   assert.equal(added.body.note.author_name, "Bob Member");
   assert.equal(added.body.note.mine, true);
   assert.equal(added.body.note.can_edit, true);
-  assert.equal(added.body.note.can_delete, false);
+  assert.equal(added.body.note.can_delete, true, "the author may delete their own note");
   assert.equal(db.tables.item_notes[0].org_id, ORG_A);
   assert.equal(db.tables.item_notes[0].author_user_id, BOB);
 
@@ -218,7 +218,9 @@ test("a member adds a note; the list shows it with the author's name and the cal
   assert.deepEqual(asAdmin.body.notes.map((n) => n.body), ["Second note", "Check with the broker before the 14th."], "newest first");
   assert.equal(asAdmin.body.notes[0].can_delete, true);
   assert.equal(asAdmin.body.notes[1].can_edit, false, "an admin does not get edit on another member's note");
-  assert.deepEqual(asAdmin.body.viewer, { role: "admin", can_write: true, can_delete: true });
+  assert.deepEqual(asAdmin.body.viewer, { role: "admin", can_write: true });
+  const asPeer = await listNotes({ supabase: db }, ctxFor(ERIN, ORG_A, "member"));
+  assert.deepEqual(asPeer.body.notes.map((n) => [n.can_edit, n.can_delete]), [[false, false], [false, false]], "a peer member may neither edit nor delete another member's note");
 });
 
 test("a blank or over-length note writes nothing", async () => {
@@ -292,19 +294,29 @@ test("an edit with a blank body is refused and keeps the stored note", async () 
   assert.equal(db.tables.item_notes[0].body, "keep me");
 });
 
-test("delete is owner or admin only and soft: the row stays, the list drops it, an edit then 404s", async () => {
+test("delete is the author's own note or an owner or admin's any note, and soft: the row stays, the list drops it, an edit then 404s", async () => {
   const db = makeDb();
   const { body } = await addNote({ supabase: db }, asBob(), { body: "to be removed" });
   const noteId = body.note.id;
-  assert.equal((await deleteNote({ supabase: db }, asBob(), { noteId })).status, 403, "the author alone cannot delete");
+  assert.equal((await deleteNote({ supabase: db }, ctxFor(ERIN, ORG_A, "member"), { noteId })).status, 403, "another member cannot delete it");
+  assert.equal((await deleteNote({ supabase: db }, asCarol(), { noteId })).status, 403, "a viewer cannot delete it");
   assert.equal(db.tables.item_notes[0].deleted_at, null);
 
-  assert.equal((await deleteNote({ supabase: db }, asAlice(), { noteId })).status, 200);
+  assert.equal((await deleteNote({ supabase: db }, asAlice(), { noteId })).status, 200, "an admin deletes any note");
   assert.equal(db.tables.item_notes.length, 1, "soft delete keeps the row");
   assert.ok(db.tables.item_notes[0].deleted_at);
   assert.deepEqual((await listNotes({ supabase: db }, asAlice())).body.notes, []);
   assert.equal((await editNote({ supabase: db }, asBob(), { noteId, body: "zombie" })).status, 404);
   assert.equal((await deleteNote({ supabase: db }, asAlice(), { noteId })).status, 404, "deleting twice is a plain 404");
+});
+
+test("the author deletes their own note (same right as editing it); an admin's note is not deletable by a member", async () => {
+  const db = makeDb();
+  const mine = (await addNote({ supabase: db }, asBob(), { body: "bob's note" })).body.note.id;
+  const adminsNote = (await addNote({ supabase: db }, asAlice(), { body: "alice's note" })).body.note.id;
+  assert.equal((await deleteNote({ supabase: db }, asBob(), { noteId: adminsNote })).status, 403);
+  assert.equal((await deleteNote({ supabase: db }, asBob(), { noteId: mine })).status, 200);
+  assert.deepEqual(db.tables.item_notes.map((n) => [n.body, n.deleted_at !== null]), [["bob's note", true], ["alice's note", false]]);
 });
 
 test("a moved legacy note has no author: nobody edits it, an admin deletes it", async () => {
@@ -359,6 +371,31 @@ test("an admin assigns two members with a due date; each is notified once with a
     assert.equal(s.payload.assigned_by, ALICE);
     assert.match(s.payload.body, /Alice Admin assigned you "EU packaging rule", due 2026-11-01/);
   }
+});
+
+test("ATTACK viewer assignee: a viewer is readable-only and not assignable, alone or in a batch; nothing is written or sent", async () => {
+  const db = makeDb();
+  const sent = [];
+  const deps = { supabase: db, notify: async (n) => { sent.push(n); return null; } };
+  const alone = await assignMembers(deps, asAlice(), { assignees: [CAROL] });
+  assert.equal(alone.status, 403);
+  assert.match(alone.body.error, /viewer/i);
+  const mixed = await assignMembers(deps, asAlice(), { assignees: [BOB, CAROL] });
+  assert.equal(mixed.status, 403);
+  assert.equal(db.tables.item_assignments.length, 0, "one viewer refuses the whole request");
+  assert.equal(sent.length, 0);
+  for (const role of ["member", "admin", "owner"]) {
+    db.tables.org_memberships.find((m) => m.user_id === CAROL).role = role;
+    const okRes = await assignMembers(deps, asAlice(), { assignees: [CAROL] });
+    assert.equal(okRes.status, 201, `${role} is assignable`);
+    db.tables.item_assignments.length = 0;
+  }
+});
+
+test("the picker roster lists only members who can be assigned (no viewers)", async () => {
+  const db = makeDb();
+  const view = await listAssignments({ supabase: db }, asBob());
+  assert.deepEqual(view.body.members.map((m) => m.user_id), [ALICE, BOB, ERIN]);
 });
 
 test("assigning yourself notifies nobody", async () => {
@@ -473,6 +510,6 @@ test("the list carries names, the picker roster and per-row can_change", async (
     ["Bob Member", "Alice Admin", "2026-11-01", true],
     ["Erin Member", "Alice Admin", "2026-11-01", false],
   ]);
-  assert.equal(view.body.members.length, 4, "the picker lists the org's members only");
+  assert.equal(view.body.members.length, 3, "the picker lists the org's assignable members only (the viewer is left out)");
   assert.deepEqual(view.body.viewer, { role: "member", can_write: true });
 });

@@ -13,13 +13,15 @@
  *     composer sits ABOVE the list so adding never needs a scroll past a long thread.
  *   - Every async action acknowledges at once (button label changes and disables) and ends on a stated result
  *     ("Note added.", "Note saved.", "Note deleted."); a failure keeps the typed text and says how to fix it.
- *   - Delete warns first with a two-step inline confirm; only a workspace owner or admin is offered it.
+ *   - Delete warns first with a two-step inline confirm; it is offered on your own notes and, to a workspace
+ *     owner or admin, on every note (the server says which, per note, in `can_delete`).
  *   - Edit is offered on your own notes only. Every control is a 44 px target.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActionButton } from "@/components/ui/ActionRow";
 import { formatRelativeCompact } from "@/lib/relative-time";
+import { formatNumber } from "@/lib/format";
 import { NOTE_MAX_LENGTH } from "@/lib/workspace/item-collab-shared.mjs";
 import { captionStyle, collabPath, collabRequest, fieldStyle, wrapText } from "@/components/detail/item-collab-client";
 
@@ -55,22 +57,27 @@ export function ItemNotesBlock({ itemId }: { itemId: string }) {
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setPhase("loading");
-    const res = await collabRequest<ListPayload>(collabPath(itemId, "notes"));
-    if (!res.ok) {
-      setLoadError(res.error);
-      setPhase("error");
-      return;
-    }
-    setNotes(res.data.notes);
-    setCanWrite(res.data.viewer.can_write);
-    setPhase("ready");
-  }, [itemId]);
-
+  // The load runs inside the effect's own async callback and sets state only after the fetch resolves (the phase
+  // starts as "loading"), so mounting causes no synchronous state write. Retry bumps `attempt` to run it again.
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+    void (async () => {
+      const res = await collabRequest<ListPayload>(collabPath(itemId, "notes"));
+      if (cancelled) return;
+      if (!res.ok) {
+        setLoadError(res.error);
+        setPhase("error");
+        return;
+      }
+      setNotes(res.data.notes);
+      setCanWrite(res.data.viewer.can_write);
+      setPhase("ready");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [itemId, attempt]);
 
   async function addNote() {
     const body = draft.trim();
@@ -129,7 +136,14 @@ export function ItemNotesBlock({ itemId }: { itemId: string }) {
     return (
       <div role="alert" style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
         <p style={{ ...captionStyle, color: "var(--immediate)" }}>{loadError ?? "Notes could not be loaded."}</p>
-        <ActionButton onClick={() => void load()}>Retry</ActionButton>
+        <ActionButton
+          onClick={() => {
+            setPhase("loading");
+            setAttempt((n) => n + 1);
+          }}
+        >
+          Retry
+        </ActionButton>
       </div>
     );
   }
@@ -159,7 +173,7 @@ export function ItemNotesBlock({ itemId }: { itemId: string }) {
               {adding ? "Adding…" : "Add note"}
             </ActionButton>
             <span style={{ ...captionStyle, color: over ? "var(--immediate)" : "var(--ink-3)" }}>
-              {draft.length.toLocaleString("en-US")} / {NOTE_MAX_LENGTH.toLocaleString("en-US")}
+              {formatNumber(draft.length)} / {formatNumber(NOTE_MAX_LENGTH)}
             </span>
           </div>
           {addError && (
