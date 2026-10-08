@@ -1,72 +1,101 @@
 // Fire-tests for rule 018 (no surface outside the five-surface model).
 // Run: node --test fsi-app/.discipline/rules/018-new-surface-five-model.test.mjs
+//
+// Lane GATE-1 (2026-10-08): the rule fires only on an ADDED page.tsx (diff status A), never on a
+// modification, so editing an existing page does not demand a surface decision. The register measured the
+// edit case as the rule's false positive (2026-09-07: /settings, /watchlist, /privacy edits). A RENAME into
+// a new top-level route creates a route and is treated as an add.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rule } from './018-new-surface-five-model.mjs';
 import { buildContextFromFixture } from '../lib/context.mjs';
 
-test('018 check: FAIL — a sixth customer surface (the Technology-page catch)', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: technology page',
-    files: [{ path: 'fsi-app/src/app/technology/page.tsx', additions: 20, deletions: 0 }],
-    fileContents: { 'fsi-app/src/app/technology/page.tsx': 'export default function Page(){return null;}\n' },
+const PAGE = 'export default function Page(){return null;}\n';
+
+function pageCtx(path, status, extra = {}) {
+  return buildContextFromFixture({
+    message: 'feat: page',
+    files: [{ path, status, additions: 20, deletions: status === 'A' ? 0 : 3 }],
+    changes: [{ path, status, added: ['export default function Page(){return null;}'], ...extra }],
+    fileContents: { [path]: PAGE },
   });
+}
+
+test('018 check: FAIL, a NEW sixth customer surface (the Technology-page catch)', () => {
+  const ctx = pageCtx('fsi-app/src/app/technology/page.tsx', 'A');
+  assert.equal(rule.trigger(ctx), true);
   const r = rule.check(ctx);
   assert.equal(r.status, 'FAIL');
   assert.ok(r.message.includes('/technology'));
+  assert.deepEqual(r.locations, [{ path: 'fsi-app/src/app/technology/page.tsx', line: 1 }]);
 });
 
-test('018 check: PASS — one of the five surfaces', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: market', files: [{ path: 'fsi-app/src/app/market/page.tsx', additions: 20, deletions: 0 }],
-    fileContents: { 'fsi-app/src/app/market/page.tsx': 'export default function Page(){return null;}\n' },
-  });
+test('018 check: PASS, one of the five surfaces, new or edited', () => {
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/market/page.tsx', 'A')).status, 'PASS');
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/market/page.tsx', 'M')).status, 'PASS');
+});
+
+test('018 scope: an EDIT to an existing page outside the allowlist neither triggers nor fails', () => {
+  const ctx = pageCtx('fsi-app/src/app/coverage/page.tsx', 'M');
+  assert.equal(rule.trigger(ctx), false);
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
-test('018 check: PASS — override trailer (operator-authorized surface)', () => {
+test('018 scope: the 2026-09-07 episode, edits to /settings, /watchlist, /privacy, passes', () => {
+  for (const seg of ['settings', 'watchlist', 'privacy']) {
+    const ctx = pageCtx(`fsi-app/src/app/${seg}/page.tsx`, 'M');
+    assert.equal(rule.trigger(ctx), false, seg);
+  }
+});
+
+test('018 scope: a NEW route fails even for a path an old edit would have passed through', () => {
+  const ctx = pageCtx('fsi-app/src/app/search/page.tsx', 'A');
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+test('018 scope: a RENAME into a new top-level route is a new route and fails; a rename inside a route does not', () => {
+  const into = buildContextFromFixture({
+    message: 'refactor: move',
+    files: [{ path: 'fsi-app/src/app/technology/page.tsx', status: 'R' }],
+    changes: [{ path: 'fsi-app/src/app/technology/page.tsx', oldPath: 'fsi-app/src/app/market/page.tsx', status: 'R' }],
+    fileContents: { 'fsi-app/src/app/technology/page.tsx': PAGE },
+  });
+  assert.equal(rule.check(into).status, 'FAIL');
+  const inside = buildContextFromFixture({
+    message: 'refactor: move',
+    files: [{ path: 'fsi-app/src/app/market/new/page.tsx', status: 'R' }],
+    changes: [{ path: 'fsi-app/src/app/market/new/page.tsx', oldPath: 'fsi-app/src/app/market/old/page.tsx', status: 'R' }],
+    fileContents: { 'fsi-app/src/app/market/new/page.tsx': PAGE },
+  });
+  assert.equal(rule.check(inside).status, 'PASS');
+});
+
+test('018 check: the Surface-Decision-Override trailer is gone, it no longer excuses a new route', () => {
   const ctx = buildContextFromFixture({
     message: 'feat: technology\n\nSurface-Decision-Override: Jason authorized 6th surface 2026-06-06',
-    files: [{ path: 'fsi-app/src/app/technology/page.tsx', additions: 20, deletions: 0 }],
-    fileContents: { 'fsi-app/src/app/technology/page.tsx': 'export default function Page(){return null;}\n' },
+    files: [{ path: 'fsi-app/src/app/technology/page.tsx', status: 'A', additions: 20, deletions: 0 }],
+    changes: [{ path: 'fsi-app/src/app/technology/page.tsx', status: 'A', added: ['export default function Page(){return null;}'] }],
+    fileContents: { 'fsi-app/src/app/technology/page.tsx': PAGE },
   });
-  assert.equal(rule.check(ctx).status, 'PASS');
+  const r = rule.check(ctx);
+  assert.equal(r.status, 'FAIL');
+  assert.ok(!r.remediation.includes('Surface-Decision-Override'), 'the hook message must not offer a trailer that is not honoured');
+  assert.ok(r.remediation.includes('allowlist'), 'the message names the one way to authorize a surface');
 });
 
-test('018 check: PASS — a removed page.tsx (null content) is not flagged (deletion, not a new surface)', () => {
+test('018 check: PASS, a removed page.tsx is not a new surface', () => {
   const ctx = buildContextFromFixture({
     message: 'chore: remove dead /events stub',
-    files: [{ path: 'fsi-app/src/app/events/page.tsx', additions: 0, deletions: 14 }],
-    // no fileContents injected → getFileContent returns null, simulating the removed file
+    files: [{ path: 'fsi-app/src/app/events/page.tsx', status: 'D', additions: 0, deletions: 14 }],
+    changes: [{ path: 'fsi-app/src/app/events/page.tsx', status: 'D', removed: ['export default function Page(){return null;}'] }],
   });
+  assert.equal(rule.trigger(ctx), false);
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
-test('018 check: PASS — /settings is pre-existing account plumbing (PR #15), not a new surface', () => {
-  const ctx = buildContextFromFixture({
-    message: 'settings: one merged tab row from the UI system parts',
-    files: [{ path: 'fsi-app/src/app/settings/page.tsx', additions: 40, deletions: 10 }],
-    fileContents: { 'fsi-app/src/app/settings/page.tsx': 'export default function Page(){return null;}\n' },
-  });
-  assert.equal(rule.check(ctx).status, 'PASS');
-});
-
-test('018 check: PASS — /watchlist is an authorized surface (operator ruling 2026-09-07)', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: watchlist mobile-390 reflow',
-    files: [{ path: 'fsi-app/src/app/watchlist/page.tsx', additions: 20, deletions: 0 }],
-    fileContents: { 'fsi-app/src/app/watchlist/page.tsx': 'export default function Page(){return null;}\n' },
-  });
-  assert.equal(rule.check(ctx).status, 'PASS');
-});
-
-test('018 check: PASS — /privacy is plumbing (operator ruling 2026-09-07)', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: privacy LinkedIn API submission page',
-    files: [{ path: 'fsi-app/src/app/privacy/page.tsx', additions: 20, deletions: 0 }],
-    fileContents: { 'fsi-app/src/app/privacy/page.tsx': 'export default function Page(){return null;}\n' },
-  });
-  assert.equal(rule.check(ctx).status, 'PASS');
+test('018 check: PASS, route groups and the root page are not segments', () => {
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/page.tsx', 'A')).status, 'PASS');
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/(app)/regulations/page.tsx', 'A')).status, 'PASS');
 });
 
 test('018 check: PASS, a /dashboard sub-route is a workspace view under the Dashboard, not a surface (ruling 2026-10-07)', () => {

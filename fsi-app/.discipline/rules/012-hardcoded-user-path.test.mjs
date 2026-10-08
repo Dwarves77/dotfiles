@@ -126,25 +126,54 @@ test('012 trigger: skips deletions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Check: pass cases
+// Check (lane GATE-1, 2026-10-08): INTRODUCED lines only. A path string that was already on a line the
+// commit edits, or that the commit moves, is not this commit's defect; a path string it writes is.
 // ---------------------------------------------------------------------------
 
+// fileContents carries the post-image too, so a rule that (wrongly) scans the whole file sees the same
+// path string the diff view does and the test separates "present" from "introduced".
+function change(path, c) {
+  return buildContextFromFixture({
+    message: 'feat: thing',
+    files: [{ path, status: c.status }],
+    changes: [{ path, ...c }],
+    fileContents: { [path]: `${(c.added || []).join('\n')}\n` },
+  });
+}
+
 test('012 check: PASS for clean code', () => {
+  const ctx = change('fsi-app/src/foo.ts', { added: ['import { getRepoRoot } from "./lib/context.mjs";', 'const x = getRepoRoot();'] });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('012 check: PASS when there is no diff for the file (nothing introduced)', () => {
   const ctx = buildContextFromFixture({
-    message: 'feat: clean code',
+    message: 'feat: thing',
     files: [{ path: 'fsi-app/src/foo.ts', additions: 10, deletions: 0 }],
-    fileContents: {
-      'fsi-app/src/foo.ts': 'import { getRepoRoot } from "./lib/context.mjs";\nconst x = getRepoRoot();\n',
-    },
+    fileContents: { 'fsi-app/src/foo.ts': `const REPO = '${WIN_USERS}';
+` },
+  });
+  assert.equal(rule.check(ctx).status, 'PASS', 'a pre-existing path elsewhere in the file is not read');
+});
+
+test('012 check: PASS when a pre-existing path sits on a line the commit EDITS', () => {
+  const ctx = change('fsi-app/src/foo.ts', {
+    removed: [`const REPO = '${WIN_USERS}'; // old`],
+    added: [`const REPO = '${WIN_USERS}'; // tidied comment`],
   });
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
-test('012 check: PASS when content is null (file not readable; tolerant)', () => {
+test('012 check: PASS when a path line is MOVED to another file', () => {
   const ctx = buildContextFromFixture({
-    message: 'feat: thing',
-    files: [{ path: 'fsi-app/src/foo.ts', additions: 10, deletions: 0 }],
-    // fileContents omitted; getFileContent returns null in fixture mode
+    message: 'refactor: split',
+    files: [{ path: 'fsi-app/src/a.ts' }, { path: 'fsi-app/src/b.ts', status: 'A' }],
+    changes: [
+      { path: 'fsi-app/src/a.ts', removed: [`const REPO = '${WIN_USERS}';`] },
+      { path: 'fsi-app/src/b.ts', status: 'A', added: [`const REPO = '${WIN_USERS}';`] },
+    ],
+    fileContents: { 'fsi-app/src/b.ts': `const REPO = '${WIN_USERS}';
+` },
   });
   assert.equal(rule.check(ctx).status, 'PASS');
 });
@@ -153,52 +182,33 @@ test('012 check: PASS when content is null (file not readable; tolerant)', () =>
 // Check: fail cases (each pattern variant)
 // ---------------------------------------------------------------------------
 
-test('012 check: FAIL when Windows user-home forward-slash pattern present', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: thing',
-    files: [{ path: 'fsi-app/src/foo.ts', additions: 10, deletions: 0 }],
-    fileContents: {
-      'fsi-app/src/foo.ts': `const REPO = '${WIN_USERS}';\n`,
-    },
-  });
+test('012 check: FAIL when Windows user-home forward-slash pattern is introduced', () => {
+  const ctx = change('fsi-app/src/foo.ts', { added: [`const REPO = '${WIN_USERS}';`], newStart: 1 });
   const result = rule.check(ctx);
   assert.equal(result.status, 'FAIL');
   assert.ok(result.message.includes('1 location'));
   assert.ok(result.remediation.includes('getRepoRoot'));
   assert.ok(result.remediation.includes('fsi-app/src/foo.ts:1'));
+  assert.deepEqual(result.locations, [{ path: 'fsi-app/src/foo.ts', line: 1 }]);
 });
 
-test('012 check: FAIL when Windows user-home backslash pattern present', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: thing',
-    files: [{ path: 'fsi-app/src/foo.ts', additions: 10, deletions: 0 }],
-    fileContents: {
-      'fsi-app/src/foo.ts': `const REPO = "${WIN_BACKSLASH}";\n`,
-    },
-  });
-  assert.equal(rule.check(ctx).status, 'FAIL');
+test('012 check: FAIL when Windows user-home backslash pattern is introduced', () => {
+  assert.equal(rule.check(change('fsi-app/src/foo.ts', { added: [`const REPO = "${WIN_BACKSLASH}";`] })).status, 'FAIL');
 });
 
-test('012 check: FAIL when operator Unix home pattern present', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: thing',
-    files: [{ path: 'fsi-app/src/foo.ts', additions: 10, deletions: 0 }],
-    fileContents: {
-      'fsi-app/src/foo.ts': `const HOME = '${UNIX_JASON}';\n`,
-    },
-  });
-  assert.equal(rule.check(ctx).status, 'FAIL');
+test('012 check: FAIL when operator Unix home pattern is introduced', () => {
+  assert.equal(rule.check(change('fsi-app/src/foo.ts', { added: [`const HOME = '${UNIX_JASON}';`] })).status, 'FAIL');
 });
 
-test('012 check: FAIL when operator macOS home pattern present', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: thing',
-    files: [{ path: 'fsi-app/src/foo.ts', additions: 10, deletions: 0 }],
-    fileContents: {
-      'fsi-app/src/foo.ts': `const HOME = '${MAC_JASON}';\n`,
-    },
-  });
-  assert.equal(rule.check(ctx).status, 'FAIL');
+test('012 check: FAIL when operator macOS home pattern is introduced', () => {
+  assert.equal(rule.check(change('fsi-app/src/foo.ts', { added: [`const HOME = '${MAC_JASON}';`] })).status, 'FAIL');
+});
+
+test('012 check: FAIL when an edit INTRODUCES the pattern on a line that lacked it', () => {
+  const ctx = change('fsi-app/src/foo.ts', { removed: ['const REPO = getRepoRoot();'], added: [`const REPO = '${WIN_USERS}';`], newStart: 4 });
+  const r = rule.check(ctx);
+  assert.equal(r.status, 'FAIL');
+  assert.ok(r.remediation.includes('fsi-app/src/foo.ts:4'));
 });
 
 // ---------------------------------------------------------------------------
@@ -208,14 +218,11 @@ test('012 check: FAIL when operator macOS home pattern present', () => {
 test('012 check: aggregates multiple violations across multiple files', () => {
   const ctx = buildContextFromFixture({
     message: 'feat: multi',
-    files: [
-      { path: 'fsi-app/src/a.ts', additions: 5, deletions: 0 },
-      { path: 'fsi-app/src/b.ts', additions: 5, deletions: 0 },
+    files: [{ path: 'fsi-app/src/a.ts' }, { path: 'fsi-app/src/b.ts' }],
+    changes: [
+      { path: 'fsi-app/src/a.ts', added: [`const A = '${WIN_USERS}';`, `const B = '${UNIX_JASON}';`] },
+      { path: 'fsi-app/src/b.ts', added: [`const C = '${MAC_JASON}';`] },
     ],
-    fileContents: {
-      'fsi-app/src/a.ts': `const A = '${WIN_USERS}';\nconst B = '${UNIX_JASON}';\n`,
-      'fsi-app/src/b.ts': `const C = '${MAC_JASON}';\n`,
-    },
   });
   const result = rule.check(ctx);
   assert.equal(result.status, 'FAIL');
@@ -225,29 +232,15 @@ test('012 check: aggregates multiple violations across multiple files', () => {
   assert.ok(result.remediation.includes('fsi-app/src/b.ts:1'));
 });
 
-test('012 check: respects scripts/tmp/ skip path (PASS even with hardcoded content)', () => {
-  const ctx = buildContextFromFixture({
-    message: 'tmp: scratch',
-    files: [{ path: 'fsi-app/scripts/tmp/throwaway.mjs', additions: 100, deletions: 0 }],
-    fileContents: {
-      'fsi-app/scripts/tmp/throwaway.mjs': `const REPO = '${WIN_USERS}';\n`,
-    },
-  });
-  // trigger returns false for scripts/tmp/, but if forced to run check it should still pass
-  // (relevantFiles filters before reading)
+test('012 check: respects scripts/tmp/ skip path (PASS even with introduced content)', () => {
+  const ctx = change('fsi-app/scripts/tmp/throwaway.mjs', { status: 'A', added: [`const REPO = '${WIN_USERS}';`] });
   assert.equal(rule.trigger(ctx), false);
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
-test('012 check: captured third-party content under scripts/_snapshots/ is data, not code (PASS with a Windows path inside result_content)', () => {
+test('012 check: captured third-party content under scripts/_snapshots/ is data, not code', () => {
   const path = 'fsi-app/scripts/_snapshots/population-33825867992/census-rows.apply-ready.json';
-  const ctx = buildContextFromFixture({
-    message: 'population-turn apply: run 33825867992',
-    files: [{ path, additions: 3000, deletions: 0 }],
-    fileContents: {
-      [path]: `{"result_content": "L_202302463EN.000101.fmx.xml Official Journal ${WIN_USERS} ..."}\n`,
-    },
-  });
+  const ctx = change(path, { status: 'A', added: [`{"result_content": "L_202302463EN.000101.fmx.xml Official Journal ${WIN_USERS} ..."}`] });
   assert.equal(rule.trigger(ctx), false);
   assert.equal(rule.check(ctx).status, 'PASS');
 });
