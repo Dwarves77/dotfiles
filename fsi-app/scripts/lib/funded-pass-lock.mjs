@@ -5,9 +5,8 @@
  *  whose heartbeat is older than STALE_SECONDS is claimable (takeover, logged in the row). Pairs with the
  *  emergencyPaused between-item poll so an operator STOP is a flag-flip, never a process kill.
  */
-export const LOCK_KEY = "funded-pass";
-export const STALE_SECONDS = 300; // 5 min; heartbeat runs between items, well under this
-export const HEARTBEAT_MIN_MS = 30_000; // don't heartbeat more than once per 30s
+const LOCK_KEY = "funded-pass";
+const STALE_SECONDS = 300; // 5 min; heartbeat runs between items, well under this
 
 /** Acquire the run-lock (atomic acquire-or-takeover-or-fail). Returns
  *  { ok, takeover, holderLabel, holderPid, heartbeatAt }. ok=false means a live holder owns it. */

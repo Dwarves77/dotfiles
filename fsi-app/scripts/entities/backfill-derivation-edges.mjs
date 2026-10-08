@@ -61,7 +61,7 @@ import { isMainModule } from "../lib/is-main.mjs";
  *  BOTH its `writtenRows` and `insertRes.rows` arguments — each live row already carries both
  *  `source_key` (for the licence gate) and `factor_id` (the value to correlate the edge to), so the same
  *  array serves both parameters unmodified; there is no separate "candidate" shape to build. */
-export async function loadLiveEmissionFactors(readAllFn = readAll) {
+async function loadLiveEmissionFactors(readAllFn = readAll) {
   return readAllFn(
     "emission_factors",
     "factor_id, source_key",
@@ -76,7 +76,7 @@ export async function loadLiveEmissionFactors(readAllFn = readAll) {
  *  script's job is only to hand it every series_key that could possibly qualify, never to pre-judge which
  *  do. Reads only the `series_key` column (no date filter) — the set of distinct keys is small (6 today)
  *  even though the underlying row count (2,727+) is not; `readAll` still pages correctly either way. */
-export async function loadCandidateSeriesKeys(readAllFn = readAll) {
+async function loadCandidateSeriesKeys(readAllFn = readAll) {
   const rows = await readAllFn("market_series", "series_key");
   return [...new Set(rows.map((r) => r.series_key).filter(Boolean))];
 }

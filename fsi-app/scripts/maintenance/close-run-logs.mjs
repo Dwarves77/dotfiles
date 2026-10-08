@@ -134,7 +134,7 @@ export function hasAllWords(text, words) {
 // AND NOT is_archived, plus the metering totals)." All four outcome-category words together are the
 // charter's own enumerated CLOSE shape; no single word among them (a per-item row may legitimately say
 // "flagged for verifier judgment" or be "parked" on its own) is sufficient alone.
-export const AUTHORSHIP_RUN_SUMMARY_WORDS = Object.freeze(["attempted", "completed", "parked", "flagged"]);
+const AUTHORSHIP_RUN_SUMMARY_WORDS = Object.freeze(["attempted", "completed", "parked", "flagged"]);
 
 /** True when `description` matches the authorship-shard/authorship-worker CLOSE-step run-summary shape:
  *  an explicit run-summary marker, OR all four of the charter's own enumerated outcome-category words
@@ -149,7 +149,7 @@ export function isAuthorshipRunSummary(description) {
 // names the STEP 1 query's own remaining-count, never plausible in a per-item miss/blocker notice);
 // paired with `considered` + at least one real disposition word so a bare "backlog" mention elsewhere
 // cannot qualify alone.
-export const CITATION_HARVEST_RUN_SUMMARY_WORDS = Object.freeze(["considered", "backlog"]);
+const CITATION_HARVEST_RUN_SUMMARY_WORDS = Object.freeze(["considered", "backlog"]);
 
 /** True when `description` matches the citation-harvest CLOSE-step run-summary shape: an explicit
  *  run-summary marker, OR the charter's own distinctive "considered ... backlog" pairing together with

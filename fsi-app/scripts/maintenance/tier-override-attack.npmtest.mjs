@@ -11,15 +11,25 @@
 // Writers that INSERT only (promote-provisional, registerSource, the admin promote/decide/bulk-approve routes,
 // verification.ts) cannot overwrite an override: a new row has none. The admin commit-tier-change refusal is
 // proven in src/app/api/admin/sources/commit-tier-change/route.npmtest.mjs.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { resolve, dirname } from "node:path";
+import { mkdtempSync, rmSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
+import { tmpdir } from "node:os";
 import { __setWriteClientForTest } from "../lib/db.mjs";
 import * as recomputeTiers from "./recompute-tiers.mjs";
 import * as canonicalize from "./institution-canonicalize.mjs";
 import * as resolveProv from "./resolve-provisional-sources.mjs";
+
+// guarded writes snapshot the prior row state to disk before mutating (db.mjs). Redirect the snapshots to a
+// private temp directory removed when this file finishes, so the test never leaves
+// scripts/_snapshots/<timestamp>_<table>.jsonl in the real working tree (lane TESTFIX-1, 2026-10-08: found
+// by auditing every test's file writes; the sibling tests set a fixed temp path and never clean it).
+const SNAP_DIR = mkdtempSync(join(tmpdir(), "tier-override-attack-npmtest-snapshots-"));
+process.env.DISCIPLINE_SNAP_DIR = SNAP_DIR;
+after(() => { rmSync(SNAP_DIR, { recursive: true, force: true }); });
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });

@@ -14,6 +14,7 @@ import {
   extractFooter,
   extractGapRows,
   buildInventoryPage,
+  omitUnlistedNeverApplied,
 } from './generate-migrations-inventory.mjs';
 
 test('parseSubjectLine: a plain "-- subject:" first line is well-formed', () => {
@@ -155,4 +156,24 @@ test('buildInventoryPage: merges file rows and gap rows into one number-sorted t
     '| — | (number 2 gap) | notes |',  // glyph:verbatim (the doc's real gap-row placeholder character)
     '| 3 | 003_c.sql | C |',
   ]);
+});
+
+// ---- omitUnlistedNeverApplied (lane MIGTEST-1b): the parity check's exception for a not-yet-listed NOT APPLIED file ----
+const ROWS = [
+  { number: '100', file: '100_ledgered.sql', subject: 'a' },
+  { number: '101', file: '101_unapplied.sql', subject: 'b' },
+  { number: '102', file: '102_unapplied_listed.sql', subject: 'c' },
+];
+const PAGE = '| # | File | Subject |\n|---|---|---|\n| 102 | 102_unapplied_listed.sql | c |\n';
+
+test('omitUnlistedNeverApplied: a never-applied file with no row on the page is left out of the derived rows', () => {
+  assert.deepEqual(omitUnlistedNeverApplied(ROWS, PAGE, ['101_unapplied.sql']).map((r) => r.file), ['100_ledgered.sql', '102_unapplied_listed.sql']);
+});
+
+test('omitUnlistedNeverApplied: NEGATIVE, a never-applied file that already has a row stays in, and so does a ledgered file with no row', () => {
+  const out = omitUnlistedNeverApplied(ROWS, PAGE, ['101_unapplied.sql', '102_unapplied_listed.sql']).map((r) => r.file);
+  assert.ok(out.includes('102_unapplied_listed.sql'), 'a listed never-applied file keeps its row in the comparison');
+  assert.ok(out.includes('100_ledgered.sql'), 'a ledgered file is never excused');
+  assert.equal(omitUnlistedNeverApplied(ROWS, PAGE, []), ROWS, 'no never-applied files: the rows are returned unchanged');
+  assert.deepEqual(omitUnlistedNeverApplied(ROWS, null, ['101_unapplied.sql']).map((r) => r.file), ['100_ledgered.sql', '102_unapplied_listed.sql'], 'no page at all: the unapplied rows are still excused');
 });

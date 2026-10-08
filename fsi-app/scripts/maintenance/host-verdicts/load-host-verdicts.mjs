@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 import { isKnownHostClass } from "../../../src/lib/sources/host-authority.ts";
 
 export const HOST_VERDICTS_DIR = dirname(fileURLToPath(import.meta.url));
-export const HOST_VERDICT_SOURCE = "session-lane";
+const HOST_VERDICT_SOURCE = "session-lane";
 const BATCH_FILENAME_RE = /^host-verdicts-(\d+)\.json$/;
 
 /** Normalizes a host the way host-authority.ts does (www stripped, lowercased, no trailing dot). */

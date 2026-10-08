@@ -36,8 +36,8 @@
 
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
-import { stripComments } from '../../governance/coverage-scan.mjs';
+import { overrideLines } from '../lib/code-scan.mjs';
+import { codeOnly } from '../../governance/coverage-scan.mjs';
 
 const WORKER_SECRET_ALLOWLIST = new Set([
   'fsi-app/src/app/api/admin/recompute-trust/route.ts',
@@ -49,6 +49,12 @@ const EXTRA_ADMIN_GATED_ROUTES = [
   'fsi-app/src/app/api/coverage/entries/route.ts',
 ];
 
+// Next serves a route from route.ts, route.tsx, route.js, route.jsx, route.mjs or route.cjs. Lane GATE-8
+// (2026-10-08, AUD-AT-4 B1-01, B1-02): the glob read route.ts only, so an admin route written as route.js was
+// never checked.
+const ROUTE_GLOBS = ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'].map((e) => `fsi-app/src/app/api/admin/**/route.${e}`);
+const TEST_FILE_RE = /\.(test|spec|selftest|npmtest)\.(ts|tsx|js|jsx|mjs|cjs)$/;
+
 export const fitnessFunction = {
   id: 'F2',
   name: 'admin-routes-isPlatformAdmin',
@@ -56,13 +62,14 @@ export const fitnessFunction = {
   source: 'sprint-followups-discipline § Sweep-discipline rule (OBS-17 precedent)',
 
   enumerate() {
-    return globFiles(['fsi-app/src/app/api/admin/**/route.ts', ...EXTRA_ADMIN_GATED_ROUTES]);
+    return globFiles([...ROUTE_GLOBS, ...EXTRA_ADMIN_GATED_ROUTES]);
   },
 
   check(filepath, content) {
-    if (filepath.endsWith('.test.ts')) return PASS;
-    // Comments never count as a gate (AT2-6).
-    const code = stripComments(content);
+    if (TEST_FILE_RE.test(filepath)) return PASS;
+    // Neither a comment nor a string literal counts as a gate (AT2-6; AUD-AT-4 B1-03, lane GATE-8): the gate
+    // name must be code. A route that only carries the name inside a string (a log line, a message) is ungated.
+    const code = codeOnly(content);
     if (WORKER_SECRET_ALLOWLIST.has(filepath)) {
       // Worker-secret-gated; verify it actually CALLS the shared guard that reads x-worker-secret
       if (!/\bworkerAuthGuard\s*\(/.test(code)) {
@@ -75,10 +82,8 @@ export const fitnessFunction = {
     if (/\b(isPlatformAdmin|requireAdminRoute)\b/.test(code)) return PASS;
 
     // Check for per-line override (rare; should only be used for narrow exceptions)
-    const lines = content.split(/\r?\n/);
-    for (let i = 0; i < lines.length; i++) {
-      if (isOverridden(lines[i], 'F2')) return PASS;
-    }
+    // (a marker inside a string literal is not a marker: AUD-AT-4 B1-04)
+    if (overrideLines(content, 'F2').size > 0) return PASS;
 
     return [violation(
       1,

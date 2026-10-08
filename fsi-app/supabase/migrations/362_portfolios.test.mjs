@@ -8,14 +8,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const RAW = readFileSync(fileURLToPath(new URL("./362_portfolios.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const table = (name) => new RegExp(`CREATE TABLE IF NOT EXISTS public\\.${name} \\(([\\s\\S]*?)\\n\\);`).exec(SQL)?.[1] ?? "";
 
-test("header: subject line, NOT APPLIED, selection of held things, roll-ups never stored", () => {
+test("header: subject line, applied status as the map says, selection of held things, roll-ups never stored", () => {
   assert.match(RAW, /^-- subject: Migration 362 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "362_portfolios.sql"), []);
   assert.match(RAW, /NEVER stored/);
   assert.match(RAW, /ADR-042/);
 });

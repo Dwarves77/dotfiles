@@ -93,7 +93,7 @@ export const BRANCH_PREFIX_TO_WORKFLOW = Object.freeze({
   "change-detection": "change-detection",
 });
 
-export const BRANCH_PREFIXES = Object.freeze(Object.keys(BRANCH_PREFIX_TO_WORKFLOW));
+const BRANCH_PREFIXES = Object.freeze(Object.keys(BRANCH_PREFIX_TO_WORKFLOW));
 
 const BRANCH_RE = /^([a-z][a-z-]*[a-z])\/(\d+)$/;
 
@@ -361,7 +361,7 @@ function runOne(repoRoot, label, cmd, args) {
  * override-check additions), run against the assembled tree. `repoRoot` is the checkout ROOT (the
  * directory containing `fsi-app/`), matching every gate's own documented invocation point.
  */
-export function runGateSet(repoRoot) {
+function runGateSet(repoRoot) {
   const fsiApp = join(repoRoot, "fsi-app");
   return [
     runOne(fsiApp, "suite", "bash", [".discipline/run-test-suite.sh"]),

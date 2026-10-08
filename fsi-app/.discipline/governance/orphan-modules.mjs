@@ -53,8 +53,8 @@ const FSI = 'fsi-app';
 const MANIFEST = 'docs/audits/dead-code-manifest-2026-08-11.txt';
 const SCOPE_GLOBS = [
   `${FSI}/src/**/*.{ts,tsx,mjs,cjs,js,jsx}`,
-  `${FSI}/scripts/**/*.{mjs,js}`,
-  `${FSI}/.discipline/**/*.mjs`,
+  `${FSI}/scripts/**/*.{mjs,js,cjs}`,
+  `${FSI}/.discipline/**/*.{mjs,js,cjs}`,
 ];
 
 function readManifest(root, readFileFn) {

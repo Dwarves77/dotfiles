@@ -9,6 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const RAW = readFileSync(
   fileURLToPath(new URL("./368_drop_dead_schema.sql", import.meta.url)),
@@ -67,9 +68,9 @@ const KEPT_COLUMNS = [
 
 const HEADER = RAW.slice(0, RAW.search(/^BEGIN;/m));
 
-test("header: subject line, NOT APPLIED, DATA-DELETING marker, census citation", () => {
+test("header: subject line, applied status as the map says, DATA-DELETING marker, census citation", () => {
   assert.match(RAW, /^-- subject: Migration 368 /);
-  assert.match(RAW.split("\n")[0], /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "368_drop_dead_schema.sql"), []);
   assert.match(RAW, /DATA-DELETING: operator review required/);
   assert.match(RAW, /dead-code-census-2026-10-08/);
 });

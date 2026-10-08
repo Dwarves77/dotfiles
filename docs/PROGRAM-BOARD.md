@@ -16,7 +16,28 @@ finding. Master tip at reconstruction: `e3b3a74`.
 
 > **DEAD-3 (2026-10-08, branch `coord/dead3-docs-2026-10-08`):** docs hygiene from the dead-code census (categories 9 and 12): 24 dead INDEX lines removed (their targets live under `docs/archive`), the 4 stale runbook script pointers the census named repointed (plus a fifth it missed, in runbook 38) and the other 14 references confirmed as tombstones, 3 orphans archived, 9 living docs given INDEX lines (a tenth, ADR-045, gained its line from GATE-0 while this lane was open), 3 index lines added to MAINTENANCE-RUNBOOK, stale retired-term references rewritten in 7 files (3 code files, comment lines only; 4 docs; three more code comments are owed because the files are harness governing files), the gate evaluation and the census landed under `docs/audits`. Owed items 41 to 46 below; items 14, 15 and 30 corrected in place. Nothing applied to live data.
 
-> **Resume from (2026-10-07):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). PRs 954 to 965 merged (all fixture-proven and dry unless stated; master tip 835d6fc9 at this pointer):
+> **Resume from (2026-10-08, DOCS-3 docs pass, origin/master 430d7fce at the cut):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). 49 PRs merged 2026-10-08 (UTC) and 8 more merged 2026-10-07 carried no board row; every one is a row in the section "2026-10-07 to 2026-10-08: the proof stack, gate repair, privilege closure, Stage 8 and the next wave" near the end of this file. The dated lists (every PR with its sha, migrations applied with ledger versions, the five misses, the GATE-6 guard timings, the operator-only items) are the `docs/ops/session-log.md` addendum of 2026-10-08. Open PRs at the cut: 1014, 1017, 1019, 1025, 1029, 1030, 1031.
+>
+> - Gates: GATE-0 to GATE-6 are merged (994, 997, 998, 1000, 1002, 1004, 1009, 1021; ADR-046). The rendering-guard job runs in the pinned container in 7m45s against a 15 minute limit (run 37767977662).
+> - Privilege closure: TOKEN-1 (982), SEC-1 (991), SEC-2 (993), SEC-3a (1001), SEC-3b (1003, 1011, 1022), SEC-4 (1005), SEC-5 (1006) and SEC-6 (1016) are merged, and migrations 363, 364, 367, 369, 370, 371, 372 and 375 are in the ledger (applied 2026-10-08). The privilege census is landed at `docs/audits/privilege-census-2026-10-08.md`; its attack probes are staged and not run, and the AT1 register (rows 11 and 12 attacked) does not exist yet.
+> - Migrations: 13 applied 2026-10-08 (358, 359, 361, 362, 363, 364, 367, 368, 369, 370, 371, 372, 375), per `fsi-app/docs/inventories/applied-migrations.json` synced 2026-10-08T13:24Z. On master with no ledger row: 299 (held by design) and 373 (PR 1026, NOT APPLIED). NOT APPLIED in open PRs: 374 (1014), 376 (1025), 377 (1017), 378 (1029), 379 (1031), 380 (1030).
+> - Proof stack: chain-proof (ADR-045) is RED at the replay step (run 37786107972, b53b85cc). The repairs the replay has demanded (028/029, 007_full_brief, 091, 170), the ledger-order replay rule, the outside-ledger ruling for the three duplicate-prefix files and the `migration-proof` PR job all ride PR 1019 (MIG-CI), open. Runbook step number 67 is taken on master by `67-backfill-market-series-entity`; PR 1019 adds a second `67-migration-proof.md`.
+> - Audits landed this pass under `docs/audits/`: the privilege census, AUD-AT-2 (route guards), OBL-1, VERIFY-1, PROD-SRC and MIG-HIST-1. `docs/runbooks/audit-catalogue.md` is refreshed (ATTACKED: 4 partial, 12 empty). Registers for AT1, AT3, AT4 and AT5 did not exist at the cut.
+> - Local lane branches with a worktree and no PR at the cut: DAUDIT-1 (design-audit mounts, 2 local commits), DEAD-1b and MIGTEST-1 (no commits yet) [CONFIRMED: `git rev-list --count origin/master..<branch>`]. The DESIGN CHANGES OWED list of 2026-10-08 is in the session-log addendum.
+>
+> Register status corrections, 2026-10-08 (register rows are from `fsi-app/scripts/tmp/remaining-build-register-2026-10-06.md`, gitignored; the evidence is cited per row; "Open" in the register is corrected here):
+> - Owed items 12, 13 and 17: corrected in place in the 2026-10-07 list below (12 built and not applied, 13 and 17 closed in code by CHAIN-4).
+> - S8-6 grade chip on live list and detail: merged (947). The register's gap, that the live smoke never checked content, is addressed in code by SMOKE-2 (PR 1015, 1496ed76), whose `content-grade-chip` and five sibling content invariants are in the live smoke; no live run reporting them has been seen by this pass [HYPOTHESIS: the invariants pass on the live site].
+> - S8-7 obligation first-class: OBL-1 landed (`docs/audits/obl1-obligations-register-2026-10-08.md`): of the four forwarder-direct instruments, 16 cells, 4 present, 10 partial, 2 absent [CONFIRMED: its section 2]. OBL-2 is open (PR 1025, migration 376 NOT APPLIED). State: OPEN.
+> - S8-9 five public-data domains: PROD-SRC landed (`docs/audits/prodsrc-public-datasets-2026-10-08.md`). Producers: S8-E0 registry merged (986); S8-E1 oem_tech_roadmaps (1030), S8-E5 NESO grid carbon intensity (1029) and S8-E6 grid queue (1031) are open. State: OPEN.
+> - 00S4 coverage honesty and Coverage surface: COV-1 merged (1020, ffbfe670): the six-state vocabulary, one renderer, `/dashboard/coverage`, the matrix export and a request-coverage route. It supplies the customer-path caller of `getCoverageIndex` and a customer-facing Coverage page, so VERIFY-1's "first-class customer surface confirmed absent" no longer holds in code at the merge. The page and the six treatments have no artboard (DESIGN CHANGES OWED).
+> - 00S1.3 composite hierarchy and alias table: VERIFY-1 [CONFIRMED] hierarchy absent and alias partial; ALIAS-1 is open (PR 1017, migration 377 NOT APPLIED). State: OPEN.
+> - 01S4 the 12 regulation components: VERIFY-1 lists #1, #2, #4, #5, #6, #7, #9, #10 and #11 as absent at e23feb02 [CONFIRMED]; OBL-2 (PR 1025, the binding banner) is open. State: OPEN, nothing in 01S4 is closed by a merged PR in this pass.
+> - 02S6 r1, r9, r10, r11 (ribbon, policy timeline, methodology drawer, freshness panel): MKT-1 merged (1018, 204d919f); its session log records r1, r9, r10 and r11 CLOSED in code. State: CLOSED in code; the artboard 04 and 05 changes are DESIGN CHANGES OWED.
+> - B-2, B-4, B-5: [CONFIRMED] closed in code with a test each (VERIFY-1: B-2 vocab-drift-guard plus migrations 148, 269, 306, 310, 316; B-4 domain-laundering test; B-5 prose-renderer-scope test). The register's "status unknown" and "Open" are corrected to closed. B-3: VERIFY-1 found the ui-orphan mechanism unwired at e23feb02; AUDWIRE-1 (PR 1024, 98acb516) later made the audit a hard data-audit-lane member and defined the B-3 register as the artifact each completed run writes; whether a live run has happened is not seen by this pass.
+> - Item 41 (DEAD-3 step 5) and item 32 (layout baseline): annotated in place below.
+
+> **Prior pointer (2026-10-07, resume; its owed list items 1 to 46 stay live and are corrected in place where the 2026-10-08 pointer above says so):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). PRs 954 to 965 merged (all fixture-proven and dry unless stated; master tip 835d6fc9 at this pointer):
 > - 954 GATES-2: live smoke gate, container rule, markers never persist.
 > - 955 G7-TIER: every automatic tier writer respects the tier override, proven by attack.
 > - 956 G6-GATES: queues decide by rule, acceptance tokens off maintenance steps (steps 13 and 14 retired).
@@ -53,12 +74,12 @@ finding. Master tip at reconstruction: `e3b3a74`.
 > 10. `origin_class` NULL on 1,222 items; `source_role` NULL on 874 sources (2026-09 counts, re-read owed) | system map section 18 [H: stale counts]
 > 11. Stored-body marker count: never measured | gates2-live-smoke
 > Code and wiring owed
-> 12. `market_series` and `regional_data_facts` outbox rows carry no single entity so reach no item | l4a, l4d
-> 13. Question answers and propagation drain not chained to a workflow | l4b-question-answers
+> 12. `market_series` and `regional_data_facts` outbox rows carry no single entity so reach no item. [2026-10-08: built, not applied. L4-E merged as PR 1026 (430d7fce), migration 373 NOT APPLIED, data step `67-backfill-market-series-entity`; see the 2026-10-08 pointer above] | l4a, l4d; l4e-outbox-entity
+> 13. Question answers and propagation drain not chained to a workflow. [2026-10-08: CLOSED in code by CHAIN-4, PR 1023 (95711970): hops 14 and 15 chain Question answers off Propagation drain and Population turn, export action only; the first chained firing is not yet seen] | l4b-question-answers; chain4-downstream-edges
 > 14. `seek-more.mjs` still names `operator-priced-only` in the comment at line 298 and the request text string at line 207; both owed. The file governs the `inaccessible-triage` and `question-answers` harness families, so even a comment edit needs a pending marker (F28), which DEAD-3 could not add. Decision-ready text for the comment is in the DEAD-3 session log [CONFIRMED: `QUESTION_ACQUISITION = "holdings-session-batch"` in constants.mjs, ADR-044 decision 1] | l4a-questions-on-change; dead3-docs
 > 15. DONE 2026-10-07 by lane TRUST-RET: `trust-recompute.yml` is deleted and `closure-gate.mjs` held no entry for it [CONFIRMED: the file is absent from `.github/workflows`, `docs/ops/session-log.d/2026-10-07-trustret.md` line 22] | coordinator state; S6-4; dead3-docs
 > 16. GUARD-1 token (ADR-016 item b); provenance-heal `+strip-unprovable` opt-in | g6-gates; coordinator state
-> 17. Theme-briefs workflow not chained; Research reader selects only exact-id brief row | s3c
+> 17. Theme-briefs workflow not chained; Research reader selects only exact-id brief row. [2026-10-08: the chaining half is CLOSED in code by CHAIN-4, PR 1023, hop 16 Corpus turn to Theme briefs, export action only; the reader half is REFUTED: the Research reader already resolves a brief by theme (`selectThemeBriefForItem`, CHAIN-4 session log)] | s3c; chain4-downstream-edges
 > 18. Inference read inside 300 s cached bundle; citation titles as text | p2-grade-inference-chips
 > 19. Sources grid entries other than the item's own carry no bias | p1-source-rating-display
 > 20. Per-claim tier matching against live rows unverified | p1-source-rating-display
@@ -75,7 +96,7 @@ finding. Master tip at reconstruction: `e3b3a74`.
 > 30. DONE (checked 2026-10-08, DEAD-3): INDEX lines for the judgement-drain `FAMILY.md`, ADR-044 and runbooks 60 to 63 exist; MAINTENANCE-RUNBOOK lines 13 and 14 carry RETIRED; index lines for steps 64 to 66 added by DEAD-3 [CONFIRMED: grep of both files] | g6-drain; g6-gates; coordinator state
 > 31. Operator question open: Settings "When a post gets promoted" toggle versus ADR-041 | coordinator state
 > Operator or date owed
-> 32. Layout baseline renewal fires 2026-10-08 09:00 -04:00; hard expiry 2026-10-15; rendering-guard required versus continue-on-error decision after; legacy-remediation deferrals also expire 2026-10-15 | coordinator state; buildout stage 0
+> 32. Layout baseline renewal fires 2026-10-08 09:00 -04:00; hard expiry 2026-10-15; rendering-guard required versus continue-on-error decision after; legacy-remediation deferrals also expire 2026-10-15. [2026-10-08: PR 978 (35fe1682), titled "Pause layout-guard expiry and 7-day renewal rule until go-live (BUILD_MODE)", paused the expiry and renewal rule; PR 1004 (GATE-4) is titled as making the rendering guard required; titles read, behaviour not re-verified [HYPOTHESIS]] | coordinator state; buildout stage 0
 > 33. EIA secret `EIA_API_KEY`; EEX licence; SBTi licence for apply | system map
 > 34. Public-source intake for auxiliary energy and indexation mechanics | buildout open items
 > 35. `regional_data_facts` and `estimated_values` have no consumer after ADR-043 | buildout open items
@@ -87,7 +108,7 @@ finding. Master tip at reconstruction: `e3b3a74`.
 > 39. All of Stage 8 (items S8-1 to S8-5, S8-8 to S8-10)
 > 40. L18 portfolio, L19 entity tables, L20 branch-database chain proof, L21 to L28 spec 09 domains: no PR found
 > DEAD-3 residue (2026-10-08, lane dead3-docs; the evidence is `docs/ops/session-log.d/2026-10-08-dead3-docs.md`)
-> 41. Step 5 of DEAD-3, removal of `glyph:verbatim` markers that sit on non-verbatim lines, is OWED: GATE-1 (rule 022 reads introduced lines only) is not merged, so the step was not run | dead3-docs; gate1-rules
+> 41. Step 5 of DEAD-3, removal of `glyph:verbatim` markers that sit on non-verbatim lines, is OWED: GATE-1 (rule 022 reads introduced lines only) is not merged, so the step was not run. [2026-10-08: GATE-1 merged as PR 997 (7939565c), so the precondition is met; the step is still owed] | dead3-docs; gate1-rules
 > 42. Retired-term STRINGS in code, outside DEAD-3's comment-only write set: `fsi-app/src/lib/sources/seek-more.mjs:207` (request text names `operator-priced-only`), `fsi-app/src/lib/intake/write-item.ts:254` (a JSDoc line names `result_content_excerpt`; governing file of `gate-a-rescan`) and `fsi-app/scripts/turns/run-population-flywheel.mjs:775` to `:782` (a comment still describes the deleted `ratify:tags` id path; governing file of `brief-apply`), both needing a pending marker with the edit, `fsi-app/.discipline/fitness/functions/F26-storage-ceiling-parity.mjs:93` and `:132` (message and description name `result_content_excerpt`), `fsi-app/.discipline/governance/invariants.d/RD-12-size-cap-doctrine.mjs:9` (invariant text). The census hypothesis that F26 checks the wrong column is REFUTED [CONFIRMED: the check compares an env var name and a fallback literal; the column name appears only in comments, messages and the description] | dead3-docs
 > 43. References to docs moved to `docs/archive` (`docs/sprint-1`, `docs/sprint-2`, `docs/design/redesign`) that DEAD-3 could not edit: `CLAUDE.md:25` (What lives where lists the two sprint folders as live), `fsi-app/next.config.ts:96`, `fsi-app/src/lib/auth/admin.ts:55`, `fsi-app/src/lib/intake/record-facts-research.mjs:39`, `fsi-app/scripts/mint/heal-provenance.mjs:1916` (string), `fsi-app/scripts/turns/RESEARCH-SWEEP.md:75`, `fsi-app/.claude/PLUGIN-NOTES.md:41`; and in pinned skills, which need a skill-ack file in the same range: `caros-ledge-platform-intent` lines 25 and 311, `source-credibility-model` line 415, `sprint-followups-discipline` lines 23, 32, 38, 270 and 315, `remediation-discipline` line 627 (and its line 115 names `result_content_excerpt`) | dead3-docs
 > 44. TODO-class markers that remain, each with its disposition [CONFIRMED: `git grep` of TODO, FIXME, XXX, HACK, DEPRECATED over code and living docs, 2026-10-08]. OPEN: (a) `docs/runbooks/TRAIN-ASSEMBLY-RUNBOOK.md:135` carries a proposed ADR ("ADR-XXX: One proposer pass per fold batch") that was never adopted or dropped; (b) `fsi-app/src/lib/email/send-invitation-email.ts:13` TODO for an email provider (an operator decision, and the free-only rule applies to the choice). NOT OPEN (quoted text, a regex, a status banner or a historical record): `fsi-app/src/lib/market/series-registry.mjs:4`, `fsi-app/src/lib/propagation/statutory-rows.ts:96`, `fsi-app/src/lib/research/theme-brief.mjs:19`, `fsi-app/supabase/seed/W4_4_insert_california_critical_items.mjs:39` and `:400` (a one-shot script that logs a follow-up), `fsi-app/docs/SCOPE_AUDIT.md:869` (dated 2026-04-27 audit), `fsi-app/docs/sprint4-workflow-spec.md:98` (historical spec step), `fsi-app/docs/dispatches/sprint3-status-2026-05-26.md:1` and `fsi-app/docs/ops/session-log.md:1` (DEPRECATED banners on frozen records). `fsi-app/.discipline/rules/020-fork-log-frozen.mjs:6` and `:55` carry DEPRECATED text and are left because GATE-1 deletes rule 020 | dead3-docs
@@ -2417,6 +2438,94 @@ per rule 14, pending any further detail; see the session-log entry below for the
 produced.
 
 ---
+
+## 2026-10-07 to 2026-10-08: the proof stack, gate repair, privilege closure, Stage 8 and the next wave (thread rows, DOCS-3 pass)
+
+Rows are generated from `gh pr list --state merged` and `--state open` at origin/master 430d7fce; the lane column is the title's lane id, or the branch name when the title has none. The state column is the PR state at the cut, not a verdict that the work is live: a row whose title says NOT APPLIED has a migration file that is not in the ledger. The dated lists (migrations applied with ledger versions, the misses, the guard timings, the operator-only items) are in the `docs/ops/session-log.md` addendum of 2026-10-08. The previous resume pointer's PRs 954 to 965 are not repeated.
+
+Merged 2026-10-08 (49 PRs, UTC):
+
+| Lane | State | Evidence / next |
+|---|---|---|
+| PROOF-2 | CLOSED, merged PR 974 (6f25ffd4) | read-only FK-closed production subset export and local loader |
+| PROOF-1 | CLOSED, merged PR 975 (3d4e7357) | chain-proof workflow, migration replay from zero, loopback-only database access |
+| RULES-1 | CLOSED, merged PR 977 (bd8d92ed) | rule 015 detects database writes, F51 check 5 exempts generated files |
+| baseline-renewal-2026-10-08 | CLOSED, merged PR 978 (35fe1682) | Pause layout-guard expiry and 7-day renewal rule until go-live (BUILD_MODE) |
+| S8-C | CLOSED, merged PR 979 (ffe44d05) | membership gate on the two count RPCs (migration 361, not applied) |
+| TRUST-RET | CLOSED, merged PR 980 (4626cc40) | retire trust-recompute.yml, keep the trust-score pass as recompute-trust-scores |
+| S8-B | CLOSED, merged PR 981 (06d82d74) | workspace tag attribution (applied by <name> on <date>) |
+| TOKEN-1 | CLOSED, merged PR 982 (ace778cc) | limit capture_worker_fetch EXECUTE to service_role (migration 363) |
+| S8-F | CLOSED, merged PR 983 (89226500) | fact register for industry-level statements (Phase 1) |
+| G5-SEARCH | CLOSED, merged PR 984 (7438c593) | a source need becomes a committed URL batch a session authors, applied by rule |
+| S8-E0 | CLOSED, merged PR 986 (3a637281) | producers register from an entry directory |
+| PROOF-3 | CLOSED, merged PR 987 (93498aa7) | chain steps run in apply mode on the proof stack, with a read-back after every step |
+| S8-A | CLOSED, merged PR 988 (c1f0db1c) | private workspace notes and assignment with notification on every detail page |
+| S8-F2 | CLOSED, merged PR 989 (5d61fa01) | industry-level statements under the Operations matrix (ADR-043) |
+| S8-D | CLOSED, merged PR 990 (bdc6b7a9) | the portfolio object under the dashboard (migration 362, NOT APPLIED) |
+| SEC-1 | CLOSED, merged PR 991 (1d2c5e95) | a user cannot change their own platform-admin flag (migration 364) |
+| PROOF-4 | CLOSED, merged PR 992 (ee0dd483) | chain-proof attack suite (re-cut after PR 975, supersedes 985) |
+| SEC-2 | CLOSED, merged PR 993 (a236dac3) | profile status and tier columns are system-written; verification is requested through an RPC (migration 367) |
+| GATE-0 | CLOSED, merged PR 994 (f706ee09) | ADR-046, the gate doctrine and the disposition of every gate |
+| DEAD-2 | CLOSED, merged PR 995 (987a8cb8) | migration 368 per operator ruling 2026-10-08 (NOT APPLIED) |
+| DEAD-3 | CLOSED, merged PR 996 (827588fe) | dead index lines, runbook pointers, orphan classification, retired-term rewrites |
+| GATE-1 | CLOSED, merged PR 997 (7939565c) | commit rules engine, remove 014/016/020, introduced-lines scope, one diff per run |
+| GATE-2 | CLOSED, merged PR 998 (f7bbb79e) | pre-push step 2c removed, C4 outside-repo note, skill gate rebuilt, UX substring check dropped |
+| AUDIT-CAT | CLOSED, merged PR 999 (49f98ab7) | audit catalogue, ten lenses, eighteen subsystems, audit-of-audits matrix |
+| GATE-2b | CLOSED, merged PR 1000 (82141ad7) | skill gate interpreter arguments, MCP write prefixes, wired check accepts the in-process shim |
+| SEC-3a | CLOSED, merged PR 1001 (dfb215db) | functions, views and grants that let anon or a user write what only the system may write (migration 369, NOT APPLIED) |
+| GATE-3 | CLOSED, merged PR 1002 (57bb5d8f) | fitness functions and governance gates, remove, repair, replace |
+| SEC-3b | CLOSED, merged PR 1003 (5c57faa2) | table policies and triggers that stop a user changing their own standing (migration 370, NOT APPLIED) |
+| GATE-4 | CLOSED, merged PR 1004 (53605cae) | slim push job set, required rendering guard, concurrent unit tests, gate firing artifacts |
+| SEC-4 | CLOSED, merged PR 1005 (6b1063aa) | definer hygiene, explicit grants and pinned search_path for every SECURITY DEFINER function (migration 371, NOT APPLIED) |
+| SEC-5 | CLOSED, merged PR 1006 (28aef825) | who may read which profile columns, built to R8.7 (migration 372, NOT APPLIED) |
+| DEAD-1 | CLOSED, merged PR 1007 (cd88250a) | delete whole-file dead modules, routes, seed scripts and inert stores |
+| PROOF-5 | CLOSED, merged PR 1008 (6bc09d57) | create the oracle database as the stack's superuser |
+| GATE-5 | CLOSED, merged PR 1009 (3141ab80) | rules engine baseline is the merge base; C3 test isolated from F64 |
+| PROOF-5b | CLOSED, merged PR 1010 (a35ced3c) | run each oracle database statement as its own psql -c transaction |
+| SEC-3b | CLOSED, merged PR 1011 (6028b228) | migration 370 amended in place, org_memberships admin policies no longer recurse (42P17) |
+| ROUTES-1 | CLOSED, merged PR 1012 (e23feb02) | route-guard register fixes (F2 comment-proof, reset-password public, moderation reviewer gate, worker limiter) |
+| MIG-HIST-1b | CLOSED, merged PR 1013 (8be0cc9c) | land the migration map (361-row ledger, replay-reader shape) |
+| SMOKE-2 | CLOSED, merged PR 1015 (1496ed76) | live smoke asserts content, not only status |
+| SEC-6 | CLOSED, merged PR 1016 (197190d2) | profiles.is_platform_admin is private, read through is_platform_admin() (migration 375, NOT APPLIED) |
+| MKT-1 | CLOSED, merged PR 1018 (204d919f) | Market renders what it already computes (ribbon values and states, shared freshness and provenance parts) |
+| COV-1 | CLOSED, merged PR 1020 (ffbfe670) | coverage is a first-class, generated, customer-facing surface |
+| GATE-6 | CLOSED, merged PR 1021 (12c69634) | run the Playwright jobs in the pinned official container |
+| SEC-3b-F | CLOSED, merged PR 1022 (36599967) | 370 fixture item_type fixed, fixture INSERTs checked statically (shared helper) |
+| CHAIN-4 | CLOSED, merged PR 1023 (95711970) | Question answers and Theme briefs chained (hops 14 to 16) |
+| AUDWIRE-1 | CLOSED, merged PR 1024 (98acb516) | ui-orphan audit is hard and enumerates the B-3 register |
+| L4-E | CLOSED, merged PR 1026 (430d7fce) | market_series and regional_data_facts outbox rows reach items (migration 373, NOT APPLIED) |
+| Migration 372 applied | CLOSED, merged PR 1027 (b53b85cc) | header flip, ledger export, map and inventories regenerated |
+| VERD-1 | CLOSED, merged PR 1028 (3cb67204) | stale ledger verdicts are re-authored through the drain |
+
+Open at the cut (7 PRs):
+
+| Lane | State | Evidence / next |
+|---|---|---|
+| MIG-374 | OPEN, PR 1014 | GIN index on cited_item_ids and signposts.lifecycle_applied_at (migration 374, NOT APPLIED) |
+| ALIAS-1 | OPEN, PR 1017 | entity hierarchy and alias table (migration 377, NOT APPLIED), resolver, spine coherence test |
+| MIG-CI | OPEN, PR 1019 | prove each pending migration on a local stack before production sees it |
+| OBL-2 | OPEN, PR 1025 | obligation objects (migration 376, NOT APPLIED), obligation-grain gate, binding banner, classifier |
+| S8-E5 | OPEN, PR 1029 | NESO grid carbon intensity as a regional fact (grid_intensity dimension, migration 378 NOT APPLIED) |
+| S8-E1 | OPEN, PR 1030 | registered producer for oem_tech_roadmaps from the EEA HDV CO2 extract (migration 380, NOT APPLIED) |
+| S8-E6 | OPEN, PR 1031 | UK Power Networks capacity heatmap producer for grid_connection_queues (migration 379, NOT APPLIED) |
+
+Merged 2026-10-07 and carrying no board row before this pass (8 PRs):
+
+| Lane | State | Evidence / next |
+|---|---|---|
+| docs-2026-10-07 | CLOSED, merged PR 967 (4278f0a9) | coord/docs: 2026-10-07 resume pointer, PRs 954 to 965, db-check-constraints regenerated |
+| CHAIN-1 | CLOSED, merged PR 968 (f30636f1) | the chain carries its artifacts through harness_runs, and a dispatch runs its driver |
+| PAR-1 | CLOSED, merged PR 969 (358d5b79) | list rows at every width and the twelve segment impact meter |
+| OPS-1 | CLOSED, merged PR 970 (e9e1ef50) | step=all skips input steps, Gate A gauges never null, walker names run kind, refetch-capped fix |
+| CHAIN-2 | CLOSED, merged PR 971 (ae8adbcb) | every chained run carries the loop run id of its root |
+| PAR-1b | CLOSED, merged PR 972 (37cd9da8) | impact meter to Claude Design's exact spec |
+| IDX-1 | CLOSED, merged PR 973 (499ac85c) | fixed section ordinals on every detail surface, Connected intelligence |
+| PAR-2 | CLOSED, merged PR 976 (32292086) | white group headers, band tile numeral row, detail typography, rule-separated disclosures |
+
+PR 985 (PROOF-4) was closed unmerged on 2026-10-08 and superseded by PR 992 (title: "re-cut after PR 975, supersedes 985"). PR 966 (OPS-1) was closed unmerged; PR 970 carries the same lane title and merged. [CONFIRMED: PR titles and states from `gh pr view`]
+
+---
+
 
 ## Pointer history (superseded resume pointers, kept for record only; do not resume from these)
 
