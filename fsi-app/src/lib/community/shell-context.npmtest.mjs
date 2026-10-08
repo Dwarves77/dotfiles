@@ -17,7 +17,11 @@ function fakeClient(rows) {
   const calls = { rpc: [] };
   const chain = (table) => {
     const q = {
-      select() { return q; }, eq() { return q; }, order() { return q; }, limit() { return q; },
+      select(cols) {
+        // SEC-6 (migration 375): profiles.is_platform_admin is revoked from authenticated; a select naming it would 42501.
+        if (table === "profiles" && /is_platform_admin/.test(String(cols))) throw new Error("permission denied for table profiles (42501): is_platform_admin");
+        return q;
+      }, eq() { return q; }, order() { return q; }, limit() { return q; },
       then(res) { return Promise.resolve({ data: rows[table] ?? [], error: null }).then(res); },
       maybeSingle() { return Promise.resolve({ data: (rows[table] ?? [])[0] ?? null, error: null }); },
     };
@@ -26,7 +30,11 @@ function fakeClient(rows) {
   return {
     calls,
     from(table) { return chain(table); },
-    rpc(name, args) { calls.rpc.push([name, args]); return Promise.resolve({ data: rows.__rpc ?? [], error: null }); },
+    rpc(name, args) {
+      calls.rpc.push([name, args]);
+      if (name === "is_platform_admin") return Promise.resolve(rows.__adminError ? { data: null, error: rows.__adminError } : { data: rows.__admin === true, error: null });
+      return Promise.resolve({ data: rows.__rpc ?? [], error: null });
+    },
   };
 }
 
@@ -38,7 +46,8 @@ const rows = {
   community_group_invitations: [{ id: "i1", group_id: "g2", inviter_user_id: "u9", status: "pending", created_at: "2026-09-02", community_groups: { id: "g2", name: "UK", slug: "uk", region: "UK", privacy: "private" } }],
   community_topics: [{ id: "t1", label: "SAF", community_topic_groups: [{ group_id: "g1" }, { group_id: "g2" }] }, { id: "t2", label: "CBAM", community_topic_groups: null }],
   __rpc: [{ region: "EU", count: "4" }, { region: "APAC", count: 2 }],
-  profiles: [{ name: "Ada", headshot_url: null, is_platform_admin: true }],
+  profiles: [{ name: "Ada", headshot_url: null }],
+  __admin: true,
   org_memberships: [{ organizations: { name: "Caro Freight" } }],
 };
 
@@ -53,13 +62,21 @@ test("maps the four shell reads and the two profile reads into CommunityShell's 
   assert.equal(ctx.regionCounts.APAC, 2);
   assert.equal(ctx.regionCounts.GLOBAL, 0, "every region is zero-filled");
   assert.deepEqual(ctx.currentUser, { id: "u1", email: "ada@example.org", name: "Ada", headshotUrl: null, employer: "Caro Freight", isPlatformAdmin: true });
-  assert.deepEqual(sb.calls.rpc, [["community_region_counts", undefined]]);
+  assert.deepEqual(sb.calls.rpc.filter(([n]) => n === "community_region_counts"), [["community_region_counts", undefined]]);
+  assert.deepEqual(sb.calls.rpc.filter(([n]) => n === "is_platform_admin"), [["is_platform_admin", undefined]], "the flag is read through the rpc, once");
+});
+
+test("SEC-6: isPlatformAdmin is true only for a literal true from the rpc; an rpc error or a non-admin is false (a display gate fails closed)", async () => {
+  for (const [extra, want] of [[{ __admin: true }, true], [{ __admin: false }, false], [{ __admin: "true" }, false], [{ __admin: true, __adminError: { message: "boom" } }, false]]) {
+    const ctx = await loadCommunityShellContext(fakeClient({ ...rows, ...extra }), { id: "u1", email: "ada@example.org" });
+    assert.equal(ctx.currentUser.isPlatformAdmin, want, JSON.stringify(extra));
+  }
 });
 
 test("region-count RPC arguments pass through (browse counts public groups only); a missing profile falls back to the email local part", async () => {
-  const sb = fakeClient({ ...rows, profiles: [], org_memberships: [] });
+  const sb = fakeClient({ ...rows, profiles: [], org_memberships: [], __admin: false });
   const ctx = await loadCommunityShellContext(sb, { id: "u2", email: "grace@example.org" }, { regionCountsArgs: { p_privacy: "public" } });
-  assert.deepEqual(sb.calls.rpc, [["community_region_counts", { p_privacy: "public" }]]);
+  assert.deepEqual(sb.calls.rpc.filter(([n]) => n === "community_region_counts"), [["community_region_counts", { p_privacy: "public" }]]);
   assert.equal(ctx.currentUser.name, "grace");
   assert.equal(ctx.currentUser.employer, "");
   assert.equal(ctx.currentUser.isPlatformAdmin, false);
