@@ -1,61 +1,66 @@
 // Rule manifest. Main session owns this file.
 //
-// Post-slim (2026-05-21 audit): the engine was cut from 14 rules to 2 rules.
-// Deleted rules 001-011 + 013 per evidence-based audit (zero catches in ~23h
-// live, structurally same shape as the reverted rule 015 — attestation gates
-// the engine cannot verify against code). The operator's published 5e3ae41
-// revert rationale was the load-bearing precedent: "ceremony rather than
-// enforcement."
+// History. 2026-05-21 audit: the engine was cut from 14 rules to 2 (rules 001-011 and 013 deleted, zero
+// catches in ~23h live, attestation gates the engine cannot verify against code: "ceremony rather than
+// enforcement", the 5e3ae41 revert rationale). 2026-06 to 2026-09: content-verifier rules 015 to 022 were
+// added for the damage action-classes and recorded incidents. Lane GATE-1 (2026-10-08, gate plan
+// "remove, repair, replace"; doctrine in ADR-046 by lane GATE-0):
+//   REMOVED  014 inventory consistency   (the same consistency runner runs at pre-push step 2 and in the
+//                                          CI consistency-backstop job; a third call site, vacuous in PR CI)
+//   REMOVED  016 canonical Anthropic path (F15 holds the same regex over the same files; 016's PERMITTED
+//                                          list merged into F15's sanctioned set; F46 homes the host string)
+//   REMOVED  020 frozen session-log fork (the fork file was archived to docs/archive/, so nothing remains
+//                                          to freeze; invariant RD-50 now cites a structural test)
+//   REPAIRED 012, 015, 017, 019, 022     (introduced-lines scope: a line counts only when the pattern is
+//                                          absent from the removed line it replaces and the line was not
+//                                          moved from elsewhere in the diff; lib/context.mjs)
+//   REPAIRED 018                         (fires only on an ADDED page.tsx, never on an edit)
+//   KEPT     021                         (cache-key shape hash; two true positives in 30 days)
+//   REMOVED  the Write-Guard-Override, Surface-Decision-Override and Source-Reclassify-Override trailers
+//            (no validation, whole-commit scope). Consistency-Override stays: it is validated and dated,
+//            and lives in consistency/override-check.mjs for pre-push step 2 and the CI backstop.
 //
-// REMAINING (2):
-//   Rule 012 — hardcoded user-home path (content check; caught REPO_ROOT residual instance)
-//   Rule 014 — inventory consistency (gates Layer 4 C-check subsystem; caught migration 067)
+// REGISTERED (7):
+//   012  hardcoded user-home path in introduced code
+//   015  raw row write outside the guarded path (scripts/lib/db.mjs) in introduced code
+//   017  raw process.env knob read in generation logic
+//   018  new page.tsx outside the five-surface model
+//   019  source-not-item raw-archived instead of reclassified
+//   021  dashboard cache key out of step with the DashboardData shape hash
+//   022  em dash, en dash or section-sign glyph in introduced prose
 //
-// Commit messages return to normal: subject + body, no required trailers.
-// Loop-closure, Skill-loaded, Verification, ADR-Reference, Inventory-emission
-// are all OPTIONAL going forward. The pre-push hook (installed via
-// install-hooks.mjs) is the new CI-parity gate.
+// Commit messages are normal: subject + body, no required trailers.
+//
+// FIRING LOG. runner.mjs appends one JSON line per rule firing to governance/.hook-firings.log
+// (gitignored): {ts, rule, mode, path, line, verdict}. A later evaluation is a query over that file.
 
 import { rule as rule012 } from './rules/012-hardcoded-user-path.mjs';
-import { rule as rule014 } from './rules/014-inventory-consistency.mjs';
 // Operating-mechanism build (2026-06-06): content-verifier tripwires for the three damage
-// action-classes (G/S/M). These VERIFY AGAINST CODE (012-style), not trailer-attestation —
+// action-classes (G/S/M). These VERIFY AGAINST CODE (012-style), not trailer-attestation:
 // the manifest's own 5e3ae41 lesson ("ceremony rather than enforcement") rules out attestation
 // gates. Each maps to a governing skill via governance/skill-map.mjs (single source of truth).
 import { rule as rule015 } from './rules/015-row-mutation-guarded-path.mjs';
-import { rule as rule016 } from './rules/016-canonical-anthropic-path.mjs';
 import { rule as rule017 } from './rules/017-generation-config-no-raw-env.mjs';
 import { rule as rule018 } from './rules/018-new-surface-five-model.mjs';
 // Source-registration invariant (2026-06-06): source-not-item must be REGISTERED, never raw-archived
 // (the 25-orphan + 5-wrong-archive class fix). Pairs with db.mjs reclassifyToSource() + migration 135.
 import { rule as rule019 } from './rules/019-source-reclassify-not-archive.mjs';
-// Fork-log guard (2026-07-20): the deprecated fsi-app/docs/ops/session-log.md fork is frozen —
-// reject any commit that ADDS content to it (four recorded fork-write instances; the advisory
-// header alone kept failing). Maps to invariant SW-2 (the divergence-register recommendation).
-import { rule as rule020 } from './rules/020-fork-log-frozen.mjs';
 // Cached-shape key guard (2026-08-02): the DashboardData cache key must carry the current
-// shape hash. Closes the #395 class — a cached-payload shape change without a key rotation
+// shape hash. Closes the #395 class: a cached-payload shape change without a key rotation
 // let stale cross-deployment cache entries crash SSR of / (digest 2552218741). Content-
 // verifiable, 012-style; the failure message prints the exact new key.
 import { rule as rule021 } from './rules/021-cached-shape-key.mjs';
-// No-dash-glyphs guard (2026-09-12, defect-fix-plan-2026-09-12.md D5): an added line must not carry
+// No-dash-glyphs guard (2026-09-12, defect-fix-plan-2026-09-12.md D5): an introduced line must not carry
 // U+2014, U+2013 or U+00A7 unless the path is exempt or the line carries `glyph:verbatim`. Was a byte
 // count the coordinator ran by hand; moved into the engine so it fires on every commit.
 import { rule as rule022 } from './rules/022-no-dash-glyphs.mjs';
 
 export const rules = [
   rule012,
-  rule014,
   rule015,
-  rule016,
   rule017,
   rule018,
   rule019,
-  rule020,
   rule021,
   rule022,
 ];
-
-export function getRuleById(id) {
-  return rules.find((r) => r.id === id);
-}

@@ -42,3 +42,75 @@ test('a tracked worktree is NOT exempted — the check still has teeth', () => {
     assert.equal(isEphemeralWorktreePath(p), false, `should be tracked: ${p}`);
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// GATE-2 (2026-10-08): a worktree OUTSIDE the repository path is a note, never drift. The worktree list is
+// machine-global, so one scratch worktree anywhere on the machine used to fail pre-push step 2 for every
+// lane (gate-evaluation-A section 4, H6). Proven against real `git worktree add` output, not only fixtures.
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { classifyLiveWorktrees, gitWorktreeList, isInsideRepoPath } from './C4-worktrees-reality.mjs';
+
+test('isInsideRepoPath: the root and anything under it, case-insensitive, either separator; siblings and near-misses are outside', () => {
+  const root = '/fixture-home/user/dotfiles';
+  assert.equal(isInsideRepoPath(root, root), true);
+  assert.equal(isInsideRepoPath(`${root}/scratch-wt`, root), true);
+  assert.equal(isInsideRepoPath('C:\\Fixture\\Dotfiles\\scratch','c:/fixture/dotfiles'), true);
+  assert.equal(isInsideRepoPath('/fixture-home/user/dotfiles-wt-audit', root), false);
+  assert.equal(isInsideRepoPath('/fixture-home/user/dotfiles-other/x', root), false);
+  assert.equal(isInsideRepoPath('/tmp/scratch', root), false);
+});
+
+test('classifyLiveWorktrees: outside the repo path is a note, inside and unlisted is drift, listed and ephemeral are silent', () => {
+  const root = '/fixture-home/user/dotfiles';
+  const r = classifyLiveWorktrees(
+    [
+      root, // the main checkout, listed as "dotfiles"
+      `${root}/.claude/worktrees/lane-x`, // ephemeral convention
+      '/fixture-home/user/scratch/check-wt', // outside the repo, unlisted
+      `${root}/unlisted-inside`, // inside the repo, unlisted
+      `${root}/listed-inside`, // inside the repo, listed
+    ],
+    root,
+    new Set(['dotfiles', 'listed-inside']),
+  );
+  assert.equal(r.drifts.length, 1);
+  assert.match(r.drifts[0].detail, /unlisted-inside/);
+  assert.equal(r.notes.length, 1);
+  assert.match(r.notes[0], /check-wt/);
+  assert.match(r.notes[0], /not drift/);
+});
+
+test('a REAL git worktree at a temp path outside the repo yields no drift (a note only); one inside the repo is still drift', () => {
+  const base = realpathSync.native(mkdtempSync(join(tmpdir(), 'c4-gate2-')));
+  const repo = join(base, 'repo');
+  const outside = join(base, 'scratch-outside');
+  const inside = join(repo, 'scratch-inside');
+  const git = (args, cwd = repo) => execFileSync('git', args, { cwd, encoding: 'utf8' });
+  try {
+    execFileSync('git', ['init', '-q', repo], { encoding: 'utf8' });
+    git(['config', '--local', 'user.name', 'c4-test']);
+    git(['config', '--local', 'user.email', 'c4-test@example.com']);
+    writeFileSync(join(repo, 'f.txt'), 'x\n');
+    git(['add', 'f.txt']);
+    git(['commit', '-q', '-m', 'init']);
+    git(['worktree', 'add', '-q', '-b', 'c4-outside', outside]);
+    const root = git(['rev-parse', '--show-toplevel']).trim();
+
+    const listed = new Set(['repo']);
+    const first = classifyLiveWorktrees(gitWorktreeList(repo), root, listed);
+    assert.deepEqual(first.drifts, [], 'the outside worktree must not be drift');
+    assert.equal(first.notes.length, 1, 'the outside worktree is reported as a note');
+    assert.match(first.notes[0], /scratch-outside/);
+
+    git(['worktree', 'add', '-q', '-b', 'c4-inside', inside]);
+    const second = classifyLiveWorktrees(gitWorktreeList(repo), root, listed);
+    assert.equal(second.drifts.length, 1, 'an unlisted worktree inside the repo path is still drift');
+    assert.match(second.drifts[0].detail, /scratch-inside/);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

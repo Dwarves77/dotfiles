@@ -128,6 +128,61 @@ export const GOVERNED = [
   },
 ];
 
+// ---- ACTION-TIME CLASSIFICATION TABLES (lane GATE-2, 2026-10-08) ----
+// DATA ONLY, read by governance/pretooluse-skill-gate.mjs. The evaluation (gate-evaluation-A, section 5,
+// P2) measured these three classifiers as the gate's false-positive sources: a DANGER regex that matched
+// prose inside commit messages and heredocs, an MCP read/write NAME REGEX that classed list_*, query_logs,
+// mark_chapter and navigate as writes, and a worktree-isolation matcher that asked on read-only git. Each
+// is now an explicit table, so a name or a form is a line here, not a regex edit in the gate.
+
+// Bash: patterns that mark a command as a data write / destructive op. Applied ONLY to the command's own
+// argv tokens (the gate strips heredoc bodies, quoted strings and `#` comments first), case-insensitive.
+// `truncate` is word-bounded so `echo truncated` is not the SQL/shell verb.
+export const BASH_DANGER_PATTERNS = [
+  '--apply\\b', '--execute\\b', '--write\\b',
+  'b2-runner', 'git\\s+push', 'rm\\s+-rf', 'drop\\s+(table|column)', '\\btruncate\\b', 'delete\\s+from',
+  'set\\s+not\\s+null', 'add\\s+constraint', 'update\\s+intelligence_items', 'update\\s+sources',
+  'set\\s+provenance_status', 'supabase\\s+db\\s+(reset|push)', 'run-migration', 'exec_sql', 'seed/apply-',
+];
+
+// MCP: the tool NAME is the part after `mcp__<server>__`. READ names never reach the skill demand; WRITE
+// names are skill-gated (deny when the governing skill is not loaded); a name in neither table is UNKNOWN
+// and is ASKED, never denied.
+export const MCP_READ_PREFIXES = ['list_', 'get_', 'read_', 'search_'];
+export const MCP_READ_NAMES = [
+  'query_logs', 'find', 'navigate', 'read_page', 'get_page_text', 'screenshot', 'mark_chapter',
+  'tabs_context', 'tabs_context_mcp', 'status',
+];
+export const MCP_WRITE_PREFIXES = ['create_', 'update_', 'delete_', 'deploy_', 'upload_', 'set_', 'run_'];
+export const MCP_WRITE_NAMES = ['apply_migration', 'execute_sql'];
+// `execute_sql` is a READ when the statement's first token is SELECT (see classifyMcp in the gate).
+export const MCP_SQL_TOOL_NAMES = ['execute_sql'];
+// `browser_batch` is read-only when EVERY action in `input.actions` classifies as read. A `computer`
+// action is read-only for these `input.action` values only (a click or a keypress is not).
+export const MCP_BATCH_NAMES = ['browser_batch'];
+export const MCP_COMPUTER_NAMES = ['computer'];
+export const MCP_COMPUTER_READ_ACTIONS = ['screenshot', 'zoom', 'wait', 'scroll', 'scroll_to', 'hover'];
+
+// Worktree isolation (RD-19): the git forms that move or rewrite a branch ask the operator to confirm the
+// assigned worktree. One row per subcommand. `none` forms never ask: merge-base, branch --list/-a/
+// --show-current, checkout -- <path>, rebase --abort, log, diff, status, fetch, rev-parse.
+//   needsArgs        the subcommand asks only when it has at least one argument
+//   exceptFirstArg   do not ask when the first argument is one of these (`checkout -- <path>`)
+//   exceptAnyArg     do not ask when any argument is one of these (`rebase --abort`)
+//   firstArg         ask only when the first argument is one of these (`worktree add`)
+//   anyArg           ask only when any argument is one of these (`reset --hard`)
+//   anyArgRe         ask only when any argument matches (`branch -d/-D`, `push --force/-f`)
+export const GIT_ISOLATION_FORMS = [
+  { sub: 'checkout', needsArgs: true, exceptFirstArg: ['--'] },
+  { sub: 'switch' },
+  { sub: 'rebase', exceptAnyArg: ['--abort'] },
+  { sub: 'merge' },
+  { sub: 'worktree', firstArg: ['add'] },
+  { sub: 'reset', anyArg: ['--hard'] },
+  { sub: 'branch', anyArgRe: /^(?:--delete|-[a-zA-Z]*[dD][a-zA-Z]*)$/ },
+  { sub: 'push', anyArgRe: /^(?:--force(?:-with-lease|-if-includes)?(?:=.*)?|-[a-zA-Z]*f[a-zA-Z]*)$/ },
+];
+
 // ---- matching ----
 function norm(p) {
   return (p || '').replaceAll('\\', '/');

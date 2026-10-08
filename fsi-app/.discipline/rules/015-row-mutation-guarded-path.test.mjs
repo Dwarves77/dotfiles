@@ -25,31 +25,33 @@ test('015 trigger: skips proof files that fake a client (.test/.npmtest/.selftes
   }
 });
 
-test('015 check: FAIL — raw .update() outside the guarded path', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: write', files: [{ path: 'fsi-app/scripts/foo.mjs', additions: 5, deletions: 0 }],
-    fileContents: { 'fsi-app/scripts/foo.mjs': RAW },
+// A NEW file: every line is introduced. (Since lane GATE-1 the rule charges only lines the commit adds;
+// a source handed to checkSource is a brand-new script unless a test builds an edit explicitly.)
+function newFileCtx(src, path = 'fsi-app/scripts/foo.mjs', message = 'feat: write') {
+  const lines = src.endsWith('\n') ? src.slice(0, -1).split('\n') : src.split('\n');
+  return buildContextFromFixture({
+    message,
+    files: [{ path, status: 'A', additions: lines.length, deletions: 0 }],
+    changes: [{ path, status: 'A', added: lines }],
+    fileContents: { [path]: src },
   });
-  const r = rule.check(ctx);
+}
+
+test('015 check: FAIL, raw .update() outside the guarded path', () => {
+  const r = rule.check(newFileCtx(RAW));
   assert.equal(r.status, 'FAIL');
   assert.ok(r.remediation.includes('db.mjs'));
 });
 
-test('015 check: PASS — uses the guarded helper', () => {
-  const ctx = buildContextFromFixture({
-    message: 'feat: write', files: [{ path: 'fsi-app/scripts/foo.mjs', additions: 5, deletions: 0 }],
-    fileContents: { 'fsi-app/scripts/foo.mjs': GUARDED },
-  });
-  assert.equal(rule.check(ctx).status, 'PASS');
+test('015 check: PASS, uses the guarded helper', () => {
+  assert.equal(rule.check(newFileCtx(GUARDED)).status, 'PASS');
 });
 
-test('015 check: PASS — override trailer', () => {
-  const ctx = buildContextFromFixture({
-    message: 'fix: legacy\n\nWrite-Guard-Override: legacy edit, no new write',
-    files: [{ path: 'fsi-app/scripts/foo.mjs', additions: 5, deletions: 0 }],
-    fileContents: { 'fsi-app/scripts/foo.mjs': RAW },
-  });
-  assert.equal(rule.check(ctx).status, 'PASS');
+test('015 check: the Write-Guard-Override trailer is gone: it no longer excuses a raw write', () => {
+  const ctx = newFileCtx(RAW, 'fsi-app/scripts/foo.mjs', 'fix: legacy' + String.fromCharCode(10, 10) + 'Write-Guard-Override: legacy edit, no new write');
+  const r = rule.check(ctx);
+  assert.equal(r.status, 'FAIL');
+  assert.ok(!r.remediation.includes('Write-Guard-Override'), 'the hook message must not offer a trailer that is not honoured');
 });
 
 test('015: metadata', () => { assert.equal(rule.id, '015'); });
@@ -64,9 +66,7 @@ test('015: metadata', () => { assert.equal(rule.id, '015'); });
 import * as ruleModule from './015-row-mutation-guarded-path.mjs';
 
 function checkSource(src, path = 'fsi-app/scripts/foo.mjs') {
-  return rule.check(buildContextFromFixture({
-    message: 'feat: x', files: [{ path, additions: 5, deletions: 0 }], fileContents: { [path]: src },
-  }));
+  return rule.check(newFileCtx(src, path));
 }
 
 test('015 narrowing PASS: a hash .update() in a file with no Supabase import', () => {
@@ -174,4 +174,72 @@ test('015 narrowing: rawWriteHits reports the line of each database write only',
   assert.equal(hits.length, 1);
   assert.equal(hits[0].method, 'delete');
   assert.equal(hits[0].line, 3);
+});
+
+// ---------------------------------------------------------------------------------------------------
+// GATE-1 (2026-10-08): introduced-lines scope. A raw write that was already in the file, on a line the
+// commit does not add or on an edited line that already carried the call, is not this commit's defect.
+// The register measured 4 of 4 firings in 30 days as false positives, all on code the author had not
+// written. A write the commit INTRODUCES still fails.
+// ---------------------------------------------------------------------------------------------------
+const OLD_WRITE = 'await sb.from("intelligence_items").update({ x: 1 }).eq("id", id);';
+
+function editCtx(path, post, hunk) {
+  return buildContextFromFixture({
+    message: 'fix: edit',
+    files: [{ path, status: 'M' }],
+    changes: [{ path, ...hunk }],
+    fileContents: { [path]: post },
+  });
+}
+
+test('015 scope: PASS, an untouched pre-existing raw write elsewhere in the file', () => {
+  const post = ['import { createClient } from "@supabase/supabase-js";', 'const sb = createClient(u, k);', OLD_WRITE, 'console.log("edited");', ''].join(String.fromCharCode(10));
+  const ctx = editCtx('fsi-app/scripts/foo.mjs', post, { removed: ['console.log("old");'], added: ['console.log("edited");'], oldStart: 4, newStart: 4 });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('015 scope: PASS, a line that already carried the write is edited (a value changed, same call)', () => {
+  const post = ['const sb = createClient(u, k);', 'await sb.from("intelligence_items").update({ x: 2 }).eq("id", id);', ''].join(String.fromCharCode(10));
+  const ctx = editCtx('fsi-app/scripts/foo.mjs', post, {
+    removed: [OLD_WRITE], added: ['await sb.from("intelligence_items").update({ x: 2 }).eq("id", id);'], oldStart: 2, newStart: 2,
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('015 scope: PASS, an adjacent line of a multi-line write chain is edited', () => {
+  const post = ['await sb', '  .from("x")', '  .update({ a: 1 })', '  .eq("id", 2);', ''].join(String.fromCharCode(10));
+  const ctx = editCtx('fsi-app/scripts/foo.mjs', post, { removed: ['  .eq("id", 1);'], added: ['  .eq("id", 2);'], oldStart: 4, newStart: 4 });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('015 scope: PASS, a write line MOVED from another script', () => {
+  const post = ['const sb = createClient(u, k);', OLD_WRITE, ''].join(String.fromCharCode(10));
+  const ctx = buildContextFromFixture({
+    message: 'refactor: move',
+    files: [{ path: 'fsi-app/scripts/old.mjs' }, { path: 'fsi-app/scripts/foo.mjs', status: 'A' }],
+    changes: [{ path: 'fsi-app/scripts/old.mjs', removed: [OLD_WRITE] }, { path: 'fsi-app/scripts/foo.mjs', status: 'A', added: ['const sb = createClient(u, k);', OLD_WRITE] }],
+    fileContents: { 'fsi-app/scripts/foo.mjs': post },
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('015 scope: FAIL, a write INTRODUCED into a file that already had one, reported at its own line', () => {
+  const post = ['const sb = createClient(u, k);', OLD_WRITE, 'await sb.from("sources").delete().eq("id", 9);', ''].join(String.fromCharCode(10));
+  const ctx = editCtx('fsi-app/scripts/foo.mjs', post, { added: ['await sb.from("sources").delete().eq("id", 9);'], oldStart: 2, newStart: 3 });
+  const r = rule.check(ctx);
+  assert.equal(r.status, 'FAIL');
+  assert.deepEqual(r.locations, [{ path: 'fsi-app/scripts/foo.mjs', line: 3 }]);
+});
+
+test('015 scope: FAIL, an edit that turns a read into a write', () => {
+  const post = ['const sb = createClient(u, k);', 'await sb.from("sources").delete().eq("id", 9);', ''].join(String.fromCharCode(10));
+  const ctx = editCtx('fsi-app/scripts/foo.mjs', post, { removed: ['await sb.from("sources").select("id").eq("id", 9);'], added: ['await sb.from("sources").delete().eq("id", 9);'], oldStart: 2, newStart: 2 });
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+test('015 scope: a staged script whose diff is not available (stale working tree) falls back to line text, and still fails an introduced write', () => {
+  const post = ['// shifted by an unstaged edit', 'const sb = createClient(u, k);', 'await sb.from("sources").delete().eq("id", 9);', ''].join(String.fromCharCode(10));
+  const ctx = editCtx('fsi-app/scripts/foo.mjs', post, { added: ['await sb.from("sources").delete().eq("id", 9);'], oldStart: 2, newStart: 2 });
+  assert.equal(rule.check(ctx).status, 'FAIL');
 });

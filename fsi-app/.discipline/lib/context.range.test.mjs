@@ -103,14 +103,14 @@ test('reproduction: the whole-range diff over the SAME commits adds one glyph li
   }
 });
 
-test('buildContextForRange: ctx.getAddedLines sees the glyph line the per-commit walk would miss', () => {
+test('buildContextForRange: ctx.introducedLines sees the glyph line the per-commit walk would miss', () => {
   const { dir, shas } = commitSnapshots();
   const savedCwd = process.cwd();
   try {
     process.chdir(dir);
     _clearRepoRootCache();
     const ctx = buildContextForRange({ range: `${shas.base}..${shas.c2}` });
-    const added = ctx.getAddedLines(REL_PATH);
+    const added = ctx.introducedLines(REL_PATH).added;
     const glyphLines = added.filter((l) => EM_DASH_RE.test(l));
     assert.ok(glyphLines.length >= 1, 'buildContextForRange must surface the added glyph line');
   } finally {
