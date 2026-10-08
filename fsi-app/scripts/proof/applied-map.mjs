@@ -13,7 +13,12 @@
 //                                                          is the only text there is, so it is APPLIED like identical (MIG-HIST-1b)
 //   superseded-by | data-only | comment-only               the row is SATISFIED with no file of its own: counted, listed
 //   outside-ledger                                         a file that is live but has no ledger row: APPLIED
-//   never-applied | duplicate-prefix                       a file production never applied: SKIPPED and listed
+//   duplicate-prefix                                       a file production never applied: SKIPPED and listed
+//   (no entry)                                             a file the map names nowhere whose own header says NOT APPLIED: SKIPPED and
+//                                                          listed as never-applied. Never-applied files are DERIVED, never committed in
+//                                                          the map (lane MIGTEST-1, 2026-10-08: a `never:` line per new migration made
+//                                                          the map a shared-append file); the derivation is derivesNeverApplied in
+//                                                          supabase/migrations/_lib/applied-status.mjs, the one site.
 // The last two groups are handled by their file, whatever their key is.
 //
 // ERRORS (the replay refuses): the map is absent (red until MIG-HIST-1 lands, the honest state); a ledger version
@@ -21,10 +26,12 @@
 // file (or superseded_by file) is missing on disk; a file claimed both to apply and to skip; a file to apply that the
 // migrations inventory (the order source) does not list.
 
-export const APPLY_CLASSES = Object.freeze(["identical", "comments-only", "code-differs", "recovered", "statements-null", "apply-record-stub"]);
+import { derivesNeverApplied } from "../../supabase/migrations/_lib/applied-status.mjs";
+
+export const APPLY_CLASSES =Object.freeze(["identical", "comments-only", "code-differs", "recovered", "statements-null", "apply-record-stub"]);
 export const SATISFIED_CLASSES = Object.freeze(["superseded-by", "data-only", "comment-only"]);
 export const BY_FILE_APPLY_CLASSES = Object.freeze(["outside-ledger"]);
-export const SKIP_CLASSES = Object.freeze(["never-applied", "duplicate-prefix"]);
+export const SKIP_CLASSES = Object.freeze(["duplicate-prefix"]);
 export const CLASSES = Object.freeze([...APPLY_CLASSES, ...SATISFIED_CLASSES, ...BY_FILE_APPLY_CLASSES, ...SKIP_CLASSES]);
 
 /** Parse the map's text. PURE. Returns { map } or { error }. */
@@ -42,8 +49,10 @@ export function parseAppliedMap(text) {
  * @param {object} map  parsed APPLIED-MAP.json
  * @param {string[]} diskFiles  *.sql file names in the migrations directory
  * @param {string[]} orderFiles  file names in the migrations inventory's order (the order source)
+ * @param {(file:string) => string} [readFile]  text of a migration file; read only for a file the map names nowhere, to
+ *   derive never-applied from its header. Without it every unnamed file is `unreferenced`.
  */
-export function resolveMap({ ledger, map, diskFiles, orderFiles }) {
+export function resolveMap({ ledger, map, diskFiles, orderFiles, readFile }) {
   const errors = [];
   const onDisk = new Set(diskFiles);
   const toApplyByFile = new Map();
@@ -54,6 +63,7 @@ export function resolveMap({ ledger, map, diskFiles, orderFiles }) {
   for (const [key, entry] of Object.entries(map)) {
     if (!entry || typeof entry !== "object") { errors.push({ kind: "entry_invalid", key, message: "the entry is not an object" }); continue; }
     const cls = entry.class;
+    if (cls === "never-applied") { errors.push({ kind: "never_entry_committed", key, class: cls, message: "never-applied files are derived from their own NOT APPLIED header and are not committed in the map; remove this entry" }); continue; }
     if (!CLASSES.includes(cls)) { errors.push({ kind: "class_unknown", key, class: cls ?? null, message: `unknown class ${JSON.stringify(cls)}` }); continue; }
     const file = entry.file ?? null;
     if (file != null) {
@@ -95,11 +105,20 @@ export function resolveMap({ ledger, map, diskFiles, orderFiles }) {
   }
   toApply.sort((a, b) => position.get(a.file) - position.get(b.file));
 
+  // A file the map names nowhere is never-applied exactly when its own header says so (the one derivation); any other
+  // unnamed file is reported as unreferenced, which is the failure.
+  const unnamed = diskFiles.filter((f) => !referenced.has(f)).sort();
+  const derivedNever = readFile ? unnamed.filter((f) => derivesNeverApplied(readFile(f))) : [];
+  const derivedSet = new Set(derivedNever);
+
   return {
     errors,
     toApply,
     satisfied: satisfied.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
-    skipped: [...skippedByFile.values()].filter((s) => onDisk.has(s.file)).sort((a, b) => (a.file < b.file ? -1 : 1)),
-    unreferenced: diskFiles.filter((f) => !referenced.has(f)).sort(),
+    skipped: [
+      ...[...skippedByFile.values()].filter((s) => onDisk.has(s.file)),
+      ...derivedNever.map((file) => ({ key: `derived:${file}`, file, class: "never-applied" })),
+    ].sort((a, b) => (a.file < b.file ? -1 : 1)),
+    unreferenced: unnamed.filter((f) => !derivedSet.has(f)),
   };
 }

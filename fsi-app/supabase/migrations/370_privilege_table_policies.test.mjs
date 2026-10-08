@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const RAW = readFileSync(join(HERE, "370_privilege_table_policies.sql"), "utf8");
@@ -30,10 +31,9 @@ const SRC_FILES = walk(SRC);
 const text = (f) => readFileSync(f, "utf8");
 const base = (f) => f.split(/[\\/]/).pop();
 
-test("header: subject line, APPLIED with the ledger version, and the profiles read policy is declared out of this migration", () => {
+test("header: subject line, applied status as the map says, and the profiles read policy is declared out of this migration", () => {
   assert.match(RAW, /^-- subject: Migration 370 /);
-  assert.match(RAW, /APPLIED \(production ledger version 20261008131555, as of 2026-10-08\)/);
-  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "370_privilege_table_policies.sql"), []);
   assert.match(RAW.split("\n")[0], /profiles read policy \(item 5 of the brief\) is NOT in this migration/);
   assert.doesNotMatch(SQL, /Public read/);
   assert.doesNotMatch(SQL, /profiles_public/);

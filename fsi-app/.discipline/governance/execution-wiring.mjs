@@ -40,10 +40,12 @@
 // whole gate; a silent "everything wired" would reopen the hole). CI has the files; a throw means a real
 // structural problem to fix. FS-pure (reads repo files only; no DB, no network) — safe inside the meta-gate.
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { discoverTests } from '../lib/test-discovery.mjs';
+import { codeAndStrings } from './source-lexer.mjs';
+import { workflowInvocationText } from '../fitness/lib/yml-read.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..');               // dotfiles repo root
@@ -122,7 +124,9 @@ function fitnessSentinelSet() {
   const set = new Set();
   for (const f of readdirSync(dir)) {
     if (!/\.mjs$/.test(f) || /\.test\.mjs$/.test(f)) continue;
-    const src = readFileSync(join(dir, f), 'utf8');
+    // Lane GATE-8 (2026-10-08, AUD-AT-4 B7-20): a path named only inside a COMMENT of a fitness function is not run
+    // by it. The source is read with comments blanked, so a quoted path inside a comment does not match.
+    const src = codeAndStrings(readFileSync(join(dir, f), 'utf8'));
     for (const m of src.matchAll(/['"]([^'"]+\.mjs)['"]/g)) {
       const p = m[1];
       if (p.includes('/')) set.add(p.replace(/^\.?\//, ''));
@@ -136,7 +140,9 @@ function fitnessSentinelSet() {
 // (same principle as every other surface here — never a hand-maintained duplicate), so adding a path to
 // the npm-deps step is by itself sufficient to make it execution-wired, with nothing else to remember.
 function workflowNamedSet() {
-  const yml = readRepo('.github/workflows/discipline.yml');
+  // Lane GATE-8 (2026-10-08, AUD-AT-4 B7-21): YAML comments and echo lines are not steps. A test path that only a
+  // comment of discipline.yml names is not run by CI.
+  const yml = workflowInvocationText(readRepo('.github/workflows/discipline.yml'));
   const set = new Set();
   for (const m of yml.matchAll(/fsi-app\/[\w./-]+\.(?:test|selftest|npmtest)\.mjs/g)) set.add(m[0]);
   return set;
@@ -156,8 +162,11 @@ function build() {
 }
 
 /** True iff `relPath` (repo-relative, POSIX) is executed by at least one CI surface. */
-export function isExecutionWired(relPath) {
+export function isExecutionWired(relPath, exists = (rel) => existsSync(join(REPO, rel))) {
   const p = String(relPath).replace(/\\/g, '/').replace(/^\.?\//, '');
+  // Lane GATE-8 (AUD-AT-4 B7-21): a path wired only by name must exist. A runner list or a workflow that names a
+  // file nobody committed runs nothing.
+  if (!exists(p)) return false;
   const { regexes, golden, auditSet, sentinelSet, workflowSet } = build();
   if (p === RENDERING_GUARD) return true;
   if (auditSet.has(p)) return true;
@@ -167,7 +176,3 @@ export function isExecutionWired(relPath) {
   for (const re of regexes) if (re.test(p)) return true;
   return false;
 }
-
-/** Test seam: force a rebuild (used by the negative test to inject fixtures is unnecessary — this reads
- *  the real runners; the test asserts real wired/unwired paths). Exposed for completeness. */
-export function _resetCacheForTest() { CACHE = null; }

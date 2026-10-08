@@ -11,10 +11,17 @@
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
+import { views, overrideLines, lineOfIndex } from '../lib/code-scan.mjs';
+import { foldStringConcat } from '../../governance/coverage-scan.mjs';
 
 // Direct Anthropic API access — a fetch to the messages endpoint, the x-api-key header, or the SDK.
-export const DIRECT_API_RE = /api\.anthropic\.com|["']x-api-key["']|new\s+Anthropic\b|@anthropic-ai\/sdk/;
+// Lane GATE-8 (2026-10-08, AUD-AT-4 B1-23 to B1-31): the base-URL environment variable is a direct-call signal even
+// with no host literal in the file, and a host or an SDK specifier split over a `+` is read folded. The header name
+// is matched without regard to case (HTTP header names are case-insensitive) but only in a file that also names
+// Anthropic: X-Api-Key is the header other providers use too (regulations.gov), so the any-case form alone is not
+// a model call.
+export const DIRECT_API_RE = /api\.anthropic\.com|["'`]x-api-key["'`]|new\s+Anthropic\b|@anthropic-ai\/sdk|ANTHROPIC_BASE_URL/;
+const HEADER_ANY_CASE_RE = /["'`]x-api-key["'`]/gi;
 
 // The chokepoint itself + its sanctioned low-level transport. These are ALLOWED to touch the API directly.
 export const SANCTIONED = new Set([
@@ -72,19 +79,28 @@ export const LEGACY_ALLOWLIST = [
 ];
 const ALLOWLIST_FILES = new Set(LEGACY_ALLOWLIST.map((e) => e.file));
 
-/** Lines (1-indexed) in `content` that make a direct Anthropic API call, ignoring comment lines + overrides.
- *  NB: test the FULL line (a URL like https://api.anthropic.com contains `//` — a naive comment-split would
- *  cut it and miss the match); skip only true comment/JSDoc lines. */
+/** Lines (1-indexed) in `content` that make a direct Anthropic API call, ignoring comments + overrides. Read on the
+ *  lexed source (comments blanked, string content kept) with adjacent string literals folded, so a host or an SDK
+ *  specifier split over a `+` is one literal (B1-23, B1-25), and a continuation line that starts with an asterisk
+ *  is code, not a skipped JSDoc line (B1-26). A URL like https://api.anthropic.com is never cut at the scheme. */
 export function directApiCallLines(content) {
-  const out = [];
-  const lines = content.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue; // pure comment / JSDoc line
-    if (DIRECT_API_RE.test(line) && !isOverridden(line, 'F15')) out.push(i + 1);
+  const overridden = overrideLines(content, 'F15');
+  const folded = foldStringConcat(views(content).text);
+  const out = new Set();
+  const re = new RegExp(DIRECT_API_RE.source, 'g');
+  let m;
+  while ((m = re.exec(folded))) {
+    const ln = lineOfIndex(folded, m.index);
+    if (!overridden.has(ln)) out.add(ln);
   }
-  return out;
+  if (/anthropic/i.test(folded)) {
+    HEADER_ANY_CASE_RE.lastIndex = 0;
+    while ((m = HEADER_ANY_CASE_RE.exec(folded))) {
+      const ln = lineOfIndex(folded, m.index);
+      if (!overridden.has(ln)) out.add(ln);
+    }
+  }
+  return [...out].sort((x, y) => x - y);
 }
 
 export const fitnessFunction = {
@@ -98,8 +114,10 @@ export const fitnessFunction = {
     // outside the spend gate — the exact blind spot that let a second LLM client accumulate 16 callers
     // with no ticket, no ceiling, no ledger. Test files are excluded (they construct API-looking strings
     // as fixtures; the portability + fixture-splitting conventions govern those).
-    return globFiles(['fsi-app/src/lib/**/*.{ts,mjs}', 'fsi-app/src/app/api/**/*.ts', 'fsi-app/scripts/**/*.mjs'])
-      .filter((p) => !/\.(test|selftest|npmtest)\.(ts|tsx|mjs)$/.test(p));
+    // Widened again by lane GATE-8 (AUD-AT-4 B1-27, B1-28, B1-30): every src file of every extension (components
+    // included) and every script of every extension (.cjs, .js, .ts).
+    return globFiles(['fsi-app/src/**/*.{ts,tsx,mjs,js,cjs,jsx}', 'fsi-app/scripts/**/*.{mjs,js,cjs,ts}'])
+      .filter((p) => !/\.(test|selftest|npmtest)\.(ts|tsx|mjs|js|cjs)$/.test(p));
   },
 
   check(filepath, content) {

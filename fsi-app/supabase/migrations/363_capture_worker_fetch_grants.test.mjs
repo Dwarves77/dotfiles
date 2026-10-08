@@ -8,14 +8,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const RAW = readFileSync(fileURLToPath(new URL("./363_capture_worker_fetch_grants.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const M256 = readFileSync(fileURLToPath(new URL("./256_migration_homes_and_vault_capture_key.sql", import.meta.url)), "utf8");
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and applied status as the map says", () => {
   assert.match(RAW, /^-- subject: Migration 363 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "363_capture_worker_fetch_grants.sql"), []);
 });
 
 test("the signature is the one migration 256 created: capture_worker_fetch(uuid[]), SECURITY DEFINER", () => {

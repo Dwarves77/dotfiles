@@ -91,10 +91,6 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
 
 const DRY = process.argv.includes("--dry");
 const RUN_SIGNALS = process.argv.includes("--signals");
-// Max ids per PostgREST `in=(...)` filter on a write path (IN-CHUNK, 2026-09-04): ~40 bytes per uuid
-// keeps the request URL near 4 KB, under the gateway header limit that turned a 1,317-id list into
-// `TypeError: fetch failed`.
-export const IN_CHUNK = 100;
 const CITE = {
   skill: "flywheel-build-plan-2026-08-10",
   reason: "U2/U5/F6/L4 analyze-corpus: persist the U1 cluster pass, capture the theme delta, and reflect coverage_gap / anticipated-coverage / signal-candidate findings (guarded path, rule 015).",

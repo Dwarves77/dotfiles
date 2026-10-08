@@ -109,12 +109,17 @@ export function skillUnresolvableInTranscript(transcript, slug) {
  */
 export function skillFileReadInTranscript(transcript, slug) {
   if (!transcript || !slug) return false;
-  const { uses } = parseTranscript(transcript);
-  const needle = `skills/${slug}/SKILL.md`.toLowerCase();
+  const { uses, erroredById } = parseTranscript(transcript);
+  // GATE-7 (register attack A-PT-T2): the path must END with `/.claude/skills/<slug>/SKILL.md` for THIS slug
+  // (a path-segment boundary, so `myskills/<slug>/SKILL.md` or `x/skills/<slug>/SKILL.md` outside a .claude
+  // directory is not the skill), and the Read must have RESOLVED: a result exists and is not an error. A Read
+  // of any other slug's file never satisfies this slug (the needle carries the slug).
+  const needle = `/.claude/skills/${slug}/SKILL.md`.toLowerCase();
   for (const u of uses) {
     if (u.name !== "Read") continue;
     const p = u?.input?.file_path;
-    if (typeof p === "string" && p.replace(/\\/g, "/").toLowerCase().endsWith(needle)) return true;
+    if (typeof p !== "string" || !p.replace(/\\/g, "/").toLowerCase().endsWith(needle)) continue;
+    if (erroredById.has(u.id) && erroredById.get(u.id) === false) return true;
   }
   return false;
 }

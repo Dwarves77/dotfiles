@@ -12,6 +12,7 @@
 //   2 = engine error
 
 import { consistencyChecks } from './manifest.mjs';
+import { recordGateFirings } from '../lib/gate-firings.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
 
 function parseArgs(argv) {
@@ -55,6 +56,8 @@ async function main() {
       return 2;
     }
     for (const d of drifts) driftSummary.push({ check, drift: d });
+    // every refusal is a logged firing (lane GATE-8, 2026-10-08); a passing check clears its own records
+    recordGateFirings('consistency-' + check.id, drifts.map((d) => ({ file: d.location ?? null, message: d.detail })));
     totalDrift += drifts.length;
     if (!args.quiet) {
       if (drifts.length === 0) console.log(`  PASS  [${check.id}]`);

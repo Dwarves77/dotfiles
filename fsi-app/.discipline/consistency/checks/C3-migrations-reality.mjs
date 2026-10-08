@@ -9,6 +9,11 @@
 //   (b) PARITY: the committed docs/inventories/migrations.md equals the generator's own derived output,
 //       byte for byte. A migration lane that adds a file and forgets to run the generator is caught
 //       here, the same way the OLD C3 caught a migration missing from a hand-maintained table.
+//       EXCEPTION (lane MIGTEST-1b, 2026-10-08): the page is regenerated only by the executor's post-merge
+//       refresh step, never by a lane (adjacent new rows conflict at one anchor), so a file whose own header
+//       says NOT APPLIED and that no map row names may have no row yet. Such a file is left out of the derived
+//       rows when the page lists no row for it. A LEDGERED file with no row still fails, and a never-applied
+//       file that already has a row must still match exactly.
 //
 // The Subject column moved INTO each migration file (once, lane N5, 2026-09-19) because [CONFIRMED,
 // measured against all 296 on-disk files]: the cleanest mechanical rule derivable from a migration's own
@@ -19,16 +24,18 @@
 import { drift, DRIFT_KIND, NO_DRIFT } from '../lib/drift.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import {
   parseSubjectLine,
   buildRows,
   buildInventoryPage,
+  omitUnlistedNeverApplied,
   extractFooter,
   extractGapRows,
   MIG_DIR_REL,
   DOC_PATH_REL,
 } from '../../../scripts/inventories/generate-migrations-inventory.mjs';
+import { neverAppliedFiles } from '../../../supabase/migrations/_lib/applied-status.mjs';
 
 export const consistencyCheck = {
   id: 'C3',
@@ -79,7 +86,16 @@ export const consistencyCheck = {
         drifts.push(drift(DRIFT_KIND.MALFORMED, `buildRows found malformed files (a) did not: ${malformed.join(', ')}`, MIG_DIR_REL));
       } else {
         const currentDocText = existsSync(docPath) ? readFileSync(docPath, 'utf8') : null;
-        const derived = buildInventoryPage(rows, extractGapRows(currentDocText), extractFooter(currentDocText));
+        // The unmapped files whose own header says NOT APPLIED, read from the same migrations directory (its
+        // APPLIED-MAP.json, so a throwaway copy is judged on its own record), through the one derivation.
+        const mapPath = join(migDir, 'APPLIED-MAP.json');
+        const map = existsSync(mapPath) ? JSON.parse(readFileSync(mapPath, 'utf8')) : {};
+        const never = neverAppliedFiles({ map, files: files.map((f) => [f, readFileSync(resolve(migDir, f), 'utf8')]) });
+        const derived = buildInventoryPage(
+          omitUnlistedNeverApplied(rows, currentDocText, never),
+          extractGapRows(currentDocText),
+          extractFooter(currentDocText),
+        );
         if (currentDocText !== derived) {
           drifts.push(drift(
             DRIFT_KIND.STALE_STATUS,

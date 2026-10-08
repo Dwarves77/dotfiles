@@ -255,3 +255,72 @@ test('012: has required metadata fields', () => {
   assert.equal(typeof rule.description, 'string');
   assert.ok(rule.ruleSource.includes('OBS-59'));
 });
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): honest forms from the AUD-AT-3 attack register. Every attack line is assembled from
+// fragments so this file's own source carries none of the patterns it asserts on.
+// ---------------------------------------------------------------------------
+
+const DRIVE_C = 'C' + ':';
+const BS = String.fromCharCode(92);
+
+function introduced(path, added, removed = null) {
+  return buildContextFromFixture({
+    message: 'x',
+    files: [{ path }],
+    changes: [{ path, added, ...(removed ? { removed } : {}) }],
+  });
+}
+
+test('012 GATE-7 A012-1: a path split across a string concatenation is still the path', () => {
+  const line = `const p = "${DRIVE_C}" + "${BS}${BS}Users${BS}${BS}x";`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [line])).status, 'FAIL');
+});
+
+test('012 GATE-7 A012-2: the JS-escaped (doubled backslash) form is caught', () => {
+  const line = `const p = "${DRIVE_C}${BS}${BS}Users${BS}${BS}someone${BS}${BS}proj";`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [line])).status, 'FAIL');
+});
+
+test('012 GATE-7 A012-3 / A012-3b: .cjs and .mts files are code files', () => {
+  const line = `const p = '${DRIVE_C}/Users/someone/x';`;
+  for (const ext of ['cjs', 'mts', 'cts', 'jsx', 'ps1', 'py']) {
+    const c = introduced(`fsi-app/scripts/a.${ext}`, [line]);
+    assert.equal(rule.trigger(c), true, ext);
+    assert.equal(rule.check(c).status, 'FAIL', ext);
+  }
+});
+
+test('012 GATE-7 A012-4: node_modules in the middle of a path is not the install', () => {
+  const line = `const p = '${DRIVE_C}/Users/someone/x';`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/node_modules/a.mjs', [line])).status, 'FAIL');
+  assert.equal(rule.check(introduced('fsi-app/scripts/fake_node_modules/a.mjs', [line])).status, 'FAIL');
+  assert.equal(rule.check(introduced('node_modules/pkg/a.js', [line])).status, 'PASS');
+});
+
+test('012 GATE-7 A012-5 / A012-10: a lowercase drive letter and another drive are caught; a URL scheme is not a drive', () => {
+  const lower = `const p = 'c${':'}/users/someone';`;
+  const other = `const p = 'D${':'}${BS}Users${BS}someone';`;
+  const url = `const u = 'https${':'}//example.com/Users/list';`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [lower])).status, 'FAIL');
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [other])).status, 'FAIL');
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [url])).status, 'PASS');
+});
+
+test('012 GATE-7 A012-6: a percent-encoded separator is caught', () => {
+  const line = `const p = "${DRIVE_C}%5CUsers%5Csomeone";`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [line])).status, 'FAIL');
+});
+
+test('012 GATE-7: the two-argument join form is caught', () => {
+  const line = `const p = path.join("${DRIVE_C}", "Users", "someone");`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [line])).status, 'FAIL');
+});
+
+test('012 GATE-7 A012-7: an edit that ADDS a second path to a line that already had one is charged; an unrelated edit of that line is not', () => {
+  const one = `const a = '${DRIVE_C}/Users/someone/a';`;
+  const two = `const a = '${DRIVE_C}/Users/someone/a', b = '${DRIVE_C}/Users/someone/b';`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [two], [one])).status, 'FAIL');
+  const renamed = `const aa = '${DRIVE_C}/Users/someone/a';`;
+  assert.equal(rule.check(introduced('fsi-app/scripts/a.mjs', [renamed], [one])).status, 'PASS');
+});

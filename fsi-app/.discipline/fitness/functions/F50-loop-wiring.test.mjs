@@ -158,8 +158,14 @@ const entry = (over = {}) => ({
   hop: 'h-one', family: 'fam-b', run_id: 'fam-b-run-001', github_run_id: '1', upstream_run_id: '0',
   started_at: '2026-10-03T00:00:00Z', trigger: 'workflow_run', ...over,
 });
-const run = (evidenceText, hops = [HOP], familyStatus = NO_ARTIFACT) =>
-  fitnessFunction.check('x', '', { hops, evidenceText, familyStatus, repoRoot: '/none', log: () => {} });
+// The ledger export the entries are checked against (lane GATE-8: a firing claim is proof only when its run id
+// resolves there). By default the fixture ledger holds a row for every entry in the evidence text, so the tests
+// below that are about OTHER properties of the entries keep testing those; the GATE-8 tests pass their own ledger.
+const rowsOf = (evidenceText) => {
+  try { return (JSON.parse(evidenceText).entries || []).map((e) => ({ family: e.family, run_id: e.run_id, trigger: e.trigger })); } catch { return []; }
+};
+const run = (evidenceText, hops = [HOP], familyStatus = NO_ARTIFACT, ledgerRows = rowsOf(evidenceText)) =>
+  fitnessFunction.check('x', '', { hops, evidenceText, familyStatus, ledgerRows, repoRoot: '/none', log: () => {} });
 
 test('GATES-1: an enforceFired hop with no artifact and no evidence entry is a violation (the old rule)', () => {
   const v = run(JSON.stringify({ entries: [] }));
@@ -215,4 +221,85 @@ test('readFiredEvidence: a workflow_dispatch entry with upstream_run_id fires a 
   assert.equal(readFiredEvidence(entry({}), [fb]).firedHopIds.has(HOP.id), true);
   assert.equal(readFiredEvidence(entry({}), [HOP]).problems.length, 1);
   assert.equal(readFiredEvidence(entry({ upstream_run_id: null }), [fb]).problems.length, 1);
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F50 B6-25: a hand-written run artifact with trigger workflow_run, whose run id is in no ledger row, does not satisfy enforceFired', () => {
+  const artifactStatus = (repoRoot, family, resolves) => ({
+    dirExists: true,
+    hasFiredArtifact: resolves === null ? true : resolves(family, 'fam-b-run-001'),
+  });
+  const forged = run(null, [HOP], artifactStatus, []);
+  assert.equal(forged.length, 1);
+  assert.match(forged[0].message, /enforceFired is true/);
+  // the same artifact with a real ledger row for that run id satisfies it
+  const real = run(null, [HOP], artifactStatus, [{ family: 'fam-b', run_id: 'fam-b-run-001', trigger: 'workflow_run' }]);
+  assert.deepEqual(real, []);
+});
+
+test('F50 B6-25: familyFiredStatus passes the artifact run id to the resolver and counts the artifact only when it resolves', () => {
+  withTempFamily('fam-z', [{ trigger: 'workflow_run' }], (repoRoot) => {
+    assert.equal(familyFiredStatus(repoRoot, 'fam-z').hasFiredArtifact, true); // no resolver: the old behaviour
+    assert.equal(familyFiredStatus(repoRoot, 'fam-z', () => false).hasFiredArtifact, false);
+    assert.equal(familyFiredStatus(repoRoot, 'fam-z', (f, id) => f === 'fam-z' && id === 'fam-z-run-001').hasFiredArtifact, true);
+  });
+});
+
+test('F50 B6-26: an evidence entry for a run id that never existed does not satisfy enforceFired, and the message names the id', () => {
+  const v = run(JSON.stringify({ entries: [entry({ run_id: 'fam-b-run-999' })] }), [HOP], NO_ARTIFACT, []);
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /unresolved run id\(s\): fam-b-run-999/);
+  assert.match(v[0].message, /harness-ledger-export\.json/);
+});
+
+test('F50 B6-26: an entry whose ledger row has a non-fired trigger, or another family, does not resolve', () => {
+  const e = JSON.stringify({ entries: [entry()] });
+  assert.equal(run(e, [HOP], NO_ARTIFACT, [{ family: 'fam-b', run_id: 'fam-b-run-001', trigger: 'manual' }]).length, 1);
+  assert.equal(run(e, [HOP], NO_ARTIFACT, [{ family: 'other', run_id: 'fam-b-run-001', trigger: 'workflow_run' }]).length, 1);
+  assert.deepEqual(run(e, [HOP], NO_ARTIFACT, [{ family: 'fam-b', run_id: 'fam-b-run-001', trigger: 'workflow_run' }]), []);
+});
+
+test('F50 B6-27: a workflow_run block written inside a run: heredoc, or a comment, is not the trigger edge', () => {
+  const faked = [
+    'name: Consumer',
+    'on:',
+    '  workflow_dispatch:',
+    'jobs:',
+    '  a:',
+    '    steps:',
+    '      - run: |',
+    '          cat <<EOF > x.yml',
+    '          on:',
+    '            workflow_run:',
+    '              workflows: ["Source sweep"]',
+    '          EOF',
+    '      # workflow_run:',
+    '      #   workflows: ["Source sweep"]',
+  ].join('\n');
+  assert.equal(extractWorkflowRunNames(faked), null);
+  assert.equal(hasWorkflowRunEdge(faked, 'Source sweep'), false);
+});
+
+test('F50 B6-46: the workflow_run trigger in flow style, scalar style and list style is read', () => {
+  assert.deepEqual(extractWorkflowRunNames('on: { workflow_run: { workflows: ["A", "B"], types: [completed] } }\n'), ['A', 'B']);
+  assert.deepEqual(extractWorkflowRunNames('on:\n  workflow_run: { workflows: [A] }\n'), ['A']);
+  assert.deepEqual(extractWorkflowRunNames('on: workflow_run\n'), []);
+  assert.deepEqual(extractWorkflowRunNames('on: [push, workflow_run]\n'), []);
+  assert.equal(extractWorkflowRunNames('on: [push, workflow_dispatch]\n'), null);
+});
+
+test('F50: the live loop-fired-evidence entries resolve against the committed ledger export, or their hop is not enforced', async () => {
+  const { LOOP_HOPS } = await import('../../governance/loop-manifest.mjs');
+  const { readHarnessLedgerExport } = await import('../../../scripts/lib/run-artifact.mjs');
+  const { getRepoRoot } = await import('../../lib/context.mjs');
+  const { readFileSync, existsSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const evPath = join(getRepoRoot(), 'fsi-app/.discipline/governance/loop-fired-evidence.json');
+  const entries = existsSync(evPath) ? JSON.parse(readFileSync(evPath, 'utf8')).entries : [];
+  const rows = readHarnessLedgerExport(getRepoRoot()).rows;
+  for (const hop of LOOP_HOPS.filter((h) => h.enforceFired)) {
+    const proofs = entries.filter((e) => e.hop === hop.id && rows.some((r) => r.family === e.family && String(r.run_id) === String(e.run_id)));
+    assert.ok(proofs.length > 0, `${hop.id} is enforceFired but no evidence entry resolves in the ledger export; refresh the export or leave enforceFired false`);
+  }
 });

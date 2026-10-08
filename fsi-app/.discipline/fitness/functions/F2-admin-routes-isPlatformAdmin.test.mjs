@@ -70,7 +70,7 @@ test('F2: enumerate returns admin route paths, route.ts only', () => {
   if (files.length > 0) {
     for (const f of files) {
       assert.match(f, /fsi-app\/src\/app\/api\/(admin\/|agent\/run\/|coverage\/entries\/)/);
-      assert.ok(f.endsWith('/route.ts'));
+      assert.match(f, /\/route\.(ts|tsx|js|jsx|mjs|cjs)$/);
     }
   }
 });
@@ -163,4 +163,44 @@ test('F2: the real worker routes fail with their workerAuthGuard call removed bu
     assert.match(mutated, /x-worker-secret/i, f);
     assert.equal(fitnessFunction.check(f, mutated).length, 1, f);
   }
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+const UNGATED = 'export async function POST(req) { return Response.json({ ok: true }); }';
+
+test('F2 B1-01 B1-02: an ungated admin route written as route.js / route.tsx / route.mjs is checked', () => {
+  for (const ext of ['js', 'tsx', 'jsx', 'mjs', 'cjs']) {
+    const v = fitnessFunction.check(`fsi-app/src/app/api/admin/foo/route.${ext}`, UNGATED);
+    assert.equal(v.length, 1, `route.${ext} must be checked`);
+  }
+});
+
+test('F2 B1-01: enumerate asks for every route extension Next serves', () => {
+  const src = fitnessFunction.enumerate.toString();
+  assert.match(src, /ROUTE_GLOBS/);
+});
+
+test('F2 B1-03: the gate name inside a string literal is not a gate', () => {
+  const v = fitnessFunction.check(
+    'fsi-app/src/app/api/admin/foo/route.ts',
+    'const msg = "isPlatformAdmin was checked upstream"; export async function POST() { return Response.json({ ok: msg }); }',
+  );
+  assert.equal(v.length, 1);
+});
+
+test('F2 B1-04: an override marker inside a string literal is not an override', () => {
+  const v = fitnessFunction.check(
+    'fsi-app/src/app/api/admin/foo/route.ts',
+    'const m = "// fitness-allow: F2 (forged)"; export async function POST() { return Response.json({ ok: m }); }',
+  );
+  assert.equal(v.length, 1);
+});
+
+test('F2: a real comment marker still overrides', () => {
+  const v = fitnessFunction.check(
+    'fsi-app/src/app/api/admin/foo/route.ts',
+    'export async function GET() { return ok; } // fitness-allow: F2 (public read-only endpoint)',
+  );
+  assert.deepEqual(v, []);
 });

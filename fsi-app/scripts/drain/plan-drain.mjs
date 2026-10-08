@@ -62,7 +62,7 @@ import { readDrainSwitch } from "./switch.mjs";
 import { emitJudgementDrainArtifact } from "./artifact.mjs";
 
 export const PLAN_SCHEMA = "judgement-drain-plan-1";
-export const LEASE_LANE = "judgement-drain";
+const LEASE_LANE = "judgement-drain";
 /** A lease must outlive a whole session; a crashed session's lease still goes stale and is claimable. */
 export const LEASE_STALE_SECONDS = 3 * 60 * 60;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

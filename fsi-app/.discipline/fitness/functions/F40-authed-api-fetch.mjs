@@ -64,7 +64,7 @@ const API_FETCH = /\b(\w*[Ff]etch)\(\s*(['"`])(\/api\/[^'"`]*)\2/g;
 /** Route files under src/app/api that actually CALL requireAuth (not merely mention it in a
  *  comment — /api/obligations/upcoming's header says "Public: no requireAuth" and is public).
  *  Returns a Set of route paths relative to src/app/api, e.g. "workspace/tags/[id]/items". */
-export const GUARD_CALL_RE = /\b(?:requireAuth|requireUserRoute|requireAdminRoute)\(request\)/;
+const GUARD_CALL_RE = /\b(?:requireAuth|requireUserRoute|requireAdminRoute)\(request\)/;
 
 export function guardedRoutes(files) {
   const root = getRepoRoot();
