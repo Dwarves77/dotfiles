@@ -215,6 +215,11 @@
 
 - [CONFIRMED] Run 37857895591 (1m44s) replayed 277 of 339 files (306 passes) and stopped at `310_listing_rpcs_item_grade.sql line 591: ABORT: get_workspace_intelligence_listings_public(1) returned 0 record-grade rows, expected >0 (1,095 measured 2026-09-05)`. Same class, same repair as 306: after the presence check (all eleven functions project `item_grade`) and the four zero-argument calls, the checks that assert the live population are skipped with a NOTICE when `intelligence_items` is empty. Row 310 was `comments-only` and is `code-differs` by derivation (the file adds statements the stored row does not carry).
 
+## Replay stop 19: 342 post-check reads columns pg_policy does not have, STORED-WINS (ruled residue 19)
+
+- [CONFIRMED] Run 37858153808 (1m39s) replayed 306 of 339 files, up from 277 (310 and everything to 341 pass), and stopped at `342_canonical_source_candidates_admin_gate.sql line 105: column pol.qual does not exist`. The file's final DO block reads `pol.qual` and `pol.with_check` from `pg_policy`; those are columns of the `pg_policies` view, `pg_policy` has `polqual` and `polwithcheck`, so the file cannot execute.
+- [CONFIRMED by `compareStored` and `statementKeys`] The ledger row (20261002025824, class `code-differs`) stores seven statements; the file has the same first six and a different seventh, and the stored seventh reads `pg_get_expr(pol.polqual ...)`, the working form. STORED-WINS: the executable part of 342 is replaced by the stored statements verbatim, the header kept, a run-citing block added; row re-derived `code-differs` to `identical`.
+
 ## Read and reused
 
 - Read in full: CLAUDE.md, `docs/dispatches/lane-common-contract.md`, `chain-proof.yml`, `chain-proof-workflow.test.mjs`, `replay-migrations.mjs`, `applied-map.mjs`, `APPLIED-MAP.json` (never and outside entries), `64-chain-proof.md`, `build-proof.yml`, the `discipline.yml` header and docs-only step, `.github/actions/maintenance-step/action.yml`, ADR-046, the header of migration 299, `write-local-env.mjs` and `preflight.mjs` headers.

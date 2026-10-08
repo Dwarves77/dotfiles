@@ -333,7 +333,7 @@
   "20260929182913": {"name":"336_community_anonymity_opt_in","file":"336_community_anonymity_opt_in.sql","class":"code-differs"},
   "20260930084717": {"name":"338_inference_records","file":"338_inference_records.sql","class":"code-differs"},
   "20260930084816": {"name":"339_derivation_edges_admit_inference_records","file":"339_derivation_edges_admit_inference_records.sql","class":"code-differs"},
-  "20261002025824": {"name":"342_canonical_source_candidates_admin_gate","file":"342_canonical_source_candidates_admin_gate.sql","class":"code-differs"},
+  "20261002025824": {"name":"342_canonical_source_candidates_admin_gate","file":"342_canonical_source_candidates_admin_gate.sql","class":"identical"},
   "20261002025833": {"name":"343_drop_user_list_order","file":"343_drop_user_list_order.sql","class":"code-differs"},
   "20261002030947": {"name":"340_drop_sources_reliability_score","file":"340_drop_sources_reliability_score.sql","class":"identical"},
   "20261002030959": {"name":"341_drop_promotion_policy","file":"341_drop_promotion_policy.sql","class":"identical"},
