@@ -65,13 +65,36 @@ import { rule as rule022 } from './rules/022-no-dash-glyphs.mjs';
 // rule shared.
 import { rule as rule023 } from './rules/023-source-not-diffed-as-text.mjs';
 
+// SCOPE (lane RULE-RANGE-1, 2026-10-08): what a rule judges, declared as data on each registered rule so the CI
+// runner can tell a verdict that a squash-merge makes moot from one it does not.
+//   introduced-lines  a line counts only when the pattern is introduced (012, 015, 017, 019, 022)
+//   tree-state        the files or tree a commit leaves (018 an ADDED page, 021 the cache-key file, 023 a file git
+//                     does not diff as text)
+//   whole-commit      the commit as a unit: its message, trailers, form (no registered rule today; the first
+//                     message-form rule declares this)
+// Every pull request merges by squash, so for a pull-request range the content verdict is the whole-range diff's
+// (runner.mjs). introduced-lines and tree-state are content scopes; whole-commit is judged per commit.
+export const SCOPE = Object.freeze({
+  INTRODUCED_LINES: 'introduced-lines',
+  TREE_STATE: 'tree-state',
+  WHOLE_COMMIT: 'whole-commit',
+});
+
+/** True when the rule judges content a squash-merge re-judges as one diff. A rule with no valid scope is NOT
+ *  squash-judged: an undeclared rule keeps failing per commit. */
+export function isSquashJudged(rule) {
+  return rule?.scope === SCOPE.INTRODUCED_LINES || rule?.scope === SCOPE.TREE_STATE;
+}
+
+const withScope = (rule, scope) => ({ ...rule, scope });
+
 export const rules = [
-  rule012,
-  rule015,
-  rule017,
-  rule018,
-  rule019,
-  rule021,
-  rule022,
-  rule023,
+  withScope(rule012, SCOPE.INTRODUCED_LINES),
+  withScope(rule015, SCOPE.INTRODUCED_LINES),
+  withScope(rule017, SCOPE.INTRODUCED_LINES),
+  withScope(rule018, SCOPE.TREE_STATE),
+  withScope(rule019, SCOPE.INTRODUCED_LINES),
+  withScope(rule021, SCOPE.TREE_STATE),
+  withScope(rule022, SCOPE.INTRODUCED_LINES),
+  withScope(rule023, SCOPE.TREE_STATE),
 ];
