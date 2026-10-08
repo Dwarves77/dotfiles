@@ -15,10 +15,10 @@ enforcing_invariant: PENDING — no RD-number assigned yet (out of this lane's w
 doctrine: >
   A component is never left "built, dormant." Nothing may claim closure by write-set alone: a
   maintenance step or dispatchable workflow that has never run, a docs/PROGRAM-BOARD.md row that stays
-  NEXT across trains with no owning train, a table created by a recent migration with a writer and no
+  NEXT for more than 21 days with no owning train, a table created by a recent migration with a writer and no
   reader (or the reverse), or a lane brief that lacks the plan's §0 done-conditions each fails CI. Every
-  failure is RATCHET-ONLY: an allowlist entry may defer one, but only with a stated disposition and a
-  numeric expiry train, and the allowlist audits itself (a stale or expired entry is itself a failure).
+  failure is RATCHET-ONLY: an allowlist entry may defer one, but only with a stated disposition and an
+  ISO until date, and the allowlist audits itself (a stale or expired entry is itself a failure).
 doctrine_seed: >
   Carried verbatim from docs/plans/complete-system-build-plan-2026-09-04.md §"Why the previous plans
   stopped short": "Nothing enforces closure. F28 fails CI when a harness family drifts; F25 fails CI when
@@ -65,19 +65,14 @@ detection_signals:
     export's capturedAt, else its newest run date, else the wall clock (ledgerClock in closure-gate.mjs).
     A NEXT row's age is its last-touched commit date (git blame) against that clock; an allowlist expiry
     is an ISO `until` date.
-  dispatch evidence: any ONE of (a) a `scripts/harness-runs/<family>/*-run-*.json` artifact for the six
-    workflows with a harness family, (b) a docs/runbooks/MAINTENANCE-RUNBOOK.md section (`## N. `step`)`)
-    citing a run number / Actions run id / "landed live", (c) an entry in the machine-readable
-    docs/ops/dispatch-ledger.jsonl (shape: {date, workflow, step, mode, run_id, outcome, note}). Appended
-    by hand by the coordinator per dispatch through 2026-09-07 (81 rows); lane M9b (2026-09-18,
-    stage-audit-2026-09-18 s6-gates-harness.md) mechanized this for the `maintenance` workflow specifically
-    -- `.github/workflows/maintenance.yml`'s own final steps now append the row and commit it, via
-    `scripts/harness-runs/append-dispatch-ledger.mjs` (a pure row builder) -- so the ledger's `maintenance`
-    rows are machine-written from this date forward; every OTHER dispatchable workflow (source-sweep,
-    ledger-consume, population-turn, corpus-turn, downstream-chain, propagation-drain) still relies on the
-    coordinator's hand-append until each gets the same treatment. See closure-gate.mjs's own header for the
-    seeding rationale and `docs/ops/dispatch-ledger.jsonl`'s own 2026-09-18 marker row for the 11-day gap
-    (2026-09-07 to 2026-09-17) this lane deliberately did not backfill.
+  dispatch evidence: the harness ledger export only (fsi-app/.discipline/governance/harness-ledger-export.json,
+    regenerated from the harness_runs table by scripts/lib/export-harness-ledger.mjs). A maintenance step is
+    dated by the newest `maintenance` family row whose config.step is that step (or `all`); a workflow is
+    dated by the newest row of its harness family. A tracked run artifact, a runbook "run #N" sentence and
+    the retired dispatch-ledger.jsonl are not evidence: each is a file a person can write. With the export
+    committed, a workflow with no ledger row fails whatever its age; with no export there is nothing to ask,
+    so only the age window applies. A dispatch-only workflow with no harness family can be held out of the
+    window by a dated, reasoned NEVER_RUN_DORMANT entry, which expires on its `until` date.
 single_home: fsi-app/.discipline/governance/closure-gate.mjs (four pure cores + a git/fs live driver)
 proof: fsi-app/.discipline/governance/closure-gate.test.mjs (red-then-green per check + a LIVE assertion
   the real tree is green, same pattern doctrine-contradiction.test.mjs and producer-consumer-orphan.mjs
@@ -89,9 +84,9 @@ allowlists: STALE_NEXT_ALLOWLIST / WRITER_READER_ALLOWLIST in closure-gate.mjs (
   F23's GAP_BASELINE).
 residual: >
   STALE-NEXT's allowlist keys the exact row text (any edit re-opens the row for review, by design — a
-  reworded row is not automatically re-approved). NEVER-RUN's evidence sources are FS/git-only: a real
-  dispatch that left no harness artifact, no runbook citation, and no ledger entry (a hand-run outside
-  every recorded surface) would still read as never-run — the same "best-supported reading of the
+  reworded row is not automatically re-approved). NEVER-RUN's evidence is the committed ledger export
+  only: a real dispatch that left no harness_runs row, or whose row is newer than the last export refresh
+  (the refresh is credentialed), would still read as never-run, the same "best-supported reading of the
   evidence" caveat B1-modules.md's own audit named for several of its BUILT-NOT-WIRED verdicts. The
   formal invariants.mjs/doctrine-register.mjs registration named at the top of this file is itself a
   residual of this lane's own write-set boundary, not a defect in the mechanism.
