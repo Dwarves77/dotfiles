@@ -467,7 +467,7 @@ const deps = {
     match: (q) => q.eq("created_by", createdBy(TAG_NAMESPACE, NO_DERIVABLE_SUBTYPE)),
   }),
   insertMany: (rows) => guardedInsertMany("integrity_flags", rows, { cite: CITE, select: "id" }),
-  // IN-CHUNK (2026-09-04): chunked by id (100 per request); see analyze-corpus.mjs IN_CHUNK.
+  // IN-CHUNK (2026-09-04): chunked by id (100 per request).
   updateStale: (ids) => guardedUpdateByIds(
     "integrity_flags",
     ids,

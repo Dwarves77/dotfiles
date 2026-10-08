@@ -150,7 +150,3 @@ function walkRecursive(absDir, root) {
   }
   return out;
 }
-
-// Exported for tests.
-export const _expandPattern = expandPattern;
-export const _matchesTail = matchesTail;

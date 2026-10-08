@@ -36,7 +36,7 @@ export const REFERENCE_FILES = new Set([
 ]);
 
 /** Hosts that are NOT external routes: platform infrastructure, documentation, placeholders. */
-export const NOT_EXTERNAL_RE = /(^|\.)(localhost|example\.com|example\.org|w3\.org|supabase\.co|supabase\.com|vercel\.com|vercel\.app|github\.com|githubusercontent\.com|npmjs\.com|nodejs\.org|carosledge\.com|anthropic\.com\/claude|claude\.com|react\.dev|nextjs\.org|schema\.org|json-schema\.org|purl\.org)$/i;
+const NOT_EXTERNAL_RE = /(^|\.)(localhost|example\.com|example\.org|w3\.org|supabase\.co|supabase\.com|vercel\.com|vercel\.app|github\.com|githubusercontent\.com|npmjs\.com|nodejs\.org|carosledge\.com|anthropic\.com\/claude|claude\.com|react\.dev|nextjs\.org|schema\.org|json-schema\.org|purl\.org)$/i;
 
 /** Consolidated hosts: exactly one home each. Add a host here in the commit that consolidates it. */
 export const HOST_HOMES = {

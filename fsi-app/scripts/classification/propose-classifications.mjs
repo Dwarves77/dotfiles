@@ -109,7 +109,6 @@ import { planReflect } from "../connections/propose-tags.mjs";
 // framework's own stated defaults), not operator-ruled constants — named here, not buried, so a future
 // ruling has one obvious place to land.
 export const DRIFT_THRESHOLD_POINTS = 30; // framework Section 5b default
-export const ANOMALY_THRESHOLD = 0.05; // framework Section 5c default
 export const MIN_ITEMS_FOR_DRIFT_CHECK = 10; // framework leaves window size to operator (open question 2); a
 // single-digit item count trivially "drifts" from any distribution, so a floor avoids noise pending that ruling.
 

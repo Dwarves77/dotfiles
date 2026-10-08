@@ -19,7 +19,7 @@ const COLS = '(?:global_processing_paused|scrape_cadence|judgement_drain)';
 // A bareword column followed by ` = ` (assignment OR raw SQL SET), NOT preceded by a quote/word char (so a
 // string-literal read is excluded; a preceding `.` for a property write IS allowed). Plus an inline .update
 // object carrying the column (object-key `:` form).
-export const WRITE_RES = [
+const WRITE_RES = [
   new RegExp(`(?<!["'\\w])${COLS}\\s*=\\s*[^=]`),
   new RegExp(`\\.update\\s*\\(\\s*\\{[^}]*\\b${COLS}\\b`),
 ];
@@ -28,7 +28,7 @@ export const WRITE_RES = [
 export const SANCTIONED = 'src/app/api/admin/sources/pause-global/route.ts';
 
 /** 1-indexed line of the first direct pause-flag write, or 0 if none. */
-export function findPauseFlagWrite(content) {
+function findPauseFlagWrite(content) {
   for (const re of WRITE_RES) {
     const m = re.exec(content);
     if (m) return content.slice(0, m.index).split(/\r?\n/).length;

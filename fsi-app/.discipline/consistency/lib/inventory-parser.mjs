@@ -59,12 +59,12 @@ function parseRow(line) {
 }
 
 // Strip markdown link syntax: [label](url) -> label
-export function stripMarkdownLink(s) {
+function stripMarkdownLink(s) {
   return s.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 }
 
 // Strip markdown inline-code: `foo` -> foo
-export function stripBackticks(s) {
+function stripBackticks(s) {
   return s.replace(/`([^`]+)`/g, '$1');
 }
 

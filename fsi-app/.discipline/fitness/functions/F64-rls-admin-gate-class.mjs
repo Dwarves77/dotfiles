@@ -292,12 +292,6 @@ function loadCorpus() {
   return _corpusCache;
 }
 
-// Test-only seam: force the next check() call to reload the corpus from disk (or from an injected
-// list, via the `corpus` option on check()).
-export function _clearCorpusCache() {
-  _corpusCache = null;
-}
-
 export const fitnessFunction = {
   id: 'F64',
   name: 'rls-admin-gate-class',

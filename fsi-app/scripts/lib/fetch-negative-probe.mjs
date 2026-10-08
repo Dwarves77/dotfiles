@@ -101,7 +101,7 @@ export function findFetchNegativeMappings(text, file) {
   return hits;
 }
 
-export function auditFetchNegative(root) {
+function auditFetchNegative(root) {
   const surfaces = discoverSurfaces(root);
   const cov = emptyCoverage("fetch-failure -> substantive-negative probe (surface-enumerated; failure-handler window + lexicon)");
   const allHits = [];

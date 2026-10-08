@@ -368,7 +368,7 @@ export function currentBranch(root) {
   }
 }
 
-export const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
+const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
 
 export function runCheck4(root) {
   const branch = currentBranch(root);

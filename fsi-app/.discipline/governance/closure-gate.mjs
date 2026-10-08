@@ -479,8 +479,8 @@ function harnessArtifactExists(family) {
 // docs/runbooks/maintenance.d/ (each file keeps its own "## N. `step`" heading verbatim). The evidence
 // scan below reads the assembled corpus: the index first, then every step file in filename order, which
 // is the original section order (zero padded numbers, then a/b/c suffixes, then the A<n> appendices).
-export const RUNBOOK_INDEX_PATH = 'docs/runbooks/MAINTENANCE-RUNBOOK.md';
-export const RUNBOOK_STEP_DIR = 'docs/runbooks/maintenance.d';
+const RUNBOOK_INDEX_PATH = 'docs/runbooks/MAINTENANCE-RUNBOOK.md';
+const RUNBOOK_STEP_DIR = 'docs/runbooks/maintenance.d';
 
 /** PURE. indexText: the index file text; stepFiles: [{ name, text }] in any order. */
 export function assembleRunbookCorpus(indexText, stepFiles) {

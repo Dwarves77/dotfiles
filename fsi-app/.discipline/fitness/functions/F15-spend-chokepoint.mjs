@@ -14,7 +14,7 @@ import { globFiles } from '../lib/glob.mjs';
 import { isOverridden } from '../lib/file-content.mjs';
 
 // Direct Anthropic API access — a fetch to the messages endpoint, the x-api-key header, or the SDK.
-export const DIRECT_API_RE = /api\.anthropic\.com|["']x-api-key["']|new\s+Anthropic\b|@anthropic-ai\/sdk/;
+const DIRECT_API_RE = /api\.anthropic\.com|["']x-api-key["']|new\s+Anthropic\b|@anthropic-ai\/sdk/;
 
 // The chokepoint itself + its sanctioned low-level transport. These are ALLOWED to touch the API directly.
 export const SANCTIONED = new Set([

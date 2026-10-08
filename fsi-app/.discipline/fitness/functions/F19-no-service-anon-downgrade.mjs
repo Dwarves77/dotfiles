@@ -11,7 +11,7 @@ import { globFiles } from '../lib/glob.mjs';
 import { isOverridden } from '../lib/file-content.mjs';
 
 // The downgrade shape, either order, tolerant of the line break the pattern is usually written across.
-export const DOWNGRADE_RE = [
+const DOWNGRADE_RE = [
   /SUPABASE_SERVICE_ROLE_KEY[\s\S]{0,150}?\|\|[\s\S]{0,150}?ANON_KEY/,
   /ANON_KEY[\s\S]{0,150}?\|\|[\s\S]{0,150}?SUPABASE_SERVICE_ROLE_KEY/,
 ];

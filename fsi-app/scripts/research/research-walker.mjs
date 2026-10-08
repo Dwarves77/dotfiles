@@ -73,7 +73,7 @@ import {
 
 loadLocalEnvFile();
 
-export const WALKER_NAME = "research-walker";
+const WALKER_NAME = "research-walker";
 export const HARNESS_FAMILY = "research-walker";
 
 // Gate 1 (ADR-023 section 4 shape). Reviewed at authorship; flipping a DIFFERENT lane's live-arming
@@ -137,7 +137,7 @@ export async function searchOpenAlexWorks({ query, perPage = 10 } = {}, deps = {
 // target: the target is closed by rule when the question is answered, not by being searched.
 
 export const MAX_HOLDINGS_NEEDS = 10;
-export const HOLDINGS_NEED_PER_PAGE = 5;
+const HOLDINGS_NEED_PER_PAGE = 5;
 
 /** Pure: the needs (subject_ref, need in words, item id, surface, product question) of open holdings-need
  *  target flags, in subject_ref order, at most `max`. A flag without a structured need is skipped. */
