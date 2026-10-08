@@ -1,7 +1,7 @@
 // Integration tests for the fitness runner.
 // Run: node --test fsi-app/.discipline/fitness/runner.test.mjs
 
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -28,7 +28,7 @@ const NPM_FREE_SUBSET = ['F2', 'F6', 'F8'];
 const SANDBOX = pathToFileURL(resolve(import.meta.dirname, '..', 'lib', 'no-npm-sandbox.mjs')).href;
 
 function runRunner(args, nodeArgs = []) {
-  const r = spawnSync('node', [...nodeArgs, RUNNER, ...args], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const r = spawnSync('node', [...nodeArgs, RUNNER, ...withFirings(args)], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
   return { status: r.status, out: r.stdout || '', err: r.stderr || '' };
 }
 
@@ -55,7 +55,7 @@ test('runner: F9 to F12 with no installed dependencies SKIP (no violation, exit 
 
 test('runner: --function=F2 runs only F2', () => {
   try {
-    const out = execFileSync('node', [RUNNER, '--function=F2', '--verbose'], { encoding: 'utf-8' });
+    const out = execFileSync('node', [RUNNER, ...withFirings(['--function=F2', '--verbose'])], { encoding: 'utf-8' });
     assert.match(out, /\[F2\]/);
     // F3 should not appear in the run output
     assert.equal(out.includes('[F3]'), false);
@@ -67,7 +67,7 @@ test('runner: --function=F2 runs only F2', () => {
 
 test('runner: --function with unknown id exits 2', () => {
   try {
-    execFileSync('node', [RUNNER, '--function=F999'], { encoding: 'utf-8', stdio: 'pipe' });
+    execFileSync('node', [RUNNER, ...withFirings(['--function=F999'])], { encoding: 'utf-8', stdio: 'pipe' });
     assert.fail('should have thrown');
   } catch (err) {
     assert.equal(err.status, 2);
@@ -79,6 +79,16 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildFiringRecords, writeFiringsArtifact, EVIDENCE_MAX } from './runner.mjs';
+
+// Lane TESTFIX-1 (2026-10-08): every runner invocation below writes the firing artifact, and without
+// --firings-out it writes to the default fsi-app/.discipline/out/fitness-firings.json in the REAL working
+// tree (gitignored, but a test must not write there). withFirings() points each invocation that does not
+// name its own target at a private temp directory, removed when the file finishes.
+const FIRINGS_SCRATCH = mkdtempSync(join(tmpdir(), 'fitness-runner-test-'));
+after(() => { rmSync(FIRINGS_SCRATCH, { recursive: true, force: true }); });
+function withFirings(args) {
+  return args.some((a) => a.startsWith('--firings-out=')) ? args : [...args, `--firings-out=${join(FIRINGS_SCRATCH, 'fitness-firings.json')}`];
+}
 
 test('firings: one record per violation, with gate, verdict, file, line and evidence', () => {
   const recs = buildFiringRecords([

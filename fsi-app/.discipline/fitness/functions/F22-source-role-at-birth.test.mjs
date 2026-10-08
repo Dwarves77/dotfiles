@@ -106,3 +106,50 @@ test('F22 legacy allowlist covers only already-executed one-shot scripts, never 
     'Every allowlist entry carries a reason + reviewByPhase, same as F15.'
   );
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F22 B2-33: a comment elsewhere in the file naming classifySourceRole is not a classification', () => {
+  const src = `// we should call classifySourceRole(name, url) one day\nawait supabase.from("sources").insert(row);`;
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22 B2-34: a string literal naming classifySourceRole is not a classification', () => {
+  const src = `const note = "classifySourceRole is not wired yet";\nawait supabase.from("sources").insert(row);`;
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22 B2-35: .from( and the table name on separate lines', () => {
+  const src = `await supabase\n  .from(\n    "sources"\n  )\n  .insert(row);`;
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22 B2-36: the table name through a constant', () => {
+  const src = `const T = "sources";\nawait supabase.from(T).insert(row);`;
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22 B2-37: a URL earlier on the line does not truncate the scan', () => {
+  const src = `const u = "https://example.com/a"; await supabase.from("sources").insert(row);`;
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22 B2-38: raw SQL INSERT INTO sources through a pg client', () => {
+  const src = 'await client.query("INSERT INTO sources (name, url) VALUES ($1, $2)", [n, u]);';
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22 B2-39: scripts written as .ts, .cjs or .js are in scope', () => {
+  const globs = fitnessFunction.enumerate.toString();
+  assert.match(globs, /cjs/);
+});
+
+test('F22: an insert that is the far end of a long chain is still the sources insert', () => {
+  const src = `await supabase.from("sources")\n  .select("id")\n  .eq("a", 1)\n  .eq("b", 2)\n  .eq("c", 3)\n  .insert(row);`;
+  assert.equal(isRolelessSourceInsert(src).length, 1);
+});
+
+test('F22: a real classifier call in code still passes, and a forged marker inside a string does not override', () => {
+  assert.equal(isRolelessSourceInsert(`import { classifySourceRole } from "./classify-source-role";\nconst r = classifySourceRole(n, u);\nawait supabase.from("sources").insert(r);`).length, 0);
+  assert.equal(isRolelessSourceInsert(`const m = "// fitness-allow: F22 (forged)"; await supabase.from("sources").insert(row);`).length, 1);
+});

@@ -41,10 +41,10 @@ function runFixture(message, files) {
 
 test('runner: --list prints the registered rules and none of the removed ones', () => {
   const out = execFileSync('node', [RUNNER, '--list'], { encoding: 'utf-8' });
-  for (const id of ['012', '015', '017', '018', '019', '021', '022']) assert.ok(out.includes(`[${id}]`), `rule ${id} registered`);
+  for (const id of ['012', '015', '017', '018', '019', '021', '022', '023']) assert.ok(out.includes(`[${id}]`), `rule ${id} registered`);
   for (const id of ['014', '016', '020']) assert.ok(!out.includes(`[${id}]`), `rule ${id} removed`);
   assert.ok(out.includes('Hardcoded user-home path'));
-  assert.ok(out.includes('Registered rules (7)'));
+  assert.ok(out.includes('Registered rules (8)'));
 });
 
 test('runner: fixture for trivial commit exits 0', () => {

@@ -81,7 +81,7 @@ export function messagesForRange(range, cwd) {
   const out = git(['log', '--format=%B%x00', range], cwd);
   return out.split('\0').map((s) => s.trim()).filter(Boolean);
 }
-export function messageForCommit(sha, cwd) {
+function messageForCommit(sha, cwd) {
   const out = git(['log', '-1', '--format=%B', sha], cwd);
   return out.trim() ? [out.trim()] : [];
 }

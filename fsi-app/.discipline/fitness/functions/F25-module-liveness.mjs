@@ -52,6 +52,12 @@ import { join, posix } from 'node:path';
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
+import { views } from '../lib/code-scan.mjs';
+// The comment-and-echo-free reading of a workflow or package.json command lives in the dependency-free yml-read
+// module (execution-wiring.mjs needs it too and cannot import this file without a cycle). Re-exported here for the
+// callers that already take it from this module.
+import { workflowInvocationText, packageCommandInvocationText } from '../lib/yml-read.mjs';
+export { workflowInvocationText, packageCommandInvocationText };
 
 const MANIFEST = 'docs/audits/dead-code-manifest-2026-08-11.txt';
 
@@ -98,7 +104,7 @@ export function findDispatchRoots(
   for (const wf of listFilesFn(['.github/workflows/*.yml'])) {
     let text;
     try { text = readFileFn(wf); } catch { continue; }
-    for (const m of text.matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+    for (const m of workflowInvocationText(text).matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
   }
 
   // Source 2: fsi-app/package.json's own "scripts" section (e.g. `perf:bundles` -> measure-bundles.mjs) —
@@ -107,9 +113,33 @@ export function findDispatchRoots(
   try {
     const pkg = JSON.parse(readFileFn('fsi-app/package.json'));
     for (const cmd of Object.values(pkg.scripts || {})) {
-      for (const m of String(cmd).matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+      for (const m of packageCommandInvocationText(cmd).matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
     }
   } catch { /* no package.json scripts to mine — not fatal */ }
+
+  // Source 13 (lane GATE-8, 2026-10-08): maintenance steps. The shared composite action
+  // (.github/actions/maintenance-step) runs `scripts/maintenance/${STEP}.mjs`, with the step name passed as
+  // `step: <name>` by the calling workflow, and maintenance.yml lists every dispatchable step in its `options:` list.
+  // Neither spells the script path, so until now the only thing that made recompute-tiers.mjs and its siblings roots
+  // was a YAML COMMENT that happened to name the path. Comments no longer count (AUD-AT-4 B4-17), so the real wiring
+  // is read here: a `step: <name>` line (not a comment) or an `options:` entry whose script exists is a root.
+  {
+    const stepNames = new Set();
+    for (const wf of listFilesFn(['.github/workflows/*.yml'])) {
+      let text;
+      try { text = readFileFn(wf); } catch { continue; }
+      const live = workflowInvocationText(text);
+      for (const m of live.matchAll(/^\s*step:\s*['"]?([a-z0-9][a-z0-9-]*)['"]?\s*$/gim)) stepNames.add(m[1]);
+      for (const m of live.matchAll(/options:\s*\[([^\]]+)\]/g)) {
+        for (const n of m[1].split(',')) { const name = n.trim().replace(/^['"]|['"]$/g, ''); if (/^[a-z0-9][a-z0-9-]*$/.test(name)) stepNames.add(name); }
+      }
+    }
+    const known = new Set(listFilesFn(['fsi-app/scripts/maintenance/*.mjs']));
+    for (const name of stepNames) {
+      const path = `fsi-app/scripts/maintenance/${name}.mjs`;
+      if (known.has(path)) roots.add(path);
+    }
+  }
 
   // Source 3: esbuild module-alias tables under .discipline/rendering — every `stub-*.mjs` filename
   // literal (however it is embedded: `join(HERE, 'stub-x.mjs')`, a template literal, a STUBS map value)
@@ -241,7 +271,7 @@ export function findDispatchRoots(
     let text;
     try { text = readFileFn(wf); } catch { continue; }
     if (!text) continue;
-    for (const m of text.matchAll(SH_PATH_RE)) shQueue.add(normalize(m[1]));
+    for (const m of workflowInvocationText(text).matchAll(SH_PATH_RE)) shQueue.add(normalize(m[1]));
   }
   for (const name of HOOK_SOURCE_FILES) {
     let text;
@@ -278,17 +308,28 @@ export function findDispatchRoots(
   // wired module by subprocess dispatch, not a registry/operator-CLI exemption (see
   // OUT-OF-REPO-BOUNDARY.md's own note on this). Fixed-point over the growing root set: a spawn chain
   // more than one hop deep would otherwise need its own hand-added source.
-  const RESOLVE_HERE_RE = /resolve\(\s*HERE\s*,\s*['"`]([\w.-]+\.mjs)['"`]\s*\)/g;
+  // Lane GATE-8 (2026-10-08, AUD-AT-4 B4-17 family): read on the lexed text, so a comment that names a sibling is not
+  // a spawn. Two more honest spawn shapes are recognised: `resolve(HERE, "..", "verify", "x.mjs")` with several
+  // literal segments (the maintenance wrappers that spawn a script in another directory), and a repo-relative script
+  // path held in a string literal by the spawning root (`UPSTREAM_SCRIPT = "scripts/review/x.mjs"`).
+  const RESOLVE_HERE_RE = /resolve\(\s*HERE\s*((?:,\s*['"`][^'"`\n]+['"`]\s*)+)\)/g;
+  const STRING_SCRIPT_RE = /['"`]((?:fsi-app\/)?(?:scripts|\.discipline)\/[\w./-]+\.mjs)['"`]/g;
   let grew = true;
   while (grew) {
     grew = false;
     for (const spawnRoot of Array.from(roots)) {
-      let text;
-      try { text = readFileFn(spawnRoot); } catch { continue; }
-      if (!/spawnSync|execFileSync/.test(text)) continue;
+      let raw;
+      try { raw = readFileFn(spawnRoot); } catch { continue; }
+      const { text, code } = views(raw);
+      if (!/spawnSync|execFileSync/.test(code)) continue;
       const dir = posix.dirname(spawnRoot);
       for (const m of text.matchAll(RESOLVE_HERE_RE)) {
-        const target = posix.join(dir, m[1]);
+        const parts = [...m[1].matchAll(/['"`]([^'"`\n]+)['"`]/g)].map((x) => x[1]);
+        const target = posix.normalize(posix.join(dir, ...parts));
+        if (target.endsWith('.mjs') && !roots.has(target)) { roots.add(target); grew = true; }
+      }
+      for (const m of text.matchAll(STRING_SCRIPT_RE)) {
+        const target = normalize(m[1]);
         if (!roots.has(target)) { roots.add(target); grew = true; }
       }
     }
@@ -384,10 +425,18 @@ const ENTRY_BASENAMES = [
   'sitemap', 'robots', 'opengraph-image', 'twitter-image', 'icon', 'apple-icon', 'manifest',
   'middleware', 'proxy', 'instrumentation',
 ];
-const ENTRY_RE = new RegExp(`/(?:${ENTRY_BASENAMES.join('|')})\\.(?:ts|tsx|mjs|js)$`);
+// Lane GATE-8 (2026-10-08, AUD-AT-4 B4-15): a framework entry point is an entry only where the framework looks for
+// it. The route-segment names (page, layout, route, default, ...) are entries under src/app/, and the three root
+// entries (middleware, proxy, instrumentation) sit directly under src/. A dead module that merely carries one of
+// those names under src/lib/ was exempt from the liveness gate by its filename alone.
+const APP_ENTRY_NAMES = ENTRY_BASENAMES.filter((n) => !['middleware', 'proxy', 'instrumentation'].includes(n));
+const APP_ENTRY_RE = new RegExp(`^fsi-app/src/app/(?:.+/)?(?:${APP_ENTRY_NAMES.join('|')})\\.(?:ts|tsx|mjs|js|jsx)$`);
+const ROOT_ENTRY_RE = /^fsi-app\/src\/(?:middleware|proxy|instrumentation)\.(?:ts|tsx|mjs|js)$/;
+export const isFrameworkEntry = (f) => APP_ENTRY_RE.test(f) || ROOT_ENTRY_RE.test(f);
+const ENTRY_RE = { test: isFrameworkEntry };
 
 export const isTestFile = (f) =>
-  /\.(?:test|selftest|npmtest)\.(?:ts|tsx|mjs)$/.test(f) ||
+  /\.(?:test|selftest|npmtest)\.(?:ts|tsx|mjs|js|cjs)$/.test(f) ||
   /\.golden\.mjs$/.test(f) ||
   f.includes('/__tests__/');
 
@@ -466,26 +515,33 @@ export const LEGACY_ALLOWLIST = [
     reason: "Operator-account repair CLI, run by the coordinator's executor; writes only profiles and org_memberships for one named non-admin account; refuses platform admins.",
     reviewByPhase: 'lane AUTH-2, 2026-10-06',
   },
+  // Three entries added by lane GATE-8 (2026-10-08). They were counted live until now only because a workflow
+  // COMMENT or a prose mention named their path (AUD-AT-4 B4-17: a comment is not a dispatch root). None has a
+  // production importer or a real dispatch line.
+  {
+    file: 'fsi-app/scripts/harness-runs/append-dispatch-ledger.mjs',
+    reason: 'Retired writer: its only caller, the maintenance.yml "Append this run\'s dispatch-ledger row" step, was removed by R22 (2026-10-02) and closure-gate now reads harness-ledger-export.json instead. Dormant and awaiting deletion together with its test (a deletion lane; this gate then reds the entry as STALE until it is removed).',
+    reviewByPhase: 'dead-code deletion lane (append-dispatch-ledger.mjs and its test)',
+  },
+  {
+    file: 'fsi-app/scripts/lib/export-harness-ledger.mjs',
+    reason: 'Credentialed operator CLI: regenerates fsi-app/.discipline/governance/harness-ledger-export.json from harness_runs (docs/runbooks/fleet-budget-control.md, "The refresh"). It needs the production read credential, so no workflow runs it; the committed export is what the gates read.',
+    reviewByPhase: 'F28 stale-export check names this refresh command; keep while the export exists',
+  },
+  {
+    file: 'fsi-app/scripts/maintenance/lib/extract-worklist-seed.mjs',
+    reason: 'Coordinator hand tool: turns a provenance-heal dry-run summary.json into the {item_id, token} seed the attach-found-sources browser lane fills (usage line in scripts/maintenance/attach-found-sources.mjs). Run by hand per dispatch, never by a workflow.',
+    reviewByPhase: 'ATTACH-SOURCES worklist flow (W3.1); review when attach-found-sources is retired',
+  },
   // record-harness-run.mjs's allowlist entry (lane HARNESS-LANDING, 2026-09-27) is REMOVED here (lane
   // QUARANTINE-DISPOSITION, 2026-09-28): it now HAS a direct ES import this gate's import-graph sources
   // see -- scripts/plan-quarantine-disposition.mjs's runPlanner() imports recordHarnessRun to land this
   // family's own runs. The shell-invocation reachability path the removed reason described is unchanged
   // and still real; it is just no longer the ONLY path, so the allowlist entry is stale per this gate's
   // own "keeps shrinking" contract.
-  {
-    file: 'fsi-app/scripts/turns/read-brief-export-queue.mjs',
-    reason:
-      'Genuinely operator/session-lane-invoked, out-of-workflow, read-only CLI (lane R22, 2026-10-02, ' +
-      'the same "hand-run, no schedule, no workflow line" Operator-CLI shape this list already ' +
-      'recognizes above) -- the CONSUMER end of the brief-export auto-queue ' +
-      '(scripts/turns/brief-export/queue.mjs): a session lane drains the queue by running --list / ' +
-      '--run-id directly, never from a workflow step (the PRODUCER end, run-population-flywheel.mjs\'s ' +
-      'stepBriefExport, imports queue.mjs directly and IS wired; this file is the human-facing reader ' +
-      'half, by design never imported). No write path exists ("drained" is a derived read, never a ' +
-      'mutation -- see queue.mjs\'s own header), so there is no apply/dry split to wire into a workflow ' +
-      'either.',
-    reviewByPhase: 'lane R22, 2026-10-02',
-  },
+  // scripts/turns/read-brief-export-queue.mjs's entry (lane R22, 2026-10-02) is REMOVED by lane GATE-8
+  // (2026-10-08): scripts/drain/plan-drain.mjs and scripts/drain/kinds.mjs spawn it by a script path held in a
+  // string literal ("scripts/turns/read-brief-export-queue.mjs"), a spawn this gate now reads, so it is wired.
   {
     file: 'fsi-app/scripts/turns/dry-run-structured-actions.mjs',
     reason:
@@ -1106,6 +1162,10 @@ export function resolveSpecifier(spec, fromFile, tracked) {
   else if (spec.startsWith('.')) base = posix.normalize(posix.join(posix.dirname(fromFile), spec));
   else return null; // bare specifier => external package
   for (const ext of RESOLVE_EXT) if (tracked.has(base + ext)) return base + ext;
+  // TypeScript ESM writes the compiled extension: `./x.js` names x.ts or x.tsx (and `.mjs` names x.mts, which
+  // this repo does not use). Lane GATE-8 (2026-10-08, AUD-AT-4 B4-16): a module reached this way is imported.
+  const js = /^(.*)\.(?:js|jsx)$/.exec(base);
+  if (js) for (const ext of ['.ts', '.tsx']) if (tracked.has(js[1] + ext)) return js[1] + ext;
   return null;
 }
 
@@ -1122,7 +1182,15 @@ export function buildImportGraph(files, readFile) {
     if (!/\.(?:ts|tsx|mjs|cjs|js|jsx)$/.test(f)) continue;
     let src;
     try { src = readFile(f); } catch { continue; }
-    for (const m of src.matchAll(SPEC_RE)) {
+    // Lane GATE-8 (AUD-AT-4 B4-14): an import is an import only where the keyword is CODE. Specifiers are read on
+    // the comment-blanked text (a commented-out import is blank), and the keyword must also survive in the code
+    // view (an `import x from "y"` written inside a string or a template literal is text, not an importer).
+    const { text, code } = views(src);
+    // One documented exception: the rendering guard's smoke specs carry the browser entry module as a template
+    // literal that esbuild bundles, so an import written inside that template IS a real import at bundle time.
+    const bundledTemplates = f.startsWith('fsi-app/.discipline/rendering/');
+    for (const m of text.matchAll(SPEC_RE)) {
+      if (!bundledTemplates && code[m.index] !== m[0][0]) continue;
       const target = resolveSpecifier(m[1], f, tracked);
       if (!target || target === f) continue;
       if (!importers.has(target)) importers.set(target, new Set());
@@ -1141,7 +1209,7 @@ export function buildImportGraph(files, readFile) {
 export function inWidenedScope(f, manifest) {
   return (
     (f.startsWith('fsi-app/src/') || f.startsWith('fsi-app/scripts/') || f.startsWith('fsi-app/.discipline/')) &&
-    /\.(?:ts|tsx|mjs)$/.test(f) &&
+    /\.(?:ts|tsx|mjs|js|cjs|jsx)$/.test(f) &&
     !/\.d\.ts$/.test(f) &&
     !isTestFile(f) &&
     !ENTRY_RE.test(f) &&
@@ -1173,13 +1241,51 @@ export function inWidenedScope(f, manifest) {
   );
 }
 
-/** Modules in scope with no production importer. Pure. */
-export function findUnimported(scope, importers, manifest) {
-  return scope.filter((f) => {
-    const imp = importers.get(f) ?? new Set();
-    for (const i of imp) if (!isTestFile(i) && !manifest.has(i)) return false;
-    return true;
-  });
+/**
+ * Modules in scope with no production importer. Pure.
+ *
+ * Without `seeds` this is the one-hop rule: a module is live when ANY non-test, non-manifest file imports it.
+ * With `seeds` (lane GATE-8, 2026-10-08, AUD-AT-4 B4-13): a module is live only when it is REACHABLE from a seed
+ * through production imports. Two dead modules that import each other each have an importer, but no seed reaches
+ * either, so both are dead; a chain of dead modules is dead all the way down. `seeds` is every file that is
+ * allowed to be a root: a dispatch root, a framework entry, an allowlisted exemption, and any production file
+ * outside the scope (a file that is not itself subject to the liveness rule is a legitimate consumer).
+ */
+export function findUnimported(scope, importers, manifest, seeds = null, exempt = new Set()) {
+  if (seeds === null) {
+    return scope.filter((f) => {
+      const imp = importers.get(f) ?? new Set();
+      for (const i of imp) if (!isTestFile(i) && !manifest.has(i)) return false;
+      return true;
+    });
+  }
+  const edges = new Map(); // importer -> targets
+  for (const [target, imps] of importers) {
+    for (const i of imps) {
+      if (isTestFile(i) || manifest.has(i)) continue;
+      if (!edges.has(i)) edges.set(i, new Set());
+      edges.get(i).add(target);
+    }
+  }
+  const live = new Set();
+  const walk = (starts) => {
+    const queue = [...starts].filter((s) => !isTestFile(s) && !manifest.has(s));
+    for (const s of queue) live.add(s);
+    while (queue.length) {
+      const cur = queue.pop();
+      for (const next of edges.get(cur) ?? []) {
+        if (!live.has(next)) { live.add(next); queue.push(next); }
+      }
+    }
+  };
+  walk(seeds);
+  // An exempt (allowlisted) module is not itself live, so its entry stays valid, but it is a documented consumer:
+  // what it imports is imported. Walk from its targets, never marking the exempt module itself live.
+  for (const e of exempt) {
+    if (live.has(e)) continue;
+    walk([...(edges.get(e) ?? [])].filter((t) => !exempt.has(t) || live.has(t)));
+  }
+  return scope.filter((f) => !live.has(f));
 }
 
 /**
@@ -1282,13 +1388,18 @@ export const fitnessFunction = {
     // discipline tree (a governance module importing product code would be a real consumer).
     const files = globFiles([
       'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}',
-      'fsi-app/scripts/**/*.{mjs,js}',
-      'fsi-app/.discipline/**/*.mjs',
+      'fsi-app/scripts/**/*.{mjs,js,cjs}',
+      'fsi-app/.discipline/**/*.{mjs,js,cjs}',
     ]);
     const importers = buildImportGraph(files, (f) => readFileSync(join(root, f), 'utf8'));
     const scope = files.filter((f) => inWidenedScope(f, manifest));
+    const scopeSet = new Set(scope);
     const dispatchRoots = findDispatchRoots(root, (f) => readFileSync(join(root, f), 'utf8'));
-    const unimported = findUnimported(scope, importers, manifest).filter((f) => !dispatchRoots.has(f));
+    // Seeds for the reachability walk (AUD-AT-4 B4-13): dispatch roots, the allowlisted exemptions, and every
+    // production file outside the scope (framework entries, fixtures, archived and generated code are not subject
+    // to the liveness rule, so what they import is imported).
+    const seeds = new Set([...dispatchRoots, ...files.filter((f) => !scopeSet.has(f) && !isTestFile(f))]);
+    const unimported = findUnimported(scope, importers, manifest, seeds, new Set(ALLOWED.keys()));
     const latestWave = latestTrainWave(root);
     const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)), latestWave);
     if (problems.length === 0) return PASS;

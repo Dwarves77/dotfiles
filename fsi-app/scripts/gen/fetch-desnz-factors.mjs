@@ -128,8 +128,8 @@ export const GOV_UK_PAGE_URL =
 export const FALLBACK_XLSX_URL =
   "https://assets.publishing.service.gov.uk/media/6846a4f55e92539572806125/ghg-conversion-factors-2025-full-set.xlsx";
 
-export const AIR_ENERGY_CARRIER = "aviation_turbine_fuel_average";
-export const OCEAN_ENERGY_CARRIER = "marine_fuel_average";
+const AIR_ENERGY_CARRIER = "aviation_turbine_fuel_average";
+const OCEAN_ENERGY_CARRIER = "marine_fuel_average";
 
 export class DesnzStructureError extends Error {}
 export class NetworkError extends Error {}
@@ -297,7 +297,7 @@ export function cellText(cell, sharedStrings) {
   return String(cell.raw).trim();
 }
 
-export function cellNumber(cell) {
+function cellNumber(cell) {
   if (!cell || cell.raw === null || cell.raw === undefined || cell.raw === "") return null;
   const n = Number(cell.raw);
   return Number.isFinite(n) ? n : null;

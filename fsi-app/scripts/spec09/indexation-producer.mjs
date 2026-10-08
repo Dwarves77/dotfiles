@@ -30,7 +30,7 @@ export const CITE = Object.freeze({
 
 // A documented illustrative clause (EUA front-Dec, base 80 at signature, current 92, 70% passthrough,
 // floor -10%/cap +20%) — spec text's own kind of worked example, not a real customer contract.
-export const WORKED_EXAMPLE = Object.freeze({
+const WORKED_EXAMPLE = Object.freeze({
   indexLabel: "EUA front-Dec",
   baseValue: 80,
   indexBaseline: 80,

@@ -46,26 +46,32 @@
 // longer claims the sub-agent's later calls go ungated, only that this hook cannot inspect the
 // sub-agent's future actions from the dispatch point itself.
 // AUDIT LOG: every decision appends `<iso>\t<tool>\t<decision>\t<tag>[\t<detail>]` to
-// governance/.gate-audit.log (gitignored): tool_name + decision ONLY, never tool_input (no secrets/commands
+// fsi-app/.discipline/out/gate-audit.log (gitignored; GATE_AUDIT_LOG redirects or disables it): tool_name + decision ONLY, never tool_input (no secrets/commands
 // logged). The optional detail column carries skill slugs for the unresolvable allow. This proves the gate
 // fired (incl. inside subagents/workflows) and is the durable "everything went through the skills" record.
 
-import { readFileSync, appendFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, appendFileSync, mkdirSync, realpathSync, existsSync } from "node:fs";
+import { dirname, resolve, isAbsolute } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from "../../scripts/lib/is-main.mjs";
+import { appendFirings } from "../lib/firing-log.mjs";
 import {
   missingFromTranscript,
   skillUnresolvableInTranscript,
   skillFileReadInTranscript,
 } from "./skill-token.mjs";
-import { isBranchingGitCommand, DOCTRINE } from "./worktree-isolation.mjs";
+import { DOCTRINE } from "./worktree-isolation.mjs";
 import { resolveActingTranscriptPath } from "./agent-transcript.mjs";
 import {
   skillsForOp,
   skillsForFile,
   BASH_DANGER_PATTERNS,
   MCP_READ_PREFIXES,
+  MCP_MUTATING_WORDS,
+  SHELL_TOOLS,
+  DISPATCH_TOOLS,
+  WORKTREE_TOOLS,
+  ACTION_TOOLS,
   MCP_READ_NAMES,
   MCP_WRITE_PREFIXES,
   MCP_WRITE_NAMES,
@@ -76,8 +82,24 @@ import {
   GIT_ISOLATION_FORMS,
 } from "./skill-map.mjs";
 
+// The scope decision (does this call belong to the fsi-app project?) lives in its own dependency-free module so
+// the out-of-repo shim can import it without loading this gate; it is re-exported here so there is one entry.
+export { inScope } from "./pretooluse-scope.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
-const AUDIT = resolve(HERE, ".gate-audit.log");
+
+// AUDIT LOG PATH (lane GATE-7, coordinator addition 2026-10-08, TESTFIX-1): the audit log lived beside the gate
+// (governance/.gate-audit.log), so the gate's own test dirtied the checkout. It is now under the gitignored
+// out directory (fsi-app/.discipline/out/gate-audit.log, the same directory the CI firing artifacts use) and the
+// path is injectable: GATE_AUDIT_LOG=<path> redirects it and GATE_AUDIT_LOG=off disables it, which is how the
+// tests keep it out of the checkout.
+const AUDIT_DEFAULT = resolve(HERE, "..", "out", "gate-audit.log");
+/** The audit log's path, or null when it is switched off. @param {NodeJS.ProcessEnv} [env] */
+export function auditLogPath(env = process.env) {
+  const target = env.GATE_AUDIT_LOG;
+  if (target === "off") return null;
+  return target || AUDIT_DEFAULT;
+}
 
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════
 // CLASSIFIERS (pure; exported for the tests)
@@ -102,11 +124,60 @@ export function argvOnly(cmd) {
 // contents again; argvOnly() turns every placeholder into the plain token Q.
 const PLACEHOLDER_RE = /\u0001\d+\u0002/g;
 
+// Separators between simple commands in an argv-only command line.
+const SEGMENT_SPLIT = /\n|;|&&|\|\||\||&|\(|\)/;
+
+/** The program a token names: directory and .exe stripped, lower-cased. */
+function progName(tok) {
+  return String(tok ?? "").replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
+}
+
+// Words that run another command and are not the program (GATE-7, register attacks A-PT-B11 to B13: `env bash
+// -c "git push"`, `nohup sh -c ...`, `timeout 5 bash -c ...` hid the interpreter from the gate).
+const WRAPPER_WORDS = new Set(["env", "nohup", "command", "exec", "time", "sudo", "setsid", "stdbuf", "nice", "ionice", "timeout"]);
+const ASSIGNMENT_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+
+/** Index of the token that is the real program of a simple command: env assignments, wrapper words and their
+ *  own flags/arguments (timeout's duration, nice's -n value, env's -u name) are skipped. t.length if none. */
+function unwrap(t) {
+  let k = 0;
+  for (;;) {
+    while (k < t.length && ASSIGNMENT_RE.test(t[k])) k++;
+    if (k >= t.length) return k;
+    const w = progName(t[k]);
+    if (!WRAPPER_WORDS.has(w)) return k;
+    k++;
+    if (w === "timeout") {
+      while (k < t.length && t[k].startsWith("-")) k++;
+      if (k < t.length) k++; // the duration
+    } else if (w === "nice" || w === "ionice") {
+      while (k < t.length && t[k].startsWith("-")) k += /^-[nc]$/.test(t[k]) ? 2 : 1;
+    } else if (w === "env") {
+      while (k < t.length && (t[k].startsWith("-") || ASSIGNMENT_RE.test(t[k]))) k += /^-[uC]$/.test(t[k]) ? 2 : 1;
+    } else {
+      while (k < t.length && t[k].startsWith("-")) k++;
+    }
+  }
+}
+
+/** The program of the LAST simple command in `text` (what a heredoc or here-string opened there feeds). */
+function ownerOf(text) {
+  const seg = text.split(SEGMENT_SPLIT).pop() ?? "";
+  const t = seg.trim().split(/\s+/).filter(Boolean);
+  const k = unwrap(t);
+  return k < t.length ? progName(t[k]) : null;
+}
+
+// A quoted string that is exactly one of the write flags is a flag, not prose (A-PT-B10: `node s.mjs "--apply"`).
+const FLAG_ONLY_RE = /^--(?:apply|execute|write)$/i;
+
 function scanArgv(cmd) {
   const s = String(cmd ?? "");
   const n = s.length;
-  const pending = []; // heredocs opened on the current line: { delim, dash }
+  const pending = []; // heredocs opened on the current line: { delim, dash, owner }
   const quoted = []; // contents of each quoted string, by placeholder index
+  const bodies = []; // heredoc and here-string bodies: { owner, content }; the owner is the program that reads them
+  const stash = (content) => (FLAG_ONLY_RE.test(content.trim()) ? ` ${content.trim()} ` : `\u0001${quoted.push(content) - 1}\u0002`);
   let out = "";
   let i = 0;
   while (i < n) {
@@ -118,15 +189,38 @@ function scanArgv(cmd) {
     }
     if (c === "'") { // single quote: literal to the next single quote
       const j = s.indexOf("'", i + 1);
-      out += `\u0001${quoted.push(s.slice(i + 1, j === -1 ? n : j)) - 1}\u0002`;
+      out += stash(s.slice(i + 1, j === -1 ? n : j));
       i = j === -1 ? n : j + 1;
       continue;
     }
     if (c === '"') { // double quote: to the next unescaped double quote
       let j = i + 1;
       while (j < n && s[j] !== '"') j += s[j] === "\\" ? 2 : 1;
-      out += `\u0001${quoted.push(s.slice(i + 1, Math.min(j, n))) - 1}\u0002`;
+      out += stash(s.slice(i + 1, Math.min(j, n)));
       i = j >= n ? n : j + 1;
+      continue;
+    }
+    if (c === "<" && s[i + 1] === "<" && s[i + 2] === "<") { // here-string: the word after <<< is the program's input
+      let j = i + 3;
+      while (j < n && (s[j] === " " || s[j] === "\t")) j++;
+      let content = "";
+      if (s[j] === "'") {
+        const e = s.indexOf("'", j + 1);
+        content = s.slice(j + 1, e === -1 ? n : e);
+        j = e === -1 ? n : e + 1;
+      } else if (s[j] === '"') {
+        let e = j + 1;
+        while (e < n && s[e] !== '"') e += s[e] === "\\" ? 2 : 1;
+        content = s.slice(j + 1, Math.min(e, n));
+        j = e >= n ? n : e + 1;
+      } else {
+        const m = /^[^\s;&|()<>]+/.exec(s.slice(j));
+        content = m ? m[0] : "";
+        j += content.length;
+      }
+      bodies.push({ owner: ownerOf(out), content });
+      out += "<<< ";
+      i = j;
       continue;
     }
     if (c === "#" && (i === 0 || /[\s;&|(]/.test(s[i - 1]))) { // comment to end of line
@@ -149,7 +243,7 @@ function scanArgv(cmd) {
         delim = m ? m[0] : "";
         j += delim.length;
       }
-      if (delim) pending.push({ delim, dash });
+      if (delim) pending.push({ delim, dash, owner: ownerOf(out) });
       out += "<< ";
       i = j;
       continue;
@@ -158,7 +252,8 @@ function scanArgv(cmd) {
       out += "\n";
       i++;
       while (pending.length) { // the heredoc bodies start on the next line
-        const { delim, dash } = pending.shift();
+        const { delim, dash, owner } = pending.shift();
+        let body = "";
         while (i < n) {
           let e = s.indexOf("\n", i);
           if (e === -1) e = n;
@@ -166,14 +261,16 @@ function scanArgv(cmd) {
           i = Math.min(e + 1, n);
           const cmp = dash ? line.replace(/^\t+/, "") : line;
           if (cmp === delim || cmp.replace(/\r$/, "") === delim) break;
+          body += `${line}\n`;
         }
+        bodies.push({ owner, content: body });
       }
       continue;
     }
     out += c;
     i++;
   }
-  return { text: out, quoted };
+  return { text: out, quoted, bodies };
 }
 
 // Interpreters whose inline-code argument is run as code, so DANGER also reads it (operator ruling on PR 998):
@@ -189,15 +286,14 @@ const CODE_INTERPRETERS = new Set(["psql", "node", "python", "python3"]);
  * PURE. @param {string} cmd @returns {{kind: string, content: string}[]}
  */
 export function interpreterPayloads(cmd) {
-  const { text, quoted } = scanArgv(cmd);
+  const { text, quoted, bodies } = scanArgv(cmd);
   const found = [];
-  for (const segment of text.split(/\n|;|&&|\|\||\||&|\(|\)/)) {
+  const kindOf = (prog) => (SHELL_INTERPRETERS.has(prog) ? "shell" : CODE_INTERPRETERS.has(prog) ? "code" : null);
+  for (const segment of text.split(SEGMENT_SPLIT)) {
     const t = segment.trim().split(/\s+/).filter(Boolean);
-    let k = 0;
-    while (k < t.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t[k])) k++;
+    const k = unwrap(t);
     if (k >= t.length) continue;
-    const prog = t[k].replace(/^.*[\\/]/, "").replace(/\.exe$/i, "").toLowerCase();
-    const kind = SHELL_INTERPRETERS.has(prog) ? "shell" : CODE_INTERPRETERS.has(prog) ? "code" : null;
+    const kind = kindOf(progName(t[k]));
     if (!kind) continue;
     for (let m = k + 1; m < t.length; m++) {
       const inline = /^(?:-[a-zA-Z]*[ce]|--command|--eval)$/.test(t[m]);
@@ -207,33 +303,76 @@ export function interpreterPayloads(cmd) {
       if (hit) found.push({ kind, content: quoted[Number(hit[1])] });
     }
   }
+  // A heredoc or here-string FED to an interpreter is that interpreter's script (A-PT-B14, B15). One fed to
+  // cat, tee, wc and the like stays prose (the GATE-2 rule: a commit message or a note is not an operation).
+  for (const b of bodies) {
+    const kind = b.owner ? kindOf(b.owner) : null;
+    if (kind) found.push({ kind, content: b.content });
+  }
   return found;
 }
 
-/** True when DANGER matches the command's own argv or the inline code of an interpreter it runs (depth 3). */
+/** True when DANGER matches the command's own argv, a structural danger form is present, or DANGER matches
+ *  the inline code or fed script of an interpreter it runs (depth 3). */
 export function dangerIn(cmd, depth = 0) {
-  if (DANGER.test(argvOnly(cmd))) return true;
+  const argv = argvOnly(cmd);
+  if (DANGER.test(argv) || structuralDanger(argv)) return true;
   if (depth >= 3) return false;
   return interpreterPayloads(cmd).some((p) => (p.kind === "code" ? DANGER.test(p.content) : dangerIn(p.content, depth + 1)));
 }
 
 // The git invocations in an argv-only command: [{ sub, args }] for each `git [global opts] <sub> <args>`.
+// Global options (-C <dir>, -c <k=v>, --no-pager, ...) and wrapper words are skipped; the program may be
+// git.exe or a path to git; an alias set on the command line (`-c alias.p=push`) is resolved to its target.
 function gitInvocations(argv) {
   const found = [];
-  for (const segment of argv.split(/\n|;|&&|\|\||\||&|\(|\)/)) {
+  for (const segment of argv.split(SEGMENT_SPLIT)) {
     const t = segment.trim().split(/\s+/).filter(Boolean);
-    let k = 0;
-    while (k < t.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(t[k]) || /^(env|command|time|exec|nice|sudo)$/i.test(t[k]))) k++;
-    if (k >= t.length || !/^(?:.*[\\/])?git(?:\.exe)?$/i.test(t[k])) continue;
+    let k = unwrap(t);
+    if (k >= t.length || progName(t[k]) !== "git") continue;
     k++;
-    // global options: -C <dir>, -c <k=v>, --git-dir/--work-tree/--namespace <v>, and bare --no-pager style flags
+    const aliases = {};
     while (k < t.length && t[k].startsWith("-")) {
-      k += /^(?:-C|-c|--git-dir|--work-tree|--namespace|--exec-path)$/.test(t[k]) ? 2 : 1;
+      if (t[k] === "-c" && k + 1 < t.length) {
+        const a = /^alias\.([^=]+)=(\S+)/.exec(t[k + 1]);
+        if (a) aliases[a[1].toLowerCase()] = a[2].toLowerCase();
+        k += 2;
+        continue;
+      }
+      k += /^(?:-C|--git-dir|--work-tree|--namespace|--exec-path)$/.test(t[k]) ? 2 : 1;
     }
     if (k >= t.length) continue;
-    found.push({ sub: t[k].toLowerCase(), args: t.slice(k + 1) });
+    const written = t[k].toLowerCase();
+    found.push({ sub: aliases[written] ?? written, args: t.slice(k + 1) });
   }
   return found;
+}
+
+// The danger forms that are decided on the command's STRUCTURE, not on adjacent words (GATE-7, register attacks
+// A-PT-B1 to B8): any git push (global options between `git` and `push`, git.exe, a path, an alias), rm with
+// both a recursive and a force flag in any spelling or order (-rf, -fr, -r -f, --recursive --force), and find
+// with -delete or -exec rm.
+function structuralDanger(argv) {
+  for (const inv of gitInvocations(argv)) if (inv.sub === "push") return true;
+  for (const segment of argv.split(SEGMENT_SPLIT)) {
+    const t = segment.trim().split(/\s+/).filter(Boolean);
+    const k = unwrap(t);
+    if (k >= t.length) continue;
+    const prog = progName(t[k]);
+    const args = t.slice(k + 1);
+    if (prog === "rm") {
+      const shorts = args.filter((a) => /^-[A-Za-z]+$/.test(a)).join("");
+      const longs = args.filter((a) => a.startsWith("--"));
+      const recursive = /[rR]/.test(shorts) || longs.includes("--recursive");
+      const force = /f/.test(shorts) || longs.includes("--force");
+      if (recursive && force) return true;
+    }
+    if (prog === "find") {
+      const exec = args.indexOf("-exec");
+      if (args.includes("-delete") || (exec !== -1 && progName(args[exec + 1]) === "rm")) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -242,9 +381,10 @@ function gitInvocations(argv) {
  */
 export function isolationAsk(cmd) {
   const argv = argvOnly(cmd);
-  // Cheap prefilter before tokenizing: RD-19's single-home matcher (checkout, switch, branch, merge, rebase,
-  // worktree add) plus the two forms it never covered (push, reset). The GIT_ISOLATION_FORMS rows then decide.
-  if (!isBranchingGitCommand(argv) && !/\bgit\s+(?:-\S+\s+)*(?:push|reset)\b/i.test(argv)) return false;
+  // Cheap prefilter before tokenizing: a command with no git in it asks for nothing. (It used to be RD-19's
+  // single-home matcher plus push and reset; GATE-7 widened the rows to cherry-pick, pull, am, symbolic-ref and
+  // the command-line alias forms, which that matcher does not name, so the rows alone decide now.)
+  if (!/\bgit(?:\.exe)?\b/i.test(argv)) return false;
   for (const { sub, args } of gitInvocations(argv)) {
     const form = GIT_ISOLATION_FORMS.find((f) => f.sub === sub);
     if (!form) continue;
@@ -259,14 +399,81 @@ export function isolationAsk(cmd) {
   return false;
 }
 
-/** True when a SQL string is a single read statement: the first token is SELECT and nothing follows a `;`. */
+/**
+ * SQL with comments removed and string literals, quoted identifiers and dollar-quoted bodies replaced by empty
+ * ones, in ONE pass (GATE-7, register attacks A-PT-M3 to M5). The old two-step removed comments first, so a
+ * `--` inside a string literal swallowed the rest of the line and hid a second statement. PURE.
+ */
+export function sqlSkeleton(sql) {
+  const s = String(sql ?? "");
+  const n = s.length;
+  let out = "";
+  let i = 0;
+  while (i < n) {
+    const c = s[i];
+    const d = s[i + 1];
+    if (c === "-" && d === "-") { while (i < n && s[i] !== "\n") i++; out += " "; continue; }
+    if (c === "/" && d === "*") { // block comments nest in Postgres
+      let depth = 1;
+      i += 2;
+      while (i < n && depth > 0) {
+        if (s[i] === "/" && s[i + 1] === "*") { depth++; i += 2; } else if (s[i] === "*" && s[i + 1] === "/") { depth--; i += 2; } else i++;
+      }
+      out += " ";
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      i++;
+      while (i < n) {
+        if (s[i] === c) { if (s[i + 1] === c) { i += 2; continue; } break; }
+        i++;
+      }
+      i++;
+      out += c + c;
+      continue;
+    }
+    if (c === "$") {
+      const m = /^\$([A-Za-z_]\w*)?\$/.exec(s.slice(i, i + 80));
+      if (m) {
+        const e = s.indexOf(m[0], i + m[0].length);
+        i = e === -1 ? n : e + m[0].length;
+        out += "''";
+        continue;
+      }
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+// Function-name tokens that mean a call may change state (or leave the session): a SELECT that calls one is not
+// a plain read. `jsonb_set` and the like are pure and common, so this classifies as UNKNOWN (asked), not write.
+const SQL_MUTATING_TOKENS = new Set([
+  "delete", "update", "insert", "create", "drop", "set", "write", "apply", "archive", "reclassify", "mint",
+  "terminate", "cancel", "reload", "kill", "purge", "truncate", "merge", "upsert", "reset", "acquire", "release",
+  "heartbeat", "nextval", "setval", "import", "export", "copy", "dblink", "grant", "revoke",
+]);
+
+/** 'read' | 'suspect' | 'write' for a SQL string. 'read' is a single SELECT with no row lock, no INTO and no
+ *  state-changing function; 'suspect' is such a SELECT that calls a function named like a mutation; every other
+ *  statement shape (a second statement after `;`, a leading WITH, FOR UPDATE, SELECT INTO, DML, DDL) is 'write'. */
+export function sqlReadKind(sql) {
+  const t = sqlSkeleton(sql).trim();
+  if (!/^select\b/i.test(t)) return "write";
+  const semi = t.indexOf(";");
+  if (semi !== -1 && t.slice(semi + 1).trim() !== "") return "write";
+  if (/\bfor\s+(?:no\s+key\s+)?(?:update|share)\b|\bfor\s+key\s+share\b/i.test(t)) return "write";
+  if (/\binto\b/i.test(t)) return "write";
+  for (const m of t.matchAll(/([A-Za-z_][\w$]*)\s*\(/g)) {
+    if (m[1].split("_").some((tok) => SQL_MUTATING_TOKENS.has(tok.toLowerCase()))) return "suspect";
+  }
+  return "read";
+}
+
+/** True when a SQL string is a single plain read statement (sqlReadKind === "read"). */
 export function isSelectSql(sql) {
-  const noComments = String(sql ?? "").replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
-  const noStrings = noComments.replace(/'(?:[^']|'')*'/g, "''").replace(/"(?:[^"]|"")*"/g, '""');
-  const trimmed = noStrings.trim();
-  if (!/^select\b/i.test(trimmed)) return false;
-  const semi = trimmed.indexOf(";");
-  return semi === -1 || trimmed.slice(semi + 1).trim() === "";
+  return sqlReadKind(sql) === "read";
 }
 
 /** The tool name after `mcp__<server>__` (the whole name when it does not have that shape). */
@@ -277,10 +484,17 @@ export function mcpToolName(tool) {
 
 function classifyName(name, input) {
   if (MCP_WRITE_NAMES.includes(name)) {
-    if (MCP_SQL_TOOL_NAMES.includes(name) && isSelectSql(input?.query ?? input?.sql)) return "read";
+    if (MCP_SQL_TOOL_NAMES.includes(name)) {
+      const kind = sqlReadKind(input?.query ?? input?.sql);
+      if (kind === "read") return "read";
+      if (kind === "suspect") return "unknown"; // a SELECT that calls a mutating-looking function: asked, never silently allowed
+    }
     return "write";
   }
   if (MCP_WRITE_PREFIXES.some((p) => name.startsWith(p))) return "write";
+  // A read prefix does not make a read when a whole token of the name is a mutating verb (GATE-7, A-PT-M1, M2:
+  // get_and_delete_rows, search_and_replace).
+  if (MCP_READ_PREFIXES.some((p) => name.startsWith(p)) && name.split("_").some((tok) => MCP_MUTATING_WORDS.includes(tok))) return "write";
   if (MCP_READ_NAMES.includes(name) || MCP_READ_PREFIXES.some((p) => name.startsWith(p))) return "read";
   if (MCP_COMPUTER_NAMES.includes(name)) {
     return MCP_COMPUTER_READ_ACTIONS.includes(String(input?.action ?? "").toLowerCase()) ? "read" : "unknown";
@@ -308,6 +522,22 @@ export function classifyMcp(tool, input = {}) {
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════
 // DECISION
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * The path an edit names, made comparable (GATE-7, register attacks A-PT-E1, E4): a relative path is resolved
+ * against the call's own cwd (`src/lib/agent/x.ts` from fsi-app), and an 8.3 short name (FSI-AP~1) is expanded
+ * by the file system when the path exists. Dot segments, doubled separators and case are handled by the map's
+ * canonPath. A path that cannot be resolved is returned as given, never dropped.
+ */
+export function governedPath(rawPath, cwd = "") {
+  let p = String(rawPath ?? "");
+  if (!p) return p;
+  if (cwd && !isAbsolute(p) && !/^[A-Za-z]:[\\/]/.test(p) && !p.startsWith("/")) p = resolve(cwd, p);
+  if (/~\d/.test(p)) {
+    try { if (existsSync(p)) p = realpathSync.native(p); } catch { /* keep the path as given */ }
+  }
+  return p;
+}
 
 function decision(permissionDecision, reason, tag, detail = "") {
   return { permissionDecision, reason: reason || "", tag, detail };
@@ -356,10 +586,40 @@ function gateWrite(transcriptPath, skills, denyTag, contextMsg, onLoaded) {
 }
 
 /**
+ * The shell invocations that run a SCRIPT FILE through a shell interpreter (`bash run.sh`, `sh ./x.sh`, `zsh x`):
+ * the form a session reaches by habit once the gate has denied the inline command, because the gate reads the
+ * command line and not the file. It is not blocked (an interpreter fed through a file is out of the gate's
+ * scope, ADR-046 addendum); it is COUNTED, as a firing note. PURE. @param {string} cmd @returns {boolean}
+ */
+export function scriptFileRun(cmd) {
+  const text = scanArgv(cmd).text;
+  for (const segment of text.split(SEGMENT_SPLIT)) {
+    const t = segment.trim().split(/\s+/).filter(Boolean);
+    const k = unwrap(t);
+    if (k >= t.length || !SHELL_INTERPRETERS.has(progName(t[k]))) continue;
+    const rest = t.slice(k + 1);
+    if (rest.some((a) => /^-[a-zA-Z]*[ce]$/.test(a) || a.startsWith("--command"))) continue; // inline code, analysed elsewhere
+    if (rest.some((a) => !a.startsWith("-") && !a.startsWith("\u0001") && !a.startsWith("<"))) return true;
+  }
+  return false;
+}
+
+/**
  * The gate's decision for one parsed PreToolUse payload. PURE apart from reading the transcript file.
- * @param {object} payload @returns {{permissionDecision: string, reason: string, tag: string, detail: string}}
+ * A shell-tool call that runs a script file through a shell interpreter carries `notes: ["script-file"]`.
+ * @param {object} payload @returns {{permissionDecision: string, reason: string, tag: string, detail: string, notes?: string[]}}
  */
 export function evaluateGate(payload) {
+  const d = evaluateCore(payload);
+  const tool = payload?.tool_name || "";
+  if (SHELL_TOOLS.includes(tool)) {
+    const cmd = payload?.tool_input?.command || payload?.tool_input?.script || "";
+    if (scriptFileRun(cmd)) d.notes = [...(d.notes || []), "script-file"];
+  }
+  return d;
+}
+
+function evaluateCore(payload) {
   const tool = payload?.tool_name || "";
   const input = payload?.tool_input || {};
   // agent_id is present ONLY when this call happens inside a sub-agent (Claude Code hooks reference,
@@ -369,8 +629,8 @@ export function evaluateGate(payload) {
 
   // ── Bash: data-writes / destructive / scaled runs. Write signal = --apply/--execute/--write flag +
   // inherently-destructive ops + named runners, found in the command's own argv. Read-only / dry-run pass. ──
-  if (tool === "Bash") {
-    const cmd = input.command || "";
+  if (SHELL_TOOLS.includes(tool)) {
+    const cmd = input.command || input.script || "";
     // ── WORKTREE-ISOLATION belt (RD-19), the BELT to the git post-checkout hook's SUSPENDERS. ──
     // A branch-moving git op must happen in the agent's assigned worktree, never in the main checkout.
     // PreToolUse DOES fire inside sub-agents too (corrected 2026-09-19); this leg still cannot read the
@@ -396,7 +656,7 @@ export function evaluateGate(payload) {
 
   // ── Edit / Write / MultiEdit / NotebookEdit: governed-file edits require the governing skill loaded. ──
   if (["Edit", "Write", "MultiEdit", "NotebookEdit"].includes(tool)) {
-    const path = input.file_path || input.notebook_path || "";
+    const path = governedPath(input.file_path || input.notebook_path || "", payload?.cwd || "");
     const skills = skillsForFile(path).map((s) => s.skill);
     if (!skills.length) return decision("allow", "", "edit-ungoverned");      // not a governed file
     return gateWrite(transcriptPath, skills, "edit-governed", "Editing a GOVERNED file: apply its format/grounding/surface/credibility rules.",
@@ -409,7 +669,7 @@ export function evaluateGate(payload) {
   // sub-agent's future interior from here. So we ASK at the dispatch point every time and state the binding
   // rule: a sub-agent that reasons about or writes governed content must invoke the Skill tool itself, in
   // its own transcript, before that write, exactly like the main session. ──
-  if (["Agent", "Task", "Workflow"].includes(tool)) {
+  if (DISPATCH_TOOLS.includes(tool)) {
     return decision("ask",
       `DISPATCH (${tool}). NOTE: the sub-agent's later tool calls ARE gated by this same hook (corrected ` +
       `2026-09-19), judged against the sub-agent's OWN transcript, not this dispatch call. This ASK exists ` +
@@ -422,6 +682,31 @@ export function evaluateGate(payload) {
   // ── MCP tools (mcp__<server>__<tool>): external/repo/data writes that BYPASS Bash + git, invisible to
   // commit-msg/CI until (if ever) reviewed. READ and WRITE come from the explicit tables in skill-map.mjs;
   // a name in neither table is UNKNOWN and is asked, never denied. ──
+  // ── Worktree tools (EnterWorktree / ExitWorktree): they create, enter or remove a worktree, i.e. they move
+  // the session's working directory and branch, the RD-19 class. Always asked, with the doctrine. ──
+  if (WORKTREE_TOOLS.includes(tool)) {
+    return decision("ask",
+      `WORKTREE op (${tool}): creates, enters or removes a worktree. WORKTREE-ISOLATION doctrine (RD-19): ${DOCTRINE} ` +
+      `Confirm this is the assigned worktree under .claude/worktrees/, never the main checkout, and that nothing in it is unsaved ` +
+      `before it is removed.`,
+      "worktree-tool");
+  }
+
+  // ── Tools with several actions (ArtifactData, Artifact): the ACTION decides. A read action allows; a write
+  // action (set/update/delete/batch on stored data, publish/delete/pin on a page) is a write effect and is
+  // skill-gated as an MCP write is. A missing action is a write for a tool that writes by default. ──
+  if (Object.prototype.hasOwnProperty.call(ACTION_TOOLS, tool)) {
+    const spec = ACTION_TOOLS[tool];
+    const action = String(input.action ?? "").toLowerCase();
+    const isRead = action ? spec.readActions.includes(action) : !spec.defaultWrite;
+    if (isRead) return decision("allow", "", "action-tool-read");
+    return gateWrite(transcriptPath, ["caros-ledge-platform-intent", "remediation-discipline"], "action-tool-write",
+      `${tool} ${action || "(default action)"}: a stored-data or published-page write that bypasses Bash and git.`,
+      () => decision("ask",
+        `${tool} WRITE (${action || "default action"}). Governing skills loaded. This write must still be reviewed ` +
+        `(no surface or scope drift; integrity rule). Approve only if skill-grounded.`, "action-tool-write-ok"));
+  }
+
   if (tool.startsWith("mcp__")) {
     const kind = classifyMcp(tool, input);
     if (kind === "read") return decision("allow", "", "mcp-read");
@@ -443,8 +728,22 @@ export function evaluateGate(payload) {
 
 function logDecision(tool, d) {
   try {
-    appendFileSync(AUDIT, `${new Date().toISOString()}\t${tool || "?"}\t${d.permissionDecision}\t${d.tag}${d.detail ? `\t${d.detail}` : ""}\n`);
+    const path = auditLogPath();
+    if (!path) return;
+    mkdirSync(dirname(path), { recursive: true });
+    appendFileSync(path, `${new Date().toISOString()}\t${tool || "?"}\t${d.permissionDecision}\t${d.tag}${d.detail ? `\t${d.detail}` : ""}\n`);
   } catch { /* never block on logging */ }
+}
+
+// FIRING LOG (GATE-7, ADR-046 point 6): every refusal the gate makes (a deny, an ask, a failed-closed ask) is one
+// line in the shared firing log (lib/firing-log.mjs), so FIRED-TRUE can count it. An intent form a session
+// reaches by habit (running a script file because the inline form was denied) is recorded as a NOTE, not a
+// refusal: the gate does not stop it, it counts it. Tool name and tag only, never the command.
+function logFiring(tool, d) {
+  const entries = [];
+  if (d.permissionDecision !== "allow") entries.push({ rule: `pretooluse:${d.tag}`, mode: "pretooluse", path: null, line: tool || "?", verdict: d.permissionDecision });
+  for (const note of d.notes || []) entries.push({ rule: `pretooluse:${note}`, mode: "pretooluse", path: null, line: tool || "?", verdict: "note" });
+  appendFirings(entries);
 }
 
 function render(d) {
@@ -482,6 +781,7 @@ export function runGate(raw) {
     }
   }
   logDecision(tool, d);
+  logFiring(tool, d);
   return render(d);
 }
 

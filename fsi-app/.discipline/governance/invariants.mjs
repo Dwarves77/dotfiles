@@ -135,3 +135,10 @@ export async function loadInvariantsFromDir(dirUrl = INVARIANTS_DIR_URL) {
 }
 
 export const INVARIANTS = await loadInvariantsFromDir();
+
+// RETIRED INVARIANTS (lane GATE-8, 2026-10-08, AUD-AT-4 B7-15, B7-15b). Deleting an invariant file is a decision, not a
+// tidy-up: invariant-coverage.mjs compares the ids on the merge-base tree to the ids at HEAD and fails on any id that
+// disappeared without an entry here. Each entry is { reason, retiredOn }: why the invariant no longer applies (or which
+// invariant now carries it), and the ISO date. An entry whose id is live again is stale and fails too. Empty today:
+// nothing has been retired since the gate began asking.
+export const RETIRED_INVARIANTS = Object.freeze({});

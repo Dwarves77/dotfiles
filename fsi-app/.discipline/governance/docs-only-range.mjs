@@ -54,7 +54,9 @@ export function isDocsOnlyDiff(files) {
  * @returns {string[]} repo-relative changed file paths
  */
 export function changedFiles(range, cwd) {
-  const out = execFileSync('git', ['diff', '--name-only', range], { cwd, encoding: 'utf8' });
+  // --no-renames (GATE-7): a rename is a delete of its SOURCE plus an add of its destination, so code moved
+  // into docs/ is classed by where it came from (a code change), not only by where it landed.
+  const out = execFileSync('git', ['diff', '--no-renames', '--name-only', range], { cwd, encoding: 'utf8' });
   return out.split(/\r?\n/).filter(Boolean);
 }
 

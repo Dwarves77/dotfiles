@@ -74,3 +74,52 @@ test('F9 ATTACK: a tsc that runs and reports type errors is still a violation', 
 test('F9: tsc passing is a PASS', () => {
   assert.deepEqual(fitnessFunction.check(SENTINEL, '', { typecheck: () => ({ ok: true, output: '' }) }), []);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+import { staticTypecheckViolations, ALLOWED_TSCONFIG_EXCLUDES } from './F9-build-compiles.mjs';
+
+const GOOD_TSCONFIG = JSON.stringify({
+  compilerOptions: { strict: true },
+  include: ['next-env.d.ts', '**/*.ts', '**/*.tsx', '.next/types/**/*.ts'],
+  exclude: ['node_modules', 'supabase/functions', 'src/_archive'],
+});
+
+test('F9 B8-02: a type-broken file excluded in tsconfig.json is a violation naming the entry', () => {
+  const cfg = JSON.stringify({ include: ['**/*.ts', '**/*.tsx'], exclude: ['node_modules', 'src/lib/broken.ts'] });
+  const v = staticTypecheckViolations({ tsconfigText: cfg, srcFiles: [] });
+  assert.equal(v.length, 1);
+  assert.match(v[0], /excludes "src\/lib\/broken\.ts"/);
+  assert.deepEqual(staticTypecheckViolations({ tsconfigText: GOOD_TSCONFIG, srcFiles: [] }), []);
+  assert.ok(ALLOWED_TSCONFIG_EXCLUDES.includes('src/_archive'));
+});
+
+test('F9 B8-02: an include list that no longer covers .ts and .tsx is a violation', () => {
+  const cfg = JSON.stringify({ include: ['src/lib/**/*.ts'], exclude: ['node_modules'] });
+  const v = staticTypecheckViolations({ tsconfigText: cfg, srcFiles: [] });
+  assert.equal(v.length, 2);
+});
+
+test('F9 B8-03: a @ts-nocheck directive in a src file is a violation; the word in a string or a non-comment is not', () => {
+  const nocheck = { path: 'fsi-app/src/lib/x.ts', content: '// @ts-nocheck\nexport const a: number = "x";\n' };
+  const v = staticTypecheckViolations({ tsconfigText: GOOD_TSCONFIG, srcFiles: [nocheck] });
+  assert.equal(v.length, 1);
+  assert.match(v[0], /fsi-app\/src\/lib\/x\.ts carries a @ts-nocheck/);
+  const block = { path: 'fsi-app/src/lib/y.ts', content: '/* @ts-nocheck */\nexport const b = 1;\n' };
+  assert.equal(staticTypecheckViolations({ tsconfigText: GOOD_TSCONFIG, srcFiles: [block] }).length, 1);
+  const str = { path: 'fsi-app/src/lib/z.ts', content: 'export const note = "uses @ts-nocheck somewhere";\n' };
+  assert.deepEqual(staticTypecheckViolations({ tsconfigText: GOOD_TSCONFIG, srcFiles: [str] }), []);
+});
+
+test('F9: the static guards are reported whether tsc resolves, passes, or fails', () => {
+  const guard = () => ['fsi-app/src/lib/x.ts carries a @ts-nocheck directive, which turns the type check off for the whole file. Fix the types.'];
+  const skip = fitnessFunction.check(SENTINEL, '', { typecheck: () => ({ ok: false, output: 'x', errCode: 'TSC_NOT_FOUND' }), log: () => {}, staticViolations: guard });
+  assert.equal(skip.length, 1);
+  const pass = fitnessFunction.check(SENTINEL, '', { typecheck: () => ({ ok: true, output: '' }), staticViolations: guard });
+  assert.equal(pass.length, 1);
+  const fail = fitnessFunction.check(SENTINEL, '', { typecheck: () => ({ ok: false, output: 'src/a.ts(1,1): error TS2322: bad', errCode: 2 }), staticViolations: guard });
+  assert.equal(fail.length, 2);
+});
+
+test('F9: the live tsconfig.json and src tree carry neither a stray exclude nor a @ts-nocheck', () => {
+  assert.deepEqual(fitnessFunction.check(SENTINEL, '', { typecheck: () => ({ ok: true, output: '' }) }), []);
+});

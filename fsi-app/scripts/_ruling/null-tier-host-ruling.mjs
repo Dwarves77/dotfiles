@@ -88,5 +88,3 @@ export const RULING = [
   ["up.codes", null, "aggregator", "UpCodes — republishes building codes; the code body is the publisher"],
   ["energygovuk.citizenspace.com", null, "platform", "Citizen Space — third-party consultation-hosting SaaS; the UK department is the publisher"],
 ];
-
-export const BY_HOST = new Map(RULING.map(([h, t, c, why]) => [h, { tier: t, cls: c, why }]));

@@ -125,3 +125,30 @@ test('018 check: FAIL, allowing /dashboard did not open the door: a new top-leve
 });
 
 test('018: metadata', () => { assert.equal(rule.id, '018'); });
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): honest forms from the AUD-AT-3 attack register.
+// ---------------------------------------------------------------------------
+
+test('018 GATE-7 A018-1 / A018-1b: page.jsx, page.ts and page.js are pages', () => {
+  for (const f of ['page.jsx', 'page.ts', 'page.js']) {
+    const ctx = pageCtx(`fsi-app/src/app/technology/${f}`, 'A');
+    assert.equal(rule.trigger(ctx), true, f);
+    assert.equal(rule.check(ctx).status, 'FAIL', f);
+  }
+});
+
+test('018 GATE-7 A018-2: a route handler outside /api is a URL surface; an API handler and an allowed segment are not', () => {
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/technology/route.ts', 'A')).status, 'FAIL');
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/api/technology/route.ts', 'A')).status, 'PASS');
+  assert.equal(rule.check(pageCtx('fsi-app/src/app/auth/callback/route.ts', 'A')).status, 'PASS');
+  assert.equal(rule.trigger(pageCtx('fsi-app/src/app/api/technology/route.ts', 'A')), false);
+});
+
+test('018 GATE-7 A018-6: a file under the pages router is a page whose first path part is its segment', () => {
+  assert.equal(rule.check(pageCtx('fsi-app/src/pages/technology.tsx', 'A')).status, 'FAIL');
+  assert.equal(rule.check(pageCtx('fsi-app/src/pages/technology/index.tsx', 'A')).status, 'FAIL');
+  assert.equal(rule.check(pageCtx('fsi-app/src/pages/market.tsx', 'A')).status, 'PASS');
+  assert.equal(rule.trigger(pageCtx('fsi-app/src/pages/api/x.ts', 'A')), false);
+  assert.equal(rule.trigger(pageCtx('fsi-app/src/pages/_app.tsx', 'A')), false);
+});

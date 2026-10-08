@@ -30,8 +30,20 @@
 //
 // node: builtins plus the repo's own fitness lib helpers only (loaded by the no-npm discipline test glob).
 
+//
+// Lane GATE-8 (2026-10-08, AUD-AT-4 B6-74 to B6-77): the migration text is read through ../lib/sql-mask.mjs, the one
+// reader of "what is SQL and what is a comment or a string", so a `--` inside a string no longer truncates the header
+// line before SECURITY DEFINER, and a REVOKE or a search_path that exists only inside a block comment no longer
+// counts. Two more honest forms are closed:
+//   - the REVOKE and the ALTER FUNCTION must match the created SIGNATURE, not just the name: a REVOKE written for a
+//     different overload of the same name leaves the created overload with its default PUBLIC grant (B6-77);
+//   - `pg_temp` must be the LAST entry of the pinned path (B6-76): `SET search_path = pg_temp, public` searches the
+//     temporary schema first, which is the shadowing hole the pin exists to close, and names pg_temp all the same.
+// Migrations below 371 stay out of scope by number (B6-78 is an intent form: a new migration takes the next number).
+
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
+import { maskSql, sqlLineOf } from '../lib/sql-mask.mjs';
 
 export const MIGRATIONS_GLOB = 'fsi-app/supabase/migrations/*.sql';
 export const MIN_MIGRATION_NUMBER = 371;
@@ -42,27 +54,74 @@ function numericIdOf(path) {
   return m ? Number(m[1]) : -1;
 }
 
-function escapeRegex(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Index of the paren closing the one at `open` in masked `text`, or -1. */
+function closeParen(text, open) {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')') { depth--; if (depth === 0) return i; }
+  }
+  return -1;
 }
 
-/** Drops `-- ...` line comments but keeps every newline, so line numbers still match the file. PURE. */
-function stripLineComments(content) {
-  return String(content).split('\n').map((l) => {
-    const i = l.indexOf('--');
-    return i === -1 ? l : l.slice(0, i);
-  }).join('\n');
+function splitTopLevel(list) {
+  const parts = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of list) {
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') depth--;
+    if (ch === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += ch;
+  }
+  if (cur.trim() !== '' || parts.length) parts.push(cur);
+  return parts.map((p) => p.trim()).filter((p) => p !== '');
 }
+
+const TYPE_STARTERS = new Set(['double', 'timestamp', 'time', 'character', 'char', 'bit', 'interval', 'national', 'varchar']);
+const TYPE_SYNONYMS = new Map([
+  ['int', 'integer'], ['int4', 'integer'], ['int8', 'bigint'], ['int2', 'smallint'], ['bool', 'boolean'],
+  ['float8', 'double precision'], ['float4', 'real'], ['timestamptz', 'timestamp with time zone'],
+  ['timetz', 'time with time zone'], ['varchar', 'character varying'], ['decimal', 'numeric'],
+]);
+
+/** Normalise ONE argument of a function signature to its type: the argument name, the mode, the default and any
+ *  type modifier `(10,2)` are dropped; `public.` is dropped; synonyms are folded. OUT arguments are not part of the
+ *  signature that REVOKE and ALTER FUNCTION identify a function by, so they return null. */
+export function normalizeArgType(arg) {
+  let a = String(arg).replace(/\s+/g, ' ').trim();
+  if (a === '') return null;
+  a = a.replace(/\s+(?:DEFAULT\b.*|=.*)$/i, '');
+  const mode = /^(IN\s+OUT|INOUT|OUT|IN|VARIADIC)\s+/i.exec(a);
+  if (mode) {
+    a = a.slice(mode[0].length);
+    if (/^OUT$/i.test(mode[1])) return null;
+  }
+  const tokens = a.split(' ');
+  if (tokens.length > 1 && !TYPE_STARTERS.has(tokens[0].toLowerCase()) && !tokens[0].includes('.') && !/^(?:setof)$/i.test(tokens[0])) tokens.shift();
+  let t = tokens.join(' ').toLowerCase().replace(/"/g, '').replace(/\(\s*[\d\s,]+\)/g, '').replace(/^public\./, '').replace(/\s+/g, ' ').trim();
+  t = t.replace(/\bpublic\./g, '');
+  return TYPE_SYNONYMS.get(t) ?? t;
+}
+
+/** Normalised type list of an argument list text (the part between the parentheses). */
+export function normalizeArgList(list) {
+  return splitTopLevel(list).map(normalizeArgType).filter((x) => x !== null);
+}
+
+const sameSignature = (a, b) => a.length === b.length && a.every((t, i) => t === b[i]);
 
 /** Every `CREATE [OR REPLACE] FUNCTION [public.]name(` whose header (before the dollar-quoted body) or tail (after the
  *  body, up to the statement end) carries SECURITY DEFINER. PURE.
- *  @returns {{name: string, line: number, inlineSearchPath: boolean, returnsTrigger: boolean}[]} */
+ *  @returns {{name: string, line: number, argTypes: string[], inlineSearchPath: boolean, returnsTrigger: boolean}[]} */
 export function findDefinerFunctions(content) {
-  const text = stripLineComments(content);
-  const re = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:"?public"?\.)?"?([A-Za-z_][A-Za-z0-9_]*)"?\s*\(/gi;
+  const text = maskSql(content);
+  const re = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:"?public"?\s*\.\s*)?"?([A-Za-z_][A-Za-z0-9_]*)"?\s*\(/gi;
   const out = [];
   let m;
   while ((m = re.exec(text))) {
+    const open = m.index + m[0].length - 1;
+    const close = closeParen(text, open);
+    const argTypes = close < 0 ? [] : normalizeArgList(text.slice(open + 1, close));
     const tagRe = /\$[A-Za-z_0-9]*\$/g;
     tagRe.lastIndex = m.index + m[0].length;
     const tag = tagRe.exec(text);
@@ -72,9 +131,9 @@ export function findDefinerFunctions(content) {
     let next = m.index + m[0].length;
     if (tag && (semi === -1 || tag.index < semi)) {
       header = text.slice(m.index, tag.index);
-      const close = text.indexOf(tag[0], tag.index + tag[0].length);
-      if (close !== -1) {
-        const after = close + tag[0].length;
+      const closeTag = text.indexOf(tag[0], tag.index + tag[0].length);
+      if (closeTag !== -1) {
+        const after = closeTag + tag[0].length;
         const end = text.indexOf(';', after);
         tail = text.slice(after, end === -1 ? text.length : end);
         next = after;
@@ -87,39 +146,68 @@ export function findDefinerFunctions(content) {
     if (!/\bSECURITY\s+DEFINER\b/i.test(all)) continue;
     out.push({
       name: m[1].toLowerCase(),
-      line: text.slice(0, m.index).split('\n').length,
-      inlineSearchPath: /\bSET\s+search_path\s*(?:=|TO)\s*[^\n;]*\bpg_temp\b/i.test(all),
+      line: sqlLineOf(text, m.index),
+      argTypes,
+      inlineSearchPath: pathPinned(all),
       returnsTrigger: /\bRETURNS\s+trigger\b/i.test(header),
     });
   }
   return out;
 }
 
+/** True when `clause` carries a `SET search_path = a, b, pg_temp` whose LAST entry is pg_temp. */
+function pathPinned(clause) {
+  const re = /\bSET\s+search_path\s*(?:=|TO)\s*((?:"[^"]*"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*)(?:\s*,\s*(?:"[^"]*"|'[^']*'|[A-Za-z_][A-Za-z0-9_]*))*)/gi;
+  let m;
+  let ok = false;
+  while ((m = re.exec(clause))) {
+    const items = m[1].split(',').map((x) => x.trim().replace(/^["']|["']$/g, '').toLowerCase());
+    if (items[items.length - 1] === 'pg_temp') ok = true;
+  }
+  return ok;
+}
+
+/** Function references `name(args)` in the text after `ON FUNCTION`, as [{name, argTypes}]. */
+function functionRefs(list) {
+  const out = [];
+  const re = /(?:"?public"?\s*\.\s*)?"?([A-Za-z_][A-Za-z0-9_]*)"?\s*\(/g;
+  let m;
+  while ((m = re.exec(list))) {
+    const open = m.index + m[0].length - 1;
+    const close = closeParen(list, open);
+    if (close < 0) break;
+    out.push({ name: m[1].toLowerCase(), argTypes: normalizeArgList(list.slice(open + 1, close)) });
+    re.lastIndex = close + 1;
+  }
+  return out;
+}
+
 /** Pure core. `content` is one migration's text; `filepath` is only used in the message. */
 export function checkDefinerHygiene({ filepath, content }) {
-  const text = stripLineComments(content);
+  const text = maskSql(content);
+  const stmts = text.split(';');
+  const revoked = []; // [{name, argTypes}] for REVOKE ... FROM ... PUBLIC
+  const pinned = []; // ALTER FUNCTION ... SET search_path with pg_temp last
+  for (const s of stmts) {
+    const rv = /^\s*REVOKE\s+(?:EXECUTE|ALL(?:\s+PRIVILEGES)?)\s+ON\s+FUNCTION\s+([\s\S]*?)\s+FROM\s+([\s\S]*)$/i.exec(s);
+    if (rv && /\bPUBLIC\b/i.test(rv[2])) revoked.push(...functionRefs(rv[1]));
+    const al = /^\s*ALTER\s+FUNCTION\s+((?:"?public"?\s*\.\s*)?"?[A-Za-z_][A-Za-z0-9_]*"?\s*\([\s\S]*?\))\s+(SET\s+search_path[\s\S]*)$/i.exec(s);
+    if (al && pathPinned(al[2])) pinned.push(...functionRefs(al[1]));
+  }
   const out = [];
   for (const fn of findDefinerFunctions(content)) {
-    const name = escapeRegex(fn.name);
-    const revoke = new RegExp(
-      `REVOKE\\s+(?:EXECUTE|ALL(?:\\s+PRIVILEGES)?)\\s+ON\\s+FUNCTION\\s+(?:"?public"?\\.)?"?${name}"?\\s*\\([^)]*\\)\\s+FROM\\s+[^;]*\\bPUBLIC\\b`,
-      'i',
-    ).test(text);
-    const alter = new RegExp(
-      `ALTER\\s+FUNCTION\\s+(?:"?public"?\\.)?"?${name}"?\\s*\\([^)]*\\)\\s+SET\\s+search_path\\s*(?:=|TO)\\s*[^;]*\\bpg_temp\\b`,
-      'i',
-    ).test(text);
+    const has = (list) => list.some((r) => r.name === fn.name && sameSignature(r.argTypes, fn.argTypes));
     const missing = [];
-    if (!revoke) missing.push('REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC');
-    if (!fn.inlineSearchPath && !alter) missing.push('a pinned search_path that names pg_temp');
+    if (!has(revoked)) missing.push('REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC');
+    if (!fn.inlineSearchPath && !has(pinned)) missing.push('a pinned search_path that names pg_temp last');
     if (missing.length === 0) continue;
     out.push(
       violation(
         fn.line,
-        `${filepath}: F70 definer-hygiene: function public.${fn.name} is SECURITY DEFINER and this file is missing: ` +
+        `${filepath}: F70 definer-hygiene: function public.${fn.name}(${fn.argTypes.join(', ')}) is SECURITY DEFINER and this file is missing: ` +
           `${missing.join(' and ')}. A definer runs with its owner's rights: revoke the default PUBLIC grant ` +
-          '(REVOKE EXECUTE ON FUNCTION public.<name>(<args>) FROM PUBLIC, then GRANT to the roles that need it) and pin ' +
-          'the path (SET search_path = public, pg_temp in the header, or ALTER FUNCTION ... SET search_path in the same ' +
+          '(REVOKE EXECUTE ON FUNCTION public.<name>(<args>) FROM PUBLIC, naming the same argument types as the CREATE, then GRANT to the roles that need it) and pin ' +
+          'the path (SET search_path = public, pg_temp in the header, with pg_temp last, or ALTER FUNCTION ... SET search_path in the same ' +
           'file). A CREATE OR REPLACE resets the search_path, so restate it every time.',
       ),
     );
@@ -132,8 +220,8 @@ export const fitnessFunction = {
   name: 'definer-hygiene',
   description:
     'Every CREATE [OR REPLACE] FUNCTION ... SECURITY DEFINER in a migration numbered 371 or higher carries, in the ' +
-    'same file, a REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC and a pinned search_path (header SET search_path or an ' +
-    'ALTER FUNCTION ... SET search_path, either naming pg_temp). Migrations below 371 are out of scope by number; migration 371 repaired them ' +
+    'same file, a REVOKE EXECUTE ON FUNCTION ... FROM PUBLIC for the same signature and a pinned search_path (header SET search_path or an ' +
+    'ALTER FUNCTION ... SET search_path, either ending with pg_temp). Migrations below 371 are out of scope by number; migration 371 repaired them ' +
     'at apply time from pg_proc.',
   source: 'fsi-app/.discipline/fitness/functions/F70-definer-hygiene.mjs',
 

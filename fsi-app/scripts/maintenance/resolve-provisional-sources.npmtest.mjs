@@ -25,10 +25,21 @@
 // (fakeDeps), so every dry run and every existing test passed while this exact wiring had never once
 // executed. Fixed: buildDeps() is now EXPORTED and `checkVerticalFitGate` is a one-argument wrapper,
 // `(source) => checkVerticalFitGate(client, source)`, closing over the client.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { __setWriteClientForTest } from "../lib/db.mjs";
 import { buildDeps, main } from "./resolve-provisional-sources.mjs";
+
+// guarded writes snapshot the prior row state to disk before mutating (db.mjs). Redirect the snapshots to a
+// private temp directory removed when this file finishes, so the test never leaves
+// scripts/_snapshots/<timestamp>_<table>.jsonl in the real working tree (lane TESTFIX-1, 2026-10-08: found
+// by auditing every test's file writes; the sibling tests set a fixed temp path and never clean it).
+const SNAP_DIR = mkdtempSync(join(tmpdir(), "resolve-provisional-sources-npmtest-snapshots-"));
+process.env.DISCIPLINE_SNAP_DIR = SNAP_DIR;
+after(() => { rmSync(SNAP_DIR, { recursive: true, force: true }); });
 
 // ── a minimal fake Supabase client (the 7.4c / apply-classifications.test.mjs pattern) ─────────────
 //

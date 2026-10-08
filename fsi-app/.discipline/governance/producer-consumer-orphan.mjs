@@ -97,13 +97,16 @@ export const TERMINAL_SINK_ALLOWLIST = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 import { replaySchema } from './db-object-reference.mjs';
+import { views } from '../fitness/lib/code-scan.mjs';
+import { tableCalls } from '../fitness/lib/table-access.mjs';
+import { maskSql } from '../fitness/lib/sql-mask.mjs';
 
 // SCANNERS (pure over provided text — no fs, so the core is unit-testable with injected inputs).
 // ─────────────────────────────────────────────────────────────────────────────
 
 
-// supabase-js CRUD verb sits immediately after .from("T") (possibly across a newline). Low-false-positive.
-const CODE_OP_RE = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)\s*\.(insert|upsert|update|delete|select)\b/g;
+// (The supabase-js `.from("T").<verb>` call is read by ../fitness/lib/table-access.mjs tableCalls(), which walks the
+// whole method chain on the lexed source: lane GATE-8, 2026-10-08.)
 // GUARDED READ HELPER (scripts/lib/db.mjs): `readAll("T", cols, opts)` and `readAllByIds("T", ...)` take the table
 // name as a string-literal FIRST argument and are the repo's paged read path, so a table read only through them
 // is read (lane NO-TYPED-INPUT, 2026-10-03: backfill-entities.mjs read entity_identifiers this way and the
@@ -162,23 +165,35 @@ export function scanCode(codeFiles) {
   const readers = new Map(); // table -> [{file,line}]
   const rpcCalls = new Map(); // rpc -> [{file,line}]
   const add = (map, key, val) => { (map.get(key) || map.set(key, []).get(key)).push(val); };
-  for (const { file, content } of codeFiles) {
-    for (const m of matchAll(CODE_OP_RE, content)) {
-      const [, table, op] = m;
-      const line = lineOf(content, m.index);
-      if (op === 'select') add(readers, table, { file, line });
-      else add(writers, table, { file, line, op });
+  for (const { file, content: raw } of codeFiles) {
+    // Lane GATE-8 (2026-10-08, AUD-AT-4 B3-15, B3-17): the file is read through the one source lexer. A reader or a
+    // writer that exists only inside a comment, or whose call text sits inside a string literal, is not one; the
+    // table named by a file constant (`const T = "x"; sb.from(T).insert(...)`) is the same table. `content` is the
+    // comment-blanked text (strings kept, so a table name is still readable) and `code` marks which characters are
+    // real code, so a keyword that survives only in `text` is a string.
+    const { text: content, code } = views(raw);
+    const isCode = (m) => code[m.index] === m[0][0];
+    for (const call of tableCalls(raw)) {
+      if (call.table === null) continue;
+      for (const meth of call.methods) {
+        if (meth.name === 'select') add(readers, call.table, { file, line: call.line });
+        else if (['insert', 'upsert', 'update', 'delete'].includes(meth.name)) add(writers, call.table, { file, line: call.line, op: meth.name });
+      }
     }
     for (const m of matchAll(RPC_CALL_RE, content)) {
+      if (!isCode(m)) continue;
       add(rpcCalls, m[1], { file, line: lineOf(content, m.index) });
     }
     for (const m of matchAll(GUARDED_READ_RE, content)) {
+      if (!isCode(m)) continue;
       add(readers, m[1], { file, line: lineOf(content, m.index) });
     }
     for (const m of matchAll(GUARDED_WRITE_RE, content)) {
+      if (!isCode(m)) continue;
       add(writers, m[1], { file, line: lineOf(content, m.index), op: 'guarded' });
     }
     for (const sel of matchAll(SELECT_STRING_RE, content)) {
+      if (!isCode(sel)) continue;
       const selLine = lineOf(content, sel.index);
       for (const m of matchAll(EMBED_CHILD_RE, sel[1])) {
         add(readers, m[1], { file, line: selLine });
@@ -192,7 +207,9 @@ export function scanSql(migrationTexts) {
   const sqlReaders = new Set(); // table referenced in FROM/JOIN/REFERENCES
   const sqlWriters = new Set(); // table written in INSERT INTO / UPDATE
   const rpcReads = new Map(); // rpc name -> Set(tables its body FROM/JOINs) — coarse (whole-file scope)
-  for (const { content } of migrationTexts) {
+  for (const { content: raw } of migrationTexts) {
+    // AUD-AT-4 B3-16 (lane GATE-8): a `FROM tbl` inside a SQL comment is not a reader.
+    const content = maskSql(raw);
     for (const m of matchAll(SQL_READ_RE, content)) {
       const t = m[1].toLowerCase();
       if (!SQL_NON_TABLES.has(t)) sqlReaders.add(t);
@@ -291,8 +308,8 @@ export function runOrphanCheck() {
   const migRel = tracked.filter((p) => p.startsWith('fsi-app/supabase/migrations/') && p.endsWith('.sql'));
   const codeRel = tracked.filter((p) =>
     (p.startsWith('fsi-app/src/') || p.startsWith('fsi-app/scripts/') || p.startsWith('fsi-app/supabase/functions/')) &&
-    /\.(ts|tsx|mjs|js)$/.test(p) &&
-    !/\.test\.mjs$|\.selftest\.mjs$/.test(p));
+    /\.(ts|tsx|mjs|js|cjs|jsx)$/.test(p) &&
+    !/\.test\.(mjs|cjs)$|\.selftest\.mjs$/.test(p));
 
   const migrationTexts = migRel.map((f) => ({ file: f, content: readRepo(f) || '' }));
   const codeFiles = codeRel.map((f) => ({ file: f, content: readRepo(f) || '' }));
