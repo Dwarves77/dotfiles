@@ -31,3 +31,6 @@ Read: COMMON.md, proof4.md, CLAUDE.md, lane-common-contract, the chain-proof des
 ### Follow-up owed after PR 975 merges (coordinator ruling, one push)
 - Fix the `chain-proof.yml` attack step path to `scripts/proof/attacks/run-attacks.mjs`; add `run-attacks.mjs` and `attacks.json` to the chain-proof `family.json` governing_files; swap the runner's local loopback check for `isLoopbackHost` from `scripts/lib/pg-conn.mjs`.
 - Lint fix pushed 2026-10-08 (3 unused-variable warnings in the tier-override attack and its test).
+
+### Follow-up landed after PR 975 merged (one push)
+- `chain-proof.yml` attack step now calls `scripts/proof/attacks/run-attacks.mjs`; `run-attacks.mjs` and `attacks.json` added to the chain-proof `governing_files`; the runner's local loopback check replaced by `isLoopbackHost` from `scripts/lib/pg-conn.mjs` (pg is loaded lazily there, so the import is npm-free).

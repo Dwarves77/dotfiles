@@ -32,6 +32,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from "../../lib/is-main.mjs";
+import { isLoopbackHost } from "../../lib/pg-conn.mjs";
 import { runSqlAttack, parseRole, STEP_KINDS, EXPECT_KEYS } from "./attack-engine.mjs";
 import { runScriptAttack, runSqlBlockAttack } from "./script-attack.mjs";
 import { runTierOverrideAttack } from "./tier-override-attack.mjs";
@@ -42,9 +43,8 @@ const FSI_ROOT = resolve(HERE, "..", "..", "..");
 export const MANIFEST_PATH = join(HERE, "attacks.json");
 export const KINDS = Object.freeze(["sql", "script", "sql-block", "tier-override"]);
 
-const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
 const PRODUCTION_MARKERS = ["supabase.co", "supabase.com", "carosledge.com", "vercel.app", "vercel.com"];
-const hostOf = (u) => { try { return new URL(u).hostname.toLowerCase(); } catch { return null; } };
+const hostOf = (u) => { try { return new URL(u).hostname; } catch { return null; } };
 
 /** Read and parse the manifest. Validation is a separate call. */
 export function loadManifest(path = MANIFEST_PATH) {
@@ -58,9 +58,9 @@ export function assertLocalOnly(env) {
   for (const name of ["SUPABASE_DB_URL", "NEXT_PUBLIC_SUPABASE_URL"]) {
     const v = env[name];
     if (!v || !String(v).trim()) violations.push(`${name} is missing`);
-    else if (!LOOPBACK.has(hostOf(v))) violations.push(`${name} does not name a loopback host`);
+    else if (!isLoopbackHost(hostOf(v))) violations.push(`${name} does not name a loopback host`);
   }
-  if (env.DATABASE_URL && !LOOPBACK.has(hostOf(env.DATABASE_URL))) violations.push("DATABASE_URL does not name a loopback host");
+  if (env.DATABASE_URL && !isLoopbackHost(hostOf(env.DATABASE_URL))) violations.push("DATABASE_URL does not name a loopback host");
   for (const [name, value] of Object.entries(env)) {
     const lower = String(value ?? "").toLowerCase();
     if (PRODUCTION_MARKERS.some((m) => lower.includes(m))) violations.push(`production host named in ${name}`);
