@@ -66,7 +66,7 @@
 
 ## Corrections after the first CI run (same day)
 
-- F28 failed: `attacks.json` is a governing file of the chain-proof family and the range added no run artifact. Added `fsi-app/scripts/harness-runs/chain-proof/pending/2026-10-08-sec3b-table-policies.md` (common rule 10 prescribes the marker; it is outside the brief's write set list, disclosed here).
+- F28 failed on the first push: `attacks.json` is a governing file of the chain-proof family and the range added no run artifact, so a pending marker was added (common rule 10). GATE-3 (PR 1002) then merged to master and retired the pending/ scheme (its test fails while any pending/ directory exists), so after merging master the marker was removed again; the net diff carries no pending file.
 - `ActionRow.npmtest.mjs` (existing, not touched) asserts the literal `{onTag && (`. The first draft changed that line to `{onTag && !isViewer && (`; ActionRow now renames the prop (`onTag: onTagProp`) and derives `const onTag = isViewer ? undefined : onTagProp`, so the JSX line is unchanged. Not caught locally because npmtests were not run; CI caught it.
 
 ## Decisions
