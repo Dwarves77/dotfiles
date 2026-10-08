@@ -76,6 +76,12 @@ export const GOVERNED = [
       // to the uptime probe. The write detector matches its `.rpc(` call shape (a read RPC, the scan cannot tell);
       // it reports the health of the five customer surfaces' provenance gate, so it is governed with the surfaces.
       'fsi-app/src/lib/health/gate-a-gauges.mjs',
+      // Workspace-layer writers (lane S8-A, 2026-10-08, coordinator ruling on PR 988): private workspace notes and
+      // multi-person assignment at the foot of every detail page. They write item_notes and item_assignments
+      // (migrations 358, 359), org-scoped workspace commentary and coordination for the customer surfaces' detail
+      // pages, never intelligence data, so they are governed with the surfaces. Mapped here, no exemption.
+      'fsi-app/src/lib/workspace/item-notes.mjs',
+      'fsi-app/src/lib/workspace/item-assignments.mjs',
     ],
     ops: [],
   },

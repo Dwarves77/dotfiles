@@ -20,12 +20,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // (ADR-041, Community is social only); the DB CHECK still allows it until the owed migration.
 // 'archive' added by migration 235 (dual-scope archive): a workspace archive
 // fans out to the item's watchers and its assigned owner.
+// 'assignment' added by migration 359 (lane S8-A): a member assigned an item in their workspace is told once.
 export type NotificationKind =
   | "reply"
   | "invite"
   | "moderation"
   | "mention"
-  | "archive";
+  | "archive"
+  | "assignment";
 
 export interface DispatchArgs {
   userId: string;

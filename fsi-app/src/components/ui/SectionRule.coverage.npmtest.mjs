@@ -88,7 +88,6 @@ test("every card component that used to mount the rule by hand now renders <Sect
     "components/operations/RegionDimensionMatrix.tsx",
     "components/operations/OperationsDetailSurface.tsx",
     "components/research/ResearchFindingDetailSurface.tsx",
-    "components/pages/MarketSignalDetailSurface.tsx",
     "components/profile/UserProfilePage.tsx",
     "components/sources/ProvisionalReviewTable.tsx",
     "components/admin/AdminDashboard.tsx",
@@ -109,10 +108,21 @@ test("every card component that used to mount the rule by hand now renders <Sect
   // import (rule 13). The check that the removal really happened lives where it belongs, in
   // compose-08-operations-list.json's "no By-state disclosure below the rows (item D3)" forbid; if
   // a card ever returns to this file, F42 is what makes it render SectionCard.
+  //
+  // LEFT (lane S8-A, 2026-10-08): `components/pages/MarketSignalDetailSurface.tsx`. Its ONLY SectionCard
+  // was the rail NotesField card, and the retirement of that card (private workspace notes are the shared
+  // Notes section DetailShell mounts, item_notes, migration 358) left the file rendering no card of its
+  // own, so requiring it to import SectionCard would require a dead import (rule 13). F42 still makes any
+  // card that returns to the file render SectionCard.
   assert.doesNotMatch(
     readFileSync(resolve(ROOT, "components/operations/OperationsLedger.tsx"), "utf8"),
     /<SectionCard\b/,
     "OperationsLedger renders a card again: add it back to FILES above"
+  );
+  assert.doesNotMatch(
+    readFileSync(resolve(ROOT, "components/pages/MarketSignalDetailSurface.tsx"), "utf8"),
+    /<SectionCard\b/,
+    "MarketSignalDetailSurface renders a card again: add it back to FILES above"
   );
   for (const rel of FILES) {
     const text = readFileSync(resolve(ROOT, rel), "utf8");
