@@ -16,10 +16,9 @@ name: Chain proof
 # names and definitions, never rows). The difference must be EMPTY or the job fails at that step with the counts
 # and the names of the differing objects in the log and the artifact.
 #
-# EXPECTED STATE: RED. Production's migration names diverge from the repo's file names (352 applied rows, 46 with no
-# file, 17 files with no applied row), so the replay refuses today. The job stays red until a migrations-history lane
-# repairs the repo: the 46 missing files recovered verbatim from production's schema_migrations.statements and the 17
-# unmatched files reconciled. The gate that lifts it is this job going green with an empty schema diff
+# EXPECTED STATE: RED. Production's migration names diverge from the repo's file names, and the record of which file
+# stands for which ledger row is fsi-app/supabase/migrations/APPLIED-MAP.json, produced by lane MIG-HIST-1. Until that
+# map lands the replay refuses (the honest state); once it lands, the job is green only with an empty schema diff
 # (docs/runbooks/maintenance.d/64-chain-proof.md, docs/decisions/ADR-045-chain-proof-on-a-local-stack.md).
 #
 # ISOLATION (ruling R3 as amended). The export step is the ONLY step with production credentials: the three
@@ -124,8 +123,9 @@ jobs:
           node scripts/proof/preflight.mjs
           node scripts/proof/create-oracle-db.mjs --env-file "$CHAIN_PROOF_ENV"
 
-      # The proof schema is built from the repo's migration files. It stops at the first error and refuses when an
-      # applied row has no file. No tolerate list, no skip list, no continue-on-error mode.
+      # The proof schema is built from the repo's migration files, selected through APPLIED-MAP.json. It stops at the
+      # first error and refuses when the map is absent, a ledger version is missing from it or a map entry's file is
+      # missing. No tolerate list, no skip list, no continue-on-error mode.
       - name: Replay the migration files onto the stack (builds the proof schema; stops on the first error)
         working-directory: fsi-app
         run: |

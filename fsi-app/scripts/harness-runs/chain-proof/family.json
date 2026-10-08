@@ -14,6 +14,7 @@
     "scripts/proof/create-oracle-db.mjs",
     "scripts/proof/schema-diff.mjs",
     "scripts/proof/sync-applied-migrations.mjs",
+    "scripts/proof/applied-map.mjs",
     "scripts/proof/emit-chain-proof-artifact.mjs",
     "scripts/lib/pg-conn.mjs"
   ],

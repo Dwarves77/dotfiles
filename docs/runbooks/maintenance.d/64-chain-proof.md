@@ -6,22 +6,39 @@ local Supabase stack. Decision record: `docs/decisions/ADR-045-chain-proof-on-a-
 `fsi-app/scripts/harness-runs/chain-proof/FAMILY.md`.
 
 **Expected state: RED.** Production's migration names diverge from the repo's file names (352 applied rows in
-`fsi-app/docs/inventories/applied-migrations.json`, 46 with no file, 17 files with no applied row), so the replay
-refuses today and the schema oracle could not be empty. The job stays red until a migrations-history lane repairs the
-repo: the 46 missing files recovered verbatim from production's `schema_migrations.statements`, the 17 unmatched files
-reconciled, and the stale NOT APPLIED header text (101, 149, 160, 272, 304, 312, 321, 351 to 357) fixed. **The gate
-that lifts it** is this job going green with an empty schema diff. Nothing in the proof is relaxed to get there: no
-tolerate list, no skip list, no continue-on-error.
+`fsi-app/docs/inventories/applied-migrations.json`). Many ledger rows have no file of their own: a later master
+migration retroactively captured their DDL, or they were data-only loads from a closed lane. The record of which file
+stands for which row is `APPLIED-MAP.json` (below), produced by lane MIG-HIST-1. Until it lands the replay refuses
+because the map is absent, which is the honest state. **The gate that lifts it** is this job going green with an
+empty schema diff. Nothing in the proof is relaxed to get there: no tolerate list, no skip list, no continue-on-error.
+The stale NOT APPLIED header text (101, 149, 160, 272, 304, 312, 321, 351 to 357) is owed to the same lane.
+
+**The applied map schema**: APPLIED-MAP.json (`fsi-app/supabase/migrations/APPLIED-MAP.json`, produced by lane MIG-HIST-1) is an object keyed by
+ledger version. Each value is `{ name, file, class, superseded_by?, note? }` where `file` is a path or null and
+`class` is one of:
+
+| class | what the replay does |
+|---|---|
+| `identical`, `comments-only`, `code-differs`, `recovered` | a file stands for the ledger row: APPLY that file, in the order of `docs/inventories/migrations.md` |
+| `superseded-by`, `data-only`, `comment-only` | the row is SATISFIED with no file of its own (a later master migration captured its DDL, or it was a data or comment load): counted and listed |
+| `outside-ledger` | a file that is live but has no ledger version: APPLIED (handled by its file, whatever its key) |
+| `never-applied`, `duplicate-prefix` | a file production never applied: SKIPPED and listed (handled by its file) |
+
+The replay REFUSES (applies nothing, names every error) when: the map file is absent (red until MIG-HIST-1 lands, the
+honest state); a ledger version in `applied-migrations.json` has no entry; a class is unknown; an entry that needs a
+file has none; a map entry's file (or `superseded_by` file) is missing on disk; a file is claimed both to apply and to
+skip; or a file to apply is not listed in `docs/inventories/migrations.md` (its order is unknown). A file on disk that
+no entry references is listed as unreferenced, not an error.
 
 **What a firing does**:
 1. Starts a local stack on the runner (storage and auth only, from `fsi-app/supabase/config.toml` copied into a
    scratch directory so the CLI never applies the migration tree).
 2. Creates an empty `oracle_check` database from the stack's own empty `postgres` database (`create-oracle-db.mjs`),
    before any application schema exists.
-3. Builds the proof schema by replaying the migration files onto the stack's database (`replay-migrations.mjs`): order
-   from `docs/inventories/migrations.md`, applied set from the applied-migrations inventory, a file with no applied
-   row skipped and listed, an applied row with no file an error that refuses the replay, the first psql error stops
-   it (file, line, message and statement named).
+3. Builds the proof schema by replaying the migration files onto the stack's database (`replay-migrations.mjs`): the
+   ledger is `applied-migrations.json`, the file selection is `APPLIED-MAP.json` (classes below), the order is
+   `docs/inventories/migrations.md`; any map error refuses the replay; the first psql error stops it (file, line,
+   message and statement named).
 4. Export step, the only step with production credentials: a schema-only dump of production
    (`dump-production-schema.mjs`, `supabase db dump`, Supabase-managed schemas excluded, no roles) to runner disk, then
    the data subset (lane PROOF-2).

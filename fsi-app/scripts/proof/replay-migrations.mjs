@@ -15,21 +15,23 @@
 // that the inventory does not list is REPORTED and not applied. A file the inventory lists that is absent on
 // disk is REPORTED.
 //
-// APPLIED SET (coordinator ruling 2026-10-07). The replay applies what production has applied, taken from the
-// committed fsi-app/docs/inventories/applied-migrations.json (production's list_migrations, synced by hand with
-// scripts/proof/sync-applied-migrations.mjs, which also owns the shape of that file), never from file headers:
-// several headers still say NOT APPLIED for applied migrations and are stale. A file matches an applied row when
-// (version, name) equals (file prefix, rest of the name), or the row's name is the whole file base name, or the row
-// is timestamp-versioned and its name is the rest of the file name. A file with no match is SKIPPED and listed
-// (skipped_not_applied). An applied row that matches no file is an ERROR (applied_without_file): the replay
-// refuses to run, applies nothing, and names the rows.
+// WHICH FILES APPLY (coordinator ruling 2026-10-07). Production's ledger (fsi-app/docs/inventories/
+// applied-migrations.json, production's list_migrations, synced by hand with scripts/proof/sync-applied-migrations.mjs)
+// and the repo's files do not line up by name. The record of which file stands for which ledger row is
+// fsi-app/supabase/migrations/APPLIED-MAP.json (lane MIG-HIST-1); scripts/proof/applied-map.mjs reads it. Per ledger
+// version: a class with a file (identical, comments-only, code-differs, recovered) APPLIES that file, in the order of
+// docs/inventories/migrations.md; superseded-by, data-only and comment-only rows are SATISFIED with no file, counted
+// and listed; outside-ledger files are APPLIED (they are live); never-applied and duplicate-prefix files are SKIPPED
+// and listed. ERRORS (the replay refuses, applies nothing, names them): the map file is absent (red until MIG-HIST-1
+// lands, the honest state), a ledger version absent from the map, a map entry whose file is missing, an unknown class,
+// a file to apply that the order inventory does not list. File headers are never evidence (several still say NOT
+// APPLIED for applied migrations).
 //
 // THE REPLAY BUILDS THE PROOF SCHEMA (coordinator reversal 2026-10-07: no workarounds). The stack's schema is the
 // repo files replayed here, onto the stack's empty database. A schema-only dump of production is the ORACLE: after
 // the replay, schema-diff.mjs must find the replayed schema and the dump identical, or the job fails. Production's
-// names diverge from the file names today (352 applied rows, 46 with no file, 17 files with no applied row), so
-// the job is expected to be RED until a migrations-history lane repairs the repo (docs/runbooks/maintenance.d/
-// 64-chain-proof.md says so, and names the gate that lifts it).
+// names diverge from the file names today, so the job is expected to be RED until lane MIG-HIST-1 lands the map and
+// repairs the repo (docs/runbooks/maintenance.d/64-chain-proof.md says so, and names the gate that lifts it).
 //
 // STOP RULE. The first error stops the replay with the file name, the psql error and the statement at the reported
 // line. There is no tolerate list, no skip list and no continue-on-error mode. This lane does not patch migrations.
@@ -39,10 +41,10 @@
 // replay runs on an empty database, so no row can appear in it.
 //
 // Usage: node scripts/proof/replay-migrations.mjs --report <path> [--db-url <url>]
-//          [--migrations-dir <dir>] [--inventory <md>] [--applied <json>] [--psql <bin>]
+//          [--migrations-dir <dir>] [--inventory <md>] [--applied <json>] [--map <json>] [--psql <bin>]
 //   The database URL is --db-url, else PROOF_DB_URL (the stack's own database, where the proof schema is built).
 // Exit: 0 = every planned file applied and the post checks passed;
-//       1 = a file failed, an applied row has no file, or a post check failed; 2 = cannot run (no URL, not
+//       1 = a file failed, the map is absent or has errors, or a post check failed; 2 = cannot run (no URL, not
 //       loopback, no psql, an unreadable inventory).
 
 import { spawnSync } from "node:child_process";
@@ -52,6 +54,7 @@ import { fileURLToPath } from "node:url";
 import { isLoopbackHost } from "../lib/pg-conn.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 import { parseAppliedInventory } from "./sync-applied-migrations.mjs";
+import { parseAppliedMap, resolveMap } from "./applied-map.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -59,6 +62,7 @@ const REPO_ROOT = resolve(FSI_ROOT, "..");
 export const DEFAULT_MIGRATIONS_DIR = resolve(FSI_ROOT, "supabase", "migrations");
 export const DEFAULT_INVENTORY = resolve(REPO_ROOT, "docs", "inventories", "migrations.md");
 export const DEFAULT_APPLIED = resolve(FSI_ROOT, "docs", "inventories", "applied-migrations.json");
+export const DEFAULT_MAP = resolve(FSI_ROOT, "supabase", "migrations", "APPLIED-MAP.json");
 export const DB_CATALOG = resolve(FSI_ROOT, ".discipline", "governance", "db-catalog.json");
 
 const MAX_NOTICES_PER_FILE = 100;
@@ -72,27 +76,6 @@ export function parseInventoryOrder(markdown) {
     if (m) rows.push({ prefix: m[1], file: m[2], subject: m[3] });
   }
   return rows;
-}
-
-/** Does an applied row (production's version and name) correspond to this migration file name? PURE. */
-export function appliedRowMatchesFile(row, file) {
-  const m = /^(\d{3})_(.+)\.sql$/.exec(file);
-  if (!m) return false;
-  const [, num, rest] = m;
-  const shortVersion = /^\d{3}$/.test(row.version);
-  return (shortVersion && row.version === num && row.name === rest) || row.name === `${num}_${rest}` || (!shortVersion && row.name === rest);
-}
-
-/** Applied rows and files to each other. PURE. Returns { appliedFiles: Set, appliedWithoutFile: row[] }. */
-export function matchApplied(appliedRows, files) {
-  const appliedFiles = new Set();
-  const appliedWithoutFile = [];
-  for (const row of appliedRows) {
-    const hits = files.filter((f) => appliedRowMatchesFile(row, f));
-    for (const f of hits) appliedFiles.add(f);
-    if (hits.length === 0) appliedWithoutFile.push({ version: row.version, name: row.name });
-  }
-  return { appliedFiles, appliedWithoutFile };
 }
 
 /** Duplicate numeric prefixes and absent numbers over the files that will be applied. PURE. */
@@ -115,28 +98,31 @@ export function prefixReport(files) {
 
 /**
  * Plan the replay. PURE.
- * @param {{prefix:string,file:string,subject:string}[]} inventoryRows
+ * @param {{prefix:string,file:string,subject:string}[]} inventoryRows  the order source (docs/inventories/migrations.md)
  * @param {string[]} diskFiles  the *.sql names found in the migrations directory
- * @param {{version:string,name:string}[]|null} [appliedRows] production's applied list; null = no applied filter
+ * @param {{version:string,name:string}[]} ledger  production's applied ledger
+ * @param {string|null} mapText  the text of APPLIED-MAP.json, or null when the file is absent
  */
-export function planReplay(inventoryRows, diskFiles, appliedRows = null) {
+export function planReplay(inventoryRows, diskFiles, ledger, mapText) {
   const onDisk = new Set(diskFiles);
   const listed = new Set(inventoryRows.map((r) => r.file));
-  const ordered = [];
-  const missingOnDisk = [];
-  const applied = appliedRows ? matchApplied(appliedRows, [...onDisk]) : null;
-  const skippedNotApplied = [];
-  for (const row of inventoryRows) {
-    if (!onDisk.has(row.file)) { missingOnDisk.push(row.file); continue; }
-    let skip = null;
-    if (applied && !applied.appliedFiles.has(row.file)) {
-      skip = { file: row.file, reason: "not in the applied-migrations inventory (production has not applied it)", owner: "applied-migrations.json" };
-      skippedNotApplied.push(row.file);
-    }
-    ordered.push({ file: row.file, subject: row.subject, skip });
-  }
+  const missingOnDisk = inventoryRows.filter((r) => !onDisk.has(r.file)).map((r) => r.file);
   const notInInventory = diskFiles.filter((f) => !listed.has(f)).sort();
-  return { ordered, missingOnDisk, notInInventory, skippedNotApplied, appliedWithoutFile: applied ? applied.appliedWithoutFile : [], ...prefixReport(ordered.map((o) => o.file)) };
+  const parsed = parseAppliedMap(mapText);
+  if (parsed.error) {
+    return { ordered: [], missingOnDisk, notInInventory, satisfied: [], skipped: [], unreferenced: [], errors: [{ kind: "map_absent_or_invalid", message: parsed.error }], duplicates: [], gaps: [] };
+  }
+  const resolved = resolveMap({ ledger, map: parsed.map, diskFiles, orderFiles: inventoryRows.map((r) => r.file) });
+  return {
+    ordered: resolved.toApply.map((t) => ({ file: t.file, class: t.class, key: t.key })),
+    missingOnDisk,
+    notInInventory,
+    satisfied: resolved.satisfied,
+    skipped: resolved.skipped,
+    unreferenced: resolved.unreferenced,
+    errors: resolved.errors,
+    ...prefixReport(resolved.toApply.map((t) => t.file)),
+  };
 }
 
 /** Read what psql printed. PURE. `fileText` is the migration source, used to quote the failing statement. */
@@ -232,13 +218,9 @@ export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spaw
   const startedAt = now().toISOString();
   const files = [];
   let stoppedAt = null;
-  const refusedForApplied = (plan.appliedWithoutFile ?? []).length > 0;
+  const refused = (plan.errors ?? []).length > 0;
 
-  for (const item of refusedForApplied ? [] : plan.ordered) {
-    if (item.skip) {
-      files.push({ file: item.file, status: "skipped", seconds: 0, reason: item.skip.reason, owner: item.skip.owner });
-      continue;
-    }
+  for (const item of refused ? [] : plan.ordered) {
     const path = join(migrationsDir, item.file);
     const text = readFn(path, "utf8");
     const run = runFileWithPsql({ psql, dbUrl, file: path, spawn });
@@ -256,7 +238,7 @@ export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spaw
   const count = (s) => files.filter((f) => f.status === s).length;
   let postChecks = [];
   let postInfo = null;
-  if (!stoppedAt && !refusedForApplied) {
+  if (!stoppedAt && !refused) {
     const probed = probe({ psql, dbUrl, spawn });
     if (probed) {
       const ev = evaluatePostChecks(probed, expectedTables);
@@ -272,25 +254,26 @@ export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spaw
     schema: "chain-proof-replay-report/1",
     started_at: startedAt,
     finished_at: now().toISOString(),
-    inventory_rows: plan.ordered.length + plan.missingOnDisk.length,
     planned: plan.ordered.length,
     applied: count("applied"),
     failed,
-    skipped: count("skipped"),
-    attempted: files.filter((f) => f.status !== "skipped").length,
+    satisfied_count: plan.satisfied.length,
+    satisfied: plan.satisfied,
+    skipped_count: plan.skipped.length,
+    skipped: plan.skipped,
+    unreferenced_files: plan.unreferenced,
+    map_errors: plan.errors ?? [],
     stopped_at: stoppedAt,
     not_in_inventory: plan.notInInventory,
     missing_on_disk: plan.missingOnDisk,
     duplicate_prefixes: plan.duplicates,
     gaps: plan.gaps,
-    skipped_not_applied: plan.skippedNotApplied ?? [],
-    applied_without_file: plan.appliedWithoutFile ?? [],
     post_checks: postChecks,
     post_info: postInfo,
     files,
   };
-  report.refused = refusedForApplied;
-  report.ok = !refusedForApplied && failed === 0 && !stoppedAt && postChecks.length > 0 && postChecks.every((c) => c.ok);
+  report.refused = refused;
+  report.ok = !refused && failed === 0 && !stoppedAt && postChecks.length > 0 && postChecks.every((c) => c.ok);
   return report;
 }
 
@@ -298,19 +281,20 @@ export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spaw
 export function summarize(report) {
   const lines = [
     `Migration replay: ${report.ok ? "OK" : "FAILED"}`,
-    `  planned ${report.planned}, applied ${report.applied}, failed ${report.failed}, skipped ${report.skipped}`,
-    `  listed in inventory but absent on disk: ${report.missing_on_disk.length}; on disk but not in inventory (not applied): ${report.not_in_inventory.length}`,
-    `  duplicate prefixes: ${report.duplicate_prefixes.map((d) => `${d.prefix} x${d.files.length}`).join(", ") || "none"}; absent numbers: ${report.gaps.length}`,
-    `  skipped, not in the applied inventory: ${report.skipped_not_applied.length}; applied rows with no file (ERROR): ${report.applied_without_file.length}`,
+    `  planned ${report.planned}, applied ${report.applied}, failed ${report.failed}; satisfied with no file of their own ${report.satisfied_count}; skipped (never applied or duplicate prefix) ${report.skipped_count}`,
+    `  listed in inventory but absent on disk: ${report.missing_on_disk.length}; on disk but not in inventory: ${report.not_in_inventory.length}; on disk but referenced by no map entry: ${report.unreferenced_files.length}`,
+    `  duplicate prefixes: ${report.duplicate_prefixes.map((d) => `${d.prefix} x${d.files.length}`).join(", ") || "none"}; absent numbers: ${report.gaps.length}; map errors: ${report.map_errors.length}`,
   ];
   for (const f of report.files.filter((x) => x.status === "failed")) {
     lines.push(`  FAILED ${f.file}${f.error?.line ? ` line ${f.error.line}` : ""}: ${f.error?.message}`);
     if (f.error?.statement) lines.push(`    statement: ${f.error.statement}`);
     for (const c of f.error?.context ?? []) lines.push(`    ${c}`);
   }
-  if (report.refused) lines.push("  REFUSED: applied rows with no migration file; nothing was replayed. The names:");
-  for (const r of report.applied_without_file.slice(0, 80)) lines.push(`    applied row with no file: ${r.version} ${r.name}`);
-  for (const f of report.skipped_not_applied) lines.push(`    file with no applied row (skipped): ${f}`);
+  if (report.refused) lines.push("  REFUSED: the applied map is absent or has errors; nothing was replayed. The errors:");
+  for (const e of report.map_errors.slice(0, 80)) lines.push(`    ${e.kind}${e.key ? " " + e.key : ""}${e.file ? " " + e.file : ""}: ${e.message}`);
+  if (report.map_errors.length > 80) lines.push(`    and ${report.map_errors.length - 80} more`);
+  for (const s of report.satisfied.slice(0, 80)) lines.push(`    satisfied ${s.key} (${s.class})${s.superseded_by ? " by " + s.superseded_by : ""}`);
+  for (const k of report.skipped) lines.push(`    skipped ${k.file} (${k.class})`);
   for (const c of report.post_checks.filter((x) => !x.ok)) lines.push(`  POST CHECK FAILED: ${c.name}`);
   if (report.post_info) lines.push(`  public tables ${report.post_info.public_tables}, committed catalog ${report.post_info.catalog_tables}, delta ${report.post_info.delta}`);
   return lines.join("\n");
@@ -320,7 +304,7 @@ function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (["--report", "--db-url", "--migrations-dir", "--inventory", "--psql", "--applied"].includes(a)) out[a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = argv[++i];
+    if (["--report", "--db-url", "--migrations-dir", "--inventory", "--psql", "--applied", "--map"].includes(a)) out[a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = argv[++i];
     else throw new Error(`unknown argument ${a}`);
   }
   return out;
@@ -343,7 +327,10 @@ function main() {
   const diskFiles = readdirSync(migrationsDir).filter((f) => f.endsWith(".sql"));
   let appliedRows;
   try { appliedRows = parseAppliedInventory(readFileSync(args.applied ? resolve(args.applied) : DEFAULT_APPLIED, "utf8")); } catch (e) { console.error(`replay-migrations: applied-migrations inventory refused: ${e.message}`); process.exit(2); }
-  const plan = planReplay(inventoryRows, diskFiles, appliedRows);
+  const mapPath = args.map ? resolve(args.map) : DEFAULT_MAP;
+  let mapText = null;
+  try { mapText = readFileSync(mapPath, "utf8"); } catch { mapText = null; }
+  const plan = planReplay(inventoryRows, diskFiles, appliedRows, mapText);
 
   let expectedTables = null;
   try { expectedTables = JSON.parse(readFileSync(DB_CATALOG, "utf8")).tables?.length ?? null; } catch { /* informational only */ }

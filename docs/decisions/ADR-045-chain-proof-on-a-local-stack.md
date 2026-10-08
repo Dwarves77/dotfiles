@@ -35,11 +35,12 @@ mode, against a real schema, with read-back assertions and the attack suite) has
    full hop sequence recorded in `harness_runs`).
 2. The stack's schema is built by replaying the repo's migration files, not copied from production.
    `scripts/proof/replay-migrations.mjs` applies each file with psql onto the stack's empty database, in the order
-   of `docs/inventories/migrations.md` (the Supabase CLI cannot: duplicate numeric prefixes at 006 and 007), filtered
-   by the committed applied-migrations inventory (`fsi-app/docs/inventories/applied-migrations.json`, production
-   `list_migrations`, 352 rows; an earlier figure of 239 was wrong). It stops on its first error. There is no
-   tolerate list, no skip list and no continue-on-error mode. An applied row with no file is an error and the
-   replay refuses to run.
+   of `docs/inventories/migrations.md` (the Supabase CLI cannot: duplicate numeric prefixes at 006 and 007), selected
+   by the committed ledger (`fsi-app/docs/inventories/applied-migrations.json`, production `list_migrations`, 352
+   rows; an earlier figure of 239 was wrong) through `fsi-app/supabase/migrations/APPLIED-MAP.json` (lane MIG-HIST-1;
+   schema below). It stops on its first error. There is no tolerate list, no skip list and no continue-on-error mode.
+   An applied row with no file is NOT in itself an error (a later master migration retroactively captured the DDL of
+   many ledger rows, and some rows were data-only loads from a closed lane); a ledger version with no map entry is.
 3. A schema-only dump of production is the ORACLE, not the copy. The credentialed export step writes it to runner
    disk (`supabase db dump`, schema only, Supabase-managed schemas excluded, no roles); it is applied to a second
    database on the stack (`oracle_check`); and `scripts/proof/schema-diff.mjs` compares the replayed schema with it
@@ -47,12 +48,25 @@ mode, against a real schema, with read-back assertions and the attack suite) has
    hashes, never rows). The difference must be empty, or the job fails at that step with the counts and the names of
    the differing objects in the log and the artifact. A production data subset is then exported read only and
    loaded locally by later lanes (PROOF-2); the chain steps and attack suite follow (PROOF-3, PROOF-4).
-4. Expected state: the job is RED today. Production's migration names diverge from the file names: 46 applied rows
-   have no file (22 are `216_` to `237_` coverage-gap rows) and 17 files have no applied row, so the replay refuses
-   and the oracle diff would not be empty. The repair is owed to a migrations-history lane: recover the 46 missing
-   files verbatim from production's `schema_migrations.statements` and reconcile the 17 unmatched files (and fix the
-   stale NOT APPLIED header text). The gate that lifts the red state is the job itself going green with an empty
-   schema diff. Nothing in the proof is relaxed to turn it green.
+4. Expected state: the job is RED until lane MIG-HIST-1 lands the map. Production's migration names diverge from the
+   file names; the map is the record of which file stands for which ledger row. While the map file is absent the
+   replay refuses naming it, which is the honest state. The gate that lifts the red state is the job itself going
+   green with an empty schema diff. Nothing in the proof is relaxed to turn it green. The stale NOT APPLIED header
+   text is owed to the same lane.
+
+   The map is an object keyed by ledger version; each value is `{ name, file, class, superseded_by?, note? }`, `file`
+   a path or null:
+
+   | class | replay behaviour |
+   |---|---|
+   | `identical`, `comments-only`, `code-differs`, `recovered` | apply the file, in inventory order |
+   | `superseded-by`, `data-only`, `comment-only` | satisfied with no file; counted and listed |
+   | `outside-ledger` | a live file with no ledger version: applied (by its file) |
+   | `never-applied`, `duplicate-prefix` | skipped and listed (by its file) |
+
+   The replay refuses when the map is absent, a ledger version has no entry, a class is unknown, an entry needing a
+   file has none, a map entry's file is missing, a file is claimed both to apply and to skip, or a file to apply is
+   not in `docs/inventories/migrations.md`.
 5. Isolation (ruling R2 and R3 as amended): `scripts/lib/pg-conn.mjs` has a loopback mode (`CHAIN_PROOF_LOCAL=1`, or a
    loopback first URL) that connects without TLS to loopback only and never falls through to a production host.
    The export step reads three existing repository secrets (`NEXT_PUBLIC_SUPABASE_URL`,

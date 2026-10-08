@@ -67,8 +67,8 @@ export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = nu
     perItem.push({
       id: "replay-migrations",
       outcome: replay.ok ? "ok" : "failed",
-      verdict: `applied ${replay.applied} of ${replay.planned}; failed ${replay.failed}; skipped ${replay.skipped}`,
-      counts: { applied: replay.applied, failed: replay.failed, skipped: replay.skipped },
+      verdict: `applied ${replay.applied} of ${replay.planned}; failed ${replay.failed}; satisfied ${replay.satisfied_count}; skipped ${replay.skipped_count}; map errors ${(replay.map_errors ?? []).length}`,
+      counts: { applied: replay.applied, failed: replay.failed, satisfied: replay.satisfied_count, skipped: replay.skipped_count, map_errors: (replay.map_errors ?? []).length },
       evidence_refs: ["replay-report.json"],
       error: null,
     });
@@ -79,8 +79,8 @@ export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = nu
         fix_ref: null,
       });
     }
-    for (const r of (replay.applied_without_file ?? [])) {
-      defects.push({ description: `applied migration ${r.version} ${r.name} has no migration file`, root_cause: "", fix_ref: null });
+    for (const e of (replay.map_errors ?? []).slice(0, 80)) {
+      defects.push({ description: `applied-map error: ${e.kind}${e.key ? " " + e.key : ""}${e.file ? " " + e.file : ""}`, root_cause: String(e.message ?? "").slice(0, 300), fix_ref: null });
     }
     for (const c of (replay.post_checks ?? []).filter((x) => !x.ok)) {
       defects.push({ description: `post-replay check failed: ${c.name}`, root_cause: "", fix_ref: null });
@@ -127,10 +127,11 @@ export function buildArtifact({ runId, harnessVersion, startedAt, loopRunId = nu
     replay_planned: replay?.planned ?? null,
     replay_applied: replay?.applied ?? null,
     replay_failed: replay?.failed ?? null,
-    replay_skipped: replay?.skipped ?? null,
+    replay_satisfied: replay?.satisfied_count ?? null,
+    replay_skipped: replay?.skipped_count ?? null,
     replay_not_in_inventory: replay?.not_in_inventory?.length ?? null,
-    replay_skipped_not_applied: replay?.skipped_not_applied?.length ?? null,
-    replay_applied_without_file: replay?.applied_without_file?.length ?? null,
+    replay_map_errors: replay?.map_errors?.length ?? null,
+    replay_unreferenced_files: replay?.unreferenced_files?.length ?? null,
     replay_post_checks_failed: replay ? (replay.post_checks ?? []).filter((c) => !c.ok).length : null,
     replay_public_tables: replay?.post_info?.public_tables ?? null,
     steps_ran: steps.filter((s) => s.status === "ran").length,
@@ -175,7 +176,7 @@ export function summaryMarkdown(artifact) {
     "## Chain proof",
     "",
     `Oracle (production dump applied): public tables ${m.schema_apply_public_tables ?? "n/a"}, fatal errors ${m.schema_apply_fatal_errors ?? "n/a"}, role errors ${m.schema_apply_role_errors ?? "n/a"}.`,
-    `Migration replay (builds the proof schema): applied ${m.replay_applied ?? "n/a"} of ${m.replay_planned ?? "n/a"}, failed ${m.replay_failed ?? "n/a"}, skipped ${m.replay_skipped ?? "n/a"}.`,
+    `Migration replay (builds the proof schema): applied ${m.replay_applied ?? "n/a"} of ${m.replay_planned ?? "n/a"}, failed ${m.replay_failed ?? "n/a"}, satisfied ${m.replay_satisfied ?? "n/a"}, skipped ${m.replay_skipped ?? "n/a"}, map errors ${m.replay_map_errors ?? "n/a"}.`,
     `Steps: ${m.steps_ran} ran, ${m.steps_skipped} skipped, ${m.steps_failed} failed. Local harness_runs rows: ${m.local_harness_runs ?? "n/a"}.`,
     `Schema oracle (replayed vs production dump): ${m.schema_diff_differing ?? "n/a"} differing objects (tables ${m.schema_diff_tables ?? "n/a"}, columns ${m.schema_diff_columns ?? "n/a"}, constraints ${m.schema_diff_constraints ?? "n/a"}, indexes ${m.schema_diff_indexes ?? "n/a"}, functions ${m.schema_diff_functions ?? "n/a"}, triggers ${m.schema_diff_triggers ?? "n/a"}, policies ${m.schema_diff_policies ?? "n/a"}).`,
   ];

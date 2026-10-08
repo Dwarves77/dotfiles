@@ -94,7 +94,8 @@ test("the schema oracle gate compares the replayed schema with the dump and sits
 test("the expected-red state and the gate that lifts it are stated in the workflow header", () => {
   const head = TEXT.slice(0, TEXT.indexOf("\non:"));
   assert.match(head, /EXPECTED STATE: RED/);
-  assert.match(head, /migrations-history lane/);
+  assert.match(head, /MIG-HIST-1/);
+  assert.match(head, /APPLIED-MAP.json/);
   assert.match(head, /empty schema diff/);
 });
 

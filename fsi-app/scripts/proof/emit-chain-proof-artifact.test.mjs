@@ -8,7 +8,7 @@ import { validateRunArtifact, readRunHistory } from "../lib/run-artifact.mjs";
 import { readInputs, buildArtifact, summaryMarkdown, emit } from "./emit-chain-proof-artifact.mjs";
 
 const REPLAY = {
-  ok: false, planned: 5, applied: 3, failed: 1, skipped: 1, not_in_inventory: ["011_x.sql"], skipped_not_applied: ["007_y.sql"], applied_without_file: [],
+  ok: false, planned: 5, applied: 3, failed: 1, satisfied_count: 2, skipped_count: 1, not_in_inventory: ["011_x.sql"], unreferenced_files: [], map_errors: [],
   post_checks: [{ name: "harness_runs table exists", ok: false }], post_info: { public_tables: 100 },
   files: [{ file: "006_b.sql", status: "failed", error: { line: 4, message: 'relation "t" does not exist' } }, { file: "001_a.sql", status: "applied" }],
 };
@@ -107,4 +107,14 @@ test("an identical oracle diff is an ok per-item entry with no defect", () => {
   const a = buildArtifact({ ...base, inputs: { replay: null, replayError: "x", local: null, steps: [], schemaDiff: { differing_total: 0, identical: true, categories } } });
   assert.ok(a.per_item.some((p) => p.id === "schema-oracle" && p.outcome === "ok"));
   assert.ok(!a.defects_found.some((d) => d.description.startsWith("schema oracle")));
+});
+
+test("applied-map errors become defects naming the kind and key, and metrics count satisfied, skipped and errors", () => {
+  const withErr = { ...REPLAY, map_errors: [{ kind: "ledger_version_not_in_map", key: "300", message: "no entry" }] };
+  const a = buildArtifact({ ...base, inputs: { replay: withErr, replayError: null, local: null, steps: [] } });
+  assert.ok(a.defects_found.some((d) => d.description === "applied-map error: ledger_version_not_in_map 300"));
+  assert.equal(a.metrics.replay_satisfied, 2);
+  assert.equal(a.metrics.replay_skipped, 1);
+  assert.equal(a.metrics.replay_map_errors, 1);
+  assert.deepEqual(validateRunArtifact(a), []);
 });
