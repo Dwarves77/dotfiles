@@ -171,3 +171,35 @@ test('FALLBACK commit: a sha that does not exist falls back without throwing', (
     assert.match(b.label, /does not resolve to a commit/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('RULE-MERGE-1 staged: a merge in progress (MERGE_HEAD) is measured against both parents, not the merge base', () => {
+  const dir = newRepo();
+  try {
+    commit(dir, { 'a.txt': 'a\n' }, 'fork point');
+    sh(dir, ['branch', '-M', 'master']);
+    sh(dir, ['branch', 'lane']);
+    const tip = commit(dir, { 'm.txt': 'master moved\n' }, 'master moves on');
+    setOrigin(dir, tip);
+    sh(dir, ['checkout', '-q', 'lane']);
+    commit(dir, { 'b.txt': 'b\n' }, 'branch work');
+    assert.equal(baselineOf(dir, { kind: 'staged' }).source, 'merge-base', 'no merge in progress yet');
+    sh(dir, ['merge', '--no-commit', '--no-ff', 'master']);
+    const b = baselineOf(dir, { kind: 'staged' });
+    assert.deepEqual(b, { ref: 'HEAD+MERGE_HEAD', source: 'merge-parents', label: 'merge commit: lines in neither parent' });
+    assert.equal(baselineOf(dir, { kind: 'commit', head: sh(dir, ['rev-parse', 'HEAD']).trim() }).source, 'merge-base', 'a commit context is untouched');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('RULE-MERGE-1 staged: a merge in progress is decided without origin/master (the merge case never needs a merge base)', () => {
+  const dir = newRepo();
+  try {
+    commit(dir, { 'a.txt': 'a\n' }, 'fork point');
+    sh(dir, ['branch', '-M', 'master']);
+    sh(dir, ['branch', 'other']);
+    commit(dir, { 'm.txt': 'm\n' }, 'master work');
+    sh(dir, ['checkout', '-q', 'other']);
+    commit(dir, { 'o.txt': 'o\n' }, 'other work');
+    sh(dir, ['merge', '--no-commit', '--no-ff', 'master']);
+    assert.equal(baselineOf(dir, { kind: 'staged' }).source, 'merge-parents');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

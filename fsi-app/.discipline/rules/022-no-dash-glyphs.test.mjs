@@ -276,6 +276,7 @@ test('022 check: FAIL (attack) for an added dash in an undated handoff-notes fol
 const GENERATED_AUDIT_PATHS = [
   'fsi-app/.discipline/rendering/audit/results.json',
   'docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md',
+  'fsi-app/.discipline/governance/harness-ledger-export.json',
 ];
 
 for (const path of GENERATED_AUDIT_PATHS) {
@@ -296,6 +297,7 @@ for (const path of [
   'fsi-app/.discipline/rendering/audit/README.md',
   'fsi-app/.discipline/rendering/audit/other/results.json',
   'docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md.notes',
+  'fsi-app/.discipline/governance/harness-ledger-export.notes.json',
   'docs/ops/session-log.d/2026-10-08-daudit1-mounts.md',
 ]) {
   test(`022 check: FAIL (attack) for an added dash in authored file ${path} beside the generated outputs`, () => {

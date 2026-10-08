@@ -18,6 +18,12 @@
 // `ctx.baseline` ({ ref, source, label }), which the runner prints and writes to the firing log. A range
 // context is already a merge-base diff (change-range.mjs's resolveRange) and reports its own range.
 //
+// A PROPOSED MERGE COMMIT (lane RULE-MERGE-1, 2026-10-08). When MERGE_HEAD exists the baseline is both parents
+// ({ ref: 'HEAD+MERGE_HEAD', source: 'merge-parents' }): the index is diffed against HEAD and against MERGE_HEAD
+// and only a line added relative to BOTH counts as introduced, so merging master into a lane no longer charges
+// the lane for every line master added since the fork (CI already judged an existing merge commit this way).
+// See loadMergeParentsDiff.
+//
 // THE BLOB, NOT THE WORKING TREE (lane GATE-7, 2026-10-08). ctx.getFileContent(path) returns the content the
 // COMMIT carries: `git show :<path>` (the index) for a proposed commit, `git show <sha>:<path>` for an existing
 // commit, `git show <head>:<path>` for a range. A rule that decides on the whole file (015, 019, 021) used to
@@ -132,7 +138,54 @@ function readBlob(root, source, path) {
   }
 }
 
+// A merge in progress (lane RULE-MERGE-1, 2026-10-08): the proposed commit's two parents are HEAD and MERGE_HEAD.
+// The index is diffed against EACH, and a line counts as added only when both diffs add it (same line of the
+// index in both, so the same text): a line either parent carries introduces nothing, a conflict resolution
+// that writes a line neither parent has still does. Removed lines, pairs and statuses come from the HEAD side;
+// a file only the MERGE_HEAD side reports is kept in the list (union of both sides) with no added lines. The
+// combined diff is re-rendered as ordinary unified-diff text (fixtureDiff, below) so the one parser and the one
+// introduced-lines view read it unchanged. Two git processes, counted as two loads.
+function loadMergeParentsDiff() {
+  diffLoads += 2;
+  const run = (rev) => git(['-c', 'core.quotepath=false', 'diff', '--cached', ...DIFF_FLAGS, rev], { maxBuffer: DIFF_MAX_BUFFER, stdio: ['ignore', 'pipe', 'pipe'] });
+  const headFiles = parseUnifiedDiff(run('HEAD')).files;
+  const mergeFiles = parseUnifiedDiff(run('MERGE_HEAD')).files;
+
+  const mergeAdded = new Map(); // path -> Map(line number in the index -> added text)
+  for (const f of mergeFiles) {
+    const byLine = new Map();
+    for (const h of f.hunks) h.added.forEach((text, i) => byLine.set(h.newStart + i, text));
+    mergeAdded.set(f.path, byLine);
+  }
+
+  const changes = headFiles.map((f) => {
+    const other = mergeAdded.get(f.path) || new Map();
+    const hunks = [];
+    for (const h of f.hunks) {
+      const runs = []; // contiguous runs of added lines both parents lack
+      h.added.forEach((text, i) => {
+        if (other.get(h.newStart + i) !== text) return;
+        const last = runs[runs.length - 1];
+        if (last && last.start + last.lines.length === i) last.lines.push(text);
+        else runs.push({ start: i, lines: [text] });
+      });
+      if (runs.length === 0) {
+        if (h.removed.length) hunks.push({ removed: h.removed, added: [], oldStart: h.oldStart, newStart: h.newStart });
+        continue;
+      }
+      runs.forEach((r, k) => hunks.push({ removed: k === 0 ? h.removed : [], added: r.lines, oldStart: h.oldStart, newStart: h.newStart + r.start }));
+    }
+    return { path: f.path, oldPath: f.oldPath, status: f.status, binary: f.binary, hunks };
+  });
+  const seen = new Set(headFiles.map((f) => f.path));
+  for (const f of mergeFiles) {
+    if (!seen.has(f.path)) changes.push({ path: f.path, oldPath: f.oldPath, status: f.status, binary: f.binary, hunks: [] });
+  }
+  return fixtureDiff(changes);
+}
+
 function loadDiff(source, baseline) {
+  if (source.type === 'staged' && baseline.source === 'merge-parents') return loadMergeParentsDiff();
   diffLoads += 1;
   const head = ['-c', 'core.quotepath=false'];
   let args;
