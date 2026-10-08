@@ -16,8 +16,18 @@
 #   2. Layer 4 consistency runner (catches C1-C10 drift).
 #   3. Discipline + fitness tests (catches rule + fitness function regressions).
 #   4. TypeScript compile (catches the F9 / Vercel build-break class).
-# (Sub-steps 2b-2c and 3b-3h each mirror one CI step; F54 fails the build when any CI step that can
+# (Sub-steps 2b and 3b-3h each mirror one CI step; F54 fails the build when any CI step that can
 # fail the workflow has no counterpart here, and when the no-npm suite's environment differs from CI's.)
+#
+# GATE-2 (2026-10-08): the former step 2c (the commit rules re-run in CI mode over the pushed range) is
+# REMOVED. The same rules already run at commit-msg and again in CI's validate-commits job, so a third run
+# here cost 5 to 25 seconds per push (rule 022 dominated) and added no catch (gate-evaluation-A section 9,
+# overlap 1). Step 2b no longer has the UX-compliance substring check either: that was an attestation, not
+# a measurement, and the rendering guard is the UX enforcement.
+#
+# Firing log (GATE-2): every step failure appends one JSON line to fsi-app/.discipline/governance/
+# .hook-firings.log (gitignored, the same file the commit rules engine writes), so local firings are
+# countable the next time the gates are evaluated.
 #
 # Emergency bypass: git push --no-verify
 # (Use sparingly; the whole point of the hook is to prevent the bypass-then-fix loop.)
@@ -87,6 +97,21 @@ if ! command -v node >/dev/null 2>&1; then
   exit 2
 fi
 
+# Firing log (GATE-2, 2026-10-08): one JSON line per step failure, {ts, rule, mode, path, line, verdict},
+# the same keys the commit rules engine writes to the same gitignored file. $2 is a step log file (its first
+# non-empty line is the evidence) or literal text. 200 characters of evidence; never blocks the hook.
+HOOK_FIRINGS_LOG="$REPO_ROOT/fsi-app/.discipline/governance/.hook-firings.log"
+pre_push_log_firing() {
+  if [ -f "$2" ]; then
+    _ev="$(grep -m1 -v '^[[:space:]]*$' "$2" 2>/dev/null)"
+  else
+    _ev="$2"
+  fi
+  _ev="$(printf '%s' "$_ev" | tr -d '\000-\037' | cut -c1-200 | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  printf '{"ts":"%s","rule":"pre-push:%s","mode":"pre-push","path":"","line":"%s","verdict":"fail"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$_ev" >> "$HOOK_FIRINGS_LOG" 2>/dev/null || true
+}
+
 # ---------------------------------------------------------------------------
 # Step 0b: fsi-app's npm dependencies resolve in THIS checkout (2026-09-27, RD-85)
 # ---------------------------------------------------------------------------
@@ -101,6 +126,7 @@ fi
 . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/worktree-node-modules.sh"
 wt_nm_ensure_link || true
 if ! wt_nm_require; then
+  pre_push_log_firing 0b "fsi-app dependencies do not resolve in this checkout"
   echo "[discipline pre-push] STEP 0b FAIL: the missing install above, not a fitness violation; no step ran." >&2
   exit 1
 fi
@@ -134,9 +160,9 @@ trap pre_push_cleanup EXIT
 # When the push's diff against origin/master touches ONLY docs/** and *.md files, the heavy steps below
 # (3, 3b-3g, 4: the test suite, the meta-gates, npm-dependent tests, goldens, tsc) add nothing a docs-only
 # change could break, and cost real minutes on every such push. The rule checks that DO apply to a
-# docs-only diff -- steps 1, 2, 2b, 2c (untracked-critical, the consistency runner, the memory gate, the
-# discipline rules in CI mode, which includes rule 022's no-dash-glyphs check and rule 014's inventory
-# consistency) -- still run unconditionally below; only steps 3 onward are skipped. The SAME filter
+# docs-only diff -- steps 1, 2, 2b (untracked-critical, the consistency runner, the memory gate) -- still
+# run unconditionally below; only steps 3 onward are skipped (the commit rules, rule 022 included, run at
+# commit-msg and in CI, no longer here: GATE-2). The SAME filter
 # .github/workflows/discipline.yml's own "Resolve docs-only fast path" steps compute, through the ONE
 # shared primitive both surfaces call (fsi-app/.discipline/governance/docs-only-range.mjs), so pre-push
 # and CI can never silently disagree about what counts as docs-only.
@@ -146,7 +172,7 @@ if node fsi-app/.discipline/governance/docs-only-range.mjs --range=origin/master
 fi
 cat "$PRE_PUSH_LOG_DIR/docs-only.log"
 if [ "$DOCS_ONLY" = "true" ]; then
-  echo "[discipline pre-push] step 0c (docs-only fast path): every changed file is docs/** or *.md -- skipping steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc); steps 1/2/2b/2c (rule checks: consistency, memory gate, rule 022 + rule 014) still run."
+  echo "[discipline pre-push] step 0c (docs-only fast path): every changed file is docs/** or *.md -- skipping steps 3-4 (test suite, meta-gates, npmtest, goldens, tsc); steps 1/2/2b (untracked critical files, consistency, memory gate) still run."
 else
   echo "[discipline pre-push] step 0c (docs-only fast path): not docs-only (code/workflow files changed) -- running the full 4-step CI-parity check."
 fi
@@ -172,6 +198,7 @@ UNTRACKED_CRITICAL=$(git ls-files --others --exclude-standard \
      'fsi-app/.discipline/governance/' \
      2>/dev/null)
 if [ -n "$UNTRACKED_CRITICAL" ]; then
+  pre_push_log_firing 1 "untracked critical files: $(echo "$UNTRACKED_CRITICAL" | head -n 1)"
   echo "[discipline pre-push] STEP 1 FAIL: untracked file(s) in critical surfaces:" >&2
   echo "$UNTRACKED_CRITICAL" | sed 's/^/    /' >&2
   echo "[discipline pre-push] CI's checkout will not see these files. Either 'git add' them or remove them, then re-push." >&2
@@ -188,6 +215,7 @@ echo "[discipline pre-push] step 1 (untracked critical files): OK"
 # only when a VALID trailer is present (non-empty rationale + today-or-future remediation-deadline). Same
 # primitive rule 014 + the CI backstop use, so the three surfaces cannot drift.
 if ! printf '%s' "$PREPUSH_REFS" | node fsi-app/.discipline/consistency/override-check.mjs --prepush >"$PRE_PUSH_LOG_DIR/c.log" 2>&1; then
+  pre_push_log_firing 2 "$PRE_PUSH_LOG_DIR/c.log"
   echo "[discipline pre-push] STEP 2 FAIL: consistency runner reported drift with no valid override:" >&2
   cat "$PRE_PUSH_LOG_DIR/c.log" >&2
   echo "[discipline pre-push] fix the drift above, OR add on a commit being pushed:" >&2
@@ -218,35 +246,20 @@ echo "[discipline pre-push] step 2 (consistency runner, override-aware): OK"
 # same per-run directory every other step already uses (also drops --range=origin/master..HEAD: lane R23
 # item 1 made memory-gate.mjs resolve its own range via change-range.mjs's resolveRange()).
 if ! node fsi-app/.discipline/governance/memory-gate.mjs >"$PRE_PUSH_LOG_DIR/mem.log" 2>&1; then
+  pre_push_log_firing 2b "$PRE_PUSH_LOG_DIR/mem.log"
   echo "[discipline pre-push] STEP 2b FAIL: memory gate (code must not outrun the vault):" >&2
   cat "$PRE_PUSH_LOG_DIR/mem.log" >&2
-  echo "[discipline pre-push] append a session-log addendum (your own docs/ops/session-log.d/YYYY-MM-DD-<lane>.md file, or docs/ops/session-log.md, or update docs/PROGRAM-BOARD.md), with a UX compliance block in that same addendum if a .tsx/.css was touched, then re-push." >&2
+  echo "[discipline pre-push] append a session-log addendum (your own docs/ops/session-log.d/YYYY-MM-DD-<lane>.md file, or docs/ops/session-log.md, or update docs/PROGRAM-BOARD.md), then re-push." >&2
   exit 1
 fi
 cat "$PRE_PUSH_LOG_DIR/mem.log"
 echo "[discipline pre-push] step 2b (memory gate, CI parity): OK"
 
 # ---------------------------------------------------------------------------
-# Step 2c: the discipline rules in CI mode over the range being pushed (lane CI-PARITY, 2026-09-28)
+# Step 2c REMOVED (GATE-2, 2026-10-08): it ran `node fsi-app/.discipline/runner.mjs --mode=ci` over the pushed
+# range. The same rules run at commit-msg (every commit) and in CI's validate-commits job (every PR), so this
+# third run only added 5 to 25 seconds per push. gate-evaluation-A section 9, overlap 1; gate plan, GATE-2.
 # ---------------------------------------------------------------------------
-# CI's "Validate commits against discipline rules" job runs runner.mjs --mode=ci; the commit-msg hook
-# runs the same runner in --mode=commit-msg, a different rule mode, so the CI-mode rules had never run
-# before a push. Found when F54 was widened to every job of discipline.yml.
-#
-# LANE R23 (2026-10-02) [CONFIRMED twice, PRs #866 and #869]: this line used to pass
-# --range=origin/master..HEAD literally -- two dots against the base ref's TIP. `git diff` does not
-# merge-base-correct a two-dot range, so a fix origin/master picked up after this lane's own branch
-# forked read as "added" here (rule 022: 111 inherited em dashes in a file never touched locally
-# either). No --range flag now: runner.mjs resolves the range itself via change-range.mjs's
-# resolveRange() (no BASE_REF/PR_HEAD locally, so the local-merge-base branch fires: base = git
-# merge-base origin/master HEAD, range = base..HEAD) -- the SAME function the CI job and F51 resolve
-# through, so this step cannot drift from either.
-if ! node fsi-app/.discipline/runner.mjs --mode=ci >"$PRE_PUSH_LOG_DIR/rules.log" 2>&1; then
-  echo "[discipline pre-push] STEP 2c FAIL: discipline rules (CI mode) over the local merge-base range:" >&2
-  tail -40 "$PRE_PUSH_LOG_DIR/rules.log" >&2
-  exit 1
-fi
-echo "[discipline pre-push] step 2c (discipline rules, CI mode, CI parity): OK"
 
 # ---------------------------------------------------------------------------
 # Steps 3 through 4: skipped entirely on the docs-only fast path (step 0c above). Everything from here
@@ -270,6 +283,7 @@ else
 # This closed the gap that let a non-portable `@/` import in a discipline-glob test pass locally and only
 # red in CI (glob-portability was in CI's list but not pre-push's).
 if ! sh fsi-app/.discipline/run-test-suite.sh >"$PRE_PUSH_LOG_DIR/t.log" 2>&1; then
+  pre_push_log_firing 3 "$PRE_PUSH_LOG_DIR/t.log"
   echo "[discipline pre-push] STEP 3 FAIL: discipline / fitness tests:" >&2
   # Historically xargs ran the suite as SEVERAL `node --test` batches, each ending in its own summary,
   # so a plain `tail` showed the LAST batch's summary, all green when the failure sat in an earlier
@@ -294,6 +308,7 @@ echo "[discipline pre-push] step 3 (discipline + fitness tests, canonical suite)
 # any anchor/baseline drifted. This is what makes "wired" non-optional + self-verifying.
 # (Also exercised inside step 3 via governance/*.test.mjs; this prints the readable report.)
 if ! node fsi-app/.discipline/governance/invariant-coverage.mjs >"$PRE_PUSH_LOG_DIR/inv.log" 2>&1; then
+  pre_push_log_firing 3b "$PRE_PUSH_LOG_DIR/inv.log"
   echo "[discipline pre-push] STEP 3b FAIL: invariant-coverage meta-gate reported unwired invariant(s):" >&2
   cat "$PRE_PUSH_LOG_DIR/inv.log" >&2
   echo "[discipline pre-push] wire the invariant (rule/fitness/audit/migration) OR record an exempt.reason in governance/invariants.mjs, then re-push." >&2
@@ -311,6 +326,7 @@ echo "[discipline pre-push] step 3b (invariant-coverage meta-gate): OK"
 # absent (e.g. a fresh clone) — hook correctness itself is covered by step 3's
 # governance/*.test.mjs. FAILs if settings.json exists but the gate is only partially wired.
 if ! node fsi-app/.discipline/governance/check-pretooluse-wired.mjs >"$PRE_PUSH_LOG_DIR/gate.log" 2>&1; then
+  pre_push_log_firing 3c "$PRE_PUSH_LOG_DIR/gate.log"
   echo "[discipline pre-push] STEP 3c FAIL: action-time skill gate is not fully wired:" >&2
   cat "$PRE_PUSH_LOG_DIR/gate.log" >&2
   echo "[discipline pre-push] run: node fsi-app/.discipline/governance/wire-pretooluse-settings.mjs --apply, then re-push." >&2
@@ -327,6 +343,7 @@ echo "[discipline pre-push] step 3c (skill-gate wiring): OK"
 # functions"; here the deps-equivalent is step 0b above (worktree node_modules already resolved), so
 # this runs right before step 3e (the fitness runner, CI parity), the position's matching anchor.
 if ! (cd fsi-app && npm run lint -- --max-warnings=0) >"$PRE_PUSH_LOG_DIR/lint.log" 2>&1; then
+  pre_push_log_firing 3d "$PRE_PUSH_LOG_DIR/lint.log"
   echo "[discipline pre-push] STEP 3d FAIL: ESLint reported violation(s) (max-warnings 0):" >&2
   tail -60 "$PRE_PUSH_LOG_DIR/lint.log" >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/lint.log" >&2
@@ -344,6 +361,7 @@ echo "[discipline pre-push] step 3d (eslint, max-warnings 0, CI parity): OK"
 # does (node fsi-app/.discipline/fitness/runner.mjs, from the repo root; pre-push-tmpdir.test.mjs pins the
 # two commands to each other), so a live-tree violation is refused here, before the push. About 60s locally.
 if ! node fsi-app/.discipline/fitness/runner.mjs >"$PRE_PUSH_LOG_DIR/fit.log" 2>&1; then
+  pre_push_log_firing 3e "$PRE_PUSH_LOG_DIR/fit.log"
   echo "[discipline pre-push] STEP 3e FAIL: fitness runner reported violation(s) on the live tree:" >&2
   grep -E 'FAIL  \[F|^  \[F[0-9]+\]|^        ' "$PRE_PUSH_LOG_DIR/fit.log" | head -60 >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/fit.log" >&2
@@ -364,6 +382,7 @@ echo "[discipline pre-push] step 3e (fitness runner, live tree, CI parity): OK"
 # deps installed in THIS worktree; the shared script fails loud (never silently skips, never installs
 # by itself) when fsi-app/node_modules is absent or empty.
 if ! sh fsi-app/.discipline/hooks/lib/run-npmtest-suites.sh >"$PRE_PUSH_LOG_DIR/npmtest.log" 2>&1; then
+  pre_push_log_firing 3f "$PRE_PUSH_LOG_DIR/npmtest.log"
   echo "[discipline pre-push] STEP 3f FAIL: npm-dependent test suites (*.npmtest.mjs):" >&2
   tail -60 "$PRE_PUSH_LOG_DIR/npmtest.log" >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/npmtest.log" >&2
@@ -384,6 +403,7 @@ echo "[discipline pre-push] step 3f (npm-dependent test suites, CI parity): OK"
 # called with the same repo-root-relative path CI's working-directory: fsi-app + run: node
 # scripts/verify/run-goldens.mjs resolves to, byte-for-byte, which is what F54 checks for.
 if ! node fsi-app/scripts/verify/run-goldens.mjs >"$PRE_PUSH_LOG_DIR/goldens.log" 2>&1; then
+  pre_push_log_firing 3g "$PRE_PUSH_LOG_DIR/goldens.log"
   echo "[discipline pre-push] STEP 3g FAIL: behavioral goldens (scripts/verify/*.golden.mjs):" >&2
   tail -60 "$PRE_PUSH_LOG_DIR/goldens.log" >&2
   echo "[discipline pre-push] full report: $PRE_PUSH_LOG_DIR/goldens.log" >&2
@@ -400,11 +420,13 @@ echo "[discipline pre-push] step 3g (behavioral goldens, CI parity): OK"
 # governance step, orphan-modules.mjs --all, is a report that never fails, so it owes no parity here;
 # see F54's EXEMPT_STEPS.)
 if ! node fsi-app/.discipline/governance/closure-gate.mjs >"$PRE_PUSH_LOG_DIR/closure.log" 2>&1; then
+  pre_push_log_firing 3h "$PRE_PUSH_LOG_DIR/closure.log"
   echo "[discipline pre-push] STEP 3h FAIL: closure gate:" >&2
   tail -40 "$PRE_PUSH_LOG_DIR/closure.log" >&2
   exit 1
 fi
 if ! node fsi-app/.discipline/governance/skill-contract-map.mjs --check >"$PRE_PUSH_LOG_DIR/skillmap.log" 2>&1; then
+  pre_push_log_firing 3h "$PRE_PUSH_LOG_DIR/skillmap.log"
   echo "[discipline pre-push] STEP 3h FAIL: skill-contract drift:" >&2
   tail -40 "$PRE_PUSH_LOG_DIR/skillmap.log" >&2
   exit 1
@@ -416,6 +438,7 @@ echo "[discipline pre-push] step 3h (closure gate + skill-contract drift, CI par
 # ---------------------------------------------------------------------------
 # tsc-noEmit is slow (~10-30s); run last so quick failures abort first.
 if ! (cd fsi-app && npx --no-install tsc --noEmit) >"$PRE_PUSH_LOG_DIR/tsc.log" 2>&1; then
+  pre_push_log_firing 4 "$PRE_PUSH_LOG_DIR/tsc.log"
   echo "[discipline pre-push] STEP 4 FAIL: TypeScript compile errors:" >&2
   tail -40 "$PRE_PUSH_LOG_DIR/tsc.log" >&2
   echo "[discipline pre-push] Vercel build will fail on these. Fix the type errors, then re-push." >&2

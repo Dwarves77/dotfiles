@@ -1,8 +1,15 @@
 #!/usr/bin/env node
-// MEMORY GATE + UX-COMPLIANCE GATE: the two checks that were inline shell duplicated in
+// MEMORY GATE: the check that was inline shell duplicated in
 // .github/workflows/discipline.yml (the "Memory gate - code must not outrun the vault" step, added
-// 2026-08-13, and the "UX compliance gate" appended to the same step 2026-09-03) and never run by
-// fsi-app/.discipline/hooks/pre-push at all (task 7.8, W9 brief-chain build plan, 2026-09-12).
+// 2026-08-13) and never run by fsi-app/.discipline/hooks/pre-push at all (task 7.8, W9 brief-chain build
+// plan, 2026-09-12).
+//
+// GATE-2 (2026-10-08): the UX-compliance half of this file is REMOVED. It was a substring match
+// (a regex on an added session-log line), an attestation that checked no content: of the 209
+// session-log.d files dated since 09-08, 113 carried the phrase and 15 more were "not applicable" variants
+// (gate-evaluation-A section 4, H5; the manifest's 5e3ae41 "ceremony rather than enforcement" lesson). The
+// rendering guard's UX smoke slot measures every row component at 375 px; that is the UX enforcement.
+// Both callers (pre-push step 2b and discipline.yml's memory-gate step) run this one CLI, so both drop it.
 //
 // THE DEFECT [CONFIRMED, both the 6.2b and 7.4e ranges had an empty `git diff --stat -- docs/ops/
 // session-log.md` while their own lane preflight and the coordinator's own pre-push run were green]:
@@ -34,33 +41,15 @@
 //             trees that then failed CI's own memory gate. A per-lane-per-day file under session-log.d/
 //             satisfies the SAME vault requirement without a shared file to conflict on; the single
 //             session-log.md file stays for coordinator entries -- see docs/ops/session-log.d/README.md).
-//   SURFACE = changed paths under fsi-app/src/**/*.{tsx,css}.
 //   Memory gate:  CODE non-empty AND MEMORY empty -> FAIL.
-//   UX gate:      SURFACE non-empty AND the session-log addendum diff for the range (docs/ops/
-//                 session-log.md or the lane's own docs/ops/session-log.d file) has no ADDED line ("^+")
-//                 containing "UX compliance" -> FAIL. Not applicable (no message) when SURFACE is empty.
-//                 (Lane D28b, 2026-09-19: before this fix the CLI main fed uxGateVerdict ONLY docs/ops/
-//                 session-log.md's own diff, so a lane that wrote its UX compliance block into its own
-//                 docs/ops/session-log.d/ file per D28 above -- exactly what memoryGateVerdict already
-//                 accepts -- was refused at push; memoryDiffPaths() below is the fix, see its own header.)
 //
-// PURE CORE (classifyChanged / memoryGateVerdict / uxGateVerdict / memoryDiffPaths) takes plain
-// arrays/strings, no git, so memory-gate.test.mjs needs no repo fixture. LIVE DRIVER below gathers
-// `git diff --name-only <range>` and, for every memoryDiffPaths() path, that path's own diff text for
-// the range, concatenated in order. node builtins + relative imports only (no-npm discipline glob;
-// fsi-app/.discipline/glob-portability.test.mjs enforces this transitively).
-//
-// DELIBERATE PARITY DEVIATION (review-7.8.md finding F1, coordinator ruling D6, 2026-09-12): the
-// original inline shell exited the whole step the moment the memory gate failed on a pull_request
-// event, so a range failing BOTH gates only ever printed the memory gate's own error, never the UX
-// gate's. This CLI evaluates and prints both verdicts unconditionally, so a combined failure on
-// pull_request prints TWO error lines instead of one. Ruling: keep the new behaviour on purpose (a lane
-// sees every failure in one run instead of fixing one, re-pushing, and hitting the next) rather than
-// re-introduce the short-circuit. The exit code is identical either way (both shapes fail the step), so
-// this changes nothing about what CI enforces, only how much of the failure a lane sees at once.
+// PURE CORE (classifyChanged / memoryGateVerdict) takes plain arrays, no git, so memory-gate.test.mjs needs
+// no repo fixture. LIVE DRIVER below gathers `git diff --name-only <range>`. node builtins + relative
+// imports only (no-npm discipline glob; fsi-app/.discipline/glob-portability.test.mjs enforces this
+// transitively).
 
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
-import { gitChangedFiles, gitDiffLinesForPath, resolveRange } from '../lib/change-range.mjs';
+import { gitChangedFiles, resolveRange } from '../lib/change-range.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // PURE CORE
@@ -74,20 +63,17 @@ const MEMORY_RE = /^docs\/(ops\/session-log\.md|PROGRAM-BOARD\.md)$/;
 // lane per day, never edit another lane's file" rule. README.md itself does not match (no date/slug), so
 // adding the README does not, on its own, satisfy the memory gate for a code-only range - by design.
 const SESSION_LOG_D_RE = /^docs\/ops\/session-log\.d\/\d{4}-\d{2}-\d{2}-[A-Za-z0-9_-]+\.md$/;
-const SURFACE_RE = /^fsi-app\/src\/.*\.(tsx|css)$/;
-const UX_COMPLIANCE_ADDED_RE = /^\+.*UX compliance/;
 
 /**
- * Bucket a flat list of repo-relative changed paths into the three regex classes the workflow's inline
+ * Bucket a flat list of repo-relative changed paths into the two regex classes the workflow's inline
  * shell used. PURE, no filesystem, no git. @param {string[]} files
- * @returns {{ code: string[], memory: string[], surface: string[] }}
+ * @returns {{ code: string[], memory: string[] }}
  */
 export function classifyChanged(files) {
   const list = (files || []).map((f) => (f || '').trim()).filter(Boolean);
   const code = list.filter((f) => CODE_RE.test(f) && !CODE_EXCLUDE_RE.test(f));
   const memory = list.filter((f) => MEMORY_RE.test(f) || SESSION_LOG_D_RE.test(f));
-  const surface = list.filter((f) => SURFACE_RE.test(f));
-  return { code, memory, surface };
+  return { code, memory };
 }
 
 /**
@@ -112,86 +98,15 @@ export function memoryGateVerdict(files, { range = '<range>' } = {}) {
   return { ok: true, message: 'memory gate OK', warnNote: '' };
 }
 
-/**
- * The UX-compliance gate's verdict. `sessionLogDiffLines` is the range's own diff text for
- * docs/ops/session-log.md, split into lines (as `git diff <range> -- docs/ops/session-log.md` would
- * produce), only ADDED lines ("+" prefix) count, mirroring the workflow's `grep -qE '^\+.*UX compliance'`.
- * PURE. @param {string[]} files @param {string[]} sessionLogDiffLines @param {{range?: string}} [opts]
- * @returns {{ applicable: boolean, ok: boolean, message: string|null, warnNote: string }}
- */
-export function uxGateVerdict(files, sessionLogDiffLines, { range = '<range>' } = {}) {
-  const { surface } = classifyChanged(files);
-  if (surface.length === 0) return { applicable: false, ok: true, message: null, warnNote: '' };
-
-  const hasComplianceLine = (sessionLogDiffLines || []).some((l) => UX_COMPLIANCE_ADDED_RE.test(l));
-  if (hasComplianceLine) {
-    return { applicable: true, ok: true, message: 'UX compliance gate OK', warnNote: '' };
-  }
-  // Trailing space matches the original shell's `tr '\n' ' '` behaviour (a space after every filename,
-  // including the last), so the ellipsis below sits exactly where the original's did (review-7.8.md F2:
-  // byte-identical message, U+2026 restored, not the "..." three-ASCII-period placeholder this file
-  // shipped with in fix round 0 -- U+2026 is not in the banned em-dash/en-dash/section-sign set).
-  const sample = surface.slice(0, 3).join(' ') + ' ';
-  return {
-    applicable: true,
-    ok: false,
-    message:
-      `UX compliance gate: this range (${range}) touches a customer surface (${sample}…) but the ` +
-      `session-log addendum in the same range (docs/ops/session-log.md or the lane's own docs/ops/` +
-      `session-log.d file) has no 'UX compliance' block (docs/design/ux-laws.md, DP-2). Add it: per ` +
-      `screen, the primary goal, the path, the one primary action, the feedback state per async action.`,
-    warnNote: 'warn-only on push',
-  };
-}
-
-/**
- * Lane D28b (2026-09-19): the UX-compliance check's `hasComplianceLine` scan only ever saw
- * `docs/ops/session-log.md`'s own diff, because the CLI main below built `sessionLogDiffLines` from
- * that one path alone -- so a lane that writes its UX compliance block into its own
- * `docs/ops/session-log.d/YYYY-MM-DD-<slug>.md` file (D28's own fix, the mechanism this file's header
- * already documents under MEMORY) was refused at push even though the vault requirement was satisfied.
- * `memoryGateVerdict` already accepted the per-lane file; only the UX half never learned about it.
- *
- * This is the pure selection function the CLI now uses: which paths' diffs should be combined and
- * handed to `uxGateVerdict`, in order. `docs/ops/session-log.md` first (if present in the range), then
- * every file matching SESSION_LOG_D_RE, in the order they appear in `files`. Nothing else -- the
- * README (no date/slug) and a malformed session-log.d name are excluded, same as `classifyChanged`'s
- * MEMORY bucket already excludes them. PURE, no filesystem, no git.
- * @param {string[]} files
- * @returns {string[]}
- */
-export function memoryDiffPaths(files) {
-  const list = (files || []).map((f) => (f || '').trim()).filter(Boolean);
-  const paths = [];
-  if (list.includes('docs/ops/session-log.md')) paths.push('docs/ops/session-log.md');
-  for (const f of list) {
-    if (SESSION_LOG_D_RE.test(f)) paths.push(f);
-  }
-  return paths;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // LIVE DRIVER: git only, via fsi-app/.discipline/lib/change-range.mjs (lane N0, plan section 6.8 Rule
-// C -- this file's own private gitChangedFiles/gitDiffLinesForPath copies moved there, alongside
+// C -- this file's own private gitChangedFiles copy moved there, alongside
 // F45-duplicate-code.mjs's equivalent copy, so the two gates cannot silently disagree on what "changed
 // in this range" means). change-range.mjs also fixes Amendment 1 item 4 (operator, 2026-09-19): its git
 // calls resolve the repository top level from the module's own path, never from process.cwd(), so this
 // CLI now gives the same verdict whether it is run from the repo root or from fsi-app/ -- see that
 // module's header for the defect this replaces.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-
-/**
- * Lane D28b (2026-09-19): the memory addendum's diff for the range, combined across every path
- * `memoryDiffPaths(files)` names -- `docs/ops/session-log.md` first (if present), then each matching
- * `docs/ops/session-log.d/` file, in that order -- so `uxGateVerdict` sees the UX compliance block
- * wherever the lane actually wrote it, not only in the one shared file.
- * @param {string} range @param {string[]} files
- * @returns {string[]}
- */
-export function gitMemoryDiffLines(range, files) {
-  const paths = memoryDiffPaths(files);
-  return paths.flatMap((p) => gitDiffLinesForPath(range, p));
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // CLI
@@ -217,32 +132,22 @@ if (isMainModule(import.meta.url)) {
   const range = resolved.range;
 
   let files;
-  let sessionLogDiffLines;
   try {
     files = gitChangedFiles(range);
-    sessionLogDiffLines = gitMemoryDiffLines(range, files);
   } catch (e) {
     console.error(String(e.message || e));
     process.exit(2);
   }
 
-  const mem = memoryGateVerdict(files, { range });
-  const ux = uxGateVerdict(files, sessionLogDiffLines, { range });
-
-  let failed = false;
-  for (const verdict of [mem, ux]) {
-    if (verdict.message == null) continue; // ux gate not applicable, no line printed, same as the workflow
-    if (verdict.ok) {
-      console.log(verdict.message);
-      continue;
-    }
-    failed = true;
-    if (warnOnly) {
-      console.log(`::warning::${verdict.message} (${verdict.warnNote})`);
-    } else {
-      console.error(`::error::${verdict.message}`);
-    }
+  const verdict = memoryGateVerdict(files, { range });
+  if (verdict.ok) {
+    console.log(verdict.message);
+    process.exit(0);
   }
-
-  process.exit(failed && !warnOnly ? 1 : 0);
+  if (warnOnly) {
+    console.log(`::warning::${verdict.message} (${verdict.warnNote})`);
+    process.exit(0);
+  }
+  console.error(`::error::${verdict.message}`);
+  process.exit(1);
 }

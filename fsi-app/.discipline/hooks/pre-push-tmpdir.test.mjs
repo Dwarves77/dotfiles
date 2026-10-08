@@ -157,3 +157,97 @@ test("pre-push step 2b: no fixed /tmp log path (the D11 class); redirects into $
   );
   assert.match(hook, /step 2b \(memory gate, CI parity\): OK/);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// GATE-2 (2026-10-08): step 2c removed, the UX substring check gone from 2b, and a firing log line per step
+// failure. Proven against the hook source and by running the extracted logging function under `sh`.
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+import { spawnSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+
+test("pre-push GATE-2: step 2c is gone (no rules re-run), steps 0, 0b, 0c, 1, 2 and 2b are kept", () => {
+  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+  assert.doesNotMatch(hook, /^if ! node fsi-app\/\.discipline\/runner\.mjs/m, "no executable rules re-run may remain");
+  assert.doesNotMatch(hook, /STEP 2c FAIL/);
+  assert.doesNotMatch(hook, /step 2c \(discipline rules/);
+  for (const marker of [
+    "STEP 0 FAIL", "STEP 0b FAIL", "step 0c (docs-only fast path)", "step 1 (untracked critical files): OK",
+    "step 2 (consistency runner, override-aware): OK", "step 2b (memory gate, CI parity): OK",
+  ]) {
+    assert.ok(hook.includes(marker), `kept step marker missing: ${marker}`);
+  }
+});
+
+test("pre-push GATE-2: step 2b's failure advice no longer asks for a UX compliance block", () => {
+  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+  const failMsg = hook.slice(hook.indexOf("STEP 2b FAIL"), hook.indexOf("step 2b (memory gate, CI parity): OK"));
+  assert.ok(failMsg.length > 0);
+  assert.doesNotMatch(failMsg, /UX compliance/);
+});
+
+test("pre-push GATE-2: every STEP FAIL echo (past step 0) is preceded by a pre_push_log_firing call", () => {
+  const lines = readFileSync(PRE_PUSH_PATH, "utf8").split("\n");
+  let sites = 0;
+  lines.forEach((line, i) => {
+    const m = /^\s*echo "\[discipline pre-push\] STEP (\w+) FAIL/.exec(line);
+    if (!m || m[1] === "0") return; // step 0 refuses before REPO_ROOT is known, so it has no repo to log into
+    sites += 1;
+    assert.match(lines[i - 1], new RegExp(`pre_push_log_firing ${m[1]} `), `STEP ${m[1]} FAIL must log its firing on the line before`);
+  });
+  assert.ok(sites >= 12, `expected the failing steps to be covered, found ${sites}`);
+});
+
+function runFiringLogger(script, base) {
+  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+  const fn = /pre_push_log_firing\(\) \{[\s\S]*?\n\}\n/.exec(hook);
+  assert.ok(fn, "the hook must define pre_push_log_firing");
+  const logPath = join(base, "firings.log").replaceAll("\\", "/");
+  // The script goes through a file, not `sh -c`: the function body is full of quotes and backslashes that
+  // Windows argv quoting would mangle on the way into msys sh.
+  const scriptPath = join(base, "firing.sh");
+  writeFileSync(scriptPath, `HOOK_FIRINGS_LOG="${logPath}"\n${fn[0]}\n${script}\n`);
+  const r = spawnSync("sh", [scriptPath.replaceAll("\\", "/")], { encoding: "utf8", cwd: base });
+  assert.equal(r.status, 0, r.stderr);
+  return existsSync(logPath) ? readFileSync(logPath, "utf8").trim().split("\n") : [];
+}
+
+test("pre_push_log_firing: appends one valid JSON line {ts, rule, mode, path, line, verdict} per call, evidence from a log file or text", () => {
+  const base = mkdtempSync(join(tmpdir(), "prepush-firing-"));
+  try {
+    const stepLog = join(base, "c.log").replaceAll("\\", "/");
+    writeFileSync(stepLog, '\n\n  C4 drift: worktree "x" at C:\\scratch\\wt is unlisted\nsecond line is not used\n');
+    const lines = runFiringLogger(`pre_push_log_firing 2 "${stepLog}"; pre_push_log_firing 0b "deps do not resolve"`, base);
+    assert.equal(lines.length, 2);
+    const a = JSON.parse(lines[0]);
+    assert.deepEqual(Object.keys(a), ["ts", "rule", "mode", "path", "line", "verdict"]);
+    assert.equal(a.rule, "pre-push:2");
+    assert.equal(a.mode, "pre-push");
+    assert.equal(a.verdict, "fail");
+    assert.match(a.ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.ok(a.line.includes('C4 drift: worktree "x" at C:\\scratch\\wt is unlisted'), a.line);
+    assert.ok(!a.line.includes("second line"));
+    const b = JSON.parse(lines[1]);
+    assert.equal(b.rule, "pre-push:0b");
+    assert.equal(b.line, "deps do not resolve");
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("pre_push_log_firing: evidence is cut to 200 characters and never blocks (an unwritable log path still exits 0)", () => {
+  const base = mkdtempSync(join(tmpdir(), "prepush-firing-"));
+  try {
+    const long = "x".repeat(500);
+    const lines = runFiringLogger(`pre_push_log_firing 3e "${long}"`, base);
+    assert.equal(JSON.parse(lines[0]).line.length, 200);
+    const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+    const fn = /pre_push_log_firing\(\) \{[\s\S]*?\n\}\n/.exec(hook)[0];
+    const scriptPath = join(base, "unwritable.sh");
+    writeFileSync(scriptPath, `HOOK_FIRINGS_LOG="/nonexistent-dir/zz/firings.log"\n${fn}\npre_push_log_firing 1 "x"\necho done\n`);
+    const r = spawnSync("sh", [scriptPath.replaceAll("\\", "/")], { encoding: "utf8" });
+    assert.equal(r.status, 0);
+    assert.match(r.stdout, /done/);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
