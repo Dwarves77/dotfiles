@@ -1,7 +1,7 @@
--- subject: Migration 352 (lane L4-D, 2026-10-05, ADR-044 decision 4, ADR-043): the outbox trigger function resolves `propagation_events.entity_id` for `emission_factors` from its `corridor_id` column (a corridor entity id), through an optional second trigger argument; NOT APPLIED. `market_series` and `regional_data_facts` carry no column that names an entity and are left exactly as they are (reported by the lane, not guessed). `propagation_events` rows are never touched (append-only); the function changes, never existing rows.
+-- subject: Migration 352 (lane L4-D, 2026-10-05, ADR-044 decision 4, ADR-043): the outbox trigger function resolves `propagation_events.entity_id` for `emission_factors` from its `corridor_id` column (a corridor entity id), through an optional second trigger argument; APPLIED (production ledger version 20261006030839, as of 2026-10-07). `market_series` and `regional_data_facts` carry no column that names an entity and are left exactly as they are (reported by the lane, not guessed). `propagation_events` rows are never touched (append-only); the function changes, never existing rows.
 -- 352 -- emit_propagation_event(): optional entity column for the outbox (lane L4-D, 2026-10-05).
 --
--- NOT APPLIED. Authored by lane L4-D; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3).
+-- APPLIED (production ledger version 20261006030839, as of 2026-10-07). Authored by lane L4-D; the coordinator applied it (two-track policy, CLAUDE.md standing rule 3).
 -- Requires migrations 258 (emission_factors), 282 (entities) and 284 (the outbox and its trigger function).
 --
 -- WHY. Lane L4-A found that an outbox row from emission_factors, market_series or regional_data_facts carries
