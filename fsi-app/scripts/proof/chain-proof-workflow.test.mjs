@@ -172,7 +172,7 @@ const EXPORT_NAME = /Export the production schema dump/;
 const ALLOWED_STEP_IFS = new Set(["always() && steps.stack.outcome == 'success'", "always()"]);
 const UPLOAD_PATH = "${{ runner.temp }}/chain-proof-out";
 
-function isolationProblems(text) {
+function isolationProblems(text, action = ACTION) {
   const problems = [];
   const code = codeOf(text);
   // CP-3: the trigger block is workflow_dispatch and nothing else, whatever other trigger name an edit invents
@@ -199,7 +199,10 @@ function isolationProblems(text) {
   for (const s of stepList) {
     if (LOCAL_SCRIPTS.test(s.body) && !EXPORT_NAME.test(s.name) && !/preflight\.mjs/.test(codeOf(s.body))) problems.push(`step "${s.name}" has no preflight line outside a comment (CP-7)`);
   }
-  if (!stepList.some((s) => /^Preflight/.test(s.name) && /node scripts\/proof\/preflight\.mjs/.test(codeOf(s.body)))) problems.push("the Preflight step is missing or only a comment (CP-7)");
+  // The stack steps live in the shared composite action (lane MIG-CI-2): the Preflight step is either inline or that
+  // action's own Preflight step, and the workflow must use the action.
+  const actionPreflight = /uses: \.\/\.github\/actions\/local-stack/.test(code) && /- name: Preflight[^\n]*\n(?:[^\n]*\n)*?[^\n]*node scripts\/proof\/preflight\.mjs/.test(codeOf(action));
+  if (!actionPreflight && !stepList.some((s) => /^Preflight/.test(s.name) && /node scripts\/proof\/preflight\.mjs/.test(codeOf(s.body)))) problems.push("the Preflight step is missing or only a comment (CP-7)");
   // JIF, IFF: no job-level if, and a step if only in the two allowed forms
   if (/^ {4}if:/m.test(code)) problems.push("the chain-proof job carries an if (JIF): a job that can be skipped proves nothing");
   for (const m of code.matchAll(/^ {8}if:\s*(.+)$/gm)) {
@@ -251,7 +254,8 @@ test("CP-5: an upload path that is the whole runner temp, a parent of the dump, 
 });
 
 test("CP-7: a preflight line that is only a comment is caught, in the Preflight step and in any later step", () => {
-  caught("CP-7 preflight step", TEXT.replace("          node scripts/proof/preflight.mjs\n\n      # Made BEFORE", "          # node scripts/proof/preflight.mjs\n\n      # Made BEFORE"), /no preflight line outside a comment|Preflight step is missing/);
+  // the Preflight step lives in the composite action: a commented-out line there is caught
+  assert.ok(isolationProblems(TEXT, ACTION.replace("        node scripts/proof/preflight.mjs", "        # node scripts/proof/preflight.mjs")).some((p) => /Preflight step is missing/.test(p)), "CP-7 preflight step in the composite action");
   caught("CP-7 gate step", TEXT.replace('          node scripts/proof/preflight.mjs\n          node scripts/proof/schema-diff.mjs', '          # node scripts/proof/preflight.mjs\n          node scripts/proof/schema-diff.mjs'), /no preflight line outside a comment/);
 });
 
