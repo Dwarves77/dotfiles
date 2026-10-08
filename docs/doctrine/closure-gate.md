@@ -35,13 +35,14 @@ scope: >
   actually close" layer, one level up.
 enforced_by:
   - mechanism: closure-gate CI step
-    catches: a maintenance step / dispatchable workflow with no run evidence N=3 trains past its own
-             introduction; a PROGRAM-BOARD.md NEXT row with no owning train, untouched N=3 trains;
+    catches: a maintenance step / dispatchable workflow with no harness ledger run inside the 30 day
+             window (90 in build mode); a PROGRAM-BOARD.md NEXT row with no owning train, untouched
+             for more than 21 days by the ledger-derived clock;
              a migrations>=266 table with a writer and no reader (or the reverse); the lane-common-
              contract missing the plan's §0 marker verbatim
     action: FAIL (nonzero exit fails the "test-discipline-engine" job, a required check)
     fires_in: CI, every push/PR to master (discipline.yml, test-discipline-engine job — full-history
-              checkout, since the gate needs git log/blame/merge-base for train numbering)
+              checkout, since the gate needs git log and blame for row and workflow dates)
     source: fsi-app/.discipline/governance/closure-gate.mjs
   - mechanism: fixture proofs (red-then-green) + a LIVE run over the real tree
     catches: a regression in any of the four checks' own catching behaviour (fixture proofs), and any
@@ -60,9 +61,10 @@ reused_mechanism: >
   itself gates write-orphans only; read-orphans there are informational). No copy of the regex/scan logic
   exists in closure-gate.mjs.
 detection_signals:
-  train numbering: a squash-merged commit whose subject matches `train/wave<N>` (verified 2026-09-04:
-    every such commit on this tree is single-parent, not a merge commit) — N read directly from the
-    subject; `git merge-base --is-ancestor` resolves "which train first carried commit X" exactly.
+  clock: dates, never a train counter (lane GATE-8, 2026-10-08). The reference time is the harness ledger
+    export's capturedAt, else its newest run date, else the wall clock (ledgerClock in closure-gate.mjs).
+    A NEXT row's age is its last-touched commit date (git blame) against that clock; an allowlist expiry
+    is an ISO `until` date.
   dispatch evidence: any ONE of (a) a `scripts/harness-runs/<family>/*-run-*.json` artifact for the six
     workflows with a harness family, (b) a docs/runbooks/MAINTENANCE-RUNBOOK.md section (`## N. `step`)`)
     citing a run number / Actions run id / "landed live", (c) an entry in the machine-readable
@@ -80,8 +82,9 @@ single_home: fsi-app/.discipline/governance/closure-gate.mjs (four pure cores + 
 proof: fsi-app/.discipline/governance/closure-gate.test.mjs (red-then-green per check + a LIVE assertion
   the real tree is green, same pattern doctrine-contradiction.test.mjs and producer-consumer-orphan.mjs
   already use)
-allowlists: NEVER_RUN_ALLOWLIST / STALE_NEXT_ALLOWLIST / WRITER_READER_ALLOWLIST in closure-gate.mjs —
-  every entry names a disposition (the plan item that closes it) and a numeric expiryTrain; the allowlist
+allowlists: STALE_NEXT_ALLOWLIST / WRITER_READER_ALLOWLIST in closure-gate.mjs (NEVER-RUN holds
+  NEVER_RUN_DORMANT, a dated exemption); every entry names a disposition (the plan item that closes
+  it) and an ISO `until` date, not a train number; the allowlist
   audits itself (a stale or expired entry fails the gate, same shape as F14's TERMINAL_SINK_ALLOWLIST and
   F23's GAP_BASELINE).
 residual: >
