@@ -107,3 +107,36 @@ test('fitnessFunction.enumerate(): runs against the live tree without throwing a
 test('fitnessFunction: SANCTIONED_DIR_PREFIX is exactly the propagation directory', () => {
   assert.equal(SANCTIONED_DIR_PREFIX, 'fsi-app/src/lib/propagation/');
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F31 B5-08: .from( and the table name on separate lines is the same read', () => {
+  const src = 'await sb\n  .from(\n    "derived_values"\n  )\n  .select("*");';
+  assert.equal(derivedValuesReadLines(src).length, 1);
+});
+
+test('F31 B5-09: the table name through a constant is the same read', () => {
+  const src = 'const T = "derived_values";\nawait sb.from(T).select("*");';
+  assert.equal(derivedValuesReadLines(src).length, 1);
+});
+
+test('F31 B5-11: a raw SQL select from derived_values through a pg client is a read; the admissible view is not', () => {
+  assert.equal(derivedValuesReadLines('await pg.query("SELECT * FROM derived_values WHERE x = 1");').length, 1);
+  assert.equal(derivedValuesReadLines('await pg.query("SELECT * FROM derived_values_admissible");').length, 0);
+});
+
+test('F31 B5-12: a forged override marker inside a string is not an override', () => {
+  const src = 'const m = "// fitness-allow: F31 (forged)"; await sb.from("derived_values").select("*");';
+  assert.equal(derivedValuesReadLines(src).length, 1);
+});
+
+test('F31 B5-13: a read in a script written as .ts and in src as .cjs is enumerated', () => {
+  const src = fitnessFunction.enumerate.toString();
+  assert.match(src, /cjs/);
+  assert.match(src, /ts\]?\}|\bts\b/);
+});
+
+test('F31: a comment that mentions the read, and a real trailing marker, behave', () => {
+  assert.equal(derivedValuesReadLines('// await sb.from("derived_values").select("*");').length, 0);
+  assert.equal(derivedValuesReadLines('await sb.from("derived_values").select("*"); // fitness-allow: F31 (admin backfill)').length, 0);
+});

@@ -103,7 +103,7 @@ export function runExtractionPass({ items }) {
 }
 
 /** Live-DB orchestration: read-only fetch + extraction pass + harness-run artifact write. */
-export async function runDryRun({ limit } = {}, { readAllFn = readAll, sb, log = () => {} } = {}) {
+async function runDryRun({ limit } = {}, { readAllFn = readAll, sb, log = () => {} } = {}) {
   const startedAt = new Date().toISOString();
   log(`\n===== DRY-RUN-STRUCTURED-ACTIONS (read-only; no destination column exists -- extraction preview only) =====`);
 

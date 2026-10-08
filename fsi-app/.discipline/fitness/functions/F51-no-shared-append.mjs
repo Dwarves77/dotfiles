@@ -368,12 +368,28 @@ export function currentBranch(root) {
   }
 }
 
-export const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
+const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
 
-export function runCheck4(root) {
-  const branch = currentBranch(root);
-  if (!branch || !branch.startsWith('lane/')) {
-    console.log(`  [F51] check 4 (coordinator-only files) skipped: current branch "${branch ?? 'unknown'}" is not a lane/ branch.`);
+// Lane GATE-8 (2026-10-08, AUD-AT-4 B6-32): check 4 used to apply only when the branch name started with `lane/`,
+// so a lane branch named anything else (`claude/x`) passed, and in CI, where a pull request is checked out
+// detached, no branch name was visible at all, so the check never ran. It now applies to EVERY branch except the
+// coordinator's own: master (and main), and `coord/` branches, the coordinator's working branches. The branch name
+// is read from git, and when HEAD is detached from the pull request's source ref (GITHUB_HEAD_REF) or the pushed ref
+// (GITHUB_REF_NAME), which CI sets. A detached HEAD with no name at all is treated as a lane (the strict reading).
+export function isCoordinatorBranch(branch) {
+  return branch === 'master' || branch === 'main' || String(branch ?? '').startsWith('coord/');
+}
+
+export function effectiveBranch(root, env = process.env) {
+  const git = currentBranch(root);
+  if (git && git !== 'HEAD') return git;
+  return env.GITHUB_HEAD_REF || env.GITHUB_REF_NAME || git || null;
+}
+
+export function runCheck4(root, env = process.env) {
+  const branch = effectiveBranch(root, env);
+  if (isCoordinatorBranch(branch)) {
+    console.log(`  [F51] check 4 (coordinator-only files) skipped: "${branch}" is a coordinator branch.`);
     return [];
   }
   const { range, source, reason } = resolveRange({ cwd: root });

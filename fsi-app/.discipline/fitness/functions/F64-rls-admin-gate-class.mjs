@@ -75,6 +75,7 @@ import { join } from 'node:path';
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
+import { maskSql } from '../lib/sql-mask.mjs';
 
 const MIGRATIONS_GLOB = 'fsi-app/supabase/migrations/*.sql';
 
@@ -100,24 +101,41 @@ function lineOf(content, index) {
 /** Find every `CREATE TABLE [IF NOT EXISTS] [public.]name (` in `content`. PURE.
  *  @returns {{table: string, line: number}[]} */
 export function findCreateTables(content) {
-  const re = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?["`]?([A-Za-z_][A-Za-z0-9_]*)["`]?\s*\(/gi;
+  // Lane GATE-8 (2026-10-08, AUD-AT-4 B6-48 to B6-50): read on the comment-masked text, so a CREATE TABLE inside a
+  // comment is not a table; UNLOGGED tables, a quoted "public"."name", CREATE TABLE ... AS SELECT, PARTITION OF and
+  // typed (OF) tables are all tables that need RLS. A TEMP table lives for a session and needs none.
+  const text = maskSql(content);
+  const re = /CREATE\s+(?:(?:GLOBAL|LOCAL)\s+)?(UNLOGGED\s+|TEMP(?:ORARY)?\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:"?public"?\s*\.\s*)?["`]?([A-Za-z_][A-Za-z0-9_]*)["`]?\s*(?:\(|AS\b|PARTITION\s+OF\b|OF\b)/gi;
   const out = [];
   let m;
-  while ((m = re.exec(content))) {
-    out.push({ table: m[1].toLowerCase(), line: lineOf(content, m.index) });
+  while ((m = re.exec(text))) {
+    if (m[1] && /^TEMP/i.test(m[1])) continue;
+    out.push({ table: m[2].toLowerCase(), line: lineOf(content, m.index) });
   }
   return out;
+}
+
+const _maskCache = new Map();
+function maskedCached(text) {
+  let v = _maskCache.get(text);
+  if (v === undefined) {
+    v = maskSql(text);
+    if (_maskCache.size > 4096) _maskCache.clear();
+    _maskCache.set(text, v);
+  }
+  return v;
 }
 
 /** Does ANY file in `allFiles` ([{path, text}]) contain an ALTER TABLE ... ENABLE ROW LEVEL SECURITY
  *  statement for `table`? PURE. */
 export function hasRlsEnableAnywhere(allFiles, table) {
   const esc = escapeRegex(table);
+  // Comment-masked (a commented-out ALTER is not RLS), schema may be quoted, ONLY / IF EXISTS tolerated.
   const re = new RegExp(
-    `ALTER\\s+TABLE\\s+(?:public\\.)?["\`]?${esc}["\`]?\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
+    `ALTER\\s+TABLE\\s+(?:ONLY\\s+)?(?:IF\\s+EXISTS\\s+)?(?:"?public"?\\s*\\.\\s*)?["\`]?${esc}["\`]?\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`,
     'i',
   );
-  return allFiles.some(({ text }) => re.test(text));
+  return allFiles.some(({ text }) => re.test(maskedCached(text)));
 }
 
 // The eleven tables CF-SEC-14 names (audit-consolidated-2026-09-30.md line 142), plus one this lane's
@@ -209,10 +227,13 @@ export function checkRlsEnableGap({ content, allFiles, allowlist = RLS_ENABLE_AL
  *  `;`, matching this corpus's own formatting (no embedded semicolons inside a policy body). PURE.
  *  @returns {{name: string, stmt: string, line: number}[]} */
 export function findCreatePolicies(content) {
+  // Comment-masked (AUD-AT-4 B6-53): a word in a comment inside the statement, such as org_id, is not part of the
+  // predicate. String literals stay (the role values are strings).
+  const text = maskSql(content);
   const re = /CREATE\s+POLICY\s+["`]?([A-Za-z0-9_]+)["`]?[\s\S]*?;/gi;
   const out = [];
   let m;
-  while ((m = re.exec(content))) {
+  while ((m = re.exec(text))) {
     out.push({ name: m[1].toLowerCase(), stmt: m[0], line: lineOf(content, m.index) });
   }
   return out;
@@ -224,9 +245,13 @@ export function findCreatePolicies(content) {
  *  any `org_id` token in the statement is what distinguishes a global "I administer SOME org" check
  *  from a scoped "I administer THIS org" check. */
 export function looksLikeOrgMembershipsAdminCheck(stmt) {
-  if (!/org_memberships/i.test(stmt)) return false;
-  if (!/role\s*(?:IN|=)\s*\(?\s*'?(?:owner|admin|moderator)/i.test(stmt)) return false;
-  if (/\borg_id\b/i.test(stmt)) return false;
+  // `stmt` arrives comment-masked from findCreatePolicies; mask again for a caller that passes raw text.
+  const body = maskSql(stmt);
+  if (!/org_memberships/i.test(body)) return false;
+  // AUD-AT-4 B6-54: the role test in every spelling of the same check: role = 'admin', role IN ('owner', 'admin'),
+  // role::text = 'admin', role = ANY (ARRAY['owner', 'admin']), role = ANY ('{owner,admin}').
+  if (!/role(?:\s*::\s*\w+)?\s*(?:IN\s*\(|=\s*ANY\s*\(|=)\s*(?:ARRAY\s*\[)?\s*\(?\s*'\{?(?:owner|admin|moderator)/i.test(body)) return false;
+  if (/\borg_id\b/i.test(body)) return false;
   return true;
 }
 
@@ -290,12 +315,6 @@ function loadCorpus() {
     text: readFileSync(join(root, path), 'utf8'),
   }));
   return _corpusCache;
-}
-
-// Test-only seam: force the next check() call to reload the corpus from disk (or from an injected
-// list, via the `corpus` option on check()).
-export function _clearCorpusCache() {
-  _corpusCache = null;
 }
 
 export const fitnessFunction = {

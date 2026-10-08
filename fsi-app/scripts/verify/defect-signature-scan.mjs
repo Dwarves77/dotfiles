@@ -32,7 +32,7 @@ import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
 import { readAllByIds } from '../lib/db.mjs';
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
-export const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
+const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
 
 // Signature matchers live in the ONE shared module (hardening H3, src/lib/agent/defect-signatures.mjs) so
 // this scan and the mint-time gate share one implementation. Re-exported so the golden + callers keep

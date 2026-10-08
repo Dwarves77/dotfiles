@@ -20,7 +20,7 @@ import { needKindOf, needKey, OUTPUT_FOR_KIND } from "./schema.mjs";
 
 /** resolved_by of every flag the URL apply step closes: how the export finds a need already served. */
 export const RESOLVED_BY = "apply-need-urls";
-export const FLAG_COLUMNS_FULL = `${FLAG_COLUMNS}, resolved_by, resolution_note`;
+const FLAG_COLUMNS_FULL = `${FLAG_COLUMNS}, resolved_by, resolution_note`;
 const CORPUS_COLUMNS = "id, title, instrument_identifier";
 
 /** Every need states the same bar; only what the URL feeds differs by kind. */
@@ -36,7 +36,7 @@ const USED_FOR = Object.freeze({
 });
 
 /** What satisfies a need of this kind. Pure. @param {string} kind */
-export function satisfiesFor(kind) {
+function satisfiesFor(kind) {
   const output = OUTPUT_FOR_KIND[kind];
   return {
     requirement: "one authoritative URL: a page of the institution that publishes the thing the need names, at or above the authority floor of the item type that would hold it",

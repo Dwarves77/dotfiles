@@ -27,9 +27,6 @@ import { validateHostVerdictEntry, normalizeVerdictHost } from "../../maintenanc
 
 export const NEEDS_SEARCH_SCHEMA_VERSION = "ns1-2026-10-07.1";
 
-/** The four need kinds, by the flag namespace that raises them. */
-export const NEED_KINDS = Object.freeze(["term-need", "holdings-need", "flywheel-gap", "lineage-gap"]);
-
 /**
  * What a found URL becomes, by need kind. A lineage parent is one specific instrument whose page is a candidate for
  * the ledger consume (the same ledger the EUR-Lex register walk feeds for a CELEX id, lane G5-NEED); every other

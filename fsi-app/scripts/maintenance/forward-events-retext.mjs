@@ -173,7 +173,7 @@ export const RESTORE_CITE = Object.freeze({
   reason: "MAINT forward-events-retext --arg restore: reversal — replays this step's own db.mjs prior-state snapshot for a row id it rewrote or collide_delete'd, verbatim.",
 });
 
-export const DELETE_CITE = Object.freeze({
+const DELETE_CITE = Object.freeze({
   skill: "remediation-discipline",
   reason:
     "MAINT forward-events-retext dispatch (Lane FWD-TEXT, 2026-09-04), collision resolution (lane " +
@@ -201,7 +201,7 @@ export const DUPLICATE_CITE = Object.freeze({
 });
 
 export const RESTORE_ARG_PREFIX = "restore:";
-export const IDS_ARG_PREFIX = "ids:";
+const IDS_ARG_PREFIX = "ids:";
 
 // POOL READ IS PER-ITEM CONDITIONAL (lane FE-SLOT-2b, 2026-09-04 — see read-and-extract.mjs's own header,
 // "FETCH ONLY WHAT MIGHT BE CONSUMED"). FE-SLOT-2 (this file's own diff above) called `readPoolForItem`
