@@ -49,6 +49,7 @@ import { renderNowIso } from "@/lib/render-now";
 import { fetchMarketSeriesBoard, fetchSbtiLeadTimeSeries } from "@/lib/supabase-server";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { ThemeStrip } from "@/components/shell/ThemeStrip";
+import { CoverageDenominatorLine } from "@/components/coverage/CoverageDenominatorLine";
 import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRibbon";
 // Carbon cost per FEU overlay (spec 02 §6 item 3, lane CORR, 2026-09-02): "the single most defensible
 // 'only we do this' component available to us." No fetch lives in CarbonCostOverlay itself (CORR write
@@ -82,15 +83,12 @@ import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors
 // §1.2) — the entity-spine-backed corridor list + labels + jurisdiction chips this overlay's selector
 // renders below. Cached per ADR-026's detail-page pattern (corridor-scope-cache.ts's own header).
 import { getCachedCorridorScopes } from "@/lib/entities/corridor-scope-cache";
-// Policy timeline (spec 02 §6 item 9): reuses the ALREADY-BUILT, RLS-scoped item_forward_events reader
-// (src/lib/forward-events/read-upcoming.mjs, mounted here unmodified — see that component's own header
-// for the read-layer contract). Genuinely dated and forward-looking ("days until" via formatEventDate),
-// not a text brief — the distinction spec 02 §6 item 9 draws against Regulations' job. Scope is the
-// workspace's tracked jurisdictions across ALL surfaces (the same feed Regulations mounts), not filtered
-// to market-relevant mode/geography specifically — a market-scoped filter would need a new query
-// parameter on read-upcoming.mjs (outside this lane's write set); stated honestly in the section's own
-// copy below rather than presented as market-specific.
-import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
+// Policy timeline (spec 02 section 6 row 9, lane MKT-1, 2026-10-08): the shared item_forward_events reader and
+// strip, filtered to this page's ACTIVE SCOPE (the ledger's URL facets mode and region, else the workspace
+// profile's modes and regions) through MarketPolicyTimeline. Genuinely dated and forward-looking ("days
+// until" via formatEventDate), not a text brief; the strip shows the filter as text and the "N hidden by
+// your scope" widen control. Regulations mounts the same strip with no scope and is unchanged.
+import { MarketPolicyTimeline } from "@/components/market/MarketPolicyTimeline";
 // Spec 09 §1.1/§1.2/§1.3/§1.7: four self-contained server components, each reading its own table via the
 // request-scoped service client (no props from this page's own fetches, no client fetch, no polling — see
 // each component's own header). Order follows spec 09 §4's sequencing: surcharge audit first ("the only
@@ -186,6 +184,10 @@ export default async function Market() {
   // the artboard does not draw, kept exactly as it is, after the last designed region).
   const carbonOverlays = buildCarbonCostOverlays(corridorScopes);
 
+  // One render instant for everything on this page that judges freshness: the ledger and, since lane
+  // MKT-1 (2026-10-08), the headline ribbon's per-series freshness states and panel summary.
+  const nowIso = renderNowIso();
+
   return (
     <>
       {/* UILISTS lane (2026-09-06): MarketIntelLedger now renders its own Masthead (UI system
@@ -204,13 +206,18 @@ export default async function Market() {
           initialResources={marketIntel.resources.map(toLedgerRowPayload)}
           aggregates={aggregates}
           seriesBoard={seriesBoard}
-          nowIso={renderNowIso()}
-          headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded />}
+          nowIso={nowIso}
+          headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded nowIso={nowIso} />}
           /* Artboard 04/id="p4" rail card CARBON COST PER FEU (lane lists60, 2026-09-08). The SAME
              overlay entries the <CarbonCostOverlay/> section below already receives, reduced to the
              card's rows — one computation, two views, no second read. */
           carbonCorridors={summariseCarbonCorridors(carbonOverlays)}
-          belowRows={<ThemeStrip surface="market" />}
+          belowRows={
+            <>
+              <ThemeStrip surface="market" />
+              <CoverageDenominatorLine surface="market_intel" surfacePath="/market" />
+            </>
+          }
         />
       </Suspense>
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
@@ -259,8 +266,8 @@ export default async function Market() {
           Policy timeline
         </p>
         <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "0 0 10px", maxWidth: "82ch" }}>
-          Dated, forward-looking obligations across your workspace&apos;s tracked jurisdictions — the same
-          feed Regulations mounts, not yet filtered to market-relevant modes specifically.
+          Dated, forward-looking obligations for the modes and regions in scope: the filters you set above,
+          otherwise your workspace&apos;s own modes and jurisdictions.
         </p>
       </div>
       {/* Recalculation notices (docs/specs/08-flywheel-design.md §2.2 Part 3 / §4 Layer 4; complete-system
@@ -271,7 +278,10 @@ export default async function Market() {
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }}>
         <NoticesRail />
       </div>
-      <UpcomingObligationsStrip variant="list" />
+      {/* useSearchParams (the facet URL contract) needs a Suspense boundary, same as the ledger above. */}
+      <Suspense fallback={null}>
+        <MarketPolicyTimeline />
+      </Suspense>
       {/* Spec 09 section 1.1/1.7/1.3: OEM roadmap, then rerouting, then indexation. Each renders a
           single short "no rows yet" line when its table is empty rather than an empty card. The surcharge
           audit panel was removed by ADR-042 (it audited a customer's own invoice). */}

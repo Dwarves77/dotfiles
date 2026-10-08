@@ -182,7 +182,12 @@ export function ObligationRegisterPageView({
             provides for exactly that. */}
         <SectionCard dataAudit="register-card" style={{ minWidth: 0 }}>
           <div style={{ padding: "14px 16px 16px" }}>
-            <ObligationRegister variant="list" initialResult={initialResult} filters={filters} />
+            <ObligationRegister
+              variant="list"
+              initialResult={initialResult}
+              filters={filters}
+              onWiden={() => setFilters(REGISTER_FILTERS_NONE)}
+            />
           </div>
         </SectionCard>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

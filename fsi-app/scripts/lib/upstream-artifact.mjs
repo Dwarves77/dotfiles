@@ -24,7 +24,7 @@
 //     CHAIN_UPSTREAM_LOOP_RUN_ID=<the upstream row's config.loop_run_id|empty>, and nothing else. No consumer
 //       and no gate: for the chained consumers that only need the loop id (ADR-031) and have already decided
 //       to run. Same read, same retries, same exit codes as `read`.
-//   noop  --family <mint|propagation> --mode <dry|apply> --reason <text> [--upstream-name n --upstream-run-id i
+//   noop  --family <mint|propagation|question-answers|theme-briefs> --mode <dry|apply> --reason <text> [--upstream-name n --upstream-run-id i
 //         --loop-run-id l --started-at iso]
 //     Writes a schema-valid NO-OP run artifact (config.noop=true, config.noop_reason) under
 //     scripts/harness-runs/<family>/ so deliver-artifact-branch.sh lands it. A legitimate NO-OP is still a
@@ -162,6 +162,10 @@ export function makeRestRowReader(supabaseUrl, serviceRoleKey, fetchImpl = fetch
 export const NOOP_FAMILIES = Object.freeze({
   mint: "docs/runbooks/POPULATION-TURN-RUNBOOK.md",
   propagation: "docs/runbooks/PROPAGATION-DRAIN-RUNBOOK.md",
+  // Lane CHAIN-4 (2026-10-08): the judgement workflows chained off Population turn, Propagation drain and Corpus
+  // turn. Their families have no runbook of their own, so the trace is the family's own FAMILY.md.
+  "question-answers": "scripts/harness-runs/question-answers/FAMILY.md",
+  "theme-briefs": "scripts/harness-runs/theme-briefs/FAMILY.md",
 });
 
 /**

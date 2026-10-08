@@ -288,3 +288,26 @@ test("CLI read: the consumer is still required (loop-id did not loosen read)", a
   const { deps } = cli();
   assert.equal(await runCli(["read", "--upstream-name", "Source sweep", "--upstream-run-id", "100", "--run-mode", "dry"], deps), 1);
 });
+
+// ── lane CHAIN-4: the judgement workflows chained off Population turn, Propagation drain and Corpus turn
+// record a NO-OP row of their own family when the upstream did not succeed (rule 17).
+test("CHAIN-4 noop: question-answers and theme-briefs are NOOP families whose artifact is schema-valid", () => {
+  for (const family of ["question-answers", "theme-briefs"]) {
+    assert.ok(NOOP_FAMILIES[family], `${family} is a NOOP family`);
+    const a = buildNoopArtifact({ family, runId: `${family}-run-001`, harnessVersion: "sha256:0123456789abcdef", startedAt: "2026-10-08T07:00:00Z", mode: "dry", reason: "upstream failed", upstreamName: "Corpus turn", upstreamRunId: "700", loopRunId: "500" });
+    assert.deepEqual(validateRunArtifact(a), [], family);
+    assert.equal(a.config.noop, true);
+    assert.equal(a.config.loop_run_id, "500");
+  }
+});
+
+test("CHAIN-4 CLI noop: question-answers and theme-briefs write their NO-OP row through the writer, exit 0", async () => {
+  for (const family of ["question-answers", "theme-briefs"]) {
+    const written = [];
+    const { deps } = cli({ claimId: (f) => `${f}-run-007`, versionOf: () => "sha256:0123456789abcdef", writeNoop: (a, f) => { written.push([f, a]); return `/fixture/${a.run_id}.json`; } });
+    assert.equal(await runCli(["noop", "--family", family, "--mode", "dry", "--reason", "upstream concluded failure", "--upstream-name", "Propagation drain", "--upstream-run-id", "9"], deps), 0, family);
+    assert.equal(written[0][0], family);
+    assert.equal(written[0][1].run_id, `${family}-run-007`);
+    assert.deepEqual(validateRunArtifact(written[0][1]), []);
+  }
+});

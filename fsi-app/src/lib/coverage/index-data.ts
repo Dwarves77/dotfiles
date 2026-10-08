@@ -31,6 +31,11 @@ export interface CoverageEntry {
   scheme: string | null; // celex | eli | uk-legislation | generic | none
   shapeValid: boolean;
   surfaces: string[];
+  // COV-1 (2026-10-08): the two axes the generated Coverage page was missing. `modes` is the transport modes of the
+  // instrument's SOURCE (sources.transport_modes, the registry's own tag; empty when the source carries none, never
+  // guessed), and `checkedAt` is when the identity probe last ran (identity_checked_at), the data's as-of.
+  modes: string[];
+  checkedAt: string | null;
   shapeClass: string | null;
   relevance: RelevanceBand;
   softPass: 0 | 1 | 2; // count of [low-relevance] tags (0 firm, 1 single-pass soft, 2 double-pass soft)
@@ -116,7 +121,7 @@ function jurisdictionOf(sourceIso: string | null, scheme: string | null): string
   return null;
 }
 
-interface SourceEmbed { jurisdiction_iso: string[] | null } // sources.jurisdiction_iso is a text[] (e.g. ["EU"])
+interface SourceEmbed { jurisdiction_iso: string[] | null; transport_modes: string[] | null } // both text[] (e.g. ["EU"], ["air","road"])
 interface Row {
   id: string;
   document_url: string;
@@ -157,7 +162,7 @@ async function loadCoverage(
       .select(
         "id,document_url,instrument_identifier,title,title_source,source_id,shape_class,surface_tags,notes," +
           "identity_checked_at,identity_http_status,identity_resolves,identity_scheme,identity_shape_valid,identity_host_registered," +
-          "sources(jurisdiction_iso)"
+          "sources(jurisdiction_iso,transport_modes)"
       )
       .eq("dryrun_disposition", "would_mint");
     if (surface) q = q.contains("surface_tags", [surface]);
@@ -183,6 +188,7 @@ async function loadCoverage(
     const isoArr = src?.jurisdiction_iso;
     const sourceIso = Array.isArray(isoArr) && isoArr.length ? isoArr[0] : null;
     const jurisdiction = jurisdictionOf(sourceIso, r.identity_scheme);
+    const modes = Array.isArray(src?.transport_modes) ? src.transport_modes.filter((m) => typeof m === "string" && m.trim() !== "") : [];
     // displayTitle: real captured title → notes descriptor → identifier → url. Never a bare number once
     // enrichment completes; the descriptor fallback keeps title-less rows human-readable meanwhile.
     const displayTitle = r.title || descriptor || r.instrument_identifier || r.document_url;
@@ -197,6 +203,8 @@ async function loadCoverage(
       scheme: r.identity_scheme,
       shapeValid: r.identity_shape_valid === true,
       surfaces: r.surface_tags || [],
+      modes,
+      checkedAt: r.identity_checked_at,
       shapeClass: r.shape_class,
       relevance: softPass === 0 ? "firm" : "soft",
       softPass,
