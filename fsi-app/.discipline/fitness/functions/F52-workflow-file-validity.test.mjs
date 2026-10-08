@@ -8,9 +8,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { _clearRepoRootCache } from '../../lib/context.mjs';
 import { _clearCache } from '../lib/file-content.mjs';
@@ -594,4 +595,116 @@ test('enumerate() returns exactly one sentinel path (holistic pattern, same as F
   assert.deepEqual(fitnessFunction.enumerate(), [
     'fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.mjs',
   ]);
+});
+
+// ── GATE-4 (lane gate4-ci): the shape of the real discipline.yml, asserted as workflow-validity facts ──
+//
+// These read the committed .github/workflows/discipline.yml and assert the job set and posture the gate
+// plan fixed: (1) a push to master runs Validate commits and the Consistency layer only, the unit-test,
+// fitness and rendering jobs run on the pull_request head; (2) the rendering guard is a REQUIRED job (no
+// continue-on-error) on a depth-1 checkout; (3) actionlint's pinned tarball is cached by version;
+// (4) each job that produces gate firings uploads them as a gate-firings artifact on every run;
+// (5) the explicit-test runner runs files concurrently. They are workflow-shape assertions, not a run of
+// any fitness function against the live tree.
+
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const REPO = join(HERE, '..', '..', '..', '..');
+const DISCIPLINE_YML = readFileSync(join(REPO, '.github', 'workflows', 'discipline.yml'), 'utf8');
+const DISCIPLINE_LINES = DISCIPLINE_YML.split(/\r?\n/);
+const JOBS = extractJobs(DISCIPLINE_LINES);
+
+function jobById(id) {
+  const job = JOBS.find((j) => j.id === id);
+  assert.ok(job, `discipline.yml has no job "${id}"`);
+  return job;
+}
+
+function jobText(id) {
+  const job = jobById(id);
+  return DISCIPLINE_LINES.slice(job.startLine, job.endLine + 1).join('\n');
+}
+
+/** The step blocks of a job: a step starts at a column-6 dash and runs to the next column-6 dash. */
+function stepsOf(id) {
+  const job = jobById(id);
+  const steps = [];
+  for (let i = job.startLine; i <= job.endLine; i++) {
+    if (/^ {6}- /.test(DISCIPLINE_LINES[i])) steps.push([]);
+    if (steps.length) steps[steps.length - 1].push(DISCIPLINE_LINES[i]);
+  }
+  return steps.map((lines) => lines.join('\n'));
+}
+
+/** The step whose `name:` contains `fragment`. */
+function stepNamed(id, fragment) {
+  const found = stepsOf(id).find((s) => {
+    const m = s.match(/^ {6}- name:\s*(.*)$/m) || s.match(/^ {8}name:\s*(.*)$/m);
+    return m !== null && m[1].includes(fragment);
+  });
+  assert.ok(found, `job "${id}" has no step named like "${fragment}"`);
+  return found;
+}
+
+test('GATE-4: the workflow has exactly the five jobs, so a new push-time job is a deliberate edit', () => {
+  assert.deepEqual(
+    JOBS.map((j) => j.id),
+    ['validate-commits', 'test-discipline-engine', 'consistency-backstop', 'fitness-check', 'rendering-guard'],
+  );
+});
+
+test('GATE-4: a push to master runs Validate commits and the Consistency layer only', () => {
+  for (const id of ['validate-commits', 'consistency-backstop']) {
+    const props = jobPropertyLines(jobById(id), DISCIPLINE_LINES);
+    assert.equal(props.find((p) => p.key === 'if'), undefined, `${id} must run on every event (push and pull_request)`);
+  }
+  for (const id of ['test-discipline-engine', 'fitness-check', 'rendering-guard']) {
+    const ifProp = jobPropertyLines(jobById(id), DISCIPLINE_LINES).find((p) => p.key === 'if');
+    assert.ok(ifProp, `${id} must carry a job-level if so a push to master skips it`);
+    assert.match(ifProp.valueInline, /github\.event_name\s*==\s*'pull_request'/, `${id}'s if must select pull_request only`);
+  }
+});
+
+test('GATE-4: the workflow header states the push-to-master posture and the measured 38 percent', () => {
+  const header = DISCIPLINE_LINES.slice(0, DISCIPLINE_LINES.findIndex((l) => /^jobs:\s*$/.test(l))).join('\n');
+  assert.match(header, /38 percent/);
+  assert.match(header, /push to master[^\n]*(Validate commits|validate-commits)/i);
+});
+
+test('GATE-4: the rendering guard is a required job: no continue-on-error, depth-1 checkout, 10 minute timeout', () => {
+  const block = jobText('rendering-guard');
+  assert.doesNotMatch(block, /^\s*continue-on-error:\s*true/m, 'rendering-guard must be able to fail the workflow');
+  assert.match(block, /^ {4}timeout-minutes:\s*10\s*$/m);
+  const checkout = stepNamed('rendering-guard', 'Checkout repository');
+  assert.match(checkout, /fetch-depth:\s*1\s*$/m, 'the rendering guard checks out depth 1');
+  assert.doesNotMatch(checkout, /fetch-depth:\s*0/);
+  assert.doesNotMatch(checkout, /git fetch/, 'no extra ref fetch');
+});
+
+test('GATE-4: actionlint restores a version-keyed cache of its pinned tarball and still verifies the checksum', () => {
+  const cache = stepNamed('fitness-check', 'actionlint tarball');
+  assert.match(cache, /uses:\s*actions\/cache@v4/);
+  assert.match(cache, /key:\s*actionlint-v1\.7\.12-linux-amd64\s*$/m);
+  const lint = stepNamed('fitness-check', 'actionlint (pinned');
+  assert.match(lint, /sha256sum -c/, 'the checksum is verified on every run, cache hit or miss');
+  assert.match(lint, /--retry/, 'a download on a cache miss retries a network reset');
+});
+
+test('GATE-4: every job that produces gate firings uploads a gate-firings artifact on every run, never failing on absence', () => {
+  for (const id of ['validate-commits', 'fitness-check']) {
+    const upload = stepNamed(id, 'Upload gate firings');
+    assert.match(upload, /uses:\s*actions\/upload-artifact@v4/);
+    assert.match(upload, /^ {8}if:\s*always\(\)\s*$/m, `${id}: upload on pass and on fail`);
+    assert.match(upload, /name:\s*gate-firings-/);
+    assert.match(upload, /if-no-files-found:\s*ignore/, `${id}: an absent file uploads nothing and does not fail`);
+    const retention = upload.match(/retention-days:\s*(\d+)/);
+    assert.ok(retention && Number(retention[1]) <= 7, `${id}: retention within the F68 budget`);
+  }
+  assert.match(stepNamed('fitness-check', 'Upload gate firings'), /fsi-app\/\.discipline\/out\/fitness-firings\.json/);
+  assert.match(stepNamed('validate-commits', 'Upload gate firings'), /fsi-app\/\.discipline\/out\/rules-ci-firings\.log/);
+});
+
+test('GATE-4: the explicit-test runner runs its files concurrently (the programmatic run() defaults to serial)', () => {
+  const src = readFileSync(join(REPO, 'fsi-app', '.discipline', 'lib', 'run-explicit-tests.mjs'), 'utf8');
+  const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  assert.match(code, /run\(\{[^}]*\bconcurrency\b[^}]*\}\)/, 'run({ files, execArgv, concurrency }) must pass a concurrency option');
 });

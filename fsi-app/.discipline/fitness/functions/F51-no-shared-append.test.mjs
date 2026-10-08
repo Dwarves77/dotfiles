@@ -139,7 +139,12 @@ test('check 1 GREEN: the real (derived) admin/parts/page.tsx loader shape passes
   assert.deepEqual(scanHandEntries(files, { familyNames: [] }), []);
 });
 
-test('check 1 wired to the live tree: runCheck1 against this real repo is clean', () => {
+// GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
+// functions job already does on every pull request (gate evaluation B section 7.6: it failed the unit-test
+// step while the gate itself passed in the fitness job). It stays runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tree self-test, run by the Fitness functions job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
+test('check 1 wired to the live tree: runCheck1 against this real repo is clean', LIVE_TREE, () => {
   assert.deepEqual(runCheck1(getRepoRoot()), []);
 });
 
@@ -184,7 +189,7 @@ test('check 2 GREEN: ordinary code with neither pattern passes', () => {
   assert.deepEqual(scanStoredMeasurements(files), []);
 });
 
-test('check 2 wired to the live tree: runCheck2 against this real repo is clean', () => {
+test('check 2 wired to the live tree: runCheck2 against this real repo is clean', LIVE_TREE, () => {
   assert.deepEqual(runCheck2(getRepoRoot()), []);
 });
 
@@ -252,7 +257,7 @@ test('check 3 (Amendment 2) GREEN: unallowlisted categories (fitness, invariants
   assert.equal(v.length, 1);
 });
 
-test('check 3 (Amendment 2) wired to the live tree: runCheck3 reports 0 violations -- the two pre-existing migration duplicates are now allowlisted, exactly and only', () => {
+test('check 3 (Amendment 2) wired to the live tree: runCheck3 reports 0 violations -- the two pre-existing migration duplicates are now allowlisted, exactly and only', LIVE_TREE, () => {
   assert.deepEqual(runCheck3(getRepoRoot()), []);
   assert.deepEqual(Object.keys(MIGRATION_DUPLICATE_ALLOWLIST).sort(), ['006', '007']);
 });
@@ -365,7 +370,7 @@ test('check 4 SKIP: no origin/master ref at all is skipped, never failed', () =>
   }
 });
 
-test('check 4 wired to the live tree: this lane\'s own branch touches no coordinator-only file', () => {
+test('check 4 wired to the live tree: this lane\'s own branch touches no coordinator-only file', LIVE_TREE, () => {
   assert.deepEqual(runCheck4(getRepoRoot()), []);
 });
 
@@ -391,7 +396,7 @@ test('AMENDMENT 2 ATTACK (a): the live README carries no per-brief table row; pl
 
 // fitnessFunction.check() wired end to end against the live tree: returns the true current violation set.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
-test('fitnessFunction.check() live: id/name/enumerate shape, and the result matches the sum of the four checks', () => {
+test('fitnessFunction.check() live: id/name/enumerate shape, and the result matches the sum of the four checks', LIVE_TREE, () => {
   assert.equal(fitnessFunction.id, 'F51');
   assert.equal(fitnessFunction.name, 'no-shared-append');
   assert.deepEqual(fitnessFunction.enumerate(), ['fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs']);
