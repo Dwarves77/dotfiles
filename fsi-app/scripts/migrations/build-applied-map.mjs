@@ -22,7 +22,7 @@
 // Usage: node fsi-app/scripts/migrations/build-applied-map.mjs <reconciliation.json> --export-dir <dir> [--write]
 //   --write   writes fsi-app/supabase/migrations/APPLIED-MAP.json (default: prints it to stdout, dry).
 
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainModule } from '../lib/is-main.mjs';

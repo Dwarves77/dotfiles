@@ -69,3 +69,7 @@ The committed map did not match what `scripts/proof/applied-map.mjs` reads. Meas
 
 ### Open items
 - When 370 and 371 are applied, their ledger rows will appear and the audit will name them LEDGER_ROW_NOT_IN_MAP until the map is regenerated; their files will then be class identical and the stale "NOT APPLIED" header prose is ignored by design.
+
+### CI round 1 (PR 1013), fixes approved by the coordinator
+- Discipline engine unit tests failed one test, `skill-contract-map: checkDrift is clean on this checkout right now`: `[citation-unregistered] ledger <- fsi-app/scripts/verify/migration-history-audit.mjs`. Mechanism confirmed in `.discipline/governance/skill-contract-map.mjs`: `extractCitedSlugs` takes the 800 characters after each `GOVERNING SKILL(S):` marker and tests every registered skill slug word-bounded; the audit header's prose carried the bare word "ledger" inside that window and "ledger" is a registered skill slug. Fix: two phrases in the header reworded (the applied-migration table; an applied row) so the window holds no bare "ledger"; meaning unchanged. Checked after the edit: no bare "ledger" in the 800 characters; `skill-drift-gate.test.mjs` passes.
+- Fitness functions failed on ESLint (max-warnings 0): unused `existsSync` import in `build-applied-map.mjs`. Removed. ESLint over the touched files: 0 problems.

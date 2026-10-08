@@ -4,12 +4,12 @@
  *
  *  WHY THIS EXISTS. On 2026-10-07 a read-only export of production's supabase_migrations.schema_migrations
  *  (352 rows) against the repo (323 files) found 45 applied rows with no file, 16 files with no row, 61 pairs
- *  whose code differs, and 112 rows that stored no SQL at all. Nothing compared the ledger to the files: the
+ *  whose code differs, and 112 rows that stored no SQL at all. Nothing compared the applied-migration table to the files: the
  *  inventory generator reads files only, F24 compares live objects to files, and the duplicate-prefix scan
  *  was report-only. This audit is that comparison, run where the database password is.
  *
  *  WHAT IT CHECKS (every failure is named; the map is fsi-app/supabase/migrations/APPLIED-MAP.json):
- *    LEDGER_ROW_NOT_IN_MAP   a ledger row with no map entry.
+ *    LEDGER_ROW_NOT_IN_MAP   an applied row with no map entry.
  *    MAP_ROW_NOT_IN_LEDGER   a map entry for a version the ledger does not hold (stale map).
  *    NO_FILE_NO_SUPERSEDER   a map entry whose file, or whose superseded_by file, is not in the repo.
  *    FILE_NOT_ACCOUNTED      a repo .sql file that no entry names (a ledger row, a superseder, or a keyed file
