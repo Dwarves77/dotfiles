@@ -14,6 +14,7 @@ const CLEAN = Object.freeze({
   PROOF_SERVICE_KEY: KEY,
   PROOF_API_URL: "http://127.0.0.1:54321",
   PROOF_DB_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+  PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres",
 });
 
 test("a clean local environment passes", () => {
@@ -88,6 +89,24 @@ test("missing local URLs are refused (the job must have a stack)", () => {
   const r = checkPreflight(rest);
   assert.equal(r.ok, false);
   assert.equal(r.violations.filter((v) => v.startsWith("required local variable missing")).length, 2);
+});
+
+test("PROOF-5: ATTACK: PROOF_DB_SUPERUSER_URL on a production host is refused, and the password never echoed", () => {
+  const r = checkPreflight({ ...CLEAN, PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:prod-pw-123@db.abcdefghijklmnop.supabase.co:5432/postgres" });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes("PROOF_DB_SUPERUSER_URL does not name a loopback host")));
+  assert.ok(!JSON.stringify(r).includes("prod-pw-123"));
+});
+
+test("PROOF-5: ATTACK: PROOF_DB_SUPERUSER_URL on a non-loopback, non-production host is refused", () => {
+  const r = checkPreflight({ ...CLEAN, PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:x@192.0.2.10:5432/postgres" });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes("PROOF_DB_SUPERUSER_URL")));
+});
+
+test("PROOF-5: PROOF_DB_SUPERUSER_URL is optional to the preflight (steps before the env carries it still pass)", () => {
+  const { PROOF_DB_SUPERUSER_URL: _drop, ...rest } = CLEAN;
+  assert.equal(checkPreflight(rest).ok, true);
 });
 
 test("a hostname that merely begins with 127.0.0.1 is not loopback", () => {
