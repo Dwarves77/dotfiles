@@ -135,8 +135,8 @@ const headerNeverApplied = sqlFiles.filter((f) => {
   return cls === "never-applied" || (cls == null && declaresNotApplied(text));
 }).sort();
 
-test("the map covers all 361 ledger rows, every value has name and class, and every named file exists", () => {
-  assert.equal(versions.length, 361);
+test("the map covers all 362 ledger rows, every value has name and class, and every named file exists", () => {
+  assert.equal(versions.length, 362);
   for (const v of versions) {
     const e = map[v];
     assert.ok(typeof e.name === "string" && typeof e.class === "string", v);

@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-08T09:15:29.913Z",
-  "count": 361,
+  "synced_at": "2026-10-08T12:50:38.487Z",
+  "count": 362,
   "migrations": [
     {
       "version": "001",
@@ -1446,6 +1446,10 @@
     {
       "version": "20261008072538",
       "name": "369_privilege_functions_views"
+    },
+    {
+      "version": "20261008092141",
+      "name": "372_profiles_read"
     }
   ]
 }
