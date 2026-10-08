@@ -1,0 +1,10 @@
+{
+  "id": "propagation-drain-to-question-answers",
+  "producer": { "file": ".github/workflows/propagation-drain.yml", "name": "Propagation drain" },
+  "consumer": { "file": ".github/workflows/question-answers.yml", "name": "Question answers" },
+  "trigger": "workflow_run",
+  "family": "question-answers",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Lane CHAIN-4 (2026-10-08), remaining-build-register item 13. The propagation drain re-opens a question when a recomputed inference rests on holdings that moved (drain.ts Pass 2b, reopenQuestionForRecompute), so an answer pass follows it: question-answers.yml carries on.workflow_run.workflows: [\"Population turn\", \"Propagation drain\"]. A chained firing has no inputs and no batch file, so it runs action=export (read only, always has a list to write); apply stays on push or dispatch. Forced dry while build mode holds (F61: chained-dry-guard.mjs called and CHAINED_MODE consulted). Depth: Propagation drain is reached natively from Data producers (depth 1) or by the explicit dispatch downstream-chain.yml makes (hop 07; a workflow_dispatch run is its own root), so this edge is at most depth 2 and needs no dispatchFallback of its own. [HYPOTHESIS, unverified live: that a run started by gh workflow run counts as a fresh chain root; hop 07's own fallback rests on the same reading. The next chain fire settles it.] Evidence that will prove it fired: a question-answers harness_runs row with trigger workflow_run or workflow_run_forced_dry whose upstream_run_id equals a propagation row's github_run_id (placed on this hop through producerFamilyOf: this producer is the consumer of hops 07 and 08, family propagation). enforceFired stays false until that row exists in loop-fired-evidence.json."
+}

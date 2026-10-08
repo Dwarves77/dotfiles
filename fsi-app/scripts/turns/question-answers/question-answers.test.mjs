@@ -645,3 +645,17 @@ test("the need reader reads a term-need target too: kind and namespace ride alon
   });
   assert.equal(needOfFlag(holdFlag).namespace, undefined, "holdings need shape is byte-identical to before");
 });
+
+// ── lane CHAIN-4: the chained firing records the loop run id it was handed (ADR-031) ───────────────────────────
+test("CHAIN-4: QA_LOOP_RUN_ID is recorded as config.loop_run_id; absent or blank records null", async () => {
+  const { file } = await buildExport(fixtureDeps(clone(CORPUS)), { charBudget: 60000, now: NOW });
+  const input = exportArtifactInput({ parsed: { charBudget: 60000, limit: 100 }, file, outPath: "out.json", startedAt: NOW() });
+  const read = (env) => {
+    const dir = mkdtempSync(join(tmpdir(), "qa-loop-"));
+    return JSON.parse(readFileSync(emitQuestionAnswersArtifact(input, { familyDir: dir, env }), "utf8"));
+  };
+  assert.equal(read({ QA_LOOP_RUN_ID: " 37613373980 " }).config.loop_run_id, "37613373980");
+  assert.equal(read({}).config.loop_run_id, null);
+  assert.equal(read({ QA_LOOP_RUN_ID: "  " }).config.loop_run_id, null);
+  assert.deepEqual(validateRunArtifact(read({ QA_LOOP_RUN_ID: "5" })), []);
+});

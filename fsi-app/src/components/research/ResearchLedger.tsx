@@ -45,6 +45,7 @@ import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard } from "@/components/ui/RailCard";
+import { CoverageState } from "@/components/ui/CoverageState";
 import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
@@ -455,7 +456,8 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, assessme
               geometry: logged in DEVIATION-LOG.md rather than invented. */}
           <RailCard title="Source coverage" dataAudit="source-coverage-rail">
             {coverageBySource.length === 0 ? (
-              <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>No coverage matrix populated yet.</p>
+              // COV-1: an unpopulated source-coverage read is the "no data yet" state (spec 00 section 4), stated as such.
+              <CoverageState state="no_data_yet" variant="inline" subject="The source coverage matrix" reason="No coverage matrix has been populated yet." />
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "6px 12px", fontSize: "var(--fs-125)", alignItems: "baseline" }}>
                 {coverageBySource.map(([mode, count]) => (

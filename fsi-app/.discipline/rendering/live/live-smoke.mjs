@@ -6,6 +6,10 @@
 // first theme chip on each list links to. Every assertion is a named invariant in live-assertions.mjs; the
 // phone-width scroll-container rule is the same module the rendering guard imports (overflow-rule.mjs).
 //
+// Content (lane SMOKE-2): with `contentChecks` the runner also proves the elements the design places on each kind of
+// page are present AND non-empty (grade chip, bias chips, tier square, Connected intelligence, Inferences, the
+// dashboard Across pages rail), one named invariant per element (live-content.mjs). The CLI entry turns it on.
+//
 // Output: a JSON report (path from LIVE_SMOKE_REPORT, default ./live-smoke-report.json) and a plain summary,
 // one line per failed invariant with the URL and the offending text (truncated). Exit 1 on any failure, 2 on a
 // runner error, 0 when clean. Warnings (own-origin 4xx) never fail the run.
@@ -20,7 +24,8 @@ import { createRequire } from "node:module";
 import { writeFileSync } from "node:fs";
 import { isMainModule } from "../../../scripts/lib/is-main.mjs";
 import { preflight, runPreflightCli } from "./live-preflight.mjs";
-import { collectSnapshot, collectLinks } from "./live-snapshot.mjs";
+import { collectSnapshot, collectLinks, collectContent } from "./live-snapshot.mjs";
+import { requirementsForKind, checkContentRun } from "./live-content.mjs";
 import { collectContainers, isNarrowViewport } from "../overflow-rule.mjs";
 import {
   INVARIANTS,
@@ -72,7 +77,7 @@ export async function signIn(browser, baseUrl, { email, password }, timeoutMs = 
 }
 
 /** Visit one page in a fresh page of `ctx` and return findings plus the page record. */
-async function visit(ctx, baseUrl, origin, path, kind, viewport) {
+async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks = false) {
   const page = await ctx.newPage();
   const responses = [];
   const consoleMsgs = [];
@@ -84,6 +89,8 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport) {
     const navResp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT_MS });
     await settle(page);
     const snap = await collectSnapshot(page);
+    // Lane SMOKE-2: measure the elements the design places on this kind of page (judged in live-content.mjs).
+    const content = contentChecks ? await collectContent(page, requirementsForKind(kind)) : null;
     const offOrigin = snap.origin !== origin;
     const toLogin = /^\/(login|signup|auth)/.test(snap.pathname);
     const containerScan = isNarrowViewport(viewport.width) ? await collectContainers(page) : null;
@@ -98,10 +105,11 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport) {
         : undefined,
       ...snap,
       containerScan,
+      content,
     };
     const ctxInfo = { url, viewport: viewport.width };
     const findings = [...checkSnapshot(base), ...checkResponses(responses, origin, ctxInfo), ...checkConsole(consoleMsgs, ctxInfo)];
-    return { findings, record: { url, viewport: viewport.width, kind }, snap };
+    return { findings, record: { url, viewport: viewport.width, kind }, snap: base };
   } catch (err) {
     return {
       findings: [
@@ -162,10 +170,11 @@ async function probeAdminGate(ctx, baseUrl) {
  * The whole run against `baseUrl`. `browser` is injected so a fixture proof can drive it; credentials come from
  * the caller. Returns { findings, report, lines }.
  */
-export async function runLiveSmoke({ browser, baseUrl, email, password, signInTimeoutMs }) {
+export async function runLiveSmoke({ browser, baseUrl, email, password, signInTimeoutMs, contentChecks = false }) {
   const origin = new URL(baseUrl).origin;
   const pages = [];
   const findings = [];
+  const snapshots = [];
 
   const storageState = await signIn(browser, baseUrl, { email, password }, signInTimeoutMs);
   if (!storageState) {
@@ -211,9 +220,10 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
     const ctx = await browser.newContext({ storageState, viewport: { width: viewport.width, height: viewport.height } });
     try {
       for (const step of plan) {
-        const r = await visit(ctx, baseUrl, origin, step.path, step.kind, viewport);
+        const r = await visit(ctx, baseUrl, origin, step.path, step.kind, viewport, contentChecks);
         findings.push(...r.findings);
         pages.push(r.record);
+        if (r.snap) snapshots.push(r.snap);
       }
       if (viewport.width === VIEWPORTS[0].width) {
         findings.push(...checkAdminProbes(await probeAdminGate(ctx, baseUrl), baseUrl));
@@ -222,6 +232,10 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
       await ctx.close();
     }
   }
+
+  // Lane SMOKE-2: the content requirements that hold over the whole run (an element absent from EVERY visited page of
+  // its kind at a width), judged once every page is in.
+  if (contentChecks) findings.push(...checkContentRun(snapshots));
 
   const report = buildReport({ baseUrl, pages, findings });
   return { findings, report, lines: formatSummary(findings) };
@@ -240,7 +254,7 @@ async function main() {
   const browser = await chromium.launch();
   let result;
   try {
-    result = await runLiveSmoke({ browser, baseUrl: pre.origin, email: env.LIVE_SMOKE_EMAIL, password: env.LIVE_SMOKE_PASSWORD });
+    result = await runLiveSmoke({ browser, baseUrl: pre.origin, email: env.LIVE_SMOKE_EMAIL, password: env.LIVE_SMOKE_PASSWORD, contentChecks: true });
   } finally {
     await browser.close();
   }

@@ -1,0 +1,10 @@
+{
+  "id": "population-turn-to-question-answers",
+  "producer": { "file": ".github/workflows/population-turn.yml", "name": "Population turn" },
+  "consumer": { "file": ".github/workflows/question-answers.yml", "name": "Question answers" },
+  "trigger": "workflow_run",
+  "family": "question-answers",
+  "enforceEdge": true,
+  "enforceFired": false,
+  "note": "Lane CHAIN-4 (2026-10-08), remaining-build-register item 13. Population turn raises questions at mint (the question generator is one of its flywheel steps), so an answer pass follows it: the same consumer and family as hop 14, a native workflow_run edge off \"Population turn\". Chained firings run action=export (read only); apply stays on push or dispatch. Depth: source-sweep(0) -> ledger-consume(1) -> population-turn(2) -> question-answers(3), the last level GitHub still fires, so no fallback is needed. Forced dry while build mode holds. A question-answers row is placed on this hop (not hop 14) when its upstream_run_id equals a mint row's github_run_id (mapRowsToHops through producerFamilyOf: this producer is hop 03's consumer, family mint). enforceFired stays false until that row exists in loop-fired-evidence.json."
+}

@@ -23,6 +23,7 @@ import {
   LIKELIHOOD, likelihoodForProbability,
   IMPACT, APPLICABILITY, BINDING_POSITION, FRESHNESS,
   RELATION, inverseRelation,
+  COVERAGE_STATE, COVERAGE_STATES, SUPPRESSION_REASON, coverageStateForObsStatus,
   VOCABULARIES, isValid, orderedValues,
 } from "../lib/contracts/vocabularies.mjs";
 
@@ -288,9 +289,54 @@ test("inverseRelation returns null for a non-relation", () => {
 
 // ── the lattice as a whole ───────────────────────────────────────────────
 
-test("no vocabulary is empty and the registry lists eleven", () => {
-  assert.equal(Object.keys(VOCABULARIES).length, 11);
+test("no vocabulary is empty and the registry lists thirteen (the eleven plus coverage_state and suppression_reason)", () => {
+  assert.equal(Object.keys(VOCABULARIES).length, 13);
   for (const [name, v] of Object.entries(VOCABULARIES)) {
     assert.ok(Object.keys(v).length > 0, `${name} is empty`);
   }
+});
+
+// ── coverage_state (spec 00 section 4): six states, six treatments ───────
+
+test("coverage_state has exactly the six states of spec 00 section 4, in the spec's order", () => {
+  assert.deepEqual(COVERAGE_STATES, [
+    "not_applicable", "not_covered", "no_data_yet", "suppressed", "not_filtered_in", "error",
+  ]);
+  assert.deepEqual(orderedValues("coverage_state").map((e) => e.code), COVERAGE_STATES);
+});
+
+test("coverage_state: every state has its own treatment, no two share one", () => {
+  const treatments = COVERAGE_STATES.map((c) => COVERAGE_STATE[c].treatment);
+  assert.equal(new Set(treatments).size, 6, "six states, six distinct treatments");
+  for (const t of treatments) assert.equal(typeof t, "string");
+});
+
+test("coverage_state: the four SDMX-backed states point at the OBS_STATUS code that already exists", () => {
+  const backed = COVERAGE_STATES.filter((c) => COVERAGE_STATE[c].obsStatus);
+  assert.deepEqual(backed.sort(), ["no_data_yet", "not_applicable", "not_covered", "suppressed"]);
+  for (const c of backed) {
+    const code = COVERAGE_STATE[c].obsStatus;
+    assert.ok(OBS_STATUS[code], `${c} -> ${code} must be a real OBS_STATUS code`);
+    assert.equal(isMissing(code), true, `${c} -> ${code} must be a missing code`);
+  }
+  // The two that are not observation statuses carry no SDMX letter: none is invented for them.
+  assert.equal(COVERAGE_STATE.not_filtered_in.obsStatus, null);
+  assert.equal(COVERAGE_STATE.error.obsStatus, null);
+});
+
+test("coverageStateForObsStatus maps the four missing codes, and refuses to guess for the rest", () => {
+  assert.equal(coverageStateForObsStatus("O"), "not_applicable");
+  assert.equal(coverageStateForObsStatus("L"), "not_covered");
+  assert.equal(coverageStateForObsStatus("H"), "no_data_yet");
+  assert.equal(coverageStateForObsStatus("Q"), "suppressed");
+  // M (reason unknown) and N (not significant) are missing but are NOT one of the six: the caller keeps its fallback.
+  assert.equal(coverageStateForObsStatus("M"), null);
+  assert.equal(coverageStateForObsStatus("N"), null);
+  assert.equal(coverageStateForObsStatus("A"), null);
+  assert.equal(coverageStateForObsStatus(undefined), null);
+  assert.equal(coverageStateForObsStatus("__unknown__"), null);
+});
+
+test("suppression_reason carries the three reason classes spec 00 names", () => {
+  assert.deepEqual(Object.keys(SUPPRESSION_REASON), ["confidentiality", "k_anonymity", "licence"]);
 });

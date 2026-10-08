@@ -14,6 +14,7 @@ import { findInternalMarkers } from "../../../src/lib/agent/section-markers.mjs"
 import { COMPLIANCE_OBJECT_LABELS, SCENARIO_LABELS } from "../../../src/lib/connections/tag-labels.mjs";
 import { SOURCE_TIER_MAX } from "../../../src/lib/customer-source-tier.ts";
 import { detectContainerOverflows, isNarrowViewport } from "../overflow-rule.mjs";
+import { CONTENT_INVARIANT_IDS, checkContentSnapshot } from "./live-content.mjs";
 
 /** Every named invariant. A failure carries one of these ids, so a log line says WHICH rule broke. */
 export const INVARIANTS = Object.freeze({
@@ -31,6 +32,8 @@ export const INVARIANTS = Object.freeze({
   LIST_EMPTY: "list-has-no-rows",
   DETAIL_NO_MASTHEAD: "detail-has-no-masthead",
   ADMIN_GATE: "admin-gate",
+  // Lane SMOKE-2: one invariant per element the design places on a page (live-content.mjs owns the requirements).
+  ...CONTENT_INVARIANT_IDS,
 });
 
 /** Invariants that are warnings, never failures. */
@@ -125,7 +128,8 @@ export function findLegendsBelowCeiling(texts, ceiling = SOURCE_TIER_MAX) {
  *   url, kind: 'home'|'list'|'detail', viewport: {width,height}, redirectedToLogin: boolean,
  *   textNodes: string[], chips: string[], blocks: {kind: string, texts: string[]}[],
  *   tierChips: string[], scaleTexts: string[], rowCount: number, mastheadTitle: string|null,
- *   containerScan: {viewportWidth:number, containers:object[]}|null }
+ *   containerScan: {viewportWidth:number, containers:object[]}|null,
+ *   content: Record<string, object[]>|null (live-content.mjs measurements, null when content checks are off) }
  * @returns {{invariant:string, url:string, viewport:number, text:string, severity:'fail'|'warn'}[]}
  */
 export function checkSnapshot(snap) {
@@ -168,6 +172,10 @@ export function checkSnapshot(snap) {
   for (const t of findLegendsBelowCeiling(snap.scaleTexts)) add(INVARIANTS.LEGEND_BELOW_CEILING, `${t} (scale must reach T${SOURCE_TIER_MAX})`);
 
   for (const h of findAdminLinks(snap.adminLinks)) add(INVARIANTS.ADMIN_GATE, `the smoke account may have become a platform admin: an admin navigation link renders (${h})`);
+
+  // Lane SMOKE-2: the elements the design places on this page, present and non-empty (the `each` scope; the `any`
+  // scope is judged over the whole run by checkContentRun, which live-smoke.mjs calls once every page is visited).
+  out.push(...checkContentSnapshot(snap));
 
   if (snap.kind === "list" && !(snap.rowCount > 0)) add(INVARIANTS.LIST_EMPTY, "no list row rendered");
   if (snap.kind === "detail" && !String(snap.mastheadTitle ?? "").trim()) add(INVARIANTS.DETAIL_NO_MASTHEAD, "no masthead title (h1)");
