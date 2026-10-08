@@ -176,7 +176,7 @@ jobs:
         run: |
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
-          node scripts/proof/run-lane-step.mjs --name chain --lane PROOF-3 --script scripts/proof/run-chain.mjs --out-dir "$CP_OUT_DIR"
+          node scripts/proof/run-lane-step.mjs --name chain --lane PROOF-3 --script scripts/proof/steps/run-chain-steps.mjs --out-dir "$CP_OUT_DIR"
 
       - name: Run the attack suite on the real schema
         working-directory: fsi-app
