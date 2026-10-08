@@ -10,7 +10,6 @@ import { join } from "node:path";
 import { evaluateHistory, ledgerFromRows, run } from "./migration-history-audit.mjs";
 import { RECOVERED_BODY_MARKER } from "../migrations/migration-compare.mjs";
 
-const P = "fsi-app/supabase/migrations/";
 const recoveredText = (body) =>
   `-- subject: Recovered x\n-- recovered: 2026-10-07 from supabase_migrations.schema_migrations\n-- ledger version: 900\n-- ledger name: rec\n-- body-sha256: ${createHash("sha256").update(body).digest("hex")}\n${RECOVERED_BODY_MARKER}\n${body}`;
 
@@ -31,12 +30,12 @@ function clean() {
     { version: "20260101000001", name: "view_comment", statements: "COMMENT ON VIEW v IS 'x';" },
   ];
   const map = {
-    "001": { name: "a", file: `${P}001_a.sql`, class: "identical" },
-    "002": { name: "b", file: `${P}002_b.sql`, class: "statements-null" },
-    "900": { name: "rec", file: `${P}241_rec.sql`, class: "recovered" },
-    "20260101000000": { name: "data_load", file: null, class: "data-only", superseded_by: `${P}004_covering.sql` },
-    "20260101000001": { name: "view_comment", file: null, class: "comment-only", superseded_by: `${P}003_view.sql` },
-    files_without_row: [{ file: `${P}299_never.sql`, class: "never-applied", evidence: "x" }],
+    "001": { name: "a", file: "001_a.sql", class: "identical" },
+    "002": { name: "b", file: "002_b.sql", class: "statements-null" },
+    "900": { name: "rec", file: "241_rec.sql", class: "recovered" },
+    "20260101000000": { name: "data_load", file: null, class: "data-only", superseded_by: "004_covering.sql" },
+    "20260101000001": { name: "view_comment", file: null, class: "comment-only", superseded_by: "003_view.sql" },
+    "never:299_never.sql": { name: "never", file: "299_never.sql", class: "never-applied", note: "x" },
   };
   return { ledger, files, map };
 }
@@ -56,7 +55,7 @@ test("ATTACK LEDGER_ROW_NOT_IN_MAP: an applied row with no file and no map entry
 
 test("ATTACK MAP_ROW_NOT_IN_LEDGER: a stale map entry", () => {
   const f = clean();
-  f.map["777"] = { name: "ghost", file: `${P}001_a.sql`, class: "identical" };
+  f.map["777"] = { name: "ghost", file: "001_a.sql", class: "identical" };
   assert.ok(codes(evaluateHistory(f)).includes("MAP_ROW_NOT_IN_LEDGER"));
 });
 
@@ -130,10 +129,30 @@ test("ATTACK RECOVERED_BODY: the recovered file holds a statement the ledger row
 test("an outside-ledger file is a FINDING (objects unverified), never a pass and never a failure", () => {
   const f = clean();
   f.files.set("202_out.sql", "/* status: APPLIED OUTSIDE LEDGER (no row; evidence: log) [HYPOTHESIS until objects verified] */\n-- subject: o\nSELECT 1;\n");
-  f.map.files_without_row.push({ file: `${P}202_out.sql`, class: "outside-ledger", evidence: "log line 1; no row" });
+  f.map["outside:202_out.sql"] = { name: "out", file: "202_out.sql", class: "outside-ledger", note: "log line 1; no row" };
   const r = evaluateHistory(f);
   assert.deepEqual(r.failures, []);
   assert.ok(r.findings.some((x) => x.startsWith("OBJECTS_UNVERIFIED 202_out.sql")));
+});
+
+test("a lane-authored file whose own header says NOT APPLIED is never-applied without a first-line status", () => {
+  const f = clean();
+  f.files.set("370_new.sql", "-- subject: s\n-- 370 -- new\n--\n-- NOT APPLIED. Authored by lane X; the coordinator applies it.\nSELECT 1;\n");
+  f.map["never:370_new.sql"] = { name: "new", file: "370_new.sql", class: "never-applied", note: "header" };
+  assert.deepEqual(evaluateHistory(f).failures, []);
+});
+
+test("stale NOT APPLIED prose on a file that has a ledger row is not evidence and not a failure; only a first-line status is", () => {
+  const f = clean();
+  f.files.set("001_a.sql", "-- subject: a\n-- NOT APPLIED. (stale prose)\nCREATE TABLE a (id int);\n");
+  assert.deepEqual(evaluateHistory(f).failures, []);
+});
+
+test("ATTACK FILE_STATUS_HEADER: a never-applied entry for a file that says nothing about being unapplied", () => {
+  const f = clean();
+  f.files.set("370_new.sql", "-- subject: s\nSELECT 1;\n");
+  f.map["never:370_new.sql"] = { name: "new", file: "370_new.sql", class: "never-applied", note: "header" };
+  assert.ok(codes(evaluateHistory(f)).includes("FILE_STATUS_HEADER"));
 });
 
 test("ledgerFromRows joins statement arrays and keeps NULL as null", () => {

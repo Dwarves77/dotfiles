@@ -1,8 +1,8 @@
-// RD-93-migration-history: new invariant, lane MIG-HIST-1 (2026-10-07). Id picked as the next free RD
-// number at this lane's push time (RD-92 was the highest on origin/master); rename on request if it collides.
+// RD-94-migration-history: new invariant, lane MIG-HIST-1 (2026-10-07), landed by MIG-HIST-1b (2026-10-08).
+// Renamed from RD-93-migration-history because SEC-4 registered RD-93-definer-hygiene on master first.
 
 export const invariant = {
-  id: 'RD-93-migration-history',
+  id: 'RD-94-migration-history',
   skill: 'remediation-discipline',
   section: 'Section 4 - category 46: a loop\'s own hops are checked as data, not remembered as wired (an edge, a family, and a fired-from-upstream artifact are three separate facts)',
   text:

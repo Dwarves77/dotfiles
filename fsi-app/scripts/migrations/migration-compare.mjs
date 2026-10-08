@@ -168,6 +168,15 @@ export const STATUS_TOKENS = Object.freeze({
   'applied-under-ledger': /^APPLIED UNDER LEDGER VERSION\b/,
 });
 
+const NOT_APPLIED_HEADER_RE = /^--\s*NOT APPLIED\b/;
+
+/** The two-track marker a lane writes into a new migration's header ("-- NOT APPLIED. Authored by lane ..."),
+ *  within the first 30 lines. It is how a file with no ledger row says it is not applied yet; it is read only
+ *  for a file the map lists as never-applied, never as evidence about a file that has a ledger row. */
+export function declaresNotApplied(fileText) {
+  return String(fileText).split(/\r?\n/, 30).some((l) => NOT_APPLIED_HEADER_RE.test(l));
+}
+
 /** Which status token class the file's first line carries, or null. */
 export function statusClassOfFile(fileText) {
   const st = firstLineStatus(fileText);

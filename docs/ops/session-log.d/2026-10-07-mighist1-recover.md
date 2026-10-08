@@ -31,3 +31,41 @@ Read: COMMON.md, mighist1.md, CLAUDE.md, lane-common-contract, the export (`inde
 
 ### Open items
 - Coordinator to land the audit document and rule on the Session C question (objects have consumers or not) and the 74 rows.
+
+## 2026-10-08, lane MIG-HIST-1b (mighist1b-land): the map lands, refreshed to the 2026-10-08 ledger and made to conform to the replay reader
+
+Why this lane exists: MIG-HIST-1 was reported landed and was not (coordinator error, recorded). Chain-proof run 37752670307 on master a35ced3c refused the replay: "APPLIED-MAP.json is absent". Facts below were run or read in this lane.
+
+### What was done
+- The staged lane record was committed as it stood (45 files). The first commit attempt failed rule 015 (a false positive on a SHA-256 `.update(` call); the coordinator ruled the fix already sat on master (GATE-1) and ordered stash, merge of origin/master, pop, re-stage, commit. All 45 files re-staged identically, the commit passed.
+- Ledger refresh: one read-only SELECT over `supabase_migrations.schema_migrations` through the Supabase MCP (version, name, statement count, byte count, md5 of the joined statements; the full body only for versions absent from the 2026-10-07 export). 361 rows (352 before, 9 new: 358, 359, 361, 362, 363, 364, 367, 368, 369), 112 still with NULL statements. The 9 new bodies were taken whole (md5 and byte count verified against the database). Of the 352 old rows, 181 matched the 2026-10-07 body by md5; 59 carry the 10-07 export's form (the stored statements with a closing semicolon appended per statement), for which the database byte count and statement count equal the 10-07 values and the 10-07 body is longer; the other 112 are the NULL-statement rows. Written as a new export directory in the session scratchpad, same format as 2026-10-07, header dated 2026-10-08.
+- Reconcile on the 2026-10-08 export against the merged tree: a 42, b 20, c 1, d 318. A reconcile run on a tree that holds the lane's own recovered files matches three of them to their ledger rows by name (the rows leave set a) and lists two in set b. The generator now normalises this first: a recovered file (found by its own header) is never a matched pair and never a file without a row, so its row is class recovered pointing at the file. No new ruling: the five recovered rows already had rulings.
+- Counts per class, before (2026-10-07 map, 352 rows) and after (2026-10-08 map, 361 rows): identical 109 to 118; comments-only 10 to 10; code-differs 74 to 74; statements-null 112 to 112; apply-record-stub 6 to 6; recovered 5 to 5; superseded-by 6 to 6; data-only 27 to 27; comment-only 3 to 3. Files without a ledger row: outside-ledger 7 to 7, duplicate-prefix 3 to 3, never-applied 1 to 3 (299, 370, 371). All 9 new rows classify identical by the existing statement-level comparison; no new class and no new ledger-row ruling.
+
+### Conformance to the replay reader (coordinator ruling 2026-10-08)
+The committed map did not match what `scripts/proof/applied-map.mjs` reads. Measured by running `planReplay` read-only over the committed map: 0 planned, 36 satisfied, 119 class_unknown, 198 entry_file_missing, 36 superseded_by_missing, 339 unreferenced. Three causes, each fixed:
+1. `file` and `superseded_by` carried a repo directory prefix; the reader compares bare file names. The generator now emits bare names.
+2. Files with no ledger row were a top-level `files_without_row` array; the reader expects one keyed entry per file (`outside:<file>`, `never:<file>`, `dup:<file>`, value name, file, class, note). The generator now emits those and `files_without_row` is gone. A file with no row, no ruling and its own header line "NOT APPLIED" is classed never-applied by derivation (370, 371), not by a new ruling.
+3. The classes `statements-null` and `apply-record-stub` were not in the reader's list. Added to the reader's apply classes (same semantics as identical: the file is the only text, replay it) in `applied-map.mjs` and `applied-map.test.mjs`, the only reader-side change; an invented class is still refused (test).
+- `fsi-app/docs/inventories/applied-migrations.json` regenerated with `scripts/proof/sync-applied-migrations.mjs` from the 2026-10-08 export (361 rows).
+- The audit follows the same shape (`ledgerKeys`, `fileEntries`). For a never-applied entry it accepts the file's own two-track header line (a line starting "-- NOT APPLIED") when it has no first-line status, so lane-authored files (370, 371) need no edit by this lane; that line is read only for a file the map lists as never-applied, and stale "NOT APPLIED" prose on a file that has a ledger row stays not-evidence (test).
+- Invariant renamed `RD-93-migration-history` to `RD-94-migration-history` (file, id, header comment): SEC-4 registered `RD-93-definer-hygiene` on master first. RD-94 was free in `invariants.d` (confirmed by listing). No other reference to the old id existed outside the first session log entry above.
+
+### Replay plan, read-only (`planReplay` over the final map, the real inventory and applied-migrations.json)
+- Ledger rows 361; planned 332 (identical 118, code-differs 74, statements-null 112, apply-record-stub 6, outside-ledger 7, recovered 5, comments-only 10); satisfied with no file of their own 36; skipped 6 (never-applied 3: 299, 370, 371; duplicate-prefix 3).
+- Errors 0 (class_unknown 0, entry_file_missing 0, superseded_by_missing 0, ledger_version_not_in_map 0); unreferenced files 0; files not in the inventory 0; inventory files missing on disk 0.
+- `replay-migrations.mjs` has no plan-only mode (it exits 2 without a loopback database URL), so the plan was taken by calling its exported `planReplay`; no file was created for it.
+
+### Tests (node --test, MIGRATION_EXPORT_DIR set to the 2026-10-08 export)
+- Red then green: the class-list and two new reader tests fail against the old `applied-map.mjs` (3 failed, 12 passed) and pass after (15 of 15); the generator test file fails to load against the old generator (it does not export `fileEntries`) and passes after (14 of 14); the audit test file failed to load against the old audit until the shape moved (34 of 34 with migration-compare after).
+- build-applied-map, migration-compare, migration-history-audit, applied-map and replay-migrations tests: 82 of 82, 0 skipped (the ACCEPTANCE test that every recovered body equals the export ran). A new CONFORMANCE test in the generator's test file runs the committed map through the reader's `resolveMap` and `planReplay`: 0 errors, 0 unreferenced, never-applied skips exactly 299, 370, 371.
+- Migration tests 352 to 357: 57 of 57. run-data-audit-lane tests 4 of 4. Invariant-coverage meta-gate: ALL 153 invariants wired, PASS; its and execution-wiring tests 20 of 20.
+- Not run locally by design: the whole suite, the fitness runner, tsc (CI is the gate).
+
+### What is NOT done
+- The 74 code-differs rows are not edited (MIG-HIST-2). Outside-ledger objects are still unverified (findings, not passes).
+- `docs/runbooks/maintenance.d/64-chain-proof.md` and `docs/decisions/ADR-045-chain-proof-on-a-local-stack.md` carry the map schema table; it does not yet list `statements-null` and `apply-record-stub` as apply classes. Outside this lane's write set: for the coordinator's docs pass.
+- The audit document stays in the session scratchpad (docs/audits is not this lane's to edit).
+
+### Open items
+- When 370 and 371 are applied, their ledger rows will appear and the audit will name them LEDGER_ROW_NOT_IN_MAP until the map is regenerated; their files will then be class identical and the stale "NOT APPLIED" header prose is ignored by design.

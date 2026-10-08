@@ -2,15 +2,18 @@
 // 2026-10-07). The map says, for every row production's supabase_migrations.schema_migrations holds, which
 // repo file stands for it and how faithfully; and, for every repo file that has no ledger row, why not.
 //
-// Shape (fixed by the coordinator; PROOF-1's replay reads it): an object keyed by ledger version, each value
-//   { name, file: <repo path or null>, class, superseded_by?: <repo path>, note? }
-// plus one top-level key, files_without_row: [{ file, class, evidence }].
+// Shape (fixed by PROOF-1's reader, scripts/proof/applied-map.mjs): an object keyed by ledger version, each value
+//   { name, file: <migration file name or null>, class, superseded_by?: <migration file name>, note? }
+// File names are bare (no directory), as the reader compares them with the directory listing. A repo file that
+// has no ledger row is its own entry, keyed by class and file (the reader's convention): `outside:<file>`,
+// `never:<file>`, `dup:<file>`, value { name, file, class, note: <evidence> }.
 //   class (ledger rows): identical | comments-only | code-differs | recovered | superseded-by | data-only |
 //     comment-only, plus two classes for matched rows with nothing to compare: statements-null (the ledger
-//     stored no SQL) and apply-record-stub (the ledger stored a provenance note, not SQL).
-//   class (files_without_row): outside-ledger | never-applied | duplicate-prefix.
+//     stored no SQL) and apply-record-stub (the ledger stored a provenance note, not SQL); the reader replays
+//     the file for both, the file being the only text there is.
+//   class (files without a row): outside-ledger | never-applied | duplicate-prefix.
 //
-// Inputs: a reconciliation JSON (the 2026-10-07 export's sets a, b, c, d), the export directory (one .sql
+// Inputs: a reconciliation JSON (the export's sets a, b, c, d), the export directory (one .sql
 // per ledger row: first line a header, the rest the stored statements), and the migrations directory.
 // The classification of the 45 rows that had no repo file, and of the 16 files that had no ledger row, is a
 // set of coordinator rulings (2026-10-07) recorded below as data, each with its reason; everything else is
@@ -28,7 +31,14 @@ import { compareStored, isApplyRecordStub } from './migration-compare.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const MIG_DIR = resolve(HERE, '..', '..', 'supabase', 'migrations');
 export const MAP_PATH = join(MIG_DIR, 'APPLIED-MAP.json');
-export const REPO_MIG_PREFIX = 'fsi-app/supabase/migrations/';
+
+/** Key prefix of an entry for a repo file that has no ledger row (the reader ignores the key; PROOF-1's tests use these). */
+export const FILE_KEY_PREFIX = Object.freeze({ 'outside-ledger': 'outside', 'never-applied': 'never', 'duplicate-prefix': 'dup' });
+export const fileKey = (cls, file) => `${FILE_KEY_PREFIX[cls]}:${file}`;
+/** A map key is a ledger version unless it carries a class prefix. */
+export const isFileKey = (key) => key.includes(':');
+export const ledgerKeys = (map) => Object.keys(map).filter((k) => !isFileKey(k));
+export const fileEntries = (map) => Object.entries(map).filter(([k]) => isFileKey(k)).map(([, e]) => e);
 
 const SESSION_C = 'Session C coverage-gap lane (branch origin/corpus-integrity/cc-grounding-executor-c, never merged, tip 2026-07-20); a one-time data load from a closed lane, recorded here and not reproduced (standing rule 1: facts live in the database)';
 
@@ -109,6 +119,12 @@ function accountedByRows(rulings) {
   return out;
 }
 
+/** Status of a repo file that has no ledger row and no ruling: its own NOT APPLIED header (set b carries it). */
+function derivedFileRuling(b) {
+  if (!b.header_says_not_applied) return null;
+  return { class: 'never-applied', evidence: `the file's own header says NOT APPLIED and the ledger holds no row for it: ${b.header_line}` };
+}
+
 /**
  * Pure builder.
  * @param {object} p
@@ -120,9 +136,8 @@ function accountedByRows(rulings) {
  */
 export function buildAppliedMap({ reconciliation, readStored, readFile, listFiles }) {
   const problems = [];
-  const entries = new Map(); // version -> entry
+  const entries = new Map(); // key -> entry
   const fileSet = new Set(listFiles);
-  const path = (f) => `${REPO_MIG_PREFIX}${f}`;
 
   const compareClass = (version, name, file) => {
     const stored = readStored(version, name);
@@ -131,72 +146,81 @@ export function buildAppliedMap({ reconciliation, readStored, readFile, listFile
     return compareStored(stored, readFile(file)).kind;
   };
 
-  // matched pairs (sets c and d)
-  for (const r of [...reconciliation.c, ...reconciliation.d]) {
-    if (!fileSet.has(r.file)) { problems.push(`matched file missing from the directory: ${r.file} (version ${r.version})`); continue; }
-    entries.set(r.version, { name: r.applied_name, file: path(r.file), class: compareClass(r.version, r.applied_name, r.file) });
-  }
-
-  // recovered files, found by their own header
+  // recovered files, found by their own header. They are this lane's own files: a reconciliation run on a tree
+  // that holds them matches some by name (the row leaves set a) and lists others in set b, so they are
+  // normalised first: a recovered file is never a matched pair and never a file without a row.
   const recoveredByVersion = new Map();
+  const recoveredFiles = new Set();
   for (const f of listFiles) {
     const head = readFile(f).split('\n', 30);
     const v = head.find((l) => l.startsWith('-- ledger version: '));
     const n = head.find((l) => l.startsWith('-- ledger name: '));
     if (v && n && head.some((l) => l.startsWith('-- recovered: '))) {
       recoveredByVersion.set(v.slice('-- ledger version: '.length).trim(), { file: f, name: n.slice('-- ledger name: '.length).trim() });
+      recoveredFiles.add(f);
     }
   }
+  const setA = [...reconciliation.a];
+  const pairs = [];
+  for (const r of [...reconciliation.c, ...reconciliation.d]) {
+    if (recoveredFiles.has(r.file)) {
+      const rec = recoveredByVersion.get(r.version);
+      if (!rec || rec.file !== r.file) problems.push(`recovered file ${r.file} matched version ${r.version}, but its header names another ledger version`);
+      else setA.push({ version: r.version, name: r.applied_name });
+    } else pairs.push(r);
+  }
+  const setB = reconciliation.b.filter((b) => !recoveredFiles.has(b.file));
 
-  // the 45 rows with no repo file (set a)
-  for (const r of reconciliation.a) {
+  // matched pairs (sets c and d)
+  for (const r of pairs) {
+    if (!fileSet.has(r.file)) { problems.push(`matched file missing from the directory: ${r.file} (version ${r.version})`); continue; }
+    entries.set(r.version, { name: r.applied_name, file: r.file, class: compareClass(r.version, r.applied_name, r.file) });
+  }
+
+  // the rows with no repo file (set a, plus the rows whose recovered file now matches)
+  for (const r of setA) {
     const ruling = ROW_RULINGS[r.version];
     if (!ruling) { problems.push(`no ruling for applied row ${r.version} ${r.name}`); continue; }
     if (ruling.paired) {
       if (!fileSet.has(ruling.paired)) { problems.push(`paired file missing: ${ruling.paired}`); continue; }
-      entries.set(r.version, { name: r.name, file: path(ruling.paired), class: compareClass(r.version, r.name, ruling.paired), note: 'same migration as this file, applied under a different name' });
+      entries.set(r.version, { name: r.name, file: ruling.paired, class: compareClass(r.version, r.name, ruling.paired), note: 'same migration as this file, applied under a different name' });
     } else if (ruling.class === 'recovered') {
       const rec = recoveredByVersion.get(r.version);
       if (!rec) { problems.push(`no recovered file carries ledger version ${r.version}`); continue; }
-      entries.set(r.version, { name: r.name, file: path(rec.file), class: 'recovered', note: ruling.note });
+      entries.set(r.version, { name: r.name, file: rec.file, class: 'recovered', note: ruling.note });
     } else {
       if (!fileSet.has(ruling.superseded_by)) problems.push(`superseded_by file missing: ${ruling.superseded_by} (version ${r.version})`);
-      entries.set(r.version, { name: r.name, file: null, class: ruling.class, superseded_by: path(ruling.superseded_by), note: ruling.note });
+      entries.set(r.version, { name: r.name, file: null, class: ruling.class, superseded_by: ruling.superseded_by, note: ruling.note });
     }
   }
-  for (const v of Object.keys(ROW_RULINGS)) if (!reconciliation.a.some((r) => r.version === v)) problems.push(`ruling for a version not in set a: ${v}`);
+  for (const v of Object.keys(ROW_RULINGS)) if (!setA.some((r) => r.version === v)) problems.push(`ruling for a version not in set a: ${v}`);
 
-  // files with no ledger row (set b)
+  // files with no ledger row (set b): one keyed entry per file, in the reader's own form
   const accounted = accountedByRows(ROW_RULINGS);
-  const files_without_row = [];
-  for (const b of reconciliation.b) {
+  const byFile = [];
+  for (const b of setB) {
     if (accounted.has(b.file)) continue;
-    const ruling = FILE_RULINGS[b.file];
+    const ruling = FILE_RULINGS[b.file] ?? derivedFileRuling(b);
     if (!ruling) { problems.push(`no ruling for file without a ledger row: ${b.file}`); continue; }
-    files_without_row.push({ file: path(b.file), class: ruling.class, evidence: ruling.evidence });
+    byFile.push([fileKey(ruling.class, b.file), { name: b.file.replace(/\.sql$/, '').replace(/^\d+_/, ''), file: b.file, class: ruling.class, note: ruling.evidence }]);
   }
-  for (const f of Object.keys(FILE_RULINGS)) if (!reconciliation.b.some((b) => b.file === f)) problems.push(`ruling for a file not in set b: ${f}`);
-  files_without_row.sort((x, y) => (x.file < y.file ? -1 : 1));
+  for (const f of Object.keys(FILE_RULINGS)) if (!setB.some((b) => b.file === f)) problems.push(`ruling for a file not in set b: ${f}`);
 
-  const versions = [...entries.keys()].sort();
   const map = {};
-  for (const v of versions) map[v] = entries.get(v);
-  map.files_without_row = files_without_row;
+  for (const k of [...entries.keys()].sort()) map[k] = entries.get(k);
+  for (const [k, e] of byFile.sort((x, y) => (x[0] < y[0] ? -1 : 1))) map[k] = e;
 
   const counts = {};
   for (const e of entries.values()) counts[e.class] = (counts[e.class] || 0) + 1;
-  for (const f of files_without_row) counts[`file:${f.class}`] = (counts[`file:${f.class}`] || 0) + 1;
+  for (const [, e] of byFile) counts[`file:${e.class}`] = (counts[`file:${e.class}`] || 0) + 1;
   counts.ledger_rows = entries.size;
   return { map, problems, counts };
 }
 
-/** Deterministic text: one entry per line, versions ascending, files_without_row last. */
+/** Deterministic text: one entry per line, ledger versions ascending, then the keyed file entries. */
 export function serializeMap(map) {
-  const keys = Object.keys(map).filter((k) => k !== 'files_without_row').sort();
-  const lines = keys.map((k) => `  ${JSON.stringify(k)}: ${JSON.stringify(map[k])}`);
-  const fwr = (map.files_without_row ?? []).map((e) => `    ${JSON.stringify(e)}`).join(',\n');
-  lines.push(`  "files_without_row": [\n${fwr}\n  ]`);
-  return `{\n${lines.join(',\n')}\n}\n`;
+  const keys = Object.keys(map).sort();
+  return `{\n${keys.map((k) => `  ${JSON.stringify(k)}: ${JSON.stringify(map[k])}`).join(',\n')}\n}\n`;
 }
 
 function main() {

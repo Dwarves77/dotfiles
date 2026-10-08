@@ -1,6 +1,6 @@
 // data-audit: label=migration-history hard=true
 /** DATA-AUDIT (CI-with-secrets lane). GOVERNING SKILL: remediation-discipline.
- *  MIGRATION-HISTORY AUDIT (lane MIG-HIST-1, 2026-10-07; invariant RD-93).
+ *  MIGRATION-HISTORY AUDIT (lane MIG-HIST-1, 2026-10-07; invariant RD-94).
  *
  *  WHY THIS EXISTS. On 2026-10-07 a read-only export of production's supabase_migrations.schema_migrations
  *  (352 rows) against the repo (323 files) found 45 applied rows with no file, 16 files with no row, 61 pairs
@@ -12,9 +12,11 @@
  *    LEDGER_ROW_NOT_IN_MAP   a ledger row with no map entry.
  *    MAP_ROW_NOT_IN_LEDGER   a map entry for a version the ledger does not hold (stale map).
  *    NO_FILE_NO_SUPERSEDER   a map entry whose file, or whose superseded_by file, is not in the repo.
- *    FILE_NOT_ACCOUNTED      a repo .sql file that no entry names and that is not in files_without_row.
- *    FILE_STATUS_HEADER      a files_without_row file whose first-line status does not match its class, or a
- *                            file that carries such a status but is not in the map.
+ *    FILE_NOT_ACCOUNTED      a repo .sql file that no entry names (a ledger row, a superseder, or a keyed file
+ *                            entry such as never:<file>).
+ *    FILE_STATUS_HEADER      a keyed file entry whose first-line status does not match its class (a never-applied
+ *                            file may instead carry its lane's own two-track header line, NOT APPLIED), or a file
+ *                            that carries a first-line status but is not in the map.
  *    CODE_DIFFERS            a ledger row that stores statements whose text differs from its file in code
  *                            (same normalisation as the export: comments, whitespace, semicolons and a
  *                            BEGIN/COMMIT wrapper are ignored; see scripts/migrations/migration-compare.mjs).
@@ -36,18 +38,17 @@ import { createHash } from "node:crypto";
 import { isMainModule } from "../lib/is-main.mjs";
 import {
   compareStored,
+  declaresNotApplied,
   isApplyRecordStub,
   recoveredBody,
   statementsContained,
   statusClassOfFile,
 } from "../migrations/migration-compare.mjs";
-import { MIG_DIR, REPO_MIG_PREFIX as PREFIX } from "../migrations/build-applied-map.mjs";
+import { MIG_DIR, ledgerKeys, fileEntries } from "../migrations/build-applied-map.mjs";
 
 const FILE_CLASSES = new Set(["identical", "comments-only", "code-differs", "recovered", "statements-null", "apply-record-stub"]);
 const SUPERSEDER_CLASSES = new Set(["superseded-by", "data-only", "comment-only"]);
 const COMPARED = new Set(["identical", "comments-only", "code-differs"]);
-
-const base = (p) => String(p).replace(PREFIX, "");
 
 /**
  * Pure core.
@@ -60,8 +61,8 @@ export function evaluateHistory({ ledger, files, map }) {
   const findings = [];
   const fail = (code, key, detail) => failures.push({ code, key, detail });
   const rows = new Map(ledger.map((r) => [r.version, r]));
-  const mapVersions = Object.keys(map).filter((k) => k !== "files_without_row");
-  const fwr = map.files_without_row ?? [];
+  const mapVersions = ledgerKeys(map);
+  const fwr = fileEntries(map);
   const named = new Set();
 
   for (const r of ledger) if (!(r.version in map)) fail("LEDGER_ROW_NOT_IN_MAP", r.version, `${r.name} has no entry in APPLIED-MAP.json`);
@@ -70,13 +71,13 @@ export function evaluateHistory({ ledger, files, map }) {
     const e = map[v];
     const row = rows.get(v);
     if (!row) { fail("MAP_ROW_NOT_IN_LEDGER", v, `${e.name} is in the map but not in the ledger`); continue; }
-    if (e.file) named.add(base(e.file));
-    if (e.superseded_by) named.add(base(e.superseded_by));
+    if (e.file) named.add(e.file);
+    if (e.superseded_by) named.add(e.superseded_by);
 
     if (FILE_CLASSES.has(e.class)) {
-      if (!e.file || !files.has(base(e.file))) { fail("NO_FILE_NO_SUPERSEDER", v, `class ${e.class} needs file ${e.file ?? "null"}, which is not in the repo`); continue; }
+      if (!e.file || !files.has(e.file)) { fail("NO_FILE_NO_SUPERSEDER", v, `class ${e.class} needs file ${e.file ?? "null"}, which is not in the repo`); continue; }
     } else if (SUPERSEDER_CLASSES.has(e.class)) {
-      if (!e.superseded_by || !files.has(base(e.superseded_by))) { fail("NO_FILE_NO_SUPERSEDER", v, `class ${e.class} needs superseded_by ${e.superseded_by ?? "null"}, which is not in the repo`); continue; }
+      if (!e.superseded_by || !files.has(e.superseded_by)) { fail("NO_FILE_NO_SUPERSEDER", v, `class ${e.class} needs superseded_by ${e.superseded_by ?? "null"}, which is not in the repo`); continue; }
     } else {
       fail("MAP_CLASS_STALE", v, `unknown class ${JSON.stringify(e.class)}`);
       continue;
@@ -89,35 +90,37 @@ export function evaluateHistory({ ledger, files, map }) {
       if (stored == null || !isApplyRecordStub(stored)) fail("MAP_CLASS_STALE", v, "map says the ledger stored an apply-record note, but it does not");
     } else if (COMPARED.has(e.class)) {
       if (stored == null || isApplyRecordStub(stored)) { fail("MAP_CLASS_STALE", v, `map says ${e.class}, but the ledger stores no comparable SQL`); continue; }
-      const live = compareStored(stored, files.get(base(e.file))).kind;
-      if (live === "code-differs") fail("CODE_DIFFERS", v, `${e.name}: the stored statements differ from ${base(e.file)} in code`);
+      const live = compareStored(stored, files.get(e.file)).kind;
+      if (live === "code-differs") fail("CODE_DIFFERS", v, `${e.name}: the stored statements differ from ${e.file} in code`);
       else if (e.class === "code-differs") fail("MAP_CLASS_STALE", v, `map says code-differs but the text now matches (${live}); regenerate the map`);
     } else if (e.class === "recovered") {
-      const text = files.get(base(e.file));
+      const text = files.get(e.file);
       const body = recoveredBody(text);
       const shaLine = text.split("\n").find((l) => l.startsWith("-- body-sha256: "));
-      if (body == null || !shaLine) { fail("RECOVERED_BODY", v, `${base(e.file)} has no recovered-body marker or no body-sha256 header`); continue; }
+      if (body == null || !shaLine) { fail("RECOVERED_BODY", v, `${e.file} has no recovered-body marker or no body-sha256 header`); continue; }
       const sha = createHash("sha256").update(body).digest("hex");
-      if (shaLine.slice("-- body-sha256: ".length).trim() !== sha) fail("RECOVERED_BODY", v, `${base(e.file)} body does not match its header hash`);
-      if (stored == null || !statementsContained(body, stored)) fail("RECOVERED_BODY", v, `${base(e.file)} holds a statement the ledger row does not`);
+      if (shaLine.slice("-- body-sha256: ".length).trim() !== sha) fail("RECOVERED_BODY", v, `${e.file} body does not match its header hash`);
+      if (stored == null || !statementsContained(body, stored)) fail("RECOVERED_BODY", v, `${e.file} holds a statement the ledger row does not`);
     }
   }
 
-  const fwrNames = new Set(fwr.map((f) => base(f.file)));
+  const fwrNames = new Set(fwr.map((f) => f.file));
   for (const f of fwr) {
-    const name = base(f.file);
-    if (!files.has(name)) { fail("FILE_STATUS_HEADER", name, "listed in files_without_row but not in the repo"); continue; }
+    const name = f.file;
+    if (!files.has(name)) { fail("FILE_STATUS_HEADER", name, "keyed as a file without a ledger row but not in the repo"); continue; }
     named.add(name);
-    const cls = statusClassOfFile(files.get(name));
-    if (cls !== f.class) fail("FILE_STATUS_HEADER", name, `first-line status is ${cls ?? "absent"}, the map says ${f.class}`);
-    if (f.class === "outside-ledger") findings.push(`OBJECTS_UNVERIFIED ${name}: applied outside the ledger per ${f.evidence.split(";")[0]}; whether its objects exist is not checked here`);
+    const text = files.get(name);
+    const cls = statusClassOfFile(text);
+    const ownHeader = f.class === "never-applied" && cls == null && declaresNotApplied(text);
+    if (cls !== f.class && !ownHeader) fail("FILE_STATUS_HEADER", name, `first-line status is ${cls ?? "absent"}, the map says ${f.class}`);
+    if (f.class === "outside-ledger") findings.push(`OBJECTS_UNVERIFIED ${name}: applied outside the ledger per ${(f.note ?? "").split(";")[0]}; whether its objects exist is not checked here`);
     if (f.class === "duplicate-prefix") findings.push(`OBJECTS_UNVERIFIED ${name}: duplicate prefix with no ledger row; whether its objects exist is not checked here`);
   }
 
   for (const [name, text] of files) {
-    if (!named.has(name)) fail("FILE_NOT_ACCOUNTED", name, "no ledger row, no superseded_by, and not in files_without_row");
+    if (!named.has(name)) fail("FILE_NOT_ACCOUNTED", name, "no ledger row, no superseded_by, and no keyed file entry");
     const cls = statusClassOfFile(text);
-    if (cls && cls !== "applied-under-ledger" && !fwrNames.has(name)) fail("FILE_STATUS_HEADER", name, `carries a ${cls} status but is not in files_without_row`);
+    if (cls && cls !== "applied-under-ledger" && !fwrNames.has(name)) fail("FILE_STATUS_HEADER", name, `carries a ${cls} first-line status but has no keyed file entry`);
   }
 
   const counts = {};

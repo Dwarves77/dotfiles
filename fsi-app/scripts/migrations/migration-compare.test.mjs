@@ -11,6 +11,7 @@ import {
   statementsContained,
   firstLineStatus,
   statusClassOfFile,
+  declaresNotApplied,
 } from "./migration-compare.mjs";
 
 test("comments are removed outside quotes and dollar bodies, kept inside string literals", () => {
@@ -85,4 +86,11 @@ test("first-line status: block-comment and dash forms, each mapped to its class"
   assert.equal(statusClassOfFile("-- status: NO LEDGER ROW, duplicate prefix, unverified\n-- subject: x"), "duplicate-prefix");
   assert.equal(statusClassOfFile("/* status: APPLIED UNDER LEDGER VERSION 5 */\n-- subject: x"), "applied-under-ledger");
   assert.equal(statusClassOfFile("-- subject: x\nSELECT 1;"), null);
+});
+
+test("declaresNotApplied reads the two-track header marker in the first 30 lines, and only a line that starts with it", () => {
+  assert.equal(declaresNotApplied("-- subject: x\n-- 370 -- y\n--\n-- NOT APPLIED. Authored by lane Z; applied after CI.\nSELECT 1;"), true);
+  assert.equal(declaresNotApplied("-- subject: x\n-- this was NOT APPLIED once\nSELECT 1;"), false);
+  assert.equal(declaresNotApplied("-- subject: x\nSELECT 1;"), false);
+  assert.equal(declaresNotApplied([...Array(30).fill("-- c"), "-- NOT APPLIED."].join("\n")), false);
 });
