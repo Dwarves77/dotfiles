@@ -83,7 +83,7 @@ export const ROW_RULINGS = {
   '20260719213059': { class: 'data-only', superseded_by: '222_census_rollup_stitch.sql', note: `INSERT of census findings. ${SESSION_C}` },
   '20260720150850': { class: 'recovered', note: 'schema change to coverage_gap_census_findings held by no master file; recovered whole' },
   '20260720151231': { class: 'data-only', superseded_by: '222_census_rollup_stitch.sql', note: `INSERT of census findings. ${SESSION_C}` },
-  '20260721222204': { class: 'recovered', note: 'the function is held by 256 item 5 (md5-equal); only the EXECUTE grant, which no master file holds, is recovered (residue); the COMMENT is not recreated' },
+  '20260721222204': { class: 'superseded-by', superseded_by: '256_migration_homes_and_vault_capture_key.sql', note: 'the function is held by 256 item 5 (md5-equal) and its EXECUTE grant was rehomed there verbatim (item 5b) on 2026-10-08 (lane MIG-CI, ruling after replay run 37793739743, class REHOMED-STATEMENT), because the recovered grant file ran before the function existed in ledger order; the stored COMMENT is not recreated' },
   '20260726195325': { paired: '225_gate_a_criterion7.sql' },
   '20260731021933': { class: 'superseded-by', superseded_by: '254_drop_shadow_gate_a_and_broken_hrq.sql', note: 'created the shadow gate_a_* SQL functions that 254 drops (census 2026-08-11, Finding 3); no master file ever created them' },
   '20260731024004': { class: 'superseded-by', superseded_by: '254_drop_shadow_gate_a_and_broken_hrq.sql', note: 'gate_a_scan_and_store, dropped by 254 (DROP FUNCTION gate_a_scan_and_store)' },

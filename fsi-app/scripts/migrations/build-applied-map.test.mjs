@@ -264,7 +264,7 @@ test("the five applied-under-ledger files each carry the status line naming thei
 
 test("each recovered file: header fields, a body whose hash is its header's, a ledger version the map holds, and no secret", () => {
   const recovered = versions.filter((v) => map[v].class === "recovered");
-  assert.equal(recovered.length, 5);
+  assert.equal(recovered.length, 4);
   for (const v of recovered) {
     const name = base(map[v].file);
     const text = readFileSync(join(MIG_DIR, name), "utf8").replace(/\r\n/g, "\n");
