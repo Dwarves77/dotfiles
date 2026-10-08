@@ -35,9 +35,7 @@ The literal `node scripts/drain/plan-drain.mjs --kind ledger --mode stale --dry`
 
 ## NOT done
 - Nothing applied, no live row touched, no stale batch authored (the first real stale batch is Stage 9 by operator word). The literal live export (`--export-candidates --stale-verdicts` against the database) was not run: no database access in this lane; proven on fixtures with an injected `selectPage`.
-- `scripts/turns/ledger-verdicts/README.md` (the ledger authoring guide) still says only that a stale entry is excluded; it does not mention stale mode or `--check-verdicts`. It is outside this lane's write set.
-- `scripts/drain/artifact.mjs` does not record a kind's `mode` in the `judgement-drain` run artifact (the plan file does). Outside the write set.
+- Follow-up commit (coordinator grant): the ledger README gained a stale-verdicts section (export mode, write fresh, `--check-verdicts`), and `scripts/drain/artifact.mjs` now records each kind mode in `config.kinds[]` (a plan entry with no mode reads as pending); red then green in `plan-drain.test.mjs` (1 failing before, 55 of 55 drain tests after).
 
 ## Open items
-- NEEDS WRITE-SET EXPANSION (not edited): `fsi-app/scripts/turns/ledger-verdicts/README.md` (document stale mode and `--check-verdicts`), `fsi-app/scripts/drain/artifact.mjs` and `plan-drain.test.mjs`-adjacent artifact test (record `mode` per kind).
 - Cost note for Stage 9: a stale export fetches page text for up to the batch size (300) rows at the 1 second politeness gap, the same as a pending export.

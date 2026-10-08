@@ -413,6 +413,20 @@ test("runExporter in stale mode runs the ledger exporter with --stale-verdicts a
   assert.equal(res.items.length, 1);
 });
 
+test("artifact: each kind's selection mode is recorded (stale for a stale run, pending by default)", async () => {
+  const items = [cand(1, "2026-09-03T00:00:00Z", OLD)];
+  const stale = spyDeps({ queues: { "ledger-verdicts": { ok: true, items, current_prompt_version: CUR } } });
+  const sPlan = await releasePlanLeases(await planDrain(stale.deps, { runId: "a1", kindId: "ledger-verdicts", mode: "stale" }), async () => true);
+  const sRun = buildDrainRun({ plan: sPlan, finishedAt: NOW() });
+  assert.deepEqual(sRun.config.kinds.map((k) => [k.kind, k.mode]), [["ledger-verdicts", "stale"]]);
+  const pending = spyDeps();
+  const pRun = buildDrainRun({ plan: await planDrain(pending.deps, { runId: "a2" }), finishedAt: NOW() });
+  assert.ok(pRun.config.kinds.every((k) => k.mode === "pending"));
+  // a plan written before modes existed has no mode on its kind entries: read as pending
+  const legacy = buildDrainRun({ plan: { kinds: [{ kind: "theme-briefs", batches: [] }], leases: [] }, finishedAt: NOW() });
+  assert.equal(legacy.config.kinds[0].mode, "pending");
+});
+
 test("runExporter without a mode is the pending argv, byte for byte (no --stale-verdicts)", () => {
   let seen;
   const spawn = (_node, argv) => { seen = argv; return { status: 0, stdout: "" }; };
