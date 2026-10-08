@@ -261,7 +261,7 @@
   "20260811134926": {"name":"256_migration_homes_and_vault_capture_key","file":"256_migration_homes_and_vault_capture_key.sql","class":"code-differs"},
   "20260811152450": {"name":"reconciler_select_policies","file":"257_reconciler_select_policies.sql","class":"identical"},
   "20260812204907": {"name":"emission_factors_and_licence_gate","file":"258_emission_factors_and_licence_gate.sql","class":"code-differs"},
-  "20260812204959": {"name":"rls_initplan_and_policy_destack","file":"259_rls_initplan_and_policy_destack.sql","class":"identical"},
+  "20260812204959": {"name":"rls_initplan_and_policy_destack","file":"259_rls_initplan_and_policy_destack.sql","class":"code-differs"},
   "20260812205117": {"name":"drop_dead_notification_v1","file":"261_drop_dead_notification_v1.sql","class":"identical"},
   "20260817173320": {"name":"264_rename_result_content_excerpt","file":"264_rename_result_content_excerpt.sql","class":"identical"},
   "20260818190852": {"name":"265_drop_detect_intersections","file":"265_drop_detect_intersections.sql","class":"identical"},
