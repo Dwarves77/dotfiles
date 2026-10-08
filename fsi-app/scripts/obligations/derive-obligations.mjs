@@ -37,7 +37,7 @@
 // USAGE:
 //   node scripts/obligations/derive-obligations.mjs            # dry: what would be inserted
 //   node scripts/obligations/derive-obligations.mjs --apply    # insert new register rows through the guarded path
-import { BINDING_POSITION_RULES } from "../../src/lib/obligations/classify-binding-position.mjs";
+import { classifyBindingPosition, classifyInstrumentIdentity } from "../../src/lib/obligations/classify-binding-position.mjs";
 import { dutyHoldersExcludeForwarder, currentObligationObjects } from "../../src/lib/workspace/relevance.mjs";
 import { normaliseMode, LEG_MODE_CODES, BINDING_POSITION } from "../../src/lib/contracts/vocabularies.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
@@ -78,36 +78,10 @@ export const CITE = Object.freeze({
 //   4. monitoring_only: when the duty holders known for the item (from its obligation_objects, or the
 //      "addressed to the Member States" scope claim) name no class that maps to the forwarder role, the instrument
 //      does not currently reach the customer.
-// Two rules in the table (CBAM, PPWR) carry a GENERIC phrase alternative ("carbon border adjustment", "packaging
-// and packaging waste") that matched other instruments (census indices 51, 61, 103, 164). The phrase is removed
-// before the rule is tested, so the acronym and the instrument number still match; the CBAM phrase is accepted
-// back only for an EU item, where it names the EU mechanism the rule was written for. Regulation (EU) 2023/956 is
-// the CBAM instrument number and the rule table lacks it, so it is added here as an identity alternative.
-const GENERIC_PHRASE = Object.freeze({
-  CBAM: /carbon border adjustment/g,
-  PPWR: /packaging and packaging waste/g,
-});
-const GENERIC_ACCEPTED_FOR = Object.freeze({
-  CBAM: (item) => (Array.isArray(item?.jurisdiction_iso) ? item.jurisdiction_iso : []).includes("EU"),
-});
-const CBAM_NUMBER = /\b2023\/956\b|32023r0956/;
+// The rule table and its generic-phrase handling (CBAM and PPWR carry a title phrase that matched other
+// instruments, census indices 51, 61, 103, 164) live in classify-binding-position.mjs, the one home of the rules;
+// this file only decides the ORDER and supplies the fields.
 const BINDING_CODES = new Set(Object.keys(BINDING_POSITION));
-
-function lowerJoin(parts) {
-  return parts.filter((s) => typeof s === "string" && s.length > 0).join(" ").toLowerCase();
-}
-
-function matchRules(hay, item, { allowGenericPhrase }) {
-  if (!hay) return null;
-  for (const rule of BINDING_POSITION_RULES) {
-    const phrase = GENERIC_PHRASE[rule.label];
-    let text = hay;
-    if (phrase && !(allowGenericPhrase && GENERIC_ACCEPTED_FOR[rule.label]?.(item))) text = hay.replace(phrase, " ");
-    if (rule.test.test(text)) return { position: rule.position, citation: rule.citation };
-    if (rule.label === "CBAM" && CBAM_NUMBER.test(hay)) return { position: rule.position, citation: rule.citation };
-  }
-  return null;
-}
 
 /**
  * Pure: the record-facts context for one item, from the text of its extracted record-facts claims
@@ -139,12 +113,15 @@ export function contextFromClaims(claimTexts) {
  * @returns {{ position: string, source: string, citation: string } | null}
  */
 export function classifyItemBindingPosition(item, ctx = {}) {
-  const byIdentity = matchRules(lowerJoin([item?.legal_instrument, item?.instrument_identifier, item?.canonical_instrument_key]), item, { allowGenericPhrase: false });
+  const byIdentity = classifyInstrumentIdentity({
+    legalInstrument: item?.legal_instrument,
+    instrumentIdentifiers: [item?.instrument_identifier, item?.canonical_instrument_key],
+  });
   if (byIdentity) return { ...byIdentity, source: "instrument_identity" };
   if (ctx?.recordFactsPosition && BINDING_CODES.has(ctx.recordFactsPosition)) {
     return { position: ctx.recordFactsPosition, source: "record_facts", citation: "record-facts [binding_position] claim" };
   }
-  const byTitle = matchRules(lowerJoin([item?.title]), item, { allowGenericPhrase: true });
+  const byTitle = classifyBindingPosition({ title: item?.title, jurisdictionIso: item?.jurisdiction_iso });
   if (byTitle) return { ...byTitle, source: "title" };
   if (dutyHoldersExcludeForwarder(ctx?.dutyHolderClasses)) {
     return { position: "monitoring_only", source: "duty_holder_excludes_forwarder", citation: "spec 01 section 3.2 duty_holder_class excludes every forwarder role" };

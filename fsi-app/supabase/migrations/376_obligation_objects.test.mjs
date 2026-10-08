@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const RAW = readFileSync(join(HERE, "376_obligation_objects.sql"), "utf8");
@@ -177,4 +178,39 @@ test("self-check: attacks, not presence. Paraphrase refused on INSERT and UPDATE
 
 test("no dash glyphs or section-sign glyphs (rule 022)", () => {
   assert.doesNotMatch(RAW, new RegExp("[" + String.fromCharCode(0x2013, 0x2014, 0xa7) + "]"));
+});
+
+// ---- fixture rows of the self-check, checked statically against the tables as the migration tree defines them (lane
+// SEC-3b-F's shared helper): nothing in CI executes Postgres, and a fixture that violates a real definition aborts the
+// apply after the migration's logic ran (372 apply 2, 370 apply 3).
+const FIXTURE_SQL = stripSql(RAW);
+const SCHEMA = buildSchema(HERE, { before: 377 });
+const INSERTS = parseInserts(FIXTURE_SQL);
+const UPDATES = parseUpdates(FIXTURE_SQL);
+
+test("fixtures: every INSERT and UPDATE literal in the self-check satisfies the table definitions (NOT NULL, defaults, IN-list CHECKs, columns)", () => {
+  // Two findings are expected and asserted, not ignored: (1) agent_run_searches.result_content is created by migration
+  // 264's rename INSIDE a DO block, which the rebuilt schema does not see; the creating text is asserted instead.
+  // (2) the self-check's UPDATE ... SET status = 'maybe' is the ATTACK on the status CHECK and is meant to be refused.
+  assert.match(read("264_rename_result_content_excerpt.sql"), /RENAME COLUMN result_content_excerpt TO result_content/);
+  assert.match(read("112_provenance_invariant_schema.sql"), /CREATE TABLE IF NOT EXISTS agent_run_searches \(/);
+  assert.deepEqual(checkFixtures({ inserts: INSERTS, updates: UPDATES, schema: SCHEMA }), [
+    "public.agent_run_searches.result_content: no such column in the migration tree",
+    "update public.obligation_objects.status: 'maybe' violates obligation_objects_status_check (allowed: yes, no, not_assessed) (23514)",
+  ]);
+  assert.match(SQL, /status maybe was accepted/, "the 'maybe' update is the attack, and the self-check fails the apply if it is accepted");
+});
+
+test("fixtures: the parser sees the four tables the self-check writes, so a table dropped from the scan is a failure", () => {
+  const tables = [...new Set(INSERTS.map((i) => i.schemaName + "." + i.table))].sort();
+  assert.deepEqual(tables, ["public.agent_run_searches", "public.entities", "public.obligation_objects"]);
+  for (const t of tables) assert.ok(SCHEMA.tables.has(t.slice(7)), t + " is defined in the migration tree");
+  assert.ok(INSERTS.filter((i) => i.table === "obligation_objects").length >= 3, "the valid row, the paraphrase and the authenticated attack");
+});
+
+test("fixtures: the checker catches a defect in this migration's own table (red): a status outside the list, a NOT NULL column omitted", () => {
+  const badStatus = parseInserts("INSERT INTO public.obligation_objects (obligation_id, status) VALUES ('x', 'maybe');");
+  assert.match(checkFixtures({ inserts: badStatus, schema: SCHEMA }).join("|"), /instrument_item_id: NOT NULL with no default and not written/);
+  const upd = parseUpdates("UPDATE public.obligation_objects SET status = 'maybe' WHERE obligation_id = 'x';");
+  assert.match(checkFixtures({ inserts: [], updates: upd, schema: SCHEMA }).join("|"), /status: 'maybe' violates/);
 });

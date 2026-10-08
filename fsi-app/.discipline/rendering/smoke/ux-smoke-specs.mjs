@@ -35,6 +35,7 @@ import { runSmoke as runPar2BandsSmoke } from './par2-bands-smoke.mjs';
 import { runSmoke as runStatementsSmoke } from './statements-smoke.mjs';
 import { runSmoke as runItemCollabSmoke } from './item-collab-smoke.mjs';
 import { runSmoke as runPortfolioSmoke } from './portfolio-smoke.mjs';
+import { runSmoke as runBindingBannerSmoke } from './binding-banner-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -115,4 +116,6 @@ export const UX_SMOKE_SPECS = [
   { name: "item-collab", run: runItemCollabSmoke },
   // lane S8-D, 2026-10-07: portfolio-smoke.mjs mounts the real PortfolioIndexView and PortfolioDetailView (registered here so the proof executes).
   { name: "portfolio", run: runPortfolioSmoke },
+  // lane OBL-2, 2026-10-08: the item-level binding-position banner on the Regulations detail page (spec 01 section 4 component 1).
+  { name: "binding-banner", run: runBindingBannerSmoke },
 ];

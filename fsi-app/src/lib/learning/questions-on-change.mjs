@@ -24,6 +24,7 @@
 //   derived_values           any                             value_revised
 //   estimated_values         any                             value_revised
 //   statutory_computations   any                             obligation_amended
+//   obligation_objects       any                             obligation_amended (lane OBL-2, migration 376)
 //
 // signposts maps to signpost_fired (lane L4-D, fireSignpost's own outbox row). confidence_decayed and
 // source_frozen are reserved: no table that emits outbox events
@@ -64,6 +65,8 @@ export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
   derived_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a derived value" }),
   estimated_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "an estimated value" }),
   statutory_computations: Object.freeze({ type: "obligation_amended", byKind: Object.freeze({}), label: "a statutory computation" }),
+  // Lane OBL-2: an obligation object (migration 376) changing is an obligation amended, for every change kind.
+  obligation_objects: Object.freeze({ type: "obligation_amended", byKind: Object.freeze({}), label: "an obligation object" }),
   // Lane L4-D: a fired signpost writes its own outbox row (signpost-watch.ts fireSignpost), with entity_id the
   // WATCHED entity, so the items linked to that entity are asked what the firing means. Not trigger-attached.
   signposts: Object.freeze({ type: "signpost_fired", byKind: Object.freeze({}), label: "a signpost on this entity" }),
