@@ -3,6 +3,8 @@ import { fetchIntelligenceItem } from "@/lib/supabase-server";
 import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
+import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { fetchObligationObjectsForItem, summariseObligationBinding } from "@/lib/workspace/relevance.mjs";
 
 // GET /api/detail/relevance?itemId=<uuid-or-legacy_id> — PERF-10 (2026-09-04, root-cause fix,
 // ADR-026 Follow-up).
@@ -22,6 +24,15 @@ import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 // (a Route Handler's own Dynamic-API dependency does not propagate to a page that merely fetch()s it
 // client-side).
 //
+// OBLIGATION GRAIN (lane OBL-2, 2026-10-08, migration 376): the item's current obligation_objects are read here
+// through the REQUEST-SCOPED client (RLS applies, the /api/obligations/register posture) and handed to the gate as
+// `obligation_objects`, so relevance.mjs computes roleScope and sizeThreshold per obligation and the item
+// `applicability` becomes READ by the detail page binding banner. The response also carries `binding` (the banner
+// data) for a viewer with no organisation, where `relevance` is null: the banner still names the position, the duty
+// holders and the trigger, and says the profile input is missing. A failed read sets `binding.loadFailed`, so the
+// banner says the load failed rather than claiming the item has no obligations. An item with no objects is served
+// exactly as before (item-grain gate), `binding.decomposed` false.
+//
 // `fetchIntelligenceItem` is reused UNCHANGED (already unstable_cache-wrapped, org-independent,
 // provenance-gated) purely to obtain `relevanceInput` — the same item-level tag columns
 // getViewerRelevanceForItem always needed, previously threaded through loadDetailCore's own
@@ -34,20 +45,34 @@ async function handleGET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const itemId = searchParams.get("itemId");
   if (!itemId) {
-    return NextResponse.json({ relevance: null }, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ relevance: null, binding: null }, { headers: { "Cache-Control": "private, no-store" } });
   }
   try {
     const detail = await fetchIntelligenceItem(itemId);
     if (!detail) {
-      return NextResponse.json({ relevance: null }, { headers: { "Cache-Control": "private, no-store" } });
+      return NextResponse.json({ relevance: null, binding: null }, { headers: { "Cache-Control": "private, no-store" } });
     }
-    const relevance = await getViewerRelevanceForItem(
-      detail.relevanceInput as Parameters<typeof getViewerRelevanceForItem>[0]
-    );
-    return NextResponse.json({ relevance }, { headers: { "Cache-Control": "private, no-store" } });
+    let objects: unknown[] = [];
+    let loadFailed = false;
+    try {
+      const supabase = await createSupabaseServerClient();
+      objects = await fetchObligationObjectsForItem(supabase, itemId);
+    } catch (e) {
+      loadFailed = true;
+      console.error("[api/detail/relevance] obligation objects read failed:", e);
+    }
+    const relevance = await getViewerRelevanceForItem({
+      ...(detail.relevanceInput as object),
+      obligation_objects: objects,
+    } as Parameters<typeof getViewerRelevanceForItem>[0]);
+    const binding = {
+      ...((relevance as { binding?: object } | null)?.binding ?? summariseObligationBinding(objects, { orgRoles: [], orgSize: {} })),
+      loadFailed,
+    };
+    return NextResponse.json({ relevance, binding }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("[api/detail/relevance] failed, returning null:", e);
-    return NextResponse.json({ relevance: null }, { headers: { "Cache-Control": "private, no-store" } });
+    return NextResponse.json({ relevance: null, binding: null }, { headers: { "Cache-Control": "private, no-store" } });
   }
 }
 

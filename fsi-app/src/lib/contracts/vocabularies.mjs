@@ -333,6 +333,50 @@ export const BINDING_POSITION = deepFreeze({
   },
 });
 
+// `duty_holder_class`: who an obligation falls on (spec 01 section 3.2: "In freight this is the difference between
+// liability and pass-through"). The AUTHORITATIVE list, ruled so by the coordinator 2026-10-08 (lane OBL-2): the gate
+// (src/lib/workspace/relevance.mjs) and the obligation_objects static test read it from here; migration 376 carries
+// NO CHECK on the column, because spec 01 section 10 treats volatile taxonomies as data and this module is the one
+// site. `orgRoles` maps a class to ADR-034 ORG_ROLES ids (src/lib/profile/profile-contract.mjs) where a clear
+// correspondence exists, and to none where it does not (never force-fitted, CLAUDE.md rule 2); the forwarder role
+// among them is what decides the monitoring_only test. `origin` says where the class comes from: the spec 01 section
+// 3.2 list, or a class the four forwarder-direct instruments of spec 01 section 1 name.
+function frozenClass(c) {
+  return Object.freeze({ ...c, orgRoles: Object.freeze([...c.orgRoles]) });
+}
+export const DUTY_HOLDER_CLASSES = deepFreeze({
+  carrier: frozenClass({ code: "carrier", label: "Carrier", order: 1, orgRoles: ["carrier"], origin: "spec 01 section 3.2",
+    definition: "The party that performs or contracts to perform the carriage of goods by a mode of transport." }),
+  shipper: frozenClass({ code: "shipper", label: "Shipper", order: 2, orgRoles: ["shipper"], origin: "spec 01 section 3.2",
+    definition: "The party named as shipper in the transport contract, on whose behalf the goods are tendered for carriage." }),
+  forwarder: frozenClass({ code: "forwarder", label: "Freight forwarder", order: 3, orgRoles: ["forwarder"], origin: "spec 01 section 3.2",
+    definition: "The party that organises the carriage of goods for others without being the carrier." }),
+  nvocc: frozenClass({ code: "nvocc", label: "NVOCC", order: 4, orgRoles: ["forwarder"], origin: "spec 01 section 3.2",
+    definition: "A non-vessel-operating common carrier: issues its own bill of lading for ocean carriage but operates no vessel." }),
+  customs_representative_direct: frozenClass({ code: "customs_representative_direct", label: "Customs representative (direct)", order: 5, orgRoles: ["forwarder"], origin: "spec 01 section 3.2",
+    definition: "A customs representative acting in the name and on behalf of the person it represents." }),
+  customs_representative_indirect: frozenClass({ code: "customs_representative_indirect", label: "Customs representative (indirect)", order: 6, orgRoles: ["forwarder"], origin: "spec 01 section 3.2",
+    definition: "A customs representative acting in its own name but on behalf of the person it represents." }),
+  ism_company: frozenClass({ code: "ism_company", label: "ISM company", order: 7, orgRoles: ["carrier"], origin: "spec 01 section 3.2",
+    definition: "The shipowner or other organisation that has taken over responsibility for ship operation under the ISM Code." }),
+  fuel_supplier: frozenClass({ code: "fuel_supplier", label: "Fuel supplier", order: 8, orgRoles: [], origin: "spec 01 section 3.2",
+    definition: "The party that supplies fuel for a vessel, aircraft or vehicle." }),
+  aircraft_operator: frozenClass({ code: "aircraft_operator", label: "Aircraft operator", order: 9, orgRoles: ["carrier"], origin: "spec 01 section 3.2",
+    definition: "The person that operates an aircraft, or the owner when the operator is not known." }),
+  producer: frozenClass({ code: "producer", label: "Producer", order: 10, orgRoles: [], origin: "spec 01 section 3.2",
+    definition: "The party that manufactures or first places goods or packaging on a market, as the instrument defines it." }),
+  importer_of_record: frozenClass({ code: "importer_of_record", label: "Importer of record", order: 11, orgRoles: ["importer_of_record"], origin: "spec 01 section 1 (PPWR: importer of record where applicable)",
+    definition: "The party that is the declarant or importer for the goods on import into a customs territory." }),
+  exporter: frozenClass({ code: "exporter", label: "Exporter", order: 12, orgRoles: ["exporter"], origin: "ADR-034 role vocabulary",
+    definition: "The party that makes, or on whose behalf is made, the export declaration for goods leaving a customs territory." }),
+  packaging_user: frozenClass({ code: "packaging_user", label: "User of transport packaging", order: 13, orgRoles: [], origin: "spec 01 section 1 (PPWR: user of transport and grouped packaging)",
+    definition: "The party that uses transport or grouped packaging in the course of its activity." }),
+  trader: frozenClass({ code: "trader", label: "Trader", order: 14, orgRoles: [], origin: "spec 01 section 1 (Empowering Consumers: the forwarder's own marketing claims)",
+    definition: "A business that markets goods or services to consumers, as the unfair-commercial-practices framework defines it." }),
+  member_state: frozenClass({ code: "member_state", label: "Member State", order: 15, orgRoles: ["public_body"], origin: "monitoring_only rule (an instrument addressed to the Member States)",
+    definition: "A Member State of the European Union, as the addressee of an instrument." }),
+});
+
 // ─────────────────────────── 5. freshness ───────────────────────────
 //
 // DERIVED, NEVER ASSERTED. Computed in envelope.mjs from the as-of triple plus expected_refresh. The
