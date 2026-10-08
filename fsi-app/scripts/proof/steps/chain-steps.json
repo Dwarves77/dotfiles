@@ -1,0 +1,833 @@
+{
+  "version": 1,
+  "description": "The chain proof's steps (lane PROOF-3, ADR-045): the scripts each workflow runs, in hop order of fsi-app/.discipline/governance/loop-hops.d, in apply mode on the local stack, each followed by read-back assertions against the local database. Read by scripts/proof/steps/run-chain-steps.mjs; validated by manifest.test.mjs against the hop registry.",
+  "shell_prelude": [
+    "set -euo pipefail",
+    "export GITHUB_RUN_ID=\"$CP_STEP_RUN_ID\"",
+    "export GITHUB_EVENT_NAME=\"$CP_STEP_EVENT\"",
+    "export GITHUB_STEP_SUMMARY=/dev/null",
+    "if [ -n \"${CP_UPSTREAM_RUN_ID:-}\" ]; then export GITHUB_EVENT_WORKFLOW_RUN_ID=\"$CP_UPSTREAM_RUN_ID\"; fi",
+    "export_kv() { local l; while IFS= read -r l; do if [ -n \"$l\" ]; then export \"${l%%=*}=${l#*=}\"; fi; done; }",
+    "guard() { local out; out=\"$(node scripts/lib/chained-dry-guard.mjs \"$@\")\"; export_kv <<<\"$out\"; }",
+    "require_live() { if [ \"${CHAINED_FORCED_DRY:-false}\" != \"false\" ]; then echo \"chained-dry-guard forced this run dry: the local system_state.scrape_cadence is off\" >&2; exit 1; fi; }",
+    "trigger_context() { node -e 'process.stdout.write(JSON.stringify({ name: process.argv[1], run_id: Number(process.argv[2]), conclusion: process.argv[3] }))' \"$1\" \"$2\" \"$3\"; }",
+    "upstream_loop_id() { local out; out=\"$(node scripts/lib/upstream-artifact.mjs loop-id --upstream-name \"$1\" --upstream-run-id \"$2\")\" || return 1; printf '%s\\n' \"$out\" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p'; }",
+    "loop_var() { local v; v=\"$(upstream_loop_id \"$2\" \"$3\")\"; export \"$1=$v\"; }",
+    "handoff_read() { node scripts/lib/upstream-artifact.mjs read --consumer \"$1\" --upstream-name \"$2\" --upstream-run-id \"$3\" --run-mode apply; }",
+    "handoff_field() { printf '%s\\n' \"$1\" | sed -n \"s/^$2=//p\"; }",
+    "handoff_must_proceed() { if [ \"$(handoff_field \"$1\" CHAIN_SKIP)\" != \"false\" ]; then echo \"upstream hand-off refused: $(handoff_field \"$1\" CHAIN_SKIP_REASON)\" >&2; exit 1; fi; }",
+    "maintenance_step() { local script=\"scripts/maintenance/$1.mjs\"; if [ ! -f \"$script\" ]; then echo \"maintenance-step: $script does not exist\" >&2; exit 1; fi; mkdir -p \"$3/$1\"; node \"$script\" --mode \"$2\" --out \"$3/$1\"; }",
+    "flush_caches() { node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true; }"
+  ],
+  "steps": [
+    {
+      "id": "preconditions",
+      "kind": "assert",
+      "title": "The local database is ready to prove the chain: the scrape gate is open and no run has been recorded yet",
+      "assertions": [
+        {
+          "id": "cadence-open",
+          "kind": "count",
+          "table": "system_state",
+          "predicate": "scrape_cadence <> 'off'",
+          "min": 1
+        },
+        {
+          "id": "ledger-empty",
+          "kind": "max",
+          "table": "harness_runs",
+          "predicate": "true",
+          "max": 0
+        }
+      ]
+    },
+    {
+      "id": "source-sweep",
+      "kind": "script",
+      "hop": null,
+      "title": "Source sweep (root): the Federal Register walker over the last seven days, apply mode",
+      "workflow": "Source sweep",
+      "workflow_file": ".github/workflows/source-sweep.yml",
+      "family": "source-sweep",
+      "event": "workflow_dispatch",
+      "upstream": null,
+      "loop": true,
+      "network": "public-http",
+      "script": [
+        "export LOOP_RUN_ID=\"$CP_LOOP_RUN_ID\"",
+        "node scripts/turns/run-source-sweep.mjs --walker register-federal-register --mode apply --from \"$CP_DATE_FROM\" --to \"$CP_DATE_TO\""
+      ],
+      "assertions": [
+        {
+          "id": "sweep-upserted",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'source-sweep' AND github_run_id = '{{run_id}}' AND (metrics->>'failed')::int = 0 AND (metrics->>'upserted')::int >= 1",
+          "min": 1
+        },
+        {
+          "id": "ledger-has-input",
+          "kind": "count",
+          "table": "portal_link_candidates",
+          "predicate": "status = 'candidate'",
+          "min": 5
+        }
+      ]
+    },
+    {
+      "id": "fetch-drain",
+      "kind": "script",
+      "hop": "01",
+      "title": "Hop 01 Fetch drain: drain the first-fetch queue after the sweep",
+      "workflow": "Fetch drain",
+      "workflow_file": ".github/workflows/fetch-drain.yml",
+      "family": "fetch-drain",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "source-sweep",
+        "name": "Source sweep"
+      },
+      "loop": true,
+      "network": "none",
+      "caveat": "The capture-worker Edge Function is not served by the local stack (edge_runtime is disabled in supabase/config.toml). Apply mode POSTs the queued ids to it; the step proves the runner, its row and the queue count it saw, not a capture.",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "loop_var FETCH_DRAIN_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "node scripts/turns/run-fetch-drain.mjs --mode apply --limit 8"
+      ],
+      "assertions": [
+        {
+          "id": "queue-recorded",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'fetch-drain' AND github_run_id = '{{run_id}}' AND (metrics->>'queued_selected') IS NOT NULL",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "ledger-consume",
+      "kind": "script",
+      "hop": "02",
+      "title": "Hop 02 Ledger consume: promote candidates from the run-time verdict fixture, apply mode",
+      "workflow": "Ledger consume",
+      "workflow_file": ".github/workflows/ledger-consume.yml",
+      "family": "ledger-consume",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "source-sweep",
+        "name": "Source sweep"
+      },
+      "loop": true,
+      "network": "public-http",
+      "caveat": "The chained path of ledger-consume.yml discovers only the committed verdict batches, all stale against the live prompt version. The proof runs the same script with the same flags the dispatch path uses and names the generated fixture with --verdicts; the upstream environment is the chained path's.",
+      "prepare": "ledger-verdicts",
+      "var_queries": [
+        {
+          "name": "verdict_candidates",
+          "sql": "SELECT coalesce(json_agg(t), '[]'::json)::text AS v FROM (SELECT id::text AS candidate_id, url, anchor_text FROM public.portal_link_candidates WHERE status = 'candidate' ORDER BY (first_seen_at >= '{{started_at.source-sweep}}'::timestamptz) DESC, first_seen_at DESC, id LIMIT 5) t"
+        }
+      ],
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "loop_var LEDGER_CONSUME_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "node scripts/turns/run-ledger-consume.mjs --mode apply --limit 2000 --max-promote 50 --record-only true --verdicts \"$CP_VERDICTS_FILE\""
+      ],
+      "assertions": [
+        {
+          "id": "promoted",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'ledger-consume' AND github_run_id = '{{run_id}}' AND config->>'mode' = 'apply' AND config->>'apply_disarmed' = 'false' AND (metrics->>'promoted')::int >= 1",
+          "min": 1
+        },
+        {
+          "id": "census-grew",
+          "kind": "growth",
+          "table": "census_worklist",
+          "predicate": "true",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "population-turn",
+      "kind": "script",
+      "hop": "03",
+      "title": "Hop 03 Population turn: gate, export, mint, apply, flywheel, then the gate again, apply mode",
+      "workflow": "Population turn",
+      "workflow_file": ".github/workflows/population-turn.yml",
+      "family": "mint",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "ledger-consume",
+        "name": "Ledger consume"
+      },
+      "loop": true,
+      "network": "public-http",
+      "caveat": "The first --check-gate reads an empty mint history directory: the committed mint-run history makes the gate refuse permanently (mint-run-001 and 005 are unconnectable). The second --check-gate reads only this run's own mint artifact and must pass: the flywheel connected every minted item.",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "HANDOFF=\"$(handoff_read population-turn \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\")\"",
+        "handoff_must_proceed \"$HANDOFF\"",
+        "RUN_UPSTREAM_LOOP_RUN_ID=\"$(handoff_field \"$HANDOFF\" CHAIN_UPSTREAM_LOOP_RUN_ID)\"",
+        "RUN_TRIGGER_CONTEXT=\"$(trigger_context \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\" success)\"",
+        "EXPORT_DIR=\"$CP_STEP_TMP/population\"",
+        "CENSUS_ROWS_PATH=\"$EXPORT_DIR/census-rows.json\"",
+        "EMPTY_GATE_DIR=\"$CP_STEP_TMP/empty-mint-history\"",
+        "mkdir -p \"$EXPORT_DIR\" \"$EMPTY_GATE_DIR\"",
+        "node scripts/turns/run-population-flywheel.mjs --check-gate --harness-runs-dir \"$EMPTY_GATE_DIR\"",
+        "ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > \"$CP_STEP_TMP/mint-before.txt\" || true",
+        "node scripts/mint/stamp-wo26-archive-reason.mjs --apply",
+        "node scripts/mint/export-census-rows.mjs --max-items 25 --out \"$CENSUS_ROWS_PATH\" --capture",
+        "node scripts/mint/run-mint-batch.mjs --census-rows \"$CENSUS_ROWS_PATH\" --grade record --execute --out-dir \"$EXPORT_DIR\" --max-items 25 --upstream-run-id \"$CP_UPSTREAM_RUN_ID\" ${RUN_UPSTREAM_LOOP_RUN_ID:+--loop-run-id \"$RUN_UPSTREAM_LOOP_RUN_ID\"} || true",
+        "ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > \"$CP_STEP_TMP/mint-after.txt\" || true",
+        "NEW_MINT_RUN=\"$(comm -13 \"$CP_STEP_TMP/mint-before.txt\" \"$CP_STEP_TMP/mint-after.txt\" | head -1)\"",
+        "if [ -z \"$NEW_MINT_RUN\" ]; then echo \"no new scripts/harness-runs/mint/mint-run-NNN.json appeared after run-mint-batch.mjs\" >&2; exit 1; fi",
+        "node scripts/mint/apply-mint-batch.mjs --apply-ready \"$EXPORT_DIR/census-rows.apply-ready.json\" --report \"$EXPORT_DIR/census-rows.mint-batch-report.json\" --census-rows \"$CENSUS_ROWS_PATH\" --mint-run \"$NEW_MINT_RUN\" --apply",
+        "node scripts/mint/rederive-record-provenance.mjs --apply",
+        "node scripts/mint/screen-reconcile-records.mjs --apply",
+        "node scripts/turns/run-population-flywheel.mjs --mint-run \"$NEW_MINT_RUN\" --mode apply --trigger-context \"$RUN_TRIGGER_CONTEXT\"",
+        "flush_caches",
+        "GATE_DIR=\"$CP_STEP_TMP/gate-after-mint\"",
+        "mkdir -p \"$GATE_DIR\"",
+        "cp \"$NEW_MINT_RUN\" \"$GATE_DIR/\"",
+        "node scripts/turns/run-population-flywheel.mjs --check-gate --harness-runs-dir \"$GATE_DIR\""
+      ],
+      "assertions": [
+        {
+          "id": "items-grew",
+          "kind": "growth",
+          "table": "intelligence_items",
+          "predicate": "true",
+          "minSql": "SELECT greatest(1, coalesce(max((metrics->>'minted')::int), 0))::int FROM public.harness_runs WHERE harness_family = 'mint' AND github_run_id = '{{run_id}}'"
+        },
+        {
+          "id": "new-items-have-claims",
+          "kind": "max",
+          "table": "intelligence_items",
+          "predicate": "created_at >= '{{started_at}}'::timestamptz AND NOT EXISTS (SELECT 1 FROM public.section_claim_provenance c WHERE c.intelligence_item_id = intelligence_items.id)",
+          "max": 0
+        },
+        {
+          "id": "flywheel-outcomes",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'mint' AND github_run_id = '{{run_id}}' AND (metrics->>'edges_discovered') IS NOT NULL",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "corpus-turn",
+      "kind": "script",
+      "hop": "04",
+      "title": "Hop 04 Corpus turn: tickets, discovery, forward events, analysis, apply mode",
+      "workflow": "Corpus turn",
+      "workflow_file": ".github/workflows/corpus-turn.yml",
+      "family": "corpus-turn",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "ledger-consume",
+        "name": "Ledger consume"
+      },
+      "loop": true,
+      "network": "none",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "loop_var CT_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "CT_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "TURN_DIR=\"$CP_STEP_TMP/turn\"",
+        "mkdir -p \"$TURN_DIR\"",
+        "TICKETS_PATH=\"$TURN_DIR/tickets.json\"",
+        "IDS=\"$(node scripts/turns/consume-turn-requests.mjs --out \"$TICKETS_PATH\" --limit 200)\"",
+        "COUNT=\"$(node -e 'console.log(JSON.parse(require(\"fs\").readFileSync(process.argv[1], \"utf8\")).count)' \"$TICKETS_PATH\")\"",
+        "TRACE_DIR=\"scripts/harness-runs/corpus-turn/traces/turn-$GITHUB_RUN_ID\"",
+        "if [ \"$COUNT\" -gt 0 ]; then",
+        "  node scripts/connections/discover-for-items.mjs --ids \"$IDS\" --execute",
+        "  node scripts/turns/export-corpus-for-extraction.mjs --out \"$TURN_DIR/turn-corpus.json\" --ids \"$IDS\"",
+        "  mkdir -p \"$TRACE_DIR\"",
+        "  cp \"$TURN_DIR/turn-corpus.json\" \"$TRACE_DIR/turn-corpus.json\"",
+        "  node scripts/forward-events/run-extraction.mjs --input \"$TRACE_DIR/turn-corpus.json\" --execute",
+        "  node scripts/turns/apply-extraction-output.mjs --events \"$TRACE_DIR/turn-corpus.events.json\" --execute",
+        "fi",
+        "node scripts/connections/analyze-corpus.mjs --signals",
+        "if [ \"$COUNT\" -gt 0 ]; then",
+        "  node scripts/turns/consume-turn-requests.mjs --mark-file \"$TICKETS_PATH\" --by \"corpus-turn-$GITHUB_RUN_ID\"",
+        "fi",
+        "flush_caches",
+        "HAS_SCOPE=false",
+        "if [ \"$COUNT\" -gt 0 ]; then HAS_SCOPE=true; fi",
+        "CT_SELECTION=tickets CT_MODE=apply CT_LIMIT=200 CT_SINCE= CT_TICKET_COUNT=\"$COUNT\" CT_HAS_SCOPE=\"$HAS_SCOPE\" CT_STARTED_AT=\"$CT_STARTED_AT\" CT_TICKETS_PATH=\"$TICKETS_PATH\" CT_CORPUS_PATH=\"$TRACE_DIR/turn-corpus.json\" CT_CONSUMED=\"$HAS_SCOPE\" CT_SIGNALS=true node scripts/turns/emit-corpus-turn-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "cross-references-grew",
+          "kind": "growth",
+          "table": "item_cross_references",
+          "predicate": "true",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "downstream-after-population",
+      "kind": "script",
+      "hop": "05",
+      "title": "Hop 05 Downstream chain after Population turn: tiers, obligations, tags, terms, classifications, apply mode",
+      "workflow": "Downstream chain",
+      "workflow_file": ".github/workflows/downstream-chain.yml",
+      "family": "downstream-chain",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "population-turn",
+        "name": "Population turn"
+      },
+      "loop": true,
+      "network": "none",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "DC_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "HANDOFF=\"$(handoff_read downstream-chain \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\")\"",
+        "handoff_must_proceed \"$HANDOFF\"",
+        "DC_LOOP_RUN_ID=\"$(handoff_field \"$HANDOFF\" CHAIN_UPSTREAM_LOOP_RUN_ID)\"",
+        "OUT_ROOT=\"$CP_STEP_TMP/downstream-chain\"",
+        "mkdir -p \"$OUT_ROOT\"",
+        "node scripts/verify/population-report.mjs",
+        "maintenance_step tier-opinions apply \"$OUT_ROOT\"",
+        "maintenance_step recompute-tiers apply \"$OUT_ROOT\"",
+        "maintenance_step derive-obligations apply \"$OUT_ROOT\"",
+        "maintenance_step tag-proposals apply \"$OUT_ROOT\"",
+        "mkdir -p \"$OUT_ROOT/term-recurrence\"",
+        "node scripts/connections/term-recurrence.mjs --mode apply --out \"$OUT_ROOT/term-recurrence\"",
+        "mkdir -p \"$OUT_ROOT/raise-term-needs\"",
+        "node scripts/connections/raise-term-needs.mjs --mode apply --out \"$OUT_ROOT/raise-term-needs\"",
+        "maintenance_step apply-classifications apply \"$OUT_ROOT\"",
+        "node scripts/verify/population-report.mjs",
+        "flush_caches",
+        "DC_MODE=apply DC_SKIP=false DC_SKIP_REASON= DC_STARTED_AT=\"$DC_STARTED_AT\" DC_OUT_ROOT=\"$OUT_ROOT\" DC_LOOP_RUN_ID=\"$DC_LOOP_RUN_ID\" DC_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" DC_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" node scripts/turns/emit-downstream-chain-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "terms-counted",
+          "kind": "count",
+          "table": "vocabulary_terms",
+          "predicate": "true",
+          "min": 1
+        },
+        {
+          "id": "steps-clean",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'downstream-chain' AND github_run_id = '{{run_id}}' AND (metrics->>'steps_nonzero_exit')::int = 0 AND (metrics->>'steps_run')::int >= 1",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "downstream-after-corpus",
+      "kind": "script",
+      "hop": "06",
+      "title": "Hop 06 Downstream chain after Corpus turn: the same seven steps off the corpus artifact, apply mode",
+      "workflow": "Downstream chain",
+      "workflow_file": ".github/workflows/downstream-chain.yml",
+      "family": "downstream-chain",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "corpus-turn",
+        "name": "Corpus turn"
+      },
+      "loop": true,
+      "network": "none",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "DC_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "HANDOFF=\"$(handoff_read downstream-chain \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\")\"",
+        "handoff_must_proceed \"$HANDOFF\"",
+        "DC_LOOP_RUN_ID=\"$(handoff_field \"$HANDOFF\" CHAIN_UPSTREAM_LOOP_RUN_ID)\"",
+        "OUT_ROOT=\"$CP_STEP_TMP/downstream-chain\"",
+        "mkdir -p \"$OUT_ROOT\"",
+        "node scripts/verify/population-report.mjs",
+        "maintenance_step tier-opinions apply \"$OUT_ROOT\"",
+        "maintenance_step recompute-tiers apply \"$OUT_ROOT\"",
+        "maintenance_step derive-obligations apply \"$OUT_ROOT\"",
+        "maintenance_step tag-proposals apply \"$OUT_ROOT\"",
+        "mkdir -p \"$OUT_ROOT/term-recurrence\"",
+        "node scripts/connections/term-recurrence.mjs --mode apply --out \"$OUT_ROOT/term-recurrence\"",
+        "mkdir -p \"$OUT_ROOT/raise-term-needs\"",
+        "node scripts/connections/raise-term-needs.mjs --mode apply --out \"$OUT_ROOT/raise-term-needs\"",
+        "maintenance_step apply-classifications apply \"$OUT_ROOT\"",
+        "node scripts/verify/population-report.mjs",
+        "flush_caches",
+        "DC_MODE=apply DC_SKIP=false DC_SKIP_REASON= DC_STARTED_AT=\"$DC_STARTED_AT\" DC_OUT_ROOT=\"$OUT_ROOT\" DC_LOOP_RUN_ID=\"$DC_LOOP_RUN_ID\" DC_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" DC_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" node scripts/turns/emit-downstream-chain-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "terms-counted",
+          "kind": "count",
+          "table": "vocabulary_terms",
+          "predicate": "true",
+          "min": 1
+        },
+        {
+          "id": "steps-clean",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'downstream-chain' AND github_run_id = '{{run_id}}' AND (metrics->>'steps_nonzero_exit')::int = 0 AND (metrics->>'steps_run')::int >= 1",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "propagation-after-downstream",
+      "kind": "script",
+      "hop": "07",
+      "title": "Hop 07 Propagation drain after Downstream chain (the explicit dispatch fallback of downstream-chain.yml), apply mode",
+      "workflow": "Propagation drain",
+      "workflow_file": ".github/workflows/propagation-drain.yml",
+      "family": "propagation",
+      "event": "workflow_dispatch",
+      "upstream": {
+        "step": "downstream-after-corpus",
+        "name": "Downstream chain"
+      },
+      "loop": true,
+      "network": "none",
+      "caveat": "downstream-chain.yml dispatches propagation-drain.yml with gh workflow run; the proof job holds no token, so the step runs the same script with the dispatch inputs the fallback passes (chain upstream name and run id).",
+      "script": [
+        "guard --event workflow_dispatch --requested-mode apply --chained true",
+        "require_live",
+        "RUN_TRIGGER_CONTEXT=\"$(trigger_context \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\" success)\"",
+        "loop_var RUN_UPSTREAM_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "args=(--mode apply --batch 500 --trigger \"$GITHUB_EVENT_NAME\" --trigger-context \"$RUN_TRIGGER_CONTEXT\")",
+        "if [ -n \"${RUN_UPSTREAM_LOOP_RUN_ID:-}\" ]; then args+=(--loop-run-id \"$RUN_UPSTREAM_LOOP_RUN_ID\"); fi",
+        "node scripts/turns/run-propagation-drain.mjs \"${args[@]}\"",
+        "flush_caches"
+      ],
+      "assertions": [
+        {
+          "id": "drained-or-nothing-eligible",
+          "kind": "any_of",
+          "of": [
+            {
+              "table": "propagation_events",
+              "predicate": "drained_at >= '{{started_at}}'::timestamptz",
+              "min": 1
+            },
+            {
+              "table": "harness_runs",
+              "predicate": "harness_family = 'propagation' AND github_run_id = '{{run_id}}' AND (metrics->>'events_considered')::int = 0",
+              "min": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "data-producers",
+      "kind": "script",
+      "hop": null,
+      "title": "Data producers (root): the ECB euro reference rate producer, apply mode",
+      "workflow": "Data producers",
+      "workflow_file": ".github/workflows/producers.yml",
+      "family": "producers",
+      "event": "workflow_dispatch",
+      "upstream": null,
+      "loop": false,
+      "network": "public-http",
+      "caveat": "producer=ecb-fx only. The workflow's producer=all also runs a producer that needs EIA_API_KEY (a name the isolation preflight forbids) and producers that read rate-limited public APIs; ecb-fx needs no key. The hop under test is Data producers to Propagation drain, which one producer proves.",
+      "script": [
+        "PRODUCER_SUMMARY_DIR=\"$CP_STEP_TMP/producer-summaries\"",
+        "export PRODUCER_SUMMARY_DIR",
+        "mkdir -p \"$PRODUCER_SUMMARY_DIR\"",
+        "node scripts/verify/population-report.mjs",
+        "MARKET_PRODUCER_ECB_FX_ENABLED=1 node scripts/producers/market/ecb-fx-producer.mjs --apply",
+        "node scripts/verify/population-report.mjs",
+        "PR_MODE=apply PR_RUN_PRODUCER=ecb-fx node scripts/producers/emit-producers-artifact.mjs",
+        "flush_caches"
+      ],
+      "assertions": [
+        {
+          "id": "producer-reported",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'producers' AND github_run_id = '{{run_id}}' AND (metrics->>'producers_reporting')::int >= 1 AND (metrics->>'producers_failed')::int = 0",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "propagation-after-producers",
+      "kind": "script",
+      "hop": "08",
+      "title": "Hop 08 Propagation drain after Data producers, apply mode",
+      "workflow": "Propagation drain",
+      "workflow_file": ".github/workflows/propagation-drain.yml",
+      "family": "propagation",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "data-producers",
+        "name": "Data producers"
+      },
+      "loop": false,
+      "network": "none",
+      "script": [
+        "guard --event workflow_run --requested-mode apply --chained false",
+        "require_live",
+        "RUN_TRIGGER_CONTEXT=\"$(trigger_context \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\" success)\"",
+        "loop_var RUN_UPSTREAM_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "args=(--mode apply --batch 500 --trigger \"$GITHUB_EVENT_NAME\" --trigger-context \"$RUN_TRIGGER_CONTEXT\")",
+        "if [ -n \"${RUN_UPSTREAM_LOOP_RUN_ID:-}\" ]; then args+=(--loop-run-id \"$RUN_UPSTREAM_LOOP_RUN_ID\"); fi",
+        "node scripts/turns/run-propagation-drain.mjs \"${args[@]}\"",
+        "flush_caches"
+      ],
+      "assertions": [
+        {
+          "id": "drained-or-nothing-eligible",
+          "kind": "any_of",
+          "of": [
+            {
+              "table": "propagation_events",
+              "predicate": "drained_at >= '{{started_at}}'::timestamptz",
+              "min": 1
+            },
+            {
+              "table": "harness_runs",
+              "predicate": "harness_family = 'propagation' AND github_run_id = '{{run_id}}' AND (metrics->>'events_considered')::int = 0",
+              "min": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "brief-export",
+      "kind": "script",
+      "hop": "09",
+      "title": "Hop 09 Brief export after Population turn: export the pool text of verified record-grade items (read only)",
+      "workflow": "Brief export",
+      "workflow_file": ".github/workflows/brief-export.yml",
+      "family": "brief-export",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "population-turn",
+        "name": "Population turn"
+      },
+      "loop": true,
+      "network": "none",
+      "caveat": "The chained workflow selects ids with an inline script embedded in brief-export.yml. The proof passes the explicit ids the dispatch input accepts, chosen by a query for verified, record-grade, unarchived items.",
+      "var_queries": [
+        {
+          "name": "brief_export_ids",
+          "sql": "SELECT coalesce(string_agg(id::text, ',' ORDER BY id), '') AS v FROM (SELECT id FROM public.intelligence_items WHERE item_grade = 'record' AND provenance_status = 'verified' AND is_archived = false ORDER BY id LIMIT 5) t"
+        }
+      ],
+      "script": [
+        "guard --event workflow_run --requested-mode read-only",
+        "loop_var BE_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "BE_IDS=\"${CP_VAR_brief_export_ids:-}\"",
+        "if [ -z \"$BE_IDS\" ]; then echo \"no verified record-grade item id to export\" >&2; exit 1; fi",
+        "BE_BATCH_PATH=\"$CP_STEP_TMP/brief-export.json\"",
+        "node scripts/turns/export-corpus-for-extraction.mjs --out \"$BE_BATCH_PATH\" --ids \"$BE_IDS\" --limit 50 --with-pool-text --char-budget 3000000",
+        "BE_MODE=explicit BE_SELECTION=explicit BE_LIMIT=50 BE_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" BE_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" BE_IDS=\"$BE_IDS\" BE_BATCH_PATH=\"$BE_BATCH_PATH\" node scripts/turns/emit-brief-export-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "ids-exported",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'brief-export' AND github_run_id = '{{run_id}}' AND (metrics->>'ids_exported')::int >= 1",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "brief-apply",
+      "kind": "script",
+      "hop": null,
+      "title": "Brief apply (root): apply a committed record-briefs entry to a held item reset to its pre-brief state, apply mode",
+      "workflow": "Brief apply",
+      "workflow_file": ".github/workflows/brief-apply.yml",
+      "family": "brief-apply",
+      "event": "workflow_dispatch",
+      "upstream": null,
+      "loop": false,
+      "network": "none",
+      "caveat": "The committed batches name production items that were briefed long ago. The prepare hook keeps the entries whose item the subset holds, and the setup statement puts those items back to record grade with no brief (replication role, so no guard rewrites the reset), so the apply has a brief to write. When the subset holds none of them the step stops with NO TARGET.",
+      "prepare": "brief-batch",
+      "setup": [
+        {
+          "sql": "UPDATE public.intelligence_items SET full_brief = NULL, item_grade = 'record' WHERE id = ANY($1::uuid[])",
+          "params": [
+            "brief_target_ids"
+          ],
+          "replica": true
+        }
+      ],
+      "snapshots": [
+        {
+          "key": "brief-targets",
+          "sql": "SELECT id::text AS k, md5(coalesce(full_brief, '')) AS v FROM public.intelligence_items WHERE id = ANY($1::uuid[])",
+          "params": [
+            "brief_target_ids"
+          ]
+        }
+      ],
+      "script": [
+        "guard --event workflow_dispatch --requested-mode apply",
+        "require_live",
+        "node scripts/turns/apply-record-briefs.mjs --briefs \"$CP_BRIEFS_FILE\" --execute --io-budget-mb 400",
+        "node scripts/verify/population-report.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "briefs-applied",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'brief-apply' AND github_run_id = '{{run_id}}' AND (metrics->>'applied')::int >= 1",
+          "min": 1
+        },
+        {
+          "id": "full-brief-changed",
+          "kind": "snapshot_changed",
+          "table": "intelligence_items",
+          "snapshot": "brief-targets",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "gate-a-after-brief-apply",
+      "kind": "script",
+      "hop": "10",
+      "title": "Hop 10 Gate A rescan after Brief apply, apply mode",
+      "workflow": "Gate A rescan",
+      "workflow_file": ".github/workflows/gate-a-rescan.yml",
+      "family": "gate-a-rescan",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "brief-apply",
+        "name": "Brief apply"
+      },
+      "loop": false,
+      "network": "none",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "GAR_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "loop_var GAR_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "OUT_ROOT=\"$CP_STEP_TMP/gate-a-rescan\"",
+        "mkdir -p \"$OUT_ROOT/gate-a-rescan\"",
+        "node scripts/maintenance/gate-a-rescan.mjs --mode apply --out \"$OUT_ROOT/gate-a-rescan\"",
+        "IDS_FILE=\"$OUT_ROOT/gate-a-rescan-orphan-ids.json\"",
+        "COUNT=\"$(node -e 'const fs = require(\"fs\"); const s = JSON.parse(fs.readFileSync(process.argv[1], \"utf8\")); const ids = (s.per_item || []).filter((r) => r.orphan_count_after > 0).map((r) => r.id); fs.writeFileSync(process.argv[2], JSON.stringify(ids)); console.log(ids.length)' \"$OUT_ROOT/gate-a-rescan/summary.json\" \"$IDS_FILE\")\"",
+        "if [ \"$COUNT\" != \"0\" ]; then",
+        "  mkdir -p \"$OUT_ROOT/attach-found-sources\"",
+        "  shopt -s nullglob",
+        "  real_worklists=()",
+        "  for f in scripts/_worklists/attach-found-sources-*.json; do",
+        "    case \"$f\" in",
+        "      *.seed.json|*.fixture.json) continue ;;",
+        "      *) real_worklists+=(\"$f\") ;;",
+        "    esac",
+        "  done",
+        "  if [ \"${#real_worklists[@]}\" -eq 0 ]; then",
+        "    echo '{\"step\":\"attach-found-sources\",\"mode\":\"dry\",\"counts\":{\"rows_offered\":0},\"applied\":0,\"note\":\"no ready worklist file on the tree\"}' > \"$OUT_ROOT/attach-found-sources/summary.json\"",
+        "  else",
+        "    for f in \"${real_worklists[@]}\"; do",
+        "      node scripts/maintenance/attach-found-sources.mjs --mode dry --arg \"$f\" --items-file \"$IDS_FILE\" --limit 50 --out \"$OUT_ROOT/attach-found-sources\"",
+        "    done",
+        "  fi",
+        "fi",
+        "GAR_MODE=apply GAR_EVENT_TRIGGER=workflow_run GAR_LIMIT= GAR_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" GAR_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" GAR_STARTED_AT=\"$GAR_STARTED_AT\" GAR_RESCAN_SUMMARY_PATH=\"$OUT_ROOT/gate-a-rescan/summary.json\" GAR_ATTACH_SUMMARY_PATH=\"$OUT_ROOT/attach-found-sources/summary.json\" GAR_RESCAN_STEP_OUTCOME=success node scripts/turns/emit-gate-a-rescan-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "every-selected-rescanned",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'gate-a-rescan' AND github_run_id = '{{run_id}}' AND (metrics->>'touched')::int = (metrics->>'selected')::int",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "gate-a-after-population",
+      "kind": "script",
+      "hop": "11",
+      "title": "Hop 11 Gate A rescan after Population turn, apply mode",
+      "workflow": "Gate A rescan",
+      "workflow_file": ".github/workflows/gate-a-rescan.yml",
+      "family": "gate-a-rescan",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "population-turn",
+        "name": "Population turn"
+      },
+      "loop": true,
+      "network": "none",
+      "script": [
+        "guard --event workflow_run --requested-mode apply",
+        "require_live",
+        "GAR_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "loop_var GAR_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "OUT_ROOT=\"$CP_STEP_TMP/gate-a-rescan\"",
+        "mkdir -p \"$OUT_ROOT/gate-a-rescan\"",
+        "node scripts/maintenance/gate-a-rescan.mjs --mode apply --out \"$OUT_ROOT/gate-a-rescan\"",
+        "IDS_FILE=\"$OUT_ROOT/gate-a-rescan-orphan-ids.json\"",
+        "COUNT=\"$(node -e 'const fs = require(\"fs\"); const s = JSON.parse(fs.readFileSync(process.argv[1], \"utf8\")); const ids = (s.per_item || []).filter((r) => r.orphan_count_after > 0).map((r) => r.id); fs.writeFileSync(process.argv[2], JSON.stringify(ids)); console.log(ids.length)' \"$OUT_ROOT/gate-a-rescan/summary.json\" \"$IDS_FILE\")\"",
+        "if [ \"$COUNT\" != \"0\" ]; then",
+        "  mkdir -p \"$OUT_ROOT/attach-found-sources\"",
+        "  shopt -s nullglob",
+        "  real_worklists=()",
+        "  for f in scripts/_worklists/attach-found-sources-*.json; do",
+        "    case \"$f\" in",
+        "      *.seed.json|*.fixture.json) continue ;;",
+        "      *) real_worklists+=(\"$f\") ;;",
+        "    esac",
+        "  done",
+        "  if [ \"${#real_worklists[@]}\" -eq 0 ]; then",
+        "    echo '{\"step\":\"attach-found-sources\",\"mode\":\"dry\",\"counts\":{\"rows_offered\":0},\"applied\":0,\"note\":\"no ready worklist file on the tree\"}' > \"$OUT_ROOT/attach-found-sources/summary.json\"",
+        "  else",
+        "    for f in \"${real_worklists[@]}\"; do",
+        "      node scripts/maintenance/attach-found-sources.mjs --mode dry --arg \"$f\" --items-file \"$IDS_FILE\" --limit 50 --out \"$OUT_ROOT/attach-found-sources\"",
+        "    done",
+        "  fi",
+        "fi",
+        "GAR_MODE=apply GAR_EVENT_TRIGGER=workflow_run GAR_LIMIT= GAR_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" GAR_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" GAR_STARTED_AT=\"$GAR_STARTED_AT\" GAR_RESCAN_SUMMARY_PATH=\"$OUT_ROOT/gate-a-rescan/summary.json\" GAR_ATTACH_SUMMARY_PATH=\"$OUT_ROOT/attach-found-sources/summary.json\" GAR_RESCAN_STEP_OUTCOME=success node scripts/turns/emit-gate-a-rescan-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "every-selected-rescanned",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'gate-a-rescan' AND github_run_id = '{{run_id}}' AND (metrics->>'touched')::int = (metrics->>'selected')::int",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "source-resolution-after-brief-apply",
+      "kind": "script",
+      "hop": "12",
+      "title": "Hop 12 Source resolution after Brief apply: resolve provisional sources, recompute tiers, apply mode",
+      "workflow": "Source resolution",
+      "workflow_file": ".github/workflows/source-resolution.yml",
+      "family": "source-resolution",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "brief-apply",
+        "name": "Brief apply"
+      },
+      "loop": false,
+      "network": "public-http",
+      "script": [
+        "guard --event workflow_run --requested-mode apply --chained false",
+        "require_live",
+        "SR_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "loop_var SR_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "OUT_ROOT=\"$CP_STEP_TMP/source-resolution\"",
+        "mkdir -p \"$OUT_ROOT\"",
+        "maintenance_step resolve-provisional-sources apply \"$OUT_ROOT\"",
+        "maintenance_step recompute-tiers apply \"$OUT_ROOT\"",
+        "flush_caches",
+        "SR_MODE=apply SR_STARTED_AT=\"$SR_STARTED_AT\" SR_OUT_ROOT=\"$OUT_ROOT\" SR_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" SR_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" node scripts/turns/emit-source-resolution-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "sources-promoted",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'source-resolution' AND github_run_id = '{{run_id}}' AND (metrics->>'sources_promoted')::int >= 1",
+          "min": 1
+        },
+        {
+          "id": "provisional-fell",
+          "kind": "growth",
+          "table": "sources",
+          "predicate": "status = 'provisional'",
+          "direction": "down",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "research-walker",
+      "kind": "script",
+      "hop": null,
+      "title": "Research walker (root): the dry fixture walk with the kill switch off",
+      "workflow": "Research walker",
+      "workflow_file": ".github/workflows/research-walker.yml",
+      "family": "research-walker",
+      "event": "workflow_dispatch",
+      "upstream": null,
+      "loop": false,
+      "network": "none",
+      "caveat": "RESEARCH_WALKER_ENABLED stays 0 and the workflow offers no apply mode: the walker prints that it refuses the live path and runs its fixture path. The counts are fixture counts, recorded here as such.",
+      "script": [
+        "guard --event workflow_dispatch --requested-mode dry",
+        "export RESEARCH_WALKER_ENABLED=0",
+        "node scripts/research/research-walker.mjs --dispatch --holdings-needs"
+      ],
+      "assertions": [
+        {
+          "id": "walker-recorded",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'research-walker' AND github_run_id = '{{run_id}}' AND (metrics->>'candidates') IS NOT NULL",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "source-resolution-after-research-walker",
+      "kind": "script",
+      "hop": "13",
+      "title": "Hop 13 Source resolution after Research walker, apply mode",
+      "workflow": "Source resolution",
+      "workflow_file": ".github/workflows/source-resolution.yml",
+      "family": "source-resolution",
+      "event": "workflow_run",
+      "upstream": {
+        "step": "research-walker",
+        "name": "Research walker"
+      },
+      "loop": false,
+      "network": "public-http",
+      "script": [
+        "guard --event workflow_run --requested-mode apply --chained false",
+        "require_live",
+        "SR_STARTED_AT=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+        "loop_var SR_LOOP_RUN_ID \"$CP_UPSTREAM_NAME\" \"$CP_UPSTREAM_RUN_ID\"",
+        "OUT_ROOT=\"$CP_STEP_TMP/source-resolution\"",
+        "mkdir -p \"$OUT_ROOT\"",
+        "maintenance_step resolve-provisional-sources apply \"$OUT_ROOT\"",
+        "maintenance_step recompute-tiers apply \"$OUT_ROOT\"",
+        "flush_caches",
+        "SR_MODE=apply SR_STARTED_AT=\"$SR_STARTED_AT\" SR_OUT_ROOT=\"$OUT_ROOT\" SR_UPSTREAM_NAME=\"$CP_UPSTREAM_NAME\" SR_UPSTREAM_RUN_ID=\"$CP_UPSTREAM_RUN_ID\" node scripts/turns/emit-source-resolution-artifact.mjs"
+      ],
+      "assertions": [
+        {
+          "id": "resolution-recorded",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'source-resolution' AND github_run_id = '{{run_id}}' AND (metrics->>'sources_scanned')::int >= 1",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "hop-order",
+      "kind": "check",
+      "title": "Every step landed its row, in manifest order, linked to its upstream, carrying the sweep's loop run id",
+      "check": "hop-order",
+      "assertions": []
+    }
+  ]
+}
