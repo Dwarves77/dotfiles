@@ -221,3 +221,62 @@ test('resolveRange (as the memory-gate CLI now calls it): BASE_REF+PR_HEAD resol
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('memory B7-10 B7-13: executable code under scripts/harness-runs/ or record-briefs/batches/ is code; run-record data still is not', () => {
+  const code = classifyChanged([
+    'fsi-app/scripts/harness-runs/mint/payload.mjs',
+    'fsi-app/scripts/harness-runs/mint/run.sh',
+    'fsi-app/scripts/turns/record-briefs/batches/apply.mjs',
+  ]).code;
+  assert.equal(code.length, 3);
+  assert.deepEqual(classifyChanged(['fsi-app/scripts/harness-runs/mint/mint-run-001.json', 'fsi-app/scripts/harness-runs/mint/FAMILY.md', 'fsi-app/scripts/turns/LAST-TURN.json']).code, []);
+  assert.equal(memoryGateVerdict(['fsi-app/scripts/harness-runs/mint/payload.mjs']).ok, false);
+});
+
+test('memory B7-11: workflows, package.json, edge functions, skills and the build config are code like any source file', () => {
+  for (const f of [
+    '.github/workflows/discipline.yml',
+    '.github/actions/maintenance-step/action.yml',
+    'fsi-app/package.json',
+    'fsi-app/package-lock.json',
+    'fsi-app/supabase/functions/capture-worker/index.ts',
+    'fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md',
+    'fsi-app/next.config.ts',
+    'fsi-app/tsconfig.json',
+  ]) {
+    assert.equal(classifyChanged([f]).code.length, 1, f);
+    assert.equal(memoryGateVerdict([f]).ok, false, `${f} with no memory entry fails`);
+    assert.equal(memoryGateVerdict([f, 'docs/ops/session-log.d/2026-10-08-lane-x.md']).ok, true, `${f} with a memory entry passes`);
+  }
+  // docs and unrelated top-level files stay outside the code set
+  assert.deepEqual(classifyChanged(['docs/specs/00.md', 'README.md', 'fsi-app/README.md']).code, []);
+});
+
+test('memory B7-13: a workflow-only commit range, read from a real git diff in a throwaway repo, fails the verdict', async () => {
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { execFileSync } = await import('node:child_process');
+  const dir = mkdtempSync(join(tmpdir(), 'mg-e2e-'));
+  try {
+    const git = (...a) => execFileSync('git', a, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    git('init', '-q', '-b', 'master');
+    git('config', 'user.email', 't@example.test');
+    git('config', 'user.name', 't');
+    writeFileSync(join(dir, 'a.txt'), 'a');
+    git('add', '.');
+    git('commit', '-q', '-m', 'base');
+    const base = git('rev-parse', 'HEAD').trim();
+    mkdirSync(join(dir, '.github/workflows'), { recursive: true });
+    writeFileSync(join(dir, '.github/workflows/x.yml'), 'name: x\n');
+    git('add', '.');
+    git('commit', '-q', '-m', 'workflow only');
+    const changed = git('diff', '--name-only', base + '..HEAD').trim().split('\n');
+    assert.deepEqual(changed, ['.github/workflows/x.yml']);
+    assert.equal(memoryGateVerdict(changed).ok, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

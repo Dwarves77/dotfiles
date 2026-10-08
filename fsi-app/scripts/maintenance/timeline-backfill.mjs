@@ -75,7 +75,7 @@ export const CITE = Object.freeze({
     "never given an invented date or the ledger's own added_date.",
 });
 
-export const CHANGELOG_CITE = Object.freeze({
+const CHANGELOG_CITE = Object.freeze({
   skill: "defect-fix-plan-2026-09-12.md D23(a)",
   reason:
     "A backfilled timeline is a customer-visible change (D23) - recorded via the shared " +

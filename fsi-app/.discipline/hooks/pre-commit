@@ -1,26 +1,36 @@
 #!/bin/sh
 # Installed from fsi-app/.discipline/hooks/pre-commit
-# WORKTREE-ISOLATION guard (RD-19), git-hook leg — the REAL BLOCK.
+# WORKTREE-ISOLATION guard (RD-19), git-hook leg: the REAL BLOCK.
 #
-# Blocks a commit in the MAIN checkout when it is an agent context OR the checkout is sitting on an
-# agent-owned branch (`worktree-agent-<hex>` / `agent-<hex>`) — the corrupted state from the incident,
-# where an orchestrator commit was about to land on an agent's label. A nonzero exit ABORTS the commit.
+# Blocks a commit in the MAIN checkout. GATE-7 (2026-10-08): for everyone, not only for a session that
+# carries the child-session marker. The marker (CLAUDE_CODE_CHILD_SESSION) absent, 0, false or empty all read
+# as "not a child", and a harness that forgets to set it is the case the guard exists for (register attacks
+# A-H1-1 to A-H1-4). The main checkout is a read surface: every change is made in a worktree and lands through
+# a pull request. A nonzero exit ABORTS the commit. In a linked worktree it never fires.
 #
 # Fires REGARDLESS of session type (git hooks run in git's invoking process), so it catches a sub-agent's
-# commit in the main checkout that the session-scoped PreToolUse gate cannot see. In a linked worktree it
-# never fires (the verdict short-circuits: not the main checkout).
+# commit in the main checkout that the session-scoped PreToolUse gate cannot see. With no node on PATH the
+# decision falls back to plain shell (hooks/lib/main-checkout-guard.sh), so a minimal PATH is no way around it.
 #
-# This runs ALONGSIDE the existing commit-msg + pre-push discipline hooks; it does not replace them.
-# Emergency bypass: git commit --no-verify (use only with operator authorization; the whole point is to
-# stop the wrong-label commit before it happens).
+# Runs ALONGSIDE the commit-msg hook (the rules engine) and pre-push; it does not replace them. The merge
+# commit has its own hook (pre-merge-commit), and a commit that skips both (cherry-pick, am) is caught by
+# post-commit as an alarm.
+# Emergency bypass: git commit --no-verify (an operator action; the whole point is to stop the wrong-label
+# commit before it happens).
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 [ -n "$REPO_ROOT" ] || exit 0
 
 RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
-[ -f "$RUNNER" ] || exit 0
 
-# No node → skip this leg (surfacing > wedging a broken env; other legs remain).
-command -v node >/dev/null 2>&1 || exit 0
+if command -v node >/dev/null 2>&1 && [ -f "$RUNNER" ]; then
+  exec node "$RUNNER" --mode=pre-commit
+fi
 
-exec node "$RUNNER" --mode=pre-commit
+# No node, or no runner: the same verdict in shell. Fail closed only for the main checkout.
+[ -f "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh" ] && . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh"
+if command -v wt_in_main_checkout >/dev/null 2>&1 && wt_in_main_checkout; then
+  echo "[worktree-isolation pre-commit] WORKTREE-ISOLATION VIOLATION (RD-19): commit BLOCKED in the MAIN checkout (node not found, decided in shell). Work in a worktree under .claude/worktrees/ and land it through a pull request." >&2
+  exit 1
+fi
+exit 0

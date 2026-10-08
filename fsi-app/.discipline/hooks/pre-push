@@ -29,6 +29,11 @@
 # .hook-firings.log (gitignored, the same file the commit rules engine writes), so local firings are
 # countable the next time the gates are evaluated.
 #
+# GATE-7 (2026-10-08): step 0d refuses the push when a tracked hook file has uncommitted changes (the hook that
+# runs is the working-tree copy, so an uncommitted edit would judge the push with itself edited); step 1 also
+# lists untracked files under hooks/ and lib/; the docs-only classifier (0c) and the memory gate (2b) class a
+# renamed file by its source path as well as its destination (a script moved into docs/ is still code).
+#
 # Emergency bypass: git push --no-verify
 # (Use sparingly; the whole point of the hook is to prevent the bypass-then-fix loop.)
 #
@@ -113,6 +118,24 @@ pre_push_log_firing() {
 }
 
 # ---------------------------------------------------------------------------
+# Step 0d: the tracked hook files equal HEAD's (GATE-7, 2026-10-08, register attack A-P0-3)
+# ---------------------------------------------------------------------------
+# This file is what runs, and it is the WORKING-TREE copy: an uncommitted edit (for instance one that makes the
+# hook exit 0) would be the gate judging the push with itself edited, and nothing it ever pushed would carry
+# that edit. A hook change takes effect by being committed, so the tracked hook files must equal HEAD's before
+# any step runs. The refusal names the files and the diff. A lane that changes a hook commits the change first
+# (the pushed commit then carries it, and HEAD equals the tree).
+HOOK_DIRTY="$(git diff HEAD --name-only -- fsi-app/.discipline/hooks/ 2>/dev/null)"
+if [ -n "$HOOK_DIRTY" ]; then
+  pre_push_log_firing 0d "tracked hook file differs from HEAD: $(printf '%s' "$HOOK_DIRTY" | head -n 1)"
+  echo "[discipline pre-push] STEP 0d FAIL: a tracked hook file has uncommitted changes (the hook that runs must be the one in HEAD):" >&2
+  printf '%s\n' "$HOOK_DIRTY" | sed 's/^/    /' >&2
+  git diff HEAD -- fsi-app/.discipline/hooks/ 2>/dev/null | head -n 60 >&2
+  echo "[discipline pre-push] commit the hook change (or restore the file), then re-push." >&2
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # Step 0b: fsi-app's npm dependencies resolve in THIS checkout (2026-09-27, RD-85)
 # ---------------------------------------------------------------------------
 # A linked worktree without the shared install used to reach step 3d and report F9 build-compiles,
@@ -193,6 +216,8 @@ UNTRACKED_CRITICAL=$(git ls-files --others --exclude-standard \
      'docs/decisions/' \
      'docs/inventories/' \
      'fsi-app/.discipline/rules/' \
+     'fsi-app/.discipline/hooks/' \
+     'fsi-app/.discipline/lib/' \
      'fsi-app/.discipline/fitness/functions/' \
      'fsi-app/.discipline/consistency/checks/' \
      'fsi-app/.discipline/governance/' \

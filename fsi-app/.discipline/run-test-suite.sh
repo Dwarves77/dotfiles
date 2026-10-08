@@ -52,6 +52,15 @@ set -eu
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || (cd "$(dirname "$0")/../.." && pwd))"
 cd "$ROOT"
 
+# TREE-CLEAN (lane TESTFIX-1, 2026-10-08, CLAUDE.md rule 15): record the working-tree status now, compare at
+# the end. No test may leave a file behind or modify a tracked one; hooks/lib/tree-clean.sh is the ONE home
+# of the check (the npm-deps suite, run-npmtest-suites.sh, calls the same two lines). Relative to the start,
+# so a developer's own uncommitted work never reddens a local run.
+TREE_CLEAN="fsi-app/.discipline/hooks/lib/tree-clean.sh"
+TREE_SNAPSHOT="$(mktemp)"
+trap 'rm -f "$TREE_SNAPSHOT" "$TREE_SNAPSHOT.now"' EXIT
+sh "$TREE_CLEAN" snapshot "$TREE_SNAPSHOT"
+
 DISCOVERY="fsi-app/.discipline/lib/test-discovery.mjs"
 
 # Fail loud on an empty discovery result (a broken `git ls-files` or a scope regression) instead of
@@ -107,7 +116,10 @@ export FSI_NO_ENV_FILE=1
 # error. `run-explicit-tests.mjs` uses node:test's PROGRAMMATIC `run({ files })` API instead, whose
 # `files` option is a literal array, never re-parsed as a glob; the same `--import` sandbox flag is
 # passed through via `execArgv` (after the `--` separator), same per-file process isolation as before.
-node "$DISCOVERY" --print0 | node "./fsi-app/.discipline/lib/run-explicit-tests.mjs" -- --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs"
+# A red suite still gets the tree-clean verdict below (a failing test is the likeliest one to leave a file
+# behind), so the exit status is carried to the end instead of ending the script here under `set -e`.
+SUITE_STATUS=0
+node "$DISCOVERY" --print0 | node "./fsi-app/.discipline/lib/run-explicit-tests.mjs" -- --import "./fsi-app/.discipline/lib/no-npm-sandbox.mjs" || SUITE_STATUS=$?
 
 # Standing rule 14 (docs/CLAUDE.md): every finding in docs/audits/ carries an explicit verification-status
 # token. Report-only here (the script's own designed default - a historical backlog of unlabeled findings
@@ -115,4 +127,13 @@ node "$DISCOVERY" --print0 | node "./fsi-app/.discipline/lib/run-explicit-tests.
 # lane's own diff) so this stays a visible signal rather than blocking every push on old debt; pass
 # --strict once the backlog is labeled, per the script's own header. Never previously run by anything,
 # lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md section W7.
-node fsi-app/scripts/verify/audit-finding-status.mjs --strict
+AUDIT_STATUS=0
+node fsi-app/scripts/verify/audit-finding-status.mjs --strict || AUDIT_STATUS=$?
+
+# The suite is not green if it left the working tree different from how it found it (lane TESTFIX-1).
+TREE_STATUS=0
+sh "$TREE_CLEAN" verify "$TREE_SNAPSHOT" || TREE_STATUS=$?
+
+if [ "$SUITE_STATUS" -ne 0 ]; then exit "$SUITE_STATUS"; fi
+if [ "$AUDIT_STATUS" -ne 0 ]; then exit "$AUDIT_STATUS"; fi
+exit "$TREE_STATUS"

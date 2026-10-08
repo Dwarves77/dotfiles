@@ -13,19 +13,18 @@
 // "derived_values_admissible" is a different string) — reading the view is reading ALREADY-ADMITTED data,
 // exactly migration 285's own COMMENT ON VIEW states, and is fine anywhere.
 //
-// WHY NOT ALSO CATCH RAW SQL. A raw `SELECT ... FROM derived_values` string is a materially different
-// bypass shape (no production code in this repo issues raw SQL against Postgres outside a migration file
-// itself — migrations are not scanned here, matching F24's own migration-file exemption), and this repo's
-// established pattern names one shape per fitness function (F21's own GROUNDING_CALL_RE, F13's mint
-// chokepoint) rather than one function trying to catch every conceivable variant. Named here as a residual,
-// not silently narrowed.
+// RAW SQL (lane GATE-8, 2026-10-08, AUD-AT-4 B5-11). The earlier note here named a raw `SELECT ... FROM
+// derived_values` string as a residual this function did not catch. A service-role pg client in a script reads
+// the table with no admissibleFor() check applied just as a .from() call does, so a string or template that
+// selects from or joins derived_values is now a read (migrations are still not scanned, matching F24).
 //
 // SCOPE mirrors F21/F15/F16: production path only (src/lib, src/app, src/workflows, scripts) — a
 // one-off/scratch script is held at the commit layer (rule 016), not here.
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
+import { overrideLines } from '../lib/code-scan.mjs';
+import { tableCalls, rawSqlLines } from '../lib/table-access.mjs';
 
 // The directory F31 exempts. A prefix check, not a fixed file set (F21's SANCTIONED is a closed list
 // because a NEW file calling generateBrief directly is exactly what F21 must catch; here the exemption is
@@ -43,17 +42,17 @@ export function isSanctioned(filepath) {
   return filepath.startsWith(SANCTIONED_DIR_PREFIX);
 }
 
-/** Lines making a forbidden raw `derived_values` read, skipping comments + overrides. @param {string} content */
+/** Lines making a forbidden raw `derived_values` read. Lane GATE-8 (2026-10-08, AUD-AT-4 B5-08 to B5-12): the call
+ *  is read as a call (../lib/table-access.mjs), not as a one-line regex, so `.from(` and the table name on
+ *  separate lines, a table name held in a constant, and a template literal are all the same read; raw SQL that
+ *  selects from or joins derived_values through a pg client is a read too (the closing-name boundary still keeps
+ *  derived_values_admissible, the sanctioned view, out). A marker inside a string is not an override. */
 export function derivedValuesReadLines(content) {
-  const out = [];
-  const lines = content.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const t = lines[i].trim();
-    if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) continue; // comment lines are not reads
-    if (isOverridden(lines[i], 'F31')) continue;
-    if (DERIVED_VALUES_FROM_RE.test(lines[i])) out.push(i + 1);
-  }
-  return out;
+  const overridden = overrideLines(content, 'F31');
+  const lines = new Set();
+  for (const call of tableCalls(content)) if (call.table === 'derived_values') lines.add(call.line);
+  for (const ln of rawSqlLines(content, 'FROM|JOIN', 'derived_values')) lines.add(ln);
+  return [...lines].filter((ln) => !overridden.has(ln)).sort((a, b) => a - b);
 }
 
 export const fitnessFunction = {
@@ -72,8 +71,8 @@ export const fitnessFunction = {
 
   enumerate() {
     return globFiles([
-      'fsi-app/src/**/*.{ts,tsx,mjs,js}',
-      'fsi-app/scripts/**/*.mjs',
+      'fsi-app/src/**/*.{ts,tsx,mjs,js,cjs,jsx}',
+      'fsi-app/scripts/**/*.{mjs,js,cjs,ts}',
     ]).filter((f) => !f.includes('.test.') && !f.includes('.npmtest.') && !f.includes('.stories.'));
   },
 

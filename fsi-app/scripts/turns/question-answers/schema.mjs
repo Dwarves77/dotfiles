@@ -25,7 +25,7 @@ export const QUESTION_ANSWERS_SCHEMA_VERSION = "qa1-2026-10-05.1";
 export const OUTCOMES = Object.freeze(["answered", "unanswerable_from_holdings"]);
 
 /** The status tokens an ANSWER may carry. REFUTED is not an answer to a question. */
-export const ANSWER_STATUS_TOKENS = Object.freeze(["HYPOTHESIS", "CONFIRMED"]);
+const ANSWER_STATUS_TOKENS = Object.freeze(["HYPOTHESIS", "CONFIRMED"]);
 
 /** Length ceilings in characters. Stated in the README. */
 export const CEILINGS = Object.freeze({ answer: 1500, missing: 600, source_span: 600, evidence_entries: 8 });
@@ -93,7 +93,7 @@ export function unquotedSentences(answer, spans) {
  * }} ctx
  * @returns {string[]}
  */
-export function validateAnswerEntry(entry, i, ctx) {
+function validateAnswerEntry(entry, i, ctx) {
   const where = `entry ${i}`;
   if (!isObj(entry)) return [`${where}: not an object`];
   if (!nonEmptyStr(entry.subject_ref)) return [`${where}: subject_ref is missing`];

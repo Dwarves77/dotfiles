@@ -39,12 +39,27 @@ if ! node -e "require.resolve('next/package.json', { paths: [process.argv[1]] })
   exit 1
 fi
 
+# TREE-CLEAN (lane TESTFIX-1, 2026-10-08, CLAUDE.md rule 15): the same check run-test-suite.sh makes. The
+# working-tree status is recorded here and compared after the tests; a test that leaves a file or modifies a
+# tracked one fails this step, naming the paths. tree-clean.sh is the ONE home of the check.
+SUITE_STATUS=0
+TREE_CLEAN="$(dirname "$0")/tree-clean.sh"
+TREE_SNAPSHOT="$(mktemp)"
+trap 'rm -f "$TREE_SNAPSHOT" "$TREE_SNAPSHOT.now"' EXIT
+sh "$TREE_CLEAN" snapshot "$TREE_SNAPSHOT" || exit 2
+
 # NOTE: the NUL-separated list is piped directly into run-explicit-tests.mjs, never staged through a
 # shell variable via $(...) -- command substitution cannot hold a NUL byte (it silently truncates/
 # mangles there), so the list has to stay in the pipe the whole way.
 have_files=$(git ls-files -- fsi-app | grep -c -E '\.npmtest\.mjs$' || true)
 if [ "${have_files:-0}" -gt 0 ]; then
-  git ls-files -z -- fsi-app | tr '\0' '\n' | grep -E '\.npmtest\.mjs$' | tr '\n' '\0' | node "$(dirname "$0")/../../lib/run-explicit-tests.mjs"
+  git ls-files -z -- fsi-app | tr '\0' '\n' | grep -E '\.npmtest\.mjs$' | tr '\n' '\0' | node "$(dirname "$0")/../../lib/run-explicit-tests.mjs" || SUITE_STATUS=$?
 else
   echo "[run-npmtest-suites] no npm-dep test files"
 fi
+
+# A red suite still gets the tree-clean verdict (a failing test is the likeliest one to leave a file behind).
+TREE_STATUS=0
+sh "$TREE_CLEAN" verify "$TREE_SNAPSHOT" || TREE_STATUS=$?
+if [ "$SUITE_STATUS" -ne 0 ]; then exit "$SUITE_STATUS"; fi
+exit "$TREE_STATUS"

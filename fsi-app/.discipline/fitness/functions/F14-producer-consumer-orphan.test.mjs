@@ -169,3 +169,45 @@ test('F14: metadata', () => {
   assert.ok(fitnessFunction.source.length > 0);
   assert.ok(typeof fitnessFunction.check === 'function');
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+const orphanReport = (codeFiles, sqlFiles = [{ content: '' }]) => buildOrphanReport({
+  schema: scanSchema(SCHEMA),
+  code: scanCode(codeFiles),
+  sql: scanSql(sqlFiles),
+  allowlist: {},
+});
+
+test('F14 B3-15: a reader that exists only inside a code comment is not a reader', () => {
+  const r = orphanReport([WRITER, { file: 'sim/reader.ts', content: '// await sb.from("sim_orphan").select("id");\n/* sb.from("sim_orphan").select("*") */' }]);
+  assert.equal(r.gatingOrphans.length, 1);
+});
+
+test('F14 B3-15: a reader whose call text sits inside a string literal is not a reader', () => {
+  const r = orphanReport([WRITER, { file: 'sim/reader.ts', content: 'const doc = \'await sb.from("sim_orphan").select("id")\';' }]);
+  assert.equal(r.gatingOrphans.length, 1);
+});
+
+test('F14 B3-16: a reader that exists only as a SQL comment in a migration is not a reader', () => {
+  const r = orphanReport([WRITER], [{ content: '-- SELECT * FROM sim_orphan;\n/* JOIN sim_orphan ON true */' }]);
+  assert.equal(r.gatingOrphans.length, 1);
+  const real = orphanReport([WRITER], [{ content: 'CREATE VIEW v AS SELECT * FROM sim_orphan;' }]);
+  assert.equal(real.gatingOrphans.length, 0);
+});
+
+test('F14 B3-17: a writer through a constant table name is a writer (the orphan is computed)', () => {
+  const r = orphanReport([{ file: 'sim/writer.ts', content: 'const T = "sim_orphan";\nawait sb.from(T).insert({ id });' }]);
+  assert.equal(r.gatingOrphans.length, 1);
+  // and a reader through a constant clears it
+  const cleared = orphanReport([
+    { file: 'sim/writer.ts', content: 'await sb.from("sim_orphan").insert({ id });' },
+    { file: 'sim/reader.ts', content: 'const T = `sim_orphan`;\nawait sb.from(T).select("id");' },
+  ]);
+  assert.equal(cleared.gatingOrphans.length, 0);
+});
+
+test('F14 B3-18: runOrphanCheck reads .cjs and .jsx code files, not only .ts .tsx .mjs .js', async () => {
+  const src = await (await import('node:fs/promises')).readFile(new URL('../../governance/producer-consumer-orphan.mjs', import.meta.url), 'utf8');
+  assert.match(src, /cjs\|jsx/);
+});

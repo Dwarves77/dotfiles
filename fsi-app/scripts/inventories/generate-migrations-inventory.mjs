@@ -110,6 +110,29 @@ export function buildRows(migDir, { readFileFn = readFileSync, listFilesFn } = {
   return { rows, malformed };
 }
 
+/**
+ * The rows the PARITY check compares (lane MIGTEST-1b, coordinator ruling 2026-10-08). The page is regenerated only by
+ * the executor's post-merge refresh step, never by a lane, because two branches that each add a migration add adjacent
+ * rows at one anchor and conflict whatever surrounds them. So a NOT APPLIED file may exist on disk with no row on the
+ * committed page yet: its row is left out of the derived rows when, and only when, the file is in `neverApplied` AND the
+ * committed page lists no row for it. A ledgered file with no row is NOT excused (it stays in the derived rows, so the
+ * parity check fails), and a never-applied file that already has a row stays in (its row must still be exact).
+ * PURE.
+ * @param {{number: string, file: string, subject: string}[]} rows  buildRows output
+ * @param {string | null} currentDocText  the committed page, or null
+ * @param {Iterable<string>} neverApplied  file names whose own header says NOT APPLIED and that no map row names
+ */
+export function omitUnlistedNeverApplied(rows, currentDocText, neverApplied) {
+  const never = new Set(neverApplied);
+  if (never.size === 0) return rows;
+  const listed = new Set();
+  for (const line of String(currentDocText ?? '').split('\n')) {
+    const m = /^\|\s*\d+\s*\|\s*(\S+\.sql)\s*\|/.exec(line);
+    if (m) listed.add(m[1]);
+  }
+  return rows.filter((r) => !(never.has(r.file) && !listed.has(r.file)));
+}
+
 /** Everything after the "## Migrations" table (its own trailing prose sections: "## Maintenance
  *  trigger", "## Records-truth corrections", "## Source files", "## Related", or whatever a lane adds
  *  next), from the currently committed doc, verbatim, or a bare stub if the doc does not exist yet

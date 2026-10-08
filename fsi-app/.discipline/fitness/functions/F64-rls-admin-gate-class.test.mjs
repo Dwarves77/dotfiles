@@ -288,3 +288,41 @@ test('enumerate() returns the real migration file list', () => {
   assert.ok(files.every((f) => f.endsWith('.sql')));
   assert.ok(files.every((f) => f.includes('supabase/migrations/')));
 });
+
+// ── lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ──
+
+test('F64 B6-48: CREATE UNLOGGED TABLE is a table that needs RLS; a TEMP table is not', () => {
+  assert.deepEqual(findCreateTables('CREATE UNLOGGED TABLE zz_t (id int);'), [{ table: 'zz_t', line: 1 }]);
+  assert.deepEqual(findCreateTables('CREATE TEMP TABLE zz_tmp (id int);'), []);
+});
+
+test('F64 B6-49: a quoted schema "public"."zz_t" names the table', () => {
+  assert.deepEqual(findCreateTables('CREATE TABLE "public"."zz_t" (id int);'), [{ table: 'zz_t', line: 1 }]);
+});
+
+test('F64 B6-50: CREATE TABLE ... AS SELECT is a table', () => {
+  assert.deepEqual(findCreateTables('CREATE TABLE public.zz_t AS SELECT 1 AS id;'), [{ table: 'zz_t', line: 1 }]);
+});
+
+test('F64 B6-51: an ENABLE ROW LEVEL SECURITY that exists only in a comment is not RLS', () => {
+  const files = [
+    { path: '001_a.sql', text: 'CREATE TABLE zz_t (id int);' },
+    { path: '002_b.sql', text: '-- ALTER TABLE zz_t ENABLE ROW LEVEL SECURITY;\n/* ALTER TABLE zz_t ENABLE ROW LEVEL SECURITY; */' },
+  ];
+  assert.equal(hasRlsEnableAnywhere(files, 'zz_t'), false);
+  assert.equal(checkRlsEnableGap({ content: files[0].text, allFiles: files, allowlist: {} }).length, 1);
+  assert.equal(hasRlsEnableAnywhere([{ path: '003.sql', text: 'ALTER TABLE "public"."zz_t" ENABLE ROW LEVEL SECURITY;' }], 'zz_t'), true);
+});
+
+test('F64 B6-53: the word org_id in a comment inside the statement is not a tie-back', () => {
+  const sql = 'CREATE POLICY "zz_pol" ON public.zz_t FOR SELECT USING (\n  EXISTS (SELECT 1 FROM public.org_memberships m WHERE m.user_id = auth.uid() AND m.role IN (\'owner\',\'admin\')) -- org_id check lives elsewhere\n);';
+  const [p] = findCreatePolicies(sql);
+  assert.equal(looksLikeOrgMembershipsAdminCheck(p.stmt), true);
+});
+
+test('F64 B6-54: role::text = and role = ANY(ARRAY[]) are the same global admin check', () => {
+  const a = "CREATE POLICY zz_a ON public.t FOR SELECT USING (EXISTS (SELECT 1 FROM org_memberships m WHERE m.user_id = auth.uid() AND m.role::text = 'admin'));";
+  const b = "CREATE POLICY zz_b ON public.t FOR SELECT USING (EXISTS (SELECT 1 FROM org_memberships m WHERE m.user_id = auth.uid() AND m.role = ANY (ARRAY['owner','admin'])));";
+  assert.equal(looksLikeOrgMembershipsAdminCheck(findCreatePolicies(a)[0].stmt), true);
+  assert.equal(looksLikeOrgMembershipsAdminCheck(findCreatePolicies(b)[0].stmt), true);
+});

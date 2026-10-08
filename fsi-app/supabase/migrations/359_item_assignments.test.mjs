@@ -7,14 +7,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const RAW = readFileSync(fileURLToPath(new URL("./359_item_assignments.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const policy = (name) => new RegExp(`CREATE POLICY ${name} ON public\\.item_assignments([\\s\\S]*?);\\n\\n`).exec(SQL)?.[1] ?? "";
 
-test("header: subject line, NOT APPLIED, external data only (ADR-042, ADR-043)", () => {
+test("header: subject line, applied status as the map says, external data only (ADR-042, ADR-043)", () => {
   assert.match(RAW, /^-- subject: Migration 359 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "359_item_assignments.sql"), []);
   assert.match(RAW, /ADR-042, ADR-043/);
 });
 

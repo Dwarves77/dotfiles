@@ -15,14 +15,14 @@ import { GOVERNING_FILES } from "../../harness-runs/governing-files.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const FSI_ROOT = resolve(HERE, "..", "..", "..");
 export const FAMILY = "theme-briefs";
-export const DEFAULT_FAMILY_DIR = resolve(FSI_ROOT, "scripts/harness-runs", FAMILY);
+const DEFAULT_FAMILY_DIR = resolve(FSI_ROOT, "scripts/harness-runs", FAMILY);
 
 /**
  * Pure: the artifact object for one run.
  * @param {{action:"export"|"apply", runId:string, harnessVersion:string, startedAt:string, config:object,
  *   inputsRef:string[], perItem:object[], metrics:object, defectsFound:object[], fullTraceRefs:string[], proposerNotes:string}} o
  */
-export function buildThemeBriefsArtifact(o) {
+function buildThemeBriefsArtifact(o) {
   return buildRunArtifactEnvelope({
     family: FAMILY,
     harnessVersion: o.harnessVersion,

@@ -641,12 +641,12 @@ export async function previewEntryCitations({ itemId, entry }, { sb, deps = {} }
  * @returns {Promise<{itemId:string, generated:boolean, provenanceStatus:string|null, steps:Array<{id:string,outcome:string,error:string|null}>}>}
  */
 /** The guarded writers recordBriefTerms needs (rule 015: every write goes through scripts/lib/db.mjs). */
-export const TERMS_CITE = Object.freeze({
+const TERMS_CITE = Object.freeze({
   skill: "buildout-plan-2026-10-04",
   reason:
     "G5-TERMS: apply-record-briefs writes vocabulary_mentions (detector brief-terms) for the mentioned_terms a session brief author emitted, and inserts a not-yet-held term as proposed. Counting and adoption are scripts/connections/term-recurrence.mjs.",
 });
-export function buildTermWriters() {
+function buildTermWriters() {
   return {
     readTerms: (termKeys) =>
       // Chunked by-id read (F39): the keys are filtered through readAllByIds, never one runtime-sized .in().

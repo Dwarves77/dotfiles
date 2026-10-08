@@ -50,18 +50,32 @@
 // createBrowserClient.
 // KNOWN LIMIT (stated, not hidden): a write through a function PARAMETER whose name matches nothing above
 // (`function w(qb) { qb.delete() }`) cannot be resolved inside one file and passes; the call site that
-// builds the chain (`w(sb.from("x"))`) holds the `.from(` and is checked there. The GUARDED_IMPORT_RE
-// exemption is unchanged.
+// builds the chain (`w(sb.from("x"))`) holds the `.from(` and is checked there. The guarded-path
+// exemption is described under HONEST FORMS below.
+//
+// HONEST FORMS (lane GATE-7, 2026-10-08, attacks A015-1 to A015-13 of the AUD-AT-3 register). The option
+// `rawWriteHits(content, { honest: true })` (the rule passes it; the coverage scan keeps the narrower default
+// so its governed-surface census does not move) adds: a write method named by a string index
+// (`.from("t")["delete"]()`, also split with a plus sign), a write through an alias of the client's `from`
+// (`const { from: tbl } = sb`), a raw PostgREST write through `fetch` (a `/rest/v1/` URL with a DELETE,
+// PATCH or PUT method), and a row-level SQL executor RPC (`exec_sql`). The guarded-path exemption is read on
+// CODE only (an import specifier or a name outside comments and strings), so a comment that names lib/db.mjs
+// silences nothing. The script extensions are every module extension the repo runs; the scripts/lib
+// exemption is the helper itself (scripts/lib/db.mjs) and not the directory; a proof file (*.test.mjs and
+// kin) is exempt only while it builds no real client. The rule reads the STAGED BLOB (ctx.getFileContent,
+// lib/context.mjs). An edit that turns an existing write call into another on the same line (update to
+// delete) is charged (introducedMatches' extract argument). NOT covered, and why: a write in src/ (this
+// rule polices scripts/; src writers are governed by the shared-writer registry and the F-functions).
 
 import { pass, fail } from '../lib/result.mjs';
 import { introducedMatches } from '../lib/context.mjs';
 import { skillsForOp } from '../governance/skill-map.mjs';
+import { maskNonCode, isIdent, isWs, foldStringConcat } from '../lib/mask-source.mjs';
 
 // Raw Supabase write signals (method-call shaped, NOT bare words — avoids the _diag "UPDATE CADENCE"
 // false-trip from the red-team). .insert is excluded (additive, not a row mutation of existing data).
 // Candidate calls only; whether a candidate is a DATABASE write is decided by rawWriteHits() below.
 const WRITE_CALL_RE = /\.\s*(update|upsert|delete)\s*\(/g;
-const GUARDED_IMPORT_RE = /lib\/db\.mjs|guardedUpdate|guardedUpsert|guardedDelete|archiveRows/;
 
 export const RECEIVER_NAMES = new Set(['sb', 'supabase', 'client', 'db', 'svc', 'service', 'rc', 'sbRead', 'sbClient']);
 export const CLIENT_FACTORIES = new Set([
@@ -79,96 +93,9 @@ const KEYWORDS = new Set([
   'new', 'function', 'yield', 'throw', 'else', 'do', 'case',
 ]);
 const SIGNAL_RAW_RE = /@supabase\/supabase-js|supabase-server|supabase-service|supabase-browser|lib\/db\.mjs/;
-const REGEX_PREV_WORDS = new Set(['return', 'typeof', 'case', 'in', 'of', 'delete', 'void', 'throw', 'yield', 'else', 'do', 'new', 'await']);
-
-const isIdent = (c) => c !== undefined && /[\w$]/.test(c);
-const isWs = (c) => c !== undefined && /\s/.test(c);
-
-/** Replace comments and the CONTENT of string, template and regex literals with spaces (newlines kept so
- *  indexes and line numbers stay aligned). Code inside a template `${ ... }` is kept. */
-export function maskNonCode(src) {
-  const s = String(src);
-  const n = s.length;
-  const out = new Array(n).fill(' ');
-  const keep = (k) => { out[k] = s[k]; };
-  const nl = (k) => { if (s[k] === '\n' || s[k] === '\r') out[k] = s[k]; };
-  let i = 0;
-
-  function lastWord() {
-    let k = i - 1;
-    while (k >= 0 && isWs(out[k])) k--;
-    const e = k;
-    while (k >= 0 && isIdent(out[k])) k--;
-    return e > k ? out.slice(k + 1, e + 1).join('') : '';
-  }
-  function prevSig() {
-    let k = i - 1;
-    while (k >= 0 && isWs(out[k])) k--;
-    return k >= 0 ? out[k] : '';
-  }
-  function regexAllowed() {
-    const p = prevSig();
-    if (p === '') return true;
-    if ('(,=:[!&|?{};+-*%<>~^'.includes(p)) return true;
-    return isIdent(p) && REGEX_PREV_WORDS.has(lastWord());
-  }
-  function template() {
-    while (i < n) {
-      const c = s[i];
-      if (c === '\\') { nl(i); i++; if (i < n) { nl(i); i++; } continue; }
-      if (c === '`') { keep(i); i++; return; }
-      if (c === '$' && s[i + 1] === '{') {
-        i += 2;
-        code(true);
-        if (i < n) i++; // the closing brace of the interpolation (left masked)
-        continue;
-      }
-      nl(i); i++;
-    }
-  }
-  function code(stopAtBrace) {
-    let depth = 0;
-    while (i < n) {
-      const c = s[i];
-      const d = s[i + 1];
-      if (c === '/' && d === '/') { while (i < n && s[i] !== '\n') i++; continue; }
-      if (c === '/' && d === '*') {
-        i += 2;
-        while (i < n && !(s[i] === '*' && s[i + 1] === '/')) { nl(i); i++; }
-        i += 2;
-        continue;
-      }
-      if (c === '"' || c === "'") {
-        keep(i); i++;
-        while (i < n && s[i] !== c && s[i] !== '\n') {
-          if (s[i] === '\\') { i++; if (i < n) { nl(i); i++; } continue; }
-          i++;
-        }
-        if (i < n && s[i] === c) { keep(i); i++; }
-        continue;
-      }
-      if (c === '`') { keep(i); i++; template(); continue; }
-      if (c === '/' && regexAllowed()) {
-        let k = i + 1;
-        let inClass = false;
-        let ok = false;
-        while (k < n && s[k] !== '\n') {
-          if (s[k] === '\\') { k += 2; continue; }
-          if (s[k] === '[') inClass = true;
-          else if (s[k] === ']') inClass = false;
-          else if (s[k] === '/' && !inClass) { ok = true; break; }
-          k++;
-        }
-        if (ok) { keep(i); keep(k); i = k + 1; continue; }
-      }
-      if (c === '{') depth++;
-      if (c === '}') { if (stopAtBrace && depth === 0) return; depth--; }
-      keep(i); i++;
-    }
-  }
-  code(false);
-  return out.join('');
-}
+// The tokenizer (maskNonCode, isIdent, isWs) is the commit rules' one lexer, lib/mask-source.mjs (GATE-7: rules 019
+// and 021 and the string folding read the same one). Re-exported so existing importers keep working.
+export { maskNonCode };
 
 function matchBack(code, closeIdx) {
   const close = code[closeIdx];
@@ -262,6 +189,7 @@ function chainIsDb(segs, env) {
   for (let idx = 0; idx < segs.length; idx++) {
     const sg = segs[idx];
     if (sg.paren) { if (exprIsDb(sg.inner, env)) return true; continue; }
+    if (sg.call && sg.name && env.fromAliases && env.fromAliases.has(sg.name)) return true;
     if (sg.call && sg.name === 'from') {
       const recv = segs[idx + 1];
       if (recv && recv.name && !recv.call && BUILTIN_FROM.has(recv.name)) continue;
@@ -306,7 +234,7 @@ function lineOf(src, idx) {
 }
 
 /** Every raw DATABASE write call in `content`: [{ line, method }]. Pure. */
-export function rawWriteHits(content) {
+export function rawWriteHits(content, opts = {}) {
   const src = String(content ?? '');
   const code = maskNonCode(src);
   const signal = SIGNAL_RAW_RE.test(src) || /\.\s*from\s*\(/.test(stripBuiltinFrom(code)) ||
@@ -330,6 +258,8 @@ export function rawWriteHits(content) {
     if (!changed) break;
   }
 
+  if (opts.honest) collectFromAliases(code, env);
+
   const hits = [];
   const callRe = new RegExp(WRITE_CALL_RE.source, 'g');
   let m;
@@ -337,23 +267,100 @@ export function rawWriteHits(content) {
     const segs = receiverChain(code, m.index);
     if (segs.length > 0 && chainIsDb(segs, env)) hits.push({ line: lineOf(src, m.index), method: m[1] });
   }
+  if (opts.honest) hits.push(...honestExtraHits(src, code, env));
+  return hits;
+}
+
+// `const { from: tbl } = sb` / `const { from } = writeClient()`: the destructured name is the client's `from`.
+function collectFromAliases(code, env) {
+  env.fromAliases = new Set();
+  const re = /\{([^{}]*)\}\s*=(?![=>])\s*([^;\n]+)/g;
+  let m;
+  while ((m = re.exec(code)) !== null) {
+    const rhs = m[2].trim();
+    const root = /^(?:await\s+)?([A-Za-z_$][\w$]*)\s*(?:\(|$|;)/.exec(rhs);
+    const rooted = root && (env.clientVars.has(root[1]) || /supabase/i.test(root[1]) || (env.signal && RECEIVER_NAMES.has(root[1])));
+    if (!(isClientFactoryExpr(rhs) || rooted)) continue;
+    for (const prop of m[1].split(',')) {
+      const pm = /^\s*from\s*(?::\s*([A-Za-z_$][\w$]*))?\s*(?:=.*)?$/.exec(prop);
+      if (pm) env.fromAliases.add(pm[1] || 'from');
+    }
+  }
+}
+
+const STRING_INDEX_RE = /\[\s*((?:(["'\x60])\s*\2\s*)(?:\+\s*(["'\x60])\s*\3\s*)*)\]\s*\(/g;
+const FETCH_CALL_RE = /(?<![\w$.])fetch\s*\(/g;
+const REST_METHOD_RE = /method\s*:\s*["'\x60]\s*(DELETE|PATCH|PUT)\b/i;
+const SQL_EXECUTOR_RPC_RE = /\.\s*rpc\s*\(\s*["'\x60]\s*(exec_sql|execute_sql|run_sql|exec)\s*["'\x60]/gi;
+
+// The write forms the call-shaped detector cannot see: a method named by a string index, a raw REST write,
+// a SQL-executor RPC. `code` is the fully masked source (string content blanked, offsets preserved); the
+// literal text is read from `src` at the same offsets.
+function honestExtraHits(src, code, env) {
+  const hits = [];
+  const strong = maskNonCode(src, { keepStrings: true });
+  let m;
+  STRING_INDEX_RE.lastIndex = 0;
+  while ((m = STRING_INDEX_RE.exec(code)) !== null) {
+    const literal = src.slice(m.index, m.index + m[0].length);
+    const name = [...literal.matchAll(/(["'\x60])([^"'\x60]*)\1/g)].map((x) => x[2]).join('').trim();
+    if (!['update', 'upsert', 'delete'].includes(name)) continue;
+    const at = code[m.index - 1] === '.' ? m.index - 1 : m.index;
+    const segs = receiverChain(code, at);
+    if (segs.length > 0 && chainIsDb(segs, env)) hits.push({ line: lineOf(src, m.index), method: name });
+  }
+  SQL_EXECUTOR_RPC_RE.lastIndex = 0;
+  while ((m = SQL_EXECUTOR_RPC_RE.exec(strong)) !== null) hits.push({ line: lineOf(src, m.index), method: 'rpc' });
+  FETCH_CALL_RE.lastIndex = 0;
+  while ((m = FETCH_CALL_RE.exec(strong)) !== null) {
+    const open = m.index + m[0].length - 1;
+    let depth = 0;
+    let end = open;
+    for (; end < strong.length; end++) {
+      if (strong[end] === '(') depth++;
+      else if (strong[end] === ')') { depth--; if (depth === 0) break; }
+    }
+    const raw = strong.slice(open, end + 1);
+    const call = foldStringConcat(raw);
+    if (!/\/rest\/v1\//i.test(call)) continue;
+    const verb = REST_METHOD_RE.exec(call);
+    if (verb) hits.push({ line: lineOf(src, open + Math.max(0, raw.search(/method\s*:/i))), method: verb[1].toLowerCase() });
+  }
   return hits;
 }
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }
+
+const SCRIPT_EXT_RE = /\.(mjs|cjs|js|mts|ts)$/;
+const HELPER_PATH = 'fsi-app/scripts/lib/db.mjs';
+// Test/proof files fake a Supabase client (`.update(`/`.upsert(`/`.delete(` are the very methods being faked)
+// and mutate no rows; they are not row-mutating scripts. First tripped by scripts/turns/apply-extraction-output
+// .test.mjs on PR #507 (2026-09-01). GATE-7: the exemption holds only while the file builds no REAL client
+// (a client factory call or the supabase-js import); a "test" that writes through a real client is a writer.
+const PROOF_FILE_RE = /\.(test|npmtest|selftest|golden)\.(mjs|cjs|js|mts|ts)$/;
+function buildsRealClient(content) {
+  const code = maskNonCode(content);
+  return /@supabase\/supabase-js/.test(maskNonCode(content, { keepStrings: true })) ||
+    [...CLIENT_FACTORIES].some((f) => new RegExp(`(?<![\\w$.])${f}\\s*\\(`).test(code));
+}
+
+// The guarded path is used when CODE imports lib/db.mjs or names one of its helpers: a comment or a string
+// that merely mentions them silences nothing (GATE-7, A015-3).
+function usesGuardedPath(content) {
+  const withStrings = maskNonCode(content, { keepStrings: true });
+  const importsHelper = /(?:\bfrom|\bimport\s*\(|\bimport|\brequire\s*\()\s*["'\x60][^"'\x60]*lib\/db\.mjs["'\x60]/.test(withStrings);
+  const namesHelper = /\b(?:guardedUpdate|guardedUpsert|guardedDelete|archiveRows)\b/.test(maskNonCode(content));
+  return importsHelper || namesHelper;
+}
 
 function relevantScripts(ctx) {
   return ctx.stagedFiles.filter((f) => {
     const p = norm(f.path);
     if (f.status === 'D') return false;
     if (!p.startsWith('fsi-app/scripts/')) return false;
-    if (!p.endsWith('.mjs')) return false;
+    if (!SCRIPT_EXT_RE.test(p)) return false;
     if (p.includes('/scripts/_diag/')) return false;     // read-only diagnostic convention
-    if (p.includes('/scripts/lib/')) return false;        // the helper itself + shared libs
-    // Test/proof files fake a Supabase client (`.update(`/`.upsert(`/`.delete(` are the very methods
-    // being faked) and mutate no rows; they are not row-mutating scripts. First tripped by
-    // scripts/turns/apply-extraction-output.test.mjs on PR #507 (2026-09-01).
-    if (/\.(test|npmtest|selftest|golden)\.mjs$/.test(p)) return false;
+    if (p === HELPER_PATH) return false;                  // the helper itself (GATE-7: not the whole lib/ directory)
     return true;
   });
 }
@@ -374,13 +381,14 @@ export const rule = {
     for (const f of relevantScripts(ctx)) {
       // Cheap exit first: no introduced write-shaped line means nothing to analyse, and the lexer below
       // only runs on files that gained one.
-      const introduced = introducedMatches(ctx.introducedLines(f.path), isWriteLine);
+      const introduced = introducedMatches(ctx.introducedLines(f.path), isWriteLine, writeTokens);
       if (introduced.length === 0) continue;
       const content = ctx.getFileContent(f.path);
       if (!content) continue;
-      const hits = rawWriteHits(content);
+      if (PROOF_FILE_RE.test(norm(f.path)) && !buildsRealClient(content)) continue; // a proof file faking a client
+      const hits = rawWriteHits(content, { honest: true });
       if (hits.length === 0) continue;                    // no raw database write → fine
-      if (GUARDED_IMPORT_RE.test(content)) continue;      // uses the guarded path → fine
+      if (usesGuardedPath(content)) continue;             // uses the guarded path → fine
       const lines = introducedHitLines(content, hits, introduced);
       if (lines.length === 0) continue;                   // the writes in this file are not this commit's
       const skills = skillsForOp(content);
@@ -404,8 +412,20 @@ export const rule = {
 };
 
 // A line that carries a write-shaped call. Stateless twin of WRITE_CALL_RE for introducedMatches.
+// Also the string-index, REST and SQL-executor shapes (read on the line with plus-joined literals folded).
 const WRITE_LINE_RE = new RegExp(WRITE_CALL_RE.source);
-const isWriteLine = (line) => WRITE_LINE_RE.test(line);
+const EXTRA_WRITE_LINE_RE = /\[\s*["'\x60]\s*(?:update|upsert|delete)\s*["'\x60]\s*\]|exec_sql|execute_sql|run_sql|rest\/v1|fetch\s*\(|method\s*:\s*["'\x60]\s*(?:DELETE|PATCH|PUT)|\bfrom\s*:|\{[^}]*\bfrom\b[^}]*\}\s*=/i;
+const isWriteLine = (line) => { const f = foldStringConcat(line); return WRITE_LINE_RE.test(f) || EXTRA_WRITE_LINE_RE.test(f); };
+// What a write line wrote, for edit-extend: the method names and shapes on it.
+const writeTokens = (line) => {
+  const f = foldStringConcat(line);
+  return [
+    ...[...f.matchAll(/\.\s*(update|upsert|delete)\s*\(/g)].map((x) => x[1]),
+    ...[...f.matchAll(/\[\s*["'\x60]\s*(update|upsert|delete)\s*["'\x60]\s*\]/g)].map((x) => x[1]),
+    ...[...f.matchAll(/method\s*:\s*["'\x60]\s*(DELETE|PATCH|PUT)/gi)].map((x) => x[1].toLowerCase()),
+    ...[...f.matchAll(/(exec_sql|execute_sql|run_sql)/g)].map((x) => x[1]),
+  ];
+};
 const squash = (s) => String(s ?? '').trim().replace(/\s+/g, ' ');
 
 // The database-write hits that sit on introduced lines. Aligned by line number when the file on disk is

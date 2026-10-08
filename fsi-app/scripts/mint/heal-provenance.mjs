@@ -1131,7 +1131,7 @@ export function buildNumericNormalizedIndex(text) {
 /** Precompute a capture's structural-normalized index, numeric-tolerant index, and both lowercased forms
  *  (raw + structural) ONCE. Pure. `lower` matches what `containsCaseInsensitive`'s own `.toLowerCase()`
  *  would produce; `structuralLower` matches `locateSpanInTextCore`'s own `normalized_ci` tier. */
-export function buildCaptureIndex(text) {
+function buildCaptureIndex(text) {
   const hay = String(text ?? "");
   const structural = buildNormalizedIndex(hay);
   return {
@@ -1148,7 +1148,7 @@ export function buildCaptureIndex(text) {
  *  this file reads — every `select` this module's deps use projects `id` — but never assumed). `cache`
  *  defaults to a fresh, call-scoped Map, so any DIRECT caller that omits it gets a correct, merely
  *  non-shared, result — never a behavior change, only a caching opportunity not taken. */
-export function getCaptureIndex(capture, cache = new Map()) {
+function getCaptureIndex(capture, cache = new Map()) {
   const id = capture?.id;
   if (id == null) return buildCaptureIndex(capture?.result_content);
   let idx = cache.get(id);
@@ -1161,7 +1161,7 @@ export function getCaptureIndex(capture, cache = new Map()) {
 
 /** `containsCaseInsensitive(capture.result_content, needle)`, via a precomputed/cached index — same
  *  output, no re-`.toLowerCase()` of a haystack this run has already indexed. Pure given a stable `cache`. */
-export function containsCaseInsensitiveCached(capture, needle, cache = new Map()) {
+function containsCaseInsensitiveCached(capture, needle, cache = new Map()) {
   const n = String(needle ?? "").trim();
   if (!n) return false;
   const idx = getCaptureIndex(capture, cache);
@@ -1231,7 +1231,7 @@ const TRAILING_PUNCT_RE = /[.,;:)\]}]+$/;
  *  call never rebuilds a haystack's normalized form twice (the pre-TENTH-PASS shape of `locateSpanInText`
  *  did exactly that, for every call, cache or no cache — see this section's own header). Pure given a
  *  stable `index`. */
-export function locateSpanInTextIndexed(needleTrim, index) {
+function locateSpanInTextIndexed(needleTrim, index) {
   const found = locateSpanInTextCore(needleTrim, index);
   if (found) return found;
   const stripped = needleTrim.replace(TRAILING_PUNCT_RE, "");
@@ -1266,7 +1266,7 @@ export function locateSpanInText(needle, haystackText) {
  *  `captureIndexCache` option, a later item in the same run) is normalized ONCE. Pure given a stable
  *  `cache`. `cache` defaults to a fresh, call-scoped Map — a direct caller that omits it is byte-identical
  *  in OUTPUT to `locateSpanInText(needle, capture.result_content)`, only without the cross-call reuse. */
-export function locateSpanInTextCached(needle, capture, cache = new Map()) {
+function locateSpanInTextCached(needle, capture, cache = new Map()) {
   const needleTrim = String(needle ?? "").trim();
   if (!needleTrim || !capture?.result_content) return null;
   return locateSpanInTextIndexed(needleTrim, getCaptureIndex(capture, cache));

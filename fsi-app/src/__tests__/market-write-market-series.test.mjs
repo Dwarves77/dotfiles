@@ -90,3 +90,51 @@ test("multiple incoming rows are independently planned (mixed create + update in
   assert.equal(toCreate.length, 1);
   assert.equal(toUpdate.length, 1);
 });
+
+// ---- lane L4-E (2026-10-08, migration 373): the entity a producer's rows describe -------------------------------
+
+import { entityIdFromEnv, PRODUCER_ENTITY_ID_ENV } from "../lib/market/write-market-series.mjs";
+import { entityId as mintEntityId } from "../lib/entities/entity-id.mjs";
+
+const EU = mintEntityId("jurisdiction", "EU");
+
+test("entity: no entity configured leaves the plan exactly as before (creates and patches carry no entity_id)", () => {
+  const existing = [{ id: "uuid-1", series_key: "eu-oil-bulletin:automotive-diesel", reference_period: "2026-08-24", entity_id: null }];
+  const { toCreate, toUpdate } = planMarketSeriesUpsert(existing, [row(), row({ reference_period: "2026-08-31" })], { entityId: null });
+  assert.equal("entity_id" in toCreate[0], false);
+  assert.equal("entity_id" in toUpdate[0].patch, false);
+  assert.deepEqual(Object.keys(toUpdate[0].patch).sort(), [...REFRESHABLE_FIELDS].sort());
+});
+
+test("entity: a created row is stamped with the producer's entity unless the row already names one", () => {
+  const { toCreate } = planMarketSeriesUpsert([], [row(), row({ reference_period: "2026-08-31", entity_id: mintEntityId("jurisdiction", "DE") })], { entityId: EU });
+  assert.equal(toCreate[0].entity_id, EU);
+  assert.equal(toCreate[1].entity_id, mintEntityId("jurisdiction", "DE"), "a row's own entity wins");
+});
+
+test("entity: an update patch carries it only when the existing row was read with a NULL entity_id; a set or unread value is never touched", () => {
+  const key = { series_key: "eu-oil-bulletin:automotive-diesel", reference_period: "2026-08-24" };
+  const nullEntity = planMarketSeriesUpsert([{ id: "a", ...key, entity_id: null }], [row()], { entityId: EU });
+  assert.equal(nullEntity.toUpdate[0].patch.entity_id, EU);
+  const setEntity = planMarketSeriesUpsert([{ id: "b", ...key, entity_id: mintEntityId("jurisdiction", "US") }], [row()], { entityId: EU });
+  assert.equal("entity_id" in setEntity.toUpdate[0].patch, false, "an existing entity is never overwritten");
+  const unread = planMarketSeriesUpsert([{ id: "c", ...key }], [row()], { entityId: EU });
+  assert.equal("entity_id" in unread.toUpdate[0].patch, false, "a producer that does not read the column never touches it");
+});
+
+test("entityIdFromEnv: unset or empty is null, a well-formed id passes, a malformed id fails loud; the default reads the process environment", () => {
+  assert.equal(PRODUCER_ENTITY_ID_ENV, "PRODUCER_ENTITY_ID");
+  assert.equal(entityIdFromEnv({}), null);
+  assert.equal(entityIdFromEnv({ PRODUCER_ENTITY_ID: "" }), null);
+  assert.equal(entityIdFromEnv({ PRODUCER_ENTITY_ID: EU }), EU);
+  assert.throws(() => entityIdFromEnv({ PRODUCER_ENTITY_ID: "european-union" }), /not a well-formed entity id/);
+  const prior = process.env.PRODUCER_ENTITY_ID;
+  try {
+    process.env.PRODUCER_ENTITY_ID = EU;
+    assert.equal(planMarketSeriesUpsert([], [row()]).toCreate[0].entity_id, EU, "the planner's default is the environment, so no producer script changes");
+    delete process.env.PRODUCER_ENTITY_ID;
+    assert.equal("entity_id" in planMarketSeriesUpsert([], [row()]).toCreate[0], false);
+  } finally {
+    if (prior === undefined) delete process.env.PRODUCER_ENTITY_ID; else process.env.PRODUCER_ENTITY_ID = prior;
+  }
+});

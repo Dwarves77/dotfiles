@@ -86,3 +86,31 @@ mode, against a real schema, with read-back assertions and the attack suite) has
   patch migrations. The migrations-history repair is a separate lane (decision 4).
 - The applied-migrations inventory stays as the replay's applied-set source; its refresh is a hand step
   (`scripts/proof/sync-applied-migrations.mjs`, which also owns the inventory's shape).
+
+## Addendum 2026-10-08 (docs pass DOCS-3; amends decisions 2 and 4, rewrites nothing above)
+
+Facts and rulings that landed after this ADR was written. The operating detail is in
+[runbook 64](../runbooks/maintenance.d/64-chain-proof.md), which carries the same record.
+
+1. The map exists. PR 1013 (MIG-HIST-1b, merge commit 8be0cc9c, 2026-10-08) landed `APPLIED-MAP.json` and the replay
+   reader's classes. Decision 4's "RED until the map lands" is spent: the job is RED at the replay step instead
+   (run 37786107972, b53b85cc). The ledger the map covers is 365 rows at the 2026-10-08 sync of
+   `applied-migrations.json` (352 in decision 2 and above).
+2. Two map classes beyond the table in decision 4: `statements-null` (the ledger stored no SQL for the row) and
+   `apply-record-stub` (the ledger stored a provenance note, not SQL). Both replay the file exactly like `identical`,
+   because the file is the only text. They are 112 and 6 rows of the 2026-10-08 map. An invented class is still
+   refused.
+3. Outside-ledger ruling. The three files the map carried as `duplicate-prefix` (`006_rls_multi_tenant`,
+   `007_rls_community`, `007_full_brief`) are ruled class `outside-ledger` by the coordinator on 2026-10-08, on the
+   evidence of replay run 37779804328 (`035_agent_integrity_flags.sql` depends on `intelligence_items.full_brief`,
+   created only in `007_full_brief.sql`; the siblings by the same shape). Source: the MIG-CI session log
+   (`docs/ops/session-log.d/2026-10-08-migci-apply-on-stack.md`, on the PR 1019 branch until it merges) and PR 1013 for
+   the map they are re-keyed in. The re-key takes effect when PR 1019 merges; master at 204d919f still lists them as
+   `duplicate-prefix`.
+4. Replay order. Decision 2 says the order is `docs/inventories/migrations.md`. The coordinator ruled on 2026-10-08
+   that the replay applies by ledger version ascending, an outside-ledger file right after the ledgered file that
+   precedes it in the inventory, a doubly claimed file once at the earlier version (`orderByLedger`, PR 1019). Until
+   that merges, the inventory order stands on master.
+5. The same stack now also proves pending migrations before production: the `migration-proof` pull_request job
+   (`.github/workflows/migration-proof.yml`, runbook file `67-migration-proof.md`) replays the applied set and applies every migration
+   production has not applied. In flight: PR 1019, not merged at this entry.

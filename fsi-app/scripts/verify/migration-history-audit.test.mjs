@@ -35,11 +35,11 @@ function clean() {
     "900": { name: "rec", file: "241_rec.sql", class: "recovered" },
     "20260101000000": { name: "data_load", file: null, class: "data-only", superseded_by: "004_covering.sql" },
     "20260101000001": { name: "view_comment", file: null, class: "comment-only", superseded_by: "003_view.sql" },
-    "never:299_never.sql": { name: "never", file: "299_never.sql", class: "never-applied", note: "x" },
   };
   return { ledger, files, map };
 }
 const codes = (r) => r.failures.map((f) => f.code);
+const r2 = (f) => evaluateHistory(f).failures;
 
 test("GREEN: a clean fixture passes", () => {
   const r = evaluateHistory(clean());
@@ -74,17 +74,33 @@ test("ATTACK FILE_NOT_ACCOUNTED: a file with no row and no NEVER APPLIED header"
   assert.ok(r.failures.some((x) => x.code === "FILE_NOT_ACCOUNTED" && x.key === "300_loose.sql"));
 });
 
-test("ATTACK FILE_STATUS_HEADER: the map says never-applied but the file carries no status line", () => {
+test("ATTACK NEVER_ENTRY_COMMITTED: a never-applied entry committed in the map (such files are derived from the header, never committed)", () => {
   const f = clean();
-  f.files.set("299_never.sql", "-- subject: n\nSELECT 1;\n");
-  assert.ok(codes(evaluateHistory(f)).includes("FILE_STATUS_HEADER"));
+  f.map["never:299_never.sql"] = { name: "never", file: "299_never.sql", class: "never-applied", note: "x" };
+  const r = evaluateHistory(f);
+  assert.ok(r.failures.some((x) => x.code === "NEVER_ENTRY_COMMITTED" && x.key === "299_never.sql"));
 });
 
-test("ATTACK FILE_STATUS_HEADER: a file carries a NEVER APPLIED status the map does not list", () => {
+test("ATTACK FILE_NOT_ACCOUNTED: the unmapped file whose first-line NEVER APPLIED status is removed is no longer accounted for", () => {
+  const f = clean();
+  f.files.set("299_never.sql", "-- subject: n\nSELECT 1;\n");
+  assert.ok(r2(f).some((x) => x.code === "FILE_NOT_ACCOUNTED" && x.key === "299_never.sql"));
+});
+
+test("an unmapped file with a first-line NEVER APPLIED status is accounted for by derivation: a finding, never a failure", () => {
   const f = clean();
   f.files.set("300_claims.sql", "/* status: NEVER APPLIED (as of 2026-10-07) */\n-- subject: c\nSELECT 1;\n");
   const r = evaluateHistory(f);
-  assert.ok(r.failures.some((x) => x.code === "FILE_STATUS_HEADER" && x.key === "300_claims.sql"));
+  assert.deepEqual(r.failures, []);
+  assert.ok(r.findings.some((x) => x.startsWith("NEVER_APPLIED 300_claims.sql")));
+});
+
+test("ATTACK FILE_STATUS_HEADER: an unmapped file with an outside-ledger first-line status is not derivable as never-applied", () => {
+  const f = clean();
+  f.files.set("202_out.sql", "/* status: APPLIED OUTSIDE LEDGER (no row; evidence: log) */\n-- subject: o\nSELECT 1;\n");
+  const r = evaluateHistory(f);
+  assert.ok(r.failures.some((x) => x.code === "FILE_STATUS_HEADER" && x.key === "202_out.sql"));
+  assert.ok(r.failures.some((x) => x.code === "FILE_NOT_ACCOUNTED" && x.key === "202_out.sql"));
 });
 
 test("ATTACK CODE_DIFFERS: the stored statements differ from the file in one literal", () => {
@@ -135,11 +151,13 @@ test("an outside-ledger file is a FINDING (objects unverified), never a pass and
   assert.ok(r.findings.some((x) => x.startsWith("OBJECTS_UNVERIFIED 202_out.sql")));
 });
 
-test("a lane-authored file whose own header says NOT APPLIED is never-applied without a first-line status", () => {
+test("a lane-authored file whose own header says NOT APPLIED is accounted for with NO map entry (derived), so a new migration edits no shared file", () => {
   const f = clean();
   f.files.set("370_new.sql", "-- subject: s\n-- 370 -- new\n--\n-- NOT APPLIED. Authored by lane X; the coordinator applies it.\nSELECT 1;\n");
-  f.map["never:370_new.sql"] = { name: "new", file: "370_new.sql", class: "never-applied", note: "header" };
-  assert.deepEqual(evaluateHistory(f).failures, []);
+  assert.equal(Object.keys(f.map).some((k) => k.includes("370_new")), false);
+  const r = evaluateHistory(f);
+  assert.deepEqual(r.failures, []);
+  assert.ok(r.findings.some((x) => x.startsWith("NEVER_APPLIED 370_new.sql")));
 });
 
 test("stale NOT APPLIED prose on a file that has a ledger row is not evidence and not a failure; only a first-line status is", () => {
@@ -148,11 +166,10 @@ test("stale NOT APPLIED prose on a file that has a ledger row is not evidence an
   assert.deepEqual(evaluateHistory(f).failures, []);
 });
 
-test("ATTACK FILE_STATUS_HEADER: a never-applied entry for a file that says nothing about being unapplied", () => {
+test("ATTACK FILE_NOT_ACCOUNTED: a new file that says nothing about being unapplied and has no row is the one failure", () => {
   const f = clean();
   f.files.set("370_new.sql", "-- subject: s\nSELECT 1;\n");
-  f.map["never:370_new.sql"] = { name: "new", file: "370_new.sql", class: "never-applied", note: "header" };
-  assert.ok(codes(evaluateHistory(f)).includes("FILE_STATUS_HEADER"));
+  assert.ok(r2(f).some((x) => x.code === "FILE_NOT_ACCOUNTED" && x.key === "370_new.sql"));
 });
 
 test("ledgerFromRows joins statement arrays and keeps NULL as null", () => {

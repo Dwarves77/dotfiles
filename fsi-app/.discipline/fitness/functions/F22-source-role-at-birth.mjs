@@ -18,7 +18,7 @@
 // registration). Same shape as F13 (single-mint-chokepoint) one table over: F13 makes the mint gate
 // an invariant for intelligence_items, F22 makes role-at-birth an invariant for sources.
 //
-// Scope: fsi-app/src/**/*.{ts,tsx,mjs} + fsi-app/scripts/**/*.mjs, EXCLUDING the classifier itself
+// Scope: fsi-app/src (ts tsx mjs js cjs jsx) + fsi-app/scripts (mjs js cjs ts), EXCLUDING the classifier itself
 // and test files. Unlike F13, scripts are IN scope: scripts/lib/db.mjs registerSource is a live
 // creation path, and one-shot scripts that already executed carry an explicit override.
 //
@@ -26,7 +26,8 @@
 
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
+import { overrideLines, hasCodeIdentifier } from '../lib/code-scan.mjs';
+import { tableWriteLines, rawSqlLines } from '../lib/table-access.mjs';
 
 const CLASSIFIER = 'fsi-app/src/lib/sources/classify-source-role.ts';
 
@@ -42,39 +43,20 @@ export const LEGACY_ALLOWLIST = [
 
 const ALLOWLIST_FILES = new Set(LEGACY_ALLOWLIST.map((e) => e.file));
 
-const FROM_SOURCES_RE = /\bfrom\(\s*["']sources["']\s*\)/;
-
-// Line-anchored on `from("sources")`, flagging when `.insert(`/`.upsert(` appears in the same
-// 4-line window (supabase-js allows the chained call to wrap). A `.update(` on the same anchor is
-// NOT a creation and must not be flagged — the window stops at the next `.from(` so an unrelated
-// insert on a DIFFERENT table further down the file cannot be attributed to this anchor. That exact
-// false positive (a sources `.update(...)` followed by a source_trust_events `.insert(...)`) was
-// produced by the first draft of this check.
+// Reads the call as a call (lane GATE-8, 2026-10-08, AUD-AT-4 B2-33 to B2-39): ../lib/table-access.mjs finds each
+// `.from(<table>)` whose argument is the literal "sources", a template literal, or a file constant, and walks the
+// whole method chain, so an `.insert(` or `.upsert(` is seen however far down it sits and however the call is
+// wrapped. A `.update(` on the same anchor is NOT a creation, and an insert on a DIFFERENT table is a different
+// chain (the first draft's false positive: a sources update followed by a source_trust_events insert). Raw SQL
+// `INSERT INTO sources` in a string is a creation too. The enclosing file must reference the classifier IN CODE:
+// a comment or a string that names classifySourceRole is not a classification (B2-33, B2-34). The file-level
+// reference is the honest granularity because the row object is frequently built above the call.
 export function isRolelessSourceInsert(content) {
-  const lines = content.split(/\r?\n/);
-  const hits = [];
-  for (let i = 0; i < lines.length; i++) {
-    const codePart = lines[i].split('//')[0];
-    if (!FROM_SOURCES_RE.test(codePart)) continue;
-    if (isOverridden(lines[i], 'F22')) continue;
-
-    const raw = lines.slice(i, Math.min(lines.length, i + 4)).map((l) => l.split('//')[0]);
-    // Truncate the window at a subsequent `.from(` so we never read into another table's call.
-    let window = '';
-    for (let j = 0; j < raw.length; j++) {
-      const seg = j === 0 ? raw[j].slice(raw[j].search(FROM_SOURCES_RE)) : raw[j];
-      const nextFrom = j === 0 ? -1 : seg.search(/\.from\(/);
-      if (nextFrom !== -1) { window += seg.slice(0, nextFrom); break; }
-      window += '\n' + seg;
-    }
-    if (!/\.(insert|upsert)\s*\(/.test(window)) continue;
-
-    // The write is a creation. The enclosing file must reference the classifier — the row object is
-    // frequently built above the call (a `newSource` literal, a spread of proposed_changes), so a
-    // file-level reference is the honest granularity here rather than a same-window match.
-    if (!content.includes('classifySourceRole')) hits.push(i + 1);
-  }
-  return hits;
+  const overridden = overrideLines(content, 'F22');
+  const lines = new Set([...tableWriteLines(content, 'sources'), ...rawSqlLines(content, 'INSERT\\s+INTO', 'sources')]);
+  if (lines.size === 0) return [];
+  if (hasCodeIdentifier(content, 'classifySourceRole')) return [];
+  return [...lines].filter((ln) => !overridden.has(ln)).sort((a, b) => a - b);
 }
 
 export const fitnessFunction = {
@@ -87,8 +69,8 @@ export const fitnessFunction = {
 
   enumerate() {
     return globFiles([
-      'fsi-app/src/**/*.{ts,tsx,mjs}',
-      'fsi-app/scripts/**/*.mjs',
+      'fsi-app/src/**/*.{ts,tsx,mjs,js,cjs,jsx}',
+      'fsi-app/scripts/**/*.{mjs,js,cjs,ts}',
     ]).filter(
       (p) =>
         p !== CLASSIFIER &&
