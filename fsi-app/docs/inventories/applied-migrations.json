@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-07T14:21:19.459Z",
-  "count": 352,
+  "synced_at": "2026-10-08T09:15:29.913Z",
+  "count": 361,
   "migrations": [
     {
       "version": "001",
@@ -1410,6 +1410,42 @@
     {
       "version": "20261007095953",
       "name": "357_vocabulary_kinds"
+    },
+    {
+      "version": "20261008005235",
+      "name": "363_capture_worker_fetch_grants"
+    },
+    {
+      "version": "20261008010426",
+      "name": "361_count_rpc_membership"
+    },
+    {
+      "version": "20261008022411",
+      "name": "362_portfolios"
+    },
+    {
+      "version": "20261008030947",
+      "name": "364_profiles_privilege_columns"
+    },
+    {
+      "version": "20261008033159",
+      "name": "367_profiles_status_columns"
+    },
+    {
+      "version": "20261008034412",
+      "name": "358_workspace_item_notes"
+    },
+    {
+      "version": "20261008034443",
+      "name": "359_item_assignments"
+    },
+    {
+      "version": "20261008041012",
+      "name": "368_drop_dead_schema"
+    },
+    {
+      "version": "20261008072538",
+      "name": "369_privilege_functions_views"
     }
   ]
 }

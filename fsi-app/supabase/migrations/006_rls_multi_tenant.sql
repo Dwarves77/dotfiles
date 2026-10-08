@@ -1,3 +1,4 @@
+/* status: NO LEDGER ROW, duplicate prefix, unverified (as of 2026-10-07; see APPLIED-MAP.json) */
 -- subject: ══════════════════════════════════════════════════════════════
 -- ══════════════════════════════════════════════════════════════
 -- Migration 006 RLS: Multi-Tenant Row Level Security

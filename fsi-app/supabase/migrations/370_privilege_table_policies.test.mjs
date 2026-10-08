@@ -112,8 +112,8 @@ test("item 3: the role guard enforces owner-only owner changes, no self role cha
   assert.match(SQL, /m\.role = 'owner' AND m\.id <> OLD\.id/);
   assert.match(SQL, /NEW\.org_id IS DISTINCT FROM OLD\.org_id OR NEW\.user_id IS DISTINCT FROM OLD\.user_id/);
   assert.match(SQL, /RETURN OLD;/);
-  // the membership policies stay: this migration never drops or alters them
-  assert.doesNotMatch(SQL, /(DROP|ALTER) POLICY[^;]*\b(membership_write_admin|membership_update_admin|membership_delete_admin)\b/);
+  // the membership policies stay (never dropped); the recursion fix ALTERs them to read the role through user_org_role
+  assert.doesNotMatch(SQL, /DROP POLICY[^;]*\b(membership_write_admin|membership_update_admin|membership_delete_admin)\b/);
 });
 
 test("item 4: the post guard pins sign-off columns and author, and gates group moves on user_is_group_admin of BOTH groups", () => {
@@ -137,7 +137,8 @@ test("item 6: user_can_write_in_org is member/admin/owner, SECURITY DEFINER with
   const fn = SQL.slice(SQL.indexOf("CREATE OR REPLACE FUNCTION public.user_can_write_in_org"), SQL.indexOf("COMMENT ON FUNCTION public.user_can_write_in_org"));
   assert.match(fn, /SECURITY DEFINER/);
   assert.match(fn, /SET search_path = public, pg_temp/);
-  const alters = [...SQL.matchAll(/ALTER POLICY (\w+) ON public\.(\w+)/g)].map((m) => `${m[2]}.${m[1]}`);
+  const viewerStatements = SQL.split(";").filter((x) => /ALTER POLICY/.test(x) && /user_can_write_in_org/.test(x));
+  const alters = viewerStatements.map((x) => x.match(/ALTER POLICY (\w+) ON public\.(\w+)/)).map((m) => `${m[2]}.${m[1]}`);
   assert.deepEqual(alters.sort(), [
     "item_workspace_tags.item_workspace_tags_org_delete", "item_workspace_tags.item_workspace_tags_org_insert",
     "org_watchlist.org_watchlist_member_delete", "org_watchlist.org_watchlist_member_insert", "org_watchlist.org_watchlist_member_update",
@@ -146,7 +147,7 @@ test("item 6: user_can_write_in_org is member/admin/owner, SECURITY DEFINER with
     "workspace_item_overrides.overrides_delete_org", "workspace_item_overrides.overrides_insert_org", "workspace_item_overrides.overrides_update_org",
     "workspace_tags.workspace_tags_org_delete", "workspace_tags.workspace_tags_org_insert",
   ].sort());
-  const statements = SQL.split(";").filter((s) => /ALTER POLICY/.test(s));
+  const statements = viewerStatements;
   assert.equal(statements.length, 15);
   for (const s of statements) {
     assert.match(s, /user_can_write_in_org\(org_id\)/);
@@ -154,7 +155,7 @@ test("item 6: user_can_write_in_org is member/admin/owner, SECURITY DEFINER with
     assert.doesNotMatch(s, /user_belongs_to_org/);
   }
   // reads keep user_belongs_to_org: no SELECT policy is touched
-  assert.doesNotMatch(SQL, /ALTER POLICY \w+_(read|member_read|read_org) /);
+  assert.doesNotMatch(SQL, /ALTER POLICY \w+_(org_read|member_read|read_org) /);
 });
 
 test("self-check ATTACKS as role authenticated and service_role through a fixture jwt sub, requires 42501 on every attack, rolls back", () => {
@@ -263,6 +264,153 @@ test("community_groups: no code path updates owner_user_id", () => {
     let m;
     while ((m = re.exec(t))) assert.doesNotMatch(m[1], /owner_user_id/, base(f));
   }
+});
+
+// ---- The recursion class (42P17): a policy must not read its own table ---------------------------------------------
+const MIG = (name) => readFileSync(join(HERE, name), "utf8");
+const ADMIN_POLICIES = ["membership_write_admin", "membership_update_admin", "membership_delete_admin"];
+
+test("recursion: migration 006 defines the three admin policies with a subquery on org_memberships itself (the cause)", () => {
+  const m006 = MIG("006_rls_multi_tenant.sql");
+  for (const name of ADMIN_POLICIES) {
+    const at = m006.indexOf(`CREATE POLICY "${name}"`);
+    assert.ok(at > 0, name);
+    const body = m006.slice(at, m006.indexOf(";", at));
+    assert.match(body, /FROM org_memberships m/, `${name} reads org_memberships inside its own policy`);
+  }
+});
+
+test("recursion: 370 ALTERs each of the three policies to user_org_role and none of the ALTERed text names org_memberships", () => {
+  for (const name of ADMIN_POLICIES) {
+    const at = SQL.indexOf(`ALTER POLICY ${name} ON public.org_memberships`);
+    assert.ok(at > 0, `${name} is ALTERed`);
+    const stmt = SQL.slice(at, SQL.indexOf(";", at));
+    assert.match(stmt, /public\.user_org_role\(org_id\) IN \('owner', 'admin'\) OR \(select auth\.role\(\)\) = 'service_role'/);
+    assert.doesNotMatch(stmt.replace(/ON public\.org_memberships/, ""), /org_memberships/);
+  }
+});
+
+test("recursion: user_org_role is SECURITY DEFINER, search_path pinned to public, pg_temp, EXECUTE revoked from PUBLIC and granted to authenticated", () => {
+  const at = SQL.indexOf("CREATE OR REPLACE FUNCTION public.user_org_role(p_org uuid)");
+  assert.ok(at > 0);
+  const fn = SQL.slice(at, SQL.indexOf("$fn$;", at + 80));
+  assert.match(fn, /SECURITY DEFINER/);
+  assert.match(fn, /SET search_path = public, pg_temp/);
+  assert.match(fn, /m\.user_id = auth\.uid\(\)/);
+  assert.match(SQL, /REVOKE ALL ON FUNCTION public\.user_org_role\(uuid\) FROM PUBLIC;/);
+  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.user_org_role\(uuid\) TO authenticated, service_role;/);
+});
+
+test("recursion: the final policy state of org_memberships (006 policies with 370's ALTERs applied) has no policy naming org_memberships", () => {
+  const m006 = MIG("006_rls_multi_tenant.sql");
+  const names = [...m006.matchAll(/CREATE POLICY "(\w+)"\s+ON org_memberships/g)].map((m) => m[1]);
+  assert.ok(names.length >= 4, `found ${names.join(", ")}`);
+  for (const name of names) {
+    const altered = SQL.includes(`ALTER POLICY ${name} ON public.org_memberships`);
+    const at = m006.indexOf(`CREATE POLICY "${name}"`);
+    const original = m006.slice(at, m006.indexOf(";", at));
+    const readsOwnTable = /FROM org_memberships/.test(original);
+    assert.ok(!readsOwnTable || altered, `${name} reads org_memberships and 370 does not re-point it`);
+  }
+  // no other migration defines or alters a policy on org_memberships that reads the table
+  for (const f of readdirSync(HERE).filter((x) => x.endsWith(".sql") && !x.startsWith("006_") && !x.startsWith("370_"))) {
+    const t = MIG(f).split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
+    for (const m of t.matchAll(/(CREATE|ALTER) POLICY\s+"?(\w+)"?\s+ON\s+(public\.)?org_memberships\b([^;]*);/gi)) {
+      assert.doesNotMatch(m[4], /org_memberships/i, `${f}: policy ${m[2]} on org_memberships reads org_memberships`);
+    }
+  }
+});
+
+test("recursion: community_group_members (migration 029) policies that read the table are re-pointed to user_group_role, with their original meaning", () => {
+  const m029 = MIG("029_community_group_members.sql");
+  const m046 = MIG("046_community_rls_recursion_fix.sql");
+  const names = [...m029.matchAll(/create policy "(\w+)"\s+on community_group_members/gi)].map((m) => m[1]);
+  assert.ok(names.includes("community_group_members_insert_admin") && names.includes("community_group_members_update_self_prefs"));
+  for (const name of names) {
+    const at = m029.indexOf(`create policy "${name}"`);
+    const original = m029.slice(at, m029.indexOf(";", at));
+    if (!/from community_group_members/i.test(original)) continue;
+    const alteredIn370 = SQL.includes(`ALTER POLICY ${name} ON public.community_group_members`);
+    const redefinedIn046 = new RegExp(`DROP POLICY IF EXISTS "${name}"`).test(m046);
+    assert.ok(alteredIn370 || redefinedIn046, `${name} reads community_group_members and nothing re-points it`);
+    if (redefinedIn046) {
+      const a = m046.indexOf(`CREATE POLICY "${name}"`);
+      assert.doesNotMatch(m046.slice(a, m046.indexOf(";", a)), /FROM community_group_members/i, `${name} (046)`);
+    }
+  }
+  const ins = SQL.slice(SQL.indexOf("ALTER POLICY community_group_members_insert_admin"), SQL.indexOf(";", SQL.indexOf("ALTER POLICY community_group_members_insert_admin")));
+  assert.match(ins, /WITH CHECK \(public\.user_group_role\(group_id\) = 'admin'\)/);
+  const upd = SQL.slice(SQL.indexOf("ALTER POLICY community_group_members_update_self_prefs"), SQL.indexOf(";", SQL.indexOf("ALTER POLICY community_group_members_update_self_prefs")));
+  assert.match(upd, /WITH CHECK \(user_id = auth\.uid\(\) AND role = public\.user_group_role\(group_id\)\)/);
+  assert.doesNotMatch(ins.split("WITH CHECK")[1] + upd.split("WITH CHECK")[1], /community_group_members/);
+  // user_is_group_admin is true for moderator too, so using it would widen the insert policy: it is not what the insert policy uses
+  assert.doesNotMatch(ins, /user_is_group_admin/);
+});
+
+test("recursion: user_group_role is SECURITY DEFINER, search_path pinned, EXECUTE revoked from PUBLIC and granted to authenticated and service_role", () => {
+  const at = SQL.indexOf("CREATE OR REPLACE FUNCTION public.user_group_role(p_group uuid)");
+  assert.ok(at > 0);
+  const fn = SQL.slice(at, SQL.indexOf("$fn$;", at + 80));
+  assert.match(fn, /SECURITY DEFINER/);
+  assert.match(fn, /SET search_path = public, pg_temp/);
+  assert.match(fn, /m\.user_id = auth\.uid\(\)/);
+  assert.match(SQL, /REVOKE ALL ON FUNCTION public\.user_group_role\(uuid\) FROM PUBLIC;/);
+  assert.match(SQL, /GRANT EXECUTE ON FUNCTION public\.user_group_role\(uuid\) TO authenticated, service_role;/);
+});
+
+test("recursion: one self-check leg per re-pointed community_group_members policy (ok:1 as the intended role, never 42P17), the refusals stay refusals, and the catalog assertion covers the table", () => {
+  assert.ok(SQL.includes("'R1 a group admin inserts a member: no 42P17'"));
+  assert.ok(SQL.includes("'R2 a member updates their own starred preference: no 42P17'"));
+  assert.ok(SQL.includes("'R1 a moderator is not a group admin for the insert policy'"));
+  assert.ok(SQL.includes("'R2 a member cannot raise their own group role through the preferences policy'"));
+  assert.match(SQL, /tablename = 'community_group_members'\s+AND \(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'community_group_members'/);
+});
+
+test("recursion: notifications_update_self_read (migration 032) reads notifications in its WITH CHECK; 370 moves the lock to the column grant and reduces the policy to the own-row condition", () => {
+  const m032 = MIG("032_community_notifications_moderation.sql");
+  const at = m032.indexOf('create policy "notifications_update_self_read"');
+  assert.ok(at > 0);
+  const original = m032.slice(at, m032.indexOf(";", at));
+  assert.match(original, /from notifications n/i, "the original reads its own table");
+  const stmtAt = SQL.indexOf("ALTER POLICY notifications_update_self_read ON public.notifications");
+  assert.ok(stmtAt > 0);
+  const stmt = SQL.slice(stmtAt, SQL.indexOf(";", stmtAt));
+  assert.match(stmt, /USING \(user_id = auth\.uid\(\)\)\s+WITH CHECK \(user_id = auth\.uid\(\)\)/);
+  assert.doesNotMatch(stmt.replace("ALTER POLICY notifications_update_self_read ON public.notifications", ""), /notifications/);
+  // the lock is the column grant: UPDATE revoked at table level, granted back on read_at alone, no trigger
+  assert.match(SQL, /REVOKE UPDATE ON TABLE public\.notifications FROM PUBLIC, anon, authenticated;/);
+  assert.match(SQL, /GRANT UPDATE \(read_at\) ON public\.notifications TO authenticated;/);
+  assert.doesNotMatch(SQL, /CREATE TRIGGER[^;]*ON public\.notifications/);
+});
+
+test("recursion: the notification routes write only read_at, with the cookie-bound client (so the column grant cannot break them)", () => {
+  for (const f of [["app", "api", "community", "notifications", "[id]", "route.ts"], ["app", "api", "community", "notifications", "route.ts"]]) {
+    const t = readFileSync(join(SRC, ...f), "utf8");
+    const updates = [...t.matchAll(/\.update\(\{([^}]*)\}\)/g)].map((m) => m[1].trim());
+    assert.ok(updates.length >= 1, f.join("/"));
+    for (const u of updates) assert.match(u, /^read_at\b/, `${f.join("/")} updates only read_at, got ${u}`);
+    assert.match(t, /requireCommunityRoute/);
+    assert.doesNotMatch(t, /getServiceSupabase/);
+  }
+});
+
+test("recursion: the self-check has notification legs (own read_at ok and not 42P17, payload and kind refused by column privilege, another user's row 0 rows) and the catalog assertion covers notifications", () => {
+  assert.ok(SQL.includes("'N1 a user marks their own notification read: no 42P17'"));
+  assert.ok(SQL.includes("'N2 a user cannot rewrite their own notification payload (column privilege)'"));
+  assert.ok(SQL.includes("'N3 a user marking another user notification read updates nothing'"));
+  assert.match(SQL, /tablename = 'notifications'\s+AND \(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'notifications'/);
+  assert.match(SQL, /a\.attname <> 'read_at'/);
+});
+
+test("recursion: the self-check attacks the class (an admin INSERT, UPDATE and DELETE do not raise 42P17), leg 3A must reach the guard, and the apply fails if a policy names the table", () => {
+  assert.ok(SQL.includes("'3 recursion class: an admin UPDATE on org_memberships does not raise 42P17'"));
+  assert.ok(SQL.includes("'3 recursion class: an admin INSERT on org_memberships does not raise 42P17'"));
+  assert.ok(SQL.includes("'3 recursion class: an admin DELETE on org_memberships does not raise 42P17'"));
+  assert.equal((SQL.match(/'err:42P17%'/g) || []).length, 9, "three org_memberships legs, five community_group_members legs and one notifications leg");
+  assert.match(SQL, /PERFORM pg_temp\.sec3b_expect\('3A an admin promotes a member to owner',[\s\S]*?'err:42501:%org_membership_role_guard%'\)/);
+  assert.match(SQL, /'3 control: the owner grants owner'/);
+  assert.match(SQL, /\(coalesce\(qual, ''\) \|\| coalesce\(with_check, ''\)\) ~\* 'org_memberships'/);
+  assert.match(SQL, /the three org_memberships admin policies do not all use user_org_role/);
 });
 
 test("no JWT literal and no section-sign or dash glyph in the new file", () => {

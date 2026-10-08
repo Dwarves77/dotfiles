@@ -1,4 +1,4 @@
--- subject: Migration 370 (lane SEC-3b, 2026-10-08): table policies and triggers that stop a signed-in user changing their own standing; organizations.plan, the community_member_profiles verification columns and community_posts sign-off columns become system-written (table-level INSERT/UPDATE replaced by column grants plus a guard trigger each), org_memberships gets a role-transition trigger (only an owner grants or revokes owner, nobody changes their own role, the last owner cannot be demoted or removed, org_id and user_id are fixed), community_posts author and group moves are guarded, community_post_signoff_requests pins the initial status and refuses a self-decision, community_groups.owner_user_id moves only by the current owner, and the viewer role loses write access on workspace_item_overrides, org_watchlist, workspace_tags, item_workspace_tags, portfolios and portfolio_members through the new user_can_write_in_org(); the profiles read policy (item 5 of the brief) is NOT in this migration, see the lane report; a rolled-back self-check attacks every guard as role authenticated and proves the legitimate paths still work; NOT APPLIED.
+-- subject: Migration 370 (lane SEC-3b, 2026-10-08): table policies and triggers that stop a signed-in user changing their own standing; organizations.plan, the community_member_profiles verification columns and community_posts sign-off columns become system-written (table-level INSERT/UPDATE replaced by column grants plus a guard trigger each), org_memberships gets a role-transition trigger (only an owner grants or revokes owner, nobody changes their own role, the last owner cannot be demoted or removed, org_id and user_id are fixed), community_posts author and group moves are guarded, community_post_signoff_requests pins the initial status and refuses a self-decision, community_groups.owner_user_id moves only by the current owner, and the viewer role loses write access on workspace_item_overrides, org_watchlist, workspace_tags, item_workspace_tags, portfolios and portfolio_members through the new user_can_write_in_org(); the profiles read policy (item 5 of the brief) is NOT in this migration, see the lane report; the three org_memberships admin policies (membership_write_admin, membership_update_admin, membership_delete_admin) read the actor's role through the SECURITY DEFINER user_org_role() instead of a subquery on their own table, which raised 42P17 infinite recursion under RLS; a rolled-back self-check attacks every guard as role authenticated and proves the legitimate paths still work; NOT APPLIED.
 -- 370 -- privilege table policies (lane SEC-3b, 2026-10-08).
 --
 -- NOT APPLIED. Authored by lane SEC-3b; the coordinator's executor applies it after CI (two-track policy, CLAUDE.md
@@ -31,7 +31,7 @@
 --   privilege but not the escalation.
 --   Item 3: org_membership_role_guard (BEFORE INSERT OR UPDATE OR DELETE on org_memberships). The policies
 --   membership_write_admin, membership_update_admin and membership_delete_admin STAY (they gate which rows an admin
---   reaches); the trigger adds the transition rule. For a non-sanctioned caller, with A = auth.uid() and the caller's
+--   reaches; the recursion fix only changes HOW they read the actor's role); the trigger adds the transition rule. For a non-sanctioned caller, with A = auth.uid() and the caller's
 --   own role read from org_memberships:
 --       INSERT   role owner needs A to be an owner of that org; any other role needs A to be an owner or admin.
 --       UPDATE   org_id and user_id never change; a role change needs A to be an owner or admin, A may not change the
@@ -53,6 +53,27 @@
 -- authenticated or anon for a user and service_role for the service key, while a SECURITY DEFINER function runs as its
 -- owner. The helper is SECURITY INVOKER on purpose so it sees the real caller. It is one function so the six guards do
 -- not carry six copies of the idiom.
+--
+-- THE RECURSION FIX (amended in place after the first apply attempt aborted, rolled back, no ledger row).
+--   Self-check leg 3A (an admin UPDATEs org_memberships.role to owner, as role authenticated) raised 42P17
+--   "infinite recursion detected in policy for relation org_memberships" instead of the guard's 42501.
+--   [CONFIRMED by reading migration 006_rls_multi_tenant.sql, the only migration that defines these policies]
+--   the three admin policies evaluate the actor's role with a subquery on the SAME table:
+--       CREATE POLICY "membership_update_admin" ON org_memberships FOR UPDATE USING (
+--         EXISTS (SELECT 1 FROM org_memberships m WHERE m.org_id = org_memberships.org_id
+--                 AND m.user_id = auth.uid() AND m.role IN ('owner', 'admin')) OR auth.role() = 'service_role');
+--   membership_write_admin (INSERT, WITH CHECK) and membership_delete_admin (DELETE, USING) carry the same
+--   EXISTS (SELECT 1 FROM org_memberships m ...). Under RLS the planner expands the policy of the relation it is
+--   already expanding, and the subquery reads that relation again, so Postgres refuses the statement with 42P17.
+--   It never showed in production because every app writer of org_memberships uses the service-role client
+--   (BYPASSRLS) or a SECURITY DEFINER function.
+--   FIX AT THE CAUSE: public.user_org_role(p_org uuid) returns the caller's role in that org through a SECURITY
+--   DEFINER function (search_path pinned, EXECUTE revoked from PUBLIC, granted to authenticated and service_role),
+--   the pattern user_belongs_to_org already uses for membership_read; the three policies are ALTERed to
+--   user_org_role(org_id) IN ('owner', 'admin') OR service_role. Semantics unchanged: the caller is an owner or
+--   admin of that row's org, or the service role. No policy on org_memberships reads org_memberships directly
+--   any more; the self-check proves it (an admin INSERT, UPDATE and DELETE do not raise 42P17) and the catalog
+--   assertion fails the apply if a policy on the table ever names the table again.
 --
 -- WHAT THIS MIGRATION DOES NOT CLOSE (disclosed, rule 13).
 --   * accept_invitation() is SECURITY DEFINER and its ON CONFLICT (org_id, user_id) DO UPDATE SET role clause can demote
@@ -132,7 +153,8 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- The 15 policies item 6 re-points must exist under these names (migrations 006, 077, 313, 362).
+  -- The 15 policies item 6 re-points and the 3 org_memberships admin policies and the 2 community_group_members policies and the notifications policy the recursion fix re-points must exist
+  -- under these names (migrations 006, 077, 313, 362).
   v_pol := ARRAY[
     'workspace_item_overrides.overrides_insert_org', 'workspace_item_overrides.overrides_update_org',
     'workspace_item_overrides.overrides_delete_org',
@@ -142,6 +164,12 @@ BEGIN
     'item_workspace_tags.item_workspace_tags_org_insert', 'item_workspace_tags.item_workspace_tags_org_delete',
     'portfolios.portfolios_org_insert', 'portfolios.portfolios_org_update', 'portfolios.portfolios_org_delete',
     'portfolio_members.portfolio_members_org_insert', 'portfolio_members.portfolio_members_org_delete'];
+  v_pol := v_pol || ARRAY[
+    'org_memberships.membership_write_admin', 'org_memberships.membership_update_admin',
+    'org_memberships.membership_delete_admin',
+    'community_group_members.community_group_members_insert_admin',
+    'community_group_members.community_group_members_update_self_prefs',
+    'notifications.notifications_update_self_read'];
   FOREACH v_pair IN ARRAY v_pol LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_policies
@@ -265,6 +293,87 @@ CREATE TRIGGER community_member_profiles_verification_guard_trg
   FOR EACH ROW EXECUTE FUNCTION public.community_member_profiles_verification_guard();
 
 -- ---- Item 3: org_memberships role transitions ----------------------------------------------------------------------------
+-- The actor's role without a subquery on org_memberships in a policy (42P17, see THE RECURSION FIX above).
+CREATE OR REPLACE FUNCTION public.user_org_role(p_org uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $fn$
+  SELECT m.role
+    FROM public.org_memberships m
+   WHERE m.org_id = p_org
+     AND m.user_id = auth.uid()
+   LIMIT 1;
+$fn$;
+
+COMMENT ON FUNCTION public.user_org_role(uuid) IS
+  'SEC-3b (migration 370, recursion fix). The role (owner, admin, member, viewer) auth.uid() holds in the organization, NULL when none. SECURITY DEFINER with a pinned search_path so a policy on org_memberships can ask it without a subquery on its own table (a policy that reads its own table raises 42P17 infinite recursion). Same shape as user_belongs_to_org.';
+
+REVOKE ALL ON FUNCTION public.user_org_role(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.user_org_role(uuid) TO authenticated, service_role;
+
+ALTER POLICY membership_write_admin ON public.org_memberships
+  WITH CHECK (public.user_org_role(org_id) IN ('owner', 'admin') OR (select auth.role()) = 'service_role');
+ALTER POLICY membership_update_admin ON public.org_memberships
+  USING (public.user_org_role(org_id) IN ('owner', 'admin') OR (select auth.role()) = 'service_role');
+ALTER POLICY membership_delete_admin ON public.org_memberships
+  USING (public.user_org_role(org_id) IN ('owner', 'admin') OR (select auth.role()) = 'service_role');
+
+-- The same class on community_group_members (migration 029): two policies read their own table. Migration 046 already
+-- moved the SELECT and DELETE policies onto SECURITY DEFINER helpers; these two were left. The original text:
+--   community_group_members_insert_admin   FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM community_group_members m2
+--       WHERE m2.group_id = community_group_members.group_id AND m2.user_id = auth.uid() AND m2.role = 'admin'))
+--   community_group_members_update_self_prefs   FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid()
+--       AND role = (SELECT m.role FROM community_group_members m WHERE m.group_id = community_group_members.group_id
+--       AND m.user_id = auth.uid()))
+-- Both ask for the caller's role in the row's group. user_is_group_admin is not the same predicate (it is true for
+-- moderator as well as admin, which would widen the insert policy), so user_group_role returns the role itself and the
+-- two policies keep their exact meaning: the caller is an ADMIN of the group (insert), and the row's role equals the
+-- caller's role in that group (self preferences update).
+CREATE OR REPLACE FUNCTION public.user_group_role(p_group uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $fn$
+  SELECT m.role
+    FROM public.community_group_members m
+   WHERE m.group_id = p_group
+     AND m.user_id = auth.uid()
+   LIMIT 1;
+$fn$;
+
+COMMENT ON FUNCTION public.user_group_role(uuid) IS
+  'SEC-3b (migration 370, recursion fix). The role (admin, moderator, member) auth.uid() holds in the community group, NULL when none. SECURITY DEFINER with a pinned search_path so a policy on community_group_members can ask it without a subquery on its own table (a policy that reads its own table raises 42P17 infinite recursion). Same shape as user_org_role and user_is_group_member.';
+
+REVOKE ALL ON FUNCTION public.user_group_role(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.user_group_role(uuid) TO authenticated, service_role;
+
+ALTER POLICY community_group_members_insert_admin ON public.community_group_members
+  WITH CHECK (public.user_group_role(group_id) = 'admin');
+ALTER POLICY community_group_members_update_self_prefs ON public.community_group_members
+  WITH CHECK (user_id = auth.uid() AND role = public.user_group_role(group_id));
+
+-- The same class on notifications (migration 032), ruled by the coordinator: the lock moves from the policy to the
+-- column grant. The original:
+--   notifications_update_self_read   FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid()
+--       AND kind = (SELECT n.kind FROM notifications n WHERE n.id = notifications.id)
+--       AND payload = (SELECT n.payload FROM notifications n WHERE n.id = notifications.id)
+--       AND created_at = (SELECT n.created_at FROM notifications n WHERE n.id = notifications.id))
+-- The three subqueries lock kind, payload and created_at to their stored values (and read the policy's own table, 42P17).
+-- The only column a user session writes is read_at (the community notification routes mark read, mark unread and mark
+-- all read with the cookie-bound client; the bell component only calls those routes; inserts come from the service
+-- role in lib/notifications/dispatch.ts). So authenticated keeps UPDATE on read_at alone and the policy reduces to the
+-- own-row condition; the column grant is the guard, there is no trigger.
+REVOKE UPDATE ON TABLE public.notifications FROM PUBLIC, anon, authenticated;
+GRANT UPDATE (read_at) ON public.notifications TO authenticated;
+ALTER POLICY notifications_update_self_read ON public.notifications
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
 CREATE OR REPLACE FUNCTION public.org_membership_role_guard()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -721,6 +830,17 @@ BEGIN
         'ok:1');
 
       -- ===== Item 3: org_memberships role transitions =====
+      -- The recursion class (42P17): an admin INSERT, UPDATE and DELETE as role authenticated must reach the policy
+      -- and the guard, never fail with infinite recursion in the policy itself.
+      PERFORM pg_temp.sec3b_expect('3 recursion class: an admin UPDATE on org_memberships does not raise 42P17',
+        pg_temp.sec3b_try('authenticated', v_admin, format('UPDATE public.org_memberships SET role = role WHERE id = %L', m_other)),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('3 recursion class: an admin INSERT on org_memberships does not raise 42P17',
+        pg_temp.sec3b_try('authenticated', v_admin, format('INSERT INTO public.org_memberships (org_id, user_id, role) VALUES (%L, %L, %L)', v_org, v_extra, 'member')),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('3 recursion class: an admin DELETE on org_memberships does not raise 42P17',
+        pg_temp.sec3b_try('authenticated', v_admin, format('DELETE FROM public.org_memberships WHERE org_id = %L AND user_id = %L', v_org, v_extra)),
+        'ok:1', 'err:42P17%');
       PERFORM pg_temp.sec3b_expect('3A an admin promotes a member to owner',
         pg_temp.sec3b_try('authenticated', v_admin, format('UPDATE public.org_memberships SET role = %L WHERE id = %L', 'owner', m_other)),
         'err:42501:%org_membership_role_guard%');
@@ -839,6 +959,38 @@ BEGIN
       VALUES (v_g1, v_member, 'sec3b post one', 'sec3b body') RETURNING id INTO v_p1;
       INSERT INTO public.community_posts (group_id, author_user_id, title, body)
       VALUES (v_g1, v_member, 'sec3b post two', 'sec3b body') RETURNING id INTO v_p2;
+
+      -- ===== The recursion class on community_group_members (migration 029 policies) =====
+      PERFORM pg_temp.sec3b_expect('R1 a group admin inserts a member: no 42P17',
+        pg_temp.sec3b_try('authenticated', v_owner, format('INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (%L, %L, %L)', v_g1, v_other, 'member')),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R1 a plain member cannot insert a member (refused by the policy, not by recursion)',
+        pg_temp.sec3b_try('authenticated', v_member, format('INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (%L, %L, %L)', v_g1, v_extra, 'member')),
+        'err:42501:%', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R1 a moderator is not a group admin for the insert policy',
+        pg_temp.sec3b_try('authenticated', v_admin, format('INSERT INTO public.community_group_members (group_id, user_id, role) VALUES (%L, %L, %L)', v_g1, v_extra, 'member')),
+        'err:42501:%', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R2 a member updates their own starred preference: no 42P17',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.community_group_members SET starred = true WHERE group_id = %L AND user_id = %L', v_g1, v_member)),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('R2 a member cannot raise their own group role through the preferences policy',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.community_group_members SET role = %L WHERE group_id = %L AND user_id = %L', 'admin', v_g1, v_member)),
+        'err:42501:%', 'err:42P17%');
+
+      -- ===== The recursion class on notifications (migration 032 policy) =====
+      INSERT INTO public.notifications (user_id, kind) VALUES (v_member, 'mention'), (v_viewer, 'mention');
+      PERFORM pg_temp.sec3b_expect('N1 a user marks their own notification read: no 42P17',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET read_at = now() WHERE user_id = %L', v_member)),
+        'ok:1', 'err:42P17%');
+      PERFORM pg_temp.sec3b_expect('N2 a user cannot rewrite their own notification payload (column privilege)',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET payload = %L WHERE user_id = %L', '{"forged":true}', v_member)),
+        'err:42501:%permission denied%');
+      PERFORM pg_temp.sec3b_expect('N2 a user cannot rewrite their own notification kind',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET kind = %L WHERE user_id = %L', 'moderation', v_member)),
+        'err:42501:%permission denied%');
+      PERFORM pg_temp.sec3b_expect('N3 a user marking another user notification read updates nothing',
+        pg_temp.sec3b_try('authenticated', v_member, format('UPDATE public.notifications SET read_at = now() WHERE user_id = %L', v_viewer)),
+        'ok:0');
 
       -- ===== Item 4: community_posts =====
       FOREACH v_attack IN ARRAY ARRAY['signed_off_at = now()', format('signed_off_by = %L', v_member)] LOOP
@@ -969,6 +1121,40 @@ BEGIN
                         'org_membership_role_guard_trg', 'community_posts_guard_trg',
                         'community_post_signoff_requests_guard_trg', 'community_groups_owner_guard_trg')) <> 6 THEN
     RAISE EXCEPTION 'ABORT: one of the six guard triggers is missing or disabled';
+  END IF;
+  -- No policy on org_memberships reads org_memberships directly (42P17); the three admin policies ask user_org_role.
+  IF EXISTS (SELECT 1 FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'org_memberships'
+                AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'org_memberships') THEN
+    RAISE EXCEPTION 'ABORT: a policy on org_memberships names org_memberships; read the role through user_org_role()';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'notifications'
+                AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'notifications') THEN
+    RAISE EXCEPTION 'ABORT: a policy on notifications names notifications; the column grant is the guard';
+  END IF;
+  FOR v_attack IN
+    SELECT a.attname FROM pg_attribute a
+     WHERE a.attrelid = 'public.notifications'::regclass AND a.attnum > 0 AND NOT a.attisdropped AND a.attname <> 'read_at'
+  LOOP
+    IF has_column_privilege('authenticated', 'public.notifications', v_attack, 'UPDATE')
+       OR has_column_privilege('anon', 'public.notifications', v_attack, 'UPDATE') THEN
+      RAISE EXCEPTION 'ABORT: authenticated or anon still holds UPDATE on notifications.%', v_attack;
+    END IF;
+  END LOOP;
+  IF NOT has_column_privilege('authenticated', 'public.notifications', 'read_at', 'UPDATE') THEN
+    RAISE EXCEPTION 'ABORT: authenticated lost UPDATE on notifications.read_at';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_policies
+              WHERE schemaname = 'public' AND tablename = 'community_group_members'
+                AND (coalesce(qual, '') || coalesce(with_check, '')) ~* 'community_group_members') THEN
+    RAISE EXCEPTION 'ABORT: a policy on community_group_members names community_group_members; read the role through user_group_role()';
+  END IF;
+  IF (SELECT count(*) FROM pg_policies
+       WHERE schemaname = 'public' AND tablename = 'org_memberships'
+         AND policyname IN ('membership_write_admin', 'membership_update_admin', 'membership_delete_admin')
+         AND (coalesce(qual, '') || coalesce(with_check, '')) LIKE '%user_org_role%') <> 3 THEN
+    RAISE EXCEPTION 'ABORT: the three org_memberships admin policies do not all use user_org_role';
   END IF;
   IF (SELECT count(*) FROM pg_policies
        WHERE schemaname = 'public'
