@@ -104,7 +104,7 @@ export const CITE = Object.freeze({
 
 export const RESOLVED_BY = "resolve-error-body-gate";
 export const WORKLIST_CLASS = "error_body_refetch";
-export const DEFAULT_WORKLIST_RELATIVE_PATH = "scripts/_worklists/attach-found-sources.seed.json";
+const DEFAULT_WORKLIST_RELATIVE_PATH = "scripts/_worklists/attach-found-sources.seed.json";
 
 const FLAG_COLUMNS = "id, subject_ref, description, recommended_actions, status";
 

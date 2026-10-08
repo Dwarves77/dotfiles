@@ -54,11 +54,6 @@ import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-saf
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REQUIRED_SLOTS = JSON.parse(readFileSync(resolve(__dirname, "item-type-required-slots.json"), "utf8"));
 
-// KIT VERSION (Lane HOLLOW-GATE, 2026-09-04). This module had no version constant before this lane; adding
-// one now that a new kit-level check (record_hollow, below) changes what "green" means for a record-grade
-// payload — see MINT-RUNBOOK.md §5's kept-in-sync note.
-export const VALIDATE_MINT_PAYLOAD_KIT_VERSION = "vmp-2026-09-04.2"; // +criterion-3 floor as warning (migration 302)
-
 // ── Wave MH-3: capture-completeness gate ────────────────────────────────────────────────────────
 // mint-run-001.json's defects_found[0]: batch-001's six archived source-<celex>.txt files held only
 // narrow ~600-900-char cited-excerpt windows (2-12KB total per file) around each FACT claim's offsets,

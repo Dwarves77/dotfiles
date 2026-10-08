@@ -24482,3 +24482,104 @@ Final lane states: R7-LINT-CI merged PR 909 (lint 614 → 0 across fsi-app/, ESL
 **Docs this pass.** `db-check-constraints.json` regenerated from the live catalog (read-only); INDEX lines for steps 62 and 63 and the judgement-drain and live-smoke FAMILY.md; MAINTENANCE-RUNBOOK index entries for steps 62 and 63, steps 13 and 14 marked RETIRED; PROGRAM-BOARD 2026-10-07 resume pointer with the register's section 6 owed list copied in; buildout plan Stages 5, 6, 7 marked BUILT and open items added.
 
 **Open.** Lanes CHAIN-1 and OPS-1; G5-SEARCH; verdict re-authoring; Stage 8; layout baseline renewal fires 2026-10-08, hard expiry 2026-10-15.
+
+## 2026-10-08, coordinator: gate repair, privilege closure, the proof stack, and the next wave
+
+Lists only. Written by the DOCS-3 docs pass at origin/master 430d7fce from: `gh pr list --state merged --search "merged:2026-10-08"` (UTC dates), `fsi-app/docs/inventories/applied-migrations.json` (synced 2026-10-08T13:24:44Z), and the Actions jobs API for run 37767977662. Nothing is typed from memory; the operator-only items and the five misses are the coordinator's own statements, carried as given.
+
+**PRs merged 2026-10-08 (49).** Format: PR, lane (branch name), merge commit, title.
+- #974 proof2-subset 6f25ffd4 PROOF-2: read-only FK-closed production subset export and local loader
+- #975 proof1-stack-and-replay 3d4e7357 PROOF-1: chain-proof workflow, migration replay from zero, loopback-only database access
+- #977 rules1-gate-precision bd8d92ed RULES-1: rule 015 detects database writes, F51 check 5 exempts generated files
+- #978 baseline-renewal-2026-10-08 35fe1682 Pause layout-guard expiry and 7-day renewal rule until go-live (BUILD_MODE)
+- #979 s8c-count-membership ffe44d05 S8-C: membership gate on the two count RPCs (migration 361, not applied)
+- #980 trustret 4626cc40 TRUST-RET: retire trust-recompute.yml, keep the trust-score pass as recompute-trust-scores
+- #981 s8b-tag-attribution 06d82d74 S8-B: workspace tag attribution (applied by <name> on <date>)
+- #982 token1-capture-worker-grants ace778cc TOKEN-1: limit capture_worker_fetch EXECUTE to service_role (migration 363)
+- #983 s8f-industry-statements 89226500 S8-F: fact register for industry-level statements (Phase 1)
+- #984 g5-search 7438c593 G5-SEARCH: a source need becomes a committed URL batch a session authors, applied by rule
+- #986 s8e0-producer-registry 3a637281 S8-E0: producers register from an entry directory
+- #987 proof3-chain-steps 93498aa7 PROOF-3: chain steps run in apply mode on the proof stack, with a read-back after every step
+- #988 s8a-notes-assignment c1f0db1c S8-A: private workspace notes and assignment with notification on every detail page
+- #989 s8f2-statements-build 5d61fa01 S8-F2: industry-level statements under the Operations matrix (ADR-043)
+- #990 s8d-portfolio bdc6b7a9 S8-D: the portfolio object under the dashboard (migration 362, NOT APPLIED)
+- #991 sec1-profiles-escalation 1d2c5e95 SEC-1: a user cannot change their own platform-admin flag (migration 364)
+- #992 proof4-attacks-r2 ee0dd483 PROOF-4: chain-proof attack suite (re-cut after PR 975, supersedes 985)
+- #993 sec2-profile-status-columns a236dac3 SEC-2: profile status and tier columns are system-written; verification is requested through an RPC (migration 367)
+- #994 gate0-doctrine-2026-10-08 f706ee09 GATE-0: ADR-046, the gate doctrine and the disposition of every gate
+- #995 dead2-schema 987a8cb8 DEAD-2: migration 368 per operator ruling 2026-10-08 (NOT APPLIED)
+- #996 dead3-docs-2026-10-08 827588fe DEAD-3: dead index lines, runbook pointers, orphan classification, retired-term rewrites
+- #997 gate1-rules 7939565c GATE-1: commit rules engine, remove 014/016/020, introduced-lines scope, one diff per run
+- #998 gate2-hooks f7bbb79e GATE-2: pre-push step 2c removed, C4 outside-repo note, skill gate rebuilt, UX substring check dropped
+- #999 audit-catalogue-2026-10-08 49f98ab7 AUDIT-CAT: audit catalogue, ten lenses, eighteen subsystems, audit-of-audits matrix
+- #1000 gate2-hooks-2 82141ad7 GATE-2b: skill gate interpreter arguments, MCP write prefixes, wired check accepts the in-process shim
+- #1001 sec3a-functions-views dfb215db SEC-3a: functions, views and grants that let anon or a user write what only the system may write (migration 369, NOT APPLIED)
+- #1002 gate3-fitness 57bb5d8f GATE-3: fitness functions and governance gates, remove, repair, replace
+- #1003 sec3b-table-policies 5c57faa2 SEC-3b: table policies and triggers that stop a user changing their own standing (migration 370, NOT APPLIED)
+- #1004 gate4-ci 53605cae GATE-4: slim push job set, required rendering guard, concurrent unit tests, gate firing artifacts
+- #1005 sec4-definer-hygiene 6b1063aa SEC-4: definer hygiene, explicit grants and pinned search_path for every SECURITY DEFINER function (migration 371, NOT APPLIED)
+- #1006 sec5-profiles-read 28aef825 SEC-5: who may read which profile columns, built to R8.7 (migration 372, NOT APPLIED)
+- #1007 dead1-whole-file cd88250a DEAD-1: delete whole-file dead modules, routes, seed scripts and inert stores
+- #1008 proof5-oracle-superuser 6bc09d57 PROOF-5: create the oracle database as the stack's superuser
+- #1009 gate5-baseline-and-race 3141ab80 GATE-5: rules engine baseline is the merge base; C3 test isolated from F64
+- #1010 proof5b-oracle-statements a35ced3c PROOF-5b: run each oracle database statement as its own psql -c transaction
+- #1011 sec3b-recursion 6028b228 SEC-3b: migration 370 amended in place, org_memberships admin policies no longer recurse (42P17)
+- #1012 routes1-guard-fixes e23feb02 ROUTES-1: route-guard register fixes (F2 comment-proof, reset-password public, moderation reviewer gate, worker limiter)
+- #1013 mighist1-recover 8be0cc9c MIG-HIST-1b: land the migration map (361-row ledger, replay-reader shape)
+- #1015 smoke2-content-invariants 1496ed76 SMOKE-2: live smoke asserts content, not only status
+- #1016 sec6-admin-flag 197190d2 SEC-6: profiles.is_platform_admin is private, read through is_platform_admin() (migration 375, NOT APPLIED)
+- #1018 mkt1-market-components 204d919f MKT-1: Market renders what it already computes (ribbon values and states, shared freshness and provenance parts)
+- #1020 cov1-coverage-surface ffbfe670 COV-1: coverage is a first-class, generated, customer-facing surface
+- #1021 gate6-guard-container 12c69634 GATE-6: run the Playwright jobs in the pinned official container
+- #1022 sec3b-fixtures 36599967 SEC-3b-F: 370 fixture item_type fixed, fixture INSERTs checked statically (shared helper)
+- #1023 chain4-downstream-edges 95711970 CHAIN-4: Question answers and Theme briefs chained (hops 14 to 16)
+- #1024 audwire1-orphan-audit 98acb516 AUDWIRE-1: ui-orphan audit is hard and enumerates the B-3 register
+- #1026 l4e-outbox-entity 430d7fce L4-E: market_series and regional_data_facts outbox rows reach items (migration 373, NOT APPLIED)
+- #1027 mig-headers-1 b53b85cc Migration 372 applied: header flip, ledger export, map and inventories regenerated
+- #1028 verd1-stale-verdicts 3cb67204 VERD-1: stale ledger verdicts are re-authored through the drain
+
+**PRs open at the cut (7).**
+- #1014 mig374-owed-schema: MIG-374: GIN index on cited_item_ids and signposts.lifecycle_applied_at (migration 374, NOT APPLIED)
+- #1017 alias1-entity-hierarchy: ALIAS-1: entity hierarchy and alias table (migration 377, NOT APPLIED), resolver, spine coherence test
+- #1019 migci-apply-on-stack: MIG-CI: prove each pending migration on a local stack before production sees it
+- #1025 obl2-obligation-objects: OBL-2: obligation objects (migration 376, NOT APPLIED), obligation-grain gate, binding banner, classifier
+- #1029 s8e5-aux-energy: S8-E5: NESO grid carbon intensity as a regional fact (grid_intensity dimension, migration 378 NOT APPLIED)
+- #1030 s8e1-oem-roadmap: S8-E1: registered producer for oem_tech_roadmaps from the EEA HDV CO2 extract (migration 380, NOT APPLIED)
+- #1031 s8e6-grid-queue: S8-E6: UK Power Networks capacity heatmap producer for grid_connection_queues (migration 379, NOT APPLIED)
+
+**Migrations applied 2026-10-08 (13 ledger rows; versions are UTC timestamps).** Source: the committed ledger inventory, synced at 13:24:44Z; an apply after that sync is not listed.
+- 363_capture_worker_fetch_grants, lane TOKEN-1, PR 982, ledger version 20261008005235
+- 361_count_rpc_membership, lane S8-C, PR 979, ledger version 20261008010426
+- 362_portfolios, lane S8-D, PR 990, ledger version 20261008022411
+- 364_profiles_privilege_columns, lane SEC-1, PR 991, ledger version 20261008030947
+- 367_profiles_status_columns, lane SEC-2, PR 993, ledger version 20261008033159
+- 358_workspace_item_notes, lane S8-A, PR 988, ledger version 20261008034412
+- 359_item_assignments, lane S8-A, PR 988, ledger version 20261008034443
+- 368_drop_dead_schema, lane DEAD-2, PR 995, ledger version 20261008041012
+- 369_privilege_functions_views, lane SEC-3a, PR 1001, ledger version 20261008072538
+- 372_profiles_read, lane SEC-5, PR 1006, ledger version 20261008092141
+- 375_admin_flag_private, lane SEC-6, PR 1016, ledger version 20261008131209
+- 370_privilege_table_policies, lane SEC-3b, PR 1003, ledger version 20261008131555
+- 371_definer_hygiene, lane SEC-4, PR 1005, ledger version 20261008131647
+- On master at the cut with no ledger row: 299 (held by design, header LEFT UNAPPLIED) and 373 (PR 1026, NOT APPLIED). In open PRs, NOT APPLIED: 374 (1014), 376 (1025), 377 (1017), 378 (1029), 379 (1031), 380 (1030).
+
+**Misses the coordinator recorded as its own (5).**
+- MIG-HIST-1 was reported landed while its files were staged on a lane worktree; PR 1013 (MIG-HIST-1b) landed it. Evidence: `docs/ops/session-log.d/2026-10-07-mighist1-recover.md`, MIG-HIST-1b section.
+- Spec 05 was cited over R8.7. Related, read in this pass: PR 1006 (SEC-5, migration 372) is titled as built to R8.7.
+- The TRUNCATE, TRIGGER and REFERENCES table privileges were not briefed to the privilege lanes. The census reads them as a grant hygiene item, not scored (`docs/audits/privilege-census-2026-10-08.md`, section 0).
+- Common terms rule 10 named the harness pending-marker convention after GATE-3 (PR 1002) retired it; the rule now says the convention is retired.
+- The CHAIN-4 and GATE-6 briefs carried premises that were not checked against master. CHAIN-4: its session log records three stale premises as the coordinator's. GATE-6: recorded by the coordinator; this pass did not re-derive the premise.
+
+**GATE-6 guard timings (rendering-guard job of PR 1021's checks, run 37767977662, job 113280185805; measured from the jobs API step timestamps).**
+- Container pull (Initialize containers): 25 s
+- Checkout: 6 s
+- Playwright npm package: 22 s
+- Guard run: 406 s
+- Job total: 7m45s, against the 15 minute limit
+
+**Operator-only items.**
+- IMF PortWatch: commercial reuse needs IMF permission (`docs/audits/prodsrc-public-datasets-2026-10-08.md`, domain 1.7).
+- Paid data alternatives: named per domain in the PROD-SRC register; price and terms not disclosed by the vendors it read.
+- DESIGN CHANGES OWED (rule 20), for Claude Design: artboard 04 `p4` headline series card (sparkline, 1m, YoY, freshness state, freshness strip, methodology drawer); artboard 04 policy timeline scope line and its two controls; artboard 05 `/market/[slug]` methodology and provenance drawers and freshness badge (all in `docs/ops/session-log.d/2026-10-08-mkt1-market-components.md`); the Coverage page and the six coverage-state treatments, which have no artboard (`docs/ops/session-log.d/2026-10-08-cov1-coverage-surface.md`).
+
+**Docs landed by DOCS-3 (branch coord/docs3-pass).** `docs/audits/`: privilege-census-2026-10-08, aud-at2-route-guard-register-2026-10-08, obl1-obligations-register-2026-10-08, verify1-register-unknowns-2026-10-08, prodsrc-public-datasets-2026-10-08, migration-history-2026-10-07. `docs/runbooks/audit-catalogue.md` (matrix, index, owed list, incident ledger I-5 to I-7), `docs/runbooks/maintenance.d/64-chain-proof.md`, `docs/decisions/ADR-045` (addendum), `docs/PROGRAM-BOARD.md`, `docs/INDEX.md`. Detail: `docs/ops/session-log.d/2026-10-08-docs3-pass.md`.

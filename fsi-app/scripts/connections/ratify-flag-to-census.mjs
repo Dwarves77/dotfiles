@@ -134,7 +134,7 @@ export function buildCensusRow(flagId, fields) {
   };
 }
 
-export const RATIFY_CITE = {
+const RATIFY_CITE = {
   skill: "flywheel-build-plan-2026-08-10",
   reason: "Ratification feed: promote an operator-ratified integrity_flags finding into a census_worklist row (guarded path, rule 015).",
 };

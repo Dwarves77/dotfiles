@@ -368,7 +368,7 @@ export function currentBranch(root) {
   }
 }
 
-export const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
+const COORDINATOR_ONLY_EXACT = ['docs/ops/session-log.md', 'docs/PROGRAM-BOARD.md', 'docs/INDEX.md', 'docs/runbooks/MAINTENANCE-RUNBOOK.md'];
 
 // Lane GATE-8 (2026-10-08, AUD-AT-4 B6-32): check 4 used to apply only when the branch name started with `lane/`,
 // so a lane branch named anything else (`claude/x`) passed, and in CI, where a pull request is checked out

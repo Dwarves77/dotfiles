@@ -812,8 +812,7 @@ EUR-Lex text, zero extracted facts, shipped with an effectively empty Summary.
    it at 327) — this screen is therefore currently INERT against the live corpus (holds nothing today), but
    is real protection the moment a WAF-blocked EUR-Lex row's raw interactive-page HTML is captured (e.g. via
    the §1a browser-capture escape hatch).
-4. **VERSION BUMPS** — `RECORD_FACTS_VERSION` (`record-facts.mjs`) `rf1-2026-09-04.1` → `rf1-2026-09-04.2`;
-   `VALIDATE_MINT_PAYLOAD_KIT_VERSION` (new constant, `validate-mint-payload.mjs`) `vmp-2026-09-04.1`.
+4. **VERSION BUMPS**: `RECORD_FACTS_VERSION` (`record-facts.mjs`) `rf1-2026-09-04.1` → `rf1-2026-09-04.2`.
 
 **The three defects HOLLOW-GATE named and did not fix, closed (Lane BOILER-2, 2026-09-04).** All three were
 evidenced by HOLLOW-GATE's own report (above) and taken up next, in order.

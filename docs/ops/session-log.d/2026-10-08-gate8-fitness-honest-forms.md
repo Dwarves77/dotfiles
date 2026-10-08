@@ -50,3 +50,7 @@ F2 B1-01, B1-02, B1-03, B1-04. F8 B1-07 to B1-11. F13 B1-13 to B1-19, B1-21. F15
 
 - ADR-046: if GATE-7 also appends its addendum at the end of the file, expect a trivial add/add conflict on that tail; keep both.
 - To restore enforcement of hops 01 and 04 and to turn NEVER-RUN into a real clock: run the credentialed `node fsi-app/scripts/lib/export-harness-ledger.mjs --out fsi-app/.discipline/governance/harness-ledger-export.json` and commit it. With the export present, every dispatchable workflow with no ledger row fails NEVER-RUN, so the three dormant workflows above (and any other without a run) will need a dispatch or a deletion.
+
+## Merge note
+
+origin/master (DEAD-1b, DAUDIT-1, TESTFIX-1 and others) was merged into the branch before the push. Conflicts were in the files both lanes edited; the GATE-8 side was kept (exports the tests import stay exported), master's `withDoc` isolation in the C5 test was kept, and the GATE-8 C5 tests run on it. DAUDIT-1's `blankTemplateLiterals` in `coverage-scan.mjs` coexists with the new lexer; it is `viewSource` restricted to template literal bodies and can be reimplemented on `classifySource` by whichever lane next touches `glob-portability.test.mjs`.

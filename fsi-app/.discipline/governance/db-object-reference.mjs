@@ -83,7 +83,7 @@ export function codeWithoutComments(content, file = '') {
 
 /** scripts/lib/db.mjs read helpers take the table name as a string-literal first argument (readAll,
  *  readAllByIds, exactCount, readOne); F14's scanCode sees only .from("t").select. Mirrors its GUARDED_WRITE_RE. */
-export const READ_HELPER_RE = /\b(?:readAll|readAllByIds|readOne|exactCount|countRows)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
+const READ_HELPER_RE = /\b(?:readAll|readAllByIds|readOne|exactCount|countRows)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
 
 const word = (n) => new RegExp(String.raw`(^|[^A-Za-z0-9_])${n}($|[^A-Za-z0-9_])`, 'g');
 const count = (re, s) => (s.match(re) || []).length;

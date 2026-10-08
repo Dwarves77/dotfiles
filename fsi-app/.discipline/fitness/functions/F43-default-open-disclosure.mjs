@@ -100,7 +100,7 @@ const USE_STATE_RE =
  *  and the vocabulary below can be matched on whole words rather than on substrings. Matching on
  *  substrings is what makes this family of gate noisy: `reopenQueue` and `openingHours` are not
  *  disclosure state. */
-export function nameWords(name) {
+function nameWords(name) {
   return name
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/[_$]+/g, ' ')

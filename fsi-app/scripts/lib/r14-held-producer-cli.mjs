@@ -58,7 +58,7 @@ const DEFAULT_UNRATED_ROOT_CAUSE = "host not present in the institution class ta
  *   refusal vocabulary; every current caller uses the shared default.
  * @returns {Array<{description:string, root_cause:string, fix_ref:string|null}>}
  */
-export function buildDefectsFromRefusals(perItem, runError, config = {}) {
+function buildDefectsFromRefusals(perItem, runError, config = {}) {
   const unratedOutcome = config.unratedOutcome ?? DEFAULT_UNRATED_OUTCOME;
   const unratedRootCause = config.unratedRootCause ?? DEFAULT_UNRATED_ROOT_CAUSE;
   const defectsFound = [];
