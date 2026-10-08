@@ -180,6 +180,22 @@ export function gitChangedFiles(range, { cwd } = {}) {
   return splitLines(out).map((f) => f.replace(/\\/g, '/'));
 }
 
+/** Every path the range touches with renames split into a delete of the SOURCE and an add of the destination
+ *  (`git diff --no-renames --name-only`). `--name-only` with rename detection lists a rename by its destination
+ *  alone, so a script moved to docs/keep.md read as a docs change and the code that left its directory was never
+ *  counted (lane GATE-7, 2026-10-08, register attacks A-P0c-1, A-P2b-1, A-P3-3). A path classifier that must
+ *  answer "did any CODE change" (the docs-only fast path, the memory gate) reads this; the others keep
+ *  gitChangedFiles. */
+export function gitChangedPaths(range, { cwd } = {}) {
+  let out;
+  try {
+    out = runGit(['diff', '--no-renames', '--name-only', range], { cwd });
+  } catch (e) {
+    throw new Error(`change-range: 'git diff --no-renames --name-only ${range}' failed: ${e.message}`);
+  }
+  return splitLines(out).map((f) => f.replace(/\\/g, '/'));
+}
+
 /** Only the paths ADDED in the range (`--diff-filter=A`). */
 export function gitAddedFiles(range, { cwd } = {}) {
   let out;

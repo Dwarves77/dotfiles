@@ -21,6 +21,8 @@ import {
   isBranchingGitCommand,
   evaluateCheckout,
   evaluateCommit,
+  evaluateLanded,
+  evaluateRefMove,
 } from './worktree-isolation.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -132,8 +134,25 @@ test('GREEN evaluateCommit: agent commit inside its worktree passes', () => {
   assert.equal(evaluateCommit({ ...WORKTREE, env: AGENT_ENV, branch: 'guard/x' }).blocked, false);
 });
 
-test('GREEN evaluateCommit: orchestrator commit on a normal branch in the MAIN checkout passes', () => {
-  assert.equal(evaluateCommit({ ...MAIN, env: ORCH_ENV, branch: 'master' }).blocked, false);
+test('GATE-7 RED evaluateCommit: a commit in the MAIN checkout is blocked for the orchestrator too (the marker is not trusted)', () => {
+  for (const env of [ORCH_ENV, { ...ORCH_ENV, CLAUDE_CODE_CHILD_SESSION: '0' }, { ...ORCH_ENV, CLAUDE_CODE_CHILD_SESSION: 'false' }, { ...ORCH_ENV, CLAUDE_CODE_CHILD_SESSION: '' }, {}]) {
+    assert.equal(evaluateCommit({ ...MAIN, env, branch: 'master' }).blocked, true, JSON.stringify(env));
+  }
+  for (const branch of ['worktree-agent-zzzz', 'agent-abc12', 'claude/worktree-agent-abc123']) {
+    assert.equal(evaluateCommit({ ...MAIN, env: ORCH_ENV, branch }).blocked, true, branch);
+  }
+});
+
+test('GATE-7 evaluateLanded: a landed commit in the MAIN checkout alarms; in a worktree it does not', () => {
+  assert.equal(evaluateLanded({ ...MAIN, env: ORCH_ENV, branch: 'master' }).blocked, true);
+  assert.equal(evaluateLanded({ ...WORKTREE, env: ORCH_ENV, branch: 'lane/x' }).blocked, false);
+});
+
+test('GATE-7 evaluateRefMove: only an AGENT context in the MAIN checkout alarms; vault-sync and humans never do', () => {
+  assert.equal(evaluateRefMove({ ...MAIN, env: AGENT_ENV }).blocked, true);
+  assert.equal(evaluateRefMove({ ...MAIN, env: ORCH_ENV }).blocked, false);
+  assert.equal(evaluateRefMove({ ...MAIN, env: { ...AGENT_ENV, DISCIPLINE_VAULT_SYNC: '1' } }).blocked, false);
+  assert.equal(evaluateRefMove({ ...WORKTREE, env: AGENT_ENV }).blocked, false);
 });
 
 // ── WIRING: the mechanisms actually consume the single-home module (cannot be silently unwired) ──
@@ -154,5 +173,6 @@ test('WIRING: post-checkout + pre-commit hook scripts invoke the runner; runner 
   assert.match(runner, /evaluateCommit/);
 
   const gate = read('fsi-app/.discipline/governance/pretooluse-skill-gate.mjs');
-  assert.match(gate, /isBranchingGitCommand/);
+  assert.match(gate, /GIT_ISOLATION_FORMS/);
+  assert.match(gate, /DOCTRINE/);
 });

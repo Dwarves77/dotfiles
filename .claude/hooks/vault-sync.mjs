@@ -21,8 +21,9 @@
 // vault).
 
 import { execFileSync } from 'node:child_process';
-import { dirname, resolve, basename } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
+import { dirname, resolve, basename, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +39,7 @@ export function git(dir, args, opts = {}) {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
       timeout: opts.timeout ?? 30000,
+      ...(opts.env ? { env: opts.env } : {}),
     });
     return opts.raw ? out : out.trim();
   } catch {
@@ -124,6 +126,15 @@ export function reportedModified(vault) {
   });
 }
 
+/** Paths the fast-forward to origin/master would ADD that already exist in the working tree. HEAD does not
+ *  track them (they are added upstream), so a file here is untracked or ignored; either way the local content
+ *  is not git's to replace. Null-safe: a git failure returns []. */
+export function ignoredCollisions(vault) {
+  const added = git(vault, ['diff', '--name-only', '--no-renames', '--diff-filter=A', 'HEAD', 'origin/master']);
+  if (!added) return [];
+  return added.split(/\r?\n/).filter((p) => p && existsSync(join(vault, p)));
+}
+
 /** Observe, decide, act. Returns the one-line report. Never throws.
  *  `deps.reportedModified` is a seam for tests: the cause of git's phantom reports is unknown, so a test
  *  cannot honestly reproduce one; it injects git's (mis)report and asserts what THIS code decides. */
@@ -140,16 +151,28 @@ export function syncVault(vault, deps = {}) {
   const d = decide({ bare, branch, dirty, ahead, behind, fetched });
   const note = phantom.length ? `; ${phantom.length} phantom-modified file(s) identical to HEAD by content` : '';
   if (d.action !== 'ff') return `vault-sync: ${d.action === 'noop' ? 'up to date' : 'SKIPPED'} (${d.reason}${note}) at ${vault}`;
+  // A file upstream ADDS that already exists here untracked would be overwritten by the fast-forward when git
+  // ignores it (a gitignored local file: git refuses to clobber an untracked file but silently replaces an
+  // ignored one). Stop, naming the path (GATE-7, register attack A-V-7).
+  const collisions = ignoredCollisions(vault);
+  if (collisions.length > 0) {
+    const shown = collisions.slice(0, 5).join(', ');
+    (deps.logFiring ?? (() => {}))({ rule: 'vault-sync:ignored-collision', mode: 'session-start', path: collisions[0], line: `${collisions.length} gitignored local file(s) would be overwritten`, verdict: 'refuse' });
+    return `vault-sync: SKIPPED (the fast-forward would overwrite ${collisions.length} gitignored local file(s) that origin/master adds as tracked: ${shown}${collisions.length > 5 ? ', ...' : ''}; move or delete them, then re-run) at ${vault}`;
+  }
   // Make git agree before merging, so a fast-forward that touches a phantom file is not refused. Lossless by
   // proof: every path here has a would-store id equal to its index id.
-  for (const p of phantom) git(vault, ['checkout', '--', p]);
-  const merged = git(vault, ['merge', '--ff-only', '--quiet', 'origin/master']);
+  // DISCIPLINE_VAULT_SYNC marks this as the vault's own fast-forward, so the reference-transaction alarm
+  // (worktree-isolation) never fires on it.
+  const syncEnv = { ...process.env, DISCIPLINE_VAULT_SYNC: '1' };
+  for (const p of phantom) git(vault, ['checkout', '--', p], { env: syncEnv });
+  const merged = git(vault, ['merge', '--ff-only', '--quiet', 'origin/master'], { env: syncEnv });
   const after = git(vault, ['rev-parse', '--short', 'HEAD']);
   if (merged === null || after === before) return `vault-sync: SKIPPED (fast-forward refused; run git -C "${vault}" merge --ff-only origin/master to see why${note}) at ${vault}`;
   return `vault-sync: ${before}..${after} (${d.reason}${note ? note.replace('identical to HEAD by content', 'restored, identical to HEAD by content') : ''}) at ${vault}`;
 }
 
-function main() {
+async function main() {
   if (process.env.VAULT_SYNC_DISABLE === '1') {
     process.stdout.write('vault-sync: disabled (VAULT_SYNC_DISABLE=1)\n');
     return;
@@ -160,10 +183,17 @@ function main() {
     process.stdout.write(`vault-sync: SKIPPED (no git checkout found from ${from})\n`);
     return;
   }
-  process.stdout.write(syncVault(vault) + '\n');
+  // The shared firing log (fsi-app/.discipline/lib/firing-log.mjs). Loaded lazily and guarded: a missing or
+  // broken module must never fail the session, so the stop is simply not logged.
+  let logFiring = () => {};
+  try {
+    const m = await import(pathToFileURL(resolve(vault, 'fsi-app', '.discipline', 'lib', 'firing-log.mjs')).href);
+    logFiring = (e) => m.appendFirings([e]);
+  } catch { /* no firing log available */ }
+  process.stdout.write(syncVault(vault, { logFiring }) + '\n');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { main(); } catch (e) { process.stdout.write(`vault-sync: SKIPPED (${e?.message ?? e})\n`); }
+  try { await main(); } catch (e) { process.stdout.write(`vault-sync: SKIPPED (${e?.message ?? e})\n`); }
   process.exit(0);
 }

@@ -94,28 +94,60 @@ export function evaluateCheckout({ gitDir, gitCommonDir, env } = {}) {
   return { blocked: false };
 }
 
-// PRE-COMMIT verdict. Blocks a commit in the MAIN checkout when it is an agent context OR the branch is
-// agent-owned (the corrupted state — an orchestrator commit about to land on an agent's label). This is
-// the real block: a nonzero exit aborts the commit. In a worktree it never fires (not the main checkout).
-export function evaluateCommit({ gitDir, gitCommonDir, env, branch } = {}) {
+// PRE-COMMIT verdict. Blocks a commit in the MAIN checkout. This is the real block: a nonzero exit aborts
+// the commit. In a worktree it never fires (not the main checkout).
+//
+// GATE-7 (2026-10-08, attacks A-H1-1 to A-H1-7 of the AUD-AT-3 register): the verdict no longer depends on the
+// WHO signal. CLAUDE_CODE_CHILD_SESSION absent, 0, false or empty all mean "not a child", and a harness that
+// forgets to set the marker, or a session started with it cleared, is exactly the case this belt exists for;
+// the marker was an honest-form blind spot (three of the seven register rows were just its value). A commit
+// (or a merge commit, same function, `op`) in the MAIN checkout is refused for everyone: the main checkout is
+// a read surface (vault-sync fast-forwards it; every change lands through a worktree and a PR). The verdict
+// still reports whether the marker or an agent-owned branch name was seen, for the message.
+export function evaluateCommit({ gitDir, gitCommonDir, env, branch, op = 'commit' } = {}) {
   if (!isMainCheckout({ gitDir, gitCommonDir })) return { blocked: false };
   const agent = isAgentContext(env);
   const agentBranch = branchLooksAgentOwned(branch);
-  if (agent || agentBranch) {
-    return {
-      blocked: true,
-      doctrine: DOCTRINE,
-      agent,
-      agentBranch,
-      reason:
-        'WORKTREE-ISOLATION VIOLATION (RD-19): commit BLOCKED in the MAIN checkout — ' +
-        (agent ? 'this is an agent context; ' : '') +
-        (agentBranch ? `the checkout is on an agent-owned branch (${branch}); ` : '') +
-        'the main checkout is the orchestrator\'s exclusive surface. An agent commits ONLY in its ' +
-        'assigned worktree under .claude/worktrees/. Move the work to your worktree and retry.',
-    };
-  }
-  return { blocked: false };
+  return {
+    blocked: true,
+    doctrine: DOCTRINE,
+    agent,
+    agentBranch,
+    reason:
+      `WORKTREE-ISOLATION VIOLATION (RD-19): ${op} BLOCKED in the MAIN checkout. ` +
+      (agent ? 'This is an agent context. ' : '') +
+      (agentBranch ? `The checkout is on an agent-owned branch (${branch}). ` : '') +
+      'The main checkout takes no commits or merges from anyone (the child-session marker is not trusted: ' +
+      'absent, 0, false and empty all read as "not a child"). Work in a worktree under .claude/worktrees/ ' +
+      'and land it through a pull request.',
+  };
+}
+
+// POST-COMMIT verdict. pre-commit and pre-merge-commit are the blocks; a commit created by cherry-pick, am or
+// another path that does not run them has already landed when post-commit fires, so this is detection + a
+// LOUD alarm in the same words. Never fires in a linked worktree.
+export function evaluateLanded({ gitDir, gitCommonDir, env, branch } = {}) {
+  const v = evaluateCommit({ gitDir, gitCommonDir, env, branch, op: 'commit (landed through a path that skips pre-commit: cherry-pick, am, rebase)' });
+  return v.blocked ? { ...v, reason: `${v.reason} The commit already exists: move it to a worktree branch and reset the main checkout to origin/master.` } : v;
+}
+
+// REFERENCE-TRANSACTION verdict. `git reset --hard`, `git symbolic-ref HEAD`, `git update-ref` and the other
+// plumbing that moves HEAD or the checked-out branch fire no checkout hook, but every ref update runs the
+// reference-transaction hook. An AGENT context doing that in the MAIN checkout is the incident (a branch
+// moved under the orchestrator); like post-checkout this is detection + alarm, never a block (the move has
+// happened by the "committed" state). Humans and vault-sync (which sets DISCIPLINE_VAULT_SYNC) never alarm.
+export function evaluateRefMove({ gitDir, gitCommonDir, env } = {}) {
+  if (!isMainCheckout({ gitDir, gitCommonDir })) return { blocked: false };
+  if (!isAgentContext(env)) return { blocked: false };
+  if (env?.DISCIPLINE_VAULT_SYNC) return { blocked: false };
+  return {
+    blocked: true,
+    doctrine: DOCTRINE,
+    reason:
+      'WORKTREE-ISOLATION VIOLATION (RD-19): an AGENT context moved HEAD or the checked-out branch in the MAIN ' +
+      'checkout (reset --hard, symbolic-ref, update-ref or similar). The ref has already moved. STOP, report ' +
+      'to the orchestrator, and do NOT commit here.',
+  };
 }
 
 // Shared command matcher for the PreToolUse skill-gate belt: a git op that moves/creates a branch,

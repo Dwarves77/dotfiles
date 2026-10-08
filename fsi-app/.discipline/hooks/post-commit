@@ -1,0 +1,25 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/post-commit
+# WORKTREE-ISOLATION guard (RD-19), landed-commit leg (lane GATE-7, 2026-10-08, register attack A-H1-5).
+#
+# `git cherry-pick` (and am, and a rebase that replays a commit) creates a commit without running pre-commit
+# or commit-msg, but it does run post-commit. The commit has already landed by then, so a nonzero exit cannot
+# undo it: this is detection plus a LOUD alarm naming the doctrine, in the main checkout only, and a line in
+# the firing log. In a linked worktree it never fires. (`git commit-tree` plus `update-ref` runs no hook at
+# all; that plumbing form is recorded as out of scope in the session log.)
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || exit 0
+
+RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
+
+if command -v node >/dev/null 2>&1 && [ -f "$RUNNER" ]; then
+  exec node "$RUNNER" --mode=post-commit
+fi
+
+[ -f "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh" ] && . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh"
+if command -v wt_in_main_checkout >/dev/null 2>&1 && wt_in_main_checkout; then
+  echo "[worktree-isolation post-commit] WORKTREE-ISOLATION VIOLATION (RD-19): a commit LANDED in the MAIN checkout (node not found, decided in shell). Move it to a worktree branch and reset the main checkout to origin/master." >&2
+  exit 1
+fi
+exit 0

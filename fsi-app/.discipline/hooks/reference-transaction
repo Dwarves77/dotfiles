@@ -1,0 +1,33 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/reference-transaction
+# WORKTREE-ISOLATION guard (RD-19), ref-move alarm (lane GATE-7, 2026-10-08, register attacks A-H3-2, A-H3-3).
+#
+# `git reset --hard <other>` and `git symbolic-ref HEAD <ref>` fire no checkout hook, yet they move the main
+# checkout's branch exactly as `git checkout -b` does. Every ref update runs this hook; the cheap exits come
+# first so an ordinary commit, fetch or push in any worktree pays only a few shell tests:
+#   - only the "committed" state (the move has happened; this is an alarm, never a block);
+#   - only an AGENT context (the child-session marker set to a real value), the same WHO signal post-checkout
+#     alarms on (a human's `git pull` or the operator's vault-sync, which sets DISCIPLINE_VAULT_SYNC, never alarms);
+#   - only an update of HEAD or a branch (refs/heads/...).
+# The node runner then checks the main-checkout signal and logs the firing.
+#
+# git passes: $1 = state (prepared, committed, aborted); stdin = "<old> <new> <ref>" lines.
+
+[ "${1:-}" = "committed" ] || exit 0
+case "${CLAUDE_CODE_CHILD_SESSION:-}" in
+  ""|0|false|FALSE|False) exit 0 ;;
+esac
+[ -z "${DISCIPLINE_VAULT_SYNC:-}" ] || exit 0
+
+if ! cat | grep -Eq ' (HEAD|refs/heads/[^ ]+)$'; then
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || exit 0
+
+RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
+[ -f "$RUNNER" ] || exit 0
+command -v node >/dev/null 2>&1 || exit 0
+
+exec node "$RUNNER" --mode=reference-transaction

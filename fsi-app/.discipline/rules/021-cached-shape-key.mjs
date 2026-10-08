@@ -21,8 +21,20 @@
 // Shape drift through nested types (Resource, Supersession, …) does not rotate the key
 // mechanically — nested additions must be optional fields, or the key rotates by hand.
 
+// HONEST FORMS (lane GATE-7, 2026-10-08, attacks A021-1, A021-1b, A021-3, A021-5 of the AUD-AT-3 register):
+// the interface, the key constant and the consumer's literal are all located on the source with COMMENTS
+// MASKED (lib/mask-source.mjs, positions preserved), so a comment that quotes the new key ahead of the real
+// constant, or a block-comment copy of the old interface ahead of the real one, is not read as the thing it
+// quotes; the hash itself is unchanged (it is taken over the same lines with the same normalization, so the
+// committed key stays valid); a consumer's raw literal split across a plus sign is still the literal; and a
+// commit that deletes or renames the shape file away is refused, because the anchor this rule hashes is gone.
+// NOT covered, and why (the author's stated limit, restated): a shape change through a nested type, or a
+// payload type declared in a file the rule does not watch (A021-2, A021-6), needs the TypeScript type graph,
+// an npm dependency the no-npm discipline glob cannot import. The rule reads the STAGED BLOB.
+
 import { createHash } from 'node:crypto';
 import { pass, fail, skip } from '../lib/result.mjs';
+import { maskNonCode, foldStringConcat } from '../lib/mask-source.mjs';
 
 const SHAPE_FILE = 'fsi-app/src/lib/supabase-server.ts';
 const CONSUMER_FILE = 'fsi-app/src/lib/data.ts';
@@ -37,11 +49,13 @@ function normalize(p) {
 // edits do not rotate the key — only structural shape edits do.
 export function computeShapeKey(source) {
   const lines = source.split(/\r?\n/);
-  const start = lines.findIndex((l) => /^export interface DashboardData \{/.test(l));
+  // Locate the block on the comment-masked source (same line numbers), hash the ORIGINAL lines.
+  const masked = maskNonCode(source, { keepStrings: true }).split(/\r?\n/);
+  const start = masked.findIndex((l) => /^export interface DashboardData \{/.test(l));
   if (start === -1) return null;
   let end = -1;
-  for (let i = start + 1; i < lines.length; i++) {
-    if (lines[i] === '}') {
+  for (let i = start + 1; i < masked.length; i++) {
+    if (masked[i] === '}') {
       end = i;
       break;
     }
@@ -63,6 +77,13 @@ function touchesEitherFile(ctx) {
   );
 }
 
+// The shape file deleted, or renamed away from its path: the anchor this rule hashes is gone.
+function shapeFileGone(ctx) {
+  return ctx.stagedFiles.some(
+    (f) => (f.status === 'D' && normalize(f.path) === SHAPE_FILE) || (f.status === 'R' && normalize(f.oldPath || '') === SHAPE_FILE),
+  );
+}
+
 export const rule = {
   id: '021',
   name: 'Dashboard cache key carries the shape hash',
@@ -77,10 +98,20 @@ export const rule = {
   trigger(ctx) {
     if (ctx.isMergeCommit) return false;
     if (ctx.isRevertCommit) return false;
-    return touchesEitherFile(ctx);
+    return touchesEitherFile(ctx) || shapeFileGone(ctx);
   },
 
   check(ctx) {
+    if (shapeFileGone(ctx)) {
+      return fail({
+        message: `${SHAPE_FILE} was deleted or renamed away: the DashboardData interface this rule hashes is no longer at the path it watches.`,
+        remediation: [
+          'Move the file back, or update SHAPE_FILE and the anchor regex in rules/021-cached-shape-key.mjs in the same commit,',
+          'and rotate DASHBOARD_DATA_CACHE_KEY to the hash the rule prints for the new location.',
+          'Emergency bypass: git commit --no-verify.',
+        ].join('\n  '),
+      });
+    }
     const shapeSrc = ctx.getFileContent(SHAPE_FILE);
     if (shapeSrc === null) {
       // File unreadable in this context (fixture without injection). Content
@@ -102,7 +133,7 @@ export const rule = {
       });
     }
 
-    const keyMatch = shapeSrc.match(KEY_RE);
+    const keyMatch = maskNonCode(shapeSrc, { keepStrings: true }).match(KEY_RE); // comments masked: a quoted key is not the constant
     if (!keyMatch) {
       return fail({
         message: `DASHBOARD_DATA_CACHE_KEY is not declared in ${SHAPE_FILE}.`,
@@ -129,7 +160,7 @@ export const rule = {
     }
 
     const consumerSrc = ctx.getFileContent(CONSUMER_FILE);
-    if (consumerSrc !== null && /["'`]app-data-/.test(consumerSrc)) {
+    if (consumerSrc !== null && /["'`]app-data-/.test(foldStringConcat(maskNonCode(consumerSrc, { keepStrings: true })))) {
       return fail({
         message:
           `${CONSUMER_FILE} contains a raw "app-data-" string literal. The cache key must come ` +
