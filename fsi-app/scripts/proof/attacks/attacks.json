@@ -2226,7 +2226,7 @@
           "label": "attack: the viewer adds a team watchlist row",
           "kind": "attack",
           "as": "user:viewer_id",
-          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'item', 'proof4-viewer')",
+          "sql": "INSERT INTO public.org_watchlist (org_id, added_by_user_id, item_type, item_id) VALUES ($1::uuid, $2::uuid, 'reg', 'proof4-viewer')",
           "params": [
             "@org_a",
             "@viewer_id"

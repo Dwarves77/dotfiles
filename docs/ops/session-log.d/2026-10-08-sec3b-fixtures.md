@@ -40,9 +40,9 @@ Columns written / NOT NULL with no default / list CHECKs / FKs. Source: the help
 
 Result: org_watchlist.item_type was the only list violation in 370; no omitted NOT NULL column and no explicit NULL into a NOT NULL column was found in any of the 16.
 
-## Open item (outside this grant, not changed)
+## Attack manifest (granted by the coordinator after the first push)
 
-- `scripts/proof/attacks/attacks.json`, attack `sec3b-viewer-cannot-write-workspace-tables`, inserts `'item'` into `org_watchlist`. Its expected refusal is 42501 (RLS evaluates before the CHECK), so it still passes as an attack, but it carries the same invalid value. Needs the attack row switched to `'reg'` in a lane granted that file.
+- `scripts/proof/attacks/attacks.json`, attack `sec3b-viewer-cannot-write-workspace-tables`, the viewer's `org_watchlist` insert carried the same invalid `'item'`; changed to `'reg'` (one value). The expected refusal is unchanged (42501, RLS evaluates before the CHECK); the attack no longer depends on that ordering to be a valid statement. Attacks suite tests still pass.
 - Nothing here ran against Postgres. The static checker proves the fixture values against the facts the migration tree states; the live apply remains the arbiter.
 
 ## UX compliance
