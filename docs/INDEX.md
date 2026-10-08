@@ -48,6 +48,8 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [ADR-042-external-data-only](./decisions/ADR-042-external-data-only.md) - external data only: no customer upload or stored customer data for analysis; customer-only domains, the planning-assumption register and Community benchmarks removed (2026-10-03)
 - [ADR-043-no-typed-input-no-automate-vs-hire](./decisions/ADR-043-no-typed-input-no-automate-vs-hire.md) - no typed input produces a result anywhere; the automate-versus-hire framing is retired; calculator removed and the automate_vs_hire derived values deleted by migration 350 (accepted 2026-10-03)
 - [ADR-044-learning-loop-no-gate](./decisions/ADR-044-learning-loop-no-gate.md) - the learning loop runs with no operator gate and no priced request: questions answered from holdings by session batch, inferences shown to customers, predictions scored and source reliability adjusted by rule; supersedes ADR-036 decisions 1 and 3, decision 2 stands (accepted 2026-10-05)
+- [ADR-045-chain-proof-on-a-local-stack](./decisions/ADR-045-chain-proof-on-a-local-stack.md) - the chain proof runs on a disposable local stack, not a Supabase branch; supersedes the create_branch mechanism worded in lane L20 of the complete build plan (accepted 2026-10-07)
+- [ADR-046-gate-doctrine](./decisions/ADR-046-gate-doctrine.md) - gate doctrine: a gate earns its place by true positives or by guarding an irreversible class; constructive over detective, one check one site, introduced-lines scope, BUILD_MODE, firing log and 90-day scoreboard, no unvalidated overrides; KEEP/REPAIR/REPLACE/DELETE disposition of every rule, hook and fitness function; executed by lanes GATE-1 to GATE-4 and DEAD-1 to DEAD-3 (accepted 2026-10-08)
 - [ADR-029-assistant-enabled-in-production](./decisions/ADR-029-assistant-enabled-in-production.md) - the Intelligence Assistant (Ask mode) is ON in production, by operator ruling (2026-09-09/11); the fail-closed `ASSISTANT_ENABLED === "true"` gate (`api/ask/route.ts:28`) and its test are unchanged, only the Vercel Production env var flips; answers, for each of PR #478 / session-log Addendum 32 / invariant RD-31, why it does not forbid the flip; names the still-owed spend-watch batch-marker follow-up so a future lane does not mistake the expected post-flip alarm for a new incident; adds the ASSISTANT_ENABLED row to the boundary manifest (`fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md`) (accepted)
 - [ADR-026-detail-cache-and-viewer-state-split](./decisions/ADR-026-detail-cache-and-viewer-state-split.md)  -  PUBLIC intelligence content stays on unstable_cache+revalidateTag model; PER-USER state moves to one post-paint batched fetch; classic PPR/Cache Components deferred (accepted)
 - [ADR-027-standard-fast-page-architecture](./decisions/ADR-027-standard-fast-page-architecture.md)  -  Standard fast-page architecture: Cache Components static shell, PostgREST cursor pagination + TanStack Query/Virtual, JWT custom claims for org, region co-location proven, smaller bundles via optimizePackageImports, CI budget F37 (proposed)
@@ -81,6 +83,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 ## doctrine
 
 - [worktree-isolation](./doctrine/worktree-isolation.md)  -  Doctrine seed: agent branch/checkout/merge ONLY in the assigned worktree (RD-19; Unit-0 register seed)
+- [closure-gate](./doctrine/closure-gate.md) - Doctrine seed: nothing unwired can stay silent; ships enforced by a CI gate (`closure-gate.mjs`), pending formal registration as an RD invariant
 
 ## runbooks
 
@@ -98,10 +101,15 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [dispatch-discipline-protocol](./runbooks/dispatch-discipline-protocol.md)  -  Every dispatch constraint names its enforcement or is disclosed as trust-the-executor (2026-07-14 honest-limit ruling)
 - [run-structure-protocol](./runbooks/run-structure-protocol.md)  -  Effectful runs execute in ascending cost/irreversibility tiers; halt for operator spend-authorization at each boundary (2026-07-14)
 - [sprint4-dataops-ledger](./runbooks/sprint4-dataops-ledger.md)  -  Sprint 4  -  Data-Operations Ledger (already-executed; do NOT re-run)
+- [audit-catalogue](./runbooks/audit-catalogue.md)  -  the ten audit lenses (exists, runs, called, attacked, costs, fired-true, mode, overlaps, operator-seat, record-vs-reality), the 18 subsystems they apply to, the audit-of-audits matrix over every file in docs/audits with its owed cells in priority order, the rules of an audit, the incident-to-lens ledger, and the one-page fact-lane brief template (lane AUDIT-CAT, 2026-10-08)
 - [layout-guard-baseline-renewal](./runbooks/layout-guard-baseline-renewal.md)  -  procedure for renewing the site-wide layout guard's dated exemption baseline before its hard-cliff expiry; the renewal warning gate (lane R23, 2026-10-02) fires 7 days ahead of expiry and fails the standing test until re-measured
 - [live-source-anti-fabrication-audit](./runbooks/live-source-anti-fabrication-audit.md)  -  standing post-wave gate: live-source anti-fabrication audit
 - [POPULATION-TURN-RUNBOOK](./runbooks/POPULATION-TURN-RUNBOOK.md)  -  how a coordinator dispatches `population-turn.yml` (dry then apply, limit 200, capture on), reads the pushed `population/<run>` branch back against the live table, and lands it by hand because the repository refuses Actions-created PRs (2026-09-03)
 - [CORPUS-TURN-RUNBOOK](./runbooks/CORPUS-TURN-RUNBOOK.md)  -  how a coordinator requests a corpus turn (dispatch or push `turn/**`), what `.github/workflows/corpus-turn.yml`/`source-sweep.yml` land where, the first full backfill (`since=1970-01-01`), and the no-schedule-during-build standing rule (2026-09-01)
+- [PROPAGATION-DRAIN-RUNBOOK](./runbooks/PROPAGATION-DRAIN-RUNBOOK.md) - `propagation-drain.yml` and its driver `run-propagation-drain.mjs`, with the whole loop that feeds the drain (lane CHAIN, 2026-09-06)
+- [FUELEU-STATUTORY-RUNBOOK](./runbooks/FUELEU-STATUTORY-RUNBOOK.md) - rows-file runbook for the FuelEU Annex IV penalty writer (`write-statutory.mjs`) and its pre-flight gate; a transcription of published figures, not legal interpretation (lane FUELEU-ROWS, 2026-09-06)
+- [eia-api-key-registration](./runbooks/eia-api-key-registration.md) - `EIA_API_KEY` registration, the operator action still needed before the EIA v2 petroleum spot producer runs (lane L11, 2026-10-03)
+- [warm-static-detail-routes](./runbooks/warm-static-detail-routes.md) - documented, decision-ready, not wired into CI: warm every static detail route after a deploy so the first request of a newly minted item is not an on-demand generation (PERF-13)
 - [TRAIN-ASSEMBLY-RUNBOOK](./runbooks/TRAIN-ASSEMBLY-RUNBOOK.md)  -  how a coordinator scripts one train's assembly (`scripts/lib/assemble-train.mjs`): folds every artifact branch the six PR-producing workflows stranded on `origin`, runs the proposer pass, lands, gates, and prunes, replacing the branch-by-branch hand procedure (2026-09-05, plan section W1.6)
 - [fleet-charters/authorship-worker](./runbooks/fleet-charters/authorship-worker.md)  -  fleet charter: authorship worker (consolidated, daily). Charter cost rules in [fleet-budget-control](./runbooks/fleet-budget-control.md)
 - [fleet-charters/citation-harvest](./runbooks/fleet-charters/citation-harvest.md)  -  fleet charter: citation harvest
@@ -268,6 +276,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [handoff-2026-08-17](./ops/handoff-2026-08-17.md)  -  cold-start handoff, 2026-08-17: site route inventory vs spec gaps, flywheel unit-by-unit status (U0 built-never-run is the blocker), spend posture (the $130 figure enforces nothing; the acquire lock is the only control), open threads and dated deferrals. Every claim labelled [CONFIRMED]/[DOC-STATED]/[HYPOTHESIS]. Section 11 records the loader-failure session's own errors and the rule now attached to each
 - [handoff-2026-09-05](./ops/handoff-2026-09-05.md)  -  Coordinator-session handoff: the build/loop/DoD explained, roles + lane lifecycle + browser transport step by step, master/train47 repo state incl. migrations 308-311 written-not-applied, the next session's 8-item ordered worklist, errors→rules, corrections to the coordinator's raw state dump, open operator questions
 - [session-log](./ops/session-log.md)  -  Dated session-close log (accomplished / decisions / blockers / next steps)
+- [session-log.d/README](./ops/session-log.d/README.md) - the per-lane session-log directory (D28): why lanes write their own dated file instead of appending to the shared log, and the entry format
 - [wo5-orphan-disposition-2026-08-20](./ops/wo5-orphan-disposition-2026-08-20.md)  -  WO-5 measured orphan-field inventory + disposition options; ⛔ operator-gated, 4 rulings requested
 - [wo6-tag-gap-diagnosis-2026-08-20](./ops/wo6-tag-gap-diagnosis-2026-08-20.md)  -  WO-6 root cause ($0): August bulk import bypassed both tag producers; WO-7 tags-only pass priced (Haiku $2-3 / Sonnet $5-7), ⛔ price ruling owed
 - [wo7-tag-backfill-run-2026-08-20](./ops/wo7-tag-backfill-run-2026-08-20.md)  -  WO-7 tag backfill via $0 session-executor: 655 targets, 414 newly tagged, 241 honest empties, scenario coverage 312→726, compliance 315→845, regenerated rows (297) and signal_band (60) untouched, rule-015 snapshot md5 `7c15b971`
@@ -320,9 +329,6 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md)  -  Decision Package  -  52 live non-verified items (read-only)
 - [design-principles](./design/design-principles.md)  -  Caro's Ledge Design Principles
 - [ux-laws](./design/ux-laws.md)  -  BINDING 2026-09-03 (DP-2, RD-60): the twenty interface laws every surface lane applies; enforced by F35 + the rendering guard's UX smoke slot (real rows measured at 375 px) and the discipline CI "UX compliance" gate
-- [redesign/README](./design/redesign/README.md)  -  UI redesign DESIGN SOURCE OF TRUTH. The mockup binds (see feedback: design-reference-protocol  -  read the mockup before surface code)
-- [redesign/DESIGN-DEVIATIONS](./design/redesign/DESIGN-DEVIATIONS.md)  -  running log of where the build deviates from the redesign source of truth
-- [redesign/HANDOFF - Claude Code Prompt](./design/redesign/HANDOFF%20-%20Claude%20Code%20Prompt.md)  -  UI implementation handoff prompt
 
 ## dispatches
 
@@ -332,34 +338,10 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [lane-briefs/2026-09-19/README](./dispatches/lane-briefs/2026-09-19/README.md): the plan 6.8 lane briefs (N0 to N6 and T2) with their in-place amendments, dispatched from the cloud on 2026-09-19, each row naming its PR
 - [lane-briefs/2026-09-24/brief-auth-identity-retry](./dispatches/lane-briefs/2026-09-24/brief-auth-identity-retry.md): lane AUTH-IDENTITY, a failed `/api/auth/identity` fetch must not collapse to a resolved-no-org state, and the Sidebar Admin item must gate on the same check as `/admin`
 - [lane-briefs/2026-10-02/README](./dispatches/lane-briefs/2026-10-02/README.md): the Research build lane briefs (L3, L5 to L9 of complete-build-plan-2026-10-01.md), dispatched by coordinator lane BRIEFS-RESEARCH (PR 888) with a hard precondition that PR #887 (`lane/w2r-research-assessment`, ADR-038) merges first
+- [lane-briefs/2026-10-03/README](./dispatches/lane-briefs/2026-10-03/README.md): the Market Intel completion lane briefs L10, L11 and L12 (complete-build-plan Wave 3), written by coordinator lane BRIEFS-W3
+- [lane-briefs/2026-10-03-w4/README](./dispatches/lane-briefs/2026-10-03-w4/README.md): the Operations completion lane briefs L13, L14 and L-CORRIDOR (complete-build-plan Wave 4), written by coordinator lane BRIEFS-W4
+- [industry-statements-design-2026-10-08](./dispatches/industry-statements-design-2026-10-08.md): fact register for industry-level statements (lane s8f-industry-statements, phase 1); a register only, the coordinator writes the design from it
 - [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md)  -  brief for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. Scripts run from `fsi-app/` and load `.env.local`; writes hit PRODUCTION Supabase (dev/prod shared)  -  use the guarded path. Contains no credential values, only env-var names
-
-## sprint-1
-
-- [alignment-audit-2026-05-18](./sprint-1/alignment-audit-2026-05-18.md)  -  Caro's Ledge Alignment Audit, 2026-05-18
-- [critical-investigations-2026-05-18](./sprint-1/critical-investigations-2026-05-18.md)  -  Caro's Ledge Sprint 1 Critical Investigations Report, 2026-05-18
-- [followups](./sprint-1/followups.md)  -  Sprint 1 Followups
-- [intelligence-assistant-audit-2026-05-18](./sprint-1/intelligence-assistant-audit-2026-05-18.md)  -  Caro's Ledge Intelligence Assistant Behavior Audit, 2026-05-18
-- [onboarding-audit-2026-05-18](./sprint-1/onboarding-audit-2026-05-18.md)  -  Caro's Ledge Onboarding Flow Audit, 2026-05-18
-- [perf-1-design](./sprint-1/perf-1-design.md)  -  PERF-1: Cache Headers Design (Narrowed, Implementation-Ready)
-- [phase-1-admin-signals](./sprint-1/phase-1-admin-signals.md)  -  Sprint 1 Phase 1: Two-Admin-Signals Resolution
-- [phase-2-dedup-plan](./sprint-1/phase-2-dedup-plan.md)  -  Sprint 1 Phase 2: Canonical-Entity Dedup Plan
-- [phase-3-jurisdiction-vocabulary](./sprint-1/phase-3-jurisdiction-vocabulary.md)  -  Sprint 1 Phase 3: Jurisdiction Vocabulary Extension
-- [phase-3-operator-decision](./sprint-1/phase-3-operator-decision.md)  -  Sprint 1 Phase 3: Operator Decision (Authorization Packet)
-- [phase-4-migrations-summary](./sprint-1/phase-4-migrations-summary.md)  -  Sprint 1 Phase 4a: Migrations Summary
-- [phase-4b-design](./sprint-1/phase-4b-design.md)  -  Sprint 1 Phase 4b: Operator Queue Tables + Rejected-Token Routing
-- [phase-4b-sql-review-final](./sprint-1/phase-4b-sql-review-final.md)  -  Phase 4b SQL Review, Final
-- [phase-5-design](./sprint-1/phase-5-design.md)  -  Sprint 1 Phase 5: Data Migration Design
-- [phase-7-scope-amendment](./sprint-1/phase-7-scope-amendment.md)  -  Sprint 1 Phase 7: Scope Amendment
-- [schema-reconciliation-discovery-2026-05-18](./sprint-1/schema-reconciliation-discovery-2026-05-18.md)  -  Caro's Ledge Sprint 1 Schema Reconciliation Discovery (Stage 1)
-- [system-audit-2026-05-18](./sprint-1/system-audit-2026-05-18.md)  -  Caro's Ledge Sprint 1 System Audit, 2026-05-18 post-PR-#122
-
-## sprint-2
-
-- [Phase-1.5-consumer-migration-list](./sprint-2/Phase-1.5-consumer-migration-list.md)  -  Phase 1.5 Consumer Migration List (Q2 base_tier + effective_tier)
-- [category-routing-wiring-notes](./sprint-2/category-routing-wiring-notes.md)  -  Sprint 2 Build 4: Category Routing Wiring Notes
-- [source-credibility-model-decisions-2026-05-19](./sprint-2/source-credibility-model-decisions-2026-05-19.md)  -  Source Credibility Model: Architectural Decisions Capture (2026-05-19)
-- [sprint-2-planning-2026-05-18](./sprint-2/sprint-2-planning-2026-05-18.md)  -  Caro's Ledge Sprint 2 Planning, 2026-05-18
 
 ## top-level living docs
 
@@ -390,3 +372,5 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [wave2b-lanes-2026-09-29](plans/wave2b-lanes-2026-09-29.md) - Wave 2 write-set contract: eight lanes W2-A..H, facts checked, migration numbers 336-339, coordinator rulings, pre-push sequencing.
 - [supabase-integrity-and-wiring-audit-2026-09-25](audits/supabase-integrity-and-wiring-audit-2026-09-25.md) - workstream 1 discovery phase, SELECT-only: 17 findings across the six named coverage checks plus one bonus security finding (derivation_edges RLS disabled, P0, live anon/authenticated CRUD exposure). Confirms the quarantine DWELL invariant is violated (66/78 live-quarantined items past the 14-day bound, ENQUEUE holds), refutes the build plan's own workstream 4 claim that the Operations-matrix envelope-reader gap is still open (closed 2026-08-30 per PROGRAM-BOARD:1632 and live code), and finds state_cost_facts has readers and no producer anywhere in the repo. Reuses F14, F45, closure-gate, invariant-coverage directly; reproduces the three DB-side data-audit scripts and canonical-key-dedup as equivalent SQL via Supabase MCP (this worktree has no node_modules to run them as CLIs).
 - [docs-vs-reality-board-and-remainder-2026-09-30](audits/docs-vs-reality-board-and-remainder-2026-09-30.md) - lane A8d: PROGRAM-BOARD's append-only body stops at a 2026-09-11 section while its header pointers run to 2026-09-29 (38 merged PRs #800-#837 have no board row; reconstruction table provided per-PR); INDEX/design/sprint-1/sprint-2/census/tech-debt-log findings; two self-flagged unresolved 2026-09-18 design-ruling conflicts (SectionHeader rule-below-title, CommandBar Search|Ask toggle); 56 root-relative (non-file-relative) links + 5 genuinely dead link targets in sprint-1/2; all 20 sprint-1/sprint-2 docs and the superseded `design/redesign/` bundle flagged as archive candidates. 385-row coverage appendix (61 text files read/scanned to varying depth, 324 images existence-verified only, both disclosed).
+- [gate-evaluation-2026-10-08](audits/gate-evaluation-2026-10-08.md) - the commit and CI gate evaluation, two parts: A, the discipline rules and hooks; B, the fitness functions and governance invariants; every finding carries a rule-14 status token
+- [dead-code-census-2026-10-08](audits/dead-code-census-2026-10-08.md) - the dead and forgotten code census: twelve categories (modules, exports, components, routes, tables, columns, scripts, workflows, retired-term mentions, allowlists, migrations, docs) with counts and lists; counts [CONFIRMED], interpretations [HYPOTHESIS]

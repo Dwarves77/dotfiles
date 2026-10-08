@@ -24,6 +24,7 @@ import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from './is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 import { FAMILIES } from '../harness-runs/family-registry.mjs'; // lane N2, 2026-09-19: ALLOWED_FAMILIES is derived from this
+import { GOVERNING_FILES } from '../harness-runs/governing-files.mjs'; // lane GATE-3, 2026-10-08: governing_hash is derived from this
 
 // ALLOWED_FAMILIES (lane N2, 2026-09-19, build plan section 6.8 Rule A) is now DERIVED from FAMILIES
 // (scripts/harness-runs/family-registry.mjs), which reads one family.json descriptor per family
@@ -83,6 +84,9 @@ const TRIGGER_VALUES = Object.freeze([
   "push",
   "manual",
 ]);
+
+// The shape hashHarnessVersion returns: "sha256:" plus 16 hex chars.
+const GOVERNING_HASH_RE = /^sha256:[0-9a-f]{16}$/;
 
 function isPlainObject(v) {
   return v !== null && typeof v === "object" && !Array.isArray(v);
@@ -218,6 +222,17 @@ export function validateRunArtifact(artifact) {
     }
   }
 
+  // governing_hash (lane GATE-3, 2026-10-08): OPTIONAL, same posture as trigger/upstream_run_id. Present but
+  // malformed fails closed; absent is fine (every artifact written before this field existed).
+  if ("governing_hash" in artifact) {
+    if (typeof artifact.governing_hash !== "string" || !GOVERNING_HASH_RE.test(artifact.governing_hash)) {
+      errors.push(
+        `field governing_hash, when present, must match ${GOVERNING_HASH_RE} ` +
+          `(got ${JSON.stringify(artifact.governing_hash)})`,
+      );
+    }
+  }
+
   artifact.defects_found.forEach((d, i) => {
     if (!isPlainObject(d)) {
       errors.push(`defects_found[${i}] must be an object`);
@@ -237,6 +252,92 @@ export function validateRunArtifact(artifact) {
   });
 
   return errors;
+}
+
+/**
+ * The governing-file content hash for `family`, computed NOW from the checked-out tree: the same
+ * `hashHarnessVersion(GOVERNING_FILES[family])` F28 re-derives as the family's live hash. Returns null when
+ * the family has no governing-file list or one of its files cannot be read (ENOENT); any other failure
+ * propagates, since swallowing it would hide a real bug. `fsiRoot` defaults to this module's own app root.
+ * @param {string} family
+ * @param {string} [fsiRoot]
+ * @returns {string|null}
+ */
+export function computeGoverningHash(family, fsiRoot = DEFAULT_FSI_ROOT) {
+  const governing = GOVERNING_FILES[family];
+  if (!governing) return null;
+  try {
+    return hashHarnessVersion(governing, fsiRoot);
+  } catch (err) {
+    if (err && err.code === "ENOENT") return null;
+    throw err;
+  }
+}
+
+// ── harness ledger export readers (lane GATE-3, 2026-10-08) ─────────────────────────────────────────────
+// The committed snapshot of harness_runs (scripts/lib/export-harness-ledger.mjs writes it; it holds no
+// secret, so no-credential gates read it as a plain JSON file). F28 (a harness family is current when the
+// export holds a row whose governing_hash equals the family's live governing-file hash) and the closure
+// gate (NEVER-RUN clock: the newest row date per family) both read it through THESE helpers, so the two
+// gates can never disagree about what a ledger row is. Pure other than the one file read; never throws.
+
+/** Repo-relative home of the export. The exporter's DEFAULT_OUT_PATH is this same constant. */
+export const HARNESS_LEDGER_EXPORT_PATH = "fsi-app/.discipline/governance/harness-ledger-export.json";
+
+/**
+ * Read the committed ledger export under `repoRoot`. An absent or malformed file is zero evidence, never a
+ * failure (the export is refreshed by a credentialed step; a no-credential checkout may not carry it).
+ * @param {string} repoRoot
+ * @returns {{present: boolean, capturedAt: string|null, rows: object[]}}
+ */
+export function readHarnessLedgerExport(repoRoot) {
+  let text;
+  try {
+    text = readFileSync(join(resolve(repoRoot), HARNESS_LEDGER_EXPORT_PATH), "utf8");
+  } catch {
+    return { present: false, capturedAt: null, rows: [] };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { present: false, capturedAt: null, rows: [] };
+  }
+  const rows = Array.isArray(parsed?.rows) ? parsed.rows.filter(isPlainObject) : [];
+  const capturedAt = typeof parsed?.capturedAt === "string" && !Number.isNaN(Date.parse(parsed.capturedAt)) ? parsed.capturedAt : null;
+  return { present: true, capturedAt, rows };
+}
+
+/**
+ * Newest `started_at` (a Date) among `rows` of `family` that pass the optional `where` predicate, or null
+ * when there is no such row. Pure.
+ * @param {object[]} rows
+ * @param {string} family
+ * @param {(row: object) => boolean} [where]
+ * @returns {Date|null}
+ */
+export function newestLedgerRunAt(rows, family, where = () => true) {
+  let newest = null;
+  for (const r of rows ?? []) {
+    if (r?.family !== family || !where(r)) continue;
+    const t = Date.parse(r.started_at);
+    if (Number.isNaN(t)) continue;
+    if (newest === null || t > newest) newest = t;
+  }
+  return newest === null ? null : new Date(newest);
+}
+
+/**
+ * True when the ledger holds a row of `family` whose governing_hash equals `liveHash`: the family has run
+ * at its current governing-file version. Pure.
+ * @param {object[]} rows
+ * @param {string} family
+ * @param {string} liveHash
+ * @returns {boolean}
+ */
+export function familyCurrentInLedger(rows, family, liveHash) {
+  if (typeof liveHash !== "string" || liveHash.length === 0) return false;
+  return (rows ?? []).some((r) => r?.family === family && r?.governing_hash === liveHash);
 }
 
 /**
@@ -286,6 +387,22 @@ export function writeRunArtifact(dir, artifact, opts = {}) {
       ...stamped.config,
       github_run_id: process.env.GITHUB_RUN_ID ? String(process.env.GITHUB_RUN_ID) : null,
     };
+  }
+
+  // governing_hash (lane GATE-3, 2026-10-08): THE ONE HOME for "which version of the family's governing
+  // files produced this run", computed here at run time from the family's own governing files
+  // (governing-files.mjs, the single source F28 re-hashes against) so every family gets it for free. F28
+  // calls a family current when the harness ledger export holds a row whose governing_hash equals the
+  // family's live hash. Mirrored into config.governing_hash because record-harness-run.mjs lands `config`
+  // verbatim into harness_runs (there is no governing_hash column), which is how the field reaches the
+  // ledger export. A caller-supplied value is never overwritten; a family whose governing files cannot be
+  // read (a missing file) stamps nothing, so the run is simply not current, never wrongly current.
+  if (!("governing_hash" in stamped)) {
+    const governingHash = computeGoverningHash(stamped.harness_family);
+    if (governingHash !== null) stamped.governing_hash = governingHash;
+  }
+  if (typeof stamped.governing_hash === "string" && isPlainObject(stamped.config) && !("governing_hash" in stamped.config)) {
+    stamped.config = { ...stamped.config, governing_hash: stamped.governing_hash };
   }
 
   const errors = validateRunArtifact(stamped);
@@ -441,6 +558,7 @@ function highestClaimedOrWrittenRunNumber(dir, family) {
  * @param {object[]} opts.defectsFound
  * @param {string[]} opts.fullTraceRefs
  * @param {string} opts.proposerNotes
+ * @param {string} [opts.governingHash] optional; writeRunArtifact stamps it when absent
  * @returns {object}
  */
 export function buildRunArtifactEnvelope({
@@ -455,8 +573,10 @@ export function buildRunArtifactEnvelope({
   defectsFound,
   fullTraceRefs,
   proposerNotes,
+  governingHash,
 }) {
   return {
+    ...(governingHash === undefined ? {} : { governing_hash: governingHash }),
     harness_family: family,
     harness_version: harnessVersion,
     run_id: runId,
@@ -671,6 +791,7 @@ const HERE_DIR = (() => {
   }
 })();
 export const DEFAULT_HARNESS_RUNS_ROOT = resolve(HERE_DIR, "..", "harness-runs");
+const DEFAULT_FSI_ROOT = resolve(HERE_DIR, "..", ".."); // scripts/lib -> scripts -> fsi-app
 
 /**
  * `list` with no family: one summary line per family directory found under `root` — name, run count,

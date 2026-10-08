@@ -1,5 +1,13 @@
 // C4: each worktree listed in docs/inventories/worktrees.md exists on disk;
-// each existing worktree (per git worktree list) is listed in inventory.
+// each existing worktree (per git worktree list) INSIDE this repository's path and outside the three
+// ephemeral conventions is listed in inventory.
+//
+// GATE-2 (2026-10-08): the worktree list is machine-global (every worktree of the repo shares one .git), so
+// a scratch worktree anywhere on the machine, outside .worktrees/, .claude/worktrees/ and work/lanes/, used
+// to fail pre-push step 2 for every lane on that machine, while CI (one checkout) can never see it
+// (gate-evaluation-A section 4, H6: "C4 fixed rather than recorded for the tenth time" in session-log).
+// A worktree OUTSIDE the repository path is now printed as a note and never fails. A worktree inside the
+// repository path that is not under an ephemeral convention is still drift when unlisted.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -8,9 +16,9 @@ import { drift, DRIFT_KIND, NO_DRIFT } from '../lib/drift.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { readInventory, parseMarkdownTables, cleanCell } from '../lib/inventory-parser.mjs';
 
-function gitWorktreeList() {
+export function gitWorktreeList(root = getRepoRoot()) {
   try {
-    const out = execFileSync('git', ['-C', getRepoRoot(), 'worktree', 'list', '--porcelain'], {
+    const out = execFileSync('git', ['-C', root, 'worktree', 'list', '--porcelain'], {
       encoding: 'utf-8',
     });
     // Parse worktree entries; each starts with "worktree <path>"
@@ -52,6 +60,48 @@ export function isEphemeralWorktreePath(worktreePath) {
     normalized.includes('/.claude/worktrees/') ||
     normalized.includes('/work/lanes/')
   );
+}
+
+/**
+ * True when `worktreePath` is the repository root or lives inside it. Compared on normalized, lower-cased
+ * forward-slash paths (Windows paths are case-insensitive and git prints them with forward slashes).
+ */
+export function isInsideRepoPath(worktreePath, repoRoot) {
+  const norm = (p) => String(p).replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  const w = norm(worktreePath);
+  const r = norm(repoRoot);
+  return w === r || w.startsWith(r + '/');
+}
+
+/**
+ * Split the live worktrees into drift records and notes. Pure over its arguments.
+ *   ephemeral convention (.worktrees/, .claude/worktrees/, work/lanes/)  skipped (transient by design)
+ *   inside the repository path, not listed in the inventory              DRIFT
+ *   outside the repository path (any other place on the machine)          NOTE, never a failure
+ * @param {string[]} liveWorktrees @param {string} repoRoot @param {Set<string>} inventoryPaths
+ * @returns {{ drifts: object[], notes: string[] }}
+ */
+export function classifyLiveWorktrees(liveWorktrees, repoRoot, inventoryPaths) {
+  const drifts = [];
+  const notes = [];
+  for (const livePath of liveWorktrees) {
+    const normalized = livePath.replace(/\\/g, '/');
+    if (isEphemeralWorktreePath(normalized)) continue; // ephemeral by convention
+    const basename = livePath.split(/[\\/]/).pop();
+    const historicalForm = basename === 'dotfiles' ? 'dotfiles' : `dotfiles-${basename}`;
+    const matched = inventoryPaths.has(basename) || inventoryPaths.has(historicalForm);
+    if (matched) continue;
+    if (!isInsideRepoPath(normalized, repoRoot)) {
+      notes.push(`Git worktree at ${livePath} (basename "${basename}") is outside this repository's path and not listed in docs/inventories/worktrees.md; noted, not drift (the worktree list is machine-global).`);
+      continue;
+    }
+    drifts.push(drift(
+      DRIFT_KIND.MISSING_CLAIM,
+      `Git worktree at ${livePath} (basename "${basename}") exists inside the repository path but is not listed in docs/inventories/worktrees.md.`,
+      livePath,
+    ));
+  }
+  return { drifts, notes };
 }
 
 export const consistencyCheck = {
@@ -147,20 +197,9 @@ export const consistencyCheck = {
     // `/root/work/lanes/` — the convention the runbook itself prescribes — were each
     // reported as an untracked worktree. The rule was written before that convention
     // existed; the convention is the exempt kind, so the list is what was out of date.
-    for (const livePath of liveWorktrees) {
-      const normalized = livePath.replace(/\\/g, '/');
-      if (isEphemeralWorktreePath(normalized)) continue; // ephemeral by convention
-      const basename = livePath.split(/[\\/]/).pop();
-      const historicalForm = basename === 'dotfiles' ? 'dotfiles' : `dotfiles-${basename}`;
-      const matched = inventoryPaths.has(basename) || inventoryPaths.has(historicalForm);
-      if (!matched) {
-        drifts.push(drift(
-          DRIFT_KIND.MISSING_CLAIM,
-          `Git worktree at ${livePath} (basename "${basename}") exists but is not listed in docs/inventories/worktrees.md.`,
-          livePath,
-        ));
-      }
-    }
+    const live = classifyLiveWorktrees(liveWorktrees, repoRoot, inventoryPaths);
+    drifts.push(...live.drifts);
+    for (const note of live.notes) console.log(`  note  [C4] ${note}`);
 
     return drifts.length === 0 ? NO_DRIFT : drifts;
   },

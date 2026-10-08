@@ -33,8 +33,10 @@
 import { writeFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { readClient } from "../lib/db.mjs";
-import { readRunHistory, DEFAULT_HARNESS_RUNS_ROOT } from "../lib/run-artifact.mjs";
-import { GOVERNING_FILES, listPendingFiles } from "../../.discipline/fitness/functions/F28-harness-run-integrity.mjs";
+import {
+  readRunHistory, DEFAULT_HARNESS_RUNS_ROOT, readHarnessLedgerExport, familyCurrentInLedger, computeGoverningHash,
+} from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../../.discipline/fitness/functions/F28-harness-run-integrity.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
 // ── §1: intelligence_items provenance matrix — grade × status × item_type ─────────────────────────
@@ -125,23 +127,17 @@ export function findSectionsMissingSpan(claimRows) {
   return { sectionCount: missingSectionIds.size, claimCount };
 }
 
-// ── §4: F28 harness-run markers ─────────────────────────────────────────────────────────────────
+// ── section 4: F28 harness-run currency ─────────────────────────────────────────────────────────────────
 // Reuses F28's own GOVERNING_FILES (the registered-family list, never re-derived by hand here) and
 // run-artifact.mjs's own readRunHistory/DEFAULT_HARNESS_RUNS_ROOT (the SAME reader F28 and the
-// `--list` CLI use), per CONVENTION.md's schema: a family with zero valid runs and no pending/ file
-// is the honest-gap case F28's tree-state rule itself polices; this report surfaces it for a
-// human/proposer without re-running F28's own audit logic.
-//
-// Lane N3 Amendment 1 (2026-09-19): the marker mechanism moved from a single hash-pinned
-// PENDING-RUN.md to a family's own pending/ directory (build plan section 6.8 Rule B). This function
-// reads that directory through F28's own exported `listPendingFiles`, the one reader every F28 rule
-// itself uses, rather than a second hand-rolled directory scan. `root` (defaulting to
-// DEFAULT_HARNESS_RUNS_ROOT, `fsi-app/scripts/harness-runs`) still names the harness-runs directory
-// for `historyReader`, unchanged; `repoRoot` (defaulting to three levels above `root`, the outer
-// repository top level `listPendingFiles` itself expects, the same relationship
-// `fsi-app/scripts/harness-runs` has to the repo root everywhere else in this codebase) is the new
-// argument `listPending` is called with. `pendingMarker` (a boolean naming a single marker file) is
-// replaced by `pendingFileCount` (the count of files under the family's own pending/ directory).
+// `--list` CLI use), per CONVENTION.md's schema. A family is "current in ledger" when the committed
+// harness ledger export holds a row whose governing_hash equals the family's live governing-file hash
+// (F28's own currency rule, lane GATE-3, 2026-10-08, which replaced the pending/ marker directory this
+// column used to count). The check reuses run-artifact.mjs's readHarnessLedgerExport /
+// familyCurrentInLedger / computeGoverningHash, the one reader F28 and the closure gate also use, rather
+// than a second ledger parser. `repoRoot` (defaulting to three levels above `root`, the outer repository
+// top level) is where the export is read from. The value is "yes", "no", or "no export" (the export file
+// is absent or unreadable, so currency cannot be judged).
 
 /** Pure-ish (the collaborators are all injectable): one row per F28-registered harness family. */
 export function collectHarnessMarkers({
@@ -149,13 +145,17 @@ export function collectHarnessMarkers({
   root = DEFAULT_HARNESS_RUNS_ROOT,
   historyReader = readRunHistory,
   repoRoot = resolve(root, "..", "..", ".."),
-  listPending = listPendingFiles,
+  ledgerReader = readHarnessLedgerExport,
+  hashFor = computeGoverningHash,
 } = {}) {
+  const ledger = ledgerReader(repoRoot);
   return families
     .map((family) => {
       const dir = join(root, family);
       const { runs, invalid } = historyReader(dir);
       const latest = runs.at(-1) ?? null;
+      let currentInLedger = "no export";
+      if (ledger.present) currentInLedger = familyCurrentInLedger(ledger.rows, family, hashFor(family)) ? "yes" : "no";
       return {
         family,
         runCount: runs.length,
@@ -163,7 +163,7 @@ export function collectHarnessMarkers({
         latestRunId: latest?.run_id ?? null,
         latestStartedAt: latest?.started_at ?? null,
         latestDefectCount: latest ? latest.defects_found.length : null,
-        pendingFileCount: listPending(repoRoot, family).length,
+        currentInLedger,
       };
     })
     .sort((a, b) => a.family.localeCompare(b.family));
@@ -238,26 +238,26 @@ export function renderMarkdown(report) {
   );
   out.push("");
 
-  out.push("## 4. F28 harness-run markers (scripts/harness-runs/, per CONVENTION.md)");
+  out.push("## 4. F28 harness-run currency (scripts/harness-runs/, per CONVENTION.md)");
   out.push("");
-  out.push("| family | runs | invalid | latest run | latest started_at | latest defects | pending files |");
-  out.push("|---|---:|---:|---|---|---:|---:|");
+  out.push("| family | runs | invalid | latest run | latest started_at | latest defects | current in ledger |");
+  out.push("|---|---:|---:|---|---|---:|---|");
   for (const h of report.harnessMarkers) {
     out.push(
       `| ${h.family} | ${h.runCount} | ${h.invalidCount} | ${h.latestRunId ?? "—"} | ${h.latestStartedAt ?? "—"} | ` +
-        `${h.latestDefectCount ?? "—"} | ${h.pendingFileCount} |`, // glyph:verbatim (same null-value dash as latestRunId/latestStartedAt above)
+        `${h.latestDefectCount ?? "—"} | ${h.currentInLedger} |`, // glyph:verbatim (same null-value dash as latestRunId/latestStartedAt above)
     );
   }
-  const zeroRunNoPending = report.harnessMarkers.filter((h) => h.runCount === 0 && h.pendingFileCount === 0);
+  const zeroRunNotCurrent = report.harnessMarkers.filter((h) => h.runCount === 0 && h.currentInLedger !== "yes");
   out.push("");
-  if (zeroRunNoPending.length > 0) {
+  if (zeroRunNotCurrent.length > 0) {
     out.push(
-      `**${zeroRunNoPending.length} famil${zeroRunNoPending.length === 1 ? "y" : "ies"} with zero runs and no ` +
-        `pending file**: ${zeroRunNoPending.map((h) => h.family).join(", ")}, F28's own tree-state rule ` +
-        "gap; see F28-harness-run-integrity.mjs.",
+      `**${zeroRunNotCurrent.length} famil${zeroRunNotCurrent.length === 1 ? "y" : "ies"} with zero runs and not ` +
+        `current in ledger**: ${zeroRunNotCurrent.map((h) => h.family).join(", ")}; see ` +
+        "F28-harness-run-integrity.mjs.",
     );
   } else {
-    out.push("Every registered family has either run history or a pending file recording why.");
+    out.push("Every registered family has either run history or a ledger row at its live governing hash.");
   }
   out.push("");
 

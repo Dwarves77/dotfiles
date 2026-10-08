@@ -34,7 +34,7 @@ proof** (the item's FACT source_spans located verbatim via `scripts/mint/heal-pr
 `locateSpanInText`, when it has any; every one of the 16 live pending rows read 2026-09-06 carries ZERO
 FACT claims, so rule 3's own named fallback - the institution name plus the item's subject phrase both
 located, with a word-overlap fallback for a title's spacing/punctuation drift from the page's own prose -
-is what actually decides every row in practice) → **authority** (`src/lib/sources/host-authority.mjs`'s
+is what actually decides every row in practice) → **authority** (`fsi-app/src/lib/sources/host-authority.ts`'s
 codified tiers + `defaultTierForHost` plus a live-registry lookup keyed the same way `registerSource`
 dedups; a permanently-unregistered host class always rejects; an ambiguous host with no deterministic
 codified tier no longer waits on a human - it **accepts, registered PROVISIONAL at the deterministic
@@ -72,8 +72,9 @@ publisher"); `intelligence_items` is never touched. **Deferred** (transient fetc
 error, DNS timeout, connection reset that never completed the request): the row is left `decision='pending'`
 untouched, `reviewer_notes` names the fetch error, and it is retried automatically the next dispatch - not
 a verdict on the candidate, not a human outcome. **Reviewer identity**: `reviewer_id` is left `null` (never
-set) - the same convention `scripts/review/lib/canonical-candidates.mjs`'s own `patchForDecision` already
-uses for every other machine-applied decision on this table; there is no automated-actor id anywhere else
+set) - the convention the retired step 14
+(`14-review-apply-canonical-candidates.md`, retired by G6-GATES 2026-10-05) used for every other
+machine-applied decision on this table; there is no automated-actor id anywhere else
 in this codebase to reuse, and inventing one would be a fabricated identity CLAUDE.md rule 2 forbids.
 
 **What it does NOT do**: never invents/guesses an ACTIVE tier for an ambiguous host (SC-13 - it registers
@@ -81,13 +82,10 @@ that case PROVISIONAL instead, at the deterministic sub-floor default, never a w
 authority below a genuinely LINKED current source without proof that source is dead; never touches a row
 whose `decision` is not `pending` (bounded, paginated read via `readAll`'s own match, and
 `guardedUpdateByIds`'s `applyMatch` re-checks on write - idempotent on re-run by construction, so a
-re-run's only remaining `pending` rows are ones a prior run deferred). `review-apply-canonical-candidates`
-(section 14) is UNCHANGED and keeps working for a group ruling an operator has already taken (its own, separate
-`needs_individual_review` fallback - a group ruled "accept" naming a candidate needing a brand-new source
-with no existing registry match at all - is untouched by this ruling); this step is additive, not a
-replacement for that path - `scripts/review/lib/canonical-candidates.mjs`'s own digest recommendation
-labels a mixed group `auto-verify` (not `uncertain`), since this step is what actually resolves those
-rows, all the way to approved/rejected, never a human.
+re-run's only remaining `pending` rows are ones a prior run deferred).
+`review-apply-canonical-candidates` (section 14) was RETIRED by lane G6-GATES (2026-10-05): this step now
+rules every pending candidate by rule, all the way to approved/rejected, never a human, so the group-ruling
+path and its `needs_individual_review` fallback no longer exist.
 
 **tier-opinions (section ?, `tier-opinions.mjs`)**: the deterministic second look for a provisional accept's
 sub-floor tier. It scans the WHOLE `sources` table with no status filter (`readAll("sources", "id, url,

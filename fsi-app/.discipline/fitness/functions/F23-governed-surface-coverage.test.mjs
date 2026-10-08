@@ -9,7 +9,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { compareToBaseline, GAP_BASELINE, fitnessFunction } from './F23-governed-surface-coverage.mjs';
-import { runCoverageScan, classify, stripComments } from '../../governance/coverage-scan.mjs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { runCoverageScan, classify, stripComments, WRITE_RPCS, callsWriteRpc, listScanFiles } from '../../governance/coverage-scan.mjs';
 
 const BASE = { orphaned_proofs: 10, unmapped_writes: 5, unmapped_model: 1, unmapped_routing: 0 };
 
@@ -77,6 +81,54 @@ test('comment stripping preserves URLs (a naive // strip would eat every https:/
 
 test('a real API call in live code is still MODEL after stripping', () => {
   assert.ok(classify('fsi-app/src/lib/x.mjs', 'await fetch("https://api.anthropic.com/v1/messages")').includes('MODEL'));
+});
+
+// ---- lane GATE-3 (2026-10-08): an rpc is a write only by NAME; the scan reads tracked files only ----
+
+test('a READ rpc is not a governed write (OPS-1: gate-a-gauges.mjs, "a read RPC; the scan cannot tell")', () => {
+  const src = 'const { data } = await sb.rpc("get_category_items", { p_category: c });';
+  assert.equal(classify('fsi-app/scripts/verify/gate-a-gauges.mjs', src).includes('WRITES'), false);
+});
+
+test('a WRITE_RPCS rpc is a governed write, in all three quote styles; a name held in a variable is not counted', () => {
+  for (const q of ['"', "'", '`']) {
+    const src = `await sb.rpc(${q}admin_set_pause_state${q}, { p_flag: true });`;
+    assert.ok(classify('fsi-app/src/lib/x.ts', src).includes('WRITES'), `quote ${q}`);
+  }
+  assert.equal(classify('fsi-app/src/lib/x.ts', 'await sb.rpc(name, args);').includes('WRITES'), false);
+  assert.equal(callsWriteRpc('sb.rpc("create_org_for_self", {})'), true);
+  assert.equal(callsWriteRpc('sb.rpc("create_org_for_self_not_really", {})'), false, 'exact name, not a prefix');
+});
+
+test('WRITE_RPCS carries the SECURITY DEFINER writers the brief seeded, and the lease and lock names the repo actually calls', () => {
+  for (const name of ['admin_set_pause_state', 'admin_set_judgement_drain', 'create_item_correction', 'revoke_item_correction',
+    'create_org_for_self', 'accept_invitation', 'request_verification', 'acquire_mutation_lease', 'heartbeat', 'release',
+    'heartbeat_mutation_lease', 'release_mutation_lease', 'heartbeat_funded_pass_lock', 'release_funded_pass_lock']) {
+    assert.ok(WRITE_RPCS.includes(name), name);
+  }
+});
+
+test('an rpc name inside a comment is not a call', () => {
+  const src = ['// we used to call sb.rpc("admin_set_pause_state") here', 'export const x = 1;'].join('\n');
+  assert.equal(classify('fsi-app/src/lib/x.ts', src).includes('WRITES'), false);
+});
+
+test('listScanFiles enumerates git-tracked files only: a gitignored scratch file is never scanned', () => {
+  const root = mkdtempSync(join(tmpdir(), 'f23-scan-'));
+  const git = (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+  try {
+    git(['init', '-q']);
+    mkdirSync(join(root, 'fsi-app', 'src'), { recursive: true });
+    mkdirSync(join(root, 'fsi-app', 'scripts', 'tmp'), { recursive: true });
+    writeFileSync(join(root, 'fsi-app', 'src', 'tracked.mjs'), 'export const a = 1;' + String.fromCharCode(10));
+    writeFileSync(join(root, 'fsi-app', 'scripts', 'tmp', 'scratch.mjs'), 'sb.from("t").insert(r);' + String.fromCharCode(10));
+    writeFileSync(join(root, '.gitignore'), 'fsi-app/scripts/tmp/' + String.fromCharCode(10));
+    git(['add', '.']);
+    const found = listScanFiles(root, ['fsi-app/src', 'fsi-app/scripts']).map((f) => f.split(String.fromCharCode(92)).join('/').replace(root.split(String.fromCharCode(92)).join('/') + '/', ''));
+    assert.deepEqual(found, ['fsi-app/src/tracked.mjs']);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 // ---- live-tree shape (deliberately not value assertions) ----

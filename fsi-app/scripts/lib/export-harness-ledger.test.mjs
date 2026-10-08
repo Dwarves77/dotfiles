@@ -3,7 +3,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildLedgerExport, runCli } from "./export-harness-ledger.mjs";
+import { buildLedgerExport, runCli, DEFAULT_OUT_PATH } from "./export-harness-ledger.mjs";
+import { HARNESS_LEDGER_EXPORT_PATH } from "./run-artifact.mjs";
 
 test("buildLedgerExport sorts by family then run_id and carries config", () => {
   const rows = [
@@ -79,6 +80,42 @@ test("runCli: a DB read failure is reported, exit 1, never thrown", async () => 
   });
   assert.equal(code, 1);
   assert.ok(errors.some((e) => /simulated network failure/.test(e)));
+  delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+});
+
+// ── governing_hash (lane GATE-3, 2026-10-08): the export row carries the governing-file hash F28 compares
+// against a family's live hash. config.governing_hash wins (writeRunArtifact stamps it); a row landed before
+// that stamp falls back to the harness_version column; a row with neither is null (never current). ──
+
+test("buildLedgerExport: governing_hash comes from config.governing_hash, else harness_version, else null", () => {
+  const rows = [
+    { harness_family: "mint", run_id: "mint-run-003", started_at: "2026-10-03T00:00:00Z", harness_version: "sha256:aaaaaaaaaaaaaaaa", config: { governing_hash: "sha256:bbbbbbbbbbbbbbbb" } },
+    { harness_family: "mint", run_id: "mint-run-002", started_at: "2026-10-02T00:00:00Z", harness_version: "sha256:cccccccccccccccc", config: {} },
+    { harness_family: "mint", run_id: "mint-run-001", started_at: "2026-10-01T00:00:00Z", config: null },
+  ];
+  const out = buildLedgerExport(rows, "2026-10-08");
+  assert.deepEqual(out.rows.map((r) => r.governing_hash), [null, "sha256:cccccccccccccccc", "sha256:bbbbbbbbbbbbbbbb"]);
+});
+
+test("runCli: the SELECT asks for harness_version (the governing_hash fallback) and DEFAULT_OUT_PATH is the readers' one path", async () => {
+  let columns = null;
+  const code = await runCli(["--out", "/fake/path.json"], {
+    log: () => {},
+    loadEnv: () => {
+      process.env.NEXT_PUBLIC_SUPABASE_URL = "https://fake.test";
+      process.env.SUPABASE_SERVICE_ROLE_KEY = "fake-key";
+    },
+    readAllFn: async (_table, cols) => {
+      columns = cols;
+      return [];
+    },
+    writeFileFn: () => {},
+    now: () => "2026-10-08",
+  });
+  assert.equal(code, 0);
+  assert.match(columns, /\bharness_version\b/);
+  assert.equal(DEFAULT_OUT_PATH, HARNESS_LEDGER_EXPORT_PATH);
   delete process.env.NEXT_PUBLIC_SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 });

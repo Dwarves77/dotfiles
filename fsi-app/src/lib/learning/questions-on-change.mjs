@@ -118,7 +118,6 @@ export function buildEntityItemsReader(sb) {
 
     const ids = new Set([...viaInstrument.map((r) => r.id), ...viaRefs.map((r) => r.ref_id)]);
     const items = await fetchAllByIdChunks(ids, async (slice) => {
-      // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
       const { data, error } = await sb.from("intelligence_items").select(COLS).in("id", slice).eq("provenance_status", "verified");
       if (error) throw new Error(`intelligence_items read failed: ${error.message}`);
       return data ?? [];
@@ -204,7 +203,6 @@ export async function readOutboxEvents(sb, { ids, from, to } = {}) {
   let rows;
   if (Array.isArray(ids)) {
     rows = await fetchAllByIdChunks(ids, async (slice) => {
-      // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
       const { data, error } = await sb.from("propagation_events").select(OUTBOX_COLS).in("event_id", slice);
       if (error) throw new Error(`propagation_events read failed: ${error.message}`);
       return data ?? [];

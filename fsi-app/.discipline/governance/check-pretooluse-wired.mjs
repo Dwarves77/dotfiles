@@ -26,6 +26,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { isMainModule } from "../../scripts/lib/is-main.mjs";
 
 const SETTINGS = resolve(homedir(), ".claude", "settings.json");
 // Every tool path that can mutate the system must route to the hook. Includes representative MCP write
@@ -61,6 +62,25 @@ function quotedMjsPath(command, needleRe) {
 //       appear loaded); the real gate's worktree-isolation belt returns "ask" for that op UNCONDITIONALLY
 //       (skill-map- and skill-state-independent), so a wrapper that stopped delegating would "allow" instead.
 //       The gate only INSPECTS the command text; it never executes it, so no branch is created.
+// SOURCE half of the delegation proof, pure. Two shapes pass:
+//   * SPAWN (the original shim): the source names the gate and spawns a child process.
+//   * IMPORT (GATE-2, 2026-10-08, one node start instead of two): the source names the gate, imports it
+//     (dynamic import()), calls its runGate, and AWAITS that call at the in-scope call site
+//     (`if (inScope) await <fn>(...)`). The await is load-bearing: without it the shim's trailing allow()
+//     runs first and the gate is bypassed, so an importing wrapper whose in-scope call is not awaited FAILS.
+export function wrapperSourceDelegates(src) {
+  const text = String(src ?? "");
+  if (!/pretooluse-skill-gate\.mjs/.test(text)) return { ok: false, why: "wrapper does not reference pretooluse-skill-gate.mjs (stopped wrapping?)" };
+  if (/\bspawn(Sync)?\s*\(/.test(text)) return { ok: true, why: "spawns the gate" };
+  const imports = /\bimport\s*\(/.test(text);
+  const callsRunGate = /\.runGate\s*\(|\{\s*runGate\b/.test(text);
+  if (!imports || !callsRunGate) return { ok: false, why: "wrapper neither spawns a child process nor imports the gate and calls its runGate (no delegation call)" };
+  if (!/\bif\s*\(\s*inScope\s*\)\s*await\s+[\w.]+\s*\(/.test(text)) {
+    return { ok: false, why: "wrapper imports the gate but does not await it at the in-scope call site (if (inScope) await ...): the trailing allow() would run first and bypass the gate" };
+  }
+  return { ok: true, why: "imports the gate and awaits runGate at the in-scope call site" };
+}
+
 function verifyWrapperDelegates(command) {
   const wrapperPath = quotedMjsPath(command, /pretooluse-fsi-app-scope\.mjs$/i);
   if (!wrapperPath) return { ok: false, why: "wrapper path not found in the hook command" };
@@ -69,7 +89,8 @@ function verifyWrapperDelegates(command) {
   try { src = readFileSync(wrapperPath, "utf8"); } catch (e) { return { ok: false, why: `wrapper unreadable: ${e.message}` }; }
   const gateRef = src.match(/["'`]([^"'`]*pretooluse-skill-gate\.mjs)["'`]/);
   if (!gateRef) return { ok: false, why: "wrapper does not reference pretooluse-skill-gate.mjs (stopped wrapping?)" };
-  if (!/\bspawn(Sync)?\s*\(/.test(src)) return { ok: false, why: "wrapper never spawns a child process (no delegation call)" };
+  const srcProof = wrapperSourceDelegates(src);
+  if (!srcProof.ok) return srcProof;
   const gatePath = gateRef[1];
   if (!existsSync(gatePath)) return { ok: false, why: `delegated gate file missing: ${gatePath}` };
   // behavioral fire — derive an in-scope cwd at RUNTIME from the gate's own path (…/fsi-app/…), never a
@@ -90,6 +111,7 @@ function verifyWrapperDelegates(command) {
   return { ok: true, why: `verified delegating to ${gatePath} (source + behavioral fire: "${decision}")` };
 }
 
+if (isMainModule(import.meta.url)) {
 if (!existsSync(SETTINGS)) {
   console.log(`skill-gate wiring: SKIP — ${SETTINGS} not present (CI/headless). Correctness covered by the fire-test.`);
   process.exit(0);
@@ -127,3 +149,4 @@ if (missing.length) {
   process.exit(1);
 }
 console.log(`skill-gate wiring: PASS — all required tools routed to the hook${wrapperNote ? " (" + wrapperNote + ")" : ""}.`);
+}

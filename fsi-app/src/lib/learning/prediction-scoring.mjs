@@ -344,7 +344,6 @@ export async function hydrateEventRows(sb, events) {
   const missing = events.filter((e) => e.newRow === undefined).map((e) => e.eventId);
   if (!missing.length) return events;
   const rows = await fetchAllByIdChunks(missing, async (slice) => {
-    // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
     const { data, error } = await sb.from("propagation_events").select("event_id,new_row").in("event_id", slice);
     if (error) throw new Error(`propagation_events read failed: ${error.message}`);
     return data ?? [];
@@ -387,7 +386,6 @@ export function buildSignpostStepDeps(sb, db) {
     readSignpostsWatching: (entityIds) =>
       readSignposts((cols, withOutcome) =>
         fetchAllByIdChunks(entityIds, async (slice) => {
-          // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
           let q = sb.from("signposts").select(cols).in("watches", slice).is("fired_at", null);
           if (withOutcome) q = q.is("outcome", null);
           const { data, error } = await q;
@@ -420,7 +418,6 @@ export function buildSignpostStepDeps(sb, db) {
 
     readAssessments: async (ids) => {
       const rows = await fetchAllByIdChunks(ids, async (slice) => {
-        // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
         const { data, error } = await sb.from("research_assessments").select("id,item_id,lifecycle_state").in("id", slice);
         if (error) throw new Error(`research_assessments read failed: ${error.message}`);
         return data ?? [];
@@ -433,7 +430,6 @@ export function buildSignpostStepDeps(sb, db) {
         const { data, error } = await sb
           .from("section_claim_provenance")
           .select("intelligence_item_id,source_id")
-          // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, at most 50 ids)
           .in("intelligence_item_id", slice)
           .in("claim_kind", [...GROUNDING_CLAIM_KINDS])
           .not("source_id", "is", null);

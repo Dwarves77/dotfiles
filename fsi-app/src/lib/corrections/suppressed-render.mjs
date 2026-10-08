@@ -86,7 +86,6 @@ export async function loadSuppressedClaims(sb, itemIds) {
       const { data, error } = await sb
         .from("section_claim_provenance")
         .select("id, claim_text, section_row_id, intelligence_item_id")
-        // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
         .in("intelligence_item_id", slice);
       if (error) throw new Error(`section_claim_provenance read failed: ${error.message}`);
       return data ?? [];

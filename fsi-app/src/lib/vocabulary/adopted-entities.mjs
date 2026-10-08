@@ -62,7 +62,6 @@ export async function mintAdoptedTermEntities(sb, adopted, { dry = false } = {})
   try {
     // The shared id-chunk reader (F39): the id list follows the adopted set, so it is never one oversized .in().
     const rows = await fetchAllByIdChunks(all, async (chunk) => {
-      // fitness-allow: F39 (chunk is one fetchAllByIdChunks slice, bounded by READ_CHUNK; the precedent is admin/inferences/page.tsx)
       const { data, error } = await sb.from("entities").select("entity_id").in("entity_id", chunk);
       if (error) throw new Error(error.message);
       return data ?? [];

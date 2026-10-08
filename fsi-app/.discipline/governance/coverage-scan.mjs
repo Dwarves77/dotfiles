@@ -5,7 +5,7 @@
  * reports coverage for every item.
  *
  * "Governed surface" (NOT every file — over-mapping decays to ceremony):
- *   WRITES   — CREATES or mutates data (Supabase .insert/.update/.upsert/.delete/.rpc-write; SQL DML/DDL)
+ *   WRITES   - CREATES or mutates data (Supabase .insert/.update/.upsert/.delete, a WRITE_RPCS rpc; SQL DML/DDL)
  *   MODEL    — calls the LLM (Anthropic / Claude)
  *   ROUTING  — decides what content surfaces where (category RPCs, surface data fetchers)
  *   PROOF    — a *.selftest.mjs / *.test.* that proves some logic
@@ -37,6 +37,7 @@
  * Output: pure runCoverageScan() for F23; console summary + durable JSON report when run as a CLI.
  */
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { skillsForFile, skillsForOp } from './skill-map.mjs';
@@ -55,7 +56,30 @@ const SKIP_DIR = /node_modules|\.next|\/dist\/|\/\.git\/|\/_archive\//;
 // ---- governed-surface classifiers (content-based) ----
 // `insert` is FIRST deliberately: creation is a governed write. Its absence here is what made the
 // source-role-at-birth defect invisible to this scan (see the header note).
-const WRITE_RE = /\.\s*(insert|update|upsert|delete)\s*\(|\.\s*rpc\s*\(/;
+const WRITE_DML_RE = /\.\s*(insert|update|upsert|delete)\s*\(/;
+
+// RPC WRITERS (lane GATE-3, 2026-10-08). A bare `.rpc(` used to read as a write, so every READ rpc (a
+// category fetcher, a count) landed on the governed surface as an ungoverned write (OPS-1: gate-a-gauges.mjs,
+// "a read RPC; the scan cannot tell"). An rpc is a write only when its NAME is here: the repo's SECURITY
+// DEFINER writers. A call whose name is not a string literal cannot be classified and is not counted. A new
+// writer RPC is added to this list in the commit that adds it (the next UNMAPPED-WRITES failure names it).
+export const WRITE_RPCS = Object.freeze([
+  'admin_set_pause_state', 'admin_set_judgement_drain', 'create_item_correction', 'revoke_item_correction',
+  'create_org_for_self', 'accept_invitation', 'request_verification', 'acquire_mutation_lease',
+  'heartbeat', 'release',
+  // the names the repo's lease and lock RPCs actually carry (the generic heartbeat / release above are the
+  // seed names the brief gave; these are the call sites found by grep on this tree)
+  'heartbeat_mutation_lease', 'release_mutation_lease', 'heartbeat_funded_pass_lock', 'release_funded_pass_lock',
+]);
+const RPC_NAME_RE = /\.\s*rpc\s*\(\s*(["'`])([A-Za-z0-9_]+)\1/g;
+
+/** True when `code` (comments already stripped) calls a name in WRITE_RPCS through `.rpc("name"`. Pure. */
+export function callsWriteRpc(code, writeRpcs = WRITE_RPCS) {
+  RPC_NAME_RE.lastIndex = 0;
+  for (const m of String(code).matchAll(RPC_NAME_RE)) if (writeRpcs.includes(m[2])) return true;
+  return false;
+}
+const isWrite = (code) => WRITE_DML_RE.test(code) || callsWriteRpc(code);
 const SQL_MUT_RE = /\b(UPDATE\s+\w+\s+SET|DELETE\s+FROM|INSERT\s+INTO|ALTER\s+TABLE|DROP\s+\w+|CREATE\s+OR\s+REPLACE\s+(FUNCTION|VIEW))\b/i;
 const MODEL_RE = /api\.anthropic\.com|new\s+Anthropic\s*\(|messages\.create|@anthropic-ai\/sdk/;
 const ROUTING_RE = /runCategoryRpc|get_\w+_items\b|fetch(Market|Research|Operations|Technology|Regulations)\w*|category[-_ ]rout/i;
@@ -86,6 +110,20 @@ function walk(absDir, acc = []) {
   return acc;
 }
 
+/** Files to scan: the git-TRACKED files under ROOTS (lane GATE-3, 2026-10-08). A filesystem walk also read
+ *  gitignored scratch (scripts/tmp, local exports), so the same commit scanned 4 more violations locally than
+ *  in CI. Falls back to the walk only when git itself is unavailable. Exported for the test. */
+export function listScanFiles(repo = REPO, roots = ROOTS) {
+  try {
+    const out = execFileSync('git', ['ls-files', '-z', '--', ...roots], { cwd: repo, encoding: 'utf8', maxBuffer: 1 << 26 });
+    return out.split('\0').filter(Boolean)
+      .filter((rel) => (CODE_RE.test(rel) || SQL_RE.test(rel)) && !SKIP_DIR.test(`/${rel}`))
+      .map((rel) => join(repo, rel));
+  } catch {
+    return roots.flatMap((r) => walk(join(repo, r)));
+  }
+}
+
 /** Classify a file's governed kinds. `content` is classified with comments STRIPPED.
  *  A PROOF file classifies as PROOF ONLY: its writes/model/routing matches are FIXTURES exercising the
  *  detector under test, not production operations — tagging a test as an ungoverned production write is
@@ -95,7 +133,7 @@ export function classify(relPath, content) {
   const kinds = [];
   const isSql = SQL_RE.test(relPath);
   const code = isSql ? String(content) : stripComments(content);
-  if (isSql ? SQL_MUT_RE.test(code) : WRITE_RE.test(code)) kinds.push('WRITES');
+  if (isSql ? SQL_MUT_RE.test(code) : isWrite(code)) kinds.push('WRITES');
   if (!isSql && MODEL_RE.test(code)) kinds.push('MODEL');
   if (!isSql && ROUTING_RE.test(code)) kinds.push('ROUTING');
   return kinds;
@@ -113,7 +151,7 @@ const KINDMAP = { WRITES: 'writes', MODEL: 'model', ROUTING: null, PROOF: null }
 
 /** Pure core. Returns { items, summary }. FS-only: no network, no DB, no model call. */
 export function runCoverageScan() {
-  const files = ROOTS.flatMap((r) => walk(join(REPO, r)));
+  const files = listScanFiles();
   const report = { generated: 'see git/stamp', roots: ROOTS, items: [], summary: {} };
 
   for (const abs of files) {
