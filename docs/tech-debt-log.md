@@ -176,7 +176,7 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 
 **Paths:**
 
-1. `fsi-app/supabase/seed/W4_3_materialize_orphans.mjs:197-203` — staged_updates materializer pipes `proposed_changes.jurisdictions` verbatim into `intelligence_items.jurisdictions`. App-layer call to the normalizer would short-circuit double-work in the trigger and make the data shape predictable at write site.
+1. `fsi-app/supabase/seed/W4_3_materialize_orphans.mjs:197-203` (RESOLVED by deletion: the one-shot script was removed by lane DEAD-1, 2026-10-08), staged_updates materializer pipes `proposed_changes.jurisdictions` verbatim into `intelligence_items.jurisdictions`. App-layer call to the normalizer would short-circuit double-work in the trigger and make the data shape predictable at write site.
 
 2. `fsi-app/supabase/seed/W4_1_iso_backfill.mjs:345` — `deriveJurisdictionISO()` writes only to `jurisdiction_iso` from URL host + content inference. Already produces canonical ISO so trigger is a no-op for it, but the path doesn't call the shared normalizer, so any future divergence in `_normalize_jurisdictions` semantics would not be reflected here.
 

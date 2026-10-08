@@ -28,7 +28,7 @@
 // (register-walk.mjs's own header: "Both walkers FEED THE SAME LEDGER B1 consumes"). That ledger is
 // classified and dispositioned downstream by `consumePortalCandidates`
 // (`src/lib/intake/portal-harvest.ts`), which is what actually reaches
-// `src/lib/intake/census-writer.mjs`'s `census_worklist` rows — a separate, existing, `@/`-alias-bearing
+// `census_worklist` rows (the census-writer.mjs that once did this was deleted, lane DEAD-1), a separate, existing, `@/`-alias-bearing
 // consume pass this driver does not re-invoke (out of scope for an enumeration-only sweep; see the
 // module header above for why it cannot be imported from a plain script). This driver's job ends at
 // "candidates enumerated and queued," matching its brief ("ingestion at scale").

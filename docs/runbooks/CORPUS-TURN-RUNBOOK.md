@@ -97,8 +97,9 @@ Official Journal / Federal Register index walk, and `src/lib/sources/feed-walk.m
 walk) that had no live caller anywhere in the repo before this lane. It writes discovered candidate URLs
 to the `portal_link_candidates` ledger — the SAME ledger the scheduled `check-sources` crawl's
 `persistPortalCandidates` call already writes to — feeding the existing, separate `consumePortalCandidates`
-classify-and-stage pass (unmodified, out of scope here) that eventually reaches
-`src/lib/intake/census-writer.mjs`'s `census_worklist` rows. It is dispatch-only (no `push` trigger — a
+classify-and-stage pass (unmodified, out of scope here). (`src/lib/intake/census-writer.mjs`, which this
+sentence once named as the end of that path, had no caller and was deleted by lane DEAD-1, 2026-10-08.)
+It is dispatch-only (no `push` trigger, a
 sweep always names a specific walker and window/feed, unlike a turn's empty-branch request shape) and
 records its own `source-sweep` harness-run artifact family every run, in both dry and apply mode.
 

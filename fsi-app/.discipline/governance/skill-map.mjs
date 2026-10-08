@@ -27,8 +27,8 @@ export const GOVERNED = [
     // generation + grounding logic files
     files: [
       // DIRECTORY MAPPINGS (2026-08-11, operator wiring census): the hand list of individual files had
-      // drifted — gate-a-scan.mjs (grounding-path year/number gate) and census-writer.mjs (corpus census
-      // writes) were unmapped while sibling files were governed. The agent/ and intake/ directories ARE
+      // drifted, gate-a-scan.mjs (grounding-path year/number gate) and census-writer.mjs (corpus census
+      // writes; since deleted, lane DEAD-1) were unmapped while sibling files were governed. The agent/ and intake/ directories ARE
       // this skill's domain (generation, grounding, intake mint); per-file listing was the drift vector.
       'fsi-app/src/lib/agent/',
       'fsi-app/src/lib/intake/',

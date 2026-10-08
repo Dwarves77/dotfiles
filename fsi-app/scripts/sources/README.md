@@ -7,7 +7,7 @@ restart, the inaccessible 215"). Governs `scripts/sources/inaccessible-triage.mj
 ## What "inaccessible" means here
 
 The finish plan's "215 inaccessible sources" are the `sources` rows where `status = 'suspended'`.
-`scripts/lib/exclusion-audit.mjs`'s own header states the live-schema mapping: in the design
+`scripts/lib/exclusion-audit.mjs` (deleted by lane DEAD-1, 2026-10-08; see git history) stated the live-schema mapping: in the design
 vocabulary an "inaccessible source" is what the live schema calls `suspended` — there is a
 separate, legacy `status = 'inaccessible'` enum value written by the accessibility-check eviction
 path, but it is not this population. `inaccessible-triage.mjs`'s population query is exactly

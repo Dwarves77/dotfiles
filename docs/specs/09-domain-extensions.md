@@ -325,9 +325,9 @@ that hole is a build-1 credibility problem, not a build-2 one.
 
 | Change | Detail |
 |---|---|
-| **Corridor identity, fixed** | `src/lib/contracts/corridor-id.mjs`. Length-prefixed canonical payload, printable NULL sentinel, routing key and ordered via-list in the hash, scheme version, SQL codegen twin for JS/SQL parity. 14 tests: one per collision class, plus a 180-spec matrix asserting zero collisions |
+| **Corridor identity, fixed** | ~~`src/lib/contracts/corridor-id.mjs`~~ (DELETED, lane DEAD-1, 2026-10-08, no caller; the SQL `corridor_id()` of migration 258 is unaffected). Length-prefixed canonical payload, printable NULL sentinel, routing key and ordered via-list in the hash, scheme version, SQL codegen twin for JS/SQL parity. 14 tests: one per collision class, plus a 180-spec matrix asserting zero collisions |
 | **Statutory derivation classes** | `statutory_fixed` and `statutory_formula` added to the derivation enum, ordered above `observed`, with `isStatutory()`. `calculated` had been conflating "we computed it" with "the statute prescribes it"; a FuelEU penalty is the statute's arithmetic and a compliance reader must see which. 5 new tests |
-| **Governance records** | F23 exemption for a `createHash().update()` false positive against the DB-write regex, with the durable detector fix named as evidence rather than requested as a relaxation. F25 allowlist entry for corridor-id with a **named landing point** that the spine unit must delete |
+| **Governance records** | F23 exemption for a `createHash().update()` false positive against the DB-write regex, with the durable detector fix named as evidence rather than requested as a relaxation. F25 allowlist entry for corridor-id with a **named landing point** that the spine unit must delete (both entries removed with the module, lane DEAD-1) |
 
 Gates: test suite **1329/1329** (was 1311), fitness **20/20 with 0 violations**, invariant-coverage
 meta-gate **PASS**, `tsc --noEmit` clean.

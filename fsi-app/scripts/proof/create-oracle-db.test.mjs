@@ -16,14 +16,21 @@ test("withDatabase swaps only the database name", () => {
   assert.equal(withDatabase(ORDINARY, ORACLE_DB), "postgresql://postgres:postgres@127.0.0.1:54322/oracle_check");
 });
 
-test("it connects to template1, not the template database, and runs terminate, drop, create in one script", async () => {
+test("it connects to template1, not the template database, and runs terminate, drop, create as three separate -c statements in order, with ON_ERROR_STOP", async () => {
   let seen;
   const r = await createOracleDb({ superuserUrl: SUPERUSER, spawn: (bin, args) => { seen = args; return { status: 0 }; }, sleep: noSleep });
   assert.equal(r.ok, true);
   assert.match(seen[0], /\/template1$/);
-  const sql = seen[seen.indexOf("-c") + 1];
-  assert.match(sql, /pg_terminate_backend/);
-  assert.match(sql, /create database oracle_check template postgres/);
+  assert.ok(seen.join(" ").includes("ON_ERROR_STOP=1"));
+  assert.equal(seen[seen.indexOf("-v") + 1], "ON_ERROR_STOP=1");
+  // PROOF-5b: DROP DATABASE cannot run inside a transaction block, and one -c string is ONE implicit transaction.
+  const statements = seen.flatMap((a, i) => (a === "-c" ? [seen[i + 1]] : []));
+  assert.equal(statements.length, 3);
+  assert.match(statements[0], /^select pg_terminate_backend/);
+  assert.match(statements[1], /^drop database if exists oracle_check/);
+  assert.match(statements[2], /^create database oracle_check template postgres/);
+  for (const s of statements) assert.equal((s.match(/;/g) ?? []).length <= 1, true, "each -c carries a single statement");
+  assert.ok(statements.every((s) => !s.includes("\n")), "no statement is a multi-statement script");
 });
 
 test("it retries and succeeds when a service reconnects on the first attempt", async () => {

@@ -56,7 +56,6 @@ const DEFAULT_REPO_ROOT = resolve(HERE, '..', '..', '..'); // .discipline/lib ->
 // institution.selftest.mjs and source-growth.selftest.mjs, which must NOT run in this no-npm suite.
 export const NAMED_SOURCES_SELFTESTS = Object.freeze([
   'fsi-app/src/lib/sources/classify-source-role.selftest.mjs',
-  'fsi-app/src/lib/sources/instrument-identity.selftest.mjs',
 ]);
 
 // The two directories where *.selftest.mjs is discovered by construction (mirrors run-test-suite.sh's
