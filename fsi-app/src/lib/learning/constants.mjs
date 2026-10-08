@@ -30,8 +30,9 @@ export const PRODUCT_QUESTIONS = Object.freeze(["what", "affects_me", "comply", 
  * The trigger event vocabulary for a question raised on a CHANGE (learning-loop-design section 1,
  * step 1). These are NOT a column or a CHECK on propagation_events (migration 284 carries `change_kind`
  * insert/update/delete/supersede and no event_type); they are this module's own names, derived from an
- * outbox row's (table_name, change_kind) by questions-on-change.mjs's eventTypeForOutboxRow. Three of the
- * six (signpost_fired, confidence_decayed, source_frozen) have no emitting table today and stay reserved.
+ * outbox row's (table_name, change_kind) by questions-on-change.mjs's eventTypeForOutboxRow. Two of the
+ * seven (confidence_decayed, source_frozen) have no emitting table today and stay reserved. identity_revised
+ * (lane ALIAS-1, migration 377) is an alias or relation change on an entity: entity_aliases and entity_relations.
  * @type {readonly string[]}
  */
 export const TRIGGER_EVENT_TYPES = Object.freeze([
@@ -41,6 +42,7 @@ export const TRIGGER_EVENT_TYPES = Object.freeze([
   "factor_superseded",
   "confidence_decayed",
   "source_frozen",
+  "identity_revised",
 ]);
 
 /**
