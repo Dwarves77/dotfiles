@@ -1,4 +1,4 @@
-## 67. `migration-proof`
+## 68. `migration-proof`
 
 **New this runbook, lane MIG-CI, 2026-10-08.** Not a `maintenance.yml` step: a pull_request workflow,
 `.github/workflows/migration-proof.yml` (workflow "Migration proof", one job, check context

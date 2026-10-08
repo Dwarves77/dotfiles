@@ -3,7 +3,7 @@ name: Migration proof
 # A migration is proven by RUNNING it before production sees it (lane MIG-CI, 2026-10-08; operator, same day, "Fix it",
 # after three production apply aborts in one day on defects a run would have caught: 372 a text/text[] coalesce and then
 # a NOT NULL fixture, 370 a CHECK-list fixture value. Each migration's own self-check did its job at production and rolled
-# back, but production was the first database to run the file). docs/runbooks/maintenance.d/67-migration-proof.md.
+# back, but production was the first database to run the file). docs/runbooks/maintenance.d/68-migration-proof.md.
 #
 # WHAT THIS PROVES. On a disposable local Supabase stack (the composite action .github/actions/local-stack, shared with
 # chain-proof.yml, docs/decisions/ADR-045-chain-proof-on-a-local-stack.md):

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // apply-pending-migrations.mjs -- run every migration that production has NOT applied yet on the disposable local
 // stack, so a migration is proven by running before production sees it (lane MIG-CI, 2026-10-08; the apply step of
-// .github/workflows/migration-proof.yml; docs/runbooks/maintenance.d/67-migration-proof.md).
+// .github/workflows/migration-proof.yml; docs/runbooks/maintenance.d/68-migration-proof.md).
 //
 // WHY. Three production applies aborted on 2026-10-08 on defects a run would have caught (372: a text/text[] coalesce, then
 // a NOT NULL fixture; 370: a CHECK-list fixture value). Each migration's own self-check did its job at production and
