@@ -168,6 +168,28 @@ there). `validateVerdictsFile`/`validateVerdictEntry` are the SAME pattern `scri
 `validateRunArtifact` already uses for the harness-run-artifact contract: a pure, dependency-free function
 that returns an array of human-readable error strings (empty = valid), fail-closed at the caller.
 
+## Stale verdicts: re-authored, never edited (lane VERD-1, 2026-10-08)
+
+A verdict whose `prompt_version` is not the live one is excluded from use (below), so its candidate stays
+`status='candidate'` and owed a verdict. The way out is a NEW entry for the same URL under the live
+`prompt_version`, in a NEW batch file; the old file is never edited. Which URLs are still owed, and which a
+current entry has superseded, is derived from the committed batches (nothing is stored on the old entry), and
+the consume run records it in its own artifact (`per_item[].supersedes_stale_verdict`, `config.stale_verdicts`,
+`metrics.stale_verdicts_open` and `stale_verdicts_superseded`).
+
+- **Export only what is owed.** `--export-candidates <path> --with-text --stale-verdicts` lists only candidates
+  whose committed verdicts are ALL under another prompt version, oldest first, fetching page text for those rows
+  alone. Each row carries `verdict_prompt_version`, `verdict_batch` and `verdict_classified_at` (which verdict is
+  stale and how old), never the old classification. The drain runs this as
+  `node scripts/drain/plan-drain.mjs --kind ledger --mode stale` (see `.claude/commands/drain.md`).
+- **Write each verdict fresh** from the exported `text` under the live prompt, as in step 3 above. Never copy or
+  adapt the old entry's classification or rationale.
+- **Check before landing.** `node scripts/turns/run-ledger-consume.mjs --check-verdicts <batch file>` reads no
+  database. It refuses a structurally invalid file and any entry not under the live `prompt_version` (a batch
+  landed now is authored under the live prompt), and reports how many entries supersede a stale committed
+  verdict, how many are new URLs, and how many repeat a URL that already has a current verdict (the later batch
+  wins, unchanged). Exit 0 clean, 4 on refusal.
+
 ## What the driver does with a verdict file
 
 - **Schema violation → the WHOLE file is rejected** (`process.exit(4)`). A structurally malformed entry
