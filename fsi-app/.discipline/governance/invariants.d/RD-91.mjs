@@ -20,10 +20,7 @@ export const invariant = {
     + 'corpus correctly drops the same table) -- both are now exempted mechanically rather than hand '
     + 'patched per instance.',
   anchor: '### Section 4 — category 31: Harness-run integrity (an iterated harness\'s own run history is a class fix target too)', // [glyph:verbatim] byte-exact copy of the skill file's own heading, required for the anchor check
-  enforcedBy: [
-    'fitness:F63',
-    'selftest:fsi-app/.discipline/fitness/functions/F63-migration-applied-status.test.mjs',
-  ],
+  exempt: { reason: 'RETIRED 2026-10-08 (lane GATE-3): F63 was deleted with its test. It read a gitignored live-schema export that is absent in CI, so it returned PASS for every file there (gate evaluation B section 12, confirmed in the CI log). The intent (a migration header must agree with what is live) is owned by migration-history-audit, lane MIG-HIST-1, which supersedes F63; until that lane lands the check is not run anywhere.' },
   residual: 'F63 self-skips (PASS, not a violation) when no fsi-app/scripts/tmp/live-schema-*.json '
     + 'export is present on disk -- this is gitignored coordinator scratch, never committed, so a '
     + 'plain CI checkout or a laptop session with no fresh export never actually exercises the live '

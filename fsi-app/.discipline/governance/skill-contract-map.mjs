@@ -367,10 +367,13 @@ function readFileOrNull(absPath) {
 /** Compare PINNED_MANIFEST (this repo's real registry) against the live repo at repoRoot: registration
  *  (checkManifestDrift) plus the range-based acknowledgment rule (checkRangeAcks) when a range resolves. */
 export function checkDrift(repoRoot = REPO) {
+  // Lane GATE-3 (2026-10-08): the range-based acknowledgment requirement (a skill-acks file for every range
+  // that moves a pinned SKILL.md or a GOVERNING SKILL citation) is no longer part of the live gate. It fired
+  // once in 30 days (PROCESS), 26 ack files were written to satisfy it, and skill-map.mjs stays the contract.
+  // checkRangeAcks/parseSkillAck remain exported below only until skill-drift-gate.test.mjs (outside this
+  // lane's write set) is edited to drop their tests; nothing calls them from the gate.
   const manifestResult = checkManifestDrift(PINNED_MANIFEST, repoRoot);
-  const rangeResult = checkRangeAcks(PINNED_MANIFEST, repoRoot);
-  const problems = [...manifestResult.problems, ...rangeResult.problems];
-  return { ok: problems.length === 0, problems, rangeSkipped: Boolean(rangeResult.skipped), rangeSkipReason: rangeResult.reason };
+  return { ok: manifestResult.ok, problems: manifestResult.problems, rangeSkipped: true, rangeSkipReason: 'range acknowledgment rule retired (lane GATE-3)' };
 }
 
 /** Convenience boolean for callers that just need pass/fail. */

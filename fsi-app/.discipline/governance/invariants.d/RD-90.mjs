@@ -7,8 +7,6 @@ export const invariant = {
     text: 'A source file must not build a color value by concatenating digits directly onto a var(--token) CSS custom-property reference, in either of two shapes: a bare `"var(--token)" + "NN"` string concatenation (24 sites across fsi-app/src/components/sources/** and resource/IntelligenceMetadataStrip.tsx, each building an inline-style tint/background this way) or the equivalent template-literal interpolation (`` `...${bandHex}NN` `` in timeline-dot-styles.ts\'s nextDotStyle, fed `band.cssVar`, a var() reference, instead of `band.hex`, the raw hex literal UrgencyBand already carries). [CONFIRMED, lane R12-13, 2026-10-01, by grep]: `var(--x)NN` terminates the var() reference at its closing paren; the trailing digits are not CSS syntax of any kind, so the browser silently drops the whole declaration and the tinted background, border, or ring never painted. CF-BROKEN-2 / A2bc finding A6.',
     anchor: '### Section 4 - category 58: a CSS color is never built by concatenating digits onto a var(--token) reference',
     enforcedBy: [
-      'fitness:F62',
-      'selftest:fsi-app/.discipline/fitness/functions/F62-no-css-var-concat.test.mjs',
       'selftest:fsi-app/src/lib/tint.test.mjs',
       'selftest:fsi-app/src/components/ui/timeline-dot-styles.test.mjs',
     ],

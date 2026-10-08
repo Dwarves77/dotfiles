@@ -19,7 +19,7 @@
 // write to that table; this script never writes to it). Self-skips exit 2 without credentials (rule 15),
 // same convention scripts/lib/record-harness-run.mjs already uses.
 //
-// SCOPE OF THE EXPORT. Every row's family, run_id, started_at, finished_at, trigger, and config (the
+// SCOPE OF THE EXPORT. Every row's family, run_id, started_at, finished_at, trigger, governing_hash, and config (the
 // JSON closure-gate's maintenance-step correlation reads config.step/config.mode from, the SAME fields
 // write-run-artifact.mjs already stamps on every maintenance-family row). per_item/inputs_ref/metrics/
 // defects_found/full_trace_refs are deliberately EXCLUDED -- this is a dispatch-evidence ledger ("did
@@ -35,8 +35,9 @@ import { resolve } from "node:path";
 import { readAll } from "./db.mjs";
 import { loadLocalEnvFile } from "./env-file.mjs";
 import { isMainModule } from "./is-main.mjs";
+import { HARNESS_LEDGER_EXPORT_PATH } from "./run-artifact.mjs"; // lane GATE-3: one home for the export path, shared with its readers
 
-export const DEFAULT_OUT_PATH = "fsi-app/.discipline/governance/harness-ledger-export.json";
+export const DEFAULT_OUT_PATH = HARNESS_LEDGER_EXPORT_PATH;
 
 /**
  * Build the committed export object -- PURE, no I/O. One row per harness_runs row, sorted by family
@@ -55,7 +56,7 @@ export function buildLedgerExport(rows, capturedAt) {
   return {
     _comment:
       "COMMITTED SNAPSHOT of harness_runs (migration 331), the dispatch-evidence half only (family, " +
-      "run_id, started_at, finished_at, trigger, config). Regenerate with " +
+      "run_id, started_at, finished_at, trigger, governing_hash, config). Regenerate with " +
       "scripts/lib/export-harness-ledger.mjs (read-only, one SELECT; no data write) and commit the diff. " +
       "Replaces docs/ops/dispatch-ledger.jsonl as closure-gate.mjs's NEVER-RUN dispatch-evidence source " +
       "(lane R22, 2026-10-02) -- see docs/runbooks/fleet-budget-control.md for the regeneration rule.",
@@ -68,6 +69,11 @@ export function buildLedgerExport(rows, capturedAt) {
       started_at: r.started_at,
       finished_at: r.finished_at ?? null,
       trigger: r.trigger ?? null,
+      // lane GATE-3 (2026-10-08): the governing-file hash this run executed against. writeRunArtifact stamps
+      // it into config.governing_hash (record-harness-run lands config verbatim); a row landed before that
+      // stamp falls back to the harness_version column, which every runner already set to the same
+      // hashHarnessVersion(governing files) value. F28 reads this field to decide a family is current.
+      governing_hash: r.config?.governing_hash ?? r.harness_version ?? null,
       config: r.config ?? {},
     })),
   };
@@ -106,7 +112,7 @@ export async function runCli(args, deps = {}) {
 
   let rows;
   try {
-    rows = await readAllFn("harness_runs", "harness_family, run_id, started_at, finished_at, trigger, config");
+    rows = await readAllFn("harness_runs", "harness_family, run_id, started_at, finished_at, trigger, harness_version, config");
   } catch (e) {
     errorLog(`export-harness-ledger: DB read failed: ${e instanceof Error ? e.message : String(e)}`);
     return 1;

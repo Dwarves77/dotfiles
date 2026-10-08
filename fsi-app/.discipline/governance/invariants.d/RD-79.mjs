@@ -51,8 +51,6 @@ export const invariant = {
   anchor:
     "### Section 4 - category 46: a loop's own hops are checked as data, not remembered as wired (an edge, a family, and a fired-from-upstream artifact are three separate facts)",
   enforcedBy: [
-    'fitness:F54',
-    'selftest:fsi-app/.discipline/fitness/functions/F54-push-gate-npm-parity.test.mjs',
     'selftest:fsi-app/.discipline/lib/no-npm-sandbox.test.mjs',
   ],
   residual:

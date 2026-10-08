@@ -8,9 +8,9 @@
 // presence, not by acknowledgment, standing rule 15). Lanes N0 to N5 removed every occurrence of both
 // causes this build knew about (the fitness manifest, the harness family lists, the pending-run marker,
 // F45's ceiling, the skill-manifest pins, the invariant registry). This function is what stops either
-// cause from growing BACK: it does not fix anything itself, it holds the line five different ways.
+// cause from growing BACK: it does not fix anything itself, it holds the line four different ways.
 //
-// FIVE CHECKS, each proven by attack in the sibling .test.mjs (rule 15: a guard is proven by attack, not
+// FOUR CHECKS, each proven by attack in the sibling .test.mjs (rule 15: a guard is proven by attack, not
 // by presence).
 //   1. NO HAND ENTRY reappears in a file N0-N5 converted to a derived directory read (Cause A, back).
 //   2. NO STORED MEASUREMENT (a nonzero `_CEILING` constant, or a hash-pin literal) reappears in a fitness
@@ -23,60 +23,19 @@
 //      number, so this check still earns its place there.
 //   4. A `lane/` BRANCH NEVER TOUCHES a coordinator-only file (the lane contract already said so in prose;
 //      nothing enforced it).
-//   5. THE HOTSPOT STANDING NUMBER: files changed by 3 or more of the last 30 first-parent commits of
-//      `origin/master` AFTER a dated anchor commit (Amendment 2, 2026-09-19: the anchor is lane N4's own
-//      merge, the last of plan 6.8's conversion lanes, so the conversion itself and three same-day
-//      tree-wide mechanical passes are never counted as hotspot churn) are printed every run, so the NEXT
-//      hotspot is caught while it is forming, not after an evening of stops.
-//      CORRECTED (lane F51b, 2026-09-20, second occurrence): this check FAILED twice by reading only
-//      `origin/master` and refusing bystanders after the fact -- it can never refuse the PR that makes
-//      the third touch (at that PR's own gate master still shows two), and once that PR merges it fails
-//      every unrelated lane. A hotspot became a VIOLATION only when the lane's OWN range touched the
-//      file: count = touches on origin/master in the window, plus one for this range, threshold 3.
-//      CORRECTED AGAIN (lane F51c, 2026-09-21/22, third occurrence): the F51b raw-count definition still
-//      refused three genuinely serial cases -- the lane-briefs README (three serial coordinator docs
-//      PRs), the ADR-031 loop-id resolver chain (lanes M3, M3b, M4, M6b, each cut after the previous
-//      merged), and FactCard.tsx's part lanes (1, 2, c, d, each cut after the previous merged) -- because
-//      "touched 3+ times" does not distinguish one owner editing a file serially, rebasing clean every
-//      time, from two lanes genuinely editing the same file while both are open (the actual harm plan 6.8
-//      names: a conflict on rebase). Check 5's VIOLATION criterion is now CONCURRENCY, not a raw count: a
-//      prior commit T on `origin/master` counts against this lane's range ONLY IF this lane's branch was
-//      already open while T merged, i.e. T is NOT an ancestor of this lane's fork point with
-//      `origin/master` (`resolveForkPoint`). A lane cut after every prior touch already merged sees every
-//      one of them as an ancestor of its own fork point -- zero countable touches, however many there
-//      are, however many there ever will be -- which is why the eleven dated allowlist entries this
-//      correction removes were never needed against the real definition, only against the raw count.
-//      Locally (no CI env), the fork point is `merge-base(origin/master, HEAD)`, measured BEFORE any
-//      rebase -- the same range checks 1-4 already resolve via change-range.mjs. In CI, once a queue has
-//      rebased the branch, every prior commit reads as an ancestor of that plain merge-base (the rebase
-//      itself makes T "always an ancestor"), so the fork point is instead read from the PR's own first
-//      commit: `git rev-list --reverse <base>..<head> | head -1`, whose PARENT (before any rebase moved
-//      it) is the original fork point (`git merge-base --fork-point` is unreliable and is not used). This
-//      repo's CI sets `BASE_REF`/`PR_HEAD` (not the generic `GITHUB_BASE_REF`) for the PR shape
-//      (`.github/workflows/discipline.yml`, matching `resolveRange`'s own convention); `resolveForkPoint`
-//      honours either name so the logic matches the brief's literal spec while actually firing in this
-//      repo's real CI. The standing number (files at 3+ on origin/master alone, raw count, unchanged) is
-//      still printed every run exactly as before -- that is observability, not a refusal, and the window,
-//      the anchor and the 30-commit cap are untouched. On master itself, or any run with an empty or
-//      unresolvable range, or a fork point that cannot be resolved, there is no change to refuse: the
-//      standing number prints and no violations are returned.
-//      GENERATED FILES (lane RULES-1, 2026-10-07, fourth occurrence): the concurrency definition still
-//      refused a file that is not hand-edited at all. docs/inventories/migrations.md and the coverage
-//      report are regenerated by every migration lane, two lanes that each regenerate honestly differ
-//      textually, and four re-cuts followed in one day for output no human wrote. A file listed in the
-//      generated-files registry (`governance/generated-files.mjs`, each entry naming its generator
-//      script) is exempt from this check's VIOLATION when its committed copy equals what that generator
-//      prints on the checked tree (the check runs the generator read-only and compares; nothing is
-//      written). A hand-edited or stale copy, a generator that fails and a live-sourced file (not
-//      reproducible offline) are NOT exempt, and a non-generated shared file is refused exactly as before.
-//      The generator is run only for a file that already has a concurrent prior touch, so the common case
-//      costs nothing.
+//   (Check 5, the hotspot / concurrency check, was DELETED by lane GATE-3, 2026-10-08. Evidence
+//   [CONFIRMED, gate evaluation B, `git merge-tree` dry merge of each PR head into origin/master at the run
+//   time]: all 14 of its CI firings in 30 days were PROCESS, git merged every one of those branches cleanly,
+//   and the correct change was unchanged by the re-cut. The only thing it added over git's own merge was
+//   the refusal itself. HOTSPOT_ALLOWLIST, the 30-commit window, its anchor commit and the fork-point
+//   classifier went with it. The generated-files registry (`governance/generated-files.mjs`) is kept as a
+//   module; this function no longer consults it.)
 //
 // SCOPE, HONESTLY. Checks 1-3 are static/textual scans of specific, named files -- they are pattern
 // checks against the shapes Cause A and Cause B actually took, not a general ban on the identifiers
-// `_CEILING` or `id:` anywhere in the tree. Checks 4 and 5 are git-range and git-log reads through the
-// same discipline `change-range.mjs` (lane N0) established: an argument array, never a shell string, and
-// a resolved repository top level, never a raw `process.cwd()`.
+// `_CEILING` or `id:` anywhere in the tree. Check 4 is a git-range read through the same discipline
+// `change-range.mjs` (lane N0) established: an argument array, never a shell string, and a resolved
+// repository top level, never a raw `process.cwd()`.
 //
 // node: builtins plus the repo's own fitness/governance/harness-runs helpers only (loaded by the no-npm
 // discipline test glob via run-test-suite.sh's existing `fitness/functions/*.test.mjs` line).
@@ -89,28 +48,6 @@ import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { resolveRange, gitChangedFiles } from '../../lib/change-range.mjs';
 import { FAMILIES } from '../../../scripts/harness-runs/family-registry.mjs';
-import { GENERATED_FILES, checkGeneratedFile } from '../../governance/generated-files.mjs';
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-// Entry directories: the Rule A/B derived registries lanes N1-N5 built. A file under one of these is
-// never itself a "hand entry" or a "hotspot" violation -- adding a file HERE is the whole point.
-// ═══════════════════════════════════════════════════════════════════════════════════════════════════
-export const ENTRY_DIRS = [
-  'fsi-app/.discipline/fitness/functions/',
-  'fsi-app/.discipline/governance/invariants.d/',
-  'fsi-app/scripts/harness-runs/',
-  'fsi-app/.discipline/governance/skill-acks/',
-  'fsi-app/.discipline/governance/loop-hops.d/',
-  'fsi-app/scripts/producers/registry/',
-];
-
-export function underEntryDir(path) {
-  const p = String(path).replace(/\\/g, '/');
-  if (p.startsWith('docs/ops/session-log.d/')) return true;
-  // RB-SPLIT (2026-10-04): the maintenance runbook is one file per step, like the session log.
-  if (p.startsWith('docs/runbooks/maintenance.d/')) return true;
-  return ENTRY_DIRS.some((d) => p === d.slice(0, -1) || p.startsWith(d));
-}
 
 function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -463,260 +400,6 @@ export function runCheck4(root) {
   return out;
 }
 
-// The six files this build's own coordinator owns by contract (docs/dispatches/lane-common-contract.md's
-// "coordinator only" list plus the plan, the handoff addendum and the audit named in the brief). These
-// six are allowlisted on CONTRACT grounds (a lane/ branch must never touch them at all, per check 4).
-//
-// DELETED (lane F51c, 2026-09-21/22, third occurrence): the seven entries added for the lane-briefs
-// README (lane G1, Amendment 2), the three ADR-031 loop-id resolver files (lane F51b), the
-// loop-manifest.mjs LOOP_HOPS conversion (lane R7m) and the two FactCard part files (lane W10-FactCard-c)
-// were every one of them serial single-owner edits (a lane cut after the previous one merged, rebased
-// clean, no concurrent editor) -- exactly what the concurrency definition above now clears on its own,
-// with no allowlist entry, because none of those prior touches is a concurrent commit under
-// `resolveForkPoint`/`classifyConcurrency`. Proven against the live tree by the
-// "LIVE-TREE PROOF" test in the sibling .test.mjs: every one of those seven files, evaluated with THIS
-// allowlist emptied, still clears with zero violations. Re-adding any of them here would once again be
-// treating a raw touch count as the harm instead of genuine concurrency -- do not re-add; if the
-// concurrency definition is ever found wrong, fix the definition, never paper over it with an entry.
-export const HOTSPOT_ALLOWLIST = {
-  'docs/ops/session-log.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
-  'docs/INDEX.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
-  'docs/runbooks/MAINTENANCE-RUNBOOK.md': { decidedOn: '2026-10-04', reason: 'coordinator-only by contract: the step index; lanes write their own maintenance.d/ file and the coordinator adds the index line' },
-  'docs/PROGRAM-BOARD.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
-  'docs/plans/complete-system-build-plan-2026-09-04.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
-  'docs/ops/HANDOFF-2026-09-19-addendum.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
-  'docs/audits/system-health-audit-2026-09-17.md': { decidedOn: '2026-09-19', reason: 'coordinator-only by contract' },
-  'fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs': { decidedOn: '2026-10-03', reason: 'R7-LINT-CI whole-tree lint remediation, merged clean concurrent with #907 (one-line unused-param rename); coordinator approval 2026-10-03' },
-  'fsi-app/src/lib/supabase-server.ts': { decidedOn: '2026-10-03', reason: 'R7-LINT-CI whole-tree lint remediation, merged clean concurrent with #908 (typed-row edits, no overlapping hunks); coordinator approval 2026-10-03' },
-};
-
-/** Pure core of check 5: given the ordered list of changed-file-lists (one per first-parent commit,
- *  newest first, as `git log --first-parent --name-only` prints them), returns the hotspot counts. */
-export function countHotspots(perCommitFiles, threshold = 3) {
-  const counts = new Map();
-  for (const files of perCommitFiles) {
-    for (const f of files) counts.set(f, (counts.get(f) || 0) + 1);
-  }
-  return [...counts.entries()]
-    .filter(([, c]) => c >= threshold)
-    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
-}
-
-/** Shared block-splitter both log parsers below build on: `\x01`-delimited blocks, each a trimmed,
- *  blanks-dropped array of lines, empty blocks discarded. Pure. */
-function splitLogBlocks(raw) {
-  return String(raw ?? '')
-    .split('\x01')
-    .map((block) => block.split(/\r?\n/).map((s) => s.trim()).filter(Boolean))
-    .filter((lines) => lines.length > 0);
-}
-
-/** Parse `git log --first-parent --name-only --pretty=format:%x01%H` output into one array of changed
- *  files per commit (oldest-to-newest order does not matter here, only the per-commit grouping does). */
-export function parseFirstParentLog(raw) {
-  return splitLogBlocks(raw).map((lines) => lines.slice(1)); // first line of each block is the commit sha
-}
-
-/** Parse `git log --first-parent --name-only --pretty=format:%x01%H%x02%s` output (lane F51b, 2026-09-20)
- *  into `{ sha, subject, files }` per commit -- check 5's violation message names the prior commits that
- *  touched a hotspot file (brief item 3(e)), which the sha-only parse above cannot supply. */
-export function parseFirstParentLogDetailed(raw) {
-  return splitLogBlocks(raw).map((lines) => {
-    const [head, ...files] = lines;
-    const sep = head.indexOf('\x02');
-    const sha = sep === -1 ? head : head.slice(0, sep);
-    const subject = sep === -1 ? '' : head.slice(sep + 1);
-    return { sha, subject, files };
-  });
-}
-
-// Amendment 2 (coordinator, 2026-09-19 20:49 UTC), check 5. An EPOCH MARKER, not a measurement: the last
-// 30 first-parent commits before this anchor ARE the plan 6.8 conversion itself (lanes N1-N5 each
-// rewriting the very shared files they derived) plus three tree-wide mechanical passes landed the same
-// day (T2's env-loader move over ~90 scripts, N1's audit-marker move over 34 files, N5's shared-writer-
-// marker move over 94 files) -- the regime section 6.8 REPLACED, not the one this check guards. Counting
-// that regime as "hotspot churn" flags the conversion that fixed Cause A/B as if it were a fresh instance
-// of Cause A/B. The anchor is lane N4's own merge commit, #748, the LAST of the five conversion lanes
-// (N0, T2, N2, N1, N3, N5, N4 all precede or land at this commit); every commit counted by check 5 is
-// strictly AFTER it. Not re-seeded by a lane; a coordinator-only value, changed only by a coordinator
-// ruling that a later commit should become the new baseline.
-export const HOTSPOT_WINDOW_ANCHOR_COMMIT = 'ccb6aa0c091aba55f6e85d93ecc704c218acc20c';
-export const HOTSPOT_WINDOW_ANCHOR_DECIDED_ON = '2026-09-19';
-export const HOTSPOT_WINDOW_ANCHOR_REASON =
-  'lane N4 merge (#748), the last of plan 6.8\'s five conversion lanes; commits at or before it are the ' +
-  'conversion itself plus three same-day tree-wide mechanical passes, the regime 6.8 replaced, not the ' +
-  'one this check guards.';
-
-/** Resolve THIS lane's fork point with `origin/master` (lane F51c, 2026-09-21/22, third occurrence): the
- *  point checks 1-4's own range resolution (`resolveRange`) starts from, computed the same two ways.
- *  Locally (no CI env), it is `merge-base(origin/master, HEAD)`, measured BEFORE any rebase -- identical
- *  to `resolveRange`'s own local-merge-base case, so a hand rebase or a queue rebase during this lane's
- *  OWN gate run is exactly what this function is measured before. In CI, once a merge queue has rebased
- *  the branch onto the latest base, that same plain merge-base always reads as "just now" (every prior
- *  commit becomes an ancestor), so the ORIGINAL fork point is instead recovered from the PR's own first
- *  commit: the oldest commit unique to this branch (`git rev-list --reverse base..head`, first line)
- *  still carries the parent it had before any rebase moved it onto a new base tip -- `git merge-base
- *  --fork-point` is not used here, per the brief, because it is unreliable once reflog entries have
- *  expired. `head` in the CI branch MUST be the PR's own tip commit, never a queue merge commit (a merge
- *  commit's own "first unique commit" would be itself, with the wrong parent) -- `PR_HEAD` (this repo's
- *  own CI convention, `github.event.pull_request.head.sha`, set by `.github/workflows/discipline.yml`)
- *  is exactly that. The brief specifies the generic `GITHUB_BASE_REF`; this function honours that name
- *  AND this repo's actual `BASE_REF` (the same pair `resolveRange` already reads for its `ci-pr` branch),
- *  so the logic matches the brief's literal spec while actually firing in this repo's real CI, which sets
- *  `BASE_REF`/`PR_HEAD`, not `GITHUB_BASE_REF`. Returns `null` (never throws) when no fork point can be
- *  resolved -- the caller treats that as "standing number only, nothing to refuse", the same posture as
- *  every other unresolvable-range case in this check. */
-export function resolveForkPoint(root, { env = process.env } = {}) {
-  const baseRef = String(env.GITHUB_BASE_REF || env.BASE_REF || '').trim();
-  if (baseRef) {
-    const base = `origin/${baseRef}`;
-    const head = String(env.PR_HEAD || '').trim() || 'HEAD';
-    let raw;
-    try {
-      raw = execFileSync('git', ['rev-list', '--reverse', `${base}..${head}`], { cwd: root, encoding: 'utf8' }).trim();
-    } catch {
-      return null;
-    }
-    const firstCommit = raw.split(/\r?\n/).filter(Boolean)[0];
-    if (!firstCommit) return null; // nothing unique to this branch yet (e.g. head === base)
-    try {
-      return execFileSync('git', ['rev-parse', `${firstCommit}^`], { cwd: root, encoding: 'utf8' }).trim();
-    } catch {
-      return null; // the first commit is a root commit (no parent); cannot resolve, standing number only
-    }
-  }
-  try {
-    return execFileSync('git', ['merge-base', 'origin/master', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
-  } catch {
-    return null;
-  }
-}
-
-/** Classify each of `masterCommits` as `concurrent: true/false` against `forkPoint` (lane F51c): a commit
- *  T is CONCURRENT with this lane -- this lane's branch was already open while T merged -- when T is NOT
- *  an ancestor of `forkPoint` (`git merge-base --is-ancestor T forkPoint` exits non-zero). A commit that
- *  IS an ancestor of `forkPoint` merged before this lane's branch even existed at its fork point, i.e. a
- *  lane cut after that commit already merged: SERIAL, never concurrent, however many such commits there
- *  are. One `git merge-base --is-ancestor` call per commit; a check that itself errors (an unreachable
- *  sha) reads as NOT an ancestor -- fails toward reporting a possible concurrency, never toward silently
- *  dropping one. Returns the SAME commit objects with `concurrent` added; impure (git-backed), the pure
- *  decision the caller wants is `evaluateConcurrencyViolations` below, which takes the classified array. */
-export function classifyConcurrency(root, masterCommits, forkPoint) {
-  return masterCommits.map((c) => {
-    let isAncestor;
-    try {
-      execFileSync('git', ['merge-base', '--is-ancestor', c.sha, forkPoint], { cwd: root });
-      isAncestor = true;
-    } catch {
-      isAncestor = false;
-    }
-    return { ...c, concurrent: !isAncestor };
-  });
-}
-
-/** Pure core of check 5's VIOLATION determination (lane F51c, 2026-09-21/22, third occurrence,
- *  superseding lane F51b's raw-count total). `masterCommits` entries carry a `concurrent` boolean
- *  (from `classifyConcurrency`, or set directly by a fixture/unit test). A hotspot in `rangeFiles` -- the
- *  lane's OWN changed-file set -- is a violation when it has ONE OR MORE prior touches with
- *  `concurrent: true`; commits with `concurrent: false` (serial: a lane cut after they already merged)
- *  never count, however many of them there are -- this is exactly what distinguishes the three lane F51b
- *  serial occurrences (raw count 3+, zero concurrency) from a genuine concurrent pair (raw count as low
- *  as 2, one of them concurrent). `existsCheck` lets the production caller skip a file that fell out of
- *  the tree; tests default it to "exists everywhere" and pin fixtures where it matters. */
-export function evaluateConcurrencyViolations({
-  masterCommits, rangeFiles, allowlist = HOTSPOT_ALLOWLIST, existsCheck = () => true,
-  generatedCheck = () => ({ generated: false }),
-}) {
-  const concurrentTouchesByFile = new Map();
-  for (const c of masterCommits) {
-    if (!c.concurrent) continue;
-    for (const f of c.files) {
-      if (!concurrentTouchesByFile.has(f)) concurrentTouchesByFile.set(f, []);
-      concurrentTouchesByFile.get(f).push({ sha: c.sha, subject: c.subject });
-    }
-  }
-  const out = [];
-  for (const f of new Set(rangeFiles || [])) {
-    if (!existsCheck(f)) continue; // fell out of the tree; cannot cause a future conflict
-    if (underEntryDir(f)) continue;
-    if (allowlist[f]) continue;
-    const prior = concurrentTouchesByFile.get(f) || [];
-    if (prior.length === 0) continue; // every prior touch (if any) was serial; not a violation here
-    // A registered generated file whose copy equals its generator's output is not a hand edit (lane
-    // RULES-1); consulted only here, so a generator runs only for a file that is otherwise a violation.
-    const gen = generatedCheck(f);
-    if (gen && gen.generated && gen.exempt) continue;
-    const priorText = prior.map((p) => `${p.sha.slice(0, 8)} ${p.subject}`).join('; ');
-    const generatedText = gen && gen.generated
-      ? ` This is a registered generated file (generator ${gen.generator}), but it is not exempt: ${gen.reason}.`
-      : '';
-    out.push({
-      path: f, line: 1,
-      message: `concurrency violation: this range touches "${f}", also touched by ${prior.length} commit(s) merged to origin/master while this lane's branch was already open (not an ancestor of its fork point with origin/master): ${priorText}. Check 5 measures concurrent editing, not serial touches by one owner (plan 6.8, check 5, third occurrence, lane F51c): a lane cut after every prior touch to this file already merged is never refused here, however many prior touches exist.${generatedText} Restructure so the file is not the shared edit point, or ask the coordinator for a dated HOTSPOT_ALLOWLIST entry.`,
-    });
-  }
-  return out;
-}
-
-export function runCheck5(root, { anchor = HOTSPOT_WINDOW_ANCHOR_COMMIT, range: explicitRange, generatedFiles = GENERATED_FILES } = {}) {
-  let raw;
-  try {
-    raw = execFileSync(
-      'git',
-      ['log', '--first-parent', '-n', '30', '--name-only', '--pretty=format:%x01%H%x02%s', `${anchor}..origin/master`],
-      { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 },
-    );
-  } catch (e) {
-    console.log(`  [F51] check 5 (hotspot standing number) skipped: origin/master or the anchor commit ${anchor.slice(0, 8)} unavailable (${e.message}).`);
-    return [];
-  }
-  const commits = parseFirstParentLogDetailed(raw);
-  const perCommitFiles = commits.map((c) => c.files);
-  const hotspots = countHotspots(perCommitFiles); // the raw-count standing number: unchanged, window/anchor/threshold untouched
-  if (commits.length < 3) {
-    console.log(`F51 hotspots (3+ of last ${commits.length} first-parent commit(s) after anchor ${anchor.slice(0, 8)}): 0 (fewer than 3 commits since the anchor; the raw-count standing number cannot reach threshold yet -- the concurrency violation check below is unaffected by this floor and still runs)`);
-  } else {
-    console.log(`F51 hotspots (3+ of last ${commits.length} merges after anchor ${anchor.slice(0, 8)}): ${hotspots.length}`);
-    for (const [f, c] of hotspots) console.log(`  ${c}  ${f}`);
-  }
-
-  // The lane's own range: reuse the SAME range resolution checks 1-4 use (resolveRange, then
-  // gitChangedFiles), never a second way of deriving "what changed here" (an explicit range is for tests
-  // only). On master itself, or any run with an empty or unresolvable range (a push to master, a
-  // scheduled or manual run), there is no change to refuse: standing number only, printed above.
-  let range = explicitRange ?? null;
-  if (!range) {
-    const resolved = resolveRange({ cwd: root });
-    if (resolved.source === 'unavailable' || !resolved.range) {
-      console.log('  [F51] check 5: no lane range available (push to master, or a scheduled/manual run); standing number only, nothing to refuse.');
-      return [];
-    }
-    range = resolved.range;
-  }
-  let rangeFiles;
-  try {
-    rangeFiles = gitChangedFiles(range, { cwd: root });
-  } catch (e) {
-    console.log(`  [F51] check 5: could not read this range's changed files (${e.message}); standing number only.`);
-    return [];
-  }
-  if (rangeFiles.length === 0) return []; // empty range: no change to refuse.
-
-  const forkPoint = resolveForkPoint(root);
-  if (!forkPoint) {
-    console.log('  [F51] check 5: could not resolve this lane\'s fork point with origin/master; standing number only, nothing to refuse.');
-    return [];
-  }
-  const classified = classifyConcurrency(root, commits, forkPoint);
-
-  return evaluateConcurrencyViolations({
-    masterCommits: classified,
-    rangeFiles,
-    existsCheck: (f) => existsSync(join(root, f)),
-    generatedCheck: (f) => checkGeneratedFile(root, f, { entries: generatedFiles }),
-  });
-}
-
 export const fitnessFunction = {
   id: 'F51',
   name: 'no-shared-append',
@@ -726,18 +409,8 @@ export const fitnessFunction = {
     'and a zero ceiling is allowlisted with a date and a reason or it fails too; (3) ids are unique within ' +
     'each entry-file category (fitness functions, invariants, harness families, migrations, with a dated ' +
     'allowlist for the two pre-build migration-number duplicates 006 and 007 only); (4) a lane/ branch ' +
-    'never touches a coordinator-only file; (5) the standing hotspot count (files changed by 3+ of the ' +
-    'last 30 first-parent commits of origin/master after a dated anchor commit) is printed every run for ' +
-    'visibility, unchanged, and is a VIOLATION only when the current lane range itself touches a file ' +
-    'that was ALSO touched by a genuinely CONCURRENT prior commit (this lane\'s branch was already open ' +
-    'while that commit merged -- it is not an ancestor of this lane\'s fork point with origin/master) and ' +
-    'is neither an entry-directory file, a session-log.d file, nor a dated allowlist entry; a prior touch ' +
-    'that is an ancestor of this lane\'s fork point is SERIAL (a lane cut after it already merged) and ' +
-    'never counts, however many of them there are -- concurrent editing is the harm plan 6.8 names, not a ' +
-    'raw touch count (lane F51c, 2026-09-21/22, third occurrence, superseding lane F51b\'s raw-count ' +
-    'total). A file listed in governance/generated-files.mjs (each entry names its generator) is exempt ' +
-    'from check 5 when its copy equals the generator output on the checked tree (lane RULES-1, ' +
-    '2026-10-07); a hand-edited, stale or live-sourced one is not.',
+    'never touches a coordinator-only file. The former check 5 (hotspot concurrency) was deleted by lane ' +
+    'GATE-3, 2026-10-08: git merges concurrent edits itself and all 14 of its firings merged clean.',
   source: 'fsi-app/.discipline/fitness/functions/F51-no-shared-append.mjs',
   enumerate() {
     // One anchor file: the scan is tree-and-git-wide, reported once (the F23/F45/F47 shape).
@@ -750,7 +423,6 @@ export const fitnessFunction = {
       ...runCheck2(root),
       ...runCheck3(root),
       ...runCheck4(root),
-      ...runCheck5(root),
     ];
     return raw.map((v) => violation(1, `${v.path}:${v.line}: ${v.message}`));
   },

@@ -38,7 +38,6 @@ export async function loadItemTargets(sb, itemId) {
   const others = await fetchAllByIdChunks(
     edges.map((e) => e.other),
     async (slice) => {
-      // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
       const { data, error: tErr } = await sb.from("intelligence_items").select("id, title").in("id", slice);
       if (tErr) throw new Error(`connected item read failed: ${tErr.message}`);
       return data ?? [];

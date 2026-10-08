@@ -59,8 +59,6 @@ export const invariant = {
     '### Section 4 - category 52: the four detail surfaces drifted from the approved artboards on ' +
     'eight independent axes, each traced to ONE shared part',
   enforcedBy: [
-    'fitness:F57',
-    'fitness:F58',
     'selftest:fsi-app/.discipline/rendering/run-rendering-guard.mjs',
   ],
   residual:

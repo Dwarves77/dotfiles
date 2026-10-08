@@ -27,7 +27,14 @@ import {
   resolveRunIdArg,
   loadRunArtifactJSON,
   isRunArtifactFilename,
+  computeGoverningHash,
+  buildRunArtifactEnvelope,
+  readHarnessLedgerExport,
+  newestLedgerRunAt,
+  familyCurrentInLedger,
+  HARNESS_LEDGER_EXPORT_PATH,
 } from "./run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { mkdirSync } from "node:fs";
 
 function makeValidArtifact(overrides = {}) {
@@ -41,7 +48,10 @@ function makeValidArtifact(overrides = {}) {
     // config does not already carry it, so every existing byte-faithful round-trip assertion in this file
     // stays true regardless of the ambient GITHUB_RUN_ID this test process happens to run under (see the
     // dedicated "github_run_id" test below, which deletes it explicitly to exercise the auto-stamp path).
-    config: { batch_size: 6, github_run_id: null },
+    // governing_hash is fixed explicitly too (lane GATE-3, 2026-10-08): writeRunArtifact only stamps it (top
+    // level, mirrored into config) when absent, so the byte-faithful round trips below stay true; the
+    // dedicated governing_hash tests delete both to exercise the stamping path.
+    config: { batch_size: 6, github_run_id: null, governing_hash: "sha256:0123456789abcdef" },
     inputs_ref: ["path/to/input.json"],
     per_item: [
       { id: "32006R1692", outcome: "minted", verdict: "valid, 0 orphans", evidence_refs: ["path/to/payload.json"], error: null },
@@ -55,6 +65,7 @@ function makeValidArtifact(overrides = {}) {
     // writeRunArtifact only auto-stamps "trigger" when the artifact does not already carry one (see the
     // dedicated "trigger"/"upstream_run_id" tests below, which delete it explicitly to exercise that path).
     trigger: "manual",
+    governing_hash: "sha256:0123456789abcdef",
     ...overrides,
   };
 }
@@ -529,6 +540,160 @@ test("writeRunArtifact: a caller-supplied config.github_run_id is never overwrit
     else process.env.GITHUB_RUN_ID = prevId;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── governing_hash (lane GATE-3, 2026-10-08): the hash of the family's governing files at run time. F28
+// calls a family current when the ledger export holds a row whose governing_hash equals the live hash. ──
+
+const FSI_ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+
+test("validateRunArtifact: governing_hash absent is valid (optional field, every earlier artifact stays valid)", () => {
+  const a = makeValidArtifact();
+  delete a.governing_hash;
+  assert.deepEqual(validateRunArtifact(a), []);
+});
+
+test("validateRunArtifact: a well-formed governing_hash is valid", () => {
+  assert.deepEqual(validateRunArtifact(makeValidArtifact({ governing_hash: "sha256:abcdef0123456789" })), []);
+});
+
+test("validateRunArtifact RED: governing_hash present but malformed (wrong prefix, wrong length, not a string)", () => {
+  for (const bad of ["abcdef0123456789", "sha256:abc", "sha256:ZZZZZZZZZZZZZZZZ", 42, null, ""]) {
+    const errors = validateRunArtifact(makeValidArtifact({ governing_hash: bad }));
+    assert.ok(errors.some((e) => /governing_hash/.test(e)), `expected a governing_hash error for ${JSON.stringify(bad)}`);
+  }
+});
+
+test("computeGoverningHash: equals hashHarnessVersion over the family's own GOVERNING_FILES, null for an unknown family", () => {
+  assert.equal(computeGoverningHash("mint"), hashHarnessVersion(GOVERNING_FILES.mint, FSI_ROOT));
+  assert.match(computeGoverningHash("mint"), /^sha256:[0-9a-f]{16}$/);
+  assert.equal(computeGoverningHash("no-such-family"), null);
+});
+
+test("computeGoverningHash: a missing governing file reads as null (the run is simply not current), never a thrown ENOENT", () => {
+  const dir = tmpDir();
+  try {
+    // an app root holding none of mint's governing files
+    assert.equal(computeGoverningHash("mint", dir), null);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: stamps governing_hash at run time from the family's governing files, top level and mirrored into config", () => {
+  const dir = tmpDir();
+  try {
+    const artifact = makeValidArtifact();
+    delete artifact.governing_hash;
+    delete artifact.config.governing_hash;
+    const written = JSON.parse(readFileSync(writeRunArtifact(dir, artifact), "utf8"));
+    const live = hashHarnessVersion(GOVERNING_FILES.mint, FSI_ROOT);
+    assert.equal(written.governing_hash, live);
+    assert.equal(written.config.governing_hash, live);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: a caller-supplied governing_hash is never overwritten", () => {
+  const dir = tmpDir();
+  try {
+    const artifact = makeValidArtifact({ governing_hash: "sha256:fedcba9876543210" });
+    delete artifact.config.governing_hash;
+    const written = JSON.parse(readFileSync(writeRunArtifact(dir, artifact), "utf8"));
+    assert.equal(written.governing_hash, "sha256:fedcba9876543210");
+    assert.equal(written.config.governing_hash, "sha256:fedcba9876543210");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("writeRunArtifact: a governing_hash that is not a hash is refused and nothing is written", () => {
+  const dir = tmpDir();
+  try {
+    assert.throws(() => writeRunArtifact(dir, makeValidArtifact({ governing_hash: "not-a-hash" })), /governing_hash/);
+    assert.equal(readRunHistory(dir).runs.length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("buildRunArtifactEnvelope: governing_hash is carried when given and absent otherwise (existing envelopes keep their exact shape)", () => {
+  const base = {
+    family: "mint", harnessVersion: "sha256:0123456789abcdef", runId: "mint-run-001", startedAt: "2026-09-01T00:49:22Z",
+    config: {}, inputsRef: [], perItem: [], metrics: {}, defectsFound: [], fullTraceRefs: ["x"], proposerNotes: "",
+  };
+  assert.equal("governing_hash" in buildRunArtifactEnvelope(base), false);
+  assert.equal(buildRunArtifactEnvelope({ ...base, governingHash: "sha256:abcdef0123456789" }).governing_hash, "sha256:abcdef0123456789");
+});
+
+// ── ledger export readers ───────────────────────────────────────────────────────────────────────
+
+function ledgerRoot(content) {
+  const root = tmpDir();
+  if (content !== undefined) {
+    const p = join(root, HARNESS_LEDGER_EXPORT_PATH);
+    mkdirSync(join(p, ".."), { recursive: true });
+    writeFileSync(p, content, "utf8");
+  }
+  return root;
+}
+
+test("readHarnessLedgerExport: an absent file is zero evidence (present:false), never a throw", () => {
+  const root = ledgerRoot();
+  try {
+    assert.deepEqual(readHarnessLedgerExport(root), { present: false, capturedAt: null, rows: [] });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("readHarnessLedgerExport: a malformed file is zero evidence, never a throw", () => {
+  const root = ledgerRoot("{ not json");
+  try {
+    assert.equal(readHarnessLedgerExport(root).present, false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("readHarnessLedgerExport: reads rows and capturedAt from a committed export", () => {
+  const root = ledgerRoot(JSON.stringify({ capturedAt: "2026-10-08", rows: [{ family: "mint", run_id: "mint-run-001", started_at: "2026-10-01T00:00:00Z", governing_hash: "sha256:0123456789abcdef" }, "junk"] }));
+  try {
+    const out = readHarnessLedgerExport(root);
+    assert.equal(out.present, true);
+    assert.equal(out.capturedAt, "2026-10-08");
+    assert.equal(out.rows.length, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("newestLedgerRunAt: the newest started_at of the family, null when it has no row; the optional predicate narrows", () => {
+  const rows = [
+    { family: "mint", started_at: "2026-09-01T00:00:00Z", config: { step: "a" } },
+    { family: "mint", started_at: "2026-10-02T00:00:00Z", config: { step: "b" } },
+    { family: "screen", started_at: "2026-10-05T00:00:00Z" },
+    { family: "mint", started_at: "garbage" },
+  ];
+  assert.equal(newestLedgerRunAt(rows, "mint").toISOString(), "2026-10-02T00:00:00.000Z");
+  assert.equal(newestLedgerRunAt(rows, "mint", (r) => r.config?.step === "a").toISOString(), "2026-09-01T00:00:00.000Z");
+  assert.equal(newestLedgerRunAt(rows, "forward-events"), null);
+  assert.equal(newestLedgerRunAt([], "mint"), null);
+});
+
+test("familyCurrentInLedger RED: no row, or only rows at an older governing hash, is not current; GREEN: a row at the live hash is", () => {
+  const live = "sha256:1111111111111111";
+  const rows = [
+    { family: "mint", governing_hash: "sha256:2222222222222222" },
+    { family: "screen", governing_hash: live },
+  ];
+  assert.equal(familyCurrentInLedger(rows, "mint", live), false, "a mint row exists but at an older hash");
+  assert.equal(familyCurrentInLedger(rows, "forward-events", live), false, "no row at all");
+  assert.equal(familyCurrentInLedger(rows, "screen", live), true, "a row of the family at the live hash");
+  assert.equal(familyCurrentInLedger([...rows, { family: "mint", governing_hash: live }], "mint", live), true);
+  assert.equal(familyCurrentInLedger(rows, "mint", ""), false);
+  assert.equal(familyCurrentInLedger(rows, "mint", null), false);
 });
 
 // ── readRunHistory: sorting, invalid-file reporting, missing dir ───────────────────────────────

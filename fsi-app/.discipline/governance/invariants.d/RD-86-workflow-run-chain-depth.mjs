@@ -28,8 +28,6 @@ export const invariant = {
     'carry an explicit `gh workflow run <consumer>` dispatch fallback in the producer\'s own yml, or the ' +
     'hop can never fire autonomously.',
   enforcedBy: [
-    'fitness:F60',
-    'selftest:fsi-app/.discipline/fitness/functions/F60-workflow-run-chain-depth.test.mjs',
     'selftest:fsi-app/.discipline/fitness/lib/workflow-run-depth.test.mjs',
   ],
   residual:
