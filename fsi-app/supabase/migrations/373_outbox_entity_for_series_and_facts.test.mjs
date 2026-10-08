@@ -151,3 +151,20 @@ test("runs inside one transaction and uses no dash glyphs or section signs in it
   assert.match(SQL, /^\s*COMMIT;/m);
   assert.doesNotMatch(RAW, new RegExp("[" + String.fromCharCode(0x2013, 0x2014, 0xa7) + "]"));
 });
+
+// ---- fixture rows are checked against the table definitions rebuilt from the migration tree (shared helper, SEC-3b-F) ----
+import { buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
+
+test("every fixture INSERT and UPDATE in the self-check fits the real table definitions (columns, NOT NULL, CHECK lists)", () => {
+  const schema = buildSchema(fileURLToPath(new URL(".", import.meta.url)), { before: 374 });
+  const text = stripSql(RAW);
+  const inserts = parseInserts(text).filter((i) => i.schemaName === "public" && ["entities", "regions", "entity_refs", "regional_data_facts", "market_series"].includes(i.table));
+  assert.ok(inserts.length >= 8, `the self-check writes fixtures into all five tables (found ${inserts.length})`);
+  const updates = parseUpdates(text).filter((u) => ["regional_data_facts", "market_series"].includes(u.table));
+  assert.deepEqual(checkFixtures({ inserts, updates, schema }), []);
+  // the check has teeth on this migration's own shape: an unknown dimension and an omitted NOT NULL column are both caught
+  const bad = parseInserts("INSERT INTO public.regional_data_facts (region_id, dimension, fact_label, value) VALUES (v_ra, 'not-a-dimension', 'x', '1');");
+  assert.match(checkFixtures({ inserts: bad, schema }).join("|"), /violates/);
+  const omitted = parseInserts("INSERT INTO public.regions (code) VALUES ('x');");
+  assert.match(checkFixtures({ inserts: omitted, schema }).join("|"), /label: NOT NULL with no default and not written/);
+});
