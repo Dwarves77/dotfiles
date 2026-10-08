@@ -10,8 +10,8 @@ by rule. A workflow cannot start a session, so after build a scheduled session i
 reads each judgement queue through its existing exporter, has Sonnet or Haiku sub-agents author one batch file
 per kind, and opens one PR per kind. No metered model call, no operator review step.
 
-**The five kinds** (one registry, `fsi-app/scripts/drain/kinds.mjs`): ledger verdicts (apply workflow
-`ledger-consume.yml`), host verdicts (`source-resolution.yml`), question answers (`question-answers.yml`), theme
+**The six kinds** (one registry, `fsi-app/scripts/drain/kinds.mjs`): ledger verdicts (apply workflow
+`ledger-consume.yml`), host verdicts (`source-resolution.yml`), needs search (`needs-search.yml`), question answers (`question-answers.yml`), theme
 briefs (`theme-briefs.yml`), record briefs (`brief-apply.yml`). Corpus-turn extraction is not a kind: forward-event
 extraction is a deterministic parser with no session-authored batch.
 

@@ -1,0 +1,181 @@
+name: Needs search
+
+# needs-search runtime (lane G5-SEARCH, 2026-10-07, buildout plan Stage 5 last clause). The two runtimes of the
+# needs-search batch pattern, in one dispatchable workflow, the same shape as question-answers.yml:
+#
+#   action=export  scripts/turns/export-needs-for-search.mjs: READ ONLY. Lists every open source need (term-need,
+#                  holdings-need, flywheel-gap, lineage-gap) with what satisfies it and what the found url feeds,
+#                  writes one bundle file for a session lane to find urls from, and uploads it as the workflow
+#                  artifact. `mode` is ignored (an export never writes).
+#   action=apply   scripts/turns/apply-need-urls.mjs over the committed batch named by `batch_file`: validates every
+#                  entry (open need, http(s) url, host rated by the class table or placed by a host verdict, no
+#                  tier in the batch), and with mode=apply passes --execute so each valid entry registers its
+#                  source at the class-table tier, creates the census_worklist row or portal candidate its need
+#                  kind calls for, and resolves the need flag. mode=dry validates, prints the plan, writes nothing.
+#
+# PUSH TRIGGER: the scheduled judgement drain session (scripts/drain/kinds.mjs, kind needs-search) commits a batch
+# to a branch and opens a PR; the merge is a push to master touching
+# scripts/turns/needs-search/batches/needs-search-*.json and fires this workflow as an apply with no human dispatch
+# step. The batch file comes from scripts/drain/resolve-push-batch.mjs (one file per merge). The mode is NOT decided
+# by the trigger: scripts/lib/chained-dry-guard.mjs (called with --ref) forces dry while scrape_cadence='off'; the
+# requested apply stands only after build.
+#
+# BUILD MODE (CLAUDE.md rule 16): NO schedule block, NO workflow_run trigger. A run is an explicit dispatch or the
+# merge of a drain batch PR. NOT CHAINED.
+#
+# FREE: no model call anywhere. Urls are found in a session by sub agents from the exported bundle, then committed as
+# scripts/turns/needs-search/batches/needs-search-NNN.json.
+#
+# DISPATCH RECIPE: `gh workflow run needs-search.yml -f action=export`, or
+# `gh workflow run needs-search.yml -f action=apply -f mode=dry -f batch_file=scripts/turns/needs-search/batches/needs-search-001.json`.
+# batch_file is fsi-app RELATIVE (this job runs with working-directory: fsi-app), never fsi-app/-prefixed.
+#
+# The run's harness-run artifact (family needs-search, scripts/harness-runs/needs-search/) is landed into
+# harness_runs by the last step (scripts/turns/deliver-artifact-branch.sh), `if: always()`: a run that ends
+# without recording its outcome is a defect in the run (rule 17).
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'fsi-app/scripts/turns/needs-search/batches/needs-search-*.json'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'export = write the bundle of open source needs (read only). apply = validate batch_file and, with mode=apply, write the valid entries.'
+        required: true
+        default: 'export'
+        type: choice
+        options: [export, apply]
+      mode:
+        description: 'apply action only: dry = validate and plan, no database writes. apply = pass --execute. Ignored by export.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      batch_file:
+        description: 'apply action only: fsi-app relative path of the committed batch, e.g. scripts/turns/needs-search/batches/needs-search-001.json.'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: needs-search
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # A push has no inputs: it is an apply request and the chained guard decides the mode (rule 16).
+  RUN_ACTION: ${{ inputs.action || 'apply' }}
+  RUN_MODE: ${{ inputs.mode || 'apply' }}
+  RUN_BATCH_FILE: ${{ inputs.batch_file }}
+
+jobs:
+  needs-search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # a push resolves the merged batch file against its first parent
+
+      # PUSH ONLY: the batch file the merge added. One file per merge, else the run fails loudly
+      # (scripts/drain/resolve-push-batch.mjs). Zero npm dependency.
+      - name: Resolve the merged batch (push only)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          node scripts/drain/resolve-push-batch.mjs --kind needs-search --before "${{ github.event.before }}" --sha "${{ github.sha }}" >> "$GITHUB_ENV"
+
+      # --ref: a push to master is machine-triggered, so the guard forces dry while scrape_cadence='off'.
+      - name: Chained dry-run guard (build mode, rule 16)
+        run: |
+          node scripts/lib/chained-dry-guard.mjs --event "${{ github.event_name }}" --requested-mode "${RUN_MODE}" --ref "${{ github.ref }}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger     = ${{ github.event_name }}"
+          echo "action      = $RUN_ACTION"
+          echo "mode        = ${CHAINED_MODE:-$RUN_MODE} (apply action only)"
+          echo "batch_file  = ${PUSH_BATCH_FILE:-${RUN_BATCH_FILE:-(none)}}"
+          if [ "$RUN_ACTION" = "apply" ] && [ -z "${PUSH_BATCH_FILE:-$RUN_BATCH_FILE}" ] && [ "${PUSH_BATCH_COUNT:-}" != "0" ]; then
+            echo "::error::action=apply needs batch_file (an fsi-app relative path to a committed needs-search-NNN.json)."
+            exit 1
+          fi
+
+      # RUN_DRIVER: a push runs the apply when the merge added a batch, a dispatch when it names a file (the
+      # CHAIN-1 lesson: a gate on PUSH_BATCH_COUNT alone skips the driver on a dispatch, which never sets it).
+      - name: Resolve RUN_DRIVER (a push that added a batch, or a dispatch that names a file)
+        env:
+          RUN_EVENT: ${{ github.event_name }}
+        run: |
+          RUN_DRIVER=false
+          if [ "$RUN_EVENT" = "push" ]; then
+            if [ "${PUSH_BATCH_COUNT:-0}" != "0" ]; then RUN_DRIVER=true; fi
+          elif [ -n "$RUN_BATCH_FILE" ]; then
+            RUN_DRIVER=true
+          fi
+          echo "RUN_DRIVER=$RUN_DRIVER" >> "$GITHUB_ENV"
+
+      - name: Export open source needs
+        if: env.RUN_ACTION == 'export'
+        run: |
+          set -o pipefail
+          node scripts/turns/export-needs-for-search.mjs --out-dir "$RUNNER_TEMP/needs-search" | tee /tmp/needs-search-export.log
+
+      - name: Apply the needs-search batch
+        if: ${{ env.RUN_ACTION == 'apply' && env.RUN_DRIVER == 'true' }}
+        run: |
+          set -o pipefail
+          FLAGS="--batch ${PUSH_BATCH_FILE:-$RUN_BATCH_FILE}"
+          if [ "${CHAINED_MODE:-$RUN_MODE}" = "apply" ]; then FLAGS="$FLAGS --execute"; fi
+          node scripts/turns/apply-need-urls.mjs $FLAGS | tee /tmp/needs-search-apply.log
+          echo "### needs-search apply" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/needs-search-apply.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Land this run's harness-run artifact into harness_runs
+        if: always()
+        run: |
+          bash scripts/turns/deliver-artifact-branch.sh "Needs search: run ${{ github.run_id }}"
+
+      # The export bundle is the author's input and is NEVER committed to the repo: it is written under the runner
+      # temp directory (outside the checkout; this workflow has no git add or commit step, and
+      # deliver-artifact-branch.sh lands only scripts/harness-runs/*/*-run-*.json into harness_runs) and leaves as a
+      # workflow artifact (seven day retention). F68 accepts the path: it names neither _snapshots nor scripts/tmp.
+      - name: Upload bundle, run artifact and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: needs-search-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/needs-search/
+            fsi-app/scripts/harness-runs/needs-search/
+            /tmp/needs-search-export.log
+            /tmp/needs-search-apply.log
+          if-no-files-found: ignore
+          retention-days: 7
