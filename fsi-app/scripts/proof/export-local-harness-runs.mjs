@@ -12,6 +12,10 @@
 // Refuses (exit 2) unless CHAIN_PROOF_LOCAL=1, and connects through scripts/lib/pg-conn.mjs, whose loopback
 // mode never falls through to a production host. Exit 2 also when no connection is possible.
 //
+// When public.harness_runs does not exist (the replay never ran, so the schema was never built) it exits 2 with
+// "no local ledger: the replay did not run", so a downstream consequence reads as one and not as a 42P01 crash
+// (lane PROOF-5, 2026-10-08: run 37743372083 stopped before the replay and this step then crashed).
+//
 // Usage: node scripts/proof/export-local-harness-runs.mjs --out <path>
 
 import { hash } from "node:crypto";
@@ -58,26 +62,56 @@ export function buildHarnessRunsExport(rows) {
   };
 }
 
+export const NO_LEDGER_MESSAGE = "no local ledger: the replay did not run";
+
+/** Thrown when public.harness_runs does not exist (Postgres 42P01 on the ledger read). */
+export class NoLocalLedgerError extends Error {
+  constructor() { super(NO_LEDGER_MESSAGE); this.name = "NoLocalLedgerError"; }
+}
+
 /** Read the ledger through an injected, already connected client. Closes it. */
 export async function exportLocalHarnessRuns(client) {
   try {
-    const { rows } = await client.query(SELECT_RUNS);
+    let rows;
+    try {
+      ({ rows } = await client.query(SELECT_RUNS));
+    } catch (e) {
+      if (e && e.code === "42P01") throw new NoLocalLedgerError();
+      throw e;
+    }
     return buildHarnessRunsExport(rows);
   } finally {
     try { await client.end(); } catch { /* ignore */ }
   }
 }
 
+/** The CLI body with injected deps. Returns the exit code. */
+export async function runCli({ argv, env, connect, writeOut, log = console.log, errorLog = console.error }) {
+  const i = argv.indexOf("--out");
+  const out = i >= 0 ? argv[i + 1] : null;
+  if (!out) { errorLog("export-local-harness-runs: --out <path> is required"); return 2; }
+  if (env.CHAIN_PROOF_LOCAL !== "1") { errorLog("export-local-harness-runs: CHAIN_PROOF_LOCAL is not 1; refusing to read any database"); return 2; }
+  const client = await connect();
+  if (!client) { errorLog("export-local-harness-runs: could not connect to the local database; cannot export"); return 2; }
+  let result;
+  try {
+    result = await exportLocalHarnessRuns(client);
+  } catch (e) {
+    if (e instanceof NoLocalLedgerError) { errorLog(`export-local-harness-runs: ${NO_LEDGER_MESSAGE}`); return 2; }
+    throw e;
+  }
+  writeOut(out, JSON.stringify(result, null, 2) + "\n");
+  log(`export-local-harness-runs: ${result.count} local harness_runs row(s) written`);
+  return 0;
+}
+
 if (isMainModule(import.meta.url)) {
-  const i = process.argv.indexOf("--out");
-  const out = i >= 0 ? process.argv[i + 1] : null;
-  if (!out) { console.error("export-local-harness-runs: --out <path> is required"); process.exit(2); }
-  if (process.env.CHAIN_PROOF_LOCAL !== "1") { console.error("export-local-harness-runs: CHAIN_PROOF_LOCAL is not 1; refusing to read any database"); process.exit(2); }
   const { connectPg } = await import("../lib/pg-conn.mjs");
-  const client = await connectPg();
-  if (!client) { console.error("export-local-harness-runs: could not connect to the local database; cannot export"); process.exit(2); }
-  const result = await exportLocalHarnessRuns(client);
-  mkdirSync(dirname(resolve(out)), { recursive: true });
-  writeFileSync(resolve(out), JSON.stringify(result, null, 2) + "\n", "utf8");
-  console.log(`export-local-harness-runs: ${result.count} local harness_runs row(s) written`);
+  const code = await runCli({
+    argv: process.argv,
+    env: process.env,
+    connect: connectPg,
+    writeOut: (path, text) => { mkdirSync(dirname(resolve(path)), { recursive: true }); writeFileSync(resolve(path), text, "utf8"); },
+  });
+  if (code !== 0) process.exit(code);
 }
