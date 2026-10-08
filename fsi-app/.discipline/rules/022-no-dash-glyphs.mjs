@@ -9,7 +9,16 @@
 // mechanically instead of by ad hoc ruling). This rule moves the check into the discipline engine so
 // it fires on every commit, not only when a coordinator remembers to run the grep.
 //
-// Trigger: a commit that ADDS at least one line, in a non-exempt path, containing U+2014 (em dash),
+// SCOPE (lane GATE-1, 2026-10-08): INTRODUCED lines. Before, any added line counted, and git reports an
+// edited line as one removed plus one added, so a line touched only to fix an apostrophe failed for a glyph
+// it already carried, and text moved or split into new files counted as wholly new (12 of 22 firings in the
+// 30 days before this lane: edited-line, moved-runbook and range-computation cases; one split rewrote 664
+// glyphs across 66 files to move them). A line now counts only when the removed line it replaces does not
+// already carry a glyph, and it is not text moved from elsewhere in the same diff (ctx.introducedLines,
+// lib/context.mjs: ONE git diff for all staged files, computed once per run and shared by trigger and
+// check, where the old code spawned one git process per file, twice, 12.5 s at 77 files).
+//
+// Trigger: a commit that INTRODUCES at least one line, in a non-exempt path, containing U+2014 (em dash),
 // U+2013 (en dash), or U+00A7 (section sign).
 // Check:   FAIL unless the added line is exempt by PATH (fsi-app/scripts/turns/record-briefs/batches/,
 //          any directory named `fixtures`, docs/archive/, or a dated design-handoff bundle's own
@@ -28,6 +37,7 @@
 // rule 012 states for its own hardcoded-path patterns: the literal form is not spelled out in prose).
 
 import { pass, fail } from '../lib/result.mjs';
+import { introducedMatches } from '../lib/context.mjs';
 
 const GLYPH_RE = /[\u2014\u2013\u00A7]/;
 const MARKER = 'glyph:verbatim';
@@ -68,17 +78,21 @@ function relevantFiles(ctx) {
   return ctx.stagedFiles.filter((f) => f.status !== 'D' && !isExemptPath(f.path));
 }
 
-// Every added, non-exempt, unmarked line carrying a banned glyph, across every relevant file.
+const hasGlyph = (line) => GLYPH_RE.test(line);
+const offendersByContext = new WeakMap();
+
+// Every introduced, non-exempt, unmarked line carrying a banned glyph, across every relevant file. Memoised
+// per context so trigger() and check() share one pass.
 function offendingLines(ctx) {
+  if (offendersByContext.has(ctx)) return offendersByContext.get(ctx);
   const offenders = [];
   for (const file of relevantFiles(ctx)) {
-    const added = ctx.getAddedLines(file.path) || [];
-    for (const line of added) {
-      if (!GLYPH_RE.test(line)) continue;
-      if (line.includes(MARKER)) continue; // disclosed, not silently bypassed, see header
-      offenders.push({ path: file.path, line });
+    for (const pair of introducedMatches(ctx.introducedLines(file.path), hasGlyph)) {
+      if (pair.added.includes(MARKER)) continue; // disclosed, not silently bypassed, see header
+      offenders.push({ path: file.path, line: pair.added, lineNumber: pair.line });
     }
   }
+  offendersByContext.set(ctx, offenders);
   return offenders;
 }
 
@@ -105,6 +119,7 @@ export const rule = {
     const remainder = offenders.length - displayed.length;
 
     return fail({
+      locations: offenders.map((o) => ({ path: o.path, line: o.lineNumber })),
       message: `${offenders.length} added line(s) contain a banned dash/section-sign glyph (U+2014, U+2013, or U+00A7).`,
       remediation: [
         'Replace the glyph with a comma or period, or split the sentence. House style forbids em/en',

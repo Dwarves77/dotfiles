@@ -57,5 +57,8 @@ scripts/.a5-sonnet*
 .discipline/governance/.gate-audit.log
 .discipline/governance/.hook-firings.log
 
+# commit-rule firing log (local: one JSON line per rule firing, written by .discipline/runner.mjs)
+.discipline/governance/.hook-firings.log
+
 # orphan-module/dead-export census output (regenerated every orphan-modules.mjs run — CI included)
 .discipline/governance/orphan-modules-report.json

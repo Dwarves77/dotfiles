@@ -5,9 +5,12 @@
 // mechanical trigger. Forcing knobs into a named-constant module makes every tuning a visible diff.
 //
 // Trigger: a staged generation file (skill-map G files), excluding the config module itself.
-// Check:   FAIL on any `process.env.` read in those files.
+// Check:   FAIL on a `process.env.` knob read that the commit INTRODUCES in those files. Scope is
+//          introduced lines (lane GATE-1, 2026-10-08): a read already on a line the commit edits, or
+//          moved from elsewhere in the diff, is not charged (ctx.introducedLines, lib/context.mjs).
 
 import { pass, fail } from '../lib/result.mjs';
+import { introducedMatches } from '../lib/context.mjs';
 
 // Rule 017 targets TUNING KNOBS (behavior-changing config), not CREDENTIALS. Credentials/secrets
 // (API keys, DB URL, tokens) legitimately read from env at point of use and cannot be named
@@ -28,6 +31,8 @@ function knobEnvReads(line) {
   }
   return out;
 }
+
+const hasKnobRead = (line) => knobEnvReads(line).length > 0;
 
 // Generation files (mirrors governance/skill-map G entries) — the config module is the ONE
 // place env is allowed to be read and surfaced as named constants.
@@ -67,17 +72,16 @@ export const rule = {
 
   check(ctx) {
     const violations = [];
+    const locations = [];
     for (const f of relevant(ctx)) {
-      const content = ctx.getFileContent(f.path);
-      if (!content) continue;
-      const lines = content.split(/\r?\n/);
-      for (let i = 0; i < lines.length; i++) {
-        const knobs = knobEnvReads(lines[i]);
-        if (knobs.length) violations.push(`${norm(f.path)}:${i + 1} (${knobs.join(', ')})`);
+      for (const pair of introducedMatches(ctx.introducedLines(f.path), hasKnobRead)) {
+        violations.push(`${norm(f.path)}:${pair.line} (${knobEnvReads(pair.added).join(', ')})`);
+        locations.push({ path: norm(f.path), line: pair.line });
       }
     }
     if (violations.length === 0) return pass();
     return fail({
+      locations,
       message: `Raw process.env KNOB read(s) in generation logic (${violations.length}) — tuning knobs must live in generation-config.ts (credentials are exempt).`,
       remediation: [
         'Move the env-driven knob into src/lib/agent/generation-config.ts as a named export, then import it.',
