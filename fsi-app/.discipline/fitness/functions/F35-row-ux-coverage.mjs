@@ -55,6 +55,8 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
   // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.
+  // lane COV-1 (2026-10-08, coordinator grant): the generated Coverage page renders one row per place (title over a wrapping row of cell chips); coverage-smoke.mjs mounts it.
+  'src/components/coverage/CoveragePageView.tsx': 'spec 00 section 4 generated Coverage page, one row per place (lane COV-1)',
   'src/components/market/OemRoadmapPanelView.tsx': 'spec09 §1.1 OEM roadmap row',
   'src/components/market/ReroutingPanelView.tsx': 'spec09 §1.7 rerouting-multiplier row',
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
