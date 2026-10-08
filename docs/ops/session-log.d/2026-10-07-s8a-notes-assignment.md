@@ -110,6 +110,10 @@ Ungranted at the time, granted after the fact by ruling (coordinator, 2026-10-08
 `useWorkspaceBootstrap.ts` (the `BootstrapOverrideRow` type) and `resourceStore.ts` (the `WorkspaceOverride` type and four `notes: ""`
 defaults); they carry the same field down the type chain and the retirement does not compile without them. No other open PR touches
 any of the files above (checked; S8-D #990 touches `supabase-server.ts` export only, a different region).
+Also ungranted at the time, granted after the fact by ruling (coordinator, 2026-10-08, "nothing to remove"): the new nav stub
+`stub-next-navigation-item.mjs` (the shell-slot smoke needs a detail-route pathname), the `ux-smoke-specs.mjs` and `F35` registrations
+(they are what make the smoke run), the `dispatch-kinds.npmtest.mjs` change (its kind list includes `assignment`), and the new
+retirement test `notes-path-retired.test.mjs`.
 
 ### What is NOT done
 - The data move is staged, not run (no population before every layer is complete).
