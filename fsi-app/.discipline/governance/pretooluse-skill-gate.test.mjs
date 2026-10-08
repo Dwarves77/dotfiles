@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
-import { runGate, evaluateGate, argvOnly, isolationAsk, classifyMcp, isSelectSql, mcpToolName } from "./pretooluse-skill-gate.mjs";
+import { runGate, evaluateGate, argvOnly, isolationAsk, classifyMcp, isSelectSql, mcpToolName, interpreterPayloads } from "./pretooluse-skill-gate.mjs";
 
 const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-gate.mjs");
 
@@ -83,9 +83,8 @@ const LOADED_CASES = [
   ["MCP read (get_file_contents) → allow", "allow", P("mcp__github__get_file_contents", { path: "x" })],
   ["MCP read (list_commits) → allow", "allow", P("mcp__github__list_commits", {})],
   ["MCP write (create_pull_request) with skill loaded → ask", "ask", P("mcp__github__create_pull_request", { title: "x" })],
-  // GATE-2: a name in neither table is UNKNOWN, asked whether or not the skill is loaded
-  ["MCP unknown (push_files) with skill loaded → ask", "ask", P("mcp__github__push_files", { files: [] })],
-  ["MCP unknown (merge_pull_request) with skill loaded → ask", "ask", P("mcp__github__merge_pull_request", { pull_number: 1 })],
+  ["MCP write (push_files) with skill loaded → ask", "ask", P("mcp__github__push_files", { files: [] })],
+  ["MCP write (merge_pull_request) with skill loaded → ask", "ask", P("mcp__github__merge_pull_request", { pull_number: 1 })],
   ["Read tool → allow", "allow", P("Read", { file_path: "x" })],
   // Dispatch tools — always ask (subagent interior is not hook-covered; surface the gap every time)
   ["Agent dispatch → ask", "ask", P("Agent", { description: "x", prompt: "y" })],
@@ -101,6 +100,8 @@ const DENY_CASES = [
   ["Edit governed pipeline, NO skill loaded → deny", "deny", P("Edit", { file_path: `${ABS}/fsi-app/src/lib/agent/canonical-pipeline.ts` }, EMPTY)],
   ["Bash --apply, NO skill loaded → deny", "deny", P("Bash", { command: "node x.mjs --apply" }, EMPTY)],
   ["MCP create_pull_request, NO skill loaded → deny", "deny", P("mcp__github__create_pull_request", { title: "x" }, EMPTY)],
+  ["MCP push_files, NO skill loaded → deny", "deny", P("mcp__github__push_files", { files: [] }, EMPTY)],
+  ["MCP merge_pull_request, NO skill loaded → deny", "deny", P("mcp__github__merge_pull_request", { pull_number: 1 }, EMPTY)],
 ];
 for (const [name, expect, payload] of DENY_CASES) {
   test(name, () => assert.equal(decide(payload), expect));
@@ -191,6 +192,47 @@ for (const cmd of IS_DANGER) {
     assert.equal(decideIn("Bash", { command: cmd }), "deny");
   });
 }
+// Interpreter inline code (coordinator ruling on PR 998): DANGER also runs over the -c / -e argument of
+// psql, bash, sh, zsh, node, python and python3. Prose in an echo is still quiet.
+const INTERPRETER_DENIED = [
+  'psql -c "delete from t"',
+  'bash -c "git push"',
+  "sh -c 'rm -rf build'",
+  'zsh -c "git push origin x"',
+  'node -e "require(\'x\').run(\'--apply\')"',
+  'python3 -c "import os; os.system(\'rm -rf /tmp/x\')"',
+  'PGPASSWORD=x psql -c "truncate table sources"',
+  'bash -lc "git push"',
+  'psql --command="drop table x"',
+  'cd repo && bash -c "bash -c \'git push\'"',
+];
+const INTERPRETER_ALLOWED = [
+  'echo "delete from t"',
+  'bash -c "echo hello"',
+  "bash -c \"echo 'git push is documented'\"",
+  'node -e "console.log(1 + 1)"',
+  'psql -c "select 1"',
+  'grep -c "delete from" file.sql',
+  'git commit -m "psql -c delete from t"',
+];
+for (const cmd of INTERPRETER_DENIED) {
+  test(`interpreter inline code is read: ${cmd.slice(0, 60)} -> deny with no skill loaded`, () => {
+    assert.equal(decideIn("Bash", { command: cmd }), "deny");
+  });
+}
+for (const cmd of INTERPRETER_ALLOWED) {
+  test(`interpreter look-alike stays quiet: ${cmd.slice(0, 60)} -> allow`, () => {
+    assert.equal(decideIn("Bash", { command: cmd }), "allow");
+  });
+}
+test("interpreterPayloads: shell vs code kinds, env assignments skipped, only inline-code flags", () => {
+  assert.deepEqual(interpreterPayloads('FOO=1 bash -c "git push"'), [{ kind: "shell", content: "git push" }]);
+  assert.deepEqual(interpreterPayloads('psql -c "select 1"'), [{ kind: "code", content: "select 1" }]);
+  assert.deepEqual(interpreterPayloads('/usr/bin/node.exe -e "1"'), [{ kind: "code", content: "1" }]);
+  assert.deepEqual(interpreterPayloads('grep -c "x" f'), []);
+  assert.deepEqual(interpreterPayloads('bash script.sh "arg"'), []);
+});
+
 test("argvOnly strips heredoc bodies, quoted strings and comments, keeps the command shape", () => {
   assert.equal(argvOnly('git commit -m "a b c" # note').trim(), "git commit -m Q");
   assert.equal(argvOnly("echo 'x y' && ls").trim(), "echo Q && ls");
@@ -206,7 +248,7 @@ const READ_NAMES = [
 ];
 const WRITE_NAMES = [
   "apply_migration", "create_branch", "create_project", "update_project", "delete_branch", "deploy_edge_function",
-  "upload_file", "set_pinned", "run_session_command",
+  "upload_file", "set_pinned", "run_session_command", "push_files", "merge_pull_request", "merge_branch",
 ];
 for (const name of READ_NAMES) {
   test(`MCP read table: ${name} -> read, allowed with no skill loaded`, () => {
@@ -235,7 +277,7 @@ test("MCP execute_sql: a SELECT is a read, anything else is a write", () => {
   assert.equal(isSelectSql("select ';' as a"), true);
 });
 test("MCP unknown names ask and never deny (with or without the skills loaded)", () => {
-  for (const name of ["push_files", "merge_pull_request", "left_click", "form_input", "buy_credits", "weird_tool"]) {
+  for (const name of ["left_click", "form_input", "buy_credits", "weird_tool"]) {
     assert.equal(classifyMcp(SERVERS[0] + name, {}), "unknown", name);
     assert.equal(decideIn(SERVERS[0] + name, {}, EMPTY), "ask", name);
     assert.equal(decideIn(SERVERS[0] + name, {}, LOADED), "ask", name);
