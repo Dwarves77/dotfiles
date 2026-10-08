@@ -38,6 +38,11 @@
 - F39 bound: the plan says a slice cap of N <= 200, the GATE-3 brief says N <= 500; the ADR states the rule
   without a number.
 
+## Coordinator rulings applied (PR 994)
+
+- F25 dated expiry recorded in the ADR as owed to DEAD-1. F39 bound stated as N <= 500 (GATE-3 brief governs).
+  Added the missing ADR-045 INDEX line (write-set expansion granted for that one line).
+
 ## NOT done
 
 - No change to CLAUDE.md (outside the write set); its self-annealing line "every failure becomes an edit to
@@ -45,4 +50,3 @@
 - The two registers are not landed here (DEAD-3 lands them under docs/audits); the ADR cites them by their
   future path in plain code text, not as links.
 - `docs/runbooks/gate-evaluation.md` is GATE-4's file; the ADR cites it in plain code text.
-- ADR-045 has no INDEX line on master (observed); not touched, outside the brief.

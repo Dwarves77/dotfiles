@@ -184,7 +184,7 @@ scoreboard rule below.
 | F22 source-role-at-birth | KEEP | none | data integrity (1,719 of 2,549 sources had a NULL role) |
 | F23 governed-surface-coverage | REPAIR | GATE-3 | `.rpc(` matches only when the RPC name is in a write list; the scan uses `git ls-files` so gitignored files are never scanned |
 | F24 db-object-migration-home | KEEP | none | DB object with no migration; no change ordered |
-| F25 module-liveness | REPAIR | DEAD-1 | the gate stays; its 30-entry allowlist is cleared by wiring or deleting each module, and proven-but-unwired entries get a dated expiry |
+| F25 module-liveness | REPAIR | DEAD-1 | the gate stays; its 30-entry allowlist is cleared by wiring or deleting each module, and proven-but-unwired entries get a dated expiry (the expiry is owed to DEAD-1; its brief is not yet written) |
 | F26 storage-ceiling-parity | DELETE | GATE-3 | parity of two files, 0 firings, no security class |
 | F27 producer-seam-proof | KEEP | none | no change ordered, scoreboard |
 | F28 harness-run-integrity | REPLACE | GATE-3 | the pending-marker mechanism is replaced by the harness ledger (a family is current when a harness_runs row carries the governing-file hash); schema check and LAST-PROPOSER-PASS stay |
@@ -197,7 +197,7 @@ scoreboard rule below.
 | F36 date-format-timezone-pin | KEEP | none | React #418 hydration class; no change ordered |
 | F37 perf-budget | DELETE | GATE-3 | registry only, 0 firings, no security class |
 | F38 unbounded-supabase-read | KEEP | none | the 1000-row PostgREST cap class |
-| F39 unbounded-in-filter | REPAIR | GATE-3 | recognises a bounded list (slice cap, spread of a module constant, chunk-helper callback) as safe; markers are removed where the call site is bounded (136 markers in 66 files) |
+| F39 unbounded-in-filter | REPAIR | GATE-3 | recognises a bounded list (a literal `.slice(0, N)` with N <= 500, a spread of a module constant, a chunk-helper callback) as safe; markers are removed where the call site is bounded (136 markers in 66 files) |
 | F40 authed-api-fetch | REPAIR | GATE-3 | hoists `guardedRoutes()` out of the per-file loop (46 s to under 1 s locally); the check stays |
 | F41 dead-media-query-class | KEEP | none | no change ordered, scoreboard |
 | F42 card-shell-outside-SectionCard | KEEP | none | 1 true positive |
