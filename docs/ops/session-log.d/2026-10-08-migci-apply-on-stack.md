@@ -76,6 +76,12 @@
 - Expect more stops of this shape: the replay stops at the first error, and 090/091 are two of the several migrations authored against a schema their number places them after.
 - The fixture was removed again in the next commit.
 
+## Ruling on 091: MIG-HIST-2's fourth ruled residue (class SEQUENCE), and the standing rule
+
+- Coordinator ruling (2026-10-08), approved as proposed: in `091_source_tier_opinions.sql` the function body reads `s.base_tier` instead of `s.tier` (function body only), header block citing run 37781464100 and 099; final state set by 099 and checked by the oracle. Done: four references changed (the select list, the two FILTER predicates and the GROUP BY), nothing else in the file touched, an eight line header block added. The function comment and the TIER COLUMN NOTE are left as written.
+- STANDING RULE from the coordinator, applied from here without waiting per stop: a SEQUENCE stop (the file's own text or header shows it was written against a schema its ledger position has already moved past, AND a later ledgered migration sets the object's end state) is repaired the same way: the minimal edit that makes the file executable at its ledger position (a column or object name to the then-current name, never a semantic change), header block citing the run id and the end-state migration, no final-schema change, logged as the next ruled residue; then continue. STRUCTURAL and CONTENT stops still STOP for a ruling; a stop where no later migration sets the end state is CONTENT. Report every three iterations or at any STOP.
+- From here the PR itself touches migrations (the repaired files), so the Migration proof job takes the stack path on every push without the throwaway fixture; the fixture is re-added only once the replay reaches the apply step.
+
 ## Read and reused
 
 - Read in full: CLAUDE.md, `docs/dispatches/lane-common-contract.md`, `chain-proof.yml`, `chain-proof-workflow.test.mjs`, `replay-migrations.mjs`, `applied-map.mjs`, `APPLIED-MAP.json` (never and outside entries), `64-chain-proof.md`, `build-proof.yml`, the `discipline.yml` header and docs-only step, `.github/actions/maintenance-step/action.yml`, ADR-046, the header of migration 299, `write-local-env.mjs` and `preflight.mjs` headers.
