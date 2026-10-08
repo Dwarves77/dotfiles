@@ -407,3 +407,63 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan's own explicit --loop-run-id w
 test("CHAIN-4: Propagation drain maps to the propagation family", () => {
   assert.equal(FAMILY_BY_WORKFLOW_NAME["Propagation drain"], "propagation");
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 G-7): a loop id is believed only when the ledger vouches for its run ─────
+const LEDGER_NONE = { present: false, capturedAt: null, rows: [] };
+const ledgerWith = (...rows) => ({ present: true, capturedAt: "2026-10-08T00:00:00Z", rows });
+const ledgerRow = (family, runNumber, githubRunId) => ({ family, run_id: `${family}-run-${String(runNumber).padStart(3, "0")}`, trigger: "workflow_dispatch", config: { github_run_id: githubRunId } });
+
+test("G-7: a FORGED artifact file (a run the ledger has never heard of) yields no loop id when the ledger export is present", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "forged-loop-456" });
+    const args = { explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir };
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith(ledgerRow("source-sweep", 7, "1")) }), null, "a ledger with other runs does not vouch for it");
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith() }), null, "an empty (present) ledger vouches for nothing");
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith(ledgerRow("source-sweep", 1, "123")) }), null, "same run id, different github run id");
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith({ ...ledgerRow("mint", 1, "999") }) }), null, "same github run id, wrong family");
+  });
+});
+
+test("G-7 control: the same artifact resolves when the ledger holds that family, run id and github run id", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    const got = resolveLoopRunId({ explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir, ledger: ledgerWith(ledgerRow("source-sweep", 1, "999")) });
+    assert.equal(got, "real-loop");
+  });
+});
+
+test("G-7: with no export in the checkout the file path behaves as before (nothing to resolve against)", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    assert.equal(resolveLoopRunId({ explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir, ledger: LEDGER_NONE }), "real-loop");
+  });
+});
+
+test("G-7: an explicit id that is not one clean token (a line break would inject a second GITHUB_ENV variable) resolves to null", () => {
+  for (const bad of ["a b", "x\nINJECTED=1", "x\r\ny", "-leading", "a".repeat(129), "semi;colon", "$(cmd)"]) {
+    assert.equal(resolveLoopRunId({ explicit: bad, upstreamFamily: "source-sweep", upstreamRunId: undefined, harnessRunsDir: "/nonexistent", ledger: LEDGER_NONE }), null, JSON.stringify(bad));
+  }
+  for (const ok of ["9001", "explicit-loop-id-99", "sweep_5.a:b/c"]) {
+    assert.equal(resolveLoopRunId({ explicit: ok, upstreamFamily: "source-sweep", upstreamRunId: undefined, harnessRunsDir: "/nonexistent", ledger: LEDGER_NONE }), ok);
+  }
+});
+
+test("G-7: an explicit id that contradicts a ledger-verified upstream artifact loses to the artifact's own loop id", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    const args = { upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir, ledger: ledgerWith(ledgerRow("source-sweep", 1, "999")) };
+    assert.equal(resolveLoopRunId({ ...args, explicit: "forged-loop-123" }), "real-loop");
+    assert.equal(resolveLoopRunId({ ...args, explicit: "real-loop" }), "real-loop");
+    // an unverified artifact is no authority over the explicit id
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith(), explicit: "operator-id" }), "operator-id");
+  });
+});
+
+test("G-7: the default ledger is the committed export; this checkout carries none yet, so the file path is unchanged until it does", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    const got = resolveLoopRunId({ explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir });
+    // present export -> the planted file is not in it -> null; absent export -> as before. Either way never the forged value
+    assert.ok(got === null || got === "real-loop");
+  });
+});

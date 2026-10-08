@@ -187,6 +187,8 @@ allow();
 
 **3. Hooks.** After this merges, from the main checkout: `node fsi-app/.discipline/install-hooks.mjs` (installs trampolines for the new `pre-merge-commit`, `post-commit` and `reference-transaction` hooks; the others pick up the changed files with no re-install).
 
+**Addendum 2026-10-08 (lane WIRE-1): superseded.** Steps 1 and 2 above are no longer hand steps. The repo now owns the wrapper text (`governance/pretooluse-user-shim.mjs`, rendered with the main checkout's entry path) and the matcher (a negative form, `MATCHER` in `governance/wire-pretooluse-settings.mjs`), installs both through the one installer, and `check-pretooluse-wired.mjs` fails on drift. The one step, from the main checkout after merge, is `node fsi-app/.discipline/install-hooks.mjs` (it also does step 3).
+
 ## NOT done
 
 - Write-set grants received from the coordinator and built: `governance/invariants.d/RD-97-source-diffed-as-text.mjs` (RD-96 was taken by ALIAS-1) for rule 023, and the seven tools in `check-pretooluse-wired.mjs` `REQUIRED` (A-P3c-1 and A-P3c-3 are therefore addressed: step 3c now fails a matcher that omits them).

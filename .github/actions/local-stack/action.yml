@@ -23,6 +23,7 @@ runs:
     - name: Ensure psql is available
       shell: bash
       run: |
+        set -euo pipefail
         if ! command -v psql >/dev/null 2>&1; then
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client
@@ -39,6 +40,7 @@ runs:
       env:
         STACK_DIR: ${{ inputs.stack_dir }}
       run: |
+        set -euo pipefail
         mkdir -p "$STACK_DIR/supabase"
         cp fsi-app/supabase/config.toml "$STACK_DIR/supabase/config.toml"
         cd "$STACK_DIR"
@@ -50,6 +52,7 @@ runs:
         STACK_DIR: ${{ inputs.stack_dir }}
         ENV_FILE: ${{ inputs.env_file }}
       run: |
+        set -euo pipefail
         (cd "$STACK_DIR" && supabase status -o env) | node fsi-app/scripts/proof/write-local-env.mjs --out "$ENV_FILE"
 
     - name: Preflight (local stack environment only)
@@ -58,5 +61,6 @@ runs:
       env:
         ENV_FILE: ${{ inputs.env_file }}
       run: |
+        set -euo pipefail
         . "$ENV_FILE"
         node scripts/proof/preflight.mjs
