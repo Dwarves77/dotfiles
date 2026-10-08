@@ -1,7 +1,8 @@
 // viewer-read-only-routes.npmtest.mjs: lane SEC-3b (2026-10-08, coordinator ruling on the route expansion).
 // The service-role routes that write the six viewer-gap tables bypass RLS, so the viewer role must be refused in
 // the route itself. For each route: a viewer gets 403 { error: "viewer_read_only" } and the service client is
-// never called (the role lookup is a stubbed module, so any client call is a write path or a read behind it); a
+// never called (requireOrgWriter is a stubbed module here, proven on its own in src/lib/api/org-writer.npmtest.mjs, so
+// any client call is a write path or a read behind it); a
 // member passes through (no viewer refusal, and the handler reaches the client). The route's guard, org, rate
 // limit, client, error-capture and cache modules are replaced by stubs through jiti aliases so the real handlers
 // run with no network.
@@ -34,7 +35,13 @@ export async function requireUserRoute() { return { userId: "user-1" }; }
   "@/lib/api/rate-limit": f("limit.mjs", `export function rateLimitHeaders() { return {}; }\n`),
   "@/lib/api/org": f("org.mjs", `
 export async function resolveOrgIdFromUserId() { return "org-1"; }
-export async function resolveOrgMembershipFromUserId() { return { orgId: "org-1", role: globalThis.__sec3bState.role }; }
+export async function requireOrgWriter(_userId, orgId) {
+  const role = globalThis.__sec3bState.role;
+  if (role === "viewer") {
+    return { response: new Response(JSON.stringify({ error: "viewer_read_only" }), { status: 403, headers: { "content-type": "application/json" } }) };
+  }
+  return { membership: { orgId, role } };
+}
 `),
   "@/lib/supabase-service": f("svc.mjs", `
 function chain() {

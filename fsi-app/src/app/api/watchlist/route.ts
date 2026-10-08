@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { revalidateTag } from "next/cache";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { resolveOrgIdFromUserId, resolveOrgMembershipFromUserId } from "@/lib/api/org";
+import { resolveOrgIdFromUserId, requireOrgWriter } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
 import { isTeamOnlyScopeViolation } from "@/lib/watchlist-scope";
@@ -258,14 +258,12 @@ async function handlePOST(request: NextRequest) {
   const supabase = getServiceSupabase();
 
   if (scope === "team") {
-    const membership = await resolveOrgMembershipFromUserId(supabase, auth.userId).catch(() => null);
-    const orgId = membership?.orgId ?? null;
+    const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
     if (!orgId) return noOrgError();
     // SEC-3b (migration 370): the team watchlist is a shared workspace write and role viewer reads it but
     // does not write it. The personal scope (user_watchlist, the caller's own rows) stays open to a viewer.
-    if (membership?.role === "viewer") {
-      return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
-    }
+    const writer = await requireOrgWriter(auth.userId, orgId);
+    if ("response" in writer) return writer.response;
 
     // ignoreDuplicates, not overwrite. The team row is ONE shared row keyed by
     // (org_id, item_type, item_id). A second member adding an already-watched
@@ -322,14 +320,12 @@ async function handleDELETE(request: NextRequest) {
   const supabase = getServiceSupabase();
 
   if (p.scope === "team") {
-    const membership = await resolveOrgMembershipFromUserId(supabase, auth.userId).catch(() => null);
-    const orgId = membership?.orgId ?? null;
+    const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
     if (!orgId) return noOrgError();
     // SEC-3b (migration 370): the team watchlist is a shared workspace write and role viewer reads it but
     // does not write it. The personal scope (user_watchlist, the caller's own rows) stays open to a viewer.
-    if (membership?.role === "viewer") {
-      return NextResponse.json({ error: "viewer_read_only" }, { status: 403 });
-    }
+    const writer = await requireOrgWriter(auth.userId, orgId);
+    if ("response" in writer) return writer.response;
 
     // Any member may remove, matching 077's RLS. The delete is bounded to the
     // caller's own org, so one org can never clear another's rail.
