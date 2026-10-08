@@ -20,7 +20,7 @@
 // PLAIN ESM; node: builtins and relative imports only (the no-npm discipline glob imports this through
 // scripts/verify/surface-acceptance.mjs's test).
 
-import { fetchAllRows } from "../db/paginate.mjs";
+import { fetchAllRows, fetchAllByIdChunks } from "../db/paginate.mjs";
 
 // The closed vocabularies of migration 377. resolve.test.mjs and 377_entity_hierarchy_and_aliases.test.mjs
 // assert these equal the migration's CHECK lists, so the two cannot drift.
@@ -246,16 +246,13 @@ export function buildAliasResolverDeps(sb) {
           .range(from, to));
     },
     async readEntities(ids) {
-      const rows = [];
-      for (let i = 0; i < ids.length; i += 100) {
-        const slice = ids.slice(i, i + 100);
+      return fetchAllByIdChunks(ids, async (slice) => {
         const { data, error } = await sb.from("entities")
           .select("entity_id,kind,canonical_name,status,merged_into,entity_level")
           .in("entity_id", slice);
         if (error) throw new Error(`entities read failed: ${error.message}`);
-        rows.push(...(data ?? []));
-      }
-      return rows;
+        return data ?? [];
+      });
     },
   };
 }

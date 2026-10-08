@@ -207,7 +207,7 @@ export async function checkAliasProvenance(world) {
     if (!Number.isFinite(Date.parse(a.asserted_at ?? ""))) problems.push(`${label} has no usable asserted_at`);
     if (!ALIAS_KINDS.includes(a.alias_kind)) problems.push(`${label} has alias_kind "${a.alias_kind}", outside ${ALIAS_KINDS.join(", ")}`);
     if (!present(a.alias) || a.alias !== normalizeAliasText(a.alias)) problems.push(`${label} is not stored trimmed with whitespace collapsed`);
-    const key = `${a.entity_id}|${a.alias}|${a.alias_kind}`;
+    const key = `${a.entity_id}|${a.alias}|${a.alias_kind}|${a.asserted_by}`;
     if (keys.has(key)) problems.push(`${label} (${a.alias_kind}) appears twice`);
     keys.add(key);
   }

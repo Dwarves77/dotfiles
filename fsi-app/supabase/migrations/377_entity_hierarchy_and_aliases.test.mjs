@@ -60,7 +60,7 @@ test("entity_aliases: the brief's columns, primary key, closed kinds, whitespace
   for (const col of ["entity_id", "alias", "alias_kind", "asserted_by", "asserted_at", "source_id", "provenance"]) {
     assert.match(t, new RegExp(`^\\s+${col}\\s`, "m"), col);
   }
-  assert.match(t, /PRIMARY KEY \(entity_id, alias, alias_kind\)/);
+  assert.match(t, /PRIMARY KEY \(entity_id, alias, alias_kind, asserted_by\)/);
   assert.match(t, /asserted_by text\s+NOT NULL/);
   assert.match(t, /source_id\s+uuid\s+REFERENCES public\.sources\(id\)/);
   assert.deepEqual(listIn(t.match(/alias_kind IN \(([^)]*)\)/)[1]), [...ALIAS_KINDS]);
@@ -135,6 +135,8 @@ test("the self-check is rolled back by a sentinel, attacks each guard, and asser
     "a loop through the chain (a three-node cycle) was accepted",
     "an UPDATE that closes a loop was accepted",
     "two aliases with different assertors did not both persist",
+    "two asserters of the same alias did not both persist",
+    "a repeated assertion by the same asserter was accepted",
     "an alias insert changed the display name",
     "an alias UPDATE was accepted",
     "an alias DELETE was accepted",
@@ -142,7 +144,7 @@ test("the self-check is rolled back by a sentinel, attacks each guard, and asser
     "an alias with uncollapsed whitespace was accepted",
     "an alias with an unknown alias_kind was accepted",
     "an alias with a blank asserted_by was accepted",
-    "expected 2 entity_aliases outbox rows under the legal entity",
+    "expected 3 entity_aliases outbox rows under the legal entity",
     "expected 1 entity_relations outbox row under the child legal entity",
     "authenticated could insert an alias",
     "authenticated could insert a relation",

@@ -1,10 +1,9 @@
-// RD-95: registered by lane ALIAS-1 (2026-10-08, spec 00 section 8 and section 1.3). One entry, one file; see invariants.d/README.md.
-// NOTE: the lane brief named no invariant id. RD-93 is the highest on master; RD-94 is staged by the MIG-HIST-1b
-// brief (migration-history), so this id was self-assigned as the next free RD number after it. Disclosed here and in
-// the lane's session-log entry for the coordinator to re-number if it collides with a concurrently-registered id.
+// RD-96: registered by lane ALIAS-1 (2026-10-08, spec 00 section 8 and section 1.3). One entry, one file; see invariants.d/README.md.
+// NOTE: the lane brief named no invariant id. It was self-assigned RD-95 and renumbered to RD-96 by coordinator
+// ruling (2026-10-08) because AUDWIRE-1 (PR 1024) took RD-95.
 
 export const invariant = {
-  id: 'RD-95-spine-coherence-acceptance',
+  id: 'RD-96-spine-coherence-acceptance',
   skill: 'remediation-discipline',
   section: 'Section 4: Remediation Strategy by Category',
   text: 'The entity spine has an executable coherence test, scripts/verify/surface-acceptance.mjs, that implements the seventeen assertions of docs/specs/00-foundation-the-spine.md section 8 plus the two section 1.3 rules (the composite/atomic hierarchy is acyclic and every member states its level; every alias carries who asserted it and when). Each assertion is either a check that runs (on a fixture world with --fixture, on the live tables with credentials) or is skipped in every report with a kind (live, ui, no-data-source) and a reason; a skip is never counted as a pass. Every check that runs is proven by attack in surface-acceptance.test.mjs: a world broken in exactly the way the check exists to catch must come out FAIL. The script is a soft data-audit (line-1 marker) that self-skips with exit 2 when there are no credentials or migration 377 is not applied.',

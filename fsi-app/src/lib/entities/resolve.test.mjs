@@ -121,6 +121,18 @@ test("two aliases of one entity are one candidate, and the latest assertion is t
   assert.equal(hit.alias_kind, "name");
 });
 
+test("the same alias asserted by two parties is two evidence rows and one candidate; the latest assertion is reported", async () => {
+  const aliasRows = [
+    alias(LEGAL, "Maersk A/S", "name", "editor:first", "2026-03-01T00:00:00Z"),
+    alias(LEGAL, "Maersk A/S", "name", "editor:second", "2026-08-01T00:00:00Z"),
+  ];
+  const deps = fakeDeps({ aliasRows });
+  const candidates = await aliasCandidates("Maersk A/S", deps);
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].asserted_by, "editor:second");
+  assert.equal((await resolveEntityByAlias("Maersk A/S", deps)).entity_id, LEGAL);
+});
+
 test("an alias of a merged entity resolves to the survivor (301, never 404)", async () => {
   const OLD = entityId("organisation", "fixture-old-name.example");
   const entityRows = [
@@ -173,7 +185,7 @@ test("an unknown level value is never printed as if it were a level", () => {
   assert.equal(entityLevelLabel({ kind: "organisation", entity_level: "subsidiary" }), LEVEL_NOT_RECORDED_LABEL);
 });
 
-test("the Supabase-backed deps escape LIKE wildcards, page on the full key and batch entity reads", async () => {
+test("the Supabase-backed deps escape LIKE wildcards, page on the full key and chunk entity reads", async () => {
   const calls = [];
   const chain = (table) => {
     const rec = { table, ops: [] };
@@ -205,6 +217,6 @@ test("the Supabase-backed deps escape LIKE wildcards, page on the full key and b
   const ids = Array.from({ length: 150 }, (_, i) => `cl:organisation:${String(i).padStart(16, "0")}`);
   await deps.readEntities([GROUP, ...ids]);
   const entityReads = calls.filter((c) => c.table === "entities");
-  assert.equal(entityReads.length, 2, "151 ids read in batches of at most 100");
-  assert.ok(entityReads.every((c) => c.ops.find((o) => o[0] === "in")[2].length <= 100));
+  assert.equal(entityReads.length, 4, "151 distinct ids read in chunks of at most 50 (fetchAllByIdChunks)");
+  assert.ok(entityReads.every((c) => c.ops.find((o) => o[0] === "in")[2].length <= 50));
 });

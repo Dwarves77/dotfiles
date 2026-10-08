@@ -116,6 +116,40 @@ test("the pin detector itself works: a synthetic new emitting table is seen as u
   assert.ok(!("brand_new_table" in EMITTING_TABLE_EVENT_MAP));
 });
 
+
+// identity_revised (lane ALIAS-1, coordinator ruling 2026-10-08): an alias or relation change on an entity
+
+test("identity_revised is a trigger event type, and entity_aliases and entity_relations map to it for every change kind", () => {
+  assert.ok(TRIGGER_EVENT_TYPES.includes("identity_revised"));
+  for (const table of ["entity_aliases", "entity_relations"]) {
+    for (const kind of ["insert", "update", "delete", "supersede"]) {
+      assert.equal(eventTypeForOutboxRow({ table_name: table, change_kind: kind }), "identity_revised", `${table}/${kind}`);
+    }
+  }
+});
+
+test("describeChange for an identity change names the entity and says to re-resolve the mentions and roll-ups that name it", () => {
+  const s = describeChange(EVENT({ tableName: "entity_aliases", rowPk: ENTITY, changeKind: "insert" }), "Fixture jurisdiction");
+  assert.equal(s, `the identity of Fixture jurisdiction (${ENTITY}) changed (alias or relation): re-resolve mentions and roll-ups that name it`);
+  assert.match(describeChange(EVENT({ tableName: "entity_relations", changeKind: "delete" }), null), /the identity of cl:jurisdiction:aaaaaaaaaaaaaaaa changed \(alias or relation\)/);
+});
+
+test("an alias event for an entity linked to a verified item raises the four questions with event_type=identity_revised and the stated change text", async () => {
+  const { deps, state } = fixtureDeps({ items: [REG("r1")] });
+  const out = await runQuestionsOnChange({
+    mode: "apply",
+    events: [EVENT({ tableName: "entity_aliases", rowPk: ENTITY, changeKind: "insert" })],
+    deps,
+  });
+  assert.equal(out.counts.events_unmapped, 0);
+  assert.equal(out.counts.events_mapped, 1);
+  assert.equal(state.inserted.length, 4);
+  for (const row of state.inserted) {
+    assert.match(row.recommended_actions[0].rationale, /event_type=identity_revised/);
+    assert.match(row.description, /re-resolve mentions and roll-ups that name it/);
+  }
+});
+
 // change description
 
 test("describeChange: says which value changed on which entity, from outbox and entity fields only", () => {

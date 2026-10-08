@@ -1,4 +1,4 @@
--- subject: Migration 377 (lane ALIAS-1, 2026-10-08, spec 00 section 1.3): the composite/atomic entity hierarchy and the name-alias table; entities gains entity_level (group, legal_entity, operating_identity; NULL for every non-organisation kind and never guessed); entity_relations (parent_entity_id, child_entity_id, relation group_of / legal_entity_of / operating_identity_of, asserted_by, asserted_at, source_id, provenance; PK (parent, child, relation); a relation that would make the child an ancestor of the parent is refused by trigger); entity_aliases (entity_id, alias, alias_kind name / short_name / former_name / ticker / scac / iata / other, asserted_by, asserted_at, source_id, provenance; PK (entity_id, alias, alias_kind); INSERT-only: an UPDATE, DELETE or TRUNCATE is refused by trigger and the update, delete and truncate privileges are revoked, a correction is a new row with a later asserted_at); RLS read for authenticated, writes service_role only; the outbox trigger propagation_outbox_trg in migration 352's form on both tables; a rolled-back self-check attacks every guard; NOT APPLIED.
+-- subject: Migration 377 (lane ALIAS-1, 2026-10-08, spec 00 section 1.3): the composite/atomic entity hierarchy and the name-alias table; entities gains entity_level (group, legal_entity, operating_identity; NULL for every non-organisation kind and never guessed); entity_relations (parent_entity_id, child_entity_id, relation group_of / legal_entity_of / operating_identity_of, asserted_by, asserted_at, source_id, provenance; PK (parent, child, relation); a relation that would make the child an ancestor of the parent is refused by trigger); entity_aliases (entity_id, alias, alias_kind name / short_name / former_name / ticker / scac / iata / other, asserted_by, asserted_at, source_id, provenance; PK (entity_id, alias, alias_kind, asserted_by), so each asserter's evidence is its own row; INSERT-only: an UPDATE, DELETE or TRUNCATE is refused by trigger and the update, delete and truncate privileges are revoked, a correction is a new row with a later asserted_at); RLS read for authenticated, writes service_role only; the outbox trigger propagation_outbox_trg in migration 352's form on both tables; a rolled-back self-check attacks every guard; NOT APPLIED.
 -- 377 -- entity hierarchy and aliases (lane ALIAS-1, 2026-10-08).
 --
 -- NOT APPLIED. Authored by lane ALIAS-1; the coordinator applies it (two-track policy, CLAUDE.md standing
@@ -35,8 +35,15 @@
 -- a new row with a later asserted_at; the current display name (entities.canonical_name) is never overwritten
 -- by an alias, and nothing in this migration writes entities from an alias. The alias text is stored trimmed
 -- and with runs of whitespace collapsed (a CHECK), so a lookup by normalised text matches the stored form.
--- PK (entity_id, alias, alias_kind) means the same alias of the same kind for one entity is one row; two
--- DIFFERENT aliases of one entity asserted by different parties both persist.
+-- PK (entity_id, alias, alias_kind, asserted_by): aliases are evidence per asserter. The same alias of the same
+-- kind for one entity, asserted by two parties, is two rows and both persist; one party repeating its own
+-- assertion is refused by the key (a writer uses ON CONFLICT DO NOTHING). Two different aliases of one entity
+-- also both persist.
+--
+-- EVENT TYPE. The outbox rows of both new tables are turned into the trigger event type identity_revised by
+-- src/lib/learning/questions-on-change.mjs (constants.mjs TRIGGER_EVENT_TYPES). That type is a code vocabulary:
+-- propagation_events carries a CHECK on change_kind only (migration 284: insert, update, delete, supersede) and
+-- has no event_type column, so this migration extends no CHECK for it.
 --
 -- OUTBOX (CLAUDE.md standing rule 17: nothing in this build runs alone). Both tables carry the
 -- propagation_outbox_trg trigger in migration 352's form. entity_aliases has an entity_id column, so the
@@ -201,7 +208,7 @@ CREATE TABLE IF NOT EXISTS public.entity_aliases (
   asserted_at timestamptz NOT NULL DEFAULT now(),
   source_id   uuid        REFERENCES public.sources(id),
   provenance  jsonb,
-  PRIMARY KEY (entity_id, alias, alias_kind),
+  PRIMARY KEY (entity_id, alias, alias_kind, asserted_by),
   CONSTRAINT entity_aliases_alias_values CHECK (btrim(alias) <> '' AND alias = btrim(regexp_replace(alias, '\s+', ' ', 'g'))),
   CONSTRAINT entity_aliases_kind_values CHECK (alias_kind IN ('name', 'short_name', 'former_name', 'ticker', 'scac', 'iata', 'other')),
   CONSTRAINT entity_aliases_asserted_by_present CHECK (btrim(asserted_by) <> ''),
@@ -336,10 +343,22 @@ BEGIN
     END;
     IF NOT v_refused THEN RAISE EXCEPTION 'ABORT: an UPDATE that closes a loop was accepted'; END IF;
 
-    -- (d) aliases: two different aliases of one entity, different assertors, both persist; the name is untouched
+    -- (d) aliases: two different aliases of one entity, different assertors, both persist; so do two asserters of
+    -- the SAME alias; one asserter repeating itself is refused; the display name is untouched
     INSERT INTO public.entity_aliases (entity_id, alias, alias_kind, asserted_by) VALUES
       (v_legal, 'Self Check A/S', 'name', 'migration 377 self-check assertor one'),
       (v_legal, 'SCHK', 'short_name', 'migration 377 self-check assertor two');
+    INSERT INTO public.entity_aliases (entity_id, alias, alias_kind, asserted_by)
+      VALUES (v_legal, 'Self Check A/S', 'name', 'migration 377 self-check assertor two');
+    SELECT count(*) INTO v_n FROM public.entity_aliases WHERE entity_id = v_legal AND alias = 'Self Check A/S' AND alias_kind = 'name';
+    IF v_n <> 2 THEN RAISE EXCEPTION 'ABORT: two asserters of the same alias did not both persist (got % rows)', v_n; END IF;
+    v_refused := false;
+    BEGIN
+      INSERT INTO public.entity_aliases (entity_id, alias, alias_kind, asserted_by)
+        VALUES (v_legal, 'Self Check A/S', 'name', 'migration 377 self-check assertor two');
+    EXCEPTION WHEN unique_violation THEN v_refused := true;
+    END;
+    IF NOT v_refused THEN RAISE EXCEPTION 'ABORT: a repeated assertion by the same asserter was accepted'; END IF;
     SELECT count(DISTINCT asserted_by) INTO v_n FROM public.entity_aliases WHERE entity_id = v_legal;
     IF v_n <> 2 THEN RAISE EXCEPTION 'ABORT: two aliases with different assertors did not both persist (got % assertors)', v_n; END IF;
     SELECT canonical_name INTO v_name FROM public.entities WHERE entity_id = v_legal;
@@ -388,7 +407,7 @@ BEGIN
     -- (g) the outbox recorded the writes: aliases under their own entity, relations under the child
     SELECT count(*) INTO v_n FROM public.propagation_events
      WHERE table_name = 'entity_aliases' AND entity_id = v_legal AND change_kind = 'insert';
-    IF v_n <> 2 THEN RAISE EXCEPTION 'ABORT: expected 2 entity_aliases outbox rows under the legal entity, got %', v_n; END IF;
+    IF v_n <> 3 THEN RAISE EXCEPTION 'ABORT: expected 3 entity_aliases outbox rows under the legal entity, got %', v_n; END IF;
     SELECT count(*) INTO v_n FROM public.propagation_events
      WHERE table_name = 'entity_relations' AND entity_id = v_legal AND change_kind = 'insert';
     IF v_n <> 1 THEN RAISE EXCEPTION 'ABORT: expected 1 entity_relations outbox row under the child legal entity, got %', v_n; END IF;
@@ -414,7 +433,7 @@ BEGIN
     SET LOCAL ROLE authenticated;
     SELECT count(*) INTO v_n FROM public.entity_aliases WHERE entity_id = v_legal;
     RESET ROLE;
-    IF v_n <> 2 THEN RAISE EXCEPTION 'ABORT: authenticated could not read the aliases it is meant to read (got %)', v_n; END IF;
+    IF v_n <> 3 THEN RAISE EXCEPTION 'ABORT: authenticated could not read the aliases it is meant to read (got %)', v_n; END IF;
     v_refused := false;
     BEGIN
       SET LOCAL ROLE service_role;

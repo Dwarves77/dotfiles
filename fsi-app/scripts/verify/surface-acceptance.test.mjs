@@ -181,6 +181,7 @@ test("H2 alias provenance: no assertor, no date, an unknown kind, unnormalised t
   assert.ok((await mut((a) => { a.alias = "Maersk  Line "; })).some((p) => /trimmed with whitespace collapsed/.test(p)));
   assert.ok((await mut((a) => { a.entity_id = "cl:organisation:cccccccccccccccc"; })).some((p) => /the entity does not exist/.test(p)));
   assert.ok((await mut((a, w) => { w.aliases.push({ ...a }); })).some((p) => /appears twice/.test(p)));
+  assert.deepEqual(await mut((a, w) => { w.aliases.push({ ...a, asserted_by: "editor:second-asserter" }); }), [], "the same alias asserted by a second party is a second evidence row, not a duplicate");
 });
 
 test("a run with any FAIL exits 1 and names the problem; skips alone never fail the run and never count as passes", async () => {
