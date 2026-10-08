@@ -1,5 +1,5 @@
 {
-  "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+  "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D6",
   "mount": "ops-matrix-selected",
   "viewport": 1440,
   "artboards": [
@@ -7,6 +7,7 @@
   ],
   "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
   "notes": [
+    "DAUDIT-2 (2026-10-08): the cell this spec measures is now ASIA x D6 Operational cost, not ASIA x D3. The panel for the labour dimension (D3, labor_markets) is the fully-loaded labour chain since the labour-chain lane (spec 04 section 5 and section 6 component 5; RegionDimensionMatrix.tsx renders LabourChain there), so a click on ASIA x D3 opens no fact cards and every fact-card row below read NOT BUILT. Fact cards remain the panel for every other dimension. The mount (mounts.mjs ops-matrix-selected) gives ASIA x D6 the four facts the max-3 cap needs and clicks it; the rows below keep their values and measure the same panel parts. Where a note below still says ASIA x D3, it records the earlier cell. As a side effect this mount now also proves the click path moves the selection, since ASIA x D6 is not the cell the component arrives on.",
     "NOTE ADDED 2026-09-09 (lane opsmatrix5). With the default selection restored (operator 2026-09-09 item 5), the cell this mount CLICKS -- ASIA x D3 -- is also the cell the component now arrives on, so this mount alone no longer proves that the click path moves anything. The proof was not dropped, it moved to where it can be made: .discipline/rendering/smoke/ops-matrix-acceptance-smoke.mjs leg F clicks a DIFFERENT cell (UAE x D6), requires the selection, the tint and the panel heading to follow it, then presses ArrowLeft and requires them to follow again (UK x D6), and requires the data-open-on-mount declaration to be gone the instant the reader acts. Every value row below still measures what it always measured, on a cell reached through the real click handler; a broken click handler now fails leg F rather than these rows.",
     "WHY THIS SPEC EXISTS AS A SECOND FILE. The design states values that only exist once a cell is selected: the selection tint, the inset, the panel and everything in it. Until 2026-09-08 those were measured on the component's own DEFAULT SELECTION, because the audit runner reads one rendered state and cannot click. The operator then ruled that a page may not open anything before the reader acts (\"no items expanded when first navigtaing to a page\"), so there is no default selection left to measure them on. Rather than delete assertions the design still states, the MOUNT performs the click: `ops-matrix-selected` (mounts.mjs) renders the same component with the same fixture and then clicks the ASIA x D3 cell by its accessible name, two animation frames after mount. Every row below is therefore measured on a cell selected through the real click handler.",
     "THIS IS STRICTLY STRONGER THAN WHAT IT REPLACES. The rows are verbatim the ones that stood in `operations-matrix.json`. What changed is the state they are measured in: a default selection is produced by the component regardless of whether its click path works, so these values passed even if clicking a cell did nothing. Here they pass only if a click selects, tints and opens the panel. The at-rest half of the contract, and the regression guard against the default selection returning, is in `operations-matrix.json`.",
@@ -30,7 +31,7 @@
       }
     },
     {
-      "name": "the click selected the cell it named: ASIA x D3",
+      "name": "the click selected the cell it named: ASIA x D6",
       "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
       "expect": {
         "text": "4"
@@ -65,7 +66,7 @@
       "name": "PANEL HEADER is 'Region · Dn Dimension · N sourced facts': and this exact string is also the DEFAULT-SELECTION proof: the fixture's first two rows and first two columns are empty, so only 'the first sourced cell in the first sourced row' produces it",
       "selector": "[data-audit=\"ops-panel-heading\"]",
       "expect": {
-        "text": "Asia · SG + HK · D3 Labor markets · 4 sourced facts"
+        "text": "Asia · SG + HK · D6 Operational cost · 4 sourced facts"
       }
     },
     {
@@ -85,7 +86,7 @@
       }
     },
     {
-      "name": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D3 carries four facts; three cards render",
+      "name": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D6 carries four facts; three cards render",
       "selector": "[data-audit=\"ops-fact-card\"]",
       "expect": {
         "count": "3"

@@ -79,12 +79,12 @@
     },
     {
       "name": "region 1a — chip row order: band pill, Finding, type, theme, modes, then the TIER square last",
-      "selector": "[data-audit=\"research-detail\"] [data-audit=\"detail-chips\"]",
+      "selector": "[data-audit=\"research-detail\"] div:has(> [data-part=\"chip-band\"])",
       "expect": {
         "count": "1"
       },
       "textMatch": "re:Finding[\\s\\S]*Emissions accounting[\\s\\S]*All modes[\\s\\S]*T3",
-      "note": "dc.html #p7: Awareness · Finding · Initiative · Emissions accounting · All modes · T3. The theme chip and the At a glance Theme row were absent because the fixture carried no `theme` key."
+      "note": "dc.html #p7: Awareness · Finding · Initiative · Emissions accounting · All modes · T3. The theme chip and the At a glance Theme row were absent because the fixture carried no `theme` key. DAUDIT-2 (2026-10-08): selector repaired, value unchanged. The element this addressed (DetailHeader's data-audit=detail-chips) was deleted by PR 800; the pill row is now ui/ActionCard's, reached through the band chip's parent."
     }
   ],
   "forbid": [
