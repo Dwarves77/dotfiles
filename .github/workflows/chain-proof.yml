@@ -86,36 +86,14 @@ jobs:
         working-directory: fsi-app
         run: npm ci --prefer-offline --no-audit
 
-      - name: Ensure psql is available
-        run: |
-          if ! command -v psql >/dev/null 2>&1; then
-            sudo apt-get update -y
-            sudo apt-get install -y postgresql-client
-          fi
-          psql --version
-
-      - name: Install the Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Start the local stack (empty database, storage and auth only)
+      # The generic stack steps (psql, the Supabase CLI, an empty local stack from the scratch config, the loopback-only
+      # env file, the preflight) live in ONE composite action shared with migration-proof.yml (lane MIG-CI, 2026-10-08).
+      - name: Start the local stack and preflight it (shared composite action)
         id: stack
-        run: |
-          mkdir -p "$CHAIN_PROOF_STACK/supabase"
-          cp fsi-app/supabase/config.toml "$CHAIN_PROOF_STACK/supabase/config.toml"
-          cd "$CHAIN_PROOF_STACK"
-          supabase start
-
-      - name: Write the local env file (loopback hosts only, keys masked)
-        run: |
-          (cd "$CHAIN_PROOF_STACK" && supabase status -o env) | node fsi-app/scripts/proof/write-local-env.mjs --out "$CHAIN_PROOF_ENV"
-
-      - name: Preflight (local stack environment only)
-        working-directory: fsi-app
-        run: |
-          . "$CHAIN_PROOF_ENV"
-          node scripts/proof/preflight.mjs
+        uses: ./.github/actions/local-stack
+        with:
+          stack_dir: ${{ env.CHAIN_PROOF_STACK }}
+          env_file: ${{ env.CHAIN_PROOF_ENV }}
 
       # Made BEFORE the replay, from the stack's own empty postgres database as a template, so oracle_check carries the
       # auth and storage schemas and extensions and none of the application tables. A failure here fails the job: the

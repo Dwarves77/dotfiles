@@ -1,0 +1,136 @@
+name: Migration proof
+
+# A migration is proven by RUNNING it before production sees it (lane MIG-CI, 2026-10-08; operator, same day, "Fix it",
+# after three production apply aborts in one day on defects a run would have caught: 372 a text/text[] coalesce and then
+# a NOT NULL fixture, 370 a CHECK-list fixture value. Each migration's own self-check did its job at production and rolled
+# back, but production was the first database to run the file). docs/runbooks/maintenance.d/67-migration-proof.md.
+#
+# WHAT THIS PROVES. On a disposable local Supabase stack (the composite action .github/actions/local-stack, shared with
+# chain-proof.yml, docs/decisions/ADR-045-chain-proof-on-a-local-stack.md):
+#   1. the applied set replays (scripts/proof/replay-migrations.mjs, selected through APPLIED-MAP.json, the same call
+#      chain-proof.yml makes), then
+#   2. every migration production has NOT applied (the map's never-applied entries plus any file the PR adds, minus 299,
+#      which is held by its own header) is applied in number order, each as one psql run with ON_ERROR_STOP
+#      (scripts/proof/apply-pending-migrations.mjs), so the file's own self-check runs exactly as it will at production.
+#   A failure fails the job with the file name and the full psql error text. Production apply follows a green job
+#   (two-track policy unchanged: DDL before the dependent code). A defect in ANY pending migration fails EVERY migration
+#   PR until that migration reaches production, by design.
+#
+# NEVER TOUCHES PRODUCTION. No secret is referenced anywhere in this file, `permissions` is contents: read, there is no
+# export step and no oracle, and the composite action's preflight fails the job on a production host or any forbidden
+# credential name. The only database any step can reach is the loopback stack.
+#
+# REQUIRED CHECK, NO PATH FILTER. The job's context is "Migration proof (apply on a local stack)". It triggers on EVERY
+# pull_request and decides INSIDE the job whether the PR touched fsi-app/supabase/migrations/**, because a path-filtered
+# workflow that does not fire never reports a status, and a required check that never reports blocks the merge forever
+# (the reason discipline.yml's header rejects path filters). A PR that touches no migration passes in about a minute with
+# every stack step skipped; a PR that touches one runs the proof. The diff is the PR's effect on its base: for a
+# pull_request event actions/checkout checks out the merge commit, so HEAD^1 is the base tip and HEAD is the merged tree.
+#
+# PUBLIC REPOSITORY. Logs and the artifact are world-readable. The stack holds no production data, so error text carries
+# none; the artifact is counts, file names, NOTICE lines and error text.
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  migration-proof:
+    name: Migration proof (apply on a local stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Did this pull request touch a migration
+        id: scope
+        run: |
+          if ! git rev-parse --verify --quiet 'HEAD^2' >/dev/null; then
+            echo "No merge parent found: treating the pull request as touching a migration (fail toward running the proof)."
+            echo "touched=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only HEAD^1 HEAD -- fsi-app/supabase/migrations)"
+          if [ -n "$CHANGED" ]; then
+            echo "Migration files changed by this pull request (names only):"
+            echo "$CHANGED"
+            echo "touched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "touched=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Migration proof"
+              echo "This pull request touches nothing under fsi-app/supabase/migrations, so there is nothing to prove. The stack steps were skipped."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Setup Node
+        if: steps.scope.outputs.touched == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Note the proof's scratch paths
+        if: steps.scope.outputs.touched == 'true'
+        run: |
+          {
+            echo "MP_OUT_DIR=$RUNNER_TEMP/migration-proof-out"
+            echo "MP_ENV=$RUNNER_TEMP/migration-proof.env"
+            echo "MP_STACK=$RUNNER_TEMP/migration-proof-stack"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/migration-proof-out"
+
+      # The generic stack steps: psql, the Supabase CLI, an EMPTY stack from the scratch config (the CLI never applies the
+      # migration tree), the loopback-only env file, the preflight.
+      - name: Start the local stack and preflight it (shared composite action)
+        if: steps.scope.outputs.touched == 'true'
+        id: stack
+        uses: ./.github/actions/local-stack
+        with:
+          stack_dir: ${{ env.MP_STACK }}
+          env_file: ${{ env.MP_ENV }}
+
+      # The applied set, per APPLIED-MAP.json. Stops at the first error; no tolerate list, no skip list.
+      - name: Replay the applied migration files onto the stack
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$MP_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/replay-migrations.mjs --report "$MP_OUT_DIR/replay-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Every migration production has not applied, in number order, each as one psql run with ON_ERROR_STOP.
+      - name: Apply every pending migration on the stack (each file's own self-check runs here first)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$MP_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/apply-pending-migrations.mjs --apply --report "$MP_OUT_DIR/apply-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the proof reports (counts, file names, error text)
+        if: always() && steps.scope.outputs.touched == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-proof-report
+          path: ${{ runner.temp }}/migration-proof-out
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop the local stack and delete the env file
+        if: always() && steps.scope.outputs.touched == 'true'
+        run: |
+          if [ -d "$MP_STACK" ]; then (cd "$MP_STACK" && supabase stop --no-backup) || true; fi
+          rm -f "$MP_ENV"
