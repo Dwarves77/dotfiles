@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-08T13:24:44.804Z",
-  "count": 365,
+  "synced_at": "2026-10-08T15:56:18.841Z",
+  "count": 367,
   "migrations": [
     {
       "version": "001",
@@ -1462,6 +1462,14 @@
     {
       "version": "20261008131647",
       "name": "371_definer_hygiene"
+    },
+    {
+      "version": "20261008134455",
+      "name": "373_outbox_entity_for_series_and_facts"
+    },
+    {
+      "version": "20261008134702",
+      "name": "377_entity_hierarchy_and_aliases"
     }
   ]
 }

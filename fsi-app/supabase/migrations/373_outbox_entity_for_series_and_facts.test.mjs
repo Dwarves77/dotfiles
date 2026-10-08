@@ -15,9 +15,10 @@ const M284 = readFileSync(fileURLToPath(new URL("./284_propagation_outbox.sql", 
 const stripComments = (t) => t.split(String.fromCharCode(10)).map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join(String.fromCharCode(10));
 const M352 = readFileSync(fileURLToPath(new URL("./352_outbox_entity_for_emission_factors.sql", import.meta.url)), "utf8");
 
-test("header: subject line, states NOT APPLIED, names both tables and the rule it builds on", () => {
+test("header: subject line, states APPLIED with the ledger version, names both tables and the rule it builds on", () => {
   assert.match(RAW, /^-- subject: Migration 373 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008134455, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   assert.match(RAW, /market_series\s+id uuid PK, series_key/);
   assert.match(RAW, /regional_data_facts\s+id uuid PK, region_id uuid NOT NULL REFERENCES regions/);
   assert.match(RAW, /migration 352/);
