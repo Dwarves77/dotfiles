@@ -401,3 +401,45 @@ test("P2 deriveThemeLabel: lead, pages, collapse and ceiling rules", () => {
   const huge = deriveThemeLabel({ signals: [{ signal: "x".repeat(200) + " y" }], pages: pages("A", "B") });
   assert.ok(huge.length <= MAX_THEME_LABEL_CHARS);
 });
+
+// ── lane CHAIN-4 (2026-10-08): the Research reader resolves a brief by THEME, not by exact brief id ────────
+// Register item 17 said the Research reader "selects only exact-id brief row". It does not: since S3-C (939, 941)
+// every reader entry point goes through resolveBriefForTheme (exact id, then member overlap, then lineage). The
+// existing tests prove that for the detail card (selectThemeBriefForItem, buildThemeAnalysisView); this one
+// pins the THIRD entry point, the list-page and dashboard chips, and that all three agree on one drifted theme,
+// so a future edit that gives any one of them an exact-id lookup fails here.
+test("CHAIN-4: an exact-id miss still finds the overlap brief on every reader entry point, stale, never current", () => {
+  // The prior theme was anchored at "b"; the corpus gained "a", so the live theme id is "a" and no brief is
+  // stored under it. The brief stored under "b" carries the membership it was written for.
+  const live = { id: "a", member_ids: ["a", "b", "c", "d", "e"], density: 0.4, convergence: 2, surfaces: ["regulations", "market", "research"], pivots: [] };
+  const prior = {
+    theme_id: "b", title: "Prior cluster", brief_md: "Prior synthesis.", member_hash: hashOf(["b", "c", "d", "e"]),
+    member_ids: ["b", "c", "d", "e"], generated_at: "2026-08-20T00:00:00Z", sections: STRUCTURED,
+  };
+  assert.equal([prior].find((b) => b.theme_id === live.id), undefined, "precondition: an exact-id lookup would find nothing");
+
+  const card = selectThemeBriefForItem("c", [live], [prior]);
+  assert.equal(card.title, "Prior cluster");
+  assert.equal(card.stale, true);
+  assert.equal(card.supersedesThemeId, "b");
+
+  const analysis = buildThemeAnalysisView({ itemId: "c", surface: "research", themes: [live], briefs: [prior], members: MEMBERS });
+  assert.equal(analysis.hasBrief, true);
+  assert.equal(analysis.title, "Prior cluster");
+  assert.equal(analysis.stale, true);
+  assert.equal(analysis.supersedesThemeId, "b");
+
+  const [chip] = buildThemeChips({ themes: [live], items: ITEMS, briefs: [prior], surface: "market", max: 6 });
+  assert.ok(chip, "the chip exists");
+  assert.equal(chip.hasBrief, true, "the chip finds the overlap brief, not only an exact-id one");
+  assert.equal(chip.briefTitle, "Prior cluster");
+  assert.equal(chip.stale, true);
+});
+
+test("CHAIN-4: a brief below the overlap threshold, or owned by another live theme, is still not borrowed", () => {
+  const live = { id: "a", member_ids: ["a", "b", "c", "d", "e"], density: 0.4, convergence: 2, surfaces: ["market"], pivots: [] };
+  const unrelated = { theme_id: "z", title: "Unrelated", brief_md: "x", member_hash: hashOf(["x", "y", "z"]), member_ids: ["x", "y", "z"], generated_at: "2026-08-20T00:00:00Z" };
+  assert.equal(selectThemeBriefForItem("c", [live], [unrelated]), null);
+  const [chip] = buildThemeChips({ themes: [live], items: ITEMS, briefs: [unrelated], surface: "market", max: 6 });
+  assert.equal(chip.hasBrief, false);
+});

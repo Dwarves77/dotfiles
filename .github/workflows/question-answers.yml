@@ -21,10 +21,19 @@ name: Question answers
 # mode is NOT decided by the trigger: scripts/lib/chained-dry-guard.mjs (called with --ref) forces dry while
 # scrape_cadence='off'; the requested apply stands only after build.
 #
-# BUILD MODE (CLAUDE.md rule 16): NO schedule block, NO workflow_run trigger. A run is an explicit dispatch or the
-# merge of a drain batch PR. NOT CHAINED. Where it belongs in the loop is a coordinator decision: after the
-# propagation drain raises or re-opens questions, and after population-turn raises them at mint (the question
-# generator runs as a population-turn flywheel step), so an answer pass follows each.
+# BUILD MODE (CLAUDE.md rule 16): NO schedule block. A run is an explicit dispatch, the merge of a drain batch PR,
+# or (lane CHAIN-4, 2026-10-08) a chained firing off Population turn or Propagation drain.
+#
+# CHAINED (lane CHAIN-4, 2026-10-08, remaining-build-register item 13, CLAUDE.md rule 17): the propagation drain
+# raises or re-opens questions (drain.ts Pass 2b) and population-turn raises them at mint (the question generator
+# is a population-turn flywheel step), so an answer pass follows each: `on.workflow_run.workflows` lists
+# "Population turn" (loop hop 15) and "Propagation drain" (hop 14). A chained firing has no inputs and no batch
+# file, so it runs action=export (read only, and there is always an open-question list to write); apply stays on
+# a push or a dispatch. The firing is forced dry while build mode holds (chained-dry-guard, rule 16, though an
+# export never writes). Depth: Propagation drain is reached natively from Data producers (depth 1) or by the
+# explicit dispatch downstream-chain.yml makes (a dispatch is its own root), so this edge is depth 2 at most and
+# needs no dispatch fallback of its own; Population turn is depth 2 under the sweep cascade, so this edge is
+# depth 3. An upstream that did not conclude success is a recorded NO-OP, never a silent skip (rule 17).
 #
 # FREE (rule 11 of the common terms): no model call anywhere. Answers are authored in a session by sub agents
 # from the exported bundle, then committed as scripts/turns/question-answers/batches/question-answers-NNN.json.
@@ -42,6 +51,11 @@ on:
     branches: [master]
     paths:
       - 'fsi-app/scripts/turns/question-answers/batches/question-answers-*.json'
+  # workflow_run (lane CHAIN-4, 2026-10-08): event-driven off a completed run, not a schedule (see the CHAINED
+  # paragraph in the header). Fires on any conclusion; the resolve step below decides whether it earns an export.
+  workflow_run:
+    workflows: ["Population turn", "Propagation drain"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       action:
@@ -70,8 +84,9 @@ permissions:
   contents: read
 
 env:
-  # A push has no inputs: it is an apply request and the chained guard decides the mode (rule 16).
-  RUN_ACTION: ${{ inputs.action || 'apply' }}
+  # A push has no inputs: it is an apply request and the chained guard decides the mode (rule 16). A workflow_run
+  # firing has no inputs either, and no batch file: it is the read only export (lane CHAIN-4).
+  RUN_ACTION: ${{ inputs.action || (github.event_name == 'workflow_run' && 'export' || 'apply') }}
   RUN_MODE: ${{ inputs.mode || 'apply' }}
   RUN_ANSWERS_FILE: ${{ inputs.answers_file }}
 
@@ -118,6 +133,46 @@ jobs:
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
+      # THE UPSTREAM RUN ID AND THE CHAIN GATE (lane CHAIN-4, 2026-10-08; the same hand-off lane CHAIN-1 gave
+      # Population turn, lane CHAIN-2 gave the other chained workflows). GITHUB_EVENT_WORKFLOW_RUN_ID is the repo's
+      # convention for the upstream run id: writeRunArtifact stamps it as the artifact's top-level upstream_run_id,
+      # which is what the loop firing evidence reads to place a question-answers row on hop 14 (Propagation drain)
+      # or hop 15 (Population turn). An upstream that did not conclude success earns no export: the firing is
+      # recorded as a NO-OP row below, so the family's history still shows it (rule 17).
+      - name: Resolve the chained firing (workflow_run only)
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          UPSTREAM_NAME: ${{ github.event.workflow_run.name }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          echo "GITHUB_EVENT_WORKFLOW_RUN_ID=$UPSTREAM_RUN_ID" >> "$GITHUB_ENV"
+          echo "RUN_UPSTREAM_NAME=$UPSTREAM_NAME" >> "$GITHUB_ENV"
+          echo "RUN_UPSTREAM_RUN_ID=$UPSTREAM_RUN_ID" >> "$GITHUB_ENV"
+          echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION"
+          if [ "$UPSTREAM_CONCLUSION" != "success" ]; then
+            echo "RUN_SKIP=true" >> "$GITHUB_ENV"
+            echo "RUN_SKIP_REASON=upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success, so there is nothing new to list questions for." >> "$GITHUB_ENV"
+            echo "::notice::question-answers NO-OP, upstream concluded '$UPSTREAM_CONCLUSION'."
+          fi
+
+      # THE LOOP RUN ID (lane CHAIN-4, ADR-031): the upstream row's loop run id, read through the one reader and
+      # exported under the name the artifact writer takes as its explicit id. A read failure is a warning and a
+      # null id, never a red run.
+      - name: Read the upstream loop run id (ADR-031, chained firings only)
+        if: ${{ github.event_name == 'workflow_run' && env.RUN_SKIP != 'true' }}
+        env:
+          CHAIN_UPSTREAM_NAME: ${{ env.RUN_UPSTREAM_NAME }}
+          CHAIN_UPSTREAM_RUN_ID: ${{ env.RUN_UPSTREAM_RUN_ID }}
+        run: |
+          if HANDOFF="$(node scripts/lib/upstream-artifact.mjs loop-id --upstream-name "$CHAIN_UPSTREAM_NAME" --upstream-run-id "$CHAIN_UPSTREAM_RUN_ID")"; then
+            LOOP_ID="$(printf '%s\n' "$HANDOFF" | sed -n 's/^CHAIN_UPSTREAM_LOOP_RUN_ID=//p')"
+            echo "QA_LOOP_RUN_ID=$LOOP_ID" >> "$GITHUB_ENV"
+            echo "upstream loop run id: ${LOOP_ID:-(the upstream row records none)}"
+          else
+            echo "::warning::could not read the upstream loop run id for $CHAIN_UPSTREAM_NAME run $CHAIN_UPSTREAM_RUN_ID; this run records a null loop_run_id (ADR-031)."
+          fi
+
       - name: This run's gates
         run: |
           echo "trigger     = ${{ github.event_name }}"
@@ -147,13 +202,13 @@ jobs:
           echo "RUN_DRIVER=$RUN_DRIVER" >> "$GITHUB_ENV"
 
       - name: Export open questions holdings could answer
-        if: env.RUN_ACTION == 'export'
+        if: ${{ env.RUN_ACTION == 'export' && env.RUN_SKIP != 'true' }}
         run: |
           set -o pipefail
           node scripts/turns/export-questions-for-answers.mjs --out-dir "$RUNNER_TEMP/question-answers" | tee /tmp/question-answers-export.log
 
       - name: Apply the question-answers batch
-        if: ${{ env.RUN_ACTION == 'apply' && env.RUN_DRIVER == 'true' }}
+        if: ${{ env.RUN_ACTION == 'apply' && env.RUN_DRIVER == 'true' && env.RUN_SKIP != 'true' }}
         run: |
           set -o pipefail
           FLAGS="--answers ${PUSH_BATCH_FILE:-$RUN_ANSWERS_FILE}"
@@ -163,6 +218,13 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/question-answers-apply.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # A legitimate NO-OP is still a run (lane CHAIN-4, rule 17): the chained firing decided there was nothing to
+      # list, and the family's history records that it was asked.
+      - name: Record a NO-OP run (the chain decided there was nothing to do)
+        if: ${{ always() && env.RUN_SKIP == 'true' }}
+        run: |
+          node scripts/lib/upstream-artifact.mjs noop --family question-answers --mode "${CHAINED_MODE:-dry}" --reason "$RUN_SKIP_REASON" --upstream-name "$RUN_UPSTREAM_NAME" --upstream-run-id "$RUN_UPSTREAM_RUN_ID" --started-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
       - name: Land this run's harness-run artifact into harness_runs
         if: always()

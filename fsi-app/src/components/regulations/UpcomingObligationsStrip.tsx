@@ -35,6 +35,14 @@
 import { useEffect, useState } from "react";
 import { UpcomingObligationsStripView, type UpcomingEvent } from "@/components/regulations/UpcomingObligationsStripView";
 
+/** The active scope a surface hands the strip (lane MKT-1; the Market policy timeline). `null` on a
+ *  dimension means the surface has no facet for it, and the read falls back to the workspace profile's.
+ *  Never passed by Regulations, which keeps the unscoped read exactly as it was. */
+export interface StripScope {
+  modes: string[] | null;
+  regions: string[] | null;
+}
+
 interface Props {
   /** "list" (default): top strip, next 8, jurisdiction-filtered to the workspace's weighted
    *  jurisdictions. "detail": one item's own upcoming events — pass `itemId`. */
@@ -44,14 +52,25 @@ interface Props {
   itemId?: string;
   /** How many rows to show. Defaults: 8 for the list strip, 20 for a detail section. */
   limit?: number;
+  /** List variant only. When given, the read is filtered to this scope (facets first, then the workspace
+   *  profile) and the strip shows the filter as text with an "N hidden by your scope" widen control. When
+   *  omitted the strip renders exactly as it always has. */
+  scope?: StripScope;
 }
 
 interface ApiResult {
   events: UpcomingEvent[];
   hasJurisdictionFilter: boolean;
+  /** Present only on a scoped read. */
+  scope?: { label: string };
+  hiddenByScope?: number;
 }
 
-export function UpcomingObligationsStrip({ variant = "list", itemId, limit }: Props) {
+export function UpcomingObligationsStrip({ variant = "list", itemId, limit, scope }: Props) {
+  const scoped = variant === "list" && !!scope;
+  const [widened, setWidened] = useState(false);
+  const modesKey = scope?.modes?.join(",") ?? "";
+  const regionsKey = scope?.regions?.join(",") ?? "";
   const [state, setState] = useState<{ loading: boolean; result: ApiResult | null }>({
     loading: true,
     result: null,
@@ -70,6 +89,15 @@ export function UpcomingObligationsStrip({ variant = "list", itemId, limit }: Pr
     const params = new URLSearchParams();
     if (variant === "detail" && itemId) params.set("itemId", itemId);
     if (limit) params.set("limit", String(limit));
+    if (scoped) {
+      if (widened) {
+        params.set("scope", "all");
+      } else {
+        params.set("scope", "1");
+        if (modesKey) params.set("modes", modesKey);
+        if (regionsKey) params.set("regions", regionsKey);
+      }
+    }
     fetch(`/api/obligations/upcoming?${params.toString()}`, { credentials: "same-origin" })
       .then((r) => (r.ok ? r.json() : { events: [], hasJurisdictionFilter: false }))
       .then((result: ApiResult) => {
@@ -81,7 +109,7 @@ export function UpcomingObligationsStrip({ variant = "list", itemId, limit }: Pr
     return () => {
       cancelled = true;
     };
-  }, [variant, itemId, limit]);
+  }, [variant, itemId, limit, scoped, widened, modesKey, regionsKey]);
 
   if (state.loading) {
     if (variant === "detail") return null; // see this file's header — matches the eventual empty state
@@ -100,6 +128,16 @@ export function UpcomingObligationsStrip({ variant = "list", itemId, limit }: Pr
       variant={variant}
       events={result.events}
       hasJurisdictionFilter={result.hasJurisdictionFilter}
+      scopeInfo={
+        scoped
+          ? {
+              label: result.scope?.label ?? "",
+              hiddenByScope: result.hiddenByScope ?? 0,
+              widened,
+              onToggleWiden: () => setWidened((w) => !w),
+            }
+          : undefined
+      }
     />
   );
 }

@@ -82,6 +82,13 @@ export const GOVERNED = [
       // pages, never intelligence data, so they are governed with the surfaces. Mapped here, no exemption.
       'fsi-app/src/lib/workspace/item-notes.mjs',
       'fsi-app/src/lib/workspace/item-assignments.mjs',
+      // Request-coverage writer (lane COV-1, 2026-10-08, coordinator grant on PR 1020): the "Request coverage" action on
+      // a named coverage gap writes ONE coverage_gap row to integrity_flags (the platform-flag channel). Its sibling
+      // integrity_flags writers under src/app/ (api/admin/integrity-flags/route.ts, api/admin/sources/bulk-import/route.ts)
+      // are already governed by this skill through the 'fsi-app/src/app/' entry above, and its POST route
+      // (src/app/api/dashboard/coverage/request/route.ts) is covered by the same entry; this is the shared writer module
+      // that route calls, so it is governed as the pages and routes are. Mapped here, no exemption.
+      'fsi-app/src/lib/coverage/request-coverage.mjs',
     ],
     ops: [],
   },

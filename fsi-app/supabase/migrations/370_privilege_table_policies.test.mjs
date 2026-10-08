@@ -30,9 +30,10 @@ const SRC_FILES = walk(SRC);
 const text = (f) => readFileSync(f, "utf8");
 const base = (f) => f.split(/[\\/]/).pop();
 
-test("header: subject line, NOT APPLIED, and the profiles read policy is declared out of this migration", () => {
+test("header: subject line, APPLIED with the ledger version, and the profiles read policy is declared out of this migration", () => {
   assert.match(RAW, /^-- subject: Migration 370 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008131555, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   assert.match(RAW.split("\n")[0], /profiles read policy \(item 5 of the brief\) is NOT in this migration/);
   assert.doesNotMatch(SQL, /Public read/);
   assert.doesNotMatch(SQL, /profiles_public/);

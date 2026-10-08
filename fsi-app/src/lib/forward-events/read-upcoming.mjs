@@ -112,6 +112,66 @@ export function jurisdictionMatches(itemJurisdictionIso, filterKeys) {
 }
 
 /**
+ * Pure: does an item's transport_modes array satisfy `modeKeys` (lower-cased canonical modes such as
+ * "ocean")? Same posture as workspace/relevance.mjs: an item that declares NO modes is mode-agnostic (it
+ * applies across the reader's modes), so it is kept, never hidden as "no match". `null`/empty filter always
+ * matches.
+ *
+ * @param {string[] | null | undefined} itemModes
+ * @param {string[] | null} modeKeys
+ * @returns {boolean}
+ */
+export function modeMatches(itemModes, modeKeys) {
+  if (!modeKeys || modeKeys.length === 0) return true;
+  if (!Array.isArray(itemModes) || itemModes.length === 0) return true;
+  const keys = modeKeys.map((k) => String(k || "").trim().toLowerCase()).filter(Boolean);
+  return itemModes.some((m) => keys.includes(String(m || "").trim().toLowerCase()));
+}
+
+const csvKeys = (v) =>
+  (Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : [])
+    .map((x) => String(x || "").trim().toLowerCase())
+    .filter(Boolean);
+
+/**
+ * Pure: the ACTIVE SCOPE of a scoped read (lane MKT-1, operator ruling 2026-10-08): the surface's own URL
+ * facets `mode` and `region` when present, else the workspace profile's transport modes and jurisdictions.
+ * Each dimension is decided on its own (a `mode` facet with no `region` facet still takes the profile's
+ * regions). A generic region ("global", "worldwide", "all") is never a filter. `null` for a dimension means
+ * "no filter on it".
+ *
+ * @param {{ facetModes?: string[]|string|null, facetRegions?: string[]|string|null,
+ *           profileModes?: string[]|null, profileJurisdictions?: Record<string, number>|null }} input
+ * @returns {{ modes: string[]|null, regions: string[]|null,
+ *             source: { modes: "facet"|"profile"|null, regions: "facet"|"profile"|null } }}
+ */
+export function resolveScope(input = {}) {
+  const facetModes = csvKeys(input.facetModes);
+  const facetRegions = csvKeys(input.facetRegions).filter((k) => !GENERIC_JURISDICTIONS.has(k));
+  const profileModes = csvKeys(input.profileModes);
+  const profileRegions = defaultJurisdictionFilter(input.profileJurisdictions);
+  const modes = facetModes.length ? facetModes : profileModes.length ? profileModes : null;
+  const regions = facetRegions.length ? facetRegions : profileRegions;
+  return {
+    modes,
+    regions,
+    source: {
+      modes: facetModes.length ? "facet" : profileModes.length ? "profile" : null,
+      regions: facetRegions.length ? "facet" : profileRegions ? "profile" : null,
+    },
+  };
+}
+
+/** Pure: the visible text of a scope, e.g. "Ocean, EU". Modes first (title case), then regions (short codes
+ *  upper-cased, longer names title-cased). Empty string when the scope filters nothing. */
+export function scopeLabel(scope) {
+  const title = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+  const mode = (scope?.modes ?? []).map(title);
+  const region = (scope?.regions ?? []).map((k) => (k.length <= 4 ? k.toUpperCase() : title(k)));
+  return [...mode, ...region].join(", ");
+}
+
+/**
  * Pure query-spec builder for the item_forward_events read: NOT itself a supabase-js query (this module
  * has no client), a plain params object fetchUpcomingObligations applies to one. Kept separate and pure
  * so the *defaulting* logic (kind-filter default, from-date default) is unit-testable with zero I/O,
@@ -143,11 +203,12 @@ export function buildUpcomingEventsQuerySpec(opts = {}) {
  *
  * @param {Array<{id:string, intelligence_item_id:string, event_date:string, date_precision:string, event_kind:string, obligation_text:string, source_kind:string, confidence:string}>} events
  * @param {Map<string, {id:string, title:string, legacy_id:string|null, jurisdiction_iso:string[]|null}>} itemsById
- * @param {{ jurisdictionFilter?: string[]|null, limit?: number }} [opts]
- * @returns {Array<object>} events with `.item` attached, jurisdiction-filtered, capped at limit
+ * @param {{ jurisdictionFilter?: string[]|null, modeFilter?: string[]|null, limit?: number }} [opts]
+ * @returns {Array<object>} events with `.item` attached, jurisdiction- and mode-filtered, capped at limit
  */
 export function selectUpcoming(events, itemsById, opts = {}) {
   const jurisdictionFilter = opts.jurisdictionFilter ?? null;
+  const modeFilter = opts.modeFilter ?? null;
   const limit = Number.isFinite(opts.limit) && opts.limit > 0 ? Math.floor(opts.limit) : Infinity;
 
   const out = [];
@@ -155,6 +216,7 @@ export function selectUpcoming(events, itemsById, opts = {}) {
     const item = itemsById.get(ev.intelligence_item_id);
     if (!item) continue; // dropped: not in the verified/live join — never render a broken/leaked link
     if (!jurisdictionMatches(item.jurisdiction_iso, jurisdictionFilter)) continue;
+    if (!modeMatches(item.transport_modes, modeFilter)) continue;
     out.push({ ...ev, item });
     if (out.length >= limit) break;
   }
@@ -166,11 +228,17 @@ export function selectUpcoming(events, itemsById, opts = {}) {
  * see this module's header); passing a service-role client defeats the customer read gate this reader
  * exists to enforce correctly.
  *
+ * `readUpcoming` is the one read; `fetchUpcomingObligations` below is its unchanged array-returning form.
+ * With `countHidden: true` (a scoped read, lane MKT-1) the result also carries `hiddenByScope`: how many
+ * events in the SAME fetched upcoming window the mode and jurisdiction filters removed, counted against the
+ * same window with no scope at all. A read that is not scoped reports `hiddenByScope: null`.
+ *
  * @param {import("@supabase/supabase-js").SupabaseClient} supabase
- * @param {{ itemId?: string, kinds?: string[], from?: string, limit?: number, jurisdictionFilter?: string[]|null }} [opts]
- * @returns {Promise<Array<object>>} events with `.item` attached, soonest-first, capped at `limit`
+ * @param {{ itemId?: string, kinds?: string[], from?: string, limit?: number, jurisdictionFilter?: string[]|null,
+ *           modeFilter?: string[]|null, countHidden?: boolean }} [opts]
+ * @returns {Promise<{ events: Array<object>, hiddenByScope: number|null }>}
  */
-export async function fetchUpcomingObligations(supabase, opts = {}) {
+export async function readUpcoming(supabase, opts = {}) {
   const spec = buildUpcomingEventsQuerySpec(opts);
 
   let q = supabase
@@ -188,7 +256,7 @@ export async function fetchUpcomingObligations(supabase, opts = {}) {
   q = spec.itemId ? q.eq("intelligence_item_id", spec.itemId).limit(Math.max(spec.limit, 100)) : q.limit(spec.limit * 5 || 40);
 
   const { data: events, error } = await q;
-  if (error || !events || events.length === 0) return [];
+  if (error || !events || events.length === 0) return { events: [], hiddenByScope: opts.countHidden ? 0 : null };
 
   const itemIds = [...new Set(events.map((r) => r.intelligence_item_id))];
   const itemsById = new Map();
@@ -196,7 +264,7 @@ export async function fetchUpcomingObligations(supabase, opts = {}) {
   for (let i = 0; i < itemIds.length; i += 200) {
     const { data: itemRows } = await supabase
       .from("intelligence_items")
-      .select("id, title, legacy_id, jurisdiction_iso")
+      .select("id, title, legacy_id, jurisdiction_iso, transport_modes")
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // customer read gate — see this module's header
       // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
@@ -204,8 +272,15 @@ export async function fetchUpcomingObligations(supabase, opts = {}) {
     for (const row of itemRows ?? []) itemsById.set(row.id, row);
   }
 
-  return selectUpcoming(events, itemsById, {
+  const scoped = selectUpcoming(events, itemsById, {
     jurisdictionFilter: opts.jurisdictionFilter ?? null,
-    limit: spec.limit,
+    modeFilter: opts.modeFilter ?? null,
   });
+  const hiddenByScope = opts.countHidden ? selectUpcoming(events, itemsById, {}).length - scoped.length : null;
+  return { events: scoped.slice(0, spec.limit), hiddenByScope };
+}
+
+/** The array-returning read every pre-existing caller uses; behavior unchanged. */
+export async function fetchUpcomingObligations(supabase, opts = {}) {
+  return (await readUpcoming(supabase, opts)).events;
 }

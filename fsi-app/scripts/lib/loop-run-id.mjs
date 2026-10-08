@@ -48,6 +48,8 @@ export const FAMILY_BY_WORKFLOW_NAME = Object.freeze({
   "Population turn": "mint",
   "Corpus turn": "corpus-turn",
   "Downstream chain": "downstream-chain",
+  // Lane CHAIN-4 (2026-10-08): the producer of hop 14 (propagation-drain-to-question-answers).
+  "Propagation drain": "propagation",
   "Brief apply": "brief-apply",
   "Research walker": "research-walker",
   // Data producers are their own loop head: no sweep id exists upstream of them, so null is the honest

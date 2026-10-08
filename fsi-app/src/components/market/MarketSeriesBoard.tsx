@@ -54,9 +54,12 @@
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { producerFor } from "@/lib/market/series-registry.mjs";
-import { deriveSeriesFreshness, summarizeBoardFreshness } from "@/lib/market/series-freshness.mjs";
-import { FRESHNESS } from "@/lib/contracts/vocabularies.mjs";
+import { deriveSeriesFreshness } from "@/lib/market/series-freshness.mjs";
 import { lookupWatchMembership, type WatchMembershipEntry } from "@/lib/watchlist/membership";
+// Lane MKT-1 (2026-10-08): the freshness panel, the freshness badge and the methodology drawer moved
+// out of this file unchanged so /market mounts the same parts (see each file's header).
+import { SeriesFreshnessPanel, SeriesFreshnessBadge, boardFreshnessSummary } from "@/components/market/SeriesFreshness";
+import { ProvenanceDrawer, envelopeFromSeriesRow } from "@/components/market/SeriesProvenance";
 
 interface MarketSeriesBoardProps {
   /** Server render instant (src/lib/render-now.ts). */
@@ -91,22 +94,6 @@ const STATE_META: Record<MarketSeriesProducerGroup["state"], { label: string; co
   populated: { label: "Live", color: "var(--color-primary)" },
 };
 
-const FRESHNESS_TONE: Record<string, string> = {
-  current: "var(--color-success)",
-  ageing: "var(--color-warning)",
-  stale: "var(--brass)",
-  frozen: "var(--mi-action, #DC2626)",
-  unknown: "var(--color-text-muted)",
-};
-
-const FRESHNESS_PANEL_COPY: Record<string, string> = {
-  current: "Every populated series is within its registered cadence.",
-  ageing: "At least one series is running late against its registered cadence.",
-  stale: "At least one series is well past its registered cadence.",
-  frozen: "At least one series has gone quiet — its source has stopped publishing, not merely slipped.",
-  unknown: "No populated series carries a decided cadence — degradation cannot be judged.",
-};
-
 export function MarketSeriesBoard({ board, watchMembership, nowIso: nowIsoProp }: MarketSeriesBoardProps) {
   // Injected "now" for every freshness derivation below — the component's render instant, computed
   // once here rather than read inside the pure lib functions (envelope.mjs's own "time is injected,
@@ -118,14 +105,7 @@ export function MarketSeriesBoard({ board, watchMembership, nowIso: nowIsoProp }
   // clock-ok: fallback only. Every mount site passes `nowIso` from the server (src/app/market/page.tsx).
   const nowIso = (nowIsoProp ?? new Date().toISOString()).slice(0, 10);
 
-  const populatedFreshness = board.groups
-    .filter((g) => g.state === "populated")
-    .flatMap((g) =>
-      g.series.map((s) =>
-        deriveSeriesFreshness({ as_at_date: s.asAtDate, reference_period: s.referencePeriod }, producerFor(g.keyPrefix) ?? null, nowIso)
-      )
-    );
-  const panelFreshness = summarizeBoardFreshness(populatedFreshness);
+  const panelFreshness = boardFreshnessSummary(board, nowIso);
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 64px" }}>
@@ -173,45 +153,8 @@ export function MarketSeriesBoard({ board, watchMembership, nowIso: nowIsoProp }
         rendering blank.
       </p>
 
-      {/* Freshness panel summary (spec 02 §6 item 11). Worst state governs the headline; the count
-          strip breaks it down per state. Absent when nothing is populated yet — nothing to summarise. */}
-      {panelFreshness.total > 0 && (
-        <div
-          style={{
-            border: `1px solid ${FRESHNESS_TONE[panelFreshness.worst]}`,
-            borderRadius: 8,
-            background: "var(--color-bg-surface)",
-            padding: "10px 14px",
-            margin: "0 0 18px",
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 9.5,
-              fontWeight: 800,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              color: FRESHNESS_TONE[panelFreshness.worst],
-              whiteSpace: "nowrap",
-            }}
-          >
-            Freshness — {FRESHNESS[panelFreshness.worst]?.label ?? panelFreshness.worst}
-          </span>
-          <span style={{ fontSize: 11, color: "var(--color-text-secondary)", flex: "1 1 260px" }}>
-            {FRESHNESS_PANEL_COPY[panelFreshness.worst]}
-          </span>
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-            {(["current", "ageing", "stale", "frozen"] as const)
-              .filter((k) => panelFreshness.counts[k] > 0)
-              .map((k) => `${panelFreshness.counts[k]} ${FRESHNESS[k].label.toLowerCase()}`)
-              .join(" · ") || `${panelFreshness.counts.unknown} unknown`}
-          </span>
-        </div>
-      )}
+      {/* Freshness panel summary (spec 02 section 6 item 11): SeriesFreshnessPanel, moved unchanged. */}
+      <SeriesFreshnessPanel summary={panelFreshness} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
         {board.groups.map((group) => (
@@ -332,70 +275,12 @@ function ProducerCard({
                   })()}
                 </div>
 
-                {/* Freshness badge (spec 02 §6 item 11): derived, never asserted. Replaces any
-                    scheduler-implied "next release" claim with the SHIPPED freshness vocabulary. */}
-                <p style={{ fontSize: 9.5, margin: "4px 0 0", display: "flex", alignItems: "center", gap: 6 }}>
-                  <span
-                    aria-hidden
-                    style={{
-                      display: "inline-block",
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: FRESHNESS_TONE[freshness.code],
-                      flex: "0 0 auto",
-                    }}
-                  />
-                  <span style={{ color: FRESHNESS_TONE[freshness.code], fontWeight: 700 }}>{freshness.label}</span>
-                  <span style={{ color: "var(--color-text-muted)" }}>
-                    {freshness.asOfDate ? `· as of ${freshness.asOfDate}` : "· no as-of date on record"}
-                  </span>
-                </p>
+                {/* Freshness badge (spec 02 section 6 item 11): SeriesFreshnessBadge, moved unchanged. */}
+                <SeriesFreshnessBadge freshness={freshness} />
 
-                {/* Methodology / provenance drawer (spec 02 §6 item 10, §5): one click from this
-                    number. Real fields only — the registry's own derivation/origin_class/licence text
-                    plus the row's own envelope columns, never the removed "convergence scoring" claim
-                    (spec 02 §9). */}
-                <details style={{ marginTop: 4 }}>
-                  <summary
-                    style={{
-                      fontSize: 9.5,
-                      fontWeight: 700,
-                      letterSpacing: "0.04em",
-                      color: "var(--color-text-secondary)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Methodology &amp; provenance
-                  </summary>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      padding: "8px 10px",
-                      border: "1px solid var(--color-border-subtle)",
-                      borderRadius: 6,
-                      background: "var(--color-bg-base)",
-                      display: "grid",
-                      gridTemplateColumns: "auto 1fr",
-                      rowGap: 3,
-                      columnGap: 8,
-                      fontSize: 10,
-                    }}
-                  >
-                    <MethodRow k="Derivation" v={s.derivation} />
-                    <MethodRow k="Origin class" v={s.originClass} />
-                    <MethodRow k="Method version" v={s.methodVersion} />
-                    <MethodRow k="Observations (n)" v={s.nObservations != null ? String(s.nObservations) : null} />
-                    <MethodRow k="Source key" v={s.sourceKey} />
-                    <MethodRow
-                      k="Source ref"
-                      v={s.sourceRef}
-                      href={s.sourceRef && group.sourceUrl ? group.sourceUrl : undefined}
-                    />
-                    <MethodRow k="Licence" v={group.licenceStatus} />
-                    <MethodRow k="Attribution" v={`${group.sourceName}. ${group.licenceStatus}.`} />
-                  </div>
-                </details>
+                {/* Methodology / provenance drawer (spec 02 section 6 item 10, section 5): ProvenanceDrawer,
+                    moved unchanged. */}
+                <ProvenanceDrawer envelope={envelopeFromSeriesRow(s, group)} />
               </div>
             );
           })}
@@ -421,25 +306,5 @@ function ProducerCard({
         )}
       </p>
     </div>
-  );
-}
-
-/** One methodology-drawer row. Renders nothing (not an empty dash) when the field is absent — a drawer
- *  states what it knows, never pads out fields the row does not carry. */
-function MethodRow({ k, v, href }: { k: string; v: string | null | undefined; href?: string }) {
-  if (!v) return null;
-  return (
-    <>
-      <span style={{ color: "var(--color-text-muted)", fontWeight: 700, whiteSpace: "nowrap" }}>{k}</span>
-      <span style={{ color: "var(--color-text-secondary)", wordBreak: "break-word" }}>
-        {href ? (
-          <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
-            {v}
-          </a>
-        ) : (
-          v
-        )}
-      </span>
-    </>
   );
 }
