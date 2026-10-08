@@ -401,3 +401,9 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan's own explicit --loop-run-id w
     assert.equal(got, "operator-forced-loop-id");
   });
 });
+
+// ── lane CHAIN-4: Propagation drain is the producer of hop 14 (question-answers), so a loop-id read off it must
+// find the propagation family; an unmapped name reads as "no family" and the chained row records a null id.
+test("CHAIN-4: Propagation drain maps to the propagation family", () => {
+  assert.equal(FAMILY_BY_WORKFLOW_NAME["Propagation drain"], "propagation");
+});
