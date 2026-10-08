@@ -16,12 +16,12 @@ finding. Master tip at reconstruction: `e3b3a74`.
 
 > **DEAD-3 (2026-10-08, branch `coord/dead3-docs-2026-10-08`):** docs hygiene from the dead-code census (categories 9 and 12): 24 dead INDEX lines removed (their targets live under `docs/archive`), the 4 stale runbook script pointers the census named repointed (plus a fifth it missed, in runbook 38) and the other 14 references confirmed as tombstones, 3 orphans archived, 9 living docs given INDEX lines (a tenth, ADR-045, gained its line from GATE-0 while this lane was open), 3 index lines added to MAINTENANCE-RUNBOOK, stale retired-term references rewritten in 7 files (3 code files, comment lines only; 4 docs; three more code comments are owed because the files are harness governing files), the gate evaluation and the census landed under `docs/audits`. Owed items 41 to 46 below; items 14, 15 and 30 corrected in place. Nothing applied to live data.
 
-> **Resume from (2026-10-08, later, DOCS-4 docs pass, origin/master 76ef361c at the cut):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). This pointer adds to the DOCS-3 pointer below; that pointer's owed list and register status corrections stay live. Every PR merged since DOCS-3 landed (df792300, 2026-10-08T16:06:57Z) and every PR open at the cut is a row in the section "2026-10-08 later: PRs merged since the DOCS-3 landing, and open PRs" near the end of this file. [CONFIRMED: `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100` filtered to merge times after df792300's]
+> **Resume from (2026-10-08, later, DOCS-4 docs pass, origin/master ef87c5e6 at the cut):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). This pointer adds to the DOCS-3 pointer below; that pointer's owed list and register status corrections stay live. Every PR merged since DOCS-3 landed (df792300, 2026-10-08T16:06:57Z) and every PR open at the cut is a row in the section "2026-10-08 later: PRs merged since the DOCS-3 landing, and open PRs" near the end of this file. [CONFIRMED: `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100` filtered to merge times after df792300's]
 >
 > - Registers landed (PR 1044): the four ATTACKED registers AUD-AT-1, AUD-AT-3, AUD-AT-4 and AUD-AT-5 are in `docs/audits/`, each with a landing note naming its fixing lane. `docs/runbooks/audit-catalogue.md` enters AT3 (rows 1 and 2) and AT4 (rows 4 and 5) as full runs and AT1 (row 11) and AT5 (rows 7 and 8) as partial runs, following each register's own declaration: ATTACKED is now 4 filled, 6 partial only, 6 empty; all lenses 93 filled, 36 partial only, 38 empty, 13 not applicable (was 89, 34, 44, 13), recomputed with the command now printed in the catalogue; their owed legs are P-035 to P-041 in section 3e; incident ledger rows I-8 to I-11.
 > - Fixing lanes of those registers: GATE-7 (PR 1040) and GATE-8 (PR 1039) are merged; SEC-7 (PR 1037, migration 381 NOT APPLIED) and GATE-9 (PR 1042) are open.
-> - Merged since the DOCS-3 landing: DEAD-1b (1032), GATE-8 (1039), GATE-7 (1040), MIGTEST-1 (1035) and MIG-374 (1014; migration 374, NOT APPLIED per its title, no live query made by this pass). Four PRs merged after the DOCS-3 cut (430d7fce) and before its landing carried no row and are added: ALIAS-1 (1017, listed OPEN in the DOCS-3 table), the 373 and 377 apply (1038), DAUDIT-1 (1034) and TESTFIX-1 (1036).
-> - Open at this cut (11): DOCS-4 (1044), WIRE-1 (1045), RULE-MERGE-1 (1043), GATE-9 (1042), the ledger export branch coord/ledger-export-2026-10-08 (1041), SEC-7 (1037), S8-E6 (1031), S8-E1 (1030), S8-E5 (1029), OBL-2 (1025) and MIG-CI (1019).
+> - Merged since the DOCS-3 landing: DEAD-1b (1032), GATE-8 (1039), GATE-7 (1040), MIGTEST-1 (1035), MIG-374 (1014), RULE-MERGE-1 (1043), the ledger export (1041) and the migration 374 apply (1046, per its title; no live query made by this pass). Four PRs merged after the DOCS-3 cut (430d7fce) and before its landing carried no row and are added: ALIAS-1 (1017, listed OPEN in the DOCS-3 table), the 373 and 377 apply (1038), DAUDIT-1 (1034) and TESTFIX-1 (1036).
+> - Open at this cut (9): DOCS-4 (1044), WIRE-1 (1045), GATE-9 (1042), SEC-7 (1037), S8-E6 (1031), S8-E1 (1030), S8-E5 (1029), OBL-2 (1025) and MIG-CI (1019).
 > - Lane contract: `docs/dispatches/lane-common-contract.md` now states the migration rule of the 2026-10-04 wave in its wiring preflight list: a lane writes the SQL file only, NOT APPLIED, and never regenerates `docs/inventories/migrations.md` or touches `APPLIED-MAP.json` (MIGTEST-1, PR 1035; fixture INSERTs checked by `_lib/fixture-inserts.mjs`; migration-proof job from MIG-CI, PR 1019).
 
 > **Prior pointer (2026-10-08, DOCS-3 docs pass, origin/master 430d7fce at the cut; superseded by the later 2026-10-08 pointer above it, its owed list and register status corrections stay live):** Plan of record: [docs/plans/buildout-plan-2026-10-04.md](./plans/buildout-plan-2026-10-04.md). 49 PRs merged 2026-10-08 (UTC) and 8 more merged 2026-10-07 carried no board row; every one is a row in the section "2026-10-07 to 2026-10-08: the proof stack, gate repair, privilege closure, Stage 8 and the next wave" near the end of this file. The dated lists (every PR with its sha, migrations applied with ledger versions, the five misses, the GATE-6 guard timings, the operator-only items) are the `docs/ops/session-log.md` addendum of 2026-10-08. Open PRs at the cut: 1014, 1017, 1019, 1025, 1029, 1030, 1031.
@@ -2537,9 +2537,9 @@ PR 985 (PROOF-4) was closed unmerged on 2026-10-08 and superseded by PR 992 (tit
 
 ## 2026-10-08 later: PRs merged since the DOCS-3 landing, and open PRs (thread rows, DOCS-4 pass)
 
-Rows are generated from `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100 --json number,title,mergedAt,mergeCommit` and `gh pr list --state open` at origin/master 76ef361c; the lane column is the title's lane id, or the branch name when the title has none. A row whose title says NOT APPLIED has a migration file that is not in the ledger; the state column is the PR state, not a verdict that the work is live.
+Rows are generated from `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100 --json number,title,mergedAt,mergeCommit` and `gh pr list --state open` at origin/master ef87c5e6; the lane column is the title's lane id, or the branch name when the title has none. A row whose title says NOT APPLIED has a migration file that is not in the ledger; the state column is the PR state, not a verdict that the work is live.
 
-Merged after the DOCS-3 landing (df792300, merged 2026-10-08T16:06:57Z), 5 PRs:
+Merged after the DOCS-3 landing (df792300, merged 2026-10-08T16:06:57Z), 8 PRs:
 
 | Lane | State | Evidence / next |
 |---|---|---|
@@ -2548,6 +2548,9 @@ Merged after the DOCS-3 landing (df792300, merged 2026-10-08T16:06:57Z), 5 PRs:
 | GATE-7 | CLOSED, merged PR 1040 (0a026a85) | the rules and hooks catch every honest form the attack register found them blind to |
 | MIGTEST-1 | CLOSED, merged PR 1035 (4ee8bbee) | migration tests derive applied-ness from the record; never-applied is derived, not committed |
 | MIG-374 | CLOSED, merged PR 1014 (76ef361c) | GIN index on cited_item_ids and signposts.lifecycle_applied_at (migration 374, NOT APPLIED); was OPEN in the DOCS-3 table |
+| RULE-MERGE-1 | CLOSED, merged PR 1043 (d97f24e3) | a proposed merge commit is charged only for lines in neither parent |
+| coord/ledger-export-2026-10-08 | CLOSED, merged PR 1041 (1397fe51) | Ledger export: regenerate harness-ledger-export.json (201 runs, 22 families) |
+| Migration 374 applied | CLOSED, merged PR 1046 (ef87c5e6) | header flipped, ledger export 368 rows, map and inventories regenerated |
 
 Merged after the DOCS-3 cut (430d7fce) and before its landing, carrying no row (5 PRs):
 
@@ -2559,7 +2562,7 @@ Merged after the DOCS-3 cut (430d7fce) and before its landing, carrying no row (
 | TESTFIX-1 | CLOSED, merged PR 1036 (af038241) | no test writes into the working tree, and the suite proves it |
 | DOCS-3 | CLOSED, merged PR 1033 (df792300) | the vault records 2026-10-08: six registers landed, catalogue matrix, proof-stack rulings, board, index |
 
-Open at the cut (11 PRs):
+Open at the cut (9 PRs):
 
 | Lane | State | Evidence / next |
 |---|---|---|
@@ -2569,9 +2572,7 @@ Open at the cut (11 PRs):
 | S8-E1 | OPEN, PR 1030 | registered producer for oem_tech_roadmaps from the EEA HDV CO2 extract (migration 380, NOT APPLIED) |
 | S8-E6 | OPEN, PR 1031 | UK Power Networks capacity heatmap producer for grid_connection_queues (migration 379, NOT APPLIED) |
 | SEC-7 | OPEN, PR 1037 | write policies name their role (migration 381, NOT APPLIED); the fix for the AUD-AT-1 residual |
-| coord/ledger-export-2026-10-08 | OPEN, PR 1041 | Ledger export: regenerate harness-ledger-export.json (201 runs, 22 families) |
 | GATE-9 | OPEN, PR 1042 | CI workflow and chain hops catch the honest forms AUD-AT-5 found them blind to |
-| RULE-MERGE-1 | OPEN, PR 1043 | a proposed merge commit is charged only for lines in neither parent |
 | DOCS-4 | OPEN, PR 1044 | land four attack audit registers (this pass) |
 | WIRE-1 | OPEN, PR 1045 | the gate's user-level wiring is owned, installed and verified by the repo |
 

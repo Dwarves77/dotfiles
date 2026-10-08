@@ -1,6 +1,6 @@
 # Audit catalogue: the ten lenses, the eighteen subsystems, and the audit-of-audits matrix
 
-Living runbook. Last matrix refresh: 2026-10-08, on origin/master 76ef361c (docs pass DOCS-4; the DOCS-3 refresh before it was cut at 204d919f). Owner: the coordinator. Built by the coordinator docs lane AUDIT-CAT; the fact lanes that fill the matrix follow section 5.
+Living runbook. Last matrix refresh: 2026-10-08, on origin/master ef87c5e6 (docs pass DOCS-4; the DOCS-3 refresh before it was cut at 204d919f). Owner: the coordinator. Built by the coordinator docs lane AUDIT-CAT; the fact lanes that fill the matrix follow section 5.
 
 Why this exists. Operator, 2026-10-08, verbatim: "We ran audits prior to this but they never caught all of these issues ... I worry about ones I haven't considered because I keep finding them not you." Between 2026-05-05 and 2026-10-08 this repo accumulated 115 top-level files and 4 folders under `docs/audits/`. Most of them ask one question (is it present, is it wired, is it dead) of one slice of the code. This runbook turns "what have we audited, and how" into a table, so the question "what has nobody asked yet" has an answer you can read off it.
 

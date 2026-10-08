@@ -24586,14 +24586,17 @@ Lists only. Written by the DOCS-3 docs pass at origin/master 430d7fce from: `gh 
 
 ## 2026-10-08 (later), coordinator: the DOCS-4 docs pass
 
-Lists only. Written by the DOCS-4 docs pass (lane docs4-pass, branch lane/docs4-pass, PR 1044) at origin/master 76ef361c from `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100`, `gh pr list --state open`, and `git log`. Nothing is typed from memory.
+Lists only. Written by the DOCS-4 docs pass (lane docs4-pass, branch lane/docs4-pass, PR 1044) at origin/master ef87c5e6 from `gh pr list --state merged --search "merged:>=2026-10-08" --limit 100`, `gh pr list --state open`, and `git log`. Nothing is typed from memory.
 
-**Merged after the DOCS-3 landing (df792300, 2026-10-08T16:06:57Z), 5 PRs.**
+**Merged after the DOCS-3 landing (df792300, 2026-10-08T16:06:57Z), 8 PRs.**
 - PR 1032, DEAD-1b, merged 2026-10-08T16:07:51Z, 492dfdb4
 - PR 1039, GATE-8, merged 2026-10-08T21:11:37Z, 62268ab9
 - PR 1040, GATE-7, merged 2026-10-08T22:26:52Z, 0a026a85
 - PR 1035, MIGTEST-1, merged 2026-10-08T22:37:12Z, 4ee8bbee
 - PR 1014, MIG-374, merged 2026-10-08T22:50:10Z, 76ef361c (migration 374, NOT APPLIED per its title)
+- PR 1043, RULE-MERGE-1, merged 2026-10-08T23:02:25Z, d97f24e3
+- PR 1041, ledger export, merged 2026-10-08T23:03:14Z, 1397fe51
+- PR 1046, migration 374 applied, merged 2026-10-08T23:14:45Z, ef87c5e6
 
 **Merged after the DOCS-3 cut (430d7fce) and before its landing, with no board row until this pass, 5 PRs.**
 - PR 1017, ALIAS-1, 2026-10-08T14:41:11Z, 48dfb0c3 (listed OPEN in the DOCS-3 board table)
@@ -24602,8 +24605,8 @@ Lists only. Written by the DOCS-4 docs pass (lane docs4-pass, branch lane/docs4-
 - PR 1036, TESTFIX-1, 2026-10-08T16:06:02Z, af038241
 - PR 1033, DOCS-3, 2026-10-08T16:06:57Z, df792300
 
-**Open at the cut (11).**
-- PR 1019 MIG-CI, 1025 OBL-2, 1029 S8-E5, 1030 S8-E1, 1031 S8-E6, 1037 SEC-7, 1041 ledger export (branch coord/ledger-export-2026-10-08), 1042 GATE-9, 1043 RULE-MERGE-1, 1044 DOCS-4, 1045 WIRE-1
+**Open at the cut (9).**
+- PR 1019 MIG-CI, 1025 OBL-2, 1029 S8-E5, 1030 S8-E1, 1031 S8-E6, 1037 SEC-7, 1042 GATE-9, 1044 DOCS-4, 1045 WIRE-1
 
 **Docs landed by DOCS-4 (PR 1044).**
 - `docs/audits/`: aud-at1-rls-grants-attacked-2026-10-08 (fixing lane SEC-7, PR 1037, open), aud-at3-gates-attacked-2026-10-08 (GATE-7, PR 1040, merged), aud-at4-gates-attacked-2026-10-08 (GATE-8, PR 1039, merged), aud-at5-gates-attacked-2026-10-08 (GATE-9, PR 1042, open). `scripts/verify/audit-finding-status.mjs` reported 9 unlabeled finding lines across the four (AT1 1, AT3 5, AT4 2, AT5 1) and 0 after each received the token its own section carries; 4 table rows in AT5 carry the `glyph:verbatim` marker.
