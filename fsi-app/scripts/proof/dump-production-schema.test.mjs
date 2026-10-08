@@ -64,3 +64,16 @@ test("dumpProductionSchema: no credentials, no connection, CLI failure and a dat
   const dataDump = await dumpProductionSchema({ ...base, env: ENV, read: () => GOOD_DUMP + "COPY public.sources (id) FROM stdin;\n" });
   assert.match(dataDump.message, /not schema only/);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: dump-production-schema.mjs exits 2 without --out and 2 when it runs in the local-stack env (CHAIN_PROOF_LOCAL=1)", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./dump-production-schema.mjs", import.meta.url));
+  const env = { ...withoutCredentials(), CHAIN_PROOF_LOCAL: "" };
+  assert.equal(spawnSync(process.execPath, [script], { encoding: "utf8", env }).status, 2);
+  const local = spawnSync(process.execPath, [script, "--out", "x.sql"], { encoding: "utf8", env: { ...env, CHAIN_PROOF_LOCAL: "1" } });
+  assert.equal(local.status, 2, local.stdout + local.stderr);
+  assert.match(local.stderr, /CHAIN_PROOF_LOCAL is 1/);
+});

@@ -33,6 +33,7 @@ import {
   newestLedgerRunAt,
   familyCurrentInLedger,
   HARNESS_LEDGER_EXPORT_PATH,
+  noopContractErrors,
 } from "./run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { mkdirSync } from "node:fs";
@@ -1095,4 +1096,72 @@ test("CLI integration: --list against the real retrofitted screen family reads a
   const listing = formatRunListing(runs);
   assert.match(listing, /screen-run-001.*ambiguous=3312/);
   assert.match(listing, /screen-run-003.*ambiguous=256/);
+});
+
+// ── lane GATE-9 (2026-10-08): the schema ties config.noop to the write metrics (AUD-AT-5 G-1, G-2, G-3, G-6) ──
+
+test("G-6: validateRunArtifact REJECTS config.noop = true alongside metrics.minted = 5 (a no-op that wrote)", () => {
+  const errors = validateRunArtifact(
+    makeValidArtifact({ config: { batch_size: 6, github_run_id: null, governing_hash: "sha256:0123456789abcdef", noop: true }, metrics: { minted: 5 } }),
+  );
+  assert.equal(errors.length, 1, JSON.stringify(errors));
+  assert.match(errors[0], /config\.noop is true but metrics\.minted is 5/);
+});
+
+test("G-6: ANY write metric above zero contradicts a no-op, not only the ones the gate reads", () => {
+  for (const metrics of [{ noop: 1, tickets_selected: 2 }, { promoted: 1 }, { rows_written: 9 }, { noop: 1, applied: 3 }]) {
+    const errors = validateRunArtifact(makeValidArtifact({ config: { github_run_id: null, governing_hash: "sha256:0123456789abcdef", noop: true }, metrics }));
+    assert.equal(errors.length, 1, JSON.stringify(metrics));
+  }
+});
+
+test("G-6 control: a real no-op (the buildNoopArtifact shape, metrics.noop = 1) and a zero-metric no-op validate clean", () => {
+  const cfg = { github_run_id: null, governing_hash: "sha256:0123456789abcdef", noop: true, noop_reason: "nothing to chain" };
+  assert.deepEqual(validateRunArtifact(makeValidArtifact({ config: cfg, metrics: { noop: 1 } })), []);
+  assert.deepEqual(validateRunArtifact(makeValidArtifact({ config: cfg, metrics: { minted: 0, promoted: 0 } })), []);
+  assert.deepEqual(validateRunArtifact(makeValidArtifact({ config: { ...cfg, noop: false }, metrics: { minted: 5 } })), [], "noop:false with writes is an ordinary run");
+});
+
+test("G-1: config.noop and config.skip must be JSON booleans when present", () => {
+  for (const flag of ["noop", "skip"]) {
+    for (const value of ["true", 1, "yes", null, [true]]) {
+      const errors = validateRunArtifact(makeValidArtifact({ config: { github_run_id: null, governing_hash: "sha256:0123456789abcdef", [flag]: value } }));
+      assert.equal(errors.length, 1, `${flag}=${JSON.stringify(value)}`);
+      assert.match(errors[0], new RegExp(`config\\.${flag}, when present, must be a JSON boolean`));
+    }
+  }
+});
+
+test("G-3: the metrics the chain gate reads (promoted, minted, tickets_selected) must be finite numbers when present", () => {
+  for (const key of ["promoted", "minted", "tickets_selected"]) {
+    for (const value of [true, [3], "4", null, Number.NaN, Infinity]) {
+      const errors = validateRunArtifact(makeValidArtifact({ metrics: { [key]: value } }));
+      assert.equal(errors.length, 1, `${key}=${String(value)}`);
+      assert.match(errors[0], new RegExp(`metrics\\.${key}, when present, must be a finite number`));
+    }
+  }
+  // other metrics keep their freedom (strings, arrays, objects, null are all in real committed artifacts)
+  assert.deepEqual(validateRunArtifact(makeValidArtifact({ metrics: { applied_item_ids: ["a"], file_valid: true, unscoped_flywheel: null, note: "x", minted: 2 } })), []);
+});
+
+test("G-6: noopContractErrors is pure and tolerant of missing or malformed config and metrics", () => {
+  assert.deepEqual(noopContractErrors(undefined, undefined), []);
+  assert.deepEqual(noopContractErrors(null, "x"), []);
+  assert.deepEqual(noopContractErrors({}, {}), []);
+  assert.equal(noopContractErrors({ noop: true }, { minted: 1 }).length, 1);
+});
+
+test("G-6: every committed harness-run artifact already satisfies the no-op contract (the schema tightening breaks no history)", () => {
+  const root = fileURLToPath(new URL("../harness-runs", import.meta.url));
+  let checked = 0;
+  for (const family of ALLOWED_FAMILIES) {
+    const dir = join(root, family);
+    if (!existsSync(dir)) continue;
+    const { runs } = readRunHistory(dir);
+    for (const run of runs) {
+      assert.deepEqual(noopContractErrors(run.config, run.metrics), [], run.run_id);
+      checked += 1;
+    }
+  }
+  assert.ok(checked > 0, "the committed history was read");
 });

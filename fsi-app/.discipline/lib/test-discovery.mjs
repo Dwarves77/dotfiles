@@ -107,16 +107,96 @@ export function discoverTests({ repoRoot = DEFAULT_REPO_ROOT } = {}) {
   return discoverFromLsFilesOutput(raw);
 }
 
+// ---- UNRUN TEST FILES (lane GATE-9, 2026-10-08, AUD-AT-5 TD-1 to TD-4, FC-3, FC-5) -----------------------------
+// Discovery above answers "which files does the suite run?". It cannot answer "which test files does NOTHING
+// run?", and the register showed that is where tests hide: a .test.ts, a .spec.mjs, a .test.cjs, a test at the
+// repo-root scripts/ or under docs/, an npmtest outside fsi-app, a golden in a subdirectory or spelled
+// .goldens. or golden-x. Each was tracked, run by no suite, and green. This is the one place that names what a
+// test file IS (TEST_FILE_RE) and checks that every such tracked file is executed by a runner, or is listed in
+// NOT_A_TEST_ALLOWLIST with a reason. "Executed" is asked of execution-wiring.mjs (the meta-gate's own registry
+// of every execution surface: the suite, the npmtest glob, run-goldens, the data-audit lane, fitness sentinels,
+// the rendering guard, workflow-named paths) and of run-goldens.mjs's own name rule, so there is no second
+// list of runners here.
+
+/** Extensions a runner loads as a test or golden. */
+const RUNNABLE = '(?:[cm]?[jt]sx?|sh)';
+
+/** A test or golden by its NAME, in any directory and at any depth: `*.test.*`, `*.spec.*`, `*.npmtest.*`,
+ *  `*.selftest.*`, `*.golden(s).*`, `*-golden.*`, `golden-*.*`. docs-only-range.mjs imports it too: a test
+ *  under docs/ is code. */
+export const TEST_FILE_RE = new RegExp(
+  String.raw`\.(?:test|spec|npmtest|selftest|goldens?)\.${RUNNABLE}$|-golden\.${RUNNABLE}$|(?:^|/)golden-[^/]+\.${RUNNABLE}$`,
+);
+
+/** Tracked files whose name looks like a test but that no runner executes and that are not tests, each with the
+ *  reason. Empty today: every tracked test-shaped file is run. An entry that is no longer test-shaped, no longer
+ *  tracked, or already run is itself reported (a stale allowlist entry hides the next real miss). */
+export const NOT_A_TEST_ALLOWLIST = Object.freeze({});
+
+/**
+ * Pure core.
+ * @param {string[]} tracked repo-relative POSIX paths
+ * @param {{isRun: (p: string) => boolean, notATest?: Record<string, string>}} deps
+ * @returns {{unrun: string[], badAllowlist: string[]}} unrun: test-shaped files nothing executes and nothing
+ * excuses; badAllowlist: allowlist entries with no reason, or that are not tracked, not test-shaped, or run.
+ */
+export function findUnrunTestFiles(tracked, { isRun, notATest = NOT_A_TEST_ALLOWLIST }) {
+  const paths = new Set(tracked.map((p) => String(p).replace(/\\/g, '/')));
+  const unrun = [];
+  for (const p of [...paths].sort()) {
+    if (!TEST_FILE_RE.test(p)) continue;
+    if (Object.hasOwn(notATest, p)) continue;
+    if (!isRun(p)) unrun.push(p);
+  }
+  const badAllowlist = [];
+  for (const [p, reason] of Object.entries(notATest)) {
+    if (typeof reason !== 'string' || reason.trim().length < 12) badAllowlist.push(`${p}: needs a real reason`);
+    else if (!paths.has(p)) badAllowlist.push(`${p}: not tracked (stale entry)`);
+    else if (!TEST_FILE_RE.test(p)) badAllowlist.push(`${p}: not test-shaped (stale entry)`);
+    else if (isRun(p)) badAllowlist.push(`${p}: a runner executes it (stale entry)`);
+  }
+  return { unrun, badAllowlist };
+}
+
+/** The `--check-unrun` body with its deps injected, so the exit contract is testable. @returns {number} */
+export function checkUnrun({ tracked, isRun, notATest = NOT_A_TEST_ALLOWLIST, out = console.log, err = console.error }) {
+  const { unrun, badAllowlist } = findUnrunTestFiles(tracked, { isRun, notATest });
+  for (const p of unrun) err(`test-discovery: ${p} looks like a test or golden and NO runner executes it. Rename it into a covered form, wire a runner, or list it in NOT_A_TEST_ALLOWLIST with a reason.`);
+  for (const m of badAllowlist) err(`test-discovery: NOT_A_TEST_ALLOWLIST ${m}`);
+  if (unrun.length === 0 && badAllowlist.length === 0) {
+    out(`test-discovery: every tracked test-shaped file is executed by a runner (${new Set(tracked.filter((p) => TEST_FILE_RE.test(p))).size} checked)`);
+    return 0;
+  }
+  return 1;
+}
+
 // ---- CLI -------------------------------------------------------------------------------------------
-// `node test-discovery.mjs`          -> one discovered path per line (for humans / a plain count).
-// `node test-discovery.mjs --print0` -> NUL-separated (for `xargs -0`, so a path with a space cannot
-//                                       split across two arguments).
+// `node test-discovery.mjs`              -> one discovered path per line (for humans / a plain count).
+// `node test-discovery.mjs --print0`     -> NUL-separated (for `xargs -0`, so a path with a space cannot
+//                                           split across two arguments).
+// `node test-discovery.mjs --check-unrun` -> exit 1 when a tracked test-shaped file is run by nothing.
 function isMainModule() {
   const invoked = process.argv[1] ? resolve(process.argv[1]) : null;
   return invoked === resolve(fileURLToPath(import.meta.url));
 }
 
-if (isMainModule()) {
+if (isMainModule() && process.argv.includes('--check-unrun')) {
+  const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: DEFAULT_REPO_ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
+    .split('\0')
+    .filter(Boolean);
+  // Dynamic imports, NOT top-level await: execution-wiring.mjs imports THIS module, so awaiting it while this
+  // module is still evaluating would deadlock; the .then runs after evaluation has finished.
+  Promise.all([import('../governance/execution-wiring.mjs'), import('../../scripts/verify/run-goldens.mjs')]).then(
+    ([{ isExecutionWired }, { isGoldenFile }]) => {
+      const isRun = (p) => isExecutionWired(p) || (p.startsWith('fsi-app/scripts/verify/') && isGoldenFile(p.split('/').pop()));
+      process.exitCode = checkUnrun({ tracked, isRun });
+    },
+    (e) => {
+      console.error(`test-discovery: --check-unrun could not load the execution registry: ${e.stack || e.message}`);
+      process.exitCode = 2;
+    },
+  );
+} else if (isMainModule()) {
   const files = discoverTests();
   if (files.length === 0) {
     console.error('test-discovery: discovered ZERO test files (standing red; see this file\'s header)');

@@ -258,3 +258,14 @@ test("cliMain: the output directory falls back to CP_OUT_DIR (how the workflow s
   });
   assert.ok(Object.keys(written).some((p) => p.replace(/\\/g, "/") === "/runner/chain-proof-out/attacks-report.json"));
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: run-attacks.mjs exits 2 when the local stack environment is not set (it never runs an attack)", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./run-attacks.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...withoutCredentials(), SUPABASE_DB_URL: "", PROOF_DB_URL: "", NEXT_PUBLIC_SUPABASE_URL: "", CHAIN_PROOF_LOCAL: "" } });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /SUPABASE_DB_URL is missing|NEXT_PUBLIC_SUPABASE_URL is missing/);
+});

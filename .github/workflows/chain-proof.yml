@@ -41,6 +41,11 @@ name: Chain proof
 # The Supabase CLI starts from a scratch directory that holds only supabase/config.toml, so it boots an EMPTY
 # database and never applies the migration tree; scripts/proof/replay-migrations.mjs does, and stops on its first error.
 #
+# THE HONEST FORMS (lane GATE-9, 2026-10-08, AUD-AT-5 CP-1 to CP-7). Every run: step starts with `set -euo pipefail`, the
+# one piped step included. scripts/proof/chain-proof-workflow.test.mjs refuses secrets[...] bracket syntax and
+# toJSON(secrets), any job-level permissions or `if`, a repository_dispatch trigger, an upload path other than the
+# named out dir, and a preflight line that is only a comment.
+#
 # LATER LANES. The subset export and load (PROOF-2), the chain steps (PROOF-3) and the attack suite (PROOF-4) are
 # scripts under scripts/proof/. run-lane-step.mjs runs each one, or records a named skip while its lane has not landed.
 
@@ -72,6 +77,7 @@ jobs:
 
       - name: Note the start time and the proof's scratch paths
         run: |
+          set -euo pipefail
           {
             echo "CP_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "CP_OUT_DIR=$RUNNER_TEMP/chain-proof-out"
@@ -88,6 +94,7 @@ jobs:
 
       - name: Ensure psql is available
         run: |
+          set -euo pipefail
           if ! command -v psql >/dev/null 2>&1; then
             sudo apt-get update -y
             sudo apt-get install -y postgresql-client
@@ -102,6 +109,7 @@ jobs:
       - name: Start the local stack (empty database, storage and auth only)
         id: stack
         run: |
+          set -euo pipefail
           mkdir -p "$CHAIN_PROOF_STACK/supabase"
           cp fsi-app/supabase/config.toml "$CHAIN_PROOF_STACK/supabase/config.toml"
           cd "$CHAIN_PROOF_STACK"
@@ -109,11 +117,13 @@ jobs:
 
       - name: Write the local env file (loopback hosts only, keys masked)
         run: |
+          set -euo pipefail
           (cd "$CHAIN_PROOF_STACK" && supabase status -o env) | node fsi-app/scripts/proof/write-local-env.mjs --out "$CHAIN_PROOF_ENV"
 
       - name: Preflight (local stack environment only)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
 
@@ -123,6 +133,7 @@ jobs:
       - name: Create the empty oracle_check database (home of the production schema dump)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/create-oracle-db.mjs --env-file "$CHAIN_PROOF_ENV"
@@ -133,6 +144,7 @@ jobs:
       - name: Replay the migration files onto the stack (builds the proof schema; stops on the first error)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/replay-migrations.mjs --report "$CP_OUT_DIR/replay-report.json"
@@ -146,12 +158,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
+          set -euo pipefail
           node scripts/proof/run-lane-step.mjs --name dump-production-schema --lane PROOF-1 --script scripts/proof/dump-production-schema.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SCHEMA_DUMP"
           node scripts/proof/run-lane-step.mjs --name export-subset --lane PROOF-2 --script scripts/proof/export-subset.mjs --out-dir "$CP_OUT_DIR" -- --out "$CHAIN_PROOF_SUBSET" --pin-ids-from scripts/turns/record-briefs/batches/record-briefs-009b-tool.json
 
       - name: Apply the production schema dump to oracle_check (the oracle)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/apply-schema-dump.mjs --db-url "$PROOF_ORACLE_DB_URL" --in "$CHAIN_PROOF_SCHEMA_DUMP" --report "$CP_OUT_DIR/schema-apply-report.json"
@@ -160,6 +174,7 @@ jobs:
       - name: Schema oracle gate (the replayed schema must equal the production dump)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/schema-diff.mjs --replayed "$PROOF_DB_URL" --oracle "$PROOF_ORACLE_DB_URL" --out "$CP_OUT_DIR/replay-schema-diff.json"
@@ -167,6 +182,7 @@ jobs:
       - name: Load the subset into the local database
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/run-lane-step.mjs --name load-subset --lane PROOF-2 --script scripts/proof/load-subset.mjs --out-dir "$CP_OUT_DIR" -- --in "$CHAIN_PROOF_SUBSET"
@@ -174,6 +190,7 @@ jobs:
       - name: Run the chain steps in hop order (apply mode, local database)
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/run-lane-step.mjs --name chain --lane PROOF-3 --script scripts/proof/steps/run-chain-steps.mjs --out-dir "$CP_OUT_DIR"
@@ -181,6 +198,7 @@ jobs:
       - name: Run the attack suite on the real schema
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/run-lane-step.mjs --name attacks --lane PROOF-4 --script scripts/proof/attacks/run-attacks.mjs --out-dir "$CP_OUT_DIR"
@@ -189,6 +207,7 @@ jobs:
         if: always() && steps.stack.outcome == 'success'
         working-directory: fsi-app
         run: |
+          set -euo pipefail
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/export-local-harness-runs.mjs --out "$CP_OUT_DIR/harness-runs-local.json"
@@ -198,7 +217,9 @@ jobs:
       - name: Record this run's artifact (chain-proof family)
         if: always()
         working-directory: fsi-app
-        run: node scripts/proof/emit-chain-proof-artifact.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -euo pipefail
+          node scripts/proof/emit-chain-proof-artifact.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the run artifact (counts and hashed ids only)
         if: always()
@@ -212,5 +233,6 @@ jobs:
       - name: Stop the local stack and delete the dump and the subset
         if: always()
         run: |
+          set -euo pipefail
           if [ -d "$CHAIN_PROOF_STACK" ]; then (cd "$CHAIN_PROOF_STACK" && supabase stop --no-backup) || true; fi
           rm -rf "$RUNNER_TEMP/schema-dump" "$CHAIN_PROOF_SUBSET" "$CHAIN_PROOF_ENV"

@@ -196,3 +196,21 @@ test('running the real scan against this repo does not throw and returns arrays'
   for (const o of orphans) assert.match(o.file, /^fsi-app\/(?:src|scripts|\.discipline)\//);
   for (const d of dead) assert.match(d.file, /^fsi-app\/(?:src|scripts|\.discipline)\//);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS, not only its output ──────
+test("GATE-9 exit status: orphan-modules.mjs is a report that never fails by design: exit 0, and no exit call or exitCode in its source", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { readFileSync, existsSync, rmSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../../scripts/lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./orphan-modules.mjs", import.meta.url));
+  const reportPath = fileURLToPath(new URL("./orphan-modules-report.json", import.meta.url));
+  const existed = existsSync(reportPath);
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: withoutCredentials() });
+  if (!existed && existsSync(reportPath)) rmSync(reportPath, { force: true });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /scan complete \(read-only, never fails the build\)/);
+  const src = readFileSync(script, "utf8");
+  assert.deepEqual([...src.matchAll(/process\.exit\(([^)]*)\)/g)].map((m) => m[1]), [], "a report that quietly gains an exit call has become a gate or a no-op");
+  assert.doesNotMatch(src, /process\.exitCode\s*=/);
+});
