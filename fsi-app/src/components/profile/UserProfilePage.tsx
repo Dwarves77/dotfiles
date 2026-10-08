@@ -91,6 +91,10 @@ interface ProfileRow {
   created_at: string | null;
 }
 
+// What the browser may write to profiles. verifier_status and verifier_since are system-written (migration 367):
+// leaving them out of the patch type makes a direct write a compile error; the request goes through the RPC.
+type ProfilePatch = Partial<Omit<ProfileRow, "id" | "verifier_status" | "verifier_since" | "created_at">>;
+
 const EMPTY_PROFILE: ProfileRow = {
   id: "",
   full_name: null,
@@ -223,7 +227,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
     };
   }, [orgId, supabase]);
 
-  const persist = async (patch: Partial<ProfileRow>) => {
+  const persist = async (patch: ProfilePatch) => {
     setError(null);
     setProfile((p) => ({ ...p, ...patch }));
     const { error } = await supabase
@@ -235,6 +239,20 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
       setError(error.message);
       return false;
     }
+    return true;
+  };
+
+  // Migration 367 (SEC-2): verifier_status is system-written; a user cannot UPDATE it. Asking to be verified is the
+  // SECURITY DEFINER RPC request_verification(), which sets 'pending' for the caller only (none or revoked; a
+  // no-op from pending; refused from active). Local state follows the status the RPC returns, never an optimistic guess.
+  const requestVerification = async () => {
+    setError(null);
+    const { data, error } = await supabase.rpc("request_verification");
+    if (error) {
+      setError(error.message);
+      return false;
+    }
+    if (data === "pending") setProfile((p) => ({ ...p, verifier_status: "pending" }));
     return true;
   };
 
@@ -385,7 +403,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
           )}
           {tab === "sectors" && <SectorProfileTab sectorIds={workspaceSectors} />}
           {tab === "jurisdictions" && <JurisdictionsTab jurisIds={profile.jurisdiction_overrides ?? []} />}
-          {tab === "verifier" && <VerifierTab status={profile.verifier_status ?? "none"} onApply={() => persist({ verifier_status: "pending" })} />}
+          {tab === "verifier" && <VerifierTab status={profile.verifier_status ?? "none"} onApply={requestVerification} />}
           {tab === "activity" && <ActivityTab />}
         </div>
 
@@ -447,7 +465,7 @@ function PersonalTab({
 }: {
   profile: ProfileRow;
   userEmail: string;
-  onSave: (patch: Partial<ProfileRow>) => Promise<boolean>;
+  onSave: (patch: ProfilePatch) => Promise<boolean>;
 }) {
   const [fullName, setFullName] = useState(profile.full_name ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");

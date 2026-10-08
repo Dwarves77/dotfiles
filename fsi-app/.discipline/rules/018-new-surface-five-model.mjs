@@ -23,6 +23,7 @@ const ALLOWED_SEGMENTS = new Set([
   'settings', // pre-existing account plumbing (PR #15, b02a415b), same class as profile, not a customer content surface
   'watchlist', // operator ruling 2026-09-07: authorized surface (Brief group, in the nav, predates the rule, one of the five list surfaces in the 390 spec)
   'privacy', // operator ruling 2026-09-07: plumbing (LinkedIn API submission page)
+  'dashboard', // coordinator ruling 2026-10-07 (lane S8-D): routes under /dashboard are workspace views under the Dashboard (for example /dashboard/portfolio), never customer surfaces; PI-1 is unchanged, a new top-level segment still fails
 ]);
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }

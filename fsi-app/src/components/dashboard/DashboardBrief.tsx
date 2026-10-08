@@ -21,6 +21,7 @@ import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { RailCard } from "@/components/ui/RailCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
@@ -406,6 +407,14 @@ export function DashboardBrief({
             </Suspense>
           </div>
         </SectionCard>
+
+        {/* Lane S8-D (2026-10-07, coordinator ruling): the entry to the workspace's portfolios. A workspace view
+            under the dashboard, never a sixth nav entry (PI-1), so the way in is this rail link. */}
+        <RailCard title="Portfolios" titleHref="/dashboard/portfolio" dataAudit="portfolio-rail-card">
+          <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0, lineHeight: 1.5 }}>
+            Items, corridors and entities your workspace holds together.
+          </p>
+        </RailCard>
 
         <SectionCard dataAudit="dashboard-legend-card">
           <div style={{ padding: "14px 16px" }}>

@@ -115,6 +115,11 @@ export const ROW_COMPONENTS = Object.freeze({
   // detail page by DetailShell's item collaboration slot; item-collab-smoke.mjs mounts both at 375, 768, 1024 and 1280.
   'src/components/detail/ItemNotesBlock.tsx': 'item-collab-smoke.mjs, the notes list on all four detail pages (lane S8-A)',
   'src/components/detail/ItemAssignBlock.tsx': 'item-collab-smoke.mjs, the assignee chips and member picker on all four detail pages (lane S8-A)',
+  // lane S8-D, 2026-10-07: the portfolio pages under the dashboard (spec 00 section 5, migration 362). Both views are
+  // built from shared row parts only (RowTable and ListRow); portfolio-smoke.mjs mounts the real components at 375,
+  // 768, 1024 and 1280. The title attribute is satisfied by delegation (Masthead, SectionHeading, ListRow).
+  'src/components/portfolio/PortfolioIndexView.tsx': 'portfolio-smoke.mjs, the /dashboard/portfolio list of portfolios (lane S8-D)',
+  'src/components/portfolio/PortfolioDetailView.tsx': 'portfolio-smoke.mjs, one portfolio grouped by surface with roll-ups (lane S8-D)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

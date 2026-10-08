@@ -34,6 +34,7 @@ import { runSmoke as runAdminCorrectionsSmoke } from './admin-corrections-smoke.
 import { runSmoke as runPar2BandsSmoke } from './par2-bands-smoke.mjs';
 import { runSmoke as runStatementsSmoke } from './statements-smoke.mjs';
 import { runSmoke as runItemCollabSmoke } from './item-collab-smoke.mjs';
+import { runSmoke as runPortfolioSmoke } from './portfolio-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -112,4 +113,6 @@ export const UX_SMOKE_SPECS = [
   { name: "statements", run: runStatementsSmoke }, // lane S8-F2, 2026-10-08, ADR-043 industry-level statements under the Operations matrix
   // lane S8-A, 2026-10-07: private workspace notes and assignment at the foot of every detail page (DetailShell slot).
   { name: "item-collab", run: runItemCollabSmoke },
+  // lane S8-D, 2026-10-07: portfolio-smoke.mjs mounts the real PortfolioIndexView and PortfolioDetailView (registered here so the proof executes).
+  { name: "portfolio", run: runPortfolioSmoke },
 ];
