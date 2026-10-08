@@ -127,7 +127,7 @@ import { resolve, join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { notUnderTierOverride } from "../../src/lib/sources/tier-override-guard.mjs";
 import { readAll, guardedUpdate, guardedInsert, guardedInsertMany, hostOf, readClient } from "../lib/db.mjs";
-import { classTierForHostAcrossNames, verdictPlacementForHost } from "../../src/lib/sources/host-authority.ts";
+import { placeHostWithVerdicts, classTierForHostWithVerdicts } from "../../src/lib/sources/host-authority.ts";
 // Lane S1-B (2026-10-04): committed host verdicts (rule b2) and bias tags on machine promotion, both reused
 // from the modules the admin route and the maintenance family already share, never a second copy.
 import { loadHostVerdicts } from "./host-verdicts/load-host-verdicts.mjs";
@@ -202,8 +202,9 @@ export const SOURCES_REJECT_STATUS = "suspended";
  * institution is a STATUS, never a rejection, and an unknown host is a QUESTION (the worklist), never a
  * rejection. Pure, no I/O, no DB, no fetch.
  * @param {string} host
- * Lane S1-B (2026-10-04) adds rule (b2): a committed host verdict (`verdict`, from verdictPlacementForHost,
- * consulted only after rule b declined) promotes at the verdict class's table tier. An unplaced host is
+ * Lane S1-B (2026-10-04) adds rule (b2): a committed host verdict (`verdict`, from placeHostWithVerdicts) promotes
+ * at the verdict class's table tier. Lane S8-E5 (2026-10-08): the verdict outranks the residue name rule (the curated
+ * host-only rules still outrank the verdict), by host-authority's one precedence, not an ordering kept here. An unplaced host is
  * residue with the reason "awaiting host verdict batch", never a block.
  * @param {{ existingTier: number|null, classTier: number|null, verdict?: {tier:number, class:string, batch:string|null}|null }} signals
  * @returns {{ action: "promote"|"worklist", tier: number|null, rule: "a"|"b"|"b2"|"d", reason: string, verdict?: object }}
@@ -328,7 +329,6 @@ export function syntheticItemIdFor(table, id) {
  *   readPendingProvisional: () => Promise<Array>,
  *   readProvisionalSourcesRows: () => Promise<Array>,
  *   readActiveSources: () => Promise<Array>,
- *   classTierForHostAcrossNames: (host:string, names:string[]) => number|null,
  *   promoteProvisional: (row:object, tier:number, rule:string) => Promise<{sourceId:string, reused:boolean}>,
  *   rejectProvisional: (id:string, reason:string) => Promise<void>,
  *   worklistProvisional: (id:string, flagNote:string) => Promise<void>,
@@ -390,7 +390,6 @@ export async function main({ mode: modeIn = "dry", arg = "", out = null } = {}, 
     deps.readActiveSources(),
   ]);
 
-  const classTierAcrossNamesFn = deps.classTierForHostAcrossNames ?? classTierForHostAcrossNames;
   const worklistFlagOps = { inserted: 0, updated: 0 };
 
   // F1 fix (review-l9b.md, fix round 1 for L9b): group every row's own name by host, across BOTH
@@ -410,7 +409,7 @@ export async function main({ mode: modeIn = "dry", arg = "", out = null } = {}, 
     // class decision, so "unplaced" means exactly what this step's rules a, b and b2 leave over.
     const unresolved = collectUnresolvedRows(
       [{ table: "provisional_sources", rows: pendingProvisional }, { table: "sources", rows: sourcesProvisional }],
-      { activeSources, classTierFor: (host) => classTierAcrossNamesFn(host, namesByHost.get(host)), verdicts: hostVerdicts },
+      { activeSources, classTierFor: (host) => classTierForHostWithVerdicts(host, namesByHost.get(host), hostVerdicts) },
     );
     const hosts = groupUnresolvedHosts(unresolved, new Map(), new Map());
     const generatedAt = new Date().toISOString();
@@ -425,14 +424,19 @@ export async function main({ mode: modeIn = "dry", arg = "", out = null } = {}, 
     return summary;
   }
 
-  // Rule a, rule b (across names, F1), then rule b2 (a committed host verdict) only when both decline.
+  // Rule a (an existing institution), then the ONE host-authority precedence (placeHostWithVerdicts): the curated
+  // host-only rules (rule b), a committed host verdict (rule b2), then the residue ruling over the host's names (rule
+  // b, across names, F1). No ordering of its own here: a verdict outranks the residue name rule, so a NAMED host
+  // with a verdict is placed by the verdict (lane S8-E5, 2026-10-08).
   const resolveSignals = (host) => {
     const existingTier = host ? existingTierForHost(host, activeSources)?.tier ?? null : null;
-    // F1 fix: the host's class decision is computed ONCE over the union of every name this run sees for
-    // it (namesByHost), not this row's own name alone -- order-independent by construction.
-    const classTier = host && existingTier == null ? classTierAcrossNamesFn(host, namesByHost.get(host)) : null;
-    const verdict = host && existingTier == null && classTier == null ? verdictPlacementForHost(host, hostVerdicts) : null;
-    return { existingTier, classTier, verdict };
+    if (!host || existingTier != null) return { existingTier, classTier: null, verdict: null };
+    // F1: the host's class decision is computed ONCE over the union of every name this run sees for it
+    // (namesByHost), not this row's own name alone -- order-independent by construction.
+    const placed = placeHostWithVerdicts(host, namesByHost.get(host), hostVerdicts);
+    return placed.via === "verdict"
+      ? { existingTier, classTier: null, verdict: placed.verdict }
+      : { existingTier, classTier: placed.tier, verdict: null };
   };
 
   for (const row of pendingProvisional) {
