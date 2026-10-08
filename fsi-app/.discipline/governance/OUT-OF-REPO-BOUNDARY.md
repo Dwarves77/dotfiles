@@ -148,3 +148,11 @@ two: replace the wrapper file, widen the matcher). The contract now:
   shim's bytes differ from the template rendered with the main checkout's entry path, when the matcher is not
   `MATCHER`, when the hook command is not the canonical one, when an unknown tool name does not match the matcher,
   or when the gate is wired directly (unscoped). Fix for every one of them: run the install command above.
+- **The installer follows master by itself.** `.claude/hooks/vault-sync.mjs` (SessionStart, the done skill and the
+  executor's merge train all run it) fast-forwards the main checkout to origin/master; when that fast-forward
+  CHANGED any file under `fsi-app/.discipline/` (before and after shas compared with `git diff --name-only`) it
+  runs `node fsi-app/.discipline/install-hooks.mjs` from the main checkout and prints the installer's Summary
+  and gate wiring lines. No change under `.discipline/` means no run; a skipped or up-to-date sync never runs it;
+  an installer failure is reported and never fails the session. The installer is idempotent, so the installed
+  shim, matcher and hook trampolines track master without a human step, and the interval in which the verifier
+  could fail on drift after a template change is closed by the next sync.
