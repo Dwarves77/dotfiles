@@ -1,0 +1,1747 @@
+{
+  "version": 1,
+  "suite": "chain-proof-attacks",
+  "note": "Every attack MUST fail (the guard holds). See run-attacks.mjs.",
+  "attacks": [
+    {
+      "id": "tier-override-automatic-writer",
+      "group": "tier override",
+      "kind": "tier-override",
+      "invariant": "An automatic writer (recompute-tiers) never writes over an admin tier override; an override is held while the same evidence moves an unoverridden source.",
+      "expected": "Overridden source keeps base_tier, effective_tier and tier_override and gets no audit event; the control source with identical evidence moves.",
+      "reference": "migration 093; src/lib/sources/tier-override-guard.mjs; lane G7-TIER; scripts/maintenance/recompute-tiers.mjs"
+    },
+    {
+      "id": "tier-override-nonadmin-direct-write",
+      "group": "tier override",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Only the service path can set a source tier: an authenticated non-admin and an anonymous caller cannot write sources.tier_override or base_tier.",
+      "expected": "Each forbidden UPDATE is refused with 42501 or matches zero rows; the service role path still works.",
+      "reference": "migration 093; migration 005 RLS posture for platform data",
+      "steps": [
+        {
+          "label": "pick an existing source",
+          "kind": "setup",
+          "sql": "SELECT id AS source_id FROM public.sources ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "source_id": "source_id"
+          }
+        },
+        {
+          "label": "control: the service role sets an override",
+          "kind": "control",
+          "as": "service",
+          "sql": "UPDATE public.sources SET tier_override = 3, override_reason = 'proof4 control', override_date = now() WHERE id = $1::uuid",
+          "params": [
+            "@source_id"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "attack: an organisation owner rewrites tier_override",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.sources SET tier_override = 1 WHERE id = $1::uuid",
+          "params": [
+            "@source_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an organisation owner rewrites base_tier",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.sources SET base_tier = 1 WHERE id = $1::uuid",
+          "params": [
+            "@source_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of another organisation clears the override",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.sources SET tier_override = NULL WHERE id = $1::uuid",
+          "params": [
+            "@source_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller rewrites tier_override",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "UPDATE public.sources SET tier_override = 1 WHERE id = $1::uuid",
+          "params": [
+            "@source_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "the override set by the service role is still 3",
+          "kind": "attack",
+          "sql": "SELECT tier_override FROM public.sources WHERE id = $1::uuid",
+          "params": [
+            "@source_id"
+          ],
+          "expect": {
+            "equals": {
+              "tier_override": "3"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-preserved-over-machine-write",
+      "group": "corrections layer",
+      "kind": "sql",
+      "invariant": "A direct write to a corrected row is re-applied by the trigger: a machine writer cannot overwrite an admin correction.",
+      "expected": "After the machine write the stored full_brief is still the corrected value.",
+      "reference": "migration 356 (zz_item_corrections_apply_items trigger); lane G7-CORR",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "a machine writer stores its value",
+          "kind": "setup",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine value"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "admin correction of full_brief through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', jsonb_build_object('text', $2::text), 'proof4 attack fixture', '00000000-0000-4000-8000-0000000004a1'::uuid) AS correction_id",
+          "params": [
+            "@item_id",
+            "proof4 corrected value"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "correction_id": "correction_id"
+          }
+        },
+        {
+          "label": "attack: a machine writer stores its own value over the corrected row",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine regeneration"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "the stored value is the corrected value",
+          "kind": "attack",
+          "sql": "SELECT full_brief FROM public.intelligence_items WHERE id = $1::uuid",
+          "params": [
+            "@item_id"
+          ],
+          "expect": {
+            "equals": {
+              "full_brief": "proof4 corrected value"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-revoke-restores-machine-value",
+      "group": "corrections layer",
+      "kind": "sql",
+      "invariant": "Revoking a correction restores the latest machine value at once, and the next machine write then stands.",
+      "expected": "After revoke the stored full_brief is the latest machine value; a later machine write is stored as written.",
+      "reference": "migration 356 (revoke_item_correction); operator ruling 2026-10-06",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "a machine writer stores its value",
+          "kind": "setup",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine value"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "admin correction of full_brief through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', jsonb_build_object('text', $2::text), 'proof4 attack fixture', '00000000-0000-4000-8000-0000000004a1'::uuid) AS correction_id",
+          "params": [
+            "@item_id",
+            "proof4 corrected value"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "correction_id": "correction_id"
+          }
+        },
+        {
+          "label": "attack: a machine writer stores its own value over the corrected row",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine regeneration"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "revoke the correction through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.revoke_item_correction($1::uuid, $2::uuid, '00000000-0000-4000-8000-0000000004a1'::uuid, 'proof4 revoke') AS revoked",
+          "params": [
+            "@item_id",
+            "@correction_id"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "revoke restored the latest machine value",
+          "kind": "attack",
+          "sql": "SELECT full_brief FROM public.intelligence_items WHERE id = $1::uuid",
+          "params": [
+            "@item_id"
+          ],
+          "expect": {
+            "equals": {
+              "full_brief": "proof4 machine regeneration"
+            }
+          }
+        },
+        {
+          "label": "a later machine write is no longer blocked",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = 'proof4 machine second' WHERE id = $1::uuid",
+          "params": [
+            "@item_id"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "the later machine value stands",
+          "kind": "attack",
+          "sql": "SELECT full_brief FROM public.intelligence_items WHERE id = $1::uuid",
+          "params": [
+            "@item_id"
+          ],
+          "expect": {
+            "equals": {
+              "full_brief": "proof4 machine second"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-append-only-update",
+      "group": "corrections layer",
+      "kind": "sql",
+      "invariant": "item_corrections is append-only: a correction cannot be edited, and a revoked correction cannot be un-revoked.",
+      "expected": "UPDATE of any column but revoked_* raises 42501 (append-only); un-revoking raises 42501 (append-only). Run as the table owner so only the trigger can refuse.",
+      "reference": "migration 356 (item_corrections_append_only)",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "a machine writer stores its value",
+          "kind": "setup",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine value"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "admin correction of full_brief through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', jsonb_build_object('text', $2::text), 'proof4 attack fixture', '00000000-0000-4000-8000-0000000004a1'::uuid) AS correction_id",
+          "params": [
+            "@item_id",
+            "proof4 corrected value"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "correction_id": "correction_id"
+          }
+        },
+        {
+          "label": "attack: rewrite the reason of a correction",
+          "kind": "attack",
+          "sql": "UPDATE public.item_corrections SET reason = 'tampered' WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "error": "42501",
+            "message_includes": "append-only"
+          }
+        },
+        {
+          "label": "revoke the correction through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.revoke_item_correction($1::uuid, $2::uuid, '00000000-0000-4000-8000-0000000004a1'::uuid, 'proof4 revoke') AS revoked",
+          "params": [
+            "@item_id",
+            "@correction_id"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: un-revoke a revoked correction",
+          "kind": "attack",
+          "sql": "UPDATE public.item_corrections SET revoked_at = NULL, revoked_by = NULL WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "error": "42501",
+            "message_includes": "append-only"
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-append-only-delete",
+      "group": "corrections layer",
+      "kind": "sql",
+      "invariant": "item_corrections is append-only: a correction cannot be deleted.",
+      "expected": "DELETE raises 42501 (append-only). Run as the table owner so only the trigger can refuse.",
+      "reference": "migration 356 (item_corrections_append_only)",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "a machine writer stores its value",
+          "kind": "setup",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine value"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "admin correction of full_brief through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', jsonb_build_object('text', $2::text), 'proof4 attack fixture', '00000000-0000-4000-8000-0000000004a1'::uuid) AS correction_id",
+          "params": [
+            "@item_id",
+            "proof4 corrected value"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "correction_id": "correction_id"
+          }
+        },
+        {
+          "label": "attack: delete a correction",
+          "kind": "attack",
+          "sql": "DELETE FROM public.item_corrections WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "error": "42501",
+            "message_includes": "append-only"
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-nonadmin-select-empty",
+      "group": "corrections layer",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Admin gate via RLS: only a platform admin can read item_corrections and item_correction_evidence.",
+      "expected": "The platform admin sees the rows; an organisation owner, a member of another organisation and an anonymous caller see none (or are refused 42501).",
+      "reference": "migration 356 section 8 (item_corrections_admin_read, item_correction_evidence_admin_read)",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "a machine writer stores its value",
+          "kind": "setup",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine value"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "admin correction of full_brief through the sanctioned service path",
+          "kind": "setup",
+          "as": "service",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', jsonb_build_object('text', $2::text), 'proof4 attack fixture', '00000000-0000-4000-8000-0000000004a1'::uuid) AS correction_id",
+          "params": [
+            "@item_id",
+            "proof4 corrected value"
+          ],
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "correction_id": "correction_id"
+          }
+        },
+        {
+          "label": "attack: a machine writer stores its own value over the corrected row",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.intelligence_items SET full_brief = $2::text WHERE id = $1::uuid",
+          "params": [
+            "@item_id",
+            "proof4 machine regeneration"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the platform admin reads the correction",
+          "kind": "control",
+          "as": "user:admin",
+          "sql": "SELECT id FROM public.item_corrections WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: the platform admin reads the machine-value evidence",
+          "kind": "control",
+          "as": "user:admin",
+          "sql": "SELECT correction_id FROM public.item_correction_evidence WHERE correction_id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: an organisation owner reads the correction",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.item_corrections WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of another organisation reads the correction",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT id FROM public.item_corrections WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads the correction",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT id FROM public.item_corrections WHERE id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an organisation owner reads the evidence",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT correction_id FROM public.item_correction_evidence WHERE correction_id = $1::uuid",
+          "params": [
+            "@correction_id"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-write-paths-closed",
+      "group": "corrections layer",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Corrections are written only through the service path: no signed-in or anonymous caller, platform admin included, can insert a correction or call create_item_correction or revoke_item_correction.",
+      "expected": "Each forbidden statement raises 42501.",
+      "reference": "migration 356 sections 7 and 8 (REVOKE INSERT, UPDATE, DELETE; EXECUTE to service_role only)",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "attack: an organisation owner inserts a correction row",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "INSERT INTO public.item_corrections (item_id, target_kind, target_ref, op, value, reason, created_by) VALUES ($1::uuid, 'full_brief', 'full_brief', 'replace', '{\"text\":\"forged\"}'::jsonb, 'proof4 forged', $2::uuid)",
+          "params": [
+            "@item_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: the platform admin inserts a correction row directly",
+          "kind": "attack",
+          "as": "user:admin",
+          "sql": "INSERT INTO public.item_corrections (item_id, target_kind, target_ref, op, value, reason, created_by) VALUES ($1::uuid, 'full_brief', 'full_brief', 'replace', '{\"text\":\"forged\"}'::jsonb, 'proof4 forged', $2::uuid)",
+          "params": [
+            "@item_id",
+            "@admin"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an organisation owner calls create_item_correction",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', '{\"text\":\"forged\"}'::jsonb, 'proof4 forged', $2::uuid)",
+          "params": [
+            "@item_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller calls create_item_correction",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT public.create_item_correction($1::uuid, 'full_brief', 'full_brief', 'replace', '{\"text\":\"forged\"}'::jsonb, 'proof4 forged', $2::uuid)",
+          "params": [
+            "@item_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an organisation owner calls revoke_item_correction",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT public.revoke_item_correction($1::uuid, gen_random_uuid(), $2::uuid, 'proof4 forged')",
+          "params": [
+            "@item_id",
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        }
+      ]
+    },
+    {
+      "id": "corrections-migration-356-selfcheck-rerun",
+      "group": "corrections layer",
+      "kind": "sql-block",
+      "invariant": "Every correction target kind (tag, full_brief, section_text, fact, connection) survives a regeneration write, a revoke restores, a non-verbatim fact span is refused, a tombstoned edge is not re-created, and the append-only guard holds, on the loaded data.",
+      "expected": "The migration 356 self-check block runs to its end on the loaded data without raising; steps whose fixture row is absent are counted.",
+      "reference": "migration 356 section 9 (the self-check skips any step whose fixture row is absent, so it passed vacuously on an empty replay)",
+      "file": "supabase/migrations/356_item_corrections.sql",
+      "start_marker": "DO $selfcheck$",
+      "end_marker": "$selfcheck$;",
+      "require_notice": "356 self-check passed"
+    },
+    {
+      "id": "provenance-guard-adversarial",
+      "group": "provenance guard",
+      "kind": "script",
+      "invariant": "The mig-250 provenance binding: a forged escalation to verified (forged GUC, direct, on-conflict-do-update) is denied while the restrictive flip and the legitimate derivation path still work.",
+      "expected": "prov-guard-adversarial-audit.mjs exits 0 with cases A, B, C and D reported PASS (a SKIP means the attack was not exercised and is red) and E PASS or SKIP.",
+      "reference": "migration 250; scripts/verify/prov-guard-adversarial-audit.mjs; CLAUDE.md rule 15",
+      "script": "scripts/verify/prov-guard-adversarial-audit.mjs",
+      "expect_exit": 0,
+      "require": [
+        {
+          "label": "A forged-GUC escalation denied",
+          "pattern": "^\\s*PASS\\s+A forged-GUC",
+          "source_literal": "A forged-GUC quarantined->verified DENIED"
+        },
+        {
+          "label": "B direct unverified to verified denied",
+          "pattern": "^\\s*PASS\\s+B direct",
+          "source_literal": "B direct unverified->verified DENIED"
+        },
+        {
+          "label": "C on-conflict-do-update escalation denied",
+          "pattern": "^\\s*PASS\\s+C on-conflict",
+          "source_literal": "C on-conflict-do-update escalation DENIED"
+        },
+        {
+          "label": "D restrictive flip allowed",
+          "pattern": "^\\s*PASS\\s+D restrictive",
+          "source_literal": "D restrictive unverified->quarantined ALLOWED"
+        },
+        {
+          "label": "E derivation path (PASS or SKIP)",
+          "pattern": "^\\s*(PASS|SKIP)\\s+E derivation",
+          "source_literal": "E derivation path reaches verified (depth>=2) ALLOWED"
+        }
+      ],
+      "forbid": [
+        {
+          "label": "any FAIL or ERROR verdict",
+          "pattern": "^\\s*(FAIL|ERROR)\\b"
+        }
+      ]
+    },
+    {
+      "id": "pause-flag-direct-write-refused",
+      "group": "pause flag writer",
+      "kind": "sql",
+      "invariant": "pause-flag-has-one-writer: scrape_cadence and global_processing_paused change only through admin_set_pause_state.",
+      "expected": "A direct UPDATE of either flag raises 42501 (pause-flag-has-one-writer), as the table owner and as the service role; the sanctioned writer still works.",
+      "reference": "migration 201 (guard_pause_flag_writer); CLAUDE.md rule 16",
+      "steps": [
+        {
+          "label": "the singleton system_state row exists",
+          "kind": "setup",
+          "sql": "SELECT scrape_cadence, global_processing_paused, judgement_drain FROM public.system_state WHERE id = true",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: direct UPDATE of scrape_cadence as the table owner",
+          "kind": "attack",
+          "sql": "UPDATE public.system_state SET scrape_cadence = CASE WHEN scrape_cadence = 'off' THEN 'weekly' ELSE 'off' END WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "pause-flag-has-one-writer"
+          }
+        },
+        {
+          "label": "attack: direct UPDATE of scrape_cadence as the service role",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.system_state SET scrape_cadence = CASE WHEN scrape_cadence = 'off' THEN 'weekly' ELSE 'off' END WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "pause-flag-has-one-writer"
+          }
+        },
+        {
+          "label": "attack: direct UPDATE of global_processing_paused",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.system_state SET global_processing_paused = NOT global_processing_paused WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "pause-flag-has-one-writer"
+          }
+        },
+        {
+          "label": "control: the sanctioned writer admin_set_pause_state works",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT global_processing_paused AS paused FROM public.admin_set_pause_state('proof4 control', (SELECT NOT global_processing_paused FROM public.system_state WHERE id = true))",
+          "expect": {
+            "rows": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "pause-flag-guard-proof",
+      "group": "pause flag writer",
+      "kind": "script",
+      "invariant": "The pause-flag guard function bounces an unmarked write and passes a marked one (red then green), without ever writing the live flag.",
+      "expected": "pause-flag-guard-proof.mjs exits 0 and reports PASS.",
+      "reference": "migration 201; scripts/verify/pause-flag-guard-proof.mjs",
+      "script": "scripts/verify/pause-flag-guard-proof.mjs",
+      "expect_exit": 0,
+      "require": [
+        {
+          "label": "RESULT PASS",
+          "pattern": "^RESULT: PASS",
+          "source_literal": "RESULT:"
+        }
+      ],
+      "forbid": [
+        {
+          "label": "RESULT FAIL",
+          "pattern": "^RESULT: FAIL"
+        }
+      ]
+    },
+    {
+      "id": "judgement-drain-direct-write-refused",
+      "group": "judgement drain writer",
+      "kind": "sql",
+      "invariant": "judgement-drain-has-one-writer: system_state.judgement_drain changes only through admin_set_judgement_drain.",
+      "expected": "A direct UPDATE raises 42501 (judgement-drain-has-one-writer), as the table owner and as the service role; the sanctioned writer still works.",
+      "reference": "migration 354 (guard_judgement_drain_writer); lane G6-DRAIN",
+      "steps": [
+        {
+          "label": "the singleton system_state row exists",
+          "kind": "setup",
+          "sql": "SELECT scrape_cadence, global_processing_paused, judgement_drain FROM public.system_state WHERE id = true",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: direct UPDATE of judgement_drain as the table owner",
+          "kind": "attack",
+          "sql": "UPDATE public.system_state SET judgement_drain = CASE WHEN judgement_drain = 'off' THEN 'on' ELSE 'off' END WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "judgement-drain-has-one-writer"
+          }
+        },
+        {
+          "label": "attack: direct UPDATE of judgement_drain as the service role",
+          "kind": "attack",
+          "as": "service",
+          "sql": "UPDATE public.system_state SET judgement_drain = CASE WHEN judgement_drain = 'off' THEN 'on' ELSE 'off' END WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "judgement-drain-has-one-writer"
+          }
+        },
+        {
+          "label": "control: the sanctioned writer admin_set_judgement_drain works",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT judgement_drain FROM public.admin_set_judgement_drain('proof4 control', 'on')",
+          "expect": {
+            "rows": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "judgement-drain-wrong-marker-refused",
+      "group": "judgement drain writer",
+      "kind": "sql",
+      "invariant": "One writer per flag: the pause-flag writer marker does not open the judgement drain guard, and the drain marker does not open the pause guard.",
+      "expected": "With the other writer's marker set, a direct UPDATE of each flag still raises 42501.",
+      "reference": "migrations 201 and 354",
+      "steps": [
+        {
+          "label": "the singleton system_state row exists",
+          "kind": "setup",
+          "sql": "SELECT scrape_cadence, global_processing_paused, judgement_drain FROM public.system_state WHERE id = true",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "set the pause-flag writer marker",
+          "kind": "setup",
+          "sql": "SELECT set_config('app.pause_flag_writer', 'proof4', true) AS marker",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: UPDATE judgement_drain carrying the pause-flag marker",
+          "kind": "attack",
+          "sql": "UPDATE public.system_state SET judgement_drain = CASE WHEN judgement_drain = 'off' THEN 'on' ELSE 'off' END WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "judgement-drain-has-one-writer"
+          }
+        },
+        {
+          "label": "clear the pause-flag marker",
+          "kind": "setup",
+          "sql": "SELECT set_config('app.pause_flag_writer', '', true) AS marker",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "set the judgement drain writer marker",
+          "kind": "setup",
+          "sql": "SELECT set_config('app.judgement_drain_writer', 'proof4', true) AS marker",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: UPDATE scrape_cadence carrying only the judgement drain marker",
+          "kind": "attack",
+          "sql": "UPDATE public.system_state SET scrape_cadence = CASE WHEN scrape_cadence = 'off' THEN 'weekly' ELSE 'off' END WHERE id = true",
+          "expect": {
+            "error": "42501",
+            "message_includes": "pause-flag-has-one-writer"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rls-derivation-edges",
+      "group": "RLS audits",
+      "kind": "script",
+      "invariant": "Service-role-only table: derivation_edges cannot be written or read by anon or authenticated, while the service role path still works.",
+      "expected": "The existing adversarial audit exits 0: every unauthorized probe denied, the service-role fixture read intact.",
+      "reference": "migration 330; lane SEC-1; scripts/verify/derivation-edges-rls-adversarial-audit.mjs",
+      "script": "scripts/verify/derivation-edges-rls-adversarial-audit.mjs",
+      "expect_exit": 0,
+      "require": [
+        {
+          "label": "audit GREEN",
+          "pattern": "GREEN: every unauthorized attack denied"
+        }
+      ],
+      "forbid": [
+        {
+          "label": "any FAIL, ERROR or SKIP verdict",
+          "pattern": "^\\s*(FAIL|ERROR|SKIP)\\b"
+        }
+      ]
+    },
+    {
+      "id": "rls-harness-runs",
+      "group": "RLS audits",
+      "kind": "script",
+      "invariant": "Service-role-only table: harness_runs cannot be written or read by anon or authenticated, while the service role path still works.",
+      "expected": "The existing adversarial audit exits 0: every unauthorized probe denied, the service-role fixture read intact.",
+      "reference": "migration 331; lane HARNESS-LANDING; scripts/verify/harness-runs-rls-adversarial-audit.mjs",
+      "script": "scripts/verify/harness-runs-rls-adversarial-audit.mjs",
+      "expect_exit": 0,
+      "require": [
+        {
+          "label": "audit GREEN",
+          "pattern": "GREEN: every unauthorized attack denied"
+        }
+      ],
+      "forbid": [
+        {
+          "label": "any FAIL, ERROR or SKIP verdict",
+          "pattern": "^\\s*(FAIL|ERROR|SKIP)\\b"
+        }
+      ]
+    },
+    {
+      "id": "rls-spec09-org",
+      "group": "RLS audits",
+      "kind": "script",
+      "needs_fixtures": true,
+      "invariant": "Organisation-scoped spec09 tables isolate by org: a member of org B cannot read org A's row, and org A's own member can.",
+      "expected": "spec09-org-rls-adversarial-audit.mjs exits 0 and reports PASS (it self-skips with exit 2 when fewer than two organisations have a member, which the fixtures prevent).",
+      "reference": "migration 311; scripts/verify/spec09-org-rls-adversarial-audit.mjs",
+      "script": "scripts/verify/spec09-org-rls-adversarial-audit.mjs",
+      "expect_exit": 0,
+      "require": [
+        {
+          "label": "audit PASS",
+          "pattern": "^PASS\\s+org A saw its own row; org B was denied"
+        }
+      ],
+      "forbid": [
+        {
+          "label": "FAIL or SKIP verdict",
+          "pattern": "^(FAIL|SKIP)\\b"
+        }
+      ]
+    },
+    {
+      "id": "s8-5-cross-organisation-read",
+      "group": "S8-5 cross-organisation",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "S8-5 (Stage 8 item brought forward to the proof): a member of organisation B selecting organisation A's workspace rows gets none.",
+      "expected": "Organisation A's owner sees the rows of org A in every workspace table; a member of org B and an anonymous caller see none (or are refused 42501).",
+      "reference": "migration 006 RLS (user_belongs_to_org); migration 313; Stage 8 item S8-5",
+      "steps": [
+        {
+          "label": "pick an existing item",
+          "kind": "setup",
+          "sql": "SELECT id AS item_id FROM public.intelligence_items ORDER BY id LIMIT 1",
+          "expect": {
+            "rows_min": 1
+          },
+          "save": {
+            "item_id": "item_id"
+          }
+        },
+        {
+          "label": "setup: organisation A has a workspace item override",
+          "kind": "setup",
+          "sql": "INSERT INTO public.workspace_item_overrides (org_id, item_id, notes) VALUES ($1::uuid, $2::uuid, 'proof4 org a')",
+          "params": [
+            "@org_a",
+            "@item_id"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: org A's owner reads org A in workspace_item_overrides",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT org_id FROM public.workspace_item_overrides WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "control: org A's owner reads org A in workspace_settings",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT org_id FROM public.workspace_settings WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "control: org A's owner reads org A in workspace_tags",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT org_id FROM public.workspace_tags WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "control: org A's owner reads org A in org_memberships",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT org_id FROM public.org_memberships WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "control: org A's owner reads org A in organizations",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.organizations WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "attack: a member of org B reads org A in workspace_item_overrides",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT org_id FROM public.workspace_item_overrides WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of org B reads org A in workspace_settings",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT org_id FROM public.workspace_settings WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of org B reads org A in workspace_tags",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT org_id FROM public.workspace_tags WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of org B reads org A in org_memberships",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT org_id FROM public.org_memberships WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of org B reads org A in organizations",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT id FROM public.organizations WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads org A in workspace_item_overrides",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT org_id FROM public.workspace_item_overrides WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads org A in workspace_settings",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT org_id FROM public.workspace_settings WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads org A in workspace_tags",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT org_id FROM public.workspace_tags WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads org A in org_memberships",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT org_id FROM public.org_memberships WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads org A in organizations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT id FROM public.organizations WHERE id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s8-5-cross-organisation-write-refused",
+      "group": "S8-5 cross-organisation",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "A member of organisation B cannot write into organisation A: not its settings, its tags, nor its membership list (no self-promotion to owner of org A).",
+      "expected": "UPDATE matches zero rows or is refused; INSERT raises 42501; org A's membership list is unchanged.",
+      "reference": "migration 006 RLS (membership_write_admin, settings_update_admin); migration 313 (workspace_tags_org_insert)",
+      "steps": [
+        {
+          "label": "attack: a member of org B updates org A's workspace settings",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "UPDATE public.workspace_settings SET sector_profile = ARRAY['proof4'] WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: a member of org B inserts a tag into org A",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name, created_by) VALUES ($1::uuid, 'proof4 forged', $2::uuid)",
+          "params": [
+            "@org_a",
+            "@member_b"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: a member of org B adds itself to org A as owner",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'owner')",
+          "params": [
+            "@org_a",
+            "@member_b"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller inserts into org A's tags",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "INSERT INTO public.workspace_tags (org_id, name) VALUES ($1::uuid, 'proof4 forged')",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "org B's member is still not a member of org A",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM public.org_memberships WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@member_b"
+          ],
+          "expect": {
+            "equals": {
+              "n": "0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "s8-c-count-rpcs-membership-gate",
+      "group": "S8-5 cross-organisation",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "The count RPCs get_surface_counts and get_all_surface_counts answer only a member of the organisation asked about (or the service role, and for get_surface_counts with a NULL organisation only the service role).",
+      "expected": "A member of org B asking about org A is refused 42501 by both; an authenticated caller with a NULL org is refused by get_surface_counts; an anonymous caller is refused; org A's owner and the service role are answered.",
+      "reference": "migration 361 (lane S8-C, PR 979; replaces migration 148's ungated bodies with _assert_org_membership from migration 077). Red until 361 is in the migration tree.",
+      "steps": [
+        {
+          "label": "attack: a member of org B calls get_surface_counts for org A",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT public.get_surface_counts($1::uuid, 'research')",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: a member of org B calls get_all_surface_counts for org A",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT public.get_all_surface_counts($1::uuid)",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an authenticated caller calls get_surface_counts with a NULL org",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT public.get_surface_counts(NULL::uuid, 'research')",
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller calls get_surface_counts for org A",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT public.get_surface_counts($1::uuid, 'research')",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller calls get_all_surface_counts for org A",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT public.get_all_surface_counts($1::uuid)",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "control: org A's owner calls get_surface_counts for org A",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT public.get_surface_counts($1::uuid, 'research') AS counts",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: org A's owner calls get_all_surface_counts for org A",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT public.get_all_surface_counts($1::uuid) AS counts",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: the service role calls get_surface_counts with a NULL org (platform-wide masthead count)",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT public.get_surface_counts(NULL::uuid, 'research') AS counts",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: the service role calls get_surface_counts for org A",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT public.get_surface_counts($1::uuid, 'research') AS counts",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: the service role calls get_all_surface_counts for org A",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT public.get_all_surface_counts($1::uuid) AS counts",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "admin-gate-self-promotion-refused",
+      "group": "admin gate",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Admin gate via RLS: profiles.is_platform_admin cannot be set by a signed-in user, for themselves or for anyone else, nor by inserting a new admin profile.",
+      "expected": "Each forbidden write is refused (42501) or matches zero rows, and the flag is still false afterwards.",
+      "reference": "migration 075 (is_platform_admin service-role-only writeable); migration 165 (profiles_self_update, profiles_self_insert: policy keys on id only, no column restriction found in the migration files)",
+      "steps": [
+        {
+          "label": "precondition: the organisation owner is not an admin",
+          "kind": "setup",
+          "sql": "SELECT is_platform_admin FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "equals": {
+              "is_platform_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "attack: the owner promotes themselves",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.profiles SET is_platform_admin = true WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "the owner is still not an admin",
+          "kind": "attack",
+          "sql": "SELECT is_platform_admin FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "equals": {
+              "is_platform_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "attack: the owner promotes another user",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "UPDATE public.profiles SET is_platform_admin = true WHERE id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "the other user is still not an admin",
+          "kind": "attack",
+          "sql": "SELECT is_platform_admin FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "equals": {
+              "is_platform_admin": "false"
+            }
+          }
+        },
+        {
+          "label": "attack: a member inserts a new admin profile",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "INSERT INTO public.profiles (id, email, is_platform_admin) VALUES (gen_random_uuid(), 'proof4-forged@chain-proof.invalid', true)",
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller promotes a profile",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "UPDATE public.profiles SET is_platform_admin = true WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "adr035-aggregate-below-floor-refused",
+      "group": "ADR-035 aggregate floor",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "ADR-035: an aggregate over fewer than k distinct organisations (k is the stored floor, at least 10) is refused by publish_aggregate.",
+      "expected": "A cohort of k-1, of 5 and of 0 organisations is refused; a cohort of exactly k is granted; every stored floor is at least 10.",
+      "reference": "migrations 287 and 347; docs/decisions ADR-035",
+      "steps": [
+        {
+          "label": "read a registered sensitive field and its floor",
+          "kind": "setup",
+          "sql": "SELECT table_name AS pol_table, column_name AS pol_column, k_min AS pol_k FROM public.sensitive_field_policy ORDER BY table_name, column_name LIMIT 1",
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "pol_table": "pol_table",
+            "pol_column": "pol_column",
+            "pol_k": "pol_k"
+          }
+        },
+        {
+          "label": "every stored floor is at least 10",
+          "kind": "setup",
+          "sql": "SELECT count(*)::int AS below FROM public.sensitive_field_policy WHERE k_min < 10",
+          "expect": {
+            "equals": {
+              "below": "0"
+            }
+          }
+        },
+        {
+          "label": "attack: a cohort of k-1 organisations",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4-' || g ORDER BY g) FROM generate_series(1, $3::int - 1) g))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "equals": {
+              "refused": "true"
+            },
+            "includes": {
+              "reason": "minimum"
+            }
+          }
+        },
+        {
+          "label": "attack: a cohort of 5 organisations (the retired floor)",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4b-' || g ORDER BY g) FROM generate_series(1, 5) g))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "equals": {
+              "refused": "true"
+            }
+          }
+        },
+        {
+          "label": "attack: an empty cohort",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', '[]'::jsonb)) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "equals": {
+              "refused": "true"
+            }
+          }
+        },
+        {
+          "label": "control: a cohort of exactly k organisations is granted",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4c-' || g ORDER BY g) FROM generate_series(1, $3::int) g))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "equals": {
+              "refused": "false"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "adr035-floor-cannot-be-lowered",
+      "group": "ADR-035 aggregate floor",
+      "kind": "sql",
+      "invariant": "ADR-035: the stored floor cannot be lowered below 10 by an update or by a new policy row.",
+      "expected": "UPDATE of k_min to 5 and INSERT of a policy row with k_min 5 raise 23514 (check_violation).",
+      "reference": "migration 347 (sensitive_field_policy_k_min_adr035)",
+      "steps": [
+        {
+          "label": "read a registered sensitive field and its floor",
+          "kind": "setup",
+          "sql": "SELECT table_name AS pol_table, column_name AS pol_column, k_min AS pol_k FROM public.sensitive_field_policy ORDER BY table_name, column_name LIMIT 1",
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "pol_table": "pol_table",
+            "pol_column": "pol_column",
+            "pol_k": "pol_k"
+          }
+        },
+        {
+          "label": "attack: lower the floor of a registered field to 5",
+          "kind": "attack",
+          "sql": "UPDATE public.sensitive_field_policy SET k_min = 5 WHERE table_name = $1::text AND column_name = $2::text",
+          "params": [
+            "@pol_table",
+            "@pol_column"
+          ],
+          "expect": {
+            "error": "23514"
+          }
+        },
+        {
+          "label": "attack: register a new field with a floor of 5",
+          "kind": "attack",
+          "sql": "INSERT INTO public.sensitive_field_policy (table_name, column_name, k_min) VALUES ('proof4_table', 'proof4_column', 5)",
+          "expect": {
+            "error": "23514"
+          }
+        }
+      ]
+    },
+    {
+      "id": "adr035-dominance-cap-refused",
+      "group": "ADR-035 aggregate floor",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "ADR-035: an aggregate in which one organisation holds more than the maximum share is refused even when the cohort is large enough.",
+      "expected": "A cohort of k organisations where one holds about 90 percent is refused (dominance); the same cohort with equal values is granted.",
+      "reference": "migration 287 (dominance cap, max_share_pct); docs/decisions ADR-035",
+      "steps": [
+        {
+          "label": "read a registered sensitive field and its floor",
+          "kind": "setup",
+          "sql": "SELECT table_name AS pol_table, column_name AS pol_column, k_min AS pol_k FROM public.sensitive_field_policy ORDER BY table_name, column_name LIMIT 1",
+          "expect": {
+            "rows": 1
+          },
+          "save": {
+            "pol_table": "pol_table",
+            "pol_column": "pol_column",
+            "pol_k": "pol_k"
+          }
+        },
+        {
+          "label": "attack: k organisations, one holding most of the total",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "WITH ids AS (SELECT 'p4d-' || g AS id, g FROM generate_series(1, $3::int) g) SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg(id ORDER BY g) FROM ids), 'member_values', (SELECT jsonb_object_agg(id, CASE WHEN g = 1 THEN 1000 ELSE 10 END) FROM ids))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "equals": {
+              "refused": "true"
+            },
+            "includes": {
+              "reason": "dominance"
+            }
+          }
+        },
+        {
+          "label": "control: k organisations with equal values",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "WITH ids AS (SELECT 'p4e-' || g AS id, g FROM generate_series(1, $3::int) g) SELECT r ->> 'refused' AS refused FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg(id ORDER BY g) FROM ids), 'member_values', (SELECT jsonb_object_agg(id, 100) FROM ids))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "equals": {
+              "refused": "false"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "adr035-aggregate-tables-closed",
+      "group": "ADR-035 aggregate floor",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "The only read path to the aggregate policy and query log is publish_aggregate: members and anonymous callers cannot read either table.",
+      "expected": "SELECT as an organisation owner and as an anonymous caller is refused 42501 or returns no row; the service role can read both.",
+      "reference": "migration 287 (REVOKE ALL ... FROM authenticated, anon; RLS on)",
+      "steps": [
+        {
+          "label": "control: the service role reads the policy table",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT table_name FROM public.sensitive_field_policy LIMIT 1",
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: an organisation owner reads the policy table",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT table_name FROM public.sensitive_field_policy LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads the policy table",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT table_name FROM public.sensitive_field_policy LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an organisation owner reads the query log",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT query_id FROM public.aggregate_query_log LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "attack: an anonymous caller reads the query log",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT query_id FROM public.aggregate_query_log LIMIT 1",
+          "expect": {
+            "denied_or_rows": 0
+          }
+        }
+      ]
+    }
+  ]
+}
