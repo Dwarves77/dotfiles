@@ -18,7 +18,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadProducerRegistry, selectRuns, buildCommands } from "./load-registry.mjs";
+import { loadProducerRegistry, selectRuns, buildCommands, PRODUCER_ENTITY_ID_ENV } from "./load-registry.mjs";
 import { isMainModule } from "../../lib/is-main.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -59,11 +59,16 @@ export function runRegistered(argv, deps = {}) {
     log(JSON.stringify(runs.map((e) => ({ name: e.name, domain_table: e.domain_table, commands: buildCommands(e, opts).map((c) => ["node", ...c.args]) })), null, 2));
     return 0;
   }
+  // The entity a producer's rows describe comes from its registry entry only (buildCommands sets it on that
+  // child). An ambient PRODUCER_ENTITY_ID in the runner's own environment must never reach an entry that
+  // declares none, or one series' rows would be stamped with another's entity.
+  const childBase = { ...env };
+  delete childBase[PRODUCER_ENTITY_ID_ENV];
   log(`registry producers: mode=${opts.mode} producer=${opts.producer}${opts.only ? ` only=${opts.only}` : ""} selected=${runs.map((e) => e.name).join(",") || "(none)"}`);
   for (const entry of runs) {
     log(`registry producers: running ${entry.name} -> ${entry.domain_table}`);
     for (const cmd of buildCommands(entry, opts)) {
-      const res = spawn("node", cmd.args, { cwd: FSI_ROOT, env: { ...env, ...cmd.env }, stdio: "inherit" });
+      const res = spawn("node", cmd.args, { cwd: FSI_ROOT, env: { ...childBase, ...cmd.env }, stdio: "inherit" });
       const code = res.status ?? 1;
       if (code !== 0) {
         log(`::error::registry producer ${entry.name} failed: node ${cmd.args.join(" ")} exited ${code}`);

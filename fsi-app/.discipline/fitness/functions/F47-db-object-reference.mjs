@@ -20,10 +20,10 @@ import { readFile } from '../lib/file-content.mjs';
 import { replaySchema, buildReferenceReport } from '../../governance/db-object-reference.mjs';
 import { TERMINAL_SINK_ALLOWLIST } from '../../governance/producer-consumer-orphan.mjs';
 
-export const MIGRATION_GLOBS = ['fsi-app/supabase/migrations/*.sql'];
-export const CODE_GLOBS = ['fsi-app/src/**/*.{mjs,js,ts,tsx}', 'fsi-app/scripts/**/*.{mjs,js,ts,tsx}', '.github/**/*.{yml,yaml}'];
+const MIGRATION_GLOBS = ['fsi-app/supabase/migrations/*.sql'];
+const CODE_GLOBS = ['fsi-app/src/**/*.{mjs,js,ts,tsx}', 'fsi-app/scripts/**/*.{mjs,js,ts,tsx}', '.github/**/*.{yml,yaml}'];
 
-export function inCodeScope(f) {
+function inCodeScope(f) {
   const p = String(f).replace(/\\/g, '/');
   if (/\.(test|npmtest|selftest|golden)\.(mjs|ts|tsx)$/.test(p)) return false;
   if (/\/fixtures\/|\/_archive\/|\/scripts\/harness-runs\/|\/scripts\/_snapshots\//.test(p)) return false;

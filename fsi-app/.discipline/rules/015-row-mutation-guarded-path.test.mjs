@@ -17,11 +17,15 @@ test('015 trigger: fires on scripts/*.mjs, skips _diag + lib', () => {
   })), false);
 });
 
-test('015 trigger: skips proof files that fake a client (.test/.npmtest/.selftest/.golden.mjs)', () => {
+test('015 check: passes proof files that fake a client (.test/.npmtest/.selftest/.golden.mjs); GATE-7: the trigger fires, the content decides', () => {
+  const FAKE = 'const fake = { from: () => ({ update: () => fake, eq: () => fake }) };\nawait fake.from("t").update({ x: 1 }).eq("id", 1);\n';
   for (const name of ['foo.test.mjs', 'foo.npmtest.mjs', 'foo.selftest.mjs', 'foo.golden.mjs']) {
-    assert.equal(rule.trigger(buildContextFromFixture({
-      message: 'x', files: [{ path: `fsi-app/scripts/turns/${name}`, additions: 5, deletions: 0 }],
-    })), false, name);
+    const path = `fsi-app/scripts/turns/${name}`;
+    const lines = FAKE.trimEnd().split('\n');
+    const ctx = buildContextFromFixture({
+      message: 'x', files: [{ path, status: 'A' }], changes: [{ path, status: 'A', added: lines }], fileContents: { [path]: FAKE },
+    });
+    assert.equal(rule.check(ctx).status, 'PASS', name);
   }
 });
 
@@ -242,4 +246,77 @@ test('015 scope: a staged script whose diff is not available (stale working tree
   const post = ['// shifted by an unstaged edit', 'const sb = createClient(u, k);', 'await sb.from("sources").delete().eq("id", 9);', ''].join(String.fromCharCode(10));
   const ctx = editCtx('fsi-app/scripts/foo.mjs', post, { added: ['await sb.from("sources").delete().eq("id", 9);'], oldStart: 2, newStart: 2 });
   assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): honest forms from the AUD-AT-3 attack register.
+// ---------------------------------------------------------------------------
+
+const HDR = 'const sb = createClient(u, k);\n';
+
+test('015 GATE-7 A015-1 / A015-2: a write method named by a string index, plain or split, is a write', () => {
+  assert.equal(rule.check(newFileCtx(`${HDR}await sb.from("t")["delete"]().eq("id", 1);\n`)).status, 'FAIL');
+  assert.equal(rule.check(newFileCtx(`${HDR}await sb.from("t")["del" + "ete"]().eq("id", 1);\n`)).status, 'FAIL');
+  assert.equal(rule.check(newFileCtx(`${HDR}const m = new Map(); m["delete"]("a");\n`)).status, 'PASS');
+});
+
+test('015 GATE-7 A015-3: a comment that names lib/db.mjs does not silence the file; a real import does', () => {
+  const commented = `// uses lib/db.mjs guardedUpdate archiveRows\n${RAW}`;
+  assert.equal(rule.check(newFileCtx(commented)).status, 'FAIL');
+  const inString = `${RAW}console.log("see lib/db.mjs");\n`;
+  assert.equal(rule.check(newFileCtx(inString)).status, 'FAIL');
+  assert.equal(rule.check(newFileCtx(`${RAW}import { guardedUpdate } from "./lib/db.mjs";\n`)).status, 'PASS');
+});
+
+test('015 GATE-7 A015-4: the same write in .js, .cjs and .ts script files is charged', () => {
+  for (const ext of ['js', 'cjs', 'ts', 'mts']) {
+    const path = `fsi-app/scripts/foo.${ext}`;
+    assert.equal(rule.trigger(buildContextFromFixture({ message: 'x', files: [{ path, status: 'A' }] })), true, ext);
+    assert.equal(rule.check(newFileCtx(RAW, path)).status, 'FAIL', ext);
+  }
+});
+
+test('015 GATE-7 A015-5: scripts/lib is exempt only for the helper itself', () => {
+  assert.equal(rule.check(newFileCtx(RAW, 'fsi-app/scripts/lib/other.mjs')).status, 'FAIL');
+  assert.equal(rule.trigger(buildContextFromFixture({ message: 'x', files: [{ path: 'fsi-app/scripts/lib/db.mjs', status: 'M' }] })), false);
+});
+
+test('015 GATE-7 A015-6: a production writer named *.test.mjs is a writer, a client-faking proof file is not', () => {
+  assert.equal(rule.check(newFileCtx(RAW, 'fsi-app/scripts/backfill.test.mjs')).status, 'FAIL');
+});
+
+test('015 GATE-7 A015-7 / A015-8: a raw PostgREST write through fetch and an exec_sql RPC are writes', () => {
+  const rest = 'const r = await fetch(`${URL}/rest/v1/intelligence_items?id=eq.1`, { method: "DELETE", headers });\n';
+  assert.equal(rule.check(newFileCtx(rest)).status, 'FAIL');
+  const restGet = 'const r = await fetch(`${URL}/rest/v1/intelligence_items?id=eq.1`, { method: "GET", headers });\n';
+  assert.equal(rule.check(newFileCtx(restGet)).status, 'PASS');
+  assert.equal(rule.check(newFileCtx(`${HDR}await sb.rpc("exec_sql", { q: "delete from t" });\n`)).status, 'FAIL');
+  assert.equal(rule.check(newFileCtx(`${HDR}await sb.rpc("count_items", {});\n`)).status, 'PASS');
+});
+
+test('015 GATE-7 A015-9: rewriting an existing update line into a delete is charged', () => {
+  const path = 'fsi-app/scripts/foo.mjs';
+  const before = 'await sb.from("t").update({ x: 1 }).eq("id", 1);';
+  const after = 'await sb.from("t").delete().eq("id", 1);';
+  const content = `${HDR}${after}\n`;
+  const ctx = buildContextFromFixture({
+    message: 'x', files: [{ path }], changes: [{ path, removed: [before], added: [after], newStart: 2 }], fileContents: { [path]: content },
+  });
+  assert.equal(rule.check(ctx).status, 'FAIL');
+  const same = buildContextFromFixture({
+    message: 'x', files: [{ path }], changes: [{ path, removed: [before], added: [before.replace('{ x: 1 }', '{ x: 2 }')], newStart: 2 }],
+    fileContents: { [path]: `${HDR}${before.replace('{ x: 1 }', '{ x: 2 }')}\n` },
+  });
+  assert.equal(rule.check(same).status, 'PASS');
+});
+
+test('015 GATE-7 A015-10: a write through a destructured alias of the client from is a write', () => {
+  assert.equal(rule.check(newFileCtx(`${HDR}const { from: tbl } = sb;\nawait tbl("t").update({ x: 1 }).eq("id", 1);\n`)).status, 'FAIL');
+  assert.equal(rule.check(newFileCtx(`${HDR}const q = sb.from;\nawait q("t").update({ x: 1 });\n`)).status, 'FAIL');
+});
+
+test('015 GATE-7 A015-13: the rule reads the STAGED blob, not an unstaged comment on disk', () => {
+  // fileContents is what the commit carries; the working tree is never consulted in a fixture, and the
+  // real-git case is covered by lib/context.test.mjs (getFileContent reads the blob).
+  assert.equal(rule.check(newFileCtx(RAW)).status, 'FAIL');
 });

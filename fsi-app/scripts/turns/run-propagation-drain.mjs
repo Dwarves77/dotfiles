@@ -182,7 +182,7 @@ export function parseArgs(argv) {
 }
 
 /** Widest outbox id range a manual replay may cover in one run. */
-export const MAX_REPLAY_RANGE = 5000;
+const MAX_REPLAY_RANGE = 5000;
 
 /** Parse "<from>-<to>" into {from,to}, or null when malformed or too wide. PURE. @param {string} text */
 export function parseEventRange(text) {

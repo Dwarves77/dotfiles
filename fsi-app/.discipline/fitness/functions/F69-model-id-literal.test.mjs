@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { fitnessFunction, CANONICAL_HOME, SECURITY_ALLOWLIST_FILES } from './F69-model-id-literal.mjs';
+import { fitnessFunction, CANONICAL_HOME, SECURITY_ALLOWLIST_FILES, modelIdLiteralLines } from './F69-model-id-literal.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../'); // functions->fitness->.discipline->fsi-app->repo
 
@@ -69,4 +69,33 @@ test('STALENESS AUDIT: the canonical home still declares the literals it claims 
 test('ENUMERATE: the canonical home itself is excluded from the scan (it is the source of truth)', () => {
   const files = fitnessFunction.enumerate();
   assert.ok(!files.includes(CANONICAL_HOME), `${CANONICAL_HOME} must not scan itself`);
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F69 B6-69: a model family other than haiku, sonnet or opus is still a model id', () => {
+  assert.equal(modelIdLiteralLines('const m = "claude-fable-5";').length, 1);
+  assert.equal(modelIdLiteralLines('const m = "claude-3-5-sonnet-20241022";').length, 1);
+  assert.equal(modelIdLiteralLines("const m = 'claude-opus-4-1';").length, 1);
+});
+
+test('F69 B6-70: an id split across a concatenation is one id', () => {
+  assert.equal(modelIdLiteralLines('const m = "claude-" + "sonnet-4-5";').length, 1);
+});
+
+test('F69 B6-71: a provider-prefixed id (Bedrock, Vertex) is the same id', () => {
+  assert.equal(modelIdLiteralLines('const m = "anthropic.claude-haiku-4-5-20251001-v1:0";').length, 1);
+  assert.equal(modelIdLiteralLines('const m = "us.anthropic.claude-sonnet-4-5";').length, 1);
+});
+
+test('F69 B6-72: src/workflows and every other src directory are in scope, and scripts of every extension', () => {
+  const body = fitnessFunction.enumerate.toString();
+  assert.match(body, /fsi-app\/src\/\*\*/);
+  assert.match(body, /cjs/);
+});
+
+test('F69: a forged marker in a string is not an override; a name like claude-code is not a model id', () => {
+  assert.equal(modelIdLiteralLines('const m = "// fitness-allow: F69 (forged)"; const id = "claude-sonnet-4-5";').length, 1);
+  assert.deepEqual(modelIdLiteralLines('const agent = "claude-code"; const x = "claude-in-chrome";'), []);
+  assert.deepEqual(modelIdLiteralLines('// "claude-sonnet-4-5" is documented here\n/* "claude-opus-4" */'), []);
 });

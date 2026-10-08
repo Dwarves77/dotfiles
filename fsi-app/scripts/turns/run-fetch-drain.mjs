@@ -75,7 +75,7 @@ const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "fetch-drai
 // itself, the same shape every other family's entry already has (source-sweep, ledger-consume, ...);
 // before this lane, fetch-drain's entry named only `supabase/functions/capture-worker/index.ts` because
 // there was no canonical script to add (see that file's own comment, now updated).
-export const FETCH_DRAIN_GOVERNING_FILES = GOVERNING_FILES["fetch-drain"];
+const FETCH_DRAIN_GOVERNING_FILES = GOVERNING_FILES["fetch-drain"];
 
 export const DEFAULT_LIMIT = 8;
 export const MAX_LIMIT = 64;
@@ -270,7 +270,7 @@ export function functionUrlFor(supabaseUrl) {
  *  local run is what produces the committed artifact, is a path relative to `fsi-app/`, the same
  *  normalization `hashHarnessVersion` already applies to its own digest inputs). PURE.
  *  @param {string} absPath @param {string} baseDir @returns {string} */
-export function repoRelative(absPath, baseDir) {
+function repoRelative(absPath, baseDir) {
   return relative(baseDir, absPath).split(sep).join("/");
 }
 

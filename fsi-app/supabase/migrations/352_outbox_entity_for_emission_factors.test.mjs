@@ -7,13 +7,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const RAW = readFileSync(fileURLToPath(new URL("./352_outbox_entity_for_emission_factors.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 
-test("header: subject line, states APPLIED, names the two tables it leaves alone and why", () => {
+test("header: subject line, applied status as the map says, names the two tables it leaves alone and why", () => {
   assert.match(RAW, /^-- subject: Migration 352 /);
-  assert.match(RAW, /APPLIED \(production ledger version \d+/);
+  assert.deepEqual(headerProblems(RAW, "352_outbox_entity_for_emission_factors.sql"), []);
   assert.match(RAW, /market_series\s+id, series_key, label/);
   assert.match(RAW, /regional_data_facts\s+region_id uuid REFERENCES regions/);
 });

@@ -5,6 +5,6 @@
   "trigger": "workflow_run",
   "family": "corpus-turn",
   "enforceEdge": true,
-  "enforceFired": true,
-  "note": "Edge landed (lane M3, 2026-09-19): corpus-turn.yml now carries on.workflow_run.workflows: [\"Ledger consume\"], alongside workflow_dispatch and push:branches turn/**. Fired proof: harness_runs evidence entry corpus-turn-run-003 (trigger workflow_run_forced_dry, 2026-09-29) in loop-fired-evidence.json, so enforceFired is now true."
+  "enforceFired": false,
+  "note": "Edge landed (lane M3, 2026-09-19): corpus-turn.yml now carries on.workflow_run.workflows: [\"Ledger consume\"], alongside workflow_dispatch and push:branches turn/**. Fired proof: harness_runs evidence entry corpus-turn-run-003 (trigger workflow_run_forced_dry, 2026-09-29) in loop-fired-evidence.json. enforceFired is false since lane GATE-8 (2026-10-08): F50 now accepts a firing claim only when its run id resolves in the committed ledger export (harness-ledger-export.json), and that export has not been generated yet (it needs the credentialed refresh: node fsi-app/scripts/lib/export-harness-ledger.mjs --out fsi-app/.discipline/governance/harness-ledger-export.json). After the refresh lands a row for corpus-turn-run-003, set enforceFired back to true; the F50 live test fails if it is true without a resolving row."
 }

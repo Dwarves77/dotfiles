@@ -115,3 +115,55 @@ test("buildCommands: dry has no --apply, apply appends it last, the enable env i
   assert.deepEqual(apply[1].args, ["scripts/producers/market/demo-producer.mjs", "--input", "/tmp/x.csv", "--apply"]);
   assert.throws(() => buildCommands(entry, { mode: "bogus" }), /mode must be dry or apply/);
 });
+
+// ---- lane L4-E (2026-10-08): the optional entity_id of an entry ------------------------------------------
+
+import { entityId } from "../../../src/lib/entities/entity-id.mjs";
+import { PRODUCER_ENTITY_ID_ENV } from "./load-registry.mjs";
+
+const EU_ENTITY = entityId("jurisdiction", "EU");
+
+test("entity_id: a well-formed id loads; the shape is checked, never a live table", () => {
+  const dir = fixtureDir({ "demo-producer.json": good({ entity_id: EU_ENTITY }) });
+  try {
+    assert.equal(loadProducerRegistry(dir, { exists })[0].entity_id, EU_ENTITY);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+for (const [label, value] of [
+  ["not an entity id at all", "european-union"],
+  ["right prefix, hex too short", "cl:jurisdiction:9170a8b2"],
+  ["upper-case hex", "cl:jurisdiction:9170A8B2FB3234BA"],
+  ["unknown kind", "cl:planet:9170a8b2fb3234ba"],
+  ["empty string", ""],
+  ["a number", 7],
+]) {
+  test(`entity_id is refused: ${label}`, () => {
+    const dir = fixtureDir({ "demo-producer.json": good({ entity_id: value }) });
+    try {
+      assert.throws(() => loadProducerRegistry(dir, { exists }), /entity_id must be a well-formed entity id/);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+}
+
+test("buildCommands: an entry's entity_id reaches the producer child only, as PRODUCER_ENTITY_ID; an entry without one sets nothing", () => {
+  const withEntity = good({
+    entity_id: EU_ENTITY,
+    pre: { script: "scripts/producers/market/fetch-demo.mjs", since_flag: "--since" },
+  });
+  const [pre, main] = buildCommands(withEntity, { mode: "apply" });
+  assert.equal(PRODUCER_ENTITY_ID_ENV, "PRODUCER_ENTITY_ID");
+  assert.equal(pre.env[PRODUCER_ENTITY_ID_ENV], undefined, "the fetch stage writes nothing and gets no entity");
+  assert.equal(main.env[PRODUCER_ENTITY_ID_ENV], EU_ENTITY);
+  assert.equal(main.env.MARKET_PRODUCER_DEMO_ENABLED, "1", "the kill switch is still set beside it");
+  const [plain] = buildCommands(good(), { mode: "dry" });
+  assert.equal(PRODUCER_ENTITY_ID_ENV in plain.env, false);
+});
+
+test("the real registry: the series that describe one jurisdiction carry that jurisdiction's entity id; ecb-fx and sbti carry none", () => {
+  const byName = Object.fromEntries(loadProducerRegistry(REGISTRY_DIR).map((e) => [e.name, e]));
+  assert.equal(byName["eu-weekly-oil-bulletin"].entity_id, entityId("jurisdiction", "EU"));
+  assert.equal(byName["eia-v2-petroleum-spot"].entity_id, entityId("jurisdiction", "US"));
+  assert.equal("entity_id" in byName["ecb-fx"], false);
+  assert.equal("entity_id" in byName["sbti-target-dashboard"], false);
+});

@@ -35,8 +35,6 @@
 //   2 = engine error
 
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import { rules } from './manifest.mjs';
 import {
   buildContextForProposedCommit,
@@ -47,6 +45,7 @@ import {
 } from './lib/context.mjs';
 import { resolveRange } from './lib/change-range.mjs';
 import { STATUS } from './lib/result.mjs';
+import { appendFirings, firingLogPath } from './lib/firing-log.mjs';
 import { isMainModule } from '../scripts/lib/is-main.mjs';
 
 function parseArgs(argv) {
@@ -201,35 +200,24 @@ function runOnContext(ctx, args, mode) {
   return failed.length > 0 ? 1 : 0;
 }
 
-const FIRING_LOG_DEFAULT = join(import.meta.dirname, 'governance', '.hook-firings.log');
 const MAX_FAIL_LINES_LOGGED = 50;
 
-// One JSON line per firing. Never throws: a log that cannot be written must not change a commit's verdict.
+// One JSON line per firing, through lib/firing-log.mjs (the one writer every gate shares). Never throws: a
+// log that cannot be written must not change a commit's verdict. Fixture mode writes nothing unless
+// DISCIPLINE_FIRING_LOG names a path.
 function logFirings(results, mode, baseline) {
-  try {
-    const target = process.env.DISCIPLINE_FIRING_LOG;
-    if (target === 'off') return;
-    if (mode === 'fixture' && !target) return;
-    const path = target || FIRING_LOG_DEFAULT;
-    const ts = new Date().toISOString();
-    const lines = [];
-    for (const r of results) {
-      if (r.status === STATUS.SKIP) continue;
-      if (r.status === STATUS.FAIL) {
-        const locations = (r.locations && r.locations.length ? r.locations : [{ path: null, line: null }]).slice(0, MAX_FAIL_LINES_LOGGED);
-        for (const loc of locations) {
-          lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: loc.path ?? null, line: loc.line ?? null, verdict: 'FAIL', baseline }));
-        }
-      } else {
-        lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: null, line: null, verdict: 'PASS', baseline }));
-      }
+  if (mode === 'fixture' && !process.env.DISCIPLINE_FIRING_LOG) return;
+  const entries = [];
+  for (const r of results) {
+    if (r.status === STATUS.SKIP) continue;
+    if (r.status === STATUS.FAIL) {
+      const locations = (r.locations && r.locations.length ? r.locations : [{ path: null, line: null }]).slice(0, MAX_FAIL_LINES_LOGGED);
+      for (const loc of locations) entries.push({ rule: r.rule.id, mode, path: loc.path ?? null, line: loc.line ?? null, verdict: 'FAIL', baseline });
+    } else {
+      entries.push({ rule: r.rule.id, mode, path: null, line: null, verdict: 'PASS', baseline });
     }
-    if (lines.length === 0) return;
-    mkdirSync(dirname(path), { recursive: true });
-    appendFileSync(path, `${lines.join('\n')}\n`);
-  } catch {
-    // intentionally swallowed, see above
   }
+  appendFirings(entries, { path: firingLogPath() });
 }
 
 function printResults(results, args) {

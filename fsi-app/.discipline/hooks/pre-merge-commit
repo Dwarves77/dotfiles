@@ -1,0 +1,25 @@
+#!/bin/sh
+# Installed from fsi-app/.discipline/hooks/pre-merge-commit
+# WORKTREE-ISOLATION guard (RD-19), merge leg (lane GATE-7, 2026-10-08, register attack A-H1-6).
+#
+# `git merge --no-ff` (and any merge that makes a merge commit) runs commit-msg but NOT pre-commit, so a
+# merge commit landed in the MAIN checkout past the pre-commit block. This is the same block for the merge
+# commit: the main checkout takes no commits or merges, from anyone. A fast-forward merge makes no commit
+# and runs no pre-merge-commit hook, so vault-sync's fast-forward of the main checkout is unaffected.
+# Emergency bypass: git merge --no-verify.
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$REPO_ROOT" ] || exit 0
+
+RUNNER="$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"
+
+if command -v node >/dev/null 2>&1 && [ -f "$RUNNER" ]; then
+  exec node "$RUNNER" --mode=pre-merge-commit
+fi
+
+[ -f "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh" ] && . "$REPO_ROOT/fsi-app/.discipline/hooks/lib/main-checkout-guard.sh"
+if command -v wt_in_main_checkout >/dev/null 2>&1 && wt_in_main_checkout; then
+  echo "[worktree-isolation pre-merge-commit] WORKTREE-ISOLATION VIOLATION (RD-19): merge commit BLOCKED in the MAIN checkout (node not found, decided in shell). Work in a worktree under .claude/worktrees/." >&2
+  exit 1
+fi
+exit 0

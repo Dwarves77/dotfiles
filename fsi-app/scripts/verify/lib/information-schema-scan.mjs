@@ -69,16 +69,3 @@ export async function fetchForeignKeys(client) {
     WHERE tc.table_schema = 'public' AND tc.constraint_type = 'FOREIGN KEY';`);
   return rows;
 }
-
-/** One shared snapshot: everything both audits need, fetched once per process. Each audit still connects
- * its own pg.Client (they run as separate spawned processes under run-data-audit-lane.mjs), but both call
- * through this one function so the four queries above have exactly one call site each in the whole repo. */
-export async function fetchSchemaSnapshot(client) {
-  const [columns, tables, primaryKeyColumns, foreignKeys] = await Promise.all([
-    fetchColumns(client),
-    fetchTables(client),
-    fetchPrimaryKeyColumns(client),
-    fetchForeignKeys(client),
-  ]);
-  return { columns, tables, primaryKeyColumns, foreignKeys };
-}

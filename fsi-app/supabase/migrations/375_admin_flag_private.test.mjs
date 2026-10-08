@@ -14,6 +14,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkDefinerHygiene } from "../../.discipline/fitness/functions/F70-definer-hygiene.mjs";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const FSI = join(HERE, "..", "..");
@@ -22,10 +23,9 @@ const RAW = readFileSync(join(HERE, NAME), "utf8");
 const strip = (sql) => sql.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const SQL = strip(RAW);
 
-test("header: subject line and APPLIED with the ledger version", () => {
+test("header: subject line and applied status as the map says", () => {
   assert.match(RAW, /^-- subject: Migration 375 /);
-  assert.match(RAW, /APPLIED \(production ledger version 20261008131209, as of 2026-10-08\)/);
-  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "375_admin_flag_private.sql"), []);
 });
 
 test("one transaction, BEGIN first and COMMIT last", () => {

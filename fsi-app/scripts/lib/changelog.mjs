@@ -49,7 +49,7 @@ export function impactLevelForSeverity(severity) {
 
 /** item_changelog.field → item_changelog.detected_by (part (a)'s own vocabulary: "record-briefs" for
  *  a regenerated full_brief, "timeline-backfill" for a backfilled timeline addition). */
-export const DETECTED_BY_BY_FIELD = Object.freeze({
+const DETECTED_BY_BY_FIELD = Object.freeze({
   full_brief: "record-briefs",
   timeline: "timeline-backfill",
 });

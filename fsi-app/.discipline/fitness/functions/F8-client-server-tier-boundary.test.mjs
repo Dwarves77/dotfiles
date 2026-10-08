@@ -93,3 +93,43 @@ test('F8: has required metadata fields', () => {
   assert.equal(fitnessFunction.id, 'F8');
   assert.ok(fitnessFunction.source.includes('OBS-62'));
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+const CLIENT = 'fsi-app/src/components/sources/Foo.tsx';
+
+test('F8 B1-07: a URL string earlier on the line does not truncate the scan', () => {
+  const src = 'const u = "https://example.com/a"; ' + TIER_ASSIGN;
+  assert.equal(fitnessFunction.check(CLIENT, src).length, 1);
+});
+
+test('F8 B1-08: a bracket-key assignment is the same write', () => {
+  assert.equal(fitnessFunction.check(CLIENT, 'body["base_' + 'tier"] = x;').length, 1);
+  assert.equal(fitnessFunction.check(CLIENT, "body['effective_" + "tier'] = x;").length, 1);
+});
+
+test('F8 B1-09: a multi-line object literal with the tier key on its own line', () => {
+  const src = 'await fetch("/api/x", {\n  method: "POST",\n  body: JSON.stringify({\n    url,\n    tier' + ': 3,\n  }),\n});';
+  assert.equal(fitnessFunction.check(CLIENT, src).length >= 1, true);
+});
+
+test('F8 B1-10: client code under src/lib/client and "use client" files outside the component dirs are enumerated', () => {
+  const body = fitnessFunction.enumerate.toString();
+  assert.match(body, /lib\/client/);
+  assert.match(body, /use client/);
+});
+
+test('F8 B1-11: Object.assign into the body in a file that spells a tier key is a write', () => {
+  const src = 'const extra = JSON.parse(raw); // { "tier' + '": 2 }\nconst payload2 = { "tier' + '": 2 };\nObject.assign(body, extra);';
+  assert.equal(fitnessFunction.check(CLIENT, src).length >= 1, true);
+});
+
+test('F8: a forged override marker inside a string is not an override', () => {
+  const src = 'const m = "// fitness-allow: F8 (forged)"; ' + TIER_ASSIGN;
+  assert.equal(fitnessFunction.check(CLIENT, src).length, 1);
+});
+
+test('F8: comparisons, reads and a tier key far from any request are clean', () => {
+  assert.deepEqual(fitnessFunction.check(CLIENT, 'if (body.tier === 3) { go(); }\nconst t = body.base_tier;'), []);
+  assert.deepEqual(fitnessFunction.check(CLIENT, 'const cfg = { tier' + ': 3 };\n\n\n\n\n\n\n\nawait fetch("/api/x");'), []);
+});

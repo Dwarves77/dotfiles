@@ -39,12 +39,12 @@ import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE } from "../../src/lib/cla
 import { discoverVerdictsFiles } from "../turns/run-ledger-consume.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const DEFAULT_LEDGER_VERDICTS_DIR = resolve(HERE, "..", "turns", "ledger-verdicts");
+const DEFAULT_LEDGER_VERDICTS_DIR = resolve(HERE, "..", "turns", "ledger-verdicts");
 // Task 3.5 (W9 brief-chain plan Part 3): the SAME two harness-run families run-population-flywheel.mjs
 // (mint) and apply-record-briefs.mjs (brief-apply) already read/write -- never a second, drifting copy of
 // either path.
 export const DEFAULT_MINT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "mint");
-export const DEFAULT_BRIEF_APPLY_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "brief-apply");
+const DEFAULT_BRIEF_APPLY_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "brief-apply");
 
 /**
  * Task 3.5, PURE, no I/O: the "briefs pending" queue this population-report entry watches. A live
@@ -187,7 +187,7 @@ export function bucketBriefsOwedByTypeAndAge(items, nowMs) {
  * @param {{nowMs?: number}} [opts]
  * @returns {Promise<{result: ReturnType<typeof bucketBriefsOwedByTypeAndAge>|null, error:{message:string}|null}>}
  */
-export async function countBriefsOwed(sb, { nowMs = Date.now() } = {}) {
+async function countBriefsOwed(sb, { nowMs = Date.now() } = {}) {
   try {
     const liveRecordItems = await readAll("intelligence_items", "id, item_type, created_at", {
       match: (q) => q.eq("item_grade", "record").eq("provenance_status", "verified").eq("is_archived", false),
@@ -370,7 +370,7 @@ export function describeTimelineCoverageState(state, counts) {
 export const AXIS_CLASSIFICATION_CREATED_BY = createdBy(AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE);
 
 /** Pure predicate set, shared by countOpenFlagsByFamily below and this file's own tests. */
-export const FLAG_FAMILY_PREDICATES = Object.freeze({
+const FLAG_FAMILY_PREDICATES = Object.freeze({
   tag: (r) => typeof r?.created_by === "string" && r.created_by.startsWith(TAG_NAMESPACE),
   axisSourceClassification: (r) => r?.created_by === AXIS_CLASSIFICATION_CREATED_BY,
   signal: (r) => typeof r?.created_by === "string" && r.created_by.startsWith(SIGNAL_NAMESPACE),
@@ -394,7 +394,7 @@ export function computeOpenFlagsByFamily(flagRows, family) {
  * @param {"tag"|"axisSourceClassification"|"signal"} family
  * @returns {Promise<{count:number|null, error:{message:string}|null}>}
  */
-export async function countOpenFlagsByFamily(sb, family) {
+async function countOpenFlagsByFamily(sb, family) {
   try {
     const rows = await readAll("integrity_flags", "created_by", { match: (q) => q.eq("status", "open"), client: sb });
     return { count: computeOpenFlagsByFamily(rows, family), error: null };
@@ -421,7 +421,7 @@ export function describeOpenFlagsByFamilyState(label, dispatchStep) {
  * Count pending_first_fetch rows currently status='queued'. $0, read-only, count-only (head:true, no rows
  * fetched). @param {object} sb @returns {Promise<{count:number|null, error:{message:string}|null}>}
  */
-export async function countFetchDrainQueued(sb) {
+async function countFetchDrainQueued(sb) {
   try {
     const res = await sb.from("pending_first_fetch").select("*", { count: "exact", head: true }).eq("status", "queued");
     if (res.error) throw new Error(res.error.message);
@@ -432,7 +432,7 @@ export async function countFetchDrainQueued(sb) {
 }
 
 /** describeState hook for the fetch-drain queue entry -- see renderReport's own doc comment. */
-export function describeFetchDrainQueueState(state, counts) {
+function describeFetchDrainQueueState(state, counts) {
   if (state === "EMPTY") {
     return ["0 pending_first_fetch row(s) queued: the fetch-drain queue is caught up, nothing to drain right now."];
   }
@@ -467,7 +467,7 @@ export function computeLegalConfirmationCount(flagRows) {
  * @param {object} sb
  * @returns {Promise<{count:number|null, error:{message:string}|null}>}
  */
-export async function countLegalConfirmationRows(sb) {
+async function countLegalConfirmationRows(sb) {
   try {
     const rows = await readAll("integrity_flags", "resolved_by", {
       match: (q) => q.ilike("created_by", "authorship-shard-%"),
@@ -523,7 +523,7 @@ export function computeCoverageReflectionsCount(flagRows) {
  * @param {object} sb
  * @returns {Promise<{count:number|null, error:{message:string}|null}>}
  */
-export async function countCoverageReflections(sb) {
+async function countCoverageReflections(sb) {
   try {
     const rows = await readAll("integrity_flags", "created_by, status", {
       match: (q) => q.or(`created_by.like.${GAP_NAMESPACE}%,created_by.like.${ANTICIPATE_NAMESPACE}%`),

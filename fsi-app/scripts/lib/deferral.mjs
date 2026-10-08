@@ -29,7 +29,7 @@
 // Disposition-path keywords. A valid reason must reference at least one — this is what makes the reason
 // say WHICH disposition the item is blocked awaiting (reground/relabel/register/archive/counsel/...),
 // not just "blocked". Case-insensitive substring match.
-export const DISPOSITION_PATH_KEYWORDS = [
+const DISPOSITION_PATH_KEYWORDS = [
   "reground",
   "re-ground",
   "relabel",
@@ -118,7 +118,7 @@ export function assertValidDeferral(payload, now = new Date()) {
 // it supersedes. Same reason, new date = rejected.
 
 /** Normalize a reason for renewal comparison (case + whitespace collapsed). */
-export function normalizeReason(s) {
+function normalizeReason(s) {
   return String(s == null ? "" : s).toLowerCase().replace(/\s+/g, " ").trim();
 }
 /** Do two deferral reasons name the same blocker (i.e. a repackaged renewal)? */

@@ -180,3 +180,57 @@ test('LIVE: every real migration at or above the threshold passes F70, including
   }
   assert.deepEqual(problems, []);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F70 B6-74: a "--" inside a string literal on the header line does not hide SECURITY DEFINER', () => {
+  const content = "CREATE FUNCTION public.leaky(p text DEFAULT '--') RETURNS int LANGUAGE sql SECURITY DEFINER AS $$ SELECT 1 $$;\n";
+  const found = findDefinerFunctions(content);
+  assert.deepEqual(found.map((f) => f.name), ['leaky']);
+  assert.equal(checkDefinerHygiene({ filepath: '999_fixture.sql', content }).length, 1);
+});
+
+test('F70 B6-75: REVOKE and search_path that exist only inside a block comment do not count', () => {
+  const content = [
+    'CREATE FUNCTION public.leaky() RETURNS int LANGUAGE sql SECURITY DEFINER AS $$ SELECT 1 $$;',
+    '/* REVOKE EXECUTE ON FUNCTION public.leaky() FROM PUBLIC;',
+    '   ALTER FUNCTION public.leaky() SET search_path = public, pg_temp; */',
+  ].join('\n');
+  const v = checkDefinerHygiene({ filepath: '999_fixture.sql', content });
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /REVOKE EXECUTE/);
+  assert.match(v[0].message, /search_path/);
+});
+
+test('F70 B6-76: pg_temp FIRST in the path is the unsafe order and does not satisfy the pin', () => {
+  const header = [
+    'CREATE FUNCTION public.f() RETURNS int LANGUAGE sql SECURITY DEFINER SET search_path = pg_temp, public AS $$ SELECT 1 $$;',
+    'REVOKE EXECUTE ON FUNCTION public.f() FROM PUBLIC;',
+  ].join('\n');
+  const v = checkDefinerHygiene({ filepath: '999_fixture.sql', content: header });
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /pinned search_path/);
+  const alter = [
+    'CREATE FUNCTION public.f() RETURNS int LANGUAGE sql SECURITY DEFINER AS $$ SELECT 1 $$;',
+    'REVOKE EXECUTE ON FUNCTION public.f() FROM PUBLIC;',
+    'ALTER FUNCTION public.f() SET search_path = pg_temp, public;',
+  ].join('\n');
+  assert.equal(checkDefinerHygiene({ filepath: '999_fixture.sql', content: alter }).length, 1);
+  assert.deepEqual(checkDefinerHygiene({ filepath: '999_fixture.sql', content: CLEAN }), []);
+});
+
+test('F70 B6-77: a REVOKE written for a different overload of the same name does not close the created overload', () => {
+  const content = [
+    'CREATE FUNCTION public.widget_count(p_org uuid, p_since timestamptz) RETURNS integer LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp AS $$ SELECT 1 $$;',
+    'REVOKE EXECUTE ON FUNCTION public.widget_count(uuid) FROM PUBLIC;',
+  ].join('\n');
+  const v = checkDefinerHygiene({ filepath: '999_fixture.sql', content });
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /REVOKE EXECUTE/);
+  // the matching signature, written with names and a synonym type, does close it
+  const ok = [
+    'CREATE FUNCTION public.widget_count(p_org uuid, p_since timestamptz DEFAULT now()) RETURNS integer LANGUAGE sql SECURITY DEFINER SET search_path = public, pg_temp AS $$ SELECT 1 $$;',
+    'REVOKE EXECUTE ON FUNCTION public.widget_count(uuid, timestamp with time zone) FROM PUBLIC;',
+  ].join('\n');
+  assert.deepEqual(checkDefinerHygiene({ filepath: '999_fixture.sql', content: ok }), []);
+});

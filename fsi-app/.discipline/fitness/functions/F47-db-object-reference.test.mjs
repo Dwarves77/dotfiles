@@ -67,3 +67,31 @@ test('LIVE ratchet: the committed schema replays, the counts equal the ceilings,
   assert.deepEqual(r.unreferencedFunctions.map((f) => f.name), [], 'dead functions');
   assert.deepEqual(fitnessFunction.check(), []);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F47 B6-13: a write-only table whose only reader is a comment (trailing, block or JSDoc) stays unread', () => {
+  const migrationTexts = [mig('001.sql', 'create table zz_t (id int);')];
+  const codeFiles = [
+    { file: 'src/w.ts', content: 'await supabase.from("zz_t").insert({ id: 1 });' },
+    { file: 'src/c.ts', content: 'const a = 1; // await supabase.from("zz_t").select("id");\n/* sb.from("zz_t").select("*") */\n/**\n * reads zz_t\n */\n' },
+  ];
+  const r = buildReferenceReport({ schema: replaySchema(migrationTexts), codeFiles, migrationTexts });
+  assert.deepEqual(r.unreadTables.map((t) => t.name), ['zz_t']);
+  const real = buildReferenceReport({ schema: replaySchema(migrationTexts), codeFiles: [...codeFiles, { file: 'src/r.ts', content: 'await supabase.from("zz_t").select("id");' }], migrationTexts });
+  assert.deepEqual(real.unreadTables, []);
+});
+
+test('F47 B6-14: a dead function referenced only in a workflow YAML comment is still unreferenced', () => {
+  const migrationTexts = [mig('001.sql', 'create function zz_fn() returns int language sql as $$ select 1 $$;')];
+  const codeFiles = [{ file: '.github/workflows/x.yml', content: 'jobs:\n  a:\n    steps:\n      # calls zz_fn through rpc\n      - run: echo hi # zz_fn\n      - run: echo "zz_fn"\n' }];
+  const r = buildReferenceReport({ schema: replaySchema(migrationTexts), codeFiles, migrationTexts });
+  assert.deepEqual(r.unreferencedFunctions.map((f) => f.name), ['zz_fn']);
+  const real = buildReferenceReport({ schema: replaySchema(migrationTexts), codeFiles: [{ file: 'src/c.ts', content: 'await sb.rpc("zz_fn");' }], migrationTexts });
+  assert.deepEqual(real.unreferencedFunctions, []);
+});
+
+test('F47: a SQL comment cannot hide or fake a statement, and a -- inside a string is not a comment', () => {
+  const s = replaySchema([mig('001.sql', "create table a (note text default '--');\n/* drop table a; */\n-- create table ghost (id int);")]);
+  assert.deepEqual([...s.tables.keys()], ['a']);
+});

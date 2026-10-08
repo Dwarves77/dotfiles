@@ -8,8 +8,9 @@ import { CAPTURED_BULLETIN_PAGE_TEXT } from "./refresh-published-price-statistic
 import { buildPayloadsFromCensusRows, loadCensusRows } from "../../mint/run-mint-batch.mjs";
 import { censusRowIdSet, resolveCensusRowId } from "../../mint/apply-mint-batch.mjs";
 import { validateMintPayload } from "../../mint/validate-mint-payload.mjs";
-import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -89,13 +90,16 @@ test("apply-mint-batch.mjs's resolveCensusRowId never matches these rows — row
 
 test("loadCensusRows round-trips a bare-array file the way this script's --out writes it", () => {
   const rows = buildOilBulletinCensusRows();
-  const tmp = resolve(HERE, "._tmp-oil-bulletin-rows.test.json");
+  // TESTFIX-1 (2026-10-08): the fixture file lives in a throwaway directory under the OS temp directory,
+  // never beside the module (it used to be written into this source directory for the length of the test).
+  const dir = mkdtempSync(join(tmpdir(), "oil-bulletin-rows-"));
+  const tmp = join(dir, "rows.json");
   writeFileSync(tmp, JSON.stringify(rows, null, 2) + "\n", "utf8");
   try {
     const loaded = loadCensusRows(tmp);
     assert.equal(loaded.length, 6);
     assert.deepEqual(loaded, rows);
   } finally {
-    unlinkSync(tmp);
+    rmSync(dir, { recursive: true, force: true });
   }
 });

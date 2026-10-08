@@ -84,3 +84,55 @@ test('017 scope: FAIL, an edit that turns a constant into a knob read', () => {
 });
 
 test('017: metadata', () => { assert.equal(rule.id, '017'); });
+
+// ---------------------------------------------------------------------------
+// GATE-7 (2026-10-08): honest forms from the AUD-AT-3 attack register. Built from fragments so this file
+// carries none of the patterns itself.
+// ---------------------------------------------------------------------------
+const PE = 'process' + '.env';
+
+test('017 GATE-7 A017-1: a destructured read of the environment is a read', () => {
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const { GEN_KNOB, ANTHROPIC_API_KEY } = ${PE};`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const { ANTHROPIC_API_KEY } = ${PE};`] })).status, 'PASS');
+});
+
+test('017 GATE-7 A017-2: an alias of the environment is charged where it is made', () => {
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const e = ${PE};`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const o = { ...${PE} };`] })).status, 'FAIL');
+});
+
+test('017 GATE-7 A017-3: an optional chain is a read', () => {
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const n = process?.env.GEN_KNOB;`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const n = ${PE}?.GEN_KNOB;`] })).status, 'FAIL');
+});
+
+test('017 GATE-7 A017-4: a computed key is charged, a literal bracket key is judged by its name', () => {
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const v = ${PE}[name];`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const v = ${PE}["GEN_KNOB"];`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const v = ${PE}["ANTHROPIC_API_KEY"];`] })).status, 'PASS');
+});
+
+test('017 GATE-7 A017-5: a credential-looking WORD inside a knob name does not make it a credential', () => {
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const n = ${PE}.GEN_TOKEN_BUDGET;`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const n = ${PE}.MAX_TOKENS;`] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor(GEN, { added: [`const n = ${PE}.WORKER_SECRET;`, `const m = ${PE}.OAUTH_TOKEN;`] })).status, 'PASS');
+});
+
+test('017 GATE-7 A017-6: a NEW file under src/lib/agent/ is a generation file (derived from the skill-map)', () => {
+  const p = 'fsi-app/src/lib/agent/new-generator.ts';
+  assert.equal(rule.trigger(buildContextFromFixture({ message: 'x', files: [{ path: p, status: 'A' }] })), true);
+  assert.equal(rule.check(ctxFor(p, { status: 'A', added: [ENVREAD] })).status, 'FAIL');
+  assert.equal(rule.check(ctxFor('fsi-app/src/lib/agent/new-generator.test.ts', { status: 'A', added: [ENVREAD] })).status, 'PASS');
+});
+
+test('017 GATE-7 A017-7: import.meta.env is the environment too', () => {
+  assert.equal(rule.check(ctxFor(GEN, { added: ['const n = import.meta' + '.env.GEN_KNOB;'] })).status, 'FAIL');
+});
+
+test('017 GATE-7 A017-8: adding a second knob to a line that already read one is charged for the surplus', () => {
+  const one = `const a = ${PE}.KNOB_A;`;
+  const two = `const a = ${PE}.KNOB_A, b = ${PE}.KNOB_B;`;
+  const mk = (added, removed) => buildContextFromFixture({ message: 'x', files: [{ path: GEN }], changes: [{ path: GEN, added: [added], removed: [removed] }] });
+  assert.equal(rule.check(mk(two, one)).status, 'FAIL');
+  assert.equal(rule.check(mk(`const aa = ${PE}.KNOB_A;`, one)).status, 'PASS');
+});

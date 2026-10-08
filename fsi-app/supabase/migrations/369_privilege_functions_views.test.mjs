@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const FSI = join(HERE, "..", "..");
@@ -31,10 +32,10 @@ function walk(dir, out = []) {
 const isTest = (f) => /\.(test|npmtest)\.mjs$/.test(f);
 const CODE = [...walk(join(FSI, "src")), ...walk(join(FSI, "scripts"))].filter((f) => !isTest(f));
 
-test("header: subject line, NOT APPLIED, and the file exists", () => {
+test("header: subject line, applied status as the map says, and the file exists", () => {
   assert.ok(RAW.length > 0, "migration file exists");
   assert.match(RAW, /^-- subject: Migration 369 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "369_privilege_functions_views.sql"), []);
 });
 
 test("the migration number is unique", () => {
