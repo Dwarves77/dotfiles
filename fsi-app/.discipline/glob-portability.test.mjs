@@ -29,6 +29,9 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverTests } from "./lib/test-discovery.mjs";
+// Template-literal blanking, one site (lane DAUDIT-1, coordinator ruling 2026-10-08): text inside a template
+// literal is a string, never an import, even when it reads like one (the design-audit mounts file).
+import { blankTemplateLiterals } from "./governance/coverage-scan.mjs";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."); // .discipline -> fsi-app -> repo root
 const SUITE = resolve(REPO, "fsi-app/.discipline/run-test-suite.sh");
@@ -77,7 +80,7 @@ const MODULE_RES = [
  *  NON-erasable syntax (enum/namespace/parameter properties) would still fail at CI runtime —
  *  the suite run itself is the check for that. */
 function nonPortableSpecifiers(src) {
-  const noComments = src.replace(/\/\/[^\n]*/g, ""); // drop line comments so "// ...from 'x'..." can't false-trip
+  const noComments = blankTemplateLiterals(src).replace(/\/\/[^\n]*/g, ""); // drop template bodies and line comments so "// ...from 'x'..." can't false-trip
   const bad = [];
   for (const re of MODULE_RES) {
     for (const m of noComments.matchAll(re)) {
@@ -127,6 +130,53 @@ test("ATTACK: nonPortableSpecifiers still passes relative and node: specifiers (
   assert.deepEqual(nonPortableSpecifiers(src), []);
 });
 
+// Template literals (lane DAUDIT-1, 2026-10-08): audit/mounts.mjs holds browser entry modules as template
+// strings that contain import statements as text. The transitive walk followed that text as real imports
+// and reported dozens of bare/alias imports that no node process ever loads. Import extraction now ignores
+// template-literal bodies; a real import statement still counts.
+const BT = "`";
+test("ATTACK: an 'import' that exists only inside a template literal is not followed (direct and transitive extraction)", () => {
+  const src = [
+    `const ENTRY = ${BT}`,
+    "import React from 'react';",
+    "import { X } from '@/components/ui/X';",
+    "${STYLE_INJECT}",
+    `${BT};`,
+    "export const ok = 1;",
+  ].join("\n");
+  assert.deepEqual(nonPortableSpecifiers(src), []);
+  assert.deepEqual(staticSpecifiers(src), []);
+});
+
+test("ATTACK: a real import beside a template literal that mentions imports is still caught", () => {
+  const src = [
+    'import real from "some-pkg";',
+    `const ENTRY = ${BT}import { X } from '@/components/ui/X';${BT};`,
+    'import local from "./local.mjs";',
+  ].join("\n");
+  assert.deepEqual(staticSpecifiers(src), ["some-pkg", "./local.mjs"]);
+  const found = nonPortableSpecifiers(src);
+  assert.equal(found.length, 1);
+  assert.match(found[0], /^some-pkg /);
+});
+
+test("ATTACK: a backtick inside a comment or an ordinary string does not open a template and hide a real import", () => {
+  const src = [
+    `// a stray ${BT} backtick in a comment`,
+    `const s = "a ${BT} in a string";`,
+    'import real from "some-pkg";',
+  ].join("\n");
+  assert.deepEqual(staticSpecifiers(src), ["some-pkg"]);
+});
+
+test("ATTACK: a template nested inside a dollar-brace expression is blanked with its parent and does not end it early", () => {
+  const src = [
+    `const E = ${BT}a \${ f(${BT}inner${BT}) } import { X } from '@/y' ${BT};`,
+    'import real from "some-pkg";',
+  ].join("\n");
+  assert.deepEqual(staticSpecifiers(src), ["some-pkg"]);
+});
+
 // TRANSITIVE CHECK (2026-09-12). The direct-import check above missed two CI reds in one day: layout-guard.test.mjs
 // (PR #632) reached esbuild through run-layout-guard.mjs and the smoke harness, and apply-record-briefs.test.mjs
 // (PR #640) reached @supabase/supabase-js through the driver it imports. Both passed locally because node_modules
@@ -148,7 +198,7 @@ const STATIC_MODULE_RES = [
 ];
 const DYNAMIC_RELATIVE_RE = /\b(?:import|require)\s*\(\s*["'](\.\.?\/[^"']+)["']/g;
 function staticSpecifiers(src, { includeDynamicRelative = false } = {}) {
-  const noComments = src.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const noComments = blankTemplateLiterals(src).replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
   const out = [];
   for (const re of STATIC_MODULE_RES) for (const m of noComments.matchAll(re)) out.push(m[1]);
   if (includeDynamicRelative) for (const m of noComments.matchAll(DYNAMIC_RELATIVE_RE)) out.push(m[1]);

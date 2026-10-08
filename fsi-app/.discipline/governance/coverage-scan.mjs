@@ -105,6 +105,90 @@ export function stripComments(src) {
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
+/**
+ * Blank the BODY of every template literal (keeping the backticks and every newline, so line numbers
+ * survive), so text that merely LOOKS like code inside one is never read as code. Lane DAUDIT-1
+ * (2026-10-08, coordinator ruling): the design-audit mounts file carries browser entry modules as template
+ * strings, `import { X } from '@/components/...'` among them, and glob-portability.test.mjs followed
+ * those as real imports. Comments and ordinary quoted strings are walked past (not blanked), so a
+ * backtick inside either never opens a template; `${ ... }` expressions are blanked with the rest of the
+ * template, nested templates included. Pure. Exported for glob-portability.test.mjs and its own test.
+ */
+export function blankTemplateLiterals(src) {
+  const s = String(src);
+  const n = s.length;
+  let out = '';
+  let i = 0;
+  const blank = (t) => t.replace(/[^\n]/g, ' ');
+  // Index just past the template that opens at s[start] === '`'; nested `${ }` expressions recurse.
+  const templateEnd = (start) => {
+    let j = start + 1;
+    while (j < n) {
+      const c = s[j];
+      if (c === '\\') { j += 2; continue; }
+      if (c === '`') return j + 1;
+      if (c === '$' && s[j + 1] === '{') {
+        let depth = 1;
+        j += 2;
+        while (j < n && depth > 0) {
+          const d = s[j];
+          if (d === '\\') { j += 2; continue; }
+          if (d === '`') { j = templateEnd(j); continue; }
+          if (d === '"' || d === "'") {
+            const q = d;
+            j += 1;
+            while (j < n && s[j] !== q && s[j] !== '\n') j += s[j] === '\\' ? 2 : 1;
+            j += 1;
+            continue;
+          }
+          if (d === '{') depth += 1;
+          else if (d === '}') depth -= 1;
+          j += 1;
+        }
+        continue;
+      }
+      j += 1;
+    }
+    return n;
+  };
+  while (i < n) {
+    const c = s[i];
+    const c2 = s[i + 1];
+    if (c === '/' && c2 === '*') {
+      const end = s.indexOf('*/', i + 2);
+      const stop = end === -1 ? n : end + 2;
+      out += s.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    if (c === '/' && c2 === '/') {
+      const end = s.indexOf('\n', i);
+      const stop = end === -1 ? n : end;
+      out += s.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < n && s[j] !== c && s[j] !== '\n') j += s[j] === '\\' ? 2 : 1;
+      const stop = Math.min(j + 1, n);
+      out += s.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    if (c === '`') {
+      const stop = templateEnd(i);
+      const closed = s[stop - 1] === '`' && stop - 1 > i;
+      out += '`' + blank(s.slice(i + 1, closed ? stop - 1 : stop)) + (closed ? '`' : '');
+      i = stop;
+      continue;
+    }
+    out += c;
+    i += 1;
+  }
+  return out;
+}
+
 function walk(absDir, acc = []) {
   if (!existsSync(absDir)) return acc;
   for (const d of readdirSync(absDir, { withFileTypes: true })) {

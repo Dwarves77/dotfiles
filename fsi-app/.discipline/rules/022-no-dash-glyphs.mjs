@@ -57,6 +57,16 @@ const MARKER = 'glyph:verbatim';
 const DESIGN_HANDOFF_BUNDLE_FILE_RE =
   /(^|\/)docs\/design\/handoff-\d{4}-\d{2}-\d{2}\/(README\.md|support\.js|[^/]+\.dc\.html)$/;
 
+// Design-audit generator output (lane DAUDIT-1, coordinator ruling 2026-10-08): rule 022 governs authored
+// text, and these two files are written by fsi-app/.discipline/rendering/audit/run-audit.mjs, which copies
+// spec prose and measured page strings verbatim. Reason: generator output: copies spec prose and measured
+// page strings verbatim. EXACT paths only, so an authored file beside them (a spec JSON, the audit README,
+// DEVIATION-LOG.md, a differently named results file) stays under the rule.
+const GENERATED_AUDIT_OUTPUT_PATHS = new Set([
+  'fsi-app/.discipline/rendering/audit/results.json',
+  'docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md',
+]);
+
 function normalize(p) {
   return String(p).replaceAll('\\', '/');
 }
@@ -71,6 +81,7 @@ function isExemptPath(path) {
   if (p.includes('docs/archive/')) return true;
   if (p.split('/').includes('fixtures')) return true;
   if (isDesignHandoffBundleFile(p)) return true;
+  if (GENERATED_AUDIT_OUTPUT_PATHS.has(p) || [...GENERATED_AUDIT_OUTPUT_PATHS].some((g) => p.endsWith('/' + g))) return true;
   return false;
 }
 
