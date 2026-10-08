@@ -103,6 +103,9 @@ const ARCHIVE_RE = /^(?:fsi-app\/)?docs\/archive\//;
 const GENERATED_AUDIT_OUTPUT_PATHS = new Set([
   'fsi-app/.discipline/rendering/audit/results.json',
   'docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md',
+  // Generated harness ledger export (coordinator ruling 2026-10-08, DAUDIT-1 precedent). Reason: generated
+  // harness ledger export; skip_reason strings are run data, written by scripts/lib/export-harness-ledger.mjs.
+  'fsi-app/.discipline/governance/harness-ledger-export.json',
 ]);
 
 function normalize(p) {

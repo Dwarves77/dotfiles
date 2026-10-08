@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-08T15:56:18.841Z",
-  "count": 367,
+  "synced_at": "2026-10-08T22:59:20.761Z",
+  "count": 368,
   "migrations": [
     {
       "version": "001",
@@ -1470,6 +1470,10 @@
     {
       "version": "20261008134702",
       "name": "377_entity_hierarchy_and_aliases"
+    },
+    {
+      "version": "20261008225033",
+      "name": "374_gin_index_and_lifecycle_applied"
     }
   ]
 }

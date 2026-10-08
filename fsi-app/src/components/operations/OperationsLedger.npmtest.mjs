@@ -1,7 +1,7 @@
 // Structural regression test for src/components/operations/OperationsLedger.tsx (DEFECT-FIX item
 // 3.3, 2026-09-07). No JSX render harness exists in this repo (see WatchButton.npmtest.mjs's own
 // header for the same constraint) — this reads the component's source text to guard the contract
-// point the audit named: the "Regions side by side" matrix renders all six D1-D6 dimensions, same
+// point the audit named: the "Regions side by side" matrix renders every D1-D7 dimension, same
 // order everywhere, never five with regulatory_feasibility silently dropped.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -14,7 +14,7 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-test("DIMENSIONS carries all six D1-D6 dimensions, regulatory_feasibility first, operational_cost last", () => {
+test("DIMENSIONS carries all seven D1-D7 dimensions, regulatory_feasibility first, grid_intensity (migration 378) last", () => {
   const start = SOURCE.indexOf("const DIMENSIONS: Dimension[] = [");
   assert.notEqual(start, -1);
   const body = SOURCE.slice(start, SOURCE.indexOf("];", start));
@@ -26,7 +26,21 @@ test("DIMENSIONS carries all six D1-D6 dimensions, regulatory_feasibility first,
     "materials_sourcing",
     "infrastructure",
     "operational_cost",
+    "grid_intensity",
   ]);
+});
+
+// Lane S8-E5: the masthead's dimension count is derived from the constant, so adding a dimension cannot leave
+// the page claiming the old number; the matrix, the rail facet, the coverage gaps and the statements all read
+// MATRIX_DIMENSIONS, so D7 reaches every one of them from the one entry.
+test("the masthead dimension count is derived from MATRIX_DIMENSIONS, not typed", () => {
+  const code = SOURCE.split(String.fromCharCode(10)).filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*") && !l.trim().startsWith("/*")).join(" ");
+  assert.equal(code.includes("six dimensions per"), false, "no typed count word in the rendered masthead");
+  assert.match(SOURCE, /NUMBER_WORDS\[MATRIX_DIMENSIONS\.length\]/);
+  assert.match(SOURCE, /\{DIMENSION_COUNT_WORD\} dimensions per/);
+  for (const reader of ["sourcedDimensions: MATRIX_DIMENSIONS.map", "dimensions: MATRIX_DIMENSIONS.map", "return MATRIX_DIMENSIONS.map((d) => {", "filled < MATRIX_DIMENSIONS.length"]) {
+    assert.ok(SOURCE.includes(reader), `reader of MATRIX_DIMENSIONS: ${reader}`);
+  }
 });
 
 test("the matrix's dimension list is NOT filtered — MATRIX_DIMENSIONS is DIMENSIONS itself, no regulatory_feasibility exclusion survives", () => {
@@ -41,7 +55,7 @@ test("the matrix's dimension list is NOT filtered — MATRIX_DIMENSIONS is DIMEN
 // Lane comp-08 (2026-09-08) added artboard 08's DIMENSION facet, so the matrix's dimension list is
 // now `matrixDimensions` — MATRIX_DIMENSIONS narrowed by the reader's own facet selection. The
 // INVARIANT this test guards is unchanged and still the point: with no facet selected the matrix is
-// fed all six, and no filter is baked into the derivation. Only the mount moved.
+// fed every dimension, and no filter is baked into the derivation. Only the mount moved.
 test("<RegionDimensionMatrix> is fed the full MATRIX_DIMENSIONS unless the reader narrows it", () => {
   assert.match(SOURCE, /dimensions=\{matrixDimensions\.map/);
   const start = SOURCE.indexOf("const matrixDimensions = useMemo(");

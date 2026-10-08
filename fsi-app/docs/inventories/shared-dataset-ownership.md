@@ -860,6 +860,20 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
     out of this task's scope. NAMED AND FIXED (same day, third coordinator follow-up): the
     `bls-oews-producer.mjs` annual/hourly wage-unit mismatch flagged when this task-3 entry was first
     written — see the `bls-oews-producer.mjs` bullet above for the fix.
+  - `fsi-app/scripts/producers/regional/neso-carbon-intensity-producer.mjs`: `region_code='UK'`,
+    `dimension='grid_intensity'` (**added by lane S8-E5, 2026-10-08, coordinator ruling A**; the dimension is
+    migration 378's seventh value, NOT APPLIED at the time of writing). One current-state fact: the NESO Carbon
+    Intensity API daily average in `gCO2/kWh`, `derivation:'observed'`, `origin_class:'official'`,
+    `source_key='neso_carbon_intensity'` (a `data_sources` row migration 378 inserts), `as_at_date` the API's
+    period end. Disjoint from every sibling's `(region_code, dimension)` slice. It is NOT a
+    `run-envelope-producer.mjs` caller: it reuses that module's `toCandidateRows` / `latestPerNaturalKey`
+    but writes through its own guarded loop so each row carries `source_id`, the `sources` row registered
+    through `registerSource` at the tier the institution class table gives it, read through the committed host
+    verdict batch `host-verdicts-001.json` (gov, tier 2), never typed (rule 18). Gates: source-level `ENABLED`
+    (false), kill switch `REGIONAL_PRODUCER_NESO_CARBON_INTENSITY_ENABLED`, `--apply`, plus a refusal when the
+    `data_sources` row or the `UK` region row is absent. Registered in
+    `scripts/producers/registry/neso-carbon-intensity.json` (`in_all: false` until armed). The
+    `auxiliary_energy_profiles.grid_intensity_source` column only NAMES this source and is unchanged.
 - **`sensitive_field_policy`** and **`aggregate_query_log`** (migration 287) — `sensitive_field_policy` is
   operator-maintained reference data (no application writer in this lane, seeded by the migration itself);
   `aggregate_query_log` is written exclusively by migration 287's `publish_aggregate()` SECURITY DEFINER

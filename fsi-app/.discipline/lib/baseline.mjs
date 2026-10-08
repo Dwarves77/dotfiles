@@ -15,6 +15,8 @@
 //   staged (commit-msg)  baseline = merge-base(origin/<base>, HEAD)             diff --cached <baseline>
 //   commit (CI, one sha) baseline = merge-base(origin/<base>, <sha>)            diff <baseline> <sha>
 //   range  (CI, whole)   baseline = the range's own base, already a merge-base  diff <range>
+//   staged, merge in progress (MERGE_HEAD exists; RULE-MERGE-1)
+//                        baseline = both parents (HEAD+MERGE_HEAD)             lines in neither parent
 // <base> is BASE_REF when the workflow sets it (the PR base ref it already resolves), else master.
 //
 // FALLBACK, NAMED NEVER SILENT. When there is no merge base to use, the baseline is the previous commit (the
@@ -47,14 +49,31 @@ function fallback(kind, reason) {
   };
 }
 
+// The baseline of a proposed merge commit. `ref` is a descriptor, not a git revision: context.mjs diffs the index
+// against each parent (HEAD and MERGE_HEAD) and keeps the added lines both diffs report.
+const MERGE_PARENTS_BASELINE = Object.freeze({
+  ref: 'HEAD+MERGE_HEAD',
+  source: 'merge-parents',
+  label: 'merge commit: lines in neither parent',
+});
+
+function mergeInProgress(git) {
+  try {
+    return git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], QUIET).trim() !== '';
+  } catch {
+    return false; // rev-parse -q --verify exits non-zero when MERGE_HEAD does not exist
+  }
+}
+
 /**
  * @param {{ kind: 'staged'|'commit', head?: string, env?: NodeJS.ProcessEnv, cwd?: string,
  *           git: (args: string[], opts?: object) => string }} opts
  *   kind 'staged': the baseline for the index against HEAD. kind 'commit': for the commit `head` (a sha).
  *   `git` runs one git command at the repo root and returns stdout; it throws on a non-zero exit.
- * @returns {{ ref: string|null, source: 'merge-base'|'fallback', label: string }}
+ * @returns {{ ref: string|null, source: 'merge-base'|'merge-parents'|'fallback', label: string }}
  *   `ref` is the commit the diff is taken against, or null when the caller must use the previous-commit
- *   shape (git diff --cached / git show).
+ *   shape (git diff --cached / git show). source 'merge-parents' (a staged context while a merge is in
+ *   progress) carries the descriptor 'HEAD+MERGE_HEAD' instead: the caller diffs against both parents.
  */
 export function resolveBaseline({ kind, head, env = process.env, cwd, git }) {
   const baseName = String(env.BASE_REF || '').trim() || 'master';
@@ -68,6 +87,12 @@ export function resolveBaseline({ kind, head, env = process.env, cwd, git }) {
     headSha = '';
   }
   if (!headSha) return fallback(kind, `${headRef} does not resolve to a commit`);
+
+  // A merge in progress (lane RULE-MERGE-1, 2026-10-08): the proposed commit has two parents, HEAD and MERGE_HEAD,
+  // and the only lines it introduces are those NEITHER parent carries. The merge base with master is the wrong
+  // measure here: merging master into a lane makes every line master added since the fork read as introduced
+  // (lane S8-E6, PR 1031). This is the one decider, so the merge case is decided here, before the merge base.
+  if (kind === 'staged' && mergeInProgress(git)) return MERGE_PARENTS_BASELINE;
 
   try {
     git(['rev-parse', '--verify', '--quiet', `${baseRef}^{commit}`], QUIET);
