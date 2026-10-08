@@ -61,7 +61,12 @@
 -- reported with a NOTICE and the patch continues to its other guards and its post-patch check. The pin guarded a production apply; this patch is
 -- already applied there, and on a replay from the repo files the function body cannot be reproduced byte for byte. The end state is checked by
 -- the schema oracle (pg_get_functiondef of every public function). Final schema unchanged.
-DO $$
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37857042119, class SEQUENCE): the ORDER BY anchor falls back to the multi-line form
+-- 272_customer_rpcs_project_jurisdiction_iso.sql writes (the live single-line text this patch was written against exists only in production),
+-- so the same tiebreak (, ii.id ASC) is appended on a replay. The count guard (exactly one anchor) still aborts on a wrong count. Whitespace
+-- differs from production only inside the CASE, which the oracle compares collapsed.
+DO $
 DECLARE
   v_def       text;
   v_pre_md5   constant text := '02936dfa040b36c54bfb06343e217bcc';
@@ -76,8 +81,31 @@ DECLARE
 '      WHEN ''CRITICAL'' THEN 1 WHEN ''HIGH'' THEN 2 WHEN ''MODERATE'' THEN 3 WHEN ''LOW'' THEN 4 ELSE 5 END,'||chr(10)||
 '    ii.added_date DESC, ii.id ASC;';
 
+  -- The same ORDER BY as 272_customer_rpcs_project_jurisdiction_iso.sql writes it (CASE spread over lines). The single-line form above is the live
+  -- text the author patched; on a replay from the repo files the function carries the 272 form (MIG-CI, replay run 37857042119).
+  v_old_order_ml constant text := 'ORDER BY'||chr(10)||
+'    CASE COALESCE(wo.priority_override, ii.priority)'||chr(10)||
+'      WHEN ''CRITICAL'' THEN 1'||chr(10)||
+'      WHEN ''HIGH''     THEN 2'||chr(10)||
+'      WHEN ''MODERATE'' THEN 3'||chr(10)||
+'      WHEN ''LOW''      THEN 4'||chr(10)||
+'      ELSE 5'||chr(10)||
+'    END,'||chr(10)||
+'    ii.added_date DESC;';
+  v_new_order_ml constant text := 'ORDER BY'||chr(10)||
+'    CASE COALESCE(wo.priority_override, ii.priority)'||chr(10)||
+'      WHEN ''CRITICAL'' THEN 1'||chr(10)||
+'      WHEN ''HIGH''     THEN 2'||chr(10)||
+'      WHEN ''MODERATE'' THEN 3'||chr(10)||
+'      WHEN ''LOW''      THEN 4'||chr(10)||
+'      ELSE 5'||chr(10)||
+'    END,'||chr(10)||
+'    ii.added_date DESC, ii.id ASC;';
+
   v_newdef    text;
   v_count     int;
+  v_use_old   text;
+  v_use_new   text;
 BEGIN
   SELECT pg_get_functiondef(p.oid) INTO v_def
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -97,12 +125,19 @@ BEGIN
     RAISE NOTICE '303 GUARD-PIN (replay): live get_workspace_intelligence_slim md5 % differs from the body this patch was written for (%); continuing', md5(v_def), v_pre_md5;
   END IF;
 
-  -- Count-guard: exactly 1 occurrence of the old ORDER BY
-  v_count := (length(v_def) - length(replace(v_def, v_old_order, ''))) / length(v_old_order);
+  -- Count-guard: exactly 1 occurrence of the old ORDER BY (the live single-line form, else the 272 multi-line form)
+  v_use_old := v_old_order;
+  v_use_new := v_new_order;
+  v_count := (length(v_def) - length(replace(v_def, v_use_old, ''))) / length(v_use_old);
+  IF v_count = 0 THEN
+    v_use_old := v_old_order_ml;
+    v_use_new := v_new_order_ml;
+    v_count := (length(v_def) - length(replace(v_def, v_use_old, ''))) / length(v_use_old);
+  END IF;
   IF v_count <> 1 THEN RAISE EXCEPTION 'ABORT 303: expected exactly 1 occurrence of the ORDER BY anchor, found %', v_count; END IF;
 
   -- Apply the replacement
-  v_newdef := replace(v_def, v_old_order, v_new_order);
+  v_newdef := replace(v_def, v_use_old, v_use_new);
   IF v_newdef = v_def THEN RAISE EXCEPTION 'ABORT 303: replacement produced no change'; END IF;
 
   EXECUTE v_newdef;
@@ -111,7 +146,7 @@ BEGIN
   SELECT pg_get_functiondef(p.oid) INTO v_def
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
    WHERE n.nspname = 'public' AND p.proname = 'get_workspace_intelligence_slim';
-  IF position(v_new_order IN v_def) = 0 THEN
+  IF position(v_use_new IN v_def) = 0 THEN
     RAISE EXCEPTION 'ABORT 303: post-patch definition does not carry the new ORDER BY with ii.id ASC';
   END IF;
 
