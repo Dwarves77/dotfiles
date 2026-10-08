@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, readdirSync } from "node:fs";
 import {
-  runChainSteps, stepRunIds, checkEnvironment, isLoopbackUrl, newArtifacts, sweepWindow, checkHopOrder, planLines, main, FORBIDDEN_ENV,
+  runChainSteps, stepRunIds, checkEnvironment, scrubbedEnv, newArtifacts, sweepWindow, checkHopOrder, planLines, main,
 } from "./run-chain-steps.mjs";
 import { loadManifest } from "./manifest.mjs";
 import { HOOKS } from "./prepare.mjs";
@@ -25,27 +25,36 @@ test("stepRunIds: the first script step IS the loop root; every later one append
   assert.equal(ids.preconditions, undefined);
 });
 
-test("isLoopbackUrl and checkEnvironment: only the local stack passes; production hosts and credentials are named, never echoed", () => {
-  assert.equal(isLoopbackUrl("http://127.0.0.1:54321"), true);
-  assert.equal(isLoopbackUrl("postgresql://postgres:pw@localhost:54322/postgres"), true);
-  assert.equal(isLoopbackUrl("https://abc.supabase.co"), false);
-  assert.equal(isLoopbackUrl("not a url"), false);
-  const good = { CHAIN_PROOF_LOCAL: "1", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_DB_URL: "postgresql://postgres:pw@127.0.0.1:54322/postgres", SUPABASE_SERVICE_ROLE_KEY: "k" };
-  assert.deepEqual(checkEnvironment(good), []);
-  const bad = checkEnvironment({ ...good, NEXT_PUBLIC_SUPABASE_URL: "https://abc.supabase.co", SUPABASE_DB_PASSWORD: "secret-value", APP_URL: "https://x", VERCEL_TOKEN: "t", CHAIN_PROOF_LOCAL: "0" });
-  const text = bad.join("\n");
+const LOCAL_ENV = {
+  CHAIN_PROOF_LOCAL: "1",
+  NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+  SUPABASE_DB_URL: "postgresql://postgres:pw@127.0.0.1:54322/postgres",
+  SUPABASE_SERVICE_ROLE_KEY: "local-key",
+  PROOF_SERVICE_KEY: "local-key",
+};
+
+test("checkEnvironment: only the local stack passes; production hosts and credentials are named, never echoed", () => {
+  assert.deepEqual(checkEnvironment(LOCAL_ENV), []);
+  const bad = checkEnvironment({ ...LOCAL_ENV, NEXT_PUBLIC_SUPABASE_URL: "https://abc.supabase.co", SUPABASE_DB_PASSWORD: "secret-value", APP_URL: "https://x", VERCEL_TOKEN: "t", CHAIN_PROOF_LOCAL: "0" });
+  const text = bad.join(String.fromCharCode(10));
   assert.match(text, /CHAIN_PROOF_LOCAL is not 1/);
   assert.match(text, /NEXT_PUBLIC_SUPABASE_URL does not name a loopback host/);
   assert.match(text, /forbidden credential present: SUPABASE_DB_PASSWORD/);
   assert.match(text, /forbidden credential present: APP_URL/);
   assert.match(text, /forbidden credential present: VERCEL_TOKEN/);
   assert.ok(!text.includes("secret-value"), "no value is ever printed");
-  assert.ok(FORBIDDEN_ENV.includes("GITHUB_TOKEN") && FORBIDDEN_ENV.includes("WORKER_SECRET"));
 });
 
 test("checkEnvironment refuses a walker kill switch left on", () => {
-  const good = { CHAIN_PROOF_LOCAL: "1", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", SUPABASE_DB_URL: "postgresql://p@127.0.0.1:54322/postgres", SUPABASE_SERVICE_ROLE_KEY: "k" };
-  assert.match(checkEnvironment({ ...good, RESEARCH_WALKER_ENABLED: "1" }).join(), /RESEARCH_WALKER_ENABLED/);
+  assert.match(checkEnvironment({ ...LOCAL_ENV, RESEARCH_WALKER_ENABLED: "1" }).join(), /RESEARCH_WALKER_ENABLED/);
+  assert.deepEqual(checkEnvironment({ ...LOCAL_ENV, RESEARCH_WALKER_ENABLED: "0" }), []);
+});
+
+test("scrubbedEnv: a child process never inherits a forbidden credential name or a stale upstream run id", () => {
+  const out = scrubbedEnv({ ...LOCAL_ENV, GITHUB_TOKEN: "t", WORKER_SECRET: "s", VERCEL_ENV: "x", GITHUB_EVENT_WORKFLOW_RUN_ID: "1", KEEP: "yes" });
+  assert.equal(out.KEEP, "yes");
+  assert.equal(out.SUPABASE_DB_URL, LOCAL_ENV.SUPABASE_DB_URL);
+  for (const n of ["GITHUB_TOKEN", "WORKER_SECRET", "VERCEL_ENV", "GITHUB_EVENT_WORKFLOW_RUN_ID"]) assert.equal(n in out, false, n);
 });
 
 test("newArtifacts: only files that appeared during the step, so an earlier step's artifact is never landed twice", () => {

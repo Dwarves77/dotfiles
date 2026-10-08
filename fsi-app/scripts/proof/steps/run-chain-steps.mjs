@@ -25,21 +25,23 @@
 // Counts only: the repository is public, so a row, a title or an item id is never written to the report. The step
 // scripts' own output streams to the job log (see the module note in the PROOF-3 session log on titles in logs).
 //
-// SAFETY. The runner refuses to start unless CHAIN_PROOF_LOCAL=1 and the database and API URLs name a loopback host,
-// and refuses when a production credential name is present (the same names scripts/proof/preflight.mjs refuses; the
-// workflow runs preflight first, this is the second lock). It connects with its own pg client, TLS off, to the
-// loopback URL only: it never calls scripts/lib/pg-conn.mjs, whose fallback can reach a production host.
+// SAFETY. The runner refuses to start unless scripts/proof/preflight.mjs accepts the environment (loopback hosts only,
+// no production credential name, CHAIN_PROOF_LOCAL=1; the workflow runs the same check before this step, this is the
+// second lock), and connects through scripts/lib/pg-conn.mjs, whose loopback mode (CHAIN_PROOF_LOCAL=1) holds only
+// loopback candidates and never falls through to a production host. Child processes get the environment without any
+// forbidden credential name.
 //
 // Exit: 0 every step and assertion passed; 1 a step or assertion failed (report written); 2 usage or environment.
 // Usage: node scripts/proof/steps/run-chain-steps.mjs [--manifest <path>] [--out-dir <dir>] [--plan]
 
 import { spawnSync } from "node:child_process";
-import { createRequire } from "node:module";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from "../../lib/is-main.mjs";
+import { connectPg } from "../../lib/pg-conn.mjs";
+import { checkPreflight, FORBIDDEN_NAMES, FORBIDDEN_PREFIXES } from "../preflight.mjs";
 import { loadManifest, loadHops, validateManifest, substitute, DEFAULT_MANIFEST } from "./manifest.mjs";
 import { evaluateAssertions, takeBaselines, takeSnapshots, autoAssertions, describeFailure } from "./assertions.mjs";
 import { HOOKS } from "./prepare.mjs";
@@ -48,37 +50,23 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..", "..");
 const REPORT_NAME = "chain-steps-report.json";
 
-/** Names whose presence means a production credential is in the environment. Kept equal to
- *  scripts/proof/preflight.mjs FORBIDDEN_NAMES; a later change imports that list instead of copying it. */
-export const FORBIDDEN_ENV = Object.freeze([
-  "SUPABASE_DB_PASSWORD", "APP_URL", "WORKER_SECRET", "GH_TOKEN", "GITHUB_TOKEN", "ANTHROPIC_API_KEY", "BROWSERLESS_API_KEY",
-  "RECONCILER_DB_PASSWORD", "SUPABASE_ACCESS_TOKEN", "LIVE_SMOKE_EMAIL", "LIVE_SMOKE_PASSWORD", "EIA_API_KEY", "DATA_GOV_API_KEY",
-  "NREL_API_KEY", "REGULATIONS_GOV_API_KEY", "IMODOCS_USERNAME", "IMODOCS_PASSWORD",
-]);
-
-/** True only for a loopback host in a URL. PURE. */
-export function isLoopbackUrl(value) {
-  try {
-    const h = new URL(value).hostname.replace(/^\[|\]$/g, "");
-    return h === "localhost" || h === "127.0.0.1" || h === "::1";
-  } catch {
-    return false;
-  }
-}
-
-/** Check the process environment. PURE. Returns violation strings naming variables, never values. */
+/** The environment check: the chain-proof preflight (one source of truth for the forbidden names, the loopback hosts
+ *  and CHAIN_PROOF_LOCAL) plus the one rule this runner adds, the research walker kill switch stays off. PURE.
+ *  Returns violation strings naming variables, never values. */
 export function checkEnvironment(env) {
-  const v = [];
-  if (env.CHAIN_PROOF_LOCAL !== "1") v.push("CHAIN_PROOF_LOCAL is not 1 (source the chain proof env file)");
-  for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL"]) {
-    if (!env[name]) v.push(`${name} is not set`);
-    else if (!isLoopbackUrl(env[name])) v.push(`${name} does not name a loopback host`);
-  }
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) v.push("SUPABASE_SERVICE_ROLE_KEY is not set");
-  for (const n of FORBIDDEN_ENV) if (env[n]) v.push(`forbidden credential present: ${n}`);
-  for (const n of Object.keys(env)) if (n.startsWith("VERCEL_") && env[n]) v.push(`forbidden credential present: ${n}`);
+  const v = [...checkPreflight(env).violations];
   if (env.RESEARCH_WALKER_ENABLED === "1") v.push("RESEARCH_WALKER_ENABLED is 1; the proof keeps the walker's kill switch off");
   return v;
+}
+
+/** The environment a step's child process starts from: the runner's own, minus every forbidden credential name. PURE. */
+export function scrubbedEnv(env) {
+  const out = { ...env };
+  for (const n of Object.keys(out)) {
+    if (FORBIDDEN_NAMES.includes(n) || FORBIDDEN_PREFIXES.some((p) => n.startsWith(p))) Reflect.deleteProperty(out, n);
+  }
+  Reflect.deleteProperty(out, "GITHUB_EVENT_WORKFLOW_RUN_ID");
+  return out;
 }
 
 /** The run id a script step carries as GITHUB_RUN_ID. The first script step IS the loop root (a sweep's loop id is
@@ -294,10 +282,8 @@ function parseArgs(argv) {
 
 /** The real dependencies: a loopback pg client, bash, the filesystem. Only the CLI builds this. */
 export async function realDeps({ env, fsiRoot, outDir }) {
-  const require = createRequire(import.meta.url);
-  const { Client } = require("pg");
-  const client = new Client({ connectionString: env.SUPABASE_DB_URL, ssl: false, connectionTimeoutMillis: 8000 });
-  await client.connect();
+  const client = await connectPg({ env });
+  if (!client) throw new Error("could not connect to the local database (loopback candidates only)");
   const query = async (sql, params = []) => (await client.query(sql, params)).rows;
   const tmpRoot = mkdtempSync(join(tmpdir(), "chain-steps-"));
   const listArtifacts = () => {
@@ -327,15 +313,12 @@ export async function realDeps({ env, fsiRoot, outDir }) {
       }
     },
     runScript: async ({ script, env: childEnv, cwd }) => {
-      const base = { ...env };
-      for (const n of FORBIDDEN_ENV) Reflect.deleteProperty(base, n);
-      Reflect.deleteProperty(base, "GITHUB_EVENT_WORKFLOW_RUN_ID");
-      const r = spawnSync("bash", ["-c", script], { cwd, env: { ...base, ...childEnv }, stdio: "inherit" });
+      const r = spawnSync("bash", ["-c", script], { cwd, env: { ...scrubbedEnv(env), ...childEnv }, stdio: "inherit" });
       return { status: r.error ? 1 : (r.status ?? 1), error: r.error ? r.error.message : null };
     },
     listArtifacts,
     landArtifact: async (file) => {
-      const r = spawnSync(process.execPath, ["scripts/lib/record-harness-run.mjs", "--file", file], { cwd: fsiRoot, env, stdio: "inherit" });
+      const r = spawnSync(process.execPath, ["scripts/lib/record-harness-run.mjs", "--file", file], { cwd: fsiRoot, env: scrubbedEnv(env), stdio: "inherit" });
       return r.status === 0 ? { ok: true } : { ok: false, reason: r.error ? r.error.message : `record-harness-run exited ${r.status}` };
     },
     livePromptVersion: async () => (await import("./live-prompt-version.mjs")).livePromptVersion(),
@@ -367,7 +350,8 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const loopRunId = env.CP_LOOP_RUN_ID || env.GITHUB_RUN_ID;
   if (!loopRunId || !/^\d+$/.test(loopRunId)) { console.error("run-chain-steps: CP_LOOP_RUN_ID or GITHUB_RUN_ID must be a numeric run id"); return 2; }
 
-  const deps = await realDeps({ env, fsiRoot: FSI_ROOT, outDir: resolve(outDir) });
+  let deps;
+  try { deps = await realDeps({ env, fsiRoot: FSI_ROOT, outDir: resolve(outDir) }); } catch (e) { console.error(`run-chain-steps: ${e.message}`); return 2; }
   try {
     const res = await runChainSteps({ manifest, loopRunId, env, deps });
     console.log(res.ok ? `run-chain-steps: ${res.report.steps.length} step(s) passed` : `run-chain-steps: FAILED at ${res.report.stopped_at}`);
