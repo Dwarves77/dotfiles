@@ -21,14 +21,24 @@
 //     required tools -> FAIL (exit 1).
 //   * settings.json PRESENT and fully wired                 -> PASS (exit 0).
 // Never prints settings.json contents (it holds plaintext credentials).
+//
+// WIRE-1 (2026-10-08): the repo OWNS the wrapper text and the matcher (wire-pretooluse-settings.mjs, the one
+// applier, installed by `node fsi-app/.discipline/install-hooks.mjs`). In addition to the checks above this
+// FAILS when the installed shim's bytes differ from the template rendered with the main checkout's entry path,
+// when the gate entry's matcher is not the applier's MATCHER, when the hook command is not the canonical one,
+// when an unknown tool name ("SomeNewTool") is not routed, or when the gate is wired DIRECTLY (unscoped).
+// REQUIRED gains nothing: the negative matcher covers every tool by construction.
 
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { homedir } from "node:os";
-import { resolve } from "node:path";
+import { resolve, dirname, join, isAbsolute } from "node:path";
 import { isMainModule } from "../../scripts/lib/is-main.mjs";
+import {
+  MATCHER, SHIM_FILE_NAME, TEMPLATE_REL, ENTRY_REL, renderShim, canonicalCommand,
+  mainCheckoutRoot, defaultSettingsPath, defaultUserHooksDir,
+} from "./wire-pretooluse-settings.mjs";
 
-const SETTINGS = resolve(homedir(), ".claude", "settings.json");
+const UNKNOWN_TOOL = "SomeNewTool";
 // Every tool path that can mutate the system must route to the hook. Includes representative MCP write
 // tools (which bypass Bash+git) so a matcher that omits mcp coverage FAILs this check.
 const REQUIRED = [
@@ -42,7 +52,7 @@ const REQUIRED = [
 
 // Mirror Claude Code matcher semantics: "*" or "" matches all; only [A-Za-z0-9_|] -> exact `|`-alternation;
 // anything else -> JS regex.
-function matcherMatches(matcher, tool) {
+export function matcherMatches(matcher, tool) {
   const m = String(matcher || "");
   if (m === "" || m === "*") return true;
   if (/^[A-Za-z0-9_|]+$/.test(m)) return m.split("|").map((s) => s.trim()).includes(tool);
@@ -71,14 +81,24 @@ function quotedMjsPath(command, needleRe) {
 //     (dynamic import()), calls its runGate, and AWAITS that call at the in-scope call site
 //     (`if (inScope) await <fn>(...)`). The await is load-bearing: without it the shim's trailing allow()
 //     runs first and the gate is bypassed, so an importing wrapper whose in-scope call is not awaited FAILS.
+//   * ENTRY (WIRE-1, 2026-10-08): the installed shim names the repo's pretooluse-entry.mjs, imports it,
+//     AWAITS its runEntry() and holds the fail-closed `ask` for an entry that cannot load. The entry's own
+//     source is then proven by the same function (it names the gate, imports it, awaits runGate at the
+//     in-scope call site; `if (inScope) return await ...` counts, the return ends the call before any allow).
 export function wrapperSourceDelegates(src) {
   const text = String(src ?? "");
+  if (/pretooluse-entry\.mjs/.test(text)) {
+    if (!/\bimport\s*\(/.test(text)) return { ok: false, why: "entry shim does not import the repo entry" };
+    if (!/\bawait\s+[\w.]+\.runEntry\s*\(/.test(text)) return { ok: false, why: "entry shim does not await entry.runEntry(): the output would be written before the gate answered" };
+    if (!/["']ask["']/.test(text)) return { ok: false, why: "entry shim has no fail-closed ask for an entry that cannot be loaded" };
+    return { ok: true, why: "imports the repo entry, awaits runEntry and fails closed" };
+  }
   if (!/pretooluse-skill-gate\.mjs/.test(text)) return { ok: false, why: "wrapper does not reference pretooluse-skill-gate.mjs (stopped wrapping?)" };
   if (/\bspawn(Sync)?\s*\(/.test(text)) return { ok: true, why: "spawns the gate" };
   const imports = /\bimport\s*\(/.test(text);
   const callsRunGate = /\.runGate\s*\(|\{\s*runGate\b/.test(text);
   if (!imports || !callsRunGate) return { ok: false, why: "wrapper neither spawns a child process nor imports the gate and calls its runGate (no delegation call)" };
-  if (!/\bif\s*\(\s*inScope\s*\)\s*await\s+[\w.]+\s*\(/.test(text)) {
+  if (!/\bif\s*\(\s*inScope\s*\)\s*(?:return\s+)?await\s+[\w.]+\s*\(/.test(text)) {
     return { ok: false, why: "wrapper imports the gate but does not await it at the in-scope call site (if (inScope) await ...): the trailing allow() would run first and bypass the gate" };
   }
   return { ok: true, why: "imports the gate and awaits runGate at the in-scope call site" };
@@ -90,13 +110,30 @@ function verifyWrapperDelegates(command) {
   if (!existsSync(wrapperPath)) return { ok: false, why: `wrapper file missing: ${wrapperPath}` };
   let src = "";
   try { src = readFileSync(wrapperPath, "utf8"); } catch (e) { return { ok: false, why: `wrapper unreadable: ${e.message}` }; }
-  const gateRef = src.match(/["'`]([^"'`]*pretooluse-skill-gate\.mjs)["'`]/);
-  if (!gateRef) return { ok: false, why: "wrapper does not reference pretooluse-skill-gate.mjs (stopped wrapping?)" };
   const srcProof = wrapperSourceDelegates(src);
   if (!srcProof.ok) return srcProof;
-  const gatePath = gateRef[1];
+  // Where the gate is named: in the wrapper itself (the original shapes), or, for the entry shape (WIRE-1), in
+  // the repo entry the wrapper imports; the entry names the gate relative to its own directory.
+  const gateRe = /["'`]([^"'`]*pretooluse-skill-gate\.mjs)["'`]/;
+  let gateRef;
+  let base = "";
+  const entryRef = src.match(/["'`]([^"'`]*pretooluse-entry\.mjs)["'`]/);
+  if (entryRef) {
+    const entryPath = entryRef[1];
+    if (!existsSync(entryPath)) return { ok: false, why: `delegated entry file missing: ${entryPath}` };
+    let entrySrc = "";
+    try { entrySrc = readFileSync(entryPath, "utf8"); } catch (e) { return { ok: false, why: `entry unreadable: ${e.message}` }; }
+    const entryProof = wrapperSourceDelegates(entrySrc);
+    if (!entryProof.ok) return { ok: false, why: `entry: ${entryProof.why}` };
+    gateRef = entrySrc.match(gateRe);
+    base = dirname(entryPath);
+  } else {
+    gateRef = src.match(gateRe);
+  }
+  if (!gateRef) return { ok: false, why: "wrapper does not reference pretooluse-skill-gate.mjs (stopped wrapping?)" };
+  const gatePath = isAbsolute(gateRef[1]) ? gateRef[1] : resolve(base, gateRef[1]);
   if (!existsSync(gatePath)) return { ok: false, why: `delegated gate file missing: ${gatePath}` };
-  // behavioral fire — derive an in-scope cwd at RUNTIME from the gate's own path (…/fsi-app/…), never a
+  // behavioral fire: derive an in-scope cwd at RUNTIME from the gate's own path (.../fsi-app/...), never a
   // hardcoded home path, so the wrapper's fsi-app scope check matches and it delegates.
   const fsiCwd = gatePath.replace(/([\\/]fsi-app)(?![\w-]).*$/i, "$1");
   const payload = JSON.stringify({
@@ -109,47 +146,93 @@ function verifyWrapperDelegates(command) {
   let decision = "";
   try { decision = (JSON.parse(r.stdout || "{}").hookSpecificOutput || {}).permissionDecision || ""; } catch { /* leave blank -> fail */ }
   if (decision !== "ask" && decision !== "deny") {
-    return { ok: false, why: `behavioral fire did NOT gate an in-scope git-branch op (permissionDecision=${decision || "<none>"}) — wrapper is not delegating` };
+    return { ok: false, why: `behavioral fire did NOT gate an in-scope git-branch op (permissionDecision=${decision || "<none>"}), wrapper is not delegating` };
   }
   return { ok: true, why: `verified delegating to ${gatePath} (source + behavioral fire: "${decision}")` };
 }
 
-if (isMainModule(import.meta.url)) {
-if (!existsSync(SETTINGS)) {
-  console.log(`skill-gate wiring: SKIP — ${SETTINGS} not present (CI/headless). Correctness covered by the fire-test.`);
-  process.exit(0);
+/**
+ * WIRE-1: the installed shim must equal the repo template rendered with the main checkout's entry path, byte for
+ * byte. A hand edit, a stale copy from an older template, or a different entry path all fail.
+ * @param {{ shimPath: string, mainRoot: string }} o @returns {{ ok: boolean, why: string }}
+ */
+export function checkInstalledShim({ shimPath, mainRoot }) {
+  const templatePath = join(mainRoot, TEMPLATE_REL);
+  const entryPath = join(mainRoot, ENTRY_REL);
+  if (!existsSync(templatePath)) return { ok: false, why: `cannot render the expected shim: no template at ${templatePath} in the main checkout (merge and pull first)` };
+  if (!existsSync(shimPath)) return { ok: false, why: `installed shim missing: ${shimPath}` };
+  const expected = Buffer.from(renderShim(readFileSync(templatePath, "utf8"), entryPath), "utf8");
+  if (!readFileSync(shimPath).equals(expected)) return { ok: false, why: "installed shim differs from the rendered template (bytes); the repo owns its text" };
+  return { ok: true, why: "installed shim equals the rendered template" };
 }
 
-let s;
-try { s = JSON.parse(readFileSync(SETTINGS, "utf8")); }
-catch (e) { console.error(`skill-gate wiring: FAIL — could not parse settings.json: ${e.message}`); process.exit(1); }
-
-const pre = (s.hooks && Array.isArray(s.hooks.PreToolUse)) ? s.hooks.PreToolUse : [];
-// A tool is "covered" if some PreToolUse entry that routes to the gate (directly, or via a VERIFIED scope
-// wrapper) has a matcher matching it.
-const covered = new Set();
-let wrapperNote = "";
-for (const e of pre) {
-  const hooks = e.hooks || [];
-  let pointsAtHook = hooks.some((h) => (h.command || "").includes("pretooluse-skill-gate"));
-  if (!pointsAtHook) {
-    const wrap = hooks.find((h) => (h.command || "").includes("pretooluse-fsi-app-scope"));
-    if (wrap) {
-      const v = verifyWrapperDelegates(wrap.command);
-      if (v.ok) { pointsAtHook = true; wrapperNote = `via scoped wrapper — ${v.why}`; }
-      else console.error(`skill-gate wiring: scope wrapper present but NOT accepted — ${v.why}`);
-    }
+/**
+ * The whole wiring verdict, pure apart from reading the files it is pointed at (and one spawned fire of the
+ * installed shim). Never returns settings.json content.
+ * @param {{ settingsPath?: string, userHooksDir?: string, mainRoot?: string }} [o]
+ * @returns {{ status: 'skip'|'pass'|'fail', problems: string[], notes: string[] }}
+ */
+export function verifyWiring({ settingsPath = defaultSettingsPath(), userHooksDir = defaultUserHooksDir(), mainRoot } = {}) {
+  const problems = [];
+  const notes = [];
+  if (!existsSync(settingsPath)) {
+    return { status: "skip", problems, notes: [`${settingsPath} not present (CI/headless). Correctness covered by the fire-test.`] };
   }
-  if (!pointsAtHook) continue;
-  for (const t of REQUIRED) if (matcherMatches(e.matcher, t)) covered.add(t);
+  let s;
+  try { s = JSON.parse(readFileSync(settingsPath, "utf8")); }
+  catch (e) { return { status: "fail", problems: [`could not parse settings.json: ${e.message}`], notes }; }
+
+  const pre = (s.hooks && Array.isArray(s.hooks.PreToolUse)) ? s.hooks.PreToolUse : [];
+  const shimPath = join(userHooksDir, SHIM_FILE_NAME).replaceAll("\\", "/");
+  // A tool is "covered" if some PreToolUse entry that routes to the gate (directly, or via a VERIFIED scope
+  // wrapper) has a matcher matching it.
+  const covered = new Set();
+  let shimChecked = false;
+  for (const e of pre) {
+    const hooks = e.hooks || [];
+    const direct = hooks.some((h) => (h.command || "").includes("pretooluse-skill-gate"));
+    const wrap = hooks.find((h) => (h.command || "").includes("pretooluse-fsi-app-scope"));
+    if (!direct && !wrap) continue;
+    let routes = false;
+    if (direct) {
+      routes = true;
+      problems.push("the gate is wired DIRECTLY (unscoped, so it also gates other projects); the installer replaces it with the scoped shim");
+    } else {
+      const v = verifyWrapperDelegates(wrap.command);
+      if (v.ok) { routes = true; notes.push(`via scoped wrapper, ${v.why}`); }
+      else problems.push(`scope wrapper present but NOT accepted, ${v.why}`);
+      if (wrap.command !== canonicalCommand(shimPath)) problems.push("hook command differs from the canonical command (the installed shim path and the fail-closed backstop)");
+      if (!shimChecked) {
+        shimChecked = true;
+        let root = mainRoot;
+        try { root = root ?? mainCheckoutRoot(); } catch (err) { problems.push(`cannot find the main checkout to render the expected shim: ${err.message}`); }
+        if (root) {
+          const c = checkInstalledShim({ shimPath, mainRoot: root });
+          if (!c.ok) problems.push(c.why.startsWith("installed shim differs") ? c.why : `installed shim: ${c.why}`);
+        }
+      }
+    }
+    if (e.matcher !== MATCHER) problems.push("matcher is not the canonical MATCHER of wire-pretooluse-settings.mjs");
+    if (!matcherMatches(e.matcher, UNKNOWN_TOOL)) problems.push(`an unknown tool name (${UNKNOWN_TOOL}) is not routed by the matcher: a closed list leaves new tools unrouted`);
+    if (!routes) continue;
+    for (const t of REQUIRED) if (matcherMatches(e.matcher, t)) covered.add(t);
+  }
+
+  const missing = REQUIRED.filter((t) => !covered.has(t));
+  if (missing.length) problems.push(`settings.json PreToolUse does not route these tools to the hook: ${missing.join(", ")}`);
+  return { status: problems.length ? "fail" : "pass", problems, notes };
 }
 
-const missing = REQUIRED.filter((t) => !covered.has(t));
-if (missing.length) {
-  console.error(`skill-gate wiring: FAIL — settings.json PreToolUse does not route these tools to the hook: ${missing.join(", ")}`);
-  console.error(`  Fix: wire the gate directly, or via the scope wrapper pretooluse-fsi-app-scope.mjs (which must verifiably delegate).`);
-  console.error(`  Direct-wire helper: node ${resolve(import.meta.dirname || ".", "wire-pretooluse-settings.mjs")} --apply`);
-  process.exit(1);
-}
-console.log(`skill-gate wiring: PASS — all required tools routed to the hook${wrapperNote ? " (" + wrapperNote + ")" : ""}.`);
+if (isMainModule(import.meta.url)) {
+  const v = verifyWiring();
+  if (v.status === "skip") {
+    console.log(`skill-gate wiring: SKIP, ${v.notes[0]}`);
+    process.exit(0);
+  }
+  if (v.status === "fail") {
+    for (const p of v.problems) console.error(`skill-gate wiring: FAIL, ${p}`);
+    console.error("  Fix: node fsi-app/.discipline/install-hooks.mjs (the one install command; it owns the shim, the matcher and the hook entry).");
+    process.exit(1);
+  }
+  console.log(`skill-gate wiring: PASS, all required tools routed to the hook${v.notes.length ? " (" + v.notes.join("; ") + ")" : ""}.`);
 }

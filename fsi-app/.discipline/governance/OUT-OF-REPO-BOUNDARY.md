@@ -10,7 +10,7 @@ asserts the pointer is actually present (run in pre-push, where the operator's e
 
 | Boundary dependency | In-repo source-of-truth | Applier (idempotent) | Boundary check | Where enforced |
 |---|---|---|---|---|
-| `~/.claude/settings.json` → `hooks.PreToolUse` must route **Bash, Edit, Write, MultiEdit, NotebookEdit, Agent, Task, Workflow, and every `mcp__*`** to the action-time skill gate (matcher `^(Bash\|Edit\|Write\|MultiEdit\|NotebookEdit\|Agent\|Task\|Workflow\|mcp__.+)$`) | `governance/pretooluse-skill-gate.mjs` (decision logic) + `governance/skill-map.mjs` (skill↔file/op map) | `governance/wire-pretooluse-settings.mjs --apply` (backs up, preserves all other keys incl. credentials) | `governance/check-pretooluse-wired.mjs` | pre-push **step 3c** (SKIPs in CI/headless where settings.json is absent) |
+| `~/.claude/settings.json` → `hooks.PreToolUse` must route **every tool name except a closed read-only list** (the negative `MATCHER` of the applier, so a tool that does not exist yet is routed and classified by the entry) to the action-time skill gate through the installed shim `~/.claude/hooks/pretooluse-fsi-app-scope.mjs` | `governance/pretooluse-skill-gate.mjs` (decision logic) + `governance/skill-map.mjs` (skill↔file/op map) + `governance/pretooluse-entry.mjs` (read, scope, gate) + `governance/pretooluse-user-shim.mjs` (the shim text, a permanent delegator) | `governance/wire-pretooluse-settings.mjs --apply`, run by `install-hooks.mjs` (backs up, edits only the gate entry, preserves all other keys incl. credentials) | `governance/check-pretooluse-wired.mjs` | pre-push **step 3c** (SKIPs in CI/headless where settings.json is absent) |
 | Vercel `carosledge` project, **Production** environment → `ASSISTANT_ENABLED` must equal the literal string `true` for the Intelligence Assistant (`/api/ask`, Ask mode) to answer in production; Preview and Development have no entry and read `undefined`, so they fail closed by the same code path with no extra work (ADR-029, 2026-09-11) | `src/app/api/ask/route.ts:28` (strict `=== "true"` fail-closed read) + `:153-158` (refusal ordered before any paid call) + `src/app/api/workspace/bootstrap/route.ts:83` (surfaces the flag to the client) + `.discipline/assistant-spend-gate.test.mjs` (pins the exact-string comparison and the gate-before-spend ordering) | none in-repo; `vercel env add ASSISTANT_ENABLED production` (value `true`), run by the coordinator from the linked checkout, then a redeploy of the current production deployment | none automated; manual confirmation via `GET /api/workspace/bootstrap` returning `assistantEnabled: true` on carosledge.com, and `GET /api/version` for the redeployed sha (ADR-029 Verification) | not gated by any repo-side check (named residual: unlike the settings.json row above, no `check-*-wired.mjs` queries the live Vercel value; the coordinator's manual verification steps are the only boundary check today) |
 
 ## Operator-CLI register (human-invoked, out-of-workflow)
@@ -123,3 +123,28 @@ are judged against that sub-agent's own transcript the moment it starts calling 
   `check-pretooluse-wired.mjs` in pre-push step 3c. It FAILs on partial wiring and SKIPs when
   settings.json is absent — so CI never blocks on a file it doesn't have, but a real machine cannot
   push with the gate half-wired.
+
+## 2026-10-08 (lane WIRE-1): the repo owns the wrapper text and the matcher; drift fails pre-push
+
+The defect (operator, 2026-10-08: "Nothing is on me. Find and fix the issue. Not a work around. A fix."): the
+gate's user-level wiring content lived outside the repo, so every gate change became a hand step (GATE-7 left
+two: replace the wrapper file, widen the matcher). The contract now:
+
+- **The repo owns the wrapper's text.** `governance/pretooluse-user-shim.mjs` is the template of
+  `~/.claude/hooks/pretooluse-fsi-app-scope.mjs`, a permanent delegator with no decision logic. It imports
+  `governance/pretooluse-entry.mjs` (read stdin, parse, scope from `pretooluse-scope.mjs` failing toward the
+  gate, `runGate`, allow) by an absolute path that the installer substitutes (the main checkout's path, forward
+  slashes), and prints the fail-closed `ask` if that import fails. All gate logic therefore changes by merging
+  to master, never by editing the user home.
+- **The repo owns the matcher.** `MATCHER` in `wire-pretooluse-settings.mjs` is a negative form: it routes every
+  tool name except a closed read-only list (Read, Glob, Grep, LS, WebFetch, WebSearch, ToolSearch, ListAgents,
+  ReadNotifications, ListSkills, AskUserQuestion, TodoWrite, Skill). A tool that does not exist yet is routed and
+  classified by the entry, which allows what the gate does not classify as mutating.
+- **One install command.** `node fsi-app/.discipline/install-hooks.mjs` installs the git hook trampolines and
+  then runs the applier: it writes the shim (backup when the installed file differs) and rewrites only the gate's
+  PreToolUse entry of `~/.claude/settings.json` (backup first, every other key and entry passed through, nothing
+  printed). It skips with a note when settings.json is absent and passes `--dry-run` through. It is idempotent.
+- **Drift fails pre-push.** `check-pretooluse-wired.mjs` (step 3c, operator machine) FAILS when the installed
+  shim's bytes differ from the template rendered with the main checkout's entry path, when the matcher is not
+  `MATCHER`, when the hook command is not the canonical one, when an unknown tool name does not match the matcher,
+  or when the gate is wired directly (unscoped). Fix for every one of them: run the install command above.

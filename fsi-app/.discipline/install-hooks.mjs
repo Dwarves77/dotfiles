@@ -7,6 +7,14 @@
 //   node fsi-app/.discipline/install-hooks.mjs --force   # overwrite without backup
 //   node fsi-app/.discipline/install-hooks.mjs --dry-run # report what would happen
 //   node fsi-app/.discipline/install-hooks.mjs --hooks-dir=<path>  # override (tests)
+//   node fsi-app/.discipline/install-hooks.mjs --settings=<path> --user-hooks-dir=<dir>  # override the gate wiring paths (fixtures)
+//
+// WIRE-1 (2026-10-08): this is the ONE install command. After the git hooks it also installs the action-time
+// gate's user-level wiring through governance/wire-pretooluse-settings.mjs: the PreToolUse shim under the user
+// hooks directory (rendered from the repo template with the main checkout's entry path) and the one gate entry
+// of ~/.claude/settings.json (backup first, nothing else touched). It skips with a note when settings.json is
+// absent (CI, a fresh machine) and passes --dry-run through. check-pretooluse-wired.mjs fails on any drift, so
+// no gate change is ever a hand step.
 //
 // D19 (lane L12, defect-fix-plan-2026-09-12.md, 2026-09-13): this installer used to copy every FILE in
 // fsi-app/.discipline/hooks/ byte-for-byte into .git/hooks/<name>, with no freshness check -- a stale
@@ -47,6 +55,7 @@ import {
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainModule } from '../scripts/lib/is-main.mjs';
+import { applyWiring } from './governance/wire-pretooluse-settings.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SOURCE_HOOKS_DIR = join(__dirname, 'hooks');
@@ -85,11 +94,13 @@ export function buildTrampoline(hookName) {
 }
 
 function parseArgs(argv) {
-  const out = { force: false, dryRun: false, hooksDir: null };
+  const out = { force: false, dryRun: false, hooksDir: null, settings: null, userHooksDir: null };
   for (const arg of argv.slice(2)) {
     if (arg === '--force') out.force = true;
     else if (arg === '--dry-run') out.dryRun = true;
     else if (arg.startsWith('--hooks-dir=')) out.hooksDir = arg.slice('--hooks-dir='.length);
+    else if (arg.startsWith('--settings=')) out.settings = arg.slice('--settings='.length);
+    else if (arg.startsWith('--user-hooks-dir=')) out.userHooksDir = arg.slice('--user-hooks-dir='.length);
   }
   return out;
 }
@@ -197,6 +208,22 @@ export function installHooks({
   return report;
 }
 
+/**
+ * Install the action-time gate's user-level wiring (WIRE-1): the PreToolUse shim and the one settings.json
+ * entry. A thin seam over applyWiring so the installer owns the call and a test can drive it with fixtures.
+ * Skips (status 'skip') when settings.json is absent; dry-run passes through.
+ * @param {{ settingsPath?: string, userHooksDir?: string, mainRoot?: string, dryRun?: boolean, log?: (l: string) => void }} [o]
+ */
+export function installGateWiring({ settingsPath, userHooksDir, mainRoot, dryRun = false, log = console.log } = {}) {
+  return applyWiring({
+    ...(settingsPath ? { settingsPath } : {}),
+    ...(userHooksDir ? { userHooksDir } : {}),
+    ...(mainRoot ? { mainRoot } : {}),
+    apply: !dryRun,
+    log,
+  });
+}
+
 function main() {
   const args = parseArgs(process.argv);
 
@@ -233,6 +260,15 @@ function main() {
     acc[r.action] = (acc[r.action] || 0) + 1;
     return acc;
   }, {});
+
+  console.log('\nAction-time gate wiring (user level):');
+  const wiring = installGateWiring({
+    settingsPath: args.settings ? resolve(args.settings) : undefined,
+    userHooksDir: args.userHooksDir ? resolve(args.userHooksDir) : undefined,
+    dryRun: args.dryRun,
+    log: (l) => console.log(`  ${l}`),
+  });
+  if (wiring.status === 'error') process.exitCode = 2;
 
   console.log('\nDone.');
   console.log(`  Summary: ${Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(', ') || 'no hooks processed'}`);
