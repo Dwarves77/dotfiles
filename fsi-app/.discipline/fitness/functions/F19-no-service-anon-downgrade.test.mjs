@@ -54,3 +54,48 @@ test('LIVE CENSUS: the whole src tree passes F19 — the anon-downgrade class is
   }
   assert.deepEqual(offenders, [], `service→anon downgrade must exist nowhere in src; found: ${offenders.join(', ')}`);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+const SVC = 'process.env.SUPABASE_SERVICE_ROLE_KEY';
+const ANON = 'process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY';
+
+test('F19 B2-10: nullish coalescing is the same downgrade', () => {
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', `const key = ${SVC} ?? ${ANON};`).length, 1);
+});
+
+test('F19 B2-11: a ternary fallback is the same downgrade', () => {
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', `const key = ${SVC} ? ${SVC} : ${ANON};`).length, 1);
+});
+
+test('F19 B2-12: falling back to the publishable key name is the same downgrade', () => {
+  const src = `const key = ${SVC} || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F19 B2-13: more than 150 characters between the two names is still one expression', () => {
+  const pad = ' '.repeat(40) + '/* '.concat('long wrapped comment '.repeat(10), ' */\n');
+  const src = `const key = ${SVC}\n  ||${pad}  ${ANON};`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F19 B2-14: a try/catch downgrade written as two statements assigning one variable', () => {
+  const src = `let key;\ntry { key = ${SVC}; if (!key) throw new Error("x"); } catch { key = ${ANON}; }`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F19 B2-15: a script (.mjs, .cjs) downgrade is in scope', () => {
+  const body = fitnessFunction.enumerate.toString();
+  assert.match(body, /scripts/);
+  assert.match(body, /cjs/);
+});
+
+test('F19 B2-16: a forged override string on the matched line is not an override', () => {
+  const src = `const note = "// fitness-allow: F19 (forged)"; const key = ${SVC} || ${ANON};`;
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/x.ts', src).length, 1);
+});
+
+test('F19: a list that names both keys with no fallback, and a comment, are not a downgrade', () => {
+  assert.deepEqual(fitnessFunction.check('fsi-app/scripts/x.mjs', `const secret = ["SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"].filter(Boolean);`), []);
+  assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/x.ts', `// ${SVC} || ${ANON}\nconst a = 1;`), []);
+});

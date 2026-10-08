@@ -26,8 +26,8 @@ test('findOrphanModules: a module imported only by its own test is an orphan (Ap
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': Object.keys(files),
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': Object.keys(files),
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
   });
   const orphans = findOrphanModules('/repo', (f) => files[f], list);
   assert.deepEqual(
@@ -45,8 +45,8 @@ test('findOrphanModules: a module with a real (non-test) importer is NOT an orph
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': Object.keys(files),
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': Object.keys(files),
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
   });
   const orphans = findOrphanModules('/repo', (f) => files[f], list);
   assert.deepEqual(orphans, []);
@@ -57,8 +57,8 @@ test('findOrphanModules: a module with ZERO importers is NOT reported (Appendix 
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': Object.keys(files),
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': Object.keys(files),
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
   });
   const orphans = findOrphanModules('/repo', (f) => files[f], list);
   assert.deepEqual(orphans, []);
@@ -73,8 +73,8 @@ test('findOrphanModules: a module reachable only by a workflow dispatch line is 
   const list = listOnly({
     '.github/workflows/*.yml': ['.github/workflows/x.yml'],
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': ['fsi-app/scripts/turns/run-x.mjs', 'fsi-app/scripts/turns/run-x.test.mjs'],
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': ['fsi-app/scripts/turns/run-x.mjs', 'fsi-app/scripts/turns/run-x.test.mjs'],
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
   });
   const orphans = findOrphanModules('/repo', (f) => files[f], list);
   assert.deepEqual(orphans, []);
@@ -90,8 +90,8 @@ test('findOrphanModules: the widened scope reaches scripts/** beyond scripts/lib
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': ['fsi-app/scripts/mint/held-classes.mjs', 'fsi-app/scripts/mint/held-classes.test.mjs'],
-    'fsi-app/.discipline/**/*.mjs': ['fsi-app/.discipline/governance/skill-contract-map.mjs', 'fsi-app/.discipline/skill-drift-gate.test.mjs'],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': ['fsi-app/scripts/mint/held-classes.mjs', 'fsi-app/scripts/mint/held-classes.test.mjs'],
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': ['fsi-app/.discipline/governance/skill-contract-map.mjs', 'fsi-app/.discipline/skill-drift-gate.test.mjs'],
   });
   const orphans = findOrphanModules('/repo', (f) => files[f], list);
   const orphanFiles = orphans.map((o) => o.file);
@@ -109,8 +109,8 @@ test('findDeadExports: an export used only inside its own file is dead, on a wir
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': Object.keys(files),
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': Object.keys(files),
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
     'fsi-app/**/*.{ts,tsx,mjs,cjs,js,jsx}': Object.keys(files),
   });
   const dead = findDeadExports('/repo', (f) => files[f], list);
@@ -126,8 +126,8 @@ test('findDeadExports: an export used elsewhere (even outside the widened scope)
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': ['fsi-app/src/app/somewhere/route.ts'],
-    'fsi-app/scripts/**/*.{mjs,js}': ['fsi-app/scripts/foo/mod.mjs', 'fsi-app/scripts/foo/caller.mjs'],
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': ['fsi-app/scripts/foo/mod.mjs', 'fsi-app/scripts/foo/caller.mjs'],
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
     'fsi-app/**/*.{ts,tsx,mjs,cjs,js,jsx}': Object.keys(files),
   });
   const dead = findDeadExports('/repo', (f) => files[f], list);
@@ -142,8 +142,8 @@ test('findDeadExports: a module with NO real importer or dispatch root is not "w
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': Object.keys(files),
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': Object.keys(files),
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
     'fsi-app/**/*.{ts,tsx,mjs,cjs,js,jsx}': Object.keys(files),
   });
   const dead = findDeadExports('/repo', (f) => files[f], list);
@@ -160,8 +160,8 @@ test('findDeadExports: a dispatch-root module (no real importer, but CI-dispatch
   const list = listOnly({
     '.github/workflows/*.yml': ['.github/workflows/x.yml'],
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': ['fsi-app/scripts/turns/run-x.mjs', 'fsi-app/scripts/turns/consumer.mjs'],
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': ['fsi-app/scripts/turns/run-x.mjs', 'fsi-app/scripts/turns/consumer.mjs'],
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
     'fsi-app/**/*.{ts,tsx,mjs,cjs,js,jsx}': Object.keys(files).filter((f) => f !== '.github/workflows/x.yml'),
   });
   const dead = findDeadExports('/repo', (f) => files[f], list);
@@ -177,8 +177,8 @@ test('findDeadExports: exported function/class forms are extracted too, not only
   const list = listOnly({
     ...NO_WORKFLOWS,
     'fsi-app/src/**/*.{ts,tsx,mjs,cjs,js,jsx}': [],
-    'fsi-app/scripts/**/*.{mjs,js}': Object.keys(files),
-    'fsi-app/.discipline/**/*.mjs': [],
+    'fsi-app/scripts/**/*.{mjs,js,cjs}': Object.keys(files),
+    'fsi-app/.discipline/**/*.{mjs,js,cjs}': [],
     'fsi-app/**/*.{ts,tsx,mjs,cjs,js,jsx}': Object.keys(files),
   });
   const dead = findDeadExports('/repo', (f) => files[f], list);

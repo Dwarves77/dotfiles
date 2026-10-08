@@ -147,3 +147,51 @@ test('CONTROL(marker): null base content (no baseline to compare -- new skill fi
   const { problems } = auditMarkerBaselines({ s: 'fake/path' }, env);
   assert.equal(problems.length, 0, `expected no problems (skipped), got: ${problems.join(' | ')}`);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+import { auditRemovedInvariants, isMeaningfulReason, MIN_REASON_CHARS } from './invariant-coverage.mjs';
+
+test('INVCOV B7-17: a one-character exemption reason is a THIN-EXEMPTION, for an invariant and for a doctrine', () => {
+  const { problems } = auditInvariants([{ id: 'T', skill: 's', anchor: 'anchor-text', exempt: { reason: 'x' } }], env);
+  assert.ok(problems.some((p) => p.includes('THIN-EXEMPTION')), problems.join(' | '));
+  const d = auditDoctrines([{ id: 'D', exempt: { reason: 'n/a' } }], { enforcedInvariantIds: new Set(), allInvariantIds: new Set(), doctrineIds: new Set() });
+  assert.ok(d.problems.some((p) => p.includes('THIN-EXEMPTION')), d.problems.join(' | '));
+  const ok = auditInvariants([{ id: 'T', skill: 's', anchor: 'anchor-text', exempt: { reason: 'A semantic generation property: no static signal separates a faithful paraphrase from a drifted one.' } }], env);
+  assert.deepEqual(ok.problems, []);
+  assert.equal(isMeaningfulReason('x'), false);
+  assert.equal(isMeaningfulReason('a'.repeat(MIN_REASON_CHARS)), false, 'forty characters of one word is not a reason');
+});
+
+test('INVCOV B7-16: a NEW invariant whose enforcer never names it is flagged; an existing one is not retrofitted', () => {
+  const inv = { id: 'NEW-1', skill: 's', anchor: 'anchor-text', enforcedBy: ['rule:REAL'] };
+  const withSource = (src, isNew) => ({ ...env, isNewInvariant: () => isNew, enforcerSource: () => src });
+  const unrelated = auditInvariants([inv], withSource('// F44 broken main guard, nothing about the invariant', true));
+  assert.ok(unrelated.problems.some((p) => p.includes('ENFORCER DOES NOT NAME THE INVARIANT')), unrelated.problems.join(' | '));
+  const named = auditInvariants([inv], withSource('// enforces NEW-1: the thing', true));
+  assert.deepEqual(named.problems, []);
+  const existing = auditInvariants([inv], withSource('// unrelated', false));
+  assert.deepEqual(existing.problems, [], 'an invariant already on the merge-base is not judged');
+  const noSource = auditInvariants([inv], { ...env, isNewInvariant: () => true, enforcerSource: () => null });
+  assert.ok(noSource.problems.some((p) => p.includes('ENFORCER DOES NOT NAME THE INVARIANT')), 'an enforcer that cannot be read does not name it');
+});
+
+test('INVCOV B7-15 B7-15b: an invariant that disappeared since the merge-base needs a RETIRED_INVARIANTS entry, doctrine or not', () => {
+  const gone = auditRemovedInvariants(['A-1', 'B-2'], ['A-1']);
+  assert.equal(gone.problems.length, 1);
+  assert.match(gone.problems[0], /REMOVED INVARIANT: B-2/);
+  const retired = auditRemovedInvariants(['A-1', 'B-2'], ['A-1'], { 'B-2': { reason: 'Superseded by A-1, which carries the same rule with a stronger mechanism.', retiredOn: '2026-10-08' } });
+  assert.deepEqual(retired.problems, []);
+  const thin = auditRemovedInvariants(['A-1', 'B-2'], ['A-1'], { 'B-2': { reason: 'old', retiredOn: '2026-10-08' } });
+  assert.equal(thin.problems.length, 1);
+  const stale = auditRemovedInvariants(['A-1'], ['A-1'], { 'A-1': { reason: 'Superseded by something that never happened, so this entry is stale.', retiredOn: '2026-10-08' } });
+  assert.match(stale.problems[0], /STALE RETIREMENT/);
+  assert.deepEqual(auditRemovedInvariants(['A-1'], ['A-1', 'NEW-3']).problems, [], 'a new invariant is not a removal');
+});
+
+test('INVCOV: the real RETIRED_INVARIANTS map is empty or well formed, and the gate reads it', async () => {
+  const { RETIRED_INVARIANTS } = await import('./invariants.mjs');
+  for (const [id, r] of Object.entries(RETIRED_INVARIANTS)) {
+    assert.ok(isMeaningfulReason(r.reason) && !Number.isNaN(Date.parse(r.retiredOn)), id);
+  }
+});

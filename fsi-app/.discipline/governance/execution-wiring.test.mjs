@@ -40,6 +40,29 @@ test('execution-wiring: a file no runner runs resolves NOT wired', () => {
 // GUARD: the goldens surface is directory-scoped (only scripts/verify/). A .golden.mjs elsewhere is not
 // auto-wired — proves the matcher isn't an over-broad "any .golden.mjs anywhere".
 test('execution-wiring: goldens surface is directory-scoped to scripts/verify/', () => {
-  assert.equal(isExecutionWired('fsi-app/scripts/verify/x.golden.mjs'), true);
+  assert.equal(isExecutionWired('fsi-app/scripts/verify/x.golden.mjs', () => true), true);
   assert.equal(isExecutionWired('fsi-app/other/x.golden.mjs'), false);
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('execution-wiring B7-21: a path that does not exist is never wired, however a runner or a workflow names it', () => {
+  // a golden-shaped path under scripts/verify/ matches the goldens surface by pattern, but the file is not there
+  assert.equal(isExecutionWired('fsi-app/scripts/verify/never-committed.golden.mjs'), false);
+  // the same path counts once the file exists (the existence probe is injectable for fixtures)
+  assert.equal(isExecutionWired('fsi-app/scripts/verify/never-committed.golden.mjs', () => true), true);
+  // a real, committed, discovered test is wired
+  assert.equal(isExecutionWired('fsi-app/.discipline/governance/execution-wiring.test.mjs'), true);
+});
+
+test('execution-wiring B7-20 B7-21: the sentinel and workflow surfaces are read with comments removed', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('./execution-wiring.mjs', import.meta.url), 'utf8');
+  assert.match(src, /codeAndStrings\(readFileSync\(join\(dir, f\)/);
+  assert.match(src, /workflowInvocationText\(readRepo\('\.github\/workflows\/discipline\.yml'\)\)/);
+  const { workflowInvocationText } = await import('../fitness/lib/yml-read.mjs');
+  const yml = '      # fsi-app/src/lib/ghost.test.mjs is run here\n      - run: node --test fsi-app/src/lib/real.test.mjs # and fsi-app/src/lib/trailing.test.mjs\n      - run: echo fsi-app/src/lib/echoed.test.mjs\n';
+  const text = workflowInvocationText(yml);
+  const found = [...text.matchAll(/fsi-app\/[\w./-]+\.(?:test|selftest|npmtest)\.mjs/g)].map((m) => m[0]);
+  assert.deepEqual(found, ['fsi-app/src/lib/real.test.mjs']);
 });

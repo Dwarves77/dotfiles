@@ -329,3 +329,7 @@ What stays out of scope, by this sentence, is listed per attack id in
 `docs/ops/session-log.d/2026-10-08-gate7-honest-forms.md`. A later evaluation that finds a blind spot on an
 honest form reopens it as a defect; one that finds a bypass that needs intent records it and does not build
 for it.
+
+## Addendum, 2026-10-08 (GATE-8)
+
+GATE-8 applied the scope paragraph GATE-7 records in this ADR (the gates are mistake-catchers for cooperating sessions, a blind spot on an honest form is a defect, a form that requires intent is out of scope and recorded) to the fitness functions and governance gates, rows 4 and 5 of the AUD-AT-4 register (`docs/ops/session-log.d/2026-10-08-gate8-fitness-honest-forms.md` maps each attack id to its fix or to its out-of-scope reason).

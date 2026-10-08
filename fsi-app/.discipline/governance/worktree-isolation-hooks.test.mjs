@@ -30,7 +30,7 @@ function hookedRepo() {
     'fsi-app/.discipline/hooks/pre-commit', 'fsi-app/.discipline/hooks/pre-merge-commit', 'fsi-app/.discipline/hooks/post-commit',
     'fsi-app/.discipline/hooks/reference-transaction', 'fsi-app/.discipline/hooks/lib/main-checkout-guard.sh',
     'fsi-app/.discipline/governance/worktree-isolation-hook.mjs', 'fsi-app/.discipline/governance/worktree-isolation.mjs',
-    'fsi-app/.discipline/lib/firing-log.mjs', 'fsi-app/scripts/lib/is-main.mjs',
+    'fsi-app/.discipline/lib/firing-log.mjs', 'fsi-app/.discipline/lib/session-context.mjs', 'fsi-app/scripts/lib/is-main.mjs',
   ]) {
     mkdirSync(dirname(join(dir, rel)), { recursive: true });
     copyFileSync(join(REPO, rel), join(dir, rel));

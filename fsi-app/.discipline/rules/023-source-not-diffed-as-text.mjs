@@ -1,4 +1,4 @@
-// Rule 023: A source file must be diffed as text.
+// Rule 023: A source file must be diffed as text. Invariant: RD-97-source-diffed-as-text.
 // Source: AUD-AT-3 (docs register of 2026-10-08), attacks A012-8, A012-9, A015-12, A017-9, A019-7, A022-7,
 // A022-8, A-CI-binary, A-CI-022; lane GATE-7.
 //

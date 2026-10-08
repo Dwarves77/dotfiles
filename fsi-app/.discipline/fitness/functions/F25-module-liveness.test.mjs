@@ -563,3 +563,124 @@ test('findDispatchRoots Source 10: a file in a NESTED subdirectory of invariants
   const roots = findDispatchRoots('/repo', () => 'jobs: {}\n', list);
   assert.equal(roots.has('fsi-app/.discipline/governance/invariants.d/nested/RD-99-example.mjs'), false);
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F25 B4-13: two dead modules that import each other are both dead (no root reaches either)', () => {
+  const a = 'fsi-app/src/lib/cycle-a.mjs';
+  const b = 'fsi-app/src/lib/cycle-b.mjs';
+  const t = tree({
+    [a]: 'import { y } from "./cycle-b.mjs"; export const x = 1;',
+    [b]: 'import { x } from "./cycle-a.mjs"; export const y = 1;',
+    'fsi-app/src/lib/live.mjs': 'export const z = 1;',
+    'fsi-app/scripts/run.mjs': 'import { z } from "../src/lib/live.mjs";',
+  });
+  const g = buildImportGraph(t.files, t.read);
+  const scope = [a, b, 'fsi-app/src/lib/live.mjs'];
+  // the one-hop rule sees an importer for each and calls both live; the reachability walk does not
+  assert.deepEqual(findUnimported([a, b], g, NO_MANIFEST), []);
+  assert.deepEqual(findUnimported(scope, g, NO_MANIFEST, new Set(['fsi-app/scripts/run.mjs'])).sort(), [a, b]);
+});
+
+test('F25 B4-13: a chain of dead modules is dead all the way down, and an exempt module keeps its own imports live', () => {
+  const t = tree({
+    'fsi-app/src/lib/top.mjs': 'import { m } from "./mid.mjs"; export const t = 1;',
+    'fsi-app/src/lib/mid.mjs': 'import { b } from "./bottom.mjs"; export const m = 1;',
+    'fsi-app/src/lib/bottom.mjs': 'export const b = 1;',
+  });
+  const g = buildImportGraph(t.files, t.read);
+  const scope = t.files;
+  assert.deepEqual(findUnimported(scope, g, NO_MANIFEST, new Set()).sort(), [...scope].sort());
+  // top is allowlisted: it stays unimported itself, but what it imports is a documented consumer's import
+  assert.deepEqual(findUnimported(scope, g, NO_MANIFEST, new Set(), new Set(['fsi-app/src/lib/top.mjs'])), ['fsi-app/src/lib/top.mjs']);
+});
+
+test('F25 B4-14: a module whose only importer is a comment, or a string, is not imported', () => {
+  const t = tree({
+    'fsi-app/src/lib/ghost.mjs': 'export const g = 1;',
+    'fsi-app/src/lib/c1.mjs': '// ' + IMPORT_OF('./ghost.mjs') + '\n/* ' + IMPORT_OF('./ghost.mjs') + ' */\nexport const c = 1;',
+    'fsi-app/src/lib/c2.mjs': 'export const fixture = `' + IMPORT_OF('./ghost.mjs') + '`;',
+  });
+  const g = buildImportGraph(t.files, t.read);
+  assert.equal(g.has('fsi-app/src/lib/ghost.mjs'), false);
+  // a real import still counts
+  const real = tree({
+    'fsi-app/src/lib/ghost.mjs': 'export const g = 1;',
+    'fsi-app/src/lib/c3.mjs': IMPORT_OF('./ghost.mjs'),
+  });
+  assert.ok(buildImportGraph(real.files, real.read).get('fsi-app/src/lib/ghost.mjs').has('fsi-app/src/lib/c3.mjs'));
+});
+
+test('F25 B4-14: the rendering guard keeps one documented exception, an import inside a bundled template literal', () => {
+  const t = tree({
+    'fsi-app/src/lib/fixture.ts': 'export const f = 1;',
+    'fsi-app/.discipline/rendering/smoke/spec.mjs': 'export const entry = `' + IMPORT_OF('../../../src/lib/fixture.ts') + '`;',
+  });
+  const g = buildImportGraph(t.files, t.read);
+  assert.ok(g.get('fsi-app/src/lib/fixture.ts').has('fsi-app/.discipline/rendering/smoke/spec.mjs'));
+});
+
+test('F25 B4-15: a dead module named like a framework entry is an entry only where the framework looks', () => {
+  assert.equal(inWidenedScope('fsi-app/src/lib/agent/default.ts', NO_MANIFEST), true);
+  assert.equal(inWidenedScope('fsi-app/src/lib/page.ts', NO_MANIFEST), true);
+  assert.equal(inWidenedScope('fsi-app/src/app/dashboard/page.tsx', NO_MANIFEST), false);
+  assert.equal(inWidenedScope('fsi-app/src/app/api/x/route.ts', NO_MANIFEST), false);
+  assert.equal(inWidenedScope('fsi-app/src/proxy.ts', NO_MANIFEST), false);
+});
+
+test('F25 B4-16: a .js, .cjs or .jsx module is in scope, and a ./x.js specifier resolves to x.ts', () => {
+  assert.equal(inWidenedScope('fsi-app/scripts/dead.js', NO_MANIFEST), true);
+  assert.equal(inWidenedScope('fsi-app/scripts/dead.cjs', NO_MANIFEST), true);
+  assert.equal(inWidenedScope('fsi-app/src/lib/dead.jsx', NO_MANIFEST), true);
+  assert.equal(resolveSpecifier('./x.js', 'fsi-app/src/lib/a.ts', new Set(['fsi-app/src/lib/x.ts'])), 'fsi-app/src/lib/x.ts');
+});
+
+test('F25 B4-17: a script named only in a YAML comment (or an echo line) of a workflow is not a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml':
+      'jobs:\n  x:\n    steps:\n      # node scripts/dead/commented.mjs\n      - run: echo "see scripts/dead/echoed.mjs"\n      - run: node scripts/live/real.mjs # not scripts/dead/trailing.mjs\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/live/real.mjs'));
+  assert.equal(roots.has('fsi-app/scripts/dead/commented.mjs'), false);
+  assert.equal(roots.has('fsi-app/scripts/dead/echoed.mjs'), false);
+  assert.equal(roots.has('fsi-app/scripts/dead/trailing.mjs'), false);
+});
+
+test('F25 B4-18: a package.json script that only echoes a path is not a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/package.json': JSON.stringify({ scripts: { note: 'echo scripts/dead/noted.mjs', real: 'echo hi && node scripts/live/ran.mjs' } }),
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.equal(roots.has('fsi-app/scripts/dead/noted.mjs'), false);
+  assert.ok(roots.has('fsi-app/scripts/live/ran.mjs'));
+});
+
+test('F25: a maintenance step named by the shared action (step: <name>) is a root; a comment naming its path is not', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs:\n  x:\n    steps:\n      # scripts/maintenance/commented-step.mjs\n      - uses: ./.github/actions/maintenance-step\n        with:\n          step: real-step\n',
+  };
+  const list = listOnly({
+    '.github/workflows/*.yml': ['.github/workflows/example.yml'],
+    'fsi-app/scripts/maintenance/*.mjs': ['fsi-app/scripts/maintenance/real-step.mjs', 'fsi-app/scripts/maintenance/commented-step.mjs'],
+  });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/maintenance/real-step.mjs'));
+  assert.equal(roots.has('fsi-app/scripts/maintenance/commented-step.mjs'), false);
+});
+
+test('F25 Source 8 widened: a spawn root that resolves a sibling through several segments, or holds a repo-relative script path, reaches it', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs:\n  x:\n    steps:\n      - run: node scripts/maintenance/wrapper.mjs\n',
+    'fsi-app/scripts/maintenance/wrapper.mjs':
+      'import { spawnSync } from "node:child_process";\nconst T = resolve(HERE, "..", "verify", "target.mjs");\nconst U = "scripts/review/other.mjs";\nspawnSync(process.execPath, [T, U]);\n// resolve(HERE, "..", "verify", "commented.mjs")\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/verify/target.mjs'));
+  assert.ok(roots.has('fsi-app/scripts/review/other.mjs'));
+  assert.equal(roots.has('fsi-app/scripts/verify/commented.mjs'), false);
+});
