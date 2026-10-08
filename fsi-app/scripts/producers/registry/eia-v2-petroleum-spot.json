@@ -6,5 +6,6 @@
   "licence": "US public domain (17 USC 105)",
   "dry_capable": true,
   "enabled_env": "MARKET_PRODUCER_EIA_V2_ENABLED",
-  "in_all": true
+  "in_all": true,
+  "entity_id": "cl:jurisdiction:9b202ecbc6d45c6d"
 }

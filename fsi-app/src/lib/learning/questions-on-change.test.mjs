@@ -57,7 +57,9 @@ test("eventTypeForOutboxRow: a table with no mapping returns null, never a guess
   assert.equal(eventTypeForOutboxRow(null), null);
 });
 
-const TRIGGER_RE = /CREATE\s+TRIGGER\s+propagation_outbox_trg\s+AFTER[^;]*?\bON\s+(?:public\.)?([a-z_]+)[^;]*?emit_propagation_event\s*\(/gis;
+// Lane L4-E (migration 373): a table may attach the outbox through emit_propagation_events_for_region (one row per
+// jurisdiction entity of the row's region) as well as through emit_propagation_event; both are emitting attachments.
+const TRIGGER_RE = /CREATE\s+TRIGGER\s+propagation_outbox_trg\s+AFTER[^;]*?\bON\s+(?:public\.)?([a-z_]+)[^;]*?emit_propagation_event(?:s_for_region)?\s*\(/gis;
 
 /** Tables whose outbox row is written by an explicit insert in code, not by a trigger (lane L4-D: a fired
  *  signpost writes its own propagation_events row in signpost-watch.ts fireSignpost). */
@@ -114,6 +116,21 @@ test("the pin detector itself works: a synthetic new emitting table is seen as u
   const m = [...sql.matchAll(TRIGGER_RE)];
   assert.equal(m[0][1], "brand_new_table");
   assert.ok(!("brand_new_table" in EMITTING_TABLE_EVENT_MAP));
+});
+
+test("the pin detector sees a table attached through the region fan-out function too (migration 373), and that table is mapped", () => {
+  const sql = "CREATE TRIGGER propagation_outbox_trg\n  AFTER INSERT OR UPDATE OR DELETE ON public.brand_new_region_table\n  FOR EACH ROW EXECUTE FUNCTION public.emit_propagation_events_for_region('id', 'region_id');";
+  const m = [...sql.matchAll(TRIGGER_RE)];
+  assert.equal(m.length, 1);
+  assert.equal(m[0][1], "brand_new_region_table");
+  assert.ok(!("brand_new_region_table" in EMITTING_TABLE_EVENT_MAP), "an unmapped region table would fail the mapping test");
+  const raw373 = readFileSync(join(MIGRATIONS, "373_outbox_entity_for_series_and_facts.sql"), "utf8");
+  const sql373 = raw373.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
+  const attached = [...sql373.matchAll(TRIGGER_RE)].map((x) => x[1]).sort();
+  assert.deepEqual(attached, ["market_series", "regional_data_facts"], "migration 373's two attachments are both seen by the detector");
+  for (const t of attached) assert.ok(t in EMITTING_TABLE_EVENT_MAP, `${t} is mapped to a question kind`);
+  assert.equal(eventTypeForOutboxRow({ table_name: "market_series", change_kind: "update" }), "value_revised");
+  assert.equal(eventTypeForOutboxRow({ table_name: "regional_data_facts", change_kind: "update" }), "value_revised");
 });
 
 // change description
