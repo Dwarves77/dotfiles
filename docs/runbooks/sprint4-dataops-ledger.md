@@ -7,6 +7,9 @@ the same database). A re-run of any script below **double-applies against produc
 is the audit record; the `scripts/_dataops/interlock.mjs` guard was its enforcement arm — every script
 listed here imported it and refused to run unless `CONFIRM_RERUN=<name>` was set.
 
+**Status note 2026-10-08.** `scripts/_dataops/interlock.mjs` no longer exists: it was deleted in train/wave48
+(2026-09-06, commit f2d9694a). This ledger stays as the audit record; the interlock is not a live guard.
+
 **Gating rule (precondition for integration):** the code half does NOT merge until every data-op
 script here is guarded or quarantined from auto-execution (CI / tests / build). Status: **guarded**
 (interlock applied) as of 2026-06-01.

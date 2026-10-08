@@ -17,11 +17,11 @@ function so this step could import and call it unmodified, the same "logic lives
 shape `apply-tags.mjs`'s `applyTags()` already established for section 7. Nothing is reimplemented; the CLI's
 own stdout is byte-for-byte unchanged by that extraction.
 
-**Ruling**: none - gated by the operator's own standing rule (`propose-tags.mjs`'s header): "NO
-assumptions, NEVER silent auto-tagging; tag PROPOSALS go to operator ratification." Writing a proposal
-flag IS the visibility that rule requires; it is **not** tagging. This step **never writes
-`intelligence_items`** - only `integrity_flags` proposal rows. A proposal becomes a written tag only
-once an operator resolves its flag with the `ratify:tags` marker and section 7 (`tag-ratification`) applies it.
+**Ruling**: none needed. Writing a proposal flag IS the visibility; it is **not** tagging. This step
+**never writes `intelligence_items`** - only `integrity_flags` proposal rows. A proposal becomes a written
+tag when section 7 (`tag-ratification`) decides it by rule (auto-adoption, operator ruling 2026-09-03). The
+original operator path, a flag resolved with the `ratify:tags` marker, was DELETED by lane G6-GATES
+(2026-10-05): nothing in the data machine waits on a typed token.
 
 **Dispatch**: `arg` selects the population, exactly as `propose-tags.mjs`'s own CLI selectors do:
 - (blank) or `untagged` - every verified, live item with all three signature tag arrays empty (the

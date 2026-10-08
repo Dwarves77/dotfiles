@@ -137,7 +137,7 @@ with: `analysis_missing_label_syntax` 594 (up from 190), `gate_a_unproven_or_sta
    `capturedText=""`) for the GAP text, so it is byte-identical to a fresh honest-absence write, never
    hand-duplicated.
 3. **Gate A vs. labels - a finding, not a fix** (`gate-a-scan.mjs` is a mint governing file, out of this
-   lane's write set). Code path: `scanBrief` (`fsi-app/scripts/mint/lib/gate-a-scan.mjs`) takes only
+   lane's write set). Code path: `scanBrief` (`fsi-app/src/lib/agent/gate-a-scan.mjs`) takes only
    `fullBrief` + `factClaims`; it has no reference anywhere to `ANALYSIS_LABEL_RE` or any label form, and
    its only coverage test is a literal-substring check against the FACT-claim corpus (`isBacked`). A
    figure/date token inside an already-labeled `*Analytical inference:*` paragraph is therefore still

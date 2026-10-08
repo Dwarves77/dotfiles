@@ -704,7 +704,7 @@ discovered instruments, 3 promoted"). Two workflow inputs matter for an operator
   `recordOnly` option); the candidate's already-fetched text (carried on the seed as `capturedText`,
   never a real `intelligence_items`/`proposed_changes` column) lands as ONE `agent_run_searches` row in
   the SAME canonical-ground shape `canonical-pipeline.ts`'s own ground-fallback INSERT uses (asserted by
-  `scripts/lib/pool-row-contract.mjs`'s `assertPoolRowShape`, the ONE shape both the writer and the
+  `fsi-app/src/lib/intake/pool-row-contract.mjs`'s `assertPoolRowShape`, the ONE shape both the writer and the
   export's `--with-pool-text` read agree on); GROUND and VALIDATE are skipped entirely (no grounding
   spend, disposition `record_only`, reason naming `item_grade=record`), and the free record-briefs fleet
   writes the `full_brief` later, like every other record item. `false` is never set by this workflow's own
@@ -1152,7 +1152,7 @@ drain" section above assumes but does not itself perform: the drain's recompute 
 **supersedes an existing row**, so the very first `derived_values`/`estimated_values` row for a given
 subject has to come from somewhere else. That somewhere is `scripts/propagation/seed-derived-values.mjs`.
 
-**What it does.** Two independent seed paths, one per method this lane registers in
+**What it does.** One seed path today (a second, `automate_vs_hire@1.0.0`, was retired, see item 2), for the carbon-intensity method this lane registers in
 `src/lib/propagation/methods/index.ts` (see that file, and the "Propagation drain" section above, for the
 `registerMethod`/`METHODS` seam these two methods now populate):
 
@@ -1163,18 +1163,12 @@ subject has to come from somewhere else. That somewhere is `scripts/propagation/
    other basis refuses with a named reason, counted `refused`). Written via `registerDerivedValue()`
    (`register-derivation.ts`) only — no paired `estimated_values` row (carbon-intensity is a plain
    calculated conversion, neither statutory nor an estimate).
-2. **`automate_vs_hire@1.0.0`** — one `derived_values` row (NPV, the propagated headline metric) PLUS one
-   paired `estimated_values` row (the full point/low/high range, `distribution` jsonb carrying
-   payback/break-even — ADR-024's "break-even wage gets equal billing") per region carrying BOTH a
-   `labor_markets` and an `operational_cost` `regional_data_facts` fact with a populated `value_numeric`
-   AND a resolvable entity_id (`estimated_values.entity_id` is a NOT-NULL primary key — a matched region
-   with no entity spine row is counted `skippedNoEntity`, never written; this script mints no entities,
-   that is DP-SPINE's `scripts/entities/backfill-entities.mjs` territory, out of this lane's write set).
-   **Honest expected count today: 0** — BLS OEWS (`labor_markets`) is US-only and Eurostat nrg_pc_205
-   (`operational_cost`) is EU-country-only (see `scripts/producers/regional/*-producer.mjs`), so no region
-   satisfies "both dimensions present" yet regardless of the entity-id gap. The path is fully implemented
-   and unit-tested against fakes (`seed-derived-values.test.mjs`), not a stub — it activates the moment
-   either producer gains cross-coverage of the other's regions.
+2. **`automate_vs_hire@1.0.0` - RETIRED 2026-10-03 (ADR-043, operator ruling; lane NO-TYPED-INPUT).** The
+   second seed path (the wage-versus-automation `derived_values` row and its paired `estimated_values` row
+   per region) is removed from `seed-derived-values.mjs`, the method is unregistered, and migration 350
+   deleted its `derived_values` rows and the edges into them. Regional wage and energy facts stay as sourced
+   evidence and are no longer combined into a verdict. `estimated_values` has no registered writer after
+   this change.
 
 **How to run it:**
 
@@ -1196,8 +1190,8 @@ once a `propagation_events` row exists to invalidate it). No `propagation-drain-
 added in this lane; a coordinator runs it by hand (or a future lane wires a one-time dispatch) once a real
 Supabase environment is available.
 
-**Test coverage, and a documented gap.** `scripts/propagation/seed-derived-values.test.mjs` (16 tests, all
-passing) proves both seed paths' counting/refusal/write-shape logic against hand-rolled fake clients — the
+**Test coverage, and a documented gap.** `scripts/propagation/seed-derived-values.test.mjs` (10 tests as of
+2026-10-08) proves the remaining seed path's counting/refusal/write-shape logic against hand-rolled fake clients - the
 same no-real-database posture `drain.test.mjs`/`register-derivation.test.mjs` already establish for this
 family. It is **not** wired into `.discipline/run-test-suite.sh` (`scripts/propagation/` is not one of
 that file's covered globs, and that file is outside this lane's write set) — recorded as a known gap in
@@ -1233,12 +1227,10 @@ idempotency check or the RPC call itself.
   after its own guarded insert, over the rows PostgREST actually reported back (never the pre-insert
   candidates). Licence-gated: `mayEmbedAsSeed(source_key)` — a non-embeddable source's factor is never
   turned into a derived value, matching `seed-derived-values.mjs`'s own gate.
-- `fsi-app/scripts/producers/regional/run-envelope-producer.mjs`'s `runEnvelopeProducer()` — the shared
-  write path for `bls-oews-producer.mjs`, `eurostat-lc-lci-lev-producer.mjs`,
-  `eurostat-nrg-pc-205-producer.mjs` — calls `authorAutomateVsHireForRegions()` over the run's own touched
-  region ids. Picks the MOST RECENT hourly-wage (`isHourlyWageUnit`) and operational-cost fact per region;
-  mints the region's jurisdiction entity on demand (via `resolveRegionEntityId`, reused unmodified from
-  `seed-derived-values.mjs`) when absent.
+- `fsi-app/scripts/producers/regional/run-envelope-producer.mjs`'s `runEnvelopeProducer()` - RETIRED
+  2026-10-03 (ADR-043): it called `authorAutomateVsHireForRegions()` over the run's own touched region ids;
+  that hook and its counts were removed with the retired method, and the producer now writes only its
+  facts through the guarded path.
 - `market_series` producers (`eia-v2-petroleum-spot-producer.mjs`, `ecb-fx-producer.mjs`,
   `eu-weekly-oil-bulletin.mjs`) are deliberately **not wired** — neither registered method consumes
   `market_series`, so authoring an edge from it would point at nothing any method reads.
@@ -1247,9 +1239,9 @@ idempotency check or the RPC call itself.
   consumes anything it writes — there is nothing to author there today.
 
 **The one-time historical bridge.** `fsi-app/scripts/entities/backfill-derivation-edges.mjs` (new, this
-lane) closes the gap for rows written BEFORE the wiring above existed — it calls the exact same two
-functions (`authorCarbonIntensityEdges`, `authorAutomateVsHireForRegions`) over every live
-`emission_factors` row and every region carrying a `labor_markets`/`operational_cost` fact, no
+lane) closes the gap for rows written BEFORE the wiring above existed - it calls the exact same
+functions the live producers call (`authorCarbonIntensityEdges`, and later `authorMarketSeriesDeltaEdges`) over every live
+`emission_factors` and `market_series` row; the regional wage-versus-automation step it once also ran was retired 2026-10-03 (ADR-043). No
 reimplemented logic. `--dry` (default) reports candidate counts; `--apply` authors for real; `--limit N`
 bounds each candidate list for a pilot run. **Retirement condition** (see the file's own header for the
 full statement): run it once unbounded with `--apply`, then run it again unbounded with `--apply`
@@ -1301,5 +1293,5 @@ constraint) — an existing row is read and skipped before any insert, never re-
 genuine recompute needs a caller-chosen new `scenario_key` (the same convention migration 286 documents
 for itself).
 
-**`estimated_values`'s automate-vs-hire sibling already exists** — `seed-derived-values.mjs`'s
-`seedAutomateVsHire` (documented above) — and is not duplicated by this lane.
+**`estimated_values` has no registered writer (2026-10-03, ADR-043):** its former sibling, `seed-derived-values.mjs`'s
+`seedAutomateVsHire`, was retired with the automate-versus-hire method.
