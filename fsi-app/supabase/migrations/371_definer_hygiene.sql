@@ -11,9 +11,9 @@
 -- authenticated and service_role on top. A SECURITY DEFINER function runs with its owner's rights, so each one without an
 -- explicit REVOKE is a privilege door open to the anon key. SEC-3a's session log (2026-10-08) counted 56 definers in the
 -- migration tree, 14 with an explicit REVOKE FROM PUBLIC and 42 without (31 callable, 11 trigger). This lane's own parse
--- of the tree (create, drop and redefine in file order, comments stripped) found 57 (45 callable, 12 trigger): one more
--- than SEC-3a's 56. Migration 358 defines move_override_notes_to_item_notes (SEC-3a's log says the tree does not define it),
--- and intelligence_items_theme_guard is a trigger function revoked from PUBLIC only; the callable count is 31 + 14 and the
+-- of the tree (create, drop and redefine in file order, comments stripped) found 57 (45 callable, 12 trigger) before 370 merged
+-- (58 with 370, which adds the callable user_can_write_in_org): one more than SEC-3a's 56 before 370. Migration 358 defines move_override_notes_to_item_notes (SEC-3a's log says the tree does not define it),
+-- and intelligence_items_theme_guard is a trigger function revoked from PUBLIC only; the callable count is 32 + 14 and the
 -- trigger count 11 + 1, and the test file asserts both.
 -- A CREATE OR REPLACE also resets a function's search_path, which is how migrations 272
 -- and 316 dropped the pin migration 160 had set on get_technology_items, get_workspace_intelligence, _dashboard, _listings
@@ -45,7 +45,11 @@
 --         get_surface_counts, get_market_intel_items, get_operations_items, get_research_items, get_technology_items,
 --         get_workspace_due_next, get_workspace_intelligence, get_workspace_intelligence_aggregates,
 --         get_workspace_intelligence_aggregates_scoped, get_workspace_intelligence_dashboard,
---         get_workspace_intelligence_listings, get_workspace_intelligence_slim, get_workspace_recent_changes.
+--         get_workspace_intelligence_listings, get_workspace_intelligence_slim, get_workspace_recent_changes, and (migration 370, SEC-3b,
+--         merged after this lane began) user_can_write_in_org, the viewer-read-only write predicate. It is used only in the
+--         INSERT, UPDATE and DELETE policies of tables whose write grants 369 limits, so an anon write is denied with 42501
+--         either by the privilege check or by the policy; 370 revoked it from PUBLIC only, so Supabase's default anon grant
+--         would otherwise remain.
 --         Callers [CONFIRMED by git grep over src and scripts]: the invitation functions are called from
 --         src/app/api/invitations/[token]/{accept,decline}/route.ts, src/app/api/invitations/[token]/route.ts and
 --         src/app/api/orgs/[org_id]/invitations/[id]/route.ts through the signed-in user's client (requireCommunityRoute,
@@ -198,7 +202,7 @@ SELECT v.cls, v.revoke_from, v.grant_to, n
   FROM (VALUES
     ('A', 'PUBLIC, anon, authenticated', 'service_role', ARRAY['_assert_org_membership', '_workspace_active_items']),
     ('C', 'PUBLIC', 'anon, authenticated, service_role', ARRAY['get_market_intel_items_public', 'get_operations_items_public', 'get_research_items_public', 'get_workspace_intelligence_listings_public', 'get_workspace_intelligence_slim_public', 'user_belongs_to_org', 'user_is_group_admin', 'user_is_group_member', 'user_owns_group']),
-    ('D', 'PUBLIC, anon', 'authenticated, service_role', ARRAY['accept_invitation', 'create_org_for_self', 'decline_invitation', 'lookup_invitation', 'revoke_invitation', 'get_all_surface_counts', 'get_surface_counts', 'get_market_intel_items', 'get_operations_items', 'get_research_items', 'get_technology_items', 'get_workspace_due_next', 'get_workspace_intelligence', 'get_workspace_intelligence_aggregates', 'get_workspace_intelligence_aggregates_scoped', 'get_workspace_intelligence_dashboard', 'get_workspace_intelligence_listings', 'get_workspace_intelligence_slim', 'get_workspace_recent_changes']),
+    ('D', 'PUBLIC, anon', 'authenticated, service_role', ARRAY['accept_invitation', 'create_org_for_self', 'decline_invitation', 'lookup_invitation', 'revoke_invitation', 'get_all_surface_counts', 'get_surface_counts', 'get_market_intel_items', 'get_operations_items', 'get_research_items', 'get_technology_items', 'get_workspace_due_next', 'get_workspace_intelligence', 'get_workspace_intelligence_aggregates', 'get_workspace_intelligence_aggregates_scoped', 'get_workspace_intelligence_dashboard', 'get_workspace_intelligence_listings', 'get_workspace_intelligence_slim', 'get_workspace_recent_changes', 'user_can_write_in_org']),
     ('E', 'PUBLIC, anon, authenticated', 'service_role', ARRAY['gate_a_health_refresh'])
   ) AS v(cls, revoke_from, grant_to, names), unnest(v.names) AS n;
 

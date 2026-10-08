@@ -2,7 +2,7 @@
  *  client; the point is what the public export does NOT carry. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hashId, buildHarnessRunsExport, exportLocalHarnessRuns, SELECT_RUNS } from "./export-local-harness-runs.mjs";
+import { hashId, buildHarnessRunsExport, exportLocalHarnessRuns, runCli, NoLocalLedgerError, NO_LEDGER_MESSAGE, SELECT_RUNS } from "./export-local-harness-runs.mjs";
 
 const ROWS = [
   { run_id: "source-sweep-run-001", harness_family: "source-sweep", trigger: "workflow_dispatch", github_run_id: "111", upstream_run_id: null,
@@ -53,6 +53,45 @@ test("exportLocalHarnessRuns issues exactly one SELECT, bounded and ordered, and
   assert.match(SELECT_RUNS, /^select .* from public\.harness_runs order by started_at asc, run_id asc limit \d+$/);
   assert.ok(!/\b(insert|update|delete|truncate|drop|alter)\b/i.test(SELECT_RUNS));
   assert.equal(closed, true);
+});
+
+test("PROOF-5: a missing ledger table (42P01) becomes NoLocalLedgerError, the client is still closed, and the read stays one SELECT", async () => {
+  let closed = false;
+  let n = 0;
+  const client = { query: async () => { n++; throw Object.assign(new Error('relation "public.harness_runs" does not exist'), { code: "42P01" }); }, end: async () => { closed = true; } };
+  await assert.rejects(() => exportLocalHarnessRuns(client), (e) => e instanceof NoLocalLedgerError && e.message === NO_LEDGER_MESSAGE);
+  assert.equal(closed, true);
+  assert.equal(n, 1);
+});
+
+test("PROOF-5: another read error is not turned into the no-ledger message", async () => {
+  const client = { query: async () => { throw Object.assign(new Error("permission denied"), { code: "42501" }); }, end: async () => {} };
+  await assert.rejects(() => exportLocalHarnessRuns(client), /permission denied/);
+});
+
+test("PROOF-5: the CLI exits 2 with 'no local ledger: the replay did not run' when the table is absent, and writes nothing", async () => {
+  const errors = [];
+  let wrote = false;
+  const client = { query: async () => { throw Object.assign(new Error("relation does not exist"), { code: "42P01" }); }, end: async () => {} };
+  const code = await runCli({ argv: ["node", "x", "--out", "o.json"], env: { CHAIN_PROOF_LOCAL: "1" }, connect: async () => client, writeOut: () => { wrote = true; }, log: () => {}, errorLog: (m) => errors.push(m) });
+  assert.equal(code, 2);
+  assert.equal(wrote, false);
+  assert.match(errors.join("\n"), /no local ledger: the replay did not run/);
+});
+
+test("PROOF-5: the CLI still writes the export and exits 0 when the ledger exists", async () => {
+  let written;
+  const client = { query: async () => ({ rows: ROWS }), end: async () => {} };
+  const code = await runCli({ argv: ["node", "x", "--out", "o.json"], env: { CHAIN_PROOF_LOCAL: "1" }, connect: async () => client, writeOut: (p, t) => { written = { p, t }; }, log: () => {}, errorLog: () => {} });
+  assert.equal(code, 0);
+  assert.equal(written.p, "o.json");
+  assert.equal(JSON.parse(written.t).count, 2);
+});
+
+test("PROOF-5: the CLI refuses without CHAIN_PROOF_LOCAL=1 and without a connection (exit 2)", async () => {
+  const q = { argv: ["node", "x", "--out", "o.json"], writeOut: () => {}, log: () => {}, errorLog: () => {} };
+  assert.equal(await runCli({ ...q, env: {}, connect: async () => { throw new Error("must not connect"); } }), 2);
+  assert.equal(await runCli({ ...q, env: { CHAIN_PROOF_LOCAL: "1" }, connect: async () => null }), 2);
 });
 
 test("the client is closed even when the read fails", async () => {
