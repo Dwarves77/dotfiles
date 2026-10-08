@@ -1872,23 +1872,25 @@ const MEMBERS_API = [
 ];
 
 // ── SectionIndex on Settings (lane uxaudit-d, 2026-09-07) ──────────────────────────────────────────
-// The real shared `SectionIndex` (`@/components/detail/DetailShell`), given the exact six-entry list
-// `SettingsPage.tsx`'s own `SETTINGS_SECTIONS` constant defines — the settings-specific instance
-// named in this lane's PARTS list, of a part that is otherwise generic (detail surfaces reuse it too,
-// out of this lane's scope).
+// The real shared `SectionIndex` (`@/components/ui/SectionIndex`), given the six entries
+// `SettingsPage.tsx`'s own `SETTINGS_SECTIONS` constant defines. Re-pointed by lane DAUDIT-1
+// (2026-10-08): the part left DetailShell.tsx when the detail surfaces moved onto ActionCard (PR 778,
+// 784 and 800), and it takes `shortName`, not `label`. The constant is not exported, so the six entries
+// are mirrored here ("Data", not the retired "Data & supersessions"). The settings-specific instance
+// of a part that is otherwise generic (detail surfaces reuse it too).
 const SETTINGS_SECTION_INDEX_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { SectionIndex } from '@/components/detail/DetailShell';
+import { SectionIndex } from '@/components/ui/SectionIndex';
 
 const SECTIONS = [
-  { id: 'general', label: 'General' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'saved', label: 'Saved searches' },
-  { id: 'data', label: 'Data \u0026 supersessions' },
-  { id: 'archive', label: 'Archive' },
-  { id: 'help', label: 'Help' },
+  { id: 'general', shortName: 'General' },
+  { id: 'notifications', shortName: 'Notifications' },
+  { id: 'saved', shortName: 'Saved searches' },
+  { id: 'data', shortName: 'Data' },
+  { id: 'archive', shortName: 'Archive' },
+  { id: 'help', shortName: 'Help' },
 ];
 
 let root = null;
@@ -1904,11 +1906,22 @@ window.__mount = () => {
 `;
 
 // ── Detail shell (lane uxaudit-c, 2026-09-07) ──────────────────────────────────────────────────
-// DetailHeader, ActionRow, DetailTagRow (+TagPopover, forced open so its geometry is measurable
-// without a click), SectionIndex + SummaryDepthSwitch, DetailTimeline, DetailSection, and every
-// rail card (InThisListStat, ImpactRailCard, AtAGlanceCard, RailLegend) — the ONE shared
-// components/detail/DetailShell.tsx module every one of the four detail surfaces assembles from
-// (that file's own header: "the ONE detail architecture... shared by all four detail surfaces").
+// ActionRow, DetailTagRow (+TagPopover, forced open so its geometry is measurable without a click),
+// SectionIndex + SummaryDepthSwitch, DetailSection, and every rail card (InThisListStat,
+// ImpactRailCard, AtAGlanceCard, RailLegend). The shell parts live in components/detail/DetailShell.tsx
+// (DetailPageWrapper, DetailLayout, DetailSection, SummaryDepthSwitch, the rail cards), the action row
+// in ui/ActionRow, the tag row in ui/DetailTagRow, the index in ui/SectionIndex.
+//
+// Re-pointed by lane DAUDIT-1 (2026-10-08). DetailHeader and DetailTimeline no longer exist: PR 778
+// (W10-ActionCard-a) built ActionCard, PR 784 (W10-ActionCard-b) moved the regulation surface onto it,
+// and PR 800 (PARITY-PARTS, b4b47b01) deleted DetailHeader, DetailExposure and DetailTimeline and
+// ported research, operations and market onto ActionCard too. Their two specs are retired (see
+// RETIRED_AUDIT_SPECS below). SectionIndex left DetailShell.tsx in the same PR and is now
+// ui/SectionIndex, which takes shortName and carries the Summary | Full brief switch inside the index
+// bar. What DetailHeader used to wrap (the tag row and the action row) is mounted here on its own,
+// inside the same data-audit wrappers the specs address, so those specs keep measuring the real
+// ui/ActionRow and ui/DetailTagRow.
+//
 // One mount instead of four, since the shell is the SAME code on every surface; each real detail
 // surface's OWN section content and rail composition is audited separately where it differs
 // (factblocks mount, below).
@@ -1917,9 +1930,6 @@ ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  DetailHeader,
-  DetailTimeline,
-  SectionIndex,
   SummaryDepthSwitch,
   DetailSection,
   ImpactRailCard,
@@ -1929,6 +1939,7 @@ import {
   DetailPageWrapper,
   DetailLayout,
 } from '@/components/detail/DetailShell';
+import { SectionIndex } from '@/components/ui/SectionIndex';
 import { ActionRow, ActionButton } from '@/components/ui/ActionRow';
 import { DetailTagRow } from '@/components/ui/DetailTagRow';
 import { BAND_ORDER } from '@/lib/urgency/bands';
@@ -1937,41 +1948,27 @@ const band = BAND_ORDER.find((b) => b.key === 'action');
 
 function Demo() {
   const [depth, setDepth] = React.useState('summary');
-  return React.createElement(DetailPageWrapper, null,
-    React.createElement('div', { 'data-audit': 'header' },
-      React.createElement(DetailHeader, {
-        band,
-        tier: 1,
-        title: 'EU Emissions Trading System (ETS) extension to maritime transport',
-        meta: 'Regulations \\u00b7 European Union',
-        tagRow: React.createElement('div', { 'data-audit': 'tagrow' },
-          React.createElement(DetailTagRow, { itemId: 'demo-item', open: true, onOpenChange: () => {} })),
-        actions: React.createElement('div', { 'data-audit': 'actionrow' },
-          React.createElement(ActionRow, {
-            onExport: () => {},
-            onShare: () => {},
-            onTag: () => {},
-            watch: React.createElement(ActionButton, { key: 'watch', variant: 'secondary' }, '\\u2606 Watch'),
-          })),
-      })),
-    React.createElement('div', { 'data-audit': 'timeline' },
-      React.createElement(DetailTimeline, {
-        band,
-        entries: [
-          { date: '2023-01-01', label: 'Adopted', status: 'past' },
-          { date: '2026-09-30', label: 'Surrender', status: 'current' },
-          { date: '2027-01-01', label: 'Phase 2', status: 'future' },
-        ],
+  return React.createElement(DetailPageWrapper, { band },
+    React.createElement('div', { 'data-audit': 'tagrow' },
+      React.createElement(DetailTagRow, { itemId: 'demo-item', open: true, onOpenChange: () => {} })),
+    React.createElement('div', { 'data-audit': 'actionrow' },
+      React.createElement(ActionRow, {
+        onExport: () => {},
+        onShare: () => {},
+        onTag: () => {},
+        watch: React.createElement(ActionButton, { key: 'watch', variant: 'secondary' }, '\\u2606 Watch'),
       })),
     React.createElement('div', { 'data-audit': 'sectionindex' },
       React.createElement(SectionIndex, {
         sections: [
-          { id: 'summary', label: 'Summary' },
-          { id: 'obligations', label: 'Obligations' },
+          { id: 'summary', shortName: 'Summary', ord: 1 },
+          { id: 'obligations', shortName: 'Obligations', ord: 2 },
         ],
-        trailing: React.createElement('div', { 'data-audit': 'depthswitch' },
-          React.createElement(SummaryDepthSwitch, { depth, onChange: setDepth })),
+        depth,
+        onDepthChange: setDepth,
       })),
+    React.createElement('div', { 'data-audit': 'depthswitch' },
+      React.createElement(SummaryDepthSwitch, { depth, onChange: setDepth })),
     React.createElement(DetailLayout, {
       rail: React.createElement(React.Fragment, null,
         React.createElement('div', { key: 'r1', 'data-audit': 'inthislist' },
@@ -2278,7 +2275,7 @@ const RAILCARD_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { RailCard, LegendRailCard } from '@/components/list-surface/ListSurfaceRailCards';
+import { LegendRailCard } from '@/components/list-surface/ListSurfaceRailCards';
 
 let root = null;
 window.__mount = () => {
@@ -2965,6 +2962,17 @@ const MOBILE_DRAWER_ENTRY = PAGE_FRAME_ENTRY.replace(
   setTimeout(openDrawer, 0);`,
 );
 
+/**
+ * Audit specs that were retired rather than re-pointed, each with the one-line reason, so a retirement
+ * is recorded here and never a silent drop. The spec file is deleted from ./spec (git history keeps
+ * its rows); mounts-resolve.test.mjs fails if a spec file with a retired id comes back, and if a
+ * reason is missing. A part that merely MOVED is re-pointed in its mount, not listed here.
+ */
+export const RETIRED_AUDIT_SPECS = {
+  detailheader: 'DetailHeader was deleted by PR 800 (PARITY-PARTS, b4b47b01); its role (pill row, tags, action row) is now ui/ActionCard, which has no audit spec yet.',
+  detailtimeline: 'DetailTimeline was deleted by PR 800 (PARITY-PARTS, b4b47b01); its role is now the Timeline block inside ui/ActionCard, which has no audit spec yet.',
+};
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -3215,13 +3223,31 @@ export const AUDIT_MOUNTS = {
   },
   'detail-shell': {
     id: 'detail-shell',
-    description: 'DetailHeader/ActionRow/DetailTagRow+TagPopover/SectionIndex/SummaryDepthSwitch/DetailTimeline/DetailSection/rail cards, real components from DetailShell.tsx.',
+    description: 'ActionRow/DetailTagRow+TagPopover/SectionIndex/SummaryDepthSwitch/DetailSection/rail cards: the real parts the detail surfaces assemble from (DetailShell.tsx, ui/ActionRow, ui/DetailTagRow, ui/SectionIndex).',
     viewport: 1440,
     entry: DETAIL_SHELL_ENTRY,
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
     },
-    apiRoutes: EMPTY_API,
+    // The generic catch-all first, the specific route after it (Playwright tries the most recently
+    // registered handler first). DetailTagRow renders its "workspace tags" caption only when the item
+    // has at least one applied tag (W10-ActionCard-b, review item 1a), so a bare '{}' body would leave
+    // the caption unrendered and the spec row would report a part that is present as absent. One tag,
+    // applied, in the shape fetchItemWorkspaceTags reads (lib/tags/client.ts).
+    apiRoutes: [
+      ...EMPTY_API,
+      {
+        urlGlob: '**/api/workspace/tags**',
+        handler: (route) => route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            tags: [{ id: 'tag-1', orgId: 'org-1', name: 'Cost alert', itemCount: 1, createdAt: '2026-09-01T00:00:00Z' }],
+            appliedTagIds: ['tag-1'],
+            applications: [],
+          }),
+        }),
+      },
+    ],
   },
   factblocks: {
     id: 'factblocks',
