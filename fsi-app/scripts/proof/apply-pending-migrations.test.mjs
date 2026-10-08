@@ -55,18 +55,18 @@ test("the 299 exclusion reason is still what the file's own header says", () => 
   assert.match(EXCLUDED[names[0]], /LEFT UNAPPLIED \(two-track policy\)/);
 });
 
-test("the committed tree: the plan has no errors, the pending set is exactly the map's never-applied entries plus unreferenced files minus 299, in number order", () => {
+test("the committed tree: the plan has no errors, the pending set is exactly the derived never-applied files plus unreferenced files minus 299, in number order", () => {
   const plan = planReplay(
     parseInventoryOrder(readFileSync(DEFAULT_INVENTORY, "utf8")),
     readdirSync(DEFAULT_MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")),
     parseAppliedInventory(readFileSync(DEFAULT_APPLIED, "utf8")),
     readFileSync(DEFAULT_MAP, "utf8"),
+    (file) => readFileSync(join(DEFAULT_MIGRATIONS_DIR, file), "utf8"),
   );
   assert.deepEqual(plan.errors, []);
   const sel = selectPending(plan);
   const files = sel.apply.map((a) => a.file);
-  const map = JSON.parse(readFileSync(DEFAULT_MAP, "utf8"));
-  const never = Object.values(map).filter((e) => e.class === "never-applied").map((e) => e.file);
+  const never = plan.skipped.filter((s) => s.class === "never-applied").map((s) => s.file); // derived from each file's own NOT APPLIED header (MIGTEST-1)
   const want = [...never, ...plan.unreferenced].filter((f) => !Object.keys(EXCLUDED).includes(f)).sort((a, b) => Number(/^(\d+)/.exec(a)[1]) - Number(/^(\d+)/.exec(b)[1]) || (a < b ? -1 : 1));
   assert.deepEqual(files, want, "the selection is derived from the map and the tree, not from a list kept here");
   assert.ok(!files.includes("299_item_type_required_slots_wave3.sql"));
@@ -165,7 +165,6 @@ function fixtureTree() {
   writeFileSync(join(dir, "applied.json"), JSON.stringify({ source: "t", synced_at: "t", count: 1, migrations: [{ version: "001", name: "schema" }] }));
   writeFileSync(join(dir, "map.json"), JSON.stringify({
     "001": { name: "schema", file: "001_schema.sql", class: "identical" },
-    "never:370": { name: "pending", file: "370_pending.sql", class: "never-applied" },
   }));
   return { dir, files };
 }
@@ -177,7 +176,7 @@ function runCli(extra, env = {}) {
 test("CLI: a dry run lists the selection and exits 0 without psql", () => {
   const { dir, files } = fixtureTree();
   const m = mkdtempSync(join(tmpdir(), "apply-pending-m-"));
-  for (const f of files) writeFileSync(join(m, f), "SELECT 1;\n");
+  for (const f of files) writeFileSync(join(m, f), f.startsWith("370") ? "-- NOT APPLIED\nSELECT 1;\n" : "SELECT 1;\n");
   const r = runCli(["--db-url", URL_LOCAL, "--migrations-dir", m, "--inventory", join(dir, "inventory.md"), "--applied", join(dir, "applied.json"), "--map", join(dir, "map.json")]);
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /Pending migrations on the local stack \(dry\): OK/);
@@ -196,7 +195,6 @@ test("CLI ATTACK: a non-loopback database URL is refused with exit 2 before anyt
 test("CLI: a map with errors refuses to choose a pending set (exit 1, errors named)", () => {
   const { dir } = fixtureTree();
   const m = mkdtempSync(join(tmpdir(), "apply-pending-m-"));
-  writeFileSync(join(m, "001_schema.sql"), "SELECT 1;\n");
   const r = runCli(["--db-url", URL_LOCAL, "--migrations-dir", m, "--inventory", join(dir, "inventory.md"), "--applied", join(dir, "applied.json"), "--map", join(dir, "map.json")]);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /entry_file_missing/);

@@ -15,6 +15,7 @@
     "scripts/proof/schema-diff.mjs",
     "scripts/proof/sync-applied-migrations.mjs",
     "scripts/proof/applied-map.mjs",
+    "supabase/migrations/_lib/applied-status.mjs",
     "scripts/proof/emit-chain-proof-artifact.mjs",
     "scripts/lib/pg-conn.mjs",
     "scripts/proof/attacks/run-attacks.mjs",

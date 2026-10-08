@@ -88,6 +88,44 @@ test('NEGATIVE (parity): a well-formed new migration with no matching table row 
   assert.equal(existsSync(join(REAL_MIG_DIR, FIXTURE_FILE)), false, 'the real migrations directory was never touched');
 });
 
+test('PARITY EXCEPTION: a NOT APPLIED file with no row on the page passes (the page is refreshed after the merge, not by the lane)', () => {
+  const t = tempTree();
+  try {
+    const fixture = join(t.migDir, FIXTURE_FILE);
+    writeFileSync(fixture, '-- subject: A fixture migration that is not applied and not on the page yet\n-- NOT APPLIED\nSELECT 1;\n');
+    assert.deepEqual(consistencyCheck.run({ migDir: t.migDir, docPath: t.docPath }), []);
+  } finally { t.cleanup(); }
+  assert.equal(existsSync(join(REAL_MIG_DIR, FIXTURE_FILE)), false, 'the real migrations directory was never touched');
+});
+
+test('PARITY EXCEPTION is narrow: a NOT APPLIED file that HAS a row must still match it exactly', () => {
+  const t = tempTree();
+  try {
+    const fixture = join(t.migDir, FIXTURE_FILE);
+    writeFileSync(fixture, '-- subject: Fixture subject one\n-- NOT APPLIED\nSELECT 1;\n');
+    const row = `| 999999 | ${FIXTURE_FILE} | Fixture subject one |`;
+    const doc = readFileSync(t.docPath, 'utf8');
+    const at = doc.indexOf('\n\n## ', doc.indexOf('## Migrations'));
+    writeFileSync(t.docPath, `${doc.slice(0, at)}\n${row}${doc.slice(at)}`);
+    assert.deepEqual(consistencyCheck.run({ migDir: t.migDir, docPath: t.docPath }), [], 'a listed never-applied file with the exact row passes');
+    writeFileSync(fixture, '-- subject: Fixture subject two\n-- NOT APPLIED\nSELECT 1;\n');
+    const drifts = consistencyCheck.run({ migDir: t.migDir, docPath: t.docPath });
+    assert.ok(drifts.some((d) => d.kind === 'stale-status' && d.location === DOC_PATH_REL), 'a listed never-applied file whose subject changed is caught');
+  } finally { t.cleanup(); }
+});
+
+test('NEGATIVE (parity): a LEDGERED file with no row on the page still fails, exception or not', () => {
+  const t = tempTree();
+  try {
+    const lines = readFileSync(t.docPath, 'utf8').split('\n');
+    const kept = lines.filter((l) => !l.startsWith('| 371 | 371_definer_hygiene.sql |'));
+    assert.equal(kept.length, lines.length - 1, 'exactly one row (371, a ledgered file) was removed from the throwaway page');
+    writeFileSync(t.docPath, kept.join('\n'));
+    const drifts = consistencyCheck.run({ migDir: t.migDir, docPath: t.docPath });
+    assert.ok(drifts.some((d) => d.kind === 'stale-status' && d.location === DOC_PATH_REL), 'a ledgered file missing from the page is caught');
+  } finally { t.cleanup(); }
+});
+
 test('NEGATIVE (parity): editing the committed page without regenerating it is caught', () => {
   const realBefore = readFileSync(REAL_DOC_PATH, 'utf8');
   const t = tempTree();

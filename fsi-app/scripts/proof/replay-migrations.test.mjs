@@ -46,15 +46,17 @@ const MAP = {
   "20260703000000": { name: "cmt_only", file: null, class: "comment-only" },
   "20260704000000": { name: "rec", file: "010_rec.sql", class: "recovered" },
   "outside:009": { name: "live", file: "009_live.sql", class: "outside-ledger" },
-  "never:007": { name: "never", file: "007_never.sql", class: "never-applied" },
   "dup:006rls": { name: "rls", file: "006_rls_multi_tenant.sql", class: "duplicate-prefix" },
 };
 const MAP_TEXT = JSON.stringify(MAP);
 const URL_LOCAL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
+// 007 is named by no map entry; its own header says NOT APPLIED, which is what makes it never-applied (derived, MIGTEST-1).
+const fixtureText = (f) => (f === "007_never.sql" ? "-- 007_never.sql\n--\n-- NOT APPLIED. Retired.\nSELECT 1;\n" : `-- ${f}\nSELECT 1;\nSELECT 2;\n`);
+
 function fixtureDir() {
   const dir = mkdtempSync(join(tmpdir(), "replay-fixture-"));
-  for (const f of DISK) writeFileSync(join(dir, f), `-- ${f}\nSELECT 1;\nSELECT 2;\n`);
+  for (const f of DISK) writeFileSync(join(dir, f), fixtureText(f));
   return dir;
 }
 
@@ -78,7 +80,7 @@ test("prefixReport names duplicate prefixes and absent numbers", () => {
 });
 
 test("planReplay with the map: apply classes and outside-ledger in inventory order; satisfied and skipped listed", () => {
-  const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, LEDGER, MAP_TEXT);
+  const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, LEDGER, MAP_TEXT, fixtureText);
   assert.deepEqual(plan.errors, []);
   assert.deepEqual(plan.ordered.map((o) => [o.file, o.class]), [
     ["001_schema.sql", "identical"], ["002_cmt.sql", "comments-only"], ["003_code.sql", "code-differs"], ["006_multi_tenant.sql", "identical"],
@@ -148,8 +150,8 @@ test("ERROR: the map file absent is an error naming it and MIG-HIST-1 (red until
 test("ERROR: a ledger version absent from the map, and a map entry whose file is missing", () => {
   const noEntry = { ...MAP };
   delete noEntry["002"];
-  assert.deepEqual(planReplay(parseInventoryOrder(INVENTORY), DISK, LEDGER, JSON.stringify(noEntry)).errors.map((e) => e.kind), ["ledger_version_not_in_map"]);
-  const missing = planReplay(parseInventoryOrder(INVENTORY), DISK.filter((f) => f !== "003_code.sql"), LEDGER, MAP_TEXT);
+  assert.deepEqual(planReplay(parseInventoryOrder(INVENTORY), DISK, LEDGER, JSON.stringify(noEntry), fixtureText).errors.map((e) => e.kind), ["ledger_version_not_in_map"]);
+  const missing = planReplay(parseInventoryOrder(INVENTORY), DISK.filter((f) => f !== "003_code.sql"), LEDGER, MAP_TEXT, fixtureText);
   assert.ok(missing.errors.some((e) => e.kind === "entry_file_missing" && e.file === "003_code.sql"));
 });
 
@@ -209,7 +211,7 @@ function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER, failLedger = 
   const dir = fixtureDir();
   try {
     const { spawn, calls } = fakePsql({ failOn, probe, failLedger });
-    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, ledger, mapText);
+    const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, ledger, mapText, fixtureText);
     const report = replay({ plan, migrationsDir: dir, dbUrl: URL_LOCAL, spawn, expectedTables: 108 });
     return { report, calls };
   } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -284,7 +286,7 @@ test("with the real tree and no map present, the plan refuses (the honest red st
   const rows = parseInventoryOrder(readFileSync(DEFAULT_INVENTORY, "utf8"));
   const disk = readdirSync(DEFAULT_MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
   const mapText = existsSync(DEFAULT_MAP) ? readFileSync(DEFAULT_MAP, "utf8") : null;
-  const plan = planReplay(rows, disk, ledger, mapText);
+  const plan = planReplay(rows, disk, ledger, mapText, (f) => readFileSync(join(DEFAULT_MIGRATIONS_DIR, f), "utf8"));
   if (mapText === null) assert.equal(plan.errors[0].kind, "map_absent_or_invalid");
   else assert.ok(Array.isArray(plan.errors));
 });

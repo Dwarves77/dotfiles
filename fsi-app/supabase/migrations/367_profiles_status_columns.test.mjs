@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const RAW = readFileSync(join(HERE, "367_profiles_status_columns.sql"), "utf8");
@@ -24,9 +25,9 @@ const FIVE = ["verifier_since", "linkedin_verified", "linkedin_identity_verified
 const NINE = [...FOUR, ...FIVE];
 const SEC1 = ["is_platform_admin", "role", "org_id", "workspace_role"];
 
-test("header: subject line and NOT APPLIED, and it names migration 364 as its prerequisite", () => {
+test("header: subject line and applied status as the map says, and it names migration 364 as its prerequisite", () => {
   assert.match(RAW, /^-- subject: Migration 367 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "367_profiles_status_columns.sql"), []);
   assert.match(RAW, /REQUIRES migration 364/);
 });
 

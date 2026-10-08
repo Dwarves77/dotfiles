@@ -167,7 +167,7 @@ function main() {
     const ledger = parseAppliedInventory(readFileSync(args.applied ? resolve(args.applied) : DEFAULT_APPLIED, "utf8"));
     let mapText = null;
     try { mapText = readFileSync(args.map ? resolve(args.map) : DEFAULT_MAP, "utf8"); } catch { mapText = null; }
-    plan = planReplay(inventoryRows, diskFiles, ledger, mapText);
+    plan = planReplay(inventoryRows, diskFiles, ledger, mapText, (file) => readFileSync(join(migrationsDir, file), "utf8"));
   } catch (e) { console.error(`apply-pending-migrations: an input was unreadable: ${e.message}`); process.exit(2); }
   if (plan.errors.length > 0) {
     console.error(`apply-pending-migrations: the applied map has ${plan.errors.length} error(s), so the pending set cannot be chosen:`);
