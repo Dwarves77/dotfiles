@@ -15,6 +15,12 @@ interface RouteContext {
 // /api/workspace/overrides). Upserts the (tag_id, intelligence_item_id) row
 // — applying twice is a no-op, not an error (matches the popover's
 // multi-select-stays-open behaviour).
+//
+// ATTRIBUTION (migration 313 created_by/created_at / lane s8b-tag-attribution): created_by is stamped from the SESSION
+// (auth.userId) and never read from the body, so a forged created_by / applied_by in the request is
+// ignored. A second apply of the same tag keeps the FIRST applier and date (ignoreDuplicates: ON
+// CONFLICT DO NOTHING); a plain upsert rewrote created_by to the re-applier while created_at stayed,
+// pairing one member's name with another's date.
 async function handlePUT(request: NextRequest, context: RouteContext) {
   const auth = await requireUserRoute(request);
   if (isRefusal(auth)) return auth;
@@ -62,7 +68,7 @@ async function handlePUT(request: NextRequest, context: RouteContext) {
     .from("item_workspace_tags")
     .upsert(
       { tag_id: tagId, intelligence_item_id: intelItemId, org_id: orgId, created_by: auth.userId },
-      { onConflict: "tag_id,intelligence_item_id" }
+      { onConflict: "tag_id,intelligence_item_id", ignoreDuplicates: true }
     );
 
   if (error) {

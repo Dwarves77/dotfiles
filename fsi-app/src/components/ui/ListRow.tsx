@@ -91,7 +91,7 @@ export interface ListRowProps {
    * line beside `meta`. Undefined/empty renders nothing extra — every
    * existing caller is unaffected.
    */
-  tags?: { id: string; name: string }[] | null;
+  tags?: { id: string; name: string; title?: string }[] | null;
   /**
    * Additive extension (lane P1, 2026-10-05; CLAUDE.md rule 18): the bias tags of the item's
    * SOURCE, drawn by the one `BiasChips` part (bounded to two chips plus a "+N more" count, no
@@ -931,7 +931,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
                 {tags && tags.length > 0 && (
                   <span style={{ display: "flex", gap: 4, flexShrink: 0, position: "relative", zIndex: 1 }}>
                     {tags.map((t) => (
-                      <WorkspaceTagPill key={t.id} name={t.name} />
+                      <WorkspaceTagPill key={t.id} name={t.name} title={t.title} />
                     ))}
                   </span>
                 )}
@@ -954,7 +954,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, d
           {tags && tags.length > 0 && (
             <span className="cl-row-tags-mobile" style={{ display: "none", gap: 4, position: "relative", zIndex: 1 }}>
               {tags.map((t) => (
-                <WorkspaceTagPill key={`m-${t.id}`} name={t.name} />
+                <WorkspaceTagPill key={`m-${t.id}`} name={t.name} title={t.title} />
               ))}
             </span>
           )}

@@ -22,6 +22,7 @@ import { WorkspaceTagPill } from "@/components/ui/Chips";
 import { TagPopover } from "@/components/ui/TagPopover";
 import { fetchItemWorkspaceTags, removeWorkspaceTag } from "@/lib/tags/client";
 import type { WorkspaceTag } from "@/lib/tags/types";
+import { attributionText, type TagApplication } from "@/lib/tags/attribution";
 
 export function DetailTagRow({
   itemId,
@@ -33,12 +34,14 @@ export function DetailTagRow({
   onOpenChange?: (open: boolean) => void;
 }) {
   const [applied, setApplied] = useState<WorkspaceTag[]>([]);
+  const [applications, setApplications] = useState<TagApplication[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   async function reload() {
-    const { tags, appliedTagIds } = await fetchItemWorkspaceTags(itemId);
+    const { tags, appliedTagIds, applications: apps } = await fetchItemWorkspaceTags(itemId);
     const appliedSet = new Set(appliedTagIds);
     setApplied(tags.filter((t) => appliedSet.has(t.id)));
+    setApplications(apps);
     setLoaded(true);
   }
 
@@ -57,6 +60,7 @@ export function DetailTagRow({
         <WorkspaceTagPill
           key={tag.id}
           name={tag.name}
+          title={attributionText(applications.find((a) => a.tagId === tag.id)) ?? undefined}
           onRemove={async () => {
             const ok = await removeWorkspaceTag(tag.id, itemId);
             if (ok) setApplied((prev) => prev.filter((t) => t.id !== tag.id));

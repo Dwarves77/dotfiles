@@ -35,6 +35,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { DetailTagRow } from '@/components/ui/DetailTagRow';
 import { useWorkspaceTagsFacet } from '@/lib/tags/useWorkspaceTagsFacet';
+import { ListRow } from '@/components/ui/ListRow';
 
 // The rail facet's two reads, rendered plainly. ListSurfaceRailCards' "Workspace tags" group maps
 // over exactly \`tags\` (name + itemCount) and ListRow's \`tags\` prop is exactly \`tagsForItem(id)\`.
@@ -45,6 +46,18 @@ function RailFacetProbe({ itemUuid }) {
       React.createElement('li', { key: t.id, 'data-facet-tag': t.name }, t.name + ' ' + t.itemCount))),
     React.createElement('ul', null, facet.tagsForItem(itemUuid).map((t) =>
       React.createElement('li', { key: t.id, 'data-row-tag': t.name }, t.name))),
+    // The REAL list row, fed by the same hook the five ledgers use (lane s8b-tag-attribution, 2026-10-07):
+    // its workspace-tag chips must carry the same "applied by <name> on <date>" title as the detail chips.
+    React.createElement('div', { 'data-audit': 'listrow' },
+      React.createElement(ListRow, {
+        href: '#',
+        band: 'action',
+        jurisdiction: 'EU',
+        title: 'Packaging and packaging waste regulation',
+        meta: 'Regulation · Ocean · emissions',
+        tier: 1,
+        tags: facet.tagsForItem(itemUuid),
+      })),
   );
 }
 
@@ -68,12 +81,28 @@ const ITEM_ID = 'r7';
 const ITEM_UUID = '00000000-0000-4000-8000-000000000007';
 const APPLIED = { id: 'tag-applied', orgId: 'org-1', name: 'Board pack', itemCount: 3, createdAt: '2026-09-01T00:00:00Z' };
 const UNAPPLIED = { id: 'tag-unapplied', orgId: 'org-1', name: 'Q4 review', itemCount: 1, createdAt: '2026-09-02T00:00:00Z' };
+// Lane s8b-tag-attribution (2026-10-07, migration 313 created_by/created_at): a workspace tag shows who applied it and when. The
+// third tag carries a deliberately long author name so the 375 pass proves the attribution line truncates
+// inside the 280px panel instead of widening it.
+const LONG_AUTHOR = 'Alexandria Bartholomew Montgomery-Featherstonehaugh the Third';
+const LONG = { id: 'tag-long', orgId: 'org-1', name: 'Customs hold', itemCount: 2, createdAt: '2026-09-03T00:00:00Z' };
+const APPLICATIONS = {
+  [APPLIED.id]: { appliedBy: 'user-ada', appliedByName: 'Ada Lovelace', appliedAt: '2026-09-03T10:00:00Z' },
+  [LONG.id]: { appliedBy: 'user-long', appliedByName: LONG_AUTHOR, appliedAt: '2026-09-04T10:00:00Z' },
+};
+const NEW_APPLICATION = { appliedBy: 'user-grace', appliedByName: 'Grace Hopper', appliedAt: '2026-09-05T10:00:00Z' };
+const ADA_TEXT = 'applied by Ada Lovelace on 3 Sep 2026';
+const GRACE_TEXT = 'applied by Grace Hopper on 5 Sep 2026';
+const LONG_TEXT = `applied by ${LONG_AUTHOR} on 4 Sep 2026`;
 
 /** requireAuth's contract, replicated: identity comes from the Authorization header or the request
  *  is refused. `seen` records every request so the spec can assert the header was actually sent,
  *  not merely that something rendered. */
+// ROUTE ORDER: Playwright tries the most recently registered route first, and '**/api/workspace/tags**'
+// also matches the items path, so the specific items route is registered LAST. In the first version of
+// this spec the order was reversed, the list handler answered every PUT, and no server state ever changed.
 function tagsApi(seen) {
-  const state = { applied: new Set([APPLIED.id]) };
+  const state = { applied: new Set([APPLIED.id, LONG.id]), applications: { ...APPLICATIONS } };
 
   const authed = (route) => {
     const header = route.request().headers()['authorization'];
@@ -87,23 +116,28 @@ function tagsApi(seen) {
 
   return [
     {
+      urlGlob: '**/api/workspace/tags**',
+      handler: (route) => {
+        if (!authed(route)) return;
+        const tags = [APPLIED, UNAPPLIED, LONG];
+        const appliedTagIds = [...state.applied];
+        const itemTags = { [ITEM_UUID]: appliedTagIds };
+        const applications = appliedTagIds.map((tagId) => ({ tagId, ...state.applications[tagId] }));
+        const itemTagApplications = { [ITEM_UUID]: applications };
+        route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tags, appliedTagIds, applications, itemTags, itemTagApplications }) });
+      },
+    },
+    {
       urlGlob: '**/api/workspace/tags/*/items',
       handler: (route) => {
         if (!authed(route)) return;
         const tagId = new URL(route.request().url()).pathname.split('/').at(-2);
-        if (route.request().method() === 'PUT') state.applied.add(tagId);
+        if (route.request().method() === 'PUT') {
+          state.applied.add(tagId);
+          state.applications[tagId] ??= NEW_APPLICATION;
+        }
         if (route.request().method() === 'DELETE') state.applied.delete(tagId);
         route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true }) });
-      },
-    },
-    {
-      urlGlob: '**/api/workspace/tags**',
-      handler: (route) => {
-        if (!authed(route)) return;
-        const tags = [APPLIED, UNAPPLIED];
-        const appliedTagIds = [...state.applied];
-        const itemTags = { [ITEM_UUID]: appliedTagIds };
-        route.fulfill({ contentType: 'application/json', body: JSON.stringify({ tags, appliedTagIds, itemTags }) });
       },
     },
   ];
@@ -159,6 +193,67 @@ export async function runSmoke(browser) {
     failures.push(`workspace-tags: the + Tag popover listed ${options.length} option(s), expected both workspace tags.`);
   }
 
+  // ── ATTRIBUTION (migration 313 created_by/created_at): the chip's title and the tag list say who applied it and when ──
+  const chipTitles = await page.$$eval('[data-audit="tagrow"] [data-part="chip-workspace-tag"][title]', (els) =>
+    els.map((e) => ({ text: (e.textContent || '').trim(), title: e.getAttribute('title') })));
+  checks++;
+  if (!chipTitles.some((c) => c.text.startsWith(APPLIED.name) && c.title === ADA_TEXT)) {
+    failures.push(`workspace-tags: the applied chip carries no "${ADA_TEXT}" title (titled chips: ${JSON.stringify(chipTitles)}).`);
+  }
+  const listLines = await page.$$eval('[data-audit="tagrow"] [data-part="tag-attribution"]', (els) => els.map((e) => e.textContent || ''));
+  checks++;
+  if (!listLines.includes(ADA_TEXT) || !listLines.includes(LONG_TEXT)) {
+    failures.push(`workspace-tags: the tag list rendered attribution lines ${JSON.stringify(listLines)}, expected "${ADA_TEXT}" and the long-author line.`);
+  }
+  checks++;
+  if (listLines.length !== 2) {
+    failures.push(`workspace-tags: ${listLines.length} attribution lines rendered for 2 applied tags (an unapplied tag must carry none).`);
+  }
+
+  // List rows (the five ledgers and the watchlist) carry the same title on their tag chips.
+  const rowChips = await page.$$eval('[data-audit="listrow"] [data-part="chip-workspace-tag"]', (els) =>
+    els.map((e) => ({ text: (e.textContent || '').trim(), title: e.getAttribute('title') })));
+  checks++;
+  if (rowChips.length === 0) {
+    failures.push('workspace-tags: the list row rendered no workspace-tag chips.');
+  } else if (rowChips.some((c) => !c.title)) {
+    failures.push(`workspace-tags: a list-row tag chip has no attribution title (${JSON.stringify(rowChips)}).`);
+  } else if (!rowChips.some((c) => c.text.startsWith(APPLIED.name) && c.title === ADA_TEXT) ||
+             !rowChips.some((c) => c.text.startsWith(LONG.name) && c.title === LONG_TEXT)) {
+    failures.push(`workspace-tags: list-row tag chip titles are ${JSON.stringify(rowChips)}, expected "${ADA_TEXT}" and "${LONG_TEXT}".`);
+  }
+
+  // 375 pass: the long author name must truncate inside the 280px panel, never widen it or the page.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.waitForTimeout(250);
+  checks++;
+  failures.push(...assertGuardClean('workspace-tags@375', await measureGuard(page)));
+  const fit = await page.evaluate(() => {
+    const panel = document.querySelector('[data-audit="tagrow"] [role="listbox"]');
+    const lines = [...document.querySelectorAll('[data-audit="tagrow"] [data-part="tag-attribution"]')];
+    if (!panel) return { panel: null };
+    const p = panel.getBoundingClientRect();
+    return {
+      panelRight: p.right,
+      panelWidth: p.width,
+      viewport: window.innerWidth,
+      pageOverflow: document.documentElement.scrollWidth > window.innerWidth,
+      escaping: lines.filter((l) => l.getBoundingClientRect().right > p.right + 0.5).length,
+      lines: lines.length,
+    };
+  });
+  checks++;
+  if (!fit.panel && fit.panelRight === undefined) {
+    failures.push('workspace-tags@375: the tag list panel did not render.');
+  } else {
+    if (fit.panelRight > fit.viewport) failures.push(`workspace-tags@375: the tag list panel reaches x=${fit.panelRight}, past the ${fit.viewport}px viewport.`);
+    if (fit.pageOverflow) failures.push('workspace-tags@375: the page scrolls horizontally with the attribution lines rendered.');
+    if (fit.escaping) failures.push(`workspace-tags@375: ${fit.escaping} attribution line(s) extend past the tag list panel (the long author name must truncate).`);
+    if (fit.panelWidth > 284) failures.push(`workspace-tags@375: the tag list panel widened to ${fit.panelWidth}px (design width 280 plus a 1px border each side).`);
+  }
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForTimeout(150);
+
   // ── the rail facet group and the row tag line ───────────────────────────────────────────────
   const facetNames = await page.$$eval('[data-facet-tag]', (els) => els.map((e) => e.getAttribute('data-facet-tag')));
   checks++;
@@ -186,6 +281,11 @@ export async function runSmoke(browser) {
       failures.push('workspace-tags: clicking a tag issued no PUT to /api/workspace/tags/<id>/items.');
     } else if (!put.authorization || !put.authorization.startsWith('Bearer ')) {
       failures.push('workspace-tags: the apply PUT carried no Authorization header, so applying a tag 401s in production.');
+    }
+    const graceLines = await page.$$eval('[data-audit="tagrow"] [data-part="tag-attribution"]', (els) => els.map((e) => e.textContent || ''));
+    checks++;
+    if (!graceLines.includes(GRACE_TEXT)) {
+      failures.push(`workspace-tags: after applying a tag the list shows ${JSON.stringify(graceLines)}, expected "${GRACE_TEXT}" read back from the server.`);
     }
     const after = (await page.textContent('[data-audit="tagrow"]')) || '';
     checks++;

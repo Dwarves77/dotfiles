@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import type { WorkspaceTag } from "./types";
+import { attributionText, type TagApplication } from "./attribution";
 
 export interface WorkspaceTagsFacet {
   tags: WorkspaceTag[];
@@ -28,12 +29,13 @@ export interface WorkspaceTagsFacet {
    *  currently-selected tag; always true when nothing is selected. */
   matchesSelectedTag: (itemId: string) => boolean;
   /** The applied tags for one item, as ListRow's `tags` prop expects. */
-  tagsForItem: (itemId: string) => { id: string; name: string }[];
+  tagsForItem: (itemId: string) => { id: string; name: string; title?: string }[];
 }
 
 export function useWorkspaceTagsFacet(): WorkspaceTagsFacet {
   const [tags, setTags] = useState<WorkspaceTag[]>([]);
   const [itemTags, setItemTags] = useState<Record<string, string[]>>({});
+  const [itemTagApplications, setItemTagApplications] = useState<Record<string, TagApplication[]>>({});
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,10 +44,15 @@ export function useWorkspaceTagsFacet(): WorkspaceTagsFacet {
       try {
         const res = await authedFetch("/api/workspace/tags?withItemTags=1");
         if (!res.ok || cancelled) return;
-        const body = (await res.json()) as { tags?: WorkspaceTag[]; itemTags?: Record<string, string[]> };
+        const body = (await res.json()) as {
+          tags?: WorkspaceTag[];
+          itemTags?: Record<string, string[]>;
+          itemTagApplications?: Record<string, TagApplication[]>;
+        };
         if (cancelled) return;
         setTags(body.tags ?? []);
         setItemTags(body.itemTags ?? {});
+        setItemTagApplications(body.itemTagApplications ?? {});
       } catch {
         // Fail soft: the facet group and row tags simply render nothing
         // extra — never a crash, matching the StateNote-not-crash
@@ -73,9 +80,14 @@ export function useWorkspaceTagsFacet(): WorkspaceTagsFacet {
       return ids
         .map((id) => tagsById.get(id))
         .filter((t): t is WorkspaceTag => Boolean(t))
-        .map((t) => ({ id: t.id, name: t.name }));
+        .map((t) => ({
+          id: t.id,
+          name: t.name,
+          // "applied by <name> on <date>" as the chip's tooltip, same wording as the detail chips.
+          title: attributionText((itemTagApplications[itemId] ?? []).find((a) => a.tagId === t.id)) ?? undefined,
+        }));
     },
-    [itemTags, tagsById]
+    [itemTags, tagsById, itemTagApplications]
   );
 
   // Memoized so the returned object is referentially stable across renders when its parts are
