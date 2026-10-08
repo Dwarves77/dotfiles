@@ -15,10 +15,21 @@
 // no argument-order gap to close. This test proves that INSTEAD of assuming it: the real function
 // resolves real item_types to their real format_type values, and `main()`'s real orchestration reaches
 // it (and the real guardedUpdateByIds write) without throwing.
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { __setWriteClientForTest } from "../lib/db.mjs";
 import { buildDeps, main } from "./backfill-format-type.mjs";
+
+// guarded writes snapshot the prior row state to disk before mutating (db.mjs). Redirect the snapshots to a
+// private temp directory removed when this file finishes, so the test never leaves
+// scripts/_snapshots/<timestamp>_<table>.jsonl in the real working tree (lane TESTFIX-1, 2026-10-08: found
+// by auditing every test's file writes; the sibling tests set a fixed temp path and never clean it).
+const SNAP_DIR = mkdtempSync(join(tmpdir(), "backfill-format-type-npmtest-snapshots-"));
+process.env.DISCIPLINE_SNAP_DIR = SNAP_DIR;
+after(() => { rmSync(SNAP_DIR, { recursive: true, force: true }); });
 
 function makeClient(handler) {
   const calls = [];
