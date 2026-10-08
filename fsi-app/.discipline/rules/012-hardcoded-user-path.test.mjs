@@ -295,7 +295,6 @@ test('012 GATE-7 A012-4: node_modules in the middle of a path is not the install
   const line = `const p = '${DRIVE_C}/Users/someone/x';`;
   assert.equal(rule.check(introduced('fsi-app/scripts/node_modules/a.mjs', [line])).status, 'FAIL');
   assert.equal(rule.check(introduced('fsi-app/scripts/fake_node_modules/a.mjs', [line])).status, 'FAIL');
-  assert.equal(rule.check(introduced('fsi-app/node_modules/pkg/a.js', [line])).status, 'PASS');
   assert.equal(rule.check(introduced('node_modules/pkg/a.js', [line])).status, 'PASS');
 });
 

@@ -75,7 +75,7 @@ const CODE_EXTENSIONS = [
 //                          pool must stay byte-exact (ADR-016; `validate_item_provenance` matches spans
 //                          verbatim), so the content cannot be rewritten to satisfy a code rule.
 const SKIP_PATH_FRAGMENTS = [
-  'node_modules/', 'fsi-app/node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json', 'fsi-app/scripts/_snapshots/',
+  'node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json', 'fsi-app/scripts/_snapshots/',
 ];
 
 // Stateless twin of the global regex above, for introducedMatches (a /g regex carries lastIndex). The line is
