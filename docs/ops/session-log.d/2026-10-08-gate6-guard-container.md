@@ -43,17 +43,28 @@ Confirmed from the run API (job conclusion `cancelled`, attempt in brackets):
   test runs the same sed pattern over the real file and asserts it yields the tag's version.
 - Distro `noble`, as approved; the first CI run proves the tag is pullable.
 
+## First CI run (run 37767563172) failed on two defects of this lane, fixed with the coordinator's approval
+
+- Rendering guard: `fatal: detected dubious ownership in repository at '/__w/dotfiles/dotfiles'` from
+  `git rev-parse --show-toplevel` (the container user does not own the checkout; `actions/checkout` sets
+  `safe.directory` only under a temporary HOME). Fix: a `git config --global --add safe.directory
+  "$GITHUB_WORKSPACE"` step after the checkout in all three Playwright jobs.
+- Fitness functions and Discipline engine unit tests (via `gate-a-rescan-workflow.test.mjs`): F52f, the
+  `| tee -a "$GITHUB_STEP_SUMMARY"` line had no `set -o pipefail`. Fix: the summary line is written with `>>`, no
+  pipe.
+- The container itself pulled and started (`noble` is valid for 1.61.1).
+
 ## Tests
 
 - `node --test fsi-app/.discipline/fitness/functions/F52-workflow-file-validity.test.mjs`: new tests assert each of
   the three Playwright jobs has exactly one Playwright image line at one shared version, no `playwright install`,
   no apt or `--with-deps`, no second version literal, a derivation over its own file that yields the image
-  version, the summary line and preserved exit status, and the 15 minute timeout with the recorded p90 and max.
+  version, the summary line (no pipe) and preserved exit status, the safe.directory step ordering, the 15 minute
+  timeout with the recorded p90 and max, and the corrected workflow header. Red against the first commit's
+  workflows: 3 of the new tests fail; green after: 56 pass, 1 skipped (live-tree flag).
 
 ## NOT done
 
-- The `discipline.yml` header (lines 22 to 26 and 80 to 82) still says the job installs Playwright chromium and
-  carries a 10-minute timeout; it is outside this lane's write set (rendering-guard job only).
 - `layout-baseline-renewal.yml` is dispatch-only, so this PR does not exercise it; its container form is proven by
   the shape test, not by a run. It checks out with `fetch-depth: 0` and later runs `git show`, so it needs `git`
   in the image; unproven until dispatched.

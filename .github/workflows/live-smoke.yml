@@ -65,6 +65,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Trust the workspace for git (the container user does not own the checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Note the start time
         run: echo "STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
 

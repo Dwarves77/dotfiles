@@ -769,12 +769,30 @@ test('GATE-6: no Playwright job installs a browser, and the npm package version 
   }
 });
 
-test('GATE-6: the rendering guard prints its own runtime to the step summary and keeps the guard exit status', () => {
+test('GATE-6: the rendering guard prints its own runtime to the step summary with no pipe and keeps the guard exit status', () => {
   const step = stepNamed('rendering-guard', 'Run rendering guard');
-  assert.match(step, /\| status=\$\?|\|\| status=\$\?/, 'the guard exit status is captured, not lost');
-  assert.match(step, /guard run: \$\(\( \$\(date \+%s\) - start \)\) s/);
-  assert.match(step, /GITHUB_STEP_SUMMARY/);
+  assert.match(step, /run-rendering-guard\.mjs \|\| status=\$\?/, 'the guard exit status is captured, not lost');
+  assert.match(step, /line="guard run: \$\(\( \$\(date \+%s\) - start \)\) s"/);
+  assert.match(step, /echo "\$line" >> "\$GITHUB_STEP_SUMMARY"/);
+  assert.doesNotMatch(step, /\| *tee/, 'no pipe into tee: F52f would need pipefail and the pipe adds nothing here');
   assert.match(step, /exit "\$status"/);
+});
+
+test('GATE-6: every Playwright job trusts the workspace for git before anything runs git (the container user does not own the checkout)', () => {
+  for (const { file, job, block } of playwrightJobs()) {
+    const trust = block.indexOf('git config --global --add safe.directory "$GITHUB_WORKSPACE"');
+    assert.ok(trust > 0, `${file}/${job}: a safe.directory step is required in the container`);
+    assert.ok(trust > block.indexOf('actions/checkout@'), `${file}/${job}: after the checkout`);
+    assert.ok(trust < block.indexOf('Install the Playwright npm package'), `${file}/${job}: before the install and the run`);
+  }
+});
+
+test('GATE-6: the workflow header describes the container form and the 15 minute limit, not an install and 10 minutes', () => {
+  const header = DISCIPLINE_LINES.slice(0, DISCIPLINE_LINES.findIndex((l) => /^jobs:\s*$/.test(l))).join('\n');
+  assert.doesNotMatch(header, /installs\s+Playwright chromium/);
+  assert.doesNotMatch(header, /10-minute timeout/);
+  assert.match(header, /Playwright container image/);
+  assert.match(header, /15-minute timeout/);
 });
 
 test('GATE-6: the rendering guard timeout is 15 minutes and the comment records the measured reasoning', () => {

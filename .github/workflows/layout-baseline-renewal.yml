@@ -46,6 +46,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Trust the workspace for git (the container user does not own the checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:

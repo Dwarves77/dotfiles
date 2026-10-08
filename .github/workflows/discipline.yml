@@ -22,9 +22,10 @@ name: Discipline engine
 #   rendering-guard        real-browser layout leg, REQUIRED (lane GATE-4,
 #                          2026-10-07: continue-on-error removed now that
 #                          BUILD_MODE suspends the baseline clock), and by a
-#                          wide margin the most expensive job here: it installs
-#                          Playwright chromium and carries a 10-minute timeout
-#                          against everything else's 5.
+#                          wide margin the most expensive job here: it runs in the
+#                          Playwright container image (lane GATE-6, no browser
+#                          install) and carries a 15-minute timeout against
+#                          everything else's 5.
 #
 # The header said "Two jobs" from Wave 2 until 2026-08-12 while the file had
 # grown to five. A comment that miscounts the jobs it documents is the same
@@ -77,7 +78,7 @@ on:
 # WHY THIS WORKFLOW IS THE CONSUMER. Five jobs fire on every pull_request event,
 # seven counting bug-class-guard, and GitHub rounds EVERY job up to a whole
 # billable minute, so a short job costs a full minute even when it takes twenty
-# seconds. One of the five, rendering-guard, installs Playwright chromium; it was
+# seconds. One of the five, rendering-guard, runs in the Playwright container image; it was
 # NON-BLOCKING when this note was written (it is required since lane GATE-4), and
 # on a superseded commit it is spend against a result that no longer applies. Delivery to this repo
 # is by GitHub web upload, which is scoped to one directory per commit, so one
@@ -635,6 +636,9 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Trust the workspace for git (the container user does not own the checkout)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -654,5 +658,7 @@ jobs:
           start="$(date +%s)"
           status=0
           node .discipline/rendering/run-rendering-guard.mjs || status=$?
-          echo "guard run: $(( $(date +%s) - start )) s" | tee -a "$GITHUB_STEP_SUMMARY"
+          line="guard run: $(( $(date +%s) - start )) s"
+          echo "$line"
+          echo "$line" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
