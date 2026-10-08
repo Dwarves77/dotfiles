@@ -8,6 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 import { ENTITY_LEVELS, RELATIONS, ALIAS_KINDS } from "../../src/lib/entities/resolve.mjs";
 
 const RAW = readFileSync(fileURLToPath(new URL("./377_entity_hierarchy_and_aliases.sql", import.meta.url)), "utf8");
@@ -23,10 +24,9 @@ const checkList = (constraint) => {
   return listIn(m[1]);
 };
 
-test("header: subject line first, states APPLIED with the ledger version, names the migrations it requires and the direction of a relation", () => {
+test("header: subject line first, applied status as the map says, names the migrations it requires and the direction of a relation", () => {
   assert.match(RAW, /^-- subject: Migration 377 /);
-  assert.match(RAW, /APPLIED \(production ledger version 20261008134702, as of 2026-10-08\)/);
-  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "377_entity_hierarchy_and_aliases.sql"), []);
   for (const n of ["282", "284", "352"]) assert.match(RAW, new RegExp(`migration ${n}`));
   assert.match(RAW, /relation names the CHILD's role toward the PARENT/);
 });

@@ -13,10 +13,14 @@
  *    MAP_ROW_NOT_IN_LEDGER   a map entry for a version the ledger does not hold (stale map).
  *    NO_FILE_NO_SUPERSEDER   a map entry whose file, or whose superseded_by file, is not in the repo.
  *    FILE_NOT_ACCOUNTED      a repo .sql file that no entry names (a ledger row, a superseder, or a keyed file
- *                            entry such as never:<file>).
- *    FILE_STATUS_HEADER      a keyed file entry whose first-line status does not match its class (a never-applied
- *                            file may instead carry its lane's own two-track header line, NOT APPLIED), or a file
- *                            that carries a first-line status but is not in the map.
+ *                            entry) AND whose own header does not say NOT APPLIED. A file the map names nowhere
+ *                            whose header says so is never-applied BY DERIVATION (derivesNeverApplied in
+ *                            supabase/migrations/_lib/applied-status.mjs, the one site; lane MIGTEST-1, 2026-10-08):
+ *                            reported as a finding, not a failure. The only failure is an unmapped file without that header.
+ *    NEVER_ENTRY_COMMITTED   a map entry of class never-applied: such files are derived from their header and are not
+ *                            committed (the map was a shared-append file, one line per new migration).
+ *    FILE_STATUS_HEADER      a keyed file entry whose first-line status does not match its class, or a file that
+ *                            carries an outside-ledger or duplicate-prefix first-line status but is not in the map.
  *    CODE_DIFFERS            a ledger row that stores statements whose text differs from its file in code
  *                            (same normalisation as the export: comments, whitespace, semicolons and a
  *                            BEGIN/COMMIT wrapper are ignored; see scripts/migrations/migration-compare.mjs).
@@ -38,12 +42,12 @@ import { createHash } from "node:crypto";
 import { isMainModule } from "../lib/is-main.mjs";
 import {
   compareStored,
-  declaresNotApplied,
   isApplyRecordStub,
   recoveredBody,
   statementsContained,
   statusClassOfFile,
 } from "../migrations/migration-compare.mjs";
+import { derivesNeverApplied } from "../../supabase/migrations/_lib/applied-status.mjs";
 import { MIG_DIR, ledgerKeys, fileEntries } from "../migrations/build-applied-map.mjs";
 
 const FILE_CLASSES = new Set(["identical", "comments-only", "code-differs", "recovered", "statements-null", "apply-record-stub"]);
@@ -110,17 +114,20 @@ export function evaluateHistory({ ledger, files, map }) {
     if (!files.has(name)) { fail("FILE_STATUS_HEADER", name, "keyed as a file without a ledger row but not in the repo"); continue; }
     named.add(name);
     const text = files.get(name);
+    if (f.class === "never-applied") { fail("NEVER_ENTRY_COMMITTED", name, "a never-applied entry is committed in the map; such files are derived from their own NOT APPLIED header, so remove the entry"); continue; }
     const cls = statusClassOfFile(text);
-    const ownHeader = f.class === "never-applied" && cls == null && declaresNotApplied(text);
-    if (cls !== f.class && !ownHeader) fail("FILE_STATUS_HEADER", name, `first-line status is ${cls ?? "absent"}, the map says ${f.class}`);
+    if (cls !== f.class) fail("FILE_STATUS_HEADER", name, `first-line status is ${cls ?? "absent"}, the map says ${f.class}`);
     if (f.class === "outside-ledger") findings.push(`OBJECTS_UNVERIFIED ${name}: applied outside the ledger per ${(f.note ?? "").split(";")[0]}; whether its objects exist is not checked here`);
     if (f.class === "duplicate-prefix") findings.push(`OBJECTS_UNVERIFIED ${name}: duplicate prefix with no ledger row; whether its objects exist is not checked here`);
   }
 
   for (const [name, text] of files) {
-    if (!named.has(name)) fail("FILE_NOT_ACCOUNTED", name, "no ledger row, no superseded_by, and no keyed file entry");
+    if (!named.has(name)) {
+      if (derivesNeverApplied(text)) findings.push(`NEVER_APPLIED ${name}: no ledger row and no map entry; its own header says it is not applied`);
+      else fail("FILE_NOT_ACCOUNTED", name, "no ledger row, no superseded_by, no keyed file entry, and its header does not say NOT APPLIED");
+    }
     const cls = statusClassOfFile(text);
-    if (cls && cls !== "applied-under-ledger" && !fwrNames.has(name)) fail("FILE_STATUS_HEADER", name, `carries a ${cls} first-line status but has no keyed file entry`);
+    if (cls && cls !== "applied-under-ledger" && cls !== "never-applied" && !fwrNames.has(name)) fail("FILE_STATUS_HEADER", name, `carries a ${cls} first-line status but has no keyed file entry`);
   }
 
   const counts = {};

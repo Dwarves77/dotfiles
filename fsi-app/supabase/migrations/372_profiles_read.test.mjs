@@ -11,6 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { insertBlocks as insertBlocksOf, buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const SRC = join(HERE, "..", "..", "src");
@@ -20,10 +21,9 @@ const read = (name) => readFileSync(join(HERE, name), "utf8");
 const read293 = () => readFileSync(join(HERE, "293_community_identity_and_guard.sql"), "utf8");
 const src = (rel) => readFileSync(join(SRC, rel), "utf8");
 
-test("header: subject line and APPLIED with the ledger version", () => {
+test("header: subject line and applied status as the map says", () => {
   assert.match(RAW, /^-- subject: Migration 372 /);
-  assert.match(RAW, /APPLIED \(production ledger version 20261008092141, as of 2026-10-08\)/);
-  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "372_profiles_read.sql"), []);
 });
 
 test("policy: Public read is dropped; one SELECT policy TO authenticated: own row or a row sharing an organisation", () => {

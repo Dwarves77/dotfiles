@@ -1,7 +1,7 @@
--- subject: Migration 364 (lane SEC-1, 2026-10-08): an authenticated user can no longer write their own is_platform_admin, role, org_id or workspace_role on public.profiles; table-level INSERT/UPDATE is replaced by column-level grants that exclude those four columns, plus a BEFORE INSERT OR UPDATE guard trigger (profiles_privilege_guard) that raises 42501 for any caller other than service_role, postgres, supabase_admin or the table owner; the self-check attacks both layers as role authenticated and rolls back; NOT APPLIED.
+-- subject: Migration 364 (lane SEC-1, 2026-10-08): an authenticated user can no longer write their own is_platform_admin, role, org_id or workspace_role on public.profiles; table-level INSERT/UPDATE is replaced by column-level grants that exclude those four columns, plus a BEFORE INSERT OR UPDATE guard trigger (profiles_privilege_guard) that raises 42501 for any caller other than service_role, postgres, supabase_admin or the table owner; the self-check attacks both layers as role authenticated and rolls back; APPLIED (production ledger version 20261008030947, as of 2026-10-08).
 -- 364 -- profiles privilege columns (lane SEC-1, 2026-10-08).
 --
--- NOT APPLIED. Authored by lane SEC-1; the coordinator's executor applies it before the PR merges (two-track
+-- APPLIED (production ledger version 20261008030947, as of 2026-10-08). Authored by lane SEC-1; the coordinator's executor applies it before the PR merges (two-track
 -- policy, CLAUDE.md standing rule 3: schema DDL applies via the Supabase CLI before any dependent code commits).
 -- No code depends on this migration: every user-session write to profiles in src touches only columns that stay
 -- writable (listed under CONSUMERS below).

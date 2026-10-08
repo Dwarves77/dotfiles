@@ -5,13 +5,17 @@
 // Shape (fixed by PROOF-1's reader, scripts/proof/applied-map.mjs): an object keyed by ledger version, each value
 //   { name, file: <migration file name or null>, class, superseded_by?: <migration file name>, note? }
 // File names are bare (no directory), as the reader compares them with the directory listing. A repo file that
-// has no ledger row is its own entry, keyed by class and file (the reader's convention): `outside:<file>`,
-// `never:<file>`, `dup:<file>`, value { name, file, class, note: <evidence> }.
+// has no ledger row and is live or ambiguous is its own entry, keyed by class and file (the reader's convention):
+// `outside:<file>`, `dup:<file>`, value { name, file, class, note: <evidence> }. A file that production has NOT applied has
+// NO entry at all (lane MIGTEST-1, coordinator ruling 2026-10-08): the map is a shared-append file and a `never:` line
+// per new migration conflicted every concurrent PR, so never-applied is derived from the file's own header, by the one
+// function in supabase/migrations/_lib/applied-status.mjs (derivesNeverApplied) that the reader, the audit and this
+// generator all call.
 //   class (ledger rows): identical | comments-only | code-differs | recovered | superseded-by | data-only |
 //     comment-only, plus two classes for matched rows with nothing to compare: statements-null (the ledger
 //     stored no SQL) and apply-record-stub (the ledger stored a provenance note, not SQL); the reader replays
 //     the file for both, the file being the only text there is.
-//   class (files without a row): outside-ledger | never-applied | duplicate-prefix.
+//   class (files without a row): outside-ledger | duplicate-prefix.
 //
 // Inputs: a reconciliation JSON (the export's sets a, b, c, d), the export directory (one .sql
 // per ledger row: first line a header, the rest the stored statements), and the migrations directory.
@@ -22,27 +26,22 @@
 // Usage: node fsi-app/scripts/migrations/build-applied-map.mjs <reconciliation.json> --export-dir <dir> [--write]
 //   --write   writes fsi-app/supabase/migrations/APPLIED-MAP.json (default: prints it to stdout, dry).
 //
-// Usage (every lane that adds a migration): node fsi-app/scripts/migrations/build-applied-map.mjs --add-never [--write]
-//   Reads the committed APPLIED-MAP.json and the migrations directory, needs no export, and adds a `never:<file>` entry
-//   (name, file, class never-applied, note = the header subject line) for every .sql file the map names nowhere whose own
-//   header says `-- NOT APPLIED`. It touches no other entry, writes only when it adds something, and refuses (exit 1,
-//   nothing written) a nameless file whose header does not say NOT APPLIED. Default is a dry print of the new map.
-
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainModule } from '../lib/is-main.mjs';
-import { compareStored, isApplyRecordStub, declaresNotApplied } from './migration-compare.mjs';
+import { compareStored, isApplyRecordStub } from './migration-compare.mjs';
+import { derivesNeverApplied, isFileKey } from '../../supabase/migrations/_lib/applied-status.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const MIG_DIR = resolve(HERE, '..', '..', 'supabase', 'migrations');
 export const MAP_PATH = join(MIG_DIR, 'APPLIED-MAP.json');
 
 /** Key prefix of an entry for a repo file that has no ledger row (the reader ignores the key; PROOF-1's tests use these). */
-export const FILE_KEY_PREFIX = Object.freeze({ 'outside-ledger': 'outside', 'never-applied': 'never', 'duplicate-prefix': 'dup' });
+export const FILE_KEY_PREFIX = Object.freeze({ 'outside-ledger': 'outside', 'duplicate-prefix': 'dup' });
 export const fileKey = (cls, file) => `${FILE_KEY_PREFIX[cls]}:${file}`;
-/** A map key is a ledger version unless it carries a class prefix. */
-export const isFileKey = (key) => key.includes(':');
+/** A map key is a ledger version unless it carries a class prefix (defined once, in the applied-status helper). */
+export { isFileKey };
 export const ledgerKeys = (map) => Object.keys(map).filter((k) => !isFileKey(k));
 export const fileEntries = (map) => Object.entries(map).filter(([k]) => isFileKey(k)).map(([, e]) => e);
 
@@ -112,7 +111,6 @@ export const FILE_RULINGS = {
   '262_rls_initplan_sweep.sql': { class: 'outside-ledger', evidence: 'no applied record found in docs; classed with 260 and 263 of the same PR 452; no ledger row [HYPOTHESIS until objects verified]' },
   '263_mode_vocabulary_ocean_canonical.sql': { class: 'outside-ledger', evidence: 'master-execution-plan-2026-08-17.md line 40 cites its applied record; no ledger row [HYPOTHESIS until objects verified]' },
   '315_workspace_due_next.sql': { class: 'outside-ledger', evidence: 'header says APPLIED LIVE 2026-09-08 by the lane; no ledger row, [HYPOTHESIS] applied through execute_sql, which writes no ledger row' },
-  '299_item_type_required_slots_wave3.sql': { class: 'never-applied', evidence: 'docs/ops/session-log.md lines 10300 to 10307: written and not applied; still held per HANDOFF-2026-09-18.md line 275 and session-log.d/2026-09-25-operator-ruling-r14.md line 16 [CONFIRMED text]' },
 };
 
 /** Files that are the same migration as a ledger row, found by ROW_RULINGS (paired or superseded_by). */
@@ -123,59 +121,6 @@ function accountedByRows(rulings) {
     if (r.superseded_by) out.add(r.superseded_by);
   }
   return out;
-}
-
-/** The start of the note of a never-applied entry derived from a file's own header (shared by the full build and --add-never). */
-export const NEVER_NOTE_PREFIX = "the file's own header says NOT APPLIED and the ledger holds no row for it: ";
-/** How much of the header's subject line a derived note keeps (the committed entries for 370 to 372 carry 160). */
-export const HEADER_LINE_MAX = 160;
-
-/** Status of a repo file that has no ledger row and no ruling: its own NOT APPLIED header (set b carries it). */
-function derivedFileRuling(b) {
-  if (!b.header_says_not_applied) return null;
-  return { class: 'never-applied', evidence: `${NEVER_NOTE_PREFIX}${b.header_line}` };
-}
-
-/**
- * --add-never (lane SEC-6, coordinator grant 2026-10-08): add a keyed `never:<file>` entry for every migration file that
- * the committed map names nowhere (no ledger row's file or superseded_by, no keyed file entry) and whose own header says
- * `-- NOT APPLIED`, in the exact shape of the existing never-applied entries, touching nothing else and needing no export.
- * A file the map does not name whose header does NOT say NOT APPLIED is refused (it is either applied, and then a ledger
- * row or a ruling is owed, or its header is wrong); the caller writes nothing while anything is refused.
- * Pure: the input map is not mutated.
- * @param {object} p
- * @param {object} p.map the committed APPLIED-MAP.json
- * @param {string[]} p.listFiles every .sql file name in the migrations directory
- * @param {(file:string) => string} p.readFile text of a migration file
- * @returns {{ map: object, added: string[], refused: {file:string, reason:string}[] }}
- */
-export function addNeverEntries({ map, listFiles, readFile }) {
-  const named = new Set();
-  for (const e of Object.values(map)) {
-    if (e.file) named.add(e.file);
-    if (e.superseded_by) named.add(e.superseded_by);
-  }
-  const next = { ...map };
-  const added = [];
-  const refused = [];
-  for (const f of [...listFiles].sort()) {
-    if (named.has(f)) continue;
-    const text = readFile(f);
-    if (!declaresNotApplied(text)) {
-      refused.push({ file: f, reason: `${f} is named nowhere in the map and its header (first 30 lines) does not say "-- NOT APPLIED": add the header if it is not applied, or give it a ledger row or a ruling if it is` });
-      continue;
-    }
-    const lines = text.split('\n');
-    const subject = lines.find((l) => l.startsWith('-- subject:')) ?? lines.find((l) => /^--\s*NOT APPLIED\b/.test(l));
-    next[fileKey('never-applied', f)] = {
-      name: f.replace(/\.sql$/, '').replace(/^\d+_/, ''),
-      file: f,
-      class: 'never-applied',
-      note: `${NEVER_NOTE_PREFIX}${subject.slice(0, HEADER_LINE_MAX)}`,
-    };
-    added.push(f);
-  }
-  return { map: next, added, refused };
 }
 
 /**
@@ -248,12 +193,14 @@ export function buildAppliedMap({ reconciliation, readStored, readFile, listFile
   }
   for (const v of Object.keys(ROW_RULINGS)) if (!setA.some((r) => r.version === v)) problems.push(`ruling for a version not in set a: ${v}`);
 
-  // files with no ledger row (set b): one keyed entry per file, in the reader's own form
+  // files with no ledger row (set b): one keyed entry per ruled file, in the reader's own form; a file whose own header
+  // says it is not applied gets none
   const accounted = accountedByRows(ROW_RULINGS);
   const byFile = [];
   for (const b of setB) {
     if (accounted.has(b.file)) continue;
-    const ruling = FILE_RULINGS[b.file] ?? derivedFileRuling(b);
+    const ruling = FILE_RULINGS[b.file];
+    if (!ruling && derivesNeverApplied(readFile(b.file))) continue; // not applied: no entry, derived from its own header
     if (!ruling) { problems.push(`no ruling for file without a ledger row: ${b.file}`); continue; }
     byFile.push([fileKey(ruling.class, b.file), { name: b.file.replace(/\.sql$/, '').replace(/^\d+_/, ''), file: b.file, class: ruling.class, note: ruling.evidence }]);
   }
@@ -276,25 +223,8 @@ export function serializeMap(map) {
   return `{\n${keys.map((k) => `  ${JSON.stringify(k)}: ${JSON.stringify(map[k])}`).join(',\n')}\n}\n`;
 }
 
-function addNeverMain(argv) {
-  const current = readFileSync(MAP_PATH, 'utf8').replace(/\r\n/g, '\n');
-  const map = JSON.parse(current);
-  if (serializeMap(map) !== current) {
-    console.error('build-applied-map: add-never: the committed map is not in the generator\'s own serialisation, so a write would change more than the added lines; refusing');
-    process.exit(1);
-  }
-  const listFiles = readdirSync(MIG_DIR).filter((f) => f.endsWith('.sql'));
-  const { map: next, added, refused } = addNeverEntries({ map, listFiles, readFile: (f) => readFileSync(join(MIG_DIR, f), 'utf8').replace(/\r\n/g, '\n') });
-  if (refused.length) { for (const r of refused) console.error(`build-applied-map: add-never: refused: ${r.reason}`); process.exit(1); }
-  const text = serializeMap(next);
-  console.error(`build-applied-map: add-never: ${added.length} added${added.length ? ` (${added.join(', ')})` : ''}`);
-  if (argv.includes('--write')) { if (added.length) writeFileSync(MAP_PATH, text); console.error(`build-applied-map: add-never: ${added.length ? `wrote ${MAP_PATH}` : 'nothing to write'}`); }
-  else process.stdout.write(text);
-}
-
 function main() {
   const argv = process.argv.slice(2);
-  if (argv.includes('--add-never')) return addNeverMain(argv);
   const reconPath = argv[0];
   const exportDir = argv[argv.indexOf('--export-dir') + 1];
   if (!reconPath || reconPath.startsWith('--') || argv.indexOf('--export-dir') < 0 || !exportDir) {
