@@ -10,6 +10,7 @@
 
 import { tcoCrossoverBand } from "@/lib/spec09/oem-payload.mjs";
 import "@/components/market/spec09.css";
+import { CoverageState } from "@/components/ui/CoverageState";
 
 export interface OemRoadmapRow {
   roadmap_id: string;
@@ -28,9 +29,9 @@ export function OemRoadmapPanelView({ rows }: { rows: OemRoadmapRow[] }) {
   if (rows.length === 0) {
     return (
       <div data-guard-container="oem-roadmap" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 10px" }}>
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-          <strong style={{ color: "var(--color-text-secondary)" }}>OEM equipment roadmap</strong> · {OEM_ROADMAP_GAP_LINE}
-        </p>
+        {/* COV-1: an empty roadmap is the "not covered" state (spec 00 section 4): a named gap, the source reason
+            this file already carried, and the Request coverage action. */}
+        <CoverageState state="not_covered" variant="inline" subject="OEM equipment roadmap" reason={OEM_ROADMAP_GAP_LINE} requestRef="/market#oem-roadmap" />
       </div>
     );
   }

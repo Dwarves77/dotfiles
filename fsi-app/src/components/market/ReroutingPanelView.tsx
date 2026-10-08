@@ -5,6 +5,7 @@
 
 import { applyFuelBurnMultiplier, compoundingChain } from "@/lib/spec09/reroute.mjs";
 import "@/components/market/spec09.css";
+import { CoverageState } from "@/components/ui/CoverageState";
 
 export interface RerouteRow {
   reroute_id: string;
@@ -24,9 +25,8 @@ export function ReroutingPanelView({ rows }: { rows: RerouteRow[] }) {
   if (rows.length === 0) {
     return (
       <div data-guard-container="rerouting" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 10px" }}>
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-          <strong style={{ color: "var(--color-text-secondary)" }}>Rerouting multipliers</strong> · {REROUTE_GAP_LINE}
-        </p>
+        {/* COV-1: the "not covered" state, same treatment as every other named gap. */}
+        <CoverageState state="not_covered" variant="inline" subject="Rerouting multipliers" reason={REROUTE_GAP_LINE} requestRef="/market#rerouting" />
       </div>
     );
   }

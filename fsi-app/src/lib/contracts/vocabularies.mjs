@@ -386,10 +386,73 @@ export function inverseRelation(code) {
   return RELATION[code]?.inverse ?? null;
 }
 
+// ─────────────────────────── 7. coverage_state (spec 00 section 4) ───────────────────────────
+//
+// SIX STATES OF ABSENCE, SIX TREATMENTS, NEVER ONE GREY DASH. Spec 00 section 4: in a product whose
+// coverage is genuinely partial, the way absence is communicated IS the trust model. Four of the six
+// are already SDMX missing codes in OBS_STATUS above (O not applicable, L not covered, H not published
+// yet, Q suppressed); `obsStatus` names that code so a Eurostat/ECB payload maps straight through.
+// The other two, "not filtered in" (the value exists outside the reader's active scope) and "error"
+// (the system failed to read it), are NOT observation statuses and must not be squeezed into the SDMX
+// letters: SDMX describes the observation, these describe the reader's scope and the system's health.
+// Inventing letters for them would break the "adopt, do not invent" rule at the top of this file, so
+// they carry `obsStatus: null` and live only here. One renderer (components/ui/CoverageState.tsx)
+// draws all six from this table; `treatment` names which of the six treatments each one gets.
+
+export const COVERAGE_STATE = deepFreeze({
+  not_applicable: {
+    code: "not_applicable", label: "Not applicable", order: 1, obsStatus: "O", treatment: "suppress_and_explain",
+    note: "The question is meaningless here. The field is suppressed and the reason is on hover. Not an empty state.",
+  },
+  not_covered: {
+    code: "not_covered", label: "Not covered", order: 2, obsStatus: "L", treatment: "named_gap_and_request",
+    note: "In product scope, not yet built. A named coverage gap, its roadmap position, and a request-coverage action.",
+  },
+  no_data_yet: {
+    code: "no_data_yet", label: "No data yet", order: 3, obsStatus: "H", treatment: "expected_refresh_and_last_value",
+    note: "Covered, but the source has not published. Shows the expected refresh and the last known value with its as-of date.",
+  },
+  suppressed: {
+    code: "suppressed", label: "Suppressed", order: 4, obsStatus: "Q", treatment: "reason_class",
+    note: "Exists but withheld. States the reason class and never looks like absence.",
+  },
+  not_filtered_in: {
+    code: "not_filtered_in", label: "Not filtered in", order: 5, obsStatus: null, treatment: "hidden_count_and_widen",
+    note: "Exists outside the active scope. Says how many are hidden by the reader's scope and offers a one-click widen. The filter-bubble antidote.",
+  },
+  error: {
+    code: "error", label: "Error", order: 6, obsStatus: null, treatment: "retry_and_status",
+    note: "A system failure, rendered distinctly from every kind of absence, with a retry and a way to see status.",
+  },
+});
+
+export const COVERAGE_STATES = Object.freeze(Object.keys(COVERAGE_STATE));
+
+/** The reason classes a suppressed value may carry (spec 00 section 4: confidentiality, k-anonymity, licence). */
+export const SUPPRESSION_REASON = deepFreeze({
+  confidentiality: { code: "confidentiality", label: "Confidential", order: 1 },
+  k_anonymity: { code: "k_anonymity", label: "Too few contributors to publish", order: 2 },
+  licence: { code: "licence", label: "Licence does not allow redistribution", order: 3 },
+});
+
+/**
+ * The coverage state an SDMX missing code maps to, or null. Null for every present code AND for M
+ * (reason unknown) and N (not significant): an unknown reason must not be dressed up as one of the six,
+ * so the caller keeps its existing fallback render.
+ */
+export function coverageStateForObsStatus(obsStatus) {
+  for (const entry of Object.values(COVERAGE_STATE)) {
+    if (entry.obsStatus && entry.obsStatus === obsStatus) return entry.code;
+  }
+  return null;
+}
+
 // ─────────────────────────── registry + validation ───────────────────────────
 
 /** Every vocabulary, by name. The acceptance gate iterates this rather than a hand-kept list. */
 export const VOCABULARIES = Object.freeze({
+  coverage_state: COVERAGE_STATE,
+  suppression_reason: SUPPRESSION_REASON,
   obs_status: OBS_STATUS,
   origin_class: ORIGIN_CLASS,
   source_reliability: SOURCE_RELIABILITY,
