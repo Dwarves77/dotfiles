@@ -145,11 +145,11 @@ export function verify(raw, derived = DERIVED) {
   return bad;
 }
 
-test("header: subject line, NOT APPLIED, no applied claim", () => {
+test("header: subject line, states APPLIED with the ledger version", () => {
   assert.match(RAW, /^-- subject: Migration 381 \(lane SEC-7, 2026-10-08\)/);
-  assert.match(RAW, /\bNOT APPLIED\b/);
-  assert.doesNotMatch(RAW, /APPLIED \(production ledger/);
-  assert.match(RAW.split("\n")[0], /NOT APPLIED\.$/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008232035, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.match(RAW.split("\n")[0], /APPLIED \(production ledger version 20261008232035, as of 2026-10-08\)\.$/);
 });
 
 test("the explicit ALTER list equals the policies the tree leaves with roles {public} and a write command (re-derived here)", () => {

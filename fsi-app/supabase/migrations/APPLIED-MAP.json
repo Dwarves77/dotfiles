@@ -367,6 +367,8 @@
   "20261008134455": {"name":"373_outbox_entity_for_series_and_facts","file":"373_outbox_entity_for_series_and_facts.sql","class":"identical"},
   "20261008134702": {"name":"377_entity_hierarchy_and_aliases","file":"377_entity_hierarchy_and_aliases.sql","class":"identical"},
   "20261008225033": {"name":"374_gin_index_and_lifecycle_applied","file":"374_gin_index_and_lifecycle_applied.sql","class":"identical"},
+  "20261008231719": {"name":"378_grid_intensity_dimension","file":"378_grid_intensity_dimension.sql","class":"identical"},
+  "20261008232035": {"name":"381_write_policies_name_their_role","file":"381_write_policies_name_their_role.sql","class":"identical"},
   "outside:006_rls_multi_tenant.sql": {"name":"rls_multi_tenant","file":"006_rls_multi_tenant.sql","class":"outside-ledger","note":"replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape"},
   "outside:007_full_brief.sql": {"name":"full_brief","file":"007_full_brief.sql","class":"outside-ledger","note":"replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape"},
   "outside:007_rls_community.sql": {"name":"rls_community","file":"007_rls_community.sql","class":"outside-ledger","note":"replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape"},

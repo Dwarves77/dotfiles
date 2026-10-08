@@ -98,6 +98,7 @@ import {
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
+import { BindingBanner } from "@/components/regulations/BindingBanner";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { NoticesRail } from "@/components/figures/NoticesRail";
@@ -292,6 +293,10 @@ export default async function RegulationDetailPage({
           ObligationRegister.tsx's own PERF-10 header) instead of via loadRegulationDetailObligations —
           honest omission (renders nothing) both while loading and when this item has no register rows,
           matching the component's pre-existing detail-variant contract. */}
+      {/* Lane OBL-2 (2026-10-08): the item-level binding-position banner (spec 01 section 4 component 1), above the
+          register section. Client-fetched like the register (PERF-10); says "Obligations not yet decomposed" for an
+          item with no obligation objects, never an empty section. */}
+      <BindingBanner itemId={r.id} />
       <ObligationRegister variant="detail" itemId={r.id} />
       {/* Lane SCOPE-READER (2026-09-06, plan §W5): renders only when at least one corridor's scope
           touches this regulation's jurisdiction — nothing renders empty by design. */}

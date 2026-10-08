@@ -52,6 +52,13 @@ test("eventTypeForOutboxRow: emission_factors supersede is factor_superseded; it
   assert.equal(eventTypeForOutboxRow({ table_name: "statutory_computations", change_kind: "update" }), "obligation_amended");
 });
 
+test("eventTypeForOutboxRow: obligation_objects maps to obligation_amended for every change kind (lane OBL-2, migration 376)", () => {
+  for (const kind of ["insert", "update", "delete", "supersede"]) {
+    assert.equal(eventTypeForOutboxRow({ table_name: "obligation_objects", change_kind: kind }), "obligation_amended", kind);
+  }
+  assert.match(describeChange({ tableName: "obligation_objects", rowPk: "cl:obligation:00000000000000d1", entityId: "cl:instrument:00000000000000b1", changeKind: "update" }, "Fixture instrument"), /obligation object/);
+});
+
 test("eventTypeForOutboxRow: a table with no mapping returns null, never a guessed type", () => {
   assert.equal(eventTypeForOutboxRow({ table_name: "not_an_emitting_table", change_kind: "update" }), null);
   assert.equal(eventTypeForOutboxRow(null), null);
