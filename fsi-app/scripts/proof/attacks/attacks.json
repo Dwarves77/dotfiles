@@ -1489,9 +1489,9 @@
       "group": "ADR-035 aggregate floor",
       "kind": "sql",
       "needs_fixtures": true,
-      "invariant": "ADR-035: an aggregate over fewer than k distinct organisations (k is the stored floor, at least 10) is refused by publish_aggregate.",
-      "expected": "A cohort of k-1, of 5 and of 0 organisations is refused; a cohort of exactly k is granted; every stored floor is at least 10.",
-      "reference": "migrations 287 and 347; docs/decisions ADR-035",
+      "invariant": "ADR-035: an aggregate over fewer than k distinct organisations (k is the stored floor, at least 10) is refused by publish_aggregate; publish_aggregate is callable by the service role only (migration 369).",
+      "expected": "An organisation owner (authenticated) and an anonymous caller are refused 42501; as the service role a cohort of k-1, of 5 and of 0 organisations is refused, a cohort of exactly k is granted; every stored floor is at least 10.",
+      "reference": "migrations 287, 347 and 369; docs/decisions ADR-035 and ADR-042",
       "steps": [
         {
           "label": "read a registered sensitive field and its floor",
@@ -1517,9 +1517,37 @@
           }
         },
         {
-          "label": "attack: a cohort of k-1 organisations",
+          "label": "attack: an organisation owner (authenticated) calls publish_aggregate",
           "kind": "attack",
           "as": "user:owner_a",
+          "sql": "SELECT r ->> 'refused' AS refused FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4x-' || g ORDER BY g) FROM generate_series(1, $3::int) g))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller calls publish_aggregate",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT r ->> 'refused' AS refused FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4y-' || g ORDER BY g) FROM generate_series(1, $3::int) g))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: a cohort of k-1 organisations, as the service role",
+          "kind": "attack",
+          "as": "service",
           "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4-' || g ORDER BY g) FROM generate_series(1, $3::int - 1) g))) AS r) q",
           "params": [
             "@pol_table",
@@ -1538,7 +1566,7 @@
         {
           "label": "attack: a cohort of 5 organisations (the retired floor)",
           "kind": "attack",
-          "as": "user:owner_a",
+          "as": "service",
           "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4b-' || g ORDER BY g) FROM generate_series(1, 5) g))) AS r) q",
           "params": [
             "@pol_table",
@@ -1554,7 +1582,7 @@
         {
           "label": "attack: an empty cohort",
           "kind": "attack",
-          "as": "user:owner_a",
+          "as": "service",
           "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', '[]'::jsonb)) AS r) q",
           "params": [
             "@pol_table",
@@ -1570,7 +1598,7 @@
         {
           "label": "control: a cohort of exactly k organisations is granted",
           "kind": "control",
-          "as": "user:owner_a",
+          "as": "service",
           "sql": "SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4c-' || g ORDER BY g) FROM generate_series(1, $3::int) g))) AS r) q",
           "params": [
             "@pol_table",
@@ -1635,7 +1663,7 @@
       "needs_fixtures": true,
       "invariant": "ADR-035: an aggregate in which one organisation holds more than the maximum share is refused even when the cohort is large enough.",
       "expected": "A cohort of k organisations where one holds about 90 percent is refused (dominance); the same cohort with equal values is granted.",
-      "reference": "migration 287 (dominance cap, max_share_pct); docs/decisions ADR-035",
+      "reference": "migrations 287 and 369; docs/decisions ADR-035",
       "steps": [
         {
           "label": "read a registered sensitive field and its floor",
@@ -1651,9 +1679,23 @@
           }
         },
         {
-          "label": "attack: k organisations, one holding most of the total",
+          "label": "attack: an organisation owner (authenticated) calls publish_aggregate",
           "kind": "attack",
           "as": "user:owner_a",
+          "sql": "SELECT r ->> 'refused' AS refused FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg('p4z-' || g ORDER BY g) FROM generate_series(1, $3::int) g))) AS r) q",
+          "params": [
+            "@pol_table",
+            "@pol_column",
+            "@pol_k"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: k organisations, one holding most of the total",
+          "kind": "attack",
+          "as": "service",
           "sql": "WITH ids AS (SELECT 'p4d-' || g AS id, g FROM generate_series(1, $3::int) g) SELECT r ->> 'refused' AS refused, r ->> 'reason' AS reason FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg(id ORDER BY g) FROM ids), 'member_values', (SELECT jsonb_object_agg(id, CASE WHEN g = 1 THEN 1000 ELSE 10 END) FROM ids))) AS r) q",
           "params": [
             "@pol_table",
@@ -1672,7 +1714,7 @@
         {
           "label": "control: k organisations with equal values",
           "kind": "control",
-          "as": "user:owner_a",
+          "as": "service",
           "sql": "WITH ids AS (SELECT 'p4e-' || g AS id, g FROM generate_series(1, $3::int) g) SELECT r ->> 'refused' AS refused FROM (SELECT public.publish_aggregate($1::text, $2::text, jsonb_build_object('member_ids', (SELECT jsonb_agg(id ORDER BY g) FROM ids), 'member_values', (SELECT jsonb_object_agg(id, 100) FROM ids))) AS r) q",
           "params": [
             "@pol_table",
