@@ -1784,6 +1784,222 @@
           }
         }
       ]
+    },
+    {
+      "id": "sec4-definer-class-d-anon-refused",
+      "group": "SEC-4 definer hygiene",
+      "kind": "sql",
+      "invariant": "Migration 371 class D: a SECURITY DEFINER function that is only for signed-in users (lookup_invitation, which migration 076 had granted to anon) is revoked from PUBLIC and anon; anon holds no EXECUTE on it.",
+      "expected": "An anonymous caller is refused 42501 by the privilege check; as the service role the same call still works.",
+      "reference": "migration 371 (lane SEC-4); migration 076; fitness function F70",
+      "steps": [
+        {
+          "label": "control: the service role looks up a token that does not exist",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT count(*)::int AS n FROM public.lookup_invitation($1::text)",
+          "params": [
+            "sec4-no-such-token"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: an anonymous caller calls lookup_invitation",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT count(*)::int AS n FROM public.lookup_invitation($1::text)",
+          "params": [
+            "sec4-no-such-token"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec4-definer-class-a-authenticated-refused",
+      "group": "SEC-4 definer hygiene",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Migration 371 class A: an internal helper that only other SECURITY DEFINER functions call (_assert_org_membership) is revoked from PUBLIC, anon and authenticated; a real member of the organisation cannot call it directly.",
+      "expected": "An organisation owner (authenticated) calling the helper for their own organisation is refused 42501 by the privilege check, not by the membership check; the service role still passes.",
+      "reference": "migration 371 (lane SEC-4); migration 077; fitness function F70",
+      "steps": [
+        {
+          "label": "control: the service role calls the helper",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT public._assert_org_membership($1::uuid)",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: an organisation owner calls the helper for their own organisation",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT public._assert_org_membership($1::uuid)",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec4-definer-class-c-anon-control",
+      "group": "SEC-4 definer hygiene",
+      "kind": "sql",
+      "invariant": "Migration 371 class C: the public listing RPCs and the RLS predicates keep anon EXECUTE explicitly; revoking the default PUBLIC grant must not cut off the anon path the product and the row-level security policies use.",
+      "expected": "An anonymous caller still reads the public market intel listing and evaluates an RLS predicate (false for a stranger organisation).",
+      "reference": "migration 371 (lane SEC-4); migrations 306 and 006",
+      "steps": [
+        {
+          "label": "control: an anonymous caller reads the public market intel listing",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT count(*)::int AS n FROM public.get_market_intel_items_public()",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an anonymous caller evaluates the user_belongs_to_org predicate",
+          "kind": "control",
+          "as": "anon",
+          "sql": "SELECT public.user_belongs_to_org($1::uuid) AS member",
+          "params": [
+            "00000000-0000-4000-8000-0000000004ff"
+          ],
+          "expect": {
+            "ok": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec4-accept-invitation-keeps-role",
+      "group": "SEC-4 definer hygiene",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Migration 371: accepting an invitation never lowers a role. An existing owner or admin who accepts a lower invitation keeps the role, and an invitation never grants owner; a promotion (member to admin) still applies.",
+      "expected": "The owner accepting a viewer invitation is still owner; a member promoted to admin by an admin invitation then accepting a viewer invitation is still admin.",
+      "reference": "migration 371 (lane SEC-4); migration 156; SEC-3b disclosure in migration 370",
+      "steps": [
+        {
+          "label": "an invitation to viewer for the organisation owner",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_invitations (org_id, invited_email, invited_by_user_id, proposed_role, token) VALUES ($1::uuid, 'proof4-owner-a@chain-proof.invalid', $2::uuid, 'viewer', 'sec4-keep-owner-token')",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "attack: the owner accepts the viewer invitation",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT public.accept_invitation('sec4-keep-owner-token') IS NOT NULL AS accepted",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "the owner is still owner",
+          "kind": "attack",
+          "sql": "SELECT role FROM public.org_memberships WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_a",
+            "@owner_a"
+          ],
+          "expect": {
+            "equals": {
+              "role": "owner"
+            }
+          }
+        },
+        {
+          "label": "an invitation to admin for the member of the other organisation",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_invitations (org_id, invited_email, invited_by_user_id, proposed_role, token) VALUES ($1::uuid, 'proof4-member-b@chain-proof.invalid', $2::uuid, 'admin', 'sec4-promote-member-token')",
+          "params": [
+            "@org_b",
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: the member accepts the admin invitation",
+          "kind": "control",
+          "as": "user:member_b",
+          "sql": "SELECT public.accept_invitation('sec4-promote-member-token') IS NOT NULL AS accepted",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: the member is promoted to admin",
+          "kind": "control",
+          "sql": "SELECT role FROM public.org_memberships WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_b",
+            "@member_b"
+          ],
+          "expect": {
+            "equals": {
+              "role": "admin"
+            }
+          }
+        },
+        {
+          "label": "an invitation to viewer for the now admin",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_invitations (org_id, invited_email, invited_by_user_id, proposed_role, token) VALUES ($1::uuid, 'proof4-member-b@chain-proof.invalid', $2::uuid, 'viewer', 'sec4-keep-admin-token')",
+          "params": [
+            "@org_b",
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "attack: the admin accepts the viewer invitation",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT public.accept_invitation('sec4-keep-admin-token') IS NOT NULL AS accepted",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "the admin is still admin",
+          "kind": "attack",
+          "sql": "SELECT role FROM public.org_memberships WHERE org_id = $1::uuid AND user_id = $2::uuid",
+          "params": [
+            "@org_b",
+            "@member_b"
+          ],
+          "expect": {
+            "equals": {
+              "role": "admin"
+            }
+          }
+        }
+      ]
     }
   ]
 }
