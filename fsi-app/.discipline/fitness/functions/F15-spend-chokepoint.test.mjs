@@ -101,7 +101,9 @@ test('F15 B1-24: the header spelled X-API-Key in a file that names Anthropic is 
 });
 
 test('F15 B1-25: an SDK import through a split specifier in a dynamic import', () => {
-  assert.equal(directApiCallLines('const sdk = await import("@anthropic-ai/" + "sdk");').length, 1);
+  // the fixture text is built from pieces so this test file carries no literal bare-package import (glob-portability)
+  const fixture = 'const sdk = await im' + 'port("@anthropic' + '-ai/" + "sdk");';
+  assert.equal(directApiCallLines(fixture).length, 1);
 });
 
 test('F15 B1-26: a continuation line that begins with an asterisk is code, not a skipped comment line', () => {
