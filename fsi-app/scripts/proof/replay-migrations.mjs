@@ -21,11 +21,11 @@
 // fsi-app/supabase/migrations/APPLIED-MAP.json (lane MIG-HIST-1); scripts/proof/applied-map.mjs reads it. Per ledger
 // version: a class with a file (identical, comments-only, code-differs, recovered) APPLIES that file, in the order of
 // docs/inventories/migrations.md; superseded-by, data-only and comment-only rows are SATISFIED with no file, counted
-// and listed; outside-ledger files are APPLIED (they are live); never-applied and duplicate-prefix files are SKIPPED
+// and listed; outside-ledger files are APPLIED (they are live); duplicate-prefix files, and files the map names nowhere whose own header says NOT APPLIED (never-applied, derived, see applied-map.mjs), are SKIPPED
 // and listed. ERRORS (the replay refuses, applies nothing, names them): the map file is absent (red until MIG-HIST-1
 // lands, the honest state), a ledger version absent from the map, a map entry whose file is missing, an unknown class,
-// a file to apply that the order inventory does not list. File headers are never evidence (several still say NOT
-// APPLIED for applied migrations).
+// a file to apply that the order inventory does not list. A header is evidence only for a file the map names nowhere (several headers still said NOT
+// APPLIED for applied migrations until MIGTEST-1).
 //
 // THE REPLAY BUILDS THE PROOF SCHEMA (coordinator reversal 2026-10-07: no workarounds). The stack's schema is the
 // repo files replayed here, onto the stack's empty database. A schema-only dump of production is the ORACLE: after
@@ -102,8 +102,9 @@ export function prefixReport(files) {
  * @param {string[]} diskFiles  the *.sql names found in the migrations directory
  * @param {{version:string,name:string}[]} ledger  production's applied ledger
  * @param {string|null} mapText  the text of APPLIED-MAP.json, or null when the file is absent
+ * @param {(file:string) => string} [readFile]  text of a migration file, to derive never-applied from the header of a file the map names nowhere
  */
-export function planReplay(inventoryRows, diskFiles, ledger, mapText) {
+export function planReplay(inventoryRows, diskFiles, ledger, mapText, readFile) {
   const onDisk = new Set(diskFiles);
   const listed = new Set(inventoryRows.map((r) => r.file));
   const missingOnDisk = inventoryRows.filter((r) => !onDisk.has(r.file)).map((r) => r.file);
@@ -112,7 +113,7 @@ export function planReplay(inventoryRows, diskFiles, ledger, mapText) {
   if (parsed.error) {
     return { ordered: [], missingOnDisk, notInInventory, satisfied: [], skipped: [], unreferenced: [], errors: [{ kind: "map_absent_or_invalid", message: parsed.error }], duplicates: [], gaps: [] };
   }
-  const resolved = resolveMap({ ledger, map: parsed.map, diskFiles, orderFiles: inventoryRows.map((r) => r.file) });
+  const resolved = resolveMap({ ledger, map: parsed.map, diskFiles, orderFiles: inventoryRows.map((r) => r.file), readFile });
   return {
     ordered: resolved.toApply.map((t) => ({ file: t.file, class: t.class, key: t.key })),
     missingOnDisk,
@@ -330,7 +331,7 @@ function main() {
   const mapPath = args.map ? resolve(args.map) : DEFAULT_MAP;
   let mapText = null;
   try { mapText = readFileSync(mapPath, "utf8"); } catch { mapText = null; }
-  const plan = planReplay(inventoryRows, diskFiles, appliedRows, mapText);
+  const plan = planReplay(inventoryRows, diskFiles, appliedRows, mapText, (f) => readFileSync(join(migrationsDir, f), "utf8"));
 
   let expectedTables = null;
   try { expectedTables = JSON.parse(readFileSync(DB_CATALOG, "utf8")).tables?.length ?? null; } catch { /* informational only */ }

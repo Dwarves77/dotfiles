@@ -7,6 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { headerProblems } from "./_lib/applied-status.mjs";
 
 const read = (name) => readFileSync(fileURLToPath(new URL(`./${name}`, import.meta.url)), "utf8");
 const strip = (raw) => raw.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
@@ -26,9 +27,9 @@ test("baseline: migration 148 defines both count RPCs with no membership check (
   assert.doesNotMatch(OLD, /auth\.uid\(\)/);
 });
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and applied status as the map says", () => {
   assert.match(RAW, /^-- subject: Migration 361 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.deepEqual(headerProblems(RAW, "361_count_rpc_membership.sql"), []);
 });
 
 test("precondition: migration 077 gate and migration 148 functions exist before anything is replaced", () => {
