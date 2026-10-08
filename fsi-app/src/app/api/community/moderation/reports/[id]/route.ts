@@ -36,13 +36,18 @@
 // reason|body); admin read-back in this file decodes the action suffix.
 //
 // Auth: cookie session (RLS-aware client) for the report read/update.
+// Reviewer gate: group moderator/admin of the report's group, or platform
+// admin (403 otherwise), checked before any side effect (ROUTES-1).
 // Service role used narrowly for notifications insert.
 // Rate limit: 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
+import type { CommunityAuthResult } from "@/lib/api/community-auth";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { isPlatformAdmin } from "@/lib/auth/admin";
+import { getServiceSupabase } from "@/lib/supabase-service";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -246,20 +251,9 @@ export async function POST(
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  // Idempotency: closed reports are immutable from the API.
-  if (report.status !== "open") {
-    return NextResponse.json(
-      {
-        error: `Report is ${report.status}; re-decisions are not allowed`,
-        status: report.status,
-      },
-      { status: 409 }
-    );
-  }
-
   // Look up the target post — needed for remove/warn/mute/ban side
-  // effects. Dismiss does not need it but reading is harmless and gives
-  // us the author for notification copy.
+  // effects and for the reviewer gate below. Dismiss does not need it but
+  // reading is harmless and gives us the author for notification copy.
   let post: {
     id: string;
     group_id: string;
@@ -272,6 +266,36 @@ export async function POST(
       .eq("id", report.target_id)
       .maybeSingle();
     post = data ?? null;
+  }
+
+  // Reviewer gate (ROUTES-1, register row R069). The report read above is
+  // RLS-scoped, and moderation_reports_select also lets the REPORTER read
+  // their own report, so reaching this line proves nothing about the role.
+  // The warn, mute and ban branches send a notification with the service
+  // role, which no RLS policy sees, so the role is checked here, before any
+  // side effect: the actor must be a moderator or admin of the report's
+  // group (user_is_group_admin, the helper the community RLS policies use)
+  // or a platform admin. Fails closed: an rpc error or an unknown group is
+  // a refusal.
+  const reportGroupId =
+    report.target_kind === "group" ? (report.target_id as string) : (post?.group_id ?? null);
+  const isReviewer = await actorMayReview(auth, reportGroupId);
+  if (!isReviewer) {
+    return NextResponse.json(
+      { error: "Moderator or platform admin access required" },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
+
+  // Idempotency: closed reports are immutable from the API.
+  if (report.status !== "open") {
+    return NextResponse.json(
+      {
+        error: `Report is ${report.status}; re-decisions are not allowed`,
+        status: report.status,
+      },
+      { status: 409 }
+    );
   }
 
   // Effective action — recorded as-requested. The Phase D `mute_user`
@@ -397,6 +421,20 @@ export async function POST(
 // ───────────────────────────────────────────────────────────────────
 // helpers
 // ───────────────────────────────────────────────────────────────────
+
+async function actorMayReview(
+  auth: CommunityAuthResult,
+  groupId: string | null
+): Promise<boolean> {
+  if (groupId) {
+    const { data, error } = await auth.supabase.rpc("user_is_group_admin", {
+      _group_id: groupId,
+      _user_id: auth.userId,
+    });
+    if (!error && data === true) return true;
+  }
+  return isPlatformAdmin(auth.userId, getServiceSupabase());
+}
 
 async function emitModerationNotification(args: {
   userId: string;

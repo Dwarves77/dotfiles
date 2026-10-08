@@ -21,8 +21,10 @@
 
 /** Routes that don't require authentication. /privacy is public by design (Wave-α A7, CODE-4b F2): the
  *  page declares robots index:true and a privacy policy must be readable before signup (GDPR/CCPA
- *  notice-at-collection). */
-export const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/privacy"];
+ *  notice-at-collection). /auth/reset-password is public because its only visitor is someone who cannot sign
+ *  in (the login page links to it); /auth/update-password stays gated, it needs the recovery session the
+ *  callback establishes. */
+export const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/reset-password", "/privacy"];
 
 // perf item #9: scanner/probe short-circuit. Production logs show repeated hits to WordPress/PHP admin
 // paths (this app runs neither) — each one previously ran the full proxy body (Supabase client

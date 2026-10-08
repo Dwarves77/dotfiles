@@ -4,6 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { isGloballyPaused, getScrapeState } from "@/lib/api/pause";
 import { scrapeWindowOpen } from "@/lib/sources/scrape-schedule";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import { runReconcilePass } from "@/lib/sources/reconcile";
 // The limit-validation contract and the per-source assessment/response-shape logic live in a
 // sibling module, not here: a route.ts may export only route handlers/config (F34's named
@@ -36,6 +37,10 @@ export async function POST(request: NextRequest) {
   // Authenticate worker
   const denied = workerAuthGuard(request);
   if (denied) return denied;
+  // ROUTES-1 (register AT2-7d): the shared 60/min sliding window, one bucket per worker route (the
+  // caller is the one shared-secret holder, so the route is the principal), after the secret check.
+  const limited = checkRateLimit("worker:/api/worker/check-sources");
+  if (limited) return limited;
 
   // Parse + validate the optional limit override BEFORE any state check or DB work — a malformed request
   // is a client error (400), not a "worker exiting" no-op. request.text() (not request.json()) tolerates

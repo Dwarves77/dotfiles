@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import { STATE_COOKIE, LINKEDIN_OAUTH_BASE_URL } from "../start/logic"; // F46: www.linkedin.com's one home (lane L35)
 
 const TOKEN_ENDPOINT = `${LINKEDIN_OAUTH_BASE_URL}/accessToken`;
@@ -125,6 +126,11 @@ export async function GET(request: NextRequest) {
   if (userError || !user) {
     return redirectWithError(origin, "not-authenticated", "/login?redirect=/onboarding");
   }
+
+  // ROUTES-1 (register AT2-7d): the shared 60/min per-user sliding window, after the session is known and
+  // before the token exchange calls out to LinkedIn.
+  const limited = checkRateLimit(user.id);
+  if (limited) return limited;
 
   // Exchange the authorization code for an access_token.
   let accessToken: string;

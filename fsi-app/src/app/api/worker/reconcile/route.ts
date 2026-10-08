@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { runReconcilePass } from "@/lib/sources/reconcile";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 
 // POST /api/worker/reconcile — the reconcile-loop CONSUMER, manual re-drive.
 //
@@ -27,6 +28,10 @@ import { workerAuthGuard } from "@/lib/api/worker-auth";
 export async function POST(request: NextRequest) {
   const denied = workerAuthGuard(request);
   if (denied) return denied;
+  // ROUTES-1 (register AT2-7d): the shared 60/min sliding window, one bucket per worker route (the
+  // caller is the one shared-secret holder, so the route is the principal), after the secret check.
+  const limited = checkRateLimit("worker:/api/worker/reconcile");
+  if (limited) return limited;
   const supabase = getServiceSupabase();
 
   if (await isGloballyPaused(supabase)) {
