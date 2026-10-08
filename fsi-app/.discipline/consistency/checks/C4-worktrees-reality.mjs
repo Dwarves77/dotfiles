@@ -110,7 +110,7 @@ export const consistencyCheck = {
   description: 'Each worktree listed in docs/inventories/worktrees.md exists on disk; each git-tracked worktree is listed.',
   source: 'Layer 4 dispatch + ADR-005',
 
-  run() {
+  run(deps = {}) {
     const drifts = [];
     const inventoryContent = readInventory('docs/inventories/worktrees.md');
 
@@ -146,20 +146,25 @@ export const consistencyCheck = {
     // disk-reality directions. Locally (pre-push, commit-time) BOTH directions run
     // unchanged — the local gate is not weakened. Mirrors the migration 067 lesson
     // (file present locally, absent in CI checkout).
-    if (process.env.CI) {
-      return drifts.length === 0 ? NO_DRIFT : drifts;
-    }
+    //
+    // Lane GATE-8 (2026-10-08, AUD-AT-4 B7-35): CI MODE IS A CHECK, NOT AN EARLY RETURN. The check used to return
+    // here before looking at anything, so an unlisted worktree with CI set was never seen. Only the
+    // inventory-to-disk direction (a developer's sibling directories do not exist on a runner) is skipped under CI.
+    // The disk-to-inventory direction below, every live worktree git reports, runs under CI too: on a runner that
+    // list is the checkout itself, which must be listed, and any extra worktree a job adds inside the repository
+    // path is drift exactly as it is locally.
+    const ci = deps.ci ?? Boolean(process.env.CI);
 
-    const liveWorktrees = gitWorktreeList();
+    const liveWorktrees = deps.liveWorktrees ?? gitWorktreeList();
 
     // Each inventory path: verify it exists at the conventional location.
     // Inventory uses RELATIVE names like "dotfiles-wt-foo" referring to a
     // sibling directory of the repo root (historical anti-pattern; deprecated
     // by FaDB convention). Derive the sibling path from the repo root's parent
     // rather than hardcoding any user-home string.
-    const repoRoot = getMainRepoRoot();
+    const repoRoot = deps.repoRoot ?? getMainRepoRoot();
     const repoParent = dirname(repoRoot);
-    for (const relName of inventoryPaths) {
+    for (const relName of ci ? [] : inventoryPaths) {
       // Try sibling-to-repo-root (the historical anti-pattern documented in worktrees.md)
       const sibling = join(repoParent, relName);
       // Try .worktrees/<name> (the new FaDB-recognized convention)

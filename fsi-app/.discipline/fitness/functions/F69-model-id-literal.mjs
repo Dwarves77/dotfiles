@@ -16,12 +16,20 @@
 
 import { violation } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
-import { isOverridden } from '../lib/file-content.mjs';
+import { views, overrideLines, lineOfIndex } from '../lib/code-scan.mjs';
+import { foldStringConcat } from '../../governance/coverage-scan.mjs';
 
 // A quoted Anthropic model-id literal: "claude-haiku-...", "claude-sonnet-...", "claude-opus-...", in
 // either quote style. Matches the literal wherever it appears on a line (an assignment, a call argument,
 // a default, a template-literal fallback). The point is ANY hardcoded copy outside the sanctioned homes.
-const MODEL_ID_LITERAL_RE = /["'`]claude-(?:haiku|sonnet|opus)-[a-z0-9.-]+["'`]/i;
+//
+// Lane GATE-8 (2026-10-08, AUD-AT-4 B6-69 to B6-72): the same literal in the forms it takes without anyone trying to
+// hide it. A model family other than haiku, sonnet or opus (claude-fable-5, a future name) is a model id: the gate
+// matches the SHAPE (claude-, an optional family word, a version digit), not three family names. A provider-prefixed
+// id (anthropic.claude-..., us.anthropic.claude-... as a Bedrock or Vertex id) is the same id. An id split over a
+// `+` is one literal (read folded). And the scope is every file under src and scripts, workflows included, not
+// the directories the gate was first written for.
+export const MODEL_ID_LITERAL_RE = /["'`](?:[a-z0-9]+\.)*claude-(?:(?:[a-z]+-)+\d[a-z0-9.:-]*|\d[a-z0-9.:-]*)["'`]/i;
 
 // The single shared home. Declares the literals once; everything else imports them.
 export const CANONICAL_HOME = 'fsi-app/src/lib/llm/model-ids.mjs';
@@ -34,16 +42,17 @@ export const SECURITY_ALLOWLIST_FILES = new Set([
 /** Lines (1-indexed) in `content` that carry a hardcoded model-id literal, ignoring comment/JSDoc lines
  *  and lines carrying an F69 override. A comment line is excluded because the literal there is prose
  *  (a drift note, a cost-estimate doc comment), never a live value a caller reads. */
-function modelIdLiteralLines(content) {
-  const out = [];
-  const lines = content.split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) continue;
-    if (MODEL_ID_LITERAL_RE.test(line) && !isOverridden(line, 'F69')) out.push(i + 1);
+export function modelIdLiteralLines(content) {
+  const overridden = overrideLines(content, 'F69');
+  const folded = foldStringConcat(views(content).text);
+  const out = new Set();
+  const re = new RegExp(MODEL_ID_LITERAL_RE.source, 'gi');
+  let m;
+  while ((m = re.exec(folded))) {
+    const ln = lineOfIndex(folded, m.index);
+    if (!overridden.has(ln)) out.add(ln);
   }
-  return out;
+  return [...out].sort((a, b) => a - b);
 }
 
 export const fitnessFunction = {
@@ -56,8 +65,8 @@ export const fitnessFunction = {
     // Test files construct model-id-looking strings as fixtures (metered-gate.test.mjs, spend-client
     // .npmtest.mjs, first-fetch-classify.npmtest.mjs, spend-health.test.mjs). The portability + fixture
     // conventions already govern those; F15's sibling gate excludes them for the identical reason.
-    return globFiles(['fsi-app/src/lib/**/*.{ts,tsx,mjs}', 'fsi-app/src/app/**/*.{ts,tsx}', 'fsi-app/src/components/**/*.{ts,tsx}', 'fsi-app/scripts/**/*.mjs'])
-      .filter((p) => !/\.(test|selftest|npmtest)\.(ts|tsx|mjs)$/.test(p))
+    return globFiles(['fsi-app/src/**/*.{ts,tsx,mjs,js,cjs,jsx}', 'fsi-app/scripts/**/*.{mjs,js,cjs,ts}'])
+      .filter((p) => !/\.(test|selftest|npmtest)\.(ts|tsx|mjs|js|cjs)$/.test(p))
       .filter((p) => p !== CANONICAL_HOME);
   },
 

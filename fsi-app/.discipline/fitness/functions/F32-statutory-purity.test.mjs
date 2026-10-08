@@ -8,6 +8,8 @@ import {
   NON_CONTRACTABLE_DERIVATIONS,
   assertStatutoryPurity,
   checkTriggerPresence,
+  checkPurityCorpus,
+  purityBodyProblems,
   fitnessFunction,
 } from './F32-statutory-purity.mjs';
 
@@ -140,4 +142,50 @@ const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'live-tr
 test('fitnessFunction.check(): runs against the LIVE migration 286 and passes', LIVE_TREE, () => {
   const problems = fitnessFunction.check();
   assert.deepEqual(problems, []);
+});
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F32 B5-15: the trigger changed to AFTER DELETE with the required BEFORE text kept in a trailing comment is caught', () => {
+  const text = VALID_MIGRATION_TEXT.replace(
+    'BEFORE INSERT OR UPDATE ON public.statutory_computations',
+    'AFTER DELETE ON public.statutory_computations -- BEFORE INSERT OR UPDATE ON public.statutory_computations',
+  );
+  assert.ok(checkTriggerPresence(text).some((p) => p.includes('not wired as a BEFORE')));
+});
+
+const GOOD_FN = (n) => `CREATE OR REPLACE FUNCTION public.assert_statutory_purity() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.inputs) r WHERE (r->>'table') = 'estimated_values' AND EXISTS (SELECT 1 FROM public.estimated_values ev WHERE ev.entity_id = (r->>'pk'))) THEN
+    RAISE EXCEPTION 'impure %', ${n};
+  END IF;
+  RETURN NEW;
+END $$;`;
+const GOOD_TRIG = `DROP TRIGGER IF EXISTS statutory_purity_trg ON public.statutory_computations;
+CREATE TRIGGER statutory_purity_trg BEFORE INSERT OR UPDATE ON public.statutory_computations FOR EACH ROW EXECUTE FUNCTION public.assert_statutory_purity();`;
+
+test('F32 B5-16: a later migration that replaces the purity function with a no-op fails', () => {
+  const full = (fnText) => fnText.replace('RETURN NEW;', "PERFORM 1 FROM public.derived_values; IF EXISTS (SELECT 1 FROM public.derived_values dv WHERE dv.derivation = 'modelled') THEN RAISE EXCEPTION 'x'; END IF; RETURN NEW;");
+  const ok = { path: 'fsi-app/supabase/migrations/286_x.sql', text: `${full(GOOD_FN('1'))}\n${GOOD_TRIG}` };
+  assert.deepEqual(checkPurityCorpus([ok]), []);
+  const noop = { path: 'fsi-app/supabase/migrations/400_noop.sql', text: 'CREATE OR REPLACE FUNCTION public.assert_statutory_purity() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NEW; END $$;' };
+  const problems = checkPurityCorpus([ok, noop]);
+  assert.ok(problems.some((p) => /weakened body/.test(p) && p.includes('400_noop.sql')), problems.join(' | '));
+});
+
+test('F32 B5-16: a later migration that drops, retimes or disables the trigger fails', () => {
+  const full = (n) => GOOD_FN(n).replace('RETURN NEW;', "IF EXISTS (SELECT 1 FROM public.derived_values dv WHERE dv.derivation = 'modelled') THEN RAISE EXCEPTION 'x'; END IF; RETURN NEW;");
+  const base = { path: 'fsi-app/supabase/migrations/286_x.sql', text: `${full('1')}\n${GOOD_TRIG}` };
+  const drop = { path: 'fsi-app/supabase/migrations/401_drop.sql', text: 'DROP TRIGGER statutory_purity_trg ON public.statutory_computations;' };
+  const disable = { path: 'fsi-app/supabase/migrations/402_dis.sql', text: 'ALTER TABLE public.statutory_computations DISABLE TRIGGER statutory_purity_trg;' };
+  const after = { path: 'fsi-app/supabase/migrations/403_after.sql', text: 'DROP TRIGGER statutory_purity_trg ON public.statutory_computations;\nCREATE TRIGGER statutory_purity_trg AFTER DELETE ON public.statutory_computations FOR EACH ROW EXECUTE FUNCTION public.assert_statutory_purity();' };
+  assert.ok(checkPurityCorpus([base, drop]).some((p) => /does not exist/.test(p)));
+  assert.ok(checkPurityCorpus([base, disable]).some((p) => /DISABLED/.test(p)));
+  assert.ok(checkPurityCorpus([base, after]).some((p) => /not BEFORE/.test(p)));
+  const reenable = { path: 'fsi-app/supabase/migrations/404_en.sql', text: 'ALTER TABLE public.statutory_computations ENABLE TRIGGER statutory_purity_trg;' };
+  assert.deepEqual(checkPurityCorpus([base, disable, reenable]), []);
+});
+
+test('F32: purityBodyProblems names each missing assertion', () => {
+  assert.equal(purityBodyProblems('BEGIN RETURN NEW; END').length, 5);
 });

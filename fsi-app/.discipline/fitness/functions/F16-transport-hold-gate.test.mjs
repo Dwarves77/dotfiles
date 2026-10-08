@@ -80,3 +80,38 @@ test('LIVE: every real transport module carries the hold gate', LIVE_TREE, () =>
     assert.deepEqual(fitnessFunction.check(rel, content), [], `${rel} must contain assertFetchAllowed(`);
   }
 });
+
+// ---- lane GATE-8 (2026-10-08): the honest forms the AUD-AT-4 register found ACCEPTED, red then green ----
+
+test('F16 B1-33: a Browserless host split across a concatenation is the same host', () => {
+  const src = 'const u = "https://chrome." + "browserless.io/content";';
+  assert.equal(fitnessFunction.check('fsi-app/src/lib/sources/new-fetcher.mjs', src).length, 1);
+});
+
+test('F16 B1-35: a websocket or puppeteer connect through the endpoint variable is the same bypass', () => {
+  const src = 'const b = await puppeteer.connect({ browserWSEndpoint: process.env.BROWSERLESS_WS });';
+  assert.ok(fitnessFunction.check('fsi-app/src/lib/sources/new-fetcher.mjs', src).length >= 1);
+});
+
+test('F16 B1-36: a raw Browserless host in scripts is enumerated', () => {
+  const body = fitnessFunction.enumerate.toString();
+  assert.match(body, /scripts/);
+  assert.match(body, /cjs/);
+});
+
+test('F16 B1-37: a primitive that keeps only a comment naming the gate call is ungated', () => {
+  const src = '// TODO: call assertFetchAllowed(url) here\nexport async function browserlessFetch(url) { return fetch(url); }';
+  const v = fitnessFunction.check(PRIMITIVE, src);
+  assert.equal(v.length, 1);
+  assert.match(v[0].message, /missing the scrape-hold gate/);
+});
+
+test('F16 B1-38: a primitive whose gate call was reduced to a string literal is ungated', () => {
+  const src = 'const note = "assertFetchAllowed(url)";\nexport async function browserlessFetch(url) { return fetch(url); }';
+  assert.equal(fitnessFunction.check(PRIMITIVE, src).length, 1);
+});
+
+test('F16: a transport module with a commented gate call is also ungated', () => {
+  const src = '/* assertFetchAllowed(url) */\nexport async function go(url) { return fetch(url); }';
+  assert.equal(fitnessFunction.check(TRANSPORT_MODULES[0], src).length >= 1, true);
+});
