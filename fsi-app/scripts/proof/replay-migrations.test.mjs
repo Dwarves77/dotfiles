@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   parseInventoryOrder, prefixReport, planReplay, parsePsqlOutput,
-  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP,
+  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP, DEFAULT_APPLIED,
 } from "./replay-migrations.mjs";
 
 const INVENTORY = [
@@ -89,6 +89,35 @@ test("planReplay with the map: apply classes and outside-ledger in inventory ord
   assert.deepEqual(plan.notInInventory, ["012_unlisted.sql"]);
   assert.deepEqual(plan.missingOnDisk, ["011_listed_but_gone.sql"]);
   assert.deepEqual(plan.unreferenced, ["012_unlisted.sql"]);
+});
+
+test("ORDER: planReplay replays in ledger version order when file numbers and ledger versions disagree", () => {
+  const inv = parseInventoryOrder(["| 010 | 010_x.sql | x |", "| 020 | 020_y.sql | y |", "| 030 | 030_z.sql | z |", ""].join("\n"));
+  const disk = ["010_x.sql", "020_y.sql", "030_z.sql"];
+  const ledger = [{ version: "010", name: "z" }, { version: "020", name: "x" }, { version: "030", name: "y" }];
+  const map = JSON.stringify({
+    "010": { name: "z", file: "030_z.sql", class: "identical" },
+    "020": { name: "x", file: "010_x.sql", class: "identical" },
+    "030": { name: "y", file: "020_y.sql", class: "identical" },
+  });
+  const plan = planReplay(inv, disk, ledger, map);
+  assert.deepEqual(plan.errors, []);
+  assert.deepEqual(plan.ordered.map((o) => o.file), ["030_z.sql", "010_x.sql", "020_y.sql"]);
+});
+
+test("ORDER on the committed tree: the replay plan is in ascending ledger version, and 028 still precedes 029", () => {
+  const plan = planReplay(
+    parseInventoryOrder(readFileSync(DEFAULT_INVENTORY, "utf8")),
+    readdirSync(DEFAULT_MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")),
+    JSON.parse(readFileSync(DEFAULT_APPLIED, "utf8")).migrations,
+    readFileSync(DEFAULT_MAP, "utf8"),
+  );
+  assert.deepEqual(plan.errors, []);
+  const versions = plan.ordered.filter((o) => /^\d+$/.test(o.key)).map((o) => BigInt(o.key));
+  assert.ok(versions.length > 300);
+  for (let i = 1; i < versions.length; i++) assert.ok(versions[i - 1] <= versions[i], `ledger order broken at position ${i}`);
+  const files = plan.ordered.map((o) => o.file);
+  assert.ok(files.indexOf("028_community_groups.sql") < files.indexOf("029_community_group_members.sql"));
 });
 
 test("ERROR: the map file absent is an error naming it and MIG-HIST-1 (red until it lands)", () => {

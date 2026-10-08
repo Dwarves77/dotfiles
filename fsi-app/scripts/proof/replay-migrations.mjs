@@ -8,19 +8,19 @@
 // reached production through the MCP apply_migration tool and the Dashboard, so no from-scratch replay path
 // exists. This runner applies each file itself, with psql, one file per transaction, against loopback only.
 //
-// ORDER. Lexical order of the filenames is a HYPOTHESIS for the duplicate-prefix files, so the order comes
-// from docs/inventories/migrations.md, the generated page that lists every migration file (number, file,
-// subject). That page is itself derived from the files in generator order, so for 006 and 007 it agrees with
-// lexical order; it is the one list the repo keeps, and the first real run is what proves it. A file on disk
-// that the inventory does not list is REPORTED and not applied. A file the inventory lists that is absent on
-// disk is REPORTED.
+// ORDER (coordinator ruling 2026-10-08, lane MIG-CI). Files that stand for a ledger row apply in LEDGER ORDER, the
+// map's ledger version per entry ascending (applied-map.mjs orderByLedger), never in the inventory's file number order:
+// the ledger is the record of what ran and in what sequence. A file with no ledger row (outside-ledger) applies right
+// after the ledgered file that precedes it in docs/inventories/migrations.md. The inventory is still read: it lists every
+// migration file (number, file, subject), it anchors those outside-ledger files, and a file on disk it does not list is
+// REPORTED and a file it lists that is absent on disk is REPORTED. Never-applied and unreferenced files are not replayed.
 //
 // WHICH FILES APPLY (coordinator ruling 2026-10-07). Production's ledger (fsi-app/docs/inventories/
 // applied-migrations.json, production's list_migrations, synced by hand with scripts/proof/sync-applied-migrations.mjs)
 // and the repo's files do not line up by name. The record of which file stands for which ledger row is
 // fsi-app/supabase/migrations/APPLIED-MAP.json (lane MIG-HIST-1); scripts/proof/applied-map.mjs reads it. Per ledger
-// version: a class with a file (identical, comments-only, code-differs, recovered) APPLIES that file, in the order of
-// docs/inventories/migrations.md; superseded-by, data-only and comment-only rows are SATISFIED with no file, counted
+// version: a class with a file (identical, comments-only, code-differs, recovered) APPLIES that file, in ledger order
+// (ORDER above); superseded-by, data-only and comment-only rows are SATISFIED with no file, counted
 // and listed; outside-ledger files are APPLIED (they are live); never-applied and duplicate-prefix files are SKIPPED
 // and listed. ERRORS (the replay refuses, applies nothing, names them): the map file is absent (red until MIG-HIST-1
 // lands, the honest state), a ledger version absent from the map, a map entry whose file is missing, an unknown class,
