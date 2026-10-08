@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { loadCommunityIdentities } from "@/lib/community/identity.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -79,24 +80,20 @@ export async function GET(
   // Never offer the caller as a candidate (they cannot invite themselves).
   excluded.add(auth.userId);
 
-  // Search by full_name (case-insensitive). Profiles RLS allows
-  // authenticated read across all rows (migration 075 / 027 lineage).
-  const { data: profiles, error } = await auth.supabase
-    .from("profiles")
-    .select("id, full_name, avatar_url")
-    .ilike("full_name", `%${escapeLike(q)}%`)
-    .limit(MAX_RESULTS * 2);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Search by name (the start of any token of it) through the community_identity RPC (migration 372, SEC-5): profiles is no longer
+  // readable across organisations, and the RPC escapes the wildcards itself, caps the result, and never matches a
+  // default-anonymous member by name (their name is withheld, so they cannot be found by it).
+  const { rows: identities, error: identityErr } = await loadCommunityIdentities(auth.supabase, null, q);
+  if (identityErr) {
+    return NextResponse.json({ error: identityErr }, { status: 500 });
   }
 
-  const candidates = (profiles ?? [])
-    .filter((p) => p.full_name && !excluded.has(p.id))
+  const candidates = identities
+    .filter((p) => p.display_name && !excluded.has(p.user_id))
     .slice(0, MAX_RESULTS)
     .map((p) => ({
-      user_id: p.id,
-      name: p.full_name,
+      user_id: p.user_id,
+      name: p.display_name,
       headshot_url: p.avatar_url,
     }));
 
@@ -104,10 +101,4 @@ export async function GET(
     { candidates },
     { headers: rateLimitHeaders(auth.userId) }
   );
-}
-
-// Escape ILIKE wildcards in user input so a literal '%' or '_' is not
-// interpreted as a pattern. Backslash is the escape character.
-function escapeLike(input: string): string {
-  return input.replace(/[\\%_]/g, (m) => `\\${m}`);
 }

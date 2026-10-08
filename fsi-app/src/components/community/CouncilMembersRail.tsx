@@ -25,6 +25,7 @@
  */
 
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { loadCommunityIdentities } from "@/lib/community/identity.mjs";
 import { Lock } from "lucide-react";
 import { NoDirectMessagingNotice } from "./NoDirectMessagingNotice";
 
@@ -70,28 +71,21 @@ export async function CouncilMembersRail({
 
   const userIds = rows.map((r) => r.user_id).filter(Boolean);
 
-  const { data: profiles } = userIds.length
-    ? await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url")
-        // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
-        .in("id", userIds)
-    : { data: [] as { id: string; full_name: string | null; avatar_url: string | null }[] };
-
-  const profileById = new Map(
-    (profiles ?? []).map((p) => [p.id, p] as const)
-  );
+  // SEC-5 (migration 372): members may belong to other organisations, and profiles is no longer readable
+  // across them, so names and headshots come from the community_identity RPC (a default-anonymous member
+  // arrives with both null). A failed lookup degrades to unnamed rows, the rail is decorative.
+  const { byId: identityById } = await loadCommunityIdentities(supabase, userIds);
 
   const ROLE_ORDER: Record<string, number> = { admin: 0, moderator: 1, member: 2 };
 
   const merged: MemberRow[] = rows
     .map((r) => {
-      const p = profileById.get(r.user_id);
+      const p = identityById.get(r.user_id);
       return {
         user_id: r.user_id,
         role: r.role as MemberRow["role"],
-        name: p?.full_name ?? null,
-        headshot_url: p?.avatar_url ?? null,
+        name: (p?.display_name as string | null | undefined) ?? null,
+        headshot_url: (p?.avatar_url as string | null | undefined) ?? null,
       };
     })
     .sort((a, b) => {

@@ -4,6 +4,7 @@ import { getResourcesOnly, getPublicListingsOnly } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { fetchRemainderPaged } from "./logic";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 // PERF-12 (2026-09-04, ADR-027 §2): Regulations-only cap this route used to share with Operations
 // (LIST_REMAINDER_LIMIT, list-pagination.ts) is DELETED along with Regulations' one-shot remainder
@@ -74,6 +75,8 @@ const REGULATIONS_REMAINDER_LIMIT = 5000;
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const { searchParams } = request.nextUrl;
   const surface = searchParams.get("surface") ?? "";
   const offsetRaw = searchParams.get("offset") ?? "";

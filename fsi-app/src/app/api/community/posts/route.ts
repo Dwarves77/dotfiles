@@ -38,9 +38,10 @@
 // We rely on RLS to enforce membership and never use a service-role
 // escape — the cookie-bound supabase client is the auth boundary.
 //
-// The response shape includes a denormalized `author` block joined from
-// profiles (name + headshot_url) so the feed UI can render headshot and
-// display name without a second round-trip, PLUS (R8.7, spec 07 Community
+// The response shape includes a denormalized `author` block (name + headshot_url) built from the
+// community_identity RPC (migration 372, SEC-5: profiles is no longer readable across organisations; the
+// RPC applies the per-user anonymity default in SQL and the per-post flag nulls the block at the row) so
+// the feed UI can render headshot and display name without a second round-trip, PLUS (R8.7, spec 07 Community
 // 2026-09-25, migration 336) an `author_identity` block built by
 // buildAuthorIdentityForRender (src/lib/community/identity.mjs): name +
 // company + org type/role/sector/region + a verification mark, shown by
@@ -63,6 +64,12 @@ import {
   validateEntityIds,
 } from "@/lib/community/index.mjs";
 import { assertBound } from "@/lib/db/paginate.mjs";
+import {
+  authorBlockForPost,
+  effectiveAnonymous,
+  loadCommunityIdentities,
+  type CommunityIdentityRow,
+} from "@/lib/community/identity.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -92,12 +99,6 @@ interface PostRow {
   anonymous: boolean;
 }
 
-interface AuthorProfile {
-  user_id: string;
-  name: string | null;
-  headshot_url: string | null;
-}
-
 /** R8.7 (migration 336): the caller's community_member_profiles projection, keyed by user_id, used to
  * build the author_identity block (org type/role/sector/region/verified). */
 interface MemberIdentityRow {
@@ -111,37 +112,41 @@ interface MemberIdentityRow {
 
 function shapePost(
   row: PostRow,
-  profilesById: Map<string, AuthorProfile>,
-  memberProfilesById: Map<string, MemberIdentityRow>,
-  companyById: Map<string, string>
+  identitiesById: Map<string, CommunityIdentityRow>,
+  memberProfilesById: Map<string, MemberIdentityRow>
 ) {
-  const profile = row.author_user_id
-    ? profilesById.get(row.author_user_id) ?? null
+  const identity = row.author_user_id
+    ? identitiesById.get(row.author_user_id) ?? null
     : null;
   const memberProfile = row.author_user_id
     ? memberProfilesById.get(row.author_user_id) ?? null
     : null;
-  const company = row.author_user_id ? companyById.get(row.author_user_id) ?? null : null;
+  // The per-USER half of R8.7 came back from the RPC; the per-POST half is applied here, once, at the row
+  // (community_posts.anonymous), by authorBlockForPost and the effective flag below.
+  const author = authorBlockForPost({
+    authorUserId: row.author_user_id,
+    identity,
+    postAnonymous: row.anonymous,
+  });
+  const anonymous = effectiveAnonymous({ postAnonymous: row.anonymous, identity });
 
   return {
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
     author_user_id: row.author_user_id,
-    author: profile
-      ? {
-          user_id: profile.user_id,
-          name: profile.name ?? null,
-          headshot_url: profile.headshot_url ?? null,
-        }
-      : null,
+    author,
     // R8.7 (spec 07 Community, 2026-09-25, migration 336): shown by default. Post.tsx renders this
     // INSTEAD OF the legacy `author` block above whenever it is present (see Post.tsx's own header).
     author_identity: buildAuthorIdentityForRender({
-      memberProfile,
-      name: profile?.name ?? null,
-      company,
-      postAnonymous: row.anonymous,
+      memberProfile: memberProfile
+        ? { ...memberProfile, role: memberProfile.role ?? identity?.job_title ?? null, region: memberProfile.region ?? identity?.region ?? null }
+        : identity
+          ? { role: identity.job_title, region: identity.region, verified: identity.verified }
+          : null,
+      name: identity?.display_name ?? null,
+      company: identity?.company_name ?? null,
+      postAnonymous: anonymous,
     }),
     title: row.title,
     body: row.body,
@@ -153,21 +158,23 @@ function shapePost(
   };
 }
 
-/** Fetches the community_member_profiles + organisation-name rows for a bounded set of author ids,
- * shared by GET and POST so both build the exact same author_identity shape the same way. Never
- * throws: a lookup failure degrades to an empty map (the identity projection then falls back to
- * whatever it has, same fail-soft posture the rest of this route already uses for `profiles`). */
+/** Fetches the community_member_profiles rows (org type, role, sector, region, verified) and the
+ * community_identity rows (name, company, job title, headshot, the per-user anonymity flag) for a bounded set of
+ * author ids, shared by GET and POST so both build the exact same author_identity shape the same way. Never
+ * throws: a lookup failure degrades to empty maps (the identity projection then falls back to whatever it has,
+ * same fail-soft posture the rest of this route already uses). SEC-5 (migration 372): the company used to come from
+ * an org_memberships join that row security limited to the caller's own organisation; community_identity returns it
+ * for any organisation, as R8.7 intends, and applies default_anonymous in SQL. */
 async function loadAuthorIdentityInputs(
   supabase: SupabaseClient,
   authorIds: string[]
 ): Promise<{
   memberProfilesById: Map<string, MemberIdentityRow>;
-  companyById: Map<string, string>;
+  identitiesById: Map<string, CommunityIdentityRow>;
 }> {
   const memberProfilesById = new Map<string, MemberIdentityRow>();
-  const companyById = new Map<string, string>();
   if (authorIds.length === 0) {
-    return { memberProfilesById, companyById };
+    return { memberProfilesById, identitiesById: new Map() };
   }
 
   const { data: memberProfiles } = await supabase
@@ -179,29 +186,10 @@ async function loadAuthorIdentityInputs(
     memberProfilesById.set(p.user_id, p);
   }
 
-  // Company (R8.7): the author's first org_memberships -> organizations.name. No "primary org"
-  // concept exists in the schema (org_memberships is many-to-many with no ordering column), so this
-  // takes the first row PostgREST returns per user, a known simplification, flagged in this lane's
-  // report, not a hidden assumption.
-  const { data: memberships, error: membershipsErr } = await supabase
-    .from("org_memberships")
-    .select("user_id, organizations(name)")
-    // fitness-allow: F39 (authorIds bounded by assertBound at the call site, MAX_LIMIT clamp)
-    .in("user_id", authorIds);
-  if (membershipsErr) {
-    console.warn("community posts route: company lookup failed", membershipsErr.message);
-  } else {
-    for (const m of (memberships ?? []) as unknown as Array<{
-      user_id: string;
-      organizations: { name: string | null } | { name: string | null }[] | null;
-    }>) {
-      if (companyById.has(m.user_id)) continue; // first membership wins
-      const org = Array.isArray(m.organizations) ? m.organizations[0] : m.organizations;
-      if (org?.name) companyById.set(m.user_id, org.name);
-    }
-  }
+  const { byId, error } = await loadCommunityIdentities(supabase, authorIds);
+  if (error) console.warn("community posts route: identity lookup failed", error);
 
-  return { memberProfilesById, companyById };
+  return { memberProfilesById, identitiesById: byId };
 }
 
 export async function GET(request: NextRequest) {
@@ -270,24 +258,9 @@ export async function GET(request: NextRequest) {
   // query can never silently widen this into an unbounded .in() (IN-CHUNK class, 2026-09-06).
   assertBound(authorIds.length, MAX_LIMIT + 1, "community posts route: authorIds");
 
-  const profilesById = new Map<string, AuthorProfile>();
-  if (authorIds.length > 0) {
-    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles.
-    // PostgREST aliases keep the AuthorProfile shape (user_id/name/headshot_url)
-    // stable for the API response without renaming the interface.
-    const { data: profiles } = await auth.supabase
-      .from("profiles")
-      .select("user_id:id, name:full_name, headshot_url:avatar_url")
-      // fitness-allow: F39 (authorIds bounded by assertBound above — MAX_LIMIT clamp)
-      .in("id", authorIds);
-    for (const p of (profiles ?? []) as AuthorProfile[]) {
-      profilesById.set(p.user_id, p);
-    }
-  }
+  const { memberProfilesById, identitiesById } = await loadAuthorIdentityInputs(auth.supabase, authorIds);
 
-  const { memberProfilesById, companyById } = await loadAuthorIdentityInputs(auth.supabase, authorIds);
-
-  const shaped = rows.map((r) => shapePost(r, profilesById, memberProfilesById, companyById));
+  const shaped = rows.map((r) => shapePost(r, identitiesById, memberProfilesById));
   const nextCursor =
     shaped.length === limit ? shaped[shaped.length - 1].created_at : null;
 
@@ -463,16 +436,7 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: rateLimitHeaders(auth.userId) }
     );
   }
-  const profilesById = new Map<string, AuthorProfile>();
-  if (row.author_user_id) {
-    const { data: profile } = await auth.supabase
-      .from("profiles")
-      .select("user_id:id, name:full_name, headshot_url:avatar_url")
-      .eq("id", row.author_user_id)
-      .maybeSingle();
-    if (profile) profilesById.set(profile.user_id, profile as AuthorProfile);
-  }
-  const { memberProfilesById, companyById } = await loadAuthorIdentityInputs(
+  const { memberProfilesById, identitiesById } = await loadAuthorIdentityInputs(
     auth.supabase,
     row.author_user_id ? [row.author_user_id] : []
   );
@@ -480,7 +444,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(
     {
       post: {
-        ...shapePost(row, profilesById, memberProfilesById, companyById),
+        ...shapePost(row, identitiesById, memberProfilesById),
         entity_ids: entityIds,
       },
     },

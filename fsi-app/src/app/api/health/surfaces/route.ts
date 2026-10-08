@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-server";
 import { readGateAHealth } from "@/lib/health/gate-a-gauges.mjs";
 import {
@@ -58,6 +59,10 @@ async function countRows(
 export async function GET(request: NextRequest) {
   const denied = workerAuthGuard(request);
   if (denied) return denied;
+  // ROUTES-1 (register AT2-7d): the shared 60/min sliding window, one bucket per worker route (the
+  // caller is the one shared-secret holder, so the route is the principal), after the secret check.
+  const limited = checkRateLimit("worker:/api/health/surfaces");
+  if (limited) return limited;
 
   let supabase: ReturnType<typeof getServiceSupabase>;
   try {

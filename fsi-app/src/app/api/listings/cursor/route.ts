@@ -8,6 +8,7 @@ import {
   toLedgerRowPayload,
 } from "@/lib/list-pagination";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 /**
  * GET /api/listings/cursor?surface=regulations&cursor=<opaque>
@@ -64,6 +65,8 @@ import { REGULATIONS_DOMAIN } from "@/lib/domains";
  * cacheable-response note above.
  */
 export async function GET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const { searchParams } = request.nextUrl;
   const surface = searchParams.get("surface") ?? "";
   if (surface !== "regulations") {

@@ -99,3 +99,21 @@ test("the root path is protected like any other non-public route", () => {
   assert.deepEqual(decideRoute({ pathname: "/", authenticated: false }), { action: "redirect-login", redirectTo: "/" });
   assert.deepEqual(decideRoute({ pathname: "/", authenticated: true }), { action: "allow" });
 });
+
+// ROUTES-1 (2026-10-08, register finding AT2-12): the "Forgot password?" page is reached by an anonymous
+// visitor by definition (the login page links to it), so the proxy must not bounce it to /login.
+test("/auth/reset-password is public: an anonymous visitor reaches it, no redirect to /login", () => {
+  assert.deepEqual(decideRoute({ pathname: "/auth/reset-password", authenticated: false }), { action: "allow" });
+  assert.equal(isPublicRoute("/auth/reset-password"), true);
+});
+
+test("/auth/reset-password does not widen the public list to /auth/update-password (that page needs the recovery session)", () => {
+  assert.deepEqual(decideRoute({ pathname: "/auth/update-password", authenticated: false }), {
+    action: "redirect-login",
+    redirectTo: "/auth/update-password",
+  });
+});
+
+test("an authenticated viewer hitting /auth/reset-password is not bounced", () => {
+  assert.deepEqual(decideRoute({ pathname: "/auth/reset-password", authenticated: true }), { action: "allow" });
+});

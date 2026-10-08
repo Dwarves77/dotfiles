@@ -17,15 +17,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { loadCommunityIdentities } from "@/lib/community/identity.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-interface ProfileShape {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
 
 interface MemberRow {
   user_id: string;
@@ -74,27 +69,20 @@ export async function GET(
   const memberRows = (rows ?? []) as MemberRow[];
   const userIds = memberRows.map((m) => m.user_id);
 
-  const { data: profiles } = userIds.length
-    ? await auth.supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url")
-        // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
-        .in("id", userIds)
-    : { data: [] as ProfileShape[] };
-
-  const profileById = new Map(
-    (profiles ?? []).map((p) => [p.id, p] as const)
-  );
+  // SEC-5 (migration 372): profiles is no longer readable across organisations, so names come from the
+  // community_identity RPC, which withholds a default-anonymous member's name and headshot in SQL.
+  const { byId: identityById, error: identityErr } = await loadCommunityIdentities(auth.supabase, userIds);
+  if (identityErr) console.warn("community members route: identity lookup failed", identityErr);
 
   const members = memberRows
     .map((m) => {
-      const profile = profileById.get(m.user_id) ?? null;
+      const identity = identityById.get(m.user_id) ?? null;
       return {
         user_id: m.user_id,
         role: m.role,
         joined_at: m.joined_at,
-        name: profile?.full_name ?? null,
-        headshot_url: profile?.avatar_url ?? null,
+        name: identity?.display_name ?? null,
+        headshot_url: identity?.avatar_url ?? null,
         is_self: m.user_id === auth.userId,
       };
     })

@@ -17,6 +17,7 @@ import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { assertBound } from "@/lib/db/paginate.mjs";
+import { authorBlockForPost, loadCommunityIdentities, type CommunityIdentityRow } from "@/lib/community/identity.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,30 +38,26 @@ interface PostRow {
   reply_count: number;
   attribution: string | null;
   promoted_from_post_id: string | null;
+  /** R8.7 (migration 336): the per-post anonymity flag, applied below at the row. */
+  anonymous: boolean;
 }
 
-interface AuthorProfile {
-  user_id: string;
-  name: string | null;
-  headshot_url: string | null;
-}
-
-function shapePost(row: PostRow, profilesById: Map<string, AuthorProfile>) {
-  const profile = row.author_user_id
-    ? profilesById.get(row.author_user_id) ?? null
+function shapePost(row: PostRow, identitiesById: Map<string, CommunityIdentityRow>) {
+  const identity = row.author_user_id
+    ? identitiesById.get(row.author_user_id) ?? null
     : null;
   return {
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
     author_user_id: row.author_user_id,
-    author: profile
-      ? {
-          user_id: profile.user_id,
-          name: profile.name ?? null,
-          headshot_url: profile.headshot_url ?? null,
-        }
-      : null,
+    // Per-post anonymity (community_posts.anonymous) nulls name and headshot here; the per-user default came
+    // back from the RPC already applied. One rule in each place (identity.mjs authorBlockForPost).
+    author: authorBlockForPost({
+      authorUserId: row.author_user_id,
+      identity,
+      postAnonymous: row.anonymous,
+    }),
     title: row.title,
     body: row.body,
     created_at: row.created_at,
@@ -104,7 +101,7 @@ export async function GET(
     .select(
       `id, group_id, parent_post_id, author_user_id, title, body,
        created_at, last_reply_at, reply_count, attribution,
-       promoted_from_post_id`
+       promoted_from_post_id, anonymous`
     )
     .eq("parent_post_id", parentId)
     .order("created_at", { ascending: true })
@@ -136,20 +133,11 @@ export async function GET(
   // class, 2026-09-06).
   assertBound(authorIds.length, MAX_LIMIT + 1, "community replies route: authorIds");
 
-  const profilesById = new Map<string, AuthorProfile>();
-  if (authorIds.length > 0) {
-    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep AuthorProfile shape.
-    const { data: profiles } = await auth.supabase
-      .from("profiles")
-      .select("user_id:id, name:full_name, headshot_url:avatar_url")
-      // fitness-allow: F39 (authorIds bounded by assertBound above — MAX_LIMIT clamp)
-      .in("id", authorIds);
-    for (const p of (profiles ?? []) as AuthorProfile[]) {
-      profilesById.set(p.user_id, p);
-    }
-  }
+  const { byId, error: identityErr } = await loadCommunityIdentities(auth.supabase, authorIds);
+  if (identityErr) console.warn("community replies route: identity lookup failed", identityErr);
+  const identitiesById = byId;
 
-  const shaped = rows.map((r) => shapePost(r, profilesById));
+  const shaped = rows.map((r) => shapePost(r, identitiesById));
   const nextCursor =
     shaped.length === limit ? shaped[shaped.length - 1].created_at : null;
 
@@ -220,7 +208,7 @@ export async function POST(
     .select(
       `id, group_id, parent_post_id, author_user_id, title, body,
        created_at, last_reply_at, reply_count, attribution,
-       promoted_from_post_id`
+       promoted_from_post_id, anonymous`
     )
     .maybeSingle();
 
@@ -241,15 +229,11 @@ export async function POST(
   }
 
   const row = inserted as PostRow;
-  const profilesById = new Map<string, AuthorProfile>();
-  if (row.author_user_id) {
-    const { data: profile } = await auth.supabase
-      .from("profiles")
-      .select("user_id:id, name:full_name, headshot_url:avatar_url")
-      .eq("id", row.author_user_id)
-      .maybeSingle();
-    if (profile) profilesById.set((profile as AuthorProfile).user_id, profile as AuthorProfile);
-  }
+  const { byId: replyIdentities, error: replyIdentityErr } = await loadCommunityIdentities(
+    auth.supabase,
+    row.author_user_id ? [row.author_user_id] : []
+  );
+  if (replyIdentityErr) console.warn("community replies route: identity lookup failed", replyIdentityErr);
 
   // Notification fan-out: notify the parent post author about the reply.
   // Skip self-replies (no point notifying yourself about your own reply).
@@ -274,7 +258,7 @@ export async function POST(
   }
 
   return NextResponse.json(
-    { reply: shapePost(row, profilesById) },
+    { reply: shapePost(row, replyIdentities) },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );
 }

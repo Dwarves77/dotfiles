@@ -50,6 +50,7 @@ import {
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { pausedResponse } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 // HAIKU_MODEL - imported, not redeclared (lane MODEL-IDS, 2026-10-02): the local const below was this
 // route's own hand-typed copy, named as known drift in model-ids.mjs's own header comment.
 import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
@@ -250,6 +251,10 @@ export async function POST(request: NextRequest) {
   // 1) Worker-secret auth
   const denied = workerAuthGuard(request);
   if (denied) return denied;
+  // ROUTES-1 (register AT2-7d): the shared 60/min sliding window, one bucket per worker route (the
+  // caller is the one shared-secret holder, so the route is the principal), after the secret check.
+  const limited = checkRateLimit("worker:/api/admin/spot-check/recurring");
+  if (limited) return limited;
 
   if (!ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });

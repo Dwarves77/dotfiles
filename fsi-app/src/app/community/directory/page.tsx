@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { CommunityShell } from "@/components/community/CommunityShell";
 import { loadCommunityShellContext } from "@/lib/community/shell-context";
 import {
@@ -52,9 +53,14 @@ export default async function CommunityDirectoryPage() {
   let profileRows: ProfileAggRow[] = [];
   let aggErr: { message: string } | null = null;
   try {
+    // SEC-5 (migration 372): a signed-in user's session now reads only their own and same-organisation profile
+    // rows, which would silently turn this platform-wide count into a one-organisation count. The aggregate is
+    // computed server-side from four non-identifying columns and only counts leave the server, so it reads
+    // through the service client; the page itself still requires a signed-in user (redirect above).
+    const aggregateClient = getServiceSupabase();
     profileRows = await fetchAllRows<ProfileAggRow>(
       (from, to) =>
-        supabase
+        aggregateClient
           .from("profiles")
           .select("affiliation_type, region, sector_overrides, verifier_status, id")
           .order("id", { ascending: true })

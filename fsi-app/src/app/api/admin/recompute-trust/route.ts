@@ -39,6 +39,7 @@ import {
 import type { TierSourceRow } from "@/lib/trust";
 import { isGloballyPaused, getScrapeState } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 // Pure shaping logic lives in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
 // --webpack` rejects any other export field). See logic.ts's header.
@@ -47,6 +48,10 @@ import { tierMovementSummary, tierMovementWriters, type TierWriteClient } from "
 export async function POST(request: NextRequest) {
   const denied = workerAuthGuard(request);
   if (denied) return denied;
+  // ROUTES-1 (register AT2-7d): the shared 60/min sliding window, one bucket per worker route (the
+  // caller is the one shared-secret holder, so the route is the principal), after the secret check.
+  const limited = checkRateLimit("worker:/api/admin/recompute-trust");
+  if (limited) return limited;
 
   const supabase = getServiceSupabase();
 
