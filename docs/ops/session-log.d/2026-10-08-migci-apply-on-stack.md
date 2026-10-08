@@ -192,6 +192,11 @@
 - Class GUARD-PIN (new): a fatal fingerprint of a pre-image that a replay cannot guarantee. Repair under the standing rule (the end state is checked by the oracle): in 289, 300 and 302 the md5 mismatch is a NOTICE ("GUARD-PIN (replay)") instead of an exception; the occurrence-count guards that abort on a wrong anchor, and the post-patch checks, are untouched. The three files were `identical` to their stored statements and are `code-differs` by derivation now (map re-derived). Production is unaffected (all three are applied there).
 - Risk recorded: if the replayed function differs from production's, the schema oracle's `pg_get_functiondef` comparison reports `validate_item_provenance` as changed; that is the schema-diff mismatch stop the operator reserved. The next step after this one is the end of the replay or a count-guard stop.
 
+## Replay stop 15: 303 md5 pin (iteration 16), GUARD-PIN again (ruled residue 15)
+
+- [CONFIRMED] Run 37856771753 (1m39s, after the 289/300/302 relaxation) replayed 270 of 339 files, up from 260 (the three patched files passed, with the NOTICE), and stopped at `303_slim_listings_id_tiebreak.sql`: `ABORT 303: live get_workspace_intelligence_slim md5 254412d3... differs from the body this patch was written for (02936dfa...)`. Same class and same repair: the pin is a NOTICE; the occurrence-count guard (exactly one ORDER BY anchor), the no-change guard and the post-patch check stay fatal.
+- Swept for the rest of the class [CONFIRMED by grep over all migration files]: the only other fatal md5 pre-image pin is `305_workspace_intelligence_listings_domain_param.sql`, which replaces the function wholesale (`EXECUTE v_new_def`, then drops the old overload), so its end state does not depend on the pre-image at all; relaxed the same way in the same push. (307 mentions md5 for a duplicate check, which is not a pin.) Rows 303 and 305 re-derived to `code-differs`.
+
 ## Read and reused
 
 - Read in full: CLAUDE.md, `docs/dispatches/lane-common-contract.md`, `chain-proof.yml`, `chain-proof-workflow.test.mjs`, `replay-migrations.mjs`, `applied-map.mjs`, `APPLIED-MAP.json` (never and outside entries), `64-chain-proof.md`, `build-proof.yml`, the `discipline.yml` header and docs-only step, `.github/actions/maintenance-step/action.yml`, ADR-046, the header of migration 299, `write-local-env.mjs` and `preflight.mjs` headers.

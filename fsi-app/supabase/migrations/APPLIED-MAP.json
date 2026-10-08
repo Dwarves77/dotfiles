@@ -298,7 +298,7 @@
   "20260903060714": {"name":"298_spec09_regulations_tables","file":"298_spec09_regulations_tables.sql","class":"code-differs"},
   "20260904001306": {"name":"300_criterion2_url_typographic_delimiters","file":"300_criterion2_url_typographic_delimiters.sql","class":"code-differs"},
   "20260904054918": {"name":"302_criterion3_rating_not_refusal","file":"302_criterion3_rating_not_refusal.sql","class":"code-differs"},
-  "20260904084952": {"name":"303_slim_listings_id_tiebreak","file":"303_slim_listings_id_tiebreak.sql","class":"identical"},
+  "20260904084952": {"name":"303_slim_listings_id_tiebreak","file":"303_slim_listings_id_tiebreak.sql","class":"code-differs"},
   "20260904172741": {"name":"304_source_sitemap_coverage","file":"304_source_sitemap_coverage.sql","class":"code-differs"},
   "20260904195605": {"name":"305_workspace_intelligence_listings_domain_param","file":"305_workspace_intelligence_listings_domain_param.sql","class":"code-differs"},
   "20260904223227": {"name":"306_public_workspace_intelligence_listings","file":"306_public_workspace_intelligence_listings.sql","class":"identical"},
