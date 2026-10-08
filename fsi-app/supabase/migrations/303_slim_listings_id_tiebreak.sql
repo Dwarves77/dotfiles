@@ -66,7 +66,7 @@
 -- 272_customer_rpcs_project_jurisdiction_iso.sql writes (the live single-line text this patch was written against exists only in production),
 -- so the same tiebreak (, ii.id ASC) is appended on a replay. The count guard (exactly one anchor) still aborts on a wrong count. Whitespace
 -- differs from production only inside the CASE, which the oracle compares collapsed.
-DO $
+DO $$
 DECLARE
   v_def       text;
   v_pre_md5   constant text := '02936dfa040b36c54bfb06343e217bcc';
