@@ -1,6 +1,8 @@
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { getServiceSupabase } from "@/lib/supabase-service";
 
 /**
  * Resolve the active org_id for a known user id, using a service-role
@@ -74,6 +76,45 @@ export async function resolveOrgMembershipFromUserId(
   }
   if (!data?.org_id) return null;
   return { orgId: data.org_id, role: data.role as OrgRole };
+}
+
+/** The outcome of requireOrgWriter: the caller's membership, or the response the route returns as is. */
+export type OrgWriterResult = { membership: OrgMembership } | { response: NextResponse };
+
+/**
+ * Gate for a write on a shared workspace table, used by the routes that write with the service-role client
+ * (RLS does not apply to them) so the database rule is enforced in the route too (lane SEC-3b, migration 370:
+ * the write policies require role member, admin or owner; role viewer reads but does not write).
+ *
+ * Reads the caller's membership of THAT org (a null orgId, the caller's org not resolved, counts as no
+ * membership, so a route can pass resolveOrgIdFromUserId's result straight in). No membership returns the routes' existing not-a-member 403
+ * ("User has no organization membership"; a failed read is treated the same, fail closed). Role viewer returns
+ * 403 { error: "viewer_read_only" }. Owner, admin and member return { membership }. The route returns
+ * `response` unchanged and calls this before any write. The client defaults to the service-role client.
+ */
+export async function requireOrgWriter(
+  userId: string,
+  orgId: string | null,
+  supabase: SupabaseClient = getServiceSupabase()
+): Promise<OrgWriterResult> {
+  const notAMember = {
+    response: NextResponse.json({ error: "User has no organization membership" }, { status: 403 }),
+  };
+  if (!orgId) return notAMember;
+  const { data, error } = await supabase
+    .from("org_memberships")
+    .select("org_id, role")
+    .eq("user_id", userId)
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (error) {
+    console.warn(`[api/org] requireOrgWriter read failed (caller will see no-membership): ${error.message}`);
+  }
+  if (!data?.org_id) return notAMember;
+  if (data.role === "viewer") {
+    return { response: NextResponse.json({ error: "viewer_read_only" }, { status: 403 }) };
+  }
+  return { membership: { orgId: data.org_id, role: data.role as OrgRole } };
 }
 
 /**

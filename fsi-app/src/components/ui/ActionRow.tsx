@@ -30,6 +30,7 @@
 
 import type { ReactNode } from "react";
 import type { Resource } from "@/types/resource";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
 export interface ActionRowProps {
   /** Export brief — primary button. */
@@ -57,7 +58,11 @@ export interface ActionRowProps {
   overflow?: ReactNode;
 }
 
-export function ActionRow({ onExport, onShare, watch, onTag, exportDisabled, overflow }: ActionRowProps) {
+export function ActionRow({ onExport, onShare, watch, onTag: onTagProp, exportDisabled, overflow }: ActionRowProps) {
+  // SEC-3b (migration 370): tags are a shared workspace write and role viewer reads but does not write
+  // them, so a viewer is not offered the "+ Tag" trigger.
+  const isViewer = useWorkspaceStore((s) => s.userRole) === "viewer";
+  const onTag = isViewer ? undefined : onTagProp;
   return (
     <div className="cl-action-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
       {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "DETAIL HEADER": "FOUR ACTIONS as a 2x2

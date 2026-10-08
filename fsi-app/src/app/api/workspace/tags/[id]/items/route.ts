@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { resolveOrgIdFromUserId } from "@/lib/api/org";
+import { resolveOrgIdFromUserId, requireOrgWriter } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { resolveItemUuid } from "@/lib/tags/server";
 
@@ -27,10 +27,9 @@ async function handlePUT(request: NextRequest, context: RouteContext) {
 
   const { id: tagId } = await context.params;
   const supabase = getServiceSupabase();
-  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
-  if (!orgId) {
-    return NextResponse.json({ error: "User has no organization membership" }, { status: 403 });
-  }
+  const writer = await requireOrgWriter(auth.userId, await resolveOrgIdFromUserId(supabase, auth.userId));
+  if ("response" in writer) return writer.response;
+  const orgId = writer.membership.orgId;
 
   // The tag must belong to the caller's org — never apply another
   // workspace's tag via a guessed id.
@@ -86,10 +85,9 @@ async function handleDELETE(request: NextRequest, context: RouteContext) {
 
   const { id: tagId } = await context.params;
   const supabase = getServiceSupabase();
-  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
-  if (!orgId) {
-    return NextResponse.json({ error: "User has no organization membership" }, { status: 403 });
-  }
+  const writer = await requireOrgWriter(auth.userId, await resolveOrgIdFromUserId(supabase, auth.userId));
+  if ("response" in writer) return writer.response;
+  const orgId = writer.membership.orgId;
 
   let body: Record<string, unknown>;
   try {

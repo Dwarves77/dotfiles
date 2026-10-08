@@ -81,7 +81,7 @@ writeFileSync(
    }
   `
 );
-writeFileSync(join(STUBS, "org.mjs"), `export async function resolveOrgIdFromUserId() { return "org-1"; }\n`);
+writeFileSync(join(STUBS, "org.mjs"), `export async function resolveOrgIdFromUserId() { return "org-1"; }\nexport async function requireOrgWriter(_userId, orgId) { return { membership: { orgId, role: "member" } }; }\n`);
 writeFileSync(
   join(STUBS, "rate-limit.mjs"),
   `export function checkRateLimit() { return null; }

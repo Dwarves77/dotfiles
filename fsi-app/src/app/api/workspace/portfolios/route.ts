@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { requireOrgWriter } from "@/lib/api/org";
 import { createPortfolio, listPortfolios } from "@/lib/portfolio/portfolio-core.mjs";
 import { portfolioResponse, readJsonBody, resolvePortfolioCaller } from "@/lib/portfolio/route-support";
 
@@ -23,6 +24,9 @@ async function handleGET(request: NextRequest) {
 async function handlePOST(request: NextRequest) {
   const caller = await resolvePortfolioCaller(request);
   if (caller instanceof NextResponse) return caller;
+  // SEC-3b: a viewer reads portfolios but does not write them (the service-role client bypasses RLS).
+  const writer = await requireOrgWriter(caller.userId, caller.orgId, caller.sb);
+  if ("response" in writer) return writer.response;
   const body = await readJsonBody(request);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   const result = await createPortfolio(caller.sb, { orgId: caller.orgId, userId: caller.userId, name: body.name });
