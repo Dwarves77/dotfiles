@@ -47,7 +47,9 @@ import { STATE_LABELS } from "@/lib/operations/state-roster.mjs";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMatrix";
+import { StatementsBlock } from "@/components/operations/StatementsBlock";
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
+import { buildStatements } from "@/lib/operations/statements.mjs";
 import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { rowValueFields } from "@/lib/list-row-fields";
@@ -264,6 +266,28 @@ export function OperationsLedger({
     [regions, operationsCoverage, regsByRegion],
   );
 
+  // S8-F2 (2026-10-08): the industry-level statements under the matrix, computed at render from the
+  // SAME `facts` the matrix reads (no table, no API, no second fetch). They span the whole region
+  // roster and all six dimensions: the rail's Region and Dimension facets scope the matrix's columns
+  // and rows, not this block, because a statement is a cross-region comparison and one region left in
+  // the roster has nothing to be compared with. `regions` is already in display_order (the query's
+  // order, or the default roster's), which buildStatements keeps. No base region is passed: the
+  // matrix exposes no base state (compare mode implies it), so buildStatements applies that same
+  // implied rule itself.
+  const statements = useMemo(
+    () =>
+      buildStatements({
+        facts: operationsCoverage?.facts ?? [],
+        regions: regions.map((r) => ({ code: r.key, label: r.label })),
+        dimensions: MATRIX_DIMENSIONS.map((d) => d.db),
+      }),
+    [operationsCoverage, regions],
+  );
+  const statementDimensionNames = useMemo(
+    () => Object.fromEntries(MATRIX_DIMENSIONS.map((d) => [d.db, `D${d.num} ${d.name}`])),
+    [],
+  );
+
   // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
   // bookmarked and reloaded. One contract for every facet — see useListSurfaceFilter.
   const { filter, setFacet, toggleFacet } = useListSurfaceFilter();
@@ -471,18 +495,21 @@ export function OperationsLedger({
       belowRows={belowRows}
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={
-        <RegionDimensionMatrix
-          regions={matrixRegions.map((r) => ({ key: r.key, label: r.label }))}
-          /* `num` carries the D-number the redesigned matrix prefixes onto every row, from the same
-             DIMENSIONS constant the rail's own "D1 Regulatory feasibility" labels read. */
-          dimensions={matrixDimensions.map((d) => ({ key: d.key, db: d.db, name: d.name, num: d.num }))}
-          facts={operationsCoverage?.facts ?? []}
-          coverageRows={operationsCoverage?.coverage ?? []}
-          crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
-          crossRefCountsPending={!restLoaded}
-          totalRegionCount={regions.length}
-          profileHrefByRegion={profileHrefByRegion}
-        />
+        <>
+          <RegionDimensionMatrix
+            regions={matrixRegions.map((r) => ({ key: r.key, label: r.label }))}
+            /* `num` carries the D-number the redesigned matrix prefixes onto every row, from the same
+               DIMENSIONS constant the rail's own "D1 Regulatory feasibility" labels read. */
+            dimensions={matrixDimensions.map((d) => ({ key: d.key, db: d.db, name: d.name, num: d.num }))}
+            facts={operationsCoverage?.facts ?? []}
+            coverageRows={operationsCoverage?.coverage ?? []}
+            crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
+            crossRefCountsPending={!restLoaded}
+            totalRegionCount={regions.length}
+            profileHrefByRegion={profileHrefByRegion}
+          />
+          <StatementsBlock statements={statements} dimensionNames={statementDimensionNames} />
+        </>
       }
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
