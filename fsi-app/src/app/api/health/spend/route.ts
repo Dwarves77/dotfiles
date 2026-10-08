@@ -32,6 +32,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { checkRateLimit } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-server";
 import { computeSpendHealth } from "@/lib/health/spend-health.mjs";
 import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
@@ -93,6 +94,10 @@ const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-08-13T17:00
 export async function GET(request: NextRequest) {
   const denied = workerAuthGuard(request);
   if (denied) return denied;
+  // ROUTES-1 (register AT2-7d): the shared 60/min sliding window, one bucket per worker route (the
+  // caller is the one shared-secret holder, so the route is the principal), after the secret check.
+  const limited = checkRateLimit("worker:/api/health/spend");
+  if (limited) return limited;
 
   let supabase: ReturnType<typeof getServiceSupabase>;
   try {

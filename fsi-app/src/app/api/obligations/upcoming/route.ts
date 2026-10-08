@@ -4,6 +4,7 @@ import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { fetchUpcomingObligations, defaultJurisdictionFilter } from "@/lib/forward-events/read-upcoming.mjs";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
 // GET /api/obligations/upcoming — PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up).
 //
@@ -47,6 +48,8 @@ import { withErrorCapture } from "@/lib/telemetry/capture-error";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function handleGET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const { searchParams } = new URL(request.url);
   const itemIdParam = searchParams.get("itemId");
   const limitParam = searchParams.get("limit");

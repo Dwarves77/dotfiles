@@ -23,6 +23,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
+import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 // The cookie constants live in a sibling module, not here: a route.ts may
 // export only route handlers/config (F34's named residual — `next build
 // --webpack` rejects any other export field). See logic.ts's header.
@@ -38,6 +39,8 @@ function resolveRedirectUri(origin: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const limited = checkRateLimit(clientKey(request));
+  if (limited) return limited;
   const clientId = process.env.LINKEDIN_CLIENT_ID;
   const { origin } = new URL(request.url);
 
