@@ -101,6 +101,7 @@ export const ENTRY_DIRS = [
   'fsi-app/scripts/harness-runs/',
   'fsi-app/.discipline/governance/skill-acks/',
   'fsi-app/.discipline/governance/loop-hops.d/',
+  'fsi-app/scripts/producers/registry/',
 ];
 
 export function underEntryDir(path) {

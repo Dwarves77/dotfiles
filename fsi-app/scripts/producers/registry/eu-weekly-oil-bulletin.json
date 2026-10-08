@@ -1,0 +1,16 @@
+{
+  "name": "eu-weekly-oil-bulletin",
+  "script": "scripts/producers/market/eu-weekly-oil-bulletin.mjs",
+  "args": ["--input", "/tmp/wob.csv"],
+  "pre": {
+    "script": "scripts/producers/market/fetch-oil-bulletin.mjs",
+    "args": ["--out", "/tmp/wob.csv"],
+    "since_flag": "--since"
+  },
+  "domain_table": "market_series",
+  "source": "ec_weekly_oil_bulletin",
+  "licence": "CC BY 4.0 (Decision 2011/833/EU)",
+  "dry_capable": true,
+  "enabled_env": "MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED",
+  "in_all": true
+}

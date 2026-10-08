@@ -81,20 +81,19 @@ on:
         required: true
         default: 'all'
         type: choice
-        # eia-v2-petroleum-spot (lane SURF, 2026-09-01): scripts/producers/market/
-        # eia-v2-petroleum-spot-producer.mjs — WTI/Brent/diesel/jet-fuel/RBOB/propane spot prices into
-        # market_series. Listed here as a dispatchable choice per this lane's write-set instruction
-        # ("producer choices only"), but deliberately has NO run step below yet and is not in 'all':
-        # its live-fetch API key is registered only as a local-.env credential
-        # (.discipline/governance/secrets-registry.mjs TOPOLOGY), not a github-actions one, and this
-        # repo's secrets-reference-audit fails the build on any workflow secret reference not in
-        # WORKFLOW_SECRETS — a run step reading that credential here would trip that gate. Registering
-        # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
-        # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
-        # Bulletin step's dry/apply shape is the remaining wiring.
-        options: [all, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, sbti-target-dashboard, refresh-published-price-statistics, build-oil-bulletin-rows, ratify-series-items]
+        # The market producers that used to be hand-written steps here (ecb-fx, eia-v2-petroleum-spot,
+        # eu-weekly-oil-bulletin, sbti-target-dashboard) now live in the producer registry, one JSON file
+        # each under fsi-app/scripts/producers/registry/ (lane S8-E0, 2026-10-07). Dispatch them with
+        # producer=registry, optionally naming one in registry_producer; producer=all still runs every
+        # registry entry marked in_all. Adding a producer is adding a registry file, never editing this list.
+        options: [all, registry, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, desnz-emission-factors, epa-emission-factors, refresh-published-price-statistics, build-oil-bulletin-rows, ratify-series-items]
       since:
         description: 'Optional backfill start date (YYYY-MM-DD) for the EU Weekly Oil Bulletin history file. Leave empty for the normal latest-week fetch. Ignored by every other producer.'
+        required: false
+        default: ''
+        type: string
+      registry_producer:
+        description: 'With producer=registry: the name of one registry entry (a file in fsi-app/scripts/producers/registry/). Leave empty to run every entry marked in_all.'
         required: false
         default: ''
         type: string
@@ -122,6 +121,7 @@ env:
   RUN_MODE: ${{ inputs.mode }}
   RUN_PRODUCER: ${{ inputs.producer }}
   RUN_SINCE: ${{ inputs.since }}
+  RUN_REGISTRY_PRODUCER: ${{ inputs.registry_producer }}
   RUN_MINT_RUN: ${{ inputs.mint_run }}
 
 jobs:
@@ -224,86 +224,21 @@ jobs:
             node scripts/producers/regional/bls-oews-producer.mjs
           fi
 
-      - name: EU Weekly Oil Bulletin -> market_series
-        # Two-stage: fetch-oil-bulletin.mjs (2026-08-30) downloads the live workbook and extracts the
-        # latest week's EU-average prices to a normalized CSV — writes nothing, no kill switch of its
-        # own (see its header). eu-weekly-oil-bulletin.mjs then reads that CSV via --input and does the
-        # actual guarded parse -> plan -> write, gated by --apply + the env switch below, unchanged.
-        # --since (Lane PROD, 2026-09-02): an optional backfill start date, passed through to
-        # fetch-oil-bulletin.mjs unchanged. Empty (the default) is the normal latest-week fetch this step
-        # has always done. eu-weekly-oil-bulletin.mjs itself needs no branch here — it reads whatever CSV
-        # /tmp/wob.csv holds, one week or many, through the SAME --input/--apply gate either way (see
-        # fetch-oil-bulletin.mjs's own header, "HISTORY BACKFILL (--since)").
-        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'eu-weekly-oil-bulletin'
+      # Registry producers (lane S8-E0, 2026-10-07): ecb-fx, eia-v2-petroleum-spot, eu-weekly-oil-bulletin,
+      # sbti-target-dashboard and every producer a later lane adds as a JSON file under
+      # fsi-app/scripts/producers/registry/. The runner loads that directory, validates every entry, and runs
+      # each selected producer exactly as the hand-written steps it replaced did: an optional fetch stage
+      # (the oil bulletin download, given --since when RUN_SINCE is set), then the producer script, dry unless
+      # mode=apply, with the entry's own kill-switch env var set to 1. The first failing producer stops the
+      # run. producer=all runs the entries marked in_all; producer=registry runs the one named in
+      # registry_producer (a producer that is not in_all, such as the licence-blocked SBTi dashboard, runs
+      # only when named). EIA_API_KEY is the one secret a registry producer reads today; with it absent the
+      # EIA producer exits 3 in a dry run rather than fabricating a fetch, as before.
+      - name: Registry producers (fsi-app/scripts/producers/registry/*.json; ENABLED gate in each producer, dry unless mode=apply)
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'registry'
         env:
-          MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED: '1'
-        run: |
-          if [ -n "$RUN_SINCE" ]; then
-            node scripts/producers/market/fetch-oil-bulletin.mjs --since "$RUN_SINCE" --out /tmp/wob.csv
-          else
-            node scripts/producers/market/fetch-oil-bulletin.mjs --out /tmp/wob.csv
-          fi
-          if [ "$RUN_MODE" = "apply" ]; then
-            node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input /tmp/wob.csv --apply
-          else
-            node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input /tmp/wob.csv
-          fi
-
-      - name: ecb-fx (ECB euro reference rates; ENABLED gate in the file, dry unless mode=apply)
-        # ecb-fx-producer.mjs shipped earlier without a dispatch step (found by lane SURF, 2026-09-01).
-        # Three gates as every market producer: reviewed-code ENABLED const (TRUE since 2026-09-02, Lane
-        # PROD — see the producer's own header), the env switch below, --apply. A FOURTH condition this
-        # step cannot see from here: migration 281_data_sources_ecb.sql (Lane PROD, 2026-09-02) must be
-        # APPLIED to the live database before source_key 'ecb' resolves — until then an apply run fails
-        # closed at the guarded INSERT (23503, foreign_key_violation), not at a gate message. A dry run is
-        # unaffected either way (dry never reaches the guarded write).
-        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'ecb-fx'
-        env:
-          MARKET_PRODUCER_ECB_FX_ENABLED: '1'
-        run: |
-          if [ "$RUN_MODE" = "apply" ]; then
-            node scripts/producers/market/ecb-fx-producer.mjs --apply
-          else
-            node scripts/producers/market/ecb-fx-producer.mjs
-          fi
-      - name: eia-v2-petroleum-spot (EIA v2 petroleum spot prices; ENABLED gate in the file, dry unless mode=apply)
-        # 2026-09-03 (operator: "key is set in git"): the EIA_API_KEY repository secret now exists and is
-        # registered in .discipline/governance/secrets-registry.mjs WORKFLOW_SECRETS, so the
-        # secrets-reference-audit admits the reference below; the producer's reviewed-code ENABLED const
-        # was flipped in the same train (see the producer's own REVIEWED-CHANGE LOG). Same three gates as
-        # ecb-fx: ENABLED const, the env switch below, --apply. A dry run parses + plans + reports; with no
-        # key it exits 3 (NetworkError) rather than fabricating a fetch, per the producer's header.
-        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'eia-v2-petroleum-spot'
-        env:
-          MARKET_PRODUCER_EIA_V2_ENABLED: '1'
           EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
-        run: |
-          if [ "$RUN_MODE" = "apply" ]; then
-            node scripts/producers/market/eia-v2-petroleum-spot-producer.mjs --apply
-          else
-            node scripts/producers/market/eia-v2-petroleum-spot-producer.mjs
-          fi
-
-      - name: sbti-target-dashboard (SBTi per-sector lead-time + survivorship; LICENCE-BLOCKED on --apply, dry only)
-        # Lane L11, 2026-10-03. Mirrors the dry/apply shape every other market producer step in this file
-        # uses, EXCEPT it is NOT in 'all' (dispatch it by name only, same posture as
-        # refresh-published-price-statistics/the DESNZ-EPA one-off seeders below), because this
-        # producer's own decideApply REFUSES --apply unconditionally (fsi-app/src/lib/contracts/
-        # source-licence.mjs's registered 'sbti_dashboard' entry: redistribution "prohibited", see the
-        # producer's own header for the full licence rationale). A dispatched mode=apply run against
-        # 'sbti-target-dashboard' by name exits 1 on purpose (the gate firing correctly, not a producer
-        # bug); folding it into 'all' would make every 'all'+apply dispatch fail on this one step for a
-        # reason that has nothing to do with the OTHER producers in that batch, so it stays name-only
-        # until the licence question is resolved (operator/coordinator call).
-        if: env.RUN_PRODUCER == 'sbti-target-dashboard'
-        env:
-          MARKET_PRODUCER_SBTI_ENABLED: '1'
-        run: |
-          if [ "$RUN_MODE" = "apply" ]; then
-            node scripts/producers/market/sbti-target-dashboard-producer.mjs --apply
-          else
-            node scripts/producers/market/sbti-target-dashboard-producer.mjs
-          fi
+        run: node scripts/producers/registry/run-registered.mjs --mode "$RUN_MODE" --producer "$RUN_PRODUCER" --only "$RUN_REGISTRY_PRODUCER" --since "$RUN_SINCE"
 
       - name: refresh-published-price-statistics (derive published_price_statistics display rows from market_series)
         # WO-16.2's step 4 refresher (src/lib/market/refresh-published-price-statistics.mjs +
