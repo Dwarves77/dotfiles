@@ -35,9 +35,20 @@
 // file ran with zero failures; a zero-file stdin list is a loud failure (mirrors test-discovery.mjs's
 // own "discovered ZERO test files" guard), never a silent no-op success.
 
+import { availableParallelism } from 'node:os';
 import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
+
+// CONCURRENCY (lane GATE-4, 2026-10-07). `node --test` on the CLI runs test files in parallel by default;
+// the programmatic `run()` this script moved to (PR 875, 2026-10-02) defaults to ONE file at a time unless
+// `concurrency` is given. That serialised the discipline unit-test step: measured 77 s on 2026-10-02 at 10:06
+// before the change and 201 s at 10:51 after it, 202 s median since (gate-evaluation-B section 7.6). The
+// local 40-file sample measured 172 s serial vs 116 s with `concurrency: true`. An explicit count is passed
+// instead of `true`, with a floor of 2, so overlap holds on a 2-vCPU runner whatever `true` would resolve
+// to there. Each file still runs in its own child process (node:test's default isolation), so the
+// per-file `--import` sandbox below is unaffected.
+const CONCURRENCY = Math.max(2, availableParallelism());
 
 function readStdinNulList() {
   return new Promise((resolvePromise, reject) => {
@@ -67,7 +78,7 @@ async function main() {
 
   const execArgv = parseExecArgv(process.argv);
   let failed = false;
-  const stream = run({ files, execArgv });
+  const stream = run({ files, execArgv, concurrency: CONCURRENCY });
   stream.on('test:fail', () => { failed = true; });
   await new Promise((resolvePromise, reject) => {
     stream.compose(spec).pipe(process.stdout);

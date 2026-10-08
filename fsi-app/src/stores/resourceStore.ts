@@ -78,7 +78,6 @@ export interface WorkspaceOverride {
   isArchived: boolean;
   archiveReason: string | null;
   archiveNote: string | null;
-  notes: string;
   // Sprint 3 follow-up Part 2 (migration 111): per-workspace dismissal.
   // ISO timestamp when set; null when not dismissed. Distinct from
   // is_archived — dismissed hides the regulation from active Kanban
@@ -271,7 +270,6 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         isArchived: false,
         archiveReason: null,
         archiveNote: null,
-        notes: "",
         dismissedAt: null,
       };
       newOverrides.set(id, {
@@ -310,7 +308,6 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         isArchived: false,
         archiveReason: null,
         archiveNote: null,
-        notes: "",
         dismissedAt: null,
       };
       newOverrides.set(id, {
@@ -348,7 +345,6 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         isArchived: false,
         archiveReason: null,
         archiveNote: null,
-        notes: "",
         dismissedAt: null,
       };
       newOverrides.set(id, {
@@ -412,7 +408,6 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
         isArchived: false,
         archiveReason: null,
         archiveNote: null,
-        notes: "",
       };
       newOverrides.set(id, {
         ...existing,

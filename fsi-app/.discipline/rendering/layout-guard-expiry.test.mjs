@@ -224,8 +224,14 @@ test('the age notice reports the baseline age as information, in and out of buil
     'with build mode off the gate speaks through its failures, not a notice');
 });
 
+// GATE-4 (2026-10-07): the standing gate reads the real clock and the real baseline.json, which the
+// rendering guard job already loads and applies on every pull request (gate evaluation B section 7.6: it
+// failed the unit-test step three times on the calendar rule before BUILD_MODE paused it). It stays
+// runnable here with FITNESS_LIVE_TESTS=1.
+const LIVE_TREE = process.env.FITNESS_LIVE_TESTS === '1' ? {} : { skip: 'real-clock self-test, covered by the rendering guard job; set FITNESS_LIVE_TESTS=1 to run it here' };
+
 test('STANDING GATE, real clock, real baseline.json: the baseline parses; and either build mode pauses ' +
-  'the 7-day rule (age reported), OR the warning is not due / the baseline was re-measured', () => {
+  'the 7-day rule (age reported), OR the warning is not due / the baseline was re-measured', LIVE_TREE, () => {
   // Always asserted, build mode or not: the file must exist, parse, and agree with itself.
   const { keys, meta } = loadBaseline();
   assert.ok(meta, 'baseline.json must exist and parse');

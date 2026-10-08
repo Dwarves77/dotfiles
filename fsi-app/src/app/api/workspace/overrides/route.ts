@@ -28,8 +28,10 @@ async function resolveItemUuid(
 
 // POST /api/workspace/overrides
 // Body: { itemId: string, priorityOverride?: string|null, isArchived?: boolean,
-//         archiveReason?: string|null, archiveNote?: string|null, notes?: string,
+//         archiveReason?: string|null, archiveNote?: string|null,
 //         ownerUserId?: string|null }
+// `notes` is no longer accepted here: private workspace notes moved to item_notes (migration 358,
+// /api/workspace/items/[id]/notes, lane S8-A); a request carrying it is a 400, not a silent drop.
 // Upserts (org_id, item_id) into workspace_item_overrides.
 async function handlePOST(request: NextRequest) {
   const auth = await requireUserRoute(request);
@@ -71,6 +73,13 @@ async function handlePOST(request: NextRequest) {
     );
   }
 
+  if ("notes" in body) {
+    return NextResponse.json(
+      { error: "Workspace notes moved. Use /api/workspace/items/{id}/notes to add, edit or delete a note." },
+      { status: 400 }
+    );
+  }
+
   const update: Record<string, unknown> = {
     org_id: orgId,
     item_id: intelItemId,
@@ -87,7 +96,6 @@ async function handlePOST(request: NextRequest) {
   }
   if ("archiveReason" in body) update.archive_reason = body.archiveReason;
   if ("archiveNote" in body) update.archive_note = body.archiveNote;
-  if ("notes" in body) update.notes = body.notes;
   // Dual-scope archive (migration 235): a WORKSPACE archive is the team-wide
   // hide, so it carries the operator-approved protection layers at the API:
   //  - ROLE GATE: only admin/owner may archive for the whole workspace
