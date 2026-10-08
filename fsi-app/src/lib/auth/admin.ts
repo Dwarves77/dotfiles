@@ -16,10 +16,13 @@ import { decidePlatformAdmin, isPlatformAdminProfile } from "@/lib/auth/platform
  * with the platform layer and risked cross-tenant exposure on /admin
  * (OBS-17). Closed 2026-05-18 (Sprint 2 Build 6).
  *
- * Service-role client recommended for callers from API routes so the
- * RLS policy on `profiles` (self-read only on `is_platform_admin`) does
- * not block the lookup. The admin API routes already construct a
- * service-role client; pass it in.
+ * SERVICE-ROLE client only (migration 375, lane SEC-6): SELECT on
+ * `profiles.is_platform_admin` is revoked from anon and authenticated, so a
+ * user-session client gets 42501 here and this returns false (fail closed).
+ * It answers for an arbitrary userId, which only the service role may read.
+ * The signed-in caller's OWN flag is read through the rpc
+ * `is_platform_admin()` (platform-admin-gate.ts readOwnPlatformAdmin). The
+ * admin API routes already construct a service-role client; pass it in.
  */
 export async function isPlatformAdmin(
   userId: string,
@@ -48,9 +51,9 @@ export async function isPlatformAdmin(
  *   - User but not platform admin → redirect to /
  *   - Platform admin → return { userId, email }
  *
- * Uses the SSR Supabase client (cookie-scoped). The current user's own
- * profile row is readable under the existing RLS policy (self-read),
- * so no service-role client is required for the self-lookup.
+ * Uses the SSR Supabase client (cookie-scoped). The flag is read through
+ * the own-row rpc is_platform_admin() (the column itself is revoked from
+ * signed-in users, migration 375), so no service-role client is required.
  *
  * Designed per Phase 1 Option C in docs/sprint-1/alignment-audit-2026-05-18.md
  * Section D. Closes OBS-17.

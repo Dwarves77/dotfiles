@@ -19,15 +19,27 @@ import { createJiti } from "jiti";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { decidePlatformAdmin, isPlatformAdminProfile } = await jiti.import("./platform-admin-gate.ts");
+const { decidePlatformAdmin, isPlatformAdminProfile, readOwnPlatformAdmin, IS_PLATFORM_ADMIN_RPC } = await jiti.import("./platform-admin-gate.ts");
 const { resolveServerBootstrapFromClient } = await jiti.import("../api/server-bootstrap.ts");
 const { resolveAuthSeed, shouldShowAdminNav } = await jiti.import("../../components/shell/bootstrap-seed.ts");
 
 const ORG = { id: "org-1", name: "Dietl / Rockit", workspace_settings: [] };
 
-/** A table-backed fake that honours eq/order/limit, so a query that forgot its user filter would show. */
-function tableClient({ sessionUser, memberships = [], profiles = [], profilesError = null }) {
+/** A table-backed fake that honours eq/order/limit, so a query that forgot its user filter would show.
+ *  SEC-6 (migration 375): profiles.is_platform_admin is no longer selectable by a signed-in user, so the fake
+ *  REFUSES a profiles select that names it (as the database now does with 42501) and serves the flag only through
+ *  rpc("is_platform_admin"), which answers for the session user alone. `rpcCalls` records every rpc. */
+function tableClient({ sessionUser, memberships = [], profiles = [], profilesError = null, adminRpcError = null }) {
+  const rpcCalls = [];
   return {
+    rpcCalls,
+    rpc(name, args) {
+      rpcCalls.push([name, args]);
+      if (name !== "is_platform_admin") throw new Error(`unexpected rpc ${name}`);
+      if (adminRpcError) return Promise.resolve({ data: null, error: adminRpcError });
+      const me = sessionUser ? profiles.find((r) => r.id === sessionUser.id) : null;
+      return Promise.resolve({ data: !!(me && me.is_platform_admin === true), error: null });
+    },
     auth: {
       async getClaims() {
         return sessionUser
@@ -43,7 +55,12 @@ function tableClient({ sessionUser, memberships = [], profiles = [], profilesErr
       if (!source) throw new Error(`unexpected table ${table}`);
       let rows = source.slice();
       const q = {
-        select() { return q; },
+        select(cols) {
+          if (/is_platform_admin/.test(String(cols))) {
+            throw new Error("permission denied for table profiles (42501): is_platform_admin is not selectable by a signed-in user (migration 375)");
+          }
+          return q;
+        },
         eq(col, val) { rows = rows.filter((r) => r[col] === val); return q; },
         order(col, opts) {
           const dir = opts && opts.ascending === false ? -1 : 1;
@@ -99,17 +116,44 @@ test("sanity (non-vacuous): the OLD nav predicate (workspace role owner|admin) d
   assert.equal(disagreements, 2);
 });
 
-test("a profiles read error: the route DENIES (fails closed) and the nav hides (the lookup is an error, not an answer)", async () => {
+test("a profiles read error: the bootstrap THROWS and the nav hides (the lookup is an error, not an answer)", async () => {
   const client = tableClient({
     sessionUser: { id: "user-A", email: "a@example.com" },
     memberships: [{ user_id: "user-A", org_id: ORG.id, role: "owner", created_at: "2026-04-05", organizations: ORG }],
     profiles: [{ id: "user-A", sector_overrides: [], is_platform_admin: true }],
     profilesError: { message: "canceling statement due to statement timeout" },
   });
-  assert.equal((await decidePlatformAdmin(client)).kind, "denied");
+  // The route gate no longer reads profiles at all (SEC-6): its only read is the rpc, which here succeeds, so the
+  // profiles error is the bootstrap's alone. The gate's own fail-closed leg is the next test.
   await assert.rejects(() => resolveServerBootstrapFromClient(client), /identity lookup failed at profiles/);
   const seed = resolveAuthSeed(null); // what the client holds when the route answers 503
   assert.equal(shouldShowAdminNav({ status: seed.status, isPlatformAdmin: seed.isPlatformAdmin }), false);
+});
+
+test("SEC-6: an is_platform_admin rpc error: the route DENIES (fails closed) and the bootstrap THROWS (the bit is unknown, not false)", async () => {
+  const client = tableClient({
+    sessionUser: { id: "user-A", email: "a@example.com" },
+    memberships: [{ user_id: "user-A", org_id: ORG.id, role: "owner", created_at: "2026-04-05", organizations: ORG }],
+    profiles: [{ id: "user-A", sector_overrides: [], is_platform_admin: true }],
+    adminRpcError: { message: "canceling statement due to statement timeout" },
+  });
+  assert.equal((await decidePlatformAdmin(client)).kind, "denied");
+  await assert.rejects(() => resolveServerBootstrapFromClient(client), /identity lookup failed at is_platform_admin/);
+});
+
+test("SEC-6: the gate reads the flag only through rpc('is_platform_admin') with no arguments, never from the profiles column", async () => {
+  const client = clientFor({ platformAdmin: true, workspaceOwner: true });
+  const decision = await decidePlatformAdmin(client);
+  assert.equal(decision.kind, "admitted");
+  assert.deepEqual(client.rpcCalls, [[IS_PLATFORM_ADMIN_RPC, undefined]]);
+  assert.equal(IS_PLATFORM_ADMIN_RPC, "is_platform_admin");
+  // readOwnPlatformAdmin: only a literal true admits; an error is reported, never turned into false silently.
+  const rpcOf = (r) => ({ rpc: async () => r });
+  assert.deepEqual(await readOwnPlatformAdmin(rpcOf({ data: true, error: null })), { admin: true, error: null });
+  for (const v of [false, null, undefined, "true", 1]) assert.equal((await readOwnPlatformAdmin(rpcOf({ data: v, error: null }))).admin, false);
+  const failed = await readOwnPlatformAdmin(rpcOf({ data: null, error: { message: "boom" } }));
+  assert.equal(failed.admin, false);
+  assert.equal(failed.error.message, "boom");
 });
 
 test("anonymous: the route sends to /login and the nav shows no Admin", async () => {
@@ -178,7 +222,8 @@ test("two owners in one org: each session sees only its own email, id, role and 
   const SIDEBAR = readFileSync(resolve(ROOT, "src", "components", "Sidebar.tsx"), "utf8");
   test("requirePlatformAdmin, the identity bootstrap and the nav all route through the one gate", () => {
     assert.match(ADMIN, /decidePlatformAdmin\(supabase\)/);
-    assert.match(BOOT, /isPlatformAdmin: isPlatformAdminProfile\(profile\)/);
+    assert.match(BOOT, /isPlatformAdmin: adminRes\.admin/);
+    assert.match(BOOT, /readOwnPlatformAdmin\(supabase\)/);
     assert.match(SIDEBAR, /const isAdmin = shouldShowAdminNav\(\{ status: identityStatus, isPlatformAdmin \}\);/);
     assert.doesNotMatch(SIDEBAR, /const isAdmin = userRole === "owner"/);
   });
