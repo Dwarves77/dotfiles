@@ -1,7 +1,7 @@
--- subject: Migration 357 (lane G5-READ, 2026-10-07, buildout plan Stage 5): `entity_kind` gains `material` (an adopted material term is a real entity on the spine); the `intelligence_items.theme` CHECK of migration 102 is replaced by a BEFORE trigger that accepts the 7 code themes plus the adopted `theme` terms of vocabulary_terms (migration 355); NOT APPLIED.
+-- subject: Migration 357 (lane G5-READ, 2026-10-07, buildout plan Stage 5): `entity_kind` gains `material` (an adopted material term is a real entity on the spine); the `intelligence_items.theme` CHECK of migration 102 is replaced by a BEFORE trigger that accepts the 7 code themes plus the adopted `theme` terms of vocabulary_terms (migration 355); APPLIED (production ledger version 20261007095953, as of 2026-10-07).
 -- 357 -- vocabulary kinds: entity_kind `material`, and the theme CHECK replaced by an adopted-term-aware trigger (lane G5-READ, 2026-10-07).
 --
--- NOT APPLIED. Authored by lane G5-READ; the coordinator applies it (two-track policy, CLAUDE.md standing rule 3:
+-- APPLIED (production ledger version 20261007095953, as of 2026-10-07). Authored by lane G5-READ; the coordinator applied it (two-track policy, CLAUDE.md standing rule 3:
 -- schema DDL applies via the Supabase CLI before the dependent code commits). Requires migration 355
 -- (public.vocabulary_terms) and migration 282 (public.entity_kind). The dependent code is
 -- src/lib/vocabulary/adopted-entities.mjs (mints kind `material`) and src/lib/agent/{parse-output,metadata-vocab}.ts
