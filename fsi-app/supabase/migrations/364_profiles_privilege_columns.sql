@@ -63,8 +63,11 @@
 -- authenticated until the adding migration grants it. That fails closed (a write errors 42501, visibly) and is the
 -- intended default for a privilege boundary.
 --
--- SELF-CHECK (inside the migration transaction, rolled back by a sentinel exception, no data changed). Fixture
--- profile rows are created by the migration role and discarded. As role authenticated with a fixture JWT sub:
+-- SELF-CHECK (inside the migration transaction, rolled back by a sentinel exception, no data changed). Fixtures
+-- are never invented ids (profiles.id has a foreign key to auth.users, profiles_id_auth_users_fkey): the UPDATE legs use the
+-- oldest REAL profile row (all changes rolled back; skipped with a NOTICE if profiles is empty), the INSERT legs use an
+-- auth.users row with no profile, or a fixture auth.users row with only its id (rolled back). As role authenticated
+-- with a fixture JWT sub:
 --   A. UPDATE of each of the four columns on the own row is refused with 42501 "permission denied" (layer 1);
 --   B. UPDATE of job_title on the own row SUCCEEDS with 1 row (the revoke is not over-broad);
 --   C. INSERT of an own row with is_platform_admin = true is refused with 42501; a plain own-row INSERT succeeds;
@@ -163,149 +166,190 @@ CREATE TRIGGER profiles_privilege_guard_trg
   FOR EACH ROW EXECUTE FUNCTION public.profiles_privilege_guard();
 
 -- ---- Self-check: attack both layers, rolled back ---------------------------------------------------------------
+-- FIXTURES. public.profiles.id has a foreign key to auth.users (profiles_id_auth_users_fkey), so no id is ever
+-- invented: the UPDATE legs use a REAL existing profile row (oldest by created_at; every change is rolled back; if
+-- profiles is empty those legs are skipped with a NOTICE), and the INSERT legs use an auth.users row that has no
+-- profile yet, or, if none exists, a fixture auth.users row inserted with only its id (ASSUMPTION, stated in a NOTICE:
+-- auth.users requires nothing but id; if that insert fails, the INSERT legs are skipped with a NOTICE and the
+-- privilege-catalog assertions below still run). Attack values are chosen to DIFFER from the row's current value
+-- (NOT is_platform_admin, etc.) so the trigger's IS DISTINCT FROM comparison fires whatever the row holds.
 DO $$
 DECLARE
-  v_uid     uuid := gen_random_uuid();
-  v_uid2    uuid := gen_random_uuid();
-  v_uid3    uuid := gen_random_uuid();
+  v_uid     uuid;
+  v_new     uuid;
   v_denied  boolean;
   v_msg     text;
   v_rows    integer;
   v_flag    boolean;
+  v_before  boolean;
   v_attack  text;
 BEGIN
+  SELECT id INTO v_uid FROM public.profiles ORDER BY created_at LIMIT 1;
+  IF v_uid IS NULL THEN
+    RAISE NOTICE 'migration 364 self-check: public.profiles is empty, UPDATE legs (A, B, D, E) skipped';
+  END IF;
+
+  SELECT u.id INTO v_new
+    FROM auth.users u LEFT JOIN public.profiles p ON p.id = u.id
+   WHERE p.id IS NULL
+   LIMIT 1;
+
   BEGIN
-    -- Fixture: one own-row profile created by the migration role (the guard allows postgres/owner).
-    INSERT INTO public.profiles (id) VALUES (v_uid);
-
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
-    PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
-
-    -- A. Layer 1: each privilege-bearing column refused by column privilege.
-    FOREACH v_attack IN ARRAY ARRAY['is_platform_admin', 'role', 'org_id', 'workspace_role'] LOOP
-      v_denied := false;
-      v_msg := NULL;
+    IF v_new IS NULL THEN
       BEGIN
-        IF v_attack = 'is_platform_admin' THEN
-          UPDATE public.profiles SET is_platform_admin = true WHERE id = v_uid;
-        ELSIF v_attack = 'role' THEN
-          UPDATE public.profiles SET role = 'admin' WHERE id = v_uid;
-        ELSIF v_attack = 'org_id' THEN
-          UPDATE public.profiles SET org_id = '00000000-0000-0000-0000-000000000000'::uuid WHERE id = v_uid;
-        ELSE
-          UPDATE public.profiles SET workspace_role = 'owner' WHERE id = v_uid;
-        END IF;
-      EXCEPTION WHEN insufficient_privilege THEN
-        v_denied := true;
-        v_msg := SQLERRM;
+        v_new := gen_random_uuid();
+        INSERT INTO auth.users (id) VALUES (v_new);
+        RAISE NOTICE 'migration 364 self-check: inserted a fixture auth.users row with only its id (assumes no other NOT NULL column without a default; rolled back with the self-check)';
+      EXCEPTION WHEN OTHERS THEN
+        v_new := NULL;
+        RAISE NOTICE 'migration 364 self-check: could not insert a fixture auth.users row (%), INSERT legs (C, D2) skipped', SQLERRM;
       END;
-      IF NOT v_denied THEN
-        RAISE EXCEPTION 'ABORT: authenticated was able to UPDATE profiles.% on its own row', v_attack;
-      END IF;
-      IF position('profiles_privilege_guard' IN v_msg) > 0 OR position('permission denied' IN v_msg) = 0 THEN
-        RAISE EXCEPTION 'ABORT: layer 1 did not refuse profiles.% by column privilege (got: %)', v_attack, v_msg;
-      END IF;
-    END LOOP;
+    END IF;
 
-    -- B. Not over-broad: an ordinary own-row column still updates.
-    UPDATE public.profiles SET job_title = 'sec1-selfcheck' WHERE id = v_uid;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
-    IF v_rows <> 1 THEN
-      RAISE EXCEPTION 'ABORT: authenticated could not UPDATE profiles.job_title on its own row (rows=%)', v_rows;
+    IF v_uid IS NOT NULL THEN
+      SELECT is_platform_admin INTO v_before FROM public.profiles WHERE id = v_uid;
+
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
+      PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+
+      -- A. Layer 1: each privilege-bearing column refused by column privilege.
+      FOREACH v_attack IN ARRAY ARRAY['is_platform_admin', 'role', 'org_id', 'workspace_role'] LOOP
+        v_denied := false;
+        v_msg := NULL;
+        BEGIN
+          IF v_attack = 'is_platform_admin' THEN
+            UPDATE public.profiles SET is_platform_admin = NOT is_platform_admin WHERE id = v_uid;
+          ELSIF v_attack = 'role' THEN
+            UPDATE public.profiles SET role = CASE WHEN role IS DISTINCT FROM 'admin' THEN 'admin' ELSE 'viewer' END WHERE id = v_uid;
+          ELSIF v_attack = 'org_id' THEN
+            UPDATE public.profiles SET org_id = CASE WHEN org_id IS NULL THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE NULL END WHERE id = v_uid;
+          ELSE
+            UPDATE public.profiles SET workspace_role = CASE WHEN workspace_role IS DISTINCT FROM 'owner' THEN 'owner' ELSE 'member' END WHERE id = v_uid;
+          END IF;
+        EXCEPTION WHEN insufficient_privilege THEN
+          v_denied := true;
+          v_msg := SQLERRM;
+        END;
+        IF NOT v_denied THEN
+          RAISE EXCEPTION 'ABORT: authenticated was able to UPDATE profiles.% on its own row', v_attack;
+        END IF;
+        IF position('profiles_privilege_guard' IN v_msg) > 0 OR position('permission denied' IN v_msg) = 0 THEN
+          RAISE EXCEPTION 'ABORT: layer 1 did not refuse profiles.% by column privilege (got: %)', v_attack, v_msg;
+        END IF;
+      END LOOP;
+
+      -- B. Not over-broad: an ordinary own-row column still updates.
+      UPDATE public.profiles SET job_title = 'sec1-selfcheck' WHERE id = v_uid;
+      GET DIAGNOSTICS v_rows = ROW_COUNT;
+      IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'ABORT: authenticated could not UPDATE profiles.job_title on its own row (rows=%)', v_rows;
+      END IF;
+      RESET ROLE;
     END IF;
 
     -- C. INSERT path. Attack: own row with is_platform_admin = true is refused; plain own row is accepted.
-    RESET ROLE;
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid2::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid2::text, 'role', 'authenticated')::text, true);
-    v_denied := false;
-    v_msg := NULL;
-    BEGIN
-      INSERT INTO public.profiles (id, is_platform_admin) VALUES (v_uid2, true);
-    EXCEPTION WHEN insufficient_privilege THEN
-      v_denied := true;
-      v_msg := SQLERRM;
-    END;
-    IF NOT v_denied THEN
-      RAISE EXCEPTION 'ABORT: authenticated was able to INSERT its own profiles row with is_platform_admin = true';
-    END IF;
-    IF position('permission denied' IN v_msg) = 0 THEN
-      RAISE EXCEPTION 'ABORT: layer 1 did not refuse the INSERT by column privilege (got: %)', v_msg;
-    END IF;
-    INSERT INTO public.profiles (id, display_name) VALUES (v_uid2, 'sec1-selfcheck');
-
-    -- D. Layer 2 alone: restore the four column grants, inside this rolled-back sub-transaction, and attack again.
-    RESET ROLE;
-    GRANT INSERT (is_platform_admin, role, org_id, workspace_role) ON public.profiles TO authenticated;
-    GRANT UPDATE (is_platform_admin, role, org_id, workspace_role) ON public.profiles TO authenticated;
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
-
-    FOREACH v_attack IN ARRAY ARRAY['is_platform_admin', 'role', 'org_id', 'workspace_role'] LOOP
+    IF v_new IS NOT NULL THEN
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_new::text, true);
+      PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_new::text, 'role', 'authenticated')::text, true);
       v_denied := false;
       v_msg := NULL;
       BEGIN
-        IF v_attack = 'is_platform_admin' THEN
-          UPDATE public.profiles SET is_platform_admin = true WHERE id = v_uid;
-        ELSIF v_attack = 'role' THEN
-          UPDATE public.profiles SET role = 'admin' WHERE id = v_uid;
-        ELSIF v_attack = 'org_id' THEN
-          UPDATE public.profiles SET org_id = '00000000-0000-0000-0000-000000000000'::uuid WHERE id = v_uid;
-        ELSE
-          UPDATE public.profiles SET workspace_role = 'owner' WHERE id = v_uid;
-        END IF;
+        INSERT INTO public.profiles (id, is_platform_admin) VALUES (v_new, true);
       EXCEPTION WHEN insufficient_privilege THEN
         v_denied := true;
         v_msg := SQLERRM;
       END;
       IF NOT v_denied THEN
-        RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated UPDATE profiles.% on its own row', v_attack;
+        RAISE EXCEPTION 'ABORT: authenticated was able to INSERT its own profiles row with is_platform_admin = true';
+      END IF;
+      IF position('permission denied' IN v_msg) = 0 THEN
+        RAISE EXCEPTION 'ABORT: layer 1 did not refuse the INSERT by column privilege (got: %)', v_msg;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = v_new) THEN
+        INSERT INTO public.profiles (id, display_name) VALUES (v_new, 'sec1-selfcheck');
+      END IF;
+      RESET ROLE;
+    END IF;
+
+    -- D. Layer 2 alone: restore the four column grants, inside this rolled-back sub-transaction, and attack again.
+    GRANT INSERT (is_platform_admin, role, org_id, workspace_role) ON public.profiles TO authenticated;
+    GRANT UPDATE (is_platform_admin, role, org_id, workspace_role) ON public.profiles TO authenticated;
+
+    IF v_uid IS NOT NULL THEN
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_uid::text, true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_uid::text, 'role', 'authenticated')::text, true);
+
+      FOREACH v_attack IN ARRAY ARRAY['is_platform_admin', 'role', 'org_id', 'workspace_role'] LOOP
+        v_denied := false;
+        v_msg := NULL;
+        BEGIN
+          IF v_attack = 'is_platform_admin' THEN
+            UPDATE public.profiles SET is_platform_admin = NOT is_platform_admin WHERE id = v_uid;
+          ELSIF v_attack = 'role' THEN
+            UPDATE public.profiles SET role = CASE WHEN role IS DISTINCT FROM 'admin' THEN 'admin' ELSE 'viewer' END WHERE id = v_uid;
+          ELSIF v_attack = 'org_id' THEN
+            UPDATE public.profiles SET org_id = CASE WHEN org_id IS NULL THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE NULL END WHERE id = v_uid;
+          ELSE
+            UPDATE public.profiles SET workspace_role = CASE WHEN workspace_role IS DISTINCT FROM 'owner' THEN 'owner' ELSE 'member' END WHERE id = v_uid;
+          END IF;
+        EXCEPTION WHEN insufficient_privilege THEN
+          v_denied := true;
+          v_msg := SQLERRM;
+        END;
+        IF NOT v_denied THEN
+          RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated UPDATE profiles.% on its own row', v_attack;
+        END IF;
+        IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
+          RAISE EXCEPTION 'ABORT: layer 2 did not refuse profiles.% (got: %)', v_attack, v_msg;
+        END IF;
+      END LOOP;
+      RESET ROLE;
+    END IF;
+
+    -- D2. Layer 2 on the INSERT path (the BEFORE trigger fires before any key or foreign-key check).
+    IF v_new IS NOT NULL THEN
+      SET LOCAL ROLE authenticated;
+      PERFORM set_config('request.jwt.claim.sub', v_new::text, true);
+      PERFORM set_config('request.jwt.claims',
+        json_build_object('sub', v_new::text, 'role', 'authenticated')::text, true);
+      v_denied := false;
+      v_msg := NULL;
+      BEGIN
+        INSERT INTO public.profiles (id, is_platform_admin) VALUES (v_new, true);
+      EXCEPTION WHEN insufficient_privilege THEN
+        v_denied := true;
+        v_msg := SQLERRM;
+      END;
+      IF NOT v_denied THEN
+        RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated INSERT a profiles row with is_platform_admin = true';
       END IF;
       IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
-        RAISE EXCEPTION 'ABORT: layer 2 did not refuse profiles.% (got: %)', v_attack, v_msg;
+        RAISE EXCEPTION 'ABORT: layer 2 did not refuse the INSERT (got: %)', v_msg;
       END IF;
-    END LOOP;
-
-    -- D2. Layer 2 on the INSERT path.
-    RESET ROLE;
-    SET LOCAL ROLE authenticated;
-    PERFORM set_config('request.jwt.claim.sub', v_uid3::text, true);
-    PERFORM set_config('request.jwt.claims',
-      json_build_object('sub', v_uid3::text, 'role', 'authenticated')::text, true);
-    v_denied := false;
-    v_msg := NULL;
-    BEGIN
-      INSERT INTO public.profiles (id, is_platform_admin) VALUES (v_uid3, true);
-    EXCEPTION WHEN insufficient_privilege THEN
-      v_denied := true;
-      v_msg := SQLERRM;
-    END;
-    IF NOT v_denied THEN
-      RAISE EXCEPTION 'ABORT: with grants restored, the trigger let authenticated INSERT a profiles row with is_platform_admin = true';
-    END IF;
-    IF position('profiles_privilege_guard' IN v_msg) = 0 THEN
-      RAISE EXCEPTION 'ABORT: layer 2 did not refuse the INSERT (got: %)', v_msg;
+      RESET ROLE;
     END IF;
 
     -- E. The sanctioned path stays open: service_role can change the flag.
-    RESET ROLE;
-    SET LOCAL ROLE service_role;
-    UPDATE public.profiles SET is_platform_admin = true WHERE id = v_uid;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
-    IF v_rows <> 1 THEN
-      RAISE EXCEPTION 'ABORT: service_role could not UPDATE profiles.is_platform_admin (rows=%)', v_rows;
-    END IF;
-    RESET ROLE;
-    SELECT is_platform_admin INTO v_flag FROM public.profiles WHERE id = v_uid;
-    IF v_flag IS DISTINCT FROM true THEN
-      RAISE EXCEPTION 'ABORT: the service_role UPDATE of is_platform_admin did not persist';
+    IF v_uid IS NOT NULL THEN
+      SET LOCAL ROLE service_role;
+      UPDATE public.profiles SET is_platform_admin = NOT is_platform_admin WHERE id = v_uid;
+      GET DIAGNOSTICS v_rows = ROW_COUNT;
+      IF v_rows <> 1 THEN
+        RAISE EXCEPTION 'ABORT: service_role could not UPDATE profiles.is_platform_admin (rows=%)', v_rows;
+      END IF;
+      RESET ROLE;
+      SELECT is_platform_admin INTO v_flag FROM public.profiles WHERE id = v_uid;
+      IF v_flag IS NOT DISTINCT FROM v_before THEN
+        RAISE EXCEPTION 'ABORT: the service_role UPDATE of is_platform_admin did not change the value';
+      END IF;
     END IF;
 
     RAISE EXCEPTION 'sec1_364_selfcheck_rollback';

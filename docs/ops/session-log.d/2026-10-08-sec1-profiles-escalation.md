@@ -32,3 +32,10 @@
 ## Open items
 
 - Coordinator ruling needed on the `verifier_status` transition guard (see NOT done). Decision-ready sketch: extend `profiles_privilege_guard` so a non-sanctioned caller may change `verifier_status` only to 'pending' from 'none'.
+
+## Correction (first apply failed, coordinator report 2026-10-08)
+
+- [CONFIRMED by the apply error] Migration 364 aborted and rolled back on its first apply: `23503 insert or update on table "profiles" violates foreign key constraint "profiles_id_auth_users_fkey"` at the self-check fixture `INSERT INTO public.profiles (id) VALUES (v_uid)`. Cause: `profiles.id` has a foreign key to `auth.users` that no migration file in the repo declares (the repo files showed `profiles.id` with only a default); this lane invented fixture ids and did not know the live constraint. Nothing was applied.
+- Fix (coordinator design): the self-check no longer invents ids. UPDATE legs (A, B, D, E) use the oldest real profile (`SELECT id ... ORDER BY created_at LIMIT 1`), every change rolled back, skipped with a NOTICE if `profiles` is empty. INSERT legs (C, D2) use an `auth.users` row with no profile, else a fixture `auth.users` row inserted with only its id (assumption stated in a NOTICE: auth.users needs nothing else; if that insert fails the INSERT legs are skipped with a NOTICE and the privilege-catalog assertions still run). Attack values are computed to differ from the row's current value (`NOT is_platform_admin`, CASE expressions) so the trigger's `IS DISTINCT FROM` fires whatever a real row holds; the service_role leg asserts the value changed.
+- Static test gained a test pinning that no fixture id is minted outside the single `gen_random_uuid()` that is inserted into `auth.users` in the next statement, and that every profiles INSERT in the self-check uses that id. Against the first SQL the updated test file fails 3 of 16; against the fixed SQL it passes 16 of 16.
+- [HYPOTHESIS] unchanged risk: a live auth.users NOT NULL column without a default would make the fixture auth.users insert fail; that skips the INSERT legs with a NOTICE rather than aborting.

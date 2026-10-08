@@ -68,11 +68,12 @@ test("layer 2: UPDATE branch compares all four with IS DISTINCT FROM; INSERT bra
 test("self-check ATTACKS as role authenticated with a fixture jwt sub and requires 42501 on every privilege column, UPDATE and INSERT", () => {
   assert.match(SQL, /SET LOCAL ROLE authenticated;/);
   assert.match(SQL, /set_config\('request\.jwt\.claim\.sub'/);
-  assert.match(SQL, /UPDATE public\.profiles SET is_platform_admin = true WHERE id = v_uid;/);
-  assert.match(SQL, /UPDATE public\.profiles SET role = 'admin' WHERE id = v_uid;/);
-  assert.match(SQL, /UPDATE public\.profiles SET workspace_role = 'owner' WHERE id = v_uid;/);
-  assert.match(SQL, /UPDATE public\.profiles SET org_id = /);
-  assert.match(SQL, /INSERT INTO public\.profiles \(id, is_platform_admin\) VALUES \(v_uid2, true\);/);
+  // attack values are computed to DIFFER from the row's current value, so the trigger's IS DISTINCT FROM fires on any real row
+  assert.match(SQL, /UPDATE public\.profiles SET is_platform_admin = NOT is_platform_admin WHERE id = v_uid;/);
+  assert.match(SQL, /UPDATE public\.profiles SET role = CASE WHEN role IS DISTINCT FROM 'admin' THEN 'admin' ELSE 'viewer' END WHERE id = v_uid;/);
+  assert.match(SQL, /UPDATE public\.profiles SET workspace_role = CASE WHEN workspace_role IS DISTINCT FROM 'owner'/);
+  assert.match(SQL, /UPDATE public\.profiles SET org_id = CASE WHEN org_id IS NULL THEN/);
+  assert.match(SQL, /INSERT INTO public\.profiles \(id, is_platform_admin\) VALUES \(v_new, true\);/);
   assert.match(SQL, /EXCEPTION WHEN insufficient_privilege THEN/);
   assert.ok(SQL.includes("authenticated was able to UPDATE profiles.% on its own row"));
   assert.ok(SQL.includes("authenticated was able to INSERT its own profiles row with is_platform_admin = true"));
@@ -88,8 +89,26 @@ test("self-check proves each layer alone: layer 1 message is a column privilege 
 
 test("self-check is not over-broad: an ordinary own-row column updates, a plain own-row insert succeeds, service_role can flip the flag", () => {
   assert.match(SQL, /UPDATE public\.profiles SET job_title = 'sec1-selfcheck' WHERE id = v_uid;/);
-  assert.match(SQL, /INSERT INTO public\.profiles \(id, display_name\) VALUES \(v_uid2, 'sec1-selfcheck'\);/);
-  assert.match(SQL, /SET LOCAL ROLE service_role;\s+UPDATE public\.profiles SET is_platform_admin = true WHERE id = v_uid;/);
+  assert.match(SQL, /INSERT INTO public\.profiles \(id, display_name\) VALUES \(v_new, 'sec1-selfcheck'\);/);
+  assert.match(SQL, /SET LOCAL ROLE service_role;\s+UPDATE public\.profiles SET is_platform_admin = NOT is_platform_admin WHERE id = v_uid;/);
+});
+
+test("no fixture id is invented without an auth.users row behind it (profiles_id_auth_users_fkey): UPDATE legs use a real profile, INSERT legs an auth.users row", () => {
+  // profiles.id references auth.users; the first apply failed 23503 on an invented fixture id.
+  assert.match(SQL, /SELECT id INTO v_uid FROM public\.profiles ORDER BY created_at LIMIT 1;/);
+  assert.match(SQL, /SELECT u\.id INTO v_new\s+FROM auth\.users u LEFT JOIN public\.profiles p ON p\.id = u\.id\s+WHERE p\.id IS NULL\s+LIMIT 1;/);
+  // a generated id exists only to be inserted into auth.users right after; DECLARE never mints one
+  const declare = SQL.slice(SQL.lastIndexOf("DECLARE"), SQL.indexOf("BEGIN", SQL.lastIndexOf("DECLARE")));
+  assert.doesNotMatch(declare, /gen_random_uuid/);
+  assert.match(SQL, /v_new := gen_random_uuid\(\);\s+INSERT INTO auth\.users \(id\) VALUES \(v_new\);/);
+  assert.equal((SQL.match(/gen_random_uuid\(\)/g) || []).length, 1);
+  // every profiles INSERT in the self-check uses an id that came from auth.users (v_new)
+  const ins = [...SQL.matchAll(/INSERT INTO public\.profiles \(id[^)]*\) VALUES \((\w+)/g)].map((x) => x[1]);
+  assert.ok(ins.length >= 3, `found ${ins.length} profiles inserts`);
+  for (const id of ins) assert.equal(id, "v_new");
+  // an empty profiles table or a failed auth.users fixture insert skips legs with a NOTICE, never aborts the apply
+  assert.match(SQL, /RAISE NOTICE 'migration 364 self-check: public\.profiles is empty/);
+  assert.match(SQL, /RAISE NOTICE 'migration 364 self-check: could not insert a fixture auth\.users row/);
 });
 
 test("privilege catalog is asserted after the rolled-back block (the temporary re-grants must be gone)", () => {
