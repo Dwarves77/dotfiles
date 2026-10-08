@@ -11,5 +11,5 @@ export const invariant = {
     section: 'Inventory consistency rule',
     text: 'Commits modifying docs/inventories/*.md must satisfy the consistency runner (inventories match codebase reality: no missing claims, no orphans).',
     anchor: 'Inventory consistency rule',
-    enforcedBy: ['rule:014', 'consistency:C3', 'consistency:C4'],
+    enforcedBy: ['consistency:C3', 'consistency:C4'],
   };

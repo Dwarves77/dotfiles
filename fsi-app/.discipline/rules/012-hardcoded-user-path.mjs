@@ -9,14 +9,20 @@
 // is now caught at commit time regardless of operator or agent discipline.
 //
 // Trigger: any commit that stages at least one code file in a relevant path.
-// Check:   read each staged code file's content; FAIL on match for any of the
-//          four patterns expressed in HARDCODED_PATH_RE below (Windows user-home
-//          paths, Git Bash translated paths, and this operator's Unix/macOS
-//          home directory). Report file:line:matched-text for every violation.
-//          The literal patterns are intentionally not enumerated in this comment
+// Check:   FAIL on a match for any of the four patterns expressed in HARDCODED_PATH_RE below
+//          (Windows user-home paths, Git Bash translated paths, and this operator's Unix/macOS
+//          home directory) on a line the commit INTRODUCES. Report file:line:matched-text for
+//          every violation. The literal patterns are intentionally not enumerated in this comment
 //          block so the rule does not flag its own documentation.
+//
+// SCOPE (lane GATE-1, 2026-10-08): introduced lines, not the whole file. The rule used to read every
+// staged file in full, so a path string anywhere in a file failed the commit that touched any other
+// line of it. A line counts only when the pattern is absent from the removed line it replaces in the
+// diff (an edited line that already carried it passes) and the line was not moved from elsewhere in the
+// same diff. Both come from ctx.introducedLines (lib/context.mjs), one git diff per run.
 
 import { pass, fail } from '../lib/result.mjs';
+import { introducedMatches } from '../lib/context.mjs';
 
 // Regex matches operator's specified pattern set per Sprint Foundation
 // incident response. Asymmetric by design: Windows variants match any user
@@ -45,6 +51,10 @@ const CODE_EXTENSIONS = ['.mjs', '.ts', '.tsx', '.js', '.json', '.yml', '.yaml',
 //                          pool must stay byte-exact (ADR-016; `validate_item_provenance` matches spans
 //                          verbatim), so the content cannot be rewritten to satisfy a code rule.
 const SKIP_PATH_FRAGMENTS = ['node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json', 'fsi-app/scripts/_snapshots/'];
+
+// Stateless twin of the global regex above, for introducedMatches (a /g regex carries lastIndex).
+const HAS_HARDCODED_PATH_RE = new RegExp(HARDCODED_PATH_RE.source);
+const hasHardcodedPath = (line) => HAS_HARDCODED_PATH_RE.test(line);
 
 function isCodeFile(path) {
   const lower = path.toLowerCase();
@@ -81,23 +91,20 @@ export const rule = {
     const violations = [];
 
     for (const file of relevantFiles(ctx)) {
-      const content = ctx.getFileContent(file.path);
-      if (content === null || content === undefined) continue;
-
-      const lines = content.split(/\r?\n/);
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (const pair of introducedMatches(ctx.introducedLines(file.path), hasHardcodedPath)) {
+        const line = pair.added;
         HARDCODED_PATH_RE.lastIndex = 0;
         let match;
+        let perLine = 0;
         while ((match = HARDCODED_PATH_RE.exec(line)) !== null) {
           violations.push({
             path: file.path,
-            lineNumber: i + 1,
+            lineNumber: pair.line,
             matchedText: match[0],
             lineSnippet: line.length > 120 ? line.slice(0, 117) + '...' : line,
           });
           // Cap per-line matches to avoid runaway output on pathological lines
-          if (violations.filter((v) => v.path === file.path && v.lineNumber === i + 1).length >= 3) break;
+          if (++perLine >= 3) break;
         }
       }
     }
@@ -108,6 +115,7 @@ export const rule = {
     const remainder = violations.length - displayed.length;
 
     return fail({
+      locations: violations.map((v) => ({ path: v.path, line: v.lineNumber })),
       message: `Hardcoded user-home path(s) detected in ${violations.length} location(s).`,
       remediation: [
         'Replace hardcoded user-home paths with runtime-discovered values:',

@@ -14,9 +14,17 @@
 //     replaces: a hand-built two-dot range against the base ref's TIP flags lines master fixed after
 //     the branch's fork point as "added" on the branch).
 //   --mode=fixture --message-file=<path> --files-file=<path>
-//     Validate from in-memory fixture (testing).
+//     Validate from in-memory fixture (testing). The files file is a JSON array of staged files, or an
+//     object { files, changes } where `changes` is the diff view (see buildContextFromFixture).
 //   --list
 //     Print all registered rules.
+//
+// Firing log (lane GATE-1, 2026-10-08). Every rule whose trigger fires appends one JSON line per firing to
+// governance/.hook-firings.log (gitignored): {ts, rule, mode, path, line, verdict}. A FAIL writes one line
+// per location the rule reported; a PASS writes one line with a null path and line. mode is commit-msg, ci
+// (one commit), ci-range (the whole-range pass) or fixture. DISCIPLINE_FIRING_LOG=<path> redirects the log,
+// DISCIPLINE_FIRING_LOG=off disables it, and fixture mode writes nothing unless the variable names a path.
+// A logging failure never changes a verdict.
 //
 // Exit codes:
 //   0 = all applicable rules PASS or SKIP
@@ -24,6 +32,8 @@
 //   2 = engine error
 
 import { execFileSync } from 'node:child_process';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { rules } from './manifest.mjs';
 import {
   buildContextForProposedCommit,
@@ -70,13 +80,13 @@ async function main() {
       return 2;
     }
     const ctx = buildContextForProposedCommit({ messageFile: args.messageFile });
-    return runOnContext(ctx, args);
+    return runOnContext(ctx, args, 'commit-msg');
   }
 
   if (args.mode === 'ci') {
     if (args.commit) {
       const ctx = buildContextForExistingCommit({ commit: args.commit });
-      return runOnContext(ctx, args);
+      return runOnContext(ctx, args, 'ci');
     }
 
     // Range resolution -- ONE path, change-range.mjs's resolveRange() (lane R23, 2026-10-02). An
@@ -113,7 +123,7 @@ async function main() {
     for (const sha of shas) {
       const ctx = buildContextForExistingCommit({ commit: sha });
       console.log(`\n=== Commit ${sha.slice(0, 8)}: ${ctx.commitSubject} ===`);
-      const code = runOnContext(ctx, args);
+      const code = runOnContext(ctx, args, 'ci');
       if (code > worstExit) worstExit = code;
     }
 
@@ -130,7 +140,7 @@ async function main() {
     // files), so this is safe to run unconditionally, including on a range with zero commits.
     const rangeCtx = buildContextForRange({ range });
     console.log(`\n=== Whole-range diff (${range}), squash-merge parity ===`);
-    const rangeCode = runOnContext(rangeCtx, args);
+    const rangeCode = runOnContext(rangeCtx, args, 'ci-range');
     if (rangeCode > worstExit) worstExit = rangeCode;
 
     return worstExit;
@@ -143,16 +153,18 @@ async function main() {
     }
     const { readFileSync } = await import('node:fs');
     const message = readFileSync(args.messageFile, 'utf-8');
-    const files = JSON.parse(readFileSync(args.filesFile, 'utf-8'));
-    const ctx = buildContextFromFixture({ message, files });
-    return runOnContext(ctx, args);
+    const parsed = JSON.parse(readFileSync(args.filesFile, 'utf-8'));
+    const ctx = Array.isArray(parsed)
+      ? buildContextFromFixture({ message, files: parsed })
+      : buildContextFromFixture({ message, files: parsed.files, changes: parsed.changes });
+    return runOnContext(ctx, args, 'fixture');
   }
 
   console.error(`Error: unknown mode "${args.mode}"`);
   return 2;
 }
 
-function runOnContext(ctx, args) {
+function runOnContext(ctx, args, mode) {
   const results = [];
   for (const rule of rules) {
     let triggerFired;
@@ -177,9 +189,41 @@ function runOnContext(ctx, args) {
   }
 
   printResults(results, args);
+  logFirings(results, mode);
 
   const failed = results.filter((r) => r.status === STATUS.FAIL);
   return failed.length > 0 ? 1 : 0;
+}
+
+const FIRING_LOG_DEFAULT = join(import.meta.dirname, 'governance', '.hook-firings.log');
+const MAX_FAIL_LINES_LOGGED = 50;
+
+// One JSON line per firing. Never throws: a log that cannot be written must not change a commit's verdict.
+function logFirings(results, mode) {
+  try {
+    const target = process.env.DISCIPLINE_FIRING_LOG;
+    if (target === 'off') return;
+    if (mode === 'fixture' && !target) return;
+    const path = target || FIRING_LOG_DEFAULT;
+    const ts = new Date().toISOString();
+    const lines = [];
+    for (const r of results) {
+      if (r.status === STATUS.SKIP) continue;
+      if (r.status === STATUS.FAIL) {
+        const locations = (r.locations && r.locations.length ? r.locations : [{ path: null, line: null }]).slice(0, MAX_FAIL_LINES_LOGGED);
+        for (const loc of locations) {
+          lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: loc.path ?? null, line: loc.line ?? null, verdict: 'FAIL' }));
+        }
+      } else {
+        lines.push(JSON.stringify({ ts, rule: r.rule.id, mode, path: null, line: null, verdict: 'PASS' }));
+      }
+    }
+    if (lines.length === 0) return;
+    mkdirSync(dirname(path), { recursive: true });
+    appendFileSync(path, `${lines.join('\n')}\n`);
+  } catch {
+    // intentionally swallowed, see above
+  }
 }
 
 function printResults(results, args) {

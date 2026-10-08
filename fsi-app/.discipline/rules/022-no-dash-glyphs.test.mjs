@@ -302,3 +302,84 @@ test('022: has required metadata fields', () => {
   assert.equal(typeof rule.description, 'string');
   assert.ok(rule.ruleSource.includes('defect-fix-plan-2026-09-12'));
 });
+
+// ---------------------------------------------------------------------------
+// Introduced-lines scope (lane GATE-1, 2026-10-08). The rule charges a line only when the pattern is
+// absent from the removed line it replaces; an edited line that already carried a glyph, and text moved
+// from elsewhere in the diff, pass. 12 of 22 firings in the 30 days before this lane were exactly these.
+// ---------------------------------------------------------------------------
+
+function ctxFor(changes, files) {
+  return buildContextFromFixture({
+    message: 'feat: x',
+    files: files || changes.map((c) => ({ path: c.path, status: c.status })),
+    changes,
+  });
+}
+
+test('022 scope: a pre-existing glyph on an EDITED line passes (the line was touched for another reason)', () => {
+  const ctx = ctxFor([{
+    path: 'fsi-app/src/foo.mjs',
+    removed: [`// the loader ${EM_DASH} reads config`],
+    added: [`// the loader ${EM_DASH} reads config (apostrophe fixed)`],
+  }]);
+  assert.equal(rule.trigger(ctx), false);
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('022 scope: an INTRODUCED glyph fails, on a new line and on an edit that adds the glyph', () => {
+  const added = ctxFor([{ path: 'fsi-app/src/foo.mjs', added: [`// new ${EM_DASH} note`] }]);
+  assert.equal(rule.trigger(added), true);
+  assert.equal(rule.check(added).status, 'FAIL');
+  const edited = ctxFor([{ path: 'fsi-app/src/foo.mjs', removed: ['// the loader reads config'], added: [`// the loader ${EM_DASH} reads config`] }]);
+  assert.equal(rule.check(edited).status, 'FAIL');
+  assert.deepEqual(rule.check(edited).locations, [{ path: 'fsi-app/src/foo.mjs', line: 1 }]);
+});
+
+test('022 scope: MOVED text with glyphs passes, within a file and across files (a split or a relocation)', () => {
+  const across = ctxFor([
+    { path: 'docs/runbooks/big.md', removed: [`step one ${EM_DASH} do the thing`, 'other'] },
+    { path: 'docs/runbooks/part.md', status: 'A', added: [`step one ${EM_DASH} do the thing`] },
+  ]);
+  assert.equal(rule.check(across).status, 'PASS');
+  const within = ctxFor([{
+    path: 'docs/runbooks/big.md',
+    hunks: [
+      { oldStart: 3, newStart: 3, removed: [`step one ${EM_DASH} do the thing`], added: [] },
+      { oldStart: 20, newStart: 19, removed: [], added: [`step one ${EM_DASH} do the thing`] },
+    ],
+  }]);
+  assert.equal(rule.check(within).status, 'PASS');
+});
+
+test('022 scope: a COPY of an existing glyph line (nothing removed) is still introduced', () => {
+  const ctx = ctxFor([
+    { path: 'docs/runbooks/big.md', removed: ['unrelated'] },
+    { path: 'docs/runbooks/part.md', status: 'A', added: [`step one ${EM_DASH} do the thing`] },
+  ]);
+  assert.equal(rule.check(ctx).status, 'FAIL');
+});
+
+test('022 scope: editing one glyph line while adding another charges exactly the new one', () => {
+  const ctx = ctxFor([{
+    path: 'fsi-app/src/foo.mjs',
+    removed: [`// loader ${EM_DASH} reads config`],
+    added: [`// loader ${EM_DASH} reads the config file`, `// freshly written ${EM_DASH} aside`],
+  }]);
+  const r = rule.check(ctx);
+  assert.equal(r.status, 'FAIL');
+  assert.ok(r.message.includes('1 added line'));
+});
+
+test('022 scope: a rename carrying glyphs adds no lines and passes', () => {
+  const ctx = ctxFor([{ path: 'docs/runbooks/new-name.md', oldPath: 'docs/runbooks/old-name.md', status: 'R' }]);
+  assert.equal(rule.trigger(ctx), false);
+});
+
+test('022 scope: trigger and check share ONE computation of the diff view', () => {
+  const ctx = ctxFor([{ path: 'fsi-app/src/foo.mjs', added: [`// new ${EM_DASH} note`] }]);
+  const first = ctx.introducedLines('fsi-app/src/foo.mjs');
+  rule.trigger(ctx);
+  rule.check(ctx);
+  assert.strictEqual(ctx.introducedLines('fsi-app/src/foo.mjs'), first);
+});

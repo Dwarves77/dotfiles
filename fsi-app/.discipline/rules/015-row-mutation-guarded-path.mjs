@@ -10,8 +10,16 @@
 // Trigger: a staged .mjs file under fsi-app/scripts/ (excluding _diag/ read-only convention, lib/ where
 //          the helper itself lives, and *.test/.npmtest/.selftest/.golden.mjs proof files that fake a
 //          client) whose content contains a raw Supabase write call.
-// Check:   FAIL unless the file imports the guarded helper, or a documented override trailer is present.
-// Override: `Write-Guard-Override: <reason>` trailer (for legacy-script edits not introducing new writes).
+// Check:   FAIL unless the file imports the guarded helper. There is no override trailer: lane GATE-1
+//          (2026-10-08) removed Write-Guard-Override (no validation, whole-commit scope, one use in 30
+//          days, and that use justified a false positive). The false positives are fixed at the rule.
+//
+// SCOPE (lane GATE-1, 2026-10-08): introduced lines, not the whole file. The rule used to fail a commit
+// that touched any line of a script holding a raw write anywhere (4 of 4 firings in 30 days were that,
+// or the RULES-1 hash-call class). A database-write hit now counts only when it sits on a line the commit
+// introduces: an added or edited line whose removed counterpart did not already carry a write call, and
+// not a line moved from elsewhere in the diff (ctx.introducedLines, lib/context.mjs). The hit itself is
+// still found on the whole file, because the receiver-chain analysis below needs the surrounding code.
 //
 // PRECISION (lane RULES-1, 2026-10-07, operator ruling: a gate that misfires is fixed at the gate, not
 // routed around). The detector used to be a bare regex over the raw file text matching any `.update(`,
@@ -43,10 +51,10 @@
 // KNOWN LIMIT (stated, not hidden): a write through a function PARAMETER whose name matches nothing above
 // (`function w(qb) { qb.delete() }`) cannot be resolved inside one file and passes; the call site that
 // builds the chain (`w(sb.from("x"))`) holds the `.from(` and is checked there. The GUARDED_IMPORT_RE
-// exemption and the Write-Guard-Override trailer are unchanged.
+// exemption is unchanged.
 
 import { pass, fail } from '../lib/result.mjs';
-import { commitMessageLines } from '../lib/predicates.mjs';
+import { introducedMatches } from '../lib/context.mjs';
 import { skillsForOp } from '../governance/skill-map.mjs';
 
 // Raw Supabase write signals (method-call shaped, NOT bare words — avoids the _diag "UPDATE CADENCE"
@@ -353,7 +361,7 @@ function relevantScripts(ctx) {
 export const rule = {
   id: '015',
   name: 'Row-mutation guarded path',
-  description: 'Scripts that mutate existing rows must write through scripts/lib/db.mjs (snapshot + skill-cite), not a raw .update()/.upsert()/.delete(). Override: Write-Guard-Override: trailer.',
+  description: 'Scripts that mutate existing rows must write through scripts/lib/db.mjs (snapshot + skill-cite), not a raw .update()/.upsert()/.delete(). Charges only write lines the commit introduces.',
   ruleSource: 'governance/skill-map → environmental-policy-and-innovation + remediation-discipline; operating-mechanism build (action-class M)',
 
   trigger(ctx) {
@@ -362,30 +370,53 @@ export const rule = {
   },
 
   check(ctx) {
-    const overridden = commitMessageLines(ctx, 'Write-Guard-Override:').length > 0;
     const violations = [];
     for (const f of relevantScripts(ctx)) {
+      // Cheap exit first: no introduced write-shaped line means nothing to analyse, and the lexer below
+      // only runs on files that gained one.
+      const introduced = introducedMatches(ctx.introducedLines(f.path), isWriteLine);
+      if (introduced.length === 0) continue;
       const content = ctx.getFileContent(f.path);
       if (!content) continue;
       const hits = rawWriteHits(content);
       if (hits.length === 0) continue;                    // no raw database write → fine
       if (GUARDED_IMPORT_RE.test(content)) continue;      // uses the guarded path → fine
+      const lines = introducedHitLines(content, hits, introduced);
+      if (lines.length === 0) continue;                   // the writes in this file are not this commit's
       const skills = skillsForOp(content);
-      violations.push({ path: norm(f.path), lines: hits.map((h) => h.line), skills: skills.map((s) => s.skill) });
+      violations.push({ path: norm(f.path), lines, skills: skills.map((s) => s.skill) });
     }
     if (violations.length === 0) return pass();
-    if (overridden) return pass();
 
     return fail({
-      message: `${violations.length} script(s) perform RAW row mutations outside the guarded path (scripts/lib/db.mjs).`,
+      locations: violations.flatMap((v) => v.lines.map((line) => ({ path: v.path, line }))),
+      message: `${violations.length} script(s) introduce RAW row mutations outside the guarded path (scripts/lib/db.mjs).`,
       remediation: [
         'Route existing-row writes through the guarded helper so the change is reversible (prior-value snapshot) and skill-cited:',
         "  import { guardedUpdate, archiveRows } from './lib/db.mjs'   (or '../lib/db.mjs')",
         'Files + the governing skill each must cite:',
         ...violations.map((v) => `    ${v.path} (line ${v.lines.join(', ')})  → cite: ${v.skills.join(', ') || '(taxonomy/remediation skill)'}`),
-        'Legacy edit not introducing a new write? add a trailer:  Write-Guard-Override: <reason>',
+        'Only the write lines this commit adds are charged; writes already in the file are not.',
         'Bypass (sparingly): git commit --no-verify',
       ].join('\n  '),
     });
   },
 };
+
+// A line that carries a write-shaped call. Stateless twin of WRITE_CALL_RE for introducedMatches.
+const WRITE_LINE_RE = new RegExp(WRITE_CALL_RE.source);
+const isWriteLine = (line) => WRITE_LINE_RE.test(line);
+const squash = (s) => String(s ?? '').trim().replace(/\s+/g, ' ');
+
+// The database-write hits that sit on introduced lines. Aligned by line number when the file on disk is
+// the post-image of the diff (the normal case). When it is not (an unstaged edit moved the lines), fall
+// back to the text of the introduced write lines, which still separates new writes from old ones except
+// for two byte-identical write lines.
+function introducedHitLines(content, hits, introduced) {
+  const fileLines = content.split(/\r?\n/);
+  const byLine = new Map(introduced.map((p) => [p.line, squash(p.added)]));
+  const aligned = introduced.every((p) => squash(fileLines[p.line - 1]) === squash(p.added));
+  if (aligned) return hits.map((h) => h.line).filter((line) => byLine.has(line));
+  const texts = new Set(introduced.map((p) => squash(p.added)));
+  return hits.map((h) => h.line).filter((line) => texts.has(squash(fileLines[line - 1])));
+}

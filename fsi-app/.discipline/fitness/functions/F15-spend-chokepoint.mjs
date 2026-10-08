@@ -20,6 +20,15 @@ export const DIRECT_API_RE = /api\.anthropic\.com|["']x-api-key["']|new\s+Anthro
 export const SANCTIONED = new Set([
   'fsi-app/src/lib/llm/spend-client.ts',        // THE chokepoint
   'fsi-app/src/lib/agent/anthropic-stream.mjs', // the streaming transport spend-client wraps
+  // Merged from commit-time rule 016's PERMITTED list (lane GATE-1, 2026-10-08, when rule 016 was removed:
+  // this gate holds the same regex over the same files, F46 homes the host string, and one allowlist
+  // replaces two). One entry per path that rule permitted AND that carries a direct-call signal this gate
+  // reads: spend-client.ts and anthropic-stream.mjs above, the spot-check, recommend-classification and
+  // bulk-classify routes and haiku-classify.ts in LEGACY_ALLOWLIST below. The rest of that list (the
+  // agent/run, ask and admin/scan routes, canonical-pipeline.ts) no longer contains a direct call, so a
+  // sanctioned entry there would only punch a hole for a future regression, and none is added. The one
+  // path the rule permitted that this gate does not otherwise cover is the 2026-09-17 test-file case:
+  'fsi-app/src/lib/agent/anthropic-stream.test.mjs', // F46 (lane L35) one-home sweep test: references the host string to ENFORCE it, never calls the API
   // 'fsi-app/scripts/lib/anthropic.mjs' REMOVED (lane DEAD-EXEC, 2026-09-04): the script-side canonical
   // wrapper (rule 016's former sanctioned site, added here in the 2026-08-11 scope-widening) was never
   // adopted by anything — zero real importers — and is deleted together with this entry in the same
