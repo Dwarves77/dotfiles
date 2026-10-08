@@ -84,3 +84,23 @@ test("validateEntityBinding accepts one or more WELL-FORMED entity ids (cl:<kind
     null
   );
 });
+
+// SEC-5 (migration 372): an anonymous author is labelled, and the verified marker never depends on a line existing.
+import { authorIdentityLabel, ANONYMOUS_LABEL } from "./identity-format.ts";
+
+test("authorIdentityLabel: an anonymous author with nothing else to show is labelled, never blank", () => {
+  assert.equal(authorIdentityLabel({ anonymous: true, verified: true, name: null, company: null }), ANONYMOUS_LABEL);
+});
+
+test("authorIdentityLabel: an anonymous author with org fields leads with the label so the withheld name is explicit", () => {
+  assert.equal(
+    authorIdentityLabel({ anonymous: true, name: null, company: null, orgType: "Shipper", role: "Ops lead" }),
+    `${ANONYMOUS_LABEL} · Shipper · Ops lead`
+  );
+});
+
+test("authorIdentityLabel: a non-anonymous author is unchanged from formatAuthorIdentity", () => {
+  assert.equal(authorIdentityLabel({ name: "Jane Forwarder", company: "Acme", orgType: "Shipper" }), "Jane Forwarder · Acme · Shipper");
+  assert.equal(authorIdentityLabel({}), null);
+  assert.equal(authorIdentityLabel(null), null);
+});

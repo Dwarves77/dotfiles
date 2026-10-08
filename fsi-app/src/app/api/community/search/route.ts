@@ -30,6 +30,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { unionByRecency } from "@/lib/community/search-merge";
+import { loadCommunityIdentities, type CommunityIdentityRow } from "@/lib/community/identity.mjs";
 
 const SCOPES = new Set(["all", "posts", "groups", "people"]);
 const MIN_QUERY = 2;
@@ -52,11 +53,6 @@ interface GroupRow {
   member_count: number;
 }
 
-interface ProfileRow {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
 
 export async function GET(request: NextRequest) {
   const auth = await requireCommunityRoute(request);
@@ -100,19 +96,17 @@ export async function GET(request: NextRequest) {
       .order("last_active_at", { ascending: false })
       .limit(MAX_RESULTS_PER_SCOPE);
   const none = { data: [], error: null };
+  const noPeople = { byId: new Map<string, CommunityIdentityRow>(), rows: [] as CommunityIdentityRow[], error: null as string | null };
 
   const [postsByTitle, postsByBody, groupsByName, groupsByDescription, peopleRes] = await Promise.all([
     wantPosts ? postsQuery("title") : Promise.resolve(none),
     wantPosts ? postsQuery("body") : Promise.resolve(none),
     wantGroups ? groupsQuery("name") : Promise.resolve(none),
     wantGroups ? groupsQuery("description") : Promise.resolve(none),
-    wantPeople
-      ? auth.supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url")
-          .ilike("full_name", escaped)
-          .limit(MAX_RESULTS_PER_SCOPE)
-      : Promise.resolve({ data: [] as ProfileRow[], error: null }),
+    // SEC-5 (migration 372): people search goes through community_identity (name PREFIX, anonymous members are
+    // not findable by name, no email or admin flag ever returned) because profiles is no longer readable across
+    // organisations.
+    wantPeople ? loadCommunityIdentities(auth.supabase, null, q) : Promise.resolve(noPeople),
   ]);
   const postsRes = {
     data: unionByRecency([(postsByTitle.data ?? []) as PostRow[], (postsByBody.data ?? []) as PostRow[]], "created_at", MAX_RESULTS_PER_SCOPE),
@@ -130,9 +124,12 @@ export async function GET(request: NextRequest) {
   // Collect errors. Surface the first one; partial results are not
   // helpful when a query failed because the user would have no way
   // to tell which scope is incomplete.
-  const firstErr = postsRes.error ?? groupsRes.error ?? peopleRes.error;
+  const firstErr = postsRes.error ?? groupsRes.error;
   if (firstErr) {
     return NextResponse.json({ error: firstErr.message }, { status: 500 });
+  }
+  if (peopleRes.error) {
+    return NextResponse.json({ error: peopleRes.error }, { status: 500 });
   }
 
   // Resolve group names for the matched posts so the dropdown can
@@ -140,7 +137,7 @@ export async function GET(request: NextRequest) {
   // unique group_ids.
   const postRows = (postsRes.data ?? []) as PostRow[];
   const groupRows = (groupsRes.data ?? []) as GroupRow[];
-  const profileRows = (peopleRes.data ?? []) as ProfileRow[];
+  const identityRows = peopleRes.rows;
 
   const postGroupIds = Array.from(new Set(postRows.map((p) => p.group_id)));
   const { data: postGroups } = postGroupIds.length
@@ -176,11 +173,12 @@ export async function GET(request: NextRequest) {
     member_count: g.member_count,
   }));
 
-  const people = profileRows
-    .filter((p) => p.full_name)
+  const people = identityRows
+    .filter((p) => p.display_name)
+    .slice(0, MAX_RESULTS_PER_SCOPE)
     .map((p) => ({
-      user_id: p.id,
-      name: p.full_name,
+      user_id: p.user_id,
+      name: p.display_name,
       headshot_url: p.avatar_url,
     }));
 

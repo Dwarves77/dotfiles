@@ -11,15 +11,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { loadCommunityIdentities } from "@/lib/community/identity.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-interface ProfileShape {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
 
 interface InvitationRow {
   id: string;
@@ -82,26 +77,19 @@ export async function GET(
   // Second query for profile metadata. invitee_user_id references
   // auth.users not profiles, so there is no PostgREST embed; same
   // pattern as CouncilMembersRail.
-  const { data: profiles } = inviteeIds.length
-    ? await auth.supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url")
-        // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
-        .in("id", inviteeIds)
-    : { data: [] as ProfileShape[] };
-
-  const profileById = new Map(
-    (profiles ?? []).map((p) => [p.id, p] as const)
-  );
+  // SEC-5 (migration 372): the invitee is usually in another organisation, so the name and avatar come from the
+  // community_identity RPC (a default-anonymous invitee arrives with both null).
+  const { byId: identityById, error: identityErr } = await loadCommunityIdentities(auth.supabase, inviteeIds);
+  if (identityErr) console.warn("community invitations route: identity lookup failed", identityErr);
 
   const invitations = rows.map((inv) => {
-    const profile = profileById.get(inv.invitee_user_id) ?? null;
+    const profile = identityById.get(inv.invitee_user_id) ?? null;
     return {
       id: inv.id,
       invitee_user_id: inv.invitee_user_id,
       inviter_user_id: inv.inviter_user_id,
       created_at: inv.created_at,
-      invitee_name: profile?.full_name ?? null,
+      invitee_name: profile?.display_name ?? null,
       invitee_avatar: profile?.avatar_url ?? null,
       can_revoke:
         inv.inviter_user_id === auth.userId ||

@@ -1784,6 +1784,312 @@
           }
         }
       ]
+    },
+    {
+      "id": "sec5-profiles-anon-read-refused",
+      "group": "SEC-5 profiles read",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "profiles is not readable by an unauthenticated caller: no table grant, no column grant, no SELECT policy for anon.",
+      "expected": "Every anon SELECT on profiles, of any column, is refused 42501; the owner of the row can still read it.",
+      "reference": "migration 372 (REVOKE SELECT on the table and every column FROM anon; migration 165 had left a 34-column anon grant)",
+      "steps": [
+        {
+          "label": "control: the organisation owner reads their own profiles row",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "attack: an anonymous caller selects the id column",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller selects display_name (a column migration 165 granted to anon)",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT display_name FROM public.profiles LIMIT 1",
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller executes my_profile()",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT * FROM public.my_profile()",
+          "expect": {
+            "error": "42501"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec5-profiles-cross-org-read-empty",
+      "group": "SEC-5 profiles read",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "A signed-in user reads their own profiles row and the rows of members of organisations they belong to, and no other organisation's row.",
+      "expected": "The owner of org A reading the org B member's row gets no rows; after that member also joins org A the same read returns the row.",
+      "reference": "migration 372 (policy profiles_select_own_or_shared_org replaces the Public read policy, USING true)",
+      "steps": [
+        {
+          "label": "attack: org A's owner reads the org B member's profiles row directly",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "rows": 0
+          }
+        },
+        {
+          "label": "attack: org A's owner reads the platform admin's profiles row directly",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@admin"
+          ],
+          "expect": {
+            "rows": 0
+          }
+        },
+        {
+          "label": "attack: org A's owner lists every fixture profile and sees only their own",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE id = ANY(ARRAY[$1::uuid, $2::uuid, $3::uuid])",
+          "params": [
+            "@admin",
+            "@owner_a",
+            "@member_b"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "setup: the member of org B also joins org A (a shared organisation)",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'member')",
+          "params": [
+            "@org_a",
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: with an organisation in common, org A's owner reads the member's row",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec5-profiles-email-column-refused",
+      "group": "SEC-5 profiles read",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "email is outside the authenticated column grant on profiles: not on the caller's own row, not on a same-organisation member's row, not through SELECT *; the only own-row path is my_profile().",
+      "expected": "Selecting email directly raises 42501 for the owner of the row and for a peer; my_profile() returns the owner their own email and only theirs.",
+      "reference": "migration 372 (table-level SELECT replaced by a column grant without email; my_profile() SECURITY DEFINER)",
+      "steps": [
+        {
+          "label": "setup: the member of org B also joins org A (a shared organisation)",
+          "kind": "setup",
+          "sql": "INSERT INTO public.org_memberships (org_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'member')",
+          "params": [
+            "@org_a",
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "attack: an authenticated user selects email from their own profiles row",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT email FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an authenticated user selects email from a same-organisation member's row",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT email FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "attack: an authenticated user runs SELECT * on profiles",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT * FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        },
+        {
+          "label": "control: a same-organisation member's non-sensitive columns are readable",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT display_name FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "rows": 1
+          }
+        },
+        {
+          "label": "control: my_profile() returns the caller's own row with their email",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT (email = 'proof4-owner-a@chain-proof.invalid') AS own_email, (SELECT count(*) FROM public.my_profile()) AS rows_returned FROM public.my_profile()",
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "own_email": "true",
+              "rows_returned": "1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sec5-community-identity-anonymous-no-name",
+      "group": "SEC-5 profiles read",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "R8.7 per-user anonymity at the database: a default-anonymous member's name, company and avatar are never returned by community_identity, by id or by name search, while the verified marker stays; email and is_platform_admin are never in its result.",
+      "expected": "By id the anonymous member comes back with the name fields NULL, anonymous true, verified true; a name-prefix search does not find them; anon cannot execute the function; the result has no email column.",
+      "reference": "migration 372 (community_identity SECURITY DEFINER); spec 07 Amendment 2026-09-25 (R8.7); migration 336 (default_anonymous)",
+      "steps": [
+        {
+          "label": "setup: the member of org B is a default-anonymous, verified Community member",
+          "kind": "setup",
+          "sql": "INSERT INTO public.community_member_profiles (user_id, org_type, verified, verified_at, verification_method, organisation_key, default_anonymous) VALUES ($1::uuid, 'other', true, now(), 'write-in', 'proof4-sec5', true)",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "row_count": 1
+          }
+        },
+        {
+          "label": "control: a named member comes back with their display name, not anonymous",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT (display_name = 'Proof4 owner_a') AS named, anonymous FROM public.community_identity(ARRAY[$1::uuid], NULL)",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "named": "true",
+              "anonymous": "false"
+            }
+          }
+        },
+        {
+          "label": "attack: ask for the default-anonymous member by id and look for a name, company or avatar",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT (display_name IS NULL AND company_name IS NULL AND avatar_url IS NULL) AS name_withheld, verified, anonymous FROM public.community_identity(ARRAY[$1::uuid], NULL)",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "name_withheld": "true",
+              "verified": "true",
+              "anonymous": "true"
+            }
+          }
+        },
+        {
+          "label": "attack: find the default-anonymous member by a name prefix",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT count(*) FILTER (WHERE user_id = $1::uuid) AS found_anonymous, count(*) FILTER (WHERE user_id = $2::uuid) AS found_named FROM public.community_identity(NULL, 'Proof4')",
+          "params": [
+            "@member_b",
+            "@owner_a"
+          ],
+          "expect": {
+            "rows": 1,
+            "equals": {
+              "found_anonymous": "0",
+              "found_named": "1"
+            }
+          }
+        },
+        {
+          "label": "attack: read the email of a member through community_identity",
+          "kind": "attack",
+          "as": "user:owner_a",
+          "sql": "SELECT email FROM public.community_identity(ARRAY[$1::uuid], NULL)",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "error": "42703"
+          }
+        },
+        {
+          "label": "attack: an anonymous caller executes community_identity",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT user_id FROM public.community_identity(ARRAY[$1::uuid], NULL)",
+          "params": [
+            "@member_b"
+          ],
+          "expect": {
+            "error": "42501"
+          }
+        }
+      ]
     }
   ]
 }

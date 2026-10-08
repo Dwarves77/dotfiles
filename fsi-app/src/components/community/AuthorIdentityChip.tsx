@@ -15,7 +15,7 @@
  */
 
 import { ShieldCheck } from "lucide-react";
-import { formatAuthorIdentity } from "./identity-format";
+import { authorIdentityLabel } from "./identity-format";
 import type { CommunityAuthorIdentity } from "./types";
 
 interface AuthorIdentityChipProps {
@@ -23,7 +23,9 @@ interface AuthorIdentityChipProps {
 }
 
 export function AuthorIdentityChip({ identity }: AuthorIdentityChipProps) {
-  const line = formatAuthorIdentity(identity);
+  // SEC-5 (migration 372): an anonymous author is labelled "Anonymous member" and keeps the Verified marker; the
+  // label is never blank, so the marker always has a line beside it.
+  const line = authorIdentityLabel(identity);
   if (!line) return null;
 
   return (

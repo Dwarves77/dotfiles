@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
+import { authorBlockForPost, loadCommunityIdentities, type CommunityIdentityRow } from "@/lib/community/identity.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -35,27 +36,33 @@ interface PostRow {
   reply_count: number;
   attribution: string | null;
   promoted_from_post_id: string | null;
+  /** R8.7 (migration 336): the per-post anonymity flag, applied below at the row. */
+  anonymous: boolean;
 }
 
-interface AuthorProfile {
-  user_id: string;
-  name: string | null;
-  headshot_url: string | null;
+async function loadAuthorIdentity(
+  supabase: SupabaseClient,
+  authorUserId: string | null
+): Promise<CommunityIdentityRow | null> {
+  if (!authorUserId) return null;
+  const { byId, error } = await loadCommunityIdentities(supabase, [authorUserId]);
+  if (error) console.warn("community post route: identity lookup failed", error);
+  return byId.get(authorUserId) ?? null;
 }
 
-function shapePost(row: PostRow, profile: AuthorProfile | null) {
+function shapePost(row: PostRow, identity: CommunityIdentityRow | null) {
   return {
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
     author_user_id: row.author_user_id,
-    author: profile
-      ? {
-          user_id: profile.user_id,
-          name: profile.name ?? null,
-          headshot_url: profile.headshot_url ?? null,
-        }
-      : null,
+    // Per-post anonymity (community_posts.anonymous) nulls name and headshot here; the per-user default came
+    // back from the RPC already applied. One rule in each place (identity.mjs authorBlockForPost).
+    author: authorBlockForPost({
+      authorUserId: row.author_user_id,
+      identity,
+      postAnonymous: row.anonymous,
+    }),
     title: row.title,
     body: row.body,
     created_at: row.created_at,
@@ -72,7 +79,7 @@ async function loadPost(supabase: SupabaseClient, postId: string) {
     .select(
       `id, group_id, parent_post_id, author_user_id, title, body,
        created_at, last_reply_at, reply_count, attribution,
-       promoted_from_post_id`
+       promoted_from_post_id, anonymous`
     )
     .eq("id", postId)
     .maybeSingle();
@@ -99,19 +106,10 @@ export async function GET(
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  let profile: AuthorProfile | null = null;
-  if (row.author_user_id) {
-    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep AuthorProfile shape.
-    const { data: p } = await auth.supabase
-      .from("profiles")
-      .select("user_id:id, name:full_name, headshot_url:avatar_url")
-      .eq("id", row.author_user_id)
-      .maybeSingle();
-    profile = (p as AuthorProfile) ?? null;
-  }
+  const identity = await loadAuthorIdentity(auth.supabase, row.author_user_id);
 
   return NextResponse.json(
-    { post: shapePost(row, profile) },
+    { post: shapePost(row, identity) },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }
@@ -202,7 +200,7 @@ export async function PATCH(
     .select(
       `id, group_id, parent_post_id, author_user_id, title, body,
        created_at, last_reply_at, reply_count, attribution,
-       promoted_from_post_id`
+       promoted_from_post_id, anonymous`
     )
     .maybeSingle();
 
@@ -217,19 +215,10 @@ export async function PATCH(
   }
 
   const row = updated as PostRow;
-  let profile: AuthorProfile | null = null;
-  if (row.author_user_id) {
-    // Migrated 2026-05-15 (075 Phase 2): user_profiles -> profiles. Aliases keep AuthorProfile shape.
-    const { data: p } = await auth.supabase
-      .from("profiles")
-      .select("user_id:id, name:full_name, headshot_url:avatar_url")
-      .eq("id", row.author_user_id)
-      .maybeSingle();
-    profile = (p as AuthorProfile) ?? null;
-  }
+  const identity = await loadAuthorIdentity(auth.supabase, row.author_user_id);
 
   return NextResponse.json(
-    { post: shapePost(row, profile) },
+    { post: shapePost(row, identity) },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }

@@ -127,3 +127,114 @@ export function buildAuthorIdentityForRender({ memberProfile, name, company, pos
     anonymous,
   });
 }
+
+// ── SEC-5 (migration 372, 2026-10-08): who may read which profile columns ───────────────────────────────────
+// After migration 372 a signed-in user can read the profile ROW of themselves and of members of an organisation
+// they belong to, never email, and no one but the service role reads another organisation's row. Community has to
+// show an author from ANY organisation, so every cross-organisation identity read goes through the SECURITY DEFINER
+// RPC community_identity(p_ids, p_query), which applies the PER-USER half of R8.7 in SQL (default_anonymous withholds
+// name, company and avatar; verified stays) and never returns email or is_platform_admin. The PER-POST half
+// (community_posts.anonymous) is applied here, at the row, by the routes: one rule in each place, no third copy.
+// An own-row read of the two columns the browser may no longer select (email) goes through my_profile().
+// Both helpers take an injected client (anything with .rpc), so they are proven on fixtures with no database.
+
+/**
+ * One row of the community_identity RPC (migration 372). The per-user half of R8.7 is already applied: a
+ * default-anonymous member arrives with display_name, company_name and avatar_url null and anonymous true;
+ * verified is never withheld. Never carries email or is_platform_admin.
+ * @typedef {{
+ *   user_id: string,
+ *   display_name: string|null,
+ *   company_name: string|null,
+ *   job_title: string|null,
+ *   region: string|null,
+ *   avatar_url: string|null,
+ *   verified: boolean,
+ *   anonymous: boolean,
+ * }} CommunityIdentityRow
+ */
+
+export const COMMUNITY_IDENTITY_RPC = "community_identity";
+export const MY_PROFILE_RPC = "my_profile";
+/** The RPC returns at most this many rows per call (migration 372 slices p_ids to it); larger sets go in chunks. */
+export const IDENTITY_IDS_PER_CALL = 200;
+
+/**
+ * Per-post OR per-user anonymity, resolved at the row. The RPC already withholds a default-anonymous user's name,
+ * company and avatar and says so in `anonymous`; a post flagged anonymous withholds them too. Either one is enough.
+ *
+ * @param {{ postAnonymous?: boolean|null, identity?: { anonymous?: boolean|null } | null }} args
+ * @returns {boolean}
+ */
+export function effectiveAnonymous({ postAnonymous, identity } = {}) {
+  return postAnonymous === true || identity?.anonymous === true;
+}
+
+/**
+ * The legacy `author` block of a post or reply ({ user_id, name, headshot_url }) built from a community_identity
+ * row, with per-post anonymity applied. An anonymous author keeps the block (so the row still has an author) with
+ * name and headshot null; the verified marker travels separately, in author_identity. Returns null when there is no
+ * author or no identity row (a deleted author), never a stand-in.
+ *
+ * @param {{ authorUserId?: string|null, identity?: { user_id: string, display_name?: string|null, avatar_url?: string|null, anonymous?: boolean|null } | null, postAnonymous?: boolean|null }} args
+ * @returns {{ user_id: string, name: string|null, headshot_url: string|null } | null}
+ */
+export function authorBlockForPost({ authorUserId, identity, postAnonymous } = {}) {
+  if (!authorUserId || !identity) return null;
+  const anonymous = effectiveAnonymous({ postAnonymous, identity });
+  return {
+    user_id: identity.user_id ?? authorUserId,
+    name: anonymous ? null : identity.display_name ?? null,
+    headshot_url: anonymous ? null : identity.avatar_url ?? null,
+  };
+}
+
+/**
+ * Cross-organisation identities through community_identity. Pass ids (a post page's authors, a roster) and/or a name
+ * prefix query (search, invite candidates). Never throws: an RPC error returns an empty map and the message, so a
+ * feed degrades to "no author" rather than failing. Ids are deduplicated and sent in chunks of IDENTITY_IDS_PER_CALL.
+ *
+ * @param {any} supabase  a Supabase client (anything with .rpc)
+ * @param {Array<string|null|undefined>|null} ids
+ * @param {string|null} [query]
+ * @returns {Promise<{ byId: Map<string, CommunityIdentityRow>, rows: CommunityIdentityRow[], error: string|null }>}
+ */
+export async function loadCommunityIdentities(supabase, ids, query = null) {
+  /** @type {Map<string, CommunityIdentityRow>} */
+  const byId = new Map();
+  /** @type {CommunityIdentityRow[]} */
+  const rows = [];
+  const wanted = Array.isArray(ids) ? Array.from(new Set(ids.filter(Boolean))) : null;
+  const hasQuery = typeof query === "string" && query.trim().length > 0;
+  if ((!wanted || wanted.length === 0) && !hasQuery) return { byId, rows, error: null };
+
+  const chunks = [];
+  if (wanted && wanted.length > 0) {
+    for (let i = 0; i < wanted.length; i += IDENTITY_IDS_PER_CALL) chunks.push(wanted.slice(i, i + IDENTITY_IDS_PER_CALL));
+  } else {
+    chunks.push(null);
+  }
+  for (const chunk of chunks) {
+    const { data, error } = await supabase.rpc(COMMUNITY_IDENTITY_RPC, { p_ids: chunk, p_query: hasQuery ? query : null });
+    if (error) return { byId: new Map(), rows: [], error: error.message };
+    for (const r of Array.isArray(data) ? data : []) {
+      rows.push(r);
+      byId.set(r.user_id, r);
+    }
+  }
+  return { byId, rows, error: null };
+}
+
+/**
+ * The caller's own full profile row (email and is_platform_admin included) through my_profile(), the only own-row
+ * path to the columns migration 372 removed from the direct column grant. Null when the RPC returns no row.
+ *
+ * @param {any} supabase  a Supabase client (anything with .rpc)
+ * @returns {Promise<{ profile: any|null, error: string|null }>}
+ */
+export async function loadMyProfile(supabase) {
+  const { data, error } = await supabase.rpc(MY_PROFILE_RPC);
+  if (error) return { profile: null, error: error.message };
+  const row = Array.isArray(data) ? data[0] : data;
+  return { profile: row ?? null, error: null };
+}

@@ -23,6 +23,7 @@ import { VERTICALS } from "@/lib/constants";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
+import { effectiveAnonymous, loadCommunityIdentities, loadMyProfile } from "@/lib/community/identity.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,9 @@ function titleCase(s: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Shown for an author whose identity is withheld (R8.7: per post or per user). */
+const ANONYMOUS_MEMBER = "Anonymous member";
+
 /** Display-name chain: full_name ?? display_name ?? email ?? uuid slice. */
 function memberDisplayName(p: {
   full_name?: string | null;
@@ -119,7 +123,8 @@ interface ProfileRow {
   id: string;
   full_name: string | null;
   display_name: string | null;
-  email: string | null;
+  /** Own row only (my_profile); same-organisation peers are read without email. */
+  email?: string | null;
   jurisdiction_overrides: string[] | null;
   workspace_role: string | null;
   verifier_status: string | null;
@@ -134,14 +139,10 @@ export default async function CommunityPage() {
   if (!user) redirect("/login?redirect=/community");
 
   // ── Current user profile ──
-  const { data: meProfile, error: meErr } = await supabase
-    .from("profiles")
-    .select(
-      "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
-    )
-    .eq("id", user.id)
-    .maybeSingle();
-  if (meErr) console.warn("community: profile read failed", meErr.message);
+  // SEC-5 (migration 372): email is no longer in the browser-role column grant, so the caller's own full row
+  // (email included) comes from my_profile(), the only own-row path to it.
+  const { profile: meProfile, error: meErr } = await loadMyProfile(supabase);
+  if (meErr) console.warn("community: profile read failed", meErr);
 
   const me = (meProfile as ProfileRow | null) ?? {
     id: user.id,
@@ -221,7 +222,7 @@ export default async function CommunityPage() {
       ? supabase
           .from("community_posts")
           .select(
-            "id, group_id, title, body, reply_count, created_at, last_reply_at, author_user_id, referenced_intelligence_item_ids, signed_off_at, signed_off_by"
+            "id, group_id, title, body, reply_count, created_at, last_reply_at, author_user_id, referenced_intelligence_item_ids, signed_off_at, signed_off_by, anonymous"
           )
           // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
           .in("group_id", roomGroupIds)
@@ -232,8 +233,9 @@ export default async function CommunityPage() {
     me.org_id
       ? supabase
           .from("profiles")
+          // Same-organisation peers: readable under the migration 372 policy; email is not in the grant.
           .select(
-            "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
+            "id, full_name, display_name, jurisdiction_overrides, workspace_role, verifier_status, org_id"
           )
           .eq("org_id", me.org_id)
       : Promise.resolve({ data: [] as unknown[], error: null }),
@@ -258,6 +260,7 @@ export default async function CommunityPage() {
     referenced_intelligence_item_ids: string[] | null;
     signed_off_at: string | null;
     signed_off_by: string | null;
+    anonymous: boolean | null;
   }>;
 
   // ── Sign-off requests for these posts (migration 153) ──
@@ -315,52 +318,30 @@ export default async function CommunityPage() {
       ].filter((id): id is string => Boolean(id))
     )
   );
-  const authorMap = new Map<string, ProfileRow>();
-  const orgNameById = new Map<string, string>();
-  if (authorIds.length > 0) {
-    const { data: authorRows } = await supabase
-      .from("profiles")
-      .select(
-        "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
-      )
-      // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
-      .in("id", authorIds);
-    for (const row of (authorRows ?? []) as ProfileRow[]) authorMap.set(row.id, row);
-
-    // Artboard 12's discussion row reads "Opened by A. Weiss · Dietl": the author's
-    // ORGANIZATION, not their workspace. Resolved here, bounded by the same author set
-    // the profiles read above already produced (F39: one page render's own row set).
-    const orgIds = Array.from(
-      new Set(
-        Array.from(authorMap.values())
-          .map((a) => a.org_id)
-          .filter((id): id is string => Boolean(id))
-      )
-    );
-    if (orgIds.length > 0) {
-      const { data: orgRows } = await supabase
-        .from("organizations")
-        .select("id, name")
-        // fitness-allow: F39 (scoped to one page render's own bounded row set, not corpus-scale)
-        .in("id", orgIds);
-      for (const o of (orgRows ?? []) as Array<{ id: string; name: string | null }>) {
-        if (o.name) orgNameById.set(o.id, o.name);
-      }
-    }
-  }
+  // SEC-5 (migration 372): authors and sign-off requesters are usually in other organisations, so their identity
+  // comes from the community_identity RPC (name, company, verified, the per-user anonymity default applied in SQL),
+  // not from profiles. The per-post flag (community_posts.anonymous) is applied below, at the row, once.
+  // Artboard 12's discussion row reads "Opened by A. Weiss · Dietl": the author's ORGANIZATION (company_name).
+  const { byId: identityById, error: identityErr } = await loadCommunityIdentities(supabase, authorIds);
+  if (identityErr) console.warn("community: author identity read failed", identityErr);
+  const postAnonymousById = new Map(postRows.map((p) => [p.id, p.anonymous === true] as const));
 
   const threadsByGroup = new Map<string, ThreadVM[]>();
   for (const p of postRows) {
-    const author = p.author_user_id ? authorMap.get(p.author_user_id) ?? null : null;
+    const identity = p.author_user_id ? identityById.get(p.author_user_id) ?? null : null;
     const isYou = p.author_user_id === user.id;
+    const anonymous = effectiveAnonymous({ postAnonymous: p.anonymous, identity });
     const authorName = isYou
       ? myName
-      : author
-        ? memberDisplayName(author)
+      : identity
+        ? anonymous
+          ? ANONYMOUS_MEMBER
+          : (identity.display_name as string | null) ?? "Member"
         : "Former member";
-    const isOwner = (isYou ? me.workspace_role : author?.workspace_role) === "owner";
-    const authorOrgId = isYou ? me.org_id : author?.org_id ?? null;
-    const authorOrg = authorOrgId ? orgNameById.get(authorOrgId) ?? null : null;
+    // Cross-organisation workspace role is not part of the R8.7 identity (name, company, role, badge), so it is
+    // not read for other authors; the flag only ever described the viewer's own row and same-organisation peers.
+    const isOwner = isYou && me.workspace_role === "owner";
+    const authorOrg = isYou || !anonymous ? (identity?.company_name as string | null | undefined) ?? null : null;
     const req = signoffByPost.get(p.id) ?? null;
     const signoff = req
       ? {
@@ -371,8 +352,10 @@ export default async function CommunityPage() {
             req.requested_by === user.id
               ? myName
               : (() => {
-                  const rp = authorMap.get(req.requested_by);
-                  return rp ? memberDisplayName(rp) : "A member";
+                  const rp = identityById.get(req.requested_by);
+                  if (!rp) return "A member";
+                  const hidden = effectiveAnonymous({ postAnonymous: postAnonymousById.get(req.post_id), identity: rp });
+                  return hidden ? ANONYMOUS_MEMBER : (rp.display_name as string | null) ?? "A member";
                 })(),
         }
       : null;
