@@ -59,13 +59,13 @@ test("mapper: every covered column carries the file's own value; a deficit stays
   assert.equal(bow.demand_constraint, "RED");
 });
 
-test("mapper: every uncovered column is NULL (months, band, rating), obs_status is M, and no column outside the table is named", () => {
+test("mapper: every uncovered column is NULL (months, band, rating), obs_status is L (not covered), and no column outside the table is named", () => {
   for (const r of mapHeatmapFile(FILE, { sourceId: SRC_ID }).rows) {
     assert.equal(r.queue_months_p50, null);
     assert.equal(r.queue_months_p90, null);
     assert.equal(r.capacity_band_mw, null);
     assert.equal(r.confidence_admiralty, null);
-    assert.equal(r.obs_status, "M");
+    assert.equal(r.obs_status, "L");
     for (const k of Object.keys(r)) assert.ok(ALL_COLUMNS.includes(k), `unknown column ${k}`);
     assert.equal(Object.keys(r).length, ALL_COLUMNS.length, "every column is stated explicitly, NULL where uncovered");
   }
@@ -274,7 +274,7 @@ test("apply with every gate armed writes through the guarded path, each row carr
   const out = await run({ argv: ["node", "x", "--apply"], env: ARMED, fetchFn: stubFetch(), deps: d, ...quiet });
   assert.equal(out.exitCode, 0);
   assert.equal(d.log.inserted.length, 384);
-  assert.ok(d.log.inserted.every((r) => r.source_id === SRC_ID && r.origin_class === "official" && r.obs_status === "M"));
+  assert.ok(d.log.inserted.every((r) => r.source_id === SRC_ID && r.origin_class === "official" && r.obs_status === "L"));
   // second run against what the first wrote: nothing to create or update
   const stored = d.log.inserted.map((r, i) => ({ queue_id: `q${i}`, ...r }));
   const d2 = fakeDeps({ rows: stored });
@@ -356,4 +356,13 @@ test("a duplicate key across two files is ignored with a warning, so the unique 
   });
   assert.equal(out.summary.parsed, 128);
   assert.equal(warns.filter((w) => /duplicate key/.test(w)).length, 128);
+});
+
+test("obs_status L (Missing, not covered) is in the shared vocabulary, and M is not used where no covered source omits a value", async () => {
+  const { OBS_STATUS } = await import("../../../src/lib/contracts/vocabularies.mjs");
+  const { OBS_STATUS_NO_MONTHS } = await import("./ukpn-capacity-heatmap-producer.mjs");
+  assert.equal(OBS_STATUS_NO_MONTHS, "L");
+  assert.equal(OBS_STATUS.L.label, "Missing, not covered");
+  assert.equal(OBS_STATUS.L.isPresent, false);
+  assert.ok(mapHeatmapFile(FILE).rows.every((r) => r.obs_status !== "M"));
 });

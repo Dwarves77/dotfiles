@@ -45,7 +45,7 @@
 --      EXPANSION, and questions-on-change.test.mjs fails on this PR until the entry lands.
 --
 -- WHAT THIS DOES NOT DO. queue_months_p50 and queue_months_p90 stay NULL for every row this dataset produces (no free
--- dataset found states them), with obs_status 'M' written by the producer. The reader (GridQueuePanel) is not changed.
+-- dataset found states them), with obs_status 'L' (Missing, not covered) written by the producer. The reader (GridQueuePanel) is not changed.
 --
 -- Reversible while no producer has written: ALTER TABLE ... DROP CONSTRAINT for the eight constraints, DROP the ten
 -- columns, SET NOT NULL on capacity_band_mw (only if no NULL band exists), DROP TRIGGER propagation_outbox_trg.
@@ -251,7 +251,7 @@ BEGIN
       INSERT INTO public.grid_connection_queues
         (jurisdiction_id, dso_name, substation_ref, substation_name, demand_firm_mw, demand_available_mw, demand_constraint,
          demand_constraint_limiting_factor, source_id, origin_class, derivation, obs_status, as_of)
-        VALUES (ok_jur, 'selfcheck DSO', 'sub-e', 'Selfcheck 11kV', 45.7, -3.1, 'RED', 'Thermal', v_src, 'official', 'observed', 'M', '2026-09-01');
+        VALUES (ok_jur, 'selfcheck DSO', 'sub-e', 'Selfcheck 11kV', 45.7, -3.1, 'RED', 'Thermal', v_src, 'official', 'observed', 'L', '2026-09-01');
       rejected := false;
       BEGIN
         INSERT INTO public.grid_connection_queues (jurisdiction_id, dso_name, substation_ref, as_of)

@@ -11,12 +11,12 @@ Fixtures only, nothing applied, no live database. Migration 379 is NOT APPLIED.
 - Source (rule 18): the producer refuses an apply when the publisher has no active `sources` row (`SourceNotRegisteredError`, exit 1, naming the command). `--register-source --apply` registers it through `db.mjs registerSource` at the tier `classTierForHost(host, name)` returns. That tier is 7 (class `company`, via the name rule; the host-only rules return null for this host). Host verdict batch `scripts/maintenance/host-verdicts/host-verdicts-379.json` (class company, evidence quoted from the saved metadata) places the host by rule, per the coordinator's note. The number 379 is the lane's migration number, chosen so it cannot collide with another lane's batch number.
 - Migration 379 (NOT APPLIED): ten nullable columns on `grid_connection_queues` (substation_ref, substation_name, demand_firm_mw, demand_available_mw with no lower bound, demand_constraint GREEN/AMBER/RED, demand_constraint_limiting_factor, source_id to sources, origin_class, derivation, confidence_admiralty), `capacity_band_mw` nullable behind a CHECK "a band or a substation", a CHECK that a demand MW figure carries source_id, origin_class and derivation, `UNIQUE (dso_name, substation_ref, as_of)`, and the outbox trigger in migration 352's form (`emit_propagation_event('queue_id','jurisdiction_id')`, entity = the jurisdiction). Self-check inside a rolled-back sub-transaction: three refusal attacks (figure without envelope, unknown constraint, row with neither band nor substation), the duplicate-key attack and a negative-headroom acceptance leg (both need one `sources` row and skip with a NOTICE without it), and the outbox entity leg.
 - Readers (F14 class, granted by the coordinator): `GridQueuePanel.tsx` selects the new columns and orders band-level rows first; `GridQueuePanelView.tsx` shows substation name, operator, headroom (a deficit stays negative) and the constraint. `questions-on-change.mjs` gains `grid_connection_queues` in `EMITTING_TABLE_EVENT_MAP` (value_revised), which the existing test "every table that emits outbox events has a mapping" requires once the trigger exists. `load-registry.test.mjs` made a superset assertion (granted).
-- Inventories: `docs/inventories/migrations.md` regenerated with its generator. `APPLIED-MAP.json`: `build-applied-map.mjs` on master has no `--add-never` option (usage requires a reconciliation JSON), so the entry was added by a script that loads the committed map, adds `never:379_...` through the module's own `fileKey` and `serializeMap`, with the note in the generator's own wording and the same header-line length as the 372 entry. One line added; the map tests pass (14 of 14). The branch was rebased onto master once (a 375 entry landed beside it) and the entry re-added the same way.
+- Inventories: `docs/inventories/migrations.md` regenerated with its generator. `APPLIED-MAP.json`: master's map taken after merging origin/master (PR 1016 added `--add-never`), then `build-applied-map.mjs --add-never --write` added the one `never:379_...` entry; the map tests pass.
 
 ## Columns
 
-- Covered: jurisdiction_id (GB), dso_name ("UK Power Networks, London Power Network", from the file's publisher and coverage), as_of, obs_status (M), and the ten migration 379 columns.
-- Left NULL, never estimated: queue_months_p50, queue_months_p90 (no field in the file states a duration in months; the row's obs_status is M, so `evaluateGridQueueGate` returns UNKNOWN, never CLEAR), capacity_band_mw (no band published), confidence_admiralty (the register states no rating).
+- Covered: jurisdiction_id (GB), dso_name ("UK Power Networks, London Power Network", from the file's publisher and coverage), as_of, obs_status (L), and the ten migration 379 columns.
+- Left NULL, never estimated: queue_months_p50, queue_months_p90 (no field in the file states a duration in months; the row's obs_status is L, so `evaluateGridQueueGate` returns UNKNOWN, never CLEAR), capacity_band_mw (no band published), confidence_admiralty (the register states no rating).
 - Not mapped though present in the file: demandMaximum, demandMinimum, all generation fields, reverse power flow, GSP, BSP, coordinates, PastConnectionActivity (offers made and accepted, budget estimates). They would need columns and a decision on summing across voltages.
 
 ## Fetch evidence and a deviation to disclose
@@ -60,7 +60,7 @@ Constraint split in the file: GREEN 126, AMBER 1, RED 1; the RED substation (Bow
 - Tier 7 comes from the class table (company). It is the table's answer, not a default; a ruling that a licensed network operator is a higher class belongs in the class table.
 - `in_all` is false (name-only, like the SBTi entry): `run-registered.test.mjs` pins the exact in_all list, outside this lane's write set, and an all-sweep apply would fail on this entry until its source row is registered. Flip to true together with that test.
 - `as_of` is the file's `issued` (2026-05-29), not its `date` (2025-03-01, the start of the validity window 2025-03-01 to 2026-11-30).
-- Months: obs_status M as the brief states; the vocabulary also has L "Missing, not covered", arguably more exact.
+- Months: obs_status L (Missing, not covered), per the coordinator's ruling after review (M only where a covered source omits a value). Rulings accepted: migration 379's additive columns, origin_class official for a licensed operator's own statutory disclosure (LTDS is a licence obligation), in_all false until the source row is registered, tier 7 by the name rule with the host-verdict batch, the fetch-count deviation.
 
 ## NOT done
 
@@ -71,6 +71,5 @@ Constraint split in the file: GREEN 126, AMBER 1, RED 1; the RED substation (Bow
 
 ## Open items
 
-- `build-applied-map.mjs --add-never` named in the lane terms does not exist on master; the entry was added through the module's exports (see above). A flag or a derivation of never-applied entries from the headers would remove this manual step for every migration lane.
 - A bulk insert writes one outbox row per substation (384 for three areas), each naming GB; the drain's per-event cap and question dedup bound the effect, not measured here.
 - The first live dry dispatch (`producer=registry registry_producer=ukpn-capacity-heatmap`) is the coordinator's.

@@ -32,8 +32,17 @@
 // run's harness artifact (family judgement-drain) recording switch state, kinds, counts, leases held and
 // released. A crashed session's leases go stale and are claimable, so a lost `--finish` never wedges an item.
 //
+// SELECTION MODES (lane VERD-1, 2026-10-08). A kind is planned in its default mode "pending" unless it registers
+// another (kinds.mjs `modes`). The ledger kind registers "stale": candidates whose committed verdicts are all
+// under an older prompt_version, so a stale verdict is re-authored as a NEW verdict under the live prompt (never
+// edited in place). `--kind <id or prefix> --mode stale` plans that kind alone in that mode: same exporter (one
+// more flag), same lease key (candidate_id), same batch path rule, candidates oldest first. A mode never mixes
+// with the default plan, so two modes of one kind cannot be handed the same next batch path in one run.
+// `--dry` reads the switch (STEP 0 still applies), exports, and prints the plan, but takes no lease and writes no
+// plan file: a read-only look at what a run would hand out.
+//
 // USAGE
-//   node scripts/drain/plan-drain.mjs [--out <plan.json>] [--run-id <id>] [--limit <n>]
+//   node scripts/drain/plan-drain.mjs [--out <plan.json>] [--run-id <id>] [--limit <n>] [--kind <id>] [--mode <mode>] [--dry]
 //   node scripts/drain/plan-drain.mjs --finish <plan.json> [--prs <kind=url,kind=url>]
 // Exit 0 always for a normal outcome (off, empty, planned, finished): a halted drain is not an error. Exit 1 for
 // bad arguments or an unreadable plan. Exit 2 when the credentials are absent AND the drain is on (cannot happen:
@@ -48,7 +57,7 @@ import { tmpdir } from "node:os";
 import { isMainModule } from "../lib/is-main.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { acquireLease, releaseLease } from "../lib/mutation-lease.mjs";
-import { KINDS, KIND_ORDER, nextBatchPath } from "./kinds.mjs";
+import { KINDS, KIND_ORDER, DEFAULT_MODE, nextBatchPath, exportArgvFor, kindModes, resolveKind } from "./kinds.mjs";
 import { readDrainSwitch } from "./switch.mjs";
 import { emitJudgementDrainArtifact } from "./artifact.mjs";
 
@@ -86,43 +95,78 @@ export function orderKinds(rows) {
 }
 
 /**
+ * Pure. The stale selection: keep an exported item only if it carries a verdict under a prompt_version other than
+ * the live one, oldest candidate (first_seen_at) first, ties by candidate id. An item with no verdict_prompt_version
+ * is not stale and is dropped; the exporter already selects, this is the plan-level guard that a stale plan never
+ * lists a row whose verdict is current. @param {object[]} items @param {string} currentVersion
+ */
+export function selectStaleItems(items, currentVersion) {
+  const t = (v) => { const n = Date.parse(v); return Number.isNaN(n) ? Infinity : n; };
+  return (items ?? [])
+    .filter((it) => typeof it?.verdict_prompt_version === "string" && it.verdict_prompt_version !== currentVersion)
+    .sort((a, b) => t(a.first_seen_at) - t(b.first_seen_at) || String(a.candidate_id ?? a.id ?? "").localeCompare(String(b.candidate_id ?? b.id ?? "")));
+}
+
+/**
  * Plan one drain run. Pure over injected deps; writes nothing itself.
  * @param {object} deps
  * @param {() => Promise<import("./switch.mjs").DrainSwitchState>} deps.readSwitch
- * @param {(kind: object, o: {limit: number}) => Promise<{ok: boolean, items: object[], source?: object, error?: string}>} deps.exportQueue
+ * @param {(kind: object, o: {limit: number, mode: string}) => Promise<{ok: boolean, items: object[], source?: object, error?: string, current_prompt_version?: string|null}>} deps.exportQueue
  * @param {(kind: object) => string[]} deps.listBatchDir
  * @param {(itemId: string, holder: string, lane: string, staleSeconds: number) => Promise<{acquired: boolean, cur_holder?: string}>} deps.acquire
  * @param {() => string} deps.now
  * @param {object} o
  * @param {string} o.runId
  * @param {number} [o.limit]  per-kind export limit (default: maxBatchesPerRun * batchSize)
+ * @param {string|null} [o.kindId]  plan only this kind (required for a mode other than "pending")
+ * @param {string} [o.mode]  selection mode, "pending" by default; a kind must register any other (kinds.mjs)
+ * @param {boolean} [o.dry]  take no lease: the plan lists what a run would lease (entry.would_lease)
  */
-export async function planDrain(deps, { runId, limit = null }) {
+export async function planDrain(deps, { runId, limit = null, kindId = null, mode = DEFAULT_MODE, dry = false }) {
   const holder = `drain-${runId}`;
+  const only = kindId ? KINDS.find((k) => k.id === kindId) : null;
+  if (kindId && !only) throw new Error(`planDrain: unknown kind "${kindId}"`);
+  if (mode !== DEFAULT_MODE) {
+    if (!only) throw new Error(`planDrain: mode "${mode}" requires a kind`);
+    if (!kindModes(only).includes(mode)) throw new Error(`kind ${only.id} has no mode "${mode}" (modes: ${kindModes(only).join(", ")})`);
+  }
   const sw = await deps.readSwitch(); // STEP 0: the first and, when off, the only read.
   if (!sw.on) {
     return { schema: PLAN_SCHEMA, run_id: runId, generated_at: deps.now(), drain: "off", switch: sw, holder, kinds: [], leases: [], totals: { kinds_planned: 0, batches: 0, items: 0, leases_held: 0 } };
   }
 
   /** @type {object[]} */ const raw = [];
-  for (const kind of KINDS) {
+  for (const kind of only ? [only] : KINDS) {
     const want = limit ?? kind.batchSize * kind.maxBatchesPerRun;
-    const res = await deps.exportQueue(kind, { limit: want });
-    const items = res.ok && Array.isArray(res.items) ? res.items : [];
-    raw.push({ kind, items, source: res.source ?? null, error: res.ok ? null : (res.error ?? "export failed"), earliest: earliestPending(items), id: kind.id });
+    const res = await deps.exportQueue(kind, { limit: want, mode });
+    let items = res.ok && Array.isArray(res.items) ? res.items : [];
+    let error = res.ok ? null : (res.error ?? "export failed");
+    let notStale = 0;
+    if (mode === "stale" && res.ok) {
+      if (typeof res.current_prompt_version !== "string" || !res.current_prompt_version) {
+        error = "stale export did not report the live prompt_version, so staleness cannot be decided";
+        items = [];
+      } else {
+        const kept = selectStaleItems(items, res.current_prompt_version);
+        notStale = items.length - kept.length;
+        items = kept;
+      }
+    }
+    raw.push({ kind, items, source: res.source ?? null, error, notStale, earliest: earliestPending(items), id: kind.id });
   }
 
   /** @type {object[]} */ const leases = [];
   const kinds = [];
   for (const r of orderKinds(raw)) {
     const { kind } = r;
-    const entry = { kind: kind.id, label: kind.label, pending_exported: r.items.length, export_error: r.error, source: r.source, earliest_pending: r.earliest,
+    const entry = { kind: kind.id, mode, label: kind.label, pending_exported: r.items.length + r.notStale, export_error: r.error, source: r.source, earliest_pending: r.earliest,
       apply_workflow: kind.applyWorkflow, apply_trigger: `push to master touching ${kind.batchDir}/${kind.batchPrefix}-*.json`, authoring_guide: kind.authoringGuide,
-      batch_size: kind.batchSize, batches: [], residue: { lease_held: [], over_cap: 0 } };
+      batch_size: kind.batchSize, batches: [], residue: { lease_held: [], over_cap: 0, ...(mode === "stale" ? { not_stale: r.notStale } : {}) } };
     const cap = kind.batchSize * kind.maxBatchesPerRun;
     const take = r.items.slice(0, cap);
     entry.residue.over_cap = Math.max(0, r.items.length - take.length);
     const existing = deps.listBatchDir(kind);
+    const wouldLease = new Set();
     /** @type {string[]} */ let current = [];
     const batches = [];
     const flush = () => { if (current.length) { batches.push(current); current = []; } };
@@ -132,7 +176,10 @@ export async function planDrain(deps, { runId, limit = null }) {
       const leaseId = kind.leaseKey ? String(item?.[kind.leaseKey] ?? "") : "";
       if (leaseId) {
         if (!UUID_RE.test(leaseId)) { entry.residue.lease_held.push({ id, holder: null, reason: "lease key is not a uuid" }); continue; }
-        if (!leases.some((l) => l.lease_id === leaseId)) {
+        if (dry) {
+          // A dry plan takes no lease: it counts the distinct keys a real run would lease.
+          wouldLease.add(leaseId);
+        } else if (!leases.some((l) => l.lease_id === leaseId)) {
           const got = await deps.acquire(leaseId, holder, LEASE_LANE, LEASE_STALE_SECONDS);
           if (!got.acquired && got.cur_holder !== holder) { entry.residue.lease_held.push({ id, holder: got.cur_holder ?? null, reason: "leased by another session" }); continue; }
           if (got.acquired) leases.push({ kind: kind.id, id, lease_id: leaseId, holder, released: false });
@@ -143,12 +190,13 @@ export async function planDrain(deps, { runId, limit = null }) {
     }
     flush();
     entry.batches = batches.map((ids, i) => ({ batch_path: nextBatchPath(kind, existing, i), item_ids: ids, count: ids.length }));
+    if (dry) entry.would_lease = wouldLease.size;
     kinds.push(entry);
   }
 
   const planned = kinds.filter((k) => k.batches.length > 0);
   return {
-    schema: PLAN_SCHEMA, run_id: runId, generated_at: deps.now(), drain: "on", switch: sw, holder, kinds, leases,
+    schema: PLAN_SCHEMA, run_id: runId, generated_at: deps.now(), drain: "on", ...(dry ? { dry: true } : {}), switch: sw, holder, kinds, leases,
     totals: { kinds_planned: planned.length, batches: planned.reduce((a, k) => a + k.batches.length, 0), items: planned.reduce((a, k) => a + k.batches.reduce((b, x) => b + x.count, 0), 0), leases_held: leases.length },
   };
 }
@@ -175,13 +223,26 @@ export function parseArgs(argv) {
   try {
     ({ values } = nodeParseArgs({
       args: Array.isArray(argv) ? argv : [],
-      options: { out: { type: "string" }, "run-id": { type: "string" }, limit: { type: "string" }, finish: { type: "string" }, prs: { type: "string" } },
+      options: { out: { type: "string" }, "run-id": { type: "string" }, limit: { type: "string" }, finish: { type: "string" }, prs: { type: "string" }, kind: { type: "string" }, mode: { type: "string" }, dry: { type: "boolean", default: false } },
       allowPositionals: false, strict: true,
     }));
   } catch (err) { return { ok: false, error: err.message }; }
   const limit = values.limit === undefined ? null : Number(values.limit);
   if (limit !== null && (!Number.isInteger(limit) || limit < 1)) return { ok: false, error: "--limit must be a positive integer" };
-  return { ok: true, out: values.out ?? null, runId: values["run-id"] ?? null, limit, finish: values.finish ?? null, prs: values.prs ?? null };
+  if (values.finish && (values.kind !== undefined || values.mode !== undefined || values.dry)) return { ok: false, error: "--finish cannot be combined with --kind, --mode or --dry" };
+  let kind = null;
+  if (values.kind !== undefined) {
+    kind = resolveKind(values.kind);
+    if (!kind) return { ok: false, error: `--kind must be a drain kind id or a prefix naming exactly one (got ${JSON.stringify(values.kind)}; kinds: ${KINDS.map((k) => k.id).join(", ")})` };
+  }
+  const mode = values.mode ?? DEFAULT_MODE;
+  if (mode !== DEFAULT_MODE) {
+    if (!kind) return { ok: false, error: `--mode ${mode} requires --kind (a mode belongs to one kind)` };
+    if (!kindModes(kind).includes(mode)) {
+      return { ok: false, error: values.mode !== undefined && !KINDS.some((k) => kindModes(k).includes(mode)) ? `--mode must be one of ${[...new Set(KINDS.flatMap(kindModes))].join(", ")} (got ${JSON.stringify(mode)})` : `kind ${kind.id} has no mode "${mode}" (modes: ${kindModes(kind).join(", ")})` };
+    }
+  }
+  return { ok: true, out: values.out ?? null, runId: values["run-id"] ?? null, limit, finish: values.finish ?? null, prs: values.prs ?? null, kind: kind ? kind.id : null, mode, dry: values.dry === true };
 }
 
 /** Pure. A run id when none is given: UTC timestamp to the second. @param {string} iso */
@@ -190,18 +251,21 @@ export function defaultRunId(iso) { return iso.replace(/[-:]/g, "").replace(/\.\
 // ── production deps (only built when the drain is on; db.mjs and the exporters need npm) ─────────────────────
 
 /** Run one existing exporter CLI and read what it wrote. Never rewrites an export query. */
-export function runExporter(kind, { limit }, { spawn = spawnSync, readdir = readdirSync, readFile = readFileSync, mkdtemp = mkdtempSync, cwd = FSI_ROOT } = {}) {
+export function runExporter(kind, { limit, mode = DEFAULT_MODE }, { spawn = spawnSync, readdir = readdirSync, readFile = readFileSync, mkdtemp = mkdtempSync, cwd = FSI_ROOT } = {}) {
   const out = mkdtemp(join(tmpdir(), `drain-${kind.id}-`));
-  const argv = kind.exportArgv.map((a) => a.replace("{out}", out).replace("{limit}", String(limit)));
+  const exportArgv = exportArgvFor(kind, mode);
+  const argv = exportArgv.map((a) => a.replace("{out}", out).replace("{limit}", String(limit)));
   const res = spawn(process.execPath, argv, { cwd, encoding: "utf8", env: process.env, maxBuffer: 64 * 1024 * 1024 });
-  if (res.error || res.status !== 0) return { ok: false, items: [], error: `${kind.exportArgv[0]} exited ${res.status ?? "?"}: ${String(res.stderr || res.error?.message || "").split("\n").slice(-3).join(" ").slice(0, 300)}` };
+  if (res.error || res.status !== 0) return { ok: false, items: [], error: `${exportArgv[0]} exited ${res.status ?? "?"}: ${String(res.stderr || res.error?.message || "").split("\n").slice(-3).join(" ").slice(0, 300)}` };
   if (kind.id === "record-briefs") return readBriefQueue(res.stdout, { spawn, cwd });
   const file = readdir(out).filter((n) => n.startsWith(kind.bundleGlobPrefix) && n.endsWith(".json")).sort().pop()
     ?? (kind.id === "ledger-verdicts" ? "ledger-candidates.json" : null);
   if (!file) return { ok: true, items: [], source: { type: "file", path: null } };
   const path = join(out, file);
   const json = JSON.parse(readFile(path, "utf8"));
-  return { ok: true, items: Array.isArray(json?.[kind.itemsKey]) ? json[kind.itemsKey] : [], source: { type: "file", path } };
+  // current_prompt_version: the exporter reports the live prompt_version it exported under (the ledger exporter
+  // does, as `prompt_version`); a stale-mode plan needs it to decide staleness and refuses to guess without it.
+  return { ok: true, items: Array.isArray(json?.[kind.itemsKey]) ? json[kind.itemsKey] : [], source: { type: "file", path }, current_prompt_version: typeof json?.prompt_version === "string" ? json.prompt_version : null };
 }
 
 /** The brief queue is harness_runs rows read through its one consumer: `--list`, then `--run-id` per row. */
@@ -215,6 +279,37 @@ function readBriefQueue(listStdout, { spawn, cwd }) {
     for (const it of content.per_item ?? []) items.push({ id: it.id, queue_run_id: runId });
   }
   return { ok: true, items, source: { type: "queue", command: "node scripts/turns/read-brief-export-queue.mjs --run-id <queue_run_id>", run_ids: runIds } };
+}
+
+/**
+ * The planning half of the CLI over injected I/O (so a dry run is provable on fixtures): plan, then print, and
+ * write the plan file only when not dry. Returns the exit code (0 for every normal outcome).
+ * @param {{kind: string|null, mode: string, dry: boolean, limit: number|null, runId: string|null}} parsed parseArgs result
+ * @param {{deps: object, now: () => string, runId?: string, planPath: (runId: string) => string, writePlan: (path: string, text: string) => void, log: (line: string) => void}} io
+ */
+export async function runPlanCli(parsed, { deps, now, runId, planPath, writePlan, log }) {
+  const id = runId ?? parsed.runId ?? defaultRunId(now());
+  const plan = await planDrain(deps, { runId: id, limit: parsed.limit, kindId: parsed.kind, mode: parsed.mode, dry: parsed.dry });
+  if (plan.drain === "off") {
+    log(`drain: off (${plan.switch.reason})`);
+    return 0;
+  }
+  const t = plan.totals;
+  const counts = `${t.items} item(s) in ${t.batches} batch(es) across ${t.kinds_planned} kind(s)`;
+  if (plan.dry) {
+    log(`drain: on (dry run: nothing written, no lease taken). ${counts}`);
+  } else {
+    const out = planPath(id);
+    writePlan(out, JSON.stringify(plan, null, 2));
+    log(`drain: on. ${counts}; ${t.leases_held} lease(s) held; plan ${out}`);
+  }
+  for (const k of plan.kinds) {
+    const planned = k.batches.reduce((a, b) => a + b.count, 0);
+    const tag = k.mode === DEFAULT_MODE ? "" : ` [${k.mode}]`;
+    log(`  ${k.kind}${tag}: exported ${k.pending_exported}, planned ${planned} in ${k.batches.length} batch(es)${k.export_error ? `, export error: ${k.export_error}` : ""}${k.residue.lease_held.length ? `, ${k.residue.lease_held.length} lease-held` : ""}${k.residue.not_stale ? `, ${k.residue.not_stale} not stale` : ""}${plan.dry ? `, would lease ${k.would_lease ?? 0}` : ""}`);
+    if (plan.dry) for (const b of k.batches) log(`    ${b.batch_path}: ${b.item_ids.join(", ")}`);
+  }
+  return 0;
 }
 
 async function main() {
@@ -252,19 +347,13 @@ async function main() {
     },
     now,
   };
-  const plan = await planDrain(deps, { runId, limit: parsed.limit });
-  if (plan.drain === "off") {
-    console.log(`drain: off (${plan.switch.reason})`);
-    process.exit(0);
-  }
-  const out = resolve(parsed.out ?? join(FSI_ROOT, "scripts", "tmp", "drain", `plan-${runId}.json`));
-  mkdirSync(dirname(out), { recursive: true });
-  writeFileSync(out, JSON.stringify(plan, null, 2));
-  console.log(`drain: on. ${plan.totals.items} item(s) in ${plan.totals.batches} batch(es) across ${plan.totals.kinds_planned} kind(s); ${plan.totals.leases_held} lease(s) held; plan ${out}`);
-  for (const k of plan.kinds) {
-    console.log(`  ${k.kind}: exported ${k.pending_exported}, planned ${k.batches.reduce((a, b) => a + b.count, 0)} in ${k.batches.length} batch(es)${k.export_error ? `, export error: ${k.export_error}` : ""}${k.residue.lease_held.length ? `, ${k.residue.lease_held.length} lease-held` : ""}`);
-  }
-  process.exit(0);
+  const code = await runPlanCli(parsed, {
+    deps, now, runId,
+    planPath: (id) => resolve(parsed.out ?? join(FSI_ROOT, "scripts", "tmp", "drain", `plan-${id}.json`)),
+    writePlan: (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); },
+    log: (line) => console.log(line),
+  });
+  process.exit(code);
 }
 
 if (isMainModule(import.meta.url)) await main();

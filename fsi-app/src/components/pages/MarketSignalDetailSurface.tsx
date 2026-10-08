@@ -41,7 +41,7 @@
  */
 
 import { DetailSubSection } from "@/components/ui/DetailSubSection";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { commonActionCardProps } from "@/lib/detail/action-card-common-props";
@@ -59,6 +59,17 @@ import { selectModalFactor } from "@/lib/market/select-modal-factor.mjs";
 import { carbonIntensity } from "@/lib/market/carbon-intensity.mjs";
 import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "@/lib/propagation/methods/carbon-intensity.ts";
 import { DerivedFigure } from "@/components/figures/EstimatedFigure";
+// Lane MKT-1 (operator ruling 2026-10-08): the one methodology and provenance drawer and the freshness
+// badge the series board uses, describing the envelope of the figure this page actually shows.
+import {
+  ProvenanceDrawer,
+  envelopeFromFactorRow,
+  envelopeFromPriceStat,
+  type FigureEnvelope,
+  type SourceLicence,
+} from "@/components/market/SeriesProvenance";
+import { SeriesFreshnessBadge } from "@/components/market/SeriesFreshness";
+import { deriveSeriesFreshness } from "@/lib/market/series-freshness.mjs";
 import type { Value } from "@/lib/propagation/types.ts";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { CrossPageSection, crossPagePresence } from "@/components/detail/CrossPageSection";
@@ -110,6 +121,24 @@ export interface EmissionFactorRow {
   source_key: string;
   tier: string;
   scope_kind: string;
+  /** The spec 00 section 2 envelope columns migration 258 gives every factor (lane MKT-1 selects them so the
+   *  provenance drawer describes the row the figure came from). Optional so fixtures without them still type. */
+  derivation?: string | null;
+  origin_class?: string | null;
+  method_version?: string | null;
+  n_observations?: number | null;
+  as_at_date?: string | null;
+}
+
+/** The market_series figure behind a price board (page.tsx builds it from SERIES_ITEM_MAP_RAW). Freshness is
+ *  judged here, after mount, against the viewer's clock, so a statically built page can never freeze a
+ *  "current" label past its cadence. */
+export interface SeriesFigure {
+  label: string;
+  envelope: FigureEnvelope;
+  asAtDate: string | null;
+  referencePeriod: string | null;
+  cadenceDays: number | null;
 }
 
 // -- Corridor candidates (lane L-CORRIDOR, 2026-10-03) --
@@ -147,6 +176,8 @@ interface Props extends DetailSurfaceSharedProps {
   convergence?: { independent_citers: number; confirmation_count: number } | null;
   priceBoard?: PriceStat[];
   carbonFactors?: EmissionFactorRow[];
+  factorLicences?: Record<string, SourceLicence>;
+  seriesFigure?: SeriesFigure | null;
   corridorCandidates?: CorridorCandidate[];
   groupLabel?: string;
   deck?: string;
@@ -274,6 +305,8 @@ export function MarketSignalDetailSurface({
   convergence = null,
   priceBoard = [],
   carbonFactors = [],
+  factorLicences = {},
+  seriesFigure = null,
   corridorCandidates = [],
   groupLabel,
   deck,
@@ -527,7 +560,7 @@ export function MarketSignalDetailSurface({
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (
               <>
-                <PriceBoard stats={priceBoard} />
+                <PriceBoard stats={priceBoard} seriesFigure={seriesFigure} />
                 {sectionMap["1"] ? (
                   <FactBlocks markdown={sectionMap["1"]} />
                 ) : (
@@ -608,6 +641,9 @@ export function MarketSignalDetailSurface({
                     <StateNote>{carbonOverlay.body}</StateNote>
                   )}
                 </div>
+              )}
+              {hasCarbonOverlay && carbonOverlay?.state === "resolved" && modalFactor?.state === "resolved" && (
+                <ProvenanceDrawer envelope={envelopeFromFactorRow(modalFactor.factor as EmissionFactorRow, factorLicences)} />
               )}
               {hasCarbonOverlay && intensityFigure && (
                 <div style={{ marginTop: 12 }}>
@@ -718,7 +754,7 @@ export function MarketSignalDetailSurface({
 }
 
 // ── Price board ─────────────────────────────────────────────────────────
-function PriceBoard({ stats }: { stats: PriceStat[] }) {
+function PriceBoard({ stats, seriesFigure }: { stats: PriceStat[]; seriesFigure: SeriesFigure | null }) {
   if (stats.length === 0) {
     return (
       <div style={{ marginBottom: 14 }}>
@@ -730,6 +766,41 @@ function PriceBoard({ stats }: { stats: PriceStat[] }) {
       </div>
     );
   }
+  // The envelope of the figure shown: the series row behind the board when the item is a ratified series
+  // item, else only what the published statistic itself carries (its source rating and release date).
+  const first = stats[0];
+  const envelope: FigureEnvelope = seriesFigure?.envelope ?? envelopeFromPriceStat(first);
+  return (
+    <>
+      <PriceBoardGrid stats={stats} />
+      <div style={{ margin: "-8px 0 16px" }} data-audit="price-board-provenance">
+        {seriesFigure && <FigureFreshness figure={seriesFigure} />}
+        <ProvenanceDrawer envelope={envelope} />
+      </div>
+    </>
+  );
+}
+
+/** The freshness state of the series behind a figure, judged after mount against the viewer's clock (the
+ *  detail route is statically built, so a build-time "now" would freeze the label). Renders nothing until
+ *  mounted, which is also what keeps server and client markup identical. */
+function FigureFreshness({ figure }: { figure: SeriesFigure }) {
+  const [nowIso, setNowIso] = useState<string | null>(null);
+  useEffect(() => {
+    // clock-ok: the viewer's clock, read after mount only; never during render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNowIso(new Date().toISOString().slice(0, 10));
+  }, []);
+  if (!nowIso) return null;
+  const freshness = deriveSeriesFreshness(
+    { as_at_date: figure.asAtDate, reference_period: figure.referencePeriod },
+    { cadenceDays: figure.cadenceDays },
+    nowIso,
+  );
+  return <SeriesFreshnessBadge freshness={freshness} />;
+}
+
+function PriceBoardGrid({ stats }: { stats: PriceStat[] }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 16 }}>
       {stats.map((s, i) => (

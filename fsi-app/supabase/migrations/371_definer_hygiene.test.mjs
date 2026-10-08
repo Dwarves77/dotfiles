@@ -67,10 +67,11 @@ function walk(dir, out = []) {
 const isTest = (f) => /\.(test|npmtest)\.mjs$/.test(f);
 const CODE = [...walk(join(FSI, "src")), ...walk(join(FSI, "scripts"))].filter((f) => !isTest(f));
 
-test("header: subject line, NOT APPLIED, and the file exists", () => {
+test("header: subject line, APPLIED with the ledger version, and the file exists", () => {
   assert.ok(RAW.length > 0, "migration file exists");
   assert.match(RAW, /^-- subject: Migration 371 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008131647, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
 });
 
 test("the migration number is unique", () => {

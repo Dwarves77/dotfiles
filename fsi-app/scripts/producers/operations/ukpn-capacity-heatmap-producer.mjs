@@ -19,9 +19,9 @@
 // COLUMNS COVERED (migration 379 adds the substation columns): jurisdiction_id (GB, the entity builder's id),
 // dso_name (publisher and licence area as the file states them), substation_ref (mRID), substation_name,
 // demand_firm_mw, demand_available_mw, demand_constraint, demand_constraint_limiting_factor, as_of (the file's
-// own `issued` date), obs_status 'M', source_id (the registered source), origin_class, derivation.
+// own `issued` date), obs_status 'L', source_id (the registered source), origin_class, derivation.
 // COLUMNS LEFT NULL, NEVER ESTIMATED: queue_months_p50, queue_months_p90 (no free dataset states them; the row's
-// obs_status is M so the gate reads UNKNOWN, never CLEAR), capacity_band_mw (the publisher states no band),
+// obs_status is L, Missing not covered: no source exists for queue months, so the gate reads UNKNOWN, never CLEAR), capacity_band_mw (the publisher states no band),
 // confidence_admiralty (the register states no rating).
 //
 // ENVELOPE (spec 00 section 2). Each MW figure is built through makeEnvelope (src/lib/contracts/envelope.mjs):
@@ -84,8 +84,9 @@ export const DERIVATION = "observed";
 /** The GB jurisdiction entity, minted by the one builder every spine id comes from (never hand assembled). */
 export const GB_JURISDICTION_ID = entityId("jurisdiction", "GB");
 export const UNIT = "MW";
-/** Months are not stated by this dataset: SDMX M (missing). */
-export const OBS_STATUS_NO_MONTHS = "M";
+/** Months are not stated by this dataset, and no free source states them: SDMX L (Missing, not covered). M (reason
+ *  unknown) is for a covered source that omits a value, which does not arise here (coordinator ruling, 2026-10-08). */
+export const OBS_STATUS_NO_MONTHS = "L";
 export const CONSTRAINTS = Object.freeze(["GREEN", "AMBER", "RED"]);
 /** The fields an update may refresh. Never months, band or obs_status (see ADMIN OVERRIDE above). */
 export const REFRESHABLE = Object.freeze([

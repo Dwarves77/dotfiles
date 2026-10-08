@@ -61,7 +61,7 @@ test("MarketIntelLedger accepts headlineSeries and wires it into ListSurfaceShel
 test("market/page.tsx passes the ribbon as headlineSeries (embedded), not as a standalone section", () => {
   assert.match(
     PAGE_SOURCE,
-    /headlineSeries=\{<MarketComparativeRibbon board=\{seriesBoard\} embedded \/>\}/
+    /headlineSeries=\{<MarketComparativeRibbon board=\{seriesBoard\} embedded nowIso=\{nowIso\} \/>\}/
   );
   const beforeLedger = PAGE_SOURCE.slice(0, PAGE_SOURCE.indexOf("<MarketIntelLedger"));
   assert.doesNotMatch(

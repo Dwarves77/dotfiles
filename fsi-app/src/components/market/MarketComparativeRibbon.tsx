@@ -25,8 +25,8 @@
  *   and M is every observed series. Nothing in this file chooses or counts a series.
  *
  *   GEOMETRY and TYPE are market63's. One row of compact cards on `grid-auto-flow: column` at
- *   `calc((100% - 40px) / 5)`, no sparkline, no 1m or YoY row, Anton 17px value with the delta
- *   inline beside it, 86.844px card height against the artboard.
+ *   `calc((100% - 40px) / 5)`, Anton 17px value with the 1w delta inline beside it. (Lane MKT-1,
+ *   2026-10-08: the card no longer stops at the artboard's 86.844px; see the MKT-1 block below.)
  *
  *   THE OVERFLOW takes market63's mechanism, because that is geometry: the families past the
  *   ruling's cap of five continue the SAME row into the horizontal scroller, they are not stacked
@@ -55,8 +55,8 @@
  *   - Value + delta share ONE baseline row: Anton 17px (p4's value, not the brief's "18px") beside
  *     an 11px/700 ink delta in p4's own `▼1.7% 1w` form.
  *   - "as of <date>": 10px muted, 4px above.
- *   - NO sparkline, NO 1m row, NO YoY row, NO "N more headline series below" disclosure. p4's card
- *     contains none of them (measured: zero `<svg>` in the whole card).
+ *   - NO "N more headline series below" disclosure. (p4 also draws no sparkline, no 1m row and no
+ *     YoY row, measured as zero `<svg>` in the card; lane MKT-1 adds those, see the block below.)
  *
  * THE ONE PLACE THIS DOES NOT FOLLOW p4, and why. p4's card head carries
  * `border-bottom:1px solid rgba(0,0,0,.08)` under the title. Operator ruling 5.1 (2026-09-07,
@@ -68,20 +68,54 @@
  * <MarketSeriesBoard> (fetchMarketSeriesBoard → buildSeriesBoard). `deltas` is attached upstream by
  * src/lib/market/series-board-view-model.mjs from the FULL row history per series_key.
  *
- * NEVER FABRICATE. A 1w delta that could not be computed (insufficient history, a unit or currency
- * change across the compared pair, a zero prior) renders p4's own dash-plus-small-caps absence
- * shape, never a dash indistinguishable from a real zero-change delta (spec 00 §2). p4 writes that
- * word as "BACKFILL"; the product's absence vocabulary is closed (Absence.tsx) and does not contain
- * it, so the token is the vocabulary's own "pending" in p4's type treatment.
+ * LANE MKT-1 (2026-10-08), WHAT THE CARD NOW RENDERS. Spec 02 section 6 row 1 says each headline metric is
+ * `level, change over 1w, change over 1m, change year on year, sparkline, as-of`. series-deltas.mjs has
+ * computed all of them since lane SURF and series-board-view-model.mjs attaches them to every row, but
+ * the card drew only the 1w change (VERIFY-1 register row 02S6 r1, [CONFIRMED]). It now draws all six:
+ * the 1w change inline with the level (unchanged), the 1m and YoY changes on a row of their own, a
+ * sparkline, the as-of date, and the freshness state of the series against its own registry cadence.
+ * Under the track sit the board's freshness panel summary (spec 02 section 6 row 11) and one
+ * methodology and provenance disclosure (row 10) whose blocks are the series board's own fields grid,
+ * both imported from the series board's extracted parts, not retyped.
+ *
+ * DESIGN CHANGE OWED (rule 20, artboards govern look and the system governs function): artboard 04 / p4
+ * draws none of the sparkline, the 1m and YoY changes, the freshness state or the disclosure. The system
+ * needs them (spec 02 row 1, 10, 11), so the build follows the spec and the divergence is recorded in the
+ * lane's session log for Claude Design to draw. The p4-derived rows in
+ * `.discipline/rendering/audit/spec/compose-04-market-list.json` that forbid a sparkline and a 1m or YoY
+ * row in this card are now contradicted by the spec; updating them is the coordinator's (not in this
+ * lane's write set).
+ *
+ * A DELTA THAT DOES NOT EXIST IS NAMED, NEVER A GREY DASH (spec 00 section 4, six states). Each window
+ * that cannot show a number renders the state it falls in, in words, with the reason on hover:
+ *   - no data yet  : the series is covered and the window has too little history (names the days needed);
+ *   - not covered  : no comparison is computed for the series at all (`deltas` absent; the headline
+ *                    selection, rule 4, keeps such a series off this row, so this is the safe default);
+ *   - suppressed   : the number exists and is withheld, because the unit or currency changed across the
+ *                    compared pair (the reason class is stated);
+ *   - not applicable: a percent change is undefined because the prior value was zero.
+ * The mapping and the words live in `deltaCellModel` below, exported so a test can attack each branch.
+ * The old "pending" word (which the absence vocabulary retired on 2026-09-25) no longer renders here.
+ * "Not filtered in" and "Error" are not states of a delta and do not occur on this card.
  */
 
 import Link from "next/link";
-import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
+import type { MarketSeriesBoardVM, MarketSeriesDisplayRow } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
 import { selectHeadlineSeries } from "@/lib/market/headline-series-select.mjs";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { formatNumber } from "@/lib/format";
 import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
+import { DELTA_WINDOWS } from "@/lib/market/series-deltas.mjs";
+import { producerFor } from "@/lib/market/series-registry.mjs";
+import { deriveSeriesFreshness } from "@/lib/market/series-freshness.mjs";
+import {
+  SeriesFreshnessBadge,
+  SeriesFreshnessPanel,
+  boardFreshnessSummary,
+  type SeriesFreshnessState,
+} from "@/components/market/SeriesFreshness";
+import { ProvenanceFields, envelopeFromSeriesRow, type SeriesProducerRef } from "@/components/market/SeriesProvenance";
 
 interface MarketComparativeRibbonProps {
   board: MarketSeriesBoardVM;
@@ -94,6 +128,10 @@ interface MarketComparativeRibbonProps {
    *  5.1) is added by MarketIntelLedger where this mounts, not here, so a future non-embedded
    *  caller is unaffected. */
   embedded?: boolean;
+  /** Server render instant (src/lib/render-now.ts), the "now" every freshness state below is judged
+   *  against. Injected, never read from the clock (envelope.mjs's own discipline); the fallback is for
+   *  a mount that has no server render (a test or a smoke fixture). */
+  nowIso?: string;
 }
 
 /** p4's grid: five columns, 10px gutters. Written as an auto-column track so the sixth card and
@@ -108,15 +146,16 @@ const HEADLINE_TRACK = "calc((100% - 40px) / 5)";
  *  the DP-1/RD-60 reflow rule applied to it, not a second design. */
 const HEADLINE_TRACK_MOBILE = "150px";
 
-interface DeltaPoint { date: string; value: number | null }
-interface WindowDelta {
+
+export interface DeltaPoint { date: string; value: number | null }
+export interface WindowDelta {
   value?: number;
   pct?: number | null;
   fromDate?: string;
   insufficientHistory?: boolean;
   unitMismatch?: boolean;
 }
-interface SeriesDeltas {
+export interface SeriesDeltas {
   count: number;
   latest: { date: string; value: number | null; unit: string | null; currency: string | null } | null;
   sparkline: DeltaPoint[];
@@ -125,21 +164,27 @@ interface SeriesDeltas {
   deltaYoY: WindowDelta | null;
   message: string | null;
 }
+type BoardRow = MarketSeriesDisplayRow & { deltas?: SeriesDeltas };
 interface RibbonRow {
   seriesKey: string;
   label: string;
   displayValue: string;
-  deltas: SeriesDeltas;
+  /** The display row's own reason for an unobserved value (formatSeriesValue), when it has one. */
+  emptyReason: string | null;
+  /** Undefined when the row carries no comparison at all (the "not covered" state). */
+  deltas: SeriesDeltas | undefined;
   /** The other members of this card's family, folded onto it ("+3 rates"). The ONE new field the card
    *  markup gained for the ruling: the fold has nowhere else to live, and its count comes from the
    *  family, never from a literal. count 0 renders nothing. */
   fold: { count: number; noun: string };
+  /** The primary member's board row: the series the number belongs to, for freshness and provenance. */
+  source: BoardRow;
 }
 
 interface HeadlineCard {
   familyKey: string;
   label: string;
-  row: { seriesKey: string; label: string; displayValue: string; deltas?: SeriesDeltas };
+  row: BoardRow;
   fold: { count: number; noun: string };
 }
 interface HeadlineSelection {
@@ -154,12 +199,158 @@ function toRibbonRow(card: HeadlineCard): RibbonRow {
     seriesKey: card.familyKey,
     label: card.label,
     displayValue: card.row.displayValue,
-    deltas: card.row.deltas as SeriesDeltas,
+    emptyReason: card.row.emptyReason ?? null,
+    deltas: card.row.deltas,
     fold: card.fold,
+    source: card.row,
   };
 }
 
-export function MarketComparativeRibbon({ board, embedded = false }: MarketComparativeRibbonProps) {
+// The six coverage states of spec 00 section 4, as they apply to ONE delta window.
+
+/** The states a delta window can fall in, with the SDMX OBS_STATUS code each maps to (vocabularies.mjs). */
+export type DeltaAbsentState = "no_data_yet" | "not_covered" | "suppressed" | "not_applicable";
+export const DELTA_STATE_OBS_CODE: Readonly<Record<DeltaAbsentState, "H" | "L" | "Q" | "O">> = {
+  no_data_yet: "H",
+  not_covered: "L",
+  suppressed: "Q",
+  not_applicable: "O",
+};
+/** The words the reader sees, spec 00 section 4's own names. */
+export const DELTA_STATE_LABEL: Readonly<Record<DeltaAbsentState, string>> = {
+  no_data_yet: "no data yet",
+  not_covered: "not covered",
+  suppressed: "suppressed",
+  not_applicable: "not applicable",
+};
+
+export type WindowKey = "1w" | "1m" | "YoY";
+const WINDOW_DAYS: Record<WindowKey, number> = { "1w": DELTA_WINDOWS.w1, "1m": DELTA_WINDOWS.m1, YoY: DELTA_WINDOWS.yoy };
+
+export type DeltaCellModel =
+  | { kind: "value"; window: WindowKey; arrow: string; magnitude: string; fromDate: string | undefined; text: string }
+  | { kind: "absent"; window: WindowKey; lead: string; state: DeltaAbsentState; obsStatus: "H" | "L" | "Q" | "O"; label: string; detail: string };
+
+/** An absent slot. `lead` is the visible prefix naming the slot (the window, or "trend", "as of", "value"). */
+export function absentCell(window: WindowKey, state: DeltaAbsentState, detail: string, lead: string = window): DeltaCellModel {
+  return { kind: "absent", window, lead, state, obsStatus: DELTA_STATE_OBS_CODE[state], label: DELTA_STATE_LABEL[state], detail };
+}
+
+/**
+ * Decide what ONE delta window renders: a number, or the spec 00 section 4 state it falls in. Pure.
+ *
+ * `deltas` undefined means the row carries no comparison at all (not covered). Otherwise:
+ *   - the window object is null (the series has fewer than two observations): no data yet;
+ *   - insufficientHistory: no data yet, naming the days of history the window needs;
+ *   - unitMismatch: suppressed, naming the unit change as the reason class;
+ *   - a numeric change whose percent is undefined (the prior value was zero): not applicable;
+ *   - otherwise a value, as an arrow, an unsigned magnitude and the window name.
+ * Never a bare dash and never the word "pending".
+ */
+export function deltaCellModel(deltas: SeriesDeltas | undefined, window: WindowKey): DeltaCellModel {
+  if (!deltas) {
+    return absentCell(window, "not_covered", "No comparison is computed for this series yet. It is in scope and not built.", "comparison");
+  }
+  const days = WINDOW_DAYS[window];
+  const delta = window === "1w" ? deltas.delta1w : window === "1m" ? deltas.delta1m : deltas.deltaYoY;
+  const first = deltas.sparkline?.[0]?.date;
+  const needs = `Needs ${days} days of history for the ${window} change.`;
+
+  if (!delta) {
+    if (deltas.count === 0) return absentCell(window, "no_data_yet", "No observations on record yet.");
+    if (deltas.count === 1) return absentCell(window, "no_data_yet", `One observation on record${first ? `, ${first}` : ""}. ${needs}`);
+    return absentCell(window, "no_data_yet", needs);
+  }
+  if (delta.unitMismatch) {
+    return absentCell(
+      window,
+      "suppressed",
+      `Unit or currency changed since ${delta.fromDate}. The ${window} change is withheld rather than compared across a unit change.`,
+    );
+  }
+  if (delta.insufficientHistory || typeof delta.value !== "number") {
+    return absentCell(window, "no_data_yet", `${needs}${first ? ` First observation ${first}.` : ""}`);
+  }
+  // Division-by-zero guard fired upstream (prior value was 0): a % move is undefined, and showing
+  // one would be exactly the fabrication this module refuses elsewhere.
+  if (typeof delta.pct !== "number") {
+    return absentCell(window, "not_applicable", `A percent change is undefined: the value on ${delta.fromDate} was zero.`);
+  }
+  // p4 writes DIRECTION as a glyph and MAGNITUDE unsigned, so the sign formatDelta emits is not
+  // wanted here; the arrow carries it. `kind` stays "quantity" (a percent move, never pp), it is
+  // required and never defaulted, per envelope.mjs's own header.
+  const arrow = delta.pct > 0 ? "▲" : delta.pct < 0 ? "▼" : "";
+  const magnitude = formatDelta(Math.abs(delta.pct), "quantity")?.replace(/^[+−]/, "") ?? "";
+  return { kind: "value", window, arrow, magnitude, fromDate: delta.fromDate, text: `${arrow}${magnitude} ${window}` };
+}
+
+// Sparkline.
+
+/** Most points a card's sparkline draws. A series with hundreds of observations is sampled evenly, first
+ *  and last point always kept, so the line is honest about its span and the markup stays small. */
+export const SPARKLINE_MAX_POINTS = 60;
+const SPARK_W = 100;
+const SPARK_H = 24;
+const SPARK_PAD = 2;
+
+export interface SparklineModel {
+  /** SVG `points` attribute value in a 100 by 24 box. */
+  points: string;
+  /** Observations drawn (after sampling) and observations on record with a numeric value. */
+  drawn: number;
+  total: number;
+  from: string;
+  to: string;
+}
+
+/** The trend window: one year, the ribbon's longest comparison (YoY), so the line and the YoY change cover
+ *  the same span (operator ruling 2026-10-08). */
+export const SPARKLINE_WINDOW_DAYS = DELTA_WINDOWS.yoy;
+
+function isoMinusDays(iso: string, days: number): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Pure: the sparkline geometry for a series over its last year of observations (counted back from the
+ *  series' own latest date, never the clock), sampled to at most 60 points, or null when fewer than two
+ *  numeric points fall in the window (the card then renders the no-data-yet state, never an empty box). A
+ *  flat series draws a level line. */
+export function sparklineModel(sparkline: DeltaPoint[] | undefined, maxPoints = SPARKLINE_MAX_POINTS): SparklineModel | null {
+  const numeric = (sparkline ?? []).filter((p) => typeof p?.value === "number" && Number.isFinite(p.value)) as Array<{ date: string; value: number }>;
+  const last = numeric.length ? numeric[numeric.length - 1].date : null;
+  const cutoff = last && /^\d{4}-\d{2}-\d{2}/.test(last) ? isoMinusDays(last, SPARKLINE_WINDOW_DAYS) : null;
+  const valid = cutoff ? numeric.filter((p) => p.date >= cutoff) : numeric;
+  if (valid.length < 2) return null;
+  let picked = valid;
+  if (valid.length > maxPoints) {
+    picked = [];
+    for (let i = 0; i < maxPoints; i += 1) {
+      picked.push(valid[Math.round((i * (valid.length - 1)) / (maxPoints - 1))]);
+    }
+  }
+  const values = picked.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min;
+  const points = picked
+    .map((p, i) => {
+      const x = (i / (picked.length - 1)) * SPARK_W;
+      const y = span === 0 ? SPARK_H / 2 : SPARK_PAD + (1 - (p.value - min) / span) * (SPARK_H - 2 * SPARK_PAD);
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+  return { points, drawn: picked.length, total: valid.length, from: picked[0].date, to: picked[picked.length - 1].date };
+}
+
+/** The producer group a board row belongs to (the series board's own grouping), else null for an
+ *  unregistered row. */
+function groupFor(board: MarketSeriesBoardVM, seriesKey: string) {
+  return board.groups.find((g) => g.series.some((s) => s.seriesKey === seriesKey)) ?? null;
+}
+
+export function MarketComparativeRibbon({ board, embedded = false, nowIso: nowIsoProp }: MarketComparativeRibbonProps) {
   const selection = selectHeadlineSeries(board) as HeadlineSelection;
   const shown = selection.visible.map(toRibbonRow);
   const overflow = selection.overflow.map(toRibbonRow);
@@ -169,6 +360,15 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
   // it, and it is what the head counts. Concatenating rather than rendering a second grid is the
   // whole of the overflow mechanism, which is why there is no "N more headline series" disclosure.
   const track = [...shown, ...overflow];
+
+  // clock-ok: fallback only. The market page passes `nowIso` from the server render (src/app/market/page.tsx).
+  const nowIso = (nowIsoProp ?? new Date().toISOString()).slice(0, 10);
+  const panelFreshness = boardFreshnessSummary(board, nowIso);
+  const located = track.map((row) => {
+    const group = groupFor(board, row.source.seriesKey);
+    const producerEntry = group ? (producerFor(group.keyPrefix) ?? null) : null;
+    return { row, group, producerEntry };
+  });
 
   // Operator item A1 (2026-09-08): "Headline series" is one of the eighteen listed cards. Its card
   // shell used to be a local style object plus a conditional `<SectionRule/>`; both are gone, and
@@ -215,7 +415,11 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
             letterSpacing: "0.12em",
             textTransform: "uppercase",
             color: "var(--color-text-muted)",
-            whiteSpace: "nowrap",
+            /* Lane MKT-1 (2026-10-08): was `whiteSpace: "nowrap"`, which held this caption on one line
+               at 375px where it ran 34px past the screen and was clipped by the card (measured in
+               chromium before the change: right edge 409px of 375px). Wrapping is allowed so the
+               caption breaks inside the card; at 1440 it is one line, as p4 draws it. */
+            minWidth: 0,
           }}
         >
           {/* Ruling step 3: N is the number of distinct FAMILIES shown, not the number of cards and
@@ -224,7 +428,9 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
           sourced observations ·{" "}
           {/* Lane W10-NavCard (2026-09-23, bundle ruling 6): was `#market-series-board`, an in-page
               anchor to a section removed from this page in the same lane; now the standalone route. */}
-          <Link href="/market/series" style={{ color: "inherit", textDecoration: "underline" }}>
+          {/* Law 2 target floor (lane MKT-1): the bare 13px-tall inline link measured 104 by 13px; the
+              padding gives it a 25px target without moving the caption's text. */}
+          <Link href="/market/series" style={{ color: "inherit", textDecoration: "underline", display: "inline-block", padding: "7px 0" }}>
             Series board →
           </Link>
         </span>
@@ -246,6 +452,9 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
         className="cl-headline-track"
         data-audit="headline-track"
         data-overflow-allowed=""
+        // The UX detector's own declaration of a scrolling strip (ux-assert.mjs, measureUx): the cards past
+        // the viewport are carried by this track, not clipped.
+        data-guard-strip=""
         style={{
           display: "grid",
           gridAutoFlow: "column",
@@ -255,9 +464,43 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
           padding: embedded ? "0 16px 16px" : undefined,
         }}
       >
-        {track.map((row) => (
-          <RibbonCard key={row.seriesKey} row={row} />
+        {located.map(({ row, producerEntry }) => (
+          <RibbonCard key={row.seriesKey} row={row} producerEntry={producerEntry} nowIso={nowIso} />
         ))}
+      </div>
+
+      {/* Spec 02 section 6 rows 11 and 10, mounted from the series board's own extracted parts: the
+          freshness panel summary (worst state governs, over every populated series on the board) and ONE
+          methodology and provenance disclosure for the series on this row. One click from any number
+          above. Closed by default (CLAUDE.md accordion rule). The cards are too narrow to open a fields
+          grid inside, which is why the disclosure is one block under the track rather than one per card;
+          each block is headed by the card's series and draws the identical fields. */}
+      <div data-audit="headline-footer" style={{ padding: embedded ? "0 16px 16px" : "12px 0 0" }}>
+        <SeriesFreshnessPanel summary={panelFreshness} style={{ margin: "0 0 10px" }} />
+        <details data-audit="headline-method-drawer">
+          <summary
+            style={{
+              fontSize: 10.5,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              color: "var(--color-text-secondary)",
+              cursor: "pointer",
+              padding: "6px 0",
+            }}
+          >
+            Methodology &amp; provenance for these series
+          </summary>
+          <div style={{ display: "grid", gap: 10, marginTop: 4 }}>
+            {located.map(({ row, group }) => (
+              <div key={row.seriesKey} data-audit="headline-method-block">
+                <p style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-primary)", margin: 0, overflowWrap: "anywhere" }}>
+                  {row.source.label}
+                </p>
+                <ProvenanceFields envelope={envelopeFromSeriesRow(row.source, group as SeriesProducerRef | null)} />
+              </div>
+            ))}
+          </div>
+        </details>
       </div>
     </>
   );
@@ -269,12 +512,30 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
   );
 }
 
-/** ONE card of p4's headline row. Every value below is p4's, measured: 10px 12px padding, 10px
- *  radius, a 9.5px/700/0.1em one-line ellipsised label, then a SINGLE baseline row carrying the
- *  Anton 17px value beside its 11px/700 ink 1w delta, then "as of <date>" at 10px muted, 4px down.
- *  p4 draws no sparkline, no 1m row and no YoY row, so this renders none. */
-function RibbonCard({ row }: { row: RibbonRow }) {
+/** ONE card of the headline row. Geometry is p4's, measured: 10px 12px padding, 10px radius, a
+ *  9.5px/700/0.1em one-line ellipsised label, then a SINGLE baseline row carrying the Anton 17px value
+ *  beside its 11px/700 ink 1w delta. Lane MKT-1 adds beneath that: the 1m and YoY changes, the
+ *  sparkline, "as of <date>" at 10px muted, and the series' freshness state. */
+function RibbonCard({
+  row,
+  producerEntry,
+  nowIso,
+}: {
+  row: RibbonRow;
+  producerEntry: { cadenceDays?: number | null } | null;
+  nowIso: string;
+}) {
   const d = row.deltas;
+  const w1 = deltaCellModel(d, "1w");
+  const m1 = deltaCellModel(d, "1m");
+  const yoy = deltaCellModel(d, "YoY");
+  const spark = sparklineModel(d?.sparkline);
+  const asOf = d?.latest?.date ?? row.source.asAtDate ?? row.source.referencePeriod ?? null;
+  const freshness = deriveSeriesFreshness(
+    { as_at_date: row.source.asAtDate, reference_period: row.source.referencePeriod },
+    producerEntry,
+    nowIso,
+  ) as SeriesFreshnessState;
   return (
     // fitness-allow: F42 (a TILE inside a card, not a section card. Measured against the artboard
     // source itself, `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html`, id="p4": the
@@ -316,6 +577,7 @@ function RibbonCard({ row }: { row: RibbonRow }) {
     >
       <p
         data-audit="headline-card-label"
+        data-guard-title
         style={{
           fontSize: 9.5,
           fontWeight: 700,
@@ -340,67 +602,97 @@ function RibbonCard({ row }: { row: RibbonRow }) {
         )}
       </p>
       {/* p4: `display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:6px`, the
-          value and its delta share ONE baseline. */}
+          value and its delta share ONE baseline. A value that was never observed names its state
+          (no data yet) instead of printing a dash. */}
       <div
         data-audit="headline-card-value-row"
         style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "2px 8px", marginTop: 6 }}
       >
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 17, lineHeight: 1.05, color: "var(--ink)" }}>
-          {row.displayValue}
-        </span>
-        <WeekDelta delta={d.delta1w} message={d.message} />
+        {row.emptyReason ? (
+          <Cell cell={absentCell("1w", "no_data_yet", row.emptyReason, "value")} auditKey="headline-card-value" />
+        ) : (
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, lineHeight: 1.05, color: "var(--ink)" }}>
+            {row.displayValue}
+          </span>
+        )}
+        <Cell cell={w1} auditKey="headline-card-delta" />
+      </div>
+      <div
+        data-audit="headline-card-windows"
+        style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "2px 10px", marginTop: 4 }}
+      >
+        <Cell cell={m1} auditKey="headline-card-delta-1m" />
+        <Cell cell={yoy} auditKey="headline-card-delta-yoy" />
+      </div>
+      {/* The trend: a plain polyline in the ink tone over the series' last year (SPARKLINE_WINDOW_DAYS), sampled
+          to at most SPARKLINE_MAX_POINTS. Its window, span and observation count are stated in its
+          accessible name. Fewer than two numeric points is the no-data-yet state, not an empty box. */}
+      <div data-audit="headline-card-spark" style={{ marginTop: 6 }}>
+        {spark ? (
+          <svg
+            viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+            preserveAspectRatio="none"
+            width="100%"
+            height={SPARK_H}
+            role="img"
+            aria-label={`Trend over the last year, ${spark.total} observations, ${spark.from} to ${spark.to}`}
+            style={{ display: "block", overflow: "visible" }}
+          >
+            <title>{`Last year: ${spark.total} observations, ${spark.from} to ${spark.to}`}</title>
+            <polyline
+              points={spark.points}
+              fill="none"
+              stroke="var(--ink-2)"
+              strokeWidth={1.25}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        ) : (
+          <Cell
+            cell={absentCell("1w", "no_data_yet", "Needs at least two numeric observations to draw a trend.", "trend")}
+            auditKey="headline-card-spark-absent"
+          />
+        )}
       </div>
       <p data-audit="headline-card-asof" style={{ fontSize: 10, color: "var(--ink-3)", margin: "4px 0 0" }}>
-        as of {d.latest?.date ?? "—"}
+        {asOf ? (
+          `as of ${asOf}`
+        ) : (
+          <Cell cell={absentCell("1w", "no_data_yet", "No observation date on record.", "as of")} auditKey="headline-card-asof-absent" />
+        )}
       </p>
+      <SeriesFreshnessBadge freshness={freshness} showAsOf={false} />
     </div>
   );
 }
 
-/**
- * p4's inline delta: `▼1.7% 1w` / `▲0.7% 1w` at 11px/700 in ink, tabular, one line.
- *
- * When the move cannot be computed, p4's own shape is an em dash followed by a small-caps reason
- * word (it draws "BACKFILL"). The product's absence vocabulary is closed and does not carry that
- * word, so the reason rendered is the vocabulary's "pending" in the same type treatment, never a
- * bare dash, which would be indistinguishable from a real zero-change move (spec 00 §2).
- */
-function WeekDelta({ delta, message }: { delta: WindowDelta | null; message: string | null }) {
-  const pending = (reason: string) => (
-    <span
-      data-audit="headline-card-delta"
-      className="cl-absence"
-      data-absence="narrow"
-      aria-label={reason}
-      title={reason}
-      style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", whiteSpace: "nowrap" }}
-    >
-      {/* The dash is p4's own glyph in this slot, not prose: `\u2014` (U+2014), the same character
-          ImpactMeter's narrow absence draws. The rendering guard's placeholder-literal scan skips
-          it because this span declares `data-absence`, exactly as Absence.tsx's own narrow variant
-          does, so a bare dash elsewhere in the product still fails the guard. */}
-      {"\u2014 "}
-      <span style={{ ...ABSENCE_TEXT_STYLE, fontSize: 9.5, letterSpacing: "0.06em" }}>pending</span>
-    </span>
-  );
-
-  if (message) return pending(message);
-  if (!delta) return pending("pending");
-  if (delta.unitMismatch) return pending(`Unit changed since ${delta.fromDate}, comparison refused`);
-  if (delta.insufficientHistory || typeof delta.value !== "number") return pending("pending");
-  // Division-by-zero guard fired upstream (prior value was 0): a % move is undefined, and showing
-  // one would be exactly the fabrication this module refuses elsewhere.
-  if (typeof delta.pct !== "number") return pending(`vs ${delta.fromDate}: prior value was zero`);
-
-  // p4 writes DIRECTION as a glyph and MAGNITUDE unsigned, so the sign formatDelta emits is not
-  // wanted here; the arrow carries it. `kind` stays "quantity" (a percent move, never pp), it is
-  // required and never defaulted, per envelope.mjs's own header.
-  const arrow = delta.pct > 0 ? "▲" : delta.pct < 0 ? "▼" : "";
-  const magnitude = formatDelta(Math.abs(delta.pct), "quantity")?.replace(/^[+−]/, "") ?? "";
+/** One slot of the card: a number, or the state it falls in. */
+function Cell({ cell, auditKey }: { cell: DeltaCellModel; auditKey: string }) {
+  if (cell.kind === "absent") {
+    // A slot that cannot show a number says which of spec 00 section 4's states it is in, in words
+    // (`1m, no data yet`), carries the SDMX code on `data-obs-status`, and puts the reason, including
+    // what the state needs, in the accessible name and on hover. Typed with the absence vocabulary's own
+    // treatment (Absence.tsx ABSENCE_TEXT_STYLE); never a bare dash, which would be indistinguishable
+    // from a real zero-change delta (spec 00 section 2).
+    return (
+      <span
+        data-audit={auditKey}
+        data-absence-state={cell.state}
+        data-obs-status={cell.obsStatus}
+        aria-label={`${cell.lead}: ${cell.label}. ${cell.detail}`}
+        title={cell.detail}
+        style={{ ...ABSENCE_TEXT_STYLE, fontSize: 9.5, letterSpacing: "0.06em", fontWeight: 700 }}
+      >
+        {cell.lead} · {cell.label}
+      </span>
+    );
+  }
   return (
     <span
-      data-audit="headline-card-delta"
-      title={`vs ${delta.fromDate}`}
+      data-audit={auditKey}
+      title={cell.fromDate ? `vs ${cell.fromDate}` : undefined}
       style={{
         fontSize: 11,
         fontWeight: 700,
@@ -409,8 +701,7 @@ function WeekDelta({ delta, message }: { delta: WindowDelta | null; message: str
         whiteSpace: "nowrap",
       }}
     >
-      {arrow}
-      {magnitude} 1w
+      {cell.text}
     </span>
   );
 }
