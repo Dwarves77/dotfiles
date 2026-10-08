@@ -10,6 +10,14 @@
 // `git diff -- <path>` per staged file, twice (trigger and check), which measured 12.5 s at 77 staged files
 // (docs/ops gate evaluation A, section 7). The cost is now one git process regardless of file count.
 //
+// THE BASELINE (lane GATE-5, 2026-10-08). The one diff is taken against the MERGE BASE with the integration
+// branch, not against the previous commit, so "introduced" means "not present where this branch forked from
+// master": a byte-identical restore of a master file, a revert of a deletion, and a block moved across two
+// commits of one branch all introduce nothing. lib/baseline.mjs is the one function that decides it (with a
+// named fallback to the previous commit when there is no merge base); every context carries the result as
+// `ctx.baseline` ({ ref, source, label }), which the runner prints and writes to the firing log. A range
+// context is already a merge-base diff (change-range.mjs's resolveRange) and reports its own range.
+//
 // INTRODUCED LINES, NOT PRESENT LINES. A rule that polices a text pattern must charge a commit only for
 // what the commit introduces. `ctx.introducedLines(path)` returns { added, pairs }: `added` is every line
 // the change adds to the path, and `pairs` has one entry per added line carrying the removed line it
@@ -24,6 +32,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve as resolvePath } from 'node:path';
+import { resolveBaseline } from './baseline.mjs';
 
 // Resolve repo root lazily and cache. Resolution order:
 //   1. DISCIPLINE_REPO_ROOT environment variable (explicit operator override)
@@ -94,12 +103,20 @@ let diffLoads = 0;
 /** Test-only: how many unified diffs this process has loaded from git. */
 export function _diffLoadCount() { return diffLoads; }
 
-function loadDiff(source) {
+// The baseline for a diff source (see the header). A range is already a merge-base diff.
+function baselineFor(source, env) {
+  const quietGit = (args, opts = {}) => git(args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts });
+  if (source.type === 'staged') return resolveBaseline({ kind: 'staged', env, cwd: getRepoRoot(), git: quietGit });
+  if (source.type === 'commit') return resolveBaseline({ kind: 'commit', head: source.sha, env, cwd: getRepoRoot(), git: quietGit });
+  return { ref: null, source: 'range', label: `range ${source.range}` };
+}
+
+function loadDiff(source, baseline) {
   diffLoads += 1;
   const head = ['-c', 'core.quotepath=false'];
   let args;
-  if (source.type === 'staged') args = [...head, 'diff', '--cached', ...DIFF_FLAGS];
-  else if (source.type === 'commit') args = [...head, 'show', '--format=', ...DIFF_FLAGS, source.sha];
+  if (source.type === 'staged') args = [...head, 'diff', '--cached', ...DIFF_FLAGS, ...(baseline.ref ? [baseline.ref] : [])];
+  else if (source.type === 'commit') args = baseline.ref ? [...head, 'diff', ...DIFF_FLAGS, baseline.ref, source.sha] : [...head, 'show', '--format=', ...DIFF_FLAGS, source.sha];
   else args = [...head, 'diff', ...DIFF_FLAGS, source.range];
   return git(args, { maxBuffer: DIFF_MAX_BUFFER, stdio: ['ignore', 'pipe', 'pipe'] });
 }
@@ -107,19 +124,21 @@ function loadDiff(source) {
 // Build CheckContext for a proposed commit (commit-msg hook).
 // At commit-msg time, staged files reflect what's about to be committed,
 // and the commit message is in the file at messageFile.
-export function buildContextForProposedCommit({ messageFile }) {
+export function buildContextForProposedCommit({ messageFile, env = process.env }) {
   const commitMessage = readFileSync(messageFile, 'utf-8').replace(/^#.*$/gm, '').trim();
   const diffSource = { type: 'staged' };
-  return assemble({ commitMessage, diffText: loadDiff(diffSource), isMergeCommit: false, commitSha: null, diffSource });
+  const baseline = baselineFor(diffSource, env);
+  return assemble({ commitMessage, diffText: loadDiff(diffSource, baseline), isMergeCommit: false, commitSha: null, diffSource, baseline });
 }
 
 // Build CheckContext for an existing commit (CI mode).
-export function buildContextForExistingCommit({ commit }) {
+export function buildContextForExistingCommit({ commit, env = process.env }) {
   const commitMessage = git(['log', '-1', '--format=%B', commit]).trimEnd();
   const parents = git(['log', '-1', '--format=%P', commit]).trim().split(/\s+/).filter(Boolean);
   const isMergeCommit = parents.length > 1;
   const diffSource = { type: 'commit', sha: commit };
-  return assemble({ commitMessage, diffText: loadDiff(diffSource), isMergeCommit, commitSha: commit, diffSource });
+  const baseline = baselineFor(diffSource, env);
+  return assemble({ commitMessage, diffText: loadDiff(diffSource, baseline), isMergeCommit, commitSha: commit, diffSource, baseline });
 }
 
 // Build CheckContext for an ENTIRE commit range as ONE cumulative diff (squash-merge parity).
@@ -160,12 +179,14 @@ export function buildContextForRange({ range }) {
   const headRef = range.includes('...') ? range.split('...').pop() : range.split('..').pop();
   const commitMessage = git(['log', '-1', '--format=%B', headRef]).trimEnd();
   const diffSource = { type: 'range', range };
+  const baseline = baselineFor(diffSource);
   return assemble({
     commitMessage,
-    diffText: loadDiff(diffSource),
+    diffText: loadDiff(diffSource, baseline),
     isMergeCommit: false, // a squash commit always has exactly one parent; mirror that here
     commitSha: null,
     diffSource,
+    baseline,
   });
 }
 
@@ -201,10 +222,11 @@ export function buildContextFromFixture({ message, files, isMergeCommit = false,
     isFixture: true,
     fileContents,
     diffSource: { type: 'fixture' },
+    baseline: { ref: null, source: 'fixture', label: 'fixture (in-memory diff)' },
   });
 }
 
-function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMergeCommit, commitSha, isFixture = false, fileContents = null, diffSource = null }) {
+function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMergeCommit, commitSha, isFixture = false, fileContents = null, diffSource = null, baseline }) {
   const lines = commitMessage.split(/\r?\n/);
   const commitSubject = lines[0] || '';
   const blankIdx = lines.findIndex((line, i) => i > 0 && line.trim() === '');
@@ -232,6 +254,7 @@ function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMerge
     totalDeletions,
     commitSha,
     isFixture,
+    baseline,
     _fileContents: fileContents,
     _diffSource: diffSource,
   };
