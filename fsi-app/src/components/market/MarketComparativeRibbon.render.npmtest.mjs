@@ -67,7 +67,7 @@ async function compile(relPath) {
 const ribbon = await compile("MarketComparativeRibbon.tsx");
 const freshnessMod = await compile("SeriesFreshness.tsx");
 const provenanceMod = await compile("SeriesProvenance.tsx");
-const { MarketComparativeRibbon, deltaCellModel, sparklineModel, SPARKLINE_MAX_POINTS, DELTA_STATE_OBS_CODE } = ribbon;
+const { MarketComparativeRibbon, deltaCellModel, sparklineModel, SPARKLINE_MAX_POINTS, SPARKLINE_WINDOW_DAYS, DELTA_STATE_OBS_CODE } = ribbon;
 
 // ── fixture: raw market_series rows through the real board builder ─────────────────────────────────────
 
@@ -146,7 +146,7 @@ test("r1: a fully populated card renders the level, 1w, 1m, YoY, the sparkline a
   assert.match(card, /data-audit="headline-card-delta"[^>]*>[▲▼]\d+\.\d% 1w</);
   assert.match(card, /data-audit="headline-card-delta-1m"[^>]*>[▲▼]\d+\.\d% 1m</);
   assert.match(card, /data-audit="headline-card-delta-yoy"[^>]*>[▲▼]\d+\.\d% YoY</);
-  assert.match(card, /<svg[^>]*role="img"[^>]*aria-label="Trend over 58 observations, 2025-08-04 to 2026-09-07"/);
+  assert.match(card, /<svg[^>]*role="img"[^>]*aria-label="Trend over the last year, 53 observations, 2025-09-08 to 2026-09-07"/);
   assert.match(card, /<polyline[^>]*points="[0-9., ]+"/);
   assert.match(card, /data-audit="headline-card-asof"[^>]*>as of 2026-09-07</);
   // The level is still there (never break existing display).
@@ -230,7 +230,7 @@ test("r10: one methodology and provenance disclosure, closed by default, one blo
 
 test("r10/r11: the shared parts render the same markup the series board did (moved, not changed)", () => {
   const { SeriesFreshnessPanel, SeriesFreshnessBadge } = freshnessMod;
-  const { SeriesProvenanceDrawer } = provenanceMod;
+  const { ProvenanceDrawer } = provenanceMod;
   const panel = renderToStaticMarkup(
     React.createElement(SeriesFreshnessPanel, {
       summary: { counts: { current: 2, ageing: 1, stale: 0, frozen: 0, unknown: 0 }, total: 3, worst: "ageing" },
@@ -252,14 +252,18 @@ test("r10/r11: the shared parts render the same markup the series board did (mov
   assert.match(badge, /Stale/);
   assert.match(badge, /· as of 2026-07-01/);
   const drawer = renderToStaticMarkup(
-    React.createElement(SeriesProvenanceDrawer, {
-      row: { derivation: "observed", originClass: "official", methodVersion: "v1", nObservations: 3, sourceKey: "k", sourceRef: "r" },
-      producer: { sourceName: "Src", sourceUrl: "https://example.test/x", licenceStatus: "CC BY 4.0" },
+    React.createElement(ProvenanceDrawer, {
+      envelope: {
+        derivation: "observed", originClass: "official", methodVersion: "v1", nObservations: 3, sourceKey: "k", sourceRef: "r",
+        sourceUrl: "https://example.test/x", licence: "CC BY 4.0", attribution: "Src. CC BY 4.0.", sourceTier: "T3", asOf: "2026-09-07",
+      },
     }),
   );
   assert.match(drawer, /<details[^>]*><summary[^>]*>Methodology &amp; provenance<\/summary>/);
   assert.match(drawer, /Attribution<\/span><span[^>]*>Src\. CC BY 4\.0\.</);
   assert.match(drawer, /<a href="https:\/\/example\.test\/x"[^>]*>r<\/a>/);
+  assert.match(drawer, /Source rating<\/span><span[^>]*>T3</);
+  assert.match(drawer, /As of<\/span><span[^>]*>2026-09-07</);
 });
 
 // ── the pure decisions, attacked branch by branch ──────────────────────────────────────────────────────
@@ -301,19 +305,26 @@ test("deltaCellModel: a numeric change renders arrow, unsigned magnitude and win
   assert.equal(flat.text, "0.0% 1w");
 });
 
-test("sparklineModel: fewer than two numeric points is null; a long series is sampled with first and last kept", () => {
+test("sparklineModel: window is one year back from the series' own latest date, sampled to 60 points with first and last kept", () => {
   assert.equal(sparklineModel(undefined), null);
   assert.equal(sparklineModel([{ date: "2026-01-01", value: 1 }]), null);
   assert.equal(sparklineModel([{ date: "2026-01-01", value: null }, { date: "2026-01-08", value: 2 }]), null);
   const long = Array.from({ length: 455 }, (_, i) => ({ date: addDays("2025-01-01", i), value: 100 + (i % 17) }));
+  const last = long[454].date;
+  const cutoff = addDays(last, -365);
+  const inWindow = long.filter((p) => p.date >= cutoff).length;
   const m = sparklineModel(long);
+  assert.equal(SPARKLINE_WINDOW_DAYS, 365);
+  assert.equal(m.total, inWindow, "observations older than a year are not drawn or counted");
+  assert.ok(m.total < 455);
+  assert.equal(m.from, cutoff);
+  assert.equal(m.to, last);
   assert.equal(m.drawn, SPARKLINE_MAX_POINTS);
-  assert.equal(m.total, 455);
-  assert.equal(m.from, "2025-01-01");
-  assert.equal(m.to, long[454].date);
   assert.equal(m.points.split(" ").length, SPARKLINE_MAX_POINTS);
   assert.ok(m.points.startsWith("0.00,"));
   assert.ok(m.points.split(" ").pop().startsWith("100.00,"));
+  // One observation inside the year and the rest older: not enough to draw a trend.
+  assert.equal(sparklineModel([{ date: "2024-01-01", value: 1 }, { date: "2024-06-01", value: 2 }, { date: "2026-01-01", value: 3 }]), null);
   const flat = sparklineModel([{ date: "2026-01-01", value: 5 }, { date: "2026-01-08", value: 5 }]);
   assert.equal(flat.points, "0.00,12.00 100.00,12.00", "a flat series draws a level line, not NaN");
 });
@@ -331,8 +342,58 @@ test("market/page.tsx hands the ribbon the one server render instant, and the se
   assert.match(page, /<MarketComparativeRibbon board=\{seriesBoard\} embedded nowIso=\{nowIso\} \/>/);
   const board = readFileSync(resolve(HERE, "MarketSeriesBoard.tsx"), "utf8");
   assert.match(board, /import \{ SeriesFreshnessPanel, SeriesFreshnessBadge, boardFreshnessSummary \} from "@\/components\/market\/SeriesFreshness";/);
-  assert.match(board, /import \{ SeriesProvenanceDrawer \} from "@\/components\/market\/SeriesProvenance";/);
+  assert.ok(board.includes('import { ProvenanceDrawer, envelopeFromSeriesRow } from "@/components/market/SeriesProvenance";'));
   assert.doesNotMatch(board, /function MethodRow/, "the drawer rows live in one home");
   assert.doesNotMatch(board, /const FRESHNESS_TONE/, "the tone table lives in one home");
 });
 
+
+// ── /market/[slug]: the one drawer describes the envelope of the figure actually shown (operator ruling 2026-10-08) ──
+
+test("envelopeFromFactorRow: an emission factor's own envelope columns and its licence-gate entry, nothing invented", () => {
+  const { envelopeFromFactorRow } = provenanceMod;
+  const licences = { desnz: { name: "DESNZ", attribution: "Contains public sector information (OGL v3).", licence: "OGL v3.0", url: "https://example.test/desnz" } };
+  const env = envelopeFromFactorRow(
+    { source_key: "desnz", tier: "modal_default", derivation: "statutory_fixed", origin_class: "official", method_version: "2025", n_observations: null, as_at_date: "2025-06-01" },
+    licences,
+  );
+  assert.equal(env.derivation, "statutory_fixed");
+  assert.equal(env.originClass, "official");
+  assert.equal(env.methodVersion, "2025");
+  assert.equal(env.nObservations, null);
+  assert.equal(env.licence, "OGL v3.0");
+  assert.equal(env.sourceTier, "modal_default");
+  assert.equal(env.asOf, "2025-06-01");
+  const bare = envelopeFromFactorRow({ source_key: "unlisted" }, {});
+  assert.equal(bare.licence, null, "a source with no licence-gate entry shows no licence rather than a guessed one");
+  assert.equal(bare.derivation, null);
+  const html = renderToStaticMarkup(React.createElement(provenanceMod.ProvenanceDrawer, { envelope: env }));
+  assert.match(html, /Derivation<\/span><span[^>]*>statutory_fixed</);
+  assert.match(html, /Licence<\/span><span[^>]*>OGL v3\.0</);
+  assert.doesNotMatch(renderToStaticMarkup(React.createElement(provenanceMod.ProvenanceDrawer, { envelope: bare })), /Licence<\/span>/);
+});
+
+test("envelopeFromPriceStat: a published statistic carries only a rating and a release date, so that is all it shows", () => {
+  const { envelopeFromPriceStat } = provenanceMod;
+  assert.deepEqual(envelopeFromPriceStat({ sourceTier: 2, releasedAt: "2026-09-01" }), { sourceTier: "T2", asOf: "2026-09-01" });
+  assert.deepEqual(envelopeFromPriceStat({}), { sourceTier: null, asOf: null });
+  const html = renderToStaticMarkup(React.createElement(provenanceMod.ProvenanceDrawer, { envelope: envelopeFromPriceStat({ sourceTier: 2, releasedAt: "2026-09-01" }) }));
+  assert.match(html, /Source rating<\/span><span[^>]*>T2</);
+  assert.doesNotMatch(html, /Derivation|Origin class|Licence/, "no field the table does not carry is invented");
+});
+
+test("/market/[slug] wiring: envelope columns selected, licence gate read, the series behind the board found through SERIES_ITEM_MAP_RAW, freshness judged after mount", () => {
+  const page = readFileSync(resolve(HERE, "..", "..", "app", "market", "[slug]", "page.tsx"), "utf8");
+  assert.match(page, /scope_kind, derivation, origin_class, method_version, n_observations, as_at_date/);
+  assert.match(page, /\.from\("licence_clear_sources"\)/);
+  assert.match(page, /import \{ SERIES_ITEM_MAP_RAW \} from "@\/lib\/market\/series-item-map\.mjs";/);
+  assert.match(page, /factorLicences=\{factorLicences\}/);
+  assert.match(page, /seriesFigure=\{seriesFigure\}/);
+  const surface = readFileSync(resolve(HERE, "..", "pages", "MarketSignalDetailSurface.tsx"), "utf8");
+  assert.match(surface, /<PriceBoard stats=\{priceBoard\} seriesFigure=\{seriesFigure\} \/>/);
+  assert.match(surface, /<ProvenanceDrawer envelope=\{envelope\} \/>/);
+  assert.match(surface, /<ProvenanceDrawer envelope=\{envelopeFromFactorRow\(modalFactor\.factor as EmissionFactorRow, factorLicences\)\} \/>/);
+  // Freshness is read from the viewer's clock inside an effect, never during render (a statically built page must not freeze "current").
+  const fresh = surface.slice(surface.indexOf("function FigureFreshness"));
+  assert.match(fresh.slice(0, 700), /useEffect\(\(\) => \{[\s\S]*new Date\(\)[\s\S]*\}, \[\]\)/);
+});

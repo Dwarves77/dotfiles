@@ -59,7 +59,7 @@ import { lookupWatchMembership, type WatchMembershipEntry } from "@/lib/watchlis
 // Lane MKT-1 (2026-10-08): the freshness panel, the freshness badge and the methodology drawer moved
 // out of this file unchanged so /market mounts the same parts (see each file's header).
 import { SeriesFreshnessPanel, SeriesFreshnessBadge, boardFreshnessSummary } from "@/components/market/SeriesFreshness";
-import { SeriesProvenanceDrawer } from "@/components/market/SeriesProvenance";
+import { ProvenanceDrawer, envelopeFromSeriesRow } from "@/components/market/SeriesProvenance";
 
 interface MarketSeriesBoardProps {
   /** Server render instant (src/lib/render-now.ts). */
@@ -278,9 +278,9 @@ function ProducerCard({
                 {/* Freshness badge (spec 02 section 6 item 11): SeriesFreshnessBadge, moved unchanged. */}
                 <SeriesFreshnessBadge freshness={freshness} />
 
-                {/* Methodology / provenance drawer (spec 02 section 6 item 10, section 5): SeriesProvenanceDrawer,
+                {/* Methodology / provenance drawer (spec 02 section 6 item 10, section 5): ProvenanceDrawer,
                     moved unchanged. */}
-                <SeriesProvenanceDrawer row={s} producer={group} />
+                <ProvenanceDrawer envelope={envelopeFromSeriesRow(s, group)} />
               </div>
             );
           })}

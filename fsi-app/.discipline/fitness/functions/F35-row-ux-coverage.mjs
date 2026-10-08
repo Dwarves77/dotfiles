@@ -41,6 +41,7 @@ export const ROW_COMPONENTS = Object.freeze({
   // cohort row (CompanyBar) for each entry in buildLeadTimePosition()'s sorted result, spec 02 section
   // 6 item 5. Title carries data-guard-title via the shared SectionHeading.
   'src/components/market/LeadTimeChart.tsx': 'spec 02 section 6 item 5 lead-time position chart, per-company cohort rows',
+  'src/components/market/MarketComparativeRibbon.tsx': 'spec 02 section 6 row 1 headline series cards (level, 1w, 1m, YoY, trend, freshness), market-ribbon-smoke.mjs (lane MKT-1)',
   'src/components/operations/OperationsLedger.tsx': 'screenshot 02-operations-items (one word per line)',
   'src/components/operations/RegionDimensionMatrix.tsx': 'screenshot 01-operations-regions (text off the right edge)',
   'src/components/research/ResearchLedger.tsx': 'screenshot 03-research-findings (one word per line, label overlap)',

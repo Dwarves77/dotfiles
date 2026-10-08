@@ -9,11 +9,10 @@ briefs of 2026-10-04 (source-loop wave). Register rows worked: VERIFY-1 `02S6` r
   on every headline card, plus the series' freshness state. Before: level, 1w and as-of only (the 1m, YoY and sparkline were
   computed by `series-deltas.mjs` and attached by `series-board-view-model.mjs` and drawn by nothing).
 - r10, methodology and provenance disclosure: CLOSED for `/market` and `/market/series`. `/market` mounts one disclosure under the
-  ribbon, one block per series on the row, each block the series board's own fields grid. NOT closed for `/market/[slug]`, see
-  "Not done".
+  ribbon, one block per series on the row, each block the series board's own fields grid. `/market/[slug]` closed in the follow-up commit.
 - r11, freshness panel: CLOSED for `/market` and `/market/series`. `/market` mounts the board's panel summary under the ribbon and a
-  freshness badge on each card. NOT closed for `/market/[slug]`, see "Not done".
-- r9, policy timeline filtered to Market: NOT DONE. Stopped before any edit, see "NEEDS WRITE-SET EXPANSION".
+  freshness badge on each card. `/market/[slug]` closed in the follow-up commit.
+- r9, policy timeline filtered to Market: CLOSED in the follow-up commit (coordinator grant of 2026-10-08), see "Follow-up commit".
 
 Before/after per row:
 
@@ -90,52 +89,117 @@ existing `MarketComparativeRibbon.npmtest.mjs` (one regex, for the new `nowIso` 
   `<details>`, no client fetch); a missing value shows its state in words, not a blank. Targets: the two links now measure at least
   24 px tall; the `<summary>` is 25 px tall and full width. Measured as above; the rendering guard's UX smoke slot has no spec for
   this component (not in the write set), so the measurement came from the repo's detectors run directly.
+- Block: `/market` policy timeline (scoped). Primary goal: see the dated obligations that apply to the modes and regions in scope.
+  Path: zero steps to read; one click on "N hidden by your scope, Show all" to see everything, one click on "Back to your scope" to
+  return. The one primary action is the widen control, drawn as a quiet bordered button; it is absent when nothing is hidden. Feedback:
+  the strip shows "Loading upcoming obligations" while the scoped or widened read is in flight, and the control and scope line
+  swap on the response; a failed read falls back to the strip's existing empty state. Targets: 32 px tall with 8 px gaps (law 2), measured
+  by the market-ribbon smoke at 375, 768, 1024 and 1280 with a real click proving widen and narrow.
+- Block: `/market/[slug]` price board and carbon figure drawers. Goal: forward a screenshot with its method attached. Path: one click on
+  "Methodology & provenance" under the figure; closed by default; a freshness badge appears under the price board after mount for the
+  ratified series items. No asynchronous action (server data, native details). Not in a ux smoke spec (the detail surfaces mount
+  through `detail-surfaces-smoke`, which still passes in the local guard run).
 - Block: `/market/series` (series board). No visible change except the provenance source link, now a 24 px target.
 
 ## DESIGN CHANGES OWED (rule 20, for Claude Design, cited by artboard)
 
-- Artboard 04, `id="p4"` HEADLINE SERIES card: the system now needs, per spec 02 rows 1, 10, 11, a 1m change, a YoY change, a sparkline,
-  a freshness state per card, a freshness panel strip and a methodology disclosure under the track. p4 draws none of them (it
-  measured zero svg and a 86.84 px card). The build follows the spec; the artboard needs the new card drawn. State wording to draw:
-  "1m, no data yet", "YoY, suppressed", "1w, not applicable".
-- The p4-derived rows in `fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json` ("no sparkline anywhere in the HEADLINE
-  SERIES card", "no 1m or YoY delta row in the HEADLINE SERIES card") now contradict the spec. `audit:design` (not a CI job) will
-  report them NOT IN SPEC until the coordinator updates them and regenerates `results.json`. Not in this lane's write set.
+- Artboard 04, `id="p4"` HEADLINE SERIES card (coordinator ruling 4, 2026-10-08): the system needs a sparkline, a 1m change, a YoY change,
+  a freshness state per card, a freshness panel strip and a methodology disclosure under the track (spec 02 rows 1, 10, 11). p4 draws
+  none of them (it measured zero svg and an 86.84 px card). The build follows the spec; the artboard needs the new card drawn. State
+  wording to draw: "1m, no data yet", "YoY, suppressed", "1w, not applicable".
+- Artboard 04, the policy timeline region under the ledger (row 9): the system needs a scope line ("Scope: Ocean, EU"), an "N hidden by
+  your scope, Show all" control and a "Back to your scope" control. No artboard draws them.
+- Artboard 05, `/market/[slug]` (signal detail): the system needs a methodology and provenance drawer under the price board and under the
+  carbon figure, and a freshness badge under the price board when the item is one of the ratified series items. Artboard 05 draws neither.
+- The two p4-derived audit rows that forbade the sparkline and the 1m or YoY row are REPLACED in
+  `fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json` by rows that require them (1m form, a YoY slot on every card,
+  a sparkline polyline on every card, a freshness badge on every card). Measured on the audit mount: all four MATCH (1m 11px, 700, ink,
+  nowrap; 5 YoY slots; 5 sparkline polylines, fill none, stroke 1.25px; 5 freshness badges).
 
-## NEEDS WRITE-SET EXPANSION (nothing below was touched)
+## Follow-up commit, coordinator rulings of 2026-10-08
 
-1. r9, policy timeline filtered to Market. The brief says to reuse "the scope the series board uses; reuse its scope reader". That
-   reader does not exist: the series board (`MarketSeriesBoard`, `buildSeriesBoard`, `selectHeadlineSeries`, series-registry) carries no
-   mode or geography scope (git grep scope over `src/lib/market` and `src/components/market`). The only Market scope readers found:
-   the ledger's URL facets `mode` and `region` (`useListSurfaceFilter`, `filterFromSearchParams`, `list-surface-helpers.ts`) and the
-   workspace profile's `transportModes` and `jurisdictions` (`getWorkspaceProfile`). The timeline today is
-   `UpcomingObligationsStrip` over `GET /api/obligations/upcoming`, which filters by the workspace's jurisdictions only
-   (`defaultJurisdictionFilter`), selects `item_forward_events` joined to `id, title, legacy_id, jurisdiction_iso` (no mode column is
-   selected), and returns no count of events it hid. Building r9 needs: `fsi-app/src/lib/forward-events/read-upcoming.mjs` and its test
-   (a mode filter, and a `hiddenByScope` count from the same query), `fsi-app/src/app/api/obligations/upcoming/route.ts`,
-   `fsi-app/src/components/regulations/UpcomingObligationsStrip.tsx` and `UpcomingObligationsStripView.tsx` (the visible scope text
-   such as "Ocean, EU" and the "N hidden by your scope" widen control), plus a ruling on which scope is "active" (URL facets or
-   workspace profile). Regulations mounts the same strip, so the change must keep its unscoped behavior.
-2. r10 and r11 on `/market/[slug]`. That page shows figures (the price board from `published_price_statistics`, carbon intensity and cost
-   per FEU from `emission_factors`), not `market_series` rows, so the series board's parts have no row to describe there, and
-   `SERIES_ITEM_MAP` does not carry the stat-to-series key. Mounting needs `fsi-app/src/components/pages/MarketSignalDetailSurface.tsx`
-   (and a ruling on which source the drawer describes for a price stat, or a series key added to the price-board read in
-   `fsi-app/src/app/market/[slug]/page.tsx`). `/market/series` already mounts both; `/market` now does through the ribbon.
-3. UX smoke coverage for the ribbon: a spec under `fsi-app/.discipline/rendering/smoke/` built on `runUxSpec`, its registration in
-   `ux-smoke-specs.mjs`, and the F35 `ROW_COMPONENTS` line. Not added because the directory is outside the write set.
+1. r9, policy timeline (GRANTED): CLOSED. Active scope is the ledger's URL facets `mode` and `region` when present, else the workspace
+   profile's transport modes and jurisdictions, decided per dimension (`resolveScope`, `read-upcoming.mjs`).
+   - `readUpcoming` (new, the one read) returns `{ events, hiddenByScope }`; `fetchUpcomingObligations` is its unchanged array form, so
+     every pre-existing caller is untouched. `hiddenByScope` counts what the mode and jurisdiction filters removed from the SAME fetched
+     upcoming window, against that window with no scope at all. An item with no modes is mode-agnostic and is kept (the same rule
+     `workspace/relevance.mjs` uses). The item join now also selects `transport_modes`.
+   - `GET /api/obligations/upcoming`: `?scope=1` (with optional `modes` and `regions`, comma separated) is the scoped list read and adds
+     `scope` and `hiddenByScope` to the response; `?scope=all` is the widen control (no mode and no jurisdiction filter); no `scope` is
+     the old read, byte for byte.
+   - `UpcomingObligationsStrip` takes an optional `scope` prop and filters when given; `UpcomingObligationsStripView` takes an optional
+     `scopeInfo` and draws the filter as text ("Scope: Ocean, EU"), "N hidden by your scope, Show all" and, once widened, "Back to your
+     scope". The Regulations mounts pass no scope and render exactly as before (asserted: an unscoped render contains no scope markup).
+   - New `MarketPolicyTimeline.tsx` reads the facets with the ledger's own `filterFromSearchParams` and mounts the strip; `/market` mounts
+     it inside Suspense in place of the bare strip, and the heading copy no longer says "not yet filtered".
+2. /market/[slug] (GRANTED): the drawer describes the envelope of the figure actually shown, with one component. `SeriesProvenance.tsx`
+   props are now a figure envelope (`ProvenanceDrawer`, `ProvenanceFields`, `FigureEnvelope`); `envelopeFromSeriesRow` adapts a series row
+   (board and ribbon, output unchanged), `envelopeFromFactorRow` an emission factor with its licence-gate entry, `envelopeFromPriceStat` a
+   published statistic. On the detail page: the carbon figure's drawer is built from the factor row it used (the page now selects
+   `derivation, origin_class, method_version, n_observations, as_at_date` from `emission_factors` and reads `licence_clear_sources` for
+   licence and attribution); the price board's drawer is built from the market_series row behind it, found through `SERIES_ITEM_MAP_RAW`
+   (the same map the refresh producer writes the board from), with a freshness badge judged after mount against the viewer's clock (the
+   route is statically built, so a build-time "now" would freeze the label).
+   - CORRECTION to the ruling's premise, [CONFIRMED by reading migration 151 and 258]: `emission_factors` carries the envelope columns,
+     `published_price_statistics` does NOT (its columns are label, value_display, unit, context_line, severity_tone, source_tier,
+     released_at, next_release_at, next_release_label, sort_order). So the price board's envelope comes from the series behind it when the
+     item is one of the six ratified series items, and otherwise shows only the source rating and release date the table carries; no
+     field is invented. No migration was written.
+3. Ribbon UX smoke spec (GRANTED): `fsi-app/.discipline/rendering/smoke/market-ribbon-smoke.mjs` (ribbon, in a full and a thin state,
+   plus the scoped timeline view with a real click that widens and narrows), registered in `ux-smoke-specs.mjs` as `market-ribbon`;
+   F35 `ROW_COMPONENTS` lists `MarketComparativeRibbon.tsx` (checked by calling the F35 `check` over every enumerated file: no violations).
+   The ribbon track now declares `data-guard-strip` and the card label carries `data-guard-title`. Run through `runUxSpec`: 23 checks,
+   0 failures (law 2 targets, overflow, titles, clipped text at 375, 768, 1024, 1280, plus the 1440 bounds sweep and the bespoke checks).
+   Two law-2 target defects it found in my own earlier work were fixed (the "Series board" link and the provenance link measured 23 px
+   tall at 6 px padding; now 25 px).
+4. Audit rows (GRANTED): rewritten as above. results.json and the audit document were NOT regenerated, see open items.
+5. Sparkline window: one year back from the series' own latest date (`SPARKLINE_WINDOW_DAYS`, equal to the YoY window), sampled to 60
+   points, stated in the accessible name ("Trend over the last year, 53 observations, 2025-09-08 to 2026-09-07").
+6. Request coverage: left as is (COV-1 builds the control); the not-covered state text is unchanged.
+
+## Read and reused (follow-up)
+
+- Read in full: `read-upcoming.mjs` and its test, the route, the strip and its view, `list-surface-helpers.ts` (facet parameters),
+  `useListSurfaceFilter.ts`, `workspace/relevance.mjs` (mode-agnostic rule), `workspace/profile.ts`, `[slug]/page.tsx`,
+  `MarketSignalDetailSurface.tsx`, migrations 151, 258 and 268 (columns, grants), `series-item-map.mjs`, F35, the smoke registry and
+  `ux-harness.mjs`, and the audit harness README and spec file.
+- Reused: `jurisdictionMatches` and `defaultJurisdictionFilter` (region matching and the profile default), `filterFromSearchParams` (the
+  facet contract), `getWorkspaceProfile` (profile modes and jurisdictions), `buildSeriesBoard` (the series behind a price board),
+  `deriveSeriesFreshness` (freshness), the licence gate view `licence_clear_sources`, `runUxSpec` and `fullAppCss`.
+
+## Red then green (follow-up)
+
+- Run against the pre-change code (every tracked source file, the smoke registration and the F35 line stashed; the new test files and the
+  new smoke spec left in place): `read-upcoming-scope.test.mjs` cannot import the old module's new exports (fails at load); of the 26
+  tests reported across the three new test files, 9 fail (the 17 that pass assert behaviour that must not change, such as the unscoped
+  render carrying no scope markup); the `market-ribbon` smoke spec crashes waiting for `[data-audit="policy-scope-widen"]`, a control the
+  old view does not have. Run against the new code: 77 of 77 pass across the five touched or new test files (`read-upcoming.test`,
+  `read-upcoming-scope.test`, `UpcomingObligationsStripScope.npmtest`, `MarketComparativeRibbon.render.npmtest`,
+  `MarketComparativeRibbon.npmtest`); 225 of 227 pass in the 14 other test files that mention the touched components (2 skipped, 0 fail);
+  `tsc --noEmit` and eslint clean.
+- The `market-ribbon` smoke spec through `runUxSpec`: 23 checks, 0 failures. The whole rendering guard run locally with this branch
+  (`node .discipline/rendering/run-rendering-guard.mjs`): exit 0, 30 UX smoke specs including `market-ribbon`, 727 UX checks.
+
+## NEEDS A RULING (open)
+
+- results.json and `AUDIT-2026-09-07.md` were not regenerated. A full run of `npm run audit:design` on this branch (2336 checks, 2206
+  MATCH, 70 MISMATCH, 60 NOT BUILT) reports harness build errors for 11 specs (actionrow, detailheader, detailsection, detailtagrow,
+  detailtimeline, inthisliststat, railcards, sectionindex, settings-section-index, summarydepthswitch, tagpopover: their mounts import
+  `DetailHeader`, `DetailTimeline` and `SectionIndex` from `DetailShell.tsx`, which no longer exports them) and, because those specs
+  produce no rows, regenerating in full deletes 6179 lines of results.json and rewrites 787 lines of the audit document. That is
+  pre-existing breakage unrelated to this lane (results.json was last regenerated 2026-09-11), so committing the regenerated pair would
+  erase the evidence for those 11 specs. The generator was run, its output inspected and reverted. The spec rows (the part of the ruling
+  that decides what the audit requires) are committed. Decision needed: fix those 11 mounts first and then regenerate, or commit the
+  regenerated pair as is.
+- `getPublicMarketIntelItems`-style caching: the detail route's item bundle is cached; the new `market_series` and `licence_clear_sources`
+  reads sit inside it (authenticated-only tables, read by the same client as the existing `emission_factors` read). I did not verify the
+  live grants from this lane (no live access); the code fails soft to an empty envelope on a read error, so the drawer shows less, never
+  a wrong field.
+- The scoped timeline's hidden count is bounded by the strip's fetched window (limit times five upcoming events), the same window the
+  existing jurisdiction filter already worked on; it is "hidden in the next events read", not a corpus-wide count.
 
 ## Not done
 
-- r9 and the `/market/[slug]` halves of r10 and r11 (above).
-- The spec 00 section 4 "request coverage" control for the not-covered state: no such control exists anywhere in the product
-  (VERIFY-1, 00S4) and it needs an endpoint; the state is named and explained, with no control.
-- Pages with no figure (none under `/market`): nothing to unmount.
-- Registry state is unchanged: no migration, no producer, no data write, no live read; the series computations are untouched.
-
-## Open items
-
-- A freshness state on the ribbon uses the injected render instant; mounts that pass no `nowIso` (a smoke fixture) fall back to the
-  host clock, marked `clock-ok` as `MarketSeriesBoard` does.
-- The sparkline window is "all observations on record, sampled to 60 points", so a daily series and a weekly series span different
-  lengths of time; the span is stated in the accessible name. A fixed-window rule (for example 52 weeks) is a product decision not in
-  the brief.
+- Pages with no figure: none under `/market`.
+- The request-coverage control (COV-1).
+- No migration, no producer change, no live read or write.

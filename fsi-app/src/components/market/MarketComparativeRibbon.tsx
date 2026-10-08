@@ -115,7 +115,7 @@ import {
   boardFreshnessSummary,
   type SeriesFreshnessState,
 } from "@/components/market/SeriesFreshness";
-import { SeriesProvenanceFields, type SeriesProducerRef } from "@/components/market/SeriesProvenance";
+import { ProvenanceFields, envelopeFromSeriesRow, type SeriesProducerRef } from "@/components/market/SeriesProvenance";
 
 interface MarketComparativeRibbonProps {
   board: MarketSeriesBoardVM;
@@ -303,10 +303,25 @@ export interface SparklineModel {
   to: string;
 }
 
-/** Pure: the sparkline geometry for a series, or null when fewer than two numeric points exist (the card
- *  then renders the no-data-yet state, never an empty box). A flat series draws a level line. */
+/** The trend window: one year, the ribbon's longest comparison (YoY), so the line and the YoY change cover
+ *  the same span (operator ruling 2026-10-08). */
+export const SPARKLINE_WINDOW_DAYS = DELTA_WINDOWS.yoy;
+
+function isoMinusDays(iso: string, days: number): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Pure: the sparkline geometry for a series over its last year of observations (counted back from the
+ *  series' own latest date, never the clock), sampled to at most 60 points, or null when fewer than two
+ *  numeric points fall in the window (the card then renders the no-data-yet state, never an empty box). A
+ *  flat series draws a level line. */
 export function sparklineModel(sparkline: DeltaPoint[] | undefined, maxPoints = SPARKLINE_MAX_POINTS): SparklineModel | null {
-  const valid = (sparkline ?? []).filter((p) => typeof p?.value === "number" && Number.isFinite(p.value)) as Array<{ date: string; value: number }>;
+  const numeric = (sparkline ?? []).filter((p) => typeof p?.value === "number" && Number.isFinite(p.value)) as Array<{ date: string; value: number }>;
+  const last = numeric.length ? numeric[numeric.length - 1].date : null;
+  const cutoff = last && /^\d{4}-\d{2}-\d{2}/.test(last) ? isoMinusDays(last, SPARKLINE_WINDOW_DAYS) : null;
+  const valid = cutoff ? numeric.filter((p) => p.date >= cutoff) : numeric;
   if (valid.length < 2) return null;
   let picked = valid;
   if (valid.length > maxPoints) {
@@ -415,7 +430,7 @@ export function MarketComparativeRibbon({ board, embedded = false, nowIso: nowIs
               anchor to a section removed from this page in the same lane; now the standalone route. */}
           {/* Law 2 target floor (lane MKT-1): the bare 13px-tall inline link measured 104 by 13px; the
               padding gives it a 25px target without moving the caption's text. */}
-          <Link href="/market/series" style={{ color: "inherit", textDecoration: "underline", display: "inline-block", padding: "6px 0" }}>
+          <Link href="/market/series" style={{ color: "inherit", textDecoration: "underline", display: "inline-block", padding: "7px 0" }}>
             Series board →
           </Link>
         </span>
@@ -437,6 +452,9 @@ export function MarketComparativeRibbon({ board, embedded = false, nowIso: nowIs
         className="cl-headline-track"
         data-audit="headline-track"
         data-overflow-allowed=""
+        // The UX detector's own declaration of a scrolling strip (ux-assert.mjs, measureUx): the cards past
+        // the viewport are carried by this track, not clipped.
+        data-guard-strip=""
         style={{
           display: "grid",
           gridAutoFlow: "column",
@@ -478,7 +496,7 @@ export function MarketComparativeRibbon({ board, embedded = false, nowIso: nowIs
                 <p style={{ fontSize: 11, fontWeight: 700, color: "var(--color-text-primary)", margin: 0, overflowWrap: "anywhere" }}>
                   {row.source.label}
                 </p>
-                <SeriesProvenanceFields row={row.source} producer={group as SeriesProducerRef | null} />
+                <ProvenanceFields envelope={envelopeFromSeriesRow(row.source, group as SeriesProducerRef | null)} />
               </div>
             ))}
           </div>
@@ -559,6 +577,7 @@ function RibbonCard({
     >
       <p
         data-audit="headline-card-label"
+        data-guard-title
         style={{
           fontSize: 9.5,
           fontWeight: 700,
@@ -605,9 +624,9 @@ function RibbonCard({
         <Cell cell={m1} auditKey="headline-card-delta-1m" />
         <Cell cell={yoy} auditKey="headline-card-delta-yoy" />
       </div>
-      {/* The trend: a plain polyline in the ink tone, sampled to at most SPARKLINE_MAX_POINTS. Its span
-          and observation count are stated in its accessible name, so the line is never read as a fixed
-          window. Fewer than two numeric points is the no-data-yet state, not an empty box. */}
+      {/* The trend: a plain polyline in the ink tone over the series' last year (SPARKLINE_WINDOW_DAYS), sampled
+          to at most SPARKLINE_MAX_POINTS. Its window, span and observation count are stated in its
+          accessible name. Fewer than two numeric points is the no-data-yet state, not an empty box. */}
       <div data-audit="headline-card-spark" style={{ marginTop: 6 }}>
         {spark ? (
           <svg
@@ -616,10 +635,10 @@ function RibbonCard({
             width="100%"
             height={SPARK_H}
             role="img"
-            aria-label={`Trend over ${spark.total} observations, ${spark.from} to ${spark.to}`}
+            aria-label={`Trend over the last year, ${spark.total} observations, ${spark.from} to ${spark.to}`}
             style={{ display: "block", overflow: "visible" }}
           >
-            <title>{`${spark.total} observations, ${spark.from} to ${spark.to}`}</title>
+            <title>{`Last year: ${spark.total} observations, ${spark.from} to ${spark.to}`}</title>
             <polyline
               points={spark.points}
               fill="none"

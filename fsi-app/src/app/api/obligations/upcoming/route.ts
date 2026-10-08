@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getWorkspaceProfile } from "@/lib/workspace/profile";
-import { fetchUpcomingObligations, defaultJurisdictionFilter } from "@/lib/forward-events/read-upcoming.mjs";
+import { readUpcoming, defaultJurisdictionFilter, resolveScope, scopeLabel } from "@/lib/forward-events/read-upcoming.mjs";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 
@@ -45,6 +45,14 @@ import { checkRateLimit, clientKey } from "@/lib/api/rate-limit";
 // jurisdiction default), not the org-independent public listing (that lives in src/lib/data.ts,
 // server-cached separately).
 
+// SCOPED READ (lane MKT-1, operator ruling 2026-10-08, the Market policy timeline). `?scope=1` asks for the
+// list variant narrowed to an ACTIVE SCOPE: `modes` and `regions` (comma separated) when the caller sends
+// them (the Market ledger's URL facets), else the workspace profile's transport modes and jurisdictions.
+// The response then also carries `scope` (the resolved modes, regions, their source and the visible label)
+// and `hiddenByScope` (events in the same upcoming window the scope removed). `?scope=all` is the widen
+// control: no mode and no jurisdiction filter at all. No `scope` parameter at all is the pre-existing read,
+// byte for byte (Regulations mounts that form).
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function handleGET(request: NextRequest) {
@@ -55,6 +63,9 @@ async function handleGET(request: NextRequest) {
   const limitParam = searchParams.get("limit");
   const limit = limitParam && Number.isFinite(Number(limitParam)) ? Number(limitParam) : undefined;
   const variant: "list" | "detail" = itemIdParam ? "detail" : "list";
+  const scopeParam = variant === "list" ? searchParams.get("scope") : null;
+  const scoped = scopeParam === "1";
+  const widened = scopeParam === "all";
 
   try {
     const supabase = await createSupabaseServerClient();
@@ -73,26 +84,50 @@ async function handleGET(request: NextRequest) {
     }
 
     let jurisdictionFilter: string[] | null = null;
-    if (variant === "list") {
+    let modeFilter: string[] | null = null;
+    let resolvedScope: ReturnType<typeof resolveScope> | null = null;
+    if (variant === "list" && !widened) {
       try {
         const orgId = await resolveOrgIdFromCookies();
         const profile = await getWorkspaceProfile(supabase, orgId);
-        jurisdictionFilter = defaultJurisdictionFilter(profile.jurisdictions);
+        if (scoped) {
+          resolvedScope = resolveScope({
+            facetModes: searchParams.get("modes"),
+            facetRegions: searchParams.get("regions"),
+            profileModes: profile.transportModes,
+            profileJurisdictions: profile.jurisdictions,
+          });
+          jurisdictionFilter = resolvedScope.regions;
+          modeFilter = resolvedScope.modes;
+        } else {
+          jurisdictionFilter = defaultJurisdictionFilter(profile.jurisdictions);
+        }
       } catch {
-        jurisdictionFilter = null; // soft-fail to "no filter" — same posture the component took
+        // soft-fail to "no filter", the same posture the component took. A scoped read whose profile could
+        // not be read still honours the facets it was handed.
+        jurisdictionFilter = null;
+        if (scoped) {
+          resolvedScope = resolveScope({ facetModes: searchParams.get("modes"), facetRegions: searchParams.get("regions") });
+          jurisdictionFilter = resolvedScope.regions;
+          modeFilter = resolvedScope.modes;
+        }
       }
     }
 
-    const events = await fetchUpcomingObligations(supabase, {
+    const { events, hiddenByScope } = await readUpcoming(supabase, {
       itemId: variant === "detail" ? (resolvedItemId ?? undefined) : undefined,
       limit: limit ?? (variant === "detail" ? 20 : 8),
       jurisdictionFilter,
+      modeFilter,
+      countHidden: scoped,
     });
 
-    return NextResponse.json(
-      { events, hasJurisdictionFilter: !!jurisdictionFilter },
-      { headers: { "Cache-Control": "private, no-store" } }
-    );
+    const body: Record<string, unknown> = { events, hasJurisdictionFilter: !!jurisdictionFilter };
+    if (scoped && resolvedScope) {
+      body.scope = { modes: resolvedScope.modes, regions: resolvedScope.regions, source: resolvedScope.source, label: scopeLabel(resolvedScope) };
+      body.hiddenByScope = hiddenByScope ?? 0;
+    }
+    return NextResponse.json(body, { headers: { "Cache-Control": "private, no-store" } });
   } catch (e) {
     console.error("[api/obligations/upcoming] failed, returning empty:", e);
     return NextResponse.json(
