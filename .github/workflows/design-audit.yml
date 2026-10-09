@@ -164,20 +164,22 @@ jobs:
           retention-days: 7
 
   # Lane DORMANT-1 (2026-10-09): this workflow records its own harness run (CLAUDE.md rule 17). A separate job that
-  # runs `if: always()` after every other job, so the row lands on every path, including a kill-switch early exit,
+  # runs after every other job whatever their result, so the row lands on every path, including a kill-switch early exit,
   # and the service credential is held by this job alone. Family: scripts/harness-runs/design-audit/.
   record-harness-run:
     name: Record this run in harness_runs
     needs: [design-audit]
-    if: always() && github.event_name == 'workflow_dispatch'
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
         with:
           node-version: '24'
           cache: npm

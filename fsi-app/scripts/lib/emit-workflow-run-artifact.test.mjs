@@ -94,7 +94,7 @@ function recordJobProblems(text, fam, spec) {
   const job = text.slice(at);
   const needs = /\n {4}needs: \[([^\]]*)\]/.exec(job)?.[1].split(",").map((s) => s.trim()).sort().join(",");
   if (needs !== [...spec.jobs].sort().join(",")) problems.push(`${fam}: needs is ${needs}, expected ${spec.jobs.join(",")}`);
-  const cond = /\n {4}if: (.*)\n/.exec(job)?.[1] ?? "";
+  const cond = (/\n {4}if: (.*)\n/.exec(job)?.[1] ?? "").replace(/^\$\{\{\s*|\s*\}\}$/g, "");
   if (!cond.startsWith("always()")) problems.push(`${fam}: the record job does not run if: always() (a kill-switch exit would leave no row)`);
   if (spec.dispatchOnly && !/github\.event_name == 'workflow_dispatch'/.test(cond)) problems.push(`${fam}: a pull_request job must not hold the production credential`);
   if (!spec.dispatchOnly && /github\.event_name/.test(cond)) problems.push(`${fam}: the record job is conditioned on the event`);
@@ -112,7 +112,7 @@ for (const [fam, spec] of Object.entries(WIRED)) {
     assert.deepEqual(recordJobProblems(text, fam, spec), []);
   });
   test(`${fam}.yml: attack - removing each property is reported`, () => {
-    assert.match(recordJobProblems(text.replace(/\n {4}if: always\(\)/, "\n    if: success()"), fam, spec).join(";"), /always\(\)/);
+    assert.match(recordJobProblems(text.replace(/\n {4}if: (\$\{\{ )?always\(\)/, "\n    if: success()"), fam, spec).join(";"), /always\(\)/);
     assert.match(recordJobProblems(text.replace(" --land\n", "\n"), fam, spec).join(";"), /emitter call/);
     assert.match(recordJobProblems(text.replace("\n  record-harness-run:\n", "\n  other:\n"), fam, spec).join(";"), /no record-harness-run job/);
     assert.match(recordJobProblems(text.replace(/--land\n$/, "--land || echo skipped\n"), fam, spec).join(";"), /best-effort/);
