@@ -122,7 +122,7 @@
 
 - Nothing applied; no live row; no scrape or population.
 - `OperationsDimension` consumers beyond the three granted files were not audited for a six-value assumption outside
-  `src/components/operations` and `operations-matrix.ts`; the grep over `src` for the six names found no other list.
+  `src/components/operations` and `operations-matrix.ts`; the grep over `src` for the six names found no other list. [CLOSED: PR 1059]
 - `docs/inventories/db-check-constraints.json` (source: live) updates when 378 is applied and the inventory re-run.
 - The NESO About page and the API Terms of Use were not fetched by this lane; the ownership claim (the UK government completed the purchase of the Electricity System Operator on 2024-10-01) is the coordinator's ruling.
 - The stats response does not say whether `average` is over forecast or actual half-hours; not determined.

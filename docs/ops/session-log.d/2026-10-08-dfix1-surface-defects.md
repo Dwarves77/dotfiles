@@ -52,7 +52,7 @@ Audit totals after the run: 73 specs, 2534 checks, MATCH 2469, MISMATCH 53, NOT 
 - `fsi-app/src/components/community/PostComposer.tsx:33`: `CommunityPostAuthor.user_id: string` is now `string | null` on the wire for anonymous posts; the client type should say so (no component reads it today).
 - `.discipline/rendering/audit/mounts.mjs:521` keeps a verbatim six-entry copy of the Operations DIMENSIONS ("all 6"); the comments in `scripts/entities/seed-corridors.mjs:37` and `src/lib/regional/state-cost-facts-envelope.mjs:8` still say six. The mount copy should be seven (or import the constant).
 - Not run locally per COMMON rule 9: the whole suite, fitness runner, tsc, lint. Run locally and green: every touched test file plus the neighbouring community, detail, operations and agent-format tests (482 of 482), the registered UX smokes for the touched components (13 specs, 0 failures), `npm run audit:design` once.
-- The `[WORK: DFIX-1]` tokens do not exist on master (the disposition PR has not merged); the closing tokens are appended to the item lines named in the table in the commit that carries the PR number.
+- The `[WORK: DFIX-1]` tokens do not exist on master (the disposition PR has not merged), so `[CLOSED: PR 1059]` is appended (token edit only) to the last line of each item named in the data-defect table: l3 item 3, l12 items 2 and 3, p2 (both bullets), alias1 open item, s8e5 first NOT done bullet, sec5 residual. When the disposition PR merges, its tokens on those lines are superseded by these.
 
 ## UX compliance
 
