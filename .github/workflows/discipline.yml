@@ -350,7 +350,7 @@ jobs:
         if: steps.docs_only.outputs.docs_only != 'true'
         env:
           # Lane DORMANT-1: closure-gate.test.mjs's LIVE NEVER-RUN test runs the same live lookup as the gate step below.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash fsi-app/.discipline/run-test-suite.sh
 
@@ -383,7 +383,7 @@ jobs:
         if: steps.docs_only.outputs.docs_only != 'true'
         env:
           # Lane DORMANT-1 (2026-10-09): the gate's live lookup (fetchLiveRun, fetchWorkflowState) runs only when a token is present.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node fsi-app/.discipline/governance/closure-gate.mjs
 
