@@ -97,7 +97,6 @@ test('ATTACK: a document that disagrees with results.json is refused', () => {
 function loadGeneratedOn() {
   const m = GENERATOR.match(/^function generatedOn\([\s\S]*?^}$/m);
   assert.ok(m, 'run-audit.mjs must define function generatedOn at top level');
-  // eslint-disable-next-line no-new-func
   return new Function(`${m[0]}\nreturn generatedOn;`)();
 }
 
