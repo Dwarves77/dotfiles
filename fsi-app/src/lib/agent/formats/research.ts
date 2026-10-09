@@ -1,11 +1,11 @@
 // src/lib/agent/formats/research.ts
 //
-// Research Summary — 6 sections, per analysis-construction-spec/SKILL.md §7. This is the PROVEN format
+// Research Summary — 6 sections, per analysis-construction-spec/references/formats-research-technology.md §7. This is the PROVEN format
 // (the canonical pipeline's research path); the section list here is identical to the original
 // extract-research-sections.ts. Grounding: span (S1/S6 are FACT-span; S2/S3/S4/S5 are synthesis,
 // grounded transitively — covered by GAP or labeled ANALYSIS claims in the ledger, not verbatim spans).
 //
-// Heading accuracy note (reconciled against system-prompt.ts lines 213-220 and SKILL.md §7):
+// Heading accuracy note (reconciled against system-prompt.ts lines 213-220 and analysis-construction-spec/references/formats-research-technology.md §7):
 //   S1 "What the Research Found"         — system-prompt short form (SKILL appends "— OR What the Research
 //                                          Is Investigating"); the extractor normalises "Section 1 —" prefix
 //                                          so both the short form and the SKILL form resolve to this key.
