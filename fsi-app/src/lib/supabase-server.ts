@@ -439,7 +439,10 @@ const SOURCE_COLUMNS = [
 ].join(", ");
 
 async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
-  const supabase = getSupabase();
+  // SEC-8 (migration 382): sources_read is TO authenticated, service_role; the anon key reads none of it. This runs
+  // server-side for /admin (fetchSourceData(true)), so it reads through the service client; the admin_only filter below
+  // stays in code.
+  const supabase = getServiceSupabase();
   let query = supabase
     .from("sources")
     .select(SOURCE_COLUMNS)
@@ -1723,7 +1726,9 @@ export async function fetchResearchPipelineRows(
 ): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
   if (!isSupabaseConfigured()) return { rows: [], total: 0, cap };
   try {
-    const supabase = getSupabase();
+    // SEC-8 (migration 382): the select below embeds source:sources(...), and sources_read no longer applies to anon;
+    // the service client reads it, and the verified/non-archived filters below are explicit in code.
+    const supabase = getServiceSupabase();
 
     // Total count. WO-15 (2026-08-30): admission is surfaceOf(item_type, domain) === 'research' — the
     // one SoT (src/lib/surface-of.mjs), not a hardcoded item_type literal. The prior
@@ -1880,7 +1885,8 @@ export async function fetchResearchPipelineRows(
 // in this function — "research-pipeline visibility is workspace-agnostic for now" is this
 // function's own pre-existing comment, not a new claim. This wrapper makes that already-true fact
 // reachable without a cookies() read: same query, same anon client, orgId argument replaced with
-// the empty string this function already treats as inert.
+// the empty string this function already treats as inert. SEC-8 (2026-10-09, migration 382): that is history; the
+// function now reads through getServiceSupabase() because its select embeds sources, which anon can no longer read.
 export async function fetchPublicResearchPipelineRows(
   cap: number
 ): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
@@ -1909,7 +1915,8 @@ export interface ResearchSourceCoverageCell {
 export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCoverageCell[]> {
   if (!isSupabaseConfigured()) return [];
   try {
-    const supabase = getSupabase();
+    // SEC-8 (migration 382): the function is SECURITY INVOKER over sources, which anon can no longer read.
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc("get_research_source_coverage");
     if (error) {
       console.error("[research] get_research_source_coverage error:", describeSupabaseError(error));
@@ -2469,7 +2476,9 @@ export async function fetchSourceCitationStatsByIds(
   const out = new Map<string, SourceCitationStat>();
   if (!isSupabaseConfigured() || sourceIds.length === 0) return out;
   try {
-    const supabase = getSupabase();
+    // SEC-8 (migration 382): the function is SECURITY INVOKER over sources and source_citations, which anon can no
+    // longer read.
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .rpc("get_source_citation_stats", { source_ids: sourceIds });
     if (error) {
