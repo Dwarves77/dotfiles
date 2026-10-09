@@ -100,31 +100,58 @@ export function skillUnresolvableInTranscript(transcript, slug) {
 }
 
 /**
- * SUBSTANTIVE-CONSULTATION fallback: true iff the session READ the skill's own SKILL.md.
+ * READ EVIDENCE: true iff the session READ the skill's own SKILL.md, whole, and the Read resolved.
  *
  * The doctrine is "the governing skill must be looked at, not merely be in context." A Read of
- * `<...>/skills/<slug>/SKILL.md` IS looking at it — arguably more directly than a tool
- * invocation, since it puts the actual text in the agent's context. This is accepted only in
- * combination with the ASK path below (never as a silent allow), so a human still confirms.
+ * `<...>/.claude/skills/<slug>/SKILL.md` IS looking at it, more directly than a tool invocation, since it
+ * puts the actual text in the agent's context. GATE-FIX-1 (2026-10-09, RULES-X-1 register S5/X4): the harness
+ * can serve a STALE registry copy through the Skill tool while the file on disk is current, so the Read is
+ * the better evidence; it counts as the skill looked at, EQUAL to a resolved Skill invocation
+ * (skillConsultedInTranscript / missingFromTranscript), not a lesser path.
+ *
+ * What does NOT count: a Read that errored or has no result; a PARTIAL Read (an offset or a limit was given,
+ * so the session saw a slice, not the skill); another slug's file; a references/ file; a look-alike
+ * directory; a Bash `cat`; a prose mention of the path. Any spelling of the path counts: slash or backslash,
+ * any case, relative or absolute, `.` and `..` segments, a worktree copy.
  */
 export function skillFileReadInTranscript(transcript, slug) {
   if (!transcript || !slug) return false;
   const { uses, erroredById } = parseTranscript(transcript);
-  // GATE-7 (register attack A-PT-T2): the path must END with `/.claude/skills/<slug>/SKILL.md` for THIS slug
-  // (a path-segment boundary, so `myskills/<slug>/SKILL.md` or `x/skills/<slug>/SKILL.md` outside a .claude
-  // directory is not the skill), and the Read must have RESOLVED: a result exists and is not an error. A Read
-  // of any other slug's file never satisfies this slug (the needle carries the slug).
   const needle = `/.claude/skills/${slug}/SKILL.md`.toLowerCase();
   for (const u of uses) {
     if (u.name !== "Read") continue;
-    const p = u?.input?.file_path;
-    if (typeof p !== "string" || !p.replace(/\\/g, "/").toLowerCase().endsWith(needle)) continue;
+    const input = u?.input ?? {};
+    if (typeof input.file_path !== "string") continue;
+    if (isPartialRead(input)) continue;
+    if (!canonicalSlashPath(input.file_path).endsWith(needle)) continue;
     if (erroredById.has(u.id) && erroredById.get(u.id) === false) return true;
   }
   return false;
 }
 
+/** A Read with an offset or a limit shows a slice of the file. A missing, null or zero offset alone is the start. */
+function isPartialRead(input) {
+  const set = (v) => v !== undefined && v !== null && v !== "";
+  return set(input.limit) || (set(input.offset) && Number(input.offset) !== 0);
+}
+
+/** A path as one lower-case, forward-slash string with a leading slash, `.` segments dropped and `..` resolved. */
+function canonicalSlashPath(p) {
+  const parts = [];
+  for (const seg of String(p).replace(/\\/g, "/").split("/")) {
+    if (!seg || seg === ".") continue;
+    if (seg === "..") { parts.pop(); continue; }
+    parts.push(seg.toLowerCase());
+  }
+  return "/" + parts.join("/");
+}
+
+/** The skill was looked at: a resolved Skill invocation OR a whole, resolved Read of its SKILL.md. */
+export function skillConsultedInTranscript(transcript, slug) {
+  return skillLoadedInTranscript(transcript, slug) || skillFileReadInTranscript(transcript, slug);
+}
+
 // Given a transcript and a list of required slugs, return the subset that are NOT loaded (unresolved).
 export function missingFromTranscript(transcript, slugs) {
-  return slugs.filter((s) => !skillLoadedInTranscript(transcript, s));
+  return slugs.filter((s) => !skillConsultedInTranscript(transcript, s));
 }

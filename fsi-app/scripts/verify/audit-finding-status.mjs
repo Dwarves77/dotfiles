@@ -196,17 +196,32 @@ function walkMd(dir, match, depth = 0) {
   return out;
 }
 
+/** GATE-FIX-1 (2026-10-09): how long a gitignored scratch register may sit before its open findings block a dispatch. */
+export const REGISTER_GRACE_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Every undispositioned finding in the three sources. root = the repo root. Missing directories are empty.
- * @returns {{source: string, file: string, line: number, text: string, problem: string}[]}
+ * A scratch register (gitignored, never committed) whose mtime is younger than `registerGraceMs` is skipped, so a
+ * fact lane's fresh register has a landing window; a committed audit or session log is never skipped. The
+ * default 0 reports every register (the CLI); the dispatch gate passes REGISTER_GRACE_MS. A register finding
+ * carries `ageMs` so a refusal can name the file's age. `now` is injectable for the tests.
+ * @param {string} root
+ * @param {{ registerGraceMs?: number, now?: number }} [opts]
+ * @returns {{source: string, file: string, line: number, text: string, problem: string, ageMs?: number}[]}
  */
-export function collectOpenFindings(root) {
+export function collectOpenFindings(root, opts = {}) {
+  const { registerGraceMs = 0, now = Date.now() } = opts;
   const open = [];
   const add = (source, abs, kind) => {
     let findings = [];
-    try { findings = cachedFindings(abs, kind); } catch { return; }
+    let ageMs;
+    try {
+      findings = cachedFindings(abs, kind);
+      if (source === "register") ageMs = Math.max(0, now - statSync(abs).mtimeMs);
+    } catch { return; }
+    if (source === "register" && ageMs < registerGraceMs) return;
     const file = relative(root, abs).split("\\").join("/");
-    for (const f of findings) if (f.problem) open.push({ source, file, line: f.line, text: f.text, problem: f.problem });
+    for (const f of findings) if (f.problem) open.push({ source, file, line: f.line, text: f.text, problem: f.problem, ...(ageMs === undefined ? {} : { ageMs }) });
   };
   const auditsDir = join(root, "docs", "audits");
   let audits = [];

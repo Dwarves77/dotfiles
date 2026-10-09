@@ -51,18 +51,18 @@
 // fired (incl. inside subagents/workflows) and is the durable "everything went through the skills" record.
 
 import { readFileSync, appendFileSync, mkdirSync, realpathSync, existsSync } from "node:fs";
-import { dirname, resolve, isAbsolute } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, resolve, isAbsolute, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMainModule } from "../../scripts/lib/is-main.mjs";
 import { appendFirings } from "../lib/firing-log.mjs";
 import {
   missingFromTranscript,
   skillUnresolvableInTranscript,
-  skillFileReadInTranscript,
 } from "./skill-token.mjs";
 import { DOCTRINE } from "./worktree-isolation.mjs";
 import { resolveActingTranscriptPath } from "./agent-transcript.mjs";
-import { collectOpenFindings } from "../../scripts/verify/audit-finding-status.mjs";
+import { collectOpenFindings, dispositionProblem, REGISTER_GRACE_MS } from "../../scripts/verify/audit-finding-status.mjs";
 import {
   skillsForOp,
   skillsForFile,
@@ -102,18 +102,54 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // hook process's own environment, which the session being gated does not control).
 const DISPOSITION_LITERAL = "DISPOSITION-LANE";
 const REPO_ROOT = resolve(HERE, "..", "..", "..");
+//
+// GATE-FIX-1 (2026-10-09), two honest forms of the same gate:
+//   * a scratch register (gitignored, never committed) blocks only once its file is older than 24 hours (mtime),
+//     so a fact lane's fresh register has a landing window and a stale one still forces; the refusal names the
+//     file and its age. Committed audits and session logs keep blocking at once.
+//   * a DISPOSITION ACT passes: a message whose text carries file:line -> [TOKEN] pairs that cover EVERY
+//     currently open finding with a well-formed token is the coordinator dispositioning, not dispatching new work
+//     (every merged lane's log reopened the gate, and the only path to a disposition commit was the executor,
+//     whom the gate also refused). A message covering only some open findings is refused, naming the uncovered.
+const PAIR_RE = /([^\s"'`<>|,;()[\]]+?\.md):(\d+)\s*(?:->|=>|\u2192)\s*(\[[^\]]*\])/g;
+
+/** Every string value inside a tool input, joined by newlines (so a pair is read as written, not JSON-escaped). */
+function inputText(input) {
+  const out = [];
+  const walk = (v, depth) => {
+    if (typeof v === "string") out.push(v);
+    else if (depth < 6 && v && typeof v === "object") for (const x of Object.values(v)) walk(x, depth + 1);
+  };
+  walk(input, 0);
+  return out.join("\n");
+}
+
+/** The `file:line -> [TOKEN]` pairs in a text whose token is a well-formed disposition, as a Set of "file:line". */
+function dispositionPairs(text) {
+  const covered = new Set();
+  for (const m of text.matchAll(PAIR_RE)) {
+    if (dispositionProblem(m[3]) !== null || /^\[REFUTED\]$/.test(m[3])) continue; // malformed or the bare status token
+    covered.add(`${m[1].split("\\").join("/").replace(/^\.\//, "")}:${m[2]}`);
+  }
+  return covered;
+}
+
 function dispositionRefusal(tool, input) {
-  let text = "";
-  try { text = JSON.stringify(input ?? {}); } catch { text = ""; }
+  const text = inputText(input);
   if (text.includes(DISPOSITION_LITERAL)) return null;
-  const open = collectOpenFindings(process.env.GATE_DISPOSITION_ROOT || REPO_ROOT);
+  const open = collectOpenFindings(process.env.GATE_DISPOSITION_ROOT || REPO_ROOT, { registerGraceMs: REGISTER_GRACE_MS });
   if (!open.length) return null;
-  const shown = open.slice(0, 20).map((o) => `${o.file}:${o.line}`).join("; ");
+  const covered = dispositionPairs(text);
+  const uncovered = open.filter((o) => !covered.has(`${o.file}:${o.line}`));
+  if (covered.size && !uncovered.length) return null; // a disposition act: every open finding has its token
+  const label = (o) => `${o.file}:${o.line}${o.ageMs === undefined ? "" : ` (register ${Math.floor(o.ageMs / 3600000)}h old)`}`;
+  const shown = uncovered.slice(0, 20).map(label).join("; ");
   return decision("deny",
-    `DISPATCH (${tool}) REFUSED by rule 13 (a flag is a commitment): ${open.length} finding(s) carry no disposition. ` +
-    `First ${Math.min(20, open.length)}: ${shown}${open.length > 20 ? "; ..." : ""}. Give each exactly one of [WORK: <lane id or PR N>], ` +
+    `DISPATCH (${tool}) REFUSED by rule 13 (a flag is a commitment): ${uncovered.length} finding(s) carry no disposition` +
+    `${covered.size ? ` (this message dispositions ${open.length - uncovered.length} of ${open.length} open findings; a disposition act must cover every one)` : ""}. ` +
+    `First ${Math.min(20, uncovered.length)}: ${shown}${uncovered.length > 20 ? "; ..." : ""}. Give each exactly one of [WORK: <lane id or PR N>], ` +
     `[CLOSED: PR N], [REFUTED: <evidence>], [NOT-WORK: <reason>] (node fsi-app/scripts/verify/audit-finding-status.mjs --all lists every one), ` +
-    `or dispatch the lane that does so with the literal ${DISPOSITION_LITERAL} in its prompt.`,
+    `by a message of \`file:line -> [TOKEN]\` pairs covering all of them, or dispatch the lane that does so with the literal ${DISPOSITION_LITERAL} in its prompt.`,
     "dispatch-undispositioned");
 }
 
@@ -341,13 +377,126 @@ export function interpreterPayloads(cmd) {
   return found;
 }
 
+// ── HONEST READ-ONLY AND SCRATCH FORMS (lane GATE-FIX-1, 2026-10-09, RULES-X-1 register S4 and X4) ──────────
+// The DANGER words are matched on adjacent text, so four honest operations were asked or denied as writes:
+// `git merge-tree --write-tree` (the write flag pattern matches `--write-tree`; merge-tree writes only to the
+// object store), `git push --dry-run` (sends nothing), `rm -rf <scratch>` (a scratch directory is the point of
+// a scratch directory), and `grep -rn truncate` / `head` / `tail` (search and output truncation read, they never
+// write). A SIMPLE COMMAND (one segment between separators) that is exactly one of those forms is removed from
+// the text DANGER and the structural check read; every other segment of the same line is judged as before, so
+// `git merge-tree ... && node x.mjs --apply` and `node x.mjs --apply | head` still ask. Mistake-catcher for a
+// cooperating session (ADR-046), not an intent barrier.
+const SEGMENT_SPLIT_KEEP = /(\n|;|&&|\|\||\||&|\(|\))/;
+const REDIRECT_RE = /^\d*[<>]+/;
+
+/** Roots an `rm -r` may delete strictly under: the OS temp dir (the session scratchpad is under it) and /tmp;
+ *  `fsi-app/scripts/tmp` is matched by path shape so a worktree's own copy counts. GATE_SCRATCH_ROOTS
+ *  (path-delimited) adds roots from the hook process's own environment, which the gated session does not control. */
+function scratchRoots(env = process.env) {
+  const roots = new Set([tmpdir(), env.TMPDIR, env.TEMP, env.TMP, ...(sep === "/" ? ["/tmp"] : [])].filter(Boolean));
+  for (const r of String(env.GATE_SCRATCH_ROOTS || "").split(/[;:]/).filter(Boolean)) roots.add(r);
+  return [...roots].map((r) => resolve(r));
+}
+
+const foldCase = (p) => (process.platform === "win32" || process.platform === "darwin" ? p.toLowerCase() : p);
+const slashed = (p) => p.split("\\").join("/");
+
+/** The nearest existing ancestor of p resolved through links, with the rest re-appended: a junction or symlink
+ *  inside a scratch root cannot carry a delete out of it. */
+function realish(p) {
+  let head = p;
+  const tail = [];
+  for (let hops = 0; hops < 64; hops++) {
+    if (existsSync(head)) {
+      let real = head;
+      try { real = realpathSync.native(head); } catch { /* keep the unresolved path */ }
+      return resolve(real, ...tail.reverse());
+    }
+    const up = dirname(head);
+    if (up === head) break;
+    tail.push(head.slice(up.length).replace(/^[\\/]+/, ""));
+    head = up;
+  }
+  return p;
+}
+
+/** Is `path` strictly inside a scratch root? A bare token only: no variable, glob, tilde or brace. */
+function underScratch(path, cwd, env) {
+  if (!path || /[$*?~`{}[\]!]/.test(path)) return false;
+  let p = path;
+  if (process.platform === "win32") {
+    const m = /^\/([A-Za-z])(\/.*)?$/.exec(p); // Git Bash drive spelling, /c/dir
+    if (m) p = `${m[1].toUpperCase()}:${m[2] || "/"}`;
+    else if (/^\/tmp(\/|$)/.test(p)) p = tmpdir() + p.slice(4); // Git Bash maps /tmp to the temp dir
+  }
+  const abs = isAbsolute(p) || /^[A-Za-z]:[\\/]/.test(p) ? resolve(p) : cwd ? resolve(cwd, p) : null;
+  if (!abs) return false;
+  const roots = scratchRoots(env);
+  for (const candidate of [abs, realish(abs)]) { // the spelling AND where it really lands must both be inside
+    const f = foldCase(slashed(candidate));
+    const shape = /\/fsi-app\/scripts\/tmp\/[^/]/.test(f);
+    const inRoot = roots.some((root) => {
+      const r = foldCase(slashed(root)).replace(/\/+$/, "");
+      const realRoot = foldCase(slashed(realish(root))).replace(/\/+$/, "");
+      return f.startsWith(r + "/") || f.startsWith(realRoot + "/");
+    });
+    if (!shape && !inRoot) return false;
+  }
+  return true;
+}
+
+/** Is this one simple command (quoted strings as placeholders) an honest read-only or scratch form? */
+function honestSegment(segment, quoted, cwd, env) {
+  const t = segment.trim().split(/\s+/).filter(Boolean);
+  const k = unwrap(t);
+  if (k >= t.length) return false;
+  const prog = progName(t[k]);
+  const args = t.slice(k + 1);
+  const literal = (tok) => { const m = /^\u0001(\d+)\u0002$/.exec(tok); return m ? quoted[Number(m[1])] : tok; };
+  if (prog === "grep" || prog === "egrep" || prog === "fgrep" || prog === "head" || prog === "tail") return true;
+  if (prog === "git") {
+    const inv = gitInvocations(segment)[0];
+    if (!inv) return false;
+    if (inv.sub === "merge-tree") return true;
+    if (inv.sub === "push") {
+      const dry = inv.args.some((a) => a === "--dry-run" || a === "-n");
+      return dry && !inv.args.some((a) => a === "--no-dry-run");
+    }
+    return false;
+  }
+  if (prog === "rm") {
+    const shorts = args.filter((a) => /^-[A-Za-z]+$/.test(a)).join("");
+    if (!/[rR]/.test(shorts) && !args.includes("--recursive")) return false; // plain rm is not a DANGER form
+    const paths = [];
+    let skipTarget = false;
+    let optsDone = false;
+    for (const a of args) {
+      if (skipTarget) { skipTarget = false; continue; }
+      if (!optsDone && a === "--") { optsDone = true; continue; }
+      if (REDIRECT_RE.test(a)) { skipTarget = /^\d*[<>]+$/.test(a); continue; }
+      if (!optsDone && a.startsWith("-")) continue;
+      paths.push(literal(a));
+    }
+    return paths.length > 0 && paths.every((p) => underScratch(p, cwd, env));
+  }
+  return false;
+}
+
+/** The scanned command text with every honest simple command blanked out, quoted strings left as placeholders. */
+function withoutHonestSegments(scan, ctx) {
+  return scan.text.split(SEGMENT_SPLIT_KEEP).map((part, i) =>
+    (i % 2 === 0 && part.trim() && honestSegment(part, scan.quoted, ctx.cwd, ctx.env) ? " " : part)).join("");
+}
+
 /** True when DANGER matches the command's own argv, a structural danger form is present, or DANGER matches
- *  the inline code or fed script of an interpreter it runs (depth 3). */
-export function dangerIn(cmd, depth = 0) {
-  const argv = argvOnly(cmd);
+ *  the inline code or fed script of an interpreter it runs (depth 3). Honest read-only and scratch commands are
+ *  not danger (see above). `ctx.cwd` resolves a relative `rm` path; `ctx.env` is for the tests. */
+export function dangerIn(cmd, depth = 0, ctx = {}) {
+  const scan = scanArgv(cmd);
+  const argv = withoutHonestSegments(scan, { cwd: ctx.cwd, env: ctx.env ?? process.env }).replace(PLACEHOLDER_RE, "Q");
   if (DANGER.test(argv) || structuralDanger(argv)) return true;
   if (depth >= 3) return false;
-  return interpreterPayloads(cmd).some((p) => (p.kind === "code" ? DANGER.test(p.content) : dangerIn(p.content, depth + 1)));
+  return interpreterPayloads(cmd).some((p) => (p.kind === "code" ? DANGER.test(p.content) : dangerIn(p.content, depth + 1, ctx)));
 }
 
 // The git invocations in an argv-only command: [{ sub, args }] for each `git [global opts] <sub> <args>`.
@@ -597,18 +746,19 @@ function gateWrite(transcriptPath, skills, denyTag, contextMsg, onLoaded) {
       `${contextMsg} Approve only if the governing discipline has been applied to this change.`,
       denyTag + "-notranscript");
   }
+  // A resolved Skill invocation OR a whole, resolved Read of the skill's SKILL.md counts as looked at (GATE-FIX-1).
   const missing = missingFromTranscript(t, skills);
   if (missing.length) {
-    const unsatisfiable = missing.filter((s) => skillUnresolvableInTranscript(t, s) || skillFileReadInTranscript(t, s));
+    const unsatisfiable = missing.filter((s) => skillUnresolvableInTranscript(t, s));
     if (unsatisfiable.length === missing.length) {
       return decision("allow", "", denyTag + "-skillunresolvable", missing.join(","));
     }
+    const readPaths = missing.map((s) => `fsi-app/.claude/skills/${s}/SKILL.md`).join(", ");
     return decision("deny",
-      `BLOCKED — this write cannot proceed until its governing skill(s) are LOADED this session via the Skill tool. ` +
-      `Missing: ${missing.join(", ")}. Invoke e.g. Skill: ${missing[0]} (looking at it — not just having it in context), THEN retry. ` +
-      `If the invocation returns "Unknown skill", the skill is not registered in this session: read ` +
-      `fsi-app/.claude/skills/${missing[0]}/SKILL.md directly, or restart the session at the repo root. ` +
-      `${contextMsg}`,
+      `BLOCKED: this write cannot proceed until its governing skill(s) are looked at this session. ` +
+      `Missing: ${missing.join(", ")}. Read ${readPaths} in full (no offset or limit; the harness may serve a stale ` +
+      `registry copy through the Skill tool, the file on disk is current), or invoke Skill: ${missing[0]}, which is ` +
+      `LOADED this session via the Skill tool. Either counts equally; THEN retry. ${contextMsg}`,
       denyTag + "-skillmissing");
   }
   return onLoaded();
@@ -674,7 +824,7 @@ function evaluateCore(payload) {
         `pre-commit hooks catch a sub-agent's; approve only if this honors worktree isolation.)`,
         "worktree-isolation");
     }
-    if (!dangerIn(cmd)) return decision("allow", "", "bash-read");
+    if (!dangerIn(cmd, 0, { cwd: payload?.cwd || "" })) return decision("allow", "", "bash-read");
     const skills = skillsForOp(cmd).map((s) => s.skill);
     const required = skills.length ? skills : ["remediation-discipline", "environmental-policy-and-innovation"];
     return gateWrite(transcriptPath, required, "bash-write", "Data write (prod effect).", () => decision("ask",
