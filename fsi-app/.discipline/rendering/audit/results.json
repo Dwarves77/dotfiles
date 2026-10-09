@@ -1,9 +1,9 @@
 {
-  "runAt": "2026-10-09T05:17:03.951Z",
+  "runAt": "2026-10-09T02:54:21.947Z",
   "generated_on": {
-    "platform": "win32",
-    "node": "v24.15.0",
-    "container_image": "none"
+    "platform": "linux",
+    "node": "v24.21.0",
+    "container_image": "mcr.microsoft.com/playwright:v1.61.1-noble"
   },
   "specs": [
     {
@@ -5548,13 +5548,12 @@
         },
         {
           "name": "'In this list' eyebrow label",
-          "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json).",
           "selector": "[data-audit=\"inthislist\"] p:first-of-type",
           "expect": {
             "font-size": "10.5px",
             "letter-spacing": "0.12em",
             "text-transform": "uppercase",
-            "font-weight": "700"
+            "font-weight": "800"
           }
         },
         {
@@ -7361,12 +7360,12 @@
           "expect": {
             "text": "At a glance",
             "font-size": "10.5px",
-            "font-weight": "700",
+            "font-weight": "800",
             "letter-spacing": "1.26px",
             "text-transform": "uppercase",
             "color": "rgb(122, 110, 108)"
           },
-          "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+          "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
         }
       ],
       "forbid": [
@@ -10368,7 +10367,6 @@
       ],
       "source": "'Caros Ledge UI System.dc.html' p3 (#p3) rail: 'At a glance' card (`grid-template-columns:96px 1fr;gap:7px 12px`, label `color:#7A6E6C`, value `font-weight:600`) and 'Impact assessment' card (eyebrow + trailing `0–3 per dimension` note); operator ruling 5.1 (3px rule on every card, see inthisliststat.json's same finding on the sibling rail card)",
       "notes": [
-        "DFIX-1 (2026-10-08): the three eyebrow-label rows assert font-weight 700, not 800. RailCard.tsx draws every rail card title and the artboards (dc.html p13 and the card headers) and parts-brief 2.12 say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 rules for the artboards (see the At a glance row of mobile-03-regulation-detail.json).",
         "Every rail card in DetailShell.tsx (ImpactRailCard, AtAGlanceCard, RailLegend, InThisListStat) shares the identical inline card-chrome object; inthisliststat.json already records the missing ruling-5.1 rule and the 12/16/14 padding on that sibling card, so this spec does not repeat the chrome check three more times and focuses on each card's OWN content values.",
         "AtAGlanceCard's grid is `gridTemplateColumns: 'auto 1fr'` with `gap: '6px 14px'`; the artboard states a fixed `96px 1fr` label column and `gap:7px 12px` — both a real MISMATCH, not a harness artefact (auto-vs-fixed-px and the gap numbers are both plain CSSOM reads).",
         "AtAGlanceCard's value span is `fontWeight: 700`; the artboard's value text is `font-weight:600` — a real MISMATCH.",
@@ -10384,7 +10382,7 @@
           "selector": "[data-audit=\"atglance\"] p:first-of-type",
           "expect": {
             "text": "At a glance",
-            "font-weight": "700",
+            "font-weight": "800",
             "text-transform": "uppercase"
           }
         },
@@ -10411,7 +10409,7 @@
           "selector": "[data-audit=\"impactrail\"] p:first-of-type",
           "expect": {
             "text": "Impact assessment",
-            "font-weight": "700",
+            "font-weight": "800",
             "text-transform": "uppercase"
           }
         },
@@ -10420,7 +10418,7 @@
           "selector": "[data-audit=\"raillegend\"] p:first-of-type",
           "expect": {
             "text": "Legend",
-            "font-weight": "700",
+            "font-weight": "800",
             "text-transform": "uppercase"
           }
         }
@@ -10480,10 +10478,10 @@
         {
           "name": "title (rail-label convention, not asserted as a MISMATCH against Anton per the note above)",
           "selector": "[data-audit=\"legend\"] p",
-          "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json).",
+          "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase.",
           "expect": {
             "font-size": "10.5px",
-            "font-weight": "700",
+            "font-weight": "800",
             "letter-spacing": "0.12em",
             "text-transform": "uppercase"
           }
@@ -12004,8 +12002,8 @@
       "selector": "[data-audit=\"rail-card\"] p:has(+ span)",
       "property": "font-weight",
       "expected": "700",
-      "actual": "700",
-      "status": "MATCH",
+      "actual": "800",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -18970,10 +18968,10 @@
       "viewport": 1440,
       "target": "region 3 — Summary section (id=summary) renders when no dynamic sections carry content",
       "selector": "[data-audit=\"research-detail\"] section#summary h2",
-      "property": "text",
-      "expected": "Summary",
-      "actual": "Summary",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": null
     },
     {
@@ -21884,8 +21882,8 @@
       "selector": "[data-audit=\"new-post\"] .cl-section-heading h2",
       "property": "text",
       "expected": "New post · Global",
-      "actual": "New post · Global",
-      "status": "MATCH",
+      "actual": "New post · Global room",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -24236,7 +24234,7 @@
       "selector": "[data-audit=\"org-fields-row\"]",
       "property": "grid-template-columns",
       "expected": "* * *",
-      "actual": "324.969px 324.984px 72.0469px",
+      "actual": "325px 325px 72px",
       "status": "MATCH",
       "note": "dc.html p14: 1fr 1fr auto. CSSOM reports used pixel widths for all three tracks, so each is matched as one token; the two equal 1fr tracks and a content-sized Save are what the artboard draws."
     },
@@ -29156,7 +29154,7 @@
       "expected": "10.5px",
       "actual": "10.5px",
       "status": "MATCH",
-      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
+      "note": null
     },
     {
       "spec": "inthisliststat",
@@ -29175,7 +29173,7 @@
       "expected": "0.12em (= 1.26px at 10.5px)",
       "actual": "1.26px",
       "status": "MATCH",
-      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
+      "note": null
     },
     {
       "spec": "inthisliststat",
@@ -29194,7 +29192,7 @@
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
+      "note": null
     },
     {
       "spec": "inthisliststat",
@@ -29210,10 +29208,10 @@
       "target": "'In this list' eyebrow label",
       "selector": "[data-audit=\"inthislist\"] p:first-of-type",
       "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
+      "expected": "800",
+      "actual": "800",
       "status": "MATCH",
-      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
+      "note": null
     },
     {
       "spec": "inthisliststat",
@@ -37772,8 +37770,8 @@
       "selector": "[data-audit=\"regulation-detail\"] [data-part=\"timeline\"]",
       "property": "display",
       "expected": "none",
-      "actual": "none",
-      "status": "MATCH",
+      "actual": "block",
+      "status": "MISMATCH",
       "note": "DAUDIT-2 (2026-10-08): the selector is repointed from .cl-timeline-desktop, a class no component has emitted since PR 800 deleted DetailTimeline, to the one timeline the product draws now (ui/Timeline, data-part=timeline). The value is unchanged: the MOBILE 390 spec still states that the horizontal timeline is not drawn at 390. ui/Timeline.tsx has no narrow form, so the horizontal timeline is drawn at 390 and this row reads MISMATCH. Class BUILD DEFECT (see the DAUDIT-2 session log), not harness rot."
     },
     {
@@ -37786,10 +37784,10 @@
       "viewport": 390,
       "target": "The vertical timeline is drawn at 390",
       "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": null
     },
     {
@@ -37802,42 +37800,10 @@
       "viewport": 390,
       "target": "Each timeline row is the spec's 62px / 14px / 1fr grid with 14px bottom padding",
       "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div",
-      "property": "display",
-      "expected": "grid",
-      "actual": "grid",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "Each timeline row is the spec's 62px / 14px / 1fr grid with 14px bottom padding",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div",
-      "property": "grid-template-columns",
-      "expected": "62px 14px *",
-      "actual": "62px 14px 240px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "Each timeline row is the spec's 62px / 14px / 1fr grid with 14px bottom padding",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div",
-      "property": "padding-bottom",
-      "expected": "14px",
-      "actual": "14px",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": null
     },
     {
@@ -37850,74 +37816,10 @@
       "viewport": 390,
       "target": "The date gutter is the spec's 62px, right-aligned, 11px/600 muted, tabular figures",
       "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
-      "property": "text-align",
-      "expected": "right",
-      "actual": "right",
-      "status": "MATCH",
-      "note": "MOBILE-60: an ISO date at 11px needs ~57px in Plus Jakarta Sans and ~70px in a fallback face, against this 62px gutter. It is left wrapping, not held on one line: nowrap made the date overflow its own box to the right and run under the dot column in the fallback face. Logged in DEVIATION-LOG.md; the 390 artboard will state the date form the design intends."
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "The date gutter is the spec's 62px, right-aligned, 11px/600 muted, tabular figures",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
-      "property": "font-size",
-      "expected": "11px",
-      "actual": "11px",
-      "status": "MATCH",
-      "note": "MOBILE-60: an ISO date at 11px needs ~57px in Plus Jakarta Sans and ~70px in a fallback face, against this 62px gutter. It is left wrapping, not held on one line: nowrap made the date overflow its own box to the right and run under the dot column in the fallback face. Logged in DEVIATION-LOG.md; the 390 artboard will state the date form the design intends."
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "The date gutter is the spec's 62px, right-aligned, 11px/600 muted, tabular figures",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
-      "property": "color",
-      "expected": "rgb(122, 110, 108)",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MATCH",
-      "note": "MOBILE-60: an ISO date at 11px needs ~57px in Plus Jakarta Sans and ~70px in a fallback face, against this 62px gutter. It is left wrapping, not held on one line: nowrap made the date overflow its own box to the right and run under the dot column in the fallback face. Logged in DEVIATION-LOG.md; the 390 artboard will state the date form the design intends."
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "The date gutter is the spec's 62px, right-aligned, 11px/600 muted, tabular figures",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
-      "property": "width",
-      "expected": "62px",
-      "actual": "62px",
-      "status": "MATCH",
-      "note": "MOBILE-60: an ISO date at 11px needs ~57px in Plus Jakarta Sans and ~70px in a fallback face, against this 62px gutter. It is left wrapping, not held on one line: nowrap made the date overflow its own box to the right and run under the dot column in the fallback face. Logged in DEVIATION-LOG.md; the 390 artboard will state the date form the design intends."
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "The date gutter is the spec's 62px, right-aligned, 11px/600 muted, tabular figures",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
-      "property": "font-variant-numeric",
-      "expected": "tabular-nums",
-      "actual": "tabular-nums",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": "MOBILE-60: an ISO date at 11px needs ~57px in Plus Jakarta Sans and ~70px in a fallback face, against this 62px gutter. It is left wrapping, not held on one line: nowrap made the date overflow its own box to the right and run under the dot column in the fallback face. Logged in DEVIATION-LOG.md; the 390 artboard will state the date form the design intends."
     },
     {
@@ -37930,26 +37832,10 @@
       "viewport": 390,
       "target": "The dot column carries a 2px track behind the dots",
       "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > span",
-      "property": "width",
-      "expected": "2px",
-      "actual": "2px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "mobile-03-regulation-detail",
-      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
-      "artboards": [
-        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-      "viewport": 390,
-      "target": "The dot column carries a 2px track behind the dots",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > span",
-      "property": "position",
-      "expected": "absolute",
-      "actual": "absolute",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": null
     },
     {
@@ -38142,7 +38028,7 @@
       "expected": "At a glance",
       "actual": "At a glance",
       "status": "MATCH",
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -38158,7 +38044,7 @@
       "expected": "10.5px",
       "actual": "10.5px",
       "status": "MATCH",
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -38171,10 +38057,10 @@
       "target": "The folded rail's FIRST card is AT A GLANCE, the artboards' own rail order",
       "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:first-child p:first-of-type",
       "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
+      "expected": "800",
+      "actual": "800",
       "status": "MATCH",
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -38190,7 +38076,7 @@
       "expected": "1.26px",
       "actual": "1.26px",
       "status": "MATCH",
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -38206,7 +38092,7 @@
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -38222,7 +38108,7 @@
       "expected": "rgb(122, 110, 108)",
       "actual": "rgb(122, 110, 108)",
       "status": "MATCH",
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -38345,11 +38231,11 @@
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
       "target": "no timeline cell overlaps a sibling or escapes its row",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > :scope > span",
-      "property": "(cell containment)",
-      "expected": "no cell overlaps a sibling or exceeds its row",
-      "actual": "clean across 3 row(s)",
-      "status": "MATCH",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div",
+      "property": "(bounds)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": "The 62/14/1fr grid is the region the spec states most precisely; a label bleeding into the date gutter is exactly the collision class the operator's visual pass forbids. (:scope > span, so the dot's own nested marker is not compared against its parent cell.)"
     },
     {
@@ -47852,8 +47738,8 @@
       "selector": "[data-audit=\"ops-fact-detail\"]",
       "property": "width",
       "expected": "658.797px",
-      "actual": "658.797px",
-      "status": "MATCH",
+      "actual": "648px",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -48540,8 +48426,8 @@
       "selector": "[data-audit=\"ops-matrix-hint\"]",
       "property": "text",
       "expected": "8 of 36 cells sourced · 22% · 18 regions · scroll →",
-      "actual": "8 of 42 cells sourced · 19% · 18 regions · scroll →",
-      "status": "MISMATCH",
+      "actual": "8 of 36 cells sourced · 22% · 18 regions · scroll →",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -48732,8 +48618,8 @@
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr",
       "property": "count",
       "expected": "6",
-      "actual": "7",
-      "status": "MISMATCH",
+      "actual": "6",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -48844,8 +48730,8 @@
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence-dash",
       "property": "count",
       "expected": "22",
-      "actual": "27",
-      "status": "MISMATCH",
+      "actual": "22",
+      "status": "MATCH",
       "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The Absence part no longer carries the cl-absence class (the dash and narrow variants carry cl-absence-dash; Absence.tsx), and an unsourced matrix cell is drawn by CoverageState, whose dash carries the same class."
     },
     {
@@ -50448,8 +50334,8 @@
       "target": "At a glance — eyebrow label",
       "selector": "[data-audit=\"atglance\"] p:first-of-type",
       "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
+      "expected": "800",
+      "actual": "800",
       "status": "MATCH",
       "note": null
     },
@@ -50581,8 +50467,8 @@
       "target": "Impact assessment — eyebrow label",
       "selector": "[data-audit=\"impactrail\"] p:first-of-type",
       "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
+      "expected": "800",
+      "actual": "800",
       "status": "MATCH",
       "note": null
     },
@@ -50638,8 +50524,8 @@
       "target": "Legend — heading",
       "selector": "[data-audit=\"raillegend\"] p:first-of-type",
       "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
+      "expected": "800",
+      "actual": "800",
       "status": "MATCH",
       "note": null
     },
@@ -50912,7 +50798,7 @@
       "expected": "10.5px",
       "actual": "10.5px",
       "status": "MATCH",
-      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
+      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
     },
     {
       "spec": "section-card-lists",
@@ -50930,10 +50816,10 @@
       "target": "title (rail-label convention, not asserted as a MISMATCH against Anton per the note above)",
       "selector": "[data-audit=\"legend\"] p",
       "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
+      "expected": "800",
+      "actual": "800",
       "status": "MATCH",
-      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
+      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
     },
     {
       "spec": "section-card-lists",
@@ -50954,7 +50840,7 @@
       "expected": "0.12em (= 1.26px at 10.5px)",
       "actual": "1.26px",
       "status": "MATCH",
-      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
+      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
     },
     {
       "spec": "section-card-lists",
@@ -50975,7 +50861,7 @@
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
+      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
     },
     {
       "spec": "sectionindex",
