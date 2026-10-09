@@ -12,12 +12,19 @@
   ],
   "selector": "[data-audit=\"section\"] section",
   "expect": {
-    "background-color": "#FFFFFF",
-    "padding-top": "16px",
-    "padding-right": "20px",
-    "padding-left": "20px"
+    "background-color": "#FFFFFF"
   },
   "children": [
+    {
+      "name": "section body padding",
+      "selector": "[data-audit=\"section\"] section > div:last-child",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, values unchanged. DetailSection now renders the card with padding 0 (SectionCard padding=\"0\") and the 16px 20px sits on the body wrapper div that follows the section head (DetailShell.tsx DetailSection), so the padding is measured on that wrapper, not on the card element.",
+      "expect": {
+        "padding-top": "16px",
+        "padding-right": "20px",
+        "padding-left": "20px"
+      }
+    },
     {
       "name": "the 3px graduated rule above the section title (ruling 5.1)",
       "selector": "[data-audit=\"section\"] section .cl-section-rule",

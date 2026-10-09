@@ -17,11 +17,12 @@
   "children": [
     {
       "name": "region 1 — header chips include the artboard's Signal/severity/topic/band set",
-      "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead)",
+      "selector": "[data-audit=\"market-detail\"] div:has(> [data-part=\"chip-band\"])",
       "expect": {
         "count": "1"
       },
-      "textMatch": "Signal"
+      "textMatch": "Signal",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, value unchanged. The detail header this addressed (header:not(.cl-masthead), DetailHeader) was deleted by PR 800; the pill row is now ui/ActionCard's, reached through the band chip's parent."
     },
     {
       "name": "region 2 — action row, exactly Export brief / Share / Watch / + Tag",

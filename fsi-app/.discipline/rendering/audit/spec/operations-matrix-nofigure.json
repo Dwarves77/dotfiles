@@ -7,6 +7,7 @@
   ],
   "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's replacement artboard), plus his /operations STOP SHIP message of 2026-09-09 quoted verbatim in the notes.",
   "notes": [
+    "DAUDIT-2 (2026-10-08): the 72ch cap is unchanged; its pixel width moved from 572.609px to 658.797px because 1ch is the width of '0' in the element's own face and lane G3 (RD-80, 2026-09-22, smoke-fixtures.mjs) vendored the app's real Plus Jakarta Sans into every mount (the 572.609px was measured in the fallback face on 2026-09-09). Measured at the same 12.5px: 72ch is 658.797px, and the element's computed max-width reads 658.8px.",
     "THE OPERATOR'S WORDS, verbatim, 2026-09-09: \"Every fact card must lead with its FIGURE. If the pipeline has no figure for a fact, the card leads with a 6-word headline in 13px/600, then the claim.\" His coordinator's instruction to this lane was explicit that this is \"a real branch you must build and prove with a fixture that has no figure, not a sentence in a comment\", so it has its own mount, its own fixture row, and this spec.",
     "HOW A FACT REACHES THIS BRANCH, and it is the data model rather than a contrivance. `factHeadline` (src/lib/operations/region-grid.mjs) is the ONE place that decides which slot a fact's data goes into: an enveloped row yields a formatted figure, a free-text row whose value is short and contains a digit yields that value as the figure, and a row whose value is a SENTENCE yields no figure at all and is set as prose. The mount adds exactly one such row, on ASIA x D5 (Infrastructure capacity), a cell every other matrix mount leaves empty, and clicks it. Because the row is passed to THIS mount only, no other spec's cell counts, coverage percentage or absence-cell count moves to buy this proof.",
     "WHAT REPLACED WHAT. The build before this one rendered `<Absence reason=\"pending\" />` in the empty figure slot, which put the literal word PENDING inside a fact card. The same operator message's delete list forbids exactly that: \"the words CURRENT and PENDING inside cells and inside fact cards\". The Absence is gone and the six-word headline is what leads the card.",
@@ -41,7 +42,7 @@
       "name": "and the detail sentence's LINE LENGTH is capped at 72ch, which is 572.6px in this face; the column around it keeps its full width (operator ruling 2026-09-09, see the notes)",
       "selector": "[data-audit=\"ops-fact-detail\"]",
       "expect": {
-        "width": "572.609px"
+        "width": "658.797px"
       }
     },
     {

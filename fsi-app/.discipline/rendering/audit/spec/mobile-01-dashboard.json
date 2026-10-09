@@ -15,13 +15,20 @@
   ],
   "selector": ".md\\:hidden > header",
   "expect": {
-    "height": "56px",
     "background-color": "rgb(255, 255, 255)",
     "border-bottom": "1px solid rgba(0, 0, 0, 0.08)",
     "padding-left": "6px",
     "padding-right": "6px"
   },
   "children": [
+    {
+      "name": "Top bar, the whole assembly (3px band rule plus the header) is the spec's 56px",
+      "selector": ".md\\:hidden:has(> header)",
+      "note": "DAUDIT-2 (2026-10-08): the 56px moved from the header element to the assembly that holds it. W10-Masthead (2026-09-22, TopBar.tsx header comment, parts brief 2.4 defect note) ruled that the spec's 56px names the WHOLE bar: the 3px band rule sits inside that height, so the header is 53px (3 plus 53 is 56). The earlier row measured the header alone against 56.",
+      "expect": {
+        "height": "56px"
+      }
+    },
     {
       "name": "Desktop 252px nav card is NOT rendered below 768 (the drawer replaces it)",
       "selector": "aside.hidden",
@@ -281,7 +288,7 @@
     },
     {
       "name": "D-M4: no list row carries more than one absence token",
-      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "selector": ".cl-list-row:has(.cl-row-impact [data-part-variant=\"reason\"]):has(.cl-row-due [data-part-variant=\"reason\"]), .cl-list-row:has(.cl-row-impact [data-part-variant=\"reason\"]):has(.cl-row-tier [data-part-variant=\"reason\"]), .cl-list-row:has(.cl-row-due [data-part-variant=\"reason\"]):has(.cl-row-tier [data-part-variant=\"reason\"])",
       "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     }
   ],

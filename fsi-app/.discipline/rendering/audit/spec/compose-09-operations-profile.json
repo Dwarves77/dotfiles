@@ -9,7 +9,8 @@
   "notes": [
     "Region-composition check inside [data-audit=\"operations-detail\"] — OperationsDetailSurface mounted with fixture data matching artboard 09's Singapore example (mounts.mjs OPERATIONS_FIXTURE).",
     "Artboard order top to bottom: header (chips incl. the region-group chip and trailing topic chip 'Corridors', TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (At a glance, Impact assessment, Relevance, Related in <region>, Legend).",
-    "Item D3 (UI fix round 2026-09-08): the auxiliary-energy and grid-queue material (and, until ADR-042, DQI) moved off the /operations LIST onto this profile as S-sections, \"in the same shape, with their existing data paths\". The rows below measure that they render through the SAME <DetailSection> every other section uses (the shared card, its 3px rule, its Anton 20px heading, its aside qualifier) and that the sticky section index names them, so a move that dropped one from the index would be caught."
+    "Item D3 (UI fix round 2026-09-08): the auxiliary-energy and grid-queue material (and, until ADR-042, DQI) moved off the /operations LIST onto this profile as S-sections, \"in the same shape, with their existing data paths\". The rows below measure that they render through the SAME <DetailSection> every other section uses (the shared card, its 3px rule, its Anton 20px heading, its aside qualifier) and that the sticky section index names them, so a move that dropped one from the index would be caught.",
+    "DAUDIT-2 (2026-10-08): five rows written for item D3 (2026-09-08) addressed the spec-09 panels as anchored sections of their own. Operator ruling 2 of 2026-09-24 (docs/ops/session-log.md, the entry headed operator rulings (UI system, via Claude Design): the S-order of market, research and operations is 01 Summary, 02 Substantive / Series / Findings, 05 Sources, 06 Related; numbers are fixed) and the PARITY-PARTS decision that applies it to Operations (docs/ops/session-log.d/2026-09-24-parity-parts.md: \"Operations' content sections nest under one 02 Substantive/Series/Findings index entry as sub-sections, not top-level tabs\"; OperationsDetailSurface.tsx and ui/DetailSubSection.tsx). Re-expressed: the panels-render row now reads section#findings; the qualifier and rows rows keep their values on the new selectors; the Anton 20px h2 row is RETIRED, because a sub-section title is a SectionLabel, not a section card head, and no artboard states a sub-section title size; the index row is replaced by the forbid at the end of this file."
   ],
   "selector": "[data-audit=\"operations-detail\"]",
   "expect": {
@@ -96,52 +97,38 @@
     },
     {
       "name": "region 2a — chip row order: band pill, Regional profile, region group, modes, topic, then the TIER square last",
-      "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-chips\"]",
+      "selector": "[data-audit=\"operations-detail\"] div:has(> [data-part=\"chip-band\"])",
       "expect": {
         "count": "1"
       },
       "textMatch": "re:Regional profile[\\s\\S]*Asia-Pacific[\\s\\S]*OCEAN[\\s\\S]*AIR[\\s\\S]*Corridors[\\s\\S]*T2",
-      "note": "dc.html #p9: Regional profile · Asia · Ocean · Air · Corridors · T2. The build rendered the tier chip straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages."
+      "note": "dc.html #p9: Regional profile · Asia · Ocean · Air · Corridors · T2. The build rendered the tier chip straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages. DAUDIT-2 (2026-10-08): selector repaired, value unchanged. The element this addressed (DetailHeader's data-audit=detail-chips) was deleted by PR 800; the pill row is now ui/ActionCard's, reached through the band chip's parent."
     },
     {
-      "name": "the two spec-09 sections render, each as a real DetailSection anchor (item D3)",
-      "selector": "#sec-auxiliary-energy, #sec-grid-queue",
+      "name": "the two spec-09 panels render, each as a titled sub-section of S2 Substantive findings, in order (item D3, re-expressed for operator ruling 2)",
+      "selector": "[data-audit=\"operations-detail\"] section#findings",
       "expect": {
-        "count": "2"
-      }
+        "count": "1"
+      },
+      "textMatch": "re:Auxiliary energy load[\\s\\S]*Grid connection queue",
+      "note": "DAUDIT-2 (2026-10-08): the row asserted two #sec-* anchors, each a DetailSection of its own. Operator ruling 2 of 2026-09-24 (docs/ops/session-log.md, the entry headed operator rulings (UI system, via Claude Design): the S-order of market, research and operations is 01 Summary, 02 Substantive / Series / Findings, 05 Sources, 06 Related; numbers are fixed) and the PARITY-PARTS decision that applies it to Operations (docs/ops/session-log.d/2026-09-24-parity-parts.md: \"Operations' content sections nest under one 02 Substantive/Series/Findings index entry as sub-sections, not top-level tabs\"; OperationsDetailSurface.tsx and ui/DetailSubSection.tsx). The panels still render, now as sub-sections of the one S2 section; this row keeps the claim that both are on the page and adds their order."
     },
     {
-      "name": "each spec-09 section carries the shared section card head, Anton 20px uppercase, not a page-local 15px h2",
-      "selector": "#sec-auxiliary-energy h2",
-      "expect": {
-        "count": "1",
-        "text": "Auxiliary energy load",
-        "font-size": "20px",
-        "text-transform": "uppercase"
-      }
-    },
-    {
-      "name": "the section's own qualifier line renders in the section aside, not as a second heading",
-      "selector": "#sec-grid-queue span",
+      "name": "the panel's own qualifier line renders as its sub-section subtitle, not as a second heading",
+      "selector": "[data-audit=\"operations-detail\"] section#findings p",
       "textMatch": "a gate, not a cost line",
       "expect": {
         "font-size": "10.5px"
-      }
+      },
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, value unchanged (10.5px). The qualifier used to sit in the section head aside (a span); under operator ruling 2 the panels are DetailSubSection children and the qualifier is the sub-section subtitle line (a p, var(--fs-105))."
     },
     {
       "name": "the rows themselves moved across (the auxiliary-energy section renders its per-profile rows, not a placeholder)",
-      "selector": "#sec-auxiliary-energy [data-guard-container=\"auxiliary-energy\"] > div > div",
+      "selector": "section#findings [data-guard-container=\"auxiliary-energy\"] > div > div",
       "expect": {
         "count": "2"
-      }
-    },
-    {
-      "name": "the sticky section index names both spec-09 sections",
-      "selector": "a[href=\"#sec-auxiliary-energy\"], a[href=\"#sec-grid-queue\"]",
-      "note": "A section that renders but is missing from the index is the defect this row exists for: the index is how a reader knows the page has it.",
-      "expect": {
-        "count": "2"
-      }
+      },
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The auxiliary-energy panel is inside S2 (section#findings) now, not its own #sec-auxiliary-energy section."
     }
   ],
   "forbid": [
@@ -160,6 +147,11 @@
       "name": "no spec-09 panel renders its own page-frame wrapper inside the section",
       "selector": "#sec-auxiliary-energy .spec09-panel-header, #sec-grid-queue .spec09-panel-header",
       "reason": "Item D3: the section supplies the heading. A view that kept its own spec09-panel-header would render two titles for one section."
+    },
+    {
+      "name": "no top-level index entry for either spec-09 panel (they are sub-sections of S2, not tabs)",
+      "selector": "nav[aria-label=\"Section index\"] a[href^=\"#sec-\"]",
+      "reason": "DAUDIT-2 (2026-10-08): replaces the row \"the sticky section index names both spec-09 sections\". Operator ruling 2 of 2026-09-24 (docs/ops/session-log.md, the entry headed operator rulings (UI system, via Claude Design): the S-order of market, research and operations is 01 Summary, 02 Substantive / Series / Findings, 05 Sources, 06 Related; numbers are fixed) and the PARITY-PARTS decision that applies it to Operations (docs/ops/session-log.d/2026-09-24-parity-parts.md: \"Operations' content sections nest under one 02 Substantive/Series/Findings index entry as sub-sections, not top-level tabs\"; OperationsDetailSurface.tsx and ui/DetailSubSection.tsx). The index carries the numbered S-sections only, so an index entry pointing at #sec-auxiliary-energy or #sec-grid-queue would be the regression operator ruling 2 removed (nine to eleven top-level tabs on this surface)."
     }
   ]
 }
