@@ -113,3 +113,21 @@ test("makeResolveSource forwards hostVerdicts to the shared rating step", async 
   const none = await resolveSource({ url: NESO_URL, name: "NESO" }, { mode: "dry", hostVerdicts: new Map() });
   assert.equal(none.tier, 7);
 });
+
+test("apply mode passes the registration primitive's `created` through, so a caller reports minted versus reused without a second read (DFIX-2)", async () => {
+  const seen = [];
+  const registerSourceFn = async (source, opts) => { seen.push({ source, opts }); return { source_id: "sid-1", created: false }; };
+  const r = await rateSourceByInstitutionClass(
+    { url: "https://www.epa.gov/x", name: "EPA" },
+    { mode: "apply", registerSourceFn, cite: { skill: "test", reason: "test" }, hostVerdicts: new Map() },
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.source_id, "sid-1");
+  assert.equal(r.created, false, "reused, not minted");
+  assert.deepEqual(seen[0].source, { url: "https://www.epa.gov/x", name: "EPA", base_tier: 2 });
+  const minted = await rateSourceByInstitutionClass(
+    { url: "https://www.epa.gov/y", name: "EPA" },
+    { mode: "apply", registerSourceFn: async () => ({ source_id: "sid-2", created: true }), cite: {}, hostVerdicts: new Map() },
+  );
+  assert.equal(minted.created, true);
+});
