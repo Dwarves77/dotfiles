@@ -195,3 +195,19 @@ test('INVCOV: the real RETIRED_INVARIANTS map is empty or well formed, and the g
     assert.ok(isMeaningfulReason(r.reason) && !Number.isNaN(Date.parse(r.retiredOn)), id);
   }
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS, not only its output ──────
+test("GATE-9 exit status: invariant-coverage.mjs exits 0 on the committed tree, and its source maps the verdict to exit 0 / exit 1 and nothing else", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../../scripts/lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./invariant-coverage.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: withoutCredentials() });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /meta-gate PASS/);
+  const src = readFileSync(script, "utf8");
+  assert.deepEqual([...src.matchAll(/process\.exit\(([^)]*)\)/g)].map((m) => m[1]), ["0", "1"]);
+  assert.match(src, /if \(ok\) \{[\s\S]*?process\.exit\(0\);\s*\}\s*console\.error[\s\S]*?process\.exit\(1\);/, "0 only inside the ok branch, 1 after the PROBLEM(S) report");
+  assert.doesNotMatch(src, /process\.exit\s*=[^=]|process\.exitCode\s*=/, "the exit status is never reassigned");
+});

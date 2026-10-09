@@ -333,3 +333,7 @@ for it.
 ## Addendum, 2026-10-08 (GATE-8)
 
 GATE-8 applied the scope paragraph GATE-7 records in this ADR (the gates are mistake-catchers for cooperating sessions, a blind spot on an honest form is a defect, a form that requires intent is out of scope and recorded) to the fitness functions and governance gates, rows 4 and 5 of the AUD-AT-4 register (`docs/ops/session-log.d/2026-10-08-gate8-fitness-honest-forms.md` maps each attack id to its fix or to its out-of-scope reason).
+
+## Addendum, 2026-10-08 (RULE-RANGE-1)
+
+A pull-request range is judged by its squash for content rules (introduced-lines and tree-state scope), by each commit for commit-form rules (whole-commit scope), and a push range per commit (`docs/ops/session-log.d/2026-10-08-rulerange1-squash-verdict.md`).

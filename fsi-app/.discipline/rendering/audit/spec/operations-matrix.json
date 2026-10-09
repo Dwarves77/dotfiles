@@ -65,7 +65,8 @@
     },
     {
       "name": "CELL = ... OR EM DASH: an unsourced cell renders the narrow Absence, which IS the artboard's bare dash carrying its closed-vocabulary reason (22 of this fixture's 30 cells)",
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence-dash",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The Absence part no longer carries the cl-absence class (the dash and narrow variants carry cl-absence-dash; Absence.tsx), and an unsourced matrix cell is drawn by CoverageState, whose dash carries the same class.",
       "expect": {
         "count": "22"
       }
@@ -136,7 +137,8 @@
     },
     {
       "name": "the legend states its reason in the closed absence vocabulary AND shows the glyph it explains: the narrow Absence (which IS the em dash) beside the worded one, the artboard's own pairing",
-      "selector": "[data-audit=\"ops-matrix-foot\"] .cl-absence",
+      "selector": "[data-audit=\"ops-matrix-foot\"] [data-part=\"absence\"]",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The Absence part no longer carries the cl-absence class; the legend's two instances (the narrow dash and the worded reason) are addressed by the part's data-part marker.",
       "expect": {
         "count": "2"
       }

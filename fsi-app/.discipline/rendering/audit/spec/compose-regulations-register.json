@@ -9,12 +9,12 @@
     "The four page-local <select> dropdowns are the shape the item names for removal. The forbid on `select` is the attack surface for that half of the item: restoring the dropdown row makes this spec report NOT IN SPEC.",
     "The facets are the SHARED rail Filters card (FiltersRailCard, ListSurfaceRailCards.tsx), the same component the five list surfaces mount, carrying live per-option counts from read-register.mjs's own corpus-wide tally.",
     "Sort order is a query fact, not a rendered one — it is proven by src/lib/obligations/read-register.test.mjs (planRegisterPageSegments and the page-walk test), not here.",
-    "764px is the content column this harness's 1440 mount produces (nav 252 + page padding + 28px gap + 300px rail), the same value every other compose-*.json spec measures since fold 60 — see compose-10-map.json's own note. The artboards' own column is 778; the 14px difference is the harness's frame, not a product deviation."
+    "DAUDIT-2 (2026-10-08): the content column is 780px since operator ruling 1 of 2026-09-24 (docs/ops/session-log.md, the entry headed operator rulings (UI system, via Claude Design), ruling 1, Content column 780: the frame layout tracks sum to 780 and the Masthead lane measured 780.0 at 1440; DetailShell.tsx cites the same ruling), 16px wider than this spec was calibrated on, so the used widths below carry +16px. The paragraph that follows records the earlier 764px reading. 764px is the content column this harness's 1440 mount produces (nav 252 + page padding + 28px gap + 300px rail), the same value every other compose-*.json spec measures since fold 60 — see compose-10-map.json's own note. The artboards' own column is 778; the 14px difference is the harness's frame, not a product deviation."
   ],
   "selector": "[data-audit=\"register-page\"] .cl-list-surface-grid",
   "expect": {
     "display": "grid",
-    "grid-template-columns": "764px 300px",
+    "grid-template-columns": "780px 300px",
     "gap": "28px",
     "padding": "20px 40px 40px"
   },

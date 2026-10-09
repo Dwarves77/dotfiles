@@ -78,3 +78,16 @@ test("ATTACK: a non-loopback database URL is refused before the dump is even rea
   assert.throws(() => applySchemaDump({ dbUrl: "postgresql://postgres:pw@db.abcdefghijklmnop.supabase.co:5432/postgres", dumpPath: "/d.sql", workDir: "/w", read: () => { read = true; return ""; }, write: () => {}, spawn: () => ({}) }), /loopback/);
   assert.equal(read, false);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: apply-schema-dump.mjs exits 2 when --in or --report is missing, with no database URL, and for a non-loopback URL", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./apply-schema-dump.mjs", import.meta.url));
+  const env = { ...withoutCredentials(), PROOF_DB_URL: "", SUPABASE_DB_URL: "" };
+  const run = (...a) => spawnSync(process.execPath, [script, ...a], { encoding: "utf8", env });
+  assert.equal(run().status, 2);
+  assert.equal(run("--in", "dump.sql", "--report", "r.json").status, 2, "no database URL");
+  assert.equal(run("--in", "dump.sql", "--report", "r.json", "--db-url", "postgresql://u:p@db.example.com:5432/postgres").status, 2, "a non-loopback URL is refused");
+});

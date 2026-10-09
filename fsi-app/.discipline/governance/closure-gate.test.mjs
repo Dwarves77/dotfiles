@@ -442,3 +442,18 @@ test('AUD-AT-5: no other module reads the train counter (the closure gate was it
   walk(root);
   assert.deepEqual(offenders, []);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS, not only its output ──────
+test("GATE-9 exit status: closure-gate.mjs exits 0 on the committed tree, and its source has exactly one exit, the verdict (r.ok ? 0 : 1)", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../../scripts/lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./closure-gate.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: withoutCredentials() });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /closure gate PASS/);
+  const src = readFileSync(script, "utf8");
+  assert.deepEqual([...src.matchAll(/process\.exit\(([^)]*)\)/g)].map((m) => m[1]), ["r.ok ? 0 : 1"]);
+  assert.doesNotMatch(src, /process\.exit\s*=[^=]|process\.exitCode\s*=/, "the exit status is never reassigned");
+});

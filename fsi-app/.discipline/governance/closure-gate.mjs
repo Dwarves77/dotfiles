@@ -216,6 +216,9 @@ export const NEVER_RUN_DORMANT = Object.freeze({
   'workflow:research-walker.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
   'workflow:theme-briefs.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
   'workflow:uptime-probes.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
+  // Lane DAUDIT-2 (2026-10-08, coordinator ruling): a new pull_request workflow has no ledger row until it has
+  // run once on master and the next ledger export is taken.
+  'workflow:design-audit.yml': { reason: 'new pull_request job; its first run enters the next ledger export', until: '2026-10-22' },
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════

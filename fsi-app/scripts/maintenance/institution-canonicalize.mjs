@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // institution-canonicalize.mjs — MAINT dispatch step for Lane SRC-TIER (2026-09-03): fixes the
-// "duplicate-row defect" the source-credibility-model skill names in SKILL.md §3 ("Canonical
+// "duplicate-row defect" the source-credibility-model skill names in references/authority-floor-and-canonical-tier.md §3 ("Canonical
 // institutional tier (one tier per institution)") — a real institution split across TWO `institutions`
 // rows, or one institution whose `sources` rows disagree on `base_tier`. Measured live 2026-09-03:
 // "Smart Freight Centre" holds two institution rows (3e5b443c on smartfreightcentre.org, base_tier 4;

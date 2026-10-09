@@ -12,7 +12,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, mkdtempSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -261,4 +261,145 @@ test('S1-E: hops 05 and 06 notes say where tier recompute runs', () => {
     assert.match(note, /recompute-tiers/, `${id}: note does not name recompute-tiers`);
     assert.match(note, /tier-opinions/, `${id}: note does not name tier-opinions`);
   }
+});
+
+// ── lane GATE-9 (2026-10-08): every hop, not the ones a hop-specific pin happens to name ─────────────────
+// AUD-AT-5 attacked all hops with a decoy edge (AH1), a duplicate producer name (AH6) and a forged firing claim
+// (AH2). Only hops 10 and 11 (a workflow test that pins `types: [completed]`) refused the decoy, only hops 12
+// and 13 (the S1-E pin above) refused the forged claim, and nothing refused a duplicate name. These tests are
+// DATA-DRIVEN over LOOP_HOPS, so a hop added later is covered the day it lands.
+import { readHarnessLedgerExport } from '../../scripts/lib/run-artifact.mjs';
+import { LOOP_FIRED_EVIDENCE_FILE } from './loop-manifest.mjs';
+
+/** The workflow names a workflow file's REAL trigger block lists: top-level `on:` -> `workflow_run:` ->
+ *  `workflows:`. Structural, not a text search: a `workflow_run:` that appears in a comment, a `run:` script, a
+ *  heredoc or any other block is not a trigger (AH1). Returns null when there is no real edge. PURE. */
+function realWorkflowRunNames(ymlText) {
+  const lines = String(ymlText).split(/\r?\n/);
+  const indentOf = (l) => l.match(/^( *)/)[1].length;
+  const significant = (l) => l.trim() !== '' && !/^\s*#/.test(l);
+  const onIdx = lines.findIndex((l) => /^on:\s*(?:#.*)?$/.test(l));
+  if (onIdx === -1) return null;
+  let end = lines.length;
+  for (let i = onIdx + 1; i < lines.length; i++) {
+    if (significant(lines[i]) && indentOf(lines[i]) === 0) { end = i; break; }
+  }
+  const block = lines.slice(onIdx + 1, end);
+  const wrIdx = block.findIndex((l) => significant(l) && indentOf(l) === 2 && /^ {2}workflow_run:\s*(?:#.*)?$/.test(l));
+  if (wrIdx === -1) return null;
+  const names = [];
+  for (let i = wrIdx + 1; i < block.length; i++) {
+    const l = block[i];
+    if (!significant(l)) continue;
+    if (indentOf(l) <= 2) break;
+    const inline = l.match(/^ {4}workflows:\s*\[([^\]]*)\]\s*(?:#.*)?$/);
+    if (inline) {
+      for (const m of inline[1].matchAll(/["']([^"']+)["']/g)) names.push(m[1]);
+      continue;
+    }
+    if (/^ {4}workflows:\s*(?:#.*)?$/.test(l)) {
+      for (let j = i + 1; j < block.length; j++) {
+        if (!significant(block[j])) continue;
+        const item = block[j].match(/^ {6}-\s*["']?([^"'#]+?)["']?\s*(?:#.*)?$/);
+        if (!item) break;
+        names.push(item[1]);
+      }
+    }
+  }
+  return names;
+}
+
+const consumerText = (hop) => readFileSync(join(REPO_ROOT, hop.consumer.file), 'utf8');
+
+test('AH1: every enforced hop\'s consumer carries a REAL on.workflow_run edge naming the hop\'s producer', () => {
+  for (const hop of LOOP_HOPS) {
+    if (!hop.enforceEdge || hop.consumerPending) continue;
+    const names = realWorkflowRunNames(consumerText(hop));
+    assert.ok(Array.isArray(names) && names.includes(hop.producer.name), `${hop.id}: ${hop.consumer.file} has no real on.workflow_run.workflows entry "${hop.producer.name}" (found ${JSON.stringify(names)})`);
+  }
+});
+
+test('AH1: the decoy edge (the real trigger deleted, the same text spelled inside a run: script) is not an edge, for every hop', () => {
+  for (const hop of LOOP_HOPS) {
+    if (hop.consumerPending) continue;
+    const real = consumerText(hop);
+    const decoy = real
+      .replace(/^ {2}workflow_run:\s*\r?\n(?: {4}.*\r?\n)+/m, '')
+      .replace(/^jobs:\s*$/m, `jobs:\n  decoy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          cat <<'EOF'\n          workflow_run:\n            workflows: ["${hop.producer.name}"]\n          EOF`);
+    assert.notEqual(decoy, real, `${hop.id}: the attack fixture changed nothing, so it proves nothing`);
+    const names = realWorkflowRunNames(decoy);
+    assert.ok(names === null || !names.includes(hop.producer.name), `${hop.id}: a heredoc in a run: step was read as the trigger edge`);
+  }
+});
+
+test('AH1: a workflow_run line inside a comment is not an edge, and a block-list form is read', () => {
+  const commented = 'name: X\non:\n  workflow_dispatch: {}\n  # workflow_run:\n  #   workflows: ["Source sweep"]\njobs:\n  a:\n    runs-on: x\n';
+  assert.equal(realWorkflowRunNames(commented), null);
+  const block = 'name: X\non:\n  workflow_run:\n    workflows:\n      - "Source sweep"\n      - Brief apply\n    types: [completed]\njobs:\n  a:\n    runs-on: x\n';
+  assert.deepEqual(realWorkflowRunNames(block), ['Source sweep', 'Brief apply']);
+});
+
+test('AH6: every hop\'s producer.name and consumer.name is the name: of exactly ONE workflow file', () => {
+  const byName = new Map();
+  for (const f of readdirSync(join(REPO_ROOT, '.github', 'workflows')).filter((n) => /\.ya?ml$/.test(n))) {
+    const name = readYamlName(`.github/workflows/${f}`);
+    if (!byName.has(name)) byName.set(name, []);
+    byName.get(name).push(f);
+  }
+  for (const hop of LOOP_HOPS) {
+    for (const side of ['producer', 'consumer']) {
+      if (hop[`${side}Pending`]) continue;
+      const files = byName.get(hop[side].name) ?? [];
+      assert.deepEqual(files, [hop[side].file.split('/').pop()], `${hop.id}: ${side} name "${hop[side].name}" must belong to exactly one workflow file (a second file with the same name would fire the consumer when a person dispatches the dormant one)`);
+    }
+  }
+});
+
+/** Problems with a set of firing claims against the evidence file and the committed ledger export. PURE:
+ *  hops, evidence entries and export rows are passed in. A claim (`enforceFired: true`) stands only when an
+ *  evidence entry for the hop exists AND its run resolves to a row of the ledger export. */
+function firedClaimProblems(hops, entries, exportInfo) {
+  const problems = [];
+  for (const hop of hops) {
+    if (!hop.enforceFired) continue;
+    const mine = entries.filter((e) => e.hop === hop.id);
+    if (mine.length === 0) { problems.push(`${hop.id}: enforceFired is true but loop-fired-evidence.json has no entry for it`); continue; }
+    if (!exportInfo.present) { problems.push(`${hop.id}: enforceFired is true but harness-ledger-export.json is absent, so no entry can resolve`); continue; }
+    const resolves = mine.some((e) => exportInfo.rows.some((r) => (
+      r.family === e.family && r.run_id === e.run_id && r.trigger === e.trigger
+      && (e.github_run_id == null || String(r.config?.github_run_id ?? '') === String(e.github_run_id))
+    )));
+    if (!resolves) problems.push(`${hop.id}: enforceFired is true but no evidence entry's run id resolves to a row of harness-ledger-export.json`);
+  }
+  return problems;
+}
+
+const LEDGER_EXPORT = readHarnessLedgerExport(REPO_ROOT);
+const EVIDENCE_ENTRIES = (() => {
+  try { return JSON.parse(readFileSync(LOOP_FIRED_EVIDENCE_FILE, 'utf8')).entries ?? []; } catch { return []; }
+})();
+
+test('AH2: every hop that claims it fired (enforceFired: true) has an evidence entry that resolves in the ledger export', () => {
+  assert.deepEqual(firedClaimProblems(LOOP_HOPS, EVIDENCE_ENTRIES, LEDGER_EXPORT), []);
+});
+
+test('AH2: a forged claim is refused for EVERY hop: the flag flipped on and an entry invented, with no ledger row behind it', () => {
+  for (const hop of LOOP_HOPS) {
+    const forged = { ...hop, enforceFired: true };
+    const entry = { hop: hop.id, family: hop.family ?? 'x', run_id: `${hop.family ?? 'x'}-run-999`, github_run_id: '123', upstream_run_id: '122', started_at: '2026-10-08T00:00:00Z', trigger: 'workflow_run' };
+    assert.ok(
+      firedClaimProblems([forged], [entry], { present: true, capturedAt: '2026-10-08T00:00:00Z', rows: [] }).length === 1,
+      `${hop.id}: a forged firing claim with an empty ledger was accepted`,
+    );
+    assert.ok(firedClaimProblems([forged], [entry], { present: false, capturedAt: null, rows: [] }).length === 1, `${hop.id}: accepted with no export at all`);
+    assert.ok(firedClaimProblems([forged], [], { present: true, capturedAt: 'x', rows: [] }).length === 1, `${hop.id}: accepted with no evidence entry`);
+  }
+});
+
+test('AH2: a claim backed by a ledger row with the same family, run id, trigger and github run id stands (control)', () => {
+  const hop = { ...LOOP_HOPS[0], enforceFired: true };
+  const entry = { hop: hop.id, family: hop.family, run_id: `${hop.family}-run-006`, github_run_id: '36568657095', trigger: 'workflow_run' };
+  const row = { family: hop.family, run_id: entry.run_id, trigger: 'workflow_run', config: { github_run_id: '36568657095' } };
+  assert.deepEqual(firedClaimProblems([hop], [entry], { present: true, capturedAt: 'x', rows: [row] }), []);
+  assert.equal(firedClaimProblems([hop], [entry], { present: true, capturedAt: 'x', rows: [{ ...row, config: { github_run_id: '1' } }] }).length, 1, 'a row with a different github run id is a different run');
 });

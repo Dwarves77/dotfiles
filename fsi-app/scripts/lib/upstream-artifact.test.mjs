@@ -46,7 +46,7 @@ test("gate: a missing upstream row skips with a reason that names the run, in bo
 });
 
 test("gate: an upstream that was itself a no-op produces nothing, by config.noop or config.skip", () => {
-  const noop = decideChainGate({ consumer: "downstream-chain", upstreamName: "Population turn", row: mintRow({ config: { mode: "dry", noop: true, noop_reason: "nothing to chain" } }), runMode: "dry" });
+  const noop = decideChainGate({ consumer: "downstream-chain", upstreamName: "Population turn", row: mintRow({ config: { mode: "dry", noop: true, noop_reason: "nothing to chain" }, metrics: { noop: 1 } }), runMode: "dry" });
   assert.equal(noop.skip, true);
   assert.match(noop.reason, /itself a no-op \(nothing to chain\)/);
   const skipped = decideChainGate({ consumer: "downstream-chain", upstreamName: "Corpus turn", row: corpusRow({ config: { mode: "dry", skip: true, skip_reason: "zero tickets" } }), runMode: "dry" });
@@ -261,9 +261,13 @@ test("CLI noop: an unknown family or a bad mode is exit 1 and writes nothing", a
 
 // ── lane CHAIN-2: loop-id, the loop id only, no consumer and no gate ──────────────────────────────────────
 const LOOP_ID = ["loop-id", "--upstream-name", "Source sweep", "--upstream-run-id", "100"];
+// The row a Source sweep read must return: the sweep's own family and the asked-for github run id (GATE-9: a row
+// that is not the upstream is no longer trusted, so the old fixture that answered a Source sweep read with a
+// ledger-consume row was the forgery shape itself).
+const sweepRow = (over = {}) => ({ run_id: "source-sweep-run-020", harness_family: "source-sweep", github_run_id: "100", started_at: "2026-10-07T06:00:00Z", config: { mode: "plan" }, metrics: {}, ...over });
 
 test("CLI loop-id: prints only the upstream row's loop id, with no consumer, run mode or gate", async () => {
-  const { io, deps } = cli({ readRowsFactory: () => async () => [ledgerRow({ config: { mode: "plan", noop: true, loop_run_id: "sweep-5" } })] });
+  const { io, deps } = cli({ readRowsFactory: () => async () => [sweepRow({ config: { mode: "plan", noop: true, loop_run_id: "sweep-5" } })] });
   assert.equal(await runCli(LOOP_ID, deps), 0);
   assert.deepEqual(io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID=sweep-5"], "a no-op or plan upstream is not gated here");
 });
@@ -272,7 +276,7 @@ test("CLI loop-id: no row, or a row with no loop id, prints an empty id and exit
   const a = cli({ readRowsFactory: () => async () => [] });
   assert.equal(await runCli(LOOP_ID, a.deps), 0);
   assert.deepEqual(a.io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID="]);
-  const b = cli({ readRowsFactory: () => async () => [ledgerRow({ config: { mode: "plan" } })] });
+  const b = cli({ readRowsFactory: () => async () => [sweepRow({ config: { mode: "plan" } })] });
   assert.equal(await runCli(LOOP_ID, b.deps), 0);
   assert.deepEqual(b.io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID="]);
 });
@@ -310,4 +314,100 @@ test("CHAIN-4 CLI noop: question-answers and theme-briefs write their NO-OP row 
     assert.equal(written[0][1].run_id, `${family}-run-007`);
     assert.deepEqual(validateRunArtifact(written[0][1]), []);
   }
+});
+
+// ── lane GATE-9 (2026-10-08): the hand-off gate refuses the honest forms the AUD-AT-5 register found it blind to ──
+
+test("G-1: config.noop stored as the string \"true\" or the number 1 is INVALID, not a quiet pass-through (dry mode)", () => {
+  for (const noop of ["true", 1, "yes"]) {
+    const r = decideChainGate({ consumer: "population-turn", upstreamName: "Ledger consume", row: ledgerRow({ config: { mode: "plan", noop } }), runMode: "dry" });
+    assert.equal(r.invalid, true, JSON.stringify(noop));
+    assert.equal(r.skip, false, "an invalid upstream neither skips nor proceeds");
+    assert.match(r.reason, /config\.noop, when present, must be a JSON boolean/);
+  }
+});
+
+test("G-2: a run that reports NO-OP but wrote is INVALID and the gate does NOT skip the chain on it", () => {
+  const row = mintRow({ config: { mode: "execute", noop: true, noop_reason: "nothing" }, metrics: { minted: 5 } });
+  const r = decideChainGate({ consumer: "downstream-chain", upstreamName: "Population turn", row, runMode: "apply" });
+  assert.equal(r.invalid, true);
+  assert.equal(r.skip, false);
+  assert.match(r.reason, /config\.noop is true but metrics\.minted is 5/);
+  const dry = decideChainGate({ consumer: "downstream-chain", upstreamName: "Population turn", row, runMode: "dry" });
+  assert.equal(dry.invalid, true, "dry mode is judged the same way: the contradiction is in the row, not the mode");
+});
+
+test("G-2: through the CLI an invalid upstream is exit 1 and prints NO KEY=VALUE line (the run fails)", async () => {
+  const { io, deps } = cli({ readRowsFactory: () => async () => [mintRow({ config: { mode: "execute", noop: true }, metrics: { minted: 5 } })] });
+  const code = await runCli(["read", "--consumer", "downstream-chain", "--upstream-name", "Population turn", "--upstream-run-id", "200", "--run-mode", "apply"], deps);
+  assert.equal(code, 1);
+  assert.deepEqual(io.out, []);
+  assert.match(io.err.join("\n"), /INVALID/);
+  assert.match(io.err.join("\n"), /breaks the no-op contract/);
+});
+
+test("G-3: apply mode with metrics.minted = true or [3] is INVALID (the value is no number, it must not coerce to work)", () => {
+  for (const minted of [true, [3], "4", null]) {
+    const r = decideChainGate({ consumer: "downstream-chain", upstreamName: "Population turn", row: mintRow({ metrics: { minted } }), runMode: "apply" });
+    assert.equal(r.invalid, true, JSON.stringify(minted));
+    assert.equal(r.skip, false);
+    assert.match(r.reason, /metrics\.minted, when present, must be a finite number/);
+  }
+  const tickets = decideChainGate({ consumer: "downstream-chain", upstreamName: "Corpus turn", row: corpusRow({ metrics: { tickets_selected: [9] } }), runMode: "apply" });
+  assert.equal(tickets.invalid, true);
+  const promoted = decideChainGate({ consumer: "population-turn", upstreamName: "Ledger consume", row: ledgerRow({ metrics: { promoted: true } }), runMode: "apply" });
+  assert.equal(promoted.invalid, true);
+});
+
+test("G-5: upstream names that are keys of every object (constructor, __proto__, toString, hasOwnProperty) have no hand-off", () => {
+  for (const consumer of ["population-turn", "downstream-chain"]) {
+    for (const upstreamName of ["constructor", "__proto__", "toString", "hasOwnProperty", "valueOf"]) {
+      const r = decideChainGate({ consumer, upstreamName, row: ledgerRow(), runMode: "dry" });
+      assert.equal(r.skip, true, `${consumer} <- ${upstreamName}`);
+      assert.match(r.reason, /no hand-off is defined/);
+    }
+  }
+  for (const consumer of ["constructor", "__proto__", "toString"]) {
+    assert.match(decideChainGate({ consumer, upstreamName: "Ledger consume", row: ledgerRow(), runMode: "dry" }).reason, /no hand-off is defined/);
+  }
+});
+
+test("G-5: the reader never maps a prototype key to a family (constructor, __proto__ read nothing)", async () => {
+  const boom = async () => { throw new Error("must not read"); };
+  for (const upstreamName of ["constructor", "__proto__", "toString"]) {
+    const r = await readUpstreamArtifact({ upstreamName, upstreamRunId: "1", readRows: boom });
+    assert.equal(r.row, null, upstreamName);
+    assert.equal(r.family, null);
+  }
+});
+
+test("G-4: a differently cased mode is still refused (control, the register's REFUSED row stays refused)", () => {
+  const r = decideChainGate({ consumer: "downstream-chain", upstreamName: "Population turn", row: mintRow({ config: { mode: "Execute" } }), runMode: "apply" });
+  assert.equal(r.skip, true);
+  assert.match(r.reason, /effective mode=Execute \(wanted execute\)/);
+});
+
+test("G-7: a row that is not the upstream (wrong family, wrong github run id, no github run id) is never trusted for its loop id", async () => {
+  const rows = [
+    ledgerRow({ github_run_id: "999", config: { mode: "apply", loop_run_id: "forged-loop-123" } }),
+    ledgerRow({ harness_family: "mint", config: { mode: "apply", loop_run_id: "forged-loop-456" } }),
+    { ...ledgerRow({ config: { mode: "apply", loop_run_id: "forged-loop-789" } }), github_run_id: undefined },
+  ];
+  const r = await readUpstreamArtifact({ upstreamName: "Ledger consume", upstreamRunId: "100", attempts: 1, readRows: async () => rows, sleep: async () => {} });
+  assert.equal(r.row, null, "no row resolves to this upstream run");
+  const real = await readUpstreamArtifact({ upstreamName: "Ledger consume", upstreamRunId: "100", attempts: 1, readRows: async () => [...rows, ledgerRow()], sleep: async () => {} });
+  assert.equal(real.row.config.loop_run_id, "9001", "the one row that IS the upstream is the one used");
+});
+
+test("G-7: through the CLI a forged loop id from a row that is not the upstream prints an empty loop id", async () => {
+  const { io, deps } = cli({ readRowsFactory: () => async () => [ledgerRow({ github_run_id: "999", config: { mode: "apply", loop_run_id: "forged-loop-123" } })] });
+  assert.equal(await runCli(["loop-id", "--upstream-name", "Ledger consume", "--upstream-run-id", "100"], deps), 0);
+  assert.deepEqual(io.out, ["CHAIN_UPSTREAM_LOOP_RUN_ID="]);
+});
+
+test("gate control: a clean row still proceeds, a clean no-op still skips (the contract refuses only the contradictions)", () => {
+  assert.deepEqual(decideChainGate({ consumer: "population-turn", upstreamName: "Ledger consume", row: ledgerRow(), runMode: "apply" }), { skip: false, reason: "" });
+  const noop = decideChainGate({ consumer: "population-turn", upstreamName: "Ledger consume", row: ledgerRow({ config: { mode: "plan", noop: true, noop_reason: "x" }, metrics: { noop: 1 } }), runMode: "dry" });
+  assert.equal(noop.skip, true);
+  assert.equal(noop.invalid, undefined);
 });
