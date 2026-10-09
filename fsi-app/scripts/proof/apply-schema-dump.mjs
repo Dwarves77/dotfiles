@@ -10,6 +10,11 @@
 //   - nothing is classified non-fatal: a role the dump names that the image does not have ("role ... does not exist")
 //     is a red step AND a line in the report (`missing_roles`), never a strip and never a tolerated error;
 //   - a psql that exits non-zero without printing an ERROR line (a refused connection, a missing file) is red too.
+// PROOF-7 (2026-10-09): pg_dump's schema dump omits roles, so fire 6 failed on exactly one error, role "reconciler" does
+// not exist. With --roles <file> (the filtered roles file dump-roles.mjs writes: role names and attributes, never
+// passwords) the wrapper applies that file FIRST, as the same supabase_admin with the same ON_ERROR_STOP=1 and the same
+// URL assertions; an error there is red (`roles_errors`) and the dump is not applied. The missing_roles check below stays
+// as the attack: a dump naming a role absent from the roles file is still red and names the role.
 // This wrapper:
 //   1. refuses (exit 2) any URL that is not loopback, not the supabase_admin role, not database `postgres`, or on the
 //      same port as the stack's own database (PROOF_DB_URL, the replayed schema): the dump never lands on the replay;
@@ -62,35 +67,48 @@ export function missingRole(message) {
 }
 
 /** Build the report. PURE. Every error is fatal; a missing role is also named in `missing_roles`. */
-export function buildReport({ errors, publicTables, startedAt, finishedAt }) {
+export function buildReport({ errors, publicTables, startedAt, finishedAt, rolesApplied = false, rolesErrors = [] }) {
   const missing = [...new Set(errors.map((e) => missingRole(e.message)).filter(Boolean))];
   return {
     schema: "chain-proof-schema-apply-report/1",
     started_at: startedAt,
     finished_at: finishedAt,
-    fatal_errors: errors.length,
+    fatal_errors: errors.length + rolesErrors.length,
+    roles_applied: rolesApplied,
+    roles_errors: rolesErrors.length,
     role_errors: errors.filter((e) => missingRole(e.message)).length,
     missing_roles: missing,
     public_tables: publicTables,
-    errors: errors.slice(0, MAX_ERRORS_LISTED),
-    ok: errors.length === 0 && (publicTables ?? 0) > 0,
+    errors: [...rolesErrors.map((e) => ({ ...e, phase: "roles" })), ...errors].slice(0, MAX_ERRORS_LISTED),
+    ok: errors.length === 0 && rolesErrors.length === 0 && (publicTables ?? 0) > 0,
   };
 }
 
-/** Apply the dump. Everything external is injected. Returns the report. */
-export function applySchemaDump({ dbUrl, stackUrl = null, dumpPath, psql = "psql", spawn = spawnSync, now = () => new Date() }) {
-  assertOracleUrl(dbUrl, stackUrl);
-  const startedAt = now().toISOString();
-  const run = spawn(psql, psqlArgs(dbUrl, dumpPath), { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+/** Run psql on one file and collect its errors (psql's ERROR lines, a failed launch, or a non-zero exit with no ERROR line). */
+function applyFile({ dbUrl, filePath, psql, spawn }) {
+  const run = spawn(psql, psqlArgs(dbUrl, filePath), { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
   const errors = collectErrors(run.stderr);
   if (run.error) errors.push({ line: 0, message: `could not run ${psql}: ${run.error.message}`.slice(0, MAX_TEXT) });
   else if (run.status !== 0 && errors.length === 0) {
     const last = String(run.stderr ?? "").trim().split(/\r?\n/).slice(-1)[0] ?? "";
     errors.push({ line: 0, message: `psql exited with status ${run.status}: ${last.replace(/postgres(?:ql)?:\/\/\S+/gi, "<url>")}`.slice(0, MAX_TEXT) });
   }
+  return errors;
+}
+
+/** Apply the roles file (when given) and then the dump. Everything external is injected. Returns the report. */
+export function applySchemaDump({ dbUrl, stackUrl = null, dumpPath, rolesPath = null, psql = "psql", spawn = spawnSync, now = () => new Date() }) {
+  assertOracleUrl(dbUrl, stackUrl);
+  const startedAt = now().toISOString();
+  let rolesErrors = [];
+  if (rolesPath) {
+    rolesErrors = applyFile({ dbUrl, filePath: rolesPath, psql, spawn });
+    if (rolesErrors.length) return buildReport({ errors: [], publicTables: null, startedAt, finishedAt: now().toISOString(), rolesApplied: false, rolesErrors });
+  }
+  const errors = applyFile({ dbUrl, filePath: dumpPath, psql, spawn });
   const probe = spawn(psql, [dbUrl, "-X", "-At", "-c", "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'"], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
   const n = Number.parseInt(String(probe.stdout ?? "").trim(), 10);
-  return buildReport({ errors, publicTables: Number.isFinite(n) ? n : null, startedAt, finishedAt: now().toISOString() });
+  return buildReport({ errors, publicTables: Number.isFinite(n) ? n : null, startedAt, finishedAt: now().toISOString(), rolesApplied: Boolean(rolesPath), rolesErrors });
 }
 
 function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
@@ -98,15 +116,16 @@ function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? proce
 if (isMainModule(import.meta.url)) {
   const dumpPath = arg("--in");
   const reportPath = arg("--report");
+  const rolesPath = arg("--roles");
   const dbUrl = arg("--db-url") || process.env.PROOF_ORACLE_DB_URL;
   if (!dumpPath || !reportPath) { console.error("apply-schema-dump: --in <dump.sql> and --report <path> are required"); process.exit(2); }
   if (!dbUrl) { console.error("apply-schema-dump: no oracle database URL (--db-url or PROOF_ORACLE_DB_URL)"); process.exit(2); }
   const stackUrl = process.env.PROOF_DB_URL || null;
   try { assertOracleUrl(dbUrl, stackUrl); } catch (e) { console.error(`apply-schema-dump: ${e.message}`); process.exit(2); }
   mkdirSync(dirname(resolve(reportPath)), { recursive: true });
-  const report = applySchemaDump({ dbUrl, stackUrl, dumpPath: resolve(dumpPath) });
+  const report = applySchemaDump({ dbUrl, stackUrl, dumpPath: resolve(dumpPath), rolesPath: rolesPath ? resolve(rolesPath) : null });
   writeFileSync(resolve(reportPath), JSON.stringify(report, null, 2) + "\n", "utf8");
-  console.log(`apply-schema-dump: ${report.ok ? "OK" : "FAILED"}; public tables ${report.public_tables}; fatal errors ${report.fatal_errors}; role errors ${report.role_errors}; missing roles ${report.missing_roles.join(", ") || "none"}`);
+  console.log(`apply-schema-dump: ${report.ok ? "OK" : "FAILED"}; public tables ${report.public_tables}; roles applied ${report.roles_applied}; roles errors ${report.roles_errors}; fatal errors ${report.fatal_errors}; role errors ${report.role_errors}; missing roles ${report.missing_roles.join(", ") || "none"}`);
   for (const e of report.errors.slice(0, 15)) console.error(`  line ${e.line}: ${e.message}`);
   process.exit(report.ok ? 0 : 1);
 }
