@@ -4,7 +4,7 @@
 // `Skill` invocation of the governing skill before a governed edit, and that invocation loads the skill's whole
 // SKILL.md into the agent's context, where it is re-billed on every later turn (CLAUDE.md rule 11). Measured
 // 2026-10-09: six gate-demanded skills weighed 32,948 to 166,101 bytes each. Each SKILL.md is now a CORE of at
-// most 12,000 bytes (frontmatter unchanged, the binding rules, and an index naming each reference file with one
+// most 16,000 bytes (raised from 12,000 by ENGINE-FIX-1, 2026-10-09: the cores sat 47 to 82 bytes under the old cap, so the next binding line would have forced a reference move; frontmatter unchanged, the binding rules, and an index naming each reference file with one
 // line on when to read it); every other section moved VERBATIM to references/<slug>.md beside it. The gate is
 // exactly as strict as before: only what the load costs changed.
 //
@@ -43,7 +43,7 @@ const REPO = resolve(HERE, "..", "..");
 const SKILLS = "fsi-app/.claude/skills";
 
 /** The largest a gate-demanded SKILL.md may be, in bytes. */
-export const CORE_MAX_BYTES = 12000;
+export const CORE_MAX_BYTES = 16000;
 /** origin/master when SKILL-SLIM-1 was cut: the last commit at which every SKILL.md still held its whole text. */
 const PRE_SPLIT_BASE = "023d47588";
 /** { skill: [exact pre-split line, ...] } lines a later lane deliberately changed or removed, each with a reason. */
@@ -194,8 +194,16 @@ test("SIZE GUARD attack: appending a section to a core that fits turns the guard
   const grown = fits + "\n## A new section\n" + "y".repeat(400);
   const red = sizeProblems(["s"], () => Buffer.byteLength(grown));
   assert.equal(red.length, 1);
-  assert.match(red[0], /over the 12000-byte core limit/);
+  assert.match(red[0], /over the 16000-byte core limit/);
   assert.equal(sizeProblems(["s"], () => null).length, 1, "a missing SKILL.md is a problem, not a pass");
+});
+
+test("SIZE GUARD ENGINE-FIX-1: the cap is exactly 16000 bytes, 16000 fits and 16001 fails", () => {
+  assert.equal(CORE_MAX_BYTES, 16000);
+  assert.deepEqual(sizeProblems(["s"], () => 16000), []);
+  const red = sizeProblems(["s"], () => 16001);
+  assert.equal(red.length, 1);
+  assert.match(red[0], /16001 bytes, over the 16000-byte core limit/);
 });
 
 test("INDEX: every core names exactly the files under its references/", () => {

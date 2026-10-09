@@ -37,7 +37,11 @@
 // (true when the identical text was removed somewhere else in the same diff, another hunk or another file,
 // so the line was relocated rather than written). `introducedMatches(info, test)` keeps the pairs whose
 // added line has the pattern and whose counterpart does not: an edited line that already carried the
-// pattern passes, a moved line passes, a new line fails. Pairing inside a hunk is by exact text first
+// pattern passes, a moved line passes, a new line fails. A line the diff ADDS but that an earlier commit of
+// the integration history REMOVED from the same path is a restore, not a write (lane ENGINE-FIX-1, 2026-10-09:
+// a revert PR's second commit restores master's own lines, and the merge-base diff reads them as new):
+// `info.removedBefore(path, text)` answers it with one path-limited pickaxe on the baseline's history, and
+// introducedMatches asks it only for a line that would otherwise be charged. Pairing inside a hunk is by exact text first
 // (a reorder), then by token similarity, then by position, so a hunk that edits one glyph line and adds
 // another charges exactly one line however git chose to align them.
 
@@ -195,6 +199,50 @@ function loadDiff(source, baseline) {
   return git(args, { maxBuffer: DIFF_MAX_BUFFER, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
+// RESTORED, NOT WRITTEN (lane ENGINE-FIX-1, 2026-10-09; register RULES-X-1 X5). The merge base is the right
+// measure for a line the branch never touched, but a REVERT PR restores lines that a commit of master's history
+// removed: they are not at the merge base, so a revert's second commit (the log commit) read them as new and
+// rules 012, 015 and 022 refused an honest revert. `historyRemoval` is the one place that asks the history.
+// It returns (paths, text) => true when a commit reachable from the baseline REMOVED exactly that line from one
+// of the paths (the path-limited pickaxe `git log -S<text> -p -U0 <tip> -- <paths>`, then an exact '-' line), or
+// null when there is no integration history to ask (fixture, merge-in-progress, fallback). A line that history
+// never removed from that path, a new line or one removed only from another file, is still a write. A git
+// failure or a timeout answers false: the old verdict, never a new pass.
+const HISTORY_TIMEOUT_MS = 60000;
+
+function historyTip(source, baseline) {
+  if (source?.type === 'staged' || source?.type === 'commit') return baseline.source === 'merge-base' ? baseline.ref : null;
+  if (source?.type === 'range') {
+    const r = source.range;
+    if (r.includes('...')) {
+      const [a, b] = r.split('...');
+      try { return git(['merge-base', a, b], { stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null; } catch { return null; }
+    }
+    return r.split('..')[0] || null;
+  }
+  return null;
+}
+
+function historyRemoval(source, baseline) {
+  const tip = historyTip(source, baseline);
+  if (!tip) return null;
+  const root = getRepoRoot();
+  const asked = new Map();
+  return (paths, text) => {
+    const key = lineKey(String(text ?? ''));
+    if (!key) return false;
+    const memo = `${paths.join('|')} ${key}`;
+    if (asked.has(memo)) return asked.get(memo);
+    let found = false;
+    try {
+      const out = execFileSync('git', ['-C', root, '-c', 'core.quotepath=false', 'log', '--format=', '-p', '-U0', '--no-color', '--no-ext-diff', '--no-textconv', `-S${String(text).trim()}`, tip, '--', ...paths.map((p) => String(p).replaceAll('\\', '/'))], { encoding: 'utf-8', maxBuffer: DIFF_MAX_BUFFER, timeout: HISTORY_TIMEOUT_MS, stdio: ['ignore', 'pipe', 'ignore'] });
+      found = out.split(/\r?\n/).some((l) => l.startsWith('-') && !l.startsWith('---') && lineKey(l.slice(1)) === key);
+    } catch { found = false; }
+    asked.set(memo, found);
+    return found;
+  };
+}
+
 // Build CheckContext for a proposed commit (commit-msg hook).
 // At commit-msg time, staged files reflect what's about to be committed,
 // and the commit message is in the file at messageFile.
@@ -202,7 +250,7 @@ export function buildContextForProposedCommit({ messageFile, env = process.env }
   const commitMessage = readFileSync(messageFile, 'utf-8').replace(/^#.*$/gm, '').trim();
   const diffSource = { type: 'staged' };
   const baseline = baselineFor(diffSource, env);
-  return assemble({ commitMessage, diffText: loadDiff(diffSource, baseline), isMergeCommit: false, commitSha: null, diffSource, baseline });
+  return assemble({ commitMessage, diffText: loadDiff(diffSource, baseline), isMergeCommit: false, commitSha: null, diffSource, baseline, removedInHistory: historyRemoval(diffSource, baseline) });
 }
 
 // Build CheckContext for an existing commit (CI mode).
@@ -212,7 +260,7 @@ export function buildContextForExistingCommit({ commit, env = process.env }) {
   const isMergeCommit = parents.length > 1;
   const diffSource = { type: 'commit', sha: commit };
   const baseline = baselineFor(diffSource, env);
-  return assemble({ commitMessage, diffText: loadDiff(diffSource, baseline), isMergeCommit, commitSha: commit, diffSource, baseline });
+  return assemble({ commitMessage, diffText: loadDiff(diffSource, baseline), isMergeCommit, commitSha: commit, diffSource, baseline, removedInHistory: historyRemoval(diffSource, baseline) });
 }
 
 // Build CheckContext for an ENTIRE commit range as ONE cumulative diff (squash-merge parity).
@@ -261,6 +309,7 @@ export function buildContextForRange({ range }) {
     commitSha: null,
     diffSource,
     baseline,
+    removedInHistory: historyRemoval(diffSource, baseline),
   });
 }
 
@@ -300,7 +349,7 @@ export function buildContextFromFixture({ message, files, isMergeCommit = false,
   });
 }
 
-function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMergeCommit, commitSha, isFixture = false, fileContents = null, diffSource = null, baseline }) {
+function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMergeCommit, commitSha, isFixture = false, fileContents = null, diffSource = null, baseline, removedInHistory = null }) {
   const lines = commitMessage.split(/\r?\n/);
   const commitSubject = lines[0] || '';
   const blankIdx = lines.findIndex((line, i) => i > 0 && line.trim() === '');
@@ -352,7 +401,11 @@ function assemble({ commitMessage, diffText, stagedFilesOverride = null, isMerge
   let introduced = null;
   ctx.introducedLines = (path) => {
     if (introduced === null) introduced = buildIntroduced(parsed);
-    return introduced.get(path) || { added: [], pairs: [] };
+    const info = introduced.get(path);
+    if (!info) return { added: [], pairs: [] };
+    if (!removedInHistory) return info;
+    const oldPath = diffFiles.get(path)?.oldPath ?? null;
+    return { ...info, removedBefore: (text) => removedInHistory([path, oldPath].filter(Boolean), text) };
   };
 
   return ctx;
@@ -560,11 +613,15 @@ function buildIntroduced(parsed) {
 export function introducedMatches(info, test, extract = null) {
   return info.pairs.filter((p) => {
     if (!test(p.added) || p.moved) return false;
-    if (p.removed === null || !test(p.removed)) return true;
+    let charged;
+    if (p.removed === null || !test(p.removed)) charged = true;
     // The line it replaces carried the pattern too. An edit that ADDS another occurrence to that line is still
     // an introduction (edit-extend, GATE-7): with `extract` (line -> the tokens the pattern matched), the pair
     // counts when the added line holds a token more times than the removed line did.
-    return extract ? hasSurplus(extract(p.added), extract(p.removed)) : false;
+    else charged = extract ? hasSurplus(extract(p.added), extract(p.removed)) : false;
+    // A restore of a line an earlier commit removed from this path introduces nothing (ENGINE-FIX-1). Asked last,
+    // only of a line that would be charged, so a clean diff never runs the pickaxe.
+    return charged && !(info.removedBefore && info.removedBefore(p.added));
   });
 }
 

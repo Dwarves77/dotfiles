@@ -102,17 +102,60 @@ export function isMemoryEvidence(content) {
   return false;
 }
 
+// GRANDFATHERED LOGS (lane ENGINE-FIX-1, 2026-10-09; register RULES-X-1 S7/X6). The dated-heading plus Accomplished
+// format was fixed by GATE-9 on 2026-10-08; 147 of the 276 session-log.d files written before it do not meet it (95 of
+// 105 in September, 52 of 171 in October) and they are the only memory those days have. A log whose FILE DATE is
+// before this day is evidence for its own date when it carries substance: one line of GRANDFATHER_MIN_LINE characters
+// or more that is not a heading. A file dated this day or later needs the full format, and a stub of any date still
+// fails (a one-byte log is not memory).
+export const GRANDFATHER_BEFORE = '2026-10-09';
+const GRANDFATHER_MIN_LINE = 20;
+
+export function isGrandfatheredEvidence(path, content) {
+  const m = String(path).match(/session-log\.d\/(\d{4}-\d{2}-\d{2})-/);
+  if (!m || m[1] >= GRANDFATHER_BEFORE || typeof content !== 'string') return false;
+  return content.split(/\r?\n/).some((l) => !/^#{1,6}\s/.test(l) && l.replace(/[*_`>|\-+]/g, '').trim().length >= GRANDFATHER_MIN_LINE);
+}
+
+// REFRESH FILES (lane ENGINE-FIX-1). The executor's post-merge refresh regenerates the migration applied-map and the
+// harness ledger export from the live ledger and flips migration headers; a PR made only of those (plus the generated
+// inventories, which are docs and never code) records nothing a first-person log could add. These are not CODE for
+// this gate. A refresh file alongside a real code change leaves that change as CODE, so the log is still owed.
+const REFRESH_FILE_RE = /^fsi-app\/(?:supabase\/migrations\/APPLIED-MAP\.json|\.discipline\/governance\/harness-ledger-export\.json)$/;
+const MIGRATION_SQL_RE = /^fsi-app\/supabase\/migrations\/[^/]+\.sql$/;
+
+/** The text after a file's leading comment block (the lines before the first SQL statement). PURE. */
+function afterHeaderBlock(text) {
+  const lines = String(text).replace(/\r\n/g, '\n').split('\n');
+  const at = lines.findIndex((l) => l.trim() !== '' && !l.trimStart().startsWith('--'));
+  return at === -1 ? '' : lines.slice(at).join('\n');
+}
+
+/** True when two versions of a migration differ only inside the leading comment block (a header flip). A new or deleted file is not. PURE. */
+export function isHeaderOnlyChange(baseText, headText) {
+  if (typeof baseText !== 'string' || typeof headText !== 'string') return false;
+  return afterHeaderBlock(baseText) === afterHeaderBlock(headText);
+}
+
 /**
  * Bucket a flat list of repo-relative changed paths into the two regex classes the workflow's inline
  * shell used. PURE, no filesystem, no git. @param {string[]} files
+ * `headerOnly(path)` (the CLI passes it) answers whether a changed migration .sql differs from the base only in its
+ * header comments; without it a migration file is code, as before.
  * @returns {{ code: string[], memory: string[] }}
  */
-export function classifyChanged(files, { readMemoryFile } = {}) {
+export function classifyChanged(files, { readMemoryFile, headerOnly } = {}) {
   const list = (files || []).map((f) => (f || '').trim()).filter(Boolean);
-  const code = list.filter((f) => CODE_RE.test(f) && !CODE_EXCLUDE_RE.test(f));
+  const code = list.filter((f) => CODE_RE.test(f) && !CODE_EXCLUDE_RE.test(f) && !REFRESH_FILE_RE.test(f)
+    && !(headerOnly && MIGRATION_SQL_RE.test(f) && headerOnly(f)));
   // With readMemoryFile (the CLI always passes it) a per-lane session-log file counts only when its content is
-  // evidence (isMemoryEvidence); without it (a pure-core caller) the name alone counts, as before.
-  const memory = list.filter((f) => MEMORY_RE.test(f) || (SESSION_LOG_D_RE.test(f) && (!readMemoryFile || isMemoryEvidence(readMemoryFile(f)))));
+  // evidence (isMemoryEvidence, or a grandfathered pre-format log with substance); without it (a pure-core caller)
+  // the name alone counts, as before.
+  const isEvidence = (f) => {
+    const content = readMemoryFile(f);
+    return isMemoryEvidence(content) || isGrandfatheredEvidence(f, content);
+  };
+  const memory = list.filter((f) => MEMORY_RE.test(f) || (SESSION_LOG_D_RE.test(f) && (!readMemoryFile || isEvidence(f))));
   return { code, memory };
 }
 
@@ -121,8 +164,8 @@ export function classifyChanged(files, { readMemoryFile } = {}) {
  * @param {string[]} files @param {{range?: string}} [opts]
  * @returns {{ ok: boolean, message: string, warnNote: string }}
  */
-export function memoryGateVerdict(files, { range = '<range>', readMemoryFile } = {}) {
-  const { code, memory } = classifyChanged(files, { readMemoryFile });
+export function memoryGateVerdict(files, { range = '<range>', readMemoryFile, headerOnly } = {}) {
+  const { code, memory } = classifyChanged(files, { readMemoryFile, headerOnly });
   if (code.length > 0 && memory.length === 0) {
     return {
       ok: false,
@@ -163,6 +206,32 @@ function readAtRangeHead(range, path) {
   }
 }
 
+/** The revision a range starts from: the left side of `a..b`, the merge base of `a...b`, or null when it cannot be read. */
+export function rangeBase(range) {
+  const r = String(range);
+  try {
+    if (r.includes('...')) {
+      const [a, b] = r.split('...');
+      return execFileSync('git', ['merge-base', a || 'HEAD', b || 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null;
+    }
+    const m = r.match(/^(.*?)\.\.(.*)$/);
+    return m && m[1].trim() ? m[1].trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A file's content at the range base, or null when it does not exist there. */
+function readAtRangeBase(range, path) {
+  const base = rangeBase(range);
+  if (!base) return null;
+  try {
+    return execFileSync('git', ['show', `${base}:${path}`], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return null;
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // CLI
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -196,7 +265,7 @@ if (isMainModule(import.meta.url)) {
     process.exit(2);
   }
 
-  const verdict = memoryGateVerdict(files, { range, readMemoryFile: (p) => readAtRangeHead(range, p) });
+  const verdict = memoryGateVerdict(files, { range, readMemoryFile: (p) => readAtRangeHead(range, p), headerOnly: (p) => isHeaderOnlyChange(readAtRangeBase(range, p), readAtRangeHead(range, p)) });
   // every refusal is a logged firing (lane GATE-8, 2026-10-08); a pass clears the gate's records
   recordGateFirings('memory-gate', verdict.ok ? [] : [{ message: verdict.message }]);
   if (verdict.ok) {

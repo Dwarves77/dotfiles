@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,7 @@ import {
   isDocsOnlyPath,
   isDocsOnlyDiff,
   isGoverningDocPath,
+  extractReadDocPaths,
   parseNameStatusZ,
   changedFiles,
 } from './docs-only-range.mjs';
@@ -234,5 +235,90 @@ test('DO-5: the CLI exit status is the verdict: 0 docs-only, 1 code, 1 empty, 2 
     assert.equal(empty.status, 1, 'an empty diff is not provably docs-only');
     assert.equal(run('--range=no-such-ref..HEAD').status, 2);
     assert.equal(run().status, 2);
+  });
+});
+
+// ── CI-FIX-1 (RULES-X-1 item 10, 2026-10-09): a docs file a test or gate READS is governing ──────────
+// The list is DERIVED by scanning the tracked tests and governance modules for the docs paths they name,
+// never typed into the module. Cell ids: DO-READ-1 (derivation), DO-READ-2 (real repo), DO-READ-3 (attack).
+
+test('DO-READ-1: extractReadDocPaths takes a path literal and a join of segments, and skips comment lines and prose', () => {
+  const sources = [
+    {
+      path: 'fsi-app/.discipline/x.test.mjs',
+      text: [
+        "const A = readFileSync('docs/zz/literal-read.md', 'utf8');",
+        "const B = readFileSync(join(REPO, 'docs', 'zz', 'segments', 'joined-read.md'), 'utf8');",
+        "// a comment naming 'docs/zz/comment-only.md' is not a read",
+        " * 'docs/zz/doc-block-only.md' in a block comment is not a read",
+        "const msg = 'see docs/zz/prose-only.md for the story';",
+        "const C = resolve(ROOT, 'fsi-app/.discipline/governance/some-boundary.md');",
+        "const D = 'src/not-a-docs-path/file.json';",
+      ].join('\n'),
+    },
+  ];
+  const set = extractReadDocPaths(sources);
+  assert.ok(set.has('docs/zz/literal-read.md'));
+  assert.ok(set.has('docs/zz/segments/joined-read.md'));
+  assert.ok(set.has('fsi-app/.discipline/governance/some-boundary.md'));
+  assert.ok(!set.has('docs/zz/comment-only.md'));
+  assert.ok(!set.has('docs/zz/doc-block-only.md'));
+  assert.ok(!set.has('docs/zz/prose-only.md'));
+});
+
+test('DO-READ-1: a plain list of names is not a read, a named path constant is', () => {
+  const set = extractReadDocPaths([
+    {
+      path: 'fsi-app/.discipline/y.mjs',
+      text: ["const LIST = ['docs/zz/listed-only.md'];", "const PROGRAM_DOC = 'docs/zz/named-constant.md';", "classify(['docs/zz/argument-only.md']);"].join('\n'),
+    },
+  ]);
+  assert.ok(set.has('docs/zz/named-constant.md'));
+  assert.ok(!set.has('docs/zz/listed-only.md'));
+  assert.ok(!set.has('docs/zz/argument-only.md'));
+});
+
+test('DO-READ-1: a docs file a scanned source reads is governing, an unread one stays docs-only (the set is injected)', () => {
+  const reads = extractReadDocPaths([{ path: 'a.test.mjs', text: "readFileSync('docs/zz/read-by-a-test.md')" }]);
+  assert.equal(isGoverningDocPath('docs/zz/read-by-a-test.md', reads), true);
+  assert.equal(isDocsOnlyPath('docs/zz/read-by-a-test.md', reads), false);
+  assert.equal(isDocsOnlyPath('docs/zz/read-by-nothing.md', reads), true);
+  assert.equal(isDocsOnlyDiff(['docs/zz/read-by-nothing.md', 'docs/zz/read-by-a-test.md'], reads), false);
+});
+
+test('DO-READ-1: the module derives its list by scanning, it does not hand-type the docs it found', () => {
+  const src = readFileSync(SCRIPT, 'utf8');
+  assert.equal(/AUDIT-2026-09-07/.test(src), false);
+  assert.equal(/OUT-OF-REPO-BOUNDARY/.test(src), false);
+});
+
+test('DO-READ-2: against the real repo, the docs the existing gates read are governing (OUT-OF-REPO-BOUNDARY, AUDIT-2026-09-07)', () => {
+  assert.equal(isGoverningDocPath('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md'), true);
+  assert.equal(isGoverningDocPath('docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md'), true);
+  assert.equal(isDocsOnlyPath('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md'), false);
+});
+
+test('DO-READ-3 attack: a change to a read docs file classes the diff as code, through real git', () => {
+  gitFixture(({ dir, git }) => {
+    mkdirSync(join(dir, 'docs', 'zz'), { recursive: true });
+    mkdirSync(join(dir, 'fsi-app', '.discipline'), { recursive: true });
+    writeFileSync(join(dir, 'docs', 'zz', 'read.md'), '# read\n');
+    writeFileSync(join(dir, 'docs', 'zz', 'unread.md'), '# unread\n');
+    writeFileSync(join(dir, 'fsi-app', '.discipline', 'reader.test.mjs'), "readFileSync('docs/zz/read.md');\n");
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base');
+    writeFileSync(join(dir, 'docs', 'zz', 'unread.md'), '# unread\n\nedit\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'edit the unread doc');
+    writeFileSync(join(dir, 'docs', 'zz', 'read.md'), '# read\n\nedit\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'edit the read doc');
+    const run = (range) => spawnSync(process.execPath, [SCRIPT, `--range=${range}`], { cwd: dir, encoding: 'utf8', env: { ...process.env, DISCIPLINE_REPO_ROOT: dir } });
+    const unread = run('HEAD~2..HEAD~1');
+    assert.equal(unread.status, 0, unread.stderr);
+    assert.match(unread.stdout, /docs-only: true/);
+    const read = run('HEAD~1..HEAD');
+    assert.equal(read.status, 1, read.stderr);
+    assert.match(read.stdout, /docs-only: false/);
   });
 });
