@@ -60,7 +60,7 @@ verify route stores `organisation_key`); `anonymity-floor.mjs` (ADR-035, floor s
 - The Research Summary prompt still mandates a "Planning assumption shift" line. This lane removed the
   at-risk-assumption clauses from `system-prompt.ts` and `PLANNING_ASSUMPTION_REGISTER_FIELDS` from
   `metadata-vocab.ts`, so the line is now grounded on the research assessment only, with the existing
-  "no shift grounded" sentinel. Whether to rename or drop that line is a prompt-design ruling. [WORK: DFIX-1]
+  "no shift grounded" sentinel. Whether to rename or drop that line is a prompt-design ruling. [WORK: DFIX-2]
 - `organisation_key` and corporate-email verification no longer serve a benchmark; they only back the
   verified badge. Whether to keep the key derivation is a separate ruling. [WORK: PLAN-2]
 - The generated layout-guard `baseline.json` still lists `/settings` L7 keys for the removed upload card;
