@@ -36,7 +36,9 @@
 // headerProblems(text, file): the reasons the file's header disagrees with that form, empty when it agrees. Only the
 // first 30 header lines are read, and the `-- subject:` line is not a status line: it is the description the migrations
 // inventory prints, written at authoring time, so it may still say NOT APPLIED after the flip (rewriting it also
-// regenerates docs/inventories/migrations.md, a separate step).
+// regenerates docs/inventories/migrations.md, a separate step). A STALE status is a `-- NOT APPLIED` status line in the
+// leading comment block (before the first SQL statement); prose that mentions another file as NOT APPLIED, in that block
+// or in any later comment, is not a status (ENGINE-FIX-1, 2026-10-09).
 //
 // ledgerCount(): the number of rows in the committed ledger export, through the one reader of that file.
 //
@@ -138,6 +140,14 @@ export function expectedHeaderFor(file, { root = DEFAULT_ROOT, map, text } = {})
   throw new Error(`${file}: named nowhere in APPLIED-MAP.json and its header does not say NOT APPLIED, so no header form is derivable (an applied file owes a ledger row or a ruling; an unapplied one owes the header)`);
 }
 
+const NOT_APPLIED_STATUS_RE = /^--\s*NOT APPLIED\b/;
+
+/** The leading comment block of a file: the lines before the first SQL statement (a line that is neither blank nor a `--` comment). */
+function headerBlock(lines) {
+  const at = lines.findIndex((l) => l.trim() !== "" && !l.trimStart().startsWith("--"));
+  return at === -1 ? lines : lines.slice(0, at);
+}
+
 /**
  * Why a migration file's header disagrees with what the record implies; [] when it agrees.
  * @param {string} text the migration file's text
@@ -151,7 +161,10 @@ export function headerProblems(text, file, opts = {}) {
   const statusLines = head.filter((l) => !l.startsWith("-- subject:"));
   const problems = [];
   if (exp.applied) {
-    const stale = statusLines.filter((l) => /NOT APPLIED\b/.test(l));
+    // ENGINE-FIX-1 (2026-10-09, register RULES-X-1 S9/X7): a stale status is a STATUS LINE of the header block, the
+    // same form derivesNeverApplied reads (`-- NOT APPLIED` opening the comment text), found in the leading comment
+    // block only. A later comment that says in prose that another file "is itself NOT APPLIED" is not a status.
+    const stale = headerBlock(head).filter((l) => !l.startsWith("-- subject:") && NOT_APPLIED_STATUS_RE.test(l));
     if (!statusLines.some((l) => exp.statusPattern.test(l))) {
       problems.push(`the map holds ledger row ${exp.ledgerVersions.join(", ")} (class ${exp.class}), so the header's first ${HEADER_LINES} lines must carry "APPLIED (production ledger version ${exp.ledgerVersion}, as of YYYY-MM-DD)"`);
     }

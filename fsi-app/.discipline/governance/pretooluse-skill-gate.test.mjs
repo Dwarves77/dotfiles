@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -379,11 +379,14 @@ test("runGate: empty, unparseable and non-object payloads fail closed to ask; a 
 });
 
 // ── RULE 13 AT THE DISPATCH POINT (lane FLAG-1): a dispatch is refused while any finding is undispositioned ──
+// GATE-FIX-1: a gitignored scratch register blocks a dispatch only once it is older than 24 hours, so a planted
+// register is back-dated 48 hours (a committed audit or log needs no age).
 function plantRoot(name, files) {
   const root = join(TMP, name);
   for (const [rel, body] of Object.entries(files)) {
     mkdirSync(dirname(join(root, rel)), { recursive: true });
     writeFileSync(join(root, rel), body);
+    if (/register/i.test(rel)) { const t = (Date.now() - 48 * 3600 * 1000) / 1000; utimesSync(join(root, rel), t, t); }
   }
   return root;
 }
