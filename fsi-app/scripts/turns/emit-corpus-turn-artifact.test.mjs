@@ -17,6 +17,11 @@ import {
 } from "./emit-corpus-turn-artifact.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
+// The harness ledger export is the repo's REAL committed file by default (lane GATE-9), so a fixture test that
+// writes artifacts into a temp dir must pin the ledger it resolves against; "absent" is the file-path
+// behaviour these fixtures exercise (an artifact is trusted on its own fields when no export is present).
+const LEDGER_NONE = { present: false, capturedAt: null, rows: [] };
+
 function tmpDir() {
   return mkdtempSync(join(tmpdir(), "ct-artifact-test-"));
 }
@@ -224,6 +229,7 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream ledger-consume artifact 
     upstreamName: "Ledger consume",
     upstreamRunId: "111",
     fsiRoot: dir,
+    ledger: LEDGER_NONE,
   });
   assert.equal(matched, "loop-x");
 
@@ -232,6 +238,7 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream ledger-consume artifact 
     upstreamName: "Ledger consume",
     upstreamRunId: "999",
     fsiRoot: dir,
+    ledger: LEDGER_NONE,
   });
   assert.equal(unmatched, null);
 });

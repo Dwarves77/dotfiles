@@ -71,9 +71,12 @@ export const FAMILY_BY_WORKFLOW_NAME = Object.freeze({
  * @param {string|null|undefined} opts.upstreamName - the upstream workflow's `name:` as the yml spells it.
  * @param {string|number|null|undefined} opts.upstreamRunId - the upstream run's own GitHub Actions run id.
  * @param {string} opts.fsiRoot - the fsi-app root, used to build the harness-runs directory.
+ * @param {{present:boolean, rows:object[]}} [opts.ledger] - the harness ledger export to verify an artifact
+ *   against; passed straight to resolveLoopRunId (omitted: that function reads the repo's committed export).
+ *   The seam a fixture test uses to pin the ledger instead of reading the real export.
  * @returns {string|null}
  */
-export function resolveLoopRunIdFromUpstream({ explicit = null, upstreamName, upstreamRunId, fsiRoot }) {
+export function resolveLoopRunIdFromUpstream({ explicit = null, upstreamName, upstreamRunId, fsiRoot, ledger }) {
   const family = upstreamName != null ? FAMILY_BY_WORKFLOW_NAME[upstreamName] : undefined;
   if (family == null) {
     return explicit != null && String(explicit).trim() !== "" ? String(explicit).trim() : null;
@@ -83,6 +86,7 @@ export function resolveLoopRunIdFromUpstream({ explicit = null, upstreamName, up
     upstreamFamily: family,
     upstreamRunId,
     harnessRunsDir: resolve(fsiRoot, "scripts", "harness-runs", family),
+    ledger,
   });
 }
 
