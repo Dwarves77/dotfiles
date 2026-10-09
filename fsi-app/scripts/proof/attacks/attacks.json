@@ -3578,8 +3578,8 @@
       "group": "SEC-8 read policy scope",
       "kind": "sql",
       "needs_fixtures": true,
-      "invariant": "Platform reference tables whose SELECT policy was the literal USING (true) with the implicit roles {public} are readable by authenticated and the service role only: an anonymous request reads none of their rows and is refused by the table GRANT, a member of one organization reads no profile, membership or organization row of another organization, and no SELECT policy that applies to anon or public with the literal true predicate remains outside the two named residue tables (sources, source_citations).",
-      "expected": "Each anonymous read is refused 42501 with a message naming the table; each authenticated and service-role control read succeeds; the cross-organization reads return zero rows; both catalog counts are 0; the residue step reads 2 until the lane that edits src narrows the last two policies.",
+      "invariant": "Platform reference tables whose SELECT policy was the literal USING (true) with the implicit roles {public} are readable by authenticated and the service role only: an anonymous request reads none of their rows and is refused by the table GRANT, anon holds no SELECT on the membership and identity tables (org_memberships, organizations, workspace_settings, profiles), a member of one organization reads no profile of another organization, and no SELECT policy that applies to anon or public with the literal true predicate remains on any public table.",
+      "expected": "Each anonymous read is refused 42501 with a message naming the table; each authenticated and service-role control read succeeds; the cross-organization profile read returns zero rows; both catalog counts are 0.",
       "reference": "migration 382 (lane SEC-8); AUD-AT-1 register section 10 (P1 and P4 SELECT facts); migration 381 (SEC-7) for the naming convention; migration 372 for the profiles policy",
       "steps": [
         {
@@ -3703,6 +3703,16 @@
           }
         },
         {
+          "label": "attack: anon reads source_citations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_citations LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table source_citations"
+          }
+        },
+        {
           "label": "attack: anon reads source_trust_events",
           "kind": "attack",
           "as": "anon",
@@ -3723,6 +3733,16 @@
           }
         },
         {
+          "label": "attack: anon reads sources",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.sources LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table sources"
+          }
+        },
+        {
           "label": "attack: anon reads state_cost_facts",
           "kind": "attack",
           "as": "anon",
@@ -3740,6 +3760,36 @@
           "expect": {
             "error": "42501",
             "message_includes": "permission denied for table theme_briefs"
+          }
+        },
+        {
+          "label": "attack: anon reads org_memberships",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.org_memberships LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table org_memberships"
+          }
+        },
+        {
+          "label": "attack: anon reads organizations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.organizations LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table organizations"
+          }
+        },
+        {
+          "label": "attack: anon reads workspace_settings",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.workspace_settings LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table workspace_settings"
           }
         },
         {
@@ -3851,6 +3901,15 @@
           }
         },
         {
+          "label": "control: an authenticated organization owner still reads source_citations",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.source_citations LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
           "label": "control: an authenticated organization owner still reads source_trust_events",
           "kind": "control",
           "as": "user:owner_a",
@@ -3864,6 +3923,15 @@
           "kind": "control",
           "as": "user:owner_a",
           "sql": "SELECT 1 FROM public.source_verifications LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads sources",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.sources LIMIT 1",
           "expect": {
             "ok": true
           }
@@ -3887,10 +3955,22 @@
           }
         },
         {
-          "label": "control: the service role still reads regions",
+          "label": "control: an authenticated organization owner still reads their own membership",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT org_id FROM public.org_memberships WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "control: the service role still reads regions and sources",
           "kind": "control",
           "as": "service",
-          "sql": "SELECT 1 FROM public.regions LIMIT 1",
+          "sql": "SELECT (SELECT count(*) FROM public.regions) AS r, (SELECT count(*) FROM public.sources) AS s",
           "expect": {
             "ok": true
           }
@@ -3928,13 +4008,14 @@
             "@owner_a"
           ],
           "expect": {
-            "error": "42501"
+            "error": "42501",
+            "message_includes": "permission denied for table profiles"
           }
         },
         {
-          "label": "attack: no SELECT policy that applies to anon or public with the literal true predicate remains outside the two held tables",
+          "label": "attack: no SELECT or ALL policy that applies to anon or public with the literal true predicate remains on any public table",
           "kind": "attack",
-          "sql": "SELECT count(*)::int AS n FROM pg_policies p WHERE p.schemaname = 'public' AND p.cmd IN ('SELECT', 'ALL') AND p.roles && ARRAY['anon', 'public']::name[] AND p.qual = 'true' AND (p.tablename || '.' || p.policyname) NOT IN ('sources.sources_read', 'source_citations.source_citations_read')",
+          "sql": "SELECT count(*)::int AS n FROM pg_policies p WHERE p.schemaname = 'public' AND p.cmd IN ('SELECT', 'ALL') AND p.roles && ARRAY['anon', 'public']::name[] AND p.qual = 'true'",
           "expect": {
             "equals": {
               "n": "0"
@@ -3942,22 +4023,12 @@
           }
         },
         {
-          "label": "attack: anon holds no SELECT privilege on any of the 16 narrowed tables",
+          "label": "attack: anon holds no SELECT privilege (table or column level) on any narrowed reference table or on the membership and identity tables",
           "kind": "attack",
-          "sql": "SELECT count(*)::int AS n FROM unnest(ARRAY['connection_theme_runs', 'connection_themes', 'coverage_gaps', 'entities', 'entity_identifiers', 'entity_refs', 'entity_scope', 'monitoring_queue', 'region_dimension_coverage', 'regional_data_facts', 'regions', 'signposts', 'source_trust_events', 'source_verifications', 'state_cost_facts', 'theme_briefs']) AS t(name) WHERE has_any_column_privilege('anon', ('public.' || t.name)::regclass, 'SELECT')",
+          "sql": "SELECT count(*)::int AS n FROM unnest(ARRAY['connection_theme_runs', 'connection_themes', 'coverage_gaps', 'entities', 'entity_identifiers', 'entity_refs', 'entity_scope', 'monitoring_queue', 'region_dimension_coverage', 'regional_data_facts', 'regions', 'signposts', 'source_citations', 'source_trust_events', 'source_verifications', 'sources', 'state_cost_facts', 'theme_briefs', 'org_memberships', 'organizations', 'workspace_settings', 'profiles']) AS t(name) WHERE has_any_column_privilege('anon', ('public.' || t.name)::regclass, 'SELECT')",
           "expect": {
             "equals": {
               "n": "0"
-            }
-          }
-        },
-        {
-          "label": "residue (open, owed to a lane that may edit src): sources and source_citations still carry the literal-true policy for anon; this step records the fact and passes only while it is true, so the lane that narrows them edits it with the policies",
-          "kind": "control",
-          "sql": "SELECT count(*)::int AS n FROM pg_policies p WHERE p.schemaname = 'public' AND p.cmd = 'SELECT' AND p.roles && ARRAY['anon', 'public']::name[] AND p.qual = 'true' AND (p.tablename || '.' || p.policyname) IN ('sources.sources_read', 'source_citations.source_citations_read')",
-          "expect": {
-            "equals": {
-              "n": "2"
             }
           }
         }

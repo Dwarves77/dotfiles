@@ -1,4 +1,4 @@
--- subject: Migration 382 (lane SEC-8, 2026-10-09): read policies name their role; the 16 reference tables whose SELECT policy was the literal USING (true) with the implicit roles {public} (connection_theme_runs, connection_themes, coverage_gaps, entities, entity_identifiers, entity_refs, entity_scope, monitoring_queue, region_dimension_coverage, regional_data_facts, regions, signposts, source_trust_events, source_verifications, state_cost_facts, theme_briefs) are ALTERed TO authenticated, service_role and anon loses its table-level SELECT on them, so an anonymous request reads none of their rows; sources and source_citations keep their literal-true policy because the anon-key server client still reads them (named below, owed to a lane that may edit src); a rolled-back self-check attacks every touched table as anon and as authenticated, and attacks profiles, org_memberships and organizations as a member of another organization; NOT APPLIED.
+-- subject: Migration 382 (lane SEC-8, 2026-10-09): read policies name their role; the 18 reference tables whose SELECT policy was the literal USING (true) with the implicit roles {public} (connection_theme_runs, connection_themes, coverage_gaps, entities, entity_identifiers, entity_refs, entity_scope, monitoring_queue, region_dimension_coverage, regional_data_facts, regions, signposts, source_citations, source_trust_events, source_verifications, sources, state_cost_facts, theme_briefs) are ALTERed TO authenticated, service_role and anon loses its table-level SELECT on them and on the membership and identity tables org_memberships, organizations and workspace_settings (profiles was revoked by 372), so an anonymous request reads none of their rows; the anon-key readers of sources and source_citations in src move to the service client in the same change; a rolled-back self-check attacks every touched table as anon and as authenticated, and attacks profiles, org_memberships and organizations as a member of another organization; NOT APPLIED.
 -- 382 -- read policies name their role (lane SEC-8, 2026-10-09).
 --
 -- NOT APPLIED. Authored by lane SEC-8; the coordinator's executor applies it after CI (two-track policy, CLAUDE.md
@@ -18,8 +18,8 @@
 -- One more table of the same class, not in the AT1 list because it held 0 rows when AT1 ran (AT1 section 7 line for signposts:
 -- anon S=NX, empty): signposts.signposts_read, created by migration 346 as FOR SELECT USING (true) with the implicit roles
 -- {public}; its only readers (read-signposts.mjs, through loadDetail's service client; signpost-watch.ts; prediction-scoring.mjs)
--- use the service role. It is narrowed with the others, 16 tables in all. The tree-derived enumeration (every SELECT or ALL
--- policy with roles {public} and qual true below 382) is exactly these 16 plus the two HELD.
+-- use the service role. It is narrowed with the others. The tree-derived enumeration (every SELECT or ALL
+-- policy with roles {public} and qual true below 382) is exactly the 18.
 --
 -- THE RULING (brief, SEC-8): a table is readable by anon only where an ADR or spec names it public. Read for all 17 table
 -- names in docs/decisions and docs/specs on 2026-10-09: no ADR or spec names any of them public (the only hits are
@@ -29,31 +29,37 @@
 -- /auth/reset-password, /privacy) read none of the 17.
 --
 -- WHAT THE FIX IS, IN THREE PARTS.
---   1. ALTER POLICY <name> ON public.<table> TO authenticated, service_role for the 16 tables below (SEC-7's convention,
+--   1. ALTER POLICY <name> ON public.<table> TO authenticated, service_role for the 18 tables below (SEC-7's convention,
 --      migration 381: the policy names its roles; service_role bypasses RLS and is listed only so the policy reads the
 --      same as the write policies). USING (true) is kept: the data is platform reference data with no owner column, the
 --      precedent above reads it TO authenticated with the same predicate, and a signed-in user with no organization yet
 --      (create_org_for_self runs after sign-up) must still resolve regions and entities.
 --   2. GRANT FOLLOWS POLICY (ADR-046, constructive over detective; migration 369 derives write grants the same way).
---      REVOKE SELECT ON each of the 16 FROM PUBLIC, anon, then GRANT SELECT back TO authenticated, service_role so the
+--      REVOKE SELECT ON each of the 18 FROM PUBLIC, anon, then GRANT SELECT back TO authenticated, service_role so the
 --      revoke can never take a privilege the real principals rely on. A table-level revoke also revokes any column-level
 --      SELECT anon held. Anon's refusal now comes from the GRANT (permission denied for table), as it does for the writes
 --      after 381, not from a policy that happens to evaluate to true.
 --   3. THE ENUMERATION AS ASSERTION. After the ALTERs the block reads pg_policies: no SELECT or ALL policy that applies to
---      anon or public and whose predicate is the literal true may remain on any public table other than the two HELD
---      below. A policy this migration missed, or an out-of-band policy that would let anon read one of the 16, fails the
+--      anon or public and whose predicate is the literal true may remain on any public table. A policy this migration missed, or an out-of-band policy that would let anon read one of the 18, fails the
 --      apply and is named in the error.
 --
--- HELD: sources.sources_read AND source_citations.source_citations_read STAY TO public USING (true). Reason [CONFIRMED by
--- reading src, 2026-10-09]: three readers use the anon-key server client with no user session (fetchSources in
--- src/lib/supabase-server.ts line 442 through getSupabase(), which createClient()s with NEXT_PUBLIC_SUPABASE_ANON_KEY and
--- feeds fetchSourceData(true) on /admin; and the SECURITY INVOKER functions get_source_citation_stats and
--- get_research_source_coverage, migrations 098 and 100, which fetchSourceCitationStatsByIds and
--- fetchResearchSourceCoverage call through the same anon client for the Market and Research views). Narrowing the two
--- policies today returns zero rows to those three readers. The fix is a src change (those three paths move to the
--- service client, or the two functions become SECURITY DEFINER aggregates), which this lane's write set does not hold.
--- The two policies are listed in the enumeration assertion by name so that the day they are narrowed the assertion
--- is edited with them, and the attack in scripts/proof/attacks/attacks.json (sec8-*) names them as the open residue.
+-- SOURCES AND SOURCE_CITATIONS (closed in this change, operator ruling on PR 1071, 2026-10-09). Four readers used the anon key
+-- with no user session [CONFIRMED by reading src, 2026-10-09]: fetchSources in src/lib/supabase-server.ts (through
+-- getSupabase(), feeding fetchSourceData(true) on /admin); the SECURITY INVOKER functions get_source_citation_stats and
+-- get_research_source_coverage (migrations 098 and 100; fetchSourceCitationStatsByIds and fetchResearchSourceCoverage);
+-- and fetchResearchPipelineRows, whose select embeds source:sources(...). All four now read through getServiceSupabase()
+-- (server only, fail closed, never the anon key); their other filters (admin_only, verified, not archived) are explicit in
+-- code. With that change sources_read and source_citations_read are narrowed with the rest and no policy is held back.
+--
+-- MEMBERSHIP AND IDENTITY TABLES (operator ruling on PR 1071). Anon has no legitimate read of org_memberships,
+-- organizations, workspace_settings or profiles. Their policies already return zero rows to anon (user_belongs_to_org and
+-- friends key on auth.uid()), but a zero-row answer is a policy accident, so the table GRANT goes too (grant follows
+-- policy, ADR-046): REVOKE SELECT FROM PUBLIC, anon on org_memberships, organizations and workspace_settings, GRANT SELECT
+-- back TO authenticated, service_role. profiles is not touched (migration 372 revoked table and column SELECT from anon and
+-- gave authenticated column-level grants that a table-level GRANT here would widen); the self-check asserts anon holds
+-- none. The two public SELECT policies that read org_memberships in a subquery (org_invitations_admin_read,
+-- org_member_bans_select_owner_admin) now answer anon with 42501 instead of zero rows, which is still a refusal, and no
+-- anon request reads either table.
 --
 -- WHAT STAYS, AND WHY (the P4 half of AT1 section 10, "foreign rows"). profiles, org_memberships, organizations,
 -- workspace_item_overrides and workspace_settings are already scoped to the caller's organization in the tree below 382:
@@ -89,8 +95,10 @@ DECLARE
     'regional_data_facts.regional_data_facts_read',
     'regions.regions_read',
     'signposts.signposts_read',
+    'source_citations.source_citations_read',
     'source_trust_events.source_trust_events_read',
     'source_verifications.source_verifications_read',
+    'sources.sources_read',
     'state_cost_facts.state_cost_facts_read',
     'theme_briefs.theme_briefs_read'
   ];
@@ -117,7 +125,7 @@ BEGIN
 END
 $pre$;
 
--- ---- Part 1: the 16 ALTERs -------------------------------------------------------------------------------------------
+-- ---- Part 1: the 18 ALTERs -------------------------------------------------------------------------------------------
 ALTER POLICY connection_theme_runs_read ON public.connection_theme_runs TO authenticated, service_role;
 ALTER POLICY connection_themes_read ON public.connection_themes TO authenticated, service_role;
 ALTER POLICY coverage_gaps_select ON public.coverage_gaps TO authenticated, service_role;
@@ -130,8 +138,10 @@ ALTER POLICY region_dimension_coverage_read ON public.region_dimension_coverage 
 ALTER POLICY regional_data_facts_read ON public.regional_data_facts TO authenticated, service_role;
 ALTER POLICY regions_read ON public.regions TO authenticated, service_role;
 ALTER POLICY signposts_read ON public.signposts TO authenticated, service_role;
+ALTER POLICY source_citations_read ON public.source_citations TO authenticated, service_role;
 ALTER POLICY source_trust_events_read ON public.source_trust_events TO authenticated, service_role;
 ALTER POLICY source_verifications_read ON public.source_verifications TO authenticated, service_role;
+ALTER POLICY sources_read ON public.sources TO authenticated, service_role;
 ALTER POLICY state_cost_facts_read ON public.state_cost_facts TO authenticated, service_role;
 ALTER POLICY theme_briefs_read ON public.theme_briefs TO authenticated, service_role;
 
@@ -139,15 +149,18 @@ ALTER POLICY theme_briefs_read ON public.theme_briefs TO authenticated, service_
 REVOKE SELECT ON TABLE
   public.connection_theme_runs, public.connection_themes, public.coverage_gaps, public.entities, public.entity_identifiers,
   public.entity_refs, public.entity_scope, public.monitoring_queue, public.region_dimension_coverage,
-  public.regional_data_facts, public.regions, public.signposts, public.source_trust_events, public.source_verifications,
+  public.regional_data_facts, public.regions, public.signposts, public.source_citations, public.source_trust_events, public.source_verifications, public.sources,
   public.state_cost_facts, public.theme_briefs
   FROM PUBLIC, anon;
 GRANT SELECT ON TABLE
   public.connection_theme_runs, public.connection_themes, public.coverage_gaps, public.entities, public.entity_identifiers,
   public.entity_refs, public.entity_scope, public.monitoring_queue, public.region_dimension_coverage,
-  public.regional_data_facts, public.regions, public.signposts, public.source_trust_events, public.source_verifications,
+  public.regional_data_facts, public.regions, public.signposts, public.source_citations, public.source_trust_events, public.source_verifications, public.sources,
   public.state_cost_facts, public.theme_briefs
   TO authenticated, service_role;
+
+REVOKE SELECT ON TABLE public.org_memberships, public.organizations, public.workspace_settings FROM PUBLIC, anon;
+GRANT SELECT ON TABLE public.org_memberships, public.organizations, public.workspace_settings TO authenticated, service_role;
 
 -- ---- Part 3: the enumeration as assertion ----------------------------------------------------------------------------
 DO $enum$
@@ -158,8 +171,7 @@ BEGIN
     FROM pg_policies p
    WHERE p.schemaname = 'public' AND p.cmd IN ('SELECT', 'ALL')
      AND p.roles && ARRAY['anon', 'public']::name[]
-     AND p.qual = 'true'
-     AND (p.tablename || '.' || p.policyname) NOT IN ('sources.sources_read', 'source_citations.source_citations_read');
+     AND p.qual = 'true';
   IF v_bad IS NOT NULL THEN
     RAISE EXCEPTION 'ABORT: SELECT policies that apply to anon or public with the literal true predicate remain: %', v_bad;
   END IF;
@@ -225,11 +237,14 @@ DECLARE
     'regional_data_facts',
     'regions',
     'signposts',
+    'source_citations',
     'source_trust_events',
     'source_verifications',
+    'sources',
     'state_cost_facts',
     'theme_briefs'
   ];
+  v_ident  text[] := ARRAY['org_memberships', 'organizations', 'workspace_settings', 'profiles'];
   v_tbl    text;
   v_oid    oid;
   v_ok     boolean := true;
@@ -258,6 +273,17 @@ BEGIN
       END IF;
       IF NOT has_table_privilege('authenticated', v_oid, 'SELECT') OR NOT has_table_privilege('service_role', v_oid, 'SELECT') THEN
         RAISE EXCEPTION 'ABORT: authenticated or service_role lost SELECT on public.%', v_tbl;
+      END IF;
+    END LOOP;
+
+    FOREACH v_tbl IN ARRAY v_ident LOOP
+      v_oid := to_regclass('public.' || quote_ident(v_tbl));
+      IF v_oid IS NULL THEN CONTINUE; END IF;
+      IF has_any_column_privilege('anon', v_oid, 'SELECT') THEN
+        RAISE EXCEPTION 'ABORT: anon still holds SELECT (table or column level) on the membership or identity table public.%', v_tbl;
+      END IF;
+      IF NOT has_any_column_privilege('authenticated', v_oid, 'SELECT') THEN
+        RAISE EXCEPTION 'ABORT: authenticated lost SELECT on public.%', v_tbl;
       END IF;
     END LOOP;
 
@@ -321,10 +347,16 @@ BEGIN
         'ok:0');
       PERFORM pg_temp.sec8_expect('C attack: anon reads the org A membership',
         pg_temp.sec8_try('anon', NULL, format('SELECT 1 FROM public.org_memberships WHERE org_id = %L', v_org_a)),
-        'err:42501:%');
+        'err:42501:permission denied for table %');
       PERFORM pg_temp.sec8_expect('C attack: anon reads the org A owner profile',
         pg_temp.sec8_try('anon', NULL, format('SELECT 1 FROM public.profiles WHERE id = %L', v_owner)),
-        'err:42501:%');
+        'err:42501:permission denied for table %');
+      PERFORM pg_temp.sec8_expect('C attack: anon reads the org A organization',
+        pg_temp.sec8_try('anon', NULL, format('SELECT 1 FROM public.organizations WHERE id = %L', v_org_a)),
+        'err:42501:permission denied for table %');
+      PERFORM pg_temp.sec8_expect('C attack: anon reads org A workspace settings',
+        pg_temp.sec8_try('anon', NULL, format('SELECT 1 FROM public.workspace_settings WHERE org_id = %L', v_org_a)),
+        'err:42501:permission denied for table %');
     END IF;
 
     RAISE EXCEPTION 'sec8_382_selfcheck_rollback';
@@ -333,7 +365,7 @@ BEGIN
     IF SQLERRM <> 'sec8_382_selfcheck_rollback' THEN RAISE; END IF;
   END;
 
-  RAISE NOTICE 'migration 382 OK: 16 reference tables carry SELECT policies that name authenticated and service_role, anon holds no SELECT on them, authenticated and the service role still read them, and a member of another organization reads none of org A (sources and source_citations HELD, see the header)';
+  RAISE NOTICE 'migration 382 OK: 18 reference tables carry SELECT policies that name authenticated and service_role, anon holds no SELECT on them, authenticated and the service role still read them, and a member of another organization reads none of org A, and anon holds no SELECT on org_memberships, organizations, workspace_settings or profiles';
 END $sc$;
 
 DROP FUNCTION pg_temp.sec8_try(text, uuid, text);
