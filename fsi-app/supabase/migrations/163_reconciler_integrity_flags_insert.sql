@@ -22,9 +22,17 @@
 --      quarantined AND the data_quality flag row is present (no ExecWithCheckOptions).
 --   2. pg_policies shows integrity_flags_reconciler_insert with roles={reconciler}, cmd=INSERT.
 --   Then resume: scripts/_reground/reconcile-revalidate.mjs --apply --only=<floor-class ids>.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37789266395, class IDEMPOTENT-COLLISION): DROP POLICY IF EXISTS added before the CREATE
+-- POLICY below. 118_provenance_flip_binding.sql (ledger version 118, no stored statements) already creates the same policy
+-- (DROP POLICY IF EXISTS then CREATE POLICY ... FOR INSERT TO reconciler WITH CHECK (true), definition identical), so on a replay in
+-- ledger order the bare CREATE here is refused (policy already exists). Final schema unchanged; 118 is untouched because its
+-- production text is unknown. [HYPOTHESIS] Production ran 118 without the integrity_flags policies, which is why this migration
+-- was needed there.
 
 BEGIN;
 
+DROP POLICY IF EXISTS integrity_flags_reconciler_insert ON public.integrity_flags;
 CREATE POLICY integrity_flags_reconciler_insert
   ON public.integrity_flags
   FOR INSERT

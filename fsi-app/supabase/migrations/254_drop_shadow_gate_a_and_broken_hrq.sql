@@ -44,6 +44,18 @@
 -- REVERSIBILITY. The dropped functions are recoverable only from this file's history plus the live-DB
 -- definitions captured in the census; they are being removed precisely because they are duplicates or broken,
 -- so re-creating them is never the right recovery. The table's DATA is fully recoverable from the committed CSV.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37792517133, class OUT-OF-REPO-DROP): GATE 2 does not count gate_a_route_b_baseline
+-- when the table does not exist (to_regclass guard, the count is taken as the exported 430 so the check below passes trivially).
+-- The table is created by NO committed migration (see above), so on a replay from the repo files it never exists and the count was
+-- refused. The 430 row check is unchanged where the table exists; the table is dropped IF EXISTS below, so the end state (absent)
+-- is the same and the schema oracle confirms it.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37853298652, class SEQUENCE): the post-drop assertion that the LIVE gate-A objects
+-- survive (item_gate_a_state, gate_a_health_cache, gate_a_health()) now requires only the ones that existed BEFORE the drops (GATE 5
+-- records them with a session setting). In production all three existed, so the assertion is unchanged there. On a replay in ledger order
+-- gate_a_health_cache is created later, by 256_migration_homes_and_vault_capture_key.sql, which sets its end state, so it was refused as
+-- removed although this migration never touches it. Final schema unchanged.
 
 DO $$
 DECLARE
@@ -59,7 +71,11 @@ BEGIN
 
   -- GATE 2: the baseline table must be exactly what was exported. A different count means the CSV is not a
   -- faithful copy and dropping would lose rows.
-  SELECT count(*) INTO baseline_rows FROM public.gate_a_route_b_baseline;
+  IF to_regclass('public.gate_a_route_b_baseline') IS NULL THEN
+    baseline_rows := 430; -- table absent (out-of-repo DDL): nothing to count, the check below passes trivially
+  ELSE
+    SELECT count(*) INTO baseline_rows FROM public.gate_a_route_b_baseline;
+  END IF;
   RAISE NOTICE 'TOMBSTONE gate_a_route_b_baseline: % rows at drop (exported 430)', baseline_rows;
   IF baseline_rows <> 430 THEN
     RAISE EXCEPTION 'ABORT: gate_a_route_b_baseline has % rows, not the 430 exported to docs/audits/gate-a-route-b-baseline-2026-08-11.csv — re-export before dropping.', baseline_rows;
@@ -89,6 +105,12 @@ BEGIN
   -- load-bearing after all. Informational-but-recorded: both sides read 2026-07-30.1 at census time.
   SELECT max(gate_a_version) INTO ts_version FROM public.item_gate_a_state;
   RAISE NOTICE 'item_gate_a_state max gate_a_version = % (TypeScript GATE_A_VERSION was 2026-07-30.1 at census)', ts_version;
+
+  -- GATE 5 (MIG-CI): remember which LIVE gate-A objects exist BEFORE the drops, so the post-drop assertion can require exactly those to survive.
+  PERFORM set_config('mig254.live_gate_a', concat_ws(',',
+    (to_regclass('public.item_gate_a_state') IS NOT NULL)::text,
+    (to_regclass('public.gate_a_health_cache') IS NOT NULL)::text,
+    (EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'gate_a_health'))::text), false);
 END $$;
 
 -- Entry points first, then helpers, so an interrupted run never leaves a caller pointing at a dropped callee.
@@ -129,10 +151,11 @@ BEGIN
   IF to_regclass('public.gate_a_route_b_baseline') IS NOT NULL THEN
     RAISE EXCEPTION 'POST-DROP ABORT: gate_a_route_b_baseline survives';
   END IF;
-  IF to_regclass('public.item_gate_a_state') IS NULL OR to_regclass('public.gate_a_health_cache') IS NULL THEN
+  IF (split_part(current_setting('mig254.live_gate_a', true), ',', 1) = 'true' AND to_regclass('public.item_gate_a_state') IS NULL)
+     OR (split_part(current_setting('mig254.live_gate_a', true), ',', 2) = 'true' AND to_regclass('public.gate_a_health_cache') IS NULL) THEN
     RAISE EXCEPTION 'POST-DROP ABORT: a LIVE gate-A object was removed — this migration must never touch item_gate_a_state or gate_a_health_cache';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  IF split_part(current_setting('mig254.live_gate_a', true), ',', 3) = 'true' AND NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
                  WHERE n.nspname = 'public' AND p.proname = 'gate_a_health') THEN
     RAISE EXCEPTION 'POST-DROP ABORT: gate_a_health() was removed — /api/health/surfaces reads it';
   END IF;

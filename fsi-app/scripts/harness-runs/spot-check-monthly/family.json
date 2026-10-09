@@ -1,0 +1,10 @@
+{
+  "family": "spot-check-monthly",
+  "registered": "2026-10-09",
+  "registered_by": "lane DORMANT-1",
+  "governing_files": [
+    "../.github/workflows/spot-check-monthly.yml",
+    "src/app/api/admin/spot-check/recurring/route.ts"
+  ],
+  "rationale": "spot-check-monthly: the dispatch-only recurring source spot-check call. In build mode the route returns 503 at the global pause gate before any model call; that exit is a run. One run is one firing of spot-check-monthly.yml. Registered so the workflow records its own run (CLAUDE.md rule 17) and the closure gate's NEVER-RUN check reads the ledger row; the artifact is emitted by scripts/lib/emit-workflow-run-artifact.mjs from the workflow's own record job."
+}

@@ -243,34 +243,34 @@ profile including a carrier-only profile; a forwarder profile receives `does_not
 
 ## 7. Facts left unverified because of the window (no live access)
 
-- Whether any of the four instruments has rows in live `obligations` or `item_forward_events` today. [HYPOTHESIS]
-- Which `compliance_object_tags` the four live items carry. [HYPOTHESIS]
-- Whether item 9566075e is the Empowering Consumers directive. [HYPOTHESIS]
-- Whether `origin/master` differs from the checkout at 6028b228 (not fetched).
+- Whether any of the four instruments has rows in live `obligations` or `item_forward_events` today. [HYPOTHESIS] [NOT-WORK: live question, answered at population, rule 16]
+- Which `compliance_object_tags` the four live items carry. [HYPOTHESIS] [NOT-WORK: live question, answered at population, rule 16]
+- Whether item 9566075e is the Empowering Consumers directive. [HYPOTHESIS] [NOT-WORK: live question, answered at population, rule 16]
+- Whether `origin/master` differs from the checkout at 6028b228 (not fetched). [NOT-WORK: live question, answered at population, rule 16]
 
 ## 8. ABSENT, stated as facts (input for OBL-2)
 
 1. No obligation row for any of the four instruments exists in any tracked fixture or artifact (git grep over all tracked JSON
    and JSONL; 0 rows). The two instruments with no forward-events evidence in tree at all: PPWR (item efdb3390) and
-   CountEmissions EU (item cd1083c9; the earlier item 7aaecc81 shows 0 events).
+   CountEmissions EU (item cd1083c9; the earlier item 7aaecc81 shows 0 events). [NOT-WORK: build-mode hold, population after all layers, CLAUDE.md rule 16]
 2. No component-obligation decomposition schema: `obligations` has 14 columns and event grain; no pinpoint, verbatim text,
    duty-holder class, applicability trigger, four dates, or obligation version column; no later migration alters it; the
-   migration number plan L17 requested (349) is a different migration.
+   migration number plan L17 requested (349) is a different migration. [CLOSED: PR 1025]
 3. No role-scoped rows: nothing represents CBAM as indirect customs representative, PPWR as user of transport packaging or
-   importer of record, Empowering Consumers as the forwarder's own marketing claims, or CountEmissions EU as the method duty.
+   importer of record, Empowering Consumers as the forwarder's own marketing claims, or CountEmissions EU as the method duty. [NOT-WORK: build-mode hold, population after all layers, CLAUDE.md rule 16]
 4. No item-level binding-position banner on the Regulations detail page; the only render is the per-row "Binding" cell in a
-   section mounted below the surface, and it renders nothing for an item with zero rows.
+   section mounted below the surface, and it renders nothing for an item with zero rows. [CLOSED: PR 1025]
 5. No roleScope or sizeThreshold at obligation grain: no column, no producer; the gate's roleScope exists only at item grain
-   from `compliance_object_tags` (14 tag values mapped to 8 roles); `size_threshold` has no producer.
+   from `compliance_object_tags` (14 tag values mapped to 8 roles); `size_threshold` has no producer. [CLOSED: PR 1025]
 6. The gate's output has no reader: `applicability` is computed and returned in the `/api/detail/relevance` JSON and no
-   non-test code reads it; the badge renders band and summary only.
-7. No instrument-specific input to the gate: identical outputs for all four instruments under identical tags.
+   non-test code reads it; the badge renders band and summary only. [CLOSED: PR 1025]
+7. No instrument-specific input to the gate: identical outputs for all four instruments under identical tags. [CLOSED: PR 1025]
 8. The classifier has no rule that returns `monitoring_only` (16 rules: 6 direct_duty, 7 carrier_passthrough, 3
    customer_contract); both tracked read-backs show 0 monitoring_only; non-null binding_position rate 9.9 percent
-   (130 of 1318) at brief-apply-run-006.
+   (130 of 1318) at brief-apply-run-006. [CLOSED: PR 1025]
 9. `derive-obligations` classifies on title only: `legal_instrument`, the canonical instrument key and the record-facts
    `[binding_position]` claim are not read; title forms without the instrument name or number return null (census index 81),
    and the PPWR and CBAM rules return direct_duty for non-target instruments whose titles contain the generic phrases
-   (census indices 51, 61, 103, 164).
+   (census indices 51, 61, 103, 164). [CLOSED: PR 1025]
 10. Plan L17 acceptance (>=1 obligation row with non-null binding_position for each of the 4 instruments, and the detail-page
-    banner) is not evidenced as met for any instrument.
+    banner) is not evidenced as met for any instrument. [NOT-WORK: build-mode hold, population after all layers, CLAUDE.md rule 16]

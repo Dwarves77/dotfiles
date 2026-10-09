@@ -113,12 +113,12 @@ All 110 cells, by table (INSERT, UPDATE, DELETE as listed):
 
 ## What is NOT done
 
-- Not applied. The migration-proof job applies it on the local stack before any production apply; this lane ran no SQL (no local Postgres in this environment). The self-check SQL, the regex in `pg_temp.sec7_requires_auth` and the message text "permission denied for table" are therefore checked statically and by the shared fixture checker, not executed. [HYPOTHESIS until the proof job runs]
-- The helpers' EXECUTE grants (SEC-4) are not touched.
-- SELECT policies and anon SELECT are not touched.
-- Not run: the whole suite, the fitness runner, tsc (CI is the gate, ADR-040).
+- Not applied. The migration-proof job applies it on the local stack before any production apply; this lane ran no SQL (no local Postgres in this environment). The self-check SQL, the regex in `pg_temp.sec7_requires_auth` and the message text "permission denied for table" are therefore checked statically and by the shared fixture checker, not executed. [HYPOTHESIS until the proof job runs] [CLOSED: PR 1047]
+- The helpers' EXECUTE grants (SEC-4) are not touched. [NOT-WORK: fact, no action]
+- SELECT policies and anon SELECT are not touched. [NOT-WORK: fact, no action]
+- Not run: the whole suite, the fitness runner, tsc (CI is the gate, ADR-040). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 
-- If the migration-proof job or the apply aborts, the error names the policy; a policy absent live or with different roles is drift between the tree and the database, to be reported, not worked around.
-- A column-level anon INSERT or UPDATE grant on any public table (seen nowhere in the tree or in AT1) would abort the self-check with the table named; it is not revoked here.
+- If the migration-proof job or the apply aborts, the error names the policy; a policy absent live or with different roles is drift between the tree and the database, to be reported, not worked around. [NOT-WORK: fact, no action]
+- A column-level anon INSERT or UPDATE grant on any public table (seen nowhere in the tree or in AT1) would abort the self-check with the table named; it is not revoked here. [CLOSED: PR 1047]

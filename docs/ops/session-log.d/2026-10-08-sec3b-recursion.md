@@ -62,7 +62,7 @@ A scan of every `CREATE POLICY ... ON <table>` in the migration tree whose body 
 
 ## NOT done
 
-- Nothing applied, nothing executed against Postgres. F70 is not on master at the time of writing; `user_org_role` follows the stated shape (REVOKE FROM PUBLIC, GRANT authenticated, search_path pinned to public, pg_temp) so it should satisfy it.
+- Nothing applied, nothing executed against Postgres. F70 is not on master at the time of writing; `user_org_role` follows the stated shape (REVOKE FROM PUBLIC, GRANT authenticated, search_path pinned to public, pg_temp) so it should satisfy it. [CLOSED: PR 1027]
 
 ### UX compliance
-- No `.tsx` or `.css` file changed in this lane; there is no screen, block or control to report.
+- No `.tsx` or `.css` file changed in this lane; there is no screen, block or control to report. [NOT-WORK: fact, no action]

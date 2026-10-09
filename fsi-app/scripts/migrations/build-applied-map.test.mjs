@@ -157,8 +157,10 @@ test("every repo .sql file is accounted for (a ledger row, a superseder, a keyed
   }
   assert.deepEqual(fileEntries(map).filter((e) => e.class === "never-applied").map((e) => e.file), [], "never-applied is derived from the header; the map holds no such entry");
   const classCount = (c) => [...without.values()].filter((w) => w.class === c).length;
-  assert.equal(classCount("duplicate-prefix"), 3);
-  assert.equal(classCount("outside-ledger"), 7);
+  assert.equal(classCount("duplicate-prefix"), 0, "ruling 2026-10-08: no file is skipped as a duplicate prefix any more");
+  assert.equal(classCount("outside-ledger"), 10);
+  for (const f of ["006_rls_multi_tenant.sql", "007_full_brief.sql", "007_rls_community.sql"]) assert.equal(without.get(f).class, "outside-ledger", f);
+  assert.match(without.get("007_full_brief.sql").note, /^replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape$/);
   assert.equal(without.size, 10);
   for (const f of headerNeverApplied) assert.equal(namedByRows.has(f) || without.has(f), false, `${f}: a derived never-applied file is named by no entry`);
 });
@@ -171,7 +173,7 @@ test("the five applied-under-ledger files each carry the status line naming thei
 
 test("each recovered file: header fields, a body whose hash is its header's, a ledger version the map holds, and no secret", () => {
   const recovered = versions.filter((v) => map[v].class === "recovered");
-  assert.equal(recovered.length, 5);
+  assert.equal(recovered.length, 4);
   for (const v of recovered) {
     const name = base(map[v].file);
     const text = readFileSync(join(MIG_DIR, name), "utf8").replace(/\r\n/g, "\n");

@@ -284,6 +284,11 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Lane DORMANT-1 (2026-10-09, coordinator grant): contents read as before, plus actions read so the closure gate can
+    # ask the Actions API whether each dispatchable workflow has run (and whether GitHub has it disabled).
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -343,6 +348,10 @@ jobs:
         # so they can never drift. (Previously the two lists were maintained separately and a test present in
         # CI but missing from pre-push let a non-portable import pass locally and only red in CI.)
         if: steps.docs_only.outputs.docs_only != 'true'
+        env:
+          # Lane DORMANT-1: closure-gate.test.mjs's LIVE NEVER-RUN test runs the same live lookup as the gate step below.
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: bash fsi-app/.discipline/run-test-suite.sh
 
       - name: Test discovery (every tracked test and golden is run by a suite or listed as not a test)
@@ -372,6 +381,10 @@ jobs:
         # allowlisted item fails once its own committed expiry train passes — see
         # fsi-app/.discipline/governance/closure-gate.mjs's header.
         if: steps.docs_only.outputs.docs_only != 'true'
+        env:
+          # Lane DORMANT-1 (2026-10-09): the gate's live lookup (fetchLiveRun, fetchWorkflowState) runs only when a token is present.
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: node fsi-app/.discipline/governance/closure-gate.mjs
 
       - name: "Skill-contract drift (U8: skill/code citation pin, F25 W7.1)"

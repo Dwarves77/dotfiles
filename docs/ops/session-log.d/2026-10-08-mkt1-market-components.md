@@ -200,12 +200,12 @@ existing `MarketComparativeRibbon.npmtest.mjs` (one regex, for the new `nowIso` 
 - `getPublicMarketIntelItems`-style caching: the detail route's item bundle is cached; the new `market_series` and `licence_clear_sources`
   reads sit inside it (authenticated-only tables, read by the same client as the existing `emission_factors` read). I did not verify the
   live grants from this lane (no live access); the code fails soft to an empty envelope on a read error, so the drawer shows less, never
-  a wrong field.
+  a wrong field. [NOT-WORK: fact, no action]
 - The scoped timeline's hidden count is bounded by the strip's fetched window (limit times five upcoming events), the same window the
-  existing jurisdiction filter already worked on; it is "hidden in the next events read", not a corpus-wide count.
+  existing jurisdiction filter already worked on; it is "hidden in the next events read", not a corpus-wide count. [NOT-WORK: fact, no action]
 
 ## Not done
 
-- Pages with no figure: none under `/market`.
-- The request-coverage control (COV-1).
-- No migration, no producer change, no live read or write.
+- Pages with no figure: none under `/market`. [NOT-WORK: fact, no action]
+- The request-coverage control (COV-1). [CLOSED: PR 1020]
+- No migration, no producer change, no live read or write. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]

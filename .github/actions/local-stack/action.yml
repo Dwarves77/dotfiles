@@ -1,0 +1,66 @@
+name: Start the disposable local Supabase stack
+description: >-
+  The generic stack steps shared by chain-proof.yml and migration-proof.yml (lane MIG-CI, 2026-10-08;
+  docs/decisions/ADR-045-chain-proof-on-a-local-stack.md). Lifted out of chain-proof.yml so there is ONE
+  site for them: psql is made available, the Supabase CLI is installed, an EMPTY local stack is started from a
+  scratch directory that holds only fsi-app/supabase/config.toml (so the CLI never applies the migration tree;
+  scripts/proof/replay-migrations.mjs does), the stack's loopback-only env file is written (keys masked), and
+  scripts/proof/preflight.mjs fails the job on a production host or any forbidden credential name.
+  The caller checks out the repository and sets up Node first. This action holds no production credential and
+  takes none: it has no secret input, and the preflight refuses every forbidden credential name.
+
+inputs:
+  stack_dir:
+    description: 'Scratch directory the stack starts from (created; holds only supabase/config.toml).'
+    required: true
+  env_file:
+    description: 'Path the stack''s loopback-only env file is written to (mode 0600). Later steps source it.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Ensure psql is available
+      shell: bash
+      run: |
+        set -euo pipefail
+        if ! command -v psql >/dev/null 2>&1; then
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+        fi
+        psql --version
+
+    - name: Install the Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
+
+    - name: Start the local stack (empty database, storage and auth only)
+      shell: bash
+      env:
+        STACK_DIR: ${{ inputs.stack_dir }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$STACK_DIR/supabase"
+        cp fsi-app/supabase/config.toml "$STACK_DIR/supabase/config.toml"
+        cd "$STACK_DIR"
+        supabase start
+
+    - name: Write the local env file (loopback hosts only, keys masked)
+      shell: bash
+      env:
+        STACK_DIR: ${{ inputs.stack_dir }}
+        ENV_FILE: ${{ inputs.env_file }}
+      run: |
+        set -euo pipefail
+        (cd "$STACK_DIR" && supabase status -o env) | node fsi-app/scripts/proof/write-local-env.mjs --out "$ENV_FILE"
+
+    - name: Preflight (local stack environment only)
+      shell: bash
+      working-directory: fsi-app
+      env:
+        ENV_FILE: ${{ inputs.env_file }}
+      run: |
+        set -euo pipefail
+        . "$ENV_FILE"
+        node scripts/proof/preflight.mjs

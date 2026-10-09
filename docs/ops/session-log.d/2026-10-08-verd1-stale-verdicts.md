@@ -34,8 +34,8 @@ The literal `node scripts/drain/plan-drain.mjs --kind ledger --mode stale --dry`
 - "A batch verdict under a stale prompt_version is still refused (existing rule)": the existing rule excludes such an entry from use (non-fatal, counted); it does not refuse it. The refusal is new and lives in `--check-verdicts`, the pre-landing check. The consume path keeps its non-fatal exclusion (test kept), so an already-committed stale batch still loads.
 
 ## NOT done
-- Nothing applied, no live row touched, no stale batch authored (the first real stale batch is Stage 9 by operator word). The literal live export (`--export-candidates --stale-verdicts` against the database) was not run: no database access in this lane; proven on fixtures with an injected `selectPage`.
-- Follow-up commit (coordinator grant): the ledger README gained a stale-verdicts section (export mode, write fresh, `--check-verdicts`), and `scripts/drain/artifact.mjs` now records each kind mode in `config.kinds[]` (a plan entry with no mode reads as pending); red then green in `plan-drain.test.mjs` (1 failing before, 55 of 55 drain tests after).
+- Nothing applied, no live row touched, no stale batch authored (the first real stale batch is Stage 9 by operator word). The literal live export (`--export-candidates --stale-verdicts` against the database) was not run: no database access in this lane; proven on fixtures with an injected `selectPage`. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Follow-up commit (coordinator grant): the ledger README gained a stale-verdicts section (export mode, write fresh, `--check-verdicts`), and `scripts/drain/artifact.mjs` now records each kind mode in `config.kinds[]` (a plan entry with no mode reads as pending); red then green in `plan-drain.test.mjs` (1 failing before, 55 of 55 drain tests after). [NOT-WORK: fact, no action]
 
 ## Open items
-- Cost note for Stage 9: a stale export fetches page text for up to the batch size (300) rows at the 1 second politeness gap, the same as a pending export.
+- Cost note for Stage 9: a stale export fetches page text for up to the batch size (300) rows at the 1 second politeness gap, the same as a pending export. [NOT-WORK: fact, no action]

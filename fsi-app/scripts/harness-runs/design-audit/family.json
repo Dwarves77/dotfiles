@@ -1,0 +1,10 @@
+{
+  "family": "design-audit",
+  "registered": "2026-10-09",
+  "registered_by": "lane DORMANT-1",
+  "governing_files": [
+    "../.github/workflows/design-audit.yml",
+    ".discipline/rendering/audit/run-audit.mjs"
+  ],
+  "rationale": "design-audit: the value-level design audit. It runs on every pull request (soft, never gating) and on dispatch; only a dispatch lands a harness_runs row, because a pull request job must not hold the production service credential. One run is one dispatch of design-audit.yml. Registered so the workflow records its own run (CLAUDE.md rule 17) and the closure gate's NEVER-RUN check reads the ledger row; the artifact is emitted by scripts/lib/emit-workflow-run-artifact.mjs from the workflow's own record job."
+}

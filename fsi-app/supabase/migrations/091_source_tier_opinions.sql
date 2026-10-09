@@ -38,6 +38,13 @@
 -- function reads sources.base_tier; the SQL below already prefers base_tier
 -- when present (COALESCE pattern in the function body) so the function is
 -- forward-compatible with the Q2 rename.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37781464100, MIG-HIST-2 fourth ruled residue, class SEQUENCE): the function body
+-- reads s.base_tier instead of s.tier (four references, function body only). This file was written against a schema that
+-- predates 090_tier_schema_split.sql (see the TIER COLUMN NOTE above), but its ledger version (091) places it after 090, which
+-- renames sources.tier to sources.base_tier; as written the function is refused at creation (column s.tier does not exist). The
+-- function end state is set by 099_tier_opinion_review_state.sql (DROP and re-CREATE, reading s.base_tier), checked by the
+-- schema oracle (pg_get_functiondef of every public function). [HYPOTHESIS] Production ran this file before 090.
 
 BEGIN;
 
@@ -127,14 +134,14 @@ AS $function$
   per_source AS (
     SELECT
       wo.target_source_id,
-      s.tier AS current_base_tier,
+      s.base_tier AS current_base_tier,
       ARRAY_AGG(wo.opined_tier ORDER BY wo.opined_tier) AS opined_tiers,
       COUNT(*) AS opinion_count,
-      COUNT(DISTINCT wo.opined_tier) FILTER (WHERE wo.opined_tier <> s.tier)::INT AS distinct_disagreeing_tiers,
-      COUNT(*) FILTER (WHERE wo.opined_tier <> s.tier) AS disagreeing_count
+      COUNT(DISTINCT wo.opined_tier) FILTER (WHERE wo.opined_tier <> s.base_tier)::INT AS distinct_disagreeing_tiers,
+      COUNT(*) FILTER (WHERE wo.opined_tier <> s.base_tier) AS disagreeing_count
     FROM window_opinions wo
     JOIN public.sources s ON s.id = wo.target_source_id
-    GROUP BY wo.target_source_id, s.tier
+    GROUP BY wo.target_source_id, s.base_tier
   )
   SELECT
     p.target_source_id,

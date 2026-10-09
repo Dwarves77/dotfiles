@@ -143,15 +143,15 @@ coordinator overrode the brief's UI-wiring hold the same session; see the addend
    the real `FALLBACK_CORRIDOR_SEEDS`): most items resolve `no_corridor_identity`, and any item carrying
    `jurisdictionIso` set exactly `{CN,US}` with a single `ocean` mode resolves `ambiguous` (not
    `resolved`) because of the finding above. STILL OPEN - the read-only SQL was sent to the coordinator
-   separately per their own request; this worktree still holds no credentials to run it.
+   separately per their own request; this worktree still holds no credentials to run it. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 2. ~~UI wiring is a separate, future lane's scope~~ - SUPERSEDED, see addendum (coordinator overrode this
-   same session, rule 17: no half slice).
+   same session, rule 17: no half slice). [NOT-WORK: fact, no action]
 3. No INDEX.md entry needed (this file lives in `session-log.d/`, exempted per that directory's own
-   README).
+   README). [NOT-WORK: fact, no action]
 4. Branch name divergence: the parent dispatch set up this worktree on branch
    `lane/l-corridor-resolver` (the exact command given to this lane), while the brief text itself names
    `lane/l-corridor-item-match-2026-10-03`. Followed the explicit setup instruction given to this lane
-   session over the brief's suggested name; flagging the mismatch rather than silently picking one.
+   session over the brief's suggested name; flagging the mismatch rather than silently picking one. [NOT-WORK: fact, no action]
 
 ## Addendum: UI wiring (coordinator override, 2026-10-03, rule 13 correction in place)
 
@@ -250,10 +250,10 @@ RD-60, confirmed by the rendering guard run above (no new registration needed).
 
 ### Open items (superseding the earlier list above)
 
-1. **Live state-distribution run** - not performed, no DB credentials; see Addendum 2.
-2. UI wiring - DONE, this addendum. No longer an open item.
-3. No INDEX.md entry needed (unchanged).
-4. Branch-name divergence - unchanged, still flagged.
+1. **Live state-distribution run** - not performed, no DB credentials; see Addendum 2. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+2. UI wiring - DONE, this addendum. No longer an open item. [NOT-WORK: fact, no action]
+3. No INDEX.md entry needed (unchanged). [NOT-WORK: fact, no action]
+4. Branch-name divergence - unchanged, still flagged. [NOT-WORK: fact, no action]
 
 ## Addendum 2: coordinator rulings applied (2026-10-03)
 

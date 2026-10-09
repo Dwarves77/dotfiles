@@ -89,16 +89,16 @@ PR 975 (PROOF-1), `fsi-app/scripts/proof/export-local-harness-runs.mjs`: line 17
 
 ## NOT done
 
-- No edit to PR 974 or PR 975 branches (their lanes revert the lines above in their own PRs).
-- `applied-migrations.json` has no registry entry (its generator is not on master yet).
+- No edit to PR 974 or PR 975 branches (their lanes revert the lines above in their own PRs). [NOT-WORK: fact, no action]
+- `applied-migrations.json` has no registry entry (its generator is not on master yet). [WORK: RULES-X-1]
 - `db-check-constraints.json` stays subject to check 5 (listed, never exempt): the brief's equality cannot
-  be shown without the live database.
+  be shown without the live database. [WORK: RULES-X-1]
 - `coverage-scan.mjs` has its own `WRITE_RE` (the governed-surface classifier, F23); same-name false
-  positives there are a separate detector and outside this write set.
-- No whole suite or fitness runner run; the touched test files were run with `node --test`, CI is the gate.
+  positives there are a separate detector and outside this write set. [WORK: RULES-X-1]
+- No whole suite or fitness runner run; the touched test files were run with `node --test`, CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 
 - Decision for the operator or coordinator: whether the maintenance workflow that commits
   `db-check-constraints.json` should be the only writer of it (then it never collides), since it cannot be
-  exempted by equality.
+  exempted by equality. [WORK: RULES-X-1]

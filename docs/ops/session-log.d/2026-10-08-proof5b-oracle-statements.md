@@ -22,8 +22,8 @@
 
 ## NOT done
 
-- Not run against a live stack or real psql. [INFERRED] from psql's documented behaviour that separate `-c` options each run as their own command and therefore their own transaction (psql 9.6 and later); the next chain-proof run is the check.
+- Not run against a live stack or real psql. [INFERRED] from psql's documented behaviour that separate `-c` options each run as their own command and therefore their own transaction (psql 9.6 and later); the next chain-proof run is the check. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ## Open items
 
-- None blocking.
+- None blocking. [NOT-WORK: fact, no action]

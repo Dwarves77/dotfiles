@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import {
   evaluateGate, runGate, scriptFileRun, governedPath, classifyMcp, isSelectSql, sqlReadKind, sqlSkeleton, auditLogPath, inScope,
 } from "./pretooluse-skill-gate.mjs";
+import { collectOpenFindings } from "../../scripts/verify/audit-finding-status.mjs";
 import { skillFileReadInTranscript } from "./skill-token.mjs";
 import { cwdHoldsFsiApp } from "./pretooluse-scope.mjs";
 import { decide as decideEntry } from "./pretooluse-entry.mjs";
@@ -27,6 +28,11 @@ const AUDIT_LOG = join(TMP, "gate-audit.log");
 const FIRING_LOG = join(TMP, "firings.log");
 process.env.GATE_AUDIT_LOG = AUDIT_LOG;
 process.env.DISCIPLINE_FIRING_LOG = FIRING_LOG;
+// RULE 13 (FLAG-1): a dispatch is refused while any finding is open. The dispatch cases below run against a clean
+// empty root so they stay hermetic; the last test in this file proves the forcing point against the real tree.
+const CLEAN_ROOT = join(TMP, "clean-root");
+mkdirSync(CLEAN_ROOT, { recursive: true });
+process.env.GATE_DISPOSITION_ROOT = CLEAN_ROOT;
 
 let _id = 0;
 const skillLine = (slug) => {
@@ -401,4 +407,22 @@ test("ATTACK WIRE-1: a gate hook wired DIRECTLY (unscoped) fails, so the install
     assert.equal(v.status, "fail");
     assert.match(v.problems.join("\n"), /direct/i);
   } finally { sb.clean(); }
+});
+
+test("FLAG-1 forcing point: on the REAL tree a dispatch is refused while any finding is undispositioned, and reaches the ask once none is", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const open = collectOpenFindings(root);
+  const prev = process.env.GATE_DISPOSITION_ROOT;
+  process.env.GATE_DISPOSITION_ROOT = root;
+  try {
+    const d = decide("Agent", { description: "x", prompt: "build the next thing" });
+    if (open.length) {
+      assert.equal(d.permissionDecision, "deny");
+      assert.equal(d.tag, "dispatch-undispositioned");
+      assert.ok(d.reason.includes(open[0].file + ":" + open[0].line), d.reason);
+    } else {
+      assert.equal(d.permissionDecision, "ask");
+    }
+    assert.equal(decide("Agent", { prompt: "DISPOSITION-LANE: disposition the open findings" }).permissionDecision, "ask");
+  } finally { process.env.GATE_DISPOSITION_ROOT = prev; }
 });

@@ -29,17 +29,17 @@
 
 ## NOT done
 
-- Nothing applied; nothing executed against Postgres (none on this machine). The self-check and the two `sec6-*` attacks run at apply time and in the chain-proof replay.
-- [HYPOTHESIS] that the apply role is sanctioned by the 364 guard for a fixture profile inserted with `is_platform_admin = true` (current_user postgres, supabase_admin, service_role or the table owner; true for the 364 and 367 applies). If not, the apply aborts loudly at that INSERT.
-- [HYPOTHESIS] that `authenticated` holds table SELECT on each of the eleven tables in the self-check; where it holds none, that table's leg is skipped with a NOTICE and the catalog pass still covers its policy.
-- [CONFIRMED by a tree parse, repeated in the test] none of the 15 tables behind the 22 policies carries a live policy that lets anon read it, so the self-check has no anon row-read leg; its anon leg is the predicate call (false, no raise), and the test fails if one of those tables gains a public-read policy.
-- No local tsc or eslint (CI runs them, ADR-040); no rendering guard (no .tsx touched).
-- `scripts/maintenance/repair-smoke-account.mjs` still reads the column through the service client; unchanged.
+- Nothing applied; nothing executed against Postgres (none on this machine). The self-check and the two `sec6-*` attacks run at apply time and in the chain-proof replay. [CLOSED: PR 1027]
+- [HYPOTHESIS] that the apply role is sanctioned by the 364 guard for a fixture profile inserted with `is_platform_admin = true` (current_user postgres, supabase_admin, service_role or the table owner; true for the 364 and 367 applies). If not, the apply aborts loudly at that INSERT. [CLOSED: PR 1027]
+- [HYPOTHESIS] that `authenticated` holds table SELECT on each of the eleven tables in the self-check; where it holds none, that table's leg is skipped with a NOTICE and the catalog pass still covers its policy. [CLOSED: PR 1027]
+- [CONFIRMED by a tree parse, repeated in the test] none of the 15 tables behind the 22 policies carries a live policy that lets anon read it, so the self-check has no anon row-read leg; its anon leg is the predicate call (false, no raise), and the test fails if one of those tables gains a public-read policy. [NOT-WORK: fact, no action]
+- No local tsc or eslint (CI runs them, ADR-040); no rendering guard (no .tsx touched). [NOT-WORK: build-mode hold, COMMON rule 9]
+- `scripts/maintenance/repair-smoke-account.mjs` still reads the column through the service client; unchanged. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- Apply order for the executor: 370, 371, 372 (already applied), then 375, BEFORE this code merges: the app now calls the rpc `is_platform_admin`, and a database without 375 returns an rpc error for it [INFERRED], which the gate reads as denied and the identity bootstrap reads as an `IdentityLookupError`.
-- 375's apply raises the same class of risk SEC-3b-R recorded: the self-check is the first execution of some of these policies as role authenticated; a 42P17 from a pre-existing policy (for example a moderation_reports arm over community_group_members) would abort the apply with the table named.
+- Apply order for the executor: 370, 371, 372 (already applied), then 375, BEFORE this code merges: the app now calls the rpc `is_platform_admin`, and a database without 375 returns an rpc error for it [INFERRED], which the gate reads as denied and the identity bootstrap reads as an `IdentityLookupError`. [CLOSED: PR 1027]
+- 375's apply raises the same class of risk SEC-3b-R recorded: the self-check is the first execution of some of these policies as role authenticated; a 42P17 from a pre-existing policy (for example a moderation_reports arm over community_group_members) would abort the apply with the table named. [CLOSED: PR 1027]
 
 ## Coordinator correction applied (2026-10-08, same lane, before merge)
 

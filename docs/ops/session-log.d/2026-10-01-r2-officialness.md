@@ -121,6 +121,6 @@ colocated `node --test` file.
 - The coordinator should amend CF-BROKEN-1 and A3B-07 in place to `[REFUTED]` (rule 13 corollary), citing
   this file, in `docs/audits/audit-consolidated-2026-09-30.md` and
   `docs/audits/app-audit-a3b-lib-n-z-2026-09-30.md` (both on `origin/audit/consolidation`, outside this
-  lane's write set).
+  lane's write set). [CLOSED: PR 872]
 - Lane 2 of the remediation plan can close with "no code change required; finding refuted; regression
-  coverage added" rather than "fixed."
+  coverage added" rather than "fixed." [NOT-WORK: fact, no action]

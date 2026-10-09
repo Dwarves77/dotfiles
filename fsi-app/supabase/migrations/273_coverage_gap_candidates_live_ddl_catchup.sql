@@ -45,6 +45,11 @@
 -- migration only supplies the table structure 223 assumes). It adds no seed data and changes no
 -- existing row's value in the four disposition/discovery/access columns.
 
+--
+-- 2026-10-08 (MIG-CI, REHOMED-STATEMENT, replay run 37804938282): the view acquisition_backlog_v now lives in this file (see the banner
+-- before the post-check); 223_acquisition_backlog_v.sql was deleted. The out-of-scope note above, that this migration does not touch
+-- acquisition_backlog_v, is superseded by that move.
+
 BEGIN;
 
 -- ── The five columns, guarded (IF NOT EXISTS) ───────────────────────────────────────────────────
@@ -133,6 +138,58 @@ BEGIN
       CHECK (((disposition IS NULL) OR (disposition = 'kept'::text) OR ((surface_test IS NOT NULL) AND (surface_test ?& ARRAY['regulations'::text, 'operations'::text, 'market_intel'::text, 'research'::text, 'community'::text]) AND (COALESCE(length((surface_test #>> '{regulations,verdict}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{regulations,reason}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{operations,verdict}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{operations,reason}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{market_intel,verdict}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{market_intel,reason}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{research,verdict}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{research,reason}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{community,verdict}'::text[])), 0) > 0) AND (COALESCE(length((surface_test #>> '{community,reason}'::text[])), 0) > 0))));
   END IF;
 END $$;
+
+-- ── The view acquisition_backlog_v, rehomed here verbatim from 223_acquisition_backlog_v.sql (ledger version 20260725183634) ──
+-- 2026-10-08, lane MIG-CI, ruling after replay run 37804938282, class REHOMED-STATEMENT: the view reads data_class, discovery_class,
+-- disposition, surface_test and access_model, which only this migration creates (ledger version 20260831202515, after 223's 20260725183634), so
+-- on a replay in ledger order 223 was refused (column c.data_class does not exist). 223 was deleted; its row is now superseded-by this file;
+-- final state unchanged. The statement below is 223's view definition, byte for byte.
+
+create or replace view public.acquisition_backlog_v as
+ SELECT c.id,
+    c.rank,
+    c.instrument,
+    c.jurisdiction,
+    c.primary_vertical,
+    c.transport_mode,
+    c.freight_relevance,
+    c.estimated_priority,
+    c.coverage_class,
+    c.corpus_match_ref,
+    c.sizing_class,
+    c.entity_confirmed,
+    c.authoritative_url,
+    c.notes,
+    c.created_by,
+    c.created_at,
+    c.data_class,
+    c.discovery_class,
+    c.disposition,
+    c.surface_test,
+    c.access_model,
+        CASE
+            WHEN c.disposition = 'declined'::text THEN NULL::integer
+            WHEN c.disposition = 'parked'::text AND c.surface_test IS NOT NULL AND c.surface_test ? 'watch_condition'::text THEN 3
+            WHEN c.disposition = 'parked'::text AND c.surface_test IS NOT NULL THEN 4
+            WHEN c.data_class = 'instrument'::text AND c.access_model = 'free'::text THEN 1
+            WHEN (c.data_class = ANY (ARRAY['data_feed'::text, 'tracker'::text])) AND c.access_model = 'free'::text THEN 2
+            WHEN c.access_model = ANY (ARRAY['licensed'::text, 'mixed'::text]) THEN 3
+            ELSE NULL::integer
+        END AS backlog_section,
+        CASE
+            WHEN c.transport_mode ~~* '%air%'::text THEN 1
+            WHEN c.transport_mode ~~* '%road%'::text THEN 2
+            WHEN c.transport_mode ~~* '%ocean%'::text THEN 3
+            ELSE 4
+        END AS mode_priority_weight,
+        CASE
+            WHEN c.notes ~~* '%Operations=IN%'::text OR c.notes ~~* '%operations,verdict%IN%'::text THEN 1
+            WHEN c.notes ~~* '%Market Intel=IN%'::text THEN 2
+            WHEN c.notes ~~* '%Research=IN%'::text THEN 3
+            ELSE 4
+        END AS surface_order_weight
+   FROM coverage_gap_candidates c
+  WHERE c.disposition = 'parked'::text AND c.surface_test IS NOT NULL OR c.disposition IS DISTINCT FROM 'declined'::text AND c.disposition IS DISTINCT FROM 'parked'::text AND c.data_class = 'instrument'::text AND c.access_model = 'free'::text OR c.disposition IS DISTINCT FROM 'declined'::text AND c.disposition IS DISTINCT FROM 'parked'::text AND (c.data_class = ANY (ARRAY['data_feed'::text, 'tracker'::text])) AND c.access_model = 'free'::text OR c.disposition IS DISTINCT FROM 'declined'::text AND c.disposition IS DISTINCT FROM 'parked'::text AND (c.access_model = ANY (ARRAY['licensed'::text, 'mixed'::text]));
 
 -- ── Post-check: the five columns and five constraints must exist under these exact names ────────
 DO $$

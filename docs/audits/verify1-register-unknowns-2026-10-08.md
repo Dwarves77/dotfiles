@@ -9,7 +9,7 @@ Status tokens (CLAUDE.md rule 14): [CONFIRMED: method], [REFUTED], [HYPOTHESIS].
 ## Declaration
 
 - Lenses run: EXISTS, CALLED. Not run, owed: RUNS, ATTACKED, COSTS, FIRED-TRUE, MODE, OVERLAPS, OPERATOR-SEAT, RECORD-VS-REALITY (the migration rows 299 and 315 read the repo and the PR-branch map only; no ledger or live query was made).
-- Subsystem per row: 13 (entity spine) for 00S1.3; 14 (components) for 00S4 render, 01S4, 02S6, 03S6; 15 (data layer) for the tables, RPCs, 299, 315; 10 (verifiers) for the ui-orphan audit. Subsystem numbers follow the audit-catalogue section 2 grouping the brief names; no row was re-assigned. [CONFIRMED: the brief's grouping, quoted]
+- Subsystem per row: 13 (entity spine) for 00S1.3; 14 (components) for 00S4 render, 01S4, 02S6, 03S6; 15 (data layer) for the tables, RPCs, 299, 315; 10 (verifiers) for the ui-orphan audit. Subsystem numbers follow the audit-catalogue section 2 grouping the brief names; no row was re-assigned. [CONFIRMED: the brief's grouping, quoted] [NOT-WORK: fact, no action]
 - Unit: each register row below. Enumerator: the row list in the brief, quoted: "00S1.3 alias table, 00S4 coverage surface, 01 (the four dates, the cost slots, the 12 components), 02 (ribbon, timeline, methodology, freshness), 03 forecasting refusal, B-2 to B-5, D-5, S-6 PROV chain, 299 and 315 status".
 - Method per row: `git grep` (tree at origin/master) for the named object; file read for definition, importer and reader; test file located and checked for membership in the no-npm discipline suite with `discoverTests()` from `fsi-app/.discipline/lib/test-discovery.mjs` (689 files discovered; read-only in-memory call, nothing written) or, for `*.npmtest.mjs`, by `git ls-files`. For migration status: file headers, `docs/inventories/migrations.md` on master, and `APPLIED-MAP.json` from the PR branch `origin/lane/mighist1-recover` (tip d8bab870), see disclosures.
 - Disclosures: (1) PR 1013 state was read with one `gh pr view 1013` call (a network call, run before I applied the no-network rule to myself); result: state OPEN, mergedAt null, branch `lane/mighist1-recover`, so `APPLIED-MAP.json` is NOT on master (`git ls-tree` of master shows only `fsi-app/scripts/proof/applied-map.mjs` and its test) and is cited below from the PR branch ref, local copy of the remote branch. (2) Two `git grep` calls hit the 60 to 120 s timeout and were re-run narrower; no result was taken from a timed-out call. (3) A background task notification arrived mid-lane; it was my own timed-out grep, not an instruction, and was not acted on.
@@ -64,27 +64,27 @@ Each is absent in the tree at e23feb02 by the method in its row. Absent means no
 5. Fields `date_of_application` and `enforcement_start` (01S3.3).
 6. Cost slot 2, direct compliance cost, and slot 3, effort (01S3.4).
 7. Statutory formulas other than FuelEU Annex IV (EU ETS maritime, CBAM, ETS2, IMO NZF), and any customer reader of `statutory_computations` (01S3.4); `StatutoryFigure.tsx` has no importer.
-8. 01S4 #1 banner form, #2 applicability panel and recorded exclusion, #4 T-90/T-30/T-7, #5 horizon lane, #6 redline and applicability-filtered feed, #7 sanction class and computed exposure on the page, #9 three-value status and review date, #10 obligation-grain task, #11 Excel/PDF export and snapshot. [CONFIRMED: absent in the tree at e23feb02 by the method in its row]
+8. 01S4 #1 banner form, #2 applicability panel and recorded exclusion, #4 T-90/T-30/T-7, #5 horizon lane, #6 redline and applicability-filtered feed, #7 sanction class and computed exposure on the page, #9 three-value status and review date, #10 obligation-grain task, #11 Excel/PDF export and snapshot. [CONFIRMED: absent in the tree at e23feb02 by the method in its row] [WORK: PLAN-2]
 9. Ribbon rendering of delta 1m, delta YoY and sparkline (computed, rendered by nothing) (02S6 r1).
 10. Methodology document with change control (spec 02 section 5); methodology drawer on ribbon cards (02S6 r10).
-11. A caller for `fsi-app/scripts/verify/ui-orphan-audit.mjs` (B-3 mechanism). [CONFIRMED: git grep over .github, fsi-app/.discipline, package.json, scripts/verify, runbooks: no caller]
+11. A caller for `fsi-app/scripts/verify/ui-orphan-audit.mjs` (B-3 mechanism). [CONFIRMED: git grep over .github, fsi-app/.discipline, package.json, scripts/verify, runbooks: no caller] [WORK: RULES-X-1]
 12. W3C PROV mapping, PROV or JSON-LD export, and a reader that exposes a derivation chain for a published record (S-6).
 13. Any in-tree closing record for 15 of the 16 D-5 facts (only #6 closed).
 
 ## Register rows contradicted by the tree (corrections owed to the register, rule 14)
 
-- 00S1.3 "still unverified": now [CONFIRMED] missing (hierarchy) and partial (alias).
-- S-6 "open [H: no evidence found]": [REFUTED] in part, derivation storage exists (tables above); the PROV-shaped chain is confirmed absent.
-- B-2, B-4, B-5 "status unknown": [CONFIRMED] closed in code with a test each (B-2 vocab-drift-guard plus migrations 148/269/306/310/316; B-4 domain-laundering test; B-5 prose-renderer-scope test).
-- B-3 "status unknown": mechanism located and unwired [CONFIRMED: git grep, no caller]; count not re-derived [HYPOTHESIS: needs a live DB run].
-- 00S4 "Coverage Index exists, first-class surface unverified": the Index is admin-only by ruling; first-class customer surface confirmed absent.
+- 00S1.3 "still unverified": now [CONFIRMED] missing (hierarchy) and partial (alias). [WORK: PLAN-2]
+- S-6 "open [H: no evidence found]": [REFUTED] in part, derivation storage exists (tables above); the PROV-shaped chain is confirmed absent. [WORK: PLAN-2]
+- B-2, B-4, B-5 "status unknown": [CONFIRMED] closed in code with a test each (B-2 vocab-drift-guard plus migrations 148/269/306/310/316; B-4 domain-laundering test; B-5 prose-renderer-scope test). [NOT-WORK: fact, no action]
+- B-3 "status unknown": mechanism located and unwired [CONFIRMED: git grep, no caller]; count not re-derived [HYPOTHESIS: needs a live DB run]. [WORK: RULES-X-1]
+- 00S4 "Coverage Index exists, first-class surface unverified": the Index is admin-only by ruling; first-class customer surface confirmed absent. [WORK: PLAN-2]
 
 ## Incidental facts outside the listed rows (seen while reading, not investigated)
 
-- `fsi-app/supabase/migrations/359_item_assignments.sql` (map: applied) plus route, component and mount exist, while register row S8-2 says "not started".
-- `fsi-app/supabase/migrations/361_count_rpc_membership.sql` (map: applied, identical) exists, while register row S8-4 says "not started".
+- `fsi-app/supabase/migrations/359_item_assignments.sql` (map: applied) plus route, component and mount exist, while register row S8-2 says "not started". [WORK: DOCS-5]
+- `fsi-app/supabase/migrations/361_count_rpc_membership.sql` (map: applied, identical) exists, while register row S8-4 says "not started". [WORK: DOCS-5]
 - `fsi-app/src/lib/portfolio/` (client, portfolio-core.mjs with test, read.ts, route-support.ts, types.ts) exists, while register rows 00S5 and S8-8 say "no file".
-These three were not opened beyond file names and one header; they are listed so the register rows can be re-read, not as findings about those rows.
+These three were not opened beyond file names and one header; they are listed so the register rows can be re-read, not as findings about those rows. [WORK: DOCS-5]
 
 ## Not run, and why
 

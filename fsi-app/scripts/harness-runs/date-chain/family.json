@@ -1,0 +1,12 @@
+{
+  "family": "date-chain",
+  "registered": "2026-10-09",
+  "registered_by": "lane DORMANT-1",
+  "governing_files": [
+    "../.github/workflows/date-chain.yml",
+    "scripts/forward-events/dispatch-extraction.mjs",
+    "scripts/backfill-item-timelines.mjs",
+    "scripts/verify/population-report.mjs"
+  ],
+  "rationale": "date-chain: the dispatch-only forward-events and timeline-harvest backfill. One run is one firing of date-chain.yml. Registered so the workflow records its own run (CLAUDE.md rule 17) and the closure gate's NEVER-RUN check reads the ledger row; the artifact is emitted by scripts/lib/emit-workflow-run-artifact.mjs from the workflow's own record job."
+}

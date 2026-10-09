@@ -66,13 +66,13 @@ export const ROW_RULINGS = {
   '20260718185835': { class: 'comment-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: 'columns disposition and surface_test and both CHECK constraints are held by 273; the two stored COMMENT ON COLUMN statements are comments and are not recreated' },
   '20260718185947': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `UPDATE of coverage_gap_candidates dispositions. ${SESSION_C}` },
   '20260718190445': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `column access_model and its CHECK are held by 273 and the view by 223_acquisition_backlog_v.sql; the UPDATE and the comments are not recreated. ${SESSION_C}` },
-  '20260718190922': { class: 'data-only', superseded_by: '223_acquisition_backlog_v.sql', note: `the view is held by 223; the UPDATE of access_model rows is data. ${SESSION_C}` },
+  '20260718190922': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `the view is held by 273 (rehomed from 223 on 2026-10-08); the UPDATE of access_model rows is data. ${SESSION_C}` },
   '20260718192452': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `the discovery_class CHECK in its final form is held by 273; the INSERT is data. ${SESSION_C}` },
   '20260718193242': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `UPDATE of access_model. ${SESSION_C}` },
   '20260718200026': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `UPDATE of dispositions. ${SESSION_C}` },
   '20260718200111': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `UPDATE of dispositions. ${SESSION_C}` },
   '20260718200309': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `UPDATE and INSERT of coverage_gap_candidates rows. ${SESSION_C}` },
-  '20260718200509': { class: 'comment-only', superseded_by: '223_acquisition_backlog_v.sql', note: 'the view acquisition_backlog_v is held by 223; the stored COMMENT ON VIEW is a comment and is not recreated' },
+  '20260718200509': { class: 'comment-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: 'the view acquisition_backlog_v is held by 273 (rehomed from 223 on 2026-10-08); the stored COMMENT ON VIEW is a comment and is not recreated' },
   '20260718202706': { class: 'data-only', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: `UPDATE of one disposition. ${SESSION_C}` },
   '20260719205437': { class: 'superseded-by', superseded_by: '222_census_rollup_stitch.sql', note: 'coverage_gap_census_findings and its table comment are created by 222 (retroactive capture, same DDL-before-migration gap)' },
   '20260719210535': { class: 'data-only', superseded_by: '222_census_rollup_stitch.sql', note: `INSERT of census findings. ${SESSION_C}` },
@@ -82,7 +82,8 @@ export const ROW_RULINGS = {
   '20260719213059': { class: 'data-only', superseded_by: '222_census_rollup_stitch.sql', note: `INSERT of census findings. ${SESSION_C}` },
   '20260720150850': { class: 'recovered', note: 'schema change to coverage_gap_census_findings held by no master file; recovered whole' },
   '20260720151231': { class: 'data-only', superseded_by: '222_census_rollup_stitch.sql', note: `INSERT of census findings. ${SESSION_C}` },
-  '20260721222204': { class: 'recovered', note: 'the function is held by 256 item 5 (md5-equal); only the EXECUTE grant, which no master file holds, is recovered (residue); the COMMENT is not recreated' },
+  '20260721222204': { class: 'superseded-by', superseded_by: '256_migration_homes_and_vault_capture_key.sql', note: 'the function is held by 256 item 5 (md5-equal) and its EXECUTE grant was rehomed there verbatim (item 5b) on 2026-10-08 (lane MIG-CI, ruling after replay run 37793739743, class REHOMED-STATEMENT), because the recovered grant file ran before the function existed in ledger order; the stored COMMENT is not recreated' },
+  '20260725183634': { class: 'superseded-by', superseded_by: '273_coverage_gap_candidates_live_ddl_catchup.sql', note: 'the view acquisition_backlog_v was rehomed verbatim into 273 on 2026-10-08 (lane MIG-CI, ruling after replay run 37804938282, class REHOMED-STATEMENT) because it reads five columns only 273 creates and, in ledger order, 223 ran first; 223_acquisition_backlog_v.sql was deleted' },
   '20260726195325': { paired: '225_gate_a_criterion7.sql' },
   '20260731021933': { class: 'superseded-by', superseded_by: '254_drop_shadow_gate_a_and_broken_hrq.sql', note: 'created the shadow gate_a_* SQL functions that 254 drops (census 2026-08-11, Finding 3); no master file ever created them' },
   '20260731024004': { class: 'superseded-by', superseded_by: '254_drop_shadow_gate_a_and_broken_hrq.sql', note: 'gate_a_scan_and_store, dropped by 254 (DROP FUNCTION gate_a_scan_and_store)' },
@@ -98,12 +99,16 @@ export const ROW_RULINGS = {
   '20260912213045': { paired: '317_provisional_sources_status_promoted.sql' },
 };
 
-// Coordinator rulings for the repo files that had no ledger row (set b), by file. Files that are the same
+// Coordinator rulings for the repo files that had no ledger row (set b), by file. Ruling 2026-10-08 (lane MIG-CI,
+// MIG-HIST-2's second ruled residue): the three duplicate-prefix files are outside-ledger, not skipped: the replay stopped at
+// 035 because intelligence_items.full_brief is created only in 007_full_brief, so the oracle proved that file ran in
+// production without a ledger row; the two siblings are classed by the same shape (their objects are not yet verified).
+// No file is class duplicate-prefix any more; the class stays in the vocabulary. Files that are the same
 // migration as a row listed in ROW_RULINGS (paired, or superseded_by) are accounted for there, not here.
 export const FILE_RULINGS = {
-  '006_rls_multi_tenant.sql': { class: 'duplicate-prefix', evidence: 'forensics E3: second file on version 006; the ledger holds 006 multi_tenant only; F51 allowlist 2026-09-19 (renumbering refused); [HYPOTHESIS] applied by hand in April' },
-  '007_full_brief.sql': { class: 'duplicate-prefix', evidence: 'forensics E3: second file on version 007; the ledger holds 007 community_layer only; F51 allowlist 2026-09-19' },
-  '007_rls_community.sql': { class: 'duplicate-prefix', evidence: 'forensics E3: third file on version 007; the ledger holds 007 community_layer only; F51 allowlist 2026-09-19' },
+  '006_rls_multi_tenant.sql': { class: 'outside-ledger', evidence: 'replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape' },
+  '007_full_brief.sql': { class: 'outside-ledger', evidence: 'replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape' },
+  '007_rls_community.sql': { class: 'outside-ledger', evidence: 'replay run 37779804328: 035 depends on intelligence_items.full_brief, created only in 007_full_brief; siblings by the same shape' },
   '202_standard_own_body_floor.sql': { class: 'outside-ledger', evidence: 'docs/ops/session-log.md line 2415: applied live via the direct postgres pooler; no ledger row [HYPOTHESIS until objects verified]' },
   '205_funded_pass_runlock.sql': { class: 'outside-ledger', evidence: 'docs/PROGRAM-BOARD.md line 507: proven live; no ledger row [HYPOTHESIS until objects verified]' },
   '206_mint_gate_hold_marker.sql': { class: 'outside-ledger', evidence: 'hardening-resume-2026-07-16.md line 19: flip live; no ledger row [HYPOTHESIS until objects verified]' },
