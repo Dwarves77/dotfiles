@@ -53,6 +53,8 @@ import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { views } from '../lib/code-scan.mjs';
+import { readHarnessLedgerExport } from '../../../scripts/lib/run-artifact.mjs';
+import { ledgerClock } from '../../governance/closure-gate.mjs';
 // The comment-and-echo-free reading of a workflow or package.json command lives in the dependency-free yml-read
 // module (execution-wiring.mjs needs it too and cannot import this file without a cycle). Re-exported here for the
 // callers that already take it from this module.
@@ -514,6 +516,7 @@ export const LEGACY_ALLOWLIST = [
     file: 'fsi-app/scripts/maintenance/repair-smoke-account.mjs',
     reason: "Operator-account repair CLI, run by the coordinator's executor; writes only profiles and org_memberships for one named non-admin account; refuses platform admins.",
     reviewByPhase: 'lane AUTH-2, 2026-10-06',
+    reviewBy: '2026-12-31',
   },
   // Three entries added by lane GATE-8 (2026-10-08). They were counted live until now only because a workflow
   // COMMENT or a prose mention named their path (AUD-AT-4 B4-17: a comment is not a dispatch root). None has a
@@ -522,16 +525,19 @@ export const LEGACY_ALLOWLIST = [
     file: 'fsi-app/scripts/harness-runs/append-dispatch-ledger.mjs',
     reason: 'Retired writer: its only caller, the maintenance.yml "Append this run\'s dispatch-ledger row" step, was removed by R22 (2026-10-02) and closure-gate now reads harness-ledger-export.json instead. Dormant and awaiting deletion together with its test (a deletion lane; this gate then reds the entry as STALE until it is removed).',
     reviewByPhase: 'dead-code deletion lane (append-dispatch-ledger.mjs and its test)',
+    reviewBy: '2026-12-31',
   },
   {
     file: 'fsi-app/scripts/lib/export-harness-ledger.mjs',
     reason: 'Credentialed operator CLI: regenerates fsi-app/.discipline/governance/harness-ledger-export.json from harness_runs (docs/runbooks/fleet-budget-control.md, "The refresh"). It needs the production read credential, so no workflow runs it; the committed export is what the gates read.',
     reviewByPhase: 'F28 stale-export check names this refresh command; keep while the export exists',
+    reviewBy: '2026-12-31',
   },
   {
     file: 'fsi-app/scripts/maintenance/lib/extract-worklist-seed.mjs',
     reason: 'Coordinator hand tool: turns a provenance-heal dry-run summary.json into the {item_id, token} seed the attach-found-sources browser lane fills (usage line in scripts/maintenance/attach-found-sources.mjs). Run by hand per dispatch, never by a workflow.',
     reviewByPhase: 'ATTACH-SOURCES worklist flow (W3.1); review when attach-found-sources is retired',
+    reviewBy: '2026-12-31',
   },
   // record-harness-run.mjs's allowlist entry (lane HARNESS-LANDING, 2026-09-27) is REMOVED here (lane
   // QUARANTINE-DISPOSITION, 2026-09-28): it now HAS a direct ES import this gate's import-graph sources
@@ -554,6 +560,7 @@ export const LEGACY_ALLOWLIST = [
       'machine-tool-gaps-2026-09-25.md, "Produce" row). Wiring this into maintenance.yml as a scheduled ' +
       'step is therefore premature; it stays a hand-dispatched CLI until that decision lands.',
     reviewByPhase: 'lane STRUCTURED-ACTIONS, 2026-09-28',
+    reviewBy: '2026-12-31',
   },
   // useListOrder.ts's allowlist entry (lane R12-13, 2026-10-01) is REMOVED here (same lane,
   // coordinator correction, same day): operator ruling "fixed, not worked around" supersedes the
@@ -572,6 +579,7 @@ export const LEGACY_ALLOWLIST = [
       'pages, not a breakage. Wire it into the surface it was drawn for, or delete it; leaving it is how a ' +
       'component library rots into seventeen near-duplicates nobody trusts.',
     reviewByPhase: 'ui-liveness ruling (operator: mount or delete, per component)',
+    reviewBy: '2026-12-31',
   })),
 
   // ── 7 src/lib modules with a proof and no caller: the seek-more shape exactly ──
@@ -584,6 +592,7 @@ export const LEGACY_ALLOWLIST = [
       'module is indistinguishable from a passing test over a live one, which is what makes the class expensive.' +
       (p.disposition ? ` DISPOSITION (docs/plans/unwired-disposition-2026-08-31.md): ${p.disposition}` : ''),
     reviewByPhase: 'dormant-capability ruling (operator: wire into the live flow, or delete module + proof together)',
+    reviewBy: '2026-12-31',
   })),
 
   // ── 7 src modules with neither importer nor proof ──
@@ -626,6 +635,7 @@ export const LEGACY_ALLOWLIST = [
       'hard-named in .github/workflows/discipline.yml\'s npm-deps test step — same CI-pin blocker as ' +
       'decision-anchors.mjs above.',
     reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
+    reviewBy: '2026-12-31',
   },
 
   // 'fsi-app/scripts/lib/anthropic.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the coupled DELETE
@@ -637,6 +647,7 @@ export const LEGACY_ALLOWLIST = [
     file: 'fsi-app/scripts/lib/batch-primitives.mjs',
     reason: 'Batch primitives consumed only by its own proof and two manifest scripts. Same sweep coupling as anthropic.mjs.',
     reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)',
+    reviewBy: '2026-12-31',
   },
 
   // Meta-harness substrate entry (scripts/lib/run-artifact.mjs) REMOVED (Wave MH-2, 2026-09-01): the
@@ -672,6 +683,7 @@ export const LEGACY_ALLOWLIST = [
       'it on, which was never in scope here. Same published-contract-ahead-of-its-caller shape as ' +
       'admissible-for.ts\'s own (now-removed) entry above.',
     reviewByPhase: 'system-completion train (operator: remove this entry once a later lane lands a real caller — if none has by the train\'s close, treat as a real orphan)',
+    reviewBy: '2026-12-31',
   },
 
   // ── Lane DP-SURF (2026-09-02, system-completion train): a compile-time-only tsc proof, never meant to
@@ -688,6 +700,7 @@ export const LEGACY_ALLOWLIST = [
       'runtime when it should; this one is never meant to run). See the file\'s own header for the same ' +
       'note from its own side.',
     reviewByPhase: 'n/a — this file is never meant to gain a production importer; re-review only if the file itself is deleted or its proof role changes',
+    permanent: true,
   },
 
   // Lane DP-ENGINE's aggregate-safeguards.mjs allowlist entry (system-completion train, 2026-09-02) was
@@ -702,9 +715,9 @@ export const LEGACY_ALLOWLIST = [
   // e8cb748f) by actually running the widened check — not hand-predicted from the audit. Source for
   // every disposition + train is docs/plans/complete-system-build-plan-2026-09-04.md §W7.1 and
   // docs/audits/wiring-audit-2026-09-04/B1-modules.md Appendix A ("no" rows) unless noted otherwise.
-  // Each entry carries `disposition` ({kind: 'wire'|'delete'|'one-shot', detail}) and `expiry` (a
-  // train/wave number): auditLiveness() reds the entry once latestTrainWave() reaches or passes
-  // `expiry`, forcing a real wire-or-delete instead of a permanent exemption wearing a temporary label.
+  // Entries here once carried `disposition` and `expiry` (a train/wave number). RULES-X-2 (2026-10-09) replaced the
+  // frozen wave counter with `reviewBy` (an ISO date) read against the closure ledger clock: auditLiveness() reds the
+  // entry once that clock reaches the date, forcing a real wire-or-delete instead of a permanent exemption.
   // ══════════════════════════════════════════════════════════════════════════════════════════════════
   ...(() => {
     // The w/d/o entry-builder helpers this IIFE used to populate are gone: every allowlist entry
@@ -886,6 +899,7 @@ export const LEGACY_ALLOWLIST = [
           'break a live, CI-run conformance proof, and no expiry is honest here: this file is never meant to gain a ' +
           'production importer, the same posture as types.contractable-barrier.check.ts above.',
         reviewByPhase: 'n/a — permanent data-fixture cited by a live conformance test; re-review only if the test is deleted or the file\'s role changes',
+        permanent: true,
       },
       {
         file: 'fsi-app/scripts/lib/is-main-fixture.mjs',
@@ -900,6 +914,7 @@ export const LEGACY_ALLOWLIST = [
           'test-only importer does not satisfy F25\'s production-importer bar, but this file is never meant ' +
           'to gain one: its entire purpose is being invoked as a separate process by the test.',
         reviewByPhase: 'n/a, permanent spawn fixture for a live regression test; re-review only if the test is deleted or the fixture\'s role changes',
+        permanent: true,
       },
       // 'scripts/_wave-alpha/backfill-canonical-keys.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED
       // — migration 200's canonical_instrument_key backfill applied live 2026-07-11 (wave-alpha; RD-5,
@@ -1101,6 +1116,7 @@ export const LEGACY_ALLOWLIST = [
       'production-importer count. Grows new chain shapes as new writer tests need them; deleting it ' +
       'would mean re-inlining the same fake per test file.',
     reviewByPhase: 'n/a: permanent shared test double; re-review only if every importing test is deleted or a real production caller appears (which would itself be a design smell for a test fake)',
+    permanent: true,
   },
 
   // Lane W10-ActionCard-a's two entries for action-card-smoke.mjs / section-index-smoke.mjs are
@@ -1129,6 +1145,7 @@ export const LEGACY_ALLOWLIST = [
       'workflow dispatch root while the tools-before-data hold is in force, wiring it would itself be ' +
       'a live-data-adjacent scheduling decision this lane is not authorized to make.',
     reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
+    reviewBy: '2026-12-31',
   },
 
   // Lane ETS-PROXY (2026-09-28, decisions 1/2 of 2026-09-24/25, build-plan-2026-09-25 workstream 11).
@@ -1148,6 +1165,7 @@ export const LEGACY_ALLOWLIST = [
       'carbon-cost-per-feu.mjs integration proof), deliberately not wired into any workflow dispatch root ' +
       'while the tools-before-data hold is in force.',
     reviewByPhase: 'R14 lift ruling (operator/coordinator): wire a dry-mode-only producers.yml step first, then a separate reviewed change flips ENABLED and adds the real --apply path',
+    reviewBy: '2026-12-31',
   },
 ];
 
@@ -1299,7 +1317,7 @@ export function findUnimported(scope, importers, manifest, seeds = null, exempt 
 /**
  * Pure comparator. Returns an array of message strings ([] = pass).
  */
-export function auditLiveness(unimported, scope, allowed = ALLOWED, fileExists = () => true, latestWave = null) {
+export function auditLiveness(unimported, scope, allowed = ALLOWED, fileExists = () => true, now = null) {
   const problems = [];
   const unimportedSet = new Set(unimported);
   const scopeSet = new Set(scope);
@@ -1335,27 +1353,26 @@ export function auditLiveness(unimported, scope, allowed = ALLOWED, fileExists =
           `F15/F22/F24. An entry with no reason is a permanent exemption wearing a temporary label.`,
       );
     }
-    // W7.1: an entry that carries an expiry (a train/wave number) must also carry a disposition, and reds
-    // once the latest landed train reaches or passes it — the ratchet that keeps a "temporary" exemption
-    // from becoming permanent by nobody ever coming back to it (plan §W7.1: "the check fails when an
-    // allowlisted module's expiry passes").
-    if (entry.expiry !== undefined) {
-      const kind = entry.disposition && entry.disposition.kind;
-      if (!['wire', 'delete', 'one-shot'].includes(kind) || !entry.disposition.detail) {
-        problems.push(
-          `ALLOWLIST ENTRY WITH EXPIRY BUT NO DISPOSITION — "${entry.file}" carries an expiry (wave${entry.expiry}) ` +
-            `but no valid disposition ({kind: 'wire'|'delete'|'one-shot', detail}). An expiry without a stated plan ` +
-            `is a deadline nobody can act on.`,
-        );
-      }
-      if (latestWave !== null && latestWave >= entry.expiry) {
-        problems.push(
-          `ALLOWLIST ENTRY EXPIRED — "${entry.file}"'s expiry (wave${entry.expiry}) has passed (latest landed: ` +
-            `wave${latestWave}). Disposition was ${kind ?? 'MISSING'} (${(entry.disposition && entry.disposition.detail) ?? 'n/a'}). ` +
-            `Wire it, delete it, or grant a new expiry with a fresh reason — an expiry that nobody returns to is a ` +
-            `permanent exemption wearing a temporary label, exactly what the expiry field exists to prevent.`,
-        );
-      }
+    // RULES-X-2 (X13, 2026-10-09): the expiry oracle is the closure ledger clock (closure-gate ledgerClock: the
+    // committed harness ledger export's capturedAt), the clock GATE-8 moved NEVER-RUN and STALE-NEXT onto. The
+    // frozen waveN counter it replaced had not advanced since 2026-09-11, and in the fitness job's shallow checkout
+    // it was null, so no entry could ever expire. An entry carries `reviewBy` (an ISO date) and reds once the clock
+    // reaches it; `permanent: true` is the one alternative and needs the reason and re-review trigger every entry
+    // already carries. No date and no permanent flag is itself red: an undated exemption is permanent in effect.
+    if (entry.permanent === true) continue;
+    if (!entry.reviewBy || !/^\d{4}-\d{2}-\d{2}$/.test(entry.reviewBy) || Number.isNaN(Date.parse(entry.reviewBy))) {
+      problems.push(
+        `ALLOWLIST ENTRY WITHOUT A REVIEW DATE: "${entry.file}" must carry reviewBy (an ISO date, YYYY-MM-DD) or ` +
+          `permanent: true. An exemption with no date is a deadline nobody can act on.`,
+      );
+      continue;
+    }
+    if (now instanceof Date && now.getTime() >= Date.parse(entry.reviewBy)) {
+      problems.push(
+        `ALLOWLIST ENTRY EXPIRED: "${entry.file}"'s reviewBy (${entry.reviewBy}) has passed (closure ledger clock: ` +
+          `${now.toISOString().slice(0, 10)}). Review was "${entry.reviewByPhase}". Wire it, delete it, or grant a new date ` +
+          `with a fresh reason: an exemption that nobody returns to is a permanent exemption wearing a temporary label.`,
+      );
     }
   }
 
@@ -1408,8 +1425,8 @@ export const fitnessFunction = {
     // to the liveness rule, so what they import is imported).
     const seeds = new Set([...dispatchRoots, ...files.filter((f) => !scopeSet.has(f) && !isTestFile(f))]);
     const unimported = findUnimported(scope, importers, manifest, seeds, new Set(ALLOWED.keys()));
-    const latestWave = latestTrainWave(root);
-    const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)), latestWave);
+    const { now } = ledgerClock(readHarnessLedgerExport(root));
+    const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)), now);
     if (problems.length === 0) return PASS;
     return problems.map((msg) => violation(1, msg));
   },

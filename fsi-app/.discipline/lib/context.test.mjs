@@ -575,3 +575,73 @@ test('ENGINE-FIX-1: a line no commit ever removed is not credited, and a clean d
     assert.equal(introducedMatches(info, hasGlyph).length, 1);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// RULES-X-2 (X11): rule 022 refused a rename plus edit of a glyph-bearing line when git did not pair the rename
+// (a small file below the similarity threshold arrives as a delete plus an add). The moved-line pool is
+// range-wide: an added line that is an edit of a glyph line removed ANYWHERE in the same diff is that edit.
+test('X11: delete plus add of a small file with the glyph line edited is an edit, not an introduction (fixture)', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'docs/old-name.md', status: 'D' }, { path: 'docs/new-name.md', status: 'A' }],
+    changes: [
+      { path: 'docs/old-name.md', status: 'D', removed: ['# Title', `the loader ${EM} reads config`, 'tail'] },
+      { path: 'docs/new-name.md', status: 'A', added: ['# Other', `the loader ${EM} reads the config file`, 'unrelated'] },
+    ],
+  });
+  assert.equal(introducedMatches(ctx.introducedLines('docs/new-name.md'), hasGlyph).length, 0);
+  assert.equal(rule022.check(ctx).status, 'PASS');
+});
+
+test('X11 attack: a NEW glyph line beside the same delete plus add still fails', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'docs/old-name.md', status: 'D' }, { path: 'docs/new-name.md', status: 'A' }],
+    changes: [
+      { path: 'docs/old-name.md', status: 'D', removed: ['# Title', `the loader ${EM} reads config`, 'tail'] },
+      { path: 'docs/new-name.md', status: 'A', added: ['# Other', `the loader ${EM} reads the config file`, `brand new aside ${EM} about caching policy`] },
+    ],
+  });
+  assert.equal(introducedMatches(ctx.introducedLines('docs/new-name.md'), hasGlyph).length, 1);
+  assert.equal(rule022.check(ctx).status, 'FAIL');
+});
+
+test('X11 attack: a glyph line similar to a removed line that carried NO glyph is still an introduction', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'docs/old-name.md', status: 'D' }, { path: 'docs/new-name.md', status: 'A' }],
+    changes: [
+      { path: 'docs/old-name.md', status: 'D', removed: ['the loader reads config'] },
+      { path: 'docs/new-name.md', status: 'A', added: [`the loader ${EM} reads the config file`] },
+    ],
+  });
+  assert.equal(introducedMatches(ctx.introducedLines('docs/new-name.md'), hasGlyph).length, 1);
+});
+
+test('X11 attack: one removed glyph line excuses ONE edited line, not two', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'docs/old-name.md', status: 'D' }, { path: 'docs/new-name.md', status: 'A' }],
+    changes: [
+      { path: 'docs/old-name.md', status: 'D', removed: [`the loader ${EM} reads config`] },
+      { path: 'docs/new-name.md', status: 'A', added: [`the loader ${EM} reads the config file`, `the loader ${EM} reads the config tree`] },
+    ],
+  });
+  assert.equal(introducedMatches(ctx.introducedLines('docs/new-name.md'), hasGlyph).length, 1);
+});
+
+test('X11: the same shape through real git (7-line file, rename undetected) passes; a new glyph line fails', () => {
+  const dir = repo({
+    'old-name.md': `a1\nb2\nc3\nthe loader ${EM} reads config\nd4\ne5\nf6\n`,
+  });
+  try {
+    sh(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    sh(dir, ['rm', '-q', 'old-name.md']);
+    put(dir, { 'new-name.md': `p1\nq2\nr3\nthe loader ${EM} reads the config file\ns4\nt5\nu6\n` });
+    sh(dir, ['add', '-A']);
+    const info = stagedContext(dir).introducedLines('new-name.md');
+    assert.equal(introducedMatches(info, hasGlyph).length, 0);
+    put(dir, { 'new-name.md': `p1\nq2\nr3\nthe loader ${EM} reads the config file\ns4\nbrand new aside ${EM} about caching\nu6\n` });
+    sh(dir, ['add', '-A']);
+    assert.equal(introducedMatches(stagedContext(dir).introducedLines('new-name.md'), hasGlyph).length, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

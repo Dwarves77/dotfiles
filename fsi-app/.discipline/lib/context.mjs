@@ -567,6 +567,7 @@ function buildIntroduced(parsed) {
   // Analysis contract line in a skill split) is a move, not a new line. Inside one file the pairing stays the edit
   // it reads as (context.range.test.mjs: a glyph relocated by an unlucky diff alignment is still an introduction).
   const pairedPool = new Map();
+  const poolText = new Map(); // the raw text of each pooled removal, by the same key (the edit pass below)
   for (const file of parsed.files) {
     const pairs = [];
     for (const hunk of file.hunks) {
@@ -584,6 +585,7 @@ function buildIntroduced(parsed) {
           return;
         }
         pool.set(k, (pool.get(k) || 0) + 1);
+        (poolText.get(k) || poolText.set(k, []).get(k)).push(r);
       });
       hunk.added.forEach((a, i) => {
         pairs.push({ added: a, removed: idx[i] === null ? null : hunk.removed[idx[i]], line: hunk.newStart + i, moved: false });
@@ -603,7 +605,40 @@ function buildIntroduced(parsed) {
       if (at >= 0) { srcs.splice(at, 1); p.moved = true; }
     }
   }
+  pairAcrossDiff(result, pool, poolText);
   return result;
+}
+
+// RULES-X-2 (X11, 2026-10-09): the pairing above is per hunk, so a rename git does not detect (a small file under
+// the similarity threshold arrives as a delete plus an add) left the edited line unpaired and the glyph it already
+// carried read as new. The removal pool is range-wide, across every hunk and every file: an added line no hunk
+// paired and no identical removal explains takes the removed line it most resembles anywhere in the diff
+// (token similarity at or above EDIT_SIMILARITY, best score first, one removal per added line), so it is judged as
+// the edit it is. A removal that carried no pattern still charges the new line, and surplus tokens are still
+// charged by introducedMatches' extract argument, so a genuinely new line is introduced as before.
+function pairAcrossDiff(result, pool, poolText) {
+  const free = [];
+  for (const [k, n] of pool) {
+    if (n > 0) (poolText.get(k) || []).slice(0, n).forEach((raw) => free.push({ raw, bag: tokenBag(raw), used: false }));
+  }
+  const open = [];
+  for (const info of result.values()) {
+    for (const p of info.pairs) if (p.removed === null && !p.moved && lineKey(p.added)) open.push({ p, bag: tokenBag(p.added) });
+  }
+  if (free.length === 0 || open.length === 0 || free.length * open.length > SIMILARITY_CELL_LIMIT) return;
+  const cells = [];
+  open.forEach((o, i) => free.forEach((f, j) => {
+    const s = similarity(o.bag, f.bag);
+    if (s >= EDIT_SIMILARITY) cells.push({ i, j, s });
+  }));
+  cells.sort((x, y) => y.s - x.s);
+  const taken = new Set();
+  for (const c of cells) {
+    if (taken.has(c.i) || free[c.j].used) continue;
+    taken.add(c.i);
+    free[c.j].used = true;
+    open[c.i].p.removed = free[c.j].raw;
+  }
 }
 
 /** The pairs of `info` (from ctx.introducedLines) that INTRODUCE the pattern: the added line matches
