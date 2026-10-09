@@ -7,6 +7,8 @@ coord/flag1-dispositions had not merged at start, so the data-defect rows came f
 
 ## Accomplished
 
+Four BUILD DEFECT components fixed and seven DISPO-1 data-defect rows closed or refuted with evidence; every fact below was confirmed by the run named beside it.
+
 ### Build defects (the spec row is the test; `npm run audit:design` run once at the end, results.json and the AUDIT document committed as generated)
 
 | Row (audit id) | Before | After | Test, red then green |
