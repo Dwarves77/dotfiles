@@ -1133,3 +1133,66 @@ test('GATE-9 attack: removing the shell default from the rendering guard job, or
   assert.equal(containerShellProblems('x.yml', synthetic).length, 1);
   assert.deepEqual(containerShellProblems('x.yml', synthetic.replace('    container:', '    defaults:\n      run:\n        shell: bash\n    container:')), []);
 });
+
+// ── CI-FIX-1 (RULES-X-1 item 11, 2026-10-09): the required-check context names are pinned ───────────────────
+// Branch protection (strict) requires these eight contexts by their exact job `name:` string. A job renamed here
+// silently drops out of branch protection: the old context is never reported, so it is neither green nor red, and
+// the merge button does not know. The names are pinned, so a rename is a red test in the same PR. The names
+// carry one dash character each, so the constant below is the one disclosed place it appears.
+const EM = '\u2014'; // glyph:verbatim (the required job names contain the character)
+const REQUIRED_CONTEXTS = [
+  'Discipline engine unit tests',
+  'Fitness functions (application-layer enforcement)',
+  'Validate commits against discipline rules',
+  `HARD ${EM} detector discrimination + SSOT units`,
+  `Consistency layer (C3/C4/C5 reality ${EM} always-on backstop)`,
+  `Rendering guard (overflow / placeholder / hydration ${EM} real-browser layout)`,
+  'Migration proof (apply on a local stack)',
+  'Design audit (build vs design, value-level, soft)',
+];
+
+/** Every job-level `name:` value across a set of workflow texts: [{ file, job, name }]. */
+function jobNames(workflows) {
+  const out = [];
+  for (const [file, text] of Object.entries(workflows)) {
+    const lines = text.split(/\r?\n/);
+    for (const job of extractJobs(lines)) {
+      for (const l of lines.slice(job.startLine + 1, job.endLine + 1)) {
+        const m = l.match(/^ {4}name:\s*(.+?)\s*$/);
+        if (m) {
+          out.push({ file, job: job.id, name: m[1].replace(/^["']|["']$/g, '') });
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function readWorkflows() {
+  const dir = join(REPO, '.github', 'workflows');
+  const out = {};
+  for (const f of readdirSync(dir).filter((n) => /\.ya?ml$/.test(n))) out[f] = readFileSync(join(dir, f), 'utf8');
+  return out;
+}
+
+function missingRequired(workflows) {
+  const names = jobNames(workflows).map((j) => j.name);
+  return REQUIRED_CONTEXTS.filter((c) => names.filter((n) => n === c).length !== 1);
+}
+
+test('CI-FIX-1: every required status check context is the job name of exactly one job in .github/workflows', () => {
+  assert.equal(REQUIRED_CONTEXTS.length, 8);
+  assert.deepEqual(missingRequired(readWorkflows()), []);
+});
+
+test('CI-FIX-1 attack: renaming one required job, or defining its name twice, is red', () => {
+  const real = readWorkflows();
+  const renamed = { ...real, 'discipline.yml': real['discipline.yml'].replace('name: Rendering guard (overflow', 'name: Rendering guard v2 (overflow') };
+  assert.notEqual(renamed['discipline.yml'], real['discipline.yml']);
+  assert.deepEqual(missingRequired(renamed), [REQUIRED_CONTEXTS[5]]);
+  const migration = { ...real, 'migration-proof.yml': real['migration-proof.yml'].replace('name: Migration proof (apply on a local stack)', 'name: Migration proof') };
+  assert.deepEqual(missingRequired(migration), [REQUIRED_CONTEXTS[6]]);
+  const duplicated = { ...real, 'copy.yml': 'name: Copy\non:\n  workflow_dispatch: {}\njobs:\n  x:\n    name: Discipline engine unit tests\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n' };
+  assert.deepEqual(missingRequired(duplicated), [REQUIRED_CONTEXTS[0]]);
+});

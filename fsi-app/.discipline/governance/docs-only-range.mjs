@@ -30,6 +30,13 @@
 //      `.ts`, `.sh` or `.yml` file there is run by something, and a `*.test.*` file is a test whatever
 //      directory holds it.
 //
+// CI-FIX-1 (RULES-X-1 item 10, 2026-10-09): a docs file that a test or a gate READS is governing too, and that
+// list is DERIVED here, never typed. extractReadDocPaths() scans the tracked tests and governance modules for the
+// docs-like paths they read (a path literal on a read, exists, resolve or join line, a named path constant, or a
+// join()/resolve() of segments), skipping comment lines and plain lists of names, and isGoverningDocPath()
+// consults the result. A false "governing" costs one heavy run, while a false "docs-only" skips the gate that
+// reads the file (an edit to a read doc that classed as docs-only and then failed the suite it had skipped).
+//
 // CLI: node docs-only-range.mjs --range=<git-range>
 //   exit 0  = every changed file in the range is docs-only (see isDocsOnlyPath)
 //   exit 1  = at least one changed file is outside that set (not docs-only) -- including an EMPTY diff,
@@ -39,6 +46,7 @@
 // ("docs-only: true" / "docs-only: false") so a caller can also read it instead of relying on exit code.
 
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { posix } from 'node:path';
 import { getRepoRoot } from '../lib/context.mjs';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
@@ -65,6 +73,72 @@ const GOVERNING_PATTERNS = [
   /(?:^|\/)(?:brief-)?common[^/]*\.md$/i,
 ];
 
+/** A path literal naming a docs-like file: a quoted, slash-bearing path ending .md, .json or .txt. */
+const PATH_LITERAL_RE = /['"`]((?:\.\/)?[\w.-]+(?:\/[\w.-]+)+\.(?:md|json|txt))['"`]/g;
+/** A join()/resolve() call; its quoted arguments from the first docs-rooted segment on form one path. */
+const JOIN_CALL_RE = /\b(?:join|resolve)\(([^()]*)\)/g;
+/** A line that reads, opens or resolves a path, or names one as a constant: the literal on it is a dependency. */
+const READ_CONTEXT_RE = /(?:read|exist|stat|resolve|join|open|load|require|import)\w*\s*\(/i;
+const NAMED_PATH_CONST_RE = /^(?:export\s+)?const\s+[A-Z][A-Z0-9_]*\s*=\s*['"`]/;
+const QUOTED_ARG_RE =/['"`]([^'"`]*)['"`]/g;
+const DOCS_ROOT_RE = /^(?:docs|fsi-app)(?:\/|$)/;
+const DOCS_FILE_RE = /\.(?:md|json|txt)$/;
+/** The scan's own files are excluded: their fixture literals name paths the tests assert are docs-only. */
+const SCAN_SELF_RE = /(?:^|\/)docs-only-range(?:\.test)?\.mjs$/;
+
+/**
+ * The docs-like paths a set of sources names. PURE.
+ * @param {{path: string, text: string}[]} sources
+ * @returns {Set<string>} repo-relative, forward-slash paths
+ */
+export function extractReadDocPaths(sources) {
+  const out = new Set();
+  for (const src of sources ?? []) {
+    if (SCAN_SELF_RE.test(String(src?.path ?? '').replace(/\\/g, '/'))) continue;
+    for (const line of String(src?.text ?? '').split('\n')) {
+      const t = line.trim();
+      if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) continue;
+      if (READ_CONTEXT_RE.test(line) || NAMED_PATH_CONST_RE.test(t)) {
+        for (const m of line.matchAll(PATH_LITERAL_RE)) out.add(m[1].replace(/^\.\//, ''));
+      }
+      for (const call of line.matchAll(JOIN_CALL_RE)) {
+        const args = [...call[1].matchAll(QUOTED_ARG_RE)].map((a) => a[1]);
+        const at = args.findIndex((a) => DOCS_ROOT_RE.test(a));
+        if (at < 0) continue;
+        const joined = args.slice(at).join('/').replace(/\/+/g, '/');
+        if (joined.includes('/') && DOCS_FILE_RE.test(joined)) out.add(joined);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Scan the repo's tracked tests and governance modules (fsi-app/**\/*.test.mjs, *.npmtest.mjs and every .mjs under
+ * fsi-app/.discipline/) for the docs paths they name.
+ * @param {string} repoRoot
+ * @returns {Set<string>}
+ */
+export function loadReadDocPaths(repoRoot) {
+  const listed = execFileSync('git', ['ls-files', '-z', '--', 'fsi-app'], { cwd: repoRoot, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const files = listed.split('\0').filter((f) => /\.mjs$/.test(f) && (/\.(?:npm)?test\.mjs$/.test(f) || f.startsWith('fsi-app/.discipline/')));
+  const sources = [];
+  for (const f of files) {
+    try {
+      sources.push({ path: f, text: readFileSync(`${repoRoot}/${f}`, 'utf8') });
+    } catch {
+      // a file listed but absent from the working tree (deleted, uncommitted) names nothing
+    }
+  }
+  return extractReadDocPaths(sources);
+}
+
+let readDocCache = null;
+function defaultReadDocPaths() {
+  if (!readDocCache) readDocCache = loadReadDocPaths(getRepoRoot());
+  return readDocCache;
+}
+
 function normalize(path) {
   const p = String(path ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '');
   if (!p) return '';
@@ -73,22 +147,25 @@ function normalize(path) {
 
 /**
  * @param {string} path repo-relative path (either slash convention)
+ * @param {Set<string>} [readDocs] the docs paths tests and gates read; derived from the repo when omitted
  * @returns {boolean} true when the path is a governing docs file: a heavy gate reads it, so it is never docs-only
  */
-export function isGoverningDocPath(path) {
+export function isGoverningDocPath(path, readDocs) {
   const p = normalize(path);
   if (!p) return false;
-  return GOVERNING_EXACT.has(p) || GOVERNING_PATTERNS.some((re) => re.test(p));
+  if (GOVERNING_EXACT.has(p) || GOVERNING_PATTERNS.some((re) => re.test(p))) return true;
+  return (readDocs ?? defaultReadDocPaths()).has(p);
 }
 
 /**
  * @param {string} path repo-relative path (either slash convention)
+ * @param {Set<string>} [readDocs] see isGoverningDocPath
  * @returns {boolean}
  */
-export function isDocsOnlyPath(path) {
+export function isDocsOnlyPath(path, readDocs) {
   const p = normalize(path);
   if (!p) return false;
-  if (isGoverningDocPath(p)) return false;
+  if (isGoverningDocPath(p, readDocs)) return false;
   // docs/ holds design handoff scripts (.js, .jsx) that no runner executes; any other code-like file is code.
   const designScript = p.startsWith('docs/') && /\.jsx?$/i.test(p);
   if (TEST_FILE_RE.test(p) || (CODE_EXTENSION_RE.test(p) && !designScript)) return false;
@@ -99,12 +176,13 @@ export function isDocsOnlyPath(path) {
 
 /**
  * @param {string[]} files repo-relative paths
+ * @param {Set<string>} [readDocs] see isGoverningDocPath
  * @returns {boolean} true only when the list is non-empty AND every entry is docs-only
  */
-export function isDocsOnlyDiff(files) {
+export function isDocsOnlyDiff(files, readDocs) {
   const list = (files ?? []).map((f) => String(f ?? '').trim()).filter(Boolean);
   if (list.length === 0) return false;
-  return list.every(isDocsOnlyPath);
+  return list.every((f) => isDocsOnlyPath(f, readDocs));
 }
 
 /**
@@ -156,7 +234,13 @@ function main() {
     console.error(`docs-only-range: git diff failed for range "${range}": ${err.message}`);
     process.exit(2);
   }
-  const docsOnly = isDocsOnlyDiff(files);
+  let docsOnly;
+  try {
+    docsOnly = isDocsOnlyDiff(files, loadReadDocPaths(repoRoot));
+  } catch (err) {
+    console.error(`docs-only-range: scanning the tests and gates for the docs they read failed: ${err.message}`);
+    process.exit(2);
+  }
   console.error(`docs-only-range: ${files.length} changed file(s) in ${range}:`);
   for (const f of files) console.error(`  ${f}`);
   console.log(`docs-only: ${docsOnly}`);
