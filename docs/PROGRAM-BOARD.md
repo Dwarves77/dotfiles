@@ -211,6 +211,7 @@ Where the operator says "T10 Units 1-5" the repo calls it **"Autonomous Disposit
 |  -  | **Snapshot-first grounding rebuild** | **CLOSED** | #295 `19c6b33`, #296 `11c3864`, #297 `ae9a85d` (ADR-013), #298 `e3b3a74` | grounding-acquisition only; source-tooling fetchers OUT of scope (tech-debt 2026-07-13). Phase 3 CLOSED |
 |  -  | **Community pre-adoption (C-blocks)** | mostly DONE; C9 removed | see section 4 |  -  |
 |  -  | **Four-questions rebuild** (2026-09-25) | OPEN (workstreams below) | [docs/plans/build-plan-2026-09-25.md](./plans/build-plan-2026-09-25.md); rulings [2026-09-25-coordinator-close.md](./ops/session-log.d/2026-09-25-coordinator-close.md) | see section 1a; #796-#799 CLOSED today |
+|  -  | **Remaining-build register dispositions** (2026-10-08, lane DISPO-3) | DONE (this PR) | register landed as [docs/audits/remaining-build-register-2026-10-06.md](./audits/remaining-build-register-2026-10-06.md); 47 findings dispositioned [CONFIRMED: `audit-finding-status.mjs --all` reports 0]; session log [2026-10-08-dispo3-remaining-build-register.md](./ops/session-log.d/2026-10-08-dispo3-remaining-build-register.md) | open legs are owned by DORMANT-1, PLAN-2, DFIX-1, DOCS-5, RULES-X-1, DEAD-1c and MIG-HIST-2 by token in the register |
 
 ---
 
