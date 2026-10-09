@@ -116,3 +116,36 @@ test("RG-3 attacks: every way of neutering the guard's exit status is caught", (
     assert.notDeepEqual(contractProblems(src), [], "not caught: " + name);
   }
 });
+
+// ── DFIX-2 (register 21, p1 116, p2 108): the row guard measures every layout's own width ──────────────────────
+// The list row has four layouts (phone, stacked 768 to 1023, mid 1024 to 1279, wide 1280+, PAR-1), and every
+// UX smoke spec runs at UX_VIEWPORTS. A list that drops 768 or 1024 would let the stacked and mid layouts go
+// unmeasured again (the gap the register recorded when only 375 and 1280 were measured). ux-harness.mjs needs
+// Playwright's esbuild, so this reads it as text, like the exit-status contract above.
+const HARNESS = readFileSync(join(HERE, "smoke", "ux-harness.mjs"), "utf8");
+
+/** The widths UX_VIEWPORTS resolves to, read from a harness source: each `NAME = Object.freeze({ width: N` constant
+ *  and the names listed in the UX_VIEWPORTS array. null when either is missing. */
+function uxViewportWidths(src) {
+  const widths = new Map();
+  for (const m of src.matchAll(/export const (\w+_VIEWPORT) = Object\.freeze\(\{\s*width:\s*(\d+)/g)) widths.set(m[1], Number(m[2]));
+  const list = /export const UX_VIEWPORTS = Object\.freeze\(\[([^\]]*)\]\)/.exec(src);
+  if (!list) return null;
+  const names = list[1].split(",").map((x) => x.trim()).filter(Boolean);
+  if (names.some((n) => !widths.has(n))) return null;
+  return names.map((n) => widths.get(n));
+}
+
+test("DFIX-2: the row guard's UX viewports are 375, 768, 1024 and 1280 (one per row layout)", () => {
+  assert.deepEqual(uxViewportWidths(HARNESS), [375, 768, 1024, 1280]);
+});
+
+test("DFIX-2 attacks: dropping the stacked or mid width from UX_VIEWPORTS is caught", () => {
+  const dropTablet = HARNESS.replace("[MOBILE_VIEWPORT, TABLET_VIEWPORT, MID_VIEWPORT, DESKTOP_VIEWPORT]", "[MOBILE_VIEWPORT, MID_VIEWPORT, DESKTOP_VIEWPORT]");
+  const dropMid = HARNESS.replace("[MOBILE_VIEWPORT, TABLET_VIEWPORT, MID_VIEWPORT, DESKTOP_VIEWPORT]", "[MOBILE_VIEWPORT, TABLET_VIEWPORT, DESKTOP_VIEWPORT]");
+  const retype = HARNESS.replace(/TABLET_VIEWPORT = Object\.freeze\(\{ width: 768/, "TABLET_VIEWPORT = Object.freeze({ width: 700");
+  assert.notDeepEqual(uxViewportWidths(dropTablet), [375, 768, 1024, 1280]);
+  assert.notDeepEqual(uxViewportWidths(dropMid), [375, 768, 1024, 1280]);
+  assert.notDeepEqual(uxViewportWidths(retype), [375, 768, 1024, 1280]);
+  assert.equal(uxViewportWidths("export const UX_VIEWPORTS = nothing"), null);
+});

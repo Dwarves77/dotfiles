@@ -48,6 +48,7 @@ import { institutionKey } from "../lib/institution-key.mjs";
 import { OPEN_STATUSES } from "./question-answers/data.mjs";
 import { ensureCensusRow } from "../connections/ratify-flag-to-census.mjs";
 import { loadHostVerdicts } from "../maintenance/host-verdicts/load-host-verdicts.mjs";
+import { rateSourceByInstitutionClass } from "../lib/rate-source-by-class.mjs";
 import { validateNeedsFile, needKindOf, NEEDS_SEARCH_SCHEMA_VERSION } from "./needs-search/schema.mjs";
 import { RESOLVED_BY, loadFlagsByIds, loadCorpus, lineageTargetsByFlag, needFromFlag, buildAppliedNote, parseAppliedNote } from "./needs-search/data.mjs";
 import { emitNeedsSearchArtifact } from "./needs-search/artifact.mjs";
@@ -156,7 +157,19 @@ export async function applyNeedUrls({ json, execute, deps, now = () => new Date(
     }
 
     try {
-      const reg = await deps.registerSource({ url: entry.url, name: entry.institution, base_tier: plan.tier }, { cite: CITE });
+      // The shared rate-then-register step (scripts/lib/rate-source-by-class.mjs), not the class table composed
+      // here: the tier is read through the one precedence (host-only rules, then verdicts, then the residue
+      // ruling), the committed verdicts plus this entry's own accompanying verdict, and the registry write is the
+      // injected registerSource. The plan's tier (schema.mjs, same table) must agree; a disagreement is a refusal.
+      const verdicts = new Map(deps.committedVerdicts ?? []);
+      if (plan.tier_source === "accompanying_host_verdict" && plan.verdict) verdicts.set(plan.host, { class: plan.verdict.class, batch: "needs-search" });
+      const rated = await rateSourceByInstitutionClass(
+        { url: entry.url, name: entry.institution },
+        { mode: "apply", registerSourceFn: deps.registerSource, cite: CITE, hostVerdicts: verdicts },
+      );
+      if (!rated.ok) throw new Error(`rating: ${rated.reason}`);
+      if (rated.tier !== plan.tier) throw new Error(`rating: the shared rating step placed ${plan.host} at T${rated.tier}, the validated plan at T${plan.tier}`);
+      const reg = { source_id: rated.source_id, created: rated.created };
       if (reg.created) result.report.sources_registered += 1; else result.report.sources_existing += 1;
 
       let outputRef;

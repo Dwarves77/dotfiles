@@ -95,6 +95,26 @@ export interface RegisteredCitation {
   opinion_tier?: number | null;
 }
 
+/** How many exact-host rows the duplicate check reads (the first exact-host row is enough; the rest is slack for
+ *  the in-code re-check below). */
+const EXACT_HOST_LOOKUP_LIMIT = 25;
+
+/**
+ * PostgREST `or` filter selecting the registered urls whose host is exactly `hostKey` (a hostOf value: lower-case,
+ * no leading www), with or without www, over http or https, as `scheme://host/...` or the bare `scheme://host`.
+ * A longer host that merely contains `hostKey` ("notexample.org") cannot match: after the host comes `/` or the end.
+ * PURE; exported for its test.
+ */
+export function exactHostUrlFilter(hostKey: string): string {
+  const out: string[] = [];
+  for (const scheme of ["https", "http"]) {
+    for (const prefix of ["", "www."]) {
+      out.push(`url.ilike.${scheme}://${prefix}${hostKey}/*`, `url.ilike.${scheme}://${prefix}${hostKey}`);
+    }
+  }
+  return out.join(",");
+}
+
 /** Register cited sources: a fetchable source becomes a `sources` row (so it can be cited and
  *  accumulate credibility); a blocked one becomes a `provisional_sources` candidate carrying its
  *  rejection_reason. Returns the resolved source_id per input (null for candidates). Idempotent
@@ -128,7 +148,7 @@ export async function registerCitedSources(
      *  the SC-13 class-table tier (`classTierForHost`) as a `host_class_table` opinion when it disagrees
      *  with the source's base_tier. Deterministic, $0; never touches a tier (opinions are evidence only).
      *  Skipped for a row whose tier_override is set (an admin ruling is not re-litigated by a machine
-     *  opinion) and for a substring-only ilike match whose host differs from the cited host. */
+     *  opinion). The existing-source lookup is an exact canonical-host match (exactHostUrlFilter). */
     classTableOpinions?: boolean;
     /** The source whose brief produced these citations / the item. Carried onto opinion rows. */
     opiningSourceId?: string | null;
@@ -141,11 +161,23 @@ export async function registerCitedSources(
   const out: RegisteredCitation[] = [];
   for (const cs of cited) {
     let host = ""; try { host = new URL(cs.url).host; } catch { /* */ }
-    // NOTE (defect, not fixed here): `ilike('%host%')` is a SUBSTRING match — a host that is a
-    // substring of an unrelated registered URL is a false-duplicate risk. Left as-is per scope;
-    // only the swallowed error is hardened here.
-    const { data: existing, error: existingErr } = await supabase.from("sources").select("id, url, base_tier, tier_override").ilike("url", `%${host}%`).limit(1);
-    if (existingErr) console.warn(`[source-growth] dup-source check failed for ${cs.url} (host=${host}): ${existingErr.message}`);
+    // EXACT-HOST LOOKUP (lane DFIX-2, s1a-source-register 21). The registry identity of a cited url is its
+    // canonical host (hostOf: lower-cased, a leading www stripped, the same host registerSource dedups by).
+    // The lookup used to be `ilike('%host%')` with limit(1): a SUBSTRING match, so a host contained in an
+    // unrelated registered url ("example.org" inside "notexample.org.evil.net/...") counted as already
+    // registered and the citation took that other source's id. The database now narrows to urls that START
+    // with the scheme and this exact host (exactHostUrlFilter) and the rows are re-checked against hostOf
+    // here, so a wildcard character in a host can never widen the match. A url with no parseable host
+    // matches nothing and falls through to registration/worklisting exactly as before.
+    const hostKey = hostOf(cs.url);
+    let existing: Array<{ id: string; url: string | null; base_tier: number | null; tier_override: number | null }> = [];
+    let existingErr: { message: string } | null = null;
+    if (hostKey) {
+      const res = await supabase.from("sources").select("id, url, base_tier, tier_override").or(exactHostUrlFilter(hostKey)).limit(EXACT_HOST_LOOKUP_LIMIT);
+      existingErr = res.error;
+      existing = ((res.data ?? []) as typeof existing).filter((r) => hostOf(r.url) === hostKey).slice(0, 1);
+    }
+    if (existingErr) console.warn(`[source-growth] dup-source check failed for ${cs.url} (host=${hostKey}): ${existingErr.message}`);
     if (existing && existing.length) {
       const targetId = existing[0].id;
       // Q3 TIER-OPINION PRESERVATION (migration 091): this is the writer 091 always intended but that

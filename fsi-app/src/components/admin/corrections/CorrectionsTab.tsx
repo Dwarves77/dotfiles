@@ -53,7 +53,7 @@ export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTa
     try {
       const out = loadAll
         ? await loadAll()
-        : ((await loadAllCorrections(createSupabaseBrowserClient(), fetcher)) as { rows: CorrectionData[]; unchecked: number });
+        : ((await loadAllCorrections(createSupabaseBrowserClient())) as { rows: CorrectionData[]; unchecked: number });
       setRows(out.rows);
       setUnchecked(out.unchecked);
       setLoad({ state: "ready" });

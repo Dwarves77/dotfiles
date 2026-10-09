@@ -1,22 +1,22 @@
-// load-all.mjs , the Corrections tab's read (lane G7-UI, 2026-10-06). The G7-CORR API lists corrections per item
-// only, so the tab reads the whole table through the existing platform-admin SELECT policy (migration 356, the
-// readers' own readAllCorrections) and takes the one thing only the API computes, "orphaned", from the contract's
-// own per-item list route, for just the items that hold an active fact correction. The client and the fetcher are
-// injected; nothing here constructs either.
-import { readAllCorrections, latestPerTarget } from "../../../lib/corrections/item-corrections.mjs";
-import { fetchAllByIdChunks } from "../../../lib/db/paginate.mjs";
-import { fetchItemCorrections } from "./model.mjs";
+// load-all.mjs , the Corrections tab's read (lane G7-UI, 2026-10-06; orphan check batched in lane DFIX-2). The
+// G7-CORR API lists corrections per item only, so the tab reads the whole table through the existing platform-admin
+// SELECT policy (migration 356, the readers' own readAllCorrections). "Orphaned" is the one thing the per-item API
+// computes (findOrphanedFactCorrections over the item's current claims); the tab computes it with the SAME function
+// over ONE batched read of the claims of every item that holds an active fact correction (chunked id lists, each
+// chunk paged to the end), instead of one API request per item (which hit the route's rate limit and needed a cap).
+// The client is injected; nothing here constructs one.
+import { readAllCorrections, latestPerTarget, findOrphanedFactCorrections } from "../../../lib/corrections/item-corrections.mjs";
+import { fetchAllByIdChunks, fetchAllRows } from "../../../lib/db/paginate.mjs";
 
-/** The per-item list route is rate limited (60 a minute); one call per item stays well inside it. */
-export const MAX_ORPHAN_CHECKS = 40;
+/** Items per claims read; one chunk is one `in` list, paged until a short page. */
+const CLAIM_CHUNK = 50;
 
 /**
  * @param {object} supabase a browser Supabase client (platform admin session)
- * @param {(url:string, init?:object)=>Promise<Response>} fetcher authedFetch in the app
  * @returns {Promise<{rows:Array<object>, unchecked:number}>} rows newest first; `unchecked` is how many items
- *   with an active fact correction were not asked about orphans (over the cap or the request failed)
+ *   with an active fact correction could not be asked about orphans (their claims read failed), 0 normally
  */
-export async function loadAllCorrections(supabase, fetcher) {
+export async function loadAllCorrections(supabase) {
   const raw = await readAllCorrections(supabase);
   const latestIds = new Set([...latestPerTarget(raw).values()].map((r) => r.id));
 
@@ -31,14 +31,23 @@ export async function loadAllCorrections(supabase, fetcher) {
 
   const factItems = [...new Set(raw.filter((r) => r.target_kind === "fact" && !r.revoked_at).map((r) => r.item_id))];
   const orphaned = new Set();
-  let unchecked = Math.max(0, factItems.length - MAX_ORPHAN_CHECKS);
-  for (const itemId of factItems.slice(0, MAX_ORPHAN_CHECKS)) {
-    const out = await fetchItemCorrections(fetcher, itemId);
-    if (!out.ok) {
-      unchecked += 1;
+  let unchecked = 0;
+  for (let i = 0; i < factItems.length; i += CLAIM_CHUNK) {
+    const slice = factItems.slice(i, i + CLAIM_CHUNK);
+    let claims;
+    try {
+      claims = await fetchAllRows((from, to) =>
+        supabase.from("section_claim_provenance").select("id, claim_text, intelligence_item_id").in("intelligence_item_id", slice).order("id").range(from, to),
+      );
+    } catch {
+      unchecked += slice.length; // counted and shown, never hidden; the list still loads
       continue;
     }
-    for (const c of out.corrections) if (c.orphaned) orphaned.add(c.id);
+    for (const itemId of slice) {
+      const itemClaims = claims.filter((c) => c.intelligence_item_id === itemId);
+      const itemRows = raw.filter((r) => r.item_id === itemId);
+      for (const c of findOrphanedFactCorrections(itemRows, itemClaims)) orphaned.add(c.id);
+    }
   }
 
   const rows = raw

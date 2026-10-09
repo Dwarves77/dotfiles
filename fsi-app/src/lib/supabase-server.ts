@@ -4564,6 +4564,8 @@ export type CrossPageAnalysis = {
    * the item. `inference_records` has RLS and no customer policy (migration 338), so this is a server read with the
    * service-role client, like every other guarded-table read of a detail page, with no API route. Every shape
    * decision is in the pure src/lib/detail/inference-view.mjs; null when there is nothing to show.
+   * Always null in the cached bundle fetchCrossPageForItem returns: the live value is read per request by
+   * fetchFreshInferencesForItem and laid over it (lane DFIX-2).
    */
   inferences: Awaited<ReturnType<typeof readCustomerInferences>>;
   /** The item's own stated intersection coupling (intelligence_items.intersection_summary), or null. */
@@ -4592,13 +4594,10 @@ export async function fetchCrossPageForItem(
       .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
       .maybeSingle();
     if (!self) return empty;
-    // Read beside the theme work, never throws (a failure shows no inferences, never an error).
-    const inferences = await readCustomerInferences(supabase, self.id, async (ids) =>
-      citedItemsWithHrefs(await readVerifiedItemsByIds(supabase, ids))
-    ).catch((e) => {
-      console.error("readCustomerInferences failed, showing no inferences:", e);
-      return null;
-    });
+    // Inferences are NOT read here (lane DFIX-2, register 18). This function runs inside the 300 s item-scoped
+    // cache entry, so an inference written or withdrawn would show up to five minutes late. They are read per
+    // request by fetchFreshInferencesForItem and laid over this bundle by loadDetailCore (deps.freshInferences).
+    const inferences: CrossPageAnalysis["inferences"] = null;
     const summary = typeof self.intersection_summary === "string" && self.intersection_summary.trim() ? self.intersection_summary.trim() : null;
     try {
       const { data: themes } = await supabase.from("connection_themes").select(THEME_COLUMNS);
@@ -4621,6 +4620,34 @@ export async function fetchCrossPageForItem(
   } catch (e) {
     console.error("fetchCrossPageForItem failed, showing nothing:", e);
     return empty;
+  }
+}
+
+/**
+ * The item's current, customer-visible inference records, read PER REQUEST (lane DFIX-2, register 18). Kept out of
+ * fetchCrossPageForItem because that runs inside the 300 s item-scoped cache entry, where a new inference would take
+ * up to five minutes to appear and a withdrawn one up to five minutes to leave. loadDetailCore calls this through
+ * deps.freshInferences after the cached bundle and overlays the result on crossPage.inferences. Same customer read
+ * gate as fetchCrossPageForItem (verified items only); never throws, a failed read shows no inferences.
+ */
+export async function fetchFreshInferencesForItem(
+  supabase: SupabaseClient,
+  itemUiId: string
+): Promise<CrossPageAnalysis["inferences"]> {
+  try {
+    const { data: self } = await supabase
+      .from("intelligence_items")
+      .select("id")
+      .eq(itemIdColumn(itemUiId), itemUiId)
+      .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
+      .maybeSingle();
+    if (!self) return null;
+    return await readCustomerInferences(supabase, self.id, async (ids) =>
+      citedItemsWithHrefs(await readVerifiedItemsByIds(supabase, ids))
+    );
+  } catch (e) {
+    console.error("fetchFreshInferencesForItem failed, showing no inferences:", e);
+    return null;
   }
 }
 

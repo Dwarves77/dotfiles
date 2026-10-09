@@ -18,6 +18,46 @@ test("removeClaimText removes every exact occurrence, tidies the gap, and report
   assert.equal(removeClaimText(undefined, "x").found, false);
 });
 
+test("removeClaimText (DFIX-2): the record-grade shape is found through whitespace runs, line wraps and escaped brackets", () => {
+  const claim = "[effective_date] The rule applies from 1 January 2026 (\"applies from 1 January 2026\")";
+  // 1. a doubled space and a wrapped line
+  const wrapped = removeClaimText("Intro.\n[effective_date]  The rule applies from 1 January\n2026 (\"applies from 1 January 2026\")\nOutro.", claim);
+  assert.equal(wrapped.found, true);
+  assert.equal(wrapped.text, "Intro.\n\nOutro.");
+  // 2. markdown-escaped brackets, CRLF line ends
+  const escaped = removeClaimText("Intro.\r\n\\[effective_date\\] The rule applies from 1 January 2026 (\"applies from 1 January 2026\")\r\nOutro.", claim);
+  assert.equal(escaped.found, true);
+  assert.ok(!escaped.text.includes("effective_date"));
+  assert.ok(escaped.text.includes("Intro.") && escaped.text.includes("Outro."));
+  // 3. a full_brief bullet: the bullet marker goes with the claim, no empty bullet is left
+  const bullet = removeClaimText("## Verbatim facts\n- [effective_date]  The rule applies from 1 January 2026 (\"applies from 1 January 2026\")\n- [other_slot] Kept.", claim);
+  assert.equal(bullet.found, true);
+  assert.equal(bullet.text, "## Verbatim facts\n\n- [other_slot] Kept.");
+});
+
+test("removeClaimText (DFIX-2): the tolerance is whitespace and brackets only, never a different word, number or order", () => {
+  const claim = "[fee] The fee is 40 EUR per tonne";
+  assert.equal(removeClaimText("[fee] The fee is 41 EUR per tonne", claim).found, false, "a different number");
+  assert.equal(removeClaimText("[fee] The fee is 40 EUR a tonne", claim).found, false, "a different word");
+  assert.equal(removeClaimText("per tonne The fee is 40 EUR [fee]", claim).found, false, "a different order");
+  assert.equal(removeClaimText("[fees] The fee is 40 EUR per tonne", claim).found, false, "a different slot key");
+  assert.equal(removeClaimText("The fee is 40 EUR per tonne", claim).found, false, "the slot marker is part of the claim");
+  // regex characters in a claim are literal
+  assert.equal(removeClaimText("Costs (approx.) 5*3 = 15?", "Costs (approx.) 5*3 = 15?").found, true);
+  assert.equal(removeClaimText("Costs xapproxx 5*3 = 15?", "Costs (approx.) 5*3 = 15?").found, false);
+});
+
+test("redact (DFIX-2): a record-grade claim whose section wraps and escapes it is removed and reported section_found=true", () => {
+  const r = redactSuppressedClaims({
+    sections: [{ id: "s1", content_md: "\\[slot\\]  Alpha beta\ngamma\n\n[other] Kept." }],
+    fullBrief: "- [slot] Alpha beta gamma\n- [other] Kept.",
+    claims: [{ id: "c1", claim_text: "[slot] Alpha beta gamma", section_row_id: "s1" }],
+  });
+  assert.equal(r.sections[0].content_md, "\n\n[other] Kept.".replace(/^\n+/, "\n\n"));
+  assert.equal(r.fullBrief, "\n- [other] Kept.".replace(/^\n/, "\n"));
+  assert.deepEqual(r.report, [{ claim_id: "c1", claim_text: "[slot] Alpha beta gamma", section_found: true, brief_found: true }]);
+});
+
 test("redact: the claim text leaves ITS OWN section only, and the full brief; other sections and the inputs are untouched", () => {
   const sections = [
     { id: "s1", section_key: "a", content_md: "Alpha. The fee is 40 EUR.\n\nBeta." },
