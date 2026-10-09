@@ -129,6 +129,20 @@ test("headerProblems: the subject line may carry the words NOT APPLIED (it is th
   } finally { cleanup(root); }
 });
 
+test("ENGINE-FIX-1 S9/X7: prose that says another file is NOT APPLIED, in the header block or in a later comment, is not a stale status; a stale status LINE still fails", () => {
+  const root = makeRoot();
+  try {
+    const proseInHeader = appliedText().replace("--\n-- APPLIED", "-- the sibling rule is itself NOT APPLIED, so this file does not lean on it.\n--\n-- APPLIED");
+    assert.ok(/itself NOT APPLIED/.test(proseInHeader));
+    assert.deepEqual(headerProblems(proseInHeader, APPLIED_FILE, { root }), [], "a mid-line prose mention is no status");
+    const proseAfterSql = appliedText().replace("SELECT 1;\n", "SELECT 1;\n-- NOT APPLIED here means the sibling file.\n");
+    assert.deepEqual(headerProblems(proseAfterSql, APPLIED_FILE, { root }), [], "a comment after the first statement is not the header block");
+    const staleLine = appliedText().replace("--\n-- APPLIED", "-- NOT APPLIED. Authored by lane X.\n--\n-- APPLIED");
+    const p = headerProblems(staleLine, APPLIED_FILE, { root });
+    assert.ok(p.some((x) => /still says NOT APPLIED/.test(x)), `a stale status line in the header block still fails: ${p}`);
+  } finally { cleanup(root); }
+});
+
 test("headerProblems: the wrong ledger version fails; a status line beyond line 30 does not count", () => {
   const root = makeRoot();
   try {

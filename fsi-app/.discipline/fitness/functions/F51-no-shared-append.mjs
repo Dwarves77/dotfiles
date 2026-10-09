@@ -380,10 +380,34 @@ export function isCoordinatorBranch(branch) {
   return branch === 'master' || branch === 'main' || String(branch ?? '').startsWith('coord/');
 }
 
+// Lane ENGINE-FIX-1 (2026-10-09, register RULES-X-1 S10/X10): a coordinator or executor-refresh checkout can be
+// detached with no CI name in the environment (a local worktree on a commit, not a branch). Its commit is still
+// named by the refs that point at it. When EVERY branch ref at the tip (local heads and origin remotes, not
+// origin/HEAD) is the coordinator's (master, main, coord/*) and at least one is a coord/ ref, the checkout is the
+// coordinator's: it returns that coord/ name. A lane/ or any other ref at the tip, or no ref at all, keeps the
+// strict reading (a lane cannot borrow a coord/ ref that shares its tip).
+export function refNamesAtHead(root) {
+  try {
+    const out = execFileSync('git', ['for-each-ref', '--points-at', 'HEAD', '--format=%(refname)', 'refs/heads', 'refs/remotes'], { cwd: root, encoding: 'utf8' });
+    return out.split(/\r?\n/).map((r) => r.trim())
+      .filter((r) => r && !r.endsWith('/HEAD'))
+      .map((r) => r.replace(/^refs\/heads\//, '').replace(/^refs\/remotes\/origin\//, ''));
+  } catch {
+    return [];
+  }
+}
+
 export function effectiveBranch(root, env = process.env) {
   const git = currentBranch(root);
   if (git && git !== 'HEAD') return git;
-  return env.GITHUB_HEAD_REF || env.GITHUB_REF_NAME || git || null;
+  const named = env.GITHUB_HEAD_REF || env.GITHUB_REF_NAME;
+  if (named) return named;
+  const refs = refNamesAtHead(root);
+  if (refs.length > 0 && refs.every(isCoordinatorBranch)) {
+    const coord = refs.find((r) => r.startsWith('coord/'));
+    if (coord) return coord;
+  }
+  return git || null;
 }
 
 export function runCheck4(root, env = process.env) {
