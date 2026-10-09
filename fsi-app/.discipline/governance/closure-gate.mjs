@@ -163,6 +163,21 @@ export function fetchLiveRun(workflowFile, { env = process.env, exec = (cmd, arg
 }
 
 /**
+ * Lane DORMANT-1: GitHub's own `state` of a workflow file (`active`, `disabled_manually`, `disabled_inactivity`, ...),
+ * or null when unknown (no token, any API failure). Same injection and the same token rule as fetchLiveRun.
+ */
+export function fetchWorkflowState(workflowFile, { env = process.env, exec = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }) } = {}) {
+  if (!env.GITHUB_TOKEN) return null;
+  try {
+    const repo = env.GITHUB_REPOSITORY || '{owner}/{repo}';
+    const state = JSON.parse(exec('gh', ['api', `repos/${repo}/actions/workflows/${workflowFile}`]))?.state;
+    return typeof state === 'string' ? state : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * PURE CORE (lane GATE-3, 2026-10-08: the train counter and the allowlist are gone). `targets`:
  * [{ id, introducedAt: Date|null, newestRunAt: Date|null }],
  * where `newestRunAt` is the newest harness_runs row date for the target's workflow family (or maintenance
@@ -214,6 +229,23 @@ export function checkNeverRun({ targets, now, windowDays = NEVER_RUN_WINDOW_DAYS
   // is audited both ways. It expires (the exemption becomes the failure), and an entry whose target is no longer
   // overdue, or no longer exists, is stale and fails the gate.
   const allowlistIssues = [];
+  // Lane DORMANT-1 ruling 3 (2026-10-09): GitHub's own record of the workflow is a live fact, not our list. A workflow
+  // the platform reports as disabled (`disabled_manually`, `disabled_inactivity`, ...) with no in-window run is dormant
+  // by that record (build mode holds it off, standing rule 16: re-arming it buys no-op firings). It is reported by
+  // name and state, never silently passed. An unknown state (no token) excuses nothing.
+  const dormantByPlatform = [];
+  const targetsById = new Map(targets.map((t) => [t.id, t]));
+  const stillOverdue = [];
+  for (const o of overdue) {
+    const state = targetsById.get(o.id)?.platformState;
+    if (typeof state === 'string' && state.startsWith('disabled')) {
+      dormantByPlatform.push({ id: o.id, state, reason: `${o.id} is ${state} on GitHub and has no run inside the window: dormant by the platform's record, not by a list in this repo. ${o.reason}` });
+    } else {
+      stillOverdue.push(o);
+    }
+  }
+  overdue.length = 0;
+  overdue.push(...stillOverdue);
   const overdueIds = new Set(overdue.map((o) => o.id));
   for (const o of overdue) {
     const ex = dormant[o.id];
@@ -227,7 +259,7 @@ export function checkNeverRun({ targets, now, windowDays = NEVER_RUN_WINDOW_DAYS
   for (const id of Object.keys(dormant)) {
     if (!overdueIds.has(id)) allowlistIssues.push(`NEVER_RUN_DORMANT["${id}"] is no longer overdue or no longer a target; remove the entry.`);
   }
-  return { ok: failures.length === 0 && allowlistIssues.length === 0, failures, allowlistIssues };
+  return { ok: failures.length === 0 && allowlistIssues.length === 0, failures, allowlistIssues, dormantByPlatform };
 }
 
 /**
@@ -508,6 +540,9 @@ export const HARNESS_FAMILY_BY_WORKFLOW = {
   'live-smoke.yml': 'live-smoke',
   // Lane PROOF-1 (2026-10-07): chain-proof records its own harness family (counts and hashed ids, uploaded as a
   // workflow artifact; the job holds no production write credential, so a ledger row is a separate hand step).
+  // chain-proof's ledger row is NOT expected: its job holds no production write credential by design (ADR-045), so its
+  // artifact is a workflow artifact only. Its evidence for this gate is the live Actions run (fetchLiveRun), and it has
+  // no list entry anywhere (coordinator ruling, 2026-10-09).
   'chain-proof.yml': 'chain-proof',
   // Lane DORMANT-1 (2026-10-09): nine workflows already record their own family and already have rows in the ledger
   // export (dispatches of 2026-10-03 to 2026-10-08), but were absent from this map, so the gate could not see the rows
@@ -521,6 +556,16 @@ export const HARNESS_FAMILY_BY_WORKFLOW = {
   'research-assessment.yml': 'research-assessment',
   'research-walker.yml': 'research-walker',
   'theme-briefs.yml': 'theme-briefs',
+  // Lane DORMANT-1 (2026-10-09, coordinator grant): seven workflows executed without recording anything. Each now has
+  // a registered family and a final `record-harness-run` job (scripts/lib/emit-workflow-run-artifact.mjs), so its
+  // firings reach the ledger on every path, including a kill-switch early exit.
+  'data-audit-lane.yml': 'data-audit-lane',
+  'date-chain.yml': 'date-chain',
+  'layout-baseline-renewal.yml': 'layout-baseline-renewal',
+  'uptime-probes.yml': 'uptime-probes',
+  'source-monitoring.yml': 'source-monitoring',
+  'spot-check-monthly.yml': 'spot-check-monthly',
+  'design-audit.yml': 'design-audit',
 };
 
 // Lane GATE-3 (2026-10-08): the NEVER-RUN clock. Dispatch evidence is the committed harness ledger export
@@ -541,7 +586,7 @@ export const HARNESS_FAMILY_BY_WORKFLOW = {
 // with no recent row) is also looked up live through the Actions API (`liveRunFn`, fetchLiveRun by default, which runs
 // only when GITHUB_TOKEN is present), so a workflow's own run counts before the next ledger export is taken. A target
 // the ledger already dates inside the window is not looked up: no API call is spent on it.
-export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO), liveRunFn = fetchLiveRun, windowDays = BUILD_MODE ? NEVER_RUN_WINDOW_DAYS_BUILD_MODE : NEVER_RUN_WINDOW_DAYS, now = ledger.capturedAt ? new Date(ledger.capturedAt) : new Date() } = {}) {
+export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO), liveRunFn = fetchLiveRun, stateFn = fetchWorkflowState, windowDays = BUILD_MODE ? NEVER_RUN_WINDOW_DAYS_BUILD_MODE : NEVER_RUN_WINDOW_DAYS, now = ledger.capturedAt ? new Date(ledger.capturedAt) : new Date() } = {}) {
   const maintYaml = readRepo('.github/workflows/maintenance.yml') || '';
   const targets = [];
   const asDate = (iso) => (iso ? new Date(iso) : null);
@@ -573,11 +618,14 @@ export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO), 
     const family = HARNESS_FAMILY_BY_WORKFLOW[name];
     const newestRunAt = family ? newestLedgerRunAt(ledger.rows, family) : null;
     const ledgerFresh = newestRunAt !== null && Math.floor((now.getTime() - newestRunAt.getTime()) / DAY_MS) <= windowDays;
+    const liveRunAt = ledgerFresh ? null : liveRunFn(name);
+    const evidenceFresh = ledgerFresh || (liveRunAt !== null && Math.floor((now.getTime() - liveRunAt.getTime()) / DAY_MS) <= windowDays);
     targets.push({
       id: `workflow:${name}`,
       introducedAt: asDate(fileIntroIndex.get(f) ?? null),
       newestRunAt,
-      liveRunAt: ledgerFresh ? null : liveRunFn(name),
+      liveRunAt,
+      platformState: evidenceFresh ? null : stateFn(name),
     });
   }
   return targets;
@@ -718,6 +766,7 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
   console.log('\n===== CLOSURE GATE =====');
   console.log(`clock: ${r.clock.now.toISOString()} (${r.clock.source})`);
   console.log(`1. NEVER-RUN     : ${line(r.neverRun)}`);
+  for (const d of r.neverRun.dormantByPlatform ?? []) console.log(`   note: ${d.reason}`);
   console.log(`2. STALE-NEXT    : ${line(r.staleNext)}`);
   console.log(`3. WRITER-READER : ${line(r.writerReader)}  (summary: ${JSON.stringify(r.writerReader.summary)})`);
   console.log(`4. LANE-CONTRACT : ${line(r.laneContract)}`);

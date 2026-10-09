@@ -81,3 +81,34 @@ jobs:
           path: fsi-app/.discipline/out/ui-orphan-register.md
           if-no-files-found: ignore
           retention-days: 7
+
+  # Lane DORMANT-1 (2026-10-09): this workflow records its own harness run (CLAUDE.md rule 17). A separate job that
+  # runs `if: always()` after every other job, so the row lands on every path, including a kill-switch early exit,
+  # and the service credential is held by this job alone. Family: scripts/harness-runs/data-audit-lane/.
+  record-harness-run:
+    name: Record this run in harness_runs
+    needs: [data-audit-lane]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Land the data-audit-lane harness-run artifact into harness_runs
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/lib/emit-workflow-run-artifact.mjs --family data-audit-lane --workflow data-audit-lane.yml --results "${{ join(needs.*.result, ',') }}" --land

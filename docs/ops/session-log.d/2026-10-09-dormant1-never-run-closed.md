@@ -22,16 +22,16 @@ Operator, 2026-10-09: "We do not do workarounds we fix the problem fix it." The 
 | research-assessment | yes | ledger rows, newest 2026-10-07 (37587205996) | none |
 | research-walker | yes | ledger rows, newest 2026-10-07 (37609688488) | none |
 | theme-briefs | yes | ledger row 2026-10-07 (37587198862) | none |
-| chain-proof | family registered, step present, but the job holds no production write credential so nothing lands in `harness_runs` | live run 37786107972 (2026-10-08, conclusion failure; a failed run is a run) | recording needs a decision, below |
-| data-audit-lane | no | live run 2026-08-11 (58 days, inside the 90 day window until 2026-11-09) | none now |
-| date-chain | no (its own comment: "emits no harness-run artifact") | live run 37587214784 2026-10-07 | none |
-| layout-baseline-renewal | no | live run 37781121359 2026-10-08 | none |
-| uptime-probes | no | live run 37610904324 2026-10-07 | none |
-| design-audit | no | live run 37872901746 2026-10-09 (pull_request) | none |
-| source-monitoring | no | newest live run 2026-06-28, 101 days, OUTSIDE the window | dispatch (`job=check-sources`, `mode=dry`), BLOCKED: workflow is `disabled_manually` |
-| spot-check-monthly | no | newest live run 2026-06-01 (conclusion failure), 128 days, OUTSIDE the window | dispatch (no inputs), BLOCKED: workflow is `disabled_manually` |
+| chain-proof | family registered; by design (ADR-045) its job holds no production write credential, so no ledger row | live run 37786107972 (2026-10-08, conclusion failure; a failed run is a run) | none; the gate's live-run evidence is its proof (coordinator ruling) |
+| data-audit-lane | now yes (record job) | live run 2026-08-11 (58 days, inside the 90 day window until 2026-11-09); GitHub state `disabled_manually` | none: disabled, dormant by the platform record |
+| date-chain | now yes (record job) (its own comment: "emits no harness-run artifact") | live run 37587214784 2026-10-07 | none |
+| layout-baseline-renewal | now yes (record job) | live run 37781121359 2026-10-08 | none |
+| uptime-probes | now yes (record job) | live run 37610904324 2026-10-07 | none |
+| design-audit | now yes (record job) | live run 37872901746 2026-10-09 (pull_request) | none |
+| source-monitoring | now yes (record job) | newest live run 2026-06-28, 101 days, OUTSIDE the window; GitHub state `disabled_manually` | none: not enabled (ruling 3), dormant by the platform record |
+| spot-check-monthly | now yes (record job) | newest live run 2026-06-01 (conclusion failure), 128 days, OUTSIDE the window; GitHub state `disabled_manually` | none: not enabled (ruling 3), dormant by the platform record |
 
-Dispatch attempts, both `gh workflow run <file> --ref master`: HTTP 422 "Cannot trigger a 'workflow_dispatch' on a disabled workflow" (source-monitoring 267499648, spot-check-monthly 271738975). `data-audit-lane` (294408642) is also `disabled_manually`. No run was created.
+Dispatch attempts, both `gh workflow run <file> --ref master`: HTTP 422 "Cannot trigger a 'workflow_dispatch' on a disabled workflow" (source-monitoring 267499648, spot-check-monthly 271738975). `data-audit-lane` (294408642) is also `disabled_manually`. No run was created. Coordinator ruling 3 (2026-10-09): do not enable them; build mode holds them off (standing rule 16).
 
 ## Read and reused
 
@@ -43,10 +43,20 @@ Dispatch attempts, both `gh workflow run <file> --ref master`: HTTP 422 "Cannot 
 - The live lookup is a refinement of the ledger, not a replacement: a target the ledger dates inside the window costs no API call.
 - Nine workflows were not "never run": they were run and recorded, and the gate could not see the rows. That was a map defect, not a dispatch gap.
 
-## NOT done (each needs a grant, nothing was touched outside the write set)
+## Second pass (coordinator grants 2026-10-09)
 
-1. NEEDS WRITE-SET EXPANSION `.github/workflows/discipline.yml`: the "closure gate" step needs `env: GITHUB_TOKEN: ${{ github.token }}` and the job needs `permissions: actions: read` for `fetchLiveRun` to work in CI. Without it the gate in CI sees only the export, and seven workflows with no ledger family (data-audit-lane, date-chain, layout-baseline-renewal, uptime-probes, design-audit, source-monitoring, spot-check-monthly) plus chain-proof fail the gate. Locally with `GITHUB_TOKEN=$(gh auth token)` the live NEVER-RUN test fails on exactly two: source-monitoring and spot-check-monthly (out of window).
-2. Two workflows cannot be dispatched because an operator disabled them in the repository (`gh workflow list --all`: Source monitoring, Spot-check monthly recurring, Data-audit lane are `disabled_manually`). Enabling is a repository setting change and was not done. Decision owed: enable, dispatch once (both exit at the kill switch: the spot-check route returns 503 at `pausedResponse` before any Haiku call while `scrape_cadence='off'`), and leave enabled or disable again. The live run then holds 90 days.
-3. Recording steps: eight workflows execute without landing a `harness_runs` row (the table above, "no"). A recording step needs a registered family (`scripts/harness-runs/<family>/family.json`) and an artifact emitter, both outside the write set; chain-proof additionally cannot land because its job holds no production write credential. Not added. Until it is, their evidence is the live Actions run, not the ledger.
-4. The ledger export refresh is the executor's. No run id of this lane exists to export (no dispatch succeeded).
-5. chain-proof's newest run (37786107972) concluded failure; not investigated (not this lane's write set).
+- Grant 1: `.github/workflows/discipline.yml`, job `test-discipline-engine`: `permissions: contents: read, actions: read`; `GITHUB_TOKEN` and `GITHUB_REPOSITORY` on the closure gate step AND on the "Run discipline test suite" step (closure-gate.test.mjs's LIVE tests are in the suite and make the same live lookup; the first CI run failed there). The shape test (`scripts/proof/chain-proof-workflow.test.mjs`) reads only chain-proof.yml; it was not touched and discipline.yml is outside it, so no test change was needed.
+- Grant 3: closure-gate reads GitHub's workflow `state` (`fetchWorkflowState`, `gh api repos/<repo>/actions/workflows/<file>`). A target with no in-window evidence whose state starts with `disabled` is reported as `dormantByPlatform` (printed as a note by the gate, the message names the state) and does not fail; unknown state (no token) and any other state excuse nothing. Six new tests incl. an attack on look-alike states.
+- Grant 2: seven workflows now carry a final `record-harness-run` job (`if: always()`, needs every other job, holds the two secrets alone, runs `scripts/lib/emit-workflow-run-artifact.mjs --family F --workflow W.yml --results "<needs results>" --land`): data-audit-lane, date-chain, layout-baseline-renewal, uptime-probes, source-monitoring, spot-check-monthly, design-audit. Seven registered families (`scripts/harness-runs/<family>/family.json`), mapped in `HARNESS_FAMILY_BY_WORKFLOW`. `emit-workflow-run-artifact.mjs` reuses `buildRunArtifactEnvelope`, `writeRunArtifact`, `resolveHarnessRunContext` and `record-harness-run.mjs`'s `runCli`; one script, not seven. `emit-workflow-run-artifact.test.mjs`: 20 tests incl. a per-workflow attack (drop `always()`, drop `--land`, drop the job, add `|| echo`).
+- design-audit decision: it is a pull_request job, so its record job runs only on `workflow_dispatch` (a pull request job must not hold the production service credential; fork PRs have no secrets and landing would fail loud). A pull_request firing therefore leaves no row; its evidence is the live run.
+- chain-proof: no recording step by design (ADR-045); its proof is the live-run evidence, recorded in the `HARNESS_FAMILY_BY_WORKFLOW` comment. Its fire 4 (run 37786107972) is a known replay stop fixed by MIG-CI; fire 5 is the executor's.
+- Verified locally with `GITHUB_TOKEN=$(gh auth token)`: closure-gate tests 69 of 69, family-registry, governing-files, F52 and the new emitter tests green (193 pass, 0 fail across the five files). Without a token the LIVE NEVER-RUN test is red by design (the CI step now supplies one).
+
+## NOT done
+
+- The first record job firing of each of the seven workflows has not happened (they land on the next dispatch; the lane cannot dispatch the disabled ones and does not need to dispatch the others). [WORK: owed] the executor's next ledger export after the first dispatches shows the seven families; the gate does not depend on it because live-run evidence and the platform state cover them meanwhile.
+- No run id exists for this lane to export. [NOT-WORK: no dispatch was made; the workflows with in-window evidence need none and the three disabled ones are held off by ruling 3]
+- source-monitoring, spot-check-monthly and data-audit-lane stay disabled on GitHub. [NOT-WORK: build mode holds them off, standing rule 16, coordinator ruling 3]
+- chain-proof recording into harness_runs. [NOT-WORK: no production write credential by design, ADR-045; live-run evidence is the proof, coordinator ruling 2]
+- chain-proof run 37786107972 concluded failure. [NOT-WORK: known replay stop, fixed by MIG-CI; fire 5 is the executor's, coordinator ruling 4]
+- design-audit pull_request firings leave no harness_runs row. [NOT-WORK: a pull_request job must not hold the production credential; dispatch firings do land]

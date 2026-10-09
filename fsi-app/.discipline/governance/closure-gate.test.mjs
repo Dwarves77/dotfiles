@@ -533,3 +533,58 @@ test('DORMANT-1: the live gatherer asks only about workflows the ledger cannot d
   assert.equal(byId.get('workflow:fetch-drain.yml').liveRunAt, null);
   assert.ok(byId.get('workflow:fetch-drain.yml').newestRunAt, 'fetch-drain.yml is dated by its fetch-drain family rows');
 });
+
+// ---- DORMANT-1 ruling 3 (2026-10-09): GitHub's own workflow state is a live fact; a disabled workflow is dormant by the platform's record ----
+
+test('DORMANT-1: a workflow GitHub reports as disabled is dormant by the platform record: it does not fail, and the result says so by name', () => {
+  const r = checkNeverRun({ targets: [liveTarget({ id: 'workflow:off.yml', platformState: 'disabled_manually' })], now: NOW, windowDays: 90, ledgerPresent: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.dormantByPlatform.length, 1);
+  assert.equal(r.dormantByPlatform[0].id, 'workflow:off.yml');
+  assert.match(r.dormantByPlatform[0].reason, /disabled_manually/);
+  assert.match(r.dormantByPlatform[0].reason, /dormant by the platform's record/);
+});
+
+test('DORMANT-1: an enabled, never-run workflow still fails; an unknown state (no token) never excuses', () => {
+  for (const platformState of ['active', null, undefined]) {
+    const r = checkNeverRun({ targets: [liveTarget({ platformState })], now: NOW, windowDays: 90, ledgerPresent: true });
+    assert.equal(r.ok, false, String(platformState));
+    assert.deepEqual(r.dormantByPlatform, []);
+  }
+});
+
+test('DORMANT-1: a disabled workflow with in-window evidence is simply current, not listed as dormant', () => {
+  const r = checkNeverRun({ targets: [liveTarget({ platformState: 'disabled_manually', liveRunAt: at('2026-10-01T00:00:00Z') })], now: NOW, windowDays: 90, ledgerPresent: true });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.dormantByPlatform, []);
+});
+
+test('DORMANT-1: the platform state is no exemption list: only a state starting "disabled" excuses (attack: active_x, enabled, "")', () => {
+  for (const platformState of ['enabled', '', 'active_disabled', 'deleted']) {
+    assert.equal(checkNeverRun({ targets: [liveTarget({ platformState })], now: NOW, windowDays: 90, ledgerPresent: true }).ok, false, platformState);
+  }
+});
+
+test('DORMANT-1: fetchWorkflowState reads the workflow endpoint only with a token and fails to unknown', () => {
+  const calls = [];
+  const exec = (cmd, args) => { calls.push(args); return JSON.stringify({ state: 'disabled_manually' }); };
+  assert.equal(closureGate.fetchWorkflowState('x.yml', { env: {}, exec }), null);
+  assert.equal(calls.length, 0);
+  assert.equal(closureGate.fetchWorkflowState('x.yml', { env: { GITHUB_TOKEN: 't', GITHUB_REPOSITORY: 'o/r' }, exec }), 'disabled_manually');
+  assert.equal(calls[0][1], 'repos/o/r/actions/workflows/x.yml');
+  assert.equal(closureGate.fetchWorkflowState('x.yml', { env: { GITHUB_TOKEN: 't' }, exec: () => { throw new Error('down'); } }), null);
+});
+
+test('DORMANT-1: the gatherer asks for the platform state only of a workflow with no in-window evidence', () => {
+  const ledger = { present: true, capturedAt: '2026-10-08', rows: [] };
+  const stateAsked = [];
+  const byId = new Map(gatherNeverRunTargets({
+    ledger, windowDays: 90, now: NOW,
+    liveRunFn: (name) => (name === 'uptime-probes.yml' ? new Date('2026-10-07T00:00:00Z') : null),
+    stateFn: (name) => { stateAsked.push(name); return 'disabled_manually'; },
+  }).map((t) => [t.id, t]));
+  assert.equal(stateAsked.includes('uptime-probes.yml'), false, 'a fresh live run answers it');
+  assert.equal(stateAsked.includes('data-audit-lane.yml'), true);
+  assert.equal(byId.get('workflow:data-audit-lane.yml').platformState, 'disabled_manually');
+  assert.equal(byId.get('workflow:uptime-probes.yml').platformState, null);
+});
