@@ -1,24 +1,14 @@
-/** Tests for scripts/proof/apply-schema-dump.mjs (lane PROOF-1), with a fixture dump and a fake psql. */
+/** Tests for scripts/proof/apply-schema-dump.mjs (lane PROOF-1, rewritten by PROOF-6), with a fake psql. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { stripOwnership, collectErrors, classifyErrors, buildReport, applySchemaDump } from "./apply-schema-dump.mjs";
+import { psqlArgs, assertOracleUrl, collectErrors, missingRole, buildReport, applySchemaDump } from "./apply-schema-dump.mjs";
 
-const LOCAL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
-const FIXTURE_DUMP = [
-  "SET statement_timeout = 0;",
-  "CREATE TABLE public.sources (id uuid);",
-  "ALTER TABLE public.sources OWNER TO postgres;",
-  "CREATE TABLE public.items (id uuid);",
-  "ALTER FUNCTION public.f() OWNER TO reconciler;",
-  "GRANT SELECT ON public.items TO reconciler;",
-].join("\n");
+const ORACLE = "postgresql://supabase_admin:postgres@127.0.0.1:54399/postgres";
+const STACK = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-test("stripOwnership drops ALTER ... OWNER TO lines and nothing else", () => {
-  const r = stripOwnership(FIXTURE_DUMP);
-  assert.equal(r.dropped, 2);
-  assert.ok(!/OWNER TO/.test(r.text));
-  assert.match(r.text, /GRANT SELECT ON public\.items TO reconciler;/);
-  assert.match(r.text, /CREATE TABLE public\.sources/);
+test("psqlArgs: the dump file itself is applied with ON_ERROR_STOP=1, no sanitized copy", () => {
+  const a = psqlArgs(ORACLE, "/d/dump.sql");
+  assert.deepEqual(a, [ORACLE, "-X", "-v", "ON_ERROR_STOP=1", "-f", "/d/dump.sql"]);
 });
 
 test("collectErrors reads psql ERROR lines with their line numbers", () => {
@@ -26,68 +16,95 @@ test("collectErrors reads psql ERROR lines with their line numbers", () => {
   assert.deepEqual(e.map((x) => x.line), [12, 44]);
 });
 
-test("a missing-role error is counted but not fatal; any other error is fatal", () => {
-  const c = classifyErrors([{ line: 1, message: 'role "reconciler" does not exist' }, { line: 2, message: 'relation "x" does not exist' }]);
-  assert.equal(c.role.length, 1);
-  assert.equal(c.fatal.length, 1);
+test("missingRole names the role in a 'does not exist' error and nothing else", () => {
+  assert.equal(missingRole('role "reconciler" does not exist'), "reconciler");
+  assert.equal(missingRole('relation "x" does not exist'), null);
 });
 
-test("buildReport: ok needs zero fatal errors and at least one public table", () => {
-  assert.equal(buildReport({ errors: [], dropped: 0, publicTables: 3, startedAt: "a", finishedAt: "b" }).ok, true);
-  assert.equal(buildReport({ errors: [], dropped: 0, publicTables: 0, startedAt: "a", finishedAt: "b" }).ok, false);
-  assert.equal(buildReport({ errors: [{ line: 1, message: "boom" }], dropped: 0, publicTables: 3, startedAt: "a", finishedAt: "b" }).ok, false);
-  assert.equal(buildReport({ errors: [{ line: 1, message: 'role "r" does not exist' }], dropped: 0, publicTables: 3, startedAt: "a", finishedAt: "b" }).ok, true);
+test("buildReport: any error is red, a missing role is named, no table is red", () => {
+  const base = { startedAt: "a", finishedAt: "b" };
+  assert.equal(buildReport({ ...base, errors: [], publicTables: 3 }).ok, true);
+  assert.equal(buildReport({ ...base, errors: [], publicTables: 0 }).ok, false);
+  assert.equal(buildReport({ ...base, errors: [{ line: 1, message: "boom" }], publicTables: 3 }).ok, false);
+  const r = buildReport({ ...base, errors: [{ line: 6, message: 'role "reconciler" does not exist' }], publicTables: 3 });
+  assert.equal(r.ok, false, "PROOF-6: a role the dump names that the image lacks is red, no longer tolerated");
+  assert.deepEqual(r.missing_roles, ["reconciler"]);
+  assert.equal(r.role_errors, 1);
+  assert.equal(r.fatal_errors, 1);
 });
 
-function fakeEnv({ stderr = "", tables = "2" } = {}) {
-  const written = {};
+function fakeSpawn({ stderr = "", status = 0, tables = "2", error = null } = {}) {
   const calls = [];
-  return {
-    written, calls,
-    read: () => FIXTURE_DUMP,
-    write: (p, t) => { written[p] = t; },
-    spawn: (_bin, args) => {
-      calls.push(args);
-      if (args.includes("-c")) return { status: 0, stdout: `${tables}\n`, stderr: "" };
-      return { status: 0, stdout: "", stderr };
-    },
+  const spawn = (_bin, args) => {
+    calls.push(args);
+    if (args.includes("-c")) return { status: 0, stdout: `${tables}\n`, stderr: "" };
+    return { status, stdout: "", stderr, error };
   };
+  return { calls, spawn };
 }
 
-test("applySchemaDump applies the sanitized dump with ON_ERROR_STOP off and reads back the table count", () => {
-  const f = fakeEnv({ stderr: 'psql:x:6: ERROR:  role "reconciler" does not exist\n' });
-  const r = applySchemaDump({ dbUrl: LOCAL, dumpPath: "/d.sql", workDir: "/w", read: f.read, write: f.write, spawn: f.spawn });
+test("applySchemaDump applies the dump file with ON_ERROR_STOP=1 and reads back the table count", () => {
+  const f = fakeSpawn();
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
   assert.equal(r.ok, true);
-  assert.equal(r.role_errors, 1);
-  assert.equal(r.ownership_statements_dropped, 2);
   assert.equal(r.public_tables, 2);
-  assert.ok(f.calls[0].includes("ON_ERROR_STOP=0"));
-  assert.ok(Object.values(f.written)[0] && !/OWNER TO/.test(Object.values(f.written)[0]));
+  assert.ok(f.calls[0].includes("ON_ERROR_STOP=1"));
+  assert.ok(!f.calls[0].includes("ON_ERROR_STOP=0"));
+  assert.equal(f.calls[0][f.calls[0].indexOf("-f") + 1], "/d.sql", "the dump itself, not a stripped copy");
+});
+
+test("ATTACK: a missing role in the dump fails the report and names the role; it is never stripped or tolerated", () => {
+  const f = fakeSpawn({ stderr: 'psql:x:6: ERROR:  role "reconciler" does not exist\n', status: 3 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.missing_roles, ["reconciler"]);
 });
 
 test("a fatal error in the apply fails the report and is listed", () => {
-  const f = fakeEnv({ stderr: 'psql:x:9: ERROR:  type "foo" does not exist\n' });
-  const r = applySchemaDump({ dbUrl: LOCAL, dumpPath: "/d.sql", workDir: "/w", read: f.read, write: f.write, spawn: f.spawn });
+  const f = fakeSpawn({ stderr: 'psql:x:9: ERROR:  type "foo" does not exist\n', status: 3 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
   assert.equal(r.ok, false);
   assert.equal(r.fatal_errors, 1);
   assert.equal(r.errors[0].line, 9);
 });
 
-test("ATTACK: a non-loopback database URL is refused before the dump is even read", () => {
-  let read = false;
-  assert.throws(() => applySchemaDump({ dbUrl: "postgresql://postgres:pw@db.abcdefghijklmnop.supabase.co:5432/postgres", dumpPath: "/d.sql", workDir: "/w", read: () => { read = true; return ""; }, write: () => {}, spawn: () => ({}) }), /loopback/);
-  assert.equal(read, false);
+test("ATTACK: a psql that exits non-zero with no ERROR line (a refused connection) is red", () => {
+  const f = fakeSpawn({ stderr: "psql: error: connection to server at 127.0.0.1, port 54399 failed: Connection refused\n", status: 2, tables: "" });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.match(r.errors[0].message, /psql exited with status 2/);
+});
+
+test("assertOracleUrl accepts exactly the supabase_admin / postgres / loopback / other-port shape", () => {
+  assert.doesNotThrow(() => assertOracleUrl(ORACLE, STACK));
+});
+
+test("ATTACK: the stack's own URL (the replayed database), another role, another database and a remote host are all refused", () => {
+  assert.throws(() => assertOracleUrl("postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres", STACK), /stack's own database/);
+  assert.throws(() => assertOracleUrl(STACK, STACK), /supabase_admin role/);
+  assert.throws(() => assertOracleUrl("postgresql://authenticated:x@127.0.0.1:54399/postgres", STACK), /supabase_admin role/);
+  assert.throws(() => assertOracleUrl("postgresql://anon:x@127.0.0.1:54399/postgres", STACK), /supabase_admin role/);
+  assert.throws(() => assertOracleUrl("postgresql://supabase_admin:x@127.0.0.1:54399/oracle_check", STACK), /database postgres/);
+  assert.throws(() => assertOracleUrl("postgresql://supabase_admin:pw@db.abcdefghijklmnop.supabase.co:5432/postgres", STACK), /loopback/);
+});
+
+test("ATTACK: a non-loopback database URL is refused before psql is ever run", () => {
+  let ran = false;
+  assert.throws(() => applySchemaDump({ dbUrl: "postgresql://supabase_admin:pw@db.abcdefghijklmnop.supabase.co:5432/postgres", dumpPath: "/d.sql", spawn: () => { ran = true; return {}; } }), /loopback/);
+  assert.equal(ran, false);
 });
 
 // ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
-test("GATE-9 exit status: apply-schema-dump.mjs exits 2 when --in or --report is missing, with no database URL, and for a non-loopback URL", async () => {
+test("GATE-9 exit status: apply-schema-dump.mjs exits 2 when --in or --report is missing, with no oracle URL, for a non-loopback URL and for the stack's own URL", async () => {
   const { spawnSync } = await import("node:child_process");
   const { fileURLToPath } = await import("node:url");
   const { withoutCredentials } = await import("../lib/env-file.mjs");
   const script = fileURLToPath(new URL("./apply-schema-dump.mjs", import.meta.url));
-  const env = { ...withoutCredentials(), PROOF_DB_URL: "", SUPABASE_DB_URL: "" };
-  const run = (...a) => spawnSync(process.execPath, [script, ...a], { encoding: "utf8", env });
-  assert.equal(run().status, 2);
-  assert.equal(run("--in", "dump.sql", "--report", "r.json").status, 2, "no database URL");
-  assert.equal(run("--in", "dump.sql", "--report", "r.json", "--db-url", "postgresql://u:p@db.example.com:5432/postgres").status, 2, "a non-loopback URL is refused");
+  const env = { ...withoutCredentials(), PROOF_DB_URL: "", PROOF_ORACLE_DB_URL: "", SUPABASE_DB_URL: "" };
+  const run = (extraEnv, ...a) => spawnSync(process.execPath, [script, ...a], { encoding: "utf8", env: { ...env, ...extraEnv } });
+  assert.equal(run({}).status, 2);
+  assert.equal(run({}, "--in", "dump.sql", "--report", "r.json").status, 2, "no oracle URL (and the stack's PROOF_DB_URL is never a fallback)");
+  assert.equal(run({ PROOF_DB_URL: STACK }, "--in", "dump.sql", "--report", "r.json").status, 2, "PROOF_DB_URL alone is not an oracle URL");
+  assert.equal(run({}, "--in", "dump.sql", "--report", "r.json", "--db-url", "postgresql://supabase_admin:p@db.example.com:5432/postgres").status, 2, "a non-loopback URL is refused");
+  assert.equal(run({ PROOF_DB_URL: STACK }, "--in", "dump.sql", "--report", "r.json", "--db-url", "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres").status, 2, "the stack's own port is refused");
 });

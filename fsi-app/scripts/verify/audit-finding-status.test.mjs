@@ -202,3 +202,39 @@ test('the real lane contract does not contradict the real skill gate', () => {
   const gate = readFileSync(join(here, '..', '..', '.discipline', 'governance', 'pretooluse-skill-gate.mjs'), 'utf8');
   assert.deepEqual(contractContradiction(contract, gate), []);
 });
+
+// ── GATE-FIX-1 item 3: a scratch register younger than the grace window is not an open finding for the dispatch gate ──
+import { utimesSync } from 'node:fs';
+import { REGISTER_GRACE_MS } from './audit-finding-status.mjs';
+
+const ageFile = (root, rel, hours, now) => { const t = (now - hours * 3600 * 1000) / 1000; utimesSync(join(root, rel), t, t); };
+
+test('GATE-FIX-1: REGISTER_GRACE_MS is 24 hours', () => {
+  assert.equal(REGISTER_GRACE_MS, 24 * 3600 * 1000);
+});
+
+test('GATE-FIX-1 item 3: with the grace window, a 25-hour-old register with one open finding is listed with its age, a 1-hour-old one is not', () => {
+  withRepo({
+    'fsi-app/scripts/tmp/old-register.md': '- a guard that is missing here\n',
+    'fsi-app/scripts/tmp/new-register.md': '- a guard that is missing there\n',
+  }, (root) => {
+    const now = Date.now();
+    ageFile(root, 'fsi-app/scripts/tmp/old-register.md', 25, now);
+    ageFile(root, 'fsi-app/scripts/tmp/new-register.md', 1, now);
+    const open = collectOpenFindings(root, { registerGraceMs: REGISTER_GRACE_MS, now });
+    assert.deepEqual(open.map((o) => o.file), ['fsi-app/scripts/tmp/old-register.md']);
+    assert.ok(open[0].ageMs > 24.9 * 3600 * 1000 && open[0].ageMs < 25.1 * 3600 * 1000, String(open[0].ageMs));
+    assert.equal(collectOpenFindings(root, { now }).length, 2, 'no grace window (the CLI): every register is reported');
+  });
+});
+
+test('ATTACK GATE-FIX-1 item 3: a committed audit or session log is never given the grace window, however fresh', () => {
+  withRepo({
+    'docs/audits/f-2026-10-09.md': '## Owed\n- fresh audit fact\n',
+    'docs/ops/session-log.d/2026-10-09-f.md': '## NOT done\n- fresh log fact\n',
+  }, (root) => {
+    const open = collectOpenFindings(root, { registerGraceMs: REGISTER_GRACE_MS });
+    assert.deepEqual(open.map((o) => o.source), ['audit', 'session-log']);
+    assert.equal(open[0].ageMs, undefined);
+  });
+});
