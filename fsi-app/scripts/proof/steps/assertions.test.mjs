@@ -1,7 +1,7 @@
 /** Tests for scripts/proof/steps/assertions.mjs (lane PROOF-3). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { countSql, takeBaselines, takeSnapshots, evaluateAssertions, autoAssertions, describeFailure } from "./assertions.mjs";
+import { countSql, takeBaselines, takeSnapshots, evaluateAssertions, autoAssertions, describeFailure, schemaStatements, assertionTables, verifySchemaNames } from "./assertions.mjs";
 
 const vars = { run_id: "900", "run_id.s1": "900", started_at: "2026-10-07 10:00:00+00", loop_run_id: "800", upstream_run_id: "899" };
 
@@ -136,4 +136,64 @@ test("describeFailure names the step, the assertion, the table, the predicate, t
   assert.match(msg, /chain step "corpus-turn" failed assertion "cross-references-grew"/);
   assert.match(msg, /item_cross_references WHERE true/);
   assert.match(msg, /observed 0, expected grew by >= 1/);
+});
+
+// ---- CHAIN-5: schema names ----------------------------------------------------------------------------------
+
+const miniManifest = {
+  steps: [
+    { id: "pre", kind: "assert", assertions: [{ id: "a", kind: "count", table: "system_state", predicate: "scrape_cadence <> 'off'", min: 1 }] },
+    {
+      id: "run", kind: "script", family: "fam", loop: true, upstream: { step: "pre", name: "P" },
+      var_queries: [{ name: "v", sql: "SELECT 1 AS v FROM public.sources WHERE created_at >= '{{started_at.pre}}'::timestamptz" }],
+      setup: [{ sql: "UPDATE public.intelligence_items SET full_brief = NULL WHERE id = ANY($1::uuid[])", params: ["ids"], replica: true }],
+      snapshots: [{ key: "k", sql: "SELECT id::text AS k, 1 AS v FROM public.intelligence_items WHERE id = ANY($1::uuid[])", params: ["ids"] }],
+      assertions: [
+        { id: "any", kind: "any_of", of: [{ table: "t_one", predicate: "x = {{run_id}}", min: 1 }, { table: "t_two", predicate: "true", minSql: "SELECT greatest(1, 2)" }] },
+        { id: "snap", kind: "snapshot_changed", table: "intelligence_items", snapshot: "k", min: 1 },
+      ],
+    },
+  ],
+};
+
+test("schemaStatements: assertion counts, any_of alternatives, minSql, the runner's automatic assertions, var queries, setup and snapshots are all listed", () => {
+  const st = schemaStatements(miniManifest);
+  const wheres = st.map((x) => x.where);
+  assert.ok(wheres.includes("step pre assertion a"));
+  assert.ok(wheres.includes("step run assertion any[0]") && wheres.includes("step run assertion any[1]"));
+  assert.ok(wheres.includes("step run assertion any[1] minSql"));
+  assert.ok(wheres.includes("step run assertion harness-row") && wheres.includes("step run assertion upstream-linked") && wheres.includes("step run assertion loop-carried"));
+  assert.ok(wheres.includes("step run var query v") && wheres.includes("step run setup[0]") && wheres.includes("step run snapshot k"));
+  assert.equal(st.find((x) => x.where === "step run setup[0]").params, 1);
+  assert.deepEqual(assertionTables(miniManifest), ["harness_runs", "system_state", "t_one", "t_two"]);
+});
+
+test("verifySchemaNames: every table is looked up in information_schema and every statement is planned with placeholder values, never run", async () => {
+  const log = [];
+  const query = async (sql, params) => {
+    log.push({ sql, params });
+    if (sql.includes("information_schema.columns")) return params[0].flatMap((t) => [{ table_name: t, column_name: "c1" }]);
+    return [];
+  };
+  const r = await verifySchemaNames({ manifest: miniManifest, query });
+  assert.equal(r.ok, true);
+  assert.deepEqual(log[0].params[0], ["harness_runs", "system_state", "t_one", "t_two"]);
+  const planned = log.slice(1);
+  assert.ok(planned.every((c) => c.sql.startsWith("EXPLAIN (COSTS OFF) ")));
+  assert.ok(planned.every((c) => !c.sql.includes("{{")), "no template left unfilled");
+  assert.ok(planned.some((c) => c.sql.includes("'1970-01-01 00:00:00+00'::timestamptz")));
+  assert.deepEqual(planned.find((c) => c.sql.includes("UPDATE public.intelligence_items")).params, [[]]);
+});
+
+test("ATTACK: a missing table and a missing column are both named, the column with the columns the stack really has", async () => {
+  const query = async (sql, params) => {
+    if (sql.includes("information_schema.columns")) return params[0].filter((t) => t !== "t_two").map((t) => ({ table_name: t, column_name: "real_col" }));
+    if (sql.includes("scrape_cadence")) throw new Error('column "scrape_cadence" does not exist');
+    return [];
+  };
+  const r = await verifySchemaNames({ manifest: miniManifest, query });
+  assert.equal(r.ok, false);
+  assert.ok(r.problems.includes("table public.t_two is not in the stack's information_schema"));
+  assert.ok(r.problems.some((p) => /step pre assertion a: column "scrape_cadence" does not exist \(public\.system_state has: real_col\)/.test(p)));
+  assert.ok(!r.problems.some((p) => /t_two \(/.test(p)), "a statement on a missing table is not also planned");
 });
