@@ -139,13 +139,13 @@ is outside this lane's write set, so the new label source is not wired there.
 
 - No live-data check: counts of themes, briefs, structured briefs and intersection entries on live rows are
   unknown to this lane; the section renders from whatever exists and nothing when empty. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- Browser look at the real routes (Definition of done item 4) is not done here: no dev server and no data.
-- `brief-candidates.mjs` readable line not moved onto the label module (outside the write set).
+- Browser look at the real routes (Definition of done item 4) is not done here: no dev server and no data. [WORK: TESTS-1]
+- `brief-candidates.mjs` readable line not moved onto the label module (outside the write set). [WORK: DFIX-1]
 - Strip and dashboard themes use the exact-id and overlap brief lookup; a theme found only through a
   pre-migration-351 lineage pair also resolves (lineage passed), but this was proven on fixtures only. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ## Open items
 
-- Ruling needed: the shelved `SectorSynopsisView` and `IntelligenceMetadataStrip` (see Decisions).
+- Ruling needed: the shelved `SectorSynopsisView` and `IntelligenceMetadataStrip` (see Decisions). [WORK: PLAN-2]
 - Migration 351 must be applied for structured brief sections to show; until then a brief shows its
   `brief_md` (tolerated, tested). [CLOSED: PR 1013]

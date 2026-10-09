@@ -454,11 +454,11 @@ None.
 
 ## Owed legs (reason)
 
-- F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run.
-- F45 live ratchet: the detector, ratchet comparison and scope predicates were run in process; `measureAtBase` against a real origin/master base was not run (no remote in the throwaway repo).
-- F24 and the live-only DDL class: the gate reads a committed snapshot of the database; an object that exists live and is absent from the snapshot cannot be represented offline. Owed to a live-catalog leg (no live access in this lane).
-- F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were. [CONFIRMED: owed, not exercised by this lane]
-- CLOSURE NEVER-RUN with real git history dates (`introducedAt` from `git log`) was exercised through the exported pure functions, not end to end. [CONFIRMED: owed, not exercised by this lane]
+- F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run. [WORK: TESTS-1]
+- F45 live ratchet: the detector, ratchet comparison and scope predicates were run in process; `measureAtBase` against a real origin/master base was not run (no remote in the throwaway repo). [WORK: TESTS-1]
+- F24 and the live-only DDL class: the gate reads a committed snapshot of the database; an object that exists live and is absent from the snapshot cannot be represented offline. Owed to a live-catalog leg (no live access in this lane). [WORK: TESTS-1]
+- F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were. [CONFIRMED: owed, not exercised by this lane] [WORK: TESTS-1]
+- CLOSURE NEVER-RUN with real git history dates (`introducedAt` from `git log`) was exercised through the exported pure functions, not end to end. [CONFIRMED: owed, not exercised by this lane] [WORK: TESTS-1]
 - Overlap between gates (whether another gate catches an input one gate accepted) was not measured; ACCEPTED means this gate alone did not block. [NOT-WORK: fact, no action]
 
 ## Read and reused

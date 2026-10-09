@@ -79,11 +79,11 @@ exit 1 with a named `::error::`; the brief's "exit 2" skip convention was wrong)
   chromium against a fixture server. The live run in CI (`live-smoke.yml`) uses the CLI and already has them on. [NOT-WORK: fact, no action]
 - The missing-credentials path is unchanged: `live-preflight.mjs` and the workflow's preflight step fail with exit 1 and a
   named `::error::` (not exit 2), and `main()` exits 2 only on a runner error. The brief says the skip convention "stays";
-  what exists today is fail-fast, not skip. Not altered.
+  what exists today is fail-fast, not skip. Not altered. [WORK: RULES-X-1]
 - No live run. Whether the six elements are present on production for the smoke account is unknown until the first CI run
   after merge; a red there is the gate reporting a real content gap (for example no customer-visible inference yet), not a
   selector fault, because each selector is the hook the component itself renders. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ### Open items
-- First live-smoke run with content checks on: read its report for any `content-*` line.
+- First live-smoke run with content checks on: read its report for any `content-*` line. [WORK: RULES-X-1]
 - Both expansions above, then the fixture smoke carries the end-to-end proof. [NOT-WORK: fact, no action]

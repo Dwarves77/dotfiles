@@ -18,7 +18,7 @@ source-credibility-model SKILL, source-growth.ts (+ selftest, tier-opinion-dedup
 
 ## NOT done
 - No live run, no data population (operator ruling 2026-10-04). Pending marker `brief-apply/pending/2026-10-04-s1a-source-register.md` owes the next brief-apply run. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- The substring `ilike` host lookup in `registerCitedSources` is unchanged for registration (pre-existing, noted in its own code comment).
+- The substring `ilike` host lookup in `registerCitedSources` is unchanged for registration (pre-existing, noted in its own code comment). [WORK: DFIX-1]
 
 ## Open items
 - Repeat applies of the same batch record repeat class-table opinions (same as the maintenance tier-opinions step; the table is append-only by design). [NOT-WORK: fact, no action]

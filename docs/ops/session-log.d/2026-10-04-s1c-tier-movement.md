@@ -29,4 +29,4 @@
 ## NOT done / open
 - No live run, no DB read (brief rule 5). `maintenance:recompute-tiers` shows NEVER-RUN in the closure gate until first dispatched. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - Citation promotion weights citers by their stored `effective_tier`, so a citer moving between runs can change a cited source's result on the next run (inherent to the skill's section 4 formula, unchanged). [NOT-WORK: fact, no action]
-- The real `readAll("system_state", ...)` in `buildDeps().readCadence` is not exercised by a test (readAll uses the real read client); main() is proven with an injected `readCadence`.
+- The real `readAll("system_state", ...)` in `buildDeps().readCadence` is not exercised by a test (readAll uses the real read client); main() is proven with an injected `readCadence`. [WORK: TESTS-1]

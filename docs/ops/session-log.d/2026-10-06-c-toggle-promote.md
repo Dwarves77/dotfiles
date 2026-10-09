@@ -31,9 +31,9 @@ Read CLAUDE.md, the lane contract, ADR-041, the C-SOCIAL log, ux-laws, the four 
 
 ## Owed (not done, by rule)
 
-- Data migration, population-stage, two-track note: schema DDL applies via Supabase CLI before dependent code commits, data migrations run after merge. Owed: `ALTER TABLE notification_preferences DROP COLUMN on_promote`. When it lands, remove `OWED_DROP_COLUMNS` and the `on_promote` entry in the discipline test's column pin.
-- Owed migration: `notifications_kind_check` (migration 032 L48) still allows `'promote'`; amend it to drop that kind in the same migration batch. Live rows of that kind are not checked here (no database access in this lane).
-- Stale doc text, not in the write set: `docs/plans/C7-notifications-spec.md` still describes `on_promote`.
+- Data migration, population-stage, two-track note: schema DDL applies via Supabase CLI before dependent code commits, data migrations run after merge. Owed: `ALTER TABLE notification_preferences DROP COLUMN on_promote`. When it lands, remove `OWED_DROP_COLUMNS` and the `on_promote` entry in the discipline test's column pin. [WORK: PLAN-2]
+- Owed migration: `notifications_kind_check` (migration 032 L48) still allows `'promote'`; amend it to drop that kind in the same migration batch. Live rows of that kind are not checked here (no database access in this lane). [WORK: PLAN-2]
+- Stale doc text, not in the write set: `docs/plans/C7-notifications-spec.md` still describes `on_promote`. [WORK: DOCS-5]
 
 ## DESIGN CHANGES OWED (for Claude Design, rule 20)
 

@@ -105,8 +105,8 @@ Reused: `InferenceClaim` and `admissibleForInference` (the one gate), `DetailSec
 ### NOT done (each with its reason)
 - PR 944's note stands: row chips ellipsise heavily at 768 to 1023 px (title column 169 px at 768). Not attempted: the grade chip is
   one short nowrap chip on the same meta line, so at that width it takes room from the bias chips and meta text. Not measured at those
-  widths (the rendering guard measures 375 and 1280).
-- Citation-title links: InferenceClaim prints titles as text; links need a change to InferenceClaim.tsx.
+  widths (the rendering guard measures 375 and 1280). [WORK: DFIX-1]
+- Citation-title links: InferenceClaim prints titles as text; links need a change to InferenceClaim.tsx. [WORK: DFIX-1]
 - The inference read is inside the cached 300s item bundle, so a new inference can take that long to appear. [NOT-WORK: fact, no action]
 
 ### Open items

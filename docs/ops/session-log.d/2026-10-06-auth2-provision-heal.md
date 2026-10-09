@@ -83,7 +83,7 @@ Reused: `ORG_SIZE_DIMENSIONS`/`findBand`/`parseOrgProfile` (ADR-034 size bands a
 ## Open items
 - Coordinator: register nothing new (the smoke leg lives in the already-registered `auth-onboarding-smoke.mjs`). [NOT-WORK: fact, no action]
 - Repair command for the coordinator's executor (dry first, then `--apply`):
-  `node fsi-app/scripts/maintenance/repair-smoke-account.mjs --arg <account email>`
+  `node fsi-app/scripts/maintenance/repair-smoke-account.mjs --arg <account email>` [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - DESIGN CHANGES OWED (rule 20), for Claude Design: artboard 17 step 1 ("Workspace", the no-workspace
   onboarding panel) does not draw the fields the system now needs there: job title, sector choice, company
   size and region on the create-organisation form, and invitations listed ahead of it. Built to the system's

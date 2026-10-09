@@ -62,4 +62,4 @@ the entity-to-item reverse read.
 
 - INDEX line owed (coordinator): `- [ADR-044-learning-loop-no-gate](./decisions/ADR-044-learning-loop-no-gate.md) - learning loop runs with no operator gate and no priced request; supersedes ADR-036 decisions 1 and 3 (accepted 2026-10-05)`. [CLOSED: PR 953]
 - `src/lib/sources/seek-more.mjs` still names `operator-priced-only` in comments and the acquisition
-  request text (not this lane's file).
+  request text (not this lane's file). [WORK: DOCS-5]

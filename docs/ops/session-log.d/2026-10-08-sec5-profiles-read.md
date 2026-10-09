@@ -102,7 +102,7 @@ Own-row readers of the flag through the user session that must move to `my_profi
 
 - Apply order for the executor: migration 372 BEFORE this code merges (the code calls the RPCs; without 372 the Community routes get an RPC error and degrade to unnamed authors, and `my_profile()` is absent). [CLOSED: PR 1027]
 - Residual, by design of R8.7: `community_identity` by name can find any non-anonymous profile in the platform, not only people who have posted. Say so if a Community-participants-only restriction is wanted. [NOT-WORK: fact, no action]
-- Residual: `author_user_id` is still returned on anonymous posts (needed for the author's own edit and delete); it is a bare id, not an identity, but it links an anonymous author's posts to each other.
+- Residual: `author_user_id` is still returned on anonymous posts (needed for the author's own edit and delete); it is a bare id, not an identity, but it links an anonymous author's posts to each other. [WORK: DFIX-1]
 
 ### UX compliance
 

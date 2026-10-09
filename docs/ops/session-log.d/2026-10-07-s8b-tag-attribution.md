@@ -21,7 +21,7 @@ Read: COMMON.md, s8b.md, CLAUDE.md, lane-common-contract, ux-laws.md, design-pri
 
 ### NOT done
 - No live-data check; no data population. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- No row-level smoke spec beyond the workspace-tags probe: the five ledgers' own row smokes do not mount the tags hook, so the real-hook-plus-real-row proof lives in `workspace-tags-smoke.mjs`.
+- No row-level smoke spec beyond the workspace-tags probe: the five ledgers' own row smokes do not mount the tags hook, so the real-hook-plus-real-row proof lives in `workspace-tags-smoke.mjs`. [WORK: TESTS-1]
 
 ### DESIGN CHANGES OWED (for Claude Design)
 - Artboard 22 does not draw the attribution. Built as: chip tooltip "applied by <name> on <date>" on detail and list-row chips, and a muted 11px second line on each applied row of the tag popover, truncating. Please draw it, including the long-name case.

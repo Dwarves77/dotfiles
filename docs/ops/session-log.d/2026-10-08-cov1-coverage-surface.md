@@ -93,7 +93,7 @@ F23 `governed-surface-coverage` failed with "UNMAPPED WRITES: 1, ceiling 0"; `co
 
 ## NOT done (stated, each with its reason)
 
-- `suppressed` has no live call site. `ObligationRegisterFilterBar` states no hidden count for `not_filtered_in` (the API returns the filtered total only).
+- `suppressed` has no live call site. `ObligationRegisterFilterBar` states no hidden count for `not_filtered_in` (the API returns the filtered total only). [WORK: PLAN-2]
 - No live database read and no deploy: the page, loader and routes are proven on fixtures with injected dependencies (COMMON rule 5). The page has not been looked at in a browser against live data (definition of done item 4 is owed after merge). [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- The SeriesProvenance swap in the methodology drawer (see ruling 7).
+- The SeriesProvenance swap in the methodology drawer (see ruling 7). [WORK: PLAN-2]
 - Throwaway run scripts and their output (`fsi-app/scripts/tmp/cov1-*`) are gitignored and not part of the commit. [NOT-WORK: fact, no action]

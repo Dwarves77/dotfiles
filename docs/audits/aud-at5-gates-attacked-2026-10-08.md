@@ -237,21 +237,21 @@ COE = `continue-on-error: true` on the step, IFF = `if: false` (an existing `if:
 
 ## OWED legs
 
-- OWED-1 migration-proof.yml: not on origin/master at 12c69634 (`git ls-tree origin/master` returns 0; it exists only in unmerged history, commit ec12631d MIG-CI). No attack possible.
-- OWED-2 DS23 (`npm ci`) and DS24 (ESLint): need npm install and network; the scratch clones carry no node_modules. Sweep cells for these steps are workflow-edit results only; the step's own behaviour was not attacked.
-- OWED-3 DS27 actionlint binary: `which actionlint` returns nothing and there is no network; F52 and FC-1/FC-2 ran, the actionlint run did not. Whether actionlint with `-shellcheck= -pyflakes=` accepts a syntactically broken `run:` script is [HYPOTHESIS]; F52 itself does not parse shell.
-- OWED-4 DS35 and the layout guard at runtime: no browser in the scratch environment; only the step text (RG-1, RG-2) and the sweeps were attacked.
-- OWED-5 DS18/DS19 consistency-backstop: `override-check.mjs` is red at baseline in any scratch clone (`[C4] missing-claim ... basename "m1" exists inside the repository path but is not listed in docs/inventories/worktrees.md`), so its verdict cannot discriminate an attack. Only workflow-text sweeps, the neuter row and VC-1 apply. [CONFIRMED: ran in a scratch clone, output captured]
-- OWED-6 branch protection and required checks (is `Discipline engine` a required status, can master be pushed directly): GitHub-side setting, needs the API; not read. Direct push to master runs only validate-commits and consistency-backstop (DS4, DS6, DS18 paths), VC-2 and VC-3 show what those do on a push.
-- OWED-7 live legs: `loop-fired-evidence-audit.mjs` (compares evidence entries with the live harness_runs table) needs credentials, not run, so AH2 forged entries were checked only against the repo gates; G-5 reach and the real GitHub Actions effect of every mutation are unfired.
-- OWED-9 gate scripts with no sibling test: run-explicit-tests.mjs (TD-6 covers it end to end), run-goldens.mjs and run-rendering-guard.mjs (git grep of the *.test.mjs files finds only path mentions of the last two, no test that executes them); neutering them was not oracle-tested, so those two are unattacked beyond the step sweeps.
-- OWED-8 chain-proof.yml steps that need Docker or the supabase CLI (CS5 to CS8, CS18): sweeps ran on the workflow text only.
+- OWED-1 migration-proof.yml: not on origin/master at 12c69634 (`git ls-tree origin/master` returns 0; it exists only in unmerged history, commit ec12631d MIG-CI). No attack possible. [WORK: TESTS-1]
+- OWED-2 DS23 (`npm ci`) and DS24 (ESLint): need npm install and network; the scratch clones carry no node_modules. Sweep cells for these steps are workflow-edit results only; the step's own behaviour was not attacked. [WORK: TESTS-1]
+- OWED-3 DS27 actionlint binary: `which actionlint` returns nothing and there is no network; F52 and FC-1/FC-2 ran, the actionlint run did not. Whether actionlint with `-shellcheck= -pyflakes=` accepts a syntactically broken `run:` script is [HYPOTHESIS]; F52 itself does not parse shell. [WORK: TESTS-1]
+- OWED-4 DS35 and the layout guard at runtime: no browser in the scratch environment; only the step text (RG-1, RG-2) and the sweeps were attacked. [WORK: TESTS-1]
+- OWED-5 DS18/DS19 consistency-backstop: `override-check.mjs` is red at baseline in any scratch clone (`[C4] missing-claim ... basename "m1" exists inside the repository path but is not listed in docs/inventories/worktrees.md`), so its verdict cannot discriminate an attack. Only workflow-text sweeps, the neuter row and VC-1 apply. [CONFIRMED: ran in a scratch clone, output captured] [WORK: TESTS-1]
+- OWED-6 branch protection and required checks (is `Discipline engine` a required status, can master be pushed directly): GitHub-side setting, needs the API; not read. Direct push to master runs only validate-commits and consistency-backstop (DS4, DS6, DS18 paths), VC-2 and VC-3 show what those do on a push. [WORK: TESTS-1]
+- OWED-7 live legs: `loop-fired-evidence-audit.mjs` (compares evidence entries with the live harness_runs table) needs credentials, not run, so AH2 forged entries were checked only against the repo gates; G-5 reach and the real GitHub Actions effect of every mutation are unfired. [WORK: TESTS-1]
+- OWED-9 gate scripts with no sibling test: run-explicit-tests.mjs (TD-6 covers it end to end), run-goldens.mjs and run-rendering-guard.mjs (git grep of the *.test.mjs files finds only path mentions of the last two, no test that executes them); neutering them was not oracle-tested, so those two are unattacked beyond the step sweeps. [WORK: TESTS-1]
+- OWED-8 chain-proof.yml steps that need Docker or the supabase CLI (CS5 to CS8, CS18): sweeps ran on the workflow text only. [WORK: TESTS-1]
 
 ## Observed in passing (facts, no proposals)
 
 - [CONFIRMED: this session] The PreToolUse skill gate blocked three Bash commands with `Data write (prod effect)` and demanded the skills remediation-discipline and environmental-policy-and-innovation; the commands copied `fsi-app/scripts/verify/run-goldens.mjs` into a scratchpad directory and created a fixture file there. After both skills were loaded the same command ran. Relevant to AUD-AT-3. [NOT-WORK: fact, no action]
 - [CONFIRMED: closure-gate output] `current train: 71`; the NEVER-RUN age clock is the train counter (TD-7). [CLOSED: PR 1039]
-- [CONFIRMED: the full-suite runs] On a loaded machine the test `RACE: C3 and F64 live tests run concurrently ten times` was cancelled at its 300000 ms timeout (4 of 4 full runs), making `run-test-suite.sh` exit 1 independent of any mutation.
+- [CONFIRMED: the full-suite runs] On a loaded machine the test `RACE: C3 and F64 live tests run concurrently ten times` was cancelled at its 300000 ms timeout (4 of 4 full runs), making `run-test-suite.sh` exit 1 independent of any mutation. [WORK: TESTS-1]
 
 ## Matrix cells to enter
 

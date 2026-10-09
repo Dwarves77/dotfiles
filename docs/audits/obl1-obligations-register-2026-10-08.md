@@ -243,21 +243,21 @@ profile including a carrier-only profile; a forwarder profile receives `does_not
 
 ## 7. Facts left unverified because of the window (no live access)
 
-- Whether any of the four instruments has rows in live `obligations` or `item_forward_events` today. [HYPOTHESIS]
-- Which `compliance_object_tags` the four live items carry. [HYPOTHESIS]
-- Whether item 9566075e is the Empowering Consumers directive. [HYPOTHESIS]
-- Whether `origin/master` differs from the checkout at 6028b228 (not fetched).
+- Whether any of the four instruments has rows in live `obligations` or `item_forward_events` today. [HYPOTHESIS] [NOT-WORK: live question, answered at population, rule 16]
+- Which `compliance_object_tags` the four live items carry. [HYPOTHESIS] [NOT-WORK: live question, answered at population, rule 16]
+- Whether item 9566075e is the Empowering Consumers directive. [HYPOTHESIS] [NOT-WORK: live question, answered at population, rule 16]
+- Whether `origin/master` differs from the checkout at 6028b228 (not fetched). [NOT-WORK: live question, answered at population, rule 16]
 
 ## 8. ABSENT, stated as facts (input for OBL-2)
 
 1. No obligation row for any of the four instruments exists in any tracked fixture or artifact (git grep over all tracked JSON
    and JSONL; 0 rows). The two instruments with no forward-events evidence in tree at all: PPWR (item efdb3390) and
-   CountEmissions EU (item cd1083c9; the earlier item 7aaecc81 shows 0 events).
+   CountEmissions EU (item cd1083c9; the earlier item 7aaecc81 shows 0 events). [NOT-WORK: build-mode hold, population after all layers, CLAUDE.md rule 16]
 2. No component-obligation decomposition schema: `obligations` has 14 columns and event grain; no pinpoint, verbatim text,
    duty-holder class, applicability trigger, four dates, or obligation version column; no later migration alters it; the
    migration number plan L17 requested (349) is a different migration. [CLOSED: PR 1025]
 3. No role-scoped rows: nothing represents CBAM as indirect customs representative, PPWR as user of transport packaging or
-   importer of record, Empowering Consumers as the forwarder's own marketing claims, or CountEmissions EU as the method duty.
+   importer of record, Empowering Consumers as the forwarder's own marketing claims, or CountEmissions EU as the method duty. [NOT-WORK: build-mode hold, population after all layers, CLAUDE.md rule 16]
 4. No item-level binding-position banner on the Regulations detail page; the only render is the per-row "Binding" cell in a
    section mounted below the surface, and it renders nothing for an item with zero rows. [CLOSED: PR 1025]
 5. No roleScope or sizeThreshold at obligation grain: no column, no producer; the gate's roleScope exists only at item grain
@@ -273,4 +273,4 @@ profile including a carrier-only profile; a forwarder profile receives `does_not
    and the PPWR and CBAM rules return direct_duty for non-target instruments whose titles contain the generic phrases
    (census indices 51, 61, 103, 164). [CLOSED: PR 1025]
 10. Plan L17 acceptance (>=1 obligation row with non-null binding_position for each of the 4 instruments, and the detail-page
-    banner) is not evidenced as met for any instrument.
+    banner) is not evidenced as met for any instrument. [NOT-WORK: build-mode hold, population after all layers, CLAUDE.md rule 16]

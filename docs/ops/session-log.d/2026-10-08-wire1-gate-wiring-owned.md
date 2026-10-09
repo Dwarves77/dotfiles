@@ -23,8 +23,8 @@ Read in full: COMMON, the brief, `CLAUDE.md`, `lane-common-contract.md`, `OUT-OF
 
 ## NOT done
 
-- Nothing under the user home was read or written (settings.json holds credentials). The installer is run by the executor after merge: `node fsi-app/.discipline/install-hooks.mjs` from the main checkout, which must first hold this merge (the applier refuses with a clear message if the entry or template is missing there).
-- `hooks/pre-push` step 3c failure text still names the applier (`wire-pretooluse-settings.mjs --apply`), which now also installs the shim; the verifier's own output names the installer. Left as is (not in the write set).
+- Nothing under the user home was read or written (settings.json holds credentials). The installer is run by the executor after merge: `node fsi-app/.discipline/install-hooks.mjs` from the main checkout, which must first hold this merge (the applier refuses with a clear message if the entry or template is missing there). [CLOSED: PR 1045]
+- `hooks/pre-push` step 3c failure text still names the applier (`wire-pretooluse-settings.mjs --apply`), which now also installs the shim; the verifier's own output names the installer. Left as is (not in the write set). [CLOSED: PR 1045]
 - Not run locally per COMMON rule 9: the whole suite, the fitness runner, tsc. The five touched test files were run (below). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Evidence (`node --test <file>`; red = the new tests against the pre-change implementation files)
@@ -38,8 +38,8 @@ Read in full: COMMON, the brief, `CLAUDE.md`, `lane-common-contract.md`, `OUT-OF
 
 ## Open items
 
-- After merge, the executor runs the one install command from the main checkout; step 3c then passes on the operator machine.
-- Whether an already-running Claude Code session picks up the new matcher without a restart was not tested here.
+- After merge, the executor runs the one install command from the main checkout; step 3c then passes on the operator machine. [CLOSED: PR 1045]
+- Whether an already-running Claude Code session picks up the new matcher without a restart was not tested here. [WORK: RULES-X-1]
 
 ## Follow-up (coordinator grants, same lane, rule 13: close own residue)
 

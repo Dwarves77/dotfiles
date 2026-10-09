@@ -40,9 +40,9 @@ Reused instead of built: `isEnvelopedFact`, `indexAgainstBase`, `formatEnveloped
 - Fixture dry run: with the live shape (the 75 legacy rows have no envelope; 14 official and 1 derived enveloped rows are recorded in the L13 log, `[HYPOTHESIS]` not re-queried), the Ledger would render statements only where two regions hold the same de-prefixed label. The BLS and Eurostat producers write different descriptions, so today most groups would show the one-region absence line or nothing. That is the honest result of the rule, not a defect.
 
 ### NOT done
-- `RegionDimensionMatrix.tsx` was not changed to share the implied-base rule (outside the write set).
+- `RegionDimensionMatrix.tsx` was not changed to share the implied-base rule (outside the write set). [WORK: PLAN-2]
 - No browser look at the live route (no database here); the layout was measured on fixtures only. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- The dimension facet does not scope the block (decision above); the coordinator may rule otherwise.
+- The dimension facet does not scope the block (decision above); the coordinator may rule otherwise. [WORK: PLAN-2]
 
 ### DESIGN CHANGES OWED (for Claude Design; no artboard draws this block)
 Component list to draw, cited by the Operations list artboard 08 position "below the matrix card, full width" (rule 20: the system need drove the build, the look is a first pass):

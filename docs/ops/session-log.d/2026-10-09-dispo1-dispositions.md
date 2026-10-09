@@ -276,15 +276,20 @@ dispositions; pass 2 table below is the residue awaiting the coordinator's rulin
 - CLOSED only where a merged PR was found for the exact subject; an attack-register line was closed only when every attack id in it is on the GATE-7 or GATE-8 fixed list.
 - A line that restates "owed because no live access" stays in Pass 2 (group missing tests) with the hold token proposed; Pass 1 holds were applied only to lines that restate the hold itself (not applied, no live run, no population, suite not run locally).
 
-## Pass 2 groups (counts of rows above; ruling requested per group)
+## Pass 2 applied (coordinator rulings, same day)
 
-- gate blind spots 42, missing tests 38, missing docs 29, data defects 29, unknown 22, missing features 17, gate false positives 13, dead code 10, mixed groups the remainder. Proposed tokens are in the last column; WORK rows need a lane id from the coordinator.
+- Branch moved: F51 check 4 forbids a lane/ branch from changing docs/audits files, so the work continues on `coord/flag1-dispositions` (cut from the pass 1 head c61b4a834) with a replacement PR for 1054.
+- Group rulings applied to every row of the table above: gate blind spots and gate false positives and overlap -> WORK RULES-X-1; missing tests and the flaky/timeout rows (C3 RACE) -> WORK TESTS-1; missing docs, stale references -> WORK DOCS-5; data defects in product code -> WORK DFIX-1; missing features, wiring, migrations -> WORK PLAN-2; dead code -> WORK DEAD-1c.
+- Row rulings applied: aud-at1 245 and 247 -> SEC-8; obl1 246 to 249 -> NOT-WORK live question; migration-history 37 -> WORK MIG-HIST-2 (PR 1019 is still open and its log does not say the 11 files are mapped); 02-l5 103 -> CLOSED PR 1039 (F23 run on this tree: PASS); 04-s0b 44 -> DORMANT-1; 07-proof3 33 34 36 37 and 08-proof5 30 -> CHAIN-5; 08-wire1 26 27 41 -> CLOSED PR 1045, 42 -> RULES-X-1; scope statements, regenerated-by-executor rows as ruled.
+- Rows I placed by the group definitions where the ruling did not name them (evidence in parentheses): gate-evaluation 409 and 507 -> CLOSED PR 1039 (the train counter was deleted by GATE-8, per its log); 07-proof4 23 and 24 -> CLOSED PR 992 (run-attacks.mjs is in chain-proof.yml and the chain-proof family.json on master); 07-mighist1 29 30 66 -> MIG-HIST-2 and 67 -> DOCS-5; 08-daudit1 196 203 -> TESTS-1 and 198 204 -> RULES-X-1; 05-s3b 142 -> TESTS-1, 143 -> DFIX-1, 149 -> PLAN-2; 07-g5-read 100 and 06-c-toggle 34 35 -> PLAN-2; 03-l14 77, 07-par2 30 -> DOCS-5; 03-external-only 60 -> DFIX-1, 64 -> PLAN-2, 66 and 68 regenerated; 07-sec4 69 -> TESTS-1.
+- Rows with a token outside the named groups, for the coordinator to confirm: 01-r7-lint 110 (recorded deviation, NOT-WORK), migration-history 33 (publishable anon key per the audit, NOT-WORK), 06-auth2 85 (build-mode hold), 07-g5-search 77 (scope statement), 07-g5-search 70 (DFIX-1), obl1 253 259 275 and dead-code-census 1822 1823 (population hold).
+- Final scan: `node fsi-app/scripts/verify/audit-finding-status.mjs --strict` reports 0 undispositioned findings (0 audits, 0 session logs, 0 registers).
+- Token totals after pass 2 (this PR in total): see the PR body.
 
 ## NOT done
 
-- Pass 2 (249 findings) is not applied; it waits on the coordinator's ruling per group. [WORK: DISPO-1]
-- CI result for the PR is reported by the lane at the stop point; PR 1054 stays red on the audit gate until Pass 2 lands. [WORK: DISPO-1]
+- Nothing in the 699 remains undispositioned. The WORK lanes named above (RULES-X-1, TESTS-1, DOCS-5, DFIX-1, PLAN-2, DEAD-1c, SEC-8, DORMANT-1, CHAIN-5, MIG-HIST-2) are not yet dispatched. [WORK: PLAN-2]
 
 ## Open items
 
-- Which of the Pass 2 groups the coordinator rules as NOT-WORK by rule (intent forms under ADR-046, build-mode population hold) versus WORK with a lane id. [WORK: DISPO-1]
+- The pass 2 table above records each row's pass 2 proposal; the token actually applied is the one on the finding line, per the rulings listed here. [NOT-WORK: record of the rulings, no action]

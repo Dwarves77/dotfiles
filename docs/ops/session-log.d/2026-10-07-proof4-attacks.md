@@ -20,8 +20,8 @@ Read: COMMON.md, proof4.md, CLAUDE.md, lane-common-contract, the chain-proof des
 
 ### NOT done / owed
 - Not fired. Every SQL statement is checked against the migration files (table and function names exist) but none has run: column sets of `profiles`, `sources` (seed UPDATE) and the fixture INSERTs are [HYPOTHESIS] until the first dispatch. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- `chain-proof.yml` (PR 975) calls `scripts/proof/attacks.mjs`; the one-line edit owed after 975 merges is `--script scripts/proof/attacks/run-attacks.mjs`. `family.json` governing_files should gain `scripts/proof/attacks/run-attacks.mjs` and `scripts/proof/attacks/attacks.json`. `emit-chain-proof-artifact.mjs` does not read `attacks-report.json` (it records the step outcome only); the report is in the uploaded workflow artifact.
-- F25 (module liveness) has no root for `run-attacks.mjs` until that workflow edit lands.
+- `chain-proof.yml` (PR 975) calls `scripts/proof/attacks.mjs`; the one-line edit owed after 975 merges is `--script scripts/proof/attacks/run-attacks.mjs`. `family.json` governing_files should gain `scripts/proof/attacks/run-attacks.mjs` and `scripts/proof/attacks/attacks.json`. `emit-chain-proof-artifact.mjs` does not read `attacks-report.json` (it records the step outcome only); the report is in the uploaded workflow artifact. [CLOSED: PR 992]
+- F25 (module liveness) has no root for `run-attacks.mjs` until that workflow edit lands. [CLOSED: PR 992]
 - `s8-c-count-rpcs-membership-gate` is red until migration 361 (PR 979) is in the migration tree the replay applies. [CLOSED: PR 979]
 
 ### Findings recorded as hypotheses (rule 14)

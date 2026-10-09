@@ -43,7 +43,7 @@ Reused: `DetailSection`'s existing `index` prop, `SectionIndex`'s existing `ord`
 ### What is NOT done
 - Stale "Across pages" comments in seven files were reworded to "Connected intelligence" (comments only, per coordinator). [NOT-WORK: fact, no action]
 - The admin gallery `/admin/parts/section-index` body fixtures (`section-index-fixtures.ts`) have no bodies for the two
-  new tabs. Not in the write set.
+  new tabs. Not in the write set. [WORK: DOCS-5]
 
 ### DESIGN CHANGES OWED (Claude Design, artboards 03, 05, 07, 09; rule 20)
 Final tab list per surface, ordinals fixed, a section the item does not carry is omitted, never renumbered:

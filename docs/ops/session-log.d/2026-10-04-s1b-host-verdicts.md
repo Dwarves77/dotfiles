@@ -21,7 +21,7 @@ Read in full: source-credibility-model SKILL, host-authority.ts, null-tier-host-
 - Merged origin/master into the branch (no rebase; clean merge). Open null-tier-host flags are now also resolved for hosts resolving by rule a or b (note names the rule). Header comment of bias-tags/route.ts corrected. ProvisionalReviewCard.tsx left for a later UI lane.
 
 ### NOT done
-- `ProvisionalReviewCard.tsx` still describes the 0.65 to 0.79 band as proposed on approval (coordinator will fold it into a later UI lane).
+- `ProvisionalReviewCard.tsx` still describes the 0.65 to 0.79 band as proposed on approval (coordinator will fold it into a later UI lane). [WORK: DOCS-5]
 - No real verdict batch authored; no live run; no workflow edit (resolve-provisional-sources has no `--arg` in maintenance.yml, so export mode is CLI-only there). [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - Local run limited to the touched test files; CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9]
 

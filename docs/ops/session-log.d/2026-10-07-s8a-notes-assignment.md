@@ -131,7 +131,7 @@ doesNotMatch assertion guards it. All 206 `*.npmtest.mjs` files then run locally
 - No notification email or Slack channel; in-app bell only (the existing machinery). [NOT-WORK: fact, no action]
 
 ### Open items for the coordinator
-- `src/app/api/community/notifications/route.ts` header comment still lists the old kinds (comment only).
+- `src/app/api/community/notifications/route.ts` header comment still lists the old kinds (comment only). [WORK: DOCS-5]
 - `.discipline/rendering/layout-guard/manifests.json` still lists the artboard-derived rail card "Your notes" for `/market/[slug]`
   (generated from the artboard; the full rendering guard passes with the card gone). Claude Design owes the artboard change below. [NOT-WORK: operator item, recorded on the board]
 

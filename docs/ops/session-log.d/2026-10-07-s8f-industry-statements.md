@@ -17,8 +17,8 @@ Brief: industry-level statements replace the removed calculator (plan Stage 8). 
 ### What is NOT done
 - No design. The coordinator writes it. [NOT-WORK: fact, no action]
 - No live counts were re-queried (no database). Every count is marked `[HYPOTHESIS]` with the document it was taken from. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- Not traced: the source function behind `getPublicSurfaceCounts` (`fetchPublicSurfaceCounts`), the number of `nrg_pc_205` consumption bands, whether `state_cost_facts.value_numeric` is populated live, whether the live `regional_data_facts` rows carry `source_id`.
+- Not traced: the source function behind `getPublicSurfaceCounts` (`fetchPublicSurfaceCounts`), the number of `nrg_pc_205` consumption bands, whether `state_cost_facts.value_numeric` is populated live, whether the live `regional_data_facts` rows carry `source_id`. [NOT-WORK: scope statement, no defect]
 
 ### Open items
-- `docs/INDEX.md` needs a line for the new register (coordinator-only file per the lane contract).
+- `docs/INDEX.md` needs a line for the new register (coordinator-only file per the lane contract). [WORK: DOCS-5]
 - Value Delivery Check: this lane's work does not directly advance customer-facing value delivery. It is a read-only register feeding the coordinator's design for Stage 8 (Operations). It enumerates Regulations, Market Intel, Research, Operations and Community only where a table or block touches them (Operations blocks, Market-fed tables, `obligations` read by Regulations); Community is not touched. [NOT-WORK: fact, no action]

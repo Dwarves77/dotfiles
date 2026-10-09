@@ -24,7 +24,7 @@
 - The local merge-base shape (`local-merge-base`) keeps per-commit verdicts, as the brief says only the pull-request source changes.
 
 ## NOT done
-- Nothing is applied or merged. The workflows and pre-push were not touched (not in the write set); a pre-push run on a PR branch uses the local merge-base shape, so it still judges per commit.
+- Nothing is applied or merged. The workflows and pre-push were not touched (not in the write set); a pre-push run on a PR branch uses the local merge-base shape, so it still judges per commit. [WORK: RULES-X-1]
 - The rest of the discipline suite and the fitness runner were not run locally (CI is the gate, ADR-040). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
