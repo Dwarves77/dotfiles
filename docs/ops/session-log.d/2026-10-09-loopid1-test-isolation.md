@@ -23,4 +23,4 @@ The job is `if: github.event_name == 'pull_request'` (GATE-4's slim job set, `.g
 
 ## NOT done
 
-- No run of the whole suite or the fitness runner (CI is the gate). The `ledger` seam on `resolveLoopRunIdFromUpstream` has its non-test importers already (every emitter calls it without a ledger).
+- No run of the whole suite or the fitness runner (CI is the gate). The `ledger` seam on `resolveLoopRunIdFromUpstream` has its non-test importers already (every emitter calls it without a ledger). [NOT-WORK: build-mode hold, COMMON rule 9: CI is the gate]

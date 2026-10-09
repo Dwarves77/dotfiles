@@ -169,15 +169,15 @@ Ids are `<spec id>#<index>` in the committed results.json (regenerated at b35837
 
 ## What is NOT done
 
-- Not run locally, per COMMON rule 9: the whole suite, the fitness runner, tsc, lint. CI is the gate.
-- The vacuous-guard repair (90 occurrences, 14 specs) is not proven by attack: no scratch mount was built to show a D-M4 forbid firing on a row with two reason words in value cells (that would create files outside the write set). The repaired selectors are exercised only in the sense that they are valid and match nothing on the current product.
-- `operations-matrix.json` still has a forbid on `td:not(:has(.cl-absence))` ("no cell contains a word"); it is not vacuous (it tests every cell now) but its exclusion clause is stale. Left as is.
-- `open-state-sweep.mjs` and `overflow-sweep.mjs` (not in the write set) iterate every `AUDIT_MOUNTS` key, so they now also sweep `page-frame-1440-full-brief`; `open-state-sweep` has an INTERACTED set for mounts that press something, and this one presses the Full brief control. Whether it belongs there is for the coordinator.
-- The five BUILD DEFECTS and the DESIGN CHANGES OWED above are listed, not fixed.
-- The CI job's first real run on the container image is checked after push (result recorded in the PR report); the committed results.json was produced on a Windows machine, so a CI artifact that differs from it on a font-dependent row would show here.
+- Not run locally, per COMMON rule 9: the whole suite, the fitness runner, tsc, lint. CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9: CI is the gate]
+- The vacuous-guard repair (90 occurrences, 14 specs) is not proven by attack: no scratch mount was built to show a D-M4 forbid firing on a row with two reason words in value cells (that would create files outside the write set). The repaired selectors are exercised only in the sense that they are valid and match nothing on the current product. [WORK: TESTS-1]
+- `operations-matrix.json` still has a forbid on `td:not(:has(.cl-absence))` ("no cell contains a word"); it is not vacuous (it tests every cell now) but its exclusion clause is stale. Left as is. [WORK: TESTS-1]
+- `open-state-sweep.mjs` and `overflow-sweep.mjs` (not in the write set) iterate every `AUDIT_MOUNTS` key, so they now also sweep `page-frame-1440-full-brief`; `open-state-sweep` has an INTERACTED set for mounts that press something, and this one presses the Full brief control. Whether it belongs there is for the coordinator. [WORK: TESTS-1]
+- The five BUILD DEFECTS and the DESIGN CHANGES OWED above are listed, not fixed. [WORK: DFIX-1]
+- The CI job's first real run on the container image is checked after push (result recorded in the PR report); the committed results.json was produced on a Windows machine, so a CI artifact that differs from it on a font-dependent row would show here. [CLOSED: PR 1049]
 
 ## Open items
 
-- Coordinator: a build lane for the BUILD DEFECTS above (CommunityRooms head, Timeline at 390, research Summary tab, RailCard weight with the 700 versus 800 conflict between the MOBILE 390 spec and the artboards).
-- Coordinator: whether a spec-level harness error (`errors[]` non-empty) should fail the Design audit job.
-- Coordinator: a Claude Design list from the 59 DESIGN CHANGES OWED rows, including an artboard for the labour chain panel.
+- Coordinator: a build lane for the BUILD DEFECTS above (CommunityRooms head, Timeline at 390, research Summary tab, RailCard weight with the 700 versus 800 conflict between the MOBILE 390 spec and the artboards). [WORK: DFIX-1]
+- Coordinator: whether a spec-level harness error (`errors[]` non-empty) should fail the Design audit job. [WORK: RULES-X-1]
+- Coordinator: a Claude Design list from the 59 DESIGN CHANGES OWED rows, including an artboard for the labour chain panel. [NOT-WORK: operator item, Claude Design list]

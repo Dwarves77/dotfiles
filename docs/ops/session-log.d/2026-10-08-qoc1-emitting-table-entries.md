@@ -17,4 +17,4 @@
 - `scripts/turns/run-propagation-drain.test.mjs`: one failure, the loop_run_id resolution test (expected red until LOOPID-1 merges); not touched.
 
 ## NOT done
-- No migration, no live access, no change to any other file.
+- No migration, no live access, no change to any other file. [NOT-WORK: build-mode hold, COMMON rule 5 no live access]
