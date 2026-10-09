@@ -227,7 +227,6 @@ test('findDispatchRoots: a run: line in a COMPOSITE ACTION is a production call 
 
 test('CI_RUN_SITE_GLOBS reach the real composite action file through the real glob expander', () => {
   assert.deepEqual(CI_RUN_SITE_GLOBS, ['.github/workflows/*.yml', '.github/actions/**/*.yml']);
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
   const found = globFiles(CI_RUN_SITE_GLOBS);
   assert.ok(found.includes('.github/actions/local-stack/action.yml'), `local-stack/action.yml missing from ${found.length} files`);
   assert.ok(found.includes('.github/workflows/chain-proof.yml'));
