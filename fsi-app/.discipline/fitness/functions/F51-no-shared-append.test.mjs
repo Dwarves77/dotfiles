@@ -607,3 +607,35 @@ test('F51 B6-32: a detached HEAD (a pull request checkout) is judged by the bran
     rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// ---- lane ENGINE-FIX-1 (2026-10-09): register RULES-X-1 S10/X10, a coordinator checkout with no CI name ----
+
+function detachedEdit(prefix, refsAtTip) {
+  const { tmp, git } = tmpRepo(prefix);
+  initCheck4Base(tmp, git);
+  git(['checkout', '-q', '-b', 'tmp-work']);
+  writeFile(join(tmp, 'docs/PROGRAM-BOARD.md'), '# board\nedit\n');
+  git(['add', '-A']);
+  git(['commit', '-q', '-m', 'edit the board']);
+  git(['checkout', '-q', '--detach']);
+  git(['branch', '-q', '-D', 'tmp-work']);
+  for (const r of refsAtTip) git(['update-ref', r, 'HEAD']);
+  return { tmp, git };
+}
+
+test('ENGINE-FIX-1 S10: an unnamed detached HEAD sitting at the tip of a coord/ ref is the coordinator\'s (executor refresh), and a lane/ ref there is not', () => {
+  const a = detachedEdit('f51-ef1-a-', ['refs/heads/coord/mig-headers-refresh']);
+  const b = detachedEdit('f51-ef1-b-', ['refs/heads/lane/some-lane']);
+  const c = detachedEdit('f51-ef1-c-', ['refs/heads/coord/mig-headers-refresh', 'refs/remotes/origin/lane/some-lane']);
+  const d = detachedEdit('f51-ef1-d-', []);
+  try {
+    assert.deepEqual(runCheck4(a.tmp, {}), [], 'a detached coordinator checkout at a coord/ tip passes');
+    assert.equal(runCheck4(b.tmp, {}).length, 1, 'attack: a lane/ ref at the tip still fails');
+    assert.equal(runCheck4(c.tmp, {}).length, 1, 'attack: a coord/ ref sharing the tip with a lane/ ref is not a free pass');
+    assert.equal(runCheck4(d.tmp, {}).length, 1, 'attack: no ref names the tip, the strict reading stands');
+    assert.deepEqual(runCheck4(a.tmp, { GITHUB_HEAD_REF: 'coord/docs-pass' }), [], 'a PR head ref that starts with coord/ passes');
+    assert.equal(runCheck4(a.tmp, { GITHUB_HEAD_REF: 'lane/from-ci' }).length, 1, 'attack: CI naming a lane/ head ref wins over the local coord/ ref');
+  } finally {
+    for (const x of [a, b, c, d]) rmSync(x.tmp, { recursive: true, force: true });
+  }
+});

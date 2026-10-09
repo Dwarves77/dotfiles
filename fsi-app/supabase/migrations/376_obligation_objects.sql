@@ -22,7 +22,7 @@
 --     BEFORE INSERT OR UPDATE trigger `obligation_objects_guard` and no `insert_obligation_object` RPC is built. The
 --     span rule is validate_item_provenance criterion 3 (migrations 114/119): lower(btrim(span)) is a substring of
 --     lower(result_content) of a capture of THIS item. Migration 356's `item_corrections_span_is_verbatim` states the
---     same rule but was itself not applied then, so this migration does not depend on it; the rule is written once here.
+--     same rule but is itself NOT APPLIED, so this migration does not depend on it; the rule is written once here.
 --  3. CAPTURE NAMING. section_claim_provenance names a capture by `search_result_id uuid REFERENCES
 --     agent_run_searches(id)` (migration 112). `capture_id` here is the same FK target (agent_run_searches.id), NOT
 --     NULL: an obligation object without a held capture has no verbatim proof and is refused.
