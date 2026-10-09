@@ -1187,12 +1187,13 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
  * injectable for the test.
  * @returns {string|null}
  */
-export function resolveSweepLoopRunId({ env = process.env, fsiRoot = FSI_ROOT } = {}) {
+export function resolveSweepLoopRunId({ env = process.env, fsiRoot = FSI_ROOT, ledger } = {}) {
   return resolveLoopRunId({
     explicit: env.LEDGER_CONSUME_LOOP_RUN_ID || null,
     upstreamFamily: "source-sweep",
     upstreamRunId: env.GITHUB_EVENT_WORKFLOW_RUN_ID || null,
     harnessRunsDir: resolve(fsiRoot, "scripts", "harness-runs", "source-sweep"),
+    ledger, // test seam: omitted, resolveLoopRunId reads the committed harness ledger export
   });
 }
 
