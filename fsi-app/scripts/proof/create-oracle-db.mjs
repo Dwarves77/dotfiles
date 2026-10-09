@@ -1,86 +1,85 @@
 #!/usr/bin/env node
-// create-oracle-db.mjs -- create the empty database that holds the schema ORACLE (lane PROOF-1, coordinator reversal
-// 2026-10-07). The stack's own database gets its schema from the migration-file replay; the schema-only dump of
-// production is applied to this second database (apply-schema-dump.mjs), and schema-diff.mjs must find the two
-// identical.
+// create-oracle-db.mjs -- start the schema ORACLE cluster (lane PROOF-1, reduced by lane PROOF-6, 2026-10-09,
+// coordinator ruling 2026-10-09: "Option A, in its lightest form").
 //
-// The database is made from the stack's own `postgres` database as a TEMPLATE, immediately after the stack starts
-// and BEFORE the replay runs, so it carries the auth and storage schemas and the extensions the dump depends on
-// (storage.buckets, auth.users, vault, ltree...) and none of the application tables. PostgreSQL refuses CREATE
-// DATABASE ... TEMPLATE while another session is connected to the template, and the stack's own services (auth,
-// storage) hold connections, so this connects to template1, terminates the other sessions on `postgres`, and
-// creates the database, retrying a few times because the services reconnect. The three statements (terminate, drop
-// if exists, create) go to one psql invocation as three separate -c arguments with ON_ERROR_STOP: each -c is its own
-// transaction, which DROP DATABASE and CREATE DATABASE require (lane PROOF-5b, 2026-10-08: [CONFIRMED] by
-// chain-proof run 37748342640, where one -c string holding all three failed with "DROP DATABASE cannot run inside
-// a transaction block").
-// [CONFIRMED by chain-proof run 37743372083, lane PROOF-5, 2026-10-08] the local `postgres` role is NOT a superuser:
-// terminating the stack's services' sessions failed with "Only roles with the SUPERUSER attribute may terminate
-// processes of roles with the SUPERUSER attribute" on all 5 attempts. This one statement block therefore runs as the
-// stack's superuser (PROOF_DB_SUPERUSER_URL, written by write-local-env.mjs, loopback-asserted by preflight.mjs and
-// again here). Nothing else changes: PROOF_ORACLE_DB_URL stays on the ordinary `postgres` role.
+// The oracle is a SECOND POSTGRES CLUSTER, not a second database. chain-proof run 37876624407 applied the production
+// schema dump to a scratch database (oracle_check) as the stack's ordinary `postgres` role and failed with "must be
+// owner of schema public" and "can only create extension in database postgres" (2738 fatal errors). [HYPOTHESIS, not
+// yet verified: the extension message is pg_cron's own restriction to its configured database, which a role change
+// cannot lift; the next chain-proof fire on master shows what line 16 of the dump is.] The replay owns the stack's
+// `postgres` database, so the dump gets its own cluster, where `postgres` is free: a container of the SAME
+// `supabase/postgres` image and tag the local stack runs (read from the running stack with `docker ps`, never typed
+// here), on a distinct loopback host port (ORACLE_PORT in write-local-env.mjs), database `postgres`, applied as
+// `supabase_admin` (apply-schema-dump.mjs, psql ON_ERROR_STOP=1). The image creates the roles the dump names
+// (postgres, anon, authenticated, service_role, supabase_admin); a role it does not have is a red step downstream,
+// never a strip.
 //
-// On success the oracle database's loopback URL is appended to the local env file as PROOF_ORACLE_DB_URL, which
-// preflight.mjs checks like every other connection variable.
+// The container's password is the stack's own database password (the CLI's well-known local default, read from
+// PROOF_DB_URL); PROOF_ORACLE_DB_URL is written by write-local-env.mjs, so this script only starts the container
+// that URL names and waits until the image's init has created the roles.
 //
-// Usage: node scripts/proof/create-oracle-db.mjs --env-file <path>   (superuser URL from PROOF_DB_SUPERUSER_URL, the
-//        oracle URL's role from PROOF_DB_URL; loopback only)
-// Exit: 0 = created; 1 = could not create it; 2 = cannot run (a URL variable absent, not loopback).
+// Usage: node scripts/proof/create-oracle-db.mjs   (reads PROOF_DB_URL and PROOF_ORACLE_DB_URL from the environment;
+//        loopback only). Teardown is `docker rm -f chain-proof-oracle` in the workflow's final step.
+// Exit: 0 = ready; 1 = could not start or never became ready; 2 = cannot run (a URL absent, not loopback, wrong shape).
 
 import { spawnSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
 import { assertLoopbackDbUrl } from "./replay-migrations.mjs";
+import { SUPERUSER_ROLE } from "./write-local-env.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 
-export const ORACLE_DB = "oracle_check";
+export const ORACLE_CONTAINER = "chain-proof-oracle";
+/** The roles the image must have created before the dump is applied; readiness waits for all of them. */
+export const READY_ROLES = Object.freeze(["postgres", "anon", "authenticated", "service_role", SUPERUSER_ROLE]);
+export const READY_QUERY = `select count(*) from pg_roles where rolname in (${READY_ROLES.map((r) => `'${r}'`).join(", ")})`;
 
-/** The same loopback URL with another database name. PURE. */
-export function withDatabase(url, name) {
-  const u = new URL(url);
-  u.pathname = `/${name}`;
-  return u.toString();
+/** The image of the running stack's database container. PURE over an injected `spawn`. Returns { image } or { error }. */
+export function stackImage({ spawn = spawnSync } = {}) {
+  const r = spawn("docker", ["ps", "--filter", "name=supabase_db_", "--format", "{{.Image}}"], { encoding: "utf8" });
+  if (r.error || r.status !== 0) return { error: `docker ps failed: ${String(r.error ? r.error.message : r.stderr ?? "").trim().split(/\r?\n/).slice(-1)[0] ?? ""}`.slice(0, 200) };
+  const image = String(r.stdout ?? "").split(/\r?\n/).map((l) => l.trim()).find(Boolean);
+  return image ? { image } : { error: "no running supabase_db_ container found; the oracle needs the stack's image" };
 }
 
-// Three statements, each passed to psql as its OWN -c argument. psql runs every -c as a separate command, so each is
-// its own transaction; one -c string holding all three is a single implicit transaction, in which DROP DATABASE and
-// CREATE DATABASE are refused ("DROP DATABASE cannot run inside a transaction block", chain-proof run 37748342640).
-export const STATEMENTS = Object.freeze([
-  "select pg_terminate_backend(pid) from pg_stat_activity where datname = 'postgres' and pid <> pg_backend_pid()",
-  `drop database if exists ${ORACLE_DB}`,
-  `create database ${ORACLE_DB} template postgres`,
-]);
-
-/** Create the database with retries. `spawn` and `sleep` are injectable. Returns { ok, attempts, message }. */
-export async function createOracleDb({ superuserUrl, psql = "psql", attempts = 5, spawn = spawnSync, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
-  assertLoopbackDbUrl(superuserUrl);
-  const templateUrl = withDatabase(superuserUrl, "template1");
-  let last = "";
-  for (let i = 1; i <= attempts; i++) {
-    const r = spawn(psql, [templateUrl, "-X", "-v", "ON_ERROR_STOP=1", ...STATEMENTS.flatMap((s) => ["-c", s])], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
-    if (!r.error && r.status === 0) return { ok: true, attempts: i, message: `${ORACLE_DB} created on attempt ${i}` };
-    last = String(r.error ? r.error.message : r.stderr ?? "").trim().split(/\r?\n/).slice(-1)[0]?.replace(/postgres(?:ql)?:\/\/\S+/gi, "<url>").slice(0, 200) ?? "";
-    if (i < attempts) await sleep(2000);
-  }
-  return { ok: false, attempts, message: `could not create ${ORACLE_DB} after ${attempts} attempts: ${last}` };
-}
-
-function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
-
-/** Validate the inputs the CLI needs. PURE. Returns { error } naming the variable, or { superuserUrl, oracleUrl }. */
-export function resolveInputs({ envFile, env }) {
-  if (!envFile) return { error: "--env-file <path> is required" };
-  for (const name of ["PROOF_DB_URL", "PROOF_DB_SUPERUSER_URL"]) {
+/** Validate the two URLs. PURE. Returns { error } naming the variable, or { password, port }. */
+export function resolveInputs({ env }) {
+  for (const name of ["PROOF_DB_URL", "PROOF_ORACLE_DB_URL"]) {
     if (!env[name]) return { error: `${name} is not set` };
     try { assertLoopbackDbUrl(env[name]); } catch (e) { return { error: `${name}: ${e.message}` }; }
   }
-  return { superuserUrl: env.PROOF_DB_SUPERUSER_URL, oracleUrl: withDatabase(env.PROOF_DB_URL, ORACLE_DB) };
+  const stack = new URL(env.PROOF_DB_URL);
+  const oracle = new URL(env.PROOF_ORACLE_DB_URL);
+  if (oracle.username !== SUPERUSER_ROLE) return { error: `PROOF_ORACLE_DB_URL must name the ${SUPERUSER_ROLE} role` };
+  if (oracle.pathname !== "/postgres") return { error: "PROOF_ORACLE_DB_URL must name the database postgres" };
+  if (!oracle.port || oracle.port === stack.port) return { error: "PROOF_ORACLE_DB_URL must name a host port other than the stack's" };
+  const password = decodeURIComponent(stack.password);
+  if (!password) return { error: "PROOF_DB_URL carries no password to give the oracle container" };
+  return { password, port: oracle.port };
+}
+
+/** Start the container and wait for readiness. `spawn` and `sleep` are injectable. Returns { ok, attempts, message }. */
+export async function startOracle({ oracleUrl, password, port, image, psql = "psql", attempts = 60, spawn = spawnSync, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) }) {
+  assertLoopbackDbUrl(oracleUrl);
+  const run = spawn("docker", ["run", "-d", "--name", ORACLE_CONTAINER, "-e", `POSTGRES_PASSWORD=${password}`, "-p", `127.0.0.1:${port}:5432`, image], { encoding: "utf8" });
+  if (run.error || run.status !== 0) {
+    const why = String(run.error ? run.error.message : run.stderr ?? "").trim().split(/\r?\n/).slice(-1)[0] ?? "";
+    return { ok: false, attempts: 0, message: `could not start ${ORACLE_CONTAINER} from ${image}: ${why.replace(password, "<pw>")}`.slice(0, 300) };
+  }
+  let last = "";
+  for (let i = 1; i <= attempts; i++) {
+    const r = spawn(psql, [oracleUrl, "-X", "-At", "-c", READY_QUERY], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "5" } });
+    if (!r.error && r.status === 0 && String(r.stdout ?? "").trim() === String(READY_ROLES.length)) return { ok: true, attempts: i, message: `${ORACLE_CONTAINER} ready on attempt ${i} (image ${image})` };
+    last = String(r.error ? r.error.message : r.stderr || r.stdout || "").trim().split(/\r?\n/).slice(-1)[0]?.replace(/postgres(?:ql)?:\/\/\S+/gi, "<url>").slice(0, 200) ?? "";
+    if (i < attempts) await sleep(2000);
+  }
+  return { ok: false, attempts, message: `${ORACLE_CONTAINER} not ready after ${attempts} attempts: ${last}` };
 }
 
 if (isMainModule(import.meta.url)) {
-  const inputs = resolveInputs({ envFile: arg("--env-file"), env: process.env });
+  const inputs = resolveInputs({ env: process.env });
   if (inputs.error) { console.error(`create-oracle-db: ${inputs.error}`); process.exit(2); }
-  const r = await createOracleDb({ superuserUrl: inputs.superuserUrl });
+  const img = stackImage();
+  if (img.error) { console.error(`create-oracle-db: ${img.error}`); process.exit(1); }
+  const r = await startOracle({ oracleUrl: process.env.PROOF_ORACLE_DB_URL, password: inputs.password, port: inputs.port, image: img.image });
   (r.ok ? console.log : console.error)(`create-oracle-db: ${r.message}`);
   if (!r.ok) process.exit(1);
-  appendFileSync(arg("--env-file"), `export PROOF_ORACLE_DB_URL='${inputs.oracleUrl}'\n`);
 }

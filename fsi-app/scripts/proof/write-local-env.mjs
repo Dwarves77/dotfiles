@@ -10,8 +10,10 @@
 // env change only):
 //   API_URL                          -> NEXT_PUBLIC_SUPABASE_URL, PROOF_API_URL
 //   DB_URL                           -> SUPABASE_DB_URL, PROOF_DB_URL
-//   DB_URL with the user replaced    -> PROOF_DB_SUPERUSER_URL (lane PROOF-5: the one step that needs a superuser,
-//                                       create-oracle-db.mjs; the `postgres` role of the local stack is not one)
+//   DB_URL, user supabase_admin,     -> PROOF_ORACLE_DB_URL (lane PROOF-6: the schema oracle is a SECOND CLUSTER, a
+//     port ORACLE_PORT, database        container of the stack's own image started by create-oracle-db.mjs; the
+//     postgres                          production dump is applied there as the superuser, so pg_cron has its named
+//                                       database and the replay keeps the stack's `postgres` to itself)
 //   SERVICE_ROLE_KEY (or SECRET_KEY) -> SUPABASE_SERVICE_ROLE_KEY, PROOF_SERVICE_KEY
 //   ANON_KEY (or PUBLISHABLE_KEY)    -> NEXT_PUBLIC_SUPABASE_ANON_KEY
 //   plus CHAIN_PROOF_LOCAL=1 (pg-conn loopback mode) and SCRAPE_HOLD=off (explicit).
@@ -55,6 +57,17 @@ export function withUser(url, user) {
   return u.toString();
 }
 
+/** Host port of the oracle cluster. Distinct from every port in fsi-app/supabase/config.toml (54320 to 54329). */
+export const ORACLE_PORT = 54399;
+
+/** The oracle cluster's URL: the stack's loopback URL with the superuser role, ORACLE_PORT and database postgres. PURE. */
+export function oracleUrl(dbUrl) {
+  const u = new URL(withUser(dbUrl, SUPERUSER_ROLE));
+  u.port = String(ORACLE_PORT);
+  u.pathname = "/postgres";
+  return u.toString();
+}
+
 /** Build the local env. PURE. Throws a message naming the variable, never a value. */
 export function buildLocalEnv(status) {
   const api = status.API_URL;
@@ -72,7 +85,7 @@ export function buildLocalEnv(status) {
     PROOF_API_URL: api,
     SUPABASE_DB_URL: db,
     PROOF_DB_URL: db,
-    PROOF_DB_SUPERUSER_URL: withUser(db, SUPERUSER_ROLE),
+    PROOF_ORACLE_DB_URL: oracleUrl(db),
     SUPABASE_SERVICE_ROLE_KEY: service,
     PROOF_SERVICE_KEY: service,
     CHAIN_PROOF_LOCAL: "1",
