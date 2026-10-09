@@ -1,5 +1,10 @@
 {
-  "runAt": "2026-10-08T23:31:53.457Z",
+  "runAt": "2026-10-09T02:50:56.630Z",
+  "generated_on": {
+    "platform": "linux",
+    "node": "v24.21.0",
+    "container_image": "none"
+  },
   "specs": [
     {
       "part": "Absence",
@@ -19443,10 +19448,10 @@
       "viewport": 1440,
       "target": "masthead scope line carries p8's own standing sentence after the live counts",
       "selector": ".cl-masthead-dek",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text."
     },
     {
@@ -24229,7 +24234,7 @@
       "selector": "[data-audit=\"org-fields-row\"]",
       "property": "grid-template-columns",
       "expected": "* * *",
-      "actual": "324.969px 324.984px 72.0469px",
+      "actual": "325px 325px 72px",
       "status": "MATCH",
       "note": "dc.html p14: 1fr 1fr auto. CSSOM reports used pixel widths for all three tracks, so each is matched as one token; the two equal 1fr tracks and a content-sized Save are what the artboard draws."
     },
@@ -29984,8 +29989,8 @@
       "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
       "property": "height",
       "expected": "24px",
-      "actual": "24px",
-      "status": "MATCH",
+      "actual": "44px",
+      "status": "MISMATCH",
       "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
     },
     {
@@ -30001,8 +30006,8 @@
       "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
       "property": "min-height",
       "expected": "24px",
-      "actual": "24px",
-      "status": "MATCH",
+      "actual": "44px",
+      "status": "MISMATCH",
       "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
     },
     {
@@ -47733,8 +47738,8 @@
       "selector": "[data-audit=\"ops-fact-detail\"]",
       "property": "width",
       "expected": "658.797px",
-      "actual": "658.797px",
-      "status": "MATCH",
+      "actual": "648px",
+      "status": "MISMATCH",
       "note": null
     },
     {
