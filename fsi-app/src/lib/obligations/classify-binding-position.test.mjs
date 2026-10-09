@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyBindingPosition, BINDING_POSITION_RULES } from "./classify-binding-position.mjs";
+import { classifyBindingPosition, classifyInstrumentIdentity, BINDING_POSITION_RULES } from "./classify-binding-position.mjs";
 
 test("classifies CountEmissions EU as direct_duty (spec-01 §1 table 1)", () => {
   const r = classifyBindingPosition({ title: "CountEmissions EU, Regulation (EU) 2026/1030" });
@@ -14,7 +14,7 @@ test("classifies by ELI/CELEX-shaped number alone (no instrument name in title)"
 });
 
 test("classifies CBAM as direct_duty regardless of case", () => {
-  const r = classifyBindingPosition({ title: "Carbon Border Adjustment Mechanism — definitive regime" });
+  const r = classifyBindingPosition({ title: "Carbon Border Adjustment Mechanism — definitive regime", jurisdictionIso: ["EU"] });
   assert.equal(r.position, "direct_duty");
 });
 
@@ -100,4 +100,35 @@ test("class coverage: two distinct real carrier_passthrough instruments both res
   assert.equal(corsia.position, "carrier_passthrough");
   assert.equal(refueleu.position, "carrier_passthrough");
   assert.notEqual(corsia.citation, refueleu.citation, "two distinct instruments must cite two distinct spec-01 rows");
+});
+
+// ── Lane OBL-2 (2026-10-08): identity first, generic title phrases no longer classify other instruments ────────
+// (OBL-1 register section 8 item 9; the census titles are the real ones from the tracked census fixture.)
+
+test("generic phrase: the packaging and packaging waste title phrase is not PPWR (1994 directive amendments, derogation decisions, national producer regulations)", () => {
+  for (const title of [
+    "Directive 2004/12/EC of the European Parliament and of the Council of 11 February 2004 amending Directive 94/62/EC on packaging and packaging waste - Statement by the Council",
+    "The Producer Responsibility Obligations (Packaging and Packaging Waste) Regulations 2024",
+    "2001/171/EC: Commission Decision establishing the conditions for a derogation for glass packaging in Directive 94/62/EC on packaging and packaging waste",
+  ]) assert.equal(classifyBindingPosition({ title, jurisdictionIso: ["EU"] }), null, title);
+});
+
+test("generic phrase: the carbon border adjustment phrase counts for an EU item only, never the UK mechanism", () => {
+  const title = "The Carbon Border Adjustment Mechanism (Transitory Provision) Regulations 2026";
+  assert.equal(classifyBindingPosition({ title, jurisdictionIso: ["GB"] }), null);
+  assert.equal(classifyBindingPosition({ title }), null);
+  assert.equal(classifyBindingPosition({ title: "Carbon Border Adjustment Mechanism definitive regime", jurisdictionIso: ["EU"] }).position, "direct_duty");
+});
+
+test("identity: the instrument number and CELEX of CBAM (2023/956) and PPWR (2025/40) classify; a different instrument that applies Regulation 2023/956 is the CBAM family", () => {
+  assert.equal(classifyBindingPosition({ title: "Commission Implementing Regulation (EU) 2025/2621 laying down rules for the application of Regulation (EU) 2023/956" }).position, "direct_duty");
+  assert.equal(classifyInstrumentIdentity({ instrumentIdentifiers: ["32023R0956"] }).position, "direct_duty");
+  assert.equal(classifyInstrumentIdentity({ instrumentIdentifiers: [null, "32025R0040"] }).position, "direct_duty");
+  assert.equal(classifyInstrumentIdentity({ legalInstrument: "Regulation (EU) 2025/40" }).position, "direct_duty");
+});
+
+test("classifyInstrumentIdentity never reads a generic phrase and never guesses", () => {
+  assert.equal(classifyInstrumentIdentity({ legalInstrument: "Carbon Border Adjustment Mechanism", instrumentIdentifiers: ["UK uksi 2026/830"] }), null);
+  assert.equal(classifyInstrumentIdentity({}), null);
+  assert.equal(classifyInstrumentIdentity(undefined), null);
 });

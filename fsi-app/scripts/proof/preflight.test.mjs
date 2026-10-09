@@ -113,3 +113,23 @@ test("a hostname that merely begins with 127.0.0.1 is not loopback", () => {
   const r = checkPreflight({ ...CLEAN, SUPABASE_DB_URL: "postgresql://postgres:x@127.0.0.1.evil.example:5432/postgres" });
   assert.equal(r.ok, false);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS, not only its output ──────
+test("GATE-9 exit status: preflight.mjs exits 1 on an empty env, on a non-loopback or production host, and 0 on a clean loopback env", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const script = fileURLToPath(new URL("./preflight.mjs", import.meta.url));
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  // only the few variables a node child needs: the success case must see NO ambient VERCEL_* name or production-looking value
+  const keep = ["PATH", "Path", "SystemRoot", "SYSTEMROOT", "TEMP", "TMP", "HOME", "USERPROFILE", "FSI_NO_ENV_FILE"];
+  const base = Object.fromEntries(Object.entries(withoutCredentials()).filter(([k]) => keep.includes(k)));
+  const run = (extra) => spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...base, ...extra } });
+  const empty = run({});
+  assert.equal(empty.status, 1, empty.stdout + empty.stderr);
+  assert.match(empty.stderr, /REFUSED/);
+  assert.equal(run({ CHAIN_PROOF_LOCAL: "1", SUPABASE_DB_URL: "postgresql://postgres:x@db.abcdefgh.supabase.co:5432/postgres" }).status, 1, "a production host is refused");
+  assert.equal(run({ CHAIN_PROOF_LOCAL: "1", SUPABASE_DB_URL: "postgresql://postgres:x@127.0.0.1:54322/postgres", SUPABASE_DB_PASSWORD: "set" }).status, 1, "a forbidden credential is refused");
+  const ok = run({ CHAIN_PROOF_LOCAL: "1", SUPABASE_DB_URL: "postgresql://postgres:x@127.0.0.1:54322/postgres", NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321" });
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  assert.match(ok.stdout, /preflight: ok/);
+});

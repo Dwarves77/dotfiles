@@ -1,73 +1,183 @@
 #!/usr/bin/env node
-// OUT-OF-REPO BOUNDARY APPLIER (see memory [[out-of-repo-boundary]]).
+// OUT-OF-REPO BOUNDARY APPLIER (see OUT-OF-REPO-BOUNDARY.md).
 // The action-time skill gate (pretooluse-skill-gate.mjs) lives IN this repo, but it only fires if
-// ~/.claude/settings.json registers it as a PreToolUse hook. settings.json is OUTSIDE the repo, so
-// CI/pre-push cannot enforce it — this script is the in-repo, auditable, idempotent tool that applies
-// the wiring, and check-pretooluse-wired.mjs verifies it.
+// ~/.claude/settings.json registers a PreToolUse hook for it. settings.json is OUTSIDE the repo, so CI cannot
+// enforce it. WIRE-1 (2026-10-08, operator: "Nothing is on me. Find and fix the issue. Not a work around. A
+// fix.") makes the repo OWN everything that file and the user hooks directory must contain for the gate:
 //
-// What it does: ensures ONE PreToolUse entry whose matcher covers ALL tool types that can mutate the
-// system (Bash + Edit/Write/MultiEdit/NotebookEdit), pointing at the in-repo hook. It REUSES the
-// existing hook command verbatim if one is already wired (preserves the fail-closed fallback), else
-// constructs the canonical command. Every other settings.json key (permissions, secrets, theme, …) is
-// passed through untouched. A timestamped backup is written first. Prints a summary ONLY — never the
-// file contents (settings.json holds plaintext credentials; this script must not echo them).
+//   * the wrapper text: pretooluse-user-shim.mjs is a permanent delegator (no decision logic). It is rendered
+//     with the main checkout's absolute path to pretooluse-entry.mjs (the placeholder is replaced at install
+//     time) and written to ~/.claude/hooks/pretooluse-fsi-app-scope.mjs, the same file name settings.json
+//     already points at, so nothing else in settings.json changes;
+//   * the matcher: a NEGATIVE form that routes every tool name except a closed list of read-only tools, so a
+//     tool that does not exist yet is classified by the entry, never silently unrouted;
+//   * the one PreToolUse entry that runs the shim, with the fail-closed `|| printf` backstop.
 //
-// Usage: node wire-pretooluse-settings.mjs [--apply]   (dry-run by default)
+// check-pretooluse-wired.mjs fails on any drift from this module's output. The one install command is
+// `node fsi-app/.discipline/install-hooks.mjs`, which calls applyWiring with --apply semantics.
+//
+// What applyWiring does: edits ONLY the gate's PreToolUse entry (a legacy DIRECT unscoped gate hook is migrated
+// to it), passes every other settings.json key and entry through, writes a timestamped backup first, installs
+// the shim (backup when the installed file differs), prints a summary ONLY, never file contents (settings.json
+// holds plaintext credentials). Idempotent: a second run writes nothing.
+//
+// Usage: node wire-pretooluse-settings.mjs [--apply] [--settings=<path>] [--user-hooks-dir=<dir>]
+//        (dry-run by default; the two path flags exist for fixtures)
 
-import { readFileSync, writeFileSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, dirname, join, basename } from "node:path";
+import { isMainModule } from "../../scripts/lib/is-main.mjs";
 
-const SETTINGS = resolve(homedir(), ".claude", "settings.json");
-const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-gate.mjs");
-// Regex matcher (the "." / "+" force regex mode in Claude Code): the five mutating file/Bash tools,
-// the dispatch tools (Agent/Task/Workflow — gated because subagent tool calls are NOT hook-covered),
-// PLUS every MCP tool (mcp__*), which bypass Bash+git. Anchored so it matches exact tool names.
-const MATCHER = "^(Bash|Edit|Write|MultiEdit|NotebookEdit|Agent|Task|Workflow|mcp__.+)$";
-const APPLY = process.argv.includes("--apply");
+export const SHIM_FILE_NAME = "pretooluse-fsi-app-scope.mjs";
+export const ENTRY_PLACEHOLDER = "__PRETOOLUSE_ENTRY_PATH__";
+export const TEMPLATE_REL = "fsi-app/.discipline/governance/pretooluse-user-shim.mjs";
+export const ENTRY_REL = "fsi-app/.discipline/governance/pretooluse-entry.mjs";
 
-// Canonical command: run the in-repo hook; if node itself fails to launch, fail CLOSED to `ask`.
+// The closed list of tools that cannot change state. Everything else is routed to the entry.
+export const READ_ONLY_TOOLS = [
+  "Read", "Glob", "Grep", "LS", "WebFetch", "WebSearch", "ToolSearch", "ListAgents", "ReadNotifications",
+  "ListSkills", "AskUserQuestion", "TodoWrite", "Skill",
+];
+// Anchored JS regex (Claude Code treats a matcher with anything beyond [A-Za-z0-9_|] as a regex): matches any
+// non-empty tool name that is not exactly one of READ_ONLY_TOOLS. check-pretooluse-wired.mjs mirrors the
+// semantics in matcherMatches and compares the installed matcher to this constant.
+export const MATCHER = `^(?!(?:${READ_ONLY_TOOLS.join("|")})$).+$`;
+
 const FALLBACK = JSON.stringify({
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "ask",
-    permissionDecisionReason: "skill-gate backstop: hook process failed to launch — failing closed.",
+    permissionDecisionReason: "skill-gate backstop: hook process failed to launch, failing closed.",
   },
 });
-// NB: keep Windows path in a node-friendly form; node accepts forward-slashed C:/... paths.
-const cmdWin = `node "${HOOK.replaceAll("\\", "/")}" || printf %s '${FALLBACK}'`;
 
-const s = JSON.parse(readFileSync(SETTINGS, "utf8"));
-s.hooks = s.hooks || {};
-const pre = Array.isArray(s.hooks.PreToolUse) ? s.hooks.PreToolUse : [];
-
-// Find an existing entry already pointing at the skill-gate hook; reuse its command verbatim.
-let existingCmd = null;
-for (const e of pre) for (const h of (e.hooks || [])) {
-  if ((h.command || "").includes("pretooluse-skill-gate")) existingCmd = h.command;
+/** The one hook command: run the installed shim; if node itself fails to launch, fail CLOSED to `ask`.
+ *  @param {string} shimPath @returns {string} */
+export function canonicalCommand(shimPath) {
+  return `node "${String(shimPath).replaceAll("\\", "/")}" || printf %s '${FALLBACK}'`;
 }
-const command = existingCmd || cmdWin;
 
-// Rebuild PreToolUse: keep every entry that does NOT reference the skill-gate, then add ONE combined
-// entry covering all five tools. This removes any stale Bash-only skill-gate entry (no double-fire).
-const kept = pre.filter((e) => !(e.hooks || []).some((h) => (h.command || "").includes("pretooluse-skill-gate")));
-const combined = { matcher: MATCHER, hooks: [{ type: "command", command }] };
-const next = [...kept, combined];
+/** The shim text for one installation: the repo template with the entry path substituted (forward slashes,
+ *  LF line endings, so a CRLF checkout renders the same bytes). @param {string} template @param {string} entryPath */
+export function renderShim(template, entryPath) {
+  const text = String(template).replaceAll("\r\n", "\n");
+  if (!text.includes(ENTRY_PLACEHOLDER)) throw new Error(`shim template has no ${ENTRY_PLACEHOLDER} placeholder`);
+  return text.replaceAll(ENTRY_PLACEHOLDER, String(entryPath).replaceAll("\\", "/"));
+}
 
-console.log("settings.json :", SETTINGS);
-console.log("hook          :", HOOK);
-console.log("matcher       :", MATCHER);
-console.log("reused command:", existingCmd ? "yes (preserved existing fail-closed fallback)" : "no (constructed canonical)");
-console.log("kept non-gate PreToolUse entries:", kept.length);
-console.log("\nResulting PreToolUse matchers:");
-for (const e of next) console.log("  -", JSON.stringify(e.matcher), e.hooks.some((h)=> (h.command||"").includes("pretooluse-skill-gate")) ? "[->skill-gate]" : "[other]");
+const isGateHook = (h) => /pretooluse-fsi-app-scope|pretooluse-skill-gate/.test(String(h?.command ?? ""));
 
-if (!APPLY) { console.log("\nDRY-RUN — pass --apply to write (a timestamped backup is made first)."); process.exit(0); }
+/**
+ * Pure: the settings object with the gate's PreToolUse entry set to the canonical one. Every other key and
+ * entry is passed through; a gate hook sharing an entry with another hook is split out, the other hook keeps
+ * its entry and matcher. @param {object} settings @param {string} shimPath
+ * @returns {{ settings: object, changed: boolean }}
+ */
+export function wireSettings(settings, shimPath) {
+  const hooks = settings.hooks && typeof settings.hooks === "object" ? settings.hooks : {};
+  const pre = Array.isArray(hooks.PreToolUse) ? hooks.PreToolUse : [];
+  const command = canonicalCommand(shimPath);
+  const firstGateHook = pre.flatMap((e) => e.hooks || []).find(isGateHook);
+  const gateHook = { ...(firstGateHook || {}), type: "command", command };
+  const gateEntryAt = pre.findIndex((e) => (e.hooks || []).some(isGateHook));
+  const next = [];
+  pre.forEach((e, i) => {
+    const hasGate = (e.hooks || []).some(isGateHook);
+    if (!hasGate) { next.push(e); return; }
+    const others = (e.hooks || []).filter((h) => !isGateHook(h));
+    if (i === gateEntryAt) {
+      if (others.length === 0) next.push({ ...e, matcher: MATCHER, hooks: [gateHook] });
+      else { next.push({ ...e, hooks: others }); next.push({ matcher: MATCHER, hooks: [gateHook] }); }
+    } else if (others.length) next.push({ ...e, hooks: others });
+  });
+  if (gateEntryAt === -1) next.push({ matcher: MATCHER, hooks: [gateHook] });
+  const changed = JSON.stringify(pre) !== JSON.stringify(next);
+  return { settings: { ...settings, hooks: { ...hooks, PreToolUse: next } }, changed };
+}
 
-const stamp = new Date().toISOString().replaceAll(":", "").replaceAll("-", "").slice(0, 15);
-const bak = `${SETTINGS}.bak-${stamp}`;
-copyFileSync(SETTINGS, bak);
-s.hooks.PreToolUse = next;
-writeFileSync(SETTINGS, JSON.stringify(s, null, 2) + "\n", "utf8");
-console.log(`\nWROTE settings.json (backup: ${bak}). All other keys preserved untouched.`);
+/** The main checkout's root (the parent of the shared .git directory), forward slashes. Worktree-aware.
+ *  @param {string} [cwd] */
+export function mainCheckoutRoot(cwd = process.cwd()) {
+  const common = execFileSync("git", ["rev-parse", "--git-common-dir"], { cwd, encoding: "utf8" }).trim();
+  const abs = resolve(cwd, common);
+  if (basename(abs) !== ".git") throw new Error(`cannot derive the main checkout from git common dir ${abs}`);
+  return dirname(abs).replaceAll("\\", "/");
+}
+
+export const defaultSettingsPath = () => resolve(homedir(), ".claude", "settings.json");
+export const defaultUserHooksDir = () => resolve(homedir(), ".claude", "hooks");
+
+const stamp = (now) => now().toISOString().replaceAll(":", "").replaceAll("-", "").slice(0, 15);
+
+function detectIndent(text) {
+  const m = /^\{\r?\n([ \t]+)"/.exec(text);
+  return m ? m[1] : 2;
+}
+
+/**
+ * Plan and (with apply) perform the whole wiring: the shim file and the one settings.json entry.
+ * @param {{ settingsPath?: string, userHooksDir?: string, mainRoot?: string, apply?: boolean, log?: (l: string) => void, now?: () => Date }} [o]
+ * @returns {{ status: 'skip'|'error'|'dry-run'|'applied'|'unchanged', why?: string, shimChange?: boolean, settingsChange?: boolean }}
+ */
+export function applyWiring({
+  settingsPath = defaultSettingsPath(),
+  userHooksDir = defaultUserHooksDir(),
+  mainRoot,
+  apply = false,
+  log = console.log,
+  now = () => new Date(),
+} = {}) {
+  if (!existsSync(settingsPath)) {
+    log("gate wiring: skip, settings.json is not present on this machine (CI or headless).");
+    return { status: "skip" };
+  }
+  let root;
+  try { root = mainRoot ?? mainCheckoutRoot(); } catch (e) { log(`gate wiring: ERROR, ${e.message}`); return { status: "error", why: e.message }; }
+  const entryPath = join(root, ENTRY_REL);
+  const templatePath = join(root, TEMPLATE_REL);
+  if (!existsSync(entryPath)) { const why = `the main checkout has no gate entry at ${entryPath}; merge and pull first`; log(`gate wiring: ERROR, ${why}`); return { status: "error", why }; }
+  if (!existsSync(templatePath)) { const why = `the main checkout has no shim template at ${templatePath}; merge and pull first`; log(`gate wiring: ERROR, ${why}`); return { status: "error", why }; }
+
+  const shimText = renderShim(readFileSync(templatePath, "utf8"), entryPath);
+  const shimPath = join(userHooksDir, SHIM_FILE_NAME);
+  const installedShim = existsSync(shimPath) ? readFileSync(shimPath, "utf8") : null;
+  const shimChange = installedShim !== shimText;
+
+  const original = readFileSync(settingsPath, "utf8");
+  let parsed;
+  try { parsed = JSON.parse(original); } catch (e) { const why = `could not parse settings.json: ${e.message}`; log(`gate wiring: ERROR, ${why}`); return { status: "error", why }; }
+  const planned = wireSettings(parsed, shimPath);
+  const settingsChange = planned.changed;
+
+  log(`gate wiring: shim ${shimPath}: ${shimChange ? (installedShim === null ? "to be created" : "to be replaced (backup first)") : "unchanged"}`);
+  log(`gate wiring: settings ${settingsPath}: gate entry ${settingsChange ? "to be rewritten (backup first)" : "unchanged"}, every other key passed through`);
+  log(`gate wiring: matcher ${MATCHER}`);
+  if (!apply) {
+    log("DRY-RUN, pass --apply to write (a timestamped backup is made first).");
+    return { status: "dry-run", shimChange, settingsChange };
+  }
+  if (shimChange) {
+    mkdirSync(userHooksDir, { recursive: true });
+    if (installedShim !== null) copyFileSync(shimPath, `${shimPath}.bak-${stamp(now)}`);
+    writeFileSync(shimPath, shimText, "utf8");
+  }
+  if (settingsChange) {
+    copyFileSync(settingsPath, `${settingsPath}.bak-${stamp(now)}`);
+    writeFileSync(settingsPath, JSON.stringify(planned.settings, null, detectIndent(original)) + (original.endsWith("\n") ? "\n" : ""), "utf8");
+  }
+  const status = shimChange || settingsChange ? "applied" : "unchanged";
+  log(`gate wiring: ${status === "applied" ? "WROTE" : "nothing to write"}${shimChange ? ", shim installed" : ""}${settingsChange ? ", gate entry rewritten (all other keys preserved)" : ""}.`);
+  return { status, shimChange, settingsChange };
+}
+
+if (isMainModule(import.meta.url)) {
+  const arg = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+  const res = applyWiring({
+    apply: process.argv.includes("--apply"),
+    ...(arg("settings") ? { settingsPath: resolve(arg("settings")) } : {}),
+    ...(arg("user-hooks-dir") ? { userHooksDir: resolve(arg("user-hooks-dir")) } : {}),
+  });
+  if (res.status === "error") process.exitCode = 2;
+}

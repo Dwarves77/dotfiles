@@ -48,6 +48,7 @@
 // imports only (no-npm discipline glob; fsi-app/.discipline/glob-portability.test.mjs enforces this
 // transitively).
 
+import { execFileSync } from 'node:child_process';
 import { isMainModule } from '../../scripts/lib/is-main.mjs';
 import { gitChangedPaths, resolveRange } from '../lib/change-range.mjs';
 import { recordGateFirings } from '../lib/gate-firings.mjs';
@@ -75,14 +76,43 @@ const MEMORY_RE = /^docs\/(ops\/session-log\.md|PROGRAM-BOARD\.md)$/;
 const SESSION_LOG_D_RE = /^docs\/ops\/session-log\.d\/\d{4}-\d{2}-\d{2}-[A-Za-z0-9_-]+\.md$/;
 
 /**
+ * Is this file's CONTENT memory evidence (lane GATE-9, 2026-10-08, AUD-AT-5 VC-4)? A per-lane session-log file
+ * satisfied the gate by its NAME alone: a one-byte file containing "x" passed. Evidence is the dated heading the
+ * README's entry format starts with plus at least one Accomplished line:
+ *   - a heading (`#` to `###`) that carries a YYYY-MM-DD date, and
+ *   - an "Accomplished" heading or label followed by at least one substantive line (20 characters or more) before
+ *     the next heading, or "Accomplished: <text>" with that much text on the same line.
+ * PURE. @param {string|null|undefined} content @returns {boolean}
+ */
+export function isMemoryEvidence(content) {
+  if (typeof content !== 'string') return false;
+  const lines = content.split(/\r?\n/);
+  if (!lines.some((l) => /^#{1,3}\s+.*\b\d{4}-\d{2}-\d{2}\b/.test(l))) return false;
+  const bare = (text) => text.replace(/[*_`]/g, '').trim();
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(#{1,4}\s*)?\**\s*accomplished\b\**\s*(?:[:(-]\s*(.*))?$/i);
+    if (!m) continue;
+    const isHeading = Boolean(m[1]);
+    if (!isHeading && bare(m[2] ?? '').length >= 20) return true;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (/^#{1,4}\s/.test(lines[j])) break;
+      if (bare(lines[j].replace(/^[\s>*+\-\d.]+/, '')).length >= 20) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Bucket a flat list of repo-relative changed paths into the two regex classes the workflow's inline
  * shell used. PURE, no filesystem, no git. @param {string[]} files
  * @returns {{ code: string[], memory: string[] }}
  */
-export function classifyChanged(files) {
+export function classifyChanged(files, { readMemoryFile } = {}) {
   const list = (files || []).map((f) => (f || '').trim()).filter(Boolean);
   const code = list.filter((f) => CODE_RE.test(f) && !CODE_EXCLUDE_RE.test(f));
-  const memory = list.filter((f) => MEMORY_RE.test(f) || SESSION_LOG_D_RE.test(f));
+  // With readMemoryFile (the CLI always passes it) a per-lane session-log file counts only when its content is
+  // evidence (isMemoryEvidence); without it (a pure-core caller) the name alone counts, as before.
+  const memory = list.filter((f) => MEMORY_RE.test(f) || (SESSION_LOG_D_RE.test(f) && (!readMemoryFile || isMemoryEvidence(readMemoryFile(f)))));
   return { code, memory };
 }
 
@@ -91,14 +121,14 @@ export function classifyChanged(files) {
  * @param {string[]} files @param {{range?: string}} [opts]
  * @returns {{ ok: boolean, message: string, warnNote: string }}
  */
-export function memoryGateVerdict(files, { range = '<range>' } = {}) {
-  const { code, memory } = classifyChanged(files);
+export function memoryGateVerdict(files, { range = '<range>', readMemoryFile } = {}) {
+  const { code, memory } = classifyChanged(files, { readMemoryFile });
   if (code.length > 0 && memory.length === 0) {
     return {
       ok: false,
       message:
         `Memory gate: this range (${range}) touches code but none of docs/ops/session-log.md, ` +
-        `docs/PROGRAM-BOARD.md, or a docs/ops/session-log.d/YYYY-MM-DD-<slug>.md file. The vault is the ` +
+        `docs/PROGRAM-BOARD.md, or a docs/ops/session-log.d/YYYY-MM-DD-<slug>.md file with a dated heading and an Accomplished line. The vault is the ` +
         `project memory; a change it does not record is invisible to every future session. Append a ` +
         `session-log addendum (docs/ops/session-log.md, or your own docs/ops/session-log.d/ file - see ` +
         `its README.md), or update PROGRAM-BOARD, in this PR.`,
@@ -117,6 +147,21 @@ export function memoryGateVerdict(files, { range = '<range>' } = {}) {
 // CLI now gives the same verdict whether it is run from the repo root or from fsi-app/ -- see that
 // module's header for the defect this replaces.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/** The range's head revision: the right-hand side of `a..b` or `a...b`, HEAD when it is empty. @param {string} range */
+export function rangeHead(range) {
+  const m = String(range).match(/^.*?\.{2,3}(.*)$/);
+  return m && m[1].trim() ? m[1].trim() : 'HEAD';
+}
+
+/** A file's content at the range head, or null when it does not exist there (a deleted file is no evidence). */
+function readAtRangeHead(range, path) {
+  try {
+    return execFileSync('git', ['show', `${rangeHead(range)}:${path}`], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return null;
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // CLI
@@ -151,7 +196,7 @@ if (isMainModule(import.meta.url)) {
     process.exit(2);
   }
 
-  const verdict = memoryGateVerdict(files, { range });
+  const verdict = memoryGateVerdict(files, { range, readMemoryFile: (p) => readAtRangeHead(range, p) });
   // every refusal is a logged firing (lane GATE-8, 2026-10-08); a pass clears the gate's records
   recordGateFirings('memory-gate', verdict.ok ? [] : [{ message: verdict.message }]);
   if (verdict.ok) {

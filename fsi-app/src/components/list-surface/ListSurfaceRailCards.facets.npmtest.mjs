@@ -67,6 +67,15 @@ test('"+ N more" is a 12px link row with no checkbox of its own', () => {
   assert.doesNotMatch(more, /type="checkbox"/);
 });
 
+// Lane S8-E5 (2026-10-08): the "+ N more" button carries the 44px target inline at every width, like the rows.
+// The class rule alone reached 44px only below 768px, so at 768 to 1440 any facet with more options than the
+// visible cap (the Operations Dimension facet at seven) drew a 24px button the rendering guard's law-2 and L9
+// legs failed, 11 findings.
+test('"+ N more" carries minHeight 44 inline, not only through the sub-768 class rule', () => {
+  const more = SRC.slice(SRC.indexOf('className="cl-facet-more"'), SRC.indexOf("more\n        </button>"));
+  assert.match(more, /minHeight: 44,/);
+});
+
 // ── The 24px row and the 44px target, one pair, both class names ────────────────────────────────
 test("the 24px desktop min-height and the 44px phone target are one breakpoint pair over both facet classes", () => {
   const base = GLOBALS.match(/\.cl-facet-row, \.cl-facet-more \{ min-height: 24px; \}/);

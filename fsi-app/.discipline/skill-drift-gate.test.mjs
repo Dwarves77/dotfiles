@@ -166,3 +166,19 @@ test("extractCitedSlugs: pure text scan agrees with scanCitations' own marker + 
   assert.deepEqual(extractCitedSlugs(text, ["demo-skill", "other-skill"]), new Set(["demo-skill"]));
   assert.deepEqual(extractCitedSlugs("export const x = 1;\n", ["demo-skill"]), new Set());
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS, not only its output ──────
+test("GATE-9 exit status: skill-contract-map.mjs exits 0 on the committed tree, and its only exit is 1 inside the drift branch", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../scripts/lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./governance/skill-contract-map.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script, "--check"], { encoding: "utf8", env: withoutCredentials() });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /skill-contract-map: OK/);
+  const src = readFileSync(script, "utf8");
+  assert.deepEqual([...src.matchAll(/process\.exit\(([^)]*)\)/g)].map((m) => m[1]), ["1"]);
+  assert.match(src, /\} else \{\s*for \(const p of problems\)[\s\S]*?process\.exit\(1\);\s*\}/, "the drift report is followed by exit 1");
+  assert.doesNotMatch(src, /process\.exit\s*=[^=]|process\.exitCode\s*=/, "the exit status is never reassigned");
+});

@@ -300,7 +300,7 @@ function runnerCi(dir, args, env = {}) {
   const r = spawnSync('node', [RUNNER, '--mode=ci', ...args], {
     cwd: dir, encoding: 'utf-8', env: { ...process.env, DISCIPLINE_FIRING_LOG: 'off', ...env },
   });
-  return { code: r.status, out: (r.stdout || '') + (r.stderr || '') };
+  return { code: r.status, out: (r.stdout || '') + (r.stderr || ''), stdout: r.stdout || '', stderr: r.stderr || '' };
 }
 
 test('baseline e2e: a byte-identical RESTORE of master files that carry a glyph and a home path passes 022 and 012', () => {
@@ -439,4 +439,156 @@ test('baseline e2e CI: a commit that is already on origin/master (push to master
     assert.match(r.out, /Baseline: fallback parent commit: the commit is already on origin\/master/);
     assert.match(r.out, /docs\/notes\/b\.md/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---------------------------------------------------------------------------
+// A pull-request range is judged by its squash for content rules (lane RULE-RANGE-1, 2026-10-08).
+// Observed on PR 1031 (head 176519f8e): the whole-range pass was green (the lane marked its two regex-class
+// glyph lines glyph:verbatim) while three per-commit runs failed rule 022 on commits made before the marker
+// existed. Every pull request merges by squash, so the squash is the only diff that lands; history that never
+// lands cannot fail the PR. Commit-form (whole-commit scope) rules, and any range whose commits all land (an
+// explicit --range, the local merge-base, the push to master), keep their per-commit verdicts.
+// ---------------------------------------------------------------------------
+
+const NOTE = 'docs/notes/aside.md';
+const SUPERSEDED = /superseded: content rule 022 is judged on the whole-range diff for a squash-merged pull request/;
+
+// master holds one clean file (origin/master points at it); the branch adds a glyph line in commit 1 and marks
+// it glyph:verbatim in commit 2. Returns the dir, the head sha and the base sha.
+function glyphThenMarked() {
+  const dir = newRepo();
+  write(dir, 'docs/notes/base.md', '# base\n');
+  git(dir, ['add', '-A']);
+  git(dir, ['commit', '-q', '-m', 'master state']);
+  git(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  write(dir, NOTE, `# aside\nan aside ${EM} written before the marker existed\n`);
+  git(dir, ['add', '-A']);
+  git(dir, ['commit', '-q', '-m', 'add the aside']);
+  write(dir, NOTE, `# aside\nan aside ${EM} written before the marker existed glyph:verbatim\n`);
+  git(dir, ['add', '-A']);
+  git(dir, ['commit', '-q', '-m', 'mark the aside']);
+  return { dir, head: git(dir, ['rev-parse', 'HEAD']).trim(), base: git(dir, ['rev-parse', 'HEAD~2']).trim() };
+}
+
+test('squash verdict (a): PR-shape range, glyph in commit 1 marked in commit 2: whole range passes, exit 0, commit 1 prints its failure then the superseded line', () => {
+  const { dir, head } = glyphThenMarked();
+  try {
+    const r = runnerCi(dir, [], { BASE_REF: 'master', PR_HEAD: head });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /\(ci-pr\)/);
+    assert.match(r.stderr, /FAIL {2}\[022\]/, 'commit 1 is still printed as a failure in full');
+    const first = r.stdout.split('=== Commit ')[1];
+    assert.match(first, SUPERSEDED, 'and is marked superseded');
+    assert.equal(r.stdout.split('superseded:').length - 1, 1, 'exactly one superseded line: commit 2 and the whole range pass');
+    assert.match(r.stdout.split('=== Whole-range diff')[1], /Summary: \d+ pass, 0 fail/, 'the whole-range pass has no failure');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('squash verdict (c): the same range under an explicit --range, the local merge-base shape or --commit keeps per-commit verdicts, exit 1', () => {
+  const { dir, head, base } = glyphThenMarked();
+  try {
+    const explicit = runnerCi(dir, [`--range=${base}..${head}`]);
+    assert.equal(explicit.code, 1, explicit.out);
+    assert.match(explicit.out, /FAIL {2}\[022\]/);
+    assert.ok(!SUPERSEDED.test(explicit.out), 'an explicit range supersedes nothing');
+
+    const local = runnerCi(dir, []);
+    assert.equal(local.code, 1, local.out);
+    assert.match(local.out, /\(local-merge-base\)/);
+    assert.ok(!SUPERSEDED.test(local.out), 'the local merge-base shape supersedes nothing');
+
+    const first = git(dir, ['rev-parse', 'HEAD~1']).trim();
+    const single = runnerCi(dir, [`--commit=${first}`], { BASE_REF: 'master', PR_HEAD: head });
+    assert.equal(single.code, 1, single.out);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('squash verdict (d): PR-shape range whose whole-range diff itself fails exits 1', () => {
+  const dir = newRepo();
+  try {
+    write(dir, 'docs/notes/base.md', '# base\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'master state']);
+    git(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    write(dir, NOTE, `# aside\nan aside ${EM} never marked\n`);
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'add the aside']);
+    write(dir, 'docs/notes/other.md', '# other\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'unrelated']);
+    const head = git(dir, ['rev-parse', 'HEAD']).trim();
+    const r = runnerCi(dir, [], { BASE_REF: 'master', PR_HEAD: head });
+    assert.equal(r.code, 1, r.out);
+    const whole = r.out.split('=== Whole-range diff')[1];
+    assert.match(whole, /FAIL {2}\[022\]/, 'the whole-range pass fails on its own');
+    assert.ok(!SUPERSEDED.test(whole), 'the whole-range pass is never superseded');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('squash verdict: every registered rule declares a valid scope, and only the content scopes are squash-judged', async () => {
+  const { rules, SCOPE, isSquashJudged } = await import('./manifest.mjs');
+  const valid = new Set(Object.values(SCOPE));
+  assert.ok(rules.length > 0);
+  for (const r of rules) assert.ok(valid.has(r.scope), `rule ${r.id} declares a scope (got ${r.scope})`);
+  assert.deepEqual(rules.filter((r) => r.scope === SCOPE.INTRODUCED_LINES).map((r) => r.id), ['012', '015', '017', '019', '022']);
+  assert.equal(isSquashJudged({ scope: SCOPE.WHOLE_COMMIT }), false);
+  assert.equal(isSquashJudged({ scope: SCOPE.INTRODUCED_LINES }), true);
+  assert.equal(isSquashJudged({}), false, 'a rule with no scope keeps failing per commit');
+});
+
+// (b) needs a whole-commit rule, and none is registered today (every message-form rule was removed by GATE-1), so
+// the rule is injected into runCiRange, which takes its rule list as a dependency; the commits, the diffs and the
+// contexts are real.
+test('squash verdict (b): a whole-commit rule failing on commit 1 of a PR-shape range exits 1; the same rule scoped as content is superseded', async () => {
+  const { runCiRange } = await import('./runner.mjs');
+  const { SCOPE } = await import('./manifest.mjs');
+  const { _clearRepoRootCache } = await import('./lib/context.mjs');
+  const { pass, fail } = await import('./lib/result.mjs');
+  const dir = newRepo();
+  const savedRoot = process.env.DISCIPLINE_REPO_ROOT;
+  const savedLog = process.env.DISCIPLINE_FIRING_LOG;
+  const savedOut = console.log;
+  const savedErr = console.error;
+  try {
+    write(dir, 'docs/notes/base.md', '# base\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'master state']);
+    git(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    const base = git(dir, ['rev-parse', 'HEAD']).trim();
+    write(dir, 'docs/notes/one.md', '# one\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'bad: not in the house form']);
+    write(dir, 'docs/notes/two.md', '# two\n');
+    git(dir, ['add', '-A']);
+    git(dir, ['commit', '-q', '-m', 'chore: fine']);
+    const head = git(dir, ['rev-parse', 'HEAD']).trim();
+
+    const formRule = (scope) => ({
+      id: 'T01', name: 'Commit message form (test)', description: 'test', ruleSource: 'test', scope,
+      trigger: () => true,
+      check: (ctx) => (/^bad:/.test(String(ctx.commitSubject || '')) ? fail({ message: 'bad commit form', remediation: 'fix the subject' }) : pass()),
+    });
+
+    process.env.DISCIPLINE_REPO_ROOT = dir;
+    process.env.DISCIPLINE_FIRING_LOG = 'off';
+    _clearRepoRootCache();
+    console.log = () => {};
+    console.error = () => {};
+    const range = `${base}..${head}`;
+    const wholeCommit = runCiRange({ range, args: {}, squashMerged: true, ruleList: [formRule(SCOPE.WHOLE_COMMIT)] });
+    const asContent = runCiRange({ range, args: {}, squashMerged: true, ruleList: [formRule(SCOPE.INTRODUCED_LINES)] });
+    const notSquash = runCiRange({ range, args: {}, squashMerged: false, ruleList: [formRule(SCOPE.INTRODUCED_LINES)] });
+    console.log = savedOut;
+    console.error = savedErr;
+    assert.equal(wholeCommit, 1, 'a whole-commit rule is judged per commit');
+    assert.equal(asContent, 0, 'the same failure under a content scope is superseded in a squash-merged range');
+    assert.equal(notSquash, 1, 'and is not superseded when the range is not a squash-merged pull request');
+  } finally {
+    console.log = savedOut;
+    console.error = savedErr;
+    if (savedRoot === undefined) delete process.env.DISCIPLINE_REPO_ROOT; else process.env.DISCIPLINE_REPO_ROOT = savedRoot;
+    if (savedLog === undefined) delete process.env.DISCIPLINE_FIRING_LOG; else process.env.DISCIPLINE_FIRING_LOG = savedLog;
+    _clearRepoRootCache();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

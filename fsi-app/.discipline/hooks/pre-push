@@ -354,7 +354,7 @@ if ! node fsi-app/.discipline/governance/check-pretooluse-wired.mjs >"$PRE_PUSH_
   pre_push_log_firing 3c "$PRE_PUSH_LOG_DIR/gate.log"
   echo "[discipline pre-push] STEP 3c FAIL: action-time skill gate is not fully wired:" >&2
   cat "$PRE_PUSH_LOG_DIR/gate.log" >&2
-  echo "[discipline pre-push] run: node fsi-app/.discipline/governance/wire-pretooluse-settings.mjs --apply, then re-push." >&2
+  echo "[discipline pre-push] run: node fsi-app/.discipline/install-hooks.mjs (the one installer, from the main checkout), then re-push." >&2
   exit 1
 fi
 cat "$PRE_PUSH_LOG_DIR/gate.log"

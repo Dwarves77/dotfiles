@@ -8,6 +8,7 @@ import {
   outcomeForDirection, deadlineMs, isDeadlinePassed, scorePatch, buildLedgerRows, watchedRowForEvent,
   matchEventsToSignposts, runSignpostStep, signpostMetrics, buildSignpostStepDeps, hydrateEventRows, SCORED_BY, OUTCOME_BY_DIRECTION,
 } from "./prediction-scoring.mjs";
+import { nextLifecycleState } from "../propagation/methods/signpost-watch.ts";
 
 const NOW = new Date("2026-10-05T12:00:00Z");
 const ENTITY = "cl:instrument:00000000000000aa";
@@ -28,8 +29,8 @@ const event = (over = {}) => ({
 });
 
 /** In-memory fake of every dep, recording every write. */
-function fakeDeps({ signposts = [signpost()], assessments, grounding, ledger = {}, columnsAbsent = false, failScoreFor = null, failFire = false } = {}) {
-  const log = { fired: [], ledgerWrites: [], scored: [] };
+function fakeDeps({ signposts = [signpost()], assessments, grounding, ledger = {}, columnsAbsent = false, failScoreFor = null, failFire = false, lifecycleAbsent = false, failStamp = false, failApplyFor = null } = {}) {
+  const log = { fired: [], ledgerWrites: [], scored: [], stamped: [], applied: [] };
   const asMap = assessments ?? new Map([["assess-1", { item_id: "item-1", lifecycle_state: "emerging" }]]);
   const gMap = grounding ?? new Map([["item-1", ["src-a", "src-b"]]]);
   const open = () => signposts.filter((s) => !s.outcome);
@@ -37,6 +38,21 @@ function fakeDeps({ signposts = [signpost()], assessments, grounding, ledger = {
     log,
     deps: {
       columnsAbsent: () => columnsAbsent,
+      lifecycleAbsent: () => lifecycleAbsent,
+      // Migration 374: the lifecycle step is stamped after fire (fireSignpost moved the lifecycle), and a fired
+      // signpost never stamped is repaired by applying nextLifecycleState once.
+      markLifecycleApplied: async (id, now) => {
+        if (failStamp) throw new Error("stamp boom");
+        log.stamped.push(id);
+        signposts.find((s) => s.entity_id === id).lifecycle_applied_at = now.toISOString();
+      },
+      readLifecycleUnapplied: async () => signposts.filter((s) => s.fired_at && !s.lifecycle_applied_at),
+      applyLifecycle: async ({ signpost: sp, from, to, now }) => {
+        if (failApplyFor === sp.entity_id) throw new Error("apply boom");
+        log.applied.push({ id: sp.entity_id, from, to });
+        asMap.get(sp.assessment_id).lifecycle_state = to;
+        sp.lifecycle_applied_at = now.toISOString();
+      },
       readSignpostsWatching: async (ids) => open().filter((s) => !s.fired_at && ids.includes(s.watches)),
       readFiredUnscored: async () => open().filter((s) => s.fired_at),
       readDeadlineCandidates: async () => open().filter((s) => !s.fired_at),
@@ -379,4 +395,246 @@ test("hydrateEventRows fills newRow only where it is missing", async () => {
   const sb = memorySb({ propagation_events: [{ event_id: 5, new_row: { value: 3 } }] });
   const out = await hydrateEventRows(sb, [{ eventId: 5 }, { eventId: 6, newRow: { value: 9 } }, { eventId: 7 }]);
   assert.deepEqual(out.map((e) => e.newRow), [{ value: 3 }, { value: 9 }, null]);
+});
+
+// ── Migration 374: lifecycle_applied_at, the lifecycle retry ───────────────────────────────────────────
+// fireSignpost stamps fired_at (step 1), writes the outbox row (step 2) and moves the assessment lifecycle
+// (step 3), as three writes. A failure at step 3 leaves fired_at set and the lifecycle unmoved, and a confirms
+// transition is not idempotent, so the repair needs a record of whether the lifecycle was applied:
+// signposts.lifecycle_applied_at. It is stamped right after a firing's lifecycle update, and the repair pass
+// applies nextLifecycleState only where it is NULL, then stamps it.
+
+const SP2 = "cl:signpost:0000000000000002";
+const SP3 = "cl:signpost:0000000000000003";
+
+test("a firing stamps lifecycle_applied_at once its lifecycle update has been made; dry stamps nothing", async () => {
+  const a = fakeDeps();
+  const ra = await runSignpostStep({ mode: "apply", events: [event()], now: NOW, deps: a.deps });
+  assert.deepEqual(a.log.stamped, ["cl:signpost:0000000000000001"]);
+  assert.equal(ra.counts.lifecycle_stamped, 1);
+  assert.equal(a.log.applied.length, 0, "a firing's own lifecycle update is fireSignpost's, not the repair's");
+
+  const d = fakeDeps();
+  const rd = await runSignpostStep({ mode: "dry", events: [event()], now: NOW, deps: d.deps });
+  assert.equal(d.log.stamped.length, 0);
+  assert.equal(rd.counts.lifecycle_stamped, 0);
+});
+
+test("ACCEPTANCE: a signpost with fired_at set and lifecycle_applied_at NULL is repaired once and not twice", async () => {
+  const sp = signpost({ fired_at: "2026-10-01T00:00:00Z", lifecycle_applied_at: null, outcome: "held" });
+  const { deps, log } = fakeDeps({ signposts: [sp] });
+  const first = await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.deepEqual(log.applied, [{ id: sp.entity_id, from: "emerging", to: "strengthening" }], "confirms advances emerging one step");
+  assert.equal(sp.lifecycle_applied_at, NOW.toISOString(), "stamped in the same repair");
+  assert.equal(first.counts.lifecycle_repaired, 1);
+
+  const second = await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.equal(log.applied.length, 1, "the second pass does not apply it again");
+  assert.equal(second.counts.lifecycle_repaired, 0);
+  assert.equal(second.counts.lifecycle_repair_planned, 0);
+});
+
+test("a signpost whose lifecycle is already applied is never repaired; one fired in this run is not repaired in it", async () => {
+  const done = signpost({ entity_id: SP2, fired_at: "2026-10-01T00:00:00Z", lifecycle_applied_at: "2026-10-01T00:00:01Z" });
+  const { deps, log } = fakeDeps({ signposts: [done, signpost()] });
+  const r = await runSignpostStep({ mode: "apply", events: [event()], now: NOW, deps });
+  assert.equal(log.applied.length, 0);
+  assert.equal(r.counts.lifecycle_stamped, 1, "only the firing of this run was stamped");
+  assert.deepEqual(log.stamped, ["cl:signpost:0000000000000001"]);
+});
+
+test("two unapplied signposts on one assessment chain their transitions in order, each from the state the last left", async () => {
+  const a = signpost({ entity_id: SP2, fired_at: "2026-10-01T00:00:00Z" });
+  const b = signpost({ entity_id: SP3, fired_at: "2026-10-02T00:00:00Z" });
+  const { deps, log } = fakeDeps({ signposts: [a, b] });
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.deepEqual(log.applied.map((x) => [x.from, x.to]), [["emerging", "strengthening"], ["strengthening", "corroborated"]]);
+});
+
+test("a refutes direction repairs to falsified and a terminal assessment repairs to itself, both stamped", async () => {
+  const r1 = signpost({ entity_id: SP2, assessment_id: "assess-r", direction: "refutes", fired_at: "2026-10-01T00:00:00Z" });
+  const r2 = signpost({ entity_id: SP3, assessment_id: "assess-t", fired_at: "2026-10-01T00:00:00Z" });
+  const asMap = new Map([["assess-r", { item_id: "item-1", lifecycle_state: "corroborated" }], ["assess-t", { item_id: "item-1", lifecycle_state: "falsified" }]]);
+  const { deps, log } = fakeDeps({ signposts: [r1, r2], assessments: asMap });
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.deepEqual(log.applied.map((x) => [x.id, x.from, x.to]), [[SP2, "corroborated", "falsified"], [SP3, "falsified", "falsified"]]);
+  assert.ok(r1.lifecycle_applied_at && r2.lifecycle_applied_at);
+  assert.equal(nextLifecycleState("falsified", "confirms"), "falsified", "the rule applied is nextLifecycleState itself");
+});
+
+test("a repair whose assessment cannot be read applies nothing and stays NULL for the next run", async () => {
+  const sp = signpost({ fired_at: "2026-10-01T00:00:00Z" });
+  const { deps, log } = fakeDeps({ signposts: [sp], assessments: new Map() });
+  const r = await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.equal(log.applied.length, 0);
+  assert.equal(sp.lifecycle_applied_at ?? null, null);
+  assert.equal(r.counts.lifecycle_repair_no_assessment, 1);
+});
+
+test("dry mode plans the lifecycle repair and writes nothing", async () => {
+  const sp = signpost({ fired_at: "2026-10-01T00:00:00Z" });
+  const { deps, log } = fakeDeps({ signposts: [sp] });
+  const r = await runSignpostStep({ mode: "dry", events: [], now: NOW, deps });
+  assert.equal(r.counts.lifecycle_repair_planned, 1);
+  assert.equal(r.counts.lifecycle_repaired, 0);
+  assert.deepEqual([log.applied.length, log.stamped.length], [0, 0]);
+  assert.equal(sp.lifecycle_applied_at ?? null, null);
+});
+
+test("sweep:false (a replay of old events) never runs the lifecycle repair", async () => {
+  const sp = signpost({ fired_at: "2026-10-01T00:00:00Z" });
+  const { deps, log } = fakeDeps({ signposts: [sp] });
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, sweep: false, deps });
+  assert.equal(log.applied.length, 0);
+});
+
+test("a failed repair is counted and left NULL, so the next run retries it; a failed stamp after a firing does not stop the scoring", async () => {
+  const sp = signpost({ fired_at: "2026-10-01T00:00:00Z" });
+  const bad = fakeDeps({ signposts: [sp], failApplyFor: sp.entity_id });
+  const rb = await runSignpostStep({ mode: "apply", events: [], now: NOW, deps: bad.deps });
+  assert.equal(rb.counts.errors, 1);
+  assert.equal(rb.counts.lifecycle_repaired, 0);
+  assert.equal(sp.lifecycle_applied_at ?? null, null);
+  const retry = fakeDeps({ signposts: [sp] });
+  const rr = await runSignpostStep({ mode: "apply", events: [], now: NOW, deps: retry.deps });
+  assert.equal(rr.counts.lifecycle_repaired, 1);
+
+  const s = fakeDeps({ failStamp: true });
+  const rs = await runSignpostStep({ mode: "apply", events: [event()], now: NOW, deps: s.deps });
+  assert.equal(rs.counts.errors, 1);
+  assert.deepEqual(s.log.scored.map((x) => x.patch.outcome), ["held"], "the prediction is still scored");
+  assert.deepEqual(rs.failed_event_ids, [], "the signpost is fired, so replaying the event could not match it again");
+});
+
+test("readers tolerate migration 374 being unapplied: it still fires and scores, cannot stamp or repair the lifecycle, and says so", async () => {
+  const sp = signpost({ entity_id: SP2, fired_at: "2026-10-01T00:00:00Z" });
+  const { deps, log } = fakeDeps({ signposts: [signpost(), sp], lifecycleAbsent: true });
+  const r = await runSignpostStep({ mode: "apply", events: [event()], now: NOW, deps });
+  assert.equal(log.fired.length, 1);
+  assert.equal(log.scored.length, 2, "scoring (migration 353) is unaffected");
+  assert.deepEqual([log.stamped.length, log.applied.length], [0, 0]);
+  assert.equal(r.counts.lifecycle_skipped_column_absent, 2, "the firing's stamp and the repair are both skipped, and counted");
+});
+
+// Real wiring: the 374 column fallback and the guarded writes.
+
+test("buildSignpostStepDeps: a lifecycle read that names lifecycle_applied_at and fails marks that column absent without touching the outcome columns", async () => {
+  const sb = {
+    from() {
+      const q = {
+        select(cols) { q.cols = cols; return q; },
+        in() { return q; }, is() { return q; }, not() { return q; }, order() { return q; }, range() { return q; },
+        then(res, rej) {
+          const r = q.cols.includes("lifecycle_applied_at")
+            ? { data: null, error: { message: "column signposts.lifecycle_applied_at does not exist" } }
+            : { data: [], error: null };
+          return Promise.resolve(r).then(res, rej);
+        },
+      };
+      return q;
+    },
+  };
+  const deps = buildSignpostStepDeps(sb, { readAll: async () => [], guardedInsertMany: async () => ({}), guardedUpdateByIds: async () => ({}) });
+  assert.equal(deps.lifecycleAbsent(), false);
+  assert.deepEqual(await deps.readLifecycleUnapplied(), []);
+  assert.equal(deps.lifecycleAbsent(), true);
+  assert.equal(deps.columnsAbsent(), false, "migration 353's columns are a separate fact");
+  assert.deepEqual(await deps.readFiredUnscored(), [], "an empty read, not a missing-column skip");
+});
+
+test("buildSignpostStepDeps: stamping is a guarded signposts write that only sets a NULL; a missing column reads as skipped, any other failure throws", async () => {
+  const calls = [];
+  let mode = "ok";
+  const db = {
+    readAll: async () => [],
+    guardedInsertMany: async () => ({}),
+    guardedUpdateByIds: async (table, ids, patch, opts) => {
+      calls.push({ table, ids, patch, opts });
+      if (mode === "absent") throw new Error("column \"lifecycle_applied_at\" of relation \"signposts\" does not exist");
+      if (mode === "boom") throw new Error("connection reset");
+      return { updated: ids.length };
+    },
+  };
+  const deps = buildSignpostStepDeps({ from() { throw new Error("no reads"); } }, db);
+  const ok = await deps.markLifecycleApplied("cl:signpost:0000000000000001", NOW);
+  assert.deepEqual(ok, { skipped: false });
+  assert.equal(calls[0].table, "signposts");
+  assert.deepEqual(calls[0].patch, { lifecycle_applied_at: NOW.toISOString() });
+  assert.equal(calls[0].opts.idColumn, "entity_id");
+  assert.ok(calls[0].opts.cite.skill.length > 0);
+  const seen = [];
+  calls[0].opts.applyMatch({ is(c, v) { seen.push([c, v]); return this; } });
+  assert.deepEqual(seen, [["lifecycle_applied_at", null]], "an already stamped signpost is never stamped again");
+
+  mode = "boom";
+  await assert.rejects(() => deps.markLifecycleApplied("x", NOW), /connection reset/);
+  assert.equal(deps.lifecycleAbsent(), false);
+  mode = "absent";
+  assert.deepEqual(await deps.markLifecycleApplied("x", NOW), { skipped: true });
+  assert.equal(deps.lifecycleAbsent(), true);
+});
+
+test("buildSignpostStepDeps: applyLifecycle moves the assessment only if it is still in the state read, then stamps; a terminal state writes no assessment", async () => {
+  const calls = [];
+  let updatedForAssessment = 1;
+  const db = {
+    readAll: async () => [],
+    guardedInsertMany: async () => ({}),
+    guardedUpdateByIds: async (table, ids, patch, opts) => { calls.push({ table, ids, patch, opts }); return { updated: table === "research_assessments" ? updatedForAssessment : ids.length }; },
+  };
+  const deps = buildSignpostStepDeps({ from() { throw new Error("no reads"); } }, db);
+  const sp = { entity_id: "cl:signpost:0000000000000001", assessment_id: "assess-1" };
+
+  await deps.applyLifecycle({ signpost: sp, from: "emerging", to: "strengthening", now: NOW });
+  assert.deepEqual(calls.map((c) => c.table), ["research_assessments", "signposts"], "lifecycle first, stamp second");
+  assert.deepEqual(calls[0].patch, { lifecycle_state: "strengthening" });
+  assert.deepEqual(calls[0].ids, ["assess-1"]);
+  const eqs = [];
+  calls[0].opts.applyMatch({ eq(c, v) { eqs.push([c, v]); return this; } });
+  assert.deepEqual(eqs, [["lifecycle_state", "emerging"]], "guarded against the assessment having moved since it was read");
+
+  calls.length = 0;
+  await deps.applyLifecycle({ signpost: sp, from: "falsified", to: "falsified", now: NOW });
+  assert.deepEqual(calls.map((c) => c.table), ["signposts"], "no transition, no assessment write, but the signpost is stamped");
+
+  calls.length = 0;
+  updatedForAssessment = 0;
+  await assert.rejects(() => deps.applyLifecycle({ signpost: sp, from: "emerging", to: "strengthening", now: NOW }), /moved/);
+  assert.deepEqual(calls.map((c) => c.table), ["research_assessments"], "a lifecycle that did not move is never stamped");
+});
+
+test("end to end: the repair over an in-memory database moves the lifecycle once and stamps; a firing's stamp lands after its lifecycle update", async () => {
+  const tables = {
+    signposts: [signpost({ fired_at: "2026-10-01T00:00:00Z", lifecycle_applied_at: null })],
+    research_assessments: [{ id: "assess-1", item_id: "item-1", lifecycle_state: "emerging" }],
+    section_claim_provenance: [], propagation_events: [], source_reliability_ledger: [],
+  };
+  const order = [];
+  const db = {
+    readAll: async (table) => tables[table] ?? [],
+    guardedInsertMany: async (table, rows) => { (tables[table] ??= []).push(...rows); return { inserted: rows.length }; },
+    guardedUpdateByIds: async (table, ids, patch, opts) => {
+      order.push([table, Object.keys(patch)[0], tables.research_assessments[0].lifecycle_state]);
+      for (const r of tables[table]) if (ids.includes(r[opts.idColumn])) Object.assign(r, patch);
+      return { updated: ids.length };
+    },
+  };
+  const deps = buildSignpostStepDeps(memorySb(tables), db);
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.equal(tables.research_assessments[0].lifecycle_state, "strengthening");
+  assert.equal(tables.signposts[0].lifecycle_applied_at, NOW.toISOString());
+  const afterRepair = order.length;
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.equal(order.length, afterRepair, "the second run writes nothing");
+  assert.equal(tables.research_assessments[0].lifecycle_state, "strengthening", "not advanced twice");
+
+  // A firing: fireSignpost moves the lifecycle, then the stamp is written.
+  const fresh = { signposts: [signpost()], research_assessments: [{ id: "assess-1", item_id: "item-1", lifecycle_state: "emerging" }], section_claim_provenance: [], propagation_events: [], source_reliability_ledger: [] };
+  Object.assign(tables, fresh);
+  order.length = 0;
+  await runSignpostStep({ mode: "apply", events: [event()], now: NOW, deps: buildSignpostStepDeps(memorySb(tables), db) });
+  const stamp = order.find((o) => o[1] === "lifecycle_applied_at");
+  assert.ok(stamp, "the firing was stamped");
+  assert.equal(stamp[2], "strengthening", "the lifecycle had already moved when the stamp was written");
+  assert.equal(tables.research_assessments[0].lifecycle_state, "strengthening", "and the repair did not move it a second time");
 });

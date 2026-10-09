@@ -104,6 +104,18 @@ export const SOURCE_LICENCES = Object.freeze({
         + "sources including EIA, Eurostat and the Energy Institute. Its CC-BY covers ITS compilation; "
         + "confirm no ingested series is an IEA pass-through.",
   },
+  neso_carbon_intensity: {
+    key: "neso_carbon_intensity", name: "National Energy System Operator (NESO), Carbon Intensity API",
+    redistribution: "permitted", licence: "CC BY 4.0",
+    attribution: "Source: National Energy System Operator (NESO), Carbon Intensity API, CC BY 4.0",
+    url: "https://carbonintensity.org.uk/", verifiedOn: "2026-10-08",
+    note: "GB grid carbon intensity (gCO2/kWh), keyless JSON API. Licence text as read by the PROD-SRC fact "
+        + "lane on 2026-10-08 (register section 1.5, row D): the API page states \"CC BY 4.0\", with an "
+        + "\"API Terms of Use\" pointer on the project GitHub. The Terms of Use were not read by that lane or by "
+        + "lane S8-E5; re-verify if they add a restriction. The producer is "
+        + "scripts/producers/regional/neso-carbon-intensity-producer.mjs; the data_sources row came from "
+        + "migration 378.",
+  },
   eea: {
     key: "eea", name: "European Environment Agency", redistribution: "permitted", licence: "CC BY 4.0",
     attribution: "Source: European Environment Agency (EEA), licensed under CC BY 4.0",

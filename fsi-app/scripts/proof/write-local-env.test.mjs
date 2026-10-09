@@ -83,3 +83,23 @@ test("PROOF-5: ATTACK: a superuser URL on a non-loopback host is refused by the 
   assert.equal(r.ok, false);
   assert.ok(r.violations.some((v) => v.includes("PROOF_DB_SUPERUSER_URL does not name a loopback host")));
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: write-local-env.mjs exits 2 without --out and 1 when the status output is not a local stack's", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { mkdtempSync, rmSync, existsSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const script = fileURLToPath(new URL("./write-local-env.mjs", import.meta.url));
+  assert.equal(spawnSync(process.execPath, [script], { encoding: "utf8", input: "" }).status, 2);
+  const dir = mkdtempSync(join(tmpdir(), "write-local-env-"));
+  try {
+    const out = join(dir, "env");
+    const bad = spawnSync(process.execPath, [script, "--out", out], { encoding: "utf8", input: 'API_URL="https://abc.supabase.co"\n' });
+    assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.equal(existsSync(out), false, "nothing is written for a refused input");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
