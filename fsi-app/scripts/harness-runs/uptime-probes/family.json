@@ -1,0 +1,10 @@
+{
+  "family": "uptime-probes",
+  "registered": "2026-10-09",
+  "registered_by": "lane DORMANT-1",
+  "governing_files": [
+    "../.github/workflows/uptime-probes.yml",
+    "scripts/health/gate-a-probe.mjs"
+  ],
+  "rationale": "uptime-probes: the dispatch-only surfaces and spend health probes (the schedule is disarmed in build mode, standing rule 16). One run is one firing of uptime-probes.yml. Registered so the workflow records its own run (CLAUDE.md rule 17) and the closure gate's NEVER-RUN check reads the ledger row; the artifact is emitted by scripts/lib/emit-workflow-run-artifact.mjs from the workflow's own record job."
+}

@@ -1,0 +1,10 @@
+{
+  "family": "layout-baseline-renewal",
+  "registered": "2026-10-09",
+  "registered_by": "lane DORMANT-1",
+  "governing_files": [
+    "../.github/workflows/layout-baseline-renewal.yml",
+    ".discipline/rendering/layout-guard/run-layout-guard.mjs"
+  ],
+  "rationale": "layout-baseline-renewal: the dispatch-only regeneration of the layout-guard baseline as an artifact. One run is one firing of layout-baseline-renewal.yml. Registered so the workflow records its own run (CLAUDE.md rule 17) and the closure gate's NEVER-RUN check reads the ledger row; the artifact is emitted by scripts/lib/emit-workflow-run-artifact.mjs from the workflow's own record job."
+}
