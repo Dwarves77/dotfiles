@@ -131,3 +131,49 @@ test("ERROR: statements-null with a null file is refused like any apply class; a
   assert.ok(r.errors.some((e) => e.kind === "entry_needs_file" && e.key === "001"));
   assert.ok(r.errors.some((e) => e.kind === "class_unknown" && e.key === "002"));
 });
+
+// ORDER (lane MIG-CI, coordinator ruling 2026-10-08): ledger order, not file number order.
+const ORDER_FILES = ["005_first.sql", "010_x.sql", "015_w.sql", "016_live.sql", "020_y.sql", "030_z.sql"];
+const ORDER_LEDGER = [{ version: "010", name: "z" }, { version: "020", name: "x" }, { version: "030", name: "y" }, { version: "20260701000000", name: "w" }];
+const ORDER_MAP = {
+  "010": { name: "z", file: "030_z.sql", class: "identical" },
+  "020": { name: "x", file: "010_x.sql", class: "identical" },
+  "030": { name: "y", file: "020_y.sql", class: "identical" },
+  "20260701000000": { name: "w", file: "015_w.sql", class: "identical" },
+  "outside:005_first.sql": { name: "first", file: "005_first.sql", class: "outside-ledger" },
+  "outside:016_live.sql": { name: "live", file: "016_live.sql", class: "outside-ledger" },
+};
+const orderRun = (map = ORDER_MAP, inventory = ORDER_FILES) => resolveMap({ ledger: ORDER_LEDGER, map, diskFiles: ORDER_FILES, orderFiles: inventory });
+
+test("ORDER: a tree where file numbers and ledger versions disagree replays in ledger version order", () => {
+  const r = orderRun();
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.toApply.map((t) => t.file), ["005_first.sql", "030_z.sql", "010_x.sql", "020_y.sql", "015_w.sql", "016_live.sql"],
+    "ledger 010, 020, 030, then the timestamp version; file numbers 030, 010, 020, 015 must not decide");
+});
+
+test("ORDER: a timestamp ledger version sorts after every short version (numeric, not lexical)", () => {
+  const r = orderRun();
+  const files = r.toApply.map((t) => t.file);
+  assert.ok(files.indexOf("015_w.sql") > files.indexOf("020_y.sql"), "file 015 has the latest ledger version, so it runs after file 020");
+});
+
+test("ORDER: an outside-ledger file follows the ledgered file before it in the inventory, or comes first when none does", () => {
+  const files = orderRun().toApply.map((t) => t.file);
+  assert.equal(files[0], "005_first.sql");
+  assert.equal(files.indexOf("016_live.sql"), files.indexOf("015_w.sql") + 1);
+});
+
+test("ORDER: the inventory no longer decides the order of ledgered files (a shuffled inventory gives the same replay)", () => {
+  const shuffled = ["030_z.sql", "016_live.sql", "005_first.sql", "020_y.sql", "015_w.sql", "010_x.sql"];
+  const a = orderRun().toApply.map((t) => t.file).filter((f) => !f.includes("live") && !f.includes("first"));
+  const b = orderRun(ORDER_MAP, shuffled).toApply.map((t) => t.file).filter((f) => !f.includes("live") && !f.includes("first"));
+  assert.deepEqual(b, a);
+});
+
+test("ORDER: one file claimed by two ledger versions runs once, at the earlier version", () => {
+  const map = { ...ORDER_MAP, "025": { name: "again", file: "010_x.sql", class: "identical" } };
+  const files = orderRun(map).toApply.map((t) => t.file);
+  assert.equal(files.filter((f) => f === "010_x.sql").length, 1);
+  assert.equal(orderRun(map).toApply.find((t) => t.file === "010_x.sql").key, "020");
+});

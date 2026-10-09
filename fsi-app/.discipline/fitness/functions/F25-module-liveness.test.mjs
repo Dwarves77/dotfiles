@@ -22,7 +22,9 @@ import {
   latestTrainWave,
   inWidenedScope,
   parseBoundaryRegistryPaths,
+  CI_RUN_SITE_GLOBS,
 } from './F25-module-liveness.mjs';
+import { globFiles } from '../lib/glob.mjs';
 
 
 // FIXTURE CONSTRUCTION (same convention as F22's test, and for the same reason). These tests need
@@ -205,6 +207,35 @@ test('findDispatchRoots: a workflow `node scripts/x.mjs` run: line is a dispatch
   const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
   const roots = findDispatchRoots('/repo', (f) => files[f], list);
   assert.ok(roots.has('fsi-app/scripts/turns/run-example.mjs'));
+});
+
+test('findDispatchRoots: a run: line in a COMPOSITE ACTION is a production call site (lane MIG-CI)', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs:\n  x:\n    steps:\n      - uses: ./.github/actions/example\n',
+    '.github/actions/example/action.yml': 'runs:\n  using: composite\n  steps:\n    - shell: bash\n      run: |\n        node fsi-app/scripts/proof/only-in-an-action.mjs --out x\n',
+  };
+  const list = listOnly({
+    '.github/workflows/*.yml': ['.github/workflows/example.yml'],
+    '.github/actions/**/*.yml': ['.github/actions/example/action.yml'],
+  });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/proof/only-in-an-action.mjs'), 'a module run only from a composite action must not read UNWIRED');
+  // a shell script a composite action invokes is followed like one a workflow invokes (Source 11 shares the globs)
+  const withSh = { ...files, '.github/actions/example/action.yml': 'runs:\n  using: composite\n  steps:\n    - shell: bash\n      run: bash fsi-app/.discipline/run-in-action.sh\n', 'fsi-app/.discipline/run-in-action.sh': 'node fsi-app/scripts/proof/via-action-shell.mjs\n' };
+  assert.ok(findDispatchRoots('/repo', (f) => withSh[f], list).has('fsi-app/scripts/proof/via-action-shell.mjs'));
+});
+
+test('CI_RUN_SITE_GLOBS reach the real composite action file through the real glob expander', () => {
+  assert.deepEqual(CI_RUN_SITE_GLOBS, ['.github/workflows/*.yml', '.github/actions/**/*.yml']);
+  const found = globFiles(CI_RUN_SITE_GLOBS);
+  assert.ok(found.includes('.github/actions/local-stack/action.yml'), `local-stack/action.yml missing from ${found.length} files`);
+  assert.ok(found.includes('.github/workflows/chain-proof.yml'));
+});
+
+test('findDispatchRoots on the real tree: write-local-env.mjs, run only from the local-stack composite action, is a dispatch root', () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
+  const roots = findDispatchRoots(root, (f) => readFileSync(resolve(root, f), 'utf8'), (patterns) => globFiles(patterns));
+  assert.ok(roots.has('fsi-app/scripts/proof/write-local-env.mjs'));
 });
 
 test('findDispatchRoots: a bare path mention (not `node`-prefixed) still counts, per B1\'s own grep method', () => {

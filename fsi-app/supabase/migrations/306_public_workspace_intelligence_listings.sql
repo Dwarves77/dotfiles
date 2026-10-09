@@ -440,6 +440,13 @@ BEGIN
   SELECT count(*) INTO n_rows_operations FROM public.get_operations_items_public();
   SELECT count(*) INTO n_rows_research FROM public.get_research_items_public();
 
+  -- 2026-10-08 (lane MIG-CI, ruling after replay run 37857650382, class DATA-ASSERTION): every check from here on asserts properties of the LIVE
+  -- population (nonzero slices, a first row to build a cursor from). On a replay from the repo files the stack holds no rows by design, so they are
+  -- skipped there, after the presence check and the five zero-argument calls above; where intelligence_items has rows (production) they all run.
+  IF NOT EXISTS (SELECT 1 FROM public.intelligence_items) THEN
+    RAISE NOTICE '306: data-dependent checks skipped, intelligence_items is empty (replay on an empty stack); the five functions exist and ran';
+    RETURN;
+  END IF;
   IF n_rows_slim = 0 THEN
     RAISE EXCEPTION 'ABORT: get_workspace_intelligence_slim_public() returned 0 rows — expected the live verified/non-archived population';
   END IF;

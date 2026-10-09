@@ -15,6 +15,12 @@
 //   functions    name(argument types) with its full definition (extension members excluded)
 //   triggers     table.trigger with its definition
 //   policies     table.policy with its command, roles, USING and WITH CHECK
+//   grants       one entry per object and grantee, "relation:name -> grantee" or "function:name(args) -> grantee", with the
+//                privilege types held (and whether grantable), for every table, view, sequence and function in public
+//                (aclexplode over relacl and proacl; a NULL ACL is read as the owner default, so a NULL and an explicit
+//                default compare equal). Added by lane MIG-CI, 2026-10-08, after the oracle was found to compare definitions
+//                and never grants: a wrong ACL (a missing or extra GRANT) now fails the oracle step with the object and the
+//                grantee named. Grantor names are not compared (ownership is stripped from the dump).
 // A difference is an object only on one side, or on both sides with a different definition ("changed").
 // The report holds counts and names only. It never holds a definition's text and never row data.
 //
@@ -27,7 +33,7 @@ import { dirname, resolve } from "node:path";
 import { assertLoopbackDbUrl } from "./replay-migrations.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
 
-export const CATEGORIES = Object.freeze(["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies"]);
+export const CATEGORIES = Object.freeze(["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies", "grants"]);
 const MAX_NAMES = 200;
 const MAX_LOGGED = 40;
 
@@ -42,7 +48,18 @@ export const CATALOG_QUERY = `select json_build_object(
  'indexes', (select coalesce(json_object_agg(i.tablename || '.' || i.indexname, md5(${N("i.indexdef")})), '{}'::json) from pg_indexes i where i.schemaname = 'public'),
  'functions', (select coalesce(json_object_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', md5(${N("pg_get_functiondef(p.oid)")})), '{}'::json) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prokind in ('f', 'p') and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')),
  'triggers', (select coalesce(json_object_agg(r.relname || '.' || t.tgname, md5(${N("pg_get_triggerdef(t.oid)")})), '{}'::json) from ${PUBLIC_RELS} r join pg_trigger t on t.tgrelid = r.oid and not t.tgisinternal),
- 'policies', (select coalesce(json_object_agg(pl.tablename || '.' || pl.policyname, md5(${N("pl.cmd || ' ' || pl.roles::text || ' ' || coalesce(pl.qual, '') || ' ' || coalesce(pl.with_check, '') || ' ' || pl.permissive")})), '{}'::json) from pg_policies pl where pl.schemaname = 'public')
+ 'policies', (select coalesce(json_object_agg(pl.tablename || '.' || pl.policyname, md5(${N("pl.cmd || ' ' || pl.roles::text || ' ' || coalesce(pl.qual, '') || ' ' || coalesce(pl.with_check, '') || ' ' || pl.permissive")})), '{}'::json) from pg_policies pl where pl.schemaname = 'public'),
+ 'grants', (select coalesce(json_object_agg(g.k, md5(g.v)), '{}'::json) from (
+  select 'relation:' || c.relname || ' -> ' || case a.grantee when 0 then 'PUBLIC' else pg_get_userbyid(a.grantee) end as k, string_agg(a.privilege_type || case when a.is_grantable then '*' else '' end, ',' order by a.privilege_type, a.is_grantable) as v
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'S', 'f')
+  cross join lateral aclexplode(coalesce(c.relacl, acldefault(case when c.relkind = 'S' then 's' else 'r' end, c.relowner))) a
+  group by 1
+  union all
+  select 'function:' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') -> ' || case a.grantee when 0 then 'PUBLIC' else pg_get_userbyid(a.grantee) end as k, string_agg(a.privilege_type || case when a.is_grantable then '*' else '' end, ',' order by a.privilege_type, a.is_grantable) as v
+  from pg_proc p join pg_namespace n on n.oid = p.pronamespace and n.nspname = 'public'
+  cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+  where p.prokind in ('f', 'p') and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+  group by 1) g)
 )`;
 
 /** Normalised comparison of two catalogs (each category a { name: hash } map). PURE. */
