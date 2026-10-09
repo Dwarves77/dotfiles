@@ -140,6 +140,13 @@ function makeDeps(scenario = {}) {
     dbClock: async () => `2026-10-07 10:00:${String(clock % 60).padStart(2, "0")}+00`,
     query: async (sql, params = []) => {
       calls.queries.push(sql);
+      if (sql.includes("information_schema.columns")) {
+        return params[0].filter((t) => t !== scenario.missingTable).flatMap((t) => ["id", "created_at"].map((c) => ({ table_name: t, column_name: c })));
+      }
+      if (sql.startsWith("EXPLAIN")) {
+        if (scenario.explainFails && sql.includes(scenario.explainFails)) throw new Error('column "bogus_col" does not exist');
+        return [{ "QUERY PLAN": "Result" }];
+      }
       if (scenario.zeroSql && sql.includes(scenario.zeroSql)) return [{ n: 0 }];
       if (sql.includes("json_agg")) return [{ v: JSON.stringify(Array.from({ length: 5 }, (_, i) => ({ candidate_id: `00000000-0000-4000-8000-00000000000${i}`, url: `https://example.org/private-${i}`, anchor_text: "Title" }))) }];
       if (sql.includes("string_agg")) return [{ v: "00000000-0000-4000-8000-000000000001" }];
@@ -149,7 +156,7 @@ function makeDeps(scenario = {}) {
         return scriptSteps.map((s, i) => ({ harness_family: s.family, github_run_id: runIds[s.id], upstream_run_id: s.upstream ? runIds[s.upstream.step] : null, started_at: `2026-10-07 10:${String(10 + i).padStart(2, "0")}:00+00`, loop_run_id: s.loop ? LOOP : null }));
       }
       if (sql.includes("greatest(")) return [{ greatest: 2 }];
-      if (sql.includes("harness_runs WHERE true")) return [{ n: 0 }];
+      if (sql.includes("harness_runs WHERE true") || sql.includes("brief_apply_runs WHERE true") || sql.includes("= 'preflight_refused'") && sql.includes("harness_family = 'brief-apply'")) return [{ n: 0 }];
       if (sql.includes("section_claim_provenance")) return [{ n: 0 }];
       if (sql.includes("status = 'provisional'")) { const k = sql; const c = (counts.get(k) ?? 0) + 1; counts.set(k, c); return [{ n: c === 1 ? 50 : 40 }]; }
       if (sql.includes("WHERE true")) { const c = (counts.get(sql) ?? 0) + 1; counts.set(sql, c); return [{ n: c === 1 ? 10 : 20 }]; }
@@ -288,4 +295,62 @@ test("the report is rewritten after every step, so a crash mid-run still leaves 
   await runChainSteps({ manifest, loopRunId: LOOP, deps });
   assert.ok(writes.length >= manifest.steps.length);
   assert.equal(writes.at(-1), manifest.steps.length);
+});
+
+// ---- CHAIN-5: the manifest's names are checked against the live stack before any step runs ----------------
+
+test("CHAIN-5: the schema check runs first, plans every statement, and its counts land in the report", async () => {
+  const { deps, calls, state } = makeDeps();
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
+  assert.equal(res.ok, true, res.error ?? "");
+  const firstInfo = calls.queries.findIndex((q) => q.includes("information_schema.columns"));
+  const firstStep = calls.queries.findIndex((q) => q.includes("system_state"));
+  assert.ok(firstInfo >= 0 && firstInfo < firstStep, "the information_schema lookup precedes the first assertion");
+  assert.ok(calls.queries.some((q) => q.startsWith("EXPLAIN (COSTS OFF) SELECT count(*)::int AS n FROM public.brief_apply_runs")));
+  assert.equal(state.report.schema_names.ok, true);
+  assert.ok(state.report.schema_names.statements_planned > 40);
+  assert.ok(state.report.schema_names.tables_checked >= 10);
+});
+
+test("ATTACK: a column the stack does not carry stops the run before any script, naming the assertion and the table's real columns", async () => {
+  const { deps, calls, state } = makeDeps({ explainFails: "(metrics->>'invocations')::int" });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
+  assert.equal(res.ok, false);
+  assert.equal(state.report.stopped_at, "schema-names");
+  assert.match(res.error, /the stack's schema does not carry \d+ name\(s\)/);
+  assert.match(res.error, /step fetch-drain assertion post-reached-function-host: column "bogus_col" does not exist \(public\.harness_runs has: id, created_at\)/);
+  assert.equal(calls.scripts.length, 0, "no step ran against a manifest that names a missing column");
+  assert.equal(state.report.not_run.length, manifest.steps.length);
+});
+
+test("ATTACK: a table absent from the stack's information_schema is named, and its statements are not planned", async () => {
+  const { deps, calls, state } = makeDeps({ missingTable: "brief_apply_runs" });
+  const res = await runChainSteps({ manifest, loopRunId: LOOP, deps });
+  assert.equal(res.ok, false);
+  assert.match(res.error, /table public\.brief_apply_runs is not in the stack's information_schema/);
+  assert.equal(state.report.stopped_at, "schema-names");
+  assert.equal(calls.scripts.length, 0);
+});
+
+test("CHAIN-5: the fetch-drain caveat no longer claims the function is unserved, and its assertion demands the POST reached the host", () => {
+  const fd = manifest.steps.find((x) => x.id === "fetch-drain");
+  assert.doesNotMatch(fd.caveat, /is not served/);
+  const a = fd.assertions.find((x) => x.id === "post-reached-function-host");
+  assert.ok(a, "the assertion exists");
+  assert.match(a.predicate, /invocations'\)::int >= 1/);
+  assert.match(a.predicate, /queued_selected'\)::int >= 1/);
+  assert.match(a.predicate, /http_call_failed%/);
+});
+
+test("CHAIN-5: the IO pre-flight is asserted on a fresh stack: no prior apply run before, a finished apply run and no refusal after", () => {
+  const pre = manifest.steps.find((x) => x.id === "preconditions").assertions.find((x) => x.id === "no-prior-apply-run");
+  assert.deepEqual([pre.table, pre.kind, pre.max], ["brief_apply_runs", "max", 0]);
+  const ba = manifest.steps.find((x) => x.id === "brief-apply");
+  const ran = ba.assertions.find((x) => x.id === "io-preflight-passed");
+  assert.equal(ran.table, "brief_apply_runs");
+  assert.match(ran.predicate, /finished_at IS NOT NULL/);
+  assert.match(ran.predicate, /started_at >= '\{\{started_at\}\}'::timestamptz/);
+  const refused = ba.assertions.find((x) => x.id === "io-preflight-not-refused");
+  assert.equal(refused.kind, "max");
+  assert.match(refused.predicate, /preflight_refused/);
 });
