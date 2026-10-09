@@ -1,6 +1,8 @@
 /** Tests for scripts/proof/steps/prepare.mjs (lane PROOF-3). Filesystem and database seams are injected. */
 import { test } from "node:test";
-import { join } from "node:path";
+import { join, resolve, dirname } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { ledgerVerdicts, briefBatch, chooseBriefTargets, MAX_TARGETS, HOOKS } from "./prepare.mjs";
 import { validateVerdictsFile } from "../../turns/run-ledger-consume.mjs";
@@ -89,4 +91,35 @@ test("ATTACK: batches with no item ids at all are refused", async () => {
 
 test("the hook table names exactly the two hooks the manifest uses", () => {
   assert.deepEqual(Object.keys(HOOKS).sort(), ["brief-batch", "ledger-verdicts"]);
+});
+
+// ---- CHAIN-5: the pinned export guarantees a Brief apply target ------------------------------------------------
+
+const FSI = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const WORKFLOW = readFileSync(resolve(FSI, "..", ".github", "workflows", "chain-proof.yml"), "utf8");
+
+test("CHAIN-5: the batch the subset export pins is a committed file whose ids the hook accepts as a target when the subset holds them", async () => {
+  const pin = /--pin-ids-from (scripts\/turns\/record-briefs\/batches\/[A-Za-z0-9._-]+\.json)/.exec(WORKFLOW);
+  assert.ok(pin, "the export step names a pin file");
+  const parsed = JSON.parse(readFileSync(resolve(FSI, pin[1]), "utf8"));
+  const ids = parsed.entries.map((e) => e.item_id);
+  assert.ok(ids.length >= 1 && ids.every((id) => /^[0-9a-f-]{36}$/i.test(id)), "the pin file names at least one uuid item");
+  // with exactly the pinned ids present (what the pinned export guarantees), the hook over the REAL committed batches finds >= 1 target
+  const out = await briefBatch({
+    fsiRoot: FSI,
+    stepTmp: "/tmp/s",
+    listDir: (d) => readdirSync(d),
+    readFile: (p) => readFileSync(p, "utf8"),
+    query: async (_sql, params) => params[0].filter((id) => ids.includes(id)).map((id) => ({ id })),
+    writeFile: () => {},
+  });
+  assert.ok(out.params.brief_target_ids.length >= 1, "at least one target");
+  assert.ok(out.params.brief_target_ids.every((id) => ids.includes(id)), "every target is a pinned id");
+});
+
+test("CHAIN-5 ATTACK: with none of the pinned ids in the subset the real batches yield NO TARGET, which fails the step", async () => {
+  await assert.rejects(
+    briefBatch({ fsiRoot: FSI, stepTmp: "/tmp/s", listDir: (d) => readdirSync(d), readFile: (p) => readFileSync(p, "utf8"), query: async () => [], writeFile: () => { throw new Error("must not write"); } }),
+    /NO TARGET/,
+  );
 });
