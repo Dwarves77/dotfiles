@@ -160,8 +160,8 @@ jobs:
       # As supabase_admin on the oracle cluster's database postgres (PROOF_ORACLE_DB_URL), psql -v ON_ERROR_STOP=1, the
       # dump as written (apply-schema-dump.mjs refuses any other role, database or the stack's own port).
       # ROLES FIRST (lane PROOF-7, 2026-10-09; chain-proof fire 6 failed on exactly one error, role "reconciler" does not
-      # exist): pg_dump omits roles, so the credentialed export step also wrote production's roles (pg_dumpall
-      # --roles-only --no-role-passwords, names and attributes only), dump-roles.mjs filter keeps the statements for roles
+      # exist): pg_dump omits roles, so the credentialed export step also wrote production's roles (supabase db dump
+      # --role-only, version-matched to the server like the schema dump, with PASSWORD clause stripped by the filter), dump-roles.mjs filter keeps the statements for roles
       # the oracle lacks (the oracle's own pg_roles is read at run time, no typed list) into the uploaded
       # oracle-roles.sql, and apply-schema-dump.mjs --roles applies that file before the dump, same role, same
       # ON_ERROR_STOP=1, same URL assertions. A dump naming a role absent from the roles file is still red (missing_roles).
