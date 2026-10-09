@@ -36,9 +36,10 @@ function table297() {
 const BASE = table297();
 const ADDED = [...SQL.matchAll(/ADD COLUMN IF NOT EXISTS ([a-z_]+) /g)].map((m) => m[1]);
 
-test("header: subject line and NOT APPLIED", () => {
+test("header: subject line and states APPLIED with the ledger version", () => {
   assert.match(RAW, /^-- subject: Migration 379 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261009023755, as of 2026-10-09\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
 });
 
 test("migration 297's grid_connection_queues is read as expected (9 columns, band NOT NULL, PK queue_id)", () => {

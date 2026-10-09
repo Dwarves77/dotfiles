@@ -1,7 +1,7 @@
--- subject: Migration 380 (lane S8-E1, 2026-10-08): oem_tech_roadmaps gets its outbox trigger, keyed to manufacturer_id in migration 352's two-argument form, so a written or changed row reaches the signposts and items watching that manufacturer (CLAUDE.md rule 17); and announced_at, NOT NULL in migration 296, becomes nullable, because the registered producer's dataset (the EEA heavy-duty vehicle CO2 extract) carries no announcement date and a date is never estimated. NOT APPLIED.
+-- subject: Migration 380 (lane S8-E1, 2026-10-08): oem_tech_roadmaps gets its outbox trigger, keyed to manufacturer_id in migration 352's two-argument form, so a written or changed row reaches the signposts and items watching that manufacturer (CLAUDE.md rule 17); and announced_at, NOT NULL in migration 296, becomes nullable, because the registered producer's dataset (the EEA heavy-duty vehicle CO2 extract) carries no announcement date and a date is never estimated. APPLIED (production ledger version 20261009023604, as of 2026-10-09).
 -- 380 -- oem_tech_roadmaps: outbox trigger and nullable announced_at (lane S8-E1, 2026-10-08).
 --
--- NOT APPLIED. Authored by lane S8-E1; the coordinator's executor applies it (two-track policy, CLAUDE.md standing rule 3:
+-- APPLIED (production ledger version 20261009023604, as of 2026-10-09). Authored by lane S8-E1; the coordinator's executor applies it (two-track policy, CLAUDE.md standing rule 3:
 -- schema DDL applies BEFORE the dependent code runs against the table). Requires migration 296 (oem_tech_roadmaps),
 -- migration 282 (entities), migration 284 (propagation_events) and migration 352 (the two-argument emit_propagation_event).
 --
