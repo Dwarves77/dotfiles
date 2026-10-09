@@ -107,7 +107,9 @@ function problems(text, disciplineText = DISCIPLINE) {
 
   if (summary >= 0) {
     const b = steps[summary].body;
-    if (/\bexit\s+[1-9]/.test(b) || /process\.exit\(\s*[1-9]/.test(b) || /process\.exitCode\s*=\s*[1-9]/.test(b)) out.push("the summary step can exit non-zero for a finding");
+    if (/\bexit\s+[1-9]/.test(b) || /process\.exit\(\s*[1-9]/.test(b)) out.push("the summary step can exit non-zero for a finding");
+    if (!/if \(results\.errors\.length > 0\) \{[\s\S]*?process\.exitCode = 1;/.test(b)) out.push("a non-empty errors list does not fail the summary step");
+    if (/process\.exitCode\s*=\s*1/.test(b.replace(/if \(results\.errors\.length > 0\) \{[\s\S]*?\n {10}\}/, ""))) out.push("the summary step sets a failing exit code outside the errors branch");
     if (!/GITHUB_STEP_SUMMARY/.test(b)) out.push("summary step does not write $GITHUB_STEP_SUMMARY");
   }
 
@@ -115,7 +117,7 @@ function problems(text, disciplineText = DISCIPLINE) {
     const b = steps[upload].body;
     if (!/uses: actions\/upload-artifact@v4/.test(b)) out.push("upload step does not use actions/upload-artifact@v4");
     if (!/name: design-audit-results/.test(b)) out.push("artifact is not named design-audit-results");
-    if (!/retention-days: 14/.test(b)) out.push("artifact retention is not 14 days");
+    if (!/retention-days: 7$/m.test(b)) out.push("artifact retention is not 7 days (the F68 Actions-storage budget)");
     if (!/fsi-app\/\.discipline\/rendering\/audit\/results\.json/.test(b)) out.push("results.json is not uploaded");
     if (!/docs\/design\/handoff-2026-09-06\/AUDIT-2026-09-07\.md/.test(b)) out.push("the audit document is not uploaded");
     if (!/if: always\(\)/.test(b)) out.push("upload is not unconditional (it must also keep the partial output of a failed run)");
@@ -173,11 +175,18 @@ test("ATTACK: a path filter is refused", () => {
   attack((t) => t.replace("  workflow_dispatch:\n", "  workflow_dispatch:\n  push:\n    paths-ignore:\n      - 'docs/**'\n"), /paths-ignore|push:/);
 });
 test("ATTACK: dropping the upload retention or the unconditional upload is refused", () => {
-  attack((t) => t.replace("          retention-days: 14\n", ""), /retention/);
+  attack((t) => t.replace("          retention-days: 7\n", ""), /retention/);
+  attack((t) => t.replace("retention-days: 7", "retention-days: 14"), /not 7 days/);
   attack((t) => t.replace("        if: always()\n", ""), /unconditional/);
 });
 test("ATTACK: a summary step that exits non-zero for a finding is refused", () => {
   attack((t) => t.replace("          console.log(out);\n", "          console.log(out);\n          if (nonMatching.length > 0) process.exit(1);\n"), /summary step can exit non-zero/);
+});
+test("ATTACK: dropping the errors-list failure is refused", () => {
+  attack((t) => t.replace("            process.exitCode = 1;\n", ""), /errors list does not fail/);
+});
+test("ATTACK: a finding that sets the failing exit code is refused", () => {
+  attack((t) => t.replace("          console.log(out);\n", "          console.log(out);\n          if (nonMatching.length > 0) process.exitCode = 1;\n"), /outside the errors branch/);
 });
 test("ATTACK: a renamed workflow is refused", () => {
   attack((t) => t.replace("name: Design audit\n", "name: Design audit run\n"), /name is not exactly/);
@@ -235,12 +244,12 @@ test("a run with no non-matching row says so and exits 0", () => {
   assert.match(r.written, /None\./);
 });
 
-test("harness errors are listed and warned about, and still exit 0 (the generator is what fails the job)", () => {
+test("harness errors are listed and FAIL the summary step (a spec whose mount threw is the harness unable to run)", () => {
   const r = runSummary({ runAt: "2026-10-08T00:00:00.000Z", specs: [{ __id: "alpha" }], rows: [row("alpha", "MATCH")], errors: [{ spec: "alpha", message: "mount threw" }] });
-  assert.equal(r.status, 0, r.stderr);
+  assert.notEqual(r.status, 0, "a non-empty errors list must fail");
   assert.match(r.written, /Harness errors: 1\./);
   assert.match(r.written, /`alpha`: mount threw/);
-  assert.match(r.stdout, /::warning::1 spec file\(s\) hit a harness error/);
+  assert.match(r.stdout, /::error::1 spec file\(s\) hit a harness error/);
 });
 
 test("ATTACK: a results.json that cannot be read is the harness failing, so the summary step fails", () => {

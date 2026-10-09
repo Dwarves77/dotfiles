@@ -127,12 +127,13 @@ red (ADR-046, an operator-seat blind spot).
 - **Soft by contract.** The job reports; it never fails the build on a non-matching row (MISMATCH, NOT
   BUILT, NOT IN SPEC). Many such rows are open DESIGN CHANGES OWED (CLAUDE.md rule 20) or a build defect
   waiting on a follow-up lane, and failing a PR on them would block correct work. It fails only when the
-  harness itself cannot run: the generator exits non-zero, or results.json or the audit document is not
-  produced. The workflow deletes both generated files before the run so a stale committed copy can never
+  harness itself cannot run: the generator exits non-zero, results.json or the audit document is not
+  produced, or results.json carries a non-empty `errors` list (a spec file whose mount threw; the generator
+  exits 0 for that, so the summary step fails it). The workflow deletes both generated files before the run so a stale committed copy can never
   pass for fresh output. There is no `continue-on-error` anywhere in the file.
 - **Where the result lands.** The job summary carries the four counts and the id of every non-matching
   row. results.json and the audit document are uploaded as the artifact `design-audit-results` (retention
-  14 days).
+  7 days).
 - **The row id handle.** results.json carries no row id field, so a row is named `<spec id>#<index>`:
   the spec id is the spec file name (`fsi-app/.discipline/rendering/audit/spec/<spec id>.json`) and the
   index is the zero-based position of the row in the `rows` array of results.json. The index is stable

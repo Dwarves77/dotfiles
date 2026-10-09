@@ -23,7 +23,7 @@ name: Design audit
 # under fsi-app/.discipline/rendering/audit/spec/ and the index is the zero-based position of the row in the
 # "rows" array of results.json (results.json carries no row id field, so the index is the stable handle until
 # the next regeneration). results.json and the audit document are uploaded as the artifact
-# design-audit-results (14 days), the full record behind the summary.
+# design-audit-results (7 days), the full record behind the summary.
 #
 # THE CONTAINER IS THE GATE-6 PATTERN (lane GATE-6, 2026-10-08). The job runs in the official Playwright
 # image, so chromium and its OS libraries are present and no browser install runs. The image tag is the
@@ -108,8 +108,9 @@ jobs:
           test -s "$results"
           test -s "$document"
 
-      # Reads the file the generator just wrote and states it. It never exits non-zero for a finding: the only
-      # way this step fails is a results.json that cannot be read, which is the harness failing.
+      # Reads the file the generator just wrote and states it. It never exits non-zero for a finding. It fails in
+      # two cases, both the harness unable to run: results.json cannot be read, or its errors list is not empty
+      # (a spec file whose mount threw; the generator itself exits 0 for that, so this step is where it fails).
       - name: Write the counts and the non-matching row ids to the job summary
         working-directory: fsi-app
         run: |
@@ -144,7 +145,10 @@ jobs:
           const out = lines.join('\n');
           console.log(out);
           if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${out}\n`);
-          if (results.errors.length > 0) console.log(`::warning::${results.errors.length} spec file(s) hit a harness error; see the summary`);
+          if (results.errors.length > 0) {
+            console.log(`::error::${results.errors.length} spec file(s) hit a harness error; see the summary`);
+            process.exitCode = 1;
+          }
           NODE
 
       - name: Upload the audit result (results.json and the audit document)
@@ -156,4 +160,4 @@ jobs:
             fsi-app/.discipline/rendering/audit/results.json
             docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 7
