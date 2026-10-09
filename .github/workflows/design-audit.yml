@@ -115,17 +115,18 @@ jobs:
       # step. A non-matching row is not an error here: the generator itself exits 0 whenever the sweep ran.
       - name: Run the design audit (the generator reports, it never gates)
         working-directory: fsi-app
-        env:
-          # Stamped into results.json and the audit document as generated_on.container_image.
-          AUDIT_CONTAINER_IMAGE: ${{ job.container.image }}
         run: |
           set -euo pipefail
           results=".discipline/rendering/audit/results.json"
           document="../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"
           rm -f "$results" "$document"
+          # Stamped into results.json and the audit document as generated_on.container_image. The job context
+          # does not expose the container image, so it is read out of this file with the install step's own pattern.
+          AUDIT_CONTAINER_IMAGE="$(sed -n 's|^ *image: \(mcr\.microsoft\.com/playwright:v[0-9][0-9.]*-.*\)$|\1|p' ../.github/workflows/design-audit.yml)"
+          test -n "$AUDIT_CONTAINER_IMAGE"
           AUDIT_HEAD="$(git rev-parse --short HEAD)"
           AUDIT_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          export AUDIT_HEAD AUDIT_BRANCH
+          export AUDIT_HEAD AUDIT_BRANCH AUDIT_CONTAINER_IMAGE
           npm run audit:design
           test -s "$results"
           test -s "$document"

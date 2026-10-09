@@ -240,8 +240,14 @@ test("ATTACK: committing before the summary step is refused", () => {
     return rest.slice(0, k) + block + rest.slice(k);
   }, /runs before the summary step/);
 });
-test("the job passes the container image to the generator for the generated_on stamp", () => {
-  assert.match(TEXT, /AUDIT_CONTAINER_IMAGE: \$\{\{ job\.container\.image \}\}/);
+test("the audit step reads the container image out of this file and exports it for the generated_on stamp", () => {
+  const audit = stepsOf(TEXT).find((x) => /Run the design audit/.test(x.name)).body;
+  const IMAGE_SED = String.raw`AUDIT_CONTAINER_IMAGE="$(sed -n 's|^ *image: \(mcr\.microsoft\.com/playwright:v[0-9][0-9.]*-.*\)$|\1|p' ../.github/workflows/design-audit.yml)"`;
+  assert.ok(audit.includes(IMAGE_SED), "the audit step must read the image out of this workflow file");
+  assert.match(audit, /export AUDIT_HEAD AUDIT_BRANCH AUDIT_CONTAINER_IMAGE/);
+  // the sed, run for real on this workflow text, yields the one Playwright image line
+  const out = spawnSync("sed", ["-n", String.raw`s|^ *image: \(mcr\.microsoft\.com/playwright:v[0-9][0-9.]*-.*\)$|\1|p`], { input: TEXT, encoding: "utf8" });
+  if (out.status === 0) assert.deepEqual(out.stdout.trim().split("\n"), playwrightImage(TEXT));
 });
 test("ATTACK: a renamed workflow is refused", () => {
   attack((t) => t.replace("name: Design audit\n", "name: Design audit run\n"), /name is not exactly/);
