@@ -203,7 +203,7 @@ the loader hook), and every definition and use site of each symbol before editin
 
 - Census sections 2a/2b rows under `src/**` (DEAD-1c), `scripts/proof/**`, `scripts/producers/**`, `scripts/migrations/**`, `.discipline/rendering/**` (other lanes).
 - Census 2c test-only, 2d and 2e are not part of this lane.
-- `createPgPool` (kept by skill reference) and `DEFAULT_OUT_PATH` (a test imports it) stay.
+- `createPgPool` (kept by skill reference) and `DEFAULT_OUT_PATH` (a test imports it) stay. [NOT-WORK: fact, no action]
 
 ## Open items
 

@@ -25,7 +25,7 @@ Read in full: COMMON, the brief, `CLAUDE.md`, `lane-common-contract.md`, `OUT-OF
 
 - Nothing under the user home was read or written (settings.json holds credentials). The installer is run by the executor after merge: `node fsi-app/.discipline/install-hooks.mjs` from the main checkout, which must first hold this merge (the applier refuses with a clear message if the entry or template is missing there).
 - `hooks/pre-push` step 3c failure text still names the applier (`wire-pretooluse-settings.mjs --apply`), which now also installs the shim; the verifier's own output names the installer. Left as is (not in the write set).
-- Not run locally per COMMON rule 9: the whole suite, the fitness runner, tsc. The five touched test files were run (below).
+- Not run locally per COMMON rule 9: the whole suite, the fitness runner, tsc. The five touched test files were run (below). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Evidence (`node --test <file>`; red = the new tests against the pre-change implementation files)
 

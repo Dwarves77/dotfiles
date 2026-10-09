@@ -84,15 +84,15 @@
 
 ## NOT done
 
-- Item 5 (above; reassigned by the coordinator to a new lane, under the corrected rule that spec 07 amendment R8.7, identity shown by default with anonymity opt-in, governs, not the spec 05 pseudonymous subset; the call-site list above stays as the hand-off). Nothing applied; nothing executed against Postgres (none on this machine): the SQL has been read and statically tested only, the self-check runs at apply time and in the chain-proof replay. [HYPOTHESIS] a fixture `auth.users` insert with only (id, aud, role, email, created_at, updated_at) succeeds on the live project; if not, the self-check skips its legs with a NOTICE and the catalog assertions still run.
-- No rendering-guard or UX smoke run locally (CI runs them); no local tsc run (CI runs it).
+- Item 5 (above; reassigned by the coordinator to a new lane, under the corrected rule that spec 07 amendment R8.7, identity shown by default with anonymity opt-in, governs, not the spec 05 pseudonymous subset; the call-site list above stays as the hand-off). Nothing applied; nothing executed against Postgres (none on this machine): the SQL has been read and statically tested only, the self-check runs at apply time and in the chain-proof replay. [HYPOTHESIS] a fixture `auth.users` insert with only (id, aud, role, email, created_at, updated_at) succeeds on the live project; if not, the self-check skips its legs with a NOTICE and the catalog assertions still run. [CLOSED: PR 1006]
+- No rendering-guard or UX smoke run locally (CI runs them); no local tsc run (CI runs it). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 
-- Apply order for the executor: migration 370 can apply before or after the code; the code changes only hide controls. The attacks need 370 applied on the proof stack (the replay applies it).
-- SEC-3a (369) revokes anon writes by table; the two migrations touch disjoint objects except REVOKE on the same three tables (idempotent either order).
+- Apply order for the executor: migration 370 can apply before or after the code; the code changes only hide controls. The attacks need 370 applied on the proof stack (the replay applies it). [NOT-WORK: fact, no action]
+- SEC-3a (369) revokes anon writes by table; the two migrations touch disjoint objects except REVOKE on the same three tables (idempotent either order). [NOT-WORK: fact, no action]
 
 ### UX compliance
-- Screens and blocks: detail action row (+ Tag), detail tag row, team watch pill, priority and dismiss kebab menu, portfolio index create form, portfolio detail manage, add and remove controls. Layout unchanged for members, admins and owners.
-- For a viewer: the primary goal on these screens is reading; the path is unchanged (open the page, read); the one primary action is removed, not disabled, so there is no dead control. Empty portfolio states say why: "Your role in this workspace can read portfolios but not create them; a member, admin or owner can."
-- Feedback states: no new asynchronous action; the existing pending, success and failure states of each control are untouched. Every remaining target keeps its existing 44 px size.
+- Screens and blocks: detail action row (+ Tag), detail tag row, team watch pill, priority and dismiss kebab menu, portfolio index create form, portfolio detail manage, add and remove controls. Layout unchanged for members, admins and owners. [NOT-WORK: fact, no action]
+- For a viewer: the primary goal on these screens is reading; the path is unchanged (open the page, read); the one primary action is removed, not disabled, so there is no dead control. Empty portfolio states say why: "Your role in this workspace can read portfolios but not create them; a member, admin or owner can." [NOT-WORK: fact, no action]
+- Feedback states: no new asynchronous action; the existing pending, success and failure states of each control are untouched. Every remaining target keeps its existing 44 px size. [NOT-WORK: fact, no action]

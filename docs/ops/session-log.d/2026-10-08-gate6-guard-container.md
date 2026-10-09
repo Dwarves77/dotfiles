@@ -72,4 +72,4 @@ Confirmed from the run API (job conclusion `cancelled`, attempt in brackets):
 
 ## Open items
 
-- First green run timings: appended below once the PR's Rendering guard has run.
+- First green run timings: appended below once the PR's Rendering guard has run. [CLOSED: PR 1021]

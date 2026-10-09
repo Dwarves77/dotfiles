@@ -12,10 +12,10 @@ Status tokens: [CONFIRMED: method] or [HYPOTHESIS]. No recommendations are made 
 ## 0. Method and limits (read first)
 
 - Source read: every file under fsi-app/.discipline/rules/, manifest.mjs, runner.mjs, lib/context.mjs, lib/predicates.mjs, hooks/*, governance/{memory-gate,docs-only-range,pretooluse-skill-gate,skill-map,worktree-isolation*,skill-token}.mjs, consistency/*, .github/workflows/discipline.yml, .claude/settings.json, .claude/hooks/*, ~/.claude/settings.json and ~/.claude/hooks/pretooluse-fsi-app-scope.mjs. [CONFIRMED: read in full via git archive of origin/master plus the out-of-repo user files]
-- CI failure attribution: all 100 failed runs of discipline.yml created in the 30d window (of 954 runs; 805 success, 44 cancelled, 100 failure, 1 startup_failure, 2 action_required, 2 in progress) were attributed by failed job and step through the Actions jobs API, and the failed job logs were scanned for FAIL [rule id], [F-id] violation lines and failing test names. [CONFIRMED: gh api, 100 of 100 runs, not a sample]
-- Gate audit log: fsi-app/.discipline/governance/.gate-audit.log (gitignored, main checkout) holds 66,083 PreToolUse decisions since 2026-06-07; 38,231 are in the 30d window. It records tool name and decision only, never the command, so per-decision TP/FP cannot be read from it. [CONFIRMED: read the file]
+- CI failure attribution: all 100 failed runs of discipline.yml created in the 30d window (of 954 runs; 805 success, 44 cancelled, 100 failure, 1 startup_failure, 2 action_required, 2 in progress) were attributed by failed job and step through the Actions jobs API, and the failed job logs were scanned for FAIL [rule id], [F-id] violation lines and failing test names. [CONFIRMED: gh api, 100 of 100 runs, not a sample] [NOT-WORK: fact, no action]
+- Gate audit log: fsi-app/.discipline/governance/.gate-audit.log (gitignored, main checkout) holds 66,083 PreToolUse decisions since 2026-06-07; 38,231 are in the 30d window. It records tool name and decision only, never the command, so per-decision TP/FP cannot be read from it. [CONFIRMED: read the file] [NOT-WORK: fact, no action]
 - NO firing log exists for the commit-msg, pre-commit or pre-push hooks (they print to the terminal only). Local firings below come from session-log narrative (docs/ops/session-log.d/*.md dated >= 2026-09-08 and session-log.md from 2026-09-07) and are therefore a LOWER BOUND; a hook block the author silently fixed without writing it down is invisible. [CONFIRMED: runner.mjs and hooks print to stderr only]
-- Timing was done on the main checkout with read-only commands. A temporary GIT_INDEX_FILE (outside the repo) was used to simulate staged sets of 0, 17, 31, 77 and 300 files; the real index and working tree were never touched. An earlier scratch worktree was created for reading and was removed by the coordinator (see section 9, finding on C4). No worktree is left by this lane. [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing]
+- Timing was done on the main checkout with read-only commands. A temporary GIT_INDEX_FILE (outside the repo) was used to simulate staged sets of 0, 17, 31, 77 and 300 files; the real index and working tree were never touched. An earlier scratch worktree was created for reading and was removed by the coordinator (see section 9, finding on C4). No worktree is left by this lane. [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing] [NOT-WORK: fact, no action]
 - Side effect to disclose: three lines were appended to the gitignored .gate-audit.log by my own timing of the PreToolUse shim (payloads for "ls"). [CONFIRMED]
 
 ## 1. Inventory counts
@@ -25,7 +25,7 @@ Status tokens: [CONFIRMED: method] or [HYPOTHESIS]. No recommendations are made 
 - Git hooks installed as trampolines in .git/hooks: pre-commit, commit-msg, pre-push, post-checkout (4). pre-push has 16 labelled steps (0, 0b, 0c, 1, 2, 2b, 2c, 3, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 4); steps 3 through 4 (ten of them) are skipped by default since ADR-040, 2026-10-03. [CONFIRMED: hooks/pre-push, .git/hooks/*]
 - Claude Code hooks: in repo .claude/settings.json: SessionStart x2 (vault-sync, session-start-vault), PreCompact x1, SessionEnd x1 (an echo). Out of repo ~/.claude/settings.json: PreToolUse x1 (scope shim, which calls the skill gate). No PostToolUse hook exists anywhere. [CONFIRMED: both settings files]
 - Marker/override mechanisms: 6 trailers or markers (Write-Guard-Override, Surface-Decision-Override, Source-Reclassify-Override, Consistency-Override, glyph:verbatim, fitness-allow) plus the "UX compliance" substring. [CONFIRMED: grep of rules and gates]
-- Rules that fired at all in 30d (any CI failure or session-log narrative of a block or forced rewrite): 5 of 10 (015, 016, 018, 021, 022). In 90d: 6 of 10 (adds 012: PR #562, 2026-09-04; 018 also fired 2026-07-28). Never fired in 90d: 014, 017, 019, 020. [CONFIRMED: CI logs + grep of session logs; lower bound for local]
+- Rules that fired at all in 30d (any CI failure or session-log narrative of a block or forced rewrite): 5 of 10 (015, 016, 018, 021, 022). In 90d: 6 of 10 (adds 012: PR #562, 2026-09-04; 018 also fired 2026-07-28). Never fired in 90d: 014, 017, 019, 020. [CONFIRMED: CI logs + grep of session logs; lower bound for local] [NOT-WORK: fact, no action]
 - Incident cited in the rule header: dated incident 4 (012: 2026-05-20, 020: 2026-07-17 to 07-20, 021: 2026-08-01, 022: 2026-09-12 manual-check misses); undated incident 3 (016, 018, 019); no incident 3 (014 cites ADR-005 only, 015 cites the operating-mechanism build, 017 cites a red-team finding). [CONFIRMED: rule headers]
 - 30d firing ledger across the 10 rules: 32 firings, TRUE POSITIVE 9, FALSE POSITIVE 19, UNKNOWN 4 (per-rule split in section 2).
 
@@ -51,7 +51,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 ## 3. Rule sections
 
 ### Rule 012 Hardcoded user-home path
-- Protects: "Mechanical content-level check ... rejecting commits that contain hardcoded user-home path strings. The class of bug that produced REPO_ROOT hardcoding". [CONFIRMED: header]
+- Protects: "Mechanical content-level check ... rejecting commits that contain hardcoded user-home path strings. The class of bug that produced REPO_ROOT hardcoding". [CONFIRMED: header] [NOT-WORK: fact, no action]
 - Decides: HARDCODED_PATH_RE = /C:[\\/]Users[\\/]|\/c\/Users\/|\/home\/jason\/|\/Users\/jason\//; extensions .mjs .ts .tsx .js .json .yml .yaml .sh .sql; exempt path fragments node_modules/, .git/, fsi-app/scripts/tmp/, .claude/settings.local.json, fsi-app/scripts/_snapshots/. [CONFIRMED: source]
 - Scope: reads the whole content of every staged code file (ctx.getFileContent), so a pre-existing path string anywhere in a touched file fails the commit. [CONFIRMED: source, getFileContent reads from disk]
 - Escape hatches: path exemptions above only; no trailer; git commit --no-verify named in the message. [CONFIRMED]
@@ -81,7 +81,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 - Time: 0.015 s at 77 files. Overlap: partial with F13 (insert into intelligence_items), F22 (insert into sources), RD-1 residual, and the PreToolUse Bash leg (ops regexes in skill-map.mjs include /\.delete\s*\(/ and /is_archived/ at tool-call time). [CONFIRMED: skill-map.mjs, F13/F22 headers]
 
 ### Rule 016 Canonical Anthropic path
-- Protects: direct Anthropic calls only in the permitted wrappers; "the exact bypass that caused source_citations to never populate". [CONFIRMED: header]
+- Protects: direct Anthropic calls only in the permitted wrappers; "the exact bypass that caused source_citations to never populate". [CONFIRMED: header] [NOT-WORK: fact, no action]
 - Decides: per-line regex /api\.anthropic\.com|new\s+Anthropic\s*\(|anthropic\.messages\.create|@anthropic-ai\/sdk/ with no comment or string masking. PERMITTED list of 11 path prefixes. [CONFIRMED: source]
 - Scope: whole staged .ts/.tsx/.mjs/.js file outside .discipline/, _diag/ and the list. [CONFIRMED]
 - Escape: edit the PERMITTED list in the rule (done 2026-09-17), or --no-verify. No trailer. [CONFIRMED]
@@ -106,7 +106,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 ### Rule 019 Source-not-item reclassified
 - Protects: "the EXACT error the operator corrected: a script archived 5 portals (and 25 earlier ones) ... without registering them". [CONFIRMED: header]
 - Decides: three regexes on whole file text (source-y archive_reason literal, an archive call, absence of reclassifyToSource). Scope: whole staged fsi-app/scripts/**/*.mjs except _diag/ and lib/ (note: test files are NOT excluded here, unlike 015). Escape: Source-Reclassify-Override trailer (0 in 30d; 1 commit mentions it in 90d). [CONFIRMED]
-- Firings: 0 in 90d. Overlap: SC-2 invariant names three layers (this rule, migration 135 DB guard, orphan-source-audit live scan). [CONFIRMED: invariant residual text]
+- Firings: 0 in 90d. Overlap: SC-2 invariant names three layers (this rule, migration 135 DB guard, orphan-source-audit live scan). [CONFIRMED: invariant residual text] [NOT-WORK: fact, no action]
 
 ### Rule 020 Deprecated session-log fork is frozen
 - Protects: four recorded writes to fsi-app/docs/ops/session-log.md between 2026-07-17 and 07-20. [CONFIRMED: header]
@@ -120,7 +120,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 - Time 0. Overlap: none found.
 
 ### Rule 022 No dash/section-sign glyphs in added prose
-- Protects (header): the check "lived only in the coordinator's dispatch text ... and as a byte count the coordinator ran by hand", with 7, 36 and 4 glyphs added in three tasks. The defect class is house style; no functional defect is cited. [CONFIRMED: header]
+- Protects (header): the check "lived only in the coordinator's dispatch text ... and as a byte count the coordinator ran by hand", with 7, 36 and 4 glyphs added in three tasks. The defect class is house style; no functional defect is cited. [CONFIRMED: header] [NOT-WORK: fact, no action]
 - Decides: for each staged file, git diff -U0 (git show -U0 in CI per commit; one cumulative git diff for the whole range), regex [\u2014\u2013\u00A7] on each added line; skip lines containing the literal marker glyph:verbatim. [CONFIRMED: rule + context.mjs]
 - Scope: ADDED lines. Because -U0 reports a modified line as removed plus added, an edited line carrying a pre-existing glyph fails; text moved or split into new files counts as wholly added. Exempt paths: record-briefs/batches, any directory named fixtures, docs/archive/, the delivered files of a dated design-handoff bundle. [CONFIRMED: source + firings below]
 - Escape hatches: the glyph:verbatim marker on the same line (1,036 occurrences in 220 files on master: 683 in docs/audits, 234 in fsi-app/.discipline, 42 in fsi-app/src, 24 in fsi-app/scripts, 19 in docs/design; 31 commits added it since the rule landed 2026-09-12); path exemptions; --no-verify. [CONFIRMED: git grep -c, git log -S]
@@ -146,7 +146,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 - Fires on every branch checkout and git worktree add: links fsi-app/node_modules for the worktree (wt_nm_ensure_link, 253-line library) and runs the isolation alarm. It printed a warning when this lane ran `git worktree add` outside .claude/worktrees ("create worktrees there"). Time: not measured because wt_nm_ensure_link can write a link: [HYPOTHESIS] 0.5 to 1 s (sh, two node launches). Firings: none recorded.
 
 ### H4 pre-push (default path, steps 0 to 2c)
-- Step 0 trampoline guard (stale copy refuses with "STEP 0 FAIL"), 1 mention in logs. 0b dependency resolve 0.14 s. 0c docs-only classifier 0.33 s. 1 untracked critical files 0.20 s. 2 consistency runner override-aware 1.03 to 1.08 s. 2b memory gate 0.43 s (1 commit range) to 1.11 s (8 commits). 2c runner.mjs --mode=ci: 5.2 s for one commit of 17 files; 25.2 s for an 8-commit range of 125 files (per-commit walk plus a whole-range pass, both dominated by rule 022). [CONFIRMED: timing, each read-only against explicit ranges]
+- Step 0 trampoline guard (stale copy refuses with "STEP 0 FAIL"), 1 mention in logs. 0b dependency resolve 0.14 s. 0c docs-only classifier 0.33 s. 1 untracked critical files 0.20 s. 2 consistency runner override-aware 1.03 to 1.08 s. 2b memory gate 0.43 s (1 commit range) to 1.11 s (8 commits). 2c runner.mjs --mode=ci: 5.2 s for one commit of 17 files; 25.2 s for an 8-commit range of 125 files (per-commit walk plus a whole-range pass, both dominated by rule 022). [CONFIRMED: timing, each read-only against explicit ranges] [NOT-WORK: fact, no action]
 - Total default push: about 7.4 s (1 commit) to 28.1 s (8 commits) plus trampoline overhead 0.1 s. [CONFIRMED: sum of measured components; real pre-push not executed because it can create a node_modules link]
 - Steps 3 to 4 (test suite, meta-gates, lint, fitness, npmtest, goldens, closure, tsc) are skipped unless DISCIPLINE_PREPUSH_FULL=1. ADR-040 (2026-10-03): "10-20 minutes per push on Windows"; session-log 2026-09-22 measured 30 to 45 minutes per lane; the opt-in is not timed here. [CONFIRMED: ADR text and session log]
 - The lane contract (docs/dispatches/lane-common-contract.md, Wiring preflight step 1) still describes running the push gate as "the full discipline and fitness suite", which the hook now skips by default. [CONFIRMED: text vs pre-push line 261]
@@ -174,7 +174,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 - Classification:
   - 367 denies: the "skill missing" 320 are the gate working as designed (the write was attempted before a Skill invocation); no case in the logs shows a deny that prevented a code or data defect: UNKNOWN as defect prevention. The 47 "notranscript" denies are a gate infrastructure condition (no readable transcript) refused as a write: FP in effect (the gate code treats no transcript as deny). [CONFIRMED: gate source; defect-prevention is UNKNOWN]
   - 107 "skillunresolvable" asks: the gate's own header says the demand is unsatisfiable in that session and downgrades to a human prompt: FP by construction. [CONFIRMED: source comment]
-  - 202 "dispatch" asks (+10 Workflow, 3 Task counted within): every Agent/Task/Workflow call asks; the source comment states the gate "cannot inspect what the sub-agent will do". Never denies. [CONFIRMED]
+  - 202 "dispatch" asks (+10 Workflow, 3 Task counted within): every Agent/Task/Workflow call asks; the source comment states the gate "cannot inspect what the sub-agent will do". Never denies. [CONFIRMED] [NOT-WORK: fact, no action]
   - 1,094 "worktree-isolation" asks: isBranchingGitCommand matches git merge-base, git branch --show-current, git branch -a, git branch --list, git checkout -- file, git rebase --abort, git switch (tested: all true). So read-only commands prompt. Share of the 1,094 that were read-only is UNKNOWN (the log keeps no command). [CONFIRMED: function run on 16 sample commands; share is [HYPOTHESIS]]
   - DANGER regex matches anywhere in the command text: tested true for `git commit -m "fix truncate bug"`, `echo truncated`, `grep -rn "git push" docs`, `git log --grep="rm -rf"`, and a heredoc containing those strings. This lane's own read-only `cat > file <<EOF` command was DENIED during this task for that reason ("Missing: remediation-discipline") because the heredoc text contained them. [CONFIRMED: regex run on real gate source; live deny observed]
   - MCP read/write is classified by tool-name regex: query_logs (8 decisions), list_deployments and list_deployment_events (2), mark_chapter (4: 3 deny, 1 ask), Claude_Browser navigate (1 deny) and terminal stop_terminal_tab (1 deny) are classed as writes. Tested: list_deployments, list_deployment_events, query_logs, mark_chapter, navigate, list_comments, browser_batch, find, computer all gate as writes. 16 clear misclassifications in 30d. [CONFIRMED: log tool names x regex]
@@ -226,10 +226,10 @@ Typical branch commit at the master median of 8 files: about 1.3 s for commit-ms
 ## 8. CI failure attribution (100 of 100 failed runs, 30d)
 
 - Runs: 954 (event pull_request 583, push 371); failure 100 (96 PR, 4 push); first run 2026-09-08, last 2026-10-08.
-- Failed step counts (a run can fail more than one job): Discipline engine unit tests / Run discipline test suite 64 runs; Fitness functions / Run fitness functions 47; ESLint 8; npmtest 4 (3 + 1); actionlint 4; Validate commits / discipline engine (PR) 7 (rule 022 x6, rule 021 x1); (push to master) 1 (rule 022); Memory gate step 3 (2 memory, 1 UX); rendering guard 2; goldens 1. [CONFIRMED: jobs API]
+- Failed step counts (a run can fail more than one job): Discipline engine unit tests / Run discipline test suite 64 runs; Fitness functions / Run fitness functions 47; ESLint 8; npmtest 4 (3 + 1); actionlint 4; Validate commits / discipline engine (PR) 7 (rule 022 x6, rule 021 x1); (push to master) 1 (rule 022); Memory gate step 3 (2 memory, 1 UX); rendering guard 2; goldens 1. [CONFIRMED: jobs API] [NOT-WORK: fact, no action]
 - Runs attributable to the Scope A rules and gates: 11 of 100 (rule 022 x7, rule 021 x1, memory gate x2, UX gate x1). The other 89 are test, fitness, lint and workflow failures (Scope B).
 - Fitness-function ids in failed fitness runs: F51 14, F28 12, F25 10, F23 6, F45 5, F39 5, F42 2, F48 1, F65 1, F68 1, F9 1. [CONFIRMED]
-- Overlap between the unit-test step and the fitness-runner step: 35 runs failed both steps; 47 runs had a failing "LIVE/live tree" test inside the unit-test suite that re-runs a fitness function against the tree (top names: "check 5 (Amendment 2) wired to the live tree" 17 runs, "F28 passes GREEN against the live tree" 12, "LIVE ratchet (plan 6.8 Rule B)" 5, "check 5 (lane F51c) LIVE-TREE PROOF" 6, "the whole scoped tree passes F39" 6, "STANDING GATE, real clock, real baseline.json: the renewal warning" 3 which depends on the calendar). [CONFIRMED: test names from failed job logs]
+- Overlap between the unit-test step and the fitness-runner step: 35 runs failed both steps; 47 runs had a failing "LIVE/live tree" test inside the unit-test suite that re-runs a fitness function against the tree (top names: "check 5 (Amendment 2) wired to the live tree" 17 runs, "F28 passes GREEN against the live tree" 12, "LIVE ratchet (plan 6.8 Rule B)" 5, "check 5 (lane F51c) LIVE-TREE PROOF" 6, "the whole scoped tree passes F39" 6, "STANDING GATE, real clock, real baseline.json: the renewal warning" 3 which depends on the calendar). [CONFIRMED: test names from failed job logs] [NOT-WORK: fact, no action]
 - Per-run table of the 100 runs (id, date, branch, failed steps, test names) is saved at C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason-dotfiles/53f591a2-7a98-48fe-af76-1a6e857e2041/scratchpad/fail_table.txt.
 
 ## 9. Overlaps (same defect class checked more than once)
@@ -259,7 +259,7 @@ Typical branch commit at the master median of 8 files: about 1.3 s for commit-ms
 
 - C4 counts any worktree anywhere on the machine, including scratch ones outside .worktrees/, .claude/worktrees/ and work/lanes/, as drift (section 4, H6). [CONFIRMED: C4 source + coordinator report]
 - No firing log exists for the git hooks; only the PreToolUse gate keeps an audit log, and it omits the command text (section 0).
-- The 30d firing ledger is a lower bound for local firings (section 0).
+- The 30d firing ledger is a lower bound for local firings (section 0). [NOT-WORK: fact, no action]
 
 ---
 
@@ -272,7 +272,7 @@ Machine evidence (logs, jobs json, scripts) is in fsi-app/scripts/tmp/gateB/ (gi
 
 - [CONFIRMED: gh run list --workflow discipline.yml --created ">=2026-09-08", 953 runs] 583 pull_request, 370 push (master), 0 other. 100 concluded `failure` (96 PR, 4 push), 44 cancelled, 5 other.
 - [CONFIRMED: gh run view --log-failed for ALL 100 failed runs, 301 jobs.json fetched (all 100 failures plus every 4th success)] Every failed run was examined, not a sample. Job and step timings come from the 301 jobs.json (failures over-represented; medians quoted are over that set).
-- Firing = a gate printed `FAIL [Fn]` (fitness runner) or a named step/test failed in a failed run. Firings seen only locally (pre-commit, pre-push, PreToolUse) are NOT in the CI counts unless stated. [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing]
+- Firing = a gate printed `FAIL [Fn]` (fitness runner) or a named step/test failed in a failed run. Firings seen only locally (pre-commit, pre-push, PreToolUse) are NOT in the CI counts unless stated. [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing] [NOT-WORK: fact, no action]
 - Classification evidence: the violation text in the log, the lane's own session-log.d entry (docs/ops/session-log.d, 209 files), and for F51 a dry merge (see section 3).
 - Not measured: local pre-push duration, per-function CI seconds (the runner prints one step time, 27 s median; per-function times below are local Windows ms).
 
@@ -375,7 +375,7 @@ Totals of the table: TP 8, FP 4, PROCESS 40, UNK 6. Local total 73 s (F40 alone 
 - Protects: harness code changed with no run artifact. Header cost of the previous design: "17 scripted re-pins across four logged days, three lanes colliding on the SAME marker line". [CONFIRMED: header]
 - Decides: (a) artifact schema; (b) range rule: governing file changed in range and no new `<family>-run-NNN.json` then a file under `<family>/pending/` must be added; (c) tree-state rule: family with no artifact at the LIVE governing-file hash must have a pending file, and a family WITH an artifact at the live hash must have none; (d) a family with 2+ artifacts needs LAST-PROPOSER-PASS.md naming the latest run.
 - Scope: whole tree for (a)(c)(d); git range for (b). Governing files include every family.json for meta-harness, and shared files (host-authority.ts is governing for 3 families).
-- Firings: 12 runs, all PROCESS. 7 range-rule "PENDING FILE REQUIRED" (proof3, proof4, g6-gates, p2, s3c, s3a, s1b-s1d walker), 2 "STALE PENDING FILE(S)", 5 "STALE PROPOSER ATTESTATION" (3 on s1d-walker-registers, 2 on automated `propagation run 007/008` PRs 2026-09-11), 1 old hash-pin "STALE PENDING-RUN.md ... drifted AGAIN" (2026-09-16). [CONFIRMED: log scan]. Defect prevented in each: none; the fix was adding or deleting a markdown file.
+- Firings: 12 runs, all PROCESS. 7 range-rule "PENDING FILE REQUIRED" (proof3, proof4, g6-gates, p2, s3c, s3a, s1b-s1d walker), 2 "STALE PENDING FILE(S)", 5 "STALE PROPOSER ATTESTATION" (3 on s1d-walker-registers, 2 on automated `propagation run 007/008` PRs 2026-09-11), 1 old hash-pin "STALE PENDING-RUN.md ... drifted AGAIN" (2026-09-16). [CONFIRMED: log scan]. Defect prevented in each: none; the fix was adding or deleting a markdown file. [NOT-WORK: fact, no action]
 - Markers: [CONFIRMED: git log --diff-filter=A] 138 pending markers added since 2026-09-08 (96 since 2026-10-01); 4 deleted; 134 tracked now across 32 families. 40 of 122 merges since 2026-10-01 (33 percent) added at least one. Run artifacts added in the same window: 53 (automated).
 - [CONFIRMED: runner output] No family currently has an artifact at its live hash, so every family owes a marker permanently; any edit to a governing file changes the hash again.
 - Ceremony text in session logs: [CONFIRMED: grep] "F28" appears in 61 of 209 session-log files (39 since 10-01), typically "F28: no edited file is a governing file ... so no pending marker" after a manual grep of every family.json.
@@ -385,8 +385,8 @@ Totals of the table: TP 8, FP 4, PROCESS 40, UNK 6. Local total 73 s (F40 alone 
 
 ## 5. F25 module liveness
 
-- Protects: capability built, tested, never called (seek-more.mjs). [CONFIRMED: header]
-- Decides: import graph over src, scripts, .discipline; roots = framework entry points, workflow `run:` path mentions, package.json scripts, esbuild stubs, data-audit markers. Violations: UNWIRED, STALE ALLOWLIST (module got wired, remove the entry), GHOST entry. [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing]
+- Protects: capability built, tested, never called (seek-more.mjs). [CONFIRMED: header] [NOT-WORK: fact, no action]
+- Decides: import graph over src, scripts, .discipline; roots = framework entry points, workflow `run:` path mentions, package.json scripts, esbuild stubs, data-audit markers. Violations: UNWIRED, STALE ALLOWLIST (module got wired, remove the entry), GHOST entry. [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing] [NOT-WORK: fact, no action]
 - Firings: 10 runs on 9 modules. TP 1 (C-SOCIAL: orphaned dashboard/pulse-shared.mjs deleted, commit a8f2f328). PROCESS 7: proof/run-attacks.mjs, sync-applied-migrations.mjs, export-subset.mjs and load-subset.mjs, lineage-gap-targets.mjs (created before the workflow or importer that references them; wired later in the same PR, e.g. PROOF-4 session log "F25 has no root for run-attacks.mjs until that workflow edit lands"); plan-drain.mjs (wired by adding a `drain:plan` line to package.json "so F25 sees a production reach", G6-DRAIN session log); repair-smoke-account.mjs (reason-bearing allowlist entry granted by coordinator, AUTH-2); chip-selection.mjs (STALE ALLOWLIST, P1). UNK 2: pool-row-contract.mjs x2 (L17, 2026-09-13).
 - Allowlist: 30 entries; 24 LEGACY_ALLOWLIST include 6 "dormant-capability ruling" and 4 permanent test doubles or fixtures marked "n/a". The F25 file was edited by 26 commits in 30 days (allowlist adds and removes), 1,374 lines. [CONFIRMED: git log]
 - Evidence of cost beyond CI: L-CORRIDOR session log: an F25 allowlist entry kept a dormant module alive, later "DELETED (an allowlist-kept module is dormant)". [CONFIRMED]
@@ -405,7 +405,7 @@ Totals of the table: TP 8, FP 4, PROCESS 40, UNK 6. Local total 73 s (F40 alone 
 ## 7. Governance gates (outside the fitness runner)
 
 ### 7.1 Closure gate (NEVER-RUN clock)
-- Protects: "nothing fails when a maintenance step or workflow has never run". [CONFIRMED: header] 4 checks: NEVER-RUN, STALE-NEXT, WRITER-READER (migrations >= 266), LANE-CONTRACT. CI cost 1 to 5 s. Firings in 30 days: 0 [CONFIRMED: no failed run has a failed closure-gate step; the unit-test live closure-gate test passed in all logs].
+- Protects: "nothing fails when a maintenance step or workflow has never run". [CONFIRMED: header] 4 checks: NEVER-RUN, STALE-NEXT, WRITER-READER (migrations >= 266), LANE-CONTRACT. CI cost 1 to 5 s. Firings in 30 days: 0 [CONFIRMED: no failed run has a failed closure-gate step; the unit-test live closure-gate test passed in all logs]. [NOT-WORK: fact, no action]
 - [CONFIRMED: `closure-gate.mjs` run: "current train: 71"; `git log origin/master | grep train/wave`: last train commit train/wave71 on 2026-09-11] The train counter has not advanced for 27 days. NEVER-RUN age is `currentTrain - introducedTrain`; a workflow introduced after 2026-09-11 has age 0 and can never become overdue until trains resume. [CONFIRMED by reading checkNeverRun]. Two allowlist entries expire at train 80 (downstream-chain.yml, producers.yml), unreachable at the current rate.
 - Allowlists: NEVER_RUN 2, STALE_NEXT 0, WRITER_READER 0.
 - Overlap: F28 tree-state, F50, F14, F47 (check 3 reuses producer-consumer-orphan.mjs). [HYPOTHESIS: statement recorded by the source lane, not re-verified at landing]
@@ -417,7 +417,7 @@ Totals of the table: TP 8, FP 4, PROCESS 40, UNK 6. Local total 73 s (F40 alone 
 
 ### 7.3 Skill-acks (skill-contract-map)
 - Protects: a pinned SKILL.md or GOVERNING SKILL citation moved with nobody looking. Decides: range adds `skill-acks/<date>-<lane>.md` naming the skill and citing files.
-- [CONFIRMED: git log] 26 ack files added in 30 days (all 26 existing files). 1 CI firing (run 37207797931, gates1-evidence, "missing-skill-ack remediation-discipline") PROCESS. Skill-contract drift step 1 s.
+- [CONFIRMED: git log] 26 ack files added in 30 days (all 26 existing files). 1 CI firing (run 37207797931, gates1-evidence, "missing-skill-ack remediation-discipline") PROCESS. Skill-contract drift step 1 s. [NOT-WORK: fact, no action]
 - Local companion: PreToolUse skill gate. [CONFIRMED: governance/.gate-audit.log on this machine, entries since 2026-09-08] 38,549 decisions: allow 36,261; ask 1,918 (worktree-isolation 1,104; bash-write 328; dispatch 204; mcp-write 169; skill-unresolvable 107); deny 370 (edit-governed-skillmissing 170, bash-write-skillmissing 108, mcp-write-skillmissing 45, mcp-write-notranscript 35, edit-governed-notranscript 12). [CONFIRMED: this session] the gate denied a read-only `git merge-tree --write-tree` dry merge as "Data write (prod effect)".
 
 ### 7.4 Memory gate and UX-compliance gate (Validate commits job)
@@ -427,7 +427,7 @@ Totals of the table: TP 8, FP 4, PROCESS 40, UNK 6. Local total 73 s (F40 alone 
 - Overlap: none mechanically; pre-push step 2b runs the same module.
 
 ### 7.5 Commit rules in Validate commits (10 rules)
-- Rule 022 (no dash glyphs in added prose): 7 failing runs. Added-line counts 10,609 (audit register), 5,066 (build plan), 73 (the fix PR for the rule itself), 8, 2, 1, 1. PROCESS 3 (the 10,609, 5,066, 73 line cases), TP 4. Escape: `glyph:verbatim` marker, 302 occurrences in 134 files [CONFIRMED: git grep -c].
+- Rule 022 (no dash glyphs in added prose): 7 failing runs. Added-line counts 10,609 (audit register), 5,066 (build plan), 73 (the fix PR for the rule itself), 8, 2, 1, 1. PROCESS 3 (the 10,609, 5,066, 73 line cases), TP 4. Escape: `glyph:verbatim` marker, 302 occurrences in 134 files [CONFIRMED: git grep -c]. [NOT-WORK: fact, no action]
 - Rule 021: 1 firing (train/wave62, cache key not rotated) TP.
 - Write-Guard-Override trailers: 9 in all history, 1 in the last 30 days [CONFIRMED: git log --grep].
 
@@ -441,7 +441,7 @@ Totals of the table: TP 8, FP 4, PROCESS 40, UNK 6. Local total 73 s (F40 alone 
 
 - Job: continue-on-error true [CONFIRMED: discipline.yml line 525]; 10-minute timeout. Median job 295 s post-#875 (265 s over all), p90 433 s, max 604 s; Playwright+chromium install 46 s; guard run 231 s median, p90 369 s. One sampled run: 380 s (02:25:42 to 02:32:02). Checkout fetches every remote branch (hundreds of `[new branch]` lines).
 - Composition (one run log): 14 fixtures x 12 viewports (1,308 checks), 16 SM smoke specs, 27 UX smoke specs, 36 layout route x width measurements. UX smoke registry: 69 files under rendering/smoke.
-- Firings: [CONFIRMED: jobs json over 301 runs] 3 failed, 1 cancelled: 2026-09-08 and 2026-09-09 (train branches, 50 failures, baseline wave-65 era), 2026-10-03 r7-lint-ci (hydration smoke "Missing getServerSnapshot", plausible TP, UNK). Non-pass rate about 1.5 percent. Because it is non-blocking, none of these stopped a merge by themselves.
+- Firings: [CONFIRMED: jobs json over 301 runs] 3 failed, 1 cancelled: 2026-09-08 and 2026-09-09 (train branches, 50 failures, baseline wave-65 era), 2026-10-03 r7-lint-ci (hydration smoke "Missing getServerSnapshot", plausible TP, UNK). Non-pass rate about 1.5 percent. Because it is non-blocking, none of these stopped a merge by themselves. [NOT-WORK: fact, no action]
 - Layout guard baseline: baseline.json 792 keyed findings written 2026-09-08 (338 covered in the last run), expiry 2026-10-15; allowlists: ANTON 10, POSITION 7, SCROLLER 2; exemptions-375 1; law2-desktop 1. [CONFIRMED] Expiry had been extended before by ruling (wave65). Calendar rule paused by BUILD_MODE 2026-10-08.
 - Overlap: F35 (coverage half) and the smoke measure (measurement half); F41 and F43 static versions of rules also measured in a browser (no-default-open-smoke.mjs; layout guard).
 - Pre-existing: fixtures and baseline are whole-app; a new finding blocks, a baseline finding does not. The rendering job's own result is advisory.

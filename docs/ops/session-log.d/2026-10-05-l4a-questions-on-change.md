@@ -50,16 +50,16 @@ the entity-to-item reverse read.
 
 ## What is NOT done
 
-- No question is answered (lane L4-B). No migration, no live run, nothing applied.
+- No question is answered (lane L4-B). No migration, no live run, nothing applied. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - Outbox rows from emission_factors, market_series and regional_data_facts carry no entity_id today, so
-  they reach no item (counted as `events_no_entity`).
+  they reach no item (counted as `events_no_entity`). [CLOSED: PR 1026]
 - propagation-drain.yml chained firings run dry while `scrape_cadence='off'` (the chained-dry-guard step,
   workflow lines 209 to 211 and the `RUN_MODE="dry"` lines 233 and 272), so a chained firing raises no
   question. At population time (cadence no longer off) the guard leaves the requested mode, the
-  `workflow_run` branch requests `apply`, and the step then writes. Nothing to change in the workflow.
+  `workflow_run` branch requests `apply`, and the step then writes. Nothing to change in the workflow. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ## Open items
 
-- INDEX line owed (coordinator): `- [ADR-044-learning-loop-no-gate](./decisions/ADR-044-learning-loop-no-gate.md) - learning loop runs with no operator gate and no priced request; supersedes ADR-036 decisions 1 and 3 (accepted 2026-10-05)`.
+- INDEX line owed (coordinator): `- [ADR-044-learning-loop-no-gate](./decisions/ADR-044-learning-loop-no-gate.md) - learning loop runs with no operator gate and no priced request; supersedes ADR-036 decisions 1 and 3 (accepted 2026-10-05)`. [CLOSED: PR 953]
 - `src/lib/sources/seek-more.mjs` still names `operator-priced-only` in comments and the acquisition
   request text (not this lane's file).

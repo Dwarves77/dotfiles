@@ -22,8 +22,8 @@ Read in full: source-credibility-model SKILL, host-authority.ts, null-tier-host-
 
 ### NOT done
 - `ProvisionalReviewCard.tsx` still describes the 0.65 to 0.79 band as proposed on approval (coordinator will fold it into a later UI lane).
-- No real verdict batch authored; no live run; no workflow edit (resolve-provisional-sources has no `--arg` in maintenance.yml, so export mode is CLI-only there).
-- Local run limited to the touched test files; CI is the gate.
+- No real verdict batch authored; no live run; no workflow edit (resolve-provisional-sources has no `--arg` in maintenance.yml, so export mode is CLI-only there). [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Local run limited to the touched test files; CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ### Open items
-- None (coordinator ruled: do not pass --arg export-unplaced from the workflow).
+- None (coordinator ruled: do not pass --arg export-unplaced from the workflow). [NOT-WORK: fact, no action]

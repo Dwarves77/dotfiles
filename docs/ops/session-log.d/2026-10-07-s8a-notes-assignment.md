@@ -126,14 +126,14 @@ SectionCard of its own; the file leaves the test's `FILES` list (LEFT note, same
 doesNotMatch assertion guards it. All 206 `*.npmtest.mjs` files then run locally through `run-npmtest-suites.sh`: 1887 of 1887 pass.
 
 ### What is NOT done
-- The data move is staged, not run (no population before every layer is complete).
-- Migrations 358 and 359 are not applied; apply both BEFORE deploying the routes, then merge the code.
-- No notification email or Slack channel; in-app bell only (the existing machinery).
+- The data move is staged, not run (no population before every layer is complete). [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Migrations 358 and 359 are not applied; apply both BEFORE deploying the routes, then merge the code. [CLOSED: PR 1013]
+- No notification email or Slack channel; in-app bell only (the existing machinery). [NOT-WORK: fact, no action]
 
 ### Open items for the coordinator
 - `src/app/api/community/notifications/route.ts` header comment still lists the old kinds (comment only).
 - `.discipline/rendering/layout-guard/manifests.json` still lists the artboard-derived rail card "Your notes" for `/market/[slug]`
-  (generated from the artboard; the full rendering guard passes with the card gone). Claude Design owes the artboard change below.
+  (generated from the artboard; the full rendering guard passes with the card gone). Claude Design owes the artboard change below. [NOT-WORK: operator item, recorded on the board]
 
 ### DESIGN CHANGES OWED (Claude Design, rule 20; artboard 22 and the four detail artboards 03, 05, 07, 09 draw none of this)
 - Two sections at the foot of every detail page, after the last designed section and outside the section index: "Notes"

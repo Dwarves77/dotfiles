@@ -56,15 +56,15 @@
 
 ## NOT done
 
-- Not applied to any database; nothing run against Postgres (none on this machine). The SQL has been read and statically tested, never executed; the in-migration self-check runs at apply time. [HYPOTHESIS] a fixture `auth.users` row can be inserted with only its id (the same assumption migration 364's self-check states); if it cannot, the INSERT legs are skipped with a NOTICE and the catalog assertions still run.
+- Not applied to any database; nothing run against Postgres (none on this machine). The SQL has been read and statically tested, never executed; the in-migration self-check runs at apply time. [HYPOTHESIS] a fixture `auth.users` row can be inserted with only its id (the same assumption migration 364's self-check states); if it cannot, the INSERT legs are skipped with a NOTICE and the catalog assertions still run. [CLOSED: PR 1013]
 - PR 985 is superseded by PR 992 (merging), and the PROOF-4 attack registry is not on origin/master in this branch, so no entry was added to `scripts/proof/attacks/attacks.json`. OWED to a PROOF-4 follow-up, exact attack spec: id `status-columns-self-authorise-refused`; as role authenticated with a fixture sub on the chain stack, (a) `UPDATE public.profiles SET verifier_status = 'active' WHERE id = <own>` must fail 42501; (b) the same for `verification_tier = 'staff_verified'`, `membership_tier = 'premium'`, `contribution_score = 9999`; (c) `SELECT public.request_verification()` from `none` must return `pending`; (d) from `active` it must fail 55000; (e) `INSERT INTO public.profiles (id, verifier_status) VALUES (<own>, 'active')` must fail 42501; (f) `UPDATE public.profiles SET linkedin_verified = true` (and each of `verifier_since`, `linkedin_identity_verified`, `linkedin_workplace_verified`, `linkedin_verification_checked_at`) must fail 42501.
-- No rendering-guard or UI smoke run (CI runs them); `tsc --noEmit` ran locally with no output.
+- No rendering-guard or UI smoke run (CI runs them); `tsc --noEmit` ran locally with no output. [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 
-- 364 is applied and merged. Apply order for the executor: 367, then merge this PR (the code depends on 367: the RPC must exist before `UserProfilePage` calls it, and the LinkedIn write needs `SUPABASE_SERVICE_ROLE_KEY`, already used by other routes).
+- 364 is applied and merged. Apply order for the executor: 367, then merge this PR (the code depends on 367: the RPC must exist before `UserProfilePage` calls it, and the LinkedIn write needs `SUPABASE_SERVICE_ROLE_KEY`, already used by other routes). [CLOSED: PR 1013]
 
 ### UX compliance
-- Screen/block: Verifier badge tab on /profile (VerifierTab), unchanged layout.
-- Primary goal: ask to be verified. Path: open the Verifier badge tab, one tap on "Request verifier sign-off". Primary action: that one button, shown only for status none or revoked; no new control was added.
-- Feedback states: the button shows "Submitting..." while the call runs (existing); on success the headline changes to "Application under review" because local status follows the RPC result; on failure the page's existing error banner shows the database message and the button returns. No control, size or spacing changed, so the 44 px target treatment is as before.
+- Screen/block: Verifier badge tab on /profile (VerifierTab), unchanged layout. [NOT-WORK: fact, no action]
+- Primary goal: ask to be verified. Path: open the Verifier badge tab, one tap on "Request verifier sign-off". Primary action: that one button, shown only for status none or revoked; no new control was added. [NOT-WORK: fact, no action]
+- Feedback states: the button shows "Submitting..." while the call runs (existing); on success the headline changes to "Application under review" because local status follows the RPC result; on failure the page's existing error banner shows the database message and the button returns. No control, size or spacing changed, so the 44 px target treatment is as before. [NOT-WORK: fact, no action]

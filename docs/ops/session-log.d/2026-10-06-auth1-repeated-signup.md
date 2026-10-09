@@ -20,5 +20,5 @@
 - DP: no new component family beyond one small part composed of an existing banner; no new colours or type sizes.
 
 ## NOT done
-- No F35 registration: no registered row component changed. No F28 marker: none of the touched files is a governing file (checked family.json files).
-- tsc and lint left to CI.
+- No F35 registration: no registered row component changed. No F28 marker: none of the touched files is a governing file (checked family.json files). [NOT-WORK: fact, no action]
+- tsc and lint left to CI. [NOT-WORK: build-mode hold, COMMON rule 9]

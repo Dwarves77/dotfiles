@@ -74,10 +74,10 @@ final report to the coordinator for apply via the Supabase CLI.
 ## Open items
 
 - Migration 345 needs the coordinator's apply before the API/UI can read or write anything live (two-
-  track policy; this lane cannot touch the live database).
+  track policy; this lane cannot touch the live database). [CLOSED: PR 1013]
 - Lane W2-R (planning-assumption-shift renderer) can now import `readWorkspaceAssumptions` /
   `readAtRiskAssumptions` from `src/lib/assumptions/read.ts`; file-boundary held, `src/lib/research/**`
-  untouched by this lane.
+  untouched by this lane. [NOT-WORK: fact, no action]
 - No sprint-N followups.md applies to this lane (wave-based dispatch, not Sprint 1/2 phase work); DP-2
   (ux-laws) addressed above, DP-1 not applicable (customer-facing settings surface, not an operator
-  review surface).
+  review surface). [NOT-WORK: fact, no action]

@@ -17,11 +17,11 @@ source-credibility-model SKILL, source-growth.ts (+ selftest, tier-opinion-dedup
 - Opinion is recorded only when the matched row's host equals the cited host (the existing ilike lookup is a substring match; unchanged for registration, guarded for opinions).
 
 ## NOT done
-- No live run, no data population (operator ruling 2026-10-04). Pending marker `brief-apply/pending/2026-10-04-s1a-source-register.md` owes the next brief-apply run.
+- No live run, no data population (operator ruling 2026-10-04). Pending marker `brief-apply/pending/2026-10-04-s1a-source-register.md` owes the next brief-apply run. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - The substring `ilike` host lookup in `registerCitedSources` is unchanged for registration (pre-existing, noted in its own code comment).
 
 ## Open items
-- Repeat applies of the same batch record repeat class-table opinions (same as the maintenance tier-opinions step; the table is append-only by design).
+- Repeat applies of the same batch record repeat class-table opinions (same as the maintenance tier-opinions step; the table is append-only by design). [NOT-WORK: fact, no action]
 
 ## Write-set expansion (coordinator approved)
 - Removed the `source_trust_events.created_by=reputation-cycle` entry from `KNOWN_DRIFT_ALLOWLIST` in `fsi-app/.discipline/check-vocabulary.test.mjs` (the only file holding it). The 2026-09-12 follow-up is closed by this lane: the write now uses `created_by: "worker"`. The test pins no allowlist length. `node --test fsi-app/.discipline/check-vocabulary.test.mjs` passes.

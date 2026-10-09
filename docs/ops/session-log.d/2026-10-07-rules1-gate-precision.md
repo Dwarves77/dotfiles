@@ -89,13 +89,13 @@ PR 975 (PROOF-1), `fsi-app/scripts/proof/export-local-harness-runs.mjs`: line 17
 
 ## NOT done
 
-- No edit to PR 974 or PR 975 branches (their lanes revert the lines above in their own PRs).
+- No edit to PR 974 or PR 975 branches (their lanes revert the lines above in their own PRs). [NOT-WORK: fact, no action]
 - `applied-migrations.json` has no registry entry (its generator is not on master yet).
 - `db-check-constraints.json` stays subject to check 5 (listed, never exempt): the brief's equality cannot
   be shown without the live database.
 - `coverage-scan.mjs` has its own `WRITE_RE` (the governed-surface classifier, F23); same-name false
   positives there are a separate detector and outside this write set.
-- No whole suite or fitness runner run; the touched test files were run with `node --test`, CI is the gate.
+- No whole suite or fitness runner run; the touched test files were run with `node --test`, CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 

@@ -25,12 +25,12 @@ Read: COMMON.md, mighist1.md, CLAUDE.md, lane-common-contract, the export (`inde
 - The six `35x_*.test.mjs` migration tests that asserted the stale NOT APPLIED text were updated to assert the corrected status (consequence of the header fix).
 
 ### What is NOT done
-- The 74 code-differs rows are not edited (no body edit of any existing migration, no apply).
+- The 74 code-differs rows are not edited (no body edit of any existing migration, no apply). [NOT-WORK: fact, no action]
 - Outside-ledger objects are not verified; the ledger INSERTs are staged in the audit document, not run. Wiring F24's object check into the audit is owed.
 - MIG-HIST-2 (replay and diff residue) is not started.
 
 ### Open items
-- Coordinator to land the audit document and rule on the Session C question (objects have consumers or not) and the 74 rows.
+- Coordinator to land the audit document and rule on the Session C question (objects have consumers or not) and the 74 rows. [CLOSED: PR 1033]
 
 ## 2026-10-08, lane MIG-HIST-1b (mighist1b-land): the map lands, refreshed to the 2026-10-08 ledger and made to conform to the replay reader
 
@@ -65,10 +65,10 @@ The committed map did not match what `scripts/proof/applied-map.mjs` reads. Meas
 ### What is NOT done
 - The 74 code-differs rows are not edited (MIG-HIST-2). Outside-ledger objects are still unverified (findings, not passes).
 - `docs/runbooks/maintenance.d/64-chain-proof.md` and `docs/decisions/ADR-045-chain-proof-on-a-local-stack.md` carry the map schema table; it does not yet list `statements-null` and `apply-record-stub` as apply classes. Outside this lane's write set: for the coordinator's docs pass.
-- The audit document stays in the session scratchpad (docs/audits is not this lane's to edit).
+- The audit document stays in the session scratchpad (docs/audits is not this lane's to edit). [CLOSED: PR 1033]
 
 ### Open items
-- When 370 and 371 are applied, their ledger rows will appear and the audit will name them LEDGER_ROW_NOT_IN_MAP until the map is regenerated; their files will then be class identical and the stale "NOT APPLIED" header prose is ignored by design.
+- When 370 and 371 are applied, their ledger rows will appear and the audit will name them LEDGER_ROW_NOT_IN_MAP until the map is regenerated; their files will then be class identical and the stale "NOT APPLIED" header prose is ignored by design. [CLOSED: PR 1027]
 
 ### CI round 1 (PR 1013), fixes approved by the coordinator
 - Discipline engine unit tests failed one test, `skill-contract-map: checkDrift is clean on this checkout right now`: `[citation-unregistered] ledger <- fsi-app/scripts/verify/migration-history-audit.mjs`. Mechanism confirmed in `.discipline/governance/skill-contract-map.mjs`: `extractCitedSlugs` takes the 800 characters after each `GOVERNING SKILL(S):` marker and tests every registered skill slug word-bounded; the audit header's prose carried the bare word "ledger" inside that window and "ledger" is a registered skill slug. Fix: two phrases in the header reworded (the applied-migration table; an applied row) so the window holds no bare "ledger"; meaning unchanged. Checked after the edit: no bare "ledger" in the 800 characters; `skill-drift-gate.test.mjs` passes.

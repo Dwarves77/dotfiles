@@ -75,20 +75,20 @@ Reused: `ORG_SIZE_DIMENSIONS`/`findBand`/`parseOrgProfile` (ADR-034 size bands a
 - `tsc --noEmit` clean.
 
 ## NOT done
-- Not applied anywhere; no live read or write. The repair script has not been run.
-- No file rename (declined). No migration. No `auth.users` trigger (brief item 2).
-- Existing personal workspaces created by the old callback are untouched, as instructed.
-- Nothing else owed on provisioning: a profile with no organisation is routed to onboarding (see decisions).
+- Not applied anywhere; no live read or write. The repair script has not been run. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- No file rename (declined). No migration. No `auth.users` trigger (brief item 2). [NOT-WORK: fact, no action]
+- Existing personal workspaces created by the old callback are untouched, as instructed. [NOT-WORK: fact, no action]
+- Nothing else owed on provisioning: a profile with no organisation is routed to onboarding (see decisions). [NOT-WORK: fact, no action]
 
 ## Open items
-- Coordinator: register nothing new (the smoke leg lives in the already-registered `auth-onboarding-smoke.mjs`).
+- Coordinator: register nothing new (the smoke leg lives in the already-registered `auth-onboarding-smoke.mjs`). [NOT-WORK: fact, no action]
 - Repair command for the coordinator's executor (dry first, then `--apply`):
   `node fsi-app/scripts/maintenance/repair-smoke-account.mjs --arg <account email>`
 - DESIGN CHANGES OWED (rule 20), for Claude Design: artboard 17 step 1 ("Workspace", the no-workspace
   onboarding panel) does not draw the fields the system now needs there: job title, sector choice, company
   size and region on the create-organisation form, and invitations listed ahead of it. Built to the system's
   need per coordinator ruling 4 (2026-10-06), citing artboard 17 step 1 and rulings 20 and "system drives
-  design"; the artboard should be revised to match.
+  design"; the artboard should be revised to match. [NOT-WORK: operator item, recorded on the board]
 
 ## UX compliance
 Screen: no-workspace onboarding (`NoWorkspaceLanding`, `/workspace/new`).

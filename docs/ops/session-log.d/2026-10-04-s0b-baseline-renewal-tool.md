@@ -43,7 +43,7 @@
 
 - The workflow is not dispatched (coordinator, on or after 2026-10-08). Baseline, results, audit file and
   expiry date untouched.
-- No harness_runs row: this is a tooling workflow, not a runtime family.
+- No harness_runs row: this is a tooling workflow, not a runtime family. [NOT-WORK: fact, no action]
 
 ## Open items
 
@@ -53,4 +53,4 @@
   NEVER-RUN unless a registration is added (a `NEVER_RUN_ALLOWLIST` entry or an evidence path). That file
   is outside this lane's write set: NEEDS WRITE-SET EXPANSION: `fsi-app/.discipline/governance/closure-gate.mjs`
   if the coordinator wants it registered. Not red today (within grace).
-- The artifact is named `layout-baseline-<run id>` and unpacks under repo-relative paths.
+- The artifact is named `layout-baseline-<run id>` and unpacks under repo-relative paths. [NOT-WORK: fact, no action]

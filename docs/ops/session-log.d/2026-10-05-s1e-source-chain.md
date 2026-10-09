@@ -54,11 +54,11 @@ Coordinator rules; nothing here waits on the human.
 - F50 (hops not yet enforced 9 to 11, no violations), F52, F60 (depth 1 for both new hops, no violations), F61, F28 run directly on the worktree: 0 violations each. F52's actionlint half is skipped locally (not on PATH), CI runs it.
 
 ## NOT done / open
-- No live dispatch, no DB read, no data written (build mode, operator ruling 2026-10-04). `source-resolution.yml` shows NEVER-RUN-eligible until first dispatched; the coordinator fires it once (dry): `gh workflow run source-resolution.yml -f mode=dry`.
+- No live dispatch, no DB read, no data written (build mode, operator ruling 2026-10-04). `source-resolution.yml` shows NEVER-RUN-eligible until first dispatched; the coordinator fires it once (dry): `gh workflow run source-resolution.yml -f mode=dry`. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - `enforceFired` for hops 12 and 13 stays false until a chained row lands in `loop-fired-evidence.json`.
-- The chained firing off Brief apply or Research walker was not exercised on a real event (no network); the dispatch path is the R14 proof.
+- The chained firing off Brief apply or Research walker was not exercised on a real event (no network); the dispatch path is the R14 proof. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - Trust-recompute duplication is recorded above for the coordinator's ruling.
-- Index lines owed (coordinator, not edited here): `docs/INDEX.md` for `docs/runbooks/maintenance.d/61-source-resolution.md`, and the `MAINTENANCE-RUNBOOK.md` index entry for section 61.
+- Index lines owed (coordinator, not edited here): `docs/INDEX.md` for `docs/runbooks/maintenance.d/61-source-resolution.md`, and the `MAINTENANCE-RUNBOOK.md` index entry for section 61. [CLOSED: PR 953]
 
 ## Coordinator rulings (after PR 948 opened)
 - `fsi-app/scripts/lib/loop-run-id.mjs`: added `"Research walker": "research-walker"` to `FAMILY_BY_WORKFLOW_NAME` (write-set expansion granted). Proof: `loop-run-id.test.mjs` "every LOOP_HOPS producer name is a mapped key" was red in CI (17 pass, 1 fail locally), green after. No family lists `loop-run-id.mjs` as a governing file (grep of every family.json), so no pending marker. A firing off Research walker now resolves `config.loop_run_id` instead of null.

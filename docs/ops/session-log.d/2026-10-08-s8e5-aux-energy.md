@@ -120,15 +120,15 @@
 
 ## NOT done
 
-- Nothing applied; no live row; no scrape or population.
+- Nothing applied; no live row; no scrape or population. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - `OperationsDimension` consumers beyond the three granted files were not audited for a six-value assumption outside
   `src/components/operations` and `operations-matrix.ts`; the grep over `src` for the six names found no other list.
 - `docs/inventories/db-check-constraints.json` (source: live) updates when 378 is applied and the inventory re-run.
-- The NESO About page and the API Terms of Use were not fetched by this lane; the ownership claim (the UK government completed the purchase of the Electricity System Operator on 2024-10-01) is the coordinator's ruling.
+- The NESO About page and the API Terms of Use were not fetched by this lane; the ownership claim (the UK government completed the purchase of the Electricity System Operator on 2024-10-01) is the coordinator's ruling. [NOT-WORK: fact, no action]
 - The stats response does not say whether `average` is over forecast or actual half-hours; not determined.
 
 ## Open items
 
 - `host-verdicts-001.json`: batch numbers are per directory and S8-E6 or S8-E1 could also add one; whichever merges second
-  renumbers.
-- `entity_id`: not needed for this producer (ruling). L4-E's `entity_id` registry field is not on master and is not used.
+  renumbers. [NOT-WORK: fact, no action]
+- `entity_id`: not needed for this producer (ruling). L4-E's `entity_id` registry field is not on master and is not used. [NOT-WORK: fact, no action]

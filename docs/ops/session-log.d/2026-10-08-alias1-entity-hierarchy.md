@@ -32,12 +32,12 @@
 
 ## NOT done
 
-- Migration 377 is not applied and its SQL, including the rolled-back self-check, has not been executed against any database (no Postgres on this machine; the static test proves the file's text only).
-- (Resolved by the coordinator's grant; see the rulings section.) Attaching `propagation_outbox_trg` to `entity_aliases` and `entity_relations`, as the brief and rule 17 require, makes `questions-on-change.test.mjs` fail: "emitting table(s) with no event mapping: entity_relations, entity_aliases" (confirmed by running it). None of the six `TRIGGER_EVENT_TYPES` fits an alias or relation change, so the mapping needs a coordinator decision. Not touched.
+- Migration 377 is not applied and its SQL, including the rolled-back self-check, has not been executed against any database (no Postgres on this machine; the static test proves the file's text only). [CLOSED: PR 1038]
+- (Resolved by the coordinator's grant; see the rulings section.) Attaching `propagation_outbox_trg` to `entity_aliases` and `entity_relations`, as the brief and rule 17 require, makes `questions-on-change.test.mjs` fail: "emitting table(s) with no event mapping: entity_relations, entity_aliases" (confirmed by running it). None of the six `TRIGGER_EVENT_TYPES` fits an alias or relation change, so the mapping needs a coordinator decision. Not touched. [NOT-WORK: fact, no action]
 - No seed values (levels, relations, aliases): population is another lane. No screen reads `entityLevelLabel` yet.
-- Live assertions 1 (free text), 7, 11, 17 and the UI assertions are skipped by design and listed.
+- Live assertions 1 (free text), 7, 11, 17 and the UI assertions are skipped by design and listed. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ## Open items
 
 - A writer repeating its own (entity, alias, alias_kind, asserted_by) conflicts on the PK and should use ON CONFLICT DO NOTHING.
-- `F47` (db-object-reference) and `F25` (module-liveness) were reasoned about, not run (the fitness runner is CI-only): both new tables are named by non-test code (`resolve.mjs`), and `resolve.mjs` is imported by `surface-acceptance.mjs`, a data-audit marker root.
+- `F47` (db-object-reference) and `F25` (module-liveness) were reasoned about, not run (the fitness runner is CI-only): both new tables are named by non-test code (`resolve.mjs`), and `resolve.mjs` is imported by `surface-acceptance.mjs`, a data-audit marker root. [NOT-WORK: build-mode hold, COMMON rule 9]

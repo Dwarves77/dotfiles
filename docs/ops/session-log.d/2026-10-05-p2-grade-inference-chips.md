@@ -107,7 +107,7 @@ Reused: `InferenceClaim` and `admissibleForInference` (the one gate), `DetailSec
   one short nowrap chip on the same meta line, so at that width it takes room from the bias chips and meta text. Not measured at those
   widths (the rendering guard measures 375 and 1280).
 - Citation-title links: InferenceClaim prints titles as text; links need a change to InferenceClaim.tsx.
-- The inference read is inside the cached 300s item bundle, so a new inference can take that long to appear.
+- The inference read is inside the cached 300s item bundle, so a new inference can take that long to appear. [NOT-WORK: fact, no action]
 
 ### Open items
-- None.
+- None. [NOT-WORK: fact, no action]

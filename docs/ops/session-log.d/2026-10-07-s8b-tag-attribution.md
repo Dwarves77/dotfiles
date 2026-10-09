@@ -20,7 +20,7 @@ Read: COMMON.md, s8b.md, CLAUDE.md, lane-common-contract, ux-laws.md, design-pri
 - The PUT-route attack test lives in `src/app/api/workspace/tags/item-attribution.npmtest.mjs`, not beside the route: a bracketed directory name (`[id]`) is read as a glob character class by `node --test` path arguments, which would run zero tests silently.
 
 ### NOT done
-- No live-data check; no data population.
+- No live-data check; no data population. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - No row-level smoke spec beyond the workspace-tags probe: the five ledgers' own row smokes do not mount the tags hook, so the real-hook-plus-real-row proof lives in `workspace-tags-smoke.mjs`.
 
 ### DESIGN CHANGES OWED (for Claude Design)

@@ -75,4 +75,4 @@ Lane l4b-question-answers (ADR-044 decision 1 and 3). Fixtures only, nothing app
 
 - No workflow chaining. Where it should chain: after the propagation drain raises or re-opens questions, and after
   population-turn raises them at mint (the generator is a population-turn flywheel step).
-- No real answer authored; no batch under `batches/`.
+- No real answer authored; no batch under `batches/`. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]

@@ -46,7 +46,7 @@
 ## NOT done
 
 - No change to CLAUDE.md (outside the write set); its self-annealing line "every failure becomes an edit to
-  the system" is read per ADR-046 and is not edited.
+  the system" is read per ADR-046 and is not edited. [NOT-WORK: fact, no action]
 - The two registers are not landed here (DEAD-3 lands them under docs/audits); the ADR cites them by their
-  future path in plain code text, not as links.
-- `docs/runbooks/gate-evaluation.md` is GATE-4's file; the ADR cites it in plain code text.
+  future path in plain code text, not as links. [CLOSED: PR 1033]
+- `docs/runbooks/gate-evaluation.md` is GATE-4's file; the ADR cites it in plain code text. [NOT-WORK: fact, no action]

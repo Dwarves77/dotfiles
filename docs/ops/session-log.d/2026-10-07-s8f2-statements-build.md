@@ -41,7 +41,7 @@ Reused instead of built: `isEnvelopedFact`, `indexAgainstBase`, `formatEnveloped
 
 ### NOT done
 - `RegionDimensionMatrix.tsx` was not changed to share the implied-base rule (outside the write set).
-- No browser look at the live route (no database here); the layout was measured on fixtures only.
+- No browser look at the live route (no database here); the layout was measured on fixtures only. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - The dimension facet does not scope the block (decision above); the coordinator may rule otherwise.
 
 ### DESIGN CHANGES OWED (for Claude Design; no artboard draws this block)

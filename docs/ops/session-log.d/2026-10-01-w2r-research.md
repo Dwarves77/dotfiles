@@ -121,7 +121,7 @@ the import now would break this branch's own build). ADR-038 corrected in place 
 
 ## Open items / needs operator attention
 
-- **NEEDS WRITE-SET EXPANSION (none actually hit):** no file outside the declared write set was needed.
+- **NEEDS WRITE-SET EXPANSION (none actually hit):** no file outside the declared write set was needed. [NOT-WORK: fact, no action]
 - **COORDINATOR ACTION NEEDED - docs/INDEX.md line** (lane-common-contract forbids a lane editing this
   file directly; F51 caught a draft commit that did, reverted in this session). Please add:
   `- [ADR-038-research-built-now](./decisions/ADR-038-research-built-now.md) - operator ruling
@@ -129,19 +129,19 @@ the import now would break this branch's own build). ADR-038 corrected in place 
   model (maturity triple, horizon R1-R4 ladder, split credibility) is built now via assess.mjs +
   migration 344 (research_assessments) + the research-assessment producer; names the
   assumption_register mismatch (migration 271 is internal modelling constants, not a per-tenant
-  planning-assumption store) rather than wiring a query against the wrong table (accepted 2026-10-01)`
+  planning-assumption store) rather than wiring a query against the wrong table (accepted 2026-10-01)` [CLOSED: PR 889]
 - **COORDINATOR ACTION NEEDED - meta-harness pending file** (F28: registering the `research-assessment`
   harness family changed `scripts/harness-runs/research-assessment/family.json`, which is itself one of
   the meta-harness family's own governing files per family-registry.mjs's "the loop applies to itself"
   design). This lane added
   `fsi-app/scripts/harness-runs/meta-harness/pending/2026-10-02-w2r-research.md` naming the change; it
-  discharges when a meta-harness run lands, or the coordinator may judge it already covered.
+  discharges when a meta-harness run lands, or the coordinator may judge it already covered. [CLOSED: PR 1002]
 - Migration 344 is DDL-sketch-only; the coordinator applies it via the Supabase CLI before `--live`
   reads will resolve. The producer's fixture/dry CLI run requires no migration and was run and verified
-  (`scripts/harness-runs/research-assessment/research-assessment-run-001.json`).
+  (`scripts/harness-runs/research-assessment/research-assessment-run-001.json`). [CLOSED: PR 1013]
 - `tsc --noEmit` is clean throughout. `node fsi-app/.discipline/fitness/runner.mjs` final state: 58
   functions checked, 0 violations (every violation found during this session was fixed in the same
   session: F23 staging artifact, F27 composition proof, F39 chunked reads, F51 the INDEX.md edit
   reverted, F28 the meta-harness pending file added). The rendering guard (Playwright) was NOT run in
   this session (no new row component needing F35 registration - `ResearchAssessmentCard` is a rail
-  card, `ThemeBriefCard`'s own shape, not a list row).
+  card, `ThemeBriefCard`'s own shape, not a list row). [NOT-WORK: fact, no action]

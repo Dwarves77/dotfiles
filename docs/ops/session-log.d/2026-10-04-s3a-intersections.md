@@ -25,4 +25,4 @@ Read in full: the register, the skill sections, ADR-018/019/021/022, `discover.m
 - MINT-RUNBOOK.md section 8 and POPULATION-TURN-RUNBOOK.md order statements corrected; MINT-RUNBOOK is a mint governing file, pending marker `scripts/harness-runs/mint/pending/2026-10-04-s3a-intersections.md` added. `apply-record-briefs.mjs` comments corrected only; its per-item order (APPLY_STEP_ORDER) is generate, section, ground, grow, structured-actions, lineage, discovery, forward-events, compliance-deadline, entities, unchanged, and tags still follow per-item discovery there (batch-level tags now run before analyze-corpus).
 
 ### NOT done
-- No live run, no migration, no apply.
+- No live run, no migration, no apply. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]

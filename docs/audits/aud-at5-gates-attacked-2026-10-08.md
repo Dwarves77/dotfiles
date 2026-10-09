@@ -249,8 +249,8 @@ COE = `continue-on-error: true` on the step, IFF = `if: false` (an existing `if:
 
 ## Observed in passing (facts, no proposals)
 
-- [CONFIRMED: this session] The PreToolUse skill gate blocked three Bash commands with `Data write (prod effect)` and demanded the skills remediation-discipline and environmental-policy-and-innovation; the commands copied `fsi-app/scripts/verify/run-goldens.mjs` into a scratchpad directory and created a fixture file there. After both skills were loaded the same command ran. Relevant to AUD-AT-3.
-- [CONFIRMED: closure-gate output] `current train: 71`; the NEVER-RUN age clock is the train counter (TD-7).
+- [CONFIRMED: this session] The PreToolUse skill gate blocked three Bash commands with `Data write (prod effect)` and demanded the skills remediation-discipline and environmental-policy-and-innovation; the commands copied `fsi-app/scripts/verify/run-goldens.mjs` into a scratchpad directory and created a fixture file there. After both skills were loaded the same command ran. Relevant to AUD-AT-3. [NOT-WORK: fact, no action]
+- [CONFIRMED: closure-gate output] `current train: 71`; the NEVER-RUN age clock is the train counter (TD-7). [CLOSED: PR 1039]
 - [CONFIRMED: the full-suite runs] On a loaded machine the test `RACE: C3 and F64 live tests run concurrently ten times` was cancelled at its 300000 ms timeout (4 of 4 full runs), making `run-test-suite.sh` exit 1 independent of any mutation.
 
 ## Matrix cells to enter

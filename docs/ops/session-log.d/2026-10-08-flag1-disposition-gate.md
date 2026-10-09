@@ -905,10 +905,10 @@ docs/ops/session-log.d/2026-10-08-wire1-gate-wiring-owned.md  (5)
 
 Nothing in this list is a finding about the repo; each is a scope boundary of this lane.
 
-- No finding was dispositioned by this lane, as briefed; the coordinator dispositions all 699 in one batch and a follow-up lane applies them. [WORK: coordinator-disposition-batch]
+- No finding was dispositioned by this lane, as briefed; the coordinator dispositions all 699 in one batch and a follow-up lane applies them. [WORK: DISPO-1]
 - `--strict` does not fail on session-log or register findings (the brief scopes item 1 to audits); those are enforced at the dispatch point only. [NOT-WORK: the brief scopes the push gate to docs/audits; the dispatch gate covers the other two sources]
 - Nothing under docs/audits was edited, as briefed. [NOT-WORK: write set excludes docs/audits]
 
 ## Open items
 
-- The gate now refuses every dispatch from the main checkout until the 699 are dispositioned or the dispatch carries `DISPOSITION-LANE`. [WORK: coordinator-disposition-batch]
+- The gate now refuses every dispatch from the main checkout until the 699 are dispositioned or the dispatch carries `DISPOSITION-LANE`. [WORK: DISPO-1]

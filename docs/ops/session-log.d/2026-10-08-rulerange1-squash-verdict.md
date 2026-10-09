@@ -25,7 +25,7 @@
 
 ## NOT done
 - Nothing is applied or merged. The workflows and pre-push were not touched (not in the write set); a pre-push run on a PR branch uses the local merge-base shape, so it still judges per commit.
-- The rest of the discipline suite and the fitness runner were not run locally (CI is the gate, ADR-040).
+- The rest of the discipline suite and the fitness runner were not run locally (CI is the gate, ADR-040). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
-- Disclosure: the first edits to `runner.mjs` and `manifest.mjs` were written through a Bash `python` script, not the Edit tool, before the remediation-discipline skill had been loaded for this session; the skill gate blocks Edit and does not see Bash writes. The skill was loaded immediately after the gate blocked the follow-up Edit, and every later edit went through Edit. The content is the same either way; it is recorded because the gate was not the path.
+- Disclosure: the first edits to `runner.mjs` and `manifest.mjs` were written through a Bash `python` script, not the Edit tool, before the remediation-discipline skill had been loaded for this session; the skill gate blocks Edit and does not see Bash writes. The skill was loaded immediately after the gate blocked the follow-up Edit, and every later edit went through Edit. The content is the same either way; it is recorded because the gate was not the path. [CLOSED: PR 1000]
