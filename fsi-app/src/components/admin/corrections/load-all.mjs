@@ -31,24 +31,28 @@ export async function loadAllCorrections(supabase) {
 
   const factItems = [...new Set(raw.filter((r) => r.target_kind === "fact" && !r.revoked_at).map((r) => r.item_id))];
   const orphaned = new Set();
-  let unchecked = 0;
-  for (let i = 0; i < factItems.length; i += CLAIM_CHUNK) {
-    const slice = factItems.slice(i, i + CLAIM_CHUNK);
-    let claims;
-    try {
-      claims = await fetchAllRows((from, to) =>
-        supabase.from("section_claim_provenance").select("id, claim_text, intelligence_item_id").in("intelligence_item_id", slice).order("id").range(from, to),
-      );
-    } catch {
-      unchecked += slice.length; // counted and shown, never hidden; the list still loads
-      continue;
-    }
-    for (const itemId of slice) {
-      const itemClaims = claims.filter((c) => c.intelligence_item_id === itemId);
-      const itemRows = raw.filter((r) => r.item_id === itemId);
-      for (const c of findOrphanedFactCorrections(itemRows, itemClaims)) orphaned.add(c.id);
-    }
+  const unreadable = new Set(); // items whose claims could not be read: counted and shown, never guessed orphaned
+  const claims = await fetchAllByIdChunks(
+    factItems,
+    async (slice) => {
+      try {
+        return await fetchAllRows((from, to) =>
+          supabase.from("section_claim_provenance").select("id, claim_text, intelligence_item_id").in("intelligence_item_id", slice).order("id").range(from, to),
+        );
+      } catch {
+        for (const id of slice) unreadable.add(id);
+        return [];
+      }
+    },
+    { chunk: CLAIM_CHUNK, manyPerId: true },
+  );
+  for (const itemId of factItems) {
+    if (unreadable.has(itemId)) continue;
+    const itemClaims = claims.filter((c) => c.intelligence_item_id === itemId);
+    const itemRows = raw.filter((r) => r.item_id === itemId);
+    for (const c of findOrphanedFactCorrections(itemRows, itemClaims)) orphaned.add(c.id);
   }
+  const unchecked = unreadable.size;
 
   const rows = raw
     .map((r) => ({
