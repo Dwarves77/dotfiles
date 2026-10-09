@@ -331,6 +331,11 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM public.derived_values WHERE value_id = v_dv3 AND admissibility = 'stale') THEN
       RAISE EXCEPTION 'migration 339 self-check FAILED: derived_values-only closure regressed';
     END IF;
+    -- MIG-CI-2 (2026-10-08): the FK to derived_values is dropped above, so deleting the probe rows no longer
+    -- cascades; the dv2 -> dv3 edge register_derived_value wrote must be removed first, or one dangling edge is
+    -- left behind (migration 350's post-check counts it on a replay stack; production never ran this block).
+    DELETE FROM public.derivation_edges
+      WHERE to_value_id IN (v_dv2, v_dv3) OR (from_table = 'derived_values' AND from_pk IN (v_dv2::text, v_dv3::text));
     DELETE FROM public.derived_values WHERE value_id IN (v_dv2, v_dv3);
   END;
 
