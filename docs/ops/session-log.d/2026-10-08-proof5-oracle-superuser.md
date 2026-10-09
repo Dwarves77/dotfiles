@@ -26,9 +26,9 @@
 
 ## NOT done
 
-- Not run against a live stack (no container runtime here, no network). The `supabase_admin` role name and its password equality are INFERRED, see Diagnosis.
-- `replay-migrations.mjs`, `schema-diff.mjs`, `attacks/**`, the production dump step and the migrations are untouched. Whether later steps (the replay of migrations that create roles or extensions, as `postgres`) hit the same superuser limit is not known until the run reaches them.
+- Not run against a live stack (no container runtime here, no network). The `supabase_admin` role name and its password equality are INFERRED, see Diagnosis. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- `replay-migrations.mjs`, `schema-diff.mjs`, `attacks/**`, the production dump step and the migrations are untouched. Whether later steps (the replay of migrations that create roles or extensions, as `postgres`) hit the same superuser limit is not known until the run reaches them. [WORK: CHAIN-5]
 
 ## Open items
 
-- Observation, not changed: Node itself consumes any `--env-file <path>` argument anywhere on its command line (it exits 9 if the file is absent). `create-oracle-db.mjs --env-file "$CHAIN_PROOF_ENV"` therefore also makes node load the env file into that process. Harmless here (the step sources the same file first), and the new CLI test passes an existing empty file for this reason.
+- Observation, not changed: Node itself consumes any `--env-file <path>` argument anywhere on its command line (it exits 9 if the file is absent). `create-oracle-db.mjs --env-file "$CHAIN_PROOF_ENV"` therefore also makes node load the env file into that process. Harmless here (the step sources the same file first), and the new CLI test passes an existing empty file for this reason. [NOT-WORK: fact, no action]

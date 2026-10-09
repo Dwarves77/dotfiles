@@ -29,9 +29,9 @@ Read: COMMON.md, the s8d brief, CLAUDE.md, lane-common-contract, spec 00 (whole)
 - F35 edits accepted.
 
 ### NOT done
-- Add-to-portfolio controls on the detail pages: owed to a follow-up after S8-A lands (DetailShell is theirs). Until then items are added from the portfolio page's own search; the API is the contract any surface calls.
-- The scope chip, triggers and cross-surface digest (the rest of L18).
-- Entity canonical page (see above).
+- Add-to-portfolio controls on the detail pages: owed to a follow-up after S8-A lands (DetailShell is theirs). Until then items are added from the portfolio page's own search; the API is the contract any surface calls. [WORK: PLAN-2]
+- The scope chip, triggers and cross-surface digest (the rest of L18). [WORK: PLAN-2]
+- Entity canonical page (see above). [WORK: PLAN-2]
 
 ### DESIGN CHANGES OWED (for Claude Design; artboard 22 does not draw the portfolio)
 - The portfolio list: columns Portfolio, Members, Created; a create row (name field and Create portfolio button) above the table; empty, signed-out and unavailable notes.

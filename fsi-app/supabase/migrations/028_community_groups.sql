@@ -26,6 +26,13 @@
 --
 -- Schema migration. Apply BEFORE deploying the dependent code per the
 -- two-track migration policy in STATUS.md rule 12.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after chain-proof replay run 37763816032): three policies (select, update and
+-- delete; four references to community_group_members) moved from 028 to 029 because they reference
+-- community_group_members, created in 029; final schema identical; both rows were already class code-differs in
+-- APPLIED-MAP.json; the migration-history audit's expected CODE_DIFFERS for 028 and 029 is unchanged in class.
+-- [HYPOTHESIS] The ledger row for 028 is a migration repair row carrying this file's text, not a record that the
+-- file ran at this position: 028 as written cannot execute before 029 in any order.
 
 create table if not exists community_groups (
   id uuid primary key default gen_random_uuid(),
@@ -78,20 +85,8 @@ create index if not exists idx_community_groups_last_active
 
 alter table community_groups enable row level security;
 
--- SELECT: public groups visible to all authenticated users; private groups
--- visible only to members of that group.
-create policy "community_groups_select_public_or_member"
-  on community_groups
-  for select
-  using (
-    privacy = 'public'
-    or exists (
-      select 1
-      from community_group_members m
-      where m.group_id = community_groups.id
-        and m.user_id = auth.uid()
-    )
-  );
+-- The SELECT, UPDATE and DELETE policies below read community_group_members, which migration 029 creates, so they
+-- live at the end of migration 029 (moved 2026-10-08, see the block in the header above).
 
 -- INSERT: any authenticated user can create a group. They are recorded
 -- as owner; the application code is responsible for inserting a
@@ -102,46 +97,6 @@ create policy "community_groups_insert_authenticated"
   with check (
     auth.role() = 'authenticated'
     and owner_user_id = auth.uid()
-  );
-
--- UPDATE: owner or any group admin/moderator may edit the group record.
-create policy "community_groups_update_owner_or_admin"
-  on community_groups
-  for update
-  using (
-    owner_user_id = auth.uid()
-    or exists (
-      select 1
-      from community_group_members m
-      where m.group_id = community_groups.id
-        and m.user_id = auth.uid()
-        and m.role in ('admin', 'moderator')
-    )
-  )
-  with check (
-    owner_user_id = auth.uid()
-    or exists (
-      select 1
-      from community_group_members m
-      where m.group_id = community_groups.id
-        and m.user_id = auth.uid()
-        and m.role in ('admin', 'moderator')
-    )
-  );
-
--- DELETE: owner or group admin (NOT moderator — destructive op).
-create policy "community_groups_delete_owner_or_admin"
-  on community_groups
-  for delete
-  using (
-    owner_user_id = auth.uid()
-    or exists (
-      select 1
-      from community_group_members m
-      where m.group_id = community_groups.id
-        and m.user_id = auth.uid()
-        and m.role = 'admin'
-    )
   );
 
 -- Service role full access for moderation and platform-admin tooling.

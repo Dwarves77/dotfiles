@@ -30,12 +30,12 @@ Read: COMMON.md, proof1.md, CLAUDE.md, lane-common-contract, the chain-proof des
 - The real inventory parsed against the real directory: 323 planned, 0 unlisted, 0 absent.
 
 ### NOT done
-- Not fired. The replay has never run against a real database: which files cannot replay on an empty database is unknown until the first dispatch (`gh workflow run chain-proof.yml`; it is expected to be red, see the fourth round).
-- Supabase CLI key names, Postgres version, `supabase status -o env` key names (`SERVICE_ROLE_KEY` or `SECRET_KEY`) and `supabase/setup-cli@v1` with `version: latest` are HYPOTHESES until that run.
-- Subset export and load, chain steps, attack suite are other lanes' scripts; their steps skip by name.
+- Not fired. The replay has never run against a real database: which files cannot replay on an empty database is unknown until the first dispatch (`gh workflow run chain-proof.yml`; it is expected to be red, see the fourth round). [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Supabase CLI key names, Postgres version, `supabase status -o env` key names (`SERVICE_ROLE_KEY` or `SECRET_KEY`) and `supabase/setup-cli@v1` with `version: latest` are HYPOTHESES until that run. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Subset export and load, chain steps, attack suite are other lanes' scripts; their steps skip by name. [NOT-WORK: fact, no action]
 
 ### Open items
-- A mapping from production names to files (or a ruling that these 46 rows are not errors) is needed before the replay can run; also whether the 17 skipped files (several clearly applied under other names, such as 202, 205, 206, 207, 225, 248, 299, 315, 317) should be applied.
+- A mapping from production names to files (or a ruling that these 46 rows are not errors) is needed before the replay can run; also whether the 17 skipped files (several clearly applied under other names, such as 202, 205, 206, 207, 225, 248, 299, 315, 317) should be applied. [CLOSED: PR 1013]
 
 ### Rulings applied 2026-10-07 (second round)
 - Rule 015: `crypto.hash("sha256", ...)` in `export-local-harness-runs.mjs`. Rule 022: the em dash in the secrets-registry note replaced by a comma.

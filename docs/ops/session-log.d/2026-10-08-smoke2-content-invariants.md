@@ -71,19 +71,19 @@ exit 1 with a named `::error::`; the brief's "exit 2" skip convention was wrong)
   body fixtures have no bodies for the Connected and Inferences tabs. The only gallery fixtures file is under `src/**`
   (`SectionIndexGallery.tsx` imports it), which the brief also lists as NOT mine. Staged edit: two entries appended to
   `SECTION_INDEX_BODY_FIXTURES`, ids `across-pages` (`S9 Connected intelligence`) and `inferences` (`S10 Inferences`), each
-  with a one-sentence placeholder body, matching the existing entries' shape. Nothing in this lane touched it.
+  with a one-sentence placeholder body, matching the existing entries' shape. Nothing in this lane touched it. [NOT-WORK: fact, no action]
 - (GRANTED and done, see the follow-up above) NEEDS WRITE-SET EXPANSION 2: `fsi-app/.discipline/rendering/smoke/live-smoke-fixture-smoke.mjs`. Staged edit: pass
   `contentChecks: true` in `runFixtureLeg`; add the six elements to the clean `sitePages` (home rail card, list tier
   squares, a record chip, bias chips, the two sections) and omit them in the defective site; add the six ids to
   `EXPECTED_DEFECTS`. Until then the content invariants are proven by the pure and stub-browser tests only, not by a real
-  chromium against a fixture server. The live run in CI (`live-smoke.yml`) uses the CLI and already has them on.
+  chromium against a fixture server. The live run in CI (`live-smoke.yml`) uses the CLI and already has them on. [NOT-WORK: fact, no action]
 - The missing-credentials path is unchanged: `live-preflight.mjs` and the workflow's preflight step fail with exit 1 and a
   named `::error::` (not exit 2), and `main()` exits 2 only on a runner error. The brief says the skip convention "stays";
-  what exists today is fail-fast, not skip. Not altered.
+  what exists today is fail-fast, not skip. Not altered. [WORK: RULES-X-1]
 - No live run. Whether the six elements are present on production for the smoke account is unknown until the first CI run
   after merge; a red there is the gate reporting a real content gap (for example no customer-visible inference yet), not a
-  selector fault, because each selector is the hook the component itself renders.
+  selector fault, because each selector is the hook the component itself renders. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ### Open items
-- First live-smoke run with content checks on: read its report for any `content-*` line.
-- Both expansions above, then the fixture smoke carries the end-to-end proof.
+- First live-smoke run with content checks on: read its report for any `content-*` line. [WORK: RULES-X-1]
+- Both expansions above, then the fixture smoke carries the end-to-end proof. [NOT-WORK: fact, no action]

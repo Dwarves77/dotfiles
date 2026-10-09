@@ -115,6 +115,13 @@ AS $function$
   limit greatest(p_limit, 0);
 $function$;
 
+-- 5b. The EXECUTE grant on next_uncensused_portal_candidates, rehomed here verbatim from the recovered file
+-- 241_next_uncensused_portal_candidates_grant.sql (ledger version 20260721222204, which the replay reached before this
+-- migration creates the function; 2026-10-08, lane MIG-CI, ruling after replay run 37793739743, class REHOMED-STATEMENT).
+-- 241 was deleted; its row is now superseded-by this file; final state unchanged.
+grant execute on function public.next_uncensused_portal_candidates(uuid, int, boolean, timestamptz, uuid)
+  to authenticated, service_role;
+
 -- 6. capture_worker_fetch — the runbook-sanctioned, no-metered-spend document-capture path.
 -- Vault the anon key first (idempotent: create only if absent). The anon key is PUBLIC by design; vaulting
 -- it is about rotation visibility, not secrecy.

@@ -8,21 +8,21 @@
 // reached production through the MCP apply_migration tool and the Dashboard, so no from-scratch replay path
 // exists. This runner applies each file itself, with psql, one file per transaction, against loopback only.
 //
-// ORDER. Lexical order of the filenames is a HYPOTHESIS for the duplicate-prefix files, so the order comes
-// from docs/inventories/migrations.md, the generated page that lists every migration file (number, file,
-// subject). That page is itself derived from the files in generator order, so for 006 and 007 it agrees with
-// lexical order; it is the one list the repo keeps, and the first real run is what proves it. A file on disk
-// that the inventory does not list is REPORTED and not applied. A file the inventory lists that is absent on
-// disk is REPORTED.
+// ORDER (coordinator ruling 2026-10-08, lane MIG-CI). Files that stand for a ledger row apply in LEDGER ORDER, the
+// map's ledger version per entry ascending (applied-map.mjs orderByLedger), never in the inventory's file number order:
+// the ledger is the record of what ran and in what sequence. A file with no ledger row (outside-ledger) applies right
+// after the ledgered file that precedes it in docs/inventories/migrations.md. The inventory is still read: it lists every
+// migration file (number, file, subject), it anchors those outside-ledger files, and a file on disk it does not list is
+// REPORTED and a file it lists that is absent on disk is REPORTED. Never-applied and unreferenced files are not replayed.
 //
 // WHICH FILES APPLY (coordinator ruling 2026-10-07). Production's ledger (fsi-app/docs/inventories/
 // applied-migrations.json, production's list_migrations, synced by hand with scripts/proof/sync-applied-migrations.mjs)
 // and the repo's files do not line up by name. The record of which file stands for which ledger row is
 // fsi-app/supabase/migrations/APPLIED-MAP.json (lane MIG-HIST-1); scripts/proof/applied-map.mjs reads it. Per ledger
-// version: a class with a file (identical, comments-only, code-differs, recovered) APPLIES that file, in the order of
-// docs/inventories/migrations.md; superseded-by, data-only and comment-only rows are SATISFIED with no file, counted
-// and listed; outside-ledger files are APPLIED (they are live); duplicate-prefix files, and files the map names nowhere whose own header says NOT APPLIED (never-applied, derived, see applied-map.mjs), are SKIPPED
-// and listed. ERRORS (the replay refuses, applies nothing, names them): the map file is absent (red until MIG-HIST-1
+// version: a class with a file (identical, comments-only, code-differs, recovered) APPLIES that file, in ledger order
+// (ORDER above); superseded-by, data-only and comment-only rows are SATISFIED with no file, counted
+// and listed; outside-ledger files are APPLIED (they are live); duplicate-prefix files, and files the map names nowhere whose own header says NOT APPLIED (never-applied, derived, see applied-map.mjs),
+// are SKIPPED and listed. ERRORS (the replay refuses, applies nothing, names them): the map file is absent (red until MIG-HIST-1
 // lands, the honest state), a ledger version absent from the map, a map entry whose file is missing, an unknown class,
 // a file to apply that the order inventory does not list. A header is evidence only for a file the map names nowhere (several headers still said NOT
 // APPLIED for applied migrations until MIGTEST-1).
@@ -32,6 +32,11 @@
 // the replay, schema-diff.mjs must find the replayed schema and the dump identical, or the job fails. Production's
 // names diverge from the file names today, so the job is expected to be RED until lane MIG-HIST-1 lands the map and
 // repairs the repo (docs/runbooks/maintenance.d/64-chain-proof.md says so, and names the gate that lifts it).
+//
+// STACK FIDELITY (lane MIG-CI, 2026-10-08). Before the first file the replay makes sure the stack has the Supabase-managed
+// ledger table production has, supabase_migrations.schema_migrations (ensureLedgerTable): the local stack starts from an empty
+// scratch directory, so the CLI never creates it, and the ledger repair 170 writes into it. The oracle compares schema public
+// only, so this adds no compared object.
 //
 // STOP RULE. The first error stops the replay with the file name, the psql error and the statement at the reported
 // line. There is no tolerate list, no skip list and no continue-on-error mode. This lane does not patch migrations.
@@ -166,10 +171,22 @@ export function assertLoopbackDbUrl(url) {
   return host;
 }
 
-/** Run one file through psql. `spawn` is injectable. Returns { status, stderr, seconds }. */
-export function runFileWithPsql({ psql, dbUrl, file, spawn = spawnSync }) {
+/**
+ * True when the file holds a statement Postgres refuses inside a transaction block: CREATE INDEX CONCURRENTLY, DROP INDEX
+ * CONCURRENTLY, REINDEX ... CONCURRENTLY (lane MIG-CI, replay run 37855793584: 260 was applied in production by direct psql for exactly
+ * this reason, its header says so). Such a file is run without --single-transaction; ON_ERROR_STOP still stops it at the first error.
+ * Comments are ignored. PURE.
+ */
+export function needsAutocommit(text) {
+  const code = String(text ?? "").split(/\r?\n/).filter((l) => !l.trim().startsWith("--")).join("\n");
+  return /\bcreate\s+(unique\s+)?index\s+concurrently\b/i.test(code) || /\bdrop\s+index\s+concurrently\b/i.test(code) || /\breindex\b[^;]*\bconcurrently\b/i.test(code);
+}
+
+/** Run one file through psql. `spawn` is injectable. `text` (the file's source) decides single transaction or autocommit. Returns { status, stderr, seconds }. */
+export function runFileWithPsql({ psql, dbUrl, file, text = null, spawn = spawnSync }) {
   const started = Date.now();
-  const r = spawn(psql, [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", file], {
+  const args = [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", ...(text != null && needsAutocommit(text) ? [] : ["--single-transaction"]), "-f", file];
+  const r = spawn(psql, args, {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
     env: { ...process.env, PGCONNECT_TIMEOUT: "10" },
@@ -212,19 +229,45 @@ export function probeDatabase({ psql, dbUrl, spawn = spawnSync }) {
 }
 
 /**
+ * The Supabase-managed migration ledger table. Production has it (the CLI and the MCP apply tool write it); the local stack
+ * starts from an empty scratch directory, so the CLI never creates it, and a migration that records into it (170, the ledger
+ * repair) is refused with "relation does not exist" although nothing is wrong with the file (lane MIG-CI, replay run
+ * 37782247331). The proof stack is made to have the object production has: schema supabase_migrations and the table with
+ * the columns the migrations write. The schema oracle compares schema public only, so this changes no compared object.
+ */
+export const LEDGER_TABLE_SQL = "create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations (version text primary key, statements text[], name text);";
+
+/** Make the stack's supabase_migrations.schema_migrations exist. `spawn` is injectable. Returns { ok, message }. */
+export function ensureLedgerTable({ psql, dbUrl, spawn = spawnSync }) {
+  const r = spawn(psql, [dbUrl, "-X", "-v", "ON_ERROR_STOP=1", "-c", LEDGER_TABLE_SQL], { encoding: "utf8", env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+  if (r.error) return { ok: false, message: `could not run ${psql}: ${r.error.message}` };
+  if (r.status !== 0) return { ok: false, message: String(r.stderr ?? "").trim().split(/\r?\n/).pop()?.slice(0, MAX_TEXT) || `psql exited ${r.status}` };
+  return { ok: true, message: null };
+}
+
+/**
  * Run the replay. Everything external is injected, so tests need no database.
  * @returns the report object (also what the CLI writes).
  */
-export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spawnSync, readFn = readFileSync, now = () => new Date(), probe = probeDatabase, expectedTables = null }) {
+export function replay({ plan, migrationsDir, dbUrl, psql = "psql", spawn = spawnSync, readFn = readFileSync, now = () => new Date(), probe = probeDatabase, expectedTables = null, prelude = ensureLedgerTable }) {
   const startedAt = now().toISOString();
   const files = [];
   let stoppedAt = null;
   const refused = (plan.errors ?? []).length > 0;
+  let preludeFailed = false;
+  if (!refused) {
+    const pre = prelude({ psql, dbUrl, spawn });
+    if (!pre.ok) {
+      preludeFailed = true;
+      files.push({ file: "(stack prelude: supabase_migrations.schema_migrations)", status: "failed", seconds: 0, notices: [], error: { line: null, message: pre.message, context: [], statement: null } });
+      stoppedAt = "(stack prelude)";
+    }
+  }
 
-  for (const item of refused ? [] : plan.ordered) {
+  for (const item of refused || preludeFailed ? [] : plan.ordered) {
     const path = join(migrationsDir, item.file);
     const text = readFn(path, "utf8");
-    const run = runFileWithPsql({ psql, dbUrl, file: path, spawn });
+    const run = runFileWithPsql({ psql, dbUrl, file: path, text, spawn });
     const parsed = parsePsqlOutput(run.stderr, text);
     if (run.status === 0) {
       files.push({ file: item.file, status: "applied", seconds: run.seconds, notices: parsed.notices });

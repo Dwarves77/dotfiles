@@ -16,6 +16,7 @@ const CATALOG = {
   functions: { "f(a integer)": "f1", "g()": "f2" },
   triggers: { "items.t1": "g1" },
   policies: { "items.read": "p1" },
+  grants: { "relation:items -> anon": "a1", "relation:items -> authenticated": "a2", "function:f(a integer) -> PUBLIC": "a3" },
 };
 const clone = () => JSON.parse(JSON.stringify(CATALOG));
 
@@ -56,8 +57,8 @@ test("objects only on one side are named per category, on the right side", () =>
   assert.equal(d.differing_total, 6);
 });
 
-test("every ruled category is compared: tables, columns, constraints, indexes, functions, triggers, policies", () => {
-  assert.deepEqual([...CATEGORIES], ["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies"]);
+test("every ruled category is compared: tables, columns, constraints, indexes, functions, triggers, policies, grants", () => {
+  assert.deepEqual([...CATEGORIES], ["tables", "columns", "constraints", "indexes", "functions", "triggers", "policies", "grants"]);
   for (const cat of CATEGORIES) {
     const oracle = clone();
     oracle[cat].zz_extra = "x";
@@ -91,6 +92,38 @@ test("the catalog query is one read-only select over the public schema, and hash
   for (const needle of ["pg_get_functiondef", "pg_get_triggerdef", "pg_get_constraintdef", "pg_indexes", "pg_policies", "format_type", "pg_get_expr", "deptype = 'e'"]) {
     assert.ok(CATALOG_QUERY.includes(needle), needle);
   }
+});
+
+test("GRANTS: two catalogs that differ ONLY in one GRANT fail the oracle, naming the object and the grantee", () => {
+  const oracle = clone();
+  delete oracle.grants["relation:items -> anon"]; // production does not grant anon on items; the replay does
+  const d = diffCatalogs(CATALOG, oracle);
+  assert.equal(d.identical, false);
+  assert.equal(d.differing_total, 1, "nothing but the one grant differs");
+  assert.deepEqual(d.categories.grants.names_only_in_replayed, ["relation:items -> anon"]);
+  for (const cat of CATEGORIES.filter((c) => c !== "grants")) assert.equal(d.categories[cat].only_in_replayed + d.categories[cat].only_in_oracle + d.categories[cat].changed, 0, cat);
+  assert.match(summarizeDiff(d), /grants only in replayed: relation:items -> anon/);
+});
+
+test("GRANTS: a changed privilege set for the same object and grantee is reported as changed, and a function grant is compared too", () => {
+  const oracle = clone();
+  oracle.grants["relation:items -> authenticated"] = "a2-fewer-privileges";
+  delete oracle.grants["function:f(a integer) -> PUBLIC"];
+  const d = diffCatalogs(CATALOG, oracle);
+  assert.deepEqual(d.categories.grants.names_changed, ["relation:items -> authenticated"]);
+  assert.deepEqual(d.categories.grants.names_only_in_replayed, ["function:f(a integer) -> PUBLIC"]);
+  assert.equal(d.differing_total, 2);
+  const extra = clone();
+  extra.grants["relation:sources -> anon"] = "a9"; // a grant production has and the replay lacks
+  const e = diffCatalogs(CATALOG, extra);
+  assert.deepEqual(e.categories.grants.names_only_in_oracle, ["relation:sources -> anon"]);
+});
+
+test("GRANTS: the catalog query reads relacl and proacl through aclexplode, names PUBLIC, reads a NULL ACL as the owner default, and stays read only", () => {
+  for (const needle of ["aclexplode", "relacl", "proacl", "acldefault", "pg_get_userbyid", "'PUBLIC'", "is_grantable", "'grants'"]) assert.ok(CATALOG_QUERY.includes(needle), needle);
+  for (const kind of ["'r', 'p', 'v', 'm', 'S', 'f'"]) assert.ok(CATALOG_QUERY.includes(kind), "tables, views, sequences");
+  assert.ok(!/grantor/.test(CATALOG_QUERY), "grantor names are not compared (ownership is stripped from the dump)");
+  assert.ok(!/(insert|update|delete|drop|alter|truncate)/i.test(CATALOG_QUERY.replace(/pg_get_w+/g, "")));
 });
 
 test("readCatalog parses psql output and returns null on failure", () => {

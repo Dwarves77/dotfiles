@@ -30,10 +30,10 @@
 
 ## NOT done
 
-- `fireSignpost` itself is unchanged: it does not set `lifecycle_applied_at`; the stamp is made by the caller (`prediction-scoring.mjs`). Any other caller of `fireSignpost` (none found: only `prediction-scoring.mjs` imports it outside tests and the methods index) would not stamp.
-- Migration 374 is not applied; nothing was run against any database.
-- A step-2 failure inside `fireSignpost` (outbox row not written after `fired_at` is stamped) is a separate existing gap, not touched here: such a signpost is now caught by this repair (fired, lifecycle NULL) for its lifecycle, but its missing outbox row is not re-written.
+- `fireSignpost` itself is unchanged: it does not set `lifecycle_applied_at`; the stamp is made by the caller (`prediction-scoring.mjs`). Any other caller of `fireSignpost` (none found: only `prediction-scoring.mjs` imports it outside tests and the methods index) would not stamp. [NOT-WORK: fact, no action]
+- Migration 374 is not applied; nothing was run against any database. [CLOSED: PR 1046]
+- A step-2 failure inside `fireSignpost` (outbox row not written after `fired_at` is stamped) is a separate existing gap, not touched here: such a signpost is now caught by this repair (fired, lifecycle NULL) for its lifecycle, but its missing outbox row is not re-written. [WORK: DFIX-1]
 
 ## Open items
 
-- None. (The first version left the backfill to the applier; the coordinator ruled it belongs in the migration, and it is there.)
+- None. (The first version left the backfill to the applier; the coordinator ruled it belongs in the migration, and it is there.) [NOT-WORK: fact, no action]

@@ -33,8 +33,8 @@ COMMON.md, the brief, lane-common-contract.md, the CHAIN-1 log (owed section), `
 
 ## NOT done / open
 
-- Not proven live: nothing here ran in GitHub Actions or against the database (common terms rule 5).
-- Corpus turn has no F28 marker: `corpus-turn.yml` is not in `GOVERNING_FILES` and the emitter is not either (confirmed by intersecting `governing-files.mjs` with the diff). Markers added: brief-export, gate-a-rescan, source-resolution, propagation, ledger-consume, fetch-drain.
+- Not proven live: nothing here ran in GitHub Actions or against the database (common terms rule 5). [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Corpus turn has no F28 marker: `corpus-turn.yml` is not in `GOVERNING_FILES` and the emitter is not either (confirmed by intersecting `governing-files.mjs` with the diff). Markers added: brief-export, gate-a-rescan, source-resolution, propagation, ledger-consume, fetch-drain. [NOT-WORK: fact, no action]
 
 ## Post-merge dry proof (the coordinator's executor)
 

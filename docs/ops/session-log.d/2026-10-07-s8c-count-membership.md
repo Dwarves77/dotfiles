@@ -27,10 +27,10 @@ Read: COMMON.md, s8c.md, CLAUDE.md, lane-common-contract.md, system-map-2026-10-
 - Grants untouched.
 
 ### NOT done
-- Not applied; the coordinator applies it (two-track policy: schema DDL via the Supabase CLI).
-- No live adversarial script under `scripts/verify/` (outside the write set); the in-migration self-check is the attack. A continuous data-audit-lane version, like `spec09-org-rls-adversarial-audit.mjs`, would need a write-set expansion.
-- The self-check member cases are skipped when the target has no org_memberships row; the NOTICE at the end says which ran.
-- The migration SQL itself has not been executed (no database); only the static test ran. Whether plpgsql accepts the `WITH ... SELECT ... INTO v_result` shape is [INFERRED] from PostgreSQL's documented INTO placement, and the apply-time self-check is the first execution.
+- Not applied; the coordinator applies it (two-track policy: schema DDL via the Supabase CLI). [CLOSED: PR 1013]
+- No live adversarial script under `scripts/verify/` (outside the write set); the in-migration self-check is the attack. A continuous data-audit-lane version, like `spec09-org-rls-adversarial-audit.mjs`, would need a write-set expansion. [WORK: TESTS-1]
+- The self-check member cases are skipped when the target has no org_memberships row; the NOTICE at the end says which ran. [NOT-WORK: fact, no action]
+- The migration SQL itself has not been executed (no database); only the static test ran. Whether plpgsql accepts the `WITH ... SELECT ... INTO v_result` shape is [INFERRED] from PostgreSQL's documented INTO placement, and the apply-time self-check is the first execution. [CLOSED: PR 1013]
 
 ### Open items
-- Coordinator to apply 361 and read the `migration 361 OK` NOTICE (it states whether the member cases ran).
+- Coordinator to apply 361 and read the `migration 361 OK` NOTICE (it states whether the member cases ran). [CLOSED: PR 1013]

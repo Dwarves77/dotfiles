@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   parseInventoryOrder, prefixReport, planReplay, parsePsqlOutput,
-  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP,
+  assertLoopbackDbUrl, replay, summarize, evaluatePostChecks, LEDGER_TABLE_SQL, needsAutocommit, runFileWithPsql, DEFAULT_INVENTORY, DEFAULT_MIGRATIONS_DIR, DEFAULT_MAP, DEFAULT_APPLIED,
 } from "./replay-migrations.mjs";
 
 const INVENTORY = [
@@ -93,6 +93,72 @@ test("planReplay with the map: apply classes and outside-ledger in inventory ord
   assert.deepEqual(plan.unreferenced, ["012_unlisted.sql"]);
 });
 
+test("the stack gets the Supabase-managed ledger table once, before the first file (170 writes into it)", () => {
+  const { report, calls } = run();
+  assert.equal(calls.filter((c) => c === "(ledger)").length, 1);
+  assert.equal(calls[0], "(ledger)", "the ledger table must exist before any migration file runs");
+  assert.equal(report.ok, true);
+  assert.match(LEDGER_TABLE_SQL, /create schema if not exists supabase_migrations/);
+  assert.match(LEDGER_TABLE_SQL, /create table if not exists supabase_migrations\.schema_migrations \(version text primary key, statements text\[\], name text\)/);
+});
+
+test("ATTACK: if the ledger table cannot be made, nothing is replayed and the failure is named", () => {
+  const { report, calls } = run({ failLedger: true });
+  assert.deepEqual(calls, ["(ledger)"]);
+  assert.equal(report.ok, false);
+  assert.equal(report.applied, 0);
+  assert.equal(report.stopped_at, "(stack prelude)");
+  assert.match(report.files[0].error.message, /permission denied/);
+});
+
+const NL = String.fromCharCode(10);
+
+test("needsAutocommit: CONCURRENTLY index statements need autocommit, a comment or a plain index does not", () => {
+  for (const sql of ["CREATE INDEX CONCURRENTLY IF NOT EXISTS i ON t (a);", "create unique index concurrently i on t(a);", "DROP INDEX CONCURRENTLY i;", "REINDEX INDEX CONCURRENTLY i;", "REINDEX (VERBOSE) TABLE CONCURRENTLY t;"]) assert.equal(needsAutocommit(sql), true, sql);
+  for (const sql of ["-- CREATE INDEX CONCURRENTLY x" + NL + "SELECT 1;", "CREATE INDEX i ON t (a);", "SELECT 1;", ""]) assert.equal(needsAutocommit(sql), false, sql);
+});
+
+test("runFileWithPsql runs a CONCURRENTLY file without --single-transaction (260 was applied by direct psql for that reason) and every other file inside one", () => {
+  const seen = [];
+  const spawn = (_bin, args) => { seen.push(args); return { status: 0, stdout: "", stderr: "" }; };
+  runFileWithPsql({ psql: "psql", dbUrl: URL_LOCAL, file: "/x/a.sql", text: "CREATE INDEX CONCURRENTLY i ON t (a);", spawn });
+  runFileWithPsql({ psql: "psql", dbUrl: URL_LOCAL, file: "/x/b.sql", text: "CREATE TABLE t (a int);", spawn });
+  runFileWithPsql({ psql: "psql", dbUrl: URL_LOCAL, file: "/x/c.sql", spawn });
+  assert.equal(seen[0].includes("--single-transaction"), false);
+  assert.ok(seen[0].includes("ON_ERROR_STOP=1"), "an autocommit file still stops at its first error");
+  assert.equal(seen[1].includes("--single-transaction"), true);
+  assert.equal(seen[2].includes("--single-transaction"), true, "without the source text the safe default is one transaction");
+});
+
+test("ORDER: planReplay replays in ledger version order when file numbers and ledger versions disagree", () => {
+  const inv = parseInventoryOrder(["| 010 | 010_x.sql | x |", "| 020 | 020_y.sql | y |", "| 030 | 030_z.sql | z |", ""].join("\n"));
+  const disk = ["010_x.sql", "020_y.sql", "030_z.sql"];
+  const ledger = [{ version: "010", name: "z" }, { version: "020", name: "x" }, { version: "030", name: "y" }];
+  const map = JSON.stringify({
+    "010": { name: "z", file: "030_z.sql", class: "identical" },
+    "020": { name: "x", file: "010_x.sql", class: "identical" },
+    "030": { name: "y", file: "020_y.sql", class: "identical" },
+  });
+  const plan = planReplay(inv, disk, ledger, map);
+  assert.deepEqual(plan.errors, []);
+  assert.deepEqual(plan.ordered.map((o) => o.file), ["030_z.sql", "010_x.sql", "020_y.sql"]);
+});
+
+test("ORDER on the committed tree: the replay plan is in ascending ledger version, and 028 still precedes 029", () => {
+  const plan = planReplay(
+    parseInventoryOrder(readFileSync(DEFAULT_INVENTORY, "utf8")),
+    readdirSync(DEFAULT_MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")),
+    JSON.parse(readFileSync(DEFAULT_APPLIED, "utf8")).migrations,
+    readFileSync(DEFAULT_MAP, "utf8"),
+  );
+  assert.deepEqual(plan.errors, []);
+  const versions = plan.ordered.filter((o) => /^\d+$/.test(o.key)).map((o) => BigInt(o.key));
+  assert.ok(versions.length > 300);
+  for (let i = 1; i < versions.length; i++) assert.ok(versions[i - 1] <= versions[i], `ledger order broken at position ${i}`);
+  const files = plan.ordered.map((o) => o.file);
+  assert.ok(files.indexOf("028_community_groups.sql") < files.indexOf("029_community_group_members.sql"));
+});
+
 test("ERROR: the map file absent is an error naming it and MIG-HIST-1 (red until it lands)", () => {
   const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, LEDGER, null);
   assert.equal(plan.errors.length, 1);
@@ -143,9 +209,13 @@ test("ATTACK: a non-loopback database URL is refused before anything runs", () =
 
 const GOOD_PROBE = { tables: 108, system_state: true, harness_runs: true, harness_runs_rls: true, triggers: ["guard_judgement_drain_writer_trg", "guard_pause_flag_writer_trg"] };
 
-function fakePsql({ failOn = {}, probe } = {}) {
+function fakePsql({ failOn = {}, probe, failLedger = false } = {}) {
   const calls = [];
   const spawn = (_bin, args) => {
+    if (args.includes("-c") && String(args[args.indexOf("-c") + 1]).includes("schema_migrations")) {
+      calls.push("(ledger)");
+      return failLedger ? { status: 3, stdout: "", stderr: "ERROR:  permission denied for database postgres\n" } : { status: 0, stdout: "", stderr: "" };
+    }
     if (args.includes("-c")) { calls.push("(probe)"); return { status: 0, stdout: JSON.stringify(probe ?? GOOD_PROBE), stderr: "" }; }
     const file = args[args.indexOf("-f") + 1];
     const name = file.split(/[\\/]/).pop();
@@ -156,10 +226,10 @@ function fakePsql({ failOn = {}, probe } = {}) {
   return { spawn, calls };
 }
 
-function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER } = {}) {
+function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER, failLedger = false } = {}) {
   const dir = fixtureDir();
   try {
-    const { spawn, calls } = fakePsql({ failOn, probe });
+    const { spawn, calls } = fakePsql({ failOn, probe, failLedger });
     const plan = planReplay(parseInventoryOrder(INVENTORY), DISK, ledger, mapText, fixtureText);
     const report = replay({ plan, migrationsDir: dir, dbUrl: URL_LOCAL, spawn, expectedTables: 108 });
     return { report, calls };
@@ -168,7 +238,7 @@ function run({ failOn, probe, mapText = MAP_TEXT, ledger = LEDGER } = {}) {
 
 test("replay applies exactly the planned files in order, never a satisfied or skipped one", () => {
   const { report, calls } = run();
-  assert.deepEqual(calls.filter((c) => c !== "(probe)"), ["001_schema.sql", "002_cmt.sql", "003_code.sql", "006_multi_tenant.sql", "009_live.sql", "010_rec.sql"]);
+  assert.deepEqual(calls.filter((c) => c !== "(probe)" && c !== "(ledger)"), ["001_schema.sql", "002_cmt.sql", "003_code.sql", "006_multi_tenant.sql", "009_live.sql", "010_rec.sql"]);
   assert.equal(report.applied, 6);
   assert.equal(report.ok, true);
   assert.equal(report.satisfied_count, 3);

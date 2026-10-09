@@ -82,11 +82,11 @@ elements, `LIST_ROW_NARROW_REFLOW_CSS` (now emitted under three triggers instead
 - Row CSS for the stacked row reuses the phone template rather than a copy (one template, three triggers).
 
 ### What is NOT done
-- Artboard 22 is not in `docs/design`, so nothing was compared against its frames; the build is to the verbatim text.
+- Artboard 22 is not in `docs/design`, so nothing was compared against its frames; the build is to the verbatim text. [NOT-WORK: operator item, recorded on the board]
 - `docs/design/ux-laws.md` ("mounted at 375 x 812 and 1280 x 800") and the F35 header and `description` text still
-  name two widths. They are outside this lane's write set; the behaviour is four widths.
+  name two widths. They are outside this lane's write set; the behaviour is four widths. [WORK: DOCS-5]
 - The layout guard (`layout-guard/`, 17 routes at 1440 and 1024) was not run locally. The mid row is measured at 1024
-  by the UX smoke slot; the CI Rendering guard job is the gate for the routes.
+  by the UX smoke slot; the CI Rendering guard job is the gate for the routes. [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ### DESIGN CHANGES OWED (for Claude Design, rule 20)
 - Artboard 22 ruling B: the system sheet gives no segment width or gap. Confirm 3px wide by 12px tall, 1px within a

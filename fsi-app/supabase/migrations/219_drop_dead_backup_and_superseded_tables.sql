@@ -15,6 +15,12 @@
 --
 -- APPLIED 2026-07-19 via apply_migration. Post-apply verified: all 8 to_regclass null; verified-live 210
 -- intact; drain_worklist intact; validate_item_provenance still valid on a live sample.
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37792517133, class OUT-OF-REPO-DROP): the tombstone loop below skips a table that
+-- does not exist (to_regclass guard with a NOTICE) instead of failing on the count. Six of the eight tables (all of (a) except
+-- intelligence_items_domain_backfill_audit, and (b)) are created by NO committed migration, so on a replay from the repo files they
+-- never exist and the pre-drop count was refused (relation does not exist). The grew-abort guard is unchanged for every table that
+-- exists. The drops are already IF EXISTS, so the end state (all eight absent) is the same; the schema oracle confirms it.
 
 DO $$
 DECLARE
@@ -22,6 +28,10 @@ DECLARE
   t text; cnt bigint;
 BEGIN
   FOR t IN SELECT jsonb_object_keys(expected) LOOP
+    IF to_regclass(format('public.%I', t)) IS NULL THEN
+      RAISE NOTICE 'TOMBSTONE %: absent, nothing to count', t;
+      CONTINUE;
+    END IF;
     EXECUTE format('SELECT count(*) FROM public.%I', t) INTO cnt;
     RAISE NOTICE 'TOMBSTONE %: % rows at drop (audit-time %)', t, cnt, expected->>t;
     IF cnt > (expected->>t)::bigint THEN

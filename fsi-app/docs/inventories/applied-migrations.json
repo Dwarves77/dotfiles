@@ -1,6 +1,6 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-09T02:49:04.143Z",
+  "synced_at": "2026-10-09T02:53:02.489Z",
   "count": 373,
   "migrations": [
     {

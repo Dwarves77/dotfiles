@@ -31,6 +31,12 @@
 -- Reversible: run the same block with old/new swapped (the pre-md5 guard then pins the post-patch md5,
 -- recorded in docs/inventories/migrations.md when applied).
 
+--
+-- 2026-10-08 (lane MIG-CI, ruling after replay run 37856351358, class GUARD-PIN): the pre-image md5 pin below is no longer fatal; a mismatch
+-- is reported with a NOTICE and the patch continues to its occurrence-count guards (which still abort on a wrong anchor count) and its post-patch
+-- check. The pin guarded a production apply against patching a body the author had not read; this patch is already applied there, and on a
+-- replay from the repo files the function body cannot be reproduced byte for byte (it was edited out of band, see 302 below), so the end
+-- state is checked where it is complete: the schema oracle compares pg_get_functiondef of every public function. Final schema unchanged.
 DO $$
 DECLARE
   v_def      text;
@@ -50,7 +56,7 @@ BEGIN
       RAISE NOTICE 'migration 289 already applied (new literal present, old absent); no-op';
       RETURN;
     END IF;
-    RAISE EXCEPTION 'ABORT 289: live validate_item_provenance md5 % differs from the body this patch was written for (%); read the live definition and re-derive before applying', md5(v_def), v_pre_md5;
+    RAISE NOTICE '289 GUARD-PIN (replay): live validate_item_provenance md5 % differs from the body this patch was written for (%); continuing on the occurrence-count guards below', md5(v_def), v_pre_md5;
   END IF;
   v_count := (length(v_def) - length(replace(v_def, v_old, ''))) / length(v_old);
   IF v_count <> 1 THEN

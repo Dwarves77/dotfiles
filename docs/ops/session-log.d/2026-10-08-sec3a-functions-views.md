@@ -76,11 +76,11 @@ Explicit REVOKE FROM PUBLIC present (14): admin_set_judgement_drain, admin_set_p
 
 ## NOT done
 
-- Not applied. The SQL has not been executed against any database; syntax and semantics were checked by reading only. The updated attacks.json legs have not been run against the proof stack.
-- Function default privileges for future SECURITY DEFINER functions are untouched (ruling 5); the list above is the input for the follow-up lane.
-- No src change.
+- Not applied. The SQL has not been executed against any database; syntax and semantics were checked by reading only. The updated attacks.json legs have not been run against the proof stack. [CLOSED: PR 1013]
+- Function default privileges for future SECURITY DEFINER functions are untouched (ruling 5); the list above is the input for the follow-up lane. [CLOSED: PR 1005]
+- No src change. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- Risk at apply: the self-check aborts (rolling the whole migration back) if a grant the REVOKE cannot remove exists, for example a grant made by a role other than the table owner, or a PUBLIC grant on a table or function. That is a finding, not a defect, but it cannot be predicted without live access.
-- Any later CREATE OR REPLACE VIEW of one of the three flipped views without WITH (security_invoker = on) resets the option; the static test scans migrations numbered above 369 for it.
+- Risk at apply: the self-check aborts (rolling the whole migration back) if a grant the REVOKE cannot remove exists, for example a grant made by a role other than the table owner, or a PUBLIC grant on a table or function. That is a finding, not a defect, but it cannot be predicted without live access. [CLOSED: PR 1013]
+- Any later CREATE OR REPLACE VIEW of one of the three flipped views without WITH (security_invoker = on) resets the option; the static test scans migrations numbered above 369 for it. [NOT-WORK: fact, no action]
