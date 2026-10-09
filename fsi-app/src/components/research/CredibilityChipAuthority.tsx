@@ -30,9 +30,36 @@
 import { useState } from "react";
 import { chipButtonStyle, chipPanelStyle } from "./CredibilityChipShared";
 
+/**
+ * The distribution scripts/research/authority-score.mjs `aggregateAuthorityDistribution` returns (DFIX-1,
+ * 2026-10-08, row 02-l3): the three buckets the chip always printed, plus `unknown` (a source whose standing
+ * could not be determined, never a guessed tier) and `integrityFlagged` (a retracted source, a flag and not a
+ * bucket). The last two are optional so a caller holding the older three-bucket shape still renders.
+ */
+export interface AuthorityDistributionShape {
+  highAuthorityIndependent: number;
+  medium: number;
+  vendorFlagged: number;
+  unknown?: number;
+  integrityFlagged?: number;
+}
+
+/** The chip's short label: the three buckets always, `unknown standing` and `integrity-flagged` only when above
+ *  zero, so the common case is unchanged and a retraction or an unknown source is never left out. PURE. */
+export function authorityDistributionLabel(d: AuthorityDistributionShape): string {
+  const parts = [
+    `${d.highAuthorityIndependent} high-authority`,
+    `${d.medium} medium`,
+    `${d.vendorFlagged} vendor-flagged`,
+  ];
+  if ((d.unknown ?? 0) > 0) parts.push(`${d.unknown} unknown standing`);
+  if ((d.integrityFlagged ?? 0) > 0) parts.push(`${d.integrityFlagged} integrity-flagged`);
+  return parts.join(" · ");
+}
+
 export interface CredibilityChipAuthorityProps {
-  /** Always null today — no distribution is computed; see file header. */
-  authorityDistribution?: { highAuthorityIndependent: number; medium: number; vendorFlagged: number } | null;
+  /** Null until the producer's distribution is wired in (see file header). */
+  authorityDistribution?: AuthorityDistributionShape | null;
   /** Real signal, NOT the authority score — source registry tier, clamped 1-7. */
   sourceTier?: number | null;
   /** Real signal, NOT the authority score — raw citation count (never rendered as credibility itself). */
@@ -58,9 +85,7 @@ export function CredibilityChipAuthority({
 }: CredibilityChipAuthorityProps) {
   const [open, setOpen] = useState(false);
   const scored = !!authorityDistribution;
-  const label = scored
-    ? `${authorityDistribution!.highAuthorityIndependent} high-authority · ${authorityDistribution!.medium} medium · ${authorityDistribution!.vendorFlagged} vendor-flagged`
-    : "needs role-class data";
+  const label = scored ? authorityDistributionLabel(authorityDistribution!) : "needs role-class data";
 
   const tier = typeof sourceTier === "number" ? Math.max(1, Math.min(7, Math.round(sourceTier))) : null;
 

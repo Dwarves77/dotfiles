@@ -9,6 +9,7 @@ import {
   ENTITY_LEVELS, ENTITY_LEVEL_LABELS, LEVEL_NOT_RECORDED_LABEL, MAX_MERGE_HOPS,
   normalizeAliasText, entityLevelLabel, aliasCandidates, resolveEntityByAlias, resolveSurvivors,
   ancestorChain, wouldCreateCycle, buildAliasResolverDeps,
+  ALIAS_PRIMARY_KEY, buildAliasRow, writeEntityAliases,
 } from "./resolve.mjs";
 import { entityId } from "./entity-id.mjs";
 
@@ -219,4 +220,90 @@ test("the Supabase-backed deps escape LIKE wildcards, page on the full key and c
   const entityReads = calls.filter((c) => c.table === "entities");
   assert.equal(entityReads.length, 4, "151 distinct ids read in chunks of at most 50 (fetchAllByIdChunks)");
   assert.ok(entityReads.every((c) => c.ops.find((o) => o[0] === "in")[2].length <= 50));
+});
+
+// ---- the alias writer (DFIX-1, 2026-10-08, ALIAS-1 open item: "a writer repeating its own assertion conflicts
+// on the PK and should use ON CONFLICT DO NOTHING") --------------------------------------------------------
+
+test("buildAliasRow stores the alias the way migration 377's CHECK demands and refuses what the table would refuse", () => {
+  const row = buildAliasRow({ entityId: GROUP, alias: "  A.P.   Moller  -  Maersk ", aliasKind: "name", assertedBy: "editor:fixture-one", assertedAt: "2026-10-01T00:00:00Z" });
+  assert.deepEqual(row, {
+    entity_id: GROUP, alias: "A.P. Moller - Maersk", alias_kind: "name", asserted_by: "editor:fixture-one",
+    asserted_at: "2026-10-01T00:00:00Z", source_id: null, provenance: null,
+  });
+  assert.throws(() => buildAliasRow({ entityId: GROUP, alias: "   ", aliasKind: "name", assertedBy: "x" }), /alias/);
+  assert.throws(() => buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "nickname", assertedBy: "x" }), /alias_kind/);
+  assert.throws(() => buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "name", assertedBy: " " }), /asserted_by/);
+  assert.throws(() => buildAliasRow({ entityId: "", alias: "Maersk", aliasKind: "name", assertedBy: "x" }), /entity_id/);
+  assert.throws(() => buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "name", assertedBy: "x", provenance: "text" }), /provenance/);
+});
+
+function fakeAliasClient({ existing = [], failWith = null } = {}) {
+  const calls = [];
+  const keyOf = (r) => ALIAS_PRIMARY_KEY.map((k) => r[k]).join("|");
+  const have = new Set(existing.map(keyOf));
+  const sb = {
+    from(table) {
+      const rec = { table, upsert: null, selected: null };
+      calls.push(rec);
+      return {
+        upsert(rows, opts) {
+          rec.upsert = { rows, opts };
+          return {
+            select(cols) {
+              rec.selected = cols;
+              if (failWith) return Promise.resolve({ data: null, error: { message: failWith } });
+              // ON CONFLICT DO NOTHING + return=representation: only the rows that were actually inserted come back
+              const inserted = rows.filter((r) => { const k = keyOf(r); if (have.has(k)) return false; have.add(k); return true; });
+              return Promise.resolve({ data: inserted, error: null });
+            },
+          };
+        },
+        insert() { throw new Error("a plain insert conflicts on the primary key: the writer must upsert with ignoreDuplicates"); },
+      };
+    },
+  };
+  return { sb, calls };
+}
+
+test("writeEntityAliases uses ON CONFLICT DO NOTHING on the full primary key and reports inserted versus skipped", async () => {
+  const a = buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "name", assertedBy: "editor:one" });
+  const b = buildAliasRow({ entityId: LEGAL, alias: "Maersk A/S", aliasKind: "name", assertedBy: "editor:one" });
+  const { sb, calls } = fakeAliasClient({ existing: [a] });
+  const out = await writeEntityAliases(sb, [a, b]);
+  assert.deepEqual(out, { attempted: 2, inserted: 1, skipped: 1 });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].table, "entity_aliases");
+  assert.deepEqual(calls[0].upsert.opts, { onConflict: "entity_id,alias,alias_kind,asserted_by", ignoreDuplicates: true });
+  assert.deepEqual(ALIAS_PRIMARY_KEY, ["entity_id", "alias", "alias_kind", "asserted_by"]);
+});
+
+test("writeEntityAliases: the same assertion twice in one call is sent once, and a second run inserts nothing (idempotent)", async () => {
+  const a = buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "name", assertedBy: "editor:one" });
+  const { sb, calls } = fakeAliasClient();
+  const first = await writeEntityAliases(sb, [a, { ...a }]);
+  assert.deepEqual(first, { attempted: 1, inserted: 1, skipped: 0 });
+  assert.equal(calls[0].upsert.rows.length, 1);
+  const second = await writeEntityAliases(sb, [a]);
+  assert.deepEqual(second, { attempted: 1, inserted: 0, skipped: 1 });
+});
+
+test("writeEntityAliases: evidence per asserter stays separate (the same alias asserted by two parties is two rows)", async () => {
+  const a = buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "name", assertedBy: "editor:one" });
+  const b = buildAliasRow({ entityId: GROUP, alias: "Maersk", aliasKind: "name", assertedBy: "rule:two" });
+  const { sb } = fakeAliasClient({ existing: [a] });
+  assert.deepEqual(await writeEntityAliases(sb, [a, b]), { attempted: 2, inserted: 1, skipped: 1 });
+});
+
+test("writeEntityAliases: rows go in chunks, an empty list touches nothing, and a database error is thrown, never swallowed", async () => {
+  const many = Array.from({ length: 450 }, (_, i) => buildAliasRow({ entityId: GROUP, alias: `Alias ${i}`, aliasKind: "other", assertedBy: "rule:bulk" }));
+  const { sb, calls } = fakeAliasClient();
+  const out = await writeEntityAliases(sb, many);
+  assert.deepEqual(out, { attempted: 450, inserted: 450, skipped: 0 });
+  assert.ok(calls.length > 1 && calls.every((c) => c.upsert.rows.length <= 200), "chunks of at most 200");
+  const none = fakeAliasClient();
+  assert.deepEqual(await writeEntityAliases(none.sb, []), { attempted: 0, inserted: 0, skipped: 0 });
+  assert.equal(none.calls.length, 0);
+  const broken = fakeAliasClient({ failWith: "boom" });
+  await assert.rejects(() => writeEntityAliases(broken.sb, many.slice(0, 1)), /entity_aliases write failed: boom/);
 });

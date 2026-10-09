@@ -28,6 +28,8 @@
  * above that admissibleFor() has no equivalent for (it knows lifecycle/admissibility, not status_token).
  */
 
+import { Fragment } from "react";
+import Link from "next/link";
 import { FLOOR } from "@/lib/entities/decisions.mjs";
 
 export type InferenceStatusToken = "CONFIRMED" | "HYPOTHESIS" | "REFUTED";
@@ -85,10 +87,14 @@ export interface InferenceClaimProps {
    *  supplied or returns null (never fabricates a title, same integrity posture as every other
    *  render in this codebase). */
   resolveCitationTitle?: (itemId: string) => string | null;
+  /** Resolves a cited item id to its detail page (DFIX-1, row 05-p2). A title whose item has an href is a link,
+   *  its own 44px target (ux-laws law 2); one without stays plain text. Omitted, every title is plain text,
+   *  exactly the earlier behaviour, so a caller that cannot build a route (the admin review) is unchanged. */
+  resolveCitationHref?: (itemId: string) => string | null;
   use?: InferenceUse;
 }
 
-export function InferenceClaim({ claim, resolveCitationTitle, use = "analysis" }: InferenceClaimProps) {
+export function InferenceClaim({ claim, resolveCitationTitle, resolveCitationHref, use = "analysis" }: InferenceClaimProps) {
   const verdict = admissibleForInference(claim, use);
 
   return (
@@ -109,9 +115,26 @@ export function InferenceClaim({ claim, resolveCitationTitle, use = "analysis" }
             Confidence {(claim.confidence * 100).toFixed(0)}%
           </div>
           <div className="cl-card-meta" style={{ marginTop: 4 }}>
-            Cited: {claim.citedItemIds
-              .map((id) => resolveCitationTitle?.(id) ?? id)
-              .join(", ")}
+            Cited:{" "}
+            {claim.citedItemIds.map((id, i) => {
+              const title = resolveCitationTitle?.(id) ?? id;
+              const href = resolveCitationHref?.(id) ?? null;
+              return (
+                <Fragment key={id}>
+                  {i > 0 ? ", " : ""}
+                  {href ? (
+                    <Link
+                      href={href}
+                      style={{ display: "inline-flex", alignItems: "center", minHeight: 44, color: "inherit", textDecoration: "underline" }}
+                    >
+                      {title}
+                    </Link>
+                  ) : (
+                    title
+                  )}
+                </Fragment>
+              );
+            })}
           </div>
         </>
       )}

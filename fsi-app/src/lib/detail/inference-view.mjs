@@ -154,8 +154,10 @@ export function pickVisibleInferences(views, isAdmissible) {
  * Returns null when there is nothing to show, and on any read error (the section renders nothing).
  * @param {{from: Function}} supabase
  * @param {string} itemId intelligence_items.id
- * @param {(ids: string[]) => Promise<Array<{id:string, title:string}>>} readCitedTitles
- * @returns {Promise<{claims: ReturnType<typeof selectCurrentInferences>, titles: Record<string,string>} | null>}
+ * @param {(ids: string[]) => Promise<Array<{id:string, title:string, href?:string|null}>>} readCitedTitles
+ *   `href` (DFIX-1, row 05-p2) is the cited item's detail page, when the reader can build one; the section turns
+ *   the title into a link only for an item that has it, and never guesses a route for one that does not.
+ * @returns {Promise<{claims: ReturnType<typeof selectCurrentInferences>, titles: Record<string,string>, hrefs: Record<string,string>} | null>}
  */
 export async function readCustomerInferences(supabase, itemId, readCitedTitles) {
   const { data: rows, error } = await supabase
@@ -177,6 +179,7 @@ export async function readCustomerInferences(supabase, itemId, readCitedTitles) 
   if (claims.length === 0) return null;
   const cited = await readCitedTitles(claims.flatMap((c) => c.citedItemIds));
   const titles = Object.fromEntries((cited ?? []).map((c) => [c.id, c.title]));
+  const hrefs = Object.fromEntries((cited ?? []).filter((c) => typeof c.href === "string" && c.href).map((c) => [c.id, c.href]));
   const visible = restrictToVisibleCitations(claims, titles);
-  return visible.length ? { claims: visible, titles } : null;
+  return visible.length ? { claims: visible, titles, hrefs } : null;
 }

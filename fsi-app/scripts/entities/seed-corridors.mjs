@@ -34,9 +34,9 @@
 //   today it returns [] for all four live keyPrefixes (proved in the test file against real key shapes).
 //
 //   regional_data_facts (migration 106): identity is `(region_id, dimension, fact_label)`. `dimension` is
-//   a CLOSED 6-value CHECK (regulatory_feasibility / regional_resources / labor_markets /
-//   materials_sourcing / infrastructure / operational_cost) — six Operations dimensions about ONE region,
-//   never a route between two. `deriveCorridorCandidatesFromRegionalFacts()` applies the SAME
+//   a CLOSED CHECK over the Operations dimension vocabulary (ALL_OPERATIONS_DIMENSIONS in
+//   src/lib/agent/formats/operations-matrix.ts is its one typed home; migrations 106, 109 and 378 spell it)
+//   The rows are Operations dimensions about ONE region, never a route between two. `deriveCorridorCandidatesFromRegionalFacts()` applies the SAME
 //   `corridor:<ORIGIN>-<DEST>:<mode>` recognition to `fact_label` for the same future-proofing reason;
 //   today it returns [] (region facts describe wages, energy, infrastructure, never a lane).
 //

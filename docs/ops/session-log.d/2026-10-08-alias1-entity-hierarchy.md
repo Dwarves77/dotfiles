@@ -39,5 +39,5 @@
 
 ## Open items
 
-- A writer repeating its own (entity, alias, alias_kind, asserted_by) conflicts on the PK and should use ON CONFLICT DO NOTHING. [WORK: DFIX-1]
+- A writer repeating its own (entity, alias, alias_kind, asserted_by) conflicts on the PK and should use ON CONFLICT DO NOTHING. [CLOSED: PR 1059]
 - `F47` (db-object-reference) and `F25` (module-liveness) were reasoned about, not run (the fitness runner is CI-only): both new tables are named by non-test code (`resolve.mjs`), and `resolve.mjs` is imported by `surface-acceptance.mjs`, a data-audit marker root. [NOT-WORK: build-mode hold, COMMON rule 9]

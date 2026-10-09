@@ -518,16 +518,10 @@ const regions = [
   ...${extraRegions},
 ];
 
-// Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) -- the audit reproduces
-// the production data shape exactly rather than asserting an invented one.
-const DIMENSIONS = [
-  { num: 1, key: 'regulatory', db: 'regulatory_feasibility', name: 'Regulatory feasibility' },
-  { num: 2, key: 'resources', db: 'regional_resources', name: 'Regional resource availability' },
-  { num: 3, key: 'labor', db: 'labor_markets', name: 'Labor markets' },
-  { num: 4, key: 'materials', db: 'materials_sourcing', name: 'Materials sourcing' },
-  { num: 5, key: 'infrastructure', db: 'infrastructure', name: 'Infrastructure capacity' },
-  { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost' },
-];
+// OperationsLedger.tsx's own exported DIMENSIONS constant (which maps ALL_OPERATIONS_DIMENSIONS), imported and
+// not restated (DFIX-1, 2026-10-08): the audit measures the production data shape itself, so a dimension added
+// to the shared vocabulary reaches this mount with no second edit.
+import { DIMENSIONS } from '@/components/operations/OperationsLedger';
 
 // THE FIXTURE IS THE SHAPE OF THE LIVE CORPUS, not a convenience sample:
 //   - D1 regulatory_feasibility has ZERO rows, structurally, on every region (it always has);
@@ -1779,7 +1773,7 @@ const COMMUNITY_ROOMS_FIXTURE = [
     // correctly). Only failed unbaselined at 1024 because the SAME finding at 1440 was already in
     // the dated baseline (baseline.json: "L10|/community|1440|/community"); the underlying cause is
     // width-independent.
-    key: 'GLOBAL', name: 'Global room', short: 'GLO', groupId: 'g-global', joined: true, youHere: true,
+    key: 'GLOBAL', name: 'Global room', short: 'Global', groupId: 'g-global', joined: true, youHere: true,
     itemCount: 9, itemCountKnown: true, hue: 'moderate', themes: ['Research', 'Fuels', 'Corridors'],
     liveItems: [], roster: [{ name: 'Jason', isYou: true, isOwner: true }],
     threads: [

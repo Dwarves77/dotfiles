@@ -195,6 +195,27 @@ test("two admissible inferences and one refuted show two, labelled, each with it
   assert.doesNotMatch(t, /Not admissible/, "a refused claim is left out, not shown as an error card");
 });
 
+test("DFIX-1 (row 05-p2): a cited title with an href is a link of its own at the 44px floor; one without stays plain text", () => {
+  const data = {
+    claims: [claim({ id: "c1", citedItemIds: [ITEM_A, ITEM_B] })],
+    titles: TITLES,
+    hrefs: { [ITEM_A]: "/regulations/reg-a" },
+  };
+  const markup = stripStyle(html(h(M.InferenceSection, { inferences: data })));
+  const link = /<a href="\/regulations\/reg-a"([^>]*)>Regulation on carrier reporting<\/a>/.exec(markup);
+  assert.ok(link, "the first cited title is a link to its detail page");
+  assert.match(link[1], /min-height:44px/, "law 2: the link is its own 44px target");
+  assert.doesNotMatch(markup, /<a [^>]*>Guidance on first quarter filing<\/a>/, "no href, no link");
+  assert.match(text(markup), /Cited:.*Guidance on first quarter filing/);
+});
+
+test("DFIX-1: with no hrefs the Cited line is exactly the plain comma-joined titles it always was", () => {
+  const data = { claims: [claim({ id: "c1", citedItemIds: [ITEM_A, ITEM_B] })], titles: TITLES };
+  const markup = stripStyle(html(h(M.InferenceSection, { inferences: data })));
+  assert.doesNotMatch(markup, /<a /);
+  assert.match(text(markup), /Cited: Regulation on carrier reporting, Guidance on first quarter filing/);
+});
+
 test("the section renders nothing at all with no inferences, with none admissible, or with no data", () => {
   assert.equal(html(h(M.InferenceSection, { inferences: null })), "");
   assert.equal(html(h(M.InferenceSection, {})), "");

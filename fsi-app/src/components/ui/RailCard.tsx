@@ -31,7 +31,9 @@ import { SectionCard } from "@/components/ui/SectionCard";
 
 const RAIL_CARD_TITLE_STYLE: React.CSSProperties = {
   fontSize: "var(--fs-105)",
-  fontWeight: 800,
+  // 700: parts-brief 2.12 and the artboards (dc.html p13 and the card headers) say 700. The MOBILE 390 text
+  // spec said 800; the artboard wins (rule 20, DFIX-1 ruling 2026-10-08), and that spec row now says 700.
+  fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
   color: "var(--ink-3)",

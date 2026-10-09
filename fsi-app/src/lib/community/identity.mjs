@@ -171,19 +171,85 @@ export function effectiveAnonymous({ postAnonymous, identity } = {}) {
 }
 
 /**
+ * Whether a post's author id must be withheld from readers who are not the author or an admin (DFIX-1,
+ * 2026-10-08, SEC-5 residual): the post is anonymous by its own flag or by the author's account default (the
+ * identity row says so), OR the identity could not be resolved at all. An unresolved identity is not known to be
+ * public, so it fails closed. PURE.
+ *
+ * @param {{ postAnonymous?: boolean|null, identity?: { anonymous?: boolean|null } | null }} args
+ * @returns {boolean}
+ */
+export function idWithheldForAnonymity({ postAnonymous, identity } = {}) {
+  return !identity || effectiveAnonymous({ postAnonymous, identity });
+}
+
+/**
+ * The author id a given viewer may see. A named author's id is public (the name is). An anonymous author's id is
+ * returned only to that author (their own edit and delete need it) and to a platform admin (moderation); to
+ * everyone else it is null, so two anonymous posts cannot be linked by a bare id. The check is in the READ path:
+ * no client is trusted to hide it. `isAdmin` counts only as a real `true`. PURE.
+ *
+ * @param {{ authorUserId?: string|null, withheld?: boolean, viewer?: { userId?: string|null, isAdmin?: boolean } | null }} args
+ * @returns {string|null}
+ */
+export function authorIdForViewer({ authorUserId, withheld, viewer } = {}) {
+  if (!authorUserId) return null;
+  if (!withheld) return authorUserId;
+  if (viewer?.userId && viewer.userId === authorUserId) return authorUserId;
+  if (viewer?.isAdmin === true) return authorUserId;
+  return null;
+}
+
+/**
+ * The author id one post row shows a viewer: authorIdForViewer with the withholding decided by
+ * idWithheldForAnonymity. The one call every read route makes per row. PURE.
+ *
+ * @param {{ authorUserId?: string|null, postAnonymous?: boolean|null, identity?: { anonymous?: boolean|null } | null, viewer?: { userId?: string|null, isAdmin?: boolean } | null }} args
+ * @returns {string|null}
+ */
+export function authorIdForRow({ authorUserId, postAnonymous, identity, viewer } = {}) {
+  return authorIdForViewer({ authorUserId, withheld: idWithheldForAnonymity({ postAnonymous, identity }), viewer });
+}
+
+/**
+ * Whether the viewer is a platform admin, asked at most once and only when it can change an answer: some row's
+ * author id is withheld and the viewer is not that row's author. `readAdmin` is the viewer's own admin read
+ * (readOwnPlatformAdmin through the user session); one that throws or answers anything but true is "not an
+ * admin", so a failed read never widens what is shown.
+ *
+ * @param {{ rows: Array<{ author_user_id?: string|null, anonymous?: boolean|null }>, viewerUserId?: string|null, identitiesById: Map<string, any>, readAdmin: () => Promise<boolean> }} args
+ * @returns {Promise<boolean>}
+ */
+export async function viewerAdminIfNeeded({ rows, viewerUserId, identitiesById, readAdmin }) {
+  const needed = (rows ?? []).some(
+    (r) =>
+      r.author_user_id &&
+      r.author_user_id !== viewerUserId &&
+      idWithheldForAnonymity({ postAnonymous: r.anonymous, identity: identitiesById?.get(r.author_user_id) ?? null })
+  );
+  if (!needed) return false;
+  try {
+    return (await readAdmin()) === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The legacy `author` block of a post or reply ({ user_id, name, headshot_url }) built from a community_identity
  * row, with per-post anonymity applied. An anonymous author keeps the block (so the row still has an author) with
  * name and headshot null; the verified marker travels separately, in author_identity. Returns null when there is no
- * author or no identity row (a deleted author), never a stand-in.
+ * author or no identity row (a deleted author), never a stand-in. `user_id` follows authorIdForViewer: on an
+ * anonymous author it is null for every viewer but the author and an admin (pass `viewer`; none is a stranger).
  *
- * @param {{ authorUserId?: string|null, identity?: { user_id: string, display_name?: string|null, avatar_url?: string|null, anonymous?: boolean|null } | null, postAnonymous?: boolean|null }} args
- * @returns {{ user_id: string, name: string|null, headshot_url: string|null } | null}
+ * @param {{ authorUserId?: string|null, identity?: { user_id: string, display_name?: string|null, avatar_url?: string|null, anonymous?: boolean|null } | null, postAnonymous?: boolean|null, viewer?: { userId?: string|null, isAdmin?: boolean } | null }} args
+ * @returns {{ user_id: string|null, name: string|null, headshot_url: string|null } | null}
  */
-export function authorBlockForPost({ authorUserId, identity, postAnonymous } = {}) {
+export function authorBlockForPost({ authorUserId, identity, postAnonymous, viewer } = {}) {
   if (!authorUserId || !identity) return null;
   const anonymous = effectiveAnonymous({ postAnonymous, identity });
   return {
-    user_id: identity.user_id ?? authorUserId,
+    user_id: authorIdForViewer({ authorUserId: identity.user_id ?? authorUserId, withheld: anonymous, viewer }),
     name: anonymous ? null : identity.display_name ?? null,
     headshot_url: anonymous ? null : identity.avatar_url ?? null,
   };

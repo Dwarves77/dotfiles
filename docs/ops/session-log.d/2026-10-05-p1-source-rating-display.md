@@ -113,7 +113,7 @@ when it has no data. They cannot sit in a row's meta line and cannot honour "ren
 - Operations matrix fact cards now show the source's customer tier (or the Absence part): the existing `source:sources(...)` join in `fetchOperationsCoverage` selects the three tier columns, `source_tier` is mapped through `customerSourceTier`, `RegionDimensionMatrix` passes `sourceTier`, the matrix `FactCard` draws it. No new query. Tests: a rated and an unrated fact in `source-rating-display.npmtest.mjs`. [NOT-WORK: fact, no action]
 - Sources grid entries other than the item's own registered source carry no bias and keep the tier the brief text
   was written with: the parsed list has no source id. What would supply it: a loader read of `intelligence_item_citations` (item to source ids, migration 089) joined to `sources` and matched to each entry by canonical url, in `fetchIntelligenceItemUncached`, plus a typed field on Resource. [WORK: DFIX-1]
-- At 768 to 1023 px the title column is narrow (169 px at 768), so row chips ellipsise heavily; the count stays. [WORK: DFIX-1]
+- At 768 to 1023 px the title column is narrow (169 px at 768), so row chips ellipsise heavily; the count stays. [REFUTED: PAR-1 (2026-10-07) replaced the 768 to 1023 grid with the stacked row; measured in Chromium on PR 1059, title 627 px at 768 and no clipped chip at 768, 900, 1023, 1024, 1100]
 - Claim matching against live rows is unverified (see Decisions). No live read was possible. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - `ProvisionalReviewCard.tsx` and the admin parts pages were not touched (no new part had to be shown there). [NOT-WORK: fact, no action]
 

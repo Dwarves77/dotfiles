@@ -14,8 +14,10 @@
 //     decline an edge before the trigger refuses it and the coherence test can check a snapshot.
 //
 // DATA ACCESS IS INJECTED. Every reader takes a `deps` object (the repo's convention: tests pass fakes, the
-// runners pass Supabase-backed readers built below). Nothing here writes: entity_aliases is INSERT-only and
-// written by the population lane, entity_relations by the same lane, both through the guarded path.
+// runners pass Supabase-backed readers built below). entity_aliases is INSERT-only; its ONE writer is
+// writeEntityAliases below (DFIX-1, 2026-10-08: ON CONFLICT DO NOTHING on the full primary key, so a party
+// repeating its own assertion is a skip and not an error). entity_relations is written by the population lane
+// through the guarded path.
 //
 // PLAIN ESM; node: builtins and relative imports only (the no-npm discipline glob imports this through
 // scripts/verify/surface-acceptance.mjs's test).
@@ -279,4 +281,55 @@ export function readEntityAliases(sb) {
       .select("entity_id,alias,alias_kind,asserted_by,asserted_at,source_id,provenance")
       .order("entity_id").order("alias").order("alias_kind")
       .range(from, to));
+}
+
+// ---- the alias writer (DFIX-1, 2026-10-08) -----------------------------------------------------------------
+
+/** The primary key of entity_aliases (migration 377): one row per asserter per (entity, alias, kind). */
+export const ALIAS_PRIMARY_KEY = Object.freeze(["entity_id", "alias", "alias_kind", "asserted_by"]);
+
+/** Rows per request: well inside PostgREST's body limits and the repo's other chunked writers. */
+const ALIAS_WRITE_CHUNK = 200;
+
+/**
+ * One entity_aliases row in the form migration 377's CHECKs store: alias trimmed and whitespace-collapsed,
+ * alias_kind in the closed list, asserted_by non-blank, provenance a JSON object or null. Throws on what the
+ * table would refuse, so a bad row fails before the request and names its column. PURE.
+ * @param {{entityId:string, alias:string, aliasKind:string, assertedBy:string, assertedAt?:string|null, sourceId?:string|null, provenance?:object|null}} input
+ */
+export function buildAliasRow({ entityId, alias, aliasKind, assertedBy, assertedAt = null, sourceId = null, provenance = null } = {}) {
+  if (typeof entityId !== "string" || !entityId.trim()) throw new Error("entity_aliases row: entity_id is required");
+  const text = normalizeAliasText(alias);
+  if (!text) throw new Error("entity_aliases row: alias is blank");
+  if (!ALIAS_KINDS.includes(aliasKind)) throw new Error(`entity_aliases row: alias_kind ${JSON.stringify(aliasKind)} is not one of ${ALIAS_KINDS.join(", ")}`);
+  if (typeof assertedBy !== "string" || !assertedBy.trim()) throw new Error("entity_aliases row: asserted_by is required (an alias is evidence of who said it)");
+  if (provenance !== null && (typeof provenance !== "object" || Array.isArray(provenance))) throw new Error("entity_aliases row: provenance must be a JSON object or null");
+  return { entity_id: entityId, alias: text, alias_kind: aliasKind, asserted_by: assertedBy.trim(), asserted_at: assertedAt, source_id: sourceId, provenance };
+}
+
+/**
+ * Insert alias rows with ON CONFLICT DO NOTHING on the full primary key. A party repeating its own assertion
+ * is skipped, never an error and never an update (the table refuses UPDATE by trigger: a correction is a new
+ * row with a later asserted_at). The same key twice in one call is sent once. Returns the counts of what was
+ * attempted, actually inserted (the database says which) and skipped; a database error is thrown.
+ * `sb` is a service-role Supabase client (writes are service_role only, migration 377).
+ * @param {object} sb
+ * @param {Array<ReturnType<typeof buildAliasRow>>} rows
+ * @returns {Promise<{attempted:number, inserted:number, skipped:number}>}
+ */
+export async function writeEntityAliases(sb, rows) {
+  const unique = new Map();
+  for (const r of rows ?? []) unique.set(ALIAS_PRIMARY_KEY.map((k) => r[k]).join(" "), r);
+  const list = [...unique.values()];
+  let inserted = 0;
+  for (let i = 0; i < list.length; i += ALIAS_WRITE_CHUNK) {
+    const slice = list.slice(i, i + ALIAS_WRITE_CHUNK);
+    const { data, error } = await sb
+      .from("entity_aliases")
+      .upsert(slice, { onConflict: ALIAS_PRIMARY_KEY.join(","), ignoreDuplicates: true })
+      .select(ALIAS_PRIMARY_KEY.join(","));
+    if (error) throw new Error(`entity_aliases write failed: ${error.message}`);
+    inserted += (data ?? []).length;
+  }
+  return { attempted: list.length, inserted, skipped: list.length - inserted };
 }
