@@ -36,7 +36,7 @@
 // NO TRAIN COUNTER (lane GATE-8, 2026-10-08, coordinator ruling after AUD-AT-5). The old counter (the highest
 // `train/wave<N>` commit reachable from HEAD) had not advanced since 2026-09-11, so every age and every
 // allowlist expiry measured against it was frozen. Age is now a DATE: STALE-NEXT measures a row's last-touched
-// commit date against the clock below; an allowlist expiry is an ISO `until` date (as NEVER_RUN_DORMANT's is).
+// commit date against the clock below; an allowlist expiry is an ISO `until` date (as the dormant audit's is).
 // The clock is the harness ledger export's capturedAt, else its newest run date, else the wall clock (ledgerClock).
 //
 // REUSE, NOT A COPY (CLAUDE.md: no copies of logic). Check 3 does NOT reimplement table/writer/reader
@@ -124,6 +124,44 @@ export function isDispatchable(yamlText) {
   return hasWorkflowTrigger(yamlText || '', 'workflow_dispatch');
 }
 
+/** The later of two optional Dates (null when neither is set). Pure. */
+function newerDate(a, b) {
+  if (a && b) return a.getTime() >= b.getTime() ? a : b;
+  return a || b || null;
+}
+
+/**
+ * Lane DORMANT-1 (2026-10-09): the date of a run of a workflow that actually executed, read from the Actions API
+ * response of `repos/{owner}/{repo}/actions/workflows/<file>/runs?per_page=1`. A run counts when it ran: completed
+ * with any conclusion except skipped and cancelled (a failed run still ran and is in the ledger of what happened),
+ * or in progress. A queued, waiting, skipped or cancelled run did not execute. Null when there is no such run. Pure.
+ * @param {{workflow_runs?: Array<{status?: string, conclusion?: string|null, run_started_at?: string, created_at?: string}>}|null} apiJson
+ * @returns {Date|null}
+ */
+export function liveRunEvidence(apiJson) {
+  const run = apiJson?.workflow_runs?.[0];
+  if (!run) return null;
+  const executed = run.status === 'in_progress' || (run.status === 'completed' && run.conclusion !== 'skipped' && run.conclusion !== 'cancelled');
+  if (!executed) return null;
+  const t = Date.parse(run.run_started_at ?? run.created_at);
+  return Number.isNaN(t) ? null : new Date(t);
+}
+
+/**
+ * Lane DORMANT-1: the newest live run of a workflow file, or null. Runs only when GITHUB_TOKEN is present (CI);
+ * without a token the ledger export alone decides. Any API failure is zero evidence, never a pass. `env` and
+ * `exec` are injected so the lookup is fixture-testable with no network.
+ */
+export function fetchLiveRun(workflowFile, { env = process.env, exec = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }) } = {}) {
+  if (!env.GITHUB_TOKEN) return null;
+  try {
+    const repo = env.GITHUB_REPOSITORY || '{owner}/{repo}';
+    return liveRunEvidence(JSON.parse(exec('gh', ['api', `repos/${repo}/actions/workflows/${workflowFile}/runs?per_page=1`])));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * PURE CORE (lane GATE-3, 2026-10-08: the train counter and the allowlist are gone). `targets`:
  * [{ id, introducedAt: Date|null, newestRunAt: Date|null }],
@@ -145,19 +183,23 @@ export function checkNeverRun({ targets, now, windowDays = NEVER_RUN_WINDOW_DAYS
   const days = (from) => Math.floor((now.getTime() - from.getTime()) / DAY_MS);
   const overdue = [];
   for (const t of targets) {
-    if (t.newestRunAt) {
-      const age = days(t.newestRunAt);
+    // Lane DORMANT-1 (2026-10-09): the evidence is the newer of the ledger export's newest row and a run found live
+    // (t.liveRunAt, from the Actions API when a token is present). A stale ledger row does not hide a fresh live run.
+    const evidence = newerDate(t.newestRunAt, t.liveRunAt);
+    if (evidence) {
+      const age = days(evidence);
       if (age > windowDays) {
-        overdue.push({ id: t.id, reason: `NEVER-RUN: newest harness_runs row is ${age} days old (window ${windowDays} days). Dispatch it, then regenerate the harness ledger export.` });
+        const what = t.liveRunAt && evidence === t.liveRunAt ? 'newest live run' : 'newest harness_runs row';
+        overdue.push({ id: t.id, reason: `NEVER-RUN: ${what} is ${age} days old (window ${windowDays} days). Dispatch it, then regenerate the harness ledger export.` });
       }
       continue;
     }
     // THE LEDGER IS THE AUTHORITY WHEN IT EXISTS (coordinator addition from AUD-AT-5, 2026-10-08). With the export
-    // committed, "has this workflow ever run" is answered by it alone: a target with no ledger row has never run,
-    // however young the target is, so a brand-new never-run workflow fails here instead of riding the window
-    // (and no train counter or introduction date is consulted). Without the export there is nothing to ask, so the
-    // age window below stays the only measure (zero evidence, never a hard failure: the export needs a credentialed
-    // refresh).
+    // committed, "has this workflow ever run" is answered by it (or by a live run) alone: a target with neither has
+    // never run, however young the target is, so a brand-new never-run workflow fails here instead of riding the
+    // window (and no train counter or introduction date is consulted). Without the export there is nothing to ask,
+    // so the age window below stays the only measure (zero evidence, never a hard failure: the export needs a
+    // credentialed refresh).
     if (ledgerPresent) {
       overdue.push({ id: t.id, reason: `NEVER-RUN: the harness ledger export holds no run of ${t.id}. Dispatch it, then regenerate the harness ledger export.` });
       continue;
@@ -189,37 +231,16 @@ export function checkNeverRun({ targets, now, windowDays = NEVER_RUN_WINDOW_DAYS
 }
 
 /**
- * Dispatch-only workflows held out of the NEVER-RUN window until a date (lane GATE-8, 2026-10-08). Each was invisible
- * to this check until the on: reader was fixed: the old reader cut the on: block at the first column-0 comment
- * line, which all three carry (the commented-out schedule), so none was ever seen as dispatchable. They record no
- * harness family, so the ledger can never evidence them, and they are dormant by the build-mode ruling (CLAUDE.md
- * standing rule 16, ADR-023: no standing schedules during build, every runtime by explicit dispatch). The decision is
- * either to dispatch each once and regenerate the ledger export, or to delete the workflow; the date forces it.
+ * EMPTY, and an entry is a defect (lane DORMANT-1, 2026-10-09). Operator: "We do not do workarounds we fix the
+ * problem fix it." This list used to hold 18 workflows out of the NEVER-RUN window until a date (GATE-8 added 3, PR
+ * 1041 added 14, DAUDIT-2 added 1): an exemption for a workflow nobody had run, which is the lie rule 15 forbids
+ * ("execution over existence"). The answer to a workflow that has not run is to run it. In build mode (standing
+ * rule 16) a dispatched run exits at its kill-switch gate having done no data work, and that exit IS a run: it
+ * lands in the harness ledger when the workflow records a family, and is found live through the Actions API
+ * (fetchLiveRun) when it does not. Nothing is exempted; the shape of checkNeverRun's `dormant` parameter is kept
+ * only so its audit (an entry expires, a stale entry fails) stays tested, and the shipped list is asserted empty.
  */
-const DORMANT_REASON = 'Dormant by the build-mode ruling (standing rule 16, ADR-023): dispatch-only, schedule commented out, no harness family, so no ledger row can exist. Exposed by the GATE-8 on: reader fix. Dispatch it once or delete the workflow.';
-const BUILD_MODE_DORMANT_REASON = 'build mode: dispatch-only workflow, never dispatched; fires at Stage 9';
-export const NEVER_RUN_DORMANT = Object.freeze({
-  'workflow:data-audit-lane.yml': { reason: DORMANT_REASON, until: '2026-11-30' },
-  'workflow:source-monitoring.yml': { reason: DORMANT_REASON, until: '2026-11-30' },
-  'workflow:spot-check-monthly.yml': { reason: DORMANT_REASON, until: '2026-11-30' },
-  'workflow:brief-apply.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:brief-export.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:chain-proof.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:corpus-turn.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:date-chain.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:fetch-drain.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:gate-a-rescan.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:layout-baseline-renewal.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:needs-search.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:question-answers.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:research-assessment.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:research-walker.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:theme-briefs.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  'workflow:uptime-probes.yml': { reason: BUILD_MODE_DORMANT_REASON, until: '2026-11-30' },
-  // Lane DAUDIT-2 (2026-10-08, coordinator ruling): a new pull_request workflow has no ledger row until it has
-  // run once on master and the next ledger export is taken.
-  'workflow:design-audit.yml': { reason: 'new pull_request job; its first run enters the next ledger export', until: '2026-10-22' },
-});
+export const NEVER_RUN_DORMANT = Object.freeze({});
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // CHECK 2 — STALE-NEXT
@@ -460,9 +481,11 @@ function buildIntroducingCommitForFileIndex(paths) {
   return found;
 }
 
-const HARNESS_FAMILY_BY_WORKFLOW = {
+export const HARNESS_FAMILY_BY_WORKFLOW = {
   'population-turn.yml': 'mint',
-  'corpus-turn.yml': 'forward-events',
+  // Lane DORMANT-1 (2026-10-09): corpus-turn.yml was mapped to 'forward-events', a family it also writes but whose
+  // ledger holds no row; the family it lands every dispatch under is 'corpus-turn' (its own rows, 2026-10-07).
+  'corpus-turn.yml': 'corpus-turn',
   'source-sweep.yml': 'source-sweep',
   'ledger-consume.yml': 'ledger-consume',
   'change-detection.yml': 'change-detection',
@@ -486,6 +509,18 @@ const HARNESS_FAMILY_BY_WORKFLOW = {
   // Lane PROOF-1 (2026-10-07): chain-proof records its own harness family (counts and hashed ids, uploaded as a
   // workflow artifact; the job holds no production write credential, so a ledger row is a separate hand step).
   'chain-proof.yml': 'chain-proof',
+  // Lane DORMANT-1 (2026-10-09): nine workflows already record their own family and already have rows in the ledger
+  // export (dispatches of 2026-10-03 to 2026-10-08), but were absent from this map, so the gate could not see the rows
+  // and the workflows sat on the dormant list. Each family below is the one the workflow's own landing step writes.
+  'brief-apply.yml': 'brief-apply',
+  'brief-export.yml': 'brief-export',
+  'fetch-drain.yml': 'fetch-drain',
+  'gate-a-rescan.yml': 'gate-a-rescan',
+  'needs-search.yml': 'needs-search',
+  'question-answers.yml': 'question-answers',
+  'research-assessment.yml': 'research-assessment',
+  'research-walker.yml': 'research-walker',
+  'theme-briefs.yml': 'theme-briefs',
 };
 
 // Lane GATE-3 (2026-10-08): the NEVER-RUN clock. Dispatch evidence is the committed harness ledger export
@@ -501,7 +536,12 @@ const HARNESS_FAMILY_BY_WORKFLOW = {
 // "all" (a single dispatch of maintenance.yml's `all` option ran every step dry, so it is real evidence for
 // each). A workflow is dated by the newest row of its harness family (HARNESS_FAMILY_BY_WORKFLOW). A
 // workflow with no family mapping gets no ledger date. Prose and committed artifacts are not evidence (see checkNeverRun).
-export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO) } = {}) {
+//
+// Lane DORMANT-1 (2026-10-09): a workflow the ledger cannot date inside the window (no family mapping, or a family
+// with no recent row) is also looked up live through the Actions API (`liveRunFn`, fetchLiveRun by default, which runs
+// only when GITHUB_TOKEN is present), so a workflow's own run counts before the next ledger export is taken. A target
+// the ledger already dates inside the window is not looked up: no API call is spent on it.
+export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO), liveRunFn = fetchLiveRun, windowDays = BUILD_MODE ? NEVER_RUN_WINDOW_DAYS_BUILD_MODE : NEVER_RUN_WINDOW_DAYS, now = ledger.capturedAt ? new Date(ledger.capturedAt) : new Date() } = {}) {
   const maintYaml = readRepo('.github/workflows/maintenance.yml') || '';
   const targets = [];
   const asDate = (iso) => (iso ? new Date(iso) : null);
@@ -531,10 +571,13 @@ export function gatherNeverRunTargets({ ledger = readHarnessLedgerExport(REPO) }
   for (const f of dispatchableFiles) {
     const name = f.split('/').pop();
     const family = HARNESS_FAMILY_BY_WORKFLOW[name];
+    const newestRunAt = family ? newestLedgerRunAt(ledger.rows, family) : null;
+    const ledgerFresh = newestRunAt !== null && Math.floor((now.getTime() - newestRunAt.getTime()) / DAY_MS) <= windowDays;
     targets.push({
       id: `workflow:${name}`,
       introducedAt: asDate(fileIntroIndex.get(f) ?? null),
-      newestRunAt: family ? newestLedgerRunAt(ledger.rows, family) : null,
+      newestRunAt,
+      liveRunAt: ledgerFresh ? null : liveRunFn(name),
     });
   }
   return targets;
@@ -629,7 +672,7 @@ export function runNeverRunLive() {
   const ledger = readHarnessLedgerExport(REPO);
   const now = ledger.capturedAt ? new Date(ledger.capturedAt) : new Date();
   const windowDays = BUILD_MODE ? NEVER_RUN_WINDOW_DAYS_BUILD_MODE : NEVER_RUN_WINDOW_DAYS;
-  return checkNeverRun({ targets: gatherNeverRunTargets({ ledger }), now, windowDays, dormant: NEVER_RUN_DORMANT, ledgerPresent: ledger.present === true });
+  return checkNeverRun({ targets: gatherNeverRunTargets({ ledger, windowDays, now }), now, windowDays, dormant: NEVER_RUN_DORMANT, ledgerPresent: ledger.present === true });
 }
 
 export function runStaleNextLive() {
