@@ -101,6 +101,16 @@ jobs:
         working-directory: fsi-app
         run: npm ci --prefer-offline --no-audit
 
+      # The fetch-drain step POSTs to /functions/v1/capture-worker (lane CHAIN-5, 2026-10-09), so the stack serves it:
+      # edge_runtime is enabled in supabase/config.toml and the function directory is placed in the stack directory BEFORE
+      # the stack starts (the composite action then copies config.toml beside it). The chain step asserts the POST reached it.
+      - name: Place the capture-worker Edge Function in the stack directory (the chain's fetch-drain step needs it served)
+        run: |
+          set -euo pipefail
+          mkdir -p "$CHAIN_PROOF_STACK/supabase/functions"
+          cp -R fsi-app/supabase/functions/capture-worker "$CHAIN_PROOF_STACK/supabase/functions/capture-worker"
+          test -f "$CHAIN_PROOF_STACK/supabase/functions/capture-worker/index.ts"
+
       # The generic stack steps (psql, the Supabase CLI, an empty local stack from the scratch config, the loopback-only
       # env file, the preflight) live in ONE composite action shared with migration-proof.yml (lane MIG-CI, 2026-10-08).
       - name: Start the local stack and preflight it (shared composite action)
@@ -172,6 +182,16 @@ jobs:
           . "$CHAIN_PROOF_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/schema-diff.mjs --replayed "$PROOF_DB_URL" --oracle "$PROOF_ORACLE_DB_URL" --out "$CP_OUT_DIR/replay-schema-diff.json"
+
+      # Every role a replayed migration CREATEs (read from the migration files the replay applied, never typed) must exist
+      # on the stack and on the oracle cluster (lane CHAIN-5, 2026-10-09; chain proof fire 6 died on a missing role).
+      - name: Assert the roles the replayed migrations create exist on the stack and on the oracle
+        working-directory: fsi-app
+        run: |
+          set -euo pipefail
+          . "$CHAIN_PROOF_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/run-lane-step.mjs --name role-check --lane CHAIN-5 --script scripts/proof/chain-role-check.mjs --out-dir "$CP_OUT_DIR" -- --replay-report "$CP_OUT_DIR/replay-report.json" --out "$CP_OUT_DIR/chain-role-check.json"
 
       - name: Load the subset into the local database
         working-directory: fsi-app

@@ -38,6 +38,13 @@
           "table": "harness_runs",
           "predicate": "true",
           "max": 0
+        },
+        {
+          "id": "no-prior-apply-run",
+          "kind": "max",
+          "table": "brief_apply_runs",
+          "predicate": "true",
+          "max": 0
         }
       ]
     },
@@ -89,7 +96,7 @@
       },
       "loop": true,
       "network": "none",
-      "caveat": "The capture-worker Edge Function is not served by the local stack (edge_runtime is disabled in supabase/config.toml). Apply mode POSTs the queued ids to it; the step proves the runner, its row and the queue count it saw, not a capture.",
+      "caveat": "The stack serves the capture-worker Edge Function (edge_runtime is enabled in supabase/config.toml and the function directory is copied into the stack directory before the stack starts; the same Kong route the production project URL carries answers /functions/v1/capture-worker). The step asserts the POST reached it: at least one invocation and no batch recorded as http_call_failed. Whether the worker then captured a page is the worker outcome tally, not asserted here (public network).",
       "script": [
         "guard --event workflow_run --requested-mode apply",
         "require_live",
@@ -102,6 +109,13 @@
           "kind": "count",
           "table": "harness_runs",
           "predicate": "harness_family = 'fetch-drain' AND github_run_id = '{{run_id}}' AND (metrics->>'queued_selected') IS NOT NULL",
+          "min": 1
+        },
+        {
+          "id": "post-reached-function-host",
+          "kind": "count",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'fetch-drain' AND github_run_id = '{{run_id}}' AND (metrics->>'queued_selected')::int >= 1 AND (metrics->>'invocations')::int >= 1 AND NOT EXISTS (SELECT 1 FROM jsonb_object_keys(COALESCE(metrics->'outcome_tally', '{}'::jsonb)) AS k WHERE k LIKE 'http_call_failed%')",
           "min": 1
         }
       ]
@@ -559,7 +573,7 @@
       "upstream": null,
       "loop": false,
       "network": "none",
-      "caveat": "The committed batches name production items that were briefed long ago. The prepare hook keeps the entries whose item the subset holds, and the setup statement puts those items back to record grade with no brief (replication role, so no guard rewrites the reset), so the apply has a brief to write. When the subset holds none of them the step stops with NO TARGET.",
+      "caveat": "The committed batches name production items that were briefed long ago. The prepare hook keeps the entries whose item the subset holds, and the setup statement puts those items back to record grade with no brief (replication role, so no guard rewrites the reset), so the apply has a brief to write. When the subset holds none of them the step stops with NO TARGET, which fails the step (prepare.mjs throws; the subset export pins the ids of the smallest committed batch with --pin-ids-from so a target exists, and the workflow test proves the pin names a committed batch whose ids the hook accepts). The IO pre-flight (scripts/turns/io-preflight.mjs, run by apply-record-briefs.mjs in apply mode on this fresh database) is asserted by the run record it leaves: a brief_apply_runs row started during the step and finished, and no harness row stopped as preflight_refused.",
       "prepare": "brief-batch",
       "setup": [
         {
@@ -599,6 +613,20 @@
           "table": "intelligence_items",
           "snapshot": "brief-targets",
           "min": 1
+        },
+        {
+          "id": "io-preflight-passed",
+          "kind": "count",
+          "table": "brief_apply_runs",
+          "predicate": "mode = 'apply' AND started_at >= '{{started_at}}'::timestamptz AND finished_at IS NOT NULL AND stop_reason IS DISTINCT FROM 'preflight_refused'",
+          "min": 1
+        },
+        {
+          "id": "io-preflight-not-refused",
+          "kind": "max",
+          "table": "harness_runs",
+          "predicate": "harness_family = 'brief-apply' AND github_run_id = '{{run_id}}' AND metrics->>'stop_reason' = 'preflight_refused'",
+          "max": 0
         }
       ]
     },
