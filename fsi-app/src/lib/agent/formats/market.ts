@@ -1,6 +1,6 @@
 // src/lib/agent/formats/market.ts
 //
-// Market Signal Brief — 8 sections, per analysis-construction-spec/SKILL.md §6. Grounding =
+// Market Signal Brief — 8 sections, per analysis-construction-spec/references/formats-regulatory-operations-market.md §6. Grounding =
 // 'corroboration': S1 signal STRENGTH is proven by the count of INDEPENDENT corroborators, read from
 // the EXISTING source-growth convergence (aggregateConvergence / growSourcesFromBrief: independent_citers,
 // confirmation_count, syndication-collapsed). A thin adapter over that, NOT a new counting engine

@@ -9,6 +9,11 @@ import { tmpdir } from "node:os";
 import { resolveLoopRunId, resolveLoopRunIdFromUpstream, FAMILY_BY_WORKFLOW_NAME } from "./loop-run-id.mjs";
 import { LOOP_HOPS } from "../../.discipline/governance/loop-manifest.mjs";
 
+// The harness ledger export is the repo's REAL committed file by default (lane GATE-9), so a fixture test that
+// writes artifacts into a temp dir must pin the ledger it resolves against; "absent" is the file-path
+// behaviour these fixtures exercise (an artifact is trusted on its own fields when no export is present).
+const LEDGER_NONE = { present: false, capturedAt: null, rows: [] };
+
 function withTmpDir(fn) {
   const dir = mkdtempSync(join(tmpdir(), "loop-run-id-test-"));
   try {
@@ -46,6 +51,7 @@ test("resolveLoopRunId: explicit always wins, even when it would not match any a
       upstreamFamily: "source-sweep",
       upstreamRunId: "12345",
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, "custom-loop-id");
   });
@@ -61,6 +67,7 @@ test("resolveLoopRunId: matches by config.github_run_id (never config.loop_run_i
       upstreamFamily: "source-sweep",
       upstreamRunId: "1001",
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, "explicit-loop-id-99");
   });
@@ -74,6 +81,7 @@ test("resolveLoopRunId: a matching config.loop_run_id with a DIFFERENT config.gi
       upstreamFamily: "source-sweep",
       upstreamRunId: "1001",
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -87,6 +95,7 @@ test("resolveLoopRunId: no matching artifact -- returns null (never invents an i
       upstreamFamily: "source-sweep",
       upstreamRunId: "99999",
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -100,6 +109,7 @@ test("resolveLoopRunId: a matched artifact with no loop_run_id field at all -- n
       upstreamFamily: "source-sweep",
       upstreamRunId: "12345",
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -113,6 +123,7 @@ test("resolveLoopRunId: an artifact written outside GitHub Actions (github_run_i
       upstreamFamily: "source-sweep",
       upstreamRunId: "12345",
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -126,6 +137,7 @@ test("resolveLoopRunId: no upstreamRunId given at all (e.g. a bare workflow_disp
       upstreamFamily: "source-sweep",
       upstreamRunId: undefined,
       harnessRunsDir: dir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -159,6 +171,7 @@ test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the swee
       upstreamFamily: "source-sweep",
       upstreamRunId: "1001",
       harnessRunsDir: sweepDir,
+      ledger: LEDGER_NONE,
     });
     writeArtifact(fetchDrainDir, "fetch-drain", 1, { github_run_id: "2002", loop_run_id: hop2LoopId });
 
@@ -168,6 +181,7 @@ test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the swee
       upstreamFamily: "fetch-drain",
       upstreamRunId: "2002",
       harnessRunsDir: fetchDrainDir,
+      ledger: LEDGER_NONE,
     });
     writeArtifact(ledgerConsumeDir, "ledger-consume", 1, { github_run_id: "3003", loop_run_id: hop3LoopId });
 
@@ -177,6 +191,7 @@ test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the swee
       upstreamFamily: "ledger-consume",
       upstreamRunId: "3003",
       harnessRunsDir: ledgerConsumeDir,
+      ledger: LEDGER_NONE,
     });
     writeArtifact(mintDir, "mint", 1, { github_run_id: "4004", loop_run_id: hop4LoopId });
 
@@ -188,6 +203,7 @@ test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the swee
       upstreamName: "Population turn",
       upstreamRunId: "4004",
       fsiRoot: base,
+      ledger: LEDGER_NONE,
     });
     writeArtifact(downstreamChainDir, "downstream-chain", 1, { github_run_id: "5005", loop_run_id: hop5LoopId });
 
@@ -198,6 +214,7 @@ test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the swee
       upstreamName: "Downstream chain",
       upstreamRunId: "5005",
       fsiRoot: base,
+      ledger: LEDGER_NONE,
     });
     writeArtifact(propagationDir, "propagation", 1, { github_run_id: "6006", loop_run_id: hop6LoopId });
 
@@ -209,6 +226,7 @@ test("resolveLoopRunId ATTACK: a seven-hop chain resolves hop to hop to the swee
       upstreamName: "Population turn",
       upstreamRunId: "4004",
       fsiRoot: base,
+      ledger: LEDGER_NONE,
     });
     writeArtifact(briefExportDir, "brief-export", 1, { github_run_id: "7007", loop_run_id: hop7LoopId });
 
@@ -265,6 +283,7 @@ test("resolveLoopRunIdFromUpstream: a mapped upstream name resolves the same as 
       upstreamName: "Source sweep",
       upstreamRunId: "1001",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, "explicit-loop-id-99");
   });
@@ -277,6 +296,7 @@ test("resolveLoopRunIdFromUpstream: an upstream name mapped to null (Data produc
       upstreamName: "Data producers",
       upstreamRunId: "1001",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(gotNull, null);
     const gotExplicit = resolveLoopRunIdFromUpstream({
@@ -284,6 +304,7 @@ test("resolveLoopRunIdFromUpstream: an upstream name mapped to null (Data produc
       upstreamName: "Data producers",
       upstreamRunId: "1001",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(gotExplicit, "operator-supplied-loop-id");
   });
@@ -296,6 +317,7 @@ test("resolveLoopRunIdFromUpstream: an unrecognized upstream name returns explic
       upstreamName: "Some Unknown Workflow",
       upstreamRunId: "1001",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -314,6 +336,7 @@ test("resolveLoopRunId ATTACK: breaking one hop's github_run_id makes the NEXT h
       upstreamFamily: "source-sweep",
       upstreamRunId: "1001",
       harnessRunsDir: sweepDir,
+      ledger: LEDGER_NONE,
     });
     // Corrupt hop 2's own recorded github_run_id (simulating a run whose artifact does not carry the id
     // hop 3's own workflow_run event actually names) -- write "9999" instead of "2002".
@@ -326,6 +349,7 @@ test("resolveLoopRunId ATTACK: breaking one hop's github_run_id makes the NEXT h
       upstreamFamily: "fetch-drain",
       upstreamRunId: "2002",
       harnessRunsDir: fetchDrainDir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(hop3LoopId, null);
     writeArtifact(ledgerConsumeDir, "ledger-consume", 1, { github_run_id: "3003", loop_run_id: hop3LoopId });
@@ -338,6 +362,7 @@ test("resolveLoopRunId ATTACK: breaking one hop's github_run_id makes the NEXT h
       upstreamFamily: "ledger-consume",
       upstreamRunId: "3003",
       harnessRunsDir: ledgerConsumeDir,
+      ledger: LEDGER_NONE,
     });
     assert.equal(hop4LoopId, null);
   });
@@ -357,6 +382,7 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan firing after Brief apply resol
       upstreamName: "Brief apply",
       upstreamRunId: "4004",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, "loop-from-brief-apply");
   });
@@ -371,6 +397,7 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan firing after Population turn r
       upstreamName: "Population turn",
       upstreamRunId: "5005",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, "loop-from-population-turn");
   });
@@ -383,6 +410,7 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan firing after an unknown upstre
       upstreamName: "Some Other Workflow",
       upstreamRunId: "6006",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -397,6 +425,7 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan's own explicit --loop-run-id w
       upstreamName: "Population turn",
       upstreamRunId: "7007",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, "operator-forced-loop-id");
   });
@@ -406,4 +435,63 @@ test("resolveLoopRunIdFromUpstream: gate-a-rescan's own explicit --loop-run-id w
 // find the propagation family; an unmapped name reads as "no family" and the chained row records a null id.
 test("CHAIN-4: Propagation drain maps to the propagation family", () => {
   assert.equal(FAMILY_BY_WORKFLOW_NAME["Propagation drain"], "propagation");
+});
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 G-7): a loop id is believed only when the ledger vouches for its run ─────
+const ledgerWith = (...rows) => ({ present: true, capturedAt: "2026-10-08T00:00:00Z", rows });
+const ledgerRow = (family, runNumber, githubRunId) => ({ family, run_id: `${family}-run-${String(runNumber).padStart(3, "0")}`, trigger: "workflow_dispatch", config: { github_run_id: githubRunId } });
+
+test("G-7: a FORGED artifact file (a run the ledger has never heard of) yields no loop id when the ledger export is present", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "forged-loop-456" });
+    const args = { explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir };
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith(ledgerRow("source-sweep", 7, "1")) }), null, "a ledger with other runs does not vouch for it");
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith() }), null, "an empty (present) ledger vouches for nothing");
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith(ledgerRow("source-sweep", 1, "123")) }), null, "same run id, different github run id");
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith({ ...ledgerRow("mint", 1, "999") }) }), null, "same github run id, wrong family");
+  });
+});
+
+test("G-7 control: the same artifact resolves when the ledger holds that family, run id and github run id", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    const got = resolveLoopRunId({ explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir, ledger: ledgerWith(ledgerRow("source-sweep", 1, "999")) });
+    assert.equal(got, "real-loop");
+  });
+});
+
+test("G-7: with no export in the checkout the file path behaves as before (nothing to resolve against)", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    assert.equal(resolveLoopRunId({ explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir, ledger: LEDGER_NONE }), "real-loop");
+  });
+});
+
+test("G-7: an explicit id that is not one clean token (a line break would inject a second GITHUB_ENV variable) resolves to null", () => {
+  for (const bad of ["a b", "x\nINJECTED=1", "x\r\ny", "-leading", "a".repeat(129), "semi;colon", "$(cmd)"]) {
+    assert.equal(resolveLoopRunId({ explicit: bad, upstreamFamily: "source-sweep", upstreamRunId: undefined, harnessRunsDir: "/nonexistent", ledger: LEDGER_NONE }), null, JSON.stringify(bad));
+  }
+  for (const ok of ["9001", "explicit-loop-id-99", "sweep_5.a:b/c"]) {
+    assert.equal(resolveLoopRunId({ explicit: ok, upstreamFamily: "source-sweep", upstreamRunId: undefined, harnessRunsDir: "/nonexistent", ledger: LEDGER_NONE }), ok);
+  }
+});
+
+test("G-7: an explicit id that contradicts a ledger-verified upstream artifact loses to the artifact's own loop id", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    const args = { upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir, ledger: ledgerWith(ledgerRow("source-sweep", 1, "999")) };
+    assert.equal(resolveLoopRunId({ ...args, explicit: "forged-loop-123" }), "real-loop");
+    assert.equal(resolveLoopRunId({ ...args, explicit: "real-loop" }), "real-loop");
+    // an unverified artifact is no authority over the explicit id
+    assert.equal(resolveLoopRunId({ ...args, ledger: ledgerWith(), explicit: "operator-id" }), "operator-id");
+  });
+});
+
+test("G-7: the default ledger is the committed export (present on master since #1041): an unlisted fixture artifact yields null, an absent export leaves the file path unchanged", () => {
+  withTmpDir((dir) => {
+    writeArtifact(dir, "source-sweep", 1, { github_run_id: "999", loop_run_id: "real-loop" });
+    const got = resolveLoopRunId({ explicit: null, upstreamFamily: "source-sweep", upstreamRunId: "999", harnessRunsDir: dir });
+    // present export -> the planted file is not in it -> null; absent export -> as before. Either way never the forged value
+    assert.ok(got === null || got === "real-loop");
+  });
 });

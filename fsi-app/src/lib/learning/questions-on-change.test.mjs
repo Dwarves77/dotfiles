@@ -2,12 +2,13 @@
 // database: the entity-to-item read and the flag writer are injected.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   eventTypeForOutboxRow, EMITTING_TABLE_EVENT_MAP, MAX_ITEMS_PER_EVENT, describeChange,
-  runQuestionsOnChange, buildEntityItemsReader,
+  runQuestionsOnChange, buildEntityItemsReader, buildEmittingTableEventMap, EMITTING_TABLES_DIR,
 } from "./questions-on-change.mjs";
 import { TRIGGER_EVENT_TYPES } from "./constants.mjs";
 import { QUESTION_NAMESPACE } from "../connections/flag-namespaces.mjs";
@@ -50,6 +51,13 @@ test("eventTypeForOutboxRow: emission_factors supersede is factor_superseded; it
   assert.equal(eventTypeForOutboxRow({ table_name: "emission_factors", change_kind: "update" }), "value_revised");
   assert.equal(eventTypeForOutboxRow({ table_name: "derived_values", change_kind: "update" }), "value_revised");
   assert.equal(eventTypeForOutboxRow({ table_name: "statutory_computations", change_kind: "update" }), "obligation_amended");
+});
+
+test("eventTypeForOutboxRow: obligation_objects maps to obligation_amended for every change kind (lane OBL-2, migration 376)", () => {
+  for (const kind of ["insert", "update", "delete", "supersede"]) {
+    assert.equal(eventTypeForOutboxRow({ table_name: "obligation_objects", change_kind: kind }), "obligation_amended", kind);
+  }
+  assert.match(describeChange({ tableName: "obligation_objects", rowPk: "cl:obligation:00000000000000d1", entityId: "cl:instrument:00000000000000b1", changeKind: "update" }, "Fixture instrument"), /obligation object/);
 });
 
 test("eventTypeForOutboxRow: a table with no mapping returns null, never a guessed type", () => {
@@ -349,4 +357,78 @@ test("readOutboxEvents reads rows back by id list or id range, as processed even
   assert.equal(byIds[0].entityId, ENTITY);
   const byRange = await readOutboxEvents(sb, { from: 4, to: 5 });
   assert.deepEqual(byRange.map((e) => e.eventId), [4, 5]);
+});
+
+// Lane QOC-1: the table-to-event mapping is one JSON file per emitting table (emitting-tables/), built at load.
+
+/** Master's EMITTING_TABLE_EVENT_MAP literal before QOC-1, copied from git (describe is the named describer). */
+const OLD_MAP = {
+  emission_factors: { type: "value_revised", byKind: { supersede: "factor_superseded" }, label: "an emission factor" },
+  market_series: { type: "value_revised", byKind: {}, label: "a market series value" },
+  regional_data_facts: { type: "value_revised", byKind: {}, label: "a regional data fact" },
+  derived_values: { type: "value_revised", byKind: {}, label: "a derived value" },
+  estimated_values: { type: "value_revised", byKind: {}, label: "an estimated value" },
+  statutory_computations: { type: "obligation_amended", byKind: {}, label: "a statutory computation" },
+  obligation_objects: { type: "obligation_amended", byKind: {}, label: "an obligation object" },
+  signposts: { type: "signpost_fired", byKind: {}, label: "a signpost on this entity" },
+  entity_aliases: { type: "identity_revised", byKind: {}, label: "an alias of this entity", describe: "describeIdentityChange" },
+  entity_relations: { type: "identity_revised", byKind: {}, label: "a relation of this entity", describe: "describeIdentityChange" },
+};
+
+test("QOC-1: the map built from emitting-tables/ still carries master's original entries unchanged", () => {
+  const built = Object.fromEntries(Object.entries(EMITTING_TABLE_EVENT_MAP).map(([t, e]) => {
+    const { describe, ...rest } = e;
+    return [t, describe ? { ...rest, describe: describe.name } : rest];
+  }));
+  for (const [table, entry] of Object.entries(OLD_MAP)) {
+    assert.deepEqual(built[table], entry, `${table} is present and unchanged`);
+  }
+  assert.ok(Object.isFrozen(EMITTING_TABLE_EVENT_MAP));
+  assert.ok(Object.values(EMITTING_TABLE_EVENT_MAP).every((e) => Object.isFrozen(e) && Object.isFrozen(e.byKind)));
+});
+
+test("QOC-1: every file in emitting-tables/ is <table_name>.json for exactly one table of the map", () => {
+  const files = readdirSync(EMITTING_TABLES_DIR).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort();
+  assert.deepEqual(files, Object.keys(EMITTING_TABLE_EVENT_MAP).sort());
+});
+
+function withDir(files, fn) {
+  const dir = mkdtempSync(join(tmpdir(), "qoc1-"));
+  try {
+    for (const [name, body] of Object.entries(files)) writeFileSync(join(dir, name), typeof body === "string" ? body : JSON.stringify(body));
+    return fn(dir);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+const GOOD = { table_name: "t_one", type: "value_revised", byKind: {}, label: "a thing" };
+
+test("QOC-1: a well-formed directory builds a frozen map keyed by table_name", () => {
+  withDir({ "t_one.json": GOOD, "t_two.json": { ...GOOD, table_name: "t_two" } }, (dir) => {
+    const m = buildEmittingTableEventMap(dir);
+    assert.deepEqual(Object.keys(m), ["t_one", "t_two"]);
+    assert.ok(Object.isFrozen(m));
+  });
+});
+
+test("QOC-1: a file whose table_name differs from its filename fails, naming the file", () => {
+  withDir({ "t_one.json": { ...GOOD, table_name: "other" } }, (dir) => {
+    assert.throws(() => buildEmittingTableEventMap(dir), /t_one\.json.*differs from the filename/);
+  });
+});
+
+test("QOC-1: a duplicate table_name fails (a second file claiming t_one is a filename mismatch, so one table has one file)", () => {
+  withDir({ "t_one.json": GOOD, "t_one_copy.json": GOOD }, (dir) => {
+    assert.throws(() => buildEmittingTableEventMap(dir), /t_one_copy\.json/);
+  });
+});
+
+test("QOC-1: an unknown field fails, naming the file and the field", () => {
+  withDir({ "t_one.json": { ...GOOD, extra: 1 } }, (dir) => {
+    assert.throws(() => buildEmittingTableEventMap(dir), /t_one\.json.*unknown field "extra"/);
+  });
+});
+
+test("QOC-1: a malformed file fails naming the file (bad JSON, missing type, unknown describer)", () => {
+  withDir({ "t_one.json": "{not json" }, (dir) => assert.throws(() => buildEmittingTableEventMap(dir), /t_one\.json.*not valid JSON/));
+  withDir({ "t_one.json": { table_name: "t_one", label: "x" } }, (dir) => assert.throws(() => buildEmittingTableEventMap(dir), /t_one\.json.*type/));
+  withDir({ "t_one.json": { ...GOOD, describe: "nope" } }, (dir) => assert.throws(() => buildEmittingTableEventMap(dir), /t_one\.json.*unknown describe/));
 });

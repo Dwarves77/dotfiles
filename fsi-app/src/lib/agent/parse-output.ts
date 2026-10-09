@@ -34,7 +34,7 @@ const FORMAT_TYPE_VALUES = [
   "research_summary",
 ] as const;
 
-// Closed vocabulary mirroring SKILL.md "7 Topic Categories". Tags outside this
+// Closed vocabulary mirroring the skill's "7 Topic Categories" (references/taxonomy-tags-and-scoring.md). Tags outside this
 // list fail the regeneration. The vocabulary drives the dynamic per-item source
 // pool, dashboard filters, and source-coverage matrix.
 const TOPIC_TAG_VALUES = [
@@ -58,7 +58,7 @@ const TOPIC_TAG_VALUES = [
 const SIGNAL_BAND_VALUES = ["price", "corporate", "corridor"] as const;
 const THEME_VALUES = DB_THEME_VALUE_LIST;
 
-// Closed vocabulary for compliance_object_tags (SKILL.md 18 values). Tags
+// Closed vocabulary for compliance_object_tags (skill references/taxonomy-tags-and-scoring.md, 18 values). Tags
 // outside this list fail the regeneration. Drives intersection detection.
 const COMPLIANCE_OBJECT_VALUES = [
   "carrier-ocean", "carrier-air", "carrier-road", "carrier-rail",

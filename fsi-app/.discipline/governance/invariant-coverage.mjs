@@ -59,6 +59,36 @@ function readRepoFile(rel) {
   try { return readFileSync(join(REPO, rel), 'utf8'); } catch { return null; }
 }
 
+// SKILL-SLIM-1 (2026-10-08): a governing skill's text is its SKILL.md core PLUS every references/*.md beside it.
+// The sections moved out of the core are moved verbatim, so an invariant anchor that now lives in a reference
+// file is still "present in its skill", and the normative-marker count (check 4) is taken over the same
+// aggregate on BOTH sides (HEAD and the merge-base), so a statement deleted from a reference file lowers the
+// count exactly as one deleted from the core did. `core` null (file absent) stays null: SKILL FILE MISSING.
+export function aggregateSkillText(core, refTexts) {
+  if (core == null) return null;
+  return [core, ...refTexts].join('\n');
+}
+export function skillReferencesDir(rel) {
+  return rel.replace(/SKILL\.md$/, 'references/');
+}
+function readSkillAggregate(rel) {
+  const dir = skillReferencesDir(rel);
+  const names = TRACKED
+    ? [...TRACKED].filter((f) => f.startsWith(dir) && f.endsWith('.md'))
+    : (existsSync(join(REPO, dir)) ? readdirSync(join(REPO, dir)).filter((n) => n.endsWith('.md')).map((n) => dir + n) : []);
+  return aggregateSkillText(readRepoFile(rel), names.sort().map((n) => readRepoFile(n) ?? ''));
+}
+function readSkillAggregateAtBase(base, rel) {
+  const core = gitFileAtBase(base, rel, { cwd: REPO });
+  if (core == null) return null;
+  let names = [];
+  try {
+    names = execSync(`git ls-tree --name-only ${base} ${skillReferencesDir(rel)}`, { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 24 })
+      .split('\n').map((l) => l.trim()).filter((l) => l.endsWith('.md')).sort();
+  } catch { names = []; }
+  return aggregateSkillText(core, names.map((n) => gitFileAtBase(base, n, { cwd: REPO }) ?? ''));
+}
+
 // CI-FAITHFULNESS (class fix, 2026-06-12): CI runs the meta-gate on a fresh checkout = git-TRACKED files
 // ONLY. The gate previously resolved enforcement files with existsSync/readdirSync over the WORKING TREE,
 // so an UNTRACKED enforcement file (e.g. quarantine-disposition-audit.mjs after #132) passed locally but
@@ -335,7 +365,7 @@ export function runInvariantCoverage() {
   const skillContent = {};
   const preProblems = [];
   for (const [skill, rel] of Object.entries(SKILL_FILES)) {
-    const c = readRepoFile(rel);
+    const c = readSkillAggregate(rel);
     if (c === null) preProblems.push(`SKILL FILE MISSING: ${skill} → ${rel}`);
     skillContent[skill] = c;
   }
@@ -365,7 +395,7 @@ export function runInvariantCoverage() {
   } else {
     const { problems: markerProblems } = auditMarkerBaselines(SKILL_FILES, {
       getSkillContent: (s) => skillContent[s],
-      getBaseSkillContent: (s) => gitFileAtBase(base, SKILL_FILES[s], { cwd: REPO }),
+      getBaseSkillContent: (s) => readSkillAggregateAtBase(base, SKILL_FILES[s]),
       countMarkers,
     });
     problems.push(...markerProblems);

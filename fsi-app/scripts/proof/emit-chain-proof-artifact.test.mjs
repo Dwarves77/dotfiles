@@ -118,3 +118,26 @@ test("applied-map errors become defects naming the kind and key, and metrics cou
   assert.equal(a.metrics.replay_map_errors, 1);
   assert.deepEqual(validateRunArtifact(a), []);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: emit-chain-proof-artifact.mjs exits non-zero when CP_OUT_DIR is unset and 0 once it writes the run artifact", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { mkdtempSync, readdirSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const script = fileURLToPath(new URL("./emit-chain-proof-artifact.mjs", import.meta.url));
+  const base = { ...process.env };
+  delete base.CP_OUT_DIR;
+  const missing = spawnSync(process.execPath, [script], { encoding: "utf8", env: base });
+  assert.notEqual(missing.status, 0, "an unset CP_OUT_DIR is a failure, not a silent no-op");
+  assert.match(missing.stderr, /CP_OUT_DIR is not set/);
+  const out = mkdtempSync(join(tmpdir(), "cp-emit-"));
+  try {
+    const ok = spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...base, CP_OUT_DIR: out } });
+    assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+    assert.ok(readdirSync(join(out, "artifact")).includes("chain-proof-run-001.json"));
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});

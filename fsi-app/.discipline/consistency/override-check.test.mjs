@@ -164,3 +164,20 @@ test('CLI default branch, no BASE_REF/PR_HEAD, no --range: falls back to the loc
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS, not only its output ──────
+test("GATE-9 exit status: override-check.mjs exits 0 on a clean tree, and its source maps runner error to 2, a valid verdict to 0, uncovered drift to 1", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../../scripts/lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./override-check.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script, "--commit=HEAD"], { encoding: "utf8", env: withoutCredentials() });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /consistency runner clean|VALIDLY OVERRIDDEN/);
+  const src = readFileSync(script, "utf8");
+  assert.deepEqual([...src.matchAll(/process\.exit\(([^)]*)\)/g)].map((m) => m[1]), ["2", "0", "1"]);
+  assert.match(src, /runner\.status === 2\) \{[\s\S]*?process\.exit\(2\);\s*\}/, "a runner error is exit 2");
+  assert.match(src, /if \(verdict\.ok\) \{[\s\S]*?process\.exit\(0\);\s*\}[\s\S]*?uncovered consistency drift[\s\S]*?process\.exit\(1\);/, "0 only inside the ok verdict, 1 after the uncovered-drift report");
+  assert.doesNotMatch(src, /process\.exit\s*=[^=]|process\.exitCode\s*=/, "the exit status is never reassigned");
+});

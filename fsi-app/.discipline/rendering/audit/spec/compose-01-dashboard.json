@@ -273,7 +273,7 @@
     },
     {
       "name": "D-M4: no list row carries more than one absence token",
-      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "selector": ".cl-list-row:has(.cl-row-impact [data-part-variant=\"reason\"]):has(.cl-row-due [data-part-variant=\"reason\"]), .cl-list-row:has(.cl-row-impact [data-part-variant=\"reason\"]):has(.cl-row-tier [data-part-variant=\"reason\"]), .cl-list-row:has(.cl-row-due [data-part-variant=\"reason\"]):has(.cl-row-tier [data-part-variant=\"reason\"])",
       "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     },
     {
@@ -283,7 +283,7 @@
     },
     {
       "name": "BRIEFDATA: no What-changed row renders the Absence token in its tier cell",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row .cl-row-tier .cl-absence",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row .cl-row-tier [data-part-variant=\"reason\"]",
       "reason": "The photographed defect, pinned at its narrowest point. The fixture's change feed names an item OUTSIDE the LIMIT-50 payload (c0) \u2014 the live ratio measured 2026-09-08 was 6 of 6 \u2014 and its row must still resolve to a real tier chip, because the corpus the card selects from now includes the bounded by-id backfill (src/app/page.tsx, mounts.mjs's PAGE_FRAME_FIXTURES.dashboard.briefResources). Before this lane the same cell rendered NOT IN PRIMARY SOURCE on every change row. A match here means the backfill stopped reaching the card and the degrade path is the whole card again."
     }
   ]

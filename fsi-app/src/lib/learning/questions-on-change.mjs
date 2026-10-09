@@ -16,21 +16,11 @@
 // mapped, and questions-on-change.test.mjs parses the migrations and fails when a new emitting table has
 // no mapping.
 //
-//   table_name               change_kind                     event type
-//   emission_factors         supersede                       factor_superseded
-//   emission_factors         insert, update, delete          value_revised
-//   market_series            any                             value_revised
-//   regional_data_facts      any                             value_revised
-//   grid_connection_queues   any                             value_revised
-//   derived_values           any                             value_revised
-//   estimated_values         any                             value_revised
-//   statutory_computations   any                             obligation_amended
-//
-// entity_aliases and entity_relations (migration 377) map to identity_revised for any change kind.
-//
-// signposts maps to signpost_fired (lane L4-D, fireSignpost's own outbox row). confidence_decayed and
-// source_frozen are reserved: no table that emits outbox events
-// today corresponds to them, so nothing maps to them.
+// The table-to-event mapping is one JSON file per emitting table under emitting-tables/ (lane QOC-1,
+// 2026-10-09): a new outbox-emitting table adds one file there and never edits this module, so two lanes
+// adding tables cannot conflict. EMITTING_TABLE_EVENT_MAP is built from that directory once at module load.
+// confidence_decayed and source_frozen are reserved: no table that emits outbox events today corresponds
+// to them, so nothing maps to them.
 //
 // ENTITY TO ITEM LINK (the EXISTING one, read in reverse; no new table). migration 283: an item names an
 // entity through `intelligence_items.instrument_entity_id` (single-valued) and through `entity_refs`
@@ -44,6 +34,9 @@
 // BOUNDED. At most MAX_ITEMS_PER_EVENT items per event raise questions (items sorted by id, so the choice
 // is deterministic); the count dropped is reported as items_dropped_by_cap, never silent.
 
+import { readdirSync, readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { TRIGGER_EVENT_TYPES } from "./constants.mjs";
 import { generateTriggerQuestions, mainForQuestions } from "./trigger-questions.mjs";
 import { fetchAllRows, fetchAllByIdChunks } from "../db/paginate.mjs";
@@ -65,24 +58,52 @@ function describeIdentityChange(event, entityName) {
   return `the identity of ${who} changed (alias or relation): re-resolve mentions and roll-ups that name it`;
 }
 
+/**
+ * Named change describers an entry file may select with "describe": "<name>". A JSON entry cannot hold a
+ * function, so the few non-default describers live here by name; an entry names one, never defines one.
+ */
+const DESCRIBERS = Object.freeze({ identity: describeIdentityChange });
+
+const ENTRY_FIELDS = new Set(["table_name", "type", "byKind", "label", "describe"]);
+
+/** Directory of one JSON file per emitting table (lane QOC-1): a new outbox-emitting table adds a file here. */
+export const EMITTING_TABLES_DIR = join(dirname(fileURLToPath(import.meta.url)), "emitting-tables");
+
+/**
+ * Build the frozen table_name -> { type, byKind, label, describe? } map from a directory of entry files,
+ * one `<table_name>.json` per emitting table, sorted by filename. Throws naming the file on a malformed
+ * file, a table_name that differs from the filename (which also makes a duplicate table_name impossible,
+ * since filenames are unique), or an unknown field.
+ * @param {string} [dir]
+ */
+export function buildEmittingTableEventMap(dir = EMITTING_TABLES_DIR) {
+  const files = readdirSync(dir).filter((f) => f.endsWith(".json")).sort();
+  const map = {};
+  for (const file of files) {
+    const fail = (why) => { throw new Error(`emitting-tables/${file}: ${why}`); };
+    let raw;
+    try { raw = JSON.parse(readFileSync(join(dir, file), "utf8")); } catch (e) { fail(`not valid JSON (${e.message})`); }
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) fail("must be a JSON object");
+    for (const k of Object.keys(raw)) if (!ENTRY_FIELDS.has(k)) fail(`unknown field "${k}"`);
+    const name = raw.table_name;
+    if (typeof name !== "string" || name === "") fail("table_name must be a non-empty string");
+    if (name !== file.slice(0, -".json".length)) fail(`table_name "${name}" differs from the filename`);
+    if (typeof raw.type !== "string" || raw.type === "") fail("type must be a non-empty string");
+    if (typeof raw.label !== "string" || raw.label === "") fail("label must be a non-empty string");
+    const byKind = raw.byKind ?? {};
+    if (typeof byKind !== "object" || Array.isArray(byKind) || Object.values(byKind).some((v) => typeof v !== "string")) fail("byKind must be an object of change_kind to event type strings");
+    const entry = { type: raw.type, byKind: Object.freeze({ ...byKind }), label: raw.label };
+    if (raw.describe !== undefined) {
+      if (!Object.hasOwn(DESCRIBERS, raw.describe)) fail(`unknown describe "${raw.describe}"`);
+      entry.describe = DESCRIBERS[raw.describe];
+    }
+    map[name] = Object.freeze(entry);
+  }
+  return Object.freeze(map);
+}
+
 /** table_name -> { default event type, per change_kind overrides }, plus a plain label for the question. */
-export const EMITTING_TABLE_EVENT_MAP = Object.freeze({
-  emission_factors: Object.freeze({ type: "value_revised", byKind: Object.freeze({ supersede: "factor_superseded" }), label: "an emission factor" }),
-  market_series: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a market series value" }),
-  regional_data_facts: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a regional data fact" }),
-  grid_connection_queues: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a grid connection queue observation" }),
-  derived_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "a derived value" }),
-  estimated_values: Object.freeze({ type: "value_revised", byKind: Object.freeze({}), label: "an estimated value" }),
-  statutory_computations: Object.freeze({ type: "obligation_amended", byKind: Object.freeze({}), label: "a statutory computation" }),
-  // Lane L4-D: a fired signpost writes its own outbox row (signpost-watch.ts fireSignpost), with entity_id the
-  // WATCHED entity, so the items linked to that entity are asked what the firing means. Not trigger-attached.
-  signposts: Object.freeze({ type: "signpost_fired", byKind: Object.freeze({}), label: "a signpost on this entity" }),
-  // Lane ALIAS-1 (migration 377, coordinator ruling 2026-10-08): a name alias or a hierarchy relation on an
-  // entity changed. Both tables carry the entity on the outbox row (entity_aliases by its own entity_id,
-  // entity_relations by its child), so the items linked to that entity are asked to re-resolve what names it.
-  entity_aliases: Object.freeze({ type: "identity_revised", byKind: Object.freeze({}), label: "an alias of this entity", describe: describeIdentityChange }),
-  entity_relations: Object.freeze({ type: "identity_revised", byKind: Object.freeze({}), label: "a relation of this entity", describe: describeIdentityChange }),
-});
+export const EMITTING_TABLE_EVENT_MAP = buildEmittingTableEventMap();
 
 const KIND_VERB = Object.freeze({ insert: "was added", update: "was revised", delete: "was removed", supersede: "was superseded" });
 

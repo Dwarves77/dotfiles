@@ -100,3 +100,14 @@ test("the client is closed even when the read fails", async () => {
   await assert.rejects(() => exportLocalHarnessRuns(client), /does not exist/);
   assert.equal(closed, true);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: export-local-harness-runs.mjs exits 2 without --out", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./export-local-harness-runs.mjs", import.meta.url));
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...withoutCredentials(), SUPABASE_DB_URL: "", PROOF_DB_URL: "" } });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stderr, /--out <path> is required/);
+});

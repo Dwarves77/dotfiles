@@ -15,7 +15,14 @@
 //
 // WHEN. SessionStart (settings.json), the done skill's last step, and the coordinator's merge
 // train after every merge. NEVER FAILS THE SESSION: always exits 0 (a broken hook must not
-// wedge a session); one line of stdout, which SessionStart adds to the session context.
+// wedge a session); one line of stdout (a second only when the installer ran), which SessionStart adds to the session context.
+//
+// INSTALL (lane WIRE-1, 2026-10-08). After a fast-forward that CHANGED any file under fsi-app/.discipline/
+// (before and after shas compared with git diff --name-only), this runs `node fsi-app/.discipline/install-hooks.mjs`
+// from the vault checkout and reports the installer's summary on a second line. The installer is idempotent and
+// owns the git hook trampolines and the action-time gate's user-level wiring (shim, matcher, hook entry), so the
+// installed gate follows master without a human step. No change under .discipline/ means no run; a SKIPPED or
+// up-to-date sync never runs it; an installer failure is reported and never fails the session.
 //
 // Set VAULT_SYNC_DISABLE=1 to make it a no-op (CI, or a machine where the checkout is not the
 // vault).
@@ -135,7 +142,30 @@ export function ignoredCollisions(vault) {
   return added.split(/\r?\n/).filter((p) => p && existsSync(join(vault, p)));
 }
 
+/** Files under fsi-app/.discipline/ that differ between two commits. Empty on a git failure. @param {string} vault */
+export function disciplineFilesChanged(vault, beforeSha, afterSha) {
+  if (!beforeSha || !afterSha || beforeSha === afterSha) return [];
+  const out = git(vault, ['diff', '--name-only', '--no-renames', beforeSha, afterSha]);
+  return out ? out.split(/\r?\n/).filter((p) => p.startsWith('fsi-app/.discipline/')) : [];
+}
+
+/** Run the repo's one installer from the vault checkout; the summary is its Summary and gate wiring lines.
+ *  Never throws. @returns {{ok: boolean, summary: string}} */
+export function runInstaller(vault, env = process.env) {
+  const script = join(vault, 'fsi-app', '.discipline', 'install-hooks.mjs');
+  if (!existsSync(script)) return { ok: false, summary: 'fsi-app/.discipline/install-hooks.mjs is missing' };
+  try {
+    const out = execFileSync(process.execPath, [script], { cwd: vault, env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 });
+    const lines = out.split(/\r?\n/).map((l) => l.trim()).filter((l) => /^Summary:|gate wiring:/.test(l));
+    return { ok: true, summary: lines.join('; ') || 'no summary lines' };
+  } catch (e) {
+    const detail = String(e?.stderr || e?.stdout || e?.message || e).split(/\r?\n/).find((l) => l.trim()) ?? 'unknown error';
+    return { ok: false, summary: detail.trim().slice(0, 200) };
+  }
+}
+
 /** Observe, decide, act. Returns the one-line report. Never throws.
+ *  `deps.runInstaller` is a seam for tests (the installer touches git hooks and the user home).
  *  `deps.reportedModified` is a seam for tests: the cause of git's phantom reports is unknown, so a test
  *  cannot honestly reproduce one; it injects git's (mis)report and asserts what THIS code decides. */
 export function syncVault(vault, deps = {}) {
@@ -148,6 +178,7 @@ export function syncVault(vault, deps = {}) {
   const ahead = bare ? 0 : Number(git(vault, ['rev-list', '--count', 'origin/master..HEAD']) ?? 0);
   const behind = bare ? 0 : Number(git(vault, ['rev-list', '--count', 'HEAD..origin/master']) ?? 0);
   const before = bare ? null : git(vault, ['rev-parse', '--short', 'HEAD']);
+  const beforeFull = bare ? null : git(vault, ['rev-parse', 'HEAD']);
   const d = decide({ bare, branch, dirty, ahead, behind, fetched });
   const note = phantom.length ? `; ${phantom.length} phantom-modified file(s) identical to HEAD by content` : '';
   if (d.action !== 'ff') return `vault-sync: ${d.action === 'noop' ? 'up to date' : 'SKIPPED'} (${d.reason}${note}) at ${vault}`;
@@ -169,7 +200,13 @@ export function syncVault(vault, deps = {}) {
   const merged = git(vault, ['merge', '--ff-only', '--quiet', 'origin/master'], { env: syncEnv });
   const after = git(vault, ['rev-parse', '--short', 'HEAD']);
   if (merged === null || after === before) return `vault-sync: SKIPPED (fast-forward refused; run git -C "${vault}" merge --ff-only origin/master to see why${note}) at ${vault}`;
-  return `vault-sync: ${before}..${after} (${d.reason}${note ? note.replace('identical to HEAD by content', 'restored, identical to HEAD by content') : ''}) at ${vault}`;
+  const line = `vault-sync: ${before}..${after} (${d.reason}${note ? note.replace('identical to HEAD by content', 'restored, identical to HEAD by content') : ''}) at ${vault}`;
+  // The gate's governing files changed: re-run the idempotent installer so the installed shim, matcher and git
+  // hook trampolines follow master (WIRE-1).
+  const changed = disciplineFilesChanged(vault, beforeFull, git(vault, ['rev-parse', 'HEAD']));
+  if (changed.length === 0) return line;
+  const r = (deps.runInstaller ?? runInstaller)(vault, syncEnv);
+  return `${line}\nvault-sync: ${changed.length} file(s) under fsi-app/.discipline/ changed; installer ${r.ok ? 'ran' : 'FAILED'}: ${r.summary}`;
 }
 
 async function main() {

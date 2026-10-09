@@ -309,3 +309,17 @@ test("a pinned id missing from the source fails the export, naming only counts",
 test("readPinnedIds rejects a file that names no ids", () => {
   assert.throws(() => readPinnedIds(JSON.stringify({ entries: [] })), /names no item ids/);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS ───────────────────────────
+test("GATE-9 exit status: export-subset.mjs exits 1 without --out and non-zero without production credentials", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { withoutCredentials } = await import("../lib/env-file.mjs");
+  const script = fileURLToPath(new URL("./export-subset.mjs", import.meta.url));
+  const env = { ...withoutCredentials(), SUPABASE_DB_URL: "", PROOF_DB_URL: "", SUPABASE_DB_PASSWORD: "", NEXT_PUBLIC_SUPABASE_URL: "" };
+  const noOut = spawnSync(process.execPath, [script], { encoding: "utf8", env });
+  assert.equal(noOut.status, 1, noOut.stdout + noOut.stderr);
+  assert.match(noOut.stderr, /--out <dir> is required/);
+  const noCreds = spawnSync(process.execPath, [script, "--out", "subset-out-unused"], { encoding: "utf8", env });
+  assert.notEqual(noCreds.status, 0, "without credentials the export must not report success");
+});

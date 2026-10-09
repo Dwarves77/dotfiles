@@ -1,7 +1,7 @@
 // src/lib/agent/formats/regulation.ts
 //
 // Regulatory Fact Document — 15 sections (9 always-present incl. S8 + 6 conditional), per
-// environmental-policy-and-innovation/SKILL.md (count reconciled 2026-06-05: 14 content sections
+// environmental-policy-and-innovation/references/regulatory-fact-document.md (count reconciled 2026-06-05: 14 content sections
 // 1-14 + S15 Sources = 15; the old "14" labels were stale). The canonical pipeline extracts ALL 15 section
 // bodies into intelligence_item_sections (completeness + grounding). The RegulationDetailSurface
 // curates which to render and re-parses content_md into structured components

@@ -11,6 +11,7 @@
   ],
   "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
   "notes": [
+    "DAUDIT-2 (2026-10-08): the nav card width is 234px in this mount, not 252px. The frame is a two-track grid (252px 1fr) and the card sits in the first track with margin-left 16px, so its outer box fills the 252px track and its own box is 252 minus 16 = 236px (Sidebar.tsx and AppShell.tsx, STOP 1 fix, coordinator amendment 2, 2026-09-22: no explicit width: 252; the artboard's own model, dc.html frame grid 252px 1fr with the card margin 16px 0 16px 16px). This mount loads no Tailwind preflight, so the card is content-box and getComputedStyle reports 236 minus its 1px left and right borders, 234. The row measured 252 against a width the card has not had since that fix.",
     "The mount is the REAL AppShell wrapping DashboardBrief and RegulationDetailSurface, so the nav card, the content column, the dashboard section cards, the detail header and the detail action row are all in ONE measured tree. Composing the two surfaces together is an audit fixture, not a claim the product renders them together.",
     "Nav card top margin is expected at 20px per operator ruling 4.2 ('margin: 20px 0 16px 16px so it aligns with the content column's 20px top padding. Fix it in the frame, once'). The artboard markup still shows 16px; the ruling supersedes it.",
     "Ruling 5.1 requires a 3px graduated rule ABOVE each section title (full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))) and NO line below the title. Selector repair, train 58 (2026-09-07): the earlier `[data-section-rule]` selector never matched anything; the dashboard's Card DOES render the shared `SectionRule` component (`src/components/ui/SectionRule.tsx`, marker class `.cl-section-rule`, confirmed by direct source read this session, `src/components/dashboard/DashboardBrief.tsx` line ~121) — the check below now measures the real element.",
@@ -19,7 +20,7 @@
   ],
   "selector": "aside.hidden",
   "expect": {
-    "width": "252px",
+    "width": "234px",
     "margin-top": "20px",
     "margin-right": "0px",
     "margin-bottom": "16px",
@@ -98,7 +99,7 @@
     },
     {
       "name": "exactly one '+ Tag' trigger in the detail header (operator 3.2, mechanism repair train 58 2026-09-07)",
-      "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) button",
+      "selector": "[data-audit=\"regulation-detail\"] [data-part=\"action-card\"] button",
       "textMatch": "Tag",
       "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' RESOLVED (found and fixed independently by two fix lanes, fix58-tokens and fix58-detail, 2026-09-07): the count-5 finding was a HARNESS bug, not a product defect. A standalone debug mount (`page.evaluate` against this exact selector, no `textMatch` filter applied) confirmed `header:not(.cl-masthead) button` matches all 5 ActionRow buttons (the row-overflow '⋯' menu, Export brief, Share, ☆ Watch, + Tag) — `textMatch: \"Tag\"` above was meant to narrow that down to the one button whose text contains 'Tag', exactly the way `forbid` entries already use `textMatch` (readForbid, run-audit.mjs). But `targetsOf()`/`readTarget()` (the non-forbid path) silently dropped the `textMatch` field for `children`/top-level `expect` targets — it was read into the target object nowhere, so the filter never ran and the raw 5-button count leaked through. Fixed at the root, once, in run-audit.mjs (`targetsOf` now carries `textMatch` through, `readTarget` applies the same filter `readForbid` already does) rather than reshaping this selector around the bug. RegulationDetailSurface.tsx (line ~193, ~209) already wires exactly one '+ Tag' trigger (ActionRow's own, via `onTag`) and DetailTagRow renders no trigger of its own (TagPopover's `open`/`onOpenChange` controlled mode) — the product was already correct; only the measurement was wrong.",
       "expect": { "count": "1" }

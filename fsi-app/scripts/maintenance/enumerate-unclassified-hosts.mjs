@@ -25,13 +25,13 @@
 // alongside them, same as every other MAINT step.
 //
 // REUSE, NEVER A SECOND COPY: `existingTierForHost` (scripts/maintenance/canonical-autoverify.mjs, rule
-// a) and `classTierForHost` (src/lib/sources/host-authority.ts, rule b) are the SAME functions
+// a) and `classTierForHostWithVerdicts` (src/lib/sources/host-authority.ts, rules b and b2) are the SAME functions
 // resolve-provisional-sources.mjs consumes -- this step's residue is defined as "whatever that step's
 // own rule a/b would leave unresolved", so it must run the identical two functions, never a re-derived
 // approximation. `hostOf` (scripts/lib/db.mjs) is the same host-extraction helper every maintenance
 // script in this family uses.
 import { readAll, hostOf } from "../lib/db.mjs";
-import { classTierForHost, verdictPlacementForHost } from "../../src/lib/sources/host-authority.ts";
+import { classTierForHostWithVerdicts } from "../../src/lib/sources/host-authority.ts";
 import { existingTierForHost } from "./canonical-autoverify.mjs";
 import { loadHostVerdicts } from "./host-verdicts/load-host-verdicts.mjs";
 import { runCli } from "./lib/cli.mjs";
@@ -108,21 +108,21 @@ export function groupUnresolvedHosts(rows, searchResultsByHost, itemTitleById) {
 /**
  * The ONE loop that decides which rows are unresolved (shared by this step and by
  * resolve-provisional-sources.mjs's export-unplaced mode, lane S1-B, so the two can never disagree about
- * what "unplaced" means). A row is unresolved when rule (a) (existing institution), rule (b) (the class
- * table, via the caller's `classTierFor`) and rule b2 (a committed host verdict) all decline. Pure.
+ * what "unplaced" means). A row is unresolved when rule (a) (existing institution) and the caller's
+ * `classTierFor` (the class table plus the committed host verdicts, in host-authority's ONE precedence, see
+ * classTierForHostWithVerdicts) both decline. This loop keeps no ordering of its own. Pure.
  * @param {Array<{ table: string, rows: Array }>} tables
  * @param {{ activeSources: Array, classTierFor: (host: string, row: object) => number|null,
- *           hostOfFn?: (url: string) => string|null, verdicts?: Map|null }} ctx
+ *           hostOfFn?: (url: string) => string|null }} ctx
  */
-export function collectUnresolvedRows(tables, { activeSources, classTierFor, hostOfFn = hostOf, verdicts = null }) {
+export function collectUnresolvedRows(tables, { activeSources, classTierFor, hostOfFn = hostOf }) {
   const out = [];
   for (const { table, rows } of tables) {
     for (const row of rows) {
       const host = row.url ? hostOfFn(row.url) : null;
       if (!host) continue; // no parsable host: a different residue class (resolve-provisional-sources's own worklist), not this list's job
       const existingTier = existingTierForHost(host, activeSources)?.tier ?? null;
-      let classTier = existingTier == null ? classTierFor(host, row) : null;
-      if (existingTier == null && classTier == null) classTier = verdictPlacementForHost(host, verdicts)?.tier ?? null;
+      const classTier = existingTier == null ? classTierFor(host, row) : null;
       if (isUnresolved(host, { existingTier, classTier })) {
         out.push({ table, id: row.id, host, name: row.name ?? null, discovered_via: row.discovered_via ?? null });
       }
@@ -192,13 +192,12 @@ export function renderMarkdown(hosts, { generatedAt }) {
  *   readActiveSources: () => Promise<Array>,
  *   readSearchLog: () => Promise<Array<{ result_url: string|null, intelligence_item_id: string|null }>>,
  *   readItemTitles: () => Promise<Array<{ id: string, title: string|null }>>,
- *   classTierForHost: (host: string, name?: string|null) => number|null,
+ *   hostVerdicts?: Map<string, object>|null,
  *   now?: () => string,
  * }} deps
  */
 export async function main({ out = null } = {}, deps) {
   const now = deps.now ?? (() => new Date().toISOString());
-  const classTierFn = deps.classTierForHost ?? classTierForHost;
 
   const [pendingProvisional, sourcesProvisional, activeSources, searchRows, itemRows] = await Promise.all([
     deps.readPendingProvisional(),
@@ -213,7 +212,7 @@ export async function main({ out = null } = {}, deps) {
   // host verdicts (deps.hostVerdicts, rule b2) are consulted last, so a ruled host drops off this list.
   const unresolvedRows = collectUnresolvedRows(
     [{ table: "provisional_sources", rows: pendingProvisional }, { table: "sources", rows: sourcesProvisional }],
-    { activeSources, classTierFor: (host, row) => classTierFn(host, row.name), verdicts: deps.hostVerdicts ?? null },
+    { activeSources, classTierFor: (host, row) => classTierForHostWithVerdicts(host, row.name == null ? [] : [row.name], deps.hostVerdicts ?? null) },
   );
 
   const searchResultsByHost = indexSearchResultsByHost(searchRows, hostOf);

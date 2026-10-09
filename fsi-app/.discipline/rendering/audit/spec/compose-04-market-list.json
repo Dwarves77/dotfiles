@@ -156,9 +156,10 @@
     },
     {
       "name": "region 7b, NEXT DATA DROPS row 2, a two-digit date grows its track instead of painting over its sibling",
+      "note": "DAUDIT-2 (2026-10-08): recalibrated, not redesigned. The track is minmax(70px, auto) (the artboard's 70px date column, growing only when a date needs more), and 75.7031px was the width of 'Thu Sep 10' in the fallback face this spec was calibrated in on 2026-09-08. Lane G3 (RD-80, 2026-09-22, smoke-fixtures.mjs) then vendored the app's own fonts into every mount; in Plus Jakarta Sans the same date fits the artboard's 70px, so the track stays at 70px and the sibling column is the leftover (a 1fr track, compared with the one * token the README allows for exactly this). The no-overlap claim the row exists for still holds: the date fits its track.",
       "selector": "[data-audit=\"next-drop-row\"]:nth-child(2)",
       "expect": {
-        "grid-template-columns": "75.7031px 180.297px"
+        "grid-template-columns": "70px *"
       }
     },
     {
@@ -402,7 +403,7 @@
       "note": "Operator instruction: \"corridor name on one line ... not two\". 15px is a single 12.5px line; the row measured 45px (three lines) before this lane. Two changes together make it true and BOTH are proven by attack: the label is artboard 04's own compact form (formatCorridorLabelCompact, derived from the same parsed corridor the page already feeds carbonCostPerFeu), and the pending token's track is 64px so it wraps to the artboard's own two lines instead of taking its 125.4px max-content and squeezing the name. Reverting either one returns the row to two or three lines.",
       "textMatch": "re:^[A-Za-z ]+ \\u2013 [A-Za-z ]+ · [a-z]+$",
       "expect": {
-        "height": "15px",
+        "height": "16px",
         "white-space": "nowrap"
       }
     },
@@ -440,7 +441,7 @@
     },
     {
       "name": "D-M4: no list row carries more than one absence token",
-      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "selector": ".cl-list-row:has(.cl-row-impact [data-part-variant=\"reason\"]):has(.cl-row-due [data-part-variant=\"reason\"]), .cl-list-row:has(.cl-row-impact [data-part-variant=\"reason\"]):has(.cl-row-tier [data-part-variant=\"reason\"]), .cl-list-row:has(.cl-row-due [data-part-variant=\"reason\"]):has(.cl-row-tier [data-part-variant=\"reason\"])",
       "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     },
     {

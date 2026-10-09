@@ -39,7 +39,7 @@
     {
       "name": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
       "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\".",
+      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries severity \"low\" (a real migration-102 value, mapped to \"background\" by SEVERITY_COLUMN_TO_KEY), so the chip reads \"Background\". DAUDIT-2 (2026-10-08): the fixture carried no severity before, which ResearchLedger labels \"needs regeneration for severity\" (ResearchLedger.tsx, coordinator check 2026-10-01).",
       "expect": {
         "background-color": "#F5F2EE",
         "border-top-left-radius": "3px",

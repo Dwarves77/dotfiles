@@ -15,6 +15,7 @@
     "Row-scored fixture (sum 7/12, dims cost:1 compliance:1 client:2 operational:3): segments 1 to 7 filled in rampColor(7) = #F97316, segments 8 to 12 the #E5E1DB track.",
     "Row-partial fixture (sum 2/12, dims cost:0 compliance:0 client:0 operational:2): segments 1 and 2 filled in rampColor(2) = #529B33, segments 3 to 12 the track. The same dimension vector as before, kept because it is still the partial-fill case.",
     "Row-unscored: the same twelve segments as 1px dashed rgba(0,0,0,.3) outlines, no fill, and an em dash in the score slot. No word.",
+    "DAUDIT-2 (2026-10-08): the score-slot rows (sum label, bold N, unscored dash, partial sum) address the `*-valued` mount cells, which pass valueVisible. The default row variant draws no visible value (ImpactMeter.tsx header, lane PAR-1b), so those rows measured a slot the default row never draws; the legend and the detail rail pass valueVisible and draw it. Values are unchanged.",
     "Full variant track: unchanged. height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px.",
     "Full variant, unscored: unchanged, the 96px dashed baseline."
   ],
@@ -74,7 +75,7 @@
     },
     {
       "name": "row scored, sum label: 11px, tabular-nums, N bold, /12 in #7A6E6C",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
+      "selector": "[data-audit=\"row-scored-valued\"] .cl-impact-scored > span:last-child",
       "note": "brief 2.16: \"Beside it: N/12, 11px, tabular numerals, N in bold, '/12' #7A6E6C.\"",
       "expect": {
         "font-size": "11px",
@@ -84,7 +85,7 @@
     },
     {
       "name": "row scored, the bold N",
-      "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child > b",
+      "selector": "[data-audit=\"row-scored-valued\"] .cl-impact-scored > span:last-child > b",
       "expect": {
         "font-weight": "700",
         "text": "7"
@@ -104,9 +105,10 @@
     },
     {
       "name": "row unscored, an em dash in the score slot, no word (B3/brief 2.16)",
-      "selector": "[data-audit=\"row-unscored\"] .cl-absence-dash",
+      "selector": "[data-audit=\"row-unscored-valued\"] .cl-absence-dash",
+      "note": "DAUDIT-2 (2026-10-08): the dash takes the score slot's size (it inherits it); CSSOM reports the computed value, not the keyword, so the expectation is written as the slot's 11px (the same 11px as the sum label above).",
       "expect": {
-        "font-size": "inherit",
+        "font-size": "11px",
         "text": "\u2014"
       }
     },
@@ -126,7 +128,7 @@
     },
     {
       "name": "row partial, the sum still shows, tabular numerals",
-      "selector": "[data-audit=\"row-partial\"] .cl-impact-scored > span:last-child",
+      "selector": "[data-audit=\"row-partial-valued\"] .cl-impact-scored > span:last-child",
       "expect": {
         "font-size": "11px",
         "text": "2/12"

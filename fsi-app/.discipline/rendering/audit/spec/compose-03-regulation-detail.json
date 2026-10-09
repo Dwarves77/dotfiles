@@ -1,6 +1,6 @@
 {
   "part": "Page composition — Regulation detail (03)",
-  "mount": "page-frame-1440",
+  "mount": "page-frame-1440-full-brief",
   "viewport": 1440,
   "artboards": [
     "03-regulation-detail"
@@ -8,7 +8,8 @@
   "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
   "notes": [
     "Region-composition check inside [data-audit=\"regulation-detail\"] — RegulationDetailSurface mounted with fixture data matching the artboard's own EU ETS example (mounts.mjs PAGE_FRAME_FIXTURES.regulation).",
-    "Artboard order top to bottom: header (band pill, type/mode/topic chips, TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index + Summary/Full brief switch -> Summary section (Generated · 30-second read) -> dynamic sections -> Sources -> rail (At a glance, Impact assessment, Relevance, Owner & team, In this list, Connections, Legend)."
+    "Artboard order top to bottom: header (band pill, type/mode/topic chips, TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index + Summary/Full brief switch -> Summary section (Generated · 30-second read) -> dynamic sections -> Sources -> rail (At a glance, Impact assessment, Relevance, Owner & team, In this list, Connections, Legend).",
+    "DAUDIT-2 (2026-10-08): this spec now names the mount page-frame-1440-full-brief, the page-frame-1440 tree with the regulation detail pressed to its Full brief depth after mount. The surface arrives at Summary depth (RegulationDetailSurface.tsx: its depth state starts at summary; W10-ActionCard-a review item 6 hides Penalties and Sources until Full brief), so \"region 4, Sources section\" could not exist in the arrival state the old mount measured, while artboard 03 draws the full page. Nothing else about the mount differs."
   ],
   "selector": "[data-audit=\"regulation-detail\"]",
   "expect": {
@@ -53,13 +54,13 @@
       }
     },
     {
-      "name": "region 1b — chip row order: band pill, Regulation, mode, topic, then the TIER square last",
-      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"detail-chips\"]",
+      "name": "region 1b — pill row order: band pill, Regulation kind tag, then the TIER square last",
+      "selector": "[data-audit=\"regulation-detail\"] div:has(> [data-part=\"chip-band\"])",
       "expect": {
         "count": "1"
       },
-      "note": "dc.html #p3: 'Action · <= 6 months' · Regulation · Ocean · Emissions · T1. The build rendered the tier chip second, straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages.",
-      "textMatch": "re:Regulation[\\s\\S]*Ocean[\\s\\S]*Emissions[\\s\\S]*T2"
+      "note": "DAUDIT-2 (2026-10-08): selector repaired and the stale value superseded by a ruled change. dc.html #p3 drew 'Action · <= 6 months' · Regulation · Ocean · Emissions · T1, and this row used to address DetailHeader's data-audit=detail-chips, which PR 800 deleted; the pill row is now ui/ActionCard's, reached through the band chip's parent. Panel 21b (docs/design/parts-brief-2026-09-18.md 2.6 ACTION CARD: band pill + kind tag + tier square + source meta) and the W10-ActionCard-a operator review item 1c (docs/dispatches/lane-briefs/2026-09-21/brief-w10-actioncard-a.md: pill + kind + tier left, meta right) rule the regulation pill row to band, kind, tier; the mode and topic chips left it in PR 784 (W10-ActionCard-b). The tier square stays last.",
+      "textMatch": "re:Regulation[\\s\\S]*T2"
     },
     {
       "name": "region 1c — EXPOSURE grid renders between the header and the timeline",

@@ -62,10 +62,18 @@ const STYLE_INJECT = `
 })();
 `;
 
-// ── FactCard ────────────────────────────────────────────────────────────────────────────────────
-// Three variants side by side, each wrapped in its own `[data-audit]` box so a spec can address one
-// variant by selector. The wrapper is a plain block with no styling of its own; `> div` inside it is
+// ── FactCard ────────────────────────────────────────────────────────────────────────────────
+// Three forms side by side, each wrapped in its own `[data-audit]` box so a spec can address one
+// form by selector. The wrapper is a plain block with no styling of its own; `> div` inside it is
 // the FactCard's own root element.
+//
+// DAUDIT-2 (2026-10-08): FactCard v2 (lane w10-factcard, 2026-09-20; parts brief 2.1, artboard 21c)
+// REPLACED the v1 three-variant card and REMOVED the `variant`/`text`/`source`/`label` props, taking one
+// `model` (FactCardModel, src/lib/detail/fact-card-model.ts) instead. This mount still passed the v1
+// props, so the component threw on mount ("Cannot read properties of undefined (reading kind)") and
+// the root stayed empty. The three models below are the three FORMS of the ruled kind vocabulary:
+// an ink-family kind (SCOPE, with a figure lead and a full provenance column), the inference kind, and
+// an orange-family kind (LEGAL CONFIRMATION REQUIRED).
 const FACTCARD_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
@@ -80,20 +88,28 @@ window.__mount = () => {
     React.createElement('div', { style: { width: 778, padding: 20, background: 'var(--page)' } },
       React.createElement('div', { 'data-audit': 'sourced' },
         React.createElement(FactCard, {
-          variant: 'sourced',
-          text: 'Shipping companies must monitor, report and surrender ETS allowances for each tonne of reported CO2 from ships of 5,000 GT and above calling at EEA ports.',
-          source: { title: 'ETS Extension to Maritime', issuer: 'EMSA', date: 'accessed 2026', url: 'https://example.com/source', tier: 2 },
+          model: {
+            kind: 'SCOPE',
+            qualifier: 'EU ETS, maritime',
+            figureLead: '5,000 GT',
+            figureSubLabel: 'size threshold',
+            claim: [{ text: 'Shipping companies must monitor, report and surrender ETS allowances for each tonne of reported CO2 from ships of 5,000 GT and above calling at EEA ports.' }],
+            provenance: { tier: 2, source: 'ETS Extension to Maritime', org: 'EMSA', href: 'https://example.com/source', accessed: 'accessed 2026' },
+          },
         })),
       React.createElement('div', { 'data-audit': 'inference' },
         React.createElement(FactCard, {
-          variant: 'inference',
-          label: 'Analytical inference',
-          text: 'Forwarders sit outside the direct surrender chain; exposure arrives as carrier surcharge pass-through on any EEA-touching lane.',
+          model: {
+            kind: 'ANALYTICAL INFERENCE',
+            claim: [{ text: 'Forwarders sit outside the direct surrender chain; exposure arrives as carrier surcharge pass-through on any EEA-touching lane.' }],
+          },
         })),
       React.createElement('div', { 'data-audit': 'counsel' },
         React.createElement(FactCard, {
-          variant: 'counsel',
-          text: 'Whether a workspace entity operating its own vessel is a "shipping company" under the amended Directive.',
+          model: {
+            kind: 'LEGAL CONFIRMATION REQUIRED',
+            claim: [{ text: 'Whether a workspace entity operating its own vessel is a "shipping company" under the amended Directive.' }],
+          },
         })),
     ),
   );
@@ -209,6 +225,18 @@ window.__mount = () => {
       // the twelve-segment geometry, not the retired zero-dimension-stub geometry.
       React.createElement('div', { 'data-audit': 'row-partial' },
         React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 0, compliance: 0, client: 0, operational: 2 } })),
+      // DAUDIT-2 (2026-10-08): the row variant draws NO visible value by default (ImpactMeter.tsx header,
+      // lane PAR-1b: "The row variant has no visible value"; valueVisible defaults to false). The score slot
+      // (bold N, /12, the unscored em dash) is still drawn where a caller passes valueVisible: the legend and
+      // the detail rail do. These three cells mount the same three fixtures with valueVisible so the score
+      // slot's typography is measured where the product draws it, instead of reporting a slot the default
+      // row never draws as absent.
+      React.createElement('div', { 'data-audit': 'row-scored-valued' },
+        React.createElement(ImpactMeter, { variant: 'row', valueVisible: true, scores: { cost: 1, compliance: 1, client: 2, operational: 3 } })),
+      React.createElement('div', { 'data-audit': 'row-unscored-valued' },
+        React.createElement(ImpactMeter, { variant: 'row', valueVisible: true, scores: null })),
+      React.createElement('div', { 'data-audit': 'row-partial-valued' },
+        React.createElement(ImpactMeter, { variant: 'row', valueVisible: true, scores: { cost: 0, compliance: 0, client: 0, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-scored', style: { width: 380 } },
         React.createElement(ImpactMeter, { variant: 'full', scores: { cost: 1, compliance: 3, client: 1, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-unscored', style: { width: 380 } },
@@ -429,6 +457,11 @@ const finding = {
   citationCount: 2,
   biasTags: [],
   itemGrade: 'record',
+  // DAUDIT-2 (2026-10-08): ResearchLedger labels a NULL severity "needs regeneration for severity"
+  // (ResearchLedger.tsx, coordinator check 2026-10-01: severity is set only by regeneration), so a
+  // fixture row with no severity measured the absence label instead of the severity chip the spec
+  // addresses. 'low' is a real migration-102 value; SEVERITY_COLUMN_TO_KEY maps it to "background".
+  severity: 'low',
   reasoning: '',
   tags: ['scope 3'],
   whatIsIt: 'What this finding is about.',
@@ -577,17 +610,32 @@ window.__mount = () => {
 };
 `;
 
+// ── The selected mount's cell: ASIA x D6, and why it is no longer ASIA x D3 ────────────────────────
+// DAUDIT-2 (2026-10-08): the panel for the LABOUR dimension (labor_markets, D3) is no longer a stack of
+// fact cards. RegionDimensionMatrix.tsx renders the fully-loaded labour chain there (spec 04 section 5
+// and section 6 component 5, LabourChain.tsx), so a click on ASIA x D3 measured a chain panel and every
+// fact-card row of operations-matrix-selected.json read NOT BUILT. Fact cards are still the panel for
+// every other dimension, so this mount clicks ASIA x D6 (Operational cost) instead, and gives that cell
+// the FOUR facts the spec needs to exercise the "max 3, then N more facts on the profile" cap. The three
+// extra facts are passed to THIS mount only, like the no-figure fact below, so the shared fixture's
+// cell counts, coverage percentage and absence-cell count (8 sourced, 22 absent) are untouched.
+const OPSMATRIX_ASIA_D6_FACTS = `[
+  F('ASIA', 'operational_cost', 'Terminal gate fee per move', 'USD 22'),
+  F('ASIA', 'operational_cost', 'Reefer plug-in fee per day', 'USD 41'),
+  F('ASIA', 'operational_cost', 'Documentation fee per bill', 'USD 35'),
+]`;
+
 // The click `ops-matrix-selected` performs. It runs after two animation frames, so React has
 // committed the first render and the cell exists; run-audit.mjs then waits two more frames plus 80ms
 // plus a per-target settle before it probes, so the post-click render is painted by the time
 // anything is measured. It addresses the cell by its own accessible name, which is the same string
 // a screen-reader user hears, rather than by a positional selector that a column reorder would
 // silently repoint.
-const OPSMATRIX_CLICK_ASIA_D3 = `
+const OPSMATRIX_CLICK_ASIA_D6 = `
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const target = Array.from(document.querySelectorAll('td[role="gridcell"]'))
-      .find((c) => (c.getAttribute('aria-label') || '').startsWith('Asia · SG + HK, D3 Labor markets'));
-    if (!target) throw new Error('ops-matrix-selected: no ASIA x D3 cell to click');
+      .find((c) => (c.getAttribute('aria-label') || '').startsWith('Asia · SG + HK, D6 Operational cost'));
+    if (!target) throw new Error('ops-matrix-selected: no ASIA x D6 cell to click');
     target.click();
   }));
 `;
@@ -950,6 +998,22 @@ window.__mount = () => {
         React.createElement(RegulationDetailSurface, F.regulation)),
     ),
   );
+  // DAUDIT-2 (2026-10-08): the regulation surface arrives at SUMMARY depth (RegulationDetailSurface.tsx:
+  // its depth state starts "summary"; W10-ActionCard-a review item 6 and build item 3 hide Obligations
+  // beyond the first card, Penalties and Sources until Full brief). The artboards draw the full page, so
+  // a mount that sets window.__OPEN_FULL_BRIEF (the page-frame-1440-full-brief mount) presses the real
+  // "Full brief" control once the first render has put it in the document (polled, 50ms apart, because
+  // React commits the tree after a variable number of frames). Unset (every other caller, the layout
+  // guard's per-route mounts included) changes nothing.
+  if (window.__OPEN_FULL_BRIEF) {
+    const press = (triesLeft) => {
+      const full = Array.from(document.querySelectorAll('button')).find((b) => /full brief/i.test(b.textContent || ''));
+      if (full) full.click();
+      else if (triesLeft > 0) setTimeout(() => press(triesLeft - 1), 50);
+      else throw new Error('page-frame entry: no Full brief control to press');
+    };
+    press(60);
+  }
 };
 `;
 
@@ -3099,12 +3163,13 @@ export const AUDIT_MOUNTS = {
   'ops-matrix-selected': {
     id: 'ops-matrix-selected',
     description:
-      'The SAME RegionDimensionMatrix and the SAME fixture, after ONE CLICK on the ASIA x D3 cell. ' +
+      'The SAME RegionDimensionMatrix and the SAME fixture, after ONE CLICK on the ASIA x D6 cell ' +
+      '(four facts there; D3 now draws the labour chain, not fact cards). ' +
       'Every selected-state and panel value the design states is measured here, on a cell the test ' +
       'selected through the real click path, rather than on a default selection the product used to ' +
       'make for the reader.',
     viewport: 1440,
-    entry: opsMatrixEntry(OPSMATRIX_CLICK_ASIA_D3),
+    entry: opsMatrixEntry(OPSMATRIX_CLICK_ASIA_D6, { extraFacts: OPSMATRIX_ASIA_D6_FACTS }),
   },
   'ops-matrix-nofigure': {
     id: 'ops-matrix-nofigure',
@@ -3177,6 +3242,17 @@ export const AUDIT_MOUNTS = {
     description: 'The real AppShell frame wrapping DashboardBrief and RegulationDetailSurface.',
     viewport: 1440,
     entry: PAGE_FRAME_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'page-frame-1440-full-brief': {
+    id: 'page-frame-1440-full-brief',
+    description: 'The page-frame-1440 tree with the regulation detail pressed to its FULL BRIEF depth (the state the artboards draw: S1 to S8 including Penalties and Sources). Same entry and fixtures as page-frame-1440; the only difference is the real "Full brief" control pressed once after mount.',
+    viewport: 1440,
+    entry: `window.__OPEN_FULL_BRIEF = true;\n${PAGE_FRAME_ENTRY}`,
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,

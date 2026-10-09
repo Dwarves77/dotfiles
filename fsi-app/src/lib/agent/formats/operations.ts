@@ -1,6 +1,6 @@
 // src/lib/agent/formats/operations.ts
 //
-// Operations Profile — 8 sections, per analysis-construction-spec/SKILL.md §5 (a gated data-sourcing
+// Operations Profile — 8 sections, per analysis-construction-spec/references/formats-regulatory-operations-market.md §5 (a gated data-sourcing
 // program). Grounding = 'matrix': S1/S2 are single-region span facts that populate incrementally;
 // S3/S4 (cost comparison + cross-regional) GATE on the matrix reaching >=2 sourced regions per
 // dimension and stay omit-with-note until then. The matrix is a COVERAGE QUERY over the existing

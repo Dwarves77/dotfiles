@@ -48,3 +48,27 @@ test("the record never carries argument values", () => {
   const rec = buildStepRecord({ name: "x", lane: "L", status: "ran", exitCode: 0, seconds: 1 });
   assert.deepEqual(Object.keys(rec).sort(), ["exit_code", "lane", "reason", "seconds", "status", "step"]);
 });
+
+// ── lane GATE-9 (2026-10-08, AUD-AT-5 gate-script neuter row): the CLI's EXIT STATUS is the step's own ─────────
+test("GATE-9 exit status: run-lane-step.mjs exits 2 on a missing argument, the step script's own status when it fails, and 0 when it passes or is absent", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const script = fileURLToPath(new URL("./run-lane-step.mjs", import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), "run-lane-step-"));
+  try {
+    const failing = join(dir, "fails.mjs");
+    const passing = join(dir, "passes.mjs");
+    writeFileSync(failing, "process.exit(3);\n");
+    writeFileSync(passing, "process.exit(0);\n");
+    const run = (...a) => spawnSync(process.execPath, [script, ...a], { encoding: "utf8" });
+    assert.equal(run("--name", "x").status, 2, "--lane, --script and --out-dir are required");
+    assert.equal(run("--name", "s", "--lane", "L", "--script", failing, "--out-dir", dir).status, 3, "the failing step's own status passes through");
+    assert.equal(run("--name", "s", "--lane", "L", "--script", passing, "--out-dir", dir).status, 0);
+    assert.equal(run("--name", "s", "--lane", "L", "--script", join(dir, "absent.mjs"), "--out-dir", dir).status, 0, "a step whose lane has not landed is a named skip, not a failure");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

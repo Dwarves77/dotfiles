@@ -14,12 +14,19 @@
     "background-color": "#FFFFFF",
     "border-top-width": "1px",
     "border-top-color": "rgba(0,0,0,.12)",
-    "border-top-left-radius": "10px",
-    "padding-top": "14px",
-    "padding-right": "16px",
-    "padding-left": "16px"
+    "border-top-left-radius": "10px"
   },
   "children": [
+    {
+      "name": "rail card body padding",
+      "selector": "[data-audit=\"inthislist\"] [data-part=\"rail-card\"] > div:last-child",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, values unchanged. The card shell (SectionCard) carries no padding; the 14px 16px sits on the body wrapper div that follows the 3px rule (ui/RailCard.tsx, the padded div inside SectionCard), so the padding is measured on that wrapper, not on the card element.",
+      "expect": {
+        "padding-top": "14px",
+        "padding-right": "16px",
+        "padding-left": "16px"
+      }
+    },
     {
       "name": "the 3px graduated rule on the rail card (ruling 5.1)",
       "selector": "[data-audit=\"inthislist\"] .cl-section-rule",

@@ -37,8 +37,9 @@
 // USAGE:
 //   node scripts/obligations/derive-obligations.mjs            # dry: what would be inserted
 //   node scripts/obligations/derive-obligations.mjs --apply    # insert new register rows through the guarded path
-import { classifyBindingPosition } from "../../src/lib/obligations/classify-binding-position.mjs";
-import { normaliseMode, LEG_MODE_CODES } from "../../src/lib/contracts/vocabularies.mjs";
+import { classifyBindingPosition, classifyInstrumentIdentity } from "../../src/lib/obligations/classify-binding-position.mjs";
+import { dutyHoldersExcludeForwarder, currentObligationObjects } from "../../src/lib/workspace/relevance.mjs";
+import { normaliseMode, LEG_MODE_CODES, BINDING_POSITION } from "../../src/lib/contracts/vocabularies.mjs";
 import { loadLocalEnvFile } from "../lib/env-file.mjs";
 import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-safe CLI main guard
 
@@ -56,7 +57,7 @@ const LEG_MODE_SET = new Set(LEG_MODE_CODES);
 
 loadLocalEnvFile();
 
-export const DERIVATION_VERSION = "oblig-derive-2026-09-02.1";
+export const DERIVATION_VERSION = "oblig-derive-2026-10-08.1";
 
 export const CITE = Object.freeze({
   skill: "surface-spec-01-regulations",
@@ -67,31 +68,88 @@ export const CITE = Object.freeze({
     "Fresh audit-sink rows only, never a mutation of an existing row (guardedInsertMany).",
 });
 
+// ── classification (lane OBL-2, 2026-10-08; OBL-1 register section 8 items 8 and 9) ────────────────────────────
+// The classifier used to read the TITLE alone. The curated rule table (classify-binding-position.mjs, spec 01
+// section 1) is unchanged and still the only source of the named-instrument positions; this section decides WHAT
+// TEXT each rule is tested against, and in what order:
+//   1. the canonical instrument key, instrument_identifier and legal_instrument (the instrument's identity);
+//   2. the record-facts [binding_position] claim extracted from the captured source's own applicability language;
+//   3. the title;
+//   4. monitoring_only: when the duty holders known for the item (from its obligation_objects, or the
+//      "addressed to the Member States" scope claim) name no class that maps to the forwarder role, the instrument
+//      does not currently reach the customer.
+// The rule table and its generic-phrase handling (CBAM and PPWR carry a title phrase that matched other
+// instruments, census indices 51, 61, 103, 164) live in classify-binding-position.mjs, the one home of the rules;
+// this file only decides the ORDER and supplies the fields.
+const BINDING_CODES = new Set(Object.keys(BINDING_POSITION));
+
+/**
+ * Pure: the record-facts context for one item, from the text of its extracted record-facts claims
+ * (section_claim_provenance.claim_text). recordFactsPosition is the [binding_position] claim's resolved code (a GAP
+ * claim yields null); dutyHolderClasses is read from the [jurisdictional_scope] claim's verbatim span.
+ * @param {string[]} claimTexts
+ * @returns {{ recordFactsPosition: string|null, dutyHolderClasses: string[] }}
+ */
+export function contextFromClaims(claimTexts) {
+  let recordFactsPosition = null;
+  const dutyHolderClasses = [];
+  for (const t of Array.isArray(claimTexts) ? claimTexts : []) {
+    if (typeof t !== "string") continue;
+    if (t.startsWith("[binding_position]") && !recordFactsPosition) {
+      const m = t.match(/places this item at\s+[«"']?([a-z_]+)/);
+      if (m && BINDING_CODES.has(m[1])) recordFactsPosition = m[1];
+    }
+    if (t.startsWith("[jurisdictional_scope]") && /addressed to the member states/i.test(t) && !dutyHolderClasses.includes("member_state")) {
+      dutyHolderClasses.push("member_state");
+    }
+  }
+  return { recordFactsPosition, dutyHolderClasses };
+}
+
+/**
+ * Pure: classify one item's binding_position. Never guesses: returns null when nothing in the order above fires.
+ * @param {object} item  { title, legal_instrument?, instrument_identifier?, canonical_instrument_key?, jurisdiction_iso? }
+ * @param {{ recordFactsPosition?: string|null, dutyHolderClasses?: string[] }} [ctx]
+ * @returns {{ position: string, source: string, citation: string } | null}
+ */
+export function classifyItemBindingPosition(item, ctx = {}) {
+  const byIdentity = classifyInstrumentIdentity({
+    legalInstrument: item?.legal_instrument,
+    instrumentIdentifiers: [item?.instrument_identifier, item?.canonical_instrument_key],
+  });
+  if (byIdentity) return { ...byIdentity, source: "instrument_identity" };
+  if (ctx?.recordFactsPosition && BINDING_CODES.has(ctx.recordFactsPosition)) {
+    return { position: ctx.recordFactsPosition, source: "record_facts", citation: "record-facts [binding_position] claim" };
+  }
+  const byTitle = classifyBindingPosition({ title: item?.title, jurisdictionIso: item?.jurisdiction_iso });
+  if (byTitle) return { ...byTitle, source: "title" };
+  if (dutyHoldersExcludeForwarder(ctx?.dutyHolderClasses)) {
+    return { position: "monitoring_only", source: "duty_holder_excludes_forwarder", citation: "spec 01 section 3.2 duty_holder_class excludes every forwarder role" };
+  }
+  return null;
+}
+
 /**
  * Pure: derive ONE obligations row from a single forward event + its parent item's current metadata.
  * Never throws on a partial/malformed input — a forward event missing a date yields a row with
  * due_date/date_precision both null (never invented); an item missing jurisdiction/transport_modes
- * yields empty arrays (never invented); an item that matches none of classifyBindingPosition's rules
+ * yields empty arrays (never invented); an item that matches none of classifyItemBindingPosition's rules
  * yields binding_position: null ("not yet classified").
  *
  * @param {{ id: string, intelligence_item_id: string, event_date?: string|null, date_precision?: string|null, event_kind: string }} event
  * @param {{ id: string, title?: string|null, legal_instrument?: string|null, jurisdiction_iso?: string[]|null, transport_modes?: string[]|null, is_archived?: boolean }} item
- *   `legal_instrument` is accepted for forward-compatibility (classifyBindingPosition's own match
- *   surface) but `intelligence_items` carries no such column today (checked against migration 004's
- *   full column list; a prior audit finding — src/lib/supabase-server.ts's own P1-4 comment — records
- *   the same "no migration ever added it" fact for the sibling `legal_instrument`/`penalty_range`/
- *   `enforcement_body` trio) — `main`'s own readAll select list below does NOT request it, so a live
- *   item passed here never actually carries it and classification runs on `title` alone. Kept as an
- *   accepted (unused-today) field rather than removed so a future migration adding the column needs no
- *   change here, only to `main`'s select list.
+ *   `legal_instrument` is read when the row carries it; `intelligence_items` has no such column today (migration 004's
+ *   column list), so `main` selects `instrument_identifier` and `canonical_instrument_key` (migrations 079 and 200),
+ *   the instrument identity the live schema does hold.
+ * @param {{ recordFactsPosition?: string|null, dutyHolderClasses?: string[] }} [ctx] classification context, see classifyItemBindingPosition
  * @returns {object} a row shaped for the `obligations` table (minus id/created_at/updated_at, DB-defaulted)
  */
-export function deriveObligationRow(event, item) {
+export function deriveObligationRow(event, item, ctx = {}) {
   const jurisdiction = Array.isArray(item?.jurisdiction_iso) ? item.jurisdiction_iso.filter(Boolean) : [];
   const modes = Array.isArray(item?.transport_modes)
     ? [...new Set(item.transport_modes.map((m) => normaliseMode(m)).filter((m) => m && LEG_MODE_SET.has(m)))]
     : [];
-  const classified = classifyBindingPosition({ title: item?.title, legalInstrument: item?.legal_instrument });
+  const classified = classifyItemBindingPosition(item, ctx);
 
   const hasDate = typeof event?.event_date === "string" && event.event_date.length > 0;
   return {
@@ -117,12 +175,12 @@ export function deriveObligationRow(event, item) {
  * @param {Map<string, object>} itemsById - intelligence_items rows keyed by id
  * @returns {Array<object>} derived obligations rows, one per event whose item was found
  */
-export function deriveObligationRows(events, itemsById) {
+export function deriveObligationRows(events, itemsById, ctxByItemId = new Map()) {
   const out = [];
   for (const event of events ?? []) {
     const item = itemsById.get(event.intelligence_item_id);
     if (!item) continue;
-    out.push(deriveObligationRow(event, item));
+    out.push(deriveObligationRow(event, item, ctxByItemId.get(event.intelligence_item_id) ?? {}));
   }
   return out;
 }
@@ -136,6 +194,37 @@ export function deriveObligationRows(events, itemsById) {
 export function filterNewRows(derivedRows, existingForwardEventIds) {
   const seen = new Set(existingForwardEventIds ?? []);
   return derivedRows.filter((r) => !seen.has(r.forward_event_id));
+}
+
+/**
+ * Pure: one classification context per item id from the record-facts claim rows and the obligation_objects rows.
+ * Duty holders are the union of the item's CURRENT objects' classes and the scope-claim-derived class, so a
+ * forwarder anywhere among them keeps the item out of monitoring_only.
+ * @param {Array<{ intelligence_item_id: string, claim_text: string }>} claimRows
+ * @param {Array<{ instrument_item_id: string, obligation_id: string, supersedes?: string|null, duty_holder_class?: string[] }>} objectRows
+ * @returns {Map<string, { recordFactsPosition: string|null, dutyHolderClasses: string[] }>}
+ */
+export function buildContextByItem(claimRows, objectRows) {
+  const texts = new Map();
+  for (const c of claimRows ?? []) {
+    if (!texts.has(c.intelligence_item_id)) texts.set(c.intelligence_item_id, []);
+    texts.get(c.intelligence_item_id).push(c.claim_text);
+  }
+  const objs = new Map();
+  for (const o of objectRows ?? []) {
+    if (!objs.has(o.instrument_item_id)) objs.set(o.instrument_item_id, []);
+    objs.get(o.instrument_item_id).push(o);
+  }
+  const out = new Map();
+  for (const id of new Set([...texts.keys(), ...objs.keys()])) {
+    const fromClaims = contextFromClaims(texts.get(id) ?? []);
+    const fromObjects = currentObligationObjects(objs.get(id) ?? []).flatMap((o) => (Array.isArray(o.duty_holder_class) ? o.duty_holder_class : []));
+    out.set(id, {
+      recordFactsPosition: fromClaims.recordFactsPosition,
+      dutyHolderClasses: [...new Set([...fromObjects, ...fromClaims.dutyHolderClasses])],
+    });
+  }
+  return out;
 }
 
 /**
@@ -153,18 +242,42 @@ export async function main({ apply = false } = {}, deps) {
   // Every distinct item behind a forward event — corpus-scaled, no declared cap. Chunked via
   // readAllByIds, not readAll's own match-in (IN-CHUNK class, 2026-09-06).
   const itemIds = [...new Set(events.map((e) => e.intelligence_item_id))];
-  // NOTE: no `legal_instrument` column — intelligence_items carries no such field today (see
-  // deriveObligationRow's own JSDoc). Selecting it would fail this read against the live schema.
+  // NOTE: no `legal_instrument` column (see deriveObligationRow's JSDoc); the instrument identity the schema
+  // holds is instrument_identifier and canonical_instrument_key.
   const items = itemIds.length
     ? await readAllByIds(
         "intelligence_items",
-        "id, title, jurisdiction_iso, transport_modes, is_archived",
+        "id, title, jurisdiction_iso, transport_modes, is_archived, instrument_identifier, canonical_instrument_key",
         itemIds,
       )
     : [];
   const itemsById = new Map(items.map((i) => [i.id, i]));
 
-  const derived = deriveObligationRows(events, itemsById);
+  // Classification context (lane OBL-2): the record-facts claims and the item's obligation objects. Both reads are
+  // tolerant and DISCLOSED: a table that cannot be read (migration 376 not yet applied) is listed in
+  // optional_reads_unavailable and classification proceeds without it, never silently.
+  const optionalUnavailable = [];
+  const readOptional = async (table, columns, opts) => {
+    if (!itemIds.length) return [];
+    try {
+      return await readAllByIds(table, columns, itemIds, opts);
+    } catch (e) {
+      optionalUnavailable.push({ table, error: String(e?.message ?? e) });
+      return [];
+    }
+  };
+  const claimRows = await readOptional("section_claim_provenance", "intelligence_item_id, claim_text", {
+    idColumn: "intelligence_item_id",
+    match: (q) => q.eq("claim_kind", "FACT").like("claim_text", "[%"),
+  });
+  const objectRows = await readOptional(
+    "obligation_objects",
+    "instrument_item_id, obligation_id, supersedes, duty_holder_class",
+    { idColumn: "instrument_item_id" },
+  );
+  const ctxByItemId = buildContextByItem(claimRows, objectRows);
+
+  const derived = deriveObligationRows(events, itemsById, ctxByItemId);
   const skippedNoItem = events.length - derived.length;
 
   const existing = await readAll("obligations", "forward_event_id");
@@ -190,6 +303,7 @@ export async function main({ apply = false } = {}, deps) {
     to_insert: toInsert.length,
     inserted: 0,
     binding_position_breakdown: byBindingPosition,
+    optional_reads_unavailable: optionalUnavailable,
   };
   if (!apply || toInsert.length === 0) return summary;
 
