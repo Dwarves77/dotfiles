@@ -10,6 +10,11 @@ import { validateRunArtifact } from "../lib/run-artifact.mjs";
 import { buildArtifact, parseIdsList, emit } from "./emit-brief-export-artifact.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
+// The harness ledger export is the repo's REAL committed file by default (lane GATE-9), so a fixture test that
+// writes artifacts into a temp dir must pin the ledger it resolves against; "absent" is the file-path
+// behaviour these fixtures exercise (an artifact is trusted on its own fields when no export is present).
+const LEDGER_NONE = { present: false, capturedAt: null, rows: [] };
+
 function withTmpDir(fn) {
   const dir = mkdtempSync(join(tmpdir(), "brief-export-artifact-test-"));
   try {
@@ -161,6 +166,7 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream mint artifact with a mat
       upstreamName: "Population turn",
       upstreamRunId: "111",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(matched, "loop-x");
 
@@ -169,6 +175,7 @@ test("resolveLoopRunIdFromUpstream fixture: an upstream mint artifact with a mat
       upstreamName: "Population turn",
       upstreamRunId: "999",
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(unmatched, null);
   });

@@ -17,9 +17,11 @@ const RAW = readFileSync(join(HERE, "376_obligation_objects.sql"), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const read = (name) => readFileSync(join(HERE, name), "utf8");
 
-test("header: subject line, NOT APPLIED, schema only", () => {
+test("header: subject line, states APPLIED with the ledger version, schema only", () => {
   assert.match(RAW, /^-- subject: Migration 376 /);
-  assert.match(RAW, /NOT APPLIED/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261008233421, as of 2026-10-08\)/);
+  assert.doesNotMatch(RAW.split("\n")[0], /NOT APPLIED/);
+  assert.doesNotMatch(RAW.split("\n")[3], /NOT APPLIED/);
   assert.match(RAW, /Zero rows by construction/);
 });
 
