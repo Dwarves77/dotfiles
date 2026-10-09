@@ -60,7 +60,7 @@ export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTa
     } catch (e) {
       setLoad({ state: "error", message: e instanceof Error ? e.message : "The corrections could not be read." });
     }
-  }, [loadAll, fetcher]);
+  }, [loadAll]);
 
   useEffect(() => {
     // Initial read of every correction: one synchronization with the database, not derived state.

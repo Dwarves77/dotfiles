@@ -37,7 +37,7 @@ Every fact below was confirmed by the test named beside it. "Red" means the new 
 
 ## NOT done
 
-- fireSignpost still makes its writes as separate requests: stamping `fired_at` and writing the outbox row in ONE transaction needs a SQL function (an RPC the signpost watcher calls), which is a migration; DFIX-2's write set has no migration. NEEDS WRITE-SET EXPANSION (one new migration `public.fire_signpost(...)`, plus the call in `signpost-watch.ts`). A step-2 failure after `fired_at` is stamped still leaves a fired signpost with no outbox row (rows l4d-predictions-reliability:39 second half and mig374-owed-schema:35). [WORK: owed]
+- fireSignpost still makes its writes as separate requests: stamping `fired_at` and writing the outbox row in ONE transaction needs a SQL function (an RPC the signpost watcher calls), which is a migration; DFIX-2's write set has no migration. NEEDS WRITE-SET EXPANSION (one new migration `public.fire_signpost(...)`, plus the call in `signpost-watch.ts`). A step-2 failure after `fired_at` is stamped still leaves a fired signpost with no outbox row (rows l4d-predictions-reliability:39 second half and mig374-owed-schema:35). [WORK: WIRE-2]
 - Not run locally per COMMON rule 9: tsc, lint, the whole suite, the fitness runner, the rendering guard (needs Playwright). Run and green: every touched test file and its neighbours (see the report). [NOT-WORK: COMMON rule 9, CI is the gate]
 
 ## UX compliance
