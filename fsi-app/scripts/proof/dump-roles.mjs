@@ -11,17 +11,19 @@
 // the local env and no production credentials):
 //   export --out <raw.sql>
 //       The credentialed export step. First production connection candidate that connects (the same candidate list
-//       dump-production-schema.mjs uses), then `pg_dumpall --roles-only --no-role-passwords --no-comments` on it, to
-//       runner disk only. Passwords are never dumped; a dump that carries a PASSWORD clause anyway is refused (exit 1).
+//       dump-production-schema.mjs uses), then `supabase db dump --db-url <candidate> --role-only -f <out>` on it, to
+//       runner disk only. The Supabase CLI is version-matched to the server; a locally installed Postgres client is not and refuses a
+//       newer server, so the export runs through the same CLI the schema dump does.
 //   filter --in <raw.sql> --out <roles.sql> --db-url <oracle url>
 //       The oracle step. Reads the oracle's own role list from pg_roles AT RUN TIME (never a typed list) and keeps only
-//       the CREATE ROLE, ALTER ROLE and GRANT statements that name a role the oracle does not have. The output is role
-//       names and attributes only; it is attached to the run artifact. A statement the filter does not recognise is
-//       refused (exit 1), never passed through. apply-schema-dump.mjs --roles applies this file first.
+//       the CREATE ROLE, ALTER ROLE and GRANT statements that name a role the oracle does not have. Every PASSWORD '...'
+//       clause is STRIPPED and the output is asserted to carry none, so a secret never reaches the artifact; the output
+//       is role names and attributes only. A statement the filter does not recognise is refused (exit 1), never passed
+//       through. apply-schema-dump.mjs --roles applies this file first.
 // Exit: 0 = done; 1 = failed (the message names the cause, redacted); 2 = usage error.
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { candidateConnStrings } from "../lib/pg-conn.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
@@ -29,9 +31,10 @@ import { firstWorkingCandidate, redact } from "./dump-production-schema.mjs";
 import { assertOracleUrl } from "./apply-schema-dump.mjs";
 
 const MAX_TEXT = 300;
-const PASSWORD_CLAUSE = /\bPASSWORD\s+'/i;
+const PASSWORD_CLAUSE = /\bPASSWORD\s+(?:E|U&)?'/i;
+const PASSWORD_STRIP = /(?:\b(?:UN)?ENCRYPTED\s+)?\bPASSWORD\s+(?:E|U&)?'(?:[^']|'')*'/gi;
 
-/** An identifier as pg_dumpall writes it: bare or double-quoted with "" for a quote. PURE. */
+/** An identifier as the role dump writes it: bare or double-quoted with "" for a quote. PURE. */
 export function parseIdent(raw) {
   const s = String(raw);
   return s.startsWith('"') && s.endsWith('"') && s.length >= 2 ? s.slice(1, -1).replace(/""/g, '"') : s;
@@ -43,9 +46,15 @@ const RE_ALTER = new RegExp(`^ALTER ROLE ${IDENT} `);
 const RE_GRANT = new RegExp(`^GRANT ${IDENT}(?:\\s*,\\s*${IDENT})* TO ${IDENT}(?: |;)`);
 const RE_GRANTED_BY = new RegExp(`GRANTED BY ${IDENT}`);
 
-/** The pg_dumpall arguments. PURE. No role passwords, no comments, roles only. */
-export function dumpAllArgs(url, out) {
-  return ["--roles-only", "--no-role-passwords", "--no-comments", `--dbname=${url}`, "-f", out];
+/** The supabase CLI arguments for a roles-only dump (the same --db-url and -f as the schema dump, plus --role-only). PURE. */
+export function roleDumpArgs(url, out) {
+  return ["db", "dump", "--db-url", url, "--role-only", "-f", out];
+}
+
+/** Remove every PASSWORD '...' clause from one statement. PURE. A statement left as `ALTER ROLE x WITH;` is dropped (returns ""). */
+export function stripPasswords(line) {
+  const out = String(line).replace(PASSWORD_STRIP, "").replace(/ {2,}/g, " ").replace(/ ;$/, ";");
+  return /^ALTER ROLE \S+ WITH;$/.test(out) ? "" : out;
 }
 
 /** Lines that carry a password clause. PURE. A role merely named "password" is not one. */
@@ -63,10 +72,9 @@ export function newRoleNames(text, existing) {
   return out;
 }
 
-/** Keep the statements that name a role the oracle lacks. PURE. Throws on a password clause or an unknown statement. */
+/** Keep the statements that name a role the oracle lacks, every PASSWORD clause stripped. PURE. Throws on an unknown statement or a surviving password clause. */
 export function filterRoles(text, existing) {
-  const pw = passwordProblems(text);
-  if (pw.length) throw new Error(`the roles dump carries a PASSWORD clause (${pw[0]}); passwords are never dumped`);
+  text = String(text ?? "").split(/\r?\n/).map((l) => (l.startsWith("--") ? l : stripPasswords(l))).join("\n");
   const fresh = new Set(newRoleNames(text, existing));
   const keep = [];
   for (const line of String(text ?? "").split(/\r?\n/)) {
@@ -82,7 +90,10 @@ export function filterRoles(text, existing) {
     }
     throw new Error(`unrecognised statement in the roles dump (starts "${line.slice(0, 24).replace(/[^\x20-\x7e]/g, "?")}"): refused, not passed through`);
   }
-  return { text: keep.length ? keep.join("\n") + "\n" : "", created: [...fresh], kept: keep.length };
+  const outText = keep.length ? keep.join("\n") + "\n" : "";
+  const left = passwordProblems(outText);
+  if (left.length) throw new Error(`a PASSWORD clause survived the strip (${left[0]}); refused, a secret must never reach the artifact`);
+  return { text: outText, created: [...fresh], kept: keep.length };
 }
 
 /** The roles the oracle already has, read from pg_roles. `spawn` is injectable. Throws when it cannot. */
@@ -94,30 +105,20 @@ export function oracleRoleNames({ oracleUrl, psql = "psql", spawn = spawnSync })
   return new Set(names);
 }
 
-/** The newest pg_dumpall installed (a client older than the server refuses to dump), else the PATH binary. PURE over `listVersions`. */
-export function pickPgDumpall({ listVersions = () => readdirSync("/usr/lib/postgresql") } = {}) {
-  try {
-    const v = listVersions().map((x) => Number.parseInt(x, 10)).filter(Number.isFinite).sort((a, b) => b - a)[0];
-    return v ? `/usr/lib/postgresql/${v}/bin/pg_dumpall` : "pg_dumpall";
-  } catch { return "pg_dumpall"; }
-}
-
 /** The credentialed export. Everything external is injected. Returns { ok, code, message }. */
-export async function exportRoles({ env = process.env, out, connect, spawn = spawnSync, read = readFileSync, bin = pickPgDumpall() }) {
+export async function exportRoles({ env = process.env, out, connect, spawn = spawnSync, read = readFileSync }) {
   const candidates = candidateConnStrings(env);
   if (candidates.length === 0) return { ok: false, code: 1, message: "no production connection candidate (NEXT_PUBLIC_SUPABASE_URL and SUPABASE_DB_PASSWORD are needed)" };
   const found = await firstWorkingCandidate(candidates, connect);
   if (!found) return { ok: false, code: 1, message: `none of ${candidates.length} production candidates connected` };
-  const r = spawn(bin, dumpAllArgs(found.url, out), { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  const r = spawn("supabase", roleDumpArgs(found.url, out), { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   const status = r.error ? 127 : r.status;
-  if (status !== 0) return { ok: false, code: 1, message: `pg_dumpall failed (exit ${status}): ${redact(`${r.stderr ?? ""}${r.error ? ` ${r.error.message}` : ""}`, env).trim().split(/\r?\n/).slice(-2).join(" | ").slice(0, MAX_TEXT)}` };
+  if (status !== 0) return { ok: false, code: 1, message: `supabase db dump --role-only failed (exit ${status}): ${redact(`${r.stderr ?? ""}${r.error ? ` could not run supabase: ${r.error.message}` : ""}`, env).trim().split(/\r?\n/).slice(-2).join(" | ").slice(0, MAX_TEXT)}` };
   let text;
   try { text = read(out, "utf8"); } catch (e) { return { ok: false, code: 1, message: `the roles dump could not be read: ${e.message}` }; }
-  const pw = passwordProblems(text);
-  if (pw.length) return { ok: false, code: 1, message: `the roles dump failed its password check: ${pw[0]}; passwords are never dumped` };
   const n = String(text).split(/\r?\n/).filter((l) => RE_CREATE.test(l)).length;
   if (n === 0) return { ok: false, code: 1, message: "the roles dump has no CREATE ROLE statement" };
-  return { ok: true, code: 0, message: `roles dump written (${n} roles, candidate ${found.index + 1} of ${candidates.length}; no passwords)` };
+  return { ok: true, code: 0, message: `roles dump written (${n} roles, candidate ${found.index + 1} of ${candidates.length}; passwords are stripped at the filter step)` };
 }
 
 /** The oracle-side filter. Everything external is injected. Returns { created, kept }. Throws on any refusal. */

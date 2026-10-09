@@ -1,7 +1,7 @@
-/** Tests for scripts/proof/dump-roles.mjs (lane PROOF-7, 2026-10-09), with fake pg_dumpall, psql and connections. */
+/** Tests for scripts/proof/dump-roles.mjs (lane PROOF-7, 2026-10-09; PROOF-7b: export through supabase db dump, filter strips passwords), with a fake supabase CLI, psql and connections. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseIdent, dumpAllArgs, passwordProblems, filterRoles, newRoleNames, oracleRoleNames, pickPgDumpall, exportRoles, filterRolesFile } from "./dump-roles.mjs";
+import { parseIdent, roleDumpArgs, stripPasswords, passwordProblems, filterRoles, newRoleNames, oracleRoleNames, exportRoles, filterRolesFile } from "./dump-roles.mjs";
 
 const ORACLE = "postgresql://supabase_admin:postgres@127.0.0.1:54399/postgres";
 const STACK = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
@@ -34,9 +34,11 @@ test("parseIdent strips quotes and unescapes doubled quotes", () => {
   assert.equal(parseIdent('"a""b"'), 'a"b');
 });
 
-test("dumpAllArgs: roles only, no role passwords, no comments, written to the given file", () => {
-  const a = dumpAllArgs("postgresql://u@h/db", "/o/roles.sql");
-  for (const f of ["--roles-only", "--no-role-passwords", "--no-comments"]) assert.ok(a.includes(f), f);
+test("roleDumpArgs: the supabase CLI db dump with --role-only, the given url, written to the given file", () => {
+  const a = roleDumpArgs("postgresql://u@h/db", "/o/roles.sql");
+  assert.deepEqual(a.slice(0, 2), ["db", "dump"]);
+  assert.equal(a[a.indexOf("--db-url") + 1], "postgresql://u@h/db");
+  assert.ok(a.includes("--role-only"));
   assert.equal(a[a.indexOf("-f") + 1], "/o/roles.sql");
 });
 
@@ -69,8 +71,32 @@ test("ATTACK: a statement the filter does not recognise is refused, never passed
   assert.throws(() => filterRoles(RAW + "ALTER SYSTEM SET x = 1;\n", EXISTING), /unrecognised statement/);
 });
 
-test("ATTACK: the filter refuses an input that carries a PASSWORD clause", () => {
-  assert.throws(() => filterRoles(RAW + "CREATE ROLE leaky;\nALTER ROLE leaky WITH LOGIN PASSWORD 'x';\n", EXISTING), /PASSWORD/);
+test("stripPasswords removes every PASSWORD clause form and drops a statement left empty", () => {
+  assert.equal(stripPasswords("ALTER ROLE x WITH LOGIN PASSWORD 'SCRAM-SHA-256$4096:abc' VALID UNTIL 'infinity';"), "ALTER ROLE x WITH LOGIN VALID UNTIL 'infinity';");
+  assert.equal(stripPasswords("ALTER ROLE x WITH NOLOGIN PASSWORD 'it''s';"), "ALTER ROLE x WITH NOLOGIN;");
+  assert.equal(stripPasswords("ALTER ROLE x WITH ENCRYPTED PASSWORD E'ab';"), "");
+  assert.equal(stripPasswords("ALTER ROLE x WITH PASSWORD 'p';"), "");
+  assert.equal(stripPasswords("CREATE ROLE x;"), "CREATE ROLE x;");
+});
+
+test("ATTACK: the filter STRIPS a PASSWORD clause (no refusal) and the output carries none", () => {
+  const leaky = RAW + [
+    "CREATE ROLE leaky;",
+    "ALTER ROLE leaky WITH NOSUPERUSER LOGIN PASSWORD 'SCRAM-SHA-256$4096:s3cretsalt$key:key' VALID UNTIL 'infinity';",
+    "ALTER ROLE worker_ro WITH PASSWORD 'hunter2';",
+    "ALTER ROLE anon WITH PASSWORD 'existing-role-secret';",
+    "",
+  ].join("\n");
+  const r = filterRoles(leaky, EXISTING);
+  assert.deepEqual(r.created, ["reconciler", "worker_ro", "leaky"]);
+  assert.doesNotMatch(r.text, /PASSWORD|s3cretsalt|hunter2|existing-role-secret/i);
+  assert.deepEqual(passwordProblems(r.text), []);
+  assert.ok(r.text.split("\n").includes("ALTER ROLE leaky WITH NOSUPERUSER LOGIN VALID UNTIL 'infinity';"), "the rest of the statement is kept");
+  assert.ok(!r.text.includes("ALTER ROLE worker_ro WITH;"), "a statement emptied by the strip is dropped, not left as invalid SQL");
+});
+
+test("ATTACK: a password clause the strip cannot remove (unterminated quote) is refused, never written", () => {
+  assert.throws(() => filterRoles("CREATE ROLE x;\nALTER ROLE x WITH LOGIN PASSWORD 'unterminated;\n", EXISTING), /PASSWORD clause survived/);
 });
 
 test("oracleRoleNames reads pg_roles from the oracle at run time (psql -At), and fails loudly when it cannot", () => {
@@ -83,40 +109,39 @@ test("oracleRoleNames reads pg_roles from the oracle at run time (psql -At), and
   assert.throws(() => oracleRoleNames({ oracleUrl: ORACLE, spawn: () => ({ status: 0, stdout: "", stderr: "" }) }), /no roles/);
 });
 
-test("pickPgDumpall takes the highest installed major version, else the PATH binary", () => {
-  assert.equal(pickPgDumpall({ listVersions: () => ["14", "16", "17", "9"] }), "/usr/lib/postgresql/17/bin/pg_dumpall");
-  assert.equal(pickPgDumpall({ listVersions: () => [] }), "pg_dumpall");
-  assert.equal(pickPgDumpall({ listVersions: () => { throw new Error("no dir"); } }), "pg_dumpall");
-});
-
 const ENV = { NEXT_PUBLIC_SUPABASE_URL: "https://abcdefghij.supabase.co", SUPABASE_DB_PASSWORD: "s3cret" };
 const connectOk = async () => ({ end: async () => {} });
 
-test("exportRoles runs pg_dumpall with the safe flags on the first working candidate", async () => {
+test("exportRoles runs supabase db dump --role-only on the first working candidate (not a local pg_dumpall)", async () => {
   const calls = [];
   const spawn = (bin, args) => { calls.push({ bin, args }); return { status: 0, stdout: "", stderr: "" }; };
-  const r = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn, read: () => RAW, bin: "pg_dumpall" });
+  const r = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn, read: () => RAW });
   assert.equal(r.ok, true, r.message);
-  assert.ok(calls[0].args.includes("--no-role-passwords"));
-  assert.ok(calls[0].args.includes("--roles-only"));
-  assert.doesNotMatch(r.message, /s3cret|postgres(ql)?:\/\//);
+  assert.equal(calls[0].bin, "supabase");
+  assert.deepEqual(calls[0].args.slice(0, 2), ["db", "dump"]);
+  assert.ok(calls[0].args.includes("--role-only"));
+  assert.doesNotMatch(calls[0].bin, /pg_dumpall/);
+  assert.doesNotMatch(r.message, /s3cret|postgres(ql)?:[/][/]/);
 });
 
-test("exportRoles fails red, redacted, when pg_dumpall fails (a server version mismatch included)", async () => {
-  const spawn = () => ({ status: 1, stdout: "", stderr: "pg_dumpall: error: aborting because of server version mismatch postgresql://postgres:s3cret@h:5432/postgres" });
-  const r = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn, read: () => RAW, bin: "pg_dumpall" });
+test("exportRoles fails red, redacted, when the CLI fails or is absent", async () => {
+  const spawn = () => ({ status: 1, stdout: "", stderr: "failed to dump roles postgresql://postgres:s3cret@h:5432/postgres" });
+  const r = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn, read: () => RAW });
   assert.equal(r.ok, false);
-  assert.match(r.message, /pg_dumpall failed/);
-  assert.doesNotMatch(r.message, /s3cret|postgres(ql)?:\/\//);
+  assert.match(r.message, /supabase db dump --role-only failed/);
+  assert.doesNotMatch(r.message, /s3cret|postgres(ql)?:[/][/]/);
+  const gone = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn: () => ({ error: new Error("ENOENT"), status: null }), read: () => RAW });
+  assert.equal(gone.ok, false);
+  assert.match(gone.message, /127/);
 });
 
-test("ATTACK: exportRoles refuses (red) an output that carries a password clause, and a run with no candidate", async () => {
+test("exportRoles refuses a run with no candidate and a dump with no CREATE ROLE", async () => {
   const spawn = () => ({ status: 0, stdout: "", stderr: "" });
-  const bad = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn, read: () => "CREATE ROLE x;\nALTER ROLE x WITH LOGIN PASSWORD 'abc';\n", bin: "pg_dumpall" });
-  assert.equal(bad.ok, false);
-  assert.match(bad.message, /password/i);
-  const none = await exportRoles({ env: {}, out: "/o/roles.sql", connect: connectOk, spawn, read: () => RAW, bin: "pg_dumpall" });
+  const none = await exportRoles({ env: {}, out: "/o/roles.sql", connect: connectOk, spawn, read: () => RAW });
   assert.equal(none.ok, false);
+  const empty = await exportRoles({ env: ENV, out: "/o/roles.sql", connect: connectOk, spawn, read: () => "-- nothing" });
+  assert.equal(empty.ok, false);
+  assert.match(empty.message, /no CREATE ROLE/);
 });
 
 test("filterRolesFile reads the raw file and the oracle's roles, writes the filtered file, refuses a URL that is not the oracle's", () => {

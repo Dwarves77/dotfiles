@@ -411,8 +411,10 @@ function rolesWorkflowProblems(text, rolesSrc) {
   }
   if (idx(/Export the production schema dump/) >= idx(/Apply the production schema dump to the oracle cluster/)) problems.push("the roles export step does not precede the apply step");
   const src = rolesSrc.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
-  if (!/"--no-role-passwords"/.test(src)) problems.push("dump-roles.mjs does not pass --no-role-passwords to pg_dumpall");
-  if (!/"--roles-only"/.test(src)) problems.push("dump-roles.mjs does not pass --roles-only to pg_dumpall");
+  if (!/"--role-only"/.test(src)) problems.push("dump-roles.mjs does not pass --role-only to supabase db dump");
+  if (!/spawn[(]"supabase", roleDumpArgs[(]/.test(src) || !/"db", "dump"/.test(src)) problems.push("dump-roles.mjs does not export through supabase db dump");
+  if (/pg_dumpall/.test(src)) problems.push("dump-roles.mjs references pg_dumpall: a local client is not version-matched to the server, the export must run through supabase db dump");
+  if (!/stripPasswords[(]/.test(src)) problems.push("dump-roles.mjs filter does not strip PASSWORD clauses");
   if (/\bconst\s+(EXISTING|IMAGE_ROLES|READY)[A-Z_]*\s*=\s*\[/.test(src) || /new Set\(\[\s*"postgres"/.test(src)) problems.push("dump-roles.mjs types the image's role list; it must be read from the oracle at run time");
   if (!/from pg_roles/.test(src)) problems.push("dump-roles.mjs does not read the oracle's roles from pg_roles");
   return problems;
@@ -444,9 +446,11 @@ test("PROOF-7 ATTACK: an apply step with no roles filter, a filter after the app
   caughtOracle("filter after apply", rolesWorkflowProblems(swapped, ROLES_SRC), /filter runs after the dump apply/);
 });
 
-test("PROOF-7 ATTACK: dump-roles.mjs without --no-role-passwords, without --roles-only, with a typed role list, or without pg_roles is red", () => {
-  caughtOracle("passwords", rolesWorkflowProblems(TEXT, ROLES_SRC.replace('"--no-role-passwords", ', "")), /--no-role-passwords/);
-  caughtOracle("roles-only", rolesWorkflowProblems(TEXT, ROLES_SRC.replace('"--roles-only", ', "")), /--roles-only/);
+test("PROOF-7 ATTACK: dump-roles.mjs without --role-only, off supabase db dump, back on pg_dumpall, without the password strip, with a typed role list, or without pg_roles is red", () => {
+  caughtOracle("role-only", rolesWorkflowProblems(TEXT, ROLES_SRC.replace('"--role-only", ', "")), /--role-only/);
+  caughtOracle("not the cli", rolesWorkflowProblems(TEXT, ROLES_SRC.replace('spawn("supabase", roleDumpArgs(', 'spawn("pg_dump", roleDumpArgs(')), /through supabase db dump/);
+  caughtOracle("pg_dumpall", rolesWorkflowProblems(TEXT, ROLES_SRC + '\nconst bin = "pg_dumpall";\n'), /references pg_dumpall/);
+  caughtOracle("no strip", rolesWorkflowProblems(TEXT, ROLES_SRC.replace(/stripPasswords[(]/g, "keepPasswords(")), /strip PASSWORD/);
   caughtOracle("typed list", rolesWorkflowProblems(TEXT, ROLES_SRC + '\nconst EXISTING_ROLES = ["postgres", "anon"];\n'), /types the image's role list/);
   caughtOracle("no pg_roles", rolesWorkflowProblems(TEXT, ROLES_SRC.replace(/from pg_roles/g, "from nothing")), /pg_roles/);
 });
