@@ -33,7 +33,7 @@
 // never write 5 or 6.
 //
 // Cross-references:
-//   - fsi-app/.claude/skills/source-credibility-model/SKILL.md Section 8
+//   - fsi-app/.claude/skills/source-credibility-model/references/customer-facing-signal-sets.md Section 8
 //     (customer-facing credibility signal sets per surface; per-surface
 //     mapping derives from this file's domain numbers)
 //   - fsi-app/.claude/skills/caros-ledge-platform-intent/SKILL.md

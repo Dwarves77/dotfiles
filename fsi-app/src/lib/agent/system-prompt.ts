@@ -4,7 +4,7 @@
 // is what the agent actually receives at runtime. Parity between the two
 // — the same numbering/wording in "The 16 Rules for All Output" and the
 // same 20-field database contract enumeration in "Database Field
-// Emission" — is enforced by
+// Emission" (which lives in that skill's references/storage-and-field-emission.md) — is enforced by
 // fsi-app/src/lib/agent/skill-prompt-parity.test.mjs (registered as
 // invariant EP-13-skill-prompt-parity), separate from and in addition to
 // contract-version.test.mjs, which only checks the

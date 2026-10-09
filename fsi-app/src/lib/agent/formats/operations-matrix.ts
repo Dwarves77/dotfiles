@@ -1,7 +1,7 @@
 /**
  * operations-matrix.ts — matrix eligibility gate for Operations Profile S3/S4.
  *
- * Per analysis-construction-spec SKILL.md §5:
+ * Per analysis-construction-spec references/formats-regulatory-operations-market.md §5:
  *   S1/S2 are single-region span facts that always render.
  *   S3 (Cost Comparison Against Alternatives) and S4 (Cross-Regional Strategic
  *   Implications) are MATRIX-gated:

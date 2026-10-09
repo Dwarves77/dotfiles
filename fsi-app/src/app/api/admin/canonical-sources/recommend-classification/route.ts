@@ -26,7 +26,7 @@ import { extractTextFromContent } from "@/lib/llm/anthropic-text";
 import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
 
-// Per Q4 bias tag vocabulary (Section 6 of source-credibility-model SKILL.md).
+// Per Q4 bias tag vocabulary (Section 6 of source-credibility-model references/bias-tag-vocabulary.md).
 // Mirrored as a runtime allowlist so we can reject malformed Haiku output
 // before it reaches the cache or the bias-tag write path. Keep in sync with
 // migration 092's source_bias_tags_vocabulary_chk constraint AND the parallel

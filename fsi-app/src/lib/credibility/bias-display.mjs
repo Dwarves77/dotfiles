@@ -20,7 +20,7 @@
 import { selectBiasChipsForDisplay } from "./chip-selection.mjs";
 import { HIGH_CONFIDENCE_THRESHOLD } from "../sources/bias-tag-pipeline.mjs";
 
-/** Human labels for the stored vocabulary (migration 092's CHECK list, SKILL.md Section 6). The
+/** Human labels for the stored vocabulary (migration 092's CHECK list, source-credibility-model references/bias-tag-vocabulary.md Section 6). The
  *  stored token is a slug; the customer reads a phrase. `funding-opaque` reads "Funding undisclosed"
  *  because undisclosed is not the same as independent (spec 03 section 4, funding independence). */
 export const BIAS_TAG_LABELS = Object.freeze({
