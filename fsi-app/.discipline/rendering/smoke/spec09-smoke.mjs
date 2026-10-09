@@ -103,6 +103,7 @@ function extremeState() {
     grid: [
       { queue_id: 'g1', dso_name: `${LONG(5, 'extremely-long-distribution-system-operator-name-segment')}`, capacity_band_mw: '1-5MW', queue_months_p50: 18, queue_months_p90: 40, as_of: '2026-08-01' },
       { queue_id: 'g2', dso_name: 'Small DSO', capacity_band_mw: '<1MW', queue_months_p50: 6, queue_months_p90: 10, as_of: '2026-08-01' },
+      { queue_id: 'g3', dso_name: 'UK Power Networks, London Power Network', capacity_band_mw: null, queue_months_p50: null, queue_months_p90: null, as_of: '2026-05-29', substation_name: `${LONG(4, 'Extremely-Long-Substation-Name')} 11kV`, demand_firm_mw: 45.7, demand_available_mw: -3.1, demand_constraint: 'RED', demand_constraint_limiting_factor: 'Thermal' },
     ],
     indexation: [
       { clause_id: 'i1', contract_ref: `${LONG(6, 'extremely-long-contract-reference-token')}`, corridor_id: 'cl:corridor:0000000000000101', index_id: 'cl:instrument:eua-front-dec', base_value: 80, base_date: '2026-01-01', passthrough_pct: 70, cap_pct: 20, floor_pct: -10, review_cadence: 'quarterly', rounding_rule: 'round to nearest cent' },

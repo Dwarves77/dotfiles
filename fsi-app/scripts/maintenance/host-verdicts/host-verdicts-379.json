@@ -1,0 +1,13 @@
+{
+  "batch": "host-verdicts-379",
+  "generated_at": "2026-10-08T13:30:00Z",
+  "entries": [
+    {
+      "host": "ukpowernetworks.opendatasoft.com",
+      "class": "company",
+      "evidence": "Catalogue metadata of dataset ukpn-capacity-heatmap on this host (fetched 2026-10-08): title 'Long Term Development Statement (LTDS) Capacity Heatmap', publisher 'UK Power Networks, Company number 3870728', license 'CC BY 4.0'. The host is the publisher's own Opendatasoft portal; the publisher is a licensed distribution network operator and a registered company, so the class is company.",
+      "verdict_source": "session-lane",
+      "generated_at": "2026-10-08T13:30:00Z"
+    }
+  ]
+}
