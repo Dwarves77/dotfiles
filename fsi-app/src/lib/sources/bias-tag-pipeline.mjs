@@ -3,7 +3,7 @@
 //
 // Context. `/api/admin/sources/recommend-classification` (route.ts) has Haiku
 // propose `bias_tags` (three dimensions: funding / methodology / stakeholder,
-// per source-credibility-model SKILL.md Section 6) and caches the raw
+// per source-credibility-model references/bias-tag-vocabulary.md Section 6) and caches the raw
 // recommendation onto `provisional_sources.recommended_classification`. The
 // route's own comment says the shape is validated "before it reaches... the
 // bias-tag write path", but nothing downstream ever inserted into
@@ -21,7 +21,7 @@
 //
 // Confidence bands (migration 092 `source_bias_tags_assignment_source_chk`,
 // mirrored in the recommend-classification system prompt's own guidance,
-// Section 6 of source-credibility-model SKILL.md "Assignment"):
+// Section 6 of source-credibility-model references/bias-tag-vocabulary.md "Assignment"):
 //   >= 0.80        -> insert, assignment_source = 'haiku_auto_high_confidence'
 //   0.65 - 0.79    -> insert, assignment_source = 'haiku_auto_high_confidence'
 //                     with the real confidence kept in `confidence` (lane

@@ -11,6 +11,11 @@ import {
   DEFAULT_LIMIT, MAX_LIMIT, BATCH_SIZE, STUCK_AFTER_MS,
 } from "./run-fetch-drain.mjs";
 
+// The harness ledger export is the repo's REAL committed file by default (lane GATE-9), so a fixture test that
+// writes artifacts into a temp dir must pin the ledger it resolves against; "absent" is the file-path
+// behaviour these fixtures exercise (an artifact is trusted on its own fields when no export is present).
+const LEDGER_NONE = { present: false, capturedAt: null, rows: [] };
+
 // -- parseArgs ---------------------------------------------------------------------------------------
 
 test("parseArgs: defaults to mode=dry, limit=8", () => {
@@ -239,13 +244,13 @@ function withEmptyFsiRoot(fn) {
 
 test("resolveSweepLoopRunId: FETCH_DRAIN_LOOP_RUN_ID wins when the disk resolver finds nothing", () => {
   withEmptyFsiRoot((fsiRoot) => {
-    assert.equal(resolveSweepLoopRunId({ env: { FETCH_DRAIN_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot }), "sweep-loop-9");
+    assert.equal(resolveSweepLoopRunId({ env: { FETCH_DRAIN_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot, ledger: LEDGER_NONE }), "sweep-loop-9");
   });
 });
 
 test("resolveSweepLoopRunId: with no explicit id and nothing on disk the id is null (never invented)", () => {
   withEmptyFsiRoot((fsiRoot) => {
-    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot }), null);
+    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999105" }, fsiRoot, ledger: LEDGER_NONE }), null);
   });
 });
 
@@ -258,7 +263,7 @@ test("resolveSweepLoopRunId: an explicit id also wins over a different id record
       started_at: "2026-10-06T00:00:00Z", config: { github_run_id: "999999106", loop_run_id: "disk-loop" },
       inputs_ref: ["x"], per_item: [], metrics: {}, defects_found: [], full_trace_refs: ["x"], proposer_notes: "fixture",
     }));
-    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "disk-loop");
-    assert.equal(resolveSweepLoopRunId({ env: { FETCH_DRAIN_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot }), "sweep-loop-9");
+    assert.equal(resolveSweepLoopRunId({ env: { GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot, ledger: LEDGER_NONE }), "disk-loop");
+    assert.equal(resolveSweepLoopRunId({ env: { FETCH_DRAIN_LOOP_RUN_ID: "sweep-loop-9", GITHUB_EVENT_WORKFLOW_RUN_ID: "999999106" }, fsiRoot, ledger: LEDGER_NONE }), "sweep-loop-9");
   });
 });

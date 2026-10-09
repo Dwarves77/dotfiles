@@ -9,6 +9,11 @@ import { tmpdir } from "node:os";
 import { parseArgs, shapeRunOutput, resolveArtifactTrigger, resolveDrainLoopRunId, PROPAGATION_GOVERNING_FILES } from "./run-propagation-drain.mjs";
 import { resolveLoopRunIdFromUpstream } from "../lib/loop-run-id.mjs";
 
+// The harness ledger export is the repo's REAL committed file by default (lane GATE-9), so a fixture test that
+// writes artifacts into a temp dir must pin the ledger it resolves against; "absent" is the file-path
+// behaviour these fixtures exercise (an artifact is trusted on its own fields when no export is present).
+const LEDGER_NONE = { present: false, capturedAt: null, rows: [] };
+
 // ── resolveArtifactTrigger (lane LOOP-B-FIRING, 2026-09-28, F50) ────────────────────────────────────
 
 test("resolveArtifactTrigger: null triggerContext (a plain hand dispatch) resolves workflow_dispatch", () => {
@@ -237,6 +242,7 @@ test("loop_run_id resolution: no trigger context (a plain hand dispatch) resolve
       upstreamName: triggerContext?.name ?? null,
       upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });
@@ -270,6 +276,7 @@ test("loop_run_id resolution: a trigger context naming Downstream chain with a m
       upstreamName: triggerContext?.name ?? null,
       upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(matched, "loop-x");
 
@@ -279,6 +286,7 @@ test("loop_run_id resolution: a trigger context naming Downstream chain with a m
       upstreamName: otherTriggerContext?.name ?? null,
       upstreamRunId: otherTriggerContext?.run_id != null ? String(otherTriggerContext.run_id) : null,
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(unmatched, null);
   });
@@ -292,6 +300,7 @@ test("loop_run_id resolution: a trigger context naming Data producers (its own l
       upstreamName: triggerContext?.name ?? null,
       upstreamRunId: triggerContext?.run_id != null ? String(triggerContext.run_id) : null,
       fsiRoot,
+      ledger: LEDGER_NONE,
     });
     assert.equal(got, null);
   });

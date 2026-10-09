@@ -14,6 +14,28 @@
 // already given" is a self-inflicted gate — a ruled decision does not return to the board as blocked. Caught
 // by SELF_GATE_RE so it can never be codified into doctrine.
 
+import { readdirSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// SKILL-SLIM-1 (2026-10-08): a governing skill's SKILL.md is a short core; the sections moved out of it live
+// verbatim in references/*.md beside it. Those files are doctrine exactly as the sections were before the move,
+// so they are swept with the core. Derived from the tree (never a hand list), so a new reference file joins by
+// construction.
+const SKILLS_DIR = "fsi-app/.claude/skills";
+function skillReferenceFiles() {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", SKILLS_DIR);
+  const out = [];
+  let skills = [];
+  try { skills = readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort(); } catch { return out; }
+  for (const s of skills) {
+    let names = [];
+    try { names = readdirSync(resolve(root, s, "references")).filter((n) => n.endsWith(".md")).sort(); } catch { continue; }
+    for (const n of names) out.push(SKILLS_DIR + "/" + s + "/references/" + n);
+  }
+  return out;
+}
+
 // The COMMITTED doctrine surface (binding doctrine only; transient docs/ops session logs are swept by hand, not
 // mechanically, to stay low-FP). Repo-relative.
 export const DOCTRINE_FILES = [
@@ -26,6 +48,7 @@ export const DOCTRINE_FILES = [
   "fsi-app/.claude/skills/source-credibility-model/SKILL.md",
   "fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md",
   "fsi-app/.discipline/governance/doctrine-register.mjs",
+  ...skillReferenceFiles(),
 ];
 
 // GATE VERBS — a human must ACT before the machine proceeds. Requirement/blocking forms only.

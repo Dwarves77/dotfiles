@@ -9,16 +9,16 @@
     "07-research-detail",
     "09-operations-profile"
   ],
-  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+  "source": "docs/design/parts-brief-2026-09-18.md section 2.1 (FactCard v2, artboard 21c: the latest binding statement on this part, replacing the v1 three-variant card); docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys for the values v2 leaves unstated; operator ruling 2.4 (2026-09-07, UI discrepancy report) for the card shell values v2 does not restate (white ground, 1px rgba(0,0,0,.12) on the three non-edge sides, radius 0 8px 8px 0)",
   "notes": [
-    "The expected values below are operator ruling 2.4 (2026-09-07), which is the latest binding statement on this part and states exact numbers: sourced = 2px solid #1A1A1A LEFT edge, 1px rgba(0,0,0,.12) on the other three sides, radius 0 8px 8px 0, white; inference = 1px DASHED rgba(0,0,0,.25) all round, background #FAFAF8, italic body; needs counsel = 2px solid #F97316 left edge, otherwise as sourced.",
-    "The artboard 00 markup differs from that ruling and is recorded here so the divergence is visible rather than silently resolved: sourced there is `background:#fff; border:1px solid rgba(0,0,0,.12); border-radius:8px; border-left:3px solid #5A5552; padding:12px 14px 12px 16px`; inference is `background:#F5F2EE; border:1px dashed rgba(0,0,0,.3); border-radius:8px`; counsel is the sourced box with `border-left:3px solid #F97316`. Where the two disagree the operator's ruling is used, per the ruling's own framing ('build against them, ask nothing').",
-    "The variants are addressed through the mount's `[data-audit]` wrappers, which carry no styling of their own; `> div` inside each is the FactCard's own root element."
+    "DAUDIT-2 (2026-10-08): this spec was written against the v1 FactCard (variant sourced / inference / counsel, operator ruling 2.4). Lane w10-factcard (2026-09-20) REPLACED that card with v2 (parts brief 2.1, artboard 21c) and removed the variant prop; the mount threw on mount and every row below read NOT BUILT. The mount now passes a FactCardModel in the three forms the brief fixes, and the values are re-expressed from the brief where the brief states them: LEFT EDGE 3px (was 2px); ink-family kinds edge #1A1A1A on a #F5F2EE band with the kind word #1A1A1A; orange-family kinds (ACTION REQUIRED, LEGAL CONFIRMATION REQUIRED) edge #F97316 on a #FFF7ED band with the kind word #F97316 (the v1 counsel label was ink, not orange); ANALYTICAL INFERENCE is 1px dashed rgba(0,0,0,.3) all round on a #FAFAF8 band with an italic body and no figure lead; the kind word is 10.5px/800/.12em uppercase on all three; the body row is a 132px 1fr 150px grid, gap 14, padding 12px 14px; the claim is 13px/1.6.",
+    "Values the brief does not restate keep their prior ruling (operator ruling 2.4): white card ground, 1px rgba(0,0,0,.12) on the top, right and bottom edges, radius 0 8px 8px 0 on the edge forms. Nothing here is a number chosen to make a row pass.",
+    "The forms are addressed through the mount's `[data-audit]` wrappers, which carry no styling of their own; `> div` inside each is the FactCard's own root element (data-part=fact-card)."
   ],
   "selector": "[data-audit=\"sourced\"] > div",
   "expect": {
     "background-color": "#FFFFFF",
-    "border-left-width": "2px",
+    "border-left-width": "3px",
     "border-left-style": "solid",
     "border-left-color": "#1A1A1A",
     "border-top-width": "1px",
@@ -35,70 +35,131 @@
   },
   "children": [
     {
-      "name": "sourced — eyebrow label",
-      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
-      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase.",
+      "name": "sourced, kind band",
+      "selector": "[data-audit=\"sourced\"] > div > div:nth-of-type(1)",
+      "note": "Parts brief 2.1a: band on a tint, padding 6px 14px, 1px rgba(0,0,0,.06) rule below. Ink family band is #F5F2EE.",
       "expect": {
-        "text": "Fact",
-        "font-size": "9.5px",
-        "font-weight": "800",
-        "letter-spacing": "0.12em",
-        "text-transform": "uppercase"
+        "background-color": "#F5F2EE",
+        "padding-top": "6px",
+        "padding-left": "14px",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.06)"
       }
     },
     {
-      "name": "sourced — body",
-      "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
-      "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic).",
+      "name": "sourced, kind word",
+      "selector": "[data-audit=\"sourced\"] [data-part-slot=\"kind-word\"]",
+      "note": "Parts brief 2.1a: kind word 10.5px/800 .12em uppercase; ink family colour #1A1A1A.",
+      "expect": {
+        "text": "SCOPE",
+        "font-size": "10.5px",
+        "font-weight": "800",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "color": "#1A1A1A"
+      }
+    },
+    {
+      "name": "sourced, body row",
+      "selector": "[data-audit=\"sourced\"] .fact-card-v2-body",
+      "note": "Parts brief 2.1b: grid 132px 1fr 150px, gap 14, padding 12px 14px (the 1fr track resolves to a used px width).",
+      "expect": {
+        "display": "grid",
+        "grid-template-columns": "132px * 150px",
+        "column-gap": "14px",
+        "padding-top": "12px",
+        "padding-left": "14px"
+      }
+    },
+    {
+      "name": "sourced, figure lead",
+      "selector": "[data-audit=\"sourced\"] .fact-card-v2-lead > p:first-child",
+      "note": "Parts brief 2.1b: figure lead Anton 22, colour = edge colour.",
+      "expect": {
+        "font-family": "contains:Anton",
+        "font-size": "22px",
+        "color": "#1A1A1A"
+      }
+    },
+    {
+      "name": "sourced, body",
+      "selector": "[data-audit=\"sourced\"] .fact-card-v2-claim",
+      "note": "Parts brief 2.1b: claim 13px/1.6, upright (only the inference form is italic).",
       "expect": {
         "font-size": "13px",
-        "line-height": "20.15px",
+        "line-height": "20.8px",
         "font-style": "normal"
       }
     },
     {
-      "name": "inference — card",
-      "selector": "[data-audit=\"inference\"] > div",
-      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8.",
+      "name": "sourced, provenance column",
+      "selector": "[data-audit=\"sourced\"] .fact-card-v2-provenance",
+      "note": "Parts brief 2.1b: provenance column with a 1px left rule.",
       "expect": {
-        "background-color": "#FAFAF8",
+        "border-left-width": "1px",
+        "border-left-style": "solid"
+      }
+    },
+    {
+      "name": "inference, card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "note": "Parts brief 2.1: ANALYTICAL INFERENCE is 1px dashed rgba(0,0,0,.3) all round.",
+      "expect": {
         "border-top-width": "1px",
         "border-top-style": "dashed",
-        "border-top-color": "rgba(0,0,0,.25)",
+        "border-top-color": "rgba(0,0,0,.3)",
         "border-left-width": "1px",
         "border-left-style": "dashed",
-        "border-left-color": "rgba(0,0,0,.25)",
-        "border-right-color": "rgba(0,0,0,.25)",
-        "border-bottom-color": "rgba(0,0,0,.25)"
+        "border-left-color": "rgba(0,0,0,.3)",
+        "border-right-color": "rgba(0,0,0,.3)",
+        "border-bottom-color": "rgba(0,0,0,.3)"
       }
     },
     {
-      "name": "inference — body is italic",
-      "selector": "[data-audit=\"inference\"] > div > p:nth-of-type(2)",
-      "note": "README §0.4 and operator 2.4 both: the inference body is italic — the grayscale-readable half of 'told apart by form'.",
+      "name": "inference, kind band",
+      "selector": "[data-audit=\"inference\"] > div > div:nth-of-type(1)",
+      "note": "Parts brief 2.1: inference band #FAFAF8.",
+      "expect": {
+        "background-color": "#FAFAF8"
+      }
+    },
+    {
+      "name": "inference, body is italic",
+      "selector": "[data-audit=\"inference\"] .fact-card-v2-claim",
+      "note": "Parts brief 2.1: body italic, colour #5A6B67; 13px/1.6 as every claim.",
       "expect": {
         "font-style": "italic",
-        "font-size": "13px"
+        "font-size": "13px",
+        "color": "#5A6B67"
       }
     },
     {
-      "name": "inference — eyebrow label",
-      "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
-      "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only.",
+      "name": "inference, kind word",
+      "selector": "[data-audit=\"inference\"] [data-part-slot=\"kind-word\"]",
+      "note": "Parts brief 2.1a: kind word 10.5px/800 .12em uppercase.",
       "expect": {
-        "font-size": "9.5px",
+        "text": "ANALYTICAL INFERENCE",
+        "font-size": "10.5px",
         "font-weight": "800",
         "letter-spacing": "0.12em",
         "text-transform": "uppercase"
       }
     },
     {
-      "name": "counsel — card",
-      "selector": "[data-audit=\"counsel\"] > div",
-      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0).",
+      "name": "inference, right column reads not citable",
+      "selector": "[data-audit=\"inference\"] .fact-card-v2-provenance",
+      "note": "Parts brief 2.1: the inference form carries no figure lead and its right column reads \"not citable\".",
       "expect": {
-        "background-color": "#FFFFFF",
-        "border-left-width": "2px",
+        "text": "not citable"
+      }
+    },
+    {
+      "name": "counsel, card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "note": "Parts brief 2.1: orange family edge #F97316, 3px; the other three edges as sourced (operator ruling 2.4).",
+      "expect": {
+        "background-color": "#FFF7ED",
+        "border-left-width": "3px",
         "border-left-style": "solid",
         "border-left-color": "#F97316",
         "border-top-width": "1px",
@@ -110,23 +171,38 @@
       }
     },
     {
-      "name": "counsel — eyebrow label",
-      "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
-      "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label.",
+      "name": "counsel, kind band",
+      "selector": "[data-audit=\"counsel\"] > div > div:nth-of-type(1)",
+      "note": "Parts brief 2.1: orange family band #FFF7ED.",
       "expect": {
-        "text": "Legal confirmation required",
-        "font-size": "9.5px",
+        "background-color": "#FFF7ED"
+      }
+    },
+    {
+      "name": "counsel, kind word",
+      "selector": "[data-audit=\"counsel\"] [data-part-slot=\"kind-word\"]",
+      "note": "Parts brief 2.1: orange family kind word #F97316 (the v1 counsel label was ink; v2 changed it).",
+      "expect": {
+        "text": "LEGAL CONFIRMATION REQUIRED",
+        "font-size": "10.5px",
         "font-weight": "800",
-        "color": "#1A1A1A"
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "color": "#F97316"
       }
     }
   ],
   "forbid": [
     {
       "name": "a raw URL in the card's running text",
-      "selector": "[data-audit=\"sourced\"] > div > p",
+      "selector": "[data-audit=\"sourced\"] .fact-card-v2-claim",
       "textMatch": "https://",
-      "reason": "README §0.4: 'Raw URLs never appear in running text.' The link belongs in the source column, as a labelled anchor."
+      "reason": "README section 0.4: 'Raw URLs never appear in running text.' The link belongs in the provenance column, as a labelled anchor."
+    },
+    {
+      "name": "a figure lead on the inference form",
+      "selector": "[data-audit=\"inference\"] .fact-card-v2-lead",
+      "reason": "Parts brief 2.1: ANALYTICAL INFERENCE carries no figure lead."
     }
   ]
 }

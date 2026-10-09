@@ -1,6 +1,6 @@
 // src/lib/agent/formats/technology.ts
 //
-// Technology Profile — 8 sections, per analysis-construction-spec/SKILL.md §8. Grounding = 'span'
+// Technology Profile — 8 sections, per analysis-construction-spec/references/formats-research-technology.md §8. Grounding = 'span'
 // (S2/S4/S6/S7 are synthesis, grounded transitively via the claim-ledger). No-Vacuum: S7 procurement
 // window is frequently driven by a regulatory deadline or market shift — link it.
 //

@@ -106,7 +106,8 @@
     },
     {
       "name": "region 7, rail, Issues queue card first",
-      "selector": "[data-audit=\"admin\"] h2",
+      "selector": "[data-audit=\"admin\"] [data-audit=\"rail-card\"] p",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, value unchanged. The Issues queue card is the shared RailCard part (lane W10-RailCard, 2026-09-23), which draws its title as a p, not an h2.",
       "expect": {
         "count": "1"
       },
