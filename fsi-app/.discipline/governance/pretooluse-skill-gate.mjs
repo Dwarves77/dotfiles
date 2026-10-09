@@ -62,6 +62,7 @@ import {
 } from "./skill-token.mjs";
 import { DOCTRINE } from "./worktree-isolation.mjs";
 import { resolveActingTranscriptPath } from "./agent-transcript.mjs";
+import { collectOpenFindings } from "../../scripts/verify/audit-finding-status.mjs";
 import {
   skillsForOp,
   skillsForFile,
@@ -87,6 +88,34 @@ import {
 export { inScope } from "./pretooluse-scope.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// RULE 13 AT THE DISPATCH POINT (lane FLAG-1, 2026-10-09). Detection after the fact is half of a gate: a flag
+// is a commitment, and a required step must be impossible to skip. A dispatch (Agent, Task, Workflow,
+// SendMessage) is REFUSED while any finding is undispositioned in docs/audits/*.md, in the Not done / Open
+// items / Open questions / Residual sections of docs/ops/session-log.d/*.md (both dated 2026-10-01 or
+// later), or in any *register*.md under fsi-app/scripts/tmp/. The scan is the same function the push-time
+// CLI uses (collectOpenFindings in scripts/verify/audit-finding-status.mjs, one site), cached by file mtime.
+// The one dispatch it allows is a disposition lane: the dispatch text contains the literal DISPOSITION-LANE.
+// That literal is a mistake-catcher for a cooperating session (ADR-046): it stops the honest slip of
+// dispatching new work over open flags, and is NOT an intent barrier, since any dispatcher can type the
+// literal. GATE_DISPOSITION_ROOT=<dir> redirects the scanned repo root (the tests use it; it is read from the
+// hook process's own environment, which the session being gated does not control).
+const DISPOSITION_LITERAL = "DISPOSITION-LANE";
+const REPO_ROOT = resolve(HERE, "..", "..", "..");
+function dispositionRefusal(tool, input) {
+  let text = "";
+  try { text = JSON.stringify(input ?? {}); } catch { text = ""; }
+  if (text.includes(DISPOSITION_LITERAL)) return null;
+  const open = collectOpenFindings(process.env.GATE_DISPOSITION_ROOT || REPO_ROOT);
+  if (!open.length) return null;
+  const shown = open.slice(0, 20).map((o) => `${o.file}:${o.line}`).join("; ");
+  return decision("deny",
+    `DISPATCH (${tool}) REFUSED by rule 13 (a flag is a commitment): ${open.length} finding(s) carry no disposition. ` +
+    `First ${Math.min(20, open.length)}: ${shown}${open.length > 20 ? "; ..." : ""}. Give each exactly one of [WORK: <lane id or PR N>], ` +
+    `[CLOSED: PR N], [REFUTED: <evidence>], [NOT-WORK: <reason>] (node fsi-app/scripts/verify/audit-finding-status.mjs --all lists every one), ` +
+    `or dispatch the lane that does so with the literal ${DISPOSITION_LITERAL} in its prompt.`,
+    "dispatch-undispositioned");
+}
 
 // AUDIT LOG PATH (lane GATE-7, coordinator addition 2026-10-08, TESTFIX-1): the audit log lived beside the gate
 // (governance/.gate-audit.log), so the gate's own test dirtied the checkout. It is now under the gitignored
@@ -670,6 +699,8 @@ function evaluateCore(payload) {
   // rule: a sub-agent that reasons about or writes governed content must invoke the Skill tool itself, in
   // its own transcript, before that write, exactly like the main session. ──
   if (DISPATCH_TOOLS.includes(tool)) {
+    const refused = dispositionRefusal(tool, input);
+    if (refused) return refused;
     return decision("ask",
       `DISPATCH (${tool}). NOTE: the sub-agent's later tool calls ARE gated by this same hook (corrected ` +
       `2026-09-19), judged against the sub-agent's OWN transcript, not this dispatch call. This ASK exists ` +
