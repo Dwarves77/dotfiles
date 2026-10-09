@@ -52,7 +52,11 @@ test("the composer is its own NEW POST card, not a control inside the discussion
   );
   assert.doesNotMatch(indexCard, /<textarea/);
   assert.match(SOURCE, /dataAudit="new-post"/);
-  assert.match(SOURCE, /title=\{`New post · \$\{roomName\}`\}/);
+  // DFIX-1 (design audit compose-12-community#661): artboard 12 draws the SHORT room label in the head
+  // ("New post · Global"); rooms.ts documents `short` as the label for chips and eyebrows. The aside and the
+  // labels keep the full name.
+  assert.match(SOURCE, /title=\{`New post · \$\{selected\.short\}`\}/);
+  assert.doesNotMatch(SOURCE, /title=\{`New post · \$\{roomName\}`\}/);
   // Same stale-assertion class as the empty-state fix above: ROOMS' own `name` already ends in
   // "room", so a literal trailing " room" here would demand "Posts to the EU room room."
   assert.match(SOURCE, /aside=\{`Posts to the \$\{roomName\}`\}/);

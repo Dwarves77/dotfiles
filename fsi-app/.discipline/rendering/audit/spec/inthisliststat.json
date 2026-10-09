@@ -38,12 +38,13 @@
     },
     {
       "name": "'In this list' eyebrow label",
+      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json).",
       "selector": "[data-audit=\"inthislist\"] p:first-of-type",
       "expect": {
         "font-size": "10.5px",
         "letter-spacing": "0.12em",
         "text-transform": "uppercase",
-        "font-weight": "800"
+        "font-weight": "700"
       }
     },
     {

@@ -16,6 +16,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { entityKindOf } from "@/lib/entities/entity-id.mjs";
+import { authorIdForRow, loadCommunityIdentities } from "@/lib/community/identity.mjs";
+import { communityViewer } from "@/lib/community/viewer";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -54,7 +56,7 @@ export async function GET(
     .from("community_thread_entities")
     .select(
       `thread_id, entity_id, entity_kind, created_at,
-       community_posts!inner ( id, group_id, title, body, author_user_id, created_at, last_reply_at, reply_count )`
+       community_posts!inner ( id, group_id, title, body, author_user_id, anonymous, created_at, last_reply_at, reply_count )`
     )
     .eq("entity_id", entityId)
     .is("community_posts.parent_post_id", null)
@@ -84,20 +86,41 @@ export async function GET(
       title: string | null;
       body: string;
       author_user_id: string | null;
+      anonymous: boolean;
       created_at: string;
       last_reply_at: string | null;
       reply_count: number;
     } | null;
   };
 
-  const threads = ((data ?? []) as unknown as Row[])
-    .filter((row) => row.community_posts !== null)
+  const visibleRows = ((data ?? []) as unknown as Row[]).filter((row) => row.community_posts !== null);
+
+  // DFIX-1 (2026-10-08, SEC-5 residual): an anonymous thread author id reaches only that author and a platform
+  // admin. Anonymous is the thread own flag or the author account default (the identity RPC says so); an author
+  // whose identity could not be read is treated as anonymous (identity.mjs idWithheldForAnonymity).
+  const authorIds = Array.from(
+    new Set(visibleRows.map((r) => r.community_posts!.author_user_id).filter((id): id is string => !!id))
+  );
+  const { byId: identitiesById, error: identityErr } = await loadCommunityIdentities(auth.supabase, authorIds);
+  if (identityErr) console.warn("community entity threads route: identity lookup failed", identityErr);
+  const viewer = await communityViewer(
+    auth,
+    visibleRows.map((r) => r.community_posts!),
+    identitiesById
+  );
+
+  const threads = visibleRows
     .map((row) => ({
       id: row.community_posts!.id,
       group_id: row.community_posts!.group_id,
       title: row.community_posts!.title,
       body: row.community_posts!.body,
-      author_user_id: row.community_posts!.author_user_id,
+      author_user_id: authorIdForRow({
+        authorUserId: row.community_posts!.author_user_id,
+        postAnonymous: row.community_posts!.anonymous,
+        identity: identitiesById.get(row.community_posts!.author_user_id ?? "") ?? null,
+        viewer,
+      }),
       created_at: row.community_posts!.created_at,
       last_reply_at: row.community_posts!.last_reply_at,
       reply_count: row.community_posts!.reply_count,

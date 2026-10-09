@@ -8,6 +8,9 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FORBIDDEN_NAMES } from "./preflight.mjs";
+import { buildLocalEnv, parseStatusEnv, SUPERUSER_ROLE, ORACLE_PORT } from "./write-local-env.mjs";
+import { ORACLE_CONTAINER } from "./create-oracle-db.mjs";
+import { psqlArgs } from "./apply-schema-dump.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TEXT = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "chain-proof.yml"), "utf8");
@@ -61,7 +64,7 @@ const LOCAL_SCRIPTS = /scripts\/proof\/(replay-migrations|run-lane-step|export-l
 
 test("every step that touches the local database sources the local env and runs the preflight first", () => {
   const touching = steps().filter((s) => LOCAL_SCRIPTS.test(s.body) && !/Export the production schema dump/.test(s.name));
-  assert.ok(touching.length >= 8, `expected oracle_check, replay, oracle apply, oracle gate, load, chain, attacks and ledger steps, got ${touching.length}`);
+  assert.ok(touching.length >= 8, `expected oracle start, replay, oracle apply, oracle gate, load, chain, attacks and ledger steps, got ${touching.length}`);
   for (const s of touching) {
     const src = codeOf(s.body).indexOf('. "$CHAIN_PROOF_ENV"');
     const pre = codeOf(s.body).indexOf("scripts/proof/preflight.mjs");
@@ -80,12 +83,12 @@ test("the replay builds the proof schema and is a gate: first, no continue-on-er
   assert.doesNotMatch(code, /replay_continue_on_error|replay-tolerate/);
   assert.doesNotMatch(replay.body, /--db-url/, "the replay builds the stack's own database (PROOF_DB_URL), never another");
   assert.ok(names.findIndex((n) => /Replay the migration files/.test(n)) < names.findIndex((n) => /Export the production schema dump/.test(n)), "the replay must run before any production credential is used");
-  assert.ok(names.findIndex((n) => /Create the empty oracle_check/.test(n)) < names.findIndex((n) => /Replay the migration files/.test(n)), "oracle_check must be made before the replay builds anything");
+  assert.ok(names.findIndex((n) => /Start the oracle cluster/.test(n)) < names.findIndex((n) => /Replay the migration files/.test(n)), "the oracle cluster must be started before the replay builds anything");
 });
 
 test("the schema oracle gate compares the replayed schema with the dump and sits before the subset load", () => {
   const names = steps().map((n) => n.name);
-  const apply = names.findIndex((n) => /Apply the production schema dump to oracle_check/.test(n));
+  const apply = names.findIndex((n) => /Apply the production schema dump to the oracle cluster/.test(n));
   const gate = names.findIndex((n) => /Schema oracle gate/.test(n));
   const load = names.findIndex((n) => /Load the subset/.test(n));
   assert.ok(apply >= 0 && gate > apply && load > gate, "order must be apply dump, oracle gate, load");
@@ -269,4 +272,108 @@ test("VC-5 form: a run block without set -euo pipefail, a weakened pipefail, and
   caught("no pipefail", TEXT.replace("        run: |\n          set -euo pipefail\n          . \"$CHAIN_PROOF_ENV\"\n          node scripts/proof/preflight.mjs\n          node scripts/proof/schema-diff.mjs", "        run: |\n          . \"$CHAIN_PROOF_ENV\"\n          node scripts/proof/preflight.mjs\n          node scripts/proof/schema-diff.mjs"), /does not start with set -euo pipefail/);
   caught("+o", TEXT.replace("          set -euo pipefail\n          node scripts/proof/emit-chain-proof-artifact.mjs", "          set -u +o pipefail\n          node scripts/proof/emit-chain-proof-artifact.mjs"), /weakens pipefail|does not start with set -euo pipefail/);
   caught("tee one line", TEXT.replace('        run: |\n          set -euo pipefail\n          node scripts/proof/emit-chain-proof-artifact.mjs | tee -a "$GITHUB_STEP_SUMMARY"', '        run: node scripts/proof/emit-chain-proof-artifact.mjs | tee -a "$GITHUB_STEP_SUMMARY"'), /pipes into tee on one line/);
+});
+
+// ── lane PROOF-6 (2026-10-09): the schema oracle is a SECOND CLUSTER, applied as the superuser with ON_ERROR_STOP=1 ──
+// chain-proof run 37876624407 failed the oracle step because the dump was applied by a non-owner role to a scratch
+// database on the stack. One checker over the workflow text, one over the env the stack writes, and one over the
+// scripts, each run on the committed state (must hold) and on a mutation per attack (must be caught).
+
+const STATUS_FIXTURE = ['API_URL="http://127.0.0.1:54321"', 'DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"', 'SERVICE_ROLE_KEY="service-jwt"'].join("\n");
+
+/** What the oracle URL must be, whatever the stack's URL is. */
+function oracleEnvProblems(env) {
+  const problems = [];
+  const o = new URL(env.PROOF_ORACLE_DB_URL);
+  const s = new URL(env.PROOF_DB_URL);
+  if (o.username !== SUPERUSER_ROLE) problems.push(`the oracle URL connects as ${o.username}, not ${SUPERUSER_ROLE}`);
+  if (o.pathname !== "/postgres") problems.push(`the oracle URL names database ${o.pathname}, not postgres`);
+  if (o.hostname !== "127.0.0.1") problems.push("the oracle URL is not on the loopback host");
+  if (!o.port || o.port === s.port) problems.push("the oracle URL is on the stack's own port, so it would be the replayed database");
+  return problems;
+}
+
+/** What the workflow's oracle steps must be. */
+function oracleWorkflowProblems(text) {
+  const problems = [];
+  const code = codeOf(text);
+  const stepList = text.split(/^\s{6}- name: /m).slice(1).map((p) => ({ name: p.split("\n")[0], body: p }));
+  const start = stepList.find((s) => /Start the oracle cluster/.test(s.name));
+  const apply = stepList.find((s) => /Apply the production schema dump to the oracle cluster/.test(s.name));
+  if (!start || !/node scripts\/proof\/create-oracle-db\.mjs\s*$/m.test(codeOf(start.body))) problems.push("the oracle cluster start step is missing or does not run create-oracle-db.mjs");
+  if (!apply) problems.push("the oracle apply step is missing");
+  else {
+    const body = codeOf(apply.body);
+    if (!/apply-schema-dump\.mjs --db-url "\$PROOF_ORACLE_DB_URL" --in "\$CHAIN_PROOF_SCHEMA_DUMP"/.test(body)) problems.push('the oracle apply step does not connect with --db-url "$PROOF_ORACLE_DB_URL"');
+    if (/postgres(ql)?:\/\//.test(body)) problems.push("the oracle apply step names a connection URL literally (a hand-typed role or database)");
+    if (/oracle_check|PROOF_DB_URL|SUPABASE_DB_URL|\b(authenticated|anon|service_role)\b/.test(body)) problems.push("the oracle apply step names the scratch database, the stack's URL or a lesser role");
+    if (/\|\|\s*true|2>\s*\/dev\/null|\bgrep\s+-v\b|continue-on-error/.test(body)) problems.push("the oracle apply step filters or swallows errors");
+  }
+  if (/ON_ERROR_STOP\s*=\s*(0|off)\b/i.test(code)) problems.push("ON_ERROR_STOP is turned off");
+  if (/supabase\/postgres:/.test(code)) problems.push("a database image tag is typed in the workflow; it must be read from the running stack");
+  if (!code.includes(`docker rm -f ${ORACLE_CONTAINER}`)) problems.push("the oracle container is not removed in the teardown step");
+  return problems;
+}
+
+/** What the scripts must do, from their source text and their pure argument builder. */
+function oracleScriptProblems(applySrc, createSrc, args) {
+  const problems = [];
+  if (!args.includes("ON_ERROR_STOP=1") || args.includes("ON_ERROR_STOP=0")) problems.push("psql is not run with ON_ERROR_STOP=1");
+  const code = (src) => src.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+  if (/ON_ERROR_STOP=0|stripOwnership|classifyErrors/.test(code(applySrc))) problems.push("apply-schema-dump.mjs strips, tolerates or classifies an error as non-fatal");
+  if (/oracle_check|create database|template postgres/i.test(code(createSrc))) problems.push("create-oracle-db.mjs still makes a scratch database");
+  if (/supabase\/postgres:\d|ecr\.aws\/supabase\/postgres:/.test(code(createSrc))) problems.push("create-oracle-db.mjs types an image tag");
+  return problems;
+}
+
+const APPLY_SRC = readFileSync(resolve(HERE, "apply-schema-dump.mjs"), "utf8");
+const CREATE_SRC = readFileSync(resolve(HERE, "create-oracle-db.mjs"), "utf8");
+const caughtOracle = (id, problems, pattern) => assert.ok(problems.some((p) => pattern.test(p)), `${id}: not caught. problems: ${JSON.stringify(problems)}`);
+
+test("PROOF-6: the committed workflow, the written env and the scripts satisfy the oracle contract (control)", () => {
+  assert.deepEqual(oracleWorkflowProblems(TEXT), []);
+  const env = buildLocalEnv(parseStatusEnv(STATUS_FIXTURE));
+  assert.deepEqual(oracleEnvProblems(env), []);
+  assert.equal(new URL(env.PROOF_ORACLE_DB_URL).port, String(ORACLE_PORT));
+  assert.deepEqual(oracleScriptProblems(APPLY_SRC, CREATE_SRC, psqlArgs(env.PROOF_ORACLE_DB_URL, "/d.sql")), []);
+});
+
+test("PROOF-6 ATTACK: an oracle URL as a lesser role (authenticated, anon, postgres), in another database, or on the stack's port is red", () => {
+  const env = buildLocalEnv(parseStatusEnv(STATUS_FIXTURE));
+  const withUrl = (u) => oracleEnvProblems({ ...env, PROOF_ORACLE_DB_URL: u });
+  for (const role of ["authenticated", "anon", "postgres"]) caughtOracle(role, withUrl(`postgresql://${role}:postgres@127.0.0.1:${ORACLE_PORT}/postgres`), /not supabase_admin/);
+  caughtOracle("other database", withUrl(`postgresql://supabase_admin:postgres@127.0.0.1:${ORACLE_PORT}/oracle_check`), /not postgres/);
+  caughtOracle("stack port", withUrl("postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres"), /stack's own port/);
+});
+
+test("PROOF-6 ATTACK: an oracle apply step that connects as the stack, as a lesser role or to another database is red", () => {
+  const apply = '--db-url "$PROOF_ORACLE_DB_URL"';
+  assert.ok(TEXT.includes(apply));
+  caughtOracle("stack URL", oracleWorkflowProblems(TEXT.replace(apply, '--db-url "$PROOF_DB_URL"')), /does not connect with --db-url "\$PROOF_ORACLE_DB_URL"/);
+  caughtOracle("authenticated", oracleWorkflowProblems(TEXT.replace(apply, "--db-url postgresql://authenticated:x@127.0.0.1:54399/postgres")), /does not connect with|names a connection URL literally/);
+  caughtOracle("anon", oracleWorkflowProblems(TEXT.replace(apply, "--db-url postgresql://anon:x@127.0.0.1:54399/postgres")), /does not connect with|names a connection URL literally/);
+  caughtOracle("scratch database", oracleWorkflowProblems(TEXT.replace(apply, '--db-url "$PROOF_ORACLE_DB_URL" --note oracle_check')), /scratch database/);
+});
+
+test("PROOF-6 ATTACK: ON_ERROR_STOP off, an error filter on the apply, a typed image tag, a missing teardown or a missing start step is red", () => {
+  caughtOracle("stop off", oracleWorkflowProblems(TEXT.replace('--in "$CHAIN_PROOF_SCHEMA_DUMP" --report', '--in "$CHAIN_PROOF_SCHEMA_DUMP" -v ON_ERROR_STOP=0 --report')), /ON_ERROR_STOP is turned off/);
+  caughtOracle("|| true", oracleWorkflowProblems(TEXT.replace('--report "$CP_OUT_DIR/schema-apply-report.json"', '--report "$CP_OUT_DIR/schema-apply-report.json" || true')), /filters or swallows errors/);
+  caughtOracle("image tag", oracleWorkflowProblems(TEXT.replace("          node scripts/proof/create-oracle-db.mjs\n", "          docker pull supabase/postgres:17.6.1.054\n          node scripts/proof/create-oracle-db.mjs\n")), /image tag is typed/);
+  caughtOracle("no teardown", oracleWorkflowProblems(TEXT.replace("          docker rm -f chain-proof-oracle || true\n", "")), /not removed in the teardown/);
+  caughtOracle("no start", oracleWorkflowProblems(TEXT.replace("Start the oracle cluster", "Start something else")), /start step is missing/);
+});
+
+test("PROOF-6 ATTACK: psql without ON_ERROR_STOP=1, or the old strip/classify/scratch-database code, is red", () => {
+  const url = "postgresql://supabase_admin:postgres@127.0.0.1:54399/postgres";
+  caughtOracle("stop=0", oracleScriptProblems(APPLY_SRC, CREATE_SRC, [url, "-X", "-v", "ON_ERROR_STOP=0", "-f", "/d.sql"]), /not run with ON_ERROR_STOP=1/);
+  caughtOracle("no flag", oracleScriptProblems(APPLY_SRC, CREATE_SRC, [url, "-X", "-f", "/d.sql"]), /not run with ON_ERROR_STOP=1/);
+  caughtOracle("strip", oracleScriptProblems(APPLY_SRC + "\nexport function stripOwnership() {}\n", CREATE_SRC, psqlArgs(url, "/d.sql")), /strips, tolerates or classifies/);
+  caughtOracle("scratch db", oracleScriptProblems(APPLY_SRC, CREATE_SRC + '\nconst s = "create database oracle_check template postgres";\n', psqlArgs(url, "/d.sql")), /scratch database/);
+});
+
+test("PROOF-6: the teardown removes the oracle container named by create-oracle-db.mjs, and the workflow never stops the stack's own services for it", () => {
+  assert.equal(ORACLE_CONTAINER, "chain-proof-oracle");
+  const last = steps().at(-1);
+  assert.match(last.name, /Stop the local stack/);
+  assert.ok(last.body.includes(`docker rm -f ${ORACLE_CONTAINER}`));
 });

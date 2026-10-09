@@ -16,7 +16,13 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
-import { authorBlockForPost, loadCommunityIdentities, type CommunityIdentityRow } from "@/lib/community/identity.mjs";
+import {
+  authorBlockForPost,
+  authorIdForRow,
+  loadCommunityIdentities,
+  type CommunityIdentityRow,
+} from "@/lib/community/identity.mjs";
+import { communityViewer, type CommunityViewer } from "@/lib/community/viewer";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -50,18 +56,22 @@ async function loadAuthorIdentity(
   return byId.get(authorUserId) ?? null;
 }
 
-function shapePost(row: PostRow, identity: CommunityIdentityRow | null) {
+// DFIX-1 (2026-10-08, SEC-5 residual): an anonymous author id reaches only that author and a platform admin.
+// `viewer` is who is reading; the id (author_user_id, author.user_id) is withheld from everyone else here, in
+// the read path (identity.mjs authorIdForViewer).
+function shapePost(row: PostRow, identity: CommunityIdentityRow | null, viewer: CommunityViewer) {
   return {
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
-    author_user_id: row.author_user_id,
+    author_user_id: authorIdForRow({ authorUserId: row.author_user_id, postAnonymous: row.anonymous, identity, viewer }),
     // Per-post anonymity (community_posts.anonymous) nulls name and headshot here; the per-user default came
     // back from the RPC already applied. One rule in each place (identity.mjs authorBlockForPost).
     author: authorBlockForPost({
       authorUserId: row.author_user_id,
       identity,
       postAnonymous: row.anonymous,
+      viewer,
     }),
     title: row.title,
     body: row.body,
@@ -107,9 +117,14 @@ export async function GET(
   }
 
   const identity = await loadAuthorIdentity(auth.supabase, row.author_user_id);
+  const viewer = await communityViewer(
+    auth,
+    [row],
+    new Map(identity && row.author_user_id ? [[row.author_user_id, identity]] : [])
+  );
 
   return NextResponse.json(
-    { post: shapePost(row, identity) },
+    { post: shapePost(row, identity, viewer) },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }
@@ -217,8 +232,9 @@ export async function PATCH(
   const row = updated as PostRow;
   const identity = await loadAuthorIdentity(auth.supabase, row.author_user_id);
 
+  // only the author reaches this branch (the update was refused for anyone else above): they see their own id
   return NextResponse.json(
-    { post: shapePost(row, identity) },
+    { post: shapePost(row, identity, { userId: auth.userId }) },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }

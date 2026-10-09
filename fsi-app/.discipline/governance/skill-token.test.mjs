@@ -154,3 +154,46 @@ test('file-read: DISCIPLINE PRESERVED — reading an unrelated file is not consu
 test('file-read: a Skill invocation is not a Read (the two primitives stay distinct)', () => {
   assert.equal(skillFileReadInTranscript(shape(SLUG), SLUG), false);
 });
+
+// ── GATE-FIX-1 item 1: a whole, resolved Read of SKILL.md is the skill looked at, EQUAL to a resolved Skill call ──
+import { skillConsultedInTranscript } from './skill-token.mjs';
+const readWith = (path, input = {}, { error = false, result = true } = {}) => {
+  const id = nextId();
+  const call = `{"type":"assistant","message":{"content":[{"type":"tool_use","id":"${id}","name":"Read","input":${JSON.stringify({ file_path: path, ...input })}}]}}`;
+  const res = `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"${id}","is_error":${error},"content":"# SKILL"}]}}`;
+  return result ? `${call}\n${res}` : call;
+};
+const SKILL_PATH = `/repo/fsi-app/.claude/skills/${SLUG}/SKILL.md`;
+
+test('GATE-FIX-1 read evidence: a whole successful Read counts, in any path spelling', () => {
+  for (const p of [
+    SKILL_PATH,
+    `C:/work/repo/fsi-app/.claude/skills/${SLUG}/SKILL.md`.split('/').join(String.fromCharCode(92)),
+    `fsi-app/.claude/skills/${SLUG}/SKILL.md`,
+    `.claude/skills/${SLUG}/SKILL.md`,
+    `./fsi-app/./.claude/skills/${SLUG}/SKILL.md`,
+    `/repo/fsi-app/src/../.claude/skills/${SLUG}/SKILL.md`,
+    `/repo/.claude/worktrees/w/fsi-app/.claude/skills/${SLUG.toUpperCase()}/skill.md`,
+  ]) assert.equal(skillConsultedInTranscript(readWith(p), SLUG), true, p);
+});
+test('GATE-FIX-1 read evidence: it is equal to a resolved Skill call in missingFromTranscript', () => {
+  const t = [readWith(SKILL_PATH), shape('other-skill')].join('\n');
+  assert.deepEqual(missingFromTranscript(t, [SLUG, 'other-skill', 'third-skill']), ['third-skill']);
+});
+test('ATTACK GATE-FIX-1 read evidence: a references file, another skill, an errored Read, no result, a slice', () => {
+  assert.equal(skillConsultedInTranscript(readWith(`/repo/fsi-app/.claude/skills/${SLUG}/references/x.md`), SLUG), false, 'references file only');
+  assert.equal(skillConsultedInTranscript(readWith(`/repo/fsi-app/.claude/skills/other-skill/SKILL.md`), SLUG), false, 'other skill');
+  assert.equal(skillConsultedInTranscript(readWith(SKILL_PATH, {}, { error: true }), SLUG), false, 'is_error');
+  assert.equal(skillConsultedInTranscript(readWith(SKILL_PATH, {}, { result: false }), SLUG), false, 'no result');
+  assert.equal(skillConsultedInTranscript(readWith(SKILL_PATH, { limit: 50 }), SLUG), false, 'limit');
+  assert.equal(skillConsultedInTranscript(readWith(SKILL_PATH, { offset: 40 }), SLUG), false, 'offset');
+  assert.equal(skillConsultedInTranscript(readWith(SKILL_PATH, { offset: 0 }), SLUG), true, 'a zero offset is the start');
+});
+test('ATTACK GATE-FIX-1 read evidence: Bash cat and a prose mention are not a Read', () => {
+  const id = nextId();
+  const bash = `{"type":"assistant","message":{"content":[{"type":"tool_use","id":"${id}","name":"Bash","input":{"command":"cat ${SKILL_PATH}"}}]}}\n` +
+    `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"${id}","is_error":false,"content":"text"}]}}`;
+  assert.equal(skillConsultedInTranscript(bash, SLUG), false, 'Bash cat');
+  const prose = `{"type":"assistant","message":{"content":[{"type":"text","text":"I read ${SKILL_PATH} earlier"}]}}`;
+  assert.equal(skillConsultedInTranscript(prose, SLUG), false, 'prose mention');
+});

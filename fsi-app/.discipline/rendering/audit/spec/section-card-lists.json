@@ -34,8 +34,8 @@
     {
       "name": "title (rail-label convention, not asserted as a MISMATCH against Anton per the note above)",
       "selector": "[data-audit=\"legend\"] p",
-      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase.",
-      "expect": { "font-size": "10.5px", "font-weight": "800", "letter-spacing": "0.12em", "text-transform": "uppercase" }
+      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json).",
+      "expect": { "font-size": "10.5px", "font-weight": "700", "letter-spacing": "0.12em", "text-transform": "uppercase" }
     }
   ]
 }

@@ -56,6 +56,7 @@ import { rowValueFields } from "@/lib/list-row-fields";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
+import { ALL_OPERATIONS_DIMENSIONS, type OperationsDimension } from "@/lib/agent/formats/operations-matrix";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
@@ -77,27 +78,32 @@ const LIST_KEY = "operations";
 // grant): it is the one constant the matrix rows, the rail's Dimension facet, the coverage-gap counts and the
 // statements all render from, so adding the entry here is the whole wiring. ──
 
-interface Dimension {
+export interface Dimension {
   num: number;
   key: string;
   db: string;
   name: string;
 }
 
-const DIMENSIONS: Dimension[] = [
-  { num: 1, key: "regulatory", db: "regulatory_feasibility", name: "Regulatory feasibility" },
-  { num: 2, key: "resources", db: "regional_resources", name: "Regional resource availability" },
-  { num: 3, key: "labor", db: "labor_markets", name: "Labor markets" },
-  { num: 4, key: "materials", db: "materials_sourcing", name: "Materials sourcing" },
-  { num: 5, key: "infrastructure", db: "infrastructure", name: "Infrastructure capacity" },
+// DFIX-1 (2026-10-08, row 08-s8e5): the db names come from ALL_OPERATIONS_DIMENSIONS, the one typed home of the
+// vocabulary (operations-matrix.ts), so a dimension added there reaches this page without a second edit. The
+// display entry is a Record over the same type: tsc refuses a dimension with no key and no stray key.
+const DIMENSION_DISPLAY: Record<OperationsDimension, { key: string; name: string }> = {
+  regulatory_feasibility: { key: "regulatory", name: "Regulatory feasibility" },
+  regional_resources: { key: "resources", name: "Regional resource availability" },
+  labor_markets: { key: "labor", name: "Labor markets" },
+  materials_sourcing: { key: "materials", name: "Materials sourcing" },
+  infrastructure: { key: "infrastructure", name: "Infrastructure capacity" },
   // Artboard 08/id="p8" names this row "Operational cost" in the matrix and "D6 Operational cost"
   // in the rail; "Operational cost data" was a longer name for the same dimension.
-  { num: 6, key: "cost", db: "operational_cost", name: "Operational cost" },
+  operational_cost: { key: "cost", name: "Operational cost" },
   // D7: GB grid carbon intensity today (NESO Carbon Intensity API), any region's grid intensity by the same
   // dimension. Artboard 08 draws six rows; the seventh is a system need (rule 20), on the DESIGN CHANGES OWED
   // list in docs/ops/session-log.d/2026-10-08-s8e5-aux-energy.md.
-  { num: 7, key: "gridintensity", db: "grid_intensity", name: "Grid carbon intensity" },
-];
+  grid_intensity: { key: "gridintensity", name: "Grid carbon intensity" },
+};
+
+export const DIMENSIONS: Dimension[] = ALL_OPERATIONS_DIMENSIONS.map((db, i) => ({ num: i + 1, db, ...DIMENSION_DISPLAY[db] }));
 
 // DEFECT-FIX (item 3.3, 2026-09-07): all six dimensions render in the "Regions side by side"
 // matrix, D1-D6, same order everywhere — the audit's own words. This used to filter out

@@ -5,6 +5,7 @@
   "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
   "source": "'Caros Ledge UI System.dc.html' p3 (#p3) rail: 'At a glance' card (`grid-template-columns:96px 1fr;gap:7px 12px`, label `color:#7A6E6C`, value `font-weight:600`) and 'Impact assessment' card (eyebrow + trailing `0–3 per dimension` note); operator ruling 5.1 (3px rule on every card, see inthisliststat.json's same finding on the sibling rail card)",
   "notes": [
+    "DFIX-1 (2026-10-08): the three eyebrow-label rows assert font-weight 700, not 800. RailCard.tsx draws every rail card title and the artboards (dc.html p13 and the card headers) and parts-brief 2.12 say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 rules for the artboards (see the At a glance row of mobile-03-regulation-detail.json).",
     "Every rail card in DetailShell.tsx (ImpactRailCard, AtAGlanceCard, RailLegend, InThisListStat) shares the identical inline card-chrome object; inthisliststat.json already records the missing ruling-5.1 rule and the 12/16/14 padding on that sibling card, so this spec does not repeat the chrome check three more times and focuses on each card's OWN content values.",
     "AtAGlanceCard's grid is `gridTemplateColumns: 'auto 1fr'` with `gap: '6px 14px'`; the artboard states a fixed `96px 1fr` label column and `gap:7px 12px` — both a real MISMATCH, not a harness artefact (auto-vs-fixed-px and the gap numbers are both plain CSSOM reads).",
     "AtAGlanceCard's value span is `fontWeight: 700`; the artboard's value text is `font-weight:600` — a real MISMATCH.",
@@ -20,7 +21,7 @@
       "selector": "[data-audit=\"atglance\"] p:first-of-type",
       "expect": {
         "text": "At a glance",
-        "font-weight": "800",
+        "font-weight": "700",
         "text-transform": "uppercase"
       }
     },
@@ -47,7 +48,7 @@
       "selector": "[data-audit=\"impactrail\"] p:first-of-type",
       "expect": {
         "text": "Impact assessment",
-        "font-weight": "800",
+        "font-weight": "700",
         "text-transform": "uppercase"
       }
     },
@@ -56,7 +57,7 @@
       "selector": "[data-audit=\"raillegend\"] p:first-of-type",
       "expect": {
         "text": "Legend",
-        "font-weight": "800",
+        "font-weight": "700",
         "text-transform": "uppercase"
       }
     }

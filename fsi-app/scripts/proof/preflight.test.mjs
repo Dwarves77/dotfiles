@@ -14,7 +14,7 @@ const CLEAN = Object.freeze({
   PROOF_SERVICE_KEY: KEY,
   PROOF_API_URL: "http://127.0.0.1:54321",
   PROOF_DB_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
-  PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres",
+  PROOF_ORACLE_DB_URL: "postgresql://supabase_admin:postgres@127.0.0.1:54399/postgres",
 });
 
 test("a clean local environment passes", () => {
@@ -91,22 +91,46 @@ test("missing local URLs are refused (the job must have a stack)", () => {
   assert.equal(r.violations.filter((v) => v.startsWith("required local variable missing")).length, 2);
 });
 
-test("PROOF-5: ATTACK: PROOF_DB_SUPERUSER_URL on a production host is refused, and the password never echoed", () => {
-  const r = checkPreflight({ ...CLEAN, PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:prod-pw-123@db.abcdefghijklmnop.supabase.co:5432/postgres" });
+test("PROOF-6: ATTACK: PROOF_ORACLE_DB_URL on a production host is refused, and the password never echoed", () => {
+  const r = checkPreflight({ ...CLEAN, PROOF_ORACLE_DB_URL: "postgresql://supabase_admin:prod-pw-123@db.abcdefghijklmnop.supabase.co:5432/postgres" });
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes("PROOF_DB_SUPERUSER_URL does not name a loopback host")));
+  assert.ok(r.violations.some((v) => v.includes("PROOF_ORACLE_DB_URL does not name a loopback host")));
   assert.ok(!JSON.stringify(r).includes("prod-pw-123"));
 });
 
-test("PROOF-5: ATTACK: PROOF_DB_SUPERUSER_URL on a non-loopback, non-production host is refused", () => {
-  const r = checkPreflight({ ...CLEAN, PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:x@192.0.2.10:5432/postgres" });
+test("PROOF-6: ATTACK: PROOF_ORACLE_DB_URL on a non-loopback, non-production host is refused", () => {
+  const r = checkPreflight({ ...CLEAN, PROOF_ORACLE_DB_URL: "postgresql://supabase_admin:x@192.0.2.10:54399/postgres" });
   assert.equal(r.ok, false);
-  assert.ok(r.violations.some((v) => v.includes("PROOF_DB_SUPERUSER_URL")));
+  assert.ok(r.violations.some((v) => v.includes("PROOF_ORACLE_DB_URL")));
 });
 
-test("PROOF-5: PROOF_DB_SUPERUSER_URL is optional to the preflight (steps before the env carries it still pass)", () => {
-  const { PROOF_DB_SUPERUSER_URL: _drop, ...rest } = CLEAN;
+test("PROOF-6: PROOF_ORACLE_DB_URL is optional to the preflight (steps before the env carries it still pass)", () => {
+  const { PROOF_ORACLE_DB_URL: _drop, ...rest } = CLEAN;
   assert.equal(checkPreflight(rest).ok, true);
+});
+
+test("PROOF-6: the retired PROOF_DB_SUPERUSER_URL is no longer a checked variable (a loopback value neither passes nor fails on its own)", () => {
+  assert.equal(checkPreflight({ ...CLEAN, PROOF_DB_SUPERUSER_URL: "postgresql://supabase_admin:x@192.0.2.10:5432/postgres" }).ok, true);
+});
+
+test("PROOF-6: ATTACK: PROOF_ORACLE_DB_URL with a role other than supabase_admin is refused", () => {
+  const r = checkPreflight({ ...CLEAN, PROOF_ORACLE_DB_URL: "postgresql://postgres:postgres@127.0.0.1:54399/postgres" });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes("PROOF_ORACLE_DB_URL must name the supabase_admin role")));
+});
+
+test("PROOF-6: ATTACK: PROOF_ORACLE_DB_URL naming a database other than postgres is refused", () => {
+  const r = checkPreflight({ ...CLEAN, PROOF_ORACLE_DB_URL: "postgresql://supabase_admin:postgres@127.0.0.1:54399/oracle_check" });
+  assert.equal(r.ok, false);
+  assert.ok(r.violations.some((v) => v.includes("PROOF_ORACLE_DB_URL must name the database postgres")));
+});
+
+test("PROOF-6: ATTACK: PROOF_ORACLE_DB_URL on the stack's own port (or no port) is refused", () => {
+  for (const url of ["postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres", "postgresql://supabase_admin:postgres@127.0.0.1/postgres"]) {
+    const r = checkPreflight({ ...CLEAN, PROOF_ORACLE_DB_URL: url });
+    assert.equal(r.ok, false, url);
+    assert.ok(r.violations.some((v) => v.includes("PROOF_ORACLE_DB_URL must name a host port other than the stack's")), url);
+  }
 });
 
 test("a hostname that merely begins with 127.0.0.1 is not loopback", () => {

@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import {
   evaluateGate, runGate, scriptFileRun, governedPath, classifyMcp, isSelectSql, sqlReadKind, sqlSkeleton, auditLogPath, inScope,
 } from "./pretooluse-skill-gate.mjs";
-import { collectOpenFindings } from "../../scripts/verify/audit-finding-status.mjs";
+import { collectOpenFindings, REGISTER_GRACE_MS } from "../../scripts/verify/audit-finding-status.mjs";
 import { skillFileReadInTranscript } from "./skill-token.mjs";
 import { cwdHoldsFsiApp } from "./pretooluse-scope.mjs";
 import { decide as decideEntry } from "./pretooluse-entry.mjs";
@@ -411,7 +411,7 @@ test("ATTACK WIRE-1: a gate hook wired DIRECTLY (unscoped) fails, so the install
 
 test("FLAG-1 forcing point: on the REAL tree a dispatch is refused while any finding is undispositioned, and reaches the ask once none is", () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-  const open = collectOpenFindings(root);
+  const open = collectOpenFindings(root, { registerGraceMs: REGISTER_GRACE_MS });
   const prev = process.env.GATE_DISPOSITION_ROOT;
   process.env.GATE_DISPOSITION_ROOT = root;
   try {
@@ -425,4 +425,177 @@ test("FLAG-1 forcing point: on the REAL tree a dispatch is refused while any fin
     }
     assert.equal(decide("Agent", { prompt: "DISPOSITION-LANE: disposition the open findings" }).permissionDecision, "ask");
   } finally { process.env.GATE_DISPOSITION_ROOT = prev; }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+// LANE GATE-FIX-1 (2026-10-09). Register cells S4 and X4 (honest read-only and scratch commands refused), S5 and
+// the Read-evidence ruling, X2 (the FLAG-1 loop). Each honest form is a passing test; each has an attack test
+// proving the dishonest form is still refused.
+// ═════════════════════════════════════════════════════════════════════════════════════════════════
+import { skillsForFile } from "./skill-map.mjs";
+import { utimesSync, symlinkSync } from "node:fs";
+
+const wholeRead = (slug, extra = {}) => {
+  const id = `toolu_gf${++_id}`;
+  return `{"type":"assistant","message":{"content":[{"type":"tool_use","id":"${id}","name":"Read","input":${JSON.stringify({ file_path: `${ABS}/fsi-app/.claude/skills/${slug}/SKILL.md`, ...extra })}}]}}\n` +
+    `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"${id}","is_error":false,"content":"x"}]}}`;
+};
+const BASH_DEFAULT_SKILLS = ["remediation-discipline", "environmental-policy-and-innovation"];
+
+test("GATE-FIX-1 S5: a whole Read of each governing SKILL.md is the skill looked at, equal to a Skill call (bash write: ask, not deny)", () => {
+  const read = transcript("gf-read-both.jsonl", ...BASH_DEFAULT_SKILLS.map((s) => wholeRead(s)));
+  const d = decide("Bash", { command: "node x.mjs --apply" }, read);
+  assert.equal(d.permissionDecision, "ask");
+  assert.equal(d.tag, "bash-write-ok");
+  const target = `${ABS}/fsi-app/src/lib/trust.ts`;
+  const skills = skillsForFile(target).map((s) => s.skill);
+  assert.ok(skills.length > 0, "the fixture path is governed");
+  const readAll = transcript("gf-read-edit.jsonl", ...skills.map((s) => wholeRead(s)));
+  assert.equal(verdict("Edit", { file_path: target }, readAll), "allow");
+});
+test("ATTACK GATE-FIX-1 S5: a slice Read, one of two skills, or a Bash cat still denies; the refusal names the Read path first", () => {
+  const slice = transcript("gf-read-slice.jsonl", ...BASH_DEFAULT_SKILLS.map((s) => wholeRead(s, { limit: 40 })));
+  assert.equal(bash("node x.mjs --apply", slice), "deny", "limit");
+  const offset = transcript("gf-read-offset.jsonl", ...BASH_DEFAULT_SKILLS.map((s) => wholeRead(s, { offset: 10 })));
+  assert.equal(bash("node x.mjs --apply", offset), "deny", "offset");
+  const one = transcript("gf-read-one.jsonl", wholeRead(BASH_DEFAULT_SKILLS[0]));
+  const d = decide("Bash", { command: "node x.mjs --apply" }, one);
+  assert.equal(d.permissionDecision, "deny");
+  assert.match(d.reason, /Missing: environmental-policy-and-innovation\./);
+  assert.ok(d.reason.indexOf("Read fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md") !== -1, d.reason);
+  assert.ok(d.reason.indexOf("Read fsi-app/") < d.reason.indexOf("invoke Skill"), "the Read path comes before the Skill invocation");
+  assert.match(d.reason, /stale/);
+  const catted = transcript("gf-cat.jsonl", '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_cat","name":"Bash","input":{"command":"cat fsi-app/.claude/skills/remediation-discipline/SKILL.md"}}]}}');
+  assert.equal(bash("node x.mjs --apply", catted), "deny", "Bash cat");
+});
+
+// ── item 2: honest read-only and scratch commands are allowed, not asked ─────────────────────────────
+const TMP_FWD = TMP.split(String.fromCharCode(92)).join("/");
+const OS_TMP_FWD = tmpdir().split(String.fromCharCode(92)).join("/");
+const gfBash = (command, cwd = ABS) => verdict("Bash", { command }, EMPTY, { cwd });
+test("GATE-FIX-1 S4/X4: git merge-tree in any form, git push --dry-run and output truncation are allowed with no skill loaded", () => {
+  for (const cmd of [
+    "git merge-tree --write-tree HEAD origin/master",
+    "git -C /some/wt merge-tree --write-tree --name-only a b",
+    "git merge-tree $(git merge-base a b) a b",
+    "git push --dry-run origin lane/x",
+    "git push -n origin lane/x",
+    "git push origin lane/x --dry-run",
+    "grep -rn truncate fsi-app/src",
+    "grep -rn delete from docs",
+    "git log --oneline | head -20",
+    "git diff origin/master --stat | tail -5",
+    "node --test x.test.mjs | grep -E fail | head",
+  ]) assert.equal(gfBash(cmd), "allow", cmd);
+});
+test("ATTACK GATE-FIX-1 S4/X4: the dishonest forms still ask or deny", () => {
+  assert.equal(gfBash("git push origin lane/x"), "deny", "git push without --dry-run");
+  assert.equal(gfBash("git push --dry-run --no-dry-run origin x"), "deny", "dry-run cancelled");
+  assert.equal(gfBash("git merge-tree --write-tree a b && node s.mjs --apply"), "deny", "an --apply after merge-tree");
+  assert.equal(gfBash("git merge-tree a b; git push origin x"), "deny", "a real push after merge-tree");
+  assert.equal(gfBash("node s.mjs --write"), "deny", "--write on anything but merge-tree");
+  assert.equal(gfBash("node s.mjs --apply | head -5"), "deny", "truncation does not launder the write before it");
+  assert.equal(gfBash("psql -c 'truncate t' | tail"), "deny", "a truncate run by an interpreter");
+  assert.equal(gfBash("git push --dry-run origin x; git push origin x"), "deny", "dry-run then a real push");
+});
+test("GATE-FIX-1 X4: rm -rf of paths under the OS temp dir, the scratchpad or fsi-app/scripts/tmp is allowed", () => {
+  const scratch = `${TMP_FWD}/gf-scratch`;
+  mkdirSync(join(TMP, "gf-scratch"), { recursive: true });
+  assert.equal(gfBash(`rm -rf ${scratch}`), "allow");
+  assert.equal(gfBash(`rm -rf ${scratch}/a ${scratch}/b`), "allow");
+  assert.equal(gfBash(`rm -r -f "${scratch}/quoted dir"`), "allow", "quoted path");
+  assert.equal(gfBash("rm -rf gf-scratch/sub", TMP_FWD), "allow", "relative, resolved against the cwd");
+  assert.equal(gfBash(`rm -rf ${scratch} 2>/dev/null`), "allow", "redirect target is not a path");
+  assert.equal(gfBash(`rm -rf -- ${scratch}`), "allow", "end of options");
+  assert.equal(gfBash("rm -rf fsi-app/scripts/tmp/probe-1", ABS), "allow", "the repo scratch directory, by cwd");
+  assert.equal(gfBash(`rm -rf ${ABS}/fsi-app/scripts/tmp/probe-2`), "allow", "the repo scratch directory, absolute");
+});
+test("ATTACK GATE-FIX-1 X4: rm -rf with ANY path outside those roots still denies", () => {
+  const scratch = `${TMP_FWD}/gf-scratch`;
+  for (const cmd of [
+    "rm -rf build",
+    `rm -rf ${scratch} build`,
+    `rm -rf build ${scratch}`,
+    `rm -rf ${OS_TMP_FWD}`,
+    `rm -rf ${OS_TMP_FWD}/`,
+    `rm -rf ${scratch}/../../../elsewhere`,
+    `rm -rf ${ABS}/fsi-app/scripts/tmp`,
+    `rm -rf ${ABS}/fsi-app/src`,
+    `rm -rf ${scratch}/*`,
+    "rm -rf $HOME/x",
+    "rm -rf ~/x",
+    `rm -rf ${scratch} && rm -rf build`,
+    "rm -rf /",
+    "rm -fr relative-path-under-no-root",
+  ]) assert.equal(gfBash(cmd), "deny", cmd);
+  assert.equal(verdict("Bash", { command: "rm -rf gf-scratch/x" }, EMPTY), "deny", "a relative path with no cwd is unresolvable");
+  assert.equal(gfBash("find build -delete"), "deny", "find -delete is untouched");
+});
+test("ATTACK GATE-FIX-1 X4: a link inside the temp dir that leads out of it does not carry a delete out", (t) => {
+  const link = join(TMP, "gf-escape");
+  try { symlinkSync(process.cwd(), link, "junction"); } catch { t.skip("cannot create a link here"); return; }
+  assert.equal(gfBash(`rm -rf ${TMP_FWD}/gf-escape/src`), "deny");
+});
+
+// ── item 3: register staleness; item 3b: a disposition act ──────────────────────────────────────────
+const gfRoot = (name, files, { ageHours = {} } = {}) => {
+  const root = join(TMP, name);
+  for (const [rel, body] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), body);
+    if (ageHours[rel] !== undefined) {
+      const t = (Date.now() - ageHours[rel] * 3600 * 1000) / 1000;
+      utimesSync(join(root, rel), t, t);
+    }
+  }
+  return root;
+};
+const gfDispatch = (root, tool, input) => {
+  const prev = process.env.GATE_DISPOSITION_ROOT;
+  process.env.GATE_DISPOSITION_ROOT = root;
+  try { return evaluateGate({ tool_name: tool, tool_input: input, transcript_path: LOADED }); } finally { process.env.GATE_DISPOSITION_ROOT = prev; }
+};
+const REG = "fsi-app/scripts/tmp/gf-register-a.md";
+const LOG = "docs/ops/session-log.d/2026-10-09-gf-x.md";
+test("GATE-FIX-1 item 3: a 1-hour-old scratch register does not block a dispatch; the refusal for a 25-hour-old one names file and age", () => {
+  const fresh = gfRoot("gf-fresh", { [REG]: "- a guard that is missing here\n" }, { ageHours: { [REG]: 1 } });
+  assert.equal(gfDispatch(fresh, "Agent", { prompt: "go" }).permissionDecision, "ask");
+  const stale = gfRoot("gf-stale", { [REG]: "- a guard that is missing here\n" }, { ageHours: { [REG]: 25 } });
+  const d = gfDispatch(stale, "Agent", { prompt: "go" });
+  assert.equal(d.permissionDecision, "deny");
+  assert.equal(d.tag, "dispatch-undispositioned");
+  assert.ok(d.reason.includes(`${REG}:1`), d.reason);
+  assert.match(d.reason, /register 25h old/);
+});
+test("ATTACK GATE-FIX-1 item 3: a committed session log with one open finding refuses regardless of age, a fresh register beside it is not listed", () => {
+  const root = gfRoot("gf-log-fresh", { [LOG]: "## NOT done\n- a leg nobody owns\n", [REG]: "- a guard that is missing here\n" }, { ageHours: { [REG]: 1, [LOG]: 0 } });
+  const d = gfDispatch(root, "Agent", { prompt: "go" });
+  assert.equal(d.permissionDecision, "deny");
+  assert.match(d.reason, /1 finding\(s\) carry no disposition/);
+  assert.ok(d.reason.includes(`${LOG}:2`), d.reason);
+  assert.ok(!d.reason.includes(REG), "the fresh register is not listed");
+});
+test("GATE-FIX-1 item 3b: a message of file:line -> [TOKEN] pairs covering every open finding is a disposition act and passes", () => {
+  const root = gfRoot("gf-act", { [LOG]: "## NOT done\n- leg one\n- leg two\n", [REG]: "- a guard that is missing here\n" }, { ageHours: { [REG]: 30 } });
+  const message = `${LOG}:2 -> [NOT-WORK: a scope statement]\n${LOG}:3 -> [WORK: gatefix2]\n${REG}:1 -> [CLOSED: PR 1040]`;
+  for (const [tool, input] of [["SendMessage", { to: "x", message }], ["Agent", { description: "d", prompt: message }]]) {
+    const d = gfDispatch(root, tool, input);
+    assert.equal(d.permissionDecision, "ask", tool);
+    assert.equal(d.tag, "dispatch", tool);
+  }
+  const arrows = `${LOG}:2 => [NOT-WORK: r]\n${LOG}:3 → [NOT-WORK: r]\n./${REG}:1 -> [NOT-WORK: r]`;
+  assert.equal(gfDispatch(root, "SendMessage", { message: arrows }).permissionDecision, "ask");
+});
+test("ATTACK GATE-FIX-1 item 3b: partial, malformed, bare-status or unrelated pairs are refused, naming what is uncovered", () => {
+  const root = gfRoot("gf-partial", { [LOG]: "## NOT done\n- leg one\n- leg two\n" });
+  const partial = gfDispatch(root, "SendMessage", { message: `${LOG}:2 -> [NOT-WORK: r]` });
+  assert.equal(partial.permissionDecision, "deny");
+  assert.match(partial.reason, /1 finding\(s\) carry no disposition/);
+  assert.ok(partial.reason.includes(`${LOG}:3`) && !partial.reason.includes(`${LOG}:2;`), partial.reason);
+  assert.match(partial.reason, /dispositions 1 of 2/);
+  for (const bad of [`${LOG}:2 -> [NOT-WORK]\n${LOG}:3 -> [NOT-WORK: r]`, `${LOG}:2 -> [REFUTED]\n${LOG}:3 -> [NOT-WORK: r]`, `${LOG}:2 -> [WORK: bad lane id]\n${LOG}:3 -> [NOT-WORK: r]`,
+    `${LOG}:2 -> [NOT-WORK: r]\n${LOG}:9 -> [NOT-WORK: r]`, "build the next thing", `see ${LOG} and [NOT-WORK: r]`]) {
+    assert.equal(gfDispatch(root, "SendMessage", { message: bad }).permissionDecision, "deny", bad);
+  }
+  assert.equal(gfDispatch(root, "Agent", { prompt: "DISPOSITION-LANE: disposition them" }).permissionDecision, "ask", "the lane literal stays");
 });

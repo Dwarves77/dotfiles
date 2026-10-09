@@ -962,7 +962,7 @@ export function CommunityRooms({
             {/* ══ New post ══ */}
             <SectionCard dataAudit="new-post">
               <SectionHeading
-                title={`New post · ${roomName}`}
+                title={`New post · ${selected.short}`}
                 aside={`Posts to the ${roomName}`}
               />
               <div style={{ padding: "14px 16px" }}>
