@@ -516,3 +516,62 @@ test('RULE-MERGE-1: a non-merge proposed commit still reports the merge-base bas
     assert.equal(rule022.check(ctx).status, 'FAIL', 'an ordinary commit is still charged for its new glyph line');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ---------------------------------------------------------------------------
+// ENGINE-FIX-1 (2026-10-09), register RULES-X-1 X5 / cells R14, R15, R21, R22: a revert PR's second commit
+// ---------------------------------------------------------------------------
+
+// master carries a glyph line, a later master commit removes it (origin/master is that commit), and the lane
+// reverts the removal in its FIRST commit, so the SECOND commit's merge-base diff re-adds the restored line.
+function revertScenario() {
+  const dir = repo({ 'doc.md': `intro\nkept ${EM} as written\nend\n`, 'other.md': 'unrelated\n' });
+  sh(dir, ['rm', '-q', '--cached', 'doc.md']);
+  put(dir, { 'doc.md': 'intro\nend\n' });
+  sh(dir, ['add', 'doc.md']);
+  sh(dir, ['commit', '-q', '-m', 'master removes the glyph line']);
+  sh(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  put(dir, { 'doc.md': `intro\nkept ${EM} as written\nend\n` });
+  sh(dir, ['add', 'doc.md']);
+  sh(dir, ['commit', '-q', '-m', 'restore the line (first commit of the revert PR)']);
+  return dir;
+}
+
+test('ENGINE-FIX-1 R15: the second commit of a revert PR restores a line master removed, and introduces nothing', () => {
+  const dir = revertScenario();
+  try {
+    put(dir, { 'log.md': 'a session log\n' });
+    sh(dir, ['add', '-A']);
+    const ctx = stagedContext(dir);
+    assert.equal(ctx.baseline.source, 'merge-base');
+    assert.equal(introducedMatches(ctx.introducedLines('doc.md'), hasGlyph).length, 0, 'the glyph line is a restore of a removed line');
+    assert.equal(rule022.check(ctx).status, 'PASS');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('ENGINE-FIX-1 attack: a genuinely new glyph line in the revert still fails, and so does a restored line in a file that never held it', () => {
+  const dir = revertScenario();
+  try {
+    put(dir, { 'doc.md': `intro\nkept ${EM} as written\nbrand new ${EM} line\nend\n`, 'other.md': `unrelated\nkept ${EM} as written\n` });
+    sh(dir, ['add', '-A']);
+    const ctx = stagedContext(dir);
+    const doc = introducedMatches(ctx.introducedLines('doc.md'), hasGlyph);
+    assert.equal(doc.length, 1);
+    assert.match(doc[0].added, /brand new/, 'only the new line is charged; the restored one is not');
+    assert.equal(introducedMatches(ctx.introducedLines('other.md'), hasGlyph).length, 1, 'removal history is per path: a copy into another file is a write');
+    assert.equal(rule022.check(ctx).status, 'FAIL');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('ENGINE-FIX-1: a line no commit ever removed is not credited, and a clean diff never runs the pickaxe', () => {
+  const dir = repo({ 'doc.md': 'intro\n' });
+  try {
+    sh(dir, ['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+    put(dir, { 'doc.md': `intro\nnever seen ${EM} before\nplain line\n` });
+    sh(dir, ['add', '-A']);
+    const ctx = stagedContext(dir);
+    const info = ctx.introducedLines('doc.md');
+    assert.equal(typeof info.removedBefore, 'function');
+    assert.equal(info.removedBefore('plain line'), false);
+    assert.equal(introducedMatches(info, hasGlyph).length, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
