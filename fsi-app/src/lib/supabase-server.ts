@@ -439,7 +439,10 @@ const SOURCE_COLUMNS = [
 ].join(", ");
 
 async function fetchSources(includeAdminOnly = false): Promise<Source[]> {
-  const supabase = getSupabase();
+  // SEC-8 (migration 382): sources_read is TO authenticated, service_role; the anon key reads none of it. This runs
+  // server-side for /admin (fetchSourceData(true)), so it reads through the service client; the admin_only filter below
+  // stays in code.
+  const supabase = getServiceSupabase();
   let query = supabase
     .from("sources")
     .select(SOURCE_COLUMNS)
@@ -1723,7 +1726,9 @@ export async function fetchResearchPipelineRows(
 ): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
   if (!isSupabaseConfigured()) return { rows: [], total: 0, cap };
   try {
-    const supabase = getSupabase();
+    // SEC-8 (migration 382): the select below embeds source:sources(...), and sources_read no longer applies to anon;
+    // the service client reads it, and the verified/non-archived filters below are explicit in code.
+    const supabase = getServiceSupabase();
 
     // Total count. WO-15 (2026-08-30): admission is surfaceOf(item_type, domain) === 'research' — the
     // one SoT (src/lib/surface-of.mjs), not a hardcoded item_type literal. The prior
@@ -1880,7 +1885,8 @@ export async function fetchResearchPipelineRows(
 // in this function — "research-pipeline visibility is workspace-agnostic for now" is this
 // function's own pre-existing comment, not a new claim. This wrapper makes that already-true fact
 // reachable without a cookies() read: same query, same anon client, orgId argument replaced with
-// the empty string this function already treats as inert.
+// the empty string this function already treats as inert. SEC-8 (2026-10-09, migration 382): that is history; the
+// function now reads through getServiceSupabase() because its select embeds sources, which anon can no longer read.
 export async function fetchPublicResearchPipelineRows(
   cap: number
 ): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
@@ -1909,7 +1915,8 @@ export interface ResearchSourceCoverageCell {
 export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCoverageCell[]> {
   if (!isSupabaseConfigured()) return [];
   try {
-    const supabase = getSupabase();
+    // SEC-8 (migration 382): the function is SECURITY INVOKER over sources, which anon can no longer read.
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc("get_research_source_coverage");
     if (error) {
       console.error("[research] get_research_source_coverage error:", describeSupabaseError(error));
@@ -2469,7 +2476,9 @@ export async function fetchSourceCitationStatsByIds(
   const out = new Map<string, SourceCitationStat>();
   if (!isSupabaseConfigured() || sourceIds.length === 0) return out;
   try {
-    const supabase = getSupabase();
+    // SEC-8 (migration 382): the function is SECURITY INVOKER over sources and source_citations, which anon can no
+    // longer read.
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .rpc("get_source_citation_stats", { source_ids: sourceIds });
     if (error) {
@@ -4564,6 +4573,8 @@ export type CrossPageAnalysis = {
    * the item. `inference_records` has RLS and no customer policy (migration 338), so this is a server read with the
    * service-role client, like every other guarded-table read of a detail page, with no API route. Every shape
    * decision is in the pure src/lib/detail/inference-view.mjs; null when there is nothing to show.
+   * Always null in the cached bundle fetchCrossPageForItem returns: the live value is read per request by
+   * fetchFreshInferencesForItem and laid over it (lane DFIX-2).
    */
   inferences: Awaited<ReturnType<typeof readCustomerInferences>>;
   /** The item's own stated intersection coupling (intelligence_items.intersection_summary), or null. */
@@ -4592,13 +4603,10 @@ export async function fetchCrossPageForItem(
       .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
       .maybeSingle();
     if (!self) return empty;
-    // Read beside the theme work, never throws (a failure shows no inferences, never an error).
-    const inferences = await readCustomerInferences(supabase, self.id, async (ids) =>
-      citedItemsWithHrefs(await readVerifiedItemsByIds(supabase, ids))
-    ).catch((e) => {
-      console.error("readCustomerInferences failed, showing no inferences:", e);
-      return null;
-    });
+    // Inferences are NOT read here (lane DFIX-2, register 18). This function runs inside the 300 s item-scoped
+    // cache entry, so an inference written or withdrawn would show up to five minutes late. They are read per
+    // request by fetchFreshInferencesForItem and laid over this bundle by loadDetailCore (deps.freshInferences).
+    const inferences: CrossPageAnalysis["inferences"] = null;
     const summary = typeof self.intersection_summary === "string" && self.intersection_summary.trim() ? self.intersection_summary.trim() : null;
     try {
       const { data: themes } = await supabase.from("connection_themes").select(THEME_COLUMNS);
@@ -4621,6 +4629,34 @@ export async function fetchCrossPageForItem(
   } catch (e) {
     console.error("fetchCrossPageForItem failed, showing nothing:", e);
     return empty;
+  }
+}
+
+/**
+ * The item's current, customer-visible inference records, read PER REQUEST (lane DFIX-2, register 18). Kept out of
+ * fetchCrossPageForItem because that runs inside the 300 s item-scoped cache entry, where a new inference would take
+ * up to five minutes to appear and a withdrawn one up to five minutes to leave. loadDetailCore calls this through
+ * deps.freshInferences after the cached bundle and overlays the result on crossPage.inferences. Same customer read
+ * gate as fetchCrossPageForItem (verified items only); never throws, a failed read shows no inferences.
+ */
+export async function fetchFreshInferencesForItem(
+  supabase: SupabaseClient,
+  itemUiId: string
+): Promise<CrossPageAnalysis["inferences"]> {
+  try {
+    const { data: self } = await supabase
+      .from("intelligence_items")
+      .select("id")
+      .eq(itemIdColumn(itemUiId), itemUiId)
+      .eq("provenance_status", "verified") // customer read gate, parity with fetchIntelligenceItem
+      .maybeSingle();
+    if (!self) return null;
+    return await readCustomerInferences(supabase, self.id, async (ids) =>
+      citedItemsWithHrefs(await readVerifiedItemsByIds(supabase, ids))
+    );
+  } catch (e) {
+    console.error("fetchFreshInferencesForItem failed, showing no inferences:", e);
+    return null;
   }
 }
 
