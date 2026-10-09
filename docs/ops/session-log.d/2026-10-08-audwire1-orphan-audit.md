@@ -23,13 +23,13 @@
 
 ## NOT done
 
-- No live field list. There is no live access in this lane (COMMON rule 5), so the original 17 fields (the last recorded live run found 16) are NOT enumerated here. The live field list is produced by the next data-audit run (`node scripts/verify/run-data-audit-lane.mjs`, or the Actions dispatch of "Data-audit lane"), as the printed producer=no block in its log and as the register file on the machine that ran it.
-- The prop column is the selected column name: `scanUiSelects`/`parseSelectList` drop `alias:column` aliases and are outside this lane's write set (alias loss stays as recorded, coordinator grant).
+- No live field list. There is no live access in this lane (COMMON rule 5), so the original 17 fields (the last recorded live run found 16) are NOT enumerated here. The live field list is produced by the next data-audit run (`node scripts/verify/run-data-audit-lane.mjs`, or the Actions dispatch of "Data-audit lane"), as the printed producer=no block in its log and as the register file on the machine that ran it. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- The prop column is the selected column name: `scanUiSelects`/`parseSelectList` drop `alias:column` aliases and are outside this lane's write set (alias loss stays as recorded, coordinator grant). [WORK: RULES-X-1]
 
 ## Open items
 
-- Consequence of hard=true, INTENDED (coordinator): on the next dispatched lane run, any live orphan (for example `state_cost_facts`, a ruled build item with no producer yet) fails the lane and opens the data-audit block row, which halts generation preflight until fixed or waived. The first hard red on dispatch is the intended behaviour. The lane is `workflow_dispatch` only in build mode, so nothing fires until it is dispatched.
-- RD-95 was self-assigned; re-number if it collides with a concurrently registered id.
+- Consequence of hard=true, INTENDED (coordinator): on the next dispatched lane run, any live orphan (for example `state_cost_facts`, a ruled build item with no producer yet) fails the lane and opens the data-audit block row, which halts generation preflight until fixed or waived. The first hard red on dispatch is the intended behaviour. The lane is `workflow_dispatch` only in build mode, so nothing fires until it is dispatched. [NOT-WORK: fact, no action]
+- RD-95 was self-assigned; re-number if it collides with a concurrently registered id. [NOT-WORK: fact, no action]
 
 ## Follow-up (coordinator grant: persist the register)
 

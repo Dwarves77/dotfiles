@@ -39,8 +39,8 @@ No second rating path built.
 
 ## NOT done
 
-- Run-001 and run-002 are immutable history and were not rewritten; the new shape lands as run-003.
-- No live run, no DB access, no apply.
+- Run-001 and run-002 are immutable history and were not rewritten; the new shape lands as run-003. [NOT-WORK: fact, no action]
+- No live run, no DB access, no apply. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ## Coordinator rulings applied (same day)
 
@@ -55,4 +55,4 @@ No second rating path built.
 
 ## Open items
 
-- None from this lane.
+- None from this lane. [NOT-WORK: fact, no action]

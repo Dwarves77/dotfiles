@@ -93,22 +93,22 @@ Own-row readers of the flag through the user session that must move to `my_profi
 
 ## NOT done
 
-- Nothing applied; nothing executed against Postgres (none on this machine). The self-check, and the four `sec5-*` attacks, run at apply time and in the chain-proof replay. [HYPOTHESIS] a fixture `auth.users` insert with only (id, aud, role, email, created_at, updated_at) succeeds on the live project (SEC-3b states the same assumption); if not, the role legs skip with a NOTICE and the catalog assertions still run.
-- The `is_platform_admin` revoke (above).
-- No rendering-guard or UX smoke run locally (CI runs them; Playwright is not set up in this worktree).
-- The ordering of the merge with SEC-3b: both append to `scripts/proof/attacks/attacks.json`; whichever merges second resolves the array tail (the other's entries are independent). Migration 370 (SEC-3b) and 371 (SEC-4) are not on master yet; 372 depends on neither.
+- Nothing applied; nothing executed against Postgres (none on this machine). The self-check, and the four `sec5-*` attacks, run at apply time and in the chain-proof replay. [HYPOTHESIS] a fixture `auth.users` insert with only (id, aud, role, email, created_at, updated_at) succeeds on the live project (SEC-3b states the same assumption); if not, the role legs skip with a NOTICE and the catalog assertions still run. [CLOSED: PR 1027]
+- The `is_platform_admin` revoke (above). [CLOSED: PR 1016]
+- No rendering-guard or UX smoke run locally (CI runs them; Playwright is not set up in this worktree). [NOT-WORK: build-mode hold, COMMON rule 9]
+- The ordering of the merge with SEC-3b: both append to `scripts/proof/attacks/attacks.json`; whichever merges second resolves the array tail (the other's entries are independent). Migration 370 (SEC-3b) and 371 (SEC-4) are not on master yet; 372 depends on neither. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- Apply order for the executor: migration 372 BEFORE this code merges (the code calls the RPCs; without 372 the Community routes get an RPC error and degrade to unnamed authors, and `my_profile()` is absent).
-- Residual, by design of R8.7: `community_identity` by name can find any non-anonymous profile in the platform, not only people who have posted. Say so if a Community-participants-only restriction is wanted.
-- Residual: `author_user_id` is still returned on anonymous posts (needed for the author's own edit and delete); it is a bare id, not an identity, but it links an anonymous author's posts to each other.
+- Apply order for the executor: migration 372 BEFORE this code merges (the code calls the RPCs; without 372 the Community routes get an RPC error and degrade to unnamed authors, and `my_profile()` is absent). [CLOSED: PR 1027]
+- Residual, by design of R8.7: `community_identity` by name can find any non-anonymous profile in the platform, not only people who have posted. Say so if a Community-participants-only restriction is wanted. [NOT-WORK: fact, no action]
+- Residual: `author_user_id` is still returned on anonymous posts (needed for the author's own edit and delete); it is a bare id, not an identity, but it links an anonymous author's posts to each other. [WORK: DFIX-1]
 
 ### UX compliance
 
-- Block: `AuthorIdentityChip` (the author line on a post and on entity threads). Primary goal: tell the reader who is speaking and whether the source can be trusted. Path: zero steps, read in place. The one primary element is the identity line; the Verified marker is secondary and unchanged. Change: an anonymous author now reads "Anonymous member" (plus org type, role, sector, region when present) and keeps the Verified marker; before, an anonymous author with no other fields rendered nothing at all. Feedback states: none, the chip is presentational with no asynchronous action. Measured: the chip is inline text and a 10 px badge inside the existing post header row (it is not a row component and adds no interactive target, so law 2 does not apply); no new element changes the header's width on a 375 px viewport (the label is `overflow-wrap: anywhere`, shorter than the name and company line it replaces). Not run through the rendering guard locally; CI's UX smoke mounts the real Post and PostList.
-- Block: `/community` thread rows and the roster (page.tsx), `CouncilMembersRail`. Layout unchanged; the only visible differences are "Anonymous member" in place of a name for an anonymous author and "Former member" unchanged for a deleted one. No new interactive element, no new asynchronous action.
-- Block: admin members list. Layout unchanged; the data source moved to a platform-admin route; the refresh keeps its existing behaviour (a failed read sets an empty list, exactly as the old null-data path did; a thrown fetch hits the existing catch).
+- Block: `AuthorIdentityChip` (the author line on a post and on entity threads). Primary goal: tell the reader who is speaking and whether the source can be trusted. Path: zero steps, read in place. The one primary element is the identity line; the Verified marker is secondary and unchanged. Change: an anonymous author now reads "Anonymous member" (plus org type, role, sector, region when present) and keeps the Verified marker; before, an anonymous author with no other fields rendered nothing at all. Feedback states: none, the chip is presentational with no asynchronous action. Measured: the chip is inline text and a 10 px badge inside the existing post header row (it is not a row component and adds no interactive target, so law 2 does not apply); no new element changes the header's width on a 375 px viewport (the label is `overflow-wrap: anywhere`, shorter than the name and company line it replaces). Not run through the rendering guard locally; CI's UX smoke mounts the real Post and PostList. [NOT-WORK: fact, no action]
+- Block: `/community` thread rows and the roster (page.tsx), `CouncilMembersRail`. Layout unchanged; the only visible differences are "Anonymous member" in place of a name for an anonymous author and "Former member" unchanged for a deleted one. No new interactive element, no new asynchronous action. [NOT-WORK: fact, no action]
+- Block: admin members list. Layout unchanged; the data source moved to a platform-admin route; the refresh keeps its existing behaviour (a failed read sets an empty list, exactly as the old null-data path did; a thrown fetch hits the existing catch). [NOT-WORK: fact, no action]
 
 ## Follow-up commit: search finds any token of the name (coordinator ruling 2026-10-08)
 

@@ -19,9 +19,9 @@
 
 ## NOT done
 
-- Not applied to any database. No live check that anon is refused; that is the migration's own self-check at apply time.
-- Callers that reach the function as a role other than service_role or the owner (for example an agent using a different login role) would now be refused. Nothing in src, scripts, supabase/functions, triggers or cron calls it (per the brief's finding); the charters run it from the SQL runner. [INFERRED] the runner role is the owner or service_role.
+- Not applied to any database. No live check that anon is refused; that is the migration's own self-check at apply time. [CLOSED: PR 1013]
+- Callers that reach the function as a role other than service_role or the owner (for example an agent using a different login role) would now be refused. Nothing in src, scripts, supabase/functions, triggers or cron calls it (per the brief's finding); the charters run it from the SQL runner. [INFERRED] the runner role is the owner or service_role. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- None blocking.
+- None blocking. [NOT-WORK: fact, no action]

@@ -33,12 +33,12 @@ Coordinator docs lane, branch `coord/audit-catalogue-2026-10-08`, worktree `.cla
 
 ## NOT done
 
-- No audit was re-run and no finding inside an audit was re-verified. The basis column marks 66 of the 118 rows M (a method or scope passage read) and 52 O (opening lines only); a lens assignment that depends on text beyond that is [HYPOTHESIS].
-- The three 2026-10-08 registers, the 2026-10-06 register and the privilege census are not landed under `docs/audits/`; their cells cite scratch names until a docs pass lands them.
-- `docs/audits/gate-evaluation-2026-10-08.md` (named by ADR-046) was not created: it is outside this lane's write set.
-- No CI result yet at the time of writing this entry; see the PR.
+- No audit was re-run and no finding inside an audit was re-verified. The basis column marks 66 of the 118 rows M (a method or scope passage read) and 52 O (opening lines only); a lens assignment that depends on text beyond that is [HYPOTHESIS]. [NOT-WORK: fact, no action]
+- The three 2026-10-08 registers, the 2026-10-06 register and the privilege census are not landed under `docs/audits/`; their cells cite scratch names until a docs pass lands them. [CLOSED: PR 1033]
+- `docs/audits/gate-evaluation-2026-10-08.md` (named by ADR-046) was not created: it is outside this lane's write set. [CLOSED: PR 1033]
+- No CI result yet at the time of writing this entry; see the PR. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- Owed: 47 empty cells and 31 partial-only cells, listed in section 3e of the runbook as O-001 to O-047 and P-001 to P-031.
-- Decision for the coordinator: whether the ADR-046 reference to `docs/audits/gate-evaluation-2026-10-08.md` is satisfied by landing the registers or by correcting the ADR.
+- Owed: 47 empty cells and 31 partial-only cells, listed in section 3e of the runbook as O-001 to O-047 and P-001 to P-031. [WORK: TESTS-1]
+- Decision for the coordinator: whether the ADR-046 reference to `docs/audits/gate-evaluation-2026-10-08.md` is satisfied by landing the registers or by correcting the ADR. [CLOSED: PR 1033]

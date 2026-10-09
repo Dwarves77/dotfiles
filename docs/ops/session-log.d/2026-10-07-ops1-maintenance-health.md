@@ -67,5 +67,5 @@ Reused: `runCli`'s existing exit/summary contract, the existing `gate_a_health()
 
 ## NOT done
 
-- Live timing of any of this: confirmed after merge by the coordinator's executor.
-- Re-cut (F51 check 5): `skill-map.mjs` changed on master (#965) while the first branch was open, so this work was re-cut as one commit from current origin/master on branch `lane/ops1-maintenance-health-r2`. PR 966 is superseded.
+- Live timing of any of this: confirmed after merge by the coordinator's executor. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- Re-cut (F51 check 5): `skill-map.mjs` changed on master (#965) while the first branch was open, so this work was re-cut as one commit from current origin/master on branch `lane/ops1-maintenance-health-r2`. PR 966 is superseded. [NOT-WORK: fact, no action]

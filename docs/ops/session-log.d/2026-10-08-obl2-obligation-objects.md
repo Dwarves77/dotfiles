@@ -51,9 +51,9 @@ By name in that register: 01S3.3 four distinct dates (fields `date_of_applicatio
 
 ## What is NOT done
 
-- No population, no live read or write, no migration applied.
-- No admin override mechanism on `obligation_objects` (migration 356's correction kinds do not include it) and no automatic writer exists in this lane, so nothing overwrites a row.
-- The banner is client-fetched; a viewer without an authenticated session gets the failure state because the table policy is for authenticated only.
+- No population, no live read or write, no migration applied. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
+- No admin override mechanism on `obligation_objects` (migration 356's correction kinds do not include it) and no automatic writer exists in this lane, so nothing overwrites a row. [NOT-WORK: fact, no action]
+- The banner is client-fetched; a viewer without an authenticated session gets the failure state because the table policy is for authenticated only. [NOT-WORK: fact, no action]
 
 ## Round 2 (coordinator rulings)
 
@@ -69,7 +69,7 @@ By name in that register: 01S3.3 four distinct dates (fields `date_of_applicatio
 
 ## Open items
 
-- None.
+- None. [NOT-WORK: fact, no action]
 
 ## UX compliance (BindingBanner, Regulations detail)
 

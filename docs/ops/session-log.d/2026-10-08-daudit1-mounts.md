@@ -193,15 +193,15 @@ Also observed in the probe runs (console, not audited rows): the detail-surface 
 
 ## What is NOT done
 
-- The harness-rot rows above are not fixed (needs spec and further mount edits plus a second regeneration; outside the brief).
-- `ui/ActionCard` has no audit spec; the two retired specs' artboard values (03, 05, 07, 09 header card, and the next-obligation callout) are not re-expressed against it. That needs artboard values from Claude Design (rule 20), not a guess.
-- No CI job runs `audit:design`.
-- Not run locally, per COMMON rule 9: the whole suite, the fitness runner, tsc and lint (CI is the gate).
+- The harness-rot rows above are not fixed (needs spec and further mount edits plus a second regeneration; outside the brief). [WORK: TESTS-1]
+- `ui/ActionCard` has no audit spec; the two retired specs' artboard values (03, 05, 07, 09 header card, and the next-obligation callout) are not re-expressed against it. That needs artboard values from Claude Design (rule 20), not a guess. [NOT-WORK: operator item, recorded on the board]
+- No CI job runs `audit:design`. [WORK: RULES-X-1]
+- Not run locally, per COMMON rule 9: the whole suite, the fitness runner, tsc and lint (CI is the gate). [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 
-- Coordinator: a lane for the HARNESS ROT group (fixture props: `factcard`, `impactmeter` valueVisible, research severity, community room name; selectors: DetailHeader-era chip row and timeline classes) with one regeneration.
-- Coordinator: whether `audit:design` should become a CI job (ADR-046), now that a regeneration is known to yield 136 non-matching rows.
+- Coordinator: a lane for the HARNESS ROT group (fixture props: `factcard`, `impactmeter` valueVisible, research severity, community room name; selectors: DetailHeader-era chip row and timeline classes) with one regeneration. [WORK: TESTS-1]
+- Coordinator: whether `audit:design` should become a CI job (ADR-046), now that a regeneration is known to yield 136 non-matching rows. [WORK: RULES-X-1]
 
 ## DAUDIT-2 hand-off (coordinator ruling 2026-10-08)
 

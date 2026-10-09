@@ -47,5 +47,5 @@ Reused: migration 352's optional-argument trigger form and its self-check shape,
 
 ## What is NOT done
 
-- Migration 373 and the backfill are not applied or run. The backfill needs 373 applied first (it calls the RPC).
-- The self-check legs (backfill silent, producer write still emits, other-table marker silences nothing, unknown entity refused) are written but have never run against a Postgres: no database access in this lane.
+- Migration 373 and the backfill are not applied or run. The backfill needs 373 applied first (it calls the RPC). [CLOSED: PR 1038]
+- The self-check legs (backfill silent, producer write still emits, other-table marker silences nothing, unknown entity refused) are written but have never run against a Postgres: no database access in this lane. [CLOSED: PR 1038]

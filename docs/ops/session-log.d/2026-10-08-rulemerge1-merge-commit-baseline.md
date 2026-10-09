@@ -24,7 +24,7 @@
 - `_diffLoadCount` counts the merge case as two loads (two git processes).
 
 ## NOT done
-- No rule, hook or workflow edited. `buildContextForExistingCommit` (CI) is unchanged. A merge with unresolved conflicts is not a commit; `git diff --cached` shows only resolved entries.
+- No rule, hook or workflow edited. `buildContextForExistingCommit` (CI) is unchanged. A merge with unresolved conflicts is not a commit; `git diff --cached` shows only resolved entries. [NOT-WORK: fact, no action]
 
 ## Open items
-- None.
+- None. [NOT-WORK: fact, no action]

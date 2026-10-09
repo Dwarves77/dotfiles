@@ -191,15 +191,15 @@ allow();
 
 ## NOT done
 
-- Write-set grants received from the coordinator and built: `governance/invariants.d/RD-97-source-diffed-as-text.mjs` (RD-96 was taken by ALIAS-1) for rule 023, and the seven tools in `check-pretooluse-wired.mjs` `REQUIRED` (A-P3c-1 and A-P3c-3 are therefore addressed: step 3c now fails a matcher that omits them).
-- Not run locally, per COMMON rule 9 and ADR-040: the full suite, the fitness runner, `tsc`. ESLint (max-warnings 0) was run on the changed files under `fsi-app/` and is clean.
-- `docs/inventories` were not regenerated (no migration, no component).
-- The old `governance/.gate-audit.log` ignore line in `fsi-app/.gitignore` is left; `.discipline/out/` was already ignored.
+- Write-set grants received from the coordinator and built: `governance/invariants.d/RD-97-source-diffed-as-text.mjs` (RD-96 was taken by ALIAS-1) for rule 023, and the seven tools in `check-pretooluse-wired.mjs` `REQUIRED` (A-P3c-1 and A-P3c-3 are therefore addressed: step 3c now fails a matcher that omits them). [NOT-WORK: fact, no action]
+- Not run locally, per COMMON rule 9 and ADR-040: the full suite, the fitness runner, `tsc`. ESLint (max-warnings 0) was run on the changed files under `fsi-app/` and is clean. [NOT-WORK: build-mode hold, COMMON rule 9]
+- `docs/inventories` were not regenerated (no migration, no component). [NOT-WORK: fact, no action]
+- The old `governance/.gate-audit.log` ignore line in `fsi-app/.gitignore` is left; `.discipline/out/` was already ignored. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- Item 7 reading RULED by the coordinator: correct and intended (nobody commits in the main checkout; RD-19). A-H1-7 (plumbing) out of scope, agreed.
-- Coordinator grant: the local post-commit engine run for cherry-pick, am and rebase is built (hooks/post-commit runs `runner.mjs --mode=ci --commit=HEAD` when the reflog subject says the commit skipped commit-msg; tested on a real cherry-pick), so A-H2-11, A-H2-13 and A-H2-14 are now flagged locally as well as in CI. It cannot undo the commit.
+- Item 7 reading RULED by the coordinator: correct and intended (nobody commits in the main checkout; RD-19). A-H1-7 (plumbing) out of scope, agreed. [NOT-WORK: fact, no action]
+- Coordinator grant: the local post-commit engine run for cherry-pick, am and rebase is built (hooks/post-commit runs `runner.mjs --mode=ci --commit=HEAD` when the reflog subject says the commit skipped commit-msg; tested on a real cherry-pick), so A-H2-11, A-H2-13 and A-H2-14 are now flagged locally as well as in CI. It cannot undo the commit. [NOT-WORK: fact, no action]
 
 ## Merge with GATE-8 (PR 1039, 62268ab9)
 
