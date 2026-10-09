@@ -14,20 +14,57 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-test("DIMENSIONS carries all seven D1-D7 dimensions, regulatory_feasibility first, grid_intensity (migration 378) last", () => {
-  const start = SOURCE.indexOf("const DIMENSIONS: Dimension[] = [");
+const SEVEN = [
+  "regulatory_feasibility",
+  "regional_resources",
+  "labor_markets",
+  "materials_sourcing",
+  "infrastructure",
+  "operational_cost",
+  "grid_intensity",
+];
+
+// DFIX-1 (2026-10-08, row 08-s8e5): the dimension vocabulary has ONE home, ALL_OPERATIONS_DIMENSIONS in
+// src/lib/agent/formats/operations-matrix.ts (typed OperationsDimension), and the database CHECKs of
+// migrations 106/109/378 spell the same list. This ledger kept a second, hand-typed copy of the db names, so the
+// next dimension added to the constant would have left the page one short without a type error. DIMENSIONS now
+// maps the constant; DIMENSION_DISPLAY is a Record<OperationsDimension, ...>, so tsc refuses a dimension with no
+// display entry, and these tests refuse a copy that drifts.
+const HERE_DIR = dirname(fileURLToPath(import.meta.url));
+const MATRIX = readFileSync(resolve(HERE_DIR, "../../lib/agent/formats/operations-matrix.ts"), "utf8");
+const constantOf = () => {
+  const m = /export const ALL_OPERATIONS_DIMENSIONS: OperationsDimension\[\] = \[([^\]]*)\]/.exec(MATRIX);
+  assert.ok(m, "ALL_OPERATIONS_DIMENSIONS is declared in operations-matrix.ts");
+  return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]);
+};
+
+test("the shared dimension constant is the seven D1-D7 values, regulatory_feasibility first, grid_intensity (migration 378) last", () => {
+  assert.deepEqual(constantOf(), SEVEN);
+});
+
+test("DIMENSIONS is derived from ALL_OPERATIONS_DIMENSIONS, never a second hand-typed list of db names", () => {
+  assert.match(SOURCE, /import \{[^}]*ALL_OPERATIONS_DIMENSIONS[^}]*\} from "@\/lib\/agent\/formats\/operations-matrix";/);
+  const start = SOURCE.indexOf("const DIMENSIONS: Dimension[] =");
   assert.notEqual(start, -1);
-  const body = SOURCE.slice(start, SOURCE.indexOf("];", start));
-  const order = [...body.matchAll(/db: "([a-z_]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(order, [
-    "regulatory_feasibility",
-    "regional_resources",
-    "labor_markets",
-    "materials_sourcing",
-    "infrastructure",
-    "operational_cost",
-    "grid_intensity",
-  ]);
+  const decl = SOURCE.slice(start, SOURCE.indexOf(";", start));
+  assert.match(decl, /ALL_OPERATIONS_DIMENSIONS\.map\(/);
+  assert.doesNotMatch(decl, /db: "/, "no literal db name inside the DIMENSIONS declaration");
+});
+
+test("every dimension of the constant has exactly one display entry, in the constant's order, and numbers run D1 to D7", () => {
+  const start = SOURCE.indexOf("const DIMENSION_DISPLAY: Record<OperationsDimension,");
+  assert.notEqual(start, -1, "DIMENSION_DISPLAY is a Record over the shared type");
+  const body = SOURCE.slice(start, SOURCE.indexOf("};", start));
+  const keys = [...body.matchAll(/^\s{2}([a-z_]+): \{/gm)].map((m) => m[1]);
+  assert.deepEqual(keys, constantOf());
+  assert.match(SOURCE, /ALL_OPERATIONS_DIMENSIONS\.map\(\(db, i\) => \(\{ num: i \+ 1, db,/);
+});
+
+test("the database CHECK of migration 378 spells the same seven values as the constant (one vocabulary, three homes)", () => {
+  const sql = readFileSync(resolve(HERE_DIR, "../../../supabase/migrations/378_grid_intensity_dimension.sql"), "utf8");
+  const m = /ADD CONSTRAINT regional_data_facts_dimension_check\s+CHECK \(dimension IN \(([^)]*)\)\);/.exec(sql);
+  assert.ok(m);
+  assert.deepEqual([...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]), constantOf());
 });
 
 // Lane S8-E5: the masthead's dimension count is derived from the constant, so adding a dimension cannot leave

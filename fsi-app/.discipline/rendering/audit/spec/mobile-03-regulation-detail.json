@@ -174,12 +174,12 @@
       "expect": {
         "text": "At a glance",
         "font-size": "10.5px",
-        "font-weight": "800",
+        "font-weight": "700",
         "letter-spacing": "1.26px",
         "text-transform": "uppercase",
         "color": "rgb(122, 110, 108)"
       },
-      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first. DFIX-1 (2026-10-08): font-weight is 700, not 800. The parts brief 2.12 and the artboards (dc.html p13 and the card headers) say 700; the MOBILE 390 text spec said 800 and the build matched it. Rule 20 (artboards govern look) rules for the artboards, so RailCard.tsx now draws 700 and this row asserts the same."
     }
   ],
   "forbid": [

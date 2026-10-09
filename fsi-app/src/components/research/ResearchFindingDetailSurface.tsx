@@ -184,6 +184,8 @@ export function ResearchFindingDetailSurface({
   const [depth, setDepth] = useState<SectionIndexDepth>("summary");
   const [tagOpen, setTagOpen] = useState(false);
   const trajectoryNode = renderRequirementTrajectory(r.requirementTrajectory) || r.conversionTrigger || null;
+  // The 30-second read of a finding that is not record grade: the first real field the finding carries.
+  const summaryProse = r.whatIsIt || r.note || r.whyMatters || null;
 
   // Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): fixed S-order S1/S2/S5/S6 (see the masthead
   // ActionCard comment below for why S3/S4 are a real gap, never renumbered).
@@ -338,12 +340,29 @@ export function ResearchFindingDetailSurface({
               )}
             </DetailSection>
           ) : (
-            /* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): market/research/operations S-order
+            <>
+            {/* Operator ruling 2 (lane PARITY-PARTS, 2026-09-24): market/research/operations S-order
                is fixed at 01 Summary, 02 Substantive/Series/Findings, 03 Exposure, 04 Timeline, 05
                Sources, 06 Related. Exposure/Timeline live in the masthead ActionCard, never a tab.
                This surface's former S1-S5 content sections (What the research found / Why it
                matters / Strategy & claims / Talking points / What does not resolve) are now
-               sub-headings inside ONE S2 "Substantive findings" section, not separate top-level tabs. */
+               sub-headings inside ONE S2 "Substantive findings" section, not separate top-level tabs.
+
+               DFIX-1 (2026-10-08, design audit
+               compose-07-research-detail#479): the section index advertised "S1 Summary" (href #summary) for a
+               finding that is not record grade, but only the record branch rendered section#summary, so the tab
+               pointed at nothing. This branch now renders S1 Summary too, from the same real-field fallback
+               Operations uses (whatIsIt, note, whyMatters), so the prose lives in ONE place: S2 shows its own
+               sub-sections, or the honest pending note, never the same paragraph twice. */}
+            <DetailSection id="summary" title="Summary" index={1}>
+              {summaryProse ? (
+                <p style={{ fontSize: 15, lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>{summaryProse}</p>
+              ) : (
+                <StateNote>Summary pending for this finding; brief generation in progress.</StateNote>
+              )}
+              {trajectoryNode && <p style={{ fontSize: 15, lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
+            </DetailSection>
+
             <DetailSection id="findings" title="Substantive findings" index={2}>
               {knownSections.length > 0 ? (
                 knownSections.map((s, i) => (
@@ -352,16 +371,7 @@ export function ResearchFindingDetailSurface({
                   </DetailSubSection>
                 ))
               ) : (
-                <>
-                  {r.whatIsIt || r.note || r.whyMatters ? (
-                    <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: 0, maxWidth: "72ch", color: "var(--ink)" }}>
-                      {r.whatIsIt || r.note || r.whyMatters}
-                    </p>
-                  ) : (
-                    <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
-                  )}
-                  {trajectoryNode && <p style={{ fontSize: "var(--fs-14)", lineHeight: 1.7, margin: "12px 0 0", maxWidth: "72ch" }}>{trajectoryNode}</p>}
-                </>
+                <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
               )}
               {depth === "full" && r.fullBrief && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
@@ -369,6 +379,7 @@ export function ResearchFindingDetailSurface({
                 </div>
               )}
             </DetailSection>
+            </>
           )}
 
           <DetailSection id="sources" title="Sources" index={5} aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>

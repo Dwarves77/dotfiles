@@ -19,9 +19,11 @@ test("the card is the shared SectionCard shell, never a hand-rolled div with its
   assert.doesNotMatch(SOURCE, /boxShadow:/, "no hand-rolled shadow literal, SectionCard owns it");
 });
 
-test("the header title is 10.5px/800/.12em uppercase muted (parts-brief 2.12)", () => {
+test("the header title is 10.5px/700/.12em uppercase muted (parts-brief 2.12; DFIX-1: the artboards win over the 390 text spec, rule 20)", () => {
   assert.match(SOURCE, /fontSize:\s*"var\(--fs-105\)"/);
-  assert.match(SOURCE, /fontWeight:\s*800/);
+  const style = SOURCE.slice(SOURCE.indexOf("const RAIL_CARD_TITLE_STYLE"), SOURCE.indexOf("};", SOURCE.indexOf("const RAIL_CARD_TITLE_STYLE")));
+  assert.match(style, /fontWeight:\s*700/);
+  assert.doesNotMatch(style, /fontWeight:\s*800/);
   assert.match(SOURCE, /letterSpacing:\s*"0\.12em"/);
   assert.match(SOURCE, /textTransform:\s*"uppercase"/);
 });

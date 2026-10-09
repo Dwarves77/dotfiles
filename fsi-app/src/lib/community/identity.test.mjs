@@ -168,6 +168,9 @@ import {
   MY_PROFILE_RPC,
   effectiveAnonymous,
   authorBlockForPost,
+  authorIdForViewer,
+  idWithheldForAnonymity,
+  viewerAdminIfNeeded,
   loadCommunityIdentities,
   loadMyProfile,
 } from "./identity.mjs";
@@ -193,15 +196,19 @@ test("authorBlockForPost: a non-anonymous post shows the name and headshot the R
 });
 
 test("authorBlockForPost (per post): community_posts.anonymous nulls name and headshot at the row", () => {
-  assert.deepEqual(authorBlockForPost({ authorUserId: U1, identity: idRow(), postAnonymous: true }), {
+  assert.deepEqual(authorBlockForPost({ authorUserId: U1, identity: idRow(), postAnonymous: true, viewer: { userId: U1 } }), {
     user_id: U1, name: null, headshot_url: null,
+  });
+  // DFIX-1: to anyone but the author or an admin the block keeps its shape but not the id
+  assert.deepEqual(authorBlockForPost({ authorUserId: U1, identity: idRow(), postAnonymous: true }), {
+    user_id: null, name: null, headshot_url: null,
   });
 });
 
 test("authorBlockForPost (per user): an identity row the RPC already withheld stays withheld even on a post that is not anonymous", () => {
   const withheld = idRow({ display_name: null, company_name: null, avatar_url: null, anonymous: true });
   assert.deepEqual(authorBlockForPost({ authorUserId: U1, identity: withheld, postAnonymous: false }), {
-    user_id: U1, name: null, headshot_url: null,
+    user_id: null, name: null, headshot_url: null,
   });
 });
 
@@ -286,4 +293,38 @@ test("loadMyProfile: calls my_profile and returns the single own row, null when 
   const err = await loadMyProfile(fakeClient(() => ({ data: null, error: { message: "boom" } })));
   assert.equal(err.profile, null);
   assert.equal(err.error, "boom");
+});
+
+// ---- DFIX-1 (2026-10-08): the author id is withheld on anonymous posts from everyone but the author and an admin
+
+test("idWithheldForAnonymity: post flag, user default, or an unresolved identity (fail closed) all withhold", () => {
+  assert.equal(idWithheldForAnonymity({ postAnonymous: false, identity: idRow() }), false);
+  assert.equal(idWithheldForAnonymity({ postAnonymous: true, identity: idRow() }), true);
+  assert.equal(idWithheldForAnonymity({ postAnonymous: false, identity: idRow({ anonymous: true }) }), true);
+  assert.equal(idWithheldForAnonymity({ postAnonymous: false, identity: null }), true, "no identity row: not known to be public");
+});
+
+test("authorIdForViewer: a named author is public; an anonymous one only to the author and to an admin; no author is null", () => {
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: false, viewer: {} }), U1);
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: true, viewer: {} }), null);
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: true }), null, "no viewer at all is a stranger");
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: true, viewer: { userId: U2 } }), null);
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: true, viewer: { userId: U1 } }), U1);
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: true, viewer: { userId: U2, isAdmin: true } }), U1);
+  assert.equal(authorIdForViewer({ authorUserId: U1, withheld: true, viewer: { userId: U2, isAdmin: "yes" } }), null, "only a real true counts");
+  assert.equal(authorIdForViewer({ authorUserId: null, withheld: false, viewer: { userId: U2, isAdmin: true } }), null);
+});
+
+test("viewerAdminIfNeeded: the admin answer is read once, and only when some other author's id is withheld", async () => {
+  let reads = 0;
+  const readAdmin = async () => { reads += 1; return true; };
+  const row = (author, anonymous) => ({ author_user_id: author, anonymous });
+  const idents = new Map([[U1, idRow()], [U2, idRow({ user_id: U2 })]]);
+  assert.equal(await viewerAdminIfNeeded({ rows: [row(U1, false), row(U2, false)], viewerUserId: "v", identitiesById: idents, readAdmin }), false);
+  assert.equal(reads, 0, "nothing withheld, nothing read");
+  assert.equal(await viewerAdminIfNeeded({ rows: [row(U1, true)], viewerUserId: U1, identitiesById: idents, readAdmin }), false);
+  assert.equal(reads, 0, "the author's own anonymous post needs no admin answer");
+  assert.equal(await viewerAdminIfNeeded({ rows: [row(U1, true), row(U2, true)], viewerUserId: "v", identitiesById: idents, readAdmin }), true);
+  assert.equal(reads, 1);
+  assert.equal(await viewerAdminIfNeeded({ rows: [row(U1, true)], viewerUserId: "v", identitiesById: idents, readAdmin: async () => { throw new Error("rpc down"); } }), false, "an admin read that fails is not an admin");
 });

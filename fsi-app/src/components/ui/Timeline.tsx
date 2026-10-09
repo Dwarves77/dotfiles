@@ -24,6 +24,14 @@
  *   - 7 dates on one line at 1440 is fine; more than 8 collapses to the next-three plus "+N"
  *     (pure logic in timeline-math.ts, tested there).
  *
+ * NARROW FORM (lane DFIX-1, 2026-10-08, design audit BUILD DEFECT, MOBILE 390 text spec "TIMELINE (vertical)"):
+ * under 768 the wide block above is not drawn and a vertical stack takes its place (header, a 62px date gutter,
+ * a 14px dot column over a 2px track, a 1fr label column per marker, then the same callout). Both blocks are in
+ * the markup and one <style> decides which shows (no client media-query JS, so first paint is right at every
+ * width; the same pattern ListRow uses). The vertical form had been built 2026-09-07 inside DetailTimeline and
+ * went with it when PR 800 deleted that component, with nothing ruling the narrow form away. The marker window
+ * (four, then "+N more") is the wide block's own, from collapseTimeline, so the two forms cannot disagree.
+ *
  * Date math is pure (`@/lib/detail/timeline-math`, tested in timeline-math.test.mjs) and never
  * calls `toLocaleDateString`/`Intl.DateTimeFormat` (F36), dates are hand-formatted from parsed
  * `YYYY-MM-DD` components, so there is no locale/timezone call for F36 to gate in the first place.
@@ -89,8 +97,21 @@ export function Timeline({ entries, band, onFullSchedule, fullScheduleHref, more
       ? 100
       : 0;
 
+  const callout = (
+    <TimelineCallout
+      clause={clause}
+      counts={counts}
+      lastDate={list[list.length - 1].date}
+      band={band}
+      onFullSchedule={onFullSchedule}
+      fullScheduleHref={fullScheduleHref}
+    />
+  );
+
   return (
-    <div data-part="timeline">
+    <>
+    <style>{TIMELINE_RESPONSIVE_CSS}</style>
+    <div data-part="timeline" className="cl-timeline-wide">
       <TimelineHeader total={counts.total} passed={counts.passed} nextDate={counts.nextDate} />
       <div style={{ position: "relative", padding: "22px 0 4px" }}>
         <span aria-hidden="true" style={timelineTrackStyle(greenPercent)} />
@@ -126,29 +147,162 @@ export function Timeline({ entries, band, onFullSchedule, fullScheduleHref, more
           );
         })()}
       </div>
-      {clause && (
-        <div style={{ marginTop: 10 }}>
-          <StateNote
-            band={band}
-            action={
-              onFullSchedule
-                ? { label: "Full schedule ↓", onClick: onFullSchedule }
-                : fullScheduleHref
-                ? { label: "Full schedule ↓", href: fullScheduleHref }
-                : undefined
-            }
+      {callout}
+    </div>
+    <div data-part="timeline-narrow" className="cl-timeline-narrow">
+      <TimelineHeader total={counts.total} passed={counts.passed} nextDate={counts.nextDate} />
+      <div className="cl-timeline-mobile" style={{ paddingTop: 12 }}>
+        <VerticalMilestoneStack visible={visible} band={band} />
+      </div>
+      {collapsed && hiddenCount > 0 && (() => {
+        const MoreTag = moreMarkersHref ? "a" : "span";
+        return (
+          <MoreTag
+            href={moreMarkersHref}
+            data-audit="timeline-more-markers-narrow"
+            style={{
+              display: "block",
+              marginTop: 2,
+              fontSize: "var(--fs-105)",
+              fontWeight: 700,
+              color: "var(--ink-3)",
+              textAlign: "right",
+              ...(moreMarkersHref ? { textDecoration: "underline", cursor: "pointer" } : {}),
+            }}
           >
-            Next: {clause}
-          </StateNote>
+            +{hiddenCount} more
+          </MoreTag>
+        );
+      })()}
+      {callout}
+    </div>
+    </>
+  );
+}
+
+/** Which of the two forms shows is CSS, not script: the wide block under 768 is not drawn and the narrow block is
+ *  (DFIX-1, MOBILE 390 spec). 767px, not 768: 768 and up is the tablet row everywhere else (ListRow, PAR-1). */
+const TIMELINE_RESPONSIVE_CSS = `
+  .cl-timeline-narrow { display: none; }
+  @media (max-width: 767px) {
+    .cl-timeline-wide { display: none; }
+    .cl-timeline-narrow { display: block; }
+  }
+`;
+
+/** The callout under the track: "Next: <label> . <date> . in N days" with the Full schedule action, or the
+ *  all-passed line. One home for both forms (F45): the wide and the narrow block render the same text. */
+function TimelineCallout({
+  clause,
+  counts,
+  lastDate,
+  band,
+  onFullSchedule,
+  fullScheduleHref,
+}: {
+  clause: string | null;
+  counts: { total: number };
+  lastDate: string;
+  band: UrgencyBand;
+  onFullSchedule?: () => void;
+  fullScheduleHref?: string;
+}) {
+  if (clause) {
+    return (
+      <div style={{ marginTop: 10 }}>
+        <StateNote
+          band={band}
+          action={
+            onFullSchedule
+              ? { label: "Full schedule ↓", onClick: onFullSchedule }
+              : fullScheduleHref
+              ? { label: "Full schedule ↓", href: fullScheduleHref }
+              : undefined
+          }
+        >
+          Next: {clause}
+        </StateNote>
+      </div>
+    );
+  }
+  if (counts.total > 0) {
+    return (
+      <div style={{ marginTop: 10 }}>
+        <StateNote band={band}>
+          Last milestone passed {"·"} {formatDayMonthYear(lastDate)} {"·"} obligations are current, no further step scheduled
+        </StateNote>
+      </div>
+    );
+  }
+  return null;
+}
+
+/** The narrow form's stack (MOBILE 390 spec, "TIMELINE (vertical)"): a 62px date gutter, a 14px dot column over
+ *  ONE 2px track (green down to the next row, grey beyond), a 1fr label column; 14px under each row. Dot states
+ *  come from the same classifier the wide block uses (the entries arrive classified). The date gutter wraps
+ *  rather than overflowing into the dot column: an ISO date at 11px needs ~57px in the app face and ~70px in a
+ *  fallback face (DEVIATION-LOG 2026-09-08, MOBILE-60). */
+function VerticalMilestoneStack({ visible, band }: { visible: ClassifiedMilestone[]; band: UrgencyBand }) {
+  const nextIndex = visible.findIndex((c) => c.state === "next");
+  const allPassed = visible.every((c) => c.state === "passed");
+  const greenPercent =
+    nextIndex >= 0 ? (visible.length > 1 ? (nextIndex / (visible.length - 1)) * 100 : 0) : allPassed ? 100 : 0;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 68,
+          top: 10,
+          bottom: 10,
+          width: 2,
+          background: `linear-gradient(to bottom, var(--awareness) 0%, var(--awareness) ${greenPercent}%, rgba(0,0,0,.12) ${greenPercent}%, rgba(0,0,0,.12) 100%)`,
+        }}
+      />
+      {visible.map(({ entry, state, index }) => (
+        <div
+          key={index}
+          style={{ display: "grid", gridTemplateColumns: "62px 14px 1fr", alignItems: "start", paddingBottom: 14 }}
+        >
+          <span
+            style={{
+              textAlign: "right",
+              width: 62,
+              paddingRight: 8,
+              boxSizing: "border-box",
+              fontVariantNumeric: "tabular-nums",
+              fontSize: "var(--fs-11)",
+              fontWeight: state === "next" ? 800 : 600,
+              color: "var(--ink-3)",
+            }}
+          >
+            {entry.date}
+          </span>
+          <span style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 1, paddingTop: 2 }}>
+            {state === "passed" ? (
+              <span aria-hidden="true" style={passedDotStyle(10)} />
+            ) : state === "next" ? (
+              <span aria-hidden="true" style={nextDotStyle(band.hex, 12, 3)} />
+            ) : (
+              <span aria-hidden="true" style={aheadDotStyle(10)} />
+            )}
+          </span>
+          <span
+            style={{
+              minWidth: 0,
+              overflowWrap: "anywhere",
+              paddingLeft: 8,
+              fontSize: "var(--fs-12)",
+              fontWeight: state === "next" ? 700 : 500,
+              color: "var(--ink)",
+            }}
+          >
+            {entry.label}
+          </span>
         </div>
-      )}
-      {!clause && counts.total > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <StateNote band={band}>
-            Last milestone passed {"·"} {formatDayMonthYear(list[list.length - 1].date)} {"·"} obligations are current, no further step scheduled
-          </StateNote>
-        </div>
-      )}
+      ))}
     </div>
   );
 }

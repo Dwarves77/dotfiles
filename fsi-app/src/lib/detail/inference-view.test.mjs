@@ -17,6 +17,7 @@ import { PRODUCT_QUESTIONS } from "../learning/constants.mjs";
 import { buildSubjectRef } from "../connections/flag-namespaces.mjs";
 
 const ITEM = "11111111-1111-4111-8111-111111111111";
+const OTHER = "22222222-2222-4222-8222-222222222222";
 
 function row(over = {}) {
   return {
@@ -161,6 +162,21 @@ test("readCustomerInferences: queries only current rows of a customer method tha
   assert.deepEqual(first.order, ["computed_at", { ascending: false }]);
   assert.equal(second.table, "inference_records");
   assert.deepEqual(second.filters, [["in", "supersedes", ["aaaaaaaa-0000-4000-8000-000000000001"]]]);
+});
+
+test("readCustomerInferences: a cited item the reader can open carries its detail href next to its title (DFIX-1, row 05-p2)", async () => {
+  const sb = fakeClient({ rows: [row({ cited_item_ids: [ITEM, OTHER] })] });
+  const readCited = async (ids) =>
+    ids.map((id) => ({ id, title: id === ITEM ? "A regulation" : "A market signal", href: id === ITEM ? `/regulations/${id}` : null }));
+  const out = await readCustomerInferences(sb, ITEM, readCited);
+  assert.deepEqual(out.titles, { [ITEM]: "A regulation", [OTHER]: "A market signal" });
+  assert.deepEqual(out.hrefs, { [ITEM]: `/regulations/${ITEM}` }, "an item with no href has no entry, never a guessed route");
+});
+
+test("readCustomerInferences: a reader that returns no href at all still works and gives an empty hrefs map", async () => {
+  const sb = fakeClient({ rows: [row()] });
+  const out = await readCustomerInferences(sb, ITEM, titlesOf({ [ITEM]: "A regulation" }));
+  assert.deepEqual(out.hrefs, {});
 });
 
 test("readCustomerInferences: a superseded row is dropped even though the query returned it", async () => {

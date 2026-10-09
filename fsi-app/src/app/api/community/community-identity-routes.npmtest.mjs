@@ -63,7 +63,13 @@ export async function requireCommunityRoute() {
     userId: "${ME}",
     supabase: {
       from(t) { s.calls.push("from:" + t); return builder(s.tables[t] ?? []); },
-      rpc(fn, args) { s.calls.push("rpc:" + fn); s.lastRpc = { fn, args }; return Promise.resolve({ data: s.rpcRows, error: null }); },
+      rpc(fn, args) {
+        s.calls.push("rpc:" + fn);
+        // DFIX-1: the viewer's own platform-admin answer (readOwnPlatformAdmin), kept apart from the identity RPC.
+        if (fn === "is_platform_admin") return Promise.resolve({ data: s.isAdmin === true, error: null });
+        s.lastRpc = { fn, args };
+        return Promise.resolve({ data: s.rpcRows, error: null });
+      },
     },
   };
 }
@@ -82,6 +88,7 @@ function reset(tables, rpcRows) {
   state.rpcRows = rpcRows;
   state.calls.length = 0;
   state.lastRpc = null;
+  state.isAdmin = false;
 }
 const neverProfiles = () => assert.ok(!state.calls.includes("from:profiles"), "no handler may read the profiles table across organisations");
 
@@ -203,4 +210,96 @@ test("group invitations: invitee name and avatar come from the RPC", async () =>
   const body = await res.json();
   neverProfiles();
   assert.equal(body.invitations[0].invitee_name, "Ann");
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// DFIX-1 (2026-10-08, SEC-5 residual, row 08-sec5): `author_user_id` (and `author.user_id`) used to come back on
+// anonymous posts, so a reader could link an anonymous author's posts to each other by the bare id. The id now
+// reaches only the author and a platform admin; every other viewer gets null, in the READ path (these handlers),
+// so no client can be trusted to hide it. Anonymous means the post flag OR the author's account default (the
+// identity row says so); an author the identity read could not resolve is treated as anonymous (fail closed).
+// ---------------------------------------------------------------------------------------------------------
+
+const ids = (posts) => posts.map((p) => [p.author_user_id, p.author?.user_id ?? null]);
+
+test("anonymous posts: a stranger gets no author id, in either field; a named post keeps it (posts GET)", async () => {
+  reset(
+    { community_posts: [post("p1", U_A, false), post("p2", U_B, true), post("p3", U_C, false)], community_member_profiles: memberProfiles },
+    [identity(U_A, "Ann"), identity(U_B, "Bob"), identity(U_C, null)]
+  );
+  const { GET } = await jiti.import("./posts/route.ts");
+  const { posts } = await (await GET(mk(`/api/community/posts?group_id=${G}`))).json();
+  assert.deepEqual(ids(posts), [[U_A, U_A], [null, null], [null, null]], "p2 anonymous by post flag, p3 anonymous by the author's default");
+  assert.equal(state.calls.filter((c) => c === "rpc:is_platform_admin").length, 1, "the admin answer is read once because a hidden id was in play");
+});
+
+test("anonymous posts: the author sees their own id (edit and delete need it), and no admin read is spent on it", async () => {
+  reset(
+    { community_posts: [post("p1", ME, true), post("p2", U_A, false)], community_member_profiles: memberProfiles },
+    [identity(ME, "Me"), identity(U_A, "Ann")]
+  );
+  const { GET } = await jiti.import("./posts/route.ts");
+  const { posts } = await (await GET(mk(`/api/community/posts?group_id=${G}`))).json();
+  assert.deepEqual(ids(posts), [[ME, ME], [U_A, U_A]]);
+  assert.equal(state.calls.includes("rpc:is_platform_admin"), false, "nothing was hidden, so the admin flag is not read");
+});
+
+test("anonymous posts: a platform admin sees the id (moderation)", async () => {
+  reset({ community_posts: [post("p2", U_B, true)], community_member_profiles: memberProfiles }, [identity(U_B, "Bob")]);
+  state.isAdmin = true;
+  const { GET } = await jiti.import("./posts/route.ts");
+  const { posts } = await (await GET(mk(`/api/community/posts?group_id=${G}`))).json();
+  assert.deepEqual(ids(posts), [[U_B, U_B]]);
+});
+
+test("anonymous posts: an identity read that failed hides the id of every other author (fail closed)", async () => {
+  reset({ community_posts: [post("p1", U_A, false)], community_member_profiles: memberProfiles }, []);
+  const { GET } = await jiti.import("./posts/route.ts");
+  const { posts } = await (await GET(mk(`/api/community/posts?group_id=${G}`))).json();
+  assert.equal(posts[0].author_user_id, null);
+});
+
+test("replies GET: the same rule for a stranger, the author and an admin", async () => {
+  const rows = () => [post("r1", U_A, false, "p1"), post("r2", U_B, true, "p1"), post("r3", ME, true, "p1")];
+  const idents = () => [identity(U_A, "Ann"), identity(U_B, "Bob"), identity(ME, "Me")];
+  const { GET } = await jiti.import("./posts/[id]/replies/route.ts");
+  const call = async () => (await GET(mk("/api/community/posts/x/replies"), ctx("11111111-1111-4111-8111-111111111111"))).json();
+  reset({ community_posts: rows() }, idents());
+  let { replies } = await call();
+  assert.deepEqual(ids(replies), [[U_A, U_A], [null, null], [ME, ME]]);
+  reset({ community_posts: rows() }, idents());
+  state.isAdmin = true;
+  ({ replies } = await call());
+  assert.deepEqual(ids(replies), [[U_A, U_A], [U_B, U_B], [ME, ME]]);
+});
+
+test("post GET: an anonymous post's id is withheld from a stranger and kept for its author", async () => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  const { GET } = await jiti.import("./posts/[id]/route.ts");
+  reset({ community_posts: [post(id, U_B, true)] }, [identity(U_B, "Bob")]);
+  let body = await (await GET(mk("/api/community/posts/x"), ctx(id))).json();
+  assert.deepEqual(ids([body.post]), [[null, null]]);
+  reset({ community_posts: [post(id, ME, true)] }, [identity(ME, "Me")]);
+  body = await (await GET(mk("/api/community/posts/x"), ctx(id))).json();
+  assert.deepEqual(ids([body.post]), [[ME, ME]]);
+});
+
+const ENT = "cl:organisation:0123456789abcdef";
+const threadRow = (postId, author, anonymous) => ({
+  thread_id: postId, entity_id: ENT, entity_kind: "organisation", created_at: "2026-10-08T00:00:00Z",
+  community_posts: { id: postId, group_id: G, title: "t", body: "b", author_user_id: author, anonymous, created_at: "2026-10-08T00:00:00Z", last_reply_at: null, reply_count: 0 },
+});
+
+test("entity threads: the id of an anonymous thread's author reaches only that author or an admin", async () => {
+  const rows = () => [threadRow("t1", U_A, false), threadRow("t2", U_B, true), threadRow("t3", U_C, false), threadRow("t4", ME, true)];
+  const idents = () => [identity(U_A, "Ann"), identity(U_B, "Bob"), identity(U_C, null), identity(ME, "Me")];
+  const { GET } = await jiti.import("./entities/[entityId]/threads/route.ts");
+  const call = async () => (await GET(mk(`/api/community/entities/${ENT}/threads`), { params: Promise.resolve({ entityId: ENT }) })).json();
+  reset({ community_thread_entities: rows() }, idents());
+  let { threads } = await call();
+  assert.deepEqual(threads.map((t) => t.author_user_id), [U_A, null, null, ME]);
+  reset({ community_thread_entities: rows() }, idents());
+  state.isAdmin = true;
+  ({ threads } = await call());
+  assert.deepEqual(threads.map((t) => t.author_user_id), [U_A, U_B, U_C, ME]);
 });

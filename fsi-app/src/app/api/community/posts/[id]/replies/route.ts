@@ -17,7 +17,15 @@ import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { assertBound } from "@/lib/db/paginate.mjs";
-import { authorBlockForPost, loadCommunityIdentities, type CommunityIdentityRow } from "@/lib/community/identity.mjs";
+import {
+  authorBlockForPost,
+  authorIdForViewer,
+  idWithheldForAnonymity,
+  loadCommunityIdentities,
+  viewerAdminIfNeeded,
+  type CommunityIdentityRow,
+} from "@/lib/community/identity.mjs";
+import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,7 +50,14 @@ interface PostRow {
   anonymous: boolean;
 }
 
-function shapePost(row: PostRow, identitiesById: Map<string, CommunityIdentityRow>) {
+// DFIX-1 (2026-10-08, SEC-5 residual): an anonymous author id reaches only that author and a platform admin.
+// `viewer` is who is reading; the id (author_user_id, author.user_id) is withheld from everyone else here, in
+// the read path (identity.mjs authorIdForViewer).
+function shapePost(
+  row: PostRow,
+  identitiesById: Map<string, CommunityIdentityRow>,
+  viewer: { userId: string; isAdmin?: boolean }
+) {
   const identity = row.author_user_id
     ? identitiesById.get(row.author_user_id) ?? null
     : null;
@@ -50,13 +65,18 @@ function shapePost(row: PostRow, identitiesById: Map<string, CommunityIdentityRo
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
-    author_user_id: row.author_user_id,
+    author_user_id: authorIdForViewer({
+      authorUserId: row.author_user_id,
+      withheld: idWithheldForAnonymity({ postAnonymous: row.anonymous, identity }),
+      viewer,
+    }),
     // Per-post anonymity (community_posts.anonymous) nulls name and headshot here; the per-user default came
     // back from the RPC already applied. One rule in each place (identity.mjs authorBlockForPost).
     author: authorBlockForPost({
       authorUserId: row.author_user_id,
       identity,
       postAnonymous: row.anonymous,
+      viewer,
     }),
     title: row.title,
     body: row.body,
@@ -137,7 +157,16 @@ export async function GET(
   if (identityErr) console.warn("community replies route: identity lookup failed", identityErr);
   const identitiesById = byId;
 
-  const shaped = rows.map((r) => shapePost(r, identitiesById));
+  const viewer = {
+    userId: auth.userId,
+    isAdmin: await viewerAdminIfNeeded({
+      rows,
+      viewerUserId: auth.userId,
+      identitiesById,
+      readAdmin: async () => (await readOwnPlatformAdmin(auth.supabase)).admin,
+    }),
+  };
+  const shaped = rows.map((r) => shapePost(r, identitiesById, viewer));
   const nextCursor =
     shaped.length === limit ? shaped[shaped.length - 1].created_at : null;
 
@@ -258,7 +287,8 @@ export async function POST(
   }
 
   return NextResponse.json(
-    { reply: shapePost(row, replyIdentities) },
+    // the author just wrote this reply: they see their own id
+    { reply: shapePost(row, replyIdentities, { userId: auth.userId }) },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );
 }
