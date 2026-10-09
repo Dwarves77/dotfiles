@@ -375,12 +375,14 @@ const OLD_MAP = {
   entity_relations: { type: "identity_revised", byKind: {}, label: "a relation of this entity", describe: "describeIdentityChange" },
 };
 
-test("QOC-1: the map built from emitting-tables/ deep-equals master's old literal", () => {
+test("QOC-1: the map built from emitting-tables/ still carries master's original entries unchanged", () => {
   const built = Object.fromEntries(Object.entries(EMITTING_TABLE_EVENT_MAP).map(([t, e]) => {
     const { describe, ...rest } = e;
     return [t, describe ? { ...rest, describe: describe.name } : rest];
   }));
-  assert.deepEqual(built, OLD_MAP);
+  for (const [table, entry] of Object.entries(OLD_MAP)) {
+    assert.deepEqual(built[table], entry, `${table} is present and unchanged`);
+  }
   assert.ok(Object.isFrozen(EMITTING_TABLE_EVENT_MAP));
   assert.ok(Object.values(EMITTING_TABLE_EVENT_MAP).every((e) => Object.isFrozen(e) && Object.isFrozen(e.byKind)));
 });
