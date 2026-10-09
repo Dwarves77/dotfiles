@@ -1,9 +1,9 @@
 {
-  "runAt": "2026-10-09T02:50:56.630Z",
+  "runAt": "2026-10-09T02:54:21.947Z",
   "generated_on": {
     "platform": "linux",
     "node": "v24.21.0",
-    "container_image": "none"
+    "container_image": "mcr.microsoft.com/playwright:v1.61.1-noble"
   },
   "specs": [
     {
