@@ -196,6 +196,46 @@ test('introducedLines: a removed line consumed by an in-place edit does not also
   assert.equal(introducedMatches(ctx.introducedLines('b.md'), hasGlyph).length, 1);
 });
 
+test('introducedLines: a line moved to another file whose source was paired in-hunk with an unrelated added line is still moved (SKILL-SLIM-1)', () => {
+  const line = `**Analysis contract.** Research reads are structured horizon assessments ${EM} not paper summaries.`;
+  const fixture = (extra) => buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'core.md' }, { path: 'ref.md', status: 'A' }],
+    changes: [
+      // the source line is replaced in its hunk by an unrelated index line: the pairing matches them by position
+      { path: 'core.md', removed: [line, 'second removed line'], added: ['- index entry naming a reference file', ...extra] },
+      { path: 'ref.md', status: 'A', added: [line] },
+    ],
+  });
+  const ctx = fixture([]);
+  assert.equal(introducedMatches(ctx.introducedLines('ref.md'), hasGlyph).length, 0);
+  assert.equal(ctx.introducedLines('ref.md').pairs[0].moved, true);
+  // the in-place edit rule still holds: the paired removal of a genuine edit is spent, a copy elsewhere is new
+  const edited = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'a.md' }, { path: 'b.md', status: 'A' }],
+    changes: [
+      { path: 'a.md', removed: [`rule text ${EM} v1`], added: [`rule text ${EM} v2`] },
+      { path: 'b.md', status: 'A', added: [`rule text ${EM} v1`] },
+    ],
+  });
+  assert.equal(introducedMatches(edited.introducedLines('b.md'), hasGlyph).length, 1);
+});
+
+test('introducedLines: a genuinely new glyph line still fails when another removal was paired in-hunk (SKILL-SLIM-1 guard)', () => {
+  const moved = `kept ${EM} as written`;
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'core.md' }, { path: 'ref.md', status: 'A' }],
+    changes: [
+      { path: 'core.md', removed: [moved], added: ['- index entry naming a reference file'] },
+      { path: 'ref.md', status: 'A', added: [moved, `brand new ${EM} text`, moved] },
+    ],
+  });
+  // one removal credits ONE move; the second copy and the new line are introductions
+  assert.equal(introducedMatches(ctx.introducedLines('ref.md'), hasGlyph).length, 2);
+});
+
 test('introducedLines: a path with no diff yields nothing, and the legacy addedLines shorthand still works', () => {
   const ctx = buildContextFromFixture({ message: 'x', files: [{ path: 'a.mjs' }], addedLines: { 'b.mjs': ['const b = 2;'] } });
   assert.deepEqual(ctx.introducedLines('a.mjs'), { added: [], pairs: [] });

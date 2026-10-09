@@ -59,7 +59,11 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(HERE, "system-prompt.ts");
-const SKILL_PATH = resolve(HERE, "..", "..", "..", ".claude", "skills", "environmental-policy-and-innovation", "SKILL.md");
+const SKILL_DIR = resolve(HERE, "..", "..", "..", ".claude", "skills", "environmental-policy-and-innovation");
+const SKILL_PATH = resolve(SKILL_DIR, "SKILL.md");
+// SKILL-SLIM-1 (2026-10-08): the skill is a short core plus references/*.md moved verbatim. The numbered rules stay in
+// the core; the Database Field Emission section (the Fields: block) moved to this reference file.
+const SKILL_FIELDS_PATH = resolve(SKILL_DIR, "references", "storage-and-field-emission.md");
 
 const RULES_HEADING_RE = /^#{1,6}[ \t]*(?:The\s+\d+\s+)?Rules for All Output[ \t]*$/m;
 const RULE_ITEM_RE = /^(\d+)\.\s+(.*)$/;
@@ -115,6 +119,7 @@ function extractFieldNames(source, label) {
 
 const promptText = readFileSync(PROMPT_PATH, "utf8");
 const skillText = readFileSync(SKILL_PATH, "utf8");
+const skillFieldsText = readFileSync(SKILL_FIELDS_PATH, "utf8");
 
 test("skill-prompt-parity: rule count matches between system-prompt.ts and SKILL.md", () => {
   const promptRules = extractRules(promptText, "system-prompt.ts");
@@ -152,7 +157,7 @@ test("skill-prompt-parity: every rule's number and text matches between the two 
 
 test("skill-prompt-parity: the field-name set matches between system-prompt.ts and SKILL.md", () => {
   const promptFields = extractFieldNames(promptText, "system-prompt.ts");
-  const skillFields = extractFieldNames(skillText, "SKILL.md");
+  const skillFields = extractFieldNames(skillFieldsText, "SKILL.md references/storage-and-field-emission.md");
 
   const missingFromSkill = [...promptFields].filter((f) => !skillFields.has(f)).sort();
   const extraInSkill = [...skillFields].filter((f) => !promptFields.has(f)).sort();

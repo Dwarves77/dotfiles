@@ -443,6 +443,8 @@ const WORD_RE = /[A-Za-z0-9_]+/g;
 // A hunk this large is paired by position after the exact-text pass; the similarity matrix would be
 // quadratic and no human-edited hunk is that wide.
 const SIMILARITY_CELL_LIMIT = 40000;
+// A paired removal at or above this token similarity to its added line is the old version of an edited line.
+const EDIT_SIMILARITY = 0.5;
 
 function similarity(a, b) {
   if (a.size === 0 && b.size === 0) return 0;
@@ -506,15 +508,29 @@ function pairHunk(hunk) {
 function buildIntroduced(parsed) {
   const result = new Map();
   const pool = new Map(); // removed lines no hunk pairing consumed, by text: the source of "moved"
+  // SKILL-SLIM-1 (2026-10-08): removals an in-hunk pairing consumed (matched to an added line of different text,
+  // by similarity or position) are a SECOND pool, text -> [source file path, ...]. They credit a moved line only in
+  // ANOTHER file: a line moved across files whose source was paired with an unrelated added line (the Research
+  // Analysis contract line in a skill split) is a move, not a new line. Inside one file the pairing stays the edit
+  // it reads as (context.range.test.mjs: a glyph relocated by an unlucky diff alignment is still an introduction).
+  const pairedPool = new Map();
   for (const file of parsed.files) {
     const pairs = [];
     for (const hunk of file.hunks) {
       const idx = pairHunk(hunk);
       const consumed = new Set(idx.filter((j) => j !== null));
       hunk.removed.forEach((r, j) => {
-        if (consumed.has(j)) return;
         const k = lineKey(r);
-        if (k) pool.set(k, (pool.get(k) || 0) + 1);
+        if (!k) return;
+        if (consumed.has(j)) {
+          // spent: paired with identical text (a reorder) or a genuine edit (token similarity at or above
+          // EDIT_SIMILARITY); otherwise it stays a cross-file source
+          const spent = idx.some((jj, i) => jj === j && (lineKey(hunk.added[i]) === k
+            || similarity(tokenBag(hunk.added[i]), tokenBag(r)) >= EDIT_SIMILARITY));
+          if (!spent) (pairedPool.get(k) || pairedPool.set(k, []).get(k)).push(file.path);
+          return;
+        }
+        pool.set(k, (pool.get(k) || 0) + 1);
       });
       hunk.added.forEach((a, i) => {
         pairs.push({ added: a, removed: idx[i] === null ? null : hunk.removed[idx[i]], line: hunk.newStart + i, moved: false });
@@ -523,12 +539,15 @@ function buildIntroduced(parsed) {
     result.set(file.path, { added: pairs.map((p) => p.added), pairs });
   }
   // A line whose identical text was removed elsewhere in this diff was moved, not written.
-  for (const info of result.values()) {
+  for (const [path, info] of result.entries()) {
     for (const p of info.pairs) {
       const k = lineKey(p.added);
       if (!k || (p.removed !== null && lineKey(p.removed) === k)) continue;
       const n = pool.get(k) || 0;
-      if (n > 0) { pool.set(k, n - 1); p.moved = true; }
+      if (n > 0) { pool.set(k, n - 1); p.moved = true; continue; }
+      const srcs = pairedPool.get(k);
+      const at = srcs ? srcs.findIndex((src) => src !== path) : -1;
+      if (at >= 0) { srcs.splice(at, 1); p.moved = true; }
     }
   }
   return result;

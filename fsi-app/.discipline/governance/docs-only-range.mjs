@@ -58,6 +58,9 @@ const GOVERNING_EXACT = new Set([
 ]);
 const GOVERNING_PATTERNS = [
   /(?:^|\/)\.claude\/skills\/[^/]+\/SKILL\.md$/,
+  // SKILL-SLIM-1 (2026-10-08): the sections a skill's core no longer carries live in references/*.md beside
+  // it, moved verbatim; a change to one is a change to the skill's governing text, never docs-only.
+  /(?:^|\/)\.claude\/skills\/[^/]+\/references\/[^/]+\.md$/,
   /^docs\/runbooks\/maintenance\.d\//,
   /(?:^|\/)(?:brief-)?common[^/]*\.md$/i,
 ];
