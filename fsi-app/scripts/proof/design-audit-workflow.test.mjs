@@ -57,7 +57,7 @@ function problems(text, disciplineText = DISCIPLINE) {
 
   if (!/^permissions:\n {2}contents: read\n/m.test(code)) out.push("permissions are not contents: read");
   if (/^\s*(actions|id-token|pull-requests|issues|statuses|packages|checks|contents): write/m.test(code)) out.push("a write permission is granted");
-  if (!/^defaults:\n {2}run:\n {4}shell: bash\n/m.test(code)) out.push("defaults.run.shell is not bash");
+  if (!/^ {4}defaults:\n {6}run:\n {8}shell: bash\n/m.test(code)) out.push("the job does not declare defaults.run.shell: bash (a container job runs sh by default; GATE-9)");
   if (!/^ {4}timeout-minutes: 15$/m.test(code)) out.push("timeout is not 15 minutes");
   if (/continue-on-error/.test(code)) out.push("continue-on-error present");
   if (/\|\|\s*true\b/.test(code)) out.push("a '|| true' swallows a failure");

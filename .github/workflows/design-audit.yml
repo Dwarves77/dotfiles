@@ -53,10 +53,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
   design-audit:
     name: Design audit (build vs design, value-level, soft)
@@ -68,6 +64,11 @@ jobs:
     # 15 minutes, as the rendering guard. The audit measured 2 min 37 s on a developer machine (73 specs, 2430
     # checks); the headroom covers a cold install and a slower runner.
     timeout-minutes: 15
+    # A container job's steps run under sh by default, which has no -o pipefail; the image has bash, so the job
+    # says so (lane GATE-9: the same default the rendering-guard job declares).
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
