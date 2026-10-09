@@ -31,6 +31,19 @@ name: Design audit
 # reading the tag from discipline.yml with the same pattern), and the install step below reads the npm
 # package version back out of THIS file, so the package and the image's browsers cannot drift.
 #
+# THE COMMITTED RESULT IS CI'S, NEVER A DEVELOPER'S (lane DAUDIT-3, 2026-10-08). A computed style depends on the
+# machine that measured it: DAUDIT-2 diffed this job's artifact against the results.json it had committed from
+# Windows and 4 rows differed (the ch width of the vendored font, a 44px target), both with 0 harness errors. So
+# results.json and the audit document are committed only by this workflow, on workflow_dispatch: after the audit
+# runs, a step commits both back to the dispatched ref with the same script the other commit-back workflows use
+# (fsi-app/scripts/maintenance/commit-worklist-artifact.sh: github-actions[bot], and a protected ref such as
+# master degrades to a warning, never a failed run). The pull_request path NEVER commits: that step is guarded to
+# workflow_dispatch and the PR run only reports. The generator stamps generated_on (platform, node, container
+# image) into both files, and fsi-app/.discipline/rendering/audit/generated-on.test.mjs refuses a committed pair
+# whose platform is not linux. To refresh the committed pair: dispatch this workflow on the branch
+# (`gh workflow run design-audit.yml --ref <branch>`), then pull. A push made with GITHUB_TOKEN does not start
+# another workflow run, so the commit-back is followed by a normal push (or an empty one) to re-run the PR checks.
+#
 # SEPARATE WORKFLOW FILE, NOT A discipline.yml JOB: discipline.yml is owned by the GATE lanes, and a job
 # there inherits their shape test (no continue-on-error on any discipline job). This file is its own
 # workflow with its own unique name (names are unique across .github/workflows).
@@ -57,6 +70,11 @@ jobs:
   design-audit:
     name: Design audit (build vs design, value-level, soft)
     runs-on: ubuntu-latest
+    # The one write permission in the file, for the workflow_dispatch commit-back step below. The pull_request
+    # path never uses it: the commit-back step is guarded to workflow_dispatch (a fork PR token is read-only
+    # whatever is declared here). design-audit-workflow.test.mjs refuses any other write permission.
+    permissions:
+      contents: write
     # The Playwright image: chromium is already installed. The tag is the one discipline.yml's rendering-guard
     # job carries, and design-audit-workflow.test.mjs fails if the two ever differ.
     container:
@@ -102,9 +120,13 @@ jobs:
           results=".discipline/rendering/audit/results.json"
           document="../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"
           rm -f "$results" "$document"
+          # Stamped into results.json and the audit document as generated_on.container_image. The job context
+          # does not expose the container image, so it is read out of this file with the install step's own pattern.
+          AUDIT_CONTAINER_IMAGE="$(sed -n 's|^ *image: \(mcr\.microsoft\.com/playwright:v[0-9][0-9.]*-.*\)$|\1|p' ../.github/workflows/design-audit.yml)"
+          test -n "$AUDIT_CONTAINER_IMAGE"
           AUDIT_HEAD="$(git rev-parse --short HEAD)"
           AUDIT_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          export AUDIT_HEAD AUDIT_BRANCH
+          export AUDIT_HEAD AUDIT_BRANCH AUDIT_CONTAINER_IMAGE
           npm run audit:design
           test -s "$results"
           test -s "$document"
@@ -151,6 +173,19 @@ jobs:
             process.exitCode = 1;
           }
           NODE
+
+      # WORKFLOW_DISPATCH ONLY. Commits results.json and the audit document back to the dispatched ref, so the
+      # committed oracle is the one CI generated. The document is staged here and results.json is staged by the
+      # script, so the pair lands as ONE commit. Nothing changed means nothing committed; a protected ref (master)
+      # degrades to a warning inside the script and never fails the run. It runs only after the summary step, so a
+      # run whose harness errored (summary step red) never commits its partial result.
+      - name: Commit the audit result back to the dispatched ref (workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: fsi-app
+        run: |
+          set -euo pipefail
+          git add "../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"
+          bash scripts/maintenance/commit-worklist-artifact.sh             "$GITHUB_REF_NAME"             "${{ github.run_id }}"             ".discipline/rendering/audit/results.json"             "design audit results (CI-generated)"
 
       - name: Upload the audit result (results.json and the audit document)
         if: always()

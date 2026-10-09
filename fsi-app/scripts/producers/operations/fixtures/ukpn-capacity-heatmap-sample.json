@@ -1,0 +1,4357 @@
+{
+  "contributor": "UK Power Networks",
+  "coverage": "London Power Network",
+  "creator": "UK Power Networks",
+  "date": "2025-03-01T00:00:00Z",
+  "description": "A heatmaps dataset for London Power Networks of UK Power Networks",
+  "format": "application/json",
+  "identifier": "ukpn-capacity-heatmap",
+  "issued": "2026-05-29T00:00:00Z",
+  "language": "en",
+  "publisher": "UK Power Networks",
+  "rights": "https://creativecommons.org/licenses/by/4.0/",
+  "title": "UK Power Networks - London Power Networks (LPN) Heatmap Data",
+  "valid": [
+    "2025-03-01T00:00:00Z",
+    "2026-11-30T00:00:00Z"
+  ],
+  "Substations": [
+    {
+      "mRID": "3676c386-4dae-5539-b99f-0f5072bf057c",
+      "name": "Aberdeen Pl A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1738709587137343,
+      "latitude": 51.52554913268035,
+      "demandFirmCapacity": 57,
+      "demandAvailableCapacity": 13,
+      "demandMaximum": 38.8,
+      "demandMinimum": 13.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 60.2,
+      "generationAvailableCapacity": 59.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 57,
+      "reversePowerFlowAvailableCapacity": 57,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 6,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 7.4
+        }
+      ]
+    },
+    {
+      "mRID": "1295749c-c727-5ffc-b84e-6df5dce0d680",
+      "name": "Aberdeen Pl B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1738709587137343,
+      "latitude": 51.52554913268035,
+      "demandFirmCapacity": 31.9,
+      "demandAvailableCapacity": 2.8,
+      "demandMaximum": 29,
+      "demandMinimum": 12.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 45.6,
+      "generationAvailableCapacity": 45.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 31.9,
+      "reversePowerFlowAvailableCapacity": 31.9,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 2.3
+        }
+      ]
+    },
+    {
+      "mRID": "1b9d6db6-b41b-5dbe-9521-47349b11b6ad",
+      "name": "Amberley Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1927767634894932,
+      "latitude": 51.52260637351776,
+      "demandFirmCapacity": 85.8,
+      "demandAvailableCapacity": 29,
+      "demandMaximum": 51.1,
+      "demandMinimum": 17.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 118.9,
+      "generationAvailableCapacity": 117.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 85.8,
+      "reversePowerFlowAvailableCapacity": 85.8,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 13.8
+        }
+      ]
+    },
+    {
+      "mRID": "c2f4762f-9e06-5898-a74b-82cbe66c7433",
+      "name": "Axe St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.07984706494557277,
+      "latitude": 51.53576482679203,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 17.8,
+      "demandMaximum": 32.6,
+      "demandMinimum": 12.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 55.9,
+      "generationAvailableCapacity": 50.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Barking West 33kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 9.1,
+          "loadBudgetEstimatesProvidedCount": 3,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 5.9,
+          "loadConnectionOffersAcceptedCount": 4,
+          "loadConnectionOffersAcceptedCapacity": 6.6,
+          "generationConnectionOffersAcceptedCount": 1,
+          "generationConnectionOffersAcceptedCapacity": 2.5
+        }
+      ]
+    },
+    {
+      "mRID": "80ec615c-2e70-5ed5-aa02-6a95a5ae5332",
+      "name": "Back Hill A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1101865554190718,
+      "latitude": 51.52277763913284,
+      "demandFirmCapacity": 56.6,
+      "demandAvailableCapacity": 14.3,
+      "demandMaximum": 32.9,
+      "demandMinimum": 11.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 59.2,
+      "generationAvailableCapacity": 58.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 56.6,
+      "reversePowerFlowAvailableCapacity": 56.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 22.2,
+          "loadBudgetEstimatesProvidedCount": 4,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 7.4
+        }
+      ]
+    },
+    {
+      "mRID": "1aab54e1-79b5-5ea9-bbc6-48e28ccdea7b",
+      "name": "Bankside C 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09999766220010933,
+      "latitude": 51.50761943889512,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 51.2,
+      "demandMaximum": 101.1,
+      "demandMinimum": 34.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Voltage",
+      "generationFirmCapacity": 332.2,
+      "generationAvailableCapacity": 326.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Voltage",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Bankside C Total",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4.2,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 5.7,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 6.3
+        }
+      ]
+    },
+    {
+      "mRID": "1d6bbc22-3f23-5870-a63f-e4f208c450dd",
+      "name": "Bankside D 20kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09999766220010933,
+      "latitude": 51.50761943889512,
+      "demandFirmCapacity": 110,
+      "demandAvailableCapacity": 50.8,
+      "demandMaximum": 59.1,
+      "demandMinimum": 20.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 210,
+      "generationAvailableCapacity": 202.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 110,
+      "reversePowerFlowAvailableCapacity": 110,
+      "voltages": [
+        20
+      ],
+      "GSP": "City Road",
+      "BSP": "Bankside D Total"
+    },
+    {
+      "mRID": "f9956336-9db0-5793-9c5a-e1cef3122b7d",
+      "name": "Barking West 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.1070898987459449,
+      "latitude": 51.51637884608849,
+      "demandFirmCapacity": 46.8,
+      "demandAvailableCapacity": 17.7,
+      "demandMaximum": 18,
+      "demandMinimum": 2.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 53.2,
+      "generationAvailableCapacity": 39.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 46.8,
+      "reversePowerFlowAvailableCapacity": 46.8,
+      "voltages": [
+        11
+      ],
+      "GSP": "Barking West 33kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4.9,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 10.1,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.9,
+          "generationConnectionOffersAcceptedCount": 1,
+          "generationConnectionOffersAcceptedCapacity": 3.2
+        }
+      ]
+    },
+    {
+      "mRID": "c0ed1a43-af6f-5e77-8446-8d5208b3a20b",
+      "name": "Barnes B 6.6kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2587495393087093,
+      "latitude": 51.47017959107547,
+      "demandFirmCapacity": 39,
+      "demandAvailableCapacity": 15.2,
+      "demandMaximum": 23.5,
+      "demandMinimum": 6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 38.9,
+      "generationAvailableCapacity": 36,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 39,
+      "reversePowerFlowAvailableCapacity": 39,
+      "voltages": [
+        6.6
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wandsworth Grid 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 6.6,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 8
+        }
+      ]
+    },
+    {
+      "mRID": "f6fff66a-5cc0-5af0-8047-de2786cb1cc6",
+      "name": "Beech St A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.0933301016098096,
+      "latitude": 51.52069798418907,
+      "demandFirmCapacity": 15,
+      "demandAvailableCapacity": 9.5,
+      "demandMaximum": 5.5,
+      "demandMinimum": 0,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 15.3,
+      "generationAvailableCapacity": 15,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 15,
+      "reversePowerFlowAvailableCapacity": 15,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Finsbury Market F 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 9,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 8
+        }
+      ]
+    },
+    {
+      "mRID": "2b0827f4-a12d-50ac-bc6c-e98ceec2e7b1",
+      "name": "Beech St B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09325322458214663,
+      "latitude": 51.52051006286089,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 73.3,
+      "demandMaximum": 62,
+      "demandMinimum": 20.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 200.8,
+      "generationAvailableCapacity": 191.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 10.2,
+          "loadBudgetEstimatesProvidedCount": 4,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 22.6
+        }
+      ]
+    },
+    {
+      "mRID": "a216daa3-9598-5f63-a553-d9f4f3500c81",
+      "name": "Bengeworth Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09659248024189478,
+      "latitude": 51.46722439958578,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 13.1,
+      "demandMaximum": 39.5,
+      "demandMinimum": 13.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 65.6,
+      "generationAvailableCapacity": 58.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 66kV",
+      "BSP": "Chadwick Road 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1.2,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 3.8
+        }
+      ]
+    },
+    {
+      "mRID": "632033c0-6d53-5346-b041-4981fe62e404",
+      "name": "Bengeworth Rd Grid 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09659248024189478,
+      "latitude": 51.46722439958578,
+      "demandFirmCapacity": 175.5,
+      "demandAvailableCapacity": 40.5,
+      "demandMaximum": 124.4,
+      "demandMinimum": 50.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 148.9,
+      "generationAvailableCapacity": 142.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 175.5,
+      "reversePowerFlowAvailableCapacity": 175.5,
+      "voltages": [
+        33
+      ],
+      "GSP": "Wimbledon 1&2 132kV",
+      "BSP": "Bengeworth Road 33kV"
+    },
+    {
+      "mRID": "9147f70d-969f-538b-8af6-3b8d6a8492aa",
+      "name": "Blackhorse Lane 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.04018757669823939,
+      "latitude": 51.58978614911216,
+      "demandFirmCapacity": 39,
+      "demandAvailableCapacity": 13.8,
+      "demandMaximum": 23.3,
+      "demandMinimum": 8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 41,
+      "generationAvailableCapacity": 38.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 39,
+      "reversePowerFlowAvailableCapacity": 39,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 66kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 17,
+          "loadBudgetEstimatesProvidedCount": 5,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 6
+        }
+      ]
+    },
+    {
+      "mRID": "4efa4bf4-f21f-59c4-8162-2f61d70d7fa7",
+      "name": "Blackwall Way 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.00407582525019865,
+      "latitude": 51.5078798871126,
+      "demandFirmCapacity": 85.8,
+      "demandAvailableCapacity": 79.4,
+      "demandMaximum": 5.8,
+      "demandMinimum": 0.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 101.9,
+      "generationAvailableCapacity": 100.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 85.8,
+      "reversePowerFlowAvailableCapacity": 85.8,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 2,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 16
+        }
+      ]
+    },
+    {
+      "mRID": "aa753810-d0d6-54aa-b8d1-feb5010f36f5",
+      "name": "Bloomfield Place 6.6kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1444662674644118,
+      "latitude": 51.51160565004751,
+      "demandFirmCapacity": 41.1,
+      "demandAvailableCapacity": 12,
+      "demandMaximum": 24.4,
+      "demandMinimum": 8.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 45.2,
+      "generationAvailableCapacity": 44.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 41.1,
+      "reversePowerFlowAvailableCapacity": 41.1,
+      "voltages": [
+        6.6
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 6.6,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 3
+        }
+      ]
+    },
+    {
+      "mRID": "baff653a-a519-5a26-a1d2-f8e37bcfb4b5",
+      "name": "Bow 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.01216600619252801,
+      "latitude": 51.53281962707932,
+      "demandFirmCapacity": 45.7,
+      "demandAvailableCapacity": -3.1,
+      "demandMaximum": 48.6,
+      "demandMinimum": 17.4,
+      "demandConstraint": "RED",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 113.8,
+      "generationAvailableCapacity": 112.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 45.7,
+      "reversePowerFlowAvailableCapacity": 45.7,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "Bow Total",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 30,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 8,
+          "loadConnectionOffersMadeCapacity": 22,
+          "loadConnectionOffersAcceptedCount": 5,
+          "loadConnectionOffersAcceptedCapacity": 7.2
+        }
+      ]
+    },
+    {
+      "mRID": "5003dd4f-ad76-5e33-a63b-64736e15e05b",
+      "name": "Brixton B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1134906774843696,
+      "latitude": 51.46404594664939,
+      "demandFirmCapacity": 52,
+      "demandAvailableCapacity": 7.7,
+      "demandMaximum": 43.8,
+      "demandMinimum": 12.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 59.6,
+      "generationAvailableCapacity": 57.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 52,
+      "reversePowerFlowAvailableCapacity": 52,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 1&2 132kV",
+      "BSP": "Bengeworth Road 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 3.7,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 8,
+          "loadConnectionOffersMadeCapacity": 33.7,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2
+        }
+      ]
+    },
+    {
+      "mRID": "382e97aa-62ea-5fb9-a533-bdde7382f0d7",
+      "name": "Broadway 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.1366909849136606,
+      "latitude": 51.45697911578115,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 15.6,
+      "demandMaximum": 42.3,
+      "demandMinimum": 11.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 58.9,
+      "generationAvailableCapacity": 56.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Littlebrook",
+      "BSP": "Dartford Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 5.5
+        }
+      ]
+    },
+    {
+      "mRID": "87ae2a57-3628-5c38-b62b-225f0620867a",
+      "name": "Bromley Grid 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.0677404936452797,
+      "latitude": 51.39211108191445,
+      "demandFirmCapacity": 205.7,
+      "demandAvailableCapacity": 87.2,
+      "demandMaximum": 118.5,
+      "demandMinimum": 36.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 214.8,
+      "generationAvailableCapacity": 209.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 205.7,
+      "reversePowerFlowAvailableCapacity": 205.7,
+      "voltages": [
+        33
+      ],
+      "GSP": "Hurst",
+      "BSP": "Bromley Grid 33kV"
+    },
+    {
+      "mRID": "3691aee3-d0b3-55e8-ba25-db29c1592a29",
+      "name": "Bromley South 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.0377171024518729,
+      "latitude": 51.3914555561401,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 20.5,
+      "demandMaximum": 36,
+      "demandMinimum": 9.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 57.4,
+      "generationAvailableCapacity": 55.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hurst",
+      "BSP": "Bromley Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 31.6,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 3
+        }
+      ]
+    },
+    {
+      "mRID": "2d341d8d-a6a3-5f58-9295-f1132bae8568",
+      "name": "Buckhurst Hill 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.03211686810804661,
+      "latitude": 51.62493631394675,
+      "demandFirmCapacity": 153.9,
+      "demandAvailableCapacity": 45.2,
+      "demandMaximum": 108.6,
+      "demandMinimum": 31.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 221.5,
+      "generationAvailableCapacity": 212,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 153.9,
+      "reversePowerFlowAvailableCapacity": 153.9,
+      "voltages": [
+        33
+      ],
+      "GSP": "Brimsdown",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadBudgetEstimatesProvidedCapacity": 60,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 85
+        }
+      ]
+    },
+    {
+      "mRID": "8967091d-4be4-5bb5-8b81-fd39f89179bd",
+      "name": "Bulwer St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.223392864177368,
+      "latitude": 51.50558974441584,
+      "demandFirmCapacity": 56.9,
+      "demandAvailableCapacity": 20.4,
+      "demandMaximum": 35.9,
+      "demandMinimum": 11.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 63.7,
+      "generationAvailableCapacity": 60.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 56.9,
+      "reversePowerFlowAvailableCapacity": 56.9,
+      "voltages": [
+        11
+      ],
+      "GSP": "Willesden Grid 66 kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 2.9,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 4.5
+        }
+      ]
+    },
+    {
+      "mRID": "b72b658a-efbd-52be-99b2-474219d0fdc7",
+      "name": "Burlington Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2424576506978607,
+      "latitude": 51.3993958552875,
+      "demandFirmCapacity": 53,
+      "demandAvailableCapacity": 22.3,
+      "demandMaximum": 24.2,
+      "demandMinimum": 9.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 58.7,
+      "generationAvailableCapacity": 56.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 53,
+      "reversePowerFlowAvailableCapacity": 53,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 3,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2.9
+        }
+      ]
+    },
+    {
+      "mRID": "c97b4c6f-2ebd-557a-99e2-d199ebfee12a",
+      "name": "Calshot St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.116792220239021,
+      "latitude": 51.53175877563063,
+      "demandFirmCapacity": 85.8,
+      "demandAvailableCapacity": 64.7,
+      "demandMaximum": 21,
+      "demandMinimum": 8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 105.3,
+      "generationAvailableCapacity": 103.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 85.8,
+      "reversePowerFlowAvailableCapacity": 85.8,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 15,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 51,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 8.8
+        }
+      ]
+    },
+    {
+      "mRID": "cc1f4647-c4e8-501a-bc52-a4a75448cb03",
+      "name": "Carnaby St 11 kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1381383903573329,
+      "latitude": 51.5132582619504,
+      "demandFirmCapacity": 67.4,
+      "demandAvailableCapacity": 2.8,
+      "demandMaximum": 64.6,
+      "demandMinimum": 11.8,
+      "demandConstraint": "AMBER",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 49.9,
+      "generationAvailableCapacity": 49.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 67.4,
+      "reversePowerFlowAvailableCapacity": 67.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 23.8,
+          "loadBudgetEstimatesProvidedCount": 3,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 2.1,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 4.2
+        }
+      ]
+    },
+    {
+      "mRID": "a3c2ccfa-f9a5-5aa2-9188-a55c10897bed",
+      "name": "Carslake Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2282581032470491,
+      "latitude": 51.45407283296466,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 19.4,
+      "demandMaximum": 35.8,
+      "demandMinimum": 10.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 57.4,
+      "generationAvailableCapacity": 56.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wandsworth Grid 66kV"
+    },
+    {
+      "mRID": "9424a0ab-3296-5632-af83-7a9576f0a5a3",
+      "name": "Chadwick Road 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.076351808319663,
+      "latitude": 51.46819744156922,
+      "demandFirmCapacity": 116.5,
+      "demandAvailableCapacity": 44,
+      "demandMaximum": 68.1,
+      "demandMinimum": 20.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 112.9,
+      "generationAvailableCapacity": 104.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 116.5,
+      "reversePowerFlowAvailableCapacity": 116.5,
+      "voltages": [
+        33
+      ],
+      "GSP": "New Cross 66kV",
+      "BSP": "Chadwick Road 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 10.2
+        }
+      ]
+    },
+    {
+      "mRID": "19b78069-4f57-5072-a10f-e52a82c7423c",
+      "name": "Chislehurst 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.05809270316253608,
+      "latitude": 51.42237651610669,
+      "demandFirmCapacity": 54.6,
+      "demandAvailableCapacity": 15.5,
+      "demandMaximum": 39.1,
+      "demandMinimum": 10.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 66,
+      "generationAvailableCapacity": 62.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 54.6,
+      "reversePowerFlowAvailableCapacity": 54.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hurst",
+      "BSP": "Bromley Grid 33kV"
+    },
+    {
+      "mRID": "3bc3b194-d5d9-5df9-befb-e11b1b142464",
+      "name": "Churchfields 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.04537177215632517,
+      "latitude": 51.40359254545003,
+      "demandFirmCapacity": 53.5,
+      "demandAvailableCapacity": 18.4,
+      "demandMaximum": 35.1,
+      "demandMinimum": 9.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 57.4,
+      "generationAvailableCapacity": 54.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 53.5,
+      "reversePowerFlowAvailableCapacity": 53.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Beddington",
+      "BSP": "Sydenham Park 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 2,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 7,
+          "loadConnectionOffersMadeCapacity": 10.2,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 2.9
+        }
+      ]
+    },
+    {
+      "mRID": "b4f0e709-23e0-5eb2-bcab-985c13bd56f3",
+      "name": "City Rd B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09571073191637199,
+      "latitude": 51.53019130119536,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 74.8,
+      "demandMaximum": 68,
+      "demandMinimum": 25.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 133.8,
+      "generationAvailableCapacity": 127.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1.6
+        }
+      ]
+    },
+    {
+      "mRID": "50ad02a8-e656-5368-ae9a-ca90458823c7",
+      "name": "City Rd C 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09571073191637199,
+      "latitude": 51.53019130119536,
+      "demandFirmCapacity": 78.6,
+      "demandAvailableCapacity": 54.8,
+      "demandMaximum": 11.7,
+      "demandMinimum": 2.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 111.6,
+      "generationAvailableCapacity": 109.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 78.6,
+      "reversePowerFlowAvailableCapacity": 78.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct"
+    },
+    {
+      "mRID": "64f7ed47-a321-50cb-aa31-77e7653a43f4",
+      "name": "Clapham Park Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1364816564785327,
+      "latitude": 51.46154930665059,
+      "demandFirmCapacity": 44.7,
+      "demandAvailableCapacity": 8.5,
+      "demandMaximum": 36.3,
+      "demandMinimum": 10.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 56.8,
+      "generationAvailableCapacity": 55.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 44.7,
+      "reversePowerFlowAvailableCapacity": 44.7,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 1&2 132kV",
+      "BSP": "Bengeworth Road 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 3,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "7eeeff4f-4b38-5bcf-bb90-00df4b7cbb81",
+      "name": "Clarks Rd B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.09026349602320827,
+      "latitude": 51.56162128189807,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 12.7,
+      "demandMaximum": 45.8,
+      "demandMinimum": 12.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 58.7,
+      "generationAvailableCapacity": 56.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Redbridge",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1.6
+        }
+      ]
+    },
+    {
+      "mRID": "17e8e100-1b6b-52c7-878d-90c98ce05dba",
+      "name": "Crayford 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.1805592727704659,
+      "latitude": 51.45235514884874,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 23.1,
+      "demandMaximum": 30.7,
+      "demandMinimum": 10.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 61,
+      "generationAvailableCapacity": 55.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Littlebrook",
+      "BSP": "Dartford Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 11,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 3.8
+        }
+      ]
+    },
+    {
+      "mRID": "97481ed2-2ea1-5bed-970f-c7e9a3024a70",
+      "name": "Dartford Grid A 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.212616368147246,
+      "latitude": 51.45020021856977,
+      "demandFirmCapacity": 175.5,
+      "demandAvailableCapacity": 64.9,
+      "demandMaximum": 102.9,
+      "demandMinimum": 32.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 134.6,
+      "generationAvailableCapacity": 99,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 87.7,
+      "reversePowerFlowAvailableCapacity": 87.7,
+      "voltages": [
+        33
+      ],
+      "GSP": "Littlebrook",
+      "BSP": "Dartford Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 139
+        }
+      ]
+    },
+    {
+      "mRID": "5bc295cd-5da8-5555-8bd5-bfefec91d58c",
+      "name": "Dartford Grid B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.212616368147246,
+      "latitude": 51.45020021856977,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 14.5,
+      "demandMaximum": 39.3,
+      "demandMinimum": 12.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 67.7,
+      "generationAvailableCapacity": 57.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Littlebrook",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 8,
+          "loadConnectionOffersMadeCapacity": 28.1,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 16
+        }
+      ]
+    },
+    {
+      "mRID": "11e1d8d6-1f48-574c-be06-a8b84a59cc92",
+      "name": "Deptford Grid 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.02271623709423096,
+      "latitude": 51.48366252122248,
+      "demandFirmCapacity": 157.4,
+      "demandAvailableCapacity": 67.4,
+      "demandMaximum": 87.2,
+      "demandMinimum": 31.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 208.9,
+      "generationAvailableCapacity": 201.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 157.4,
+      "reversePowerFlowAvailableCapacity": 157.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 132kV",
+      "BSP": "Deptford Grid",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 223.3,
+          "loadBudgetEstimatesProvidedCount": 8,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 15.5,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2
+        }
+      ]
+    },
+    {
+      "mRID": "219414d9-5cae-5625-892b-336248a77d8a",
+      "name": "Deptford West 22kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.02271623709423096,
+      "latitude": 51.48366252122248,
+      "demandFirmCapacity": 45,
+      "demandAvailableCapacity": 9.6,
+      "demandMaximum": 35.1,
+      "demandMinimum": 11.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 57.4,
+      "generationAvailableCapacity": 55.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 45,
+      "reversePowerFlowAvailableCapacity": 45,
+      "voltages": [
+        22
+      ],
+      "GSP": "New Cross 132kV",
+      "BSP": "Deptford 22kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 22,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 14.2,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1,
+          "generationBudgetEstimatesProvidedCapacity": 1,
+          "generationBudgetEstimatesProvidedCount": 1,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 1.5
+        }
+      ]
+    },
+    {
+      "mRID": "5ebf1b47-702e-5f9a-8cf7-c911c0cb8cde",
+      "name": "Dermody Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.004341665754478693,
+      "latitude": 51.45688763505544,
+      "demandFirmCapacity": 35.5,
+      "demandAvailableCapacity": 9.8,
+      "demandMaximum": 25.5,
+      "demandMinimum": 7.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 38,
+      "generationAvailableCapacity": 37.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 35.5,
+      "reversePowerFlowAvailableCapacity": 35.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hurst",
+      "BSP": "Eltham Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 41.9,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 9,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 2.8
+        }
+      ]
+    },
+    {
+      "mRID": "56c3b8a6-d24a-5662-b142-1dcaadf35b8a",
+      "name": "Devonshire Square 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.07974740429448282,
+      "latitude": 51.51637932663671,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 67,
+      "demandMaximum": 85.3,
+      "demandMinimum": 28.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 200.5,
+      "generationAvailableCapacity": 196.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 9,
+          "loadConnectionOffersMadeCapacity": 13.4
+        }
+      ]
+    },
+    {
+      "mRID": "e42eef62-7be9-5a7b-bc35-5b9d67822350",
+      "name": "Duke St B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1516753222274129,
+      "latitude": 51.51299060549122,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 56.6,
+      "demandMaximum": 95.7,
+      "demandMinimum": 34.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 231.8,
+      "generationAvailableCapacity": 217.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 10,
+          "loadConnectionOffersMadeCapacity": 27.8,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 7
+        }
+      ]
+    },
+    {
+      "mRID": "d4528c1c-9a80-59b2-8da2-82829cb7caa7",
+      "name": "Dukes Ave 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2519356447632016,
+      "latitude": 51.40437618955197,
+      "demandFirmCapacity": 37,
+      "demandAvailableCapacity": 9,
+      "demandMaximum": 28.1,
+      "demandMinimum": 8.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 39.7,
+      "generationAvailableCapacity": 37.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 37,
+      "reversePowerFlowAvailableCapacity": 37,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV"
+    },
+    {
+      "mRID": "b429dcc5-4b5c-500f-b70d-98d992439b8b",
+      "name": "Durnsford Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1916267631145282,
+      "latitude": 51.4302947732222,
+      "demandFirmCapacity": 51.6,
+      "demandAvailableCapacity": 15.2,
+      "demandMaximum": 36.2,
+      "demandMinimum": 10,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 54.7,
+      "generationAvailableCapacity": 47.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 51.6,
+      "reversePowerFlowAvailableCapacity": 51.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 7,
+          "loadConnectionOffersMadeCapacity": 15.9,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.2
+        }
+      ]
+    },
+    {
+      "mRID": "90ea4004-9213-530c-a4de-b939bd03e665",
+      "name": "Ebury Bridge 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.148815776959678,
+      "latitude": 51.49061164594838,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 49.1,
+      "demandMaximum": 85.2,
+      "demandMinimum": 34.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 215.5,
+      "generationAvailableCapacity": 204.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 5.4,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 11.2,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.2
+        }
+      ]
+    },
+    {
+      "mRID": "8ca4d7c1-d0ee-509e-943e-15ffa25bffa9",
+      "name": "Edwards Lane C 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.08384544308230156,
+      "latitude": 51.56266901258122,
+      "demandFirmCapacity": 81.9,
+      "demandAvailableCapacity": 26.6,
+      "demandMaximum": 55.3,
+      "demandMinimum": 12.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 115.4,
+      "generationAvailableCapacity": 113.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 81.9,
+      "reversePowerFlowAvailableCapacity": 81.9,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 66kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 2,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 4.3
+        }
+      ]
+    },
+    {
+      "mRID": "4a42972d-a8cb-5e4e-bf7c-41ae40a1583f",
+      "name": "Eltham Grid 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.05837282149522122,
+      "latitude": 51.45104847217785,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 12,
+      "demandMaximum": 46.2,
+      "demandMinimum": 13.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 59.9,
+      "generationAvailableCapacity": 57.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hurst",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 2.5,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 11.3,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2
+        }
+      ]
+    },
+    {
+      "mRID": "ee42e34c-6f92-5e68-8f3c-83725aeac886",
+      "name": "Eltham Grid 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.08046792282840418,
+      "latitude": 51.45983615108305,
+      "demandFirmCapacity": 135,
+      "demandAvailableCapacity": 48,
+      "demandMaximum": 85.9,
+      "demandMinimum": 28.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 117.5,
+      "generationAvailableCapacity": 109.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 135,
+      "reversePowerFlowAvailableCapacity": 135,
+      "voltages": [
+        33
+      ],
+      "GSP": "Hurst",
+      "BSP": "Eltham Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadBudgetEstimatesProvidedCapacity": 12,
+          "loadBudgetEstimatesProvidedCount": 1
+        }
+      ]
+    },
+    {
+      "mRID": "25ef9b03-5ec3-50fe-bf11-7e03869c17d3",
+      "name": "Eltham High St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.05837282149522122,
+      "latitude": 51.45104847217785,
+      "demandFirmCapacity": 39,
+      "demandAvailableCapacity": 12,
+      "demandMaximum": 24.7,
+      "demandMinimum": 8.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 39.9,
+      "generationAvailableCapacity": 38.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 39,
+      "reversePowerFlowAvailableCapacity": 39,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hurst",
+      "BSP": "Eltham Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 2,
+          "loadBudgetEstimatesProvidedCount": 1
+        }
+      ]
+    },
+    {
+      "mRID": "7d69aad9-bfba-5671-bdba-4aa0e717708d",
+      "name": "Epping New Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.03010321044099129,
+      "latitude": 51.62716519365866,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 14.8,
+      "demandMaximum": 43.7,
+      "demandMinimum": 13.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 60.6,
+      "generationAvailableCapacity": 56.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Brimsdown",
+      "BSP": "Buckhurst Hill 33kV via Brimsdown",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 5.9,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.5
+        }
+      ]
+    },
+    {
+      "mRID": "bf85d170-922a-517f-bb91-c9f443aef343",
+      "name": "Erith 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.1782329523570836,
+      "latitude": 51.48183045624631,
+      "demandFirmCapacity": 24,
+      "demandAvailableCapacity": 9.1,
+      "demandMaximum": 14.8,
+      "demandMinimum": 1.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 52.8,
+      "generationAvailableCapacity": 30.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 24,
+      "reversePowerFlowAvailableCapacity": 24,
+      "voltages": [
+        11
+      ],
+      "GSP": "Littlebrook",
+      "BSP": "Dartford Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 10,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.5
+        }
+      ]
+    },
+    {
+      "mRID": "4bf5e69d-d20d-5581-bcb9-39eaddcf400e",
+      "name": "Exeter Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.02156763284134068,
+      "latitude": 51.58207857897923,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 17.6,
+      "demandMaximum": 40.4,
+      "demandMinimum": 12.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 68.1,
+      "generationAvailableCapacity": 57.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 66kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 2.5
+        }
+      ]
+    },
+    {
+      "mRID": "32c497fb-cdd0-5a2a-89be-34c0c9e67b97",
+      "name": "Fairlop Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.0839818509576344,
+      "latitude": 51.59302205264262,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 23.2,
+      "demandMaximum": 34.2,
+      "demandMinimum": 10.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 58.6,
+      "generationAvailableCapacity": 55.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Brimsdown",
+      "BSP": "Buckhurst Hill 33kV via Brimsdown",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4.3,
+          "loadBudgetEstimatesProvidedCount": 1
+        }
+      ]
+    },
+    {
+      "mRID": "16926fcf-6666-509a-a047-f278dfd9be3b",
+      "name": "Farjeon Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.03748731194878922,
+      "latitude": 51.47274932732036,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 20.1,
+      "demandMaximum": 34.5,
+      "demandMinimum": 11.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 63.1,
+      "generationAvailableCapacity": 56.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hurst",
+      "BSP": "Eltham Grid 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 3,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 8,
+          "loadConnectionOffersMadeCapacity": 10.3,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "5efe54db-0ca5-52ee-bac7-860e0fd7f107",
+      "name": "Finsbury Market B 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.08302372902537115,
+      "latitude": 51.5212937631054,
+      "demandFirmCapacity": 90,
+      "demandAvailableCapacity": 58.4,
+      "demandMaximum": 31.3,
+      "demandMinimum": 11.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 103.4,
+      "generationAvailableCapacity": 102.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 90,
+      "reversePowerFlowAvailableCapacity": 90,
+      "voltages": [
+        33
+      ],
+      "GSP": "City Road",
+      "BSP": "Finsbury Market B 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 14,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.5
+        }
+      ]
+    },
+    {
+      "mRID": "3fc08eac-36d3-520c-ae4e-8482300f6d31",
+      "name": "Finsbury Mkt A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.08229,
+      "latitude": 51.521099,
+      "demandFirmCapacity": 45,
+      "demandAvailableCapacity": 25.7,
+      "demandMaximum": 19.3,
+      "demandMinimum": 6.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 53.2,
+      "generationAvailableCapacity": 52.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 45,
+      "reversePowerFlowAvailableCapacity": 45,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Finsbury Market A"
+    },
+    {
+      "mRID": "5e9b6806-4496-5850-8f54-3b6fed9286f3",
+      "name": "Finsbury Mkt D 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.083031,
+      "latitude": 51.521291,
+      "demandFirmCapacity": 30,
+      "demandAvailableCapacity": 11.8,
+      "demandMaximum": 18.2,
+      "demandMinimum": 5.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 37.7,
+      "generationAvailableCapacity": 37.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 30,
+      "reversePowerFlowAvailableCapacity": 30,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Finsbury Market B 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 7.3,
+          "loadBudgetEstimatesProvidedCount": 2
+        }
+      ]
+    },
+    {
+      "mRID": "99e2d4e5-5024-5d8d-ba68-cbfe54eb4b49",
+      "name": "Finsbury Mkt E 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.0831,
+      "latitude": 51.521031,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 64.5,
+      "demandMaximum": 87.9,
+      "demandMinimum": 36.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 228.5,
+      "generationAvailableCapacity": 227.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 13.2,
+          "loadBudgetEstimatesProvidedCount": 4,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 7.4
+        }
+      ]
+    },
+    {
+      "mRID": "3a286132-dcc1-5b5f-9df1-ebcb844a45b5",
+      "name": "Finsbury Mkt F 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.083302,
+      "latitude": 51.521367,
+      "demandFirmCapacity": 180,
+      "demandAvailableCapacity": 111.3,
+      "demandMaximum": 68.7,
+      "demandMinimum": 26.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 210.3,
+      "generationAvailableCapacity": 206.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 180,
+      "reversePowerFlowAvailableCapacity": 180,
+      "voltages": [
+        33
+      ],
+      "GSP": "City Road",
+      "BSP": "Finsbury Market F 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadBudgetEstimatesProvidedCapacity": 77.1,
+          "loadBudgetEstimatesProvidedCount": 8,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 29.4
+        }
+      ]
+    },
+    {
+      "mRID": "3b983951-abe6-5055-910e-6cbe27079f91",
+      "name": "Fisher St B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1198381233516491,
+      "latitude": 51.51838426625119,
+      "demandFirmCapacity": 86.6,
+      "demandAvailableCapacity": 47.3,
+      "demandMaximum": 39.2,
+      "demandMinimum": 13,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 80.5,
+      "generationAvailableCapacity": 79.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 86.6,
+      "reversePowerFlowAvailableCapacity": 86.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 3.1
+        }
+      ]
+    },
+    {
+      "mRID": "d3c69c9d-1167-572f-a79c-0c091fd4ff26",
+      "name": "Forest Hill 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.06084609220059164,
+      "latitude": 51.44723569626212,
+      "demandFirmCapacity": 37.6,
+      "demandAvailableCapacity": 14.1,
+      "demandMaximum": 23,
+      "demandMinimum": 7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 38.3,
+      "generationAvailableCapacity": 37.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 37.6,
+      "reversePowerFlowAvailableCapacity": 37.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "Beddington",
+      "BSP": "Sydenham Park 33kV"
+    },
+    {
+      "mRID": "3157abf1-b595-5b0d-a9eb-3ee93f80f7ad",
+      "name": "Fulham Palace Rd C 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2214920135654709,
+      "latitude": 51.49046716869549,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 67,
+      "demandMaximum": 85.4,
+      "demandMinimum": 34.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 196.2,
+      "generationAvailableCapacity": 194.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "Willesden 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 7.4,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 16.8,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 3.7
+        }
+      ]
+    },
+    {
+      "mRID": "3058158d-c584-57f4-aa2d-fdb955014e1f",
+      "name": "Georgiana St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1371365097537653,
+      "latitude": 51.53960012312887,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 90.9,
+      "demandMaximum": 61.4,
+      "demandMinimum": 23.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 195.1,
+      "generationAvailableCapacity": 189.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "Islington",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 6,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 9,
+          "loadConnectionOffersMadeCapacity": 58.2,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 7.2
+        }
+      ]
+    },
+    {
+      "mRID": "7ec3d7e8-49cb-56c8-aef5-09e07dcb282e",
+      "name": "Gibbons Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2564099420848079,
+      "latitude": 51.54634992014502,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 94.5,
+      "demandMaximum": 53,
+      "demandMinimum": 20.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 195,
+      "generationAvailableCapacity": 189.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "Willesden 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 83.2,
+          "loadBudgetEstimatesProvidedCount": 14,
+          "loadConnectionOffersMadeCount": 15,
+          "loadConnectionOffersMadeCapacity": 33.3,
+          "loadConnectionOffersAcceptedCount": 8,
+          "loadConnectionOffersAcceptedCapacity": 49.8
+        }
+      ]
+    },
+    {
+      "mRID": "f2cb71f1-2bba-51a4-9089-f6939682c5fd",
+      "name": "Glaucus St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.0178688751727454,
+      "latitude": 51.51962473595879,
+      "demandFirmCapacity": 39,
+      "demandAvailableCapacity": 10.4,
+      "demandMaximum": 28.5,
+      "demandMinimum": 11.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 52.8,
+      "generationAvailableCapacity": 50.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 39,
+      "reversePowerFlowAvailableCapacity": 39,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "West Ham 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 28.3,
+          "loadBudgetEstimatesProvidedCount": 4,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 39.4
+        }
+      ]
+    },
+    {
+      "mRID": "9c8f0127-084f-5db7-b48a-97196278ebe1",
+      "name": "Gorringe Park 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1563952462334924,
+      "latitude": 51.41140886724502,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 19,
+      "demandMaximum": 37.4,
+      "demandMinimum": 12.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 61.7,
+      "generationAvailableCapacity": 57,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 6,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.2
+        }
+      ]
+    },
+    {
+      "mRID": "7034330c-a8a5-5065-ad35-dd667a6f745a",
+      "name": "Grove Lodge 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.02440427419696149,
+      "latitude": 51.59537943410758,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 27.2,
+      "demandMaximum": 31.1,
+      "demandMinimum": 7.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 54.6,
+      "generationAvailableCapacity": 52.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Brimsdown",
+      "BSP": "Buckhurst Hill 33kV via Brimsdown",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 60
+        }
+      ]
+    },
+    {
+      "mRID": "9895872e-1236-5734-ab3a-409530ba2f9c",
+      "name": "Hackney C 6.6kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.04066631809700926,
+      "latitude": 51.55845875932821,
+      "demandFirmCapacity": 53.6,
+      "demandAvailableCapacity": 16.7,
+      "demandMaximum": 36.9,
+      "demandMinimum": 12.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Voltage",
+      "generationFirmCapacity": 44.2,
+      "generationAvailableCapacity": 41.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Voltage",
+      "reversePowerFlowTotalCapacity": 26.8,
+      "reversePowerFlowAvailableCapacity": 26.8,
+      "voltages": [
+        6.6
+      ],
+      "GSP": "Hackney 66kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 6.6,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.3
+        }
+      ]
+    },
+    {
+      "mRID": "ba9b9464-b003-505a-9a1e-a905c8cf72cc",
+      "name": "Hackney Grid 66kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.04066631809700926,
+      "latitude": 51.55845875932821,
+      "demandFirmCapacity": 234,
+      "demandAvailableCapacity": 92.5,
+      "demandMaximum": 109.4,
+      "demandMinimum": 38.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 231.5,
+      "generationAvailableCapacity": 218.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 234,
+      "reversePowerFlowAvailableCapacity": 234,
+      "voltages": [
+        66
+      ],
+      "GSP": "Hackney 132kV",
+      "BSP": "Hackney Grid 66kV Black Bar"
+    },
+    {
+      "mRID": "c4340a12-b2f9-51ef-b99d-8f66005d3785",
+      "name": "Hatchard Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1262709950175478,
+      "latitude": 51.56579763191739,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 12.5,
+      "demandMaximum": 45.7,
+      "demandMinimum": 15.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 67.6,
+      "generationAvailableCapacity": 60.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Islington",
+      "BSP": "Holloway Grid 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 10,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1.2,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 7
+        }
+      ]
+    },
+    {
+      "mRID": "9d6a4785-62de-538f-9957-b92125221b20",
+      "name": "Hearn St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.07973642584765321,
+      "latitude": 51.52239435733162,
+      "demandFirmCapacity": 51,
+      "demandAvailableCapacity": 26.7,
+      "demandMaximum": 20.4,
+      "demandMinimum": 7.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 43.7,
+      "generationAvailableCapacity": 43,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 51,
+      "reversePowerFlowAvailableCapacity": 51,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 132kV",
+      "BSP": "Hackney Grid 66kV Black Bar",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 2.5
+        }
+      ]
+    },
+    {
+      "mRID": "923a8918-0eb3-54e8-becb-1f0eb61bdc63",
+      "name": "Holloway 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1153913302179763,
+      "latitude": 51.55273135290612,
+      "demandFirmCapacity": 76.2,
+      "demandAvailableCapacity": 29.5,
+      "demandMaximum": 46.7,
+      "demandMinimum": 14.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 101.3,
+      "generationAvailableCapacity": 99.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 76.2,
+      "reversePowerFlowAvailableCapacity": 76.2,
+      "voltages": [
+        11
+      ],
+      "GSP": "Islington",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 6.5,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 9.5,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 4.5
+        }
+      ]
+    },
+    {
+      "mRID": "41bcfdb8-db21-5d46-87c6-f12ceee7814c",
+      "name": "Holloway Grid 66kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1153913302179763,
+      "latitude": 51.55273135290612,
+      "demandFirmCapacity": 78,
+      "demandAvailableCapacity": 27.9,
+      "demandMaximum": 43.4,
+      "demandMinimum": 14.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 83.2,
+      "generationAvailableCapacity": 75.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 78,
+      "reversePowerFlowAvailableCapacity": 78,
+      "voltages": [
+        66
+      ],
+      "GSP": "Islington",
+      "BSP": "Holloway Grid 66kV"
+    },
+    {
+      "mRID": "678f0ca8-0f46-5107-af52-7a4b602d25e9",
+      "name": "Hyde Park Estate A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1673910529702168,
+      "latitude": 51.51616951371597,
+      "demandFirmCapacity": 44.9,
+      "demandAvailableCapacity": 2.8,
+      "demandMaximum": 42.2,
+      "demandMinimum": 17,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 72.4,
+      "generationAvailableCapacity": 69,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 44.9,
+      "reversePowerFlowAvailableCapacity": 44.9,
+      "voltages": [
+        11
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 3,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 1.2
+        }
+      ]
+    },
+    {
+      "mRID": "3a712775-0033-53b4-8e6e-99190d41698c",
+      "name": "Hyde Park Estate B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1670409812771579,
+      "latitude": 51.51593030688927,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 17.9,
+      "demandMaximum": 32.9,
+      "demandMinimum": 10.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 55.7,
+      "generationAvailableCapacity": 55.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 2.5,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 7,
+          "loadConnectionOffersMadeCapacity": 14.2,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "64f5d7d7-d1ce-5fec-a9da-0037ab27b3e5",
+      "name": "Imperial College 6.6kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1763562710198442,
+      "latitude": 51.49879902592438,
+      "demandFirmCapacity": 30,
+      "demandAvailableCapacity": 10.1,
+      "demandMaximum": 19.9,
+      "demandMinimum": 6.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 36.8,
+      "generationAvailableCapacity": 36.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 30,
+      "reversePowerFlowAvailableCapacity": 30,
+      "voltages": [
+        6.6
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Moscow Road 22kV"
+    },
+    {
+      "mRID": "f1e0fe56-6203-5cbe-8db4-312f69f993a0",
+      "name": "Kimberley Rd B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.205821525073472,
+      "latitude": 51.54100735621727,
+      "demandFirmCapacity": 45.1,
+      "demandAvailableCapacity": 8.8,
+      "demandMaximum": 36.3,
+      "demandMinimum": 13,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 39.4,
+      "generationAvailableCapacity": 38.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 22.5,
+      "reversePowerFlowAvailableCapacity": 22.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Acton Lane 22kV",
+      "BSP": "Direct"
+    },
+    {
+      "mRID": "23bba7f1-277e-52a9-8486-789d9d3b601c",
+      "name": "King Henry's Walk 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.082677,
+      "latitude": 51.546896,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 11.4,
+      "demandMaximum": 44.8,
+      "demandMinimum": 13.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 64.1,
+      "generationAvailableCapacity": 58.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 132kV",
+      "BSP": "Hackney Grid 66kV Black Bar",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 1.3,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1.4,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "94a715f0-3abf-5b54-96cc-50fed91f688d",
+      "name": "Kings Yard A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.0187705620978606,
+      "latitude": 51.54340874450986,
+      "demandFirmCapacity": 86,
+      "demandAvailableCapacity": 57.5,
+      "demandMaximum": 28.5,
+      "demandMinimum": 5.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 7.1,
+      "generationAvailableCapacity": 6.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 86,
+      "reversePowerFlowAvailableCapacity": 86,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 132kV",
+      "BSP": "Bow GIS 132kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 13.3,
+          "loadBudgetEstimatesProvidedCount": 4,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 14.5,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 10.9,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 1.1
+        }
+      ]
+    },
+    {
+      "mRID": "c8e4d274-b417-51f9-a23a-f809fcf682df",
+      "name": "Kings Yard B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.01948899678456195,
+      "latitude": 51.54338739198083,
+      "demandFirmCapacity": 86,
+      "demandAvailableCapacity": 80.9,
+      "demandMaximum": 5.1,
+      "demandMinimum": 2.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 35.8,
+      "generationAvailableCapacity": 35.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 86,
+      "reversePowerFlowAvailableCapacity": 86,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 6.5,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 22.2
+        }
+      ]
+    },
+    {
+      "mRID": "c0c28c82-2a47-5d59-b40e-4a4d5bc123cb",
+      "name": "Kingsway 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.119551392500992,
+      "latitude": 51.51486581702996,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 26.5,
+      "demandMaximum": 22.8,
+      "demandMinimum": 7.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 55.2,
+      "generationAvailableCapacity": 53,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Back Hill 33kV Total",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.2
+        }
+      ]
+    },
+    {
+      "mRID": "0d001646-cac4-5fc3-b8e8-0613ad9201b8",
+      "name": "Leicester Sq 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1299737742045787,
+      "latitude": 51.51012721325993,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 50.4,
+      "demandMaximum": 102.2,
+      "demandMinimum": 34.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 208.9,
+      "generationAvailableCapacity": 207.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 12.4,
+          "loadBudgetEstimatesProvidedCount": 3,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 6
+        }
+      ]
+    },
+    {
+      "mRID": "0f71177d-31b9-54b0-aed7-ae65a405bcad",
+      "name": "Ley St B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.08433308437897523,
+      "latitude": 51.56866338249501,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 13.7,
+      "demandMaximum": 44.8,
+      "demandMinimum": 11.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 52.3,
+      "generationAvailableCapacity": 49,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Redbridge",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 11.7,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 4
+        }
+      ]
+    },
+    {
+      "mRID": "fa36c869-0472-516e-b867-2a28cdb6b6ca",
+      "name": "Limeburner Ln 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1031212548481129,
+      "latitude": 51.51484095758129,
+      "demandFirmCapacity": 173.2,
+      "demandAvailableCapacity": 130.5,
+      "demandMaximum": 42.5,
+      "demandMinimum": 15.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 186.4,
+      "generationAvailableCapacity": 184.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 173.2,
+      "reversePowerFlowAvailableCapacity": 173.2,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 10.2,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 1.2
+        }
+      ]
+    },
+    {
+      "mRID": "d9f5dad4-6ff8-591e-ad0b-368e352a705c",
+      "name": "Lithos Rd A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1860115833085073,
+      "latitude": 51.54882163013844,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 5.6,
+      "demandMaximum": 52.9,
+      "demandMinimum": 15.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 43.3,
+      "generationAvailableCapacity": 36.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 29.2,
+      "reversePowerFlowAvailableCapacity": 29.2,
+      "voltages": [
+        11
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.8
+        }
+      ]
+    },
+    {
+      "mRID": "96af807d-3ed2-575f-a9f8-fd0ecf1d44a3",
+      "name": "Lombard Rd B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1771840874371074,
+      "latitude": 51.47056131152812,
+      "demandFirmCapacity": 97.5,
+      "demandAvailableCapacity": 34.2,
+      "demandMaximum": 62.6,
+      "demandMinimum": 19.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 95,
+      "generationAvailableCapacity": 93.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 97.5,
+      "reversePowerFlowAvailableCapacity": 97.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wandsworth Grid 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 1.6,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 5.5,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 5.9
+        }
+      ]
+    },
+    {
+      "mRID": "deed13d1-9324-593c-be00-46c9852f6afa",
+      "name": "Longford St B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1417423079339149,
+      "latitude": 51.52523280031979,
+      "demandFirmCapacity": 152.4,
+      "demandAvailableCapacity": 56.8,
+      "demandMaximum": 95.4,
+      "demandMinimum": 42.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 216.3,
+      "generationAvailableCapacity": 210.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 152.4,
+      "reversePowerFlowAvailableCapacity": 152.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 28.9,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 10.8,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.5
+        }
+      ]
+    },
+    {
+      "mRID": "bb07aeef-6383-5e68-a7f6-7ad941f9e4b7",
+      "name": "Merton 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1894819778023327,
+      "latitude": 51.41015384333817,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 7.6,
+      "demandMaximum": 50.9,
+      "demandMinimum": 14.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 63.2,
+      "generationAvailableCapacity": 60.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 43.3,
+          "loadBudgetEstimatesProvidedCount": 5,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2
+        }
+      ]
+    },
+    {
+      "mRID": "caea78fd-7068-59d0-8e6d-1f83e3c20886",
+      "name": "Montford Place B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1135584621779096,
+      "latitude": 51.48553355141942,
+      "demandFirmCapacity": 82.4,
+      "demandAvailableCapacity": 30.7,
+      "demandMaximum": 51.7,
+      "demandMinimum": 23.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 114.2,
+      "generationAvailableCapacity": 112.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 82.4,
+      "reversePowerFlowAvailableCapacity": 82.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 1&2 132kV",
+      "BSP": "Bengeworth Road 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 3,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 7,
+          "loadConnectionOffersMadeCapacity": 13.9,
+          "loadConnectionOffersAcceptedCount": 4,
+          "loadConnectionOffersAcceptedCapacity": 7.6
+        }
+      ]
+    },
+    {
+      "mRID": "5bda83fe-f41c-563f-84ec-30c9f3fd3dfb",
+      "name": "Moreton Street 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1348969579953747,
+      "latitude": 51.49006691503009,
+      "demandFirmCapacity": 88.6,
+      "demandAvailableCapacity": 33.5,
+      "demandMaximum": 36,
+      "demandMinimum": 14.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 132.7,
+      "generationAvailableCapacity": 125.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 44.3,
+      "reversePowerFlowAvailableCapacity": 44.3,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wandsworth Grid 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 22.9,
+          "loadBudgetEstimatesProvidedCount": 7,
+          "loadConnectionOffersMadeCount": 11,
+          "loadConnectionOffersMadeCapacity": 17.2,
+          "loadConnectionOffersAcceptedCount": 7,
+          "loadConnectionOffersAcceptedCapacity": 11.4
+        }
+      ]
+    },
+    {
+      "mRID": "5bcb3c14-bd07-5ce3-9db1-4d70b9335123",
+      "name": "Moreton Street 11kV GT5 GT6",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1348969579953747,
+      "latitude": 51.49006691503009,
+      "demandFirmCapacity": 86.5,
+      "demandAvailableCapacity": 72.4,
+      "demandMaximum": 14.1,
+      "demandMinimum": 5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 71.6,
+      "generationAvailableCapacity": 71.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 66.6,
+      "reversePowerFlowAvailableCapacity": 66.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Direct"
+    },
+    {
+      "mRID": "d50d3bfa-bc77-5d54-b81f-8b882e6e364c",
+      "name": "Moscow Rd 22kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.190478382728384,
+      "latitude": 51.51264493292708,
+      "demandFirmCapacity": 162.1,
+      "demandAvailableCapacity": 69.7,
+      "demandMaximum": 75,
+      "demandMinimum": 27.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 165.1,
+      "generationAvailableCapacity": 164.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 162.1,
+      "reversePowerFlowAvailableCapacity": 162.1,
+      "voltages": [
+        22
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Moscow Road 22kV"
+    },
+    {
+      "mRID": "5c35b334-7096-57fa-b380-c7e7d87d3847",
+      "name": "Moscow Rd 6.6kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.190478382728384,
+      "latitude": 51.51264493292708,
+      "demandFirmCapacity": 41.1,
+      "demandAvailableCapacity": 17.3,
+      "demandMaximum": 23.8,
+      "demandMinimum": 7.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 24.8,
+      "generationAvailableCapacity": 24.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 20.6,
+      "reversePowerFlowAvailableCapacity": 20.6,
+      "voltages": [
+        6.6
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Moscow Road 22kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 6.6,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 2.3
+        }
+      ]
+    },
+    {
+      "mRID": "1b60c3a8-be30-5ba6-8b77-16559a89d796",
+      "name": "Neckinger 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.07371016725142755,
+      "latitude": 51.49641115586081,
+      "demandFirmCapacity": 47.3,
+      "demandAvailableCapacity": 11.5,
+      "demandMaximum": 35.5,
+      "demandMinimum": 11.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 35.1,
+      "generationAvailableCapacity": 33.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 23.7,
+      "reversePowerFlowAvailableCapacity": 23.7,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 132kV",
+      "BSP": "Deptford 22kV"
+    },
+    {
+      "mRID": "795ab20f-9405-5f38-9eda-566763f08634",
+      "name": "Nelson St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.05838704240880147,
+      "latitude": 51.532630525145,
+      "demandFirmCapacity": 36,
+      "demandAvailableCapacity": 6.9,
+      "demandMaximum": 26,
+      "demandMinimum": 7.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 53.4,
+      "generationAvailableCapacity": 52.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 36,
+      "reversePowerFlowAvailableCapacity": 36,
+      "voltages": [
+        11
+      ],
+      "GSP": "Barking C 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 34.3,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 33.3,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 5
+        }
+      ]
+    },
+    {
+      "mRID": "97b4b503-b95a-5462-a488-42790f56a614",
+      "name": "Newington House B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09969878338013342,
+      "latitude": 51.49798685715332,
+      "demandFirmCapacity": 56.4,
+      "demandAvailableCapacity": 15.9,
+      "demandMaximum": 36.6,
+      "demandMinimum": 9.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 58.5,
+      "generationAvailableCapacity": 55.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 56.4,
+      "reversePowerFlowAvailableCapacity": 56.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Bankside D Total",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 2,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 8,
+          "loadConnectionOffersMadeCapacity": 17.5,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "4725022f-08f2-54b4-92e6-6ab98d342bd9",
+      "name": "North Cross Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.07457138347464597,
+      "latitude": 51.45761032735967,
+      "demandFirmCapacity": 39,
+      "demandAvailableCapacity": 11.9,
+      "demandMaximum": 27.1,
+      "demandMinimum": 6.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 37.4,
+      "generationAvailableCapacity": 36.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 39,
+      "reversePowerFlowAvailableCapacity": 39,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 66kV",
+      "BSP": "Chadwick Road 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 3.5
+        }
+      ]
+    },
+    {
+      "mRID": "60308a22-4c0d-54e9-82c9-4a9249753ac5",
+      "name": "Old Brompton Rd B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1946804029716414,
+      "latitude": 51.4869369892855,
+      "demandFirmCapacity": 157.5,
+      "demandAvailableCapacity": 73.8,
+      "demandMaximum": 83.7,
+      "demandMinimum": 36,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 202.1,
+      "generationAvailableCapacity": 198.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 157.5,
+      "reversePowerFlowAvailableCapacity": 157.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 13.7,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 12
+        }
+      ]
+    },
+    {
+      "mRID": "ff58fbc9-1042-5c63-a141-905b2b5c6b81",
+      "name": "Old School Close 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.007289486234935473,
+      "latitude": 51.49506028168552,
+      "demandFirmCapacity": 86.7,
+      "demandAvailableCapacity": 70.4,
+      "demandMaximum": 16,
+      "demandMinimum": 4.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 108,
+      "generationAvailableCapacity": 105.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 86.7,
+      "reversePowerFlowAvailableCapacity": 86.7,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 41.7,
+          "loadBudgetEstimatesProvidedCount": 4,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 6.1,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.5
+        }
+      ]
+    },
+    {
+      "mRID": "baee4145-87e7-524d-88e4-213eb8be28ee",
+      "name": "Osborn St B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.07076370371366057,
+      "latitude": 51.51680885899233,
+      "demandFirmCapacity": 173.1,
+      "demandAvailableCapacity": 137,
+      "demandMaximum": 38.4,
+      "demandMinimum": 16.5,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 169.2,
+      "generationAvailableCapacity": 162.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 173.1,
+      "reversePowerFlowAvailableCapacity": 173.1,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 13.5,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2.3
+        }
+      ]
+    },
+    {
+      "mRID": "fb9be826-c950-5866-aab8-51b24616af67",
+      "name": "Paternoster 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1004690683203644,
+      "latitude": 51.51433427624548,
+      "demandFirmCapacity": 36.5,
+      "demandAvailableCapacity": 11.4,
+      "demandMaximum": 25.1,
+      "demandMinimum": 10.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 12.4,
+      "generationAvailableCapacity": 11.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 36.5,
+      "reversePowerFlowAvailableCapacity": 36.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "City Road",
+      "BSP": "Finsbury Market F 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 10,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 4.3
+        }
+      ]
+    },
+    {
+      "mRID": "3681175c-f1c0-50dc-9ef5-60d2778a23d8",
+      "name": "Sewell Rd B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.1124442703258976,
+      "latitude": 51.49757503693612,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 9.6,
+      "demandMaximum": 48.4,
+      "demandMinimum": 17.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 79.8,
+      "generationAvailableCapacity": 63.3,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Barking West 33kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 18.5,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 20.1,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 4
+        }
+      ]
+    },
+    {
+      "mRID": "174e6969-5f6e-5111-8375-346d589b7b6a",
+      "name": "Shorts Gdns 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.123754909917124,
+      "latitude": 51.51528343791121,
+      "demandFirmCapacity": 37,
+      "demandAvailableCapacity": 11.4,
+      "demandMaximum": 20.4,
+      "demandMinimum": 6.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 22.6,
+      "generationAvailableCapacity": 22.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 18.5,
+      "reversePowerFlowAvailableCapacity": 18.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "St Johns Wood 22kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4.1,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 2,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "569bbf4f-64bd-5b97-b393-e82c72641c32",
+      "name": "Silvertown B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.04359742698250849,
+      "latitude": 51.50360127357163,
+      "demandFirmCapacity": 78,
+      "demandAvailableCapacity": 26.6,
+      "demandMaximum": 42.7,
+      "demandMinimum": 11.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 113.5,
+      "generationAvailableCapacity": 87.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 78,
+      "reversePowerFlowAvailableCapacity": 78,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "West Ham 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 3
+        }
+      ]
+    },
+    {
+      "mRID": "8425cbe3-3b4e-5d68-a428-baa8340fa9f4",
+      "name": "Simpsons Road 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.01716402714971516,
+      "latitude": 51.50821402636343,
+      "demandFirmCapacity": 157.3,
+      "demandAvailableCapacity": 56.8,
+      "demandMaximum": 89.1,
+      "demandMinimum": 40.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 217.9,
+      "generationAvailableCapacity": 209.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 157.3,
+      "reversePowerFlowAvailableCapacity": 157.3,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 4,
+          "loadConnectionOffersMadeCapacity": 26,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 2.5
+        }
+      ]
+    },
+    {
+      "mRID": "de901276-f082-584e-b21c-332941b1809f",
+      "name": "South Bank 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1144859887846892,
+      "latitude": 51.50571317437537,
+      "demandFirmCapacity": 58.6,
+      "demandAvailableCapacity": 21.9,
+      "demandMaximum": 24.8,
+      "demandMinimum": 11,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 52.5,
+      "generationAvailableCapacity": 52.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.6,
+      "reversePowerFlowAvailableCapacity": 58.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 66kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 4.7,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 1,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 3
+        }
+      ]
+    },
+    {
+      "mRID": "5675dd0a-0d8f-55bb-be05-0d0df628beaf",
+      "name": "St Johns Wood 22kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1717323367667396,
+      "latitude": 51.52716044316855,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 26.8,
+      "demandMaximum": 20.8,
+      "demandMinimum": 6.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 52.5,
+      "generationAvailableCapacity": 52,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        22
+      ],
+      "GSP": "St Johns Wood",
+      "BSP": "St Johns Wood 22kV"
+    },
+    {
+      "mRID": "b0e0b804-8604-59bf-93c7-c56b32a5a2b0",
+      "name": "Stewarts Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1418616201471637,
+      "latitude": 51.47592987562999,
+      "demandFirmCapacity": 86.5,
+      "demandAvailableCapacity": 77.8,
+      "demandMaximum": 8.6,
+      "demandMinimum": -0.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 106.2,
+      "generationAvailableCapacity": 102,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 86.5,
+      "reversePowerFlowAvailableCapacity": 86.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 19.5,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 26.5
+        }
+      ]
+    },
+    {
+      "mRID": "ebf61745-7be4-5967-8a40-4f576cf80c17",
+      "name": "Sydenham Park 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.05360360438006404,
+      "latitude": 51.43348772625469,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 17.4,
+      "demandMaximum": 41.1,
+      "demandMinimum": 12.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 59.1,
+      "generationAvailableCapacity": 56.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Beddington",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 7,
+          "loadConnectionOffersMadeCapacity": 11,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 6.2,
+          "generationConnectionOffersMadeCount": 1,
+          "generationConnectionOffersMadeCapacity": 2.8
+        }
+      ]
+    },
+    {
+      "mRID": "c78b1e63-e477-560d-811b-3f36a956c8df",
+      "name": "Sydenham Park 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.05339708400542116,
+      "latitude": 51.43318899469109,
+      "demandFirmCapacity": 149.2,
+      "demandAvailableCapacity": 48.9,
+      "demandMaximum": 100.3,
+      "demandMinimum": 28.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 167.6,
+      "generationAvailableCapacity": 160.6,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 149.2,
+      "reversePowerFlowAvailableCapacity": 149.2,
+      "voltages": [
+        33
+      ],
+      "GSP": "Beddington",
+      "BSP": "Sydenham Park 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 33,
+          "loadBudgetEstimatesProvidedCapacity": 12,
+          "loadBudgetEstimatesProvidedCount": 1
+        }
+      ]
+    },
+    {
+      "mRID": "ea6e1445-52a8-5a0f-906b-2c3f11b423cc",
+      "name": "Tooley St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.08273834969589867,
+      "latitude": 51.50469722371987,
+      "demandFirmCapacity": 38.1,
+      "demandAvailableCapacity": 13.3,
+      "demandMaximum": 24.8,
+      "demandMinimum": 5.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 47.4,
+      "generationAvailableCapacity": 44,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 38.1,
+      "reversePowerFlowAvailableCapacity": 38.1,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 11.5,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 4.6
+        }
+      ]
+    },
+    {
+      "mRID": "e2b9552d-8708-54cd-ac3c-6019d9043a49",
+      "name": "Townmead B 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1860549899721341,
+      "latitude": 51.46836158003736,
+      "demandFirmCapacity": 59.7,
+      "demandAvailableCapacity": 24,
+      "demandMaximum": 35.6,
+      "demandMinimum": 10.1,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 36.4,
+      "generationAvailableCapacity": 35.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 29.8,
+      "reversePowerFlowAvailableCapacity": 29.8,
+      "voltages": [
+        11
+      ],
+      "GSP": "Willesden Grid 66 kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 6,
+          "loadConnectionOffersMadeCapacity": 14.7,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "b9974da0-e7fe-5562-8e02-499c611bcfb8",
+      "name": "Trinity Crescent 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1577283296004905,
+      "latitude": 51.43757604518646,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 16.5,
+      "demandMaximum": 42,
+      "demandMinimum": 9.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 55.3,
+      "generationAvailableCapacity": 53.9,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "90f46582-2468-54bf-a340-496b961375fa",
+      "name": "Verney Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.06471578807124564,
+      "latitude": 51.48478131725843,
+      "demandFirmCapacity": 68.6,
+      "demandAvailableCapacity": 9.1,
+      "demandMaximum": 59.5,
+      "demandMinimum": 18.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 55.3,
+      "generationAvailableCapacity": 52.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 34.3,
+      "reversePowerFlowAvailableCapacity": 34.3,
+      "voltages": [
+        11
+      ],
+      "GSP": "New Cross 66kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 13,
+          "loadConnectionOffersMadeCapacity": 20.8,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.4
+        }
+      ]
+    },
+    {
+      "mRID": "4fecdff2-adb3-546f-9cea-4a73f1f55001",
+      "name": "Victoria Gdns 6.6kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1985177400911558,
+      "latitude": 51.5091946550644,
+      "demandFirmCapacity": 41.2,
+      "demandAvailableCapacity": 6.9,
+      "demandMaximum": 34.2,
+      "demandMinimum": 12.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 48.3,
+      "generationAvailableCapacity": 47.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 41.2,
+      "reversePowerFlowAvailableCapacity": 41.2,
+      "voltages": [
+        6.6
+      ],
+      "GSP": "Lodge Road",
+      "BSP": "Moscow Road 22kV"
+    },
+    {
+      "mRID": "e9f2c0c7-e32d-56af-9a49-93048899f45c",
+      "name": "Victoria St 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.09179044058190802,
+      "latitude": 51.5126834731309,
+      "demandFirmCapacity": 86.5,
+      "demandAvailableCapacity": 65.4,
+      "demandMaximum": 21,
+      "demandMinimum": 6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 124.6,
+      "generationAvailableCapacity": 108,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 86.5,
+      "reversePowerFlowAvailableCapacity": 86.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 6.4,
+          "loadBudgetEstimatesProvidedCount": 2,
+          "loadConnectionOffersMadeCount": 1,
+          "loadConnectionOffersMadeCapacity": 2.5,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 7.1
+        }
+      ]
+    },
+    {
+      "mRID": "6538dff4-fe10-5afb-8b48-5a2f1c35e5c0",
+      "name": "Wandsworth 66kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1928097928648138,
+      "latitude": 51.45353292544878,
+      "demandFirmCapacity": 351,
+      "demandAvailableCapacity": 126.2,
+      "demandMaximum": 185.4,
+      "demandMinimum": 64.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 355.8,
+      "generationAvailableCapacity": 338.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 351,
+      "reversePowerFlowAvailableCapacity": 351,
+      "voltages": [
+        66
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wandsworth Grid 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 66,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1.9
+        }
+      ]
+    },
+    {
+      "mRID": "35d461f5-2868-5c48-aae7-054185ac9179",
+      "name": "Wandsworth Central A 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1928097928648138,
+      "latitude": 51.45353292544878,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 14.5,
+      "demandMaximum": 42.2,
+      "demandMinimum": 12.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 36.7,
+      "generationAvailableCapacity": 35.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 29.2,
+      "reversePowerFlowAvailableCapacity": 29.2,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wandsworth Grid 66kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 3.7,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "c77ee74f-5c34-51e5-aa01-8bd5f89cfe75",
+      "name": "Waterloo Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.02381611499777928,
+      "latitude": 51.57030953823579,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 9.1,
+      "demandMaximum": 49.4,
+      "demandMinimum": 16,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 66.2,
+      "generationAvailableCapacity": 60.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Hackney 66kV",
+      "BSP": "Hackney Grid 66kV Black Bar",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 3,
+          "loadConnectionOffersMadeCapacity": 3.7,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 7,
+          "generationConnectionOffersAcceptedCount": 1,
+          "generationConnectionOffersAcceptedCapacity": 1.1
+        }
+      ]
+    },
+    {
+      "mRID": "df152726-c79f-5ee2-9468-8d88cf366bae",
+      "name": "West Ferry Circus 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.026393,
+      "latitude": 51.507015,
+      "demandFirmCapacity": 201.6,
+      "demandAvailableCapacity": 107.9,
+      "demandMaximum": 93.6,
+      "demandMinimum": 50.8,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 297.7,
+      "generationAvailableCapacity": 295.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 201.6,
+      "reversePowerFlowAvailableCapacity": 201.6,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 35.8,
+          "loadBudgetEstimatesProvidedCount": 5,
+          "loadConnectionOffersMadeCount": 5,
+          "loadConnectionOffersMadeCapacity": 24.5,
+          "loadConnectionOffersAcceptedCount": 3,
+          "loadConnectionOffersAcceptedCapacity": 30
+        }
+      ]
+    },
+    {
+      "mRID": "63dab337-8250-540a-a9df-ddcd433ab66c",
+      "name": "West Ham 66kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.001199928567315213,
+      "latitude": 51.51922710319041,
+      "demandFirmCapacity": 117,
+      "demandAvailableCapacity": 42.4,
+      "demandMaximum": 73.6,
+      "demandMinimum": 23.6,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 143.1,
+      "generationAvailableCapacity": 111.7,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 117,
+      "reversePowerFlowAvailableCapacity": 117,
+      "voltages": [
+        66
+      ],
+      "GSP": "West Ham",
+      "BSP": "West Ham 66kV"
+    },
+    {
+      "mRID": "c97f3d97-9ce5-5761-a258-7cbe384b6018",
+      "name": "West Ham Grid 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.001199928567315213,
+      "latitude": 51.51922710319041,
+      "demandFirmCapacity": 156,
+      "demandAvailableCapacity": 73.8,
+      "demandMaximum": 59.3,
+      "demandMinimum": 25.4,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 183.3,
+      "generationAvailableCapacity": 176,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 156,
+      "reversePowerFlowAvailableCapacity": 156,
+      "voltages": [
+        11
+      ],
+      "GSP": "West Ham",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 171.8,
+          "loadBudgetEstimatesProvidedCount": 7,
+          "loadConnectionOffersMadeCount": 14,
+          "loadConnectionOffersMadeCapacity": 52.4,
+          "loadConnectionOffersAcceptedCount": 4,
+          "loadConnectionOffersAcceptedCapacity": 11.1
+        }
+      ]
+    },
+    {
+      "mRID": "abad7d29-5bdd-5bf6-9440-6fa832089678",
+      "name": "West Norwood 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1039788674495439,
+      "latitude": 51.43022794217318,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 19.5,
+      "demandMaximum": 37.8,
+      "demandMinimum": 10.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 57.9,
+      "generationAvailableCapacity": 56,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 3
+        }
+      ]
+    },
+    {
+      "mRID": "58ea1b09-7612-5f29-b0cc-b4f6456d9970",
+      "name": "Whiston Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.06823426615994865,
+      "latitude": 51.53541579510926,
+      "demandFirmCapacity": 48,
+      "demandAvailableCapacity": 7.8,
+      "demandMaximum": 39.9,
+      "demandMinimum": 7.3,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 52.7,
+      "generationAvailableCapacity": 51.4,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 48,
+      "reversePowerFlowAvailableCapacity": 48,
+      "voltages": [
+        11
+      ],
+      "GSP": "Barking West 33kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 3.1
+        }
+      ]
+    },
+    {
+      "mRID": "4d5a6756-ed69-59ee-883a-aab8be632900",
+      "name": "Wimbledon Grid C 33kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.1869793205831478,
+      "latitude": 51.43029189567092,
+      "demandFirmCapacity": 342.9,
+      "demandAvailableCapacity": 93.8,
+      "demandMaximum": 249.2,
+      "demandMinimum": 85.2,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 376.7,
+      "generationAvailableCapacity": 354.5,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 342.9,
+      "reversePowerFlowAvailableCapacity": 342.9,
+      "voltages": [
+        33
+      ],
+      "GSP": "Wimbledon 3&4 132kV",
+      "BSP": "Wimbledon Grid C 33kV"
+    },
+    {
+      "mRID": "cd8ca151-a584-5e52-810c-4bc4e7f0cb15",
+      "name": "Winlaton Rd 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.0009906787736433356,
+      "latitude": 51.42728562718104,
+      "demandFirmCapacity": 55.4,
+      "demandAvailableCapacity": 13.2,
+      "demandMaximum": 42.1,
+      "demandMinimum": 10.7,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 57.5,
+      "generationAvailableCapacity": 54.8,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 55.4,
+      "reversePowerFlowAvailableCapacity": 55.4,
+      "voltages": [
+        11
+      ],
+      "GSP": "Beddington",
+      "BSP": "Sydenham Park 33kV",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 6.5,
+          "loadConnectionOffersAcceptedCount": 1,
+          "loadConnectionOffersAcceptedCapacity": 1
+        }
+      ]
+    },
+    {
+      "mRID": "73859726-41e9-5f4c-bc6b-e9915feb0f68",
+      "name": "Wood Lane 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": -0.2252287646389161,
+      "latitude": 51.51521744600763,
+      "demandFirmCapacity": 42.9,
+      "demandAvailableCapacity": 33.2,
+      "demandMaximum": 9.7,
+      "demandMinimum": 1.9,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 35.2,
+      "generationAvailableCapacity": 35.2,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 42.9,
+      "reversePowerFlowAvailableCapacity": 42.9,
+      "voltages": [
+        11
+      ],
+      "GSP": "Willesden 132kV",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 6.2
+        }
+      ]
+    },
+    {
+      "mRID": "f187b667-8754-525a-8ce1-5519788b2d11",
+      "name": "Woodgrange Park 11kV",
+      "type": "Primary",
+      "area": "LPN",
+      "description": "Transmission Impact assessment threshold (TIA) for generation at this site = 5  MW.",
+      "longitude": 0.04910536277304608,
+      "latitude": 51.5478378571942,
+      "demandFirmCapacity": 58.5,
+      "demandAvailableCapacity": 9.6,
+      "demandMaximum": 48.9,
+      "demandMinimum": 14,
+      "demandConstraint": "GREEN",
+      "demandConstraintLimitingFactor": "Thermal",
+      "generationFirmCapacity": 58.8,
+      "generationAvailableCapacity": 57.1,
+      "generationConstraint": "GREEN",
+      "generationConstraintLimitingFactor": "Thermal",
+      "reversePowerFlowTotalCapacity": 58.5,
+      "reversePowerFlowAvailableCapacity": 58.5,
+      "voltages": [
+        11
+      ],
+      "GSP": "Redbridge",
+      "BSP": "Direct",
+      "PastConnectionActivity": [
+        {
+          "voltage": 11,
+          "loadBudgetEstimatesProvidedCapacity": 1.5,
+          "loadBudgetEstimatesProvidedCount": 1,
+          "loadConnectionOffersMadeCount": 2,
+          "loadConnectionOffersMadeCapacity": 3,
+          "loadConnectionOffersAcceptedCount": 2,
+          "loadConnectionOffersAcceptedCapacity": 2.5
+        }
+      ]
+    }
+  ],
+  "Circuits": []
+}

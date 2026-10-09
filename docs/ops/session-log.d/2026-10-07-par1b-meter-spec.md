@@ -32,4 +32,4 @@ Read: COMMON.md, par1b.md, CLAUDE.md, lane-common-contract, ux-laws.md, design-p
 - Laws applied: 12 (simple shape), 16 (one meter implementation everywhere), 4 (value beside segments where there is room).
 
 ### NOT done
-- The visible list-row value, pending the design answer above.
+- The visible list-row value, pending the design answer above. [NOT-WORK: operator item, recorded on the board]

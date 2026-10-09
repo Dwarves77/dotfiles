@@ -27,7 +27,7 @@ Fact lane AUD-AT-2. Read-only. Feeds owed cell O-004 of docs/runbooks/audit-cata
 ## 3. Counts (computed from sections 6 and 7 by script, then re-checked against the enumerator)
 
 - Enumerator as stated (`git ls-files 'fsi-app/src/app/**/route.ts' 'fsi-app/src/app/**/page.tsx'` at base): 159 files = 110 route.ts + 49 page.tsx. The same two patterns with `:(glob)` magic list 160: the extra file is fsi-app/src/app/page.tsx (finding AT2-1). [CONFIRMED: both commands executed]
-- Routes enumerated: 110 route.ts files. Methods (exported handlers, GET/POST/PUT/PATCH/DELETE): 153 (GET 61, POST 65, PATCH 11, DELETE 13, PUT 3). Pages enumerated: 49 page.tsx plus the extra root page = 50, one render (GET) each. Rows in this register: 203. Set difference between the enumerated files plus the root page and the files in the tables: 0 missing, 0 extra. [CONFIRMED: set diff executed]
+- Routes enumerated: 110 route.ts files. Methods (exported handlers, GET/POST/PUT/PATCH/DELETE): 153 (GET 61, POST 65, PATCH 11, DELETE 13, PUT 3). Pages enumerated: 49 page.tsx plus the extra root page = 50, one render (GET) each. Rows in this register: 203. Set difference between the enumerated files plus the root page and the files in the tables: 0 missing, 0 extra. [CONFIRMED: set diff executed] [NOT-WORK: fact, no action]
 - Route methods by guard class: admin 47, worker 8, session 89, none 9. Guarded (a principal check precedes the first read or write): 144. Unguarded: 9.
 - Page rows by class: admin-page 17, page-proxy 18, page-session 12, page-public 3. In-page principal check: 29. Proxy session gate only (no in-page check): 18. Public: 3.
 - Write before guard: 0 route methods, 0 pages. (Method: first .insert/.update/.upsert/.delete line in the handler body compared with the first guard line; for guards inside a shared helper the handler body was read for DB calls before the helper call.)
@@ -70,11 +70,11 @@ AT2-13 [CONFIRMED: static trace] workspace/archive-impact GET reads intelligence
 
 ## 5. Not run, owed
 
-- ATTACKED: not run. No disposable runtime for routes exists. Owed, with this register as input: the 25 route methods and 2 pages with a service-client write and no role check, and the 19 route methods and 7 pages whose status is [HYPOTHESIS].
-- Every other lens on subsystem 13: not run.
-- Pages: the client column names the lib function that performs each read and one cited line in it; the full call chain under each lib function was not traced.
-- Rows whose guard sits in a shared helper (corrections handlers, runCollab, resolvePortfolioCaller, the member-pref handler) cite the line of the guard call inside the helper; each helper was read in full.
-- The brief's "service-client writes with no role check" count treats a membership-only check as no role check. A write scoped to the caller's own id is listed apart from a write on shared or org-wide rows.
+- ATTACKED: not run. No disposable runtime for routes exists. Owed, with this register as input: the 25 route methods and 2 pages with a service-client write and no role check, and the 19 route methods and 7 pages whose status is [HYPOTHESIS]. [WORK: TESTS-1]
+- Every other lens on subsystem 13: not run. [WORK: TESTS-1]
+- Pages: the client column names the lib function that performs each read and one cited line in it; the full call chain under each lib function was not traced. [WORK: TESTS-1]
+- Rows whose guard sits in a shared helper (corrections handlers, runCollab, resolvePortfolioCaller, the member-pref handler) cite the line of the guard call inside the helper; each helper was read in full. [NOT-WORK: fact, no action]
+- The brief's "service-client writes with no role check" count treats a membership-only check as no role check. A write scoped to the caller's own id is listed apart from a write on shared or org-wide rows. [NOT-WORK: fact, no action]
 
 ## 6. Route table (every route.ts, every exported method)
 

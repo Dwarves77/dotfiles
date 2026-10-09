@@ -24,8 +24,8 @@ population-turn.yml, downstream-chain.yml, propagation-drain.yml, brief-apply.ym
 
 ## NOT done / open
 
-- (Hop 07 mapping, the stale runbook prose, the sibling-branch hydrate steps and the loop_run_id question are all addressed in the coordinator addendum below.)
-- Not proven live: nothing here ran in GitHub Actions or against the database (common terms rule 5). The proof is below.
+- (Hop 07 mapping, the stale runbook prose, the sibling-branch hydrate steps and the loop_run_id question are all addressed in the coordinator addendum below.) [NOT-WORK: fact, no action]
+- Not proven live: nothing here ran in GitHub Actions or against the database (common terms rule 5). The proof is below. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 
 ## Post-merge dry proof (the coordinator's executor runs these, in order)
 

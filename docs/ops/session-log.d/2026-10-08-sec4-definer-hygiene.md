@@ -58,16 +58,16 @@
 
 ## NOT done
 
-- Not applied. The SQL has not been executed against any database; syntax and semantics were checked by reading only. The self-check, the four new attacks and the apply-time NOTICE output have not run. No live access in this lane.
-- (Closed by the follow-up commit, coordinator ruling 2026-10-08.) The six definers pinned to `search_path = public` with no `pg_temp` (admin_set_judgement_drain, admin_set_pause_state, capture_worker_fetch, enqueue_pending_first_fetch, move_override_notes_to_item_notes, reorder_user_list_item) are now repaired by the same apply-time enumeration: a path that does not END in pg_temp counts as unpinned, its schemas are kept and pg_temp is appended; no list of names is in the SQL. The self-check asserts every SECURITY DEFINER function in public has a search_path ending in pg_temp. F70 was tightened to the same rule (a header or ALTER search_path must name pg_temp).
-- Trigger functions: the revoke stops a role calling the function by name; nothing here proves a trigger still fires after the revoke except the PostgreSQL rule that EXECUTE on a trigger function is checked at CREATE TRIGGER (the rule is stated in the migration, not exercised by a runtime test).
-- No src change.
+- Not applied. The SQL has not been executed against any database; syntax and semantics were checked by reading only. The self-check, the four new attacks and the apply-time NOTICE output have not run. No live access in this lane. [CLOSED: PR 1027]
+- (Closed by the follow-up commit, coordinator ruling 2026-10-08.) The six definers pinned to `search_path = public` with no `pg_temp` (admin_set_judgement_drain, admin_set_pause_state, capture_worker_fetch, enqueue_pending_first_fetch, move_override_notes_to_item_notes, reorder_user_list_item) are now repaired by the same apply-time enumeration: a path that does not END in pg_temp counts as unpinned, its schemas are kept and pg_temp is appended; no list of names is in the SQL. The self-check asserts every SECURITY DEFINER function in public has a search_path ending in pg_temp. F70 was tightened to the same rule (a header or ALTER search_path must name pg_temp). [NOT-WORK: fact, no action]
+- Trigger functions: the revoke stops a role calling the function by name; nothing here proves a trigger still fires after the revoke except the PostgreSQL rule that EXECUTE on a trigger function is checked at CREATE TRIGGER (the rule is stated in the migration, not exercised by a runtime test). [NOT-WORK: fact, no action]
+- No src change. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- Risk at apply: the self-check aborts (rolling the whole migration back) if a grant the REVOKE cannot remove exists, for example a grant made by a role other than the function owner, or an ALTER FUNCTION on a function owned by a role the migration role is not a member of. That is a finding, not a defect, but it cannot be predicted without live access.
-- The accept_invitation legs and the class A runtime attack need real rows (an admin, an owner, a member and a viewer membership with an auth.users email and a profile); a leg with no row is skipped with a NOTICE. The PROOF-4 attack covers the same behaviour on created fixtures.
-- 370 (PR 1003) and 371 are independent; order of apply does not matter, but 371's self-check calls accept_invitation, which writes org_memberships: if 370's role guard is applied first it is sanctioned for a SECURITY DEFINER owner by its own comment (370 line 370).
+- Risk at apply: the self-check aborts (rolling the whole migration back) if a grant the REVOKE cannot remove exists, for example a grant made by a role other than the function owner, or an ALTER FUNCTION on a function owned by a role the migration role is not a member of. That is a finding, not a defect, but it cannot be predicted without live access. [CLOSED: PR 1027]
+- The accept_invitation legs and the class A runtime attack need real rows (an admin, an owner, a member and a viewer membership with an auth.users email and a profile); a leg with no row is skipped with a NOTICE. The PROOF-4 attack covers the same behaviour on created fixtures. [WORK: TESTS-1]
+- 370 (PR 1003) and 371 are independent; order of apply does not matter, but 371's self-check calls accept_invitation, which writes org_memberships: if 370's role guard is applied first it is sanctioned for a SECURITY DEFINER owner by its own comment (370 line 370). [CLOSED: PR 1027]
 
 ## Merge of origin/master (PR 1003 landed)
 

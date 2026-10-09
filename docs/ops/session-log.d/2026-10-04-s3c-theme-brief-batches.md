@@ -72,14 +72,14 @@ edited (outside the write set; see open items).
 
 ## NOT done
 
-- No real brief authored, nothing applied, no database touched.
+- No real brief authored, nothing applied, no database touched. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
 - `src/app/research/[slug]/page.tsx` still selects only the exact-id brief row; for the Research reader to
-  find a drifted brief it must select all `theme_briefs` rows with `member_ids` (not a lane file: .tsx).
+  find a drifted brief it must select all `theme_briefs` rows with `member_ids` (not a lane file: .tsx). [WORK: PLAN-2]
 - The workflow is not chained to anything. It should chain after `analyze-corpus` changes theme membership
-  (corpus-turn step 6); the coordinator decides.
+  (corpus-turn step 6); the coordinator decides. [WORK: PLAN-2]
 
 ## Open items
 
 - The pending marker `scripts/harness-runs/theme-briefs/pending/2026-10-04-s3c.md` is discharged by the first
-  real run (delete it in the change that lands the run).
-- The migration 351 header says NOT APPLIED; the coordinator updates it when applied.
+  real run (delete it in the change that lands the run). [CLOSED: PR 1002]
+- The migration 351 header says NOT APPLIED; the coordinator updates it when applied. [CLOSED: PR 1013]

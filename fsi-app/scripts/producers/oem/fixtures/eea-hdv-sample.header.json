@@ -1,0 +1,14 @@
+{
+  "fixture": "eea-hdv-sample.csv",
+  "what": "The first 71 complete records (header plus 71 vehicles) of the EEA heavy-duty vehicle CO2 vehicle extract, byte-for-byte as served (UTF-8 byte order mark, CRLF line ends), cut at a record boundary.",
+  "fetch_url": "https://discomap.eea.europa.eu/App/CO2HDV/HDV_CO2Emission_VehicleExtract_24042025.csv",
+  "fetched_at": "2026-10-08T13:08:33Z",
+  "fetched_by": "lane S8-E1, one HTTP GET, first 190000 bytes of the response read, then the connection closed",
+  "http": { "status": 200, "content_length_of_full_file": 4029364100, "last_modified": "Mon, 28 Apr 2025 10:29:17 GMT", "accept_ranges": "bytes" },
+  "dataset_page": "https://www.eea.europa.eu/en/datahub/datahubitem-view/c52f7b51-c1cf-43e5-9a66-3eea19f6385a",
+  "dataset_page_facts": { "published": "29 Apr 2025", "temporal_coverage": "2019-2023" },
+  "licence_text": "License CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Copyright holder: Directorate-General for Climate Action (DG-CLIMA), European Environment Agency (EEA).",
+  "licence_text_found_at": "the dataset page above, catalogue field MD_ConstraintsUseLimitationObject, read 2026-10-08",
+  "sample_bytes": 187542,
+  "sample_scope": "Every record in the sample is one manufacturer (DAF Trucks N.V.), zero-emission flag No, engine fuel Diesel CI. It proves the parser and the aggregation; it contains no zero-emission vehicle, so it proves nothing about zero-emission fuel values."
+}

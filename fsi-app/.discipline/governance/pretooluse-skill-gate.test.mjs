@@ -24,6 +24,11 @@ const AUDIT_LOG = join(TMP, "gate-audit.log");
 const FIRING_LOG = join(TMP, "firings.log");
 process.env.GATE_AUDIT_LOG = AUDIT_LOG;
 process.env.DISCIPLINE_FIRING_LOG = FIRING_LOG;
+// RULE 13 (FLAG-1): a dispatch is refused while a finding is undispositioned. Every existing dispatch case below
+// runs against a clean, empty repo root so it stays hermetic; the FLAG-1 tests at the end plant findings in their own roots.
+const CLEAN_ROOT = join(TMP, "clean-root");
+mkdirSync(CLEAN_ROOT, { recursive: true });
+process.env.GATE_DISPOSITION_ROOT = CLEAN_ROOT;
 let _sgId = 0;
 const skillLine = (slug) => {
   const id = `toolu_sg${++_sgId}`;
@@ -372,3 +377,93 @@ test("runGate: empty, unparseable and non-object payloads fail closed to ask; a 
   assert.equal(ok.hookSpecificOutput.hookEventName, "PreToolUse");
   assert.equal(ok.hookSpecificOutput.permissionDecision, "allow");
 });
+
+// ── RULE 13 AT THE DISPATCH POINT (lane FLAG-1): a dispatch is refused while any finding is undispositioned ──
+function plantRoot(name, files) {
+  const root = join(TMP, name);
+  for (const [rel, body] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, rel)), { recursive: true });
+    writeFileSync(join(root, rel), body);
+  }
+  return root;
+}
+function dispatchIn(root, tool, input) {
+  const prev = process.env.GATE_DISPOSITION_ROOT;
+  process.env.GATE_DISPOSITION_ROOT = root;
+  try { return evaluateGate({ tool_name: tool, tool_input: input, transcript_path: LOADED }); }
+  finally { process.env.GATE_DISPOSITION_ROOT = prev; }
+}
+const OPEN_AUDIT = { "docs/audits/x-2026-10-05.md": "## Owed\n- a leg recorded in passing\n" };
+const OPEN_LOG = { "docs/ops/session-log.d/2026-10-06-x.md": "## NOT done\n- a leg nobody owns\n" };
+const OPEN_REGISTER = { "fsi-app/scripts/tmp/aud-register-y.md": "- a guard that is missing here\n" };
+
+for (const [label, files, where] of [
+  ["an audit", OPEN_AUDIT, "docs/audits/x-2026-10-05.md:2"],
+  ["a session log Not done line", OPEN_LOG, "docs/ops/session-log.d/2026-10-06-x.md:2"],
+  ["a scratch register", OPEN_REGISTER, "fsi-app/scripts/tmp/aud-register-y.md:1"],
+]) {
+  test(`ATTACK rule 13: an Agent dispatch is REFUSED with one open finding in ${label}`, () => {
+    const d = dispatchIn(plantRoot("open-" + label.replace(/\W+/g, "-"), files), "Agent", { description: "x", prompt: "build the next thing" });
+    assert.equal(d.permissionDecision, "deny");
+    assert.equal(d.tag, "dispatch-undispositioned");
+    assert.ok(d.reason.includes(where), d.reason);
+    assert.match(d.reason, /1 finding\(s\) carry no disposition/);
+  });
+}
+
+test("ATTACK rule 13: Task, Workflow and SendMessage are refused too (the tool classes the gate already routes)", () => {
+  const root = plantRoot("open-all-tools", OPEN_AUDIT);
+  for (const [tool, input] of [["Task", { prompt: "y" }], ["Workflow", { script: "..." }], ["SendMessage", { message: "go on" }]]) {
+    assert.equal(dispatchIn(root, tool, input).permissionDecision, "deny", tool);
+  }
+});
+
+test("rule 13: the literal DISPOSITION-LANE in the dispatch text lets the disposition lane through (to the normal ask)", () => {
+  const root = plantRoot("open-literal", { ...OPEN_AUDIT, ...OPEN_LOG, ...OPEN_REGISTER });
+  const d = dispatchIn(root, "Agent", { description: "x", prompt: "DISPOSITION-LANE: disposition every open finding" });
+  assert.equal(d.permissionDecision, "ask");
+  assert.equal(d.tag, "dispatch");
+});
+
+test("rule 13: a dispatch reaches the normal ask when every finding is dispositioned, a session log NOT-WORK line included", () => {
+  const root = plantRoot("all-dispositioned", {
+    "docs/audits/x-2026-10-05.md": "## Owed\n- a leg [WORK: some-lane]\n",
+    "docs/ops/session-log.d/2026-10-06-x.md": "## NOT done\n- a leg [NOT-WORK: a count that implies no action]\n",
+    "fsi-app/scripts/tmp/aud-register-y.md": "- a guard that is missing here [CLOSED: PR 1040]\n",
+  });
+  const d = dispatchIn(root, "Agent", { description: "x", prompt: "y" });
+  assert.equal(d.permissionDecision, "ask");
+  assert.equal(d.tag, "dispatch");
+});
+
+test("rule 13: the refusal lists the first 20 file:line and the total", () => {
+  const lines = Array.from({ length: 25 }, (_, i) => "- fact number " + i).join("\n");
+  const root = plantRoot("open-many", { "docs/audits/many-2026-10-05.md": "## Owed\n" + lines + "\n" });
+  const d = dispatchIn(root, "Agent", { prompt: "y" });
+  assert.match(d.reason, /25 finding\(s\) carry no disposition/);
+  assert.match(d.reason, /First 20:/);
+  assert.ok(d.reason.includes("many-2026-10-05.md:21"), "the 20th finding is listed");
+  assert.ok(!d.reason.includes("many-2026-10-05.md:22"), "the 21st is not");
+});
+
+test("rule 13: only dispatches are held, a Read and a Bash read stay allowed with findings open", () => {
+  const root = plantRoot("open-reads", OPEN_AUDIT);
+  assert.equal(dispatchIn(root, "Read", { file_path: "x" }).permissionDecision, "allow");
+  assert.equal(dispatchIn(root, "Bash", { command: "git status" }).permissionDecision, "allow");
+});
+
+test("rule 13: the gate stays under 300 ms on the real tree (cold scan, then cached)", () => {
+  const prev = process.env.GATE_DISPOSITION_ROOT;
+  delete process.env.GATE_DISPOSITION_ROOT; // the real repo root
+  try {
+    const t0 = performance.now();
+    evaluateGate({ tool_name: "Agent", tool_input: { prompt: "y" }, transcript_path: LOADED });
+    const cold = performance.now() - t0;
+    const t1 = performance.now();
+    evaluateGate({ tool_name: "Agent", tool_input: { prompt: "y" }, transcript_path: LOADED });
+    const warm = performance.now() - t1;
+    console.log(`# rule 13 dispatch scan: cold ${cold.toFixed(0)} ms, warm ${warm.toFixed(0)} ms`);
+    assert.ok(cold < 300, `cold scan took ${cold.toFixed(0)} ms`);
+  } finally { process.env.GATE_DISPOSITION_ROOT = prev; }
+});
+

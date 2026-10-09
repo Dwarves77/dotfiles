@@ -201,14 +201,14 @@ the loader hook), and every definition and use site of each symbol before editin
 
 ## NOT done
 
-- Census sections 2a/2b rows under `src/**` (DEAD-1c), `scripts/proof/**`, `scripts/producers/**`, `scripts/migrations/**`, `.discipline/rendering/**` (other lanes).
-- Census 2c test-only, 2d and 2e are not part of this lane.
-- `createPgPool` (kept by skill reference) and `DEFAULT_OUT_PATH` (a test imports it) stay.
+- Census sections 2a/2b rows under `src/**` (DEAD-1c), `scripts/proof/**`, `scripts/producers/**`, `scripts/migrations/**`, `.discipline/rendering/**` (other lanes). [WORK: DEAD-1c]
+- Census 2c test-only, 2d and 2e are not part of this lane. [WORK: DEAD-1c]
+- `createPgPool` (kept by skill reference) and `DEFAULT_OUT_PATH` (a test imports it) stay. [NOT-WORK: fact, no action]
 
 ## Open items
 
 - `createPgPool` (scripts/lib/batch-primitives.mjs) has no caller anywhere and is documented by the remediation-discipline skill; its removal is a
-  skill edit plus a skill-ack, a separate lane (coordinator ruling).
+  skill edit plus a skill-ack, a separate lane (coordinator ruling). [WORK: DEAD-1c]
 
 ## Harness families owing a run [CONFIRMED]
 

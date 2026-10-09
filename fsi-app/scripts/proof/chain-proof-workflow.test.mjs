@@ -114,13 +114,26 @@ test("the subset never leaves the job: it is not under the workspace and not in 
   assert.match(TEXT, /rm -rf .*CHAIN_PROOF_SUBSET/);
 });
 
-test("the stack starts from a scratch directory holding only the config, never from the migrations directory", () => {
+const ACTION = readFileSync(resolve(HERE, "..", "..", "..", ".github", "actions", "local-stack", "action.yml"), "utf8");
+
+test("the stack steps are the shared local-stack composite action (one site), not an inline copy", () => {
   const start = steps().find((s) => /Start the local stack/.test(s.name));
-  assert.match(start.body, /cp fsi-app\/supabase\/config\.toml "\$CHAIN_PROOF_STACK\/supabase\/config\.toml"/);
-  assert.match(start.body, /cd "\$CHAIN_PROOF_STACK"/);
-  assert.doesNotMatch(start.body, /migrations/);
+  assert.match(start.body, /uses: \.\/\.github\/actions\/local-stack/);
+  assert.match(start.body, /stack_dir: \$\{\{ env\.CHAIN_PROOF_STACK \}\}/);
+  assert.match(start.body, /env_file: \$\{\{ env\.CHAIN_PROOF_ENV \}\}/);
+  assert.doesNotMatch(TEXT, /supabase start|supabase status|write-local-env\.mjs|setup-cli/, "the stack steps must live only in the composite action");
 });
 
+test("the composite action starts the stack from a scratch directory holding only the config, never from the migrations directory", () => {
+  assert.match(ACTION, /cp fsi-app\/supabase\/config\.toml "\$STACK_DIR\/supabase\/config\.toml"/);
+  assert.match(ACTION, /cd "\$STACK_DIR"\n\s+supabase start/);
+  assert.doesNotMatch(ACTION, /supabase\/migrations/, "the stack must never be started from, or pointed at, the migrations directory");
+  // the action writes the env file, then preflights it, in that order, and is free of any secret
+  assert.ok(ACTION.lastIndexOf("write-local-env.mjs") < ACTION.lastIndexOf("scripts/proof/preflight.mjs"));
+  assert.doesNotMatch(ACTION, /secrets\./);
+  const code = ACTION.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  for (const name of FORBIDDEN_NAMES) assert.ok(!code.includes(name), `${name} referenced in the composite action`);
+});
 
 test("the export step's secrets are step-scoped (no workflow or job level env), and every later step preflights before its script", () => {
   // no env: block at workflow or job level (indentation 0 or 4)
@@ -159,7 +172,7 @@ const EXPORT_NAME = /Export the production schema dump/;
 const ALLOWED_STEP_IFS = new Set(["always() && steps.stack.outcome == 'success'", "always()"]);
 const UPLOAD_PATH = "${{ runner.temp }}/chain-proof-out";
 
-function isolationProblems(text) {
+function isolationProblems(text, action = ACTION) {
   const problems = [];
   const code = codeOf(text);
   // CP-3: the trigger block is workflow_dispatch and nothing else, whatever other trigger name an edit invents
@@ -186,7 +199,10 @@ function isolationProblems(text) {
   for (const s of stepList) {
     if (LOCAL_SCRIPTS.test(s.body) && !EXPORT_NAME.test(s.name) && !/preflight\.mjs/.test(codeOf(s.body))) problems.push(`step "${s.name}" has no preflight line outside a comment (CP-7)`);
   }
-  if (!stepList.some((s) => /^Preflight/.test(s.name) && /node scripts\/proof\/preflight\.mjs/.test(codeOf(s.body)))) problems.push("the Preflight step is missing or only a comment (CP-7)");
+  // The stack steps live in the shared composite action (lane MIG-CI-2): the Preflight step is either inline or that
+  // action's own Preflight step, and the workflow must use the action.
+  const actionPreflight = /uses: \.\/\.github\/actions\/local-stack/.test(code) && /- name: Preflight[^\n]*\n(?:[^\n]*\n)*?[^\n]*node scripts\/proof\/preflight\.mjs/.test(codeOf(action));
+  if (!actionPreflight && !stepList.some((s) => /^Preflight/.test(s.name) && /node scripts\/proof\/preflight\.mjs/.test(codeOf(s.body)))) problems.push("the Preflight step is missing or only a comment (CP-7)");
   // JIF, IFF: no job-level if, and a step if only in the two allowed forms
   if (/^ {4}if:/m.test(code)) problems.push("the chain-proof job carries an if (JIF): a job that can be skipped proves nothing");
   for (const m of code.matchAll(/^ {8}if:\s*(.+)$/gm)) {
@@ -238,7 +254,8 @@ test("CP-5: an upload path that is the whole runner temp, a parent of the dump, 
 });
 
 test("CP-7: a preflight line that is only a comment is caught, in the Preflight step and in any later step", () => {
-  caught("CP-7 preflight step", TEXT.replace("          node scripts/proof/preflight.mjs\n\n      # Made BEFORE", "          # node scripts/proof/preflight.mjs\n\n      # Made BEFORE"), /no preflight line outside a comment|Preflight step is missing/);
+  // the Preflight step lives in the composite action: a commented-out line there is caught
+  assert.ok(isolationProblems(TEXT, ACTION.replace("        node scripts/proof/preflight.mjs", "        # node scripts/proof/preflight.mjs")).some((p) => /Preflight step is missing/.test(p)), "CP-7 preflight step in the composite action");
   caught("CP-7 gate step", TEXT.replace('          node scripts/proof/preflight.mjs\n          node scripts/proof/schema-diff.mjs', '          # node scripts/proof/preflight.mjs\n          node scripts/proof/schema-diff.mjs'), /no preflight line outside a comment/);
 });
 

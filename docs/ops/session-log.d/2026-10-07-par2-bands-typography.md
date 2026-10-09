@@ -26,8 +26,8 @@ Claude Design look rulings on artboard 22 (rulings A, B, C of the lane brief). T
 - Band colour on white at 18px Anton is used as ruled; contrast of the awareness green on white was not measured here.
 
 ### NOT done (decision-ready)
-- The Connected intelligence "stated coupling" callout tint is not built here. Reason: `CrossPageSection.tsx` has no client boundary (no "use client"), and the tint needs `useBandContext`, a client hook; making the callout a client component, or giving the file a boundary, is the coordinator's decision. Currently the stated coupling is a plain label plus text.
-- `.discipline/rendering/audit/spec/bandtile.json` still describes the old stacked label; it is an audit measurement spec, not run by a gate, and was not regenerated.
+- The Connected intelligence "stated coupling" callout tint is not built here. Reason: `CrossPageSection.tsx` has no client boundary (no "use client"), and the tint needs `useBandContext`, a client hook; making the callout a client component, or giving the file a boundary, is the coordinator's decision. Currently the stated coupling is a plain label plus text. [WORK: PLAN-2]
+- `.discipline/rendering/audit/spec/bandtile.json` still describes the old stacked label; it is an audit measurement spec, not run by a gate, and was not regenerated. [WORK: DOCS-5]
 
 ### DESIGN CHANGES OWED (question for Claude Design)
 - Artboard 22 is absent from the committed handoff file, so no frame was read. Please add it.

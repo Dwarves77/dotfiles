@@ -23,15 +23,15 @@
 
 ## NOT done
 
-- Not applied, no live check. The read counts in the header are operator-supplied, not read by this lane. Not run: the SQL has been read and statically tested, never executed, so [HYPOTHESIS] the recreated function body parses as the live one did (it is 335's text minus three tokens, which 335 applied live).
-- The skill-gate demanded the sprint-followups-discipline, remediation-discipline and environmental-policy-and-innovation skills before the writes; loaded as approved. No `.tsx`, no code deletion (DEAD-1's).
-- Not changed, outside the write set (none blocks CI): `src/app/api/search/route.npmtest.mjs` (fixture column set still lists the three dropped intelligence_items columns), `fsi-app/.discipline/governance/db-catalog.json` (still lists `acquisition_backlog_v`), `fsi-app/docs/inventories/db-check-constraints.json` (regenerated from live after apply).
+- Not applied, no live check. The read counts in the header are operator-supplied, not read by this lane. Not run: the SQL has been read and statically tested, never executed, so [HYPOTHESIS] the recreated function body parses as the live one did (it is 335's text minus three tokens, which 335 applied live). [CLOSED: PR 1013]
+- The skill-gate demanded the sprint-followups-discipline, remediation-discipline and environmental-policy-and-innovation skills before the writes; loaded as approved. No `.tsx`, no code deletion (DEAD-1's). [NOT-WORK: fact, no action]
+- Not changed, outside the write set (none blocks CI): `src/app/api/search/route.npmtest.mjs` (fixture column set still lists the three dropped intelligence_items columns), `fsi-app/.discipline/governance/db-catalog.json` (still lists `acquisition_backlog_v`), `fsi-app/docs/inventories/db-check-constraints.json` (regenerated from live after apply). [WORK: RULES-X-1]
 
 ## Open items
 
-- Operator ruling on the drop list: given 2026-10-08 (6 items); the coordinator's executor applies 368 after CI is green.
-- UNSURE needing a ruling or DEAD-1 first: `estimated_values` (is the estimates mechanism retired after ADR-043; it is structural in derivation_edges, the outbox triggers, drain.ts and F32), `community_topics` and `community_topic_groups` (remove the `shell-context.ts` reader first), `section_claim_provenance.verified_by` (retire the unwired seed scripts first).
-- Migration number 368 confirmed free on origin/master and on every remote branch scanned (367 exists on a branch).
+- Operator ruling on the drop list: given 2026-10-08 (6 items); the coordinator's executor applies 368 after CI is green. [CLOSED: PR 1013]
+- UNSURE needing a ruling or DEAD-1 first: `estimated_values` (is the estimates mechanism retired after ADR-043; it is structural in derivation_edges, the outbox triggers, drain.ts and F32), `community_topics` and `community_topic_groups` (remove the `shell-context.ts` reader first), `section_claim_provenance.verified_by` (retire the unwired seed scripts first). [WORK: DEAD-1c]
+- Migration number 368 confirmed free on origin/master and on every remote branch scanned (367 exists on a branch). [NOT-WORK: fact, no action]
 
 ## OBS coverage and DP compliance (sprint-followups-discipline)
 

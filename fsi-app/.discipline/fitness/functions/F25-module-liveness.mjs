@@ -101,7 +101,7 @@ export function findDispatchRoots(
   // Source 1: every `.github/workflows/*.yml` — dispatch by CI (population-turn.yml, corpus-turn.yml,
   // source-sweep.yml, ledger-consume.yml, change-detection.yml, propagation-drain.yml, producers.yml,
   // maintenance.yml, discipline.yml, source-monitoring.yml, etc).
-  for (const wf of listFilesFn(['.github/workflows/*.yml'])) {
+  for (const wf of listFilesFn(CI_RUN_SITE_GLOBS)) {
     let text;
     try { text = readFileFn(wf); } catch { continue; }
     for (const m of workflowInvocationText(text).matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
@@ -267,7 +267,7 @@ export function findDispatchRoots(
     .filter((line) => { const t = line.trim(); return t && !t.startsWith('#') && !t.startsWith('echo'); })
     .join('\n');
   const shQueue = new Set();
-  for (const wf of listFilesFn(['.github/workflows/*.yml'])) {
+  for (const wf of listFilesFn(CI_RUN_SITE_GLOBS)) {
     let text;
     try { text = readFileFn(wf); } catch { continue; }
     if (!text) continue;
@@ -1152,6 +1152,14 @@ export const LEGACY_ALLOWLIST = [
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));
+
+// CI run sites (lane MIG-CI, 2026-10-08): a `run:` line in a workflow OR in a composite action is a production call
+// site. Lifting chain-proof's stack steps into .github/actions/local-stack/action.yml moved the only reference to
+// write-local-env.mjs out of every workflow file, and this gate read UNWIRED MODULE although the same job ran it.
+// A composite action is invoked by a workflow (`uses: ./.github/actions/...`), so its run lines are as live as a
+// workflow's own. No allowlist entry: the resolver learned the real call path (.github/actions/maintenance-step
+// already runs scripts the same way).
+export const CI_RUN_SITE_GLOBS = ['.github/workflows/*.yml', '.github/actions/**/*.yml'];
 
 const RESOLVE_EXT = ['', '.ts', '.tsx', '.mjs', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.mjs', '/index.js'];
 

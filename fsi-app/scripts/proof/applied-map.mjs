@@ -21,6 +21,9 @@
 //                                                          supabase/migrations/_lib/applied-status.mjs, the one site.
 // The last two groups are handled by their file, whatever their key is.
 //
+// ORDER. Files that stand for a ledger row apply in LEDGER ORDER (the ledger version per entry, ascending), not in file
+// number order; see orderByLedger().
+//
 // ERRORS (the replay refuses): the map is absent (red until MIG-HIST-1 lands, the honest state); a ledger version
 // absent from the map; a class that is not in the list; an entry that needs a file and has none; a map entry whose
 // file (or superseded_by file) is missing on disk; a file claimed both to apply and to skip; a file to apply that the
@@ -33,6 +36,39 @@ export const SATISFIED_CLASSES = Object.freeze(["superseded-by", "data-only", "c
 export const BY_FILE_APPLY_CLASSES = Object.freeze(["outside-ledger"]);
 export const SKIP_CLASSES = Object.freeze(["duplicate-prefix"]);
 export const CLASSES = Object.freeze([...APPLY_CLASSES, ...SATISFIED_CLASSES, ...BY_FILE_APPLY_CLASSES, ...SKIP_CLASSES]);
+
+/** A ledger version is all digits ("028", "20260717223651"); map keys such as "outside:009" are not. */
+function isLedgerVersion(key) {
+  return /^\d+$/.test(String(key));
+}
+
+/**
+ * The replay ORDER (coordinator ruling 2026-10-08, lane MIG-CI): files that stand for a ledger row apply in LEDGER ORDER,
+ * the map's ledger version per entry ascending (numeric, so "028" before "20260717223651"), never in the inventory's file
+ * number order. A file with no ledger version (outside-ledger: live but never recorded) has no place of its own in the
+ * ledger, so it applies immediately after the ledgered file that precedes it in the inventory (or first, when none does),
+ * and several such files keep their inventory order. PURE.
+ */
+export function orderByLedger(items, position) {
+  const byInventory = [...items].sort((a, b) => position.get(a.file) - position.get(b.file));
+  const ledgered = byInventory.filter((i) => isLedgerVersion(i.key));
+  ledgered.sort((a, b) => {
+    const x = BigInt(a.key);
+    const y = BigInt(b.key);
+    return x < y ? -1 : x > y ? 1 : position.get(a.file) - position.get(b.file);
+  });
+  const after = new Map();
+  const first = [];
+  let anchor = null;
+  for (const item of byInventory) {
+    if (isLedgerVersion(item.key)) { anchor = item.file; continue; }
+    if (anchor == null) first.push(item);
+    else after.set(anchor, [...(after.get(anchor) ?? []), item]);
+  }
+  const out = [...first];
+  for (const item of ledgered) out.push(item, ...(after.get(item.file) ?? []));
+  return out;
+}
 
 /** Parse the map's text. PURE. Returns { map } or { error }. */
 export function parseAppliedMap(text) {
@@ -81,7 +117,11 @@ export function resolveMap({ ledger, map, diskFiles, orderFiles, readFile }) {
     }
     if (file == null) { errors.push({ kind: "entry_needs_file", key, class: cls, message: `class ${cls} needs a file` }); continue; }
     if (SKIP_CLASSES.includes(cls)) skippedByFile.set(file, { key, file, class: cls });
-    else toApplyByFile.set(file, { key, file, class: cls, version: key });
+    else {
+      const prior = toApplyByFile.get(file);
+      // one file claimed by two ledger versions: it ran at the earlier one
+      if (!prior || (isLedgerVersion(key) && (!isLedgerVersion(prior.key) || BigInt(key) < BigInt(prior.key)))) toApplyByFile.set(file, { key, file, class: cls, version: key });
+    }
   }
 
   for (const file of toApplyByFile.keys()) {
@@ -103,7 +143,7 @@ export function resolveMap({ ledger, map, diskFiles, orderFiles, readFile }) {
     if (!position.has(item.file)) { errors.push({ kind: "apply_file_not_in_inventory", file: item.file, message: "the file is not listed in docs/inventories/migrations.md, so its order is unknown" }); continue; }
     toApply.push(item);
   }
-  toApply.sort((a, b) => position.get(a.file) - position.get(b.file));
+  const ordered = orderByLedger(toApply, position);
 
   // A file the map names nowhere is never-applied exactly when its own header says so (the one derivation); any other
   // unnamed file is reported as unreferenced, which is the failure.
@@ -113,7 +153,7 @@ export function resolveMap({ ledger, map, diskFiles, orderFiles, readFile }) {
 
   return {
     errors,
-    toApply,
+    toApply: ordered,
     satisfied: satisfied.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
     skipped: [
       ...[...skippedByFile.values()].filter((s) => onDisk.has(s.file)),

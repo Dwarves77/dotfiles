@@ -26,12 +26,12 @@
 
 ## NOT done
 
-- Not applied to any database; no live check. The in-migration self-check runs at apply time. Not run locally: no Postgres on this machine, so the SQL has been read and statically tested, never executed. [HYPOTHESIS] the fixture `INSERT INTO public.profiles (id)` succeeds on the live table (all other columns assumed nullable or defaulted); if a NOT NULL column without default exists, the self-check aborts the apply with the Postgres error and nothing changes.
-- Other self-writable privilege-shaped columns are NOT changed by this migration (outside the four-column design): `verifier_status` (a user can set it to 'active'; `api/community/signoff/[id]/decide/route.ts` reads `verifier_status` as the verifier authorization), `verification_tier`, `linkedin_verified*`, `membership_tier`, `contribution_score`. [CONFIRMED by code read] `UserProfilePage` legitimately writes `verifier_status = 'pending'` from the user session, so closing `verifier_status` needs a transition guard (user may only set 'pending'), a design decision for the coordinator. [HYPOTHESIS] the other columns are also user-writable today; unverified against the live catalog.
+- Not applied to any database; no live check. The in-migration self-check runs at apply time. Not run locally: no Postgres on this machine, so the SQL has been read and statically tested, never executed. [HYPOTHESIS] the fixture `INSERT INTO public.profiles (id)` succeeds on the live table (all other columns assumed nullable or defaulted); if a NOT NULL column without default exists, the self-check aborts the apply with the Postgres error and nothing changes. [CLOSED: PR 1013]
+- Other self-writable privilege-shaped columns are NOT changed by this migration (outside the four-column design): `verifier_status` (a user can set it to 'active'; `api/community/signoff/[id]/decide/route.ts` reads `verifier_status` as the verifier authorization), `verification_tier`, `linkedin_verified*`, `membership_tier`, `contribution_score`. [CONFIRMED by code read] `UserProfilePage` legitimately writes `verifier_status = 'pending'` from the user session, so closing `verifier_status` needs a transition guard (user may only set 'pending'), a design decision for the coordinator. [HYPOTHESIS] the other columns are also user-writable today; unverified against the live catalog. [CLOSED: PR 993]
 
 ## Open items
 
-- Coordinator ruling needed on the `verifier_status` transition guard (see NOT done). Decision-ready sketch: extend `profiles_privilege_guard` so a non-sanctioned caller may change `verifier_status` only to 'pending' from 'none'.
+- Coordinator ruling needed on the `verifier_status` transition guard (see NOT done). Decision-ready sketch: extend `profiles_privilege_guard` so a non-sanctioned caller may change `verifier_status` only to 'pending' from 'none'. [CLOSED: PR 993]
 
 ## Correction (first apply failed, coordinator report 2026-10-08)
 

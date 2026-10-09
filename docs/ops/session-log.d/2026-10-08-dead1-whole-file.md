@@ -166,19 +166,19 @@ repo's own suite runners for the counts.
 
 ## NOT done
 
-- Census 2a and 2b (symbol pruning): DEAD-1b.
+- Census 2a and 2b (symbol pruning): DEAD-1b. [CLOSED: PR 1032]
 - Rows skipped above for a live hit, doctrine or normative spec text. Coordinator rulings after the first push: the
   bug-class-guard.yml line 50 expansion is DENIED (live by CI test); the SectorSynopsis family, StatutoryFigure and
-  contractable-barrier skips are correct; the census-writer deletion stands.
+  contractable-barrier skips are correct; the census-writer deletion stands. [NOT-WORK: fact, no action]
 - Comment lines naming deleted modules in `skill-map.mjs`, `apply-mint-batch.mjs`, `run-source-sweep.mjs` and the
   `.gitignore` line 4 comment were edited under a coordinator grant (comments only). Other comments in live files
-  that mention deleted modules were not touched.
+  that mention deleted modules were not touched. [NOT-WORK: fact, no action]
 
 ## Open items
 
 - `census-writer.mjs` was a W1 register HOLD (crawl-rebuild scope). If the source-loop wave wires it, restore with
   `git checkout <this branch's parent> -- fsi-app/src/lib/intake/census-writer.mjs fsi-app/src/lib/intake/census-writer.npmtest.mjs`
-  and re-add the F25 entry.
+  and re-add the F25 entry. [NOT-WORK: fact, no action]
 
 ## Follow-up facts for a later lane: F64 live test vs C3 temporary fixture [CONFIRMED]
 

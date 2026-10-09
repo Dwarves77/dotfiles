@@ -443,23 +443,23 @@ None.
 
 ## Facts found while attacking (each with its status)
 
-- [CONFIRMED: read governance/skill-contract-map.mjs header and RD-76 residual] The skill-acks mechanism was deleted by GATE-3 (2026-10-08). `docs/dispatches/lane-common-contract.md` line 109 still instructs lanes to add a `skill-acks/<date>-<lane>.md` file, and the brief for this lane lists skill-acks as a gate. Only the registration half of skill-contract-map remains (rows B7-23 to B7-26).
-- [CONFIRMED: runner --list and git log --diff-filter=D] The fitness runner lists 52 functions, not the 60 of register B. GATE-3 (#1002) deleted F17, F26, F37, F54, F57, F58, F60, F62, F63; F70 is new.
-- [CONFIRMED: baseline run B7-14, ok=true] invariant-coverage passes on the clean tree; its problem list is empty, so every ACCEPTED row in that gate is a pass the gate gave on a changed tree.
-- [CONFIRMED: B6-32] F51 check 4 (a lane branch touching a coordinator-only file) fires only when `git rev-parse --abbrev-ref HEAD` starts with `lane/`; a branch named claude/zz and a detached HEAD both pass. [HYPOTHESIS] The CI pull_request checkout is detached, which would make check 4 inert in CI; the checkout step in discipline.yml was read, the event shape was not run.
-- [CONFIRMED: B7-35] consistency C4 returns before looking when the CI environment variable is set; GitHub Actions sets CI itself on every runner (platform behaviour, not read from this repository) [HYPOTHESIS for the consistency job].
-- [CONFIRMED: B6-25, B6-26, B6-27] F50 accepts a hand-written harness artifact, a hand-written entry in loop-fired-evidence.json, and a workflow_run edge faked inside a run: heredoc. Loop-hop firing claims rest on files an author can write; AUD-AT-5 owns the hop-level legs.
-- [CONFIRMED: B7-15 refused, B7-15b accepted] Deleting an invariant file is caught only when a doctrine names it; deleting one that no doctrine names passed invariant-coverage.
-- [CONFIRMED: B8-16 refused, B8-16b] F68 reads `uses: actions/upload-artifact@` only at line start; the common `- uses:` first-key step form is not read (see B8-16b).
+- [CONFIRMED: read governance/skill-contract-map.mjs header and RD-76 residual] The skill-acks mechanism was deleted by GATE-3 (2026-10-08). `docs/dispatches/lane-common-contract.md` line 109 still instructs lanes to add a `skill-acks/<date>-<lane>.md` file, and the brief for this lane lists skill-acks as a gate. Only the registration half of skill-contract-map remains (rows B7-23 to B7-26). [CLOSED: PR 1039]
+- [CONFIRMED: runner --list and git log --diff-filter=D] The fitness runner lists 52 functions, not the 60 of register B. GATE-3 (#1002) deleted F17, F26, F37, F54, F57, F58, F60, F62, F63; F70 is new. [NOT-WORK: fact, no action]
+- [CONFIRMED: baseline run B7-14, ok=true] invariant-coverage passes on the clean tree; its problem list is empty, so every ACCEPTED row in that gate is a pass the gate gave on a changed tree. [NOT-WORK: fact, no action]
+- [CONFIRMED: B6-32] F51 check 4 (a lane branch touching a coordinator-only file) fires only when `git rev-parse --abbrev-ref HEAD` starts with `lane/`; a branch named claude/zz and a detached HEAD both pass. [HYPOTHESIS] The CI pull_request checkout is detached, which would make check 4 inert in CI; the checkout step in discipline.yml was read, the event shape was not run. [CLOSED: PR 1039]
+- [CONFIRMED: B7-35] consistency C4 returns before looking when the CI environment variable is set; GitHub Actions sets CI itself on every runner (platform behaviour, not read from this repository) [HYPOTHESIS for the consistency job]. [CLOSED: PR 1039]
+- [CONFIRMED: B6-25, B6-26, B6-27] F50 accepts a hand-written harness artifact, a hand-written entry in loop-fired-evidence.json, and a workflow_run edge faked inside a run: heredoc. Loop-hop firing claims rest on files an author can write; AUD-AT-5 owns the hop-level legs. [CLOSED: PR 1039]
+- [CONFIRMED: B7-15 refused, B7-15b accepted] Deleting an invariant file is caught only when a doctrine names it; deleting one that no doctrine names passed invariant-coverage. [CLOSED: PR 1039]
+- [CONFIRMED: B8-16 refused, B8-16b] F68 reads `uses: actions/upload-artifact@` only at line start; the common `- uses:` first-key step form is not read (see B8-16b). [CLOSED: PR 1039]
 
 ## Owed legs (reason)
 
-- F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run.
-- F45 live ratchet: the detector, ratchet comparison and scope predicates were run in process; `measureAtBase` against a real origin/master base was not run (no remote in the throwaway repo).
-- F24 and the live-only DDL class: the gate reads a committed snapshot of the database; an object that exists live and is absent from the snapshot cannot be represented offline. Owed to a live-catalog leg (no live access in this lane).
-- F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were. [CONFIRMED: owed, not exercised by this lane]
-- CLOSURE NEVER-RUN with real git history dates (`introducedAt` from `git log`) was exercised through the exported pure functions, not end to end. [CONFIRMED: owed, not exercised by this lane]
-- Overlap between gates (whether another gate catches an input one gate accepted) was not measured; ACCEPTED means this gate alone did not block.
+- F9 on the real app project: the fixture project (two files) proved the tsconfig exclude and ts-nocheck forms; a full tsc over the 3,500-file app needs the full dependency install and was not run. [WORK: TESTS-1]
+- F45 live ratchet: the detector, ratchet comparison and scope predicates were run in process; `measureAtBase` against a real origin/master base was not run (no remote in the throwaway repo). [WORK: TESTS-1]
+- F24 and the live-only DDL class: the gate reads a committed snapshot of the database; an object that exists live and is absent from the snapshot cannot be represented offline. Owed to a live-catalog leg (no live access in this lane). [WORK: TESTS-1]
+- F28 time-based legs (STALE RUN, NEVER RUN windows) were not exercised with dated ledger rows; only schema, nesting and governing-file edits were. [CONFIRMED: owed, not exercised by this lane] [WORK: TESTS-1]
+- CLOSURE NEVER-RUN with real git history dates (`introducedAt` from `git log`) was exercised through the exported pure functions, not end to end. [CONFIRMED: owed, not exercised by this lane] [WORK: TESTS-1]
+- Overlap between gates (whether another gate catches an input one gate accepted) was not measured; ACCEPTED means this gate alone did not block. [NOT-WORK: fact, no action]
 
 ## Read and reused
 

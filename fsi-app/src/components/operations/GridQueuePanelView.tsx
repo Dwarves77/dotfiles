@@ -29,10 +29,31 @@ import { CoverageState } from "@/components/ui/CoverageState";
 export interface GridQueueRow {
   queue_id: string;
   dso_name: string;
-  capacity_band_mw: string;
+  /** NULL on a per-substation headroom row (migration 379): the publisher states no band. */
+  capacity_band_mw: string | null;
   queue_months_p50: number | null;
   queue_months_p90: number | null;
   as_of: string;
+  /** Per-substation evidence (migration 379, UK Power Networks LTDS Capacity Heatmap). Absent on a band-level row. */
+  substation_name?: string | null;
+  demand_firm_mw?: number | null;
+  demand_available_mw?: number | null;
+  demand_constraint?: string | null;
+  demand_constraint_limiting_factor?: string | null;
+}
+
+/** The one line a per-substation row shows in place of a band: headroom in MW as published (a deficit is
+ *  negative and shown as is), the firm capacity it sits against, and the publisher's constraint indicator. */
+export function substationEvidenceLine(row: GridQueueRow): string | null {
+  if (row.demand_available_mw == null && row.demand_constraint == null) return null;
+  const parts: string[] = [];
+  if (row.demand_available_mw != null) {
+    parts.push(`${row.demand_available_mw} MW demand headroom${row.demand_firm_mw != null ? ` of ${row.demand_firm_mw} MW firm` : ""}`);
+  }
+  if (row.demand_constraint != null) {
+    parts.push(`constraint ${row.demand_constraint}${row.demand_constraint_limiting_factor ? ` (${row.demand_constraint_limiting_factor})` : ""}`);
+  }
+  return parts.join(", ");
 }
 
 export const DECISION_HORIZON_MONTHS = 24;
@@ -67,8 +88,10 @@ export function GridQueuePanelView({ rows }: { rows: GridQueueRow[] }) {
           return (
             <div key={row.queue_id} className="cl-card" style={{ border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-bg-surface)", padding: "12px 16px", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div className="spec09-row-text">
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{row.dso_name}</div>
-                <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{row.capacity_band_mw}</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{row.substation_name ?? row.dso_name}</div>
+                <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+                  {row.capacity_band_mw ?? (row.substation_name ? `${row.dso_name}. ${substationEvidenceLine(row) ?? ""}` : "")}
+                </div>
               </div>
               <div className="spec09-row-text" style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: tone }} title={statusDetail ?? undefined}>{status}</div>

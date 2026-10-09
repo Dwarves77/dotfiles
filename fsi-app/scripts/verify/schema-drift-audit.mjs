@@ -35,7 +35,7 @@ loadLocalEnvFile();
 // staleness check flags it for removal — the allowlist cannot silently outlive its reason.
 const ALLOWLIST = {
   // (empty) acquisition_backlog_v — the FIRST-run drift (2026-07-20) — was retroactively migrated in
-  // supabase/migrations/223_acquisition_backlog_v.sql (byte-matching pg_get_viewdef, 2026-07-25), so its
+  // supabase/migrations/273_coverage_gap_candidates_live_ddl_catchup.sql (byte-matching pg_get_viewdef, 2026-07-25; rehomed from 223 on 2026-10-08), so its
   // committed CREATE now exists and the allowlist bypass is removed. No genuine drift remains allowlisted.
 };
 
