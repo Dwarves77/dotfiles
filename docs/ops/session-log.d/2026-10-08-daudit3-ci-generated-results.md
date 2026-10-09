@@ -26,8 +26,8 @@ Read: lane common terms and brief, CLAUDE.md, the lane contract's Write set and 
 
 ## NOT done
 
-- No local run of the generator (no node_modules in the worktree, no browser); the stamp's behaviour in the generator is proven by extracting and running `generatedOn`, and end to end by the dispatched CI run (below).
-- Nothing in master is committed from a developer machine by this lane; results.json and the audit document are changed only by the CI commit-back.
+- No local run of the generator (no node_modules in the worktree, no browser); the stamp's behaviour in the generator is proven by extracting and running `generatedOn`, and end to end by the dispatched CI run (below). [NOT-WORK: COMMON rule 9, CI is the gate; proven by the dispatched run]
+- Nothing in master is committed from a developer machine by this lane; results.json and the audit document are changed only by the CI commit-back. [NOT-WORK: fact, no action]
 
 ## CI-generated result and dispatch evidence (confirmed by reading the pulled files)
 
