@@ -13,8 +13,10 @@
 //      The two read credentials for the subset export live in the export step's own env and are the only
 //      production values the job ever holds.
 //   2. a production host in the connection variables: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_DB_URL,
-//      DATABASE_URL, PROOF_DB_URL, PROOF_DB_SUPERUSER_URL, PROOF_API_URL must each be a URL on a loopback host when set;
-//      NEXT_PUBLIC_SUPABASE_URL and SUPABASE_DB_URL are required.
+//      DATABASE_URL, PROOF_DB_URL, PROOF_API_URL, PROOF_ORACLE_DB_URL must each be a URL on a loopback host when set;
+//      NEXT_PUBLIC_SUPABASE_URL and SUPABASE_DB_URL are required. PROOF_ORACLE_DB_URL (written by write-local-env.mjs,
+//      lane PROOF-6) must also name the supabase_admin role, the database postgres, and a port other than the stack's
+//      (the same assertions create-oracle-db.mjs applies); PROOF_DB_SUPERUSER_URL is retired and no longer checked.
 //   3. a production hostname inside ANY variable's value (supabase.co, supabase.com, carosledge.com,
 //      vercel.app, vercel.com), whatever the variable is called.
 //   4. CHAIN_PROOF_LOCAL not equal to "1" (the loopback mode of scripts/lib/pg-conn.mjs must be on).
@@ -25,6 +27,7 @@
 
 import { isLoopbackHost } from "../lib/pg-conn.mjs";
 import { isMainModule } from "../lib/is-main.mjs";
+import { SUPERUSER_ROLE } from "./write-local-env.mjs";
 
 export const FORBIDDEN_NAMES = Object.freeze([
   "SUPABASE_DB_PASSWORD",
@@ -50,7 +53,7 @@ export const FORBIDDEN_PREFIXES = Object.freeze(["VERCEL_"]);
 
 export const PRODUCTION_HOST_MARKERS = Object.freeze(["supabase.co", "supabase.com", "carosledge.com", "vercel.app", "vercel.com"]);
 
-const URL_VARS = Object.freeze(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL", "DATABASE_URL", "PROOF_DB_URL", "PROOF_DB_SUPERUSER_URL", "PROOF_API_URL", "PROOF_ORACLE_DB_URL"]);
+const URL_VARS = Object.freeze(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL", "DATABASE_URL", "PROOF_DB_URL", "PROOF_API_URL", "PROOF_ORACLE_DB_URL"]);
 const REQUIRED_URL_VARS = Object.freeze(["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_DB_URL"]);
 
 const present = (v) => typeof v === "string" && v.trim() !== "";
@@ -77,6 +80,14 @@ export function checkPreflight(env = process.env) {
       continue;
     }
     if (!isLoopbackHost(hostOf(value))) violations.push(`${name} does not name a loopback host`);
+  }
+
+  if (present(env.PROOF_ORACLE_DB_URL) && hostOf(env.PROOF_ORACLE_DB_URL) !== null) {
+    const oracle = new URL(env.PROOF_ORACLE_DB_URL);
+    if (oracle.username !== SUPERUSER_ROLE) violations.push(`PROOF_ORACLE_DB_URL must name the ${SUPERUSER_ROLE} role`);
+    if (oracle.pathname !== "/postgres") violations.push("PROOF_ORACLE_DB_URL must name the database postgres");
+    const stackPort = present(env.PROOF_DB_URL) && hostOf(env.PROOF_DB_URL) !== null ? new URL(env.PROOF_DB_URL).port : "";
+    if (!oracle.port || oracle.port === stackPort) violations.push("PROOF_ORACLE_DB_URL must name a host port other than the stack's");
   }
 
   for (const [name, value] of Object.entries(env)) {
