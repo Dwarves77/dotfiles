@@ -348,6 +348,15 @@ function esc(v) {
   return String(v ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
+// THE ONE SITE THAT STAMPS WHERE A RESULT WAS GENERATED (lane DAUDIT-3, 2026-10-08). A computed style depends on the
+// machine that measured it (the ch width of a vendored font, a 44px target), so results.json is only an oracle if it
+// says which machine produced it. generated-on.test.mjs refuses a committed results.json whose platform is not
+// linux: the committed copy is CI's (design-audit.yml, workflow_dispatch commit-back), never a developer's.
+// container_image is set by the workflow (AUDIT_CONTAINER_IMAGE); a run outside a container records "none".
+function generatedOn(env = process.env, proc = process) {
+  return { platform: proc.platform, node: proc.version, container_image: env.AUDIT_CONTAINER_IMAGE || 'none' };
+}
+
 function renderDocument(results, meta) {
   const counts = { MATCH: 0, MISMATCH: 0, 'NOT BUILT': 0, 'NOT IN SPEC': 0 };
   for (const r of results.rows) counts[r.status] = (counts[r.status] ?? 0) + 1;
@@ -364,6 +373,7 @@ function renderDocument(results, meta) {
   );
   out.push('');
   out.push(`- Repo state: \`${meta.head}\` (branch \`${meta.branch}\`)`);
+  out.push(`- Generated on: platform \`${results.generated_on.platform}\`, node \`${results.generated_on.node}\`, container image \`${results.generated_on.container_image}\``);
   out.push(`- Run at: ${meta.runAt}`);
   out.push(`- Spec files run: ${results.specs.length} (${results.specs.map((s) => s.__id).join(', ')})`);
   out.push(`- Checks: ${results.rows.length}`);
@@ -543,7 +553,7 @@ async function main() {
 
   await browser.close();
 
-  const results = { runAt: new Date().toISOString(), specs, rows, errors };
+  const results = { runAt: new Date().toISOString(), generated_on: generatedOn(), specs, rows, errors };
   writeFileSync(join(HERE, 'results.json'), `${JSON.stringify(results, null, 2)}\n`);
 
   const seedPath = join(HERE, `seed-${AUDIT_DATE}.md`);

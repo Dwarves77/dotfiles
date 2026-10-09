@@ -2,7 +2,11 @@
  *  workflow text and asserts what must stay true however the file is edited later: the name, the Playwright
  *  image equal to the one discipline.yml's rendering-guard job carries (read with the same pattern the
  *  install step uses, never a literal), the upload step, the SOFT exit contract (fails only when the harness
- *  cannot run, never for a non-matching row), no continue-on-error and no path filter. The summary script
+ *  cannot run, never for a non-matching row), no continue-on-error and no path filter, and (lane DAUDIT-3,
+ *  2026-10-08) the commit-back contract: the committed result is CI's, so one step commits results.json and the
+ *  audit document back to the dispatched ref, guarded to workflow_dispatch (the pull_request path never commits),
+ *  through the shared commit-back script, with `contents: write` the only write permission in the file, declared
+ *  once at job level. The summary script
  *  embedded in the workflow is extracted and RUN against fixture results, so the four counts and the row-id
  *  list are proven by execution and not by reading.
  *
@@ -56,7 +60,10 @@ function problems(text, disciplineText = DISCIPLINE) {
   for (const t of ["push:", "schedule:", "workflow_run:", "paths:", "paths-ignore:"]) if (on.includes(t)) out.push(`trigger or filter ${t} present`);
 
   if (!/^permissions:\n {2}contents: read\n/m.test(code)) out.push("permissions are not contents: read");
-  if (/^\s*(actions|id-token|pull-requests|issues|statuses|packages|checks|contents): write/m.test(code)) out.push("a write permission is granted");
+  // The ONE permitted write: the job-level `contents: write` for the workflow_dispatch commit-back (DAUDIT-3).
+  const JOB_WRITE = /^ {4}permissions:\n {6}contents: write\n/m;
+  if (!JOB_WRITE.test(code)) out.push("the job does not declare permissions: contents: write for the commit-back step");
+  if (/^\s*(actions|id-token|pull-requests|issues|statuses|packages|checks|contents): write/m.test(code.replace(JOB_WRITE, ""))) out.push("a write permission is granted beyond the job-level contents: write");
   if (!/^ {4}defaults:\n {6}run:\n {8}shell: bash\n/m.test(code)) out.push("the job does not declare defaults.run.shell: bash (a container job runs sh by default; GATE-9)");
   if (!/^ {4}timeout-minutes: 15$/m.test(code)) out.push("timeout is not 15 minutes");
   if (/continue-on-error/.test(code)) out.push("continue-on-error present");
@@ -77,7 +84,8 @@ function problems(text, disciplineText = DISCIPLINE) {
   const audit = idx(/Run the design audit/);
   const summary = idx(/job summary/);
   const upload = idx(/Upload the audit result/);
-  for (const [label, i] of [["trust", trust], ["install", install], ["audit", audit], ["summary", summary], ["upload", upload]]) if (i < 0) out.push(`missing the ${label} step`);
+  const commit = idx(/Commit the audit result back/);
+  for (const [label, i] of [["trust", trust], ["install", install], ["audit", audit], ["summary", summary], ["commit-back", commit], ["upload", upload]]) if (i < 0) out.push(`missing the ${label} step`);
   if (trust >= 0 && !/git config --global --add safe\.directory "\$GITHUB_WORKSPACE"/.test(steps[trust].body)) out.push("safe.directory step does not trust $GITHUB_WORKSPACE");
   if (trust >= 0 && install >= 0 && trust > install) out.push("safe.directory must precede the install step");
   if (install >= 0) {
@@ -111,6 +119,21 @@ function problems(text, disciplineText = DISCIPLINE) {
     if (!/if \(results\.errors\.length > 0\) \{[\s\S]*?process\.exitCode = 1;/.test(b)) out.push("a non-empty errors list does not fail the summary step");
     if (/process\.exitCode\s*=\s*1/.test(b.replace(/if \(results\.errors\.length > 0\) \{[\s\S]*?\n {10}\}/, ""))) out.push("the summary step sets a failing exit code outside the errors branch");
     if (!/GITHUB_STEP_SUMMARY/.test(b)) out.push("summary step does not write $GITHUB_STEP_SUMMARY");
+  }
+
+  if (commit >= 0) {
+    const b = steps[commit].body;
+    if (!/^ {8}if: github\.event_name == 'workflow_dispatch'$/m.test(b)) out.push("the commit-back step is not guarded to workflow_dispatch (the pull_request path must never commit)");
+    if (/pull_request/.test(b.split("\n").filter((l) => /^ {8}if:/.test(l)).join("\n"))) out.push("the commit-back guard names pull_request");
+    if (!/scripts\/maintenance\/commit-worklist-artifact\.sh/.test(b)) out.push("commit-back does not use the shared commit-back script (a second copy of the push-degradation logic)");
+    if (!/"\$GITHUB_REF_NAME"/.test(b)) out.push("commit-back does not pass the dispatched ref to the script");
+    if (!b.includes('".discipline/rendering/audit/results.json"')) out.push("commit-back does not commit results.json");
+    if (!b.includes('git add "../docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md"')) out.push("commit-back does not commit the audit document");
+    if (summary >= 0 && commit < summary) out.push("commit-back runs before the summary step, so a harness-errored run could commit its partial result");
+    if (upload >= 0 && commit > upload) out.push("commit-back must precede the upload step");
+  }
+  for (const s of steps) {
+    if (s !== steps[commit] && /\bgit\s+(commit|push)\b|commit-worklist-artifact/.test(s.body.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n"))) out.push(`step "${s.name}" commits or pushes outside the guarded commit-back step`);
   }
 
   if (upload >= 0) {
@@ -187,6 +210,44 @@ test("ATTACK: dropping the errors-list failure is refused", () => {
 });
 test("ATTACK: a finding that sets the failing exit code is refused", () => {
   attack((t) => t.replace("          console.log(out);\n", "          console.log(out);\n          if (nonMatching.length > 0) process.exitCode = 1;\n"), /outside the errors branch/);
+});
+test("ATTACK: removing the workflow_dispatch guard from the commit-back step is refused", () => {
+  attack((t) => t.replace("        if: github.event_name == 'workflow_dispatch'\n", ""), /not guarded to workflow_dispatch/);
+});
+test("ATTACK: guarding the commit-back to pull_request instead is refused", () => {
+  attack((t) => t.replace("        if: github.event_name == 'workflow_dispatch'\n", "        if: github.event_name == 'pull_request'\n"), /not guarded to workflow_dispatch|names pull_request/);
+});
+test("ATTACK: dropping the commit-back step is refused", () => {
+  attack((t) => t.replace("      - name: Commit the audit result back to the dispatched ref (workflow_dispatch only)", "      - name: Something else entirely"), /missing the commit-back step/);
+});
+test("ATTACK: a second, unguarded git push in another step is refused", () => {
+  attack((t) => t.replace("          npm run audit:design\n", "          npm run audit:design\n          git push origin HEAD\n"), /commits or pushes outside the guarded commit-back step/);
+});
+test("ATTACK: a write permission beyond the job-level contents: write is refused", () => {
+  attack((t) => t.replace("      contents: write\n", "      contents: write\n      pull-requests: write\n"), /beyond the job-level contents: write/);
+  attack((t) => t.replace("    permissions:\n      contents: write\n", ""), /does not declare permissions: contents: write/);
+});
+test("ATTACK: a hand-rolled push in place of the shared script (no protected-ref degrade) is refused", () => {
+  attack((t) => t.replace("bash scripts/maintenance/commit-worklist-artifact.sh", "git push origin HEAD # "), /shared commit-back script/);
+});
+test("ATTACK: committing before the summary step is refused", () => {
+  attack((t) => {
+    const i = t.indexOf("      # WORKFLOW_DISPATCH ONLY.");
+    const j = t.indexOf("      - name: Upload the audit result");
+    const block = t.slice(i, j);
+    const rest = t.slice(0, i) + t.slice(j);
+    const k = rest.indexOf("      # Reads the file the generator just wrote");
+    return rest.slice(0, k) + block + rest.slice(k);
+  }, /runs before the summary step/);
+});
+test("the audit step reads the container image out of this file and exports it for the generated_on stamp", () => {
+  const audit = stepsOf(TEXT).find((x) => /Run the design audit/.test(x.name)).body;
+  const IMAGE_SED = String.raw`AUDIT_CONTAINER_IMAGE="$(sed -n 's|^ *image: \(mcr\.microsoft\.com/playwright:v[0-9][0-9.]*-.*\)$|\1|p' ../.github/workflows/design-audit.yml)"`;
+  assert.ok(audit.includes(IMAGE_SED), "the audit step must read the image out of this workflow file");
+  assert.match(audit, /export AUDIT_HEAD AUDIT_BRANCH AUDIT_CONTAINER_IMAGE/);
+  // the sed, run for real on this workflow text, yields the one Playwright image line
+  const out = spawnSync("sed", ["-n", String.raw`s|^ *image: \(mcr\.microsoft\.com/playwright:v[0-9][0-9.]*-.*\)$|\1|p`], { input: TEXT, encoding: "utf8" });
+  if (out.status === 0) assert.deepEqual(out.stdout.trim().split("\n"), playwrightImage(TEXT));
 });
 test("ATTACK: a renamed workflow is refused", () => {
   attack((t) => t.replace("name: Design audit\n", "name: Design audit run\n"), /name is not exactly/);
