@@ -4,7 +4,7 @@
  "method": "fsi-app/scripts/lib/export-harness-ledger.mjs",
  "counts": {
   "families": 22,
-  "runs": 232
+  "runs": 239
  },
  "rows": [
   {
@@ -3155,6 +3155,139 @@
     ],
     "loop_run_id": null,
     "github_run_id": "37884989087",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-103",
+   "started_at": "2026-10-09T04:51:00+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-exhl6uz15-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37885744282",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-104",
+   "started_at": "2026-10-09T05:13:24+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-6q4n7p1ar-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37887498756",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-105",
+   "started_at": "2026-10-09T05:20:54+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-gpijx2tkm-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37888087834",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-106",
+   "started_at": "2026-10-09T05:28:11+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-5dfvyberz-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37888656086",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-107",
+   "started_at": "2026-10-09T06:36:12+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-d3qlxz7cq-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37894332532",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-108",
+   "started_at": "2026-10-09T06:45:17+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-6jqyhv5da-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37895134884",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-109",
+   "started_at": "2026-10-09T06:53:17+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-lbchq8au2-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "37895848735",
     "governing_hash": "sha256:09ee6f763cc232f9"
    }
   },
