@@ -252,11 +252,11 @@
 
 ## NOT done
 
-- The stack path has not run anywhere. This machine has no docker and no psql, so the negative fixture is proven with an injected stand-in for psql that answers with the error text a real Postgres prints for a CHECK violation; the real psql and stack path is first exercised by CI on the first migration PR.
-- [HYPOTHESIS] The applied-set replay is green on the stack today; chain-proof was "expected RED" when written and no run of the replay against the merged map has been seen by this lane. If it is red, every migration PR fails at the replay step, which is the proof working on a real defect.
-- Branch protection is not edited (repository setting): the coordinator adds `Migration proof (apply on a local stack)`.
-- `docs/INDEX.md` and the maintenance runbook index are not edited (coordinator).
+- The stack path has not run anywhere. This machine has no docker and no psql, so the negative fixture is proven with an injected stand-in for psql that answers with the error text a real Postgres prints for a CHECK violation; the real psql and stack path is first exercised by CI on the first migration PR. [CLOSED: PR 1058]
+- [HYPOTHESIS] The applied-set replay is green on the stack today; chain-proof was "expected RED" when written and no run of the replay against the merged map has been seen by this lane. If it is red, every migration PR fails at the replay step, which is the proof working on a real defect. [WORK: CHAIN-5]
+- Branch protection is not edited (repository setting): the coordinator adds `Migration proof (apply on a local stack)`. [NOT-WORK: operator item, repository setting recorded on the board]
+- `docs/INDEX.md` and the maintenance runbook index are not edited (coordinator). [WORK: DOCS-5]
 
 ## Open items
 
-- Measured job runtime: see the PR report.
+- Measured job runtime: see the PR report. [NOT-WORK: fact, no action]

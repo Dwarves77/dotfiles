@@ -68,12 +68,12 @@ Constraint split in the file: GREEN 126, AMBER 1, RED 1; the RED substation (Bow
 
 ## NOT done
 
-- Nothing applied or run live; the source row is not registered; migration 379 not applied; the host verdict batch is not applied by any run yet.
-- EPN and SPN release files were not fetched (their parsing is the same code, proven only on the LPN file and on test-local variants that change `coverage`).
-- Offers made/accepted (PastConnectionActivity) are not mapped.
-- `run-registered.test.mjs` still pins the exact in_all list; unchanged because in_all is false.
+- Nothing applied or run live; the source row is not registered; migration 379 not applied; the host verdict batch is not applied by any run yet. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5; migration 379 since applied by PR 1058, source row and verdict batch are Stage 9 preconditions]
+- EPN and SPN release files were not fetched (their parsing is the same code, proven only on the LPN file and on test-local variants that change `coverage`). [NOT-WORK: build-mode hold, COMMON rule 5 no network fetches]
+- Offers made/accepted (PastConnectionActivity) are not mapped. [WORK: PLAN-2]
+- `run-registered.test.mjs` still pins the exact in_all list; unchanged because in_all is false. [NOT-WORK: fact, no action]
 
 ## Open items
 
-- A bulk insert writes one outbox row per substation (384 for three areas), each naming GB; the drain's per-event cap and question dedup bound the effect, not measured here.
-- The first live dry dispatch (`producer=registry registry_producer=ukpn-capacity-heatmap`) is the coordinator's.
+- A bulk insert writes one outbox row per substation (384 for three areas), each naming GB; the drain's per-event cap and question dedup bound the effect, not measured here. [NOT-WORK: Stage 9 precondition, producer population residue, CLAUDE.md rule 16]
+- The first live dry dispatch (`producer=registry registry_producer=ukpn-capacity-heatmap`) is the coordinator's. [NOT-WORK: Stage 9 precondition, producer population residue, CLAUDE.md rule 16]
