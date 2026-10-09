@@ -19,7 +19,8 @@ import { surfaceOf } from "@/lib/surface-of.mjs";
 import { customerSourceTier } from "@/lib/customer-source-tier";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
-import { canonicalSurfaceForItem, itemDetailHref, type DetailSurface } from "@/lib/item-links";
+import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
+import { citedItemsWithHrefs } from "@/lib/detail/cited-item-links";
 import { itemIdColumn } from "@/lib/detail/item-id-filter";
 import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
@@ -4593,13 +4594,7 @@ export async function fetchCrossPageForItem(
     if (!self) return empty;
     // Read beside the theme work, never throws (a failure shows no inferences, never an error).
     const inferences = await readCustomerInferences(supabase, self.id, async (ids) =>
-      // DFIX-1 (row 05-p2): each cited title carries its detail page, routed by the item's own type and domain
-      // (the same itemDetailHref every ledger uses), so a reader can open what an inference is drawn from.
-      (await readVerifiedItemsByIds(supabase, ids)).map((r) => ({
-        id: r.id,
-        title: r.title,
-        href: itemDetailHref({ id: r.legacy_id || r.id, type: r.item_type, domain: r.domain }),
-      }))
+      citedItemsWithHrefs(await readVerifiedItemsByIds(supabase, ids))
     ).catch((e) => {
       console.error("readCustomerInferences failed, showing no inferences:", e);
       return null;

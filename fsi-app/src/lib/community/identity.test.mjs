@@ -169,6 +169,7 @@ import {
   effectiveAnonymous,
   authorBlockForPost,
   authorIdForViewer,
+  authorIdForRow,
   idWithheldForAnonymity,
   viewerAdminIfNeeded,
   loadCommunityIdentities,
@@ -327,4 +328,13 @@ test("viewerAdminIfNeeded: the admin answer is read once, and only when some oth
   assert.equal(await viewerAdminIfNeeded({ rows: [row(U1, true), row(U2, true)], viewerUserId: "v", identitiesById: idents, readAdmin }), true);
   assert.equal(reads, 1);
   assert.equal(await viewerAdminIfNeeded({ rows: [row(U1, true)], viewerUserId: "v", identitiesById: idents, readAdmin: async () => { throw new Error("rpc down"); } }), false, "an admin read that fails is not an admin");
+});
+
+test("authorIdForRow: the one per-row call: withholding decided by the post flag, the account default or an unresolved identity", () => {
+  const viewer = { userId: U2 };
+  assert.equal(authorIdForRow({ authorUserId: U1, postAnonymous: false, identity: idRow(), viewer }), U1);
+  assert.equal(authorIdForRow({ authorUserId: U1, postAnonymous: true, identity: idRow(), viewer }), null);
+  assert.equal(authorIdForRow({ authorUserId: U1, postAnonymous: false, identity: idRow({ anonymous: true }), viewer }), null);
+  assert.equal(authorIdForRow({ authorUserId: U1, postAnonymous: false, identity: null, viewer }), null);
+  assert.equal(authorIdForRow({ authorUserId: U1, postAnonymous: true, identity: idRow(), viewer: { userId: U1 } }), U1);
 });

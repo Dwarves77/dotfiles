@@ -124,28 +124,9 @@ export function Timeline({ entries, band, onFullSchedule, fullScheduleHref, more
             <TimelineDot key={c.index} classified={c} band={band} segments={visible.length} />
           ))}
         </div>
-        {collapsed && hiddenCount > 0 && (() => {
-          // One element, one style object: `as` picks the tag (a link when moreMarkersHref is
-          // supplied, plain text otherwise) rather than two near-identical JSX blocks (F45).
-          const MoreTag = moreMarkersHref ? "a" : "span";
-          return (
-            <MoreTag
-              href={moreMarkersHref}
-              data-audit="timeline-more-markers"
-              style={{
-                display: "block",
-                marginTop: 6,
-                fontSize: "var(--fs-105)",
-                fontWeight: 700,
-                color: "var(--ink-3)",
-                textAlign: "right",
-                ...(moreMarkersHref ? { textDecoration: "underline", cursor: "pointer" } : {}),
-              }}
-            >
-              +{hiddenCount} more
-            </MoreTag>
-          );
-        })()}
+        {collapsed && hiddenCount > 0 && (
+          <TimelineMore hiddenCount={hiddenCount} href={moreMarkersHref} dataAudit="timeline-more-markers" marginTop={6} />
+        )}
       </div>
       {callout}
     </div>
@@ -154,29 +135,35 @@ export function Timeline({ entries, band, onFullSchedule, fullScheduleHref, more
       <div className="cl-timeline-mobile" style={{ paddingTop: 12 }}>
         <VerticalMilestoneStack visible={visible} band={band} />
       </div>
-      {collapsed && hiddenCount > 0 && (() => {
-        const MoreTag = moreMarkersHref ? "a" : "span";
-        return (
-          <MoreTag
-            href={moreMarkersHref}
-            data-audit="timeline-more-markers-narrow"
-            style={{
-              display: "block",
-              marginTop: 2,
-              fontSize: "var(--fs-105)",
-              fontWeight: 700,
-              color: "var(--ink-3)",
-              textAlign: "right",
-              ...(moreMarkersHref ? { textDecoration: "underline", cursor: "pointer" } : {}),
-            }}
-          >
-            +{hiddenCount} more
-          </MoreTag>
-        );
-      })()}
+      {collapsed && hiddenCount > 0 && (
+        <TimelineMore hiddenCount={hiddenCount} href={moreMarkersHref} dataAudit="timeline-more-markers-narrow" marginTop={2} />
+      )}
       {callout}
     </div>
     </>
+  );
+}
+
+/** The "+N more" tail of a collapsed marker set: a link when the caller supplies a target, plain text otherwise.
+ *  One element, one style object (F45), used by the wide and the narrow block. */
+function TimelineMore({ hiddenCount, href, dataAudit, marginTop }: { hiddenCount: number; href?: string; dataAudit: string; marginTop: number }) {
+  const MoreTag = href ? "a" : "span";
+  return (
+    <MoreTag
+      href={href}
+      data-audit={dataAudit}
+      style={{
+        display: "block",
+        marginTop,
+        fontSize: "var(--fs-105)",
+        fontWeight: 700,
+        color: "var(--ink-3)",
+        textAlign: "right",
+        ...(href ? { textDecoration: "underline", cursor: "pointer" } : {}),
+      }}
+    >
+      +{hiddenCount} more
+    </MoreTag>
   );
 }
 

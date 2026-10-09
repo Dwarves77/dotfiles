@@ -41,6 +41,9 @@ export const GOVERNED = [
       // other entities writers (link-item-entities.mjs, backfill-lineage-edges.mjs) reach this skill through its
       // ops signals; this module carries no intelligence_items op, so it is mapped by file, to the same skill.
       'fsi-app/src/lib/vocabulary/adopted-entities.mjs',
+      // lane DFIX-1 (2026-10-08): the entity_aliases writer (writeEntityAliases, ON CONFLICT DO NOTHING on the full key).
+      // Aliases are evidence about entities of the same spine adopted-entities.mjs mints, so it maps by file to the same skill.
+      'fsi-app/src/lib/entities/resolve.mjs',
     ],
     // row mutations on the intelligence taxonomy (item_type / provenance / classification)
     ops: [/intelligence_items/i, /\bitem_type\b/i, /\bprovenance_status\b/i],

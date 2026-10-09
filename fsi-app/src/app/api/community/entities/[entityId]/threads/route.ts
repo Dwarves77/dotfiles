@@ -16,8 +16,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { entityKindOf } from "@/lib/entities/entity-id.mjs";
-import { authorIdForViewer, idWithheldForAnonymity, loadCommunityIdentities, viewerAdminIfNeeded } from "@/lib/community/identity.mjs";
-import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
+import { authorIdForRow, loadCommunityIdentities } from "@/lib/community/identity.mjs";
+import { communityViewer } from "@/lib/community/viewer";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
@@ -103,15 +103,11 @@ export async function GET(
   );
   const { byId: identitiesById, error: identityErr } = await loadCommunityIdentities(auth.supabase, authorIds);
   if (identityErr) console.warn("community entity threads route: identity lookup failed", identityErr);
-  const viewer = {
-    userId: auth.userId,
-    isAdmin: await viewerAdminIfNeeded({
-      rows: visibleRows.map((r) => r.community_posts!),
-      viewerUserId: auth.userId,
-      identitiesById,
-      readAdmin: async () => (await readOwnPlatformAdmin(auth.supabase)).admin,
-    }),
-  };
+  const viewer = await communityViewer(
+    auth,
+    visibleRows.map((r) => r.community_posts!),
+    identitiesById
+  );
 
   const threads = visibleRows
     .map((row) => ({
@@ -119,12 +115,10 @@ export async function GET(
       group_id: row.community_posts!.group_id,
       title: row.community_posts!.title,
       body: row.community_posts!.body,
-      author_user_id: authorIdForViewer({
+      author_user_id: authorIdForRow({
         authorUserId: row.community_posts!.author_user_id,
-        withheld: idWithheldForAnonymity({
-          postAnonymous: row.community_posts!.anonymous,
-          identity: identitiesById.get(row.community_posts!.author_user_id ?? "") ?? null,
-        }),
+        postAnonymous: row.community_posts!.anonymous,
+        identity: identitiesById.get(row.community_posts!.author_user_id ?? "") ?? null,
         viewer,
       }),
       created_at: row.community_posts!.created_at,

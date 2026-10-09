@@ -18,13 +18,11 @@ import { isRefusal, requireCommunityRoute } from "@/lib/api/route-guard";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import {
   authorBlockForPost,
-  authorIdForViewer,
-  idWithheldForAnonymity,
+  authorIdForRow,
   loadCommunityIdentities,
-  viewerAdminIfNeeded,
   type CommunityIdentityRow,
 } from "@/lib/community/identity.mjs";
-import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
+import { communityViewer, type CommunityViewer } from "@/lib/community/viewer";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -61,16 +59,12 @@ async function loadAuthorIdentity(
 // DFIX-1 (2026-10-08, SEC-5 residual): an anonymous author id reaches only that author and a platform admin.
 // `viewer` is who is reading; the id (author_user_id, author.user_id) is withheld from everyone else here, in
 // the read path (identity.mjs authorIdForViewer).
-function shapePost(row: PostRow, identity: CommunityIdentityRow | null, viewer: { userId: string; isAdmin?: boolean }) {
+function shapePost(row: PostRow, identity: CommunityIdentityRow | null, viewer: CommunityViewer) {
   return {
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
-    author_user_id: authorIdForViewer({
-      authorUserId: row.author_user_id,
-      withheld: idWithheldForAnonymity({ postAnonymous: row.anonymous, identity }),
-      viewer,
-    }),
+    author_user_id: authorIdForRow({ authorUserId: row.author_user_id, postAnonymous: row.anonymous, identity, viewer }),
     // Per-post anonymity (community_posts.anonymous) nulls name and headshot here; the per-user default came
     // back from the RPC already applied. One rule in each place (identity.mjs authorBlockForPost).
     author: authorBlockForPost({
@@ -123,15 +117,11 @@ export async function GET(
   }
 
   const identity = await loadAuthorIdentity(auth.supabase, row.author_user_id);
-  const viewer = {
-    userId: auth.userId,
-    isAdmin: await viewerAdminIfNeeded({
-      rows: [row],
-      viewerUserId: auth.userId,
-      identitiesById: new Map(identity && row.author_user_id ? [[row.author_user_id, identity]] : []),
-      readAdmin: async () => (await readOwnPlatformAdmin(auth.supabase)).admin,
-    }),
-  };
+  const viewer = await communityViewer(
+    auth,
+    [row],
+    new Map(identity && row.author_user_id ? [[row.author_user_id, identity]] : [])
+  );
 
   return NextResponse.json(
     { post: shapePost(row, identity, viewer) },

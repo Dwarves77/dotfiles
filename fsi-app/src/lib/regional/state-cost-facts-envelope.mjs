@@ -4,9 +4,9 @@
 //
 // SCOPE, DELIBERATELY GENERAL (CLAUDE.md rule 19, examples-are-not-scope). migration 152's own comment
 // names "minimum wage, labor rates, fuel taxes" as EXAMPLES of what this table holds ("etc."), never an
-// exhaustive list, and the dimension CHECK is the SAME 6-value vocabulary regional_data_facts already
-// shares (regulatory_feasibility, regional_resources, labor_markets, materials_sourcing, infrastructure,
-// operational_cost). Every function below is generic over dimension/fact_label/state, nothing here is
+// exhaustive list, and the dimension CHECK is the SAME vocabulary regional_data_facts already shares
+// (ALL_OPERATIONS_DIMENSIONS in src/lib/agent/formats/operations-matrix.ts is its one typed home;
+// migrations 106, 109 and 378 spell it). Every function below is generic over dimension/fact_label/state, nothing here is
 // anchored to one state or one cost type. A caller (the CLI orchestrator, a test, a future live feed)
 // supplies the candidate facts; this module only grounds, rates and shapes them.
 //

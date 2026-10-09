@@ -66,14 +66,12 @@ import {
 import { assertBound } from "@/lib/db/paginate.mjs";
 import {
   authorBlockForPost,
-  authorIdForViewer,
+  authorIdForRow,
   effectiveAnonymous,
-  idWithheldForAnonymity,
   loadCommunityIdentities,
-  viewerAdminIfNeeded,
   type CommunityIdentityRow,
 } from "@/lib/community/identity.mjs";
-import { readOwnPlatformAdmin } from "@/lib/auth/platform-admin-gate";
+import { communityViewer, type CommunityViewer } from "@/lib/community/viewer";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -121,7 +119,7 @@ function shapePost(
   row: PostRow,
   identitiesById: Map<string, CommunityIdentityRow>,
   memberProfilesById: Map<string, MemberIdentityRow>,
-  viewer: { userId: string; isAdmin?: boolean }
+  viewer: CommunityViewer
 ) {
   const identity = row.author_user_id
     ? identitiesById.get(row.author_user_id) ?? null
@@ -143,11 +141,7 @@ function shapePost(
     id: row.id,
     group_id: row.group_id,
     parent_post_id: row.parent_post_id,
-    author_user_id: authorIdForViewer({
-      authorUserId: row.author_user_id,
-      withheld: idWithheldForAnonymity({ postAnonymous: row.anonymous, identity }),
-      viewer,
-    }),
+    author_user_id: authorIdForRow({ authorUserId: row.author_user_id, postAnonymous: row.anonymous, identity, viewer }),
     author,
     // R8.7 (spec 07 Community, 2026-09-25, migration 336): shown by default. Post.tsx renders this
     // INSTEAD OF the legacy `author` block above whenever it is present (see Post.tsx's own header).
@@ -273,15 +267,7 @@ export async function GET(request: NextRequest) {
 
   const { memberProfilesById, identitiesById } = await loadAuthorIdentityInputs(auth.supabase, authorIds);
 
-  const viewer = {
-    userId: auth.userId,
-    isAdmin: await viewerAdminIfNeeded({
-      rows,
-      viewerUserId: auth.userId,
-      identitiesById,
-      readAdmin: async () => (await readOwnPlatformAdmin(auth.supabase)).admin,
-    }),
-  };
+  const viewer = await communityViewer(auth, rows, identitiesById);
   const shaped = rows.map((r) => shapePost(r, identitiesById, memberProfilesById, viewer));
   const nextCursor =
     shaped.length === limit ? shaped[shaped.length - 1].created_at : null;

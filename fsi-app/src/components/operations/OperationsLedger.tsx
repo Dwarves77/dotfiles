@@ -78,7 +78,7 @@ const LIST_KEY = "operations";
 // grant): it is the one constant the matrix rows, the rail's Dimension facet, the coverage-gap counts and the
 // statements all render from, so adding the entry here is the whole wiring. ──
 
-interface Dimension {
+export interface Dimension {
   num: number;
   key: string;
   db: string;
@@ -103,7 +103,7 @@ const DIMENSION_DISPLAY: Record<OperationsDimension, { key: string; name: string
   grid_intensity: { key: "gridintensity", name: "Grid carbon intensity" },
 };
 
-const DIMENSIONS: Dimension[] = ALL_OPERATIONS_DIMENSIONS.map((db, i) => ({ num: i + 1, db, ...DIMENSION_DISPLAY[db] }));
+export const DIMENSIONS: Dimension[] = ALL_OPERATIONS_DIMENSIONS.map((db, i) => ({ num: i + 1, db, ...DIMENSION_DISPLAY[db] }));
 
 // DEFECT-FIX (item 3.3, 2026-09-07): all six dimensions render in the "Regions side by side"
 // matrix, D1-D6, same order everywhere — the audit's own words. This used to filter out

@@ -201,6 +201,17 @@ export function authorIdForViewer({ authorUserId, withheld, viewer } = {}) {
 }
 
 /**
+ * The author id one post row shows a viewer: authorIdForViewer with the withholding decided by
+ * idWithheldForAnonymity. The one call every read route makes per row. PURE.
+ *
+ * @param {{ authorUserId?: string|null, postAnonymous?: boolean|null, identity?: { anonymous?: boolean|null } | null, viewer?: { userId?: string|null, isAdmin?: boolean } | null }} args
+ * @returns {string|null}
+ */
+export function authorIdForRow({ authorUserId, postAnonymous, identity, viewer } = {}) {
+  return authorIdForViewer({ authorUserId, withheld: idWithheldForAnonymity({ postAnonymous, identity }), viewer });
+}
+
+/**
  * Whether the viewer is a platform admin, asked at most once and only when it can change an answer: some row's
  * author id is withheld and the viewer is not that row's author. `readAdmin` is the viewer's own admin read
  * (readOwnPlatformAdmin through the user session); one that throws or answers anything but true is "not an

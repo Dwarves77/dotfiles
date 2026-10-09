@@ -13,7 +13,7 @@ Four BUILD DEFECT components fixed and seven DISPO-1 data-defect rows closed or 
 
 | Row (audit id) | Before | After | Test, red then green |
 |---|---|---|---|
-| compose-12-community#661 (CommunityRooms.tsx head) | "New post . Global room" | head reads `selected.short`; aside and labels keep the full name | CommunityRooms.composition.npmtest.mjs red (2 source assertions), green. Audit row still MISMATCH: the audit MOUNT fixture (`mounts.mjs:1782`) gives the room `short: 'GLO'`, so the measured text is "New post . GLO". See NEEDS WRITE-SET EXPANSION. |
+| compose-12-community#661 (CommunityRooms.tsx head) | "New post . Global room" | head reads `selected.short`; aside and labels keep the full name | CommunityRooms.composition.npmtest.mjs red (2 source assertions), green. Audit row MATCH after the granted fixture fix (the audit mount room had `short: 'GLO'`; now 'Global'). |
 | mobile-03#1567 to #1571, #1596 (ui/Timeline.tsx) | one horizontal layout at every width, 1 MISMATCH + 4 NOT BUILT + 1 bounds NOT BUILT | wide block (`cl-timeline-wide`) hidden under 768 by the component's own `<style>`; narrow block with the 62px / 14px / 1fr rows, 2px track, same four-marker window, same callout | new Timeline.npmtest.mjs: 7 of 8 red against the old file, 8 of 8 green; all six audit rows MATCH (plus 11 new MATCH rows from the spec) |
 | compose-07-research-detail#479 (ResearchFindingDetailSurface.tsx) | index advertised "S1 Summary" with no section#summary for a finding that is not record grade | non-record branch renders S1 Summary from whatIsIt, note, whyMatters; S2 fallback no longer repeats the prose | new ResearchFindingDetailSurface.npmtest.mjs: 3 of 5 red against the old file, 5 of 5 green; audit row MATCH |
 | admin-issues-rail#46 (ui/RailCard.tsx title weight) | 800 | 700 (parts brief 2.12, dc.html p13); MOBILE 390 "At a glance" spec row fixed to 700 with the ruling cited | RailCard.npmtest.mjs red then green; audit row MATCH |
@@ -45,14 +45,20 @@ Audit totals after the run: 73 specs, 2534 checks, MATCH 2469, MISMATCH 53, NOT 
 - A flag that dissolves under evidence is corrected in place (rule 13 corollary): 03-l12 (both rows) and the 768 half of 05-p2 are closed as already fixed, with the evidence above.
 - Fail closed on an unresolved author identity: not known to be public, so the id is withheld from non-authors.
 
-## NOT done / NEEDS WRITE-SET EXPANSION (nothing below was touched)
+## PR 1059 CI rulings, applied (coordinator DISPOSITION-LANE message)
 
-- `fsi-app/.discipline/rendering/audit/mounts.mjs:1782`: the Community audit mount's room has `short: 'GLO'`; the real `rooms.ts` short is "Global". One value changes and compose-12-community#661 reads MATCH. Until then that row stays MISMATCH ("New post . GLO").
-- `fsi-app/.discipline/rendering/audit/spec/inthisliststat.json` and `.../section-card-lists.json`: each has one row asserting the RailCard title at font-weight 800; both now read MISMATCH (700) and need the same change to 700 as railcards.json.
-- `fsi-app/src/components/community/PostComposer.tsx:33`: `CommunityPostAuthor.user_id: string` is now `string | null` on the wire for anonymous posts; the client type should say so (no component reads it today).
-- `.discipline/rendering/audit/mounts.mjs:521` keeps a verbatim six-entry copy of the Operations DIMENSIONS ("all 6"); the comments in `scripts/entities/seed-corridors.mjs:37` and `src/lib/regional/state-cost-facts-envelope.mjs:8` still say six. The mount copy should be seven (or import the constant).
-- Not run locally per COMMON rule 9: the whole suite, fitness runner, tsc, lint. Run locally and green: every touched test file plus the neighbouring community, detail, operations and agent-format tests (482 of 482), the registered UX smokes for the touched components (13 specs, 0 failures), `npm run audit:design` once.
-- The `[WORK: DFIX-1]` tokens do not exist on master (the disposition PR has not merged), so `[CLOSED: PR 1059]` is appended (token edit only) to the last line of each item named in the data-defect table: l3 item 3, l12 items 2 and 3, p2 (both bullets), alias1 open item, s8e5 first NOT done bullet, sec5 residual. When the disposition PR merges, its tokens on those lines are superseded by these.
+- F23 (unmapped write): `fsi-app/src/lib/entities/resolve.mjs` mapped by file to environmental-policy-and-innovation in `.discipline/governance/skill-map.mjs` (beside adopted-entities.mjs); `coverage-scan.mjs` now reports GAPS 0, unmapped-writes 0. No exemption.
+- F45 (+42): the viewer/readAdmin block is one module (`src/lib/community/viewer.ts`, `communityViewer`) and the per-row call one function (`authorIdForRow` in identity.mjs), used by the four routes; the cited-item href mapping is `src/lib/detail/cited-item-links.ts` (`citedItemsWithHrefs`, with cited-item-links.npmtest.mjs), used by supabase-server.ts; the duplicated "+N more" block in Timeline.tsx is one `TimelineMore`. `--function=F45` run alone: 5175 against base 5189, PASS, no ceiling change. The supabase-server.ts self-duplication (63w) is not this lane's: `[WORK: DEAD-1c]`.
+- Granted edits: audit mount room `short: 'Global'` (compose-12#661 now MATCH); `inthisliststat.json` and `section-card-lists.json` rail title rows at 700 (both MATCH); `PostComposer.tsx` `CommunityPostAuthor.user_id` is `string | null`; the audit mount's restated six-row dimension list is replaced by an import of the ledger's exported `DIMENSIONS` (which maps `ALL_OPERATIONS_DIMENSIONS`); the comments in `seed-corridors.mjs` and `state-cost-facts-envelope.mjs` point at the constant instead of restating six values.
+- Audit after these edits (full `npm run audit:design`): compose-12, inthisliststat and section-card-lists rows MATCH.
+
+## NOT done
+
+- Three rows regress because the audit mount now draws the seventh dimension (D7): `operations-matrix` count 6 expects 7 and count 22 expects 27, and `operations-matrix-six-regions` text "8 of 36 cells sourced . 22%" reads "8 of 42 . 19%". The spec rows state the six-row artboard; the seventh row is a system need (S8-E5, rule 20). Spec files `operations-matrix.json` and `operations-matrix-six-regions.json` are outside this lane's grant. [WORK: DAUDIT-3]
+- Audit rows that differ from the committed results.json and are not caused by this lane (compose-08 `.cl-masthead-dek` NOT BUILT and filters-rail `.cl-facet-row` height 24 vs 44; list-surface four facet rows 24 vs 44; reproduced with this lane's changes stashed). [NOT-WORK: pre-existing, DAUDIT-3 results.json]
+- Not run locally per COMMON rule 9: the whole suite, the fitness runner (F45 alone was run), tsc, lint. Run locally and green: every touched test file plus neighbours, 13 registered UX smokes, `npm run audit:design`. [NOT-WORK: COMMON rule 9, CI is the gate]
+- The `[WORK: DFIX-1]` tokens do not exist on master (the disposition PR has not merged), so closing tokens are appended (token edit only) to the last line of each item named in the data-defect table: `[CLOSED: PR 1059]` on l3 item 3, p2 citation bullet, alias1, s8e5 and sec5; `[REFUTED: ...]` with the evidence on l12 items 2 and 3 and the p2 768 bullet. [NOT-WORK: tokens supersede the disposition PR tokens on those lines when it merges]
+- supabase-server.ts internal duplication (63w clone with itself) is pre-existing. [WORK: DEAD-1c]
 
 ## UX compliance
 

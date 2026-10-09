@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-10-09T02:41:40.239Z",
+  "runAt": "2026-10-09T04:57:34.042Z",
   "specs": [
     {
       "part": "Absence",
@@ -5543,12 +5543,13 @@
         },
         {
           "name": "'In this list' eyebrow label",
+          "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json).",
           "selector": "[data-audit=\"inthislist\"] p:first-of-type",
           "expect": {
             "font-size": "10.5px",
             "letter-spacing": "0.12em",
             "text-transform": "uppercase",
-            "font-weight": "800"
+            "font-weight": "700"
           }
         },
         {
@@ -10474,10 +10475,10 @@
         {
           "name": "title (rail-label convention, not asserted as a MISMATCH against Anton per the note above)",
           "selector": "[data-audit=\"legend\"] p",
-          "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase.",
+          "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json).",
           "expect": {
             "font-size": "10.5px",
-            "font-weight": "800",
+            "font-weight": "700",
             "letter-spacing": "0.12em",
             "text-transform": "uppercase"
           }
@@ -21878,8 +21879,8 @@
       "selector": "[data-audit=\"new-post\"] .cl-section-heading h2",
       "property": "text",
       "expected": "New post · Global",
-      "actual": "New post · GLO",
-      "status": "MISMATCH",
+      "actual": "New post · Global",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -29150,7 +29151,7 @@
       "expected": "10.5px",
       "actual": "10.5px",
       "status": "MATCH",
-      "note": null
+      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
     },
     {
       "spec": "inthisliststat",
@@ -29169,7 +29170,7 @@
       "expected": "0.12em (= 1.26px at 10.5px)",
       "actual": "1.26px",
       "status": "MATCH",
-      "note": null
+      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
     },
     {
       "spec": "inthisliststat",
@@ -29188,7 +29189,7 @@
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": null
+      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
     },
     {
       "spec": "inthisliststat",
@@ -29204,10 +29205,10 @@
       "target": "'In this list' eyebrow label",
       "selector": "[data-audit=\"inthislist\"] p:first-of-type",
       "property": "font-weight",
-      "expected": "800",
+      "expected": "700",
       "actual": "700",
-      "status": "MISMATCH",
-      "note": null
+      "status": "MATCH",
+      "note": "DFIX-1 (2026-10-08): weight 700, not 800. RailCard draws every rail card title at 700 (parts brief 2.12, the artboards); rule 20 rules for the artboards over the MOBILE 390 text spec (see railcards.json)."
     },
     {
       "spec": "inthisliststat",
@@ -48534,8 +48535,8 @@
       "selector": "[data-audit=\"ops-matrix-hint\"]",
       "property": "text",
       "expected": "8 of 36 cells sourced · 22% · 18 regions · scroll →",
-      "actual": "8 of 36 cells sourced · 22% · 18 regions · scroll →",
-      "status": "MATCH",
+      "actual": "8 of 42 cells sourced · 19% · 18 regions · scroll →",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -48726,8 +48727,8 @@
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr",
       "property": "count",
       "expected": "6",
-      "actual": "6",
-      "status": "MATCH",
+      "actual": "7",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -48838,8 +48839,8 @@
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence-dash",
       "property": "count",
       "expected": "22",
-      "actual": "22",
-      "status": "MATCH",
+      "actual": "27",
+      "status": "MISMATCH",
       "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The Absence part no longer carries the cl-absence class (the dash and narrow variants carry cl-absence-dash; Absence.tsx), and an unsourced matrix cell is drawn by CoverageState, whose dash carries the same class."
     },
     {
@@ -50906,7 +50907,7 @@
       "expected": "10.5px",
       "actual": "10.5px",
       "status": "MATCH",
-      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
+      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
     },
     {
       "spec": "section-card-lists",
@@ -50924,10 +50925,10 @@
       "target": "title (rail-label convention, not asserted as a MISMATCH against Anton per the note above)",
       "selector": "[data-audit=\"legend\"] p",
       "property": "font-weight",
-      "expected": "800",
+      "expected": "700",
       "actual": "700",
-      "status": "MISMATCH",
-      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
+      "status": "MATCH",
+      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
     },
     {
       "spec": "section-card-lists",
@@ -50948,7 +50949,7 @@
       "expected": "0.12em (= 1.26px at 10.5px)",
       "actual": "1.26px",
       "status": "MATCH",
-      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
+      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
     },
     {
       "spec": "section-card-lists",
@@ -50969,7 +50970,7 @@
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase."
+      "note": "README section 0.4 rail label convention: 10.5px/.12em uppercase. DFIX-1 (2026-10-08): weight 700, not 800 (parts brief 2.12 and the artboards; rule 20 over the MOBILE 390 text spec, see railcards.json)."
     },
     {
       "spec": "sectionindex",

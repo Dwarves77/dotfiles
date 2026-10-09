@@ -101,3 +101,12 @@ test("<RegionDimensionMatrix> is fed the full MATRIX_DIMENSIONS unless the reade
   // The unselected default is the whole list; the only narrowing is the reader's own facet value.
   assert.match(body, /dimensionFilter\s*\?\s*MATRIX_DIMENSIONS\.filter\(\(d\) => d\.db === dimensionFilter\)\s*:\s*MATRIX_DIMENSIONS/);
 });
+
+// DFIX-1 (2026-10-08): the design-audit mount no longer restates the dimension list; it imports the ledger's own
+// exported DIMENSIONS, so it cannot lag the shared vocabulary again (it kept six after migration 378 made seven).
+test("DIMENSIONS is exported and the audit mount imports it instead of keeping a copy", () => {
+  assert.match(SOURCE, /export const DIMENSIONS: Dimension\[\] = ALL_OPERATIONS_DIMENSIONS\.map/);
+  const mounts = readFileSync(resolve(HERE_DIR, "../../../.discipline/rendering/audit/mounts.mjs"), "utf8");
+  assert.match(mounts, /import \{ DIMENSIONS \} from '@\/components\/operations\/OperationsLedger';/);
+  assert.doesNotMatch(mounts, /db: 'regulatory_feasibility'/, "no restated dimension row in the mount");
+});

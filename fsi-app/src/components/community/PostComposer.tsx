@@ -30,7 +30,8 @@ import type { CommunityEntityRef } from "./types";
 import { formatNumber } from "@/lib/format";
 
 interface CommunityPostAuthor {
-  user_id: string;
+  /** Null on an anonymous post unless the reader is its author or a platform admin (DFIX-1, SEC-5 residual). */
+  user_id: string | null;
   name: string | null;
   headshot_url: string | null;
 }
