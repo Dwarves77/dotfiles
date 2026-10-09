@@ -370,6 +370,8 @@
   "20261008231719": {"name":"378_grid_intensity_dimension","file":"378_grid_intensity_dimension.sql","class":"identical"},
   "20261008232035": {"name":"381_write_policies_name_their_role","file":"381_write_policies_name_their_role.sql","class":"identical"},
   "20261008233421": {"name":"376_obligation_objects","file":"376_obligation_objects.sql","class":"identical"},
+  "20261009023604": {"name":"380_oem_roadmap_outbox_and_nullable_announced_at","file":"380_oem_roadmap_outbox_and_nullable_announced_at.sql","class":"identical"},
+  "20261009023755": {"name":"379_grid_connection_queues_substation_evidence","file":"379_grid_connection_queues_substation_evidence.sql","class":"identical"},
   "dup:006_rls_multi_tenant.sql": {"name":"rls_multi_tenant","file":"006_rls_multi_tenant.sql","class":"duplicate-prefix","note":"forensics E3: second file on version 006; the ledger holds 006 multi_tenant only; F51 allowlist 2026-09-19 (renumbering refused); [HYPOTHESIS] applied by hand in April"},
   "dup:007_full_brief.sql": {"name":"full_brief","file":"007_full_brief.sql","class":"duplicate-prefix","note":"forensics E3: second file on version 007; the ledger holds 007 community_layer only; F51 allowlist 2026-09-19"},
   "dup:007_rls_community.sql": {"name":"rls_community","file":"007_rls_community.sql","class":"duplicate-prefix","note":"forensics E3: third file on version 007; the ledger holds 007 community_layer only; F51 allowlist 2026-09-19"},

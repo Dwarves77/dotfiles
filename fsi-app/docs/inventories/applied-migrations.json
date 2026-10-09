@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-08T23:42:38.157Z",
-  "count": 371,
+  "synced_at": "2026-10-09T02:49:04.143Z",
+  "count": 373,
   "migrations": [
     {
       "version": "001",
@@ -1486,6 +1486,14 @@
     {
       "version": "20261008233421",
       "name": "376_obligation_objects"
+    },
+    {
+      "version": "20261009023604",
+      "name": "380_oem_roadmap_outbox_and_nullable_announced_at"
+    },
+    {
+      "version": "20261009023755",
+      "name": "379_grid_connection_queues_substation_evidence"
     }
   ]
 }

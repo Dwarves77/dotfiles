@@ -14,9 +14,10 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const RAW = readFileSync(fileURLToPath(new URL("./380_oem_roadmap_outbox_and_nullable_announced_at.sql", import.meta.url)), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 
-test("header: subject line, states NOT APPLIED, names the two changes and what it does not do", () => {
+test("header: subject line, states APPLIED with the ledger version, names the two changes and what it does not do", () => {
   assert.match(RAW, /^-- subject: Migration 380 /);
-  assert.match(RAW, /^-- NOT APPLIED\./m);
+  assert.match(RAW, /^-- APPLIED \(production ledger version 20261009023604, as of 2026-10-09\)\./m);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
   assert.match(RAW, /announced_at/);
   assert.match(RAW, /manufacturer_id/);
   assert.match(RAW, /No row is written, updated or deleted/);
