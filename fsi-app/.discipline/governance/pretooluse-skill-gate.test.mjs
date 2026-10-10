@@ -530,3 +530,161 @@ test("pair 7 attack: the exemption is these two forms only, from a real lane wor
     assert.equal(isolationAsk("git merge origin/master && git merge lane/other", { cwd: t.lane }), true, "second invocation");
   } finally { x7Rm(t.root, { recursive: true, force: true }); }
 });
+
+// ═════════════════════════════════════════════════════════════════════════════════════════════════════
+// GATE-FIX-2 (2026-10-10): shell edits of governed files, Windows backslash paths in argv.
+// Register residue aud-at3 A-PT-B24 to B27 and the `argvOnly` backslash defect found by RULES-X-2 (pair 7).
+// ═════════════════════════════════════════════════════════════════════════════════════════════════════
+import { bashEditTargets, bashGovernedEdits } from "./pretooluse-skill-gate.mjs";
+import { inScope } from "./pretooluse-scope.mjs";
+
+const GF_FILE = "fsi-app/src/lib/agent/canonical-pipeline.ts";
+const GF_ABS = `${ABS}/${GF_FILE}`;
+
+// Every form that writes the file. With NO skill loaded each is denied by the skill-missing branch; with the
+// governing skill loaded each is allowed (a shell edit asks nothing more than an Edit does).
+const GF_WRITES = [
+  ["sed -i", `sed -i 's/a/b/' ${GF_FILE}`],
+  ["sed -i with a suffix", `sed -i.bak -e 's/a/b/' ${GF_FILE}`],
+  ["sed bundled -ni", `sed -ni 's/a/b/p' ${GF_FILE}`],
+  ["sed --in-place", `sed --in-place 's/a/b/' ${GF_ABS}`],
+  ["perl -pi -e", `perl -pi -e 's/a/b/' ${GF_FILE}`],
+  ["redirect >", `echo x > ${GF_FILE}`],
+  ["redirect >>", `echo x >> ${GF_FILE}`],
+  ["redirect with no space", `echo x>>${GF_FILE}`],
+  ["redirect stderr to file", `node x.mjs 2> ${GF_FILE}`],
+  ["quoted redirect target", `echo x > "${GF_FILE}"`],
+  ["cat heredoc into file", `cat > ${GF_FILE} <<'EOT'\nbody\nEOT`],
+  ["tee", `echo x | tee ${GF_FILE}`],
+  ["tee -a", `echo x | tee -a ${GF_FILE}`],
+  ["cp onto the file", `cp /tmp/new.ts ${GF_FILE}`],
+  ["mv onto the file", `mv /tmp/new.ts ${GF_FILE}`],
+  ["cp -t into the directory", `cp -t fsi-app/src/lib/agent/ /tmp/canonical-pipeline.ts`],
+  ["python -c open write", `python -c "open('${GF_FILE}', 'w').write('x')"`],
+  ["python3 -c write_text", `python3 -c "import pathlib; pathlib.Path('${GF_FILE}').write_text('x')"`],
+  ["node -e writeFileSync", `node -e "require('fs').writeFileSync('${GF_FILE}', 'x')"`],
+  ["python heredoc", `python - <<'PY'\nopen('${GF_FILE}', 'a').write('x')\nPY`],
+  ["git apply of a heredoc patch", `git apply <<'PATCH'\n--- a/${GF_FILE}\n+++ b/${GF_FILE}\n@@ -1 +1 @@\n-a\n+b\nPATCH`],
+  ["Set-Content", `Set-Content ${GF_FILE} -Value x`],
+  ["Windows backslash redirect", `echo x > fsi-app\\src\\lib\\agent\\canonical-pipeline.ts`],
+];
+for (const [label, cmd] of GF_WRITES) {
+  test(`GATE-FIX-2 ATTACK: ${label} on a governed file, no skill loaded -> denied`, () => {
+    const d = evaluateGate({ tool_name: "Bash", tool_input: { command: cmd }, transcript_path: EMPTY });
+    assert.equal(d.permissionDecision, "deny", cmd);
+    assert.equal(d.tag, "bash-edit-governed-skillmissing");
+    assert.ok(d.reason.includes("environmental-policy-and-innovation"), d.reason);
+  });
+  test(`GATE-FIX-2: ${label} on a governed file, skill loaded -> allowed`, () => {
+    const d = evaluateGate({ tool_name: "Bash", tool_input: { command: cmd }, transcript_path: LOADED });
+    assert.equal(d.permissionDecision, "allow", cmd);
+    assert.equal(d.tag, "bash-edit-governed-ok");
+  });
+}
+
+// Forms that do NOT write a governed file stay quiet even with no skill loaded.
+const GF_QUIET = [
+  ["sed without -i", `sed 's/a/b/' ${GF_FILE}`],
+  ["sed -n print", `sed -n '1,5p' ${GF_FILE}`],
+  ["sed -i on an ungoverned file", "sed -i 's/a/b/' fsi-app/README.md"],
+  ["cat of the file", `cat ${GF_FILE}`],
+  ["grep of the file", `grep -n foo ${GF_FILE}`],
+  ["redirect of stderr to a descriptor", `node x.mjs 2>&1 | grep ${GF_FILE}`],
+  ["redirect INTO an ungoverned file", `grep foo ${GF_FILE} > fsi-app/scripts/tmp/out.txt`],
+  ["cp FROM the governed file", `cp ${GF_FILE} /tmp/backup.ts`],
+  ["git apply --check", `git apply --check <<'PATCH'\n--- a/${GF_FILE}\n+++ b/${GF_FILE}\nPATCH`],
+  ["python -c that only reads", `python -c "print(open('${GF_FILE}').read())"`],
+  ["node -e that only reads", `node -e "console.log(require('fs').readFileSync('${GF_FILE}','utf8'))"`],
+  ["a commit message that names the file", `git commit -m "sed -i ${GF_FILE} > ${GF_FILE}"`],
+  ["echo of a redirect inside quotes", `echo "x > ${GF_FILE}"`],
+];
+for (const [label, cmd] of GF_QUIET) {
+  test(`GATE-FIX-2: ${label} is not a governed edit -> allowed with no skill loaded`, () => {
+    const d = evaluateGate({ tool_name: "Bash", tool_input: { command: cmd }, transcript_path: EMPTY });
+    assert.equal(d.permissionDecision, "allow", cmd);
+    assert.notEqual(d.tag, "bash-edit-governed-skillmissing");
+  });
+}
+
+test("GATE-FIX-2: the shell route and the Edit tool resolve the same path to the same skills", () => {
+  const viaEdit = evaluateGate({ tool_name: "Edit", tool_input: { file_path: GF_ABS }, transcript_path: EMPTY });
+  const viaSed = evaluateGate({ tool_name: "Bash", tool_input: { command: `sed -i 's/a/b/' ${GF_ABS}` }, transcript_path: EMPTY });
+  assert.equal(viaEdit.permissionDecision, "deny");
+  assert.equal(viaSed.permissionDecision, "deny");
+  const skillsOf = (r) => /Missing: ([^.]+)\./.exec(r)[1];
+  assert.equal(skillsOf(viaSed.reason), skillsOf(viaEdit.reason));
+});
+
+test("GATE-FIX-2: a relative target resolves against the call's cwd, like the Edit tool", () => {
+  const cmd = "sed -i 's/a/b/' src/lib/agent/canonical-pipeline.ts";
+  const d = evaluateGate({ tool_name: "Bash", tool_input: { command: cmd }, cwd: `${ABS}/fsi-app`, transcript_path: EMPTY });
+  assert.equal(d.permissionDecision, "deny");
+});
+
+test("GATE-FIX-2: bashEditTargets names the written paths and only those", () => {
+  assert.deepEqual(bashEditTargets("sed -i 's/a/b/' a.ts b.ts"), ["a.ts", "b.ts"]);
+  assert.deepEqual(bashEditTargets("sed -e 's/a/b/' -i a.ts"), ["a.ts"]);
+  assert.deepEqual(bashEditTargets("sed 's/a/b/' a.ts"), []);
+  assert.deepEqual(bashEditTargets("echo x > a.ts 2>&1"), ["a.ts"]);
+  assert.deepEqual(bashEditTargets("cp a.ts b.ts"), ["b.ts"]);
+  assert.deepEqual(bashEditTargets("mv a.ts b.ts"), ["b.ts", "a.ts"]);
+  assert.deepEqual(bashEditTargets("echo x | tee -a a.ts b.ts"), ["a.ts", "b.ts"]);
+  assert.deepEqual(bashEditTargets("echo hi > /dev/null"), []);
+  assert.deepEqual(bashEditTargets("echo x > $OUT"), [], "a run-time path cannot be resolved and is skipped");
+  assert.deepEqual(bashGovernedEdits("sed -i s/a/b/ README.md").skills, []);
+});
+
+test("GATE-FIX-2: the dangerous branch still runs after the edit check (a governed edit that is also --apply asks)", () => {
+  const d = evaluateGate({ tool_name: "Bash", tool_input: { command: `sed -i 's/a/b/' ${GF_FILE} && node x.mjs --apply` }, transcript_path: LOADED });
+  assert.equal(d.permissionDecision, "ask");
+});
+
+// ── (2) Windows backslash paths ──
+test("GATE-FIX-2: argvOnly keeps a backslash path in one token (no `sers`)", () => {
+  assert.equal(argvOnly("git -C C:\\work\\Users\\x merge origin/master").trim(), "git -C C:/work/Users/x merge origin/master");
+  assert.equal(argvOnly("ls a\\ b").trim(), "ls a_b", "an escaped space joins the token");
+  assert.equal(argvOnly("echo a \\\n b").replace(/\s+/g, " ").trim(), "echo a b", "a line continuation is a space");
+  assert.equal(argvOnly("echo a\\;b").trim(), "echo a_b", "an escaped operator is literal");
+  assert.equal(argvOnly("ls \\\\host\\share").trim(), "ls /host/share", "an escaped backslash is one separator");
+});
+
+const GF_BACKSLASH_BRANCH_MOVES = [
+  "git -C C:\\work\\repo merge origin/master",
+  "git -C C:\\work\\Users\\repo checkout main",
+  "git -C C:\\work\\x\\dotfiles switch lane/y",
+  "git -C \"C:\\work dir\\repo\" rebase origin/master",
+  "git.exe -C C:\\work\\repo pull",
+  "git -C C:\\work\\repo reset --hard HEAD~1",
+  "git -C C:\\work\\repo branch -D lane/old",
+];
+for (const cmd of GF_BACKSLASH_BRANCH_MOVES) {
+  test(`GATE-FIX-2 ATTACK: the backslash form of a branch-moving command asks: ${cmd}`, () => {
+    assert.equal(isolationAsk(cmd), true);
+    assert.equal(isolationAsk(cmd, { cwd: "C:\\work\\repo" }), true, "in the main checkout");
+    const d = evaluateGate({ tool_name: "Bash", tool_input: { command: cmd }, cwd: "C:\\work\\repo", transcript_path: LOADED });
+    assert.equal(d.permissionDecision, "ask");
+    assert.equal(d.tag, "worktree-isolation");
+  });
+}
+test("GATE-FIX-2: a backslash path on a read-only git form stays quiet", () => {
+  for (const cmd of ["git -C C:\\work\\Users\\repo status", "git -C C:\\work\\repo log --oneline -5", "git -C C:\\work\\repo diff --stat"]) {
+    assert.equal(isolationAsk(cmd), false, cmd);
+  }
+});
+test("GATE-FIX-2: a backslash raw command never earns the lane-contract exemption (pair 7 unchanged)", () => {
+  const t = x7Tree();
+  try {
+    assert.equal(isolationAsk(`git -C ${t.lane} merge origin/master`, { cwd: t.lane }), true);
+  } finally { x7Rm(t.root, { recursive: true, force: true }); }
+});
+
+// The scope shim: a command aimed at the repo by `-C` or `cd` is this project's call even from a cwd outside it.
+test("GATE-FIX-2: scope follows a -C or cd directory that holds fsi-app, backslashes included", () => {
+  const exists = (p) => p.replaceAll("\\", "/").endsWith("/repo/fsi-app");
+  const call = (command, cwd) => inScope({ tool_name: "Bash", tool_input: { command }, cwd }, { exists });
+  assert.equal(call("git -C C:\\work\\repo merge origin/master", "C:\\elsewhere"), true);
+  assert.equal(call("git -C /c/work/repo merge origin/master", "/c/elsewhere"), true);
+  assert.equal(call("cd C:\\work\\repo && git checkout main", "C:\\elsewhere"), true);
+  assert.equal(call("git -C C:\\work\\other merge origin/master", "C:\\elsewhere"), false, "another project's directory");
+  assert.equal(call("git status", "C:\\elsewhere"), false, "no directory named, cwd outside");
+});
