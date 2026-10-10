@@ -31,7 +31,7 @@ import type { InputRef } from "../types.ts";
 export const METHOD_ID = "infer-from-question";
 export const METHOD_VERSION = "v1";
 
-export type InferenceMethodResult =
+type InferenceMethodResult =
   | {
       ok: true;
       claimText: string;
@@ -51,14 +51,14 @@ export type InferenceMethodResult =
 /** The prior inference_records row shape a recompute reads (drain.ts supplies this as
  *  `MethodContext.priorValue`, the SAME "give the method its own previous state" contract
  *  methods/index.ts's header documents for the numeric path). */
-export interface PriorInferenceRow {
+interface PriorInferenceRow {
   inference_id: string;
   claim_text: string;
   cited_item_ids: string[];
   trigger_question_ref: string | null;
 }
 
-export type InferenceMethodFn = (ctx: MethodContext) => InferenceMethodResult | Promise<InferenceMethodResult>;
+type InferenceMethodFn = (ctx: MethodContext) => InferenceMethodResult | Promise<InferenceMethodResult>;
 
 /**
  * Recompute one inference given its prior row and its freshly RESOLVED declared inputs (drain.ts's
@@ -106,11 +106,11 @@ export function computeInferFromQuestion(ctx: MethodContext): InferenceMethodRes
 
 /** The minimal Supabase RPC surface this module needs (same narrow-interface posture as
  *  register-derivation.ts's `RpcClient`). */
-export interface InferenceRpcClient {
+interface InferenceRpcClient {
   rpc(fn: string, args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
 }
 
-export interface RegisterInferenceRecordInput {
+interface RegisterInferenceRecordInput {
   subjectId: string | null;
   claimText: string;
   statusToken: (typeof STATUS_TOKENS)[number];
@@ -194,7 +194,7 @@ export function firstInferenceComputedBy(batch: string): string {
   return `question-answers:${batch}`;
 }
 
-export interface FirstInferenceArgs {
+interface FirstInferenceArgs {
   /** intelligence_items.instrument_entity_id of the question's item, or null (not every item has one yet). */
   subjectId: string | null;
   claimText: string;
@@ -243,7 +243,7 @@ export async function registerFirstInference(sb: InferenceRpcClient, args: First
 // NOT CALLED BY drain.ts YET: wiring it into Pass 2b is a drain.ts edit, outside this lane (reported for the
 // lane that owns drain.ts next); until then it is reachable from its own test only.
 
-export interface ReopenQuestionDeps {
+interface ReopenQuestionDeps {
   readItem(itemId: string): Promise<{ id: string; title?: string | null; domain?: number | null; item_type?: string | null; jurisdiction_iso?: string[] | string | null } | null>;
   /** The currently OPEN question flag for (subject_ref, created_by), or null. */
   readOpenQuestionFlag(subjectRef: string, createdBy: string): Promise<{ id: string } | null>;

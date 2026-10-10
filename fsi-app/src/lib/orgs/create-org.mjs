@@ -25,8 +25,8 @@
 import { findBand, parseOrgProfile, PROFILE_JSON_KEYS } from "../profile/profile-contract.mjs";
 import { REGIONS } from "../community/profile-policy.mjs";
 
-export const MAX_ORG_NAME = 200;
-export const MAX_JOB_TITLE = 120;
+const MAX_ORG_NAME = 200;
+const MAX_JOB_TITLE = 120;
 
 /**
  * @param {unknown} body raw parsed JSON

@@ -137,7 +137,7 @@ export function validateProfileInput(input = {}) {
 // onto ADR-034's 8-role ORG_ROLES vocabulary where a clear correspondence exists. Tags with no
 // ORG_ROLES counterpart (manufacturer-producer, distributor, port-operator, airport-operator,
 // terminal-operator) are left unmapped, not force-fitted, per CLAUDE.md rule 2 (never fabricate).
-export const COMPLIANCE_OBJECT_TO_ORG_ROLE = Object.freeze({
+const COMPLIANCE_OBJECT_TO_ORG_ROLE = Object.freeze({
   "carrier-ocean": "carrier",
   "carrier-air": "carrier",
   "carrier-road": "carrier",

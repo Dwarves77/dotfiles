@@ -29,7 +29,7 @@ import {
   type RowFilterState,
 } from "./list-surface-helpers";
 
-export interface ListSurfaceFilterApi {
+interface ListSurfaceFilterApi {
   filter: RowFilterState;
   /** Set one facet (or the query). `null`/"" clears it, which removes its param entirely. */
   setFacet: (facet: keyof RowFilterState, value: string | null) => void;

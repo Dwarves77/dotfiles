@@ -103,7 +103,7 @@ export function classifyScopeVerticals({ name, sourceRole } = {}) {
 // re-checks a scope_topics proposal's per-topic keyword evidence against the source's OWN name/role at
 // apply time (not trusted from the possibly-stale proposal payload) via topicKeywordMatch below -- the
 // SAME table classifyScopeTopics uses, never a second hand-typed copy.
-export const TOPIC_KEYWORDS = Object.freeze({
+const TOPIC_KEYWORDS = Object.freeze({
   regulatory: [/\bregulat/i, /\blegislat/i, /\bdirective\b/i, /\bstatute\b/i],
   finance: [/\bfinance\b/i, /\bfinancial\b/i, /\binvestor/i, /\bcapital markets\b/i],
   technology: [/\btechnolog/i, /\binnovation\b/i, /\bdigital\b/i],

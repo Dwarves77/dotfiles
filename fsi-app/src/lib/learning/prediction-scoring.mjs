@@ -87,10 +87,10 @@ export const OUTCOMES = Object.freeze(["held", "refuted", "partial"]);
 export const SCORED_BY = `${METHOD_ID}@${METHOD_VERSION}`;
 
 /** Claim kinds whose source counts as grounding the assessment (a GAP has no source, an ANALYSIS carries none). */
-export const GROUNDING_CLAIM_KINDS = Object.freeze(["FACT", "LEGAL"]);
+const GROUNDING_CLAIM_KINDS = Object.freeze(["FACT", "LEGAL"]);
 
 /** Bound on signposts read by the state-based paths (repair, deadline). A signpost leaves them once scored. */
-export const STATE_READ_CAP = 5000;
+const STATE_READ_CAP = 5000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -152,7 +152,7 @@ export function watchedRowForEvent(event) {
 }
 
 /** Normalise a signposts row read from the database into the SignpostRow shape signpost-watch.ts uses. PURE. */
-export function toSignpostRow(r) {
+function toSignpostRow(r) {
   return {
     entityId: r.entity_id,
     assessmentId: r.assessment_id,

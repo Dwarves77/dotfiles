@@ -72,7 +72,7 @@ export function classifyMilestones(entries: TimelineEntry[]): ClassifiedMileston
   return classifyTimelineEntries(entries).map((c, index) => ({ ...c, index }));
 }
 
-export interface TimelineHeaderCounts {
+interface TimelineHeaderCounts {
   total: number;
   passed: number;
   nextDate: string | null;
@@ -94,7 +94,7 @@ export function timelineHeaderCounts(classified: ClassifiedMilestone[]): Timelin
 const COLLAPSE_THRESHOLD = 4;
 const COLLAPSE_SHOW = 4;
 
-export interface CollapsedTimeline {
+interface CollapsedTimeline {
   visible: ClassifiedMilestone[];
   hiddenCount: number;
   collapsed: boolean;
@@ -139,7 +139,7 @@ export function nextMilestoneClause(classified: ClassifiedMilestone[], nowIso?: 
 /** An item_forward_events row shape ("upcoming obligation"), minimal - only the three fields this
  *  merge needs, so this module stays decoupled from the full UpcomingEvent type (read-upcoming.mjs /
  *  UpcomingObligationsStripView.tsx). */
-export interface ObligationEventLike {
+interface ObligationEventLike {
   event_date: string;
   event_kind: string;
 }

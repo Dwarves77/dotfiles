@@ -19,7 +19,7 @@ export const METERED_ELIGIBLE_CLASS = "batch-classification";
 
 // Grounding-shaped classes — these have a FREE subscription-executor path and may NEVER be metered, regardless of
 // framing. Named explicitly so a future caller cannot relabel grounding as something else to slip the gate.
-export const FREE_ONLY_CLASSES = Object.freeze(new Set([
+const FREE_ONLY_CLASSES = Object.freeze(new Set([
   "grounding", "reground", "re-ground", "extraction", "ledger-extraction", "repair", "mint", "synthesis",
   "generate", "generate-stored", "ask", "search", "verification",
 ]));
@@ -49,7 +49,7 @@ export const SCOPED_MODEL_AMENDMENTS = Object.freeze([
 // expiry, written operator authorization). The wall's DEFAULT stays batch-classification-only; a call in
 // any other class with no matching amendment still refuses. Each entry is scope-limited to a NAMED task,
 // hard-capped, and EXPIRES on completion (REMOVE the entry once the task's run is done).
-export const SCOPED_CLASS_AMENDMENTS = Object.freeze([
+const SCOPED_CLASS_AMENDMENTS = Object.freeze([
   {
     task: "P2 proof batch: depth-brief generation from catalogued instruments",
     callClass: "depth-brief-generation",

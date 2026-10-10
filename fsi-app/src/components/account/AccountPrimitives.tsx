@@ -15,63 +15,6 @@ const SANS = "var(--font-sans)";
 // Active tab = 3px orange underline + bold ink; resting = secondary ink.
 // Real buttons, keyboard-operable, aria-current on the active one.
 
-export interface SubTab<T extends string> {
-  key: T;
-  label: string;
-}
-
-export function SubTabBar<T extends string>({
-  tabs,
-  active,
-  onSelect,
-  ariaLabel,
-}: {
-  tabs: SubTab<T>[];
-  active: T;
-  onSelect: (key: T) => void;
-  ariaLabel: string;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label={ariaLabel}
-      style={{
-        display: "flex",
-        gap: "2px",
-        borderBottom: "1px solid var(--color-border)",
-        margin: "0 0 18px",
-        flexWrap: "wrap",
-      }}
-    >
-      {tabs.map((t) => {
-        const on = t.key === active;
-        return (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={on}
-            onClick={() => onSelect(t.key)}
-            style={{
-              fontFamily: SANS,
-              fontSize: "12.5px",
-              fontWeight: on ? 800 : 600,
-              padding: "10px 16px",
-              whiteSpace: "nowrap",
-              border: "none",
-              borderBottom: `3px solid ${on ? "var(--color-primary)" : "transparent"}`,
-              background: "transparent",
-              color: on ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-              cursor: "pointer",
-            }}
-          >
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Card with an Anton title head (dc.html p14/p15) ──────────────────────
 
 export function AccountCard({

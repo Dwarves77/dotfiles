@@ -85,52 +85,21 @@ Output JSON only, no prose, no markdown, no code fences.`;
 
 export type AiTrustTier = "T1" | "T2" | "T3";
 
-export interface HaikuVerifyCandidateInput {
+interface HaikuVerifyCandidateInput {
   url: string;
   name?: string;
   discoveredFor?: string;
 }
 
-export interface HaikuVerifyClassification {
+interface HaikuVerifyClassification {
   ai_relevance_score: number;
   ai_freight_score: number;
   ai_trust_tier: AiTrustTier;
   rationale: string;
 }
 
-export type HaikuVerifyResult =
+type HaikuVerifyResult =
   | { ok: true; result: HaikuVerifyClassification }
-  | { ok: false; error: string };
-
-// ────────────────────────────────────────────────────────────────────────────
-// Public types: content classification
-// ────────────────────────────────────────────────────────────────────────────
-
-export interface ClassifyInput {
-  html: string;
-  source_id: string | null;
-  source_url: string;
-  source_tier?: number | null;
-  source_jurisdictions?: string[];
-  source_topic_tags?: string[];
-}
-
-export interface ClassifyOutput {
-  item_type: string;
-  severity: string;
-  priority: string;
-  urgency_tier: string;
-  topic_tags: string[];
-  jurisdictions: string[];
-  title_candidate: string;
-  summary: string;
-  content_hash: string;
-  cost_usd_estimated: number;
-  rationale: string;
-}
-
-export type ClassifyResult =
-  | { ok: true; result: ClassifyOutput }
   | { ok: false; error: string };
 
 // ────────────────────────────────────────────────────────────────────────────

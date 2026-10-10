@@ -21,7 +21,7 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import type { WorkspaceTag } from "./types";
 import { attributionText, type TagApplication } from "./attribution";
 
-export interface WorkspaceTagsFacet {
+interface WorkspaceTagsFacet {
   tags: WorkspaceTag[];
   selectedTagId: string | null;
   setSelectedTagId: (id: string | null) => void;

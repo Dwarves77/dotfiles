@@ -31,7 +31,7 @@ export const FACT_CARD_KINDS = [
   "ANALYTICAL INFERENCE",
 ] as const;
 
-export type FactCardKind = (typeof FACT_CARD_KINDS)[number];
+type FactCardKind = (typeof FACT_CARD_KINDS)[number];
 
 /** The 8 kind words that can appear as a bolded lead-in inside a FACT paragraph.
  *  ANALYTICAL INFERENCE and LEGAL CONFIRMATION REQUIRED are reached only through the
@@ -64,7 +64,7 @@ export interface ClaimNode {
   href?: string | null;
 }
 
-export interface FactCardProvenance {
+interface FactCardProvenance {
   tier?: number | null;
   source?: string | null;
   org?: string | null;

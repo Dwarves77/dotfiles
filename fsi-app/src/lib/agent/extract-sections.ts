@@ -25,7 +25,7 @@
  * pass over the lines is enough.
  */
 
-export type ExtractedSection = {
+type ExtractedSection = {
   /** Heading text as it appeared in the source, with the numeric prefix
    * stripped and surrounding whitespace trimmed. */
   heading: string;
@@ -42,7 +42,7 @@ export type ExtractedSection = {
   hasContent: boolean;
 };
 
-export type OperationalBriefing = {
+type OperationalBriefing = {
   immediateAction: ExtractedSection | null;
   whatItIsWhyItApplies: ExtractedSection | null;
   complianceChain: ExtractedSection | null;
@@ -285,40 +285,3 @@ export const SEVERITY_LABELS = [
   "COMPETITIVE EDGE",
   "MONITORING",
 ] as const;
-
-export type SeverityLabel = (typeof SEVERITY_LABELS)[number];
-
-/** Pull a leading severity label out of a paragraph. Returns the label
- * and the remaining text (with the label and its trailing
- * delimiter trimmed). */
-export function extractSeverityLabel(paragraph: string): {
-  label: SeverityLabel | null;
-  rest: string;
-} {
-  if (!paragraph) return { label: null, rest: paragraph };
-  // Strip a leading bold marker so "**ACTION REQUIRED**: ..." is
-  // recognised the same as "ACTION REQUIRED: ...".
-  const stripped = paragraph.replace(/^\*+\s*/, "");
-  for (const label of SEVERITY_LABELS) {
-    const re = new RegExp(`^${label}\\b\\*?\\*?\\s*[-—:]?\\s*`, "i");
-    if (re.test(stripped)) {
-      const rest = stripped.replace(re, "").replace(/^\*+\s*/, "").trim();
-      return { label, rest };
-    }
-  }
-  return { label: null, rest: paragraph };
-}
-
-/** Convenience: heading-id used by IntelligenceBrief for in-page anchors.
- * Lowercased, alnum-only, hyphen-joined — mirrors the helper inside
- * IntelligenceBrief.tsx so Tier 2 deep-links can target Tier 3 sections.
- *
- * Tier 3 prepends a per-render briefId (from useId()) to avoid collisions
- * across briefs on a multi-brief page. The Tier 2 deep-link only needs
- * the heading-slug portion — the consumer combines the two. */
-export function headingSlug(heading: string): string {
-  return normaliseHeading(heading)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}

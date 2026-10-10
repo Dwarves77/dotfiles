@@ -33,7 +33,7 @@ export interface InferenceReviewRow {
   computed_at: string;
 }
 
-export interface InferenceReviewProps {
+interface InferenceReviewProps {
   rows: InferenceReviewRow[];
   /** item_id -> title, for the citation list under each claim. Built by the page (a single batched
    *  intelligence_items read), never fabricated here, an id with no resolved title falls back to the

@@ -32,7 +32,7 @@ import type { ReactNode } from "react";
 import type { Resource } from "@/types/resource";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 
-export interface ActionRowProps {
+interface ActionRowProps {
   /** Export brief — primary button. */
   onExport: () => void;
   /** Share — secondary button. */

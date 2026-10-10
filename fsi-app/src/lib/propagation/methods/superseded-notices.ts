@@ -25,7 +25,7 @@
 // join across three tables in one query is not meaningfully cheaper here (this is a notices list, not a
 // hot path) and keeps every step independently readable and independently fakeable in a test.
 
-export interface NoticesQueryBuilder {
+interface NoticesQueryBuilder {
   select(cols: string): NoticesQueryBuilder;
   in(col: string, values: unknown[]): NoticesQueryBuilder;
   gte(col: string, value: string): NoticesQueryBuilder;

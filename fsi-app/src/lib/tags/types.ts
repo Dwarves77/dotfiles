@@ -12,8 +12,3 @@ export interface WorkspaceTag {
   itemCount: number;
   createdAt: string;
 }
-
-/** Shape POSTed to create a tag, or returned inline by the popover's "Create" row. */
-export interface CreateWorkspaceTagInput {
-  name: string;
-}

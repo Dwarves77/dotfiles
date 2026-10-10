@@ -46,7 +46,7 @@ export function authorityFloorFor(itemType) {
 }
 
 /** The standards-body tier (registry class for ISO/GRI/USGBC-type bodies). */
-export const STANDARDS_BODY_TIER = 4;
+const STANDARDS_BODY_TIER = 4;
 
 /**
  * Per-FACT effective authority floor — the JS mirror of migration 202's scoped floor. For item_type='standard',

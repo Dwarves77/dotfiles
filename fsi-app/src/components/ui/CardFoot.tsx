@@ -40,7 +40,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export interface CardFootProps {
+interface CardFootProps {
   left: ReactNode;
   right: ReactNode;
   /** Navigation target for the left label. Additive: undefined renders the

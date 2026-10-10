@@ -255,7 +255,7 @@ function MetricBox({ label, value, sublabel }: { label: string; value: string; s
 
 // ── Main Dashboard ──
 
-export interface SourceHealthDashboardProps {
+interface SourceHealthDashboardProps {
   /** Staged updates awaiting review, the provisional card's pipeline note. */
   stagedUpdatesCount?: number | null;
   /** Opens the ingest queue from the provisional card's pipeline note. */

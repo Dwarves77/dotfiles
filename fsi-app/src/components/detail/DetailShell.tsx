@@ -350,7 +350,7 @@ export function DetailLayout({ children, rail }: { children: React.ReactNode; ra
 // draw at all (ruling R7 features: the place-keeping card on 07/09, the
 // connections card on 05/09, affected lanes) go in `undesigned`, after the
 // last designed region of the column, exactly where R7 puts them.
-export interface DetailRailProps {
+interface DetailRailProps {
   /** Artboard slot 1 on every detail artboard. */
   atAGlance?: React.ReactNode;
   /** Artboard slot 2. */
@@ -387,7 +387,7 @@ export function DetailRail({ atAGlance, impact, relevance, designed, legend, und
 // has no data for is simply omitted by its caller, matching the rest of
 // this architecture's Absence convention).
 
-export interface AtAGlanceRow {
+interface AtAGlanceRow {
   label: string;
   value: React.ReactNode;
 }
@@ -404,7 +404,7 @@ export interface AtAGlanceRow {
  * one gets nothing rendered for it, and no future caller can reintroduce the repeat. "Kind" is the
  * market surface's name for the item type; "Region" is the operations surface's jurisdiction.
  */
-export const MASTHEAD_FIELD_LABELS: ReadonlySet<string> = new Set(["band", "type", "kind", "jurisdiction", "region", "source", "published"]);
+const MASTHEAD_FIELD_LABELS: ReadonlySet<string> = new Set(["band", "type", "kind", "jurisdiction", "region", "source", "published"]);
 
 export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
   const present = rows.filter(

@@ -19,7 +19,7 @@
 export const MIN_NOMINATION_SPAN = 24;
 // An atomic FACT span is a single clause, not an unsplit block; skip clauses beyond this (a delimiter was
 // missing) so nominations stay clause-sized and the judge sees one assertion at a time.
-export const MAX_NOMINATION_SPAN = 1000;
+const MAX_NOMINATION_SPAN = 1000;
 
 // Clause delimiters in enacted/source text: real newlines, sentence punctuation, AND the HTML whitespace
 // ENTITIES that legislation.gov.uk (and similar) leave UN-decoded in the fetched text — `&#xD;` / `&#xA;` /

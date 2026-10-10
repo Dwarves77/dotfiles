@@ -160,7 +160,7 @@ interface SearchResultRow {
 const SEARCH_DEBOUNCE_MS = 250;
 const MIN_QUERY_LEN = 2;
 
-export interface CommandBarProps {
+interface CommandBarProps {
   /** Total item count for the default placeholder ("Search or ask across N items…"). */
   itemCount: number;
   /** Called on every keystroke: the pre-existing page-local instant filter over already-loaded

@@ -41,7 +41,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
 import { useNearestScrollParent } from "@/lib/hooks/useNearestScrollParent";
 
-export interface VirtualizedRowListProps<T> {
+interface VirtualizedRowListProps<T> {
   rows: T[];
   /** Estimated row height in px — react-virtual re-measures the REAL rendered height per row via
    *  `measureElement` (a title can clamp to 1-3 lines), this is only the initial layout guess. */

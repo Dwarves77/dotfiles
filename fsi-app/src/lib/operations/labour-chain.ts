@@ -37,7 +37,7 @@
 
 /** One term's resolved value, carrying the same envelope shape region-grid.mjs's cells already carry
  *  (camelCase, matching buildRegionGrid's own fact shape), never a bare number with no provenance. */
-export interface ChainTermValue {
+interface ChainTermValue {
   valueNumeric: number;
   unit: string | null;
   sourceKey: string | null;
@@ -51,7 +51,7 @@ export interface ChainTermValue {
   factLabel?: string | null;
 }
 
-export type ChainTermKey =
+type ChainTermKey =
   | "baseWage"
   | "employerContributions"
   | "leaveAbsence"
@@ -74,7 +74,7 @@ export const CHAIN_TERM_ORDER: readonly ChainTermKey[] = Object.freeze([
   "productiveHours",
 ]);
 
-export const CHAIN_TERM_LABELS: Readonly<Record<ChainTermKey, string>> = Object.freeze({
+const CHAIN_TERM_LABELS: Readonly<Record<ChainTermKey, string>> = Object.freeze({
   baseWage: "Base wage",
   employerContributions: "Employer social contributions",
   leaveAbsence: "Leave and absence",
@@ -83,7 +83,7 @@ export const CHAIN_TERM_LABELS: Readonly<Record<ChainTermKey, string>> = Object.
   productiveHours: "Productive hours",
 });
 
-export interface LabourChainInput {
+interface LabourChainInput {
   baseWage?: ChainTermValue | null;
   employerContributions?: ChainTermValue | null;
   leaveAbsence?: ChainTermValue | null;
@@ -103,7 +103,7 @@ export interface ChainTermResult {
   runningSubtotal: number | null;
 }
 
-export interface LabourChainResult {
+interface LabourChainResult {
   terms: ChainTermResult[];
   missingTerms: ChainTermKey[];
   /** Sum of the five numerator terms, or null if any is missing. */

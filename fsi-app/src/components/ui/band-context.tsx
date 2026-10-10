@@ -22,7 +22,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 
-export interface BandContextValue {
+interface BandContextValue {
   band: UrgencyBand | null;
   action: string | null;
 }

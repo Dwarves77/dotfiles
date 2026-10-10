@@ -15,13 +15,13 @@
  * closes the loophole the original chain's own header was written to prevent.
  */
 
-export interface MemberProfileFields {
+interface MemberProfileFields {
   full_name?: string | null;
   display_name?: string | null;
   email?: string | null;
 }
 
-export interface MemberWithProfile {
+interface MemberWithProfile {
   user_id?: string | null;
   user?: MemberProfileFields | null;
 }

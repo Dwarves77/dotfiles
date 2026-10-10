@@ -35,7 +35,7 @@ import type { selectSignpostView } from "@/lib/research/read-signposts.mjs";
 
 export type SignpostView = NonNullable<ReturnType<typeof selectSignpostView>>;
 
-export interface SignpostListProps {
+interface SignpostListProps {
   signposts?: SignpostView[] | null;
 }
 

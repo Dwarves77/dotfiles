@@ -91,7 +91,7 @@ export const TIER_CODES = Object.freeze(
  * tier rank is the data-quality claim an auditor tests and specificity is not. A very specific proxy is
  * still a proxy.
  */
-export const SCOPE_KINDS = Object.freeze({
+const SCOPE_KINDS = Object.freeze({
   movement: Object.freeze({
     code: "movement", specificity: 1, label: "Specific movement",
     requires: ["movement_ref"], forbids: [],
@@ -115,7 +115,7 @@ export const SCOPE_KINDS = Object.freeze({
   }),
 });
 
-export const SCOPE_CODES = Object.freeze(
+const SCOPE_CODES = Object.freeze(
   Object.keys(SCOPE_KINDS).sort((a, b) => SCOPE_KINDS[a].specificity - SCOPE_KINDS[b].specificity)
 );
 
@@ -127,7 +127,7 @@ export const SCOPE_CODES = Object.freeze(
  * assumption baked into it that can no longer be seen, questioned or replaced. ISO 14083 asks for the
  * assumption to be disclosed. Storing the published basis and converting at read time keeps that possible.
  */
-export const QUANTITY_BASIS = Object.freeze([
+const QUANTITY_BASIS = Object.freeze([
   "tonne_km", "vehicle_km", "teu_km", "tonne", "litre", "kg", "kwh", "mj",
 ]);
 
@@ -139,7 +139,7 @@ export const QUANTITY_BASIS = Object.freeze([
  * cannot be recomputed when a regulator mandates a different one, so every historical figure has to be
  * re-sourced. `unstated` is a permitted value precisely so the gap is visible rather than guessed at.
  */
-export const GWP_BASIS = Object.freeze([
+const GWP_BASIS = Object.freeze([
   "AR4_GWP100", "AR5_GWP100", "AR6_GWP100", "AR6_GWP20", "unstated",
 ]);
 
@@ -237,7 +237,7 @@ export function validateFactor(f) {
 }
 
 /** Is a factor applicable to a movement on `onDate`? Open-ended `valid_to` means still current. */
-export function isApplicableOn(f, onDate) {
+function isApplicableOn(f, onDate) {
   if (!onDate) return true;
   const d = String(onDate);
   if (f?.valid_from && d < String(f.valid_from)) return false;

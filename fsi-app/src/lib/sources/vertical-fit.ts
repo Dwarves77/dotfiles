@@ -55,7 +55,7 @@
 
 import type { SourceRole } from "@/lib/sources/classify-source-role";
 
-export type InstitutionalType =
+type InstitutionalType =
   | "statute_gazette_db"          // legal-text publication / searchable law database — KEEP
   | "general_legislature"         // the political lawmaking body's own portal — OFF-VERTICAL candidate
   | "sectoral_regulator_ministry" // environment/transport/maritime/aviation/energy/customs authority — KEEP
@@ -117,22 +117,6 @@ export function classifyInstitutionalType(
   return "unknown";
 }
 
-// Many sub-national "legislature" sources are actually the jurisdiction's STATUTE / CODE
-// database (where binding state/provincial law text lives) wearing a legislature name —
-// e.g. "Nevada Legislature – Nevada Revised Statutes (NRS)", "Michigan Compiled Laws (MCL)
-// & Administrative Code". These carry legal TEXT and must NOT be auto-killed as if they were
-// a political-body portal; they route to REVIEW. Applied only to general_legislature
-// candidates, so the bare "statutes/code/laws" tokens are safe from false hits.
-const STATUTE_CODE_DB_NAME =
-  /\b(statutes?|revised code|compiled laws|code annotated|statutes annotated|century code|general laws|session laws|administrative code|consolidated laws|municipal code|revisor of statutes|legislative counsel bureau|\bcode\b|\bORS\b|\bMCL\b|\bMCA\b|\bNRS\b|\bNMSA\b|\bMGL\b|\bKSA\b)\b/i;
-
-/** True when a general_legislature source's NAME signals it is really the jurisdiction's
- *  statute/code text database. Such sources are borderline legal-text sources -> REVIEW,
- *  never auto-kill. Used by BOTH the audit and the gate so they treat these identically. */
-export function looksLikeStatuteCodeDb(name: string | null | undefined): boolean {
-  return STATUTE_CODE_DB_NAME.test((name || "").trim());
-}
-
 /**
  * Part (a) of the kill criterion only: is this source off-vertical BY IDENTITY?
  * True for a general legislature. (Redundant-portal detection is corpus-level and
@@ -141,15 +125,4 @@ export function looksLikeStatuteCodeDb(name: string | null | undefined): boolean
  */
 export function isOffVerticalByIdentity(type: InstitutionalType): boolean {
   return type === "general_legislature";
-}
-
-/** Types whose presence in a jurisdiction COUNTS as the vertical-relevant authority
- *  being covered (used by the coverage-gap guard). A general legislature does NOT count
- *  — it is the thing we are trying to retire. */
-export function coversVerticalAuthority(type: InstitutionalType): boolean {
-  return (
-    type === "statute_gazette_db" ||
-    type === "sectoral_regulator_ministry" ||
-    type === "intergovernmental"
-  );
 }

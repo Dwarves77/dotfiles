@@ -55,7 +55,7 @@ const h2: React.CSSProperties = { ...SECTION_TITLE_STYLE, fontSize: 18, whiteSpa
 const muted: React.CSSProperties = { fontSize: 12, color: "var(--ink-2)", overflowWrap: "anywhere" };
 const rowBox: React.CSSProperties = { display: "flex", flexDirection: "column", gap: 8, paddingTop: 12, borderTop: "1px solid var(--line-1)", minWidth: 0 };
 
-export interface ItemCorrectionsPanelProps {
+interface ItemCorrectionsPanelProps {
   targets: ItemTargets;
   fetcher?: Fetcher;
 }

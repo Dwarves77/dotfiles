@@ -72,7 +72,7 @@
  * strictly worse than an absent one — the exact failure mode this lane's dispatch calls out by name.
  */
 
-export type RecordClaimKind = "FACT" | "GAP";
+type RecordClaimKind = "FACT" | "GAP";
 
 /** One claim's rating, resolved by the caller (server-side, one query — see this file's TIER-CHIP
  *  header) and attached here purely by exact-line lookup. `tier` is the SAME derivation
@@ -114,7 +114,7 @@ export interface RecordFactRow {
   sourceUrl: string | null;
 }
 
-export interface ParsedRecordSections {
+interface ParsedRecordSections {
   /** Every FACT-kind row across the identity + record_facts sections, in document order (identity's
    *  "title" row, when present, listed first). */
   facts: RecordFactRow[];

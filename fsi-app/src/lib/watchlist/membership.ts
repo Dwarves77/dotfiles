@@ -48,7 +48,7 @@ const EMPTY_ENTRY: WatchMembershipEntry = {
 
 // ─── 1. SERVER: batched read for a page's worth of ids ─────────────────────────────────────────
 
-export interface WatchMembershipDeps {
+interface WatchMembershipDeps {
   /** Ids of `itemType` the given user has personally watched, narrowed to `itemIds` (a WHERE ...
    *  IN query, never an unbounded scan). Return the FULL set the caller already has watched among
    *  itemIds — no need to pre-filter beyond that; buildWatchMembership does the per-id lookup. */
@@ -57,7 +57,7 @@ export interface WatchMembershipDeps {
   queryTeamWatchedIds(orgId: string, itemType: string, itemIds: string[]): Promise<Set<string>>;
 }
 
-export interface WatchMembershipParams {
+interface WatchMembershipParams {
   /** Signed-out or unresolvable viewer: personal membership is honestly all-false, never queried. */
   userId: string | null;
   /** No org resolved: teamAvailable is honestly false for every id, never queried. */
@@ -99,58 +99,6 @@ export function lookupWatchMembership(
   return map.get(itemId) ?? EMPTY_ENTRY;
 }
 
-// `import type` only — fully erased at runtime (same pattern src/lib/detail/load-detail-core.ts
-// documents for next/cache), so this module stays a plain node --test-able function with zero
-// runtime dependency on @supabase/supabase-js. `any` here matches how the rest of this codebase
-// (supabase-server.ts, supabase-service.ts) types a Supabase client generically — Postgrest's own
-// builder types recurse deeply enough that a hand-rolled structural type for just .select/.eq/.in
-// hits TS2589 (excessively deep instantiation) against the real client, so this accepts the same
-// loosely-typed client every other data-access function in this codebase already does.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type WatchTableClient = { from(table: "user_watchlist" | "org_watchlist"): any };
-
-async function queryWatchedIds(
-  supabase: WatchTableClient,
-  table: "user_watchlist" | "org_watchlist",
-  scopeCol: "user_id" | "org_id",
-  scopeVal: string,
-  itemType: string,
-  itemIds: string[]
-): Promise<Set<string>> {
-  const { data, error } = await supabase
-    .from(table)
-    .select("item_id")
-    .eq(scopeCol, scopeVal)
-    .eq("item_type", itemType)
-    // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
-    .in("item_id", itemIds);
-  if (error || !data) return new Set();
-  return new Set((data as { item_id: string }[]).map((r) => r.item_id));
-}
-
-/** Real Supabase wiring for buildWatchMembership's deps — same tables/columns
- *  src/app/api/watchlist/route.ts's GET handler reads (user_watchlist / org_watchlist,
- *  scoped by user_id / org_id + item_type + item_id). Callers pass a service-role or
- *  request-scoped client; this function does not care which. NOT exported (lane DEAD-EXEC,
- *  2026-09-04): used only within this file (fetchWatchMembership below) — no external importer names
- *  it directly, per the wiring audit's Appendix B (dead exports, 2026-09-04). */
-function makeWatchMembershipDeps(supabase: WatchTableClient): WatchMembershipDeps {
-  return {
-    queryPersonalWatchedIds: (userId, itemType, itemIds) =>
-      queryWatchedIds(supabase, "user_watchlist", "user_id", userId, itemType, itemIds),
-    queryTeamWatchedIds: (orgId, itemType, itemIds) =>
-      queryWatchedIds(supabase, "org_watchlist", "org_id", orgId, itemType, itemIds),
-  };
-}
-
-/** Convenience wrapper: real Supabase client straight to a membership map, one call. */
-export async function fetchWatchMembership(
-  supabase: WatchTableClient,
-  params: WatchMembershipParams
-): Promise<Map<string, WatchMembershipEntry>> {
-  return buildWatchMembership(makeWatchMembershipDeps(supabase), params);
-}
-
 // ─── 2. CLIENT: one shared fetch per item_type per page ────────────────────────────────────────
 
 /** Response shape of GET /api/watchlist?item_type=<t> (list mode, no item_id — added by this
@@ -168,7 +116,7 @@ interface WatchlistListResponse {
  *  this cache, so a stale read here never blocks a correct write. */
 const clientCache = new Map<string, Promise<Map<string, WatchMembershipEntry>>>();
 
-export interface ClientWatchMembershipOptions {
+interface ClientWatchMembershipOptions {
   /** Injected so this stays testable without a browser/network — WatchButton.tsx supplies the
    *  real `fetch` plus a Bearer auth header built from the browser Supabase session. */
   fetchImpl: typeof fetch;

@@ -52,7 +52,7 @@ import {
   type ClassifiedMilestone,
 } from "@/lib/detail/timeline-math";
 
-export interface TimelineProps {
+interface TimelineProps {
   entries?: TimelineEntry[] | null;
   band: UrgencyBand;
   /** "Full schedule" callout link target. Omitted renders the callout with no link (fixture-safe). */

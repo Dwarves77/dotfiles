@@ -32,7 +32,7 @@
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import { bandFromPriority, type UrgencyBand } from "@/lib/urgency/bands";
 
-export interface ListRowFixtureRow {
+interface ListRowFixtureRow {
   id: string;
   band: UrgencyBand;
   jurisdiction: string;

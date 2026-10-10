@@ -104,7 +104,7 @@ async function fetchRemainder(offset: number): Promise<Resource[]> {
 void fetchRemainder; // Market's corpus (55 items) ships whole from getPublicMarketIntelItems; kept
 // as documentation of the mechanism other surfaces use, not dead code — see this file's header.
 
-export interface MarketIntelLedgerProps {
+interface MarketIntelLedgerProps {
   /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
    *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
    *  chose — the SSR pass and the hydration pass then produce identical text by construction

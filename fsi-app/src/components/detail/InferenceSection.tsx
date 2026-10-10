@@ -32,7 +32,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { InferenceClaim, admissibleForInference, type InferenceStatusToken } from "@/components/shared/InferenceClaim";
 import { pickVisibleInferences } from "@/lib/detail/inference-view.mjs";
 
-export interface InferenceSectionClaim {
+interface InferenceSectionClaim {
   id: string;
   claimText: string;
   statusToken: string;

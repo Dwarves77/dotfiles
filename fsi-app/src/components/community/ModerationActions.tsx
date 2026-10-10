@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 
-export type ModerationAction =
+type ModerationAction =
   | "dismiss"
   | "remove_post"
   | "warn_user"

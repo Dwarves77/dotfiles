@@ -18,7 +18,7 @@ export interface RerouteRow {
 }
 
 const NOMINAL_BASELINE = 100;
-export const REROUTE_GAP_LINE =
+const REROUTE_GAP_LINE =
   "No rows yet — source: entity spine has fewer than two distinct corridor entities to pair as baseline+reroute (scripts/spec09/SOURCES.md).";
 
 export function ReroutingPanelView({ rows }: { rows: RerouteRow[] }) {

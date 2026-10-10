@@ -59,7 +59,7 @@ import {
   type RowTableRowSpec,
 } from "@/components/ui/RowTable";
 
-export interface LiveItemVM {
+interface LiveItemVM {
   id: string;
   title: string;
   meta: string;
@@ -127,7 +127,7 @@ export interface RoomVM {
 }
 
 /** A member-created cross-regional vertical group (region GLOBAL, vertical set). */
-export interface VerticalGroupVM {
+interface VerticalGroupVM {
   id: string;
   slug: string;
   name: string;

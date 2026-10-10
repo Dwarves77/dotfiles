@@ -30,7 +30,7 @@ import type { selectAssessmentHistoryEntry } from "@/lib/research/read-signposts
 
 export type AssessmentHistoryEntry = NonNullable<ReturnType<typeof selectAssessmentHistoryEntry>>;
 
-export interface AssessmentHistoryLedgerProps {
+interface AssessmentHistoryLedgerProps {
   /** The real supersedes chain, newest first (`fetchAssessmentHistoryChain`'s own return shape). */
   history?: AssessmentHistoryEntry[] | null;
   /** Fallback: the one row already available at a mount site that has not wired the chain fetch. */

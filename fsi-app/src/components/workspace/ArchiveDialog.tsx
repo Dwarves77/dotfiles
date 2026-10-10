@@ -31,7 +31,7 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import { X, Users, User, AlertTriangle, Eye, Loader2 } from "lucide-react";
 import { useResourceStore } from "@/stores/resourceStore";
 
-export interface ArchiveImpact {
+interface ArchiveImpact {
   itemId: string;
   title: string | null;
   priority: string | null;

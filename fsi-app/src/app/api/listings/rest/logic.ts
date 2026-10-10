@@ -25,7 +25,7 @@
 /** One page's worth of rows. Must be <= the server's `db-max-rows`, or a page can itself truncate. */
 export const REMAINDER_PAGE_SIZE = 1000;
 
-export interface ListingsPage<R> {
+interface ListingsPage<R> {
   resources: R[];
   archived: R[];
   _error?: string;

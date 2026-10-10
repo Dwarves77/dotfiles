@@ -11,7 +11,7 @@
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { useBandContext } from "@/components/ui/band-context";
 
-export interface StateNoteProps {
+interface StateNoteProps {
   band?: UrgencyBand | null;
   children: React.ReactNode;
   action?: { label: string; href?: string; onClick?: () => void };

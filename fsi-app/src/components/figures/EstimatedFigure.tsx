@@ -31,7 +31,7 @@ import { admissibleFor } from "@/lib/propagation/admissible-for.ts";
 import { formatRange } from "@/lib/figures/format-range.mjs";
 import { formatNumber } from "@/lib/format";
 
-export interface EstimatedFigureCompanion {
+interface EstimatedFigureCompanion {
   label: string;
   low: number | null;
   point: number | null;
@@ -46,7 +46,7 @@ export interface EstimatedFigureCompanion {
   refusal?: string | null;
 }
 
-export interface EstimatedFigureProps {
+interface EstimatedFigureProps {
   figure: Value;
   label: string;
   /** Rendered with the same visual weight as the primary figure — see header. */
@@ -117,7 +117,7 @@ export function EstimatedFigure({ figure, label, companions = [], pedigreeNote, 
 
 // ── DerivedFigure — a plain derived value, neither statutory nor estimated (see file header) ───────────
 
-export interface DerivedFigureProps {
+interface DerivedFigureProps {
   figure: Value;
   label: string;
   /** e.g. an emission_factors row's own source_key, so the reader can trace the underlying factor. */

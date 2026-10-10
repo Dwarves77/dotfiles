@@ -22,7 +22,7 @@ export interface OemRoadmapRow {
   announced_at: string;
 }
 
-export const OEM_ROADMAP_GAP_LINE =
+const OEM_ROADMAP_GAP_LINE =
   "No rows yet — source: none confirmed, OEM announcements have no $0 structured feed (scripts/spec09/SOURCES.md).";
 
 export function OemRoadmapPanelView({ rows }: { rows: OemRoadmapRow[] }) {

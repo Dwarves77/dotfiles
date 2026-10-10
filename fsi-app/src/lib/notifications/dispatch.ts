@@ -29,7 +29,7 @@ export type NotificationKind =
   | "archive"
   | "assignment";
 
-export interface DispatchArgs {
+interface DispatchArgs {
   userId: string;
   kind: NotificationKind;
   payload: Record<string, unknown>;

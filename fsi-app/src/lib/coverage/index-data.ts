@@ -15,7 +15,7 @@
 import { getServiceSupabase } from "@/lib/supabase-service";
 
 export type IdentityState = "verified" | "unresolved" | "dead" | "pending";
-export type RelevanceBand = "firm" | "soft";
+type RelevanceBand = "firm" | "soft";
 
 export interface CoverageEntry {
   id: string;
@@ -45,7 +45,7 @@ export interface CoverageEntry {
   // controls live in /admin behind the admin gate + server-side/RLS enforcement, never in this payload.
 }
 
-export interface CoverageCounts {
+interface CoverageCounts {
   total: number;
   firmCore: number;
   softTail: number;
@@ -60,7 +60,7 @@ export interface CoverageCounts {
   verifiedBriefs: number; // provenance_status='verified' corpus items — the SEPARATE, honest brief count
 }
 
-export interface CoverageIndexResult {
+interface CoverageIndexResult {
   entries: CoverageEntry[];
   cap: number;
   counts: CoverageCounts;

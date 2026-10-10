@@ -33,7 +33,7 @@
 import type { ReactNode } from "react";
 import { SECTION_TITLE_STYLE } from "@/components/ui/section-title-style";
 
-export interface SectionHeadingProps {
+interface SectionHeadingProps {
   title: ReactNode;
   aside?: ReactNode;
 }

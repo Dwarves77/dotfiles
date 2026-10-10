@@ -72,7 +72,7 @@ export function lovdataCandidates({ identifier, jurisdiction } = {}) {
 // National-gazette resolvers, keyed by a jurisdiction test → identifier→URL fn. EXTENSIBLE: seeded conservatively
 // (Ireland's ELI-based Statute Book); grows per-jurisdiction as instruments land. A wrong pattern fails safely
 // into the exhaustion record (candidates are hypotheses), so this layer can be liberal.
-export const GAZETTE_RESOLVERS = [
+const GAZETTE_RESOLVERS = [
   {
     // Ireland: Statutory Instrument "S.I. No. 123 of 2023" → irishstatutebook.ie ELI print form.
     test: (/** @type {unknown} */ j) => /\bireland\b|\birish\b|^ie$/i.test(String(j || "")),

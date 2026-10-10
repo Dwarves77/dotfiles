@@ -27,9 +27,9 @@
 
 import { buildGradeModifiers as buildGradeModifiersImpl } from "./credibility-grade-modifiers.mjs";
 
-export type GradeModifierStatus = "flagged" | "not_assessed";
+type GradeModifierStatus = "flagged" | "not_assessed";
 
-export interface GradeModifier {
+interface GradeModifier {
   key: string;
   label: string;
   status: GradeModifierStatus;

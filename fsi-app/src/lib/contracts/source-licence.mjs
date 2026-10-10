@@ -469,11 +469,6 @@ ON CONFLICT (source_key) DO UPDATE SET
   substitute    = EXCLUDED.substitute;`;
 }
 
-/** The redistribution codes, ordered, for a CHECK constraint that cannot drift from REDISTRIBUTION. */
-export const REDISTRIBUTION_CODES = Object.freeze(
-  Object.values(REDISTRIBUTION).sort((a, b) => a.order - b.order).map((r) => r.code)
-);
-
 /** Register triage, for the seed plan and for review. */
 export function licenceTriage() {
   const green = [], amber = [], red = [];

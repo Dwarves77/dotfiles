@@ -35,7 +35,7 @@ import { recordFlywheelDefect } from "./flywheel-defect.ts";
  *  `newItemSignature` shape, unchanged). Every field is optional: apply-mint-batch.mjs's record-grade
  *  kit does not populate operational_scenario_tags/compliance_object_tags/jurisdictions/topic_tags, and
  *  discover-for-items.mjs's scorer already tolerates their absence. */
-export interface MintItemSignature {
+interface MintItemSignature {
   id: string;
   item_type?: unknown;
   canonical_instrument_key?: unknown;
