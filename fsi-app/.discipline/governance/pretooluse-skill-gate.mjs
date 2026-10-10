@@ -50,7 +50,7 @@
 // logged). The optional detail column carries skill slugs for the unresolvable allow. This proves the gate
 // fired (incl. inside subagents/workflows) and is the durable "everything went through the skills" record.
 
-import { readFileSync, appendFileSync, mkdirSync, realpathSync, existsSync } from "node:fs";
+import { readFileSync, appendFileSync, mkdirSync, realpathSync, existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve, isAbsolute, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -510,6 +510,10 @@ function gitInvocations(argv) {
     if (k >= t.length || progName(t[k]) !== "git") continue;
     k++;
     const aliases = {};
+    // RULES-X-2 (pair 7): the directory a `-C <dir>` global option points the command at (the last one wins), and
+    // whether the repo or work tree was redirected by other means; the isolation exemption below reads both.
+    let dir = null;
+    let redirected = false;
     while (k < t.length && t[k].startsWith("-")) {
       if (t[k] === "-c" && k + 1 < t.length) {
         const a = /^alias\.([^=]+)=(\S+)/.exec(t[k + 1]);
@@ -517,11 +521,13 @@ function gitInvocations(argv) {
         k += 2;
         continue;
       }
+      if (t[k] === "-C" && k + 1 < t.length) dir = t[k + 1];
+      else if (/^(?:--git-dir|--work-tree)(?:=|$)/.test(t[k])) redirected = true;
       k += /^(?:-C|--git-dir|--work-tree|--namespace|--exec-path)$/.test(t[k]) ? 2 : 1;
     }
     if (k >= t.length) continue;
     const written = t[k].toLowerCase();
-    found.push({ sub: aliases[written] ?? written, args: t.slice(k + 1) });
+    found.push({ sub: aliases[written] ?? written, args: t.slice(k + 1), dir, redirected });
   }
   return found;
 }
@@ -557,13 +563,14 @@ function structuralDanger(argv) {
  * True when the command contains a git form that moves or rewrites a branch (the GIT_ISOLATION_FORMS rows).
  * Read-only forms never match. PURE. @param {string} cmd the RAW command @returns {boolean}
  */
-export function isolationAsk(cmd) {
+export function isolationAsk(cmd, ctx = {}) {
   const argv = argvOnly(cmd);
   // Cheap prefilter before tokenizing: a command with no git in it asks for nothing. (It used to be RD-19's
   // single-home matcher plus push and reset; GATE-7 widened the rows to cherry-pick, pull, am, symbolic-ref and
   // the command-line alias forms, which that matcher does not name, so the rows alone decide now.)
   if (!/\bgit(?:\.exe)?\b/i.test(argv)) return false;
-  for (const { sub, args } of gitInvocations(argv)) {
+  for (const inv of gitInvocations(argv)) {
+    const { sub, args } = inv;
     const form = GIT_ISOLATION_FORMS.find((f) => f.sub === sub);
     if (!form) continue;
     if (form.needsArgs && args.length === 0) continue;
@@ -572,9 +579,48 @@ export function isolationAsk(cmd) {
     if (form.firstArg && !form.firstArg.includes(args[0])) continue;
     if (form.anyArg && !args.some((a) => form.anyArg.includes(a))) continue;
     if (form.anyArgRe && !args.some((a) => form.anyArgRe.test(a))) continue;
+    if (laneContractForm(inv, ctx, argv, cmd)) continue;
     return true;
   }
   return false;
+}
+
+// RULES-X-2 (pair 7, 2026-10-09): the lane contract's own two forms, run INSIDE a lane worktree, are not branch
+// moves of the main checkout: `git worktree add ...` (a lane that makes a sibling worktree) and
+// `git merge origin/master` (a lane refreshing its own branch, plain flags only). They are allowed there and still
+// asked everywhere else, including the main checkout, `git -C <main checkout> ...`, a redirected --git-dir or
+// --work-tree, and any command that also changes directory (the effective directory is then not the payload's).
+const LANE_WORKTREE_PATH_RE = /(?:^|\/)\.(?:claude\/)?worktrees\/[^/]+(?:\/|$)/;
+const PLAIN_MERGE_FLAGS = new Set(["--no-edit", "--no-ff", "--ff", "--ff-only"]);
+const CD_RE = /(?:^|[\s;&|(])(?:cd|pushd|popd)\b/;
+
+/** True when `dir` is an existing directory inside a linked worktree under .claude/worktrees/ or .worktrees/: its nearest `.git` is a FILE. */
+export function isInLaneWorktree(dir) {
+  if (!dir) return false;
+  let p = resolve(String(dir));
+  // A directory that does not exist (a `-C` target the argv scan mangled, a typo) is not provably a lane worktree.
+  try { if (!statSync(p).isDirectory()) return false; } catch { return false; }
+  if (!LANE_WORKTREE_PATH_RE.test(p.replaceAll(String.fromCharCode(92), "/") + "/")) return false;
+  for (let i = 0; i < 64; i++) {
+    try {
+      return statSync(resolve(p, ".git")).isFile();
+    } catch { /* no .git here, look one level up */ }
+    const up = dirname(p);
+    if (up === p) return false;
+    p = up;
+  }
+  return false;
+}
+
+function laneContractForm(inv, ctx, argv, raw) {
+  // A backslash anywhere in the raw command is not trusted: the argv scan unescapes it, so a Windows `-C` path would
+  // reach this check mangled, and a mangled path must never resolve to a worktree.
+  if (String(raw).includes(String.fromCharCode(92))) return false;
+  if (!ctx.cwd || inv.redirected || CD_RE.test(argv)) return false;
+  const isWorktreeAdd = inv.sub === "worktree" && inv.args[0] === "add";
+  const isPlainMerge = inv.sub === "merge" && inv.args.filter((a) => !PLAIN_MERGE_FLAGS.has(a)).join(" ") === "origin/master";
+  if (!isWorktreeAdd && !isPlainMerge) return false;
+  return isInLaneWorktree(inv.dir ? resolve(ctx.cwd, inv.dir) : ctx.cwd);
 }
 
 /**
@@ -815,7 +861,7 @@ function evaluateCore(payload) {
     // PreToolUse DOES fire inside sub-agents too (corrected 2026-09-19); this leg still cannot read the
     // eventual cwd from the payload, so it ASKs for the branch-moving forms only (isolationAsk), and the
     // git post-checkout hook (fires regardless of session type) remains the SUSPENDERS.
-    if (isolationAsk(cmd)) {
+    if (isolationAsk(cmd, { cwd: payload?.cwd || "" })) {
       return decision("ask",
         `GIT BRANCH-MOVING op (checkout <ref>, switch, rebase, merge, worktree add, reset --hard, branch -d/-D, push --force). ` +
         `WORKTREE-ISOLATION doctrine (RD-19): ${DOCTRINE} ` +
