@@ -629,6 +629,32 @@ test('X11 attack: one removed glyph line excuses ONE edited line, not two', () =
   assert.equal(introducedMatches(ctx.introducedLines('docs/new-name.md'), hasGlyph).length, 1);
 });
 
+// Narrowing (PR 1086 ruling): only an undetected rename pairs across files, a deleted file against a new file.
+test('X11 attack: a similar glyph line added to a NEW file whose source file SURVIVES (modified) is an introduction', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'docs/a.md', status: 'M' }, { path: 'docs/b.md', status: 'A' }],
+    changes: [
+      { path: 'docs/a.md', status: 'M', removed: [`the loader ${EM} reads config`] },
+      { path: 'docs/b.md', status: 'A', added: [`the loader ${EM} reads the config file`] },
+    ],
+  });
+  assert.equal(introducedMatches(ctx.introducedLines('docs/b.md'), hasGlyph).length, 1);
+  assert.equal(rule022.check(ctx).status, 'FAIL');
+});
+
+test('X11 attack: a similar glyph line added to a SURVIVING file (modified) with a file deleted elsewhere is an introduction', () => {
+  const ctx = buildContextFromFixture({
+    message: 'x',
+    files: [{ path: 'docs/old.md', status: 'D' }, { path: 'docs/b.md', status: 'M' }],
+    changes: [
+      { path: 'docs/old.md', status: 'D', removed: [`the loader ${EM} reads config`] },
+      { path: 'docs/b.md', status: 'M', added: [`the loader ${EM} reads the config file`] },
+    ],
+  });
+  assert.equal(introducedMatches(ctx.introducedLines('docs/b.md'), hasGlyph).length, 1);
+});
+
 test('X11: the same shape through real git (7-line file, rename undetected) passes; a new glyph line fails', () => {
   const dir = repo({
     'old-name.md': `a1\nb2\nc3\nthe loader ${EM} reads config\nd4\ne5\nf6\n`,
