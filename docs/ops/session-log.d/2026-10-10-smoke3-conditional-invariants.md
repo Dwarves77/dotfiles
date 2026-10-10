@@ -28,7 +28,9 @@ Read: root `CLAUDE.md`, COMMON, `live-content.mjs`, `live-smoke.mjs`, `live-snap
 
 ## Production result
 
-PRODUCTION-RESULT-PLACEHOLDER
+- [CONFIRMED: workflow_dispatch of live-smoke.yml on this branch against https://carosledge.com, runs 38026701043 and 38027025920, the resolver step's own output] Production holds ZERO inferences anywhere: `inference_records` has 0 rows (`table_rows=0 current=0 current_customer_method=0 visible_views=0 cited_visible_items=0`), so `g14` was never the wrong item; no item could carry the Inferences section. The honest outcome is HOLD, and both runs ended `HOLD content-inferences-section ... [candidates=0]` and `live smoke: 0 failure(s), 0 warning(s), 1 hold(s)`, conclusion success.
+- [CONFIRMED: same runs] The other classes have candidates and pass: 983 record-grade items and 1271 items whose source carries bias tags, and the grade chip and bias chip invariants held (no failure).
+- Rule 16 consequence: during the population hold the Inferences invariant stays a HOLD; the first inference row that becomes customer-visible turns it into a hard FAIL if its page lacks the section.
 
 ## Decisions
 
