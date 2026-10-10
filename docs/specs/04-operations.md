@@ -200,9 +200,11 @@ Regulation (EU) 2025/40, in force 11 Feb 2025, **applicable from 12 Aug 2026**, 
 recyclability obligations biting **1 Jan 2030**. The forwarder is bound as a user of transport and
 grouped packaging and where it is importer of record.
 
-**UNCONFIRMED and required before building the join:** the recycled-content percentages for 2030 and
-2040, the empty-space ratio, and the transport-packaging reuse targets. The DG ENV page did not carry
-them. These are numeric spec inputs and must be read from the Regulation text directly.
+**CONFIRMED 2026-10-03:** the recycled-content percentages for 2030 and 2040 (Art. 7), the empty-space
+ratio (Art. 24(1)) and the transport-packaging reuse targets (Art. 29) were read directly from the
+Regulation text (EUR-Lex `CELEX:32025R0040`) and are recorded with their article numbers in
+[the L14 session log](../ops/session-log.d/2026-10-03-l14.md). The DG ENV page does not carry them; any
+build reads the numbers from the Regulation text or its published fact rows, not from this spec.
 
 ## 9. Acceptance criteria
 
