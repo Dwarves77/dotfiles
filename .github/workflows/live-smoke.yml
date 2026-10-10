@@ -20,8 +20,9 @@ name: Live smoke
 #   LIVE_SMOKE_PASSWORD  that account's password.
 # With either unset the job stops in its first step with a named message, before any install.
 #
-# What it visits (at 1440x900 and 375x812): the dashboard, the four list pages, the first item on each list
-# and the item the first theme chip links to. Invariants live in
+# What it visits (at 1440x900 and 375x812): the dashboard, the four list pages, the first item on each list,
+# the item the first theme chip links to, and (lane SMOKE-3) the items the live data names as carrying each
+# conditional element (live-candidates.mjs). Invariants live in
 # fsi-app/.discipline/rendering/live/live-assertions.mjs; the phone-width scroll-container rule is the SAME
 # module the rendering guard imports (fsi-app/.discipline/rendering/overflow-rule.mjs).
 #
@@ -91,6 +92,21 @@ jobs:
           cd fsi-app
           npm install --no-save "playwright@${version}" --no-audit --no-fund
 
+      # Conditional invariants are chosen FROM LIVE DATA (lane SMOKE-3, 2026-10-10). This step asks the database, read-only
+      # through the service client, which customer-visible items SHOULD carry each conditional element (an inference, a
+      # record grade, a source with bias tags), prints the count and up to three paths per class, and writes them to a
+      # file the browser step reads. The browser step itself carries NO database credential. Zero candidates for a class
+      # is a named HOLD in the report (absent data is expected during the population hold); any candidate makes the
+      # invariant a hard FAIL if its element is missing from a candidate page. Without database credentials this step
+      # writes an UNRESOLVED file and exits 0 (an unresolved HOLD, never a pass); with credentials a failed read exits 1.
+      - name: Resolve conditional-invariant candidates from live data (read-only)
+        working-directory: fsi-app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LIVE_SMOKE_CANDIDATES: ${{ runner.temp }}/live-smoke-candidates.json
+        run: node .discipline/rendering/live/live-candidates.mjs
+
       - name: Run live smoke (read-only, two viewports)
         working-directory: fsi-app
         env:
@@ -98,6 +114,7 @@ jobs:
           LIVE_SMOKE_EMAIL: ${{ secrets.LIVE_SMOKE_EMAIL }}
           LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
           LIVE_SMOKE_REPORT: ${{ runner.temp }}/live-smoke-report.json
+          LIVE_SMOKE_CANDIDATES: ${{ runner.temp }}/live-smoke-candidates.json
         run: node .discipline/rendering/live/live-smoke.mjs
 
       # Record this family's harness-run artifact on EVERY firing, including one that failed before it produced a
@@ -125,6 +142,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: live-smoke-report
-          path: ${{ runner.temp }}/live-smoke-report.json
+          path: |
+            ${{ runner.temp }}/live-smoke-report.json
+            ${{ runner.temp }}/live-smoke-candidates.json
           if-no-files-found: ignore
           retention-days: 7

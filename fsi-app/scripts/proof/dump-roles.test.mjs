@@ -1,7 +1,7 @@
 /** Tests for scripts/proof/dump-roles.mjs (lane PROOF-7, 2026-10-09; PROOF-7b: export through supabase db dump, filter strips passwords), with a fake supabase CLI, psql and connections. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseIdent, roleDumpArgs, stripPasswords, passwordProblems, filterRoles, newRoleNames, oracleRoleNames, exportRoles, filterRolesFile } from "./dump-roles.mjs";
+import { parseIdent, roleDumpArgs, stripPasswords, passwordProblems, filterRoles, newRoleNames, oracleRoleNames, exportRoles, filterRolesFile, isSessionStatement } from "./dump-roles.mjs";
 
 const ORACLE = "postgresql://supabase_admin:postgres@127.0.0.1:54399/postgres";
 const STACK = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
@@ -152,4 +152,69 @@ test("filterRolesFile reads the raw file and the oracle's roles, writes the filt
   assert.equal(written.p, "/out.sql");
   assert.ok(written.t.includes('CREATE ROLE "reconciler";'));
   assert.throws(() => filterRolesFile({ inPath: "/in.sql", outPath: "/out.sql", oracleUrl: STACK, stackUrl: STACK, spawn, read: () => RAW, write: () => {} }), /supabase_admin|stack's own/);
+});
+
+// PROOF-8 (2026-10-10). chain-proof fire 7 (run 38020216226), step "Apply the production schema dump to the oracle cluster":
+//   dump-roles filter: unrecognised statement in the roles dump (starts "RESET ALL;"): refused
+// `supabase db dump --role-only` (CLI 2.95.4, read from `supabase db dump --role-only --dry-run`) pipes the server's roles-only
+// dump through sed and then runs `echo "RESET ALL;"` AFTER the pipeline, so RESET ALL is the LAST line, not a preamble. The
+// dump's own leading session lines are the three the Postgres roles dump writes (default_transaction_read_only, client_encoding,
+// standard_conforming_strings); its \restrict / \unrestrict lines are commented out and deleted by the CLI's own sed.
+const REAL_SHAPE = [
+  "SET default_transaction_read_only = off;",
+  "",
+  "SET client_encoding = 'UTF8';",
+  "SET standard_conforming_strings = on;",
+  "",
+  'CREATE ROLE "reconciler";',
+  'ALTER ROLE "reconciler" WITH INHERIT NOCREATEROLE NOCREATEDB LOGIN NOBYPASSRLS;',
+  'GRANT "authenticated" TO "reconciler" WITH INHERIT TRUE, SET TRUE GRANTED BY "postgres";',
+  "RESET ALL;",
+  "",
+].join("\n");
+
+test("PROOF-8: the real-shape roles dump (leading SET lines, trailing RESET ALL;) is filtered, not refused", () => {
+  const r = filterRoles(REAL_SHAPE, EXISTING);
+  assert.deepEqual(r.created, ["reconciler"]);
+  assert.equal(r.kept, 3, "kept counts the persistent statements only");
+  const lines = r.text.split("\n");
+  assert.ok(lines.includes('CREATE ROLE "reconciler";'));
+  assert.ok(lines.includes("RESET ALL;"), "an accepted session statement is passed through");
+  assert.ok(lines.includes("SET client_encoding = 'UTF8';"));
+  assert.deepEqual(passwordProblems(r.text), []);
+});
+
+test("PROOF-8: a dump with nothing to create writes an empty file even though it carries session statements", () => {
+  assert.equal(filterRoles("SET client_encoding = 'UTF8';\nCREATE ROLE anon;\nRESET ALL;\n", EXISTING).text, "");
+});
+
+test("PROOF-8: isSessionStatement is an explicit grammar (RESET, SET name = / TO value, set_config) and nothing else", () => {
+  const yes = [
+    "RESET ALL;", "RESET statement_timeout;", "SET default_transaction_read_only = off;", "SET client_encoding = 'UTF8';",
+    "SET standard_conforming_strings TO on;", "SET SESSION statement_timeout = 0;", "SET search_path = public, extensions;",
+    "SET search_path TO '', pg_catalog;", "SET pgrst.db_schemas = 'public';", "SET x = 'it''s; fine';",
+    "SELECT pg_catalog.set_config('search_path', '', false);", "SELECT pg_catalog.set_config('row_security', 'off', true);",
+  ];
+  for (const l of yes) assert.equal(isSessionStatement(l), true, l);
+  const no = [
+    "DROP ROLE postgres;", "ALTER SYSTEM SET x = 1;", "COPY t FROM PROGRAM 'id';", "RESET ALL; DROP ROLE postgres;", "RESET ALL",
+    "SET ROLE postgres;", "SET SESSION AUTHORIZATION postgres;", "SET LOCAL x = 1;", "SET x = 1; DROP ROLE postgres;",
+    "SET x = 1;DROP ROLE postgres;", "SET x = (select 1);", "SET x = 1 -- c", "SET = 1;", "SET x;",
+    "SELECT pg_catalog.set_config('x', 'y', false); DROP ROLE z;", "SELECT pg_catalog.set_config(current_user, 'y', false);",
+    "SELECT pg_read_file('/etc/passwd');", "SELECT pg_catalog.set_config('x', 'y', false), pg_sleep(1);", "CREATE ROLE x;", "RESET ALL;;",
+  ];
+  for (const l of no) assert.equal(isSessionStatement(l), false, l);
+});
+
+test("ATTACK (PROOF-8): DROP ROLE, ALTER SYSTEM, COPY and a SET with an injected second statement stay refused inside a real-shape dump", () => {
+  for (const evil of ["DROP ROLE postgres;", "ALTER SYSTEM SET max_connections = 1;", "COPY pg_roles TO PROGRAM 'id';", "SET x = 1; DROP ROLE postgres;", "RESET ALL; DROP ROLE postgres;", "SELECT pg_catalog.set_config('a', 'b', false); DROP ROLE postgres;"]) {
+    assert.throws(() => filterRoles(REAL_SHAPE.replace("RESET ALL;", evil), EXISTING), /unrecognised statement/, evil);
+    assert.throws(() => filterRoles(evil + "\n" + REAL_SHAPE, EXISTING), /unrecognised statement/, evil);
+  }
+});
+
+test("PROOF-8: the PASSWORD strip still runs on a real-shape dump that carries session statements", () => {
+  const r = filterRoles(REAL_SHAPE.replace("LOGIN NOBYPASSRLS;", "LOGIN PASSWORD 'SCRAM-SHA-256$4096:zz' NOBYPASSRLS;"), EXISTING);
+  assert.doesNotMatch(r.text, /PASSWORD|SCRAM/i);
+  assert.ok(r.text.includes('ALTER ROLE "reconciler" WITH INHERIT NOCREATEROLE NOCREATEDB LOGIN NOBYPASSRLS;'));
 });
