@@ -3,8 +3,8 @@
  "capturedAt": "2026-10-10",
  "method": "fsi-app/scripts/lib/export-harness-ledger.mjs",
  "counts": {
-  "families": 22,
-  "runs": 247
+  "families": 23,
+  "runs": 280
  },
  "rows": [
   {
@@ -136,6 +136,26 @@
     "github_run_id": "37613719629",
     "upstream_name": "Population turn",
     "upstream_run_id": "37613594461"
+   }
+  },
+  {
+   "family": "brief-export",
+   "run_id": "brief-export-run-007",
+   "started_at": "2026-10-10T14:11:38.009+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:b1d382af2dc0a70e",
+   "config": {
+    "mode": "auto",
+    "limit": 50,
+    "branch": null,
+    "selection": "record",
+    "batch_path": "scripts/_snapshots/brief-export/export-38058579521.json",
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058579521",
+    "upstream_name": "Population turn",
+    "governing_hash": "sha256:b1d382af2dc0a70e",
+    "upstream_run_id": "38058506216"
    }
   },
   {
@@ -299,6 +319,24 @@
     "selection": "tickets",
     "loop_run_id": "37613373980",
     "github_run_id": "37613594069"
+   }
+  },
+  {
+   "family": "corpus-turn",
+   "run_id": "corpus-turn-run-009",
+   "started_at": "2026-10-10T14:10:22+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:eb72ff29bc7c3a31",
+   "config": {
+    "mode": "dry",
+    "limit": 200,
+    "since": null,
+    "signals": true,
+    "selection": "tickets",
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058506235",
+    "governing_hash": "sha256:eb72ff29bc7c3a31"
    }
   },
   {
@@ -603,6 +641,60 @@
    }
   },
   {
+   "family": "downstream-chain",
+   "run_id": "downstream-chain-run-013",
+   "started_at": "2026-10-10T14:10:55+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:cae55bff8bd29667",
+   "config": {
+    "mode": "dry",
+    "skip": false,
+    "steps": [
+     "tier-opinions",
+     "recompute-tiers",
+     "derive-obligations",
+     "tag-proposals",
+     "term-recurrence",
+     "raise-term-needs",
+     "apply-classifications"
+    ],
+    "loop_run_id": "38058406627",
+    "skip_reason": null,
+    "github_run_id": "38058579513",
+    "upstream_name": "Population turn",
+    "governing_hash": "sha256:cae55bff8bd29667",
+    "upstream_run_id": "38058506216"
+   }
+  },
+  {
+   "family": "downstream-chain",
+   "run_id": "downstream-chain-run-014",
+   "started_at": "2026-10-10T14:12:18+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:cae55bff8bd29667",
+   "config": {
+    "mode": "dry",
+    "skip": false,
+    "steps": [
+     "tier-opinions",
+     "recompute-tiers",
+     "derive-obligations",
+     "tag-proposals",
+     "term-recurrence",
+     "raise-term-needs",
+     "apply-classifications"
+    ],
+    "loop_run_id": "38058406627",
+    "skip_reason": null,
+    "github_run_id": "38058579793",
+    "upstream_name": "Corpus turn",
+    "governing_hash": "sha256:cae55bff8bd29667",
+    "upstream_run_id": "38058506235"
+   }
+  },
+  {
    "family": "fetch-drain",
    "run_id": "fetch-drain-run-006",
    "started_at": "2026-09-29T12:31:56.324+00:00",
@@ -688,6 +780,25 @@
     "stuck_cutoff": "2026-10-07T10:21:49.306Z",
     "github_run_id": "37613485508",
     "upstream_run_id": "37613373980",
+    "supabase_project": "https://kwrsbpiseruzbfwjpvsp.supabase.co",
+    "invocation_mechanism": "none (dry run, no HTTP call)"
+   }
+  },
+  {
+   "family": "fetch-drain",
+   "run_id": "fetch-drain-run-011",
+   "started_at": "2026-10-10T14:09:48.456+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:69f35e488190250e",
+   "config": {
+    "mode": "dry",
+    "limit": 8,
+    "loop_run_id": "38058406627",
+    "stuck_cutoff": "2026-10-10T13:09:48.456Z",
+    "github_run_id": "38058463484",
+    "governing_hash": "sha256:69f35e488190250e",
+    "upstream_run_id": "38058406627",
     "supabase_project": "https://kwrsbpiseruzbfwjpvsp.supabase.co",
     "invocation_mechanism": "none (dry run, no HTTP call)"
    }
@@ -897,6 +1008,28 @@
     "github_run_id": "37613719684",
     "upstream_name": "Population turn",
     "upstream_run_id": "37613594461"
+   }
+  },
+  {
+   "family": "gate-a-rescan",
+   "run_id": "gate-a-rescan-run-011",
+   "started_at": "2026-10-10T14:11:24+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:90656265b74f325e",
+   "config": {
+    "mode": "dry",
+    "limit": 0,
+    "attach": {
+     "rows_offered": 0
+    },
+    "trigger": "workflow_run",
+    "loop_run_id": "38058406627",
+    "scope_source": "scanned_at ascending only -- no upstream artifact on the tree this run checked out",
+    "github_run_id": "38058579492",
+    "upstream_name": "Population turn",
+    "governing_hash": "sha256:90656265b74f325e",
+    "upstream_run_id": "38058506216"
    }
   },
   {
@@ -1261,6 +1394,102 @@
     ],
     "verdicts_given": false,
     "upstream_run_id": "37613373980"
+   }
+  },
+  {
+   "family": "ledger-consume",
+   "run_id": "ledger-consume-run-015",
+   "started_at": "2026-10-10T14:09:27.48+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:942de58f3d03bdc7",
+   "config": {
+    "mode": "plan",
+    "after": null,
+    "limit": 2000,
+    "action": "consume",
+    "allow_api": false,
+    "source_id": null,
+    "loop_run_id": "38058406627",
+    "max_promote": 50,
+    "record_only": true,
+    "fetch_gap_ms": 1000,
+    "newest_first": false,
+    "github_run_id": "38058463491",
+    "apply_disarmed": false,
+    "governing_hash": "sha256:942de58f3d03bdc7",
+    "prompt_version": "sha256:1ceca92ff0dfae68",
+    "requested_mode": "plan",
+    "stale_verdicts": {
+     "open": 386,
+     "superseded": 0
+    },
+    "verdicts_files": [
+     {
+      "path": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-001.json",
+      "batch": "ledger-verdicts-001",
+      "total_entries": 30,
+      "usable_entries": 0,
+      "stale_prompt_version_entries": 30
+     },
+     {
+      "path": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-002.json",
+      "batch": "ledger-verdicts-002",
+      "total_entries": 356,
+      "usable_entries": 0,
+      "stale_prompt_version_entries": 356
+     }
+    ],
+    "verdicts_given": false,
+    "upstream_run_id": "38058406627"
+   }
+  },
+  {
+   "family": "ledger-consume",
+   "run_id": "ledger-consume-run-016",
+   "started_at": "2026-10-10T14:09:29.318+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:942de58f3d03bdc7",
+   "config": {
+    "mode": "plan",
+    "after": null,
+    "limit": 2000,
+    "action": "consume",
+    "allow_api": false,
+    "source_id": null,
+    "loop_run_id": "38058406627",
+    "max_promote": 50,
+    "record_only": true,
+    "fetch_gap_ms": 1000,
+    "newest_first": false,
+    "github_run_id": "38058463491",
+    "apply_disarmed": false,
+    "governing_hash": "sha256:942de58f3d03bdc7",
+    "prompt_version": "sha256:1ceca92ff0dfae68",
+    "requested_mode": "plan",
+    "stale_verdicts": {
+     "open": 386,
+     "superseded": 0
+    },
+    "verdicts_files": [
+     {
+      "path": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-001.json",
+      "batch": "ledger-verdicts-001",
+      "total_entries": 30,
+      "usable_entries": 0,
+      "stale_prompt_version_entries": 30
+     },
+     {
+      "path": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-002.json",
+      "batch": "ledger-verdicts-002",
+      "total_entries": 356,
+      "usable_entries": 0,
+      "stale_prompt_version_entries": 356
+     }
+    ],
+    "verdicts_given": false,
+    "upstream_run_id": "38058406627"
    }
   },
   {
@@ -3444,6 +3673,329 @@
    }
   },
   {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-118",
+   "started_at": "2026-10-10T05:12:45+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:49348f1f46028449",
+   "config": {
+    "target": "https://carosledge.com",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38026701043",
+    "governing_hash": "sha256:49348f1f46028449"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-119",
+   "started_at": "2026-10-10T05:18:25+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:49348f1f46028449",
+   "config": {
+    "target": "https://carosledge.com",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38027025920",
+    "governing_hash": "sha256:49348f1f46028449"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-120",
+   "started_at": "2026-10-10T05:19:46+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-2rj7i4prr-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38027094212",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-121",
+   "started_at": "2026-10-10T05:24:39+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-riurx9gzh-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38027370806",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-122",
+   "started_at": "2026-10-10T05:37:07+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-44u6s0a14-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38028074948",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-123",
+   "started_at": "2026-10-10T06:56:57+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:09ee6f763cc232f9",
+   "config": {
+    "target": "https://carosledge-r09bs5xv5-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38032656984",
+    "governing_hash": "sha256:09ee6f763cc232f9"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-124",
+   "started_at": "2026-10-10T07:07:57+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:004b239a28b0e931",
+   "config": {
+    "target": "https://carosledge.com",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38033326047",
+    "governing_hash": "sha256:004b239a28b0e931"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-125",
+   "started_at": "2026-10-10T07:13:26+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:213ee1398b4ed299",
+   "config": {
+    "target": "https://carosledge-ly75580dx-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38033643482",
+    "governing_hash": "sha256:213ee1398b4ed299"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-126",
+   "started_at": "2026-10-10T09:54:46+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:213ee1398b4ed299",
+   "config": {
+    "target": "https://carosledge-mbj4cy5pd-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38043024045",
+    "governing_hash": "sha256:213ee1398b4ed299"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-127",
+   "started_at": "2026-10-10T10:37:40+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge.com",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38045520114",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-128",
+   "started_at": "2026-10-10T11:43:42+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-71dnb9dyw-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38049395788",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-129",
+   "started_at": "2026-10-10T12:05:44+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-1s7y3c68x-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38050676342",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-130",
+   "started_at": "2026-10-10T12:14:41+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-i6rxc3p61-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38051211514",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-131",
+   "started_at": "2026-10-10T12:26:38+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-flzsqjnp7-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38051934858",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-132",
+   "started_at": "2026-10-10T12:34:27+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-hrk3y1q2f-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38052420187",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-133",
+   "started_at": "2026-10-10T12:43:19+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-7typwwoym-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38052963382",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
+   "family": "live-smoke",
+   "run_id": "live-smoke-run-134",
+   "started_at": "2026-10-10T14:20:37+00:00",
+   "finished_at": null,
+   "trigger": "manual",
+   "governing_hash": "sha256:80e741b367739bab",
+   "config": {
+    "target": "https://carosledge-jjr4pl5su-dwarves77s-projects.vercel.app",
+    "read_only": true,
+    "viewports": [
+     1440,
+     375
+    ],
+    "loop_run_id": null,
+    "github_run_id": "38059175813",
+    "governing_hash": "sha256:80e741b367739bab"
+   }
+  },
+  {
    "family": "maintenance",
    "run_id": "maintenance-run-001",
    "started_at": "2026-09-28T16:45:34.306+00:00",
@@ -3635,6 +4187,25 @@
     "loop_run_id": "37613373980",
     "github_run_id": "37613594461",
     "upstream_run_id": "37613485439"
+   }
+  },
+  {
+   "family": "mint",
+   "run_id": "mint-run-004",
+   "started_at": "2026-10-10T14:10:15.534+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:e7d1b281990a7aca",
+   "config": {
+    "mode": "execute",
+    "execute": true,
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-38058506216",
+    "max_items": 25,
+    "batch_file": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-38058506216/census-rows.json",
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058506216",
+    "governing_hash": "sha256:e7d1b281990a7aca",
+    "upstream_run_id": "38058463491"
    }
   },
   {
@@ -4000,6 +4571,46 @@
    }
   },
   {
+   "family": "propagation",
+   "run_id": "propagation-run-030",
+   "started_at": "2026-10-10T14:12:55.861+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:76487a7c3e086910",
+   "config": {
+    "mode": "dry",
+    "batch": 500,
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058663474",
+    "governing_hash": "sha256:76487a7c3e086910",
+    "trigger_context": {
+     "name": "Downstream chain",
+     "run_id": 38058579513,
+     "conclusion": "success"
+    }
+   }
+  },
+  {
+   "family": "propagation",
+   "run_id": "propagation-run-031",
+   "started_at": "2026-10-10T14:15:27.242+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:76487a7c3e086910",
+   "config": {
+    "mode": "dry",
+    "batch": 500,
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058734295",
+    "governing_hash": "sha256:76487a7c3e086910",
+    "trigger_context": {
+     "name": "Downstream chain",
+     "run_id": 38058579793,
+     "conclusion": "success"
+    }
+   }
+  },
+  {
    "family": "quarantine-disposition",
    "run_id": "quarantine-disposition-run-001",
    "started_at": "2026-09-28T15:27:00.242+00:00",
@@ -4136,6 +4747,40 @@
     "bundle_path": "/home/runner/work/_temp/question-answers/question-answers-export-2026-10-07T07-25-53-242Z.json",
     "char_budget": 60000,
     "github_run_id": "37587202314"
+   }
+  },
+  {
+   "family": "question-answers",
+   "run_id": "question-answers-run-002",
+   "started_at": "2026-10-10T14:08:30.785+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:e1eb4e0fbc77decb",
+   "config": {
+    "limit": 100,
+    "action": "export",
+    "bundle_path": "/home/runner/work/_temp/question-answers/question-answers-export-2026-10-10T14-08-30-785Z.json",
+    "char_budget": 60000,
+    "loop_run_id": null,
+    "github_run_id": "38058404642",
+    "governing_hash": "sha256:e1eb4e0fbc77decb"
+   }
+  },
+  {
+   "family": "question-answers",
+   "run_id": "question-answers-run-003",
+   "started_at": "2026-10-10T14:11:20.134+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:e1eb4e0fbc77decb",
+   "config": {
+    "limit": 100,
+    "action": "export",
+    "bundle_path": "/home/runner/work/_temp/question-answers/question-answers-export-2026-10-10T14-11-20-134Z.json",
+    "char_budget": 60000,
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058579505",
+    "governing_hash": "sha256:e1eb4e0fbc77decb"
    }
   },
   {
@@ -4575,6 +5220,47 @@
    }
   },
   {
+   "family": "source-sweep",
+   "run_id": "source-sweep-run-025",
+   "started_at": "2026-10-10T14:08:48.452+00:00",
+   "finished_at": null,
+   "trigger": "workflow_dispatch",
+   "governing_hash": "sha256:a08a50f42d786f9c",
+   "config": {
+    "to": null,
+    "from": null,
+    "host": null,
+    "mode": "dry",
+    "term": null,
+    "celex": null,
+    "limit": 5000,
+    "slice": 100,
+    "types": [
+     "RULE"
+    ],
+    "cursor": null,
+    "series": "L",
+    "walker": "sitemap",
+    "feed_url": null,
+    "per_page": 100,
+    "all_hosts": false,
+    "max_hosts": 40,
+    "max_pages": 5,
+    "source_id": null,
+    "portal_url": null,
+    "loop_run_id": "38058406627",
+    "targets_file": null,
+    "cli_source_id": null,
+    "github_run_id": "38058406627",
+    "check_coverage": true,
+    "governing_hash": "sha256:a08a50f42d786f9c",
+    "max_sitemap_entries": 100000,
+    "max_sitemap_fetches": 50,
+    "time_budget_seconds": 1500,
+    "after_host_requested": null
+   }
+  },
+  {
    "family": "statutory",
    "run_id": "statutory-run-001",
    "started_at": "2026-09-29T07:45:41.433+00:00",
@@ -4586,6 +5272,18 @@
     "trigger": "manual",
     "r14_live_write_held": false,
     "rows_file_row_count": 1
+   }
+  },
+  {
+   "family": "structured-actions",
+   "run_id": "structured-actions-run-001",
+   "started_at": "2026-10-10T14:30:07.526+00:00",
+   "finished_at": null,
+   "trigger": null,
+   "governing_hash": "sha256:7cf5b60b87514ef8",
+   "config": {
+    "mode": "dry",
+    "write_status": "no destination column exists on intelligence_items for a structured action; this run extracts and reports only, it writes nothing to any customer-data table under any flag"
    }
   },
   {
@@ -4602,6 +5300,24 @@
     "bundle_path": "/home/runner/work/_temp/theme-briefs/theme-briefs-export-2026-10-07T07-25-56-609Z.json",
     "char_budget": 60000,
     "github_run_id": "37587198862"
+   }
+  },
+  {
+   "family": "theme-briefs",
+   "run_id": "theme-briefs-run-002",
+   "started_at": "2026-10-10T14:11:14.391+00:00",
+   "finished_at": null,
+   "trigger": "workflow_run_forced_dry",
+   "governing_hash": "sha256:52ba19b0329e83a2",
+   "config": {
+    "limit": null,
+    "action": "export",
+    "theme_ids": null,
+    "bundle_path": "/home/runner/work/_temp/theme-briefs/theme-briefs-export-2026-10-10T14-11-14-391Z.json",
+    "char_budget": 60000,
+    "loop_run_id": "38058406627",
+    "github_run_id": "38058579779",
+    "governing_hash": "sha256:52ba19b0329e83a2"
    }
   }
  ]
