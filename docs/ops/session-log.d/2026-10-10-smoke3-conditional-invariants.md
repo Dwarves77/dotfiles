@@ -40,8 +40,8 @@ Read: root `CLAUDE.md`, COMMON, `live-content.mjs`, `live-smoke.mjs`, `live-snap
 
 ## NOT done
 
-- `fsi-app/.discipline/rendering/smoke/live-smoke-fixture-smoke.mjs` must pass `candidates` (count 1, visit `/regulations/item-1`) to `runFixtureLeg` or its defective leg stops firing the conditional content invariants; outside this lane's write set, NEEDS WRITE-SET EXPANSION. [WORK: owed]
-- `fsi-app/scripts/turns/emit-live-smoke-artifact.mjs` (and its test) reads `report.findings` and `pagesVisited` only, so the HOLD results are in the report JSON and the workflow artifact but not yet in the harness-run artifact and ledger metrics (`holds`, `hold_count`, per-invariant candidate counts); outside the write set, NEEDS WRITE-SET EXPANSION. [WORK: owed]
+- `fsi-app/.discipline/rendering/smoke/live-smoke-fixture-smoke.mjs` must pass `candidates` (count 1, visit `/regulations/item-1`) to `runFixtureLeg` or its defective leg stops firing the conditional content invariants; outside this lane's write set, NEEDS WRITE-SET EXPANSION (granted by the coordinator, done in this PR: `runFixtureLeg` passes `candidates`, and a second defective leg with zero candidates asserts the three conditional invariants HOLD with candidates=0 while the unconditional ones still fire). [CLOSED: PR 1079]
+- `fsi-app/scripts/turns/emit-live-smoke-artifact.mjs` (and its test) reads `report.findings` and `pagesVisited` only, so the HOLD results are in the report JSON and the workflow artifact but not yet in the harness-run artifact and ledger metrics (`holds`, `hold_count`, per-invariant candidate counts); outside the write set, NEEDS WRITE-SET EXPANSION (granted, done in this PR: `hold_count`, `holds_<invariant>` and `candidates_<class>` metrics and one `hold` per_item row per hold, with a test). [CLOSED: PR 1079]
 
 ## Open items
 

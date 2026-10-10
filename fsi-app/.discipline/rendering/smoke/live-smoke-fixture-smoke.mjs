@@ -155,10 +155,18 @@ const EXPECTED_DEFECTS = [
   ...Object.values(CONTENT_INVARIANT_IDS),
 ];
 
-export async function runFixtureLeg(browser, defective, password) {
+/** Lane SMOKE-3: what the live data would say about the conditional classes. `count` items per class, visited at the fixture item. */
+const fixtureCandidates = (count) => ({
+  resolved: true,
+  classes: Object.fromEntries(["inference", "record", "bias"].map((c) => [c, { count, visit: count ? ["/regulations/item-1"] : [], sample: [] }])),
+});
+/** The conditional content invariants: they fire only when the live data names a candidate, else they HOLD. */
+const CONDITIONAL_CONTENT = [INVARIANTS.GRADE_CHIP, INVARIANTS.BIAS_CHIPS, INVARIANTS.INFERENCES_SECTION];
+
+export async function runFixtureLeg(browser, defective, password, candidates = fixtureCandidates(1)) {
   const { server, baseUrl } = await startServer(defective);
   try {
-    return await runLiveSmoke({ browser, baseUrl, email: FIXTURE_EMAIL, password, signInTimeoutMs: 5000, contentChecks: true });
+    return await runLiveSmoke({ browser, baseUrl, email: FIXTURE_EMAIL, password, signInTimeoutMs: 5000, contentChecks: true, candidates });
   } finally {
     server.close();
   }
@@ -186,6 +194,21 @@ export async function runSmoke(browser) {
     if (!fired.has(inv)) failures.push(`live-smoke-fixture:defective: invariant ${inv} did NOT fire on the defective fixture (gate cannot fail)`);
   }
   if (bad.report.failureCount === 0) failures.push("live-smoke-fixture:defective: zero failures on the defective fixture");
+
+  // Lane SMOKE-3: the same defective site, but the live data names NO candidate. The conditional invariants must HOLD
+  // (named, with the count 0), neither fail nor pass, and the unconditional ones must still fire.
+  const held = await runFixtureLeg(browser, true, FIXTURE_PASSWORD, fixtureCandidates(0));
+  checks += 1;
+  const heldFired = new Set(held.findings.filter((f) => f.severity === "fail").map((f) => f.invariant));
+  const heldInvariants = new Set((held.holds ?? []).map((h) => h.invariant));
+  for (const inv of CONDITIONAL_CONTENT) {
+    if (heldFired.has(inv)) failures.push(`live-smoke-fixture:no-candidates: ${inv} FAILED with zero candidates (it must HOLD)`);
+    if (!heldInvariants.has(inv)) failures.push(`live-smoke-fixture:no-candidates: ${inv} is not reported as a HOLD (a missing element with no candidate must be a named HOLD, not a pass)`);
+  }
+  if ((held.holds ?? []).some((h) => h.candidates !== 0)) failures.push("live-smoke-fixture:no-candidates: a hold does not carry candidates=0");
+  for (const inv of [INVARIANTS.CONNECTED_SECTION, INVARIANTS.TIER_SQUARE, INVARIANTS.ACROSS_PAGES_RAIL]) {
+    if (!heldFired.has(inv)) failures.push(`live-smoke-fixture:no-candidates: unconditional invariant ${inv} stopped firing`);
+  }
 
   const wrong = await runFixtureLeg(browser, false, "not-the-password");
   checks += 1;
