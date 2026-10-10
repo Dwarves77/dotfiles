@@ -39,7 +39,7 @@ Read in full: COMMON, the brief, `CLAUDE.md`, `lane-common-contract.md`, `OUT-OF
 ## Open items
 
 - After merge, the executor runs the one install command from the main checkout; step 3c then passes on the operator machine. [CLOSED: PR 1045]
-- Whether an already-running Claude Code session picks up the new matcher without a restart was not tested here. [WORK: RULES-X-1]
+- Whether an already-running Claude Code session picks up the new matcher without a restart was not tested here. [NOT-WORK: Claude Code client behaviour, not observable in the repo]
 
 ## Follow-up (coordinator grants, same lane, rule 13: close own residue)
 

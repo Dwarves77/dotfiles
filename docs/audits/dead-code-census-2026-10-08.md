@@ -1113,7 +1113,7 @@ Sample verification (independent method, `git grep -n -w -F <name>` over tracked
 - scripts/turns/theme-briefs/artifact.mjs (2): FSI_ROOT, FAMILY
 - scripts/turns/theme-briefs/data.mjs (3): THEME_COLUMNS, MEMBER_COLUMNS, EDGE_COLUMNS
 - scripts/turns/theme-briefs/schema.mjs (1): SECTION_HEADINGS
-- scripts/verify/defect-signature-scan.mjs (6): REUSE_MIN, NAMED_ACTS, extractIdentifiers, spanHasIdentifier, detectConflate, extractNumbers [HYPOTHESIS: listed by the method of this section, deadness not verified] [WORK: DEAD-1c]
+- scripts/verify/defect-signature-scan.mjs (6): REUSE_MIN, NAMED_ACTS, extractIdentifiers, spanHasIdentifier, detectConflate, extractNumbers [HYPOTHESIS: listed by the method of this section, deadness not verified] [CLOSED: PR 1087]
 - scripts/verify/derivation-edges-rls-adversarial-audit.mjs (1): runAudit
 - scripts/verify/harness-runs-rls-adversarial-audit.mjs (1): runAudit
 - scripts/verify/population-report.mjs (1): DEFAULT_MINT_HARNESS_RUNS_DIR
@@ -1626,7 +1626,7 @@ All 24 entries are listed with reasons in section 1a.
 
 #### ALLOWLIST in .discipline/fitness/functions/F34-bundle-safe-module-evaluation.mjs (1)
 
-- fsi-app/src/lib/connections/derive-tags.mjs [2026-08]: Reads parse-output.ts / system-prompt.ts at import (fail-closed vocab load, 2026-08); reachable from no page; latent instance of the F34 class, recorded not hidden (Ad... [CONFIRMED: listed by the method stated in this section] [WORK: RULES-X-1]
+- fsi-app/src/lib/connections/derive-tags.mjs [2026-08]: Reads parse-output.ts / system-prompt.ts at import (fail-closed vocab load, 2026-08); reachable from no page; latent instance of the F34 class, recorded not hidden (Ad... [CONFIRMED: listed by the method stated in this section] [NOT-WORK: F34 ALLOWLIST entry with its reason recorded at F34-bundle-safe-module-evaluation.mjs lines 20 to 38]
 
 #### PRE_EXISTING_ALLOWLIST in .discipline/fitness/functions/F36-date-format-timezone-pin.mjs (14)
 
@@ -1688,7 +1688,7 @@ All 24 entries are listed with reasons in section 1a.
 #### EXEMPT_STEPS in .discipline/fitness/functions/F54-push-gate-npm-parity.mjs (4)
 
 - actionlint [2026-09-21] (review: 2026-09-21): downloads a pinned, checksum-verified actionlint binary from GitHub releases at run time (F52's own step comment); the operator declined installing extra software loca...
-- Orphan-module + dead-export census [2026-09-28] (review: 2026-09-28): orphan-modules.mjs --all is a REPORT that never fails (its own header, and the step name says "reports, never fails"), so it cannot turn CI red and owes the push gate ... [CONFIRMED: listed by the method stated in this section] [WORK: RULES-X-1]
+- Orphan-module + dead-export census [2026-09-28] (review: 2026-09-28): orphan-modules.mjs --all is a REPORT that never fails (its own header, and the step name says "reports, never fails"), so it cannot turn CI red and owes the push gate ... [CONFIRMED: listed by the method stated in this section] [NOT-WORK: F54 EXEMPT_STEPS entry with its reason recorded; F25 is the failing enforcement for the class]
 - Playwright [2026-09-21] (review: 2026-09-21): the rendering-guard job's Playwright + chromium install step; a DIFFERENT job from "Fitness functions" so this checker never reaches it today, named per the operator's... [CONFIRMED: listed by the method stated in this section] [NOT-WORK: allowlist entry with its reason recorded in the allowlist]
 - ESLint (max-warnings 0) [2026-10-01] (review: 2026-10-01): lane R7-LINT-CI (remediation plan Lane 7, CF-SEC-10). The step's run: is `npm run lint -- --max-warnings=0`, an npm-script invocation, not a `node`/`sh`/`bash <path>.(...
 
@@ -1705,7 +1705,7 @@ All 24 entries are listed with reasons in section 1a.
 - source_bias_tags [2026-10-01] (review: 2026-10-01): CF-SEC-14 and CF-DATA-12 (migration 092): live RLS-enabled, zero policies (deny-all), confirmed safe; enabling migration not identifiable in the corpus.
 - system_state [2026-10-01] (review: 2026-10-01): CF-SEC-14 and CF-DATA-12 (migration 016): live RLS-enabled, zero policies (deny-all), confirmed safe; enabling migration not identifiable in the corpus.
 - system_state_flag_audit [2026-10-01] (review: 2026-10-01): CF-SEC-14: live RLS-enabled, zero policies (deny-all), confirmed safe; enabling migration not identifiable in the corpus.
-- intelligence_items_domain_backfill_audit [2026-10-01] (review: 2026-10-01): lane R6-8 own finding: migration 101 header states "PROPOSED, NOT APPLIED" -- draft backfill-audit snapshot table, never run against the live database, not a CF-SEC-14... [CONFIRMED: listed by the method stated in this section] [WORK: RULES-X-1]
+- intelligence_items_domain_backfill_audit [2026-10-01] (review: 2026-10-01): lane R6-8 own finding: migration 101 header states "PROPOSED, NOT APPLIED" -- draft backfill-audit snapshot table, never run against the live database, not a CF-SEC-14... [CONFIRMED: listed by the method stated in this section] [WORK: EXEMPT-1]
 
 #### NEVER_RUN_ALLOWLIST in .discipline/governance/closure-gate.mjs (2)
 

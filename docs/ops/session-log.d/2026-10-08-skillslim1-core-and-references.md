@@ -86,7 +86,7 @@ aggregate attack test, `isDocsOnlyPath`, the existing `DOCTRINE_FILES` consumers
 - Binding sections that did not fit the core now live in references and cost a read when their trigger fires. Notably:
   environmental-policy-and-innovation "The Workspace-Anchored Rule (mandatory, never violated)" (references/workspace-anchoring-and-lenses.md),
   remediation-discipline category rules 1 to 58 (references/categories-*.md; each is also enforced by its named RD invariant),
-  platform-intent "Authority Grant" and "Anti-Patterns". Coordinator may want the gate to name a reference per path later. [WORK: RULES-X-1]
+  platform-intent "Authority Grant" and "Anti-Patterns". Coordinator may want the gate to name a reference per path later. [NOT-WORK: an option, no defect named; the gate demands the core and SKILL-SLIM-1 shipped the references]
 - Docs under `docs/` that cite "SKILL.md section N" were not rewritten (outside the write set). Source comments that cite [WORK: DOCS-5]
   a SKILL.md section which stayed in the core were left as they are.
 - `.claude/skills/ledger/SKILL.md` (14,294 bytes) is not gate-demanded and was left. [NOT-WORK: fact, no action]

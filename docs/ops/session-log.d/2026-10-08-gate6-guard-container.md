@@ -67,8 +67,8 @@ Confirmed from the run API (job conclusion `cancelled`, attempt in brackets):
 
 - `layout-baseline-renewal.yml` is dispatch-only, so this PR does not exercise it; its container form is proven by
   the shape test, not by a run. It checks out with `fetch-depth: 0` and later runs `git show`, so it needs `git`
-  in the image; unproven until dispatched. [WORK: TESTS-1]
-- `live-smoke.yml` runs on a Production deployment or by dispatch; not exercised by this PR either. [WORK: TESTS-1]
+  in the image; unproven until dispatched. [NOT-WORK: layout-baseline-renewal.yml is dispatch-only, exercised only by an explicit dispatch]
+- `live-smoke.yml` runs on a Production deployment or by dispatch; not exercised by this PR either. [NOT-WORK: live-smoke.yml runs on a Production deployment or by dispatch, a production row]
 
 ## Open items
 

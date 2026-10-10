@@ -26,8 +26,8 @@ Read: COMMON.md, mighist1.md, CLAUDE.md, lane-common-contract, the export (`inde
 
 ### What is NOT done
 - The 74 code-differs rows are not edited (no body edit of any existing migration, no apply). [NOT-WORK: fact, no action]
-- Outside-ledger objects are not verified; the ledger INSERTs are staged in the audit document, not run. Wiring F24's object check into the audit is owed. [WORK: MIG-HIST-2]
-- MIG-HIST-2 (replay and diff residue) is not started. [WORK: MIG-HIST-2]
+- Outside-ledger objects are not verified; the ledger INSERTs are staged in the audit document, not run. Wiring F24's object check into the audit is owed. [CLOSED: PR 1085]
+- MIG-HIST-2 (replay and diff residue) is not started. [CLOSED: PR 1085]
 
 ### Open items
 - Coordinator to land the audit document and rule on the Session C question (objects have consumers or not) and the 74 rows. [CLOSED: PR 1033]
@@ -63,7 +63,7 @@ The committed map did not match what `scripts/proof/applied-map.mjs` reads. Meas
 - Not run locally by design: the whole suite, the fitness runner, tsc (CI is the gate).
 
 ### What is NOT done
-- The 74 code-differs rows are not edited (MIG-HIST-2). Outside-ledger objects are still unverified (findings, not passes). [WORK: MIG-HIST-2]
+- The 74 code-differs rows are not edited (MIG-HIST-2). Outside-ledger objects are still unverified (findings, not passes). [CLOSED: PR 1085]
 - `docs/runbooks/maintenance.d/64-chain-proof.md` and `docs/decisions/ADR-045-chain-proof-on-a-local-stack.md` carry the map schema table; it does not yet list `statements-null` and `apply-record-stub` as apply classes. Outside this lane's write set: for the coordinator's docs pass. [WORK: DOCS-5]
 - The audit document stays in the session scratchpad (docs/audits is not this lane's to edit). [CLOSED: PR 1033]
 

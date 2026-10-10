@@ -63,14 +63,14 @@ The caller in these three rows holds role member in the org. Migration 370 made 
 
 ## 4. Owed legs and cells not exercised, with reason
 
-1. P2 (org viewer): 121 tables x 5 commands = 605 cells OWED. Reason: no viewer membership exists. Fixture creation inside a rolled-back block was not among the approved statements. [WORK: TESTS-1]
-2. P3 (org member of another org): 121 x 5 = 605 cells OWED. Reason: one organization exists. [WORK: TESTS-1]
+1. P2 (org viewer): 121 tables x 5 commands = 605 cells OWED. Reason: no viewer membership exists. Fixture creation inside a rolled-back block was not among the approved statements. [CLOSED: PR 1088]
+2. P3 (org member of another org): 121 x 5 = 605 cells OWED. Reason: one organization exists. [CLOSED: PR 1088]
 3. NX cells (command ran and was refused or returned nothing, but the table had no rows for the probe to act on, so the policy was not exercised against a row): counted in section 2 and listed per table in section 7 as NX. For INSERT the probe never depends on existing rows beyond the copy source; where a table was empty the INSERT used DEFAULT VALUES. [CONFIRMED: rolled-back DO block probe, AUD-AT-1] [NOT-WORK: fact, no action]
 4. One column privilege not probed by a statement: portfolios has 5 columns without UPDATE for authenticated; 1 of them is a generated or identity column that cannot be assigned, so 4 were probed (30 of 31 revoked UPDATE columns probed across the 6 tables) [CONFIRMED: attgenerated/attidentity catalog read]. [NOT-WORK: fact, no action]
-5. Layer 2 standing alone (the guard trigger with the column grant restored) was not exercised: restoring a grant is a write outside the approved statements. Migrations 364 and 370 each run that leg inside their own self-check [CONFIRMED: read of the migration files]; this lane did not re-run it. [WORK: TESTS-1]
-6. Views (6) and functions (EXECUTE grants, SECURITY DEFINER bodies) are outside this lane's enumerator (tables, column privileges, policies). The census staged probes A, B and C (derived_values_admissible, research_assessments_current, admin_set_judgement_drain) were not run here. OWED. [WORK: TESTS-1]
+5. Layer 2 standing alone (the guard trigger with the column grant restored) was not exercised: restoring a grant is a write outside the approved statements. Migrations 364 and 370 each run that leg inside their own self-check [CONFIRMED: read of the migration files]; this lane did not re-run it. [CLOSED: PR 1088]
+6. Views (6) and functions (EXECUTE grants, SECURITY DEFINER bodies) are outside this lane's enumerator (tables, column privileges, policies). The census staged probes A, B and C (derived_values_admissible, research_assessments_current, admin_set_judgement_drain) were not run here. OWED. [WORK: TESTS-2]
 7. Policies for the roles reconciler and service_role (13 policies) are not attacked: those are not weaker principals. [NOT-WORK: fact, no action]
-8. The six lenses other than ATTACKED are owed for subsystem 11. [WORK: TESTS-1]
+8. The six lenses other than ATTACKED are owed for subsystem 11. [WORK: TESTS-2]
 
 ## 5. Method, as run, and deviations from the brief
 

@@ -61,7 +61,7 @@ Audit totals after the run: 73 specs, 2534 checks, MATCH 2469, MISMATCH 53, NOT 
 - Not run locally per COMMON rule 9: the whole suite, the fitness runner (F45 alone was run), tsc, lint. Run locally and green: every touched test file plus neighbours, 13 registered UX smokes, `npm run audit:design`. [NOT-WORK: COMMON rule 9, CI is the gate]
 - The disposition PR merged while this PR was open; its `WORK: DFIX-2` tokens on the brief's rows are replaced (token edit only): `CLOSED: PR 1059` on l3 item 3, p2 citation bullet, alias1, s8e5 and sec5, and on the two DAUDIT-2 build-defect lines (176, 181); `REFUTED: ...` with the evidence on l12 items 2 and 3 and the 768 bullets of p2 and p1. [NOT-WORK: tokens supersede the disposition tokens on those lines]
 - Other `WORK: DFIX-2` tokens on master were not in this lane's brief and are untouched: external-only:63, s1a-source-register:21, g7-corrections:37 and 38, l4d-predictions-reliability:39, p1-source-rating-display:115, s3b-cross-page-surfaces:143, g7-ui:28, g5-search:71, mig374-owed-schema:35, and the register lines in docs/audits/remaining-build-register-2026-10-06.md (not editable by a lane). [WORK: DFIX-2]
-- supabase-server.ts internal duplication (63w clone with itself) is pre-existing. [WORK: DEAD-1c]
+- supabase-server.ts internal duplication (63w clone with itself) is pre-existing. [CLOSED: PR 1087]
 
 ## UX compliance
 

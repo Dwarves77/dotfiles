@@ -1,7 +1,7 @@
--- subject: Migration 383 (lane DEAD-1c, 2026-10-09): drops section_claim_provenance.verified_by, a column no code reads and whose only writer was the unwired one-time seed script supabase/seed/apply-114.mjs; the drop aborts if any row holds a value, so it never deletes data.
+-- subject: Migration 383 (lane DEAD-1c, 2026-10-09): drops section_claim_provenance.verified_by, a column no code reads and whose only writer was the unwired one-time seed script supabase/seed/apply-114.mjs; the drop aborts if any row holds a value, so it never deletes data. APPLIED (production ledger version 20261010122019, as of 2026-10-10).
 -- 383 -- drop section_claim_provenance.verified_by (lane DEAD-1c, 2026-10-09).
 --
--- NOT APPLIED. Authored by lane DEAD-1c with no database access; the coordinator's executor applies it after CI is green
+-- APPLIED (production ledger version 20261010122019, as of 2026-10-10). Authored by lane DEAD-1c with no database access; the coordinator's executor applies it after CI is green
 -- (two-track policy, CLAUDE.md standing rule 3: schema DDL applies via the Supabase CLI before any dependent code commits;
 -- no code depends on this drop, and the seed script edit in the same PR stops writing the column). Requires migration 112
 -- (section_claim_provenance, verified_by uuid with no foreign key).

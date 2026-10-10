@@ -67,7 +67,7 @@ Each is absent in the tree at e23feb02 by the method in its row. Absent means no
 8. 01S4 #1 banner form, #2 applicability panel and recorded exclusion, #4 T-90/T-30/T-7, #5 horizon lane, #6 redline and applicability-filtered feed, #7 sanction class and computed exposure on the page, #9 three-value status and review date, #10 obligation-grain task, #11 Excel/PDF export and snapshot. [CONFIRMED: absent in the tree at e23feb02 by the method in its row] [WORK: PLAN-2]
 9. Ribbon rendering of delta 1m, delta YoY and sparkline (computed, rendered by nothing) (02S6 r1).
 10. Methodology document with change control (spec 02 section 5); methodology drawer on ribbon cards (02S6 r10).
-11. A caller for `fsi-app/scripts/verify/ui-orphan-audit.mjs` (B-3 mechanism). [CONFIRMED: git grep over .github, fsi-app/.discipline, package.json, scripts/verify, runbooks: no caller] [WORK: RULES-X-1]
+11. A caller for `fsi-app/scripts/verify/ui-orphan-audit.mjs` (B-3 mechanism). [CONFIRMED: git grep over .github, fsi-app/.discipline, package.json, scripts/verify, runbooks: no caller] [CLOSED: PR 1024]
 12. W3C PROV mapping, PROV or JSON-LD export, and a reader that exposes a derivation chain for a published record (S-6).
 13. Any in-tree closing record for 15 of the 16 D-5 facts (only #6 closed).
 
@@ -76,7 +76,7 @@ Each is absent in the tree at e23feb02 by the method in its row. Absent means no
 - 00S1.3 "still unverified": now [CONFIRMED] missing (hierarchy) and partial (alias). [WORK: PLAN-2]
 - S-6 "open [H: no evidence found]": [REFUTED] in part, derivation storage exists (tables above); the PROV-shaped chain is confirmed absent. [WORK: PLAN-2]
 - B-2, B-4, B-5 "status unknown": [CONFIRMED] closed in code with a test each (B-2 vocab-drift-guard plus migrations 148/269/306/310/316; B-4 domain-laundering test; B-5 prose-renderer-scope test). [NOT-WORK: fact, no action]
-- B-3 "status unknown": mechanism located and unwired [CONFIRMED: git grep, no caller]; count not re-derived [HYPOTHESIS: needs a live DB run]. [WORK: RULES-X-1]
+- B-3 "status unknown": mechanism located and unwired [CONFIRMED: git grep, no caller]; count not re-derived [HYPOTHESIS: needs a live DB run]. [CLOSED: PR 1024]
 - 00S4 "Coverage Index exists, first-class surface unverified": the Index is admin-only by ruling; first-class customer surface confirmed absent. [WORK: PLAN-2]
 
 ## Incidental facts outside the listed rows (seen while reading, not investigated)
