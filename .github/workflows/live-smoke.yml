@@ -43,6 +43,11 @@ on:
         description: 'Deployment to check, https only (for example https://carosledge.com)'
         required: true
         type: string
+      repeat:
+        description: 'Visits of the home page at 375px, each in a fresh context (diagnostic for an intermittent hydration error; the evidence is written into the report)'
+        required: false
+        default: '1'
+        type: string
 
 permissions:
   contents: read
@@ -115,6 +120,7 @@ jobs:
           LIVE_SMOKE_PASSWORD: ${{ secrets.LIVE_SMOKE_PASSWORD }}
           LIVE_SMOKE_REPORT: ${{ runner.temp }}/live-smoke-report.json
           LIVE_SMOKE_CANDIDATES: ${{ runner.temp }}/live-smoke-candidates.json
+          LIVE_SMOKE_REPEAT: ${{ github.event.inputs.repeat || '1' }}
         run: node .discipline/rendering/live/live-smoke.mjs
 
       # Record this family's harness-run artifact on EVERY firing, including one that failed before it produced a
