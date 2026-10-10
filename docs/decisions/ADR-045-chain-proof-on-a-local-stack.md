@@ -112,5 +112,5 @@ Facts and rulings that landed after this ADR was written. The operating detail i
    precedes it in the inventory, a doubly claimed file once at the earlier version (`orderByLedger`, PR 1019). Until
    that merges, the inventory order stands on master.
 5. The same stack now also proves pending migrations before production: the `migration-proof` pull_request job
-   (`.github/workflows/migration-proof.yml`, runbook file `67-migration-proof.md`) replays the applied set and applies every migration
+   (`.github/workflows/migration-proof.yml`, runbook file `68-migration-proof.md`) replays the applied set and applies every migration
    production has not applied. In flight: PR 1019, not merged at this entry.

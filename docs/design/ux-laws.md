@@ -116,7 +116,7 @@ context and goal.
   row component in `ROW_COMPONENTS` must be mounted by a registered UX smoke spec and carry
   `data-guard-title`; red otherwise, in every fitness run and in CI.
 - **Rendering guard UX smoke slot** (`fsi-app/.discipline/rendering/run-rendering-guard.mjs`,
-  `smoke/ux-harness.mjs`, `ux-assert.mjs`): the real `.tsx` is mounted at 375 × 812 and 1280 × 800 and
+  `smoke/ux-harness.mjs`, `ux-assert.mjs`): the real `.tsx` is mounted at four widths (375 × 812, 768 × 1024, 1024 × 768 and 1280 × 800; `UX_VIEWPORTS` in `smoke/ux-harness.mjs`) and
   fails on horizontal overflow, on a title wrapping at under 60 % of its card (law 2's neighbour, the
   one-word-per-line class), or on an interactive target below the law-2 floor. Detector core proven
   red-then-green in `ux-assert.test.mjs` (required no-npm suite).
