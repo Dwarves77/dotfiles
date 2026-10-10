@@ -1380,7 +1380,7 @@ export interface WorkspaceAggregates {
   // Migration 148: per-surface severity + signal-band label distributions,
   // keyed by the canonical DB vocab (severity: action_required/cost_alert/
   // window_closing/competitive_edge/monitoring; signal_band: price/corporate/
-  // corridor). Present ONLY from get_surface_counts (fetchSurfaceCounts); the
+  // corridor). Present ONLY from get_surface_counts (fetchPublicSurfaceCounts); the
   // workspace/scoped aggregate RPCs leave them undefined, so a consumer that
   // reads them fails soft when the surface-counts RPC is absent (pre-apply).
   bySeverity?: Record<string, number>;
@@ -1454,9 +1454,8 @@ export async function fetchWorkspaceAggregates(
 
 // ── Scoped aggregates (migration 069) ────────────────────────
 //
-// Same shape as fetchWorkspaceAggregates, scoped to an item_type/domain
-// filter so /market /research /operations can render true totals for
-// the slice the page renders rather than workspace-wide totals.
+// The filter type for the scoped aggregates RPC (item_type/domain slice). DEAD-1d (2026-10-10): the
+// org-scoped fetcher that sent it had no caller and was deleted; the type is still re-exported by data.ts.
 
 /**
  * Scope filter for the scoped aggregates RPC. An item matches if its
@@ -1469,72 +1468,21 @@ export interface ScopeFilter {
   domains?: number[];
 }
 
-export async function fetchWorkspaceAggregatesScoped(
-  orgId: string | null,
-  scope: ScopeFilter | null
-): Promise<WorkspaceAggregates> {
-  if (!isSupabaseConfigured() || !orgId) return EMPTY_AGGREGATES;
-  try {
-    // Migration 077: SSR uses service-role client to bypass auth.uid()
-    // membership check (orgId already authenticated upstream).
-    const supabase = getServiceSupabase();
-    // Pass null when no usable filter so the RPC takes its DEFAULT NULL
-    // branch and degrades to workspace-wide. An empty object would also
-    // degrade through the SQL "neither key present" guard, but explicit
-    // null is clearer.
-    const filterPayload =
-      scope && (scope.item_types?.length || scope.domains?.length)
-        ? {
-            ...(scope.item_types?.length ? { item_types: scope.item_types } : {}),
-            ...(scope.domains?.length ? { domains: scope.domains } : {}),
-          }
-        : null;
-    const { data, error } = await supabase.rpc(
-      "get_workspace_intelligence_aggregates_scoped",
-      { p_org_id: orgId, p_scope_filter: filterPayload }
-    );
-    if (error || !data) {
-      if (error) console.error("fetchWorkspaceAggregatesScoped RPC error:", error);
-      return EMPTY_AGGREGATES;
-    }
-
-    return mapAggregatesRaw(data);
-  } catch (e) {
-    console.error("fetchWorkspaceAggregatesScoped failed, returning empty:", e);
-    return EMPTY_AGGREGATES;
-  }
-}
-
 // ── Per-surface counts (migration 148) ────────────────────────
 //
-// get_surface_counts(org, surface) is the single-SoT successor to the scoped aggregates RPC:
+// get_surface_counts(org, surface) is the single-SoT successor to the scoped aggregates RPC (DEAD-1d, 2026-10-10: the
+// org-scoped fetchers for both RPCs had no caller and were deleted; the public one below is the live reader):
 // classification runs server-side via surface_of() (one vocab home) and the population gates
 // provenance_status='verified' (ruling 1) — closing the rail-vs-aggregates verified-filter leak and
 // the /research empty-scope degrade. Returns the same WorkspaceAggregates shape (the RPC is a superset;
 // by_severity/by_band are additionally present but not consumed here). Returns NULL when the RPC is
-// absent (pre-apply) or errors, so callers fail soft to fetchWorkspaceAggregatesScoped.
-export async function fetchSurfaceCounts(
-  orgId: string | null,
-  surface: string
-): Promise<WorkspaceAggregates | null> {
-  if (!isSupabaseConfigured() || !orgId) return null;
-  return runSurfaceCountsRpc(orgId, surface);
-}
-
-// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
-// counterpart to fetchSurfaceCounts above, for getPublicSurfaceCounts (src/lib/data.ts).
+// absent (pre-apply) or errors, so the caller (getPublicSurfaceCounts) fails soft.
 //
-// BUG FOUND AND FIXED, this lane, proving the build: fetchSurfaceCounts' OWN `!orgId → return null`
-// guard above (line ~985) means calling `fetchSurfaceCounts(null, surface)` — which is exactly what
-// this lane's FIRST cut of getPublicSurfaceCounts did — short-circuits to `null` BEFORE ever calling
-// the RPC, regardless of get_surface_counts itself being null-safe (confirmed via Supabase MCP). That
-// made getPublicSurfaceCounts silently and permanently fall through to its all-zero fallback object —
-// every masthead/tile count on /market, /operations, /research, /regulations would have rendered "0
-// active items" honestly-formatted but factually wrong the moment this shipped, caught only by
-// actually running the build end to end rather than by tsc or the unit suite (neither exercises the
-// RPC response shape). This function is the real fix: it skips straight to the shared RPC call with
-// `p_org_id: null`, never through the org-required guard, since a public caller passing null here is
-// the INTENDED case, not a caller that forgot to resolve one.
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent, for
+// getPublicSurfaceCounts (src/lib/data.ts). It skips straight to the shared RPC call with `p_org_id: null`:
+// the earlier org-scoped fetcher short-circuited to null on a missing orgId before ever calling the RPC (which
+// is null-safe), so a public caller that went through it silently fell through to an all-zero fallback and every
+// masthead count rendered "0 active items". A public caller passing null here is the INTENDED case.
 export async function fetchPublicSurfaceCounts(surface: string): Promise<WorkspaceAggregates | null> {
   if (!isSupabaseConfigured()) return null;
   return runSurfaceCountsRpc(null, surface);
@@ -1549,7 +1497,7 @@ async function runSurfaceCountsRpc(orgId: string | null, surface: string): Promi
     });
     if (error || !data) {
       if (error) {
-        console.warn("fetchSurfaceCounts RPC unavailable, caller will fall back:", describeSupabaseError(error));
+        console.warn("get_surface_counts RPC unavailable, caller will fall back:", describeSupabaseError(error));
       }
       return null;
     }
@@ -1565,7 +1513,7 @@ async function runSurfaceCountsRpc(orgId: string | null, surface: string): Promi
       byBand: numericCounts(raw.by_band),
     };
   } catch (e) {
-    console.error("fetchSurfaceCounts failed, returning null (caller fails soft):", e);
+    console.error("get_surface_counts read failed, returning null (caller fails soft):", e);
     return null;
   }
 }
@@ -1782,24 +1730,6 @@ export async function fetchResearchPipelineRows(
     console.error("fetchResearchPipelineRows failed, returning empty:", e);
     return { rows: [], total: 0, cap };
   }
-}
-
-// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
-// counterpart to fetchResearchPipelineRows above. [CONFIRMED, this lane, reading the function body
-// above] `orgId` is threaded through fetchResearchPipelineRows but never actually used in its
-// query — `void orgId; // reserved for the override join when pipeline_overrides land` — and its
-// I/O runs through `getSupabase()` (a plain static anon-key client, not cookie-bound, not
-// service-role) already. The ONLY reason getResearchPipeline() (src/lib/data.ts) could not be
-// called anonymously before this lane was its OWN `resolveOrgIdFromCookies()` guard, not anything
-// in this function — "research-pipeline visibility is workspace-agnostic for now" is this
-// function's own pre-existing comment, not a new claim. This wrapper makes that already-true fact
-// reachable without a cookies() read: same query, same anon client, orgId argument replaced with
-// the empty string this function already treats as inert. SEC-8 (2026-10-09, migration 382): that is history; the
-// function now reads through getServiceSupabase() because its select embeds sources, which anon can no longer read.
-export async function fetchPublicResearchPipelineRows(
-  cap: number
-): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
-  return fetchResearchPipelineRows("", cap);
 }
 
 // ── Research source coverage matrix (Build 8.5) ──────────────────────
@@ -2319,56 +2249,13 @@ async function runCategoryRpcPublic(
   return runCategoryRpcCore(rpcName, {}, opts);
 }
 
-// /market fetcher. RPC filters on sources.category = 'market_news'.
-// Row-chip rule (lane CHIPS, 2026-09-05, W3.4): enrichCitations + enrichBiasTags added so
-// MarketIntelLedger's rows carry the same CredibilityChipEvidence/Authority data contract
-// Operations already had (fetchOperationsItems below) — one rule, four surfaces, not a
-// per-surface subset of the fields it needs.
-export async function fetchMarketIntelItems(
-  orgId: string | null
-): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_market_intel_items", { enrichCitations: true, enrichBiasTags: true });
-}
-
-// /research fetcher. RPC filters on sources.category = 'research' OR the
-// item-level status conditionals for standards_body and primary_legal_authority
-// (preserved from the original 070/073 RPC; per migration 084).
-export async function fetchResearchItems(
-  orgId: string | null
-): Promise<CategoryRoutedResult> {
-  // Lane P1: bias tags on every list row (the Research list is where bias is the headline signal).
-  return runCategoryRpc(orgId, "get_research_items", { enrichBiasTags: true });
-}
-
-// /operations fetcher. RPC filters on sources.category = 'operational_data'.
-// Build 9: enriches Operations rows with per-source citation stats so the
-// Q9 Operations signal set (tier + jurisdiction + applicability, with
-// citation count + recency as secondary signals per source-credibility-model
-// SKILL Section 8) renders on cards.
-// Row-chip rule (lane CHIPS, 2026-09-05, W3.4): enrichBiasTags added alongside the existing
-// enrichCitations so OperationsLedger's rows carry the full CredibilityChipEvidence/Authority
-// data contract (sourceTier + citationCount + biasTags), matching Market/Regulations/Research.
-export async function fetchOperationsItems(
-  orgId: string | null
-): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_operations_items", { enrichCitations: true, enrichBiasTags: true });
-}
-
-// /technology fetcher. RPC filters on item_type IN ('technology',
-// 'innovation', 'tool') — item_type-gated via migration 134.
-export async function fetchTechnologyItems(
-  orgId: string | null
-): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_technology_items");
-}
-
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
-// counterparts to fetchMarketIntelItems/fetchOperationsItems/fetchResearchItems above. No orgId
+// counterparts to the org-scoped category fetchers (deleted, DEAD-1d, 2026-10-10: no caller). No orgId
 // parameter, no per-org override merge — the caller (src/lib/data.ts) wraps these in unstable_cache
 // with no orgId in the cache key and merges the per-org override layer client-side, same split as
 // fetchPublicResourcesOnly/fetchPublicListingsOnly.
 // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): same enrichCitations/enrichBiasTags opts as the
-// org-scoped fetchMarketIntelItems/fetchOperationsItems above — the public and org-scoped paths
+// org-scoped category fetchers (deleted, DEAD-1d) — the public and org-scoped paths
 // for a given surface must carry the identical Resource field set, or an anonymous viewer and a
 // logged-in one would see a different chip.
 export async function fetchPublicMarketIntelItems(): Promise<CategoryRoutedResult> {
@@ -3320,7 +3207,7 @@ interface MapDataPayload {
 }
 
 /**
- * ONE body for both /map fetchers (fetchMapData: slim RPC; fetchListingsMapData: listings RPC). They differed
+ * ONE body for the /map fetchers (fetchMapData: slim RPC, deleted in DEAD-1d as it had no caller; fetchListingsMapData: listings RPC). They differed
  * only in the RPC option passed to fetchWorkspaceResources and the label in the failure log, so the copy that
  * lived in each is this function; `label` keeps the console message each one wrote.
  */
@@ -3374,20 +3261,6 @@ async function loadMapDataPayload(
 }
 
 /**
- * Slim variant for the /map surface: resources + relationship payload
- * the map view consumes (changelog, disputes, supersessions).
- * Drops sources/provisional/conflicts/synopses/intelligenceChanges/
- * sectorDisplayNames/overrides.
- *
- * Cost: 4 queries (workspace RPC + 3 relationship reads). Compared to
- * ~15 for fetchDashboardData.
- */
-export async function fetchMapData(orgId: string | null): Promise<MapDataPayload> {
-  // Slim RPC: /map renders pins/lines, never full_brief.
-  return loadMapDataPayload(orgId, "fetchMapData", { slim: true });
-}
-
-/**
  * Listings variant of fetchResourcesOnly. Same shape (resources + archived +
  * overrides) but issues the listings RPC (066) which additionally drops
  * `summary` on top of slim's four-column trim. Resource.note arrives empty
@@ -3412,7 +3285,7 @@ export async function fetchListingsOnly(
   // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): RegulationsLedger's row is the one ledger with
   // NO credibility enrichment at all today — the listings/slim RPC family (mapWorkspaceItemRows)
   // never called enrichCategoryRows the way the category-routed fetchers above do. Reused, not
-  // duplicated: same function, same opts shape as fetchMarketIntelItems/fetchOperationsItems. Only
+  // duplicated: same function, same opts shape as the category-routed fetchers. Only
   // this "listings" fetcher gets it (not fetchListingsMapData's /map consumer, which renders pins
   // and never a row chip) — fields are added only where the surface's row payload lacks them.
   return loadResourcesWithOverridesPayload(orgId, page, "fetchListingsOnly", { listings: true }, "get_workspace_intelligence_listings");
@@ -3431,7 +3304,7 @@ export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<Publ
 }
 
 /**
- * Listings variant of fetchMapData. Same shape but issues the listings RPC
+ * Listings variant of the (deleted) slim /map fetcher. Same shape but issues the listings RPC
  * (066) which additionally drops `summary` on top of slim's four-column
  * trim. Resource.note arrives empty on every row. Safe for /map per the
  * 2026-05-10 audit (MapPageView / MapView render pins / lines / coverage,
@@ -5174,102 +5047,6 @@ export async function fetchCoverageGaps(
     }));
   } catch (e) {
     console.error("fetchCoverageGaps failed, returning empty:", e);
-    return [];
-  }
-}
-
-/**
- * Fetch the top oldest items waiting for admin review across three
- * heterogeneous sources: provisional sources pending review, unresolved
- * integrity flags, and staged updates that have been auto-approved
- * pending spot-check.
- *
- * Returns [] for non-admin callers (the widget hides itself in that case).
- * Capped at 3 entries, sorted oldest-first by daysWaiting.
- *
- * Wrapped in try/catch so a missing column / table on any of the three
- * subqueries degrades to an empty list rather than crashing the dashboard.
- */
-export async function fetchAwaitingReview(
-  userId: string | null
-): Promise<ReviewItem[]> {
-  if (!isSupabaseConfigured() || !userId) return [];
-  try {
-    const supabase = getServiceSupabase();
-    const admin = await isPlatformAdminInline(userId, supabase);
-    if (!admin) return [];
-
-    const now = Date.now();
-    const daysSince = (iso: string): number => {
-      const d = new Date(iso).getTime();
-      if (Number.isNaN(d)) return 0;
-      return Math.max(0, Math.round((now - d) / 86400000));
-    };
-
-    const [provResult, integrityResult, stagedResult] = await Promise.all([
-      supabase
-        .from("provisional_sources")
-        .select("id, name, created_at")
-        .eq("status", "pending_review")
-        .order("created_at", { ascending: true })
-        .limit(10),
-      supabase
-        .from("integrity_flags")
-        .select("id, description, created_at")
-        .in("status", ["open", "in_review"])
-        .order("created_at", { ascending: true })
-        .limit(10),
-      supabase
-        .from("staged_updates")
-        .select("id, reason, created_at, update_type")
-        .eq("status", "approved")
-        .order("created_at", { ascending: true })
-        .limit(10),
-    ]);
-
-    type ProvRow = { id: string; name: string; created_at: string };
-    type IntegRow = { id: string; description: string; created_at: string };
-    type StagedRow = {
-      id: string;
-      reason: string;
-      created_at: string;
-      update_type: string;
-    };
-
-    const items: ReviewItem[] = [];
-
-    for (const p of (provResult.data || []) as ProvRow[]) {
-      items.push({
-        id: p.id,
-        type: "provisional",
-        title: p.name || "Provisional source",
-        daysWaiting: daysSince(p.created_at),
-        href: `/admin?tab=provisional&id=${p.id}`,
-      });
-    }
-    for (const f of (integrityResult.data || []) as IntegRow[]) {
-      items.push({
-        id: f.id,
-        type: "integrity",
-        title: f.description?.slice(0, 120) || "Integrity flag",
-        daysWaiting: daysSince(f.created_at),
-        href: `/admin?tab=integrity&id=${f.id}`,
-      });
-    }
-    for (const s of (stagedResult.data || []) as StagedRow[]) {
-      items.push({
-        id: s.id,
-        type: "spotcheck",
-        title: s.reason?.slice(0, 120) || `Spot-check ${s.update_type}`,
-        daysWaiting: daysSince(s.created_at),
-        href: `/admin?tab=staged&id=${s.id}`,
-      });
-    }
-
-    items.sort((a, b) => b.daysWaiting - a.daysWaiting);
-    return items.slice(0, 3);
-  } catch (e) {
-    console.error("fetchAwaitingReview failed, returning empty:", e);
     return [];
   }
 }
