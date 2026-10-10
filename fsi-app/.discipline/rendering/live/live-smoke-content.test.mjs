@@ -13,16 +13,18 @@ import { collectContainersInPage } from "../overflow-rule.mjs";
 const CONTENT_IDS = new Set(Object.values(CONTENT_INVARIANT_IDS));
 const BASE = "https://fixture.test";
 
-/** A Playwright-shaped stub. `absent(path, key)` says whether a requirement's element is missing on that page. */
+/** A Playwright-shaped stub. `absent(path, key, pathAndQuery)` says whether a requirement's element is missing on that page. */
 function stubBrowser({ absent = () => false } = {}) {
   const pageFor = () => {
     let current = "/";
+    let currentFull = "/";
     return {
       on: () => {},
       close: async () => {},
       url: () => `${BASE}${current}`,
       goto: async (url) => {
         current = new URL(url).pathname;
+        currentFull = `${current}${new URL(url).search}`;
         return { status: () => 200 };
       },
       fill: async () => {},
@@ -42,7 +44,7 @@ function stubBrowser({ absent = () => false } = {}) {
         if (fn === collectContentInPage) {
           const out = {};
           for (const req of arg) {
-            out[req.key] = absent(current, req.key)
+            out[req.key] = absent(current, req.key, currentFull)
               ? []
               : [{ textLength: req.textMin + 30, children: req.childSelector ? (req.childMin ?? 1) + 1 : 0, matches: true, text: "stub" }];
           }
@@ -157,4 +159,54 @@ test("every requirement of the table is measured by the runner (none is declared
   const r = await run({ contentChecks: true }, { absent: (path, key) => { seen.add(key); return false; } });
   assert.deepEqual([...seen].sort(), CONTENT_REQUIREMENTS.map((q) => q.key).sort());
   assert.deepEqual(contentFindings(r), []);
+});
+
+// ---------------------------------------------------------------- the list-side chooser (lane SMOKE-4)
+const gradeFindings = (r) => r.findings.filter((f) => f.invariant === INVARIANTS.GRADE_CHIP);
+const listCandidates = (record, bias) => ({
+  resolved: true,
+  classes: {
+    inference: { count: 0, visit: [], sample: [], listVisit: [] },
+    record: { count: record.count, visit: [], sample: [], listVisit: record.listVisit },
+    bias: { count: bias.count, visit: bias.visit ?? [], sample: [], listVisit: bias.listVisit },
+  },
+});
+const REC = { count: 5, listVisit: ["/regulations?q=Record%20one"] };
+const BIAS = { count: 7, visit: ["/market/biased-one"], listVisit: ["/market?q=Biased%20one"] };
+
+test("LIST CHOOSER: the runner visits the filtered list a candidate row sits on, at both viewports, and judges the chip on THAT list", async () => {
+  // Every plain list lacks the chips; only the filtered candidate lists carry them. Before SMOKE-4 this failed.
+  const r = await run(
+    { contentChecks: true, candidates: listCandidates(REC, BIAS) },
+    { absent: (path, key, full) => (key === "grade-chip@list" || key === "bias-chips@list") && !full.includes("?q=") },
+  );
+  assert.deepEqual(gradeFindings(r), []);
+  assert.deepEqual(r.findings.filter((f) => f.invariant === INVARIANTS.BIAS_CHIPS), []);
+  const visited = (suffix) => r.report.pagesVisited.filter((p) => p.url.endsWith(suffix));
+  assert.deepEqual(visited("/regulations?q=Record%20one").map((p) => p.viewport), [1440, 375]);
+  assert.deepEqual(visited("/market?q=Biased%20one").map((p) => p.viewport), [1440, 375]);
+});
+
+test("LIST CHOOSER ATTACK: a candidate row's list renders no grade chip while a plain list carries one: FAIL once per viewport", async () => {
+  const r = await run(
+    { contentChecks: true, candidates: listCandidates(REC, BIAS) },
+    { absent: (path, key, full) => key === "grade-chip@list" && full.includes("?q=Record") },
+  );
+  const f = gradeFindings(r);
+  assert.deepEqual(f.map((x) => x.viewport), [1440, 375]);
+  assert.match(f[0].text, /5 record candidate item\(s\) exist/);
+  assert.match(r.lines.find((l) => l.startsWith("FAIL content-grade-chip")), /list page: missing grade chip/);
+});
+
+test("LIST CHOOSER: a filtered candidate list is not held to the `each` list requirements (no tier-square failure from it)", async () => {
+  const r = await run(
+    { contentChecks: true, candidates: listCandidates(REC, BIAS) },
+    { absent: (path, key, full) => key === "tier-square@list" && full.includes("?q=") },
+  );
+  assert.deepEqual(r.findings.filter((f) => f.invariant === INVARIANTS.TIER_SQUARE), []);
+});
+
+test("LIST CHOOSER: no listVisit in the candidate file adds no list visit (older files behave as before)", async () => {
+  const r = await run({ contentChecks: true, candidates: candidatesOf(2, ["/regulations/cand"]) });
+  assert.equal(r.report.pagesVisited.filter((p) => p.url.includes("?q=")).length, 0);
 });
