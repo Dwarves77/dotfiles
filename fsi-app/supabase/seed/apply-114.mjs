@@ -307,9 +307,9 @@ async function main() {
     // instead of reverting it.
     await buildValid(ID.critVerified, "CRITICAL", "CRIT_VERIFIED");
     await client.query(
-      `UPDATE public.section_claim_provenance SET verified_at = NOW(), verified_by = $2
+      `UPDATE public.section_claim_provenance SET verified_at = NOW()
          WHERE intelligence_item_id = $1 AND claim_kind = 'FACT'`,
-      [ID.critVerified, "00000000-0000-4000-8000-000000000007"]
+      [ID.critVerified]
     );
 
     // CASE 8: CRITICAL SHELL (valid source, no sections/claims) -> the zero-claim

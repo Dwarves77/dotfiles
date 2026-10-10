@@ -20,7 +20,7 @@ import { spendStream } from "@/lib/llm/spend-client";
 // own hand-typed copy, named as known drift in model-ids.mjs's own header comment.
 import { HAIKU_MODEL } from "@/lib/llm/model-ids.mjs";
 
-export interface SourceTierRecommendation {
+interface SourceTierRecommendation {
   recommended_tier: number;
   confidence: "high" | "medium" | "low";
   rationale: string;

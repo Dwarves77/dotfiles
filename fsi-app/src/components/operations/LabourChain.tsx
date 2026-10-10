@@ -48,7 +48,7 @@ import {
   type LabourFactLike,
 } from "@/lib/operations/labour-chain.ts";
 
-export interface LabourChainProps {
+interface LabourChainProps {
   /** The selected matrix cell's own facts (region-grid.mjs camelCase shape). Deliberately the SAME
    *  array RegionDimensionMatrix.tsx's MatrixPanel already has on hand for the labour dimension's
    *  selected cell, no second fetch, no second shape. */

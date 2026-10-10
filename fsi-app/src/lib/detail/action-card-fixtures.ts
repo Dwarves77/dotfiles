@@ -12,7 +12,7 @@
 import type { TimelineEntry } from "@/types/resource";
 import { band } from "@/lib/urgency/bands";
 
-export interface ActionCardFixture {
+interface ActionCardFixture {
   id: string;
   title: string;
   note: string;

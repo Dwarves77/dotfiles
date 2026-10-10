@@ -33,7 +33,7 @@ import Link from "next/link";
 import { FLOOR } from "@/lib/entities/decisions.mjs";
 
 export type InferenceStatusToken = "CONFIRMED" | "HYPOTHESIS" | "REFUTED";
-export type InferenceUse = "display" | "analysis" | "calculation" | "filing";
+type InferenceUse = "display" | "analysis" | "calculation" | "filing";
 
 export interface InferenceRecord {
   claimText: string;
@@ -43,7 +43,7 @@ export interface InferenceRecord {
   originClass: "derived" | "modelled";
 }
 
-export interface InferenceVerdict {
+interface InferenceVerdict {
   ok: boolean;
   reason?: string;
 }
@@ -81,7 +81,7 @@ function statusBadge(statusToken: InferenceStatusToken) {
   );
 }
 
-export interface InferenceClaimProps {
+interface InferenceClaimProps {
   claim: InferenceRecord;
   /** Resolves a cited item id to its display title; falls back to the bare id when a resolver is not
    *  supplied or returns null (never fabricates a title, same integrity posture as every other

@@ -82,7 +82,7 @@ interface CarbonPriceSummary {
   basis: string;
 }
 
-export type CarbonCostResult =
+type CarbonCostResult =
   | {
       ok: true;
       corridor: { origin: string; dest: string; mode: string };

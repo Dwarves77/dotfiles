@@ -38,14 +38,14 @@ export const PROVISIONAL_SOURCES_REJECTED_STATUS = "rejected";
 import { canonicalizeUrl } from "./url-canonicalize.ts";
 import { classifySourceRole } from "./classify-source-role.ts";
 
-export interface ProvisionalRowInput {
+interface ProvisionalRowInput {
   name: string;
   url: string;
   description?: string | null;
   discovered_via?: string | null;
 }
 
-export interface PromotedSourceRow {
+interface PromotedSourceRow {
   name: string;
   url: string;
   source_role: string | null;
@@ -65,7 +65,7 @@ export interface PromotedSourceRow {
   notes: string;
 }
 
-export interface BuildPromotedSourceRowOpts {
+interface BuildPromotedSourceRowOpts {
   /** e.g. an operator's short user id (route path) or this step's own name (maintenance path). */
   promotedBy: string;
   /** appended to the generated `notes` field verbatim (route: reviewerNotes; maintenance: the rule that fired). */

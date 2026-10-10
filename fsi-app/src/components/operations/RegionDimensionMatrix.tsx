@@ -134,8 +134,8 @@ import type { LabourFactLike } from "@/lib/operations/labour-chain.ts";
  *  dimension CHECK vocabulary shared by regional_data_facts/state_cost_facts (migration 106/152). */
 const LABOUR_DIMENSION_DB = "labor_markets";
 
-export interface MatrixRegion { key: string; label: string }
-export interface MatrixDimension {
+interface MatrixRegion { key: string; label: string }
+interface MatrixDimension {
   key: string;
   db: string;
   name: string;

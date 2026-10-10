@@ -17,37 +17,6 @@ export const MODES = [
   { id: "rail", label: "Rail", short: "RAIL" },
 ] as const;
 
-// ── Regulatory Topics (Domain 1 sub-categories) ──
-// Covers all freight regulatory categories globally, not just sustainability.
-export const TOPICS = [
-  // Sustainability & environment
-  { id: "emissions", label: "Emissions & Carbon Pricing" },
-  { id: "fuels", label: "Sustainable Fuels & Energy" },
-  { id: "transport", label: "Green Transport Standards" },
-  { id: "reporting", label: "ESG Reporting & Methodology" },
-  { id: "packaging", label: "Packaging & Circular Economy" },
-  { id: "corridors", label: "Green Corridors & Infrastructure" },
-  // Trade & customs
-  { id: "customs", label: "Customs & Border Control" },
-  { id: "trade", label: "Trade Policy & Tariffs" },
-  { id: "sanctions", label: "Sanctions & Export Controls" },
-  { id: "origin", label: "Rules of Origin" },
-  // Safety & compliance
-  { id: "dangerous-goods", label: "Dangerous Goods & Hazmat" },
-  { id: "food-safety", label: "Food Safety & Cold Chain" },
-  { id: "pharma", label: "Pharmaceutical & GDP" },
-  { id: "security", label: "Cargo Security & Screening" },
-  // Operations
-  { id: "cabotage", label: "Cabotage & Market Access" },
-  { id: "labor", label: "Labor & Driver Regulations" },
-  { id: "infrastructure", label: "Port & Airport Regulations" },
-  { id: "digital", label: "Digital & Data Compliance" },
-  { id: "insurance", label: "Insurance & Liability" },
-  // Industry standards
-  { id: "standards", label: "Industry Standards (ISO, IATA)" },
-  { id: "research", label: "Research & Intelligence" },
-] as const;
-
 // ── Jurisdictions (global coverage) ──
 export const JURISDICTIONS = [
   // Americas — North
@@ -287,51 +256,8 @@ export const SECTOR_ADJACENCY: Record<string, string[]> = {
 // FilterBar and scoring pull the active subset from workspace_settings.sector_profile.
 export const VERTICALS = ALL_SECTORS;
 
-// ── Authority Levels (from environmental-policy-and-innovation skill) ──
-// Every claim, summary, or data point must be classified using this hierarchy.
-export const AUTHORITY_LEVELS = [
-  { id: "primary_text", label: "Primary Legal Text", short: "Primary", description: "Published in Official Journal, Federal Register, or official gazette. This IS the law.", color: "#16A34A", bg: "#F0FDF4", border: "#BBF7D0" },
-  { id: "official_guidance", label: "Official Guidance", short: "Guidance", description: "Regulator FAQ, implementation portal, or official interpretation. Authoritative but not the law itself.", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
-  { id: "intergovernmental", label: "Intergovernmental Source", short: "IGO", description: "IGO publication, dataset, or tracker (IMO, ICAO, IEA). Frameworks that drive national regulation.", color: "#2563EB", bg: "#EFF6FF", border: "#BFDBFE" },
-  { id: "expert_analysis", label: "Expert Analysis", short: "Analysis", description: "Think-tank, academic, or NGO analysis. Informed interpretation — must verify against primary sources for legal claims.", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
-  { id: "unconfirmed", label: "Unconfirmed / Industry Read", short: "Unconfirmed", description: "Trade press, consultancy opinion, or forwarder operational interpretation. Useful signal but not legally dispositive.", color: "#D97706", bg: "#FFF7ED", border: "#FED7AA" },
-] as const;
-
-export type AuthorityLevel = typeof AUTHORITY_LEVELS[number]["id"];
-
-// ── Briefing Output Sections (from skill) ──
-// All briefings must follow this 7-section format.
-export const BRIEFING_SECTIONS = [
-  "executive_summary",
-  "what_changed",
-  "operational_impact",
-  "compliance_risk_register",
-  "recommended_actions",
-  "open_questions",
-  "source_list",
-] as const;
-
-// ── Deep Dive Sections (from skill) ──
-export const DEEP_DIVE_SECTIONS = [
-  "regulation_identification",
-  "source_authority",
-  "immediate_actions",
-  "compliance_chain",
-  "classification_analysis",
-  "format_operation_analysis",
-  "third_party_exposure",
-  "confirmed_timeline",
-  "industry_translation",
-  "alternatives_innovation",
-  "legal_confirmation_required",
-  "sources",
-] as const;
-
-// ── Confidence Levels ──
-export const CONFIDENCE_LEVELS = ["confirmed", "unconfirmed"] as const;
-
 // ── Priority Levels ──
-export const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
+const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 
 // ── Priority Display Labels (editorial vocabulary) ──
 // The DB enum stays CRITICAL/HIGH/MODERATE/LOW. Display surfaces use
@@ -343,18 +269,6 @@ export const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 // statement; PRIORITY_DISPLAY_LABEL_SHORT is for compact contexts
 // (chips, table cells).
 export type PriorityKey = "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
-
-// Sprint 3 Track 5 (2026-05-28): align long + short label vocabularies on
-// the time-horizon language used by the regulations list column headers,
-// so the dropdown, hero pill, and column titles all read the same thing.
-// Prior labels split into two vocabularies (UPPERCASE long vs compact short)
-// that read as different products in different contexts.
-export const PRIORITY_DISPLAY_LABEL: Record<PriorityKey, string> = {
-  CRITICAL: "Immediate",
-  HIGH: "Action 6mo",
-  MODERATE: "Monitor 6-12mo",
-  LOW: "Awareness",
-};
 
 export const PRIORITY_DISPLAY_LABEL_SHORT: Record<PriorityKey, string> = {
   CRITICAL: "Immediate",
@@ -369,106 +283,6 @@ export const PRIORITY_COLORS: Record<string, string> = {
   HIGH: "var(--high)",
   MODERATE: "var(--moderate)",
   LOW: "var(--low)",
-};
-
-// ── Information Type Taxonomy ──
-// Three fundamental types of information on the platform
-export type InfoType = "regulation" | "market_intel" | "research";
-
-export const INFO_TYPE_COLORS: Record<InfoType, string> = {
-  regulation: "#2563EB",   // Blue — institutional, governmental, authoritative
-  market_intel: "#D97706", // Amber — price signals, market movement, volatility
-  research: "#7C3AED",    // Purple — academic, forward-looking, analytical
-};
-
-export const INFO_TYPE_LABELS: Record<InfoType, string> = {
-  regulation: "Regulation",
-  market_intel: "Market Intel",
-  research: "Research",
-};
-
-// Map item_type to info_type
-export function getInfoType(itemType: string): InfoType {
-  if (["regulation", "framework", "standard", "initiative"].includes(itemType)) return "regulation";
-  if (["research_finding"].includes(itemType)) return "research";
-  return "market_intel"; // market_signal, technology, innovation, tool
-}
-
-// ── Urgency Vocabulary Per Section ──
-// Same color system, different labels per information type
-export const URGENCY_LABELS: Record<InfoType, Record<string, string>> = {
-  regulation: {
-    CRITICAL: "Critical",
-    HIGH: "High",
-    MODERATE: "Moderate",
-    LOW: "Low",
-  },
-  market_intel: {
-    CRITICAL: "Watch",
-    HIGH: "Elevated",
-    MODERATE: "Stable",
-    LOW: "Informational",
-  },
-  research: {
-    CRITICAL: "Emerging",
-    HIGH: "Active",
-    MODERATE: "Established",
-    LOW: "Archived",
-  },
-};
-
-export const TOPIC_COLORS: Record<string, string> = {
-  // Sustainability
-  emissions: "var(--topic-emissions)",
-  fuels: "var(--topic-fuels)",
-  transport: "var(--topic-transport)",
-  reporting: "var(--topic-reporting)",
-  packaging: "var(--topic-packaging)",
-  corridors: "var(--topic-corridors)",
-  // Trade & customs
-  customs: "#0369A1",
-  trade: "#0E7490",
-  sanctions: "#B91C1C",
-  origin: "#0D9488",
-  // Safety & compliance
-  "dangerous-goods": "#DC2626",
-  "food-safety": "#16A34A",
-  pharma: "#7C3AED",
-  security: "#475569",
-  // Operations
-  cabotage: "#EA580C",
-  labor: "#CA8A04",
-  infrastructure: "#2563EB",
-  digital: "#6366F1",
-  insurance: "#64748B",
-  // Standards & research
-  standards: "#0891B2",
-  research: "var(--topic-research)",
-};
-
-export const IMPACT_COLORS: Record<string, string> = {
-  cost: "var(--impact-cost)",
-  compliance: "var(--impact-compliance)",
-  client: "var(--impact-client)",
-  operational: "var(--impact-operational)",
-};
-
-export const IMPACT_LABELS: Record<string, string> = {
-  cost: "Cost Impact",
-  compliance: "Compliance Obligation",
-  client: "Client-Facing",
-  operational: "Operational",
-};
-
-// ── Domain Colors ──
-export const DOMAIN_COLORS: Record<number, string> = {
-  1: "var(--topic-emissions)",    // Regulatory
-  2: "var(--topic-fuels)",        // Technology
-  3: "var(--topic-transport)",    // Regional
-  4: "var(--topic-reporting)",    // Geopolitical
-  5: "var(--topic-corridors)",    // Sources
-  6: "var(--topic-packaging)",    // Facilities
-  7: "var(--topic-research)",     // Research
 };
 
 // ── Jurisdiction Weights (platform defaults for urgency scoring) ──
@@ -510,38 +324,5 @@ export const CATEGORIES = [
   "innovation", "research", "market_signal", "guidance",
 ] as const;
 
-// ── Lifecycle Stages ──
-export const LIFECYCLE_STAGES = [
-  "proposal", "consultation", "adopted", "implementation",
-  "enforcement", "amendment", "superseded", "repealed",
-] as const;
-
-// ── Provenance Levels ──
-export const PROVENANCE_LEVELS = [
-  { level: "L1", label: "Primary Legal Text", description: "Official Journal, Federal Register, gazette" },
-  { level: "L2", label: "Regulator Guidance", description: "Official FAQ, portal, implementation guide" },
-  { level: "L3", label: "Intergovernmental", description: "IGO publication, dataset, tracker" },
-  { level: "L4", label: "Expert Analysis", description: "Think-tank, industry body, NGO" },
-  { level: "L5", label: "News/Commentary", description: "Law firm alert, trade press, consultancy" },
-] as const;
-
-// ── Archive Reasons ──
-export const ARCHIVE_REASONS = [
-  "Superseded", "Expired", "Repealed", "Consolidated", "Manual",
-] as const;
-
-// ── Share Detail Levels ──
-export const SHARE_LEVELS = {
-  summary: { label: "Summary", description: "Title, priority, 1-line why, source link" },
-  standard: { label: "Standard", description: "What it is, why it matters, impact, timeline, source" },
-  full: { label: "Full Detail", description: "Everything including key data, disputes, what changed" },
-} as const;
-
-// ── Type Aliases ──
-export type ModeId = (typeof MODES)[number]["id"];
-export type TopicId = (typeof TOPICS)[number]["id"];
-export type JurisdictionId = (typeof JURISDICTIONS)[number]["id"];
 export type Priority = (typeof PRIORITIES)[number];
 export type Category = (typeof CATEGORIES)[number];
-export type LifecycleStage = (typeof LIFECYCLE_STAGES)[number];
-export type ShareLevel = keyof typeof SHARE_LEVELS;

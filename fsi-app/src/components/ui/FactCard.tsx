@@ -373,7 +373,7 @@ export function sixWordHeadline(text: string, n = 6): string {
 /** What follows the six-word headline on the no-figure card: "then the claim" (operator). The claim
  *  is the row's prose when it has any; otherwise it is whatever of the label the headline did not
  *  already say, so the card never prints the same six words twice. */
-export function claimAfterHeadline(description: string, prose: string | null): string {
+function claimAfterHeadline(description: string, prose: string | null): string {
   if (prose) return prose;
   const words = String(description ?? "").trim().split(/\s+/).filter(Boolean);
   return words.length > 6 ? words.slice(6).join(" ") : "";

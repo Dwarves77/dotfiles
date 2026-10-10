@@ -25,12 +25,12 @@ import {
 import { fieldStyle, labelStyle } from "@/components/admin/corrections/styles";
 import type { CorrectionData } from "@/components/admin/corrections/types";
 
-export interface RevokeResult {
+interface RevokeResult {
   ok: boolean;
   message?: string;
 }
 
-export interface CorrectionRowProps {
+interface CorrectionRowProps {
   correction: CorrectionData;
   /** Posts the revoke. The row never decides what happens next: the owner refetches. */
   onRevoke: (c: CorrectionData, reason: string) => Promise<RevokeResult>;

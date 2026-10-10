@@ -38,7 +38,7 @@ type MemberRow = {
   user?: { full_name?: string | null; display_name?: string | null; email?: string | null } | null;
 };
 
-export interface WorkspacesUsageRowProps {
+interface WorkspacesUsageRowProps {
   orgs: OrgRow[];
   members: MemberRow[];
   /**

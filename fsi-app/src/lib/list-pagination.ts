@@ -104,7 +104,7 @@ export function toLedgerRowPayload(r: Resource): Resource {
 // forwards it) — route.ts always interprets the full triple as a true keyset WHERE (migration 306's
 // `p_after_*` args) now that the coordinator applies every migration in this train before this code
 // merges (no "pre-306" era for this route to degrade through).
-export interface ListingCursor {
+interface ListingCursor {
   /** Rows consumed so far across every page fetched for this query. Retained as the request's
    *  `offset` query param for observability/logging only — the server ranges from the keyset WHERE,
    *  never from this count, once `afterId` is present (see supabase-server.ts's

@@ -609,7 +609,7 @@ export async function getPublicSurfaceSlugs(
  *
  * Used by: /map.
  */
-export async function getMapData(): Promise<{
+async function getMapData(): Promise<{
   resources: Resource[];
   archived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
@@ -880,7 +880,7 @@ export async function getCoverageGaps(): Promise<CoverageGap[]> {
  * Awaiting Review widget. Returns [] for non-admins (the widget hides
  * itself in that case).
  */
-export async function getAwaitingReview(): Promise<ReviewItem[]> {
+async function getAwaitingReview(): Promise<ReviewItem[]> {
   try {
     const userId = await resolveUserIdFromCookies();
     return await cachedAwaitingReview(userId);
@@ -948,7 +948,7 @@ const cachedSurfaceCounts = unstable_cache(
  * derived scope. This is what deletes the per-page MARKET_SCOPE / RESEARCH_SCOPE={} constants: the
  * scope now derives from the one vocab home (src/lib/surface-of.mjs), not per-page arrays.
  */
-export async function getSurfaceCounts(surface: string): Promise<WorkspaceAggregates> {
+async function getSurfaceCounts(surface: string): Promise<WorkspaceAggregates> {
   try {
     const orgId = await resolveOrgIdFromCookies();
     const primary = await cachedSurfaceCounts(orgId, surface);
@@ -1023,7 +1023,7 @@ export async function getPublicSurfaceCounts(surface: string): Promise<Workspace
 import type { ResearchPipelineRow } from "@/lib/supabase-server";
 export type { ResearchPipelineRow };
 
-export interface ResearchPipelineResult {
+interface ResearchPipelineResult {
   rows: ResearchPipelineRow[];
   total: number;
   cap: number;
@@ -1063,7 +1063,7 @@ const cachedResearchPipeline = unstable_cache(
  *
  * Falls back to an empty result on error so the surface still renders.
  */
-export async function getResearchPipeline(): Promise<ResearchPipelineResult> {
+async function getResearchPipeline(): Promise<ResearchPipelineResult> {
   try {
     const orgId = await resolveOrgIdFromCookies();
     return await cachedResearchPipeline(orgId);
@@ -1084,7 +1084,7 @@ const cachedPublicResearchPipeline = unstable_cache(
   { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
-export async function getPublicResearchPipeline(): Promise<ResearchPipelineResult> {
+async function getPublicResearchPipeline(): Promise<ResearchPipelineResult> {
   try {
     return await cachedPublicResearchPipeline();
   } catch (e) {
@@ -1131,7 +1131,7 @@ export async function getResearchSourceCoverage(): Promise<ResearchSourceCoverag
  * Falls back to empty aggregates on error so the page still renders the
  * existing row-derived counts.
  */
-export async function getScopedWorkspaceAggregates(
+async function getScopedWorkspaceAggregates(
   scope: ScopeFilter
 ): Promise<WorkspaceAggregates> {
   try {
@@ -1246,7 +1246,7 @@ const cachedMarketPriceStats = unstable_cache(
  *
  * Falls back to an empty result on error so the page still renders.
  */
-export async function getMarketIntelItems(): Promise<CategoryRoutedResult> {
+async function getMarketIntelItems(): Promise<CategoryRoutedResult> {
   try {
     const orgId = await resolveOrgIdFromCookies();
     const result = await cachedMarketIntel(orgId);
@@ -1273,7 +1273,7 @@ export async function getMarketIntelItems(): Promise<CategoryRoutedResult> {
  * trade-press outlets and Research-bound statistical-data-agency outlets
  * (Carbon Trust, Project Drawdown).
  */
-export async function getResearchItems(): Promise<CategoryRoutedResult> {
+async function getResearchItems(): Promise<CategoryRoutedResult> {
   try {
     const orgId = await resolveOrgIdFromCookies();
     return await cachedResearch(orgId);
@@ -1288,7 +1288,7 @@ export async function getResearchItems(): Promise<CategoryRoutedResult> {
  * get_operations_items (statistical_data_agency) MINUS Carbon Trust and
  * Project Drawdown (skill routes those to Research).
  */
-export async function getOperationsItems(): Promise<CategoryRoutedResult> {
+async function getOperationsItems(): Promise<CategoryRoutedResult> {
   try {
     const orgId = await resolveOrgIdFromCookies();
     return await cachedOperations(orgId);
@@ -1303,7 +1303,7 @@ export async function getOperationsItems(): Promise<CategoryRoutedResult> {
  * get_technology_items (item_type-gated: technology / innovation / tool,
  * migration 134).
  */
-export async function getTechnologyItems(): Promise<CategoryRoutedResult> {
+async function getTechnologyItems(): Promise<CategoryRoutedResult> {
   try {
     const orgId = await resolveOrgIdFromCookies();
     return await cachedTechnology(orgId);
@@ -1395,7 +1395,7 @@ export async function getPublicOperationsItems(): Promise<CategoryRoutedResult> 
 // counts are per-source platform-wide). Cache key is the sorted+joined
 // sourceIds string.
 
-export type SourceCitationStatsMap = Record<string, SourceCitationStat>;
+type SourceCitationStatsMap = Record<string, SourceCitationStat>;
 
 const cachedCitationStats = unstable_cache(
   async (sortedKey: string): Promise<SourceCitationStatsMap> => {
@@ -1410,7 +1410,7 @@ const cachedCitationStats = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
-export async function getSourceCitationStats(
+async function getSourceCitationStats(
   sourceIds: string[]
 ): Promise<SourceCitationStatsMap> {
   try {

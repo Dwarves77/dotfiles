@@ -60,8 +60,8 @@ export const SYNTH_PRIMARY_HARD_CEILING_CHARS = Number(
 // ── Telemetry (span-attribution unit 4f): cost estimate from real token usage, so the stored path logs
 // actual spend to agent_runs.cost_usd_estimated (no DDL) instead of $0. USD per MILLION tokens for
 // claude-sonnet-4-6; the estimate the MTD spend tile reads. Tunable via env if pricing moves.
-export const SONNET_INPUT_USD_PER_MTOK = Number(process.env.SONNET_INPUT_USD_PER_MTOK || 3);
-export const SONNET_OUTPUT_USD_PER_MTOK = Number(process.env.SONNET_OUTPUT_USD_PER_MTOK || 15);
+const SONNET_INPUT_USD_PER_MTOK = Number(process.env.SONNET_INPUT_USD_PER_MTOK || 3);
+const SONNET_OUTPUT_USD_PER_MTOK = Number(process.env.SONNET_OUTPUT_USD_PER_MTOK || 15);
 
 /** Pure: USD cost estimate from token usage at the configured Sonnet rates. */
 export function sonnetCostUsd(inputTokens: number, outputTokens: number): number {
@@ -69,8 +69,8 @@ export function sonnetCostUsd(inputTokens: number, outputTokens: number): number
 }
 
 // Haiku 4.5 rates (the sanctioned always-cheap classifier tier — Rule 016 permitted set).
-export const HAIKU_INPUT_USD_PER_MTOK = Number(process.env.HAIKU_INPUT_USD_PER_MTOK || 1);
-export const HAIKU_OUTPUT_USD_PER_MTOK = Number(process.env.HAIKU_OUTPUT_USD_PER_MTOK || 5);
+const HAIKU_INPUT_USD_PER_MTOK = Number(process.env.HAIKU_INPUT_USD_PER_MTOK || 1);
+const HAIKU_OUTPUT_USD_PER_MTOK = Number(process.env.HAIKU_OUTPUT_USD_PER_MTOK || 5);
 
 /** Pure: model-aware USD cost estimate. Sonnet models bill at the Sonnet rate; Haiku at the Haiku rate.
  *  PROMPT-CACHE (Phase-3a): with a cache_control prefix the API reports input_tokens EXCLUSIVE of the

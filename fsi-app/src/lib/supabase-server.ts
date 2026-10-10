@@ -1131,29 +1131,7 @@ async function mapWorkspaceItemRows(items: WorkspaceItemRpcRow[]): Promise<{
     const resourceId = row.legacy_id || row.id;
     const timelines = timelineMap.get(resourceId);
     const resource: Resource = {
-      id: resourceId,
-      cat: (row.transport_modes?.[0]) || "global",
-      sub: row.category || "",
-      title: row.title,
-      url: row.source_url || "",
-      note: row.summary || "",
-      type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
-      priority: (row.effective_priority || row.priority) as Resource["priority"],
-      added: row.added_date ?? "",
-      reasoning: row.reasoning || "",
-      tags: row.tags || [],
-      whatIsIt: row.what_is_it || "",
-      whyMatters: row.why_matters || "",
-      keyData: row.key_data || [],
-      // full_brief is only present on the full RPC. The slim RPC drops the
-      // column; row.full_brief is undefined and Resource.fullBrief stays
-      // undefined — list surfaces never read it.
-      fullBrief: row.full_brief || undefined,
-      // WO-4 (2026-08-18): never coalesce domain. The DB guarantees NOT NULL + CHECK 1-7, so a
-      // missing value here means the payload did not SELECT the column - and "not fetched" must
-      // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
-      // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
-      domain: row.domain ?? undefined,
+      ...baseResourceFields(row),
       timeline: (timelines || []).map((t: TimelineQueryRow) => ({
         date: t.milestone_date ?? "",
         label: t.label ?? "",
@@ -1163,35 +1141,6 @@ async function mapWorkspaceItemRows(items: WorkspaceItemRpcRow[]): Promise<{
         // type accepts). Non-completed milestones leave status undefined.
         status: t.is_completed ? ("past" as const) : undefined,
       })),
-      modes: row.transport_modes || [],
-      topic: row.category || undefined,
-      jurisdiction: row.jurisdictions?.[0] || undefined,
-      // Addendum 63 (2026-08-30): wired to read the column, but every RPC this function calls
-      // (get_workspace_intelligence / _slim / _dashboard / _listings) projects `ii.jurisdictions`
-      // only — none of their RETURNS TABLE lists include `ii.jurisdiction_iso` (confirmed against
-      // the live migration bodies: 120 for the base/slim pair, 077 for dashboard/listings), even
-      // though the shared `_workspace_active_items` some of them source from DOES carry it. So
-      // `row.jurisdiction_iso` is undefined today and this stays dormant — same "pass through when
-      // the RPC catches up" pattern already used below for severity/signalBand/theme (Phase 3C) —
-      // until a migration (lane `la`) adds the column to these RPCs' output.
-      jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
-      // Lane POP (2026-09-01, migration 278): same dormant-passthrough shape as jurisdictionIso just
-      // above — none of this function's RPCs project `ii.item_grade` yet, so `row.item_grade` reads
-      // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
-      // an unprojected column must read as unknown, not as a claim about the item's grade.
-      itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
-      // D23 part (d) (2026-09-13, defect-fix-plan-2026-09-12.md): the ledger's "Updated <date>" chip
-      // reads this. Migration 316 already added `last_regenerated_at` to this function's own
-      // get_workspace_intelligence_listings/_public callers, so it is REAL there today; dormant on
-      // this function's other RPCs (get_workspace_intelligence/_slim/_dashboard) until they widen
-      // their own RETURNS TABLE, same passthrough posture as itemGrade/originClass above.
-      lastRegeneratedAt: row.last_regenerated_at || undefined,
-      // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
-      // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
-      // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
-      originClass: row.origin_class ?? undefined,
-      sourceId: row.source_id || undefined,
-      isArchived: row.effective_archived || false,
       // Lane BRIEFDATA (2026-09-08) [CONFIRMED gap, live measurement below]: every RPC this mapper
       // serves (get_workspace_intelligence / _slim / _dashboard / _listings) has projected
       // `ii.compliance_deadline` since migration 077, and this mapper dropped it on the floor.
@@ -1444,6 +1393,38 @@ const EMPTY_AGGREGATES: WorkspaceAggregates = {
   lastUpdatedAt: null,
 };
 
+/**
+ * The one mapper from an aggregates RPC's jsonb scalar to WorkspaceAggregates (get_workspace_intelligence_aggregates,
+ * its _scoped sibling and get_surface_counts all return this base shape). PostgREST surfaces the scalar as the raw
+ * object. Defensive coercion: missing keys default to 0 / {} so the typed shape is always populated even if the
+ * SQL is later trimmed.
+ */
+function mapAggregatesRaw(data: unknown): WorkspaceAggregates {
+  type Raw = {
+    total_items?: number;
+    by_priority?: Record<string, number>;
+    by_status?: Record<string, number>;
+    by_jurisdiction?: Record<string, number>;
+    total_jurisdictions?: number;
+    last_updated_at?: string | null;
+  };
+  const raw = data as Raw;
+  const bp = raw.by_priority || {};
+  return {
+    totalItems: Number(raw.total_items ?? 0),
+    byPriority: {
+      CRITICAL: Number(bp.CRITICAL ?? 0),
+      HIGH: Number(bp.HIGH ?? 0),
+      MODERATE: Number(bp.MODERATE ?? 0),
+      LOW: Number(bp.LOW ?? 0),
+    },
+    byStatus: raw.by_status || {},
+    byJurisdiction: raw.by_jurisdiction || {},
+    totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
+    lastUpdatedAt: raw.last_updated_at ?? null,
+  };
+}
+
 export async function fetchWorkspaceAggregates(
   orgId: string | null
 ): Promise<WorkspaceAggregates> {
@@ -1461,29 +1442,7 @@ export async function fetchWorkspaceAggregates(
     // The RPC returns a single jsonb scalar; PostgREST surfaces it as the
     // raw object. Defensive coercion: missing keys default to 0 / {} so
     // the typed shape is always populated even if the SQL is later trimmed.
-    type Raw = {
-      total_items?: number;
-      by_priority?: Record<string, number>;
-      by_status?: Record<string, number>;
-      by_jurisdiction?: Record<string, number>;
-      total_jurisdictions?: number;
-      last_updated_at?: string | null;
-    };
-    const raw = data as Raw;
-    const bp = raw.by_priority || {};
-    return {
-      totalItems: Number(raw.total_items ?? 0),
-      byPriority: {
-        CRITICAL: Number(bp.CRITICAL ?? 0),
-        HIGH: Number(bp.HIGH ?? 0),
-        MODERATE: Number(bp.MODERATE ?? 0),
-        LOW: Number(bp.LOW ?? 0),
-      },
-      byStatus: raw.by_status || {},
-      byJurisdiction: raw.by_jurisdiction || {},
-      totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
-      lastUpdatedAt: raw.last_updated_at ?? null,
-    };
+    return mapAggregatesRaw(data);
   } catch (e) {
     console.error("fetchWorkspaceAggregates failed, returning empty:", e);
     return EMPTY_AGGREGATES;
@@ -1536,29 +1495,7 @@ export async function fetchWorkspaceAggregatesScoped(
       return EMPTY_AGGREGATES;
     }
 
-    type Raw = {
-      total_items?: number;
-      by_priority?: Record<string, number>;
-      by_status?: Record<string, number>;
-      by_jurisdiction?: Record<string, number>;
-      total_jurisdictions?: number;
-      last_updated_at?: string | null;
-    };
-    const raw = data as Raw;
-    const bp = raw.by_priority || {};
-    return {
-      totalItems: Number(raw.total_items ?? 0),
-      byPriority: {
-        CRITICAL: Number(bp.CRITICAL ?? 0),
-        HIGH: Number(bp.HIGH ?? 0),
-        MODERATE: Number(bp.MODERATE ?? 0),
-        LOW: Number(bp.LOW ?? 0),
-      },
-      byStatus: raw.by_status || {},
-      byJurisdiction: raw.by_jurisdiction || {},
-      totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
-      lastUpdatedAt: raw.last_updated_at ?? null,
-    };
+    return mapAggregatesRaw(data);
   } catch (e) {
     console.error("fetchWorkspaceAggregatesScoped failed, returning empty:", e);
     return EMPTY_AGGREGATES;
@@ -1613,44 +1550,16 @@ async function runSurfaceCountsRpc(orgId: string | null, surface: string): Promi
       }
       return null;
     }
-    type Raw = {
-      total_items?: number;
-      by_priority?: Record<string, number>;
-      by_severity?: Record<string, number>;
-      by_band?: Record<string, number>;
-      by_status?: Record<string, number>;
-      by_jurisdiction?: Record<string, number>;
-      total_jurisdictions?: number;
-      last_updated_at?: string | null;
-    };
-    const raw = data as Raw;
-    const bp = raw.by_priority || {};
+    // Migration 148 superset fields: the label-instance distributions the Market Intel tiles (by_severity)
+    // and band strip (by_band) bind to directly. Passed through verbatim (numeric-coerced) so consumers read
+    // the RPC, never a re-derivation from the visible rows.
+    const raw = data as { by_severity?: Record<string, number>; by_band?: Record<string, number> };
+    const numericCounts = (m?: Record<string, number>) =>
+      m ? Object.fromEntries(Object.entries(m).map(([k, v]) => [k, Number(v ?? 0)])) : {};
     return {
-      totalItems: Number(raw.total_items ?? 0),
-      byPriority: {
-        CRITICAL: Number(bp.CRITICAL ?? 0),
-        HIGH: Number(bp.HIGH ?? 0),
-        MODERATE: Number(bp.MODERATE ?? 0),
-        LOW: Number(bp.LOW ?? 0),
-      },
-      // Migration 148 superset fields — the label-instance distributions the
-      // Market Intel tiles (by_severity) and band strip (by_band) bind to
-      // directly. Passed through verbatim (numeric-coerced) so consumers read
-      // the RPC, never a re-derivation from the visible rows.
-      bySeverity: raw.by_severity
-        ? Object.fromEntries(
-            Object.entries(raw.by_severity).map(([k, v]) => [k, Number(v ?? 0)])
-          )
-        : {},
-      byBand: raw.by_band
-        ? Object.fromEntries(
-            Object.entries(raw.by_band).map(([k, v]) => [k, Number(v ?? 0)])
-          )
-        : {},
-      byStatus: raw.by_status || {},
-      byJurisdiction: raw.by_jurisdiction || {},
-      totalJurisdictions: Number(raw.total_jurisdictions ?? 0),
-      lastUpdatedAt: raw.last_updated_at ?? null,
+      ...mapAggregatesRaw(data),
+      bySeverity: numericCounts(raw.by_severity),
+      byBand: numericCounts(raw.by_band),
     };
   } catch (e) {
     console.error("fetchSurfaceCounts failed, returning null (caller fails soft):", e);
@@ -1987,13 +1896,15 @@ export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCover
 // sources record, not a code change here. Build 7 (Market Intel signal
 // aggregation) and future source additions benefit from this.
 
-// Translate one RPC row (slim+ shape returned by get_*_items RPCs) into a
-// Resource. Mirrors fetchWorkspaceResources's mapper, minus the timeline join
-// (the category-routed surfaces render row-level metadata, not timelines).
-function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
+// The Resource fields every RPC-row mapper projects identically (fetchWorkspaceResources's mapper and
+// rpcRowToResource below). Each caller adds its own extras on top: the timeline join, compliance_deadline, or
+// the Phase 3C / callout / exposure passthrough columns. Several fields are DORMANT passthroughs (the RPCs a
+// caller reads do not project the column yet, so the value is undefined until a migration widens them); an
+// unprojected column must read as unknown, never as a claim.
+function baseResourceFields(row: WorkspaceItemRpcRow): Resource {
   return {
     id: row.legacy_id || row.id,
-    cat: row.transport_modes?.[0] || "global",
+    cat: (row.transport_modes?.[0]) || "global",
     sub: row.category || "",
     title: row.title,
     url: row.source_url || "",
@@ -2006,32 +1917,54 @@ function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
     whatIsIt: row.what_is_it || "",
     whyMatters: row.why_matters || "",
     keyData: row.key_data || [],
+    // full_brief is only present on the full RPC. The slim RPC drops the
+    // column; row.full_brief is undefined and Resource.fullBrief stays
+    // undefined — list surfaces never read it.
     fullBrief: row.full_brief || undefined,
-    // WO-4 (2026-08-18): never coalesce domain - see the note at the first mapper site.
+    // WO-4 (2026-08-18): never coalesce domain. The DB guarantees NOT NULL + CHECK 1-7, so a
+    // missing value here means the payload did not SELECT the column - and "not fetched" must
+    // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
+    // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
     domain: row.domain ?? undefined,
-    timeline: [],
     modes: row.transport_modes || [],
     topic: row.category || undefined,
     jurisdiction: row.jurisdictions?.[0] || undefined,
-    // Addendum 63 (2026-08-30): dormant for the same reason as fetchWorkspaceResources's mapper —
-    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
-    // (migration 269, the latest redefinition) project `ii.jurisdictions` only; `jurisdiction_iso`
-    // is not in any of their RETURNS TABLE lists, so `row.jurisdiction_iso` is undefined until a
-    // migration adds it.
+    // Addendum 63 (2026-08-30): wired to read the column, but every RPC this function calls
+    // (get_workspace_intelligence / _slim / _dashboard / _listings) projects `ii.jurisdictions`
+    // only — none of their RETURNS TABLE lists include `ii.jurisdiction_iso` (confirmed against
+    // the live migration bodies: 120 for the base/slim pair, 077 for dashboard/listings), even
+    // though the shared `_workspace_active_items` some of them source from DOES carry it. So
+    // `row.jurisdiction_iso` is undefined today and this stays dormant — same "pass through when
+    // the RPC catches up" pattern already used below for severity/signalBand/theme (Phase 3C) —
+    // until a migration (lane `la`) adds the column to these RPCs' output.
     jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
-    // Lane POP (2026-09-01, migration 278): dormant for the same reason as jurisdictionIso just above —
-    // none of these RPCs project `ii.item_grade` yet.
+    // Lane POP (2026-09-01, migration 278): same dormant-passthrough shape as jurisdictionIso just
+    // above — none of this function's RPCs project `ii.item_grade` yet, so `row.item_grade` reads
+    // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
+    // an unprojected column must read as unknown, not as a claim about the item's grade.
     itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
-    // D23 part (d): dormant for the same reason as jurisdictionIso above, none of
-    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
-    // project `ii.last_regenerated_at` in their RETURNS TABLE.
+    // D23 part (d) (2026-09-13, defect-fix-plan-2026-09-12.md): the ledger's "Updated <date>" chip
+    // reads this. Migration 316 already added `last_regenerated_at` to this function's own
+    // get_workspace_intelligence_listings/_public callers, so it is REAL there today; dormant on
+    // this function's other RPCs (get_workspace_intelligence/_slim/_dashboard) until they widen
+    // their own RETURNS TABLE, same passthrough posture as itemGrade/originClass above.
     lastRegeneratedAt: row.last_regenerated_at || undefined,
-    // Lane SURF (2026-09-02): dormant for the same reason as jurisdictionIso above — none of
-    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
-    // (migration 269, last redefined in 272) project `ii.origin_class` in their RETURNS TABLE.
+    // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
+    // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
+    // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
     originClass: row.origin_class ?? undefined,
     sourceId: row.source_id || undefined,
     isArchived: row.effective_archived || false,
+  };
+}
+
+// Translate one RPC row (slim+ shape returned by get_*_items RPCs) into a
+// Resource. Mirrors fetchWorkspaceResources's mapper, minus the timeline join
+// (the category-routed surfaces render row-level metadata, not timelines).
+function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
+  return {
+    ...baseResourceFields(row),
+    timeline: [],
     // Phase 3C: pass through new schema columns when RPC includes them.
     // Undefined until RPC outputs are extended (separate migration).
     severity: row.severity || undefined,
@@ -3230,25 +3163,34 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
 }
 
 // ── Slim Fetch Variants (perf wave 2) ────────────────────────
-/**
- * Slim variant of fetchDashboardData: only resources + workspace overrides.
- * Skips changelog, disputes, xrefs, supersessions, synopses, changes,
- * sector display names. Used by pages that consume only `data.resources`
- * (and optionally `data.overrides`): /operations, /market, /regulations.
- *
- * Cost: 2 queries (workspace RPC + workspace_item_overrides) + 1 timeline
- * read inside fetchWorkspaceResources. Compared to ~15 for fetchDashboardData.
- */
-export async function fetchResourcesOnly(
-  orgId: string | null,
-  page?: ResourcePage
-): Promise<{
+/** Resources + archived + the workspace's override rows (the org-scoped /regulations, /operations, /market payload). */
+interface ResourcesWithOverridesPayload {
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
   _error?: string;
   _fallbackTrigger?: SeedFallbackTrigger;
-}> {
+}
+
+/** The org-independent counterpart: no overrides (the caller merges those client-side). */
+interface PublicResourcesPayload {
+  resources: Resource[];
+  archived: Resource[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
+}
+
+/**
+ * ONE body for fetchResourcesOnly (slim RPC) and fetchListingsOnly (listings RPC, plus row-chip enrichment).
+ * They differed only in the RPC option, the optional enrichRpc name and the failure-log label.
+ */
+async function loadResourcesWithOverridesPayload(
+  orgId: string | null,
+  page: ResourcePage | undefined,
+  label: string,
+  resourceOpts: { slim?: boolean; listings?: boolean },
+  enrichRpc: string | null
+): Promise<ResourcesWithOverridesPayload> {
   // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
   const emptyFallback = {
     resources: [] as Resource[],
@@ -3268,11 +3210,8 @@ export async function fetchResourcesOnly(
     // sequentially (the override read only needed orgId, but had to wait for uuidToUiId to exist
     // as an argument). Now that the override read is split into a DB stage (orgId only) and a
     // pure mapping stage, both DB reads fire together.
-    //
-    // Slim RPC — drops full_brief/operational_impact/open_questions/reasoning
-    // from the wire. None are rendered by /regulations, /operations, /market.
     const [{ active, archived, uuidToUiId }, overridesRaw] = await Promise.all([
-      fetchWorkspaceResources(orgId, { slim: true, page }),
+      fetchWorkspaceResources(orgId, { ...resourceOpts, page }),
       // Shared org-overrides read (owner-aware, migration 234) — see
       // fetchWorkspaceOverrideRowsRaw for the service-client rationale (P1-1).
       fetchWorkspaceOverrideRowsRaw(orgId),
@@ -3282,27 +3221,31 @@ export async function fetchResourcesOnly(
     }
 
     const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
+    if (enrichRpc) {
+      await enrichCategoryRows(getServiceSupabase(), [...active, ...archived], enrichRpc, {
+        enrichCitations: true,
+        enrichBiasTags: true,
+      });
+    }
 
     return { resources: active, archived, overrides };
   } catch (e) {
-    console.error("fetchResourcesOnly failed, using empty + error sentinel:", e);
+    console.error(label + " failed, using empty + error sentinel:", e);
     return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
 /**
- * PERF-10 (2026-09-04, migration 306, ADR-026 Follow-up): org-independent counterpart to
- * fetchResourcesOnly. No `orgId` parameter, no `overrides` in the return shape — the per-org
- * override merge moves to the CALLER (src/lib/data.ts's getPublicResourcesOnly wraps this in
- * unstable_cache with no orgId in the key; the client applies overrides fetched separately via
- * mergeWithOverrides, resourceStore.ts). Same slim RPC family, same page-range contract.
+ * ONE body for fetchPublicResourcesOnly (slim RPC) and fetchPublicListingsOnly (listings RPC, plus row-chip
+ * enrichment under the _public RPC name). PERF-10 (2026-09-04, migration 306): org-independent, same page-range
+ * contract as the org-scoped pair.
  */
-export async function fetchPublicResourcesOnly(page?: ResourcePage): Promise<{
-  resources: Resource[];
-  archived: Resource[];
-  _error?: string;
-  _fallbackTrigger?: SeedFallbackTrigger;
-}> {
+async function loadPublicResourcesPayload(
+  page: ResourcePage | undefined,
+  label: string,
+  resourceOpts: { slim?: boolean; listings?: boolean },
+  enrichRpc: string | null
+): Promise<PublicResourcesPayload> {
   const emptyFallback = { resources: [] as Resource[], archived: [] as Resource[] };
 
   if (!isSupabaseConfigured()) {
@@ -3310,27 +3253,54 @@ export async function fetchPublicResourcesOnly(page?: ResourcePage): Promise<{
   }
 
   try {
-    const { active, archived } = await fetchPublicWorkspaceResources({ slim: true, page });
+    const { active, archived } = await fetchPublicWorkspaceResources({ ...resourceOpts, page });
     if (!active.length) {
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
+    if (enrichRpc) {
+      await enrichCategoryRows(getServiceSupabase(), [...active, ...archived], enrichRpc, {
+        enrichCitations: true,
+        enrichBiasTags: true,
+      });
+    }
     return { resources: active, archived };
   } catch (e) {
-    console.error("fetchPublicResourcesOnly failed, using empty + error sentinel:", e);
+    console.error(label + " failed, using empty + error sentinel:", e);
     return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
 /**
- * Slim variant for the /map surface: resources + relationship payload
- * the map view consumes (changelog, disputes, supersessions).
- * Drops sources/provisional/conflicts/synopses/intelligenceChanges/
- * sectorDisplayNames/overrides.
+ * Slim variant of fetchDashboardData: only resources + workspace overrides.
+ * Skips changelog, disputes, xrefs, supersessions, synopses, changes,
+ * sector display names. Used by pages that consume only `data.resources`
+ * (and optionally `data.overrides`): /operations, /market, /regulations.
  *
- * Cost: 4 queries (workspace RPC + 3 relationship reads). Compared to
- * ~15 for fetchDashboardData.
+ * Cost: 2 queries (workspace RPC + workspace_item_overrides) + 1 timeline
+ * read inside fetchWorkspaceResources. Compared to ~15 for fetchDashboardData.
  */
-export async function fetchMapData(orgId: string | null): Promise<{
+export async function fetchResourcesOnly(
+  orgId: string | null,
+  page?: ResourcePage
+): Promise<ResourcesWithOverridesPayload> {
+  // Slim RPC — drops full_brief/operational_impact/open_questions/reasoning
+  // from the wire. None are rendered by /regulations, /operations, /market.
+  return loadResourcesWithOverridesPayload(orgId, page, "fetchResourcesOnly", { slim: true }, null);
+}
+
+/**
+ * PERF-10 (2026-09-04, migration 306, ADR-026 Follow-up): org-independent counterpart to
+ * fetchResourcesOnly. No `orgId` parameter, no `overrides` in the return shape; the per-org
+ * override merge moves to the CALLER (src/lib/data.ts's getPublicResourcesOnly wraps this in
+ * unstable_cache with no orgId in the key; the client applies overrides fetched separately via
+ * mergeWithOverrides, resourceStore.ts). Same slim RPC family, same page-range contract.
+ */
+export async function fetchPublicResourcesOnly(page?: ResourcePage): Promise<PublicResourcesPayload> {
+  return loadPublicResourcesPayload(page, "fetchPublicResourcesOnly", { slim: true }, null);
+}
+
+/** The /map payload shape: resources plus the relationship reads the map view consumes. */
+interface MapDataPayload {
   resources: Resource[];
   archived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
@@ -3338,7 +3308,18 @@ export async function fetchMapData(orgId: string | null): Promise<{
   supersessions: Supersession[];
   _error?: string;
   _fallbackTrigger?: SeedFallbackTrigger;
-}> {
+}
+
+/**
+ * ONE body for both /map fetchers (fetchMapData: slim RPC; fetchListingsMapData: listings RPC). They differed
+ * only in the RPC option passed to fetchWorkspaceResources and the label in the failure log, so the copy that
+ * lived in each is this function; `label` keeps the console message each one wrote.
+ */
+async function loadMapDataPayload(
+  orgId: string | null,
+  label: string,
+  resourceOpts: { slim?: boolean; listings?: boolean }
+): Promise<MapDataPayload> {
   // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
   const emptyFallback = {
     resources: [] as Resource[],
@@ -3358,8 +3339,7 @@ export async function fetchMapData(orgId: string | null): Promise<{
   try {
     const [{ active, archived }, changelog, disputes, supersessions] = await withTimeout(
       Promise.all([
-        // Slim RPC — /map renders pins/lines, never full_brief.
-        fetchWorkspaceResources(orgId, { slim: true }),
+        fetchWorkspaceResources(orgId, resourceOpts),
         fetchChangelog(),
         fetchDisputes(),
         fetchSupersessions(),
@@ -3379,9 +3359,23 @@ export async function fetchMapData(orgId: string | null): Promise<{
       supersessions,
     };
   } catch (e) {
-    console.error("fetchMapData failed, using empty + error sentinel:", e);
+    console.error(label + " failed, using empty + error sentinel:", e);
     return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
+}
+
+/**
+ * Slim variant for the /map surface: resources + relationship payload
+ * the map view consumes (changelog, disputes, supersessions).
+ * Drops sources/provisional/conflicts/synopses/intelligenceChanges/
+ * sectorDisplayNames/overrides.
+ *
+ * Cost: 4 queries (workspace RPC + 3 relationship reads). Compared to
+ * ~15 for fetchDashboardData.
+ */
+export async function fetchMapData(orgId: string | null): Promise<MapDataPayload> {
+  // Slim RPC: /map renders pins/lines, never full_brief.
+  return loadMapDataPayload(orgId, "fetchMapData", { slim: true });
 }
 
 /**
@@ -3405,57 +3399,14 @@ export async function fetchMapData(orgId: string | null): Promise<{
 export async function fetchListingsOnly(
   orgId: string | null,
   page?: ResourcePage
-): Promise<{
-  resources: Resource[];
-  archived: Resource[];
-  overrides: WorkspaceOverrideRow[];
-  _error?: string;
-  _fallbackTrigger?: SeedFallbackTrigger;
-}> {
-  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
-  const emptyFallback = {
-    resources: [] as Resource[],
-    archived: [] as Resource[],
-    overrides: [] as WorkspaceOverrideRow[],
-  };
-
-  if (!isSupabaseConfigured()) {
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
-  }
-  if (!orgId) {
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
-  }
-
-  try {
-    // PERF-5 (2026-09-04): see fetchResourcesOnly's identical comment — the override-rows DB read
-    // only needs orgId, so it now runs alongside fetchWorkspaceResources instead of after it.
-    const [{ active, archived, uuidToUiId }, overridesRaw] = await Promise.all([
-      fetchWorkspaceResources(orgId, { listings: true, page }),
-      // Shared org-overrides read (owner-aware, migration 234) — see
-      // fetchWorkspaceOverrideRowsRaw for the service-client rationale (P1-1).
-      fetchWorkspaceOverrideRowsRaw(orgId),
-    ]);
-    if (!active.length) {
-      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
-    }
-
-    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): RegulationsLedger's row is the one ledger with
-    // NO credibility enrichment at all today — the listings/slim RPC family (mapWorkspaceItemRows)
-    // never called enrichCategoryRows the way the category-routed fetchers above do. Reused, not
-    // duplicated: same function, same opts shape as fetchMarketIntelItems/fetchOperationsItems. Only
-    // this "listings" fetcher gets it (not fetchListingsMapData's /map consumer, which renders pins
-    // and never a row chip) — fields are added only where the surface's row payload lacks them.
-    const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
-    await enrichCategoryRows(getServiceSupabase(), [...active, ...archived], "get_workspace_intelligence_listings", {
-      enrichCitations: true,
-      enrichBiasTags: true,
-    });
-
-    return { resources: active, archived, overrides };
-  } catch (e) {
-    console.error("fetchListingsOnly failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
-  }
+): Promise<ResourcesWithOverridesPayload> {
+  // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): RegulationsLedger's row is the one ledger with
+  // NO credibility enrichment at all today — the listings/slim RPC family (mapWorkspaceItemRows)
+  // never called enrichCategoryRows the way the category-routed fetchers above do. Reused, not
+  // duplicated: same function, same opts shape as fetchMarketIntelItems/fetchOperationsItems. Only
+  // this "listings" fetcher gets it (not fetchListingsMapData's /map consumer, which renders pins
+  // and never a row chip) — fields are added only where the surface's row payload lacks them.
+  return loadResourcesWithOverridesPayload(orgId, page, "fetchListingsOnly", { listings: true }, "get_workspace_intelligence_listings");
 }
 
 /**
@@ -3463,35 +3414,11 @@ export async function fetchListingsOnly(
  * fetchListingsOnly. See fetchPublicResourcesOnly's comment — same shape, listings RPC family
  * (drops `summary`; used by /regulations).
  */
-export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<{
-  resources: Resource[];
-  archived: Resource[];
-  _error?: string;
-  _fallbackTrigger?: SeedFallbackTrigger;
-}> {
-  const emptyFallback = { resources: [] as Resource[], archived: [] as Resource[] };
-
-  if (!isSupabaseConfigured()) {
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
-  }
-
-  try {
-    const { active, archived } = await fetchPublicWorkspaceResources({ listings: true, page });
-    if (!active.length) {
-      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
-    }
-    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): same enrichment as the org-scoped
-    // fetchListingsOnly above, so an anonymous /regulations render carries the identical
-    // CredibilityChipEvidence/Authority fields as a logged-in one.
-    await enrichCategoryRows(getServiceSupabase(), [...active, ...archived], "get_workspace_intelligence_listings_public", {
-      enrichCitations: true,
-      enrichBiasTags: true,
-    });
-    return { resources: active, archived };
-  } catch (e) {
-    console.error("fetchPublicListingsOnly failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
-  }
+export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<PublicResourcesPayload> {
+  // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): same enrichment as the org-scoped fetchListingsOnly
+  // above, so an anonymous /regulations render carries the identical CredibilityChipEvidence/Authority
+  // fields as a logged-in one.
+  return loadPublicResourcesPayload(page, "fetchPublicListingsOnly", { listings: true }, "get_workspace_intelligence_listings_public");
 }
 
 /**
@@ -3501,57 +3428,8 @@ export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<{
  * 2026-05-10 audit (MapPageView / MapView render pins / lines / coverage,
  * never note).
  */
-export async function fetchListingsMapData(orgId: string | null): Promise<{
-  resources: Resource[];
-  archived: Resource[];
-  changelog: Record<string, ChangeLogEntry[]>;
-  disputes: Record<string, Dispute>;
-  supersessions: Supersession[];
-  _error?: string;
-  _fallbackTrigger?: SeedFallbackTrigger;
-}> {
-  // SF-2 Phase 1 (2026-05-27): empty payload + _error sentinel.
-  const emptyFallback = {
-    resources: [] as Resource[],
-    archived: [] as Resource[],
-    changelog: {} as Record<string, ChangeLogEntry[]>,
-    disputes: {} as Record<string, Dispute>,
-    supersessions: [] as Supersession[],
-  };
-
-  if (!isSupabaseConfigured()) {
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
-  }
-  if (!orgId) {
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "null_orgId" };
-  }
-
-  try {
-    const [{ active, archived }, changelog, disputes, supersessions] = await withTimeout(
-      Promise.all([
-        fetchWorkspaceResources(orgId, { listings: true }),
-        fetchChangelog(),
-        fetchDisputes(),
-        fetchSupersessions(),
-      ]),
-      8000
-    );
-
-    if (!active.length) {
-      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
-    }
-
-    return {
-      resources: active,
-      archived,
-      changelog,
-      disputes,
-      supersessions,
-    };
-  } catch (e) {
-    console.error("fetchListingsMapData failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
-  }
+export async function fetchListingsMapData(orgId: string | null): Promise<MapDataPayload> {
+  return loadMapDataPayload(orgId, "fetchListingsMapData", { listings: true });
 }
 
 /**
@@ -4141,6 +4019,17 @@ export async function fetchIntelligenceItemSections(
 }
 
 // ── Single Item Fetch (for /regulations/[id] detail page) ────────
+/** One item's detail payload: the resource plus the relationship reads the detail page renders. */
+interface IntelligenceItemDetail {
+  resource: Resource;
+  changelog: ChangeLogEntry[];
+  dispute: Dispute | null;
+  supersessions: Supersession[];
+  connections: ItemConnection[];
+  relevanceInput: RelevanceInput;
+  canonicalSurface: DetailSurface;
+}
+
 /**
  * Fetch a single intelligence_item by its UI-side id (legacy_id || uuid).
  * Returns a Resource shaped object plus changelog/disputes/timeline for that
@@ -4160,15 +4049,7 @@ export async function fetchIntelligenceItemSections(
  */
 async function fetchIntelligenceItemUncached(
   itemUiId: string
-): Promise<{
-  resource: Resource;
-  changelog: ChangeLogEntry[];
-  dispute: Dispute | null;
-  supersessions: Supersession[];
-  connections: ItemConnection[];
-  relevanceInput: RelevanceInput;
-  canonicalSurface: DetailSurface;
-} | null> {
+): Promise<IntelligenceItemDetail | null> {
   if (!isSupabaseConfigured()) return null;
 
   try {
@@ -4493,15 +4374,7 @@ async function fetchIntelligenceItemUncached(
  */
 export async function fetchIntelligenceItem(
   itemUiId: string
-): Promise<{
-  resource: Resource;
-  changelog: ChangeLogEntry[];
-  dispute: Dispute | null;
-  supersessions: Supersession[];
-  connections: ItemConnection[];
-  relevanceInput: RelevanceInput;
-  canonicalSurface: DetailSurface;
-} | null> {
+): Promise<IntelligenceItemDetail | null> {
   return unstable_cache(
     () => fetchIntelligenceItemUncached(itemUiId),
     ["intel-item-detail", itemUiId],

@@ -21,7 +21,7 @@ import type { Value, Use } from "@/lib/propagation/types.ts";
 import { admissibleFor } from "@/lib/propagation/admissible-for.ts";
 import { formatNumber } from "@/lib/format";
 
-export interface StatutoryFigureProps {
+interface StatutoryFigureProps {
   /** The full derived_values-shaped figure (or a statutory_computations row mapped onto the same shape —
    *  admissibleFor() only reads lifecycle/admissibility/originClass/obsStatus/derivation/baseConfidence/
    *  assertedAt/halfLifeDays, so either source satisfies it). */

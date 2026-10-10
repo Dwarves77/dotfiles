@@ -110,7 +110,7 @@ export interface StoredSynopsis {
   urgencyScore: number | null;
 }
 
-export interface StoredChange {
+interface StoredChange {
   changeType: string;
   changeSeverity: string;
   changeSummary: string;

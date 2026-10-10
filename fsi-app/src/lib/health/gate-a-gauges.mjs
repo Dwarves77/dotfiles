@@ -32,7 +32,7 @@ export const ALARM_GAUGES = Object.freeze([
   "no_gatestate_verified",
   "verified_failing_revalidation",
 ]);
-export const INFO_GAUGES = Object.freeze(["verified_gen_ver_null_info"]);
+const INFO_GAUGES = Object.freeze(["verified_gen_ver_null_info"]);
 export const GAUGE_NAMES = Object.freeze([...ALARM_GAUGES, ...INFO_GAUGES]);
 
 const EMPTY_PREFIX = "gate_a_health cache empty";

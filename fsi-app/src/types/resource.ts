@@ -13,7 +13,7 @@ export interface ImpactScores {
   operational: number; // 0-3
 }
 
-export interface ImpactReasoning {
+interface ImpactReasoning {
   cost?: string;
   compliance?: string;
   client?: string;
@@ -46,12 +46,6 @@ export interface Supersession {
   note: string;
 }
 
-export interface CrossRef {
-  from: string;
-  to: string;
-  relationship: string;
-}
-
 /**
  * A single item_cross_references row, from the OTHER item's point of view relative to whichever item
  * fetchIntelligenceItem was called for (flywheel U9, D1). `surface` is pre-resolved via surfaceOf so the
@@ -76,14 +70,14 @@ export interface Cluster {
 // ── Skill-Standard Intelligence Sections ──
 // These match the 7-section format from the environmental-policy-and-innovation skill
 
-export interface OperationalImpact {
+interface OperationalImpact {
   mode: string;                 // "ocean", "air", "road", "customs", "reporting", "procurement"
   function: string;             // "contracts", "pricing", "compliance", "data", "operations"
   impact: string;               // What this means operationally
   severity: "low" | "medium" | "high";
 }
 
-export interface RiskRegisterEntry {
+interface RiskRegisterEntry {
   risk: string;                 // Description of the risk
   severity: "low" | "medium" | "high";
   likelihood: "low" | "medium" | "high";
@@ -97,7 +91,7 @@ export interface RecommendedAction {
   priority: number;             // 1 = highest priority
 }
 
-export interface SourceReference {
+interface SourceReference {
   name: string;                 // e.g. "EUR-Lex", "Federal Register"
   url: string;                  // Direct URL
   tier?: number;                // 1-5 source tier
@@ -319,15 +313,6 @@ export interface Resource {
 }
 
 // ── Share Package ──
-
-export interface SharePackage {
-  id: string;
-  resourceIds: string[];
-  format: "html" | "slack";
-  level: "summary" | "standard" | "full";
-  audience?: string;
-  createdAt: string;
-}
 
 // ── Navigation ──
 

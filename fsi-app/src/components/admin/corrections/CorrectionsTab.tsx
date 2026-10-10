@@ -34,7 +34,7 @@ import type { CorrectionData, Fetcher } from "@/components/admin/corrections/typ
 
 const PAGE = 20;
 
-export interface CorrectionsTabProps {
+interface CorrectionsTabProps {
   /** Test seam: the smoke spec supplies fixture rows. The app uses the default read. */
   loadAll?: () => Promise<{ rows: CorrectionData[]; unchecked: number }>;
   fetcher?: Fetcher;

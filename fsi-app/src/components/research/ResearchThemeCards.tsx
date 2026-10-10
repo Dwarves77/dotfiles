@@ -41,7 +41,7 @@
 
 import { THEME_DESCRIPTIONS, THEME_LABELS } from "@/lib/research/taxonomy.mjs";
 
-export interface ResearchThemeCard {
+interface ResearchThemeCard {
   key: string;
   count: number;
   /** Items added inside the "new" window (ResearchLedger's NEW_WINDOW_DAYS), 0 renders nothing. */

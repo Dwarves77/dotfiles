@@ -16,7 +16,7 @@
 
 import { BAND_ORDER } from "@/lib/urgency/bands";
 
-export interface BandGradientRuleProps {
+interface BandGradientRuleProps {
   counts: Record<string, number>;
   height?: number;
 }

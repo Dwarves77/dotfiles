@@ -198,13 +198,13 @@ export async function generateStep(itemId: string, refresh = false, caller: stri
 
 // Register the brief's corroborator sources BEFORE grounding (canonical order: generate -> register ->
 // section -> ground -> credit). Best-effort + idempotent; no Sonnet call; never gates the run.
-export async function registerStep(itemId: string): Promise<StepResult> {
+async function registerStep(itemId: string): Promise<StepResult> {
   "use step";
   return registerBriefSources(itemId);
 }
 
 // Format-selected section extraction (no Sonnet call).
-export async function sectionStep(itemId: string): Promise<StepResult> {
+async function sectionStep(itemId: string): Promise<StepResult> {
   "use step";
   return sectionBrief(itemId);
 }
@@ -311,7 +311,7 @@ export async function linkStep(itemId: string): Promise<{ edges: number; surface
 // LAYER B baseline — captures the GLOBAL one-tier-per-host violation count BEFORE this run registers any
 // source, so the gate (after grow) can tell a conflict THIS write introduced from the corpus's standing
 // violations (which the nightly lane + Layer C disposition own). Read-only.
-export async function auditBaselineStep(itemId: string): Promise<{ hostTierViolations: number }> {
+async function auditBaselineStep(itemId: string): Promise<{ hostTierViolations: number }> {
   "use step";
   void itemId;
   const sb = svc();
@@ -324,7 +324,7 @@ export async function auditBaselineStep(itemId: string): Promise<{ hostTierViola
 // see (unregistered-span-host, claims-tier, one-tier-per-host) by re-running them, item-scoped, on the
 // just-written state. Pure check here; the workflow owns the fail-closed action. Non-bypassable: it is an
 // unconditional step on the success path, with no skip flag.
-export async function auditGateStep(itemId: string, baselineHostTierViolations: number): Promise<StepResult> {
+async function auditGateStep(itemId: string, baselineHostTierViolations: number): Promise<StepResult> {
   "use step";
   const sb = svc();
   const res = await crossItemAuditGate(sb, itemId, baselineHostTierViolations);
@@ -334,7 +334,7 @@ export async function auditGateStep(itemId: string, baselineHostTierViolations: 
 // LAYER B fail-closed record — on a gate failure the brief is erased (-> mig-115 trigger quarantines the
 // item, which sticks because validate_item_provenance now fails) and this records the SPECIFIC cross-item
 // reason as a data_integrity flag, so the quarantine carries the real cause (not the generic erase note).
-export async function recordAuditGateFailureStep(itemId: string, detail: string): Promise<{ recorded: boolean }> {
+async function recordAuditGateFailureStep(itemId: string, detail: string): Promise<{ recorded: boolean }> {
   "use step";
   const sb = svc();
   try {
@@ -357,7 +357,7 @@ export async function recordAuditGateFailureStep(itemId: string, detail: string)
 // research-or-erase: ONE re-research retry on ground failure. Regenerate (discoverCorroborators
 // widens the source pool via web_search) -> re-section -> re-ground, as a DISTINCT step so it is not
 // memoized against the first generate/ground. Spends ~one generate + ground (Browserless + Sonnet).
-export async function reresearchStep(itemId: string, caller: string | null = null): Promise<StepResult> {
+async function reresearchStep(itemId: string, caller: string | null = null): Promise<StepResult> {
   "use step";
   const sb = svc();
   // research-or-erase WIDENS the pool via a fresh web_search, so the FIRST attempt MUST re-fetch —
@@ -499,7 +499,7 @@ spanCheckClaim.maxRetries = 3;
 // (no base URL in dev, network, auth) is logged and swallowed; the 300s
 // revalidate backstop bounds staleness regardless, so a missed flush never
 // leaves the corpus stale for long and never affects the generation run.
-export async function revalidateItemStep(itemId: string): Promise<{ flushed: boolean }> {
+async function revalidateItemStep(itemId: string): Promise<{ flushed: boolean }> {
   "use step";
   try {
     const base =
@@ -531,7 +531,7 @@ export async function revalidateItemStep(itemId: string): Promise<{ flushed: boo
 }
 
 // ── Workflow orchestration (durable) ──
-export interface GenerateBriefResult {
+interface GenerateBriefResult {
   itemId: string;
   status: string;
   steps: Partial<Record<"budget" | "auditBaseline" | "generate" | "register" | "section" | "ground" | "reground" | "grow" | "auditGate" | "reresearch" | "erase", unknown>>;

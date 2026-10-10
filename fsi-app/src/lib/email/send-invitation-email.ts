@@ -18,14 +18,14 @@
 // every caller surfaces the result to the inviter. Nothing outside this file
 // should know which provider is used.
 
-export interface InvitationEmailParams {
+interface InvitationEmailParams {
   to: string;
   inviteUrl: string;
   orgName?: string;
   proposedRole: string;
 }
 
-export interface InvitationEmailResult {
+interface InvitationEmailResult {
   /** true only when a provider accepted the message. */
   delivered: boolean;
   /** false when no provider is configured — the caller must show the copy-link path. */

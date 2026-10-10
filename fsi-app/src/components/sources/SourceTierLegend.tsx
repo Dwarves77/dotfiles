@@ -35,7 +35,7 @@ import type { Source, SourceTier } from "@/types/source";
 export const SOURCE_TIERS: SourceTier[] = [1, 2, 3, 4, 5, 6, 7];
 
 /** Dashboard-specific example gloss per tier. The authority NAME comes from TIER_LABELS (SoT). */
-export const TIER_LEGEND_EXAMPLES: Record<number, string> = {
+const TIER_LEGEND_EXAMPLES: Record<number, string> = {
   1: "Official legal text (gazettes, Federal Register)",
   2: "Regulator guidance (FAQs, portals)",
   3: "Intergovernmental (IGO datasets, trackers)",

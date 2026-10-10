@@ -81,22 +81,9 @@ export function scoreResource(r: Resource): ImpactScores {
 
 // ── Sector Context for scoring ──
 
-export interface SectorContext {
+interface SectorContext {
   activeSectors: string[];
   sectorWeights?: Record<string, number> | null;
-}
-
-/**
- * Build sector context from workspace store values.
- */
-export function buildSectorContext(ws: {
-  sectorProfile: string[];
-  sectorWeights: Record<string, number> | null;
-}): SectorContext {
-  return {
-    activeSectors: ws.sectorProfile,
-    sectorWeights: ws.sectorWeights,
-  };
 }
 
 /**
@@ -110,14 +97,6 @@ export function matchResourceSector(r: Resource, sectorIds: string[]): string | 
     if (sector?.keywords.some((kw) => text.includes(kw))) return sid;
   }
   return null;
-}
-
-/**
- * Check if a resource is relevant to the active sector profile.
- */
-export function isInActiveSectors(r: Resource, activeSectors: string[]): boolean {
-  if (activeSectors.length === 0) return true; // no profile = everything matches
-  return matchResourceSector(r, activeSectors) !== null;
 }
 
 // ── Urgency Score (composite) ──
@@ -193,90 +172,4 @@ export function urgencyScore(
   }
 
   return Math.round(total * priW * timeW * (0.5 + jurW * 0.5) * sectorW * 10) / 10;
-}
-
-// ── Sort Helpers ──
-const PRI_ORDER: Record<string, number> = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 };
-
-export function sortResources(
-  resources: Resource[],
-  key: "urgency" | "priority" | "alpha" | "added" | "modified"
-): Resource[] {
-  const sorted = [...resources];
-  switch (key) {
-    case "urgency":
-      return sorted.sort((a, b) => (b.urgencyScore || 0) - (a.urgencyScore || 0));
-    case "priority":
-      return sorted.sort((a, b) => (PRI_ORDER[a.priority] ?? 9) - (PRI_ORDER[b.priority] ?? 9));
-    case "alpha":
-      return sorted.sort((a, b) => a.title.localeCompare(b.title));
-    case "added":
-      return sorted.sort((a, b) => b.added.localeCompare(a.added));
-    case "modified":
-      return sorted.sort((a, b) => b.added.localeCompare(a.added));
-    default:
-      return sorted;
-  }
-}
-
-// ── Filter Helpers ──
-export function filterResources(
-  resources: Resource[],
-  filters: {
-    modes: string[];
-    topics: string[];
-    jurisdictions: string[];
-    priorities: string[];
-    verticals: string[];
-    confidence: string[];
-    search: string;
-    searchScope?: "profile" | "all";
-  }
-): Resource[] {
-  return resources.filter((r) => {
-    // Mode filter
-    if (filters.modes.length > 0) {
-      const resourceModes = r.modes || [r.cat];
-      if (!filters.modes.some((m) => resourceModes.includes(m))) return false;
-    }
-
-    // Topic filter
-    if (filters.topics.length > 0) {
-      const resourceTopic = r.topic || r.sub;
-      if (!filters.topics.includes(resourceTopic)) return false;
-    }
-
-    // Jurisdiction filter
-    if (filters.jurisdictions.length > 0) {
-      const resourceJur = r.jurisdiction || getJurisdiction(r);
-      if (!filters.jurisdictions.includes(resourceJur)) return false;
-    }
-
-    // Priority filter
-    if (filters.priorities.length > 0) {
-      if (!filters.priorities.includes(r.priority)) return false;
-    }
-
-    // Cargo vertical / sector filter
-    // When there's an active search query, always skip sector filtering
-    // so users can find cross-sector regulations like PPWR regardless of workspace profile
-    const skipSectorFilter = !!filters.search;
-    if (filters.verticals.length > 0 && !skipSectorFilter) {
-      const text = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
-      const matchesVertical = filters.verticals.some((vId) => {
-        const vertical = ALL_SECTORS.find((v) => v.id === vId);
-        return vertical?.keywords.some((kw) => text.includes(kw));
-      });
-      if (!matchesVertical) return false;
-    }
-
-    // Search
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      const searchable = `${r.title} ${r.note} ${(r.tags || []).join(" ")} ${r.whatIsIt || ""} ${r.whyMatters || ""}`.toLowerCase();
-      if (!searchable.includes(q)) return false;
-    }
-
-    return true;
-  });
 }

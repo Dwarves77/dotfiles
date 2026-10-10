@@ -29,18 +29,18 @@ export interface CorrectionData {
   item_title?: string | null;
 }
 
-export interface ItemTargetClaim {
+interface ItemTargetClaim {
   id: string;
   claim_text: string;
   source_span: string | null;
 }
 
-export interface ItemTargetSection {
+interface ItemTargetSection {
   section_key: string;
   content_md: string;
 }
 
-export interface ItemTargetConnection {
+interface ItemTargetConnection {
   other_item_id: string;
   other_title: string;
   relationship: string;

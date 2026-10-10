@@ -155,7 +155,7 @@ function dedupeById<T extends { id: string }>(rows: T[]): T[] {
   return out;
 }
 
-export interface OperationsLedgerProps {
+interface OperationsLedgerProps {
   /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
    *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
    *  chose — the SSR pass and the hydration pass then produce identical text by construction

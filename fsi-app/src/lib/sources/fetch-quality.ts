@@ -42,7 +42,7 @@ const BRIEF_FAILURE_PATTERNS: RegExp[] = [
 
 const BRIEF_PROBE_BYTES = 1_000;
 
-export interface BriefContentCheck {
+interface BriefContentCheck {
   ok: boolean;
   reason: string | null;
 }

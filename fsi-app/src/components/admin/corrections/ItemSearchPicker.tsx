@@ -15,7 +15,7 @@ import type { Fetcher } from "@/components/admin/corrections/types";
 
 const MIN_CHARS = 3;
 
-export interface ItemSearchPickerProps {
+interface ItemSearchPickerProps {
   label: string;
   /** Items to leave out of the results, for example the item being corrected. */
   excludeIds?: string[];

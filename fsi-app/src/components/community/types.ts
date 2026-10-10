@@ -8,7 +8,7 @@
  * Posts, group detail, threads — all out of scope for this shell PR.
  */
 
-export type CommunityRegionCode =
+type CommunityRegionCode =
   | "EU"
   | "UK"
   | "US"
@@ -101,8 +101,6 @@ export interface CommunityAuthorIdentity {
    * author's `community_member_profiles.default_anonymous` when the post did not override it). */
   anonymous?: boolean;
 }
-
-export { type EntityThread as CommunityEntityThread } from "./api-client";
 
 // ── lane COMMUNITY-C additions (2026-09-03): self-service profile ──
 export { type CommunityProfile } from "./api-client";

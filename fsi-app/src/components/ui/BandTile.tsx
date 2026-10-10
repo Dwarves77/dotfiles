@@ -24,7 +24,7 @@ import Link from "next/link";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { formatNumber } from "@/lib/format";
 
-export interface BandTileProps {
+interface BandTileProps {
   band: UrgencyBand;
   count: number | null;
   /** True while the count is still loading — renders a skeleton, never 0

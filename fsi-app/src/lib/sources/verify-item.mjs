@@ -16,7 +16,7 @@ import { assertAcquireAllowed } from "./acquire-lock.mjs";
 
 /** Stable identifiers the queue + gauge key on. */
 export const STALE_FLAG = "stale_snapshot_content_changed";
-export const ACQUIRE_JUSTIFICATIONS = /** @type {const} */ (["missing_snapshot", "content_changed", "cheap_verify_failed"]);
+const ACQUIRE_JUSTIFICATIONS = /** @type {const} */ (["missing_snapshot", "content_changed", "cheap_verify_failed"]);
 
 /**
  * PURE decision. Given the snapshot lookup, freshness verdict, and cheap-verify result, decide the outcome.

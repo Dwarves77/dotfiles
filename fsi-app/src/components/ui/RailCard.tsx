@@ -40,7 +40,7 @@ const RAIL_CARD_TITLE_STYLE: React.CSSProperties = {
   margin: 0,
 };
 
-export interface RailCardProps {
+interface RailCardProps {
   title: string;
   children: ReactNode;
   /** Design-audit hook (../../.discipline/rendering/audit), a stable selector for a real page

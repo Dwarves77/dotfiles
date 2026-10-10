@@ -59,8 +59,8 @@ interface DisplayChip {
 }
 
 /** How many chips each variant shows before the remainder. */
-export const BIAS_ROW_MAX = 2;
-export const BIAS_DETAIL_MAX = 3;
+const BIAS_ROW_MAX = 2;
+const BIAS_DETAIL_MAX = 3;
 
 function chipText(c: DisplayChip): string {
   return c.lowerConfidence ? `${c.label} · ${LOWER_CONFIDENCE_WORDS}` : c.label;

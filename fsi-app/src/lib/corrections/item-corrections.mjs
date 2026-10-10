@@ -22,8 +22,7 @@
 
 import { fetchAllRows } from "../db/paginate.mjs";
 
-export const TARGET_KINDS = Object.freeze(["fact", "tag", "connection", "section_text", "full_brief"]);
-export const OPS = Object.freeze(["suppress", "add", "remove", "replace"]);
+const TARGET_KINDS = Object.freeze(["fact", "tag", "connection", "section_text", "full_brief"]);
 
 /** The ops each target_kind allows. Mirrors the item_corrections_kind_op_chk CHECK in migration 356. */
 export const OPS_BY_KIND = Object.freeze({
@@ -38,8 +37,6 @@ export const TAG_COLUMNS = Object.freeze(["topic_tags", "operational_scenario_ta
 export const EDGE_RELATIONSHIPS = Object.freeze(["related", "supersedes", "implements", "conflicts", "amends", "depends_on"]);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const tagRef = (column, tag) => `${column}:${tag}`;
 
 /** Split a tag target_ref into { column, tag }, or null when malformed. */
 export function parseTagRef(ref) {

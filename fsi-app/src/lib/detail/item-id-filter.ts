@@ -12,7 +12,7 @@
 
 import { isItemUuid } from "./id-redirect.ts";
 
-export type ItemIdColumn = "id" | "legacy_id";
+type ItemIdColumn = "id" | "legacy_id";
 
 export function itemIdColumn(value: string): ItemIdColumn {
   return isItemUuid(value) ? "id" : "legacy_id";

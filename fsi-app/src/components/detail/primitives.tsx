@@ -41,7 +41,7 @@ import type { RecordFactRow } from "@/lib/agent/parse-record-sections";
 /** The subset of Resource this helper reads. Typed narrowly rather than
  *  importing the full Resource type so callers can pass any object shape
  *  that carries these two fields. */
-export interface JurisdictionFields {
+interface JurisdictionFields {
   jurisdictionIso?: string[] | null;
   jurisdiction?: string | null;
 }

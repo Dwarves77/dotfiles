@@ -133,7 +133,7 @@ const defaultDetailDeps: DetailDeps = {
   },
 };
 
-export interface LoadDetailConfig<ItemScoped, ViewerScoped> {
+interface LoadDetailConfig<ItemScoped, ViewerScoped> {
   surface: DetailSurface;
   /** UI-side id (legacy_id || uuid), already decodeURIComponent'd by the
    *  caller. */
@@ -151,7 +151,7 @@ export interface LoadDetailConfig<ItemScoped, ViewerScoped> {
  *  are exactly what populates those fields (defaultDetailDeps above), and a
  *  `deps` override in a test never flows through this typed wrapper — tests
  *  call loadDetailCore directly. */
-export type DetailResult<ItemScoped, ViewerScoped> = Extract<
+type DetailResult<ItemScoped, ViewerScoped> = Extract<
   DetailCoreResult<ItemScoped, ViewerScoped>,
   { notFound: true }
 > | (Omit<Extract<DetailCoreResult<ItemScoped, ViewerScoped>, { notFound: false }>, "sections" | "relevance"> & {

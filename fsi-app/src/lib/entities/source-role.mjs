@@ -4,7 +4,7 @@
 // that carries it. The gate enforces source↔claim-type CONGRUENCE, not "news is weak": a primary-artifact
 // TYPE on a NEWS source is retyped to market_signal (where news IS the right primary) — retyped, never dropped.
 export const NEWS_RE = /\/(news|news-?releases?|press|press-?releases?|media|newsroom|announcements?|articles?|stories|blog|insights?|updates?)(\/|$|\?|#)|(^|\/\/|\.)(news|prnewswire|businesswire|globenewswire|pr-?web|einpresswire)\./i;
-export const PRIMARY_URL_RE = /(eur-lex\.europa\.eu|legislation\.gov\.uk|federalregister\.gov|ecfr\.gov|govinfo\.gov|official.?journal|legal-content|\.pdf($|\?|#)|\/documents?\/|\/eli\/|celex)/i;
+const PRIMARY_URL_RE = /(eur-lex\.europa\.eu|legislation\.gov\.uk|federalregister\.gov|ecfr\.gov|govinfo\.gov|official.?journal|legal-content|\.pdf($|\?|#)|\/documents?\/|\/eli\/|celex)/i;
 export const PRIMARY_ARTIFACT_TYPES = new Set(["regulation", "directive", "standard", "guidance", "framework"]);
 // STUDY-BACKED types: their primary MUST be the study/report itself; a press release ABOUT the study is a
 // lead/corroborator, not the primary. On a news/press source these are SOURCE-incongruent (1b) — keep the

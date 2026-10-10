@@ -62,7 +62,7 @@ export interface ItemGroupActionStrip {
   text: string;
 }
 
-export interface ItemGroupProps {
+interface ItemGroupProps {
   /** Item title, 13px/600. Omitted (no header row at all, unless `band` is given) when the
    *  caller has no real per-item title - never a placeholder string. */
   title?: string | null;

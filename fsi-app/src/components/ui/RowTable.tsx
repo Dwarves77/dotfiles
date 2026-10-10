@@ -77,7 +77,7 @@ export interface RowTableMetrics {
   ruleAfterLastRow?: boolean;
 }
 
-export interface RowTableProps {
+interface RowTableProps {
   columns: RowTableColumn[];
   rows: RowTableRowSpec[];
   metrics?: RowTableMetrics;

@@ -23,12 +23,3 @@ export function headReachabilityDecision(
   if (o === REACH.INCONCLUSIVE) return "queue-provisional"; // non-answer -> queue, NOT reject
   return "proceed";                                   // reachable -> run the verifyCandidate pipeline
 }
-
-// PRE-FIX decision, retained ONLY as the mutation-check baseline.
-export function headReachabilityDecision_LEGACY_BUGGY(
-  head: { status: number | "error" }
-): "reject" | "queue-provisional" | "proceed" {
-  if (head.status === "error") return "reject";       // BUG: timeout/non-answer -> reject
-  if (typeof head.status === "number" && head.status >= 400) return "reject"; // BUG: 429/5xx -> reject
-  return "proceed";
-}

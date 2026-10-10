@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { ALL_SECTORS, type SectorDefinition } from "@/lib/constants";
 
 interface WorkspaceState {
   // Current organization
@@ -48,13 +47,3 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   setJurisdictionWeights: (jurisdictionWeights) => set({ jurisdictionWeights }),
   setSectorWeights: (sectorWeights) => set({ sectorWeights }),
 }));
-
-/**
- * Get the active sector definitions for the current workspace.
- * Returns only sectors that match the workspace's sector_profile.
- * If no profile is set, returns the full master list (sector-agnostic view).
- */
-export function getActiveSectors(sectorProfile: string[]): SectorDefinition[] {
-  if (sectorProfile.length === 0) return ALL_SECTORS;
-  return ALL_SECTORS.filter((s) => sectorProfile.includes(s.id));
-}

@@ -11,7 +11,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { MailCheck } from "lucide-react";
 
-export const AUTH_FIELD_LABEL_STYLE: CSSProperties = {
+const AUTH_FIELD_LABEL_STYLE: CSSProperties = {
   fontSize: 10,
   letterSpacing: "0.12em",
   textTransform: "uppercase",

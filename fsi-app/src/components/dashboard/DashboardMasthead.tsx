@@ -36,7 +36,7 @@ import { deriveBriefTitle, firstTokenOf } from "@/components/dashboard/brief-tit
 // is a named constant rather than a value read off a row count.
 const SURFACE_COUNT = 5;
 
-export interface DashboardMastheadProps {
+interface DashboardMastheadProps {
   dateLabel: string;
   itemCount: number;
   /** aggregates.totalItems > 0 gates whether totalJurisdictions is trusted

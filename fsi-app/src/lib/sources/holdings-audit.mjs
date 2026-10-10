@@ -13,11 +13,11 @@
 import { authorityFloorFor } from "../agent/source-blocks.mjs";
 
 /** A snapshot at/below this size is a stub/error shell (JS app skeleton, 40x/50x body). Mirrors holdings-gate. */
-export const STUB_MAX_BYTES = 1000;
+const STUB_MAX_BYTES = 1000;
 /** Furniture = a substantial HTML payload whose visible text is negligible (chrome/nav/script only). */
-export const FURNITURE_MIN_BYTES = 4000;
-export const FURNITURE_MAX_CLEAN = 1500;
-export const FURNITURE_MAX_RATIO = 0.15;
+const FURNITURE_MIN_BYTES = 4000;
+const FURNITURE_MAX_CLEAN = 1500;
+const FURNITURE_MAX_RATIO = 0.15;
 
 /**
  * PURE. Registrable-domain → publisher shape, for the structural completeness rules. Only the four shapes
@@ -33,15 +33,6 @@ export function detectPublisherShape(url) {
   if (/federalregister\.gov|govinfo\.gov|ecfr\.gov/.test(u)) return "federal-register";
   if (/gazette|gazzetta|boe\.es|legifrance|bundesanzeiger|staatsblad|dziennik|gesetzblatt/.test(u)) return "gazette";
   return "other";
-}
-
-/**
- * PURE. Visible-text length after stripping script/style/tags + collapsing whitespace. A cheap furniture
- * proxy — NOT a full DOM render, deliberately (deterministic, node-only, $0). @param {string} body
- * @returns {number}
- */
-export function cleanTextLength(body) {
-  return extractCleanText(body).length;
 }
 
 /** PURE. Strip script/style/tags, decode a few common entities, collapse whitespace. @param {string} body */

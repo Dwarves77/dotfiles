@@ -20,7 +20,7 @@ import { validateEntityIds } from "../../lib/community/entity-binding.mjs";
 
 // ── POST /api/community/posts ────────────────────────────────────────────────────────────────
 
-export interface CreatePostInput {
+interface CreatePostInput {
   group_id: string;
   title?: string;
   body: string;
@@ -34,12 +34,12 @@ export interface CreatePostInput {
   anonymous?: boolean;
 }
 
-export interface CreatePostSuccess {
+interface CreatePostSuccess {
   ok: true;
   post: Record<string, unknown>;
 }
 
-export interface CreatePostFailure {
+interface CreatePostFailure {
   ok: false;
   /** 0 when the request never reached the network (local validation failure, e.g. no entity bound,
    * or a network error) — real HTTP status otherwise. */
@@ -47,7 +47,7 @@ export interface CreatePostFailure {
   error: string;
 }
 
-export type CreatePostResult = CreatePostSuccess | CreatePostFailure;
+type CreatePostResult = CreatePostSuccess | CreatePostFailure;
 
 /**
  * POST /api/community/posts. Refuses client-side (status 0) before the network round-trip when no
@@ -129,7 +129,7 @@ export interface EntityThread {
   author_identity?: AuthorIdentityProjection | null;
 }
 
-export interface EntityThreadsResult {
+interface EntityThreadsResult {
   entity_id: string;
   threads: EntityThread[];
   next_cursor: string | null;
@@ -171,16 +171,16 @@ export interface CommunityProfile {
   defaultAnonymous: boolean;
 }
 
-export interface ProfileFetchResult {
+interface ProfileFetchResult {
   ok: true;
   profile: CommunityProfile;
 }
-export interface ProfileFetchFailure {
+interface ProfileFetchFailure {
   ok: false;
   status: number;
   error: string;
 }
-export type ProfileResult = ProfileFetchResult | ProfileFetchFailure;
+type ProfileResult = ProfileFetchResult | ProfileFetchFailure;
 
 export async function getOwnProfile(fetchImpl: typeof fetch = fetch): Promise<ProfileResult> {
   let res: Response;
@@ -196,7 +196,7 @@ export async function getOwnProfile(fetchImpl: typeof fetch = fetch): Promise<Pr
   return { ok: true, profile: json.profile };
 }
 
-export interface UpdateProfileInput {
+interface UpdateProfileInput {
   org_type: string;
   role?: string | null;
   sector?: string | null;

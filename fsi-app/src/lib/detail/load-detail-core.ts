@@ -65,7 +65,7 @@ export const DETAIL_CACHE_REVALIDATE_SECONDS = 60 * 60; // 1 hour
  *  Restated structurally here (not imported as a value) so this file has no
  *  runtime dependency on supabase-server.ts, which itself value-imports
  *  next/cache. */
-export interface DetailSourceItem {
+interface DetailSourceItem {
   resource: Resource;
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
@@ -115,7 +115,7 @@ export interface DetailDeps {
   redactDetail?: (input: { id: string; resource: unknown; sections: unknown }) => Promise<{ resource: unknown; sections: unknown }>;
 }
 
-export interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
+interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
   surface: string;
   /** UI-side id (legacy_id || uuid), already decodeURIComponent'd by the
    *  caller — same value fetchIntelligenceItem/fetchIntelligenceItemSections
@@ -173,14 +173,14 @@ export interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
 // `validate_item_provenance` criterion 3 uses as of migration 145 ("moat-pure": reputation, i.e.
 // effective_tier, can never confer reg-fact eligibility) — never the stored, pre-145
 // `section_claim_provenance.source_tier_at_grounding` cache the validator no longer consumes either.
-export interface ClaimTierSourceRowLike {
+interface ClaimTierSourceRowLike {
   name: string | null;
   url: string | null;
   base_tier: number | null;
   tier_override: number | null;
 }
 
-export interface ClaimTierRowLike {
+interface ClaimTierRowLike {
   /** section_claim_provenance.id; read so a suppression can match the claim by id (G7-CORR). */
   id?: string;
   claim_text: string;

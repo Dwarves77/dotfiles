@@ -46,7 +46,7 @@
 import { STUB_MIN_CHARS } from "./primary-fallback.mjs"; // reuse the ONE real-content floor (=200), on the CLEAN body
 
 /** ~0.4 link-density = a link-list / menu block, not prose. One threshold, tunable. */
-export const LINK_DENSITY_MAX = 0.4;
+const LINK_DENSITY_MAX = 0.4;
 
 /** Flatten html fragment to visible text: drop tags + entities, collapse whitespace.
  *

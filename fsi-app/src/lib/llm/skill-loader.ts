@@ -265,7 +265,3 @@ carrier-specific data" rather than leaving it out or inventing it.
 
 === End of environmental-policy-and-innovation core subset ===
 `.trim();
-
-// Approximate token count of the embedded skill subset.
-// Used for prompt-budget accounting; not a hard limit.
-export const ENVIRONMENTAL_POLICY_SKILL_CORE_APPROX_TOKENS = 3500;

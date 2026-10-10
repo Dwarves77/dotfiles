@@ -78,7 +78,7 @@ import { itemDetailHref } from "@/lib/item-links";
 import { formatNumber } from "@/lib/format";
 import { CoverageState } from "@/components/ui/CoverageState";
 
-export interface ObligationItem {
+interface ObligationItem {
   id: string;
   title: string;
   legacy_id: string | null;

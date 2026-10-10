@@ -22,9 +22,9 @@
 
 import { stripClaimLedgerBlocks } from "../agent/claim-ledger-block.ts";
 
-export type FactParagraphKind = "fact" | "inference" | "counsel" | "prose";
+type FactParagraphKind = "fact" | "inference" | "counsel" | "prose";
 
-export interface ParsedSource {
+interface ParsedSource {
   title: string | null;
   issuer: string | null;
   date: string | null;

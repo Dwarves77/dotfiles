@@ -20,7 +20,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type ResourceLookup = Record<string, { id: string; title: string; priority: string }>;
+type ResourceLookup = Record<string, { id: string; title: string; priority: string }>;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
