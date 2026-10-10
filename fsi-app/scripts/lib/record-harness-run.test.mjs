@@ -12,6 +12,9 @@
 // Run: node --test fsi-app/scripts/lib/record-harness-run.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { recordHarnessRun, runCli } from './record-harness-run.mjs';
 
 const SAMPLE_ARTIFACT = {
@@ -244,14 +247,111 @@ test('runCli: a real insert failure (credentials present, insert rejected) is fa
   assert.ok(errors.some((m) => m.includes('relation "harness_runs" does not exist')));
 });
 
-test('runCli: a real landed row exits 0', async () => {
-  const code = await runCli(['--file', 'x.json'], {
-    log: () => {},
-    errorLog: () => {},
-    readFileFn: () => JSON.stringify(SAMPLE_ARTIFACT),
-    envUrl: 'https://example.supabase.co',
-    envKey: 'service-role-key',
-    createClientFn: () => fakeSb(),
-  });
-  assert.equal(code, 0);
-});
+test('runCli: a real landed row exits 0 (the artifact file is real, so it is reconciled with the landed id)', () =>
+  withDir(async (dir) => {
+    const file = join(dir, 'gate-a-rescan-run-012.json');
+    writeFileSync(file, JSON.stringify(SAMPLE_ARTIFACT));
+    const code = await runCli(['--file', file], {
+      log: () => {},
+      errorLog: () => {},
+      envUrl: 'https://example.supabase.co',
+      envKey: 'service-role-key',
+      createClientFn: () => fakeSb(),
+    });
+    assert.equal(code, 0);
+    assert.ok(existsSync(file), 'the id did not change (no readAll rows are reachable through the fake), so the file stays');
+  }));
+
+// ── HARNESS-1 (2026-10-10): the ledger id and the artifact file name are ONE value ─────────────────────
+// [CONFIRMED] A local `node scripts/turns/dry-run-structured-actions.mjs` wrote structured-actions-run-003.json
+// (claimRunId: the directory's own max+1) while the recorder stored `structured-actions-run-001` with
+// renumbered: true (harness_runs' own max+1), so the artifact could not be found from the ledger row. The
+// recorder now owns the reconciliation: given the artifact's path, it makes the file carry the id it landed.
+
+const SA = 'structured-actions';
+const saArtifact = (n) => ({ ...SAMPLE_ARTIFACT, harness_family: SA, run_id: `${SA}-run-${String(n).padStart(3, '0')}` });
+const saPath = (dir, n) => join(dir, `${SA}-run-${String(n).padStart(3, '0')}.json`);
+
+function withDir(fn) {
+  const dir = mkdtempSync(join(tmpdir(), 'rhr-'));
+  return Promise.resolve(fn(dir)).finally(() => rmSync(dir, { recursive: true, force: true }));
+}
+
+test('recordHarnessRun + artifactPath: a pre-existing run-002 file plus a new run (local claim 003, ledger empty) yields MATCHING id and filename', () =>
+  withDir(async (dir) => {
+    writeFileSync(saPath(dir, 2), JSON.stringify(saArtifact(2)));
+    writeFileSync(saPath(dir, 3), JSON.stringify(saArtifact(3)));
+    const sb = fakeSb();
+    const outcome = await recordHarnessRun(sb, saArtifact(3), { log: () => {}, readAllFn: async () => [], artifactPath: saPath(dir, 3) });
+    assert.equal(outcome.ok, true);
+    assert.equal(outcome.run_id, `${SA}-run-001`);
+    assert.equal(sb.calls[0].row.run_id, `${SA}-run-001`);
+    assert.equal(outcome.artifact_path, saPath(dir, 1));
+    assert.ok(existsSync(saPath(dir, 1)), 'the artifact file is named after the ledger id');
+    assert.equal(existsSync(saPath(dir, 3)), false, 'the stale-numbered file is gone, not duplicated');
+    assert.equal(JSON.parse(readFileSync(saPath(dir, 1), 'utf8')).run_id, `${SA}-run-001`, 'the file content carries the ledger id');
+    assert.equal(readFileSync(saPath(dir, 2), 'utf8'), JSON.stringify(saArtifact(2)), 'an unrelated artifact is untouched');
+  }));
+
+test('recordHarnessRun + artifactPath: a ledger number whose filename is already held by ANOTHER artifact is skipped, never clobbered (id still equals filename)', () =>
+  withDir(async (dir) => {
+    for (const n of [1, 2]) writeFileSync(saPath(dir, n), JSON.stringify({ ...saArtifact(n), marker: `historical-${n}` }));
+    writeFileSync(saPath(dir, 3), JSON.stringify(saArtifact(3)));
+    const sb = fakeSb();
+    const outcome = await recordHarnessRun(sb, saArtifact(3), { log: () => {}, readAllFn: async () => [], artifactPath: saPath(dir, 3) });
+    assert.equal(outcome.ok, true);
+    assert.equal(outcome.run_id, `${SA}-run-003`, 'ledger empty would say 001, but 001 and 002 are held by other artifacts');
+    assert.equal(sb.calls[0].row.run_id, `${SA}-run-003`);
+    assert.equal(JSON.parse(readFileSync(saPath(dir, 1), 'utf8')).marker, 'historical-1');
+    assert.equal(JSON.parse(readFileSync(saPath(dir, 2), 'utf8')).marker, 'historical-2');
+    assert.deepEqual(readdirSync(dir).sort(), [1, 2, 3].map((n) => `${SA}-run-00${n}.json`));
+  }));
+
+test('recordHarnessRun + artifactPath: ledger ahead of the directory renames UP and the file follows', () =>
+  withDir(async (dir) => {
+    writeFileSync(saPath(dir, 1), JSON.stringify(saArtifact(1)));
+    const sb = fakeSb();
+    const outcome = await recordHarnessRun(sb, saArtifact(1), {
+      log: () => {}, artifactPath: saPath(dir, 1),
+      readAllFn: async () => [{ run_id: `${SA}-run-004` }, { run_id: `${SA}-run-005` }],
+    });
+    assert.equal(outcome.run_id, `${SA}-run-006`);
+    assert.deepEqual(readdirSync(dir), [`${SA}-run-006.json`]);
+    assert.equal(JSON.parse(readFileSync(saPath(dir, 6), 'utf8')).run_id, `${SA}-run-006`);
+  }));
+
+test('recordHarnessRun + artifactPath: a failed insert leaves the file exactly as written (nothing landed, nothing renamed)', () =>
+  withDir(async (dir) => {
+    writeFileSync(saPath(dir, 3), JSON.stringify(saArtifact(3)));
+    const sb = fakeSb({ error: { message: 'connection refused' } });
+    const outcome = await recordHarnessRun(sb, saArtifact(3), { log: () => {}, readAllFn: async () => [], artifactPath: saPath(dir, 3) });
+    assert.equal(outcome.ok, false);
+    assert.deepEqual(readdirSync(dir), [`${SA}-run-003.json`]);
+  }));
+
+test('recordHarnessRun + artifactPath: a landed row whose file cannot be reconciled is reported (artifact_error), never silent', () =>
+  withDir(async (dir) => {
+    const sb = fakeSb();
+    const outcome = await recordHarnessRun(sb, saArtifact(3), { log: () => {}, readAllFn: async () => [], artifactPath: saPath(dir, 3) }); // file does not exist
+    assert.equal(outcome.ok, true);
+    assert.match(outcome.artifact_error, /artifact/i);
+  }));
+
+test('runCli: --file is the artifact path, so a renumbered landing renames that file to the ledger id and exits 0', () =>
+  withDir(async (dir) => {
+    writeFileSync(saPath(dir, 3), JSON.stringify(saArtifact(3)));
+    const code = await runCli(['--file', saPath(dir, 3)], {
+      log: () => {}, errorLog: () => {}, envUrl: 'https://example.supabase.co', envKey: 'k',
+      createClientFn: () => Object.assign(fakeSb(), {
+        // the default reader selects from harness_runs; an empty table is enough to make the ledger id 001
+        from(table) {
+          return {
+            select() { const q = { order() { return q; }, eq() { return q; }, then(r) { r({ data: [], error: null }); } }; return q; },
+            async insert() { return { error: null }; },
+          };
+        },
+      }),
+    });
+    assert.equal(code, 0);
+    assert.deepEqual(readdirSync(dir), [`${SA}-run-001.json`]);
+  }));

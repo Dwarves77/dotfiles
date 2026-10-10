@@ -518,7 +518,9 @@ jobs:
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
-          args=(--census-rows "$CENSUS_ROWS_PATH" --grade record --execute --out-dir "$EXPORT_DIR")
+          args=(--census-rows "$CENSUS_ROWS_PATH" --grade record --execute --run-mode "$RUN_MODE" --out-dir "$EXPORT_DIR")
+          # --run-mode "$RUN_MODE" (lane HARNESS-1, 2026-10-10): the RESOLVED mode (after the chained dry-run guard), so the
+          # recorded config.mode is dry when the guard forced dry; --execute alone only means "write the output files".
           # THE POPULATION CAP + loop_run_id (lane M3, 2026-09-19, Amendment 2 item 4): only on a
           # workflow_run-chained dispatch (RUN_LIMIT_FLAG is --max-items only in that branch of the
           # resolve step above) does RUN_LIMIT hold the population cap this run actually used; a hand

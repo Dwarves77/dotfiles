@@ -631,3 +631,81 @@ test("CLI: --batch-file and --census-rows together is refused as ambiguous", () 
 // runner's export is now a direct re-export of governing-files.mjs's GOVERNING_FILES.mint, so the two
 // cannot drift apart by construction; a separate string-match test here would only prove the same import
 // worked twice.
+
+// ── HARNESS-1 (2026-10-10): the recorded mode is the RESOLVED mode, never the requested one ───────────
+// [CONFIRMED] Population turn 38058506216 resolved mode=dry (chained dry-run guard, rule 16) yet its mint
+// row said `execute`: run-mint-batch is always invoked with --execute (that flag only means "write this
+// invocation's own output files"), so config.mode was derived from it, not from the run mode the guard
+// produced. --run-mode carries the resolved mode in; config.mode follows it.
+
+test("buildRunArtifact: requested apply, resolved dry (--execute passed, runMode dry) records mode `dry`, never `execute`", () => {
+  const result = runBatch([EXAMPLE_PAYLOAD], { baseDir: HERE });
+  const artifact = buildRunArtifact({
+    runId: "mint-run-001", harnessVersion: "sha256:aaaaaaaaaaaaaaaa", startedAt: "2026-10-10T00:00:00Z",
+    finishedAt: "2026-10-10T00:00:05Z", batchPath: "/tmp/batch.json", outDir: "/tmp/out", execute: true,
+    runMode: "dry", result, runError: null, applyReadyPath: null, reportPath: null,
+  });
+  assert.equal(artifact.config.mode, "dry");
+  assert.equal(artifact.config.run_mode, "dry");
+  assert.deepEqual(validateRunArtifact(artifact), []);
+});
+
+test("buildRunArtifact: resolved apply records `execute` (the vocabulary the downstream-chain gate and the train derivation read)", () => {
+  const artifact = buildRunArtifact({
+    runId: "mint-run-001", harnessVersion: "sha256:aaaaaaaaaaaaaaaa", startedAt: "2026-10-10T00:00:00Z",
+    finishedAt: "2026-10-10T00:00:05Z", batchPath: "/tmp/batch.json", outDir: "/tmp/out", execute: true,
+    runMode: "apply", result: null, runError: null,
+  });
+  assert.equal(artifact.config.mode, "execute");
+  assert.equal(artifact.config.run_mode, "apply");
+});
+
+test("buildRunArtifact: no runMode (a hand run, no guard) keeps the old execute/dry_run label and run_mode null", () => {
+  const base = { runId: "mint-run-001", harnessVersion: "sha256:aaaaaaaaaaaaaaaa", startedAt: "2026-10-10T00:00:00Z",
+    finishedAt: "2026-10-10T00:00:05Z", batchPath: "/tmp/batch.json", outDir: "/tmp/out", result: null, runError: null };
+  const a = buildRunArtifact({ ...base, execute: true });
+  assert.equal(a.config.mode, "execute");
+  assert.equal(a.config.run_mode, null);
+  assert.equal(buildRunArtifact({ ...base, execute: false }).config.mode, "dry_run");
+});
+
+test("buildRunArtifact: an unknown runMode throws rather than recording an invented label", () => {
+  assert.throws(
+    () => buildRunArtifact({ runId: "mint-run-001", harnessVersion: "sha256:aaaaaaaaaaaaaaaa", startedAt: "x", finishedAt: "y",
+      batchPath: "/b", outDir: "/o", execute: true, runMode: "plan", result: null, runError: null }),
+    /runMode/,
+  );
+});
+
+test("CLI --execute --run-mode dry: the artifact ON DISK carries mode `dry` (row mode equals artifact mode)", () => {
+  const dir = tmpDir();
+  try {
+    const batchPath = join(dir, "batch.json");
+    writeFileSync(batchPath, JSON.stringify([EXAMPLE_PAYLOAD]));
+    const harnessRunsDir = join(dir, "harness-runs", "mint");
+    const res = run(["--batch-file", batchPath, "--execute", "--run-mode", "dry", "--harness-runs-dir", harnessRunsDir, "--out-dir", dir]);
+    assert.equal(res.status, 0, res.stderr);
+    const artifact = JSON.parse(readFileSync(join(harnessRunsDir, "mint-run-001.json"), "utf8"));
+    assert.equal(artifact.config.mode, "dry");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI --run-mode with a value other than dry|apply is a usage error", () => {
+  const dir = tmpDir();
+  try {
+    const batchPath = join(dir, "batch.json");
+    writeFileSync(batchPath, JSON.stringify([EXAMPLE_PAYLOAD]));
+    const res = run(["--batch-file", batchPath, "--execute", "--run-mode", "plan", "--harness-runs-dir", join(dir, "h")]);
+    assert.equal(res.status, 1);
+    assert.match(res.stderr, /--run-mode/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("population-turn.yml passes the RESOLVED mode ($RUN_MODE, after the chained dry-run guard) to run-mint-batch.mjs", () => {
+  const yml = readFileSync(join(HERE, "..", "..", "..", ".github", "workflows", "population-turn.yml"), "utf8");
+  assert.match(yml, /args=\(--census-rows "\$CENSUS_ROWS_PATH" --grade record --execute --run-mode "\$RUN_MODE" --out-dir "\$EXPORT_DIR"\)/);
+});

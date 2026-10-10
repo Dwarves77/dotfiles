@@ -103,7 +103,9 @@ export function runExtractionPass({ items }) {
 }
 
 /** Live-DB orchestration: read-only fetch + extraction pass + harness-run artifact write. */
-async function runDryRun({ limit } = {}, { readAllFn = readAll, sb, log = () => {} } = {}) {
+// familyDir / harnessRunsClient are injectable so the artifact-name-equals-ledger-id behaviour is provable on
+// fixtures (lane HARNESS-1, 2026-10-10); the CLI supplies neither.
+export async function runDryRun({ limit } = {}, { readAllFn = readAll, sb, log = () => {}, familyDir: familyDirOverride = null, harnessRunsClient = null } = {}) {
   const startedAt = new Date().toISOString();
   log(`\n===== DRY-RUN-STRUCTURED-ACTIONS (read-only; no destination column exists -- extraction preview only) =====`);
 
@@ -115,7 +117,7 @@ async function runDryRun({ limit } = {}, { readAllFn = readAll, sb, log = () => 
   log(`metrics: ${JSON.stringify(metrics)}`);
 
   const fsiRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-  const familyDir = resolve(fsiRoot, "scripts/harness-runs", FAMILY);
+  const familyDir = familyDirOverride ?? resolve(fsiRoot, "scripts/harness-runs", FAMILY);
   const harnessVersion = hashHarnessVersion(GOVERNING_FILES[FAMILY], fsiRoot);
   const runId = claimRunId(familyDir, FAMILY);
 
@@ -159,20 +161,26 @@ async function runDryRun({ limit } = {}, { readAllFn = readAll, sb, log = () => 
 
   let harnessRunRow = null;
   try {
-    const { createClient } = await import("@supabase/supabase-js");
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) throw new Error("NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set");
-    const harnessRunsClient = createClient(url, key, { auth: { persistSession: false } });
+    let client = harnessRunsClient;
+    if (!client) {
+      const { createClient } = await import("@supabase/supabase-js");
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!url || !key) throw new Error("NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set");
+      client = createClient(url, key, { auth: { persistSession: false } });
+    }
     const { recordHarnessRun } = await import("../lib/record-harness-run.mjs");
-    harnessRunRow = await recordHarnessRun(harnessRunsClient, artifact, { log });
+    // artifactPath: the recorder renames the file to the id the ledger row lands under, so the artifact is
+    // always findable from the ledger row (lane HARNESS-1, 2026-10-10).
+    harnessRunRow = await recordHarnessRun(client, artifact, { log, artifactPath });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log(`record-harness-run: not recorded this run (best-effort, no worktree DB credentials expected): ${msg}`);
     harnessRunRow = { ok: false, error: msg };
   }
 
-  return { runId, artifactPath, metrics, sampleActions, harnessRunRow };
+  const landedPath = harnessRunRow?.artifact_path ?? artifactPath;
+  return { runId: harnessRunRow?.ok ? harnessRunRow.run_id : runId, artifactPath: landedPath, metrics, sampleActions, harnessRunRow };
 }
 
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────────────
