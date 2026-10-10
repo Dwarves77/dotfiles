@@ -305,10 +305,12 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
   report.homeRepeat375 = homeRepeat;
   report.hydrationDiagnostics = hydrationDiagnostics;
   const lines = formatSummary(findings, holds);
+  const totals = lines.pop(); // the totals line stays last
   lines.push(`home at 375: ${homeRepeat.visits} visit(s), ${homeRepeat.hydrationFailures} with a hydration error`);
   for (const d of hydrationDiagnostics) {
     lines.push(`HYDRATION ${d.viewport}px ${d.url}: ${d.diff ? `first structural difference ${d.diff.path} (server ${d.diff.server}, client ${d.diff.client})` : d.note}`);
   }
+  lines.push(totals);
   return { findings, holds, report, lines };
 }
 
