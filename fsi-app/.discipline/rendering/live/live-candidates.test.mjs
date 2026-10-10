@@ -75,8 +75,27 @@ test("summariseRows: de-duplicates by id, orders by id, visits at most VISIT_PER
   assert.equal(s.sample.length, SAMPLE_SIZE);
   assert.equal(s.visit[0], "/regulations/g14", "the first by id, shown by its legacy id");
   assert.match(s.visit[1], /^\/(market|regulations|research|operations)\/b$/);
-  assert.deepEqual(summariseRows([]), { count: 0, visit: [], sample: [] });
-  assert.deepEqual(summariseRows(null), { count: 0, visit: [], sample: [] });
+  assert.deepEqual(summariseRows([]), { count: 0, visit: [], sample: [], listVisit: [] });
+  assert.deepEqual(summariseRows(null), { count: 0, visit: [], sample: [], listVisit: [] });
+});
+
+test("summariseRows (lane SMOKE-4): listVisit is the candidate's own surface list filtered by its title, bounded, distinct, encoded, and skips an untitled item", () => {
+  const rows = [
+    item("a", { legacy_id: "g14", title: "EU ETS: Phase 4 & aviation" }),
+    item("b", { item_type: "market_signal", domain: 6, title: "Sustainable fuel premium" }),
+    item("c", { title: "Third item" }),
+    item("d", { title: null }),
+    item("e"),
+  ];
+  const s = summariseRows(rows);
+  assert.equal(s.listVisit.length, VISIT_PER_CLASS);
+  assert.equal(s.listVisit[0], "/regulations?q=EU%20ETS%3A%20Phase%204%20%26%20aviation");
+  const surfaceOfDetail = s.visit[1].split("/")[1];
+  assert.equal(s.listVisit[1], `/${surfaceOfDetail}?q=Sustainable%20fuel%20premium`, "the list of the surface the item's detail path names");
+  assert.deepEqual(summariseRows([item("d", { title: null }), item("e", { title: "   " })]).listVisit, [], "an untitled item cannot be searched for");
+  assert.equal(summariseRows([item("a", { title: "x ".repeat(100) })]).listVisit[0], `/regulations?q=${encodeURIComponent("x ".repeat(30).trim())}`, "a long title is cut to 60 characters and trimmed (still a substring of the title)");
+  const dup = summariseRows([item("a", { title: "Same" }), item("b", { title: "Same" })]);
+  assert.deepEqual(dup.listVisit, ["/regulations?q=Same"], "two items with one title are one list page");
 });
 
 test("visibleInferenceViews: keeps a current customer-method cited claim; drops REFUTED, uncited, superseded, a non-customer method and a non-current row", () => {
@@ -132,7 +151,13 @@ test("record class: only verified, non-archived, record-grade items", async () =
   });
   const r = await resolveRecordCandidates(rest);
   assert.equal(r.count, 1);
-  assert.deepEqual(await resolveRecordCandidates(fakeRest({ intelligence_items: [verified("b1", { item_grade: "brief" })] })), { count: 0, visit: [], sample: [] });
+  assert.deepEqual(await resolveRecordCandidates(fakeRest({ intelligence_items: [verified("b1", { item_grade: "brief" })] })), { count: 0, visit: [], sample: [], listVisit: [] });
+  // Lane SMOKE-4: the read asks for the title (the list is searched by it) and the class carries the list URL.
+  const withTitle = await resolveRecordCandidates(fakeRest({ intelligence_items: [verified("r1", { item_grade: "record", title: "Record one" })] }));
+  assert.deepEqual(withTitle.listVisit, ["/regulations?q=Record%20one"]);
+  const queries = [];
+  await resolveRecordCandidates(async (t, q) => { queries.push(q); return []; });
+  assert.match(queries[0], /select=[^&]*\btitle\b/);
 });
 
 test("bias class: items whose source has a usable bias tag; a source with no tag, or an unusable one, does not count", async () => {
@@ -170,6 +195,8 @@ test("candidateLines: an unresolved result says so and gives the reason; a popul
   assert.deepEqual(candidateLines(null), ["candidates UNRESOLVED: no candidate file"]);
   const lines = candidateLines({ resolved: true, classes: { inference: { count: 3, visit: ["/regulations/a"], sample: ["/regulations/a", "/market/b"] } } });
   assert.equal(lines[0], "candidates inference: 3 item(s); e.g. /regulations/a /market/b");
+  const withList = candidateLines({ resolved: true, classes: { record: { count: 2, visit: ["/regulations/a"], sample: ["/regulations/a"], listVisit: ["/regulations?q=A%20title"] } } });
+  assert.equal(withList[0], "candidates record: 2 item(s); e.g. /regulations/a; list /regulations?q=A%20title");
 });
 
 // ---------------------------------------------------------------- the REST client and the CLI
