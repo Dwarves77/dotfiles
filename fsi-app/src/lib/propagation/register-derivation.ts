@@ -24,7 +24,7 @@ import type { Derivation, OriginClass, Lifecycle, Admissibility, InputRef } from
 
 /** A Supabase client's minimal RPC surface this module needs — kept narrow (not the full supabase-js
  *  `SupabaseClient` type) so a hand-rolled test double satisfies it with zero npm dependency. */
-export interface RpcClient {
+interface RpcClient {
   rpc(fn: string, args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
 }
 
@@ -33,7 +33,7 @@ export interface RpcClient {
  *  server-assigned fields, plus `confidence` (the wire name for `base_confidence` — kept distinct from
  *  `Value.baseConfidence` because THIS is what a caller SUPPLIES at write time, before any decay has
  *  applied; `Value.baseConfidence` is what a caller later READS back). */
-export interface RegisterDerivedValueInput {
+interface RegisterDerivedValueInput {
   entityId: string | null;
   methodId: string;
   methodVersion: string;

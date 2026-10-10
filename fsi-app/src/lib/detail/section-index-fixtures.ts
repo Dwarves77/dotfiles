@@ -6,7 +6,7 @@
  * name (review item 4: "Full name is the section header, not the tab").
  */
 
-export interface SectionIndexBodyFixture {
+interface SectionIndexBodyFixture {
   id: string;
   fullTitle: string;
   body: string;

@@ -10,7 +10,7 @@
 
 import { Check } from "lucide-react";
 
-export const ONBOARDING_STEPS = [
+const ONBOARDING_STEPS = [
   { n: 1, label: "Workspace" },
   { n: 2, label: "Modes & jurisdictions" },
   { n: 3, label: "Sectors" },

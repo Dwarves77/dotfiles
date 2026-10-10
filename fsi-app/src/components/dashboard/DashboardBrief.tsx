@@ -40,7 +40,7 @@ import { PageFrame } from "@/components/layout/PageFrame";
 import type { buildThemeChips } from "@/lib/research/theme-brief.mjs";
 
 
-export interface DashboardBriefProps {
+interface DashboardBriefProps {
   /** Rows SELECTED AND SHAPED ON THE SERVER (src/lib/dashboard/brief-rows.ts) through the shared
    *  `toListRowFields` derivation the list ledgers use — see that module for defect D3, and
    *  src/lib/render-now.ts for why no row derivation may run against this component's own clock. */

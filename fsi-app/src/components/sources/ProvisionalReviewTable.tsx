@@ -48,9 +48,9 @@ import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCar
 import { formatNumber } from "@/lib/format";
 import { hostFromUrl } from "@/lib/entities/host-from-url.mjs";
 
-export type ProvisionalDecision = "approve" | "reject" | "defer";
+type ProvisionalDecision = "approve" | "reject" | "defer";
 
-export interface ProvisionalReviewTableProps {
+interface ProvisionalReviewTableProps {
   rows: ProvisionalSource[];
   /** Called after a successful write so the caller can drop the row from its list. */
   onActionDone: (id: string, decision: ProvisionalDecision) => void;

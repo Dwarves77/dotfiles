@@ -224,3 +224,22 @@ test("CONFORMANCE: the committed map resolves through the replay reader with no 
   const plan = planReplay(inventoryRows, sqlFiles, ledger, readFileSync(MAP_PATH, "utf8"), (f) => fileTexts.get(f));
   assert.deepEqual(plan.errors, []);
 });
+
+test("MIG-HIST-2: the generator itself writes the recorded diff on every code-differs entry and on no other (one entry point, no second command)", () => {
+  const r = build(rec(
+    [{ version: "20260726195325", name: "gate_a_criterion_7" }],
+    [],
+    [],
+    [{ version: "001", applied_name: "x", file: "001_x.sql" }],
+  ));
+  assert.deepEqual(r.problems.filter((p) => /code-differs/.test(p)), [], "no annotation problem (the other problems are the fixture's missing rulings)");
+  const d = r.map["20260726195325"].diff;
+  assert.ok(d, "a code-differs entry carries a diff record straight from the generator");
+  assert.equal(d.class, "changed-in-place");
+  assert.match(d.sha256, /^[0-9a-f]{64}$/);
+  assert.equal(r.map["001"].diff, undefined, "an identical entry carries no record");
+  assert.equal(serializeMap(r.map), serializeMap(build(rec(
+    [{ version: "20260726195325", name: "gate_a_criterion_7" }], [], [],
+    [{ version: "001", applied_name: "x", file: "001_x.sql" }],
+  )).map), "deterministic");
+});

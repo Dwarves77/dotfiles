@@ -24,7 +24,7 @@
  *  notice-at-collection). /auth/reset-password is public because its only visitor is someone who cannot sign
  *  in (the login page links to it); /auth/update-password stays gated, it needs the recovery session the
  *  callback establishes. */
-export const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/reset-password", "/privacy"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/reset-password", "/privacy"];
 
 // perf item #9: scanner/probe short-circuit. Production logs show repeated hits to WordPress/PHP admin
 // paths (this app runs neither) — each one previously ran the full proxy body (Supabase client
@@ -35,7 +35,7 @@ export const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/auth/rese
 // that are exclusively WordPress/PHP territory — never a plausible route in this Next.js app — plus the
 // literal `.php` extension. Do not broaden this list without checking it against the app's actual route
 // table.
-export const SCANNER_PROBE_PREFIXES = ["/wp-admin", "/wp-includes", "/wp-content", "/wp-login", "/xmlrpc.php"];
+const SCANNER_PROBE_PREFIXES = ["/wp-admin", "/wp-includes", "/wp-content", "/wp-login", "/xmlrpc.php"];
 
 export function isScannerProbe(pathname: string): boolean {
   return SCANNER_PROBE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) || pathname.endsWith(".php");
@@ -60,7 +60,7 @@ export function isStaticOrApiRoute(pathname: string): boolean {
   );
 }
 
-export type RouteDecision =
+type RouteDecision =
   | { action: "scanner-404" }
   | { action: "allow" }
   /** An authenticated viewer hit /login or /signup — bounce to the dashboard instead of showing the
@@ -70,7 +70,7 @@ export type RouteDecision =
    *  as the post-login return target (consumed by safe-return-path.mjs's sanitizeReturnPath). */
   | { action: "redirect-login"; redirectTo: string };
 
-export interface RouteDecisionInput {
+interface RouteDecisionInput {
   pathname: string;
   /** Whether THIS request carries a valid, unexpired session. proxy.ts derives this from
    *  supabase.auth.getClaims() (fail-closed: any thrown/rejected claims check maps to `false`, matching

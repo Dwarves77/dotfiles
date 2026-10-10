@@ -58,7 +58,7 @@ function TeamBadge() {
   );
 }
 
-export interface DashboardWatchlistProps {
+interface DashboardWatchlistProps {
   promise: Promise<WatchlistItem[]>;
 }
 

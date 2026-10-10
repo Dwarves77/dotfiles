@@ -26,7 +26,7 @@ export const KNOWN_FREE_TEXT_JURISDICTIONS = [
   "ICAO",
 ] as const;
 
-export type KnownFreeTextJurisdiction =
+type KnownFreeTextJurisdiction =
   (typeof KNOWN_FREE_TEXT_JURISDICTIONS)[number];
 
 // ── Legacy → ISO mapping ──
@@ -35,22 +35,6 @@ export type KnownFreeTextJurisdiction =
 // these in sync if the migration mapping is ever expanded.
 //
 // Keys are lower-cased to match the legacy column convention.
-
-const LEGACY_TO_ISO_MAP: Readonly<Record<string, string>> = {
-  us: "US",
-  eu: "EU",
-  uk: "GB",
-  global: "GLOBAL",
-  singapore: "SG",
-  "hong kong": "HK",
-  japan: "JP",
-  "south korea": "KR",
-  china: "CN",
-  canada: "CA",
-  australia: "AU",
-  imo: "IMO",
-  icao: "ICAO",
-};
 
 // ── ISO 3166-1 alpha-2 country code regex ──
 // Two uppercase ASCII letters. Validates shape, not membership.
@@ -87,32 +71,6 @@ const ISO_3166_2_PATTERN = /^[A-Z]{2}-[A-Z0-9]{1,3}$/;
  */
 export function normalizeJurisdictionIsoColumn(value: unknown): string[] | undefined {
   return Array.isArray(value) ? (value as string[]) : undefined;
-}
-
-/**
- * Map an array of legacy free-text jurisdiction strings (e.g.
- * ["us", "eu"]) to the canonical ISO codes used by the new
- * jurisdiction_iso column (e.g. ["US", "EU"]).
- *
- * Strings that do not match the known mapping are dropped — the
- * caller is responsible for the fallback path. The W4 backfill
- * agent uses content inference for unmapped legacy values.
- */
-export function legacyToIso(jurisdictionStrings: string[]): string[] {
-  if (!Array.isArray(jurisdictionStrings)) return [];
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const raw of jurisdictionStrings) {
-    if (typeof raw !== "string") continue;
-    const key = raw.trim().toLowerCase();
-    if (!key) continue;
-    const mapped = LEGACY_TO_ISO_MAP[key];
-    if (mapped && !seen.has(mapped)) {
-      seen.add(mapped);
-      out.push(mapped);
-    }
-  }
-  return out;
 }
 
 /**

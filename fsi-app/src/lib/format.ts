@@ -20,23 +20,6 @@ export function formatDate(iso: string | undefined | null): string {
   return `${months[month]} ${year}`;
 }
 
-/** Format a date for timeline display — shorter form */
-export function formatTimelineDate(iso: string): string {
-  return formatDate(iso);
-}
-
-/** Get quarter from date */
-export function getQuarter(iso: string): { year: number; quarter: number; label: string } {
-  const parts = iso.split(/[-T]/);
-  const year = parseInt(parts[0]);
-  const month = parseInt(parts[1]);
-
-  // Q1 = Jan-Mar (1-3), Q2 = Apr-Jun (4-6), Q3 = Jul-Sep (7-9), Q4 = Oct-Dec (10-12)
-  const quarter = Math.ceil(month / 3);
-
-  return { year, quarter, label: `${year} Q${quarter}` };
-}
-
 // ── RECONCILE (2026-09-04, item 4b-ii): THE one home for Intl-locale-dependent formatting ──────────
 //
 // Extends this file's own C6 consolidation precedent (2026-07-12, this file's own header: "THE one

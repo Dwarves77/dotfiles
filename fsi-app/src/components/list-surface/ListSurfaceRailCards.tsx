@@ -277,7 +277,7 @@ export function FiltersRailCard({ groups }: { groups: ListSurfaceFacetGroup[] })
 // 30-day window classifies as Immediate, so the live card's bars are one hue where the artboard's
 // sample data drew a red/orange mix; that is a data-driven difference, logged in DEVIATION-LOG.md,
 // not a geometry or colour deviation.
-export interface ObligationRailEvent {
+interface ObligationRailEvent {
   id: string;
   event_date: string;
   date_precision: "day" | "month" | "year";

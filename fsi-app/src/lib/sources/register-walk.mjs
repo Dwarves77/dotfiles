@@ -96,7 +96,7 @@ export function looksLikeOjDailyView(html) {
 }
 
 /** @param {Array<{url:string,anchorText?:string|null}>} links */
-export function ojActLinksOnly(links) {
+function ojActLinksOnly(links) {
   return links.filter((l) => OJ_ACT_LINK_RE.test(new URL(l.url).pathname));
 }
 

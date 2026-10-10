@@ -13,7 +13,7 @@
 // Pure module: query builders and clients are passed in; nothing here reaches a database by itself.
 
 /** The column an admin sets to pin a source's tier. */
-export const TIER_OVERRIDE_COLUMN = "tier_override";
+const TIER_OVERRIDE_COLUMN = "tier_override";
 
 /**
  * Adds the override guard to a PostgREST query builder (supabase-js, or db.mjs's applyMatch builder).

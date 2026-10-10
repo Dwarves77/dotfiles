@@ -27,7 +27,7 @@
  * ignores `layout`.
  */
 
-export interface StatBlockProps {
+interface StatBlockProps {
   label: string;
   value: React.ReactNode;
   note?: React.ReactNode;

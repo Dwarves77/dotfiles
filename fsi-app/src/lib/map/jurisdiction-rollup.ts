@@ -61,7 +61,7 @@ export function jurisdictionCount(rows: Resource[]): number {
  * "N jurisdictions with immediate items" — one figure, two sentences, and
  * after this module one derivation.
  */
-export function jurisdictionKeysInBand(rows: Resource[], bandKey: string): string[] {
+function jurisdictionKeysInBand(rows: Resource[], bandKey: string): string[] {
   return jurisdictionKeys(rows.filter((r) => bandFromPriority(r.priority).key === bandKey));
 }
 

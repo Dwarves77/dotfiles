@@ -19,7 +19,7 @@
  * only requires it to be a string, not ISO), so parsing is honest-best-effort, never asserted.
  */
 
-export interface RequirementTrajectoryStepLike {
+interface RequirementTrajectoryStepLike {
   date: string;
   value: string;
   label?: string;

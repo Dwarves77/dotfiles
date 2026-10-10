@@ -51,12 +51,12 @@ import { scanBrief } from "../agent/gate-a-scan.mjs";
 
 // ── item_gate_a_state ────────────────────────────────────────────────────────────────────────────────
 
-export interface GateAClaimInput {
+interface GateAClaimInput {
   claim_text: string;
   source_span: string;
 }
 
-export interface GateARow {
+interface GateARow {
   intelligence_item_id: string;
   scanned_hash: string;
   orphan_count: number;
@@ -142,7 +142,7 @@ export function buildCitationRows(
 
 // ── outcome classification ──────────────────────────────────────────────────────────────────────────
 
-export type MintOutcome = "minted_verified" | "minted_unverified";
+type MintOutcome = "minted_verified" | "minted_unverified";
 
 /**
  * The pass/fail meaning of a FRESH read of intelligence_items.provenance_status, straight from the row --
@@ -162,7 +162,7 @@ export function classifyMintOutcome(rowProvenanceStatus: string | null | undefin
 // from a payload) -- kept here anyway so the row shapes stay next to the buildGateARow/buildCitationRows
 // they share a table family with, and so apply-mint-batch.mjs need not hand-duplicate them.
 
-export interface MintPayload {
+interface MintPayload {
   item: {
     full_brief?: string | null;
     [key: string]: unknown;
@@ -186,7 +186,7 @@ export interface MintPayload {
   [key: string]: unknown;
 }
 
-export interface AgentRunSearchRow {
+interface AgentRunSearchRow {
   intelligence_item_id: string;
   search_query: string | null;
   result_url: string;
@@ -288,11 +288,11 @@ export function buildClaimRows(
 
 // ── writeGroundingSequence: the full guarded post-item-insert write, record tier's own call site ───────
 
-export interface GuardedInsertResult {
+interface GuardedInsertResult {
   inserted: unknown;
   snapshot?: string | null;
 }
-export interface GuardedInsertManyResult {
+interface GuardedInsertManyResult {
   inserted: number;
   snapshot?: string | null;
   rows: Array<Record<string, unknown>>;
@@ -310,7 +310,7 @@ export interface WriteGroundingSequenceDeps {
   ) => Promise<GuardedInsertManyResult>;
   cite: Cite;
 }
-export interface WriteGroundingSequenceResult {
+interface WriteGroundingSequenceResult {
   insSearches: GuardedInsertManyResult;
   insSections: GuardedInsertManyResult;
   insClaims: GuardedInsertManyResult;

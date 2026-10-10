@@ -57,7 +57,7 @@ export function authorityDistributionLabel(d: AuthorityDistributionShape): strin
   return parts.join(" · ");
 }
 
-export interface CredibilityChipAuthorityProps {
+interface CredibilityChipAuthorityProps {
   /** Null until the producer's distribution is wired in (see file header). */
   authorityDistribution?: AuthorityDistributionShape | null;
   /** Real signal, NOT the authority score — source registry tier, clamped 1-7. */

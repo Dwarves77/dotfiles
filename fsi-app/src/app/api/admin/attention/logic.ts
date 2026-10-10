@@ -36,7 +36,7 @@ export const EMPTY_COUNTS: AttentionCounts = {
   total: 0,
 };
 
-export type AttentionFetchResult = { row: AttentionCounts; rpcError: string | null };
+type AttentionFetchResult = { row: AttentionCounts; rpcError: string | null };
 
 // Server-side cache around the RPC. Keyed by admin user id so each admin gets an isolated entry.
 // The RPC currently returns platform-wide counts (so all entries are content-identical), but the

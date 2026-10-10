@@ -36,7 +36,7 @@ import type { buildStatements } from "@/lib/operations/statements.mjs";
 type Statement = ReturnType<typeof buildStatements>[number];
 type Component = Statement["components"][number];
 
-export interface StatementsBlockProps {
+interface StatementsBlockProps {
   statements: Statement[];
   /** Display caption per dimension db code (the Ledger's own "D3 Labor markets"). A dimension with no
    *  caption shows its code, never a guessed name. */

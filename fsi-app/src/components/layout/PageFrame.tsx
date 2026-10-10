@@ -34,14 +34,14 @@
 
 import type { ReactNode } from "react";
 
-export type PageFramePadding = "default" | "account";
+type PageFramePadding = "default" | "account";
 
 const PADDING: Record<PageFramePadding, string> = {
   default: "20px 40px 40px",
   account: "18px 40px 40px",
 };
 
-export interface PageFrameProps {
+interface PageFrameProps {
   /** The content column (grid column 1). */
   children: ReactNode;
   /** The 300px rail (grid column 2). Omit on a route whose artboard draws no rail. */

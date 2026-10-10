@@ -470,3 +470,63 @@ test("rule 13: the gate stays under 300 ms on the real tree (cold scan, then cac
   } finally { process.env.GATE_DISPOSITION_ROOT = prev; }
 });
 
+
+// ── RULES-X-2 (pair 7): the lane contract's own forms inside a lane worktree are allowed, not asked ──
+import { mkdtempSync as x7Mkdtemp, mkdirSync as x7Mkdir, writeFileSync as x7Write, rmSync as x7Rm } from "node:fs";
+import { tmpdir as x7Tmpdir } from "node:os";
+import { join as x7Join } from "node:path";
+
+function x7Tree() {
+  const root = x7Mkdtemp(x7Join(x7Tmpdir(), "x7-"));
+  const main = x7Join(root, "repo");
+  x7Mkdir(x7Join(main, ".git"), { recursive: true });
+  const lane = x7Join(main, ".claude", "worktrees", "lane-a");
+  x7Mkdir(x7Join(lane, "fsi-app"), { recursive: true });
+  x7Write(x7Join(lane, ".git"), "gitdir: ../../../.git/worktrees/lane-a\n");
+  const stray = x7Join(root, "scratch-checkout");
+  x7Mkdir(stray, { recursive: true });
+  x7Write(x7Join(stray, ".git"), "gitdir: elsewhere\n");
+  return { root, main, lane, stray };
+}
+const x7Gate = (command, cwd) => evaluateGate({ tool_name: "Bash", tool_input: { command }, cwd, transcript_path: LOADED });
+
+test("pair 7: git worktree add and git merge origin/master inside a lane worktree are allowed", () => {
+  const t = x7Tree();
+  try {
+    for (const cmd of ["git worktree add ../w2 -b lane/y origin/master", "git merge origin/master", "git merge --no-edit origin/master", "git merge --ff-only origin/master"]) {
+      assert.equal(isolationAsk(cmd, { cwd: t.lane }), false, cmd);
+      assert.notEqual(x7Gate(cmd, t.lane).tag, "worktree-isolation", cmd);
+    }
+    assert.equal(isolationAsk("git merge origin/master", { cwd: x7Join(t.lane, "fsi-app") }), false, "a subdirectory of the lane worktree");
+  } finally { x7Rm(t.root, { recursive: true, force: true }); }
+});
+
+test("pair 7 attack: git merge in the main checkout still asks, and so does git worktree add there", () => {
+  const t = x7Tree();
+  try {
+    for (const cmd of ["git merge origin/master", "git worktree add ../w2 -b lane/y origin/master"]) {
+      assert.equal(isolationAsk(cmd, { cwd: t.main }), true, cmd);
+      assert.equal(x7Gate(cmd, t.main).permissionDecision, "ask", cmd);
+      assert.equal(x7Gate(cmd, t.main).tag, "worktree-isolation", cmd);
+    }
+    assert.equal(isolationAsk("git merge origin/master", {}), true, "no cwd in the payload");
+  } finally { x7Rm(t.root, { recursive: true, force: true }); }
+});
+
+test("pair 7 attack: the exemption is these two forms only, from a real lane worktree only", () => {
+  const t = x7Tree();
+  try {
+    // another branch, a rebase, a checkout, a hard reset and a force push inside the lane worktree still ask
+    for (const cmd of ["git merge lane/other", "git merge origin/master lane/other", "git merge --squash origin/master", "git rebase origin/master", "git checkout master", "git reset --hard origin/master", "git worktree remove ../w2 --force"]) {
+      if (cmd.startsWith("git worktree remove")) { assert.equal(isolationAsk(cmd, { cwd: t.lane }), false, cmd); continue; }
+      assert.equal(isolationAsk(cmd, { cwd: t.lane }), true, cmd);
+    }
+    // -C into the main checkout, a redirected git-dir, a cd, and a path that merely looks like a worktree
+    assert.equal(isolationAsk(`git -C ${t.main.replaceAll("\\", "/")} merge origin/master`, { cwd: t.lane }), true, "-C main checkout, forward slashes");
+    assert.equal(isolationAsk("git -C no/such/dir merge origin/master", { cwd: t.lane }), true, "-C a directory that does not exist");
+    assert.equal(isolationAsk(`git --git-dir=${t.main.replaceAll("\\", "/")}/.git merge origin/master`, { cwd: t.lane }), true, "--git-dir");
+    assert.equal(isolationAsk(`cd ${t.main.replaceAll("\\", "/")} && git merge origin/master`, { cwd: t.lane }), true, "cd first");
+    assert.equal(isolationAsk("git merge origin/master", { cwd: t.stray }), true, "a linked checkout outside .claude/worktrees");
+    assert.equal(isolationAsk("git merge origin/master && git merge lane/other", { cwd: t.lane }), true, "second invocation");
+  } finally { x7Rm(t.root, { recursive: true, force: true }); }
+});

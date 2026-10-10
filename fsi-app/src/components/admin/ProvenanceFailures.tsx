@@ -21,7 +21,7 @@
  * against sentinel-marked synthetic rows (one per mode).
  */
 
-export interface ProvenanceFailure {
+interface ProvenanceFailure {
   criterion: number;
   reason: string;
   url?: string;

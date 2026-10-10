@@ -61,7 +61,7 @@ export const RELATION_TOUCHES_JURISDICTION = "touches_jurisdiction";
 // gives for restating ADR-024's example corridor rather than importing it from scripts/.
 const CORRIDOR_NAME_RE = /^([A-Z]{2}[A-Z2-9]{3})-([A-Z]{2}[A-Z2-9]{3}):([a-z_]+)$/;
 
-export interface ParsedCorridorName {
+interface ParsedCorridorName {
   origin: string;
   dest: string;
   mode: string;
@@ -76,7 +76,7 @@ export function parseCorridorCanonicalName(name: string | null | undefined): Par
   return { origin, dest, mode };
 }
 
-export interface CorridorJurisdiction {
+interface CorridorJurisdiction {
   entityId: string;
   code: string;
   name: string | null;
@@ -195,7 +195,7 @@ export async function listCorridorsTouchingJurisdictions(
   return all.filter((c) => c.jurisdictions.some((j) => wanted.has(j.code.toUpperCase())));
 }
 
-export interface InstrumentRef {
+interface InstrumentRef {
   entityId: string;
   canonicalName: string;
 }

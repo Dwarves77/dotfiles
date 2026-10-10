@@ -174,9 +174,17 @@ function runNodeTest(file) {
   });
 }
 
-test('RACE: C3 and F64 live tests run concurrently ten times with zero failures, and C3 never touches the real tree', { skip: process.env[GUARD] ? 'child of the race runner' : false, timeout: 300000 }, async () => {
-  const realDocBefore = readFileSync(REAL_DOC_PATH, 'utf8');
-  const realListingBefore = readdirSync(REAL_MIG_DIR).sort().join('\n');
+// LANE TESTS-1 (2026-10-09): the race used to be ONE test with a 300000 ms cap over all ten rounds. On a loaded machine
+// a round takes 30 s or more, so the cumulative cap cancelled it (4 of 4 loaded full runs, AUD-AT-5; first full local run,
+// TESTFIX-1) and run-test-suite.sh exited 1 with no mutation. A larger cap is not the fix. The rounds are now ten
+// independent tests, each capped at ROUND_TIMEOUT_MS for ONE round, each with its own observer over the real tree, so
+// the cap is a bound on one round and the ten-round concurrency evidence is unchanged. A final test asserts the
+// real tree is exactly as it was when the file started.
+const ROUND_TIMEOUT_MS = 120000;
+const realDocAtStart = readFileSync(REAL_DOC_PATH, 'utf8');
+const realListingAtStart = readdirSync(REAL_MIG_DIR).sort().join('\n');
+
+async function raceRound(round) {
   const sightings = [];
   let polling = true;
   const poll = setInterval(() => {
@@ -184,7 +192,7 @@ test('RACE: C3 and F64 live tests run concurrently ten times with zero failures,
     try {
       const names = readdirSync(REAL_MIG_DIR);
       if (names.includes(FIXTURE_FILE)) sightings.push(`fixture ${FIXTURE_FILE} present in the real migrations directory`);
-      if (readFileSync(REAL_DOC_PATH, 'utf8') !== realDocBefore) sightings.push('real migrations.md content changed');
+      if (readFileSync(REAL_DOC_PATH, 'utf8') !== realDocAtStart) sightings.push('real migrations.md content changed');
     } catch (e) {
       sightings.push(`real tree unreadable: ${e.message}`);
     }
@@ -192,20 +200,28 @@ test('RACE: C3 and F64 live tests run concurrently ten times with zero failures,
 
   const failures = [];
   try {
-    for (let round = 1; round <= ROUNDS; round++) {
-      const [c3, f64] = await Promise.all([runNodeTest(SELF), runNodeTest(F64_TEST)]);
-      for (const [label, r] of [['C3', c3], ['F64', f64]]) {
-        if (!/^ℹ pass [1-9]/m.test(r.out)) failures.push(`round ${round}: ${label} child ran no passing tests
+    const [c3, f64] = await Promise.all([runNodeTest(SELF), runNodeTest(F64_TEST)]);
+    for (const [label, r] of [['C3', c3], ['F64', f64]]) {
+      if (!/^ℹ pass [1-9]/m.test(r.out)) failures.push(`round ${round}: ${label} child ran no passing tests
 ${r.out.slice(-500)}`);
-      }
-      if (c3.code !== 0) failures.push(`round ${round}: C3 test exited ${c3.code}\n${c3.out.slice(-2000)}`);
-      if (f64.code !== 0) failures.push(`round ${round}: F64 test exited ${f64.code}\n${f64.out.slice(-2000)}`);
     }
+    if (c3.code !== 0) failures.push(`round ${round}: C3 test exited ${c3.code}\n${c3.out.slice(-2000)}`);
+    if (f64.code !== 0) failures.push(`round ${round}: F64 test exited ${f64.code}\n${f64.out.slice(-2000)}`);
   } finally {
     polling = false;
     clearInterval(poll);
   }
-  assert.deepEqual(failures, [], `${failures.length} failing run(s) across ${ROUNDS} rounds`);
-  assert.deepEqual(sightings, [], 'the C3 test touched the real migrations directory or page');
-  assert.equal(readdirSync(REAL_MIG_DIR).sort().join('\n'), realListingBefore, 'the real migrations directory listing is unchanged');
+  assert.deepEqual(failures, [], `round ${round}: failing run(s)`);
+  assert.deepEqual(sightings, [], `round ${round}: the C3 test touched the real migrations directory or page`);
+}
+
+for (let round = 1; round <= ROUNDS; round++) {
+  test(`RACE round ${round} of ${ROUNDS}: C3 and F64 live tests run concurrently with zero failures, and C3 never touches the real tree`, { skip: process.env[GUARD] ? 'child of the race runner' : false, timeout: ROUND_TIMEOUT_MS }, async () => {
+    await raceRound(round);
+  });
+}
+
+test('RACE (after the rounds): the real migrations directory listing and page are unchanged', { skip: process.env[GUARD] ? 'child of the race runner' : false }, () => {
+  assert.equal(readdirSync(REAL_MIG_DIR).sort().join('\n'), realListingAtStart, 'the real migrations directory listing is unchanged');
+  assert.equal(readFileSync(REAL_DOC_PATH, 'utf8'), realDocAtStart, 'the real page is unchanged');
 });

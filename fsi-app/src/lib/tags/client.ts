@@ -41,15 +41,6 @@ function notify() {
   for (const cb of subscribers) cb(snapshot);
 }
 
-/** Subscribe to the tag list; the callback fires immediately with whatever
- *  is cached (possibly empty) and again on every future refresh. Returns an
- *  unsubscribe function. */
-export function subscribeWorkspaceTags(cb: (tags: WorkspaceTag[]) => void): () => void {
-  subscribers.add(cb);
-  cb(cache ?? []);
-  return () => subscribers.delete(cb);
-}
-
 /** Fetch (or return the cached copy of) the workspace's tags. Pass
  *  `force: true` to bypass the cache — TagPopover does this after a
  *  create/apply/remove so counts are always current. */
@@ -108,16 +99,6 @@ export async function createWorkspaceTag(name: string): Promise<WorkspaceTag | n
   const body = (await res.json()) as { tag?: WorkspaceTag };
   await fetchWorkspaceTags({ force: true });
   return body.tag ?? null;
-}
-
-export async function deleteWorkspaceTag(tagId: string): Promise<boolean> {
-  const res = await authedFetch("/api/workspace/tags", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tagId }),
-  });
-  if (res.ok) await fetchWorkspaceTags({ force: true });
-  return res.ok;
 }
 
 export async function applyWorkspaceTag(tagId: string, itemId: string): Promise<boolean> {

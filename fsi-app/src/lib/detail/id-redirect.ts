@@ -33,7 +33,7 @@
 import { canonicalSurfaceForItem, itemDetailHref, type DetailSurface } from "../item-links.ts";
 
 /** Postgres uuid text shape. The four routes' own copies of this regex were folded into this one. */
-export const ITEM_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ITEM_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isItemUuid(value: string): boolean {
   return ITEM_UUID_RE.test(value);
@@ -50,7 +50,7 @@ export interface IdRedirectRow {
   provenance_status: string | null;
 }
 
-export type IdRedirectDecision =
+type IdRedirectDecision =
   | { kind: "render" }
   | { kind: "redirect"; to: string }
   | { kind: "not-found" };
@@ -96,7 +96,7 @@ export async function resolveIdRedirect(
 
 // ── The emit check's pure core (scripts/verify/id-redirect-target-audit.mjs) ─────────────────────────
 
-export interface IdRedirectViolation {
+interface IdRedirectViolation {
   from: string;
   to: string | null;
   decision: IdRedirectDecision["kind"];

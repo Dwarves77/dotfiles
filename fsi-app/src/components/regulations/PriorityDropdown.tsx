@@ -55,7 +55,7 @@ import {
   type PriorityKey,
 } from "@/lib/constants";
 
-export type PriorityValue = PriorityKey;
+type PriorityValue = PriorityKey;
 
 interface PriorityDropdownProps {
   /** Current effective priority for this regulation. Used to bold the

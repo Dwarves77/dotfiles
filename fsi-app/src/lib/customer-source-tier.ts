@@ -34,7 +34,7 @@ export const SOURCE_TIER_MIN = Math.min(...TIERS);
 export const SOURCE_TIER_MAX = Math.max(...TIERS);
 
 /** The three tier columns of a `sources` row, as a loader selects them. Every field optional. */
-export interface SourceTierColumns {
+interface SourceTierColumns {
   tier_override?: number | null;
   effective_tier?: number | null;
   base_tier?: number | null;

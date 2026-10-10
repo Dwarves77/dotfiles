@@ -67,7 +67,7 @@ export const METHOD_VERSION = "1.0.0";
 
 /** The three predicate shapes signposts.predicate's `predicate_is_evaluable` CHECK admits (migration 346,
  *  spec 08 section 1.2's own comment). */
-export type SignpostPredicate = (
+type SignpostPredicate = (
   | { op: "date_passed"; field: string }
   | { op: "threshold"; metric: string; gte: number }
   | { op: "count_gte"; relation: string; n: number }
@@ -78,7 +78,7 @@ export type SignpostPredicate = (
 };
 
 /** The signpost's own row, as `ctx.priorValue` carries it (this lane's own convention -- see header). */
-export interface SignpostRow {
+interface SignpostRow {
   entityId: string;
   assessmentId: string;
   watches: string;
@@ -232,7 +232,7 @@ export interface SignpostFireClient {
   };
 }
 
-export interface FireSignpostResult {
+interface FireSignpostResult {
   fired: true;
   signpostEntityId: string;
   propagationEventWritten: boolean;

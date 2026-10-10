@@ -30,10 +30,6 @@
 import { ORIGIN_CLASS } from "../contracts/vocabularies.mjs";
 import { DERIVATION, roundToSampleSupport } from "../contracts/envelope.mjs";
 
-/** Cell state vocabulary. `absent` means no producer has ever written this cell — an honest hole,
- *  not a rendering failure, and it must be shown as such rather than left blank. */
-export const CELL_STATES = /** @type {const} */ (["populated", "absent"]);
-
 const arr = (x) => (Array.isArray(x) ? x : []);
 const keyOf = (region, dimension) => `${region}|${dimension}`;
 
@@ -274,7 +270,7 @@ export function sourceNameFromNote(note) {
 
 /** Longest string still read as a figure rather than a sentence. The artboard's own five headline
  *  figures run 9 to 15 characters; 24 leaves headroom for a longer unit without admitting prose. */
-export const FIGURE_MAX_CHARS = 24;
+const FIGURE_MAX_CHARS = 24;
 
 /**
  * Split a fact into the artboard's two slots. Pure.

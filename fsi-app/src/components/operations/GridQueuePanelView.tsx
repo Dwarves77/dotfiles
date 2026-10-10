@@ -56,7 +56,7 @@ export function substationEvidenceLine(row: GridQueueRow): string | null {
   return parts.join(", ");
 }
 
-export const DECISION_HORIZON_MONTHS = 24;
+const DECISION_HORIZON_MONTHS = 24;
 export const GRID_QUEUE_GAP_LINE =
   "No rows yet — source: none confirmed, no $0 feed for demand-side connection-queue months (scripts/spec09/SOURCES.md).";
 /** The section's own qualifier, rendered by <DetailSection>'s `aside` slot on the profile page. */

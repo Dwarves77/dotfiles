@@ -47,7 +47,7 @@ const basisKey = (e) => `${e?.signal ?? ""}|${e?.detail ?? ""}`;
  * that are not already present (same signal and detail) are appended. Never replaces, never drops.
  * @returns {{merged: Array<object>, added: number}}
  */
-export function appendBasis(existingBasis, incomingBasis) {
+function appendBasis(existingBasis, incomingBasis) {
   const merged = basisList(existingBasis).slice();
   const seen = new Set(merged.map(basisKey));
   let added = 0;

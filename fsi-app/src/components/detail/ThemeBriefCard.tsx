@@ -15,7 +15,7 @@
  */
 import { SectionCard } from "@/components/ui/SectionCard";
 
-export interface ThemeBriefCardView {
+interface ThemeBriefCardView {
   title?: string | null;
   memberCount: number;
   density?: number | null;

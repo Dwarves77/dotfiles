@@ -98,7 +98,7 @@ export function AdminErrorBanner({ error }: { error: string | null | undefined }
 
 // ── Family A: inline ok/err status banner ──────────────────────────────────
 
-export interface AdminStatus {
+interface AdminStatus {
   kind: "ok" | "err";
   text: string;
 }

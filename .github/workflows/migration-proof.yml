@@ -21,7 +21,7 @@ name: Migration proof
 # credential name. The only database any step can reach is the loopback stack.
 #
 # REQUIRED CHECK, NO PATH FILTER. The job's context is "Migration proof (apply on a local stack)". It triggers on EVERY
-# pull_request and decides INSIDE the job whether the PR touched fsi-app/supabase/migrations/**, because a path-filtered
+# pull_request and decides INSIDE the job whether the PR touched fsi-app/supabase/migrations/** or fsi-app/scripts/proof/** (the harness that runs on the stack), because a path-filtered
 # workflow that does not fire never reports a status, and a required check that never reports blocks the merge forever
 # (the reason discipline.yml's header rejects path filters). A PR that touches no migration passes in about a minute with
 # every stack step skipped; a PR that touches one runs the proof. The diff is the PR's effect on its base: for a
@@ -61,16 +61,16 @@ jobs:
             echo "touched=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          CHANGED="$(git diff --name-only HEAD^1 HEAD -- fsi-app/supabase/migrations)"
+          CHANGED="$(git diff --name-only HEAD^1 HEAD -- fsi-app/supabase/migrations fsi-app/scripts/proof)"
           if [ -n "$CHANGED" ]; then
-            echo "Migration files changed by this pull request (names only):"
+            echo "Migration or proof-harness files changed by this pull request (names only):"
             echo "$CHANGED"
             echo "touched=true" >> "$GITHUB_OUTPUT"
           else
             echo "touched=false" >> "$GITHUB_OUTPUT"
             {
               echo "### Migration proof"
-              echo "This pull request touches nothing under fsi-app/supabase/migrations, so there is nothing to prove. The stack steps were skipped."
+              echo "This pull request touches nothing under fsi-app/supabase/migrations or fsi-app/scripts/proof, so there is nothing to prove. The stack steps were skipped."
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -109,6 +109,18 @@ jobs:
           . "$MP_ENV"
           node scripts/proof/preflight.mjs
           node scripts/proof/replay-migrations.mjs --report "$MP_OUT_DIR/replay-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # Rule 15 (PROOF-9): the oracle gate's catalog query is proven on a real server on EVERY pull request that reaches the stack,
+      # not only on a master chain-proof fire. It runs the query once against the replayed stack and prints the pg code and error
+      # text on failure. Read-only; loopback only (the script refuses any other host).
+      - name: Run the schema catalog query on the replayed stack (proves the gate's SQL on a real server)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$MP_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/schema-diff.mjs --catalog-only --db-url "$PROOF_DB_URL" | tee -a "$GITHUB_STEP_SUMMARY"
 
       # Every migration production has not applied, in number order, each as one psql run with ON_ERROR_STOP.
       - name: Apply every pending migration on the stack (each file's own self-check runs here first)

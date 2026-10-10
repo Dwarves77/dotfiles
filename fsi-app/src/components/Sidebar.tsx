@@ -103,7 +103,7 @@ export function navTitleForPath(pathname: string): string {
   return match?.label ?? APP_NAME;
 }
 
-export interface SidebarProps {
+interface SidebarProps {
   /** Mobile drawer open state — controlled by AppShell (raised so the
    *  <TopBar/> hamburger and this drawer share one state, mobile spec
    *  TOP BAR + DRAWER). Ignored above 768 (desktop nav card always shows). */

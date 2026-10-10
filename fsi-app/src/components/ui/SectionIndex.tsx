@@ -45,7 +45,7 @@ export type { SectionIndexEntry };
 
 export type SectionIndexDepth = SummaryDepth;
 
-export interface SectionIndexProps {
+interface SectionIndexProps {
   sections: SectionIndexEntry[];
   depth?: SectionIndexDepth;
   onDepthChange?: (d: SectionIndexDepth) => void;

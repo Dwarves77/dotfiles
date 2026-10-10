@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   mkdtempSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, existsSync, lstatSync, renameSync,
-  rmSync, chmodSync,
+  rmSync, chmodSync, symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -280,4 +280,48 @@ test("IGNORE RULES: the repo's own gitignores cover the shared link and an in-tr
     const r = run("git", ["check-ignore", "--no-index", "-q", p], REPO_ROOT);
     assert.equal(r.status, 0, `${p} must be gitignored as a link, not only as a directory`);
   }
+});
+
+// Lane TESTS-1 (2026-10-09; AUD-AT-3 "Step 0b symlink inside a worktree": wt_nm_ensure_link leaves a real symlink alone
+// by design; creating one on Windows needs Developer Mode or an administrator right, which that lane did not use).
+// Linux CI creates symlinks freely, so the leg runs there; on a Windows machine without the right it skips with the
+// reason. A REAL symlink (not a junction) is safe from git, so --link must neither remove it nor replace it, and the
+// install behind it must stay intact when the worktree is removed.
+function trySymlink(target, link) {
+  try { symlinkSync(target, link, "dir"); return true; } catch (e) { return e; }
+}
+
+test("a real symlink inside a worktree is left alone by --link and --check, deps resolve through it, and removing the worktree keeps the install", () => {
+  withFixture((fx) => {
+    const { wt } = addWorktree(fx, "lane-s", fx.noHooks);
+    const link = join(wt, "fsi-app", "node_modules");
+    const made = trySymlink(join(fx.main, "fsi-app", "node_modules"), link);
+    if (made !== true) return;           // see the skip test below: the reason is reported there
+    assert.ok(lstatSync(link).isSymbolicLink());
+    assert.equal(lib(wt, 'wt_nm_link_kind "$PWD/fsi-app/node_modules"').stdout.trim(), "symlink");
+
+    const check = run("sh", [LIB_SH, "--check"], wt);
+    assert.equal(check.status, 0, check.stderr);
+    const linkRun = run("sh", [LIB_SH, "--link"], wt);
+    assert.equal(linkRun.status, 0, linkRun.stderr);
+    assert.ok(lstatSync(link).isSymbolicLink(), "the real symlink is still there: --link did not remove or replace it");
+    assert.ok(resolveNext(wt), "next resolves through the symlink");
+    assert.match(run("sh", [LIB_SH, "--audit"], fx.main).stdout, /^resolves symlink .*lane-s$/m);
+
+    git(fx.main, "worktree", "remove", "--force", wt);
+    assert.ok(installIntact(fx), "git worktree remove unlinks a real symlink and never follows it into the shared install");
+  });
+});
+
+test("symlink creation is available on this machine, or the symlink leg above is skipped with the reason named", () => {
+  withFixture((fx) => {
+    const probe = join(fx.base, "probe-link");
+    const made = trySymlink(fx.main, probe);
+    if (made !== true) {
+      assert.ok(IS_WINDOWS, `a non-Windows machine must be able to create a symlink (got ${made && made.code})`);
+      assert.match(String(made.code), /EPERM|EACCES|UNKNOWN/, "Windows without Developer Mode or an administrator right refuses with a permission code");
+    } else {
+      assert.ok(lstatSync(probe).isSymbolicLink());
+    }
+  });
 });

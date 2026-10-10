@@ -79,7 +79,7 @@ interface RegionRow {
 
 // ── Output shapes ──────────────────────────────────────────────────────────
 
-export interface DimensionEligibility {
+interface DimensionEligibility {
   dimension: OperationsDimension;
   /** True when >=2 sourced regions for this dimension AND item-jurisdiction
    *  membership confirmed. S3/S4 may render. */
@@ -105,7 +105,7 @@ export interface MatrixEligibility {
 
 // ── Item shape — minimal surface for the gate ──────────────────────────────
 
-export interface OperationsItemForGate {
+interface OperationsItemForGate {
   /** jurisdictions column from intelligence_items — ISO/supranational codes. */
   jurisdictions?: string[] | null;
   /** Legacy jurisdiction string (single value). Fallback when jurisdictions is empty. */

@@ -69,7 +69,7 @@ export interface ListSurfaceFacetGroup {
   onSelect: (value: string | null) => void;
 }
 
-export interface ListSurfaceShellProps {
+interface ListSurfaceShellProps {
   title: string;
   dek?: ReactNode;
   /** The masthead scope line under the title (artboard 02/id="p2": "1,316 active · 32

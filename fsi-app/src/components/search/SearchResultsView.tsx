@@ -27,7 +27,7 @@ import { jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { formatNumber } from "@/lib/format";
 import type { SearchResultRow } from "@/app/api/search/logic";
 
-export interface SearchResultsViewProps {
+interface SearchResultsViewProps {
   q: string;
   results: SearchResultRow[];
   /** The bounded read's own ceiling (logic.ts's MAX_RESULTS), so a full page can say "showing the

@@ -41,7 +41,7 @@ function formatDelta(oldValue: number | null, newValue: number | null, unit: str
   return `${prefix}${formatNum(oldValue)}${suffix} → ${prefix}${formatNum(newValue)}${suffix}`;
 }
 
-export interface RecalculationNoticeProps {
+interface RecalculationNoticeProps {
   notices: RecalculationNoticeItem[];
   /** Shown when `notices` is empty — a positive, honest empty state, never silence. */
   emptyMessage?: string;

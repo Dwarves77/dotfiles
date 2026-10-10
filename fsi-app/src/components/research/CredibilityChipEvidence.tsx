@@ -24,7 +24,7 @@ import {
   type ResearchBiasTag,
 } from "./CredibilityChipShared";
 
-export interface CredibilityChipEvidenceProps {
+interface CredibilityChipEvidenceProps {
   /** Evidence dimension (limited/medium/robust) — always null today; see file header. */
   evidenceLevel?: "limited" | "medium" | "robust" | null;
   /** Agreement dimension (low/medium/high) — always null today; see file header. */

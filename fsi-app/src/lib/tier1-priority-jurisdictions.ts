@@ -31,7 +31,7 @@
 // Updates are code-edits — see `tiers.ts` header for the policy.
 // ══════════════════════════════════════════════════════════════
 
-export interface PriorityJurisdiction {
+interface PriorityJurisdiction {
   iso: string;
   name: string;
 }
@@ -254,21 +254,6 @@ export const TIER1_PRIORITY_REGIONS: ReadonlyArray<Region> = [
   { id: "latam-priority", name: "Latin America priority", jurisdictions: LATAM_PRIORITY },
   { id: "africa-priority", name: "Africa priority", jurisdictions: AFRICA_PRIORITY },
 ];
-
-/** O(1) ISO → region lookup. Built once at module load. */
-const ISO_TO_REGION: ReadonlyMap<string, Region> = (() => {
-  const map = new Map<string, Region>();
-  for (const region of TIER1_PRIORITY_REGIONS) {
-    for (const j of region.jurisdictions) {
-      map.set(j.iso, region);
-    }
-  }
-  return map;
-})();
-
-export function regionForIso(iso: string): Region | undefined {
-  return ISO_TO_REGION.get(iso);
-}
 
 /** Flat set of all priority ISO codes — mirrors `TIER_1_JURISDICTIONS`
  *  shape in `tiers.ts` but covers the dispatch's wider scope. */

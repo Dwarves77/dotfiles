@@ -45,7 +45,7 @@ const PANEL_WIDTH = 280;
 const PANEL_BORDER = 2;
 const VIEWPORT_MARGIN = 8;
 
-export interface TagPopoverProps {
+interface TagPopoverProps {
   /** The item (legacy_id or uuid) tags are being applied to/removed from. */
   itemId: string;
   /** Called after every apply/remove/create so the caller (the detail tag

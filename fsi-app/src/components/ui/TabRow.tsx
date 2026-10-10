@@ -36,7 +36,7 @@ export interface TabRowItem {
   onClick?: () => void;
 }
 
-export interface TabRowProps {
+interface TabRowProps {
   tabs: TabRowItem[];
   ariaLabel: string;
   /**

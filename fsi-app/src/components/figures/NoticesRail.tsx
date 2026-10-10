@@ -30,7 +30,7 @@ import { authedFetch } from "@/lib/api/authed-fetch";
 import { RecalculationNotice } from "./RecalculationNotice";
 import type { RecalculationNoticeItem } from "./RecalculationNotice";
 
-export interface NoticesRailProps {
+interface NoticesRailProps {
   /** Heading shown above the rail. Callers on a page that already has an obvious section label (for
    *  example one with its own "Recent recalculations" convention) can pass their own text; the default
    *  suits a standalone mount (Market index, item detail pages). */
