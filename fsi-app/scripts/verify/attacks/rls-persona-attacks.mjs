@@ -71,24 +71,28 @@ export const STATUS_COLUMN_ATTACK = Object.freeze({
 // connection role, so layer 1 no longer answers, and proves the trigger alone still refuses 42501 with its own message.
 // The grant never survives: the engine rolls the whole attack back.
 const GUARDED_ASSIGNMENTS = Object.freeze([
-  ["is_platform_admin", "is_platform_admin = NOT is_platform_admin"],
-  ["org_id", "org_id = gen_random_uuid()"],
+  ["is_platform_admin", "is_platform_admin = true"],
+  ["org_id", "org_id = '00000000-0000-4000-8000-0000000004ff'::uuid"],
   ["verifier_status", "verifier_status = 'active'"],
 ]);
 
+// The right-hand sides are constants on purpose: an expression that READS a column (is_platform_admin = NOT
+// is_platform_admin) needs column SELECT, which authenticated lacks (migration 372), and the privilege error would fire
+// before the trigger. With constants, the only thing that can refuse once the grant is back is the trigger.
 export const GUARD_STANDING_ALONE_ATTACK = Object.freeze({
   id: "rls-persona-profiles-guard-trigger-stands-alone",
   persona: "P4",
-  invariant: "With the column UPDATE grant on public.profiles restored to authenticated, the profiles_privilege_guard trigger alone still refuses an organisation member changing their own is_platform_admin, org_id or verifier_status.",
-  expected: "Each of the three self-updates is refused 42501 by the trigger (its message names profiles_privilege_guard), and an update of a column the guard does not cover still works.",
+  invariant: "The column UPDATE grant alone denies an organisation member changing their own is_platform_admin; and with the grant restored to authenticated the profiles_privilege_guard trigger alone still refuses is_platform_admin, org_id and verifier_status.",
+  expected: "Before the grant is restored the self-update is refused 42501 (layer 1); after it is restored each of the three self-updates is refused 42501 by the trigger (its message names profiles_privilege_guard), and an update of an unguarded column still works.",
   steps: [
+    { label: "control: with the column grant in place the member's self-update of is_platform_admin is refused 42501 (layer 1 alone denies)", kind: "control", as: "user:member_a", sql: "UPDATE public.profiles SET is_platform_admin = true WHERE id = $1::uuid", params: ["@member_a"], expect: { error: "42501" } },
     { label: "control: the connection role restores the column UPDATE grant to authenticated (layer 1 removed)", kind: "control", sql: "GRANT UPDATE (is_platform_admin, org_id, verifier_status, display_name) ON public.profiles TO authenticated", params: [], expect: { ok: true } },
     ...GUARDED_ASSIGNMENTS.map(([col, assign]) => ({
       label: `attack: with the grant restored the member self-updates ${col}, the trigger refuses`,
       kind: "attack", as: "user:member_a", sql: `UPDATE public.profiles SET ${assign} WHERE id = $1::uuid`, params: ["@member_a"],
       expect: { error: "42501", message_includes: "profiles_privilege_guard" },
     })),
-    { label: "control: with the grant restored the member can still update an unguarded column (display_name)", kind: "control", as: "user:member_a", sql: "UPDATE public.profiles SET display_name = display_name WHERE id = $1::uuid", params: ["@member_a"], expect: { row_count: 1 } },
+    { label: "control: with the grant restored the member can still update an unguarded column (display_name)", kind: "control", as: "user:member_a", sql: "UPDATE public.profiles SET display_name = 'x' WHERE id = $1::uuid", params: ["@member_a"], expect: { row_count: 1 } },
   ],
 });
 
