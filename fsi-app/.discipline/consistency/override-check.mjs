@@ -12,8 +12,14 @@
 //
 // Override contract (sprint-followups-discipline § Inventory consistency rule):
 //   Consistency-Override: C<N> (rationale: <non-empty text>; remediation-deadline: YYYY-MM-DD)
-//   A trailer is VALID only when the rationale is non-empty AND the remediation-deadline is today-or-future.
-//   (An expired deadline is NOT a valid override — the drift must be fixed or re-deadlined.)
+//   A trailer is VALID only when (GATE-FIX-2, 2026-10-10; aud-at3 line 528, which overrode with rationale `x` and
+//   a 2099 date):
+//     * the rationale NAMES THE INVARIANT it overrides: the check id (C3, C-3) or a distinctive word of the
+//       check's own name from the manifest (migrations, worktrees, program, anchors), and it is a sentence (at
+//       least 3 words, 20 characters), so `because` or `will fix` is refused;
+//     * the remediation-deadline is today-or-future AND at most MAX_DEADLINE_DAYS (30) days out, so a date in
+//       2030 is not a deferral, it is a waiver.
+//   (An expired deadline is NOT a valid override, the drift must be fixed or re-deadlined.)
 //
 // Exit codes (CLI): 0 = clean OR every failing check validly overridden; 1 = uncovered drift; 2 = runner error.
 
@@ -21,6 +27,7 @@ import { spawnSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveRange } from '../lib/change-range.mjs';
+import { getCheckById } from './manifest.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RUNNER = resolve(HERE, 'runner.mjs');
@@ -35,12 +42,38 @@ export function parseDriftCheckIds(stderr) {
   return ids;
 }
 
-// Parse VALID Consistency-Override trailers across the given commit messages → Set of normalized ids
-// ('C3'). Valid = non-empty rationale AND remediation-deadline today-or-future. `C-3` and `C3` both accepted.
+export const MAX_DEADLINE_DAYS = 30;
+const MIN_RATIONALE_WORDS = 3;
+const MIN_RATIONALE_CHARS = 20;
+const GENERIC_NAME_WORDS = new Set(['reality', 'check', 'file', 'files']);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// The words that name a check's invariant: the words of its manifest name (`migrations.md reality` gives
+// `migrations`), generic words dropped. A rationale naming the check id satisfies the rule without any of these.
+export function invariantTerms(id) {
+  const check = getCheckById(id);
+  if (!check || !check.name) return [];
+  return String(check.name).toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4 && !GENERIC_NAME_WORDS.has(w));
+}
+
+// Does this rationale name the invariant of check `id` ('C3')? The id itself (C3 or C-3, whole token) or a
+// distinctive word of the check's name (singular stem, so `migration` matches `migrations`).
+export function namesInvariant(rationale, id) {
+  const text = String(rationale || '');
+  const n = id.replace(/^C/, '');
+  if (new RegExp(String.raw`\bC-?${n}\b`, 'i').test(text)) return true;
+  const lower = text.toLowerCase();
+  return invariantTerms(id).some((w) => new RegExp(String.raw`\b${w.replace(/s$/, '')}`).test(lower));
+}
+
+// Parse VALID Consistency-Override trailers across the given commit messages -> Set of normalized ids
+// ('C3'). Valid = a rationale that names the invariant (see header) AND a remediation-deadline that is today or
+// later and at most MAX_DEADLINE_DAYS out. `C-3` and `C3` both accepted.
 export function parseValidOverrides(messages, { now = new Date() } = {}) {
   const out = new Set();
   const re = /Consistency-Override:\s*(C-?\d+)\s*\(rationale:\s*([^;]+?);\s*remediation-deadline:\s*(\d{4}-\d{2}-\d{2})\)/g;
   const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const lastUTC = todayUTC + MAX_DEADLINE_DAYS * DAY_MS;
   for (const msg of messages || []) {
     re.lastIndex = 0;
     let m;
@@ -48,7 +81,9 @@ export function parseValidOverrides(messages, { now = new Date() } = {}) {
       const id = m[1].replace('-', '');
       const rationale = (m[2] || '').trim();
       const deadlineMs = Date.parse(m[3] + 'T00:00:00Z');
-      if (rationale.length > 0 && !Number.isNaN(deadlineMs) && deadlineMs >= todayUTC) out.add(id);
+      const sentence = rationale.length >= MIN_RATIONALE_CHARS && rationale.split(/\s+/).length >= MIN_RATIONALE_WORDS;
+      const dated = !Number.isNaN(deadlineMs) && deadlineMs >= todayUTC && deadlineMs <= lastUTC;
+      if (sentence && namesInvariant(rationale, id) && dated) out.add(id);
     }
   }
   return out;
@@ -155,6 +190,6 @@ if (invokedDirectly) {
   console.error(`  valid overrides: ${verdict.overridden.join(', ') || '(none)'}`);
   console.error(`  uncovered: ${verdict.uncovered.join(', ') || '(all)'}`);
   console.error('  Fix the drift, or add a VALID trailer per failing check:');
-  console.error('    Consistency-Override: C<N> (rationale: <non-empty>; remediation-deadline: YYYY-MM-DD[future])');
+  console.error('    Consistency-Override: C<N> (rationale: <a sentence naming C<N> or its invariant>; remediation-deadline: YYYY-MM-DD, today to +30 days)');
   process.exit(1);
 }

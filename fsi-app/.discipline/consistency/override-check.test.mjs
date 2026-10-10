@@ -11,6 +11,9 @@ import { join } from 'node:path';
 import {
   parseDriftCheckIds,
   parseValidOverrides,
+  invariantTerms,
+  namesInvariant,
+  MAX_DEADLINE_DAYS,
   evaluate,
   messagesFromPrepushStdin,
   messagesForRange,
@@ -30,7 +33,7 @@ test('parseValidOverrides: a non-empty rationale + FUTURE deadline is valid', ()
 });
 
 test('parseValidOverrides: accepts the C-3 hyphen form, normalizes to C3', () => {
-  const msg = 'Consistency-Override: C-4 (rationale: worktree cleanup pending; remediation-deadline: 2026-12-31)';
+  const msg = 'Consistency-Override: C-4 (rationale: worktree cleanup pending; remediation-deadline: 2026-08-05)';
   assert.deepEqual([...parseValidOverrides([msg], { now: NOW })], ['C4']);
 });
 
@@ -40,13 +43,64 @@ test('parseValidOverrides: an EXPIRED deadline is NOT a valid override', () => {
 });
 
 test('parseValidOverrides: today counts as valid (>= today)', () => {
-  const msg = 'Consistency-Override: C3 (rationale: fixing today; remediation-deadline: 2026-07-11)';
+  const msg = 'Consistency-Override: C3 (rationale: C3 fixing today in this PR; remediation-deadline: 2026-07-11)';
   assert.deepEqual([...parseValidOverrides([msg], { now: NOW })], ['C3']);
 });
 
 test('parseValidOverrides: EMPTY rationale is rejected', () => {
   const msg = 'Consistency-Override: C3 (rationale: ; remediation-deadline: 2026-08-01)';
   assert.deepEqual([...parseValidOverrides([msg], { now: NOW })], []);
+});
+
+// ---- GATE-FIX-2 (aud-at3 line 528): a rationale must name the invariant, a deadline must be near ----
+const trailer = (rationale, deadline, id = 'C3') => `Consistency-Override: ${id} (rationale: ${rationale}; remediation-deadline: ${deadline})`;
+const validIds = (msg) => [...parseValidOverrides([msg], { now: NOW })];
+
+test('GATE-FIX-2 ATTACK: rationale "because" with a 2030 date is refused (the brief attack)', () => {
+  assert.deepEqual(validIds(trailer('because', '2030-01-01')), []);
+});
+test('GATE-FIX-2 ATTACK: the audit attack, rationale "x" and 2099, is refused', () => {
+  assert.deepEqual(validIds(trailer('x', '2099-01-01')), []);
+});
+test('GATE-FIX-2 ATTACK: a good rationale with a date a year out is refused', () => {
+  assert.deepEqual(validIds(trailer('migrations inventory row lands in the next PR', '2027-07-11')), []);
+});
+test('GATE-FIX-2: the 30 day boundary is inclusive and day 31 is refused', () => {
+  const r = 'migrations inventory row lands in the next PR';
+  const d = (n) => new Date(Date.UTC(2026, 6, 11 + n)).toISOString().slice(0, 10);
+  assert.equal(MAX_DEADLINE_DAYS, 30);
+  assert.deepEqual(validIds(trailer(r, d(30))), ['C3']);
+  assert.deepEqual(validIds(trailer(r, d(31))), []);
+});
+test('GATE-FIX-2 ATTACK: a rationale that names no invariant is refused even with a near date', () => {
+  assert.deepEqual(validIds(trailer('will fix this later on', '2026-07-20')), []);
+  assert.deepEqual(validIds(trailer('because', '2026-07-20')), []);
+});
+test('GATE-FIX-2 ATTACK: a one-word rationale that does name the invariant is still not a sentence', () => {
+  assert.deepEqual(validIds(trailer('C3', '2026-07-20')), []);
+  assert.deepEqual(validIds(trailer('migrations', '2026-07-20')), []);
+});
+test('GATE-FIX-2: the invariant is named by the check id (either spelling) or by a word of the check name', () => {
+  assert.deepEqual(validIds(trailer('C3 drift is owned by the follow-up lane', '2026-07-20')), ['C3']);
+  assert.deepEqual(validIds(trailer('C-3 drift is owned by the follow-up lane', '2026-07-20', 'C-3')), ['C3']);
+  assert.deepEqual(validIds(trailer('the migration inventory is regenerated post merge', '2026-07-20')), ['C3']);
+  assert.deepEqual(validIds(trailer('worktrees listing is stale until cleanup', '2026-07-20', 'C4')), ['C4']);
+  assert.deepEqual(validIds(trailer('program anchors move with the next phase', '2026-07-20', 'C5')), ['C5']);
+});
+test('GATE-FIX-2 ATTACK: naming ANOTHER check invariant does not cover this check', () => {
+  assert.deepEqual(validIds(trailer('worktrees listing is stale until cleanup', '2026-07-20', 'C3')), []);
+  assert.equal(namesInvariant('C4 drift is owned elsewhere', 'C3'), false);
+  assert.equal(namesInvariant('C13 drift is owned elsewhere', 'C3'), false, 'C13 is not C3');
+});
+test('GATE-FIX-2: invariantTerms come from the manifest names', () => {
+  assert.deepEqual(invariantTerms('C3'), ['migrations']);
+  assert.deepEqual(invariantTerms('C4'), ['worktrees']);
+  assert.deepEqual(invariantTerms('C99'), []);
+});
+test('GATE-FIX-2: evaluate refuses the audit-line-528 override end to end (drift stays uncovered)', () => {
+  const v = evaluate({ runnerStatus: 1, stderr: '  [C3] missing-claim\n', messages: [trailer('x', '2099-01-01')], now: NOW });
+  assert.equal(v.ok, false);
+  assert.deepEqual(v.uncovered, ['C3']);
 });
 
 test('evaluate: clean runner (status 0) passes with no drift', () => {
@@ -62,14 +116,14 @@ test('evaluate: drift with NO override FAILS (uncovered)', () => {
 });
 
 test('evaluate: drift with a matching VALID override PASSES', () => {
-  const msg = 'Consistency-Override: C3 (rationale: will fix; remediation-deadline: 2026-09-01)';
+  const msg = 'Consistency-Override: C3 (rationale: C3 migrations inventory fix lands next; remediation-deadline: 2026-08-01)';
   const v = evaluate({ runnerStatus: 1, stderr: '  [C3] missing-claim\n', messages: [msg], now: NOW });
   assert.equal(v.ok, true);
   assert.deepEqual(v.uncovered, []);
 });
 
 test('evaluate: PARTIAL override (C3 covered, C4 not) FAILS on the uncovered one', () => {
-  const msg = 'Consistency-Override: C3 (rationale: will fix; remediation-deadline: 2026-09-01)';
+  const msg = 'Consistency-Override: C3 (rationale: C3 migrations inventory fix lands next; remediation-deadline: 2026-08-01)';
   const v = evaluate({ runnerStatus: 1, stderr: '  [C3] x\n  [C4] y\n', messages: [msg], now: NOW });
   assert.equal(v.ok, false);
   assert.deepEqual(v.uncovered, ['C4']);

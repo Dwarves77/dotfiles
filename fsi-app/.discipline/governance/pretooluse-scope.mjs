@@ -23,7 +23,7 @@
 // is this shim's purpose (an apply_migration against another project's database is that project's business).
 
 import { existsSync } from "node:fs";
-import { dirname, join, isAbsolute } from "node:path";
+import { dirname, join, isAbsolute, resolve } from "node:path";
 
 // fsi-app as a path part (`/fsi-app/`, `fsi-app\`), or as a bare word at a command position or after a quote,
 // equals sign, separator or redirect (`node fsi-app/x`, `cd fsi-app && ...`), and not as part of a longer name.
@@ -44,6 +44,22 @@ export function cwdHoldsFsiApp(cwd, exists = existsSync) {
     const up = dirname(dir);
     if (up === dir) break;
     dir = up;
+  }
+  return false;
+}
+
+const DIR_ARG_RE = /(?:^|[\s;&|(])(?:-C|cd|pushd)\s+("[^"]+"|'[^']+'|[^\s;&|()]+)/g;
+
+/** GATE-FIX-2: a directory the command itself points at (`git -C <dir>`, `cd <dir>`, a Windows backslash path
+ *  included) that is, or sits under, a directory holding `fsi-app`: a branch move aimed at the repo from a cwd
+ *  outside it is still this project's call. A relative directory resolves against the cwd. */
+export function commandDirsHoldFsiApp(command, cwd, exists = existsSync) {
+  const text = String(command ?? "");
+  for (const m of text.matchAll(DIR_ARG_RE)) {
+    const dir = m[1].replace(/^["']|["']$/g, "").replaceAll("\\", "/");
+    if (!dir || /[$`]/.test(dir)) continue;
+    const abs = isAbsolute(dir) || /^[A-Za-z]:\//.test(dir) || dir.startsWith("/") ? dir : cwd ? resolve(cwd, dir) : null;
+    if (abs && cwdHoldsFsiApp(abs, exists)) return true;
   }
   return false;
 }
@@ -76,7 +92,7 @@ export function inScope(payload, deps = {}) {
 
   if (SHELL_TOOLS.has(tool)) {
     const command = String(input.command || input.script || "");
-    return WORD_RE.test(command) || cwdHoldsFsiApp(cwd, exists);
+    return WORD_RE.test(command) || cwdHoldsFsiApp(cwd, exists) || commandDirsHoldFsiApp(command, cwd, exists);
   }
 
   // MCP tools, dispatches, worktree and artifact tools: the PATHS the call names decide; a call that names none
