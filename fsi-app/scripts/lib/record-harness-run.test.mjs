@@ -247,17 +247,20 @@ test('runCli: a real insert failure (credentials present, insert rejected) is fa
   assert.ok(errors.some((m) => m.includes('relation "harness_runs" does not exist')));
 });
 
-test('runCli: a real landed row exits 0', async () => {
-  const code = await runCli(['--file', 'x.json'], {
-    log: () => {},
-    errorLog: () => {},
-    readFileFn: () => JSON.stringify(SAMPLE_ARTIFACT),
-    envUrl: 'https://example.supabase.co',
-    envKey: 'service-role-key',
-    createClientFn: () => fakeSb(),
-  });
-  assert.equal(code, 0);
-});
+test('runCli: a real landed row exits 0 (the artifact file is real, so it is reconciled with the landed id)', () =>
+  withDir(async (dir) => {
+    const file = join(dir, 'gate-a-rescan-run-012.json');
+    writeFileSync(file, JSON.stringify(SAMPLE_ARTIFACT));
+    const code = await runCli(['--file', file], {
+      log: () => {},
+      errorLog: () => {},
+      envUrl: 'https://example.supabase.co',
+      envKey: 'service-role-key',
+      createClientFn: () => fakeSb(),
+    });
+    assert.equal(code, 0);
+    assert.ok(existsSync(file), 'the id did not change (no readAll rows are reachable through the fake), so the file stays');
+  }));
 
 // ── HARNESS-1 (2026-10-10): the ledger id and the artifact file name are ONE value ─────────────────────
 // [CONFIRMED] A local `node scripts/turns/dry-run-structured-actions.mjs` wrote structured-actions-run-003.json

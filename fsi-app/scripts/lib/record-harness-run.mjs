@@ -62,7 +62,50 @@
 // intent: diagnosable, never a false red, for the case that was never going to try). `isGitHubActions`
 // is deps-injectable so both branches are proven without depending on the real process environment.
 
+import { existsSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { formatRunId, nextRunNumberFromHarnessRuns } from "./harness-run-number.mjs";
+
+// ONE VALUE, TWO PLACES (lane HARNESS-1, 2026-10-10). The ledger row's run_id and the artifact file's name
+// (CONVENTION.md: "Filename = run_id + .json") are the same value, or the artifact cannot be found from the
+// ledger row. [CONFIRMED] A local dry-run-structured-actions run wrote structured-actions-run-003.json (the
+// directory's own max+1) while this module stored structured-actions-run-001 (harness_runs' own max+1,
+// `renumbered: true`): two numbering authorities, one file left under the loser's name. When the caller
+// passes `artifactPath`, this module now owns the reconciliation in both directions:
+//   1. BEFORE the insert, a ledger number whose filename another artifact already holds in the artifact's
+//      directory is skipped (never clobbered; a committed historical run-001.json is not overwritten by a
+//      ledger row that happens to be numbered 001). The number stays above the ledger's max, so the ledger
+//      stays unique and monotonic.
+//   2. AFTER a landed insert, the file is renamed to the landed id and its run_id field rewritten.
+// A failed insert leaves the file exactly as written.
+
+/** Smallest number >= startNum whose artifact filename in `dir` is free (the artifact's own file counts as free). */
+function firstFreeNumber(family, startNum, dir, ownPath) {
+  let n = startNum;
+  for (;;) {
+    const p = join(dir, `${formatRunId(family, n)}.json`);
+    if (!existsSync(p) || resolve(p) === resolve(ownPath)) return n;
+    n += 1;
+  }
+}
+
+/** Renames `artifactPath` to `<dir>/<runId>.json` and rewrites its run_id. Returns {path} or {error}. */
+function reconcileArtifactFile(artifactPath, runId) {
+  try {
+    if (!existsSync(artifactPath)) return { error: `artifact file ${artifactPath} does not exist, so it could not be renamed to ${runId}` };
+    const target = join(dirname(artifactPath), `${runId}.json`);
+    if (resolve(target) !== resolve(artifactPath) && existsSync(target)) {
+      return { error: `artifact file ${target} already exists, refusing to overwrite it with the artifact landed as ${runId}` };
+    }
+    const parsed = JSON.parse(readFileSync(artifactPath, "utf8"));
+    parsed.run_id = runId;
+    writeFileSync(target, JSON.stringify(parsed, null, 2) + "\n", "utf8");
+    if (resolve(target) !== resolve(artifactPath)) unlinkSync(artifactPath);
+    return { path: target };
+  } catch (e) {
+    return { error: `artifact file ${artifactPath} could not be reconciled with ${runId}: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
 
 /** True when a Supabase/Postgres error looks like a unique-constraint violation on `harness_runs_pkey`
  *  (Postgres code 23505, or the message text when the client doesn't surface a `.code`). Used only to
@@ -121,12 +164,15 @@ function makeReadAllFn(sb) {
  * @param {object} sb a Supabase client (service-role write client)
  * @param {object} artifact the full run-artifact object (CONVENTION.md schema), already validated/
  *   stamped by writeRunArtifact
- * @param {{log?: (msg:string)=>void, readAllFn?: Function, maxRenumberAttempts?: number}} [opts]
+ * @param {{log?: (msg:string)=>void, readAllFn?: Function, maxRenumberAttempts?: number, artifactPath?: string|null}} [opts]
+ *   `artifactPath`, when given, is the artifact's file: the ledger id and the file name are made one value (see
+ *   this module's "ONE VALUE, TWO PLACES" block); the outcome then carries `artifact_path`, or `artifact_error`
+ *   when a landed row's file could not be reconciled.
  *   `readAllFn` overrides the default Supabase-backed reader (deps-injected so tests run without a DB,
  *   same pattern plan-quarantine-disposition.mjs/write-statutory.mjs already use for this exact table).
- * @returns {Promise<{ok: true, run_id: string, renumbered: boolean} | {ok: false, error: string, run_id: string}>}
+ * @returns {Promise<{ok: true, run_id: string, renumbered: boolean, artifact_path?: string, artifact_error?: string} | {ok: false, error: string, run_id: string}>}
  */
-export async function recordHarnessRun(sb, artifact, { log = () => {}, readAllFn = null, maxRenumberAttempts = 3 } = {}) {
+export async function recordHarnessRun(sb, artifact, { log = () => {}, readAllFn = null, maxRenumberAttempts = 3, artifactPath = null } = {}) {
   const effectiveReadAllFn = readAllFn || makeReadAllFn(sb);
   const row = baseRow(artifact);
 
@@ -135,7 +181,8 @@ export async function recordHarnessRun(sb, artifact, { log = () => {}, readAllFn
   let numberIsDbDerived = false;
   try {
     const nextNum = await nextRunNumberFromHarnessRuns(effectiveReadAllFn, artifact.harness_family);
-    const candidate = formatRunId(artifact.harness_family, nextNum);
+    const freeNum = artifactPath ? firstFreeNumber(artifact.harness_family, nextNum, dirname(artifactPath), artifactPath) : nextNum;
+    const candidate = formatRunId(artifact.harness_family, freeNum);
     numberIsDbDerived = true;
     if (candidate !== artifact.run_id) {
       log(
@@ -158,14 +205,22 @@ export async function recordHarnessRun(sb, artifact, { log = () => {}, readAllFn
       const { error } = await sb.from("harness_runs").insert({ ...row, run_id: runId });
       if (!error) {
         log(`record-harness-run: landed ${runId} in harness_runs${renumbered ? ` (renumbered from ${artifact.run_id})` : ""}`);
-        return { ok: true, run_id: runId, renumbered };
+        if (!artifactPath) return { ok: true, run_id: runId, renumbered };
+        const reconciled = reconcileArtifactFile(artifactPath, runId);
+        if (reconciled.error) {
+          log(`record-harness-run: ${reconciled.error}`);
+          return { ok: true, run_id: runId, renumbered, artifact_error: reconciled.error };
+        }
+        if (reconciled.path !== resolve(artifactPath)) log(`record-harness-run: artifact file renamed to ${basename(reconciled.path)} to match the ledger id`);
+        return { ok: true, run_id: runId, renumbered, artifact_path: reconciled.path };
       }
       const canRetry = numberIsDbDerived && isUniqueViolation(error) && attempt < maxRenumberAttempts - 1;
       if (canRetry) {
         log(`record-harness-run: insert collided on ${runId} (${error.message}); re-deriving the next number and retrying`);
         try {
           const nextNum = await nextRunNumberFromHarnessRuns(effectiveReadAllFn, artifact.harness_family);
-          runId = formatRunId(artifact.harness_family, nextNum);
+          const freeNum = artifactPath ? firstFreeNumber(artifact.harness_family, nextNum, dirname(artifactPath), artifactPath) : nextNum;
+          runId = formatRunId(artifact.harness_family, freeNum);
           renumbered = true;
           continue;
         } catch (e2) {
@@ -202,7 +257,6 @@ export async function recordHarnessRun(sb, artifact, { log = () => {}, readAllFn
 //        try (a developer's local shell). Never treated as a failure.
 //
 // USAGE: node scripts/lib/record-harness-run.mjs --file scripts/harness-runs/<family>/<run-id>.json
-import { readFileSync } from "node:fs";
 import { isMainModule } from "./is-main.mjs";
 
 /**
@@ -267,10 +321,14 @@ export async function runCli(args, deps = {}) {
     sb = createClient(envUrl, envKey, { auth: { persistSession: false } });
   }
 
-  const outcome = await recordHarnessRun(sb, artifact, { log });
+  const outcome = await recordHarnessRun(sb, artifact, { log, artifactPath: file });
   if (!outcome.ok) {
     errorLog(`record-harness-run: ${outcome.error}`);
     return 1; // the insert genuinely failed -- fail the step, never best-effort-silenced (rule 15)
+  }
+  if (outcome.artifact_error) {
+    errorLog(`record-harness-run: row ${outcome.run_id} landed but ${outcome.artifact_error}`);
+    return 1; // the ledger id and the artifact name disagree -- fail loud, never silent (rule 15)
   }
   return 0;
 }

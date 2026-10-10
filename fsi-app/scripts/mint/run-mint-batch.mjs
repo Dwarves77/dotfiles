@@ -83,6 +83,7 @@ function usage() {
     "  node scripts/mint/run-mint-batch.mjs --census-rows path/to/rows.json --grade record [--execute]",
     "                                        [--harness-runs-dir dir] [--out-dir dir] [--out-basename name]",
     "                                        [--max-items N] [--upstream-run-id id] [--loop-run-id id]",
+    "                                        [--run-mode dry|apply]   (the RESOLVED run mode; recorded as config.mode)",
     "  node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json [--run-id mint-run-NNN]",
     "                                        [--harness-runs-dir dir]",
   ].join("\n");
@@ -342,6 +343,19 @@ export function runBatch(payloads, { baseDir } = {}) {
 }
 
 /**
+ * The mode label a mint run artifact records. Pure. A resolved run mode wins: "dry" records `dry`,
+ * "apply" records `execute` (the existing vocabulary scripts/lib/upstream-artifact.mjs's downstream-chain
+ * evidence and assemble-train.mjs read as "this run wrote for real"). Without one, the legacy pair.
+ * @param {{execute: boolean, runMode?: "dry"|"apply"|null}} args
+ */
+export function mintConfigMode({ execute, runMode }) {
+  if (runMode === undefined || runMode === null) return execute ? "execute" : "dry_run";
+  if (runMode === "dry") return "dry";
+  if (runMode === "apply") return "execute";
+  throw new Error(`buildRunArtifact: runMode must be "dry" or "apply" (the resolved run mode); got ${JSON.stringify(runMode)}`);
+}
+
+/**
  * Build this run's CONVENTION.md-shaped artifact. Pure function (no I/O) so the test suite can assert
  * its shape without touching the filesystem. Mirrors screen-worklist.mjs's buildRunArtifact — same
  * discipline, different family. When `runError` is set (an --execute run that threw), `result` may be
@@ -372,7 +386,14 @@ export function buildRunArtifact({
   maxItems,
   upstreamRunId,
   loopRunId,
+  // runMode (lane HARNESS-1, 2026-10-10): the RESOLVED run mode, "dry" | "apply", the one the chained dry-run
+  // guard produced (population-turn.yml's $RUN_MODE), never the requested one. `execute` only says this
+  // invocation wrote its own output files (the workflow always passes --execute), so deriving the recorded mode
+  // from it labelled a guard-forced dry run `execute` (population turn 38058506216, mint-run-004). Absent
+  // (a hand run, no guard), the label falls back to the old execute / dry_run pair.
+  runMode,
 }) {
+  const configMode = mintConfigMode({ execute, runMode });
   const fullTraceRefs = [batchPath];
   if (applyReadyPath) fullTraceRefs.push(applyReadyPath);
   if (reportPath) fullTraceRefs.push(reportPath);
@@ -396,7 +417,8 @@ export function buildRunArtifact({
       batch_file: batchPath,
       out_dir: outDir,
       execute,
-      mode: execute ? "execute" : "dry_run",
+      mode: configMode,
+      run_mode: runMode ?? null,
       max_items: maxItems ?? null,
       upstream_run_id: upstreamRunId ?? null,
       loop_run_id: loopRunId ?? null,
@@ -517,6 +539,8 @@ function main() {
       "max-items": { type: "string" },
       "upstream-run-id": { type: "string" },
       "loop-run-id": { type: "string" },
+      // Lane HARNESS-1, 2026-10-10: the RESOLVED run mode (dry | apply) from the chained dry-run guard.
+      "run-mode": { type: "string" },
       help: { type: "boolean", default: false },
     },
     allowPositionals: false,
@@ -529,6 +553,12 @@ function main() {
   }
 
   const harnessRunsDir = resolve(values["harness-runs-dir"] || DEFAULT_HARNESS_RUNS_DIR);
+
+  if (values["run-mode"] !== undefined && values["run-mode"] !== "dry" && values["run-mode"] !== "apply") {
+    console.error(`--run-mode must be "dry" or "apply" (the resolved run mode); got ${JSON.stringify(values["run-mode"])}.
+${usage()}`);
+    process.exit(1);
+  }
 
   if (values.outcomes) {
     runOutcomesEnrichment(values, harnessRunsDir);
@@ -649,6 +679,7 @@ function main() {
         maxItems: Number.isFinite(maxItems) ? maxItems : null,
         upstreamRunId,
         loopRunId,
+        runMode: values["run-mode"] ?? null,
       });
       const artifactPath = writeRunArtifact(harnessRunsDir, artifact);
       console.log(`Wrote ${artifactPath}`);
