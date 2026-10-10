@@ -21,17 +21,27 @@
  *                            committed (the map was a shared-append file, one line per new migration).
  *    FILE_STATUS_HEADER      a keyed file entry whose first-line status does not match its class, or a file that
  *                            carries an outside-ledger or duplicate-prefix first-line status but is not in the map.
- *    CODE_DIFFERS            a ledger row that stores statements whose text differs from its file in code
- *                            (same normalisation as the export: comments, whitespace, semicolons and a
+ *    CODE_DIFFERS            a ledger row NOT classed code-differs whose stored statements differ from its file in
+ *                            code (same normalisation as the export: comments, whitespace, semicolons and a
  *                            BEGIN/COMMIT wrapper are ignored; see scripts/migrations/migration-compare.mjs).
+ *    DIFF_RECORD_MISSING     a row the map classes code-differs that carries no recorded `diff` (lane MIG-HIST-2:
+ *                            migration-history-diff.mjs writes it; a map regenerated without that step lands here).
+ *    DIFF_DRIFT              a recorded `diff` (class, counts, sha256 of the two statement lists) that no longer equals
+ *                            the live difference: the file or the ledger row changed after the difference was recorded.
+ *    DIFF_ON_NON_DIFFERING   a `diff` record on an entry whose class is not code-differs.
  *    MAP_CLASS_STALE         the map's class disagrees with what the ledger holds now.
  *    RECOVERED_BODY          a recovered file whose body hash is not its header's, or whose statements the
  *                            ledger does not hold.
- *  FINDINGS (reported, never a pass and never a failure): every outside-ledger file is "objects unverified";
- *  wiring F24's object check into this audit is owed to a follow-up.
+ *    OUTSIDE_OBJECT_MISSING  an outside-ledger file with an object (table, view, function, index, policy, column,
+ *                            constraint) absent from the live catalog that no later migration ended
+ *                            (migration-history-objects.mjs, lane MIG-HIST-2): the file did not run elsewhere.
+ *  FINDINGS (reported, never a pass and never a failure): CODE_DIFFERS_RECORDED (a code-differs row whose recorded diff
+ *  still equals the live one); per outside-ledger file OBJECTS_VERIFIED, OBJECTS_UNVERIFIABLE (every object it created was
+ *  ended later) or NO_CHECKABLE_OBJECTS; without a catalog (a fixture, or a run with no outside-ledger entry) the old
+ *  OBJECTS_UNVERIFIED finding stays.
  *
- *  EXPECTED RESULT OF THE FIRST LIVE RUN: FAIL, on CODE_DIFFERS for the code-differs rows the map lists, until
- *  lane MIG-HIST-2 reconciles them. That red is the point: it is the measured gap, not a defect of the audit.
+ *  A code-differs row is the measured, recorded gap between a repo file and what production ran (lane MIG-HIST-2): it
+ *  passes only while its recorded diff equals the live one. A NEW difference, or any change to a recorded one, is red.
  *
  *  Three states (the sibling convention): exit 0 = no failure; exit 1 = at least one failure; exit 2 = no
  *  database credentials or an engine error (cannot verify). Read-only. The pure core (evaluateHistory) has no
@@ -49,6 +59,8 @@ import {
 } from "../migrations/migration-compare.mjs";
 import { derivesNeverApplied } from "../../supabase/migrations/_lib/applied-status.mjs";
 import { MIG_DIR, ledgerKeys, fileEntries } from "../migrations/build-applied-map.mjs";
+import { diffRecord, sameDiff } from "./migration-history-diff.mjs";
+import { verifyOutsideLedger, liveCatalog } from "./migration-history-objects.mjs";
 
 const FILE_CLASSES = new Set(["identical", "comments-only", "code-differs", "recovered", "statements-null", "apply-record-stub"]);
 const SUPERSEDER_CLASSES = new Set(["superseded-by", "data-only", "comment-only"]);
@@ -56,11 +68,12 @@ const COMPARED = new Set(["identical", "comments-only", "code-differs"]);
 
 /**
  * Pure core.
- * @param {{ ledger: {version:string,name:string,statements:string|null}[], files: Map<string,string>, map: object }} p
- *   files: file name (no directory) to its text.
+ * @param {{ ledger: {version:string,name:string,statements:string|null}[], files: Map<string,string>, map: object, catalog?: object }} p
+ *   files: file name (no directory) to its text. catalog: the live catalog (migration-history-objects.mjs); without it the
+ *   outside-ledger files stay "objects unverified".
  * @returns {{ ok: boolean, failures: {code:string,key:string,detail:string}[], findings: string[], counts: object }}
  */
-export function evaluateHistory({ ledger, files, map }) {
+export function evaluateHistory({ ledger, files, map, catalog }) {
   const failures = [];
   const findings = [];
   const fail = (code, key, detail) => failures.push({ code, key, detail });
@@ -95,8 +108,18 @@ export function evaluateHistory({ ledger, files, map }) {
     } else if (COMPARED.has(e.class)) {
       if (stored == null || isApplyRecordStub(stored)) { fail("MAP_CLASS_STALE", v, `map says ${e.class}, but the ledger stores no comparable SQL`); continue; }
       const live = compareStored(stored, files.get(e.file)).kind;
-      if (live === "code-differs") fail("CODE_DIFFERS", v, `${e.name}: the stored statements differ from ${e.file} in code`);
-      else if (e.class === "code-differs") fail("MAP_CLASS_STALE", v, `map says code-differs but the text now matches (${live}); regenerate the map`);
+      if (e.class === "code-differs") {
+        if (live !== "code-differs") fail("MAP_CLASS_STALE", v, `map says code-differs but the text now matches (${live}); regenerate the map`);
+        else {
+          const rec = diffRecord(stored, files.get(e.file));
+          if (!e.diff) fail("DIFF_RECORD_MISSING", v, `${e.name}: ${e.file} differs from the stored statements in code (${rec.class}, ${rec.file_only} file-only, ${rec.stored_only} stored-only) and the map records no diff; run node fsi-app/scripts/verify/migration-history-diff.mjs --export-dir <ledger export> --write after the map generator`);
+          else if (!sameDiff(e.diff, rec)) fail("DIFF_DRIFT", v, `${e.name}: the recorded diff (${e.diff.class}, ${e.diff.file_only}/${e.diff.stored_only}) no longer equals the live one (${rec.class}, ${rec.file_only}/${rec.stored_only}, sha256 ${rec.sha256.slice(0, 12)}): ${e.file} or the ledger row changed after it was recorded`);
+          else findings.push(`CODE_DIFFERS_RECORDED ${v} ${e.file}: ${rec.class}, ${rec.file_only} file-only, ${rec.stored_only} stored-only statement(s)`);
+        }
+      } else {
+        if (live === "code-differs") fail("CODE_DIFFERS", v, `${e.name}: the stored statements differ from ${e.file} in code`);
+        if (e.diff) fail("DIFF_ON_NON_DIFFERING", v, `${e.name}: class ${e.class} carries a diff record`);
+      }
     } else if (e.class === "recovered") {
       const text = files.get(e.file);
       const body = recoveredBody(text);
@@ -117,8 +140,14 @@ export function evaluateHistory({ ledger, files, map }) {
     if (f.class === "never-applied") { fail("NEVER_ENTRY_COMMITTED", name, "a never-applied entry is committed in the map; such files are derived from their own NOT APPLIED header, so remove the entry"); continue; }
     const cls = statusClassOfFile(text);
     if (cls !== f.class) fail("FILE_STATUS_HEADER", name, `first-line status is ${cls ?? "absent"}, the map says ${f.class}`);
-    if (f.class === "outside-ledger") findings.push(`OBJECTS_UNVERIFIED ${name}: applied outside the ledger per ${(f.note ?? "").split(";")[0]}; whether its objects exist is not checked here`);
+    if (f.class === "outside-ledger" && !catalog) findings.push(`OBJECTS_UNVERIFIED ${name}: applied outside the ledger per ${(f.note ?? "").split(";")[0]}; whether its objects exist is not checked here`);
     if (f.class === "duplicate-prefix") findings.push(`OBJECTS_UNVERIFIED ${name}: duplicate prefix with no ledger row; whether its objects exist is not checked here`);
+  }
+
+  if (catalog) {
+    const o = verifyOutsideLedger({ files, entries: fwr, catalog });
+    for (const f of o.failures) failures.push(f);
+    for (const f of o.findings) findings.push(f);
   }
 
   for (const [name, text] of files) {
@@ -168,7 +197,9 @@ export async function run({ connect, migDir = MIG_DIR, log = console.log, err = 
   try {
     const { rows } = await client.query("SELECT version, name, statements FROM supabase_migrations.schema_migrations ORDER BY version");
     const map = JSON.parse(readFileSync(resolve(migDir, "APPLIED-MAP.json"), "utf8"));
-    const result = evaluateHistory({ ledger: ledgerFromRows(rows), files: readMigrationFiles(migDir), map });
+    // The catalog is read only when the map has an outside-ledger file to verify (one extra read-only query).
+    const catalog = fileEntries(map).some((f) => f.class === "outside-ledger") ? await liveCatalog(client) : undefined;
+    const result = evaluateHistory({ ledger: ledgerFromRows(rows), files: readMigrationFiles(migDir), map, catalog });
     log("-------- migration history: ledger vs files vs APPLIED-MAP.json --------");
     log(JSON.stringify(result.counts));
     for (const f of result.findings) log(`FINDING  ${f}`);
