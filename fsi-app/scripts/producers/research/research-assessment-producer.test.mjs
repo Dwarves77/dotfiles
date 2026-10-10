@@ -410,6 +410,29 @@ test("fetchLiveCandidates: a non-admitted item_type never reaches the output, ev
   assert.deepEqual(candidates, []);
 });
 
+test("fetchLiveCandidates: the item_forward_events join keys on intelligence_item_id, renames event_kind to kind, and never leaks another item's events (lane TESTS-1)", async () => {
+  const client = makeFakeLiveClient({
+    intelligence_items: [
+      { id: "i1", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "One", source_id: null },
+      { id: "i2", item_type: "research_finding", domain: null, is_archived: false, provenance_status: "verified", title: "Two", source_id: null },
+    ],
+    research_assessments_current: [],
+    sources: [],
+    item_forward_events: [
+      { id: "e1", intelligence_item_id: "i1", event_date: "2027-01-01", event_kind: "roadmap", obligation_text: "ships 2027" },
+      { id: "e2", intelligence_item_id: "i1", event_date: "2028-01-01", event_kind: "deadline", obligation_text: "due 2028" },
+      { id: "e3", intelligence_item_id: "other", event_date: "2027-06-01", event_kind: "roadmap", obligation_text: "not an admitted item" },
+    ],
+  });
+  const candidates = await fetchLiveCandidates({ client });
+  const one = candidates.find((c) => c.id === "i1");
+  const two = candidates.find((c) => c.id === "i2");
+  assert.deepEqual(one.forwardEvents.map((e) => e.id).sort(), ["e1", "e2"]);
+  assert.equal(one.forwardEvents.find((e) => e.id === "e1").kind, "roadmap", "event_kind is renamed to kind");
+  assert.equal(one.forwardEvents.find((e) => e.id === "e1").source_citation, null, "the table has no citation column, so source_citation is honestly null");
+  assert.deepEqual(two.forwardEvents, [], "an item with no events gets an empty list, and e3 (another item) never attaches");
+});
+
 // ── F27 composition proof: assess.mjs + surface-candidate.mjs + producer-summary.mjs + the ──────────
 // orchestrator all exercised TOGETHER, against the same fixture candidates, in one test. Proves real
 // output from one module survives being fed into the next unchanged (the WO-17 defect class this gate
