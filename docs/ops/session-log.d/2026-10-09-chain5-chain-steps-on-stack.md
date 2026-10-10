@@ -34,7 +34,7 @@
 ## NOT done
 
 - The next chain proof fire (the first observation of the served function, the schema-name check and the role check on a real stack) is the executor's step; the workflow is dispatch only. [NOT-WORK: build-mode hold, workflow dispatch is the executor's, CLAUDE.md rule 16]
-- `scripts/harness-runs/chain-proof/family.json` `governing_files` does not list `scripts/proof/chain-role-check.mjs`, so an edit to it does not change the family's governing hash. The file is outside this lane's write set. [WORK: PROOF-7]
+- `scripts/harness-runs/chain-proof/family.json` `governing_files` does not list `scripts/proof/chain-role-check.mjs`, so an edit to it does not change the family's governing hash. The file is outside this lane's write set. [CLOSED: PR 1070]
 - enabling edge_runtime in the shared `config.toml` makes migration-proof.yml boot the edge runtime container too (with no function in its stack directory); the added start time was not measured. [NOT-WORK: fact, measured by the first migration-proof run after merge]
 - The brief named `fsi-app/scripts/proof/chain-*.mjs` as write set; the chain step files live under `fsi-app/scripts/proof/steps/`, which I edited as the evident intent. [NOT-WORK: scope statement, disclosed here and in the report]
 
