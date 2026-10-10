@@ -47,8 +47,10 @@ function fakeClient() {
       if (table === "sources") {
         return {
           select() { return this; },
-          ilike() { return this; },
-          limit: () => Promise.resolve({ data: [{ id: EXISTING_SOURCE_ID }], error: null }),
+          // exact-host lookup (lane DFIX-2): .or(exactHostUrlFilter) replaced the substring ilike; the row's url is
+          // re-checked against the cited host in code, so the registered row carries a url on the cited host.
+          or() { return this; },
+          limit: () => Promise.resolve({ data: [{ id: EXISTING_SOURCE_ID, url: "https://example-regulator.gov/registered" }], error: null }),
         };
       }
       if (table === "source_tier_opinions") {

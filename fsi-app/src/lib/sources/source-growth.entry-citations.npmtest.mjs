@@ -39,6 +39,14 @@ function fakeDb(seed = {}) {
           if (f.k === "in") return f.v.includes(r[f.c]);
           if (f.k === "is") return f.v === null ? r[f.c] == null : r[f.c] === f.v;
           if (f.k === "ilike") return String(r[f.c] ?? "").toLowerCase().includes(String(f.v).replace(/%/g, "").toLowerCase());
+          // exact-host lookup (lane DFIX-2): .or("url.ilike.<pattern>,...") with * wildcards, case-insensitive
+          if (f.k === "or") {
+            return f.v.split(",").some((part) => {
+              const pat = part.replace(/^url\.ilike\./, "");
+              const re = new RegExp("^" + pat.split("*").map((x) => x.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$", "i");
+              return re.test(String(r.url ?? ""));
+            });
+          }
           return true;
         });
       if (st.op === "insert") {
@@ -72,6 +80,7 @@ function fakeDb(seed = {}) {
       in(c, v) { st.filters.push({ k: "in", c, v }); return b; },
       is(c, v) { st.filters.push({ k: "is", c, v }); return b; },
       ilike(c, v) { st.filters.push({ k: "ilike", c, v }); return b; },
+      or(v) { st.filters.push({ k: "or", v }); return b; },
       limit(n) { st.limitN = n; return b; },
       single() { const r = run(); return Promise.resolve({ data: r.data?.[0] ?? null, error: r.data?.[0] ? null : { message: "no row" } }); },
       then(res, rej) { return Promise.resolve(run()).then(res, rej); },

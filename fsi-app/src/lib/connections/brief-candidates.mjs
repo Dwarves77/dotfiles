@@ -47,7 +47,8 @@
 // carrying the edge's relationship/score AND its basis merged with the theme's dominant signals — never
 // two competing rows for the same real item.
 
-import { basisEntryKey, basisDetailText } from "./intersections.mjs";
+import { basisEntryKey, basisDetailText, isIntersectionEntry } from "./intersections.mjs";
+import { labelForScenario, labelForComplianceObject } from "./tag-labels.mjs";
 
 import { isBriefStale } from "./brief-staleness.mjs";
 
@@ -73,6 +74,23 @@ const RELATIONSHIP_SPECIFICITY = ["supersedes", "implements", "conflicts", "amen
 // guard is deliberately not DB-scoped, and a stray literal here would trip it for a string that was
 // never going anywhere near item_cross_references.
 const THEME_MEMBERSHIP_LABEL = "theme" + "_member";
+
+/**
+ * The readable line for one basis entry in the candidate list (lane DFIX-2, s3b item 143). An intersection entry
+ * names its shared scenario and compliance-object tags by their HUMAN labels from tag-labels.mjs (the one label
+ * source: "ocean bunkering", not the slug "ocean-bunkering"), never the raw slugs; every other entry keeps
+ * basisDetailText's text unchanged. PURE.
+ * @param {{signal:string, detail?:unknown}} b
+ * @returns {string} "" when the entry has no detail
+ */
+function readableBasisDetail(b) {
+  const d = b?.detail;
+  if (isIntersectionEntry(b) && d && typeof d === "object") {
+    const list = (xs, label) => (Array.isArray(xs) ? xs.map(label).filter(Boolean).join(", ") : "");
+    return `scenarios: ${list(d.scenarios, labelForScenario)}; objects: ${list(d.objects, labelForComplianceObject)}; ${d.tier ?? "weak"} tier, strength ${d.strength ?? 0}`;
+  }
+  return basisDetailText(b);
+}
 
 const isFiniteScore = (n) => typeof n === "number" && Number.isFinite(n);
 
@@ -220,7 +238,7 @@ export function formatCandidateBlock(selection) {
   if (!candidates.length) return "";
   const lines = candidates.map((c) => {
     const basisTxt = c.basis.length
-      ? c.basis.slice(0, 3).map((b) => (basisDetailText(b) ? `${b.signal} (${basisDetailText(b)})` : b.signal)).join(", ")
+      ? c.basis.slice(0, 3).map((b) => (readableBasisDetail(b) ? `${b.signal} (${readableBasisDetail(b)})` : b.signal)).join(", ")
       : "no basis recorded";
     const scoreTxt = isFiniteScore(c.score) ? ` — score ${c.score.toFixed(2)}` : "";
     return `- ${c.id} — relationship: ${c.relationship}${scoreTxt} — basis: ${basisTxt}`;

@@ -3572,6 +3572,467 @@
           "expect": { "equals": { "ok": "true" } }
         }
       ]
+    },
+    {
+      "id": "sec8-reference-reads-closed-to-anon",
+      "group": "SEC-8 read policy scope",
+      "kind": "sql",
+      "needs_fixtures": true,
+      "invariant": "Platform reference tables whose SELECT policy was the literal USING (true) with the implicit roles {public} are readable by authenticated and the service role only: an anonymous request reads none of their rows and is refused by the table GRANT, anon holds no SELECT on the membership and identity tables (org_memberships, organizations, workspace_settings, profiles), a member of one organization reads no profile of another organization, and no SELECT policy that applies to anon or public with the literal true predicate remains on any public table.",
+      "expected": "Each anonymous read is refused 42501 with a message naming the table; each authenticated and service-role control read succeeds; the cross-organization profile read returns zero rows; both catalog counts are 0.",
+      "reference": "migration 382 (lane SEC-8); AUD-AT-1 register section 10 (P1 and P4 SELECT facts); migration 381 (SEC-7) for the naming convention; migration 372 for the profiles policy",
+      "steps": [
+        {
+          "label": "attack: anon reads connection_theme_runs",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.connection_theme_runs LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table connection_theme_runs"
+          }
+        },
+        {
+          "label": "attack: anon reads connection_themes",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.connection_themes LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table connection_themes"
+          }
+        },
+        {
+          "label": "attack: anon reads coverage_gaps",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.coverage_gaps LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table coverage_gaps"
+          }
+        },
+        {
+          "label": "attack: anon reads entities",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.entities LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table entities"
+          }
+        },
+        {
+          "label": "attack: anon reads entity_identifiers",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.entity_identifiers LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table entity_identifiers"
+          }
+        },
+        {
+          "label": "attack: anon reads entity_refs",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.entity_refs LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table entity_refs"
+          }
+        },
+        {
+          "label": "attack: anon reads entity_scope",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.entity_scope LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table entity_scope"
+          }
+        },
+        {
+          "label": "attack: anon reads monitoring_queue",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.monitoring_queue LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table monitoring_queue"
+          }
+        },
+        {
+          "label": "attack: anon reads region_dimension_coverage",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.region_dimension_coverage LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table region_dimension_coverage"
+          }
+        },
+        {
+          "label": "attack: anon reads regional_data_facts",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.regional_data_facts LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table regional_data_facts"
+          }
+        },
+        {
+          "label": "attack: anon reads regions",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.regions LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table regions"
+          }
+        },
+        {
+          "label": "attack: anon reads signposts",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.signposts LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table signposts"
+          }
+        },
+        {
+          "label": "attack: anon reads source_citations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_citations LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table source_citations"
+          }
+        },
+        {
+          "label": "attack: anon reads source_trust_events",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_trust_events LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table source_trust_events"
+          }
+        },
+        {
+          "label": "attack: anon reads source_verifications",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.source_verifications LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table source_verifications"
+          }
+        },
+        {
+          "label": "attack: anon reads sources",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.sources LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table sources"
+          }
+        },
+        {
+          "label": "attack: anon reads state_cost_facts",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.state_cost_facts LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table state_cost_facts"
+          }
+        },
+        {
+          "label": "attack: anon reads theme_briefs",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.theme_briefs LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table theme_briefs"
+          }
+        },
+        {
+          "label": "attack: anon reads org_memberships",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.org_memberships LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table org_memberships"
+          }
+        },
+        {
+          "label": "attack: anon reads organizations",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.organizations LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table organizations"
+          }
+        },
+        {
+          "label": "attack: anon reads workspace_settings",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT 1 FROM public.workspace_settings LIMIT 1",
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table workspace_settings"
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads connection_theme_runs",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.connection_theme_runs LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads connection_themes",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.connection_themes LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads coverage_gaps",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.coverage_gaps LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads entities",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.entities LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads entity_identifiers",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.entity_identifiers LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads entity_refs",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.entity_refs LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads entity_scope",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.entity_scope LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads monitoring_queue",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.monitoring_queue LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads region_dimension_coverage",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.region_dimension_coverage LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads regional_data_facts",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.regional_data_facts LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads regions",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.regions LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads signposts",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.signposts LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads source_citations",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.source_citations LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads source_trust_events",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.source_trust_events LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads source_verifications",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.source_verifications LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads sources",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.sources LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads state_cost_facts",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.state_cost_facts LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads theme_briefs",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT 1 FROM public.theme_briefs LIMIT 1",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "control: an authenticated organization owner still reads their own membership",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT org_id FROM public.org_memberships WHERE org_id = $1::uuid",
+          "params": [
+            "@org_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "control: the service role still reads regions and sources",
+          "kind": "control",
+          "as": "service",
+          "sql": "SELECT (SELECT count(*) FROM public.regions) AS r, (SELECT count(*) FROM public.sources) AS s",
+          "expect": {
+            "ok": true
+          }
+        },
+        {
+          "label": "attack: a member of organization B reads the profile of the organization A owner (no shared organization)",
+          "kind": "attack",
+          "as": "user:member_b",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "denied_or_rows": 0
+          }
+        },
+        {
+          "label": "control: the organization A owner reads their own profile",
+          "kind": "control",
+          "as": "user:owner_a",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "rows_min": 1
+          }
+        },
+        {
+          "label": "attack: anon reads profiles",
+          "kind": "attack",
+          "as": "anon",
+          "sql": "SELECT id FROM public.profiles WHERE id = $1::uuid",
+          "params": [
+            "@owner_a"
+          ],
+          "expect": {
+            "error": "42501",
+            "message_includes": "permission denied for table profiles"
+          }
+        },
+        {
+          "label": "attack: no SELECT or ALL policy that applies to anon or public with the literal true predicate remains on any public table",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM pg_policies p WHERE p.schemaname = 'public' AND p.cmd IN ('SELECT', 'ALL') AND p.roles && ARRAY['anon', 'public']::name[] AND p.qual = 'true'",
+          "expect": {
+            "equals": {
+              "n": "0"
+            }
+          }
+        },
+        {
+          "label": "attack: anon holds no SELECT privilege (table or column level) on any narrowed reference table or on the membership and identity tables",
+          "kind": "attack",
+          "sql": "SELECT count(*)::int AS n FROM unnest(ARRAY['connection_theme_runs', 'connection_themes', 'coverage_gaps', 'entities', 'entity_identifiers', 'entity_refs', 'entity_scope', 'monitoring_queue', 'region_dimension_coverage', 'regional_data_facts', 'regions', 'signposts', 'source_citations', 'source_trust_events', 'source_verifications', 'sources', 'state_cost_facts', 'theme_briefs', 'org_memberships', 'organizations', 'workspace_settings', 'profiles']) AS t(name) WHERE has_any_column_privilege('anon', ('public.' || t.name)::regclass, 'SELECT')",
+          "expect": {
+            "equals": {
+              "n": "0"
+            }
+          }
+        }
+      ]
     }
   ]
 }

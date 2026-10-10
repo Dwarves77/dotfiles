@@ -60,7 +60,7 @@ test("no forbidden credential name appears anywhere outside the export step, and
   assert.doesNotMatch(TEXT.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n"), /github\.token|GITHUB_TOKEN|GH_TOKEN|gh workflow run/);
 });
 
-const LOCAL_SCRIPTS = /scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs|apply-schema-dump|schema-diff|create-oracle-db)\.mjs/;
+const LOCAL_SCRIPTS = /scripts\/proof\/(replay-migrations|run-lane-step|export-local-harness-runs|apply-schema-dump|schema-diff|create-oracle-db|dump-roles)\.mjs/;
 
 test("every step that touches the local database sources the local env and runs the preflight first", () => {
   const touching = steps().filter((s) => LOCAL_SCRIPTS.test(s.body) && !/Export the production schema dump/.test(s.name));
@@ -136,6 +136,34 @@ test("the composite action starts the stack from a scratch directory holding onl
   assert.doesNotMatch(ACTION, /secrets\./);
   const code = ACTION.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
   for (const name of FORBIDDEN_NAMES) assert.ok(!code.includes(name), `${name} referenced in the composite action`);
+});
+
+// STACK-1 (2026-10-10): the Supabase CLI is pinned to an exact release and the one version lookup that remains is
+// authenticated. "latest" made every stack job depend on an anonymous GitHub API call (rate limited, run 38019007029)
+// and on silent CLI version drift (the CLI decides the stack image tags).
+function cliPinProblems(action) {
+  const problems = [];
+  const code = action.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  const step = code.match(/uses: supabase\/setup-cli@v1\n\s+with:\n((?:\s{8}.*\n?)+)/);
+  if (!step) return ["the Install the Supabase CLI step (supabase/setup-cli@v1 with: block) is missing"];
+  const version = (step[1].match(/^\s+version:\s*(\S+)\s*$/m) || [])[1];
+  if (!version || !/^v?\d+\.\d+\.\d+$/.test(version)) problems.push(`the CLI version must be a literal semver, got ${JSON.stringify(version)} (never latest)`);
+  const token = (step[1].match(/^\s+github-token:\s*(.+?)\s*$/m) || [])[1];
+  if (token !== "${{ github.token }}") problems.push(`github-token must be github.token, got ${JSON.stringify(token)}`);
+  if (!/^\s*#.*\b\d{4}-\d{2}-\d{2}\b.*\bpin/im.test(action)) problems.push("a dated comment stating the pin and that bumping it is a deliberate PR is missing");
+  return problems;
+}
+
+test("the composite action pins the Supabase CLI to an exact release and authenticates the lookup", () => {
+  assert.deepEqual(cliPinProblems(ACTION), []);
+});
+
+test("attack: version latest, a range, a missing version or a missing token is red", () => {
+  assert.ok(cliPinProblems(ACTION.replace(/version: \S+/, "version: latest")).some((p) => /literal semver/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace(/version: \S+/, "version: 2.x")).some((p) => /literal semver/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace(/\n\s+version: \S+/, "")).some((p) => /literal semver/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace(/\n\s+github-token: .*/, "")).some((p) => /github-token/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace("github-token: ${{ github.token }}", "github-token: ${{ secrets.X }}")).some((p) => /github-token/.test(p)));
 });
 
 test("the export step's secrets are step-scoped (no workflow or job level env), and every later step preflights before its script", () => {
@@ -347,12 +375,14 @@ test("PROOF-6 ATTACK: an oracle URL as a lesser role (authenticated, anon, postg
 });
 
 test("PROOF-6 ATTACK: an oracle apply step that connects as the stack, as a lesser role or to another database is red", () => {
-  const apply = '--db-url "$PROOF_ORACLE_DB_URL"';
+  // PROOF-7: the roles filter line also names --db-url "$PROOF_ORACLE_DB_URL"; the attack targets the dump apply's own occurrence.
+  const apply = 'apply-schema-dump.mjs --db-url "$PROOF_ORACLE_DB_URL"';
   assert.ok(TEXT.includes(apply));
-  caughtOracle("stack URL", oracleWorkflowProblems(TEXT.replace(apply, '--db-url "$PROOF_DB_URL"')), /does not connect with --db-url "\$PROOF_ORACLE_DB_URL"/);
-  caughtOracle("authenticated", oracleWorkflowProblems(TEXT.replace(apply, "--db-url postgresql://authenticated:x@127.0.0.1:54399/postgres")), /does not connect with|names a connection URL literally/);
-  caughtOracle("anon", oracleWorkflowProblems(TEXT.replace(apply, "--db-url postgresql://anon:x@127.0.0.1:54399/postgres")), /does not connect with|names a connection URL literally/);
-  caughtOracle("scratch database", oracleWorkflowProblems(TEXT.replace(apply, '--db-url "$PROOF_ORACLE_DB_URL" --note oracle_check')), /scratch database/);
+  const swap = (to) => TEXT.replace(apply, () => `apply-schema-dump.mjs ` + to);
+  caughtOracle("stack URL", oracleWorkflowProblems(swap('--db-url "$PROOF_DB_URL"')), /does not connect with --db-url "\$PROOF_ORACLE_DB_URL"/);
+  caughtOracle("authenticated", oracleWorkflowProblems(swap("--db-url postgresql://authenticated:x@127.0.0.1:54399/postgres")), /does not connect with|names a connection URL literally/);
+  caughtOracle("anon", oracleWorkflowProblems(swap("--db-url postgresql://anon:x@127.0.0.1:54399/postgres")), /does not connect with|names a connection URL literally/);
+  caughtOracle("scratch database", oracleWorkflowProblems(swap('--db-url "$PROOF_ORACLE_DB_URL" --note oracle_check')), /scratch database/);
 });
 
 test("PROOF-6 ATTACK: ON_ERROR_STOP off, an error filter on the apply, a typed image tag, a missing teardown or a missing start step is red", () => {
@@ -376,4 +406,88 @@ test("PROOF-6: the teardown removes the oracle container named by create-oracle-
   const last = steps().at(-1);
   assert.match(last.name, /Stop the local stack/);
   assert.ok(last.body.includes(`docker rm -f ${ORACLE_CONTAINER}`));
+});
+
+// ── lane PROOF-7 (2026-10-09): production's roles are exported and applied to the oracle before the dump ────────
+// chain-proof fire 6 (run 37894782168): the dump apply failed with exactly one error, role "reconciler" does not
+// exist. pg_dump omits roles, so the roles file (names and attributes, no passwords) is exported in the credentialed
+// step and applied first, as supabase_admin with ON_ERROR_STOP=1, in the oracle apply step.
+
+/** What the roles export and the roles apply must be, from the workflow text and the roles script source. */
+function rolesWorkflowProblems(text, rolesSrc) {
+  const problems = [];
+  const stepList = text.split(/^\s{6}- name: /m).slice(1).map((p) => ({ name: p.split("\n")[0], body: p }));
+  const idx = (re) => stepList.findIndex((s) => re.test(s.name));
+  const exp = stepList[idx(/Export the production schema dump/)];
+  const apply = stepList[idx(/Apply the production schema dump to the oracle cluster/)];
+  if (!exp || !/dump-roles\.mjs[^\n]*-- export --out /.test(codeOf(exp.body))) problems.push("the credentialed export step does not export the production roles (dump-roles.mjs export)");
+  else {
+    const body = codeOf(exp.body);
+    const rolesAt = body.search(/dump-roles\.mjs/);
+    const subsetAt = body.search(/export-subset\.mjs/);
+    if (subsetAt >= 0 && rolesAt > subsetAt) problems.push("the roles export runs after the subset export");
+  }
+  if (!apply) problems.push("the oracle apply step is missing");
+  else {
+    const body = codeOf(apply.body);
+    const filterAt = body.search(/dump-roles\.mjs filter /);
+    const applyAt = body.search(/apply-schema-dump\.mjs/);
+    if (filterAt < 0) problems.push("the oracle apply step does not filter the roles file against the oracle's own roles (dump-roles.mjs filter)");
+    else if (applyAt >= 0 && filterAt > applyAt) problems.push("the roles filter runs after the dump apply: the roles file must precede the apply");
+    if (!/apply-schema-dump\.mjs[^\n]*--roles "\$CP_OUT_DIR\/oracle-roles\.sql"/.test(body)) problems.push("the dump apply is not given the roles file (--roles): the roles are never applied first");
+    if (!/dump-roles\.mjs filter [^\n]*--db-url "\$PROOF_ORACLE_DB_URL"/.test(body)) problems.push('the roles filter does not read the oracle with --db-url "$PROOF_ORACLE_DB_URL"');
+  }
+  if (idx(/Export the production schema dump/) >= idx(/Apply the production schema dump to the oracle cluster/)) problems.push("the roles export step does not precede the apply step");
+  const src = rolesSrc.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+  if (!/"--role-only"/.test(src)) problems.push("dump-roles.mjs does not pass --role-only to supabase db dump");
+  if (!/spawn[(]"supabase", roleDumpArgs[(]/.test(src) || !/"db", "dump"/.test(src)) problems.push("dump-roles.mjs does not export through supabase db dump");
+  if (/pg_dumpall/.test(src)) problems.push("dump-roles.mjs references pg_dumpall: a local client is not version-matched to the server, the export must run through supabase db dump");
+  if (!/stripPasswords[(]/.test(src)) problems.push("dump-roles.mjs filter does not strip PASSWORD clauses");
+  if (/\bconst\s+(EXISTING|IMAGE_ROLES|READY)[A-Z_]*\s*=\s*\[/.test(src) || /new Set\(\[\s*"postgres"/.test(src)) problems.push("dump-roles.mjs types the image's role list; it must be read from the oracle at run time");
+  if (!/from pg_roles/.test(src)) problems.push("dump-roles.mjs does not read the oracle's roles from pg_roles");
+  return problems;
+}
+
+const ROLES_SRC = readFileSync(resolve(HERE, "dump-roles.mjs"), "utf8");
+
+test("PROOF-7: the committed workflow and dump-roles.mjs satisfy the roles contract (control)", () => {
+  assert.deepEqual(rolesWorkflowProblems(TEXT, ROLES_SRC), []);
+});
+
+test("PROOF-7 ATTACK: no roles export step, an export after the subset, or an export that is not credentialed-step is red", () => {
+  const exp = /node scripts\/proof\/run-lane-step\.mjs --name dump-production-roles[^\n]*\n/;
+  assert.match(TEXT, exp);
+  caughtOracle("no export", rolesWorkflowProblems(TEXT.replace(exp, ""), ROLES_SRC), /does not export the production roles/);
+  const line = TEXT.match(exp)[0];
+  const moved = TEXT.replace(line, "").replace(/(node scripts\/proof\/run-lane-step\.mjs --name export-subset[^\n]*\n)/, `$1          ${line.trim()}\n`);
+  caughtOracle("after subset", rolesWorkflowProblems(moved, ROLES_SRC), /after the subset export/);
+});
+
+test("PROOF-7 ATTACK: an apply step with no roles filter, a filter after the apply, no --roles, or a filter not on the oracle is red", () => {
+  const filter = /\n\s+node scripts\/proof\/dump-roles\.mjs filter [^\n]*/;
+  assert.match(TEXT, filter);
+  caughtOracle("no filter", rolesWorkflowProblems(TEXT.replace(filter, ""), ROLES_SRC), /does not filter the roles file/);
+  caughtOracle("no --roles", rolesWorkflowProblems(TEXT.replace(' --roles "$CP_OUT_DIR/oracle-roles.sql"', ""), ROLES_SRC), /not given the roles file/);
+  caughtOracle("filter on the stack", rolesWorkflowProblems(TEXT.replace(/(dump-roles\.mjs filter [^\n]*)--db-url "\$PROOF_ORACLE_DB_URL"/, '$1--db-url "$PROOF_DB_URL"'), ROLES_SRC), /does not read the oracle/);
+  const fl = TEXT.match(filter)[0];
+  const swapped = TEXT.replace(fl, "").replace(/(\n\s+node scripts\/proof\/apply-schema-dump\.mjs[^\n]*)/, `$1${fl}`);
+  caughtOracle("filter after apply", rolesWorkflowProblems(swapped, ROLES_SRC), /filter runs after the dump apply/);
+});
+
+test("PROOF-7 ATTACK: dump-roles.mjs without --role-only, off supabase db dump, back on pg_dumpall, without the password strip, with a typed role list, or without pg_roles is red", () => {
+  caughtOracle("role-only", rolesWorkflowProblems(TEXT, ROLES_SRC.replace('"--role-only", ', "")), /--role-only/);
+  caughtOracle("not the cli", rolesWorkflowProblems(TEXT, ROLES_SRC.replace('spawn("supabase", roleDumpArgs(', 'spawn("pg_dump", roleDumpArgs(')), /through supabase db dump/);
+  caughtOracle("pg_dumpall", rolesWorkflowProblems(TEXT, ROLES_SRC + '\nconst bin = "pg_dumpall";\n'), /references pg_dumpall/);
+  caughtOracle("no strip", rolesWorkflowProblems(TEXT, ROLES_SRC.replace(/stripPasswords[(]/g, "keepPasswords(")), /strip PASSWORD/);
+  caughtOracle("typed list", rolesWorkflowProblems(TEXT, ROLES_SRC + '\nconst EXISTING_ROLES = ["postgres", "anon"];\n'), /types the image's role list/);
+  caughtOracle("no pg_roles", rolesWorkflowProblems(TEXT, ROLES_SRC.replace(/from pg_roles/g, "from nothing")), /pg_roles/);
+});
+
+test("PROOF-7: the roles export lives only in the credentialed step and the artifact carries the filtered roles file, never the raw dump", () => {
+  const exportStep = steps().find((s) => /Export the production schema dump/.test(s.name));
+  assert.match(codeOf(exportStep.body), /dump-roles\.mjs[^\n]*-- export --out "\$\(dirname "\$CHAIN_PROOF_SCHEMA_DUMP"\)\/production-roles\.sql"/);
+  const rest = TEXT.replace(exportStep.body, "");
+  assert.doesNotMatch(codeOf(rest), /dump-roles\.mjs[^\n]*\bexport\b/, "the export mode needs production credentials: only the export step may run it");
+  assert.match(TEXT, /rm -rf "\$RUNNER_TEMP\/schema-dump"/, "the raw roles file sits beside the schema dump and is deleted with it");
+  assert.match(TEXT, /--out "\$CP_OUT_DIR\/oracle-roles\.sql"/, "the filtered roles file goes to the out dir, which is the uploaded artifact");
 });

@@ -108,3 +108,67 @@ test("GATE-9 exit status: apply-schema-dump.mjs exits 2 when --in or --report is
   assert.equal(run({}, "--in", "dump.sql", "--report", "r.json", "--db-url", "postgresql://supabase_admin:p@db.example.com:5432/postgres").status, 2, "a non-loopback URL is refused");
   assert.equal(run({ PROOF_DB_URL: STACK }, "--in", "dump.sql", "--report", "r.json", "--db-url", "postgresql://supabase_admin:postgres@127.0.0.1:54322/postgres").status, 2, "the stack's own port is refused");
 });
+
+// ── lane PROOF-7 (2026-10-09): the roles file is applied first, as supabase_admin, ON_ERROR_STOP=1 ─────────────
+// chain-proof fire 6: the dump apply failed with exactly one error, role "reconciler" does not exist.
+function rolesSpawn({ rolesStderr = "", rolesStatus = 0, dumpStderr = "", dumpStatus = 0, tables = "2" } = {}) {
+  const calls = [];
+  const spawn = (_bin, args) => {
+    calls.push(args);
+    if (args.includes("-c")) return { status: 0, stdout: `${tables}\n`, stderr: "" };
+    if (args.includes("/r.sql")) return { status: rolesStatus, stdout: "", stderr: rolesStderr };
+    return { status: dumpStatus, stdout: "", stderr: dumpStderr };
+  };
+  return { calls, spawn };
+}
+
+test("PROOF-7: with a roles file, psql applies it FIRST (ON_ERROR_STOP=1), then the dump; both are the files themselves", () => {
+  const f = rolesSpawn();
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn: f.spawn });
+  assert.equal(r.ok, true);
+  assert.equal(r.roles_applied, true);
+  assert.equal(r.roles_errors, 0);
+  assert.equal(f.calls[0][f.calls[0].indexOf("-f") + 1], "/r.sql", "the roles file is the first psql run");
+  assert.equal(f.calls[1][f.calls[1].indexOf("-f") + 1], "/d.sql");
+  for (const c of [f.calls[0], f.calls[1]]) assert.ok(c.includes("ON_ERROR_STOP=1") && !c.includes("ON_ERROR_STOP=0"));
+});
+
+test("PROOF-7 ATTACK: an error applying the roles file is red, is reported as a roles error, and the dump is NOT applied", () => {
+  const f = rolesSpawn({ rolesStderr: 'psql:/r.sql:3: ERROR:  role "worker_ro" already exists\n', rolesStatus: 3 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.equal(r.roles_applied, false);
+  assert.equal(r.roles_errors, 1);
+  assert.equal(f.calls.filter((c) => c.includes("/d.sql")).length, 0, "the dump apply must not run after a failed roles apply");
+});
+
+test("PROOF-7 ATTACK (the missing_roles check stays): a dump naming a role absent from the roles file is red and names the role", () => {
+  const f = rolesSpawn({ dumpStderr: 'psql:/d.sql:14063: ERROR:  role "reconciler" does not exist\n', dumpStatus: 3 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.missing_roles, ["reconciler"]);
+  assert.equal(r.roles_applied, true);
+});
+
+test("PROOF-7 ATTACK: a psql that exits non-zero with no ERROR line on the roles file (refused connection) is red", () => {
+  const f = rolesSpawn({ rolesStderr: "psql: error: connection to server failed: Connection refused\n", rolesStatus: 2 });
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn: f.spawn });
+  assert.equal(r.ok, false);
+  assert.equal(r.roles_errors, 1);
+});
+
+test("PROOF-7: without a roles file the report says no roles were applied (the earlier contract is unchanged)", () => {
+  const f = rolesSpawn();
+  const r = applySchemaDump({ dbUrl: ORACLE, stackUrl: STACK, dumpPath: "/d.sql", spawn: f.spawn });
+  assert.equal(r.ok, true);
+  assert.equal(r.roles_applied, false);
+  assert.equal(f.calls.filter((c) => c.includes("-f")).length, 1);
+});
+
+test("PROOF-7 ATTACK: the roles apply is held to the same URL assertions (a lesser role or the stack's port is refused before any psql)", () => {
+  let ran = false;
+  const spawn = () => { ran = true; return {}; };
+  assert.throws(() => applySchemaDump({ dbUrl: "postgresql://authenticated:x@127.0.0.1:54399/postgres", stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn }), /supabase_admin role/);
+  assert.throws(() => applySchemaDump({ dbUrl: "postgresql://supabase_admin:x@127.0.0.1:54322/postgres", stackUrl: STACK, dumpPath: "/d.sql", rolesPath: "/r.sql", spawn }), /stack's own database/);
+  assert.equal(ran, false);
+});

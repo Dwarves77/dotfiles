@@ -254,5 +254,15 @@ test("formatCandidateBlock: an intersection entry names its shared scenarios, ob
   assert.equal(selection.candidates[0].basis.length, 1, "both directions dedupe to one entry");
   const block = formatCandidateBlock(selection);
   assert.doesNotMatch(block, /\[object Object\]/);
-  assert.match(block, /intersection \(scenarios: ocean-bunkering, air-fueling; objects: customs-broker; medium tier, strength 11\)/);
+  assert.doesNotMatch(block, /ocean-bunkering|air-fueling|customs-broker/, "no raw tag slug reaches the prompt line (DFIX-2: the label module is the one source)");
+  assert.match(block, /intersection \(scenarios: ocean bunkering, aircraft fuelling; objects: customs broker; medium tier, strength 11\)/);
+});
+
+test("formatCandidateBlock (DFIX-2): a scenario outside the glossary is humanised by the label module's rule; a non-intersection detail is unchanged", () => {
+  const ix = { signal: "intersection", detail: { scenarios: ["Some-New-Scenario"], objects: [], strength: 3 }, weight: 0.5 };
+  const plain = { signal: "shared_tag", detail: "topic overlap", weight: 0.4 };
+  const selection = selectCandidates("subject", { crossRefRows: [xref("subject", "other", { basis: [ix, plain] })] });
+  const block = formatCandidateBlock(selection);
+  assert.match(block, /intersection \(scenarios: some new scenario; objects: ; weak tier, strength 3\)/);
+  assert.match(block, /shared_tag \(topic overlap\)/);
 });

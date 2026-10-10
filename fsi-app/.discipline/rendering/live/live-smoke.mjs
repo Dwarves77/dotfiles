@@ -21,11 +21,12 @@
 //   node live-smoke.mjs               # the full run (needs playwright)
 
 import { createRequire } from "node:module";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
 import { isMainModule } from "../../../scripts/lib/is-main.mjs";
 import { preflight, runPreflightCli } from "./live-preflight.mjs";
 import { collectSnapshot, collectLinks, collectContent } from "./live-snapshot.mjs";
-import { requirementsForKind, checkContentRun } from "./live-content.mjs";
+import { requirementsForKind, judgeContentRun } from "./live-content.mjs";
+import { candidateLines } from "./live-candidates.mjs";
 import { collectContainers, isNarrowViewport } from "../overflow-rule.mjs";
 import {
   INVARIANTS,
@@ -170,7 +171,7 @@ async function probeAdminGate(ctx, baseUrl) {
  * The whole run against `baseUrl`. `browser` is injected so a fixture proof can drive it; credentials come from
  * the caller. Returns { findings, report, lines }.
  */
-export async function runLiveSmoke({ browser, baseUrl, email, password, signInTimeoutMs, contentChecks = false }) {
+export async function runLiveSmoke({ browser, baseUrl, email, password, signInTimeoutMs, contentChecks = false, candidates = null }) {
   const origin = new URL(baseUrl).origin;
   const pages = [];
   const findings = [];
@@ -210,10 +211,20 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
     await discovery.close();
   }
 
+  // Lane SMOKE-3: the items the LIVE DATA says must carry a conditional element (an inference, a record grade, a source
+  // with bias tags) are visited too, so such an element is judged on an item that must have it, not on whichever items
+  // the lists happened to put first. Without resolved candidates nothing is added.
+  const candidatePaths = [];
+  if (contentChecks && candidates?.resolved === true) {
+    for (const cls of Object.values(candidates.classes ?? {})) for (const p of cls?.visit ?? []) if (!candidatePaths.includes(p)) candidatePaths.push(p);
+  }
+  const detailPaths = [...itemPaths];
+  for (const p of candidatePaths) if (!detailPaths.includes(p)) detailPaths.push(p);
+
   const plan = [
     { path: "/", kind: "home" },
     ...LIST_SURFACES.map((s) => ({ path: `/${s}`, kind: "list" })),
-    ...itemPaths.map((p) => ({ path: p, kind: "detail" })),
+    ...detailPaths.map((p) => ({ path: p, kind: "detail" })),
   ];
 
   for (const viewport of VIEWPORTS) {
@@ -235,10 +246,27 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
 
   // Lane SMOKE-2: the content requirements that hold over the whole run (an element absent from EVERY visited page of
   // its kind at a width), judged once every page is in.
-  if (contentChecks) findings.push(...checkContentRun(snapshots));
+  // Lane SMOKE-3: a conditional requirement with no candidate in the corpus is a named HOLD, not a failure.
+  let holds = [];
+  if (contentChecks) {
+    const judged = judgeContentRun(snapshots, candidates);
+    findings.push(...judged.findings);
+    holds = judged.holds;
+  }
 
-  const report = buildReport({ baseUrl, pages, findings });
-  return { findings, report, lines: formatSummary(findings) };
+  const report = buildReport({ baseUrl, pages, findings, holds, candidates });
+  return { findings, holds, report, lines: formatSummary(findings, holds) };
+}
+
+/** The candidate file the workflow's resolver step wrote (live-candidates.mjs), or null when absent or unreadable. */
+export function readCandidatesFile(path, readFn = readFileSync) {
+  if (!path) return null;
+  try {
+    const parsed = JSON.parse(readFn(path, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 async function main() {
@@ -254,7 +282,7 @@ async function main() {
   const browser = await chromium.launch();
   let result;
   try {
-    result = await runLiveSmoke({ browser, baseUrl: pre.origin, email: env.LIVE_SMOKE_EMAIL, password: env.LIVE_SMOKE_PASSWORD, contentChecks: true });
+    result = await runLiveSmoke({ browser, baseUrl: pre.origin, email: env.LIVE_SMOKE_EMAIL, password: env.LIVE_SMOKE_PASSWORD, contentChecks: true, candidates: readCandidatesFile(env.LIVE_SMOKE_CANDIDATES) });
   } finally {
     await browser.close();
   }
@@ -262,6 +290,7 @@ async function main() {
   writeFileSync(reportPath, `${JSON.stringify(result.report, null, 2)}\n`);
   console.log(`\n===== LIVE SMOKE ${pre.origin} =====`);
   console.log(`pages visited: ${result.report.pagesVisited.length}  report: ${reportPath}`);
+  for (const l of candidateLines(readCandidatesFile(env.LIVE_SMOKE_CANDIDATES))) console.log(l);
   for (const l of result.lines) console.log(l);
   process.exit(result.report.failureCount > 0 ? 1 : 0);
 }
