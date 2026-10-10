@@ -39,7 +39,7 @@ Rows in docs/audits/gate-evaluation-2026-10-08.md
 - 56 -> [CLOSED: PR 997] (rule 012 reads ctx.introducedLines, rules/012 header)
 - 58 -> [NOT-WORK: historic firing record, no action]
 - 72 -> [CLOSED: PR 997] (rule 015 reads introduced lines, rules/015 header)
-- 125 -> [CLOSED: PR NNNN] (this PR: X11 range wide pool; the introduced-lines scope itself is PR 997)
+- 125 -> [CLOSED: PR 1086] (this PR: X11 range wide pool; the introduced-lines scope itself is PR 997)
 - 129 -> [NOT-WORK: historic CI firing classification; the two-dot range defect was fixed by lane R23, recorded in runner.mjs]
 - 161 -> [CLOSED: PR 998] (C4 prints a worktree outside the repository path as a note, C4-worktrees-reality.mjs header)
 - 162 -> [NOT-WORK: history of an already fixed defect, no action]
@@ -95,7 +95,7 @@ Rows in docs/ops/session-log.d
 - 2026-10-08-smoke2-content-invariants.md:88 -> [NOT-WORK: needs a live production smoke run; build mode holds live dispatch (rule 16)]
 - 2026-10-08-wire1-gate-wiring-owned.md:42 -> [NOT-WORK: Claude Code client behaviour, not observable in the repo]
 
-Counts: 71 rows. CLOSED 34 (PR 1040 x8, 998 x4, 986 x4, 997 x3, 1049 x3, 1042 x2, 1024 x2, 1056 x2, and one each for 1069, 1039, 1002, 980, 891 and this PR), REFUTED 4, NOT-WORK 26, WORK owed 7.
+Counts: 71 rows. CLOSED 34 (PR 1040 x8, 998 x4, 986 x4, 997 x3, 1049 x3, 1042 x2, 1024 x2, 1056 x2, and one each for 1069, 1039, 1002, 980, 891 and 1086 (this PR)), REFUTED 4, NOT-WORK 26, WORK owed 7.
 
 ## Decisions
 
