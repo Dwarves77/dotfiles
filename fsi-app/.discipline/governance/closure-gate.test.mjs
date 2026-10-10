@@ -508,7 +508,7 @@ test('DORMANT-1: liveRunEvidence counts a run that executed (success, failure, i
   assert.equal(closureGate.liveRunEvidence(null), null);
 });
 
-test('DORMANT-1: the live lookup runs only with GITHUB_TOKEN, asks the workflow-runs endpoint for the newest run, and fails to no evidence', () => {
+test('DORMANT-1: the live lookup runs only with GITHUB_TOKEN, asks the workflow-runs endpoint for its newest runs, and fails to no evidence', () => {
   const calls = [];
   const exec = (cmd, args) => { calls.push([cmd, args]); return JSON.stringify({ workflow_runs: [{ status: 'completed', conclusion: 'success', created_at: '2026-10-07T00:00:00Z' }] }); };
   assert.equal(closureGate.fetchLiveRun('x.yml', { env: {}, exec }), null, 'no token, no lookup');
@@ -517,7 +517,7 @@ test('DORMANT-1: the live lookup runs only with GITHUB_TOKEN, asks the workflow-
   assert.equal(got.toISOString(), '2026-10-07T00:00:00.000Z');
   assert.equal(calls[0][0], 'gh');
   assert.equal(calls[0][1][0], 'api');
-  assert.equal(calls[0][1][1], 'repos/o/r/actions/workflows/x.yml/runs?per_page=1');
+  assert.equal(calls[0][1][1], `repos/o/r/actions/workflows/x.yml/runs?per_page=${closureGate.LIVE_RUN_PAGE}`);
   const boom = () => { throw new Error('api down'); };
   assert.equal(closureGate.fetchLiveRun('x.yml', { env: { GITHUB_TOKEN: 't' }, exec: boom }), null, 'an unreadable API is zero evidence, never a pass');
 });
@@ -587,4 +587,62 @@ test('DORMANT-1: the gatherer asks for the platform state only of a workflow wit
   assert.equal(stateAsked.includes('data-audit-lane.yml'), true);
   assert.equal(byId.get('workflow:data-audit-lane.yml').platformState, 'disabled_manually');
   assert.equal(byId.get('workflow:uptime-probes.yml').platformState, null);
+});
+
+// ---- lane DORMANT-2 (2026-10-10): a disabled workflow is excused whatever the age of its newest executed run; the lookup reads past a non-executed newest run ----
+
+const oldRun = (over) => liveTarget({ id: 'workflow:off.yml', liveRunAt: at('2026-06-20T00:00:00Z'), ...over }); // 110 days before NOW, window 90
+
+test('DORMANT-2: a disabled workflow whose newest live run is older than the window passes, and the note carries the age', () => {
+  const r = checkNeverRun({ targets: [oldRun({ platformState: 'disabled_manually' })], now: NOW, windowDays: 90, ledgerPresent: true });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.failures, []);
+  assert.equal(r.dormantByPlatform.length, 1);
+  assert.match(r.dormantByPlatform[0].reason, /newest live run is 110 days old \(window 90 days\)/);
+});
+
+test('DORMANT-2: a disabled workflow whose newest LEDGER row is older than the window passes too (disabled_inactivity as well)', () => {
+  for (const platformState of ['disabled_manually', 'disabled_inactivity']) {
+    const r = checkNeverRun({ targets: [liveTarget({ id: 'workflow:off.yml', newestRunAt: at('2026-01-01T00:00:00Z'), platformState })], now: NOW, windowDays: 90, ledgerPresent: true });
+    assert.equal(r.ok, true, platformState);
+    assert.match(r.dormantByPlatform[0].reason, /newest harness_runs row is \d+ days old/);
+  }
+});
+
+test('DORMANT-2: a disabled workflow with no run at all still passes (the old-run and the no-run case agree)', () => {
+  const r = checkNeverRun({ targets: [liveTarget({ id: 'workflow:off.yml', platformState: 'disabled_manually' })], now: NOW, windowDays: 90, ledgerPresent: true });
+  assert.equal(r.ok, true);
+  assert.equal(r.dormantByPlatform.length, 1);
+});
+
+test('DORMANT-2: an enabled workflow with only an out-of-window run fails; attack: state `active` plus an old run fails and is never listed dormant', () => {
+  for (const platformState of ['active', null, undefined]) {
+    const r = checkNeverRun({ targets: [oldRun({ platformState })], now: NOW, windowDays: 90, ledgerPresent: true });
+    assert.equal(r.ok, false, String(platformState));
+    assert.match(r.failures[0].reason, /newest live run is 110 days old/);
+    assert.deepEqual(r.dormantByPlatform, []);
+  }
+});
+
+test('DORMANT-2: end to end through the gatherer, a disabled workflow with a 200 day old live run passes and an active one with the same run fails', () => {
+  const ledger = { present: true, capturedAt: '2026-10-08', rows: [] };
+  const old = new Date('2026-03-01T00:00:00Z');
+  for (const [state, expectOk] of [['disabled_manually', true], ['active', false]]) {
+    const targets = gatherNeverRunTargets({ ledger, windowDays: 90, now: NOW, liveRunFn: () => old, stateFn: () => state }).filter((t) => t.id.startsWith('workflow:'));
+    assert.equal(checkNeverRun({ targets, now: NOW, windowDays: 90, ledgerPresent: true }).ok, expectOk, state);
+  }
+});
+
+test('DORMANT-2: liveRunEvidence reads past a newest run that did not execute (queued, cancelled, skipped) to the newest one that did', () => {
+  const r = (status, conclusion, started) => ({ status, conclusion, created_at: started, run_started_at: started });
+  const page = { workflow_runs: [r('queued', null, '2026-10-09T10:00:00Z'), r('completed', 'cancelled', '2026-10-09T09:00:00Z'), r('completed', 'skipped', '2026-10-09T08:00:00Z'), r('completed', 'success', '2026-10-09T07:00:00Z'), r('completed', 'success', '2026-10-01T07:00:00Z')] };
+  assert.equal(closureGate.liveRunEvidence(page).toISOString(), '2026-10-09T07:00:00.000Z');
+  assert.equal(closureGate.liveRunEvidence({ workflow_runs: page.workflow_runs.slice(0, 3) }), null, 'a page of only non-executed runs is zero evidence');
+});
+
+test('DORMANT-2: describeFailures names each failing target and allowlist issue, so a red gate is readable without --report', () => {
+  const out = closureGate.describeFailures({ failures: [{ id: 'workflow:a.yml', reason: 'NEVER-RUN: x' }], allowlistIssues: ['stale entry'] });
+  assert.deepEqual(out, ['   x workflow:a.yml: NEVER-RUN: x', '   x allowlist: stale entry']);
+  assert.deepEqual(closureGate.describeFailures({ failures: [], allowlistIssues: [] }), []);
+  assert.deepEqual(closureGate.describeFailures({ failures: [{ line: 7, reason: 'r' }] }, (f) => `line ${f.line}`), ['   x line 7: r']);
 });

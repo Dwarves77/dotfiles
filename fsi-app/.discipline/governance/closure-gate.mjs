@@ -132,23 +132,31 @@ function newerDate(a, b) {
 
 /**
  * Lane DORMANT-1 (2026-10-09): the date of a run of a workflow that actually executed, read from the Actions API
- * response of `repos/{owner}/{repo}/actions/workflows/<file>/runs?per_page=1`. A run counts when it ran: completed
- * with any conclusion except skipped and cancelled (a failed run still ran and is in the ledger of what happened),
- * or in progress. A queued, waiting, skipped or cancelled run did not execute. Null when there is no such run. Pure.
+ * response of `repos/{owner}/{repo}/actions/workflows/<file>/runs?per_page=LIVE_RUN_PAGE`. A run counts when it ran:
+ * completed with any conclusion except skipped and cancelled (a failed run still ran and is in the ledger of what
+ * happened), or in progress. A queued, waiting, skipped or cancelled run did not execute. Lane DORMANT-2
+ * (2026-10-10): the NEWEST EXECUTED run in the page decides, not the newest run: a pull_request workflow gets a
+ * queued or concurrency-cancelled run on every push, and that run must not hide the executed run behind it. Null when
+ * the page holds no executed run. Pure.
  * @param {{workflow_runs?: Array<{status?: string, conclusion?: string|null, run_started_at?: string, created_at?: string}>}|null} apiJson
  * @returns {Date|null}
  */
 export function liveRunEvidence(apiJson) {
-  const run = apiJson?.workflow_runs?.[0];
-  if (!run) return null;
-  const executed = run.status === 'in_progress' || (run.status === 'completed' && run.conclusion !== 'skipped' && run.conclusion !== 'cancelled');
-  if (!executed) return null;
-  const t = Date.parse(run.run_started_at ?? run.created_at);
-  return Number.isNaN(t) ? null : new Date(t);
+  const runs = Array.isArray(apiJson?.workflow_runs) ? apiJson.workflow_runs : [];
+  for (const run of runs) {
+    const executed = run?.status === 'in_progress' || (run?.status === 'completed' && run.conclusion !== 'skipped' && run.conclusion !== 'cancelled');
+    if (!executed) continue;
+    const t = Date.parse(run.run_started_at ?? run.created_at);
+    if (!Number.isNaN(t)) return new Date(t);
+  }
+  return null;
 }
 
+/** Lane DORMANT-2: how many of a workflow's newest runs the live lookup reads (newest first). */
+export const LIVE_RUN_PAGE = 20;
+
 /**
- * Lane DORMANT-1: the newest live run of a workflow file, or null. Runs only when GITHUB_TOKEN is present (CI);
+ * Lane DORMANT-1: the newest executed live run of a workflow file (DORMANT-2: among its newest LIVE_RUN_PAGE runs), or null. Runs only when GITHUB_TOKEN is present (CI);
  * without a token the ledger export alone decides. Any API failure is zero evidence, never a pass. `env` and
  * `exec` are injected so the lookup is fixture-testable with no network.
  */
@@ -156,7 +164,7 @@ export function fetchLiveRun(workflowFile, { env = process.env, exec = (cmd, arg
   if (!env.GITHUB_TOKEN) return null;
   try {
     const repo = env.GITHUB_REPOSITORY || '{owner}/{repo}';
-    return liveRunEvidence(JSON.parse(exec('gh', ['api', `repos/${repo}/actions/workflows/${workflowFile}/runs?per_page=1`])));
+    return liveRunEvidence(JSON.parse(exec('gh', ['api', `repos/${repo}/actions/workflows/${workflowFile}/runs?per_page=${LIVE_RUN_PAGE}`])));
   } catch {
     return null;
   }
@@ -767,9 +775,13 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
   console.log(`clock: ${r.clock.now.toISOString()} (${r.clock.source})`);
   console.log(`1. NEVER-RUN     : ${line(r.neverRun)}`);
   for (const d of r.neverRun.dormantByPlatform ?? []) console.log(`   note: ${d.reason}`);
+  for (const l of describeFailures(r.neverRun)) console.log(l);
   console.log(`2. STALE-NEXT    : ${line(r.staleNext)}`);
+  for (const l of describeFailures(r.staleNext, (f) => `line ${f.line}`)) console.log(l);
   console.log(`3. WRITER-READER : ${line(r.writerReader)}  (summary: ${JSON.stringify(r.writerReader.summary)})`);
+  for (const l of describeFailures(r.writerReader)) console.log(l);
   console.log(`4. LANE-CONTRACT : ${line(r.laneContract)}`);
+  for (const l of describeFailures(r.laneContract, () => 'lane-common-contract')) console.log(l);
 
   if (report) {
     console.log('\n--- NEVER-RUN failures ---');
@@ -795,6 +807,18 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
 
   console.log(`\n=== closure gate ${r.ok ? 'PASS' : 'FAIL'} ===`);
   process.exit(r.ok ? 0 : 1);
+}
+
+/**
+ * Lane DORMANT-2 (2026-10-10): the failing items of a gate result, one `   x id: reason` line each, so a red gate
+ * names its culprit in the default output (a CI log without --report showed "1 FAILING" and nothing else, and the
+ * failing target could not be read from the log). Pure. `idOf` picks the label of a failure of that check.
+ */
+export function describeFailures(result, idOf = (f) => f.id ?? f.table ?? f.line ?? '') {
+  return [
+    ...(result?.failures ?? []).map((f) => `   x ${idOf(f)}: ${f.reason}`),
+    ...(result?.allowlistIssues ?? []).map((m) => `   x allowlist: ${m}`),
+  ];
 }
 
 function line(result) {
