@@ -297,7 +297,9 @@ export function checkConsole(messages, ctx = {}) {
   const out = [];
   for (const m of messages ?? []) {
     if (m.type !== "error" || RESOURCE_LOAD_NOISE.test(String(m.text))) continue;
-    out.push({ invariant: INVARIANTS.CONSOLE_ERROR, url: ctx.url ?? "", viewport: ctx.viewport ?? 0, text: trunc(m.text), severity: "fail" });
+    // Not truncated (lane HYDRA-1): a minified React error carries its argument after the first 120 characters.
+    // Whitespace is normalised; the length is not capped.
+    out.push({ invariant: INVARIANTS.CONSOLE_ERROR, url: ctx.url ?? "", viewport: ctx.viewport ?? 0, text: String(m.text ?? "").replace(/\s+/g, " ").trim(), severity: "fail" });
   }
   return out;
 }

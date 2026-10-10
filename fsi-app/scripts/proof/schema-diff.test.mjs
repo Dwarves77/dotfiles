@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { diffCatalogs, readCatalog, summarizeDiff, CATALOG_QUERY, CATEGORIES } from "./schema-diff.mjs";
+import { diffCatalogs, readCatalog, catalogOnly, summarizeDiff, CATALOG_QUERY, CATEGORIES } from "./schema-diff.mjs";
 
 const CATALOG = {
   tables: { items: "t1", sources: "t2" },
@@ -123,13 +123,89 @@ test("GRANTS: the catalog query reads relacl and proacl through aclexplode, name
   for (const needle of ["aclexplode", "relacl", "proacl", "acldefault", "pg_get_userbyid", "'PUBLIC'", "is_grantable", "'grants'"]) assert.ok(CATALOG_QUERY.includes(needle), needle);
   for (const kind of ["'r', 'p', 'v', 'm', 'S', 'f'"]) assert.ok(CATALOG_QUERY.includes(kind), "tables, views, sequences");
   assert.ok(!/grantor/.test(CATALOG_QUERY), "grantor names are not compared (ownership is stripped from the dump)");
-  assert.ok(!/(insert|update|delete|drop|alter|truncate)/i.test(CATALOG_QUERY.replace(/pg_get_w+/g, "")));
+  assert.ok(!/\b(insert|update|delete|drop|alter|truncate)\b/i.test(CATALOG_QUERY.replace(/pg_get_w+/g, "")));
 });
 
-test("readCatalog parses psql output and returns null on failure", () => {
-  assert.deepEqual(readCatalog({ url: "x", spawn: () => ({ status: 0, stdout: JSON.stringify(CATALOG) + "\n" }) }), CATALOG);
-  assert.equal(readCatalog({ url: "x", spawn: () => ({ status: 1, stdout: "" }) }), null);
-  assert.equal(readCatalog({ url: "x", spawn: () => ({ status: 0, stdout: "not json" }) }), null);
+test("readCatalog parses psql output into { catalog } and never returns a bare null", () => {
+  const ok = readCatalog({ url: "x", spawn: () => ({ status: 0, stdout: JSON.stringify(CATALOG) + "\n" }) });
+  assert.deepEqual(ok.catalog, CATALOG);
+  assert.equal(ok.error, null);
+});
+
+test("PROOF-9: a connection error surfaces its message (redacted of the URL and password), never a bare null", () => {
+  const url = "postgresql://postgres:s3cretpw@127.0.0.1:54322/postgres";
+  const stderr = `psql: error: connection to server at "127.0.0.1", port 54322 failed: FATAL:  28P01: password authentication failed for user "postgres"
+connection to ${url} failed, password s3cretpw rejected
+`;
+  const r = readCatalog({ url, spawn: () => ({ status: 2, stdout: "", stderr }) });
+  assert.equal(r.catalog, null);
+  assert.ok(r.error && typeof r.error.message === "string");
+  assert.match(r.error.message, /password authentication failed for user "postgres"/);
+  assert.equal(r.error.code, "28P01");
+  assert.ok(!r.error.message.includes("s3cretpw"), "the password never reaches the log");
+  assert.ok(!r.error.message.includes("postgresql://"), "the URL never reaches the log");
+});
+
+test("PROOF-9: a wrong role surfaces the pg code (permission denied is 42501, a missing function 42883)", () => {
+  const denied = readCatalog({ url: "postgresql://r:p@127.0.0.1:1/d", spawn: () => ({ status: 3, stdout: "", stderr: "ERROR:  42501: permission denied for function pg_get_functiondef\nLOCATION:  aclcheck_error, aclchk.c:2918\n" }) });
+  assert.equal(denied.error.code, "42501");
+  assert.match(denied.error.message, /permission denied for function pg_get_functiondef/);
+  const missing = readCatalog({ url: "x", spawn: () => ({ status: 3, stdout: "", stderr: "ERROR:  42883: function acldefault(text, oid) does not exist\nLINE 9:\n" }) });
+  assert.equal(missing.error.code, "42883");
+  assert.match(missing.error.message, /acldefault\(text, oid\) does not exist/);
+});
+
+test("PROOF-9: psql is asked for verbose errors (the SQLSTATE) and to stop on the first error", () => {
+  let args;
+  readCatalog({ url: "x", spawn: (_bin, a) => { args = a; return { status: 0, stdout: "{}" }; } });
+  assert.ok(args.includes("VERBOSITY=verbose"), "VERBOSITY=verbose puts the SQLSTATE in the error line");
+  assert.ok(args.includes("ON_ERROR_STOP=1"));
+});
+
+test("PROOF-9: a launch failure, a signal and unparseable output each name themselves", () => {
+  const enoent = readCatalog({ url: "x", spawn: () => ({ error: Object.assign(new Error("spawnSync psql ENOENT"), { code: "ENOENT" }), status: null }) });
+  assert.match(enoent.error.message, /could not run psql: spawnSync psql ENOENT/);
+  const killed = readCatalog({ url: "x", spawn: () => ({ status: null, signal: "SIGTERM", stdout: "", stderr: "" }) });
+  assert.match(killed.error.message, /SIGTERM/);
+  const silent = readCatalog({ url: "x", spawn: () => ({ status: 1, stdout: "", stderr: "" }) });
+  assert.match(silent.error.message, /psql exited with status 1 and printed no error text/);
+  const junk = readCatalog({ url: "x", spawn: () => ({ status: 0, stdout: "not json", stderr: "" }) });
+  assert.match(junk.error.message, /output was not JSON/);
+  for (const r of [enoent, killed, silent, junk]) assert.equal(r.catalog, null);
+});
+
+test("PROOF-9: the error text is capped and carries no URL even from a long stderr", () => {
+  const r = readCatalog({ url: "x", spawn: () => ({ status: 1, stdout: "", stderr: "ERROR:  XX000: " + "z".repeat(5000) + " postgres://u:p@h:1/d" }) });
+  assert.ok(r.error.message.length <= 600);
+  assert.ok(!/postgres:\/\//.test(r.error.message));
+});
+
+test("PROOF-9 ROOT CAUSE: the catalog query runs on a real server (chain proof fire 8 died on it), so every acldefault type argument is a typed \"char\", never a bare CASE of literals (which resolves to text; no implicit text to \"char\" cast)", () => {
+  const calls = CATALOG_QUERY.match(/acldefault\((?:[^()]|\([^()]*\))*\)/g) ?? [];
+  assert.equal(calls.length, 2, "the relation and the function grant reads");
+  for (const c of calls) {
+    const firstArg = c.slice("acldefault(".length).split(/,\s*[a-z]+\.[a-z]+\)$/)[0];
+    if (/^case\b/i.test(firstArg)) {
+      const branches = [...firstArg.matchAll(/\bthen\s+('[^']*')(::"char")?|\belse\s+('[^']*')(::"char")?/gi)];
+      assert.ok(branches.length >= 2);
+      for (const b of branches) assert.ok(b[2] || b[4], `a CASE branch feeding acldefault must be cast to "char": ${b[0]}`);
+    } else {
+      assert.match(firstArg, /^'[a-z]'(::"char")?$/, "a bare literal resolves to \"char\" on its own");
+    }
+  }
+});
+
+test("PROOF-9: the CLI prints the cause of an unreadable side (a launch failure here) and exits 1", () => {
+  const script = fileURLToPath(new URL("./schema-diff.mjs", import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), "schema-diff-"));
+  try {
+    const r = spawnSync(process.execPath, [script, "--replayed", "postgresql://postgres:pw9@127.0.0.1:54322/postgres", "--oracle", "postgresql://supabase_admin:pw9@127.0.0.1:54399/postgres", "--out", join(dir, "o.json")], { encoding: "utf8", env: { PATH: dir } });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /could not read the replayed schema/);
+    assert.match(r.stderr, /could not run psql/);
+    assert.match(r.stderr, /could not read the oracle schema/, "both sides are read and both causes printed");
+    assert.ok(!r.stderr.includes("pw9"));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("ATTACK: the CLI refuses a non-loopback URL (exit 2) and needs all three arguments", () => {
@@ -141,5 +217,29 @@ test("ATTACK: the CLI refuses a non-loopback URL (exit 2) and needs all three ar
     assert.match(bad.stderr, /loopback/);
     assert.equal(spawnSync(process.execPath, [script], { encoding: "utf8" }).status, 2);
     assert.ok(readFileSync(script, "utf8").length > 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("PROOF-9: --catalog-only runs the query once and reports counts, or exits 1 with the printed cause", () => {
+  const ok = catalogOnly("x", () => ({ catalog: CATALOG, error: null }));
+  assert.equal(ok.status, 0);
+  assert.match(ok.lines[0], /the catalog query ran on the stack: tables \d+/);
+  const bad = catalogOnly("x", () => ({ catalog: null, error: { code: "42883", message: "psql exited with status 3: ERROR:  42883: function acldefault(text, oid) does not exist" } }));
+  assert.equal(bad.status, 1);
+  assert.match(bad.lines[0], /\(42883\).*acldefault\(text, oid\) does not exist/);
+});
+
+test("PROOF-9: the --catalog-only CLI needs --db-url, refuses a non-loopback URL (2), and exits 1 with the cause when psql cannot run", () => {
+  const script = fileURLToPath(new URL("./schema-diff.mjs", import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), "schema-diff-"));
+  try {
+    assert.equal(spawnSync(process.execPath, [script, "--catalog-only"], { encoding: "utf8" }).status, 2);
+    const far = spawnSync(process.execPath, [script, "--catalog-only", "--db-url", "postgresql://postgres:pw@db.abcdefghijklmnop.supabase.co:5432/postgres"], { encoding: "utf8" });
+    assert.equal(far.status, 2);
+    assert.match(far.stderr, /loopback/);
+    const r = spawnSync(process.execPath, [script, "--catalog-only", "--db-url", "postgresql://postgres:pw9@127.0.0.1:54322/postgres"], { encoding: "utf8", env: { PATH: dir } });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /the catalog query failed on the stack.*could not run psql/);
+    assert.ok(!r.stderr.includes("pw9"));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
