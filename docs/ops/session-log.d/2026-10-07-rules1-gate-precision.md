@@ -90,15 +90,15 @@ PR 975 (PROOF-1), `fsi-app/scripts/proof/export-local-harness-runs.mjs`: line 17
 ## NOT done
 
 - No edit to PR 974 or PR 975 branches (their lanes revert the lines above in their own PRs). [NOT-WORK: fact, no action]
-- `applied-migrations.json` has no registry entry (its generator is not on master yet). [WORK: RULES-X-1]
+- `applied-migrations.json` has no registry entry (its generator is not on master yet). [REFUTED: governance/generated-files.mjs no longer exists (deleted by GATE-3, F51-no-shared-append.mjs header), so there is no registry to hold an entry]
 - `db-check-constraints.json` stays subject to check 5 (listed, never exempt): the brief's equality cannot
-  be shown without the live database. [WORK: RULES-X-1]
+  be shown without the live database. [REFUTED: F51 check 5 was deleted by GATE-3, same header]
 - `coverage-scan.mjs` has its own `WRITE_RE` (the governed-surface classifier, F23); same-name false
-  positives there are a separate detector and outside this write set. [WORK: RULES-X-1]
+  positives there are a separate detector and outside this write set. [CLOSED: PR 1039]
 - No whole suite or fitness runner run; the touched test files were run with `node --test`, CI is the gate. [NOT-WORK: build-mode hold, COMMON rule 9]
 
 ## Open items
 
 - Decision for the operator or coordinator: whether the maintenance workflow that commits
   `db-check-constraints.json` should be the only writer of it (then it never collides), since it cannot be
-  exempted by equality. [WORK: RULES-X-1]
+  exempted by equality. [REFUTED: the collision came from F51 check 5, deleted by GATE-3; maintenance.yml already commits db-check-constraints.json]

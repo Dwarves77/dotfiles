@@ -77,7 +77,7 @@ Reused, not built: `checkRateLimit` (the only limiter), `workerAuthGuard`, `user
 
 ## What is NOT done
 
-- Nothing from the brief's seven items is outstanding. The register's ATTACKED lens for the 19 route methods and 7 pages marked HYPOTHESIS was not run (out of scope). [WORK: TESTS-1]
+- Nothing from the brief's seven items is outstanding. The register's ATTACKED lens for the 19 route methods and 7 pages marked HYPOTHESIS was not run (out of scope). [WORK: TESTS-2]
 
 ## Verification run
 

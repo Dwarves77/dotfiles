@@ -41,12 +41,12 @@
 
 - `fsi-app/scripts/producers/lib/producer-summary-wiring.test.mjs` asserts the exact list of scripts
   producers.yml runs with `--apply`; the four moved scripts no longer appear there, so it is red until its
-  expected list drops them and a registry-driven check holds them to the same import rule. [WORK: RULES-X-1]
+  expected list drops them and a registry-driven check holds them to the same import rule. [CLOSED: PR 986]
 - `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`: the four producer scripts plus
   `fetch-oil-bulletin.mjs` have no workflow path any more, so F25 reports 5 UNWIRED MODULE. A new dispatch
-  root source reading the registry entries fixes it. [WORK: RULES-X-1]
-- `docs/runbooks/eia-api-key-registration.md` lines 66 and 91 carry the old dispatch command. [WORK: RULES-X-1]
+  root source reading the registry entries fixes it. [CLOSED: PR 986]
+- `docs/runbooks/eia-api-key-registration.md` lines 66 and 91 carry the old dispatch command. [CLOSED: PR 986]
 
 ## Open items
 
-- PR 977 (RULES-1) edits F51 too; re-cut after it merges before pushing. [WORK: RULES-X-1]
+- PR 977 (RULES-1) edits F51 too; re-cut after it merges before pushing. [CLOSED: PR 986]

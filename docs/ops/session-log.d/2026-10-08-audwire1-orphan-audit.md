@@ -24,7 +24,7 @@
 ## NOT done
 
 - No live field list. There is no live access in this lane (COMMON rule 5), so the original 17 fields (the last recorded live run found 16) are NOT enumerated here. The live field list is produced by the next data-audit run (`node scripts/verify/run-data-audit-lane.mjs`, or the Actions dispatch of "Data-audit lane"), as the printed producer=no block in its log and as the register file on the machine that ran it. [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-- The prop column is the selected column name: `scanUiSelects`/`parseSelectList` drop `alias:column` aliases and are outside this lane's write set (alias loss stays as recorded, coordinator grant). [WORK: RULES-X-1]
+- The prop column is the selected column name: `scanUiSelects`/`parseSelectList` drop `alias:column` aliases and are outside this lane's write set (alias loss stays as recorded, coordinator grant). [WORK: GATE-FIX-2]
 
 ## Open items
 

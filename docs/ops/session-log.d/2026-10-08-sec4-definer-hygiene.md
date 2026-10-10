@@ -66,7 +66,7 @@
 ## Open items
 
 - Risk at apply: the self-check aborts (rolling the whole migration back) if a grant the REVOKE cannot remove exists, for example a grant made by a role other than the function owner, or an ALTER FUNCTION on a function owned by a role the migration role is not a member of. That is a finding, not a defect, but it cannot be predicted without live access. [CLOSED: PR 1027]
-- The accept_invitation legs and the class A runtime attack need real rows (an admin, an owner, a member and a viewer membership with an auth.users email and a profile); a leg with no row is skipped with a NOTICE. The PROOF-4 attack covers the same behaviour on created fixtures. [WORK: TESTS-1]
+- The accept_invitation legs and the class A runtime attack need real rows (an admin, an owner, a member and a viewer membership with an auth.users email and a profile); a leg with no row is skipped with a NOTICE. The PROOF-4 attack covers the same behaviour on created fixtures. [WORK: TESTS-2]
 - 370 (PR 1003) and 371 are independent; order of apply does not matter, but 371's self-check calls accept_invitation, which writes org_memberships: if 370's role guard is applied first it is sanctioned for a SECURITY DEFINER owner by its own comment (370 line 370). [CLOSED: PR 1027]
 
 ## Merge of origin/master (PR 1003 landed)

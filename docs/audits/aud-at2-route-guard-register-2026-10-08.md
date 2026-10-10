@@ -70,9 +70,9 @@ AT2-13 [CONFIRMED: static trace] workspace/archive-impact GET reads intelligence
 
 ## 5. Not run, owed
 
-- ATTACKED: not run. No disposable runtime for routes exists. Owed, with this register as input: the 25 route methods and 2 pages with a service-client write and no role check, and the 19 route methods and 7 pages whose status is [HYPOTHESIS]. [WORK: TESTS-1]
-- Every other lens on subsystem 13: not run. [WORK: TESTS-1]
-- Pages: the client column names the lib function that performs each read and one cited line in it; the full call chain under each lib function was not traced. [WORK: TESTS-1]
+- ATTACKED: not run. No disposable runtime for routes exists. Owed, with this register as input: the 25 route methods and 2 pages with a service-client write and no role check, and the 19 route methods and 7 pages whose status is [HYPOTHESIS]. [WORK: TESTS-2]
+- Every other lens on subsystem 13: not run. [WORK: TESTS-2]
+- Pages: the client column names the lib function that performs each read and one cited line in it; the full call chain under each lib function was not traced. [WORK: TESTS-2]
 - Rows whose guard sits in a shared helper (corrections handlers, runCollab, resolvePortfolioCaller, the member-pref handler) cite the line of the guard call inside the helper; each helper was read in full. [NOT-WORK: fact, no action]
 - The brief's "service-client writes with no role check" count treats a membership-only check as no role check. A write scoped to the caller's own id is listed apart from a write on shared or org-wide rows. [NOT-WORK: fact, no action]
 

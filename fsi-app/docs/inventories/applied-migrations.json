@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-10T01:42:19.534Z",
-  "count": 374,
+  "synced_at": "2026-10-10T14:06:07.448Z",
+  "count": 375,
   "migrations": [
     {
       "version": "001",
@@ -1498,6 +1498,10 @@
     {
       "version": "20261009105343",
       "name": "382_read_policies_name_their_role"
+    },
+    {
+      "version": "20261010122019",
+      "name": "383_drop_claim_provenance_verified_by"
     }
   ]
 }

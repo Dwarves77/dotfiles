@@ -52,5 +52,5 @@
   and no family, so a dispatch cannot produce evidence for it; after the 3 train grace it will read
   NEVER-RUN unless a registration is added (a `NEVER_RUN_ALLOWLIST` entry or an evidence path). That file
   is outside this lane's write set: NEEDS WRITE-SET EXPANSION: `fsi-app/.discipline/governance/closure-gate.mjs`
-  if the coordinator wants it registered. Not red today (within grace). [WORK: RULES-X-1]
+  if the coordinator wants it registered. Not red today (within grace). [CLOSED: PR 1056]
 - The artifact is named `layout-baseline-<run id>` and unpacks under repo-relative paths. [NOT-WORK: fact, no action]

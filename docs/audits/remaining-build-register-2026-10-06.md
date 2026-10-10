@@ -322,7 +322,7 @@ Format: item | source log or doc.
 Migrations
 1. Migration 355 `vocabulary_terms`: applied live as `20261007021924`, but PR 959 is open and master has no 355 file. [C: list_migrations versus tree] | coordinator state; G5-TERMS [CLOSED: PR 959]
 2. No migration file on master from 351 upward is unapplied: 351, 352, 353, 354, 356 are all in `list_migrations`. [C: list_migrations versus `git ls-tree`] [NOT-WORK: fact, no action]
-3. Older numbered files not found in `list_migrations` by name: `299_item_type_required_slots_wave3` (header: NOT APPLIED, held by R14) and `315_workspace_due_next`. [C: file headers and list read; H: 315 may be applied under another name; a function existence query would settle it, not run] | system map; migration headers [WORK: MIG-HIST-2]
+3. Older numbered files not found in `list_migrations` by name: `299_item_type_required_slots_wave3` (header: NOT APPLIED, held by R14) and `315_workspace_due_next`. [C: file headers and list read; H: 315 may be applied under another name; a function existence query would settle it, not run] | system map; migration headers [CLOSED: PR 1085]
 4. Next migration lane: GIN index on `inference_records.cited_item_ids`; `signposts.lifecycle_applied_at timestamptz` | p2-grade-inference-chips; l4d-predictions-reliability [CLOSED: PR 1046]
 5. Migration 357 (G5-READ: entity_kind material, theme CHECK to registry) | coordinator state [CLOSED: PR 965]
 
@@ -352,7 +352,7 @@ Code and wiring owed
 26. Closure-gate registration for `layout-baseline-renewal` (needs write-set expansion to `closure-gate.mjs`) | s0b-baseline-renewal-tool [WORK: DORMANT-1]
 27. `ProvisionalReviewCard.tsx` copy still describes the 0.65 to 0.79 band as proposed on approval | s1b-host-verdicts [WORK: DOCS-5]
 28. Production dependencies of `plan-drain.mjs` proven on fakes only; `db-catalog.json` refresh not done | g6-drain [NOT-WORK: build-mode hold, CLAUDE.md rule 16 / COMMON rule 5]
-29. `loop-fired-evidence` for hops 12 and 13 until a chained row lands | s1e-source-chain [WORK: RULES-X-1]
+29. `loop-fired-evidence` for hops 12 and 13 until a chained row lands | s1e-source-chain [NOT-WORK: needs a chained production row in loop-fired-evidence.json; build mode holds dispatch (rule 16)]
 
 Docs and index owed
 30. INDEX line: judgement-drain `FAMILY.md`; MAINTENANCE-RUNBOOK index lines for steps 62 (live-smoke) and 63 (judgement-drain); retire index lines 13 and 14; INDEX line for ADR-044 and runbooks 60 and 61 may already be merged via 953 [H] | g6-drain; g6-gates; coordinator state [CLOSED: PR 996]
@@ -362,7 +362,7 @@ Operator or date owed
 32. Layout baseline renewal fires 2026-10-08 09:00 -04:00; hard expiry 2026-10-15; rendering-guard required versus continue-on-error decision after; legacy-remediation deferrals also expire 2026-10-15 | coordinator state; buildout stage 0 [CLOSED: PR 978]
 33. EIA secret `EIA_API_KEY`; EEX licence; SBTi licence for apply | system map [NOT-WORK: operator item, recorded on the board]
 34. Public-source intake for auxiliary energy and indexation mechanics | buildout open items [WORK: PLAN-2]
-35. `regional_data_facts` and `estimated_values` have no consumer after ADR-043 | buildout open items [WORK: DEAD-1c]
+35. `regional_data_facts` and `estimated_values` have no consumer after ADR-043 | buildout open items [REFUTED: ADR-043 line 43 keeps regional_data_facts; estimated_values has outbox trigger 286, drain.ts:96 and F32]
 36. Rendering audit generator fails on master with DetailShell import errors | buildout open items [HYPOTHESIS: not re-checked after later merges] [CLOSED: PR 1034]
 
 Design changes owed (rule 20)
