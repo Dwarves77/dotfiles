@@ -125,7 +125,7 @@ DP-1 is the stricter rule on operator review surfaces; DP-2 applies underneath i
 ### Owners
 
 Every surface lane (Wave 3 COMMUNITY-B, SPEC-09 and MOBILE onward). Mechanisms: F35 `row-ux-coverage` +
-RD-60, the rendering guard's UX smoke slot (`ux-assert.mjs`), and the discipline CI "UX compliance" gate;
+RD-60 and the rendering guard's UX smoke slot (`ux-assert.mjs`); the "UX compliance" report block is no longer a CI step;
 see `ux-laws.md` §How this is enforced.
 
 ---

@@ -120,8 +120,9 @@ context and goal.
   fails on horizontal overflow, on a title wrapping at under 60 % of its card (law 2's neighbour, the
   one-word-per-line class), or on an interactive target below the law-2 floor. Detector core proven
   red-then-green in `ux-assert.test.mjs` (required no-npm suite).
-- **Discipline CI, UX compliance gate** (`.github/workflows/discipline.yml`, memory-gate step): a PR that
-  touches `fsi-app/src/**/*.tsx|css` fails unless the session-log addendum in the same range carries a
-  "UX compliance" block (per screen: goal, path, one primary action, feedback state per async action).
+- **UX compliance block (report requirement, not a CI step)**: a lane touching `fsi-app/src/**/*.tsx|css` writes a
+  "UX compliance" block in its session log (per screen: goal, path, one primary action, feedback state per async
+  action). The memory gate no longer checks for it (GATE-2, PR 998 dropped the substring check); the measured
+  enforcement is the UX smoke slot above.
 - **Loading**: CLAUDE.md Loading priority item 6, the SessionStart hook, `sprint-followups-discipline`,
   and `docs/dispatches/lane-common-contract.md` §UX contract all point here.
