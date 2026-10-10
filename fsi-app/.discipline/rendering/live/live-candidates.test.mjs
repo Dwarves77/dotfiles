@@ -111,11 +111,12 @@ test("inference class: an item cited by a visible inference is a candidate; a re
   // i1, i2 (v1) and i4 (the head s2) qualify; i3 (REFUTED), i5 (internal method) and i6 (archived) do not.
   assert.equal(r.count, 3);
   assert.equal(r.visit[0], "/regulations/g14");
+  assert.deepEqual(r.diag, { table_rows: 6, current: 6, current_customer_method: 6, visible_views: 3, cited_visible_items: 3 }, "the fake rest does not apply the method filter; the zero-or-not count can be checked against the table");
 });
 
 test("inference class: a corpus with NO visible inference resolves to count 0 (the HOLD case), not an error", async () => {
   const none = await resolveInferenceCandidates(fakeRest({ inference_records: [], intelligence_items: [verified("i1")] }));
-  assert.deepEqual(none, { count: 0, visit: [], sample: [] });
+  assert.deepEqual(none, { count: 0, visit: [], sample: [], diag: { table_rows: 0, current: 0, current_customer_method: 0, visible_views: 0, cited_visible_items: 0 } });
   const onlyRefuted = await resolveInferenceCandidates(fakeRest({ inference_records: [inf("r", { status_token: "REFUTED" })], intelligence_items: [verified("i1")] }));
   assert.equal(onlyRefuted.count, 0);
 });
@@ -151,7 +152,11 @@ test("resolveCandidates returns all three classes, resolved:true, and a corpus h
   const empty = await resolveCandidates(fakeRest({ intelligence_items: [verified("a")] }));
   assert.equal(empty.resolved, true);
   assert.deepEqual(Object.fromEntries(Object.entries(empty.classes).map(([k, v]) => [k, v.count])), { inference: 0, record: 0, bias: 0 });
-  assert.deepEqual(candidateLines(empty), ["candidates inference: 0 item(s)", "candidates record: 0 item(s)", "candidates bias: 0 item(s)"]);
+  assert.deepEqual(candidateLines(empty), [
+    "candidates inference: 0 item(s) [table_rows=0 current=0 current_customer_method=0 visible_views=0 cited_visible_items=0]",
+    "candidates record: 0 item(s)",
+    "candidates bias: 0 item(s)",
+  ]);
 });
 
 test("pagination: more than one page of rows is read to the end", async () => {

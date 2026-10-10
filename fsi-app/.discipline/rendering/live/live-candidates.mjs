@@ -135,7 +135,20 @@ export async function resolveInferenceCandidates(rest) {
   const superseded = new Set(successors.map((r) => r.supersedes).filter((x) => typeof x === "string"));
   const views = visibleInferenceViews(rows, superseded);
   const cited = views.flatMap((v) => v.citedItemIds);
-  return summariseRows(await visibleItemsByIds(rest, cited));
+  const summary = summariseRows(await visibleItemsByIds(rest, cited));
+  // The count of zero must be checkable against the table itself: every row, how many are current, how many of those
+  // use a customer-visible method, how many views survive the display gate, how many visible items they cite.
+  const all = await readAll(rest, "inference_records", "select=inference_id,admissibility,method_id&order=inference_id.asc");
+  return {
+    ...summary,
+    diag: {
+      table_rows: all.length,
+      current: all.filter((r) => r.admissibility === "current").length,
+      current_customer_method: rows.length,
+      visible_views: views.length,
+      cited_visible_items: summary.count,
+    },
+  };
 }
 
 /** Record-grade items (the Catalogue record chip). */
@@ -175,7 +188,9 @@ export const unresolvedCandidates = (reason) => ({ resolved: false, reason, clas
 /** The diagnostic lines the CLI prints: per class the count and up to three paths. PURE. */
 export function candidateLines(c) {
   if (!c || c.resolved !== true) return [`candidates UNRESOLVED: ${c?.reason ?? "no candidate file"}`];
-  return Object.entries(c.classes).map(([k, v]) => `candidates ${k}: ${v.count} item(s)${v.sample.length ? `; e.g. ${v.sample.join(" ")}` : ""}`);
+  return Object.entries(c.classes).map(
+    ([k, v]) => `candidates ${k}: ${v.count} item(s)${v.sample.length ? `; e.g. ${v.sample.join(" ")}` : ""}${v.diag ? ` [${Object.entries(v.diag).map(([dk, dv]) => `${dk}=${dv}`).join(" ")}]` : ""}`,
+  );
 }
 
 /** The CLI body, with the environment and the fetch injected. Returns the exit code. */
