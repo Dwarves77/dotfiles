@@ -500,7 +500,7 @@ Sample verification (independent method, `git grep -n -w -F <name>` over tracked
 - .discipline/consistency/override-check.mjs (4): parseDriftCheckIds, parseValidOverrides, messagesForRange, messagesFromPrepushStdin
 - .discipline/dispatch/start.mjs (1): mintUuid
 - .discipline/fitness/functions/F13-single-mint-chokepoint.mjs (2): isMintBypass, fitnessFunction
-- .discipline/fitness/functions/F14-producer-consumer-orphan.mjs (1): fitnessFunction [CONFIRMED: listed by the method stated in this section] [WORK: DEAD-1c]
+- .discipline/fitness/functions/F14-producer-consumer-orphan.mjs (1): fitnessFunction [CONFIRMED: listed by the method stated in this section] [REFUTED: manifest.mjs:40 loads fitnessFunction]
 - .discipline/fitness/functions/F15-spend-chokepoint.mjs (4): SANCTIONED, LEGACY_ALLOWLIST, directApiCallLines, fitnessFunction
 - .discipline/fitness/functions/F16-transport-hold-gate.mjs (5): PRIMITIVE, HOLD_GATE_CORE, TRANSPORT_MODULES, SANCTIONED, fitnessFunction
 - .discipline/fitness/functions/F17-size-cap-doctrine.mjs (3): PATH_FILES, CAP_REGISTRY, fitnessFunction
@@ -530,7 +530,7 @@ Sample verification (independent method, `git grep -n -w -F <name>` over tracked
 - .discipline/fitness/functions/F41-dead-media-query-class.mjs (3): mediaBlocks, classNamesRendered, fitnessFunction
 - .discipline/fitness/functions/F42-card-shell-outside-section-card.mjs (4): WINDOW, cardShellLines, isMarked, fitnessFunction
 - .discipline/fitness/functions/F43-default-open-disclosure.mjs (4): lineOf, isAllowed, findDefaultOpenSites, fitnessFunction
-- .discipline/fitness/functions/F44-broken-main-guard.mjs (2): findBrokenMainGuards, fitnessFunction [CONFIRMED: listed by the method stated in this section] [WORK: DEAD-1c]
+- .discipline/fitness/functions/F44-broken-main-guard.mjs (2): findBrokenMainGuards, fitnessFunction [CONFIRMED: listed by the method stated in this section] [REFUTED: F44:63 and its test use findBrokenMainGuards; manifest loads fitnessFunction]
 - .discipline/fitness/functions/F45-duplicate-code.mjs (12): WINDOW, normalizeLines, detectClones, scanTree, matchesScopeGlobs, parseCatFileBatch, measureAtBase, evaluateRatchet, fitnessFunction, ignoredFiles, isIgnored, resetIgnoredCache
 - .discipline/fitness/functions/F46-external-host-home.mjs (7): REFERENCE_FILES, HOST_HOMES, MULTI_HOME_CEILING, hostsByFile, evaluate, scanTree, fitnessFunction
 - .discipline/fitness/functions/F47-db-object-reference.mjs (5): ALLOWLIST, UNREFERENCED_TABLES_CEILING, UNREAD_TABLES_CEILING, scanTree, fitnessFunction
@@ -567,7 +567,7 @@ Sample verification (independent method, `git grep -n -w -F <name>` over tracked
 - .discipline/governance/invariants.mjs (2): compareInvariantIds, loadInvariantsFromDir
 - .discipline/governance/loop-manifest.mjs (3): loadLoopHops, PRODUCER_FAMILY_BY_WORKFLOW_FILE, LOOP_HOPS_DIR
 - .discipline/governance/memory-gate.mjs (4): classifyChanged, memoryGateVerdict, uxGateVerdict, memoryDiffPaths
-- .discipline/governance/orphan-modules.mjs (2): findOrphanModules, findDeadExports [CONFIRMED: listed by the method stated in this section] [WORK: DEAD-1c]
+- .discipline/governance/orphan-modules.mjs (2): findOrphanModules, findDeadExports [CONFIRMED: listed by the method stated in this section] [REFUTED: orphan-modules.mjs:169,178 call both functions; its test imports them]
 - .discipline/governance/secrets-reference-audit.mjs (1): auditSecretRefs
 - .discipline/governance/skill-contract-map.mjs (9): PINNED_MANIFEST, listSkillSlugs, resolveSkillPath, extractCitedSlugs, scanCitations, checkManifestDrift, parseSkillAck, checkRangeAcks, checkDrift
 - .discipline/governance/skill-token.mjs (1): skillLoadedInTranscript
@@ -673,7 +673,7 @@ Sample verification (independent method, `git grep -n -w -F <name>` over tracked
 - scripts/maintenance/record-hollow-sweep.mjs (18): CITE, RESTORE_CITE, ARCHIVE_REASON, SWEEP_MARKER, RESTORE_ARG_PREFIX, isTitleOnlyFacts, isSeriesItem, planSelection, groupCounts, chunkList, buildArchivePatch, buildSweepNote, appendNote, planCensusReturn, pickLatestPriorStates, buildRestorePatchFromPrior, buildRestoreSql, main
 - scripts/maintenance/refetch-capped.mjs (1): main
 - scripts/maintenance/regen-quarantined.mjs (1): main
-- scripts/maintenance/remediate-orphan-sources.mjs (3): buildArgs, parseCounts, main [CONFIRMED: listed by the method stated in this section] [WORK: DEAD-1c]
+- scripts/maintenance/remediate-orphan-sources.mjs (3): buildArgs, parseCounts, main [CONFIRMED: listed by the method stated in this section] [REFUTED: main uses buildArgs and parseCounts; maintenance.yml:862 runs the script]
 - scripts/maintenance/reopen-validation-holds.mjs (2): notesHead, main
 - scripts/maintenance/repair-smoke-account.mjs (3): ORG_NAME, CITE, main
 - scripts/maintenance/resolve-cited-host-gate.mjs (7): CITE, RESOLVED_BY, extractCitedUrls, buildResolutionNote, planFlag, main, NULL_TIER_CREATED_BY
@@ -794,13 +794,13 @@ Sample verification (independent method, `git grep -n -w -F <name>` over tracked
 - scripts/verify/audit-finding-status.mjs (1): listAuditFiles
 - scripts/verify/candidate-dwell-audit.mjs (3): DWELL_BOUND_DAYS, namedCandidateIds, classifyDwellCandidates
 - scripts/verify/check-vocabulary-drift.mjs (1): hasPlausibleCredentials
-- scripts/verify/defect-signature-scan.mjs (2): detectNumeric, scanItem [CONFIRMED: listed by the method stated in this section] [WORK: DEAD-1c]
+- scripts/verify/defect-signature-scan.mjs (2): detectNumeric, scanItem [CONFIRMED: listed by the method stated in this section] [REFUTED: defect-signature-scan.golden.mjs:7 imports both; main uses scanItem]
 - scripts/verify/export-loop-fired-evidence.mjs (2): renderEvidenceFile, runCli
 - scripts/verify/lib/dead-column-scan.mjs (1): isTimestampType
 - scripts/verify/lib/duplicate-table-scan.mjs (11): buildColumnTypeMaps, columnDocFrequency, columnWeight, sharedSignificantColumns, weightedColumnJaccard, weightedColumnOverlap, tableNameOverlap, commentSimilarity, commentMentionsOther, scorePair, RARE_DF_CEILING
 - scripts/verify/lib/harness-family-walk-scan.mjs (3): findZeroDispatchProducers, findNeverDispatchedIndividualProducers, GhRunListParseError
 - scripts/verify/lib/schema-drift.mjs (1): extractCreatedObjects
-- scripts/verify/lib/ui-orphan-scan.mjs (1): parseSelectList [CONFIRMED: listed by the method stated in this section] [WORK: DEAD-1c]
+- scripts/verify/lib/ui-orphan-scan.mjs (1): parseSelectList [CONFIRMED: listed by the method stated in this section] [REFUTED: used at ui-orphan-scan.mjs:64,93 and by its test]
 - scripts/verify/loop-fired-evidence-audit.mjs (3): auditEntries, readEvidenceFile, runAudit
 - scripts/verify/no-generic-source-audit.mjs (1): factsOnSuspended
 - scripts/verify/population-report.mjs (25): computeBriefsPendingStale, countBriefsPendingStale, bucketBriefsOwedByTypeAndAge, renderBriefsOwedLines, describeBriefsPendingState, extractFlaggedTimelineIds, computeTimelineCoverageGap, countTimelineCoverageGap, describeTimelineCoverageState, AXIS_CLASSIFICATION_CREATED_BY, computeOpenFlagsByFamily, describeOpenFlagsByFamilyState, LEGAL_CONFIRMATION_RESOLVED_BY, computeLegalConfirmationCount, describeLegalConfirmationState, computeCoverageReflectionsCount, describeCoverageReflectionsState, computeVerdictsOwed, loadCommittedVerdictedUrls, countCandidatesAwaitingVerdict, STORES, classify, renderReport, countStore, collect
