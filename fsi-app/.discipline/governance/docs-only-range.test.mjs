@@ -322,3 +322,113 @@ test('DO-READ-3 attack: a change to a read docs file classes the diff as code, t
     assert.match(read.stdout, /docs-only: false/);
   });
 });
+
+// CIFIX-2 (2026-10-10, rows rw-wf:131 / cifix1 NOT done): the read scan walks the TOKENS of every tracked test and
+// governance module (strings, templates, comments, calls), not its lines. A docs path read through a template with
+// a variable prefix, across lines, or through a binding read in a later statement is a dependency too.
+// Cell ids: DO-AST-1 (template prefix), DO-AST-2 (multi-line call and join), DO-AST-3 (binding then read),
+// DO-AST-4 (still skipped: comments, prose, lists, non-read arguments), DO-AST-5 (attack through real git).
+
+const scan = (text, path = 'fsi-app/.discipline/z.test.mjs') => extractReadDocPaths([{ path, text }]);
+
+test('DO-AST-1: a template literal with a variable prefix names the docs file it reads', () => {
+  const set = scan(
+    [
+      'const a = readFileSync(`${root}/docs/zz/template-read.md`, "utf8");',
+      'const b = readFileSync(`${join(root, "x")}/fsi-app/.discipline/zz/nested-template.md`, "utf8");',
+      'const c = readFileSync(`${root}/docs/zz/${name}.md`, "utf8");',
+    ].join('\n'),
+  );
+  assert.ok(set.has('docs/zz/template-read.md'));
+  assert.ok(set.has('fsi-app/.discipline/zz/nested-template.md'));
+  assert.ok(![...set].some((p) => p.includes('${') || p.includes('\0')), 'a path with an unresolved interpolation is never listed');
+});
+
+test('DO-AST-2: a path on a later line of a read call, and a join spread over lines, are reads', () => {
+  const set = scan(
+    [
+      'const a = readFileSync(',
+      '  `docs/zz/multi-line.md`,',
+      "  'utf8',",
+      ');',
+      'const b = readFileSync(join(',
+      '  REPO,',
+      "  'docs',",
+      "  'zz',",
+      "  'multi-join.md',",
+      "), 'utf8');",
+      'const c = path.resolve(REPO, `${dir}/docs/zz/resolved.md`);',
+    ].join('\n'),
+  );
+  assert.ok(set.has('docs/zz/multi-line.md'));
+  assert.ok(set.has('docs/zz/multi-join.md'));
+  assert.ok(set.has('docs/zz/resolved.md'));
+});
+
+test('DO-AST-3: a path bound to a name (any case) and read in a later statement is a read', () => {
+  const set = scan(
+    [
+      'const p = `${root}/docs/zz/bound-template.md`;',
+      "let q = 'docs/zz/bound-lower.md';",
+      "var r;",
+      "r = 'docs/zz/assigned.md';",
+      'const body = readFileSync(p, "utf8") + readFileSync(q) + readFileSync(r);',
+      "const cfg = { file: 'docs/zz/property.md' };",
+    ].join('\n'),
+  );
+  for (const want of ['docs/zz/bound-template.md', 'docs/zz/bound-lower.md', 'docs/zz/assigned.md', 'docs/zz/property.md']) assert.ok(set.has(want), want);
+});
+
+test('DO-AST-4: comments, prose, plain lists and non-read arguments still name no read', () => {
+  const set = scan(
+    [
+      "// readFileSync('docs/zz/line-comment.md')",
+      "/* readFileSync('docs/zz/block-comment.md') */ const x = 1;",
+      '/**',
+      " * readFileSync('docs/zz/doc-block.md')",
+      ' */',
+      "const msg = 'see docs/zz/prose.md for the story';",
+      'const tpl = `see ${who} and docs/zz/template-prose.md for the story`;',
+      "const LIST = ['docs/zz/listed.md', 'docs/zz/listed-two.md'];",
+      "classify(['docs/zz/array-argument.md']);",
+      "report('docs/zz/plain-argument.md');",
+      "const re = /readFileSync\('docs\/zz\/in-regex.md'\)/;",
+    ].join('\n'),
+  );
+  assert.deepEqual([...set], []);
+});
+
+test('DO-AST-4: a quote, a slash or a backtick inside a comment or regex does not desynchronise the scan', () => {
+  const set = scan(
+    [
+      "// it's a comment with an apostrophe and a `backtick",
+      "const re = /['\"`]/g; const x = 4 / 2 / 1;",
+      "const ok = readFileSync('docs/zz/after-noise.md');",
+    ].join('\n'),
+  );
+  assert.deepEqual([...set], ['docs/zz/after-noise.md']);
+});
+
+test('DO-AST-5 attack: a docs file read only through a ${root} template is governing, through real git', () => {
+  gitFixture(({ dir, git }) => {
+    mkdirSync(join(dir, 'docs', 'zz'), { recursive: true });
+    mkdirSync(join(dir, 'fsi-app', '.discipline'), { recursive: true });
+    writeFileSync(join(dir, 'docs', 'zz', 'tpl-read.md'), '# read\n');
+    writeFileSync(join(dir, 'docs', 'zz', 'unread.md'), '# unread\n');
+    writeFileSync(join(dir, 'fsi-app', '.discipline', 'reader.test.mjs'), 'const root = process.cwd();\nconst body = readFileSync(`${root}/docs/zz/tpl-read.md`, "utf8");\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'base');
+    writeFileSync(join(dir, 'docs', 'zz', 'unread.md'), '# unread\n\nedit\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'edit the unread doc');
+    writeFileSync(join(dir, 'docs', 'zz', 'tpl-read.md'), '# read\n\nedit\n');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'edit the template-read doc');
+    const run = (range) => spawnSync(process.execPath, [SCRIPT, `--range=${range}`], { cwd: dir, encoding: 'utf8', env: { ...process.env, DISCIPLINE_REPO_ROOT: dir } });
+    const unread = run('HEAD~2..HEAD~1');
+    assert.equal(unread.status, 0, unread.stderr);
+    const read = run('HEAD~1..HEAD');
+    assert.equal(read.status, 1, read.stderr);
+    assert.match(read.stdout, /docs-only: false/);
+  });
+});
