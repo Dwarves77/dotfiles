@@ -4,7 +4,7 @@
 // element under its own named invariant. Without `contentChecks` the runner behaves exactly as before.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runLiveSmoke, VIEWPORTS, LIST_SURFACES } from "./live-smoke.mjs";
+import { runLiveSmoke, readCandidatesFile, VIEWPORTS, LIST_SURFACES } from "./live-smoke.mjs";
 import { INVARIANTS } from "./live-assertions.mjs";
 import { CONTENT_REQUIREMENTS, CONTENT_INVARIANT_IDS } from "./live-content.mjs";
 import { collectSnapshotInPage, collectLinksInPage, collectContentInPage } from "./live-snapshot.mjs";
@@ -71,16 +71,68 @@ test("contentChecks off (the default) measures nothing and reports no content fi
   assert.deepEqual(contentFindings(r), []);
 });
 
-test("ATTACK: the Inferences section missing from every detail page fails once per viewport, by its own invariant", async () => {
-  const r = await run({ contentChecks: true }, { absent: (path, key) => key === "inferences-section@detail" });
+/** Resolved candidates for the runner tests: each class holds `count` items, visited at `visit`. */
+const candidatesOf = (count, visit = []) => ({
+  resolved: true,
+  classes: Object.fromEntries(["inference", "record", "bias"].map((c) => [c, { count, visit: count ? visit : [], sample: visit }])),
+});
+const inferenceFindings = (r) => r.findings.filter((f) => f.invariant === INVARIANTS.INFERENCES_SECTION);
+
+test("ATTACK: a candidate item exists but its page renders no Inferences section: FAIL once per viewport, by its own invariant", async () => {
+  const r = await run(
+    { contentChecks: true, candidates: candidatesOf(2, ["/regulations/cand-inf"]) },
+    { absent: (path, key) => key === "inferences-section@detail" && path === "/regulations/cand-inf" },
+  );
   const f = contentFindings(r);
   assert.deepEqual(f.map((x) => [x.invariant, x.viewport]), [
     [INVARIANTS.INFERENCES_SECTION, 1440],
     [INVARIANTS.INFERENCES_SECTION, 375],
   ]);
   assert.match(f[0].text, /#inferences/);
+  assert.match(f[0].text, /2 inference candidate item\(s\) exist/);
   assert.match(r.lines.find((l) => l.startsWith("FAIL content-inferences-section")), /detail page: missing Inferences section/);
   assert.equal(r.report.byInvariant[INVARIANTS.INFERENCES_SECTION], 2);
+  assert.equal(r.holds.some((h) => h.invariant === INVARIANTS.INFERENCES_SECTION), false);
+});
+
+test("CHOOSER: the runner visits the candidate item the live data names, at both viewports, and judges the section on THAT page", async () => {
+  // Every discovered item (/<surface>/item-1) lacks the section; only the candidate page carries it. Before SMOKE-3 this
+  // run failed (the fixed items were judged); now the candidate page is what is judged and it passes.
+  const r = await run(
+    { contentChecks: true, candidates: candidatesOf(1, ["/regulations/cand-inf"]) },
+    { absent: (path, key) => key === "inferences-section@detail" && path !== "/regulations/cand-inf" },
+  );
+  assert.deepEqual(inferenceFindings(r), []);
+  const visited = r.report.pagesVisited.filter((p) => p.url.endsWith("/regulations/cand-inf"));
+  assert.deepEqual(visited.map((p) => p.viewport), [1440, 375]);
+});
+
+test("HOLD: a corpus with zero inference candidates is a named HOLD in the report and the log, with the count, and no content invariant fails", async () => {
+  const r = await run({ contentChecks: true, candidates: candidatesOf(0) }, { absent: (path, key) => key === "inferences-section@detail" });
+  assert.deepEqual(contentFindings(r), []);
+  assert.deepEqual(Object.keys(r.report.byInvariant).filter((k) => CONTENT_IDS.has(k)), [], "no content invariant failed");
+  const hold = r.holds.find((h) => h.invariant === INVARIANTS.INFERENCES_SECTION);
+  assert.deepEqual([hold.state, hold.candidates, hold.candidate], ["hold", 0, "inference"]);
+  assert.equal(r.report.holdCount, 4);
+  assert.deepEqual(r.report.candidates, { resolved: true, counts: { inference: 0, record: 0, bias: 0 } });
+  assert.ok(r.lines.some((l) => /^HOLD content-inferences-section .*\[candidates=0\]$/.test(l)));
+  assert.match(r.lines.at(-1), /, 4 hold\(s\)$/, "the totals line carries the hold count");
+});
+
+test("HOLD: candidates that were never resolved (no file) hold as unresolved, and nothing extra is visited", async () => {
+  const r = await run({ contentChecks: true, candidates: null }, { absent: () => false });
+  assert.deepEqual(contentFindings(r), []);
+  assert.ok(r.holds.length > 0 && r.holds.every((h) => h.candidates === null));
+  assert.equal(r.report.candidates.resolved, false);
+  assert.equal(r.report.pagesVisited.length, (1 + LIST_SURFACES.length + LIST_SURFACES.length) * VIEWPORTS.length);
+});
+
+test("readCandidatesFile: a readable JSON object is returned, a missing path, a missing file or garbage is null", () => {
+  assert.deepEqual(readCandidatesFile("x.json", () => '{"resolved":true,"classes":{}}'), { resolved: true, classes: {} });
+  assert.equal(readCandidatesFile(undefined), null);
+  assert.equal(readCandidatesFile("x.json", () => { throw new Error("ENOENT"); }), null);
+  assert.equal(readCandidatesFile("x.json", () => "not json"), null);
+  assert.equal(readCandidatesFile("x.json", () => "null"), null);
 });
 
 test("ATTACK: one list losing its tier squares fails that list only; the dashboard rail missing fails the home page", async () => {

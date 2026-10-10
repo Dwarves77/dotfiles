@@ -10,8 +10,9 @@ import {
   judgeRequirement,
   checkContentSnapshot,
   checkContentRun,
+  judgeContentRun,
 } from "./live-content.mjs";
-import { INVARIANTS, checkSnapshot, formatSummary } from "./live-assertions.mjs";
+import { INVARIANTS, checkSnapshot, formatSummary, buildReport } from "./live-assertions.mjs";
 import { collectContentInPage } from "./live-snapshot.mjs";
 
 /** One measurement that satisfies a requirement (the shape collectContentInPage returns). */
@@ -128,11 +129,18 @@ const ANY_CASES = [
   ["connected-intelligence@detail", INVARIANTS.CONNECTED_SECTION, "detail", "/regulations/a", "/market/b"],
   ["inferences-section@detail", INVARIANTS.INFERENCES_SECTION, "detail", "/regulations/a", "/market/b"],
 ];
+/** Resolved candidates: every class has `count` items, visited at the given paths. */
+const cands = (count, visit = []) => ({
+  resolved: true,
+  classes: Object.fromEntries(["inference", "record", "bias"].map((c) => [c, { count, visit, sample: visit }])),
+});
 for (const [key, invariant, kind, pathA, pathB] of ANY_CASES) {
   test(`${key} (scope any): ATTACK absent from every ${kind} page fails naming the pages and selector; one carrying page passes`, () => {
     const req = CONTENT_REQUIREMENTS.find((r) => r.key === key);
+    // A conditional requirement is judged against what the live data says; an unconditional one needs no candidates.
+    const candidates = req.candidate ? cands(1, [pathA, pathB]) : undefined;
     const bothMissing = [without(kind, pathA, key), without(kind, pathB, key)];
-    const f = checkContentRun(bothMissing).filter((x) => x.invariant === invariant && x.text.includes(req.selector));
+    const f = checkContentRun(bothMissing, candidates).filter((x) => x.invariant === invariant && x.text.includes(req.selector));
     assert.equal(f.length, 1, "one finding for the one viewport");
     assert.equal(f[0].severity, "fail");
     assert.equal(f[0].viewport, 1440);
@@ -140,14 +148,14 @@ for (const [key, invariant, kind, pathA, pathB] of ANY_CASES) {
     assert.ok(f[0].text.includes(req.selector), "names the selector");
     assert.ok(f[0].text.includes(pathA) && f[0].text.includes(pathB), "names the pages it looked at");
     const oneCarries = [without(kind, pathA, key), page(kind, pathB)];
-    assert.deepEqual(checkContentRun(oneCarries).filter((x) => x.invariant === invariant && x.text.includes(req.selector)), [], "one page carrying it is enough");
+    assert.deepEqual(checkContentRun(oneCarries, candidates).filter((x) => x.invariant === invariant && x.text.includes(req.selector)), [], "one page carrying it is enough");
   });
 }
 
 test("scope any is judged per viewport: present at 1440 and absent at 375 fails the 375 width only", () => {
   const wide = (p) => page("list", p);
   const narrow = (p) => without("list", p, "grade-chip@list", { viewport: { width: 375, height: 812 } });
-  const f = checkContentRun([wide("/regulations"), narrow("/regulations")]).filter((x) => x.invariant === INVARIANTS.GRADE_CHIP);
+  const f = checkContentRun([wide("/regulations"), narrow("/regulations")], cands(2)).filter((x) => x.invariant === INVARIANTS.GRADE_CHIP);
   assert.deepEqual(f.map((x) => x.viewport), [375]);
 });
 
@@ -170,8 +178,104 @@ test("a fully healthy run passes every requirement", () => {
     for (const p of ["/regulations", "/market", "/research", "/operations"]) run.push(page("list", p, { viewport }));
     for (const p of ["/regulations/a", "/market/b"]) run.push(page("detail", p, { viewport }));
   }
+  const judged = judgeContentRun(run, cands(1, ["/regulations/a", "/market/b"]));
+  assert.deepEqual(judged.findings, []);
+  assert.deepEqual(judged.holds, [], "every conditional class had a candidate and every candidate page carried its element");
   assert.deepEqual(checkContentRun(run), []);
   for (const s of run) assert.deepEqual(checkContentSnapshot(s), []);
+});
+
+// ---------------------------------------------------------------- conditional invariants from live data (lane SMOKE-3)
+const CONDITIONAL = CONTENT_REQUIREMENTS.filter((r) => r.candidate);
+const isConditional = (f) => CONDITIONAL.some((r) => r.invariant === f.invariant);
+
+test("the conditional requirements are exactly the inference, record and bias classes, each naming a candidate class", () => {
+  assert.deepEqual(CONDITIONAL.map((r) => [r.key, r.candidate]).sort(), [
+    ["bias-chips@detail", "bias"],
+    ["bias-chips@list", "bias"],
+    ["grade-chip@list", "record"],
+    ["inferences-section@detail", "inference"],
+  ]);
+  for (const r of CONDITIONAL) assert.equal(r.scope, "any", `${r.key}: a conditional requirement is never scope each`);
+});
+
+/** A run in which every conditional element is absent from every page. */
+const bareRun = () => {
+  const empty = (pg, kind) => CONDITIONAL.filter((r) => r.kind === kind).reduce((acc, r) => ({ ...acc, content: { ...acc.content, [r.key]: [] } }), pg);
+  const run = [];
+  for (const width of [1440, 375]) {
+    const viewport = { width, height: 800 };
+    run.push(page("home", "/", { viewport }));
+    for (const p of ["/regulations", "/market"]) run.push(empty(page("list", p, { viewport }), "list"));
+    for (const p of ["/regulations/a", "/market/b"]) run.push(empty(page("detail", p, { viewport }), "detail"));
+  }
+  return run;
+};
+
+test("HOLD: zero candidates in the corpus is a named HOLD per conditional invariant (not a failure), carrying the count", () => {
+  const { findings, holds } = judgeContentRun(bareRun(), cands(0));
+  assert.deepEqual(findings.filter(isConditional), [], "nothing to judge, nothing failed");
+  assert.deepEqual(holds.map((h) => h.key).sort(), CONDITIONAL.map((r) => r.key).sort());
+  const inf = holds.find((h) => h.key === "inferences-section@detail");
+  assert.equal(inf.state, "hold");
+  assert.equal(inf.invariant, INVARIANTS.INFERENCES_SECTION);
+  assert.equal(inf.candidates, 0);
+  assert.equal(inf.candidate, "inference");
+  assert.match(inf.reason, /0 inference candidate item\(s\) in the corpus/);
+  assert.match(inf.reason, /population hold/);
+});
+
+test("HOLD: candidates never resolved (undefined, null, resolved:false) are an unresolved HOLD with a null count, never a silent pass", () => {
+  for (const unresolved of [undefined, null, { resolved: false, reason: "no creds", classes: {} }]) {
+    const { findings, holds } = judgeContentRun(bareRun(), unresolved);
+    assert.deepEqual(findings.filter(isConditional), []);
+    assert.equal(holds.length, CONDITIONAL.length);
+    assert.ok(holds.every((h) => h.candidates === null));
+    assert.match(holds[0].reason, /not resolved/);
+  }
+});
+
+test("ATTACK: a candidate that exists but renders no Inferences section is a FAIL, once per viewport, naming the candidate page", () => {
+  const { findings, holds } = judgeContentRun(bareRun(), cands(3, ["/regulations/a"]));
+  const inf = findings.filter((f) => f.invariant === INVARIANTS.INFERENCES_SECTION);
+  assert.deepEqual(inf.map((f) => f.viewport), [1440, 375]);
+  assert.equal(inf[0].severity, "fail");
+  assert.match(inf[0].text, /missing Inferences section/);
+  assert.match(inf[0].text, /3 inference candidate item\(s\) exist/);
+  assert.match(inf[0].text, /\/regulations\/a/);
+  assert.deepEqual(holds, [], "with a candidate in every class there is no hold left");
+});
+
+test("the chooser: a detail requirement is judged ONLY on the candidate pages (a non-candidate page can neither rescue nor fail it)", () => {
+  const key = "inferences-section@detail";
+  const candidates = cands(1, ["/market/b"]);
+  const onlyInf = (r) => r.findings.filter((f) => f.invariant === INVARIANTS.INFERENCES_SECTION);
+  // /regulations/a (not a candidate) carries the section; the candidate /market/b does not: FAIL.
+  assert.equal(onlyInf(judgeContentRun([page("detail", "/regulations/a"), without("detail", "/market/b", key)], candidates)).length, 1);
+  // /regulations/a (not a candidate) lacks it; the candidate /market/b has it: PASS.
+  assert.deepEqual(onlyInf(judgeContentRun([without("detail", "/regulations/a", key), page("detail", "/market/b")], candidates)), []);
+});
+
+test("a candidate path is matched ignoring percent-encoding, and a candidate page that was never checked is a FAIL, not a pass", () => {
+  const onlyInf = (r) => r.findings.filter((f) => f.invariant === INVARIANTS.INFERENCES_SECTION);
+  assert.deepEqual(onlyInf(judgeContentRun([page("detail", "/regulations/a%20b")], cands(1, ["/regulations/a b"]))), []);
+  const f = onlyInf(judgeContentRun([page("detail", "/regulations/a")], cands(1, ["/regulations/zzz"])));
+  assert.equal(f.length, 1);
+  assert.match(f[0].text, /no candidate page was checked at 1440px/);
+});
+
+test("formatSummary prints each hold as a HOLD line naming the invariant and the count; the totals line carries the hold count; buildReport records them", () => {
+  const { findings, holds } = judgeContentRun(bareRun(), cands(0));
+  const lines = formatSummary(findings, holds);
+  assert.match(lines.find((l) => l.startsWith("HOLD content-inferences-section")), /\[candidates=0\]$/);
+  assert.match(lines[lines.length - 1], /, 4 hold\(s\)$/);
+  assert.equal(formatSummary([], []).at(-1), "live smoke: 0 failure(s), 0 warning(s)", "no holds, the totals line is unchanged");
+  const report = buildReport({ baseUrl: "https://x.test", pages: [], findings, holds, candidates: cands(0) });
+  assert.equal(report.holdCount, 4);
+  assert.equal(report.failureCount, 0);
+  assert.deepEqual(report.candidates, { resolved: true, counts: { inference: 0, record: 0, bias: 0 } });
+  assert.equal(report.holds[0].candidates, 0);
+  assert.equal(buildReport({ baseUrl: "https://x.test", pages: [], findings: [] }).candidates.resolved, false);
 });
 
 test("formatSummary prints a content failure as one line naming the invariant, the path and the selector", () => {

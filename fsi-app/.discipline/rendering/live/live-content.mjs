@@ -17,6 +17,18 @@
 // fixed set of items and one item legitimately lacks any one of them; the corpus as a whole does not, and an element
 // absent from EVERY visited page of its kind is the defect this gate exists to catch.
 //
+// CONDITIONAL INVARIANTS FROM LIVE DATA (lane SMOKE-3, 2026-10-10). SMOKE-2 judged the conditional elements over a fixed
+// handful of items, so the gate was red on every production deployment while the corpus held no candidate at all (or
+// held one the fixed items did not include). A conditional requirement now names its `candidate` class
+// (live-candidates.mjs: inference, record, bias). The runner is handed what the LIVE DATA says about that class and
+// the outcome is one of three, never a silent pass:
+//   PASS  the element is on a visited candidate page (a detail requirement is judged ONLY on the candidate pages the
+//         runner visited because the data says they must carry it);
+//   FAIL  candidates exist and the element is missing from every candidate page (the defect this gate exists to catch);
+//   HOLD  the corpus holds zero candidates (or the candidates were not resolved): absent data is expected during the
+//         population hold (CLAUDE.md rule 16), so there is nothing to judge. A HOLD names the invariant and the count,
+//         is reported and recorded in the run's report, and turns into a FAIL the moment one candidate exists.
+//
 // VISIBLE ONLY. The row renders a desktop and a phone copy of its meta line and CSS hides one; a hidden copy is not
 // content a customer receives. The collector counts visible elements only, so 375 and 1440 are each judged on what
 // that width shows.
@@ -31,16 +43,17 @@ export const CONTENT_INVARIANT_IDS = Object.freeze({
   ACROSS_PAGES_RAIL: "content-across-pages-rail",
 });
 
-/** @typedef {{key:string, invariant:string, element:string, kind:'home'|'list'|'detail', scope:'each'|'any', selector:string, minCount:number, textMin:number, textPattern?:string, childSelector?:string, childMin?:number}} ContentRequirement */
+/** @typedef {{key:string, invariant:string, element:string, kind:'home'|'list'|'detail', scope:'each'|'any', selector:string, minCount:number, textMin:number, textPattern?:string, childSelector?:string, childMin?:number, candidate?:'inference'|'record'|'bias'}} ContentRequirement
+ *  `candidate` marks a CONDITIONAL requirement: the element exists only on items of that class (live-candidates.mjs). */
 
 /** @type {readonly ContentRequirement[]} */
 export const CONTENT_REQUIREMENTS = Object.freeze(
   [
     // Grade chip: GradeChip renders "Catalogue record" for a record-grade item only, on list rows (P2, PR 947).
-    { key: "grade-chip@list", invariant: CONTENT_INVARIANT_IDS.GRADE_CHIP, element: "grade chip", kind: "list", scope: "any", selector: '[data-part="chip-grade"]', minCount: 1, textMin: 8 },
+    { key: "grade-chip@list", invariant: CONTENT_INVARIANT_IDS.GRADE_CHIP, element: "grade chip", kind: "list", scope: "any", selector: '[data-part="chip-grade"]', minCount: 1, textMin: 8, candidate: "record" },
     // Bias chips: BiasChips draws one [data-bias-tag] chip per source bias tag, on list rows and detail mastheads.
-    { key: "bias-chips@list", invariant: CONTENT_INVARIANT_IDS.BIAS_CHIPS, element: "bias chips", kind: "list", scope: "any", selector: '[data-part="bias-chips"]', minCount: 1, textMin: 3, childSelector: "[data-bias-tag]", childMin: 1 },
-    { key: "bias-chips@detail", invariant: CONTENT_INVARIANT_IDS.BIAS_CHIPS, element: "bias chips", kind: "detail", scope: "any", selector: '[data-part="bias-chips"]', minCount: 1, textMin: 3, childSelector: "[data-bias-tag]", childMin: 1 },
+    { key: "bias-chips@list", invariant: CONTENT_INVARIANT_IDS.BIAS_CHIPS, element: "bias chips", kind: "list", scope: "any", selector: '[data-part="bias-chips"]', minCount: 1, textMin: 3, childSelector: "[data-bias-tag]", childMin: 1, candidate: "bias" },
+    { key: "bias-chips@detail", invariant: CONTENT_INVARIANT_IDS.BIAS_CHIPS, element: "bias chips", kind: "detail", scope: "any", selector: '[data-part="bias-chips"]', minCount: 1, textMin: 3, childSelector: "[data-bias-tag]", childMin: 1, candidate: "bias" },
     // Tier square: TierChip, a bordered "T<n>" square. Every list carries rated rows; a detail masthead carries it
     // when the item's source is rated.
     { key: "tier-square@list", invariant: CONTENT_INVARIANT_IDS.TIER_SQUARE, element: "tier square", kind: "list", scope: "each", selector: '[data-part="chip-tier"]', minCount: 1, textMin: 2, textPattern: "^T\\d+$" },
@@ -48,7 +61,7 @@ export const CONTENT_REQUIREMENTS = Object.freeze(
     // Connected intelligence: the one cross-page section (DOM id across-pages, header "Connected intelligence").
     { key: "connected-intelligence@detail", invariant: CONTENT_INVARIANT_IDS.CONNECTED_SECTION, element: "Connected intelligence section", kind: "detail", scope: "any", selector: "#across-pages", minCount: 1, textMin: 60, textPattern: "Connected intelligence", childSelector: '[data-guard-container="cross-page"]', childMin: 1 },
     // Inferences: the one inference section (DOM id inferences); it holds at least one inference card.
-    { key: "inferences-section@detail", invariant: CONTENT_INVARIANT_IDS.INFERENCES_SECTION, element: "Inferences section", kind: "detail", scope: "any", selector: "#inferences", minCount: 1, textMin: 60, textPattern: "Inferences", childSelector: '[data-figure-kind="inference"]', childMin: 1 },
+    { key: "inferences-section@detail", invariant: CONTENT_INVARIANT_IDS.INFERENCES_SECTION, element: "Inferences section", kind: "detail", scope: "any", selector: "#inferences", minCount: 1, textMin: 60, textPattern: "Inferences", childSelector: '[data-figure-kind="inference"]', childMin: 1, candidate: "inference" },
     // Across pages rail: the dashboard's "Across the platform" rail card, whose "Connected across pages" list holds the
     // four surface stat links plus at least one cross-page theme link.
     { key: "across-pages-rail@home", invariant: CONTENT_INVARIANT_IDS.ACROSS_PAGES_RAIL, element: "Across pages rail", kind: "home", scope: "each", selector: '[data-audit="across-platform-card"]', minCount: 1, textMin: 100, textPattern: "Connected across pages", childSelector: "a[href]", childMin: 5 },
@@ -114,32 +127,88 @@ export function checkContentSnapshot(snap) {
   return out;
 }
 
+/** Compare two paths ignoring percent-encoding, so a candidate path and a page URL agree. */
+const samePath = (a, b) => {
+  const dec = (x) => { try { return decodeURIComponent(x); } catch { return String(x); } };
+  return dec(a) === dec(b);
+};
+
 /**
- * The `any` requirements over a whole run. PURE. For each viewport and requirement, at least one usable page of the
- * kind must satisfy it. No page of the kind at all is itself a failure (a gate that cannot find the page it must judge
- * has not passed it); when every page of the kind was a logged-out redirect only the session invariant speaks.
- * @param {object[]} snaps the page snapshots a run collected (same shape as checkContentSnapshot)
+ * The candidate record of one class, or null when candidates were never resolved. PURE.
+ * @param {{resolved?:boolean, classes?:Record<string,{count:number, visit?:string[], sample?:string[]}>}|null|undefined} candidates
  */
-export function checkContentRun(snaps) {
+const classOf = (candidates, name) => (candidates && candidates.resolved === true ? candidates.classes?.[name] ?? { count: 0, visit: [], sample: [] } : null);
+
+/**
+ * The HOLD result of a conditional requirement: not a pass and not a failure, a named state carrying the invariant and
+ * the candidate count. `count` is null when the candidates were not resolved at all. PURE.
+ */
+const holdOf = (req, count) => ({
+  state: "hold",
+  invariant: req.invariant,
+  key: req.key,
+  element: req.element,
+  kind: req.kind,
+  candidate: req.candidate,
+  candidates: count,
+  reason:
+    count === null
+      ? `candidates for ${req.element} were not resolved (no database credentials in this run), so it could not be judged`
+      : `${count} ${req.candidate} candidate item(s) in the corpus, so ${req.element} has nothing to appear on (expected during the population hold)`,
+});
+
+/**
+ * The `any` requirements over a whole run, as { findings, holds }. PURE.
+ *
+ * An UNCONDITIONAL requirement (no `candidate`): for each viewport at least one usable page of the kind must satisfy it;
+ * no page of the kind at all is itself a failure (a gate that cannot find the page it must judge has not passed it);
+ * when every page of the kind was a logged-out redirect only the session invariant speaks.
+ *
+ * A CONDITIONAL requirement (`candidate`, lane SMOKE-3): `candidates` is what the live data says (live-candidates.mjs).
+ * Zero candidates, or candidates never resolved, is a HOLD (one per requirement, not per viewport). With candidates, a
+ * list requirement is judged over the list pages as before; a detail requirement is judged over the CANDIDATE pages
+ * the runner visited (the data says they must carry the element), and missing from all of them is a FAIL.
+ *
+ * @param {object[]} snaps the page snapshots a run collected (same shape as checkContentSnapshot)
+ * @param {object|null} [candidates] the resolved candidates, or null/undefined when not resolved
+ */
+export function judgeContentRun(snaps, candidates) {
   const withContent = (snaps ?? []).filter((s) => s && s.content);
-  if (withContent.length === 0) return [];
+  if (withContent.length === 0) return { findings: [], holds: [] };
   const widths = [...new Set(withContent.map((s) => s.viewport?.width ?? 0))];
-  const out = [];
+  const findings = [];
+  const holds = [];
   for (const req of CONTENT_REQUIREMENTS) {
     if (req.scope !== "any") continue;
+    const cls = req.candidate ? classOf(candidates, req.candidate) : null;
+    if (req.candidate) {
+      if (cls === null) { holds.push(holdOf(req, null)); continue; }
+      if (cls.count === 0) { holds.push(holdOf(req, 0)); continue; }
+    }
+    const candidatePaths = req.candidate && req.kind === "detail" ? cls.visit ?? [] : null;
     for (const width of widths) {
-      const ofKind = withContent.filter((s) => s.kind === req.kind && (s.viewport?.width ?? 0) === width);
+      let ofKind = withContent.filter((s) => s.kind === req.kind && (s.viewport?.width ?? 0) === width);
+      if (candidatePaths) ofKind = ofKind.filter((s) => candidatePaths.some((p) => samePath(p, pathOf(s.url))));
       if (ofKind.length === 0) {
         const anchor = withContent.find((s) => (s.viewport?.width ?? 0) === width);
-        out.push(finding(req, { ...anchor, kind: req.kind }, `no ${req.kind} page was visited at ${width}px, so ${req.element} could not be checked`));
+        const why = candidatePaths
+          ? `${cls.count} ${req.candidate} candidate item(s) exist (${candidatePaths.join(", ") || "none chosen"}) but no candidate page was checked at ${width}px, so ${req.element} could not be judged`
+          : `no ${req.kind} page was visited at ${width}px, so ${req.element} could not be checked`;
+        findings.push(finding(req, { ...anchor, kind: req.kind }, why));
         continue;
       }
       const usable = ofKind.filter((s) => !s.redirectedToLogin);
       if (usable.length === 0) continue;
       if (usable.some((s) => judgeRequirement(req, s.content[req.key]).ok)) continue;
       const bestReason = judgeRequirement(req, usable[0].content[req.key]).reason;
-      out.push(finding(req, usable[0], `${bestReason} (none of ${usable.length} ${req.kind} page${usable.length === 1 ? "" : "s"} at ${width}px carried it: ${usable.map((s) => pathOf(s.url)).join(", ")})`));
+      const scope = candidatePaths ? `${cls.count} ${req.candidate} candidate item(s) exist, none of the ${usable.length} candidate page${usable.length === 1 ? "" : "s"}` : `none of ${usable.length} ${req.kind} page${usable.length === 1 ? "" : "s"}`;
+      findings.push(finding(req, usable[0], `${bestReason} (${scope} at ${width}px carried it: ${usable.map((s) => pathOf(s.url)).join(", ")})`));
     }
   }
-  return out;
+  return { findings, holds };
+}
+
+/** The failures of judgeContentRun, for callers that do not report holds. PURE. */
+export function checkContentRun(snaps, candidates) {
+  return judgeContentRun(snaps, candidates).findings;
 }
