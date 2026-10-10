@@ -9,7 +9,7 @@
 //    re-ground re-extracts and re-fails IDENTICALLY, so skip the cheap re-ground and go to reresearch.
 //  - otherwise (transient/unknown): try the cheap stochastic re-ground first (a re-roll may recover it).
 
-export const DETERMINISTIC_GROUND_FAILURES = [
+const DETERMINISTIC_GROUND_FAILURES = [
   "ungrounded_url", "missing_required_slot", "fact_below_authority_floor",
   "analysis_missing_label_syntax", "unlabeled_assertion", "legal_not_routed_to_callout",
 ];
@@ -18,7 +18,7 @@ export function isDeterministicGroundFailure(detail) {
   return DETERMINISTIC_GROUND_FAILURES.some((r) => d.includes(r));
 }
 
-export const STRUCTURAL_GROUND_FAILURES = ["no source_id"];
+const STRUCTURAL_GROUND_FAILURES = ["no source_id"];
 export function isStructuralGroundFailure(detail) {
   const d = detail || "";
   return STRUCTURAL_GROUND_FAILURES.some((r) => d.includes(r));

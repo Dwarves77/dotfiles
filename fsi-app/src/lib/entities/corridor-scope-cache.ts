@@ -23,9 +23,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   listCorridorScopes,
   listCorridorsTouchingJurisdictions,
-  getCorridorScopeSummary,
   type CorridorScope,
-  type CorridorScopeSummary,
 } from "./corridor-scope";
 
 const CORRIDOR_SCOPE_TAG = "corridor-scope";
@@ -62,17 +60,6 @@ export async function getCachedCorridorsTouchingJurisdictions(isoCodes: string[]
   return unstable_cache(
     async () => listCorridorsTouchingJurisdictions(supabase, codes),
     ["corridor-scope:by-jurisdiction", codes.join(",")],
-    { tags: [CORRIDOR_SCOPE_TAG], revalidate: REVALIDATE_SECONDS },
-  )();
-}
-
-/** One corridor's full scope summary (jurisdictions + instruments + obligation count) — cached. */
-export async function getCachedCorridorScopeSummary(corridorEntityId: string): Promise<CorridorScopeSummary | null> {
-  const supabase = client();
-  if (!supabase) return null;
-  return unstable_cache(
-    async () => getCorridorScopeSummary(supabase, corridorEntityId),
-    ["corridor-scope:summary", corridorEntityId],
     { tags: [CORRIDOR_SCOPE_TAG], revalidate: REVALIDATE_SECONDS },
   )();
 }

@@ -35,7 +35,7 @@ export interface ClaimRow {
   source_tier_at_grounding: number | null;
 }
 
-export interface ItemCrossItemMetrics {
+interface ItemCrossItemMetrics {
   unregisteredSpanFacts: number; // item FACT claims whose span host is unregistered (resolver tier == null)
   claimsTierMismatches: number; // item claims violating claims-tier honesty (FACT stamp != resolved; non-FACT stamped)
   sample: string[];
@@ -60,11 +60,7 @@ export function hostTierViolationCount(sources: SourceRow[]): number {
 
 // ── Layer C waiver logic (pure; shared by the preflight disposition gate) ────
 
-export interface WaiverAction {
-  action?: string;
-  until?: string;
-}
-export interface BlockRow {
+interface BlockRow {
   id: string;
   description?: string | null;
   recommended_actions?: unknown;
@@ -118,7 +114,7 @@ async function readSearchUrls(sb: SupabaseClient, ids: string[]): Promise<Map<st
   return m;
 }
 
-export interface CrossItemAuditResult {
+interface CrossItemAuditResult {
   ok: boolean;
   detail: string;
   metrics: ItemCrossItemMetrics & { hostTierViolations: number; baselineHostTierViolations: number };
@@ -158,7 +154,7 @@ export async function crossItemAuditGate(
 // ── Layer C — the data-audit BLOCK row convention (shared by preflight + the lane runner) ────────────────
 // The nightly lane reflects its verdict into ONE OPEN integrity_flags row of this shape on RED, and
 // resolves it on GREEN. Generation preflight HALTS on an OPEN block lacking a non-expired waiver.
-export const DATA_AUDIT_BLOCK = Object.freeze({
+const DATA_AUDIT_BLOCK = Object.freeze({
   category: "data_integrity" as const,
   subject_type: "system" as const,
   subject_ref: "data-audit-lane" as const,

@@ -52,9 +52,3 @@ export function renderableSourceEntries(entries) {
 
 /** Generalized alias — true when a parsed field is empty/no-data/header-echo. */
 export const isPlaceholderText = isPlaceholderSourceName;
-
-/** Drop rows whose required `keyField` is placeholder/empty/header-echo. Never fabricates. */
-export function dropUnbackedRows(rows, keyField) {
-  if (!Array.isArray(rows)) return [];
-  return rows.filter((r) => r && !isPlaceholderText(r[keyField]));
-}

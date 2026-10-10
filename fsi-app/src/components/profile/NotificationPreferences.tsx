@@ -26,7 +26,7 @@ import { Check } from "lucide-react";
 // a non-interactive locked-on row with a tooltip.
 // ───────────────────────────────────────────────────────────────────────────
 
-export interface NotificationPrefs {
+interface NotificationPrefs {
   enabled: boolean;
   on_mention: boolean;
   on_reply_in_my_threads: boolean;

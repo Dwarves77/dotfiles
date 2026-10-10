@@ -95,7 +95,7 @@ interface CoverageResponse {
 // emitted an action nothing consumed — an enabled dead affordance. If
 // per-jurisdiction discovery gets wired later (spend route — needs its own
 // dispatch), re-add the kind AND the mount-site handler in the same change.
-export type CoverageMatrixAction = {
+type CoverageMatrixAction = {
   kind: "bulk-add";
   jurisdictionIso: string;
   label: string;

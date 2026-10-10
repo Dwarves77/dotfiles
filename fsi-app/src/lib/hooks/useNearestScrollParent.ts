@@ -58,7 +58,7 @@ function isScrollable(el: Element): boolean {
   return el.scrollHeight > el.clientHeight + 1; // +1: sub-pixel layout rounding, never a real page's worth
 }
 
-export type ScrollParentResult =
+type ScrollParentResult =
   | { kind: "pending" }
   | { kind: "element"; el: HTMLElement }
   | { kind: "window" };

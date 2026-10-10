@@ -32,7 +32,7 @@ export interface IndexationClauseRow {
   rounding_rule: string;
 }
 
-export const INDEXATION_CLAUSES_GAP_LINE =
+const INDEXATION_CLAUSES_GAP_LINE =
   "No rows yet. Index-linked contract terms appear here once an external-source rows file has been loaded.";
 
 function formatBand(floorPct: number | null, capPct: number | null): string {

@@ -28,7 +28,7 @@
 /** The active regime. Switched only by ruling (env override for a deliberate flip; default = build-phase). */
 export const SPEND_REGIME = /** @type {SpendRegime} */ (process.env.SPEND_REGIME || "build-phase");
 
-export const IS_BUILD_PHASE = SPEND_REGIME === "build-phase";
+const IS_BUILD_PHASE = SPEND_REGIME === "build-phase";
 
 /** Under BUILD-PHASE, a standing dollar/pace figure NEVER gates — it is information-only. A guard asks this
  *  before treating any standing default as a limit: true ⇒ report it as info/finding, never halt on it.
@@ -48,7 +48,7 @@ export function standingFiguresAreInformationOnly() {
 //
 // assertBudget now calls assertRegimeDefined() before any spend, so the switch means what it says.
 
-export class SpendRegimeError extends Error {
+class SpendRegimeError extends Error {
   /** @param {string} message */
   constructor(message) { super(message); this.name = 'SpendRegimeError'; }
 }

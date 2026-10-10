@@ -204,7 +204,7 @@ export function buildThemeAnalysisView({ itemId, surface, themes, briefs, lineag
 }
 
 /** Other-member links a chip carries beyond its own link (the Research strip's existing behaviour). */
-export const MAX_CHIP_MEMBER_LINKS = 3;
+const MAX_CHIP_MEMBER_LINKS = 3;
 
 /** Longest label a chip shows, in characters. The label never exceeds it (see deriveThemeLabel). */
 export const MAX_THEME_LABEL_CHARS = 56;

@@ -69,16 +69,16 @@ function loadSupabaseServerSource() {
   return readFileSync(join(SRC, "lib/supabase-server.ts"), "utf8");
 }
 
-test("fetchWorkspaceResources's mapper and rpcRowToResource both set jurisdictionIso via the shared guard", () => {
+test("the shared baseResourceFields mapper and the detail mapper both set jurisdictionIso via the shared guard", () => {
   const code = loadSupabaseServerSource();
   const callSites = code.match(/jurisdictionIso:\s*normalizeJurisdictionIsoColumn\(row\.jurisdiction_iso\)/g) || [];
-  // 3 sites: fetchWorkspaceResources's inline mapper, rpcRowToResource, and
-  // fetchIntelligenceItemUncached's detail mapper. A count below 3 means one of the two
-  // previously-silent mappers regressed back to omitting the field.
+  // 2 sites: baseResourceFields (the one mapper behind fetchWorkspaceResources and rpcRowToResource) and
+  // fetchIntelligenceItemUncached's detail mapper. A count below 2 means a mapper regressed back to omitting
+  // the field; above 2 means a new Resource-building mapper appeared that this test did not account for.
   assert.equal(
     callSites.length,
-    3,
-    `expected 3 mapper sites to call normalizeJurisdictionIsoColumn(row.jurisdiction_iso), found ${callSites.length}`
+    2,
+    `expected 2 mapper sites to call normalizeJurisdictionIsoColumn(row.jurisdiction_iso), found ${callSites.length}`
   );
 });
 

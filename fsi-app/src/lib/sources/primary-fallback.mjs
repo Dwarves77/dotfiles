@@ -27,7 +27,7 @@ import { isErrorBody } from "./entity-gate.mjs";
 
 // Thresholds (DEFAULTS, tunable). One bar, not two: the stub bar == the pool's existing usability bar.
 export const STUB_MIN_CHARS = 200;     // < this extracted text = stub/roadblock (matches pool >200ch usability)
-export const MIN_LANG_RATIO = 0.6;     // < this target-language (ASCII) ratio = wrong-language-only
+const MIN_LANG_RATIO = 0.6;     // < this target-language (ASCII) ratio = wrong-language-only
 export const CHALLENGE_MAX_CHARS = 1500; // a challenge page is short; a real 5000ch article that mentions
                                          // "cloudflare" must NOT trip — so challenge markers only count below this.
 // EXPORTED (Lane LEDGER-WALLS, 2026-09-04): access-wall.mjs — the shared content-based wall detector the

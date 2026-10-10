@@ -5,7 +5,7 @@ import { authHeaders } from "@/lib/api/authed-fetch";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { shouldShowAdminNav } from "@/components/shell/bootstrap-seed";
 
-export interface AdminAttentionCounts {
+interface AdminAttentionCounts {
   provisional_sources_pending: number;
   staged_updates_pending: number;
   staged_updates_materialization_failed: number;
@@ -18,7 +18,7 @@ export interface AdminAttentionCounts {
   total: number;
 }
 
-export interface UseAdminAttention {
+interface UseAdminAttention {
   counts: AdminAttentionCounts | null;
   total: number;
   loading: boolean;

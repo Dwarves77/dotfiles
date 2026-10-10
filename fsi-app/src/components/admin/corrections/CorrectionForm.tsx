@@ -29,7 +29,7 @@ export interface FormDraft {
   reason: string;
 }
 
-export interface CorrectionFormProps {
+interface CorrectionFormProps {
   kind: TargetKind;
   op: CorrectionOp;
   /** The target ref, or "" when the form builds it (tag add: column plus typed tag; connection add: picked item). */

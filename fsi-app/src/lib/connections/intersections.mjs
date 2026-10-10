@@ -29,8 +29,8 @@ import { ROLE_TAGS } from "./discover.mjs";
 import { surfaceOf } from "../surface-of.mjs";
 
 export const INTERSECTION_SIGNAL = "intersection";
-export const POINTS = Object.freeze({ scenario: 3, object: 2, explicit: 5, priority: 2 });
-export const TIER_MIN = Object.freeze({ strong: 12, medium: 8 });
+const POINTS = Object.freeze({ scenario: 3, object: 2, explicit: 5, priority: 2 });
+const TIER_MIN = Object.freeze({ strong: 12, medium: 8 });
 const HIGH_PRIORITY = new Set(["CRITICAL", "HIGH"]);
 
 const lc = (s) => String(s || "").toLowerCase().trim();
@@ -171,7 +171,7 @@ export function detectIntersections(items) {
 // "[object Object]". These two helpers are the one home for comparing and printing a detail.
 
 /** JSON with object keys sorted recursively, so equal values serialise identically. */
-export function canonicalJson(v) {
+function canonicalJson(v) {
   if (Array.isArray(v)) return `[${v.map(canonicalJson).join(",")}]`;
   if (v && typeof v === "object") {
     return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonicalJson(v[k])}`).join(",")}}`;

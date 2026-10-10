@@ -10,22 +10,22 @@
 // LEGACY pending value: no writer produces it since lane S1-B (2026-10-04); rows written earlier may carry it.
 export const PENDING_ASSIGNMENT_SOURCE = "haiku_proposed_low_confidence";
 // The value machine promotion now stores for every tag at or above 0.65, confidence kept in its own column.
-export const ADOPTED_ASSIGNMENT_SOURCE = "haiku_auto_high_confidence";
+const ADOPTED_ASSIGNMENT_SOURCE = "haiku_auto_high_confidence";
 export const CONFIRMED_ASSIGNMENT_SOURCE = "operator_confirmed";
 
-export type BiasTagDecision = "confirm" | "reject";
+type BiasTagDecision = "confirm" | "reject";
 
 export interface BiasTagPatchBody {
   biasTagId?: unknown;
   decision?: unknown;
 }
 
-export interface ValidatedPatch {
+interface ValidatedPatch {
   biasTagId: string;
   decision: BiasTagDecision;
 }
 
-export type ValidationResult =
+type ValidationResult =
   | { ok: true; value: ValidatedPatch }
   | { ok: false; error: string };
 
@@ -40,7 +40,7 @@ export function validatePatchBody(body: BiasTagPatchBody): ValidationResult {
   return { ok: true, value: { biasTagId: body.biasTagId, decision: body.decision } };
 }
 
-export interface BiasTagRow {
+interface BiasTagRow {
   id: string;
   source_id: string;
   dimension: string;
@@ -49,7 +49,7 @@ export interface BiasTagRow {
   assignment_source: string;
 }
 
-export type ActionableResult = { ok: true } | { ok: false; error: string; status: number };
+type ActionableResult = { ok: true } | { ok: false; error: string; status: number };
 
 /** The admin PATCH is an OPTIONAL override (lane S1-B): a machine-adopted row (haiku_auto_high_confidence)
  *  or a legacy pending row can be confirmed or removed. A row already carrying a human decision
@@ -65,7 +65,7 @@ export function checkActionable(row: Pick<BiasTagRow, "assignment_source">): Act
   return { ok: true };
 }
 
-export interface AuditEventInput {
+interface AuditEventInput {
   sourceId: string;
   biasTagId: string;
   decision: BiasTagDecision;

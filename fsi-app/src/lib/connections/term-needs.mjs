@@ -30,7 +30,7 @@ import { VALIDATORS } from "../entities/crosswalk.mjs";
 
 /** The rule text recorded on every need, so a later change to the rule never rewrites what raised it. */
 export const TERM_NEED_RULE = "adopted term with no held item whose primary source base tier is at or above the item type authority floor";
-export const LINEAGE_NEED_RULE = "absent lineage parent whose identifier is not a CELEX id";
+const LINEAGE_NEED_RULE = "absent lineage parent whose identifier is not a CELEX id";
 const DESCRIPTION_MAX = 480;
 const SAMPLE_CITING_ITEMS = 5;
 

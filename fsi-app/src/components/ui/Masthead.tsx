@@ -49,7 +49,7 @@ function isoWeekNumber(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-export interface MastheadProps {
+interface MastheadProps {
   title: string;
   /** "list" = 34px title (dashboard/list surfaces); "detail" = 28px. */
   size?: "list" | "detail";

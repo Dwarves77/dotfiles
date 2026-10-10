@@ -70,7 +70,7 @@ import { SectionRule } from "@/components/ui/SectionRule";
  * shell (the guard also detects cards structurally, so nothing depends on the attribute for
  * detection).
  */
-export interface SectionCardProps {
+interface SectionCardProps {
   children: ReactNode;
   /** The rendered element. Defaults to `div`; `section`/`header`/`aside` where the card is a
    *  landmark in the page's outline (the masthead is a `header`, the matrix a `section`); `li`

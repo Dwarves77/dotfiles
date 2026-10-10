@@ -30,7 +30,7 @@ import { classifyTimelineEntries } from "./milestone-timeline-classify";
 import type { TimelineDotState } from "./milestone-timeline-classify";
 import { passedDotStyle, nextDotStyle, aheadDotStyle, timelineTrackStyle } from "./timeline-dot-styles";
 
-export interface MilestoneTimelineProps {
+interface MilestoneTimelineProps {
   entries?: TimelineEntry[] | null;
   /** The item's urgency band hue, used for the "next" dot + the track up to it. */
   bandHex: string;

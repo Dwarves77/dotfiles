@@ -27,7 +27,7 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { authHeaders } from "@/lib/api/authed-fetch";
 import type { NavCounts } from "@/lib/nav/nav-counts";
 
-export interface BootstrapPersonalStateItem {
+interface BootstrapPersonalStateItem {
   itemId: string;
   legacyId: string | null;
   title: string | null;
@@ -36,14 +36,14 @@ export interface BootstrapPersonalStateItem {
   archivedAt: string | null;
 }
 
-export interface BootstrapMember {
+interface BootstrapMember {
   user_id: string;
   role: string;
   display_name: string;
   avatar_url: string | null;
 }
 
-export interface BootstrapAdminAttention {
+interface BootstrapAdminAttention {
   provisional_sources_pending: number;
   staged_updates_pending: number;
   staged_updates_materialization_failed: number;
@@ -197,7 +197,7 @@ function getServerSnapshot(): SingletonState {
   return SERVER_SNAPSHOT;
 }
 
-export interface UseWorkspaceBootstrap extends SingletonState {
+interface UseWorkspaceBootstrap extends SingletonState {
   /** Manually re-fetch, e.g. after sign-in when the singleton's first attempt
    *  ran signed-out and cached an empty result. */
   refresh: () => void;

@@ -5,7 +5,7 @@ import type { Resource } from "@/types/resource";
 // /operations' server page (first-page cross-reference filter) and
 // OperationsLedger's client-side remainder merge, so both apply the exact
 // same predicate to the exact same fetcher's rows.
-export const REGULATION_ITEM_TYPES = new Set([
+const REGULATION_ITEM_TYPES = new Set([
   "regulation",
   "directive",
   "standard",

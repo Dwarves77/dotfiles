@@ -37,7 +37,7 @@ function wantWords(s) {
 
 /** Does the brief prose cover the slot — topical sentence hit OR explicit GAP naming? Pure.
  * @param {string} body @param {SlotRow} slot */
-export function slotCovered(body, slot) {
+function slotCovered(body, slot) {
   const text = String(body || "").toLowerCase();
   // Explicit GAP forms: the bracketed slot key ("[effective_date] not available …") or the slot key itself.
   if (text.includes(`[${slot.slot_key.toLowerCase()}]`) || text.includes(slot.slot_key.toLowerCase().replace(/_/g, " "))) return true;
@@ -60,7 +60,7 @@ export function buildSlotRetryFeedback(uncovered) {
 }
 
 // ── in-process slot cache (per item_type, TTL-bounded) ──
-export const DEFAULT_SLOT_TTL_MS = 10 * 60 * 1000; // 10 min — spec changes land without a restart
+const DEFAULT_SLOT_TTL_MS = 10 * 60 * 1000; // 10 min — spec changes land without a restart
 
 /** @param {Map<string, {slots: SlotRow[], fetchedAtMs: number}>} store @param {string} itemType
  * @param {number} nowMs @param {number} [ttlMs] @returns {SlotRow[]|null} fresh slots or null */

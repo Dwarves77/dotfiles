@@ -99,19 +99,19 @@ export function classifyTransportResult(res = {}) {
 
 // ── CLASS FAMILIES ──────────────────────────────────────────────────────────────────────────────────────
 // NOT-FOUND: the URL is dead → SEEK a correct alternate URL (never store, never hold on the dead URL).
-export const NOT_FOUND_CLASSES = new Set([CLASS.HTTP_404, CLASS.HTTP_410, CLASS.SOFT_404]);
+const NOT_FOUND_CLASSES = new Set([CLASS.HTTP_404, CLASS.HTTP_410, CLASS.SOFT_404]);
 // BLOCK: the host is up but refusing this transport → try the OTHER; if all exhausted → hold NO_REACHABLE_SOURCE.
-export const BLOCK_CLASSES = new Set([
+const BLOCK_CLASSES = new Set([
   CLASS.HTTP_403, CLASS.HTTP_5XX, CLASS.TIMEOUT, CLASS.CDN_BLOCK, CLASS.BOT_WALL,
   CLASS.REQUEST_ACCESS, CLASS.ERROR_BODY, CLASS.EMPTY,
 ]);
-export const isOk = (c) => c === CLASS.OK;
+const isOk = (c) => c === CLASS.OK;
 export const isNotFound = (c) => NOT_FOUND_CLASSES.has(c);
 export const isJsShell = (c) => c === CLASS.JS_SHELL;
 export const isBlock = (c) => BLOCK_CLASSES.has(c);
 /** Any non-OK class = a failed capture (the capture-time superset of the read-side isErrorBody: also catches
  *  the Request-Access permission wall + JS shell that isErrorBody's marker set misses). @param {string} c */
-export const isCaptureFailure = (c) => c !== CLASS.OK;
+const isCaptureFailure = (c) => c !== CLASS.OK;
 
 // ── HOST → TRANSPORT SELECTION ──────────────────────────────────────────────────────────────────────────
 // (d) API hosts: federalregister.gov + eCFR expose official JSON APIs; the HTML path returns "Request Access".
@@ -134,7 +134,7 @@ export function apiEndpointFor(url) {
     return null;
   } catch { return null; }
 }
-export const hasApiTransport = (url) => apiEndpointFor(url) !== null;
+const hasApiTransport = (url) => apiEndpointFor(url) !== null;
 
 // Bot-walled / datacenter-IP-WAF hosts: Browserless (stealth) reaches them where a plain server fetch is
 // blocked, so RENDER is tried first, plain-HTTP as the salvage (work-order group b).

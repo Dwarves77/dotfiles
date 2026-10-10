@@ -144,12 +144,6 @@ export function isBotWallStatus(status) {
   return status === 401 || status === 403 || status === 429;
 }
 
-/** Detect if all probed URLs have bot-wall statuses (401/403/429). PURE.
- *  @param {{status:number|null}[]} probes @returns {boolean} true when every probe has a bot-wall status */
-export function allProbesBotWalled(probes) {
-  return probes.length > 0 && probes.every((p) => isBotWallStatus(p.status));
-}
-
 // ── discovery: robots.txt + fallback candidates (pure) ──────────────────────────────────────────────────
 
 /** Parse `Sitemap:` directive lines out of a robots.txt body (case-insensitive directive name, per the
@@ -604,7 +598,7 @@ export async function walkSitemap(deps, {
 
 /** Extract HTTP status from an error message, e.g., "HTTP 404 for https://..." -> 404, or null if not extractable.
  *  PURE. @param {string} msg @returns {number|null} */
-export function extractHttpStatus(msg) {
+function extractHttpStatus(msg) {
   const m = String(msg ?? "").match(/HTTP (\d+)/);
   return m ? Number(m[1]) : null;
 }

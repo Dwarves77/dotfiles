@@ -35,9 +35,10 @@ import { isMainModule } from '../lib/is-main.mjs'; // task 0.3b: the Windows-saf
 const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
 
 // Signature matchers live in the ONE shared module (hardening H3, src/lib/agent/defect-signatures.mjs) so
-// this scan and the mint-time gate share one implementation. Re-exported so the golden + callers keep
-// importing them from here.
-export { REUSE_MIN, NAMED_ACTS, extractIdentifiers, spanHasIdentifier, detectConflate, extractNumbers, detectNumeric, scanItem } from "../../src/lib/agent/defect-signatures.mjs";
+// this scan and the mint-time gate share one implementation. scanItem is imported for main() (a bare
+// re-export binds nothing locally); scanItem and detectNumeric are re-exported because the golden imports them from here.
+import { scanItem } from "../../src/lib/agent/defect-signatures.mjs";
+export { scanItem, detectNumeric } from "../../src/lib/agent/defect-signatures.mjs";
 
 // ---------- CLI / DB (not exercised by the golden) ----------
 

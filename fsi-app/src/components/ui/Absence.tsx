@@ -33,7 +33,7 @@ export type AbsenceReason = "not in primary source" | "pending" | "unscored" | "
  * `AbsenceReason` because the vocabulary is the operator's; nothing in the
  * row anatomy passes it.
  */
-export const ABSENCE_PRECEDENCE: readonly AbsenceReason[] = ["connect data", "not in primary source", "pending"];
+const ABSENCE_PRECEDENCE: readonly AbsenceReason[] = ["connect data", "not in primary source", "pending"];
 
 /**
  * Pick the single reason for a composite from the reasons its own dimensions

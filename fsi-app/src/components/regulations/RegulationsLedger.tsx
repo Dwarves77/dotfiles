@@ -103,7 +103,7 @@ async function fetchRemainder(): Promise<Resource[]> {
   return body.resources ?? [];
 }
 
-export interface RegulationsLedgerProps {
+interface RegulationsLedgerProps {
   /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
    *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
    *  chose — the SSR pass and the hydration pass then produce identical text by construction

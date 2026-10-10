@@ -43,4 +43,3 @@ const SPLIT = splitKeyDateFacts(PARSED.facts);
 export const RECORD_GRADE_FIXTURE_DATE_FACTS = SPLIT.dateFacts;
 /** 2 rows: jurisdictional_scope, penalty_summary. */
 export const RECORD_GRADE_FIXTURE_OTHER_FACTS = SPLIT.otherFacts;
-export const RECORD_GRADE_FIXTURE_PARSED = PARSED;

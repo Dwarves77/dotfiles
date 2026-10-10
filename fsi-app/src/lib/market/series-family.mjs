@@ -53,7 +53,7 @@ export const FAMILY_CLASS_ORDER = Object.freeze(["fuel", "carbon", "fx", "index"
 /** Fallback class for a series whose key prefix matches no registry entry at all (buildSeriesBoard's
  *  `unregistered` bucket). "other indices" is the ruling's own last class, so an unclaimed signal
  *  sorts last and is never dropped. */
-export const UNREGISTERED_FAMILY_CLASS = "index";
+const UNREGISTERED_FAMILY_CLASS = "index";
 
 /**
  * @typedef {object} SeriesFamily
@@ -178,7 +178,7 @@ function seriesKeyPrefix(seriesKey) {
  * @param {string} seriesKey
  * @returns {string}
  */
-export function familyClassForSeriesKey(seriesKey) {
+function familyClassForSeriesKey(seriesKey) {
   const entry = producerFor(seriesKeyPrefix(seriesKey));
   return entry?.familyClass ?? UNREGISTERED_FAMILY_CLASS;
 }

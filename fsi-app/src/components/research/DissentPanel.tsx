@@ -36,7 +36,7 @@ import { TagChip } from "@/components/ui/Chips";
 
 /** A real, content-level dissenting account -- one source's differing conclusion. No reader produces
  *  this yet (see module header); the shape exists so a future lane has a typed target to fill. */
-export interface DissentingSource {
+interface DissentingSource {
   sourceName: string;
   /** One-sentence account of what this source concludes differently from the assessment's main read. */
   position: string;
@@ -46,7 +46,7 @@ export interface DissentingSource {
 /** The shape of migration 344's `credibility_authority_score` jsonb column, as `aggregateAuthorityDistribution`
  *  (scripts/research/authority-score.mjs) produces it. Optional/partial because a degenerate
  *  one-source fallback (assess.mjs, pre-L3-wiring) may carry only a subset of these buckets. */
-export interface AuthorityDistributionLike {
+interface AuthorityDistributionLike {
   highAuthorityIndependent?: number;
   medium?: number;
   vendorFlagged?: number;
@@ -55,7 +55,7 @@ export interface AuthorityDistributionLike {
   sources?: Array<{ sourceId?: string; roleClass?: string; bucket?: string }>;
 }
 
-export interface DissentPanelProps {
+interface DissentPanelProps {
   /** Real, content-level dissent -- absent today for every item (no classifier exists). */
   dissentingSources?: DissentingSource[] | null;
   /** The authority-score distribution for this assessment, for the composition fallback. */

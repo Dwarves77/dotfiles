@@ -55,7 +55,7 @@ function focusCommandBar() {
   el.focus();
 }
 
-export interface TopBarProps {
+interface TopBarProps {
   onMenuClick: () => void;
 }
 

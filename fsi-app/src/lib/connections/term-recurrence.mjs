@@ -37,7 +37,7 @@ export const MENTIONED_TERM_TEXT_MAX = 120;
 /** A term needs mentions from at least this many distinct sources to adopt. */
 export const ADOPTION_MIN_SOURCES = 2;
 export const ENTITY_LINK_CREATED_BY = "intake-entity-link";
-export const ENTITY_LINK_ACTION = "review_entity_mention";
+const ENTITY_LINK_ACTION = "review_entity_mention";
 const EVIDENCE_SAMPLE_ITEMS = 5;
 const EVIDENCE_SAMPLE_SURFACE = 3;
 

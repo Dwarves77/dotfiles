@@ -25,11 +25,12 @@ export const invariant = {
     'selftest:fsi-app/scripts/migrations/build-applied-map.test.mjs',
   ],
   residual:
-    'The audit compares STATEMENTS, not live objects: a file applied outside the ledger (the seven outside-ledger '
-    + 'files) is reported as a finding, "objects unverified", never a pass, because wiring F24\'s object check into '
-    + 'this audit is owed to a follow-up. The comparison tolerates comments, whitespace, semicolons, a '
-    + 'BEGIN/COMMIT wrapper and the stray comment fragments the Supabase CLI leaves when it splits a comment that '
-    + 'contains a semicolon; a difference that hides inside a dollar-quoted body\'s comment is therefore not seen. '
-    + 'Until lane MIG-HIST-2 reconciles the code-differs rows the audit is RED on its first live run by design. Data '
-    + 'loads from a closed lane are recorded in the map (class data-only), not reproduced as files.',
+    'The audit compares STATEMENTS, and verifies a file applied outside the ledger against the live catalog '
+    + '(migration-history-objects.mjs: OUTSIDE_OBJECT_MISSING when an expected object is absent; without a catalog '
+    + 'the finding stays "objects unverified", never a pass). The comparison tolerates comments, whitespace, '
+    + 'semicolons, a BEGIN/COMMIT wrapper and the stray comment fragments the Supabase CLI leaves when it splits a '
+    + 'comment that contains a semicolon; a difference that hides inside a dollar-quoted body comment is therefore '
+    + 'not seen. A code-differs row passes only while its recorded diff (written by build-applied-map.mjs) equals the '
+    + 'live one: an unrecorded or changed difference is red. Data loads from a closed lane are recorded in the map '
+    + '(class data-only), not reproduced as files.',
 };

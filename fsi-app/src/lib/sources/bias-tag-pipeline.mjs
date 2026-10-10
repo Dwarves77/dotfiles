@@ -79,7 +79,7 @@ export const ASSIGNMENT_SOURCE = Object.freeze({
 });
 
 export const HIGH_CONFIDENCE_THRESHOLD = 0.80;
-export const LOW_CONFIDENCE_THRESHOLD = 0.65;
+const LOW_CONFIDENCE_THRESHOLD = 0.65;
 
 /**
  * Pure. Splits a Haiku `bias_tags` recommendation object into rows to insert

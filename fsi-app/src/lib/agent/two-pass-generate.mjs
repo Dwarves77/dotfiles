@@ -19,8 +19,8 @@
 // -only, see fsi-app/tsconfig.json's "paths").
 import { SONNET_MODEL } from "../llm/model-ids.mjs";
 
-export const GEN_MAX_TOKENS = 32000;
-export const YAML_MAX_TOKENS = 8000;
+const GEN_MAX_TOKENS = 32000;
+const YAML_MAX_TOKENS = 8000;
 const MODEL = SONNET_MODEL;
 
 const PASS1_SUFFIX = `\n\n=== TWO-PASS MODE (PASS 1 of 2) ===\nOutput ONLY the brief body and the "## New Sources Identified" table. DO NOT emit the YAML frontmatter block in this response — it is requested separately in pass 2. End immediately after the New Sources Identified table (or after the body if there are none).`;

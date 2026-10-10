@@ -39,12 +39,12 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { classifyMilestones, nextMilestoneClause } from "@/lib/detail/timeline-math";
 
-export interface ActionCardExposureValue {
+interface ActionCardExposureValue {
   value: ReactNode;
   absenceReason?: AbsenceReason;
 }
 
-export interface ActionCardProps {
+interface ActionCardProps {
   band: UrgencyBand;
   /** Kind tag text, e.g. "REGULATION". */
   kindLabel: string;

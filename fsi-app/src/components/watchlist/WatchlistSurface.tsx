@@ -98,7 +98,7 @@ const LIST_KEY = "watchlist";
 
 const SCOPE_LABEL: Record<WatchlistScope, string> = { personal: "Personal", team: "Team" };
 
-export interface WatchlistSurfaceProps {
+interface WatchlistSurfaceProps {
   items: WatchlistItem[];
   limit: number;
   /** Server render instant (src/lib/render-now.ts) — every date this surface renders derives from

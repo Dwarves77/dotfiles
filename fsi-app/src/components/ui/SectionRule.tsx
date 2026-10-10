@@ -24,7 +24,7 @@
  * set) — logged in docs/design/handoff-2026-09-06/DEVIATION-LOG.md.
  */
 
-export const SECTION_RULE_GRADIENT =
+const SECTION_RULE_GRADIENT =
   "linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))";
 
 export function SectionRule() {

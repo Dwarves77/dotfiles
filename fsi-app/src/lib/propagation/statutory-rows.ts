@@ -282,7 +282,7 @@ export function parseRow(row: unknown, index: number): ParsedStatutoryRow {
  * refusal (unadmissible input, already-computed, purity-trigger rejection), every outcome is returned by
  * name; only a structural/DB error not anticipated by any of those paths propagates.
  */
-export type WriteOneRowResult =
+type WriteOneRowResult =
   | { action: "refused-inadmissible"; field: string; reason: string; shipKey: string }
   | { action: "skipped-already-computed"; shipKey: string; computationId: unknown }
   | { action: "would-write"; shipKey: string; entity_id: string; obligation_id: string; resultEur: number }

@@ -36,7 +36,7 @@ export type FormulaId = "fueleu_annex_iv_penalty";
  *  does not type-check). `ghgIntensityTarget`/`Actual` are gCO2eq/MJ; `energyUsed` is MJ; `consecutiveYears`
  *  is a plain count (dimensionless), carried as a StatutoryInput too so its own provenance (who asserted
  *  the reporting-period count) is never silently dropped. */
-export interface FuelEuAnnexIvInputs {
+interface FuelEuAnnexIvInputs {
   ghgIntensityTarget: StatutoryInput;
   ghgIntensityActual: StatutoryInput;
   energyUsed: StatutoryInput;

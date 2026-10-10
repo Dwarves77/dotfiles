@@ -156,7 +156,7 @@ function Segments({ segment }: { segment: (i: number) => React.CSSProperties }) 
   );
 }
 
-export interface ImpactMeterProps {
+interface ImpactMeterProps {
   scores?: ImpactScores | null;
   /** A known total (0-12) to render directly, bypassing per-dimension derivation. The legend row
    *  is the one caller with no scores at all: `<ImpactMeter total={8} />` (brief 2.16). */

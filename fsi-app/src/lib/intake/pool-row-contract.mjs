@@ -11,7 +11,7 @@
 // shape, which also carries writer-only bookkeeping like search_query/result_title/searched_at that the
 // export read never selects) and asserts them, so a test on either side of the writer/reader boundary can
 // prove "this row is a pool row the export can read" without re-typing the field list.
-export const POOL_ROW_FIELDS = Object.freeze(["intelligence_item_id", "result_url", "result_content", "result_index"]);
+const POOL_ROW_FIELDS = Object.freeze(["intelligence_item_id", "result_url", "result_content", "result_index"]);
 
 /**
  * Assert `row` carries every field export-corpus-for-extraction.mjs's own --with-pool-text read selects,

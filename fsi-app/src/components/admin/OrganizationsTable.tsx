@@ -77,7 +77,7 @@ const COLUMNS = [
   { label: "", width: "44px" },
 ];
 
-export interface OrganizationsTableProps {
+interface OrganizationsTableProps {
   orgs: OrgRow[];
   members: MemberRow[];
 }

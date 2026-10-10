@@ -32,7 +32,7 @@ import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server"
 import { APP_DATA_TAG } from "@/lib/data";
 import { surfaceOf } from "@/lib/surface-of.mjs";
 
-export interface IntelligenceSurfaceCounts {
+interface IntelligenceSurfaceCounts {
   regulations: number;
   marketIntel: number;
   research: number;
