@@ -1,0 +1,140 @@
+name: RLS persona matrix
+
+# The RLS attack matrix, run on a disposable local Supabase stack (lane TESTS-1, 2026-10-09; CLAUDE.md rule 15, a guard is
+# proven by attack, not by presence; docs/audits/aud-at1-rls-grants-attacked-2026-10-08.md section 4 items 1 and 2).
+#
+# WHAT THIS PROVES. AUD-AT-1 attacked the live schema as an anonymous caller and an organisation member only: the P2
+# (organisation viewer) and P3 (member of another organisation) personas had no fixture, so 605 cells each were owed. On a
+# stack where the applied migration set has been replayed and every pending migration applied (the same two steps
+# migration-proof.yml runs), scripts/verify/attacks/rls-persona-matrix.mjs runs SELECT, INSERT, UPDATE, DELETE and TRUNCATE
+# on EVERY public base table as each of four personas (anon, org viewer, member of another org, org member), inside a
+# transaction that is always rolled back, and holds three invariants over the result: full coverage (tables x 5 cells per
+# persona), no persona passes the TRUNCATE privilege check on any table, and no probe is itself broken. Then four
+# seeded-row attacks prove the policy layer in both directions (the forbidden action is refused, the legitimate action still
+# works). The cell outcomes are an artifact (table names, outcome classes, SQLSTATEs, counts; no database value).
+#
+# NEVER TOUCHES PRODUCTION. No secret is referenced anywhere in this file, `permissions` is contents: read, and the shared
+# composite action's preflight fails the job on a production host or any forbidden credential name. The runner refuses to
+# run unless the environment is the local stack's, because its fixtures write.
+#
+# TRIGGER. Every pull_request to master, no path filter (a path-filtered workflow that does not fire never reports a
+# status). The job decides INSIDE itself whether the pull request touched a migration, this matrix, its fixtures or the
+# attack engine it reuses; a pull request that touched none of them passes in about a minute with every stack step skipped.
+# It is its own workflow and its own check, so it does not alter the required check migration-proof.yml reports.
+
+on:
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  rls-persona-matrix:
+    name: RLS persona matrix (every public table, four personas)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout repository (the merge commit and its base parent)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Did this pull request touch a migration or the matrix
+        id: scope
+        run: |
+          if ! git rev-parse --verify --quiet 'HEAD^2' >/dev/null; then
+            echo "No merge parent found: treating the pull request as touching the matrix (fail toward running)."
+            echo "touched=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only HEAD^1 HEAD -- fsi-app/supabase/migrations fsi-app/scripts/verify/attacks fsi-app/scripts/verify/fixtures fsi-app/scripts/proof/attacks .github/workflows/rls-persona-matrix.yml)"
+          if [ -n "$CHANGED" ]; then
+            echo "Files that put the matrix in scope (names only):"
+            echo "$CHANGED"
+            echo "touched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "touched=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### RLS persona matrix"
+              echo "This pull request touches no migration, no matrix file and no attack engine file, so the stack steps were skipped."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Setup Node
+        if: steps.scope.outputs.touched == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Note the matrix's scratch paths
+        if: steps.scope.outputs.touched == 'true'
+        run: |
+          {
+            echo "RPM_OUT_DIR=$RUNNER_TEMP/rls-persona-matrix-out"
+            echo "RPM_ENV=$RUNNER_TEMP/rls-persona-matrix.env"
+            echo "RPM_STACK=$RUNNER_TEMP/rls-persona-matrix-stack"
+          } >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/rls-persona-matrix-out"
+
+      - name: Install fsi-app deps
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Start the local stack and preflight it (shared composite action)
+        if: steps.scope.outputs.touched == 'true'
+        id: stack
+        uses: ./.github/actions/local-stack
+        with:
+          stack_dir: ${{ env.RPM_STACK }}
+          env_file: ${{ env.RPM_ENV }}
+
+      - name: Replay the applied migration files onto the stack
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RPM_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/replay-migrations.mjs --report "$RPM_OUT_DIR/replay-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply every pending migration on the stack
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RPM_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/proof/apply-pending-migrations.mjs --apply --report "$RPM_OUT_DIR/apply-report.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Run the RLS persona matrix (every public table by four personas by five commands)
+        if: steps.scope.outputs.touched == 'true'
+        working-directory: fsi-app
+        run: |
+          set -o pipefail
+          . "$RPM_ENV"
+          node scripts/proof/preflight.mjs
+          node scripts/verify/attacks/rls-persona-matrix.mjs --out-dir "$RPM_OUT_DIR" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the matrix reports (table names, outcome classes, SQLSTATEs, counts)
+        if: always() && steps.scope.outputs.touched == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rls-persona-matrix-report
+          path: ${{ runner.temp }}/rls-persona-matrix-out
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop the local stack and delete the env file
+        if: always() && steps.scope.outputs.touched == 'true'
+        run: |
+          if [ -d "$RPM_STACK" ]; then (cd "$RPM_STACK" && supabase stop --no-backup) || true; fi
+          rm -f "$RPM_ENV"
