@@ -113,6 +113,19 @@ export interface DetailDeps {
    *  load-detail.ts. Runs per request, after the cached reads, so a suppress takes effect without waiting out the
    *  cache window; stored text is never touched. */
   redactDetail?: (input: { id: string; resource: unknown; sections: unknown }) => Promise<{ resource: unknown; sections: unknown }>;
+  /** lane DFIX-2 (register 18): the item's current customer-visible inference records, read PER REQUEST. They used
+   *  to be read inside the cached item-scoped bundle, so a new or withdrawn inference took up to the cache window
+   *  (300 s) to show. Runs in the same parallel batch as the cached bundle and is laid over the bundle's
+   *  `crossPage.inferences` (the one field a surface keeps there for it); a bundle with no `crossPage` object is
+   *  returned as it is. Optional so existing stubs stay valid; production wires it in load-detail.ts. */
+  freshInferences?: (id: string) => Promise<unknown | null>;
+}
+
+/** Lay a per-request inferences read over a cached item-scoped bundle without touching the cached object. PURE. */
+function withFreshInferences<T>(itemScoped: T, inferences: unknown | null): T {
+  const bundle = itemScoped as unknown as { crossPage?: unknown } | null;
+  if (!bundle || typeof bundle !== "object" || !bundle.crossPage || typeof bundle.crossPage !== "object") return itemScoped;
+  return { ...bundle, crossPage: { ...(bundle.crossPage as object), inferences } } as unknown as T;
 }
 
 interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
@@ -312,11 +325,19 @@ export async function loadDetailCore<ItemScoped, ViewerScoped = undefined>(
     return { relevance, viewerScoped };
   };
 
-  const [fetchedSections, itemScoped, viewer] = await Promise.all([
+  const [fetchedSections, cachedItemScoped, viewer, freshInferences] = await Promise.all([
     deps.fetchSections(config.id),
     runItemScoped(),
     runViewerScoped(),
+    deps.freshInferences
+      ? deps.freshInferences(config.id).catch((e: unknown) => {
+          console.error("loadDetailCore: freshInferences failed, showing no inferences:", e);
+          return null;
+        })
+      : Promise.resolve(undefined),
   ]);
+  const itemScoped =
+    cachedItemScoped !== null && freshInferences !== undefined ? withFreshInferences(cachedItemScoped, freshInferences) : cachedItemScoped;
 
   // lane G7-CORR: hide a suppressed claim everywhere the item's text renders (sections, full brief).
   let outResource: unknown = resource;

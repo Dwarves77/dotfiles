@@ -638,3 +638,60 @@ test("end to end: the repair over an in-memory database moves the lifecycle once
   assert.equal(stamp[2], "strengthening", "the lifecycle had already moved when the stamp was written");
   assert.equal(tables.research_assessments[0].lifecycle_state, "strengthening", "and the repair did not move it a second time");
 });
+
+// ── DFIX-2 (l4d 39): a firing whose lifecycle update FAILS is retried by the repair path, end to end ──────────
+test("end to end: fireSignpost stamps fired_at and writes the outbox row, its lifecycle update fails; the next run's repair moves the lifecycle exactly once and stamps", async () => {
+  const tables = {
+    signposts: [signpost()],
+    research_assessments: [{ id: "assess-1", item_id: "item-1", lifecycle_state: "emerging" }],
+    section_claim_provenance: [{ intelligence_item_id: "item-1", source_id: "src-a", claim_kind: "FACT" }],
+    propagation_events: [],
+    source_reliability_ledger: [],
+  };
+  const inner = memorySb(tables);
+  let failLifecycleOnce = true;
+  const sb = {
+    calls: inner.calls,
+    from(table) {
+      const q = inner.from(table);
+      if (table !== "research_assessments") return q;
+      const realUpdate = q.update;
+      q.update = (values) => {
+        if (failLifecycleOnce && "lifecycle_state" in values) {
+          failLifecycleOnce = false;
+          return { eq: () => Promise.resolve({ data: null, error: { message: "lifecycle write failed" } }) };
+        }
+        return realUpdate(values);
+      };
+      return q;
+    },
+  };
+  const db = {
+    readAll: async (table) => tables[table] ?? [],
+    guardedInsertMany: async (table, rows) => { (tables[table] ??= []).push(...rows); return { inserted: rows.length }; },
+    guardedUpdateByIds: async (table, ids, patch, opts) => {
+      for (const r of tables[table]) if (ids.includes(r[opts.idColumn])) Object.assign(r, patch);
+      return { updated: ids.length };
+    },
+  };
+  const deps = buildSignpostStepDeps(sb, db);
+
+  // Run 1 (event path only, sweep:false, so the repair does not run in the same pass and the failed state is observable):
+  // step 1 (fired_at) and step 2 (outbox row) land, step 3 (lifecycle) fails.
+  const r1 = await runSignpostStep({ mode: "apply", events: [event({ eventId: 55 })], now: NOW, deps, sweep: false });
+  assert.deepEqual(r1.failed_event_ids, [55], "the failed firing is returned for replay");
+  assert.ok(tables.signposts[0].fired_at, "step 1 landed");
+  assert.equal(tables.propagation_events.length, 1, "step 2 landed: the outbox row exists");
+  assert.equal(tables.research_assessments[0].lifecycle_state, "emerging", "step 3 failed: the lifecycle did not move");
+  assert.equal(tables.signposts[0].lifecycle_applied_at ?? null, null, "and it was never stamped as applied");
+
+  // Run 2: no events at all. The state-based repair finds fired and unstamped, moves the lifecycle once, stamps.
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.equal(tables.research_assessments[0].lifecycle_state, "strengthening", "the repair applied the confirms transition");
+  assert.equal(tables.signposts[0].lifecycle_applied_at, NOW.toISOString());
+  assert.equal(tables.propagation_events.length, 1, "the repair does not write a second outbox row");
+
+  // Run 3: nothing left to repair; the transition is not advanced twice.
+  await runSignpostStep({ mode: "apply", events: [], now: NOW, deps });
+  assert.equal(tables.research_assessments[0].lifecycle_state, "strengthening");
+});

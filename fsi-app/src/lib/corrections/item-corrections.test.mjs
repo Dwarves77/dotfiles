@@ -84,6 +84,19 @@ test("suppressedClaimMatcher: matches by id or by the captured machine claim_tex
   assert.equal(suppressedClaimMatcher([{ ...sup, revoked_at: "2026-10-05T00:00:00Z", revoked_by: "u" }], A)({ id: SR }), false, "a revoked suppress shows the claim again");
 });
 
+test("suppressedClaimMatcher: a correction naming the claim's id decides before any text match, however new the text match is (DFIX-2)", () => {
+  const OTHER = "55555555-5555-4555-8555-555555555555";
+  const sup = corr({ item_id: A, target_kind: "fact", target_ref: SR, op: "suppress", machine_value: { claim_text: "Same words" }, created_at: "2026-10-01T00:00:00Z" });
+  // a NEWER correction on a different claim that happens to carry the same captured text
+  const twin = corr({ item_id: A, target_kind: "fact", target_ref: OTHER, op: "replace", machine_value: { claim_text: "Same words" }, created_at: "2026-10-03T00:00:00Z" });
+  const m = suppressedClaimMatcher([sup, twin], A);
+  assert.equal(m({ id: SR, claim_text: "Same words" }), true, "the id match (suppress) decides; the newer twin's text match does not un-suppress it");
+  assert.equal(m({ id: OTHER, claim_text: "Same words" }), false, "the twin's own claim is decided by its own id (replace)");
+  assert.equal(m({ id: "regenerated", claim_text: "Same words" }), false, "a claim no correction names by id falls back to the newest text match");
+  const onlyText = suppressedClaimMatcher([sup], A);
+  assert.equal(onlyText({ id: "regenerated", claim_text: "Same words" }), true, "the text fallback still serves a re-inserted claim");
+});
+
 test("validateCorrectionInput: reason is mandatory, created_by is never read, the matrix and shapes are enforced", () => {
   const ok = validateCorrectionInput({ target_kind: "tag", target_ref: "topic_tags:carbon", op: "remove", reason: " too broad ", created_by: "forged" });
   assert.equal(ok.ok, true);

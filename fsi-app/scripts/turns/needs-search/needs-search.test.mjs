@@ -404,3 +404,27 @@ test("both runtimes' artifact inputs validate against the harness-run schema and
   assert.equal(b.config.action, "apply");
   assert.match(a.harness_version, /^sha256:/);
 });
+
+// DFIX-2 (g5-search 71): the apply registers through the shared rate-then-register step, not by composing the
+// class table itself.
+test("apply-need-urls registers through rateSourceByInstitutionClass (the shared rating step) and imports no class table of its own", () => {
+  const src = readFileSync(resolve(HERE, "..", "apply-need-urls.mjs"), "utf8");
+  assert.match(src, /import \{ rateSourceByInstitutionClass \} from "\.\.\/lib\/rate-source-by-class\.mjs"/);
+  assert.match(src, /await rateSourceByInstitutionClass\(/);
+  assert.doesNotMatch(src, /host-authority/, "the class table is read only inside the shared step");
+  assert.doesNotMatch(src, /deps\.registerSource\(\{ url: entry\.url, name: entry\.institution, base_tier: plan\.tier \}/, "no direct registration at the plan tier");
+});
+
+test("EXECUTE (DFIX-2): the registry write the shared step makes carries the class-table tier, and reuse versus mint is counted from its `created`", async () => {
+  const deps = freshDeps();
+  const calls = [];
+  const real = deps.registerSource;
+  deps.registerSource = async (s, o) => { calls.push(s); return real(s, o); };
+  const r = await applyNeedUrls({ json: BATCH_001, execute: true, deps, now: NOW });
+  assert.deepEqual(r.writeFailures, []);
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every((c) => Number.isInteger(c.base_tier) && c.base_tier >= 1 && c.base_tier <= 7));
+  assert.equal(calls.find((c) => c.url === BATCH_001.entries[0].url).base_tier, 4);
+  assert.equal(r.report.sources_registered, 1);
+  assert.equal(r.report.sources_existing, 1);
+});

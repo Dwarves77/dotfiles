@@ -255,9 +255,20 @@ test("all four detail surfaces mount the grade chip in the masthead pill row and
   }
 });
 
-test("the inferences travel with the cross-page read: one read site, rendered by the one shared section", () => {
+test("the inferences travel on crossPage but are read per request: one read site OUTSIDE the cached bundle, rendered by the one shared section", () => {
   const server = src("src/lib/supabase-server.ts");
-  assert.match(server, /inferences = await readCustomerInferences\(supabase, self\.id,/);
+  // DFIX-2 (register 18): the one read site is fetchFreshInferencesForItem, not fetchCrossPageForItem (which runs
+  // inside the 300 s item-scoped cache entry); loadDetailCore lays the fresh read over crossPage.inferences.
+  const bodyOf = (name) => {
+    const start = server.indexOf(`export async function ${name}`);
+    assert.ok(start >= 0, `${name} exists`);
+    const next = server.indexOf("\nexport ", start + 1);
+    return server.slice(start, next < 0 ? undefined : next);
+  };
+  assert.equal((server.match(/await readCustomerInferences\(/g) ?? []).length, 1, "exactly one read site");
+  assert.match(bodyOf("fetchFreshInferencesForItem"), /await readCustomerInferences\(supabase, self\.id,/);
+  assert.doesNotMatch(bodyOf("fetchCrossPageForItem"), /readCustomerInferences\(/, "the cached cross-page read does not read inferences");
+  assert.match(src("src/lib/detail/load-detail.ts"), /freshInferences: async \(id\) =>/);
   assert.match(server, /const THEME_COLUMNS = "[^"]*dominant_signals/, "the theme read selects dominant_signals for the chip label");
   assert.match(src("src/components/detail/CrossPageSection.tsx"), /<InferenceSection inferences=\{crossPage\?\.inferences\} index=\{inferencesSectionOrd\(surfaceKey\)\} \/>/);
 });

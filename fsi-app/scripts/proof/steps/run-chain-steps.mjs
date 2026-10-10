@@ -7,6 +7,8 @@
 // WHAT RUNS. chain-steps.json lists the steps. A script step is a bash script (the workflow's own run lines, with the
 // workflow_run event replaced by the environment the event would have provided: the step's own GITHUB_RUN_ID, the
 // upstream step's run id as GITHUB_EVENT_WORKFLOW_RUN_ID, GITHUB_EVENT_NAME). The runner:
+//   0. before any step: verifySchemaNames (assertions.mjs) looks every table an assertion reads up in the live
+//      stack's information_schema and plans every statement with EXPLAIN, so a wrong name stops the run up front;
 //   1. captures the database clock, runs the step's var queries, its prepare hook (verdict fixture, brief batch),
 //      its setup statements and its snapshots, and takes the baseline counts its growth assertions need;
 //   2. runs the script under bash with the local-stack environment (production names are refused at start);
@@ -43,7 +45,7 @@ import { isMainModule } from "../../lib/is-main.mjs";
 import { connectPg } from "../../lib/pg-conn.mjs";
 import { checkPreflight, FORBIDDEN_NAMES, FORBIDDEN_PREFIXES } from "../preflight.mjs";
 import { loadManifest, loadHops, validateManifest, substitute, DEFAULT_MANIFEST } from "./manifest.mjs";
-import { evaluateAssertions, takeBaselines, takeSnapshots, autoAssertions, describeFailure } from "./assertions.mjs";
+import { evaluateAssertions, takeBaselines, takeSnapshots, autoAssertions, describeFailure, verifySchemaNames } from "./assertions.mjs";
 import { HOOKS } from "./prepare.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -165,6 +167,16 @@ export async function runChainSteps({ manifest, loopRunId, deps, window = sweepW
     deps.writeReport(report);
     return { ok: report.ok, report, error };
   };
+
+  // Before any step runs: every table and column the assertions name is checked against the live stack (CHAIN-5).
+  const names = await verifySchemaNames({ manifest, query });
+  report.schema_names = { ok: names.ok, tables_checked: Object.keys(names.tables).length, statements_planned: names.statements, problems: names.problems };
+  if (!names.ok) {
+    report.not_run = manifest.steps.map((s) => s.id);
+    const msg = `chain steps: the stack's schema does not carry ${names.problems.length} name(s) the manifest uses: ${names.problems.slice(0, 6).join("; ")}`;
+    log(`chain-steps: STOPPED at schema-names: ${msg}`);
+    return finish(msg, "schema-names");
+  }
 
   for (let i = 0; i < manifest.steps.length; i += 1) {
     const step = manifest.steps[i];

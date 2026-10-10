@@ -45,6 +45,9 @@ export function buildArtifact({ runId, harnessVersion, startedAt, url, report, e
   const pages = report?.pagesVisited ?? [];
   const fails = findings.filter((f) => f.severity === "fail");
   const warns = findings.filter((f) => f.severity === "warn");
+  // Lane SMOKE-3: a conditional invariant with no candidate in the corpus is a HOLD, neither a pass nor a failure. It is
+  // recorded here (count, invariant id, candidate count) so a run that held is told apart from one that passed.
+  const holds = Array.isArray(report?.holds) ? report.holds : [];
 
   const perItem = pages.map((p) => {
     const mine = fails.filter((f) => f.url === p.url && f.viewport === p.viewport);
@@ -57,6 +60,16 @@ export function buildArtifact({ runId, harnessVersion, startedAt, url, report, e
       error: null,
     };
   });
+  for (const h of holds) {
+    perItem.push({
+      id: `hold:${h.invariant}:${h.key}`,
+      outcome: "hold",
+      verdict: String(h.reason ?? "no candidate to judge").slice(0, 300),
+      counts: { candidates: typeof h.candidates === "number" ? h.candidates : null },
+      evidence_refs: [],
+      error: null,
+    });
+  }
   if (error) {
     perItem.push({ id: "report", outcome: "report_missing", verdict: error, counts: null, evidence_refs: [], error });
   }
@@ -65,9 +78,12 @@ export function buildArtifact({ runId, harnessVersion, startedAt, url, report, e
     pages_visited: report ? pages.length : null,
     failure_count: report ? fails.length : null,
     warning_count: report ? warns.length : null,
+    hold_count: report ? holds.length : null,
   };
+  for (const [cls, n] of Object.entries(report?.candidates?.counts ?? {})) metrics[`candidates_${cls}`] = n;
   for (const inv of Object.values(INVARIANTS)) {
     metrics[`failures_${inv.replace(/-/g, "_")}`] = report ? fails.filter((f) => f.invariant === inv).length : null;
+    metrics[`holds_${inv.replace(/-/g, "_")}`] = report ? holds.filter((h) => h.invariant === inv).length : null;
   }
 
   const byInvariant = new Map();

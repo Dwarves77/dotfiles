@@ -11,6 +11,8 @@
     "scripts/proof/run-lane-step.mjs",
     "scripts/proof/dump-production-schema.mjs",
     "scripts/proof/apply-schema-dump.mjs",
+    "scripts/proof/dump-roles.mjs",
+    "scripts/proof/chain-role-check.mjs",
     "scripts/proof/create-oracle-db.mjs",
     "scripts/proof/schema-diff.mjs",
     "scripts/proof/sync-applied-migrations.mjs",

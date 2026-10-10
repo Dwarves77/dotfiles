@@ -53,14 +53,14 @@ export function CorrectionsTab({ loadAll, fetcher = authedFetch }: CorrectionsTa
     try {
       const out = loadAll
         ? await loadAll()
-        : ((await loadAllCorrections(createSupabaseBrowserClient(), fetcher)) as { rows: CorrectionData[]; unchecked: number });
+        : ((await loadAllCorrections(createSupabaseBrowserClient())) as { rows: CorrectionData[]; unchecked: number });
       setRows(out.rows);
       setUnchecked(out.unchecked);
       setLoad({ state: "ready" });
     } catch (e) {
       setLoad({ state: "error", message: e instanceof Error ? e.message : "The corrections could not be read." });
     }
-  }, [loadAll, fetcher]);
+  }, [loadAll]);
 
   useEffect(() => {
     // Initial read of every correction: one synchronization with the database, not derived state.

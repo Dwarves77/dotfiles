@@ -17,7 +17,7 @@
 // content, reviewed like code) after template substitution of values that passed substitute()'s safe-value check.
 // Nothing here ever returns a row, only integers, so an assertion result is safe to print on a public repository.
 
-import { substitute } from "./manifest.mjs";
+import { substitute, templateKeys } from "./manifest.mjs";
 
 const IDENT_RE = /^[a-z_][a-z0-9_]*$/;
 
@@ -149,4 +149,78 @@ export function describeFailure(stepId, r) {
   const where = r.table ? `${r.table} WHERE ${r.predicate}` : String(r.predicate);
   const observed = Array.isArray(r.observed) ? `[${r.observed.join(", ")}]` : String(r.observed);
   return `chain step "${stepId}" failed assertion "${r.id}": ${where}: observed ${observed}, expected ${r.expect}${r.error ? ` (${r.error})` : ""}`;
+}
+
+// ---- schema names (CHAIN-5, 2026-10-09) ------------------------------------------------------------------
+// The assertion SQL names tables and columns that were once typed from migrations and run artifacts. Before the
+// first step runs, every table an assertion reads is looked up in the LIVE stack's information_schema, and every
+// statement the manifest will send (assertion counts, minSql, var queries, setup, snapshots, the runner's own
+// automatic assertions) is planned with EXPLAIN against the stack's catalog, so a wrong column is a named problem
+// found up front, with the columns the stack really has for that table, not a database message at step 9.
+
+/** Template values the planning pass substitutes; EXPLAIN never reads a row, so any safe value works. */
+const PLAN_VALUES = Object.freeze({ run_id: "0", loop_run_id: "0", upstream_run_id: "0", started_at: "1970-01-01 00:00:00+00" });
+
+/** The statements a manifest will send, with where each comes from. PURE.
+ *  @returns {{where: string, sql: string, params: number, table: string|null}[]} */
+export function schemaStatements(manifest) {
+  const out = [];
+  for (const step of manifest.steps) {
+    const at = (w) => `step ${step.id} ${w}`;
+    const asserts = [...(step.kind === "script" ? autoAssertions(step) : []), ...(step.assertions ?? [])];
+    for (const a of asserts) {
+      const alts = a.kind === "any_of" ? a.of : [a];
+      alts.forEach((alt, i) => {
+        const label = a.kind === "any_of" ? `assertion ${a.id}[${i}]` : `assertion ${a.id}`;
+        if (a.kind !== "snapshot_changed") out.push({ where: at(label), sql: `SELECT count(*)::int AS n FROM ${table(alt.table)} WHERE ${alt.predicate}`, params: 0, table: alt.table });
+        if (typeof alt.minSql === "string") out.push({ where: at(`${label} minSql`), sql: alt.minSql, params: 0, table: alt.table ?? null });
+      });
+    }
+    for (const q of step.var_queries ?? []) out.push({ where: at(`var query ${q.name}`), sql: q.sql, params: 0, table: null });
+    for (const [i, st] of (step.setup ?? []).entries()) out.push({ where: at(`setup[${i}]`), sql: st.sql, params: (st.params ?? []).length, table: null });
+    for (const d of step.snapshots ?? []) out.push({ where: at(`snapshot ${d.key}`), sql: d.sql, params: (d.params ?? []).length, table: null });
+  }
+  return out;
+}
+
+/** The distinct public tables the manifest's assertions read. PURE. */
+export function assertionTables(manifest) {
+  const t = new Set();
+  for (const s of schemaStatements(manifest)) if (s.table) t.add(s.table);
+  return [...t].sort();
+}
+
+/**
+ * Check the manifest's names against the live stack. Never throws for a missing name; returns the problems.
+ * @param {{manifest: object, query: Function}} args
+ * @returns {Promise<{ok: boolean, problems: string[], tables: Record<string, number>, statements: number}>}
+ */
+export async function verifySchemaNames({ manifest, query }) {
+  const problems = [];
+  const names = assertionTables(manifest);
+  const cols = new Map();
+  const rows = await query(
+    "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ANY($1::text[]) ORDER BY table_name, ordinal_position",
+    [names],
+  );
+  for (const r of rows ?? []) {
+    if (!cols.has(r.table_name)) cols.set(r.table_name, []);
+    cols.get(r.table_name).push(r.column_name);
+  }
+  for (const n of names) if (!cols.has(n)) problems.push(`table public.${n} is not in the stack's information_schema`);
+
+  const statements = schemaStatements(manifest);
+  for (const st of statements) {
+    if (st.table && !cols.has(st.table)) continue; // already named above
+    try {
+      const vars = {};
+      for (const k of templateKeys(st.sql)) vars[k] = PLAN_VALUES[k.split(".")[0]];
+      await query(`EXPLAIN (COSTS OFF) ${substitute(st.sql, vars)}`, Array.from({ length: st.params }, () => []));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const have = st.table && cols.has(st.table) && /column|does not exist/i.test(msg) ? ` (public.${st.table} has: ${cols.get(st.table).join(", ")})` : "";
+      problems.push(`${st.where}: ${msg.replace(/\s+/g, " ").slice(0, 200)}${have}`);
+    }
+  }
+  return { ok: problems.length === 0, problems, tables: Object.fromEntries([...cols].map(([k, v]) => [k, v.length])), statements: statements.length };
 }
