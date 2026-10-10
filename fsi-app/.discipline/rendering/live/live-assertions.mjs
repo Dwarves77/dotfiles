@@ -308,9 +308,12 @@ export function checkConsole(messages, ctx = {}) {
  * Plain log lines: one line per DISTINCT finding, failures first. Every line names the severity, the invariant, the
  * HTTP method, the status and the path, then the offending text when it adds anything, then how many pages carried
  * it. 24 identical 403s on one route are one line with "24 pages", not 24 lines. The last line keeps the raw counts.
+ * A conditional invariant with nothing to judge is a HOLD (lane SMOKE-3): one line per hold, naming the invariant and the
+ * candidate count, between the findings and the totals line. A hold is neither a failure nor a pass.
  * @param {object[]} findings
+ * @param {object[]} [holds] the HOLD results (live-content.mjs judgeContentRun)
  */
-export function formatSummary(findings) {
+export function formatSummary(findings, holds = []) {
   const fails = findings.filter((f) => f.severity === "fail");
   const warns = findings.filter((f) => f.severity === "warn");
   const lines = [];
@@ -331,12 +334,18 @@ export function formatSummary(findings) {
       lines.push(`${label} ${g.f.invariant} ${g.method} ${g.status} ${g.path}${text} (${g.pages.size} page${g.pages.size === 1 ? "" : "s"})`);
     }
   }
-  lines.push(`live smoke: ${fails.length} failure(s), ${warns.length} warning(s)`);
+  for (const h of holds) lines.push(`HOLD ${h.invariant} :: ${h.element} (${h.kind}): ${h.reason} [candidates=${h.candidates === null ? "unresolved" : h.candidates}]`);
+  lines.push(`live smoke: ${fails.length} failure(s), ${warns.length} warning(s)${holds.length ? `, ${holds.length} hold(s)` : ""}`);
   return lines;
 }
 
-/** The JSON report artifact. @param {{baseUrl:string, pages:{url:string,viewport:number}[], findings:object[]}} r */
-export function buildReport({ baseUrl, pages, findings }) {
+/**
+ * The JSON report artifact. `holds` (lane SMOKE-3) are the conditional invariants that had no candidate to judge, each
+ * with its invariant id and candidate count; `candidates` is the resolved live-data summary the run was judged against
+ * (counts and sample paths only).
+ * @param {{baseUrl:string, pages:{url:string,viewport:number}[], findings:object[], holds?:object[], candidates?:object|null}} r
+ */
+export function buildReport({ baseUrl, pages, findings, holds = [], candidates = null }) {
   const byInvariant = {};
   for (const f of findings) byInvariant[f.invariant] = (byInvariant[f.invariant] ?? 0) + 1;
   return {
@@ -346,5 +355,8 @@ export function buildReport({ baseUrl, pages, findings }) {
     warningCount: findings.filter((f) => f.severity === "warn").length,
     byInvariant,
     findings,
+    holdCount: holds.length,
+    holds,
+    candidates: candidates && candidates.resolved === true ? { resolved: true, counts: Object.fromEntries(Object.entries(candidates.classes ?? {}).map(([k, v]) => [k, v.count])) } : { resolved: false, reason: candidates?.reason ?? "no candidate file" },
   };
 }
