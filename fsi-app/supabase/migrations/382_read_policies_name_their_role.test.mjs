@@ -16,7 +16,6 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { policyState } from "./381_write_policies_name_their_role.test.mjs";
 import { buildSchema, parseInserts, parseUpdates, checkFixtures, stripSql } from "./_lib/fixture-inserts.mjs";
-import { derivesNeverApplied } from "./_lib/applied-status.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const RAW = readFileSync(join(HERE, "382_read_policies_name_their_role.sql"), "utf8");
@@ -67,10 +66,11 @@ export function verify(raw, derived = DERIVED) {
   return bad;
 }
 
-test("header: subject line, NOT APPLIED status derived by the shared reader", () => {
+test("header: subject line, states APPLIED with the ledger version", () => {
   assert.match(RAW, /^-- subject: Migration 382 \(lane SEC-8, 2026-10-09\)/);
-  assert.equal(derivesNeverApplied(RAW), true);
-  assert.match(RAW.split("\n")[0], /NOT APPLIED\.$/);
+  assert.match(RAW, /APPLIED \(production ledger version 20261009105343, as of 2026-10-09\)/);
+  assert.doesNotMatch(RAW, /NOT APPLIED/);
+  assert.match(RAW.split("\n")[0], /APPLIED \(production ledger version 20261009105343, as of 2026-10-09\)\.$/);
 });
 
 test("the explicit ALTER list equals the SELECT policies the tree leaves with roles {public} and the literal true (re-derived here)", () => {

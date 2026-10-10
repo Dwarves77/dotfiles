@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-09T02:53:02.489Z",
-  "count": 373,
+  "synced_at": "2026-10-10T01:42:19.534Z",
+  "count": 374,
   "migrations": [
     {
       "version": "001",
@@ -1494,6 +1494,10 @@
     {
       "version": "20261009023755",
       "name": "379_grid_connection_queues_substation_evidence"
+    },
+    {
+      "version": "20261009105343",
+      "name": "382_read_policies_name_their_role"
     }
   ]
 }
