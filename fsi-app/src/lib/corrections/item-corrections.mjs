@@ -144,7 +144,8 @@ export function filterTagProposals(proposals, removed) {
  * id (target_ref) OR by the original machine claim_text captured in machine_value (so a claim re-inserted by a
  * regeneration under a new id is still matched). The newest matching active correction decides; the claim is
  * suppressed when that one is a `suppress`. A later `replace` therefore un-suppresses it, same as the SQL's
- * latest-wins rule.
+ * latest-wins rule. A correction naming the claim's id outranks any text match: the id decides first, the text
+ * only for a claim no correction names by id.
  * @param {Array<object>} rows item_corrections rows (any kinds, any items)
  * @param {string} itemId
  * @returns {(claim:{id?:string, claim_text?:string}) => boolean}
@@ -152,13 +153,21 @@ export function filterTagProposals(proposals, removed) {
 export function suppressedClaimMatcher(rows, itemId) {
   const facts = [...latestPerTarget(rows).values()].filter((r) => r.target_kind === "fact" && r.item_id === itemId);
   return (claim) => {
-    let decider = null;
+    // ID FIRST (lane DFIX-2): a correction that names this claim's id decides it, whatever newer corrections
+    // happen to share its text. The captured machine text is the fallback only for a claim no correction names
+    // by id, i.e. one a regeneration re-inserted under a new id.
+    let idDecider = null;
+    let textDecider = null;
     for (const r of facts) {
       const byId = claim?.id !== undefined && claim.id !== null && String(claim.id) === r.target_ref;
       const byText = typeof claim?.claim_text === "string" && r.machine_value && r.machine_value.claim_text === claim.claim_text;
-      if (!byId && !byText) continue;
-      if (!decider || newer(r, decider)) decider = r;
+      if (byId) {
+        if (!idDecider || newer(r, idDecider)) idDecider = r;
+      } else if (byText) {
+        if (!textDecider || newer(r, textDecider)) textDecider = r;
+      }
     }
+    const decider = idDecider ?? textDecider;
     return decider !== null && decider.op === "suppress";
   };
 }

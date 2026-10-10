@@ -1,8 +1,8 @@
 // Tests for the screen's two reads (lane G7-UI, 2026-10-06), on a fake PostgREST client: the tab's list of every
-// correction with orphaned taken from the contract's per-item route, and the item screen's current target values.
+// correction with orphaned computed from one batched claims read, and the item screen's current target values.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadAllCorrections, MAX_ORPHAN_CHECKS } from "./load-all.mjs";
+import { loadAllCorrections } from "./load-all.mjs";
 import { loadItemTargets } from "./load-item-targets.mjs";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -30,42 +30,57 @@ function fakeClient(tables) {
 
 const corr = (id, item, kind, over = {}) => ({ id, item_id: item, target_kind: kind, target_ref: `${id}-ref`, op: "suppress", reason: "r", created_at: `2026-10-0${id}T00:00:00Z`, revoked_at: null, ...over });
 
-test("the tab lists every correction with titles and takes orphaned from the per-item route", async () => {
+test("the tab lists every correction with titles and computes orphaned from ONE batched claims read, with no per-item request (DFIX-2)", async () => {
+  const reads = [];
   const sb = fakeClient({
-    item_corrections: [corr("1", A, "fact"), corr("2", B, "tag", { op: "add" }), corr("3", A, "fact", { revoked_at: "2026-10-05T00:00:00Z" })],
+    item_corrections: [
+      corr("1", A, "fact"),
+      corr("2", B, "tag", { op: "add" }),
+      corr("3", A, "fact", { revoked_at: "2026-10-05T00:00:00Z" }),
+      corr("4", A, "fact", { target_ref: "claim-live" }),
+    ],
     intelligence_items: [{ id: A, title: "Item A" }, { id: B, title: "Item B" }],
+    section_claim_provenance: [{ id: "claim-live", claim_text: "A live claim", intelligence_item_id: A }],
   });
-  const asked = [];
-  const fetcher = async (url) => {
-    asked.push(url);
-    return { ok: true, status: 200, json: async () => ({ corrections: [{ id: "1", orphaned: true }] }) };
-  };
-  const { rows, unchecked } = await loadAllCorrections(sb, fetcher);
-  assert.equal(rows.length, 3);
-  assert.deepEqual(rows.map((r) => r.id), ["3", "2", "1"], "newest first");
-  assert.equal(rows.find((r) => r.id === "1").orphaned, true);
+  const spy = { from(name) { reads.push(name); return sb.from(name); } };
+  const { rows, unchecked } = await loadAllCorrections(spy);
+  assert.equal(rows.length, 4);
+  assert.deepEqual(rows.map((r) => r.id), ["4", "3", "2", "1"], "newest first");
+  assert.equal(rows.find((r) => r.id === "1").orphaned, true, "its claim id and text are in no current claim");
+  assert.equal(rows.find((r) => r.id === "4").orphaned, false, "its claim id is a current claim");
   assert.equal(rows.find((r) => r.id === "1").item_title, "Item A");
   assert.equal(rows.find((r) => r.id === "3").active, false);
-  assert.deepEqual(asked, [`/api/admin/items/${A}/corrections`], "only the item with an active fact correction is asked");
+  assert.equal(rows.find((r) => r.id === "3").orphaned, false, "a revoked correction is never orphaned");
+  assert.equal(reads.filter((n) => n === "section_claim_provenance").length, 1, "one claims read for the one chunk of items with an active fact correction");
   assert.equal(unchecked, 0);
 });
 
-test("a failed orphan check is counted, not hidden, and the list still loads", async () => {
+test("a failed claims read is counted as unchecked, not hidden, and the list still loads", async () => {
   const sb = fakeClient({ item_corrections: [corr("1", A, "fact")], intelligence_items: [{ id: A, title: "Item A" }] });
-  const { rows, unchecked } = await loadAllCorrections(sb, async () => ({ ok: false, status: 429, json: async () => ({ error: "Rate limit exceeded" }) }));
+  const broken = {
+    from(name) {
+      if (name !== "section_claim_provenance") return sb.from(name);
+      const q = { select: () => q, in: () => q, order: () => q, range: () => Promise.resolve({ data: null, error: { message: "boom" } }) };
+      return q;
+    },
+  };
+  const { rows, unchecked } = await loadAllCorrections(broken);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].orphaned, false);
   assert.equal(unchecked, 1);
 });
 
-test("items over the orphan check cap are reported as unchecked", async () => {
-  const n = MAX_ORPHAN_CHECKS + 3;
+test("many items with an active fact correction are read in chunks, every one checked, none skipped (no cap)", async () => {
+  const n = 120;
   const ids = Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
-  const sb = fakeClient({ item_corrections: ids.map((id, i) => corr(String(i), id, "fact")), intelligence_items: [] });
-  let calls = 0;
-  const { unchecked } = await loadAllCorrections(sb, async () => { calls += 1; return { ok: true, status: 200, json: async () => ({ corrections: [] }) }; });
-  assert.equal(calls, MAX_ORPHAN_CHECKS);
-  assert.equal(unchecked, 3);
+  let claimReads = 0;
+  const sb = fakeClient({ item_corrections: ids.map((id, i) => corr(String(i), id, "fact")), intelligence_items: [], section_claim_provenance: [] });
+  const counting = { from(name) { if (name === "section_claim_provenance") claimReads += 1; return sb.from(name); } };
+  const { rows, unchecked } = await loadAllCorrections(counting);
+  assert.equal(unchecked, 0);
+  assert.equal(rows.length, n);
+  assert.ok(rows.every((r) => r.orphaned === true), "no claims anywhere, so every active fact correction is orphaned");
+  assert.equal(claimReads, 3, "120 items in chunks of 50 is three reads");
 });
 
 test("the item screen reads current values: facts only, both edge directions, sorted sections", async () => {

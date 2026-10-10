@@ -497,3 +497,65 @@ test("G7-CORR loadDetailCore: a redactDetail failure propagates (a suppressed cl
     deps: redactDeps({ redactDetail: async () => { throw new Error("item_corrections read failed: boom"); } }),
   })), /item_corrections read failed/);
 });
+
+// ── lane DFIX-2 (register 18): inferences are read per request, never inside the cached item-scoped bundle ──
+function inferenceDeps(over = {}) {
+  const cacheWrap = makeMemoCache();
+  return { cacheWrap, deps: { fetchItem: async () => baseDetail, fetchSections: async () => [], getRelevance: async () => null, createServiceClient: () => ({}), resolveOrgId: async () => null, cacheWrap, ...over } };
+}
+
+test("DFIX-2 loadDetailCore: a new inference shows on the very next request although the item-scoped bundle is cached", async () => {
+  let live = null; // what inference_records holds right now
+  let bundleBuilds = 0;
+  const { deps } = inferenceDeps({ freshInferences: async () => live });
+  const cfg = () => call("regulations", "item-a", {
+    loadItemScoped: async () => { bundleBuilds += 1; return { crossPage: { theme: "T", intersectionSummary: "S", inferences: null } }; },
+    deps,
+  });
+  const first = await loadDetailCore(cfg());
+  assert.equal(first.itemScoped.crossPage.inferences, null);
+  live = { claims: ["a new inference"] };
+  const second = await loadDetailCore(cfg());
+  assert.equal(bundleBuilds, 1, "the item-scoped bundle was served from the cache");
+  assert.deepEqual(second.itemScoped.crossPage.inferences, { claims: ["a new inference"] }, "the inference is read per request, not out of the cache window");
+  assert.equal(second.itemScoped.crossPage.theme, "T", "the rest of the cached crossPage is kept");
+  live = null; // withdrawn
+  const third = await loadDetailCore(cfg());
+  assert.equal(third.itemScoped.crossPage.inferences, null, "a withdrawn inference leaves at once");
+});
+
+test("DFIX-2 loadDetailCore: the overlay never mutates the cached bundle object", async () => {
+  const cached = { crossPage: { inferences: "cached" } };
+  const { deps } = inferenceDeps({ freshInferences: async () => "fresh" });
+  const r = await loadDetailCore(call("regulations", "item-a", { loadItemScoped: async () => cached, deps }));
+  assert.equal(r.itemScoped.crossPage.inferences, "fresh");
+  assert.equal(cached.crossPage.inferences, "cached");
+});
+
+test("DFIX-2 loadDetailCore: it runs in the same parallel batch as the cached bundle, and a failed read shows no inferences", async () => {
+  const events = [];
+  const { deps } = inferenceDeps({
+    freshInferences: async () => { events.push("fresh-start"); await sleep(20); events.push("fresh-end"); throw new Error("db down"); },
+    fetchSections: async () => { events.push("sections"); return []; },
+  });
+  const origErr = console.error; console.error = () => {};
+  let r;
+  try {
+    r = await loadDetailCore(call("regulations", "item-a", {
+      loadItemScoped: async () => { events.push("bundle-start"); await sleep(20); return { crossPage: { inferences: "stale" } }; },
+      deps,
+    }));
+  } finally { console.error = origErr; }
+  assert.ok(events.indexOf("fresh-start") < events.indexOf("fresh-end"));
+  assert.ok(events.indexOf("bundle-start") < events.indexOf("fresh-end"), `bundle and inference reads overlap: ${events.join(",")}`);
+  assert.equal(r.itemScoped.crossPage.inferences, null, "a failed read overrides a stale cached value with nothing");
+});
+
+test("DFIX-2 loadDetailCore: with no freshInferences dep, or a bundle with no crossPage, the bundle is exactly what the cache held", async () => {
+  const { deps } = inferenceDeps({});
+  const a = await loadDetailCore(call("regulations", "item-a", { loadItemScoped: async () => ({ crossPage: { inferences: "kept" } }), deps }));
+  assert.equal(a.itemScoped.crossPage.inferences, "kept");
+  const { deps: d2 } = inferenceDeps({ freshInferences: async () => "fresh" });
+  const b = await loadDetailCore(call("regulations", "item-b", { loadItemScoped: async () => ({ other: 1 }), deps: d2 }));
+  assert.deepEqual(b.itemScoped, { other: 1 });
+});

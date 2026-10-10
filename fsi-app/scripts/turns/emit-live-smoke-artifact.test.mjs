@@ -45,11 +45,42 @@ test("buildArtifact: counts, per page outcome and one defect per failing invaria
   assert.match(a.defects_found[0].description, /^internal-marker: 1 failure\(s\) on 1 page\(s\)/);
 });
 
+test("HOLD (lane SMOKE-3): a held conditional invariant is recorded with its invariant id and candidate count, apart from passes and failures", () => {
+  const held = {
+    ...REPORT,
+    findings: [],
+    holdCount: 2,
+    holds: [
+      { state: "hold", invariant: "content-inferences-section", key: "inferences-section@detail", candidate: "inference", candidates: 0, reason: "0 inference candidate item(s) in the corpus" },
+      { state: "hold", invariant: "content-bias-chips", key: "bias-chips@list", candidate: "bias", candidates: null, reason: "candidates not resolved" },
+    ],
+    candidates: { resolved: true, counts: { inference: 0, record: 983, bias: 1271 } },
+  };
+  const a = buildArtifact({ runId: "live-smoke-run-002", harnessVersion: "v", startedAt: "2026-10-10T00:00:00Z", url: "https://carosledge.com", report: held, error: null });
+  assert.deepEqual(validateRunArtifact(a, "live-smoke"), []);
+  assert.equal(a.metrics.hold_count, 2);
+  assert.equal(a.metrics.failure_count, 0);
+  assert.equal(a.metrics.holds_content_inferences_section, 1);
+  assert.equal(a.metrics.holds_content_bias_chips, 1);
+  assert.equal(a.metrics.holds_content_grade_chip, 0);
+  assert.equal(a.metrics.candidates_inference, 0);
+  assert.equal(a.metrics.candidates_bias, 1271);
+  const rows = a.per_item.filter((p) => p.outcome === "hold");
+  assert.deepEqual(rows.map((p) => [p.id, p.counts.candidates]), [
+    ["hold:content-inferences-section:inferences-section@detail", 0],
+    ["hold:content-bias-chips:bias-chips@list", null],
+  ]);
+  assert.equal(a.defects_found.length, 0, "a hold is not a defect");
+  // A report written before SMOKE-3 (no holds field) records zero holds, not a missing value.
+  assert.equal(buildArtifact({ runId: "r", harnessVersion: "v", startedAt: "2026-10-10T00:00:00Z", url: null, report: REPORT, error: null }).metrics.hold_count, 0);
+});
+
 test("ATTACK: no report is recorded as report_missing with null counts, never as zero failures", () => {
   const a = buildArtifact({ runId: "live-smoke-run-001", harnessVersion: "v", startedAt: "2026-10-05T00:00:00Z", url: null, report: null, error: "LS_REPORT is not set" });
   assert.deepEqual(validateRunArtifact(a, "live-smoke"), []);
   assert.equal(a.metrics.failure_count, null);
   assert.equal(a.metrics.pages_visited, null);
+  assert.equal(a.metrics.hold_count, null);
   assert.equal(a.per_item[0].outcome, "report_missing");
   assert.equal(a.defects_found[0].description, "live smoke produced no report");
 });

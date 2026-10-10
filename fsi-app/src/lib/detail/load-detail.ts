@@ -63,6 +63,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   fetchIntelligenceItem,
   fetchIntelligenceItemSections,
+  fetchFreshInferencesForItem,
   type IntelligenceItemSectionRow,
 } from "@/lib/supabase-server";
 import { getServiceSupabase } from "@/lib/supabase-service";
@@ -116,6 +117,11 @@ const defaultDetailDeps: DetailDeps = {
   // passes through fetchIntelligenceItem's own relevanceInput field.
   getRelevance: (relevanceInput: unknown) =>
     getViewerRelevanceForItem(relevanceInput as Parameters<typeof getViewerRelevanceForItem>[0]),
+  // lane DFIX-2: inferences are read per request, never inside the 300 s item-scoped cache entry.
+  freshInferences: async (id) => {
+    const sb = defaultCreateServiceClient();
+    return sb ? fetchFreshInferencesForItem(sb, id) : null;
+  },
   // lane G7-CORR: a claim an admin suppressed is removed from the rendered sections and full brief at read time.
   redactDetail: async ({ id, resource, sections }) => {
     const sb = defaultCreateServiceClient();

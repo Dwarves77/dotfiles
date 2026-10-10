@@ -31,9 +31,15 @@ runs:
         psql --version
 
     - name: Install the Supabase CLI
+      # 2026-10-10 (lane STACK-1): the CLI is pinned to 2.120.0, the release whose bundled stack images (postgres
+      # 17.11.0.004, gotrue v2.197.0, edge-runtime v1.77.4) are the ones the last green stack job started. "latest"
+      # made every stack job call the GitHub releases API anonymously (rate limit exceeded, run 38019007029) and
+      # drift silently with each CLI release. Bumping the pin is a deliberate PR. github-token authenticates any
+      # remaining lookup; it is the job's own read-only token, not a production credential.
       uses: supabase/setup-cli@v1
       with:
-        version: latest
+        version: 2.120.0
+        github-token: ${{ github.token }}
 
     - name: Start the local stack (empty database, storage and auth only)
       shell: bash

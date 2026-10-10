@@ -33,7 +33,7 @@ function committedHostVerdicts() {
  *   hostVerdicts?: ReadonlyMap<string, object>,   // default: the committed host verdict batches
  * }} opts
  * @returns {Promise<
- *   | {ok: true, source_id: string, source_key: string|null, tier: number}
+ *   | {ok: true, source_id: string, source_key: string|null, tier: number, created?: boolean}
  *   | {ok: false, reason: string}
  * >}
  */
@@ -56,7 +56,9 @@ export async function rateSourceByInstitutionClass({ url, name }, { mode, regist
   }
 
   const reg = await registerSourceFn({ url, name: name ?? host, base_tier: tier }, { cite });
-  return { ok: true, source_id: reg.source_id, source_key: reg.source_key ?? (sourceKeyFor ? sourceKeyFor(host) : null), tier };
+  // `created` passes through from the registration primitive (true when this call minted the row), so a caller can
+  // report registered versus reused without a second registry read.
+  return { ok: true, source_id: reg.source_id, source_key: reg.source_key ?? (sourceKeyFor ? sourceKeyFor(host) : null), tier, created: reg.created };
 }
 
 /**
