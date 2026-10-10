@@ -52,7 +52,7 @@ export const CATALOG_QUERY = `select json_build_object(
  'grants', (select coalesce(json_object_agg(g.k, md5(g.v)), '{}'::json) from (
   select 'relation:' || c.relname || ' -> ' || case a.grantee when 0 then 'PUBLIC' else pg_get_userbyid(a.grantee) end as k, string_agg(a.privilege_type || case when a.is_grantable then '*' else '' end, ',' order by a.privilege_type, a.is_grantable) as v
   from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm', 'S', 'f')
-  cross join lateral aclexplode(coalesce(c.relacl, acldefault(case when c.relkind = 'S' then 's' else 'r' end, c.relowner))) a
+  cross join lateral aclexplode(coalesce(c.relacl, acldefault(case when c.relkind = 'S' then 's'::"char" else 'r'::"char" end, c.relowner))) a
   group by 1
   union all
   select 'function:' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') -> ' || case a.grantee when 0 then 'PUBLIC' else pg_get_userbyid(a.grantee) end as k, string_agg(a.privilege_type || case when a.is_grantable then '*' else '' end, ',' order by a.privilege_type, a.is_grantable) as v
@@ -94,11 +94,45 @@ export function diffCatalogs(replayed, oracle) {
   };
 }
 
-/** Read one side's catalog through psql. `spawn` is injectable. Returns the parsed catalog or null. */
+const MAX_ERROR_TEXT = 500;
+
+/** Strip anything secret from psql's error text: the connection URL, the URL's password, any postgres URL, a password= pair. PURE. */
+export function redactPgText(text, url = "") {
+  let out = String(text ?? "");
+  try {
+    const u = new URL(url);
+    const names = new Set([u.username, u.hostname, u.pathname.slice(1), "postgres", "password"]);
+    // The whole URL always. The bare password only when it is long enough not to chew ordinary words and is not a name the message needs (a local stack's password is "postgres").
+    for (const secret of [url, u.password, decodeURIComponent(u.password)]) {
+      if (!secret || (secret !== url && (secret.length < 6 || names.has(secret)))) continue;
+      out = out.split(secret).join("<redacted>");
+    }
+  } catch { /* not a URL: the generic patterns below still apply */ }
+  return out
+    .replace(/postgres(?:ql)?:\/\/\S+/gi, "<url>")
+    .replace(/password=\S+/gi, "password=<redacted>");
+}
+
+/** The readable cause of a failed psql run: the SQLSTATE code (psql is run with VERBOSITY=verbose) and the error text, redacted and capped. PURE. */
+export function describePsqlFailure(r, url = "", psql = "psql") {
+  if (r.error) return { code: r.error.code ?? null, message: redactPgText(`could not run ${psql}: ${r.error.message}`, url).slice(0, MAX_ERROR_TEXT) };
+  const stderr = redactPgText(r.stderr, url).trim();
+  const lines = stderr.split(/\r?\n/).filter((l) => l.trim() !== "");
+  const errLine = lines.find((l) => /(?:ERROR|FATAL|psql: error):/.test(l)) ?? lines[0] ?? "";
+  const code = /(?:ERROR|FATAL):\s+([0-9A-Z]{5}):/.exec(stderr)?.[1] ?? null;
+  const head = r.status === null || r.status === undefined ? `psql was ended by ${r.signal ?? "a signal"}` : `psql exited with status ${r.status}`;
+  const text = errLine ? `${head}: ${errLine.trim()}` : `${head} and printed no error text`;
+  return { code, message: text.slice(0, MAX_ERROR_TEXT) };
+}
+
+/** Read one side's catalog through psql. `spawn` is injectable. Returns { catalog, error }: exactly one is null. Never a bare null:
+ *  a failure carries { code, message } from psql (the SQLSTATE and the error line, redacted of the URL and password), so the next failure names itself.
+ *  -v VERBOSITY=verbose puts the SQLSTATE in the error line; -v ON_ERROR_STOP=1 makes a SQL error a non-zero exit. */
 export function readCatalog({ url, psql = "psql", spawn = spawnSync }) {
-  const r = spawn(psql, [url, "-X", "-At", "-c", CATALOG_QUERY], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
-  if (r.error || r.status !== 0) return null;
-  try { return JSON.parse(String(r.stdout).trim()); } catch { return null; }
+  const r = spawn(psql, [url, "-X", "-At", "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=verbose", "-c", CATALOG_QUERY], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, PGCONNECT_TIMEOUT: "10" } });
+  if (r.error || r.status !== 0) return { catalog: null, error: describePsqlFailure(r, url, psql) };
+  try { return { catalog: JSON.parse(String(r.stdout).trim()), error: null }; }
+  catch { return { catalog: null, error: { code: null, message: `psql output was not JSON (${String(r.stdout).length} characters)` } }; }
 }
 
 /** The log text: counts per category, then the names of what differs (capped). PURE. */
@@ -126,8 +160,10 @@ if (isMainModule(import.meta.url)) {
   try { assertLoopbackDbUrl(replayedUrl); assertLoopbackDbUrl(oracleUrl); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }
   const replayed = readCatalog({ url: replayedUrl });
   const oracle = readCatalog({ url: oracleUrl });
-  if (!replayed || !oracle) { console.error(`schema-diff: could not read the ${!replayed ? "replayed" : "oracle"} schema; the oracle gate cannot pass`); process.exit(1); }
-  const d = diffCatalogs(replayed, oracle);
+  const unreadable = [["replayed", replayed], ["oracle", oracle]].filter(([, r]) => r.error);
+  for (const [side, r] of unreadable) console.error(`schema-diff: could not read the ${side} schema${r.error.code ? ` (${r.error.code})` : ""}: ${r.error.message}`);
+  if (unreadable.length) { console.error("schema-diff: the oracle gate cannot pass"); process.exit(1); }
+  const d = diffCatalogs(replayed.catalog, oracle.catalog);
   mkdirSync(dirname(resolve(out)), { recursive: true });
   writeFileSync(resolve(out), JSON.stringify(d, null, 2) + "\n", "utf8");
   (d.identical ? console.log : console.error)(summarizeDiff(d));
