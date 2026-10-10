@@ -336,7 +336,7 @@ export function pedigreeToStars(pedigree) {
  * rather than trusting every row in the table, and it excludes rows whose as-at date is in the future
  * (a data-entry error that would otherwise win the ORDER BY and serve as the active factor).
  */
-function renderTierConstraintsSql() {
+export function renderTierConstraintsSql() {
   const list = (arr) => arr.map((v) => `'${v}'`).join(", ");
   const floors = TIER_CODES
     .map((t) => `    (tier = '${t}' AND pedigree >= ${FACTOR_TIERS[t].pedigreeFloor})`)
@@ -376,7 +376,7 @@ ${scopeRules}`;
  * same scalar on a US factor applied to a UK movement is geographically weak and no amount of waiting
  * fixes it. Collapsing both to "3" throws away the only information that tells you what to buy.
  */
-function renderEnvelopeColumnsSql() {
+export function renderEnvelopeColumnsSql() {
   const list = (arr) => arr.map((v) => `'${v}'`).join(", ");
   // PEDIGREE_AXES is an array of plain axis names. It was first read here as an array of {code} objects,
   // which generated five columns all called pedigree_undefined; Postgres rejected the duplicate on a

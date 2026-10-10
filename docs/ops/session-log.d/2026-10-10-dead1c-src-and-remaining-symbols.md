@@ -34,9 +34,9 @@ sibling-test convention. Reused DEAD-1b's method unchanged; no new tooling.
 
 ## Decisions
 
-- The mapper half of the supabase-server dedupe (a shared `baseResourceFields` for `mapWorkspaceItemRows` and `rpcRowToResource`) was reverted. Two existing
-  source-text tests (`src/__tests__/jurisdiction-iso-mapping.test.mjs`, `origin-class-mapping.test.mjs`) assert exactly 3 mapper sites by regex, so the
-  shared helper turns both red (found by running them). Editing them is outside the write set; see NOT done.
+- The shared mapper (`baseResourceFields`, used by `mapWorkspaceItemRows` and `rpcRowToResource`) is kept. The two source-text tests that counted 3 mapper sites (`src/__tests__/jurisdiction-iso-mapping.test.mjs`, `origin-class-mapping.test.mjs`) now count 2 (the shared helper plus the detail mapper), by coordinator grant on PR 1087.
+- CI's ESLint (`--max-warnings=0`) found census A2 symbols that were unused even inside their own file. The 10 `src/lib/data.ts` functions (getMapData, getAwaitingReview, getSurfaceCounts, getResearchPipeline, getPublicResearchPipeline, getMarketIntelItems, getResearchItems, getOperationsItems, getTechnologyItems, getSourceCitationStats) have no code reference anywhere and were deleted, with the cached wrappers, types, constants, `getScopedWorkspaceAggregates` and imports that only they used. Whole-project `eslint --max-warnings=0` and `tsc --noEmit` run clean locally.
+- `PRIORITIES` (constants.ts) keeps its export (used as `typeof PRIORITIES`); `renderTierConstraintsSql` and `renderEnvelopeColumnsSql` (factor-tier.mjs) keep theirs because migration 258 names them as its generator source.
 - `estimated_values`: not dropped. Migration 286 attaches the outbox trigger, `drain.ts` keys it, F32/RD-57 and `EstimatedFigure` read it, and ADR-024
   decision 2 keeps estimates. Brief rule: a table with a trigger, drain.ts or F32 reference is a consumer.
 - `regional_data_facts`: not dropped. ADR-043 "What stays" names every `regional_data_facts` producer and row; producers.yml writes it and migration 373 wires its outbox.
@@ -49,8 +49,7 @@ sibling-test convention. Reused DEAD-1b's method unchanged; no new tooling.
 
 ## Harness families owing a run
 
-Governing files of five families changed (export removals only); each family's live governing hash moves and it owes a run at its next dispatch. Per
-CONVENTION.md (GATE-3) no marker is added.
+Governing files of five families changed (export removals only); each family's live governing hash moves and it owes a run. Per CONVENTION.md (GATE-3) no marker is added. Each is [WORK: EXEC-4] (the executor dispatches them after merge).
 
 - inaccessible-triage (primary-fallback.mjs, seek-more.mjs, officialness.mjs)
 - question-answers (infer-from-question.ts)
@@ -60,7 +59,6 @@ CONVENTION.md (GATE-3) no marker is added.
 
 ## NOT done
 
-- Mapper dedupe in `supabase-server.ts` (`baseResourceFields`): needs the two source-text tests above updated from 3 sites to 2 in the same change. [WORK: owed]
 - Test-only exports (census 2c) and the convention-loaded rows (2d, 2e) other than the lines this lane names: a symbol used only by its own test stays
   exported by the method. [NOT-WORK: scope statement, method keeps own-test seams]
 - Migration 383 has no sibling static test; the migration-proof job applies it and its own DO blocks assert the abort conditions and the final state. [NOT-WORK: the apply proof is the check; a test file is outside the write set]

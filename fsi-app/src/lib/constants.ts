@@ -257,7 +257,7 @@ export const SECTOR_ADJACENCY: Record<string, string[]> = {
 export const VERTICALS = ALL_SECTORS;
 
 // ── Priority Levels ──
-const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
+export const PRIORITIES = ["CRITICAL", "HIGH", "MODERATE", "LOW"] as const;
 
 // ── Priority Display Labels (editorial vocabulary) ──
 // The DB enum stays CRITICAL/HIGH/MODERATE/LOW. Display surfaces use

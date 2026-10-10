@@ -1134,29 +1134,7 @@ async function mapWorkspaceItemRows(items: WorkspaceItemRpcRow[]): Promise<{
     const resourceId = row.legacy_id || row.id;
     const timelines = timelineMap.get(resourceId);
     const resource: Resource = {
-      id: resourceId,
-      cat: (row.transport_modes?.[0]) || "global",
-      sub: row.category || "",
-      title: row.title,
-      url: row.source_url || "",
-      note: row.summary || "",
-      type: row.item_type || "uncertain", // honest-inconclusive: an absent item_type is NOT a regulation (line-191 read layer)
-      priority: (row.effective_priority || row.priority) as Resource["priority"],
-      added: row.added_date ?? "",
-      reasoning: row.reasoning || "",
-      tags: row.tags || [],
-      whatIsIt: row.what_is_it || "",
-      whyMatters: row.why_matters || "",
-      keyData: row.key_data || [],
-      // full_brief is only present on the full RPC. The slim RPC drops the
-      // column; row.full_brief is undefined and Resource.fullBrief stays
-      // undefined — list surfaces never read it.
-      fullBrief: row.full_brief || undefined,
-      // WO-4 (2026-08-18): never coalesce domain. The DB guarantees NOT NULL + CHECK 1-7, so a
-      // missing value here means the payload did not SELECT the column - and "not fetched" must
-      // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
-      // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
-      domain: row.domain ?? undefined,
+      ...baseResourceFields(row),
       timeline: (timelines || []).map((t: TimelineQueryRow) => ({
         date: t.milestone_date ?? "",
         label: t.label ?? "",
@@ -1166,35 +1144,6 @@ async function mapWorkspaceItemRows(items: WorkspaceItemRpcRow[]): Promise<{
         // type accepts). Non-completed milestones leave status undefined.
         status: t.is_completed ? ("past" as const) : undefined,
       })),
-      modes: row.transport_modes || [],
-      topic: row.category || undefined,
-      jurisdiction: row.jurisdictions?.[0] || undefined,
-      // Addendum 63 (2026-08-30): wired to read the column, but every RPC this function calls
-      // (get_workspace_intelligence / _slim / _dashboard / _listings) projects `ii.jurisdictions`
-      // only — none of their RETURNS TABLE lists include `ii.jurisdiction_iso` (confirmed against
-      // the live migration bodies: 120 for the base/slim pair, 077 for dashboard/listings), even
-      // though the shared `_workspace_active_items` some of them source from DOES carry it. So
-      // `row.jurisdiction_iso` is undefined today and this stays dormant — same "pass through when
-      // the RPC catches up" pattern already used below for severity/signalBand/theme (Phase 3C) —
-      // until a migration (lane `la`) adds the column to these RPCs' output.
-      jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
-      // Lane POP (2026-09-01, migration 278): same dormant-passthrough shape as jurisdictionIso just
-      // above — none of this function's RPCs project `ii.item_grade` yet, so `row.item_grade` reads
-      // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
-      // an unprojected column must read as unknown, not as a claim about the item's grade.
-      itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
-      // D23 part (d) (2026-09-13, defect-fix-plan-2026-09-12.md): the ledger's "Updated <date>" chip
-      // reads this. Migration 316 already added `last_regenerated_at` to this function's own
-      // get_workspace_intelligence_listings/_public callers, so it is REAL there today; dormant on
-      // this function's other RPCs (get_workspace_intelligence/_slim/_dashboard) until they widen
-      // their own RETURNS TABLE, same passthrough posture as itemGrade/originClass above.
-      lastRegeneratedAt: row.last_regenerated_at || undefined,
-      // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
-      // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
-      // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
-      originClass: row.origin_class ?? undefined,
-      sourceId: row.source_id || undefined,
-      isArchived: row.effective_archived || false,
       // Lane BRIEFDATA (2026-09-08) [CONFIRMED gap, live measurement below]: every RPC this mapper
       // serves (get_workspace_intelligence / _slim / _dashboard / _listings) has projected
       // `ii.compliance_deadline` since migration 077, and this mapper dropped it on the floor.
@@ -1954,13 +1903,15 @@ export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCover
 // sources record, not a code change here. Build 7 (Market Intel signal
 // aggregation) and future source additions benefit from this.
 
-// Translate one RPC row (slim+ shape returned by get_*_items RPCs) into a
-// Resource. Mirrors fetchWorkspaceResources's mapper, minus the timeline join
-// (the category-routed surfaces render row-level metadata, not timelines).
-function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
+// The Resource fields every RPC-row mapper projects identically (fetchWorkspaceResources's mapper and
+// rpcRowToResource below). Each caller adds its own extras on top: the timeline join, compliance_deadline, or
+// the Phase 3C / callout / exposure passthrough columns. Several fields are DORMANT passthroughs (the RPCs a
+// caller reads do not project the column yet, so the value is undefined until a migration widens them); an
+// unprojected column must read as unknown, never as a claim.
+function baseResourceFields(row: WorkspaceItemRpcRow): Resource {
   return {
     id: row.legacy_id || row.id,
-    cat: row.transport_modes?.[0] || "global",
+    cat: (row.transport_modes?.[0]) || "global",
     sub: row.category || "",
     title: row.title,
     url: row.source_url || "",
@@ -1973,32 +1924,54 @@ function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
     whatIsIt: row.what_is_it || "",
     whyMatters: row.why_matters || "",
     keyData: row.key_data || [],
+    // full_brief is only present on the full RPC. The slim RPC drops the
+    // column; row.full_brief is undefined and Resource.fullBrief stays
+    // undefined — list surfaces never read it.
     fullBrief: row.full_brief || undefined,
-    // WO-4 (2026-08-18): never coalesce domain - see the note at the first mapper site.
+    // WO-4 (2026-08-18): never coalesce domain. The DB guarantees NOT NULL + CHECK 1-7, so a
+    // missing value here means the payload did not SELECT the column - and "not fetched" must
+    // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
+    // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
     domain: row.domain ?? undefined,
-    timeline: [],
     modes: row.transport_modes || [],
     topic: row.category || undefined,
     jurisdiction: row.jurisdictions?.[0] || undefined,
-    // Addendum 63 (2026-08-30): dormant for the same reason as fetchWorkspaceResources's mapper —
-    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
-    // (migration 269, the latest redefinition) project `ii.jurisdictions` only; `jurisdiction_iso`
-    // is not in any of their RETURNS TABLE lists, so `row.jurisdiction_iso` is undefined until a
-    // migration adds it.
+    // Addendum 63 (2026-08-30): wired to read the column, but every RPC this function calls
+    // (get_workspace_intelligence / _slim / _dashboard / _listings) projects `ii.jurisdictions`
+    // only — none of their RETURNS TABLE lists include `ii.jurisdiction_iso` (confirmed against
+    // the live migration bodies: 120 for the base/slim pair, 077 for dashboard/listings), even
+    // though the shared `_workspace_active_items` some of them source from DOES carry it. So
+    // `row.jurisdiction_iso` is undefined today and this stays dormant — same "pass through when
+    // the RPC catches up" pattern already used below for severity/signalBand/theme (Phase 3C) —
+    // until a migration (lane `la`) adds the column to these RPCs' output.
     jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
-    // Lane POP (2026-09-01, migration 278): dormant for the same reason as jurisdictionIso just above —
-    // none of these RPCs project `ii.item_grade` yet.
+    // Lane POP (2026-09-01, migration 278): same dormant-passthrough shape as jurisdictionIso just
+    // above — none of this function's RPCs project `ii.item_grade` yet, so `row.item_grade` reads
+    // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
+    // an unprojected column must read as unknown, not as a claim about the item's grade.
     itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
-    // D23 part (d): dormant for the same reason as jurisdictionIso above, none of
-    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
-    // project `ii.last_regenerated_at` in their RETURNS TABLE.
+    // D23 part (d) (2026-09-13, defect-fix-plan-2026-09-12.md): the ledger's "Updated <date>" chip
+    // reads this. Migration 316 already added `last_regenerated_at` to this function's own
+    // get_workspace_intelligence_listings/_public callers, so it is REAL there today; dormant on
+    // this function's other RPCs (get_workspace_intelligence/_slim/_dashboard) until they widen
+    // their own RETURNS TABLE, same passthrough posture as itemGrade/originClass above.
     lastRegeneratedAt: row.last_regenerated_at || undefined,
-    // Lane SURF (2026-09-02): dormant for the same reason as jurisdictionIso above — none of
-    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
-    // (migration 269, last redefined in 272) project `ii.origin_class` in their RETURNS TABLE.
+    // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
+    // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
+    // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
     originClass: row.origin_class ?? undefined,
     sourceId: row.source_id || undefined,
     isArchived: row.effective_archived || false,
+  };
+}
+
+// Translate one RPC row (slim+ shape returned by get_*_items RPCs) into a
+// Resource. Mirrors fetchWorkspaceResources's mapper, minus the timeline join
+// (the category-routed surfaces render row-level metadata, not timelines).
+function rpcRowToResource(row: WorkspaceItemRpcRow): Resource {
+  return {
+    ...baseResourceFields(row),
+    timeline: [],
     // Phase 3C: pass through new schema columns when RPC includes them.
     // Undefined until RPC outputs are extended (separate migration).
     severity: row.severity || undefined,

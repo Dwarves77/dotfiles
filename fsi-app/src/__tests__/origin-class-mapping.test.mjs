@@ -35,17 +35,17 @@ function loadSupabaseServerSource() {
   return readFileSync(join(SRC, "lib/supabase-server.ts"), "utf8");
 }
 
-test("all 3 Resource-mapper sites in supabase-server.ts set originClass via the shared dormant-passthrough pattern", () => {
+test("both Resource-mapper sites in supabase-server.ts set originClass via the shared dormant-passthrough pattern", () => {
   const code = loadSupabaseServerSource();
   const callSites = code.match(/originClass:\s*row\.origin_class\s*\?\?\s*undefined/g) || [];
-  // 3 sites: fetchWorkspaceResources's inline mapper, rpcRowToResource, and
-  // fetchIntelligenceItemUncached's detail mapper. A count below 3 means one of the mappers regressed
-  // back to omitting the field; a count above 3 means a 4th Resource-building mapper appeared that this
+  // 2 sites: baseResourceFields (the one mapper behind fetchWorkspaceResources and rpcRowToResource) and
+  // fetchIntelligenceItemUncached's detail mapper. A count below 2 means one of the mappers regressed
+  // back to omitting the field; a count above 2 means a 4th Resource-building mapper appeared that this
   // test (and the coordinator's grep) did not account for.
   assert.equal(
     callSites.length,
-    3,
-    `expected 3 mapper sites to set originClass: row.origin_class ?? undefined, found ${callSites.length}`
+    2,
+    `expected 2 mapper sites to set originClass: row.origin_class ?? undefined, found ${callSites.length}`
   );
 });
 

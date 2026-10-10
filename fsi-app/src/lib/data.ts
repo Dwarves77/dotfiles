@@ -6,26 +6,16 @@ import {
   fetchListingsOnly,
   fetchPublicResourcesOnly,
   fetchPublicListingsOnly,
-  fetchMapData,
   fetchListingsMapData,
   fetchSettingsData,
   fetchWatchlist,
   WATCHLIST_PAGE_LIMIT,
   fetchCoverageGaps,
-  fetchAwaitingReview,
   fetchWorkspaceAggregates,
-  fetchWorkspaceAggregatesScoped,
-  fetchSurfaceCounts,
   fetchPublicSurfaceCounts,
-  fetchMarketIntelItems,
-  fetchResearchItems,
-  fetchOperationsItems,
-  fetchTechnologyItems,
   fetchPublicMarketIntelItems,
   fetchPublicResearchItems,
   fetchPublicOperationsItems,
-  fetchPublicResearchPipelineRows,
-  fetchSourceCitationStatsByIds,
   fetchPriceStatsByItemIds,
   fetchResearchSourceCoverage,
   getServiceSupabase,
@@ -34,7 +24,6 @@ import {
   isReadTimeout,
   type ScopeFilter,
   type CategoryRoutedResult,
-  type SourceCitationStat,
   type MarketPriceStat,
   type ResearchSourceCoverageCell,
   type ResourcePage,
@@ -61,7 +50,6 @@ import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import type { ObligationRow } from "@/components/regulations/ObligationRegisterFilterBar";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { scopeFilterForSurface } from "@/lib/surface-of.mjs";
 import {
   recordSeedFallbackFlag,
   type SeedFallbackTrigger,
@@ -602,49 +590,6 @@ export async function getPublicSurfaceSlugs(
 }
 
 /**
- * Slim fetcher for /map: resources + the relationship payload the map
- * surface needs (changelog, disputes, supersessions). Drops
- * sources, provisional sources, conflicts, synopses, intelligence
- * changes, sector display names, and overrides.
- *
- * Used by: /map.
- */
-async function getMapData(): Promise<{
-  resources: Resource[];
-  archived: Resource[];
-  changelog: Record<string, ChangeLogEntry[]>;
-  disputes: Record<string, Dispute>;
-  supersessions: Supersession[];
-  _error?: string;
-  _fallbackTrigger?: SeedFallbackTrigger;
-}> {
-  const t0 = Date.now();
-  try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
-    );
-    const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = fetchMapData(orgId);
-    const result = await Promise.race([dataPromise, timeout]);
-    console.log(`[perf] getMapData ${Date.now() - t0}ms`);
-    alertIfFallback(result, "/map");
-    return result;
-  } catch (e) {
-    console.error("getMapData failed, using fallback:", e);
-    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/map");
-    return {
-      resources: [],
-      archived: [],
-      changelog: {},
-      disputes: {},
-      supersessions: [],
-      _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
-    };
-  }
-}
-
-/**
  * Listings fetcher for /map: resources + relationship payload, but via the
  * listings RPC (066) which additionally drops `summary` on top of slim.
  * Resource.note arrives empty on every row. Safe for /map per the
@@ -785,14 +730,6 @@ const cachedCoverageGaps = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
-const cachedAwaitingReview = unstable_cache(
-  async (userId: string | null): Promise<ReviewItem[]> => {
-    return fetchAwaitingReview(userId);
-  },
-  ["awaiting-review-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
 // Workspace aggregates (migration 068). Same TTL + tag as cachedAppData so
 // the aggregates and the dashboard payload refresh together — when an
 // override mutation calls revalidateTag(APP_DATA_TAG), both invalidate
@@ -876,21 +813,6 @@ export async function getCoverageGaps(): Promise<CoverageGap[]> {
 }
 
 /**
- * Fetch the top oldest items awaiting admin review for the Dashboard
- * Awaiting Review widget. Returns [] for non-admins (the widget hides
- * itself in that case).
- */
-async function getAwaitingReview(): Promise<ReviewItem[]> {
-  try {
-    const userId = await resolveUserIdFromCookies();
-    return await cachedAwaitingReview(userId);
-  } catch (e) {
-    console.error("getAwaitingReview failed, returning empty:", e);
-    return [];
-  }
-}
-
-/**
  * Fetch scalar aggregates over the workspace's active intelligence row set.
  * Used by the dashboard masthead, DashboardHero tiles, and WeeklyBriefing
  * summary so render-time stats no longer derive from the LIMIT-50
@@ -920,45 +842,6 @@ export async function getWorkspaceAggregates(): Promise<WorkspaceAggregates> {
 // workspace-wide aggregates so /market /research /operations stays in
 // lockstep with mutations. Cache key includes the serialised scope so
 // each page surface gets its own cache bucket.
-const cachedScopedAggregates = unstable_cache(
-  async (
-    orgId: string | null,
-    scopeKey: string,
-  ): Promise<WorkspaceAggregates> => {
-    const scope: ScopeFilter | null = scopeKey ? JSON.parse(scopeKey) : null;
-    return fetchWorkspaceAggregatesScoped(orgId, scope);
-  },
-  ["workspace-aggregates-scoped-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-const cachedSurfaceCounts = unstable_cache(
-  async (orgId: string | null, surface: string): Promise<WorkspaceAggregates | null> => {
-    return fetchSurfaceCounts(orgId, surface);
-  },
-  ["surface-counts-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-/**
- * Per-surface count bundle for a customer surface page's masthead / StatStrip, from the single
- * classification + counting SoT (migration 148 get_surface_counts): classification via surface_of,
- * population gated provenance_status='verified'. Fails soft when the RPC is absent (pre-apply) or
- * errors — falls back to get_workspace_intelligence_aggregates_scoped (069) over the SURFACE_RULES-
- * derived scope. This is what deletes the per-page MARKET_SCOPE / RESEARCH_SCOPE={} constants: the
- * scope now derives from the one vocab home (src/lib/surface-of.mjs), not per-page arrays.
- */
-async function getSurfaceCounts(surface: string): Promise<WorkspaceAggregates> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    const primary = await cachedSurfaceCounts(orgId, surface);
-    if (primary) return primary;
-  } catch (e) {
-    console.warn(`getSurfaceCounts(${surface}) primary failed; falling back to scoped aggregates:`, e);
-  }
-  return getScopedWorkspaceAggregates(scopeFilterForSurface(surface));
-}
-
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): org-independent counterpart to
 // getSurfaceCounts above. [CONFIRMED, this lane, via Supabase MCP pg_get_functiondef]
 // get_surface_counts(p_org_id, p_surface) carries NO `_assert_org_membership` call (a plain LANGUAGE
@@ -1023,76 +906,16 @@ export async function getPublicSurfaceCounts(surface: string): Promise<Workspace
 import type { ResearchPipelineRow } from "@/lib/supabase-server";
 export type { ResearchPipelineRow };
 
-interface ResearchPipelineResult {
-  rows: ResearchPipelineRow[];
-  total: number;
-  cap: number;
-}
-
-const RESEARCH_PAGE_CAP = 100;
-
 // Cache key on orgId only — the actual fetch goes through the workspace
 // service-role server client (same pattern as fetchResourcesOnly), NOT
 // the cookie-aware client. The orgId resolution stays OUTSIDE the cache
 // so cookies() is not invoked from within unstable_cache (Next.js does
 // not allow it).
-const cachedResearchPipeline = unstable_cache(
-  async (orgId: string | null): Promise<ResearchPipelineResult> => {
-    // Anonymous / no-org callers fall back to the seed-equivalent empty
-    // pipeline. Authed callers run the same intelligence_items query the
-    // prior fetcher ran, but through the workspace service-role client
-    // that the rest of the platform uses.
-    if (!orgId) return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
-
-    const { fetchResearchPipelineRows } = await import("@/lib/supabase-server");
-    return fetchResearchPipelineRows(orgId, RESEARCH_PAGE_CAP);
-  },
-  ["research-pipeline-v2"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-/**
- * Fetch the research pipeline page-1 payload via the workspace data path.
- * Resolves orgId from authed cookies OUTSIDE the cache (Next.js forbids
- * dynamic-source reads inside unstable_cache). Returns rows (capped at
- * RESEARCH_PAGE_CAP), the true total count, and the cap so the page can
- * render "Showing N of M" honestly.
- *
- * Replaces the prior inline anon-key createClient(...) fetcher in
- * src/app/research/page.tsx that bypassed cookies and the workspace path.
- *
- * Falls back to an empty result on error so the surface still renders.
- */
-async function getResearchPipeline(): Promise<ResearchPipelineResult> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    return await cachedResearchPipeline(orgId);
-  } catch (e) {
-    console.error("getResearchPipeline failed, returning empty:", e);
-    return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
-  }
-}
-
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): org-independent counterpart to
 // getResearchPipeline above. See fetchPublicResearchPipelineRows's header (supabase-server.ts) for
 // why this is safe — orgId was already unused by the underlying query; only this function's own
 // cookies() read + the cached wrapper's `!orgId → empty` gate stood in the way. No orgId in the
 // cache key (one shared entry for the whole app). Tagged PUBLIC_ITEMS_TAG, not APP_DATA_TAG.
-const cachedPublicResearchPipeline = unstable_cache(
-  async (): Promise<ResearchPipelineResult> => fetchPublicResearchPipelineRows(RESEARCH_PAGE_CAP),
-  ["public-research-pipeline-perf10"],
-  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
-);
-
-async function getPublicResearchPipeline(): Promise<ResearchPipelineResult> {
-  try {
-    return await cachedPublicResearchPipeline();
-  } catch (e) {
-    console.error("getPublicResearchPipeline failed, returning empty:", e);
-    return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
-  }
-}
-
 // Build 8.5: source coverage matrix for /research source coverage tab.
 // Reads the migration 100 RPC get_research_source_coverage() (Research-bound
 // sources only). Cached on the global APP_DATA_TAG so source-registry
@@ -1118,48 +941,6 @@ export async function getResearchSourceCoverage(): Promise<ResearchSourceCoverag
   }
 }
 
-/**
- * Fetch scalar aggregates over a SCOPED slice of the workspace's active
- * intelligence row set (migration 069). Used by /market /research /operations
- * so the masthead meta and StatStrip render the page-scoped totals instead
- * of the workspace-wide totals from getWorkspaceAggregates.
- *
- * Pass a scope filter of shape {item_types?: string[], domains?: number[]}.
- * Both keys are optional; an item matches if its item_type is in item_types
- * OR its domain is in domains (mirrors the page-level client filters).
- *
- * Falls back to empty aggregates on error so the page still renders the
- * existing row-derived counts.
- */
-async function getScopedWorkspaceAggregates(
-  scope: ScopeFilter
-): Promise<WorkspaceAggregates> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    // Stable cache key: sort keys + array contents so semantically-equal
-    // filters share a cache bucket.
-    const stable: ScopeFilter = {};
-    if (scope.item_types && scope.item_types.length) {
-      stable.item_types = [...scope.item_types].sort();
-    }
-    if (scope.domains && scope.domains.length) {
-      stable.domains = [...scope.domains].sort((a, b) => a - b);
-    }
-    const scopeKey = JSON.stringify(stable);
-    return await cachedScopedAggregates(orgId, scopeKey);
-  } catch (e) {
-    console.error("getScopedWorkspaceAggregates failed, returning empty:", e);
-    return {
-      totalItems: 0,
-      byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
-      byStatus: {},
-      byJurisdiction: {},
-      totalJurisdictions: 0,
-      lastUpdatedAt: null,
-    };
-  }
-}
-
 // ── Sprint 2 Build 4: category-routed fetchers ───────────────
 //
 // Each wraps the corresponding fetcher in supabase-server.ts behind
@@ -1173,38 +954,6 @@ async function getScopedWorkspaceAggregates(
 // "Category-Aware Routing Fetchers" block there for the exception lists
 // (IMO/ICAO → Regulations, FreightWaves/Loadstar/etc → Research, Carbon
 // Trust + Project Drawdown → Research).
-
-const cachedMarketIntel = unstable_cache(
-  async (orgId: string | null): Promise<CategoryRoutedResult> => {
-    return fetchMarketIntelItems(orgId);
-  },
-  ["market-intel-items-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-const cachedResearch = unstable_cache(
-  async (orgId: string | null): Promise<CategoryRoutedResult> => {
-    return fetchResearchItems(orgId);
-  },
-  ["research-items-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-const cachedOperations = unstable_cache(
-  async (orgId: string | null): Promise<CategoryRoutedResult> => {
-    return fetchOperationsItems(orgId);
-  },
-  ["operations-items-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-const cachedTechnology = unstable_cache(
-  async (orgId: string | null): Promise<CategoryRoutedResult> => {
-    return fetchTechnologyItems(orgId);
-  },
-  ["technology-items-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
 
 // WO-13 B4 re-point (2026-08-30): batch price-stat decoration for the
 // Market list-page key figure, from published_price_statistics — the same
@@ -1229,89 +978,6 @@ const cachedMarketPriceStats = unstable_cache(
   ["market-price-stats-v1"],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
-
-/**
- * Fetch the /market category-routed row payload. Wraps
- * get_market_intel_items, MINUS the trade-press outlets the skill routes
- * to Research (FreightWaves, Loadstar, GreenBiz, Environmental Finance,
- * Splash247, Supply Chain Digital, Edie, Reuters Sustainable Business).
- *
- * WO-13 B4: after the category RPC returns, batch-decorates each resource
- * with `priceStat` from published_price_statistics (see
- * cachedMarketPriceStats above). Live-verified 2026-08-30: of the 48
- * verified, non-archived items this RPC currently returns, exactly 1 has a
- * published_price_statistics row to attach — every other card keeps the
- * honest em-dash. Non-fatal: a price-stat lookup failure leaves every
- * resource's `priceStat` unset, same as before this decoration existed.
- *
- * Falls back to an empty result on error so the page still renders.
- */
-async function getMarketIntelItems(): Promise<CategoryRoutedResult> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    const result = await cachedMarketIntel(orgId);
-    const ids = Array.from(new Set(result.resources.map((r) => r.id).filter(Boolean))).sort();
-    if (ids.length === 0) return result;
-    const statsByItemId = await cachedMarketPriceStats(ids.join(","));
-    return {
-      ...result,
-      resources: result.resources.map((r) =>
-        statsByItemId[r.id] ? { ...r, priceStat: statsByItemId[r.id] } : r
-      ),
-    };
-  } catch (e) {
-    console.error("getMarketIntelItems failed, returning empty:", e);
-    return { resources: [], total: 0 };
-  }
-}
-
-/**
- * Fetch the /research category-routed row payload. Pulls the orphan
- * get_research_items RPC (intergovernmental_body + academic_research +
- * standards_body for non-in-force + proposed primary legal authority)
- * MINUS IMO + ICAO (skill routes those to Regulations), PLUS Research-bound
- * trade-press outlets and Research-bound statistical-data-agency outlets
- * (Carbon Trust, Project Drawdown).
- */
-async function getResearchItems(): Promise<CategoryRoutedResult> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    return await cachedResearch(orgId);
-  } catch (e) {
-    console.error("getResearchItems failed, returning empty:", e);
-    return { resources: [], total: 0 };
-  }
-}
-
-/**
- * Fetch the /operations category-routed row payload. Wraps
- * get_operations_items (statistical_data_agency) MINUS Carbon Trust and
- * Project Drawdown (skill routes those to Research).
- */
-async function getOperationsItems(): Promise<CategoryRoutedResult> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    return await cachedOperations(orgId);
-  } catch (e) {
-    console.error("getOperationsItems failed, returning empty:", e);
-    return { resources: [], total: 0 };
-  }
-}
-
-/**
- * Fetch the /technology category-routed row payload. Wraps
- * get_technology_items (item_type-gated: technology / innovation / tool,
- * migration 134).
- */
-async function getTechnologyItems(): Promise<CategoryRoutedResult> {
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    return await cachedTechnology(orgId);
-  } catch (e) {
-    console.error("getTechnologyItems failed, returning empty:", e);
-    return { resources: [], total: 0 };
-  }
-}
 
 // PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
 // counterparts to getMarketIntelItems/getOperationsItems/getResearchItems above, backing
@@ -1394,35 +1060,6 @@ export async function getPublicOperationsItems(): Promise<CategoryRoutedResult> 
 // citation stats are workspace-agnostic at the data layer (citation
 // counts are per-source platform-wide). Cache key is the sorted+joined
 // sourceIds string.
-
-type SourceCitationStatsMap = Record<string, SourceCitationStat>;
-
-const cachedCitationStats = unstable_cache(
-  async (sortedKey: string): Promise<SourceCitationStatsMap> => {
-    if (!sortedKey) return {};
-    const ids = sortedKey.split(",").filter(Boolean);
-    const map = await fetchSourceCitationStatsByIds(ids);
-    const obj: SourceCitationStatsMap = {};
-    for (const [k, v] of map.entries()) obj[k] = v;
-    return obj;
-  },
-  ["market-citation-stats-v1"],
-  { revalidate: 60, tags: [APP_DATA_TAG] }
-);
-
-async function getSourceCitationStats(
-  sourceIds: string[]
-): Promise<SourceCitationStatsMap> {
-  try {
-    const cleaned = Array.from(
-      new Set(sourceIds.filter((s): s is string => typeof s === "string" && s.length > 0))
-    ).sort();
-    return await cachedCitationStats(cleaned.join(","));
-  } catch (e) {
-    console.error("getSourceCitationStats failed, returning empty:", e);
-    return {};
-  }
-}
 
 /**
  * RECONCILE (2026-09-04, item 4b-i): SSR seed for ObligationRegister.tsx's LIST-variant, UNFILTERED
