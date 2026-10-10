@@ -10,7 +10,7 @@
 // CI on every train, exactly where the meta-gate runs, not folded into the per-file fitness runner
 // (all four checks are holistic, whole-tree analyses, not per-file scans).
 //
-// FOUR CHECKS. STALE-NEXT and WRITER-READER are RATCHET-ONLY (an allowlist entry names a disposition + an
+// FIVE CHECKS (the fifth, STANDING-RED, is described at its own section below). STALE-NEXT and WRITER-READER are RATCHET-ONLY (an allowlist entry names a disposition + an
 // EXPIRY DATE; the gate fails once the clock passes it, so an allowlist entry cannot
 // become a permanent exemption by silence - same non-negotiable shape as F23's GAP_BASELINE and F30's
 // baseline, applied per-item instead of per-category because these are individually named things, not a
@@ -32,6 +32,8 @@
 //                          fails unless allowlisted with the plan item that closes it.
 //   4. LANE-CONTRACT      — docs/dispatches/lane-common-contract.md must carry the plan's §0 definition
 //                          of done verbatim, so every brief that cites the contract inherits it.
+//   5. STANDING-RED       - a PR fails when a workflow's latest two executed runs on master both failed (lane
+//                          MASTER-RED-1, 2026-10-10); a PR touching that workflow or its governing files is exempt.
 //
 // NO TRAIN COUNTER (lane GATE-8, 2026-10-08, coordinator ruling after AUD-AT-5). The old counter (the highest
 // `train/wave<N>` commit reachable from HEAD) had not advanced since 2026-09-11, so every age and every
@@ -50,12 +52,13 @@
 // against the checked-out tree. Safe to run on every push/PR alongside the other meta-gates.
 
 import { readFileSync } from 'node:fs';
-import { resolve, join, dirname } from 'node:path';
+import { resolve, join, dirname, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { scanSchema, scanCode, scanSql, buildOrphanReport } from './producer-consumer-orphan.mjs';
 import { readHarnessLedgerExport, newestLedgerRunAt } from '../../scripts/lib/run-artifact.mjs';
 import { BUILD_MODE } from './build-mode.mjs';
+import { GOVERNING_FILES } from '../../scripts/harness-runs/governing-files.mjs';
 import { hasWorkflowTrigger } from '../fitness/lib/yml-read.mjs';
 import { recordGateFirings } from '../lib/gate-firings.mjs';
 
@@ -147,16 +150,28 @@ export function liveRunEvidence(apiJson) {
   return Number.isNaN(t) ? null : new Date(t);
 }
 
+const DEFAULT_GH_EXEC = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+
+/**
+ * Lane DORMANT-1, shared by lane MASTER-RED-1 (2026-10-10): the ONE Actions API client of this gate. Reads
+ * `repos/{owner}/{repo}/<path>` through `gh api` and parses the JSON. Null when there is no GITHUB_TOKEN (the ledger
+ * export alone decides, off CI); throws on any API failure so each caller decides what a failure means (every caller
+ * here turns it into zero evidence, never a pass). `env` and `exec` are injected so every lookup is fixture-testable.
+ */
+function ghActionsApi(path, { env = process.env, exec = DEFAULT_GH_EXEC } = {}) {
+  if (!env.GITHUB_TOKEN) return null;
+  const repo = env.GITHUB_REPOSITORY || '{owner}/{repo}';
+  return JSON.parse(exec('gh', ['api', `repos/${repo}/${path}`]));
+}
+
 /**
  * Lane DORMANT-1: the newest live run of a workflow file, or null. Runs only when GITHUB_TOKEN is present (CI);
  * without a token the ledger export alone decides. Any API failure is zero evidence, never a pass. `env` and
  * `exec` are injected so the lookup is fixture-testable with no network.
  */
-export function fetchLiveRun(workflowFile, { env = process.env, exec = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }) } = {}) {
-  if (!env.GITHUB_TOKEN) return null;
+export function fetchLiveRun(workflowFile, opts = {}) {
   try {
-    const repo = env.GITHUB_REPOSITORY || '{owner}/{repo}';
-    return liveRunEvidence(JSON.parse(exec('gh', ['api', `repos/${repo}/actions/workflows/${workflowFile}/runs?per_page=1`])));
+    return liveRunEvidence(ghActionsApi(`actions/workflows/${workflowFile}/runs?per_page=1`, opts));
   } catch {
     return null;
   }
@@ -166,11 +181,9 @@ export function fetchLiveRun(workflowFile, { env = process.env, exec = (cmd, arg
  * Lane DORMANT-1: GitHub's own `state` of a workflow file (`active`, `disabled_manually`, `disabled_inactivity`, ...),
  * or null when unknown (no token, any API failure). Same injection and the same token rule as fetchLiveRun.
  */
-export function fetchWorkflowState(workflowFile, { env = process.env, exec = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }) } = {}) {
-  if (!env.GITHUB_TOKEN) return null;
+export function fetchWorkflowState(workflowFile, opts = {}) {
   try {
-    const repo = env.GITHUB_REPOSITORY || '{owner}/{repo}';
-    const state = JSON.parse(exec('gh', ['api', `repos/${repo}/actions/workflows/${workflowFile}`]))?.state;
+    const state = ghActionsApi(`actions/workflows/${workflowFile}`, opts)?.state;
     return typeof state === 'string' ? state : null;
   } catch {
     return null;
@@ -713,6 +726,122 @@ export const STALE_NEXT_ALLOWLIST = {};
 export const WRITER_READER_ALLOWLIST = {};
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// CHECK 5: STANDING-RED (lane MASTER-RED-1, 2026-10-10)
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// THE DEFECT [CONFIRMED: `gh run list --workflow live-smoke.yml`]: the production live smoke was red on every
+// deployment from 2026-10-08 13:44 and no gate, lane or report surfaced it. A workflow that is red on master is
+// invisible to a PR, because a required check only runs on the PR's own ref. This check reads the Actions runs of
+// every tracked workflow on master (the closure gate already holds the Actions client, lane DORMANT-1, and the
+// consistency layer holds none, so the invariant lives here) and fails a PR when a workflow's latest TWO executed
+// runs on master both failed: two consecutive reds are a standing red, not a flake.
+//
+// EXEMPTIONS. A PR whose diff touches the workflow file or any of its governing files (the workflow's harness
+// family governing_files, scripts/harness-runs/<family>/family.json) is exempt for that workflow, so the fix can land.
+// A workflow GitHub reports as disabled (`disabled_manually`, `disabled_inactivity`) is ignored (DORMANT-1).
+// Runs that did not execute (skipped, cancelled) are not in the sequence. Unknown evidence (no token, any API failure,
+// an unreadable diff) never fabricates a red and never grants an exemption.
+
+export const STANDING_RED_BRANCH = 'master';
+const RED_CONCLUSIONS = new Set(['failure', 'timed_out', 'startup_failure']);
+const NOT_EXECUTED_CONCLUSIONS = new Set(['skipped', 'cancelled']);
+
+/**
+ * The newest executed completed runs, newest first, from a `workflow_runs` array (the API returns newest first).
+ * Pure.
+ * @param {Array<{id?: number, status?: string, conclusion?: string|null, head_sha?: string}>} runs
+ */
+export function lastExecutedRuns(runs, count = 2) {
+  const out = [];
+  for (const r of Array.isArray(runs) ? runs : []) {
+    if (r?.status !== 'completed' || NOT_EXECUTED_CONCLUSIONS.has(r.conclusion)) continue;
+    out.push({ id: r.id, sha: r.head_sha ?? null, conclusion: r.conclusion ?? null });
+    if (out.length === count) break;
+  }
+  return out;
+}
+
+function isStandingRed(runs) {
+  const [latest, previous] = lastExecutedRuns(runs);
+  return Boolean(latest && previous && RED_CONCLUSIONS.has(latest.conclusion) && RED_CONCLUSIONS.has(previous.conclusion));
+}
+
+/** The repo-relative governing paths of a workflow file: itself plus its harness family's governing_files (fsi-app-relative). Pure. */
+export function workflowGoverningPaths(workflowFile, { familyByWorkflow = HARNESS_FAMILY_BY_WORKFLOW, governing = GOVERNING_FILES } = {}) {
+  const paths = new Set([`.github/workflows/${workflowFile}`]);
+  for (const g of governing[familyByWorkflow[workflowFile]] ?? []) paths.add(posix.normalize(posix.join(FSI, g)));
+  return [...paths];
+}
+
+/**
+ * PURE CORE. `workflows`: [{ file, state, runs: workflow_runs newest first, governing: repo-relative paths }];
+ * `changedFiles`: the PR's changed paths (array or Set), or null when unknown (no exemption is granted).
+ * A workflow is a standing red when its two newest executed runs both have a red conclusion and GitHub does not
+ * report it disabled. It is then exempt when the diff touches a governing path, else it fails with the workflow, the
+ * run ids and the head shas in the reason.
+ */
+export function checkStandingRed({ workflows, changedFiles = null }) {
+  const changed = changedFiles ? new Set(changedFiles) : null;
+  const failures = [];
+  const exempt = [];
+  const ignoredDisabled = [];
+  for (const w of workflows) {
+    if (!isStandingRed(w.runs)) continue;
+    if (typeof w.state === 'string' && w.state.startsWith('disabled')) { ignoredDisabled.push(w.file); continue; }
+    const touched = changed ? (w.governing ?? []).filter((g) => changed.has(g)) : [];
+    if (touched.length) { exempt.push({ id: `workflow:${w.file}`, touched }); continue; }
+    const [latest, previous] = lastExecutedRuns(w.runs);
+    const desc = (r) => `run ${r.id} (head ${r.sha}, ${r.conclusion})`;
+    failures.push({
+      id: `workflow:${w.file}`,
+      reason: `STANDING-RED: ${w.file} is red on ${STANDING_RED_BRANCH}: its latest two completed runs both failed, ${desc(latest)} then ${desc(previous)}. A required check only runs on a PR's own ref, so this is invisible to a PR until the workflow or one of its governing files (${(w.governing ?? []).join(', ')}) is changed; fix it, or this PR may touch it.`,
+    });
+  }
+  return { ok: failures.length === 0, failures, allowlistIssues: [], exempt, ignoredDisabled };
+}
+
+/**
+ * The newest completed runs of a workflow file on master, or null when unknown (no token, any API failure). Same
+ * client, injection and token rule as fetchLiveRun.
+ */
+export function fetchMasterRuns(workflowFile, opts = {}) {
+  try {
+    const json = ghActionsApi(`actions/workflows/${workflowFile}/runs?branch=${STANDING_RED_BRANCH}&status=completed&per_page=10`, opts);
+    return json && Array.isArray(json.workflow_runs) ? json.workflow_runs : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The paths the PR changes, or null when unknown. A pull_request run sets GITHUB_BASE_REF; HEAD is then the merge
+ * commit, so the three-dot diff against the base is the PR's own change. Any other context (push, local) is null.
+ */
+export function fetchChangedFiles({ env = process.env, exec = (args) => git(args) } = {}) {
+  if (!env.GITHUB_BASE_REF) return null;
+  try {
+    return exec(['diff', '--name-only', `origin/${env.GITHUB_BASE_REF}...HEAD`]).split('\n').map((l) => l.trim()).filter(Boolean);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Live gatherer: every tracked workflow file with the runs it has on master. The platform state is asked only of a
+ * workflow that is a standing red (no API call is spent on a healthy one), so the DORMANT-1 disabled rule applies
+ * without a state lookup per workflow.
+ */
+export function gatherStandingRedWorkflows({ files = trackedFiles().filter((f) => /^\.github\/workflows\/[^/]+\.ya?ml$/.test(f)), runsFn = fetchMasterRuns, stateFn = fetchWorkflowState } = {}) {
+  const out = [];
+  for (const f of files) {
+    const file = f.split('/').pop();
+    const runs = runsFn(file);
+    if (!runs) continue;
+    out.push({ file, runs, state: isStandingRed(runs) ? stateFn(file) : null, governing: workflowGoverningPaths(file) });
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // RUN — one function per check, plus the combined report.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -737,13 +866,18 @@ export function runLaneContractLive() {
   return checkLaneContract(readRepo('docs/dispatches/lane-common-contract.md'));
 }
 
+export function runStandingRedLive() {
+  return checkStandingRed({ workflows: gatherStandingRedWorkflows(), changedFiles: fetchChangedFiles() });
+}
+
 export function runClosureGate() {
   const neverRun = runNeverRunLive();
   const staleNext = runStaleNextLive();
   const writerReader = runWriterReaderLive();
   const laneContract = runLaneContractLive();
-  const ok = neverRun.ok && staleNext.ok && writerReader.ok && laneContract.ok;
-  return { ok, clock: ledgerClock(readHarnessLedgerExport(REPO)), neverRun, staleNext, writerReader, laneContract };
+  const standingRed = runStandingRedLive();
+  const ok = neverRun.ok && staleNext.ok && writerReader.ok && laneContract.ok && standingRed.ok;
+  return { ok, clock: ledgerClock(readHarnessLedgerExport(REPO)), neverRun, staleNext, writerReader, laneContract, standingRed };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -762,6 +896,7 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
     ...r.writerReader.failures.map((f) => ({ message: f.reason, file: f.table })),
     ...r.writerReader.allowlistIssues.map((m) => ({ message: m })),
     ...r.laneContract.failures.map((f) => ({ message: f.reason, file: 'docs/dispatches/lane-common-contract.md' })),
+    ...r.standingRed.failures.map((f) => ({ message: f.reason, file: f.id })),
   ]);
   console.log('\n===== CLOSURE GATE =====');
   console.log(`clock: ${r.clock.now.toISOString()} (${r.clock.source})`);
@@ -770,6 +905,10 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
   console.log(`2. STALE-NEXT    : ${line(r.staleNext)}`);
   console.log(`3. WRITER-READER : ${line(r.writerReader)}  (summary: ${JSON.stringify(r.writerReader.summary)})`);
   console.log(`4. LANE-CONTRACT : ${line(r.laneContract)}`);
+  console.log(`5. STANDING-RED  : ${line(r.standingRed)}`);
+  for (const e of r.standingRed.exempt) console.log(`   note: ${e.id} is a standing red, exempt because this PR touches ${e.touched.join(', ')}`);
+  for (const d of r.standingRed.ignoredDisabled) console.log(`   note: workflow:${d} is a standing red but disabled on the platform: ignored`);
+  for (const f of r.standingRed.failures) console.log(`   ${f.reason}`);
 
   if (report) {
     console.log('\n--- NEVER-RUN failures ---');
