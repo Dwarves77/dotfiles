@@ -33,5 +33,11 @@ Read: COMMON, root `CLAUDE.md`, `schema-diff.mjs` and its test, `pg-conn.mjs` (n
 
 ### NOT done
 
-- The acldefault typing is a [HYPOTHESIS] fix; whether it is the whole cause is proven only by the next chain proof fire, whose gate step now prints the SQLSTATE and message if it fails again. [WORK: owed]
-- The catalog query has no test against a real Postgres in any lane that runs on every PR (only fixture tests); a gate that has never executed was the root of this defect class. [WORK: owed]
+- The acldefault typing is a [HYPOTHESIS] fix; whether it is the whole cause is proven only by the next chain proof fire, whose gate step now prints the SQLSTATE and message if it fails again. [WORK: EXEC-4]
+- The catalog query had no execution proof in any every-PR lane. Closed: migration-proof.yml now runs `schema-diff.mjs --catalog-only --db-url "$PROOF_DB_URL"` on the replayed stack on every PR that touches migrations or fsi-app/scripts/proof, after the replay; the shape test pins the step (removed, moved or un-preflighted is red). [CLOSED: PR 1084]
+
+### Addendum (coordinator rule 15 request)
+
+- `schema-diff.mjs --catalog-only --db-url <url>`: runs `readCatalog` once, loopback only, exit 0 with per-category counts, exit 1 with the printed SQLSTATE and psql error, exit 2 on a usage or non-loopback error.
+- `.github/workflows/migration-proof.yml`: new step after the replay; the scope step now also treats a change under `fsi-app/scripts/proof` as touching (otherwise this PR, which edits no migration, would skip every stack step and the new step would not run on its own PR).
+- `migration-proof-workflow.test.mjs`: the forbidden-words check no longer bans `schema-diff` outright (it bans the oracle comparison flags instead); two new tests, shape and attack (step removed, moved before the replay, preflight dropped).

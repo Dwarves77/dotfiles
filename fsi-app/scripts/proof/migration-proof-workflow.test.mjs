@@ -43,7 +43,8 @@ test("never touches production: contents: read, no secret, no forbidden credenti
   assert.doesNotMatch(CODE, /^ {4}env:/m);
   for (const name of FORBIDDEN_NAMES) assert.ok(!CODE.includes(name), `${name} referenced`);
   assert.doesNotMatch(CODE, /github\.token|GITHUB_TOKEN|GH_TOKEN|gh workflow run/);
-  assert.doesNotMatch(CODE, /dump-production-schema|export-subset|oracle|schema-diff|apply-schema-dump|load-subset/);
+  assert.doesNotMatch(CODE, /dump-production-schema|export-subset|oracle|apply-schema-dump|load-subset/);
+  assert.doesNotMatch(CODE, /schema-diff\.mjs.*--(replayed|oracle)/, "only the read-only --catalog-only entry of schema-diff may run here, never the oracle comparison");
 });
 
 test("the touched-migration decision is made inside the job from the merge commit's diff against its base parent, and fails toward running", () => {
@@ -51,6 +52,7 @@ test("the touched-migration decision is made inside the job from the merge commi
   assert.ok(scope);
   assert.match(scope.body, /id: scope/);
   assert.match(scope.body, /git diff --name-only HEAD\^1 HEAD -- fsi-app\/supabase\/migrations/);
+  assert.match(scope.body, /HEAD\^1 HEAD -- fsi-app\/supabase\/migrations fsi-app\/scripts\/proof\)/, "a pull request that changes the proof harness also runs the stack steps (rule 15: the catalog query is exercised by the PR that edits it)");
   assert.match(scope.body, /rev-parse --verify --quiet 'HEAD\^2'/);
   assert.match(scope.body, /touched=true/);
   assert.match(scope.body, /touched=false/);
@@ -123,4 +125,43 @@ test("the header states what it proves, that production apply follows a green jo
   assert.match(head, /fails EVERY migration\s+#\s+PR until that migration reaches production, by design/);
   assert.match(head, /REQUIRED CHECK, NO PATH FILTER/);
   assert.match(head, /Migration proof \(apply on a local stack\)/);
+});
+
+test("PROOF-9 rule 15: the catalog query runs on the replayed stack on every PR that reaches it, after the replay, read-only, preflighted, against PROOF_DB_URL only", () => {
+  const names = steps().map((s) => s.name);
+  const replay = names.findIndex((n) => /Replay the applied migration files/.test(n));
+  const cat = names.findIndex((n) => /schema catalog query on the replayed stack/.test(n));
+  const apply = names.findIndex((n) => /Apply every pending migration/.test(n));
+  assert.ok(cat > replay && cat < apply, "the catalog step comes after the replay and before the pending apply");
+  const c = steps()[cat];
+  assert.match(c.body, /\n {8}if: steps\.scope\.outputs\.touched == 'true'\n/);
+  assert.match(c.body, /set -o pipefail/);
+  const src = c.body.indexOf('. "$MP_ENV"');
+  const pre = c.body.indexOf("scripts/proof/preflight.mjs");
+  const run = c.body.indexOf("scripts/proof/schema-diff.mjs");
+  assert.ok(src >= 0 && pre > src && run > pre, "source the local env, preflight, then run schema-diff");
+  assert.match(c.body, /node scripts\/proof\/schema-diff\.mjs --catalog-only --db-url "\$PROOF_DB_URL"/);
+  assert.doesNotMatch(c.body, /--oracle|--replayed|PROOF_ORACLE_DB_URL/);
+});
+
+test("PROOF-9 ATTACK: removing the catalog step, moving it before the replay, or dropping its preflight is caught", () => {
+  const check = (text) => {
+    const parts = text.split(/^\s{6}- name: /m).slice(1).map((p) => ({ name: p.split("\n")[0], body: p }));
+    const names = parts.map((p) => p.name);
+    const replay = names.findIndex((n) => /Replay the applied migration files/.test(n));
+    const cat = names.findIndex((n) => /schema catalog query on the replayed stack/.test(n));
+    if (cat < 0 || cat < replay) return false;
+    const b = parts[cat].body;
+    return b.indexOf("scripts/proof/preflight.mjs") >= 0 && b.indexOf("scripts/proof/preflight.mjs") < b.indexOf("schema-diff.mjs");
+  };
+  assert.equal(check(TEXT), true, "the committed workflow passes the check");
+  const start = TEXT.indexOf("      - name: Run the schema catalog query");
+  const end = TEXT.indexOf("      # Every migration production has not applied");
+  assert.ok(start > 0 && end > start);
+  assert.equal(check(TEXT.slice(0, start) + TEXT.slice(end)), false, "step removed");
+  const block = TEXT.slice(start, end);
+  const replayAt = TEXT.indexOf("      # The applied set, per APPLIED-MAP.json");
+  assert.ok(replayAt > 0 && replayAt < start);
+  assert.equal(check(TEXT.slice(0, replayAt) + block + TEXT.slice(replayAt, start) + TEXT.slice(end)), false, "step before the replay");
+  assert.equal(check(TEXT.replace(block, block.replace("          node scripts/proof/preflight.mjs\n", ""))), false, "preflight dropped");
 });
