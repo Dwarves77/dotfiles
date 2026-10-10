@@ -162,6 +162,12 @@ test("session-invalid: ATTACK a /login redirect is reported ALONE under its own 
   assert.deepEqual(found.map((f) => f.invariant), [INVARIANTS.SESSION_INVALID]);
 });
 
+test("console-error: error text is not truncated (a minified React error keeps its arguments)", () => {
+  const long = `Minified React error #418; visit https://react.dev/errors/418?args[]=HTML&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings. ${"x".repeat(300)}`;
+  const [f] = checkConsole([{ type: "error", text: long }]);
+  assert.equal(f.text, long);
+});
+
 // ---- reporting
 test("formatSummary prints one line per distinct finding with url path and truncated text; buildReport counts by invariant", () => {
   const findings = checkSnapshot(base({ textNodes: ["x".repeat(400) + " <<<"], status: 200 }));

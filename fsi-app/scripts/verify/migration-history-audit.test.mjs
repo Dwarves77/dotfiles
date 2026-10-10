@@ -9,6 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { evaluateHistory, ledgerFromRows, run } from "./migration-history-audit.mjs";
 import { RECOVERED_BODY_MARKER } from "../migrations/migration-compare.mjs";
+import { diffRecord } from "./migration-history-diff.mjs";
+import { emptyCatalog } from "./migration-history-objects.mjs";
 
 const recoveredText = (body) =>
   `-- subject: Recovered x\n-- recovered: 2026-10-07 from supabase_migrations.schema_migrations\n-- ledger version: 900\n-- ledger name: rec\n-- body-sha256: ${createHash("sha256").update(body).digest("hex")}\n${RECOVERED_BODY_MARKER}\n${body}`;
@@ -199,6 +201,107 @@ test("run(): drives the audit through an injected client; a clean ledger exits 0
     bad[0].statements = "CREATE TABLE a (id bigint)";
     assert.equal(await run({ connect: async () => client(bad), migDir: dir, log: (m) => logs.push(m) }), 1);
     assert.ok(logs.some((l) => l.includes("CODE_DIFFERS")));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---- lane MIG-HIST-2: recorded code-differs diffs and outside-ledger object verification ----
+
+/** A fixture whose row 001 differs from its file in code, with the diff recorded in the map. */
+function differing() {
+  const f = clean();
+  f.files.set("001_a.sql", "-- subject: a\nCREATE TABLE a (id int);\nCREATE INDEX a_i ON a (id);\n");
+  f.map["001"] = { name: "a", file: "001_a.sql", class: "code-differs" };
+  f.map["001"].diff = diffRecord(f.ledger[0].statements, f.files.get("001_a.sql"));
+  return f;
+}
+
+test("GREEN: a code-differs row whose recorded diff equals the live one passes and is reported as a finding", () => {
+  const r = evaluateHistory(differing());
+  assert.deepEqual(r.failures, []);
+  assert.ok(r.findings.some((x) => x.startsWith("CODE_DIFFERS_RECORDED 001 001_a.sql: file-only, 1 file-only, 0 stored-only")));
+});
+
+test("ATTACK DIFF_RECORD_MISSING: a map regenerated without the diff step names the command to run", () => {
+  const f = differing();
+  delete f.map["001"].diff;
+  const r = evaluateHistory(f);
+  assert.deepEqual(codes(r), ["DIFF_RECORD_MISSING"]);
+  assert.match(r.failures[0].detail, /migration-history-diff\.mjs --export-dir <ledger export> --write/);
+});
+
+test("ATTACK DIFF_DRIFT: the file gains a statement after the diff was recorded", () => {
+  const f = differing();
+  f.files.set("001_a.sql", f.files.get("001_a.sql") + "CREATE INDEX a_j ON a (id);\n");
+  assert.deepEqual(codes(evaluateHistory(f)), ["DIFF_DRIFT"]);
+});
+
+test("ATTACK DIFF_DRIFT: the ledger row is rewritten after the diff was recorded", () => {
+  const f = differing();
+  f.ledger[0].statements = "CREATE TABLE a (id bigint)";
+  assert.deepEqual(codes(evaluateHistory(f)), ["DIFF_DRIFT"]);
+});
+
+test("a header-only or comment-only edit of a recorded code-differs file is not drift", () => {
+  const f = differing();
+  f.files.set("001_a.sql", "/* status: APPLIED (production ledger version 001, as of 2026-10-09) */\n-- a new comment\n" + f.files.get("001_a.sql"));
+  assert.deepEqual(evaluateHistory(f).failures, []);
+});
+
+test("ATTACK CODE_DIFFERS still fires for a NEW difference on a row the map does not class code-differs, and a diff record on such a row is refused", () => {
+  const f = clean();
+  f.ledger[0].statements = "CREATE TABLE a (id bigint)";
+  assert.ok(codes(evaluateHistory(f)).includes("CODE_DIFFERS"));
+  const g = clean();
+  g.map["001"].diff = { class: "file-only", file_only: 1, stored_only: 0, sha256: "0".repeat(64) };
+  assert.deepEqual(codes(evaluateHistory(g)), ["DIFF_ON_NON_DIFFERING"]);
+});
+
+function outside() {
+  const f = clean();
+  f.files.set("202_out.sql", "/* status: APPLIED OUTSIDE LEDGER (no row; evidence: log) [HYPOTHESIS until objects verified] */\n-- subject: o\nCREATE TABLE IF NOT EXISTS public.out_t (id int);\nCREATE FUNCTION public.out_f() RETURNS int LANGUAGE sql AS $$ SELECT 1 $$;\n");
+  f.map["outside:202_out.sql"] = { name: "out", file: "202_out.sql", class: "outside-ledger", note: "log line 1; no row" };
+  const catalog = emptyCatalog();
+  catalog.tables.add("out_t");
+  catalog.functions.add("out_f");
+  return { ...f, catalog };
+}
+
+test("GREEN: with a catalog, an outside-ledger file whose objects are live is verified, not 'unverified'", () => {
+  const r = evaluateHistory(outside());
+  assert.deepEqual(r.failures, []);
+  assert.ok(r.findings.some((x) => x.startsWith("OBJECTS_VERIFIED 202_out.sql")));
+  assert.ok(!r.findings.some((x) => x.startsWith("OBJECTS_UNVERIFIED")));
+});
+
+test("ATTACK OUTSIDE_OBJECT_MISSING: the audit fails an outside-ledger file whose function is absent live", () => {
+  const f = outside();
+  f.catalog.functions.clear();
+  const r = evaluateHistory(f);
+  assert.deepEqual(r.failures.map((x) => `${x.code} ${x.key}`), ["OUTSIDE_OBJECT_MISSING 202_out.sql"]);
+  assert.equal(r.ok, false);
+});
+
+test("run(): reads the live catalog only when the map has an outside-ledger entry, and fails the run on a missing object", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mhaudit-"));
+  try {
+    const f = outside();
+    for (const [name, text] of f.files) writeFileSync(join(dir, name), text);
+    writeFileSync(join(dir, "APPLIED-MAP.json"), JSON.stringify(f.map));
+    const ledgerRows = f.ledger.map((r) => ({ version: r.version, name: r.name, statements: r.statements == null ? null : [r.statements] }));
+    const client = (catalogRows) => {
+      const sqls = [];
+      return { sqls, query: async (sql) => { sqls.push(sql); return /pg_class/.test(sql) ? { rows: catalogRows } : { rows: ledgerRows }; }, end: async () => {} };
+    };
+    const live = [{ kind: "table", a: "out_t", b: null }, { kind: "function", a: "out_f", b: null }];
+    const ok = client(live);
+    assert.equal(await run({ connect: async () => ok, migDir: dir, log: () => {} }), 0);
+    assert.equal(ok.sqls.length, 2, "ledger query plus one catalog query");
+    const gone = client([{ kind: "table", a: "out_t", b: null }]);
+    const logs = [];
+    assert.equal(await run({ connect: async () => gone, migDir: dir, log: (m) => logs.push(m) }), 1);
+    assert.ok(logs.some((l) => l.includes("OUTSIDE_OBJECT_MISSING")));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

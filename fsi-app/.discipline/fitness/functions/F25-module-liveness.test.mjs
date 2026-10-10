@@ -25,6 +25,9 @@ import {
   CI_RUN_SITE_GLOBS,
 } from './F25-module-liveness.mjs';
 import { globFiles } from '../lib/glob.mjs';
+import { getRepoRoot } from '../../lib/context.mjs';
+import { ledgerClock } from '../../governance/closure-gate.mjs';
+import { readHarnessLedgerExport } from '../../../scripts/lib/run-artifact.mjs';
 
 
 // FIXTURE CONSTRUCTION (same convention as F22's test, and for the same reason). These tests need
@@ -142,13 +145,13 @@ test('an unimported module with no allowlist entry is RED', () => {
 });
 
 test('an unimported module WITH an allowlist entry passes', () => {
-  const allow = new Map([['fsi-app/src/lib/x.mjs', { file: 'fsi-app/src/lib/x.mjs', reason: 'r', reviewByPhase: 'p' }]]);
+  const allow = new Map([['fsi-app/src/lib/x.mjs', { file: 'fsi-app/src/lib/x.mjs', reason: 'r', reviewByPhase: 'p', permanent: true }]]);
   assert.deepEqual(auditLiveness(['fsi-app/src/lib/x.mjs'], ['fsi-app/src/lib/x.mjs'], allow), []);
 });
 
 // The half that makes it shrink rather than grandfather.
 test('an allowlist entry whose module GAINED an importer is RED (stale)', () => {
-  const allow = new Map([['fsi-app/src/lib/x.mjs', { file: 'fsi-app/src/lib/x.mjs', reason: 'r', reviewByPhase: 'p' }]]);
+  const allow = new Map([['fsi-app/src/lib/x.mjs', { file: 'fsi-app/src/lib/x.mjs', reason: 'r', reviewByPhase: 'p', permanent: true }]]);
   const problems = auditLiveness([], ['fsi-app/src/lib/x.mjs'], allow);
   assert.equal(problems.length, 1);
   assert.match(problems[0], /now HAS a production importer/);
@@ -368,36 +371,42 @@ test('latestTrainWave: returns null (never throws) when no ref resolves', () => 
   assert.equal(latestTrainWave('/repo', fakeExec), null);
 });
 
-test('auditLiveness: an allowlist entry past its expiry is RED even if otherwise well-formed', () => {
-  const allow = new Map([
-    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', disposition: { kind: 'wire', detail: 'plan §X' }, expiry: 40 }],
-  ]);
-  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, 41);
+// RULES-X-2 (X13): the expiry oracle is the closure ledger clock (a Date), not the frozen waveN counter.
+const X13_FILE = 'fsi-app/scripts/x.mjs';
+const x13 = (extra) => new Map([[X13_FILE, { file: X13_FILE, reason: 'r', reviewByPhase: 'p', ...extra }]]);
+const x13Audit = (allow, now) => auditLiveness([X13_FILE], [X13_FILE], allow, () => true, now);
+
+test('X13: an allowlist entry past its reviewBy date on the ledger clock is RED', () => {
+  const problems = x13Audit(x13({ reviewBy: '2026-10-01' }), new Date('2026-10-09'));
   assert.ok(problems.some((p) => /ALLOWLIST ENTRY EXPIRED/.test(p) && /x\.mjs/.test(p)));
 });
 
-test('auditLiveness: an allowlist entry NOT YET at its expiry passes (given a valid disposition)', () => {
-  const allow = new Map([
-    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', disposition: { kind: 'one-shot', detail: 'already run' }, expiry: 40 }],
-  ]);
-  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, 39);
-  assert.deepEqual(problems, []);
+test('X13: an entry exactly at its reviewBy date is RED (the clock reaches it), one day before passes', () => {
+  assert.ok(x13Audit(x13({ reviewBy: '2026-10-09' }), new Date('2026-10-09')).some((p) => /EXPIRED/.test(p)));
+  assert.deepEqual(x13Audit(x13({ reviewBy: '2026-10-10' }), new Date('2026-10-09')), []);
 });
 
-test('auditLiveness: expiry with no latestWave available (null) never reds on its own — best-effort, not silent-fail', () => {
-  const allow = new Map([
-    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', disposition: { kind: 'wire', detail: 'plan §X' }, expiry: 1 }],
-  ]);
-  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, null);
-  assert.deepEqual(problems, []);
+test('X13: with no clock (null) a dated entry never reds on its own', () => {
+  assert.deepEqual(x13Audit(x13({ reviewBy: '2020-01-01' }), null), []);
 });
 
-test('auditLiveness: an expiry without a valid disposition is RED regardless of the wave', () => {
-  const allow = new Map([
-    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', expiry: 99 }],
-  ]);
-  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, 1);
-  assert.ok(problems.some((p) => /WITH EXPIRY BUT NO DISPOSITION/.test(p)));
+test('X13: an entry with no reviewBy and no permanent flag is RED, and so is a malformed date', () => {
+  assert.ok(x13Audit(x13({}), new Date('2026-10-09')).some((p) => /WITHOUT A REVIEW DATE/.test(p)));
+  assert.ok(x13Audit(x13({ reviewBy: 'soon' }), new Date('2026-10-09')).some((p) => /WITHOUT A REVIEW DATE/.test(p)));
+  assert.deepEqual(x13Audit(x13({ permanent: true }), new Date('2099-01-01')), []);
+});
+
+test('X13: the frozen wave counter no longer decides expiry (an old numeric expiry gives no date and is RED)', () => {
+  assert.ok(x13Audit(x13({ expiry: 99 }), new Date('2026-10-09')).some((p) => /WITHOUT A REVIEW DATE/.test(p)));
+});
+
+test('X13: every live LEGACY_ALLOWLIST entry carries a valid reviewBy or permanent, and none is expired on the committed ledger clock', () => {
+  const root = getRepoRoot();
+  const { now } = ledgerClock(readHarnessLedgerExport(root));
+  for (const e of LEGACY_ALLOWLIST) {
+    assert.ok(e.permanent === true || /^\d{4}-\d{2}-\d{2}$/.test(e.reviewBy), e.file);
+    if (e.permanent !== true) assert.ok(now.getTime() < Date.parse(e.reviewBy), `${e.file} expired`);
+  }
 });
 
 // Lane F25-WAVE52 (2026-09-07, docs/audits/f25-wave52-dispositions-2026-09-07.md) disposed of every

@@ -28,6 +28,7 @@ import { collectSnapshot, collectLinks, collectContent } from "./live-snapshot.m
 import { requirementsForKind, judgeContentRun } from "./live-content.mjs";
 import { candidateLines } from "./live-candidates.mjs";
 import { collectContainers, isNarrowViewport } from "../overflow-rule.mjs";
+import { isHydrationError, headersForRefetch, structuralDiff } from "./live-hydration.mjs";
 import {
   INVARIANTS,
   checkSnapshot,
@@ -77,6 +78,26 @@ export async function signIn(browser, baseUrl, { email, password }, timeoutMs = 
   }
 }
 
+/**
+ * The evidence for a hydration error (lane HYDRA-1): the HTML a second fetch of the same URL with the same headers
+ * returns (the server's document), the post-hydration `document.documentElement.outerHTML`, and the first structural
+ * difference between them. A failure to capture is recorded, never thrown: the diagnostic must not mask the finding.
+ */
+async function captureHydration(ctx, page, navResp, url, viewport, errors) {
+  const out = { url, viewport: viewport.width, errors, serverHtml: null, clientHtml: null, diff: null, note: null };
+  try {
+    out.clientHtml = await page.evaluate(() => document.documentElement.outerHTML);
+    const headers = navResp ? headersForRefetch(await navResp.request().allHeaders()) : {};
+    const resp = await ctx.request.get(url, { headers, timeout: NAV_TIMEOUT_MS });
+    out.serverHtml = await resp.text();
+    out.diff = structuralDiff(out.serverHtml, out.clientHtml);
+    out.note = out.diff ? null : "no element-structure difference between the second fetch and the hydrated document (the mismatch may be text or attribute level, or specific to the first render)";
+  } catch (err) {
+    out.note = `capture failed: ${String(err?.message ?? err).split("\n")[0].slice(0, 160)}`;
+  }
+  return out;
+}
+
 /** Visit one page in a fresh page of `ctx` and return findings plus the page record. */
 async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks = false) {
   const page = await ctx.newPage();
@@ -110,7 +131,10 @@ async function visit(ctx, baseUrl, origin, path, kind, viewport, contentChecks =
     };
     const ctxInfo = { url, viewport: viewport.width };
     const findings = [...checkSnapshot(base), ...checkResponses(responses, origin, ctxInfo), ...checkConsole(consoleMsgs, ctxInfo)];
-    return { findings, record: { url, viewport: viewport.width, kind }, snap: base };
+    // Lane HYDRA-1: on a hydration error keep the two documents that name the diverging node.
+    const hydrationErrors = consoleMsgs.filter((m) => m.type === "error" && isHydrationError(m.text)).map((m) => String(m.text));
+    const hydration = hydrationErrors.length > 0 ? await captureHydration(ctx, page, navResp, url, viewport, hydrationErrors) : null;
+    return { findings, record: { url, viewport: viewport.width, kind }, snap: base, hydrationErrors, hydration };
   } catch (err) {
     return {
       findings: [
@@ -171,11 +195,14 @@ async function probeAdminGate(ctx, baseUrl) {
  * The whole run against `baseUrl`. `browser` is injected so a fixture proof can drive it; credentials come from
  * the caller. Returns { findings, report, lines }.
  */
-export async function runLiveSmoke({ browser, baseUrl, email, password, signInTimeoutMs, contentChecks = false, candidates = null }) {
+export async function runLiveSmoke({ browser, baseUrl, email, password, signInTimeoutMs, contentChecks = false, candidates = null, repeat = 1 }) {
   const origin = new URL(baseUrl).origin;
   const pages = [];
   const findings = [];
   const snapshots = [];
+  const hydrationDiagnostics = [];
+  /** Lane HYDRA-1: visits of the home page at the phone width, the plan's own visit included. */
+  const homeRepeat = { visits: 0, hydrationFailures: 0 };
 
   const storageState = await signIn(browser, baseUrl, { email, password }, signInTimeoutMs);
   if (!storageState) {
@@ -235,10 +262,30 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
         findings.push(...r.findings);
         pages.push(r.record);
         if (r.snap) snapshots.push(r.snap);
+        if (r.hydration) hydrationDiagnostics.push(r.hydration);
+        if (step.kind === "home" && viewport.width === VIEWPORTS[1].width) {
+          homeRepeat.visits += 1;
+          if (r.hydrationErrors?.length) homeRepeat.hydrationFailures += 1;
+        }
       }
       if (viewport.width === VIEWPORTS[0].width) {
         findings.push(...checkAdminProbes(await probeAdminGate(ctx, baseUrl), baseUrl));
       }
+    } finally {
+      await ctx.close();
+    }
+  }
+
+  // Lane HYDRA-1: `repeat` visits of the home page at the phone width in all, each in a fresh context (cold cache, the
+  // signed-in storage state), so the intermittent hydration failure is measured as a rate. The plan's own visit is the first.
+  for (let i = homeRepeat.visits; i < repeat; i++) {
+    const ctx = await browser.newContext({ storageState, viewport: { width: VIEWPORTS[1].width, height: VIEWPORTS[1].height } });
+    try {
+      const r = await visit(ctx, baseUrl, origin, "/", "home", VIEWPORTS[1], false);
+      findings.push(...r.findings);
+      if (r.hydration) hydrationDiagnostics.push(r.hydration);
+      homeRepeat.visits += 1;
+      if (r.hydrationErrors?.length) homeRepeat.hydrationFailures += 1;
     } finally {
       await ctx.close();
     }
@@ -255,7 +302,16 @@ export async function runLiveSmoke({ browser, baseUrl, email, password, signInTi
   }
 
   const report = buildReport({ baseUrl, pages, findings, holds, candidates });
-  return { findings, holds, report, lines: formatSummary(findings, holds) };
+  report.homeRepeat375 = homeRepeat;
+  report.hydrationDiagnostics = hydrationDiagnostics;
+  const lines = formatSummary(findings, holds);
+  const totals = lines.pop(); // the totals line stays last
+  lines.push(`home at 375: ${homeRepeat.visits} visit(s), ${homeRepeat.hydrationFailures} with a hydration error`);
+  for (const d of hydrationDiagnostics) {
+    lines.push(`HYDRATION ${d.viewport}px ${d.url}: ${d.diff ? `first structural difference ${d.diff.path} (server ${d.diff.server}, client ${d.diff.client})` : d.note}`);
+  }
+  lines.push(totals);
+  return { findings, holds, report, lines };
 }
 
 /** The candidate file the workflow's resolver step wrote (live-candidates.mjs), or null when absent or unreadable. */
@@ -282,7 +338,7 @@ async function main() {
   const browser = await chromium.launch();
   let result;
   try {
-    result = await runLiveSmoke({ browser, baseUrl: pre.origin, email: env.LIVE_SMOKE_EMAIL, password: env.LIVE_SMOKE_PASSWORD, contentChecks: true, candidates: readCandidatesFile(env.LIVE_SMOKE_CANDIDATES) });
+    result = await runLiveSmoke({ browser, baseUrl: pre.origin, email: env.LIVE_SMOKE_EMAIL, password: env.LIVE_SMOKE_PASSWORD, contentChecks: true, candidates: readCandidatesFile(env.LIVE_SMOKE_CANDIDATES), repeat: Math.max(1, Math.min(50, Number(env.LIVE_SMOKE_REPEAT) || 1)) });
   } finally {
     await browser.close();
   }
