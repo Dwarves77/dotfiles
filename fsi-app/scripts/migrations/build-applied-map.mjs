@@ -25,6 +25,8 @@
 //
 // Usage: node fsi-app/scripts/migrations/build-applied-map.mjs <reconciliation.json> --export-dir <dir> [--write]
 //   --write   writes fsi-app/supabase/migrations/APPLIED-MAP.json (default: prints it to stdout, dry).
+// Every code-differs entry carries a `diff` record (class, file_only, stored_only, sha256) written by this one entry point
+// through annotateMap (scripts/verify/migration-history-diff.mjs); no second command is run after the generator.
 //
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
@@ -32,6 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { isMainModule } from '../lib/is-main.mjs';
 import { compareStored, isApplyRecordStub } from './migration-compare.mjs';
 import { derivesNeverApplied, isFileKey } from '../../supabase/migrations/_lib/applied-status.mjs';
+import { annotateMap } from '../verify/migration-history-diff.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const MIG_DIR = resolve(HERE, '..', '..', 'supabase', 'migrations');
@@ -211,9 +214,22 @@ export function buildAppliedMap({ reconciliation, readStored, readFile, listFile
   }
   for (const f of Object.keys(FILE_RULINGS)) if (!setB.some((b) => b.file === f)) problems.push(`ruling for a file not in set b: ${f}`);
 
-  const map = {};
-  for (const k of [...entries.keys()].sort()) map[k] = entries.get(k);
-  for (const [k, e] of byFile.sort((x, y) => (x[0] < y[0] ? -1 : 1))) map[k] = e;
+  const plain = {};
+  for (const k of [...entries.keys()].sort()) plain[k] = entries.get(k);
+  for (const [k, e] of byFile.sort((x, y) => (x[0] < y[0] ? -1 : 1))) plain[k] = e;
+
+  // every code-differs entry carries its recorded diff (MIG-HIST-2): one entry point, so a regenerated map is never
+  // left without the record the audit checks (DIFF_RECORD_MISSING)
+  const storedByVersion = new Map();
+  const diffFiles = new Map();
+  for (const [v, e] of Object.entries(plain)) {
+    if (e.class !== 'code-differs' || !e.file) continue;
+    storedByVersion.set(v, readStored(v, e.name));
+    diffFiles.set(e.file, readFile(e.file));
+  }
+  const annotated = annotateMap(plain, storedByVersion, diffFiles);
+  for (const p of annotated.problems) problems.push(p);
+  const map = annotated.map;
 
   const counts = {};
   for (const e of entries.values()) counts[e.class] = (counts[e.class] || 0) + 1;
