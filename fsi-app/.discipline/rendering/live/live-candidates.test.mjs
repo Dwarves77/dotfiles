@@ -135,7 +135,7 @@ test("inference class: an item cited by a visible inference is a candidate; a re
 
 test("inference class: a corpus with NO visible inference resolves to count 0 (the HOLD case), not an error", async () => {
   const none = await resolveInferenceCandidates(fakeRest({ inference_records: [], intelligence_items: [verified("i1")] }));
-  assert.deepEqual(none, { count: 0, visit: [], sample: [], diag: { table_rows: 0, current: 0, current_customer_method: 0, visible_views: 0, cited_visible_items: 0 } });
+  assert.deepEqual(none, { count: 0, visit: [], sample: [], listVisit: [], diag: { table_rows: 0, current: 0, current_customer_method: 0, visible_views: 0, cited_visible_items: 0 } });
   const onlyRefuted = await resolveInferenceCandidates(fakeRest({ inference_records: [inf("r", { status_token: "REFUTED" })], intelligence_items: [verified("i1")] }));
   assert.equal(onlyRefuted.count, 0);
 });

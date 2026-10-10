@@ -29,6 +29,18 @@
 //         population hold (CLAUDE.md rule 16), so there is nothing to judge. A HOLD names the invariant and the count,
 //         is reported and recorded in the run's report, and turns into a FAIL the moment one candidate exists.
 //
+// THE LIST SIDE (lane SMOKE-4, 2026-10-10). A LIST requirement of a conditional class (the record-grade chip, the bias chips
+// on rows) was still judged over whichever list pages the runner visited: the first page of each list. A corpus whose
+// record-grade items sit past that first page failed the grade chip invariant though every candidate was fine. The
+// chooser now also names, per class, `listVisit`: list URLs filtered (`?q=<title>`) to a candidate's row, so the row is on the
+// page by construction. A list requirement is then judged ONLY on those candidate list pages (an unfiltered list can neither
+// rescue nor fail it), exactly as a detail requirement is judged only on the candidate detail pages. Three outcomes:
+//   PASS / FAIL  as above, per viewport, FAIL when a candidate list page was never checked;
+//   HOLD         candidates exist but no list page could be chosen (no candidate has a title to search for): named, carrying the count;
+//   legacy       a candidate file with no `listVisit` key (written before this lane) is judged over every list page as before.
+// A candidate list page is flagged `candidateList` by the runner; the `each` requirements (a tier square on every list) are not
+// asked of a page filtered to one row, whose source need not be rated, but every other invariant still applies to it.
+
 // VISIBLE ONLY. The row renders a desktop and a phone copy of its meta line and CSS hides one; a hidden copy is not
 // content a customer receives. The collector counts visible elements only, so 375 and 1440 are each judged on what
 // that width shows.
@@ -67,6 +79,9 @@ export const CONTENT_REQUIREMENTS = Object.freeze(
     { key: "across-pages-rail@home", invariant: CONTENT_INVARIANT_IDS.ACROSS_PAGES_RAIL, element: "Across pages rail", kind: "home", scope: "each", selector: '[data-audit="across-platform-card"]', minCount: 1, textMin: 100, textPattern: "Connected across pages", childSelector: "a[href]", childMin: 5 },
   ].map((r) => Object.freeze(r)),
 );
+
+/** The candidate classes a LIST requirement is conditional on: the runner visits their `listVisit` pages (lane SMOKE-4). */
+export const LIST_CANDIDATE_CLASSES = Object.freeze([...new Set(CONTENT_REQUIREMENTS.filter((r) => r.candidate && r.kind === "list").map((r) => r.candidate))]);
 
 /** The requirements that apply to one page kind. */
 export const requirementsForKind = (kind) => CONTENT_REQUIREMENTS.filter((r) => r.kind === kind);
@@ -117,7 +132,7 @@ const finding = (req, snap, text) => ({
  * @param {{url:string, kind:string, viewport:{width:number}, status?:number|null, redirectedToLogin?:boolean, content?:Record<string,object[]>|null}} snap
  */
 export function checkContentSnapshot(snap) {
-  if (!snap || snap.redirectedToLogin || !snap.content) return [];
+  if (!snap || snap.redirectedToLogin || !snap.content || snap.candidateList) return [];
   const out = [];
   for (const req of requirementsForKind(snap.kind)) {
     if (req.scope !== "each") continue;
@@ -131,6 +146,10 @@ export function checkContentSnapshot(snap) {
 const samePath = (a, b) => {
   const dec = (x) => { try { return decodeURIComponent(x); } catch { return String(x); } };
   return dec(a) === dec(b);
+};
+/** The path AND query of a page URL (a candidate list page is identified by its `?q=`). */
+const pathAndSearchOf = (u) => {
+  try { const p = new URL(u); return `${p.pathname}${p.search}`; } catch { return String(u ?? ""); }
 };
 
 /**
@@ -184,15 +203,22 @@ export function judgeContentRun(snaps, candidates) {
     if (req.candidate) {
       if (cls === null) { holds.push(holdOf(req, null)); continue; }
       if (cls.count === 0) { holds.push(holdOf(req, 0)); continue; }
+      if (req.kind === "list" && Array.isArray(cls.listVisit) && cls.listVisit.length === 0) {
+        holds.push({ ...holdOf(req, cls.count), reason: `${cls.count} ${req.candidate} candidate item(s) exist but no list page could be chosen to show one (none has a title to search for), so ${req.element} could not be judged` });
+        continue;
+      }
     }
     const candidatePaths = req.candidate && req.kind === "detail" ? cls.visit ?? [] : null;
+    const candidateLists = req.candidate && req.kind === "list" && Array.isArray(cls.listVisit) ? cls.listVisit : null;
     for (const width of widths) {
       let ofKind = withContent.filter((s) => s.kind === req.kind && (s.viewport?.width ?? 0) === width);
       if (candidatePaths) ofKind = ofKind.filter((s) => candidatePaths.some((p) => samePath(p, pathOf(s.url))));
+      if (candidateLists) ofKind = ofKind.filter((s) => candidateLists.some((p) => samePath(p, pathAndSearchOf(s.url))));
       if (ofKind.length === 0) {
         const anchor = withContent.find((s) => (s.viewport?.width ?? 0) === width);
-        const why = candidatePaths
-          ? `${cls.count} ${req.candidate} candidate item(s) exist (${candidatePaths.join(", ") || "none chosen"}) but no candidate page was checked at ${width}px, so ${req.element} could not be judged`
+        const chosen = candidatePaths ?? candidateLists;
+        const why = chosen
+          ? `${cls.count} ${req.candidate} candidate item(s) exist (${chosen.join(", ") || "none chosen"}) but no candidate page was checked at ${width}px, so ${req.element} could not be judged`
           : `no ${req.kind} page was visited at ${width}px, so ${req.element} could not be checked`;
         findings.push(finding(req, { ...anchor, kind: req.kind }, why));
         continue;
@@ -201,7 +227,7 @@ export function judgeContentRun(snaps, candidates) {
       if (usable.length === 0) continue;
       if (usable.some((s) => judgeRequirement(req, s.content[req.key]).ok)) continue;
       const bestReason = judgeRequirement(req, usable[0].content[req.key]).reason;
-      const scope = candidatePaths ? `${cls.count} ${req.candidate} candidate item(s) exist, none of the ${usable.length} candidate page${usable.length === 1 ? "" : "s"}` : `none of ${usable.length} ${req.kind} page${usable.length === 1 ? "" : "s"}`;
+      const scope = candidatePaths || candidateLists ? `${cls.count} ${req.candidate} candidate item(s) exist, none of the ${usable.length} candidate page${usable.length === 1 ? "" : "s"}` : `none of ${usable.length} ${req.kind} page${usable.length === 1 ? "" : "s"}`;
       findings.push(finding(req, usable[0], `${bestReason} (${scope} at ${width}px carried it: ${usable.map((s) => pathOf(s.url)).join(", ")})`));
     }
   }

@@ -168,11 +168,11 @@ const listCandidates = (record, bias) => ({
   classes: {
     inference: { count: 0, visit: [], sample: [], listVisit: [] },
     record: { count: record.count, visit: [], sample: [], listVisit: record.listVisit },
-    bias: { count: bias.count, visit: [], sample: [], listVisit: bias.listVisit },
+    bias: { count: bias.count, visit: bias.visit ?? [], sample: [], listVisit: bias.listVisit },
   },
 });
 const REC = { count: 5, listVisit: ["/regulations?q=Record%20one"] };
-const BIAS = { count: 7, listVisit: ["/market?q=Biased%20one"] };
+const BIAS = { count: 7, visit: ["/market/biased-one"], listVisit: ["/market?q=Biased%20one"] };
 
 test("LIST CHOOSER: the runner visits the filtered list a candidate row sits on, at both viewports, and judges the chip on THAT list", async () => {
   // Every plain list lacks the chips; only the filtered candidate lists carry them. Before SMOKE-4 this failed.
