@@ -138,6 +138,34 @@ test("the composite action starts the stack from a scratch directory holding onl
   for (const name of FORBIDDEN_NAMES) assert.ok(!code.includes(name), `${name} referenced in the composite action`);
 });
 
+// STACK-1 (2026-10-10): the Supabase CLI is pinned to an exact release and the one version lookup that remains is
+// authenticated. "latest" made every stack job depend on an anonymous GitHub API call (rate limited, run 38019007029)
+// and on silent CLI version drift (the CLI decides the stack image tags).
+function cliPinProblems(action) {
+  const problems = [];
+  const code = action.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  const step = code.match(/uses: supabase\/setup-cli@v1\n\s+with:\n((?:\s{8}.*\n?)+)/);
+  if (!step) return ["the Install the Supabase CLI step (supabase/setup-cli@v1 with: block) is missing"];
+  const version = (step[1].match(/^\s+version:\s*(\S+)\s*$/m) || [])[1];
+  if (!version || !/^v?\d+\.\d+\.\d+$/.test(version)) problems.push(`the CLI version must be a literal semver, got ${JSON.stringify(version)} (never latest)`);
+  const token = (step[1].match(/^\s+github-token:\s*(.+?)\s*$/m) || [])[1];
+  if (token !== "${{ github.token }}") problems.push(`github-token must be github.token, got ${JSON.stringify(token)}`);
+  if (!/^\s*#.*\b\d{4}-\d{2}-\d{2}\b.*\bpin/im.test(action)) problems.push("a dated comment stating the pin and that bumping it is a deliberate PR is missing");
+  return problems;
+}
+
+test("the composite action pins the Supabase CLI to an exact release and authenticates the lookup", () => {
+  assert.deepEqual(cliPinProblems(ACTION), []);
+});
+
+test("attack: version latest, a range, a missing version or a missing token is red", () => {
+  assert.ok(cliPinProblems(ACTION.replace(/version: \S+/, "version: latest")).some((p) => /literal semver/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace(/version: \S+/, "version: 2.x")).some((p) => /literal semver/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace(/\n\s+version: \S+/, "")).some((p) => /literal semver/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace(/\n\s+github-token: .*/, "")).some((p) => /github-token/.test(p)));
+  assert.ok(cliPinProblems(ACTION.replace("github-token: ${{ github.token }}", "github-token: ${{ secrets.X }}")).some((p) => /github-token/.test(p)));
+});
+
 test("the export step's secrets are step-scoped (no workflow or job level env), and every later step preflights before its script", () => {
   // no env: block at workflow or job level (indentation 0 or 4)
   assert.doesNotMatch(TEXT, /^env:/m, "workflow-level env present");

@@ -18,8 +18,10 @@
 //       The oracle step. Reads the oracle's own role list from pg_roles AT RUN TIME (never a typed list) and keeps only
 //       the CREATE ROLE, ALTER ROLE and GRANT statements that name a role the oracle does not have. Every PASSWORD '...'
 //       clause is STRIPPED and the output is asserted to carry none, so a secret never reaches the artifact; the output
-//       is role names and attributes only. A statement the filter does not recognise is refused (exit 1), never passed
-//       through. apply-schema-dump.mjs --roles applies this file first.
+//       is role names and attributes only. Session statements that change nothing persistent (RESET, SET name = value,
+//       set_config; see isSessionStatement) are accepted by an explicit grammar and passed through (PROOF-8). Any other
+//       statement the filter does not recognise is refused (exit 1), never passed through. apply-schema-dump.mjs --roles
+//       applies this file first.
 // Exit: 0 = done; 1 = failed (the message names the cause, redacted); 2 = usage error.
 
 import { spawnSync } from "node:child_process";
@@ -45,6 +47,27 @@ const RE_CREATE = new RegExp(`^CREATE ROLE ${IDENT};$`);
 const RE_ALTER = new RegExp(`^ALTER ROLE ${IDENT} `);
 const RE_GRANT = new RegExp(`^GRANT ${IDENT}(?:\\s*,\\s*${IDENT})* TO ${IDENT}(?: |;)`);
 const RE_GRANTED_BY = new RegExp(`GRANTED BY ${IDENT}`);
+
+// SESSION STATEMENTS (PROOF-8, 2026-10-10). The roles dump carries statements that change no persistent state: the Postgres roles
+// dump opens with SET lines (default_transaction_read_only, client_encoding, standard_conforming_strings) and the Supabase CLI
+// appends `RESET ALL;` after its sed pipeline (chain-proof fire 7, run 38020216226: "unrecognised statement ... starts RESET ALL;").
+// They are accepted by this explicit grammar and nothing wider; every other statement is still refused. One statement per line,
+// so a `;` outside a quoted literal ends the grammar and a second statement can never ride along.
+const GUC = "[A-Za-z_][A-Za-z0-9_]*(?:[.][A-Za-z_][A-Za-z0-9_]*)*";
+const SQ = "'(?:[^']|'')*'";
+const SET_ITEM = `(?:${SQ}|[A-Za-z0-9_.+-]+)`;
+const RE_RESET = new RegExp(`^RESET (?:ALL|${GUC});$`);
+const RE_SET = new RegExp(`^SET (?:SESSION )?(${GUC}) (?:=|TO) ${SET_ITEM}(?: *, *${SET_ITEM})*;$`);
+const RE_SET_CONFIG = new RegExp(`^SELECT pg_catalog[.]set_config[(]${SQ}, ${SQ}, (?:false|true)[)];$`);
+const SET_IDENTITY = new Set(["role", "session_authorization"]);
+
+/** True for a statement that only changes or resets session configuration: RESET ALL|name, SET [SESSION] name =|TO value(s), SELECT pg_catalog.set_config('n','v',bool). PURE. SET ROLE and SET SESSION AUTHORIZATION change identity, not configuration, and are not session statements. */
+export function isSessionStatement(line) {
+  const s = String(line);
+  if (RE_RESET.test(s) || RE_SET_CONFIG.test(s)) return true;
+  const m = RE_SET.exec(s);
+  return Boolean(m) && !SET_IDENTITY.has(m[1].toLowerCase());
+}
 
 /** The supabase CLI arguments for a roles-only dump (the same --db-url and -f as the schema dump, plus --role-only). PURE. */
 export function roleDumpArgs(url, out) {
@@ -77,20 +100,23 @@ export function filterRoles(text, existing) {
   text = String(text ?? "").split(/\r?\n/).map((l) => (l.startsWith("--") ? l : stripPasswords(l))).join("\n");
   const fresh = new Set(newRoleNames(text, existing));
   const keep = [];
+  const emit = []; // every line written, in dump order: persistent statements kept (also in `keep`) and the accepted session statements
+  const push = (l) => { keep.push(l); emit.push(l); };
   for (const line of String(text ?? "").split(/\r?\n/)) {
-    if (line === "" || line.startsWith("--") || line.startsWith("\\") || /^SET [^;]*;$/.test(line)) { continue; }
+    if (line === "" || line.startsWith("--") || line.startsWith("\\")) { continue; }
+    if (isSessionStatement(line)) { emit.push(line); continue; }
     let m;
-    if ((m = RE_CREATE.exec(line))) { if (fresh.has(parseIdent(m[1]))) keep.push(line); continue; }
-    if ((m = RE_ALTER.exec(line))) { if (fresh.has(parseIdent(m[1]))) keep.push(line); continue; }
+    if ((m = RE_CREATE.exec(line))) { if (fresh.has(parseIdent(m[1]))) push(line); continue; }
+    if ((m = RE_ALTER.exec(line))) { if (fresh.has(parseIdent(m[1]))) push(line); continue; }
     if (RE_GRANT.test(line)) {
       const body = line.replace(RE_GRANTED_BY, "");
       const idents = [...body.matchAll(new RegExp(IDENT, "g"))].map((x) => parseIdent(x[1])).filter((n) => !["GRANT", "TO", "WITH", "INHERIT", "SET", "ADMIN", "TRUE", "FALSE", "OPTION"].includes(n.toUpperCase()) || fresh.has(n));
-      if (idents.some((n) => fresh.has(n))) keep.push(line);
+      if (idents.some((n) => fresh.has(n))) push(line);
       continue;
     }
     throw new Error(`unrecognised statement in the roles dump (starts "${line.slice(0, 24).replace(/[^\x20-\x7e]/g, "?")}"): refused, not passed through`);
   }
-  const outText = keep.length ? keep.join("\n") + "\n" : "";
+  const outText = keep.length ? emit.join("\n") + "\n" : ""; // nothing persistent to create: an empty file, session statements alone are not written
   const left = passwordProblems(outText);
   if (left.length) throw new Error(`a PASSWORD clause survived the strip (${left[0]}); refused, a secret must never reach the artifact`);
   return { text: outText, created: [...fresh], kept: keep.length };
