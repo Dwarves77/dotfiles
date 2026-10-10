@@ -45,4 +45,4 @@ Read: root `CLAUDE.md`, COMMON, `live-content.mjs`, `live-smoke.mjs`, `live-snap
 
 ## Open items
 
-- The record-grade list chip and the list-row bias chips are judged over the list pages the smoke visits, so a corpus whose record-grade items are not on a visited list page would fail the grade chip invariant; the first production run after the population hold ends shows whether that needs a list-side chooser. [WORK: owed]
+- The record-grade list chip and the list-row bias chips are judged over the list pages the smoke visits, so a corpus whose record-grade items are not on a visited list page would fail the grade chip invariant; the first production run after the population hold ends shows whether that needs a list-side chooser. [WORK: SMOKE-4]
