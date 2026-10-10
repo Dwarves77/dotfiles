@@ -25,6 +25,7 @@
 // The report holds counts and names only. It never holds a definition's text and never row data.
 //
 // Usage: node scripts/proof/schema-diff.mjs --replayed <url> --oracle <url> --out <path>   (both loopback only)
+//        node scripts/proof/schema-diff.mjs --catalog-only --db-url <url>   (loopback only; runs the catalog query once, exit 1 with the cause on error)
 // Exit: 0 = identical; 1 = they differ, or a side could not be read; 2 = usage error or a non-loopback URL.
 
 import { spawnSync } from "node:child_process";
@@ -152,9 +153,26 @@ export function summarizeDiff(d) {
   return lines.join("\n");
 }
 
+/** The read-only entry (rule 15): run the catalog query once on one database, so every PR that touches the stack proves the query on a real server.
+ *  Returns { status, lines }: 0 with one counts line, or 1 with the printed cause (SQLSTATE and psql error text). `read` is injectable. */
+export function catalogOnly(url, read = readCatalog) {
+  const r = read({ url });
+  if (r.error) return { status: 1, lines: [`schema-diff: the catalog query failed on the stack${r.error.code ? ` (${r.error.code})` : ""}: ${r.error.message}`] };
+  const counts = CATEGORIES.map((c) => `${c} ${Object.keys(r.catalog?.[c] ?? {}).length}`).join(", ");
+  return { status: 0, lines: [`schema-diff: the catalog query ran on the stack: ${counts}`] };
+}
+
 function arg(name) { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; }
 
 if (isMainModule(import.meta.url)) {
+  if (process.argv.includes("--catalog-only")) {
+    const dbUrl = arg("--db-url");
+    if (!dbUrl) { console.error("schema-diff: --catalog-only needs --db-url"); process.exit(2); }
+    try { assertLoopbackDbUrl(dbUrl); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }
+    const c = catalogOnly(dbUrl);
+    for (const l of c.lines) (c.status === 0 ? console.log : console.error)(l);
+    process.exit(c.status);
+  }
   const [replayedUrl, oracleUrl, out] = [arg("--replayed"), arg("--oracle"), arg("--out")];
   if (!replayedUrl || !oracleUrl || !out) { console.error("schema-diff: --replayed, --oracle and --out are required"); process.exit(2); }
   try { assertLoopbackDbUrl(replayedUrl); assertLoopbackDbUrl(oracleUrl); } catch (e) { console.error(`schema-diff: ${e.message}`); process.exit(2); }

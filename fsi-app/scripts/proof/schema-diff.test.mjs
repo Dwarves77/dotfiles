@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { diffCatalogs, readCatalog, summarizeDiff, CATALOG_QUERY, CATEGORIES } from "./schema-diff.mjs";
+import { diffCatalogs, readCatalog, catalogOnly, summarizeDiff, CATALOG_QUERY, CATEGORIES } from "./schema-diff.mjs";
 
 const CATALOG = {
   tables: { items: "t1", sources: "t2" },
@@ -217,5 +217,29 @@ test("ATTACK: the CLI refuses a non-loopback URL (exit 2) and needs all three ar
     assert.match(bad.stderr, /loopback/);
     assert.equal(spawnSync(process.execPath, [script], { encoding: "utf8" }).status, 2);
     assert.ok(readFileSync(script, "utf8").length > 0);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("PROOF-9: --catalog-only runs the query once and reports counts, or exits 1 with the printed cause", () => {
+  const ok = catalogOnly("x", () => ({ catalog: CATALOG, error: null }));
+  assert.equal(ok.status, 0);
+  assert.match(ok.lines[0], /the catalog query ran on the stack: tables \d+/);
+  const bad = catalogOnly("x", () => ({ catalog: null, error: { code: "42883", message: "psql exited with status 3: ERROR:  42883: function acldefault(text, oid) does not exist" } }));
+  assert.equal(bad.status, 1);
+  assert.match(bad.lines[0], /\(42883\).*acldefault\(text, oid\) does not exist/);
+});
+
+test("PROOF-9: the --catalog-only CLI needs --db-url, refuses a non-loopback URL (2), and exits 1 with the cause when psql cannot run", () => {
+  const script = fileURLToPath(new URL("./schema-diff.mjs", import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), "schema-diff-"));
+  try {
+    assert.equal(spawnSync(process.execPath, [script, "--catalog-only"], { encoding: "utf8" }).status, 2);
+    const far = spawnSync(process.execPath, [script, "--catalog-only", "--db-url", "postgresql://postgres:pw@db.abcdefghijklmnop.supabase.co:5432/postgres"], { encoding: "utf8" });
+    assert.equal(far.status, 2);
+    assert.match(far.stderr, /loopback/);
+    const r = spawnSync(process.execPath, [script, "--catalog-only", "--db-url", "postgresql://postgres:pw9@127.0.0.1:54322/postgres"], { encoding: "utf8", env: { PATH: dir } });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /the catalog query failed on the stack.*could not run psql/);
+    assert.ok(!r.stderr.includes("pw9"));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
