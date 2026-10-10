@@ -1,0 +1,16 @@
+[
+  {
+    "path": "api/telemetry/error/route.ts",
+    "method": "POST",
+    "persona": "P2",
+    "register": "R118",
+    "reason": "Any signed-in user may report a client error: the route writes error_events keyed to the caller after a session check by design (register AT2-9), so a viewer's 2xx is the intended behaviour, not a write that lacks a role check."
+  },
+  {
+    "path": "api/telemetry/error/route.ts",
+    "method": "POST",
+    "persona": "P3",
+    "register": "R118",
+    "reason": "Any signed-in user may report a client error, whatever organisation they belong to (register AT2-9)."
+  }
+]
