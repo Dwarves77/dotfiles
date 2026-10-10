@@ -341,7 +341,13 @@ test('DO-AST-1: a template literal with a variable prefix names the docs file it
   );
   assert.ok(set.has('docs/zz/template-read.md'));
   assert.ok(set.has('fsi-app/.discipline/zz/nested-template.md'));
-  assert.ok(![...set].some((p) => p.includes('${') || p.includes('\0')), 'a path with an unresolved interpolation is never listed');
+  assert.ok(![...set].some((p) => p.includes('${') || p.includes('\0')), 'an interpolation never leaks into a listed path');
+  assert.ok(set.has('docs/zz/*.md'), 'an interpolated file name after the docs root is a one-segment glob');
+  assert.equal(isGoverningDocPath('docs/zz/anything.md', set), true);
+  assert.equal(isGoverningDocPath('docs/zz/sub/deeper.md', set), false);
+  assert.equal(isGoverningDocPath('docs/other/anything.md', set), false);
+  const mid = scan('const a = readFileSync(`${root}/docs/${area}/INDEX.md`);');
+  assert.ok(mid.has('docs/*/INDEX.md'), 'a mid-path interpolation keeps its trailing static segment');
 });
 
 test('DO-AST-2: a path on a later line of a read call, and a join spread over lines, are reads', () => {
@@ -373,10 +379,16 @@ test('DO-AST-3: a path bound to a name (any case) and read in a later statement 
       "var r;",
       "r = 'docs/zz/assigned.md';",
       'const body = readFileSync(p, "utf8") + readFileSync(q) + readFileSync(r);',
+      "const unusedPath = 'docs/zz/bound-never-read.md';",
+      "const PROGRAM_DOC = 'docs/zz/upper-constant.md';",
       "const cfg = { file: 'docs/zz/property.md' };",
     ].join('\n'),
   );
-  for (const want of ['docs/zz/bound-template.md', 'docs/zz/bound-lower.md', 'docs/zz/assigned.md', 'docs/zz/property.md']) assert.ok(set.has(want), want);
+  for (const want of ['docs/zz/bound-template.md', 'docs/zz/bound-lower.md', 'docs/zz/assigned.md', 'docs/zz/upper-constant.md']) assert.ok(set.has(want), want);
+  // A name bound to a docs path counts when the name reaches a read call; one that never does (a fixture
+  // field, an unused local) is not a read.
+  assert.ok(!set.has('docs/zz/bound-never-read.md'));
+  assert.ok(!set.has('docs/zz/property.md'));
 });
 
 test('DO-AST-4: comments, prose, plain lists and non-read arguments still name no read', () => {
