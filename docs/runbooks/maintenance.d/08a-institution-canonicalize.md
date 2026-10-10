@@ -1,7 +1,7 @@
 ## 8a. `institution-canonicalize`
 
-**Purpose**: three parts, guarded by SKILL.md section 3 ("Canonical institutional tier - one tier per
-institution") and ADR-002 (`base_tier` "never changes except via explicit operator override"):
+**Purpose**: three parts, guarded by the source-credibility-model skill's "Canonical institutional tier - one tier per
+institution" (`fsi-app/.claude/skills/source-credibility-model/references/authority-floor-and-canonical-tier.md`) and ADR-002 (`base_tier` "never changes except via explicit operator override"):
 
 - **Part A - mis-keyed institution merge.** An `institutions` row keyed to a GENERIC HOSTING domain
   (`amazonaws.com`, `cloudfront.net`, ... - a document was registered by WHERE it happened to be hosted,
@@ -26,7 +26,7 @@ institution") and ADR-002 (`base_tier` "never changes except via explicit operat
 `C2-rulings-vs-implementation.md` found `ifrs.org` / `cdp.net` / `sciencebasedtargets.org` worklisted at
 STEP SOURCE (`scripts/mint/heal-provenance.mjs`'s `classifyCitedUrlForOrphan`,
 `status: "worklist_ambiguous_host"`) because `classTierForHost` matched no rule for them, even though
-SKILL.md section 3 rates a standards body's OWN text T4 - the same tier an accredited CAB's own official acts
+the source-credibility-model skill (`references/authority-floor-and-canonical-tier.md`) rates a standards body's OWN text T4 - the same tier an accredited CAB's own official acts
 already get. **Operator ruling (2026-09-04, verbatim): "you know how to classify, fix it … T4."**
 `host-authority.ts` now carries a `standards_body` class (`STANDARDS_BODY_ALLOW`, curated - same posture as
 the existing `ASSOCIATION_ALLOW`, never a fuzzy `.org` rule) covering the three named hosts, plus GHG

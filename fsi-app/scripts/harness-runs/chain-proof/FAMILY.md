@@ -8,8 +8,10 @@ Supabase stack on the runner and builds its schema by REPLAYING THE REPO'S MIGRA
 `fsi-app/supabase/migrations/APPLIED-MAP.json` read by `applied-map.mjs`, order from `docs/inventories/migrations.md`,
 stops on the first error, no tolerate list, no continue-on-error).
 In the credentialed export step (the only step holding production credentials) a schema-only dump of production is
-written to runner disk (`dump-production-schema.mjs`) and applied to a second database, `oracle_check`
-(`create-oracle-db.mjs`, `apply-schema-dump.mjs`). `schema-diff.mjs` is the gate: the replayed schema and the dump
+written to runner disk (`dump-production-schema.mjs`), with the production roles beside it (`dump-roles.mjs`,
+`supabase db dump --role-only`, PASSWORD clauses stripped). The oracle is a second Postgres cluster, a container beside
+the stack (`create-oracle-db.mjs`, PROOF-6); the roles file, then the dump, are applied to it as `supabase_admin` with
+ON_ERROR_STOP=1 and no role or ownership statement rewritten (`apply-schema-dump.mjs`). `schema-diff.mjs` is the gate: the replayed schema and the dump
 must be identical (tables, columns, types, defaults, constraints, indexes, functions, triggers, policies; names and
 definition hashes, never rows) or the job fails with the counts and the names of the differing objects. Only then
 do the subset load, the chain steps in hop order with read-back assertions, and the attack suite run. Each later step

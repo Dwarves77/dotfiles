@@ -42,8 +42,10 @@ mode, against a real schema, with read-back assertions and the attack suite) has
    An applied row with no file is NOT in itself an error (a later master migration retroactively captured the DDL of
    many ledger rows, and some rows were data-only loads from a closed lane); a ledger version with no map entry is.
 3. A schema-only dump of production is the ORACLE, not the copy. The credentialed export step writes it to runner
-   disk (`supabase db dump`, schema only, Supabase-managed schemas excluded, no roles); it is applied to a second
-   database on the stack (`oracle_check`); and `scripts/proof/schema-diff.mjs` compares the replayed schema with it
+   disk (`supabase db dump`, schema only, Supabase-managed schemas excluded, no roles in the schema dump; production
+   roles are exported separately and created first, see the Addendum 2026-10-10); it is applied to a second
+   Postgres cluster (a container beside the stack, amended 2026-10-09 by PROOF-6; originally a second database,
+   `oracle_check`, in the stack); and `scripts/proof/schema-diff.mjs` compares the replayed schema with it
    (tables, columns, types, defaults, constraints, indexes, functions, triggers, policies; names and definition
    hashes, never rows). The difference must be empty, or the job fails at that step with the counts and the names of
    the differing objects in the log and the artifact. A production data subset is then exported read only and
@@ -104,13 +106,42 @@ Facts and rulings that landed after this ADR was written. The operating detail i
    `007_rls_community`, `007_full_brief`) are ruled class `outside-ledger` by the coordinator on 2026-10-08, on the
    evidence of replay run 37779804328 (`035_agent_integrity_flags.sql` depends on `intelligence_items.full_brief`,
    created only in `007_full_brief.sql`; the siblings by the same shape). Source: the MIG-CI session log
-   (`docs/ops/session-log.d/2026-10-08-migci-apply-on-stack.md`, on the PR 1019 branch until it merges) and PR 1013 for
-   the map they are re-keyed in. The re-key takes effect when PR 1019 merges; master at 204d919f still lists them as
+   (`docs/ops/session-log.d/2026-10-08-migci-apply-on-stack.md`, on master since PR 1019 merged, 2026-10-09) and PR 1013 for
+   the map they are re-keyed in. The re-key took effect when PR 1019 merged (2026-10-09); master at 204d919f listed them as
    `duplicate-prefix`.
 4. Replay order. Decision 2 says the order is `docs/inventories/migrations.md`. The coordinator ruled on 2026-10-08
    that the replay applies by ledger version ascending, an outside-ledger file right after the ledgered file that
-   precedes it in the inventory, a doubly claimed file once at the earlier version (`orderByLedger`, PR 1019). Until
-   that merges, the inventory order stands on master.
+   precedes it in the inventory, a doubly claimed file once at the earlier version (`orderByLedger`, PR 1019). The
+   ledger order is on master since PR 1019 merged (2026-10-09).
 5. The same stack now also proves pending migrations before production: the `migration-proof` pull_request job
    (`.github/workflows/migration-proof.yml`, runbook file `68-migration-proof.md`) replays the applied set and applies every migration
-   production has not applied. In flight: PR 1019, not merged at this entry.
+   production has not applied. PR 1019 merged 2026-10-09 (65b18aafc).
+
+## Addendum 2026-10-10 (docs pass DOCS-5; PROOF-6 to PROOF-9 amend decision 3, rewrite nothing above)
+
+Facts from the PROOF-6 to PROOF-9 session logs and the run artifacts; the operating detail is in
+[runbook 64](../runbooks/maintenance.d/64-chain-proof.md).
+
+1. The oracle is a second cluster (PROOF-6, PR 1065). A schema dump applied as the stack's ordinary role failed with
+   2738 fatal errors (run 37876624407: extensions outside the `postgres` database, a schema it did not own). The oracle
+   is now a second container from the stack's own database image on loopback port 54399, applied as `supabase_admin`
+   with `ON_ERROR_STOP=1`. No role or ownership statement in the dump is rewritten, stripped or tolerated (coordinator
+   ruling).
+2. Roles come first (PROOF-7, PR 1070, and PROOF-7b). pg_dump's schema dump omits roles, so fire 6 (37894782168)
+   failed on `role "reconciler" does not exist`. The credentialed export step also runs `supabase db dump --role-only`
+   (version-matched; a local pg_dumpall was rejected for its version mismatch with the Postgres 17 server). The oracle
+   step filters the roles file against the oracle's own role list read at run time (never a typed list), strips every
+   PASSWORD clause, and applies it before the dump. `apply-schema-dump.mjs`'s `missing_roles` check remains the attack:
+   a dump naming a role absent from the roles file is red.
+3. The roles filter is a grammar (PROOF-8, PR 1081). The CLI ends its output with `RESET ALL;`; the first filter refused it
+   (fire 7, 38020216226). `isSessionStatement` accepts `RESET`, `SET <guc>`, and `set_config` and refuses `SET ROLE` and
+   `SET SESSION AUTHORIZATION`; every other statement is still refused.
+4. The gate names its failures (PROOF-9, PR 1084). Fire 8 (38032421565) could not read the replayed schema and printed no
+   cause. `readCatalog` now returns the SQLSTATE and message, redacted; the catalog read is also exercised on the
+   replayed stack by the `migration-proof` PR job (`schema-diff.mjs --catalog-only`), so a broken catalog query fails a
+   PR, not only a dispatch.
+5. First drift finding [CONFIRMED: run 38058989236, `replay-schema-diff.json`]. Fire 9 replayed 347 of 347 migrations,
+   applied roles and dump with 0 errors, and the schema oracle gate failed with 562 differing objects between the
+   replayed schema and production: the largest groups are 135 changed and 7 production-only policies, 240 changed and
+   102 production-only grants, 23 changed functions, 24 changed and 6 production-only constraints. Decision 3's gate
+   did its job; resolving the drift is migration-history work, not a relaxation of the gate.
