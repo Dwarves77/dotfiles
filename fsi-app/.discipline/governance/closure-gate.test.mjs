@@ -296,9 +296,20 @@ test('LIVE: LANE-CONTRACT is green on this tree', () => {
   assert.equal(r.ok, true, r.failures.map((f) => f.reason).join('\n'));
 });
 
+// Lane MASTER-RED-1: STANDING-RED reads the live state of master's Actions runs and is evaluated only in a pull_request
+// run (GITHUB_BASE_REF set). A test that asserts the COMMITTED TREE is green runs outside that context, because the
+// live state of master is outside any tree; the gate step in discipline.yml carries the real verdict and the logic is
+// proven on fixtures at the end of this file.
+function outsidePrRun(fn) {
+  const before = process.env.GITHUB_BASE_REF;
+  delete process.env.GITHUB_BASE_REF;
+  try { return fn(); } finally { if (before !== undefined) process.env.GITHUB_BASE_REF = before; }
+}
+
 test('LIVE: the combined closure gate is green', () => {
-  const r = runClosureGate();
+  const r = outsidePrRun(() => runClosureGate());
   assert.equal(r.ok, true);
+  assert.match(r.standingRed.skipped, /not a pull_request run/);
 });
 
 test('LIVE: every allowlist entry names a non-empty disposition and an ISO until date (the ratchet shape itself is honest)', () => {
@@ -419,7 +430,7 @@ test('AUD-AT-5: the train counter is gone from the closure gate (no symbol, no g
     assert.equal(code.includes(gone), false, `${gone} must not survive in closure-gate.mjs`);
   }
   assert.equal(typeof closureGate.parseTrainCommits, 'undefined');
-  const r = runClosureGate();
+  const r = outsidePrRun(() => runClosureGate());
   assert.equal(r.ok, true);
   assert.ok(r.clock.now instanceof Date && ['ledger-captured-at', 'ledger-newest-run', 'wall-clock'].includes(r.clock.source));
   assert.equal('currentTrain' in r, false);
@@ -450,7 +461,7 @@ test("GATE-9 exit status: closure-gate.mjs exits 0 on the committed tree, and it
   const { fileURLToPath } = await import("node:url");
   const { withoutCredentials } = await import("../../scripts/lib/env-file.mjs");
   const script = fileURLToPath(new URL("./closure-gate.mjs", import.meta.url));
-  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: withoutCredentials() });
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...withoutCredentials(), GITHUB_BASE_REF: "" } });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /closure gate PASS/);
   const src = readFileSync(script, "utf8");
@@ -587,4 +598,133 @@ test('DORMANT-1: the gatherer asks for the platform state only of a workflow wit
   assert.equal(stateAsked.includes('data-audit-lane.yml'), true);
   assert.equal(byId.get('workflow:data-audit-lane.yml').platformState, 'disabled_manually');
   assert.equal(byId.get('workflow:uptime-probes.yml').platformState, null);
+});
+
+// ---- lane MASTER-RED-1 (2026-10-10): CHECK 5, STANDING-RED. A workflow red twice running on master fails a PR ----
+// Fixture-only: every Actions answer below comes from a fake client (injected exec / runsFn / stateFn); no live call.
+
+const run = (id, conclusion, sha = `sha${id}`, status = 'completed') => ({ id, conclusion, head_sha: sha, status });
+const wf = (file, runs, extra = {}) => ({ file, runs, state: 'active', governing: closureGate.workflowGoverningPaths(file), ...extra });
+const standing = (workflows, changedFiles = null) => closureGate.checkStandingRed({ workflows, changedFiles });
+
+test('MASTER-RED-1: one red and one green passes, in either order', () => {
+  assert.equal(standing([wf('live-smoke.yml', [run(2, 'failure'), run(1, 'success')])]).ok, true, 'latest red, previous green');
+  assert.equal(standing([wf('live-smoke.yml', [run(2, 'success'), run(1, 'failure')])]).ok, true, 'latest green, previous red');
+  assert.equal(standing([wf('live-smoke.yml', [run(1, 'failure')])]).ok, true, 'one run only is not a standing red');
+  assert.equal(standing([wf('live-smoke.yml', [])]).ok, true, 'no run on master');
+});
+
+test('MASTER-RED-1: two consecutive reds FAIL, and the text names the workflow, both run ids and both head shas', () => {
+  const r = standing([wf('live-smoke.yml', [run(222, 'failure', 'aaaa1111'), run(111, 'failure', 'bbbb2222')])]);
+  assert.equal(r.ok, false);
+  assert.equal(r.failures.length, 1);
+  const text = r.failures[0].reason;
+  for (const needle of ['live-smoke.yml', '222', '111', 'aaaa1111', 'bbbb2222', 'STANDING-RED']) assert.ok(text.includes(needle), `${needle} in: ${text}`);
+});
+
+test('MASTER-RED-1: timed_out and startup_failure are reds too; skipped and cancelled runs are not in the sequence', () => {
+  assert.equal(standing([wf('a.yml', [run(2, 'timed_out'), run(1, 'startup_failure')])]).ok, false);
+  assert.equal(standing([wf('a.yml', [run(3, 'failure'), run(2, 'cancelled'), run(1, 'failure')])]).ok, false, 'a cancelled run between two reds does not break the streak');
+  assert.equal(standing([wf('a.yml', [run(3, 'skipped'), run(2, 'failure'), run(1, 'success')])]).ok, true, 'a skipped run is not the latest');
+  assert.equal(standing([wf('a.yml', [run(2, 'failure', 'x', 'in_progress'), run(1, 'failure')])]).ok, true, 'an unfinished run is not a completed run');
+});
+
+test('MASTER-RED-1: two reds plus a PR touching the workflow file passes, and the result says why', () => {
+  const r = standing([wf('live-smoke.yml', [run(2, 'failure'), run(1, 'failure')])], ['.github/workflows/live-smoke.yml', 'README.md']);
+  assert.equal(r.ok, true);
+  assert.equal(r.exempt.length, 1);
+  assert.deepEqual(r.exempt[0].touched, ['.github/workflows/live-smoke.yml']);
+});
+
+test('MASTER-RED-1: a PR touching one of the family governing files (family.json governing_files) is exempt', () => {
+  const gov = closureGate.workflowGoverningPaths('live-smoke.yml');
+  assert.ok(gov.includes('fsi-app/.discipline/rendering/live/live-assertions.mjs'), gov.join());
+  assert.ok(gov.includes('fsi-app/scripts/turns/emit-live-smoke-artifact.mjs'));
+  const reds = [run(2, 'failure'), run(1, 'failure')];
+  assert.equal(standing([wf('live-smoke.yml', reds)], ['fsi-app/.discipline/rendering/live/live-assertions.mjs']).ok, true);
+});
+
+test('MASTER-RED-1: the exemption is per workflow and needs a real touch (attacks: unrelated file, another workflow, unknown diff)', () => {
+  const reds = [run(2, 'failure'), run(1, 'failure')];
+  assert.equal(standing([wf('live-smoke.yml', reds)], ['fsi-app/src/app/page.tsx']).ok, false, 'an unrelated change does not exempt');
+  assert.equal(standing([wf('live-smoke.yml', reds)], ['.github/workflows/other.yml']).ok, false, 'a different workflow does not exempt');
+  assert.equal(standing([wf('live-smoke.yml', reds)], null).ok, false, 'an unreadable diff grants no exemption');
+  assert.equal(standing([wf('live-smoke.yml', reds)], []).ok, false, 'an empty diff grants no exemption');
+  const two = standing([wf('live-smoke.yml', reds), wf('chain-proof.yml', reds)], ['.github/workflows/live-smoke.yml']);
+  assert.equal(two.ok, false, 'touching live-smoke does not excuse chain-proof');
+  assert.deepEqual(two.failures.map((f) => f.id), ['workflow:chain-proof.yml']);
+});
+
+test('MASTER-RED-1: two reds on a disabled workflow pass (DORMANT-1); only a state starting "disabled" excuses', () => {
+  const reds = [run(2, 'failure'), run(1, 'failure')];
+  for (const state of ['disabled_manually', 'disabled_inactivity']) {
+    const r = standing([wf('live-smoke.yml', reds, { state })]);
+    assert.equal(r.ok, true, state);
+    assert.deepEqual(r.ignoredDisabled, ['live-smoke.yml']);
+  }
+  for (const state of ['active', null, undefined, 'enabled', '', 'deleted']) assert.equal(standing([wf('live-smoke.yml', reds, { state })]).ok, false, String(state));
+});
+
+test('MASTER-RED-1: the gatherer asks the platform state only of a standing red, and skips a workflow whose runs are unknown', () => {
+  const stateAsked = [];
+  const runsByFile = {
+    'live-smoke.yml': [run(2, 'failure'), run(1, 'failure')],
+    'chain-proof.yml': [run(4, 'success'), run(3, 'failure')],
+    'unknown.yml': null,
+  };
+  const out = closureGate.gatherStandingRedWorkflows({
+    files: ['.github/workflows/live-smoke.yml', '.github/workflows/chain-proof.yml', '.github/workflows/unknown.yml'],
+    runsFn: (name) => runsByFile[name],
+    stateFn: (name) => { stateAsked.push(name); return 'disabled_manually'; },
+  });
+  assert.deepEqual(out.map((w) => w.file), ['live-smoke.yml', 'chain-proof.yml'], 'unknown evidence is skipped, never a red');
+  assert.deepEqual(stateAsked, ['live-smoke.yml']);
+  assert.equal(standing(out).ok, true, 'the standing red is disabled on the platform');
+});
+
+test('MASTER-RED-1: the master-runs lookup uses the shared Actions client, asks for completed master runs, and fails to unknown', () => {
+  const calls = [];
+  const exec = (cmd, args) => { calls.push([cmd, args]); return JSON.stringify({ workflow_runs: [run(9, 'failure')] }); };
+  assert.equal(closureGate.fetchMasterRuns('x.yml', { env: {}, exec }), null, 'no token, no lookup');
+  assert.equal(calls.length, 0);
+  const got = closureGate.fetchMasterRuns('x.yml', { env: { GITHUB_TOKEN: 't', GITHUB_REPOSITORY: 'o/r' }, exec });
+  assert.equal(got[0].id, 9);
+  assert.equal(calls[0][0], 'gh');
+  assert.equal(calls[0][1][0], 'api');
+  assert.equal(calls[0][1][1], 'repos/o/r/actions/workflows/x.yml/runs?branch=master&status=completed&per_page=10');
+  assert.equal(closureGate.fetchMasterRuns('x.yml', { env: { GITHUB_TOKEN: 't' }, exec: () => { throw new Error('down'); } }), null);
+  assert.equal(closureGate.fetchMasterRuns('x.yml', { env: { GITHUB_TOKEN: 't' }, exec: () => '{"message":"Not Found"}' }), null, 'a body with no workflow_runs is unknown');
+});
+
+test('MASTER-RED-1: the PR diff is read only in a pull_request run (GITHUB_BASE_REF) and an unreadable diff is unknown', () => {
+  const seen = [];
+  const exec = (args) => { seen.push(args); return 'a.txt\n\n.github/workflows/live-smoke.yml\n'; };
+  assert.equal(closureGate.fetchChangedFiles({ env: {}, exec }), null);
+  assert.equal(seen.length, 0);
+  assert.deepEqual(closureGate.fetchChangedFiles({ env: { GITHUB_BASE_REF: 'master' }, exec }), ['a.txt', '.github/workflows/live-smoke.yml']);
+  assert.deepEqual(seen[0], ['diff', '--name-only', 'origin/master...HEAD']);
+  assert.equal(closureGate.fetchChangedFiles({ env: { GITHUB_BASE_REF: 'master' }, exec: () => { throw new Error('no base'); } }), null);
+});
+
+test('MASTER-RED-1: the live check is evaluated only in a pull_request run, and wires the gatherers and the diff into the pure core', () => {
+  let gathered = 0;
+  const reds = [run(2, 'failure'), run(1, 'failure')];
+  const gather = () => { gathered += 1; return [wf('live-smoke.yml', reds)]; };
+  const outside = closureGate.runStandingRedLive({ env: {}, gather, changed: () => ['x'] });
+  assert.equal(outside.ok, true);
+  assert.equal(outside.skipped, 'not a pull_request run');
+  assert.equal(gathered, 0, 'no Actions lookup outside a pull_request run');
+  const inPr = closureGate.runStandingRedLive({ env: { GITHUB_BASE_REF: 'master' }, gather, changed: () => ['README.md'] });
+  assert.equal(inPr.ok, false, 'in a PR run a standing red fails');
+  assert.equal(gathered, 1);
+  const fixing = closureGate.runStandingRedLive({ env: { GITHUB_BASE_REF: 'master' }, gather, changed: () => ['.github/workflows/live-smoke.yml'] });
+  assert.equal(fixing.ok, true, 'the PR that touches the workflow is exempt');
+});
+
+test('MASTER-RED-1: the CLI summary reports STANDING-RED and the gate passes the check into the combined verdict', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('./closure-gate.mjs', import.meta.url), 'utf8');
+  assert.match(src, /5\. STANDING-RED/);
+  assert.match(src, /laneContract\.ok && standingRed\.ok/);
+  assert.match(src, /recordGateFirings\('closure-gate', \[[\s\S]*r\.standingRed\.failures/);
 });
