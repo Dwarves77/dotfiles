@@ -27,9 +27,10 @@
       "name": "the header hint gains `scroll →` once there IS somewhere to scroll (operator's delete list: the old `click a dimension to open its facts` becomes `N regions · scroll →`)",
       "selector": "[data-audit=\"ops-matrix-hint\"]",
       "textMatch": "scroll",
+      "note": "DAUDIT-4 (2026-10-10), rule 20: the system's count governs. 8 of 36 (6 regions x 6 dimensions, 22%) became 8 of 42 (6 regions x 7 dimensions, 19%): the fixture still sources 8 cells and the shared DIMENSIONS vocabulary holds seven keys since S8-E5 (PR 1029).",
       "expect": {
         "count": "1",
-        "text": "8 of 36 cells sourced · 22% · 18 regions · scroll →"
+        "text": "8 of 42 cells sourced · 19% · 18 regions · scroll →"
       }
     },
     {
