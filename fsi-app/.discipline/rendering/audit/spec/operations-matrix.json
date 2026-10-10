@@ -28,8 +28,9 @@
     {
       "name": "six dimension rows, D1-D6 (operator ruling 3.3, carried forward from the spec this replaces: nothing expands, so a tbody row IS a dimension row and the old 'do not conflate with the Facts tr' caveat is gone)",
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr",
+      "note": "DAUDIT-4 (2026-10-10), rule 20: the system's count governs. The row stated the six-row artboard; ALL_OPERATIONS_DIMENSIONS (src/lib/agent/formats/operations-matrix.ts) holds seven keys since S8-E5 (grid_intensity, PR 1029), OperationsLedger.tsx DIMENSIONS maps all seven, and the audit mount imports that export (PR 1059). The seventh row is owed to Claude Design as a DESIGN CHANGE (artboard 08 draws six).",
       "expect": {
-        "count": "6"
+        "count": "7"
       }
     },
     {
@@ -66,9 +67,9 @@
     {
       "name": "CELL = ... OR EM DASH: an unsourced cell renders the narrow Absence, which IS the artboard's bare dash carrying its closed-vocabulary reason (22 of this fixture's 30 cells)",
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence-dash",
-      "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The Absence part no longer carries the cl-absence class (the dash and narrow variants carry cl-absence-dash; Absence.tsx), and an unsourced matrix cell is drawn by CoverageState, whose dash carries the same class.",
+      "note": "DAUDIT-2 (2026-10-08): selector repaired, count unchanged. The Absence part no longer carries the cl-absence class (the dash and narrow variants carry cl-absence-dash; Absence.tsx), and an unsourced matrix cell is drawn by CoverageState, whose dash carries the same class. DAUDIT-4 (2026-10-10), rule 20: count 22 became 27. The fixture still sources 8 cells; the grid is now 5 regions x 7 dimensions = 35 cells (was 5 x 6 = 30), so 35 - 8 = 27 unsourced, the same derivation as the 7 dimension rows above.",
       "expect": {
-        "count": "22"
+        "count": "27"
       }
     },
     {
