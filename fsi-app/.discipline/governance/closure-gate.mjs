@@ -866,8 +866,14 @@ export function runLaneContractLive() {
   return checkLaneContract(readRepo('docs/dispatches/lane-common-contract.md'));
 }
 
-export function runStandingRedLive() {
-  return checkStandingRed({ workflows: gatherStandingRedWorkflows(), changedFiles: fetchChangedFiles() });
+/**
+ * STANDING-RED is a question about a PR (does its diff touch the red workflow?), so it is evaluated only in a
+ * pull_request run, where GITHUB_BASE_REF is set. Anywhere else (a push, a local run, a test that asserts the committed
+ * tree is green) it is not evaluated and says so: the live state of master's Actions runs is outside any tree.
+ */
+export function runStandingRedLive({ env = process.env, gather = gatherStandingRedWorkflows, changed = fetchChangedFiles } = {}) {
+  if (!env.GITHUB_BASE_REF) return { ok: true, failures: [], allowlistIssues: [], exempt: [], ignoredDisabled: [], skipped: 'not a pull_request run' };
+  return checkStandingRed({ workflows: gather(), changedFiles: changed({ env }) });
 }
 
 export function runClosureGate() {
@@ -905,7 +911,7 @@ if (process.argv[1] && process.argv[1].endsWith('closure-gate.mjs')) {
   console.log(`2. STALE-NEXT    : ${line(r.staleNext)}`);
   console.log(`3. WRITER-READER : ${line(r.writerReader)}  (summary: ${JSON.stringify(r.writerReader.summary)})`);
   console.log(`4. LANE-CONTRACT : ${line(r.laneContract)}`);
-  console.log(`5. STANDING-RED  : ${line(r.standingRed)}`);
+  console.log(`5. STANDING-RED  : ${r.standingRed.skipped ? `not evaluated (${r.standingRed.skipped})` : line(r.standingRed)}`);
   for (const e of r.standingRed.exempt) console.log(`   note: ${e.id} is a standing red, exempt because this PR touches ${e.touched.join(', ')}`);
   for (const d of r.standingRed.ignoredDisabled) console.log(`   note: workflow:${d} is a standing red but disabled on the platform: ignored`);
   for (const f of r.standingRed.failures) console.log(`   ${f.reason}`);

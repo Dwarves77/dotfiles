@@ -296,14 +296,20 @@ test('LIVE: LANE-CONTRACT is green on this tree', () => {
   assert.equal(r.ok, true, r.failures.map((f) => f.reason).join('\n'));
 });
 
+// Lane MASTER-RED-1: STANDING-RED reads the live state of master's Actions runs and is evaluated only in a pull_request
+// run (GITHUB_BASE_REF set). A test that asserts the COMMITTED TREE is green runs outside that context, because the
+// live state of master is outside any tree; the gate step in discipline.yml carries the real verdict and the logic is
+// proven on fixtures at the end of this file.
+function outsidePrRun(fn) {
+  const before = process.env.GITHUB_BASE_REF;
+  delete process.env.GITHUB_BASE_REF;
+  try { return fn(); } finally { if (before !== undefined) process.env.GITHUB_BASE_REF = before; }
+}
+
 test('LIVE: the combined closure gate is green', () => {
-  const r = runClosureGate();
-  // Lane MASTER-RED-1: STANDING-RED reads the live state of master's Actions runs, which is outside any diff; a unit
-  // test must not go red on it. Its verdict is the gate step's (closure-gate.mjs in discipline.yml) and its logic is
-  // proven on fixtures at the end of this file. The four tree-derived checks are asserted here as before.
-  const treeChecks = r.neverRun.ok && r.staleNext.ok && r.writerReader.ok && r.laneContract.ok;
-  assert.equal(treeChecks, true);
-  assert.equal(r.ok, treeChecks && r.standingRed.ok);
+  const r = outsidePrRun(() => runClosureGate());
+  assert.equal(r.ok, true);
+  assert.match(r.standingRed.skipped, /not a pull_request run/);
 });
 
 test('LIVE: every allowlist entry names a non-empty disposition and an ISO until date (the ratchet shape itself is honest)', () => {
@@ -424,7 +430,7 @@ test('AUD-AT-5: the train counter is gone from the closure gate (no symbol, no g
     assert.equal(code.includes(gone), false, `${gone} must not survive in closure-gate.mjs`);
   }
   assert.equal(typeof closureGate.parseTrainCommits, 'undefined');
-  const r = runClosureGate();
+  const r = outsidePrRun(() => runClosureGate());
   assert.equal(r.ok, true);
   assert.ok(r.clock.now instanceof Date && ['ledger-captured-at', 'ledger-newest-run', 'wall-clock'].includes(r.clock.source));
   assert.equal('currentTrain' in r, false);
@@ -455,7 +461,7 @@ test("GATE-9 exit status: closure-gate.mjs exits 0 on the committed tree, and it
   const { fileURLToPath } = await import("node:url");
   const { withoutCredentials } = await import("../../scripts/lib/env-file.mjs");
   const script = fileURLToPath(new URL("./closure-gate.mjs", import.meta.url));
-  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: withoutCredentials() });
+  const r = spawnSync(process.execPath, [script], { encoding: "utf8", env: { ...withoutCredentials(), GITHUB_BASE_REF: "" } });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /closure gate PASS/);
   const src = readFileSync(script, "utf8");
@@ -700,14 +706,25 @@ test('MASTER-RED-1: the PR diff is read only in a pull_request run (GITHUB_BASE_
   assert.equal(closureGate.fetchChangedFiles({ env: { GITHUB_BASE_REF: 'master' }, exec: () => { throw new Error('no base'); } }), null);
 });
 
-test('MASTER-RED-1: with no token the live check can neither fabricate a red nor fail the committed tree', () => {
-  const before = process.env.GITHUB_TOKEN;
-  delete process.env.GITHUB_TOKEN;
-  try {
-    const r = closureGate.runStandingRedLive();
-    assert.equal(r.ok, true);
-    assert.deepEqual(r.failures, []);
-  } finally {
-    if (before !== undefined) process.env.GITHUB_TOKEN = before;
-  }
+test('MASTER-RED-1: the live check is evaluated only in a pull_request run, and wires the gatherers and the diff into the pure core', () => {
+  let gathered = 0;
+  const reds = [run(2, 'failure'), run(1, 'failure')];
+  const gather = () => { gathered += 1; return [wf('live-smoke.yml', reds)]; };
+  const outside = closureGate.runStandingRedLive({ env: {}, gather, changed: () => ['x'] });
+  assert.equal(outside.ok, true);
+  assert.equal(outside.skipped, 'not a pull_request run');
+  assert.equal(gathered, 0, 'no Actions lookup outside a pull_request run');
+  const inPr = closureGate.runStandingRedLive({ env: { GITHUB_BASE_REF: 'master' }, gather, changed: () => ['README.md'] });
+  assert.equal(inPr.ok, false, 'in a PR run a standing red fails');
+  assert.equal(gathered, 1);
+  const fixing = closureGate.runStandingRedLive({ env: { GITHUB_BASE_REF: 'master' }, gather, changed: () => ['.github/workflows/live-smoke.yml'] });
+  assert.equal(fixing.ok, true, 'the PR that touches the workflow is exempt');
+});
+
+test('MASTER-RED-1: the CLI summary reports STANDING-RED and the gate passes the check into the combined verdict', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('./closure-gate.mjs', import.meta.url), 'utf8');
+  assert.match(src, /5\. STANDING-RED/);
+  assert.match(src, /laneContract\.ok && standingRed\.ok/);
+  assert.match(src, /recordGateFirings\('closure-gate', \[[\s\S]*r\.standingRed\.failures/);
 });
