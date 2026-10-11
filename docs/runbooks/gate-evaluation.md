@@ -5,27 +5,30 @@ the next evaluation is a query and not a multi-day fact lane over logs (gate pla
 point 6). Not dated: a repeatable procedure. It records mechanics only. What to do with a result is
 decided elsewhere.
 
-Owner of the upload steps: `.github/workflows/discipline.yml` (lane GATE-4, 2026-10-07). The files are
+Owner of the upload steps: `.github/workflows/ci.yml` (lane GATE-4, 2026-10-07; moved into the one CI workflow by lane PIPE-1, 2026-10-11, when the eight pull request workflows became five jobs). The files are
 produced by the rule engine (`fsi-app/.discipline/runner.mjs`) and, for the fitness functions, by the
 fitness runner (`fsi-app/.discipline/fitness/runner.mjs`, lane GATE-3).
 
 ## What each run uploads
 
-Every `Discipline engine` workflow run, pass or fail, uploads up to two artifacts. A job uploads nothing
+Every `CI` workflow run of the `static` job (pull request) or the `master` job (push), pass or fail, uploads up to three artifacts. A job uploads nothing
 and does not fail when its file is absent (`if-no-files-found: ignore`).
 
 | Artifact | Uploaded by job | File | Content |
 |---|---|---|---|
-| `gate-firings-validate-commits` | `validate-commits` (push and pull request) | `rules-ci-firings.log` | First line `# gate-firings event=<event> branch=<branch> sha=<sha>`, then the rule engine's output: a `PASS` line per passing rule (`SKIP` lines are printed only with `--verbose`, which CI does not pass), a `FAIL` line per failing rule followed by its message, source and fix, and a `Summary:` line. A pull request run prints one block per commit in the range, headed `=== Commit <sha>: <subject> ===` |
-| `gate-firings-fitness-check` | `fitness-check` (pull request only) | `fitness-firings.json` | A JSON array, one record per violation the fitness runner found: `gate`, `verdict` (always `fail`), `file`, `line`, `evidence` (first 200 characters of the message). Written on every run, an empty array when nothing fired (`fsi-app/.discipline/fitness/runner.mjs`, `buildFiringRecords`) |
+| `gate-firings-validate-commits` | `static` (pull request) and `master` (push) | `rules-ci-firings.log` | First line `# gate-firings event=<event> branch=<branch> sha=<sha>`, then the rule engine's output: a `PASS` line per passing rule (`SKIP` lines are printed only with `--verbose`, which CI does not pass), a `FAIL` line per failing rule followed by its message, source and fix, and a `Summary:` line. A pull request run prints one block per commit in the range, headed `=== Commit <sha>: <subject> ===` |
+| `gate-firings-fitness-check` | `static` (pull request only; a docs-only pull request skips the runner and uploads nothing) | `fitness-firings.json` | A JSON array, one record per violation the fitness runner found: `gate`, `verdict` (always `fail`), `file`, `line`, `evidence` (first 200 characters of the message). Written on every run, an empty array when nothing fired (`fsi-app/.discipline/fitness/runner.mjs`, `buildFiringRecords`) |
 
 Two facts that shape every query:
 
-- One artifact per job, not one `gate-firings` artifact: `actions/upload-artifact@v4` refuses a second
-  upload under the same name inside one run, and the two files come from two different runner machines.
-  Both names share the prefix `gate-firings-`, so one `--pattern` selects both.
-- A push to master runs only `validate-commits` and `consistency-backstop`. The fitness artifact therefore
-  exists for pull request runs only; a push run carries the rules log alone.
+- One artifact per file, not one `gate-firings` artifact: `actions/upload-artifact@v4` refuses a second
+  upload under the same name inside one run. All names share the prefix `gate-firings-`, so one `--pattern`
+  selects them all. A third artifact, `gate-firings-governance-static` (`gate-firings-governance-master` on a
+  push), holds `governance-firings.json`, the memory gate, closure gate, invariant coverage and skill-contract firings
+  the two old jobs uploaded under `gate-firings-governance-validate-commits` and `gate-firings-governance-test-discipline-engine`.
+- A push to master runs only the `master` job (validate-commits, the memory gate, the consistency backstop, the HARD
+  discrimination step and the scoped build). The fitness artifact therefore exists for pull request runs only; a push
+  run carries the rules log and the governance file.
 - Retention is 7 days (`retention-days: 7`, the ceiling fitness function F68 enforces). A run older than 7
   days has no artifact to download. The window of any query is the last 7 days of runs unless the files
   were downloaded and kept earlier.
@@ -42,7 +45,7 @@ failures only, so a gate that passed has no record; its absence from the file is
 ## Step 1: list the runs in a date range
 
 ```
-gh run list --workflow discipline.yml --created ">=2026-10-08" --limit 300 \
+gh run list --workflow ci.yml --created ">=2026-10-08" --limit 300 \
   --json databaseId,event,headBranch,conclusion,createdAt > runs.json
 ```
 
