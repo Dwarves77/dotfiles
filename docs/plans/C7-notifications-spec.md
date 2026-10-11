@@ -44,6 +44,8 @@ Single row per user. Boolean toggles for `enabled`, `on_mention`,
 `on_reply_in_my_threads`, `on_new_post_in_joined_groups`, `on_invite`,
 `on_promote`. Plus `channels text[]` (default `['in_app']`).
 
+[2026-10-10, DOCS-5: `on_promote` and the `promote` kind were removed from the Settings toggle, the `NotificationKind` type and the notifications list by C-TOGGLE (PR 963, ADR-041, Community is social only). The column and the `notifications_kind_check` entry for `promote` still exist in the schema (migrations 032 and later); dropping them is an owed migration recorded in the C-TOGGLE session log. Read this section as the original design, not the current set of toggles.]
+
 The spec brief described a `(user_id, kind, in_app, email, push)`
 matrix; the actual schema is a flat row with per-kind boolean columns
 and a single `channels` array. The C7 API translates the flat row into
