@@ -14,7 +14,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,14 +33,23 @@ for (const id of v.replace('drift:', '').split(',')) console.error('  [' + id + 
 process.exit(1);
 `;
 
+const CHECK_NAMES = { C3: 'migrations.md reality', C4: 'worktrees.md reality', C5: 'program-anchors reality' };
+const STUB_MANIFEST = `const NAMES = ${JSON.stringify(CHECK_NAMES)};
+export function getCheckById(id) { return NAMES[id] ? { id, name: NAMES[id] } : undefined; }
+`;
+
 let SCRATCH;
 before(() => {
   SCRATCH = mkdtempSync(join(tmpdir(), 'override-cli-'));
   const dir = join(SCRATCH, '.discipline');
   mkdirSync(join(dir, 'consistency'), { recursive: true });
   mkdirSync(join(dir, 'lib'), { recursive: true });
+  // override-check.mjs imports the manifest (getCheckById, for the check names a rationale may cite). The real manifest imports every
+  // check and, through them, half the repository, so the scratch tree gets a stub manifest carrying the three real names (pinned to
+  // the check files by a test below) and a stub runner: the unit under test is the CLI.
   cpSync(join(HERE, 'override-check.mjs'), join(dir, 'consistency', 'override-check.mjs'));
   cpSync(join(DISCIPLINE, 'lib', 'change-range.mjs'), join(dir, 'lib', 'change-range.mjs'));
+  writeFileSync(join(dir, 'consistency', 'manifest.mjs'), STUB_MANIFEST);
   writeFileSync(join(dir, 'consistency', 'runner.mjs'), STUB_RUNNER);
 });
 after(() => { rmSync(SCRATCH, { recursive: true, force: true }); });
@@ -130,4 +139,12 @@ ${TRAILER('C3', 'known gap', '2099-01-01')}`, 'second, no trailer'];
   const whole = runCli({ stub: 'drift:C3', messages, args: ['--range=HEAD~2..HEAD'] });
   assert.equal(whole.code, 0, whole.out);
   assert.match(whole.out, /VALIDLY OVERRIDDEN: C3/);
+});
+
+test('the stub manifest names are the real check names (a renamed check must update this test)', () => {
+  const files = { C3: 'C3-migrations-reality.mjs', C4: 'C4-worktrees-reality.mjs', C5: 'C5-program-anchors-reality.mjs' };
+  for (const [id, file] of Object.entries(files)) {
+    const text = readFileSync(join(HERE, 'checks', file), 'utf8');
+    assert.ok(text.includes(`name: '${CHECK_NAMES[id]}'`), `${id} is no longer named '${CHECK_NAMES[id]}' in ${file}`);
+  }
 });
