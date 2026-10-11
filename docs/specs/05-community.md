@@ -115,12 +115,16 @@ Map community dots, the Dashboard Community counts and the admin pickups queue a
 | 3 | **Structured aggregate-only instruments** (polls, benchmark surveys) with write-time k-anonymity and dominance enforcement | §1. Also the highest-value proprietary data the product can generate |
 | 4 | **House-seeded recurring benchmark on a fixed calendar**, scoped to the reader's portfolio | §3. The anti-empty-room mechanism |
 | 5 | **Corroboration counter** showing independent organisations, not post count | Superseded by ADR-041 (it fed the removed gate 2) |
+n> REMOVED by ADR-041 (2026-10-03): this component is not built and no audit counts it.
 | 6 | **Promotion state machine**, states publicly visible, transitions logged | Superseded by ADR-041 |
 | 7 | **Time-decay on contributed evidence**, visible as an age chip | Superseded by ADR-041 (it belonged to the removed promotion path) |
+n> REMOVED by ADR-041 (2026-10-03): this component is not built and no audit counts it.
 | 8 | **No direct messaging** | §2. Explicit anti-solicitation and anti-collusion control |
+n> REMOVED by ADR-041 (2026-10-03): this component is not built and no audit counts it.
 | 9 | **Working groups and forums** with region and sector structure, seeded from `sector_profile` on workspace creation | The shipped Workstream B components, plus the seeding gap named in platform-intent |
 | 10 | **Editorial pickup pipeline** (an editor surfaces a public thread inside platform intelligence) with the gate-4 provenance treatment | Superseded by ADR-041 |
 | 11 | **Author identity rendering**: org type + role + sector + region, from the pseudonymity-safe subset | Named as a gap in platform-intent §COMMUNITY |
+n> REMOVED by ADR-041 (2026-10-03): this component is not built and no audit counts it.
 | 12 | **Antitrust posting guard with a refusal explanation** | §1. Refuse, explain, offer the aggregate-only route |
 
 > **Operator ruling 2026-10-03 (ADR-042, external data only).** Components 3 (structured aggregate-only instruments) and 4 (house-seeded recurring benchmark) are superseded and removed by ADR-042. The customer uploads nothing and the system stores no customer-entered data for analysis; it takes external data and advises what it means. Community stays a social place (ADR-041).

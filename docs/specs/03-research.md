@@ -206,6 +206,7 @@ liability.**
 | 2 | **Three-axis maturity triple** with the binding constraint named | Can I buy it, at what commercial posture, and what specifically blocks it. TRL alone would say battery-electric tractors are TRL 9 while omitting that the depot power connection is the actual barrier |
 | 3 | **Dual horizon**: band plus dated trigger with named mechanism and derivation basis | Band goes in the list view; mechanism makes it arguable; basis makes it discountable |
 | 4 | **Split credibility**: evidence×agreement separate from source-authority distribution, with the GRADE modifier ledger | A vendor consortium producing robust internally consistent evidence must read as *high evidence, low independence*, in one glance |
+n> RETIRED by ADR-042 (2026-10-03): this component is not built and no audit counts it.
 | 5 | **Who-is-studying-it panel**: ranked institutions and authors, role class, topic-scoped standing, funder independence, geographic spread | Named in the contract. Topic-scoping is what prevents brand-name credibility |
 | 6 | **Dissent panel**, first-class, never collapsed | Where credible sources disagree, that disagreement *is* the assessment: it says hedge rather than commit. Surfacing only consensus manufactures false confidence |
 | 7 | **Assumption-register binding** (load-bearing × vulnerable) | Converts "here's a thing" into "here's the thing in *your* plan that breaks" |

@@ -83,6 +83,7 @@ dispatch that follows.
 > **Operator ruling 2026-10-03 (ADR-043).** This whole section is RETIRED (superseded by ADR-043). No automate-versus-hire model, TCO output or break-even field is built or shown. Wage, labour-cost and energy-cost evidence stays as sourced regional figures with no verdict. The solar arm paragraph below is not a calculator and stays only as evidence framing for grid-versus-solar cost facts.
 
 The output shape, because "supports the decision" is not a spec:
+n> RETIRED by ADR-043 (2026-10-03): this component is not built and no audit counts it.
 
 | Field | Note |
 |---|---|
@@ -132,6 +133,7 @@ Commercial and Industrial, 17-2112 Industrial Engineers.
 | 5 | **Fully-loaded labour chain** (§5) | Decisions 1 and 5 |
 | 6 | ~~**Automate-vs-hire TCO panel per region** (section 4), with `breakeven_wage` and `breakeven_utilisation` given equal prominence to the headline~~ | Decisions 1 and 5. The break-even fields convert a point estimate into a defensible decision |
 | 7 | ~~**Sensitivity / break-even strip**, tornado-ordered, utilisation cliff marked~~ | Decisions 1 and 5 |
+n> RETIRED by ADR-043 (2026-10-03): this component is not built and no audit counts it.
 
 > **Operator ruling 2026-10-03 (ADR-043).** Components 6 and 7 are RETIRED (struck above; superseded by ADR-043). Component 12's modelling constants were already narrowed by ADR-042.
 | 8 | **Feasibility gate layer, evaluated BEFORE cost**: PPWR thresholds, EPR registration and authorised-representative requirements, PFAS limits, national permitting, ETS2. Rendered as gates (blocked / conditional / clear), **never as points added to a score** | Decisions 3, 4, 5. §1 |
