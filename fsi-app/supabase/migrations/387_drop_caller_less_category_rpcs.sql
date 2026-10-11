@@ -1,5 +1,5 @@
--- subject: Migration 386 (lane DEAD-1d, 2026-10-10): drops the three org-scoped category RPCs get_operations_items(uuid), get_research_items(uuid) and get_technology_items(uuid), which no application code, script or other database function calls since the caller-less supabase-server.ts fetchers were deleted; get_market_intel_items(uuid) stays (src/app/api/health/surfaces/route.ts calls it). NOT APPLIED.
--- 386 -- drop caller-less category RPCs (lane DEAD-1d, 2026-10-10).
+-- subject: Migration 387 (lane DEAD-1d, 2026-10-10): drops the three org-scoped category RPCs get_operations_items(uuid), get_research_items(uuid) and get_technology_items(uuid), which no application code, script or other database function calls since the caller-less supabase-server.ts fetchers were deleted; get_market_intel_items(uuid) stays (src/app/api/health/surfaces/route.ts calls it). NOT APPLIED.
+-- 387 -- drop caller-less category RPCs (lane DEAD-1d, 2026-10-10).
 --
 -- NOT APPLIED. Authored by lane DEAD-1d with no database access; the coordinator's executor applies it after CI is green
 -- (two-track policy, CLAUDE.md standing rule 3: no code depends on these functions, so the schema DDL and the code PR

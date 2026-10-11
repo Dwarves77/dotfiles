@@ -1,4 +1,4 @@
-// 386_drop_caller_less_category_rpcs.test.mjs -- static proof of migration 386 (lane DEAD-1d), by parsing the SQL file
+// 387_drop_caller_less_category_rpcs.test.mjs -- static proof of migration 387 (lane DEAD-1d), by parsing the SQL file
 // directly: no database. The behavioural proof is the migration's own pre-check and self-check, which run at apply time.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -7,12 +7,12 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const RAW = readFileSync(join(HERE, "386_drop_caller_less_category_rpcs.sql"), "utf8");
+const RAW = readFileSync(join(HERE, "387_drop_caller_less_category_rpcs.sql"), "utf8");
 const SQL = RAW.split("\n").map((l) => { const i = l.indexOf("--"); return i === -1 ? l : l.slice(0, i); }).join("\n");
 const DROPPED = ["get_operations_items", "get_research_items", "get_technology_items"];
 
 test("header: subject line, states NOT APPLIED, names what it does not do", () => {
-  assert.match(RAW, /^-- subject: Migration 386 /);
+  assert.match(RAW, /^-- subject: Migration 387 /);
   assert.match(RAW, /^-- NOT APPLIED\./m);
   assert.doesNotMatch(RAW, /APPLIED \(production ledger version/);
   assert.match(RAW, /No table, row or column is touched/);
