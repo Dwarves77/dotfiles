@@ -2,7 +2,7 @@
 
 ### Accomplished
 
-- Deleted the historical docs the product does not read, outright (operator ruling 2026-10-11: no archive, no backup; HISTORY-1 purges the paths from git history after merge). Tree lines `git ls-files -z | xargs -0 cat | wc -l`: BEFORE 1,057,253 (measured at branch creation, origin/master 2a720f327), AFTER __AFTER__.
+- Deleted the historical docs the product does not read, outright (operator ruling 2026-10-11: no archive, no backup; HISTORY-1 purges the paths from git history after merge). Tree lines `git ls-files -z | xargs -0 cat | wc -l`: BEFORE 1,057,253 (measured at branch creation, origin/master 2a720f327), AFTER 877274.
 - Waited for PR 1126 (CLEAN-1): it merged during the wait; branch cut from origin/master after that, rule 18 merge of origin/master (fef8056e9, INDEX conflict resolved by taking the rewritten INDEX plus master's line 3 wording).
 - Rewrote docs/INDEX.md: one line per surviving living doc (356 link lines to 113), every link target resolves.
 - Local tier run on the merged tree: fitness runner 44 functions 0 violations; run-test-suite.sh 12,366 pass, 1 fail (rule 13 cold-scan timing, below); test-discovery --check-unrun OK; invariant-coverage meta-gate PASS; closure-gate PASS (with GITHUB_TOKEN); audit-finding-status --strict exit 0; runner.mjs --mode=ci all PASS.
