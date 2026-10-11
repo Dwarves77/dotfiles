@@ -11,7 +11,7 @@
   // persistExhaustionRecord persist it via the INTERIM FLAG PATTERN — integrity_flags, created_by=  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
   // 'exhaustion_record', category='source_issue', subject_ref=itemId, attempts in recommended_actions jsonb —  // glyph:verbatim (unedited content carried over from invariants.mjs; see invariants.d/README.md)
   // superseded by migration 147 sources.fetch_status). RD-15 is SEQUENCED LAST: it is wired build-FAILING only
-  // AFTER (a) migration 147 lands the durable fetch_status column and (b) Jason's batch-1 go-line, so the gate
+  // AFTER (a) migration 147 lands the durable fetch_status column and (b) the operator's batch-1 go-line, so the gate
   // is not turned on before the persistence path it polices is live end-to-end. Until then this comment is the
   // registered residual (same pattern as a deferred-for-cost named residual), and the seek-more selftest
   // (src/lib/sources/seek-more.test.mjs) proves the record shape + interim persistence red-then-green.

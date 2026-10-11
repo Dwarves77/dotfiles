@@ -140,7 +140,7 @@ export async function generateCandidates(identity = {}, deps = {}) {
 }
 
 // ── EXHAUSTION-RECORD PERSISTENCE (interim, pre-DDL) ─────────────────────────────────────────────────────────
-// INTERIM STORE (Jason's explicit question — where per-attempt records live until migration 147 lands): the
+// INTERIM STORE (the operator's explicit question — where per-attempt records live until migration 147 lands): the
 // FLAG PATTERN. The per-(candidate × transport) exhaustion record persists as an `integrity_flags` row
 // (created_by='exhaustion_record', category='source_issue', subject_ref=itemId, the attempts array in the
 // recommended_actions jsonb). SUPERSEDED by migration 147's dedicated exhaustion column/table — at which point

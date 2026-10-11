@@ -733,7 +733,7 @@ Tables ordered alphabetically. Each entry uses the template from the dispatch br
 
 ### public.user_profiles
 
-- **Status:** ACTIVE (1 row; the lone user, Jason)
+- **Status:** ACTIVE (1 row; the lone user, the operator)
 - **Migration introduced:** `027_user_profiles.sql`
 - **Row count (live):** 1
 - **Columns (13):** user_id (PK, FK to auth.users), name, headshot_url, bio, timezone, sectors text[], jurisdictions text[], transport_modes text[], verifier_status, verifier_since, is_platform_admin bool, created_at, updated_at

@@ -12,7 +12,7 @@ All other historical sibling-path worktrees (`4issues`, `ecovadis`, `masthead-uu
 
 ## Path convention (binding)
 
-New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB recognized paths. Sibling-to-repo-root convention (`dotfiles-wt-<name>`) is anti-pattern; bypasses FaDB cleanup discipline. See remediation-discipline Section 7 Example 7.
+New worktrees go under `C:/Users/USER/dotfiles/.worktrees/wt-<name>` per FaDB recognized paths. Sibling-to-repo-root convention (`dotfiles-wt-<name>`) is anti-pattern; bypasses FaDB cleanup discipline. See remediation-discipline Section 7 Example 7.
 
 ## Current worktree state
 
@@ -44,7 +44,7 @@ Work preserved via `archive/*-preserve-2026-05-20` tags (8 tags). Branches were 
 Re-attach an archive-tagged snapshot later via:
 
 ```
-git worktree add C:/Users/jason/dotfiles/.worktrees/wt-<name> archive/<tag-name>
+git worktree add C:/Users/USER/dotfiles/.worktrees/wt-<name> archive/<tag-name>
 ```
 
 (Use FaDB-recognized `.worktrees/` path, not sibling-path anti-pattern.)

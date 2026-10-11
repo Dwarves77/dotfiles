@@ -52,7 +52,7 @@ Seconds are the in-process time of trigger plus check measured with 77 staged fi
 
 ### Rule 012 Hardcoded user-home path
 - Protects: "Mechanical content-level check ... rejecting commits that contain hardcoded user-home path strings. The class of bug that produced REPO_ROOT hardcoding". [CONFIRMED: header] [NOT-WORK: fact, no action]
-- Decides: HARDCODED_PATH_RE = /C:[\\/]Users[\\/]|\/c\/Users\/|\/home\/jason\/|\/Users\/jason\//; extensions .mjs .ts .tsx .js .json .yml .yaml .sh .sql; exempt path fragments node_modules/, .git/, fsi-app/scripts/tmp/, .claude/settings.local.json, fsi-app/scripts/_snapshots/. [CONFIRMED: source]
+- Decides: HARDCODED_PATH_RE = /C:[\\/]Users[\\/]|\/c\/Users\/|\/home\/USER\/|\/Users\/USER\//; extensions .mjs .ts .tsx .js .json .yml .yaml .sh .sql; exempt path fragments node_modules/, .git/, fsi-app/scripts/tmp/, .claude/settings.local.json, fsi-app/scripts/_snapshots/. [CONFIRMED: source]
 - Scope: reads the whole content of every staged code file (ctx.getFileContent), so a pre-existing path string anywhere in a touched file fails the commit. [CONFIRMED: source, getFileContent reads from disk] [CLOSED: PR 997]
 - Escape hatches: path exemptions above only; no trailer; git commit --no-verify named in the message. [CONFIRMED]
 - Firings: 30d none recorded. 90d: one false positive, PR #562 (2026-09-04), the EU Publications Office's own OJ fmx.xml metadata carried a Windows path inside captured text under scripts/_snapshots, fixed by adding the exemption (header of the rule). FP: the file was verbatim third-party content. [CONFIRMED: rule header]. CI: no rule 012 FAIL appears in any of the 100 failed runs. [CONFIRMED: log scan] [NOT-WORK: historic firing record, no action]
@@ -230,7 +230,7 @@ Typical branch commit at the master median of 8 files: about 1.3 s for commit-ms
 - Runs attributable to the Scope A rules and gates: 11 of 100 (rule 022 x7, rule 021 x1, memory gate x2, UX gate x1). The other 89 are test, fitness, lint and workflow failures (Scope B).
 - Fitness-function ids in failed fitness runs: F51 14, F28 12, F25 10, F23 6, F45 5, F39 5, F42 2, F48 1, F65 1, F68 1, F9 1. [CONFIRMED]
 - Overlap between the unit-test step and the fitness-runner step: 35 runs failed both steps; 47 runs had a failing "LIVE/live tree" test inside the unit-test suite that re-runs a fitness function against the tree (top names: "check 5 (Amendment 2) wired to the live tree" 17 runs, "F28 passes GREEN against the live tree" 12, "LIVE ratchet (plan 6.8 Rule B)" 5, "check 5 (lane F51c) LIVE-TREE PROOF" 6, "the whole scoped tree passes F39" 6, "STANDING GATE, real clock, real baseline.json: the renewal warning" 3 which depends on the calendar). [CONFIRMED: test names from failed job logs] [NOT-WORK: fact, no action]
-- Per-run table of the 100 runs (id, date, branch, failed steps, test names) is saved at C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason-dotfiles/53f591a2-7a98-48fe-af76-1a6e857e2041/scratchpad/fail_table.txt.
+- Per-run table of the 100 runs (id, date, branch, failed steps, test names) is saved at C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER-dotfiles/53f591a2-7a98-48fe-af76-1a6e857e2041/scratchpad/fail_table.txt.
 
 ## 9. Overlaps (same defect class checked more than once)
 

@@ -10,7 +10,7 @@ related: ADR-012, RD-24..RD-29 (snapshot-first invariants), remediation-discipli
 
 # ADR-013 — Phase-3 closure + archival-predicate labeling
 
-## Context (operator ruling, Jason, 2026-07-13)
+## Context (operator ruling, the operator, 2026-07-13)
 
 The snapshot-first grounding rebuild shipped in two PRs: **#295** (safety core — crons frozen, spend
 gauge, acquire-lock default OFF, snapshot store, I1 write-side) and **#296** (retire the old grounding
@@ -30,7 +30,7 @@ exists**:
   guarded `reclassifyToSource` / dedup paths (48 archived + 4 recovered during the 2026-07-13 crisis
   window, all June-origin, all $0 DB operations — NOT paid grounding).
 - Disposition split of the live 37: **June-undispositioned 0** (the real historical alarm, now genuinely
-  zero) / RD-6-deferred 31 (owner Jason, `deferred_until=2026-10-31`) / within-dwell 6. Disposition
+  zero) / RD-6-deferred 31 (owner: the operator, `deferred_until=2026-10-31`) / within-dwell 6. Disposition
   invariant holds.
 - **No hard-deletes**; corpus intact at 655 rows; no denylist / RD-1 violation.
 
@@ -43,7 +43,7 @@ disposition waves, at $0, through the guarded paths). **A future session must NO
 awaiting go" and run it** — there is nothing to restitute:
 
 - June-undispositioned = 0.
-- The 31 deferred are owner-Jason **resting until 2026-10-31** and stay **untouched**.
+- The 31 deferred are owner-operator **resting until 2026-10-31** and stay **untouched**.
 - The 6 within-dwell are inside their window.
 
 **The cheap-verify entry point built in #296 becomes the standing mechanism** (not a one-shot batch): any

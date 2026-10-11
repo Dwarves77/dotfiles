@@ -305,7 +305,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [traceability-matrix-2026-07-07](./ops/chrome-audit-2026-07/traceability-matrix-2026-07-07.md)  -  Live-pages audit findings register + disposition matrix (41 findings, DEEP-AUDIT + date/dedup)
 - [deletion-reclassification-log](./ops/deletion-reclassification-log.md)  -  Deletion / reclassification log
 - [flip-readiness-2026-07-08](./ops/flip-readiness-2026-07-08.md)  -  Cadence/loop flip readiness; the three standing switches (cadence/batch-1/budget)
-- [browser-verification-pending](./ops/browser-verification-pending.md)  -  The one accumulating browser-check list for Jason's end-of-program session
+- [browser-verification-pending](./ops/browser-verification-pending.md)  -  The one accumulating browser-check list for the operator's end-of-program session
 - [program-closeout-2026-07-08](./ops/program-closeout-2026-07-08.md)  -  Build-to-completion close-out: DONE checklist (7/7), census, + the 18-flag operator decision table
 - [root-cause-why-the-queue-2026-07-08](./ops/root-cause-why-the-queue-2026-07-08.md)  -  ROOT CAUSE: why /admin reads 1,280 with 0 agent runs  -  built as a human-supervised DETECTION engine; the autonomous DRAIN half (1 of 17 flag classes) was never wired. Corrects the "DONE 7/7" claim.
 - [site-gap-register-2026-07-09](./ops/site-gap-register-2026-07-09.md)  -  CANONICAL BASELINE (supersedes the traceability matrix): Chrome wiring-audit U-01..U-11 + D/F/Q fix-forward rows + U-11 ledger truth + phase-0-5 baseline mapping. F-1 fabricated-source class kill recorded.

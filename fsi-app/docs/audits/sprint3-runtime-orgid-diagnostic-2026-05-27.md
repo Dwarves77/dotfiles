@@ -47,16 +47,16 @@ The seed/migration history:
 - Seed inserted ONE row in `org_memberships`: user_id = `2b7d21eb-8ea0-4b8d-a313-744aa3789c75`
 - A3 backfill targeted THAT user_id, populating profiles.org_id
 
-When jasonlosh signs up in production via Supabase Auth, they get a NEW auth.users.id. Production app's signup flow (per grep of `src/app/signup`, `src/app/auth`, `src/app/onboarding`) does NOT auto-create an org_membership row — it relies on either:
+When the operator signs up in production via Supabase Auth, they get a NEW auth.users.id. Production app's signup flow (per grep of `src/app/signup`, `src/app/auth`, `src/app/onboarding`) does NOT auto-create an org_membership row — it relies on either:
 - Invitation-accept flow (`src/app/invitations/[token]`)
 - POST `/api/orgs` → calls `create_org_for_self` RPC (migration 076) — creates a NEW org for the caller
 - Manual admin add via admin tooling
 
-**So jasonlosh's production auth.users.id likely ≠ 2b7d21eb-…** The seed's org_membership row points at the seed user_id; jasonlosh's actual production user_id has no row → query returns null → resolveOrgIdFromCookies returns null → runCategoryRpc early-returns empty → 0 items rendered.
+**So the operator's production auth.users.id likely ≠ 2b7d21eb-…** The seed's org_membership row points at the seed user_id; the operator's actual production user_id has no row → query returns null → resolveOrgIdFromCookies returns null → runCategoryRpc early-returns empty → 0 items rendered.
 
 ## Why operator's Options A + B both miss
 
-**Option A** (set org_id cookie post-auth): the function doesn't read an org_id cookie. Setting one would do nothing. Even if you added cookie-reading code, the upstream bug — no membership row for jasonlosh — would still null-out the resolved org.
+**Option A** (set org_id cookie post-auth): the function doesn't read an org_id cookie. Setting one would do nothing. Even if you added cookie-reading code, the upstream bug — no membership row for the operator — would still null-out the resolved org.
 
 **Option B** (derive orgId from authenticated session): this is what the code already does. supabase.auth.getUser() IS reading from the session. The failure is downstream of that — at the org_memberships query.
 
@@ -67,9 +67,9 @@ Both options assume the function is broken. It's not — the data is incomplete 
 ### Diagnostic query (operator runs against production)
 
 ```sql
--- Find jasonlosh's actual production user_id
+-- Find the operator's actual production user_id
 SELECT id, email, created_at FROM auth.users
-WHERE email ILIKE '%jasonlosh%' OR email ILIKE '%jason%'
+WHERE email ILIKE '%<operator-email-fragment>%'
 ORDER BY created_at DESC;
 
 -- See what's in org_memberships
@@ -80,7 +80,7 @@ SELECT id, email, full_name, org_id, workspace_role FROM profiles
 ORDER BY created_at DESC;
 ```
 
-Expected finding: jasonlosh's auth.users.id is a NEW UUID, not 2b7d21eb. org_memberships has only the 2b7d21eb seed row. profiles has the 2b7d21eb seed row plus possibly a new row for jasonlosh's production user.
+Expected finding: the operator's auth.users.id is a NEW UUID, not 2b7d21eb. org_memberships has only the 2b7d21eb seed row. profiles has the 2b7d21eb seed row plus possibly a new row for the operator's production user.
 
 ### Fix Option 1 — Update the seed row to match production user_id (simplest)
 
@@ -140,7 +140,7 @@ WHERE id = '<PROD_USER_ID>'
 COMMIT;
 ```
 
-This adds jasonlosh's production user_id to Dietl/Rockit AND populates their profile projection. The seed's 2b7d21eb row stays in place but becomes dead (no auth user behind it).
+This adds the operator's production user_id to Dietl/Rockit AND populates their profile projection. The seed's 2b7d21eb row stays in place but becomes dead (no auth user behind it).
 
 Either Option 1 or Option 2 is operator-decidable. Option 2 is cleaner; Option 1 fully cleans up the seed leftover.
 
@@ -170,7 +170,7 @@ Not a blocker for the immediate fix, but worth noting as a Sprint 4 cleanup cand
 ## Recommended next action
 
 Operator runs the diagnostic query against production to confirm:
-1. jasonlosh's actual production auth.users.id
+1. The operator's actual production auth.users.id
 2. Whether org_memberships has a row for that user_id
 3. Whether profiles has a row for that user_id
 

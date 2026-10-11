@@ -274,7 +274,7 @@ while a PR lands, because their write sets exclude the landing set.
 
 ---
 
-## 6. What needs Jason before execution starts
+## 6. What needs the operator before execution starts
 
 1. **Ratify this scope** (or amend): the three-class model, WO-27/28 as specced, WO-29 deferred,
    the sequence in §4.

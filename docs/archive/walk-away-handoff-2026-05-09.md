@@ -14,10 +14,10 @@ Run at execution start. Per dispatch hard-halt rules, items 1, 2, 3, 5 must pass
 |---|---|---|
 | 1. gh auth status | PASS | Authenticated as `Dwarves77` (keyring), token scopes include `repo` |
 | 2. git remote -v | PASS | origin = `https://github.com/Dwarves77/dotfiles.git`. fsi-app is a subdir of the dotfiles repo, not a separate repo. PRs target dotfiles. |
-| 3a. supabase CLI | PASS | `npx supabase --version` returns 2.98.2. CLI also at `/c/Users/jason/scoop/shims/supabase`. |
+| 3a. supabase CLI | PASS | `npx supabase --version` returns 2.98.2. CLI also at `/c/Users/USER/scoop/shims/supabase`. |
 | 3b. supabase project linked | PASS | `supabase/config.toml` absent but `supabase/.temp/linked-project.json` and `supabase/.temp/project-ref` exist; CLI tracks linkage via .temp. |
 | 4. ANTHROPIC_API_KEY in shell | NOT SET in shell, PRESENT in `.env.local` | Phase 1 OK (no LLM calls). Phase 2 will require explicit env load before cold-start. |
-| 5. cwd active | PASS | `/c/Users/jason/dotfiles/fsi-app` |
+| 5. cwd active | PASS | `/c/Users/USER/dotfiles/fsi-app` |
 
 Outcome: precheck passes for Phase 1 entry. Phase 2 entry conditional on loading ANTHROPIC_API_KEY into shell.
 
@@ -212,7 +212,7 @@ PostgREST schema cache reloaded after each apply batch via `NOTIFY pgrst, 'reloa
 
 ## Perf Round 3 (2026-05-09)
 
-Goal: eliminate the duplicate Dashboard prefetch and other layout-shell prefetch storms identified in Jason's Claude-in-Chrome session.
+Goal: eliminate the duplicate Dashboard prefetch and other layout-shell prefetch storms identified in the operator's Claude-in-Chrome session.
 
 ### Side-rail file path
 
@@ -541,7 +541,7 @@ Closes the registry-to-ingestion handoff gap from `docs/registry-to-ingestion-ha
 
 - **Migration 065** `fsi-app/supabase/migrations/065_pending_first_fetch_queue.sql`. New `pending_first_fetch` table (id, source_id FK, queued_at, status enum {queued|fetching|done|error|skipped}, attempt_count, last_attempt_at, last_error_text). Partial unique index on `(source_id) WHERE status NOT IN ('done', 'skipped')` keeps duplicates out while letting re-enables eventually re-queue. Index on `(status, queued_at)` for the drain pickup query. RLS service-role-only. Trigger function `enqueue_pending_first_fetch()` on AFTER INSERT and AFTER UPDATE OF auto_run_enabled, gated on (active source AND not paused AND auto_run_enabled=true) AND (no existing intelligence_items row for this source). Re-enables of sources with prior history flow through the existing `/api/worker/check-sources` worker on the same hourly cron, not through this queue.
 
-- **Drain worker** `fsi-app/src/app/api/worker/drain-first-fetch/route.ts`. Worker-secret auth via `x-worker-secret` (same WORKER_SECRET as `/api/worker/check-sources`). Picks oldest queued rows (default limit 5, env `DRAIN_FIRST_FETCH_LIMIT` override, body `{ limit }` override capped at 50). Mints a one-shot Supabase access_token via `auth.admin.generateLink` + `verifyOtp` for the worker-designated admin email (env `DRAIN_WORKER_EMAIL`, falls back to `ADMIN_EMAIL`, last-resort `jasonlosh@hotmail.com`). Seeds a stub intelligence_items row before forwarding to `/api/agent/run`, satisfying the route's pre-condition (route.ts:400-405) without modifying the route. Failure classification: 403/404/412 are terminal (mark error, no retry), 5xx and other errors retry up to 3 attempts then mark error. Re-checks source eligibility at drain time so paused sources skip terminally. Serial loop within an invocation for Anthropic concurrency safety.
+- **Drain worker** `fsi-app/src/app/api/worker/drain-first-fetch/route.ts`. Worker-secret auth via `x-worker-secret` (same WORKER_SECRET as `/api/worker/check-sources`). Picks oldest queued rows (default limit 5, env `DRAIN_FIRST_FETCH_LIMIT` override, body `{ limit }` override capped at 50). Mints a one-shot Supabase access_token via `auth.admin.generateLink` + `verifyOtp` for the worker-designated admin email (env `DRAIN_WORKER_EMAIL`, falls back to `ADMIN_EMAIL`, last-resort `the operator's hotmail address`). Seeds a stub intelligence_items row before forwarding to `/api/agent/run`, satisfying the route's pre-condition (route.ts:400-405) without modifying the route. Failure classification: 403/404/412 are terminal (mark error, no retry), 5xx and other errors retry up to 3 attempts then mark error. Re-checks source eligibility at drain time so paused sources skip terminally. Serial loop within an invocation for Anthropic concurrency safety.
 
 - **GHA workflow** `.github/workflows/source-monitoring.yml`. New `drain-first-fetch` job on the same hourly cron, runs after `check-sources` with independent failure handling (`if: always()`).
 

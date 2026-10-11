@@ -273,7 +273,7 @@ Verdict: **PARTIAL**. The brief structure (full_brief, why_matters, open_questio
 
 ## Final result for caller
 
-Doc location: `C:/Users/jason/dotfiles/docs/source-coverage-diagnostic-2026-05-09.md`.
+Doc location: `C:/Users/USER/dotfiles/docs/source-coverage-diagnostic-2026-05-09.md`.
 
 **Failure-mode determination**: B (ingestion silently failing) dominant; A (not in registry) for finance.ec.europa.eu specifically; E (wrong channel monitored) as a structural co-factor across the seven `ec.europa.eu` press-corner-aggregate-feed sources; C (selection logic excluded) as a contributing factor for EFRAG (provisional). D does not apply. A sixth mode is named in the analysis: registry-to-ingestion handoff gap (newly-added sources have no scheduled first-fetch and remain dormant until next cold-start sweep).
 

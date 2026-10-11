@@ -14,22 +14,22 @@ These behaviors mean the skill was loaded but not followed:
 
 ## Worktree path convention
 
-When a dispatch (this discipline or any other) creates a git worktree, the worktree path MUST be under `C:/Users/jason/dotfiles/.worktrees/wt-<dispatch-name>` (i.e., inside the repo at `.worktrees/`). This is the path that `superpowers:finishing-a-development-branch` (FaDB) recognizes as eligible for automatic cleanup in its Step 6 provenance check.
+When a dispatch (this discipline or any other) creates a git worktree, the worktree path MUST be under `C:/Users/USER/dotfiles/.worktrees/wt-<dispatch-name>` (i.e., inside the repo at `.worktrees/`). This is the path that `superpowers:finishing-a-development-branch` (FaDB) recognizes as eligible for automatic cleanup in its Step 6 provenance check.
 
-DO NOT create worktrees as siblings to the repo root (`C:/Users/jason/dotfiles-wt-<name>`). That convention bypasses FaDB's provenance check; FaDB will refuse to clean those worktrees because it treats them as host-managed. Stale worktrees accumulate.
+DO NOT create worktrees as siblings to the repo root (`C:/Users/USER/dotfiles-wt-<name>`). That convention bypasses FaDB's provenance check; FaDB will refuse to clean those worktrees because it treats them as host-managed. Stale worktrees accumulate.
 
 This convention was added 2026-05-20 after operator audit found 22+ stale worktrees at sibling-path convention. Cleanup script at `fsi-app/scripts/cleanup-merged-worktrees.mjs` handles the historical bulk cleanup of sibling-path worktrees; going-forward worktrees follow the `.worktrees/` convention so FaDB Step 6 handles cleanup automatically on dispatch completion.
 
 When writing a dispatch brief that instructs an agent to set up a worktree, use:
 
 ```
-git -C C:/Users/jason/dotfiles worktree add C:/Users/jason/dotfiles/.worktrees/wt-<dispatch-name> -b feat/<branch-name> master
+git -C C:/Users/USER/dotfiles worktree add C:/Users/USER/dotfiles/.worktrees/wt-<dispatch-name> -b feat/<branch-name> master
 ```
 
 NOT:
 
 ```
-git -C C:/Users/jason/dotfiles worktree add C:/Users/jason/dotfiles-wt-<dispatch-name> -b feat/<branch-name> master
+git -C C:/Users/USER/dotfiles worktree add C:/Users/USER/dotfiles-wt-<dispatch-name> -b feat/<branch-name> master
 ```
 
 ## Integration With the Standing Skill-Load Rule

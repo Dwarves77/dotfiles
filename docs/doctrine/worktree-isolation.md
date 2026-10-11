@@ -62,7 +62,7 @@ residual: >
 ## Incident this prevents
 
 During a multi-agent build program a sub-agent ran `git checkout -b <branch>` in the MAIN checkout
-(`C:/Users/jason/dotfiles`) instead of its assigned worktree under `.claude/worktrees/`. That moved the
+(`C:/Users/USER/dotfiles`) instead of its assigned worktree under `.claude/worktrees/`. That moved the
 main checkout's HEAD onto the agent's branch; subsequent orchestrator commits landed on the wrong label
 and had to be manually untangled. The action-time skill-gate did not catch it because PreToolUse is
 session-scoped and does not fire inside subagents/workflows (verified 2026-06-07).

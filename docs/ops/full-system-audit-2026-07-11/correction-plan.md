@@ -1,7 +1,7 @@
 # Correction Plan — Full-System Audit (2026-07-11)
 
 **Lens (operator ruling, 2026-07-11): the hold is deliberate — build-first.** Freshness/intake gaps ride
-the flip (Jason's switch) and are NOT in this plan. This plan makes the build RIGHT before ongoing
+the flip (the operator's switch) and are NOT in this plan. This plan makes the build RIGHT before ongoing
 updates: seal the customer surface, make every credential path honest, fix the generation contract so
 future briefs pass the gate by construction, clear the adoption blockers, erase the dead weight, and
 wire the invariants that would have caught this audit's classes automatically.
@@ -92,7 +92,7 @@ budget ratification · triage-queue throughput (operator-owned) · Research repo
 decision — but make it: the surface can't finish either way until it's made) **[RULED-CLOSED
 2026-07-12: Research = horizon-scan, editorial queue REJECTED — doctrine register
 `research-is-horizon-scan`]** · community peer
-acquisition. All ride Jason's switches, per the standing doctrine that they are switches, not tasks.
+acquisition. All ride the operator's switches, per the standing doctrine that they are switches, not tasks.
 
 ## Suggested execution shape
 

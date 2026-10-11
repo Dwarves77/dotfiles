@@ -1,6 +1,6 @@
 # Lane G2: the local push gate runs what CI's Fitness job runs (coordinator, 2026-09-21)
 
-Model: Sonnet (gate logic). Worktree: `C:/Users/jason/dotfiles/.worktrees/wt-p5a-nonreg`. Branch: `lane/g2-push-gate-npm-parity`, cut from `origin/master` (at or past `c3199c05`). Read `docs/dispatches/lane-common-contract.md` first. STOP on anything not covered. Invariant id assigned: RD-79 (F53 and RD-78 are reserved for lane M7c; do not take them).
+Model: Sonnet (gate logic). Worktree: `C:/Users/USER/dotfiles/.worktrees/wt-p5a-nonreg`. Branch: `lane/g2-push-gate-npm-parity`, cut from `origin/master` (at or past `c3199c05`). Read `docs/dispatches/lane-common-contract.md` first. STOP on anything not covered. Invariant id assigned: RD-79 (F53 and RD-78 are reserved for lane M7c; do not take them).
 
 ## Why (measured, 2026-09-21)
 
@@ -23,4 +23,4 @@ Operator ruling, verbatim: "This is a constant. sTOP pushing when it will fail D
 
 ## Report
 
-ONE final report, five lines maximum, sent once, no interim messages: commit sha; the new step's measured wall time and the npm totals; fitness violations and push gate result; the parity table's entries; any STOP with its measurement. Write the PR body `pr-g2.md` into `C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-jason`, not your own), with `## UX compliance` reading "Not a UI change.", ending with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+ONE final report, five lines maximum, sent once, no interim messages: commit sha; the new step's measured wall time and the npm totals; fitness violations and push gate result; the parity table's entries; any STOP with its measurement. Write the PR body `pr-g2.md` into `C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/` (the coordinator's scratchpad, `C--Users-USER`, not your own), with `## UX compliance` reading "Not a UI change.", ending with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.

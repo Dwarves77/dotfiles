@@ -47,13 +47,13 @@ the sole guard everywhere** — posture per table below.
   never extended. No INSERT/UPDATE/DELETE policy has ever existed (verified by grepping every
   migration). See findings F1, F2.
 - **Dump** (emails masked; PII class = email, display_name, LinkedIn ids):
-  - Row 1 `2b7d21eb-…9c75` — jas***@hotmail.com, display_name "Jason", role **admin**,
+  - Row 1 `2b7d21eb-…9c75` — a masked hotmail address, display_name (redacted first name), role **admin**,
     verification_tier staff_verified, affiliation_type independent, membership_tier premium,
     is_platform_admin **true**, org_id a0000000-…0001, workspace_role owner,
     sector_overrides = sector = [fine-art, live-events, luxury-goods, film-tv, automotive,
     humanitarian], jurisdiction_overrides = 30 jurisdictions, timezone UTC, created 2026-04-05,
     updated 2026-05-19. All LinkedIn fields false/null. settings {}.
-  - Row 2 `a0764ff3-…6798` — jas***sh@gmail.com, display_name null, role **admin**,
+  - Row 2 `a0764ff3-…6798` — a masked gmail address, display_name null, role **admin**,
     verification_tier unverified, membership_tier free, is_platform_admin false, org_id NULL,
     workspace_role NULL, all arrays empty, created = updated 2026-05-28.
 - **Code paths**: readers everywhere (community pages/routes join author profiles; lib/auth/admin.ts;
@@ -467,7 +467,7 @@ row counts reconciled against manifest §B — all exact matches). Plus ingestio
 1. Multi-statement SQL through the MCP tool returns only the LAST result set — detected on the
    user_profiles/organizations/org_memberships/workspace_settings batch; re-ran as jsonb-aggregated
    single statements. No data loss.
-2. Emails in the profiles dump are masked (`jas***@…`) — PII noted as a finding class (F15) per
+2. Emails in the profiles dump are masked (`xxx***@…`) — PII noted as a finding class (F15) per
    dispatch instruction; everything else reproduced unredacted (bulk text as length+left80 per
    manifest dump rule).
 3. `pg_class.reltuples` estimates were -1/stale for most small tables — exact `count(*)` used

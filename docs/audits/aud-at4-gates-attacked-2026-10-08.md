@@ -325,7 +325,7 @@ Per gate (attacks / ACCEPTED / refused / error); `*` marks the ADR-046 point 1 s
 | B9-03 | INVCOV | same sentence split across two lines | refuse | ACCEPTED | violations=0 | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
 | B7-38 | C5 | anchor substring kept only in a trailing comment while the anchored identifier is gone from the code | refuse | ACCEPTED | drifts=0 | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
 | B6-46 | F61 | workflow_run trigger written in flow style | refuse | ACCEPTED | file scanned, 0 violations | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
-| B9-04 | INVCOV | a human gate worded outside GATE_RE (needs a person to sign it off; Jason ratifies each batch first) | refuse | ACCEPTED | violations=0 | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
+| B9-04 | INVCOV | a human gate worded outside GATE_RE (needs a person to sign it off; the operator ratifies each batch first) | refuse | ACCEPTED | violations=0 | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
 | B7-39 | C5 | ACTIVE_PHASE set to none while the anchored identifier is gone | refuse | ACCEPTED | drifts=0 | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
 | B9-05 | INVCOV | the control sentence in a doctrine-bearing file that is not in DOCTRINE_FILES (docs/dispatches/lane-common-contract.md) | refuse | ACCEPTED | scanned files=9 docs/* entries=0 | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |
 | B6-48 | F64 | create unlogged table | refuse | ACCEPTED | file scanned, 0 violations | [CONFIRMED: real gate code run on a fixture in a throwaway git repo] |

@@ -47,7 +47,7 @@ test("fix58-tokens: active nav row (card variant) uses the inset 3px spine box-s
 });
 
 // Nav footer history: production first shipped THREE footer rows (Account, Admin, a third
-// "jasonlosh ▾" UserMenu utility row) against R2's two unlabelled rows — a coordinator default
+// "the operator ▾" UserMenu utility row) against R2's two unlabelled rows — a coordinator default
 // collapsed that to two, then the operator ruling of 2026-09-07 collapsed it to ONE (the logged-in
 // person's name, everything else inside its menu). The operator ruling of 2026-09-08 REVERSES that
 // one-row ruling and restores the artboard's TWO rows: "Account" with the workspace name

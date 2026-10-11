@@ -2,7 +2,7 @@
 
 Amendment 1's guard run was [REFUTED] as evidence: the guard loaded no fonts anywhere (G3's finding). G3 is built at `ad14aef8` on `lane/g3-guard-real-fonts` in `wt-landdocs-0911`, not merged yet; it vendors the fonts and awaits them.
 
-In `C:/Users/jason/dotfiles/.worktrees/wt-w10-factcard`, branch `lane/w10-factcard-d` at `b0e035da`:
+In `C:/Users/USER/dotfiles/.worktrees/wt-w10-factcard`, branch `lane/w10-factcard-d` at `b0e035da`:
 1. `git fetch origin` then `git rebase origin/master` (F51c merged; a conflict is a STOP). Then bring G3's harness in locally WITHOUT merging it: `git cherry-pick a12c1c38` (G3's first commit, the harness and fonts; if it conflicts, STOP with the files). Mark this cherry-pick as TEMPORARY in the commit message: it is dropped before push (the runner rebases onto master after G3 merges, which contains the same change; if the queue's rebase reports a conflict on it, the coordinator resolves; do not push it yourself in any case).
 2. Run the real guard (`node .discipline/rendering/run-rendering-guard.mjs` from `fsi-app`, output to a file, read selectively). The fixtures you own are `panel-21c` and the four `record-grade-facts`; report EVERY failure line for those, and the count of others (those belong to lane UI-75, running in parallel; do not touch them).
 3. Fix at the cause, in the part or the model only, until the guard prints zero failures on your fixtures, twice in a row. The operator's acceptance list (brief, section "Acceptance for re-review") is the standard. Also confirm at 1440: both 21c groups together at most 1100px; put the measured heights of all five cards and both groups in the report.

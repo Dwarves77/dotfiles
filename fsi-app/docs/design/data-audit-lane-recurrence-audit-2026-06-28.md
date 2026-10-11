@@ -153,7 +153,7 @@ that made a check more lenient.
 - **Layer B/C (3a38004/06-22) added teeth** (block generation on red) — strengthening.
 - **DATA-layer caveat (not a code weakening):** 131 `disposition_deferred` flags, all open,
   bulk-created by script on 06-18/06-19 (48 in one minute) with a *generic* shared reason
-  ("blocked on the network-stable generation lane"), owner Jason. Legitimate **at creation** (a real
+  ("blocked on the network-stable generation lane"), owner: the operator. Legitimate **at creation** (a real
   systemic blocker — the Anthropic/Browserless hang, fixed 06-19→06-21) and anti-silence by design
   (deferrals expire → self-resurrect → hard-fail; tonight's "1 resurrected" is one firing). BUT the
   cited blocker is now resolved and the items were never re-grounded — and for the large-pool ones the

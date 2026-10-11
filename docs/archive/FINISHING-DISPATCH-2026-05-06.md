@@ -10,7 +10,7 @@
 
 **Design audits are commentary on design fidelity. Preview files are design exploration source-of-truth, not architectural authority. When audit findings conflict with intended use, intended use wins.**
 
-This principle (now codified in `fsi-app/.claude/CLAUDE.md`) anchors the Wave 4 restructure below. Several audit findings that v2 treated as full-rebuild scope turned out to be commentary on preview files that intentionally lag the live surfaces. Where the live surface is correct per intended use, the dispatch downscopes to a preview-update or a single targeted fix; where the live surface is genuinely broken, the rebuild proceeds as scoped. Functional and factual fixes proceed autonomously; aesthetic drift the system cannot resolve from intended-use signals routes to integrity flags for Admin review (see CLAUDE.md "Integrity flags — agent contract for design_drift"), not to Jason chat.
+This principle (now codified in `fsi-app/.claude/CLAUDE.md`) anchors the Wave 4 restructure below. Several audit findings that v2 treated as full-rebuild scope turned out to be commentary on preview files that intentionally lag the live surfaces. Where the live surface is correct per intended use, the dispatch downscopes to a preview-update or a single targeted fix; where the live surface is genuinely broken, the rebuild proceeds as scoped. Functional and factual fixes proceed autonomously; aesthetic drift the system cannot resolve from intended-use signals routes to integrity flags for Admin review (see CLAUDE.md "Integrity flags — agent contract for design_drift"), not to the operator chat.
 
 ## Changes from v2
 
@@ -21,7 +21,7 @@ This principle (now codified in `fsi-app/.claude/CLAUDE.md`) anchors the Wave 4 
 - **Wave 4 = three tracks running concurrently.**
   - **Track A: 5 surface agents** (small targeted fixes carved out of the canceled/downscoped Wave 4 PRs above, plus PR #54 already merged).
   - **Track B: this doc PR** (`docs/wave4-documentation-and-integrity-flags`) — design-audit framing codified, dispatch v3 commit, preview cleanup, design_drift integrity-flag agent contract documented.
-  - **Track C: self-routing via integrity flags** — design drift the agents can't resolve from dispatch context lands as `category='design_drift'` flag rows for Admin review, no Jason bottleneck. Schema vehicle for these flags is documented in CLAUDE.md as a separate-dispatch dependency (current `agent_integrity_flag` columns on `intelligence_items` don't carry a category yet).
+  - **Track C: self-routing via integrity flags** — design drift the agents can't resolve from dispatch context lands as `category='design_drift'` flag rows for Admin review, no the operator bottleneck. Schema vehicle for these flags is documented in CLAUDE.md as a separate-dispatch dependency (current `agent_integrity_flag` columns on `intelligence_items` don't carry a category yet).
 
 ## Changes from v1
 
@@ -193,8 +193,8 @@ INVESTIGATION FIRST
 - Identify top 3 to 5 bottlenecks ranked by impact
 - Surface findings before any fixes
 
-WRITES PHASE (after Jason explicitly authorizes specific fixes)
-- Apply only the fixes Jason authorizes
+WRITES PHASE (after the operator explicitly authorizes specific fixes)
+- Apply only the fixes the operator authorizes
 - Possible: code-splitting tweaks, query optimization, ISR
   cache adjustments, image upgrades, font-display fixes
 
@@ -419,7 +419,7 @@ mode. After production green, fire Wave 4.
 
 - **Track A — Surface (5 agents).** Small carve-outs of the canceled/downscoped Wave 4 PRs. Source coverage note on Research Pipeline (Agent A1), Abstract toggle removal on Map (Agent A2), Coverage gaps data-driven on Map (Agent A3 — already merged at PR #54 `3f8d813`), plus two additional surface agents working in parallel on file-disjoint targets discovered during dispatch authoring.
 - **Track B — Documentation + integrity-flag wiring.** This very doc PR (`docs/wave4-documentation-and-integrity-flags`) commits dispatch v3, codifies the audit-framing + accordion-default principles in CLAUDE.md, updates the settings preview to track the live SettingsPage tab roster, archives orphan community preview iterations, and documents the agent contract for `category='design_drift'` integrity flags.
-- **Track C — Self-routing integrity flags.** No dispatch fires; agents writing flags is the dispatch. Drift findings the agents can't resolve from dispatch context surface as Admin-queue rows rather than chat interruptions to Jason.
+- **Track C — Self-routing integrity flags.** No dispatch fires; agents writing flags is the dispatch. Drift findings the agents can't resolve from dispatch context surface as Admin-queue rows rather than chat interruptions to the operator.
 
 **Audit items addressed (v3):** F12 actionable remainder (Source coverage note), F19 actionable remainders (Abstract toggle removal — done in Track A; Coverage gaps data-driven — done at PR #54). Operations rebuild scope explicitly canceled. Sub-national markers + 5-canonical-jurisdictions deferred to Track C self-routing if the agents can't resolve, and to PR-N URL param work in Wave 5 for the URL-handling layer.
 
@@ -762,7 +762,7 @@ INVESTIGATION FIRST (consolidated across all 12 states)
   source rows needing insert
 - Surface single consolidated regional report
 
-WRITES PHASE (after Jason auth)
+WRITES PHASE (after the operator auth)
 - Per state, execute writes with per-step verification
 - Single PR with all 12 states bundled
 
@@ -869,9 +869,9 @@ HALT AND SURFACE IF
 
 POST-PR (all 6 agents)
 Surface consolidated report covering all regions + EU inserts.
-Each agent's writes phase requires Jason's auth (data layer per
+Each agent's writes phase requires the operator's auth (data layer per
 the 6-decisions pattern from PR-A1). After all six PRs open and
-verification logs surface, Jason authorizes merges per agent.
+verification logs surface, the operator authorizes merges per agent.
 
 End-state: 50 US states + DC + 5 territories tagged, 5 EU
 regulations inserted, ready for surface PR-J Map fix in Wave 4

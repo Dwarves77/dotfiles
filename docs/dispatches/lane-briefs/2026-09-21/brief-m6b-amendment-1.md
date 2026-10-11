@@ -1,6 +1,6 @@
 # Lane M6b, Amendment 1 (coordinator, 2026-09-21): continuation. Read after `brief-m6b.md`; where they disagree this file wins.
 
-The first M6b agent built item 1 only and stopped at about 250k tokens: commit `007e2f86` on `lane/m6b-gate-a-rescan` in `C:/Users/jason/dotfiles/.worktrees/wt-l25-slot-mirror` (the shared writer `scripts/lib/gate-a-state-writer.mjs`, `provenance-heal.mjs` delegating to it; fitness 0 violations, suite green). You are its replacement, not a resume. Do NOT redo or re-verify item 1. Continue on that branch from that commit with items 2 to 8, in this order, one commit per numbered group:
+The first M6b agent built item 1 only and stopped at about 250k tokens: commit `007e2f86` on `lane/m6b-gate-a-rescan` in `C:/Users/USER/dotfiles/.worktrees/wt-l25-slot-mirror` (the shared writer `scripts/lib/gate-a-state-writer.mjs`, `provenance-heal.mjs` delegating to it; fitness 0 violations, suite green). You are its replacement, not a resume. Do NOT redo or re-verify item 1. Continue on that branch from that commit with items 2 to 8, in this order, one commit per numbered group:
 
 1. Items 2 and 3 together (the script, the family descriptor files, the emitter, their tests).
 2. Item 4 (attach-found-sources filter and flags, tests).

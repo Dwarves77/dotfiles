@@ -54,7 +54,7 @@ assign, STOP and ask the coordinator for one; do not read the file and pick.
   under another lane's start list (section 6.1 names them), any edit to `.env*`.
 - Database access, when your brief allows it: SELECT only, with `LIMIT` or aggregates, never a large text
   column across the corpus. Helper: `scripts/lib/pg-conn.mjs` (`connectPg()` returns a pg Client or null),
-  run with `node --env-file=C:/Users/jason/dotfiles/.worktrees/wt-adr016-ft/fsi-app/.env.local`.
+  run with `node --env-file=C:/Users/USER/dotfiles/.worktrees/wt-adr016-ft/fsi-app/.env.local`.
 - Prose rules for anything you write (code comments, docs, commit messages, the report): no em dash, no en
   dash, no section sign glyph (write "section 0"); a pre-commit rule refuses them. Every finding carries
   `[CONFIRMED]`, `[HYPOTHESIS]` or `[REFUTED]` (CLAUDE.md rule 14). No user-home paths in code or comments
@@ -81,7 +81,7 @@ assign, STOP and ask the coordinator for one; do not read the file and pick.
   Three lanes reported green on 2026-09-18 and were refused at push (M1 on four ratchets, M9a on a skill pin,
   W10-A on the UX compliance block); the contract's one command catches all of them. After every edit is
   committed and the fast checks above are green:
-      bash C:/Users/jason/AppData/Local/Temp/claude/C--Users-jason/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/lane-prepush-check.sh <your worktree root>
+      bash C:/Users/USER/AppData/Local/Temp/claude/C--Users-USER/fddbeade-7f79-480a-9254-e8fdb3278567/scratchpad/lane-prepush-check.sh <your worktree root>
   It waits for the lock the coordinator's push queue and merge train share (two suites side by side flake each
   other), runs `DISCIPLINE_HOOK_TRAMPOLINE=1 sh fsi-app/.discipline/hooks/pre-push < /dev/null` in your worktree,
   and prints `lane-check: PASS` or `lane-check: FAIL` with the refusing step and the step-log folder.
@@ -106,7 +106,7 @@ assign, STOP and ask the coordinator for one; do not read the file and pick.
 
 ## Report
 
-When done or stopped, write `C:\Users\jason\AppData\Local\Temp\claude\C--Users-jason\fddbeade-7f79-480a-9254-e8fdb3278567\scratchpad\report-<lane-id>.md`
+When done or stopped, write `C:\Users\USER\AppData\Local\Temp\claude\C--Users-USER\fddbeade-7f79-480a-9254-e8fdb3278567\scratchpad\report-<lane-id>.md`
 with: the commits (hash, subject); the six-criteria acceptance from your row, each criterion with the
 evidence you can name now and the ones the coordinator must produce (a dispatch, a DDL apply); test and
 tsc results verbatim (counts); problems that stopped you, if any, in the form above; nothing else. Reply

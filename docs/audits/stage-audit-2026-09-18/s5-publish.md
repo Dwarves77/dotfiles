@@ -1,6 +1,6 @@
 # s5-publish: stage audit 2026-09-18
 
-Method: read code in `C:\Users\jason\dotfiles\.worktrees\wt-session-c` (repo HEAD `806c0c48910c`, 2026-09-18,
+Method: read code in `C:\Users\USER\dotfiles\.worktrees\wt-session-c` (repo HEAD `806c0c48910c`, 2026-09-18,
 master `3da30b22` plus one docs commit, per the common brief); ran read-only SELECT/`pg_get_functiondef`
 queries against the live Supabase project via `scripts/lib/pg-conn.mjs`; ran plain HTTP GETs against
 `https://carosledge.com`. No writes, no build, no test suite, no browser render, no agents spawned.

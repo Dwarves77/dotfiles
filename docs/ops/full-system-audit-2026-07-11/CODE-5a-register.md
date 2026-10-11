@@ -95,7 +95,7 @@ Findings:
 
 **`_dataops/interlock.mjs` (44)** — re-run interlock for already-executed data ops: refuses unless `CONFIRM_RERUN=<name>`; runs before any DB connect. **Imported by only 7 scripts** (phase2-build-binding, phase2-reconcile, recheck-fabrication-16, reclassify-portals-content-gate, recovery-readmit, roleaudit-reclassify, tier-reconcile). See F-5a-11.
 
-**`archive/` (6)** — parked one-shots from the 2026-05-10 wave: 3 read-only previews (deletion-preview-title-only, task4-backfill-preview, task6-source-inserts-preview), 1 doc generator (write-deletion-preview-v2 — reads a tmp JSON, writes a docs/ markdown), 1 raw-pg INSERT executor (`phase2-step1-task6-inserts.mjs` — executes `scripts/tmp/task6-inserts-v2.sql` in a transaction on bare invocation; no gate, no interlock — executed long ago, non-idempotent), 1 auth'd smoke (`smoke-run-task3.mjs` — mints an admin token via generateLink/verifyOtp and POSTs `/api/agent/run` = paid model call on bare invocation; hardcoded operator email `jasonlosh@hotmail.com`). Directory role is correct (parked audit records) but the two live-fire ones would still fire if run. Candidate: interlock or neuter (exit-0 header) anything in archive/.
+**`archive/` (6)** — parked one-shots from the 2026-05-10 wave: 3 read-only previews (deletion-preview-title-only, task4-backfill-preview, task6-source-inserts-preview), 1 doc generator (write-deletion-preview-v2 — reads a tmp JSON, writes a docs/ markdown), 1 raw-pg INSERT executor (`phase2-step1-task6-inserts.mjs` — executes `scripts/tmp/task6-inserts-v2.sql` in a transaction on bare invocation; no gate, no interlock — executed long ago, non-idempotent), 1 auth'd smoke (`smoke-run-task3.mjs` — mints an admin token via generateLink/verifyOtp and POSTs `/api/agent/run` = paid model call on bare invocation; hardcoded operator email `the operator's hotmail address`). Directory role is correct (parked audit records) but the two live-fire ones would still fire if run. Candidate: interlock or neuter (exit-0 header) anything in archive/.
 
 ## 5. Root `scripts/` (157 one-shot + standing runners)
 
@@ -223,7 +223,7 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `apply-errorbody-remediation.mjs` | 61 | WG- | - | ERROR-BODY CLAIM REMEDIATION — APPLIER (PURE NODE). Dispatch item 1 (2026-07-06). Consum |
 | `apply-funded-releases.mjs` | 92 | WG- | - | FUNDED-PASS RELEASE/DELETION APPLIER (PURE NODE — standing dispatch item 1, binding 3b,  |
 | `apply-migrations.mjs` | 43 | --- | db_password | Apply migration SQL files faithfully via a direct Postgres connection (DDL-capable). |
-| `apply-t5-value-rulings.mjs` | 84 | WG- | - | T5 OPERATOR-RULED value-delete + reclassify applier (dispatch 2026-07-06, Jason's ruled  |
+| `apply-t5-value-rulings.mjs` | 84 | WG- | - | T5 OPERATOR-RULED value-delete + reclassify applier (dispatch 2026-07-06, the operator's ruled  |
 | `audit-optionc-reachability.mjs` | 206 | --- | - | PART 1 B audit — reachability + page-content check. |
 | `audit-optionc-sources.mjs` | 243 | --- | - | Read-only audit of the 80 Option C URL-anchor outputs. |
 | `audit-skill-conformance.mjs` | 136 | WG- | - | READ-ONLY skill-conformance audit (ZERO Browserless, ZERO LLM). Per project_corpus_rever |
@@ -240,8 +240,8 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `cleanup-merged-worktrees.mjs` | 271 | -G- | - | cleanup-merged-worktrees.mjs |
 | `completeness-workorder.mjs` | 76 | WG- | - | RE-FETCH WORK ORDER + completeness-exposure flags (dispatch items 4/5, 2026-07-06). Read |
 | `correct-d5-deferral.mjs` | 68 | WG- | - | DEFERRAL CORRECTION for d5ee6ab8 (standing dispatch item 2, 2026-07-06) — pure-node GUAR |
-| `d1-pilot-dispositions.mjs` | 79 | WG- | - | D1 PILOT DISPOSITIONS (research-or-erase, Jason's content-grounded rulings 2026-06-09). |
-| `d2-revalidate-stale-verified.mjs` | 46 | WG- | - | D2: revalidate the STALE 'verified' items (Jason 2026-06-08, option a — honest surface). |
+| `d1-pilot-dispositions.mjs` | 79 | WG- | - | D1 PILOT DISPOSITIONS (research-or-erase, the operator's content-grounded rulings 2026-06-09). |
+| `d2-revalidate-stale-verified.mjs` | 46 | WG- | - | D2: revalidate the STALE 'verified' items (the operator 2026-06-08, option a — honest surface). |
 | `d3-run.mjs` | 164 | WG- | db_password | D3 ORCHESTRATOR — the single entrypoint that makes D3 a verification LAYER, not a |
 | `d3-runs.ddl.sql` | 29 | --- | - | D3 heartbeat store — DEFINED, NOT APPLIED (no deploy target yet; additive fences hold). |
 | `dedup-2026-07-07-enact.mjs` | 115 | WG- | - | scripts/dedup-2026-07-07-enact.mjs |
@@ -509,7 +509,7 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `_diag/_schema-audit.mjs` | 33 | --- | service_role | READ-ONLY SCHEMA AUDIT: enumerate the actual columns (+ a sample value's type) of every  |
 | `_diag/_scp-cols.mjs` | 9 | --- | - | import { resolve, dirname } from "node:path"; |
 | `_diag/_scrape-hold-check.mjs` | 45 | --- | service_role | READ-ONLY: is the scraping HOLD actually honored RIGHT NOW? The hold is data-gated: |
-| `_diag/_scrape-hold-stop.mjs` | 38 | W-- | - | STOP THE SCRAPE — honor the operator HOLD (2026-06-28), authorized by Jason. |
+| `_diag/_scrape-hold-stop.mjs` | 38 | W-- | - | STOP THE SCRAPE — honor the operator HOLD (2026-06-28), authorized by the operator. |
 | `_diag/_scrape-schedule-test.mjs` | 54 | --- | - | Unit test for the PURE scrape-schedule logic (no DB). Proves scrapeWindowOpen + nextScra |
 | `_diag/_scrape-schedule-verify.mjs` | 67 | W-- | - | END-TO-END proof that the global scrape SCHEDULE governs behavior (not just renders). Gu |
 | `_diag/_sonnet-big.mjs` | 6 | --- | anthropic | const ROOT=new URL("../../",import.meta.url).pathname.replace(/^\//,""); try{process.loa |
@@ -546,7 +546,7 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `_diag/diag-update-error.mjs` | 18 | W-- | - | import { resolve, dirname } from "node:path"; |
 | `_diag/enumerate-institutions.mjs` | 71 | --- | - | PHASE 0' data backbone (read-only). Enumerate every claim-grounding host, grouped to ins |
 | `_diag/exemplar-content.mjs` | 10 | --- | service_role | import { resolve, dirname } from "node:path"; import { fileURLToPath } from "node:url";  |
-| `_diag/fix-test-bucket.mjs` | 59 | --- | - | FIX RUN — TEST ONE PER BUCKET (Jason condition 1). Research-or-erase resolver attempt on |
+| `_diag/fix-test-bucket.mjs` | 59 | --- | - | FIX RUN — TEST ONE PER BUCKET (the operator condition 1). Research-or-erase resolver attempt on |
 | `_diag/flags-detail.mjs` | 16 | --- | - | import { resolve, dirname } from "node:path"; |
 | `_diag/flags-peek.mjs` | 12 | --- | - | import { resolve, dirname } from "node:path"; |
 | `_diag/forced-rpc-error-test.mjs` | 36 | --- | service_role+db_password | Forced RPC-error verification of the fail-CLOSED fix. Breaks get_research_items (RAISE), |
@@ -586,7 +586,7 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `_diag/probe-nonreg-floor-calibration.mjs` | 47 | --- | - | READ-ONLY: ground the Stage-D1 non-reg authority-floor calibration. Per non-reg item_typ |
 | `_diag/probe-phase0-prep.mjs` | 38 | --- | - | P0-1 PHASE 0 write-input prep (read-only). Gathers exactly what the guarded execute scri |
 | `_diag/probe-phase2-composition.mjs` | 58 | --- | - | STAGE C step 2 — COMPOSITION PROBE across the 30 flip items (read-only). Per item, count |
-| `_diag/probe-reg-family-buckets.mjs` | 62 | --- | - | READ-ONLY spot-check for migration-137 carry-condition A (Jason): the slot×item_type mat |
+| `_diag/probe-reg-family-buckets.mjs` | 62 | --- | - | READ-ONLY spot-check for migration-137 carry-condition A (the operator): the slot×item_type mat |
 | `_diag/probe-relabel-shape.mjs` | 94 | --- | - | READ-ONLY probe (Phase 2 (b)-NARROW build): for the 30 flip items, inspect every below-f |
 | `_diag/probe-summary-contamination.mjs` | 58 | --- | - | READ-ONLY: detect cross-contaminated `summary` fields (the ReFuelEU 6f1e6615 class — sum |
 | `_diag/probe-verified-substrate.mjs` | 51 | --- | - | READ-ONLY: is the corpus-wide 'verified' label backed by a real grounding ledger, or sta |
@@ -624,7 +624,7 @@ Depth split (declared): ~90 files full line-by-line (all of lib/ main modules, v
 | `_diag/tech-quarantine-diag.mjs` | 15 | --- | service_role | import { resolve, dirname } from "node:path"; import { fileURLToPath } from "node:url";  |
 | `_diag/test-metadata-persist.mjs` | 17 | --- | - | import { resolve, dirname } from "node:path"; |
 | `_diag/test-one-metadata.mjs` | 87 | -G- | - | TEST-ONE (operator directive "before we run all of them we must test one"): run the REDO |
-| `_diag/tier-map.mjs` | 67 | --- | - | Ratified canonical institutional tiers (Jason 2026-06-11), per source-credibility-model. |
+| `_diag/tier-map.mjs` | 67 | --- | - | Ratified canonical institutional tiers (the operator 2026-06-11), per source-credibility-model. |
 | `_diag/tool-triage.mjs` | 19 | --- | service_role | Slot-fit triage (read-only): categorize item_type='tool' items -> institutional-body (-> |
 | `_diag/triage-45-value.mjs` | 62 | --- | - | READ-ONLY value triage for the 45 flip pilot (research-or-erase audit #1, value-first). |
 | `_diag/vacuous-check.mjs` | 22 | --- | - | import { resolve, dirname } from "node:path"; |

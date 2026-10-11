@@ -2,10 +2,10 @@
 
 Every value-ruled or dedup delete + every reclassify-to-source, appended at execution. Columns: when · key · id · title · action · reason · ruling · snapshot.
 
-- 2026-07-06T21:52:29.025Z · g26 · 8ff93a7e-5256-4d31-959b-2172de16ae8f · "IRENA Abu Dhabi" · DELETE · 2012 IRENA press release mis-typed as regulation (shell) · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\jason\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-28-312Z_intelligence_items.jsonl
-- 2026-07-06T21:52:29.724Z · t6 · 658247c4-52e1-4af5-9073-2ab56c6e4ee0 · "ICAP ETS Map" · DELETE · ICAP ETS Map is a tool, not a regulation; ICAP research lives at abd29144 · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\jason\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-29-324Z_intelligence_items.jsonl
-- 2026-07-06T21:52:30.539Z · l8 · c8b4f1ae-45d1-4719-86a7-40809f709556 · "Drive Electric: Zero-Emission Freight" · DELETE · thin US-DOT program page; re-mintable via the gated intake if a genuine primary surfaces · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\jason\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-29-985Z_intelligence_items.jsonl
-- 2026-07-06T21:52:32.980Z · g22 · 935680f5-6915-4241-a9b5-7e450143bc0f · "China CCICED" · RECLASSIFY→source(tier 2) · China CCICED advisory-council page mis-typed as regulation → source · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\jason\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-32-174Z_intelligence_items.jsonl
+- 2026-07-06T21:52:29.025Z · g26 · 8ff93a7e-5256-4d31-959b-2172de16ae8f · "IRENA Abu Dhabi" · DELETE · 2012 IRENA press release mis-typed as regulation (shell) · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\USER\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-28-312Z_intelligence_items.jsonl
+- 2026-07-06T21:52:29.724Z · t6 · 658247c4-52e1-4af5-9073-2ab56c6e4ee0 · "ICAP ETS Map" · DELETE · ICAP ETS Map is a tool, not a regulation; ICAP research lives at abd29144 · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\USER\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-29-324Z_intelligence_items.jsonl
+- 2026-07-06T21:52:30.539Z · l8 · c8b4f1ae-45d1-4719-86a7-40809f709556 · "Drive Electric: Zero-Emission Freight" · DELETE · thin US-DOT program page; re-mintable via the gated intake if a genuine primary surfaces · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\USER\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-29-985Z_intelligence_items.jsonl
+- 2026-07-06T21:52:32.980Z · g22 · 935680f5-6915-4241-a9b5-7e450143bc0f · "China CCICED" · RECLASSIFY→source(tier 2) · China CCICED advisory-council page mis-typed as regulation → source · T5 operator ruling, dispatch 2026-07-06 (decision-package-2026-07-06.md) · C:\Users\USER\dotfiles\fsi-app\scripts\_snapshots\2026-07-06T21-52-32-174Z_intelligence_items.jsonl
 
 - 2026-07-07T22:42Z · PPWR dup · 5cc10a6d-b671-425e-abdb-8b3ba41678b3 · "EU Regulation 2025/40 - Official Journal" · ARCHIVE (duplicate_instrument) · same instrument as survivor efdb3390 "EU PPWR 2025/40" (44 claims vs 74; 0 milestones); survivor adopted this row's canonical ELI URL · operator dedup ruling, dispatch 2026-07-07 (DATE-AND-DEDUP-AUDIT) · scripts/_snapshots/2026-07-07T22-42-23-068Z_intelligence_items.jsonl
 - 2026-07-07T22:42Z · CSRD dup · 9c5d1d17-4388-43a0-b9df-67de1fc0e582 · "EU CSRD - Transport" · ARCHIVE (duplicate_instrument) · identical CELEX source_url as survivor f0833999; brief EMPTY (0 chars, 0 sections) — the pair that proved the same-instrument gap · operator dedup ruling 2026-07-07 · same snapshot batch
@@ -29,7 +29,7 @@ Companion (NOT deletes/reclassifies — logged for completeness): 5 genuine mark
 ### 2026-07-08 (later) · the-18 enactment (never-a-human-layer re-adjudication)
 
 **Supersedes the "18 flags remain OPEN" line above.** The 18 in_review flags were re-adjudicated under
-the operator's never-a-human-layer doctrine: escalation-to-Jason is correct only for genuine
+The operator's never-a-human-layer doctrine: escalation-to-operator is correct only for genuine
 legal-interpretation calls; everything else the classifier/entity-layer resolves and ENACTS. **Residue = 0**
 (none was a legal call). Guarded + read-back (4 technology / 9 domain / 5 archived confirmed; 18 flags
 resolved). Snapshot + reversal SQL: `scripts/_snapshots/2026-07-08_the-18-enactment.jsonl`.
@@ -53,7 +53,7 @@ resolved). Snapshot + reversal SQL: `scripts/_snapshots/2026-07-08_the-18-enactm
 - [migrations](../inventories/migrations.md) — RECLASSIFY→source entries run through the migration-135 source-registration guard and migration-019 mistyped-tool reclassification — the DB…
 - [sprint4-dataops-ledger](../runbooks/sprint4-dataops-ledger.md) — Both are execution-time audit ledgers of durable intelligence_items mutations with snapshot/reversal columns; the dataops ledger's archive passes…
 - [sources-content-verification-2026-05-11](../audits/sources-content-verification-2026-05-11.md) — Confirms the 66 hard deletions this audit checks (0 remain, 0 agent_runs FK orphans) — the ops log of that deletion action
-- 2026-07-11T05:27:37.541Z · (no legacy key) · 646dda2d-f039-4a55-90e2-900dbca4b185 · "Online Casino Free Spin Promotions and No-Deposit Bonus Offerings - 20" · DELETE · pre-intake-gate off-domain junk live in the monitoring band (casino promotions on a mintransporte.gov.co source URL) · Q-3 operator ruling, RECONCILIATION REMEDIATION dispatch 2026-07-10 (site-gap register Q-3, Kansas precedent) · C:\Users\jason\dotfiles\fsi-app\scripts\_snapshots\2026-07-11T05-27-36-946Z_intelligence_items.jsonl
+- 2026-07-11T05:27:37.541Z · (no legacy key) · 646dda2d-f039-4a55-90e2-900dbca4b185 · "Online Casino Free Spin Promotions and No-Deposit Bonus Offerings - 20" · DELETE · pre-intake-gate off-domain junk live in the monitoring band (casino promotions on a mintransporte.gov.co source URL) · Q-3 operator ruling, RECONCILIATION REMEDIATION dispatch 2026-07-10 (site-gap register Q-3, Kansas precedent) · C:\Users\USER\dotfiles\fsi-app\scripts\_snapshots\2026-07-11T05-27-36-946Z_intelligence_items.jsonl
 
 ### 2026-07-11 · Q-3 casino delete + sibling relevance sweep (reconciliation remediation dispatch)
 
