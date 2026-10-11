@@ -50,12 +50,26 @@ Read: COMMON, drift1 brief, root CLAUDE.md, schema-diff.mjs and its test, migrat
 
 - The three other out-of-band policies (changes_read_authenticated, changes_write_service, sector_contexts_write_service), the intelligence_summaries_urgency_score_check constraint and the 7 differing columns: their production text is in no file. The executor reads pg_policies, pg_get_constraintdef and the column defaults in one query and a next lane writes them into a migration. [WORK: owed]
 - The 23 functions: bodies need both texts; fire 10's record gives the token difference per function, and the credentialed read gives the text. [WORK: owed]
-- The grants (342 after 384): the oracle cluster must have the image's default privileges for anon, authenticated and service_role in schema public removed before the dump is applied. The edit belongs in `fsi-app/scripts/proof/apply-schema-dump.mjs`, outside this lane's write set. NEEDS WRITE-SET EXPANSION. [WORK: owed]
+- The grants (342 after 384): the oracle cluster must have the image's default privileges for anon, authenticated and service_role in schema public removed before the dump is applied. [CLOSED: DRIFT-1b, this PR, see the DRIFT-1b section below]
 - Migrations 384 and 385 are not applied; the executor applies both after CI is green (384 is a no-op on production, 385 creates 5 indexes) and then fires chain proof 10. [WORK: owed]
-- Expected fire 10 counts, all [HYPOTHESIS] until fire 10: tables 11 to 0; columns 7 to 7; constraints only-oracle 6 to 1, changed 24 to 0; indexes 5 to 0 and 1 to 0; functions 23 to 23; policies only-oracle 7 to 3, changed 135 to 0; grants 343 to 342 (and to 0 once apply-schema-dump is fixed); total 376 (34 after the grants fix). The oracle gate's pass condition is 0 and is not expected yet.
+- Expected fire 10 counts, all [HYPOTHESIS] until fire 10: tables 11 to 0; columns 7 to 7; constraints only-oracle 6 to 1, changed 24 to 0; indexes 5 to 0 and 1 to 0; functions 23 to 23; policies only-oracle 7 to 3, changed 135 to 0; grants 343 to 342 before DRIFT-1b; with DRIFT-1b's default-privilege clearing the expected grants count is 0 (the 342 oracle-image grants gone, the one only-replayed gate_a_health grant gone by 384's REVOKE), total 34 (11 tables to 0 leaves columns 7, constraints 1, functions 23, policies 3). The oracle gate's pass condition is 0 and is not expected yet.
 - Not run locally: the whole suite, the fitness runner, tsc, any SQL. [NOT-WORK: COMMON rules 5 and 9, CI is the gate]
 - The committed db-catalog.json is stale (108 tables against 122): DEAD-1d regenerates it. [NOT-WORK: another lane owns it]
 
 ### Open items
 
 - If the operator rules that production dropped the four idx_intel_* indexes on purpose (they are prefix-redundant to the unique key), a new migration drops them in the replay and 385's four are removed before it is applied. [NOT-WORK: operator-only ruling, none pending: the brief ruled the file is the truth]
+
+### DRIFT-1b (lane drift1b-oracle-default-privileges, 2026-10-10): the oracle's default privileges are cleared before the dump
+
+Write-set expansion granted for `fsi-app/scripts/proof/apply-schema-dump.mjs` and its test.
+
+- Built: after the roles file and before the dump, `applySchemaDump` reads the oracle's own `pg_default_acl` (non-owner grantee entries, `DEFAULT_ACL_QUERY`) and issues one `ALTER DEFAULT PRIVILEGES FOR ROLE <owner> [IN SCHEMA <s>] REVOKE ALL ON <TABLES|SEQUENCES|FUNCTIONS|TYPES|SCHEMAS> FROM <grantee>` per catalog row, in one ON_ERROR_STOP psql call; no hand list. After the dump it reads `pg_default_acl` again and compares it with the GRANT forms of the dump's own `ALTER DEFAULT PRIVILEGES` statements (`parseDumpDefaultAcl`): an oracle entry the dump never declared is red (`default_acl.extra`, named in `errors`); a failed read or a failed clear is red and the dump is not applied. `schema-apply-report.json` gains `default_acl` (statements cleared, owners, grantees, declared by the dump, oracle after, extra, missing).
+- Red then green: `apply-schema-dump.test.mjs` against the old module fails at import (no export DEFAULT_ACL_QUERY); with the change 27 of 27 pass (18 existing, 9 new). The existing fakes were extended to answer the catalog read.
+- Statement count on the real image: not observable in this lane (no database, COMMON rule 5; the migration-proof job does not run the oracle, which needs production credentials). The count is the number of non-owner entries in the image's `pg_default_acl`, written to `default_acl.cleared.statements` in fire 10's schema-apply-report.json. [HYPOTHESIS: the image's entries are the postgres and supabase_admin owners granting anon, authenticated and service_role in schema public; unverified until fire 10]
+- Remaining grants count with the clearing: expected 0 for the 342 oracle-image grants [HYPOTHESIS until fire 10]; the fixture proves the statements and their order, not the effect on the dump's per-object ACLs.
+- Assumption in the post-dump check: pg_dump emits the dump's `ALTER DEFAULT PRIVILEGES` after the objects it creates (so they do not re-create the noise); if fire 10 reports `default_acl.extra`, the dump's statement form is not parsed or is ordered before the objects. [HYPOTHESIS]
+
+### NOT done (DRIFT-1b)
+
+- Fire 10 (executor) is the first run of the real path; the grants count it reports replaces the expected 0 above. [WORK: owed]
