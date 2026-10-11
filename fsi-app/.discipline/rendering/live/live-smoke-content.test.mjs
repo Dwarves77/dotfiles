@@ -4,7 +4,7 @@
 // element under its own named invariant. Without `contentChecks` the runner behaves exactly as before.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runLiveSmoke, readCandidatesFile, VIEWPORTS, LIST_SURFACES } from "./live-smoke.mjs";
+import { runLiveSmoke, readCandidatesFile, VIEWPORTS, LIST_SURFACES, getWithThrottleRetry, retryOnThrottle, adminGateOutcome, summaryLines, THROTTLE } from "./live-smoke.mjs";
 import { INVARIANTS } from "./live-assertions.mjs";
 import { CONTENT_REQUIREMENTS, CONTENT_INVARIANT_IDS } from "./live-content.mjs";
 import { collectSnapshotInPage, collectLinksInPage, collectContentInPage } from "./live-snapshot.mjs";
@@ -209,4 +209,130 @@ test("LIST CHOOSER: a filtered candidate list is not held to the `each` list req
 test("LIST CHOOSER: no listVisit in the candidate file adds no list visit (older files behave as before)", async () => {
   const r = await run({ contentChecks: true, candidates: candidatesOf(2, ["/regulations/cand"]) });
   assert.equal(r.report.pagesVisited.filter((p) => p.url.includes("?q=")).length, 0);
+});
+
+// ---- SMOKE-5 (2026-10-11, run 38110613718): a 429 answers nothing about the admin gate. It is retried after Retry-After, then a
+// named HOLD (reason throttled, the SMOKE-3 hold shape); never a FAIL and never the "became a platform admin" hypothesis.
+const fakeFetch = (statuses, headerFor = () => null) => {
+  const calls = [];
+  const fn = async (path, init) => {
+    calls.push({ path, init });
+    const status = statuses[Math.min(calls.length - 1, statuses.length - 1)];
+    return { status, headers: { get: (n) => (String(n).toLowerCase() === "retry-after" ? headerFor(calls.length) : null) } };
+  };
+  fn.calls = calls;
+  return fn;
+};
+const recordSleep = () => { const waits = []; const fn = async (ms) => { waits.push(ms); }; fn.waits = waits; return fn; };
+const API = (status, extra = {}) => ({ kind: "api", path: "/api/admin/integrity-flags", status, ...extra });
+
+test("THROTTLE: 3 attempts, 5 s default wait, 60 s total cap", () => {
+  assert.deepEqual({ ...THROTTLE }, { maxAttempts: 3, defaultWaitMs: 5000, totalCapMs: 60000 });
+});
+
+test("THROTTLE: 429 then 200 is retried after the Retry-After header and answers 200", async () => {
+  const f = fakeFetch([429, 200], () => "2");
+  const sleep = recordSleep();
+  const r = await getWithThrottleRetry(f, "/api/admin/integrity-flags", { method: "GET" }, { sleep });
+  assert.equal(r.status, 200);
+  assert.equal(r.throttled, false);
+  assert.equal(f.calls.length, 2);
+  assert.deepEqual(sleep.waits, [2000]);
+});
+
+test("THROTTLE: a missing or unparseable Retry-After waits the 5 s default", async () => {
+  for (const header of [null, "soon", "-3", ""]) {
+    const sleep = recordSleep();
+    await getWithThrottleRetry(fakeFetch([429, 200], () => header), "/x", {}, { sleep });
+    assert.deepEqual(sleep.waits, [5000], `header ${JSON.stringify(header)}`);
+  }
+});
+
+test("THROTTLE: ATTACK three 429 answers stop at 3 attempts and report throttled", async () => {
+  const f = fakeFetch([429]);
+  const sleep = recordSleep();
+  const r = await getWithThrottleRetry(f, "/api/admin/integrity-flags", {}, { sleep });
+  assert.equal(r.status, 429);
+  assert.equal(r.throttled, true);
+  assert.equal(r.attempts, 3);
+  assert.equal(f.calls.length, 3);
+  assert.deepEqual(sleep.waits, [5000, 5000]);
+});
+
+test("THROTTLE: a huge Retry-After is capped so the total wait never exceeds 60 s", async () => {
+  const f = fakeFetch([429], () => "3600");
+  const sleep = recordSleep();
+  const r = await getWithThrottleRetry(f, "/x", {}, { sleep });
+  assert.equal(r.throttled, true);
+  assert.ok(sleep.waits.reduce((a, b) => a + b, 0) <= 60000, JSON.stringify(sleep.waits));
+  assert.ok(sleep.waits.every((w) => w <= 60000));
+});
+
+test("THROTTLE: 401, 403 and 404 answer at once with no retry and no wait", async () => {
+  for (const status of [401, 403, 404, 500]) {
+    const f = fakeFetch([status]);
+    const sleep = recordSleep();
+    const r = await getWithThrottleRetry(f, "/x", {}, { sleep });
+    assert.equal(r.status, status);
+    assert.equal(r.throttled, false);
+    assert.equal(f.calls.length, 1);
+    assert.deepEqual(sleep.waits, []);
+  }
+});
+
+test("THROTTLE: a fetch that throws answers status 0 once (not retried, not throttled)", async () => {
+  const r = await getWithThrottleRetry(async () => { throw new Error("net"); }, "/x", {}, { sleep: recordSleep() });
+  assert.equal(r.status, 0);
+  assert.equal(r.throttled, false);
+});
+
+test("THROTTLE: retryOnThrottle retries any attempt that answers 429 (the /admin page probe uses it)", async () => {
+  let n = 0;
+  const sleep = recordSleep();
+  const r = await retryOnThrottle(async () => ({ status: ++n < 3 ? 429 : 200, retryAfter: "1", marker: n }), { sleep });
+  assert.equal(r.status, 200);
+  assert.equal(r.marker, 3);
+  assert.equal(r.attempts, 3);
+  assert.deepEqual(sleep.waits, [1000, 1000]);
+});
+
+test("ADMIN GATE: a throttled probe (429 after retries) is a HOLD with reason throttled, never a FAIL, never the admin hypothesis", () => {
+  const out = adminGateOutcome([API(429, { throttled: true, attempts: 3 })], BASE);
+  assert.deepEqual(out.findings, []);
+  assert.equal(out.holds.length, 1);
+  const h = out.holds[0];
+  assert.equal(h.state, "hold");
+  assert.equal(h.invariant, INVARIANTS.ADMIN_GATE);
+  assert.match(h.reason, /^throttled/);
+  assert.doesNotMatch(JSON.stringify(out), /platform admin/);
+  const lines = summaryLines(out.findings, out.holds).join(" | ");
+  assert.match(lines, /HOLD admin-gate :: \/api\/admin\/integrity-flags \(api\): throttled/);
+  assert.doesNotMatch(lines, /candidates=/);
+  assert.match(lines, /0 failure\(s\).*1 hold\(s\)/);
+});
+
+test("ADMIN GATE: a 429 on the /admin page probe without markers is a HOLD; markers on it are still a FAIL", () => {
+  const page = { kind: "page", path: "/admin", status: 429, finalPath: "/admin", markers: 0, throttled: true };
+  assert.deepEqual(adminGateOutcome([page], BASE).findings, []);
+  assert.equal(adminGateOutcome([page], BASE).holds.length, 1);
+  const leaked = adminGateOutcome([{ ...page, markers: 1 }], BASE);
+  assert.equal(leaked.findings.length, 1);
+  assert.equal(leaked.holds.length, 0);
+});
+
+test("ADMIN GATE: 401 and 403 are unchanged (no finding, no hold)", () => {
+  for (const status of [401, 403, 404]) {
+    const out = adminGateOutcome([API(status)], BASE);
+    assert.deepEqual(out, { findings: [], holds: [] });
+  }
+});
+
+test("ADMIN GATE: the platform-admin message is produced for a 200, and only for a 200", () => {
+  const admin = adminGateOutcome([API(200)], BASE);
+  assert.equal(admin.findings.length, 1);
+  assert.match(admin.findings[0].text, /may have become a platform admin/);
+  assert.equal(admin.findings[0].severity, "fail");
+  for (const status of [401, 403, 404, 429]) {
+    assert.doesNotMatch(JSON.stringify(adminGateOutcome([API(status, status === 429 ? { throttled: true } : {})], BASE)), /platform admin/);
+  }
 });
