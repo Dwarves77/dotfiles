@@ -106,87 +106,50 @@ test("pre-push step 0: the tracked hook, run with DISCIPLINE_HOOK_TRAMPOLINE uns
   // "before doing anything else": none of the numbered steps' own OK lines may appear -- step 0 must be
   // the only thing that ran.
   assert.doesNotMatch(stdout, /step 1 \(untracked critical files\)/);
-  assert.doesNotMatch(stdout, /running 4-step CI-parity check/);
-});
-
-// Lane L22 (2026-09-16), class fix for the first-push-red pattern: five lanes in a row went red on their
-// FIRST CI run on a fitness function that scans the live tree (F23 twice, F20, F25, the skill-drift gate)
-// because the hook ran the fitness functions' unit tests (step 3) but never the runner itself, which is
-// what the CI "Fitness functions" job runs. This test pins the hook's command to the exact command
-// ci.yml runs, read from the workflow file, so the two cannot drift apart silently.
-//
-// Step label updated (lane R7-LINT-CI, 2026-10-01/03): the runner's own step moved from 3d to 3e when
-// a new "ESLint (max-warnings 0)" step was inserted as 3d (matching CI's fitness-check job ordering,
-// right before the fitness-runner step), renumbering every step after it (3d->3e, 3e->3f, 3f->3g,
-// 3g->3h). This test still asserted the pre-renumbering "3d" label and was red on master itself
-// (CLAUDE.md rule 15: a proof that does not execute, or asserts stale wording, is not a proof) -- fixed
-// to match the hook's current wording, not the other way around.
-test("pre-push hook source: step 3e runs the SAME fitness-runner command the CI Fitness functions job runs (parity by construction)", () => {
-  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
-  const workflow = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "ci.yml"), "utf8");
-  const m = workflow.match(/run:\s*(node fsi-app\/\.discipline\/fitness\/runner\.mjs)\s*$/m);
-  assert.ok(m, "ci.yml must run the fitness runner as a bare command line this test can read");
-  const ciCommand = m[1];
-  assert.ok(
-    hook.includes("if ! " + ciCommand + " >"),
-    "pre-push step 3e must run exactly the CI fitness-runner command: " + ciCommand,
-  );
-  assert.match(hook, /step 3e \(fitness runner, live tree, CI parity\): OK/);
-  // Ordering: the runner runs after the canonical suite (step 3) and before tsc (step 4).
-  const i3 = hook.indexOf("step 3 (discipline + fitness tests, canonical suite): OK");
-  const i3e = hook.indexOf("step 3e (fitness runner, live tree, CI parity): OK");
-  const i4 = hook.indexOf("step 4 (tsc --noEmit): OK");
-  assert.ok(i3 > 0 && i3e > i3 && i4 > i3e, "step 3e must sit between step 3 and step 4");
-});
-
-// Lane R23 item 2 (2026-10-02): step 2b (the memory gate) used to redirect to the FIXED path
-// /tmp/discipline-prepush-mem.log and `rm -f` it, the exact D11 concurrent-run collision class this file
-// otherwise tests for every other step. Proven by attack: the fixed-path literal must be ABSENT from the
-// tracked hook, and step 2b's own command must redirect into $PRE_PUSH_LOG_DIR like every sibling step.
-test("pre-push step 2b: no fixed /tmp log path (the D11 class); redirects into $PRE_PUSH_LOG_DIR like every sibling step", () => {
-  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
-  assert.doesNotMatch(
-    hook,
-    /\/tmp\/discipline-prepush-mem\.log/,
-    "step 2b must not reintroduce the fixed /tmp path two concurrent pushes could clobber"
-  );
-  assert.match(
-    hook,
-    /node fsi-app\/\.discipline\/governance\/memory-gate\.mjs >"\$PRE_PUSH_LOG_DIR\/mem\.log" 2>&1/,
-    "step 2b must redirect to $PRE_PUSH_LOG_DIR/mem.log, the same per-run directory every other step uses"
-  );
-  assert.match(hook, /step 2b \(memory gate, CI parity\): OK/);
+  assert.doesNotMatch(stdout, /step 0e/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────────
-// GATE-2 (2026-10-08): step 2c removed, the UX substring check gone from 2b, and a firing log line per step
-// failure. Proven against the hook source and by running the extracted logging function under `sh`.
+// HOOK-1 (2026-10-11, ADR-040 second amendment): the hook keeps three steps. The behaviour of each step is attacked through
+// the real hook in pre-push-step-attacks.test.mjs; the checks here pin the hook SOURCE: the deleted steps stay deleted, the
+// memory gate is the command CI runs, no step logs to a fixed path, and every failure echo logs its firing first.
 // ─────────────────────────────────────────────────────────────────────────────────────────────────────
-import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { spawnSync, execFileSync } from "node:child_process";
+import { writeFileSync, mkdirSync } from "node:fs";
+import { createRequire } from "node:module";
 
-test("pre-push GATE-2: step 2c is gone (no rules re-run), steps 0, 0b, 0c, 1, 2 and 2b are kept", () => {
+const HOOK_DIR_REL = "fsi-app/.discipline/hooks";
+const REPO_ROOT_DIR = resolve(HERE, "..", "..", "..");
+
+test("HOOK-1: the hook runs exactly steps A, B and C; every deleted step, the docs-only classifier and the full opt-in are gone", () => {
   const hook = readFileSync(PRE_PUSH_PATH, "utf8");
-  assert.doesNotMatch(hook, /^if ! node fsi-app\/\.discipline\/runner\.mjs/m, "no executable rules re-run may remain");
-  assert.doesNotMatch(hook, /STEP 2c FAIL/);
-  assert.doesNotMatch(hook, /step 2c \(discipline rules/);
-  for (const marker of [
-    "STEP 0 FAIL", "STEP 0b FAIL", "step 0c (docs-only fast path)", "step 1 (untracked critical files): OK",
-    "step 2 (consistency runner, override-aware): OK", "step 2b (memory gate, CI parity): OK",
+  const code = hook.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+  for (const gone of [
+    "run-test-suite.sh", "invariant-coverage.mjs", "check-pretooluse-wired.mjs", "fitness/runner.mjs", "run-npmtest-suites.sh",
+    "run-goldens.mjs", "closure-gate.mjs", "skill-contract-map.mjs", "tsc --noEmit", "override-check.mjs", "docs-only-range.mjs",
+    "DISCIPLINE_PREPUSH_FULL", "RUN_HEAVY", "DOCS_ONLY",
   ]) {
+    assert.ok(!code.includes(gone), `the hook must no longer run or mention ${gone} outside comments`);
+  }
+  for (const marker of ["STEP 0 FAIL", "STEP A FAIL", "STEP B FAIL", "STEP C FAIL", "step A (", "step B (", "step C (memory gate, CI parity): OK"]) {
     assert.ok(hook.includes(marker), `kept step marker missing: ${marker}`);
   }
+  assert.ok(hook.indexOf("Step A:") < hook.indexOf("Step 0e:") && hook.indexOf("Step 0e:") < hook.indexOf("Step B:") && hook.indexOf("Step B:") < hook.indexOf("Step C:"), "A, then 0e, then B, then C");
 });
 
-test("pre-push GATE-2: step 2b's failure advice no longer asks for a UX compliance block", () => {
+test("HOOK-1: step C runs the SAME memory-gate script CI's static job runs, and logs to the per-run directory (no fixed /tmp path, the D11 class)", () => {
   const hook = readFileSync(PRE_PUSH_PATH, "utf8");
-  const failMsg = hook.slice(hook.indexOf("STEP 2b FAIL"), hook.indexOf("step 2b (memory gate, CI parity): OK"));
-  assert.ok(failMsg.length > 0);
+  const workflow = readFileSync(resolve(HERE, "..", "..", "..", ".github", "workflows", "ci.yml"), "utf8");
+  assert.match(workflow, /node fsi-app\/\.discipline\/governance\/memory-gate\.mjs/, "ci.yml must run the memory gate script");
+  assert.match(hook, /node fsi-app\/\.discipline\/governance\/memory-gate\.mjs >"\$PRE_PUSH_LOG_DIR\/mem\.log" 2>&1/);
+  assert.doesNotMatch(hook, /\/tmp\/discipline-prepush/, "no fixed /tmp log path two concurrent pushes could clobber");
+  const failMsg = hook.slice(hook.indexOf("STEP C FAIL"), hook.indexOf("step C (memory gate, CI parity): OK"));
   assert.doesNotMatch(failMsg, /UX compliance/);
 });
 
-test("pre-push GATE-2: every STEP FAIL echo (past step 0) is preceded by a pre_push_log_firing call", () => {
-  const lines = readFileSync(PRE_PUSH_PATH, "utf8").split("\n");
+test("HOOK-1: every STEP FAIL echo (past step 0) is preceded by a pre_push_log_firing call, and the hook logs a pass line before it exits 0", () => {
+  const src = readFileSync(PRE_PUSH_PATH, "utf8");
+  const lines = src.split("\n");
   let sites = 0;
   lines.forEach((line, i) => {
     const m = /^\s*echo "\[discipline pre-push\] STEP (\w+) FAIL/.exec(line);
@@ -194,7 +157,8 @@ test("pre-push GATE-2: every STEP FAIL echo (past step 0) is preceded by a pre_p
     sites += 1;
     assert.match(lines[i - 1], new RegExp(`pre_push_log_firing ${m[1]} `), `STEP ${m[1]} FAIL must log its firing on the line before`);
   });
-  assert.ok(sites >= 12, `expected the failing steps to be covered, found ${sites}`);
+  assert.ok(sites >= 6, `expected the failing steps to be covered, found ${sites}`);
+  assert.match(src, /pre_push_log_firing push "\$SUMMARY" pass\necho "\[discipline pre-push\] all checks pass/);
 });
 
 function runFiringLogger(script, base) {
@@ -251,187 +215,99 @@ test("pre_push_log_firing: evidence is cut to 200 characters and never blocks (a
     rmSync(base, { recursive: true, force: true });
   }
 });
+test("pre_push_log_firing: a third argument sets the verdict (pass lines for a push the hook lets through); the default is fail", () => {
+  const base = mkdtempSync(join(tmpdir(), "prepush-firing-"));
+  try {
+    const lines = runFiringLogger('pre_push_log_firing push "tier=final A=ok" pass; pre_push_log_firing B "lint failed"', base);
+    assert.equal(lines.length, 2);
+    assert.deepEqual([JSON.parse(lines[0]).rule, JSON.parse(lines[0]).verdict, JSON.parse(lines[0]).line], ["pre-push:push", "pass", "tier=final A=ok"]);
+    assert.equal(JSON.parse(lines[1]).verdict, "fail");
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────────
-// GATE-PUSH-1 (2026-10-11, amends ADR-040): a push whose tip commit carries no CI skip token is a
-// CI-triggering (final) push and runs step 3d (ESLint on the changed files) and step 3e (the fitness
-// runner) locally; a WIP push (skip token) and a docs-only push run neither. Proven by running the REAL
-// tracked hook in a throwaway repository whose gated scripts are stubs that leave a marker when they run,
-// and by driving the lib functions and the real ESLint directly.
+// The lib functions step B uses, driven in a throwaway repository with the REAL final-push-tier.sh.
 // ─────────────────────────────────────────────────────────────────────────────────────────────────────
-import { execFileSync } from "node:child_process";
-import { mkdirSync, copyFileSync, chmodSync } from "node:fs";
-import { createRequire } from "node:module";
-import { delimiter, basename } from "node:path";
+const LIB_SH = join(REPO_ROOT_DIR, HOOK_DIR_REL, "lib", "final-push-tier.sh").replaceAll("\\", "/");
 
-const HOOK_DIR_REL = "fsi-app/.discipline/hooks";
-const REPO_ROOT_DIR = resolve(HERE, "..", "..", "..");
-const ZERO_SHA = "0".repeat(40);
-
-function gitIn(dir, args) {
-  return execFileSync("git", args, { cwd: dir, encoding: "utf8" });
-}
-
-// One throwaway repo: a base commit (the stub gated scripts plus the real hook files), origin/master pointing
-// at it, then ONE branch commit that writes `changed` and carries `message`.
-function finalTierRepo({ changed, message }) {
-  const dir = mkdtempSync(join(tmpdir(), "prepush-final-"));
-  gitIn(dir, ["init", "-q", "-b", "master"]);
-  for (const [k, v] of [["user.name", "T"], ["user.email", "t@example.com"], ["commit.gpgsign", "false"], ["core.autocrlf", "false"]]) {
-    gitIn(dir, ["config", k, v]);
-  }
-  const put = (rel, text) => {
-    mkdirSync(dirname(join(dir, rel)), { recursive: true });
-    writeFileSync(join(dir, rel), text);
-  };
-  for (const rel of [`${HOOK_DIR_REL}/pre-push`, `${HOOK_DIR_REL}/lib/prepush-logdir.sh`, `${HOOK_DIR_REL}/lib/final-push-tier.sh`]) {
-    if (!existsSync(join(REPO_ROOT_DIR, rel))) continue;
-    mkdirSync(dirname(join(dir, rel)), { recursive: true });
-    copyFileSync(join(REPO_ROOT_DIR, rel), join(dir, rel));
-  }
-  put(`${HOOK_DIR_REL}/lib/worktree-node-modules.sh`, "wt_nm_ensure_link() { return 0; }\nwt_nm_require() { return 0; }\n");
-  const mark = (name) => `import { appendFileSync } from "node:fs"; import { join } from "node:path"; appendFileSync(join(process.env.FIXTURE_MARK, "${name}"), "ran\\n");`;
-  put("fsi-app/.discipline/governance/docs-only-range.mjs", `process.exit(process.env.FIXTURE_DOCS_ONLY === "1" ? 0 : 1);\n`);
-  put("fsi-app/.discipline/consistency/override-check.mjs", `process.stdin.resume(); process.stdin.on("end", () => process.exit(0));\n`);
-  put("fsi-app/.discipline/governance/memory-gate.mjs", "process.exit(0);\n");
-  put("fsi-app/.discipline/fitness/runner.mjs", `${mark("runner")}\nprocess.exit(Number(process.env.FIXTURE_RUNNER_EXIT || 0));\n`);
-  put("README.md", "base\n");
-  gitIn(dir, ["add", "-A"]);
-  gitIn(dir, ["commit", "-q", "-m", "base"]);
-  gitIn(dir, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+function libRepo(files, changed) {
+  const dir = mkdtempSync(join(tmpdir(), "prepush-lib-"));
+  const git = (args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" });
+  git(["init", "-q", "-b", "master"]);
+  for (const [k, v] of [["user.name", "T"], ["user.email", "t@example.com"], ["commit.gpgsign", "false"], ["core.autocrlf", "false"]]) git(["config", k, v]);
+  const put = (rel, text) => { mkdirSync(dirname(join(dir, rel)), { recursive: true }); writeFileSync(join(dir, rel), text); };
+  for (const [rel, text] of Object.entries(files)) put(rel, text);
+  git(["add", "-A"]);
+  git(["commit", "-q", "-m", "base"]);
+  git(["update-ref", "refs/remotes/origin/master", "HEAD"]);
   for (const [rel, text] of Object.entries(changed)) put(rel, text);
-  gitIn(dir, ["add", "-A"]);
-  const msgFile = join(dir, "..", `${basename(dir)}.msg`);
-  writeFileSync(msgFile, message);
-  gitIn(dir, ["commit", "-q", "-F", msgFile]);
-  const tip = gitIn(dir, ["rev-parse", "HEAD"]).trim();
-  const bin = join(dir, "..", `${basename(dir)}-bin`);
-  mkdirSync(bin, { recursive: true });
-  writeFileSync(join(bin, "npm"), `#!/bin/sh\necho "$@" >> "$FIXTURE_MARK/npm.log"\nexit "\${FIXTURE_LINT_EXIT:-0}"\n`);
-  chmodSync(join(bin, "npm"), 0o755);
-  const markDir = join(dir, "..", `${basename(dir)}-mark`);
-  mkdirSync(markDir, { recursive: true });
-  const cleanup = () => {
-    for (const p of [dir, msgFile, bin, markDir]) rmSync(p, { recursive: true, force: true });
-  };
-  return { dir, tip, bin, markDir, cleanup };
+  git(["add", "-A"]);
+  git(["commit", "-q", "-m", "change"]);
+  return dir;
 }
 
-function runFinalHook(repo, { refs, env = {} }) {
-  const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === "path") || "PATH";
-  const childEnv = { ...process.env, DISCIPLINE_HOOK_TRAMPOLINE: "1", FIXTURE_MARK: repo.markDir, ...env };
-  childEnv[pathKey] = repo.bin + delimiter + (process.env[pathKey] || "");
-  delete childEnv.DISCIPLINE_PREPUSH_FULL;
-  const r = spawnSync("sh", [join(repo.dir, HOOK_DIR_REL, "pre-push")], {
-    cwd: repo.dir, encoding: "utf8", input: refs ?? `refs/heads/x ${repo.tip} refs/heads/x ${ZERO_SHA}\n`, env: childEnv,
-  });
-  return {
-    code: r.status, out: `${r.stdout}${r.stderr}`,
-    runnerRan: existsSync(join(repo.markDir, "runner")),
-    lintArgs: existsSync(join(repo.markDir, "npm.log")) ? readFileSync(join(repo.markDir, "npm.log"), "utf8") : "",
-  };
+function libCall(dir, snippet) {
+  const r = spawnSync("sh", ["-c", `. "${LIB_SH}" && ${snippet}`], { cwd: dir, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  return r.stdout.split("\n").filter(Boolean);
 }
 
-const CODE_CHANGE = { "fsi-app/src/a.ts": "export const a = 1;\n" };
-
-test("GATE-PUSH-1: a WIP push (tip carries [skip ci]) runs neither the lint step nor the fitness runner", () => {
-  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "WIP lane: step [skip ci]\n" });
+test("pre_push_changed_test_files: the changed test, the sibling test and the same-directory tests that import a changed module; nothing else", () => {
+  const dir = libRepo(
+    {
+      "fsi-app/scripts/lib/alpha.mjs": "export const a = 1;\n",
+      "fsi-app/scripts/lib/alpha.test.mjs": 'import { a } from "./alpha.mjs";\n',
+      "fsi-app/scripts/lib/beta.mjs": "export const b = 1;\n",
+      "fsi-app/scripts/lib/uses-beta.test.mjs": 'import { b } from "./beta.mjs";\n',
+      "fsi-app/scripts/lib/unrelated.test.mjs": 'import { c } from "./gamma.mjs";\n',
+      "fsi-app/scripts/lib/betamax.test.mjs": 'import { m } from "./betamax.mjs";\n',
+      "fsi-app/scripts/other/uses-alpha.test.mjs": 'import { a } from "../lib/alpha.mjs";\n',
+      "fsi-app/scripts/lib/standalone.test.mjs": "export {};\n",
+      "fsi-app/scripts/lib/legacy.npmtest.mjs": 'import { b } from "./beta.mjs";\n',
+    },
+    {
+      "fsi-app/scripts/lib/alpha.mjs": "export const a = 2;\n",
+      "fsi-app/scripts/lib/beta.mjs": "export const b = 2;\n",
+      "fsi-app/scripts/lib/standalone.test.mjs": "export const edited = true;\n",
+      "fsi-app/scripts/lib/note.md": "docs\n",
+    },
+  );
   try {
-    const r = runFinalHook(repo, {});
-    assert.equal(r.code, 0, r.out);
-    assert.match(r.out, /step 0e: WIP push \(skip token\), final tier skipped/);
-    assert.equal(r.runnerRan, false, "the fitness runner must not run on a WIP push");
-    assert.equal(r.lintArgs, "", "eslint must not run on a WIP push");
-    assert.doesNotMatch(r.out, /step 3d|step 3e/);
-  } finally { repo.cleanup(); }
+    assert.deepEqual(libCall(dir, "pre_push_changed_test_files"), [
+      "fsi-app/scripts/lib/alpha.test.mjs",
+      "fsi-app/scripts/lib/standalone.test.mjs",
+      "fsi-app/scripts/lib/uses-beta.test.mjs",
+    ]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("GATE-PUSH-1: a push whose tip has no skip token is a final push and runs eslint on the changed files, then the fitness runner", () => {
-  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: a normal final subject\n" });
+test("pre_push_changed_test_files: a push that changes no js module and no test lists nothing, and a deleted test is not listed", () => {
+  const dir = libRepo({ "README.md": "a\n", "fsi-app/scripts/gone.test.mjs": "export {};\n" }, { "README.md": "b\n", "fsi-app/data/x.json": "{}\n" });
   try {
-    const r = runFinalHook(repo, {});
-    assert.equal(r.code, 0, r.out);
-    assert.match(r.out, /step 0e: final push, running the final tier \(eslint on 1 changed files, fitness runner\)/);
-    assert.match(r.out, /step 3d \(eslint, max-warnings 0, CI parity\): OK/);
-    assert.match(r.out, /step 3e \(fitness runner, live tree, CI parity\): OK/);
-    assert.equal(r.runnerRan, true);
-    assert.match(r.lintArgs, /--max-warnings=0/);
-    assert.match(r.lintArgs, /src\/a\.ts/, "only the changed file is linted, repo-relative to fsi-app");
-  } finally { repo.cleanup(); }
+    assert.deepEqual(libCall(dir, "pre_push_changed_test_files"), []);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("GATE-PUSH-1: a skip token in the commit BODY counts (rule 024 recognises it anywhere), so the tip is not a final push", () => {
-  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "WIP lane: step\n\nsaved [skip ci]\n" });
+test("pre_push_run_changed_tests: runs the given files through run-explicit-tests.mjs with the no-npm sandbox import and FSI_NO_ENV_FILE set", () => {
+  const dir = libRepo(
+    {
+      "fsi-app/.discipline/lib/run-explicit-tests.mjs":
+        'import { appendFileSync } from "node:fs";\nlet b = "";\nprocess.stdin.on("data", (c) => { b += c; });\nprocess.stdin.on("end", () => { appendFileSync(process.env.PP_OUT, JSON.stringify({ files: b.split(String.fromCharCode(0)).filter(Boolean), argv: process.argv.slice(2), env: process.env.FSI_NO_ENV_FILE }) + String.fromCharCode(10)); process.exit(Number(process.env.PP_EXIT || 0)); });\n',
+    },
+    { "fsi-app/x.txt": "x\n" },
+  );
   try {
-    const r = runFinalHook(repo, {});
-    assert.match(r.out, /step 0e: WIP push \(skip token\)/);
-    assert.equal(r.runnerRan, false);
-  } finally { repo.cleanup(); }
-});
-
-test("GATE-PUSH-1: a failing lint blocks a final push at STEP 3d (exit 1) before the runner runs", () => {
-  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: final\n" });
-  try {
-    const r = runFinalHook(repo, { env: { FIXTURE_LINT_EXIT: "1" } });
-    assert.equal(r.code, 1, r.out);
-    assert.match(r.out, /STEP 3d FAIL: ESLint reported violation\(s\) \(max-warnings 0\)/);
-    assert.equal(r.runnerRan, false, "3e must not run after 3d failed");
-  } finally { repo.cleanup(); }
-});
-
-test("GATE-PUSH-1: a failing fitness runner blocks a final push at STEP 3e", () => {
-  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: final\n" });
-  try {
-    const r = runFinalHook(repo, { env: { FIXTURE_RUNNER_EXIT: "1" } });
-    assert.equal(r.code, 1, r.out);
-    assert.match(r.out, /STEP 3e FAIL: fitness runner reported violation\(s\) on the live tree/);
-  } finally { repo.cleanup(); }
-});
-
-test("GATE-PUSH-1: a final push that changes no lintable file prints the no-lintable-files line and still runs the runner", () => {
-  const repo = finalTierRepo({ changed: { "fsi-app/data/x.json": "{}\n" }, message: "LANE-1: final\n" });
-  try {
-    const r = runFinalHook(repo, {});
-    assert.equal(r.code, 0, r.out);
-    assert.match(r.out, /step 0e: final push, running the final tier \(eslint on 0 changed files, fitness runner\)/);
-    assert.match(r.out, /step 3d: no lintable files changed/);
-    assert.equal(r.lintArgs, "");
-    assert.equal(r.runnerRan, true);
-  } finally { repo.cleanup(); }
-});
-
-test("GATE-PUSH-1: the docs-only fast path still skips both lint and the runner, even on a final push", () => {
-  const repo = finalTierRepo({ changed: { "docs/x.md": "x\n" }, message: "LANE-1: docs final\n" });
-  try {
-    const r = runFinalHook(repo, { env: { FIXTURE_DOCS_ONLY: "1" } });
-    assert.equal(r.code, 0, r.out);
-    assert.equal(r.runnerRan, false);
-    assert.equal(r.lintArgs, "");
-    assert.doesNotMatch(r.out, /step 3d|step 3e/);
-  } finally { repo.cleanup(); }
-});
-
-test("GATE-PUSH-1: a branch deletion (all-zero local sha) and an empty push run no tier", () => {
-  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: final\n" });
-  try {
-    for (const refs of [`(delete) ${ZERO_SHA} refs/heads/x ${repo.tip}\n`, ""]) {
-      const r = runFinalHook(repo, { refs });
-      assert.equal(r.code, 0, r.out);
-      assert.match(r.out, /step 0e: .*final tier skipped/);
-      assert.equal(r.runnerRan, false);
-    }
-  } finally { repo.cleanup(); }
-});
-
-test("GATE-PUSH-1: the hook source places step 0e after the docs-only classifier and before step 1, and keeps the heavy steps", () => {
-  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
-  assert.match(hook, /FINAL_PUSH/);
-  assert.match(hook, /DISCIPLINE_PREPUSH_FULL/);
-  assert.ok(hook.indexOf("Step 0e:") > hook.indexOf("Step 0c:"), "0e sits after the docs-only classifier");
-  assert.ok(hook.indexOf("Step 0e:") < hook.indexOf("Step 1:"), "0e sits before step 1");
-  for (const okLine of ["step 3 (discipline", "step 3b (", "step 3f (", "step 3g (", "step 4 (tsc"]) {
-    assert.ok(hook.includes(okLine), `heavy step still present: ${okLine}`);
-  }
+    const out = join(dir, ".git", "pp-out");
+    const run = (exit) => spawnSync("sh", ["-c", `. "${LIB_SH}" && pre_push_run_changed_tests fsi-app/a.test.mjs fsi-app/b.test.mjs`], { cwd: dir, encoding: "utf8", env: { ...process.env, PP_OUT: out, PP_EXIT: String(exit) } });
+    { const r0 = run(0); assert.equal(r0.status, 0, r0.stdout + r0.stderr); }
+    const rec = JSON.parse(readFileSync(out, "utf8").trim());
+    assert.deepEqual(rec.files, ["fsi-app/a.test.mjs", "fsi-app/b.test.mjs"]);
+    assert.deepEqual(rec.argv, ["--", "--import", "./fsi-app/.discipline/lib/no-npm-sandbox.mjs"]);
+    assert.equal(rec.env, "1");
+    assert.equal(run(1).status, 1, "a failing run is a failing step");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("pre_push_text_has_skip_token: the five tokens and the skip-checks trailer match, case-insensitively; plain text does not", () => {

@@ -63,7 +63,7 @@ pre_push_eslint_files() {
 # pre_push_changed_test_files: one repo-root-relative path per line, the unit tests step B runs: every *.test.mjs
 # that origin/master...HEAD adds or modifies, plus, for each changed module (js, mjs, cjs, ts, tsx, sh) that is not
 # itself a test, its sibling <stem>.test.mjs and the *.test.mjs files at or below the module's own directory that
-# import it by name (an import specifier ending in /<stem> or /<stem>.<ext>). A name match, not an import graph:
+# import it by name (a fixed-string match on /<stem> followed by a quote or a script extension). A name match, not an import graph:
 # it can run a test that does not need to run, never skip the sibling test. npmtest and selftest files are not
 # run here (they need the install or a named runner); CI runs them. Only files that exist are listed.
 pre_push_changed_test_files() {
@@ -77,8 +77,9 @@ pre_push_changed_test_files() {
       _tf_base="${_tf_f##*/}"
       _tf_stem="${_tf_base%.*}"
       printf '%s\n' "$_tf_dir/$_tf_stem.test.mjs"
-      _tf_re="$(printf '%s' "$_tf_stem" | sed 's/[][.*^$+?(){}|\]/\&/g')"
-      git grep -l -E -e "/${_tf_re}(\.[a-z]+)?[\"'\`]" -- "$_tf_dir/*.test.mjs" 2>/dev/null
+      # MSYS2_ARG_CONV_EXCL: Git for Windows would otherwise rewrite an argument that starts with "/" as a path
+      MSYS2_ARG_CONV_EXCL='*' git grep -l -F -e "/$_tf_stem\"" -e "/$_tf_stem'" -e "/$_tf_stem\`" -e "/$_tf_stem.mjs" -e "/$_tf_stem.js" \
+        -e "/$_tf_stem.cjs" -e "/$_tf_stem.ts" -e "/$_tf_stem.tsx" -- "$_tf_dir/*.test.mjs" 2>/dev/null
     done
   } | sort -u | while IFS= read -r _tf_t; do
     [ -f "$_tf_t" ] && printf '%s\n' "$_tf_t"
