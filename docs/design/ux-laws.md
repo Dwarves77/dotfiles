@@ -116,12 +116,13 @@ context and goal.
   row component in `ROW_COMPONENTS` must be mounted by a registered UX smoke spec and carry
   `data-guard-title`; red otherwise, in every fitness run and in CI.
 - **Rendering guard UX smoke slot** (`fsi-app/.discipline/rendering/run-rendering-guard.mjs`,
-  `smoke/ux-harness.mjs`, `ux-assert.mjs`): the real `.tsx` is mounted at 375 × 812 and 1280 × 800 and
+  `smoke/ux-harness.mjs`, `ux-assert.mjs`): the real `.tsx` is mounted at four widths (375 × 812, 768 × 1024, 1024 × 768 and 1280 × 800; `UX_VIEWPORTS` in `smoke/ux-harness.mjs`) and
   fails on horizontal overflow, on a title wrapping at under 60 % of its card (law 2's neighbour, the
   one-word-per-line class), or on an interactive target below the law-2 floor. Detector core proven
   red-then-green in `ux-assert.test.mjs` (required no-npm suite).
-- **Discipline CI, UX compliance gate** (`.github/workflows/discipline.yml`, memory-gate step): a PR that
-  touches `fsi-app/src/**/*.tsx|css` fails unless the session-log addendum in the same range carries a
-  "UX compliance" block (per screen: goal, path, one primary action, feedback state per async action).
+- **UX compliance block (report requirement, not a CI step)**: a lane touching `fsi-app/src/**/*.tsx|css` writes a
+  "UX compliance" block in its session log (per screen: goal, path, one primary action, feedback state per async
+  action). The memory gate no longer checks for it (GATE-2, PR 998 dropped the substring check); the measured
+  enforcement is the UX smoke slot above.
 - **Loading**: CLAUDE.md Loading priority item 6, the SessionStart hook, `sprint-followups-discipline`,
   and `docs/dispatches/lane-common-contract.md` §UX contract all point here.
