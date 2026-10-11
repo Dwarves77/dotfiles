@@ -1,6 +1,6 @@
 # AUD-AT-1: RLS and grants x ATTACKED (owed cell O-001), 2026-10-08
 
-> **Landing note (lane SEC-7, PR 1037):** The fix for its residual is in flight in PR 1037 (SEC-7, migration 381, NOT APPLIED), open at the time of this landing. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edit is the form of status tokens, where the checker required it: 1 line received the token that line's own section or method statement already carries.
+> **Landing note (lane SEC-7, PR 1037):** The fix for its residual is in flight in PR 1037 (SEC-7, migration 381, NOT APPLIED), open at the time of this landing. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edit is the form of status tokens, where the checker required it: 1 line received the token that line's own section or method statement already carries. Both fixes merged: PR 1037 (70c76c879, migration 381 applied) and PR 1042 (3e0637161).
 
 Lenses run: ATTACKED. Lenses not run: EXISTS, RUNS, CALLED, COSTS, FIRED-TRUE, MODE, OVERLAPS, OPERATOR-SEAT, RECORD-VS-REALITY (all owed for subsystem 11).
 Subsystem: 11, RLS and grants. Unit: each table by principal by command (SELECT, INSERT, UPDATE, DELETE, TRUNCATE), each column privilege revoked from authenticated by migrations 364, 367 and 370, each policy.
