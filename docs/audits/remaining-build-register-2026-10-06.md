@@ -127,13 +127,13 @@ Columns: bullet | state | PRs | proof | what is unproven | blocker. Plan source:
 | Id | Bullet | State | PRs | Proof | Unproven | Blocker |
 |---|---|---|---|---|---|---|
 | S8-1 | Private per-workspace notes at bottom of any item | not started | none [C: no notes table or route found in tree search] | L0 | everything | needs lane |
-| S8-2 | Multi-person assignment with notification | not started | none [C: no assignment files found; notification code is Community only] | L0 | everything | needs lane |
+| S8-2 | Multi-person assignment with notification | CORRECTED 2026-10-10: BUILT (was: not started) | CORRECTED 2026-10-10: see plan2-build-status-2026-10-09.md row S8-2 (migration 359, route, ItemAssignBlock; was: none [C: no assignment files found; notification code is Community only]) | L0 | everything | CORRECTED 2026-10-10: none owed |
 | S8-3 | Tag attribution | not started | none [H: `workspace_tags` migration 313 and tables exist, 0 rows 2026-10-04; attribution field not checked] | L0 | everything | needs lane |
-| S8-4 | Membership checks on the two count RPCs | not started | none [H: system map section 14 says two lack a check; not re-read] | L0 | everything | needs lane |
+| S8-4 | Membership checks on the two count RPCs | CORRECTED 2026-10-10: BUILT (was: not started) | CORRECTED 2026-10-10: see plan2-build-status-2026-10-09.md row S8-4 (migration 361; was: none [H: system map section 14 says two lack a check; not re-read]) | L0 | everything | CORRECTED 2026-10-10: none owed |
 | S8-5 | Cross-organisation attack test | not started | none [C: no such file found] | L0 | everything | needs lane |
 | S8-6 | Grade chip restored on live list and detail | merged | 947 | L1 | chip on live pages never checked by the live smoke gate (it checks overflow and admin gate, not content) | none |
 | S8-7 | Obligation first-class with binding position | merged, partial | pre-existing (migration 290, derive-obligations, classify-binding-position, register page and API) | L4 for the table: 1,336 obligation rows [V 10-04 inventory] | [H: 4-instrument decomposition and the detail-page binding banner not verified]; applicability gate lacks roleScope inputs | needs verification pass |
-| S8-8 | Portfolio | not started | none [C: no portfolio file in tree] | L0 | everything | needs lane (L18) |
+| S8-8 | Portfolio | CORRECTED 2026-10-10: PARTIAL (was: not started) | CORRECTED 2026-10-10: see plan2-build-status-2026-10-09.md row S8-8 (migration 362, portfolio API, pages and lib; was: none [C: no portfolio file in tree]) | L0 | everything | needs lane (L18) |
 | S8-9 | Five public-data domains | not started (tables only) | tables from migrations 296 to 298 | L0 | all five spec 09 tables were 0 rows on 2026-10-04 [V]; no producers found [H] | needs lanes |
 | S8-10 | Industry-level statements replace removed calculator | not started | calculator removed in 922 | L0 | everything | needs design and lane |
 
@@ -163,7 +163,7 @@ Reference: `docs/plans/complete-build-plan-2026-10-01.md` section 1 (54 requirem
 | 00S2 | Number envelope | built-and-proven [AUDITED] | built; not wired into every number | L1 | plan |
 | 00S3 | Six vocabularies | built-and-proven [AUDITED] | built | L1 | plan |
 | 00S4 | Coverage honesty, six-state vocabulary, Coverage surface | partial [H] | partial; Coverage Index exists (system map section 18); first-class surface unverified | L1 | [H] |
-| 00S5 | Portfolio object | missing, laned | not started | L0 | [C: no file] |
+| 00S5 | Portfolio object | missing, laned | CORRECTED 2026-10-10: PARTIAL (was: not started), see plan2-build-status-2026-10-09.md row S8-8 | L0 | CORRECTED 2026-10-10 (was: [C: no file]) |
 | 00S6 | Typed cross-references | partial | typing at mint merged (933); 23,709 of 23,715 live edges untyped | L1 | [C: PR 933; V inventory] |
 | 00S7 | Assistant guardrails | built-unproven | unchanged; grounding "not verified end to end" | L1 | plan |
 | 00S8 | `surface-acceptance.mjs` coherence test | missing [H] | no evidence built | L0 | [H] |

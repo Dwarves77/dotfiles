@@ -117,30 +117,12 @@ not a silent carry-forward.
   `docs/INDEX.md`; the coordinator adds the line at landing (same treatment every lane brief gives that
   file).
 
-## Open question for the operator (proposed, not decided here)
+## Decision: one proposer pass per fold batch
 
-**Does a family with N artifacts folded in one train need N proposer passes, or one pass naming the
-latest?** `PROPOSER-RUNBOOK.md` §1's precondition reads "before a family's NEXT batch runs" (singular,
-one pass per dispatch); F28 rule (d) only checks that `LAST-PROPOSER-PASS.md` names the LATEST artifact,
-which is silent on whether every artifact folded since the previous pass needed its own hypothesis-or-
-attestation, or whether one pass reading the whole backlog (all N) satisfies the rule once it names the
-last one. In practice a train can fold several same-family artifacts at once (e.g. two `source-sweep`
-runs dispatched days apart, both still unfolded when the train assembles) — this script's
-`findFamiliesNeedingProposerPass()` currently treats that as ONE gap (one brief, reading all of the
-family's unread history, naming the latest) rather than N gaps, which is the runbook's own §4 "worked
-examples" precedent (one pass reads a run of several retrofitted artifacts at once) but is not stated as
-a rule anywhere. **Proposed ADR draft** (not adopted — this is a lane's proposal, per the operator's
-standing instruction that a session may not change a binding rule unilaterally):
-
-> **ADR-XXX: One proposer pass per fold batch, not per artifact.** A family that accumulates multiple
-> artifacts between train assemblies needs exactly one proposer pass at the next assembly, reading every
-> artifact landed since the previous pass (not only the newest), and its `LAST-PROPOSER-PASS.md` names
-> the latest verbatim (satisfying F28 rule (d) unchanged). Rationale: PROPOSER-RUNBOOK.md's own
-> ablation-driven design values reading the FULL trace history over reading it n times; a pass-per-
-> artifact would either re-read the same backlog N times (wasteful, no new information between them) or
-> silently skip straight to the newest (exactly the "scores-plus-summary" failure mode the runbook's own
-> arXiv citation warns against). Supersedes nothing; clarifies PROPOSER-RUNBOOK.md §1's "before the
-> family's next run" for the batched-fold case §1 did not originally anticipate.
+Decided as [ADR-047](../decisions/ADR-047-one-proposer-pass-per-fold-batch.md) (2026-10-10). A family with N
+artifacts folded in one train needs one proposer pass at the next assembly, reading every artifact landed
+since the previous pass and naming the latest in `LAST-PROPOSER-PASS.md`. `findFamiliesNeedingProposerPass()`
+already behaves this way (one gap per family, one brief listing all of the family's runs).
 
 ## Dispatch log
 

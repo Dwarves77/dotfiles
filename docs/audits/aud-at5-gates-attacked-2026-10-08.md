@@ -1,6 +1,6 @@
 # AUD-AT-5: CI workflow and chain hops attacked (fact lane, 2026-10-08)
 
-> **Landing note (lane GATE-9, PR 1042):** The fix for its residual is in flight in PR 1042 (GATE-9), open at the time of this landing. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edits are the form of status tokens, where the checker required it (1 line received the token that line's own section or method statement already carries), and the `glyph:verbatim` disclosure marker on 4 table rows (DS6, DS15, DS18, DS19) that quote a dash glyph verbatim.
+> **Landing note (lane GATE-9, PR 1042):** The fix for its residual is in flight in PR 1042 (GATE-9), open at the time of this landing. No finding in this register was re-verified by the landing lane (DOCS-4); findings carry the tokens the audit's own method assigns. The body is the register verbatim; the only edits are the form of status tokens, where the checker required it (1 line received the token that line's own section or method statement already carries), and the `glyph:verbatim` disclosure marker on 4 table rows (DS6, DS15, DS18, DS19) that quote a dash glyph verbatim. Both fixes merged: PR 1037 (70c76c879, migration 381 applied) and PR 1042 (3e0637161).
 
 Lane: aud-at5. Base: origin/master 12c696341a79ed9f229502e195b193975f44180d (master moved to 36599967 during the run, two unrelated commits; every attack ran on a scratch clone pinned to 12c69634).
 
