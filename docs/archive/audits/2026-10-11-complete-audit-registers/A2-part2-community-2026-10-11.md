@@ -45,7 +45,7 @@ Executed once for the whole lane (evidence cited in rows): `node --test` on all 
 
 | Prior finding (audit, date, token then) | Now (executed) | Verdict |
 |---|---|---|
-| A2 P-4 (2026-09-30, [CONFIRMED]): CommunityRooms.tsx NotSeededState lists "Global" among the seven regional rooms | Read this session: CommunityRooms.tsx:1724 still reads "Each region — Global, EU, US, UK, Asia–Pacific, Latin America, and Middle East & Africa" | STILL-OPEN CommunityRooms.tsx:1724 |
+| A2 P-4 (2026-09-30, [CONFIRMED]): CommunityRooms.tsx NotSeededState lists "Global" among the seven regional rooms | Read this session: CommunityRooms.tsx:1724 still reads "Each region - Global, EU, US, UK, Asia - Pacific, Latin America, and Middle East & Africa" | STILL-OPEN CommunityRooms.tsx:1724 |
 | A2 Q-1 (2026-09-30, [CONFIRMED]): CommunityRooms 1785, GroupModals 1208, CommunitySidebar 749, Post 689, ModerationQueue 631, CommunityShell 628 over 600 lines | `wc -l` this session: 1758, 1212, 745, 600, 627, 627 | STILL-OPEN for five files; Post.tsx now 600 (FIXED-SINCE as an over-600 file) |
 | A2 Q-3 (2026-09-30, [CONFIRMED]): safeJson duplicated in GroupCard.tsx:414 and GroupHeader.tsx:424 | `grep -n "function safeJson" src/components/community/*.ts*` -> 9 definitions (GroupCard:414, GroupHeader:472, ModerationActions:404, ModerationQueue:621, Post:594, PostList:340, ReplyComposer:186, ReportPostMenu:357, api-client:247) | STILL-OPEN and wider (2 -> 9 copies) |
 | A2 Q-2 (2026-09-30, [CONFIRMED]): `any` in CommunityShell.tsx, GroupCard.tsx, GroupHeader.tsx | `grep -rnE ":\s*any\b|<any>|any\[\]|as any" src/components/community` -> 0 | FIXED-SINCE |
