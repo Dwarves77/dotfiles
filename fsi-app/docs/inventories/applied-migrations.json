@@ -1,7 +1,7 @@
 {
   "source": "Supabase MCP list_migrations, exported by the coordinator's executor and synced with scripts/proof/sync-applied-migrations.mjs",
-  "synced_at": "2026-10-10T14:06:07.448Z",
-  "count": 375,
+  "synced_at": "2026-10-11T04:07:13.245Z",
+  "count": 376,
   "migrations": [
     {
       "version": "001",
@@ -1502,6 +1502,10 @@
     {
       "version": "20261010122019",
       "name": "383_drop_claim_provenance_verified_by"
+    },
+    {
+      "version": "20261011032717",
+      "name": "387_drop_caller_less_category_rpcs"
     }
   ]
 }
