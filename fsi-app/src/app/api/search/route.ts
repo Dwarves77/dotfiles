@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { runSearch, MIN_QUERY_LEN, type SearchSupabaseClient } from "./logic";
@@ -12,7 +11,7 @@ import { isRefusal, requireUserRoute } from "@/lib/api/route-guard";
 // machinery that already exists — `runSearch` (./logic.ts) reuses the SAME
 // `search_intelligence_items` RPC (migration 159) and the SAME two-step retrieval shape /api/ask
 // already uses for its own retrieval step, rather than building a second FTS mechanism (CLAUDE.md
-// rule 13). Auth (requireAuth, bearer JWT) and the customer read predicate
+// rule 13). Auth (requireAuth, bearer JWT; the read runs on that caller's own client, RLS applies) and the customer read predicate
 // (provenance_status='verified' AND NOT archived, enforced inside the RPC AND re-applied on the
 // re-fetch as belt-and-suspenders, matching /api/ask's own posture) are the SAME as every other
 // authenticated read in this app — no wider scope, no org-specific carve-out, because none of the
@@ -39,18 +38,16 @@ async function handleGET(request: NextRequest) {
     return NextResponse.json({ query: q, results: [] }, { headers: rateLimitHeaders(auth.userId) });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
   try {
+    // Runs on the caller's own bearer-bound client (requireUserRoute's `userClient`), so RLS applies
+    // exactly as it does for src/app/search/page.tsx, which runs this same runSearch on the cookie
+    // client: privilege no longer differs by entry point (SEC-10, B-0005/B-0006). The RPC is SECURITY
+    // INVOKER and filters verified AND NOT archived itself (migration 159).
     // Cast to the narrow interface logic.ts declares: the real client's generated `.rpc()` overload
     // set is deep enough that TS's structural check against a plain interface times out ("type
-    // instantiation excessively deep") — the same shape /api/ask's own service-role client would hit
-    // if it were narrowed this way. The cast changes no runtime behavior; runSearch only ever calls
-    // the four methods SearchSupabaseClient declares.
-    const results = await runSearch(supabase as unknown as SearchSupabaseClient, q);
+    // instantiation excessively deep"). The cast changes no runtime behavior; runSearch only
+    // calls the methods SearchSupabaseClient declares.
+    const results = await runSearch(auth.userClient as unknown as SearchSupabaseClient, q);
     return NextResponse.json({ query: q, results }, { headers: rateLimitHeaders(auth.userId) });
   } catch (e) {
     console.warn(`[search] unexpected error: ${e instanceof Error ? e.message : String(e)}`);

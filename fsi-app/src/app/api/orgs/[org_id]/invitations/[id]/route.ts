@@ -25,7 +25,22 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const auth = await requireCommunityRoute(request);
   if (isRefusal(auth)) return auth;
 
-  // revoke_invitation() RPC enforces admin role + state validity and
+  // URL-scope check BEFORE the write (SEC-10, B-0002/B-0003/B-0040): the invitation must belong to the
+  // org_id in the URL. The RPC below checks admin status against the invitation's own org, not the
+  // URL's, so this read is the only place the URL scope is enforced, and it must run first.
+  const { data: inv, error: readErr } = await auth.supabase
+    .from("org_invitations")
+    .select("id, org_id, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (readErr) {
+    return NextResponse.json({ error: readErr.message }, { status: 500 });
+  }
+  if (!inv || inv.org_id !== org_id) {
+    return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
+  }
+
+  // revoke_invitation() RPC enforces admin role + state validity (migration 076) and
   // returns the appropriate error.
   const { error } = await auth.supabase.rpc("revoke_invitation", {
     p_invitation_id: id,
@@ -45,21 +60,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Sanity-check: the invitation still belongs to org_id (defense-in-depth
-  // against URL tampering — the RPC above only checks admin status against
-  // the invitation's own org_id).
-  const { data: inv } = await auth.supabase
-    .from("org_invitations")
-    .select("org_id, status")
-    .eq("id", id)
-    .maybeSingle();
-  if (inv && inv.org_id !== org_id) {
-    return NextResponse.json(
-      { error: "Invitation does not belong to org" },
-      { status: 404 }
-    );
   }
 
   return NextResponse.json(

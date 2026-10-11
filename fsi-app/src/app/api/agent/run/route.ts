@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { start } from "workflow/api";
@@ -42,11 +42,9 @@ async function handlePOST(request: NextRequest) {
   // Backward compatibility: existing callers (admin "regenerate brief", the
   // corpus runners) pass sourceUrl. Resolve it to the intelligence_items id so
   // the workflow's single argument stays itemId.
+  // ONE service-role client for the whole request (getServiceSupabase, fail-closed on a missing key).
+  const supabase = getServiceSupabase();
   if (!itemId && sourceUrl) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
     const { data, error } = await supabase
       .from("intelligence_items")
       .select("id")
@@ -69,26 +67,24 @@ async function handlePOST(request: NextRequest) {
     return NextResponse.json({ error: "itemId or sourceUrl is required" }, { status: 400 });
   }
 
-  // ── Per-item guards (DEEP-AUDIT S1-6 / option-2 item c). Service-role reads. ──
-  const guardClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Per-item guards (DEEP-AUDIT S1-6 / option-2 item c). Service-role reads, FAIL CLOSED: a read error
+  // on either guard is a 503 and the workflow does not start (SEC-10, B-0001).
 
   // Verified short-circuit: a certified item is NOT regenerated unless the caller
   // explicitly refreshes. Regenerating in place overwrote full_brief while
-  // section/ground SKIP on a verified item (canonical-pipeline.ts:866/921) — the
+  // section/ground SKIP on a verified item (canonical-pipeline.ts sectionStep and groundStep); the
   // 498-runs/39-items brief↔provenance desync.
-  // RESIDUAL (flagged, deferred): those skip sites do not yet honor `refresh`, so
-  // refresh re-fetches + regenerates the brief BODY but does not yet re-ground a
-  // verified item's sections. The deeper half of the fix lives in the canonical
-  // pipeline (SKILL.md-gated) and is out of this backend block.
-  const { data: itemRow, error: itemErr } = await guardClient
+  // Fact: refresh regenerates the body; sectionStep (canonical-pipeline.ts:1576) and groundStep
+  // (:1683) still skip a verified item regardless of refresh; BACKLOG B-2273.
+  const { data: itemRow, error: itemErr } = await supabase
     .from("intelligence_items")
     .select("provenance_status")
     .eq("id", itemId)
     .maybeSingle();
-  if (itemErr) console.warn(`[agent/run] provenance read failed: ${itemErr.message}`);
+  if (itemErr) {
+    console.warn(`[agent/run] provenance read failed: ${itemErr.message}`);
+    return NextResponse.json({ error: "guard_unavailable", detail: itemErr.message }, { status: 503 });
+  }
   if (itemRow?.provenance_status === "verified" && !refresh) {
     return NextResponse.json(
       {
@@ -104,13 +100,16 @@ async function handlePOST(request: NextRequest) {
   // hammering that produced 498 runs across 39 items in a week. `refresh` does
   // NOT bypass the cooldown (a re-pull is the most expensive path of all).
   const oneHourAgoIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { data: recentRuns, error: cooldownErr } = await guardClient
+  const { data: recentRuns, error: cooldownErr } = await supabase
     .from("agent_runs")
     .select("created_at")
     .eq("intelligence_item_id", itemId)
     .gte("created_at", oneHourAgoIso)
     .limit(1);
-  if (cooldownErr) console.warn(`[agent/run] cooldown read failed: ${cooldownErr.message}`);
+  if (cooldownErr) {
+    console.warn(`[agent/run] cooldown read failed: ${cooldownErr.message}`);
+    return NextResponse.json({ error: "guard_unavailable", detail: cooldownErr.message }, { status: 503 });
+  }
   if (recentRuns && recentRuns.length > 0) {
     return NextResponse.json(
       {
@@ -127,12 +126,8 @@ async function handlePOST(request: NextRequest) {
   // APIs or the agent_runs telemetry the steps write (Block 4).
   // D3 async audit (brief-gen + citation event class). The corpus mutation happens in
   // the durable workflow; this records that a gated-generation pass was triggered and
-  // is a phase4 signal for self-liveness. Fresh client (the request-scoped one above is
-  // block-scoped to the sourceUrl resolution). d3AuditEvent never throws.
-  await d3AuditEvent(
-    createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!),
-    { scope: "data", event: "ingest:brief-gen" }
-  );
+  // is a phase4 signal for self-liveness. d3AuditEvent never throws.
+  await d3AuditEvent(supabase, { scope: "data", event: "ingest:brief-gen" });
   // `refresh` rides the fetch path; while the scrape hold is LIVE the fetch gate
   // (F16) 503s it, so refresh is dormant-by-construction until hold-lift.
   const run = await start(generateBriefWorkflow, [itemId, refresh]);

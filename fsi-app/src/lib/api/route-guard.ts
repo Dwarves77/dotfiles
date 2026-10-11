@@ -23,7 +23,8 @@
 //
 // The fitness function F2 accepts `requireAdminRoute` as the admin gate for src/app/api/admin/**.
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth, isAuthError } from "@/lib/api/auth";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireAuth, isAuthError, type AuthContext } from "@/lib/api/auth";
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -35,9 +36,12 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 
 export type ServiceSupabase = ReturnType<typeof getServiceSupabase>;
 
-/** Resolved context of a user route: the authenticated caller. */
+/** Resolved context of a user route: the authenticated caller and the anon client bound to the caller's
+ *  own bearer (`userClient`, RLS applies). Named `userClient`, not `supabase`: AdminRoute extends this
+ *  interface and its `supabase` is the service-role client. */
 export interface UserRoute {
   userId: string;
+  userClient: SupabaseClient;
 }
 
 /** Resolved context of a platform-admin route: the caller, the service-role client the gate used
@@ -57,7 +61,7 @@ export function isRefusal<T>(result: T | NextResponse): result is NextResponse {
 }
 
 export interface UserRouteDeps {
-  authenticate?: (request: NextRequest) => Promise<{ userId: string } | NextResponse>;
+  authenticate?: (request: NextRequest) => Promise<AuthContext | NextResponse>;
   rateLimit?: (userId: string) => NextResponse | null;
 }
 
@@ -82,7 +86,7 @@ export async function requireUserRoute(
   if (isAuthError(auth)) return auth;
   const limited = rateLimit(auth.userId);
   if (limited) return limited;
-  return { userId: auth.userId };
+  return { userId: auth.userId, userClient: auth.supabase };
 }
 
 /** Cookie-session (or Bearer) community auth + rate limit. Returns the community-auth result, which
@@ -117,5 +121,5 @@ export async function requireAdminRoute(
   if (!admin) {
     return NextResponse.json({ error: ADMIN_REQUIRED_ERROR }, { status: 403, headers });
   }
-  return { userId: user.userId, supabase, headers };
+  return { userId: user.userId, userClient: user.userClient, supabase, headers };
 }
