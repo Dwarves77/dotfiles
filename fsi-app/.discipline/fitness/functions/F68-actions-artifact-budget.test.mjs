@@ -186,7 +186,7 @@ test('evaluateArtifactBudget ignores a file with no upload-artifact step at all'
 test('listWorkflowFiles finds the real .github/workflows directory', () => {
   const files = listWorkflowFiles(getRepoRoot());
   assert.ok(files.length > 10, `expected >10 workflow files, got ${files.length}`);
-  assert.ok(files.includes('.github/workflows/discipline.yml'));
+  assert.ok(files.includes('.github/workflows/ci.yml'));
 });
 
 // GATE-4 (2026-10-07): this test runs the fitness function against the live repo, which the Fitness
