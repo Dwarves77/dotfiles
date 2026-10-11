@@ -1,7 +1,7 @@
 -- subject: Migration 384 (lane DRIFT-1, 2026-10-10): reconciliation, a no-op on production. Makes a replay from the migration files produce the production-only objects the schema oracle reported (chain proof fire 9, run 38058989236, 562 differing objects): row level security on 11 tables, 5 constraints and 4 policies on the mig-009 capture tables, and the revoked PUBLIC execute on gate_a_health().
 -- 384 -- schema oracle reconciliation: production-only objects (lane DRIFT-1, 2026-10-10).
 --
--- NOT APPLIED. Authored by lane DRIFT-1 with no database access; the coordinator's executor applies it (two-track policy, CLAUDE.md
+-- APPLIED (production ledger version 20261011082720, as of 2026-10-11). Authored by lane DRIFT-1 with no database access; the coordinator's executor applies it (two-track policy, CLAUDE.md
 -- standing rule 3: schema DDL applies via the Supabase CLI). IT CHANGES NOTHING ON PRODUCTION BY CONSTRUCTION: every statement is guarded by
 -- a catalog check that finds the object already present there, and the self-check at the end reads the catalog and aborts the transaction if
 -- an object is missing after the guards. The apply exists so the ledger and the files agree and so the chain proof's replay builds the same
