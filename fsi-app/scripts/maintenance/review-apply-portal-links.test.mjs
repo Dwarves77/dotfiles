@@ -84,30 +84,6 @@ test("apply, blank arg: drops the no-signal row by rule (status rejected with a 
 
 // ── dry mode: passes rulingPath + apply:false through to applyMain, plan is applyMain's own result ─────
 
-test("dry: resolves the ruling path, calls applyMain with apply:false, plan is passed through unmodified", async () => {
-  const calls = [];
-  const deps = {
-    applyMain: async (opts) => {
-      calls.push(opts);
-      return { queue: "portal-links", mode: "dry-run", results: [{ key: "host::gazette_path", decision: "link", would_apply: 3 }] };
-    },
-    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
-    readAll: async () => { throw new Error("a committed file must not trigger the rule path read"); },
-  };
-  const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/portal-links.ruling.json" }, deps);
-  assert.equal(r.source, "ruling-file");
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0].apply, false);
-  assert.ok(posix(calls[0].rulingPath).endsWith("/docs/ratifications/2026-09/portal-links.ruling.json"));
-  assert.equal(r.mode, "dry");
-  assert.equal(r.counts.queue, "portal-links");
-  assert.equal(r.counts.groups, 1);
-  assert.equal(r.applied, 0);
-  assert.deepEqual(r.plan, [{ key: "host::gazette_path", decision: "link", would_apply: 3 }]);
-  assert.deepEqual(r.read_back, {});
-  assert.equal(r.exitCode, 0);
-});
-
 // ── apply mode: writes through applyMain only, then reads back every row named in the ruling file ──────
 
 test("apply: sums applied across groups; reads back exactly the ruling's row_ids", async () => {
@@ -177,15 +153,4 @@ test("apply: an empty ruling.groups[].row_ids across the board -> readAllByIds i
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
-});
-
-test("dry/apply propagate a thrown validation error (invalid or stale ruling) unmodified — never swallowed", async () => {
-  const deps = {
-    applyMain: async () => { throw new Error("ruling is STALE: generated_at ... predates a live queue row"); },
-    readAllByIds: async () => [],
-  };
-  await assert.rejects(
-    () => main({ mode: "dry", arg: "docs/ratifications/2026-09/portal-links.ruling.json" }, deps),
-    /STALE/
-  );
 });

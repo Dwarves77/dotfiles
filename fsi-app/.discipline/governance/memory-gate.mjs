@@ -117,11 +117,11 @@ export function isGrandfatheredEvidence(path, content) {
   return content.split(/\r?\n/).some((l) => !/^#{1,6}\s/.test(l) && l.replace(/[*_`>|\-+]/g, '').trim().length >= GRANDFATHER_MIN_LINE);
 }
 
-// REFRESH FILES (lane ENGINE-FIX-1). The executor's post-merge refresh regenerates the migration applied-map and the
-// harness ledger export from the live ledger and flips migration headers; a PR made only of those (plus the generated
+// REFRESH FILES (lane ENGINE-FIX-1). The executor's post-merge refresh regenerates the migration applied-map from the live
+// ledger and flips migration headers; a PR made only of those (plus the generated
 // inventories, which are docs and never code) records nothing a first-person log could add. These are not CODE for
 // this gate. A refresh file alongside a real code change leaves that change as CODE, so the log is still owed.
-const REFRESH_FILE_RE = /^fsi-app\/(?:supabase\/migrations\/APPLIED-MAP\.json|\.discipline\/governance\/harness-ledger-export\.json)$/;
+const REFRESH_FILE_RE = /^fsi-app\/supabase\/migrations\/APPLIED-MAP\.json$/;
 const MIGRATION_SQL_RE = /^fsi-app\/supabase\/migrations\/[^/]+\.sql$/;
 
 /** The text after a file's leading comment block (the lines before the first SQL statement). PURE. */

@@ -191,7 +191,6 @@ red (ADR-046, an operator-seat blind spot).
 | `../smoke/stub-auth-provider.mjs` | esbuild alias target for `@/components/auth/AuthProvider`. Every shipped stub lives in `smoke/`; F25's stub-resolution source (`F25-module-liveness.mjs` §Source 3) resolves a `stub-*.mjs` filename literal against that directory, so a stub placed anywhere else reads as an unwired module |
 | `spec/*.json` | one spec per part or page frame |
 | `seed-2026-09-07.md` | the hand-written source-level pass, appended verbatim to the document |
-| `generated-on.test.mjs` | refuses a committed results.json or audit document whose platform is not linux (the stamp is CI's) |
 | `results.json` | the last CI-generated run's rows, as data (CI commits it, never a developer) |
 
 ## Cost

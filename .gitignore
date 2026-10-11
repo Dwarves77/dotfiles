@@ -77,3 +77,16 @@ fsi-app/scripts/_diag/
 .claude/settings.local.json
 .claude/launch.json
 Claude outputs/
+
+# CLEAN-1 (2026-10-11): machine output is generated at run time and never committed
+fsi-app/.discipline/rendering/audit/results.json
+fsi-app/.discipline/governance/coverage-report.json
+fsi-app/.discipline/rendering/layout-guard/results.json
+fsi-app/scripts/harness-runs/*/*-run-[0-9]*.json
+fsi-app/scripts/harness-runs/*/traces/
+fsi-app/scripts/harness-runs/*/LAST-PROPOSER-PASS.md
+fsi-app/scripts/_worklists/*
+!fsi-app/scripts/_worklists/attach-found-sources.fixture.json
+!fsi-app/scripts/_worklists/statutory-fueleu-annex-iv-2026-09-05.*
+fsi-app/scripts/turns/record-briefs/batches/
+fsi-app/scripts/turns/ledger-verdicts/ledger-verdicts-*.json

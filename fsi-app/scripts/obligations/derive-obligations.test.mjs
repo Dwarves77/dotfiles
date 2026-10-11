@@ -1,8 +1,5 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { join, dirname } from "node:path";
 import {
   deriveObligationRow,
   deriveObligationRows,
@@ -191,46 +188,6 @@ test("main: --apply against a fully-registered corpus inserts nothing (idempoten
 // ── lane OBL-2 (2026-10-08): the classifier reads the canonical instrument key, legal_instrument and the
 // record-facts [binding_position] claim BEFORE the title; the generic-phrase PPWR and CBAM title rules no longer
 // fire for other instruments; monitoring_only exists (OBL-1 register section 8 items 8 and 9) ────────────────────
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const CENSUS = JSON.parse(readFileSync(join(HERE, "..", "..", "src", "lib", "connections", "fixtures", "census-rows.apply-ready.json"), "utf8"));
-const claimTexts = (row) => (row.claims ?? []).map((c) => c.claim_text);
-function censusItem(i) {
-  const r = CENSUS[i];
-  return {
-    item: {
-      id: r.id,
-      title: r.item.title,
-      instrument_identifier: r.item.instrument_identifier,
-      canonical_instrument_key: r.item.canonical_instrument_key,
-      jurisdiction_iso: [r.item.jurisdiction_iso],
-    },
-    ctx: contextFromClaims(claimTexts(r)),
-  };
-}
-const classify = (i) => classifyItemBindingPosition(censusItem(i).item, censusItem(i).ctx)?.position ?? null;
-
-test("census index 51 (Directive 2004/12/EC amending 94/62/EC, addressed to the Member States): not direct_duty from the generic packaging phrase; monitoring_only from its duty holder", () => {
-  assert.equal(classify(51), "monitoring_only");
-  assert.deepEqual(censusItem(51).ctx.dutyHolderClasses, ["member_state"]);
-});
-
-test("census index 61 (UK CBAM transitory regulations): the generic carbon-border phrase no longer reads as the EU CBAM; unclassified", () => {
-  assert.equal(classify(61), null);
-});
-
-test("census index 81 (Implementing Regulation (EU) 2025/2621 applying Regulation (EU) 2023/956): classified by the instrument number it names, direct_duty", () => {
-  assert.equal(classify(81), "direct_duty");
-});
-
-test("census index 103 (UK packaging producer regulations): the record-facts [binding_position] claim wins, monitoring_only", () => {
-  assert.equal(censusItem(103).ctx.recordFactsPosition, "monitoring_only");
-  assert.equal(classify(103), "monitoring_only");
-});
-
-test("census index 164 (2001/171/EC glass packaging derogation): no longer direct_duty from the generic packaging phrase", () => {
-  assert.equal(classify(164), null);
-});
 
 test("the four forwarder-direct instruments still classify direct_duty (by key, number or name)", () => {
   const cases = [

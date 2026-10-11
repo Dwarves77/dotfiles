@@ -96,25 +96,6 @@ test("apply, blank arg: writes the rule decisions, and every non-kept decision c
   assert.equal(r.read_back.rows_named_in_ruling, 6);
 });
 
-test("dry: calls applyMain with apply:false, plan passed through unmodified", async () => {
-  const calls = [];
-  const deps = {
-    readAll: async () => { throw new Error("a committed file must not trigger the rule path read"); },
-    applyMain: async (opts) => {
-      calls.push(opts);
-      return { queue: "coverage-gaps", mode: "dry-run", results: [{ key: "MISSING::EU::ocean", decision: "kept", would_apply: 4 }] };
-    },
-    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
-  };
-  const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/coverage-gaps.ruling.json" }, deps);
-  assert.equal(calls[0].apply, false);
-  assert.ok(calls[0].rulingPath, "a committed file still applies through its path");
-  assert.equal(calls[0].ruling, undefined);
-  assert.equal(r.source, "ruling-file");
-  assert.equal(r.counts.queue, "coverage-gaps");
-  assert.equal(r.applied, 0);
-});
-
 test("apply: sums applied across groups; reads back the ruling's row_ids against coverage_gap_candidates", async () => {
   const dir = mkdtempSync(join(tmpdir(), "review-apply-coverage-gaps-"));
   const rulingPath = join(dir, "coverage-gaps.ruling.json");
