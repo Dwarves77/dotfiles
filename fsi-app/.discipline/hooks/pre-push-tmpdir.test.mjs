@@ -251,3 +251,222 @@ test("pre_push_log_firing: evidence is cut to 200 characters and never blocks (a
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// GATE-PUSH-1 (2026-10-11, amends ADR-040): a push whose tip commit carries no CI skip token is a
+// CI-triggering (final) push and runs step 3d (ESLint on the changed files) and step 3e (the fitness
+// runner) locally; a WIP push (skip token) and a docs-only push run neither. Proven by running the REAL
+// tracked hook in a throwaway repository whose gated scripts are stubs that leave a marker when they run,
+// and by driving the lib functions and the real ESLint directly.
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+import { execFileSync } from "node:child_process";
+import { mkdirSync, copyFileSync, chmodSync } from "node:fs";
+import { createRequire } from "node:module";
+import { delimiter, basename } from "node:path";
+
+const HOOK_DIR_REL = "fsi-app/.discipline/hooks";
+const REPO_ROOT_DIR = resolve(HERE, "..", "..", "..");
+const ZERO_SHA = "0".repeat(40);
+
+function gitIn(dir, args) {
+  return execFileSync("git", args, { cwd: dir, encoding: "utf8" });
+}
+
+// One throwaway repo: a base commit (the stub gated scripts plus the real hook files), origin/master pointing
+// at it, then ONE branch commit that writes `changed` and carries `message`.
+function finalTierRepo({ changed, message }) {
+  const dir = mkdtempSync(join(tmpdir(), "prepush-final-"));
+  gitIn(dir, ["init", "-q", "-b", "master"]);
+  for (const [k, v] of [["user.name", "T"], ["user.email", "t@example.com"], ["commit.gpgsign", "false"], ["core.autocrlf", "false"]]) {
+    gitIn(dir, ["config", k, v]);
+  }
+  const put = (rel, text) => {
+    mkdirSync(dirname(join(dir, rel)), { recursive: true });
+    writeFileSync(join(dir, rel), text);
+  };
+  for (const rel of [`${HOOK_DIR_REL}/pre-push`, `${HOOK_DIR_REL}/lib/prepush-logdir.sh`, `${HOOK_DIR_REL}/lib/final-push-tier.sh`]) {
+    if (!existsSync(join(REPO_ROOT_DIR, rel))) continue;
+    mkdirSync(dirname(join(dir, rel)), { recursive: true });
+    copyFileSync(join(REPO_ROOT_DIR, rel), join(dir, rel));
+  }
+  put(`${HOOK_DIR_REL}/lib/worktree-node-modules.sh`, "wt_nm_ensure_link() { return 0; }\nwt_nm_require() { return 0; }\n");
+  const mark = (name) => `import { appendFileSync } from "node:fs"; import { join } from "node:path"; appendFileSync(join(process.env.FIXTURE_MARK, "${name}"), "ran\\n");`;
+  put("fsi-app/.discipline/governance/docs-only-range.mjs", `process.exit(process.env.FIXTURE_DOCS_ONLY === "1" ? 0 : 1);\n`);
+  put("fsi-app/.discipline/consistency/override-check.mjs", `process.stdin.resume(); process.stdin.on("end", () => process.exit(0));\n`);
+  put("fsi-app/.discipline/governance/memory-gate.mjs", "process.exit(0);\n");
+  put("fsi-app/.discipline/fitness/runner.mjs", `${mark("runner")}\nprocess.exit(Number(process.env.FIXTURE_RUNNER_EXIT || 0));\n`);
+  put("README.md", "base\n");
+  gitIn(dir, ["add", "-A"]);
+  gitIn(dir, ["commit", "-q", "-m", "base"]);
+  gitIn(dir, ["update-ref", "refs/remotes/origin/master", "HEAD"]);
+  for (const [rel, text] of Object.entries(changed)) put(rel, text);
+  gitIn(dir, ["add", "-A"]);
+  const msgFile = join(dir, "..", `${basename(dir)}.msg`);
+  writeFileSync(msgFile, message);
+  gitIn(dir, ["commit", "-q", "-F", msgFile]);
+  const tip = gitIn(dir, ["rev-parse", "HEAD"]).trim();
+  const bin = join(dir, "..", `${basename(dir)}-bin`);
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, "npm"), `#!/bin/sh\necho "$@" >> "$FIXTURE_MARK/npm.log"\nexit "\${FIXTURE_LINT_EXIT:-0}"\n`);
+  chmodSync(join(bin, "npm"), 0o755);
+  const markDir = join(dir, "..", `${basename(dir)}-mark`);
+  mkdirSync(markDir, { recursive: true });
+  const cleanup = () => {
+    for (const p of [dir, msgFile, bin, markDir]) rmSync(p, { recursive: true, force: true });
+  };
+  return { dir, tip, bin, markDir, cleanup };
+}
+
+function runFinalHook(repo, { refs, env = {} }) {
+  const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === "path") || "PATH";
+  const childEnv = { ...process.env, DISCIPLINE_HOOK_TRAMPOLINE: "1", FIXTURE_MARK: repo.markDir, ...env };
+  childEnv[pathKey] = repo.bin + delimiter + (process.env[pathKey] || "");
+  delete childEnv.DISCIPLINE_PREPUSH_FULL;
+  const r = spawnSync("sh", [join(repo.dir, HOOK_DIR_REL, "pre-push")], {
+    cwd: repo.dir, encoding: "utf8", input: refs ?? `refs/heads/x ${repo.tip} refs/heads/x ${ZERO_SHA}\n`, env: childEnv,
+  });
+  return {
+    code: r.status, out: `${r.stdout}${r.stderr}`,
+    runnerRan: existsSync(join(repo.markDir, "runner")),
+    lintArgs: existsSync(join(repo.markDir, "npm.log")) ? readFileSync(join(repo.markDir, "npm.log"), "utf8") : "",
+  };
+}
+
+const CODE_CHANGE = { "fsi-app/src/a.ts": "export const a = 1;\n" };
+
+test("GATE-PUSH-1: a WIP push (tip carries [skip ci]) runs neither the lint step nor the fitness runner", () => {
+  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "WIP lane: step [skip ci]\n" });
+  try {
+    const r = runFinalHook(repo, {});
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /step 0e: WIP push \(skip token\), final tier skipped/);
+    assert.equal(r.runnerRan, false, "the fitness runner must not run on a WIP push");
+    assert.equal(r.lintArgs, "", "eslint must not run on a WIP push");
+    assert.doesNotMatch(r.out, /step 3d|step 3e/);
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: a push whose tip has no skip token is a final push and runs eslint on the changed files, then the fitness runner", () => {
+  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: a normal final subject\n" });
+  try {
+    const r = runFinalHook(repo, {});
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /step 0e: final push, running the final tier \(eslint on 1 changed files, fitness runner\)/);
+    assert.match(r.out, /step 3d \(eslint, max-warnings 0, CI parity\): OK/);
+    assert.match(r.out, /step 3e \(fitness runner, live tree, CI parity\): OK/);
+    assert.equal(r.runnerRan, true);
+    assert.match(r.lintArgs, /--max-warnings=0/);
+    assert.match(r.lintArgs, /src\/a\.ts/, "only the changed file is linted, repo-relative to fsi-app");
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: a skip token in the commit BODY counts (rule 024 recognises it anywhere), so the tip is not a final push", () => {
+  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "WIP lane: step\n\nsaved [skip ci]\n" });
+  try {
+    const r = runFinalHook(repo, {});
+    assert.match(r.out, /step 0e: WIP push \(skip token\)/);
+    assert.equal(r.runnerRan, false);
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: a failing lint blocks a final push at STEP 3d (exit 1) before the runner runs", () => {
+  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: final\n" });
+  try {
+    const r = runFinalHook(repo, { env: { FIXTURE_LINT_EXIT: "1" } });
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /STEP 3d FAIL: ESLint reported violation\(s\) \(max-warnings 0\)/);
+    assert.equal(r.runnerRan, false, "3e must not run after 3d failed");
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: a failing fitness runner blocks a final push at STEP 3e", () => {
+  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: final\n" });
+  try {
+    const r = runFinalHook(repo, { env: { FIXTURE_RUNNER_EXIT: "1" } });
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /STEP 3e FAIL: fitness runner reported violation\(s\) on the live tree/);
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: a final push that changes no lintable file prints the no-lintable-files line and still runs the runner", () => {
+  const repo = finalTierRepo({ changed: { "fsi-app/data/x.json": "{}\n" }, message: "LANE-1: final\n" });
+  try {
+    const r = runFinalHook(repo, {});
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /step 0e: final push, running the final tier \(eslint on 0 changed files, fitness runner\)/);
+    assert.match(r.out, /step 3d: no lintable files changed/);
+    assert.equal(r.lintArgs, "");
+    assert.equal(r.runnerRan, true);
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: the docs-only fast path still skips both lint and the runner, even on a final push", () => {
+  const repo = finalTierRepo({ changed: { "docs/x.md": "x\n" }, message: "LANE-1: docs final\n" });
+  try {
+    const r = runFinalHook(repo, { env: { FIXTURE_DOCS_ONLY: "1" } });
+    assert.equal(r.code, 0, r.out);
+    assert.equal(r.runnerRan, false);
+    assert.equal(r.lintArgs, "");
+    assert.doesNotMatch(r.out, /step 3d|step 3e/);
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: a branch deletion (all-zero local sha) and an empty push run no tier", () => {
+  const repo = finalTierRepo({ changed: CODE_CHANGE, message: "LANE-1: final\n" });
+  try {
+    for (const refs of [`(delete) ${ZERO_SHA} refs/heads/x ${repo.tip}\n`, ""]) {
+      const r = runFinalHook(repo, { refs });
+      assert.equal(r.code, 0, r.out);
+      assert.match(r.out, /step 0e: .*final tier skipped/);
+      assert.equal(r.runnerRan, false);
+    }
+  } finally { repo.cleanup(); }
+});
+
+test("GATE-PUSH-1: the hook source places step 0e after the docs-only classifier and before step 1, and keeps the heavy steps", () => {
+  const hook = readFileSync(PRE_PUSH_PATH, "utf8");
+  assert.match(hook, /FINAL_PUSH/);
+  assert.match(hook, /DISCIPLINE_PREPUSH_FULL/);
+  assert.ok(hook.indexOf("Step 0e:") > hook.indexOf("Step 0c:"), "0e sits after the docs-only classifier");
+  assert.ok(hook.indexOf("Step 0e:") < hook.indexOf("Step 1:"), "0e sits before step 1");
+  for (const okLine of ["step 3 (discipline", "step 3b (", "step 3f (", "step 3g (", "step 4 (tsc"]) {
+    assert.ok(hook.includes(okLine), `heavy step still present: ${okLine}`);
+  }
+});
+
+test("pre_push_text_has_skip_token: the five tokens and the skip-checks trailer match, case-insensitively; plain text does not", () => {
+  const lib = join(REPO_ROOT_DIR, HOOK_DIR_REL, "lib", "final-push-tier.sh").replaceAll("\\", "/");
+  const probe = (text) => spawnSync("sh", ["-c", `. "${lib}" && pre_push_text_has_skip_token "$1"`, "sh", text]).status === 0;
+  for (const t of ["[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]", "x [SKIP CI] y", "a\n\nskip-checks: true\n"]) {
+    assert.equal(probe(t), true, t);
+  }
+  for (const t of ["", "skip ci", "[skip]", "no ci here"]) assert.equal(probe(t), false, t);
+});
+
+// ATTACK, real ESLint (rule 15: a guard is proven by an adversarial case, not by presence). Self-skips when
+// the app's ESLint does not resolve (the no-npm CI suite has no install); it runs in every worktree with the
+// shared link and in the npm-deps environment.
+function eslintResolves() {
+  try { createRequire(join(REPO_ROOT_DIR, "fsi-app", "package.json")).resolve("eslint/package.json"); return true; } catch { return false; }
+}
+
+test("GATE-PUSH-1 attack: a changed file with an unused variable is BLOCKED by the 3d lint command; a clean file passes", { skip: !eslintResolves() && "eslint not installed in this environment" }, () => {
+  const rel = "fsi-app/scripts/tmp";
+  mkdirSync(join(REPO_ROOT_DIR, rel), { recursive: true });
+  const bad = `${rel}/gatepush1-attack-${process.pid}-bad.ts`;
+  const good = `${rel}/gatepush1-attack-${process.pid}-good.ts`;
+  writeFileSync(join(REPO_ROOT_DIR, bad), "export function f() {\n  const unusedVariable = 1;\n  return 2;\n}\n");
+  writeFileSync(join(REPO_ROOT_DIR, good), "export function g() {\n  return 2;\n}\n");
+  const lib = "fsi-app/.discipline/hooks/lib/final-push-tier.sh";
+  const lint = (file) => spawnSync("sh", ["-c", `. "${lib}" && pre_push_eslint_files "$1"`, "sh", file], { cwd: REPO_ROOT_DIR, encoding: "utf8" });
+  try {
+    const rBad = lint(bad);
+    assert.notEqual(rBad.status, 0, `an unused variable must fail max-warnings 0: ${rBad.stdout}${rBad.stderr}`);
+    assert.match(`${rBad.stdout}${rBad.stderr}`, /unusedVariable/);
+    const rGood = lint(good);
+    assert.equal(rGood.status, 0, `${rGood.stdout}${rGood.stderr}`);
+  } finally {
+    rmSync(join(REPO_ROOT_DIR, bad), { force: true });
+    rmSync(join(REPO_ROOT_DIR, good), { force: true });
+  }
+});
