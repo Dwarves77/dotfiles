@@ -247,10 +247,11 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
 
           {/* WIRE-ITEMS: bias tags the Haiku recommendation proposed. Informational
               before Approve is clicked -- writing to source_bias_tags happens on
-              approval (see /api/admin/sources/promote), split by this same
-              confidence banding. Tags below 0.65 are never written; shown here
-              only so the operator can see what the classifier considered and
-              discarded. */}
+              approval (see /api/admin/sources/promote). Every tag at 0.65 or above
+              is stored as adopted (assignment_source haiku_auto_high_confidence,
+              lane s1b-host-verdicts); the 0.80 line only shades the chip. Tags
+              below 0.65 are never written; shown here only so the operator can
+              see what the classifier considered and discarded. */}
           {rec?.bias_tags && (
             <div className="text-xs mb-3 p-2 rounded" style={{ backgroundColor: "var(--color-surface-raised)" }}>
               <span className="font-semibold block mb-1" style={{ color: "var(--color-text-primary)" }}>
@@ -288,7 +289,7 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
                             willApply
                               ? "Auto-applies on approve (confidence >= 0.80)"
                               : pendingConfirm
-                              ? "Applies on approve, pending operator confirm (confidence 0.65-0.79)"
+                              ? "Applies on approve, stored as adopted (confidence 0.65-0.79)"
                               : "Discarded, not written (confidence < 0.65)"
                           }
                         >
